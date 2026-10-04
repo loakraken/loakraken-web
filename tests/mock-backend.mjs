@@ -63,6 +63,45 @@ createServer(async (req, res) => {
       { type: "최대 생명력", value: "377857" },
     ];
   }
+  if (name === "이미지" || name === "이미지실패") {
+    // Generic official icon-atlas assets (not character data). The portrait is
+    // per character, so it is only used when supplied locally via MOCK_PORTRAIT_URL.
+    const cdn = "https://cdn-lostark.game.onstove.com/efui_iconatlas";
+    const broken = name === "이미지실패";
+    const icon = (path) => (broken ? `${cdn}/missing/${path}` : `${cdn}/${path}`);
+    const { loadout } = envelope.data;
+    envelope.data.imageUrl = broken
+      ? "https://cdn-lostark.game.onstove.com/armory/missing.jpg"
+      : (process.env.MOCK_PORTRAIT_URL ?? null);
+    loadout.equipment = [
+      ["무기", "+25 합성 무기", "gbs_item/gbs_item_01_175.png", "고대"],
+      ["투구", "+20 합성 투구", "gbs_item/gbs_item_01_169.png", "고대"],
+      ["어빌리티 스톤", "합성 어빌리티 스톤", null, "유물"],
+    ].map(([type, itemName, path, grade]) => ({
+      type,
+      name: itemName,
+      icon: path ? icon(path) : null,
+      grade,
+    }));
+    loadout.cards.items = [
+      ["합성 카드 하나", "card_legend/card_legend_00_4.png", 5],
+      ["합성 카드 둘", "card_legend/card_legend_02_0.png", 3],
+      ["합성 카드 셋", null, null],
+    ].map(([cardName, path, awake], slot) => ({
+      slot,
+      name: cardName,
+      icon: path ? icon(path) : null,
+      awakeCount: awake,
+      awakeTotal: 5,
+      grade: "전설",
+    }));
+    loadout.arkGrid.slots[0].icon = icon("use/use_13_96.png");
+    loadout.arkGrid.slots[0].gems = [
+      { index: 0, icon: icon("use/use_13_202.png"), active: true, grade: "전설" },
+      { index: 1, icon: icon("use/use_13_202.png"), active: false, grade: "영웅" },
+    ];
+    loadout.arkPassive.effects[0].icon = icon("ark_passive_bs/ark_passive_bs_1.png");
+  }
   if (name === "문자열")
     envelope.data.guildName = '<img src=x onerror="window.injected=true">';
   send(envelope);
