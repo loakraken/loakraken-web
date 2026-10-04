@@ -1,10 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import {
   QueryClient,
   QueryClientProvider,
 } from "@tanstack/react-query";
-import { useState } from "react";
+
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 export default function Providers({
                                     children,
@@ -26,7 +28,7 @@ export default function Providers({
 
   return (
       <QueryClientProvider client={queryClient}>
-        {children}
+        <TooltipProvider>{children}</TooltipProvider>
       </QueryClientProvider>
   );
 }

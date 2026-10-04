@@ -1,0 +1,33 @@
+{
+  "passed": [
+    "desktop rendering",
+    "required input validation",
+    "pointer and keyboard tabs",
+    "evidence disclosure and copy",
+    "motion pause/resume",
+    "Ctrl+K",
+    "Korean character navigation and refresh",
+    "responsive layout",
+    "reduced motion",
+    "SSR content without JavaScript",
+    "no runtime errors"
+  ],
+  "responsive": [
+    {
+      "width": 768,
+      "viewport": 768,
+      "body": 768
+    },
+    {
+      "width": 390,
+      "viewport": 390,
+      "body": 390
+    },
+    {
+      "width": 320,
+      "viewport": 320,
+      "body": 320
+    }
+  ],
+  "errors": []
+}

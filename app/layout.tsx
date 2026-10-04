@@ -1,26 +1,38 @@
 import type { Metadata } from "next";
-import "./globals.css";
+import { Geist, Geist_Mono, Noto_Sans_KR } from "next/font/google";
 
-import { TooltipProvider } from "@/components/ui/tooltip";
+import "./globals.css";
 import Providers from "./providers";
 
+const geistSans = Geist({
+  variable: "--font-geist-sans",
+  subsets: ["latin"],
+});
+
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
+
+const korean = Noto_Sans_KR({
+  variable: "--font-korean",
+  subsets: ["latin"],
+  display: "swap",
+});
+
 export const metadata: Metadata = {
-  title: "LOAKraken",
-  description: "Lost Ark Data Intelligence Platform",
+  title: { default: "LOAKraken — 정밀 관측으로 결정하는 다음 성장", template: "%s | LOAKraken" },
+  description: "흩어진 로스트아크 캐릭터 정보를 한눈에. 관측한 데이터와 진단의 근거를 함께 확인하는 LOAKraken의 디자인 미리보기입니다.",
 };
 
-export default function RootLayout({
-                                     children,
-                                   }: Readonly<{
+export default function RootLayout({ children }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-      <html lang="ko">
-      <body>
-      <Providers>
-        <TooltipProvider>{children}</TooltipProvider>
-      </Providers>
+    <html lang="ko" style={{ colorScheme: "light" }}>
+      <body className={`${geistSans.variable} ${geistMono.variable} ${korean.variable} antialiased`}>
+        <Providers>{children}</Providers>
       </body>
-      </html>
+    </html>
   );
 }
