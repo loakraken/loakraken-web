@@ -60,6 +60,9 @@
   background: #fff;
   border: 1px solid #b9b9c2;
   border-radius: 30px;
+  transition:
+    border-color 160ms ease-out,
+    box-shadow 160ms ease-out;
 }
 .search input {
   min-width: 0;
@@ -69,9 +72,13 @@
   background: transparent;
   font-size: 16px;
 }
+/* The pill is the focus target; the inner input must not draw a second ring. */
+.search input:focus-visible {
+  outline: none;
+}
 .search:focus-within {
-  outline: 2px solid #0071e3;
-  outline-offset: 3px;
+  border-color: #0071e3;
+  box-shadow: 0 0 0 4px rgb(0 113 227 / 18%);
 }
 .search button {
   display: grid;
@@ -80,6 +87,21 @@
   height: 44px;
   border-radius: 50%;
   color: #0066cc;
+}
+.search button:focus-visible {
+  outline-offset: -4px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .search button:not(:disabled):hover {
+    background: #f0f5fc;
+  }
+}
+.inputNotice {
+  color: #6e6e73;
+  font-size: 13px;
+}
+.inputNotice:not(:empty) {
+  margin-top: 8px;
 }
 .inputError {
   color: #a32323;
@@ -335,9 +357,10 @@
   border-bottom: 0;
 }
 .rows li > span {
+  flex: 0 0 64px;
   color: #6e6e73;
-  min-width: 60px;
   font-size: 12px;
+  line-height: 1.45;
 }
 .rows li > div {
   min-width: 0;
@@ -352,6 +375,21 @@
   color: #6e6e73;
   margin-top: 3px;
   font-size: 12px;
+}
+.sourceText {
+  white-space: pre-line;
+}
+.sourceText [data-tone="positive"] {
+  color: #248a3d;
+  font-weight: 550;
+}
+.sourceText [data-tone="negative"] {
+  color: #d70015;
+  font-weight: 550;
+}
+.sourceText [data-tone="emphasis"] {
+  color: #1d1d1f;
+  font-weight: 600;
 }
 .subheading {
   font-size: 14px;

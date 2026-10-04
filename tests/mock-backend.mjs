@@ -51,6 +51,18 @@ createServer(async (req, res) => {
   if (name === "빈목록") envelope = read("observation-gems-items-empty.json");
   if (name === "미제공") envelope = read("observation-gems-items-null.json");
   envelope.data.characterName = name;
+  if (name === "마크업") {
+    // Synthetic copy of the official Tooltip markup shape seen in live responses.
+    const { engravings, arkPassive } = envelope.data.loadout;
+    engravings.arkPassiveEffects[0].description =
+      "피해량이 <FONT COLOR='#99ff99'>27.00%</FONT> 증가하지만, 받는 피해가 <FONT COLOR='#ff9999'>20.00%</FONT> 증가한다.";
+    arkPassive.effects[0].description =
+      "<FONT color='#83E9FF'>깨달음</FONT> 1티어 <FONT color='#83E9FF'>합성 패시브 Lv.1</FONT><BR>둘째 줄";
+    envelope.data.stats = [
+      { type: "치명", value: "646" },
+      { type: "최대 생명력", value: "377857" },
+    ];
+  }
   if (name === "문자열")
     envelope.data.guildName = '<img src=x onerror="window.injected=true">';
   send(envelope);

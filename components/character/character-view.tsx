@@ -40,13 +40,36 @@ import {
   type CoverageState,
   type QueryFailure,
 } from "@/lib/character/model";
+import { parseSourceText, sourcePlainText } from "@/lib/character/source-text";
 import styles from "./character.module.css";
 
 const number = (value: number | null | undefined) =>
   value == null
     ? "미제공"
     : value.toLocaleString("ko-KR", { maximumFractionDigits: 2 });
-const text = (value: string | null | undefined) => value || "미제공";
+const text = (value: string | null | undefined) =>
+  sourcePlainText(value) || "미제공";
+// Stats arrive as strings; group digits only when the whole value is a plain number.
+const numeric = (value: string | null | undefined) =>
+  value && /^-?\d+(\.\d+)?$/.test(value) ? number(Number(value)) : text(value);
+
+function SourceText({ value }: { value: string | null | undefined }) {
+  const segments = parseSourceText(value);
+  if (!segments.length) return <>미제공</>;
+  return (
+    <span className={styles.sourceText}>
+      {segments.map((segment, i) =>
+        segment.tone ? (
+          <span key={i} data-tone={segment.tone}>
+            {segment.text}
+          </span>
+        ) : (
+          segment.text
+        ),
+      )}
+    </span>
+  );
+}
 const sectionLinks = [
   ["diagnostics", "진단 근거"],
   ["equipment", "장비"],
@@ -70,13 +93,18 @@ function SearchBox({ name }: { name: string }) {
   const [value, setValue] = useState(name);
   const [error, setError] = useState("");
   const [moving, setMoving] = useState(false);
+  const [notice, setNotice] = useState("");
   function submit(event: FormEvent) {
     event.preventDefault();
     const issue = characterNameError(value);
     setError(issue);
+    setNotice("");
     if (issue) return;
     const normalized = normalizeCharacterName(value);
-    if (normalized === name) return;
+    if (normalized === name) {
+      setNotice("지금 보고 있는 캐릭터예요. 최신 정보는 '다시 조회'로 확인해 주세요.");
+      return;
+    }
     setMoving(true);
     router.push(`/character/${encodeURIComponent(normalized)}`);
   }
@@ -98,6 +126,7 @@ function SearchBox({ name }: { name: string }) {
           onChange={(e) => {
             setValue(e.target.value);
             setError("");
+            setNotice("");
           }}
           maxLength={65}
           placeholder="다른 캐릭터 검색"
@@ -114,6 +143,9 @@ function SearchBox({ name }: { name: string }) {
           {error}
         </p>
       )}
+      <p className={styles.inputNotice} role="status">
+        {notice}
+      </p>
     </div>
   );
 }
@@ -467,7 +499,7 @@ function CharacterContent({
                 {data.stats.map((stat, i) => (
                   <div key={i}>
                     <span>{text(stat.type)}</span>
-                    <strong>{text(stat.value)}</strong>
+                    <strong>{numeric(stat.value)}</strong>
                   </div>
                 ))}
               </section>
@@ -535,15 +567,15 @@ function CharacterContent({
                 {data.loadout.gems?.effects && (
                   <details className={styles.more}>
                     <summary>보석 효과와 연결 스킬</summary>
-                    <p>{text(data.loadout.gems.effects.description)}</p>
+                    <p><SourceText value={data.loadout.gems.effects.description} /></p>
                     {data.loadout.gems.effects.skills.map((skill, i) => (
                       <div key={i}>
                         <h3>{text(skill.name)}</h3>
                         <p>
-                          슬롯 {number(skill.gemSlot)} · {text(skill.option)}
+                          슬롯 {number(skill.gemSlot)} · <SourceText value={skill.option} />
                         </p>
                         {skill.description.map((line, j) => (
-                          <p key={j}>{line}</p>
+                          <p key={j}><SourceText value={line} /></p>
                         ))}
                       </div>
                     ))}
@@ -583,10 +615,11 @@ function CharacterContent({
                                 {text(item.name)} · Lv. {number(item.level)}
                               </strong>
                               <small>
-                                {text(item.grade)} · 어빌리티 스톤 Lv.{" "}
-                                {number(item.abilityStoneLevel)}
+                                {text(item.grade)}
+                                {item.abilityStoneLevel != null &&
+                                  ` · 어빌리티 스톤 Lv. ${number(item.abilityStoneLevel)}`}
                               </small>
-                              <p>{text(item.description)}</p>
+                              <p><SourceText value={item.description} /></p>
                             </li>
                           ),
                         )}
@@ -604,7 +637,7 @@ function CharacterContent({
                         {data.loadout.engravings.effects.map((item, i) => (
                           <li key={i}>
                             <strong>{text(item.name)}</strong>
-                            <p>{text(item.description)}</p>
+                            <p><SourceText value={item.description} /></p>
                           </li>
                         ))}
                       </ul>
@@ -660,7 +693,7 @@ function CharacterContent({
                           {set.items.map((item, j) => (
                             <div key={j}>
                               <strong>{text(item.name)}</strong>
-                              <p>{text(item.description)}</p>
+                              <p><SourceText value={item.description} /></p>
                             </div>
                           ))}
                         </div>
@@ -698,7 +731,7 @@ function CharacterContent({
                                 : number(point.value)}
                             </strong>
                             {point.description && (
-                              <small>{point.description}</small>
+                              <small><SourceText value={point.description} /></small>
                             )}
                           </div>
                         ))}
@@ -714,7 +747,7 @@ function CharacterContent({
                         {data.loadout.arkPassive.effects.map((item, i) => (
                           <li key={i}>
                             <strong>{text(item.name)}</strong>
-                            <p>{text(item.description)}</p>
+                            <p><SourceText value={item.description} /></p>
                           </li>
                         ))}
                       </ul>
