@@ -22,7 +22,7 @@ const korean = Noto_Sans_KR({
 
 export const metadata: Metadata = {
   title: { default: "LOAKraken — 정밀 관측으로 결정하는 다음 성장", template: "%s | LOAKraken" },
-  description: "흩어진 로스트아크 캐릭터 정보를 한눈에. 관측한 데이터와 진단의 근거를 함께 확인하는 LOAKraken의 디자인 미리보기입니다.",
+  description: "흩어진 로스트아크 캐릭터 정보를 한눈에. 장비와 세팅, 관측한 데이터와 진단의 근거를 함께 확인하세요.",
 };
 
 export default function RootLayout({ children }: Readonly<{

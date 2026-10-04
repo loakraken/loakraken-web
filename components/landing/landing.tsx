@@ -10,6 +10,7 @@ import { CharacterCockpit } from "./cockpit";
 import { IntelligenceOrb, InlineOrb } from "./orb";
 import { LandingMotion, Reveal, useLandingMotion } from "./motion";
 import { roadmap } from "./roadmap";
+import { characterNameError, normalizeCharacterName } from "@/lib/character/model";
 import styles from "./landing.module.css";
 
 export function KrakenMark() {
@@ -62,9 +63,9 @@ function PrecisionLanding() {
 
   function search(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const name = query.trim();
-    if (!name) { setError("캐릭터 이름을 입력해 주세요."); input.current?.focus(); return; }
-    if (name.length > 24) { setError("캐릭터 이름은 24자 이내로 입력해 주세요."); input.current?.focus(); return; }
+    const name = normalizeCharacterName(query);
+    const issue = characterNameError(name);
+    if (issue) { setError(issue); input.current?.focus(); return; }
     setError(""); setSearching(true);
     router.push(`/character/${encodeURIComponent(name)}`);
   }
@@ -117,12 +118,12 @@ function PrecisionLanding() {
                   <label htmlFor="character-search" className={styles.srOnly}>캐릭터 이름</label>
                   <Search className={styles.searchIcon} size={19} aria-hidden="true" />
                   <input ref={input} id="character-search" name="character" value={query} onChange={(event) => { setQuery(event.target.value); if (error) setError(""); }}
-                    onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} placeholder="캐릭터 이름을 입력하세요" maxLength={25} autoComplete="off" spellCheck={false} disabled={searching} aria-invalid={!!error} aria-describedby={error ? "search-error" : "search-help"} />
+                    onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} placeholder="캐릭터 이름을 입력하세요" maxLength={65} autoComplete="off" spellCheck={false} disabled={searching} aria-invalid={!!error} aria-describedby={error ? "search-error" : "search-help"} />
                   <kbd className={styles.shortcut}><Command size={12} /> K</kbd>
                   <button className={styles.searchSubmit} type="submit" disabled={searching} aria-label={searching ? "캐릭터 화면으로 이동 중" : undefined}>{searching ? <InlineOrb /> : <>캐릭터 검색 <ArrowRight size={16} /></>}</button>
                 </form>
               </BorderBeam>
-              <div className={styles.searchMessage} aria-live="polite">{error ? <p id="search-error" className={styles.error}>{error}</p> : <p id="search-help">현재는 디자인 미리보기 단계입니다. <a href="#preview">예시 캐릭터 살펴보기 <ArrowUpRight size={12} /></a></p>}</div>
+              <div className={styles.searchMessage} aria-live="polite">{error ? <p id="search-error" className={styles.error}>{error}</p> : <p id="search-help">이름으로 캐릭터의 현재 정보를 조회하세요. <a href="#preview">예시 화면 살펴보기 <ArrowUpRight size={12} /></a></p>}</div>
             </div>
           </div>
           <a className={styles.exploreLink} href="#preview">새로운 관측 경험 살펴보기 <ArrowDown size={16} /></a>
@@ -165,7 +166,7 @@ function PrecisionLanding() {
 
         <section className={`${styles.section} ${styles.roadmapSection}`} id="roadmap" aria-labelledby="roadmap-heading">
           <Reveal className={styles.sectionHeading}><div><span className={styles.eyebrow}>앞으로의 LOAKraken</span><h2 id="roadmap-heading">더 나은 선택을 향해.</h2></div><p>검색과 분석에서 성장, 거래, 일상의 플레이까지.<br />캐릭터 성장의 모든 선택을 하나로 연결합니다.</p></Reveal>
-          <Reveal className={styles.roadmapNote}><p>현재는 디자인 미리보기 단계입니다. 아래는 구현 완료 목록이 아닌 제품 목표이며, 종합 조회와 근거 기반 진단부터 개발합니다. 성장 이력은 저장 기준을 정한 뒤, 점수·랭킹·성능 예측은 계산 모델과 데이터 검증을 마친 뒤 제공합니다.</p></Reveal>
+          <Reveal className={styles.roadmapNote}><p>캐릭터 조회와 관측 근거부터 연결하고 있습니다. 아래는 구현 완료 목록이 아닌 제품 목표입니다. 성장 이력은 저장 기준을 정한 뒤, 점수·랭킹·성능 예측은 계산 모델과 데이터 검증을 마친 뒤 제공합니다.</p></Reveal>
           <div className={styles.roadmap}>
             {roadmap.map((item) => <Reveal key={item.number} className={styles.roadmapItem}>
               <span className={styles.roadmapNumber}>{item.number}</span><div><span className={styles.roadmapStatus} data-active={item.active}><i />{item.status}</span><h3>{item.title}</h3><p>{item.description}</p><p className={styles.roadmapScope}>{item.scope}</p></div>
@@ -177,7 +178,7 @@ function PrecisionLanding() {
           <Reveal><span className={styles.closingMark}><KrakenMark /></span><h2 id="closing-heading">다음 성장은,<br /><span>더 명확한 선택에서.</span></h2><p>당신의 캐릭터를 이해하는 새로운 시선.</p><button type="button" className={styles.primaryButton} onClick={focusSearch}>캐릭터 검색 <ArrowRight size={16} /></button></Reveal>
         </section>
       </main>
-      <footer className={styles.footer}><Link href="/" className={styles.brand}><KrakenMark />LOAKraken</Link><p>로스트아크 비공식 팬 프로젝트 · 디자인 미리보기</p><a href="https://libraries.dev/orbs" target="_blank" rel="noreferrer">Motion with Libraries.dev <ArrowUpRight size={12} /></a></footer>
+      <footer className={styles.footer}><Link href="/" className={styles.brand}><KrakenMark />LOAKraken</Link><p>로스트아크 비공식 팬 프로젝트 · 캐릭터 관측</p><a href="https://libraries.dev/orbs" target="_blank" rel="noreferrer">Motion with Libraries.dev <ArrowUpRight size={12} /></a></footer>
     </div>
   );
 }
