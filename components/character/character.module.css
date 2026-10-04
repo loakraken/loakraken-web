@@ -126,15 +126,6 @@
   gap: 26px;
   margin: 40px 0 20px;
 }
-.hero[data-portrait] {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(260px, 340px);
-  align-items: end;
-  gap: 40px;
-}
-.stageWrap {
-  min-width: 0;
-}
 .identity {
   flex: 1;
   min-width: 0;
@@ -162,9 +153,6 @@
   display: inline-block;
   margin-top: 6px;
 }
-.identity .metrics {
-  margin: 28px 0 22px;
-}
 .refresh {
   display: inline-flex;
   align-items: center;
@@ -179,6 +167,85 @@
 }
 .refresh:active {
   transform: scale(0.97);
+}
+/* Banner content (dark band): light ink, ILOA-style chips and inline metrics. */
+.bannerTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.bannerBack {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--banner-muted);
+  font-size: 13px;
+}
+.bannerTop .refresh {
+  padding: 8px 15px;
+  font-size: 13px !important;
+}
+.bannerIdentity {
+  margin-top: auto;
+  padding-top: 26px;
+  max-width: 46%;
+}
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.chips span {
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: var(--banner-chip);
+  color: var(--banner-ink);
+  font-size: 12px;
+  font-weight: 550;
+}
+.bannerIdentity h1 {
+  font-size: clamp(30px, 4.2vw, 48px);
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+.bannerTitle {
+  margin-top: 6px;
+  color: var(--banner-muted);
+  font-size: 15px;
+}
+.bannerFacts {
+  margin-top: 12px;
+  color: var(--banner-ink);
+  font-size: 13px;
+}
+.bannerFacts span {
+  color: var(--banner-muted);
+  margin-right: 6px;
+}
+.bannerMetrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 34px;
+  margin-top: 22px;
+}
+.bannerMetrics span {
+  display: block;
+  color: var(--banner-muted);
+  font-size: 12px;
+  margin-bottom: 3px;
+}
+.bannerMetrics strong {
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+.bannerMetrics strong[data-accent] {
+  color: var(--banner-accent);
 }
 .queryStatus {
   min-height: 24px;
@@ -661,15 +728,23 @@
     flex-wrap: wrap;
     margin-top: 30px;
   }
-  .hero[data-portrait] {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 22px;
-  }
-  .stageWrap {
-    order: -1;
-  }
   .cardGrid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .bannerIdentity {
+    max-width: 64%;
+  }
+  .bannerTop .refresh {
+    width: auto;
+  }
+  .bannerBack {
+    white-space: nowrap;
+  }
+  .bannerMetrics {
+    gap: 8px 18px;
+  }
+  .bannerMetrics strong {
+    font-size: 17px;
   }
   .identity h1 {
     font-size: 29px;

@@ -131,76 +131,200 @@
   font-size: 12px;
 }
 
-/* Portrait: the official render has a dark background baked in, so it is
-   presented as a dark product shot rather than placed on the white page. */
-.stage {
+/* Banner (ILOA-style): a full-bleed band with the render sitting larger than
+   the band and dissolving sideways. Light surfaces use a locally generated
+   backdrop-free render; dark surfaces use the original, whose baked-in dark
+   backdrop matches the band. The tone follows the OS colour scheme in CSS so
+   the first paint never flashes. */
+.banner {
+  --ambient: 120 140 190;
+  --banner-bg: linear-gradient(to right, #f5f5f7 0%, #ffffff 50%, #f5f5f7 100%);
+  --banner-ink: #1d1d1f;
+  --banner-muted: #6e6e73;
+  --banner-chip: rgb(0 0 0 / 6%);
+  --banner-accent: #d70015;
+  --banner-veil: 255 255 255;
+  --glow-strong: 26%;
+  --glow-soft: 8%;
   position: relative;
-  aspect-ratio: 612 / 708;
-  width: 100%;
-  border-radius: 28px;
   overflow: hidden;
-  background: radial-gradient(
-    120% 80% at 50% 18%,
-    #23252b 0%,
-    #121316 62%,
-    #0b0b0d 100%
-  );
   isolation: isolate;
-  will-change: transform;
+  color: var(--banner-ink);
+  background: var(--banner-bg);
+  border-bottom: 1px solid rgb(0 0 0 / 6%);
 }
-.stage img {
+/* Cutout unavailable: fall back to the dark band with the original render. */
+.banner[data-cutout="failed"]:not([data-phase="failed"]) {
+  --banner-bg: linear-gradient(to right, #0f1114 0%, #16181d 50%, #0f1114 100%);
+  --banner-ink: #f5f5f7;
+  --banner-muted: rgb(245 245 247 / 62%);
+  --banner-chip: rgb(255 255 255 / 12%);
+  --banner-accent: #ff8a7a;
+  --banner-veil: 15 17 20;
+  --glow-strong: 34%;
+  --glow-soft: 10%;
+}
+.bannerGlow {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: radial-gradient(
+    60% 90% at 62% 115%,
+    rgb(var(--ambient) / var(--glow-strong)) 0%,
+    rgb(var(--ambient) / var(--glow-soft)) 45%,
+    transparent 75%
+  );
+  transition: background 600ms ease-out;
+}
+.bannerInner {
+  position: relative;
+  max-width: 1170px;
+  min-height: 320px;
+  margin: 0 auto;
+  padding: 28px 24px 30px;
+  display: flex;
+  align-items: stretch;
+}
+.bannerFigure {
+  position: absolute;
+  top: -2.5%;
+  left: 46%;
+  height: 165%;
+  aspect-ratio: 612 / 708;
+  pointer-events: none;
+}
+.bannerFigure img {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: 50% 18%;
-  -webkit-mask-image: linear-gradient(to bottom, #000 72%, transparent 100%);
-  mask-image: linear-gradient(to bottom, #000 72%, transparent 100%);
+  transform: scale(1.1);
+  transition:
+    opacity 500ms ease-out,
+    transform 700ms cubic-bezier(0.23, 1, 0.32, 1);
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent,
+    #000 20%,
+    #000 80%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    #000 20%,
+    #000 80%,
+    transparent 100%
+  );
 }
-.stageFallback {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  color: rgb(255 255 255 / 70%);
-  font-size: 64px;
-  font-weight: 600;
+/* Light tone: the cutout is shown; the original stays hidden. */
+.figureOriginal {
+  opacity: 0;
 }
-.stageOrb {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
+.figureCutout {
+  opacity: 1;
 }
-.stageSheen {
+.banner[data-cutout="pending"] .figureCutout {
+  opacity: 0;
+  transform: scale(1.14);
+}
+.banner[data-cutout="failed"] .figureOriginal {
+  opacity: 1;
+}
+.banner[data-phase="loading"] .figureOriginal {
+  opacity: 0;
+  transform: scale(1.14);
+}
+.bannerOrb {
   position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 10%),
-    inset 0 0 0 1px rgb(255 255 255 / 5%);
-  pointer-events: none;
+  top: 50%;
+  left: calc(46% + 160px);
+  transform: translate(-50%, -50%);
+}
+.orbDark {
+  display: none;
+}
+.banner[data-cutout="failed"] .orbLight {
+  display: none;
+}
+.banner[data-cutout="failed"] .orbDark {
+  display: block;
+}
+.bannerContent {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (prefers-color-scheme: dark) {
+  .banner {
+    --banner-bg: linear-gradient(to right, #0f1114 0%, #16181d 50%, #0f1114 100%);
+    --banner-ink: #f5f5f7;
+    --banner-muted: rgb(245 245 247 / 62%);
+    --banner-chip: rgb(255 255 255 / 12%);
+    --banner-accent: #ff8a7a;
+    --banner-veil: 15 17 20;
+    --glow-strong: 34%;
+    --glow-soft: 10%;
+    border-bottom-color: transparent;
+  }
+  .figureOriginal {
+    opacity: 1;
+  }
+  .figureCutout {
+    opacity: 0;
+  }
+  .orbLight {
+    display: none;
+  }
+  .orbDark {
+    display: block;
+  }
+  /* The original only needs its own load; the cutout is irrelevant here. */
+  .banner[data-phase="server"] .bannerOrb,
+  .banner[data-phase="loaded"] .bannerOrb {
+    display: none;
+  }
 }
 
 @media (max-width: 700px) {
-  .stage {
-    aspect-ratio: auto;
-    height: 300px;
-    border-radius: 24px;
+  .bannerInner {
+    min-height: 300px;
+    padding: 20px 20px 22px;
   }
-  .stage img {
-    object-position: 50% 12%;
+  .bannerFigure {
+    top: 34px;
+    left: auto;
+    right: -70px;
+    height: 400px;
+  }
+  .bannerOrb {
+    left: auto;
+    right: 18%;
+  }
+  /* Keep the text side legible where it overlaps the figure. */
+  .banner::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background: linear-gradient(
+      to right,
+      rgb(var(--banner-veil) / 80%) 0%,
+      rgb(var(--banner-veil) / 35%) 42%,
+      transparent 62%
+    );
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .stage {
-    will-change: auto;
+  .bannerGlow,
+  .bannerFigure img {
+    transition: none;
   }
-}
-
-.stageImage {
-  position: absolute;
-  inset: 0;
 }

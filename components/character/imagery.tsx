@@ -1,10 +1,17 @@
 "use client";
 
-import { useCallback, useState, type CSSProperties } from "react";
-import { m, useMotionTemplate, useSpring } from "motion/react";
+import {
+  useCallback,
+  useEffect,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
+import { m, useSpring } from "motion/react";
 import { ThinkingOrb } from "thinking-orbs";
 import { useLandingMotion } from "@/components/landing/motion";
 import { gradeKey, safeGameImage } from "@/lib/character/model";
+import { cutoutPortrait } from "@/lib/character/portrait-cutout";
 import styles from "./imagery.module.css";
 
 type Phase = "server" | "loading" | "loaded" | "failed";
@@ -128,26 +135,95 @@ export function CardArt({
   );
 }
 
-export function PortraitStage({
+type Cutout = {
+  status: "none" | "pending" | "ready" | "failed";
+  url: string | null;
+  ambient: string | null;
+};
+
+// Light surfaces need the render without its baked-in dark backdrop. A separate
+// anonymous-CORS request feeds the canvas, so the visible original never
+// depends on CORS; any failure falls back to the dark band with the original.
+function usePortraitCutout(src: string | null): Cutout {
+  const [cutout, setCutout] = useState<Cutout>({
+    status: src ? "pending" : "none",
+    url: null,
+    ambient: null,
+  });
+  useEffect(() => {
+    if (!src) return;
+    let cancelled = false;
+    let objectUrl: string | null = null;
+    const fail = () => {
+      if (!cancelled) setCutout({ status: "failed", url: null, ambient: null });
+    };
+    const probe = new Image();
+    probe.crossOrigin = "anonymous";
+    probe.referrerPolicy = "no-referrer";
+    probe.onerror = fail;
+    probe.onload = () => {
+      try {
+        const width = probe.naturalWidth;
+        const height = probe.naturalHeight;
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const context = canvas.getContext("2d", { willReadFrequently: true });
+        if (!context) return fail();
+        context.drawImage(probe, 0, 0);
+        const pixels = context.getImageData(0, 0, width, height);
+        const result = cutoutPortrait(pixels.data, width, height);
+        if (!result) return fail();
+        context.putImageData(pixels, 0, 0);
+        const ambient = result.ambient ? result.ambient.join(" ") : null;
+        canvas.toBlob((blob) => {
+          if (cancelled) return;
+          if (!blob) return fail();
+          objectUrl = URL.createObjectURL(blob);
+          setCutout({ status: "ready", url: objectUrl, ambient });
+        }, "image/png");
+      } catch {
+        fail();
+      }
+    };
+    probe.src = src;
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [src]);
+  return cutout;
+}
+
+export function CharacterBanner({
   url,
   name,
+  children,
 }: {
   url: string | null;
   name: string;
+  children: ReactNode;
 }) {
   const safe = safeGameImage(url);
   const { enabled } = useLandingMotion();
   const [phase, bind] = useImagePhase(safe);
-  const rotateX = useSpring(0, { stiffness: 100, damping: 20 });
-  const rotateY = useSpring(0, { stiffness: 100, damping: 20 });
-  const transform = useMotionTemplate`perspective(900px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
-  const visible = phase === "server" || phase === "loaded";
+  const cutout = usePortraitCutout(safe);
+  const shiftX = useSpring(0, { stiffness: 90, damping: 22 });
+  const shiftY = useSpring(0, { stiffness: 90, damping: 22 });
+  const waiting = phase === "loading" || cutout.status === "pending";
 
   return (
-    <m.div
-      className={styles.stage}
+    <section
+      className={styles.banner}
       data-phase={phase}
-      style={{ transform: enabled ? transform : "none" }}
+      data-cutout={cutout.status}
+      data-motion={enabled ? "on" : "off"}
+      aria-label={`${name} 캐릭터 요약`}
+      style={
+        cutout.ambient
+          ? ({ "--ambient": cutout.ambient } as CSSProperties)
+          : undefined
+      }
       onPointerMove={(event) => {
         if (
           !enabled ||
@@ -155,58 +231,76 @@ export function PortraitStage({
         )
           return;
         const box = event.currentTarget.getBoundingClientRect();
-        rotateX.set((0.5 - (event.clientY - box.top) / box.height) * 6);
-        rotateY.set(((event.clientX - box.left) / box.width - 0.5) * 6);
+        shiftX.set(((event.clientX - box.left) / box.width - 0.5) * -14);
+        shiftY.set(((event.clientY - box.top) / box.height - 0.5) * -8);
       }}
       onPointerLeave={() => {
-        rotateX.set(0);
-        rotateY.set(0);
+        shiftX.set(0);
+        shiftY.set(0);
       }}
     >
-      {safe && phase !== "failed" ? (
-        <m.div
-          className={styles.stageImage}
-          initial={false}
-          animate={{ opacity: visible ? 1 : 0, scale: visible ? 1 : 1.04 }}
-          transition={
-            enabled && phase !== "server"
-              ? { type: "spring", bounce: 0, duration: 0.7 }
-              : { duration: 0 }
-          }
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            {...bind}
-            src={safe}
-            alt={`${name} 캐릭터 전신`}
-            width={612}
-            height={708}
-            decoding="async"
-            fetchPriority="high"
-            referrerPolicy="no-referrer"
-          />
-        </m.div>
-      ) : (
-        <span className={styles.stageFallback} aria-hidden="true">
-          {name.slice(0, 1)}
-        </span>
-      )}
-      {phase === "loading" && (
-        <span
-          className={styles.stageOrb}
-          role="status"
-          aria-label="캐릭터 이미지를 불러오는 중"
-        >
-          <ThinkingOrb
-            state="searching"
-            size={64}
-            theme="dark"
-            color="#8ab8ff"
-            paused={!enabled}
-          />
-        </span>
-      )}
-      <span className={styles.stageSheen} aria-hidden="true" />
-    </m.div>
+      <span className={styles.bannerGlow} aria-hidden="true" />
+      <div className={styles.bannerInner}>
+        {safe && phase !== "failed" && (
+          <m.div
+            className={styles.bannerFigure}
+            style={enabled ? { x: shiftX, y: shiftY } : undefined}
+          >
+            {/* Original render (dark surfaces). Official CDN, not proxied. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              {...bind}
+              className={styles.figureOriginal}
+              src={safe}
+              alt={`${name} 캐릭터 전신`}
+              width={612}
+              height={708}
+              decoding="async"
+              fetchPriority="high"
+              referrerPolicy="no-referrer"
+            />
+            {cutout.url && (
+              // Backdrop-removed render (light surfaces), generated locally.
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                className={styles.figureCutout}
+                src={cutout.url}
+                alt=""
+                aria-hidden="true"
+                width={612}
+                height={708}
+              />
+            )}
+          </m.div>
+        )}
+        {waiting && (
+          <span
+            className={styles.bannerOrb}
+            role="status"
+            aria-label="캐릭터 이미지를 준비하는 중"
+          >
+            <span className={styles.orbLight}>
+              <ThinkingOrb
+                state="searching"
+                size={64}
+                theme="light"
+                color="#0066cc"
+                paused={!enabled}
+              />
+            </span>
+            <span className={styles.orbDark}>
+              <ThinkingOrb
+                state="searching"
+                size={64}
+                theme="dark"
+                color="#8ab8ff"
+                paused={!enabled}
+              />
+            </span>
+          </span>
+        )}
+        <div className={styles.bannerContent}>{children}</div>
+      </div>
+    </section>
   );
 }
