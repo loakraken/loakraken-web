@@ -23,17 +23,33 @@
   cursor: wait;
   opacity: 0.6;
 }
+.page [id] {
+  scroll-margin-top: 96px;
+}
 .page :focus-visible {
   outline: 3px solid #0071e3;
   outline-offset: 4px;
 }
+/* Floating translucent material: content scrolls beneath the navigation. */
 .header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
   display: flex;
   align-items: center;
   gap: 24px;
-  padding: 16px max(24px, calc((100% - 1120px) / 2));
-  border-bottom: 1px solid #e8e8ed;
-  background: #fafafc;
+  padding: 12px max(24px, calc((100% - 1120px) / 2));
+  border-bottom: 1px solid rgb(0 0 0 / 8%);
+  background: rgb(250 250 252 / 72%);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
+}
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .header {
+    background: #fafafc;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
 }
 .brand {
   font-size: 20px;
@@ -126,27 +142,6 @@
   gap: 26px;
   margin: 40px 0 20px;
 }
-.portrait {
-  width: 106px;
-  height: 126px;
-  flex-shrink: 0;
-  border-radius: 24px;
-  background: #f5f5f7;
-  display: grid;
-  place-items: center;
-  overflow: hidden;
-}
-.portrait img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: top;
-}
-.portrait span {
-  font-size: 42px;
-  color: #0066cc;
-  font-weight: 600;
-}
 .identity {
   flex: 1;
   min-width: 0;
@@ -188,6 +183,73 @@
 }
 .refresh:active {
   transform: scale(0.97);
+}
+/* Hero — Apple product-page rhythm: name, product shot, specs, action.
+   Large type tightens tracking and leading; small type stays near zero. */
+.hero:not([data-empty]) {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  margin: 36px 0 28px;
+}
+.heroHead .eyebrow {
+  margin-bottom: 10px;
+}
+.heroHead h1 {
+  font-size: clamp(40px, 6vw, 72px);
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.05;
+  overflow-wrap: anywhere;
+}
+.heroMeta {
+  margin-top: 12px;
+  color: #6e6e73;
+  font-size: clamp(17px, 1.6vw, 21px);
+  line-height: 1.4;
+  letter-spacing: -0.005em;
+}
+.heroTitle {
+  margin-top: 4px;
+  color: #86868b;
+  font-size: 14px;
+}
+.specs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  width: min(880px, 100%);
+  margin-top: 8px;
+}
+.specs > div {
+  min-width: 0;
+  padding: 6px 18px;
+  border-left: 1px solid #e8e8ed;
+}
+.specs > div:first-child {
+  border-left: 0;
+}
+.specs strong {
+  display: block;
+  font-size: clamp(26px, 3vw, 40px);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.specs > div:last-child strong {
+  font-size: clamp(19px, 2vw, 26px);
+  line-height: 1.5;
+}
+.specs span {
+  display: block;
+  margin-top: 6px;
+  color: #6e6e73;
+  font-size: 13px;
+}
+.heroActions {
+  margin-top: 30px;
 }
 .queryStatus {
   min-height: 24px;
@@ -365,6 +427,33 @@
 .rows li > div {
   min-width: 0;
 }
+.rows li.itemRow {
+  align-items: center;
+  gap: 14px;
+  padding: 10px 0;
+}
+.iconItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+.iconItem > div {
+  min-width: 0;
+  flex: 1;
+}
+.iconHeading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.cardGrid {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+  gap: 16px 12px;
+  margin-top: 6px;
+}
 .rows strong,
 .descriptions strong {
   font-weight: 550;
@@ -448,9 +537,12 @@
   margin-top: 10px;
 }
 .gems span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   background: #f5f5f7;
-  border-radius: 6px;
-  padding: 5px 9px;
+  border-radius: 8px;
+  padding: 4px 9px 4px 4px;
 }
 .more {
   margin-top: 16px;
@@ -620,6 +712,9 @@
   top: 12px;
 }
 @media (max-width: 700px) {
+  .page [id] {
+    scroll-margin-top: 150px;
+  }
   .header {
     padding: 16px 20px;
     gap: 12px;
@@ -640,13 +735,19 @@
     flex-wrap: wrap;
     margin-top: 30px;
   }
-  .portrait {
-    width: 64px;
-    height: 84px;
-    border-radius: 18px;
+  .cardGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
-  .portrait span {
-    font-size: 28px;
+  .specs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    row-gap: 22px;
+  }
+  .specs > div:nth-child(3) {
+    border-left: 0;
+  }
+  .heroActions .refresh {
+    width: auto;
+    min-width: 180px;
   }
   .identity h1 {
     font-size: 29px;

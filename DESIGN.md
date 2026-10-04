@@ -11,9 +11,19 @@ Current direction (2026-10-04): Apple-inspired light product website. This super
 - The optical shading inside the animated orb is intentional product imagery. Avoid page-wide gradients, neon mesh backgrounds and decorative card shadows.
 - Preserve LOAKraken branding. Do not add Apple logos or imply an official Apple affiliation.
 
+## Game imagery
+
+- Other services are references for features and information only. Never reuse their layout values, ratios, masks, colours or composition; every visual here is LOAKraken's own (Apple light first, brand orbit motif).
+- Character hero follows an Apple product-page rhythm, centred: eyebrow, large name (-0.025em tracking, 1.05 leading), meta line, the "observation stage", a four-column spec row (large numerals, small labels), then the refresh pill.
+- Observation stage: the full, uncropped render stands on a soft contact shadow inside two tilted brand orbit rings (the landing orb motif), with a halo tinted from the render. Light: a locally generated backdrop-free cutout (`cutoutPortrait`, from a separate anonymous-CORS request). Dark scheme or cutout failure: the original on a rounded surface filled with the render's own backdrop colour and an elliptical vignette. The tone switches in CSS (no first-paint flash).
+- The navigation is a translucent material (`backdrop-filter`) that content scrolls beneath; it becomes opaque with `prefers-reduced-transparency` or `prefers-contrast: more`.
+- Show official icons for equipment, gems, cards, Ark Grid cores/gems and Ark Passive/engraving effects on rarity-tinted tiles (normal → esther hues tuned for a light page). Cards use the illustration with awakening pips.
+- Load only from `cdn-lostark.game.onstove.com` / `lostark.game.onstove.com` over HTTPS (`safeGameImage`). No proxy, mirror or Next image optimizer; `referrerPolicy="no-referrer"`, fixed dimensions, lazy loading below the banner. The cutout exists only as an in-memory object URL.
+- Failed images fall back to text initials or are omitted when there is neither an image nor a grade. While the portrait loads or is processed, a `thinking-orbs` "searching" orb (light/dark variant) sits in the figure area.
+
 ## Motion
 
-Keep Libraries.dev `thinking-orbs`, `border-beam` and Motion. Use explicit light themes. Preserve breathing/connecting/searching states, orbit, section reveals, tab transitions, pointer springs and feedback.
+Keep Libraries.dev `thinking-orbs`, `border-beam` and Motion. Use orbs for waiting/working states (search, calculation, image loading). Use explicit light themes. Preserve breathing/connecting/searching states, orbit, section reveals, tab transitions, pointer springs and feedback.
 
 Pointer springs use stiffness 100 / damping 20. Continuous motion must pause when hidden/offscreen, on user pause, and with reduced-motion preferences. Keyboard navigation should remain immediate. Avoid scroll hijacking or artificial loading delays.
 

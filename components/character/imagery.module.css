@@ -1,0 +1,360 @@
+/* Grade tiles follow the in-game rarity hues, tuned to sit on a light page. */
+.icon,
+.card {
+  --grade-a: #f0f0f3;
+  --grade-b: #dedee3;
+}
+.icon[data-grade="normal"],
+.card[data-grade="normal"] {
+  --grade-a: #ececf0;
+  --grade-b: #b9b9c2;
+}
+.icon[data-grade="uncommon"],
+.card[data-grade="uncommon"] {
+  --grade-a: #c4e3a8;
+  --grade-b: #5f9c3d;
+}
+.icon[data-grade="rare"],
+.card[data-grade="rare"] {
+  --grade-a: #a9d1f5;
+  --grade-b: #3d7fc6;
+}
+.icon[data-grade="epic"],
+.card[data-grade="epic"] {
+  --grade-a: #d2b5f2;
+  --grade-b: #7a49c4;
+}
+.icon[data-grade="legendary"],
+.card[data-grade="legendary"] {
+  --grade-a: #f6dc86;
+  --grade-b: #c18b23;
+}
+.icon[data-grade="relic"],
+.card[data-grade="relic"] {
+  --grade-a: #f6bf8a;
+  --grade-b: #c3602a;
+}
+.icon[data-grade="ancient"],
+.card[data-grade="ancient"] {
+  --grade-a: #eadbb4;
+  --grade-b: #a98a52;
+}
+.icon[data-grade="esther"],
+.card[data-grade="esther"] {
+  --grade-a: #a7ebe1;
+  --grade-b: #2a9a8c;
+}
+
+.icon {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 var(--icon-size);
+  width: var(--icon-size);
+  height: var(--icon-size);
+  border-radius: calc(var(--icon-size) * 0.24);
+  background: linear-gradient(145deg, var(--grade-a), var(--grade-b));
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 8%);
+  overflow: hidden;
+}
+.icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.icon[data-inactive] {
+  filter: grayscale(1);
+  opacity: 0.45;
+}
+
+/* Cards: illustration with awakening pips, like the in-game collection view. */
+.card {
+  min-width: 0;
+}
+.cardFrame {
+  position: relative;
+  aspect-ratio: 248 / 362;
+  border-radius: 14px;
+  overflow: hidden;
+  background: linear-gradient(160deg, var(--grade-a), var(--grade-b));
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 10%);
+}
+.cardFrame img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.cardFallback {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: rgb(255 255 255 / 85%);
+  font-size: 28px;
+  font-weight: 600;
+}
+.awake {
+  position: absolute;
+  left: 50%;
+  bottom: 8px;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 3px;
+  padding: 4px 6px;
+  border-radius: 999px;
+  background: rgb(10 10 12 / 62%);
+}
+.awake i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 28%);
+}
+.awake i[data-on="true"] {
+  background: #ffd36b;
+  box-shadow: 0 0 6px rgb(255 211 107 / 70%);
+}
+.card figcaption {
+  margin-top: 8px;
+  min-width: 0;
+}
+.card figcaption strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.card figcaption small {
+  color: #6e6e73;
+  font-size: 12px;
+}
+
+/* Observation stage — LOAKraken's own presentation, Apple product-shot style:
+   the full render stands on a contact shadow inside the brand orbit rings,
+   with a halo tinted from the render. Light: backdrop-free cutout on the page.
+   Dark (OS scheme) or cutout failure: original render on a dark rounded
+   surface, whose baked-in backdrop matches. */
+.stage {
+  --ambient: 110 140 190;
+  --stage-ring: rgb(120 150 180 / 26%);
+  --stage-dot: #80a6c5;
+  position: relative;
+  width: min(560px, 100%);
+  height: 470px;
+  margin: 18px auto 10px;
+  border-radius: 28px;
+  isolation: isolate;
+  /* The tilted rings project slightly outward; keep them inside the stage. */
+  overflow: clip;
+}
+.stageHalo {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  border-radius: inherit;
+  background: radial-gradient(
+    46% 52% at 50% 44%,
+    rgb(var(--ambient) / 22%) 0%,
+    rgb(var(--ambient) / 6%) 58%,
+    transparent 72%
+  );
+  transition: background 600ms ease-out;
+}
+/* Orbit rings, tilted into perspective around the figure's waist. */
+.stageOrbits {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  display: grid;
+  place-items: center;
+  perspective: 900px;
+  pointer-events: none;
+}
+.stageOrbits i {
+  position: absolute;
+  top: 52%;
+  left: 50%;
+  border: 1px solid var(--stage-ring);
+  border-radius: 50%;
+  transform: translate(-50%, -50%) rotateX(74deg);
+  transform-style: preserve-3d;
+}
+.stageOrbitOuter {
+  width: 86%;
+  aspect-ratio: 1;
+}
+.stageOrbitInner {
+  width: 66%;
+  aspect-ratio: 1;
+}
+.stageOrbits b {
+  position: absolute;
+  inset: -1px;
+  border-radius: 50%;
+  animation: stage-orbit 36s linear infinite;
+}
+.stageOrbitInner b {
+  animation-duration: 24s;
+  animation-direction: reverse;
+}
+.stageOrbits b::before {
+  content: "";
+  position: absolute;
+  top: -3px;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--stage-dot);
+}
+.stage[data-motion="off"] .stageOrbits b {
+  animation-play-state: paused;
+}
+@keyframes stage-orbit {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.stageFloor {
+  position: absolute;
+  left: 50%;
+  bottom: 30px;
+  width: 42%;
+  height: 18px;
+  z-index: -1;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgb(30 40 60 / 30%), transparent);
+  filter: blur(4px);
+}
+.stageFigure {
+  position: absolute;
+  inset: 0 0 34px;
+}
+.stageFigure img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: 50% 100%;
+  transition:
+    opacity 420ms ease-out,
+    transform 420ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+/* Light tone: cutout visible, original hidden. */
+.figureOriginal {
+  opacity: 0;
+  -webkit-mask-image: radial-gradient(closest-side, #000 78%, transparent 100%);
+  mask-image: radial-gradient(closest-side, #000 78%, transparent 100%);
+}
+.figureCutout {
+  opacity: 1;
+}
+.stage[data-cutout="pending"] .figureCutout {
+  opacity: 0;
+  transform: translateY(12px);
+}
+.stageFallback {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #0066cc;
+  font-size: 72px;
+  font-weight: 600;
+}
+.stageOrb {
+  position: absolute;
+  top: 48%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+.orbDark {
+  display: none;
+}
+
+/* Dark surface: OS dark scheme, or a render whose cutout failed. */
+.stage[data-cutout="failed"]:not([data-phase="failed"]) {
+  overflow: hidden;
+  /* Exactly the render's own backdrop, so the frame has no visible seam. */
+  background: rgb(var(--backdrop, 18 19 22));
+  --stage-ring: rgb(255 255 255 / 10%);
+  --stage-dot: rgb(255 255 255 / 45%);
+}
+.stage[data-cutout="failed"] .figureOriginal {
+  opacity: 1;
+}
+.stage[data-cutout="failed"] .stageFigure,
+.stage[data-cutout="failed"] .stageFigure img {
+  inset: 0;
+}
+.stage[data-cutout="failed"] .stageFloor,
+.stage[data-cutout="failed"] .orbLight {
+  display: none;
+}
+.stage[data-cutout="failed"] .orbDark {
+  display: block;
+}
+.stage[data-phase="loading"] .figureOriginal {
+  opacity: 0;
+}
+@media (prefers-color-scheme: dark) {
+  .stage:not([data-phase="failed"]) {
+    overflow: hidden;
+    /* Exactly the render's own backdrop, so the frame has no visible seam. */
+    background: rgb(var(--backdrop, 18 19 22));
+    --stage-ring: rgb(255 255 255 / 10%);
+    --stage-dot: rgb(255 255 255 / 45%);
+  }
+  .figureOriginal {
+    opacity: 1;
+  }
+  .figureCutout {
+    opacity: 0 !important;
+  }
+  .stageFigure,
+  .stageFigure img {
+    inset: 0;
+  }
+  .stageFloor,
+  .orbLight {
+    display: none;
+  }
+  .orbDark {
+    display: block;
+  }
+  .stage[data-phase="server"] .stageOrb,
+  .stage[data-phase="loaded"] .stageOrb {
+    display: none;
+  }
+}
+
+@media (max-width: 700px) {
+  .stage {
+    height: 380px;
+    margin-top: 10px;
+  }
+  .stageFloor {
+    bottom: 24px;
+  }
+  .stageFigure {
+    inset: 0 0 28px;
+  }
+}
+
+/* Reduced motion: no orbit, no travel — opacity cross-fades only. */
+@media (prefers-reduced-motion: reduce) {
+  .stageOrbits b {
+    animation: none;
+  }
+  .stageHalo,
+  .stageFigure img {
+    transition: opacity 200ms ease;
+  }
+  .stage[data-cutout="pending"] .figureCutout {
+    transform: none;
+  }
+}

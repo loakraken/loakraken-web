@@ -26,6 +26,7 @@ import {
   useLandingMotion,
 } from "@/components/landing/motion";
 import { InlineOrb } from "@/components/landing/orb";
+import { CardArt, CharacterStage, GameIcon } from "./imagery";
 import { CharacterQueryError, fetchCharacter } from "@/lib/character/client";
 import {
   characterNameError,
@@ -34,7 +35,6 @@ import {
   evidenceAt,
   failureCopy,
   normalizeCharacterName,
-  safePortrait,
   type CharacterEnvelope,
   type CoverageSection,
   type CoverageState,
@@ -47,6 +47,8 @@ const number = (value: number | null | undefined) =>
   value == null
     ? "미제공"
     : value.toLocaleString("ko-KR", { maximumFractionDigits: 2 });
+const level = (value: number | null | undefined) =>
+  value == null ? "미제공" : `Lv.${number(value)}`;
 const text = (value: string | null | undefined) =>
   sourcePlainText(value) || "미제공";
 // Stats arrive as strings; group digits only when the whole value is a plain number.
@@ -102,7 +104,9 @@ function SearchBox({ name }: { name: string }) {
     if (issue) return;
     const normalized = normalizeCharacterName(value);
     if (normalized === name) {
-      setNotice("지금 보고 있는 캐릭터예요. 최신 정보는 '다시 조회'로 확인해 주세요.");
+      setNotice(
+        "지금 보고 있는 캐릭터예요. 최신 정보는 '다시 조회'로 확인해 주세요.",
+      );
       return;
     }
     setMoving(true);
@@ -237,27 +241,6 @@ function Evidence({
   );
 }
 
-function Portrait({ url, name }: { url: string | null; name: string }) {
-  const [failed, setFailed] = useState(false);
-  const safe = safePortrait(url);
-  return (
-    <div className={styles.portrait}>
-      {safe && !failed ? (
-        // Official portraits have variable dimensions; do not proxy arbitrary image URLs.
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={safe}
-          alt={`${name} 캐릭터`}
-          onError={() => setFailed(true)}
-          referrerPolicy="no-referrer"
-        />
-      ) : (
-        <span aria-hidden="true">{name.slice(0, 1)}</span>
-      )}
-    </div>
-  );
-}
-
 function CharacterContent({
   name,
   initialError,
@@ -321,6 +304,24 @@ function CharacterContent({
       }).format(new Date(data.fetchedAt))
     : "";
 
+  const refreshButton = invalidName ? null : (
+    <button
+      type="button"
+      className={styles.refresh}
+      onClick={refresh}
+      disabled={query.isFetching || remaining > 0}
+    >
+      {query.isFetching ? <InlineOrb /> : <RefreshCw size={15} />}
+      {query.isFetching
+        ? "조회 중"
+        : remaining > 0
+          ? `${remaining}초 후 재조회`
+          : data
+            ? "다시 조회"
+            : "다시 시도"}
+    </button>
+  );
+
   return (
     <div className={styles.page}>
       <a className={styles.skip} href="#character-main">
@@ -345,36 +346,48 @@ function CharacterContent({
         <Link href="/#intro" className={styles.back}>
           <ArrowLeft size={14} /> 캐릭터 검색으로
         </Link>
-        <div className={styles.hero}>
-          {data && <Portrait url={data.imageUrl} name={data.characterName} />}
-          <div className={styles.identity}>
-            <p className={styles.eyebrow}>CHARACTER OBSERVATION</p>
-            <h1>{(data?.characterName ?? name) || "캐릭터 조회"}</h1>
-            <p>
-              {data
-                ? `${data.serverName} · ${data.className} · Lv. ${number(data.characterLevel)}`
-                : "현재 상태부터, 다음 선택까지."}
-            </p>
-            {data?.title && <span className={styles.title}>{data.title}</span>}
+        {data ? (
+          <section className={styles.hero} aria-labelledby="character-name">
+            <div className={styles.heroHead}>
+              <p className={styles.eyebrow}>CHARACTER OBSERVATION</p>
+              <h1 id="character-name">{data.characterName}</h1>
+              <p className={styles.heroMeta}>
+                {data.serverName} · {data.className} ·{" "}
+                {level(data.characterLevel)}
+              </p>
+              {data.title && <p className={styles.heroTitle}>{data.title}</p>}
+            </div>
+            <CharacterStage url={data.imageUrl} name={data.characterName} />
+            <Reveal className={styles.specs}>
+              <div>
+                <strong>{number(data.itemLevel)}</strong>
+                <span>아이템 레벨</span>
+              </div>
+              <div>
+                <strong>{number(data.combatPower)}</strong>
+                <span>전투력</span>
+              </div>
+              <div>
+                <strong>{number(data.expeditionLevel)}</strong>
+                <span>원정대 레벨</span>
+              </div>
+              <div>
+                <strong>{text(data.guildName)}</strong>
+                <span>길드</span>
+              </div>
+            </Reveal>
+            <div className={styles.heroActions}>{refreshButton}</div>
+          </section>
+        ) : (
+          <div className={styles.hero} data-empty="">
+            <div className={styles.identity}>
+              <p className={styles.eyebrow}>CHARACTER OBSERVATION</p>
+              <h1>{name || "캐릭터 조회"}</h1>
+              <p>현재 상태부터, 다음 선택까지.</p>
+            </div>
+            {refreshButton}
           </div>
-          {!invalidName && (
-            <button
-              type="button"
-              className={styles.refresh}
-              onClick={refresh}
-              disabled={query.isFetching || remaining > 0}
-            >
-              {query.isFetching ? <InlineOrb /> : <RefreshCw size={15} />}
-              {query.isFetching
-                ? "조회 중"
-                : remaining > 0
-                  ? `${remaining}초 후 재조회`
-                  : data
-                    ? "다시 조회"
-                    : "다시 시도"}
-            </button>
-          )}
-        </div>
+        )}
         <div aria-live="polite" className={styles.queryStatus}>
           {query.isFetching
             ? "캐릭터 정보를 조회하고 있습니다. 기존 데이터가 있다면 그대로 유지합니다."
@@ -414,24 +427,6 @@ function CharacterContent({
                 캐시가 남아 있으면 수집 시각은 유지됩니다.
               </p>
             </div>
-            <Reveal className={styles.metrics}>
-              <div>
-                <span>아이템 레벨</span>
-                <strong>{number(data.itemLevel)}</strong>
-              </div>
-              <div>
-                <span>전투력</span>
-                <strong>{number(data.combatPower)}</strong>
-              </div>
-              <div>
-                <span>원정대 레벨</span>
-                <strong>{number(data.expeditionLevel)}</strong>
-              </div>
-              <div>
-                <span>길드</span>
-                <strong>{text(data.guildName)}</strong>
-              </div>
-            </Reveal>
             <nav className={styles.sectionNav} aria-label="캐릭터 정보 영역">
               {sectionLinks.map(([id, label]) => (
                 <a key={id} href={`#${id}`}>
@@ -516,11 +511,17 @@ function CharacterContent({
                 {data.loadout.equipment.length ? (
                   <ul className={styles.rows}>
                     {data.loadout.equipment.map((item, i) => (
-                      <li key={i}>
-                        <span>{text(item.type)}</span>
+                      <li key={i} className={styles.itemRow}>
+                        <GameIcon
+                          key={item.icon}
+                          src={item.icon}
+                          grade={item.grade}
+                        />
                         <div>
                           <strong>{text(item.name)}</strong>
-                          <small>{text(item.grade)}</small>
+                          <small>
+                            {text(item.type)} · {text(item.grade)}
+                          </small>
                         </div>
                       </li>
                     ))}
@@ -546,16 +547,19 @@ function CharacterContent({
                 {data.loadout.gems?.items.length ? (
                   <ul className={styles.rows}>
                     {data.loadout.gems.items.map((item, i) => (
-                      <li key={i}>
-                        <span>
-                          {item.level != null && item.level > 0
-                            ? `Lv. ${item.level}`
-                            : "레벨 미확인"}
-                        </span>
+                      <li key={i} className={styles.itemRow}>
+                        <GameIcon
+                          key={item.icon}
+                          src={item.icon}
+                          grade={item.grade}
+                        />
                         <div>
                           <strong>{text(item.name)}</strong>
                           <small>
-                            {text(item.grade)} · 슬롯 {number(item.slot)}
+                            {item.level != null && item.level > 0
+                              ? `Lv. ${item.level}`
+                              : "레벨 미확인"}{" "}
+                            · {text(item.grade)} · 슬롯 {number(item.slot)}
                           </small>
                         </div>
                       </li>
@@ -567,15 +571,29 @@ function CharacterContent({
                 {data.loadout.gems?.effects && (
                   <details className={styles.more}>
                     <summary>보석 효과와 연결 스킬</summary>
-                    <p><SourceText value={data.loadout.gems.effects.description} /></p>
+                    <p>
+                      <SourceText
+                        value={data.loadout.gems.effects.description}
+                      />
+                    </p>
                     {data.loadout.gems.effects.skills.map((skill, i) => (
                       <div key={i}>
-                        <h3>{text(skill.name)}</h3>
+                        <h3 className={styles.iconHeading}>
+                          <GameIcon
+                            key={skill.icon}
+                            src={skill.icon}
+                            size={28}
+                          />
+                          {text(skill.name)}
+                        </h3>
                         <p>
-                          슬롯 {number(skill.gemSlot)} · <SourceText value={skill.option} />
+                          슬롯 {number(skill.gemSlot)} ·{" "}
+                          <SourceText value={skill.option} />
                         </p>
                         {skill.description.map((line, j) => (
-                          <p key={j}><SourceText value={line} /></p>
+                          <p key={j}>
+                            <SourceText value={line} />
+                          </p>
                         ))}
                       </div>
                     ))}
@@ -619,7 +637,9 @@ function CharacterContent({
                                 {item.abilityStoneLevel != null &&
                                   ` · 어빌리티 스톤 Lv. ${number(item.abilityStoneLevel)}`}
                               </small>
-                              <p><SourceText value={item.description} /></p>
+                              <p>
+                                <SourceText value={item.description} />
+                              </p>
                             </li>
                           ),
                         )}
@@ -635,9 +655,18 @@ function CharacterContent({
                     {data.loadout.engravings.effects.length ? (
                       <ul className={styles.descriptions}>
                         {data.loadout.engravings.effects.map((item, i) => (
-                          <li key={i}>
-                            <strong>{text(item.name)}</strong>
-                            <p><SourceText value={item.description} /></p>
+                          <li key={i} className={styles.iconItem}>
+                            <GameIcon
+                              key={item.icon}
+                              src={item.icon}
+                              size={36}
+                            />
+                            <div>
+                              <strong>{text(item.name)}</strong>
+                              <p>
+                                <SourceText value={item.description} />
+                              </p>
+                            </div>
                           </li>
                         ))}
                       </ul>
@@ -666,18 +695,17 @@ function CharacterContent({
                   </p>
                 )}
                 {data.loadout.cards?.items.length ? (
-                  <ul className={styles.rows}>
+                  <ul className={styles.cardGrid}>
                     {data.loadout.cards.items.map((item, i) => (
                       <li key={i}>
-                        <span>
-                          {item.awakeCount == null || item.awakeCount < 0
-                            ? "각성 미확인"
-                            : `${item.awakeCount}각성`}
-                        </span>
-                        <div>
-                          <strong>{text(item.name)}</strong>
-                          <small>{text(item.grade)}</small>
-                        </div>
+                        <CardArt
+                          key={item.icon}
+                          src={item.icon}
+                          name={text(item.name)}
+                          grade={item.grade}
+                          awakeCount={item.awakeCount}
+                          awakeTotal={item.awakeTotal}
+                        />
                       </li>
                     ))}
                   </ul>
@@ -693,7 +721,9 @@ function CharacterContent({
                           {set.items.map((item, j) => (
                             <div key={j}>
                               <strong>{text(item.name)}</strong>
-                              <p><SourceText value={item.description} /></p>
+                              <p>
+                                <SourceText value={item.description} />
+                              </p>
                             </div>
                           ))}
                         </div>
@@ -731,7 +761,9 @@ function CharacterContent({
                                 : number(point.value)}
                             </strong>
                             {point.description && (
-                              <small><SourceText value={point.description} /></small>
+                              <small>
+                                <SourceText value={point.description} />
+                              </small>
                             )}
                           </div>
                         ))}
@@ -745,9 +777,18 @@ function CharacterContent({
                     {data.loadout.arkPassive.effects.length ? (
                       <ul className={styles.descriptions}>
                         {data.loadout.arkPassive.effects.map((item, i) => (
-                          <li key={i}>
-                            <strong>{text(item.name)}</strong>
-                            <p><SourceText value={item.description} /></p>
+                          <li key={i} className={styles.iconItem}>
+                            <GameIcon
+                              key={item.icon}
+                              src={item.icon}
+                              size={36}
+                            />
+                            <div>
+                              <strong>{text(item.name)}</strong>
+                              <p>
+                                <SourceText value={item.description} />
+                              </p>
+                            </div>
                           </li>
                         ))}
                       </ul>
@@ -778,23 +819,38 @@ function CharacterContent({
                 {data.loadout.arkGrid?.slots.length ? (
                   <ul className={styles.descriptions}>
                     {data.loadout.arkGrid.slots.map((slot, i) => (
-                      <li key={i}>
-                        <strong>
-                          {text(slot.name)} · {number(slot.point)}P
-                        </strong>
-                        <small>{text(slot.grade)}</small>
-                        <div className={styles.gems}>
-                          {slot.gems.map((gem, j) => (
-                            <span key={j}>
-                              젬 {number(gem.index)} ·{" "}
-                              {gem.active === null
-                                ? "미확인"
-                                : gem.active
-                                  ? "활성"
-                                  : "비활성"}{" "}
-                              · {text(gem.grade)}
-                            </span>
-                          ))}
+                      <li key={i} className={styles.iconItem}>
+                        <GameIcon
+                          key={slot.icon}
+                          src={slot.icon}
+                          grade={slot.grade}
+                          size={44}
+                        />
+                        <div>
+                          <strong>
+                            {text(slot.name)} · {number(slot.point)}P
+                          </strong>
+                          <small>{text(slot.grade)}</small>
+                          <div className={styles.gems}>
+                            {slot.gems.map((gem, j) => (
+                              <span key={j}>
+                                <GameIcon
+                                  key={gem.icon}
+                                  src={gem.icon}
+                                  grade={gem.grade}
+                                  size={22}
+                                  inactive={gem.active === false}
+                                />
+                                젬 {number(gem.index)} ·{" "}
+                                {gem.active === null
+                                  ? "미확인"
+                                  : gem.active
+                                    ? "활성"
+                                    : "비활성"}{" "}
+                                · {text(gem.grade)}
+                              </span>
+                            ))}
+                          </div>
                         </div>
                       </li>
                     ))}
