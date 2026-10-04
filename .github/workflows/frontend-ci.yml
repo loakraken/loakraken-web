@@ -28,5 +28,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run lint
+      - run: npm test
+      - name: Generated API types match the checked-in contract
+        run: npm run api:generate && git diff --exit-code -- lib/api/schema.d.ts
       - name: Production build and TypeScript validation
         run: npm run build

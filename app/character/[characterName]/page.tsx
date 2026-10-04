@@ -1,17 +1,49 @@
 import type { Metadata } from "next";
-import { CharacterRouteState } from "@/components/landing/route-state";
+import {
+  dehydrate,
+  HydrationBoundary,
+  QueryClient,
+} from "@tanstack/react-query";
+import { CharacterView } from "@/components/character/character-view";
+import { normalizeCharacterName } from "@/lib/character/model";
+import { getCharacter } from "@/lib/character/server";
 
-type Props = { params: Promise<{ characterName: string }> };
-
+export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
-  title: "캐릭터 관측 준비",
+  title: "캐릭터 관측",
   robots: { index: false, follow: false },
 };
 
-export default async function CharacterPage({ params }: Props) {
+export default async function CharacterPage({
+  params,
+}: {
+  params: Promise<{ characterName: string }>;
+}) {
   const { characterName } = await params;
-  // Next 16.3 passes this dynamic segment encoded; decode once before display.
-  let name: string;
-  try { name = decodeURIComponent(characterName); } catch { name = characterName; }
-  return <CharacterRouteState characterName={name.slice(0, 24)} />;
+  let decoded: string;
+  try {
+    decoded = decodeURIComponent(characterName);
+  } catch {
+    decoded = characterName;
+  }
+  const name = normalizeCharacterName(decoded);
+  const result = await getCharacter(name);
+  // Request-time snapshot in a dynamic Server Component, shared with hydration.
+  // eslint-disable-next-line react-hooks/purity
+  const renderedAt = Date.now();
+  const client = new QueryClient();
+  if (result.ok)
+    client.setQueryData(["character", name], result.envelope, {
+      updatedAt: renderedAt,
+    });
+  return (
+    <HydrationBoundary state={dehydrate(client)}>
+      <CharacterView
+        key={name}
+        name={name}
+        initialError={result.ok ? undefined : result.error}
+        renderedAt={renderedAt}
+      />
+    </HydrationBoundary>
+  );
 }

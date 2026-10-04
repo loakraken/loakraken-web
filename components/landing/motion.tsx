@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
-import { LazyMotion, domAnimation, m, useInView, useReducedMotion } from "motion/react";
+import { LazyMotion, domAnimation, m, useInView } from "motion/react";
 
 const MotionContext = createContext({ enabled: false, paused: false, toggle: () => {} });
 const subscribe = (callback: () => void) => {
@@ -10,9 +10,16 @@ const subscribe = (callback: () => void) => {
 };
 const getVisible = () => document.visibilityState === "visible";
 const getServerVisible = () => false;
+const subscribeReducedMotion = (callback: () => void) => {
+  const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+  media.addEventListener("change", callback);
+  return () => media.removeEventListener("change", callback);
+};
+const getReducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const getServerReducedMotion = () => true;
 
 export function LandingMotion({ children }: { children: ReactNode }) {
-  const reduced = useReducedMotion();
+  const reduced = useSyncExternalStore(subscribeReducedMotion, getReducedMotion, getServerReducedMotion);
   const [paused, setPaused] = useState(false);
   const visible = useSyncExternalStore(subscribe, getVisible, getServerVisible);
   const enabled = !reduced && !paused && visible;
