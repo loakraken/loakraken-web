@@ -11,9 +11,16 @@ Current direction (2026-10-04): Apple-inspired light product website. This super
 - The optical shading inside the animated orb is intentional product imagery. Avoid page-wide gradients, neon mesh backgrounds and decorative card shadows.
 - Preserve LOAKraken branding. Do not add Apple logos or imply an official Apple affiliation.
 
+## Game imagery
+
+- The official armory render has a dark background baked in. Present it as a dark 28px product-shot tile (radial dark gradient, bottom mask fade), never directly on the white canvas. Desktop: right column next to identity and metrics; mobile: full-width 300px tile above the name.
+- Show official icons for equipment, gems, cards, Ark Grid cores/gems and Ark Passive/engraving effects on rarity-tinted tiles (normal → esther hues tuned for a light page). Cards use the illustration with awakening pips.
+- Load only from `cdn-lostark.game.onstove.com` / `lostark.game.onstove.com` over HTTPS (`safeGameImage`). No proxy, mirror or Next image optimizer; `referrerPolicy="no-referrer"`, fixed dimensions, lazy loading below the hero.
+- Images are visible in SSR. After hydration, failed images fall back to text initials or are omitted when there is neither an image nor a grade. While the portrait loads, a dark `thinking-orbs` "searching" orb sits in the tile.
+
 ## Motion
 
-Keep Libraries.dev `thinking-orbs`, `border-beam` and Motion. Use explicit light themes. Preserve breathing/connecting/searching states, orbit, section reveals, tab transitions, pointer springs and feedback.
+Keep Libraries.dev `thinking-orbs`, `border-beam` and Motion. Use orbs for waiting/working states (search, calculation, image loading). Use explicit light themes. Preserve breathing/connecting/searching states, orbit, section reveals, tab transitions, pointer springs and feedback.
 
 Pointer springs use stiffness 100 / damping 20. Continuous motion must pause when hidden/offscreen, on user pause, and with reduced-motion preferences. Keyboard navigation should remain immediate. Avoid scroll hijacking or artificial loading delays.
 
