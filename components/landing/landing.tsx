@@ -94,6 +94,7 @@ function PrecisionLanding() {
         <Link href="/" className={styles.brand} aria-label="LOAKraken 홈"><span className={styles.brandIcon}><KrakenMark /></span><span>LOAKraken</span><span className={styles.brandTag}>BETA</span></Link>
         <nav className={styles.navigation} aria-label="주요 메뉴">
           {[{ id: "intro", name: "소개" }, { id: "preview", name: "캐릭터 미리보기" }, { id: "evidence", name: "진단 근거" }, { id: "roadmap", name: "로드맵" }].map((item) => <a key={item.id} href={`#${item.id}`} data-active={activeSection === item.id} aria-current={activeSection === item.id ? "location" : undefined}>{item.name}</a>)}
+          <Link href="/tools/material-quote">재료 견적</Link>
         </nav>
         <div className={styles.headerActions}>
           <button type="button" className={styles.motionToggle} onClick={toggle} aria-label={paused ? "모션 재생" : "모션 일시정지"} aria-pressed={paused} title={paused ? "모션 재생" : "모션 일시정지"}>{paused ? <Play size={14} /> : <Pause size={14} />}</button>

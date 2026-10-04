@@ -20,8 +20,8 @@ export const roadmap = [
     title: "다음 성장의 비용과 효율",
     description: "목표와 예산에 맞는 스펙업 순서를 제안합니다. T4 일반·상급·특수 재련과 통합 견적에 보유 재료·귀속 재료·책·숨결을 반영하고, 추가 비용과 딜 증가량을 비교합니다.",
     scope: "성장 가이드 · 재련 견적 · 예상 전투력 · Gold / DPS",
-    status: "분석 기반 확립 후",
-    active: false,
+    status: "재료 견적 제공",
+    active: true,
   },
   {
     number: "04",

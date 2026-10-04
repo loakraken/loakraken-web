@@ -7,6 +7,105 @@ const read = (name) =>
     readFileSync(new URL(`./fixtures/${name}`, import.meta.url), "utf8"),
   );
 const counts = {};
+const marketRead = (name) =>
+  JSON.parse(
+    readFileSync(new URL(`./market-fixtures/${name}`, import.meta.url), "utf8"),
+  );
+
+// Synthetic market catalogue. Special ids exercise every non-priced status.
+const catalogue = [
+  { id: 101, name: "합성 재련 재료", grade: "희귀", bundleCount: 100, price: 12 },
+  { id: 102, name: "합성 상급 재료", grade: "영웅", bundleCount: 10, price: 37.5 },
+  { id: 103, name: "합성 파편 주머니", grade: "전설", bundleCount: 1, price: 520 },
+  { id: 9001, name: "합성 페이지 이동 재료", grade: "희귀", bundleCount: 100, price: 10, status: "ITEM_NOT_IN_PAGE" },
+  { id: 9002, name: "합성 거래 제한 재료", grade: "영웅", bundleCount: 1, price: 99, status: "TRADE_RESTRICTED_ITEM" },
+  { id: 9003, name: "합성 가격 없음 재료", grade: "일반", bundleCount: 10, price: null, status: "PRICE_UNAVAILABLE" },
+  { id: 9004, name: "합성 영골드 재료", grade: "일반", bundleCount: 10, price: 0, status: "ZERO_PRICE" },
+];
+const nowIso = () => new Date().toISOString();
+const criteria = (url) => ({
+  categoryCode: Number(url.searchParams.get("categoryCode")),
+  characterClass: "",
+  itemTier: null,
+  itemGrade: "",
+  itemName: url.searchParams.get("itemName") ?? "",
+  pageNo: Number(url.searchParams.get("pageNo") ?? 1),
+  sort: url.searchParams.get("sort") ?? "RECENT_PRICE",
+  sortCondition: url.searchParams.get("sortCondition") ?? "ASC",
+});
+async function market(url, req, send) {
+  const key = `market:${url.pathname}`;
+  counts[key] = (counts[key] || 0) + 1;
+  if (url.pathname === "/api/v1/markets/options")
+    return send(marketRead("market-options.json"));
+  if (url.pathname === "/api/v1/markets/items") {
+    const name = url.searchParams.get("itemName") ?? "";
+    if (name === "제한")
+      return send({ code: "LOST_ARK_RATE_LIMITED", message: "private" }, 429, { "Retry-After": "3" });
+    if (name === "오류") return send({ code: "LOST_ARK_API_ERROR", message: "private" }, 502);
+    const items = catalogue
+      .filter((item) => !name || item.name.includes(name) || name === "합성")
+      .map((item) => ({
+        id: item.id,
+        name: item.name,
+        grade: item.grade,
+        icon: null,
+        bundleCount: item.bundleCount,
+        tradeRemainCount: item.status === "TRADE_RESTRICTED_ITEM" ? 0 : null,
+        yDayAvgPrice: item.price,
+        recentPrice: item.price,
+        currentMinPrice: item.price,
+      }));
+    return send({
+      code: "MARKET_SEARCH_SUCCESS",
+      message: "성공",
+      data: {
+        source: "ACTIVE_LISTING",
+        observedAt: nowIso(),
+        windowFrom: null,
+        windowTo: null,
+        search: criteria(url),
+        pageNo: 1,
+        pageSize: 10,
+        totalCount: items.length,
+        items,
+      },
+    });
+  }
+  if (url.pathname === "/api/v1/markets/material-quotes" && req.method === "POST") {
+    let body = "";
+    for await (const chunk of req) body += chunk;
+    const request = JSON.parse(body);
+    const observedAt = nowIso();
+    const lines = request.items.map((input) => {
+      const item = catalogue.find((entry) => entry.id === input.itemId);
+      const missing = Math.max(0, input.requiredQuantity - input.ownedQuantity);
+      const base = {
+        itemId: input.itemId,
+        requiredQuantity: input.requiredQuantity,
+        ownedQuantity: input.ownedQuantity,
+        missingQuantity: missing,
+        search: { categoryCode: input.search.categoryCode, characterClass: "", itemTier: null, itemGrade: "", itemName: input.search.itemName, pageNo: input.search.pageNo, sort: "RECENT_PRICE", sortCondition: "ASC" },
+      };
+      if (missing === 0)
+        return { ...base, status: "COVERED_BY_INVENTORY", observedAt: null, itemName: null, bundleCount: null, pricePerBundle: null, purchase: { bundleQuantity: 0, purchaseQuantity: 0, surplusQuantity: 0, costGold: 0 } };
+      if (!item || item.status === "ITEM_NOT_IN_PAGE")
+        return { ...base, status: "ITEM_NOT_IN_PAGE", observedAt, itemName: null, bundleCount: null, pricePerBundle: null, purchase: null };
+      if (item.status)
+        return { ...base, status: item.status, observedAt, itemName: item.name, bundleCount: item.bundleCount, pricePerBundle: item.price, purchase: null };
+      const bundles = Math.ceil(missing / item.bundleCount);
+      return { ...base, status: "PRICED", observedAt, itemName: item.name, bundleCount: item.bundleCount, pricePerBundle: item.price, purchase: { bundleQuantity: bundles, purchaseQuantity: bundles * item.bundleCount, surplusQuantity: bundles * item.bundleCount - missing, costGold: Math.round(bundles * item.price * 100) / 100 } };
+    });
+    const known = lines.reduce((sum, line) => sum + (line.purchase?.costGold ?? 0), 0);
+    const complete = lines.every((line) => line.purchase !== null);
+    return send({
+      code: "MATERIAL_QUOTE_SUCCESS",
+      message: "성공",
+      data: { ruleVersion: "material-purchase-v1", priceBasis: request.priceBasis, source: "ACTIVE_LISTING", calculatedAt: nowIso(), complete, knownCostGold: known, totalCostGold: complete ? known : null, items: lines },
+    });
+  }
+  return send({}, 404);
+}
 const port = Number(process.env.MOCK_PORT || 4180);
 createServer(async (req, res) => {
   const url = new URL(req.url, `http://127.0.0.1:${port}`);
@@ -19,6 +118,8 @@ createServer(async (req, res) => {
     res.end(JSON.stringify(body));
   };
   if (url.pathname === "/__counts") return send(counts);
+  if (url.pathname.startsWith("/api/v1/markets/"))
+    return market(url, req, send);
   if (url.pathname !== "/api/v1/characters/search") return send({}, 404);
   const name = url.searchParams.get("characterName");
   counts[name] = (counts[name] || 0) + 1;
