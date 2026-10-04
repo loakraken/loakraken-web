@@ -1,0 +1,62 @@
+name: "🐞 Fix Issue"
+description: "develop 기준 일반 버그 수정 (운영 긴급 수정은 Hotfix 양식 사용)"
+labels: ["bug"]
+title: "[FIX] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 🌿 GitFlow 안내
+        이슈 생성 후 발급된 번호로 `develop`에서 `fix/{issueNumber}-{english-kebab-case}` 브랜치를 만듭니다.
+        PR 대상은 `develop`입니다. 이미 배포된 운영 버전의 긴급 수정은 **Hotfix Issue**를 사용해 주세요.
+
+  - type: textarea
+    id: bug-summary
+    attributes:
+      label: 💡 버그 설명
+      description: 발생한 버그에 대해 간결하게 설명해 주세요.
+      placeholder:
+        e.g.
+        로그인 시도 시 화면이 멈춥니다.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction-steps
+    attributes:
+      label: 📝 재현 경로 및 상황 설명
+      description: 어떤 상황에서, 어떤 행동을 했을 때, 어떤 문제가 발생했는지 순서대로 적어주세요.
+      placeholder: |
+        e.g.
+        - 상황: 사용자가 앱을 실행하고 로그아웃 상태입니다.
+        - 시기: 로그인 버튼을 누르고 이메일과 비밀번호를 입력합니다.
+        - 문제: 버튼이 비활성화되며 화면 전환이 이루어지지 않습니다.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-result
+    attributes:
+      label: 🎯 예상 결과
+      description: 예상했던 정상 결과는 무엇이었는지 설명해주세요.
+      placeholder: e.g. 로그인 성공 후 메인 페이지로 이동해야 합니다.
+    validations:
+      required: true
+
+  - type: textarea
+    id: verification-plan
+    attributes:
+      label: ✅ 수정 범위 및 검증 계획
+      description: 수정할 항목과 재현 테스트, 주변 기능의 회귀 확인 방법을 작성해 주세요.
+      placeholder: |
+        - [ ] 실패하는 재현 테스트 확인
+        - [ ] 원인 수정 및 정상 결과 확인
+        - [ ] 관련 기능 회귀 확인
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional-info
+    attributes:
+      label: 📋 추가 정보 (로그, 스크린샷, 환경 등)
+      description: 발생 버전, 환경, 로그, 스크린샷 등을 작성해 주세요. 토큰과 비밀번호 등 민감값은 제거해 주세요.
