@@ -25,12 +25,14 @@ Pointer springs use stiffness 100 / damping 20. Continuous motion must pause whe
 
 ## Research-led implementation
 
-Before implementing a product area, inspect relevant public flows from LOPEC, ZLOA, LOAWA, ILOA, KLOA, IcePeng, LostBuilds, RLoA, LoaTodo and Lost Ark Inven. Record the observed behavior, evidence URL/date, uncertainty and LOAKraken decision. Public menus are not evidence that calculations or logged-in workflows have been verified.
+Before implementing a product area, inspect relevant public flows from LOPEC, ZLOA, LOAWA, ILOA, KLOA, IcePeng, LostBuilds, RLoA, LoaTodo, Lost Ark Inven, LOALAB, Loatto and Loavesting. Record the observed behavior, evidence URL/date, uncertainty and LOAKraken decision. Public menus are not evidence that calculations or logged-in workflows have been verified.
 
 Canonical ongoing notes live in the user's LOAKraken Obsidian vault under `20 프론트엔드`: `프론트엔드 디자인과 모션`, `프론트엔드 통합 서비스 UX 분석`, `프론트엔드 현재 작업` and `프론트엔드 작업 보드`.
 
 ## Product roadmap
 
-Keep the eight product areas in `components/landing/roadmap.ts`: comprehensive character observation and history; verified Kraken Score, rankings and statistics; growth priorities and cost efficiency; build simulation; market and calculators; roster, tasks and raid management; calendar and wandering merchants; guides and news.
+Keep the nine product areas in `components/landing/roadmap.ts`: comprehensive character observation and history; verified Kraken Score, rankings and statistics; growth priorities and cost efficiency; build simulation; market and calculators; screen recognition assistants for gems, ability stones and raid guidance; roster, tasks and raid management; calendar and wandering merchants; guides and news.
 
 These are planned capabilities, not completed features. Character observation and evidence-based diagnosis come first. History requires a storage policy; scores and predictions require validated models and data. Community integration does not yet imply operating a standalone forum. See `docs/frontend-preview.md` and the Obsidian note `프론트엔드 제품 로드맵` for coverage and limitations.
+
+Additional research and screen-based raid assistance scope: `docs/service-research.md`.
