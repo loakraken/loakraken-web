@@ -1,0 +1,1732 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "LOAKraken character search",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/v1/characters/search": {
+      "get": {
+        "tags": [
+          "캐릭터"
+        ],
+        "summary": "캐릭터 검색",
+        "description": "프로필, 장비·보석·각인·카드·아크패시브·아크그리드와 원정대를 제공합니다. 기본 캐시는 5분이며 fetchedAt은 실제 외부 수집 완료 시각입니다. null 섹션은 공식 API에서 데이터가 제공되지 않은 경우입니다.",
+        "operationId": "search",
+        "parameters": [
+          {
+            "name": "characterName",
+            "in": "query",
+            "description": "검색할 캐릭터명",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "검색할 캐릭터명",
+              "example": "모험가",
+              "maxLength": 64,
+              "minLength": 0,
+              "pattern": "[\\p{L}\\p{N}]+"
+            },
+            "example": "모험가"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "캐릭터 조회 성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseCharacterResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "캐릭터명 누락 또는 형식 오류",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "CHARACTER_NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "406": {
+            "description": "NOT_ACCEPTABLE: JSON 이외의 응답 형식 요청",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "LOST_ARK_RATE_LIMITED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "INTERNAL_SERVER_ERROR",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "LOST_ARK_API_ERROR",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "LOST_ARK_NOT_CONFIGURED, CHARACTER_CACHE_UNAVAILABLE 또는 CHARACTER_STORAGE_UNAVAILABLE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "LOST_ARK_API_TIMEOUT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ApiResponseCharacterResponse": {
+        "type": "object",
+        "description": "공통 API 응답. 오류 응답의 data는 null입니다.",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "업무 결과 코드",
+            "example": "CHARACTER_SEARCH_SUCCESS"
+          },
+          "message": {
+            "type": "string",
+            "description": "공개용 안내 메시지",
+            "example": "캐릭터 조회에 성공했습니다."
+          },
+          "data": {
+            "$ref": "#/components/schemas/CharacterResponse",
+            "description": "성공 응답 데이터. 오류일 때 null"
+          }
+        },
+        "required": [
+          "code",
+          "data",
+          "message"
+        ]
+      },
+      "CharacterResponse": {
+        "type": "object",
+        "description": "캐릭터 프로필, 전투정보와 원정대 캐릭터 조회 결과",
+        "properties": {
+          "characterName": {
+            "type": "string"
+          },
+          "serverName": {
+            "type": "string"
+          },
+          "className": {
+            "type": "string"
+          },
+          "characterLevel": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "itemLevel": {
+            "type": "number"
+          },
+          "combatPower": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "expeditionLevel": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "imageUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "guildName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "stats": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StatResponse"
+            }
+          },
+          "loadout": {
+            "$ref": "#/components/schemas/CharacterLoadoutResponse"
+          },
+          "siblings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SiblingResponse"
+            }
+          },
+          "coverage": {
+            "$ref": "#/components/schemas/CharacterObservationCoverageResponse"
+          },
+          "analysis": {
+            "$ref": "#/components/schemas/CharacterAnalysisResponse"
+          },
+          "fetchedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "외부 API에서 실제 수집한 UTC 시각. 캐시 조회에서도 유지됩니다."
+          }
+        },
+        "required": [
+          "analysis",
+          "characterLevel",
+          "characterName",
+          "className",
+          "combatPower",
+          "coverage",
+          "expeditionLevel",
+          "fetchedAt",
+          "guildName",
+          "imageUrl",
+          "itemLevel",
+          "loadout",
+          "serverName",
+          "siblings",
+          "stats",
+          "title"
+        ]
+      },
+      "StatResponse": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "type",
+          "value"
+        ]
+      },
+      "CharacterLoadoutResponse": {
+        "type": "object",
+        "description": "공식 API의 구조화된 전투정보. null 섹션은 제공된 데이터가 없음을 뜻하며 Tooltip은 포함하지 않습니다.",
+        "properties": {
+          "equipment": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EquipmentResponse"
+            }
+          },
+          "engravings": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EngravingsResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "gems": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GemsResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "cards": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CardsResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "arkPassive": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ArkPassiveResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "arkGrid": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ArkGridResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "arkGrid",
+          "arkPassive",
+          "cards",
+          "engravings",
+          "equipment",
+          "gems"
+        ]
+      },
+      "EquipmentResponse": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "grade": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "grade",
+          "icon",
+          "name",
+          "type"
+        ]
+      },
+      "EngravingsResponse": {
+        "type": "object",
+        "properties": {
+          "slots": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EngravingResponse"
+            }
+          },
+          "effects": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EngravingEffectResponse"
+            }
+          },
+          "arkPassiveEffects": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PassiveEngravingResponse"
+            }
+          }
+        },
+        "required": [
+          "arkPassiveEffects",
+          "effects",
+          "slots"
+        ]
+      },
+      "EngravingResponse": {
+        "type": "object",
+        "properties": {
+          "slot": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "icon",
+          "name",
+          "slot"
+        ]
+      },
+      "EngravingEffectResponse": {
+        "type": "object",
+        "properties": {
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "description",
+          "icon",
+          "name"
+        ]
+      },
+      "PassiveEngravingResponse": {
+        "type": "object",
+        "properties": {
+          "abilityStoneLevel": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "grade": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "level": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "abilityStoneLevel",
+          "description",
+          "grade",
+          "level",
+          "name"
+        ]
+      },
+      "GemsResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GemResponse"
+            }
+          },
+          "effects": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GemEffectsResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "effects",
+          "items"
+        ]
+      },
+      "GemResponse": {
+        "type": "object",
+        "properties": {
+          "slot": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "level": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "grade": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "grade",
+          "icon",
+          "level",
+          "name",
+          "slot"
+        ]
+      },
+      "GemEffectsResponse": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "skills": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GemSkillResponse"
+            }
+          }
+        },
+        "required": [
+          "description",
+          "skills"
+        ]
+      },
+      "GemSkillResponse": {
+        "type": "object",
+        "properties": {
+          "gemSlot": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "option": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "description",
+          "gemSlot",
+          "icon",
+          "name",
+          "option"
+        ]
+      },
+      "CardsResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CardResponse"
+            }
+          },
+          "effects": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CardSetResponse"
+            }
+          }
+        },
+        "required": [
+          "effects",
+          "items"
+        ]
+      },
+      "CardResponse": {
+        "type": "object",
+        "properties": {
+          "slot": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "awakeCount": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "awakeTotal": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "grade": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "awakeCount",
+          "awakeTotal",
+          "grade",
+          "icon",
+          "name",
+          "slot"
+        ]
+      },
+      "CardSetResponse": {
+        "type": "object",
+        "properties": {
+          "index": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "cardSlots": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EffectResponse"
+            }
+          }
+        },
+        "required": [
+          "cardSlots",
+          "index",
+          "items"
+        ]
+      },
+      "EffectResponse": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "description",
+          "name"
+        ]
+      },
+      "ArkPassiveResponse": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "points": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PassivePointResponse"
+            }
+          },
+          "effects": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PassiveEffectResponse"
+            }
+          }
+        },
+        "required": [
+          "effects",
+          "enabled",
+          "points",
+          "title"
+        ]
+      },
+      "PassivePointResponse": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "description",
+          "name",
+          "value"
+        ]
+      },
+      "PassiveEffectResponse": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "description",
+          "icon",
+          "name"
+        ]
+      },
+      "ArkGridResponse": {
+        "type": "object",
+        "properties": {
+          "slots": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GridSlotResponse"
+            }
+          },
+          "effects": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GridEffectResponse"
+            }
+          }
+        },
+        "required": [
+          "effects",
+          "slots"
+        ]
+      },
+      "GridSlotResponse": {
+        "type": "object",
+        "properties": {
+          "index": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "point": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "grade": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "gems": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GridGemResponse"
+            }
+          }
+        },
+        "required": [
+          "gems",
+          "grade",
+          "icon",
+          "index",
+          "name",
+          "point"
+        ]
+      },
+      "GridGemResponse": {
+        "type": "object",
+        "properties": {
+          "index": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "grade": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "active",
+          "grade",
+          "icon",
+          "index"
+        ]
+      },
+      "GridEffectResponse": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "level": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "level",
+          "name"
+        ]
+      },
+      "SiblingResponse": {
+        "type": "object",
+        "properties": {
+          "characterName": {
+            "type": "string"
+          },
+          "serverName": {
+            "type": "string"
+          },
+          "className": {
+            "type": "string"
+          },
+          "characterLevel": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "itemLevel": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "characterLevel",
+          "characterName",
+          "className",
+          "itemLevel",
+          "serverName"
+        ]
+      },
+      "CharacterObservationCoverageResponse": {
+        "type": "object",
+        "description": "정규화 전 원천 제공 상태. 빈 목록은 미착용을 뜻하지 않습니다. 누락 필드와 명시적 null은 NOT_PROVIDED입니다.",
+        "properties": {
+          "equipment": {
+            "type": "string",
+            "enum": [
+              "PROVIDED",
+              "PROVIDED_EMPTY",
+              "NOT_PROVIDED"
+            ]
+          },
+          "engravings": {
+            "$ref": "#/components/schemas/ObservationSectionResponse"
+          },
+          "gems": {
+            "$ref": "#/components/schemas/ObservationSectionResponse"
+          },
+          "cards": {
+            "$ref": "#/components/schemas/ObservationSectionResponse"
+          },
+          "arkPassive": {
+            "$ref": "#/components/schemas/ObservationSectionResponse"
+          },
+          "arkGrid": {
+            "$ref": "#/components/schemas/ObservationSectionResponse"
+          },
+          "siblings": {
+            "type": "string",
+            "enum": [
+              "PROVIDED",
+              "PROVIDED_EMPTY",
+              "NOT_PROVIDED"
+            ]
+          }
+        },
+        "required": [
+          "arkGrid",
+          "arkPassive",
+          "cards",
+          "engravings",
+          "equipment",
+          "gems",
+          "siblings"
+        ]
+      },
+      "ObservationSectionResponse": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string",
+            "description": "객체 섹션은 PROVIDED 또는 NOT_PROVIDED이며, 빈 객체도 PROVIDED입니다.",
+            "enum": [
+              "PROVIDED",
+              "PROVIDED_EMPTY",
+              "NOT_PROVIDED"
+            ]
+          },
+          "collections": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "enum": [
+                "PROVIDED",
+                "PROVIDED_EMPTY",
+                "NOT_PROVIDED"
+              ]
+            },
+            "description": "섹션의 최상위 목록별 상태. engravings: slots/effects/arkPassiveEffects, gems: items, cards: items/effects, arkPassive: points/effects, arkGrid: slots/effects. 정해진 키는 항상 포함합니다."
+          }
+        },
+        "required": [
+          "collections",
+          "state"
+        ]
+      },
+      "CharacterAnalysisResponse": {
+        "type": "object",
+        "description": "현재 관측값의 집계입니다. 성능 점수나 효율 평가가 아니며 미제공 섹션은 null입니다.",
+        "properties": {
+          "equipmentCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "gems": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GemSummaryResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "cards": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CardSummaryResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "engravings": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EngravingSummaryResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "arkPassive": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PassiveSummaryResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "arkGrid": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GridSummaryResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "diagnostics": {
+            "$ref": "#/components/schemas/CharacterDiagnosticsResponse"
+          }
+        },
+        "required": [
+          "arkGrid",
+          "arkPassive",
+          "cards",
+          "diagnostics",
+          "engravings",
+          "equipmentCount",
+          "gems"
+        ]
+      },
+      "GemSummaryResponse": {
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "unknownLevelCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "minLevel": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "maxLevel": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "averageLevel": {
+            "anyOf": [
+              {
+                "type": "number",
+                "description": "확인 가능한 양수 레벨만 산술 평균, 소수 둘째 자리 반올림. 계산할 값이 없으면 null입니다."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "levelDistribution": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LevelCountResponse"
+            }
+          }
+        },
+        "required": [
+          "averageLevel",
+          "count",
+          "levelDistribution",
+          "maxLevel",
+          "minLevel",
+          "unknownLevelCount"
+        ]
+      },
+      "LevelCountResponse": {
+        "type": "object",
+        "properties": {
+          "level": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "count": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "required": [
+          "count",
+          "level"
+        ]
+      },
+      "CardSummaryResponse": {
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "unknownAwakeningCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "knownAwakeningTotal": {
+            "type": "integer",
+            "format": "int64",
+            "description": "확인 가능한 카드 각성 수의 합. 세트 효과나 성능 점수가 아닙니다."
+          }
+        },
+        "required": [
+          "count",
+          "knownAwakeningTotal",
+          "unknownAwakeningCount"
+        ]
+      },
+      "EngravingSummaryResponse": {
+        "type": "object",
+        "properties": {
+          "slotCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "legacyEffectCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "arkPassiveEffectCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "required": [
+          "arkPassiveEffectCount",
+          "legacyEffectCount",
+          "slotCount"
+        ]
+      },
+      "PassiveSummaryResponse": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "points": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PointValueResponse"
+            }
+          }
+        },
+        "required": [
+          "enabled",
+          "points"
+        ]
+      },
+      "PointValueResponse": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "name",
+          "value"
+        ]
+      },
+      "GridSummaryResponse": {
+        "type": "object",
+        "properties": {
+          "coreCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "activeGemCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "inactiveGemCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "unknownGemCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "required": [
+          "activeGemCount",
+          "coreCount",
+          "inactiveGemCount",
+          "unknownGemCount"
+        ]
+      },
+      "CharacterDiagnosticsResponse": {
+        "type": "object",
+        "description": "관측값 기반 진단. 빈 findings는 스펙 완성이나 레이드 적합성을 보증하지 않습니다.",
+        "properties": {
+          "ruleVersion": {
+            "type": "string",
+            "description": "진단 규칙 버전. 수집 시각은 최상위 fetchedAt을 사용합니다.",
+            "example": "observed-v2"
+          },
+          "findings": {
+            "type": "array",
+            "description": "장비·보석·카드·각인·패시브·그리드 순서. 성능 또는 강화 우선순위가 아닙니다.",
+            "items": {
+              "$ref": "#/components/schemas/DiagnosticFindingResponse"
+            }
+          }
+        },
+        "required": [
+          "findings",
+          "ruleVersion"
+        ]
+      },
+      "DiagnosticFindingResponse": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "EQUIPMENT_UNAVAILABLE",
+              "EQUIPMENT_NOT_OBSERVED",
+              "GEMS_UNAVAILABLE",
+              "GEM_ITEMS_UNAVAILABLE",
+              "GEMS_NOT_OBSERVED",
+              "GEM_LEVEL_UNKNOWN",
+              "CARDS_UNAVAILABLE",
+              "CARD_ITEMS_UNAVAILABLE",
+              "CARDS_NOT_OBSERVED",
+              "CARD_AWAKENING_UNKNOWN",
+              "ENGRAVINGS_UNAVAILABLE",
+              "ARK_PASSIVE_UNAVAILABLE",
+              "ARK_PASSIVE_STATE_UNKNOWN",
+              "ARK_PASSIVE_DISABLED",
+              "ARK_PASSIVE_POINT_UNKNOWN",
+              "ARK_GRID_UNAVAILABLE",
+              "ARK_GRID_SLOTS_UNAVAILABLE",
+              "ARK_GRID_NOT_OBSERVED",
+              "ARK_GRID_GEM_INACTIVE",
+              "ARK_GRID_GEM_STATE_UNKNOWN"
+            ]
+          },
+          "category": {
+            "type": "string",
+            "description": "DATA_GAP: 정보 부족, SETTING_CHECK: 관측된 비활성 세팅 확인. 심각도 등급이 아닙니다.",
+            "enum": [
+              "DATA_GAP",
+              "SETTING_CHECK"
+            ]
+          },
+          "evidencePath": {
+            "type": "string",
+            "description": "전체 API 응답 기준 JSON Pointer. 해당 필드의 관측값이 진단의 근거입니다.",
+            "example": "/data/analysis/arkGrid/inactiveGemCount"
+          },
+          "observedCount": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32",
+                "description": "개수 기반 진단의 관측 개수. 불리언 또는 미제공 값의 진단이면 null입니다."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "message": {
+            "type": "string",
+            "description": "표시용 설명. 클라이언트 분기는 message 대신 code를 사용합니다."
+          }
+        },
+        "required": [
+          "category",
+          "code",
+          "evidencePath",
+          "message",
+          "observedCount"
+        ]
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "description": "공통 오류 응답. HTTP 상태와 업무 코드를 함께 확인합니다.",
+        "properties": {
+          "code": {
+            "type": "string",
+            "example": "INVALID_REQUEST"
+          },
+          "message": {
+            "type": "string",
+            "example": "요청 값이 올바르지 않습니다."
+          },
+          "data": {
+            "type": "null"
+          }
+        },
+        "required": [
+          "code",
+          "data",
+          "message"
+        ]
+      }
+    }
+  }
+}
