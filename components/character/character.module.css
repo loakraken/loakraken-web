@@ -23,17 +23,33 @@
   cursor: wait;
   opacity: 0.6;
 }
+.page [id] {
+  scroll-margin-top: 96px;
+}
 .page :focus-visible {
   outline: 3px solid #0071e3;
   outline-offset: 4px;
 }
+/* Floating translucent material: content scrolls beneath the navigation. */
 .header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
   display: flex;
   align-items: center;
   gap: 24px;
-  padding: 16px max(24px, calc((100% - 1120px) / 2));
-  border-bottom: 1px solid #e8e8ed;
-  background: #fafafc;
+  padding: 12px max(24px, calc((100% - 1120px) / 2));
+  border-bottom: 1px solid rgb(0 0 0 / 8%);
+  background: rgb(250 250 252 / 72%);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
+}
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .header {
+    background: #fafafc;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
 }
 .brand {
   font-size: 20px;
@@ -168,84 +184,72 @@
 .refresh:active {
   transform: scale(0.97);
 }
-/* Banner content (dark band): light ink, ILOA-style chips and inline metrics. */
-.bannerTop {
+/* Hero — Apple product-page rhythm: name, product shot, specs, action.
+   Large type tightens tracking and leading; small type stays near zero. */
+.hero:not([data-empty]) {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  text-align: center;
+  margin: 36px 0 28px;
 }
-.bannerBack {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--banner-muted);
-  font-size: 13px;
+.heroHead .eyebrow {
+  margin-bottom: 10px;
 }
-.bannerTop .refresh {
-  padding: 8px 15px;
-  font-size: 13px !important;
-}
-.bannerIdentity {
-  margin-top: auto;
-  padding-top: 26px;
-  max-width: 46%;
-}
-.chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 12px;
-}
-.chips span {
-  padding: 4px 10px;
-  border-radius: 8px;
-  background: var(--banner-chip);
-  color: var(--banner-ink);
-  font-size: 12px;
-  font-weight: 550;
-}
-.bannerIdentity h1 {
-  font-size: clamp(30px, 4.2vw, 48px);
-  font-weight: 650;
-  letter-spacing: -0.02em;
-  line-height: 1.1;
+.heroHead h1 {
+  font-size: clamp(40px, 6vw, 72px);
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.05;
   overflow-wrap: anywhere;
 }
-.bannerTitle {
-  margin-top: 6px;
-  color: var(--banner-muted);
-  font-size: 15px;
-}
-.bannerFacts {
+.heroMeta {
   margin-top: 12px;
-  color: var(--banner-ink);
+  color: #6e6e73;
+  font-size: clamp(17px, 1.6vw, 21px);
+  line-height: 1.4;
+  letter-spacing: -0.005em;
+}
+.heroTitle {
+  margin-top: 4px;
+  color: #86868b;
+  font-size: 14px;
+}
+.specs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  width: min(880px, 100%);
+  margin-top: 8px;
+}
+.specs > div {
+  min-width: 0;
+  padding: 6px 18px;
+  border-left: 1px solid #e8e8ed;
+}
+.specs > div:first-child {
+  border-left: 0;
+}
+.specs strong {
+  display: block;
+  font-size: clamp(26px, 3vw, 40px);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.specs > div:last-child strong {
+  font-size: clamp(19px, 2vw, 26px);
+  line-height: 1.5;
+}
+.specs span {
+  display: block;
+  margin-top: 6px;
+  color: #6e6e73;
   font-size: 13px;
 }
-.bannerFacts span {
-  color: var(--banner-muted);
-  margin-right: 6px;
-}
-.bannerMetrics {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px 34px;
-  margin-top: 22px;
-}
-.bannerMetrics span {
-  display: block;
-  color: var(--banner-muted);
-  font-size: 12px;
-  margin-bottom: 3px;
-}
-.bannerMetrics strong {
-  font-size: 22px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  font-variant-numeric: tabular-nums;
-}
-.bannerMetrics strong[data-accent] {
-  color: var(--banner-accent);
+.heroActions {
+  margin-top: 30px;
 }
 .queryStatus {
   min-height: 24px;
@@ -708,6 +712,9 @@
   top: 12px;
 }
 @media (max-width: 700px) {
+  .page [id] {
+    scroll-margin-top: 150px;
+  }
   .header {
     padding: 16px 20px;
     gap: 12px;
@@ -731,20 +738,16 @@
   .cardGrid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
-  .bannerIdentity {
-    max-width: 64%;
+  .specs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    row-gap: 22px;
   }
-  .bannerTop .refresh {
+  .specs > div:nth-child(3) {
+    border-left: 0;
+  }
+  .heroActions .refresh {
     width: auto;
-  }
-  .bannerBack {
-    white-space: nowrap;
-  }
-  .bannerMetrics {
-    gap: 8px 18px;
-  }
-  .bannerMetrics strong {
-    font-size: 17px;
+    min-width: 180px;
   }
   .identity h1 {
     font-size: 29px;

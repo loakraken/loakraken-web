@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useState,
-  type CSSProperties,
-  type ReactNode,
-} from "react";
+import { useCallback, useEffect, useState, type CSSProperties } from "react";
 import { m, useSpring } from "motion/react";
 import { ThinkingOrb } from "thinking-orbs";
 import { useLandingMotion } from "@/components/landing/motion";
@@ -139,6 +133,7 @@ type Cutout = {
   status: "none" | "pending" | "ready" | "failed";
   url: string | null;
   ambient: string | null;
+  backdrop: string | null;
 };
 
 // Light surfaces need the render without its baked-in dark backdrop. A separate
@@ -149,13 +144,20 @@ function usePortraitCutout(src: string | null): Cutout {
     status: src ? "pending" : "none",
     url: null,
     ambient: null,
+    backdrop: null,
   });
   useEffect(() => {
     if (!src) return;
     let cancelled = false;
     let objectUrl: string | null = null;
     const fail = () => {
-      if (!cancelled) setCutout({ status: "failed", url: null, ambient: null });
+      if (!cancelled)
+        setCutout({
+          status: "failed",
+          url: null,
+          ambient: null,
+          backdrop: null,
+        });
     };
     const probe = new Image();
     probe.crossOrigin = "anonymous";
@@ -176,11 +178,12 @@ function usePortraitCutout(src: string | null): Cutout {
         if (!result) return fail();
         context.putImageData(pixels, 0, 0);
         const ambient = result.ambient ? result.ambient.join(" ") : null;
+        const backdrop = result.backdrop.map((v) => Math.round(v)).join(" ");
         canvas.toBlob((blob) => {
           if (cancelled) return;
           if (!blob) return fail();
           objectUrl = URL.createObjectURL(blob);
-          setCutout({ status: "ready", url: objectUrl, ambient });
+          setCutout({ status: "ready", url: objectUrl, ambient, backdrop });
         }, "image/png");
       } catch {
         fail();
@@ -195,34 +198,36 @@ function usePortraitCutout(src: string | null): Cutout {
   return cutout;
 }
 
-export function CharacterBanner({
+// LOAKraken "observation stage": the full, uncropped render stands on a soft
+// floor shadow inside the brand's orbit rings (the landing orb motif), with a
+// halo tinted from the render. Light surfaces use the locally generated
+// backdrop-free cutout; dark surfaces (and cutout failures) use the original
+// on a dark rounded surface. The tone switches in CSS, so nothing flashes.
+export function CharacterStage({
   url,
   name,
-  children,
 }: {
   url: string | null;
   name: string;
-  children: ReactNode;
 }) {
   const safe = safeGameImage(url);
   const { enabled } = useLandingMotion();
   const [phase, bind] = useImagePhase(safe);
   const cutout = usePortraitCutout(safe);
   const shiftX = useSpring(0, { stiffness: 90, damping: 22 });
-  const shiftY = useSpring(0, { stiffness: 90, damping: 22 });
   const waiting = phase === "loading" || cutout.status === "pending";
 
   return (
-    <section
-      className={styles.banner}
+    <div
+      className={styles.stage}
       data-phase={phase}
       data-cutout={cutout.status}
       data-motion={enabled ? "on" : "off"}
-      aria-label={`${name} 캐릭터 요약`}
       style={
-        cutout.ambient
-          ? ({ "--ambient": cutout.ambient } as CSSProperties)
-          : undefined
+        {
+          ...(cutout.ambient && { "--ambient": cutout.ambient }),
+          ...(cutout.backdrop && { "--backdrop": cutout.backdrop }),
+        } as CSSProperties
       }
       onPointerMove={(event) => {
         if (
@@ -231,76 +236,83 @@ export function CharacterBanner({
         )
           return;
         const box = event.currentTarget.getBoundingClientRect();
-        shiftX.set(((event.clientX - box.left) / box.width - 0.5) * -14);
-        shiftY.set(((event.clientY - box.top) / box.height - 0.5) * -8);
+        shiftX.set(((event.clientX - box.left) / box.width - 0.5) * 10);
       }}
-      onPointerLeave={() => {
-        shiftX.set(0);
-        shiftY.set(0);
-      }}
+      onPointerLeave={() => shiftX.set(0)}
     >
-      <span className={styles.bannerGlow} aria-hidden="true" />
-      <div className={styles.bannerInner}>
-        {safe && phase !== "failed" && (
-          <m.div
-            className={styles.bannerFigure}
-            style={enabled ? { x: shiftX, y: shiftY } : undefined}
-          >
-            {/* Original render (dark surfaces). Official CDN, not proxied. */}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
+      <span className={styles.stageHalo} aria-hidden="true" />
+      <span className={styles.stageOrbits} aria-hidden="true">
+        <i className={styles.stageOrbitOuter}>
+          <b />
+        </i>
+        <i className={styles.stageOrbitInner}>
+          <b />
+        </i>
+      </span>
+      <span className={styles.stageFloor} aria-hidden="true" />
+      {safe && phase !== "failed" && (
+        <m.div
+          className={styles.stageFigure}
+          style={enabled ? { x: shiftX } : undefined}
+        >
+          {/* Original render (dark surfaces). Official CDN, not proxied. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            {...bind}
+            className={styles.figureOriginal}
+            src={safe}
+            alt={`${name} 캐릭터 전신`}
+            width={612}
+            height={708}
+            decoding="async"
+            fetchPriority="high"
+            referrerPolicy="no-referrer"
+          />
+          {cutout.url && (
+            // Backdrop-removed render (light surfaces), generated locally.
+            // eslint-disable-next-line @next/next/no-img-element
             <img
-              {...bind}
-              className={styles.figureOriginal}
-              src={safe}
-              alt={`${name} 캐릭터 전신`}
+              className={styles.figureCutout}
+              src={cutout.url}
+              alt=""
+              aria-hidden="true"
               width={612}
               height={708}
-              decoding="async"
-              fetchPriority="high"
-              referrerPolicy="no-referrer"
             />
-            {cutout.url && (
-              // Backdrop-removed render (light surfaces), generated locally.
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                className={styles.figureCutout}
-                src={cutout.url}
-                alt=""
-                aria-hidden="true"
-                width={612}
-                height={708}
-              />
-            )}
-          </m.div>
-        )}
-        {waiting && (
-          <span
-            className={styles.bannerOrb}
-            role="status"
-            aria-label="캐릭터 이미지를 준비하는 중"
-          >
-            <span className={styles.orbLight}>
-              <ThinkingOrb
-                state="searching"
-                size={64}
-                theme="light"
-                color="#0066cc"
-                paused={!enabled}
-              />
-            </span>
-            <span className={styles.orbDark}>
-              <ThinkingOrb
-                state="searching"
-                size={64}
-                theme="dark"
-                color="#8ab8ff"
-                paused={!enabled}
-              />
-            </span>
+          )}
+        </m.div>
+      )}
+      {(!safe || phase === "failed") && (
+        <span className={styles.stageFallback} aria-hidden="true">
+          {name.slice(0, 1)}
+        </span>
+      )}
+      {waiting && (
+        <span
+          className={styles.stageOrb}
+          role="status"
+          aria-label="캐릭터 이미지를 준비하는 중"
+        >
+          <span className={styles.orbLight}>
+            <ThinkingOrb
+              state="searching"
+              size={64}
+              theme="light"
+              color="#0066cc"
+              paused={!enabled}
+            />
           </span>
-        )}
-        <div className={styles.bannerContent}>{children}</div>
-      </div>
-    </section>
+          <span className={styles.orbDark}>
+            <ThinkingOrb
+              state="searching"
+              size={64}
+              theme="dark"
+              color="#8ab8ff"
+              paused={!enabled}
+            />
+          </span>
+        </span>
+      )}
+    </div>
   );
 }
