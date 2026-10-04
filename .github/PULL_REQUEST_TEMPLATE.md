@@ -6,7 +6,7 @@
 > 완료한 이슈 번호 \
 > Close #  \
 > 관련된 이슈 번호 (닫고 싶지 않은 경우) \
-> Related to # 
+> Related to #
 
 ## ✅ 자체 체크리스트 (필수)
 - [ ] `npm run lint` 및 `npm run build` 통과
