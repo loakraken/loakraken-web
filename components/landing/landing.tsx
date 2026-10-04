@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { BorderBeam } from "border-beam";
@@ -17,7 +17,12 @@ export function KrakenMark() {
   return <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3v7m-4-4 1 5m7-5-1 5M8 14l-3 5m11-5 3 5M8 19h8M3 21h18M3 12l2 1m16-1-2 1" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" /><circle cx="12" cy="13" r="2" fill="currentColor" stroke="none" /></svg>;
 }
 
+const noSubscribe = () => () => {};
+// Platform is unknown during SSR; render the hint only after hydration to avoid a mismatch.
+const platformKey = () => (/mac|iphone|ipad/i.test(navigator.platform) ? "mac" : "other");
+
 function PrecisionLanding() {
+  const shortcutKey = useSyncExternalStore(noSubscribe, platformKey, () => null);
   const router = useRouter();
   const input = useRef<HTMLInputElement>(null);
   const hero = useRef<HTMLElement>(null);
@@ -86,7 +91,7 @@ function PrecisionLanding() {
       <a className={styles.skipLink} href="#main">본문으로 건너뛰기</a>
       <m.div className={styles.readingProgress} style={{ transform: progressTransform }} aria-hidden="true" />
       <header className={styles.header}>
-        <Link href="/" className={styles.brand} aria-label="LOAKraken 홈"><span className={styles.brandIcon}><KrakenMark /></span><span>LOAKraken</span><span className={styles.brandTag}>PREVIEW</span></Link>
+        <Link href="/" className={styles.brand} aria-label="LOAKraken 홈"><span className={styles.brandIcon}><KrakenMark /></span><span>LOAKraken</span><span className={styles.brandTag}>BETA</span></Link>
         <nav className={styles.navigation} aria-label="주요 메뉴">
           {[{ id: "intro", name: "소개" }, { id: "preview", name: "캐릭터 미리보기" }, { id: "evidence", name: "진단 근거" }, { id: "roadmap", name: "로드맵" }].map((item) => <a key={item.id} href={`#${item.id}`} data-active={activeSection === item.id} aria-current={activeSection === item.id ? "location" : undefined}>{item.name}</a>)}
         </nav>
@@ -119,7 +124,7 @@ function PrecisionLanding() {
                   <Search className={styles.searchIcon} size={19} aria-hidden="true" />
                   <input ref={input} id="character-search" name="character" value={query} onChange={(event) => { setQuery(event.target.value); if (error) setError(""); }}
                     onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} placeholder="캐릭터 이름을 입력하세요" maxLength={65} autoComplete="off" spellCheck={false} disabled={searching} aria-invalid={!!error} aria-describedby={error ? "search-error" : "search-help"} />
-                  <kbd className={styles.shortcut}><Command size={12} /> K</kbd>
+                  {shortcutKey && <kbd className={styles.shortcut} aria-hidden="true">{shortcutKey === "mac" ? <Command size={12} /> : "Ctrl"} K</kbd>}
                   <button className={styles.searchSubmit} type="submit" disabled={searching} aria-label={searching ? "캐릭터 화면으로 이동 중" : undefined}>{searching ? <InlineOrb /> : <>캐릭터 검색 <ArrowRight size={16} /></>}</button>
                 </form>
               </BorderBeam>
@@ -166,7 +171,7 @@ function PrecisionLanding() {
 
         <section className={`${styles.section} ${styles.roadmapSection}`} id="roadmap" aria-labelledby="roadmap-heading">
           <Reveal className={styles.sectionHeading}><div><span className={styles.eyebrow}>앞으로의 LOAKraken</span><h2 id="roadmap-heading">더 나은 선택을 향해.</h2></div><p>검색과 분석에서 성장, 거래, 일상의 플레이까지.<br />캐릭터 성장의 모든 선택을 하나로 연결합니다.</p></Reveal>
-          <Reveal className={styles.roadmapNote}><p>캐릭터 조회와 관측 근거부터 연결하고 있습니다. 아래는 구현 완료 목록이 아닌 제품 목표입니다. 성장 이력은 저장 기준을 정한 뒤, 점수·랭킹·성능 예측은 계산 모델과 데이터 검증을 마친 뒤 제공합니다.</p></Reveal>
+          <Reveal className={styles.roadmapNote}><p>캐릭터 조회와 관측 근거를 실제 데이터로 제공하고 있습니다. 아래는 구현 완료 목록이 아닌 제품 목표입니다. 성장 이력은 저장 기준을 정한 뒤, 점수·랭킹·성능 예측은 계산 모델과 데이터 검증을 마친 뒤 제공합니다.</p></Reveal>
           <div className={styles.roadmap}>
             {roadmap.map((item) => <Reveal key={item.number} className={styles.roadmapItem}>
               <span className={styles.roadmapNumber}>{item.number}</span><div><span className={styles.roadmapStatus} data-active={item.active}><i />{item.status}</span><h3>{item.title}</h3><p>{item.description}</p><p className={styles.roadmapScope}>{item.scope}</p></div>
