@@ -13,10 +13,11 @@ Current direction (2026-10-04): Apple-inspired light product website. This super
 
 ## Game imagery
 
-- The official armory render has a dark background baked in. Present it as a dark 28px product-shot tile (radial dark gradient, bottom mask fade), never directly on the white canvas. Desktop: right column next to identity and metrics; mobile: full-width 300px tile above the name.
+- Character summary is an ILOA-style full-bleed banner under the header: identity, chips (server/class), guild and inline metrics on the left; the official render on the right, sized larger than the band (165% desktop, 400px mobile) and dissolved sideways with a horizontal mask. A soft radial glow uses the render's dominant lit colour.
+- The banner tone follows `prefers-color-scheme` in CSS (no first-paint flash). Light: light gradient band with a locally generated backdrop-free render (`cutoutPortrait`: border-connected flood fill + un-blending of soft glow pixels, from a separate anonymous-CORS request). Dark: dark band with the original render, whose baked-in backdrop matches. If the cutout cannot be produced, the banner falls back to the dark tone with the original.
 - Show official icons for equipment, gems, cards, Ark Grid cores/gems and Ark Passive/engraving effects on rarity-tinted tiles (normal → esther hues tuned for a light page). Cards use the illustration with awakening pips.
-- Load only from `cdn-lostark.game.onstove.com` / `lostark.game.onstove.com` over HTTPS (`safeGameImage`). No proxy, mirror or Next image optimizer; `referrerPolicy="no-referrer"`, fixed dimensions, lazy loading below the hero.
-- Images are visible in SSR. After hydration, failed images fall back to text initials or are omitted when there is neither an image nor a grade. While the portrait loads, a dark `thinking-orbs` "searching" orb sits in the tile.
+- Load only from `cdn-lostark.game.onstove.com` / `lostark.game.onstove.com` over HTTPS (`safeGameImage`). No proxy, mirror or Next image optimizer; `referrerPolicy="no-referrer"`, fixed dimensions, lazy loading below the banner. The cutout exists only as an in-memory object URL.
+- Failed images fall back to text initials or are omitted when there is neither an image nor a grade. While the portrait loads or is processed, a `thinking-orbs` "searching" orb (light/dark variant) sits in the figure area.
 
 ## Motion
 
