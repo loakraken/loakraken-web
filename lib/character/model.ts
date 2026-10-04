@@ -117,7 +117,8 @@ export function failureCopy(error: QueryFailure) {
   }
 }
 
-export function safePortrait(value: string | null) {
+// Official armory portraits and icon atlases only; never proxy or render arbitrary hosts.
+export function safeGameImage(value: string | null | undefined) {
   if (!value) return null;
   try {
     const url = new URL(value);
@@ -131,4 +132,21 @@ export function safePortrait(value: string | null) {
   } catch {
     return null;
   }
+}
+
+export const safePortrait = safeGameImage;
+
+const gradeKeys: Record<string, string> = {
+  일반: "normal",
+  고급: "uncommon",
+  희귀: "rare",
+  영웅: "epic",
+  전설: "legendary",
+  유물: "relic",
+  고대: "ancient",
+  에스더: "esther",
+};
+
+export function gradeKey(grade: string | null | undefined) {
+  return (grade && gradeKeys[grade.trim()]) || "unknown";
 }

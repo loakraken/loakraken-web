@@ -5,6 +5,8 @@ import {
   characterNameError,
   evidenceAt,
   normalizeCharacterName,
+  gradeKey,
+  safeGameImage,
   safePortrait,
 } from "../lib/character/model";
 import { isCharacterEnvelope } from "../lib/character/validate";
@@ -247,4 +249,23 @@ test("timeout while reading the response body remains a timeout, not invalid JSO
   assert.deepEqual(await requestCharacter("모험가", "http://localhost", { fetcher, timeoutMs: 10 }), {
     ok: false, error: { code: "LOST_ARK_API_TIMEOUT", status: 504 },
   });
+});
+
+test("game images allow only official armory/icon hosts and grades map to known tiles", () => {
+  const icon =
+    "https://cdn-lostark.game.onstove.com/efui_iconatlas/gbs_item/gbs_item_01_175.png";
+  assert.equal(safeGameImage(icon), icon);
+  for (const url of [
+    undefined,
+    "weapon.png",
+    "http://cdn-lostark.game.onstove.com/x.png",
+    "https://pica.korlark.com/efui_iconatlas/x.png",
+    "https://cdn-lostark.game.onstove.com@evil.test/x.png",
+  ])
+    assert.equal(safeGameImage(url), null, String(url));
+  assert.equal(gradeKey("고대"), "ancient");
+  assert.equal(gradeKey(" 유물 "), "relic");
+  assert.equal(gradeKey("에스더"), "esther");
+  assert.equal(gradeKey("신화"), "unknown");
+  assert.equal(gradeKey(null), "unknown");
 });
