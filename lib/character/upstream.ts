@@ -51,6 +51,9 @@ export async function requestCharacter(
       throw new Error("Invalid origin");
     url = new URL("/api/v1/characters/search", base);
     url.searchParams.set("characterName", normalizeCharacterName(name));
+    // Siblings are fetched separately (backend #54) so a siblings failure never
+    // blocks the detail page and a cache miss costs one external call, not two.
+    url.searchParams.set("includeSiblings", "false");
   } catch {
     return {
       ok: false,
