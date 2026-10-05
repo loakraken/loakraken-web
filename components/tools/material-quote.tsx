@@ -532,6 +532,7 @@ function MaterialQuoteContent() {
           <Link href="/tools/material-quote" aria-current="page">
             재료 견적
           </Link>
+          <Link href="/tools/refining">재련 비용</Link>
         </nav>
         <button
           type="button"

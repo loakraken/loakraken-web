@@ -106,6 +106,61 @@ async function market(url, req, send) {
   }
   return send({}, 404);
 }
+// Synthetic refining plan with the backend's response shape. Rates and costs
+// are invented round numbers, not game data.
+function refiningPlan(request) {
+  const weapon = request.equipmentType === "WEAPON";
+  const round = (v) => Math.round(v * 100) / 100;
+  const stages = [];
+  for (let target = request.fromStage + 1; target <= request.toStage; target++) {
+    const rate = Math.max(300, 1500 - (target - 11) * 80) * (request.useBreath ? 1.5 : 1) * (request.useBook && target <= 20 ? 1.3 : 1);
+    const maxAttempts = Math.ceil(21500 / rate) + 1;
+    const expectedAttempts = round(maxAttempts * 0.42);
+    const per = [
+      [weapon ? "운명의 파괴석" : "운명의 수호석", weapon ? 1000 + target * 30 : 1500 + target * 40],
+      ["운명의 돌파석", 20 + target],
+      ["아비도스 융화 재료", 12 + target],
+      ["운명의 파편", 6000 + target * 200],
+      ...(request.useBreath ? [[weapon ? "용암의 숨결" : "빙하의 숨결", 20]] : []),
+      ...(request.useBook && target <= 20 ? [[(weapon ? "야금술 : 업화 " : "재봉술 : 업화 ") + (target <= 14 ? "[11-14]" : target <= 18 ? "[15-18]" : "[19-20]"), 1]] : []),
+    ];
+    const gold = (weapon ? 2400 : 1800) + target * 60;
+    const goldPer = request.growthSupport && request.grade === "UPHWA" && target <= 18 ? gold * 0.8 : gold;
+    stages.push({
+      targetStage: target,
+      firstAttemptSuccessRateBp: Math.round(rate),
+      expectedAttempts,
+      medianAttempts: Math.round(maxAttempts * 0.36),
+      p90Attempts: Math.round(maxAttempts * 0.88),
+      maxAttempts,
+      expectedMaterials: per.map(([name, n]) => ({ name, amount: round(n * expectedAttempts) })),
+      worstCaseMaterials: per.map(([name, n]) => ({ name, amount: n * maxAttempts })),
+      expectedGold: round(goldPer * expectedAttempts),
+      worstCaseGold: Math.round(goldPer * maxAttempts),
+    });
+  }
+  const sum = (key) => {
+    const totals = new Map();
+    for (const stage of stages) for (const item of stage[key]) totals.set(item.name, round((totals.get(item.name) ?? 0) + item.amount));
+    return [...totals].map(([name, amount]) => ({ name, amount }));
+  };
+  return {
+    code: "REFINING_PLAN_SUCCESS",
+    message: "성공",
+    data: {
+      ruleVersion: "t4-refining-v1",
+      source: { name: "합성 목 데이터", commit: "mock", license: "테스트 전용", crossCheckedWith: "없음", verifiedOn: "2026-10-05" },
+      grade: request.grade, equipmentType: request.equipmentType, fromStage: request.fromStage, toStage: request.toStage,
+      useBreath: !!request.useBreath, useBook: !!request.useBook, growthSupport: !!request.growthSupport,
+      stages,
+      expectedMaterials: sum("expectedMaterials"),
+      worstCaseMaterials: sum("worstCaseMaterials"),
+      expectedGold: round(stages.reduce((a, st) => a + st.expectedGold, 0)),
+      worstCaseGold: stages.reduce((a, st) => a + st.worstCaseGold, 0),
+      assumptions: ["합성 목 데이터: 실제 확률·비용이 아니에요.", "실링과 상급 재련은 포함하지 않아요."],
+    },
+  };
+}
 const port = Number(process.env.MOCK_PORT || 4180);
 createServer(async (req, res) => {
   const url = new URL(req.url, `http://127.0.0.1:${port}`);
@@ -120,6 +175,15 @@ createServer(async (req, res) => {
   if (url.pathname === "/__counts") return send(counts);
   if (url.pathname.startsWith("/api/v1/markets/"))
     return market(url, req, send);
+  if (url.pathname === "/api/v1/refining/plans" && req.method === "POST") {
+    counts.refining = (counts.refining || 0) + 1;
+    let body = "";
+    for await (const chunk of req) body += chunk;
+    const request = JSON.parse(body);
+    if (request.fromStage === 24 && request.toStage === 25 && request.currentFailedAttempts === 10)
+      return send({ code: "INVALID_REQUEST" }, 400);
+    return send(refiningPlan(request));
+  }
   if (url.pathname === "/api/v1/characters/siblings") {
     const who = url.searchParams.get("characterName");
     if (who === "원정대오류") return send({ code: "LOST_ARK_API_ERROR" }, 502);
@@ -230,6 +294,22 @@ createServer(async (req, res) => {
       { index: 1, icon: icon("use/use_13_202.png"), active: false, grade: "영웅" },
     ];
     loadout.arkPassive.effects[0].icon = icon("ark_passive_bs/ark_passive_bs_1.png");
+  }
+  if (name === "재련") {
+    // Refining-page mock: T4 업화/전율 parts plus one unreadable non-T4 part.
+    const parts = [
+      ["무기", "+21 운명의 전율 합성검", 21],
+      ["투구", "+19 운명의 업화 모자", 19],
+      ["상의", "+19 운명의 업화 상의", 19],
+      ["하의", "+18 운명의 업화 하의", 18],
+      ["장갑", "+20 운명의 전율 장갑", 20],
+      ["어깨", "+15 고대 합성 견갑", 15],
+    ];
+    envelope.data.itemLevel = 1738.33;
+    envelope.data.loadout.equipment = parts.map(([type, itemName, refineLevel]) => ({
+      type, name: itemName, icon: null, grade: "고대",
+      detail: { parserVersion: "equipment-tooltip-v3", refineLevel, quality: 90, itemLevel: 1640 + refineLevel * 5, tier: 4, arkPassivePoint: null, effects: [], stoneEngravings: [], polishEffects: [], braceletEffects: [] },
+    }));
   }
   if (name === "상세" || name === "상세서포터") {
     // Detail-page mock: a locally supplied character file (never committed) or
