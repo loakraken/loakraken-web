@@ -170,3 +170,25 @@ test("passive nodes, quality tiers and engraving book string", () => {
   );
   assert.equal(engravingBookString([{ level: null }]), null);
 });
+
+test("avatars group by slot (overlay shares the base slot) and effect lines sum by stat", async () => {
+  const { avatarEffectTotals, avatarSlot } = await import("../lib/character/inner");
+  const avatar = (type: string | null, effects: string[] = [], isInner = false) => ({
+    type, name: "a", icon: null, grade: "전설", isSet: false, isInner, effects,
+  });
+  assert.equal(avatarSlot(avatar("무기 아바타")), "무기");
+  assert.equal(avatarSlot(avatar("무기 덧입기 아바타", [], true)), "무기");
+  assert.equal(avatarSlot(avatar("이동 효과")), "이동 효과");
+  assert.equal(avatarSlot(avatar(null)), "기타");
+  assert.deepEqual(
+    avatarEffectTotals([
+      avatar("상의 아바타", ["민첩 +2.00%"]),
+      avatar("하의 아바타", ["민첩 +1.00%", "특수 효과 설명"]),
+      avatar("머리 아바타", ["힘 +1.50%"]),
+    ]),
+    [
+      { name: "민첩", value: 3 },
+      { name: "힘", value: 1.5 },
+    ],
+  );
+});

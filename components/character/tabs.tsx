@@ -40,6 +40,8 @@ import {
 import { METRICS, change, stepSeries } from "@/lib/character/history";
 import { failureCopy } from "@/lib/character/model";
 import { HistoryChart } from "./history-chart";
+import { AvatarsTab, CollectiblesTab } from "./inner";
+import { Panel } from "./panel";
 import { CardArt, GameIcon } from "./imagery";
 import {
   Empty,
@@ -57,6 +59,8 @@ export const TABS = [
   { id: "combat", label: "전투" },
   { id: "skills", label: "스킬" },
   { id: "arkpassive", label: "아크 패시브" },
+  { id: "collectibles", label: "내실" },
+  { id: "avatars", label: "아바타" },
   { id: "stats", label: "통계" },
   { id: "siblings", label: "원정대" },
   { id: "evidence", label: "진단 근거" },
@@ -227,35 +231,6 @@ export function TabBar({
 }
 
 /* Panels -------------------------------------------------------------------- */
-
-function Panel({
-  title,
-  meta,
-  children,
-  id,
-  wide,
-}: {
-  title: string;
-  meta?: ReactNode;
-  children: ReactNode;
-  id?: string;
-  wide?: boolean;
-}) {
-  return (
-    <section
-      id={id}
-      className={styles.panel}
-      data-wide={wide || undefined}
-      aria-label={title}
-    >
-      <header className={styles.panelHead}>
-        <h2>{title}</h2>
-        {meta && <span className={styles.panelMeta}>{meta}</span>}
-      </header>
-      {children}
-    </section>
-  );
-}
 
 function Quality({ value }: { value: number | null | undefined }) {
   if (value == null) return null;
@@ -702,6 +677,25 @@ function StatsPanel({ data }: { data: Character }) {
           </div>
         )}
       </dl>
+      {data.stats.some((stat) => stat.tooltip.length) && (
+        <details className={styles.statDetail}>
+          <summary>특성 원문</summary>
+          <dl>
+            {data.stats
+              .filter((stat) => stat.tooltip.length)
+              .map((stat) => (
+                <div key={stat.type}>
+                  <dt>
+                    {stat.type} <b>{numeric(stat.value)}</b>
+                  </dt>
+                  {stat.tooltip.map((line, i) => (
+                    <dd key={i}>{line}</dd>
+                  ))}
+                </div>
+              ))}
+          </dl>
+        </details>
+      )}
     </Panel>
   );
 }
@@ -904,7 +898,7 @@ export function ArkPassiveTab({ data }: { data: Character }) {
                           </small>
                         </strong>
                         <p>
-                          <SourceText value={effect.description} />
+                          <SourceText value={effect.effect ?? effect.description} />
                         </p>
                       </div>
                     </li>
@@ -1315,6 +1309,10 @@ export function TabPanel({
         <SkillsTab data={data} />
       ) : tab === "arkpassive" ? (
         <ArkPassiveTab data={data} />
+      ) : tab === "collectibles" ? (
+        <CollectiblesTab data={data} />
+      ) : tab === "avatars" ? (
+        <AvatarsTab data={data} />
       ) : tab === "stats" ? (
         <StatsTab data={data} />
       ) : tab === "siblings" ? (
