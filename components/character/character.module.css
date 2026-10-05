@@ -370,12 +370,15 @@
   font-weight: 600;
   letter-spacing: 0.011em;
 }
+/* Type sizes sit inside the range Korean Lost Ark info sites share (name
+   20-24, key figures 20-26, labels 11-14) using Apple scale steps, so the
+   portrait stays the visual anchor and the name reads as a label. */
 .bannerName {
-  margin-top: 8px;
-  font-size: clamp(44px, 6vw, 80px);
-  font-weight: 600;
-  line-height: 1.05;
-  letter-spacing: -0.015em;
+  margin-top: 4px;
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
   overflow-wrap: anywhere;
 }
 .bannerTitle {
@@ -451,6 +454,9 @@
 @media (max-width: 760px) {
   .headerNav {
     display: none;
+  }
+  .bannerName {
+    font-size: 21px;
   }
   .bannerKicker {
     font-size: 17px;
