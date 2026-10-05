@@ -301,6 +301,41 @@
 }
 
 @media (max-width: 700px) {
+  /* Materials stack as labelled rows instead of a six-column table. */
+  .table[data-wide] thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .table[data-wide] tr {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px 16px;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--hairline);
+  }
+  .table[data-wide] th,
+  .table[data-wide] td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 0;
+    border: 0;
+  }
+  .table[data-wide] th {
+    grid-column: 1 / -1;
+    display: block;
+    font-weight: 600;
+  }
+  .table[data-wide] td::before {
+    content: attr(data-label);
+    color: var(--slate);
+    font-size: 12px;
+    font-weight: 400;
+  }
   .parts {
     grid-template-columns: 1fr;
   }
@@ -327,4 +362,27 @@
   .part {
     transition: none;
   }
+}
+
+/* Material prices */
+.priceStatus {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  color: var(--slate);
+  font-size: 14px;
+}
+.table th small {
+  display: block;
+  margin-top: 2px;
+  color: var(--slate);
+  font-size: 12px;
+  font-weight: 400;
+}
+.materialWrap {
+  margin-top: 16px;
+}
+.cost {
+  font-weight: 600;
 }

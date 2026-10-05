@@ -3,10 +3,11 @@
 import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMutation, useQueries } from "@tanstack/react-query";
+import { useMutation, useQueries, useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Pause, Play } from "lucide-react";
 import { ThinkingOrb, type OrbState } from "thinking-orbs";
 import { LandingMotion, useLandingMotion } from "@/components/landing/motion";
+import { InlineOrb } from "@/components/landing/orb";
 import { CharacterQueryError, fetchCharacter } from "@/lib/character/client";
 import {
   characterNameError,
@@ -14,6 +15,14 @@ import {
   normalizeCharacterName,
   type QueryFailure,
 } from "@/lib/character/model";
+import { MarketQueryError, postMaterialPrices } from "@/lib/market/client";
+import {
+  MAX_PRICE_NAMES,
+  formatGold,
+  marketFailureCopy,
+  priceBases,
+  type PriceBasis,
+} from "@/lib/market/model";
 import { RefiningQueryError, postRefiningPlan } from "@/lib/refining/client";
 import {
   GRADES,
@@ -22,6 +31,7 @@ import {
   MODES,
   PARTS,
   attemptsAt,
+  costLines,
   defaultPart,
   formatCount,
   formatLevel,
@@ -32,6 +42,7 @@ import {
   summarize,
   targetItemLevel,
   toRequest,
+  type CostLine,
   type Grade,
   type Mode,
   type Options,
@@ -355,9 +366,72 @@ function Progress({
   );
 }
 
+const kst = new Intl.DateTimeFormat("ko-KR", {
+  timeZone: "Asia/Seoul",
+  month: "numeric",
+  day: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+});
+const unitGold = (value: number) =>
+  value.toLocaleString("ko-KR", { maximumFractionDigits: value < 1 ? 4 : 2 });
+
+function PriceSource({ line }: { line: CostLine }) {
+  const price = line.price;
+  if (!price) return null;
+  if (price.status === "NOT_FOUND")
+    return <small>거래소에 없어요 · 귀속 재료는 합계에서 빼요</small>;
+  if (price.status === "PRICE_UNAVAILABLE")
+    return <small>선택한 기준의 가격이 없어요</small>;
+  if (price.contentsPerItem != null)
+    return (
+      <small>
+        {price.sourceItemName} · {formatCount(price.contentsPerItem)}개{" "}
+        {formatGold(price.bundlePrice)}골드
+      </small>
+    );
+  return price.bundleCount && price.bundleCount > 1 ? (
+    <small>
+      {formatCount(price.bundleCount)}개 묶음 {formatGold(price.bundlePrice)}골드
+    </small>
+  ) : null;
+}
+
 function Result({ plans, mode }: { plans: PartPlan[]; mode: Mode }) {
   const summary = summarize(plans, mode);
   const [owned, setOwned] = useState<Record<string, string>>({});
+  const [basis, setBasis] = useState<PriceBasis>("CURRENT_MIN_PRICE");
+  const names = summary.materials.map((item) => item.name);
+  const prices = useQuery({
+    queryKey: ["material-prices", basis, [...names].sort().join("|")],
+    queryFn: ({ signal }) =>
+      postMaterialPrices({ priceBasis: basis, names }, signal),
+    enabled: names.length > 0 && names.length <= MAX_PRICE_NAMES,
+    staleTime: 5 * 60_000,
+    retry: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+  });
+  const priceList = prices.data?.data.items ?? null;
+  const { lines, materialGold, unpriced } = costLines(
+    summary.materials,
+    Object.fromEntries(
+      Object.entries(owned).map(([name, value]) => [name, Number(value || 0)]),
+    ),
+    priceList,
+  );
+  const priceFailure =
+    prices.error instanceof MarketQueryError
+      ? prices.error.info
+      : prices.error
+        ? { code: "LOST_ARK_API_ERROR", status: 502 }
+        : null;
+  const observedAt = priceList
+    ?.map((item) => item.observedAt)
+    .sort()
+    .at(-1);
+  const basisLabel = priceBases.find((item) => item.value === basis)?.label;
   const source = plans[0].plan.source;
   const assumptions = [
     ...new Set(plans.flatMap(({ plan }) => plan.assumptions)),
@@ -365,36 +439,84 @@ function Result({ plans, mode }: { plans: PartPlan[]; mode: Mode }) {
   return (
     <>
       <p className={quote.total}>
-        {formatCount(summary.gold)}
+        {formatCount(summary.gold + (priceList ? materialGold : 0))}
         <span>골드</span>
       </p>
       <p className={quote.totalNote}>
-        재련 골드 · 총 {formatCount(summary.stageCount)}단계, 시도{" "}
+        {priceList
+          ? `재련 골드 ${formatCount(summary.gold)} + 재료 구매 ${formatCount(materialGold)}`
+          : `재련 골드 ${formatCount(summary.gold)}`}{" "}
+        · 총 {formatCount(summary.stageCount)}단계, 시도{" "}
         {formatCount(summary.attempts, mode === "expected" ? 1 : 0)}회
       </p>
+      {prices.isFetching && (
+        <p className={styles.priceStatus} role="status">
+          <InlineOrb /> 재료 시세를 불러오고 있어요.
+        </p>
+      )}
+      {priceList && unpriced.length > 0 && (
+        <p className={quote.status}>
+          시세가 없어 합계에서 뺀 재료: {unpriced.join(", ")}
+        </p>
+      )}
 
       <h3 className={styles.sectionTitle}>필요 재료</h3>
-      <p className={quote.caption}>
-        소수는 올림했어요. 보유 수량을 넣으면 더 필요한 수량을 계산해요.
-      </p>
-      <table className={styles.table}>
-        <thead>
-          <tr>
-            <th scope="col">재료</th>
-            <th scope="col">필요</th>
-            <th scope="col">보유</th>
-            <th scope="col">부족</th>
-          </tr>
-        </thead>
-        <tbody>
-          {summary.materials.map((item) => {
-            const have = Number(owned[item.name] || 0);
-            const missing = Math.max(0, item.amount - have);
-            return (
-              <tr key={item.name}>
-                <th scope="row">{item.name}</th>
-                <td>{formatCount(item.amount)}</td>
-                <td>
+      <div
+        className={quote.segmented}
+        role="radiogroup"
+        aria-label="재료 가격 기준"
+      >
+        {priceBases.map((item) => (
+          <label
+            key={item.value}
+            data-checked={basis === item.value || undefined}
+          >
+            <input
+              type="radio"
+              name="refining-price-basis"
+              value={item.value}
+              checked={basis === item.value}
+              onChange={() => setBasis(item.value)}
+            />
+            {item.label}
+          </label>
+        ))}
+      </div>
+      {priceFailure && (
+        <div className={quote.notice} role="alert">
+          <strong>{marketFailureCopy(priceFailure).title}</strong>
+          <p>{marketFailureCopy(priceFailure).text}</p>
+          <button
+            type="button"
+            className={quote.outlinePill}
+            disabled={prices.isFetching}
+            onClick={() => prices.refetch()}
+          >
+            시세 다시 불러오기
+          </button>
+        </div>
+      )}
+      <div className={styles.materialWrap}>
+        <table className={styles.table} data-wide="">
+          <thead>
+            <tr>
+              <th scope="col">재료</th>
+              <th scope="col">필요</th>
+              <th scope="col">보유</th>
+              <th scope="col">부족</th>
+              <th scope="col">단가</th>
+              <th scope="col">구매 골드</th>
+            </tr>
+          </thead>
+          <tbody>
+            {lines.map((line) => (
+              <tr key={line.name}>
+                <th scope="row">
+                  {line.name}
+                  <PriceSource line={line} />
+                </th>
+                <td data-label="필요">{formatCount(line.amount)}</td>
+                <td data-label="보유">
                   <input
                     className={styles.ownedInput}
                     type="number"
@@ -402,28 +524,41 @@ function Result({ plans, mode }: { plans: PartPlan[]; mode: Mode }) {
                     min={0}
                     step={1}
                     placeholder="0"
-                    aria-label={`${item.name} 보유 수량`}
-                    value={owned[item.name] ?? ""}
+                    aria-label={`${line.name} 보유 수량`}
+                    value={owned[line.name] ?? ""}
                     onChange={(event) =>
                       setOwned((prev) => ({
                         ...prev,
-                        [item.name]: event.target.value.replace(/\D/g, ""),
+                        [line.name]: event.target.value.replace(/\D/g, ""),
                       }))
                     }
                   />
                 </td>
-                <td data-done={missing === 0 || undefined}>
-                  {missing === 0 ? "충분" : formatCount(missing)}
+                <td data-label="부족" data-done={line.missing === 0 || undefined}>
+                  {line.missing === 0 ? "충분" : formatCount(line.missing)}
+                </td>
+                <td data-label="단가">
+                  {line.price?.status === "PRICED" &&
+                  line.price.unitPriceGold != null
+                    ? unitGold(line.price.unitPriceGold)
+                    : "—"}
+                </td>
+                <td className={styles.cost} data-label="구매 골드">
+                  {line.cost == null
+                    ? "—"
+                    : formatCount(Math.max(0, Math.ceil(line.cost - 1e-9)))}
                 </td>
               </tr>
-            );
-          })}
-        </tbody>
-      </table>
+            ))}
+          </tbody>
+        </table>
+      </div>
       <p className={quote.caption}>
-        재료 시세 환산은 연결을 준비하고 있어요. 지금은{" "}
-        <Link href="/tools/material-quote">재료 구매 견적</Link>에서 부족
-        수량으로 골드를 계산할 수 있어요.
+        필요 수량은 소수를 올림했어요. 구매 골드는 부족 수량 × 1개당 단가라
+        실제 묶음 구매와 조금 다를 수 있어요. 운명의 파편은 가장 싼 주머니
+        기준이에요.
+        {observedAt &&
+          ` 거래소 첫 페이지에서 이름이 같은 상품의 ${basisLabel}를 ${kst.format(new Date(observedAt))}에 읽었어요.`}
       </p>
 
       <details className={styles.disclosure}>

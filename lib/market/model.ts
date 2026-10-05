@@ -13,6 +13,11 @@ type Envelope<T> = { code: string; message: string; data: T };
 export type OptionsEnvelope = Envelope<MarketOptions>;
 export type ItemsEnvelope = Envelope<MarketPriceResult>;
 export type QuoteEnvelope = Envelope<MaterialQuote>;
+export type MaterialPrices = Schemas["MaterialPriceResponse"];
+export type MaterialPrice = Schemas["MaterialPriceItemResponse"];
+export type PricesEnvelope = Envelope<MaterialPrices>;
+export type PriceRequest = { priceBasis: PriceBasis; names: string[] };
+export const MAX_PRICE_NAMES = 20;
 
 // The generated request schema renders Java Long as string; the backend accepts
 // (and requires) JSON integers, so the frontend sends numbers.
@@ -174,6 +179,23 @@ export function parseQuoteRequest(value: unknown): QuoteRequest | null {
     });
   }
   return { priceBasis: body.priceBasis as PriceBasis, items };
+}
+
+/** Material unit prices by name (#76); names are trimmed and de-duplicated. */
+export function parsePriceRequest(value: unknown): PriceRequest | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const body = value as Record<string, unknown>;
+  if (!priceBases.some((basis) => basis.value === body.priceBasis)) return null;
+  if (!Array.isArray(body.names)) return null;
+  const names: string[] = [];
+  for (const raw of body.names) {
+    if (typeof raw !== "string") return null;
+    const name = normalizeText(raw);
+    if (!name || name.length > 64) return null;
+    if (!names.includes(name)) names.push(name);
+  }
+  if (names.length < 1 || names.length > MAX_PRICE_NAMES) return null;
+  return { priceBasis: body.priceBasis as PriceBasis, names };
 }
 
 /** Display only; the backend's exact value is kept for any further use. */
