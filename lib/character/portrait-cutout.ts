@@ -123,3 +123,39 @@ export function cutoutPortrait(
       : null;
   return { backdrop, ambient, removed };
 }
+
+/**
+ * Normalises the subject's dominant colour into a clean glow tint: keeps the
+ * hue, lifts saturation and pins lightness so a muddy average still reads as
+ * the effect colour. Near-grey inputs stay neutral (no invented hue).
+ */
+export function glowTint(rgb: Rgb): Rgb {
+  const [r, g, b] = rgb.map((v) => v / 255);
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const delta = max - min;
+  let hue = 0;
+  if (delta > 0) {
+    if (max === r) hue = ((g - b) / delta) % 6;
+    else if (max === g) hue = (b - r) / delta + 2;
+    else hue = (r - g) / delta + 4;
+    hue *= 60;
+    if (hue < 0) hue += 360;
+  }
+  const lightness = (max + min) / 2;
+  const saturation =
+    delta === 0 ? 0 : delta / (1 - Math.abs(2 * lightness - 1));
+  const s = saturation < 0.12 ? saturation : Math.max(0.72, Math.min(0.9, saturation));
+  const l = 0.55;
+  const c = (1 - Math.abs(2 * l - 1)) * s;
+  const x = c * (1 - Math.abs(((hue / 60) % 2) - 1));
+  const m = l - c / 2;
+  const [rr, gg, bb] =
+    hue < 60 ? [c, x, 0]
+    : hue < 120 ? [x, c, 0]
+    : hue < 180 ? [0, c, x]
+    : hue < 240 ? [0, x, c]
+    : hue < 300 ? [x, 0, c]
+    : [c, 0, x];
+  return [rr, gg, bb].map((v) => Math.round((v + m) * 255)) as unknown as Rgb;
+}

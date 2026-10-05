@@ -160,16 +160,55 @@
   min-width: 0;
 }
 .bannerIdentity {
+  grid-column: 1;
+  grid-row: 1;
   align-self: center;
 }
 .bannerFacts {
+  grid-column: 3;
+  grid-row: 1;
   padding-bottom: 40px;
+}
+/* Ambient glow: the render's own effect colour (normalised in glowTint)
+   spreads softly behind the figure, so effects fade into the band instead of
+   stopping at the image. A radial gradient with a light blur keeps it cheap. */
+.bannerGlow {
+  position: relative;
+  grid-column: 2;
+  grid-row: 1;
+  align-self: stretch;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 900ms ease-out;
+}
+.bannerGlow[data-ready] {
+  opacity: 1;
+}
+.bannerGlow::before {
+  content: "";
+  position: absolute;
+  top: 58%;
+  left: 50%;
+  width: 780px;
+  height: 500px;
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    rgb(var(--ambient, 0 0 0) / 26%),
+    rgb(var(--ambient, 0 0 0) / 10%) 55%,
+    transparent
+  );
+  filter: blur(28px);
+  transform: translate(-50%, -50%);
 }
 /* The figure box reaches left into the empty band; the render inside is
    enlarged and anchored so roughly head to waist is visible. */
 .bannerFigure {
   position: relative;
   z-index: 0;
+  grid-column: 2;
+  grid-row: 1;
   align-self: stretch;
   margin-left: -200px;
   overflow: hidden;
@@ -249,6 +288,16 @@
   opacity: 0;
 }
 @media (prefers-color-scheme: dark) {
+  /* On the dark band the glow adds light, like the effect itself. */
+  .bannerGlow::before {
+    background: radial-gradient(
+      closest-side,
+      rgb(var(--ambient, 0 0 0) / 34%),
+      rgb(var(--ambient, 0 0 0) / 12%) 55%,
+      transparent
+    );
+    mix-blend-mode: screen;
+  }
   .banner:not([data-phase="failed"]) {
     --band: rgb(var(--backdrop, 16 17 20));
     --band-ink: #f5f5f7;
@@ -279,6 +328,23 @@
     gap: 0;
     padding: 0 16px 24px;
   }
+  .bannerGlow {
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 0;
+    height: 280px;
+  }
+  .bannerGlow::before {
+    width: 420px;
+    height: 300px;
+  }
+  .bannerIdentity,
+  .bannerFacts,
+  .bannerFigure {
+    grid-column: 1;
+    grid-row: auto;
+  }
   .bannerFigure {
     order: -1;
     height: 280px;
@@ -303,6 +369,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .bannerGlow {
+    transition: none;
+  }
   .bannerFigure img {
     transition: opacity 200ms ease;
   }
