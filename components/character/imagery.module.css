@@ -173,8 +173,17 @@
   align-self: stretch;
   margin-left: -200px;
   overflow: hidden;
-  -webkit-mask-image: linear-gradient(to bottom, #000 82%, transparent);
-  mask-image: linear-gradient(to bottom, #000 82%, transparent);
+  /* The enlarged render (and its skill effects) is wider than this box, so
+     fade the box's own sides too; otherwise the effects stop at a hard
+     vertical edge next to the facts column. Bottom and side fades intersect. */
+  -webkit-mask-image:
+    linear-gradient(to bottom, #000 82%, transparent),
+    linear-gradient(to right, transparent, #000 14%, #000 74%, transparent);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    linear-gradient(to bottom, #000 82%, transparent),
+    linear-gradient(to right, transparent, #000 14%, #000 74%, transparent);
+  mask-composite: intersect;
 }
 .bannerFigure img {
   position: absolute;
@@ -274,6 +283,14 @@
     order: -1;
     height: 280px;
     margin: 0 -16px;
+    /* Full-bleed on phones: the screen edge is the natural boundary, but a
+       short side fade keeps effects from ending in a straight cut. */
+    -webkit-mask-image:
+      linear-gradient(to bottom, #000 82%, transparent),
+      linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
+    mask-image:
+      linear-gradient(to bottom, #000 82%, transparent),
+      linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
   }
   .bannerFigure img,
   .bannerOrb {
