@@ -1,0 +1,1098 @@
+"use client";
+
+import { useState, useSyncExternalStore, type ReactNode } from "react";
+import Link from "next/link";
+import { ArrowRight, RefreshCw, Share2, Star } from "lucide-react";
+import { InlineOrb } from "@/components/landing/orb";
+import { Reveal } from "@/components/landing/motion";
+import {
+  ARK_TREES,
+  COMBAT_STATS,
+  GRADE_LABEL,
+  SLOT_LABEL,
+  averageQuality,
+  engravingBookString,
+  groupEquipment,
+  isGrade,
+  parsePassiveNode,
+  qualityTier,
+  refreshWindow,
+  relativeAgo,
+  remainingLabel,
+  skillSummary,
+  statNumber,
+  type Equipment,
+  type Skill,
+} from "@/lib/character/detail";
+import {
+  characterNameError,
+  coverageLabels,
+  normalizeCharacterName,
+  type Character,
+  type CharacterEnvelope,
+} from "@/lib/character/model";
+import { CardArt, GameIcon } from "./imagery";
+import {
+  Empty,
+  Evidence,
+  SourceText,
+  kstTime,
+  level,
+  number,
+  numeric,
+  text,
+} from "./parts";
+import styles from "./detail.module.css";
+
+export const TABS = [
+  { id: "combat", label: "전투" },
+  { id: "skills", label: "스킬" },
+  { id: "arkpassive", label: "아크 패시브" },
+  { id: "siblings", label: "원정대" },
+  { id: "evidence", label: "진단 근거" },
+] as const;
+export type TabId = (typeof TABS)[number]["id"];
+export const tabOf = (value: string | null): TabId =>
+  TABS.some((tab) => tab.id === value) ? (value as TabId) : "combat";
+
+/* Favourites (per browser) -------------------------------------------------- */
+
+const FAVORITES = "loakraken:favorites";
+const favoriteEvent = "loakraken:favorites";
+function readFavorites(): string[] {
+  try {
+    const value = JSON.parse(localStorage.getItem(FAVORITES) ?? "[]");
+    return Array.isArray(value)
+      ? value.filter((item) => typeof item === "string")
+      : [];
+  } catch {
+    return [];
+  }
+}
+const subscribeFavorites = (callback: () => void) => {
+  window.addEventListener(favoriteEvent, callback);
+  window.addEventListener("storage", callback);
+  return () => {
+    window.removeEventListener(favoriteEvent, callback);
+    window.removeEventListener("storage", callback);
+  };
+};
+function useFavorite(name: string) {
+  const favorite = useSyncExternalStore(
+    subscribeFavorites,
+    () => readFavorites().includes(name),
+    () => false,
+  );
+  const toggle = () => {
+    try {
+      const list = readFavorites().filter((item) => item !== name);
+      localStorage.setItem(
+        FAVORITES,
+        JSON.stringify(favorite ? list : [name, ...list].slice(0, 30)),
+      );
+      window.dispatchEvent(new Event(favoriteEvent));
+    } catch {
+      /* Storage blocked: the toggle simply does not persist. */
+    }
+  };
+  return [favorite, toggle] as const;
+}
+
+/* Tab bar ------------------------------------------------------------------- */
+
+export function TabBar({
+  name,
+  tab,
+  data,
+  now,
+  fetching,
+  rateLimitSeconds,
+  onRefresh,
+}: {
+  name: string;
+  tab: TabId;
+  data: Character;
+  now: number;
+  fetching: boolean;
+  rateLimitSeconds: number;
+  onRefresh: () => void;
+}) {
+  const [favorite, toggleFavorite] = useFavorite(name);
+  const [shareStatus, setShareStatus] = useState("");
+  const window_ = refreshWindow(data, now);
+  const cooling = window_.remainingMs > 0;
+  const disabled = fetching || cooling || rateLimitSeconds > 0;
+  const tooltipId = "refresh-tooltip";
+
+  async function share() {
+    const url = window.location.href;
+    try {
+      if (navigator.share && matchMedia("(pointer: coarse)").matches)
+        await navigator.share({ title: `${name} | LOAKraken`, url });
+      else {
+        await navigator.clipboard.writeText(url);
+        setShareStatus("링크를 복사했어요.");
+      }
+    } catch {
+      setShareStatus("링크를 복사하지 못했어요. 주소창에서 복사해 주세요.");
+    }
+    setTimeout(() => setShareStatus(""), 2500);
+  }
+
+  return (
+    <div className={styles.tabBar}>
+      <div className={styles.tabInner}>
+        <nav className={styles.tabs} aria-label="캐릭터 정보 탭">
+          {TABS.map((item) => (
+            <Link
+              key={item.id}
+              href={item.id === "combat" ? "?" : `?tab=${item.id}`}
+              replace
+              scroll={false}
+              aria-current={tab === item.id ? "page" : undefined}
+            >
+              {item.label}
+            </Link>
+          ))}
+        </nav>
+        <div className={styles.tabActions}>
+          <button
+            type="button"
+            className={styles.iconAction}
+            onClick={share}
+            aria-label="공유하기"
+          >
+            <Share2 size={16} aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            className={styles.iconAction}
+            onClick={toggleFavorite}
+            aria-pressed={favorite}
+            aria-label={favorite ? "즐겨찾기 해제" : "즐겨찾기"}
+          >
+            <Star
+              size={16}
+              aria-hidden="true"
+              fill={favorite ? "currentColor" : "none"}
+            />
+          </button>
+          <span className={styles.refreshWrap}>
+            <button
+              type="button"
+              className={styles.refresh}
+              onClick={onRefresh}
+              disabled={disabled}
+              aria-describedby={tooltipId}
+            >
+              {fetching ? (
+                <InlineOrb />
+              ) : (
+                <RefreshCw size={14} aria-hidden="true" />
+              )}
+              {fetching
+                ? "갱신 중"
+                : rateLimitSeconds > 0
+                  ? `${rateLimitSeconds}초 후 갱신`
+                  : cooling
+                    ? remainingLabel(window_.remainingMs)
+                    : "갱신"}
+            </button>
+            <span role="tooltip" id={tooltipId} className={styles.tooltip}>
+              {relativeAgo(window_.ageMs)} 갱신 · {kstTime(window_.fetchedAt)}
+              <br />
+              {cooling
+                ? `${remainingLabel(window_.remainingMs)} 후 다시 갱신할 수 있어요${window_.estimated ? " (예상)" : ""}`
+                : "지금 다시 갱신할 수 있어요"}
+            </span>
+          </span>
+        </div>
+      </div>
+      <span className={styles.srOnly} role="status">
+        {shareStatus}
+      </span>
+      {shareStatus && <p className={styles.toast}>{shareStatus}</p>}
+    </div>
+  );
+}
+
+/* Panels -------------------------------------------------------------------- */
+
+function Panel({
+  title,
+  meta,
+  children,
+  id,
+  wide,
+}: {
+  title: string;
+  meta?: ReactNode;
+  children: ReactNode;
+  id?: string;
+  wide?: boolean;
+}) {
+  return (
+    <section
+      id={id}
+      className={styles.panel}
+      data-wide={wide || undefined}
+      aria-label={title}
+    >
+      <header className={styles.panelHead}>
+        <h2>{title}</h2>
+        {meta && <span className={styles.panelMeta}>{meta}</span>}
+      </header>
+      {children}
+    </section>
+  );
+}
+
+function Quality({ value }: { value: number | null | undefined }) {
+  if (value == null) return null;
+  return (
+    <span className={styles.quality} data-tier={qualityTier(value)}>
+      <i aria-hidden="true">
+        <s style={{ width: `${Math.max(4, Math.min(100, value))}%` }} />
+      </i>
+      <b>품질 {value}</b>
+    </span>
+  );
+}
+
+function GradeLine({
+  grade,
+  children,
+}: {
+  grade: unknown;
+  children: ReactNode;
+}) {
+  return (
+    <li
+      className={styles.gradeLine}
+      data-grade={isGrade(grade) ? grade : undefined}
+    >
+      <span>{isGrade(grade) ? GRADE_LABEL[grade] : "·"}</span>
+      {children}
+    </li>
+  );
+}
+
+function refineOf(item: Equipment) {
+  return (
+    item.detail?.refineLevel ??
+    (/^\+(\d+)/.exec(item.name ?? "")?.[1]
+      ? Number(/^\+(\d+)/.exec(item.name ?? "")![1])
+      : null)
+  );
+}
+
+function EquipmentPanel({ data }: { data: Character }) {
+  const groups = groupEquipment(data.loadout.equipment);
+  const qualityGroups = data.analysis.equipment?.qualityGroups;
+  const armorQ = averageQuality(qualityGroups, "WEAPON_ARMOR");
+  const accQ = averageQuality(qualityGroups, "ACCESSORY");
+  if (!data.loadout.equipment.length)
+    return (
+      <Panel title="장비">
+        <Empty state={data.coverage.equipment} />
+      </Panel>
+    );
+  return (
+    <Panel
+      title="장비"
+      meta={
+        [
+          armorQ != null && `방어구 품질 ${armorQ}`,
+          accQ != null && `장신구 품질 ${accQ}`,
+        ]
+          .filter(Boolean)
+          .join(" · ") || undefined
+      }
+    >
+      <div className={styles.equipGrid}>
+        <ul className={styles.itemList}>
+          {groups.armor.map((item, i) => {
+            const refine = refineOf(item);
+            return (
+              <li key={i} className={styles.item}>
+                <GameIcon src={item.icon} grade={item.grade} />
+                <div className={styles.itemText}>
+                  <strong>
+                    {SLOT_LABEL[item.type ?? ""] ?? text(item.type)}
+                    {refine != null && <em> +{refine}</em>}
+                  </strong>
+                  <small>
+                    {[
+                      item.detail?.tier != null && `T${item.detail.tier}`,
+                      item.detail?.itemLevel != null &&
+                        number(item.detail.itemLevel),
+                      text(item.grade),
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </small>
+                </div>
+                <Quality value={item.detail?.quality} />
+              </li>
+            );
+          })}
+        </ul>
+        <ul className={styles.itemList}>
+          {groups.accessories.map((item, i) => (
+            <li key={i} className={styles.item}>
+              <GameIcon src={item.icon} grade={item.grade} />
+              <div className={styles.itemText}>
+                <strong>{text(item.type)}</strong>
+                <small>
+                  {[
+                    item.detail?.tier != null && `T${item.detail.tier}`,
+                    text(item.grade),
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </small>
+                <Quality value={item.detail?.quality} />
+              </div>
+              {item.detail?.polishEffects.length ? (
+                <ul className={styles.gradeList}>
+                  {item.detail.polishEffects.map((effect, j) => (
+                    <GradeLine key={j} grade={effect.grade}>
+                      {effect.name} {effect.value}
+                    </GradeLine>
+                  ))}
+                </ul>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+      </div>
+      <div className={styles.equipFoot}>
+        {groups.stone && (
+          <div className={styles.footItem}>
+            <GameIcon
+              src={groups.stone.icon}
+              grade={groups.stone.grade}
+              size={40}
+            />
+            <div>
+              <strong>어빌리티 스톤</strong>
+              {groups.stone.detail?.stoneEngravings.length ? (
+                <ul className={styles.inlineList}>
+                  {groups.stone.detail.stoneEngravings.map((engraving, i) => (
+                    <li key={i}>
+                      {engraving.name} <b>Lv.{engraving.level}</b>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <small>{text(groups.stone.name)}</small>
+              )}
+            </div>
+          </div>
+        )}
+        {groups.bracelet && (
+          <div className={styles.footItem} data-wide="">
+            <GameIcon
+              src={groups.bracelet.icon}
+              grade={groups.bracelet.grade}
+              size={40}
+            />
+            <div>
+              <strong>팔찌</strong>
+              {groups.bracelet.detail?.braceletEffects.length ? (
+                <ul className={styles.gradeList} data-flow="">
+                  {groups.bracelet.detail.braceletEffects.map((effect, i) => (
+                    <GradeLine key={i} grade={effect.grade}>
+                      <span className={styles.preLine}>{effect.text}</span>
+                    </GradeLine>
+                  ))}
+                </ul>
+              ) : (
+                <small>{text(groups.bracelet.name)}</small>
+              )}
+            </div>
+          </div>
+        )}
+        {groups.others.map((item, i) => (
+          <div key={i} className={styles.footItem}>
+            <GameIcon src={item.icon} grade={item.grade} size={40} />
+            <div>
+              <strong>{text(item.type)}</strong>
+              <small>{text(item.name)}</small>
+            </div>
+          </div>
+        ))}
+      </div>
+    </Panel>
+  );
+}
+
+function GemsPanel({ data }: { data: Character }) {
+  const gems = data.loadout.gems?.items ?? [];
+  const summary = data.analysis.gems;
+  return (
+    <Panel
+      title="보석"
+      meta={
+        summary && gems.length
+          ? `${summary.count}개 · 평균 Lv.${number(summary.averageLevel)} · 피해 ${summary.damageEffectCount} · 쿨감 ${summary.cooldownEffectCount}`
+          : undefined
+      }
+    >
+      {gems.length ? (
+        <ul className={styles.gemGrid}>
+          {gems.map((gem, i) => (
+            <li key={i}>
+              <GameIcon src={gem.icon} grade={gem.grade} size={44} />
+              <span>
+                {gem.level != null && gem.level > 0 ? `Lv.${gem.level}` : "?"}
+              </span>
+              <small>{text(gem.name)}</small>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <Empty
+          state={
+            data.coverage.gems.collections.items ?? data.coverage.gems.state
+          }
+        />
+      )}
+    </Panel>
+  );
+}
+
+function ArkGridPanel({ data }: { data: Character }) {
+  const grid = data.loadout.arkGrid;
+  const summary = data.analysis.arkGrid;
+  if (!grid)
+    return (
+      <Panel title="아크 그리드">
+        <Empty state={data.coverage.arkGrid.state} />
+      </Panel>
+    );
+  return (
+    <Panel
+      title="아크 그리드"
+      meta={
+        summary
+          ? [
+              summary.orderPoints != null && `질서 ${summary.orderPoints}P`,
+              summary.chaosPoints != null && `혼돈 ${summary.chaosPoints}P`,
+            ]
+              .filter(Boolean)
+              .join(" · ") || undefined
+          : undefined
+      }
+    >
+      {grid.effects.length > 0 && (
+        <ul className={styles.effectGrid}>
+          {grid.effects.map((effect, i) => (
+            <li key={i}>
+              <span>{text(effect.name)}</span>
+              <b>Lv.{number(effect.level)}</b>
+            </li>
+          ))}
+        </ul>
+      )}
+      {grid.slots.length ? (
+        <ul className={styles.coreList}>
+          {grid.slots.map((slot, i) => (
+            <li key={i}>
+              <GameIcon src={slot.icon} grade={slot.grade} size={40} />
+              <div className={styles.itemText}>
+                <strong>{text(slot.name).replace(/^.*?:\s*/, "")}</strong>
+                <small>
+                  {text(slot.name).split(" : ")[0]} · {number(slot.point)}P
+                </small>
+              </div>
+              <span className={styles.coreGems}>
+                {slot.gems.map((gem, j) => (
+                  <GameIcon
+                    key={j}
+                    src={gem.icon}
+                    grade={gem.grade}
+                    size={24}
+                    inactive={gem.active === false}
+                  />
+                ))}
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <Empty state={data.coverage.arkGrid.collections.slots} />
+      )}
+    </Panel>
+  );
+}
+
+function CardsPanel({ data }: { data: Character }) {
+  const cards = data.loadout.cards;
+  const summary = data.analysis.cards;
+  return (
+    <Panel
+      title="카드"
+      meta={summary ? `각성 합 ${summary.knownAwakeningTotal}` : undefined}
+    >
+      {cards?.items.length ? (
+        <>
+          <ul className={styles.cardGrid}>
+            {cards.items.map((card, i) => (
+              <li key={i}>
+                <CardArt
+                  src={card.icon}
+                  name={text(card.name)}
+                  grade={card.grade}
+                  awakeCount={card.awakeCount}
+                  awakeTotal={card.awakeTotal}
+                />
+              </li>
+            ))}
+          </ul>
+          {cards.effects.length > 0 && (
+            <ul className={styles.setList}>
+              {cards.effects
+                .flatMap((set) => set.items)
+                .map((effect, i) => (
+                  <li key={i}>
+                    <strong>{text(effect.name)}</strong>
+                    <span>
+                      <SourceText value={effect.description} />
+                    </span>
+                  </li>
+                ))}
+            </ul>
+          )}
+        </>
+      ) : (
+        <Empty
+          state={
+            data.coverage.cards.collections.items ?? data.coverage.cards.state
+          }
+        />
+      )}
+    </Panel>
+  );
+}
+
+function passiveByTree(data: Character) {
+  const effects = data.loadout.arkPassive?.effects ?? [];
+  return ARK_TREES.map((tree) => ({
+    tree,
+    point: data.loadout.arkPassive?.points.find((point) => point.name === tree),
+    nodes: effects
+      .map((effect) => ({
+        effect,
+        parsed: parsePassiveNode(effect.description),
+      }))
+      .filter(({ parsed }) => parsed.tree === tree),
+  }));
+}
+
+function ArkPassiveSummary({
+  data,
+  detailed = false,
+}: {
+  data: Character;
+  detailed?: boolean;
+}) {
+  if (!data.loadout.arkPassive)
+    return (
+      <Panel title="아크 패시브">
+        <Empty state={data.coverage.arkPassive.state} />
+      </Panel>
+    );
+  const trees = passiveByTree(data);
+  return (
+    <Panel
+      title="아크 패시브"
+      meta={
+        detailed ? undefined : (
+          <Link href="?tab=arkpassive" replace scroll={false}>
+            자세히
+          </Link>
+        )
+      }
+    >
+      <dl className={styles.points}>
+        {trees.map(({ tree, point }) => (
+          <div key={tree} data-tree={tree}>
+            <dt>{tree}</dt>
+            <dd>{point?.value ?? "—"}</dd>
+            {detailed && point?.description && (
+              <small>{point.description}</small>
+            )}
+          </div>
+        ))}
+      </dl>
+      {trees.map(({ tree, nodes }) =>
+        nodes.length ? (
+          <div key={tree} className={styles.tree}>
+            <h3>{tree}</h3>
+            <ul>
+              {nodes.map(({ effect, parsed }, i) => (
+                <li key={i}>
+                  <GameIcon src={effect.icon} size={28} />
+                  <span className={styles.nodeName}>{parsed.node}</span>
+                  <small>T{parsed.tier}</small>
+                  <b>Lv.{parsed.level}</b>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null,
+      )}
+    </Panel>
+  );
+}
+
+function StatsPanel({ data }: { data: Character }) {
+  const combat = COMBAT_STATS.map(
+    (type) => [type, statNumber(data.stats, type)] as const,
+  ).filter(([, value]) => value != null && value > 0);
+  const total = COMBAT_STATS.reduce(
+    (sum, type) => sum + (statNumber(data.stats, type) ?? 0),
+    0,
+  );
+  const attack = data.stats.find((stat) => stat.type === "공격력");
+  const health = data.stats.find((stat) => stat.type === "최대 생명력");
+  if (!data.stats.length)
+    return (
+      <Panel title="특성">
+        <p className={styles.muted}>능력치가 제공되지 않았어요.</p>
+      </Panel>
+    );
+  return (
+    <Panel title="특성">
+      <dl className={styles.statGrid}>
+        {combat
+          .sort((a, b) => (b[1] ?? 0) - (a[1] ?? 0))
+          .slice(0, 2)
+          .map(([type, value]) => (
+            <div key={type}>
+              <dt>{type}</dt>
+              <dd>{number(value)}</dd>
+            </div>
+          ))}
+        <div>
+          <dt>특성합</dt>
+          <dd>{number(total)}</dd>
+        </div>
+        {attack && (
+          <div>
+            <dt>공격력</dt>
+            <dd>{numeric(attack.value)}</dd>
+          </div>
+        )}
+        {health && (
+          <div>
+            <dt>최대 생명력</dt>
+            <dd>{numeric(health.value)}</dd>
+          </div>
+        )}
+      </dl>
+    </Panel>
+  );
+}
+
+function EngravingsPanel({ data }: { data: Character }) {
+  const effects = data.loadout.engravings?.arkPassiveEffects ?? [];
+  const book = engravingBookString(effects);
+  return (
+    <Panel
+      title="각인"
+      meta={book ? `${effects[0]?.grade ?? ""} ${book}`.trim() : undefined}
+    >
+      {effects.length ? (
+        <ul className={styles.engravings}>
+          {effects.map((effect, i) => (
+            <li key={i}>
+              <strong>{text(effect.name)}</strong>
+              <span>
+                {text(effect.grade)} ×{number(effect.level)}
+                {effect.abilityStoneLevel != null &&
+                  effect.abilityStoneLevel > 0 &&
+                  ` · 스톤 Lv.${effect.abilityStoneLevel}`}
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <Empty
+          state={
+            data.coverage.engravings.collections.arkPassiveEffects ??
+            data.coverage.engravings.state
+          }
+        />
+      )}
+    </Panel>
+  );
+}
+
+function SkillCard({ skill, compact }: { skill: Skill; compact?: boolean }) {
+  return (
+    <li className={styles.skill}>
+      <div className={styles.skillHead}>
+        <GameIcon src={skill.icon} size={36} />
+        <div className={styles.itemText}>
+          <strong>{text(skill.name)}</strong>
+          <small>
+            {level(skill.level)}
+            {skill.rune && ` · ${text(skill.rune.name)}`}
+            {skill.partBreakLevel != null &&
+              ` · 부위 파괴 Lv.${skill.partBreakLevel}`}
+            {skill.counter && " · 카운터"}
+          </small>
+        </div>
+        {skill.rune && (
+          <GameIcon src={skill.rune.icon} grade={skill.rune.grade} size={24} />
+        )}
+      </div>
+      {skill.tripods.length > 0 && (
+        <ul className={styles.tripods}>
+          {skill.tripods.map((tripod, i) => (
+            <li key={i}>
+              <GameIcon src={tripod.icon} size={20} />
+              {compact ? null : <span>{text(tripod.name)}</span>}
+            </li>
+          ))}
+        </ul>
+      )}
+      {!compact && skill.gemEffects.length > 0 && (
+        <ul className={styles.gemEffects}>
+          {skill.gemEffects.map((effect, i) => (
+            <li key={i} data-kind={effect.kind ?? undefined}>
+              {effect.text}
+            </li>
+          ))}
+        </ul>
+      )}
+    </li>
+  );
+}
+
+function SkillOverview({
+  data,
+  full = false,
+}: {
+  data: Character;
+  full?: boolean;
+}) {
+  const [showAll, setShowAll] = useState(false);
+  const skills = data.loadout.skills;
+  if (skills === undefined)
+    return (
+      <Panel title="스킬" wide>
+        <p className={styles.muted}>
+          스킬 정보는 최신 조회 서버에서 제공돼요. 다시 갱신하면 표시될 수
+          있어요.
+        </p>
+      </Panel>
+    );
+  const summary = skillSummary(skills);
+  const list = full && showAll ? skills : summary.active;
+  return (
+    <Panel
+      title="스킬"
+      wide
+      meta={
+        <>
+          {data.skillPoints &&
+            `SP ${data.skillPoints.used}/${data.skillPoints.total}`}
+          {summary.partBreakLevel != null &&
+            ` · 부위 파괴 Lv.${summary.partBreakLevel} ×${summary.partBreakCount}`}
+          {` · 카운터 ${summary.counterCount}개`}
+          {!full && (
+            <>
+              {" · "}
+              <Link href="?tab=skills" replace scroll={false}>
+                자세히
+              </Link>
+            </>
+          )}
+        </>
+      }
+    >
+      {list.length ? (
+        <ul className={styles.skillGrid} data-compact={!full || undefined}>
+          {list.map((skill, i) => (
+            <SkillCard
+              key={`${skill.name}-${i}`}
+              skill={skill}
+              compact={!full}
+            />
+          ))}
+        </ul>
+      ) : (
+        <Empty state={data.coverage.skills} />
+      )}
+      {full && skills.length > summary.active.length && (
+        <button
+          type="button"
+          className={styles.textButton}
+          onClick={() => setShowAll((value) => !value)}
+        >
+          {showAll
+            ? "사용 중인 스킬만 보기"
+            : `전체 ${skills.length}개 스킬 보기`}
+        </button>
+      )}
+    </Panel>
+  );
+}
+
+/* Tabs ---------------------------------------------------------------------- */
+
+export function CombatTab({ data }: { data: Character }) {
+  return (
+    <div className={styles.layout}>
+      <div className={styles.columns}>
+        <div className={styles.stack}>
+          <EquipmentPanel data={data} />
+          <GemsPanel data={data} />
+          <ArkGridPanel data={data} />
+          <CardsPanel data={data} />
+        </div>
+        <aside className={styles.stack} aria-label="요약">
+          <ArkPassiveSummary data={data} />
+          <StatsPanel data={data} />
+          <EngravingsPanel data={data} />
+        </aside>
+      </div>
+      <SkillOverview data={data} />
+    </div>
+  );
+}
+
+export function SkillsTab({ data }: { data: Character }) {
+  return (
+    <div className={styles.layout}>
+      <SkillOverview data={data} full />
+    </div>
+  );
+}
+
+export function ArkPassiveTab({ data }: { data: Character }) {
+  const trees = passiveByTree(data);
+  return (
+    <div className={styles.layout}>
+      <div className={styles.columns}>
+        <div className={styles.stack}>
+          {trees.map(({ tree, nodes }) => (
+            <Panel key={tree} title={tree} meta={`${nodes.length}개 노드`}>
+              {nodes.length ? (
+                <ul className={styles.passiveDetail}>
+                  {nodes.map(({ effect, parsed }, i) => (
+                    <li key={i}>
+                      <GameIcon src={effect.icon} size={36} />
+                      <div className={styles.itemText}>
+                        <strong>
+                          {parsed.node}{" "}
+                          <small>
+                            T{parsed.tier} · Lv.{parsed.level}
+                          </small>
+                        </strong>
+                        <p>
+                          <SourceText value={effect.description} />
+                        </p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className={styles.muted}>
+                  이 트리에서 관측된 노드가 없어요.
+                </p>
+              )}
+            </Panel>
+          ))}
+        </div>
+        <aside className={styles.stack}>
+          <ArkPassiveSummary data={data} detailed />
+          <EngravingsPanel data={data} />
+        </aside>
+      </div>
+    </div>
+  );
+}
+
+export function SiblingsTab({ data }: { data: Character }) {
+  const siblings = [...(data.siblings ?? [])].sort(
+    (a, b) => (b.itemLevel ?? 0) - (a.itemLevel ?? 0),
+  );
+  const servers = [...new Set(siblings.map((sibling) => sibling.serverName))];
+  return (
+    <div className={styles.layout}>
+      {data.siblings === null ? (
+        <Panel title="원정대" wide>
+          <Empty state={null} />
+        </Panel>
+      ) : !siblings.length ? (
+        <Panel title="원정대" wide>
+          <Empty state={data.coverage.siblings} />
+        </Panel>
+      ) : (
+        servers.map((server) => (
+          <Panel
+            key={server}
+            title={server}
+            meta={`${siblings.filter((s) => s.serverName === server).length}명`}
+            wide
+          >
+            <ul className={styles.siblingGrid}>
+              {siblings
+                .filter((sibling) => sibling.serverName === server)
+                .map((sibling, i) => {
+                  const current = sibling.characterName === data.characterName;
+                  const linkable =
+                    !current && !characterNameError(sibling.characterName);
+                  const body = (
+                    <>
+                      <strong>{sibling.characterName}</strong>
+                      <small>
+                        {sibling.className} · Lv.
+                        {number(sibling.characterLevel)}
+                      </small>
+                      <b>{number(sibling.itemLevel)}</b>
+                    </>
+                  );
+                  return (
+                    <li
+                      key={`${sibling.characterName}-${i}`}
+                      data-current={current || undefined}
+                    >
+                      {linkable ? (
+                        <Link
+                          prefetch={false}
+                          href={`/character/${encodeURIComponent(normalizeCharacterName(sibling.characterName))}`}
+                        >
+                          {body}
+                          <ArrowRight size={16} aria-hidden="true" />
+                        </Link>
+                      ) : (
+                        <div>{body}</div>
+                      )}
+                    </li>
+                  );
+                })}
+            </ul>
+          </Panel>
+        ))
+      )}
+    </div>
+  );
+}
+
+const collectionLabels: Record<string, string> = {
+  items: "항목",
+  effects: "효과",
+  slots: "슬롯",
+  arkPassiveEffects: "패시브 각인",
+  points: "포인트",
+};
+
+export function EvidenceTab({
+  data,
+  envelope,
+}: {
+  data: Character;
+  envelope: CharacterEnvelope;
+}) {
+  const findings = data.analysis.diagnostics.findings;
+  const sections = Object.entries(data.coverage).map(([key, value]) => ({
+    key,
+    value,
+  }));
+  return (
+    <div className={styles.layout}>
+      <Panel
+        title="관측에서 발견한 내용"
+        meta={data.analysis.diagnostics.ruleVersion}
+        wide
+      >
+        <p className={styles.muted}>
+          정보 부족은 세팅 오류를 뜻하지 않아요. 확인 항목도 의도한 세팅일 수
+          있어요.
+        </p>
+        {findings.length === 0 ? (
+          <p className={styles.muted}>
+            현재 규칙에서 발견된 확인 항목이 없어요. 모든 세팅이 완성됐다는 뜻은
+            아니에요.
+          </p>
+        ) : (
+          <ul className={styles.findings}>
+            {findings.map((finding, i) => (
+              <li key={`${finding.code}-${i}`} data-category={finding.category}>
+                <span className={styles.findingCategory}>
+                  {finding.category === "DATA_GAP"
+                    ? "정보 부족"
+                    : finding.category === "SETTING_CHECK"
+                      ? "세팅 확인"
+                      : "관측 안내"}
+                </span>
+                <p>{finding.message}</p>
+                {finding.observedCount !== null && (
+                  <small>관측 개수 {number(finding.observedCount)}</small>
+                )}
+                <Evidence envelope={envelope} path={finding.evidencePath} />
+              </li>
+            ))}
+          </ul>
+        )}
+      </Panel>
+      <Panel title="원천 제공 상태" wide>
+        <ul className={styles.coverageList}>
+          {sections.map(({ key, value }) => {
+            const state =
+              typeof value === "string" || value === null ? value : value.state;
+            return (
+              <li key={key}>
+                <strong>{key}</strong>
+                <span data-state={state ?? undefined}>
+                  {state ? coverageLabels[state] : "조회 안 함"}
+                </span>
+                {value && typeof value === "object" && (
+                  <small>
+                    {Object.entries(value.collections)
+                      .map(
+                        ([name, item]) =>
+                          `${collectionLabels[name] ?? name} ${item ? coverageLabels[item] : "-"}`,
+                      )
+                      .join(" · ")}
+                  </small>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      </Panel>
+    </div>
+  );
+}
+
+export function TabPanel({
+  tab,
+  data,
+  envelope,
+}: {
+  tab: TabId;
+  data: Character;
+  envelope: CharacterEnvelope;
+}) {
+  return (
+    <Reveal key={tab} className={styles.tabPanel}>
+      {tab === "skills" ? (
+        <SkillsTab data={data} />
+      ) : tab === "arkpassive" ? (
+        <ArkPassiveTab data={data} />
+      ) : tab === "siblings" ? (
+        <SiblingsTab data={data} />
+      ) : tab === "evidence" ? (
+        <EvidenceTab data={data} envelope={envelope} />
+      ) : (
+        <CombatTab data={data} />
+      )}
+    </Reveal>
+  );
+}

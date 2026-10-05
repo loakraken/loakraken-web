@@ -131,183 +131,119 @@
   font-size: 12px;
 }
 
-/* Observation stage — LOAKraken's own presentation, Apple product-shot style:
-   the full render stands on a contact shadow inside the brand orbit rings,
-   with a halo tinted from the render. Light: backdrop-free cutout on the page.
-   Dark (OS scheme) or cutout failure: original render on a dark rounded
-   surface, whose baked-in backdrop matches. */
-.stage {
-  --ambient: 110 140 190;
-  --stage-ring: rgb(120 150 180 / 26%);
-  --stage-dot: #80a6c5;
+/* Character banner. Light: #f5f5f7 band with the backdrop-free cutout.
+   Dark (OS scheme) or cutout failure: band filled with the render's own
+   backdrop colour and the original render. */
+.banner {
+  --band: #f5f5f7;
+  --band-ink: #1d1d1f;
+  --band-muted: #707070;
   position: relative;
-  width: min(560px, 100%);
-  height: 470px;
-  margin: 18px auto 10px;
-  border-radius: 28px;
-  isolation: isolate;
-  /* The tilted rings project slightly outward; keep them inside the stage. */
-  overflow: clip;
+  background: var(--band);
+  color: var(--band-ink);
+  overflow: hidden;
 }
-.stageHalo {
-  position: absolute;
-  inset: 0;
-  z-index: -2;
-  border-radius: inherit;
-  background: radial-gradient(
-    46% 52% at 50% 44%,
-    rgb(var(--ambient) / 22%) 0%,
-    rgb(var(--ambient) / 6%) 58%,
-    transparent 72%
-  );
-  transition: background 600ms ease-out;
-}
-/* Orbit rings, tilted into perspective around the figure's waist. */
-.stageOrbits {
-  position: absolute;
-  inset: 0;
-  z-index: -1;
+.bannerInner {
   display: grid;
-  place-items: center;
-  perspective: 900px;
-  pointer-events: none;
+  grid-template-columns: minmax(0, 1fr) 360px 240px;
+  gap: 24px;
+  align-items: end;
+  max-width: 1180px;
+  height: 380px;
+  margin: 0 auto;
+  padding: 0 28px;
 }
-.stageOrbits i {
+.bannerIdentity,
+.bannerFacts {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+}
+.bannerIdentity {
+  align-self: center;
+}
+.bannerFacts {
+  padding-bottom: 40px;
+}
+/* The figure box reaches left into the empty band; the render inside is
+   enlarged and anchored so roughly head to waist is visible. */
+.bannerFigure {
+  position: relative;
+  z-index: 0;
+  align-self: stretch;
+  margin-left: -200px;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(to bottom, #000 82%, transparent);
+  mask-image: linear-gradient(to bottom, #000 82%, transparent);
+}
+.bannerFigure img {
   position: absolute;
-  top: 52%;
-  left: 50%;
-  border: 1px solid var(--stage-ring);
-  border-radius: 50%;
-  transform: translate(-50%, -50%) rotateX(74deg);
-  transform-style: preserve-3d;
-}
-.stageOrbitOuter {
-  width: 86%;
-  aspect-ratio: 1;
-}
-.stageOrbitInner {
-  width: 66%;
-  aspect-ratio: 1;
-}
-.stageOrbits b {
-  position: absolute;
-  inset: -1px;
-  border-radius: 50%;
-  animation: stage-orbit 36s linear infinite;
-}
-.stageOrbitInner b {
-  animation-duration: 24s;
-  animation-direction: reverse;
-}
-.stageOrbits b::before {
-  content: "";
-  position: absolute;
-  top: -3px;
-  left: 50%;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--stage-dot);
-}
-.stage[data-motion="off"] .stageOrbits b {
-  animation-play-state: paused;
-}
-@keyframes stage-orbit {
-  to {
-    transform: rotate(360deg);
-  }
-}
-.stageFloor {
-  position: absolute;
-  left: 50%;
-  bottom: 30px;
-  width: 42%;
-  height: 18px;
-  z-index: -1;
+  top: -10.7%;
+  left: calc(50% + 100px);
+  height: 182%;
+  width: auto;
+  max-width: none;
   transform: translateX(-50%);
-  border-radius: 50%;
-  background: radial-gradient(closest-side, rgb(30 40 60 / 30%), transparent);
-  filter: blur(4px);
-}
-.stageFigure {
-  position: absolute;
-  inset: 0 0 34px;
-}
-.stageFigure img {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  object-position: 50% 100%;
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent,
+    #000 18%,
+    #000 82%,
+    transparent
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    #000 18%,
+    #000 82%,
+    transparent
+  );
   transition:
     opacity 420ms ease-out,
     transform 420ms cubic-bezier(0.23, 1, 0.32, 1);
 }
-/* Light tone: cutout visible, original hidden. */
 .figureOriginal {
   opacity: 0;
-  -webkit-mask-image: radial-gradient(closest-side, #000 78%, transparent 100%);
-  mask-image: radial-gradient(closest-side, #000 78%, transparent 100%);
 }
 .figureCutout {
   opacity: 1;
 }
-.stage[data-cutout="pending"] .figureCutout {
+.banner[data-cutout="pending"] .figureCutout {
   opacity: 0;
-  transform: translateY(12px);
+  transform: translateX(-50%) translateY(12px);
 }
-.stageFallback {
+.bannerOrb {
   position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  color: #0066cc;
-  font-size: 72px;
-  font-weight: 600;
-}
-.stageOrb {
-  position: absolute;
-  top: 48%;
-  left: 50%;
+  top: 46%;
+  left: calc(50% + 100px);
   transform: translate(-50%, -50%);
 }
 .orbDark {
   display: none;
 }
-
-/* Dark surface: OS dark scheme, or a render whose cutout failed. */
-.stage[data-cutout="failed"]:not([data-phase="failed"]) {
-  overflow: hidden;
-  /* Exactly the render's own backdrop, so the frame has no visible seam. */
-  background: rgb(var(--backdrop, 18 19 22));
-  --stage-ring: rgb(255 255 255 / 10%);
-  --stage-dot: rgb(255 255 255 / 45%);
+/* Dark tone */
+.banner[data-cutout="failed"]:not([data-phase="failed"]) {
+  --band: rgb(var(--backdrop, 16 17 20));
+  --band-ink: #f5f5f7;
+  --band-muted: #a1a1a6;
 }
-.stage[data-cutout="failed"] .figureOriginal {
+.banner[data-cutout="failed"] .figureOriginal {
   opacity: 1;
 }
-.stage[data-cutout="failed"] .stageFigure,
-.stage[data-cutout="failed"] .stageFigure img {
-  inset: 0;
-}
-.stage[data-cutout="failed"] .stageFloor,
-.stage[data-cutout="failed"] .orbLight {
+.banner[data-cutout="failed"] .orbLight {
   display: none;
 }
-.stage[data-cutout="failed"] .orbDark {
+.banner[data-cutout="failed"] .orbDark {
   display: block;
 }
-.stage[data-phase="loading"] .figureOriginal {
+.banner[data-phase="loading"] .figureOriginal {
   opacity: 0;
 }
 @media (prefers-color-scheme: dark) {
-  .stage:not([data-phase="failed"]) {
-    overflow: hidden;
-    /* Exactly the render's own backdrop, so the frame has no visible seam. */
-    background: rgb(var(--backdrop, 18 19 22));
-    --stage-ring: rgb(255 255 255 / 10%);
-    --stage-dot: rgb(255 255 255 / 45%);
+  .banner:not([data-phase="failed"]) {
+    --band: rgb(var(--backdrop, 16 17 20));
+    --band-ink: #f5f5f7;
+    --band-muted: #a1a1a6;
   }
   .figureOriginal {
     opacity: 1;
@@ -315,46 +251,45 @@
   .figureCutout {
     opacity: 0 !important;
   }
-  .stageFigure,
-  .stageFigure img {
-    inset: 0;
-  }
-  .stageFloor,
   .orbLight {
     display: none;
   }
   .orbDark {
     display: block;
   }
-  .stage[data-phase="server"] .stageOrb,
-  .stage[data-phase="loaded"] .stageOrb {
+  .banner[data-phase="server"] .bannerOrb,
+  .banner[data-phase="loaded"] .bannerOrb {
     display: none;
   }
 }
 
-@media (max-width: 700px) {
-  .stage {
-    height: 380px;
-    margin-top: 10px;
+@media (max-width: 760px) {
+  .bannerInner {
+    grid-template-columns: minmax(0, 1fr);
+    height: auto;
+    gap: 0;
+    padding: 0 16px 24px;
   }
-  .stageFloor {
-    bottom: 24px;
+  .bannerFigure {
+    order: -1;
+    height: 280px;
+    margin: 0 -16px;
   }
-  .stageFigure {
-    inset: 0 0 28px;
+  .bannerFigure img,
+  .bannerOrb {
+    left: 50%;
+  }
+  .bannerFacts {
+    padding-bottom: 0;
+    margin-top: 16px;
   }
 }
 
-/* Reduced motion: no orbit, no travel — opacity cross-fades only. */
 @media (prefers-reduced-motion: reduce) {
-  .stageOrbits b {
-    animation: none;
-  }
-  .stageHalo,
-  .stageFigure img {
+  .bannerFigure img {
     transition: opacity 200ms ease;
   }
-  .stage[data-cutout="pending"] .figureCutout {
-    transform: none;
+  .banner[data-cutout="pending"] .figureCutout {
+    transform: translateX(-50%);
   }
 }
