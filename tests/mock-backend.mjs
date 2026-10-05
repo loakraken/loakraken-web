@@ -120,6 +120,34 @@ createServer(async (req, res) => {
   if (url.pathname === "/__counts") return send(counts);
   if (url.pathname.startsWith("/api/v1/markets/"))
     return market(url, req, send);
+  if (url.pathname === "/api/v1/characters/siblings") {
+    const who = url.searchParams.get("characterName");
+    if (who === "원정대오류") return send({ code: "LOST_ARK_API_ERROR" }, 502);
+    const now = Date.now();
+    const base = JSON.parse(readFileSync(new URL("./siblings-fixtures/character-siblings.json", import.meta.url), "utf8"));
+    base.data.characterName = who;
+    base.data.siblings = [
+      { characterName: who, serverName: "아만", className: "블래스터", characterLevel: 70, itemLevel: 1780.83 },
+      { characterName: "합성원정대", serverName: "아만", className: "바드", characterLevel: 70, itemLevel: 1720 },
+      { characterName: "합성부캐", serverName: "루페온", className: "버서커", characterLevel: 60, itemLevel: 1640 },
+    ];
+    base.data.fetchedAt = new Date(now - 60_000).toISOString();
+    base.data.refreshAvailableAt = new Date(now + 240_000).toISOString();
+    return send(base);
+  }
+  if (url.pathname === "/api/v1/characters/history") {
+    const who = url.searchParams.get("characterName");
+    if (who === "기록끔") return send({ code: "CHARACTER_HISTORY_DISABLED" }, 503);
+    const day = 86_400_000;
+    const start = Date.now() - 40 * day;
+    const values = who === "기록없음" ? [] : [[1740, 2600, 350], [1750, 2780, 352], [1765, 2950, 358], [1780.83, 3180.29, 364]];
+    const points = values.map(([itemLevel, combatPower, expeditionLevel], i) => ({
+      observedAt: new Date(start + i * 12 * day).toISOString(),
+      lastConfirmedAt: new Date(start + i * 12 * day + (i === values.length - 1 ? 4 * day : day)).toISOString(),
+      className: "블래스터", characterLevel: 70, itemLevel, combatPower, expeditionLevel,
+    }));
+    return send({ code: "CHARACTER_HISTORY_SUCCESS", message: "성공", data: { characterName: who, serverName: url.searchParams.get("serverName"), points } });
+  }
   if (url.pathname !== "/api/v1/characters/search") return send({}, 404);
   const name = url.searchParams.get("characterName");
   counts[name] = (counts[name] || 0) + 1;
@@ -270,6 +298,9 @@ createServer(async (req, res) => {
       skill("기본 스킬", 1, { partBreakLevel: 1, counter: true }),
     ];
     d.coverage.skills = "PROVIDED";
+    d.analysis.position = name === "상세서포터" ? "SUPPORT" : "DEALER";
+    d.analysis.positionEvidence = name === "상세서포터" ? "절실한 구원" : d.className;
+    d.analysis.positionRuleVersion = "position-v1";
     if (name === "상세서포터") {
       d.className = "바드";
       d.loadout.arkPassive.effects = [
@@ -277,6 +308,11 @@ createServer(async (req, res) => {
         { name: "깨달음", description: "<FONT color='#83E9FF'>깨달음</FONT> 2티어 <FONT color='#83E9FF'>절실한 구원 Lv.3</FONT>", icon: null },
       ];
     }
+  }
+  // Backend #54: includeSiblings=false searches do not embed siblings.
+  if (url.searchParams.get("includeSiblings") === "false" && envelope.data) {
+    envelope.data.siblings = null;
+    envelope.data.coverage.siblings = null;
   }
   if (name === "문자열")
     envelope.data.guildName = '<img src=x onerror="window.injected=true">';

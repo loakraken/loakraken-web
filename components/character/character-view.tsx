@@ -207,6 +207,11 @@ function CharacterContent({
                       <dt>포지션</dt>
                       <dd data-position={position}>
                         {position === "SUPPORT" ? "서포터" : "딜러"}
+                        {data.analysis.positionEvidence && (
+                          <small className={styles.evidenceNote}>
+                            {data.analysis.positionEvidence}
+                          </small>
+                        )}
                       </dd>
                     </>
                   )}
