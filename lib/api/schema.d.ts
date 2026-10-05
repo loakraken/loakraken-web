@@ -320,6 +320,13 @@ export interface components {
             arkPassive: components["schemas"]["PassiveSummaryResponse"] | null;
             arkGrid: components["schemas"]["GridSummaryResponse"] | null;
             diagnostics: components["schemas"]["CharacterDiagnosticsResponse"];
+            position?: ("DEALER" | "SUPPORT") | null;
+            positionEvidence?: string | null;
+            /**
+             * @description 포지션 판정 규칙 버전
+             * @example position-v1
+             */
+            positionRuleVersion?: string;
         };
         /** @description 장비 Tooltip 해석 결과의 관측 집계입니다. 부위별 가중치·점수·추천이 아니며 값이 없는 장비는 각 집계에서 제외합니다. */
         EquipmentSummaryResponse: {

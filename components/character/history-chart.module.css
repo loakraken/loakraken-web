@@ -1,0 +1,66 @@
+/* Single-series chart on a light panel. Line #0071e3 passed the dataviz
+   validator on #f5f5f7 (contrast ≥ 3:1, lightness band). */
+.figure {
+  min-width: 0;
+}
+.svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+  border-radius: 12px;
+  touch-action: pan-y;
+}
+.svg:focus-visible {
+  outline: 3px solid #0071e3;
+  outline-offset: 4px;
+}
+.grid {
+  stroke: #e0e0e3;
+  stroke-width: 1;
+}
+.tick {
+  fill: #707070;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.area {
+  fill: #0071e3;
+  fill-opacity: 0.1;
+}
+.line {
+  fill: none;
+  stroke: #0071e3;
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.dot {
+  fill: #0071e3;
+  stroke: #f5f5f7;
+  stroke-width: 2;
+}
+.crosshair {
+  stroke: #86868b;
+  stroke-width: 1;
+}
+.readout {
+  margin-top: 6px;
+  color: #707070;
+  font-size: 12px;
+}
+.readout strong {
+  margin-right: 6px;
+  color: #1d1d1f;
+  font-size: 15px;
+  font-weight: 600;
+}
+@media (forced-colors: active) {
+  .line,
+  .crosshair {
+    stroke: CanvasText;
+  }
+  .dot {
+    fill: CanvasText;
+  }
+}

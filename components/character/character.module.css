@@ -465,3 +465,9 @@
     margin: 12px 12px 0;
   }
 }
+
+.evidenceNote {
+  margin-left: 6px;
+  color: var(--band-muted);
+  font-size: 12px;
+}

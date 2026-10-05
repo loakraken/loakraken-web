@@ -1969,6 +1969,37 @@
           },
           "diagnostics": {
             "$ref": "#/components/schemas/CharacterDiagnosticsResponse"
+          },
+          "position": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "아크패시브 깨달음 노드 기준 포지션. 판정 근거가 없으면 null",
+                "enum": [
+                  "DEALER",
+                  "SUPPORT"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "positionEvidence": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "판정에 쓴 깨달음 노드 이름 또는 서포터가 없는 직업명. 판정 불가면 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "positionRuleVersion": {
+            "type": "string",
+            "description": "포지션 판정 규칙 버전",
+            "example": "position-v1"
           }
         },
         "required": [

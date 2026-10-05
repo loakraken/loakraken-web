@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useSyncExternalStore, type ReactNode } from "react";
+import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { ArrowRight, RefreshCw, Share2, Star } from "lucide-react";
 import { InlineOrb } from "@/components/landing/orb";
@@ -31,6 +32,14 @@ import {
   type Character,
   type CharacterEnvelope,
 } from "@/lib/character/model";
+import {
+  CharacterQueryError,
+  fetchHistory,
+  fetchSiblings,
+} from "@/lib/character/client";
+import { METRICS, change, stepSeries } from "@/lib/character/history";
+import { failureCopy } from "@/lib/character/model";
+import { HistoryChart } from "./history-chart";
 import { CardArt, GameIcon } from "./imagery";
 import {
   Empty,
@@ -48,6 +57,7 @@ export const TABS = [
   { id: "combat", label: "전투" },
   { id: "skills", label: "스킬" },
   { id: "arkpassive", label: "아크 패시브" },
+  { id: "stats", label: "통계" },
   { id: "siblings", label: "원정대" },
   { id: "evidence", label: "진단 근거" },
 ] as const;
@@ -917,68 +927,287 @@ export function ArkPassiveTab({ data }: { data: Character }) {
   );
 }
 
-export function SiblingsTab({ data }: { data: Character }) {
-  const siblings = [...(data.siblings ?? [])].sort(
+type Sibling = NonNullable<Character["siblings"]>[number];
+
+function SiblingList({
+  siblings,
+  current,
+}: {
+  siblings: Sibling[];
+  current: string;
+}) {
+  const sorted = [...siblings].sort(
     (a, b) => (b.itemLevel ?? 0) - (a.itemLevel ?? 0),
   );
-  const servers = [...new Set(siblings.map((sibling) => sibling.serverName))];
+  const servers = [...new Set(sorted.map((sibling) => sibling.serverName))];
+  return (
+    <>
+      {servers.map((server) => (
+        <Panel
+          key={server}
+          title={server}
+          meta={`${sorted.filter((s) => s.serverName === server).length}명`}
+          wide
+        >
+          <ul className={styles.siblingGrid}>
+            {sorted
+              .filter((sibling) => sibling.serverName === server)
+              .map((sibling, i) => {
+                const isCurrent = sibling.characterName === current;
+                const linkable =
+                  !isCurrent && !characterNameError(sibling.characterName);
+                const body = (
+                  <>
+                    <strong>{sibling.characterName}</strong>
+                    <small>
+                      {sibling.className} · Lv.{number(sibling.characterLevel)}
+                    </small>
+                    <b>{number(sibling.itemLevel)}</b>
+                  </>
+                );
+                return (
+                  <li
+                    key={`${sibling.characterName}-${i}`}
+                    data-current={isCurrent || undefined}
+                  >
+                    {linkable ? (
+                      <Link
+                        prefetch={false}
+                        href={`/character/${encodeURIComponent(normalizeCharacterName(sibling.characterName))}`}
+                      >
+                        {body}
+                        <ArrowRight size={16} aria-hidden="true" />
+                      </Link>
+                    ) : (
+                      <div>{body}</div>
+                    )}
+                  </li>
+                );
+              })}
+          </ul>
+        </Panel>
+      ))}
+    </>
+  );
+}
+
+function QueryProblem({
+  error,
+  onRetry,
+  subject,
+}: {
+  error: unknown;
+  onRetry: () => void;
+  subject: string;
+}) {
+  const info =
+    error instanceof CharacterQueryError
+      ? error.info
+      : { code: "LOST_ARK_API_ERROR", status: 502 };
+  const copy =
+    info.code === "CHARACTER_HISTORY_DISABLED"
+      ? {
+          title: "기록 기능이 꺼져 있어요",
+          text: "서비스에서 관측 기록 저장을 사용하지 않고 있어요.",
+        }
+      : info.code === "CHARACTER_HISTORY_UNAVAILABLE"
+        ? {
+            title: "기록을 잠시 불러올 수 없어요",
+            text: "저장소에 문제가 생겼어요. 잠시 후 다시 시도해 주세요.",
+          }
+        : info.code === "LOST_ARK_RATE_LIMITED" ||
+            info.code === "LOST_ARK_NOT_CONFIGURED" ||
+            info.code === "FRONTEND_API_NOT_CONFIGURED"
+          ? failureCopy(info)
+          : {
+              title: `${subject} 불러오지 못했어요`,
+              text: "캐릭터 정보는 그대로예요. 잠시 후 다시 시도해 주세요.",
+            };
+
+  return (
+    <div className={styles.problem} role="alert">
+      <strong>{copy.title}</strong>
+      <p>{copy.text}</p>
+      <button type="button" className={styles.textButton} onClick={onRetry}>
+        {info.retryAt ? `${kstTime(info.retryAt)} 이후 다시 시도` : "다시 시도"}
+      </button>
+    </div>
+  );
+}
+
+export function SiblingsTab({ data }: { data: Character }) {
+  const embedded = data.siblings;
+  const query = useQuery({
+    queryKey: ["siblings", data.characterName],
+    queryFn: ({ signal }) => fetchSiblings(data.characterName, signal),
+    enabled: embedded == null,
+    retry: false,
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+  });
+  if (embedded != null)
+    return (
+      <div className={styles.layout}>
+        {embedded.length ? (
+          <SiblingList siblings={embedded} current={data.characterName} />
+        ) : (
+          <Panel title="원정대" wide>
+            <Empty state={data.coverage.siblings} />
+          </Panel>
+        )}
+      </div>
+    );
+  const result = query.data?.data;
   return (
     <div className={styles.layout}>
-      {data.siblings === null ? (
+      {query.isPending ? (
         <Panel title="원정대" wide>
-          <Empty state={null} />
+          <p className={styles.muted} role="status">
+            <InlineOrb /> 원정대를 불러오고 있어요.
+          </p>
         </Panel>
-      ) : !siblings.length ? (
+      ) : query.isError ? (
         <Panel title="원정대" wide>
-          <Empty state={data.coverage.siblings} />
+          <QueryProblem
+            error={query.error}
+            onRetry={() => query.refetch()}
+            subject="원정대를"
+          />
+        </Panel>
+      ) : result && result.siblings.length ? (
+        <>
+          <p className={styles.caption}>
+            원정대 수집 {kstTime(result.fetchedAt)}
+            {result.refreshAvailableAt &&
+              ` · ${kstTime(result.refreshAvailableAt)} 이후 다시 수집`}
+          </p>
+          <SiblingList
+            siblings={result.siblings}
+            current={data.characterName}
+          />
+        </>
+      ) : (
+        <Panel title="원정대" wide>
+          <p className={styles.muted}>원정대 캐릭터가 없어요.</p>
+        </Panel>
+      )}
+    </div>
+  );
+}
+
+export function StatsTab({ data }: { data: Character }) {
+  const query = useQuery({
+    queryKey: ["history", data.characterName, data.serverName],
+    queryFn: ({ signal }) =>
+      fetchHistory(data.characterName, data.serverName, signal),
+    retry: false,
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+  });
+  const points = query.data?.data.points ?? [];
+  const [table, setTable] = useState(false);
+  const first = points[0];
+  return (
+    <div className={styles.layout}>
+      <p className={styles.caption}>
+        LOAKraken이 이 캐릭터를 조회해 수집한 시점부터 기록돼요. 값이 바뀐
+        시점만 점으로 남고, 마지막 값은 최근 확인 시각까지 이어서 그려요.
+      </p>
+      {query.isPending ? (
+        <Panel title="통계" wide>
+          <p className={styles.muted} role="status">
+            <InlineOrb /> 기록을 불러오고 있어요.
+          </p>
+        </Panel>
+      ) : query.isError ? (
+        <Panel title="통계" wide>
+          <QueryProblem
+            error={query.error}
+            onRetry={() => query.refetch()}
+            subject="기록을"
+          />
+        </Panel>
+      ) : !points.length ? (
+        <Panel title="통계" wide>
+          <p className={styles.muted}>
+            아직 기록이 없어요. 조회가 쌓이면 변화 그래프가 표시돼요.
+          </p>
         </Panel>
       ) : (
-        servers.map((server) => (
+        <>
+          <div className={styles.chartGrid}>
+            {METRICS.map(({ key, label }) => {
+              const steps = stepSeries(points, key);
+              const delta = change(steps);
+              return (
+                <Panel
+                  key={key}
+                  title={label}
+                  meta={
+                    delta == null
+                      ? "기록 1개"
+                      : `관측 이후 ${delta >= 0 ? "+" : ""}${number(delta)}`
+                  }
+                >
+                  {steps.length ? (
+                    <HistoryChart label={label} steps={steps} />
+                  ) : (
+                    <p className={styles.muted}>이 값은 기록되지 않았어요.</p>
+                  )}
+                </Panel>
+              );
+            })}
+          </div>
           <Panel
-            key={server}
-            title={server}
-            meta={`${siblings.filter((s) => s.serverName === server).length}명`}
+            title="기록 표"
             wide
+            meta={
+              <button
+                type="button"
+                className={styles.textButton}
+                onClick={() => setTable((v) => !v)}
+                aria-expanded={table}
+              >
+                {table ? "접기" : `${points.length}개 기록 보기`}
+              </button>
+            }
           >
-            <ul className={styles.siblingGrid}>
-              {siblings
-                .filter((sibling) => sibling.serverName === server)
-                .map((sibling, i) => {
-                  const current = sibling.characterName === data.characterName;
-                  const linkable =
-                    !current && !characterNameError(sibling.characterName);
-                  const body = (
-                    <>
-                      <strong>{sibling.characterName}</strong>
-                      <small>
-                        {sibling.className} · Lv.
-                        {number(sibling.characterLevel)}
-                      </small>
-                      <b>{number(sibling.itemLevel)}</b>
-                    </>
-                  );
-                  return (
-                    <li
-                      key={`${sibling.characterName}-${i}`}
-                      data-current={current || undefined}
-                    >
-                      {linkable ? (
-                        <Link
-                          prefetch={false}
-                          href={`/character/${encodeURIComponent(normalizeCharacterName(sibling.characterName))}`}
-                        >
-                          {body}
-                          <ArrowRight size={16} aria-hidden="true" />
-                        </Link>
-                      ) : (
-                        <div>{body}</div>
-                      )}
-                    </li>
-                  );
-                })}
-            </ul>
+            {first && (
+              <p className={styles.muted}>
+                첫 기록 {kstTime(first.observedAt)} · 최근 확인{" "}
+                {kstTime(points.at(-1)!.lastConfirmedAt)}
+              </p>
+            )}
+            {table && (
+              <div className={styles.tableWrap}>
+                <table className={styles.table}>
+                  <thead>
+                    <tr>
+                      <th scope="col">관측</th>
+                      <th scope="col">아이템 레벨</th>
+                      <th scope="col">전투력</th>
+                      <th scope="col">원정대</th>
+                      <th scope="col">최근 확인</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[...points].reverse().map((point) => (
+                      <tr key={point.observedAt}>
+                        <td>{kstTime(point.observedAt)}</td>
+                        <td>{number(point.itemLevel)}</td>
+                        <td>{number(point.combatPower)}</td>
+                        <td>{number(point.expeditionLevel)}</td>
+                        <td>{kstTime(point.lastConfirmedAt)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </Panel>
-        ))
+        </>
       )}
     </div>
   );
@@ -1086,6 +1315,8 @@ export function TabPanel({
         <SkillsTab data={data} />
       ) : tab === "arkpassive" ? (
         <ArkPassiveTab data={data} />
+      ) : tab === "stats" ? (
+        <StatsTab data={data} />
       ) : tab === "siblings" ? (
         <SiblingsTab data={data} />
       ) : tab === "evidence" ? (

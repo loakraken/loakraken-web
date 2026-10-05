@@ -765,3 +765,49 @@
     transition: none;
   }
 }
+
+/* Stats & siblings */
+.caption {
+  color: #707070;
+  font-size: 13px;
+}
+.chartGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 20px;
+}
+.problem strong {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+}
+.problem p {
+  margin-top: 4px;
+  color: #707070;
+  font-size: 14px;
+}
+.tableWrap {
+  margin-top: 12px;
+  overflow-x: auto;
+}
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.table th,
+.table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid #e0e0e3;
+  text-align: right;
+  white-space: nowrap;
+}
+.table th:first-child,
+.table td:first-child {
+  text-align: left;
+}
+.table th {
+  color: #707070;
+  font-weight: 500;
+}

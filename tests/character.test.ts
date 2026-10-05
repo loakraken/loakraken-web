@@ -108,6 +108,7 @@ test("a successful lookup makes exactly one normalized backend request with no c
     const url = new URL(String(input));
     assert.equal(url.pathname, "/api/v1/characters/search");
     assert.equal(url.searchParams.get("characterName"), "가1");
+    assert.equal(url.searchParams.get("includeSiblings"), "false");
     assert.equal(options?.cache, "no-store");
     assert.equal(options?.redirect, "error");
     assert.deepEqual(options?.headers, { Accept: "application/json" });

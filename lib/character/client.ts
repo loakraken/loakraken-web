@@ -1,4 +1,5 @@
 import type { CharacterResult, QueryFailure } from "./model";
+import type { HistoryEnvelope, SiblingsEnvelope } from "./validate";
 
 export class CharacterQueryError extends Error {
   info: QueryFailure;
@@ -24,3 +25,34 @@ export async function fetchCharacter(name: string, signal: AbortSignal) {
     throw new CharacterQueryError({ code: "LOST_ARK_API_ERROR", status: 502 });
   }
 }
+
+async function getJson<T>(path: string, signal: AbortSignal): Promise<T> {
+  try {
+    const response = await fetch(path, { signal, cache: "no-store" });
+    const result:
+      { ok: true; envelope: T } | { ok: false; error: QueryFailure } =
+      await response.json();
+    if (!result.ok) throw new CharacterQueryError(result.error);
+    if (!response.ok || !result.envelope) throw new Error("Invalid result");
+    return result.envelope;
+  } catch (error) {
+    if (error instanceof CharacterQueryError || signal.aborted) throw error;
+    throw new CharacterQueryError({ code: "LOST_ARK_API_ERROR", status: 502 });
+  }
+}
+
+export const fetchSiblings = (name: string, signal: AbortSignal) =>
+  getJson<SiblingsEnvelope>(
+    `/api/characters/siblings?${new URLSearchParams({ characterName: name })}`,
+    signal,
+  );
+
+export const fetchHistory = (
+  name: string,
+  server: string,
+  signal: AbortSignal,
+) =>
+  getJson<HistoryEnvelope>(
+    `/api/characters/history?${new URLSearchParams({ characterName: name, serverName: server })}`,
+    signal,
+  );
