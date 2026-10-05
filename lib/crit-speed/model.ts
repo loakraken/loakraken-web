@@ -10,6 +10,7 @@ export type CritSpeedRequest = { characterName: string; assumptions: Assumptions
 export type CritSpeed = Schemas["CritSpeedResponse"];
 export type CritSource = Schemas["CritSpeedSourceResponse"];
 export type CritTarget = Schemas["CritSpeedTargetResponse"];
+export type SwiftnessRow = Schemas["CritSpeedSwiftnessRowResponse"];
 export type CritSpeedEnvelope = { code: string; message: string; data: CritSpeed };
 
 /** Crit-rate synergy classes (+10% each, the character's own class excluded). */
@@ -59,8 +60,8 @@ export const DEFAULT_SETTINGS: Settings = {
   buffs: ["support", "feast"],
 };
 
-const clamp = (value: number, max: number) =>
-  Number.isFinite(value) ? Math.min(max, Math.max(0, value)) : 0;
+const clamp = (value: number, max: number, min = 0) =>
+  Number.isFinite(value) ? Math.min(max, Math.max(min, value)) : 0;
 const round2 = (value: number) => Math.round(value * 100) / 100;
 
 export function toAssumptions(settings: Settings, className?: string | null): Assumptions {
@@ -76,20 +77,21 @@ export function toAssumptions(settings: Settings, className?: string | null): As
     tripodCritRate: round2(clamp(settings.tripodCritRate, 100)),
     extraCritRate: round2(clamp(settings.extraCritRate, 100)),
     extraAttackSpeed: round2(
-      clamp(settings.attackSpeed + buffs.reduce((s, b) => s + b.attack, 0), 100),
+      clamp(settings.attackSpeed + buffs.reduce((s, b) => s + b.attack, 0), 100, -100),
     ),
     extraMoveSpeed: round2(
-      clamp(settings.moveSpeed + buffs.reduce((s, b) => s + b.move, 0), 100),
+      clamp(settings.moveSpeed + buffs.reduce((s, b) => s + b.move, 0), 100, -100),
     ),
   };
 }
 
-const RANGES: Record<string, number> = {
-  supportCritRate: 30,
-  tripodCritRate: 100,
-  extraCritRate: 100,
-  extraAttackSpeed: 100,
-  extraMoveSpeed: 100,
+const RANGES: Record<string, [number, number]> = {
+  supportCritRate: [0, 30],
+  tripodCritRate: [0, 100],
+  extraCritRate: [0, 100],
+  // crit-speed-v2: slowdowns are negative.
+  extraAttackSpeed: [-100, 100],
+  extraMoveSpeed: [-100, 100],
 };
 
 /** Server-side allow-list before any backend call; unknown keys are dropped. */
@@ -113,10 +115,10 @@ export function parseCritSpeedRequest(body: unknown): CritSpeedRequest | null {
       return null;
     assumptions.critSynergyCount = count as number;
   }
-  for (const [key, max] of Object.entries(RANGES)) {
+  for (const [key, [min, max]] of Object.entries(RANGES)) {
     const value = given[key];
     if (value === undefined) continue;
-    if (typeof value !== "number" || !Number.isFinite(value) || value < 0 || value > max)
+    if (typeof value !== "number" || !Number.isFinite(value) || value < min || value > max)
       return null;
     (assumptions as Record<string, number>)[key] = value;
   }

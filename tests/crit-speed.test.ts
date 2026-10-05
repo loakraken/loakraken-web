@@ -73,6 +73,11 @@ test("requests are allow-listed before the backend", () => {
       assumptions: { backAttack: true, critSynergyCount: 2, extraAttackSpeed: 14 },
     },
   );
+  assert.deepEqual(
+    parseCritSpeedRequest({ characterName: "언새늘", assumptions: { extraAttackSpeed: -10 } })?.assumptions,
+    { extraAttackSpeed: -10 },
+    "v2 accepts slowdowns",
+  );
   assert.deepEqual(parseCritSpeedRequest({ characterName: "언새늘" }), {
     characterName: "언새늘",
     assumptions: {},
@@ -87,9 +92,19 @@ test("requests are allow-listed before the backend", () => {
     { characterName: "언새늘", assumptions: { critSynergyCount: 4 } },
     { characterName: "언새늘", assumptions: { critSynergyCount: 1.5 } },
     { characterName: "언새늘", assumptions: { supportCritRate: 31 } },
-    { characterName: "언새늘", assumptions: { extraMoveSpeed: -1 } },
+    { characterName: "언새늘", assumptions: { extraMoveSpeed: -101 } },
   ])
     assert.equal(parseCritSpeedRequest(bad), null, JSON.stringify(bad));
+});
+
+test("v2 swiftness table marks the current and optimal rows", () => {
+  const { speed, crit } = fixture().data;
+  assert.ok(speed.swiftnessTable.some((row: { current: boolean }) => row.current));
+  assert.ok(speed.swiftnessPerPercent > 0 && crit.critStatPerPercent > 0);
+  assert.equal(
+    toAssumptions({ ...DEFAULT_SETTINGS, buffs: [], attackSpeed: -10 }).extraAttackSpeed,
+    -10,
+  );
 });
 
 test("sources group by axis and category with totals", () => {
