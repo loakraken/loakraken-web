@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 import {
   PARTS,
+  costLines,
   defaultPart,
   gradeFromName,
   parsePlanRequest,
@@ -219,4 +220,26 @@ test("plan requests validate input and pass through allow-listed errors", async 
   });
   const unconfigured = await requestPlan(body, undefined, { fetcher });
   assert.equal(unconfigured.ok ? null : unconfigured.error.code, "FRONTEND_API_NOT_CONFIGURED");
+});
+
+test("material cost uses missing quantity and leaves unpriced items out", () => {
+  const prices = read("./market-fixtures/material-prices.json").data.items;
+  const { lines, materialGold, unpriced } = costLines(
+    [
+      { name: "운명의 수호석", amount: 1000 },
+      { name: "운명의 파편", amount: 30000 },
+      { name: "없는 재료", amount: 5 },
+      { name: "운명의 돌파석", amount: 10 },
+    ],
+    { "운명의 수호석": 400, "운명의 돌파석": 10 },
+    prices,
+  );
+  assert.equal(lines[0].missing, 600);
+  assert.ok(Math.abs(lines[0].cost! - 600 * 0.31) < 1e-9);
+  assert.ok(Math.abs(lines[1].cost! - 30000 * 0.077333) < 1e-6);
+  assert.equal(lines[2].cost, null);
+  assert.equal(lines[3].cost, 0, "covered by inventory even without a price");
+  assert.equal(materialGold, Math.ceil(600 * 0.31 + 30000 * 0.077333));
+  assert.deepEqual(unpriced, ["없는 재료"]);
+  assert.equal(costLines([{ name: "운명의 수호석", amount: 1 }], {}, null).unpriced.length, 1);
 });

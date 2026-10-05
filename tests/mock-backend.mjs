@@ -104,6 +104,32 @@ async function market(url, req, send) {
       data: { ruleVersion: "material-purchase-v1", priceBasis: request.priceBasis, source: "ACTIVE_LISTING", calculatedAt: nowIso(), complete, knownCostGold: known, totalCostGold: complete ? known : null, items: lines },
     });
   }
+  if (url.pathname === "/api/v1/markets/material-prices" && req.method === "POST") {
+    let body = "";
+    for await (const chunk of req) body += chunk;
+    const request = JSON.parse(body);
+    // Synthetic unit prices (not market data). 용암의 숨결 has no price for
+    // the selected basis and books are bound, to exercise both statuses.
+    const table = {
+      "운명의 수호석": [100, 30],
+      "운명의 파괴석": [100, 80],
+      "운명의 돌파석": [1, 3],
+      "아비도스 융화 재료": [1, 190],
+      "빙하의 숨결": [1, 430],
+    };
+    const observedAt = nowIso();
+    const items = [...new Set(request.names.map((n) => n.trim()))].map((name) => {
+      const empty = { name, unitPriceGold: null, sourceItemName: null, bundleCount: null, bundlePrice: null, contentsPerItem: null, observedAt };
+      if (name === "운명의 파편")
+        return { ...empty, status: "PRICED", unitPriceGold: 0.077333, sourceItemName: "운명의 파편 주머니(대)", bundleCount: 1, bundlePrice: 232, contentsPerItem: 3000 };
+      if (name === "용암의 숨결") return { ...empty, status: "PRICE_UNAVAILABLE", sourceItemName: name, bundleCount: 1 };
+      const row = table[name];
+      if (!row) return { ...empty, status: "NOT_FOUND" };
+      const [bundleCount, bundlePrice] = row;
+      return { ...empty, status: "PRICED", unitPriceGold: Math.round((bundlePrice / bundleCount) * 1e6) / 1e6, sourceItemName: name, bundleCount, bundlePrice };
+    });
+    return send({ code: "MATERIAL_PRICE_SUCCESS", message: "성공", data: { priceBasis: request.priceBasis, items } });
+  }
   return send({}, 404);
 }
 // Synthetic refining plan with the backend's response shape. Rates and costs

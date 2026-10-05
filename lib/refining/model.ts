@@ -3,6 +3,7 @@
 // attempt of a stage costs the same, so other percentiles scale linearly.
 import type { components } from "../api/refining-schema";
 import type { Character } from "../character/model";
+import type { MaterialPrice } from "../market/model";
 
 type Schemas = components["schemas"];
 export type PlanRequest = Schemas["RefiningPlanRequest"];
@@ -315,4 +316,42 @@ export function refiningFailureCopy(error: { code: string }) {
         text: "잠시 후 다시 시도해 주세요. 자동으로 재요청하지 않아요.",
       };
   }
+}
+
+export type CostLine = {
+  name: string;
+  amount: number;
+  owned: number;
+  missing: number;
+  price: MaterialPrice | null;
+  /** Gold for the missing quantity; null when the material has no price. */
+  cost: number | null;
+};
+
+/** Missing quantity × unit price (#76). Unpriced materials stay out of the total. */
+export function costLines(
+  materials: Quantity[],
+  owned: Record<string, number>,
+  prices: MaterialPrice[] | null,
+) {
+  const lines: CostLine[] = materials.map((item) => {
+    const have = Math.max(0, owned[item.name] ?? 0);
+    const missing = Math.max(0, item.amount - have);
+    const price = prices?.find((p) => p.name === item.name) ?? null;
+    const unit = price?.status === "PRICED" ? price.unitPriceGold : null;
+    return {
+      name: item.name,
+      amount: item.amount,
+      owned: have,
+      missing,
+      price,
+      cost: missing === 0 ? 0 : unit == null ? null : missing * unit,
+    };
+  });
+  const known = lines.reduce((sum, line) => sum + (line.cost ?? 0), 0);
+  return {
+    lines,
+    materialGold: Math.ceil(known - 1e-9),
+    unpriced: lines.filter((line) => line.cost === null).map((l) => l.name),
+  };
 }
