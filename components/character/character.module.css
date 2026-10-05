@@ -389,15 +389,16 @@
 .bannerMetrics {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px 36px;
-  margin-top: 22px;
+  gap: 10px 32px;
+  margin-top: 20px;
 }
 .bannerMetrics dt {
   color: var(--band-muted);
-  font-size: 12px;
+  font-size: 13px;
 }
 .bannerMetrics dd {
-  font-size: 28px;
+  margin-top: 2px;
+  font-size: 21px;
   font-weight: 600;
   letter-spacing: -0.01em;
   font-variant-numeric: tabular-nums;
@@ -467,8 +468,14 @@
   .bannerMetrics {
     gap: 10px 22px;
   }
+  .bannerMetrics dt {
+    font-size: 12px;
+  }
   .bannerMetrics dd {
-    font-size: 22px;
+    font-size: 17px;
+  }
+  .bannerFacts {
+    font-size: 13px;
   }
   .bandNotice {
     margin: 12px 12px 0;
