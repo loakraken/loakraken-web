@@ -64,6 +64,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/markets/material-prices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 재료 이름별 1개당 시세
+         * @description 재료 이름(최대 20개)마다 강화 재료 분류의 현재 판매 목록 첫 페이지에서 이름이 정확히 같은 상품을 찾아 선택한 기준 가격 ÷ 묶음 수로 1개당 골드를 계산합니다. 운명의 파편은 운명의 파편 주머니(소 1,000·중 2,000·대 3,000개, 공식 Tooltip)를 파편 1개당 가격으로 바꿔 가장 싼 주머니를 고릅니다. 이름별 검색 페이지를 기존 30초 캐시·공유 호출 예산 안에서 조회합니다. 재련 계획의 재료 이름을 그대로 넣을 수 있습니다.
+         */
+        post: operations["materialPrices"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -315,6 +335,55 @@ export interface components {
             surplusQuantity: number;
             costGold: number;
         };
+        MaterialPriceRequest: {
+            /**
+             * @description 단가 계산에 쓸 묶음 가격. 자동 대체하지 않습니다.
+             * @enum {string}
+             */
+            priceBasis: "CURRENT_MIN_PRICE" | "RECENT_PRICE" | "YDAY_AVG_PRICE";
+            /** @description 재료 이름(재련 계획 응답의 이름 그대로). 운명의 파편은 주머니 시세로 환산합니다. */
+            names: string[];
+        };
+        /** @description 공통 API 응답. 오류 응답의 data는 null입니다. */
+        ApiResponseMaterialPriceResponse: {
+            /**
+             * @description 업무 결과 코드
+             * @example CHARACTER_SEARCH_SUCCESS
+             */
+            code: string;
+            /**
+             * @description 공개용 안내 메시지
+             * @example 캐릭터 조회에 성공했습니다.
+             */
+            message: string;
+            /** @description 성공 응답 데이터. 오류일 때 null */
+            data: components["schemas"]["MaterialPriceResponse"];
+        };
+        /** @description 재료 이름별 1개당 골드. 거래소 현재 판매 목록 첫 페이지에서 이름이 정확히 같은 상품만 사용합니다. */
+        MaterialPriceResponse: {
+            /** @enum {string} */
+            priceBasis: "CURRENT_MIN_PRICE" | "RECENT_PRICE" | "YDAY_AVG_PRICE";
+            items: components["schemas"]["MaterialPriceItemResponse"][];
+        };
+        MaterialPriceItemResponse: {
+            /** @description 요청한 재료 이름 */
+            name: string;
+            /**
+             * @description PRICED: 단가 계산, NOT_FOUND: 같은 이름 상품 없음, PRICE_UNAVAILABLE: 선택 가격이 없거나 0
+             * @enum {string}
+             */
+            status: "PRICED" | "NOT_FOUND" | "PRICE_UNAVAILABLE";
+            unitPriceGold: number | null;
+            sourceItemName: string | null;
+            bundleCount: number | null;
+            bundlePrice: number | null;
+            contentsPerItem: number | null;
+            /**
+             * Format: date-time
+             * @description 거래소 페이지를 읽은 UTC 시각. 캐시 적중에도 유지
+             */
+            observedAt: string;
+        };
     };
     responses: never;
     parameters: never;
@@ -524,6 +593,102 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApiResponseMaterialQuoteResponse"];
+                };
+            };
+            /** @description INVALID_REQUEST: 검색 조건 오류 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description NOT_ACCEPTABLE */
+            406: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description UNSUPPORTED_MEDIA_TYPE */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description LOST_ARK_RATE_LIMITED: 캐릭터와 공유하는 호출 한도 초과 */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description INTERNAL_SERVER_ERROR */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description LOST_ARK_API_ERROR: 외부 검색 조건 거절 또는 응답 오류 */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description LOST_ARK_NOT_CONFIGURED 또는 MARKET_CACHE_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description LOST_ARK_API_TIMEOUT */
+            504: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    materialPrices: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MaterialPriceRequest"];
+            };
+        };
+        responses: {
+            /** @description 거래소 조회 성공 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponseMaterialPriceResponse"];
                 };
             };
             /** @description INVALID_REQUEST: 검색 조건 오류 */

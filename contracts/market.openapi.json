@@ -398,6 +398,118 @@
           }
         }
       }
+    },
+    "/api/v1/markets/material-prices": {
+      "post": {
+        "tags": [
+          "거래소"
+        ],
+        "summary": "재료 이름별 1개당 시세",
+        "description": "재료 이름(최대 20개)마다 강화 재료 분류의 현재 판매 목록 첫 페이지에서 이름이 정확히 같은 상품을 찾아 선택한 기준 가격 ÷ 묶음 수로 1개당 골드를 계산합니다. 운명의 파편은 운명의 파편 주머니(소 1,000·중 2,000·대 3,000개, 공식 Tooltip)를 파편 1개당 가격으로 바꿔 가장 싼 주머니를 고릅니다. 이름별 검색 페이지를 기존 30초 캐시·공유 호출 예산 안에서 조회합니다. 재련 계획의 재료 이름을 그대로 넣을 수 있습니다.",
+        "operationId": "materialPrices",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MaterialPriceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "거래소 조회 성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseMaterialPriceResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_REQUEST: 검색 조건 오류",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "406": {
+            "description": "NOT_ACCEPTABLE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "UNSUPPORTED_MEDIA_TYPE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "LOST_ARK_RATE_LIMITED: 캐릭터와 공유하는 호출 한도 초과",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "INTERNAL_SERVER_ERROR",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "LOST_ARK_API_ERROR: 외부 검색 조건 거절 또는 응답 오류",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "LOST_ARK_NOT_CONFIGURED 또는 MARKET_CACHE_UNAVAILABLE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "LOST_ARK_API_TIMEOUT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1188,6 +1300,173 @@
           "costGold",
           "purchaseQuantity",
           "surplusQuantity"
+        ]
+      },
+      "MaterialPriceRequest": {
+        "type": "object",
+        "properties": {
+          "priceBasis": {
+            "type": "string",
+            "description": "단가 계산에 쓸 묶음 가격. 자동 대체하지 않습니다.",
+            "enum": [
+              "CURRENT_MIN_PRICE",
+              "RECENT_PRICE",
+              "YDAY_AVG_PRICE"
+            ]
+          },
+          "names": {
+            "type": "array",
+            "description": "재료 이름(재련 계획 응답의 이름 그대로). 운명의 파편은 주머니 시세로 환산합니다.",
+            "items": {
+              "type": "string",
+              "maxLength": 64,
+              "minLength": 0
+            },
+            "maxItems": 20,
+            "minItems": 1
+          }
+        },
+        "required": [
+          "names",
+          "priceBasis"
+        ]
+      },
+      "ApiResponseMaterialPriceResponse": {
+        "type": "object",
+        "description": "공통 API 응답. 오류 응답의 data는 null입니다.",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "업무 결과 코드",
+            "example": "CHARACTER_SEARCH_SUCCESS"
+          },
+          "message": {
+            "type": "string",
+            "description": "공개용 안내 메시지",
+            "example": "캐릭터 조회에 성공했습니다."
+          },
+          "data": {
+            "$ref": "#/components/schemas/MaterialPriceResponse",
+            "description": "성공 응답 데이터. 오류일 때 null"
+          }
+        },
+        "required": [
+          "code",
+          "data",
+          "message"
+        ]
+      },
+      "MaterialPriceResponse": {
+        "type": "object",
+        "description": "재료 이름별 1개당 골드. 거래소 현재 판매 목록 첫 페이지에서 이름이 정확히 같은 상품만 사용합니다.",
+        "properties": {
+          "priceBasis": {
+            "type": "string",
+            "enum": [
+              "CURRENT_MIN_PRICE",
+              "RECENT_PRICE",
+              "YDAY_AVG_PRICE"
+            ]
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MaterialPriceItemResponse"
+            }
+          }
+        },
+        "required": [
+          "items",
+          "priceBasis"
+        ]
+      },
+      "MaterialPriceItemResponse": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "요청한 재료 이름"
+          },
+          "status": {
+            "type": "string",
+            "description": "PRICED: 단가 계산, NOT_FOUND: 같은 이름 상품 없음, PRICE_UNAVAILABLE: 선택 가격이 없거나 0",
+            "enum": [
+              "PRICED",
+              "NOT_FOUND",
+              "PRICE_UNAVAILABLE"
+            ]
+          },
+          "unitPriceGold": {
+            "anyOf": [
+              {
+                "type": "number",
+                "description": "1개당 골드(소수 여섯째 자리). 파편은 가장 싼 주머니 기준 파편 1개당"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sourceItemName": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "사용한 거래소 상품 이름"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "bundleCount": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "bundlePrice": {
+            "anyOf": [
+              {
+                "type": "number",
+                "description": "선택한 기준의 묶음 가격"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "contentsPerItem": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32",
+                "description": "주머니 1개에 든 파편 수(공식 Tooltip). 파편이 아니면 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "observedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "거래소 페이지를 읽은 UTC 시각. 캐시 적중에도 유지"
+          }
+        },
+        "required": [
+          "bundleCount",
+          "bundlePrice",
+          "contentsPerItem",
+          "name",
+          "observedAt",
+          "sourceItemName",
+          "status",
+          "unitPriceGold"
         ]
       }
     }

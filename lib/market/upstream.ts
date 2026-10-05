@@ -1,14 +1,17 @@
 import { backendUrl, requestBackend, type BackendResult } from "../api/backend";
 import {
   itemSearchParams,
+  parsePriceRequest,
   parseQuoteRequest,
   type ItemsEnvelope,
   type OptionsEnvelope,
+  type PricesEnvelope,
   type QuoteEnvelope,
 } from "./model";
 import {
   isItemsEnvelope,
   isOptionsEnvelope,
+  isPricesEnvelope,
   isQuoteEnvelope,
 } from "./validate";
 
@@ -73,6 +76,22 @@ export async function requestQuote(
     method: "POST",
     body: request,
     isValid: isQuoteEnvelope,
+    errorCodes,
+  });
+}
+
+export async function requestPrices(
+  body: unknown,
+  origin: string | undefined,
+  options: Options = {},
+): Promise<BackendResult<PricesEnvelope>> {
+  const request = parsePriceRequest(body);
+  if (!request) return invalid;
+  return requestBackend(backendUrl(origin, "/api/v1/markets/material-prices"), {
+    ...options,
+    method: "POST",
+    body: request,
+    isValid: isPricesEnvelope,
     errorCodes,
   });
 }

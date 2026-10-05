@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   formatGold,
   itemSearchParams,
+  parsePriceRequest,
   parseQuantity,
   parseQuoteRequest,
   quantityError,
@@ -12,9 +13,14 @@ import {
 import {
   isItemsEnvelope,
   isOptionsEnvelope,
+  isPricesEnvelope,
   isQuoteEnvelope,
 } from "../lib/market/validate";
-import { requestItems, requestQuote } from "../lib/market/upstream";
+import {
+  requestItems,
+  requestPrices,
+  requestQuote,
+} from "../lib/market/upstream";
 
 const fixture = (name: string) =>
   JSON.parse(
@@ -225,4 +231,35 @@ test("gold display keeps up to two decimals and marks unknown totals", () => {
   assert.equal(formatGold(12.345), "12.35");
   assert.equal(formatGold(0), "0");
   assert.equal(formatGold(null), "—");
+});
+
+test("material price requests are allow-listed and validated", async () => {
+  assert.equal(isPricesEnvelope(fixture("material-prices.json")), true);
+  const broken = fixture("material-prices.json");
+  broken.data.items[0].status = "FREE";
+  assert.equal(isPricesEnvelope(broken), false);
+  assert.deepEqual(
+    parsePriceRequest({ priceBasis: "RECENT_PRICE", names: [" 운명의 파편 ", "운명의 파편"], extra: 1 }),
+    { priceBasis: "RECENT_PRICE", names: ["운명의 파편"] },
+  );
+  for (const bad of [
+    { priceBasis: "CHEAPEST", names: ["a"] },
+    { priceBasis: "RECENT_PRICE", names: [] },
+    { priceBasis: "RECENT_PRICE", names: [""] },
+    { priceBasis: "RECENT_PRICE", names: ["가".repeat(65)] },
+    { priceBasis: "RECENT_PRICE", names: Array.from({ length: 21 }, (_, i) => `재료${i}`) },
+    { priceBasis: "RECENT_PRICE", names: [3] },
+  ])
+    assert.equal(parsePriceRequest(bad), null, JSON.stringify(bad).slice(0, 60));
+  let calls = 0;
+  const fetcher = (async (url: URL, init: RequestInit) => {
+    calls++;
+    assert.equal(url.pathname, "/api/v1/markets/material-prices");
+    assert.deepEqual(JSON.parse(String(init.body)).names, ["운명의 수호석"]);
+    return Response.json(fixture("material-prices.json"));
+  }) as unknown as typeof fetch;
+  const body = { priceBasis: "CURRENT_MIN_PRICE", names: ["운명의 수호석"] };
+  assert.equal((await requestPrices(body, "http://127.0.0.1:8080", { fetcher })).ok, true);
+  assert.equal((await requestPrices({}, "http://127.0.0.1:8080", { fetcher })).ok, false);
+  assert.equal(calls, 1);
 });

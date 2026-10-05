@@ -3,6 +3,8 @@ import type {
   ItemsEnvelope,
   MarketFailure,
   OptionsEnvelope,
+  PriceRequest,
+  PricesEnvelope,
   QuoteEnvelope,
   QuoteRequest,
 } from "./model";
@@ -48,6 +50,14 @@ export const fetchMarketItems = (
 
 export const postMaterialQuote = (body: QuoteRequest, signal?: AbortSignal) =>
   call<QuoteEnvelope>("/api/markets/material-quotes", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+    signal,
+  });
+
+export const postMaterialPrices = (body: PriceRequest, signal?: AbortSignal) =>
+  call<PricesEnvelope>("/api/markets/material-prices", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
