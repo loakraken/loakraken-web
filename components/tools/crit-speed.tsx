@@ -85,11 +85,13 @@ function NumberField({
   label,
   value,
   max,
+  min = 0,
   onChange,
 }: {
   label: string;
   value: number;
   max: number;
+  min?: number;
   onChange: (value: number) => void;
 }) {
   const [text, setText] = useState(value ? String(value) : "");
@@ -100,7 +102,7 @@ function NumberField({
         <input
           type="number"
           inputMode="decimal"
-          min={0}
+          min={min}
           max={max}
           step={0.1}
           placeholder="0"
@@ -108,7 +110,7 @@ function NumberField({
           onChange={(event) => {
             setText(event.target.value);
             const next = Number(event.target.value);
-            onChange(Number.isFinite(next) ? Math.min(max, Math.max(0, next)) : 0);
+            onChange(Number.isFinite(next) ? Math.min(max, Math.max(min, next)) : 0);
           }}
         />
         <em>%</em>
@@ -176,7 +178,8 @@ function SettingsPanel({
         onChange={(value) => set("critPet", value)}
       />
       <p className={styles.groupLabel} id="support-label">
-        서포터 약점 노출
+        서포터 약점 노출{" "}
+        <small>로아랩 프리셋 값 · 공식 원문에서 근거를 찾지 못한 사용자 가정</small>
       </p>
       <div className={styles.chips} role="group" aria-labelledby="support-label">
         {SUPPORT_PRESETS.map((value) => (
@@ -232,15 +235,17 @@ function SettingsPanel({
       <h3>공격·이동 속도</h3>
       <div className={styles.numbers}>
         <NumberField
-          label="공격 속도 (각인·트라이포드·팔찌)"
+          label="공격 속도 (각인·트라이포드·팔찌, 감소는 음수)"
           value={settings.attackSpeed}
           max={100}
+          min={-100}
           onChange={(value) => set("attackSpeed", value)}
         />
         <NumberField
-          label="이동 속도 (각인·트라이포드·팔찌)"
+          label="이동 속도 (각인·트라이포드·팔찌, 감소는 음수)"
           value={settings.moveSpeed}
           max={100}
+          min={-100}
           onChange={(value) => set("moveSpeed", value)}
         />
       </div>
@@ -340,6 +345,67 @@ function SourceList({
   );
 }
 
+function SwiftnessTable({ speed }: { speed: CritSpeed["speed"] }) {
+  if (!speed.swiftnessTable.length) return null;
+  return (
+    <details className={styles.table}>
+      <summary>
+        신속 스탯별 공이속{" "}
+        <small>
+          신속{" "}
+          {speed.swiftnessPerPercent.toLocaleString("ko-KR", {
+            maximumFractionDigits: 2,
+          })}{" "}
+          = 공이속 1% · 신속 외 출처는 그대로
+        </small>
+      </summary>
+      <div className={styles.tableScroll}>
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">신속</th>
+              <th scope="col">공격 속도</th>
+              <th scope="col">이동 속도</th>
+              <th scope="col">음속 돌파</th>
+            </tr>
+          </thead>
+          <tbody>
+            {speed.swiftnessTable.map((row) => (
+              <tr
+                key={row.swiftness}
+                data-current={row.current || undefined}
+                data-optimal={row.optimal || undefined}
+              >
+                <th scope="row">
+                  {count(row.swiftness)}
+                  {row.current && <em>현재</em>}
+                  {row.optimal && <em>최적</em>}
+                </th>
+                <td>
+                  {percent(row.attackEffective)}
+                  {row.attack !== row.attackEffective && (
+                    <small> ({percent(row.attack)})</small>
+                  )}
+                </td>
+                <td>
+                  {percent(row.moveEffective)}
+                  {row.move !== row.moveEffective && (
+                    <small> ({percent(row.move)})</small>
+                  )}
+                </td>
+                <td>{percent(row.supersonicEvolutionDamage)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p>
+        괄호는 상한({percent(speed.cap)})을 넘은 값이에요. 음속 돌파는 진화형 피해예요.
+      </p>
+    </details>
+  );
+}
+
 function Results({ data, stale }: { data: CritSpeed; stale: boolean }) {
   const { crit, speed } = data;
   const thorn = crit.bluntThorn;
@@ -363,6 +429,7 @@ function Results({ data, stale }: { data: CritSpeed; stale: boolean }) {
         <p className={styles.figureNote}>
           관측 {percent(crit.observedRate)} + 가정 {percent(crit.assumedRate)}
           {over > 0.005 && ` · 상한을 넘은 ${percent(over)}는 적용되지 않아요`}
+          {` · 치명 ${crit.critStatPerPercent.toLocaleString("ko-KR", { maximumFractionDigits: 2 })} = 치적 1%`}
         </p>
         <ul className={styles.targets}>
           {crit.targets.map((target) => {
@@ -480,6 +547,7 @@ function Results({ data, stale }: { data: CritSpeed; stale: boolean }) {
             {percent(sonic.overCapConversionPercent)}
           </p>
         </div>
+        <SwiftnessTable speed={speed} />
       </section>
 
       <section className={styles.block} aria-labelledby="source-heading">

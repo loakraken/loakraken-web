@@ -54,9 +54,9 @@ export interface components {
             tripodCritRate?: number;
             /** @description 기타 치명타 적중률 가정 %(아크 그리드 코어 등) */
             extraCritRate?: number;
-            /** @description 공격 속도 가정 %(직업 각인·트라이포드·서포터 버프·만찬·음식 합) */
+            /** @description 공격 속도 가정 %(직업 각인·트라이포드·서포터 버프·만찬·음식 합). 감소는 음수 */
             extraAttackSpeed?: number;
-            /** @description 이동 속도 가정 %(직업 각인·트라이포드·서포터 버프·만찬·음식 합) */
+            /** @description 이동 속도 가정 %(직업 각인·트라이포드·서포터 버프·만찬·음식 합). 감소는 음수 */
             extraMoveSpeed?: number;
         };
         /** @description 공통 API 응답. 오류 응답의 data는 null입니다. */
@@ -114,6 +114,8 @@ export interface components {
             bluntThorn: components["schemas"]["CritSpeedBluntThornResponse"];
             /** @description CRIT_100: 치적 100%, BLUNT_THORN_OPTIMAL: 뭉툭한 가시 최대 진화형 피해 도달 */
             targets: components["schemas"]["CritSpeedTargetResponse"][];
+            /** @description 치명타 적중률 1%당 치명 스탯(27.944) */
+            critStatPerPercent: number;
         };
         CritSpeedBluntThornResponse: {
             /**
@@ -151,6 +153,10 @@ export interface components {
             attack: components["schemas"]["CritSpeedAxisResponse"];
             move: components["schemas"]["CritSpeedAxisResponse"];
             supersonic: components["schemas"]["CritSpeedSupersonicResponse"];
+            /** @description 공격·이동 속도 1%당 신속 스탯(58.22) */
+            swiftnessPerPercent: number;
+            /** @description 신속 스탯별 공이속 표. 0부터 200 간격, 현재값·최적값 행 포함(최대 4000) */
+            swiftnessTable: components["schemas"]["CritSpeedSwiftnessRowResponse"][];
         };
         CritSpeedAxisResponse: {
             observed: number;
@@ -177,6 +183,22 @@ export interface components {
             requiredAdditionalSwiftness: number;
             /** @description 현재 속도에서의 노드 진화형 피해 */
             evolutionDamage: number;
+        };
+        CritSpeedSwiftnessRowResponse: {
+            /** Format: int32 */
+            swiftness: number;
+            /** @description 신속 외 출처(관측+가정)를 더한 공격 속도 증가 % */
+            attack: number;
+            move: number;
+            /** @description 상한 적용 */
+            attackEffective: number;
+            moveEffective: number;
+            /** @description 음속 돌파 진화형 피해(장착 노드 또는 Lv.2 기준값) */
+            supersonicEvolutionDamage: number;
+            /** @description 현재 신속 행 */
+            current: boolean;
+            /** @description 음속 돌파 최적 신속 행 */
+            optimal: boolean;
         };
         /** @description 공통 오류 응답. HTTP 상태와 업무 코드를 함께 확인합니다. */
         ErrorResponse: {

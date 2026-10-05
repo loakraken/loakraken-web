@@ -169,15 +169,15 @@
           },
           "extraAttackSpeed": {
             "type": "number",
-            "description": "공격 속도 가정 %(직업 각인·트라이포드·서포터 버프·만찬·음식 합)",
+            "description": "공격 속도 가정 %(직업 각인·트라이포드·서포터 버프·만찬·음식 합). 감소는 음수",
             "maximum": 100,
-            "minimum": 0
+            "minimum": -100
           },
           "extraMoveSpeed": {
             "type": "number",
-            "description": "이동 속도 가정 %(직업 각인·트라이포드·서포터 버프·만찬·음식 합)",
+            "description": "이동 속도 가정 %(직업 각인·트라이포드·서포터 버프·만찬·음식 합). 감소는 음수",
             "maximum": 100,
-            "minimum": 0
+            "minimum": -100
           }
         }
       },
@@ -365,12 +365,17 @@
             "items": {
               "$ref": "#/components/schemas/CritSpeedTargetResponse"
             }
+          },
+          "critStatPerPercent": {
+            "type": "number",
+            "description": "치명타 적중률 1%당 치명 스탯(27.944)"
           }
         },
         "required": [
           "assumedRate",
           "bluntThorn",
           "critStat",
+          "critStatPerPercent",
           "effectiveRate",
           "observedRate",
           "targets",
@@ -500,6 +505,17 @@
           },
           "supersonic": {
             "$ref": "#/components/schemas/CritSpeedSupersonicResponse"
+          },
+          "swiftnessPerPercent": {
+            "type": "number",
+            "description": "공격·이동 속도 1%당 신속 스탯(58.22)"
+          },
+          "swiftnessTable": {
+            "type": "array",
+            "description": "신속 스탯별 공이속 표. 0부터 200 간격, 현재값·최적값 행 포함(최대 4000)",
+            "items": {
+              "$ref": "#/components/schemas/CritSpeedSwiftnessRowResponse"
+            }
           }
         },
         "required": [
@@ -507,7 +523,9 @@
           "cap",
           "move",
           "supersonic",
-          "swiftnessStat"
+          "swiftnessPerPercent",
+          "swiftnessStat",
+          "swiftnessTable"
         ]
       },
       "CritSpeedAxisResponse": {
@@ -606,6 +624,51 @@
           "requiredAdditionalSwiftness",
           "requiredSwiftness",
           "source"
+        ]
+      },
+      "CritSpeedSwiftnessRowResponse": {
+        "type": "object",
+        "properties": {
+          "swiftness": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "attack": {
+            "type": "number",
+            "description": "신속 외 출처(관측+가정)를 더한 공격 속도 증가 %"
+          },
+          "move": {
+            "type": "number"
+          },
+          "attackEffective": {
+            "type": "number",
+            "description": "상한 적용"
+          },
+          "moveEffective": {
+            "type": "number"
+          },
+          "supersonicEvolutionDamage": {
+            "type": "number",
+            "description": "음속 돌파 진화형 피해(장착 노드 또는 Lv.2 기준값)"
+          },
+          "current": {
+            "type": "boolean",
+            "description": "현재 신속 행"
+          },
+          "optimal": {
+            "type": "boolean",
+            "description": "음속 돌파 최적 신속 행"
+          }
+        },
+        "required": [
+          "attack",
+          "attackEffective",
+          "current",
+          "move",
+          "moveEffective",
+          "optimal",
+          "supersonicEvolutionDamage",
+          "swiftness"
         ]
       },
       "ErrorResponse": {
