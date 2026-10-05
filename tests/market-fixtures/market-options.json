@@ -1,0 +1,1 @@
+{"code":"MARKET_OPTIONS_SUCCESS","message":"거래소 검색 옵션 조회에 성공했습니다.","data":{"observedAt":"2026-10-04T16:11:55.774373700Z","categories":[{"code":50000,"codeName":"재료","subs":[{"code":50010,"codeName":"강화 재료"}]},{"code":60000,"codeName":"소모품","subs":[]},{"code":70000,"codeName":"기타","subs":null}],"itemGrades":["일반","희귀"],"itemTiers":[3,4],"classes":["바드"]}}
