@@ -1,0 +1,222 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import test from "node:test";
+import {
+  PARTS,
+  defaultPart,
+  gradeFromName,
+  parsePlanRequest,
+  partsFromCharacter,
+  requestKey,
+  stageGold,
+  stageMaterials,
+  summarize,
+  targetItemLevel,
+  toRequest,
+  type PartId,
+  type PartState,
+  type Plan,
+} from "../lib/refining/model";
+import { isPlanEnvelope } from "../lib/refining/validate";
+import { requestPlan } from "../lib/refining/upstream";
+import type { Character } from "../lib/character/model";
+
+const read = (path: string) =>
+  JSON.parse(readFileSync(new URL(path, import.meta.url), "utf8"));
+const envelope = () => read("./refining-fixtures/refining-plan.json");
+const origin = "http://127.0.0.1:8080";
+const options = {
+  weaponBreath: true,
+  armorBreath: false,
+  weaponBook: false,
+  armorBook: true,
+  growthSupport: true,
+};
+
+test("backend-generated refining fixture satisfies the contract", () => {
+  assert.equal(isPlanEnvelope(envelope()), true);
+  const broken = envelope();
+  broken.data.stages[0].medianAttempts = "7";
+  assert.equal(isPlanEnvelope(broken), false);
+  const wrongCode = envelope();
+  wrongCode.code = "SOMETHING_ELSE";
+  assert.equal(isPlanEnvelope(wrongCode), false);
+});
+
+test("grade is read from the T4 equipment name", () => {
+  assert.equal(gradeFromName("+25 운명의 전율 런처"), "JEONYUL");
+  assert.equal(gradeFromName("+18 운명의 업화 모자"), "UPHWA");
+  assert.equal(gradeFromName("+25 테스트 무기"), null);
+  assert.equal(gradeFromName(null), null);
+});
+
+test("character equipment fills current stages and flags unreadable parts", () => {
+  const data = read("./fixtures/character-full-data.json") as Character;
+  data.loadout.equipment = [
+    { type: "무기", name: "+25 운명의 전율 런처", detail: { refineLevel: 25 } },
+    { type: "투구", name: "+20 운명의 업화 모자", detail: { refineLevel: 20 } },
+    { type: "상의", name: "+9 운명의 업화 상의", detail: { refineLevel: 9 } },
+    { type: "하의", name: "+19 테스트 하의", detail: { refineLevel: 19 } },
+    { type: "장갑", name: "+21 운명의 전율 장갑", detail: null },
+  ] as unknown as Character["loadout"]["equipment"];
+  const { parts, unsupported } = partsFromCharacter(data);
+  assert.deepEqual(parts.weapon, { ...defaultPart("JEONYUL"), current: 25, target: 25 });
+  assert.equal(parts.helmet.current, 20);
+  assert.equal(parts.helmet.grade, "UPHWA");
+  assert.deepEqual(unsupported, ["상의", "하의", "장갑", "어깨"]);
+  assert.equal(parts.chest.enabled, false, "unreadable parts start excluded");
+});
+
+test("requests carry per-part options and skip parts without a goal", () => {
+  const weapon = PARTS[0];
+  const armor = PARTS[1];
+  const part: PartState = { ...defaultPart("UPHWA"), current: 18, target: 21 };
+  assert.equal(toRequest(weapon, { ...part, target: 18 }, options), null);
+  assert.equal(toRequest(weapon, { ...part, enabled: false }, options), null);
+  assert.deepEqual(toRequest(weapon, part, options), {
+    grade: "UPHWA",
+    equipmentType: "WEAPON",
+    fromStage: 18,
+    toStage: 21,
+    useBreath: true,
+    useBook: false,
+    growthSupport: true,
+    currentArtisanEnergy: 0,
+    currentFailedAttempts: 0,
+  });
+  const armorRequest = toRequest(armor, part, options)!;
+  assert.equal(armorRequest.useBook, true);
+  assert.equal(
+    toRequest(armor, { ...part, grade: "JEONYUL" }, options)!.useBook,
+    false,
+    "books are 업화 only",
+  );
+  assert.equal(
+    toRequest(armor, { ...part, current: 20, target: 22 }, options)!.useBook,
+    false,
+    "no book above 20",
+  );
+  assert.equal(requestKey(armorRequest), requestKey({ ...armorRequest }));
+  assert.notEqual(
+    requestKey(armorRequest),
+    requestKey({ ...armorRequest, currentArtisanEnergy: 10 }),
+  );
+});
+
+test("plan requests are allow-listed before the backend", () => {
+  const valid = { grade: "UPHWA", equipmentType: "ARMOR", fromStage: 18, toStage: 20 };
+  assert.deepEqual(parsePlanRequest(valid), {
+    ...valid,
+    useBreath: false,
+    useBook: false,
+    growthSupport: false,
+    currentArtisanEnergy: 0,
+    currentFailedAttempts: 0,
+  });
+  for (const bad of [
+    null,
+    [],
+    { ...valid, grade: "ANCIENT" },
+    { ...valid, fromStage: 9 },
+    { ...valid, toStage: 26 },
+    { ...valid, toStage: 18 },
+    { ...valid, fromStage: 18.5 },
+    { ...valid, useBreath: "yes" },
+    { ...valid, currentArtisanEnergy: 101 },
+    { ...valid, currentFailedAttempts: 11 },
+  ])
+    assert.equal(parsePlanRequest(bad), null, JSON.stringify(bad));
+  assert.equal(
+    "extra" in parsePlanRequest({ ...valid, extra: 1 })!,
+    false,
+    "unknown keys are dropped",
+  );
+});
+
+test("percentile modes scale each stage's worst case by its attempts", () => {
+  const plan: Plan = envelope().data;
+  const [stage] = plan.stages;
+  assert.equal(stageMaterials(stage, "expected"), stage.expectedMaterials);
+  assert.equal(stageGold(stage, "max"), stage.worstCaseGold);
+  const median = stageMaterials(stage, "median");
+  const perAttempt = stage.worstCaseMaterials[0].amount / stage.maxAttempts;
+  assert.equal(median[0].amount, perAttempt * stage.medianAttempts);
+  assert.equal(
+    stageGold(stage, "p90"),
+    (stage.worstCaseGold / stage.maxAttempts) * stage.p90Attempts,
+  );
+  // The backend's expected cost agrees with the per-attempt cost model
+  // (expectedAttempts is rounded to two decimals).
+  const modelled = perAttempt * stage.expectedAttempts;
+  assert.ok(Math.abs(modelled / stage.expectedMaterials[0].amount - 1) < 0.001);
+});
+
+test("summary merges parts by material and rounds amounts up", () => {
+  const plan: Plan = envelope().data;
+  const twice = summarize(
+    [
+      { part: PARTS[1], plan },
+      { part: PARTS[2], plan },
+    ],
+    "expected",
+  );
+  assert.equal(twice.stageCount, 4);
+  const stone = twice.materials.find((m) => m.name === "운명의 수호석")!;
+  const expected = plan.stages.reduce(
+    (sum, s) => sum + s.expectedMaterials.find((m) => m.name === "운명의 수호석")!.amount,
+    0,
+  );
+  assert.equal(stone.amount, Math.ceil(expected * 2));
+  assert.equal(twice.gold, Math.ceil(plan.expectedGold * 2 - 1e-9));
+  assert.equal(
+    twice.attempts,
+    plan.stages.reduce((sum, s) => sum + s.expectedAttempts, 0) * 2,
+  );
+  assert.deepEqual(
+    twice.materials.map((m) => m.name),
+    plan.expectedMaterials.map((m) => m.name),
+    "first-seen order",
+  );
+  const max = summarize([{ part: PARTS[1], plan }], "max");
+  assert.equal(max.gold, plan.worstCaseGold);
+});
+
+test("target item level averages five per stage across six parts", () => {
+  const parts = Object.fromEntries(
+    PARTS.map((p) => [p.id, { ...defaultPart(), current: 20, target: 20 }]),
+  ) as Record<PartId, PartState>;
+  parts.helmet.target = 23;
+  parts.chest.target = 23;
+  parts.pants.target = 23;
+  parts.gloves = { ...parts.gloves, current: 21, target: 23 };
+  parts.shoulder = { ...parts.shoulder, current: 21, target: 23 };
+  assert.equal(targetItemLevel(1780.8333, parts), 1791.67);
+  assert.equal(targetItemLevel(null, parts), null);
+  parts.gloves.enabled = false;
+  assert.equal(targetItemLevel(1780.8333, parts), 1790);
+});
+
+test("plan requests validate input and pass through allow-listed errors", async () => {
+  let calls = 0;
+  const fetcher = (async (url: URL, init: RequestInit) => {
+    calls++;
+    assert.equal(url.pathname, "/api/v1/refining/plans");
+    assert.equal(init.method, "POST");
+    assert.equal(JSON.parse(String(init.body)).fromStage, 18);
+    return Response.json(envelope());
+  }) as unknown as typeof fetch;
+  const body = { grade: "UPHWA", equipmentType: "ARMOR", fromStage: 18, toStage: 20 };
+  assert.equal((await requestPlan(body, origin, { fetcher })).ok, true);
+  assert.equal((await requestPlan({ ...body, toStage: 30 }, origin, { fetcher })).ok, false);
+  assert.equal(calls, 1);
+  const rejected = await requestPlan(body, origin, {
+    fetcher: (async () =>
+      Response.json({ code: "INVALID_REQUEST" }, { status: 400 })) as typeof fetch,
+  });
+  assert.deepEqual(rejected.ok ? null : rejected.error, {
+    code: "INVALID_REQUEST",
+    status: 400,
+  });
+  const unconfigured = await requestPlan(body, undefined, { fetcher });
+  assert.equal(unconfigured.ok ? null : unconfigured.error.code, "FRONTEND_API_NOT_CONFIGURED");
+});
