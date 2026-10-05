@@ -460,3 +460,68 @@
     transition: none;
   }
 }
+
+/* Swiftness table (crit-speed-v2) */
+.table {
+  margin-top: 20px;
+}
+.table summary {
+  color: var(--link);
+  font-size: 14px;
+  cursor: pointer;
+}
+.table summary small {
+  margin-left: 4px;
+  color: var(--slate);
+  font-size: 12px;
+}
+.tableScroll {
+  margin-top: 10px;
+  overflow-x: auto;
+}
+.tableScroll table {
+  width: 100%;
+  min-width: 360px;
+  border-collapse: collapse;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.tableScroll th,
+.tableScroll td {
+  padding: 8px 6px;
+  border-bottom: 1px solid var(--hairline);
+  text-align: right;
+}
+.tableScroll th:first-child {
+  text-align: left;
+  font-weight: 500;
+}
+.tableScroll thead th {
+  color: var(--slate);
+  font-size: 12px;
+  font-weight: 500;
+}
+.tableScroll tr[data-current] {
+  background: rgb(0 113 227 / 6%);
+}
+.tableScroll tr[data-optimal] th,
+.tableScroll tr[data-optimal] td {
+  font-weight: 600;
+}
+.tableScroll em {
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: var(--action);
+  color: #fff;
+  font-size: 11px;
+  font-style: normal;
+}
+.tableScroll small {
+  color: var(--slate);
+}
+.table > p {
+  margin-top: 6px;
+  color: var(--slate);
+  font-size: 12px;
+}
