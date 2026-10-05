@@ -435,6 +435,45 @@ createServer(async (req, res) => {
             : [],
       };
     }
+    // Synthetic 내실·아바타 data (names and counts are invented).
+    const kinds = [
+      ["합성 심장", 15, 15],
+      ["합성 섬의 마음", 69, 104],
+      ["합성 씨앗", 976, 1480],
+      ["합성 미술품", 57, 60],
+      ["합성 항해물", 41, 50],
+      ["합성 잎", 37, 120],
+    ];
+    d.collectibles = kinds.map(([type, point, maxPoint], k) => ({
+      type,
+      icon: null,
+      point,
+      maxPoint,
+      items: Array.from({ length: Math.min(12, maxPoint) }, (_, i) => ({
+        name: `${type} ${i + 1}`,
+        point: k === 2 ? (i % 3 === 0 ? 40 : 51) : i < Math.round((point / maxPoint) * 12) ? 1 : 0,
+        maxPoint: k === 2 ? 51 : 1,
+      })),
+    }));
+    d.tendencies = [["지성", 590], ["담력", 593], ["매력", 478], ["친절", 508]].map(([type, point]) => ({ type, point, maxPoint: 1000 }));
+    d.decorations = { symbol: null, emblems: [] };
+    d.townName = "합성 영지";
+    d.townLevel = 70;
+    d.honorPoint = 183;
+    d.guildMemberGrade = "길드장";
+    d.avatars = [
+      ["무기 아바타", "합성 무기 아바타", "전설", false, ["민첩 +2.00%"]],
+      ["무기 덧입기 아바타", "합성 무기 덧입기", "영웅", true, []],
+      ["상의 아바타", "합성 상의 (패스)", "전설", false, ["민첩 +2.00%"]],
+      ["상의 덧입기 아바타", "합성 상의 덧입기", "영웅", true, []],
+      ["하의 아바타", "합성 하의 (패스)", "전설", false, ["민첩 +2.00%"]],
+      ["머리 아바타", "합성 머리", "전설", false, ["민첩 +1.00%"]],
+      ["얼굴1 아바타", "합성 얼굴1", "영웅", false, []],
+      ["이동 효과", "합성 이동 효과", "영웅", false, []],
+    ].map(([type, name, grade, isInner, effects]) => ({ type, name, icon: null, grade, isSet: false, isInner, effects }));
+    d.coverage.avatars = "PROVIDED";
+    d.coverage.collectibles = "PROVIDED";
+    for (const stat of d.stats) if (!stat.tooltip?.length) stat.tooltip = [`${stat.type} 효과가 적용됩니다. (합성 문구)`];
     d.skillPoints = { used: 480, total: 480 };
     const skill = (skillName, lvl, extra = {}) => ({
       name: skillName, icon: null, level: lvl, type: "일반", partBreakLevel: null, counter: false,

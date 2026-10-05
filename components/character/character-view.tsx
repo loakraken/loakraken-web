@@ -216,7 +216,33 @@ function CharacterContent({
                     </>
                   )}
                   <dt>길드</dt>
-                  <dd>{text(data.guildName)}</dd>
+                  <dd>
+                    {text(data.guildName)}
+                    {data.guildName && data.guildMemberGrade && (
+                      <small className={styles.evidenceNote}>
+                        {data.guildMemberGrade}
+                      </small>
+                    )}
+                  </dd>
+                  {data.townName && (
+                    <>
+                      <dt>영지</dt>
+                      <dd>
+                        {data.townName}
+                        {data.townLevel != null && (
+                          <small className={styles.evidenceNote}>
+                            Lv.{data.townLevel}
+                          </small>
+                        )}
+                      </dd>
+                    </>
+                  )}
+                  {data.honorPoint != null && (
+                    <>
+                      <dt>명예</dt>
+                      <dd>{number(data.honorPoint)}</dd>
+                    </>
+                  )}
                   <dt>칭호</dt>
                   <dd>{text(data.title)}</dd>
                   <dt>수집</dt>

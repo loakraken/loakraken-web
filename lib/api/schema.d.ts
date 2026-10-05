@@ -56,7 +56,18 @@ export interface components {
             title: string | null;
             guildName: string | null;
             stats: components["schemas"]["StatResponse"][];
-            skillPoints?: components["schemas"]["SkillPointsResponse"] | null;
+            skillPoints: components["schemas"]["SkillPointsResponse"] | null;
+            /** @description 성향(지성·담력·매력·친절) */
+            tendencies: components["schemas"]["TendencyResponse"][];
+            decorations: components["schemas"]["DecorationsResponse"] | null;
+            honorPoint: number | null;
+            townName: string | null;
+            townLevel: number | null;
+            guildMemberGrade: string | null;
+            /** @description 장착 아바타. 덧입기는 isInner=true. 염색 정보는 공식 응답에서 확인되지 않아 제공하지 않습니다. */
+            avatars: components["schemas"]["AvatarResponse"][];
+            /** @description 수집품 종류별 진행도와 항목 */
+            collectibles: components["schemas"]["CollectibleResponse"][];
             loadout: components["schemas"]["CharacterLoadoutResponse"];
             siblings: components["schemas"]["SiblingResponse"][] | null;
             coverage: components["schemas"]["CharacterObservationCoverageResponse"];
@@ -66,15 +77,48 @@ export interface components {
              * @description 외부 API에서 실제 수집한 UTC 시각. 캐시 조회에서도 유지됩니다.
              */
             fetchedAt: string;
-            refreshAvailableAt?: string | null;
+            refreshAvailableAt: string | null;
         };
         StatResponse: {
             type: string | null;
             value: string | null;
+            /** @description 공식 스탯 Tooltip 문장(정제). 예: 치명타 적중률이 20.61% 증가합니다. */
+            tooltip: string[];
         };
         SkillPointsResponse: {
             used: number | null;
             total: number | null;
+        };
+        TendencyResponse: {
+            type: string | null;
+            point: number | null;
+            maxPoint: number | null;
+        };
+        DecorationsResponse: {
+            symbol: string | null;
+            emblems: string[];
+        };
+        AvatarResponse: {
+            type: string | null;
+            name: string | null;
+            icon: string | null;
+            grade: string | null;
+            isSet: boolean | null;
+            isInner: boolean | null;
+            /** @description 아바타 기본 효과 줄(예: 민첩 +2.00%) */
+            effects: string[];
+        };
+        CollectibleResponse: {
+            type: string | null;
+            icon: string | null;
+            point: number | null;
+            maxPoint: number | null;
+            items: components["schemas"]["CollectibleItemResponse"][];
+        };
+        CollectibleItemResponse: {
+            name: string | null;
+            point: number | null;
+            maxPoint: number | null;
         };
         /** @description 공식 API의 구조화된 전투정보. null 섹션은 제공된 데이터가 없음을 뜻하며 Tooltip은 포함하지 않습니다. */
         CharacterLoadoutResponse: {
@@ -85,7 +129,7 @@ export interface components {
             arkPassive: components["schemas"]["ArkPassiveResponse"] | null;
             arkGrid: components["schemas"]["ArkGridResponse"] | null;
             /** @description 공식 전투 스킬 전체(기본 스킬 포함). 목록이 미제공이면 빈 배열이며 coverage.skills로 구분합니다. */
-            skills?: components["schemas"]["SkillResponse"][];
+            skills: components["schemas"]["SkillResponse"][];
         };
         EquipmentResponse: {
             type: string | null;
@@ -223,6 +267,7 @@ export interface components {
             name: string | null;
             description: string | null;
             icon: string | null;
+            effect: string | null;
         };
         ArkGridResponse: {
             slots: components["schemas"]["GridSlotResponse"][];
@@ -296,7 +341,17 @@ export interface components {
              * @description 전투 스킬 목록 상태
              * @enum {string}
              */
-            skills?: "PROVIDED" | "PROVIDED_EMPTY" | "NOT_PROVIDED";
+            skills: "PROVIDED" | "PROVIDED_EMPTY" | "NOT_PROVIDED";
+            /**
+             * @description 아바타 목록 상태
+             * @enum {string}
+             */
+            avatars: "PROVIDED" | "PROVIDED_EMPTY" | "NOT_PROVIDED";
+            /**
+             * @description 수집품 목록 상태
+             * @enum {string}
+             */
+            collectibles: "PROVIDED" | "PROVIDED_EMPTY" | "NOT_PROVIDED";
         };
         ObservationSectionResponse: {
             /**
@@ -320,13 +375,13 @@ export interface components {
             arkPassive: components["schemas"]["PassiveSummaryResponse"] | null;
             arkGrid: components["schemas"]["GridSummaryResponse"] | null;
             diagnostics: components["schemas"]["CharacterDiagnosticsResponse"];
-            position?: ("DEALER" | "SUPPORT") | null;
-            positionEvidence?: string | null;
+            position: ("DEALER" | "SUPPORT") | null;
+            positionEvidence: string | null;
             /**
              * @description 포지션 판정 규칙 버전
              * @example position-v1
              */
-            positionRuleVersion?: string;
+            positionRuleVersion: string;
         };
         /** @description 장비 Tooltip 해석 결과의 관측 집계입니다. 부위별 가중치·점수·추천이 아니며 값이 없는 장비는 각 집계에서 제외합니다. */
         EquipmentSummaryResponse: {

@@ -1,7 +1,7 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "LOAKraken character search",
+    "title": "LOAKraken character",
     "version": "1.0.0"
   },
   "paths": {
@@ -258,6 +258,81 @@
               }
             ]
           },
+          "tendencies": {
+            "type": "array",
+            "description": "성향(지성·담력·매력·친절)",
+            "items": {
+              "$ref": "#/components/schemas/TendencyResponse"
+            }
+          },
+          "decorations": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DecorationsResponse",
+                "description": "장식(심볼·문장). 공식 프로필에 없으면 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "honorPoint": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "townName": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "영지 이름"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "townLevel": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "guildMemberGrade": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "avatars": {
+            "type": "array",
+            "description": "장착 아바타. 덧입기는 isInner=true. 염색 정보는 공식 응답에서 확인되지 않아 제공하지 않습니다.",
+            "items": {
+              "$ref": "#/components/schemas/AvatarResponse"
+            }
+          },
+          "collectibles": {
+            "type": "array",
+            "description": "수집품 종류별 진행도와 항목",
+            "items": {
+              "$ref": "#/components/schemas/CollectibleResponse"
+            }
+          },
           "loadout": {
             "$ref": "#/components/schemas/CharacterLoadoutResponse"
           },
@@ -301,21 +376,31 @@
         },
         "required": [
           "analysis",
+          "avatars",
           "characterLevel",
           "characterName",
           "className",
+          "collectibles",
           "combatPower",
           "coverage",
+          "decorations",
           "expeditionLevel",
           "fetchedAt",
+          "guildMemberGrade",
           "guildName",
+          "honorPoint",
           "imageUrl",
           "itemLevel",
           "loadout",
+          "refreshAvailableAt",
           "serverName",
           "siblings",
+          "skillPoints",
           "stats",
-          "title"
+          "tendencies",
+          "title",
+          "townLevel",
+          "townName"
         ]
       },
       "StatResponse": {
@@ -340,9 +425,17 @@
                 "type": "null"
               }
             ]
+          },
+          "tooltip": {
+            "type": "array",
+            "description": "공식 스탯 Tooltip 문장(정제). 예: 치명타 적중률이 20.61% 증가합니다.",
+            "items": {
+              "type": "string"
+            }
           }
         },
         "required": [
+          "tooltip",
           "type",
           "value"
         ]
@@ -376,6 +469,256 @@
         "required": [
           "total",
           "used"
+        ]
+      },
+      "TendencyResponse": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "point": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "maxPoint": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "maxPoint",
+          "point",
+          "type"
+        ]
+      },
+      "DecorationsResponse": {
+        "type": "object",
+        "properties": {
+          "symbol": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "emblems": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "emblems",
+          "symbol"
+        ]
+      },
+      "AvatarResponse": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "grade": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "isSet": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "isInner": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "effects": {
+            "type": "array",
+            "description": "아바타 기본 효과 줄(예: 민첩 +2.00%)",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "effects",
+          "grade",
+          "icon",
+          "isInner",
+          "isSet",
+          "name",
+          "type"
+        ]
+      },
+      "CollectibleResponse": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "point": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "maxPoint": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CollectibleItemResponse"
+            }
+          }
+        },
+        "required": [
+          "icon",
+          "items",
+          "maxPoint",
+          "point",
+          "type"
+        ]
+      },
+      "CollectibleItemResponse": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "point": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "maxPoint": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "maxPoint",
+          "name",
+          "point"
         ]
       },
       "CharacterLoadoutResponse": {
@@ -452,7 +795,8 @@
           "cards",
           "engravings",
           "equipment",
-          "gems"
+          "gems",
+          "skills"
         ]
       },
       "EquipmentResponse": {
@@ -1362,10 +1706,22 @@
                 "type": "null"
               }
             ]
+          },
+          "effect": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "공식 노드 Tooltip의 효과 문구(수치 포함). 제공되지 않으면 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
           "description",
+          "effect",
           "icon",
           "name"
         ]
@@ -1864,16 +2220,37 @@
               "PROVIDED_EMPTY",
               "NOT_PROVIDED"
             ]
+          },
+          "avatars": {
+            "type": "string",
+            "description": "아바타 목록 상태",
+            "enum": [
+              "PROVIDED",
+              "PROVIDED_EMPTY",
+              "NOT_PROVIDED"
+            ]
+          },
+          "collectibles": {
+            "type": "string",
+            "description": "수집품 목록 상태",
+            "enum": [
+              "PROVIDED",
+              "PROVIDED_EMPTY",
+              "NOT_PROVIDED"
+            ]
           }
         },
         "required": [
           "arkGrid",
           "arkPassive",
+          "avatars",
           "cards",
+          "collectibles",
           "engravings",
           "equipment",
           "gems",
-          "siblings"
+          "siblings",
+          "skills"
         ]
       },
       "ObservationSectionResponse": {
@@ -2010,7 +2387,10 @@
           "engravings",
           "equipment",
           "equipmentCount",
-          "gems"
+          "gems",
+          "position",
+          "positionEvidence",
+          "positionRuleVersion"
         ]
       },
       "EquipmentSummaryResponse": {
