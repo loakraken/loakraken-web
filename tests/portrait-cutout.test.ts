@@ -71,3 +71,20 @@ test("ambient colour follows the lit subject and bright backdrops are rejected",
     null,
   );
 });
+
+test("glow tint keeps the hue, lifts dull colours and keeps greys neutral", async () => {
+  const { glowTint } = await import("../lib/character/portrait-cutout");
+  const hsl = ([r, g, b]: readonly number[]) => {
+    const max = Math.max(r, g, b) / 255;
+    const min = Math.min(r, g, b) / 255;
+    return { l: (max + min) / 2, spread: max - min };
+  };
+  const orange = glowTint([150, 80, 40]);
+  assert.ok(orange[0] > orange[1] && orange[1] > orange[2], "hue order kept");
+  assert.ok(Math.abs(hsl(orange).l - 0.55) < 0.01, "lightness pinned");
+  assert.ok(hsl(orange).spread > hsl([150, 80, 40]).spread, "saturation lifted");
+  const grey = glowTint([120, 120, 125]);
+  assert.ok(hsl(grey).spread < 0.1, "near grey stays near grey");
+  const blue = glowTint([30, 60, 200]);
+  assert.ok(blue[2] > blue[0] && blue[2] > blue[1]);
+});

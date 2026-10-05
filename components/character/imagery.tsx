@@ -10,7 +10,7 @@ import {
 import { ThinkingOrb } from "thinking-orbs";
 import { useLandingMotion } from "@/components/landing/motion";
 import { gradeKey, safeGameImage } from "@/lib/character/model";
-import { cutoutPortrait } from "@/lib/character/portrait-cutout";
+import { cutoutPortrait, glowTint } from "@/lib/character/portrait-cutout";
 import styles from "./imagery.module.css";
 
 type Phase = "server" | "loading" | "loaded" | "failed";
@@ -182,7 +182,10 @@ function usePortraitCutout(src: string | null): Cutout {
         const result = cutoutPortrait(pixels.data, width, height);
         if (!result) return fail();
         context.putImageData(pixels, 0, 0);
-        const ambient = result.ambient ? result.ambient.join(" ") : null;
+        // Soft glow behind the figure takes the effect colour, normalised.
+        const ambient = result.ambient
+          ? glowTint(result.ambient).join(" ")
+          : null;
         const backdrop = result.backdrop.map((v) => Math.round(v)).join(" ");
         canvas.toBlob((blob) => {
           if (cancelled) return;
@@ -233,13 +236,21 @@ export function CharacterBanner({
       data-cutout={cutout.status}
       aria-label={`${name} 캐릭터 요약`}
       style={
-        cutout.backdrop
-          ? ({ "--backdrop": cutout.backdrop } as CSSProperties)
+        cutout.backdrop || cutout.ambient
+          ? ({
+              ...(cutout.backdrop && { "--backdrop": cutout.backdrop }),
+              ...(cutout.ambient && { "--ambient": cutout.ambient }),
+            } as CSSProperties)
           : undefined
       }
     >
       <div className={styles.bannerInner}>
         <div className={styles.bannerIdentity}>{identity}</div>
+        <span
+          className={styles.bannerGlow}
+          data-ready={(cutout.ambient && phase !== "failed") || undefined}
+          aria-hidden="true"
+        />
         <div className={styles.bannerFigure}>
           {safe && phase !== "failed" && (
             <>
