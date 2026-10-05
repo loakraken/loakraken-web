@@ -31,6 +31,7 @@ test("position matches backend position-v1: class first, then enlightenment node
       name: "깨달음",
       description,
       icon: null,
+      effect: null,
     }));
     return data;
   };

@@ -47,6 +47,26 @@ test("runtime contract rejects broken nested data and invalid collection time", 
   assert.equal(isCharacterEnvelope(future), true);
 });
 
+test("responses from a backend before the rollout fields still pass with neutral defaults", () => {
+  const old = full();
+  for (const key of ["tendencies", "decorations", "honorPoint", "townName", "townLevel", "guildMemberGrade", "avatars", "collectibles", "refreshAvailableAt", "skillPoints"])
+    delete old.data[key];
+  delete old.data.coverage.avatars;
+  delete old.data.coverage.collectibles;
+  delete old.data.analysis.position;
+  for (const stat of old.data.stats) delete stat.tooltip;
+  for (const effect of old.data.loadout.arkPassive?.effects ?? []) delete effect.effect;
+  assert.equal(isCharacterEnvelope(old), true);
+  assert.deepEqual(old.data.avatars, []);
+  assert.deepEqual(old.data.collectibles, []);
+  assert.equal(old.data.townName, null);
+  assert.equal(old.data.coverage.avatars, "NOT_PROVIDED");
+  assert.equal(old.data.analysis.position, null);
+  const broken = full();
+  broken.data.avatars = [{ name: "형식 오류" }];
+  assert.equal(isCharacterEnvelope(broken), false, "present fields are still strict");
+});
+
 test("names share backend NFC, letters/numbers and UTF-16 length rules", () => {
   assert.equal(normalizeCharacterName("  가1  "), "가1");
   for (const name of ["모험가", "A1", "가".repeat(64), "𐐀1"])
