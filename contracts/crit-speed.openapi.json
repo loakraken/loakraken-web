@@ -1,0 +1,635 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "LOAKraken crit-speed",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/v1/characters/crit-speed": {
+      "post": {
+        "tags": [
+          "캐릭터"
+        ],
+        "summary": "치명타·공이속 계산(치적·뭉가·음돌)",
+        "description": "캐릭터 검색 캐시를 공유해 공식 원문(치명·신속 Tooltip, 각인, 아크 패시브 노드, 장신구 연마, 팔찌, 카드)의 치명타 적중률과 공격·이동 속도를 합산하고, 요청 가정(백어택·펫·시너지·버프 등)을 분리해 더합니다. 치적 100%·뭉툭한 가시 최적 치적까지 필요한 치명과 음속 돌파 최적 속도까지 필요한 신속을 계산합니다. 원정대는 조회하지 않습니다.",
+        "operationId": "critSpeed",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CritSpeedRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "계산 성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseCritSpeedResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_REQUEST: 캐릭터명·가정 범위 오류",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "CHARACTER_NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "UNSUPPORTED_MEDIA_TYPE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "LOST_ARK_RATE_LIMITED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "LOST_ARK_API_ERROR",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "LOST_ARK_NOT_CONFIGURED 또는 CHARACTER_CACHE_UNAVAILABLE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "LOST_ARK_API_TIMEOUT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CritSpeedRequest": {
+        "type": "object",
+        "properties": {
+          "characterName": {
+            "type": "string",
+            "description": "계산할 캐릭터명",
+            "example": "모험가",
+            "maxLength": 64,
+            "minLength": 0,
+            "pattern": "\\s*[\\p{L}\\p{N}]+\\s*"
+          },
+          "assumptions": {
+            "$ref": "#/components/schemas/CritSpeedAssumptions",
+            "description": "파티·버프·조건 가정. 생략하면 모든 가정 없음(관측값만)"
+          }
+        },
+        "required": [
+          "characterName"
+        ]
+      },
+      "CritSpeedAssumptions": {
+        "type": "object",
+        "description": "% 단위 가정. 생략한 값은 0 또는 false",
+        "properties": {
+          "backAttack": {
+            "type": "boolean",
+            "description": "백어택 적중 가정(치명타 적중률 +10%)"
+          },
+          "critPet": {
+            "type": "boolean",
+            "description": "치명 펫 효과(치명 +160)"
+          },
+          "critSynergyCount": {
+            "type": "integer",
+            "format": "int32",
+            "description": "치명타 적중률 시너지 수(동일 직업 제외, 1개당 +10%)",
+            "maximum": 3,
+            "minimum": 0
+          },
+          "supportCritRate": {
+            "type": "number",
+            "description": "서포터 치명타 적중률 버프 %",
+            "maximum": 30,
+            "minimum": 0
+          },
+          "tripodCritRate": {
+            "type": "number",
+            "description": "사용 스킬 트라이포드 치명타 적중률 %",
+            "maximum": 100,
+            "minimum": 0
+          },
+          "extraCritRate": {
+            "type": "number",
+            "description": "기타 치명타 적중률 가정 %(아크 그리드 코어 등)",
+            "maximum": 100,
+            "minimum": 0
+          },
+          "extraAttackSpeed": {
+            "type": "number",
+            "description": "공격 속도 가정 %(직업 각인·트라이포드·서포터 버프·만찬·음식 합)",
+            "maximum": 100,
+            "minimum": 0
+          },
+          "extraMoveSpeed": {
+            "type": "number",
+            "description": "이동 속도 가정 %(직업 각인·트라이포드·서포터 버프·만찬·음식 합)",
+            "maximum": 100,
+            "minimum": 0
+          }
+        }
+      },
+      "ApiResponseCritSpeedResponse": {
+        "type": "object",
+        "description": "공통 API 응답. 오류 응답의 data는 null입니다.",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "업무 결과 코드",
+            "example": "CHARACTER_SEARCH_SUCCESS"
+          },
+          "message": {
+            "type": "string",
+            "description": "공개용 안내 메시지",
+            "example": "캐릭터 조회에 성공했습니다."
+          },
+          "data": {
+            "$ref": "#/components/schemas/CritSpeedResponse",
+            "description": "성공 응답 데이터. 오류일 때 null"
+          }
+        },
+        "required": [
+          "code",
+          "data",
+          "message"
+        ]
+      },
+      "CritSpeedResponse": {
+        "type": "object",
+        "description": "치명타·공이속 계산. 관측(OBSERVED)과 가정(ASSUMED) 출처를 분리합니다. 값은 % 단위입니다.",
+        "properties": {
+          "ruleVersion": {
+            "type": "string",
+            "description": "계산 규칙 버전"
+          },
+          "characterName": {
+            "type": "string"
+          },
+          "className": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "fetchedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "캐릭터 원천 수집 시각(캐시 적중 시 원래 시각)"
+          },
+          "sources": {
+            "type": "array",
+            "description": "합산한 출처. text는 공식 원문 또는 가정 설명",
+            "items": {
+              "$ref": "#/components/schemas/CritSpeedSourceResponse"
+            }
+          },
+          "crit": {
+            "$ref": "#/components/schemas/CritSpeedCritResponse"
+          },
+          "speed": {
+            "$ref": "#/components/schemas/CritSpeedSpeedResponse"
+          },
+          "limitations": {
+            "type": "array",
+            "description": "계산에서 제외했거나 근사한 항목",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "characterName",
+          "className",
+          "crit",
+          "fetchedAt",
+          "limitations",
+          "ruleVersion",
+          "sources",
+          "speed"
+        ]
+      },
+      "CritSpeedSourceResponse": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "OBSERVED",
+              "ASSUMED"
+            ]
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "STAT",
+              "ENGRAVING",
+              "ARK_PASSIVE",
+              "ACCESSORY",
+              "BRACELET",
+              "CARD",
+              "ASSUMPTION"
+            ]
+          },
+          "axis": {
+            "type": "string",
+            "enum": [
+              "CRIT",
+              "ATTACK_SPEED",
+              "MOVE_SPEED"
+            ]
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "value": {
+            "type": "number"
+          },
+          "text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "axis",
+          "category",
+          "kind",
+          "name",
+          "text",
+          "value"
+        ]
+      },
+      "CritSpeedCritResponse": {
+        "type": "object",
+        "properties": {
+          "critStat": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32",
+                "description": "프로필 치명 스탯. 알 수 없으면 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "observedRate": {
+            "type": "number"
+          },
+          "assumedRate": {
+            "type": "number"
+          },
+          "totalRate": {
+            "type": "number",
+            "description": "관측+가정 치명타 적중률(상한 적용 전)"
+          },
+          "effectiveRate": {
+            "type": "number",
+            "description": "실제 적용 치명타 적중률. 뭉툭한 가시 장착 시 그 상한, 아니면 100%"
+          },
+          "bluntThorn": {
+            "$ref": "#/components/schemas/CritSpeedBluntThornResponse"
+          },
+          "targets": {
+            "type": "array",
+            "description": "CRIT_100: 치적 100%, BLUNT_THORN_OPTIMAL: 뭉툭한 가시 최대 진화형 피해 도달",
+            "items": {
+              "$ref": "#/components/schemas/CritSpeedTargetResponse"
+            }
+          }
+        },
+        "required": [
+          "assumedRate",
+          "bluntThorn",
+          "critStat",
+          "effectiveRate",
+          "observedRate",
+          "targets",
+          "totalRate"
+        ]
+      },
+      "CritSpeedBluntThornResponse": {
+        "type": "object",
+        "properties": {
+          "source": {
+            "type": "string",
+            "description": "EQUIPPED_NODE: 장착 노드 공식 문구, REFERENCE_LEVEL_2: 미장착이라 공식 Lv.2 문구 기준",
+            "enum": [
+              "EQUIPPED_NODE",
+              "REFERENCE_LEVEL_2"
+            ]
+          },
+          "level": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "baseEvolutionDamage": {
+            "type": "number"
+          },
+          "critCap": {
+            "type": "number"
+          },
+          "conversionPercent": {
+            "type": "number",
+            "description": "상한 초과 치적의 진화형 피해 전환 비율 %"
+          },
+          "maxEvolutionDamage": {
+            "type": "number"
+          },
+          "optimalCritRate": {
+            "type": "number"
+          },
+          "evolutionDamage": {
+            "type": "number",
+            "description": "현재 totalRate에서의 노드 진화형 피해"
+          },
+          "effectiveCritRate": {
+            "type": "number",
+            "description": "노드 장착 시 적용 치적"
+          }
+        },
+        "required": [
+          "baseEvolutionDamage",
+          "conversionPercent",
+          "critCap",
+          "effectiveCritRate",
+          "evolutionDamage",
+          "level",
+          "maxEvolutionDamage",
+          "optimalCritRate",
+          "source"
+        ]
+      },
+      "CritSpeedTargetResponse": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "targetRate": {
+            "type": "number"
+          },
+          "requiredCritStat": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32",
+                "description": "목표에 필요한 치명 스탯 총량. 치명 스탯을 모르면 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "requiredAdditionalCritStat": {
+            "type": "integer",
+            "format": "int32",
+            "description": "추가로 필요한 치명(올림)"
+          },
+          "reached": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "key",
+          "reached",
+          "requiredAdditionalCritStat",
+          "requiredCritStat",
+          "targetRate"
+        ]
+      },
+      "CritSpeedSpeedResponse": {
+        "type": "object",
+        "properties": {
+          "swiftnessStat": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "cap": {
+            "type": "number",
+            "description": "공격·이동 속도 증가 상한(%)"
+          },
+          "attack": {
+            "$ref": "#/components/schemas/CritSpeedAxisResponse"
+          },
+          "move": {
+            "$ref": "#/components/schemas/CritSpeedAxisResponse"
+          },
+          "supersonic": {
+            "$ref": "#/components/schemas/CritSpeedSupersonicResponse"
+          }
+        },
+        "required": [
+          "attack",
+          "cap",
+          "move",
+          "supersonic",
+          "swiftnessStat"
+        ]
+      },
+      "CritSpeedAxisResponse": {
+        "type": "object",
+        "properties": {
+          "observed": {
+            "type": "number"
+          },
+          "assumed": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          },
+          "effective": {
+            "type": "number",
+            "description": "상한 적용"
+          }
+        },
+        "required": [
+          "assumed",
+          "effective",
+          "observed",
+          "total"
+        ]
+      },
+      "CritSpeedSupersonicResponse": {
+        "type": "object",
+        "properties": {
+          "source": {
+            "type": "string",
+            "enum": [
+              "EQUIPPED_NODE",
+              "REFERENCE_LEVEL_2"
+            ]
+          },
+          "level": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "conversionPercent": {
+            "type": "number",
+            "description": "상한 이내 공격·이동 속도 증가량의 진화형 피해 전환 %"
+          },
+          "overCapBonus": {
+            "type": "number",
+            "description": "둘 다 상한 초과 시 추가 진화형 피해"
+          },
+          "overCapConversionPercent": {
+            "type": "number",
+            "description": "상한 초과분의 진화형 피해 전환 %"
+          },
+          "maxEvolutionDamage": {
+            "type": "number"
+          },
+          "optimalSpeed": {
+            "type": "number",
+            "description": "공격·이동 속도를 같게 올릴 때 최대 진화형 피해에 닿는 속도 증가량"
+          },
+          "requiredSwiftness": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32",
+                "description": "optimalSpeed에 필요한 신속 총량. 신속 스탯을 모르면 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "requiredAdditionalSwiftness": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "evolutionDamage": {
+            "type": "number",
+            "description": "현재 속도에서의 노드 진화형 피해"
+          }
+        },
+        "required": [
+          "conversionPercent",
+          "evolutionDamage",
+          "level",
+          "maxEvolutionDamage",
+          "optimalSpeed",
+          "overCapBonus",
+          "overCapConversionPercent",
+          "requiredAdditionalSwiftness",
+          "requiredSwiftness",
+          "source"
+        ]
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "description": "공통 오류 응답. HTTP 상태와 업무 코드를 함께 확인합니다.",
+        "properties": {
+          "code": {
+            "type": "string",
+            "example": "INVALID_REQUEST"
+          },
+          "message": {
+            "type": "string",
+            "example": "요청 값이 올바르지 않습니다."
+          },
+          "data": {
+            "type": "null"
+          }
+        },
+        "required": [
+          "code",
+          "data",
+          "message"
+        ]
+      }
+    }
+  }
+}

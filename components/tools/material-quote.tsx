@@ -533,6 +533,7 @@ function MaterialQuoteContent() {
             재료 견적
           </Link>
           <Link href="/tools/refining">재련 비용</Link>
+          <Link href="/tools/crit-speed">치적·음돌</Link>
         </nav>
         <button
           type="button"

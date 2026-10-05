@@ -701,6 +701,7 @@ function RefiningContent({ initialName }: { initialName: string }) {
           <Link href="/tools/refining" aria-current="page">
             재련 비용
           </Link>
+          <Link href="/tools/crit-speed">치적·음돌</Link>
         </nav>
         <button
           type="button"

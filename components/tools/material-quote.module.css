@@ -89,6 +89,7 @@
 }
 .nav a {
   color: rgb(0 0 0 / 80%);
+  white-space: nowrap;
 }
 .nav a[aria-current="page"] {
   color: var(--ink);
@@ -561,8 +562,12 @@
     gap: 16px;
     padding: 0 20px;
   }
+  /* More tools than fit: keep links on one line and let the row scroll. */
   .nav {
     gap: 14px;
+    min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
   }
   .hero {
     padding: 44px 20px 56px;

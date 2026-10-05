@@ -210,6 +210,48 @@ createServer(async (req, res) => {
       return send({ code: "INVALID_REQUEST" }, 400);
     return send(refiningPlan(request));
   }
+  if (url.pathname === "/api/v1/characters/crit-speed" && req.method === "POST") {
+    counts.critSpeed = (counts.critSpeed || 0) + 1;
+    let body = "";
+    for await (const chunk of req) body += chunk;
+    const request = JSON.parse(body);
+    if (request.characterName === "미존재") return send({ code: "CHARACTER_NOT_FOUND" }, 404);
+    // Synthetic numbers that move with the assumptions; not game formulas.
+    const base = JSON.parse(readFileSync(new URL("./crit-speed-fixtures/crit-speed.json", import.meta.url), "utf8"));
+    const a = request.assumptions ?? {};
+    const d = base.data;
+    const r2 = (v) => Math.round(v * 100) / 100;
+    d.characterName = request.characterName;
+    d.fetchedAt = new Date(Date.now() - 120_000).toISOString();
+    const assumed = (a.backAttack ? 10 : 0) + (a.critSynergyCount ?? 0) * 10 + (a.supportCritRate ?? 0) + (a.tripodCritRate ?? 0) + (a.extraCritRate ?? 0) + (a.critPet ? 5.72 : 0);
+    d.crit.assumedRate = r2(assumed);
+    d.crit.totalRate = r2(d.crit.observedRate + assumed);
+    d.crit.effectiveRate = Math.min(100, d.crit.totalRate);
+    d.crit.bluntThorn.effectiveCritRate = Math.min(80, d.crit.totalRate);
+    d.crit.bluntThorn.evolutionDamage = r2(Math.min(75, 15 + Math.max(0, d.crit.totalRate - 80) * 1.5));
+    for (const t of d.crit.targets) {
+      t.reached = d.crit.totalRate >= t.targetRate;
+      t.requiredAdditionalCritStat = t.reached ? 0 : Math.ceil((t.targetRate - d.crit.totalRate) / 0.03578);
+      t.requiredCritStat = d.crit.critStat + t.requiredAdditionalCritStat;
+    }
+    for (const [axis, key] of [["attack", "extraAttackSpeed"], ["move", "extraMoveSpeed"]]) {
+      const x = d.speed[axis];
+      x.assumed = a[key] ?? 0;
+      x.total = r2(x.observed + x.assumed);
+      x.effective = Math.min(d.speed.cap, x.total);
+    }
+    d.speed.supersonic.evolutionDamage = r2(Math.min(24, d.speed.attack.effective * 0.2));
+    d.sources = d.sources.filter((src) => src.kind === "OBSERVED");
+    const add = (axis, name, value, text) => value && d.sources.push({ kind: "ASSUMED", category: "ASSUMPTION", axis, name, value, text });
+    add("CRIT", "백어택", a.backAttack ? 10 : 0, "백어택 적중 가정");
+    add("CRIT", "치명타 시너지", (a.critSynergyCount ?? 0) * 10, `시너지 ${a.critSynergyCount}개`);
+    add("CRIT", "서포터 버프", a.supportCritRate ?? 0, "서포터 치명타 적중률 버프");
+    add("CRIT", "트라이포드", a.tripodCritRate ?? 0, "사용 스킬 트라이포드");
+    add("CRIT", "기타", a.extraCritRate ?? 0, "아크 그리드 코어 등");
+    add("ATTACK_SPEED", "공격 속도 가정", a.extraAttackSpeed ?? 0, "직업 각인·트라이포드·버프 합");
+    add("MOVE_SPEED", "이동 속도 가정", a.extraMoveSpeed ?? 0, "직업 각인·트라이포드·버프 합");
+    return send(base);
+  }
   if (url.pathname === "/api/v1/characters/siblings") {
     const who = url.searchParams.get("characterName");
     if (who === "원정대오류") return send({ code: "LOST_ARK_API_ERROR" }, 502);
