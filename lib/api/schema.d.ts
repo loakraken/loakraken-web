@@ -56,8 +56,9 @@ export interface components {
             title: string | null;
             guildName: string | null;
             stats: components["schemas"]["StatResponse"][];
+            skillPoints?: components["schemas"]["SkillPointsResponse"] | null;
             loadout: components["schemas"]["CharacterLoadoutResponse"];
-            siblings: components["schemas"]["SiblingResponse"][];
+            siblings: components["schemas"]["SiblingResponse"][] | null;
             coverage: components["schemas"]["CharacterObservationCoverageResponse"];
             analysis: components["schemas"]["CharacterAnalysisResponse"];
             /**
@@ -65,10 +66,15 @@ export interface components {
              * @description 외부 API에서 실제 수집한 UTC 시각. 캐시 조회에서도 유지됩니다.
              */
             fetchedAt: string;
+            refreshAvailableAt?: string | null;
         };
         StatResponse: {
             type: string | null;
             value: string | null;
+        };
+        SkillPointsResponse: {
+            used: number | null;
+            total: number | null;
         };
         /** @description 공식 API의 구조화된 전투정보. null 섹션은 제공된 데이터가 없음을 뜻하며 Tooltip은 포함하지 않습니다. */
         CharacterLoadoutResponse: {
@@ -78,12 +84,64 @@ export interface components {
             cards: components["schemas"]["CardsResponse"] | null;
             arkPassive: components["schemas"]["ArkPassiveResponse"] | null;
             arkGrid: components["schemas"]["ArkGridResponse"] | null;
+            /** @description 공식 전투 스킬 전체(기본 스킬 포함). 목록이 미제공이면 빈 배열이며 coverage.skills로 구분합니다. */
+            skills?: components["schemas"]["SkillResponse"][];
         };
         EquipmentResponse: {
             type: string | null;
             name: string | null;
             icon: string | null;
             grade: string | null;
+            detail: components["schemas"]["EquipmentDetailResponse"] | null;
+        };
+        /** @description 공식 Tooltip에서 확인된 값만 담습니다. 확인되지 않은 값은 null이며 추정하지 않습니다. 엘릭서·초월·상급 재련은 아직 해석하지 않습니다. */
+        EquipmentDetailResponse: {
+            /**
+             * @description 해석 규칙 버전
+             * @example equipment-tooltip-v3
+             */
+            parserVersion: string;
+            refineLevel: number | null;
+            quality: number | null;
+            itemLevel: number | null;
+            tier: number | null;
+            arkPassivePoint: components["schemas"]["PointBonusResponse"] | null;
+            /** @description 효과 묶음. 제목과 줄 단위 일반 텍스트 */
+            effects: components["schemas"]["EffectGroupResponse"][];
+            /** @description 어빌리티 스톤의 무작위 각인 */
+            stoneEngravings: components["schemas"]["StoneEngravingResponse"][];
+            /** @description 장신구 연마 효과와 공식 Tooltip 색 기준 등급. 연마 효과가 없는 장비는 빈 목록 */
+            polishEffects: components["schemas"]["PolishEffectResponse"][];
+            /** @description 팔찌 효과와 공식 Tooltip 색 기준 등급. 팔찌가 아니면 빈 목록 */
+            braceletEffects: components["schemas"]["BraceletEffectResponse"][];
+        };
+        PointBonusResponse: {
+            name: string;
+            /** Format: int32 */
+            value: number;
+        };
+        EffectGroupResponse: {
+            title: string;
+            lines: string[];
+        };
+        StoneEngravingResponse: {
+            name: string;
+            /** Format: int32 */
+            level: number;
+        };
+        /** @description 등급은 공식 Tooltip 수치 색(FE9600=HIGH, CE43FC=MID, 00B5FF=LOW)으로 정하며 공식 장신구 연마 확률표의 3단계(0.7%/3.0%/6.3%)와 대응합니다. 알 수 없는 색은 null입니다. */
+        PolishEffectResponse: {
+            /** @example 추가 피해 */
+            name: string;
+            /** @example +2.60% */
+            value: string;
+            grade: ("HIGH" | "MID" | "LOW") | null;
+        };
+        /** @description 팔찌 효과 하나(두 줄 효과 포함)와 등급. 등급은 효과의 첫 색 수치(FE9600=HIGH, CE43FC=MID, 00B5FF=LOW)로 정하며 공식 팔찌 확률표의 특수 효과 3단계와 대응합니다. 전투 특성처럼 구간형 수치이거나 알 수 없는 색은 null입니다. */
+        BraceletEffectResponse: {
+            /** @example 치명타 피해 +8.40% */
+            text: string;
+            grade: ("HIGH" | "MID" | "LOW") | null;
         };
         EngravingsResponse: {
             slots: components["schemas"]["EngravingResponse"][];
@@ -188,11 +246,40 @@ export interface components {
             name: string | null;
             level: number | null;
         };
+        SkillResponse: {
+            name: string | null;
+            icon: string | null;
+            level: number | null;
+            type: string | null;
+            partBreakLevel: number | null;
+            counter: boolean | null;
+            /** @description 선택된 트라이포드만. 공식 응답에 트라이포드 레벨은 없습니다. */
+            tripods: components["schemas"]["TripodResponse"][];
+            rune: components["schemas"]["RuneResponse"] | null;
+            /** @description 스킬 Tooltip의 보석 효과 줄 */
+            gemEffects: components["schemas"]["SkillGemEffectResponse"][];
+        };
+        TripodResponse: {
+            tier: number | null;
+            slot: number | null;
+            name: string | null;
+            icon: string | null;
+        };
+        RuneResponse: {
+            name: string | null;
+            icon: string | null;
+            grade: string | null;
+        };
+        SkillGemEffectResponse: {
+            /** @example [블레이드] 윈드 컷 피해 28.00% 증가 */
+            text: string;
+            kind: ("DAMAGE" | "COOLDOWN") | null;
+        };
         SiblingResponse: {
             characterName: string;
             serverName: string;
             className: string;
-            characterLevel: number | null;
+            characterLevel: (number | null) | null;
             itemLevel: number;
         };
         /** @description 정규화 전 원천 제공 상태. 빈 목록은 미착용을 뜻하지 않습니다. 누락 필드와 명시적 null은 NOT_PROVIDED입니다. */
@@ -204,8 +291,12 @@ export interface components {
             cards: components["schemas"]["ObservationSectionResponse"];
             arkPassive: components["schemas"]["ObservationSectionResponse"];
             arkGrid: components["schemas"]["ObservationSectionResponse"];
-            /** @enum {string} */
-            siblings: "PROVIDED" | "PROVIDED_EMPTY" | "NOT_PROVIDED";
+            siblings: ("PROVIDED" | "PROVIDED_EMPTY" | "NOT_PROVIDED") | null;
+            /**
+             * @description 전투 스킬 목록 상태
+             * @enum {string}
+             */
+            skills?: "PROVIDED" | "PROVIDED_EMPTY" | "NOT_PROVIDED";
         };
         ObservationSectionResponse: {
             /**
@@ -222,12 +313,65 @@ export interface components {
         CharacterAnalysisResponse: {
             /** Format: int32 */
             equipmentCount: number;
+            equipment: components["schemas"]["EquipmentSummaryResponse"];
             gems: components["schemas"]["GemSummaryResponse"] | null;
             cards: components["schemas"]["CardSummaryResponse"] | null;
             engravings: components["schemas"]["EngravingSummaryResponse"] | null;
             arkPassive: components["schemas"]["PassiveSummaryResponse"] | null;
             arkGrid: components["schemas"]["GridSummaryResponse"] | null;
             diagnostics: components["schemas"]["CharacterDiagnosticsResponse"];
+        };
+        /** @description 장비 Tooltip 해석 결과의 관측 집계입니다. 부위별 가중치·점수·추천이 아니며 값이 없는 장비는 각 집계에서 제외합니다. */
+        EquipmentSummaryResponse: {
+            /**
+             * Format: int32
+             * @description Tooltip을 해석한 장비 수
+             */
+            detailCount: number;
+            /**
+             * Format: int32
+             * @description Tooltip이 없거나 해석할 수 없어 detail이 null인 장비 수
+             */
+            detailUnavailableCount: number;
+            /**
+             * Format: int32
+             * @description 재련 단계가 확인된 장비 수
+             */
+            refineCount: number;
+            minRefineLevel: number | null;
+            maxRefineLevel: number | null;
+            refineDistribution: components["schemas"]["LevelCountResponse"][];
+            /**
+             * Format: int32
+             * @description 품질이 확인된 장비 수. 품질이 적용되지 않는 장비는 제외
+             */
+            qualityCount: number;
+            minQuality: number | null;
+            maxQuality: number | null;
+            averageQuality: number | null;
+            /** @description 장비가 제공하는 아크패시브 포인트의 이름별 합계. 아크패시브 섹션의 전체 포인트와 다릅니다. */
+            arkPassivePoints: components["schemas"]["PointValueResponse"][];
+            /** @description 품질 그룹별 집계. WEAPON_ARMOR(무기·투구·상의·하의·장갑·어깨), ACCESSORY(목걸이·귀걸이·반지) 순서로 항상 두 항목입니다. */
+            qualityGroups: components["schemas"]["QualityGroupResponse"][];
+        };
+        LevelCountResponse: {
+            /** Format: int32 */
+            level: number;
+            /** Format: int32 */
+            count: number;
+        };
+        PointValueResponse: {
+            name: string | null;
+            value: number | null;
+        };
+        QualityGroupResponse: {
+            /** @description WEAPON_ARMOR 또는 ACCESSORY */
+            group: string;
+            /** Format: int32 */
+            count: number;
+            min: number | null;
+            max: number | null;
+            average: number | null;
         };
         GemSummaryResponse: {
             /** Format: int32 */
@@ -238,12 +382,21 @@ export interface components {
             maxLevel: number | null;
             averageLevel: number | null;
             levelDistribution: components["schemas"]["LevelCountResponse"][];
-        };
-        LevelCountResponse: {
-            /** Format: int32 */
-            level: number;
-            /** Format: int32 */
-            count: number;
+            /**
+             * Format: int32
+             * @description 보석 스킬 효과가 "피해 N% 증가"인 개수
+             */
+            damageEffectCount: number;
+            /**
+             * Format: int32
+             * @description 보석 스킬 효과가 "재사용 대기시간 N% 감소"인 개수
+             */
+            cooldownEffectCount: number;
+            /**
+             * Format: int32
+             * @description 두 형식에 해당하지 않아 분류하지 않은 보석 스킬 효과 개수
+             */
+            unknownEffectCount: number;
         };
         CardSummaryResponse: {
             /** Format: int32 */
@@ -268,10 +421,6 @@ export interface components {
             enabled: boolean | null;
             points: components["schemas"]["PointValueResponse"][];
         };
-        PointValueResponse: {
-            name: string | null;
-            value: number | null;
-        };
         GridSummaryResponse: {
             /** Format: int32 */
             coreCount: number;
@@ -281,12 +430,14 @@ export interface components {
             inactiveGemCount: number;
             /** Format: int32 */
             unknownGemCount: number;
+            orderPoints: number | null;
+            chaosPoints: number | null;
         };
         /** @description 관측값 기반 진단. 빈 findings는 스펙 완성이나 레이드 적합성을 보증하지 않습니다. */
         CharacterDiagnosticsResponse: {
             /**
              * @description 진단 규칙 버전. 수집 시각은 최상위 fetchedAt을 사용합니다.
-             * @example observed-v2
+             * @example observed-v3
              */
             ruleVersion: string;
             /** @description 장비·보석·카드·각인·패시브·그리드 순서. 성능 또는 강화 우선순위가 아닙니다. */
@@ -294,7 +445,7 @@ export interface components {
         };
         DiagnosticFindingResponse: {
             /** @enum {string} */
-            code: "EQUIPMENT_UNAVAILABLE" | "EQUIPMENT_NOT_OBSERVED" | "GEMS_UNAVAILABLE" | "GEM_ITEMS_UNAVAILABLE" | "GEMS_NOT_OBSERVED" | "GEM_LEVEL_UNKNOWN" | "CARDS_UNAVAILABLE" | "CARD_ITEMS_UNAVAILABLE" | "CARDS_NOT_OBSERVED" | "CARD_AWAKENING_UNKNOWN" | "ENGRAVINGS_UNAVAILABLE" | "ARK_PASSIVE_UNAVAILABLE" | "ARK_PASSIVE_STATE_UNKNOWN" | "ARK_PASSIVE_DISABLED" | "ARK_PASSIVE_POINT_UNKNOWN" | "ARK_GRID_UNAVAILABLE" | "ARK_GRID_SLOTS_UNAVAILABLE" | "ARK_GRID_NOT_OBSERVED" | "ARK_GRID_GEM_INACTIVE" | "ARK_GRID_GEM_STATE_UNKNOWN";
+            code: "EQUIPMENT_UNAVAILABLE" | "EQUIPMENT_NOT_OBSERVED" | "EQUIPMENT_DETAIL_UNAVAILABLE" | "GEMS_UNAVAILABLE" | "GEM_ITEMS_UNAVAILABLE" | "GEMS_NOT_OBSERVED" | "GEM_LEVEL_UNKNOWN" | "CARDS_UNAVAILABLE" | "CARD_ITEMS_UNAVAILABLE" | "CARDS_NOT_OBSERVED" | "CARD_AWAKENING_UNKNOWN" | "ENGRAVINGS_UNAVAILABLE" | "ARK_PASSIVE_UNAVAILABLE" | "ARK_PASSIVE_STATE_UNKNOWN" | "ARK_PASSIVE_DISABLED" | "ARK_PASSIVE_POINT_UNKNOWN" | "ARK_GRID_UNAVAILABLE" | "ARK_GRID_SLOTS_UNAVAILABLE" | "ARK_GRID_NOT_OBSERVED" | "ARK_GRID_GEM_INACTIVE" | "ARK_GRID_GEM_STATE_UNKNOWN";
             /**
              * @description DATA_GAP: 정보 부족, SETTING_CHECK: 관측된 비활성 세팅 확인. 심각도 등급이 아닙니다.
              * @enum {string}
@@ -334,6 +485,8 @@ export interface operations {
                  * @example 모험가
                  */
                 characterName: string;
+                /** @description 원정대 포함 여부. 생략하거나 true면 원정대까지 조회합니다. false면 전투정보만 조회하며 siblings와 coverage.siblings는 null입니다. 원정대는 /api/v1/characters/siblings로 따로 조회합니다. */
+                includeSiblings?: boolean;
             };
             header?: never;
             path?: never;

@@ -1,7 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useState, type CSSProperties } from "react";
-import { m, useSpring } from "motion/react";
+import {
+  useCallback,
+  useEffect,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 import { ThinkingOrb } from "thinking-orbs";
 import { useLandingMotion } from "@/components/landing/motion";
 import { gradeKey, safeGameImage } from "@/lib/character/model";
@@ -198,121 +203,102 @@ function usePortraitCutout(src: string | null): Cutout {
   return cutout;
 }
 
-// LOAKraken "observation stage": the full, uncropped render stands on a soft
-// floor shadow inside the brand's orbit rings (the landing orb motif), with a
-// halo tinted from the render. Light surfaces use the locally generated
-// backdrop-free cutout; dark surfaces (and cutout failures) use the original
-// on a dark rounded surface. The tone switches in CSS, so nothing flashes.
-export function CharacterStage({
+// Character banner (ILOA-equivalent composition, LOAKraken visuals): identity on
+// the left, the render in the middle cropped head-to-waist (about the top 6-61%
+// of the render, enlarged to ~1.8x the band), extra facts on the right.
+// Light scheme: light band + locally generated backdrop-free cutout.
+// Dark scheme or cutout failure: dark band + original render. CSS switches the
+// tone, so the first paint never flashes.
+export function CharacterBanner({
   url,
   name,
+  identity,
+  facts,
 }: {
   url: string | null;
   name: string;
+  identity: ReactNode;
+  facts: ReactNode;
 }) {
   const safe = safeGameImage(url);
   const { enabled } = useLandingMotion();
   const [phase, bind] = useImagePhase(safe);
   const cutout = usePortraitCutout(safe);
-  const shiftX = useSpring(0, { stiffness: 90, damping: 22 });
   const waiting = phase === "loading" || cutout.status === "pending";
 
   return (
-    <div
-      className={styles.stage}
+    <section
+      className={styles.banner}
       data-phase={phase}
       data-cutout={cutout.status}
-      data-motion={enabled ? "on" : "off"}
+      aria-label={`${name} 캐릭터 요약`}
       style={
-        {
-          ...(cutout.ambient && { "--ambient": cutout.ambient }),
-          ...(cutout.backdrop && { "--backdrop": cutout.backdrop }),
-        } as CSSProperties
+        cutout.backdrop
+          ? ({ "--backdrop": cutout.backdrop } as CSSProperties)
+          : undefined
       }
-      onPointerMove={(event) => {
-        if (
-          !enabled ||
-          !window.matchMedia("(hover: hover) and (pointer: fine)").matches
-        )
-          return;
-        const box = event.currentTarget.getBoundingClientRect();
-        shiftX.set(((event.clientX - box.left) / box.width - 0.5) * 10);
-      }}
-      onPointerLeave={() => shiftX.set(0)}
     >
-      <span className={styles.stageHalo} aria-hidden="true" />
-      <span className={styles.stageOrbits} aria-hidden="true">
-        <i className={styles.stageOrbitOuter}>
-          <b />
-        </i>
-        <i className={styles.stageOrbitInner}>
-          <b />
-        </i>
-      </span>
-      <span className={styles.stageFloor} aria-hidden="true" />
-      {safe && phase !== "failed" && (
-        <m.div
-          className={styles.stageFigure}
-          style={enabled ? { x: shiftX } : undefined}
-        >
-          {/* Original render (dark surfaces). Official CDN, not proxied. */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            {...bind}
-            className={styles.figureOriginal}
-            src={safe}
-            alt={`${name} 캐릭터 전신`}
-            width={612}
-            height={708}
-            decoding="async"
-            fetchPriority="high"
-            referrerPolicy="no-referrer"
-          />
-          {cutout.url && (
-            // Backdrop-removed render (light surfaces), generated locally.
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              className={styles.figureCutout}
-              src={cutout.url}
-              alt=""
-              aria-hidden="true"
-              width={612}
-              height={708}
-            />
+      <div className={styles.bannerInner}>
+        <div className={styles.bannerIdentity}>{identity}</div>
+        <div className={styles.bannerFigure}>
+          {safe && phase !== "failed" && (
+            <>
+              {/* Original render (dark surfaces). Official CDN, not proxied. */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                {...bind}
+                className={styles.figureOriginal}
+                src={safe}
+                alt={`${name} 캐릭터 전신`}
+                width={612}
+                height={708}
+                decoding="async"
+                fetchPriority="high"
+                referrerPolicy="no-referrer"
+              />
+              {cutout.url && (
+                // Backdrop-removed render (light surfaces), generated locally.
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  className={styles.figureCutout}
+                  src={cutout.url}
+                  alt=""
+                  aria-hidden="true"
+                  width={612}
+                  height={708}
+                />
+              )}
+            </>
           )}
-        </m.div>
-      )}
-      {(!safe || phase === "failed") && (
-        <span className={styles.stageFallback} aria-hidden="true">
-          {name.slice(0, 1)}
-        </span>
-      )}
-      {waiting && (
-        <span
-          className={styles.stageOrb}
-          role="status"
-          aria-label="캐릭터 이미지를 준비하는 중"
-        >
-          <span className={styles.orbLight}>
-            <ThinkingOrb
-              state="searching"
-              size={64}
-              theme="light"
-              color="#0066cc"
-              paused={!enabled}
-            />
-          </span>
-          <span className={styles.orbDark}>
-            <ThinkingOrb
-              state="searching"
-              size={64}
-              theme="dark"
-              color="#8ab8ff"
-              paused={!enabled}
-            />
-          </span>
-        </span>
-      )}
-    </div>
+          {waiting && (
+            <span
+              className={styles.bannerOrb}
+              role="status"
+              aria-label="캐릭터 이미지를 준비하는 중"
+            >
+              <span className={styles.orbLight}>
+                <ThinkingOrb
+                  state="searching"
+                  size={64}
+                  theme="light"
+                  color="#0066cc"
+                  paused={!enabled}
+                />
+              </span>
+              <span className={styles.orbDark}>
+                <ThinkingOrb
+                  state="searching"
+                  size={64}
+                  theme="dark"
+                  color="#8ab8ff"
+                  paused={!enabled}
+                />
+              </span>
+            </span>
+          )}
+        </div>
+        <div className={styles.bannerFacts}>{facts}</div>
+      </div>
+    </section>
   );
 }

@@ -203,6 +203,81 @@ createServer(async (req, res) => {
     ];
     loadout.arkPassive.effects[0].icon = icon("ark_passive_bs/ark_passive_bs_1.png");
   }
+  if (name === "상세" || name === "상세서포터") {
+    // Detail-page mock: a locally supplied character file (never committed) or
+    // the synthetic fixture, enriched with synthetic Tooltip detail and skills.
+    if (process.env.MOCK_CHARACTER_FILE)
+      envelope.data = JSON.parse(
+        readFileSync(process.env.MOCK_CHARACTER_FILE, "utf8"),
+      ).envelope.data;
+    const d = envelope.data;
+    // An older local file may predate newer contract fields; fill them from the fixture.
+    const fixture = read("character-full-data.json");
+    const fill = (target, source) => {
+      for (const [key, value] of Object.entries(source))
+        if (!(key in target)) target[key] = value;
+        else if (value && typeof value === "object" && !Array.isArray(value) && target[key] && typeof target[key] === "object" && !Array.isArray(target[key]))
+          fill(target[key], value);
+    };
+    fill(d, fixture);
+    d.characterName = name;
+    const now = Date.now();
+    d.fetchedAt = new Date(now - 90_000).toISOString();
+    d.refreshAvailableAt = new Date(now + 210_000).toISOString();
+    if (process.env.MOCK_PORTRAIT_URL) d.imageUrl = process.env.MOCK_PORTRAIT_URL;
+    const polish = [
+      [["적주피", "+2.00%", "HIGH"], ["추피", "+1.60%", "MID"], ["생회", "+50", "HIGH"]],
+      [["공", "+1.55%", "HIGH"], ["무공", "+0.80%", "LOW"], ["상태이상", "+0.20%", "LOW"]],
+    ];
+    let acc = 0;
+    for (const item of d.loadout.equipment) {
+      const refine = /^\+(\d+)/.exec(item.name ?? "")?.[1];
+      const isAcc = ["목걸이", "귀걸이", "반지"].includes(item.type);
+      item.detail = {
+        parserVersion: "equipment-tooltip-v3",
+        refineLevel: refine ? Number(refine) : null,
+        quality: isAcc ? [86, 91, 82, 81, 75][acc] ?? 70 : item.type === "팔찌" ? null : 100,
+        itemLevel: refine ? 1755 + Number(refine) : null,
+        tier: 4,
+        arkPassivePoint: null,
+        effects: [],
+        stoneEngravings:
+          item.type === "어빌리티 스톤"
+            ? [{ name: "원한", level: 4 }, { name: "아드레날린", level: 1 }, { name: "공격속도 감소", level: 0 }]
+            : [],
+        polishEffects: isAcc
+          ? polish[acc++ % 2].map(([n, value, grade]) => ({ name: n, value, grade }))
+          : [],
+        braceletEffects:
+          item.type === "팔찌"
+            ? [
+                { text: "특화 +111", grade: null },
+                { text: "치명타 피해 +2.5%", grade: "MID" },
+                { text: "공격력 +1.7%\n무기 공격력 +1.4%", grade: "LOW" },
+              ]
+            : [],
+      };
+    }
+    d.skillPoints = { used: 480, total: 480 };
+    const skill = (skillName, lvl, extra = {}) => ({
+      name: skillName, icon: null, level: lvl, type: "일반", partBreakLevel: null, counter: false,
+      tripods: [], rune: null, gemEffects: [], ...extra,
+    });
+    d.loadout.skills = [
+      skill("합성 포격", 14, { tripods: [{ tier: 0, slot: 1, name: "기동 포격", icon: null }, { tier: 1, slot: 2, name: "연발 포격", icon: null }, { tier: 2, slot: 1, name: "화약 추가", icon: null }], rune: { name: "풍요", icon: null, grade: "전설" }, gemEffects: [{ text: "합성 포격 피해 28.00% 증가", kind: "DAMAGE" }] }),
+      skill("합성 화염", 14, { partBreakLevel: 1, tripods: [{ tier: 0, slot: 2, name: "장전", icon: null }], rune: { name: "풍요", icon: null, grade: "전설" } }),
+      skill("합성 중력", 10, { counter: true, rune: { name: "속행", icon: null, grade: "영웅" }, gemEffects: [{ text: "합성 중력 재사용 대기시간 20.00% 감소", kind: "COOLDOWN" }] }),
+      skill("기본 스킬", 1, { partBreakLevel: 1, counter: true }),
+    ];
+    d.coverage.skills = "PROVIDED";
+    if (name === "상세서포터") {
+      d.className = "바드";
+      d.loadout.arkPassive.effects = [
+        { name: "깨달음", description: "<FONT color='#83E9FF'>깨달음</FONT> 1티어 <FONT color='#83E9FF'>완벽한 화음 Lv.3</FONT>", icon: null },
+        { name: "깨달음", description: "<FONT color='#83E9FF'>깨달음</FONT> 2티어 <FONT color='#83E9FF'>절실한 구원 Lv.3</FONT>", icon: null },
+      ];
+    }
+  }
   if (name === "문자열")
     envelope.data.guildName = '<img src=x onerror="window.injected=true">';
   send(envelope);

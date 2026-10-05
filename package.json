@@ -10,7 +10,8 @@
     "api:generate": "openapi-typescript contracts/character.openapi.json -o lib/api/schema.d.ts",
     "test": "node --import tsx --test tests/*.test.ts",
     "test:mock": "node tests/mock-backend.mjs",
-    "api:generate:market": "openapi-typescript contracts/market.openapi.json -o lib/api/market-schema.d.ts"
+    "api:generate:market": "openapi-typescript contracts/market.openapi.json -o lib/api/market-schema.d.ts",
+    "api:generate:siblings": "openapi-typescript contracts/siblings.openapi.json -o lib/api/siblings-schema.d.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
