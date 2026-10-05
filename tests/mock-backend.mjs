@@ -301,6 +301,7 @@ createServer(async (req, res) => {
       name: itemName,
       icon: path ? icon(path) : null,
       grade,
+      detail: null,
     }));
     loadout.cards.items = [
       ["합성 카드 하나", "card_legend/card_legend_00_4.png", 5],

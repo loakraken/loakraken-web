@@ -366,35 +366,39 @@
 /* Banner identity (sits on the banner band; colours come from --band-*). */
 .bannerKicker {
   color: var(--band-muted);
-  font-size: 21px;
-  font-weight: 600;
-  letter-spacing: 0.011em;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
 }
+/* Type sizes sit inside the range Korean Lost Ark info sites share (name
+   20-24, key figures 20-26, labels 11-14) using Apple scale steps, so the
+   portrait stays the visual anchor and the name reads as a label. */
 .bannerName {
-  margin-top: 8px;
-  font-size: clamp(44px, 6vw, 80px);
-  font-weight: 600;
-  line-height: 1.05;
-  letter-spacing: -0.015em;
+  margin-top: 4px;
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
   overflow-wrap: anywhere;
 }
 .bannerTitle {
-  margin-top: 6px;
+  margin-top: 2px;
   color: var(--band-muted);
-  font-size: 19px;
+  font-size: 15px;
 }
 .bannerMetrics {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px 36px;
-  margin-top: 22px;
+  gap: 10px 32px;
+  margin-top: 20px;
 }
 .bannerMetrics dt {
   color: var(--band-muted);
-  font-size: 12px;
+  font-size: 13px;
 }
 .bannerMetrics dd {
-  font-size: 28px;
+  margin-top: 2px;
+  font-size: 21px;
   font-weight: 600;
   letter-spacing: -0.01em;
   font-variant-numeric: tabular-nums;
@@ -452,14 +456,26 @@
   .headerNav {
     display: none;
   }
+  .bannerName {
+    font-size: 21px;
+  }
   .bannerKicker {
-    font-size: 17px;
+    font-size: 13px;
+  }
+  .bannerTitle {
+    font-size: 14px;
   }
   .bannerMetrics {
     gap: 10px 22px;
   }
+  .bannerMetrics dt {
+    font-size: 12px;
+  }
   .bannerMetrics dd {
-    font-size: 22px;
+    font-size: 17px;
+  }
+  .bannerFacts {
+    font-size: 13px;
   }
   .bandNotice {
     margin: 12px 12px 0;
