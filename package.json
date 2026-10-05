@@ -13,7 +13,8 @@
     "api:generate:market": "openapi-typescript contracts/market.openapi.json -o lib/api/market-schema.d.ts",
     "api:generate:siblings": "openapi-typescript contracts/siblings.openapi.json -o lib/api/siblings-schema.d.ts",
     "api:generate:history": "openapi-typescript contracts/history.openapi.json -o lib/api/history-schema.d.ts",
-    "api:generate:refining": "openapi-typescript contracts/refining.openapi.json -o lib/api/refining-schema.d.ts"
+    "api:generate:refining": "openapi-typescript contracts/refining.openapi.json -o lib/api/refining-schema.d.ts",
+    "api:generate:crit-speed": "openapi-typescript contracts/crit-speed.openapi.json -o lib/api/crit-speed-schema.d.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
