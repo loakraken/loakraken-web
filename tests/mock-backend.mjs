@@ -435,6 +435,17 @@ createServer(async (req, res) => {
             : [],
       };
     }
+    // Synthetic gems: four damage, seven cooldown (names follow the game's pattern).
+    const gemIcon = (n) => `https://cdn-lostark.game.onstove.com/efui_iconatlas/use/use_9_${n}.png`;
+    d.loadout.gems = {
+      items: [
+        ...[6, 6, 6, 6].map((level, i) => ({ slot: i, name: `${level}레벨 겁화의 보석`, icon: gemIcon(55), level, grade: "전설" })),
+        ...[6, 6, 6, 6, 6, 6, 6].map((level, i) => ({ slot: 4 + i, name: `${level}레벨 작열의 보석`, icon: gemIcon(65), level, grade: "전설" })),
+      ],
+      effects: { description: "<FONT COLOR='#FFD200'>기본 공격력</FONT> +4.95%", skills: [] },
+    };
+    d.coverage.gems = { state: "PROVIDED", collections: { items: "PROVIDED" } };
+    d.analysis.gems = { count: 11, unknownLevelCount: 0, minLevel: 6, maxLevel: 6, averageLevel: 6, levelDistribution: [{ level: 6, count: 11 }], damageEffectCount: 4, cooldownEffectCount: 7, unknownEffectCount: 0 };
     // Synthetic 내실·아바타 data (names and counts are invented).
     const kinds = [
       ["합성 심장", 15, 15],
