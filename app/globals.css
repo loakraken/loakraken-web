@@ -878,3 +878,41 @@ body {
   --color-polish-mid: var(--polish-mid);
   --color-polish-low: var(--polish-low);
 }
+
+/* Contrast-checked values that differ from today's literals (WCAG 2.x:
+   4.5:1 for text, 3:1 for control states). Ratios are against #fff unless
+   noted; the calculation table is in the vault spec. */
+:root {
+  --primary-hover: #006edb; /* white text 4.94 (was #0077ed, 4.32) */
+  --success: #1e7b34; /* 5.33, 4.95 on #f5f5f7 (was #248a3d, 4.40) */
+  /* Market moves keep the Korean convention: up red, down blue. */
+  --market-up: #cf3425; /* 5.03, 4.62 on #f5f5f7 (was #d93a2b, 4.20) */
+  --market-down: #0066cc;
+  --switch-on: #2aa048; /* track vs page 3.38, 3.10 on #f5f5f7 (was #34c759, 2.22) */
+
+  /* Quality badge, iloa's six bands. Orange and olive keep their in-game
+     colour and switch to dark numerals; the others are darkened only as far
+     as 4.5:1 (PM decision D1). Numerals stay at weight 600 or more. */
+  --quality-max: #e08a00;
+  --quality-max-foreground: #1d1d1f; /* 6.26 */
+  --quality-high: #8c4fd4;
+  --quality-high-foreground: #fff; /* 5.02 */
+  --quality-good: #2675cf;
+  --quality-good-foreground: #fff; /* 4.64 */
+  --quality-normal: #34843f;
+  --quality-normal-foreground: #fff; /* 4.65 */
+  --quality-low: #b8a21e;
+  --quality-low-foreground: #1d1d1f; /* 6.59 */
+  --quality-poor: #d93a2b;
+  --quality-poor-foreground: #fff; /* 4.57 */
+  --quality-none: #747479;
+  --quality-none-foreground: #fff; /* 4.65 */
+}
+
+@theme inline {
+  --color-primary-hover: var(--primary-hover);
+  --color-success: var(--success);
+  --color-market-up: var(--market-up);
+  --color-market-down: var(--market-down);
+  --color-switch-on: var(--switch-on);
+}
