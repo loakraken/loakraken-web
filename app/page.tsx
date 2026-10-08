@@ -1,5 +1,24 @@
+import { dehydrate, HydrationBoundary, QueryClient } from "@tanstack/react-query";
 import { HomeDashboard } from "@/components/home/home";
+import { homeNewsKey, homeScheduleKey } from "@/lib/home/client";
+import { getNews, getSchedule } from "@/lib/home/server";
 
-export default function Home() {
-  return <HomeDashboard />;
+// Schedule and notices change through the day; render per request so the
+// first HTML already carries them (the backend caches 30 / 10 minutes).
+export const dynamic = "force-dynamic";
+
+export default async function Home() {
+  const [schedule, news] = await Promise.all([getSchedule(null), getNews(8)]);
+  // Request-time snapshot in a dynamic Server Component, shared with hydration.
+  // eslint-disable-next-line react-hooks/purity
+  const fetchedAt = Date.now();
+  const client = new QueryClient();
+  if (schedule.ok)
+    client.setQueryData(homeScheduleKey(null), schedule.envelope, { updatedAt: fetchedAt });
+  if (news.ok) client.setQueryData(homeNewsKey, news.envelope, { updatedAt: fetchedAt });
+  return (
+    <HydrationBoundary state={dehydrate(client)}>
+      <HomeDashboard />
+    </HydrationBoundary>
+  );
 }

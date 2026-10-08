@@ -11,14 +11,15 @@ import {
 import { parseSourceText, sourcePlainText } from "@/lib/character/source-text";
 import styles from "./character.module.css";
 
+// Missing values read as "-" (as the other sites show them).
 export const number = (value: number | null | undefined) =>
   value == null
-    ? "미제공"
+    ? "-"
     : value.toLocaleString("ko-KR", { maximumFractionDigits: 2 });
 export const level = (value: number | null | undefined) =>
-  value == null ? "미제공" : `Lv.${number(value)}`;
+  value == null ? "-" : `Lv.${number(value)}`;
 export const text = (value: string | null | undefined) =>
-  sourcePlainText(value) || "미제공";
+  sourcePlainText(value) || "-";
 // Stats arrive as strings; group digits only when the whole value is a plain number.
 export const numeric = (value: string | null | undefined) =>
   value && /^-?\d+(\.\d+)?$/.test(value) ? number(Number(value)) : text(value);
@@ -33,7 +34,7 @@ export const kstTime = (value: string | number, withDate = true) =>
 
 export function SourceText({ value }: { value: string | null | undefined }) {
   const segments = parseSourceText(value);
-  if (!segments.length) return <>미제공</>;
+  if (!segments.length) return <>-</>;
   return (
     <span className={styles.sourceText}>
       {segments.map((segment, i) =>

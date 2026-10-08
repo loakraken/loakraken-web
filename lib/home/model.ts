@@ -133,3 +133,20 @@ export function dayLabel(iso: string, now = Date.now()) {
   const [, m, d] = date.split("-");
   return `${Number(m)}.${Number(d)}`;
 }
+
+/** Maintenance notice for today or tomorrow (KST), today first. */
+export function upcomingMaintenance(notices: Notice[], now = Date.now()) {
+  const today = kstDate(now);
+  const tomorrow = kstDate(now + DAY);
+  const pick = (date: string) => notices.find((notice) => notice.maintenanceDate === date);
+  const todayNotice = pick(today);
+  if (todayNotice) return { notice: todayNotice, when: "today" as const };
+  const tomorrowNotice = pick(tomorrow);
+  return tomorrowNotice ? { notice: tomorrowNotice, when: "tomorrow" as const } : null;
+}
+
+/** Tomorrow's KST date if it is still inside the covered week. */
+export function tomorrowInWeek(coveredTo: string | null, now = Date.now()) {
+  const tomorrow = kstDate(now + DAY);
+  return coveredTo && tomorrow <= coveredTo ? tomorrow : null;
+}

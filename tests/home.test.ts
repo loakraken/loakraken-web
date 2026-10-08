@@ -12,6 +12,8 @@ import {
   nextOf,
   periodText,
   sectionStatus,
+  tomorrowInWeek,
+  upcomingMaintenance,
   weekDays,
 } from "../lib/home/model";
 import { isNewsEnvelope, isScheduleEnvelope } from "../lib/home/validate";
@@ -88,4 +90,14 @@ test("section status: next round today, or today over with the next day's first 
   assert.equal(dayLabel("2026-10-09T09:00:00+09:00", after), "내일");
   assert.equal(dayLabel("2026-10-12T09:00:00+09:00", after), "10.12");
   assert.equal(sectionStatus([{ startTimes: [], nextAt: null }], after).state, "none");
+});
+
+test("maintenance banner covers today and tomorrow; tomorrow only inside the week", () => {
+  const notices = fixture("home-news.json").data.notices;
+  const dayBefore = Date.parse("2026-10-07T20:00:00+09:00");
+  assert.equal(upcomingMaintenance(notices, dayBefore)?.when, "tomorrow");
+  assert.equal(upcomingMaintenance(notices, Date.parse("2026-10-08T09:00:00+09:00"))?.when, "today");
+  assert.equal(upcomingMaintenance(notices, Date.parse("2026-10-10T09:00:00+09:00")), null);
+  assert.equal(tomorrowInWeek("2026-10-13", Date.parse("2026-10-08T23:30:00+09:00")), "2026-10-09");
+  assert.equal(tomorrowInWeek("2026-10-13", Date.parse("2026-10-13T23:30:00+09:00")), null);
 });
