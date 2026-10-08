@@ -239,52 +239,59 @@
   color: #707070;
   font-size: 12px;
 }
-.quality {
+/* Quality: in-game tier colour badge with the number (the convention users
+   know from the other armory sites), plus a neutral level badge beside it. */
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+}
+.quality,
+.levelBadge {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  flex: 0 0 auto;
-  font-size: 12px;
+  min-width: 26px;
+  height: 18px;
+  justify-content: center;
+  padding: 0 5px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
-.quality i {
-  position: relative;
-  display: block;
-  width: 40px;
-  height: 4px;
-  border-radius: 2px;
-  background: #e0e0e3;
-  overflow: hidden;
-}
-.quality s {
-  position: absolute;
-  inset: 0 auto 0 0;
-  border-radius: inherit;
+.quality {
   background: #86868b;
+  color: #fff;
 }
-.quality b {
-  font-weight: 600;
+.levelBadge {
+  background: #e8e8ed;
+  color: #1d1d1f;
 }
 /* In-game quality tiers */
-.quality[data-tier="max"] s {
+.quality[data-tier="max"] {
   background: #e08a00;
 }
-.quality[data-tier="high"] s {
+.quality[data-tier="high"] {
   background: #8c4fd4;
 }
-.quality[data-tier="good"] s {
+.quality[data-tier="good"] {
   background: #2f7fd9;
 }
-.quality[data-tier="normal"] s {
+.quality[data-tier="normal"] {
   background: #3d9a4a;
 }
-.quality[data-tier="low"] s,
-.quality[data-tier="poor"] s {
+.quality[data-tier="low"],
+.quality[data-tier="poor"] {
   background: #b8a21e;
 }
-.itemText .quality {
-  margin-top: 4px;
+.tierText {
+  color: #86868b;
+  font-size: 12px;
+  font-weight: 500;
 }
 .item .gradeList {
   flex: 0 0 auto;
