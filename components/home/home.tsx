@@ -1,12 +1,27 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore, type FormEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type FormEvent,
+} from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { ArrowRight, ChevronRight, Search, Star, TriangleAlert } from "lucide-react";
+import {
+  ArrowRight,
+  ChevronRight,
+  Search,
+  Star,
+  TriangleAlert,
+} from "lucide-react";
 import { SiteHeader } from "@/components/site/site-header";
-import { characterNameError, normalizeCharacterName } from "@/lib/character/model";
+import {
+  characterNameError,
+  normalizeCharacterName,
+} from "@/lib/character/model";
 import { fetchNews, fetchSchedule } from "@/lib/home/client";
 import {
   NOTICE_LABEL,
@@ -16,7 +31,8 @@ import {
   kstDate,
   kstTime,
   maintenanceToday,
-  nextOf,
+  sectionStatus,
+  dayLabel,
   periodText,
   weekDays,
   type Island,
@@ -34,14 +50,23 @@ const subscribeClock = (callback: () => void) => {
   return () => clearInterval(id);
 };
 const useNow = () =>
-  useSyncExternalStore(subscribeClock, () => Math.floor(Date.now() / 1000) * 1000, () => null);
+  useSyncExternalStore(
+    subscribeClock,
+    () => Math.floor(Date.now() / 1000) * 1000,
+    () => null,
+  );
 
 /* Favourites written by the character page (per browser). */
 const FAVORITES = "loakraken:favorites";
 const readFavorites = () => {
   try {
     const value = JSON.parse(localStorage.getItem(FAVORITES) ?? "[]");
-    return Array.isArray(value) ? value.filter((v) => typeof v === "string").slice(0, 8).join("\n") : "";
+    return Array.isArray(value)
+      ? value
+          .filter((v) => typeof v === "string")
+          .slice(0, 8)
+          .join("\n")
+      : "";
   } catch {
     return "";
   }
@@ -60,7 +85,11 @@ function SearchHero() {
   const input = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
   const [error, setError] = useState("");
-  const favorites = useSyncExternalStore(subscribeStorage, readFavorites, () => "")
+  const favorites = useSyncExternalStore(
+    subscribeStorage,
+    readFavorites,
+    () => "",
+  )
     .split("\n")
     .filter(Boolean);
 
@@ -151,11 +180,16 @@ function Rewards({ kinds }: { kinds: Island["rewardKinds"] }) {
 }
 
 function Times({ times, now }: { times: string[]; now: number | null }) {
-  if (!times.length) return <span className={styles.times}>오늘 회차 없음</span>;
+  if (!times.length)
+    return <span className={styles.times}>오늘 회차 없음</span>;
   return (
     <span className={styles.times}>
       {times.map((at) => (
-        <time key={at} dateTime={at} data-past={(now !== null && Date.parse(at) < now) || undefined}>
+        <time
+          key={at}
+          dateTime={at}
+          data-past={(now !== null && Date.parse(at) < now) || undefined}
+        >
           {kstTime(at)}
         </time>
       ))}
@@ -175,15 +209,23 @@ function Section({
   live: boolean;
 }) {
   if (!items.length) return null;
-  const next = live && now !== null ? nextOf(items, now) : null;
+  const status = live && now !== null ? sectionStatus(items, now) : null;
   return (
     <section className={styles.section} aria-label={title}>
       <header>
         <h3>{title}</h3>
         <span>{items.length}개</span>
-        {next && now !== null && (
-          <span className={styles.next}>
-            {kstTime(next)} · <b>{countdown(next, now)}</b>
+        {status && now !== null && (status.next || status.state === "done") && (
+          <span className={styles.next} data-state={status.state}>
+            {status.state === "done" && "오늘 일정 종료"}
+            {status.state === "done" && status.next && " · "}
+            {status.next && (
+              <>
+                {status.state !== "upcoming" && `${dayLabel(status.next, now)} `}
+                {kstTime(status.next)} · <b>{countdown(status.next, now)}</b>
+                {status.state !== "upcoming" && " 후"}
+              </>
+            )}
           </span>
         )}
       </header>
@@ -192,15 +234,22 @@ function Section({
           <li key={`${"category" in item ? item.category : ""}${item.name}`}>
             {item.icon ? (
               // eslint-disable-next-line @next/next/no-img-element -- official CDN icon at a fixed size
-              <img src={item.icon} alt="" width={36} height={36} loading="lazy" referrerPolicy="no-referrer" />
-            ) : (
-              <span className={styles.iconless} aria-hidden="true" />
-            )}
+              <img
+                src={item.icon}
+                alt=""
+                width={36}
+                height={36}
+                loading="lazy"
+                referrerPolicy="no-referrer"
+              />
+            ) : null}
             <span className={styles.rowName}>
               <strong>{item.name}</strong>
               <small>
                 {"category" in item && `${item.category} · `}
-                {item.minItemLevel > 1 ? `${item.minItemLevel.toLocaleString("ko-KR")} 이상` : "레벨 제한 없음"}
+                {item.minItemLevel && item.minItemLevel > 1
+                  ? `${item.minItemLevel.toLocaleString("ko-KR")} 이상`
+                  : "레벨 제한 없음"}
               </small>
             </span>
             {"rewardKinds" in item && <Rewards kinds={item.rewardKinds} />}
@@ -218,7 +267,8 @@ function ScheduleBoard({ now }: { now: number | null }) {
   const date = picked ?? today;
   const query = useQuery({
     queryKey: ["home-schedule", date],
-    queryFn: ({ signal }) => fetchSchedule(date === today ? null : date, signal),
+    queryFn: ({ signal }) =>
+      fetchSchedule(date === today ? null : date, signal),
     enabled: date !== null,
     staleTime: 5 * 60_000,
     placeholderData: keepPreviousData,
@@ -228,7 +278,11 @@ function ScheduleBoard({ now }: { now: number | null }) {
   const live = data?.date === today;
 
   return (
-    <section className={styles.panel} aria-labelledby="schedule-heading">
+    <section
+      id="schedule"
+      className={styles.panel}
+      aria-labelledby="schedule-heading"
+    >
       <div className={styles.panelHead}>
         <h2 id="schedule-heading">주간 일정표</h2>
         <span className={styles.legend}>
@@ -236,16 +290,18 @@ function ScheduleBoard({ now }: { now: number | null }) {
         </span>
       </div>
       {data && (
-        <div className={styles.days} role="tablist" aria-label="요일">
+        <div className={styles.days} role="group" aria-label="요일 선택">
           {weekDays(data.coveredFrom, data.coveredTo).map((day) => (
             <button
               key={day.date}
               type="button"
-              role="tab"
-              aria-selected={day.date === data.date}
+              aria-pressed={day.date === data.date}
+              aria-label={`${day.day}일 ${day.weekday}요일${gold.has(day.date) ? ", 골드 섬" : ""}${day.date === today ? ", 오늘" : ""}`}
               data-today={day.date === today || undefined}
               data-gold={gold.has(day.date) || undefined}
-              data-weekend={day.weekday === "토" || day.weekday === "일" || undefined}
+              data-weekend={
+                day.weekday === "토" || day.weekday === "일" || undefined
+              }
               onClick={() => setPicked(day.date)}
             >
               <b>{day.day}</b>
@@ -259,71 +315,141 @@ function ScheduleBoard({ now }: { now: number | null }) {
       ) : !data ? (
         <div className={styles.muted}>
           <p>일정을 불러오지 못했어요.</p>
-          <button type="button" className={styles.textButton} onClick={() => query.refetch()}>
+          <button
+            type="button"
+            className={styles.textButton}
+            onClick={() => query.refetch()}
+          >
             다시 시도
           </button>
         </div>
       ) : (
-        <div className={styles.sections} data-stale={query.isPlaceholderData || undefined}>
-          <Section title="모험 섬" items={data.adventureIslands} now={now} live={live} />
-          <Section title="카오스게이트" items={data.chaosGates} now={now} live={live} />
-          <Section title="필드 보스" items={data.fieldBosses} now={now} live={live} />
+        <div
+          className={styles.sections}
+          data-stale={query.isPlaceholderData || undefined}
+        >
+          <Section
+            title="모험 섬"
+            items={data.adventureIslands}
+            now={now}
+            live={live}
+          />
+          <Section
+            title="카오스게이트"
+            items={data.chaosGates}
+            now={now}
+            live={live}
+          />
+          <Section
+            title="필드 보스"
+            items={data.fieldBosses}
+            now={now}
+            live={live}
+          />
           {data.others.length > 0 && (
             <details className={styles.others}>
               <summary>
                 기타 일정 <span>{data.others.length}개</span>
                 <ChevronRight size={14} aria-hidden="true" />
               </summary>
-              <Section title="기타 일정" items={data.others} now={now} live={live} />
+              <Section
+                title="기타 일정"
+                items={data.others}
+                now={now}
+                live={live}
+              />
             </details>
           )}
-          {!data.adventureIslands.length && !data.chaosGates.length && !data.fieldBosses.length && (
-            <p className={styles.muted}>이 날은 모험 섬·카오스게이트·필드 보스 일정이 없어요.</p>
-          )}
+          {!data.adventureIslands.length &&
+            !data.chaosGates.length &&
+            !data.fieldBosses.length && (
+              <p className={styles.muted}>
+                이 날은 모험 섬·카오스게이트·필드 보스 일정이 없어요.
+              </p>
+            )}
         </div>
       )}
     </section>
   );
 }
 
-function NewsPanels({ now }: { now: number | null }) {
-  const query = useQuery({
+const useNews = () =>
+  useQuery({
     queryKey: ["home-news"],
     queryFn: ({ signal }) => fetchNews(signal),
     staleTime: 5 * 60_000,
   });
+
+/** Shown only on the maintenance day itself, above everything else. */
+function MaintenanceBanner({ now }: { now: number | null }) {
+  const data = useNews().data?.data;
+  const maintenance =
+    data && now !== null ? maintenanceToday(data.notices, now) : null;
+  if (!maintenance) return null;
+  return (
+    <a
+      className={styles.maintenance}
+      href={maintenance.url ?? undefined}
+      target="_blank"
+      rel="noreferrer"
+    >
+      <TriangleAlert size={16} aria-hidden="true" />
+      <span>
+        <b>오늘 점검</b> {maintenance.title}
+      </span>
+      <ChevronRight size={14} aria-hidden="true" />
+    </a>
+  );
+}
+
+function NewsPanels({ now }: { now: number | null }) {
+  const query = useNews();
   const data = query.data?.data;
-  const maintenance = data && now !== null ? maintenanceToday(data.notices, now) : null;
   return (
     <>
-      {maintenance && (
-        <a className={styles.maintenance} href={maintenance.url ?? undefined} target="_blank" rel="noreferrer">
-          <TriangleAlert size={16} aria-hidden="true" />
-          <span>
-            <b>오늘 점검</b> {maintenance.title}
-          </span>
-          <ChevronRight size={14} aria-hidden="true" />
-        </a>
-      )}
-      <section className={styles.panel} aria-labelledby="notice-heading">
+      <section
+        id="news"
+        className={styles.panel}
+        aria-labelledby="notice-heading"
+      >
         <div className={styles.panelHead}>
           <h2 id="notice-heading">공지사항</h2>
-          <a href="https://lostark.game.onstove.com/News/Notice/List" target="_blank" rel="noreferrer" className={styles.more}>
+          <a
+            href="https://lostark.game.onstove.com/News/Notice/List"
+            target="_blank"
+            rel="noreferrer"
+            className={styles.more}
+          >
             더보기 <ChevronRight size={14} aria-hidden="true" />
           </a>
         </div>
         {!data ? (
-          <p className={styles.muted}>{query.isPending ? "공지를 불러오고 있어요…" : "공지를 불러오지 못했어요."}</p>
+          <p className={styles.muted}>
+            {query.isPending
+              ? "공지를 불러오고 있어요…"
+              : "공지를 불러오지 못했어요."}
+          </p>
         ) : (
           <ul className={styles.notices}>
             {data.notices.slice(0, 6).map((notice) => (
               <li key={`${notice.publishedAt}${notice.title}`}>
-                <a href={notice.url ?? undefined} target="_blank" rel="noreferrer">
-                  <i data-category={notice.category ?? undefined}>{notice.category ? NOTICE_LABEL[notice.category] : "공지"}</i>
+                <a
+                  href={notice.url ?? undefined}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <i data-category={notice.category ?? undefined}>
+                    {notice.category ? NOTICE_LABEL[notice.category] : "공지"}
+                  </i>
                   <span>{notice.title}</span>
                   <time dateTime={notice.publishedAt}>
-                    {Number(kstDate(Date.parse(notice.publishedAt)).slice(5, 7))}.
-                    {Number(kstDate(Date.parse(notice.publishedAt)).slice(8, 10))}
+                    {Number(
+                      kstDate(Date.parse(notice.publishedAt)).slice(5, 7),
+                    )}
+                    .
+                    {Number(
+                      kstDate(Date.parse(notice.publishedAt)).slice(8, 10),
+                    )}
                   </time>
                 </a>
               </li>
@@ -337,7 +463,11 @@ function NewsPanels({ now }: { now: number | null }) {
           {data && <span className={styles.count}>{data.events.length}개</span>}
         </div>
         {!data ? (
-          <p className={styles.muted}>{query.isPending ? "이벤트를 불러오고 있어요…" : "이벤트를 불러오지 못했어요."}</p>
+          <p className={styles.muted}>
+            {query.isPending
+              ? "이벤트를 불러오고 있어요…"
+              : "이벤트를 불러오지 못했어요."}
+          </p>
         ) : data.events.length === 0 ? (
           <p className={styles.muted}>진행 중인 이벤트가 없어요.</p>
         ) : (
@@ -346,18 +476,37 @@ function NewsPanels({ now }: { now: number | null }) {
               const left = now !== null ? dDay(event.endAt, now) : null;
               return (
                 <li key={`${event.startAt}${event.title}`}>
-                  <a href={event.url ?? undefined} target="_blank" rel="noreferrer">
+                  <a
+                    href={event.url ?? undefined}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
                     {event.thumbnail ? (
                       // eslint-disable-next-line @next/next/no-img-element -- official event banner
-                      <img src={event.thumbnail} alt="" width={64} height={36} loading="lazy" referrerPolicy="no-referrer" />
-                    ) : (
-                      <span className={styles.thumbless} aria-hidden="true" />
-                    )}
-                    <span>
+                      <img
+                        src={event.thumbnail}
+                        alt=""
+                        width={64}
+                        height={36}
+                        loading="lazy"
+                        referrerPolicy="no-referrer"
+                      />
+                    ) : null}
+                    <span className={styles.eventText}>
                       <strong>{event.title}</strong>
                       <small>{periodText(event.startAt, event.endAt)}</small>
                     </span>
-                    {left && <b data-soon={left === "D-day" || /^D-[1-3]$/.test(left) || undefined}>{left}</b>}
+                    {left && (
+                      <b
+                        data-soon={
+                          left === "D-day" ||
+                          /^D-[1-3]$/.test(left) ||
+                          undefined
+                        }
+                      >
+                        {left}
+                      </b>
+                    )}
                   </a>
                 </li>
               );
@@ -372,7 +521,11 @@ function NewsPanels({ now }: { now: number | null }) {
 function MarketSummary() {
   const query = useQuery({
     queryKey: ["home-market"],
-    queryFn: ({ signal }) => fetchMarketBoard({ tab: "REFINING", tier: 4, sort: "default", page: 1 }, signal),
+    queryFn: ({ signal }) =>
+      fetchMarketBoard(
+        { tab: "REFINING", tier: 4, sort: "default", page: 1 },
+        signal,
+      ),
     staleTime: 5 * 60_000,
   });
   const items = query.data?.data.items.slice(0, 6) ?? [];
@@ -385,17 +538,28 @@ function MarketSummary() {
         </Link>
       </div>
       {!items.length ? (
-        <p className={styles.muted}>{query.isPending ? "시세를 불러오고 있어요…" : "시세를 불러오지 못했어요."}</p>
+        <p className={styles.muted}>
+          {query.isPending
+            ? "시세를 불러오고 있어요…"
+            : "시세를 불러오지 못했어요."}
+        </p>
       ) : (
         <ul className={styles.market}>
           {items.map((item) => {
             const change = changeLabel(item.changeDay);
             return (
               <li key={item.itemId}>
-                <Link href={`/market?tab=REFINING&tier=4#item-${item.itemId}`}>
+                <Link href="/market?tab=REFINING&tier=4">
                   {item.icon && (
                     // eslint-disable-next-line @next/next/no-img-element -- official CDN icon at a fixed size
-                    <img src={item.icon} alt="" width={28} height={28} loading="lazy" referrerPolicy="no-referrer" />
+                    <img
+                      src={item.icon}
+                      alt=""
+                      width={28}
+                      height={28}
+                      loading="lazy"
+                      referrerPolicy="no-referrer"
+                    />
                   )}
                   <span data-grade={item.grade ?? undefined}>{item.name}</span>
                   <b>{goldText(item.currentMinPrice)}</b>
@@ -420,13 +584,14 @@ export function HomeDashboard() {
       <SiteHeader />
       <main id="home-main" className={styles.main}>
         <SearchHero />
+        <MaintenanceBanner now={now} />
         <div className={styles.grid}>
           <div className={styles.column}>
             <ScheduleBoard now={now} />
-          </div>
-          <aside className={styles.column} aria-label="소식과 시세">
-            <NewsPanels now={now} />
             <MarketSummary />
+          </div>
+          <aside className={styles.column} aria-label="공지와 이벤트">
+            <NewsPanels now={now} />
           </aside>
         </div>
       </main>

@@ -242,12 +242,12 @@
   border-radius: 50%;
   background: #0071e3;
 }
-.days button[aria-selected="true"] {
+.days button[aria-pressed="true"] {
   background: #1d1d1f;
   box-shadow: none;
   color: #fff;
 }
-.days button[aria-selected="true"] span {
+.days button[aria-pressed="true"] span {
   color: #ffffffb3;
 }
 .sections {
@@ -275,8 +275,12 @@
 }
 .section header .next {
   margin-left: auto;
+  text-align: right;
   color: #6e6e73;
   font-variant-numeric: tabular-nums;
+}
+.next[data-state="done"] {
+  color: #86868b;
 }
 .next b {
   color: #0066cc;
@@ -297,8 +301,7 @@
   border-radius: 12px;
   background: #fff;
 }
-.rows img,
-.iconless {
+.rows img {
   flex: none;
   width: 36px;
   height: 36px;
@@ -388,6 +391,7 @@
 
 /* News */
 .maintenance {
+  margin-bottom: 16px;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -457,8 +461,7 @@
   color: #1d1d1f;
   text-decoration: none;
 }
-.events img,
-.thumbless {
+.events img {
   flex: none;
   width: 64px;
   height: 36px;
@@ -466,7 +469,7 @@
   background: #e8e8ed;
   object-fit: cover;
 }
-.events a > span {
+.eventText {
   display: grid;
   flex: 1;
   min-width: 0;
@@ -494,8 +497,7 @@
 
 /* Market */
 .market a {
-  display: grid;
-  grid-template-columns: 28px minmax(0, 1fr) auto auto;
+  display: flex;
   align-items: center;
   gap: 8px;
   padding: 7px 0;
@@ -511,6 +513,8 @@
   border-radius: 7px;
 }
 .market span {
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;

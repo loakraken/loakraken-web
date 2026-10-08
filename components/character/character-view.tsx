@@ -240,7 +240,7 @@ function CharacterContent({
                   )}
                   <dt>칭호</dt>
                   <dd>{text(data.title)}</dd>
-                  <dt>수집</dt>
+                  <dt>마지막 갱신</dt>
                   <dd>
                     <time dateTime={data.fetchedAt}>
                       {kstTime(data.fetchedAt)}
@@ -275,7 +275,7 @@ function CharacterContent({
           </>
         ) : (
           <div className={styles.main}>
-            <Link href="/#intro" className={styles.back}>
+            <Link href="/" className={styles.back}>
               <ArrowLeft size={14} /> 캐릭터 검색으로
             </Link>
             <div className={styles.hero} data-empty="">
@@ -311,7 +311,7 @@ function CharacterContent({
             )}
             <div className={styles.noData}>
               <p>조회가 완료되면 장비와 세팅, 근거 데이터를 함께 볼 수 있어요.</p>
-              <Link href="/#preview">
+              <Link href="/about#preview">
                 예시 화면 살펴보기 <ArrowRight size={15} />
               </Link>
             </div>

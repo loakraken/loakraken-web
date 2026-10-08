@@ -100,7 +100,7 @@ export function CharacterCockpit() {
                         <GameIcon src={g.icon} grade={g.level === 10 ? "고대" : "유물"} size={34} />
                         <b>{g.level}{g.kind === "겁화" ? "뎀" : "쿨"}</b>
                       </li>)}</ul>
-                      <p className={styles.gemNote}><span className={styles.diagnosticLabel}><span /> 예시 진단</span> 9레벨 {belowMaxGems.length}개를 10레벨로 바꾸면 보석 평균이 10.0이 됩니다.</p>
+                      <p className={styles.gemNote}><span className={styles.diagnosticLabel}><span /> 예시 점검</span> 9레벨 {belowMaxGems.length}개를 10레벨로 바꾸면 보석 평균이 10.0이 됩니다.</p>
                     </div>
                   </div>}
                 </Tabs.Panel>

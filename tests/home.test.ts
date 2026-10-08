@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 import {
   countdown,
+  dayLabel,
   dDay,
   isDate,
   kstDate,
@@ -10,6 +11,7 @@ import {
   maintenanceToday,
   nextOf,
   periodText,
+  sectionStatus,
   weekDays,
 } from "../lib/home/model";
 import { isNewsEnvelope, isScheduleEnvelope } from "../lib/home/validate";
@@ -73,4 +75,17 @@ test("home requests validate input and pass through allow-listed errors", async 
     fetcher: (async () => Response.json({ code: "HOME_CACHE_UNAVAILABLE" }, { status: 503 })) as typeof fetch,
   });
   assert.deepEqual(limited.ok ? null : limited.error, { code: "HOME_CACHE_UNAVAILABLE", status: 503 });
+});
+
+test("section status: next round today, or today over with the next day's first round", () => {
+  const items = [
+    { startTimes: ["2026-10-08T09:00:00+09:00", "2026-10-08T23:00:00+09:00"], nextAt: "2026-10-09T09:00:00+09:00" },
+  ];
+  const before = sectionStatus(items, Date.parse("2026-10-08T08:00:00+09:00"));
+  assert.deepEqual(before, { state: "upcoming", next: "2026-10-08T09:00:00+09:00" });
+  const after = Date.parse("2026-10-08T23:30:00+09:00");
+  assert.deepEqual(sectionStatus(items, after), { state: "done", next: "2026-10-09T09:00:00+09:00" });
+  assert.equal(dayLabel("2026-10-09T09:00:00+09:00", after), "내일");
+  assert.equal(dayLabel("2026-10-12T09:00:00+09:00", after), "10.12");
+  assert.equal(sectionStatus([{ startTimes: [], nextAt: null }], after).state, "none");
 });

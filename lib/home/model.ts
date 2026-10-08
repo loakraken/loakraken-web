@@ -45,8 +45,9 @@ export function isDate(value: string | null | undefined): value is string {
 }
 
 /** Every date of the covered week (Wednesday → Tuesday), with weekday labels. */
-export function weekDays(from: string, to: string) {
+export function weekDays(from: string | null, to: string | null) {
   const days: { date: string; day: number; weekday: string }[] = [];
+  if (!isDate(from) || !isDate(to)) return days;
   for (let t = Date.parse(`${from}T00:00:00Z`); t <= Date.parse(`${to}T00:00:00Z`); t += DAY) {
     const date = new Date(t);
     days.push({
@@ -75,7 +76,8 @@ export function countdown(iso: string | null | undefined, now = Date.now()) {
 }
 
 /** Days left until an event ends, by KST calendar date ("D-4", "D-day"). */
-export function dDay(endAt: string, now = Date.now()) {
+export function dDay(endAt: string | null, now = Date.now()) {
+  if (!endAt) return null;
   const days = Math.round(
     (Date.parse(`${kstDate(Date.parse(endAt))}T00:00:00Z`) - Date.parse(`${kstDate(now)}T00:00:00Z`)) / DAY,
   );
@@ -84,12 +86,13 @@ export function dDay(endAt: string, now = Date.now()) {
 }
 
 /** "10.3 ~ 10.12" in KST. */
-export function periodText(startAt: string, endAt: string) {
-  const short = (iso: string) => {
+export function periodText(startAt: string | null, endAt: string | null) {
+  const short = (iso: string | null) => {
+    if (!iso) return "";
     const [, m, d] = kstDate(Date.parse(iso)).split("-");
     return `${Number(m)}.${Number(d)}`;
   };
-  return `${short(startAt)} ~ ${short(endAt)}`;
+  return endAt ? `${short(startAt)} ~ ${short(endAt)}` : `${short(startAt)} ~`;
 }
 
 /** Today's maintenance notice, if any: the banner shows only on the day itself. */
@@ -106,4 +109,27 @@ export function nextOf(items: { nextAt: string | null }[], now = Date.now()) {
       .filter((at): at is string => !!at && Date.parse(at) >= now)
       .sort()[0] ?? null
   );
+}
+
+/**
+ * A section's state for its header: the next round today, or — once every
+ * round today has passed — that today is over and when the next one is.
+ */
+export function sectionStatus(
+  items: { startTimes: string[]; nextAt: string | null }[],
+  now = Date.now(),
+) {
+  const today = items.flatMap((item) => item.startTimes).filter((at) => Date.parse(at) > now).sort();
+  if (today.length) return { state: "upcoming" as const, next: today[0] };
+  const hadRounds = items.some((item) => item.startTimes.length > 0);
+  return { state: hadRounds ? ("done" as const) : ("none" as const), next: nextOf(items, now) };
+}
+
+/** "내일" / "10.12" for a time that is not today (KST). */
+export function dayLabel(iso: string, now = Date.now()) {
+  const date = kstDate(Date.parse(iso));
+  if (date === kstDate(now)) return "오늘";
+  if (date === kstDate(now + DAY)) return "내일";
+  const [, m, d] = date.split("-");
+  return `${Number(m)}.${Number(d)}`;
 }

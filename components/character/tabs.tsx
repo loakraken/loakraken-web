@@ -1192,9 +1192,9 @@ export function SiblingsTab({ data }: { data: Character }) {
       ) : result && result.siblings.length ? (
         <>
           <p className={styles.caption}>
-            원정대 수집 {kstTime(result.fetchedAt)}
+            원정대 갱신 {kstTime(result.fetchedAt)}
             {result.refreshAvailableAt &&
-              ` · ${kstTime(result.refreshAvailableAt)} 이후 다시 수집`}
+              ` · ${kstTime(result.refreshAvailableAt)} 이후 다시 갱신`}
           </p>
           <SiblingList
             siblings={result.siblings}
@@ -1226,7 +1226,7 @@ export function StatsTab({ data }: { data: Character }) {
   return (
     <div className={styles.layout}>
       <p className={styles.caption}>
-        LOAKraken이 이 캐릭터를 조회해 수집한 시점부터 기록돼요. 값이 바뀐
+        LOAKraken에서 이 캐릭터를 조회한 시점부터 기록돼요. 값이 바뀐
         시점만 점으로 남고, 마지막 값은 최근 확인 시각까지 이어서 그려요.
       </p>
       {query.isPending ? (

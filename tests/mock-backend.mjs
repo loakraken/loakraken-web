@@ -329,6 +329,71 @@ createServer(async (req, res) => {
     }));
     return send({ code: "CHARACTER_HISTORY_SUCCESS", message: "성공", data: { characterName: who, serverName: url.searchParams.get("serverName"), points } });
   }
+  if (url.pathname === "/api/v1/home/schedule") {
+    // Week Wednesday → Tuesday around the requested KST date, times today+.
+    const kst = (t) => new Date(t + 9 * 3_600_000).toISOString().slice(0, 10);
+    const date = url.searchParams.get("date") || kst(Date.now());
+    const base = Date.parse(`${date}T00:00:00+09:00`);
+    const wd = new Date(`${date}T00:00:00Z`).getUTCDay();
+    const from = kst(base - ((wd + 4) % 7) * 86_400_000);
+    const to = kst(Date.parse(`${from}T00:00:00+09:00`) + 6 * 86_400_000);
+    const at = (h, m = 0) => new Date(base + (h * 60 + m) * 60_000).toISOString().replace(".000Z", "+00:00");
+    const times = (...hours) => hours.map((h) => at(h));
+    const next = (list) => list.find((t) => Date.parse(t) > Date.now()) ?? (list.length ? new Date(Date.parse(list[0]) + 86_400_000).toISOString().replace(".000Z", "+00:00") : null);
+    const cdn = "https://cdn-lostark.game.onstove.com/efui_iconatlas";
+    const timed = (name, icon, minItemLevel, list) => ({ name, icon, minItemLevel, startTimes: list, nextAt: next(list) });
+    const islandTimes = times(9, 11, 13, 19, 21, 23);
+    const day = Number(date.slice(8, 10));
+    const goldToday = day % 3 === 0;
+    const days = Array.from({ length: 7 }, (_, i) => kst(Date.parse(`${from}T00:00:00+09:00`) + i * 86_400_000));
+    return send({
+      code: "HOME_SCHEDULE_SUCCESS",
+      message: "성공",
+      data: {
+        ruleVersion: "home-schedule-v1", date, timezone: "Asia/Seoul", fetchedAt: new Date().toISOString(), coveredFrom: from, coveredTo: to,
+        adventureIslands: [
+          { ...timed("메데이아", `${cdn}/island_icon/island_icon_147.png`, 250, islandTimes), rewardKinds: goldToday ? ["GOLD"] : ["CARD_PACK"] },
+          { ...timed("라일라이 아일랜드", `${cdn}/island_icon/island_icon_43.png`, 635, islandTimes), rewardKinds: ["PIRATE_COIN"] },
+          { ...timed("볼라르 섬", `${cdn}/island_icon/island_icon_53.png`, 1100, islandTimes), rewardKinds: ["SILLING"] },
+        ],
+        fieldBosses: day % 2 ? [timed("세베크 아툰", null, 1460, times(11, 13, 15, 17, 19, 21, 23))] : [],
+        chaosGates: day % 2 ? [] : [timed("일렁이는 악마군단", null, 1580, times(11, 13, 15, 17, 19, 21, 23))],
+        others: [
+          { category: "항해", ...timed("항해 협동 : 베른", null, 1, times(20, 22)) },
+          { category: "로웬", ...timed("늑대들의 축제", null, 1, times(21)) },
+        ],
+        goldIslandDays: days.filter((d) => Number(d.slice(8, 10)) % 3 === 0).map((d) => ({ date: d, islands: ["메데이아"] })),
+        weekly: days.map((d) => ({ date: d, islands: [{ name: "메데이아", rewardKinds: Number(d.slice(8, 10)) % 3 === 0 ? ["GOLD"] : ["CARD_PACK"] }] })),
+      },
+    });
+  }
+  if (url.pathname === "/api/v1/home/news") {
+    const kstDay = (offset) => {
+      const t = Date.now() + offset * 86_400_000;
+      return new Date(t + 9 * 3_600_000).toISOString().slice(0, 10);
+    };
+    const iso = (offset) => new Date(Date.now() + offset * 86_400_000).toISOString();
+    const [m, d] = kstDay(0).slice(5).split("-").map(Number);
+    return send({
+      code: "HOME_NEWS_SUCCESS",
+      message: "성공",
+      data: {
+        fetchedAt: new Date().toISOString(),
+        notices: [
+          { title: `${m}월 ${d}일 임시 점검 안내`, category: "MAINTENANCE", publishedAt: iso(-0.1), url: "https://lostark.game.onstove.com/News/Notice/Views/1", maintenanceDate: kstDay(0), maintenanceDateText: `${m}월 ${d}일` },
+          { title: "클라이언트 패치 안내", category: "NOTICE", publishedAt: iso(-0.4), url: "https://lostark.game.onstove.com/News/Notice/Views/2", maintenanceDate: null, maintenanceDateText: null },
+          { title: "업데이트 내역 안내", category: "NOTICE", publishedAt: iso(-1), url: "https://lostark.game.onstove.com/News/Notice/Views/3", maintenanceDate: null, maintenanceDateText: null },
+          { title: "알려진 이슈를 안내해 드립니다.", category: "NOTICE", publishedAt: iso(-1.2), url: null, maintenanceDate: null, maintenanceDateText: null },
+          { title: "신규 패키지 판매 안내", category: "SHOP", publishedAt: iso(-2), url: null, maintenanceDate: null, maintenanceDateText: null },
+        ],
+        events: [
+          { title: "핫타임 이벤트", thumbnail: null, startAt: iso(-5), endAt: iso(2), rewardAt: null, url: null },
+          { title: "황금 반월떡 찾기", thumbnail: null, startAt: iso(-15), endAt: iso(13), rewardAt: iso(20), url: null },
+          { title: "PC방 PARTY TIME", thumbnail: null, startAt: iso(-36), endAt: iso(34), rewardAt: null, url: null },
+        ],
+      },
+    });
+  }
   if (url.pathname === "/api/v1/characters/views") {
     const who = url.searchParams.get("characterName");
     if (who === "기록끔") return send({ code: "CHARACTER_VIEWS_DISABLED" }, 503);

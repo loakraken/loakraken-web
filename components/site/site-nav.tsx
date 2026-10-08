@@ -41,7 +41,7 @@ function Soon({ labels }: { labels: string[] }) {
 export function SiteNav() {
   const id = useId();
   const pathname = usePathname();
-  const current = pathname === "/" ? "about" : sectionOf(pathname);
+  const current = pathname === "/about" ? "about" : sectionOf(pathname);
   const [open, setOpenState] = useState<string | null>(null);
   // Last opened panel stays rendered while the flyout fades out.
   const [shown, setShown] = useState<string | null>(null);
