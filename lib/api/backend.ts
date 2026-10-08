@@ -32,6 +32,23 @@ export function backendUrl(origin: string | undefined, path: string) {
   }
 }
 
+/**
+ * The incoming request's X-Forwarded-For, passed through untouched so the
+ * backend can rate-limit public traffic per client (backend #108). The edge
+ * proxy overwrites it in production; outside a request (tests, scripts) there
+ * is none and nothing is sent.
+ */
+export async function incomingForwardedFor(): Promise<string | null> {
+  try {
+    const { headers } = await import("next/headers");
+    return (await headers()).get("x-forwarded-for");
+  } catch (error) {
+    const { unstable_rethrow } = await import("next/navigation");
+    unstable_rethrow(error);
+    return null;
+  }
+}
+
 export async function requestBackend<T>(
   url: URL | null,
   options: {
@@ -42,6 +59,8 @@ export async function requestBackend<T>(
     fetcher?: typeof fetch;
     signal?: AbortSignal;
     timeoutMs?: number;
+    /** Overrides the incoming request header (tests). */
+    forwardedFor?: string | null;
   },
 ): Promise<BackendResult<T>> {
   if (!url)
@@ -53,11 +72,16 @@ export async function requestBackend<T>(
   const signal = options.signal
     ? AbortSignal.any([timeout, options.signal])
     : timeout;
+  const forwardedFor =
+    options.forwardedFor !== undefined
+      ? options.forwardedFor
+      : await incomingForwardedFor();
   try {
     const response = await (options.fetcher ?? fetch)(url, {
       method: options.method ?? "GET",
       headers: {
         Accept: "application/json",
+        ...(forwardedFor && { "X-Forwarded-For": forwardedFor }),
         ...(options.body !== undefined && {
           "Content-Type": "application/json",
         }),

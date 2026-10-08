@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // Production image ships .next/standalone + .next/static + public only (ops O-4).
+  output: "standalone",
 };
 
 export default nextConfig;
