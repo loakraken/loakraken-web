@@ -676,13 +676,6 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  /* Six steps: badge, control, inner group, panel, large panel, pill. */
-  --radius-xs: 5px;
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 18px;
-  --radius-xl: 28px;
-  --radius-pill: 999px;
 }
 
 /* Base roles under the shadcn names, so Tailwind classes and module CSS
@@ -712,7 +705,16 @@
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
+  /* Six radius steps: badge, control, inner group, panel, large panel, pill.
+     Kept on :root (not @theme inline) so modules can read them; Tailwind's
+     rounded-* utilities resolve to the same variables. */
   --radius: 12px;
+  --radius-xs: 5px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-xl: 28px;
+  --radius-pill: 999px;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
