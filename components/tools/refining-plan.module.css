@@ -79,7 +79,7 @@
   opacity: 0.4;
 }
 .partHead strong {
-  font-size: 17px;
+  font-size: 15px;
   font-weight: 600;
 }
 .partHead span {
@@ -128,9 +128,9 @@
   box-shadow: 0 0 0 3px rgb(0 113 227 / 22%);
 }
 .levelLine {
-  margin-top: 24px;
+  margin-top: 20px;
   color: var(--slate);
-  font-size: 17px;
+  font-size: 15px;
   font-variant-numeric: tabular-nums;
 }
 .levelLine strong {
@@ -194,7 +194,7 @@
   display: grid;
 }
 .switchRow strong {
-  font-size: 17px;
+  font-size: 15px;
   font-weight: 500;
 }
 .switchRow small {
@@ -239,9 +239,9 @@
   outline-offset: 2px;
 }
 .sectionTitle {
-  margin-top: 48px;
-  font-size: 21px;
-  font-weight: 600;
+  margin-top: 32px;
+  font-size: 16px;
+  font-weight: 700;
   letter-spacing: 0.011em;
 }
 .tableWrap {

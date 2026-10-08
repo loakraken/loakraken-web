@@ -16,9 +16,9 @@
   background: #fff;
   color: var(--ink);
   font-family: var(--font-ui);
-  font-size: 17px;
-  line-height: 1.47;
-  letter-spacing: -0.022em;
+  font-size: 14px;
+  line-height: 1.43;
+  letter-spacing: -0.01em;
 }
 .page button,
 .page select {
@@ -102,54 +102,63 @@
   color: rgb(0 0 0 / 56%);
 }
 
-/* Hero: centred label, display headline, quiet copy. */
+/* Page head: a compact one-line header (small orb, title, short copy) like
+   the calculator pages of the other Lost Ark sites, not a product hero. */
 .hero {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto auto auto;
+  column-gap: 12px;
   align-items: center;
-  text-align: center;
-  padding: 64px 24px 76px;
+  max-width: 1024px;
+  margin: 0 auto;
+  padding: 28px 24px 20px;
+  text-align: left;
 }
 .heroOrb {
+  grid-row: 1 / 4;
   display: grid;
   place-items: center;
-  width: 64px;
-  height: 64px;
-  margin-bottom: 20px;
+  width: 32px;
+  height: 32px;
+  overflow: hidden;
+}
+.heroOrb > * {
+  flex: none;
+  transform: scale(0.5);
 }
 .heroKicker {
-  font-size: 21px;
+  grid-column: 2;
+  color: var(--slate);
+  font-size: 12px;
   font-weight: 600;
-  letter-spacing: 0.011em;
-  line-height: 1;
 }
 .hero h1 {
-  margin-top: 14px;
-  font-size: clamp(44px, 7vw, 80px);
-  font-weight: 600;
-  line-height: 1.05;
-  letter-spacing: -0.015em;
+  grid-column: 2;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: -0.02em;
 }
 .heroCopy {
-  margin-top: 16px;
+  grid-column: 2;
   color: var(--slate);
-  font-size: clamp(19px, 2vw, 24px);
-  line-height: 1.33;
-  letter-spacing: 0.009em;
+  font-size: 14px;
 }
 .back {
+  grid-column: 3;
+  grid-row: 1 / 4;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  margin-top: 24px;
   color: var(--link);
-  font-size: 14px;
+  font-size: 13px;
 }
 
 /* Feature band with flat white cards. */
 .band {
   background: var(--mist);
-  padding: 76px 24px 90px;
+  padding: 20px 24px 64px;
 }
 .workspace {
   display: grid;
@@ -161,7 +170,7 @@
   position: relative;
   border-radius: 28px;
   background: #fff;
-  padding: 40px clamp(24px, 4vw, 48px);
+  padding: 24px clamp(20px, 3vw, 32px);
 }
 .step {
   color: var(--steel);
@@ -171,8 +180,8 @@
 }
 .card h2 {
   margin-top: 6px;
-  font-size: clamp(28px, 3vw, 40px);
-  font-weight: 600;
+  font-size: 20px;
+  font-weight: 700;
   line-height: 1.1;
   letter-spacing: 0;
 }
@@ -183,8 +192,8 @@
 }
 .subheading {
   margin: 36px 0 12px;
-  font-size: 21px;
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 700;
   letter-spacing: 0.011em;
 }
 .hint,
@@ -315,11 +324,11 @@
 .primaryPill {
   margin-top: 24px;
   min-width: 200px;
-  height: 48px;
+  height: 44px;
   padding: 0 28px;
   background: var(--action);
   color: #fff;
-  font-size: 17px;
+  font-size: 15px;
 }
 .primaryPill canvas {
   filter: brightness(0) invert(1);
@@ -446,17 +455,17 @@
 .result {
   max-width: 1024px;
   margin: 0 auto;
-  padding: 90px 24px;
+  padding: 32px 24px 48px;
 }
 .kicker {
-  font-size: 21px;
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 700;
   letter-spacing: 0.011em;
 }
 .total {
   margin-top: 12px;
-  font-size: clamp(48px, 8vw, 80px);
-  font-weight: 600;
+  font-size: 36px;
+  font-weight: 700;
   line-height: 1.05;
   letter-spacing: -0.015em;
   font-variant-numeric: tabular-nums;
@@ -471,7 +480,7 @@
 .totalNote {
   margin-top: 12px;
   color: var(--slate);
-  font-size: 17px;
+  font-size: 14px;
 }
 /* Launch-label style: bare orange text, no pill. */
 .status {
@@ -498,7 +507,7 @@
   gap: 8px 16px;
 }
 .lineHead strong {
-  font-size: 21px;
+  font-size: 16px;
   font-weight: 600;
 }
 .lineStatus {
@@ -527,7 +536,7 @@
 }
 .facts dd {
   margin-top: 2px;
-  font-size: 17px;
+  font-size: 15px;
   font-variant-numeric: tabular-nums;
 }
 .cost {
@@ -568,13 +577,16 @@
     scrollbar-width: none;
   }
   .hero {
-    padding: 44px 20px 56px;
+    padding: 20px 16px 14px;
+  }
+  .back {
+    display: none;
   }
   .band {
-    padding: 48px 16px 64px;
+    padding: 12px 12px 48px;
   }
   .card {
-    padding: 32px 22px;
+    padding: 20px 16px;
   }
   .segmented {
     display: flex;

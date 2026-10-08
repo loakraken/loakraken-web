@@ -658,7 +658,7 @@ function CritSpeedContent({ initialName }: { initialName: string }) {
         </button>
       </header>
       <main id="crit-main">
-        <section className={styles.hero} aria-labelledby="crit-page-heading">
+        <section className={quote.hero} aria-labelledby="crit-page-heading">
           <div className={quote.heroOrb} aria-hidden="true">
             <ThinkingOrb
               state={orb}
