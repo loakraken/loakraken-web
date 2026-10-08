@@ -27,3 +27,8 @@ export const fetchSchedule = (date: string | null, signal: AbortSignal) =>
 
 export const fetchNews = (signal: AbortSignal) =>
   call<NewsEnvelope>("/api/home/news?limit=8", signal);
+
+/** Query key for a schedule day; null is "today" so the server prefetch hydrates. */
+export const homeScheduleKey = (date: string | null) =>
+  ["home-schedule", date ?? "today"] as const;
+export const homeNewsKey = ["home-news"] as const;

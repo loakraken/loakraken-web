@@ -22,7 +22,7 @@ import {
   characterNameError,
   normalizeCharacterName,
 } from "@/lib/character/model";
-import { fetchNews, fetchSchedule } from "@/lib/home/client";
+import { fetchNews, fetchSchedule, homeNewsKey, homeScheduleKey } from "@/lib/home/client";
 import {
   NOTICE_LABEL,
   REWARD_LABEL,
@@ -30,7 +30,8 @@ import {
   dDay,
   kstDate,
   kstTime,
-  maintenanceToday,
+  tomorrowInWeek,
+  upcomingMaintenance,
   sectionStatus,
   dayLabel,
   periodText,
@@ -44,17 +45,37 @@ import { fetchMarketBoard } from "@/lib/market/client";
 import { changeLabel, goldText } from "@/lib/market/board";
 import styles from "./home.module.css";
 
-/* Clock: one tick per second, null during SSR so times render after hydration. */
-const subscribeClock = (callback: () => void) => {
-  const id = setInterval(callback, 1000);
-  return () => clearInterval(id);
+/*
+ * Clocks, null during SSR so time-dependent text renders after hydration.
+ * Only countdown leaves tick every second; everything else ticks per minute,
+ * so the dashboard does not re-render once a second.
+ */
+const subscribers = new Map<number, (callback: () => void) => () => void>();
+const subscribeEvery = (step: number) => {
+  let subscribe = subscribers.get(step);
+  if (!subscribe) {
+    subscribe = (callback) => {
+      const id = setInterval(callback, step);
+      return () => clearInterval(id);
+    };
+    subscribers.set(step, subscribe);
+  }
+  return subscribe;
 };
-const useNow = () =>
+const useClock = (step: number) =>
   useSyncExternalStore(
-    subscribeClock,
-    () => Math.floor(Date.now() / 1000) * 1000,
+    subscribeEvery(step),
+    () => Math.floor(Date.now() / step) * step,
     () => null,
   );
+const SECOND = 1000;
+const MINUTE = 60_000;
+
+function Countdown({ to }: { to: string }) {
+  const now = useClock(SECOND);
+  if (now === null) return null;
+  return <b>{countdown(to, now) ?? "곧 시작"}</b>;
+}
 
 /* Favourites written by the character page (per browser). */
 const FAVORITES = "loakraken:favorites";
@@ -179,12 +200,22 @@ function Rewards({ kinds }: { kinds: Island["rewardKinds"] }) {
   );
 }
 
-function Times({ times, now }: { times: string[]; now: number | null }) {
+function Times({
+  times,
+  now,
+  hidePast,
+}: {
+  times: string[];
+  now: number | null;
+  hidePast: boolean;
+}) {
   if (!times.length)
     return <span className={styles.times}>오늘 회차 없음</span>;
+  const shown =
+    hidePast && now !== null ? times.filter((at) => Date.parse(at) >= now) : times;
   return (
     <span className={styles.times}>
-      {times.map((at) => (
+      {shown.map((at) => (
         <time
           key={at}
           dateTime={at}
@@ -200,16 +231,29 @@ function Times({ times, now }: { times: string[]; now: number | null }) {
 function Section({
   title,
   items,
-  now,
   live,
+  hidePast,
+  onShowTomorrow,
 }: {
   title: string;
   items: (Island | Timed | Other)[];
-  now: number | null;
   live: boolean;
+  hidePast: boolean;
+  onShowTomorrow?: () => void;
 }) {
+  const clock = useClock(MINUTE);
+  const now = live ? clock : null;
   if (!items.length) return null;
-  const status = live && now !== null ? sectionStatus(items, now) : null;
+  const status = now !== null ? sectionStatus(items, now) : null;
+  // Rounds today all over: hide the row (it would read as a future island).
+  const visible =
+    hidePast && now !== null
+      ? items.filter(
+          (item) =>
+            !item.startTimes.length ||
+            item.startTimes.some((at) => Date.parse(at) >= now),
+        )
+      : items;
   return (
     <section className={styles.section} aria-label={title}>
       <header>
@@ -222,15 +266,20 @@ function Section({
             {status.next && (
               <>
                 {status.state !== "upcoming" && `${dayLabel(status.next, now)} `}
-                {kstTime(status.next)} · <b>{countdown(status.next, now)}</b>
+                {kstTime(status.next)} · <Countdown to={status.next} />
                 {status.state !== "upcoming" && " 후"}
               </>
             )}
           </span>
         )}
+        {status?.state === "done" && onShowTomorrow && (
+          <button type="button" className={styles.textButton} onClick={onShowTomorrow}>
+            내일 일정 보기
+          </button>
+        )}
       </header>
       <ul className={styles.rows}>
-        {items.map((item) => (
+        {visible.map((item) => (
           <li key={`${"category" in item ? item.category : ""}${item.name}`}>
             {item.icon ? (
               // eslint-disable-next-line @next/next/no-img-element -- official CDN icon at a fixed size
@@ -253,7 +302,7 @@ function Section({
               </small>
             </span>
             {"rewardKinds" in item && <Rewards kinds={item.rewardKinds} />}
-            <Times times={item.startTimes} now={live ? now : null} />
+            <Times times={item.startTimes} now={now} hidePast={hidePast} />
           </li>
         ))}
       </ul>
@@ -261,21 +310,24 @@ function Section({
   );
 }
 
-function ScheduleBoard({ now }: { now: number | null }) {
+function ScheduleBoard() {
+  const now = useClock(MINUTE);
   const today = now === null ? null : kstDate(now);
   const [picked, setPicked] = useState<string | null>(null);
-  const date = picked ?? today;
+  const [hidePast, setHidePast] = useState(true);
+  const date = picked === today ? null : picked;
   const query = useQuery({
-    queryKey: ["home-schedule", date],
-    queryFn: ({ signal }) =>
-      fetchSchedule(date === today ? null : date, signal),
-    enabled: date !== null,
+    // "today" is a fixed key so the server-prefetched schedule hydrates.
+    queryKey: homeScheduleKey(date),
+    queryFn: ({ signal }) => fetchSchedule(date, signal),
     staleTime: 5 * 60_000,
     placeholderData: keepPreviousData,
   });
   const data: Schedule | undefined = query.data?.data;
   const gold = new Set(data?.goldIslandDays.map((day) => day.date));
-  const live = data?.date === today;
+  const live = !!data && data.date === today;
+  const tomorrow = live && now !== null ? tomorrowInWeek(data.coveredTo, now) : null;
+  const showTomorrow = tomorrow ? () => setPicked(tomorrow) : undefined;
 
   return (
     <section
@@ -285,8 +337,18 @@ function ScheduleBoard({ now }: { now: number | null }) {
     >
       <div className={styles.panelHead}>
         <h2 id="schedule-heading">주간 일정표</h2>
-        <span className={styles.legend}>
-          <i data-kind="GOLD" /> 골드 섬
+        <span className={styles.headTools}>
+          <span className={styles.legend}>
+            <i data-kind="GOLD" /> 골드 섬
+          </span>
+          <button
+            type="button"
+            className={styles.toggle}
+            aria-pressed={hidePast}
+            onClick={() => setHidePast(!hidePast)}
+          >
+            지난 회차 숨김
+          </button>
         </span>
       </div>
       {data && (
@@ -330,20 +392,23 @@ function ScheduleBoard({ now }: { now: number | null }) {
         >
           <Section
             title="모험 섬"
+            hidePast={hidePast}
+            onShowTomorrow={showTomorrow}
             items={data.adventureIslands}
-            now={now}
             live={live}
           />
           <Section
             title="카오스게이트"
+            hidePast={hidePast}
+            onShowTomorrow={showTomorrow}
             items={data.chaosGates}
-            now={now}
             live={live}
           />
           <Section
             title="필드 보스"
+            hidePast={hidePast}
+            onShowTomorrow={showTomorrow}
             items={data.fieldBosses}
-            now={now}
             live={live}
           />
           {data.others.length > 0 && (
@@ -354,8 +419,8 @@ function ScheduleBoard({ now }: { now: number | null }) {
               </summary>
               <Section
                 title="기타 일정"
+                hidePast={hidePast}
                 items={data.others}
-                now={now}
                 live={live}
               />
             </details>
@@ -375,17 +440,19 @@ function ScheduleBoard({ now }: { now: number | null }) {
 
 const useNews = () =>
   useQuery({
-    queryKey: ["home-news"],
+    queryKey: homeNewsKey,
     queryFn: ({ signal }) => fetchNews(signal),
     staleTime: 5 * 60_000,
   });
 
 /** Shown only on the maintenance day itself, above everything else. */
-function MaintenanceBanner({ now }: { now: number | null }) {
+function MaintenanceBanner() {
+  const now = useClock(MINUTE);
   const data = useNews().data?.data;
-  const maintenance =
-    data && now !== null ? maintenanceToday(data.notices, now) : null;
-  if (!maintenance) return null;
+  const upcoming =
+    data && now !== null ? upcomingMaintenance(data.notices, now) : null;
+  if (!upcoming) return null;
+  const maintenance = upcoming.notice;
   return (
     <a
       className={styles.maintenance}
@@ -395,14 +462,15 @@ function MaintenanceBanner({ now }: { now: number | null }) {
     >
       <TriangleAlert size={16} aria-hidden="true" />
       <span>
-        <b>오늘 점검</b> {maintenance.title}
+        <b>{upcoming.when === "today" ? "오늘 점검" : "내일 점검"}</b> {maintenance.title}
       </span>
       <ChevronRight size={14} aria-hidden="true" />
     </a>
   );
 }
 
-function NewsPanels({ now }: { now: number | null }) {
+function NewsPanels() {
+  const now = useClock(MINUTE);
   const query = useNews();
   const data = query.data?.data;
   return (
@@ -575,7 +643,6 @@ function MarketSummary() {
 }
 
 export function HomeDashboard() {
-  const now = useNow();
   return (
     <div className={styles.page}>
       <a className={styles.skip} href="#home-main">
@@ -584,14 +651,14 @@ export function HomeDashboard() {
       <SiteHeader />
       <main id="home-main" className={styles.main}>
         <SearchHero />
-        <MaintenanceBanner now={now} />
+        <MaintenanceBanner />
         <div className={styles.grid}>
           <div className={styles.column}>
-            <ScheduleBoard now={now} />
+            <ScheduleBoard />
             <MarketSummary />
           </div>
           <aside className={styles.column} aria-label="공지와 이벤트">
-            <NewsPanels now={now} />
+            <NewsPanels />
           </aside>
         </div>
       </main>
