@@ -147,9 +147,11 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) 360px 240px;
   gap: 24px;
-  align-items: end;
+  align-items: center;
   max-width: 1180px;
-  height: 380px;
+  /* Band height and render scale follow the range other armory sites use
+     (render about 0.7x its source size), so the JPEG never looks enlarged. */
+  height: 240px;
   margin: 0 auto;
   padding: 0 28px;
 }
@@ -167,7 +169,6 @@
 .bannerFacts {
   grid-column: 3;
   grid-row: 1;
-  padding-bottom: 40px;
 }
 /* Ambient glow: the render's own effect colour (normalised in glowTint)
    spreads softly behind the figure, so effects fade into the band instead of
@@ -188,10 +189,10 @@
 .bannerGlow::before {
   content: "";
   position: absolute;
-  top: 58%;
+  top: 60%;
   left: 50%;
-  width: 780px;
-  height: 500px;
+  width: 620px;
+  height: 380px;
   border-radius: 50%;
   background: radial-gradient(
     closest-side,
@@ -226,9 +227,10 @@
 }
 .bannerFigure img {
   position: absolute;
-  top: -10.7%;
+  /* about the top 11-60% of the render: head to waist */
+  top: -22.7%;
   left: calc(50% + 100px);
-  height: 182%;
+  height: 206%;
   width: auto;
   max-width: none;
   transform: translateX(-50%);
@@ -322,48 +324,62 @@
 }
 
 @media (max-width: 760px) {
+  /* Phones: one band with the render on the right and the identity on the
+     left, as on the other armory sites; facts follow below. */
   .bannerInner {
+    position: relative;
     grid-template-columns: minmax(0, 1fr);
     height: auto;
+    min-height: 224px;
     gap: 0;
-    padding: 0 16px 24px;
-  }
-  .bannerGlow {
-    position: absolute;
-    top: 0;
-    right: 0;
-    left: 0;
-    height: 280px;
-  }
-  .bannerGlow::before {
-    width: 420px;
-    height: 300px;
+    align-items: start;
+    padding: 22px 16px 20px;
   }
   .bannerIdentity,
-  .bannerFacts,
-  .bannerFigure {
+  .bannerFacts {
     grid-column: 1;
     grid-row: auto;
   }
+  .bannerIdentity > * {
+    max-width: 58%;
+  }
+  .bannerIdentity > dl {
+    max-width: none;
+  }
+  .bannerGlow,
   .bannerFigure {
-    order: -1;
-    height: 280px;
-    margin: 0 -16px;
-    /* Full-bleed on phones: the screen edge is the natural boundary, but a
-       short side fade keeps effects from ending in a straight cut. */
-    -webkit-mask-image:
-      linear-gradient(to bottom, #000 82%, transparent),
-      linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
-    mask-image:
-      linear-gradient(to bottom, #000 82%, transparent),
-      linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
+    /* auto placement: an absolute grid child would otherwise be sized
+       against its (now missing) desktop column */
+    grid-area: auto;
+    position: absolute;
+    top: 0;
+    right: -36px;
+    width: 64%;
+    height: 224px;
+    margin: 0;
+  }
+  /* Text sits over the render here; a soft halo in the band colour keeps it
+     readable without a panel behind it. */
+  .bannerIdentity,
+  .bannerFacts {
+    text-shadow:
+      0 0 2px var(--band),
+      0 0 10px var(--band),
+      0 0 18px var(--band);
   }
   .bannerFigure img,
   .bannerOrb {
     left: 50%;
   }
+  .bannerFigure img {
+    top: -15.2%;
+    height: 188%;
+  }
+  .bannerGlow::before {
+    width: 360px;
+    height: 260px;
+  }
   .bannerFacts {
-    padding-bottom: 0;
     margin-top: 16px;
   }
 }
