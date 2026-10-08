@@ -8,6 +8,7 @@ import {
   type SiblingsEnvelope,
   type ViewsEnvelope,
 } from "./validate";
+import { isCardCollectionEnvelope, type CardCollectionEnvelope } from "./card-collection";
 
 // Siblings (#54) and observation history (#66) for the character page tabs.
 const siblingsErrors: Record<number, readonly string[]> = {
@@ -25,6 +26,19 @@ const historyErrors: Record<number, readonly string[]> = {
 const viewsErrors: Record<number, readonly string[]> = {
   400: ["INVALID_REQUEST"],
   503: ["CHARACTER_VIEWS_DISABLED", "CHARACTER_VIEWS_UNAVAILABLE"],
+};
+const cardCollectionErrors: Record<number, readonly string[]> = {
+  400: ["INVALID_REQUEST"],
+  404: ["CHARACTER_NOT_FOUND"],
+  429: ["LOST_ARK_RATE_LIMITED"],
+  502: ["LOST_ARK_API_ERROR"],
+  503: [
+    "CARD_COLLECTION_DISABLED",
+    "CARD_COLLECTION_UNAVAILABLE",
+    "LOST_ARK_NOT_CONFIGURED",
+    "CHARACTER_CACHE_UNAVAILABLE",
+  ],
+  504: ["LOST_ARK_API_TIMEOUT"],
 };
 const invalid = {
   ok: false as const,
@@ -91,5 +105,21 @@ export function requestViews(
     ...options,
     isValid: isViewsEnvelope,
     errorCodes: viewsErrors,
+  });
+}
+
+/** Same-server roster card records (F-6). */
+export function requestCardCollection(
+  name: string,
+  origin: string | undefined,
+  options: Options = {},
+): Promise<BackendResult<CardCollectionEnvelope>> {
+  if (characterNameError(name)) return Promise.resolve(invalid);
+  const url = backendUrl(origin, "/api/v1/characters/card-collection");
+  url?.searchParams.set("characterName", normalizeCharacterName(name));
+  return requestBackend(url, {
+    ...options,
+    isValid: isCardCollectionEnvelope,
+    errorCodes: cardCollectionErrors,
   });
 }

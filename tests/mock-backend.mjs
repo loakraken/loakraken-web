@@ -329,6 +329,17 @@ createServer(async (req, res) => {
     }));
     return send({ code: "CHARACTER_HISTORY_SUCCESS", message: "성공", data: { characterName: who, serverName: url.searchParams.get("serverName"), points } });
   }
+  if (url.pathname === "/api/v1/characters/card-collection") {
+    // Backend F-6 samples; card art swapped for official legend card icons.
+    const who = url.searchParams.get("characterName");
+    const kind = who === "기록없음" ? "empty" : who === "상세서포터" ? "supporter" : "dealer";
+    const body = JSON.parse(readFileSync(new URL(`./card-fixtures/card-collection-${kind}.json`, import.meta.url), "utf8"));
+    body.data.characterName = who;
+    body.data.cards.forEach((card, i) => {
+      card.icon = `https://cdn-lostark.game.onstove.com/efui_iconatlas/card_legend/card_legend_0${i % 3}_${i % 8}.png`;
+    });
+    return send(body);
+  }
   if (url.pathname === "/api/v1/home/schedule") {
     // Week Wednesday → Tuesday around the requested KST date, times today+.
     const kst = (t) => new Date(t + 9 * 3_600_000).toISOString().slice(0, 10);
