@@ -1,10 +1,8 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
-import { ArrowLeft, Check, Copy, Info, Pause, Play } from "lucide-react";
+import { ArrowLeft, Check, Copy, Gavel, Info } from "lucide-react";
 import Link from "next/link";
-import { ThinkingOrb } from "thinking-orbs";
-import { LandingMotion, useLandingMotion } from "@/components/landing/motion";
 import { SiteHeader } from "@/components/site/site-header";
 import {
   Tooltip,
@@ -258,8 +256,10 @@ function Strategies({ result }: { result: AuctionResult | null }) {
           : ""}
       </p>
       <p className={quote.caption}>
-        입찰금은 낙찰받은 사람을 뺀 파티원이 똑같이 나눠 가져요. 1인
-        금액은 그 입찰가로 낙찰됐을 때 다른 파티원 한 명이 받는 골드예요.
+        경매에 쓴 골드는 낙찰자 몫 없이{" "}
+        {result ? `나머지 ${result.party - 1}명에게` : "나머지 인원에게"} 고르게
+        돌아가요. 표의 &lsquo;1인&rsquo;은 그 값에 낙찰됐을 때 다른 한 사람이
+        받는 골드예요.
       </p>
     </section>
   );
@@ -274,8 +274,9 @@ function Basis() {
           거래소 판매 수수료는 5%이고, 1골드 미만은 올려서 계산해요.
         </li>
         <li>
-          입찰금은 낙찰자를 뺀 파티원이 나눠 가지므로, 손익 분기는 낙찰자와
-          다른 파티원이 같은 골드를 갖게 되는 입찰가예요.
+          낙찰 골드는 낙찰자에게 돌아가지 않고 나머지 인원이 나눠요. 손익
+          분기는 낙찰자에게 남는 골드와 다른 한 사람의 몫이 같아지는
+          입찰가예요.
         </li>
         <li>
           선점·이득 단계는 다음 입찰이 10% 이상 높아야 한다는 기준으로
@@ -303,7 +304,6 @@ function AuctionContent({
   initialPrice: string;
   initialParty: number;
 }) {
-  const { enabled, paused, toggle } = useLandingMotion();
   const priceId = useId();
   const partyId = useId();
   const [priceText, setPriceText] = useState(initialPrice);
@@ -336,29 +336,14 @@ function AuctionContent({
       <a className={quote.skip} href="#auction-main">
         본문으로 건너뛰기
       </a>
-      <SiteHeader>
-        <button
-          type="button"
-          className={quote.motionButton}
-          aria-label={paused ? "모션 재생" : "모션 일시정지"}
-          aria-pressed={paused}
-          onClick={toggle}
-        >
-          {paused ? <Play size={16} /> : <Pause size={16} />}
-        </button>
-      </SiteHeader>
+      <SiteHeader />
       <main id="auction-main">
         <section className={quote.hero} aria-labelledby="auction-heading">
-          <div className={quote.heroOrb} aria-hidden="true">
-            <ThinkingOrb
-              state={result ? "breathing" : "composing"}
-              size={64}
-              theme="light"
-              color="#0066cc"
-              speed={0.7}
-              paused={!enabled}
-            />
-          </div>
+          {/* A still icon: the calculation is instant, so nothing here
+              should read as loading. */}
+          <span className={styles.heroIcon} aria-hidden="true">
+            <Gavel size={18} />
+          </span>
           <p className={quote.heroKicker}>레이드 계산</p>
           <h1 id="auction-heading">경매 입찰가</h1>
           <p className={quote.heroCopy}>
@@ -444,11 +429,9 @@ function AuctionContent({
                   <input
                     id={partyId}
                     className={styles.partyInput}
-                    type="number"
                     inputMode="numeric"
-                    min={MIN_PARTY}
-                    max={MAX_PARTY}
-                    step={1}
+                    autoComplete="off"
+                    maxLength={3}
                     placeholder="예: 6"
                     value={customText}
                     onChange={(event) => {
@@ -473,7 +456,9 @@ function AuctionContent({
               </fieldset>
               {!result && !pError && (
                 <p className={styles.empty}>
-                  가격을 넣으면 인원에 맞는 입찰가를 계산해요.
+                  {cError && price !== null
+                    ? `인원을 ${MIN_PARTY}~${MAX_PARTY}명으로 고치면 계산해요.`
+                    : "가격을 넣으면 인원에 맞는 입찰가를 계산해요."}
                 </p>
               )}
             </form>
@@ -498,8 +483,6 @@ export function AuctionBidTool(props: {
   initialParty: number;
 }) {
   return (
-    <LandingMotion>
-      <AuctionContent {...props} />
-    </LandingMotion>
+    <AuctionContent {...props} />
   );
 }

@@ -9,6 +9,16 @@
   clip-path: inset(50%);
   white-space: nowrap;
 }
+.heroIcon {
+  grid-row: 1 / 4;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--mist);
+  color: var(--link);
+}
 .columns {
   display: grid;
   grid-template-columns: 320px minmax(0, 1fr);
