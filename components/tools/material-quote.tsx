@@ -134,8 +134,24 @@ function ItemSearch({
     if (failure?.retryAt) onRateLimit(failure);
   }, [failure, onRateLimit]);
 
+  // A search pressed before the category list arrives waits for it instead
+  // of failing with a category error the user could not have avoided.
+  const [pending, setPending] = useState<string | null>(null);
+  const waiting = !selectedCategory && options.isFetching;
+  useEffect(() => {
+    if (pending === null || !selectedCategory) return;
+    setPending(null);
+    setSubmitted({ categoryCode: selectedCategory, itemName: pending, pageNo: 1 });
+  }, [pending, selectedCategory]);
+
   function submit(event: FormEvent) {
     event.preventDefault();
+    if (waiting) {
+      const issue = searchError(1, name);
+      setError(issue);
+      if (!issue) setPending(normalizeText(name));
+      return;
+    }
     const issue = searchError(selectedCategory, name);
     setError(issue);
     if (issue || wait > 0 || !selectedCategory) return;
@@ -162,7 +178,10 @@ function ItemSearch({
           <span>카테고리</span>
           <select
             value={selectedCategory ?? ""}
-            onChange={(event) => setCategory(Number(event.target.value))}
+            onChange={(event) => {
+              setCategory(Number(event.target.value));
+              setError("");
+            }}
             disabled={!categories.length}
           >
             {!categories.length && (
@@ -206,6 +225,11 @@ function ItemSearch({
           {items.isFetching ? "검색 중" : "검색"}
         </button>
       </form>
+      {pending !== null && (
+        <p className={styles.caption} role="status">
+          카테고리 목록을 받는 대로 검색할게요.
+        </p>
+      )}
       {error && (
         <p className={styles.inputError} id={`${formId}-error`} role="alert">
           {error}
