@@ -3,5 +3,5 @@ import { getSchedule } from "@/lib/home/server";
 
 export async function GET(request: Request) {
   const date = new URL(request.url).searchParams.get("date");
-  return toResponse(await getSchedule(date, request.signal));
+  return toResponse(await getSchedule(date, { signal: request.signal }));
 }

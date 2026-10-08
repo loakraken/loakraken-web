@@ -350,6 +350,8 @@ createServer(async (req, res) => {
     const to = kst(Date.parse(`${from}T00:00:00+09:00`) + 6 * 86_400_000);
     const at = (h, m = 0) => new Date(base + (h * 60 + m) * 60_000).toISOString().replace(".000Z", "+00:00");
     const times = (...hours) => hours.map((h) => at(h));
+    // Real calendar minutes (backend 2026-10-09): chaos gates at :50, others mixed.
+    const timesAt = (minute, ...hours) => hours.map((h) => at(h, minute));
     const next = (list) => list.find((t) => Date.parse(t) > Date.now()) ?? (list.length ? new Date(Date.parse(list[0]) + 86_400_000).toISOString().replace(".000Z", "+00:00") : null);
     const cdn = "https://cdn-lostark.game.onstove.com/efui_iconatlas";
     const timed = (name, icon, minItemLevel, list) => ({ name, icon, minItemLevel, startTimes: list, nextAt: next(list) });
@@ -368,10 +370,10 @@ createServer(async (req, res) => {
           { ...timed("볼라르 섬", `${cdn}/island_icon/island_icon_53.png`, 1100, islandTimes), rewardKinds: ["SILLING"] },
         ],
         fieldBosses: day % 2 ? [timed("세베크 아툰", null, 1460, times(11, 13, 15, 17, 19, 21, 23))] : [],
-        chaosGates: day % 2 ? [] : [timed("일렁이는 악마군단", null, 1580, times(11, 13, 15, 17, 19, 21, 23))],
+        chaosGates: day % 2 ? [] : [timed("일렁이는 악마군단", null, 1580, timesAt(50, 10, 12, 14, 16, 18, 20, 22, 23))],
         others: [
-          { category: "항해", ...timed("항해 협동 : 베른", null, 1, times(20, 22)) },
-          { category: "로웬", ...timed("늑대들의 축제", null, 1, times(21)) },
+          { category: "항해", ...timed("항해 협동 : 베른", null, 1, timesAt(30, 20, 22)) },
+          { category: "로웬", ...timed("늑대들의 축제", null, 1, timesAt(20, 21)) },
         ],
         goldIslandDays: days.filter((d) => Number(d.slice(8, 10)) % 3 === 0).map((d) => ({ date: d, islands: ["메데이아"] })),
         weekly: days.map((d) => ({ date: d, islands: [{ name: "메데이아", rewardKinds: Number(d.slice(8, 10)) % 3 === 0 ? ["GOLD"] : ["CARD_PACK"] }] })),

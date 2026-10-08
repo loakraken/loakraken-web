@@ -35,7 +35,8 @@ export function backendUrl(origin: string | undefined, path: string) {
 /**
  * The incoming request's X-Forwarded-For, passed through untouched so the
  * backend can rate-limit public traffic per client (backend #108). The edge
- * proxy overwrites it in production; outside a request (tests, scripts) there
+ * proxy overwrites or appends it in production (the backend reads from the
+ * right); outside a request (tests, scripts) there
  * is none and nothing is sent.
  */
 export async function incomingForwardedFor(): Promise<string | null> {

@@ -258,7 +258,11 @@ function Section({
     <section className={styles.section} aria-label={title}>
       <header>
         <h3>{title}</h3>
-        <span>{items.length}개</span>
+        <span>
+          {visible.length > 0 && visible.length < items.length
+            ? `${items.length}개 중 ${visible.length}개 남음`
+            : `${items.length}개`}
+        </span>
         {status && now !== null && (status.next || status.state === "done") && (
           <span className={styles.next} data-state={status.state}>
             {status.state === "done" && "오늘 일정 종료"}
@@ -324,6 +328,11 @@ function ScheduleBoard() {
     placeholderData: keepPreviousData,
   });
   const data: Schedule | undefined = query.data?.data;
+  const stale = date === null && !!data && !!today && data.date !== today;
+  const { refetch } = query;
+  useEffect(() => {
+    if (stale) refetch();
+  }, [stale, refetch]);
   const gold = new Set(data?.goldIslandDays.map((day) => day.date));
   const live = !!data && data.date === today;
   const tomorrow = live && now !== null ? tomorrowInWeek(data.coveredTo, now) : null;
