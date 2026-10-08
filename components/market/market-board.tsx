@@ -1,0 +1,457 @@
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { Pause, Play } from "lucide-react";
+import { ThinkingOrb } from "thinking-orbs";
+import { GameIcon } from "@/components/character/imagery";
+import { LandingMotion, useLandingMotion } from "@/components/landing/motion";
+import { InlineOrb } from "@/components/landing/orb";
+import {
+  SORTS,
+  boardQueryString,
+  changeLabel,
+  completedDays,
+  goldText,
+  type BoardItem,
+  type BoardQuery,
+  type ItemHistory,
+  type MarketTab,
+} from "@/lib/market/board";
+import {
+  MarketQueryError,
+  fetchItemHistory,
+  fetchMarketBoard,
+  fetchMarketTabs,
+} from "@/lib/market/client";
+import { marketFailureCopy, type MarketFailure } from "@/lib/market/model";
+import quote from "../tools/material-quote.module.css";
+import { MarketChart } from "./market-chart";
+import styles from "./market.module.css";
+
+const TIERS = [4, 3] as const;
+const failureOf = (error: unknown): MarketFailure | null =>
+  error instanceof MarketQueryError
+    ? error.info
+    : error
+      ? { code: "LOST_ARK_API_ERROR", status: 502 }
+      : null;
+const kst = new Intl.DateTimeFormat("ko-KR", {
+  timeZone: "Asia/Seoul",
+  month: "numeric",
+  day: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+});
+const at = (iso: string) => kst.format(new Date(iso));
+const quiet = {
+  retry: false,
+  refetchOnWindowFocus: false,
+  refetchOnReconnect: false,
+} as const;
+
+function Change({ value }: { value: number | null | undefined }) {
+  const label = changeLabel(value);
+  return (
+    <b className={styles.change} data-direction={label.direction}>
+      {label.text}
+    </b>
+  );
+}
+
+function Problem({
+  failure,
+  onRetry,
+}: {
+  failure: MarketFailure;
+  onRetry: () => void;
+}) {
+  const copy = marketFailureCopy(failure);
+  return (
+    <div className={quote.notice} role="alert">
+      <strong>{copy.title}</strong>
+      <p>{copy.text}</p>
+      <button type="button" className={quote.outlinePill} onClick={onRetry}>
+        다시 불러오기
+      </button>
+    </div>
+  );
+}
+
+function Detail({
+  item,
+  tier,
+}: {
+  item: BoardItem;
+  tier: number | null;
+}) {
+  const [range, setRange] = useState<7 | 14>(14);
+  const [variantIndex, setVariantIndex] = useState(0);
+  const history = useQuery({
+    queryKey: ["market", "history", item.itemId],
+    queryFn: ({ signal }) => fetchItemHistory(item.itemId, signal),
+    staleTime: 10 * 60_000,
+    ...quiet,
+  });
+  const data: ItemHistory | undefined = history.data?.data;
+  const variant = data?.variants[Math.min(variantIndex, (data?.variants.length ?? 1) - 1)];
+  const days = completedDays(variant, range);
+  const failure = failureOf(history.error);
+  return (
+    <section className={styles.detail} aria-label={`${item.name} 시세`}>
+      <header className={styles.detailHead}>
+        <GameIcon src={item.icon} grade={item.grade} size={44} />
+        <div>
+          <strong data-grade={item.grade ?? undefined}>{item.name}</strong>
+          <small>
+            {[tier != null && `T${tier}`, item.grade].filter(Boolean).join(" · ")}
+            {item.bundleCount > 1 && ` · ${item.bundleCount}개 묶음`}
+          </small>
+        </div>
+      </header>
+      <dl className={styles.facts}>
+        <div>
+          <dt>현재 최저가</dt>
+          <dd>{goldText(item.currentMinPrice)}</dd>
+        </div>
+        <div>
+          <dt>전일 평균 대비</dt>
+          <dd>
+            <Change value={item.changeDay} />
+          </dd>
+        </div>
+        <div>
+          <dt>최근 거래가</dt>
+          <dd>{goldText(item.recentPrice)}</dd>
+        </div>
+        <div>
+          <dt>전일 평균가</dt>
+          <dd>{goldText(item.yesterdayAvgPrice)}</dd>
+        </div>
+      </dl>
+
+      <div className={styles.trendHead}>
+        <h3>시세 추이</h3>
+        <div className={styles.ranges} role="group" aria-label="기간">
+          {([7, 14] as const).map((value) => (
+            <button
+              key={value}
+              type="button"
+              aria-pressed={range === value}
+              onClick={() => setRange(value)}
+            >
+              {value}일
+            </button>
+          ))}
+        </div>
+      </div>
+      {data && data.variants.length > 1 && (
+        <div className={styles.ranges} role="group" aria-label="거래 조건">
+          {data.variants.map((v, i) => (
+            <button
+              key={i}
+              type="button"
+              aria-pressed={variantIndex === i}
+              onClick={() => setVariantIndex(i)}
+            >
+              {v.tradeRemainCount != null
+                ? `거래 ${v.tradeRemainCount}회`
+                : `${v.bundleCount ?? 1}개`}
+            </button>
+          ))}
+        </div>
+      )}
+      {failure ? (
+        <Problem failure={failure} onRetry={() => history.refetch()} />
+      ) : history.isPending ? (
+        <p className={styles.muted} role="status">
+          <InlineOrb /> 추이를 불러오고 있어요
+        </p>
+      ) : days.length ? (
+        <MarketChart days={days} />
+      ) : (
+        <p className={styles.muted}>아직 수집된 시세가 없어요.</p>
+      )}
+
+      {variant && variant.days.length > 0 && (
+        <table className={styles.daily}>
+          <thead>
+            <tr>
+              <th scope="col">날짜</th>
+              <th scope="col">평균 거래가</th>
+              <th scope="col">거래량</th>
+            </tr>
+          </thead>
+          <tbody>
+            {variant.days.slice(0, range).map((day) => (
+              <tr key={day.date} data-partial={day.partial || undefined}>
+                <th scope="row">
+                  {day.date.slice(5).replace("-", "/")}
+                  {day.partial && <small> 집계 중</small>}
+                </th>
+                <td>{goldText(day.averagePrice)}</td>
+                <td>{day.tradeCount.toLocaleString("ko-KR")}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+      {data && (
+        <p className={styles.note}>
+          공식 거래소 일별 통계 · {at(data.observedAt)} 수집 · 가격은 묶음 기준
+        </p>
+      )}
+    </section>
+  );
+}
+
+function MarketContent({
+  initial,
+  initialItem,
+}: {
+  initial: BoardQuery;
+  initialItem: number | null;
+}) {
+  const { enabled, paused, toggle } = useLandingMotion();
+  const router = useRouter();
+  const [query, setQuery] = useState(initial);
+  const [selected, setSelected] = useState<number | null>(initialItem);
+  const tabs = useQuery({
+    queryKey: ["market", "tabs"],
+    queryFn: ({ signal }) => fetchMarketTabs(signal),
+    staleTime: 10 * 60_000,
+    ...quiet,
+  });
+  const tabList: MarketTab[] = tabs.data?.data.tabs ?? [];
+  const currentTab = tabList.find((t) => t.tab === query.tab);
+  const tier = query.tier ?? currentTab?.defaultTier ?? null;
+  const board = useQuery({
+    queryKey: ["market", "board", query],
+    queryFn: ({ signal }) => fetchMarketBoard(query, signal),
+    staleTime: 30_000,
+    placeholderData: keepPreviousData,
+    ...quiet,
+  });
+  const data = board.data?.data;
+  const items = data?.items ?? [];
+  const active = items.find((item) => item.itemId === selected) ?? items[0];
+  const pages = data ? Math.min(10, Math.ceil(data.totalItems / data.pageSize)) : 1;
+  const failure = failureOf(board.error) ?? failureOf(tabs.error);
+
+  function update(next: Partial<BoardQuery>, item: number | null = null) {
+    const merged = { ...query, ...next };
+    setQuery(merged);
+    setSelected(item);
+    const params = new URLSearchParams(boardQueryString(merged));
+    if (item != null) params.set("item", String(item));
+    router.replace(`?${params}`, { scroll: false });
+  }
+  function choose(item: BoardItem) {
+    setSelected(item.itemId);
+    const params = new URLSearchParams(boardQueryString(query));
+    params.set("item", String(item.itemId));
+    router.replace(`?${params}`, { scroll: false });
+  }
+
+  return (
+    <div className={quote.page}>
+      <a className={quote.skip} href="#market-main">
+        본문으로 건너뛰기
+      </a>
+      <header className={quote.header}>
+        <Link className={quote.brand} href="/">
+          LOAKraken
+        </Link>
+        <nav className={quote.nav} aria-label="주요 메뉴">
+          <Link href="/">캐릭터 검색</Link>
+          <Link href="/market" aria-current="page">
+            시세
+          </Link>
+          <Link href="/tools/material-quote">재료 견적</Link>
+          <Link href="/tools/refining">재련 비용</Link>
+          <Link href="/tools/crit-speed">치적·음돌</Link>
+        </nav>
+        <button
+          type="button"
+          className={quote.motionButton}
+          aria-label={paused ? "모션 재생" : "모션 일시정지"}
+          aria-pressed={paused}
+          onClick={toggle}
+        >
+          {paused ? <Play size={16} /> : <Pause size={16} />}
+        </button>
+      </header>
+      <main id="market-main">
+        <section className={quote.hero} aria-labelledby="market-heading">
+          <div className={quote.heroOrb} aria-hidden="true">
+            <ThinkingOrb
+              state={board.isFetching ? "searching" : "breathing"}
+              size={64}
+              theme="light"
+              color="#0066cc"
+              paused={!enabled}
+            />
+          </div>
+          <p className={quote.heroKicker}>거래소</p>
+          <h1 id="market-heading">시세</h1>
+          <p className={quote.heroCopy}>
+            공식 거래소 시세를 분류별로 모아 보여줘요.
+          </p>
+        </section>
+
+        <div className={styles.band}>
+          <nav className={styles.categories} aria-label="시세 분류">
+            {(tabList.length ? tabList : []).map((t) => (
+              <button
+                key={t.tab}
+                type="button"
+                aria-pressed={t.tab === query.tab}
+                onClick={() => update({ tab: t.tab, tier: null, page: 1 })}
+              >
+                {t.label}
+              </button>
+            ))}
+            {!tabList.length && tabs.isPending && (
+              <span className={styles.muted}>
+                <InlineOrb /> 분류를 불러오고 있어요
+              </span>
+            )}
+          </nav>
+
+          <div className={styles.columns}>
+            <section className={styles.board} aria-labelledby="board-heading">
+              <div className={styles.boardHead}>
+                <h2 id="board-heading">
+                  {data?.tabLabel ?? currentTab?.label ?? "시세"} 시세{" "}
+                  {data && <small>{data.totalItems}종</small>}
+                </h2>
+                <div className={styles.sorts} role="group" aria-label="정렬">
+                  {SORTS.map((s) => (
+                    <button
+                      key={s.id}
+                      type="button"
+                      aria-pressed={query.sort === s.id}
+                      onClick={() => update({ sort: s.id, page: 1 })}
+                    >
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {currentTab?.defaultTier != null && (
+                <div className={styles.tiers} role="group" aria-label="티어">
+                  {TIERS.map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      aria-pressed={tier === t}
+                      onClick={() => update({ tier: t, page: 1 })}
+                    >
+                      T{t}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {(query.sort === "rise" || query.sort === "fall") && data && (
+                <p className={styles.note}>
+                  분류 전체를 스캔해 정렬해요(최대 3분 지연)
+                  {!data.complete && " · 품목이 많아 일부 품목만 정렬했어요"}
+                </p>
+              )}
+              {failure ? (
+                <Problem
+                  failure={failure}
+                  onRetry={() => {
+                    void tabs.refetch();
+                    void board.refetch();
+                  }}
+                />
+              ) : !data ? (
+                <p className={styles.muted} role="status">
+                  <InlineOrb /> 시세를 불러오고 있어요
+                </p>
+              ) : !items.length ? (
+                <p className={styles.muted}>표시할 품목이 없어요.</p>
+              ) : (
+                <ul
+                  className={styles.rows}
+                  data-stale={board.isPlaceholderData || undefined}
+                >
+                  {items.map((item) => (
+                    <li key={item.itemId}>
+                      <button
+                        type="button"
+                        aria-pressed={active?.itemId === item.itemId}
+                        onClick={() => choose(item)}
+                      >
+                        <GameIcon src={item.icon} grade={item.grade} size={36} />
+                        <span className={styles.rowName}>
+                          <strong data-grade={item.grade ?? undefined}>
+                            {item.name}
+                            {tier != null && <i>T{tier}</i>}
+                          </strong>
+                          <small>
+                            {item.bundleCount > 1 && `${item.bundleCount}개 · `}
+                            최근 거래 {goldText(item.recentPrice).replace("G", "")}
+                          </small>
+                        </span>
+                        <span className={styles.rowPrice}>
+                          <b>{goldText(item.currentMinPrice)}</b>
+                          <Change value={item.changeDay} />
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {pages > 1 && (
+                <nav className={styles.pages} aria-label="페이지">
+                  {Array.from({ length: pages }, (_, i) => i + 1).map((p) => (
+                    <button
+                      key={p}
+                      type="button"
+                      aria-current={query.page === p ? "page" : undefined}
+                      onClick={() => update({ page: p })}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                </nav>
+              )}
+              {data && (
+                <p className={styles.note}>
+                  {at(data.observedAt)} 기준 · {data.changeBasis}
+                </p>
+              )}
+            </section>
+
+            <div className={styles.side}>
+              {active ? (
+                <Detail key={active.itemId} item={active} tier={tier} />
+              ) : (
+                <p className={styles.muted}>품목을 고르면 추이를 보여줘요.</p>
+              )}
+            </div>
+          </div>
+        </div>
+      </main>
+      <footer className={quote.footer}>
+        LOAKraken · 로스트아크 비공식 팬 프로젝트 · 공식 거래소 시세 기반
+      </footer>
+    </div>
+  );
+}
+
+export function MarketBoardView(props: {
+  initial: BoardQuery;
+  initialItem: number | null;
+}) {
+  return (
+    <LandingMotion>
+      <MarketContent {...props} />
+    </LandingMotion>
+  );
+}

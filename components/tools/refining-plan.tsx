@@ -697,6 +697,7 @@ function RefiningContent({ initialName }: { initialName: string }) {
         </Link>
         <nav className={quote.nav} aria-label="주요 메뉴">
           <Link href="/">캐릭터 검색</Link>
+          <Link href="/market">시세</Link>
           <Link href="/tools/material-quote">재료 견적</Link>
           <Link href="/tools/refining" aria-current="page">
             재련 비용
