@@ -1024,3 +1024,16 @@
     transition: none;
   }
 }
+
+/* Column head above armour / accessories: average quality, as on the other
+   armory sites. */
+.columnHead {
+  margin-bottom: 6px;
+  color: #707070;
+  font-size: 13px;
+}
+.columnHead b {
+  color: #1d1d1f;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
