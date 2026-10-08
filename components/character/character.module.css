@@ -2,10 +2,10 @@
   min-height: 100vh;
   color: #1d1d1f;
   background: #fff;
-  font-family:
-    -apple-system, BlinkMacSystemFont, "Segoe UI", var(--font-korean),
-    sans-serif;
-  line-height: 1.6;
+  font-family: var(--font-ui);
+  font-size: 14px;
+  line-height: 1.43;
+  letter-spacing: -0.01em;
   overflow-wrap: anywhere;
 }
 .page button,

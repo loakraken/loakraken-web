@@ -644,7 +644,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans), var(--font-korean), sans-serif;
+  --font-sans: var(--font-ui);
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
@@ -764,4 +764,15 @@
   html {
     @apply font-sans;
   }
+}
+
+/* One UI font for every screen (Apple typography: system font first). Apple
+   platforms get SF + Apple SD Gothic Neo; elsewhere Segoe UI for Latin and the
+   bundled Noto Sans KR for Hangul. Declared on body too, where next/font sets
+   --font-korean, so the bundled face is used instead of the fallback name. */
+:root,
+body {
+  --font-ui:
+    -apple-system, BlinkMacSystemFont, "SF Pro Text", "Apple SD Gothic Neo",
+    "Segoe UI", var(--font-korean, "Noto Sans KR"), "Malgun Gothic", sans-serif;
 }

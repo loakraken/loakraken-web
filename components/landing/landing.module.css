@@ -10,7 +10,7 @@
   overflow: clip;
   background: var(--canvas);
   color: var(--text);
-  font-family: -apple-system, BlinkMacSystemFont, var(--font-korean), "Segoe UI", sans-serif;
+  font-family: var(--font-ui);
   font-size: 17px;
   line-height: 1.6;
   font-optical-sizing: auto;
@@ -32,7 +32,7 @@
 .readingProgress { position: fixed; inset: 0 0 auto; height: 2px; background: #0071e3; transform-origin: left; z-index: 55; }
 /* A web approximation of Apple's translucent product navigation. */
 .header { position: fixed; z-index: 50; inset: 0 0 auto; min-height: 64px; padding: 8px max(24px, calc((100% - 1120px) / 2)); display: flex; align-items: center; justify-content: space-between; gap: 28px; background: #ffffffdc; backdrop-filter: blur(20px) saturate(150%); border-bottom: 1px solid #00000012; }
-.brand { display: inline-flex; align-items: center; gap: 8px; color: var(--text); font-family: var(--font-geist-sans), sans-serif; font-weight: 600; font-size: 20px; letter-spacing: -0.6px; text-decoration: none; white-space: nowrap; }
+.brand { display: inline-flex; align-items: center; gap: 8px; color: var(--text); font-family: var(--font-ui); font-weight: 600; font-size: 20px; letter-spacing: -0.6px; text-decoration: none; white-space: nowrap; }
 .brandIcon { display: grid; place-items: center; color: #1d1d1f; }
 .brandTag { font-size: 9px; color: #6e6e73; font-weight: 400; letter-spacing: 0.4px; margin-left: 3px; }
 .navigation { display: flex; gap: 26px; align-items: center; }
