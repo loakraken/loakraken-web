@@ -44,6 +44,7 @@ import { failureCopy } from "@/lib/character/model";
 import { HistoryChart } from "./history-chart";
 import { AvatarsTab, CollectiblesTab } from "./inner";
 import { Panel } from "./panel";
+import { ViewsPanel } from "./views-panel";
 import { CardArt, GameIcon } from "./imagery";
 import {
   Empty,
@@ -894,6 +895,7 @@ export function CombatTab({ data }: { data: Character }) {
           <ArkPassiveSummary data={data} />
           <StatsPanel data={data} />
           <EngravingsPanel data={data} />
+          <ViewsPanel name={data.characterName} />
         </aside>
       </div>
       <SkillOverview data={data} />

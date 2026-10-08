@@ -1,9 +1,13 @@
 import "server-only";
-import { requestHistory, requestSiblings } from "./related";
+import { requestHistory, requestSiblings, requestViews } from "./related";
 import { requestCharacter } from "./upstream";
 
 export function getCharacter(name: string, signal?: AbortSignal) {
   return requestCharacter(name, process.env.LOAKRAKEN_API_ORIGIN, { signal });
+}
+
+export function getViews(name: string, signal?: AbortSignal) {
+  return requestViews(name, process.env.LOAKRAKEN_API_ORIGIN, { signal });
 }
 
 export function getSiblings(name: string, signal?: AbortSignal) {

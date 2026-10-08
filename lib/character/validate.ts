@@ -3,8 +3,10 @@ import contract from "../../contracts/character.openapi.json";
 import type { CharacterEnvelope } from "./model";
 import siblingsContract from "../../contracts/siblings.openapi.json";
 import historyContract from "../../contracts/history.openapi.json";
+import viewsContract from "../../contracts/views.openapi.json";
 import type { components as SiblingsSchemas } from "../api/siblings-schema";
 import type { components as HistorySchemas } from "../api/history-schema";
+import type { components as ViewsSchemas } from "../api/views-schema";
 
 // The backend's generated OpenAPI is also the runtime shape contract.
 const ajv = new Ajv2020({ strict: false, validateFormats: false });
@@ -88,6 +90,9 @@ export type SiblingsEnvelope =
 export type HistoryEnvelope =
   HistorySchemas["schemas"]["ApiResponseCharacterHistoryResponse"];
 export type HistoryPoint = HistorySchemas["schemas"]["PointResponse"];
+export type ViewsEnvelope =
+  ViewsSchemas["schemas"]["ApiResponseCharacterViewsResponse"];
+export type DailyViews = ViewsSchemas["schemas"]["CharacterDailyViewsResponse"];
 
 const compileWith = <T>(source: { components: object }, schema: string) =>
   new Ajv2020({ strict: false, validateFormats: false }).compile<T>({
@@ -102,6 +107,12 @@ const history = compileWith<HistoryEnvelope>(
   historyContract,
   "ApiResponseCharacterHistoryResponse",
 );
+const views = compileWith<ViewsEnvelope>(
+  viewsContract,
+  "ApiResponseCharacterViewsResponse",
+);
+const isDate = (value: unknown) =>
+  typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value);
 const isTime = (value: unknown) =>
   typeof value === "string" && Number.isFinite(Date.parse(value));
 
@@ -119,6 +130,23 @@ export function isHistoryEnvelope(value: unknown): value is HistoryEnvelope {
     value.code === "CHARACTER_HISTORY_SUCCESS" &&
     value.data.points.every(
       (point) => isTime(point.observedAt) && isTime(point.lastConfirmedAt),
+    )
+  );
+}
+
+// Views (F-8): every day from..to, oldest first, with non-negative counts.
+export function isViewsEnvelope(value: unknown): value is ViewsEnvelope {
+  if (!views(value) || value.code !== "CHARACTER_VIEWS_SUCCESS") return false;
+  const { days, from, to } = value.data;
+  return (
+    isDate(from) &&
+    isDate(to) &&
+    days.every(
+      (day, i) =>
+        isDate(day.date) &&
+        Number.isSafeInteger(day.count) &&
+        day.count >= 0 &&
+        (i === 0 || days[i - 1].date < day.date),
     )
   );
 }
