@@ -838,27 +838,38 @@ body {
   /* Market moves keep the Korean convention: up red, down blue. */
   --market-up: #cf3425; /* 5.03, 4.62 on #f5f5f7 (was #d93a2b, 4.20) */
   --market-down: #0066cc;
+  /* Gold gain/loss in calculators (profit vs. loss), separate from market
+     price direction so each can move on its own. */
+  --gain: var(--success);
+  --loss: var(--destructive);
   --switch-on: #2aa048; /* track vs page 3.38, 3.10 on #f5f5f7 (was #34c759, 2.22) */
 
-  /* Quality badge, iloa's six bands (PM decision D1). The top three use
-     iloa's measured colours (its 80% fill over its dark page) with white
-     numerals, all past 4.5:1. The lower three are unmeasured: olive keeps
-     its colour with dark numerals, the others are darkened only as far as
-     4.5:1. Numerals stay at weight 600 or more. */
+  /* Quality badge, iloa's six bands (PM decision D1), measured on its page:
+     an 80% fill over its dark surface. Bands that already pass 4.5:1 with
+     white numerals use that colour as is (100, 90~99, 70~89, 0~9); 30~69 is
+     iloa's hue darkened only as far as 4.6. Olive keeps dark numerals until
+     PM decides. Numerals stay at weight 600 or more. */
   --quality-max: #be5712;
   --quality-max-foreground: #fff; /* 4.60 */
   --quality-high: #b718bb;
   --quality-high-foreground: #fff; /* 5.44 */
   --quality-good: #1352c2;
   --quality-good-foreground: #fff; /* 6.97 */
-  --quality-normal: #34843f;
-  --quality-normal-foreground: #fff; /* 4.65 */
+  --quality-normal: #0a880a;
+  --quality-normal-foreground: #fff; /* 4.63 (iloa #0a8f0b is 4.25) */
   --quality-low: #b8a21e;
   --quality-low-foreground: #1d1d1f; /* 6.59 */
-  --quality-poor: #d93a2b;
-  --quality-poor-foreground: #fff; /* 4.57 */
+  --quality-poor: #cf0304;
+  --quality-poor-foreground: #fff; /* 5.73 */
   --quality-none: #747479;
   --quality-none-foreground: #fff; /* 4.65 */
+
+  /* Character banner: a dark band in both themes, as on iloa and lopec
+     (user decision). Image-derived --backdrop tints may replace --banner. */
+  --banner: #101114;
+  --banner-foreground: #f5f5f7; /* 17.34 */
+  --banner-muted: #a1a1a6; /* 7.34 */
+  --banner-border: rgb(255 255 255 / 10%);
 }
 
 @theme inline {
@@ -867,6 +878,8 @@ body {
   --color-market-up: var(--market-up);
   --color-market-down: var(--market-down);
   --color-switch-on: var(--switch-on);
+  --color-gain: var(--gain);
+  --color-loss: var(--loss);
 }
 
 /* Reduced motion: no movement anywhere, whatever a module declares. Canvas
