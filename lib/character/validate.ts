@@ -47,6 +47,28 @@ const ROLLOUT: Record<string, Record<string, () => unknown>> = {
   },
   StatResponse: { tooltip: () => [] },
   PassiveEffectResponse: { effect: () => null },
+  // Ark grid detail (F-4, backend #90).
+  ArkGridResponse: { willpower: () => null },
+  GridEffectResponse: { value: () => null, percent: () => null },
+  GridSlotResponse: {
+    coreType: () => null,
+    supplyWillpower: () => null,
+    usedWillpower: () => null,
+    options: () => [],
+    activeOptionCount: () => 0,
+    optionCount: () => 0,
+    conditions: () => [],
+  },
+  GridGemResponse: {
+    name: () => null,
+    gemType: () => null,
+    gemPoint: () => null,
+    corePoint: () => null,
+    requiredWillpower: () => null,
+    baseWillpower: () => null,
+    willpowerEfficiency: () => null,
+    options: () => [],
+  },
 };
 for (const [schema, fields] of Object.entries(ROLLOUT)) {
   const target = (components.schemas as Record<string, { required?: string[] }>)[schema];
@@ -80,6 +102,15 @@ export function isCharacterEnvelope(
   for (const stat of data.stats) fill(stat, "StatResponse");
   for (const effect of data.loadout.arkPassive?.effects ?? [])
     fill(effect, "PassiveEffectResponse");
+  const grid = data.loadout.arkGrid;
+  if (grid) {
+    fill(grid, "ArkGridResponse");
+    for (const effect of grid.effects) fill(effect, "GridEffectResponse");
+    for (const slot of grid.slots) {
+      fill(slot, "GridSlotResponse");
+      for (const gem of slot.gems) fill(gem, "GridGemResponse");
+    }
+  }
   return true;
 }
 

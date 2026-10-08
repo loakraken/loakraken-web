@@ -272,6 +272,7 @@ export interface components {
         ArkGridResponse: {
             slots: components["schemas"]["GridSlotResponse"][];
             effects: components["schemas"]["GridEffectResponse"][];
+            willpower: components["schemas"]["WillpowerResponse"] | null;
         };
         GridSlotResponse: {
             index: number | null;
@@ -280,16 +281,61 @@ export interface components {
             point: number | null;
             grade: string | null;
             gems: components["schemas"]["GridGemResponse"][];
+            coreType: string | null;
+            supplyWillpower: number | null;
+            usedWillpower: number | null;
+            /** @description 포인트 구간 옵션(오름차순). active는 현재 포인트로 달성했는지 */
+            options: components["schemas"]["CoreOptionResponse"][];
+            /**
+             * Format: int32
+             * @description 달성한 구간 수(예: 4/6의 4)
+             */
+            activeOptionCount: number;
+            /**
+             * Format: int32
+             * @description 전체 구간 수
+             */
+            optionCount: number;
+            /** @description 코어 옵션 발동 조건 */
+            conditions: string[];
         };
         GridGemResponse: {
             index: number | null;
             icon: string | null;
             active: boolean | null;
             grade: string | null;
+            name: string | null;
+            gemType: string | null;
+            gemPoint: number | null;
+            corePoint: number | null;
+            requiredWillpower: number | null;
+            baseWillpower: number | null;
+            willpowerEfficiency: number | null;
+            options: components["schemas"]["GemOptionResponse"][];
+        };
+        GemOptionResponse: {
+            name: string;
+            level: number | null;
+            effect: string | null;
+            percent: number | null;
+        };
+        CoreOptionResponse: {
+            /** Format: int32 */
+            threshold: number;
+            text: string;
+            active: boolean;
         };
         GridEffectResponse: {
             name: string | null;
             level: number | null;
+            value: string | null;
+            percent: number | null;
+        };
+        WillpowerResponse: {
+            /** Format: int32 */
+            used: number;
+            /** Format: int32 */
+            supply: number;
         };
         SkillResponse: {
             name: string | null;

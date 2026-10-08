@@ -413,16 +413,129 @@
   list-style: none;
   padding: 0;
 }
-.coreList li {
+.coreList > li {
+  border-top: 1px solid #e6e6e8;
+}
+.core summary {
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 9px 0;
-  border-top: 1px solid #e6e6e8;
+  list-style: none;
+  cursor: pointer;
+}
+.core summary::-webkit-details-marker {
+  display: none;
+}
+.core summary .itemText {
+  flex: 1;
+}
+.coreFacts {
+  display: grid;
+  justify-items: end;
+  font-variant-numeric: tabular-nums;
+}
+.coreFacts b {
+  font-size: 14px;
+  font-weight: 700;
+}
+.coreFacts small {
+  color: #707070;
+  font-size: 12px;
 }
 .coreGems {
   display: flex;
   gap: 4px;
+}
+.coreDetail {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 12px 52px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: #fff;
+}
+.coreOptions,
+.gemRows {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+}
+.coreOptions li {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: 8px;
+  color: #86868b;
+}
+.coreOptions li[data-active] {
+  color: #1d1d1f;
+}
+.coreOptions b {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.gemRows li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.gemRows li[data-inactive] {
+  opacity: 0.55;
+}
+.gemRows span {
+  display: grid;
+  min-width: 0;
+}
+.gemRows strong {
+  font-size: 13px;
+  font-weight: 600;
+}
+.gemRows small,
+.coreNote {
+  color: #707070;
+  font-size: 12px;
+}
+.stoneBonus {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid #e6e6e8;
+  color: #707070;
+  font-size: 12px;
+}
+.stoneBonus b {
+  color: #1d1d1f;
+  font-weight: 600;
+}
+.gridMeta {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  font-variant-numeric: tabular-nums;
+}
+.gridMeta b {
+  color: #1d1d1f;
+  font-weight: 700;
+}
+.effectGrid li > span:last-child {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.effectGrid small {
+  color: #707070;
+  font-size: 12px;
+}
+@media (max-width: 700px) {
+  .coreDetail {
+    margin-left: 0;
+  }
+  .core summary .coreGems {
+    display: none;
+  }
 }
 
 /* Cards */

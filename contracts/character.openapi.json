@@ -1,7 +1,7 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "LOAKraken character",
+    "title": "LOAKraken character search",
     "version": "1.0.0"
   },
   "paths": {
@@ -1740,11 +1740,23 @@
             "items": {
               "$ref": "#/components/schemas/GridEffectResponse"
             }
+          },
+          "willpower": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WillpowerResponse",
+                "description": "코어 공급 의지력 합과 활성 젬 필요 의지력 합. 코어 상세가 없으면 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
           "effects",
-          "slots"
+          "slots",
+          "willpower"
         ]
       },
       "GridSlotResponse": {
@@ -1807,15 +1819,81 @@
             "items": {
               "$ref": "#/components/schemas/GridGemResponse"
             }
+          },
+          "coreType": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "코어 타입(예: 질서 - 해). 코어 Tooltip을 해석할 수 없으면 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "supplyWillpower": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32",
+                "description": "코어 공급 의지력"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "usedWillpower": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32",
+                "description": "활성 젬의 필요 의지력 합"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "options": {
+            "type": "array",
+            "description": "포인트 구간 옵션(오름차순). active는 현재 포인트로 달성했는지",
+            "items": {
+              "$ref": "#/components/schemas/CoreOptionResponse"
+            }
+          },
+          "activeOptionCount": {
+            "type": "integer",
+            "format": "int32",
+            "description": "달성한 구간 수(예: 4/6의 4)"
+          },
+          "optionCount": {
+            "type": "integer",
+            "format": "int32",
+            "description": "전체 구간 수"
+          },
+          "conditions": {
+            "type": "array",
+            "description": "코어 옵션 발동 조건",
+            "items": {
+              "type": "string"
+            }
           }
         },
         "required": [
+          "activeOptionCount",
+          "conditions",
+          "coreType",
           "gems",
           "grade",
           "icon",
           "index",
           "name",
-          "point"
+          "optionCount",
+          "options",
+          "point",
+          "supplyWillpower",
+          "usedWillpower"
         ]
       },
       "GridGemResponse": {
@@ -1861,13 +1939,171 @@
                 "type": "null"
               }
             ]
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "젬 이름(예: 질서의 젬 : 안정)"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "gemType": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "gemPoint": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32",
+                "description": "젬 기본 정보의 젬 포인트"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "corePoint": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32",
+                "description": "코어에 더하는 질서·혼돈 포인트"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "requiredWillpower": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "baseWillpower": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "willpowerEfficiency": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GemOptionResponse"
+            }
           }
         },
         "required": [
           "active",
+          "baseWillpower",
+          "corePoint",
+          "gemPoint",
+          "gemType",
           "grade",
           "icon",
-          "index"
+          "index",
+          "name",
+          "options",
+          "requiredWillpower",
+          "willpowerEfficiency"
+        ]
+      },
+      "GemOptionResponse": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "level": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "effect": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "효과 문구(예: 공격력 +0.03%)"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "percent": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "effect",
+          "level",
+          "name",
+          "percent"
+        ]
+      },
+      "CoreOptionResponse": {
+        "type": "object",
+        "properties": {
+          "threshold": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "text": {
+            "type": "string"
+          },
+          "active": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "active",
+          "text",
+          "threshold"
         ]
       },
       "GridEffectResponse": {
@@ -1893,11 +2129,52 @@
                 "type": "null"
               }
             ]
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "공식 Tooltip 문구(예: 공격력 +1.02%)"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "percent": {
+            "anyOf": [
+              {
+                "type": "number",
+                "description": "value의 % 수치"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
           "level",
-          "name"
+          "name",
+          "percent",
+          "value"
+        ]
+      },
+      "WillpowerResponse": {
+        "type": "object",
+        "properties": {
+          "used": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "supply": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "required": [
+          "supply",
+          "used"
         ]
       },
       "SkillResponse": {

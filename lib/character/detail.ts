@@ -201,3 +201,25 @@ export function gemBaseAttack(description: string | null | undefined) {
   );
   return match ? Number(match[1]) : null;
 }
+
+/**
+ * Ability stone 세공 bonus (F-5), e.g. "기본 공격력 +1.50%". Read from the
+ * stone's tooltip effect groups: a group titled with 보너스 first, otherwise
+ * any 기본 공격력 line. Null when the stone shows no active bonus.
+ */
+export function stoneBonus(stone: Equipment | null | undefined) {
+  const groups = stone?.detail?.effects ?? [];
+  const line = (lines: string[]) =>
+    lines
+      .map((value) => sourcePlainText(value)?.trim() ?? "")
+      .find((value) => /\+\s*[\d.]+\s*%/.test(value));
+  const titled = groups.find((group) => /보너스/.test(group.title));
+  const found =
+    (titled && line(titled.lines)) ??
+    line(groups.flatMap((group) => group.lines).filter((value) => /기본\s*공격력/.test(value)));
+  if (!found) return null;
+  const match = /([가-힣 ]+?)\s*\+\s*([\d.]+)\s*%/.exec(found);
+  return match
+    ? `${match[1].trim()} +${Number(match[2]).toFixed(2)}%`
+    : found;
+}

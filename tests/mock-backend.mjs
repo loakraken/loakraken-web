@@ -567,6 +567,40 @@ createServer(async (req, res) => {
     d.analysis.position = name === "상세서포터" ? "SUPPORT" : "DEALER";
     d.analysis.positionEvidence = name === "상세서포터" ? "절실한 구원" : d.className;
     d.analysis.positionRuleVersion = "position-v1";
+    // Ark grid detail (F-4): six cores with options, gems and willpower.
+    const icon = (path) => `https://cdn-lostark.game.onstove.com/efui_iconatlas/${path}`;
+    const cores = [
+      ["질서", "해", "살상연희", "use/use_13_96.png", 18, 4],
+      ["질서", "달", "쌍검난무", "use/use_13_97.png", 17, 3],
+      ["질서", "별", "쾌도난마", "use/use_13_98.png", 18, 4],
+      ["혼돈", "해", "현란한 공격", "use/use_13_99.png", 17, 3],
+      ["혼돈", "달", "불타는 일격", "use/use_13_100.png", 17, 3],
+      ["혼돈", "별", "공격", "use/use_13_101.png", 17, 3],
+    ];
+    const thresholds = [10, 14, 17, 18, 19, 20];
+    d.loadout.arkGrid = {
+      willpower: { used: 91, supply: 92 },
+      effects: [
+        ["공격력", 28, 1.02], ["아군 피해 강화", 25, 1.31], ["추가 피해", 51, 4.12],
+        ["낙인력", 32, 5.33], ["보스 피해", 4, 0.33],
+      ].map(([effectName, level, percent]) => ({ name: effectName, level, value: `${effectName} +${percent}%`, percent })),
+      slots: cores.map(([kind, body, coreName, path, point, active], index) => ({
+        index, icon: icon(path), name: `${kind}의 ${body} 코어 : ${coreName}`, point, grade: "유물",
+        coreType: `${kind} - ${body}`, supplyWillpower: 15 + (index % 2), usedWillpower: 15,
+        options: thresholds.map((threshold, i) => ({ threshold, text: `${coreName} ${threshold}P 효과 — 피해 ${(i + 1) * 1.5}% 증가`, active: i < active })),
+        activeOptionCount: active, optionCount: thresholds.length,
+        conditions: index < 3 ? ["질서 포인트 합 10 이상"] : [],
+        gems: [0, 1, 2, 3].map((g) => ({
+          index: g, icon: icon(kind === "질서" ? "use/use_13_202.png" : "use/use_13_205.png"), active: g < 3, grade: g === 0 ? "고대" : "유물",
+          name: `${kind}의 젬 : ${["안정", "견고", "불변", "침식"][g]}`, gemType: kind, gemPoint: 5 - (g % 2), corePoint: 5 - (g % 2),
+          requiredWillpower: 4 + (g % 2), baseWillpower: 8, willpowerEfficiency: 4,
+          options: [{ name: "공격력", level: 3 + g, effect: `공격력 +0.0${3 + g}%`, percent: (3 + g) / 100 }, { name: "보스 피해", level: 2, effect: "보스 피해 +0.08%", percent: 0.08 }],
+        })),
+      })),
+    };
+    const stone = d.loadout.equipment.find((item) => item.type === "어빌리티 스톤");
+    if (stone?.detail) stone.detail.effects = [...stone.detail.effects, { title: "세공 단계 보너스", lines: ["기본 공격력 +1.5%"] }];
+    d.analysis.arkGrid = { coreCount: 6, activeGemCount: 18, inactiveGemCount: 6, unknownGemCount: 0, orderPoints: 53, chaosPoints: 51 };
     if (name === "상세서포터") {
       d.className = "바드";
       d.loadout.arkPassive.effects = [

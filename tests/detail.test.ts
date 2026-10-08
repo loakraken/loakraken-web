@@ -12,6 +12,7 @@ import {
   relativeAgo,
   remainingLabel,
   skillSummary,
+  stoneBonus,
   type Skill,
 } from "../lib/character/detail";
 import type { Character } from "../lib/character/model";
@@ -208,4 +209,15 @@ test("gem kind follows the gem name and the base attack bonus is read from the s
   assert.equal(gemKind(null), null);
   assert.equal(gemBaseAttack("<FONT COLOR='#FFD200'>기본 공격력</FONT> +4.95%"), 4.95);
   assert.equal(gemBaseAttack("효과 없음"), null);
+});
+
+test("stone bonus reads the 세공 bonus line and ignores stones without one", () => {
+  const stone = (effects: { title: string; lines: string[] }[]) =>
+    ({ type: "어빌리티 스톤", detail: { effects } }) as unknown as Parameters<typeof stoneBonus>[0];
+  assert.equal(
+    stoneBonus(stone([{ title: "세공 단계 보너스", lines: ["<FONT COLOR='#FFD200'>기본 공격력 +1.5%</FONT>"] }])),
+    "기본 공격력 +1.50%",
+  );
+  assert.equal(stoneBonus(stone([{ title: "무작위 각인 효과", lines: ["[원한] 활성도 +6"] }])), null);
+  assert.equal(stoneBonus(null), null);
 });

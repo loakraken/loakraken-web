@@ -24,6 +24,7 @@ import {
   remainingLabel,
   skillSummary,
   statNumber,
+  stoneBonus,
   type Equipment,
   type Skill,
 } from "@/lib/character/detail";
@@ -483,24 +484,39 @@ function GemsPanel({ data }: { data: Character }) {
 function ArkGridPanel({ data }: { data: Character }) {
   const grid = data.loadout.arkGrid;
   const summary = data.analysis.arkGrid;
+  const [expanded, setExpanded] = useState(false);
   if (!grid)
     return (
       <Panel title="아크 그리드">
         <Empty state={data.coverage.arkGrid.state} />
       </Panel>
     );
+  const hasDetail = grid.slots.some(
+    (slot) => slot.options.length > 0 || slot.gems.some((gem) => gem.name),
+  );
   return (
     <Panel
       title="아크 그리드"
       meta={
-        summary
-          ? [
-              summary.orderPoints != null && `질서 ${summary.orderPoints}P`,
-              summary.chaosPoints != null && `혼돈 ${summary.chaosPoints}P`,
-            ]
-              .filter(Boolean)
-              .join(" · ") || undefined
-          : undefined
+        <span className={styles.gridMeta}>
+          {summary?.orderPoints != null && <span>질서 <b>{summary.orderPoints}</b>P</span>}
+          {summary?.chaosPoints != null && <span>혼돈 <b>{summary.chaosPoints}</b>P</span>}
+          {grid.willpower && (
+            <span>
+              의지력 <b>{grid.willpower.used}</b>/{grid.willpower.supply}
+            </span>
+          )}
+          {hasDetail && (
+            <button
+              type="button"
+              className={styles.textButton}
+              aria-pressed={expanded}
+              onClick={() => setExpanded(!expanded)}
+            >
+              {expanded ? "모두 접기" : "모두 펼치기"}
+            </button>
+          )}
+        </span>
       }
     >
       {grid.effects.length > 0 && (
@@ -508,7 +524,12 @@ function ArkGridPanel({ data }: { data: Character }) {
           {grid.effects.map((effect, i) => (
             <li key={i}>
               <span>{text(effect.name)}</span>
-              <b>Lv.{number(effect.level)}</b>
+              <span>
+                <small>Lv.{number(effect.level)}</small>
+                {effect.percent != null && (
+                  <b>+{effect.percent.toLocaleString("ko-KR", { maximumFractionDigits: 2 })}%</b>
+                )}
+              </span>
             </li>
           ))}
         </ul>
@@ -517,24 +538,81 @@ function ArkGridPanel({ data }: { data: Character }) {
         <ul className={styles.coreList}>
           {grid.slots.map((slot, i) => (
             <li key={i}>
-              <GameIcon src={slot.icon} grade={slot.grade} size={40} />
-              <div className={styles.itemText}>
-                <strong>{text(slot.name).replace(/^.*?:\s*/, "")}</strong>
-                <small>
-                  {text(slot.name).split(" : ")[0]} · {number(slot.point)}P
-                </small>
-              </div>
-              <span className={styles.coreGems}>
-                {slot.gems.map((gem, j) => (
-                  <GameIcon
-                    key={j}
-                    src={gem.icon}
-                    grade={gem.grade}
-                    size={24}
-                    inactive={gem.active === false}
-                  />
-                ))}
-              </span>
+              <details open={expanded || undefined} className={styles.core}>
+                <summary>
+                  <GameIcon src={slot.icon} grade={slot.grade} size={40} />
+                  <div className={styles.itemText}>
+                    <small>
+                      {slot.coreType ?? text(slot.name).split(" : ")[0]}
+                    </small>
+                    <strong data-grade={slot.grade ?? undefined}>
+                      {text(slot.name).replace(/^.*?:\s*/, "")}
+                    </strong>
+                  </div>
+                  <span className={styles.coreFacts}>
+                    <b>{number(slot.point)}P</b>
+                    {slot.optionCount > 0 && (
+                      <small>
+                        옵션 {slot.activeOptionCount}/{slot.optionCount}
+                      </small>
+                    )}
+                  </span>
+                  <span className={styles.coreGems}>
+                    {slot.gems.map((gem, j) => (
+                      <GameIcon
+                        key={j}
+                        src={gem.icon}
+                        grade={gem.grade}
+                        size={24}
+                        inactive={gem.active === false}
+                      />
+                    ))}
+                  </span>
+                </summary>
+                {(slot.options.length > 0 || slot.gems.some((gem) => gem.name)) && (
+                  <div className={styles.coreDetail}>
+                    {slot.options.length > 0 && (
+                      <ul className={styles.coreOptions}>
+                        {slot.options.map((option) => (
+                          <li key={option.threshold} data-active={option.active || undefined}>
+                            <b>{option.threshold}P</b>
+                            <SourceText value={option.text} />
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    {slot.gems.some((gem) => gem.name) && (
+                      <ul className={styles.gemRows}>
+                        {slot.gems.map((gem, j) => (
+                          <li key={j} data-inactive={gem.active === false || undefined}>
+                            <GameIcon src={gem.icon} grade={gem.grade} size={28} />
+                            <span>
+                              <strong>{text(gem.name)}</strong>
+                              <small>
+                                {[
+                                  gem.corePoint != null && `포인트 ${gem.corePoint}`,
+                                  gem.requiredWillpower != null && `의지력 ${gem.requiredWillpower}`,
+                                  ...gem.options.map(
+                                    (o) => `${o.name}${o.level != null ? ` Lv.${o.level}` : ""}`,
+                                  ),
+                                ]
+                                  .filter(Boolean)
+                                  .join(" · ")}
+                              </small>
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    {slot.supplyWillpower != null && (
+                      <p className={styles.coreNote}>
+                        의지력 {number(slot.usedWillpower)}/{slot.supplyWillpower}
+                        {slot.conditions.length > 0 && ` · ${slot.conditions.join(" · ")}`}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </details>
             </li>
           ))}
         </ul>
@@ -736,6 +814,7 @@ function StatsPanel({ data }: { data: Character }) {
 function EngravingsPanel({ data }: { data: Character }) {
   const effects = data.loadout.engravings?.arkPassiveEffects ?? [];
   const book = engravingBookString(effects);
+  const bonus = stoneBonus(groupEquipment(data.loadout.equipment).stone);
   return (
     <Panel
       title="각인"
@@ -762,6 +841,11 @@ function EngravingsPanel({ data }: { data: Character }) {
             data.coverage.engravings.state
           }
         />
+      )}
+      {bonus && (
+        <p className={styles.stoneBonus}>
+          세공 레벨 보너스 활성화 <b>({bonus})</b>
+        </p>
       )}
     </Panel>
   );

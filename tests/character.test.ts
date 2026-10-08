@@ -290,3 +290,21 @@ test("game images allow only official armory/icon hosts and grades map to known 
   assert.equal(gradeKey("신화"), "unknown");
   assert.equal(gradeKey(null), "unknown");
 });
+
+test("older responses without ark grid detail get rollout defaults", () => {
+  const envelope = full();
+  const grid = envelope.data.loadout.arkGrid;
+  delete grid.willpower;
+  for (const effect of grid.effects) delete effect.percent;
+  for (const slot of grid.slots) {
+    delete slot.options;
+    delete slot.optionCount;
+    for (const gem of slot.gems) delete gem.requiredWillpower;
+  }
+  assert.equal(isCharacterEnvelope(envelope), true);
+  assert.equal(grid.willpower, null);
+  assert.equal(grid.effects[0].percent, null);
+  assert.deepEqual(grid.slots[0].options, []);
+  assert.equal(grid.slots[0].optionCount, 0);
+  assert.equal(grid.slots[0].gems[0].requiredWillpower, null);
+});
