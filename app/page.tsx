@@ -8,7 +8,13 @@ import { getNews, getSchedule } from "@/lib/home/server";
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const [schedule, news] = await Promise.all([getSchedule(null), getNews(8)]);
+  // A slow backend must not hold the first HTML: give up after 2.5s and let
+  // the client fetch instead.
+  const prefetch = { timeoutMs: 2_500 };
+  const [schedule, news] = await Promise.all([
+    getSchedule(null, prefetch),
+    getNews(8, prefetch),
+  ]);
   // Request-time snapshot in a dynamic Server Component, shared with hydration.
   // eslint-disable-next-line react-hooks/purity
   const fetchedAt = Date.now();
