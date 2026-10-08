@@ -1,9 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   ELEMENT_LABEL,
-  slotsFor,
   sortCards,
 } from "@/lib/character/card-collection";
 import { CharacterQueryError, fetchCardCollection } from "@/lib/character/client";
@@ -22,6 +22,9 @@ export function CardCollectionPanel({ name }: { name: string }) {
     staleTime: 5 * 60_000,
   });
   const data = query.data?.data;
+  // Default to the character's role; either set list can be viewed (ILOA).
+  const [role, setRole] = useState<"dealer" | "supporter" | null>(null);
+  const shown = role ?? (data?.position === "SUPPORT" ? "supporter" : "dealer");
   const meta = data
     ? `원정대 ${data.rosterCharacters}명 중 ${data.observedCharacters}명 기록`
     : undefined;
@@ -44,26 +47,33 @@ export function CardCollectionPanel({ name }: { name: string }) {
         </div>
       ) : (
         <>
-          <ul className={styles.elements}>
-            {slotsFor(data).map((slot) => (
-              <li
-                key={slot.element}
-                data-recorded={slot.record ? "" : undefined}
-                title={
-                  slot.record?.recordedBy
-                    ? `${slot.setName} · ${slot.record.recordedBy}에서 기록`
-                    : slot.setName
-                }
+          <div className={styles.roles} role="group" aria-label="세트 종류">
+            {(["dealer", "supporter"] as const).map((value) => (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={shown === value}
+                onClick={() => setRole(value)}
               >
+                {value === "dealer" ? "딜러 세트" : "서포터 세트"}
+              </button>
+            ))}
+          </div>
+          <ul className={styles.elements}>
+            {data.elementRecords[shown].map((slot) => (
+              <li key={slot.element} data-recorded={slot.record ? "" : undefined}>
                 <i data-element={slot.element}>{ELEMENT_LABEL[slot.element]}</i>
                 <span className={styles.setName}>{slot.setName}</span>
                 {slot.record ? (
-                  <b>
-                    {slot.record.activeAwakening}각성
+                  <span className={styles.value}>
+                    <b>{slot.record.awakening}각성</b>
                     {slot.record.awakening > slot.record.activeAwakening && (
-                      <small> ({slot.record.awakening})</small>
+                      <small>{slot.record.activeAwakening}각 효과 적용</small>
                     )}
-                  </b>
+                    {slot.record.recordedBy && (
+                      <small className={styles.by}>{slot.record.recordedBy}</small>
+                    )}
+                  </span>
                 ) : (
                   <span className={styles.none}>미기록</span>
                 )}
@@ -82,7 +92,7 @@ export function CardCollectionPanel({ name }: { name: string }) {
               </summary>
               <ul className={styles.cards}>
                 {sortCards(data.cards).map((card) => (
-                  <li key={card.name} title={card.recordedBy ? `${card.recordedBy}에서 기록` : undefined}>
+                  <li key={card.name}>
                     <CardArt
                       src={card.icon}
                       name={card.name}
@@ -106,7 +116,8 @@ export function CardCollectionPanel({ name }: { name: string }) {
                     <header>
                       <strong>{set.setName}</strong>
                       <span>
-                        {set.cardCount}장 · {set.activeAwakening}각성
+                        {set.cardCount}장 · {set.awakening}각성
+                        {set.awakening > set.activeAwakening && ` (${set.activeAwakening}각 효과 적용)`}
                       </span>
                     </header>
                     <ul>
