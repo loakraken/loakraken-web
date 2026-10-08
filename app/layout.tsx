@@ -1,13 +1,8 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Noto_Sans_KR } from "next/font/google";
+import { Geist_Mono, Noto_Sans_KR } from "next/font/google";
 
 import "./globals.css";
 import Providers from "./providers";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
@@ -30,7 +25,7 @@ export default function RootLayout({ children }: Readonly<{
 }>) {
   return (
     <html lang="ko" style={{ colorScheme: "light" }}>
-      <body className={`${geistSans.variable} ${geistMono.variable} ${korean.variable} antialiased`}>
+      <body className={`${geistMono.variable} ${korean.variable} antialiased`}>
         <Providers>{children}</Providers>
       </body>
     </html>

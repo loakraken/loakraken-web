@@ -15,9 +15,7 @@
   min-height: 100vh;
   background: #fff;
   color: var(--ink);
-  font-family:
-    -apple-system, BlinkMacSystemFont, "SF Pro Text", var(--font-korean),
-    "Apple SD Gothic Neo", sans-serif;
+  font-family: var(--font-ui);
   font-size: 17px;
   line-height: 1.47;
   letter-spacing: -0.022em;
