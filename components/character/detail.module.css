@@ -284,9 +284,12 @@
 .quality[data-tier="normal"] {
   background: #3d9a4a;
 }
-.quality[data-tier="low"],
-.quality[data-tier="poor"] {
+.quality[data-tier="low"] {
   background: #b8a21e;
+}
+/* Below 10 the game (and other armory sites) switch to red. */
+.quality[data-tier="poor"] {
+  background: #d93a2b;
 }
 .tierText {
   color: #86868b;

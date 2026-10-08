@@ -163,6 +163,11 @@ test("passive nodes, quality tiers and engraving book string", () => {
   assert.equal(parsePassiveNode("설명만 있음").tree, null);
   assert.equal(qualityTier(100), "max");
   assert.equal(qualityTier(91), "high");
+  // Six bands like the game and the other armory sites: 100/90/70/30/10/0.
+  assert.deepEqual(
+    [100, 95, 75, 45, 15, 5, 0].map(qualityTier),
+    ["max", "high", "good", "normal", "low", "poor", "poor"],
+  );
   assert.equal(qualityTier(null), "none");
   assert.equal(
     engravingBookString([{ level: 4 }, { level: 4 }, { level: 3 }]),
