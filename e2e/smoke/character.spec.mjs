@@ -46,6 +46,7 @@ test.describe("캐릭터 탭 @smoke", () => {
   });
 
   test("원정대 탭에서 다른 캐릭터로 이동한다", async ({ page }) => {
+    // 이동 대상 캐릭터는 목 서버 기본 표본을 받는다.
     await page.goto(characterPath("상세", "siblings"));
     await page.getByRole("link", { name: /합성원정대/ }).first().click();
     await expect(page.getByRole("heading", { level: 1, name: "합성원정대" })).toBeVisible();

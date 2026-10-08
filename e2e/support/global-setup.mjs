@@ -8,6 +8,9 @@ const ROUTES = [
   "/tools/crit-speed",
   `/character/${encodeURIComponent("상세")}`,
   `/api/characters?characterName=${encodeURIComponent("상세")}`,
+  "/about",
+  "/api/home/schedule",
+  "/api/home/news",
   "/api/markets/tabs",
 ];
 
