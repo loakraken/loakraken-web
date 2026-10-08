@@ -599,7 +599,7 @@ createServer(async (req, res) => {
       })),
     };
     const stone = d.loadout.equipment.find((item) => item.type === "어빌리티 스톤");
-    if (stone?.detail) stone.detail.effects = [...stone.detail.effects, { title: "세공 단계 보너스", lines: ["기본 공격력 +1.5%"] }];
+    if (stone?.detail) stone.detail.effects = [...stone.detail.effects, { title: "무작위 각인 효과", lines: ["[레벨 보너스] 기본 공격력 +1.50%"] }];
     d.analysis.arkGrid = { coreCount: 6, activeGemCount: 18, inactiveGemCount: 6, unknownGemCount: 0, orderPoints: 53, chaosPoints: 51 };
     if (name === "상세서포터") {
       d.className = "바드";

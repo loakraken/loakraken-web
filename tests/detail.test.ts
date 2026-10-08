@@ -218,6 +218,11 @@ test("stone bonus reads the 세공 bonus line and ignores stones without one", (
     stoneBonus(stone([{ title: "세공 단계 보너스", lines: ["<FONT COLOR='#FFD200'>기본 공격력 +1.5%</FONT>"] }])),
     "기본 공격력 +1.50%",
   );
+  // Real tooltip shape (backend LostArkEquipmentTooltipTest): the bonus is a line inside 무작위 각인 효과.
+  assert.equal(
+    stoneBonus(stone([{ title: "무작위 각인 효과", lines: ["[원한] 활성도 +6", "[레벨 보너스] 기본 공격력 +1.50%"] }])),
+    "기본 공격력 +1.50%",
+  );
   assert.equal(stoneBonus(stone([{ title: "무작위 각인 효과", lines: ["[원한] 활성도 +6"] }])), null);
   assert.equal(stoneBonus(null), null);
 });

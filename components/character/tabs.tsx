@@ -510,7 +510,7 @@ function ArkGridPanel({ data }: { data: Character }) {
             <button
               type="button"
               className={styles.textButton}
-              aria-pressed={expanded}
+              aria-expanded={expanded}
               onClick={() => setExpanded(!expanded)}
             >
               {expanded ? "모두 접기" : "모두 펼치기"}
