@@ -4,24 +4,26 @@ import { cn } from "cn"
 
 // Pill buttons shared by the tools, market and search screens. Press responds
 // on pointer-down (scale), hover only on precise pointers, and the focus ring
-// comes from the global :focus-visible rule.
+// comes from the global :focus-visible rule. Base UI marks disabled buttons
+// with data-disabled, including loading ones that stay focusable.
 const buttonVariants = cva(
   [
-    "inline-flex shrink-0 items-center justify-center gap-2 rounded-full font-semibold whitespace-nowrap select-none",
+    "relative inline-flex shrink-0 items-center justify-center gap-2 rounded-full font-semibold whitespace-nowrap select-none",
     "transition-[background-color,border-color,color,transform] duration-(--duration-fast) ease-(--ease-out)",
-    "not-disabled:active:scale-(--press-scale)",
-    "disabled:cursor-not-allowed disabled:opacity-40",
+    "not-data-disabled:active:scale-(--press-scale)",
+    "[&[data-disabled]:not([aria-busy=true])]:cursor-not-allowed [&[data-disabled]:not([aria-busy=true])]:opacity-40",
+    "aria-busy:cursor-progress",
     "[&_svg]:pointer-events-none [&_svg]:shrink-0",
   ],
   {
     variants: {
       variant: {
         primary:
-          "bg-primary text-primary-foreground pointer-fine:not-disabled:hover:bg-primary-hover",
+          "bg-primary text-primary-foreground pointer-fine:not-data-disabled:hover:bg-primary-hover",
         secondary:
-          "bg-foreground text-background pointer-fine:not-disabled:hover:bg-secondary-foreground",
+          "bg-foreground text-background pointer-fine:not-data-disabled:hover:bg-secondary-foreground",
         outline:
-          "border border-faint text-foreground pointer-fine:not-disabled:hover:bg-muted",
+          "border border-faint text-foreground pointer-fine:not-data-disabled:hover:bg-muted",
       },
       size: {
         md: "h-11 px-[22px] text-(length:--text-body) [&_svg]:size-[18px]",
@@ -35,15 +37,45 @@ const buttonVariants = cva(
   }
 )
 
-type ButtonProps = ButtonPrimitive.Props & VariantProps<typeof buttonVariants>
+type ButtonProps = ButtonPrimitive.Props &
+  VariantProps<typeof buttonVariants> & {
+    /** Busy state: keeps focus and width (label hidden under a spinner). */
+    loading?: boolean
+  }
 
-function Button({ className, variant, size, ...props }: ButtonProps) {
+function Button({
+  className,
+  variant,
+  size,
+  loading = false,
+  disabled,
+  focusableWhenDisabled,
+  children,
+  ...props
+}: ButtonProps) {
   return (
     <ButtonPrimitive
       data-slot="button"
       className={cn(buttonVariants({ variant, size }), className)}
+      disabled={disabled || loading}
+      focusableWhenDisabled={loading || focusableWhenDisabled}
+      aria-busy={loading || undefined}
       {...props}
-    />
+    >
+      {loading ? (
+        <>
+          <span className="invisible inline-flex items-center gap-2">
+            {children}
+          </span>
+          <span
+            aria-hidden="true"
+            className="absolute size-4 animate-spin rounded-full border-2 border-current border-r-transparent motion-reduce:animate-none"
+          />
+        </>
+      ) : (
+        children
+      )}
+    </ButtonPrimitive>
   )
 }
 
