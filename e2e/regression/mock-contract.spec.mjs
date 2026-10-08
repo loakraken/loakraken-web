@@ -31,11 +31,14 @@ test.describe("목 응답 계약 @regression", () => {
     expect(await response.json()).toMatchObject({ ok: false, error: { code: "INVALID_API_RESPONSE" } });
   });
 
-  test("원정대·이력·조회수 응답이 계약 검증을 통과한다", async ({ request }) => {
+  test("원정대·이력·조회수·카드 기록 응답이 계약 검증을 통과한다", async ({ request }) => {
     for (const path of [
       `/api/characters/siblings?${q({ characterName: "상세" })}`,
       `/api/characters/history?${q({ characterName: "상세", serverName: "아만" })}`,
       `/api/characters/views?${q({ characterName: "상세" })}`,
+      ...["상세", "상세서포터", "기록없음"].map(
+        (name) => `/api/characters/card-collection?${q({ characterName: name })}`,
+      ),
     ]) {
       const response = await request.get(path);
       const body = await response.json();
@@ -58,5 +61,19 @@ test.describe("목 응답 계약 @regression", () => {
     const history = await (await request.get("/api/markets/items/6861012/history")).json();
     expect(history.error?.code).toBeUndefined();
     expect(history.ok).toBe(true);
+  });
+
+  test("홈 일정(요일별)·소식 응답이 계약 검증을 통과한다", async ({ request }) => {
+    const today = new Date(Date.now() + 9 * 3_600_000);
+    const dates = [null, ...[-1, 1, 3].map((d) => new Date(today.getTime() + d * 86_400_000).toISOString().slice(0, 10))];
+    for (const date of dates) {
+      const path = date ? `/api/home/schedule?${q({ date })}` : "/api/home/schedule";
+      const body = await (await request.get(path)).json();
+      expect(body.error?.code, path).toBeUndefined();
+      expect(body.ok, path).toBe(true);
+    }
+    const news = await (await request.get("/api/home/news")).json();
+    expect(news.error?.code).toBeUndefined();
+    expect(news.ok).toBe(true);
   });
 });
