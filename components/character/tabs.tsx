@@ -235,11 +235,12 @@ export function TabBar({
 function Quality({ value }: { value: number | null | undefined }) {
   if (value == null) return null;
   return (
-    <span className={styles.quality} data-tier={qualityTier(value)}>
-      <i aria-hidden="true">
-        <s style={{ width: `${Math.max(4, Math.min(100, value))}%` }} />
-      </i>
-      <b>품질 {value}</b>
+    <span
+      className={styles.quality}
+      data-tier={qualityTier(value)}
+      aria-label={`품질 ${value}`}
+    >
+      {value}
     </span>
   );
 }
@@ -305,19 +306,19 @@ function EquipmentPanel({ data }: { data: Character }) {
                   <strong>
                     {SLOT_LABEL[item.type ?? ""] ?? text(item.type)}
                     {refine != null && <em> +{refine}</em>}
+                    {item.detail?.tier != null && (
+                      <span className={styles.tierText}> T{item.detail.tier}</span>
+                    )}
                   </strong>
-                  <small>
-                    {[
-                      item.detail?.tier != null && `T${item.detail.tier}`,
-                      item.detail?.itemLevel != null &&
-                        number(item.detail.itemLevel),
-                      text(item.grade),
-                    ]
-                      .filter(Boolean)
-                      .join(" · ")}
-                  </small>
+                  <span className={styles.badges}>
+                    <Quality value={item.detail?.quality} />
+                    {item.detail?.itemLevel != null && (
+                      <span className={styles.levelBadge} aria-label={`아이템 레벨 ${item.detail.itemLevel}`}>
+                        {item.detail.itemLevel}
+                      </span>
+                    )}
+                  </span>
                 </div>
-                <Quality value={item.detail?.quality} />
               </li>
             );
           })}
@@ -327,16 +328,23 @@ function EquipmentPanel({ data }: { data: Character }) {
             <li key={i} className={styles.item}>
               <GameIcon src={item.icon} grade={item.grade} />
               <div className={styles.itemText}>
-                <strong>{text(item.type)}</strong>
-                <small>
-                  {[
-                    item.detail?.tier != null && `T${item.detail.tier}`,
-                    text(item.grade),
-                  ]
-                    .filter(Boolean)
-                    .join(" · ")}
-                </small>
-                <Quality value={item.detail?.quality} />
+                <strong>
+                  {text(item.type)}
+                  {item.detail?.tier != null && (
+                    <span className={styles.tierText}> T{item.detail.tier}</span>
+                  )}
+                </strong>
+                <span className={styles.badges}>
+                  <Quality value={item.detail?.quality} />
+                  {item.detail?.arkPassivePoint && (
+                    <span
+                      className={styles.levelBadge}
+                      aria-label={`${item.detail.arkPassivePoint.name} ${item.detail.arkPassivePoint.value}`}
+                    >
+                      +{item.detail.arkPassivePoint.value}
+                    </span>
+                  )}
+                </span>
               </div>
               {item.detail?.polishEffects.length ? (
                 <ul className={styles.gradeList}>
