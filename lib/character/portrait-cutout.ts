@@ -7,6 +7,31 @@ export type Rgb = readonly [number, number, number];
 
 const NEAR = 10; // channel distance treated as pure backdrop
 const STOP = 56; // distance where the subject begins; flood fill stops here
+// Skill effects are light added over the black backdrop. Coloured, smooth
+// pixels are treated as emitted light (translucent, hue at full brightness)
+// instead of a dark matte, so smoke reads as light on a pale surface. Bright
+// effect cores and textured or desaturated detail keep the original pixel.
+const GLOW_MAX = 170; // emission at this brightness is fully opaque
+const GLOW_FADE = [95, 150] as const; // brightness where cores take over
+const GLOW_CHROMA_HI = 0.55; // (max - min) / max where light is clearly coloured
+
+const smooth = (from: number, to: number, x: number) => {
+  const t = Math.min(1, Math.max(0, (x - from) / (to - from)));
+  return t * t * (3 - 2 * t);
+};
+
+/** 0 = keep the original pixel, 1 = colour that behaves like emitted light. */
+export function glowWeight(r: number, g: number, b: number) {
+  const max = Math.max(r, g, b);
+  if (max === 0) return 0;
+  const chroma = (max - Math.min(r, g, b)) / max;
+  // Dim fringes count as light at a lower chroma than mid-bright pixels.
+  const low = 0.15 + 0.17 * smooth(70, 120, max);
+  return (
+    smooth(low, GLOW_CHROMA_HI, chroma) *
+    (1 - smooth(GLOW_FADE[0], GLOW_FADE[1], max))
+  );
+}
 
 function sampleBackdrop(
   data: Uint8ClampedArray,
@@ -58,6 +83,24 @@ export function cutoutPortrait(
     return null;
 
   const total = width * height;
+  const source = data.slice();
+  const lum = (p: number) =>
+    source[p * 4] * 0.3 + source[p * 4 + 1] * 0.59 + source[p * 4 + 2] * 0.11;
+  // Per-pixel light weight, kept for the speck clean-up pass below.
+  const lightOf = new Float32Array(total);
+  // Glow is a smooth gradient; metal, cloth and skin carry texture. The largest
+  // brightness step to a neighbour keeps textured surfaces opaque.
+  const smoothness = (p: number) => {
+    const x = p % width;
+    const here = lum(p);
+    let step = 0;
+    if (x > 0) step = Math.max(step, Math.abs(here - lum(p - 1)));
+    if (x < width - 1) step = Math.max(step, Math.abs(here - lum(p + 1)));
+    if (p >= width) step = Math.max(step, Math.abs(here - lum(p - width)));
+    if (p < total - width)
+      step = Math.max(step, Math.abs(here - lum(p + width)));
+    return 1 - smooth(4, 12, step);
+  };
   const seen = new Uint8Array(total);
   const stack: number[] = [];
   for (let x = 0; x < width; x++) stack.push(x, (height - 1) * width + x);
@@ -69,29 +112,56 @@ export function cutoutPortrait(
     if (seen[p]) continue;
     seen[p] = 1;
     const i = p * 4;
+    const sr = source[i];
+    const sg = source[i + 1];
+    const sb = source[i + 2];
     const distance = Math.max(
-      Math.abs(data[i] - br),
-      Math.abs(data[i + 1] - bg),
-      Math.abs(data[i + 2] - bb),
+      Math.abs(sr - br),
+      Math.abs(sg - bg),
+      Math.abs(sb - bb),
     );
-    if (distance >= STOP) continue;
-    const alpha = distance <= NEAR ? 0 : (distance - NEAR) / (STOP - NEAR);
-    if (alpha === 0) {
+    // How much this pixel behaves like emitted light (coloured and smooth).
+    const light = glowWeight(sr, sg, sb) * smoothness(p);
+    lightOf[p] = light;
+    if (distance >= STOP && light < 0.02) continue;
+
+    // Matte model: the original colour composited over the backdrop.
+    const matteAlpha =
+      distance >= STOP
+        ? 1
+        : distance <= NEAR
+          ? 0
+          : (distance - NEAR) / (STOP - NEAR);
+    const unblend = (value: number, back: number) =>
+      matteAlpha === 0
+        ? 0
+        : Math.min(
+            255,
+            Math.max(0, (value - back * (1 - matteAlpha)) / matteAlpha),
+          );
+    // Emission model: light added over the backdrop, hue at full brightness.
+    const er = Math.max(0, sr - br);
+    const eg = Math.max(0, sg - bg);
+    const eb = Math.max(0, sb - bb);
+    const peak = Math.max(er, eg, eb, 1);
+    const glowAlpha = Math.min(1, peak / GLOW_MAX);
+
+    const alpha = matteAlpha * (1 - light) + glowAlpha * light;
+    if (alpha < 0.004) {
       data[i + 3] = 0;
     } else {
-      // Recover the foreground colour that was composited over the backdrop.
-      data[i] = Math.min(
-        255,
-        Math.max(0, (data[i] - br * (1 - alpha)) / alpha),
-      );
-      data[i + 1] = Math.min(
-        255,
-        Math.max(0, (data[i + 1] - bg * (1 - alpha)) / alpha),
-      );
-      data[i + 2] = Math.min(
-        255,
-        Math.max(0, (data[i + 2] - bb * (1 - alpha)) / alpha),
-      );
+      const channel = (value: number, back: number, emitted: number) =>
+        Math.min(
+          255,
+          Math.round(
+            (unblend(value, back) * matteAlpha * (1 - light) +
+              (emitted / peak) * 255 * glowAlpha * light) /
+              alpha,
+          ),
+        );
+      data[i] = channel(sr, br, er);
+      data[i + 1] = channel(sg, bg, eg);
+      data[i + 2] = channel(sb, bb, eb);
       data[i + 3] = Math.round(alpha * 255);
     }
     removed++;
@@ -101,6 +171,24 @@ export function cutoutPortrait(
     if (p >= width) stack.push(p - width);
     if (p < total - width) stack.push(p + width);
   }
+
+  // Isolated textured pixels inside translucent smoke stay opaque and read as
+  // specks; average the alpha over the 3x3 neighbourhood wherever light was
+  // involved (subject pixels with no light weight keep their alpha).
+  const alphas = new Uint8ClampedArray(total);
+  for (let p = 0; p < total; p++) alphas[p] = data[p * 4 + 3];
+  for (let y = 1; y < height - 1; y++)
+    for (let x = 1; x < width - 1; x++) {
+      const p = y * width + x;
+      let near = 0;
+      for (let dy = -1; dy <= 1; dy++)
+        for (let dx = -1; dx <= 1; dx++) near = Math.max(near, lightOf[p + dy * width + dx]);
+      if (near < 0.05) continue;
+      let sum = 0;
+      for (let dy = -1; dy <= 1; dy++)
+        for (let dx = -1; dx <= 1; dx++) sum += alphas[p + dy * width + dx];
+      data[p * 4 + 3] = Math.round(sum / 9);
+    }
 
   let r = 0;
   let g = 0;

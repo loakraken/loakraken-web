@@ -88,3 +88,26 @@ test("glow tint keeps the hue, lifts dull colours and keeps greys neutral", asyn
   const blue = glowTint([30, 60, 200]);
   assert.ok(blue[2] > blue[0] && blue[2] > blue[1]);
 });
+
+test("dim coloured effect light connected to the backdrop becomes translucent, enclosed or neutral darks stay opaque", () => {
+  // Red effect smoke (beyond the backdrop threshold) reaching the border at x=0..2,
+  // a neutral dark cloth patch connected to the border, and red cloth enclosed by
+  // the bright subject ring.
+  const paint = (x: number, y: number): [number, number, number] => {
+    const ring = x >= 10 && x <= 17 && y >= 6 && y <= 13;
+    const enclosed = x >= 13 && x <= 14 && y >= 9 && y <= 10;
+    if (enclosed) return [120, 20, 15];
+    if (ring) return [200, 180, 150];
+    if (x <= 2 && y >= 4 && y <= 15) return [120, 22, 18];
+    if (x >= 4 && x <= 6 && y >= 16) return [86, 82, 78];
+    return [18, 19, 22];
+  };
+  const data = image(paint);
+  cutoutPortrait(data, W, H);
+  const [r, g, b, a] = at(data, 1, 8);
+  assert.ok(a > 60 && a < 220, `translucent smoke alpha ${a}`);
+  assert.ok(r > 150 && r > g * 3 && r > b * 3, `smoke is lifted toward a bright red emission ${[r, g, b]}`);
+  assert.equal(at(data, 13, 9)[3], 255, "red detail enclosed by the subject stays opaque");
+  assert.equal(at(data, 5, 18)[3], 255, "neutral dark detail stops the fill");
+  assert.equal(at(data, 12, 7)[3], 255, "bright subject stays opaque");
+});
