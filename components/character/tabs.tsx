@@ -12,6 +12,8 @@ import {
   GRADE_LABEL,
   SLOT_LABEL,
   averageQuality,
+  gemBaseAttack,
+  gemKind,
   engravingBookString,
   groupEquipment,
   isGrade,
@@ -284,80 +286,93 @@ function EquipmentPanel({ data }: { data: Character }) {
       </Panel>
     );
   return (
-    <Panel
-      title="장비"
-      meta={
-        [
-          armorQ != null && `방어구 품질 ${armorQ}`,
-          accQ != null && `장신구 품질 ${accQ}`,
-        ]
-          .filter(Boolean)
-          .join(" · ") || undefined
-      }
-    >
+    <Panel title="장비">
       <div className={styles.equipGrid}>
-        <ul className={styles.itemList}>
-          {groups.armor.map((item, i) => {
-            const refine = refineOf(item);
-            return (
+        <div>
+          {armorQ != null && (
+            <p className={styles.columnHead}>
+              품질 <b>{armorQ}</b>
+            </p>
+          )}
+          <ul className={styles.itemList}>
+            {groups.armor.map((item, i) => {
+              const refine = refineOf(item);
+              return (
+                <li key={i} className={styles.item}>
+                  <GameIcon src={item.icon} grade={item.grade} />
+                  <div className={styles.itemText}>
+                    <strong>
+                      {SLOT_LABEL[item.type ?? ""] ?? text(item.type)}
+                      {refine != null && <em> +{refine}</em>}
+                      {item.detail?.tier != null && (
+                        <span className={styles.tierText}>
+                          {" "}
+                          T{item.detail.tier}
+                        </span>
+                      )}
+                    </strong>
+                    <span className={styles.badges}>
+                      <Quality value={item.detail?.quality} />
+                      {item.detail?.itemLevel != null && (
+                        <span
+                          className={styles.levelBadge}
+                          aria-label={`아이템 레벨 ${item.detail.itemLevel}`}
+                        >
+                          {item.detail.itemLevel}
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+        <div>
+          {accQ != null && (
+            <p className={styles.columnHead}>
+              품질 <b>{accQ}</b>
+            </p>
+          )}
+          <ul className={styles.itemList}>
+            {groups.accessories.map((item, i) => (
               <li key={i} className={styles.item}>
                 <GameIcon src={item.icon} grade={item.grade} />
                 <div className={styles.itemText}>
                   <strong>
-                    {SLOT_LABEL[item.type ?? ""] ?? text(item.type)}
-                    {refine != null && <em> +{refine}</em>}
+                    {text(item.type)}
                     {item.detail?.tier != null && (
-                      <span className={styles.tierText}> T{item.detail.tier}</span>
+                      <span className={styles.tierText}>
+                        {" "}
+                        T{item.detail.tier}
+                      </span>
                     )}
                   </strong>
                   <span className={styles.badges}>
                     <Quality value={item.detail?.quality} />
-                    {item.detail?.itemLevel != null && (
-                      <span className={styles.levelBadge} aria-label={`아이템 레벨 ${item.detail.itemLevel}`}>
-                        {item.detail.itemLevel}
+                    {item.detail?.arkPassivePoint && (
+                      <span
+                        className={styles.levelBadge}
+                        aria-label={`${item.detail.arkPassivePoint.name} ${item.detail.arkPassivePoint.value}`}
+                      >
+                        +{item.detail.arkPassivePoint.value}
                       </span>
                     )}
                   </span>
                 </div>
+                {item.detail?.polishEffects.length ? (
+                  <ul className={styles.gradeList}>
+                    {item.detail.polishEffects.map((effect, j) => (
+                      <GradeLine key={j} grade={effect.grade}>
+                        {effect.name} {effect.value}
+                      </GradeLine>
+                    ))}
+                  </ul>
+                ) : null}
               </li>
-            );
-          })}
-        </ul>
-        <ul className={styles.itemList}>
-          {groups.accessories.map((item, i) => (
-            <li key={i} className={styles.item}>
-              <GameIcon src={item.icon} grade={item.grade} />
-              <div className={styles.itemText}>
-                <strong>
-                  {text(item.type)}
-                  {item.detail?.tier != null && (
-                    <span className={styles.tierText}> T{item.detail.tier}</span>
-                  )}
-                </strong>
-                <span className={styles.badges}>
-                  <Quality value={item.detail?.quality} />
-                  {item.detail?.arkPassivePoint && (
-                    <span
-                      className={styles.levelBadge}
-                      aria-label={`${item.detail.arkPassivePoint.name} ${item.detail.arkPassivePoint.value}`}
-                    >
-                      +{item.detail.arkPassivePoint.value}
-                    </span>
-                  )}
-                </span>
-              </div>
-              {item.detail?.polishEffects.length ? (
-                <ul className={styles.gradeList}>
-                  {item.detail.polishEffects.map((effect, j) => (
-                    <GradeLine key={j} grade={effect.grade}>
-                      {effect.name} {effect.value}
-                    </GradeLine>
-                  ))}
-                </ul>
-              ) : null}
-            </li>
-          ))}
-        </ul>
+            ))}
+          </ul>
+        </div>
       </div>
       <div className={styles.equipFoot}>
         {groups.stone && (
@@ -423,12 +438,20 @@ function EquipmentPanel({ data }: { data: Character }) {
 function GemsPanel({ data }: { data: Character }) {
   const gems = data.loadout.gems?.items ?? [];
   const summary = data.analysis.gems;
+  const baseAttack = gemBaseAttack(data.loadout.gems?.effects?.description);
   return (
     <Panel
       title="보석"
       meta={
         summary && gems.length
-          ? `${summary.count}개 · 평균 Lv.${number(summary.averageLevel)} · 피해 ${summary.damageEffectCount} · 쿨감 ${summary.cooldownEffectCount}`
+          ? [
+              `평균 ${number(summary.averageLevel)}`,
+              `뎀 ${summary.damageEffectCount}`,
+              `쿨 ${summary.cooldownEffectCount}`,
+              baseAttack != null && `기본 공격력 +${baseAttack}%`,
+            ]
+              .filter(Boolean)
+              .join(" · ")
           : undefined
       }
     >
@@ -437,8 +460,9 @@ function GemsPanel({ data }: { data: Character }) {
           {gems.map((gem, i) => (
             <li key={i}>
               <GameIcon src={gem.icon} grade={gem.grade} size={44} />
-              <span>
-                {gem.level != null && gem.level > 0 ? `Lv.${gem.level}` : "?"}
+              <span data-kind={gemKind(gem.name) ?? undefined}>
+                {gem.level != null && gem.level > 0 ? gem.level : "?"}
+                {gemKind(gem.name) ?? ""}
               </span>
               <small>{text(gem.name)}</small>
             </li>
@@ -906,7 +930,9 @@ export function ArkPassiveTab({ data }: { data: Character }) {
                           </small>
                         </strong>
                         <p>
-                          <SourceText value={effect.effect ?? effect.description} />
+                          <SourceText
+                            value={effect.effect ?? effect.description}
+                          />
                         </p>
                       </div>
                     </li>

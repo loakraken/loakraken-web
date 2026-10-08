@@ -182,3 +182,22 @@ export function statNumber(stats: Character["stats"], type: string) {
   const value = stats.find((stat) => stat.type === type)?.value;
   return value && /^\d+$/.test(value) ? Number(value) : null;
 }
+
+/* Gems --------------------------------------------------------------------- */
+
+/** Short kind label used by armory sites: damage, cooldown or radiance gems. */
+export function gemKind(name: string | null | undefined) {
+  if (!name) return null;
+  if (/겁화|멸화/.test(name)) return "뎀";
+  if (/작열|홍염/.test(name)) return "쿨";
+  if (/광휘/.test(name)) return "광휘";
+  return null;
+}
+
+/** "기본 공격력 +4.95%" style line from the gem set description, if present. */
+export function gemBaseAttack(description: string | null | undefined) {
+  const match = /기본\s*공격력[^\d+]*\+?\s*([\d.]+)\s*%/.exec(
+    sourcePlainText(description) ?? "",
+  );
+  return match ? Number(match[1]) : null;
+}
