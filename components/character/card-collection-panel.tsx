@@ -67,7 +67,12 @@ export function CardCollection({ name }: { name: string }) {
             {data.elementRecords[shown].map((slot) => {
               const stage = slot.record ? appliedStage(slot.record) : null;
               return (
-                <li key={slot.element} data-recorded={slot.record ? "" : undefined}>
+                <li
+                  key={slot.element}
+                  data-recorded={slot.record ? "" : undefined}
+                  aria-label={`${ELEMENT_LABEL[slot.element]} ${slot.setName} ${slot.record ? `${slot.record.awakening}각성` : "미기록"}`}
+                  title={slot.setName}
+                >
                   <span className={styles.slotHead}>
                     <i data-element={slot.element}>{ELEMENT_LABEL[slot.element]}</i>
                     <span className={styles.setName}>{slot.setName}</span>
