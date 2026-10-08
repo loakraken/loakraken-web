@@ -31,7 +31,7 @@ npx playwright show-report       # 실패 시 trace·스크린샷
 | `smoke/site-nav.spec.mjs` | 상단 메뉴 이동·호버·↓/Esc/←→, 390px 메뉴 시트·Esc 포커스 복귀 |
 | `smoke/character.spec.mjs` | 캐릭터 8개 탭, 탭 이동·새로고침 유지, 원정대 이동, 404·429·502·503·504 |
 | `smoke/market.spec.mjs` | 시세 분류·정렬·페이지·품목 추이·기간 |
-| `smoke/tools.spec.mjs` | 재련 기대 비용(계산·장비 불러오기), 재료 구매 견적, 치적·뭉가·음돌 |
+| `smoke/tools.spec.mjs` | 재련 기대 비용(계산·장비 불러오기), 재료 구매 견적, 치적·뭉가·음돌, 경매 입찰가(계산·인원·화살표 키) |
 | `regression/mock-contract.spec.mjs` | 목 응답이 앱 프록시의 계약 검증을 통과하는지(캐릭터·원정대·이력·조회수·카드 기록·시세·홈) |
 | `regression/detail-mock.spec.mjs` | '상세'·'상세서포터' 전 탭에 계약 실패 화면이 없음 |
 | `regression/aria-expanded.spec.mjs` | 펼침 버튼 aria-expanded(아크 그리드·기록 표·스킬·상단 메뉴, 전 탭 검사) |

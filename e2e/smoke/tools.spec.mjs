@@ -69,3 +69,31 @@ test.describe("치적·뭉가·음돌 @smoke", () => {
     await expect(page.getByText("캐릭터를 찾지 못했어요")).toBeVisible();
   });
 });
+
+test.describe("경매 입찰가 @smoke", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto("/tools/auction");
+    await expect(page.getByRole("heading", { level: 1, name: "경매 입찰가" })).toBeVisible();
+  });
+
+  test("가격을 넣으면 인원에 맞는 손익 분기를 계산한다", async ({ page }) => {
+    const summary = page.getByRole("region", { name: "요약" });
+    await expect(summary).toContainText("—");
+    await page.getByRole("textbox", { name: "아이템 가격 (거래소 최저가)" }).fill("10000");
+    // 8인 기본: 판매 10000×0.95×7/8 = 8,312(내림), 직접 사용 10000×7/8 = 8,750
+    await expect(summary).toContainText("8,312G");
+    await expect(summary).toContainText("8,750G");
+    await page.getByRole("group", { name: "파티 인원" }).getByText("4인", { exact: true }).click();
+    await expect(page.getByRole("radio", { name: "4인" })).toBeChecked();
+    // 4인: 직접 사용 10000×3/4 = 7,500
+    await expect(summary).toContainText("7,500G");
+    await expect(page.getByRole("region", { name: "입찰가" }).getByRole("cell").first()).not.toHaveText("—");
+    await expectNoHorizontalOverflow(page);
+  });
+
+  test("파티 인원을 화살표 키로 고른다", async ({ page }) => {
+    await page.getByRole("radio", { name: "8인" }).focus();
+    await page.keyboard.press("ArrowRight");
+    await expect(page.getByRole("radio", { name: "16인" })).toBeChecked();
+  });
+});

@@ -6,6 +6,7 @@ const ROUTES = [
   "/tools/refining",
   "/tools/material-quote",
   "/tools/crit-speed",
+  "/tools/auction",
   `/character/${encodeURIComponent("상세")}`,
   `/api/characters?characterName=${encodeURIComponent("상세")}`,
   "/about",
