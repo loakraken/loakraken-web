@@ -56,7 +56,7 @@ try {
   await check(
     "evidence opens with keyboard and copies actual response value",
     async () => {
-      const summary = page.getByText("관측 근거 보기", { exact: true }).first();
+      const summary = page.getByText("원본 데이터 보기", { exact: true }).first();
       await summary.focus();
       await page.keyboard.press("Enter");
       assert.equal(

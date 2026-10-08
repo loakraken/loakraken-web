@@ -39,6 +39,7 @@ import {
   type MaterialQuote,
 } from "@/lib/market/model";
 import { toQuoteRequest, usePlan, type PlanRow } from "@/lib/market/store";
+import { SiteHeader } from "@/components/site/site-header";
 import styles from "./material-quote.module.css";
 
 const kst = new Intl.DateTimeFormat("ko-KR", {
@@ -215,7 +216,7 @@ function ItemSearch({
         <div className={styles.results} aria-live="polite">
           <p className={styles.caption}>
             1페이지 {results.items.length}개 · 전체 {count(results.totalCount)}
-            개 · {time(results.observedAt)} 관측
+            개 · {time(results.observedAt)} 기준
           </p>
           {results.items.length === 0 ? (
             <p className={styles.empty}>
@@ -464,7 +465,7 @@ function Result({ quote }: { quote: MaterialQuote }) {
                 <p className={styles.caption}>
                   묶음({count(line.bundleCount)}개)당{" "}
                   {formatGold(line.pricePerBundle)} 골드 ·{" "}
-                  {time(line.observedAt)} 관측
+                  {time(line.observedAt)} 기준
                 </p>
               )}
             </li>
@@ -473,8 +474,8 @@ function Result({ quote }: { quote: MaterialQuote }) {
       </ul>
       <footer className={styles.resultFooter}>
         <p>
-          {time(quote.calculatedAt)} 계산 · 규칙 {quote.ruleVersion}. 관측
-          시각은 항목마다 다를 수 있으며 실시간 시세가 아니에요.
+          {time(quote.calculatedAt)} 계산 · 규칙 {quote.ruleVersion}. 시세
+          기준 시각은 항목마다 다를 수 있으며 실시간 시세가 아니에요.
         </p>
         <p>
           판매 수수료·페온·재련 골드와 실링·이벤트 보정은 포함하지 않아요.
@@ -523,19 +524,7 @@ function MaterialQuoteContent() {
       <a className={styles.skip} href="#quote-main">
         본문으로 건너뛰기
       </a>
-      <header className={styles.header}>
-        <Link className={styles.brand} href="/">
-          LOAKraken
-        </Link>
-        <nav className={styles.nav} aria-label="주요 메뉴">
-          <Link href="/">캐릭터 검색</Link>
-          <Link href="/market">시세</Link>
-          <Link href="/tools/material-quote" aria-current="page">
-            재료 견적
-          </Link>
-          <Link href="/tools/refining">재련 비용</Link>
-          <Link href="/tools/crit-speed">치적·음돌</Link>
-        </nav>
+      <SiteHeader>
         <button
           type="button"
           className={styles.motionButton}
@@ -545,7 +534,7 @@ function MaterialQuoteContent() {
         >
           {paused ? <Play size={16} /> : <Pause size={16} />}
         </button>
-      </header>
+      </SiteHeader>
       <main id="quote-main">
         <section className={styles.hero} aria-labelledby="quote-heading">
           <div className={styles.heroOrb} aria-hidden="true">

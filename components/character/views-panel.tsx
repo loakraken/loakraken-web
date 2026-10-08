@@ -134,7 +134,7 @@ export function ViewsPanel({ name }: { name: string }) {
               <dd>{count(data.total)}</dd>
             </div>
           </dl>
-          <p className={styles.note}>LOAKraken 조회수 · 같은 사람의 반복 조회도 포함해요.</p>
+          <p className={styles.note}>LOAKraken 기준 · 반복 조회 포함</p>
         </>
       )}
     </Panel>

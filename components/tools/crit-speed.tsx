@@ -31,6 +31,7 @@ import {
   type Settings,
 } from "@/lib/crit-speed/model";
 import quote from "./material-quote.module.css";
+import { SiteHeader } from "@/components/site/site-header";
 import styles from "./crit-speed.module.css";
 
 const kst = new Intl.DateTimeFormat("ko-KR", {
@@ -161,7 +162,7 @@ function SettingsPanel({
     <section className={styles.settings} aria-labelledby="settings-heading">
       <h2 id="settings-heading">가정</h2>
       <p className={styles.settingsHint}>
-        캐릭터 정보에 없는 파티·버프 조건이에요. 관측값과 따로 더해요.
+        캐릭터 정보에 없는 파티·버프 조건이에요. 캐릭터 값과 따로 더해요.
       </p>
 
       <h3>치명타</h3>
@@ -329,7 +330,7 @@ function SourceList({
             {group.items.map((item, i) => (
               <li key={`${item.name}-${i}`}>
                 <span className={styles.kind} data-kind={item.kind}>
-                  {item.kind === "OBSERVED" ? "관측" : "가정"}
+                  {item.kind === "OBSERVED" ? "캐릭터" : "가정"}
                 </span>
                 <span className={styles.sourceName}>
                   {item.name ?? AXIS_LABEL[item.axis]}
@@ -427,7 +428,7 @@ function Results({ data, stale }: { data: CritSpeed; stale: boolean }) {
         </p>
         <p className={styles.figure}>{percent(crit.effectiveRate)}</p>
         <p className={styles.figureNote}>
-          관측 {percent(crit.observedRate)} + 가정 {percent(crit.assumedRate)}
+          캐릭터 {percent(crit.observedRate)} + 가정 {percent(crit.assumedRate)}
           {over > 0.005 && ` · 상한을 넘은 ${percent(over)}는 적용되지 않아요`}
           {` · 치명 ${crit.critStatPerPercent.toLocaleString("ko-KR", { maximumFractionDigits: 2 })} = 치적 1%`}
         </p>
@@ -497,7 +498,7 @@ function Results({ data, stale }: { data: CritSpeed; stale: boolean }) {
                 </div>
                 <Meter value={value.effective} max={speed.cap} label={name} />
                 <p>
-                  관측 {percent(value.observed)} + 가정 {percent(value.assumed)}
+                  캐릭터 {percent(value.observed)} + 가정 {percent(value.assumed)}
                 </p>
               </div>
             );
@@ -564,7 +565,7 @@ function Results({ data, stale }: { data: CritSpeed; stale: boolean }) {
 
       <div className={quote.resultFooter}>
         <span>
-          관측값은 공식 전투정보실 원문에서 읽은 값이고, 가정은 위에서 고른
+          캐릭터 값은 공식 전투정보실 원문에서 읽은 값이고, 가정은 위에서 고른
           조건이에요. 규칙 {data.ruleVersion}
         </span>
         {data.limitations.map((text) => (
@@ -635,19 +636,7 @@ function CritSpeedContent({ initialName }: { initialName: string }) {
       <a className={quote.skip} href="#crit-main">
         본문으로 건너뛰기
       </a>
-      <header className={quote.header}>
-        <Link className={quote.brand} href="/">
-          LOAKraken
-        </Link>
-        <nav className={quote.nav} aria-label="주요 메뉴">
-          <Link href="/">캐릭터 검색</Link>
-          <Link href="/market">시세</Link>
-          <Link href="/tools/material-quote">재료 견적</Link>
-          <Link href="/tools/refining">재련 비용</Link>
-          <Link href="/tools/crit-speed" aria-current="page">
-            치적·음돌
-          </Link>
-        </nav>
+      <SiteHeader>
         <button
           type="button"
           className={quote.motionButton}
@@ -657,7 +646,7 @@ function CritSpeedContent({ initialName }: { initialName: string }) {
         >
           {paused ? <Play size={16} /> : <Pause size={16} />}
         </button>
-      </header>
+      </SiteHeader>
       <main id="crit-main">
         <section className={quote.hero} aria-labelledby="crit-page-heading">
           <div className={quote.heroOrb} aria-hidden="true">

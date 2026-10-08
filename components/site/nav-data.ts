@@ -24,7 +24,7 @@ export const NAV_SECTIONS: NavSection[] = [
         links: [
           { label: "서비스 소개", description: "흩어진 정보를 한 곳에서", href: "/#intro" },
           { label: "캐릭터 미리보기", description: "예시 데이터로 보는 화면", href: "/#preview" },
-          { label: "진단 근거", description: "결과마다 원천 데이터를 함께", href: "/#evidence" },
+          { label: "근거 보기", description: "결과마다 원본 데이터를 함께", href: "/#evidence" },
           { label: "로드맵", description: "흡수 중인 기능과 순서", href: "/#roadmap" },
         ],
       },

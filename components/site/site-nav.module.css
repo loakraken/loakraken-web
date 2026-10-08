@@ -144,20 +144,23 @@
   color: #6e6e73;
   font-size: 12px;
 }
-.entry[aria-disabled] {
-  cursor: default;
-}
-.entry[aria-disabled] .entryLabel {
+.soon {
+  grid-column: 1 / -1;
+  margin: 4px 0 0 10px;
   color: #86868b;
+  font-size: 12px;
 }
-.entryLabel em {
+.soon span {
+  margin-right: 8px;
   padding: 1px 6px;
   border-radius: 5px;
   background: #0000000d;
   color: #6e6e73;
   font-size: 10px;
-  font-style: normal;
   font-weight: 600;
+}
+.sheetSection .soon {
+  margin: 4px 0 0;
 }
 @media (hover: hover) and (pointer: fine) {
   .tab:hover {

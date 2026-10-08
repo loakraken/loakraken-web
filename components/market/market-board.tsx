@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Pause, Play } from "lucide-react";
@@ -29,6 +28,7 @@ import {
 import { marketFailureCopy, type MarketFailure } from "@/lib/market/model";
 import quote from "../tools/material-quote.module.css";
 import { MarketChart } from "./market-chart";
+import { SiteHeader } from "@/components/site/site-header";
 import styles from "./market.module.css";
 
 const TIERS = [4, 3] as const;
@@ -261,19 +261,7 @@ function MarketContent({
       <a className={quote.skip} href="#market-main">
         본문으로 건너뛰기
       </a>
-      <header className={quote.header}>
-        <Link className={quote.brand} href="/">
-          LOAKraken
-        </Link>
-        <nav className={quote.nav} aria-label="주요 메뉴">
-          <Link href="/">캐릭터 검색</Link>
-          <Link href="/market" aria-current="page">
-            시세
-          </Link>
-          <Link href="/tools/material-quote">재료 견적</Link>
-          <Link href="/tools/refining">재련 비용</Link>
-          <Link href="/tools/crit-speed">치적·음돌</Link>
-        </nav>
+      <SiteHeader>
         <button
           type="button"
           className={quote.motionButton}
@@ -283,7 +271,7 @@ function MarketContent({
         >
           {paused ? <Play size={16} /> : <Pause size={16} />}
         </button>
-      </header>
+      </SiteHeader>
       <main id="market-main">
         <section className={quote.hero} aria-labelledby="market-heading">
           <div className={quote.heroOrb} aria-hidden="true">

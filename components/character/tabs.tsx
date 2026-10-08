@@ -67,7 +67,7 @@ export const TABS = [
   { id: "avatars", label: "아바타" },
   { id: "stats", label: "통계" },
   { id: "siblings", label: "원정대" },
-  { id: "evidence", label: "진단 근거" },
+  { id: "evidence", label: "세팅 점검" },
 ] as const;
 export type TabId = (typeof TABS)[number]["id"];
 export const tabOf = (value: string | null): TabId =>
@@ -1026,7 +1026,7 @@ export function ArkPassiveTab({ data }: { data: Character }) {
                 </ul>
               ) : (
                 <p className={styles.muted}>
-                  이 트리에서 관측된 노드가 없어요.
+                  이 트리에서 확인된 노드가 없어요.
                 </p>
               )}
             </Panel>
@@ -1122,7 +1122,7 @@ function QueryProblem({
     info.code === "CHARACTER_HISTORY_DISABLED"
       ? {
           title: "기록 기능이 꺼져 있어요",
-          text: "서비스에서 관측 기록 저장을 사용하지 않고 있어요.",
+          text: "서비스에서 기록 저장을 사용하지 않고 있어요.",
         }
       : info.code === "CHARACTER_HISTORY_UNAVAILABLE"
         ? {
@@ -1262,7 +1262,7 @@ export function StatsTab({ data }: { data: Character }) {
                   meta={
                     delta == null
                       ? "기록 1개"
-                      : `관측 이후 ${delta >= 0 ? "+" : ""}${number(delta)}`
+                      : `기록 이후 ${delta >= 0 ? "+" : ""}${number(delta)}`
                   }
                 >
                   {steps.length ? (
@@ -1299,7 +1299,7 @@ export function StatsTab({ data }: { data: Character }) {
                 <table className={styles.table}>
                   <thead>
                     <tr>
-                      <th scope="col">관측</th>
+                      <th scope="col">기록 시점</th>
                       <th scope="col">아이템 레벨</th>
                       <th scope="col">전투력</th>
                       <th scope="col">원정대</th>
@@ -1350,7 +1350,7 @@ export function EvidenceTab({
   return (
     <div className={styles.layout}>
       <Panel
-        title="관측에서 발견한 내용"
+        title="세팅 점검 결과"
         meta={data.analysis.diagnostics.ruleVersion}
         wide
       >
@@ -1372,11 +1372,11 @@ export function EvidenceTab({
                     ? "정보 부족"
                     : finding.category === "SETTING_CHECK"
                       ? "세팅 확인"
-                      : "관측 안내"}
+                      : "참고"}
                 </span>
                 <p>{finding.message}</p>
                 {finding.observedCount !== null && (
-                  <small>관측 개수 {number(finding.observedCount)}</small>
+                  <small>확인 {number(finding.observedCount)}개</small>
                 )}
                 <Evidence envelope={envelope} path={finding.evidencePath} />
               </li>

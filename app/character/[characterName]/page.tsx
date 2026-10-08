@@ -10,7 +10,7 @@ import { getCharacter } from "@/lib/character/server";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
-  title: "캐릭터 관측",
+  title: "캐릭터 정보",
   robots: { index: false, follow: false },
 };
 

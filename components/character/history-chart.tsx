@@ -102,7 +102,7 @@ export function HistoryChart({
         viewBox={`0 0 ${W} ${H}`}
         className={styles.svg}
         role="img"
-        aria-label={`${label} 변화 그래프. 화살표 키로 관측 시점을 이동할 수 있어요.`}
+        aria-label={`${label} 변화 그래프. 화살표 키로 기록 시점을 이동할 수 있어요.`}
         aria-describedby={`${id}-readout`}
         tabIndex={0}
         onPointerMove={onMove}
