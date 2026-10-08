@@ -10,22 +10,26 @@ import styles from "./site-nav.module.css";
 const OPEN_DELAY = 120;
 const CLOSE_DELAY = 160;
 
-function Entry({ link, onNavigate }: { link: NavLink; onNavigate: () => void }) {
-  if (!link.href)
-    return (
-      <span className={styles.entry} aria-disabled="true">
-        <span className={styles.entryLabel}>
-          {link.label}
-          <em>준비 중</em>
-        </span>
-        <span className={styles.entryText}>{link.description}</span>
-      </span>
-    );
+function Entry({ link, onNavigate }: { link: NavLink & { href: string }; onNavigate: () => void }) {
   return (
     <Link href={link.href} className={styles.entry} onClick={onNavigate}>
       <span className={styles.entryLabel}>{link.label}</span>
       <span className={styles.entryText}>{link.description}</span>
     </Link>
+  );
+}
+
+const live = (links: NavLink[]) => links.filter((link): link is NavLink & { href: string } => !!link.href);
+const planned = (links: NavLink[]) => links.filter((link) => !link.href).map((link) => link.label);
+
+/** Planned features folded into one quiet line instead of a list of dead entries. */
+function Soon({ labels }: { labels: string[] }) {
+  if (!labels.length) return null;
+  return (
+    <p className={styles.soon}>
+      <span>곧 추가</span>
+      {labels.join(" · ")}
+    </p>
   );
 }
 
@@ -50,6 +54,7 @@ export function SiteNav() {
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const root = useRef<HTMLDivElement>(null);
   const triggers = useRef(new Map<string, HTMLButtonElement>());
+  const menuButton = useRef<HTMLButtonElement>(null);
 
   const close = useCallback(() => {
     clearTimeout(timer.current);
@@ -61,6 +66,7 @@ export function SiteNav() {
     const onKey = (event: globalThis.KeyboardEvent) => {
       if (event.key !== "Escape") return;
       if (open) triggers.current.get(open)?.focus();
+      if (sheet) menuButton.current?.focus();
       setOpen(null);
       setSheet(false);
     };
@@ -170,18 +176,21 @@ export function SiteNav() {
           >
             <p className={styles.panelTitle}>{section.label}</p>
             <div className={styles.groups}>
-              {section.groups.map((group) => (
-                <div key={group.title} className={styles.group}>
-                  <p className={styles.groupTitle}>{group.title}</p>
-                  <ul>
-                    {group.links.map((link) => (
-                      <li key={link.label}>
-                        <Entry link={link} onNavigate={close} />
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
+              {section.groups
+                .filter((group) => live(group.links).length)
+                .map((group) => (
+                  <div key={group.title} className={styles.group}>
+                    <p className={styles.groupTitle}>{group.title}</p>
+                    <ul>
+                      {live(group.links).map((link) => (
+                        <li key={link.label}>
+                          <Entry link={link} onNavigate={close} />
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              <Soon labels={planned(section.groups.flatMap((group) => group.links))} />
             </div>
           </div>
         ))}
@@ -189,6 +198,7 @@ export function SiteNav() {
       <div className={styles.scrim} data-open={open !== null || undefined} aria-hidden="true" onPointerEnter={leave} />
 
       <button
+        ref={menuButton}
         type="button"
         className={styles.menuButton}
         aria-expanded={sheet}
@@ -203,12 +213,13 @@ export function SiteNav() {
           <section key={section.id} className={styles.sheetSection}>
             <h2>{section.label}</h2>
             <ul>
-              {section.groups.flatMap((group) => group.links).map((link) => (
+              {live(section.groups.flatMap((group) => group.links)).map((link) => (
                 <li key={link.label}>
                   <Entry link={link} onNavigate={() => setSheet(false)} />
                 </li>
               ))}
             </ul>
+            <Soon labels={planned(section.groups.flatMap((group) => group.links))} />
           </section>
         ))}
       </div>

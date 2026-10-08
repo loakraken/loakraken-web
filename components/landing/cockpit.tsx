@@ -45,7 +45,7 @@ export function CharacterCockpit() {
         <Tabs.Root value={tab} onValueChange={(value) => setTab(value as string)}>
           <Tabs.List className={styles.cockpitTabs} aria-label="캐릭터 미리보기 영역" data-keyboard={keyboard}
             onKeyDownCapture={() => setKeyboard(true)} onPointerDownCapture={() => setKeyboard(false)}>
-            <Tabs.Tab className={styles.cockpitTab} value="overview">종합 관측</Tabs.Tab>
+            <Tabs.Tab className={styles.cockpitTab} value="overview">종합</Tabs.Tab>
             <Tabs.Tab className={styles.cockpitTab} value="equipment">장비·보석</Tabs.Tab>
             <Tabs.Indicator className={styles.tabIndicator} />
           </Tabs.List>
@@ -66,7 +66,7 @@ export function CharacterCockpit() {
                       <span className={styles.mutedCaption}>운명의 전율 T4 · 최대 +25 · 보석 최대 10레벨 기준 예시</span>
                     </div>
                     <div className={styles.observationCard}>
-                      <div className={styles.cardHeading}><span>관측 현황</span><InlineOrb state="connecting" /></div>
+                      <div className={styles.cardHeading}><span>확인 현황</span><InlineOrb state="connecting" /></div>
                       <div className={styles.observedCount}><strong>06</strong><span>/ 08 영역</span></div>
                       <div className={styles.coverageBlocks} aria-label="8개 영역 중 6개 확인 예시">{Array.from({ length: 8 }, (_, i) => <i key={i} data-observed={i < 6} />)}</div>
                       <ul className={styles.statusList}>
@@ -79,7 +79,7 @@ export function CharacterCockpit() {
                       <span className={styles.diagnosticLabel}><span /> 확인 필요</span>
                       <h4>9레벨 보석 {belowMaxGems.length}개,<br />다음 성장 후보예요.</h4>
                       <p>{belowMaxGems.map((g) => `${g.skill} ${g.kind}`).join(" · ")}.<br />수치와 근거를 함께 살펴봅니다.</p>
-                      <a href="#evidence" className={styles.cardLink}>진단 근거 보기 <ChevronRight size={14} /></a>
+                      <a href="#evidence" className={styles.cardLink}>근거 보기 <ChevronRight size={14} /></a>
                     </div>
                   </> : <div className={styles.gemPanel}>
                     <div>

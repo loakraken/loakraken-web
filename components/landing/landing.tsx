@@ -10,13 +10,12 @@ import { CharacterCockpit } from "./cockpit";
 import { IntelligenceOrb, InlineOrb } from "./orb";
 import { LandingMotion, Reveal, useLandingMotion } from "./motion";
 import { roadmap } from "./roadmap";
-import { SiteNav } from "@/components/site/site-nav";
+import { SiteHeader } from "@/components/site/site-header";
+import { KrakenMark } from "@/components/site/kraken-mark";
 import { characterNameError, normalizeCharacterName } from "@/lib/character/model";
 import styles from "./landing.module.css";
 
-export function KrakenMark() {
-  return <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3v7m-4-4 1 5m7-5-1 5M8 14l-3 5m11-5 3 5M8 19h8M3 21h18M3 12l2 1m16-1-2 1" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" /><circle cx="12" cy="13" r="2" fill="currentColor" stroke="none" /></svg>;
-}
+export { KrakenMark } from "@/components/site/kraken-mark";
 
 const noSubscribe = () => () => {};
 // Platform is unknown during SSR; render the hint only after hydration to avoid a mismatch.
@@ -83,14 +82,10 @@ function PrecisionLanding() {
     <div className={styles.landing}>
       <a className={styles.skipLink} href="#main">본문으로 건너뛰기</a>
       <m.div className={styles.readingProgress} style={{ transform: progressTransform }} aria-hidden="true" />
-      <header className={styles.header}>
-        <Link href="/" className={styles.brand} aria-label="LOAKraken 홈"><span className={styles.brandIcon}><KrakenMark /></span><span>LOAKraken</span><span className={styles.brandTag}>BETA</span></Link>
-        <nav className={styles.navigation} aria-label="주요 메뉴"><SiteNav /></nav>
-        <div className={styles.headerActions}>
-          <button type="button" className={styles.motionToggle} onClick={toggle} aria-label={paused ? "모션 재생" : "모션 일시정지"} aria-pressed={paused} title={paused ? "모션 재생" : "모션 일시정지"}>{paused ? <Play size={14} /> : <Pause size={14} />}</button>
-          <button type="button" className={styles.navCta} onClick={focusSearch}>캐릭터 검색 <ArrowUpRight size={14} /></button>
-        </div>
-      </header>
+      <SiteHeader fixed>
+        <button type="button" className={styles.motionToggle} onClick={toggle} aria-label={paused ? "모션 재생" : "모션 일시정지"} aria-pressed={paused} title={paused ? "모션 재생" : "모션 일시정지"}>{paused ? <Play size={14} /> : <Pause size={14} />}</button>
+        <button type="button" className={styles.navCta} onClick={focusSearch}>캐릭터 검색 <ArrowUpRight size={14} /></button>
+      </SiteHeader>
 
       <main id="main">
         <section ref={hero} className={styles.hero} id="intro" aria-labelledby="hero-heading" data-in-view={heroVisible}>
@@ -122,7 +117,7 @@ function PrecisionLanding() {
               <div className={styles.searchMessage} aria-live="polite">{error ? <p id="search-error" className={styles.error}>{error}</p> : <p id="search-help">이름으로 캐릭터의 현재 정보를 조회하세요. <a href="#preview">예시 화면 살펴보기 <ArrowUpRight size={12} /></a></p>}</div>
             </div>
           </div>
-          <a className={styles.exploreLink} href="#preview">새로운 관측 경험 살펴보기 <ArrowDown size={16} /></a>
+          <a className={styles.exploreLink} href="#preview">캐릭터 화면 미리보기 <ArrowDown size={16} /></a>
         </section>
 
         <div className={styles.previewBand}><section className={styles.section} id="preview" aria-labelledby="preview-heading">

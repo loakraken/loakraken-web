@@ -46,10 +46,10 @@ export const coverageLabels: Record<CoverageState, string> = {
 
 export function emptyObservation(state: CoverageState) {
   if (state === "NOT_PROVIDED")
-    return "원천 데이터가 제공되지 않아 확인할 수 없습니다.";
+    return "전투정보실에서 제공하지 않는 정보라 확인할 수 없어요.";
   if (state === "PROVIDED_EMPTY")
-    return "원천에서 빈 목록을 제공했습니다. 미착용을 의미하지는 않습니다.";
-  return "응답은 제공됐지만 표시할 관측 항목이 없습니다. 미착용으로 판단하지 않습니다.";
+    return "전투정보실 목록이 비어 있어요. 착용하지 않았다는 뜻은 아니에요.";
+  return "표시할 항목이 없어요. 착용하지 않았다는 뜻은 아니에요.";
 }
 
 export function evidenceAt(

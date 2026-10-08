@@ -1,0 +1,80 @@
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  min-height: 56px;
+  padding: 8px max(24px, calc((100% - 1120px) / 2));
+  border-bottom: 1px solid rgb(0 0 0 / 8%);
+  background: rgb(255 255 255 / 86%);
+  -webkit-backdrop-filter: saturate(160%) blur(20px);
+  backdrop-filter: saturate(160%) blur(20px);
+  color: #1d1d1f;
+  font-family: var(--font-ui);
+}
+.header[data-fixed] {
+  position: fixed;
+  inset: 0 0 auto;
+}
+.brand {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 7px;
+  color: #1d1d1f;
+  font-size: 19px;
+  font-weight: 650;
+  letter-spacing: -0.03em;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.brand svg {
+  width: 22px;
+  height: 22px;
+}
+.nav {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  min-width: 0;
+}
+.slot {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+@media (max-width: 900px) {
+  .header {
+    gap: 10px;
+    padding-inline: 16px;
+  }
+  /* Menu button sits at the right edge; the page slot sits before it. */
+  .nav {
+    flex: none;
+    order: 2;
+  }
+  .slot {
+    flex: 1;
+    justify-content: flex-end;
+  }
+}
+@media (max-width: 600px) {
+  .slot > * {
+    min-width: 0;
+  }
+  /* With a search field in the bar, the mark alone carries the brand. */
+  .header:has(.slot input) .brand span {
+    display: none;
+  }
+}
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .header {
+    background: #fff;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}

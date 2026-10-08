@@ -87,7 +87,7 @@ export function Evidence({
   }
   return (
     <details className={styles.evidence}>
-      <summary>관측 근거 보기</summary>
+      <summary>원본 데이터 보기</summary>
       <code>{path}</code>
       <pre>
         {evidence.found

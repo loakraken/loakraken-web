@@ -22,6 +22,7 @@ import {
   normalizeCharacterName,
   type QueryFailure,
 } from "@/lib/character/model";
+import { SiteHeader } from "@/components/site/site-header";
 import { CharacterBanner } from "./imagery";
 import { kstTime, level, number, text } from "./parts";
 import { TabBar, TabPanel, tabOf } from "./tabs";
@@ -145,17 +146,8 @@ function CharacterContent({
       <a className={styles.skip} href="#character-main">
         본문으로 건너뛰기
       </a>
-      <header className={styles.header}>
-        <Link className={styles.brand} href="/">
-          LOAKraken
-        </Link>
+      <SiteHeader>
         <SearchBox name={name} />
-        <nav className={styles.headerNav} aria-label="주요 메뉴">
-          <Link href="/market">시세</Link>
-          <Link href="/tools/material-quote">재료 견적</Link>
-          <Link href="/tools/refining">재련 비용</Link>
-          <Link href="/tools/crit-speed">치적·음돌</Link>
-        </nav>
         <button
           className={styles.motionButton}
           type="button"
@@ -165,7 +157,7 @@ function CharacterContent({
         >
           {paused ? <Play size={16} /> : <Pause size={16} />}
         </button>
-      </header>
+      </SiteHeader>
       <main id="character-main">
         {data && envelope ? (
           <>
@@ -288,7 +280,7 @@ function CharacterContent({
             </Link>
             <div className={styles.hero} data-empty="">
               <div className={styles.identity}>
-                <p className={styles.eyebrow}>CHARACTER OBSERVATION</p>
+                <p className={styles.eyebrow}>캐릭터 정보</p>
                 <h1>{name || "캐릭터 조회"}</h1>
                 <p>현재 상태부터, 다음 선택까지.</p>
               </div>
@@ -318,7 +310,7 @@ function CharacterContent({
               </div>
             )}
             <div className={styles.noData}>
-              <p>조회가 완료되면 장비와 세팅, 관측 근거를 함께 볼 수 있어요.</p>
+              <p>조회가 완료되면 장비와 세팅, 근거 데이터를 함께 볼 수 있어요.</p>
               <Link href="/#preview">
                 예시 화면 살펴보기 <ArrowRight size={15} />
               </Link>

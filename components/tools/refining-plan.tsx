@@ -51,6 +51,7 @@ import {
   type PartState,
 } from "@/lib/refining/model";
 import quote from "./material-quote.module.css";
+import { SiteHeader } from "@/components/site/site-header";
 import styles from "./refining-plan.module.css";
 
 const range = (from: number, to: number) =>
@@ -691,19 +692,7 @@ function RefiningContent({ initialName }: { initialName: string }) {
       <a className={quote.skip} href="#refining-main">
         본문으로 건너뛰기
       </a>
-      <header className={quote.header}>
-        <Link className={quote.brand} href="/">
-          LOAKraken
-        </Link>
-        <nav className={quote.nav} aria-label="주요 메뉴">
-          <Link href="/">캐릭터 검색</Link>
-          <Link href="/market">시세</Link>
-          <Link href="/tools/material-quote">재료 견적</Link>
-          <Link href="/tools/refining" aria-current="page">
-            재련 비용
-          </Link>
-          <Link href="/tools/crit-speed">치적·음돌</Link>
-        </nav>
+      <SiteHeader>
         <button
           type="button"
           className={quote.motionButton}
@@ -713,7 +702,7 @@ function RefiningContent({ initialName }: { initialName: string }) {
         >
           {paused ? <Play size={16} /> : <Pause size={16} />}
         </button>
-      </header>
+      </SiteHeader>
       <main id="refining-main">
         <section className={quote.hero} aria-labelledby="refining-heading">
           <div className={quote.heroOrb} aria-hidden="true">

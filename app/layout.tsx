@@ -16,8 +16,8 @@ const korean = Noto_Sans_KR({
 });
 
 export const metadata: Metadata = {
-  title: { default: "LOAKraken — 정밀 관측으로 결정하는 다음 성장", template: "%s | LOAKraken" },
-  description: "흩어진 로스트아크 캐릭터 정보를 한눈에. 장비와 세팅, 관측한 데이터와 진단의 근거를 함께 확인하세요.",
+  title: { default: "LOAKraken — 로스트아크 캐릭터 정보·시세·성장 도구", template: "%s | LOAKraken" },
+  description: "로스트아크 캐릭터 검색, 장비·아크 그리드·각인, 거래소 시세, 재련·치적 계산기를 한곳에서.",
 };
 
 export default function RootLayout({ children }: Readonly<{
