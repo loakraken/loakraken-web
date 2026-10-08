@@ -35,11 +35,7 @@
 .brand { display: inline-flex; align-items: center; gap: 8px; color: var(--text); font-family: var(--font-ui); font-weight: 600; font-size: 20px; letter-spacing: -0.6px; text-decoration: none; white-space: nowrap; }
 .brandIcon { display: grid; place-items: center; color: #1d1d1f; }
 .brandTag { font-size: 9px; color: #6e6e73; font-weight: 400; letter-spacing: 0.4px; margin-left: 3px; }
-.navigation { display: flex; gap: 26px; align-items: center; }
-.navigation a { position: relative; padding: 10px 0; font-size: 12px; color: #515154; text-decoration: none; white-space: nowrap; transition: color 160ms ease; }
-.navigation a[data-active="true"] { color: #1d1d1f; font-weight: 600; }
-.navigation a::after { content: ""; position: absolute; bottom: 3px; left: 50%; width: 3px; height: 3px; border-radius: 50%; background: #1d1d1f; opacity: 0; transition: opacity 160ms ease; }
-.navigation a[data-active="true"]::after { opacity: 1; }
+.navigation { display: flex; align-items: center; }
 .headerActions { display: flex; align-items: center; gap: 8px; }
 .motionToggle { width: 40px; min-height: 44px; display: grid; place-items: center; background: transparent; border: 0; border-radius: 50%; color: #515154; }
 .navCta, .primaryButton, .searchSubmit { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 0; border-radius: 9999px; background: #0071e3; color: #fff; font-weight: 500; white-space: nowrap; text-decoration: none; transition: transform 160ms var(--ease-out), background-color 160ms ease; }
@@ -100,6 +96,7 @@
 .characterHeader { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
 .characterIdentity { display: flex; align-items: center; gap: 18px; }
 .characterAvatar { position: relative; display: grid; place-items: center; width: 66px; height: 72px; border-radius: 18px; background: #edf3f9; color: #3673a5; overflow: hidden; }
+.characterAvatar img { position: relative; width: 40px; height: 40px; filter: brightness(0) saturate(100%) invert(33%) sepia(36%) saturate(800%) hue-rotate(170deg); }
 .characterAvatar::before { content: ""; position: absolute; inset: 0; background: #ffffff88; width: 30%; transform: translateX(-130%) skewX(-20deg); animation: sheen 9s ease-in-out infinite; }
 .characterIdentity .eyebrow { font-size: 11px; font-weight: 400; }
 .characterIdentity h3 { font-size: 27px; font-weight: 600; line-height: 1.5; letter-spacing: -0.8px; }
@@ -125,7 +122,6 @@
 .cardHeading > svg { color: #86868b; }
 .equipmentRow { display: flex; align-items: center; gap: 12px; margin-top: 22px; }
 .equipmentRow > div { flex: 1; }
-.equipmentIcon { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 8px; background: #f5f5f7; color: #6e6e73; }
 .metricHeading { display: flex; align-items: baseline; justify-content: space-between; font-size: 12px; color: #6e6e73; }
 .metricHeading strong { font-size: 14px; font-weight: 500; color: #1d1d1f; font-variant-numeric: tabular-nums; }
 .metricHeading small { font-size: 10px; }
@@ -145,7 +141,7 @@
 .statusList svg { color: #53758d; }
 .diagnosticLabel { display: inline-flex; align-items: center; gap: 5px; margin-top: 24px; font-size: 11px; color: #9b3c00; }
 .diagnosticLabel > span { width: 4px; height: 4px; border-radius: 50%; background: currentColor; }
-.diagnosticCard h4, .gemDescription h4 { margin: 9px 0 12px !important; font-size: 25px; font-weight: 600; letter-spacing: -0.8px; line-height: 1.35; }
+.diagnosticCard h4 { margin: 9px 0 12px !important; font-size: 25px; font-weight: 600; letter-spacing: -0.8px; line-height: 1.35; }
 .diagnosticCard p { font-size: 13px; line-height: 1.8; color: #6e6e73; }
 .cardLink { display: inline-flex; align-items: center; gap: 5px; min-height: 44px; margin-top: 8px; color: #0066cc; font-size: 13px; text-decoration: none; }
 .cockpitFooter { display: flex; justify-content: space-between; gap: 15px; padding: 16px 32px; border-top: 1px solid #e8e8ed; color: #6e6e73; font-size: 11px; }
@@ -153,13 +149,28 @@
 .cockpitFooter i { width: 4px; height: 4px; border-radius: 50%; background: #6e6e73; }
 .previewCaption { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-top: 25px; font-size: 12px; color: #6e6e73; }
 .previewCaption > span:first-child { display: flex; align-items: center; gap: 8px; color: #515154; }
-.gemPanel { grid-column: 1 / -1; display: grid; grid-template-columns: 1.4fr 1fr; gap: 45px; padding: 10px 0; }
-.gemGrid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; margin-top: 20px; }
-.gemSlot { display: grid; place-items: center; min-height: 76px; padding: 10px; border-radius: 12px; background: #f5f5f7; color: #527e9f; }
-.gemSlot b { font-size: 12px; font-weight: 500; color: #515154; }
-.gemSlot small { font-size: 9px; }
-.gemSlot[data-empty="true"] { background: #fff; border: 1px dashed #86868b; font-size: 11px; color: #6e6e73; }
-.gemDescription p { font-size: 15px; line-height: 1.8; color: #6e6e73; }
+.gemPanel { grid-column: 1 / -1; display: grid; grid-template-columns: 1.15fr 1fr; gap: 40px; padding: 4px 0 10px; }
+.gearGrid, .accessoryStrip, .gemGrid { list-style: none; margin: 0; padding: 0; }
+.gearGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 14px; margin-top: 16px; }
+.gearGrid li { display: flex; align-items: center; gap: 10px; min-width: 0; padding: 6px 8px 6px 6px; border-radius: 12px; background: #f5f5f7; }
+.gearGrid li > span:not([aria-hidden]) { display: grid; flex: 1; min-width: 0; }
+.gearGrid b { font-size: 13px; font-weight: 600; letter-spacing: -0.2px; color: #1d1d1f; }
+.gearGrid small { overflow: hidden; font-size: 11px; color: #6e6e73; white-space: nowrap; text-overflow: ellipsis; }
+.gearGrid i { padding: 1px 6px; border-radius: 5px; color: #fff; font-size: 11px; font-style: normal; font-weight: 600; font-variant-numeric: tabular-nums; }
+.gearGrid i[data-tier="max"] { background: #e08a00; }
+.gearGrid i[data-tier="high"] { background: #8c4fd4; }
+.gearGrid i[data-tier="good"] { background: #2f7fd9; }
+.gearGrid i[data-tier="normal"] { background: #3d9a4a; }
+.accessoryStrip { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.accessoryStrip li { display: grid; justify-items: center; gap: 3px; width: 44px; }
+.accessoryStrip small { font-size: 10px; color: #6e6e73; white-space: nowrap; }
+.gemGrid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-top: 16px; }
+.gemSlot { display: grid; justify-items: center; gap: 4px; padding: 8px 4px 6px; border-radius: 12px; background: #f5f5f7; }
+.gemSlot b { font-size: 12px; font-weight: 600; color: #515154; font-variant-numeric: tabular-nums; }
+.gemSlot[data-below] { box-shadow: inset 0 0 0 1px #e9b48a; background: #fff7f0; }
+.gemSlot[data-below] b { color: #9b3c00; }
+.gemNote { margin-top: 12px; font-size: 12px; line-height: 1.6; color: #6e6e73; }
+.gemNote .diagnosticLabel { margin: 0 6px 0 0; }
 .evidenceSection { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; padding-top: 128px; padding-bottom: 128px; }
 .evidenceCopy h2 { font-size: 56px; line-height: 1.15; }
 .evidenceCopy h2 > span { color: #6e6e73; }
@@ -239,7 +250,7 @@
 :global([data-motion="off"]) .landing *, :global([data-motion="off"]) .landing *::before, :global([data-motion="off"]) .landing *::after { animation-play-state: paused !important; transition-duration: 0ms !important; }
 :global([data-motion="off"]) .heroEnter { animation: none; }
 @media (hover: hover) and (pointer: fine) {
-  .navigation a:hover, .footer > a:last-child:hover { color: #0066cc; }
+  .footer > a:last-child:hover { color: #0066cc; }
   .motionToggle:hover { background: #e8e8ed; }
   .navCta:hover, .primaryButton:hover, .searchSubmit:hover { background: #0077ed; }
   .roadmapItem:hover { background: #fafafc; }
@@ -249,7 +260,6 @@
 @media (max-width: 1050px) {
   .header { gap: 16px; }
   .brandTag { display: none; }
-  .navigation { gap: 18px; }
   .cockpitBody { padding: 26px; }
   .equipmentOverview, .observationCard, .diagnosticCard { padding-inline: 18px; }
   .equipmentOverview { padding-left: 0; }
@@ -269,7 +279,6 @@
   .header { min-height: 60px; padding: 7px 18px; gap: 8px; }
   .brand { font-size: 17px; gap: 5px; }
   .brandIcon svg { width: 22px; }
-  .navigation { display: none; }
   .headerActions { gap: 2px; }
   .navCta { min-height: 34px; padding: 0 12px; font-size: 11px; }
   .navCta > svg { display: none; }
@@ -302,7 +311,8 @@
   .characterAvatar { width: 45px; height: 56px; border-radius: 13px; }
   .characterIdentity .eyebrow { font-size: 9px; }
   .characterIdentity h3 { font-size: 18px; }
-  .characterIdentity h3 span { display: none; }
+  .characterIdentity h3 span { margin-left: 4px; font-size: 11px; }
+  .characterAvatar img { width: 30px; height: 30px; }
   .characterIdentity p { font-size: 10px; }
   .itemLevel { margin-top: 7px; }
   .itemLevel > span { font-size: 9px; }
@@ -326,10 +336,11 @@
   .cockpitFooter { flex-wrap: wrap; padding: 16px 20px; gap: 6px; font-size: 10px; }
   .previewCaption { flex-direction: column; align-items: flex-start; gap: 8px; font-size: 11px; }
   .gemPanel { grid-template-columns: 1fr; gap: 22px; }
-  .gemGrid { grid-template-columns: repeat(4, 1fr); gap: 8px; }
-  .gemSlot { padding: 7px; min-height: 66px; }
-  .gemDescription h4 { font-size: 24px; }
-  .gemDescription p { font-size: 14px; }
+  .gearGrid { grid-template-columns: 1fr; }
+  .accessoryStrip { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+  .accessoryStrip li { width: auto; }
+  .gemGrid { grid-template-columns: repeat(6, 1fr); gap: 6px; }
+  .gemSlot { padding: 6px 2px 5px; }
   .evidenceSection { display: flex; flex-direction: column; gap: 45px; padding-top: 80px; padding-bottom: 80px; }
   .evidenceCopy h2 { font-size: 42px; }
   .sectionDescription { font-size: 16px; }
