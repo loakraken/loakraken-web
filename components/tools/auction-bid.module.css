@@ -1,0 +1,357 @@
+/* Auction bid calculator — extends the material-quote gallery tokens
+   (the page class supplies --ink/--slate/--mist/--action). Conditions left,
+   summary and bid table right on wide screens; one column on phones. */
+.sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.columns {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+  max-width: 1024px;
+  margin: 0 auto;
+}
+.inputs,
+.summary,
+.strategies {
+  border-radius: 28px;
+  background: #fff;
+  padding: 24px clamp(20px, 3vw, 28px);
+}
+.inputs {
+  position: sticky;
+  top: 72px;
+  display: grid;
+  gap: 20px;
+}
+.inputsTitle {
+  font-size: 18px;
+  font-weight: 700;
+}
+.goldInput {
+  position: relative;
+}
+.goldInput input {
+  width: 100%;
+  padding-right: 40px !important;
+  font-variant-numeric: tabular-nums;
+}
+.goldInput em {
+  position: absolute;
+  top: 50%;
+  right: 18px;
+  transform: translateY(-50%);
+  color: var(--slate);
+  font-style: normal;
+  font-weight: 600;
+}
+.party {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.party legend {
+  margin-bottom: 8px;
+  padding: 0;
+  color: var(--slate);
+  font-size: 12px;
+}
+.segmented {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  padding: 4px;
+  border-radius: 980px;
+  background: var(--mist);
+}
+.segmented label {
+  position: relative;
+  padding: 8px 0;
+  border-radius: 980px;
+  font-size: 14px;
+  text-align: center;
+  cursor: pointer;
+  transition:
+    background-color 160ms ease-out,
+    box-shadow 160ms ease-out;
+}
+.segmented label[data-checked] {
+  background: #fff;
+  font-weight: 600;
+  box-shadow: 0 0 0 1px var(--control);
+}
+.segmented input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.segmented label:has(input:focus-visible) {
+  outline: 3px solid var(--action);
+  outline-offset: 2px;
+}
+.partyHint {
+  color: var(--slate);
+  font-size: 12px;
+}
+.partyInput {
+  width: 100%;
+}
+.empty {
+  color: var(--slate);
+  font-size: 14px;
+}
+
+.output {
+  display: grid;
+  gap: 20px;
+  min-width: 0;
+}
+
+/* Summary: the two break-even figures lead, the rest are facts. */
+.headline {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.headLabel {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--slate);
+  font-size: 13px;
+  font-weight: 600;
+}
+.headValue {
+  margin-top: 4px;
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.015em;
+  font-variant-numeric: tabular-nums;
+}
+.headValue[data-tone="sale"] {
+  color: var(--link);
+}
+.headNote {
+  margin-top: 4px;
+  color: var(--slate);
+  font-size: 12px;
+}
+.facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--hairline);
+}
+.facts dt {
+  color: var(--slate);
+  font-size: 12px;
+}
+.facts dd {
+  margin-top: 2px;
+  font-size: 15px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.tipButton {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  margin: -4px 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--steel);
+}
+.tipButton:hover {
+  color: var(--ink);
+}
+
+/* Bid table */
+.tableHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.tableHead h2 {
+  font-size: 18px;
+  font-weight: 700;
+}
+.tableHead p {
+  margin-top: 0;
+  font-size: 12px;
+}
+.table {
+  width: 100%;
+  margin-top: 12px;
+  border-collapse: collapse;
+}
+.table th,
+.table td {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--hairline);
+  text-align: left;
+  vertical-align: middle;
+}
+.table thead th {
+  padding-top: 0;
+  color: var(--slate);
+  font-size: 12px;
+  font-weight: 500;
+}
+.table .num {
+  padding-left: 12px;
+  text-align: right;
+}
+.thTip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+.table tbody tr[data-kind="use"] th,
+.table tbody tr[data-kind="use"] td {
+  border-top: 2px solid var(--control);
+}
+.strategyName {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 15px;
+  font-weight: 600;
+}
+.strategyNote {
+  display: block;
+  color: var(--slate);
+  font-size: 12px;
+  font-weight: 400;
+}
+.copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--control);
+  border-radius: 980px;
+  background: #fff;
+  color: var(--ink);
+  transition:
+    border-color 160ms ease-out,
+    background-color 160ms ease-out;
+}
+.copy svg {
+  color: var(--steel);
+}
+.bid {
+  font-size: 16px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.share {
+  display: block;
+  margin-top: 2px;
+  color: var(--slate);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.table td[data-sign] {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.table td[data-sign="1"] {
+  color: #1d7d3c;
+}
+.table td[data-sign="-1"] {
+  color: var(--launch);
+}
+.copyStatus {
+  min-height: 20px;
+  margin-top: 8px;
+  color: var(--link);
+  font-size: 13px;
+}
+.copyStatus:empty {
+  margin-top: 0;
+}
+
+.basis {
+  border-radius: 28px;
+  background: #fff;
+  padding: 18px clamp(20px, 3vw, 28px);
+}
+.basis summary {
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.basis ul {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+  padding-left: 18px;
+  color: var(--slate);
+  font-size: 13px;
+  list-style: disc;
+}
+.basis strong {
+  color: var(--launch);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .copy:hover {
+    border-color: var(--action);
+    background: var(--mist);
+  }
+}
+
+@media (max-width: 860px) {
+  .columns {
+    grid-template-columns: 1fr;
+  }
+  .inputs {
+    position: static;
+  }
+}
+@media (max-width: 520px) {
+  .headline,
+  .facts {
+    grid-template-columns: 1fr 1fr;
+  }
+  .facts div:last-child {
+    grid-column: 1 / -1;
+  }
+  .headValue {
+    font-size: 24px;
+  }
+  .strategyNote {
+    display: none;
+  }
+  .copy {
+    padding: 0 10px;
+  }
+  .bid {
+    font-size: 15px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .segmented label,
+  .copy {
+    transition: none;
+  }
+}
