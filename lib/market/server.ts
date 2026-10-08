@@ -1,5 +1,8 @@
 import "server-only";
 import {
+  requestBoard,
+  requestItemHistory,
+  requestTabs,
   requestItems,
   requestOptions,
   requestPrices,
@@ -19,5 +22,12 @@ export const quoteMaterials = (body: unknown, signal?: AbortSignal) =>
 
 export const priceMaterials = (body: unknown, signal?: AbortSignal) =>
   requestPrices(body, origin(), { signal });
+
+export const getMarketTabs = (signal?: AbortSignal) =>
+  requestTabs(origin(), { signal });
+export const getMarketBoard = (query: URLSearchParams, signal?: AbortSignal) =>
+  requestBoard(query, origin(), { signal });
+export const getItemHistory = (itemId: string, signal?: AbortSignal) =>
+  requestItemHistory(itemId, origin(), { signal });
 
 export { toResponse } from "../api/respond";

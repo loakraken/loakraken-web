@@ -84,6 +84,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/markets/tabs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 시세 보드 탭
+         * @description 보드 탭과 공식 카테고리 코드, 기본 티어, 정렬 값입니다. 외부 호출이 없습니다.
+         */
+        get: operations["tabs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/markets/board": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 시세 보드
+         * @description 탭별 현재 판매 품목과 전일 대비 등락률입니다. default·high·low는 공식 정렬 한 페이지(검색 캐시 30초)를 씁니다. rise·fall은 공식 정렬에 없어 탭 전체(최대 10페이지)를 순차 스캔하고 3분 캐시합니다. 동시 요청은 합칩니다. changeWeek·spark7은 상품 이력 캐시가 있을 때만 채웁니다(추가 외부 호출 없음).
+         */
+        get: operations["board"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/markets/items/{itemId}/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 상품 14일 시세 이력
+         * @description 공식 거래소 상품 상세의 최근 14일 일별 평균가·거래량입니다. 오늘(한국 날짜) 값은 진행 중인 부분 집계라 partial=true이며 요약에서 제외합니다. 기본 캐시 10분, 같은 상품 동시 요청 병합, 캐릭터·거래소 공유 호출 예산을 사용합니다. 공식 API가 모르는 상품은 404 MARKET_ITEM_NOT_FOUND입니다.
+         */
+        get: operations["itemHistory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -383,6 +443,177 @@ export interface components {
              * @description 거래소 페이지를 읽은 UTC 시각. 캐시 적중에도 유지
              */
             observedAt: string;
+        };
+        /** @description 공통 API 응답. 오류 응답의 data는 null입니다. */
+        ApiResponseMarketTabsResponse: {
+            /**
+             * @description 업무 결과 코드
+             * @example CHARACTER_SEARCH_SUCCESS
+             */
+            code: string;
+            /**
+             * @description 공개용 안내 메시지
+             * @example 캐릭터 조회에 성공했습니다.
+             */
+            message: string;
+            /** @description 성공 응답 데이터. 오류일 때 null */
+            data: components["schemas"]["MarketTabsResponse"];
+        };
+        /** @description 시세 보드 탭 정의. 보석·장신구는 경매장 대상이라 포함하지 않습니다. */
+        MarketTabsResponse: {
+            tabs: components["schemas"]["MarketTabResponse"][];
+            sorts: string[];
+        };
+        MarketTabResponse: {
+            /** @enum {string} */
+            tab: "REFINING" | "REFINING_EXTRA" | "ARK_GRID" | "WEAPON_EVOLUTION" | "ENGRAVING_BOOK" | "LIFE" | "BATTLE_ITEM" | "FOOD";
+            label: string;
+            /**
+             * Format: int32
+             * @description 공식 거래소 카테고리 코드
+             */
+            categoryCode: number;
+            defaultTier: number | null;
+        };
+        /** @description 공통 API 응답. 오류 응답의 data는 null입니다. */
+        ApiResponseMarketBoardResponse: {
+            /**
+             * @description 업무 결과 코드
+             * @example CHARACTER_SEARCH_SUCCESS
+             */
+            code: string;
+            /**
+             * @description 공개용 안내 메시지
+             * @example 캐릭터 조회에 성공했습니다.
+             */
+            message: string;
+            /** @description 성공 응답 데이터. 오류일 때 null */
+            data: components["schemas"]["MarketBoardResponse"];
+        };
+        /** @description 시세 보드 한 페이지. 가격은 모두 묶음 기준 골드입니다. */
+        MarketBoardResponse: {
+            ruleVersion: string;
+            /** @description 등락률 계산 기준 설명 */
+            changeBasis: string;
+            /** @enum {string} */
+            tab: "REFINING" | "REFINING_EXTRA" | "ARK_GRID" | "WEAPON_EVOLUTION" | "ENGRAVING_BOOK" | "LIFE" | "BATTLE_ITEM" | "FOOD";
+            tabLabel: string;
+            tier: number | null;
+            sort: string;
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /**
+             * Format: date-time
+             * @description 보드에 쓴 공식 페이지 중 가장 이른 수집 시각(UTC)
+             */
+            observedAt: string;
+            /**
+             * Format: int32
+             * @description 공식 검색의 탭 전체 품목 수
+             */
+            totalItems: number;
+            /**
+             * Format: int32
+             * @description 정렬에 사용한 품목 수. rise/fall은 스캔 품목 수, 그 외는 이 페이지 품목 수
+             */
+            scannedItems: number;
+            /** @description rise/fall이 탭 전체를 스캔했는지. 스캔 상한(10페이지)을 넘으면 false */
+            complete: boolean;
+            items: components["schemas"]["MarketBoardItemResponse"][];
+        };
+        MarketBoardItemResponse: {
+            /**
+             * Format: int64
+             * @description 공식 상품 ID. 상세는 /api/v1/markets/items/{itemId}/history
+             */
+            itemId: number;
+            name: string;
+            icon: string | null;
+            grade: string | null;
+            /** Format: int32 */
+            bundleCount: number;
+            tradeRemainCount: number | null;
+            currentMinPrice: number | null;
+            recentPrice: number | null;
+            yesterdayAvgPrice: number | null;
+            changeDay: number | null;
+            changeWeek: number | null;
+            /** @description 최근 완료일 최대 7일 평균가(오래된 날부터). 이력 캐시가 없으면 빈 배열 */
+            spark7: components["schemas"]["MarketSparkPointResponse"][];
+            /** @description 이력 캐시로 changeWeek·spark7을 채웠는지 */
+            historyAvailable: boolean;
+        };
+        MarketSparkPointResponse: {
+            /** Format: date */
+            date: string;
+            averagePrice: number;
+        };
+        /** @description 공통 API 응답. 오류 응답의 data는 null입니다. */
+        ApiResponseMarketItemHistoryResponse: {
+            /**
+             * @description 업무 결과 코드
+             * @example CHARACTER_SEARCH_SUCCESS
+             */
+            code: string;
+            /**
+             * @description 공개용 안내 메시지
+             * @example 캐릭터 조회에 성공했습니다.
+             */
+            message: string;
+            /** @description 성공 응답 데이터. 오류일 때 null */
+            data: components["schemas"]["MarketItemHistoryResponse"];
+        };
+        /** @description 공식 거래소 상품의 최근 14일 일별 평균가·거래량. 같은 상품 ID의 거래 가능 횟수·묶음별 변형을 나눠 제공합니다. */
+        MarketItemHistoryResponse: {
+            /** Format: int64 */
+            itemId: number;
+            /**
+             * Format: date-time
+             * @description 서버가 공식 상세를 읽은 UTC 시각. 캐시 적중 시 유지
+             */
+            observedAt: string;
+            /**
+             * Format: date
+             * @description 부분 집계 판단 기준일(observedAt의 한국 날짜). 이 날짜 이후 값은 partial=true
+             */
+            baseDate: string;
+            variants: components["schemas"]["MarketItemVariantResponse"][];
+        };
+        MarketItemVariantResponse: {
+            name: string | null;
+            tradeRemainCount: number | null;
+            bundleCount: number | null;
+            /** @description 최신순 일별 시세 */
+            days: components["schemas"]["MarketDailyStatResponse"][];
+            summary: components["schemas"]["MarketItemSummaryResponse"];
+        };
+        MarketDailyStatResponse: {
+            /** Format: date */
+            date: string;
+            /** @description 공식 일별 평균 거래가(묶음 기준) */
+            averagePrice: number;
+            /** Format: int64 */
+            tradeCount: number;
+            /** @description 오늘(진행 중) 부분 집계 여부 */
+            partial: boolean;
+        };
+        /** @description 완료일만 사용한 요약. 등락률은 % 단위(소수 둘째 자리) */
+        MarketItemSummaryResponse: {
+            latestDate: string | null;
+            latestAveragePrice: number | null;
+            previousAveragePrice: number | null;
+            dayChangeRate: number | null;
+            /**
+             * Format: int32
+             * @description 7일 평균에 쓴 완료일 수(최대 7)
+             */
+            sevenDayDays: number;
+            sevenDayAveragePrice: number | null;
+            sevenDayChangeRate: number | null;
+            /** Format: int64 */
+            sevenDayTradeCount: number;
         };
     };
     responses: never;
@@ -711,6 +942,278 @@ export interface operations {
             };
             /** @description UNSUPPORTED_MEDIA_TYPE */
             415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description LOST_ARK_RATE_LIMITED: 캐릭터와 공유하는 호출 한도 초과 */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description INTERNAL_SERVER_ERROR */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description LOST_ARK_API_ERROR: 외부 검색 조건 거절 또는 응답 오류 */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description LOST_ARK_NOT_CONFIGURED 또는 MARKET_CACHE_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description LOST_ARK_API_TIMEOUT */
+            504: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    tabs: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 거래소 조회 성공 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponseMarketTabsResponse"];
+                };
+            };
+            /** @description INVALID_REQUEST: 검색 조건 오류 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description NOT_ACCEPTABLE */
+            406: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description LOST_ARK_RATE_LIMITED: 캐릭터와 공유하는 호출 한도 초과 */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description INTERNAL_SERVER_ERROR */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description LOST_ARK_API_ERROR: 외부 검색 조건 거절 또는 응답 오류 */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description LOST_ARK_NOT_CONFIGURED 또는 MARKET_CACHE_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description LOST_ARK_API_TIMEOUT */
+            504: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    board: {
+        parameters: {
+            query: {
+                /**
+                 * @description 보드 탭(GET /api/v1/markets/tabs)
+                 * @example REFINING
+                 */
+                tab: "REFINING" | "REFINING_EXTRA" | "ARK_GRID" | "WEAPON_EVOLUTION" | "ENGRAVING_BOOK" | "LIFE" | "BATTLE_ITEM" | "FOOD";
+                /** @description 아이템 티어. 생략하면 탭 기본 티어 */
+                tier?: number;
+                /** @description default(공식 등급순), high/low(현재 최저가), rise/fall(전일 대비 등락률, 탭 전체 스캔) */
+                sort?: string;
+                /** @description 10개 단위 페이지 */
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 거래소 조회 성공 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponseMarketBoardResponse"];
+                };
+            };
+            /** @description INVALID_REQUEST: 검색 조건 오류 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description NOT_ACCEPTABLE */
+            406: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description LOST_ARK_RATE_LIMITED: 캐릭터와 공유하는 호출 한도 초과 */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description INTERNAL_SERVER_ERROR */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description LOST_ARK_API_ERROR: 외부 검색 조건 거절 또는 응답 오류 */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description LOST_ARK_NOT_CONFIGURED 또는 MARKET_CACHE_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description LOST_ARK_API_TIMEOUT */
+            504: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    itemHistory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 거래소 조회 성공 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponseMarketItemHistoryResponse"];
+                };
+            };
+            /** @description INVALID_REQUEST: 검색 조건 오류 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description MARKET_ITEM_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description NOT_ACCEPTABLE */
+            406: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -1,4 +1,9 @@
 import Ajv2020 from "ajv/dist/2020";
+import type {
+  BoardEnvelope,
+  ItemHistoryEnvelope,
+  TabsEnvelope,
+} from "./board";
 import contract from "../../contracts/market.openapi.json";
 import type {
   ItemsEnvelope,
@@ -16,6 +21,11 @@ const options = compile<OptionsEnvelope>("ApiResponseMarketOptionsResponse");
 const items = compile<ItemsEnvelope>("ApiResponseMarketPriceResponse");
 const quote = compile<QuoteEnvelope>("ApiResponseMaterialQuoteResponse");
 const prices = compile<PricesEnvelope>("ApiResponseMaterialPriceResponse");
+const tabs = compile<TabsEnvelope>("ApiResponseMarketTabsResponse");
+const board = compile<BoardEnvelope>("ApiResponseMarketBoardResponse");
+const itemHistory = compile<ItemHistoryEnvelope>(
+  "ApiResponseMarketItemHistoryResponse",
+);
 
 const time = (value: string) => Number.isFinite(Date.parse(value));
 
@@ -48,5 +58,27 @@ export function isPricesEnvelope(value: unknown): value is PricesEnvelope {
     prices(value) &&
     value.code === "MATERIAL_PRICE_SUCCESS" &&
     value.data.items.every((item) => time(item.observedAt))
+  );
+}
+
+export function isTabsEnvelope(value: unknown): value is TabsEnvelope {
+  return tabs(value) && value.code === "MARKET_TABS_SUCCESS";
+}
+
+export function isBoardEnvelope(value: unknown): value is BoardEnvelope {
+  return (
+    board(value) &&
+    value.code === "MARKET_BOARD_SUCCESS" &&
+    time(value.data.observedAt)
+  );
+}
+
+export function isItemHistoryEnvelope(
+  value: unknown,
+): value is ItemHistoryEnvelope {
+  return (
+    itemHistory(value) &&
+    value.code === "MARKET_ITEM_HISTORY_SUCCESS" &&
+    time(value.data.observedAt)
   );
 }
