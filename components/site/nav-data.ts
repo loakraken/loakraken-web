@@ -22,10 +22,10 @@ export const NAV_SECTIONS: NavSection[] = [
       {
         title: "LOAKraken",
         links: [
-          { label: "서비스 소개", description: "흩어진 정보를 한 곳에서", href: "/#intro" },
-          { label: "캐릭터 미리보기", description: "예시 데이터로 보는 화면", href: "/#preview" },
-          { label: "근거 보기", description: "결과마다 원본 데이터를 함께", href: "/#evidence" },
-          { label: "로드맵", description: "흡수 중인 기능과 순서", href: "/#roadmap" },
+          { label: "서비스 소개", description: "흩어진 정보를 한 곳에서", href: "/about#intro" },
+          { label: "캐릭터 미리보기", description: "예시 데이터로 보는 화면", href: "/about#preview" },
+          { label: "근거 보기", description: "결과마다 원본 데이터를 함께", href: "/about#evidence" },
+          { label: "로드맵", description: "흡수 중인 기능과 순서", href: "/about#roadmap" },
         ],
       },
     ],
@@ -38,7 +38,7 @@ export const NAV_SECTIONS: NavSection[] = [
       {
         title: "조회",
         links: [
-          { label: "캐릭터 검색", description: "장비·스킬·아크 패시브·내실", href: "/#intro" },
+          { label: "캐릭터 검색", description: "장비·스킬·아크 패시브·내실", href: "/" },
           { label: "군장검사", description: "여러 캐릭터를 한 번에 비교" },
           { label: "길드", description: "길드원 세팅 한눈에" },
         ],
@@ -98,8 +98,8 @@ export const NAV_SECTIONS: NavSection[] = [
       {
         title: "오늘",
         links: [
-          { label: "오늘의 일정", description: "모험 섬 보상·필드 보스·카오스 게이트" },
-          { label: "공지·이벤트", description: "점검과 진행 중인 이벤트" },
+          { label: "주간 일정표", description: "모험 섬 보상·필드 보스·카오스게이트", href: "/#schedule" },
+          { label: "공지·이벤트", description: "점검과 진행 중인 이벤트", href: "/#news" },
         ],
       },
       {

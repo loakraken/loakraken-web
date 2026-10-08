@@ -1,5 +1,5 @@
-import { Landing } from "@/components/landing/landing";
+import { HomeDashboard } from "@/components/home/home";
 
 export default function Home() {
-  return <Landing />;
+  return <HomeDashboard />;
 }
