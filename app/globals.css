@@ -866,13 +866,16 @@ body {
 
   /* Quality badge, iloa's six bands. Orange and olive keep their in-game
      colour and switch to dark numerals; the others are darkened only as far
-     as 4.5:1 (PM decision D1). Numerals stay at weight 600 or more. */
+     as 4.5:1 (PM decision D1). Where iloa's measured badge already passes
+     (90~99, 70~89: its 80% fill over its panel), that colour is used as is.
+     The lower three bands are unmeasured and stay on our values for now.
+     Numerals stay at weight 600 or more. */
   --quality-max: #e08a00;
   --quality-max-foreground: #1d1d1f; /* 6.26 */
-  --quality-high: #8c4fd4;
-  --quality-high-foreground: #fff; /* 5.02 */
-  --quality-good: #2675cf;
-  --quality-good-foreground: #fff; /* 4.64 */
+  --quality-high: #b718bb;
+  --quality-high-foreground: #fff; /* 5.44 */
+  --quality-good: #1352c2;
+  --quality-good-foreground: #fff; /* 6.97 */
   --quality-normal: #34843f;
   --quality-normal-foreground: #fff; /* 4.65 */
   --quality-low: #b8a21e;
