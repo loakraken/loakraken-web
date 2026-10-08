@@ -10,6 +10,7 @@ import { CharacterCockpit } from "./cockpit";
 import { IntelligenceOrb, InlineOrb } from "./orb";
 import { LandingMotion, Reveal, useLandingMotion } from "./motion";
 import { roadmap } from "./roadmap";
+import { SiteNav } from "@/components/site/site-nav";
 import { characterNameError, normalizeCharacterName } from "@/lib/character/model";
 import styles from "./landing.module.css";
 
@@ -32,7 +33,6 @@ function PrecisionLanding() {
   const [error, setError] = useState("");
   const [searching, setSearching] = useState(false);
   const [focused, setFocused] = useState(false);
-  const [activeSection, setActiveSection] = useState("intro");
   const [copied, setCopied] = useState(false);
   const [copyError, setCopyError] = useState(false);
   const copyTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -51,14 +51,7 @@ function PrecisionLanding() {
       }
     };
     window.addEventListener("keydown", shortcut);
-    const observer = new IntersectionObserver((entries) => {
-      for (const entry of entries) if (entry.isIntersecting) setActiveSection(entry.target.id);
-    }, { rootMargin: "-15% 0px -55% 0px" });
-    for (const id of ["intro", "preview", "evidence", "roadmap"]) {
-      const section = document.getElementById(id);
-      if (section) observer.observe(section);
-    }
-    return () => { window.removeEventListener("keydown", shortcut); observer.disconnect(); clearTimeout(copyTimer.current); };
+    return () => { window.removeEventListener("keydown", shortcut); clearTimeout(copyTimer.current); };
   }, []);
 
   const focusSearch = () => {
@@ -75,7 +68,7 @@ function PrecisionLanding() {
     router.push(`/character/${encodeURIComponent(name)}`);
   }
 
-  const evidence = JSON.stringify({ character: "별빛모험가", source: "design-preview", observation: { gemSlots: 11, equipped: 10 }, diagnosis: "빈 보석 슬롯 확인", evidencePath: "/example/gems/10", ruleVersion: "preview-v1" }, null, 2);
+  const evidence = JSON.stringify({ character: "블레이드", className: "블레이드", source: "design-preview", observation: { gems: 11, level10: 9, level9: [{ slot: 5, kind: "겁화", skill: "마엘스톰" }, { slot: 10, kind: "작열", skill: "터닝 슬래쉬" }] }, diagnosis: "9레벨 보석 2개 확인", evidencePath: "/example/gems/5,10", ruleVersion: "preview-v1" }, null, 2);
 
   async function copyEvidence() {
     try {
@@ -92,10 +85,7 @@ function PrecisionLanding() {
       <m.div className={styles.readingProgress} style={{ transform: progressTransform }} aria-hidden="true" />
       <header className={styles.header}>
         <Link href="/" className={styles.brand} aria-label="LOAKraken 홈"><span className={styles.brandIcon}><KrakenMark /></span><span>LOAKraken</span><span className={styles.brandTag}>BETA</span></Link>
-        <nav className={styles.navigation} aria-label="주요 메뉴">
-          {[{ id: "intro", name: "소개" }, { id: "preview", name: "캐릭터 미리보기" }, { id: "evidence", name: "진단 근거" }, { id: "roadmap", name: "로드맵" }].map((item) => <a key={item.id} href={`#${item.id}`} data-active={activeSection === item.id} aria-current={activeSection === item.id ? "location" : undefined}>{item.name}</a>)}
-          <Link href="/tools/material-quote">재료 견적</Link>
-        </nav>
+        <nav className={styles.navigation} aria-label="주요 메뉴"><SiteNav /></nav>
         <div className={styles.headerActions}>
           <button type="button" className={styles.motionToggle} onClick={toggle} aria-label={paused ? "모션 재생" : "모션 일시정지"} aria-pressed={paused} title={paused ? "모션 재생" : "모션 일시정지"}>{paused ? <Play size={14} /> : <Pause size={14} />}</button>
           <button type="button" className={styles.navCta} onClick={focusSearch}>캐릭터 검색 <ArrowUpRight size={14} /></button>
@@ -155,7 +145,7 @@ function PrecisionLanding() {
           <Reveal className={styles.evidenceVisual} delay={0.1}>
             <div className={styles.evidenceTop}><span><span className={styles.statusDot} /> 데이터에서 판단까지</span><span>예시</span></div>
             <div className={styles.pipeline}>
-              {[{ icon: ScanLine, label: "관측 데이터", text: "장착된 보석 확인", sub: "10 / 11 슬롯" }, { icon: Focus, label: "규칙 확인", text: "미장착 슬롯 감지", sub: "PREVIEW-V1" }, { icon: ShieldCheck, label: "진단 근거", text: "빈 슬롯 확인 필요", sub: "근거와 함께 제시" }].map((step, i) => <div className={styles.pipelineStep} key={step.label}>
+              {[{ icon: ScanLine, label: "관측 데이터", text: "장착된 보석 확인", sub: "11 / 11 슬롯" }, { icon: Focus, label: "규칙 확인", text: "최대 레벨 미만 감지", sub: "PREVIEW-V1" }, { icon: ShieldCheck, label: "진단 근거", text: "9레벨 2개 · 교체 후보", sub: "근거와 함께 제시" }].map((step, i) => <div className={styles.pipelineStep} key={step.label}>
                 <div className={styles.pipelineIcon}><step.icon size={18} />{i < 2 && <span className={styles.pipelineLine}><i /></span>}</div>
                 <div><span>{step.label}</span><h3>{step.text}</h3></div><small>{step.sub}</small>
               </div>)}

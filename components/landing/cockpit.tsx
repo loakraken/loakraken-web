@@ -3,16 +3,21 @@
 import { useState } from "react";
 import { Tabs } from "@base-ui/react/tabs";
 import { AnimatePresence, m } from "motion/react";
-import { ArrowUpRight, Check, ChevronRight, CircleHelp, Gem, ShieldCheck, Sparkles, Swords } from "lucide-react";
+import { ArrowUpRight, Check, ChevronRight, CircleHelp, Gem, Swords } from "lucide-react";
+import { GameIcon } from "@/components/character/imagery";
 import { InlineOrb } from "./orb";
 import { useLandingMotion } from "./motion";
+import { accessories, armor, belowMaxGems, gemAverage, gems, itemLevel, previewCharacter as hero } from "./preview-character";
 import styles from "./landing.module.css";
 
+const [whole, fraction] = itemLevel.toFixed(2).split(".");
+const armorAverage = armor.slice(1).reduce((sum, piece) => sum + piece.refine, 0) / (armor.length - 1);
 const equipment = [
-  { name: "무기", value: "+25", progress: 88, icon: Swords },
-  { name: "초월", value: "126", progress: 100, icon: Sparkles },
-  { name: "엘릭서", value: "40", progress: 76, icon: ShieldCheck },
+  { name: "무기", value: `+${armor[0].refine}`, progress: armor[0].refine / 25, icon: armor[0].icon },
+  { name: "방어구 평균", value: `+${armorAverage.toFixed(1)}`, progress: armorAverage / 25, icon: armor[1].icon },
+  { name: "보석 평균", value: `Lv.${gemAverage.toFixed(1)}`, progress: gemAverage / 10, icon: gems[0].icon },
 ];
+const qualityTier = (q: number) => (q >= 100 ? "max" : q >= 90 ? "high" : q >= 70 ? "good" : "normal");
 
 export function CharacterCockpit() {
   const [tab, setTab] = useState("overview");
@@ -29,10 +34,13 @@ export function CharacterCockpit() {
       <div className={styles.cockpitBody}>
         <div className={styles.characterHeader}>
           <div className={styles.characterIdentity}>
-            <div className={styles.characterAvatar}><Swords size={26} strokeWidth={1.25} /></div>
-            <div><span className={styles.eyebrow}>캐릭터 프로필</span><h3>별빛모험가 <span>바드</span></h3><p>아만 <span>·</span> 전투 레벨 70</p></div>
+            <div className={styles.characterAvatar}>
+              {/* eslint-disable-next-line @next/next/no-img-element -- official CDN class emblem at a fixed size */}
+              <img src={hero.emblem} alt="" width={40} height={40} referrerPolicy="no-referrer" />
+            </div>
+            <div><span className={styles.eyebrow}>캐릭터 프로필</span><h3>{hero.name} <span>{hero.className}</span></h3><p>{hero.server} <span>·</span> 전투 레벨 {hero.combatLevel}</p></div>
           </div>
-          <div className={styles.itemLevel}><span>아이템 레벨</span><strong>1,700<span>.50</span></strong></div>
+          <div className={styles.itemLevel}><span>아이템 레벨</span><strong>{Number(whole).toLocaleString("ko-KR")}<span>.{fraction}</span></strong></div>
         </div>
         <Tabs.Root value={tab} onValueChange={(value) => setTab(value as string)}>
           <Tabs.List className={styles.cockpitTabs} aria-label="캐릭터 미리보기 영역" data-keyboard={keyboard}
@@ -50,12 +58,12 @@ export function CharacterCockpit() {
                   {tab === "overview" ? <>
                     <div className={styles.equipmentOverview}>
                       <div className={styles.cardHeading}><span>성장의 기반</span><Swords size={15} /></div>
-                      {equipment.map(({ name, value, progress, icon: Icon }) => <div key={name} className={styles.equipmentRow}>
-                        <span className={styles.equipmentIcon}><Icon size={17} /></span>
-                        <div><div className={styles.metricHeading}><span>{name}</span><strong>{value}{name === "초월" && <small> ★</small>}</strong></div>
-                          <div className={styles.meter}><span style={{ transform: `scaleX(${progress / 100})` }} /></div></div>
+                      {equipment.map(({ name, value, progress, icon }) => <div key={name} className={styles.equipmentRow}>
+                        <GameIcon src={icon} grade="고대" size={32} />
+                        <div><div className={styles.metricHeading}><span>{name}</span><strong>{value}</strong></div>
+                          <div className={styles.meter}><span style={{ transform: `scaleX(${progress})` }} /></div></div>
                       </div>)}
-                      <span className={styles.mutedCaption}>표시된 수치는 화면 설명용 예시입니다.</span>
+                      <span className={styles.mutedCaption}>운명의 전율 T4 · 최대 +25 · 보석 최대 10레벨 기준 예시</span>
                     </div>
                     <div className={styles.observationCard}>
                       <div className={styles.cardHeading}><span>관측 현황</span><InlineOrb state="connecting" /></div>
@@ -69,17 +77,31 @@ export function CharacterCockpit() {
                     <div className={styles.diagnosticCard}>
                       <div className={styles.cardHeading}><span>다음으로 살펴볼 것</span><ArrowUpRight size={16} /></div>
                       <span className={styles.diagnosticLabel}><span /> 확인 필요</span>
-                      <h4>보석의 빈 슬롯을<br />확인해 보세요.</h4>
-                      <p>현재 세팅에서 놓친 부분부터.<br />수치와 근거를 함께 살펴봅니다.</p>
+                      <h4>9레벨 보석 {belowMaxGems.length}개,<br />다음 성장 후보예요.</h4>
+                      <p>{belowMaxGems.map((g) => `${g.skill} ${g.kind}`).join(" · ")}.<br />수치와 근거를 함께 살펴봅니다.</p>
                       <a href="#evidence" className={styles.cardLink}>진단 근거 보기 <ChevronRight size={14} /></a>
                     </div>
                   </> : <div className={styles.gemPanel}>
-                    <div><div className={styles.cardHeading}><span>보석 장착 현황</span><Gem size={16} /></div>
-                      <div className={styles.gemGrid}>{Array.from({ length: 11 }, (_, i) => <div key={i} className={styles.gemSlot} data-empty={i === 10}>
-                        {i === 10 ? <span>빈 슬롯</span> : <><Gem size={22} /><b>{i < 4 ? "10" : "9"}<small> LV</small></b></>}
-                      </div>)}</div>
+                    <div>
+                      <div className={styles.cardHeading}><span>장비</span><Swords size={15} /></div>
+                      <ul className={styles.gearGrid}>{armor.map((piece) => <li key={piece.slot} title={piece.name}>
+                        <GameIcon src={piece.icon} grade={piece.grade} size={36} />
+                        <span><b>{piece.slot} +{piece.refine}</b><small>T4 · {piece.name}</small></span>
+                        <i data-tier={qualityTier(piece.quality)} aria-label={`품질 ${piece.quality}`}>{piece.quality}</i>
+                      </li>)}</ul>
+                      <ul className={styles.accessoryStrip} aria-label="장신구·팔찌·어빌리티 스톤">{accessories.map((item, i) => <li key={i} title={`${item.name} · ${item.grade}`}>
+                        <GameIcon src={item.icon} grade={item.grade} size={30} />
+                        <small>{item.slot === "어빌리티 스톤" ? "스톤" : item.slot}</small>
+                      </li>)}</ul>
                     </div>
-                    <div className={styles.gemDescription}><span className={styles.diagnosticLabel}>예시 진단</span><h4>장착 상태부터,<br />하나씩 정확하게.</h4><p>미장착 슬롯과 확인할 수 없는 데이터를 구분합니다. 정보가 없는 항목을 임의로 0점 처리하지 않습니다.</p></div>
+                    <div>
+                      <div className={styles.cardHeading}><span>보석 · 평균 {gemAverage.toFixed(1)}</span><Gem size={16} /></div>
+                      <ul className={styles.gemGrid}>{gems.map((g, i) => <li key={i} className={styles.gemSlot} data-below={g.level < 10 || undefined} title={`${g.level}레벨 ${g.kind}의 보석 · ${g.skill}`}>
+                        <GameIcon src={g.icon} grade={g.level === 10 ? "고대" : "유물"} size={34} />
+                        <b>{g.level}{g.kind === "겁화" ? "뎀" : "쿨"}</b>
+                      </li>)}</ul>
+                      <p className={styles.gemNote}><span className={styles.diagnosticLabel}><span /> 예시 진단</span> 9레벨 {belowMaxGems.length}개를 10레벨로 바꾸면 보석 평균이 10.0이 됩니다.</p>
+                    </div>
                   </div>}
                 </Tabs.Panel>
               </m.div>
