@@ -15,7 +15,8 @@
     "api:generate:history": "openapi-typescript contracts/history.openapi.json -o lib/api/history-schema.d.ts",
     "api:generate:refining": "openapi-typescript contracts/refining.openapi.json -o lib/api/refining-schema.d.ts",
     "api:generate:crit-speed": "openapi-typescript contracts/crit-speed.openapi.json -o lib/api/crit-speed-schema.d.ts",
-    "api:generate:views": "openapi-typescript contracts/views.openapi.json -o lib/api/views-schema.d.ts"
+    "api:generate:views": "openapi-typescript contracts/views.openapi.json -o lib/api/views-schema.d.ts",
+    "api:generate:home": "openapi-typescript contracts/home.openapi.json -o lib/api/home-schema.d.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
