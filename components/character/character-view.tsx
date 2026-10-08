@@ -151,7 +151,10 @@ function CharacterContent({
         </Link>
         <SearchBox name={name} />
         <nav className={styles.headerNav} aria-label="주요 메뉴">
+          <Link href="/market">시세</Link>
           <Link href="/tools/material-quote">재료 견적</Link>
+          <Link href="/tools/refining">재련 비용</Link>
+          <Link href="/tools/crit-speed">치적·음돌</Link>
         </nav>
         <button
           className={styles.motionButton}

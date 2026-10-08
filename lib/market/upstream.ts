@@ -9,6 +9,16 @@ import {
   type QuoteEnvelope,
 } from "./model";
 import {
+  boardSearchParams,
+  parseItemId,
+  type BoardEnvelope,
+  type ItemHistoryEnvelope,
+  type TabsEnvelope,
+} from "./board";
+import {
+  isBoardEnvelope,
+  isItemHistoryEnvelope,
+  isTabsEnvelope,
   isItemsEnvelope,
   isOptionsEnvelope,
   isPricesEnvelope,
@@ -94,4 +104,44 @@ export async function requestPrices(
     isValid: isPricesEnvelope,
     errorCodes,
   });
+}
+
+export function requestTabs(
+  origin: string | undefined,
+  options: Options = {},
+): Promise<BackendResult<TabsEnvelope>> {
+  return requestBackend(backendUrl(origin, "/api/v1/markets/tabs"), {
+    ...options,
+    isValid: isTabsEnvelope,
+    errorCodes,
+  });
+}
+
+export async function requestBoard(
+  query: URLSearchParams,
+  origin: string | undefined,
+  options: Options = {},
+): Promise<BackendResult<BoardEnvelope>> {
+  const params = boardSearchParams(query);
+  if (!params) return invalid;
+  const url = backendUrl(origin, "/api/v1/markets/board");
+  if (url) url.search = params.toString();
+  return requestBackend(url, { ...options, isValid: isBoardEnvelope, errorCodes });
+}
+
+export async function requestItemHistory(
+  itemId: string,
+  origin: string | undefined,
+  options: Options = {},
+): Promise<BackendResult<ItemHistoryEnvelope>> {
+  const id = parseItemId(itemId);
+  if (id == null) return invalid;
+  return requestBackend(
+    backendUrl(origin, `/api/v1/markets/items/${id}/history`),
+    {
+      ...options,
+      isValid: isItemHistoryEnvelope,
+      errorCodes: { ...errorCodes, 404: ["MARKET_ITEM_NOT_FOUND"] },
+    },
+  );
 }

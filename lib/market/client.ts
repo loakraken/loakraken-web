@@ -1,5 +1,12 @@
 import type { BackendResult } from "../api/backend";
 import type {
+  BoardEnvelope,
+  BoardQuery,
+  ItemHistoryEnvelope,
+  TabsEnvelope,
+} from "./board";
+import { boardQueryString } from "./board";
+import type {
   ItemsEnvelope,
   MarketFailure,
   OptionsEnvelope,
@@ -61,5 +68,18 @@ export const postMaterialPrices = (body: PriceRequest, signal?: AbortSignal) =>
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
+    signal,
+  });
+
+export const fetchMarketTabs = (signal: AbortSignal) =>
+  call<TabsEnvelope>("/api/markets/tabs", { signal });
+
+export const fetchMarketBoard = (query: BoardQuery, signal: AbortSignal) =>
+  call<BoardEnvelope>(`/api/markets/board?${boardQueryString(query)}`, {
+    signal,
+  });
+
+export const fetchItemHistory = (itemId: number, signal: AbortSignal) =>
+  call<ItemHistoryEnvelope>(`/api/markets/items/${itemId}/history`, {
     signal,
   });

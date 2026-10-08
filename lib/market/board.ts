@@ -1,0 +1,132 @@
+// Market board (B-5): category tabs, sorted price board and per-item 14-day
+// history, laid out like the market pages of the other Lost Ark sites.
+import type { components } from "../api/market-schema";
+
+type Schemas = components["schemas"];
+export type MarketTabs = Schemas["MarketTabsResponse"];
+export type MarketTab = Schemas["MarketTabResponse"];
+export type TabId = MarketTab["tab"];
+export type MarketBoard = Schemas["MarketBoardResponse"];
+export type BoardItem = Schemas["MarketBoardItemResponse"];
+export type ItemHistory = Schemas["MarketItemHistoryResponse"];
+export type ItemVariant = Schemas["MarketItemVariantResponse"];
+export type DailyStat = Schemas["MarketDailyStatResponse"];
+type Envelope<T> = { code: string; message: string; data: T };
+export type TabsEnvelope = Envelope<MarketTabs>;
+export type BoardEnvelope = Envelope<MarketBoard>;
+export type ItemHistoryEnvelope = Envelope<ItemHistory>;
+
+export const TAB_IDS: readonly TabId[] = [
+  "REFINING",
+  "REFINING_EXTRA",
+  "ARK_GRID",
+  "WEAPON_EVOLUTION",
+  "ENGRAVING_BOOK",
+  "LIFE",
+  "BATTLE_ITEM",
+  "FOOD",
+];
+
+export const SORTS = [
+  { id: "default", label: "기본" },
+  { id: "high", label: "고가" },
+  { id: "low", label: "저가" },
+  { id: "rise", label: "상승" },
+  { id: "fall", label: "하락" },
+] as const;
+export type SortId = (typeof SORTS)[number]["id"];
+
+export type BoardQuery = {
+  tab: TabId;
+  tier: number | null;
+  sort: SortId;
+  page: number;
+};
+
+const isInt = (text: string, min: number, max: number) =>
+  /^\d{1,2}$/.test(text) && Number(text) >= min && Number(text) <= max;
+
+/** Allow-list for the board query (server side, before any backend call). */
+export function boardSearchParams(input: URLSearchParams): URLSearchParams | null {
+  const out = new URLSearchParams();
+  const tab = input.get("tab") ?? "";
+  if (!(TAB_IDS as readonly string[]).includes(tab)) return null;
+  out.set("tab", tab);
+  const tier = input.get("tier");
+  if (tier !== null && tier !== "") {
+    if (!isInt(tier, 1, 4)) return null;
+    out.set("tier", String(Number(tier)));
+  }
+  const sort = input.get("sort");
+  if (sort !== null) {
+    if (!SORTS.some((s) => s.id === sort)) return null;
+    out.set("sort", sort);
+  }
+  const page = input.get("page");
+  if (page !== null) {
+    if (!isInt(page, 1, 10)) return null;
+    out.set("page", String(Number(page)));
+  }
+  return out;
+}
+
+/** Positive integer item id (path parameter), or null. */
+export function parseItemId(value: string): number | null {
+  if (!/^\d{1,9}$/.test(value)) return null;
+  const id = Number(value);
+  return id > 0 ? id : null;
+}
+
+/** Board query from the page URL, falling back to the first tab and defaults. */
+export function readBoardQuery(params: {
+  tab?: string | string[];
+  tier?: string | string[];
+  sort?: string | string[];
+  page?: string | string[];
+}): BoardQuery {
+  const one = (value: string | string[] | undefined) =>
+    typeof value === "string" ? value : "";
+  const tab = (TAB_IDS as readonly string[]).includes(one(params.tab))
+    ? (one(params.tab) as TabId)
+    : "REFINING";
+  const tier = isInt(one(params.tier), 1, 4) ? Number(one(params.tier)) : null;
+  const sort = SORTS.some((s) => s.id === one(params.sort))
+    ? (one(params.sort) as SortId)
+    : "default";
+  const page = isInt(one(params.page), 1, 10) ? Number(one(params.page)) : 1;
+  return { tab, tier, sort, page };
+}
+
+export function boardQueryString(query: BoardQuery) {
+  const out = new URLSearchParams({ tab: query.tab });
+  if (query.tier != null) out.set("tier", String(query.tier));
+  if (query.sort !== "default") out.set("sort", query.sort);
+  if (query.page > 1) out.set("page", String(query.page));
+  return out.toString();
+}
+
+/** "▲1.1%" / "▼0.7%" / "0.0%" / "—" with a direction for colouring. */
+export function changeLabel(value: number | null | undefined) {
+  if (value == null) return { text: "—", direction: "none" as const };
+  const fixed = Math.abs(value).toLocaleString("ko-KR", {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  });
+  if (value > 0) return { text: `▲${fixed}%`, direction: "up" as const };
+  if (value < 0) return { text: `▼${fixed}%`, direction: "down" as const };
+  return { text: `${fixed}%`, direction: "flat" as const };
+}
+
+export function goldText(value: number | null | undefined) {
+  if (value == null) return "—";
+  return `${value.toLocaleString("ko-KR", { maximumFractionDigits: 2 })}G`;
+}
+
+/** Completed days, oldest first (for charts); today's partial day is left out. */
+export function completedDays(variant: ItemVariant | undefined, limit = 14) {
+  if (!variant) return [];
+  return variant.days
+    .filter((day) => !day.partial)
+    .slice(0, limit)
+    .reverse();
+}

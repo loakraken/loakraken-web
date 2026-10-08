@@ -36,6 +36,55 @@ const criteria = (url) => ({
 async function market(url, req, send) {
   const key = `market:${url.pathname}`;
   counts[key] = (counts[key] || 0) + 1;
+  // Market board (B-5): synthetic, deterministic prices per item id.
+  if (url.pathname === "/api/v1/markets/tabs")
+    return send(marketRead("market-tabs.json"));
+  const boardItems = (tab) => {
+    const refining = [
+      [6861012, "아비도스 융화 재료", "희귀", 1, 195],
+      [6861013, "상급 아비도스 융화 재료", "영웅", 1, 256],
+      [66102006, "운명의 파괴석", "희귀", 100, 171],
+      [66102007, "운명의 파괴석 결정", "영웅", 100, 889],
+      [66102106, "운명의 수호석", "희귀", 100, 31],
+      [66102107, "운명의 수호석 결정", "영웅", 100, 191],
+      [66110225, "운명의 돌파석", "영웅", 1, 6],
+      [66110226, "위대한 운명의 돌파석", "전설", 1, 34],
+      [66130141, "운명의 파편 주머니(소)", "희귀", 1, 79],
+      [66130142, "운명의 파편 주머니(중)", "영웅", 1, 197],
+      [66130143, "운명의 파편 주머니(대)", "전설", 1, 231],
+    ];
+    const list = tab === "REFINING" ? refining : Array.from({ length: tab === "ENGRAVING_BOOK" ? 23 : 13 }, (_, i) => [7000000 + i * 7 + tab.length, `합성 ${tab} 품목 ${i + 1}`, ["일반", "고급", "희귀", "영웅", "전설", "유물"][i % 6], i % 3 ? 1 : 10, 20 + ((i * 37) % 400)]);
+    return list.map(([itemId, name, grade, bundleCount, base]) => {
+      const wobble = ((itemId % 23) - 11) / 100;
+      const yesterday = base * (1 - wobble / 2);
+      const current = Math.round(base * 10) / 10;
+      const days = Array.from({ length: 7 }, (_, d) => ({ date: new Date(Date.now() - (7 - d) * 86400000).toISOString().slice(0, 10), averagePrice: Math.round(base * (1 + Math.sin(itemId + d) * 0.05) * 10) / 10 }));
+      return { itemId, name, icon: null, grade, bundleCount, tradeRemainCount: null, currentMinPrice: current, recentPrice: current, yesterdayAvgPrice: Math.round(yesterday * 10) / 10, changeDay: Math.round((current / yesterday - 1) * 1000) / 10, changeWeek: Math.round(wobble * 700) / 10, spark7: days, historyAvailable: true };
+    });
+  };
+  if (url.pathname === "/api/v1/markets/board") {
+    const tab = url.searchParams.get("tab");
+    const tabs = marketRead("market-tabs.json").data.tabs;
+    const def = tabs.find((t) => t.tab === tab);
+    if (!def) return send({ code: "INVALID_REQUEST" }, 400);
+    const sort = url.searchParams.get("sort") ?? "default";
+    const page = Number(url.searchParams.get("page") ?? 1);
+    let items = boardItems(tab);
+    if (sort === "high") items.sort((a, b) => b.currentMinPrice - a.currentMinPrice);
+    if (sort === "low") items.sort((a, b) => a.currentMinPrice - b.currentMinPrice);
+    if (sort === "rise") items.sort((a, b) => b.changeDay - a.changeDay);
+    if (sort === "fall") items.sort((a, b) => a.changeDay - b.changeDay);
+    const tier = url.searchParams.get("tier") ? Number(url.searchParams.get("tier")) : def.defaultTier;
+    return send({ code: "MARKET_BOARD_SUCCESS", message: "성공", data: { ruleVersion: "market-board-v1", changeBasis: "changeDay = 현재 최저가 ÷ 전일 평균가 − 1 (합성 목 데이터)", tab, tabLabel: def.label, tier, sort, page, pageSize: 10, observedAt: new Date(Date.now() - 60000).toISOString(), totalItems: items.length, scannedItems: items.length, complete: true, items: items.slice((page - 1) * 10, page * 10) } });
+  }
+  const historyMatch = /^\/api\/v1\/markets\/items\/(\d+)\/history$/.exec(url.pathname);
+  if (historyMatch) {
+    const itemId = Number(historyMatch[1]);
+    if (itemId === 404) return send({ code: "MARKET_ITEM_NOT_FOUND" }, 404);
+    const base = 50 + (itemId % 400);
+    const days = Array.from({ length: 14 }, (_, d) => ({ date: new Date(Date.now() - d * 86400000).toISOString().slice(0, 10), averagePrice: Math.round(base * (1 + Math.sin(itemId / 7 + d / 2) * 0.08) * 10) / 10, tradeCount: Math.round(80000 + 60000 * Math.abs(Math.cos(itemId + d))), partial: d === 0 }));
+    return send({ code: "MARKET_ITEM_HISTORY_SUCCESS", message: "성공", data: { itemId, observedAt: new Date(Date.now() - 120000).toISOString(), baseDate: days[0].date, variants: [{ name: "합성 품목", tradeRemainCount: null, bundleCount: 1, days, summary: { latestDate: days[1].date, latestAveragePrice: days[1].averagePrice, previousAveragePrice: days[2].averagePrice, dayChangeRate: 1.2, sevenDayDays: 7, sevenDayAveragePrice: base, sevenDayChangeRate: 0.4, sevenDayTradeCount: 700000 } }] } });
+  }
   if (url.pathname === "/api/v1/markets/options")
     return send(marketRead("market-options.json"));
   if (url.pathname === "/api/v1/markets/items") {

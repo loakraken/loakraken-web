@@ -1,0 +1,422 @@
+/* Market board — same layout conventions as the other Lost Ark market pages
+   (category bar, sorted list on the left, item detail on the right), on the
+   LOAKraken tool tokens supplied by the page class. Rises are red and falls
+   blue, as Korean market screens show them. */
+.band {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 4px 24px 64px;
+}
+.categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px;
+  border-radius: 18px;
+  background: var(--mist);
+}
+.categories button {
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 12px;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 500;
+}
+.categories button[aria-pressed="true"] {
+  background: #fff;
+  font-weight: 700;
+  box-shadow: 0 0 0 1px var(--control);
+}
+.columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  gap: 16px;
+  align-items: start;
+  margin-top: 16px;
+}
+.board,
+.detail {
+  min-width: 0;
+  padding: 18px 18px 14px;
+  border-radius: 18px;
+  background: var(--mist);
+}
+.side {
+  position: sticky;
+  top: 64px;
+}
+.boardHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.boardHead h2 {
+  font-size: 16px;
+  font-weight: 700;
+}
+.boardHead h2 small {
+  margin-left: 4px;
+  color: var(--slate);
+  font-size: 12px;
+  font-weight: 500;
+}
+.sorts,
+.tiers,
+.ranges {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 10px;
+  background: #fff;
+}
+.tiers {
+  margin-top: 10px;
+}
+.sorts button,
+.tiers button,
+.ranges button {
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 8px;
+  color: var(--slate);
+  font-size: 12px;
+  font-weight: 600;
+}
+.sorts button[aria-pressed="true"],
+.tiers button[aria-pressed="true"],
+.ranges button[aria-pressed="true"] {
+  background: var(--ink);
+  color: #fff;
+}
+.rows {
+  display: grid;
+  margin-top: 10px;
+  padding: 0;
+  list-style: none;
+  transition: opacity 160ms ease-out;
+}
+.rows[data-stale] {
+  opacity: 0.55;
+}
+.rows button {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 10px;
+  border-radius: 12px;
+  color: var(--ink);
+  text-align: left;
+}
+.rows button[aria-pressed="true"] {
+  background: #fff;
+  box-shadow: inset 3px 0 0 var(--action);
+}
+@media (hover: hover) and (pointer: fine) {
+  .rows button:hover {
+    background: rgb(255 255 255 / 70%);
+  }
+}
+.rowName {
+  display: grid;
+  min-width: 0;
+}
+.rowName strong {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.rowName strong i {
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: var(--control);
+  color: var(--slate);
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 600;
+}
+.rowName small {
+  color: var(--slate);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.rowPrice {
+  display: grid;
+  justify-items: end;
+}
+.rowPrice b {
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+/* Item grade colours on a light surface (game rarity hues). */
+.board [data-grade="일반"],
+.detail [data-grade="일반"] {
+  color: #6e6e73;
+}
+.board [data-grade="고급"],
+.detail [data-grade="고급"] {
+  color: #3f8f1f;
+}
+.board [data-grade="희귀"],
+.detail [data-grade="희귀"] {
+  color: #0a74b8;
+}
+.board [data-grade="영웅"],
+.detail [data-grade="영웅"] {
+  color: #8f2fc0;
+}
+.board [data-grade="전설"],
+.detail [data-grade="전설"] {
+  color: #b86a00;
+}
+.board [data-grade="유물"],
+.detail [data-grade="유물"] {
+  color: #c4520a;
+}
+.board [data-grade="고대"],
+.detail [data-grade="고대"] {
+  color: #8c7333;
+}
+.change {
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.change[data-direction="up"] {
+  color: #d93a2b;
+}
+.change[data-direction="down"] {
+  color: #2f6fd9;
+}
+.change[data-direction="flat"],
+.change[data-direction="none"] {
+  color: var(--slate);
+}
+.pages {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
+  margin-top: 10px;
+}
+.pages button {
+  min-width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  color: var(--slate);
+  font-size: 13px;
+}
+.pages button[aria-current="page"] {
+  background: var(--ink);
+  color: #fff;
+}
+.note {
+  margin-top: 10px;
+  color: var(--slate);
+  font-size: 12px;
+}
+.muted {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 24px 0;
+  color: var(--slate);
+  font-size: 14px;
+}
+
+/* Detail */
+.detailHead {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.detailHead strong {
+  display: block;
+  font-size: 17px;
+  font-weight: 700;
+}
+.detailHead small {
+  color: var(--slate);
+  font-size: 12px;
+}
+.facts {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 14px;
+}
+.facts div {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #fff;
+}
+.facts dt {
+  color: var(--slate);
+  font-size: 12px;
+}
+.facts dd {
+  margin-top: 2px;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+.facts dd .change {
+  font-size: 18px;
+  font-weight: 700;
+}
+.trendHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 18px;
+}
+.trendHead h3 {
+  font-size: 15px;
+  font-weight: 700;
+}
+.detail > .ranges {
+  margin-top: 8px;
+}
+.chart {
+  margin-top: 10px;
+  padding: 10px 10px 6px;
+  border-radius: 12px;
+  background: #fff;
+}
+.chartSvg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+  touch-action: pan-y;
+}
+.chartSvg:focus-visible {
+  outline: 3px solid var(--action);
+  outline-offset: 4px;
+}
+.grid {
+  stroke: #e6e6e8;
+  stroke-width: 1;
+}
+.tick {
+  fill: #707070;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.area {
+  fill: #0071e3;
+  fill-opacity: 0.1;
+}
+.line {
+  fill: none;
+  stroke: #0071e3;
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.dot {
+  fill: #0071e3;
+  stroke: #fff;
+  stroke-width: 2;
+}
+.volume {
+  fill: #c7c7cc;
+}
+.volume[data-active] {
+  fill: #86868b;
+}
+.crosshair {
+  stroke: #86868b;
+  stroke-width: 1;
+}
+.readout {
+  margin-top: 4px;
+  color: var(--slate);
+  font-size: 12px;
+}
+.readout strong {
+  margin-right: 6px;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 700;
+}
+.daily {
+  width: 100%;
+  margin-top: 12px;
+  border-collapse: collapse;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.daily th,
+.daily td {
+  padding: 7px 4px;
+  border-bottom: 1px solid var(--hairline);
+  text-align: right;
+}
+.daily th:first-child {
+  text-align: left;
+  font-weight: 500;
+}
+.daily thead th {
+  color: var(--slate);
+  font-size: 12px;
+  font-weight: 500;
+}
+.daily tr[data-partial] td,
+.daily tr[data-partial] th {
+  color: var(--slate);
+}
+.daily small {
+  font-size: 11px;
+}
+
+@media (max-width: 860px) {
+  .columns {
+    grid-template-columns: 1fr;
+  }
+  .side {
+    position: static;
+    order: -1;
+  }
+  .facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 700px) {
+  .band {
+    padding: 4px 12px 48px;
+  }
+  .categories {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .categories button {
+    flex: none;
+  }
+}
+@media (forced-colors: active) {
+  .line,
+  .crosshair {
+    stroke: CanvasText;
+  }
+  .dot,
+  .volume {
+    fill: CanvasText;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rows {
+    transition: none;
+  }
+}
