@@ -1,0 +1,212 @@
+/* Roster card records: six element slots, then folded 도감 and set effects. */
+.elements {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.elements li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-items: center;
+  column-gap: 8px;
+  padding: 9px 10px;
+  border-radius: 12px;
+  background: #fff;
+}
+.elements i {
+  grid-row: span 2;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: #e8e8ed;
+  color: #86868b;
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 700;
+}
+/* Element hues only on recorded slots; text stays ink for contrast. */
+.elements li[data-recorded] i[data-element="LIGHT"] {
+  background: #fff1c2;
+  color: #7a5400;
+}
+.elements li[data-recorded] i[data-element="DARK"] {
+  background: #ebe2f7;
+  color: #55307f;
+}
+.elements li[data-recorded] i[data-element="LIGHTNING"] {
+  background: #e3ecfb;
+  color: #244f8f;
+}
+.elements li[data-recorded] i[data-element="EARTH"] {
+  background: #efe6da;
+  color: #6b4a22;
+}
+.elements li[data-recorded] i[data-element="WATER"] {
+  background: #dff3f7;
+  color: #1f6475;
+}
+.elements li[data-recorded] i[data-element="FIRE"] {
+  background: #fde4df;
+  color: #9a2f1d;
+}
+.setName {
+  overflow: hidden;
+  color: #6e6e73;
+  font-size: 12px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.value {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 4px;
+  min-width: 0;
+}
+.value b {
+  font-size: 14px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.value small {
+  flex-basis: 100%;
+  color: #86868b;
+  font-size: 11px;
+}
+.value .by {
+  flex-basis: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.roles {
+  display: inline-flex;
+  gap: 2px;
+  margin-bottom: 8px;
+  padding: 3px;
+  border-radius: 10px;
+  background: #fff;
+}
+.roles button {
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 8px;
+  color: #6e6e73;
+  font-size: 12px;
+  font-weight: 600;
+}
+.roles button[aria-pressed="true"] {
+  background: #1d1d1f;
+  color: #fff;
+}
+.none {
+  color: #a1a1a6;
+  font-size: 13px;
+}
+.note {
+  margin-top: 10px;
+  color: #86868b;
+  font-size: 12px;
+}
+.fold {
+  margin-top: 12px;
+  border-top: 1px solid #e6e6e8;
+}
+.fold summary {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 10px 0 4px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.fold summary span {
+  color: #86868b;
+  font-size: 12px;
+  font-weight: 500;
+}
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+  gap: 8px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.sets {
+  display: grid;
+  gap: 8px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.sets > li {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #fff;
+}
+.sets header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 12px;
+  margin-bottom: 6px;
+}
+.sets header strong {
+  font-size: 14px;
+  font-weight: 700;
+}
+.sets header span {
+  color: #6e6e73;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.sets ul {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+}
+.sets ul li {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 8px;
+  color: #a1a1a6;
+}
+.sets ul li[data-active] {
+  color: #1d1d1f;
+}
+.sets ul b {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.muted {
+  display: grid;
+  justify-items: start;
+  gap: 6px;
+  color: #6e6e73;
+  font-size: 13px;
+}
+.retry {
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 9999px;
+  background: #fff;
+  color: #0066cc;
+  font-size: 12px;
+  font-weight: 600;
+}
+@media (max-width: 700px) {
+  .elements {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
