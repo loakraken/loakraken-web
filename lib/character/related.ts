@@ -3,8 +3,10 @@ import { characterNameError, normalizeCharacterName } from "./model";
 import {
   isHistoryEnvelope,
   isSiblingsEnvelope,
+  isViewsEnvelope,
   type HistoryEnvelope,
   type SiblingsEnvelope,
+  type ViewsEnvelope,
 } from "./validate";
 
 // Siblings (#54) and observation history (#66) for the character page tabs.
@@ -19,6 +21,10 @@ const siblingsErrors: Record<number, readonly string[]> = {
 const historyErrors: Record<number, readonly string[]> = {
   400: ["INVALID_REQUEST"],
   503: ["CHARACTER_HISTORY_DISABLED", "CHARACTER_HISTORY_UNAVAILABLE"],
+};
+const viewsErrors: Record<number, readonly string[]> = {
+  400: ["INVALID_REQUEST"],
+  503: ["CHARACTER_VIEWS_DISABLED", "CHARACTER_VIEWS_UNAVAILABLE"],
 };
 const invalid = {
   ok: false as const,
@@ -65,5 +71,25 @@ export function requestHistory(
     ...options,
     isValid: isHistoryEnvelope,
     errorCodes: historyErrors,
+  });
+}
+
+/** LOAKraken search counts per KST day (F-8); `days` defaults to 16 weeks. */
+export function requestViews(
+  name: string,
+  origin: string | undefined,
+  options: Options & { days?: number } = {},
+): Promise<BackendResult<ViewsEnvelope>> {
+  if (characterNameError(name)) return Promise.resolve(invalid);
+  const days = options.days ?? 112;
+  if (!Number.isInteger(days) || days < 1 || days > 366)
+    return Promise.resolve(invalid);
+  const url = backendUrl(origin, "/api/v1/characters/views");
+  url?.searchParams.set("characterName", normalizeCharacterName(name));
+  url?.searchParams.set("days", String(days));
+  return requestBackend(url, {
+    ...options,
+    isValid: isViewsEnvelope,
+    errorCodes: viewsErrors,
   });
 }

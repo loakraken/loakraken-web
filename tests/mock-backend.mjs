@@ -329,6 +329,24 @@ createServer(async (req, res) => {
     }));
     return send({ code: "CHARACTER_HISTORY_SUCCESS", message: "성공", data: { characterName: who, serverName: url.searchParams.get("serverName"), points } });
   }
+  if (url.pathname === "/api/v1/characters/views") {
+    const who = url.searchParams.get("characterName");
+    if (who === "기록끔") return send({ code: "CHARACTER_VIEWS_DISABLED" }, 503);
+    const length = Number(url.searchParams.get("days") || 112);
+    const today = new Date(Date.now() + 9 * 3_600_000);
+    const days = Array.from({ length }, (_, i) => {
+      const date = new Date(today.getTime() - (length - 1 - i) * 86_400_000).toISOString().slice(0, 10);
+      // Deterministic, weekly-ish pattern with quiet stretches.
+      const count = i % 9 === 0 ? 0 : ((i * 37) % 11) * (i > length - 30 ? 2 : 1) % 9;
+      return { date, count };
+    });
+    const rangeTotal = days.reduce((sum, d) => sum + d.count, 0);
+    return send({
+      code: "CHARACTER_VIEWS_SUCCESS",
+      message: "성공",
+      data: { characterName: who, timezone: "Asia/Seoul", from: days[0].date, to: days.at(-1).date, days, rangeTotal, total: rangeTotal + 184 },
+    });
+  }
   if (url.pathname !== "/api/v1/characters/search") return send({}, 404);
   const name = url.searchParams.get("characterName");
   counts[name] = (counts[name] || 0) + 1;

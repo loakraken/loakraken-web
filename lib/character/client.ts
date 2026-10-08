@@ -1,5 +1,5 @@
 import type { CharacterResult, QueryFailure } from "./model";
-import type { HistoryEnvelope, SiblingsEnvelope } from "./validate";
+import type { HistoryEnvelope, SiblingsEnvelope, ViewsEnvelope } from "./validate";
 
 export class CharacterQueryError extends Error {
   info: QueryFailure;
@@ -44,6 +44,12 @@ async function getJson<T>(path: string, signal: AbortSignal): Promise<T> {
 export const fetchSiblings = (name: string, signal: AbortSignal) =>
   getJson<SiblingsEnvelope>(
     `/api/characters/siblings?${new URLSearchParams({ characterName: name })}`,
+    signal,
+  );
+
+export const fetchViews = (name: string, signal: AbortSignal) =>
+  getJson<ViewsEnvelope>(
+    `/api/characters/views?${new URLSearchParams({ characterName: name })}`,
     signal,
   );
 
