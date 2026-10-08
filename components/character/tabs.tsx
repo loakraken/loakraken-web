@@ -46,7 +46,7 @@ import { HistoryChart } from "./history-chart";
 import { AvatarsTab, CollectiblesTab } from "./inner";
 import { Panel } from "./panel";
 import { ViewsPanel } from "./views-panel";
-import { CardCollectionPanel } from "./card-collection-panel";
+import { CardCollection } from "./card-collection-panel";
 import { CardArt, GameIcon } from "./imagery";
 import {
   Empty,
@@ -669,6 +669,7 @@ function CardsPanel({ data }: { data: Character }) {
           }
         />
       )}
+      <CardCollection name={data.characterName} />
     </Panel>
   );
 }
@@ -975,7 +976,6 @@ export function CombatTab({ data }: { data: Character }) {
           <GemsPanel data={data} />
           <ArkGridPanel data={data} />
           <CardsPanel data={data} />
-          <CardCollectionPanel name={data.characterName} />
         </div>
         <aside className={styles.stack} aria-label="요약">
           <ArkPassiveSummary data={data} />
