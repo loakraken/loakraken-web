@@ -54,6 +54,17 @@ export default defineConfig({
       grep: /@smoke/,
       use: { ...devices["Desktop Chrome"], ...browser, viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: false },
     },
+    // Performance budget (작업 규칙 "성능 우선"): opt-in with E2E_PERF=1, mobile size.
+    ...(process.env.E2E_PERF === "1"
+      ? [
+          {
+            name: "perf",
+            testMatch: ["perf/**/*.spec.mjs"],
+            retries: 0,
+            use: { ...devices["Desktop Chrome"], ...browser, viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: false, trace: "off" },
+          },
+        ]
+      : []),
   ],
   webServer: external
     ? undefined
