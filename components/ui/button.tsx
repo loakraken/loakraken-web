@@ -39,7 +39,7 @@ const buttonVariants = cva(
 
 type ButtonProps = ButtonPrimitive.Props &
   VariantProps<typeof buttonVariants> & {
-    /** Busy state: keeps focus and width (label hidden under a spinner). */
+    /** Busy state: keeps focus, width and the accessible name (label faded out under a spinner). */
     loading?: boolean
   }
 
@@ -64,7 +64,7 @@ function Button({
     >
       {loading ? (
         <>
-          <span className="invisible inline-flex items-center gap-2">
+          <span className="inline-flex items-center gap-2 opacity-0">
             {children}
           </span>
           <span
