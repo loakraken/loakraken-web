@@ -11,8 +11,12 @@ test.describe("홈 인기 검색 캐릭터 @smoke", () => {
     await expect(periods.getByRole("button", { name: "24시간" })).toHaveAttribute("aria-pressed", "true");
     const rows = card.getByRole("listitem");
     await expect(rows).toHaveCount(4);
-    await expect(rows.first()).toContainText("1");
+    // 순위 칸은 링크의 첫 칸(b)이다. 아이템 레벨 숫자와 섞이지 않게 칸을 짚는다.
+    for (const [i, row] of (await rows.all()).entries())
+      await expect(row.getByRole("link").locator("b").first()).toHaveText(String(i + 1));
     await expect(rows.first()).toContainText("인기F");
+    // F-10 결정: 조회 수는 보여 주지 않는다.
+    await expect(card.getByRole("list")).not.toContainText(/조회|\d+회/);
     await expect(card).toContainText("같은 사람의 반복 검색은 하루 한 번만 셉니다.");
     await rows.first().getByRole("link").click();
     await expect(page).toHaveURL(new RegExp(`/character/${encodeURIComponent("인기F")}$`));

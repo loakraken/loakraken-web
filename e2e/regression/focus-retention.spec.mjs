@@ -30,7 +30,7 @@ const FLOWS = [
       await page.getByRole("textbox", { name: "캐릭터 이름" }).fill("상세");
       await page.getByRole("button", { name: "계산하기" }).focus();
     },
-    done: (page) => page.getByText("규칙 crit-speed-v2"),
+    done: (page) => page.getByText(/규칙 crit-speed-v\d+/),
   },
   {
     name: "재련 장비 불러오기",

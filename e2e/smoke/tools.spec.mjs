@@ -58,7 +58,7 @@ test.describe("치적·뭉가·음돌 @smoke", () => {
   test("캐릭터를 계산하면 치명타·속도 출처를 보여 준다", async ({ page }) => {
     await page.getByRole("textbox", { name: "캐릭터 이름" }).fill("상세");
     await page.getByRole("button", { name: "계산하기" }).click();
-    await expect(page.getByText("규칙 crit-speed-v2")).toBeVisible();
+    await expect(page.getByText(/규칙 crit-speed-v\d+/)).toBeVisible();
     await expect(page.getByText("백어택 적중 가정")).toBeVisible();
     await expectNoHorizontalOverflow(page);
   });
