@@ -59,6 +59,8 @@ import {
   text,
 } from "./parts";
 import styles from "./detail.module.css";
+import { rateLimitCopy, retryLabel } from "@/lib/api/rate-limit";
+import { useRateLimit } from "@/lib/api/use-rate-limit";
 
 export const TABS = [
   { id: "combat", label: "전투" },
@@ -1123,6 +1125,7 @@ function QueryProblem({
     error instanceof CharacterQueryError
       ? error.info
       : { code: "LOST_ARK_API_ERROR", status: 502 };
+  const limit = useRateLimit(error);
   const copy =
     info.code === "CHARACTER_HISTORY_DISABLED"
       ? {
@@ -1134,8 +1137,9 @@ function QueryProblem({
             title: "기록을 잠시 불러올 수 없어요",
             text: "저장소에 문제가 생겼어요. 잠시 후 다시 시도해 주세요.",
           }
-        : info.code === "LOST_ARK_RATE_LIMITED" ||
-            info.code === "LOST_ARK_NOT_CONFIGURED" ||
+        : info.code === "LOST_ARK_RATE_LIMITED"
+          ? rateLimitCopy(limit.seconds)
+          : info.code === "LOST_ARK_NOT_CONFIGURED" ||
             info.code === "FRONTEND_API_NOT_CONFIGURED"
           ? failureCopy(info)
           : {
@@ -1147,8 +1151,13 @@ function QueryProblem({
     <div className={styles.problem} role="alert">
       <strong>{copy.title}</strong>
       <p>{copy.text}</p>
-      <button type="button" className={styles.textButton} onClick={onRetry}>
-        {info.retryAt ? `${kstTime(info.retryAt)} 이후 다시 시도` : "다시 시도"}
+      <button
+        type="button"
+        className={styles.textButton}
+        onClick={onRetry}
+        disabled={limit.seconds > 0}
+      >
+        {retryLabel(limit.seconds)}
       </button>
     </div>
   );

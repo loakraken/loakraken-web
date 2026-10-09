@@ -124,7 +124,7 @@ function CharacterContent({
       : !refreshed
         ? initialError
         : undefined;
-  const copy = error ? failureCopy(error) : null;
+  const copy = error ? failureCopy(error, now) : null;
   const rateLimitSeconds = error?.retryAt
     ? Math.max(0, Math.ceil((error.retryAt - now) / 1000))
     : 0;

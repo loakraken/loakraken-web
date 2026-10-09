@@ -447,6 +447,7 @@ createServer(async (req, res) => {
   const errors = {
     미존재: [404, "CHARACTER_NOT_FOUND"],
     제한: [429, "LOST_ARK_RATE_LIMITED"],
+    과다: [429, "CLIENT_RATE_LIMITED"],
     오류: [502, "LOST_ARK_API_ERROR"],
     설정: [503, "LOST_ARK_NOT_CONFIGURED"],
     시간초과: [504, "LOST_ARK_API_TIMEOUT"],
@@ -459,7 +460,7 @@ createServer(async (req, res) => {
     return send(
       { code: error[1], message: "private upstream detail" },
       error[0],
-      error[0] === 429 ? { "Retry-After": "2" } : {},
+      error[0] === 429 ? { "Retry-After": name === "과다" ? "30" : "2" } : {},
     );
   if (name === "잘못된응답") return send({ data: "wrong" });
   if (name === "로딩")

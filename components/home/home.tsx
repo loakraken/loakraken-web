@@ -52,6 +52,8 @@ import { changeLabel, goldText } from "@/lib/market/board";
 import { RecentCard } from "./recent-card";
 import { PopularCard } from "./popular-card";
 import styles from "./home.module.css";
+import { rateLimitCopy, retryLabel } from "@/lib/api/rate-limit";
+import { useRateLimit } from "@/lib/api/use-rate-limit";
 
 /*
  * Clocks, null during SSR so time-dependent text renders after hydration.
@@ -375,6 +377,7 @@ function ScheduleBoard() {
     staleTime: 5 * 60_000,
     placeholderData: keepPreviousData,
   });
+  const limit = useRateLimit(query.error);
   const data: Schedule | undefined = query.data?.data;
   const stale = date === null && !!data && !!today && data.date !== today;
   const { refetch } = query;
@@ -433,13 +436,14 @@ function ScheduleBoard() {
         <p className={styles.muted}>일정을 불러오고 있어요…</p>
       ) : !data ? (
         <div className={styles.muted}>
-          <p>일정을 불러오지 못했어요.</p>
+          <p>{limit.limited ? rateLimitCopy(limit.seconds).text : "일정을 불러오지 못했어요."}</p>
           <button
             type="button"
             className={styles.textButton}
             onClick={() => query.refetch()}
+            disabled={limit.seconds > 0}
           >
-            다시 시도
+            {retryLabel(limit.seconds)}
           </button>
         </div>
       ) : (
@@ -529,6 +533,7 @@ function MaintenanceBanner() {
 function NewsPanels() {
   const now = useClock(MINUTE);
   const query = useNews();
+  const limit = useRateLimit(query.error);
   const data = query.data?.data;
   const [noticeTab, setNoticeTab] = useState<"notice" | "patch">("notice");
   const shownNotices = (data?.notices ?? [])
@@ -564,7 +569,9 @@ function NewsPanels() {
           <p className={styles.muted}>
             {query.isPending
               ? "공지를 불러오고 있어요…"
-              : "공지를 불러오지 못했어요."}
+              : limit.limited
+                ? rateLimitCopy(limit.seconds).text
+                : "공지를 불러오지 못했어요."}
           </p>
         ) : shownNotices.length === 0 ? (
           <p className={styles.muted}>
@@ -607,7 +614,9 @@ function NewsPanels() {
           <p className={styles.muted}>
             {query.isPending
               ? "이벤트를 불러오고 있어요…"
-              : "이벤트를 불러오지 못했어요."}
+              : limit.limited
+                ? rateLimitCopy(limit.seconds).text
+                : "이벤트를 불러오지 못했어요."}
           </p>
         ) : data.events.length === 0 ? (
           <p className={styles.muted}>진행 중인 이벤트가 없어요.</p>
@@ -669,6 +678,7 @@ function MarketSummary() {
       ),
     staleTime: 5 * 60_000,
   });
+  const limit = useRateLimit(query.error);
   const items = query.data?.data.items.slice(0, 6) ?? [];
   return (
     <section className={styles.panel} aria-labelledby="market-heading">
@@ -682,7 +692,9 @@ function MarketSummary() {
         <p className={styles.muted}>
           {query.isPending
             ? "시세를 불러오고 있어요…"
-            : "시세를 불러오지 못했어요."}
+            : limit.limited
+              ? rateLimitCopy(limit.seconds).text
+              : "시세를 불러오지 못했어요."}
         </p>
       ) : (
         <ul className={styles.market}>

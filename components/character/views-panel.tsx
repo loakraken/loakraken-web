@@ -6,6 +6,8 @@ import { CharacterQueryError, fetchViews } from "@/lib/character/client";
 import { monthLabels, viewDateLabel, viewWeeks } from "@/lib/character/views";
 import { Panel } from "./panel";
 import styles from "./views.module.css";
+import { rateLimitCopy, retryLabel } from "@/lib/api/rate-limit";
+import { useRateLimit } from "@/lib/api/use-rate-limit";
 
 const ROWS = ["일", "월", "화", "수", "목", "금", "토"];
 const count = (n: number) => `${n.toLocaleString("ko-KR")}회`;
@@ -21,6 +23,7 @@ export function ViewsPanel({ name }: { name: string }) {
     queryFn: ({ signal }) => fetchViews(name, signal),
     staleTime: 60_000,
   });
+  const limit = useRateLimit(query.error);
   const data = query.data?.data;
   const weeks = useMemo(() => viewWeeks(data?.days ?? []), [data]);
   const labels = useMemo(() => monthLabels(weeks), [weeks]);
@@ -51,13 +54,20 @@ export function ViewsPanel({ name }: { name: string }) {
       ) : query.isError || !data ? (
         <div className={styles.muted}>
           <p>
-            {query.error instanceof CharacterQueryError &&
-            query.error.info.code === "CHARACTER_VIEWS_DISABLED"
-              ? "조회수 기록이 꺼져 있어요."
-              : "조회수를 불러오지 못했어요."}
+            {limit.limited
+              ? rateLimitCopy(limit.seconds).text
+              : query.error instanceof CharacterQueryError &&
+                  query.error.info.code === "CHARACTER_VIEWS_DISABLED"
+                ? "조회수 기록이 꺼져 있어요."
+                : "조회수를 불러오지 못했어요."}
           </p>
-          <button type="button" className={styles.retry} onClick={() => query.refetch()}>
-            다시 시도
+          <button
+            type="button"
+            className={styles.retry}
+            onClick={() => query.refetch()}
+            disabled={limit.seconds > 0}
+          >
+            {retryLabel(limit.seconds)}
           </button>
         </div>
       ) : (

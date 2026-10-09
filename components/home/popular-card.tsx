@@ -6,6 +6,8 @@ import { useQuery } from "@tanstack/react-query";
 import { fetchPopular } from "@/lib/character/client";
 import type { PopularPeriod } from "@/lib/character/popular";
 import styles from "./home.module.css";
+import { rateLimitCopy } from "@/lib/api/rate-limit";
+import { useRateLimit } from "@/lib/api/use-rate-limit";
 
 const PERIODS: { id: PopularPeriod; label: string }[] = [
   { id: "24h", label: "24시간" },
@@ -27,6 +29,7 @@ export function PopularCard() {
     staleTime: 5 * 60_000,
   });
   const data = query.data?.data;
+  const limit = useRateLimit(query.error);
 
   return (
     <section className={styles.panel} aria-labelledby="popular-heading">
@@ -43,7 +46,9 @@ export function PopularCard() {
       {query.isPending ? (
         <p className={styles.muted}>순위를 불러오고 있어요…</p>
       ) : !data ? (
-        <p className={styles.muted}>순위를 불러오지 못했어요.</p>
+        <p className={styles.muted}>
+          {limit.limited ? rateLimitCopy(limit.seconds).text : "순위를 불러오지 못했어요."}
+        </p>
       ) : data.sampleStatus === "COLLECTING" || data.items.length === 0 ? (
         <p className={styles.muted}>아직 순위를 집계하고 있어요.</p>
       ) : (
