@@ -3,10 +3,9 @@
 import { useMemo, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { Pause, Play, Star } from "lucide-react";
-import { ThinkingOrb } from "thinking-orbs";
+import { ChartLine, Star } from "lucide-react";
 import { GameIcon } from "@/components/character/imagery";
-import { LandingMotion, useLandingMotion } from "@/components/landing/motion";
+import { LandingMotion } from "@/components/landing/motion";
 import { InlineOrb } from "@/components/landing/orb";
 import {
   SORTS,
@@ -278,7 +277,6 @@ function MarketContent({
   initial: BoardQuery;
   initialItem: number | null;
 }) {
-  const { enabled, paused, toggle } = useLandingMotion();
   const router = useRouter();
   const [query, setQuery] = useState(initial);
   const [selected, setSelected] = useState<number | null>(initialItem);
@@ -345,28 +343,13 @@ function MarketContent({
       <a className={quote.skip} href="#market-main">
         본문으로 건너뛰기
       </a>
-      <SiteHeader>
-        <button
-          type="button"
-          className={quote.motionButton}
-          aria-label={paused ? "모션 재생" : "모션 일시정지"}
-          aria-pressed={paused}
-          onClick={toggle}
-        >
-          {paused ? <Play size={16} /> : <Pause size={16} />}
-        </button>
-      </SiteHeader>
+      <SiteHeader />
       <main id="market-main">
         <section className={quote.hero} aria-labelledby="market-heading">
-          <div className={quote.heroOrb} aria-hidden="true">
-            <ThinkingOrb
-              state={board.isFetching ? "searching" : "breathing"}
-              size={64}
-              theme="light"
-              color="#0066cc"
-              paused={!enabled}
-            />
-          </div>
+          {/* Static mark like the tool screens: no repeating motion on information pages (D2). */}
+          <span className={quote.heroIcon} aria-hidden="true">
+            <ChartLine size={18} />
+          </span>
           <p className={quote.heroKicker}>거래소</p>
           <h1 id="market-heading">시세</h1>
           <p className={quote.heroCopy}>
