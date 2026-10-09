@@ -33,7 +33,7 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     id: "character",
     label: "캐릭터",
-    match: ["/character"],
+    match: ["/character", "/rankings"],
     groups: [
       {
         title: "조회",
@@ -45,7 +45,7 @@ export const NAV_SECTIONS: NavSection[] = [
       },
       {
         title: "순위",
-        links: [{ label: "랭킹", description: "전투력·아이템 레벨 순위와 백분위" }],
+        links: [{ label: "랭킹", description: "전투력·아이템 레벨 순위와 백분위", href: "/rankings" }],
       },
     ],
   },

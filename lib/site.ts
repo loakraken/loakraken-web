@@ -31,4 +31,5 @@ export const SITEMAP_PATHS = [
   "/tools/raid-rewards",
   "/tools/homework",
   "/stats",
+  "/rankings",
 ] as const;

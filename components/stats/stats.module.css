@@ -370,3 +370,45 @@
 .quantile[data-short] {
   opacity: 0.5;
 }
+.charLink {
+  color: var(--link);
+  text-decoration: none;
+}
+.charLink:hover {
+  text-decoration: underline;
+}
+.table td[data-strong] {
+  color: var(--foreground);
+  font-weight: 700;
+}
+.pager {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
+  margin-top: 16px;
+}
+.pager button {
+  min-width: 36px;
+  height: 34px;
+  padding: 0 10px;
+  border-radius: 9999px;
+  color: var(--foreground);
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.pager button[aria-current="page"] {
+  background: var(--foreground);
+  color: var(--background);
+}
+.pager button:disabled {
+  color: var(--muted-foreground);
+}
+.table .left {
+  text-align: left;
+}
+.role {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
