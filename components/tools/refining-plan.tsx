@@ -822,7 +822,7 @@ function RefiningContent({ initialName }: { initialName: string }) {
                 없는 공식 규칙이라 자동으로 적용해요(
                 <a href={GROWTH_SUPPORT_NOTICE} target="_blank" rel="noreferrer">
                   공지
-                </a>
+                </a>{" "}
                 · 게임 재련 가이드). 책은 운명의 업화에만 적용돼요. 전율 책,
                 실링, 상급 재련, 이벤트 확률은 계산하지 않아요.
               </p>
