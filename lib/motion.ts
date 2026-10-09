@@ -21,7 +21,8 @@ const seconds = (value: string, fallback: number) => {
  * with `pathLength={1} data-draw` draws itself, an element with
  * `data-grow={i}` grows from its base (`data-grow-axis="x"` from the left;
  * give it `transform-box: fill-box` and the origin in CSS), 30ms apart up to
- * 8 steps. Nothing replays when the chart is shown again from the cache.
+ * 8 steps, every part done within --duration-draw. Nothing replays when the
+ * chart is shown again from the cache.
  */
 export function useCrossfade(loading: boolean) {
   // A placeholder is on screen. The content that replaces it mounts in the
@@ -49,9 +50,12 @@ export function useCrossfade(loading: boolean) {
       path.animate({ strokeDasharray: ["1 1", "1 1"], strokeDashoffset: [1, 0] }, { duration: draw, easing });
     for (const bar of node.querySelectorAll<HTMLElement | SVGElement>("[data-grow]")) {
       const from = bar.dataset.growAxis === "x" ? "0 1" : "1 0";
+      const delay = Math.min(Number(bar.dataset.grow) || 0, 8) * step;
+      // Later bars start later but all finish with the line: the whole chart
+      // settles within --duration-draw (PM #253).
       bar.animate({ scale: [from, "1 1"] }, {
-        duration: draw,
-        delay: Math.min(Number(bar.dataset.grow) || 0, 8) * step,
+        duration: draw - delay,
+        delay,
         easing,
         fill: "backwards",
       });
