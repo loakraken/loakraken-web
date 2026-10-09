@@ -6,6 +6,7 @@ import {
   DEFAULT_SETTINGS,
   classStateSources,
   groupSources,
+  groupToggles,
   parseCritSpeedRequest,
   toAssumptions,
 } from "../lib/crit-speed/model";
@@ -242,4 +243,54 @@ test("ARK_GRID sources get a label and an older backend without skills still val
   delete value.data.skills;
   delete value.data.toggles;
   assert.equal(isCritSpeedEnvelope(value), true);
+});
+
+test("per-effect toggles (backend #193): only changed keys are sent and the allow-list checks them", () => {
+  assert.equal("toggles" in toAssumptions(DEFAULT_SETTINGS), false);
+  assert.deepEqual(
+    toAssumptions({ ...DEFAULT_SETTINGS, toggles: { 연가비기: true, 피냄새: false } }).toggles,
+    { 연가비기: true, 피냄새: false },
+  );
+  assert.deepEqual(
+    parseCritSpeedRequest({ characterName: "언새늘", assumptions: { toggles: { "피스메이커 - 샷건": true } } })
+      ?.assumptions.toggles,
+    { "피스메이커 - 샷건": true },
+  );
+  const many = Object.fromEntries(Array.from({ length: 33 }, (_, i) => [`k${i}`, true]));
+  for (const toggles of [[], { 피냄새: "on" }, { " ": true }, many, { ["x".repeat(65)]: true }])
+    assert.equal(
+      parseCritSpeedRequest({ characterName: "언새늘", assumptions: { toggles } }),
+      null,
+      JSON.stringify(toggles).slice(0, 40),
+    );
+});
+
+test("toggle rows from before backend #193 5d661d7 (no axis) still validate", () => {
+  const value = fixture();
+  value.data.toggles = [
+    { key: "피냄새", label: "혼돈 상태 가정", axis: "CRIT", coreState: true, on: true, value: 23, text: "…치명타 적중률이 23.0% 로 변경된다." },
+    { key: "연가비기", label: "연가공법 16초 유지 가정", coreState: false, on: false, value: 20, text: "연가비기 사용 시 …" },
+  ];
+  assert.equal(isCritSpeedEnvelope(value), true);
+  value.data.toggles = [{ key: "피냄새" }];
+  assert.equal(isCritSpeedEnvelope(value), false, "label and on stay required");
+});
+
+test("rows sharing a toggle key become one switch with every axis value (backend #203)", () => {
+  const groups = groupToggles([
+    { key: "질풍", label: "질풍 버프 가정", axis: "ATTACK_SPEED", coreState: false, on: true, value: 10, text: "공격 및 이동 속도가 10.0% 증가한다." },
+    { key: "질풍", label: "질풍 버프 가정", axis: "MOVE_SPEED", coreState: false, on: true, value: 10, text: "공격 및 이동 속도가 10.0% 증가한다." },
+    { key: "피냄새", label: "혼돈 상태 가정", coreState: true, on: true, value: 23, text: "…23.0% 로 변경된다." } as never,
+  ]);
+  assert.equal(groups.length, 2);
+  assert.deepEqual(groups[0].values, [
+    { axis: "ATTACK_SPEED", value: 10 },
+    { axis: "MOVE_SPEED", value: 10 },
+  ]);
+  assert.deepEqual(groups[0].texts, ["공격 및 이동 속도가 10.0% 증가한다."]);
+  assert.deepEqual(groups[1].values, [{ axis: "CRIT", value: 23 }], "missing axis reads as crit");
+  assert.equal(groupToggles([
+    { key: "a", label: "a", axis: "ATTACK_SPEED", coreState: false, on: true, value: 1, text: "" },
+    { key: "a", label: "a", axis: "MOVE_SPEED", coreState: false, on: false, value: 1, text: "" },
+  ])[0].on, false, "one row off means the switch shows off");
 });

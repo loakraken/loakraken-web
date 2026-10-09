@@ -13,6 +13,7 @@ export type CritSpeed = Schemas["CritSpeedResponse"];
 export type CritSource = Schemas["CritSpeedSourceResponse"];
 export type CritTarget = Schemas["CritSpeedTargetResponse"];
 export type SwiftnessRow = Schemas["CritSpeedSwiftnessRowResponse"];
+export type CritToggle = Schemas["CritSpeedToggleResponse"];
 export type CritSpeedEnvelope = { code: string; message: string; data: CritSpeed };
 
 /** Crit-rate synergy classes (+10% each, the character's own class excluded). */
@@ -49,7 +50,13 @@ export type Settings = {
   buffs: SpeedBuff[];
   /** Assume class states (e.g. reaper chaos) like the target sites do. */
   classState: boolean;
+  /** Per-effect switches the user changed (key = response toggles[].key). */
+  toggles: Record<string, boolean>;
 };
+
+/** Backend limit on assumptions.toggles (backend #193). */
+export const MAX_TOGGLES = 32;
+const TOGGLE_KEY_MAX = 64;
 
 /** Same starting point as the common calculators: back attack and the usual party buffs. */
 export const DEFAULT_SETTINGS: Settings = {
@@ -63,6 +70,7 @@ export const DEFAULT_SETTINGS: Settings = {
   moveSpeed: 0,
   buffs: ["support", "feast"],
   classState: true,
+  toggles: {},
 };
 
 const clamp = (value: number, max: number, min = 0) =>
@@ -89,6 +97,10 @@ export function toAssumptions(settings: Settings, className?: string | null): As
     ),
     // Omitted means on (the backend default); only "off" is sent.
     ...(settings.classState ? {} : { classState: false }),
+    // Only the switches the user changed; the rest keep the backend default.
+    ...(Object.keys(settings.toggles).length > 0
+      ? { toggles: Object.fromEntries(Object.entries(settings.toggles).slice(0, MAX_TOGGLES)) }
+      : {}),
   };
 }
 
@@ -129,7 +141,46 @@ export function parseCritSpeedRequest(body: unknown): CritSpeedRequest | null {
       return null;
     (assumptions as Record<string, number>)[key] = value;
   }
+  if (given.toggles !== undefined) {
+    const toggles = given.toggles;
+    if (!toggles || typeof toggles !== "object" || Array.isArray(toggles)) return null;
+    const entries = Object.entries(toggles);
+    if (entries.length > MAX_TOGGLES) return null;
+    for (const [key, value] of entries)
+      if (!key.trim() || key.length > TOGGLE_KEY_MAX || typeof value !== "boolean") return null;
+    if (entries.length > 0) assumptions.toggles = Object.fromEntries(entries);
+  }
   return { characterName: normalizeCharacterName(input.characterName), assumptions };
+}
+
+export type EffectGroup = {
+  key: string;
+  label: string;
+  coreState: boolean;
+  on: boolean;
+  /** One value per axis (attack/move speed toggles come as two rows, backend #203). */
+  values: { axis: CritSource["axis"]; value: number }[];
+  texts: string[];
+};
+
+/** One switch per key: rows sharing a key are switched together. */
+export function groupToggles(toggles: CritToggle[]): EffectGroup[] {
+  const groups = new Map<string, EffectGroup>();
+  for (const t of toggles) {
+    const group = groups.get(t.key) ?? {
+      key: t.key,
+      label: t.label,
+      coreState: !!t.coreState,
+      on: true,
+      values: [],
+      texts: [],
+    };
+    group.on &&= t.on;
+    group.values.push({ axis: t.axis ?? "CRIT", value: t.value });
+    if (t.text && !group.texts.includes(t.text)) group.texts.push(t.text);
+    groups.set(t.key, group);
+  }
+  return [...groups.values()];
 }
 
 export const CATEGORY_LABEL: Record<CritSource["category"], string> = {

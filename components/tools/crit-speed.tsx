@@ -26,6 +26,8 @@ import {
   toAssumptions,
   type CritSource,
   type CritSpeed,
+  type CritToggle,
+  groupToggles,
   type Settings,
 } from "@/lib/crit-speed/model";
 import { UNKNOWN_LABEL } from "@/lib/tools/contract";
@@ -418,6 +420,43 @@ function SwiftnessTable({ speed }: { speed: CritSpeed["speed"] }) {
   );
 }
 
+// Outside the live region: re-calculating must not read every switch again.
+function EffectToggles({
+  toggles,
+  changed,
+  onChange,
+}: {
+  toggles: CritToggle[];
+  changed: Record<string, boolean>;
+  onChange: (key: string, value: boolean) => void;
+}) {
+  return (
+    <div className={styles.effects}>
+      <p className={styles.effectsTitle}>조건부 효과</p>
+      {groupToggles(toggles).map((t) => (
+        <div key={t.key} className={styles.effect}>
+          <Toggle
+            label={t.label}
+            hint={`${t.values
+              .map((v) => `${AXIS_LABEL[v.axis] ?? UNKNOWN_LABEL} +${percent(v.value)}`)
+              .join(" · ")} · ${t.coreState ? "핵심 상태라 기본 켬" : "상황 조건이라 기본 끔"}`}
+            checked={t.on}
+            onChange={(value) => onChange(t.key, value)}
+          />
+          {t.texts.map((text) => (
+            <small key={text}>{text}</small>
+          ))}
+          {changed[t.key] === true && !t.on && (
+            <small className={styles.effectBlocked}>
+              공식 문구대로 다른 효과와 동시에 적용되지 않아 꺼진 상태로 계산했어요.
+            </small>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function Results({
   data,
   stale,
@@ -429,6 +468,8 @@ function Results({
 }) {
   const { crit, speed } = data;
   const states = classStateSources(data.sources);
+  // Missing on backends before #193; then the class-state notes stand alone.
+  const toggles = (data.toggles as CritToggle[] | undefined) ?? [];
   // Missing on backends before #133; the validator lets those through.
   const damage = crit.damage as typeof crit.damage | undefined;
   // Axes the screen does not know yet (newer backend): listed, not dropped.
@@ -458,7 +499,7 @@ function Results({
           {over > 0.005 && ` · 상한을 넘은 ${percent(over)}는 적용되지 않아요`}
           {` · 치명 ${crit.critStatPerPercent.toLocaleString("ko-KR", { maximumFractionDigits: 2 })} = 치적 1%`}
         </p>
-        {classState ? (
+        {toggles.length > 0 ? null : classState ? (
           states.map((s, i) => (
             <p key={`${s.name}-${i}`} className={styles.figureNote}>
               가정한 직업 상태 · {s.name} +{percent(s.value)}: {s.text}
@@ -668,6 +709,8 @@ function CritSpeedContent({ initialName }: { initialName: string }) {
     refetchOnReconnect: false,
   });
   const data = query.data?.data ?? null;
+  // Missing on backends before #193.
+  const effects = (data?.toggles as CritToggle[] | undefined) ?? [];
   // Synergy uses the loaded class; the request re-filters it the same way.
   const className = data?.characterName === name ? data.className : null;
   const error = characterNameError(input);
@@ -694,6 +737,8 @@ function CritSpeedContent({ initialName }: { initialName: string }) {
     router.replace(`?${new URLSearchParams({ character: target })}`, {
       scroll: false,
     });
+    // Effect keys belong to one character's class and nodes.
+    if (target !== name) setSettings((prev) => ({ ...prev, toggles: {} }));
     setName(target);
   }
 
@@ -754,52 +799,66 @@ function CritSpeedContent({ initialName }: { initialName: string }) {
                 setSettings={setSettings}
                 className={className}
               />
-              <div className={styles.output} aria-live="polite">
-                {failure ? (
-                  <div className={quote.notice}>
-                    {/* The alert holds the sentence only; the retry button's countdown
-                        ticks outside it so it is not re-announced every second. */}
-                    <div role="alert">
-                      <strong>{critSpeedFailureCopy(failure).title}</strong>
-                      <p>{critSpeedFailureCopy(failure).text}</p>
-                    </div>
-                    <button
-                      type="button"
-                      className={quote.outlinePill}
-                      aria-disabled={query.isFetching || waiting || undefined}
-                      aria-busy={query.isFetching || undefined}
-                      // The output is a live region: a fixed name while waiting and
-                      // hidden seconds keep the countdown from being read out.
-                      aria-label={waiting ? "다시 계산, 잠시 뒤 가능" : undefined}
-                      onClick={() => !query.isFetching && !waiting && query.refetch()}
-                    >
-                      {waiting && <span aria-hidden="true">{limit.seconds}초 뒤 </span>}
-                      다시 계산
-                    </button>
-                  </div>
-                ) : data ? (
-                  <>
-                    {query.isFetching && (
-                      <p className={styles.updating} role="status">
-                        다시 계산하고 있어요
-                      </p>
-                    )}
-                    <Results
-                      data={data}
-                      stale={query.isPlaceholderData}
-                      classState={settings.classState}
-                    />
-                  </>
-                ) : name ? (
-                  <p className={styles.empty} role="status">
-                    캐릭터 정보를 읽고 있어요
-                  </p>
-                ) : (
-                  <p className={styles.empty}>
-                    캐릭터를 검색하면 치명타 적중률과 공이속, 뭉툭한 가시·음속
-                    돌파 목표를 계산해요.
-                  </p>
+              <div className={styles.output}>
+                {!failure && data && effects.length > 0 && (
+                  <EffectToggles
+                    toggles={effects}
+                    changed={settings.toggles}
+                    onChange={(key, value) =>
+                      setSettings((prev) => ({
+                        ...prev,
+                        toggles: { ...prev.toggles, [key]: value },
+                      }))
+                    }
+                  />
                 )}
+                <div aria-live="polite">
+                  {failure ? (
+                    <div className={quote.notice}>
+                      {/* The alert holds the sentence only; the retry button's countdown
+                          ticks outside it so it is not re-announced every second. */}
+                      <div role="alert">
+                        <strong>{critSpeedFailureCopy(failure).title}</strong>
+                        <p>{critSpeedFailureCopy(failure).text}</p>
+                      </div>
+                      <button
+                        type="button"
+                        className={quote.outlinePill}
+                        aria-disabled={query.isFetching || waiting || undefined}
+                        aria-busy={query.isFetching || undefined}
+                        // The output is a live region: a fixed name while waiting and
+                        // hidden seconds keep the countdown from being read out.
+                        aria-label={waiting ? "다시 계산, 잠시 뒤 가능" : undefined}
+                        onClick={() => !query.isFetching && !waiting && query.refetch()}
+                      >
+                        {waiting && <span aria-hidden="true">{limit.seconds}초 뒤 </span>}
+                        다시 계산
+                      </button>
+                    </div>
+                  ) : data ? (
+                    <>
+                      {query.isFetching && (
+                        <p className={styles.updating} role="status">
+                          다시 계산하고 있어요
+                        </p>
+                      )}
+                      <Results
+                        data={data}
+                        stale={query.isPlaceholderData}
+                        classState={settings.classState}
+                      />
+                    </>
+                  ) : name ? (
+                    <p className={styles.empty} role="status">
+                      캐릭터 정보를 읽고 있어요
+                    </p>
+                  ) : (
+                    <p className={styles.empty}>
+                      캐릭터를 검색하면 치명타 적중률과 공이속, 뭉툭한 가시·음속
+                      돌파 목표를 계산해요.
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
           </div>
