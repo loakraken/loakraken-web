@@ -1,0 +1,235 @@
+{
+  "version": 1,
+  "checkedAt": "2026-10-10",
+  "rule": "더보기 골드는 공식(공지 13307) 또는 일로아·RLoA가 같은 값. 품목은 일로아·RLoA가 같은 수량만 넣는다. 재련 재료 수량은 공식 공개가 없고 한 곳뿐이라 사용자 입력(PM 총괄 2026-10-10 결정 ②).",
+  "sources": {
+    "notice-13307": {
+      "title": "12월 10일(수) 업데이트 내역 안내 — 더보기 소모 골드 조정",
+      "url": "https://lostark.game.onstove.com/News/Notice/Views/13307",
+      "date": "2025-12-10"
+    },
+    "two-sites": {
+      "title": "일로아 더보기 계산기 · RLoA 레이드 클리어 보상(같은 값만)",
+      "url": "https://rloa.gg/database/raid/reward",
+      "date": "2026-10-10"
+    }
+  },
+  "raids": [
+    {
+      "id": "belgardin",
+      "name": "벨가르딘",
+      "modes": [
+        {
+          "label": "나이트메어",
+          "gates": [
+            { "gate": 1, "cost": 9600, "costSource": "two-sites", "items": [{ "name": "아크 그리드 코어", "qty": 4 }] },
+            { "gate": 2, "cost": 14400, "costSource": "two-sites", "items": [{ "name": "아크 그리드 코어", "qty": 4 }] }
+          ]
+        },
+        {
+          "label": "하드",
+          "gates": [
+            { "gate": 1, "cost": 8000, "costSource": "two-sites", "items": [{ "name": "죽음의 손", "qty": 12 }, { "name": "아크 그리드 코어", "qty": 3 }] },
+            { "gate": 2, "cost": 11840, "costSource": "two-sites", "items": [{ "name": "죽음의 손", "qty": 18 }, { "name": "아크 그리드 코어", "qty": 3 }] }
+          ]
+        },
+        {
+          "label": "노말",
+          "gates": [
+            { "gate": 1, "cost": 6400, "costSource": "two-sites", "items": [{ "name": "아크 그리드 코어", "qty": 3 }] },
+            { "gate": 2, "cost": 9600, "costSource": "two-sites", "items": [{ "name": "아크 그리드 코어", "qty": 3 }] }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "horizon-cathedral",
+      "name": "지평의 성당",
+      "modes": [
+        {
+          "label": "3단계",
+          "gates": [
+            { "gate": 1, "cost": 6400, "costSource": "two-sites", "items": [{ "name": "은총의 파편", "qty": 24 }, { "name": "아크 그리드 코어", "qty": 3 }] },
+            { "gate": 2, "cost": 9600, "costSource": "two-sites", "items": [{ "name": "은총의 파편", "qty": 36 }, { "name": "아크 그리드 코어", "qty": 3 }] }
+          ]
+        },
+        {
+          "label": "2단계",
+          "gates": [
+            { "gate": 1, "cost": 5120, "costSource": "two-sites", "items": [{ "name": "은총의 파편", "qty": 12 }, { "name": "아크 그리드 코어", "qty": 2 }] },
+            { "gate": 2, "cost": 7680, "costSource": "two-sites", "items": [{ "name": "은총의 파편", "qty": 18 }, { "name": "아크 그리드 코어", "qty": 2 }] }
+          ]
+        },
+        {
+          "label": "1단계",
+          "gates": [
+            { "gate": 1, "cost": 4320, "costSource": "two-sites", "items": [{ "name": "은총의 파편", "qty": 4 }, { "name": "아크 그리드 코어", "qty": 2 }] },
+            { "gate": 2, "cost": 5280, "costSource": "two-sites", "items": [{ "name": "은총의 파편", "qty": 6 }, { "name": "아크 그리드 코어", "qty": 2 }] }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "serka",
+      "name": "세르카",
+      "modes": [
+        {
+          "label": "나이트메어",
+          "gates": [
+            { "gate": 1, "cost": 6720, "costSource": "two-sites", "items": [{ "name": "고통의 가시", "qty": 10 }, { "name": "아크 그리드 코어", "qty": 3 }] },
+            { "gate": 2, "cost": 10560, "costSource": "two-sites", "items": [{ "name": "고통의 가시", "qty": 15 }, { "name": "아크 그리드 코어", "qty": 3 }] }
+          ]
+        },
+        {
+          "label": "하드",
+          "gates": [
+            { "gate": 1, "cost": 5600, "costSource": "two-sites", "items": [{ "name": "고통의 가시", "qty": 10 }, { "name": "아크 그리드 코어", "qty": 2 }] },
+            { "gate": 2, "cost": 8480, "costSource": "two-sites", "items": [{ "name": "고통의 가시", "qty": 15 }, { "name": "아크 그리드 코어", "qty": 2 }] }
+          ]
+        },
+        {
+          "label": "노말 · 싱글",
+          "gates": [
+            { "gate": 1, "cost": 4160, "costSource": "two-sites", "items": [{ "name": "아크 그리드 코어", "qty": 2 }] },
+            { "gate": 2, "cost": 6080, "costSource": "two-sites", "items": [{ "name": "아크 그리드 코어", "qty": 2 }] }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "kazeros-final",
+      "name": "종막: 카제로스",
+      "modes": [
+        {
+          "label": "하드",
+          "gates": [
+            { "gate": 1, "cost": 5120, "costSource": "two-sites", "items": [{ "name": "아크 그리드 코어", "qty": 2 }] },
+            { "gate": 2, "cost": 10240, "costSource": "two-sites", "items": [{ "name": "아크 그리드 코어", "qty": 2 }] }
+          ]
+        },
+        {
+          "label": "노말 · 싱글",
+          "gates": [
+            { "gate": 1, "cost": 3520, "costSource": "two-sites", "items": [{ "name": "아크 그리드 코어", "qty": 2 }] },
+            { "gate": 2, "cost": 6720, "costSource": "two-sites", "items": [{ "name": "아크 그리드 코어", "qty": 2 }] }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "kazeros-act4",
+      "name": "4막: 아르모체",
+      "modes": [
+        {
+          "label": "하드",
+          "gates": [
+            { "gate": 1, "cost": 4320, "costSource": "two-sites", "items": [{ "name": "아크 그리드 코어", "qty": 1 }] },
+            { "gate": 2, "cost": 7840, "costSource": "two-sites", "items": [{ "name": "아크 그리드 코어", "qty": 1 }] }
+          ]
+        },
+        {
+          "label": "노말 · 싱글",
+          "gates": [
+            { "gate": 1, "cost": 3200, "costSource": "two-sites", "items": [{ "name": "아크 그리드 코어", "qty": 1 }] },
+            { "gate": 2, "cost": 5440, "costSource": "two-sites", "items": [{ "name": "아크 그리드 코어", "qty": 1 }] }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "kazeros-act3",
+      "name": "3막: 모르둠",
+      "modes": [
+        {
+          "label": "하드",
+          "gates": [
+            { "gate": 1, "cost": 1650, "costSource": "notice-13307", "items": [{ "name": "우레의 뇌옥", "qty": 3 }] },
+            { "gate": 2, "cost": 2640, "costSource": "notice-13307", "items": [{ "name": "우레의 뇌옥", "qty": 5 }] },
+            { "gate": 3, "cost": 4060, "costSource": "notice-13307", "items": [{ "name": "우레의 뇌옥", "qty": 10 }, { "name": "순환 돌파석", "qty": 10 }] }
+          ]
+        },
+        {
+          "label": "노말 · 싱글",
+          "gates": [
+            { "gate": 1, "cost": 1300, "costSource": "notice-13307", "items": [{ "name": "낙뢰의 뿔", "qty": 3 }] },
+            { "gate": 2, "cost": 2350, "costSource": "notice-13307", "items": [{ "name": "낙뢰의 뿔", "qty": 5 }] },
+            { "gate": 3, "cost": 3360, "costSource": "notice-13307", "items": [{ "name": "낙뢰의 뿔", "qty": 10 }, { "name": "순환 돌파석", "qty": 7 }] }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "kazeros-act2",
+      "name": "2막: 아브렐슈드",
+      "modes": [
+        {
+          "label": "하드",
+          "gates": [
+            { "gate": 1, "cost": 2400, "costSource": "notice-13307", "items": [{ "name": "카르마의 잔영", "qty": 8 }] },
+            { "gate": 2, "cost": 5100, "costSource": "notice-13307", "items": [{ "name": "카르마의 잔영", "qty": 12 }, { "name": "순환 돌파석", "qty": 9 }] }
+          ]
+        },
+        {
+          "label": "노말 · 싱글",
+          "gates": [
+            { "gate": 1, "cost": 1820, "costSource": "notice-13307", "items": [{ "name": "카르마의 잔영", "qty": 4 }] },
+            { "gate": 2, "cost": 3720, "costSource": "notice-13307", "items": [{ "name": "카르마의 잔영", "qty": 6 }, { "name": "순환 돌파석", "qty": 7 }] }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "kazeros-act1",
+      "name": "1막: 에기르",
+      "modes": [
+        {
+          "label": "하드",
+          "gates": [
+            { "gate": 1, "cost": 1820, "costSource": "notice-13307", "items": [{ "name": "업화의 쐐기돌", "qty": 8 }] },
+            { "gate": 2, "cost": 4150, "costSource": "notice-13307", "items": [{ "name": "업화의 쐐기돌", "qty": 12 }, { "name": "순환 돌파석", "qty": 9 }] }
+          ]
+        },
+        {
+          "label": "노말 · 싱글",
+          "gates": [
+            { "gate": 1, "cost": 750, "costSource": "notice-13307", "items": [{ "name": "업화의 쐐기돌", "qty": 4 }] },
+            { "gate": 2, "cost": 1780, "costSource": "notice-13307", "items": [{ "name": "업화의 쐐기돌", "qty": 6 }, { "name": "순환 돌파석", "qty": 7 }] }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "behemoth",
+      "name": "베히모스",
+      "modes": [
+        {
+          "label": "노말",
+          "gates": [
+            { "gate": 1, "cost": 720, "costSource": "notice-13307", "items": [{ "name": "베히모스의 비늘", "qty": 10 }] },
+            { "gate": 2, "cost": 1630, "costSource": "notice-13307", "items": [{ "name": "베히모스의 비늘", "qty": 20 }] }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "kazeros-prologue",
+      "name": "서막: 에키드나",
+      "modes": [
+        {
+          "label": "하드",
+          "gates": [
+            { "gate": 1, "cost": 720, "costSource": "notice-13307", "items": [{ "name": "알키오네의 눈", "qty": 3 }] },
+            { "gate": 2, "cost": 1630, "costSource": "notice-13307", "items": [{ "name": "알키오네의 눈", "qty": 6 }, { "name": "순환 돌파석", "qty": 6 }] }
+          ]
+        },
+        {
+          "label": "노말 · 싱글",
+          "gates": [
+            { "gate": 1, "cost": 310, "costSource": "notice-13307", "items": [{ "name": "아그리스의 비늘", "qty": 3 }] },
+            { "gate": 2, "cost": 700, "costSource": "notice-13307", "items": [{ "name": "아그리스의 비늘", "qty": 6 }] }
+          ]
+        }
+      ]
+    }
+  ]
+}
