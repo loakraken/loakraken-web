@@ -899,7 +899,8 @@
   font-size: 11px;
   font-weight: 600;
 }
-/* Server info (B-3): statistics sample, not the game's population. */
+/* Server info (B-3): statistics sample, not the game population. Tokens so
+   the card already follows the dark theme. */
 .servers {
   width: 100%;
   border-collapse: collapse;
@@ -909,12 +910,12 @@
 .servers th,
 .servers td {
   padding: 6px 0;
-  border-top: 1px solid #e5e5ea;
+  border-top: 1px solid var(--border);
   text-align: right;
 }
 .servers thead th {
   border-top: 0;
-  color: #6e6e73;
+  color: var(--muted-foreground);
   font-size: 11px;
   font-weight: 600;
 }
@@ -923,20 +924,26 @@
   text-align: left;
 }
 .servers tbody th {
-  color: #1d1d1f;
+  color: var(--foreground);
   font-weight: 600;
 }
 .servers td small {
   margin-left: 4px;
-  color: #6e6e73;
+  color: var(--muted-foreground);
   font-size: 11px;
 }
 .servers .short {
   margin-left: 4px;
   padding: 0 5px;
   border-radius: 9999px;
-  background: #e8e8ed;
-  color: #1d1d1f;
+  background: var(--secondary);
+  color: var(--foreground);
   font-size: 11px;
   font-weight: 600;
+}
+.serverNote {
+  margin-top: 8px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 1.5;
 }

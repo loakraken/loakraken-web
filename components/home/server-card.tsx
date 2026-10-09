@@ -58,6 +58,7 @@ export function ServerCard() {
                 </th>
                 <td>
                   {whole(row.count)}
+                  <span className={styles.srOnly}>, </span>
                   <small>{percent(row.share)}</small>
                 </td>
                 <td>{row.sampleStatus === "READY" ? fixed(row.itemLevelMedian) : "집계 중"}</td>
@@ -67,7 +68,7 @@ export function ServerCard() {
         </table>
       )}
       {data && (
-        <p className={styles.note}>
+        <p className={styles.serverNote}>
           통계 표본 기준 · 최근 {data.meta.conditions.activeDays}일 안에 LOAKraken이 확인한 캐릭터예요. 서버 전체 인원이 아니에요.
         </p>
       )}
