@@ -222,11 +222,11 @@ test("plan requests validate input and pass through allow-listed errors", async 
   assert.equal(unconfigured.ok ? null : unconfigured.error.code, "FRONTEND_API_NOT_CONFIGURED");
 });
 
-test("material cost uses missing quantity and leaves unpriced items out", () => {
+test("구매 골드 rounds up to listings, 소모 가치 is expected × unit price (#235)", () => {
   const prices = read("./market-fixtures/material-prices.json").data.items;
-  const { lines, materialGold, unpriced } = costLines(
+  const { lines, buyGold, valueGold, unpriced } = costLines(
     [
-      { name: "운명의 수호석", amount: 1000 },
+      { name: "운명의 수호석", amount: 1000, expected: 999.4 },
       { name: "운명의 파편", amount: 30000 },
       { name: "없는 재료", amount: 5 },
       { name: "운명의 돌파석", amount: 10 },
@@ -235,11 +235,21 @@ test("material cost uses missing quantity and leaves unpriced items out", () => 
     prices,
   );
   assert.equal(lines[0].missing, 600);
-  assert.ok(Math.abs(lines[0].cost! - 600 * 0.31) < 1e-9);
-  assert.ok(Math.abs(lines[1].cost! - 30000 * 0.077333) < 1e-6);
-  assert.equal(lines[2].cost, null);
-  assert.equal(lines[3].cost, 0, "covered by inventory even without a price");
-  assert.equal(materialGold, Math.ceil(600 * 0.31 + 30000 * 0.077333));
-  assert.deepEqual(unpriced, ["없는 재료"]);
+  // 100개 묶음 31G: 600개 = 6묶음 186G, 남는 것 없음.
+  assert.deepEqual(lines[0].purchase, { units: 6, perUnit: 100, gold: 186, leftover: 0 });
+  // 파편 주머니(대) 3000개 232G: 30000개 = 10주머니 2320G.
+  assert.deepEqual(lines[1].purchase, { units: 10, perUnit: 3000, gold: 2320, leftover: 0 });
+  // 소모 가치는 보유량과 상관없이 기대 소모량 × 1개 단가(올림 전 값).
+  assert.ok(Math.abs(lines[0].value! - 999.4 * 0.31) < 1e-9);
+  assert.ok(Math.abs(lines[1].value! - 30000 * 0.077333) < 1e-6);
+  assert.equal(lines[2].purchase, null);
+  assert.deepEqual(lines[3].purchase?.gold, 0, "covered by inventory even without a price");
+  assert.equal(lines[3].value, null);
+  assert.equal(buyGold, 186 + 2320);
+  assert.equal(valueGold, Math.ceil(999.4 * 0.31 + 30000 * 0.077333));
+  assert.deepEqual(unpriced, ["없는 재료", "운명의 돌파석"]);
+  // 601개면 7묶음, 99개 남음.
+  const odd = costLines([{ name: "운명의 수호석", amount: 601 }], {}, prices).lines[0];
+  assert.deepEqual(odd.purchase, { units: 7, perUnit: 100, gold: 217, leftover: 99 });
   assert.equal(costLines([{ name: "운명의 수호석", amount: 1 }], {}, null).unpriced.length, 1);
 });

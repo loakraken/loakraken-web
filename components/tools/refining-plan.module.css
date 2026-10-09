@@ -373,7 +373,8 @@
   color: var(--slate);
   font-size: var(--text-body);
 }
-.table th small {
+.table th small,
+.table td small {
   display: block;
   margin-top: 2px;
   color: var(--slate);
