@@ -29,6 +29,8 @@ export const test = base.extend({
       const source = message.location().url;
       // Blocked third-party requests are expected noise, not app errors.
       if (source && !isLocal(source)) return;
+      // Local Windows socket exhaustion under parallel runs, not an app error.
+      if (message.text().includes("net::ERR_NO_BUFFER_SPACE")) return;
       // The browser logs every 4xx/5xx fetch. Error-flow tests trigger those on
       // purpose and assert the visible message instead.
       if (
@@ -55,13 +57,38 @@ export { expect };
 export const characterPath = (name, tab) =>
   `/character/${encodeURIComponent(name)}${tab && tab !== "combat" ? `?tab=${tab}` : ""}`;
 
-/** Fails when the page scrolls sideways (layout wider than the viewport). */
+/**
+ * Fails when the page scrolls sideways (layout wider than the viewport).
+ * The message names the deepest elements that stick out past the right edge,
+ * so a CI failure (different fonts on Linux) points at the culprit.
+ */
 export async function expectNoHorizontalOverflow(page) {
-  const { scroll, client } = await page.evaluate(() => ({
-    scroll: document.documentElement.scrollWidth,
-    client: document.documentElement.clientWidth,
-  }));
-  expect(scroll, "가로 스크롤이 생기지 않아야 한다").toBeLessThanOrEqual(client);
+  const { scroll, client, offenders } = await page.evaluate(() => {
+    const client = document.documentElement.clientWidth;
+    const describe = (el) => {
+      const cls = typeof el.className === "string" ? el.className.split(/\s+/)[0] : "";
+      const text = (el.textContent ?? "").trim().replace(/\s+/g, " ").slice(0, 30);
+      return `${el.tagName.toLowerCase()}${cls ? `.${cls}` : ""} right=${Math.round(el.getBoundingClientRect().right)} "${text}"`;
+    };
+    // Content inside a scrolling or clipping box (e.g. a wide table wrapper) does not widen the page.
+    const clipped = (el) => {
+      for (let a = el.parentElement; a && a !== document.body; a = a.parentElement)
+        if (getComputedStyle(a).overflowX !== "visible") return true;
+      return false;
+    };
+    const wide = [...document.querySelectorAll("body *")].filter((el) => {
+      const r = el.getBoundingClientRect();
+      return r.width > 0 && r.right > client + 1 && !clipped(el);
+    });
+    // Keep only the innermost offenders (no offending child of their own).
+    const leaves = wide.filter((el) => !wide.some((other) => other !== el && el.contains(other)));
+    return {
+      scroll: document.documentElement.scrollWidth,
+      client,
+      offenders: leaves.slice(0, 5).map(describe),
+    };
+  });
+  expect(scroll, `가로 스크롤이 생기지 않아야 한다. 넘친 요소: ${offenders.join(" | ") || "없음"}`).toBeLessThanOrEqual(client);
 }
 
 // Phrases that only appear when a response failed contract validation.
