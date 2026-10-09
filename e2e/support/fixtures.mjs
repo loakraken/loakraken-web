@@ -54,6 +54,16 @@ export const test = base.extend({
 
 export { expect };
 
+/**
+ * Navigate and wait until the page is hydrated enough to take clicks: React
+ * attaches handlers after the client bundle and first queries load. Clicking
+ * before that (seen on CI with the dev server) silently does nothing.
+ */
+export async function gotoReady(page, path) {
+  await page.goto(path);
+  await page.waitForLoadState("networkidle");
+}
+
 export const characterPath = (name, tab) =>
   `/character/${encodeURIComponent(name)}${tab && tab !== "combat" ? `?tab=${tab}` : ""}`;
 

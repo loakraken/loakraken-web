@@ -1,11 +1,11 @@
 // 홈 카드: 인기 검색 캐릭터(web #129, F-10)와 공지/패치노트 탭(web #121).
 // 목 표본: 인기 24시간은 READY 4명(1위 인기F), 7일은 COLLECTING(집계 중).
 // 공지 분류(lib/home/model.ts isPatchNote): 점검이 아니고 제목에 "업데이트 내역·패치 안내·패치노트"가 있으면 패치노트.
-import { test, expect } from "../support/fixtures.mjs";
+import { test, expect, gotoReady } from "../support/fixtures.mjs";
 
 test.describe("홈 인기 검색 캐릭터 @smoke", () => {
   test("24시간 순위를 보여 주고 캐릭터로 이동한다", async ({ page }) => {
-    await page.goto("/");
+    await gotoReady(page, "/");
     const card = page.getByRole("region", { name: "인기 검색 캐릭터" });
     const periods = card.getByRole("group", { name: "기간" });
     await expect(periods.getByRole("button", { name: "24시간" })).toHaveAttribute("aria-pressed", "true");
@@ -23,7 +23,7 @@ test.describe("홈 인기 검색 캐릭터 @smoke", () => {
   });
 
   test("7일로 바꾸면 다시 조회하고, 집계 중이면 안내한다", async ({ page }) => {
-    await page.goto("/");
+    await gotoReady(page, "/");
     const card = page.getByRole("region", { name: "인기 검색 캐릭터" });
     await expect(card.getByRole("listitem").first()).toBeVisible();
     const request = page.waitForRequest(/\/api\/characters\/popular\?.*period=7d/);
@@ -38,14 +38,14 @@ test.describe("홈 인기 검색 캐릭터 @smoke", () => {
     await page.route("**/api/characters/popular**", (route) =>
       route.fulfill({ status: 502, json: { ok: false, error: { code: "LOST_ARK_API_ERROR", status: 502 } } }),
     );
-    await page.goto("/");
+    await gotoReady(page, "/");
     await expect(page.getByRole("region", { name: "인기 검색 캐릭터" })).toContainText("순위를 불러오지 못했어요.");
   });
 });
 
 test.describe("홈 공지·패치노트 @smoke", () => {
   test("공지와 패치노트를 나눠 보여 준다", async ({ page }) => {
-    await page.goto("/");
+    await gotoReady(page, "/");
     const card = page.getByRole("region", { name: "공지사항" });
     const kinds = card.getByRole("group", { name: "공지 종류" });
     await expect(kinds.getByRole("button", { name: "공지", exact: true })).toHaveAttribute("aria-pressed", "true");

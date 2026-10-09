@@ -1,5 +1,5 @@
 // 공통 상단 메뉴(web #50·#56): 호버 플라이아웃, 키보드(↓·Esc), 900px 이하 메뉴 시트.
-import { test, expect } from "../support/fixtures.mjs";
+import { test, expect, gotoReady } from "../support/fixtures.mjs";
 
 // components/site/site-nav.module.css 의 max-width: 900px
 const NARROW = 900;
@@ -70,7 +70,7 @@ test.describe("상단 메뉴 시트(900px 이하) @smoke", () => {
   });
 
   test("메뉴 버튼으로 시트를 열고 이동한다", async ({ page }) => {
-    await page.goto("/");
+    await gotoReady(page, "/");
     const open = page.getByRole("button", { name: "메뉴 열기" });
     await expect(open).toHaveAttribute("aria-expanded", "false");
     await open.click();
@@ -80,7 +80,7 @@ test.describe("상단 메뉴 시트(900px 이하) @smoke", () => {
   });
 
   test("Esc로 시트를 닫으면 메뉴 버튼에 포커스가 돌아온다", async ({ page }) => {
-    await page.goto("/");
+    await gotoReady(page, "/");
     await page.getByRole("button", { name: "메뉴 열기" }).click();
     await expect(page.getByRole("button", { name: "메뉴 닫기" })).toBeVisible();
     await page.keyboard.press("Escape");
