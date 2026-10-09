@@ -145,6 +145,8 @@ function CharacterLoader({
 
   function submit(event: FormEvent) {
     event.preventDefault();
+    // The button stays focusable while loading (aria-disabled); guard here.
+    if (load.isPending) return;
     setTouched(true);
     if (error) return;
     const target = normalizeCharacterName(name);
@@ -177,7 +179,8 @@ function CharacterLoader({
         <button
           type="submit"
           className={quote.secondaryPill}
-          disabled={load.isPending}
+          aria-disabled={load.isPending || undefined}
+          aria-busy={load.isPending || undefined}
         >
           {load.isPending ? "불러오는 중" : "장비 불러오기"}
         </button>
@@ -487,8 +490,9 @@ function Result({ plans, mode }: { plans: PartPlan[]; mode: Mode }) {
           <button
             type="button"
             className={quote.outlinePill}
-            disabled={prices.isFetching}
-            onClick={() => prices.refetch()}
+            aria-disabled={prices.isFetching || undefined}
+            aria-busy={prices.isFetching || undefined}
+            onClick={() => !prices.isFetching && prices.refetch()}
           >
             시세 다시 불러오기
           </button>

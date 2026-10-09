@@ -145,6 +145,8 @@ function ItemSearch({
 
   function submit(event: FormEvent) {
     event.preventDefault();
+    // The button stays focusable while busy (aria-disabled); guard here.
+    if (items.isFetching || wait > 0) return;
     if (waiting) {
       const issue = searchError(1, name);
       setError(issue);
@@ -219,7 +221,8 @@ function ItemSearch({
         <button
           type="submit"
           className={styles.secondaryPill}
-          disabled={items.isFetching || wait > 0}
+          aria-disabled={items.isFetching || wait > 0 || undefined}
+          aria-busy={items.isFetching || undefined}
         >
           <Search size={15} aria-hidden="true" />{" "}
           {items.isFetching ? "검색 중" : "검색"}
@@ -607,8 +610,12 @@ function MaterialQuoteContent() {
               <button
                 type="button"
                 className={styles.primaryPill}
-                disabled={!request || quote.isPending || wait > 0}
-                onClick={() => request && quote.mutate(request)}
+                disabled={!request}
+                aria-disabled={quote.isPending || wait > 0 || undefined}
+                aria-busy={quote.isPending || undefined}
+                onClick={() =>
+                  request && !quote.isPending && wait === 0 && quote.mutate(request)
+                }
               >
                 {quote.isPending ? (
                   "계산 중"
