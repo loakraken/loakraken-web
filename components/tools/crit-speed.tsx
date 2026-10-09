@@ -175,7 +175,7 @@ function SettingsPanel({
       />
       <Toggle
         label="직업 상태 가정"
-        hint="공식 문구의 특정 상태(예: 리퍼 혼돈)를 켠 값으로 계산 · 일로아·클로아와 같은 기준"
+        hint="공식 문구의 특정 상태(예: 리퍼 혼돈)를 켠 값으로 계산 · 다른 전투정보 사이트와 같은 기준"
         checked={settings.classState}
         onChange={(value) => set("classState", value)}
       />
