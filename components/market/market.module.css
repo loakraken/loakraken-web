@@ -159,31 +159,38 @@
 }
 /* Item grade colours on a light surface (game rarity hues). */
 .board [data-grade="일반"],
-.detail [data-grade="일반"] {
+.detail [data-grade="일반"],
+.favorites [data-grade="일반"] {
   color: #6e6e73;
 }
 .board [data-grade="고급"],
-.detail [data-grade="고급"] {
+.detail [data-grade="고급"],
+.favorites [data-grade="고급"] {
   color: #3f8f1f;
 }
 .board [data-grade="희귀"],
-.detail [data-grade="희귀"] {
+.detail [data-grade="희귀"],
+.favorites [data-grade="희귀"] {
   color: #0a74b8;
 }
 .board [data-grade="영웅"],
-.detail [data-grade="영웅"] {
+.detail [data-grade="영웅"],
+.favorites [data-grade="영웅"] {
   color: #8f2fc0;
 }
 .board [data-grade="전설"],
-.detail [data-grade="전설"] {
+.detail [data-grade="전설"],
+.favorites [data-grade="전설"] {
   color: #b86a00;
 }
 .board [data-grade="유물"],
-.detail [data-grade="유물"] {
+.detail [data-grade="유물"],
+.favorites [data-grade="유물"] {
   color: #c4520a;
 }
 .board [data-grade="고대"],
-.detail [data-grade="고대"] {
+.detail [data-grade="고대"],
+.favorites [data-grade="고대"] {
   color: #8c7333;
 }
 .change {
@@ -231,6 +238,61 @@
   padding: 24px 0;
   color: var(--slate);
   font-size: 14px;
+}
+
+/* Favourite items (per browser) */
+.favorites {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.favorites button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 30px;
+  padding: 0 12px;
+  border-radius: 9999px;
+  background: var(--mist);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 600;
+}
+.favorites button svg {
+  color: #e0a100;
+}
+.favorites button[aria-pressed="true"] {
+  box-shadow: inset 0 0 0 1.5px var(--ink);
+}
+.star {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  margin-left: auto;
+  border-radius: 50%;
+  color: #a1a1a6;
+}
+.star[aria-pressed="true"] {
+  color: #e0a100;
+}
+.star[aria-pressed="true"] svg {
+  fill: currentColor;
+}
+.unit {
+  display: block;
+  margin-top: 1px;
+  color: var(--slate);
+  font-size: 12px;
+  font-weight: 500;
+}
+@media (hover: hover) and (pointer: fine) {
+  .star:hover {
+    background: rgb(0 0 0 / 5%);
+  }
 }
 
 /* Detail */

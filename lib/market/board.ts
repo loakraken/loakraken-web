@@ -130,3 +130,33 @@ export function completedDays(variant: ItemVariant | undefined, limit = 14) {
     .slice(0, limit)
     .reverse();
 }
+
+/** Price per unit when an item trades in bundles (LOAWA's 개당 column). */
+export function unitPrice(price: number | null | undefined, bundleCount: number) {
+  if (price == null || bundleCount <= 1) return null;
+  return price / bundleCount;
+}
+
+/** "▲8.5 (4.7%)": absolute gold change against yesterday's average, then the rate. */
+export function changeWithAmount(item: {
+  currentMinPrice: number | null;
+  yesterdayAvgPrice: number | null;
+  changeDay: number | null;
+}) {
+  const rate = changeLabel(item.changeDay);
+  if (item.currentMinPrice == null || item.yesterdayAvgPrice == null || rate.direction === "none")
+    return rate;
+  const diff = item.currentMinPrice - item.yesterdayAvgPrice;
+  const amount = Math.abs(diff).toLocaleString("ko-KR", { maximumFractionDigits: 2 });
+  const sign = rate.direction === "up" ? "▲" : rate.direction === "down" ? "▼" : "";
+  const pct = rate.text.replace(/^[▲▼]/, "");
+  return { text: `${sign}${amount} (${pct})`, direction: rate.direction };
+}
+
+/** "방금 갱신" / "3분 전 갱신" / "2시간 전 갱신" — never "실시간". */
+export function updatedAgo(observedAt: string, now: number) {
+  const minutes = Math.floor((now - Date.parse(observedAt)) / 60_000);
+  if (!Number.isFinite(minutes) || minutes < 1) return "방금 갱신";
+  if (minutes < 60) return `${minutes}분 전 갱신`;
+  return `${Math.floor(minutes / 60)}시간 전 갱신`;
+}
