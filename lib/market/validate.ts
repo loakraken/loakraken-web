@@ -5,6 +5,7 @@ import type {
   TabsEnvelope,
 } from "./board";
 import contract from "../../contracts/market.openapi.json";
+import { tolerantSchemas } from "../api/tolerant";
 import type {
   ItemsEnvelope,
   OptionsEnvelope,
@@ -12,9 +13,14 @@ import type {
   QuoteEnvelope,
 } from "./model";
 
-// The backend's generated OpenAPI is also the runtime shape contract.
+// The backend's generated OpenAPI is also the runtime shape contract. Response
+// enums are loosened: a value added later shows as unknown instead of
+// rejecting the whole response (#125).
 const ajv = new Ajv2020({ strict: false, validateFormats: false });
-ajv.addSchema({ $id: "market", components: contract.components });
+ajv.addSchema({
+  $id: "market",
+  components: { ...contract.components, schemas: tolerantSchemas(contract.components.schemas) },
+});
 const compile = <T>(schema: string) =>
   ajv.compile<T>({ $ref: `market#/components/schemas/${schema}` });
 const options = compile<OptionsEnvelope>("ApiResponseMarketOptionsResponse");

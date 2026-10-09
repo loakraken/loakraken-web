@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ELEMENT_LABEL, appliedStage, sortCards } from "@/lib/character/card-collection";
+import { appliedStage, elementLabel, orderedSlots, sortCards } from "@/lib/character/card-collection";
 import { CharacterQueryError, fetchCardCollection } from "@/lib/character/client";
 import { CardArt } from "./imagery";
 import styles from "./card-collection.module.css";
@@ -64,17 +64,16 @@ export function CardCollection({ name }: { name: string }) {
       ) : (
         <>
           <ul className={styles.elements}>
-            {data.elementRecords[shown].map((slot) => {
+            {orderedSlots(data.elementRecords[shown]).map((slot, i) => {
               const stage = slot.record ? appliedStage(slot.record) : null;
               return (
                 <li
-                  key={slot.element}
+                  key={`${slot.element}-${i}`}
                   data-recorded={slot.record ? "" : undefined}
-                  aria-label={`${ELEMENT_LABEL[slot.element]} ${slot.setName} ${slot.record ? `${slot.record.awakening}각성` : "미기록"}`}
                   title={slot.setName}
                 >
                   <span className={styles.slotHead}>
-                    <i data-element={slot.element}>{ELEMENT_LABEL[slot.element]}</i>
+                    <i data-element={slot.element}>{elementLabel(slot.element)}</i>
                     <span className={styles.setName}>{slot.setName}</span>
                   </span>
                   {slot.record ? (

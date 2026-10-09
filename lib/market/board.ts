@@ -26,6 +26,8 @@ export const TAB_IDS: readonly TabId[] = [
   "BATTLE_ITEM",
   "FOOD",
 ];
+/** A tab this build can open; the board skips tabs the backend added later. */
+export const isTabId = (value: string): value is TabId => (TAB_IDS as readonly string[]).includes(value);
 
 export const SORTS = [
   { id: "default", label: "기본" },

@@ -15,6 +15,7 @@ import {
   changeWithAmount,
   completedDays,
   goldText,
+  isTabId,
   unitPrice,
   updatedAgo,
   type BoardItem,
@@ -277,7 +278,7 @@ function MarketContent({
     staleTime: 10 * 60_000,
     ...quiet,
   });
-  const tabList: MarketTab[] = tabs.data?.data.tabs ?? [];
+  const tabList: MarketTab[] = (tabs.data?.data.tabs ?? []).filter((t) => isTabId(t.tab));
   const currentTab = tabList.find((t) => t.tab === query.tab);
   const tier = query.tier ?? currentTab?.defaultTier ?? null;
   const board = useQuery({

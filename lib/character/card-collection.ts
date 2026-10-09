@@ -4,6 +4,7 @@
 import Ajv2020 from "ajv/dist/2020";
 import contract from "../../contracts/card-collection.openapi.json";
 import type { components } from "../api/card-collection-schema";
+import { labelOf, tolerantSchemas } from "../api/tolerant";
 
 type Schemas = components["schemas"];
 export type CardCollectionEnvelope = Schemas["ApiResponseCardCollectionResponse"];
@@ -23,21 +24,18 @@ export const ELEMENT_LABEL: Record<Element, string> = {
   FIRE: "화",
 };
 
-// The backend's generated OpenAPI (#102) is also the runtime shape contract.
+// The backend's generated OpenAPI (#102) is also the runtime shape contract,
+// with response enums loosened (#125): an unknown element shows as unknown.
 const validate = new Ajv2020({ strict: false, validateFormats: false }).compile<CardCollectionEnvelope>({
   $ref: "#/components/schemas/ApiResponseCardCollectionResponse",
-  components: contract.components,
+  components: { ...contract.components, schemas: tolerantSchemas(contract.components.schemas) },
 });
 const isTime = (value: string) => Number.isFinite(Date.parse(value));
-const inOrder = (slots: ElementSlot[]) =>
-  slots.length === ELEMENTS.length && slots.every((slot, i) => slot.element === ELEMENTS[i]);
 
 export function isCardCollectionEnvelope(value: unknown): value is CardCollectionEnvelope {
   if (!validate(value) || value.code !== "CHARACTER_CARD_COLLECTION_SUCCESS") return false;
   const d = value.data;
   return (
-    inOrder(d.elementRecords.dealer) &&
-    inOrder(d.elementRecords.supporter) &&
     [...d.elementRecords.dealer, ...d.elementRecords.supporter].every(
       (slot) => !slot.record || isTime(slot.record.observedAt),
     ) &&
@@ -53,9 +51,23 @@ export function appliedStage(record: { awakening: number; activeAwakening: numbe
     : null;
 }
 
+/** Element name (성·암·뇌·토·수·화), or "알 수 없음" for one this build does not know. */
+export const elementLabel = (element: string) => labelOf(ELEMENT_LABEL, element);
+
+/** Slots in 성·암·뇌·토·수·화 order whatever order they arrive in; unknown elements last. */
+export function orderedSlots(slots: ElementSlot[]) {
+  const rank = (element: string) => {
+    const i = (ELEMENTS as readonly string[]).indexOf(element);
+    return i < 0 ? ELEMENTS.length : i;
+  };
+  return [...slots].sort((a, b) => rank(a.element) - rank(b.element));
+}
+
 /** The six element slots for the character's role (supporters see 서폿 sets). */
 export function slotsFor(data: CardCollection) {
-  return data.position === "SUPPORT" ? data.elementRecords.supporter : data.elementRecords.dealer;
+  return orderedSlots(
+    data.position === "SUPPORT" ? data.elementRecords.supporter : data.elementRecords.dealer,
+  );
 }
 
 const GRADE_ORDER = ["고대", "유물", "전설", "영웅", "희귀", "고급", "일반"];

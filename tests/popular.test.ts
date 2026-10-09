@@ -12,7 +12,7 @@ test("backend popular sample satisfies the contract; counts are not part of it",
   assert.equal(isPopularEnvelope(body), true);
   assert.ok(body.data.items.every((item: object) => !("views" in item) && !("count" in item)));
   const broken = fixture();
-  broken.data.sampleStatus = "MAYBE";
+  broken.data.sampleStatus = null;
   assert.equal(isPopularEnvelope(broken), false);
 });
 

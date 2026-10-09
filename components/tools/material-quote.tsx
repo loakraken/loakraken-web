@@ -32,7 +32,7 @@ import {
   priceBases,
   quantityError,
   searchError,
-  statusCopy,
+  quoteStatusCopy,
   type MarketFailure,
   type MarketSearch,
   type MaterialQuote,
@@ -438,7 +438,7 @@ function Result({ quote }: { quote: MaterialQuote }) {
       </section>
       <ul className={styles.lines}>
         {quote.items.map((line) => {
-          const copy = statusCopy[line.status];
+          const copy = quoteStatusCopy(line.status);
           return (
             <li key={line.itemId} data-status={line.status}>
               <div className={styles.lineHead}>

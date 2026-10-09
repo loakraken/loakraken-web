@@ -1,6 +1,7 @@
 // Home dashboard (B-4): today's schedule and official news, laid out the way
 // LOAWA's home shows them (weekday tabs, countdowns, notices, events).
 import type { components } from "../api/home-schema";
+import { labelOf } from "../api/tolerant";
 
 type Schemas = components["schemas"];
 export type ScheduleEnvelope = Schemas["ApiResponseHomeScheduleResponse"];
@@ -26,6 +27,11 @@ export const NOTICE_LABEL: Record<NonNullable<Notice["category"]>, string> = {
   EVENT: "이벤트",
   SHOP: "상점",
 };
+
+/** Labels that fall back for a kind or category this build does not know yet. */
+export const rewardLabel = (kind: string) => labelOf(REWARD_LABEL, kind);
+export const noticeLabel = (category: string | null) =>
+  category == null ? "공지" : labelOf(NOTICE_LABEL, category);
 
 const DAY = 86_400_000;
 const KST = 9 * 3_600_000;

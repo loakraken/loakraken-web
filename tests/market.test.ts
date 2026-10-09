@@ -236,7 +236,7 @@ test("gold display keeps up to two decimals and marks unknown totals", () => {
 test("material price requests are allow-listed and validated", async () => {
   assert.equal(isPricesEnvelope(fixture("material-prices.json")), true);
   const broken = fixture("material-prices.json");
-  broken.data.items[0].status = "FREE";
+  broken.data.items[0].status = 3;
   assert.equal(isPricesEnvelope(broken), false);
   assert.deepEqual(
     parsePriceRequest({ priceBasis: "RECENT_PRICE", names: [" 운명의 파편 ", "운명의 파편"], extra: 1 }),

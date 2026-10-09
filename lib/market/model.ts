@@ -1,4 +1,5 @@
 import type { components } from "../api/market-schema";
+import { UNKNOWN_LABEL } from "../api/tolerant";
 
 type Schemas = components["schemas"];
 export type MarketOptions = Schemas["MarketOptionsResponse"];
@@ -232,6 +233,13 @@ export const statusCopy: Record<QuoteStatus, { label: string; text: string }> =
       text: "원천 가격이 0이에요. 무료 구매로 해석하지 않고 계산에서 제외했어요.",
     },
   };
+
+/** Status copy; a status this build does not know yet is shown as unknown. */
+export function quoteStatusCopy(status: string): { label: string; text: string } {
+  return Object.hasOwn(statusCopy, status)
+    ? statusCopy[status as QuoteStatus]
+    : { label: UNKNOWN_LABEL, text: "이 항목의 상태를 아직 표시할 수 없어요." };
+}
 
 export type MarketFailure = { code: string; status: number; retryAt?: number };
 
