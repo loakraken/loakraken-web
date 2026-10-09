@@ -12,6 +12,10 @@ test("backend sample satisfies the captured contract; empty records are valid", 
   empty.data.titles = [];
   empty.data.observedCharacters = 0;
   assert.equal(isTitlesEnvelope(empty), true);
+  // A backend from before #176 (no firstObservedDate) is still accepted.
+  const older = fixture();
+  for (const title of older.data.titles) delete title.firstObservedDate;
+  assert.equal(isTitlesEnvelope(older), true);
   const broken = fixture();
   broken.data.titles[0].firstObservedAt = "어제";
   assert.equal(isTitlesEnvelope(broken), false);
@@ -46,9 +50,10 @@ test("title requests validate the name and allow-list errors", async () => {
 });
 
 test("titles first seen on the same KST day fold into one group (backend #176)", () => {
-  // An empty firstObservedDate falls back to the KST date of firstObservedAt.
-  const t = (title: string, at: string, observedOrder: number, firstObservedDate = "") => ({
-    title, firstObservedAt: at, firstObservedDate, lastObservedAt: at, observedOrder, recordedBy: "본캐", source: "OBSERVED" as const,
+  // Without firstObservedDate (older backend) the KST date of firstObservedAt is used.
+  const t = (title: string, at: string, observedOrder: number, firstObservedDate?: string) => ({
+    title, firstObservedAt: at, lastObservedAt: at, observedOrder, recordedBy: "본캐", source: "OBSERVED" as const,
+    ...(firstObservedDate && { firstObservedDate }),
   });
   const groups = groupByDay([
     t("A", "2026-10-01T01:00:00Z", 1),

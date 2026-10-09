@@ -11,11 +11,18 @@ import { characterNameError, normalizeCharacterName } from "./model";
 type Schemas = components["schemas"];
 export type TitlesEnvelope = Schemas["ApiResponseRosterTitlesResponse"];
 export type RosterTitles = Schemas["RosterTitlesResponse"];
-export type RosterTitle = Schemas["RosterTitleResponse"];
+// firstObservedDate (backend #176) is optional here: a backend from before it
+// (or its cached answer) still returns a valid list, grouped by firstObservedAt.
+export type RosterTitle = Omit<Schemas["RosterTitleResponse"], "firstObservedDate"> & {
+  firstObservedDate?: string;
+};
 
+const schemas = tolerantSchemas(contract.components.schemas);
+const title = schemas.RosterTitleResponse as { required?: string[] };
+title.required = title.required?.filter((field) => field !== "firstObservedDate");
 const validate = new Ajv2020({ strict: false, validateFormats: false }).compile<TitlesEnvelope>({
   $ref: "#/components/schemas/ApiResponseRosterTitlesResponse",
-  components: { ...contract.components, schemas: tolerantSchemas(contract.components.schemas) },
+  components: { ...contract.components, schemas },
 });
 const isTime = (value: string) => Number.isFinite(Date.parse(value));
 
