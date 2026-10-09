@@ -65,12 +65,12 @@ const OPTION_COPY: { key: keyof Options; label: string; hint: string }[] = [
   { key: "armorBreath", label: "방어구 숨결", hint: "매 시도 최대 개수" },
   { key: "weaponBook", label: "무기 책", hint: "야금술 · 업화 11~20단계" },
   { key: "armorBook", label: "방어구 책", hint: "재봉술 · 업화 11~20단계" },
-  {
-    key: "growthSupport",
-    label: "성장 지원",
-    hint: "업화 18단계까지 재련 골드 20% 감소",
-  },
 ];
+
+// 성장 지원 is a standing official rule (no end date or target condition), so
+// it is always applied with its source shown instead of a toggle (PM 총괄
+// 2026-10-10, 계산 검증 공식 가이드 판독 7절).
+const GROWTH_SUPPORT_NOTICE = "https://lostark.game.onstove.com/News/Notice/Views/13307";
 
 type Loaded = {
   name: string;
@@ -652,7 +652,7 @@ function RefiningContent({ initialName }: { initialName: string }) {
     armorBreath: false,
     weaponBook: false,
     armorBook: false,
-    growthSupport: false,
+    growthSupport: true,
   });
   const [mode, setMode] = useState<Mode>("expected");
   const setPart = (id: PartId, next: PartState) =>
@@ -818,8 +818,13 @@ function RefiningContent({ initialName }: { initialName: string }) {
                 ))}
               </div>
               <p className={quote.hint}>
-                책과 성장 지원은 운명의 업화에만 적용돼요. 전율 책, 실링, 상급
-                재련, 이벤트 확률은 계산하지 않아요.
+                성장 지원(업화 1~18단계 재련 골드 20% 감소)은 기간·대상 조건이
+                없는 공식 규칙이라 자동으로 적용해요(
+                <a href={GROWTH_SUPPORT_NOTICE} target="_blank" rel="noreferrer">
+                  공지
+                </a>
+                · 게임 재련 가이드). 책은 운명의 업화에만 적용돼요. 전율 책,
+                실링, 상급 재련, 이벤트 확률은 계산하지 않아요.
               </p>
             </section>
           </div>
