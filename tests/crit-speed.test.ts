@@ -6,6 +6,7 @@ import {
   DEFAULT_SETTINGS,
   classStateSources,
   groupSources,
+  groupToggles,
   parseCritSpeedRequest,
   toAssumptions,
 } from "../lib/crit-speed/model";
@@ -273,4 +274,23 @@ test("toggle rows from before backend #193 5d661d7 (no axis) still validate", ()
   assert.equal(isCritSpeedEnvelope(value), true);
   value.data.toggles = [{ key: "피냄새" }];
   assert.equal(isCritSpeedEnvelope(value), false, "label and on stay required");
+});
+
+test("rows sharing a toggle key become one switch with every axis value (backend #203)", () => {
+  const groups = groupToggles([
+    { key: "질풍", label: "질풍 버프 가정", axis: "ATTACK_SPEED", coreState: false, on: true, value: 10, text: "공격 및 이동 속도가 10.0% 증가한다." },
+    { key: "질풍", label: "질풍 버프 가정", axis: "MOVE_SPEED", coreState: false, on: true, value: 10, text: "공격 및 이동 속도가 10.0% 증가한다." },
+    { key: "피냄새", label: "혼돈 상태 가정", coreState: true, on: true, value: 23, text: "…23.0% 로 변경된다." } as never,
+  ]);
+  assert.equal(groups.length, 2);
+  assert.deepEqual(groups[0].values, [
+    { axis: "ATTACK_SPEED", value: 10 },
+    { axis: "MOVE_SPEED", value: 10 },
+  ]);
+  assert.deepEqual(groups[0].texts, ["공격 및 이동 속도가 10.0% 증가한다."]);
+  assert.deepEqual(groups[1].values, [{ axis: "CRIT", value: 23 }], "missing axis reads as crit");
+  assert.equal(groupToggles([
+    { key: "a", label: "a", axis: "ATTACK_SPEED", coreState: false, on: true, value: 1, text: "" },
+    { key: "a", label: "a", axis: "MOVE_SPEED", coreState: false, on: false, value: 1, text: "" },
+  ])[0].on, false, "one row off means the switch shows off");
 });

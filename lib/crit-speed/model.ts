@@ -153,6 +153,36 @@ export function parseCritSpeedRequest(body: unknown): CritSpeedRequest | null {
   return { characterName: normalizeCharacterName(input.characterName), assumptions };
 }
 
+export type EffectGroup = {
+  key: string;
+  label: string;
+  coreState: boolean;
+  on: boolean;
+  /** One value per axis (attack/move speed toggles come as two rows, backend #203). */
+  values: { axis: CritSource["axis"]; value: number }[];
+  texts: string[];
+};
+
+/** One switch per key: rows sharing a key are switched together. */
+export function groupToggles(toggles: CritToggle[]): EffectGroup[] {
+  const groups = new Map<string, EffectGroup>();
+  for (const t of toggles) {
+    const group = groups.get(t.key) ?? {
+      key: t.key,
+      label: t.label,
+      coreState: !!t.coreState,
+      on: true,
+      values: [],
+      texts: [],
+    };
+    group.on &&= t.on;
+    group.values.push({ axis: t.axis ?? "CRIT", value: t.value });
+    if (t.text && !group.texts.includes(t.text)) group.texts.push(t.text);
+    groups.set(t.key, group);
+  }
+  return [...groups.values()];
+}
+
 export const CATEGORY_LABEL: Record<CritSource["category"], string> = {
   STAT: "특성",
   ENGRAVING: "각인",
