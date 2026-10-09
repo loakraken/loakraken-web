@@ -248,7 +248,7 @@ function Needed({ advice, fresh }: { advice: Advice[]; fresh: number[] }) {
       <h2 id="needed-heading" className={styles.cardTitle}>
         필요한 돌
       </h2>
-      <p className={styles.note}>새 돌부터 깎을 때, 지금 목표·칸·감소 조건 기준</p>
+      <p className={styles.note}>아직 안 깎은 돌 기준 · 지금 조건 그대로</p>
       <table className={styles.needTable}>
         <thead>
           <tr>
@@ -268,7 +268,7 @@ function Needed({ advice, fresh }: { advice: Advice[]; fresh: number[] }) {
               <tr key={a.goal.id}>
                 <th scope="row">
                   {a.goal.label}
-                  <small>한 개로 {formatChance(p)}</small>
+                  <small>1개당 {formatChance(p)}</small>
                 </th>
                 {LUCK_QUANTILES.map(({ q }) => {
                   const n = stonesFor(p, q);
@@ -287,7 +287,7 @@ function Needed({ advice, fresh }: { advice: Advice[]; fresh: number[] }) {
         </tbody>
       </table>
       <div className={styles.priceRow}>
-        <label htmlFor={priceId}>돌 한 개 값</label>
+        <label htmlFor={priceId}>돌 1개 가격</label>
         <div className={styles.goldInput}>
           <input
             id={priceId}
@@ -295,15 +295,15 @@ function Needed({ advice, fresh }: { advice: Advice[]; fresh: number[] }) {
             onChange={(e) => setPriceText(e.target.value)}
             inputMode="numeric"
             autoComplete="off"
-            placeholder="넣으면 골드로도 보여 줘요"
+            placeholder="입력하면 골드 합계도 보여요"
             maxLength={12}
           />
           <em aria-hidden="true">G</em>
         </div>
       </div>
       <p className={styles.note}>
-        보통은 절반의 확률로 그 안에 성공하는 개수예요. 운이 좋으면 25%, 운이
-        나빠도 90% 확률로 그 안에 성공해요.
+        열 머리의 %는 그 개수 안에 목표를 이룰 확률이에요. 10번 중 9번은
+        &lsquo;오래 걸려도&rsquo; 개수 안에 끝나요.
       </p>
     </section>
   );
@@ -420,7 +420,15 @@ export function StoneOptimizer({ initial }: { initial: StoneInitial }) {
                   <h2 id="facet-heading" className={styles.cardTitle}>
                     세공
                   </h2>
-                  <p className={styles.note}>게임에서 나온 결과대로 성공·실패를 눌러 주세요.</p>
+                  <p className={styles.note}>세공할 때마다 결과를 눌러 기록해요.</p>
+                  <p className={styles.progress}>
+                    남은 칸 {slots * 3 - state.used.reduce((sum, u) => sum + u, 0)}
+                    /{slots * 3} · 감소{" "}
+                    {decreaseMax === null ? "제한 없음" : `${decreaseMax}회 이하`}
+                  </p>
+                  <a className={styles.jump} href="#goal-heading">
+                    조건 바꾸기
+                  </a>
                 </div>
                 <div className={styles.chance}>
                   <span>지금 확률</span>
@@ -497,7 +505,7 @@ export function StoneOptimizer({ initial }: { initial: StoneInitial }) {
                   options={SLOT_OPTIONS.map((n) => ({ value: n, label: `${n}칸` }))}
                   value={slots}
                   onChange={(n) => restart(() => setSlots(n))}
-                  note="칸 수를 바꾸면 처음부터 다시 깎아요."
+                  note="칸 수를 바꾸면 지금까지 누른 기록이 지워져요."
                 />
                 <Segmented
                   legend="감소 각인"
@@ -508,7 +516,7 @@ export function StoneOptimizer({ initial }: { initial: StoneInitial }) {
                   }))}
                   value={decreaseMax}
                   onChange={setDecreaseMax}
-                  note="모든 목표에 같이 적용돼요. 4 이하면 감소 각인이 켜지지 않아요."
+                  note="목표 전체의 공통 조건이에요. 4회 이하면 감소 각인이 붙지 않아요."
                 />
               </section>
               <Needed advice={advice} fresh={fresh} />
