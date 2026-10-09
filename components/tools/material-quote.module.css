@@ -192,7 +192,8 @@
   padding: 24px clamp(20px, 3vw, 32px);
 }
 .step {
-  color: var(--steel);
+  /* Step and count numbers are text: --faint (icons, rules) is 3.6:1. */
+  color: var(--slate);
   font-size: var(--text-caption);
   font-weight: 600;
   letter-spacing: 0.02em;
@@ -205,7 +206,7 @@
   letter-spacing: 0;
 }
 .countLabel {
-  color: var(--steel);
+  color: var(--slate);
   font-size: 0.6em;
   font-weight: 500;
 }
