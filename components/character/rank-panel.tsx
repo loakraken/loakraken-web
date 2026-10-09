@@ -8,6 +8,7 @@ import {
   METRICS,
   SCOPES,
   conditionsText,
+  TIER_LEGEND,
   rankCell,
   rankState,
   scopeLabel,
@@ -113,6 +114,7 @@ export function RankPanel({ name }: { name: string }) {
               ? `순위 집계 조건에 들지 않아요(${conditionsText(data)}).`
               : `${conditionsText(data)}이에요. 게임 전체 순위와 다를 수 있어요.`}
           </p>
+          {state === "ranked" && <p className={styles.note}>티어: {TIER_LEGEND}</p>}
         </>
       )}
     </Panel>

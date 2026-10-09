@@ -105,3 +105,6 @@
     padding: 8px;
   }
 }
+.note + .note {
+  margin-top: 2px;
+}

@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 import {
   TIER_LABEL,
+  TIER_LEGEND,
   conditionsText,
   isRankEnvelope,
   rankCell,
@@ -51,6 +52,7 @@ test("cells: rank of total, top percent and the PM tier names; collecting never 
   const collecting = structuredClone(data);
   collecting.entries[2] = { ...collecting.entries[2], sampleStatus: "COLLECTING", topPercent: null, tier: null };
   assert.deepEqual(rankCell(collecting, "COMBAT_POWER", "CLASS"), { state: "collecting", total: 35 });
+  assert.equal(TIER_LEGEND, "크라켄 상위 1% · 해구 5% · 심해 10% · 대양 25% · 연안 50%");
   assert.deepEqual(TIER_LABEL, { TOP1: "크라켄", TOP5: "해구", TOP10: "심해", TOP25: "대양", TOP50: "연안" });
   assert.equal(scopeLabel(data, "SERVER"), "서버 · 통계테스트서버");
   assert.equal(scopeLabel(data, "ALL"), "전체");
