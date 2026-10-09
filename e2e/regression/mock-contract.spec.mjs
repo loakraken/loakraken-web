@@ -31,7 +31,7 @@ test.describe("목 응답 계약 @regression", () => {
     expect(await response.json()).toMatchObject({ ok: false, error: { code: "INVALID_API_RESPONSE" } });
   });
 
-  test("원정대·이력·조회수·카드 기록 응답이 계약 검증을 통과한다", async ({ request }) => {
+  test("원정대·이력·조회수·카드 기록·인기 검색 응답이 계약 검증을 통과한다", async ({ request }) => {
     for (const path of [
       `/api/characters/siblings?${q({ characterName: "상세" })}`,
       `/api/characters/history?${q({ characterName: "상세", serverName: "아만" })}`,
@@ -39,6 +39,7 @@ test.describe("목 응답 계약 @regression", () => {
       ...["상세", "상세서포터", "기록없음"].map(
         (name) => `/api/characters/card-collection?${q({ characterName: name })}`,
       ),
+      ...["24h", "7d"].map((period) => `/api/characters/popular?${q({ period })}`),
     ]) {
       const response = await request.get(path);
       const body = await response.json();
