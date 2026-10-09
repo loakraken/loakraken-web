@@ -200,9 +200,9 @@ export function stonesFor(chance: number, q: number): number | null {
 }
 
 export const LUCK_QUANTILES = [
-  { q: 0.25, label: "운이 좋으면" },
+  { q: 0.25, label: "빠르면" },
   { q: 0.5, label: "보통" },
-  { q: 0.9, label: "운이 나빠도" },
+  { q: 0.9, label: "오래 걸려도" },
 ] as const;
 
 export function formatChance(chance: number) {

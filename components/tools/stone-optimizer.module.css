@@ -55,6 +55,20 @@
   align-items: flex-start;
   gap: var(--space-4);
 }
+.progress {
+  margin-top: var(--space-2);
+  font-size: var(--text-meta);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+/* Conditions sit below the board on narrow screens; this jumps there. */
+.jump {
+  display: none;
+  margin-top: var(--space-1);
+  color: var(--link);
+  font-size: var(--text-meta);
+  text-decoration: underline;
+}
 .chance {
   display: grid;
   justify-items: end;
@@ -452,6 +466,9 @@
 @media (max-width: 900px) {
   .columns {
     grid-template-columns: 1fr;
+  }
+  .jump {
+    display: inline-block;
   }
 }
 @media (max-width: 520px) {
