@@ -3,7 +3,7 @@
 import { useId, useState, useSyncExternalStore, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
-import { ArrowRight, RefreshCw, Share2, Star } from "lucide-react";
+import { ArrowRight, Info, RefreshCw, Share2, Star } from "lucide-react";
 import { InlineOrb } from "@/components/landing/orb";
 import { Reveal } from "@/components/landing/motion";
 import {
@@ -39,6 +39,7 @@ import {
   CharacterQueryError,
   fetchHistory,
   fetchSiblings,
+  fetchTitles,
 } from "@/lib/character/client";
 import { METRICS, change, stepSeries } from "@/lib/character/history";
 import { failureCopy } from "@/lib/character/model";
@@ -47,6 +48,7 @@ import { AvatarsTab, CollectiblesTab } from "./inner";
 import { Panel } from "./panel";
 import { ViewsPanel } from "./views-panel";
 import { RankPanel } from "./rank-panel";
+import { byObservedOrder, titleDate } from "@/lib/character/titles";
 import { CardCollection } from "./card-collection-panel";
 import { CardArt, GameIcon } from "./imagery";
 import {
@@ -1169,6 +1171,62 @@ function QueryProblem({
   );
 }
 
+/**
+ * Roster titles (backend #123): what LOAKraken has seen equipped across the
+ * same-server roster, in first-seen order. Never called acquisition order or
+ * date; only equipped titles are recorded (PM wording).
+ */
+function RosterTitlesPanel({ name }: { name: string }) {
+  const noteId = useId();
+  const query = useQuery({
+    queryKey: ["roster-titles", name],
+    queryFn: ({ signal }) => fetchTitles(name, signal),
+    staleTime: 5 * 60_000,
+  });
+  const result = query.data?.data;
+  const titles = result ? byObservedOrder(result.titles) : [];
+  return (
+    <Panel
+      title="원정대 칭호"
+      wide
+      meta={result ? `${titles.length}개 · 원정대 ${result.rosterCharacters}명 중 ${result.observedCharacters}명 기록` : undefined}
+    >
+      <p className={styles.titleNote} id={noteId}>
+        <span>LOAKraken에서 처음 확인한 순서</span>
+        <span className={styles.titleInfo}>
+          <Info size={13} aria-hidden="true" />
+          장착한 칭호만 기록되며 실제 획득일과 다를 수 있어요
+        </span>
+      </p>
+      {query.isPending ? (
+        <p className={styles.muted} role="status">
+          <InlineOrb /> 칭호 기록을 불러오고 있어요.
+        </p>
+      ) : query.isError ? (
+        <QueryProblem error={query.error} onRetry={() => query.refetch()} subject="칭호 기록을" />
+      ) : titles.length === 0 ? (
+        <p className={styles.muted}>
+          아직 확인한 칭호가 없어요. 원정대 캐릭터를 조회하면 그때 장착한 칭호가 기록돼요.
+        </p>
+      ) : (
+        <ol className={styles.titleList} aria-describedby={noteId}>
+          {titles.map((title) => (
+            <li key={`${title.observedOrder}-${title.title}`}>
+              <b>{title.observedOrder}</b>
+              <strong>{title.title}</strong>
+              <small>
+                처음 확인 <time dateTime={title.firstObservedAt}>{titleDate(title.firstObservedAt)}</time>
+                {" · "}
+                {title.recordedBy}
+              </small>
+            </li>
+          ))}
+        </ol>
+      )}
+    </Panel>
+  );
+}
+
 export function SiblingsTab({ data }: { data: Character }) {
   const embedded = data.siblings;
   const query = useQuery({
@@ -1190,6 +1248,7 @@ export function SiblingsTab({ data }: { data: Character }) {
             <Empty state={data.coverage.siblings} />
           </Panel>
         )}
+        <RosterTitlesPanel name={data.characterName} />
       </div>
     );
   const result = query.data?.data;
@@ -1226,6 +1285,7 @@ export function SiblingsTab({ data }: { data: Character }) {
           <p className={styles.muted}>원정대 캐릭터가 없어요.</p>
         </Panel>
       )}
+      <RosterTitlesPanel name={data.characterName} />
     </div>
   );
 }

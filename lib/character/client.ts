@@ -3,6 +3,7 @@ import type { HistoryEnvelope, SiblingsEnvelope, ViewsEnvelope } from "./validat
 import type { CardCollectionEnvelope } from "./card-collection";
 import type { PopularEnvelope, PopularPeriod } from "./popular";
 import type { RankEnvelope } from "./rank";
+import type { TitlesEnvelope } from "./titles";
 
 export class CharacterQueryError extends Error {
   info: QueryFailure;
@@ -62,6 +63,12 @@ export const fetchCardCollection = (name: string, signal: AbortSignal) =>
 export const fetchRank = (name: string, signal: AbortSignal) =>
   getJson<RankEnvelope>(
     `/api/characters/rank?${new URLSearchParams({ characterName: name })}`,
+    signal,
+  );
+
+export const fetchTitles = (name: string, signal: AbortSignal) =>
+  getJson<TitlesEnvelope>(
+    `/api/characters/titles?${new URLSearchParams({ characterName: name })}`,
     signal,
   );
 
