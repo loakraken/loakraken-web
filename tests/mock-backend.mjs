@@ -473,6 +473,40 @@ createServer(async (req, res) => {
       data: { characterName: who, serverName: "아만", rosterCharacters: 6, observedCharacters: titles.length ? 2 : 0, ruleVersion: "title-record-v1", titles },
     });
   }
+  // Ranking list (backend #100): 1,234 synthetic characters; 직업=환수사 → none.
+  if (url.pathname === "/api/v1/rankings") {
+    const q = url.searchParams;
+    const metric = q.get("metric") || "COMBAT_POWER";
+    const page = Number(q.get("page") || 1);
+    const size = Number(q.get("size") || 50);
+    const population = q.get("className") === "환수사" ? 0 : q.get("server") ? 312 : 1234;
+    const servers = ["루페온", "실리안", "아만", "아브렐슈드", "카단", "카마인", "카제로스", "니나브"];
+    const classes = ["바드", "블래스터", "소울이터", "홀리나이트", "슬레이어", "기상술사", "도화가", "버서커"];
+    const rows = [];
+    for (let rank = (page - 1) * size + 1; rank <= Math.min(population, page * size); rank++) {
+      const top = Math.round((rank / population) * 10000) / 100;
+      const tier = top <= 1 ? "TOP1" : top <= 5 ? "TOP5" : top <= 10 ? "TOP10" : top <= 25 ? "TOP25" : top <= 50 ? "TOP50" : "REST";
+      const cls = q.get("className") || classes[rank % classes.length];
+      rows.push({
+        rank, characterName: `랭커${rank}`, serverName: q.get("server") || servers[rank % servers.length], className: cls,
+        position: cls === "바드" || cls === "홀리나이트" || cls === "도화가" ? "SUPPORT" : "DEALER",
+        itemLevel: Math.round((1790 - rank * 0.05) * 100) / 100, combatPower: Math.round((4800 - rank * 1.3) * 100) / 100,
+        topPercent: top, tier,
+      });
+    }
+    return send({
+      code: "RANKING_SUCCESS",
+      message: "성공",
+      data: {
+        meta: {
+          population, conditions: { server: q.get("server"), role: q.get("role"), className: q.get("className"), activeDays: Number(q.get("activeDays") || 30), itemLevelMin: Number(q.get("itemLevelMin") || 1640), itemLevelMax: null, combatPowerMin: null, combatPowerMax: null, representativeOnly: false },
+          aggregatedAt: new Date(Date.now() - 600_000).toISOString(), snapshot: "latest", ruleVersion: "stats-v1", minSample: 30,
+          sampleStatus: population >= 30 ? "READY" : "COLLECTING", coverage: { observedCharacters: population, knownCharacters: population * 3, discoveredAccounts: 100 },
+        },
+        metric, page, size, rows,
+      },
+    });
+  }
   // Statistics (B-3, backend #100): synthetic but shaped like the real thing.
   // server=니나브 → small sample (COLLECTING everywhere).
   if (url.pathname.startsWith("/api/v1/stats/")) {
