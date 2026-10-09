@@ -28,6 +28,8 @@ import {
   type Settings,
 } from "@/lib/crit-speed/model";
 import { UNKNOWN_LABEL } from "@/lib/tools/contract";
+import { retryLabel } from "@/lib/api/rate-limit";
+import { useRateLimit } from "@/lib/api/use-rate-limit";
 import quote from "./material-quote.module.css";
 import { SiteHeader } from "@/components/site/site-header";
 import styles from "./crit-speed.module.css";
@@ -653,10 +655,14 @@ function CritSpeedContent({ initialName }: { initialName: string }) {
   // Busy buttons stay focusable (aria-disabled, not disabled) so a keyboard
   // user keeps their place while the request runs; the handlers guard.
   const busy = query.isFetching && !data;
+  // 429: same notice as every screen; the seconds left sit on the buttons
+  // (outside the alert) and they stay blocked until then.
+  const limit = useRateLimit(query.error);
+  const waiting = limit.seconds > 0;
 
   function submit(event: FormEvent) {
     event.preventDefault();
-    if (busy) return;
+    if (busy || waiting) return;
     setTouched(true);
     if (error) return;
     const target = normalizeCharacterName(input);
@@ -702,10 +708,10 @@ function CritSpeedContent({ initialName }: { initialName: string }) {
               <button
                 type="submit"
                 className={quote.secondaryPill}
-                aria-disabled={busy || undefined}
+                aria-disabled={busy || waiting || undefined}
                 aria-busy={busy || undefined}
               >
-                계산하기
+                {retryLabel(limit.seconds, "계산하기")}
               </button>
               {touched && error && (
                 <p className={quote.inputError}>{error}</p>
@@ -725,16 +731,24 @@ function CritSpeedContent({ initialName }: { initialName: string }) {
               />
               <div className={styles.output} aria-live="polite">
                 {failure ? (
-                  <div className={quote.notice} role="alert">
-                    <strong>{critSpeedFailureCopy(failure).title}</strong>
-                    <p>{critSpeedFailureCopy(failure).text}</p>
+                  <div className={quote.notice}>
+                    {/* The alert holds the sentence only; the retry button's countdown
+                        ticks outside it so it is not re-announced every second. */}
+                    <div role="alert">
+                      <strong>{critSpeedFailureCopy(failure).title}</strong>
+                      <p>{critSpeedFailureCopy(failure).text}</p>
+                    </div>
                     <button
                       type="button"
                       className={quote.outlinePill}
-                      aria-disabled={query.isFetching || undefined}
+                      aria-disabled={query.isFetching || waiting || undefined}
                       aria-busy={query.isFetching || undefined}
-                      onClick={() => !query.isFetching && query.refetch()}
+                      // The output is a live region: a fixed name while waiting and
+                      // hidden seconds keep the countdown from being read out.
+                      aria-label={waiting ? "다시 계산, 잠시 뒤 가능" : undefined}
+                      onClick={() => !query.isFetching && !waiting && query.refetch()}
                     >
+                      {waiting && <span aria-hidden="true">{limit.seconds}초 뒤 </span>}
                       다시 계산
                     </button>
                   </div>

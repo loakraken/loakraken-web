@@ -3,6 +3,7 @@
 // settings into the assumption payload and validates requests server-side.
 import type { components } from "../api/crit-speed-schema";
 import { characterNameError, normalizeCharacterName } from "../character/model";
+import { rateLimitCopy } from "../api/rate-limit";
 
 type Schemas = components["schemas"];
 export type Assumptions = Schemas["CritSpeedAssumptions"];
@@ -183,10 +184,7 @@ export function critSpeedFailureCopy(error: { code: string }) {
         text: "이름이 정확한지 확인한 뒤 다시 검색해 주세요.",
       };
     case "LOST_ARK_RATE_LIMITED":
-      return {
-        title: "조회 요청이 잠시 많아요",
-        text: "호출 제한이 풀린 뒤 다시 시도해 주세요. 자동으로 재요청하지 않아요.",
-      };
+      return rateLimitCopy();
     case "LOST_ARK_API_TIMEOUT":
       return {
         title: "응답이 늦어지고 있어요",
