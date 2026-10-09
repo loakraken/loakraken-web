@@ -18,7 +18,7 @@ import {
 import quote from "./material-quote.module.css";
 import styles from "./raid-rewards.module.css";
 
-const FILTERS: (Category | "ALL")[] = ["ALL", "KAZEROS", "SHADOW", "EPIC", "ABYSS", "EXTREME"];
+const FILTERS: (Category | "ALL")[] = ["ALL", "KAZEROS", "SHADOW", "EPIC", "ABYSS", "LEGION", "EXTREME"];
 const NO_DATA = "데이터 없음";
 
 const gold = (value: number | null) => (value === null ? NO_DATA : formatGold(value));

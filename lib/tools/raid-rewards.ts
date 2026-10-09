@@ -12,7 +12,7 @@ export type Difficulty =
   | "STAGE_1"
   | "STAGE_2"
   | "STAGE_3";
-export type Category = "KAZEROS" | "SHADOW" | "EPIC" | "EXTREME" | "ABYSS";
+export type Category = "KAZEROS" | "SHADOW" | "EPIC" | "EXTREME" | "ABYSS" | "LEGION";
 /** OFFICIAL: from an official notice/guide. SITES: not published officially,
  * and target sites agree on the value (PM 총괄 2026-10-10: shown as
  * "사이트 실측" with the check date). UNVERIFIED: no value yet. */
@@ -70,6 +70,7 @@ export const CATEGORY_LABEL: Record<Category, string> = {
   SHADOW: "그림자 레이드",
   EXTREME: "익스트림",
   ABYSS: "어비스 던전",
+  LEGION: "군단장 레이드",
 };
 export const DIFFICULTY_LABEL: Record<Difficulty, string> = {
   NORMAL: "노말",
