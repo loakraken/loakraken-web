@@ -61,7 +61,29 @@ test("gold counts cleared gates, subtracts bought bonus rewards", () => {
   assert.equal(gold.earned, 16000 - 5120);
   assert.equal(gold.possible, 48000 - 5120 + 38000 + 32000);
   assert.equal(gold.possibleBound, 16000, "세르카 노말 is half bound");
-  assert.equal(characterGold({ ...character, gold: false }).possible, 0);
+  assert.equal(gold.moreSpent, 5120);
+  // A non-gold character earns nothing but still pays for its bonus rewards.
+  const nonGold = characterGold({ ...character, gold: false });
+  assert.equal(nonGold.possible, -5120);
+  assert.equal(nonGold.earned, -5120);
+  assert.equal(nonGold.moreSpent, 5120);
+});
+
+test("bonus rewards are paid from bound gold first (notice 13148)", () => {
+  const [character] = addCharacters(emptyState(0), [
+    { name: "사막", server: "루페온", className: "바드", itemLevel: 1700 },
+  ]).characters;
+  // 4막 노말 1관문: 10,000 (5,000 bound) + bonus 3,200 → bound 1,800, tradable 5,000.
+  character.raids = [{ raidId: "kazeros-act4", difficulty: "NORMAL", cleared: [true, false], more: [true, false] }];
+  const gold = characterGold(character);
+  assert.equal(gold.earned, 6800);
+  assert.equal(gold.earnedBound, 1800);
+  assert.equal(gold.earned - gold.earnedBound, 5000);
+  // A bonus larger than the bound part takes the rest from tradable gold.
+  character.raids = [{ raidId: "kazeros-act4", difficulty: "NORMAL", cleared: [false, true], more: [false, true] }];
+  const g2 = characterGold(character);
+  assert.equal(g2.earnedBound, 8500 - 5440);
+  assert.equal(g2.earned - g2.earnedBound, 8500);
 });
 
 test("unknown gold is counted separately, never as zero gold earned", () => {

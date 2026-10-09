@@ -54,6 +54,7 @@ function Summary({ state, now }: { state: HomeworkState; now: number }) {
         </p>
         <p className={styles.note}>
           거래 가능 {formatGold(s.earned - s.earnedBound)} · 귀속 {formatGold(s.earnedBound)}
+          {s.moreSpent > 0 && ` · 더보기 지출 −${formatGold(s.moreSpent)} 반영`}
           {s.unknownGates > 0 && ` · 골드 미확인 관문 ${s.unknownGates}개는 빠져 있어요`}
         </p>
       </div>
@@ -398,7 +399,7 @@ export default function HomeworkTool() {
             {state.characters.length === 0 ? (
               <p className={styles.empty}>
                 캐릭터 이름을 넣으면 원정대를 불러와요. 레벨에 맞는 레이드 3개를 골드가 많은
-                순서로 넣어 드려요.
+                순서로 넣어 드려요(자동 구성은 추정 — 공식 규칙이 아닌 기본값이라 바꿔도 돼요).
               </p>
             ) : (
               <div className={styles.grid}>
@@ -418,7 +419,10 @@ export default function HomeworkTool() {
             <p className={styles.footnote}>
               진행 상황은 이 브라우저에만 저장돼요. 매주 수요일 06:00에 체크가 풀려요. 골드는
               레이드 보상표의 공식 값으로 계산하고, 확인되지 않은 레이드는 &lsquo;데이터
-              없음&rsquo;으로 둬요. <Link href="/tools/raid-rewards">레이드 보상표</Link>
+              없음&rsquo;으로 둬요. 더보기 비용은 귀속 골드에서 먼저 빠지고, 골드를 받지 않는
+              캐릭터의 더보기도 원정대 합계에서 빼요. 무료 더보기를 쓴 관문은 더보기 체크를
+              하지 않으면 비용 없이 계산돼요. 자동 구성(레벨 높은 순 6명·레이드별 최대 골드
+              난이도)은 추정이에요. <Link href="/tools/raid-rewards">레이드 보상표</Link>
             </p>
           </div>
         </div>

@@ -135,34 +135,60 @@ export function rollWeek(state: HomeworkState, now: number): HomeworkState {
 }
 
 export type GoldSummary = {
-  /** Gold from cleared gates minus bought bonus rewards. */
+  /** Gold from cleared gates minus every bonus reward bought (net). */
   earned: number;
   earnedBound: number;
   /** Everything planned, minus the bonus rewards already bought. */
   possible: number;
   possibleBound: number;
+  /** Gold spent on bonus rewards ("더보기"), also by non-gold characters. */
+  moreSpent: number;
   /** Planned gold that cannot be counted (unpublished values). */
   unknownGates: number;
 };
 
-/** Gold one character gets this week (0 when not a gold character). */
+const zero = (): GoldSummary => ({
+  earned: 0,
+  earnedBound: 0,
+  possible: 0,
+  possibleBound: 0,
+  moreSpent: 0,
+  unknownGates: 0,
+});
+
+/**
+ * Gold one character adds to the roster this week. A bonus reward is paid
+ * from bound gold first (official notice 13148, 2025-06-25: where both can be
+ * used, bound gold is spent first), so per gate bound = max(0, bound − cost)
+ * and the rest of the cost comes out of tradable gold. Raids past the weekly
+ * gold limit, and characters not designated for gold, earn nothing but still
+ * pay for the bonus rewards they buy.
+ */
 export function characterGold(character: Character): GoldSummary {
-  const out: GoldSummary = { earned: 0, earnedBound: 0, possible: 0, possibleBound: 0, unknownGates: 0 };
-  if (!character.gold) return out;
-  character.raids.slice(0, GOLD_RAIDS_PER_CHARACTER).forEach((plan) => {
+  const out = zero();
+  character.raids.forEach((plan, index) => {
     const mode = modeOf(plan);
     if (!mode) return;
+    const paysGold = character.gold && index < GOLD_RAIDS_PER_CHARACTER;
     mode.gates.forEach((gate, i) => {
+      const cost = plan.more[i] ? (gate.moreCost ?? 0) : 0;
+      out.moreSpent += cost;
+      if (!paysGold) {
+        out.possible -= cost;
+        out.earned -= cost;
+        return;
+      }
       if (gate.gold === null || gate.boundGold === null) {
         out.unknownGates += 1;
         return;
       }
-      const cost = plan.more[i] ? (gate.moreCost ?? 0) : 0;
-      out.possible += gate.gold - cost;
-      out.possibleBound += gate.boundGold;
+      const net = gate.gold - cost;
+      const bound = Math.max(0, gate.boundGold - cost);
+      out.possible += net;
+      out.possibleBound += bound;
       if (plan.cleared[i]) {
-        out.earned += gate.gold - cost;
-        out.earnedBound += gate.boundGold;
+        out.earned += net;
+        out.earnedBound += bound;
       }
     });
   });
@@ -170,7 +196,7 @@ export function characterGold(character: Character): GoldSummary {
 }
 
 export function rosterSummary(state: HomeworkState) {
-  const total: GoldSummary = { earned: 0, earnedBound: 0, possible: 0, possibleBound: 0, unknownGates: 0 };
+  const total = zero();
   let raids = 0;
   let raidsDone = 0;
   let gates = 0;
