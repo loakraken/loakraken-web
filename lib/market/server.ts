@@ -23,11 +23,11 @@ export const quoteMaterials = (body: unknown, signal?: AbortSignal) =>
 export const priceMaterials = (body: unknown, signal?: AbortSignal) =>
   requestPrices(body, origin(), { signal });
 
-export const getMarketTabs = (signal?: AbortSignal) =>
-  requestTabs(origin(), { signal });
-export const getMarketBoard = (query: URLSearchParams, signal?: AbortSignal) =>
-  requestBoard(query, origin(), { signal });
-export const getItemHistory = (itemId: string, signal?: AbortSignal) =>
-  requestItemHistory(itemId, origin(), { signal });
+export const getMarketTabs = (signal?: AbortSignal, timeoutMs?: number) =>
+  requestTabs(origin(), { signal, timeoutMs });
+export const getMarketBoard = (query: URLSearchParams, signal?: AbortSignal, timeoutMs?: number) =>
+  requestBoard(query, origin(), { signal, timeoutMs });
+export const getItemHistory = (itemId: string, signal?: AbortSignal, timeoutMs?: number) =>
+  requestItemHistory(itemId, origin(), { signal, timeoutMs });
 
 export { toResponse } from "../api/respond";

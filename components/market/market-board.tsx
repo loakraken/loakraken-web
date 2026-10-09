@@ -392,7 +392,11 @@ function MarketContent({
               </span>
             )}
           </nav>
-          {favorites.length > 0 && (
+          {favorites.length === 0 ? (
+            <p className={styles.favoritesHint}>
+              <Star size={12} aria-hidden="true" /> 품목의 별을 누르면 여기에 모아 볼 수 있어요.
+            </p>
+          ) : (
             <ul className={styles.favorites} aria-label="즐겨찾기 품목">
               {favorites.map((f) => (
                 <li key={f.itemId}>
