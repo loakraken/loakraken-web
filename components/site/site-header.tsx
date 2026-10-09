@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { KrakenMark } from "./kraken-mark";
 import { SiteNav } from "./site-nav";
 import styles from "./site-header.module.css";
@@ -7,7 +8,8 @@ import styles from "./site-header.module.css";
 /**
  * One header for every page: brand, the site-wide menu, then a page slot on
  * the right (search, motion toggle, call to action). `fixed` keeps the home
- * hero layout, every other page uses a sticky bar.
+ * hero layout, every other page uses a sticky bar. The theme toggle sits at
+ * the far right (light stays the default, D3).
  */
 export function SiteHeader({
   children,
@@ -31,7 +33,7 @@ export function SiteHeader({
         <SiteNav />
       </nav>
       {children && <div className={styles.slot}>{children}</div>}
-      {/* ThemeToggle joins here once every page body uses theme tokens (PM). */}
+      <ThemeToggle className={styles.theme} />
     </header>
   );
 }
