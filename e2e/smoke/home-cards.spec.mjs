@@ -1,25 +1,29 @@
 // 홈 카드: 인기 검색 캐릭터(web #129, F-10)와 공지/패치노트 탭(web #121).
 // 목 표본: 인기 24시간은 READY 4명(1위 인기F), 7일은 COLLECTING(집계 중).
 // 공지 분류(lib/home/model.ts isPatchNote): 점검이 아니고 제목에 "업데이트 내역·패치 안내·패치노트"가 있으면 패치노트.
-import { test, expect } from "../support/fixtures.mjs";
+import { test, expect, gotoReady } from "../support/fixtures.mjs";
 
 test.describe("홈 인기 검색 캐릭터 @smoke", () => {
   test("24시간 순위를 보여 주고 캐릭터로 이동한다", async ({ page }) => {
-    await page.goto("/");
+    await gotoReady(page, "/");
     const card = page.getByRole("region", { name: "인기 검색 캐릭터" });
     const periods = card.getByRole("group", { name: "기간" });
     await expect(periods.getByRole("button", { name: "24시간" })).toHaveAttribute("aria-pressed", "true");
     const rows = card.getByRole("listitem");
     await expect(rows).toHaveCount(4);
-    await expect(rows.first()).toContainText("1");
+    // 순위 칸은 링크의 첫 칸(b)이다. 아이템 레벨 숫자와 섞이지 않게 칸을 짚는다.
+    for (const [i, row] of (await rows.all()).entries())
+      await expect(row.getByRole("link").locator("b").first()).toHaveText(String(i + 1));
     await expect(rows.first()).toContainText("인기F");
+    // F-10 결정: 조회 수는 보여 주지 않는다.
+    await expect(card.getByRole("list")).not.toContainText(/조회|\d+회/);
     await expect(card).toContainText("같은 사람의 반복 검색은 하루 한 번만 셉니다.");
     await rows.first().getByRole("link").click();
     await expect(page).toHaveURL(new RegExp(`/character/${encodeURIComponent("인기F")}$`));
   });
 
   test("7일로 바꾸면 다시 조회하고, 집계 중이면 안내한다", async ({ page }) => {
-    await page.goto("/");
+    await gotoReady(page, "/");
     const card = page.getByRole("region", { name: "인기 검색 캐릭터" });
     await expect(card.getByRole("listitem").first()).toBeVisible();
     const request = page.waitForRequest(/\/api\/characters\/popular\?.*period=7d/);
@@ -34,14 +38,14 @@ test.describe("홈 인기 검색 캐릭터 @smoke", () => {
     await page.route("**/api/characters/popular**", (route) =>
       route.fulfill({ status: 502, json: { ok: false, error: { code: "LOST_ARK_API_ERROR", status: 502 } } }),
     );
-    await page.goto("/");
+    await gotoReady(page, "/");
     await expect(page.getByRole("region", { name: "인기 검색 캐릭터" })).toContainText("순위를 불러오지 못했어요.");
   });
 });
 
 test.describe("홈 공지·패치노트 @smoke", () => {
   test("공지와 패치노트를 나눠 보여 준다", async ({ page }) => {
-    await page.goto("/");
+    await gotoReady(page, "/");
     const card = page.getByRole("region", { name: "공지사항" });
     const kinds = card.getByRole("group", { name: "공지 종류" });
     await expect(kinds.getByRole("button", { name: "공지", exact: true })).toHaveAttribute("aria-pressed", "true");
