@@ -106,8 +106,9 @@ function ModeTable({ raid, mode }: { raid: Raid; mode: Mode }) {
       </div>
       {totals && totals.boundGold > 0 && (
         <p className={styles.note}>
-          거래 가능한 골드 {formatGold(totals.tradableGold)} · 귀속 골드는 그 캐릭터만 쓸
-          수 있어요.
+          {totals.tradableGold === 0
+            ? "전액 귀속 골드예요. 받은 캐릭터만 쓸 수 있어요."
+            : `거래 가능한 골드 ${formatGold(totals.tradableGold)} · 귀속 골드는 받은 캐릭터만 쓸 수 있어요.`}
         </p>
       )}
       <p className={styles.note}>
