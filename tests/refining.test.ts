@@ -252,4 +252,12 @@ test("구매 골드 rounds up to listings, 소모 가치 is expected × unit pri
   const odd = costLines([{ name: "운명의 수호석", amount: 601 }], {}, prices).lines[0];
   assert.deepEqual(odd.purchase, { units: 7, perUnit: 100, gold: 217, leftover: 99 });
   assert.equal(costLines([{ name: "운명의 수호석", amount: 1 }], {}, null).unpriced.length, 1);
+  // 묶음가가 없어도 1개 단가가 있으면 구매 골드에서 빠지지 않는다(PM-프론트 #238 P1).
+  const noBundle = prices.map((p: { name: string }) =>
+    p.name === "운명의 수호석" ? { ...p, bundlePrice: null } : p,
+  );
+  const kept = costLines([{ name: "운명의 수호석", amount: 601 }], {}, noBundle);
+  assert.ok(Math.abs(kept.lines[0].purchase!.gold - 700 * 0.31) < 1e-9);
+  assert.equal(kept.buyGold, 217);
+  assert.deepEqual(kept.unpriced, []);
 });

@@ -371,8 +371,17 @@ export function costLines(
     const purchase: Purchase | null =
       missing === 0
         ? { units: 0, perUnit, gold: 0, leftover: 0 }
-        : priced && price.bundlePrice != null
-          ? { units, perUnit, gold: units * price.bundlePrice, leftover: units * perUnit - missing }
+        : priced
+          ? {
+              units,
+              perUnit,
+              // Without a listing price, whole listings at the unit price.
+              gold:
+                price.bundlePrice != null
+                  ? units * price.bundlePrice
+                  : units * perUnit * price.unitPriceGold!,
+              leftover: units * perUnit - missing,
+            }
           : null;
     return {
       name: item.name,
@@ -390,6 +399,10 @@ export function costLines(
     lines,
     buyGold: sum((line) => line.purchase?.gold ?? null),
     valueGold: sum((line) => line.value),
-    unpriced: lines.filter((line) => line.value === null).map((l) => l.name),
+    // Out of either total: no unit price (소모 가치), or still missing and
+    // impossible to buy (구매 골드).
+    unpriced: lines
+      .filter((line) => line.value === null || (line.purchase === null && line.missing > 0))
+      .map((l) => l.name),
   };
 }
