@@ -1,0 +1,49 @@
+name: "🎨 Design Issue"
+description: "디자인 값·공통 부품·시각 표현 작업을 위한 이슈 템플릿"
+labels: ["design"]
+title: "[DESIGN] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 🌿 GitFlow 안내
+        이슈 생성 후 발급된 번호로 `develop`에서 `feat/{issueNumber}-{english-kebab-case}` 브랜치를 만듭니다. 시각 오류 수정이면 `fix/{issueNumber}-{english-kebab-case}`입니다.
+        PR 제목과 커밋은 `feat: 한글` 또는 `fix: 한글` 형식입니다. `[DESIGN]`은 이슈 제목과 `design` 라벨에만 씁니다.
+        PR 대상은 `develop`입니다. 목표 사이트를 약 90% 따르고, 이미지·아이콘·문구·CSS 원본은 복사하지 않습니다.
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: 🎨 작업 내용
+      description: 바꾸려는 디자인 값·공통 부품·화면 표현을 간단히 요약해 주세요.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reference
+    attributes:
+      label: 📐 근거 (목표 사이트 실측)
+      description: 따르는 목표 사이트, 실측 값(언새늘 기준 1440·390), 볼트 실측 문서나 스크린샷 경로를 적어 주세요. 확인할 수 없는 값은 "추정"으로 표시합니다.
+      placeholder: |
+        e.g.
+        - 일로아 전투 탭 품질 배지: 11px / 600, 높이 17px (`40 레퍼런스/화면 실측.md` §1)
+
+  - type: textarea
+    id: todo-list
+    attributes:
+      label: ✅ 체크리스트 (구현할 내용)
+      description: 작업 항목을 체크박스로 작성해주세요.
+      placeholder: |
+        - [ ] 디자인 값(토큰) 추가·수정
+        - [ ] 공통 부품 상태(기본·hover·focus·disabled)
+        - [ ] 대비 계산(본문 4.5:1, 경계·포커스 3:1)
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: 🎯 완료 조건 및 검증 계획
+      description: 확인할 화면 폭(1440·768·390), 키보드·reduced-motion, 화면 변화 여부(전후 캡처)를 적어 주세요.
+    validations:
+      required: true
