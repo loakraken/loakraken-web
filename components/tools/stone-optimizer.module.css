@@ -206,7 +206,6 @@
 }
 .lineChances li[data-best] span {
   color: inherit;
-  opacity: 0.85;
 }
 .lineChances em {
   font-size: var(--text-caption);
@@ -291,7 +290,6 @@
 }
 .chip[aria-pressed="true"] small {
   color: inherit;
-  opacity: 0.85;
 }
 .custom {
   display: flex;
