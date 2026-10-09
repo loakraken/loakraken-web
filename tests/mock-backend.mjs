@@ -529,7 +529,8 @@ createServer(async (req, res) => {
       const weights = [0.24, 0.12, 0.14, 0.11, 0.1, 0.1, 0.13, 0.06];
       return ok("STATS_SERVERS_SUCCESS", {
         rows: names.map((serverName, i) => {
-          const count = Math.round(population * weights[i]);
+          // 니나브 stays under the sample floor so the "표본 부족" state shows.
+          const count = serverName === "니나브" ? 24 : Math.round(population * weights[i]);
           return { serverName, count, share: weights[i] * 100, itemLevelMedian: 1709 + i * 1.5, combatPowerMedian: 3010 + i * 12, knownCharacters: count * 3, rosters: Math.round(count / 5), sampleStatus: count >= 30 ? "READY" : "COLLECTING" };
         }),
       });
