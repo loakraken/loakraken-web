@@ -13,7 +13,9 @@ export type RankEnvelope = Schemas["ApiResponseStatsCharacterRankResponse"];
 export type CharacterRank = Schemas["StatsCharacterRankResponse"];
 export type RankEntry = Schemas["StatsRankEntryResponse"];
 export type RankMetric = RankEntry["metric"];
-export type RankScope = RankEntry["scope"];
+// SERVER_CLASS (backend #171) is sent but not yet listed in the contract's
+// scope enum; the validator already accepts it (loosened enums).
+export type RankScope = RankEntry["scope"] | "SERVER_CLASS";
 
 // Response enums loosened (#125): an unknown tier or scope affects that cell only.
 const validate = new Ajv2020({ strict: false, validateFormats: false }).compile<RankEnvelope>({
@@ -67,7 +69,13 @@ export const SCOPES: { id: RankScope; label: string }[] = [
   { id: "ALL", label: "전체" },
   { id: "SERVER", label: "서버" },
   { id: "CLASS", label: "직업" },
+  { id: "SERVER_CLASS", label: "서버 직업" },
 ];
+
+/** The scopes to show: the server-class box only when the backend sent it. */
+export function scopesOf(data: CharacterRank) {
+  return SCOPES.filter((s) => s.id !== "SERVER_CLASS" || data.entries.some((e) => e.scope === s.id));
+}
 
 /** What the whole panel shows. HIDDEN wins over everything else (backend #112). */
 export function rankState(data: CharacterRank): "hidden" | "excluded" | "ranked" {
@@ -113,11 +121,11 @@ export const TIER_LEGEND = Object.entries(TIER_LABEL)
   .map(([tier, label], i) => `${label} ${i === 0 ? "상위 " : ""}${TIER_PERCENT[tier]}%`)
   .join(" · ");
 
-/** Scope label with its value: 서버 · 루페온, 직업 · 바드. */
+/** Scope label with its value: 서버 · 루페온, 직업 · 바드, 서버 직업 · 루페온 바드. */
 export function scopeLabel(data: CharacterRank, scope: RankScope) {
   const label = SCOPES.find((s) => s.id === scope)?.label ?? scope;
   const value = data.entries.find((e) => e.scope === scope)?.scopeValue;
-  return value ? `${label} · ${value}` : label;
+  return value ? `${label} · ${value.replace("/", " ")}` : label;
 }
 
 /** The population the ranks are over, in words (never the whole game). */

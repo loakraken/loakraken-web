@@ -20,6 +20,10 @@
   padding: 0;
   list-style: none;
 }
+/* Four boxes (with 서버 직업) as two rows of two: the side column is narrow. */
+.cells[data-count="4"] {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
 .cells li {
   display: grid;
   align-content: start;

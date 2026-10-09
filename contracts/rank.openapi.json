@@ -164,6 +164,16 @@
               }
             }
           },
+          "429": {
+            "description": "CLIENT_RATE_LIMITED: 이 클라이언트의 분당 요청·공식 호출 한도 초과. Retry-After(초) 뒤 다시 시도",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "503": {
             "description": "STATS_UNAVAILABLE",
             "content": {
@@ -623,7 +633,7 @@
             "anyOf": [
               {
                 "type": "string",
-                "description": "서버명 또는 직업명. ALL이면 null"
+                "description": "SERVER면 서버명, CLASS면 직업명, SERVER_CLASS면 \"서버/직업\". ALL이면 null"
               },
               {
                 "type": "null"

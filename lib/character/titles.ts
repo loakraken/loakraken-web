@@ -11,11 +11,18 @@ import { characterNameError, normalizeCharacterName } from "./model";
 type Schemas = components["schemas"];
 export type TitlesEnvelope = Schemas["ApiResponseRosterTitlesResponse"];
 export type RosterTitles = Schemas["RosterTitlesResponse"];
-export type RosterTitle = Schemas["RosterTitleResponse"];
+// firstObservedDate (backend #176) is optional here: a backend from before it
+// (or its cached answer) still returns a valid list, grouped by firstObservedAt.
+export type RosterTitle = Omit<Schemas["RosterTitleResponse"], "firstObservedDate"> & {
+  firstObservedDate?: string;
+};
 
+const schemas = tolerantSchemas(contract.components.schemas);
+const title = schemas.RosterTitleResponse as { required?: string[] };
+title.required = title.required?.filter((field) => field !== "firstObservedDate");
 const validate = new Ajv2020({ strict: false, validateFormats: false }).compile<TitlesEnvelope>({
   $ref: "#/components/schemas/ApiResponseRosterTitlesResponse",
-  components: { ...contract.components, schemas: tolerantSchemas(contract.components.schemas) },
+  components: { ...contract.components, schemas },
 });
 const isTime = (value: string) => Number.isFinite(Date.parse(value));
 
@@ -69,13 +76,13 @@ export const titleDate = (iso: string) => day.format(new Date(iso)).replace(/\.\
 /**
  * First-seen order folded by KST day (backend #176): titles first seen on the
  * same day came in together (one roster scan), so their order means nothing
- * and they are shown as one "같은 날 확인" group. Uses firstObservedDate when
- * the backend sends it, otherwise the KST date of firstObservedAt.
+ * and they are shown as one "같은 날 확인" group. Uses the backend's
+ * firstObservedDate (KST), or the KST date of firstObservedAt if it is malformed.
  */
 export function groupByDay(titles: RosterTitle[]) {
   const groups: { day: string; titles: RosterTitle[] }[] = [];
   for (const title of byObservedOrder(titles)) {
-    const given = (title as RosterTitle & { firstObservedDate?: string }).firstObservedDate;
+    const given = title.firstObservedDate;
     const day = given && /^\d{4}-\d{2}-\d{2}$/.test(given) ? given.replaceAll("-", ".") : titleDate(title.firstObservedAt);
     const last = groups.at(-1);
     if (last && last.day === day) last.titles.push(title);

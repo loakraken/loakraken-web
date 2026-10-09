@@ -443,9 +443,11 @@ createServer(async (req, res) => {
       entry("COMBAT_POWER", "ALL", null, 4120, 18231),
       entry("COMBAT_POWER", "SERVER", "아만", 211, 2311),
       entry("COMBAT_POWER", "CLASS", "블래스터", 37, collecting === "READY" ? 612 : 21, collecting),
+      entry("COMBAT_POWER", "SERVER_CLASS", "아만/블래스터", 9, collecting === "READY" ? 88 : 21, collecting),
       entry("ITEM_LEVEL", "ALL", null, 90, 18231),
       entry("ITEM_LEVEL", "SERVER", "아만", 140, 2311),
       entry("ITEM_LEVEL", "CLASS", "블래스터", 22, collecting === "READY" ? 612 : 21, collecting),
+      entry("ITEM_LEVEL", "SERVER_CLASS", "아만/블래스터", 6, collecting === "READY" ? 88 : 21, collecting),
     ];
     return send({
       code: "CHARACTER_RANK_SUCCESS",
@@ -469,7 +471,11 @@ createServer(async (req, res) => {
       ["에키드나를 쓰러뜨린 자", 33, 6, "상세"],
       ["별을 제패한 자", 12, 3, "상세"],
       ["하늘을 가른 자", 5, 0, "상세부캐"],
-    ].map(([title, first, last, by], i) => ({ title, firstObservedAt: at(first), lastObservedAt: at(last), observedOrder: i + 1, recordedBy: by, source: "OBSERVED" }));
+    ].map(([title, first, last, by], i) => ({
+      title, firstObservedAt: at(first), lastObservedAt: at(last), observedOrder: i + 1, recordedBy: by, source: "OBSERVED",
+      // KST date of firstObservedAt (backend #176).
+      firstObservedDate: new Date(Date.parse(at(first)) + 9 * 3_600_000).toISOString().slice(0, 10),
+    }));
     return send({
       code: "CHARACTER_TITLES_SUCCESS",
       message: "성공",

@@ -169,6 +169,15 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
+            /** @description CLIENT_RATE_LIMITED: 이 클라이언트의 분당 요청·공식 호출 한도 초과. Retry-After(초) 뒤 다시 시도 */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
             /** @description STATS_UNAVAILABLE */
             503: {
                 headers: {
