@@ -1,6 +1,6 @@
 // Regression against the calc-verification team's samples (backend repo
-// src/test/resources/verification, copied to tests/fixtures/verification —
-// source commits in tests/fixtures/verification/README.md).
+// src/test/resources/verification, copied to tests/verification-fixtures —
+// source commits in tests/verification-fixtures/README.md).
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
@@ -16,7 +16,7 @@ import {
 } from "../lib/tools/stone";
 
 const read = (path: string) =>
-  JSON.parse(readFileSync(new URL(`./fixtures/verification/${path}`, import.meta.url), "utf8"));
+  JSON.parse(readFileSync(new URL(`./verification-fixtures/${path}`, import.meta.url), "utf8"));
 
 test("auction bids match every verified case", () => {
   const sample = read("auction/iloa-loalab-2026-10-09.json");
