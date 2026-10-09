@@ -304,7 +304,7 @@ export function MoreRewardTool() {
                 {entered.length === 0
                   ? "관문을 눌러 재련 재료 수량을 넣으면 이득을 계산해요."
                   : `재료를 넣은 ${entered.length}관문 중 ${entered.filter((r) => r.gain >= 0).length}관문이 이득이에요.`}
-                {best && ` 가장 이득: ${best.title} ${signed(best.r.gain)}G`}
+                {best && best.r.gain >= 0 && ` 가장 이득: ${best.title} ${signed(best.r.gain)}G`}
               </p>
               <div className={styles.tableScroll}>
                 <table className={styles.table}>
