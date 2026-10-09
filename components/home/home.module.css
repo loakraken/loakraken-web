@@ -899,3 +899,44 @@
   font-size: 11px;
   font-weight: 600;
 }
+/* Server info (B-3): statistics sample, not the game's population. */
+.servers {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.servers th,
+.servers td {
+  padding: 6px 0;
+  border-top: 1px solid #e5e5ea;
+  text-align: right;
+}
+.servers thead th {
+  border-top: 0;
+  color: #6e6e73;
+  font-size: 11px;
+  font-weight: 600;
+}
+.servers tbody th,
+.servers thead th:first-child {
+  text-align: left;
+}
+.servers tbody th {
+  color: #1d1d1f;
+  font-weight: 600;
+}
+.servers td small {
+  margin-left: 4px;
+  color: #6e6e73;
+  font-size: 11px;
+}
+.servers .short {
+  margin-left: 4px;
+  padding: 0 5px;
+  border-radius: 9999px;
+  background: #e8e8ed;
+  color: #1d1d1f;
+  font-size: 11px;
+  font-weight: 600;
+}

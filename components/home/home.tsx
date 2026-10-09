@@ -51,6 +51,7 @@ import { fetchMarketBoard } from "@/lib/market/client";
 import { changeLabel, goldText } from "@/lib/market/board";
 import { RecentCard } from "./recent-card";
 import { PopularCard } from "./popular-card";
+import { ServerCard } from "./server-card";
 import styles from "./home.module.css";
 import { countdownText, retryLabel } from "@/lib/api/rate-limit";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
@@ -746,6 +747,7 @@ export function HomeDashboard() {
             <RecentCard />
             <PopularCard />
             <NewsPanels />
+            <ServerCard />
           </aside>
         </div>
       </main>
