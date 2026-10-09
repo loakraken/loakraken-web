@@ -6,6 +6,7 @@ import {
   dayLabel,
   dDay,
   isDate,
+  isPatchNote,
   kstDate,
   kstTime,
   maintenanceToday,
@@ -100,4 +101,13 @@ test("maintenance banner covers today and tomorrow; tomorrow only inside the wee
   assert.equal(upcomingMaintenance(notices, Date.parse("2026-10-10T09:00:00+09:00")), null);
   assert.equal(tomorrowInWeek("2026-10-13", Date.parse("2026-10-08T23:30:00+09:00")), "2026-10-09");
   assert.equal(tomorrowInWeek("2026-10-13", Date.parse("2026-10-13T23:30:00+09:00")), null);
+});
+
+test("patch notes are update/patch announcements, never maintenance", () => {
+  const notice = (title: string, category: "NOTICE" | "MAINTENANCE" = "NOTICE") =>
+    ({ title, category, publishedAt: "2026-10-09T00:00:00Z", url: null, maintenanceDate: null, maintenanceDateText: null });
+  assert.equal(isPatchNote(notice("10월 8일(목) 클라이언트 패치 안내")), true);
+  assert.equal(isPatchNote(notice("10월 7일(수) 업데이트 내역 안내")), true);
+  assert.equal(isPatchNote(notice("알려진 이슈를 안내해 드립니다.")), false);
+  assert.equal(isPatchNote(notice("10월 9일 업데이트 점검 안내", "MAINTENANCE")), false);
 });

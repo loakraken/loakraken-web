@@ -465,9 +465,40 @@
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
-.star {
-  flex: none;
+.recentLevel {
+  display: grid;
+  justify-items: end;
+}
+.recentLevel small {
+  color: #86868b;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.starOn {
   color: #e0a100;
+  fill: currentColor;
+}
+.noticeTabs {
+  display: inline-flex;
+  gap: 2px;
+  margin-bottom: 6px;
+  padding: 3px;
+  border-radius: 10px;
+  background: #fff;
+}
+.noticeTabs button {
+  min-height: 28px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #6e6e73;
+  font-size: 12px;
+  font-weight: 600;
+}
+.noticeTabs button[aria-pressed="true"] {
+  background: #1d1d1f;
+  color: #fff;
 }
 .remove {
   display: grid;
