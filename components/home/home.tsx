@@ -365,8 +365,12 @@ function Section({
   );
 }
 
-function ScheduleBoard() {
-  const now = useClock(MINUTE);
+/**
+ * Past rounds are hidden from the server render time until the client clock
+ * starts, so the first HTML already has the final row heights (CLS, QA #181).
+ */
+function ScheduleBoard({ renderedAt }: { renderedAt?: number }) {
+  const now = useClock(MINUTE) ?? renderedAt ?? null;
   const today = now === null ? null : kstDate(now);
   const [picked, setPicked] = useState<string | null>(null);
   const [hidePast, setHidePast] = useState(true);
@@ -536,8 +540,8 @@ function MaintenanceBanner({ renderedAt }: { renderedAt?: number }) {
   );
 }
 
-function NewsPanels() {
-  const now = useClock(MINUTE);
+function NewsPanels({ renderedAt }: { renderedAt?: number }) {
+  const now = useClock(MINUTE) ?? renderedAt ?? null;
   const query = useNews();
   const limit = useRateLimit(query.error);
   const data = query.data?.data;
@@ -745,13 +749,13 @@ export function HomeDashboard({ renderedAt }: { renderedAt?: number }) {
         <MaintenanceBanner renderedAt={renderedAt} />
         <div className={styles.grid}>
           <div className={styles.column}>
-            <ScheduleBoard />
+            <ScheduleBoard renderedAt={renderedAt} />
             <MarketSummary />
           </div>
           <aside className={styles.column} aria-label="공지와 이벤트">
             <RecentCard />
             <PopularCard />
-            <NewsPanels />
+            <NewsPanels renderedAt={renderedAt} />
             <ServerCard />
           </aside>
         </div>
