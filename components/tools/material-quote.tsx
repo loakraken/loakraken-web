@@ -9,10 +9,9 @@ import {
   type FormEvent,
 } from "react";
 import Link from "next/link";
-import { useIsFetching, useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { AnimatePresence, m } from "motion/react";
-import { ArrowLeft, Check, Pause, Play, Plus, Search, X } from "lucide-react";
-import { ThinkingOrb, type OrbState } from "thinking-orbs";
+import { ArrowLeft, Calculator, Check, Plus, Search, X } from "lucide-react";
 import { GameIcon } from "@/components/character/imagery";
 import {
   LandingMotion,
@@ -512,7 +511,7 @@ function Result({ quote }: { quote: MaterialQuote }) {
 }
 
 function MaterialQuoteContent() {
-  const { enabled, paused, toggle } = useLandingMotion();
+  const { enabled } = useLandingMotion();
   const { basis, setBasis, rows } = usePlan();
   const quote = useMutation({
     mutationFn: (request: NonNullable<ReturnType<typeof toQuoteRequest>>) =>
@@ -526,14 +525,6 @@ function MaterialQuoteContent() {
   const wait = useCooldown([quoteFailure, searchFailure]);
   const request = toQuoteRequest(basis, rows);
   const resultRef = useRef<HTMLDivElement>(null);
-  const searching = useIsFetching({ queryKey: ["market", "items"] }) > 0;
-  const orb: OrbState = quote.isPending
-    ? "solving"
-    : searching
-      ? "searching"
-      : quote.data
-        ? "breathing"
-        : "composing";
   const basisHint = priceBases.find((item) => item.value === basis)?.hint;
 
   useEffect(() => {
@@ -549,29 +540,12 @@ function MaterialQuoteContent() {
       <a className={styles.skip} href="#quote-main">
         본문으로 건너뛰기
       </a>
-      <SiteHeader>
-        <button
-          type="button"
-          className={styles.motionButton}
-          aria-label={paused ? "모션 재생" : "모션 일시정지"}
-          aria-pressed={paused}
-          onClick={toggle}
-        >
-          {paused ? <Play size={16} /> : <Pause size={16} />}
-        </button>
-      </SiteHeader>
+      <SiteHeader />
       <main id="quote-main">
         <section className={styles.hero} aria-labelledby="quote-heading">
-          <div className={styles.heroOrb} aria-hidden="true">
-            <ThinkingOrb
-              state={orb}
-              size={64}
-              theme="light"
-              color="#0066cc"
-              speed={0.7}
-              paused={!enabled}
-            />
-          </div>
+          <span className={styles.heroIcon} aria-hidden="true">
+            <Calculator size={18} />
+          </span>
           <p className={styles.heroKicker}>거래소 도구</p>
           <h1 id="quote-heading">재료 구매 견적</h1>
           <p className={styles.heroCopy}>필요한 만큼만, 지금 시세로.</p>
@@ -637,16 +611,7 @@ function MaterialQuoteContent() {
                 onClick={() => request && quote.mutate(request)}
               >
                 {quote.isPending ? (
-                  <>
-                    <ThinkingOrb
-                      state="solving"
-                      size={20}
-                      theme="dark"
-                      paused={!enabled}
-                      aria-hidden="true"
-                    />{" "}
-                    계산 중
-                  </>
+                  "계산 중"
                 ) : wait > 0 ? (
                   `${wait}초 후 계산`
                 ) : (

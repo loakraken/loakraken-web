@@ -3,20 +3,20 @@
    links (#0066cc) and the compact conversion pill (#0071e3). No gradients or
    shadows; the orb and item icons carry the colour. */
 .page {
-  --ink: #1d1d1f;
-  --slate: #707070;
-  --steel: #86868b;
-  --hairline: #d6d6d6;
-  --control: #e6e6e8;
-  --mist: #f5f5f7;
-  --link: #0066cc;
-  --action: #0071e3;
-  --launch: #b64400;
+  --ink: var(--foreground);
+  --slate: var(--muted-foreground);
+  --steel: var(--faint);
+  --hairline: var(--border);
+  --control: var(--secondary);
+  --mist: var(--muted);
+  /* --link: inherited from :root (#0066cc); var(--link) here would self-reference. */
+  --action: var(--primary);
+  --launch: var(--accent-warm);
   min-height: 100vh;
-  background: #fff;
+  background: var(--background);
   color: var(--ink);
   font-family: var(--font-ui);
-  font-size: 14px;
+  font-size: var(--text-body);
   line-height: 1.43;
   letter-spacing: -0.01em;
 }
@@ -42,10 +42,10 @@
   left: 16px;
   z-index: 100;
   padding: 10px 16px;
-  border-radius: 980px;
+  border-radius: var(--radius-pill);
   background: var(--ink);
-  color: #fff;
-  font-size: 14px;
+  color: var(--primary-foreground);
+  font-size: var(--text-body);
 }
 .skip:focus {
   top: 12px;
@@ -68,13 +68,13 @@
 }
 @media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
   .header {
-    background: #fafafc;
+    background: var(--popover);
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
   }
 }
 .brand {
-  font-size: 19px;
+  font-size: var(--text-figure);
   font-weight: 600;
   letter-spacing: 0.012em;
 }
@@ -82,7 +82,7 @@
   display: flex;
   gap: 22px;
   margin-left: auto;
-  font-size: 12px;
+  font-size: var(--text-caption);
   letter-spacing: -0.01em;
 }
 .nav a {
@@ -127,15 +127,27 @@
   flex: none;
   transform: scale(0.5);
 }
+/* Still icon in the orb's place: tools are information screens, so no
+   repeating motion (design decision D2). */
+.heroIcon {
+  grid-row: 1 / 4;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--muted);
+  color: var(--link);
+}
 .heroKicker {
   grid-column: 2;
   color: var(--slate);
-  font-size: 12px;
+  font-size: var(--text-caption);
   font-weight: 600;
 }
 .hero h1 {
   grid-column: 2;
-  font-size: 22px;
+  font-size: var(--text-heading);
   font-weight: 700;
   line-height: 1.3;
   letter-spacing: -0.02em;
@@ -143,7 +155,7 @@
 .heroCopy {
   grid-column: 2;
   color: var(--slate);
-  font-size: 14px;
+  font-size: var(--text-body);
 }
 .back {
   grid-column: 3;
@@ -152,7 +164,7 @@
   align-items: center;
   gap: 6px;
   color: var(--link);
-  font-size: 13px;
+  font-size: var(--text-meta);
 }
 
 /* Feature band with flat white cards. */
@@ -168,19 +180,19 @@
 }
 .card {
   position: relative;
-  border-radius: 28px;
-  background: #fff;
+  border-radius: var(--radius-xl);
+  background: var(--background);
   padding: 24px clamp(20px, 3vw, 32px);
 }
 .step {
   color: var(--steel);
-  font-size: 12px;
+  font-size: var(--text-caption);
   font-weight: 600;
   letter-spacing: 0.02em;
 }
 .card h2 {
   margin-top: 6px;
-  font-size: 20px;
+  font-size: var(--text-heading);
   font-weight: 700;
   line-height: 1.1;
   letter-spacing: 0;
@@ -192,14 +204,14 @@
 }
 .subheading {
   margin: 36px 0 12px;
-  font-size: 16px;
+  font-size: var(--text-heading-sm);
   font-weight: 700;
   letter-spacing: 0.011em;
 }
 .hint,
 .caption {
   color: var(--slate);
-  font-size: 14px;
+  font-size: var(--text-body);
   line-height: 1.43;
   letter-spacing: -0.016em;
 }
@@ -213,7 +225,7 @@
 .empty {
   padding: 22px 0;
   color: var(--slate);
-  font-size: 14px;
+  font-size: var(--text-body);
 }
 
 /* Segmented control for the price basis. */
@@ -223,22 +235,22 @@
   gap: 4px;
   margin-top: 24px;
   padding: 4px;
-  border-radius: 980px;
+  border-radius: var(--radius-pill);
   background: var(--mist);
 }
 .segmented label {
   position: relative;
   padding: 9px 18px;
-  border-radius: 980px;
+  border-radius: var(--radius-pill);
   color: var(--ink);
-  font-size: 14px;
+  font-size: var(--text-body);
   cursor: pointer;
   transition:
     background-color 160ms ease-out,
     box-shadow 160ms ease-out;
 }
 .segmented label[data-checked] {
-  background: #fff;
+  background: var(--background);
   font-weight: 600;
   box-shadow: 0 0 0 1px var(--control);
 }
@@ -274,7 +286,7 @@
 .field span,
 .quantity span {
   color: var(--slate);
-  font-size: 12px;
+  font-size: var(--text-caption);
   letter-spacing: -0.01em;
 }
 .field select,
@@ -283,18 +295,18 @@
   height: 44px;
   padding: 0 18px;
   border: 1px solid var(--steel);
-  border-radius: 980px;
-  background: #fff;
+  border-radius: var(--radius-pill);
+  background: var(--background);
   color: var(--ink);
-  font-size: 16px;
-  transition: border-color 160ms ease-out;
+  font-size: var(--text-heading-sm);
+  transition: border-color var(--duration-fast) var(--ease-out);
 }
 .field select:focus-visible,
 .field input:focus-visible,
 .quantity input:focus-visible {
   outline: none;
   border-color: var(--action);
-  box-shadow: 0 0 0 3px rgb(0 113 227 / 22%);
+  box-shadow: var(--ring-halo);
 }
 .page [aria-invalid="true"] {
   border-color: var(--launch) !important;
@@ -303,7 +315,7 @@
   display: block;
   margin-top: 8px;
   color: var(--launch);
-  font-size: 12px;
+  font-size: var(--text-caption);
   font-weight: 600;
 }
 
@@ -315,7 +327,7 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   white-space: nowrap;
   transition:
     transform 100ms ease-out,
@@ -327,8 +339,8 @@
   height: 44px;
   padding: 0 28px;
   background: var(--action);
-  color: #fff;
-  font-size: 15px;
+  color: var(--primary-foreground);
+  font-size: var(--text-body);
 }
 .primaryPill canvas {
   filter: brightness(0) invert(1);
@@ -337,15 +349,15 @@
   height: 44px;
   padding: 0 22px;
   background: var(--ink);
-  color: #fff;
-  font-size: 14px;
+  color: var(--primary-foreground);
+  font-size: var(--text-body);
 }
 .outlinePill {
   height: 32px;
   padding: 0 14px;
   border: 1px solid var(--steel);
   color: var(--ink);
-  font-size: 12px;
+  font-size: var(--text-caption);
 }
 /* Response on press, not on release. */
 .primaryPill:not(:disabled):active,
@@ -356,7 +368,7 @@
 }
 @media (hover: hover) and (pointer: fine) {
   .primaryPill:not(:disabled):hover {
-    background: #0077ed;
+    background: var(--primary-hover);
   }
   .outlinePill:not(:disabled):hover {
     background: var(--mist);
@@ -366,17 +378,17 @@
 .notice {
   margin-top: 18px;
   padding: 16px 20px;
-  border-radius: 18px;
+  border-radius: var(--radius-lg);
   background: var(--mist);
 }
 .notice strong {
-  font-size: 14px;
+  font-size: var(--text-body);
   font-weight: 600;
 }
 .notice p {
   margin-top: 4px;
   color: var(--slate);
-  font-size: 14px;
+  font-size: var(--text-body);
 }
 
 .results {
@@ -407,7 +419,7 @@
 .resultText strong,
 .planText strong {
   display: block;
-  font-size: 17px;
+  font-size: var(--text-heading-sm);
   font-weight: 600;
   overflow-wrap: anywhere;
 }
@@ -416,7 +428,7 @@
   display: block;
   margin-top: 2px;
   color: var(--slate);
-  font-size: 12px;
+  font-size: var(--text-caption);
   letter-spacing: -0.01em;
 }
 .quantities {
@@ -440,7 +452,7 @@
   height: 36px;
   border-radius: 50%;
   color: var(--slate);
-  transition: transform 100ms ease-out;
+  transition: transform var(--duration-fast) var(--ease-out);
 }
 @media (hover: hover) and (pointer: fine) {
   .iconButton:hover {
@@ -458,13 +470,13 @@
   padding: 32px 24px 48px;
 }
 .kicker {
-  font-size: 16px;
+  font-size: var(--text-heading-sm);
   font-weight: 700;
   letter-spacing: 0.011em;
 }
 .total {
   margin-top: 12px;
-  font-size: 36px;
+  font-size: var(--text-display);
   font-weight: 700;
   line-height: 1.05;
   letter-spacing: -0.015em;
@@ -480,13 +492,13 @@
 .totalNote {
   margin-top: 12px;
   color: var(--slate);
-  font-size: 14px;
+  font-size: var(--text-body);
 }
 /* Launch-label style: bare orange text, no pill. */
 .status {
   margin-top: 12px;
   color: var(--launch);
-  font-size: 14px;
+  font-size: var(--text-body);
   font-weight: 600;
 }
 .lines {
@@ -507,11 +519,11 @@
   gap: 8px 16px;
 }
 .lineHead strong {
-  font-size: 16px;
+  font-size: var(--text-heading-sm);
   font-weight: 600;
 }
 .lineStatus {
-  font-size: 12px;
+  font-size: var(--text-caption);
   font-weight: 600;
   letter-spacing: -0.01em;
 }
@@ -532,11 +544,11 @@
 }
 .facts dt {
   color: var(--slate);
-  font-size: 12px;
+  font-size: var(--text-caption);
 }
 .facts dd {
   margin-top: 2px;
-  font-size: 15px;
+  font-size: var(--text-body);
   font-variant-numeric: tabular-nums;
 }
 .cost {
@@ -545,7 +557,7 @@
 .reason {
   margin-top: 14px;
   color: var(--slate);
-  font-size: 14px;
+  font-size: var(--text-body);
   max-width: 680px;
 }
 .resultFooter {
@@ -553,14 +565,14 @@
   display: grid;
   gap: 6px;
   color: var(--slate);
-  font-size: 12px;
+  font-size: var(--text-caption);
   line-height: 1.5;
 }
 .footer {
   padding: 28px 24px;
   background: var(--mist);
   color: var(--slate);
-  font-size: 12px;
+  font-size: var(--text-caption);
   text-align: center;
 }
 
@@ -595,7 +607,7 @@
     flex: 1;
     padding: 9px 8px;
     text-align: center;
-    font-size: 13px;
+    font-size: var(--text-meta);
   }
   .searchForm .secondaryPill {
     width: 100%;

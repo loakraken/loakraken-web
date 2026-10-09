@@ -16,13 +16,13 @@
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: var(--mist);
+  background: var(--muted);
   color: var(--link);
 }
 .columns {
   display: grid;
   grid-template-columns: 320px minmax(0, 1fr);
-  gap: 20px;
+  gap: var(--space-5);
   align-items: start;
   max-width: 1024px;
   margin: 0 auto;
@@ -30,18 +30,18 @@
 .inputs,
 .summary,
 .strategies {
-  border-radius: 28px;
-  background: #fff;
-  padding: 24px clamp(20px, 3vw, 28px);
+  border-radius: var(--radius-xl);
+  background: var(--card);
+  padding: var(--space-6) clamp(20px, 3vw, 28px);
 }
 .inputs {
   position: sticky;
   top: 72px;
   display: grid;
-  gap: 20px;
+  gap: var(--space-5);
 }
 .inputsTitle {
-  font-size: 18px;
+  font-size: var(--text-figure);
   font-weight: 700;
 }
 .goldInput {
@@ -57,7 +57,7 @@
   top: 50%;
   right: 18px;
   transform: translateY(-50%);
-  color: var(--slate);
+  color: var(--muted-foreground);
   font-style: normal;
   font-weight: 600;
 }
@@ -70,34 +70,34 @@
   border: 0;
 }
 .party legend {
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
   padding: 0;
-  color: var(--slate);
-  font-size: 12px;
+  color: var(--muted-foreground);
+  font-size: var(--text-caption);
 }
 .segmented {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 4px;
-  padding: 4px;
-  border-radius: 980px;
-  background: var(--mist);
+  gap: var(--space-1);
+  padding: var(--space-1);
+  border-radius: var(--radius-pill);
+  background: var(--muted);
 }
 .segmented label {
   position: relative;
-  padding: 8px 0;
-  border-radius: 980px;
-  font-size: 14px;
+  padding: var(--space-2) 0;
+  border-radius: var(--radius-pill);
+  font-size: var(--text-body);
   text-align: center;
   cursor: pointer;
-  transition:
-    background-color 160ms ease-out,
-    box-shadow 160ms ease-out;
+  transition: 
+    background-color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out);
 }
 .segmented label[data-checked] {
-  background: #fff;
+  background: var(--card);
   font-weight: 600;
-  box-shadow: 0 0 0 1px var(--control);
+  box-shadow: 0 0 0 1px var(--secondary);
 }
 .segmented input {
   position: absolute;
@@ -105,24 +105,24 @@
   pointer-events: none;
 }
 .segmented label:has(input:focus-visible) {
-  outline: 3px solid var(--action);
+  outline: 3px solid var(--primary);
   outline-offset: 2px;
 }
 .partyHint {
-  color: var(--slate);
-  font-size: 12px;
+  color: var(--muted-foreground);
+  font-size: var(--text-caption);
 }
 .partyInput {
   width: 100%;
 }
 .empty {
-  color: var(--slate);
-  font-size: 14px;
+  color: var(--muted-foreground);
+  font-size: var(--text-body);
 }
 
 .output {
   display: grid;
-  gap: 20px;
+  gap: var(--space-5);
   min-width: 0;
 }
 
@@ -130,19 +130,19 @@
 .headline {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
+  gap: var(--space-4);
 }
 .headLabel {
   display: flex;
   align-items: center;
-  gap: 4px;
-  color: var(--slate);
-  font-size: 13px;
+  gap: var(--space-1);
+  color: var(--muted-foreground);
+  font-size: var(--text-meta);
   font-weight: 600;
 }
 .headValue {
-  margin-top: 4px;
-  font-size: 32px;
+  margin-top: var(--space-1);
+  font-size: var(--text-display);
   font-weight: 700;
   line-height: 1.1;
   letter-spacing: -0.015em;
@@ -152,25 +152,25 @@
   color: var(--link);
 }
 .headNote {
-  margin-top: 4px;
-  color: var(--slate);
-  font-size: 12px;
+  margin-top: var(--space-1);
+  color: var(--muted-foreground);
+  font-size: var(--text-caption);
 }
 .facts {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
-  margin-top: 20px;
-  padding-top: 16px;
-  border-top: 1px solid var(--hairline);
+  gap: var(--space-4);
+  margin-top: var(--space-5);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border);
 }
 .facts dt {
-  color: var(--slate);
-  font-size: 12px;
+  color: var(--muted-foreground);
+  font-size: var(--text-caption);
 }
 .facts dd {
   margin-top: 2px;
-  font-size: 15px;
+  font-size: var(--text-body);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
@@ -185,10 +185,10 @@
   border: 0;
   border-radius: 50%;
   background: transparent;
-  color: var(--steel);
+  color: var(--faint);
 }
 .tipButton:hover {
-  color: var(--ink);
+  color: var(--foreground);
 }
 
 /* Bid table */
@@ -197,36 +197,36 @@
   flex-wrap: wrap;
   align-items: baseline;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-2);
 }
 .tableHead h2 {
-  font-size: 18px;
+  font-size: var(--text-figure);
   font-weight: 700;
 }
 .tableHead p {
   margin-top: 0;
-  font-size: 12px;
+  font-size: var(--text-caption);
 }
 .table {
   width: 100%;
-  margin-top: 12px;
+  margin-top: var(--space-3);
   border-collapse: collapse;
 }
 .table th,
 .table td {
-  padding: 12px 0;
-  border-bottom: 1px solid var(--hairline);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--border);
   text-align: left;
   vertical-align: middle;
 }
 .table thead th {
   padding-top: 0;
-  color: var(--slate);
-  font-size: 12px;
+  color: var(--muted-foreground);
+  font-size: var(--text-caption);
   font-weight: 500;
 }
 .table .num {
-  padding-left: 12px;
+  padding-left: var(--space-3);
   text-align: right;
 }
 .thTip {
@@ -236,19 +236,19 @@
 }
 .table tbody tr[data-kind="use"] th,
 .table tbody tr[data-kind="use"] td {
-  border-top: 2px solid var(--control);
+  border-top: 2px solid var(--secondary);
 }
 .strategyName {
   display: flex;
   align-items: center;
   gap: 2px;
-  font-size: 15px;
+  font-size: var(--text-body);
   font-weight: 600;
 }
 .strategyNote {
   display: block;
-  color: var(--slate);
-  font-size: 12px;
+  color: var(--muted-foreground);
+  font-size: var(--text-caption);
   font-weight: 400;
 }
 .copy {
@@ -256,28 +256,28 @@
   align-items: center;
   gap: 6px;
   min-height: 36px;
-  padding: 0 12px;
-  border: 1px solid var(--control);
-  border-radius: 980px;
-  background: #fff;
-  color: var(--ink);
-  transition:
-    border-color 160ms ease-out,
-    background-color 160ms ease-out;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--secondary);
+  border-radius: var(--radius-pill);
+  background: var(--card);
+  color: var(--foreground);
+  transition: 
+    border-color var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out);
 }
 .copy svg {
-  color: var(--steel);
+  color: var(--faint);
 }
 .bid {
-  font-size: 16px;
+  font-size: var(--text-heading-sm);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 .share {
   display: block;
   margin-top: 2px;
-  color: var(--slate);
-  font-size: 12px;
+  color: var(--muted-foreground);
+  font-size: var(--text-caption);
   font-variant-numeric: tabular-nums;
 }
 .table td[data-sign] {
@@ -285,48 +285,48 @@
   font-variant-numeric: tabular-nums;
 }
 .table td[data-sign="1"] {
-  color: #1d7d3c;
+  color: var(--gain);
 }
 .table td[data-sign="-1"] {
-  color: var(--launch);
+  color: var(--loss);
 }
 .copyStatus {
   min-height: 20px;
-  margin-top: 8px;
+  margin-top: var(--space-2);
   color: var(--link);
-  font-size: 13px;
+  font-size: var(--text-meta);
 }
 .copyStatus:empty {
   margin-top: 0;
 }
 
 .basis {
-  border-radius: 28px;
-  background: #fff;
+  border-radius: var(--radius-xl);
+  background: var(--card);
   padding: 18px clamp(20px, 3vw, 28px);
 }
 .basis summary {
-  font-size: 15px;
+  font-size: var(--text-body);
   font-weight: 600;
   cursor: pointer;
 }
 .basis ul {
   display: grid;
-  gap: 8px;
-  margin-top: 12px;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
   padding-left: 18px;
-  color: var(--slate);
-  font-size: 13px;
+  color: var(--muted-foreground);
+  font-size: var(--text-meta);
   list-style: disc;
 }
 .basis strong {
-  color: var(--launch);
+  color: var(--accent-warm);
 }
 
 @media (hover: hover) and (pointer: fine) {
   .copy:hover {
-    border-color: var(--action);
-    background: var(--mist);
+    border-color: var(--primary);
+    background: var(--muted);
   }
 }
 
@@ -347,7 +347,7 @@
     grid-column: 1 / -1;
   }
   .headValue {
-    font-size: 24px;
+    font-size: var(--text-name);
   }
   .strategyNote {
     display: none;
@@ -356,7 +356,7 @@
     padding: 0 10px;
   }
   .bid {
-    font-size: 15px;
+    font-size: var(--text-body);
   }
 }
 @media (prefers-reduced-motion: reduce) {
