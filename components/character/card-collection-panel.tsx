@@ -6,6 +6,8 @@ import { appliedStage, elementLabel, orderedSlots, sortCards } from "@/lib/chara
 import { CharacterQueryError, fetchCardCollection } from "@/lib/character/client";
 import { CardArt } from "./imagery";
 import styles from "./card-collection.module.css";
+import { countdownText, retryLabel } from "@/lib/api/rate-limit";
+import { useRateLimit } from "@/lib/api/use-rate-limit";
 
 /**
  * Roster card records (F-6), inside the cards panel right under the equipped
@@ -21,6 +23,7 @@ export function CardCollection({ name }: { name: string }) {
   const data = query.data?.data;
   // Default to the character's role; either set list can be viewed (ILOA).
   const [role, setRole] = useState<"dealer" | "supporter" | null>(null);
+  const limit = useRateLimit(query.error);
   const shown = role ?? (data?.position === "SUPPORT" ? "supporter" : "dealer");
 
   return (
@@ -52,13 +55,20 @@ export function CardCollection({ name }: { name: string }) {
       ) : !data ? (
         <div className={styles.muted}>
           <p>
-            {query.error instanceof CharacterQueryError &&
-            query.error.info.code === "CARD_COLLECTION_DISABLED"
-              ? "카드 기록 기능이 꺼져 있어요."
-              : "카드 기록을 불러오지 못했어요."}
+            {limit.limited
+              ? countdownText(limit.seconds)
+              : query.error instanceof CharacterQueryError &&
+                  query.error.info.code === "CARD_COLLECTION_DISABLED"
+                ? "카드 기록 기능이 꺼져 있어요."
+                : "카드 기록을 불러오지 못했어요."}
           </p>
-          <button type="button" className={styles.retry} onClick={() => query.refetch()}>
-            다시 시도
+          <button
+            type="button"
+            className={styles.retry}
+            onClick={() => query.refetch()}
+            disabled={limit.seconds > 0}
+          >
+            {retryLabel(limit.seconds)}
           </button>
         </div>
       ) : (

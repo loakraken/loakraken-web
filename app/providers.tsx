@@ -7,6 +7,7 @@ import {
 } from "@tanstack/react-query";
 
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { RATE_LIMITED, failureOf } from "@/lib/api/rate-limit";
 
 export default function Providers({
                                     children,
@@ -19,7 +20,8 @@ export default function Providers({
             defaultOptions: {
               queries: {
                 staleTime: 60 * 1000,
-                retry: 1,
+                retry: (count, error) =>
+                    failureOf(error)?.code !== RATE_LIMITED && count < 1,
                 refetchOnWindowFocus: false,
               },
             },

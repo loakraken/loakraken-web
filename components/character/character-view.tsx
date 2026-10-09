@@ -28,6 +28,8 @@ import { CharacterBanner } from "./imagery";
 import { kstTime, level, number, text } from "./parts";
 import { TabBar, TabPanel, tabOf } from "./tabs";
 import styles from "./character.module.css";
+import { RATE_LIMITED } from "@/lib/api/rate-limit";
+import { RateLimitNote } from "@/components/site/rate-limit-note";
 
 function SearchBox({ name }: { name: string }) {
   const router = useRouter();
@@ -125,6 +127,7 @@ function CharacterContent({
         ? initialError
         : undefined;
   const copy = error ? failureCopy(error) : null;
+  const limited = error?.code === RATE_LIMITED;
   const rateLimitSeconds = error?.retryAt
     ? Math.max(0, Math.ceil((error.retryAt - now) / 1000))
     : 0;
@@ -282,9 +285,12 @@ function CharacterContent({
                   : ""}
             </div>
             {copy && (
-              <div className={styles.bandNotice} role="alert">
-                <strong>{copy.title}</strong>
-                <p>{copy.text} 마지막으로 조회한 정보를 표시하고 있어요.</p>
+              <div className={styles.bandNotice}>
+                <div role="alert">
+                  <strong>{copy.title}</strong>
+                  <p>{copy.text} 마지막으로 조회한 정보를 표시하고 있어요.</p>
+                </div>
+                {limited && <RateLimitNote seconds={rateLimitSeconds} />}
               </div>
             )}
             <TabPanel tab={tab} data={data} envelope={envelope} />
@@ -311,7 +317,7 @@ function CharacterContent({
                   {query.isFetching
                     ? "조회 중"
                     : rateLimitSeconds > 0
-                      ? `${rateLimitSeconds}초 후 재조회`
+                      ? `${rateLimitSeconds}초 뒤 다시 조회`
                       : "다시 시도"}
                 </button>
               )}
@@ -320,9 +326,12 @@ function CharacterContent({
               {query.isFetching ? "캐릭터 정보를 조회하고 있어요." : ""}
             </div>
             {copy && (
-              <div className={styles.error} role="alert">
-                <h2>{copy.title}</h2>
-                <p>{copy.text}</p>
+              <div className={styles.error}>
+                <div role="alert">
+                  <h2>{copy.title}</h2>
+                  <p>{copy.text}</p>
+                </div>
+                {limited && <RateLimitNote seconds={rateLimitSeconds} />}
               </div>
             )}
             <div className={styles.noData}>

@@ -41,6 +41,9 @@ import quote from "../tools/material-quote.module.css";
 import { MarketChart } from "./market-chart";
 import { SiteHeader } from "@/components/site/site-header";
 import styles from "./market.module.css";
+import { rateLimitCopy, retryLabel } from "@/lib/api/rate-limit";
+import { RateLimitNote } from "@/components/site/rate-limit-note";
+import { useRateLimit } from "@/lib/api/use-rate-limit";
 
 const TIERS = [4, 3] as const;
 const failureOf = (error: unknown): MarketFailure | null =>
@@ -96,13 +99,22 @@ function Problem({
   failure: MarketFailure;
   onRetry: () => void;
 }) {
-  const copy = marketFailureCopy(failure);
+  const limit = useRateLimit({ info: failure });
+  const copy = limit.limited ? rateLimitCopy() : marketFailureCopy(failure);
   return (
-    <div className={quote.notice} role="alert">
-      <strong>{copy.title}</strong>
-      <p>{copy.text}</p>
-      <button type="button" className={quote.outlinePill} onClick={onRetry}>
-        다시 불러오기
+    <div className={quote.notice}>
+      <div role="alert">
+        <strong>{copy.title}</strong>
+        <p>{copy.text}</p>
+      </div>
+      {limit.limited && <RateLimitNote seconds={limit.seconds} />}
+      <button
+        type="button"
+        className={quote.outlinePill}
+        onClick={onRetry}
+        disabled={limit.seconds > 0}
+      >
+        {retryLabel(limit.seconds, "다시 불러오기")}
       </button>
     </div>
   );
