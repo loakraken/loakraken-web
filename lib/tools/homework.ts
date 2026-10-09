@@ -171,11 +171,15 @@ export function characterGold(character: Character): GoldSummary {
     if (!mode) return;
     const paysGold = character.gold && index < GOLD_RAIDS_PER_CHARACTER;
     mode.gates.forEach((gate, i) => {
+      // A bonus reward can only be bought on a cleared gate: the planned total
+      // takes every ticked bonus, the earned total and the spending only
+      // count the cleared ones.
       const cost = plan.more[i] ? (gate.moreCost ?? 0) : 0;
-      out.moreSpent += cost;
+      const paid = plan.cleared[i] ? cost : 0;
+      out.moreSpent += paid;
       if (!paysGold) {
         out.possible -= cost;
-        out.earned -= cost;
+        out.earned -= paid;
         return;
       }
       if (gate.gold === null || gate.boundGold === null) {
