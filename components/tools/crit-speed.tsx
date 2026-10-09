@@ -743,12 +743,13 @@ function CritSpeedContent({ initialName }: { initialName: string }) {
                       className={quote.outlinePill}
                       aria-disabled={query.isFetching || waiting || undefined}
                       aria-busy={query.isFetching || undefined}
-                      // The output is a live region: a fixed name while waiting
-                      // keeps the ticking seconds from being read out.
+                      // The output is a live region: a fixed name while waiting and
+                      // hidden seconds keep the countdown from being read out.
                       aria-label={waiting ? "다시 계산, 잠시 뒤 가능" : undefined}
                       onClick={() => !query.isFetching && !waiting && query.refetch()}
                     >
-                      {retryLabel(limit.seconds, "다시 계산")}
+                      {waiting && <span aria-hidden="true">{limit.seconds}초 뒤 </span>}
+                      다시 계산
                     </button>
                   </div>
                 ) : data ? (
