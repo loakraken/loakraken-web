@@ -65,7 +65,7 @@
             }
           },
           "429": {
-            "description": "LOST_ARK_RATE_LIMITED",
+            "description": "LOST_ARK_RATE_LIMITED / CLIENT_RATE_LIMITED: 이 클라이언트의 분당 요청·공식 호출 한도 초과. Retry-After(초) 뒤 다시 시도",
             "content": {
               "application/json": {
                 "schema": {
@@ -178,6 +178,10 @@
             "description": "이동 속도 가정 %(직업 각인·트라이포드·서포터 버프·만찬·음식 합). 감소는 음수",
             "maximum": 100,
             "minimum": -100
+          },
+          "classState": {
+            "type": "boolean",
+            "description": "직업 상태 가정(예: 리퍼 갈증 '피냄새' 혼돈 상태 치명타 적중률). 생략하면 켬(목표 사이트와 같은 기준). false면 관측값만"
           }
         }
       },
@@ -251,6 +255,13 @@
             "items": {
               "type": "string"
             }
+          },
+          "skills": {
+            "type": "array",
+            "description": "스킬별 치명타 적중률(레벨 2 이상 스킬, 이름순). base(crit.observedRate) + 백 어택 +10 + 선택 트라이포드 치명타 적중률 합. 가정 입력은 더하지 않는다",
+            "items": {
+              "$ref": "#/components/schemas/CritSpeedSkillResponse"
+            }
           }
         },
         "required": [
@@ -260,6 +271,7 @@
           "fetchedAt",
           "limitations",
           "ruleVersion",
+          "skills",
           "sources",
           "speed"
         ]
@@ -283,6 +295,7 @@
               "ACCESSORY",
               "BRACELET",
               "CARD",
+              "ARK_GRID",
               "ASSUMPTION"
             ]
           },
@@ -719,6 +732,137 @@
           "code",
           "data",
           "message"
+        ]
+      },
+      "CritSpeedSkillResponse": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "attackType": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "BACK_ATTACK·HEAD_ATTACK·NONE. 모르면 null",
+                "enum": [
+                  "BACK_ATTACK",
+                  "HEAD_ATTACK",
+                  "NONE"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "base": {
+            "type": "number",
+            "description": "crit.observedRate"
+          },
+          "backAttack": {
+            "anyOf": [
+              {
+                "type": "number",
+                "description": "백 어택이면 10, 아니면 0. 공격 타입을 모르면 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "tripod": {
+            "anyOf": [
+              {
+                "type": "number",
+                "description": "선택 트라이포드 치명타 적중률 합. 갱신 전 캐시라 문구가 없으면 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "total": {
+            "anyOf": [
+              {
+                "type": "number",
+                "description": "base + backAttack + tripod. 하나라도 null이면 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "effective": {
+            "anyOf": [
+              {
+                "type": "number",
+                "description": "total에 상한(100, 뭉툭한 가시 장착 시 그 상한) 적용"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "tripods": {
+            "type": "array",
+            "description": "합산한 트라이포드",
+            "items": {
+              "$ref": "#/components/schemas/CritSpeedSkillTripodResponse"
+            }
+          },
+          "conditional": {
+            "type": "array",
+            "description": "조건부 문구('…시', '…의 치명타 적중률')라 합산하지 않은 트라이포드",
+            "items": {
+              "$ref": "#/components/schemas/CritSpeedSkillTripodResponse"
+            }
+          },
+          "node": {
+            "type": "number",
+            "description": "이 스킬에만 붙는 아크 패시브 노드 치명타 적중률 합(예: 관통 필살 → 적룡필살)"
+          },
+          "nodes": {
+            "type": "array",
+            "description": "합산한 스킬 한정 노드(공식 문구 포함)",
+            "items": {
+              "$ref": "#/components/schemas/CritSpeedSkillTripodResponse"
+            }
+          }
+        },
+        "required": [
+          "attackType",
+          "backAttack",
+          "base",
+          "conditional",
+          "effective",
+          "name",
+          "node",
+          "nodes",
+          "total",
+          "tripod",
+          "tripods"
+        ]
+      },
+      "CritSpeedSkillTripodResponse": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "value": {
+            "type": "number",
+            "description": "치명타 적중률 증가(%)"
+          },
+          "text": {
+            "type": "string",
+            "description": "공식 트라이포드 효과 문구"
+          }
+        },
+        "required": [
+          "name",
+          "text",
+          "value"
         ]
       }
     }

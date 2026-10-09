@@ -58,6 +58,8 @@ export interface components {
             extraAttackSpeed?: number;
             /** @description 이동 속도 가정 %(직업 각인·트라이포드·서포터 버프·만찬·음식 합). 감소는 음수 */
             extraMoveSpeed?: number;
+            /** @description 직업 상태 가정(예: 리퍼 갈증 '피냄새' 혼돈 상태 치명타 적중률). 생략하면 켬(목표 사이트와 같은 기준). false면 관측값만 */
+            classState?: boolean;
         };
         /** @description 공통 API 응답. 오류 응답의 data는 null입니다. */
         ApiResponseCritSpeedResponse: {
@@ -91,12 +93,14 @@ export interface components {
             speed: components["schemas"]["CritSpeedSpeedResponse"];
             /** @description 계산에서 제외했거나 근사한 항목 */
             limitations: string[];
+            /** @description 스킬별 치명타 적중률(레벨 2 이상 스킬, 이름순). base(crit.observedRate) + 백 어택 +10 + 선택 트라이포드 치명타 적중률 합. 가정 입력은 더하지 않는다 */
+            skills: components["schemas"]["CritSpeedSkillResponse"][];
         };
         CritSpeedSourceResponse: {
             /** @enum {string} */
             kind: "OBSERVED" | "ASSUMED";
             /** @enum {string} */
-            category: "STAT" | "ENGRAVING" | "ARK_PASSIVE" | "ACCESSORY" | "BRACELET" | "CARD" | "ASSUMPTION";
+            category: "STAT" | "ENGRAVING" | "ARK_PASSIVE" | "ACCESSORY" | "BRACELET" | "CARD" | "ARK_GRID" | "ASSUMPTION";
             /** @enum {string} */
             axis: "CRIT" | "CRIT_DAMAGE" | "ATTACK_SPEED" | "MOVE_SPEED";
             name: string | null;
@@ -218,6 +222,31 @@ export interface components {
             message: string;
             data: null;
         };
+        CritSpeedSkillResponse: {
+            name: string;
+            attackType: ("BACK_ATTACK" | "HEAD_ATTACK" | "NONE") | null;
+            /** @description crit.observedRate */
+            base: number;
+            backAttack: number | null;
+            tripod: number | null;
+            total: number | null;
+            effective: number | null;
+            /** @description 합산한 트라이포드 */
+            tripods: components["schemas"]["CritSpeedSkillTripodResponse"][];
+            /** @description 조건부 문구('…시', '…의 치명타 적중률')라 합산하지 않은 트라이포드 */
+            conditional: components["schemas"]["CritSpeedSkillTripodResponse"][];
+            /** @description 이 스킬에만 붙는 아크 패시브 노드 치명타 적중률 합(예: 관통 필살 → 적룡필살) */
+            node: number;
+            /** @description 합산한 스킬 한정 노드(공식 문구 포함) */
+            nodes: components["schemas"]["CritSpeedSkillTripodResponse"][];
+        };
+        CritSpeedSkillTripodResponse: {
+            name: string;
+            /** @description 치명타 적중률 증가(%) */
+            value: number;
+            /** @description 공식 트라이포드 효과 문구 */
+            text: string;
+        };
     };
     responses: never;
     parameters: never;
@@ -276,7 +305,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description LOST_ARK_RATE_LIMITED */
+            /** @description LOST_ARK_RATE_LIMITED / CLIENT_RATE_LIMITED: 이 클라이언트의 분당 요청·공식 호출 한도 초과. Retry-After(초) 뒤 다시 시도 */
             429: {
                 headers: {
                     [name: string]: unknown;

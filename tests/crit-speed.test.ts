@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import {
+  CATEGORY_LABEL,
   DEFAULT_SETTINGS,
   classStateSources,
   groupSources,
@@ -220,4 +221,21 @@ test("class-state assumption (backend #193): on by default, only 'off' is sent",
     classStateSources(value.data.sources).map((s) => s.name),
     ["혼돈 상태 가정(피냄새 Lv.3)"],
   );
+});
+
+test("ARK_GRID sources get a label and an older backend without skills still validates (backend #193)", () => {
+  assert.equal(CATEGORY_LABEL.ARK_GRID, "아크 그리드");
+  const value = fixture();
+  value.data.sources.push({
+    kind: "OBSERVED",
+    category: "ARK_GRID",
+    axis: "CRIT",
+    name: "아크 그리드",
+    value: 1.5,
+    text: "치명타 적중률 +1.5%",
+  });
+  assert.equal(isCritSpeedEnvelope(value), true);
+  assert.ok(groupSources(value.data.sources, "CRIT").some((g) => g.category === "ARK_GRID"));
+  delete value.data.skills;
+  assert.equal(isCritSpeedEnvelope(value), true);
 });

@@ -6,10 +6,13 @@ import type { CritSpeedEnvelope } from "./model";
 // The backend's generated OpenAPI is also the runtime shape contract, made
 // tolerant of additive changes so a newer or older backend never blanks the
 // screen: response enums are relaxed (a new value shows as unknown) and
-// crit.damage may be missing (backends before backend #133).
+// crit.damage may be missing (backends before backend #133), and so may the
+// per-skill table (before backend #169; the screen does not show it yet, #206).
 const schemas = tolerantSchemas(contract.components.schemas);
 schemas.CritSpeedCritResponse.required =
   schemas.CritSpeedCritResponse.required.filter((key) => key !== "damage");
+schemas.CritSpeedResponse.required =
+  schemas.CritSpeedResponse.required.filter((key) => key !== "skills");
 const ajv = new Ajv2020({ strict: false, validateFormats: false });
 ajv.addSchema({ $id: "crit-speed", components: { schemas } });
 const envelope = ajv.compile<CritSpeedEnvelope>({
