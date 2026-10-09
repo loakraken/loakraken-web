@@ -13,12 +13,12 @@
   margin: 8px 0 14px;
   padding: 14px 16px;
   border-radius: 16px;
-  background: #f5f5f7;
+  background: var(--muted);
 }
 .filters label {
   display: grid;
   gap: 4px;
-  color: #6e6e73;
+  color: var(--muted-foreground);
   font-size: 12px;
   font-weight: 600;
 }
@@ -27,10 +27,10 @@
   min-width: 96px;
   height: 34px;
   padding: 0 10px;
-  border: 1px solid #d2d2d7;
+  border: 1px solid var(--border);
   border-radius: 10px;
-  background: #fff;
-  color: #1d1d1f;
+  background: var(--background);
+  color: var(--foreground);
   font-size: 14px;
   font-weight: 500;
 }
@@ -43,18 +43,18 @@
   align-items: center;
   gap: 6px;
   height: 34px;
-  color: #1d1d1f;
+  color: var(--foreground);
   font-size: 13px;
   font-weight: 500;
 }
 .notice {
   margin: 0 0 10px;
-  color: #6e6e73;
+  color: var(--muted-foreground);
   font-size: 12px;
   line-height: 1.5;
 }
 .notice strong {
-  color: #8a5a00;
+  color: var(--accent-warm);
   font-weight: 600;
 }
 .cards {
@@ -69,23 +69,23 @@
   gap: 2px;
   padding: 14px 16px;
   border-radius: 16px;
-  background: #f5f5f7;
+  background: var(--muted);
 }
 .cards dt {
-  color: #6e6e73;
+  color: var(--muted-foreground);
   font-size: 12px;
   font-weight: 600;
 }
 .cards dd {
   margin: 0;
-  color: #1d1d1f;
+  color: var(--foreground);
   font-size: 22px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.01em;
 }
 .cards small {
-  color: #6e6e73;
+  color: var(--muted-foreground);
   font-size: 12px;
   font-variant-numeric: tabular-nums;
 }
@@ -98,14 +98,14 @@
 .segment button {
   padding: 7px 14px;
   border-radius: 9999px;
-  color: #1d1d1f;
+  color: var(--foreground);
   font-size: 14px;
   font-weight: 600;
 }
 .tabs button[aria-selected="true"],
 .segment button[aria-pressed="true"] {
-  background: #1d1d1f;
-  color: #fff;
+  background: var(--foreground);
+  color: var(--background);
 }
 .panel {
   min-height: 200px;
@@ -122,17 +122,17 @@
 .table th,
 .table td {
   padding: 9px 10px;
-  border-bottom: 1px solid #e8e8ed;
+  border-bottom: 1px solid var(--border);
   text-align: right;
   white-space: nowrap;
 }
 .table thead th {
-  color: #6e6e73;
+  color: var(--muted-foreground);
   font-size: 12px;
   font-weight: 600;
 }
 .table tbody th {
-  color: #1d1d1f;
+  color: var(--foreground);
   font-weight: 600;
   text-align: left;
 }
@@ -142,7 +142,7 @@
 }
 .table td small {
   display: block;
-  color: #6e6e73;
+  color: var(--muted-foreground);
   font-size: 11px;
 }
 .table tr[data-collecting] {
@@ -165,29 +165,29 @@
 }
 .quantile i {
   height: 2px;
-  background: #b4d1f5;
+  background: color-mix(in oklab, var(--primary) 35%, transparent);
   transform: translateY(-50%);
 }
 .quantile b {
   height: 10px;
   border-radius: 3px;
-  background: #4a8fe0;
+  background: color-mix(in oklab, var(--primary) 80%, transparent);
   transform: translateY(-50%);
 }
 .quantile em {
   width: 2px;
   height: 14px;
-  background: #1d1d1f;
+  background: var(--foreground);
   transform: translate(-50%, -50%);
 }
 .note {
   margin: 10px 0 0;
-  color: #6e6e73;
+  color: var(--muted-foreground);
   font-size: 12px;
 }
 .muted {
   margin: 0;
-  color: #6e6e73;
+  color: var(--muted-foreground);
   font-size: 13px;
 }
 .problem {
@@ -197,8 +197,8 @@
   gap: 10px;
   padding: 16px;
   border-radius: 12px;
-  background: #f5f5f7;
-  color: #1d1d1f;
+  background: var(--muted);
+  color: var(--foreground);
   font-size: 14px;
 }
 .problem p {
@@ -206,12 +206,12 @@
 }
 .problem button,
 .textButton {
-  color: #0066cc;
+  color: var(--link);
   font-size: 13px;
   font-weight: 600;
 }
 .problem button:disabled {
-  color: #6e6e73;
+  color: var(--muted-foreground);
 }
 .toolbar {
   display: flex;
@@ -224,7 +224,7 @@
   gap: 2px;
   padding: 2px;
   border-radius: 9999px;
-  background: #f0f0f3;
+  background: var(--secondary);
 }
 .segment button {
   font-size: 13px;
@@ -233,7 +233,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: #6e6e73;
+  color: var(--muted-foreground);
   font-size: 13px;
   font-weight: 600;
 }
@@ -241,7 +241,7 @@
   width: 110px;
   height: 32px;
   padding: 0 10px;
-  border: 1px solid #d2d2d7;
+  border: 1px solid var(--border);
   border-radius: 10px;
   font-size: 14px;
   font-variant-numeric: tabular-nums;
@@ -249,7 +249,7 @@
 .result {
   min-height: 20px;
   margin: 10px 0;
-  color: #1d1d1f;
+  color: var(--foreground);
   font-size: 14px;
 }
 .result strong {
@@ -259,8 +259,8 @@
   margin: 0 4px;
   padding: 1px 6px;
   border-radius: 9999px;
-  background: #e8f0fb;
-  color: #0055b3;
+  background: color-mix(in oklab, var(--primary) 12%, transparent);
+  color: var(--link);
   font-size: 11px;
   font-weight: 700;
 }
@@ -271,7 +271,7 @@
   height: 200px;
   margin: 0;
   padding: 0;
-  border-bottom: 1px solid #d2d2d7;
+  border-bottom: 1px solid var(--border);
   list-style: none;
 }
 .histogram li {
@@ -286,19 +286,19 @@
   width: 100%;
   min-height: 1px;
   border-radius: 4px 4px 0 0;
-  background: #4a8fe0;
+  background: color-mix(in oklab, var(--primary) 80%, transparent);
 }
 .histogram li:hover i {
-  background: #0066cc;
+  background: var(--link);
 }
 .histogram li[data-hit] i {
-  background: #1d1d1f;
+  background: var(--foreground);
 }
 .axis {
   display: flex;
   justify-content: space-between;
   margin: 4px 0 0;
-  color: #6e6e73;
+  color: var(--muted-foreground);
   font-size: 11px;
   font-variant-numeric: tabular-nums;
 }
@@ -341,7 +341,7 @@
 }
 .hero h1 {
   margin: 0;
-  color: #1d1d1f;
+  color: var(--foreground);
   font-size: 32px;
   font-weight: 700;
   letter-spacing: -0.02em;
@@ -349,12 +349,24 @@
 }
 .hero p {
   margin: 6px 0 0;
-  color: #6e6e73;
+  color: var(--muted-foreground);
   font-size: 15px;
 }
 .hero .kicker {
   margin: 0 0 4px;
-  color: #6e6e73;
+  color: var(--muted-foreground);
   font-size: 13px;
   font-weight: 600;
+}
+.short {
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 9999px;
+  background: var(--secondary);
+  color: var(--foreground);
+  font-size: 11px;
+  font-weight: 600;
+}
+.quantile[data-short] {
+  opacity: 0.5;
 }

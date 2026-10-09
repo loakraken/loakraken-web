@@ -29,9 +29,6 @@ export const SITEMAP_PATHS = [
   "/tools/auction",
   "/tools/stone",
   "/tools/raid-rewards",
-<<<<<<< HEAD
   "/tools/homework",
-=======
   "/stats",
->>>>>>> 7246f38 (feat: 통계 화면(직업·분포·서버))
 ] as const;

@@ -518,9 +518,9 @@ createServer(async (req, res) => {
       const supports = classes.reduce((a, c) => a + c.supports, 0);
       const dealers = population - supports;
       return ok("STATS_SUMMARY_SUCCESS", {
-        itemLevelMean: 1714.52, itemLevelMedian: 1712.5, combatPowerMedian: 3058, combatPowerP90: 3712,
+        itemLevelMean: small ? 1688.4 : 1714.52, itemLevelMedian: small ? 1684.5 : 1712.5, combatPowerMedian: small ? 2610 : 3058, combatPowerP90: small ? 2990 : 3712,
         dealers, supports, unknownRole: 0, supportShare: Math.round((supports / Math.max(1, dealers + supports)) * 10000) / 100,
-        gemMeanLevel: 8.4, gemSample: Math.round(population * 0.93),
+        gemMeanLevel: small ? 7.6 : 8.4, gemSample: Math.round(population * 0.93),
       });
     }
     if (view === "classes") return ok("STATS_CLASSES_SUCCESS", { rows: classes });

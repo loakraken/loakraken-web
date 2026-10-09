@@ -4,6 +4,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { SiteHeader } from "@/components/site/site-header";
+import { DataTable } from "@/components/ui/data-table";
 import { countdownText, retryLabel } from "@/lib/api/rate-limit";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { TIER_LABEL } from "@/lib/character/rank";
@@ -147,8 +148,8 @@ function ClassesTab({ query }: { query: StatsQuery }) {
   if (!classes.data) return <p className={styles.muted}>직업 통계를 불러오고 있어요…</p>;
   const scale = quantileScale(rows);
   return (
-    <div className={styles.tableWrap}>
-      <table className={styles.table}>
+    <div>
+      <DataTable label="직업별 인원과 전투력 분포" className={styles.table}>
         <caption className={styles.srOnly}>직업별 인원과 전투력 분포</caption>
         <thead>
           <tr>
@@ -164,9 +165,12 @@ function ClassesTab({ query }: { query: StatsQuery }) {
         </thead>
         <tbody>
           {rows.map((row, i) => (
-            <tr key={row.className} data-collecting={row.sampleStatus !== "READY" || undefined}>
+            <tr key={row.className}>
               <td>{i + 1}</td>
-              <th scope="row">{row.className}</th>
+              <th scope="row">
+                {row.className}
+                {row.sampleStatus !== "READY" && <small className={styles.short}>표본 부족</small>}
+              </th>
               <td>
                 {whole(row.count)}
                 <small>{percent(row.share)}</small>
@@ -181,9 +185,9 @@ function ClassesTab({ query }: { query: StatsQuery }) {
             </tr>
           ))}
         </tbody>
-      </table>
+      </DataTable>
       <p className={styles.note}>
-        분포 막대: 옅은 선 하위 10%~상위 10%, 진한 칸 가운데 50%, 세로선 중앙값. 표본 {classes.data.data.meta.minSample}명 미만 직업은 흐리게 표시해요.
+        분포 막대: 옅은 선 하위 10%~상위 10%, 진한 칸 가운데 50%, 세로선 중앙값. 표본이 {classes.data.data.meta.minSample}명 미만인 직업은 &apos;표본 부족&apos;으로 표시하고 분포는 집계 중이에요.
       </p>
     </div>
   );
@@ -237,7 +241,7 @@ function DistributionTab({ query }: { query: StatsQuery }) {
         {p ? (
           <>
             {label} {fmt(p.value)}은 상위 <strong>{percent(p.topPercent)}</strong>
-            {p.tier && TIER_LABEL[p.tier] && <b className={styles.tier}>{TIER_LABEL[p.tier]}</b>} ({whole(p.rank)}위 /{" "}
+            {p.tier && TIER_LABEL[p.tier] && <> <b className={styles.tier}>{TIER_LABEL[p.tier]}</b></>} ({whole(p.rank)}위 /{" "}
             {whole(p.total)}명)
           </>
         ) : percentileOf !== undefined && data ? (
@@ -251,8 +255,7 @@ function DistributionTab({ query }: { query: StatsQuery }) {
       ) : !data ? (
         <p className={styles.muted}>분포를 불러오고 있어요…</p>
       ) : asTable ? (
-        <div className={styles.tableWrap}>
-          <table className={styles.table}>
+        <DataTable label={`${label} 구간별 인원`} className={styles.table}>
             <caption className={styles.srOnly}>{label} 구간별 인원</caption>
             <thead>
               <tr>
@@ -270,8 +273,7 @@ function DistributionTab({ query }: { query: StatsQuery }) {
                 </tr>
               ))}
             </tbody>
-          </table>
-        </div>
+        </DataTable>
       ) : (
         <ol className={styles.histogram} aria-label={`${label} 구간별 인원`}>
           {data.bins.map((bin) => {
@@ -308,8 +310,7 @@ function ServersTab({ query }: { query: StatsQuery }) {
   if (servers.isError && !servers.data) return <Problem error={servers.error} onRetry={() => servers.refetch()} />;
   if (!servers.data) return <p className={styles.muted}>서버 통계를 불러오고 있어요…</p>;
   return (
-    <div className={styles.tableWrap}>
-      <table className={styles.table}>
+    <DataTable label="서버별 인원과 중앙값" className={styles.table}>
         <caption className={styles.srOnly}>서버별 인원과 중앙값</caption>
         <thead>
           <tr>
@@ -321,8 +322,11 @@ function ServersTab({ query }: { query: StatsQuery }) {
         </thead>
         <tbody>
           {servers.data.data.rows.map((row) => (
-            <tr key={row.serverName} data-collecting={row.sampleStatus !== "READY" || undefined}>
-              <th scope="row">{row.serverName}</th>
+            <tr key={row.serverName}>
+              <th scope="row">
+                {row.serverName}
+                {row.sampleStatus !== "READY" && <small className={styles.short}>표본 부족</small>}
+              </th>
               <td>
                 {whole(row.count)}
                 <small>{percent(row.share)}</small>
@@ -332,8 +336,7 @@ function ServersTab({ query }: { query: StatsQuery }) {
             </tr>
           ))}
         </tbody>
-      </table>
-    </div>
+    </DataTable>
   );
 }
 
