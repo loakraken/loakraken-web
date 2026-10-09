@@ -50,10 +50,14 @@ for (const path of ["/", "/about"]) {
 
     test("Ctrl K로 검색창에 포커스한다", async ({ page }) => {
       const search = page.getByRole("textbox", { name: "캐릭터 이름" });
-      await page.evaluate(() => document.activeElement instanceof HTMLElement && document.activeElement.blur());
-      await expect(search).not.toBeFocused();
-      await page.keyboard.press("Control+KeyK");
-      await expect(search).toBeFocused();
+      // 단축키는 수화(hydration) 뒤 연결된다. 데이터가 도착한 뒤 누르고, 놓치면 다시 누른다.
+      await page.waitForLoadState("networkidle");
+      await expect(async () => {
+        await page.evaluate(() => document.activeElement instanceof HTMLElement && document.activeElement.blur());
+        await expect(search).not.toBeFocused();
+        await page.keyboard.press("Control+KeyK");
+        await expect(search).toBeFocused({ timeout: 1000 });
+      }).toPass({ timeout: 10_000 });
     });
   });
 }

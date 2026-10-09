@@ -11,6 +11,8 @@ test.describe("경매 입찰가 @smoke", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/tools/auction");
     await expect(page.getByRole("heading", { level: 1, name: "경매 입찰가" })).toBeVisible();
+    // 수화(hydration) 전에 입력하면 값이 덮일 수 있어, 로딩이 끝난 뒤 조작한다.
+    await page.waitForLoadState("networkidle");
   });
 
   test("일로아 대조 100,000G·8인", async ({ page }) => {
