@@ -21,14 +21,18 @@ export function Entrance({ tab, children }: { tab: string; children: ReactNode }
   return <EntranceContext value={first !== null}>{children}</EntranceContext>;
 }
 
+/** At most this many items of one list enter; the rest are simply there (PM #251). */
+const MAX_ENTERING = 12;
+
 /**
  * Props for the i-th item of an entering list: `.k-reveal` (#186) with a 30ms
- * step, capped at 8 steps by the utility. Outside an entrance, just the class.
+ * step, capped at 8 steps by the utility. Only the first 12 items of a list
+ * enter. Outside an entrance, just the class.
  */
 export function useStagger() {
   const on = useContext(EntranceContext);
   return (i: number, className?: string) =>
-    on
-      ? { className: className ? `${className} k-reveal` : "k-reveal", style: { "--i": i } as CSSProperties }
+    on && i < MAX_ENTERING
+      ?{ className: className ? `${className} k-reveal` : "k-reveal", style: { "--i": i } as CSSProperties }
       : { className };
 }
