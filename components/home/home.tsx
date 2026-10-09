@@ -2,6 +2,7 @@
 
 import {
   useEffect,
+  useId,
   useRef,
   useState,
   useSyncExternalStore,
@@ -28,7 +29,9 @@ import {
   kstDate,
   kstTime,
   noticeLabel,
+  rewardGroupLabel,
   rewardLabel,
+  rewardSummary,
   tomorrowInWeek,
   upcomingMaintenance,
   isPatchNote,
@@ -38,6 +41,8 @@ import {
   weekDays,
   type Island,
   type Other,
+  type Reward,
+  type RewardGroup,
   type Schedule,
   type Timed,
 } from "@/lib/home/model";
@@ -158,6 +163,83 @@ function Rewards({ kinds }: { kinds: Island["rewardKinds"] }) {
   );
 }
 
+function RewardItem({ reward }: { reward: Reward }) {
+  return (
+    <li data-grade={reward.grade ?? undefined} title={reward.grade ? `${reward.name} · ${reward.grade}` : reward.name}>
+      {reward.icon ? (
+        // eslint-disable-next-line @next/next/no-img-element -- official CDN icon at a fixed size
+        <img src={reward.icon} alt="" width={20} height={20} loading="lazy" referrerPolicy="no-referrer" />
+      ) : (
+        <i aria-hidden="true" />
+      )}
+      <span>{reward.name}</span>
+    </li>
+  );
+}
+
+/** One reward list inside the expanded panel; titled only when both kinds show. */
+function RewardList({ title, rewards }: { title: string | null; rewards: Reward[] }) {
+  if (!rewards.length) return null;
+  return (
+    <div>
+      {title && <h4>{title}</h4>}
+      <ul className={styles.rewardItems}>
+        {rewards.map((reward) => (
+          <RewardItem key={reward.name} reward={reward} />
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/**
+ * LOAWA-style rewards on a schedule row: the top three inline, "+N" opens the
+ * full list by item-level group (chaos gates differ by level), with rewards
+ * tied to that day's rounds apart from the common ones.
+ */
+function RowRewards({ name, groups }: { name: string; groups: RewardGroup[] }) {
+  const [open, setOpen] = useState(false);
+  const id = useId();
+  const { top, rest } = rewardSummary(groups);
+  if (!top.length) return null;
+  return (
+    <>
+      <ul className={styles.rewardItems} aria-label={`${name} 보상`}>
+        {top.map((reward) => (
+          <RewardItem key={reward.name} reward={reward} />
+        ))}
+        <li>
+          <button
+            type="button"
+            className={styles.rewardMore}
+            aria-expanded={open}
+            aria-controls={id}
+            onClick={() => setOpen((value) => !value)}
+          >
+            {open ? "접기" : rest > 0 ? `+${rest}` : "자세히"}
+          </button>
+        </li>
+      </ul>
+      {open && (
+        <div id={id} className={styles.rewardPanel}>
+          {groups.map((group, i) => {
+            const label = rewardGroupLabel(group);
+            const timed = group.rewards.filter((reward) => reward.timed);
+            const common = group.rewards.filter((reward) => !reward.timed);
+            return (
+              <section key={`${group.minItemLevel}-${i}`} aria-label={label ?? "보상"}>
+                {label && <h3>{label}</h3>}
+                <RewardList title="이 날 회차 보상" rewards={timed} />
+                <RewardList title={timed.length ? "공통 보상" : null} rewards={common} />
+              </section>
+            );
+          })}
+        </div>
+      )}
+    </>
+  );
+}
+
 function Times({
   times,
   now,
@@ -265,6 +347,7 @@ function Section({
             </span>
             {"rewardKinds" in item && <Rewards kinds={item.rewardKinds} />}
             <Times times={item.startTimes} now={now} hidePast={hidePast} />
+            <RowRewards name={item.name} groups={item.rewardGroups} />
           </li>
         ))}
       </ul>

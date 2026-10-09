@@ -296,7 +296,7 @@
   padding: 0;
   list-style: none;
 }
-.rows li {
+.rows > li {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -785,7 +785,7 @@
   .days {
     gap: 4px;
   }
-  .rows li {
+  .rows > li {
     flex-wrap: wrap;
   }
   .times {
@@ -801,4 +801,99 @@
   .search {
     transition: none;
   }
+}
+/* Schedule rewards (backend #118): top three under the name, "+N" opens the
+   full list by item-level group. Grade tints follow the market list. */
+.rows > li {
+  flex-wrap: wrap;
+}
+.rows > li > .rewardItems {
+  flex-basis: 100%;
+  margin-top: -2px;
+}
+.rows > li:has(> img) > .rewardItems {
+  padding-left: 46px;
+}
+.rewardItems {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.rewardItems li {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  color: #515154;
+  font-size: 12px;
+}
+.rows .rewardItems img {
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+}
+.rewardItems i {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.rewardItems [data-grade="고급"] {
+  color: #3f8f1f;
+}
+.rewardItems [data-grade="희귀"] {
+  color: #0a74b8;
+}
+.rewardItems [data-grade="영웅"] {
+  color: #8f2fc0;
+}
+.rewardItems [data-grade="전설"] {
+  color: #b86a00;
+}
+.rewardItems [data-grade="유물"] {
+  color: #c4520a;
+}
+.rewardItems [data-grade="고대"] {
+  color: #8c7333;
+}
+.rewardMore {
+  padding: 2px 8px;
+  border-radius: 9999px;
+  background: #f0f0f3;
+  color: #0066cc;
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.rewardMore:hover {
+  background: #e8e8ed;
+}
+.rewardPanel {
+  display: grid;
+  flex-basis: 100%;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #f5f5f7;
+}
+.rewardPanel section {
+  display: grid;
+  gap: 8px;
+}
+.rewardPanel h3 {
+  margin: 0;
+  color: #1d1d1f;
+  font-size: 12px;
+  font-weight: 700;
+}
+.rewardPanel h4 {
+  margin: 0 0 4px;
+  color: #6e6e73;
+  font-size: 11px;
+  font-weight: 600;
 }

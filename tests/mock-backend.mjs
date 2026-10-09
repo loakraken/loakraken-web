@@ -363,7 +363,10 @@ createServer(async (req, res) => {
     const timesAt = (minute, ...hours) => hours.map((h) => at(h, minute));
     const next = (list) => list.find((t) => Date.parse(t) > Date.now()) ?? (list.length ? new Date(Date.parse(list[0]) + 86_400_000).toISOString().replace(".000Z", "+00:00") : null);
     const cdn = "https://cdn-lostark.game.onstove.com/efui_iconatlas";
-    const timed = (name, icon, minItemLevel, list) => ({ name, icon, minItemLevel, startTimes: list, nextAt: next(list) });
+    // Rewards (backend #118): ItemLevel groups in official order; timed = tied to that day's rounds.
+    const rw = (name, grade, timed = false) => ({ name, icon: null, grade, timed });
+    const timed = (name, icon, minItemLevel, list, rewardGroups = []) => ({ name, icon, minItemLevel, startTimes: list, rewardGroups, nextAt: next(list) });
+    const island = (...first) => [{ minItemLevel: null, rewards: [...first, rw("실링", "일반"), rw("섬의 마음", "전설"), rw("모험의 서 페이지", "영웅"), rw("대양의 주화 상자", "희귀")] }];
     const islandTimes = times(9, 11, 13, 19, 21, 23);
     const day = Number(date.slice(8, 10));
     const goldToday = day % 3 === 0;
@@ -374,12 +377,16 @@ createServer(async (req, res) => {
       data: {
         ruleVersion: "home-schedule-v1", date, timezone: "Asia/Seoul", fetchedAt: new Date().toISOString(), coveredFrom: from, coveredTo: to,
         adventureIslands: [
-          { ...timed("메데이아", `${cdn}/island_icon/island_icon_147.png`, 250, islandTimes), rewardKinds: goldToday ? ["GOLD"] : ["CARD_PACK"] },
-          { ...timed("라일라이 아일랜드", `${cdn}/island_icon/island_icon_43.png`, 635, islandTimes), rewardKinds: ["PIRATE_COIN"] },
+          { ...timed("메데이아", `${cdn}/island_icon/island_icon_147.png`, 250, islandTimes, island(goldToday ? rw("골드", "일반", true) : rw("전설 ~ 고급 카드 팩 III", "전설", true))), rewardKinds: goldToday ? ["GOLD"] : ["CARD_PACK"] },
+          { ...timed("라일라이 아일랜드", `${cdn}/island_icon/island_icon_43.png`, 635, islandTimes, island(rw("해적 주화", "일반", true))), rewardKinds: ["PIRATE_COIN"] },
           { ...timed("볼라르 섬", `${cdn}/island_icon/island_icon_53.png`, 1100, islandTimes), rewardKinds: ["SILLING"] },
         ],
-        fieldBosses: day % 2 ? [timed("세베크 아툰", null, 1460, times(11, 13, 15, 17, 19, 21, 23))] : [],
-        chaosGates: day % 2 ? [] : [timed("일렁이는 악마군단", null, 1580, timesAt(50, 10, 12, 14, 16, 18, 20, 22, 23))],
+        fieldBosses: day % 2 ? [timed("세베크 아툰", null, 1460, times(11, 13, 15, 17, 19, 21, 23), [{ minItemLevel: null, rewards: [rw("영웅 카드 팩", "영웅"), rw("실링", "일반")] }])] : [],
+        chaosGates: day % 2 ? [] : [timed("일렁이는 악마군단", null, 1580, timesAt(50, 10, 12, 14, 16, 18, 20, 22, 23), [
+          { minItemLevel: 1580, rewards: [rw("운명의 파편 주머니(소)", "희귀"), rw("1레벨 겁화의 보석", "고급"), rw("카드 경험치 카드", "일반")] },
+          { minItemLevel: 1640, rewards: [rw("운명의 파편 주머니(중)", "영웅"), rw("2레벨 겁화의 보석", "희귀"), rw("카드 경험치 카드", "일반")] },
+          { minItemLevel: 1680, rewards: [rw("운명의 파편 주머니(대)", "전설"), rw("3레벨 겁화의 보석", "희귀"), rw("카드 경험치 카드", "일반")] },
+        ])],
         others: [
           { category: "항해", ...timed("항해 협동 : 베른", null, 1, timesAt(30, 20, 22)) },
           { category: "로웬", ...timed("늑대들의 축제", null, 1, timesAt(20, 21)) },

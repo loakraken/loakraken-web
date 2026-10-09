@@ -98,7 +98,20 @@ export interface components {
             startTimes: string[];
             /** @description 그 날 회차에 시간 지정으로 붙은 대표 보상(GOLD, CARD_PACK, SILLING, PIRATE_COIN) */
             rewardKinds: ("GOLD" | "CARD_PACK" | "SILLING" | "PIRATE_COIN")[];
+            /** @description 그 날 보상. 공식 ItemLevel 그룹 순서이며, 시간 지정 보상은 그 날 회차를 가리킬 때만 넣는다(timed=true) */
+            rewardGroups: components["schemas"]["HomeRewardGroupResponse"][];
             nextAt: string | null;
+        };
+        HomeRewardGroupResponse: {
+            minItemLevel: number | null;
+            rewards: components["schemas"]["HomeRewardResponse"][];
+        };
+        HomeRewardResponse: {
+            name: string;
+            icon: string | null;
+            grade: string | null;
+            /** @description true: 그 날 회차를 가리키는 시간 지정 보상, false: 시간 지정 없는 공통 보상 */
+            timed: boolean;
         };
         HomeTimedResponse: {
             name: string;
@@ -106,6 +119,8 @@ export interface components {
             minItemLevel: number | null;
             /** @description 요청 날짜의 회차 */
             startTimes: string[];
+            /** @description 그 날 보상. 공식 ItemLevel 그룹 순서이며, 시간 지정 보상은 그 날 회차를 가리킬 때만 넣는다(timed=true) */
+            rewardGroups: components["schemas"]["HomeRewardGroupResponse"][];
             nextAt: string | null;
         };
         HomeOtherResponse: {
@@ -115,6 +130,8 @@ export interface components {
             icon: string | null;
             minItemLevel: number | null;
             startTimes: string[];
+            /** @description 그 날 보상. 공식 ItemLevel 그룹 순서이며, 시간 지정 보상은 그 날 회차를 가리킬 때만 넣는다(timed=true) */
+            rewardGroups: components["schemas"]["HomeRewardGroupResponse"][];
             nextAt: string | null;
         };
         HomeGoldDayResponse: {
@@ -219,7 +236,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description LOST_ARK_RATE_LIMITED */
+            /** @description LOST_ARK_RATE_LIMITED / CLIENT_RATE_LIMITED: 이 클라이언트의 분당 요청·공식 호출 한도 초과. Retry-After(초) 뒤 다시 시도 */
             429: {
                 headers: {
                     [name: string]: unknown;
@@ -287,7 +304,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description LOST_ARK_RATE_LIMITED */
+            /** @description LOST_ARK_RATE_LIMITED / CLIENT_RATE_LIMITED: 이 클라이언트의 분당 요청·공식 호출 한도 초과. Retry-After(초) 뒤 다시 시도 */
             429: {
                 headers: {
                     [name: string]: unknown;

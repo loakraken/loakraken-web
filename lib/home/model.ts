@@ -13,6 +13,8 @@ export type Other = Schemas["HomeOtherResponse"];
 export type Notice = Schemas["HomeNoticeResponse"];
 export type HomeEvent = Schemas["HomeEventResponse"];
 export type RewardKind = Island["rewardKinds"][number];
+export type RewardGroup = Schemas["HomeRewardGroupResponse"];
+export type Reward = Schemas["HomeRewardResponse"];
 
 export const REWARD_LABEL: Record<RewardKind, string> = {
   GOLD: "골드",
@@ -163,4 +165,35 @@ export function isPatchNote(notice: Notice) {
     notice.category !== "MAINTENANCE" &&
     /업데이트 내역|패치 안내|패치 노트|패치노트/.test(notice.title)
   );
+}
+
+const GRADE_RANK = ["고대", "유물", "전설", "영웅", "희귀", "고급", "일반"];
+const gradeRank = (grade: string | null) => {
+  const i = GRADE_RANK.indexOf(grade ?? "");
+  return i < 0 ? GRADE_RANK.length : i;
+};
+
+/**
+ * The rewards a schedule row shows inline (LOAWA shows a few icons per row):
+ * every reward once by name, rewards tied to that day's rounds first, then by
+ * grade. `rest` is how many more the expanded list holds.
+ */
+export function rewardSummary(groups: RewardGroup[], shown = 3) {
+  const seen = new Map<string, Reward>();
+  for (const group of groups)
+    for (const reward of group.rewards) {
+      const known = seen.get(reward.name);
+      if (!known || (reward.timed && !known.timed)) seen.set(reward.name, reward);
+    }
+  const all = [...seen.values()].sort(
+    (a, b) => Number(b.timed) - Number(a.timed) || gradeRank(a.grade) - gradeRank(b.grade),
+  );
+  return { top: all.slice(0, shown), rest: Math.max(0, all.length - shown) };
+}
+
+/** Item-level heading for a reward group; null when the group has no level. */
+export function rewardGroupLabel(group: RewardGroup) {
+  return group.minItemLevel != null && group.minItemLevel > 1
+    ? `${group.minItemLevel.toLocaleString("ko-KR")} 이상`
+    : null;
 }
