@@ -224,7 +224,7 @@ test("plan requests validate input and pass through allow-listed errors", async 
 
 test("구매 골드 rounds up to listings, 소모 가치 is expected × unit price (#235)", () => {
   const prices = read("./market-fixtures/material-prices.json").data.items;
-  const { lines, buyGold, valueGold, unpriced } = costLines(
+  const { lines, buyGold, valueRaw, unpriced } = costLines(
     [
       { name: "운명의 수호석", amount: 1000, expected: 999.4 },
       { name: "운명의 파편", amount: 30000 },
@@ -246,7 +246,7 @@ test("구매 골드 rounds up to listings, 소모 가치 is expected × unit pri
   assert.deepEqual(lines[3].purchase?.gold, 0, "covered by inventory even without a price");
   assert.equal(lines[3].value, null);
   assert.equal(buyGold, 186 + 2320);
-  assert.equal(valueGold, Math.ceil(999.4 * 0.31 + 30000 * 0.077333));
+  assert.ok(Math.abs(valueRaw - (999.4 * 0.31 + 30000 * 0.077333)) < 1e-6, "unrounded, rounded once by the caller");
   assert.deepEqual(unpriced, ["없는 재료", "운명의 돌파석"]);
   // 601개면 7묶음, 99개 남음.
   const odd = costLines([{ name: "운명의 수호석", amount: 601 }], {}, prices).lines[0];
@@ -260,4 +260,15 @@ test("구매 골드 rounds up to listings, 소모 가치 is expected × unit pri
   assert.ok(Math.abs(kept.lines[0].purchase!.gold - 700 * 0.31) < 1e-9);
   assert.equal(kept.buyGold, 217);
   assert.deepEqual(kept.unpriced, []);
+});
+
+test("소모 가치 total adds raw refining gold and material value, then rounds once (#238 P2)", () => {
+  // 계산 검증 case 2: 재련 골드 5,682.4 + 소모 가치 13,935.3 → 19,618 (not 5,683 + 13,936).
+  const rawGold = 5682.4;
+  const value = costLines([{ name: "운명의 수호석", amount: 44953, expected: 44952.6 }], {}, [
+    { name: "운명의 수호석", status: "PRICED", unitPriceGold: 0.31, sourceItemName: "운명의 수호석", bundleCount: 100, bundlePrice: 31, contentsPerItem: null, observedAt: "2026-10-10T00:00:00Z" },
+  ]).valueRaw;
+  assert.ok(Math.abs(value - 44952.6 * 0.31) < 1e-6);
+  assert.equal(Math.round(rawGold + value), Math.round(5682.4 + 13935.306));
+  assert.ok(Math.round(rawGold + value) < Math.ceil(rawGold) + Math.ceil(value));
 });

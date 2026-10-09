@@ -421,7 +421,7 @@ function Result({ plans, mode }: { plans: PartPlan[]; mode: Mode }) {
   });
   const priceList = prices.data?.data.items ?? null;
   const priceLimit = useRateLimit(prices.error);
-  const { lines, buyGold, valueGold, unpriced } = costLines(
+  const { lines, buyGold, valueRaw, unpriced } = costLines(
     summary.materials,
     Object.fromEntries(
       Object.entries(owned).map(([name, value]) => [name, Number(value || 0)]),
@@ -451,7 +451,7 @@ function Result({ plans, mode }: { plans: PartPlan[]; mode: Mode }) {
       </p>
       <p className={quote.totalNote}>
         {priceList
-          ? `재련 골드 ${formatCount(summary.gold)} + 구매 골드 ${formatCount(buyGold)} (소모 가치 기준 ${formatCount(summary.gold + valueGold)})`
+          ? `재련 골드 ${formatCount(summary.gold)} + 구매 골드 ${formatCount(buyGold)} (소모 가치 기준 ${formatCount(Math.round(summary.rawGold + valueRaw))})`
           : `재련 골드 ${formatCount(summary.gold)}`}{" "}
         · 총 {formatCount(summary.stageCount)}단계, 시도{" "}
         {formatCount(summary.attempts, mode === "expected" ? 1 : 0)}회
@@ -560,6 +560,8 @@ function Result({ plans, mode }: { plans: PartPlan[]; mode: Mode }) {
                   {line.purchase == null ? "—" : formatCount(line.purchase.gold)}
                   {line.purchase != null && line.purchase.perUnit > 1 && line.purchase.units > 0 && (
                     <small>
+                      {/* Read as "금액, n묶음" instead of one run-on number. */}
+                      <span className={styles.srOnly}>, </span>
                       {formatCount(line.purchase.units)}
                       {line.price?.contentsPerItem != null ? "주머니" : "묶음"}
                       {line.purchase.leftover > 0 &&
@@ -570,7 +572,7 @@ function Result({ plans, mode }: { plans: PartPlan[]; mode: Mode }) {
                 <td data-label="소모 가치">
                   {line.value == null
                     ? "—"
-                    : formatCount(Math.ceil(line.value - 1e-9))}
+                    : formatCount(Math.round(line.value))}
                 </td>
               </tr>
             ))}
