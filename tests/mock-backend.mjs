@@ -456,6 +456,23 @@ createServer(async (req, res) => {
       },
     });
   }
+  // Roster titles (backend #123): first-seen order; 칭호없음 → none recorded yet.
+  if (url.pathname === "/api/v1/characters/titles") {
+    const who = url.searchParams.get("characterName") ?? "";
+    const at = (d) => new Date(Date.now() - d * 86_400_000).toISOString();
+    const titles = who === "칭호없음" ? [] : [
+      ["빛을 꺼트리는 자", 41, 2, "상세"],
+      ["카멘을 쓰러뜨린 자", 33, 1, "상세부캐"],
+      ["에키드나를 쓰러뜨린 자", 33, 6, "상세"],
+      ["별을 제패한 자", 12, 3, "상세"],
+      ["하늘을 가른 자", 5, 0, "상세부캐"],
+    ].map(([title, first, last, by], i) => ({ title, firstObservedAt: at(first), lastObservedAt: at(last), observedOrder: i + 1, recordedBy: by, source: "OBSERVED" }));
+    return send({
+      code: "CHARACTER_TITLES_SUCCESS",
+      message: "성공",
+      data: { characterName: who, serverName: "아만", rosterCharacters: 6, observedCharacters: titles.length ? 2 : 0, ruleVersion: "title-record-v1", titles },
+    });
+  }
   if (url.pathname === "/api/v1/characters/views") {
     const who = url.searchParams.get("characterName");
     if (who === "기록끔") return send({ code: "CHARACTER_VIEWS_DISABLED" }, 503);
