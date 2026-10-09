@@ -1,7 +1,7 @@
 // 회귀: 캐릭터 배너 글자가 잘리거나 숫자·서버·직업이 단어 중간에서 줄바꿈되지 않는다.
 // 기본 점검 폭은 1440·768·390이다(PM 결정 2026-10-09). 768에서 왼쪽 열이 좁아
 // "1,700./5"처럼 끊기고 아래 줄이 배너 높이에 잘리는 결함(web #143)을 1440·390만 보다가 놓쳤다.
-// 가로 넘침 검사(expectNoHorizontalOverflow)는 overflow: hidden 안의 잘림을 잡지 못한다.
+// 가로 넘침 검사(expectNoHorizontalOverflow)는 overflow: hidden 안의 잘림을 잡지 못한다. #143은 #146에서 고쳤다.
 import { test, expect, characterPath } from "../support/fixtures.mjs";
 
 const WIDTHS = [1440, 768, 390];
@@ -43,7 +43,6 @@ test.describe("캐릭터 배너 잘림·줄바꿈 @regression", () => {
   for (const width of WIDTHS) {
     for (const name of ["상세", "상세서포터"]) {
       test(`${width}px '${name}' 배너 글자가 잘리지 않는다`, async ({ page }) => {
-        test.fail(width === 768, "web #143: 768에서 배너 왼쪽 열 줄바꿈·잘림. 고치면 이 줄을 지운다.");
         await page.setViewportSize({ width, height: 1000 });
         await page.goto(characterPath(name));
         await expect(page.getByRole("heading", { level: 1, name })).toBeVisible();
