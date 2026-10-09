@@ -348,11 +348,11 @@
   font-weight: 600;
 }
 .rewards i[data-kind="GOLD"] {
-  background: color-mix(in oklab, var(--grade-legendary-b) 18%, transparent);
+  background: color-mix(in oklab, var(--grade-legendary-b) 9%, transparent);
   color: var(--grade-legendary-text);
 }
 .rewards i[data-kind="CARD_PACK"] {
-  background: color-mix(in oklab, var(--grade-epic-b) 16%, transparent);
+  background: color-mix(in oklab, var(--grade-epic-b) 9%, transparent);
   color: var(--grade-epic-text);
 }
 .times {
@@ -586,7 +586,7 @@
   gap: 8px;
   padding: 12px 16px;
   border-radius: 16px;
-  background: color-mix(in oklab, var(--accent-warm) 10%, transparent);
+  background: color-mix(in oklab, var(--accent-warm) 6%, transparent);
   color: var(--accent-warm);
   font-size: 13px;
   text-decoration: none;
@@ -627,7 +627,7 @@
   font-weight: 600;
 }
 .notices i[data-category="MAINTENANCE"] {
-  background: color-mix(in oklab, var(--accent-warm) 12%, transparent);
+  background: color-mix(in oklab, var(--accent-warm) 6%, transparent);
   color: var(--accent-warm);
 }
 .notices span {
