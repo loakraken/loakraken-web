@@ -63,8 +63,16 @@ const initialParts = () =>
 const OPTION_COPY: { key: keyof Options; label: string; hint: string }[] = [
   { key: "weaponBreath", label: "무기 숨결", hint: "매 시도 최대 개수" },
   { key: "armorBreath", label: "방어구 숨결", hint: "매 시도 최대 개수" },
-  { key: "weaponBook", label: "무기 책", hint: "야금술 · 업화 11~20단계" },
-  { key: "armorBook", label: "방어구 책", hint: "재봉술 · 업화 11~20단계" },
+  {
+    key: "weaponBook",
+    label: "무기 책 효과 항상 적용 가정",
+    hint: "야금술 · 업화 11~20단계",
+  },
+  {
+    key: "armorBook",
+    label: "방어구 책 효과 항상 적용 가정",
+    hint: "재봉술 · 업화 11~20단계",
+  },
 ];
 
 // 성장 지원 is a standing official rule (no end date or target condition), so
@@ -837,8 +845,14 @@ function RefiningContent({ initialName }: { initialName: string }) {
                 <a href={GROWTH_SUPPORT_NOTICE} target="_blank" rel="noreferrer">
                   공지
                 </a>{" "}
-                · 게임 재련 가이드). 책은 운명의 업화에만 적용돼요. 전율 책,
-                실링, 상급 재련, 이벤트 확률은 계산하지 않아요.
+                · 게임 재련 가이드). 전율 책, 실링, 상급 재련, 이벤트 확률은
+                계산하지 않아요.
+              </p>
+              <p className={quote.hint}>
+                책은 기본으로 빼고 계산해요. 게임에는 &ldquo;특수 재료 별 효과는
+                확률에 따라 적용되지 않을 수 있습니다&rdquo;라고 나오고, 그 확률은
+                공개되지 않았어요. 켜면 책 효과가 매번 적용된다고 보고 계산하며,
+                다른 계산 사이트와 같은 가정이에요. 책은 운명의 업화에만 적용돼요.
               </p>
             </section>
           </div>
