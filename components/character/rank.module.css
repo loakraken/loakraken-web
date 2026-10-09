@@ -1,0 +1,107 @@
+/* Ranking boxes (F-7): two metrics × three scopes on the panel surface. */
+.metric {
+  display: grid;
+  gap: 6px;
+}
+.metric + .metric {
+  margin-top: 12px;
+}
+.metric h3 {
+  margin: 0;
+  color: #6e6e73;
+  font-size: 12px;
+  font-weight: 600;
+}
+.cells {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.cells li {
+  display: grid;
+  align-content: start;
+  gap: 2px;
+  min-width: 0;
+  padding: 10px;
+  border-radius: 12px;
+  background: #fff;
+}
+.scope {
+  overflow: hidden;
+  color: #6e6e73;
+  font-size: 11px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.cells strong {
+  color: #1d1d1f;
+  font-size: 17px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+.cells small {
+  color: #6e6e73;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  color: #1d1d1f;
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.tier {
+  padding: 1px 6px;
+  border-radius: 9999px;
+  background: #e8f0fb;
+  color: #0055b3;
+  font-size: 11px;
+  font-weight: 700;
+}
+.cells strong.pending {
+  color: #6e6e73;
+  font-size: 14px;
+  font-weight: 600;
+}
+.hidden {
+  margin: 0;
+  color: #1d1d1f;
+  font-size: 15px;
+  font-weight: 600;
+}
+.muted {
+  margin: 0;
+  color: #6e6e73;
+  font-size: 13px;
+}
+.note {
+  margin: 10px 0 0;
+  color: #6e6e73;
+  font-size: 11px;
+  line-height: 1.5;
+}
+.retry {
+  margin-top: 6px;
+  color: #0066cc;
+  font-size: 13px;
+  font-weight: 600;
+}
+.retry:disabled {
+  color: #6e6e73;
+}
+@media (max-width: 480px) {
+  .cells strong {
+    font-size: 15px;
+  }
+  .cells li {
+    padding: 8px;
+  }
+}

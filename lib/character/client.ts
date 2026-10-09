@@ -2,6 +2,7 @@ import type { CharacterResult, QueryFailure } from "./model";
 import type { HistoryEnvelope, SiblingsEnvelope, ViewsEnvelope } from "./validate";
 import type { CardCollectionEnvelope } from "./card-collection";
 import type { PopularEnvelope, PopularPeriod } from "./popular";
+import type { RankEnvelope } from "./rank";
 
 export class CharacterQueryError extends Error {
   info: QueryFailure;
@@ -55,6 +56,12 @@ export const fetchPopular = (period: PopularPeriod, signal: AbortSignal) =>
 export const fetchCardCollection = (name: string, signal: AbortSignal) =>
   getJson<CardCollectionEnvelope>(
     `/api/characters/card-collection?${new URLSearchParams({ characterName: name })}`,
+    signal,
+  );
+
+export const fetchRank = (name: string, signal: AbortSignal) =>
+  getJson<RankEnvelope>(
+    `/api/characters/rank?${new URLSearchParams({ characterName: name })}`,
     signal,
   );
 

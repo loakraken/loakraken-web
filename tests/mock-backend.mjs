@@ -423,6 +423,39 @@ createServer(async (req, res) => {
       },
     });
   }
+  // Ranking (F-7, backend #100/#112). 비공개 → HIDDEN, 조건밖 → not included,
+  // 집계중 → class scope still collecting, 미관측 → 404, otherwise ranked.
+  if (url.pathname === "/api/v1/characters/rank") {
+    const who = url.searchParams.get("characterName") ?? "";
+    if (who === "미관측") return send({ code: "STATS_CHARACTER_NOT_OBSERVED", message: "private" }, 404);
+    const hidden = who === "비공개";
+    const excluded = who === "조건밖";
+    const entry = (metric, scope, scopeValue, rank, total, sampleStatus = "READY") => {
+      const top = sampleStatus === "READY" ? Math.round((rank / total) * 10000) / 100 : null;
+      const tier = top == null ? null : top <= 1 ? "TOP1" : top <= 5 ? "TOP5" : top <= 10 ? "TOP10" : top <= 25 ? "TOP25" : top <= 50 ? "TOP50" : "REST";
+      return { metric, scope, scopeValue, rank, total, topPercent: top, tier, sampleStatus };
+    };
+    const collecting = who === "집계중" ? "COLLECTING" : "READY";
+    const entries = hidden || excluded ? [] : [
+      entry("COMBAT_POWER", "ALL", null, 4120, 18231),
+      entry("COMBAT_POWER", "SERVER", "아만", 211, 2311),
+      entry("COMBAT_POWER", "CLASS", "블래스터", 37, collecting === "READY" ? 612 : 21, collecting),
+      entry("ITEM_LEVEL", "ALL", null, 90, 18231),
+      entry("ITEM_LEVEL", "SERVER", "아만", 140, 2311),
+      entry("ITEM_LEVEL", "CLASS", "블래스터", 22, collecting === "READY" ? 612 : 21, collecting),
+    ];
+    return send({
+      code: "CHARACTER_RANK_SUCCESS",
+      message: "성공",
+      data: {
+        characterName: who, serverName: "아만", className: "블래스터", position: "DEALER", itemLevel: 1780.83, combatPower: 3180.29,
+        refreshedAt: new Date(Date.now() - 3_600_000).toISOString(),
+        rankVisibility: hidden ? "HIDDEN" : "VISIBLE", included: !hidden && !excluded,
+        conditions: { server: null, role: null, className: null, activeDays: 30, itemLevelMin: 1640, itemLevelMax: null, combatPowerMin: null, combatPowerMax: null, representativeOnly: false },
+        aggregatedAt: new Date(Date.now() - 600_000).toISOString(), ruleVersion: "stats-v1", minSample: 30, entries,
+      },
+    });
+  }
   if (url.pathname === "/api/v1/characters/views") {
     const who = url.searchParams.get("characterName");
     if (who === "기록끔") return send({ code: "CHARACTER_VIEWS_DISABLED" }, 503);

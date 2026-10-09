@@ -1,0 +1,712 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "LOAKraken rank",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/v1/characters/rank": {
+      "get": {
+        "tags": [
+          "통계·랭킹"
+        ],
+        "summary": "캐릭터 순위",
+        "description": "전투력·아이템 레벨 각각의 전체·서버·직업 순위와 상위 %, 티어(TOP1|TOP5|TOP10|TOP25|TOP50|REST). LOAKraken에 기록된 값 기준이라 캐릭터를 먼저 검색하면 최신 값으로 계산됩니다. 404 STATS_CHARACTER_NOT_OBSERVED, 400 INVALID_REQUEST·STATS_INVALID_RANGE·STATS_TOO_MANY_BINS, 503 STATS_UNAVAILABLE",
+        "operationId": "characterRank",
+        "parameters": [
+          {
+            "name": "characterName",
+            "in": "query",
+            "description": "캐릭터명",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 64,
+              "minLength": 0,
+              "pattern": "[\\p{L}\\p{N}]+"
+            }
+          },
+          {
+            "name": "server",
+            "in": "query",
+            "description": "서버명. 생략하면 전체",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "description": "서버명. 생략하면 전체",
+              "maxLength": 32,
+              "minLength": 0,
+              "pattern": "[\\p{L}\\p{N}]+"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "description": "DEALER 또는 SUPPORT. 생략하면 전체",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "description": "DEALER 또는 SUPPORT. 생략하면 전체",
+              "enum": [
+                "DEALER",
+                "SUPPORT"
+              ]
+            }
+          },
+          {
+            "name": "className",
+            "in": "query",
+            "description": "직업명. 생략하면 전체",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "description": "직업명. 생략하면 전체",
+              "maxLength": 32,
+              "minLength": 0,
+              "pattern": "[\\p{L}\\p{N}]+"
+            }
+          },
+          {
+            "name": "activeDays",
+            "in": "query",
+            "description": "최근 확인 기간(일): 7, 30, 90",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 30,
+              "description": "최근 확인 기간(일): 7, 30, 90"
+            }
+          },
+          {
+            "name": "itemLevelMin",
+            "in": "query",
+            "description": "최소 아이템 레벨",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "default": 1640,
+              "description": "최소 아이템 레벨",
+              "maximum": 2000,
+              "minimum": 0
+            }
+          },
+          {
+            "name": "itemLevelMax",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "maximum": 2000,
+              "minimum": 0
+            }
+          },
+          {
+            "name": "combatPowerMin",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "maximum": 100000,
+              "minimum": 0
+            }
+          },
+          {
+            "name": "combatPowerMax",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "maximum": 100000,
+              "minimum": 0
+            }
+          },
+          {
+            "name": "representativeOnly",
+            "in": "query",
+            "description": "원정대(같은 서버) 대표 캐릭터(아이템 레벨 최고)만",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "description": "원정대(같은 서버) 대표 캐릭터(아이템 레벨 최고)만"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "조회 성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseStatsCharacterRankResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_REQUEST, STATS_INVALID_RANGE 또는 STATS_TOO_MANY_BINS",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "STATS_CHARACTER_NOT_OBSERVED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "STATS_UNAVAILABLE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ApiResponseStatsCharacterRankResponse": {
+        "type": "object",
+        "description": "공통 API 응답. 오류 응답의 data는 null입니다.",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "업무 결과 코드",
+            "example": "CHARACTER_SEARCH_SUCCESS"
+          },
+          "message": {
+            "type": "string",
+            "description": "공개용 안내 메시지",
+            "example": "캐릭터 조회에 성공했습니다."
+          },
+          "data": {
+            "$ref": "#/components/schemas/StatsCharacterRankResponse",
+            "description": "성공 응답 데이터. 오류일 때 null"
+          }
+        },
+        "required": [
+          "code",
+          "data",
+          "message"
+        ]
+      },
+      "StatsCharacterRankResponse": {
+        "type": "object",
+        "properties": {
+          "characterName": {
+            "type": "string"
+          },
+          "serverName": {
+            "type": "string"
+          },
+          "className": {
+            "type": "string"
+          },
+          "position": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "DEALER",
+                  "SUPPORT"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "itemLevel": {
+            "type": "number"
+          },
+          "combatPower": {
+            "type": "number"
+          },
+          "refreshedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "rankVisibility": {
+            "type": "string",
+            "description": "순위 공개 여부. 이 값이 최우선이다. HIDDEN(운영 공개 제외 목록)이면 entries는 빈 배열이고 순위·백분위·티어는 어디에도 없다. 이때 다른 메타(included 등)로 순위 상태를 판단하지 않는다. VISIBLE이면 included와 entries의 sampleStatus로 판단한다",
+            "enum": [
+              "VISIBLE",
+              "HIDDEN"
+            ]
+          },
+          "included": {
+            "type": "boolean",
+            "description": "조건(최근 확인 기간·레벨 범위 등)의 모집단에 들어가는가. false면 entries는 빈 배열. HIDDEN이면 항상 false"
+          },
+          "conditions": {
+            "$ref": "#/components/schemas/StatsConditionsResponse"
+          },
+          "aggregatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "ruleVersion": {
+            "type": "string"
+          },
+          "minSample": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "entries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StatsRankEntryResponse"
+            }
+          }
+        },
+        "required": [
+          "aggregatedAt",
+          "characterName",
+          "className",
+          "combatPower",
+          "conditions",
+          "entries",
+          "included",
+          "itemLevel",
+          "minSample",
+          "position",
+          "rankVisibility",
+          "refreshedAt",
+          "ruleVersion",
+          "serverName"
+        ]
+      },
+      "StatsConditionsResponse": {
+        "type": "object",
+        "description": "정규화한 조건(기본값 포함)",
+        "properties": {
+          "server": {
+            "anyOf": [
+              {
+                "anyOf": [
+                  {
+                    "anyOf": [
+                      {
+                        "anyOf": [
+                          {
+                            "anyOf": [
+                              {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "role": {
+            "anyOf": [
+              {
+                "anyOf": [
+                  {
+                    "anyOf": [
+                      {
+                        "anyOf": [
+                          {
+                            "anyOf": [
+                              {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "DEALER",
+                                      "SUPPORT"
+                                    ]
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "className": {
+            "anyOf": [
+              {
+                "anyOf": [
+                  {
+                    "anyOf": [
+                      {
+                        "anyOf": [
+                          {
+                            "anyOf": [
+                              {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "activeDays": {
+            "type": "integer",
+            "format": "int32",
+            "description": "최근 확인 기간(일): 7, 30, 90"
+          },
+          "itemLevelMin": {
+            "type": "number"
+          },
+          "itemLevelMax": {
+            "anyOf": [
+              {
+                "anyOf": [
+                  {
+                    "anyOf": [
+                      {
+                        "anyOf": [
+                          {
+                            "anyOf": [
+                              {
+                                "anyOf": [
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "combatPowerMin": {
+            "anyOf": [
+              {
+                "anyOf": [
+                  {
+                    "anyOf": [
+                      {
+                        "anyOf": [
+                          {
+                            "anyOf": [
+                              {
+                                "anyOf": [
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "combatPowerMax": {
+            "anyOf": [
+              {
+                "anyOf": [
+                  {
+                    "anyOf": [
+                      {
+                        "anyOf": [
+                          {
+                            "anyOf": [
+                              {
+                                "anyOf": [
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "representativeOnly": {
+            "type": "boolean",
+            "description": "원정대(같은 서버) 대표 캐릭터(아이템 레벨 최고)만"
+          }
+        },
+        "required": [
+          "activeDays",
+          "className",
+          "combatPowerMax",
+          "combatPowerMin",
+          "itemLevelMax",
+          "itemLevelMin",
+          "representativeOnly",
+          "role",
+          "server"
+        ]
+      },
+      "StatsRankEntryResponse": {
+        "type": "object",
+        "properties": {
+          "metric": {
+            "type": "string",
+            "enum": [
+              "COMBAT_POWER",
+              "ITEM_LEVEL"
+            ]
+          },
+          "scope": {
+            "type": "string",
+            "enum": [
+              "ALL",
+              "SERVER",
+              "CLASS"
+            ]
+          },
+          "scopeValue": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "서버명 또는 직업명. ALL이면 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "rank": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "topPercent": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "tier": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "TOP1",
+                  "TOP5",
+                  "TOP10",
+                  "TOP25",
+                  "TOP50",
+                  "REST"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sampleStatus": {
+            "type": "string",
+            "enum": [
+              "COLLECTING",
+              "READY"
+            ]
+          }
+        },
+        "required": [
+          "metric",
+          "rank",
+          "sampleStatus",
+          "scope",
+          "scopeValue",
+          "tier",
+          "topPercent",
+          "total"
+        ]
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "description": "공통 오류 응답. HTTP 상태와 업무 코드를 함께 확인합니다.",
+        "properties": {
+          "code": {
+            "type": "string",
+            "example": "INVALID_REQUEST"
+          },
+          "message": {
+            "type": "string",
+            "example": "요청 값이 올바르지 않습니다."
+          },
+          "data": {
+            "type": "null"
+          }
+        },
+        "required": [
+          "code",
+          "data",
+          "message"
+        ]
+      }
+    }
+  }
+}
