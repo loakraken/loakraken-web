@@ -258,14 +258,13 @@ export function summarize(plans: PartPlan[], mode: Mode) {
     amount: Math.ceil(item.amount - 1e-9),
     expected: item.amount,
   }));
-  const gold = Math.ceil(
-    stages.reduce((sum, stage) => sum + stageGold(stage, mode), 0) - 1e-9,
-  );
+  const rawGold = stages.reduce((sum, stage) => sum + stageGold(stage, mode), 0);
+  const gold = Math.ceil(rawGold - 1e-9);
   const attempts = stages.reduce(
     (sum, stage) => sum + attemptsAt(stage, mode),
     0,
   );
-  return { materials, gold, attempts, stageCount: stages.length };
+  return { materials, gold, rawGold, attempts, stageCount: stages.length };
 }
 
 /** Item level after refining: the average of six parts moves by 5 per stage. */
@@ -398,7 +397,9 @@ export function costLines(
   return {
     lines,
     buyGold: sum((line) => line.purchase?.gold ?? null),
-    valueGold: sum((line) => line.value),
+    // 소모 가치 stays unrounded so a total adds raw values and rounds once
+    // (계산 검증 #238 P2: rounding each part made it 1~2G high).
+    valueRaw: lines.reduce((total, line) => total + (line.value ?? 0), 0),
     // Out of either total: no unit price (소모 가치), or still missing and
     // impossible to buy (구매 골드).
     unpriced: lines
