@@ -81,3 +81,28 @@ export function sortCards(cards: RecordedCard[]) {
     (a, b) => rank(a.grade) - rank(b.grade) || b.awakeCount - a.awakeCount || a.name.localeCompare(b.name, "ko"),
   );
 }
+
+// Roster refill (backend #138): one POST reads up to 12 roster characters in
+// order (several seconds), then a 10-minute cooldown.
+export type CardRefreshEnvelope = Schemas["ApiResponseCardCollectionRefreshResponse"];
+export type CardRefresh = Schemas["CardCollectionRefreshResponse"];
+const validateRefresh = new Ajv2020({ strict: false, validateFormats: false }).compile<CardRefreshEnvelope>({
+  $ref: "#/components/schemas/ApiResponseCardCollectionRefreshResponse",
+  components: { ...contract.components, schemas: tolerantSchemas(contract.components.schemas) },
+});
+export function isCardRefreshEnvelope(value: unknown): value is CardRefreshEnvelope {
+  return (
+    validateRefresh(value) &&
+    value.code === "CHARACTER_CARD_COLLECTION_REFRESH_SUCCESS" &&
+    isTime(value.data.nextAvailableAt)
+  );
+}
+
+/** Result in words; never the backend field names (skipped/failed). */
+export function refreshSummary(r: CardRefresh) {
+  const parts = [`원정대 ${r.rosterCharacters}명 중 ${r.refreshed}명을 새로 기록했어요.`];
+  if (r.skipped > 0) parts.push(`${r.skipped}명은 최근 7일 안에 기록이 있어 그대로 두었어요.`);
+  if (r.failed > 0) parts.push(`${r.failed}명은 불러오지 못했어요.`);
+  if (r.remaining > 0) parts.push(`${r.remaining}명은 다음에 이어서 채울 수 있어요.`);
+  return parts.join(" ");
+}

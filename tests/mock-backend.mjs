@@ -596,6 +596,18 @@ createServer(async (req, res) => {
     }
     return send({ code: "INVALID_REQUEST", message: "x" }, 400);
   }
+  // Card record refill (backend #138): POST, ~2 s; 쿨다운 → 429 cooldown.
+  if (url.pathname === "/api/v1/characters/card-collection/refresh" && req.method === "POST") {
+    const who = url.searchParams.get("characterName") ?? "";
+    if (who === "쿨다운")
+      return send({ code: "CARD_COLLECTION_REFRESH_COOLDOWN", message: "private" }, 429, { "Retry-After": "420" });
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    return send({
+      code: "CHARACTER_CARD_COLLECTION_REFRESH_SUCCESS",
+      message: "성공",
+      data: { rosterCharacters: 14, refreshed: 11, skipped: 1, failed: 1, remaining: 1, nextAvailableAt: new Date(Date.now() + 600_000).toISOString() },
+    });
+  }
   if (url.pathname === "/api/v1/characters/views") {
     const who = url.searchParams.get("characterName");
     if (who === "기록끔") return send({ code: "CHARACTER_VIEWS_DISABLED" }, 503);

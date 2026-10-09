@@ -8,7 +8,12 @@ import {
   type SiblingsEnvelope,
   type ViewsEnvelope,
 } from "./validate";
-import { isCardCollectionEnvelope, type CardCollectionEnvelope } from "./card-collection";
+import {
+  isCardCollectionEnvelope,
+  isCardRefreshEnvelope,
+  type CardCollectionEnvelope,
+  type CardRefreshEnvelope,
+} from "./card-collection";
 
 // Siblings (#54) and observation history (#66) for the character page tabs.
 const siblingsErrors: Record<number, readonly string[]> = {
@@ -121,5 +126,28 @@ export function requestCardCollection(
     ...options,
     isValid: isCardCollectionEnvelope,
     errorCodes: cardCollectionErrors,
+  });
+}
+
+const cardRefreshErrors: Record<number, readonly string[]> = {
+  ...cardCollectionErrors,
+  429: ["LOST_ARK_RATE_LIMITED", "CARD_COLLECTION_REFRESH_COOLDOWN"],
+};
+
+/** Refill the roster card records (backend #138): one POST, up to ~10 s. */
+export function requestCardRefresh(
+  name: string,
+  origin: string | undefined,
+  options: Options = {},
+): Promise<BackendResult<CardRefreshEnvelope>> {
+  if (characterNameError(name)) return Promise.resolve(invalid);
+  const url = backendUrl(origin, "/api/v1/characters/card-collection/refresh");
+  url?.searchParams.set("characterName", normalizeCharacterName(name));
+  return requestBackend(url, {
+    ...options,
+    method: "POST",
+    timeoutMs: options.timeoutMs ?? 30_000,
+    isValid: isCardRefreshEnvelope,
+    errorCodes: cardRefreshErrors,
   });
 }

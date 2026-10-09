@@ -1,6 +1,6 @@
 import type { CharacterResult, QueryFailure } from "./model";
 import type { HistoryEnvelope, SiblingsEnvelope, ViewsEnvelope } from "./validate";
-import type { CardCollectionEnvelope } from "./card-collection";
+import type { CardCollectionEnvelope, CardRefreshEnvelope } from "./card-collection";
 import type { PopularEnvelope, PopularPeriod } from "./popular";
 import type { RankEnvelope } from "./rank";
 import type { TitlesEnvelope } from "./titles";
@@ -30,9 +30,9 @@ export async function fetchCharacter(name: string, signal: AbortSignal) {
   }
 }
 
-async function getJson<T>(path: string, signal: AbortSignal): Promise<T> {
+async function getJson<T>(path: string, signal: AbortSignal, method: "GET" | "POST" = "GET"): Promise<T> {
   try {
-    const response = await fetch(path, { signal, cache: "no-store" });
+    const response = await fetch(path, { method, signal, cache: "no-store" });
     const result:
       { ok: true; envelope: T } | { ok: false; error: QueryFailure } =
       await response.json();
@@ -86,4 +86,12 @@ export const fetchHistory = (
   getJson<HistoryEnvelope>(
     `/api/characters/history?${new URLSearchParams({ characterName: name, serverName: server })}`,
     signal,
+  );
+
+/** Refill the roster card records (POST; the backend reads up to 12 characters). */
+export const postCardRefresh = (name: string, signal: AbortSignal) =>
+  getJson<CardRefreshEnvelope>(
+    `/api/characters/card-collection/refresh?${new URLSearchParams({ characterName: name })}`,
+    signal,
+    "POST",
   );

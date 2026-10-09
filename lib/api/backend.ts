@@ -144,7 +144,9 @@ export async function requestBackend<T>(
       const status = options.errorCodes[response.status]
         ? response.status
         : 502;
-      if (status === 429) code = "LOST_ARK_RATE_LIMITED";
+      // Every 429 reads as the rate limit, except a 429 code the caller allow-lists
+      // for its own meaning (e.g. CARD_COLLECTION_REFRESH_COOLDOWN).
+      if (status === 429 && !options.errorCodes[429]?.includes(code)) code = "LOST_ARK_RATE_LIMITED";
       return {
         ok: false,
         error: {

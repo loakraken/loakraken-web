@@ -1,6 +1,7 @@
 import "server-only";
 import {
   requestCardCollection,
+  requestCardRefresh,
   requestHistory,
   requestSiblings,
   requestViews,
@@ -28,6 +29,10 @@ export function getRank(name: string, signal?: AbortSignal) {
 
 export function getTitles(name: string, signal?: AbortSignal) {
   return requestTitles(name, process.env.LOAKRAKEN_API_ORIGIN, { signal });
+}
+
+export function refreshCardCollection(name: string, signal?: AbortSignal) {
+  return requestCardRefresh(name, process.env.LOAKRAKEN_API_ORIGIN, { signal });
 }
 
 export function getViews(name: string, signal?: AbortSignal) {
