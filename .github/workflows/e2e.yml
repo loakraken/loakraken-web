@@ -32,7 +32,7 @@ concurrency:
 jobs:
   e2e:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     env:
       CI: "true"
       NEXT_TELEMETRY_DISABLED: 1
@@ -96,12 +96,57 @@ jobs:
           JS
         env:
           PR: ${{ github.event.pull_request.number }}
+      # 성능 점검(비필수·정보용, PM 총괄 결정 2026-10-09). 390px·CPU 4배로 LCP·CLS·INP를 잰다.
+      # 위 기능 검사의 standalone 빌드를 다시 쓴다(E2E_SKIP_BUILD). 비공개 저장소라 별도 job으로 다시 빌드하지 않는다.
+      # 기준 초과는 이 단계만 실패로 표시되고 job·PR은 막지 않는다(continue-on-error). 흔들림을 보려고 같은 커밋에서 3회 반복한다.
+      - name: Run performance budget
+        id: perf
+        if: always()
+        continue-on-error: true
+        working-directory: e2e
+        env:
+          E2E_SKIP_BUILD: "1"
+          E2E_PERF: "1"
+          E2E_PERF_ENFORCE: "1"
+          PLAYWRIGHT_JSON_OUTPUT_NAME: perf-results.json
+        run: npx playwright test --project=perf --repeat-each=3 --retries=0 --reporter=list,json
+      - name: Summarize performance
+        if: always()
+        working-directory: e2e
+        run: |
+          node --input-type=commonjs <<'JS'
+            const fs = require("fs");
+            if (!fs.existsSync("perf-results.json")) { console.log("perf-results.json 없음(실행 전 실패)"); process.exit(0); }
+            const report = JSON.parse(fs.readFileSync("perf-results.json", "utf8"));
+            const rows = [];
+            const seen = {}; // 같은 화면의 몇 번째 반복인지(JSON 보고서에는 반복 번호가 없다)
+            const walk = (suite) => {
+              for (const spec of suite.specs ?? []) for (const t of spec.tests ?? []) for (const r of t.results ?? []) {
+                const a = (r.attachments ?? []).find((x) => x.name === "perf" && x.body);
+                if (!a) continue;
+                const m = JSON.parse(Buffer.from(a.body, "base64").toString("utf8"));
+                rows.push({ run: process.env.GITHUB_RUN_ID, pr: process.env.PR, sha: process.env.GITHUB_SHA, status: r.status, ...m, repeat: (seen[m.page] = (seen[m.page] ?? 0) + 1) });
+              }
+              for (const s of suite.suites ?? []) walk(s);
+            };
+            for (const s of report.suites ?? []) walk(s);
+            fs.writeFileSync("e2e-perf.jsonl", rows.map((x) => JSON.stringify(x)).join("\n") + (rows.length ? "\n" : ""));
+            let md = "### 성능 점검(비필수, 390px·CPU 4배, 기준 LCP 2.5초·CLS 0.1·INP 200ms)\n\n| 화면 | 회차 | LCP(ms) | CLS | 로딩 CLS | INP(ms) | 긴 작업 | 결과 |\n|---|---|---|---|---|---|---|---|\n";
+            for (const x of rows) md += `| ${x.page} | ${x.repeat} | ${x.lcpMs} | ${x.cls} | ${x.loadCls} | ${x.inpMs} | ${x.longTasks} | ${x.status} |\n`;
+            if (!rows.length) md += "| (결과 없음) | | | | | | | |\n";
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, md);
+            console.log(md);
+          JS
+        env:
+          PR: ${{ github.event.pull_request.number }}
       - name: Upload stats
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: e2e-stats
-          path: e2e/e2e-stats.json
+          path: |
+            e2e/e2e-stats.json
+            e2e/e2e-perf.jsonl
           if-no-files-found: ignore
           retention-days: 30
       - name: Upload report and traces
