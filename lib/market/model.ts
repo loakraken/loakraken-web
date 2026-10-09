@@ -238,7 +238,7 @@ export const statusCopy: Record<QuoteStatus, { label: string; text: string }> =
 export function quoteStatusCopy(status: string): { label: string; text: string } {
   return Object.hasOwn(statusCopy, status)
     ? statusCopy[status as QuoteStatus]
-    : { label: UNKNOWN_LABEL, text: "아직 알 수 없는 상태라 계산에 넣지 않았어요." };
+    : { label: UNKNOWN_LABEL, text: "이 항목의 상태를 아직 표시할 수 없어요." };
 }
 
 export type MarketFailure = { code: string; status: number; retryAt?: number };
