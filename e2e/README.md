@@ -21,12 +21,14 @@ npx playwright show-report       # 실패 시 trace·스크린샷
 - 이미 떠 있는 서버를 재사용한다. CI에서는 새로 띄운다.
 - 다른 미리보기(예: PR 작업 트리)를 검사하려면 `E2E_BASE_URL=http://localhost:3002 npx playwright test`로 실행한다. 이때 서버는 띄우지 않는다.
 - 운영 빌드로 돌리기: `E2E_SERVER=standalone npx playwright test`. `next build` 뒤 컨테이너 이미지와 같은 standalone `server.js`를 3202번에 띄운다(`.next/static`·`public` 복사). 빌드를 건너뛰려면 `E2E_SKIP_BUILD=1`을 쓴다. 로컬 기준 빌드 포함 약 3분이다. **같은 작업 트리에서 dev 서버가 떠 있으면 먼저 끈다.** `next build`가 같은 `.next`를 덮어써 dev 화면이 깨질 수 있다. dev를 계속 써야 하면 별도 작업 트리에서 돌린다.
+- 성능 측정(비필수): `E2E_PERF=1 E2E_SERVER=standalone npx playwright test --project=perf`. 홈·캐릭터·시세를 390px·CPU 4배 감속으로 열고 LCP·CLS(로딩 중·조작 후)·클릭 응답(INP 근사)·긴 작업을 `[perf]` 줄과 첨부로 남긴다. 기준(LCP 2.5초·CLS 0.1·INP 200ms) 초과를 실패로 보려면 `E2E_PERF_ENFORCE=1`을 더한다. dev 서버 수치는 부풀려지니 운영 빌드로 잰다.
 - 브라우저: 기본은 설치된 Chrome(`channel: chrome`)이다. CI에서 크로미움을 쓰려면 `npx playwright install chromium` 후 `E2E_CHANNEL=chromium`으로 실행한다.
 
 ## 구성
 
 | 경로 | 내용 |
 |---|---|
+| `perf/budget.spec.mjs` | 성능 기준(작업 규칙 '성능 우선') 측정, `E2E_PERF=1`일 때만 |
 | `smoke/home.spec.mjs` | 홈·/about 검색(정상·빈 값·문자 제한·64자 초과), Ctrl K 포커스 |
 | `smoke/home-dashboard.spec.mjs` | 홈 일정·시세·공지, 요일 선택 재조회, 점검 배너, 08:00·13:30·23:30 섹션 문구, 지난 회차 숨김 켬·끔(시계 고정) |
 | `smoke/site-nav.spec.mjs` | 상단 메뉴 이동·호버·↓/Esc/←→, 성장 도구 메뉴(경매·돌파고)·현재 위치, 390px 메뉴 시트·Esc 포커스 복귀 |
