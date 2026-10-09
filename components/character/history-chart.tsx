@@ -142,7 +142,7 @@ export function HistoryChart({
           {day.format(t1)}
         </text>
         <path d={area} className={styles.area} />
-        <path d={line} className={styles.line} />
+        <path d={line} className={styles.line} pathLength={1} data-draw />
         <circle cx={x(last.t)} cy={y(last.v)} r={4} className={styles.dot} />
         {active != null && activeValue != null && (
           <g aria-hidden="true">
