@@ -23,6 +23,7 @@ import {
   type QueryFailure,
 } from "@/lib/character/model";
 import { SiteHeader } from "@/components/site/site-header";
+import { recordRecent } from "@/lib/character/recent";
 import { CharacterBanner } from "./imagery";
 import { kstTime, level, number, text } from "./parts";
 import { TabBar, TabPanel, tabOf } from "./tabs";
@@ -140,6 +141,15 @@ function CharacterContent({
     setNow(Date.now());
   }
   const position = data ? positionOf(data) : null;
+  // Remember successful searches for the home page's recent list (browser only).
+  const seen = data
+    ? { name: data.characterName, server: data.serverName, className: data.className, itemLevel: data.itemLevel }
+    : null;
+  useEffect(() => {
+    if (seen) recordRecent(seen);
+    // Record once per character and refresh, not on every re-render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [seen?.name, seen?.itemLevel]);
 
   return (
     <div className={styles.page}>
