@@ -17,6 +17,7 @@ import {
 } from "@/lib/character/rank";
 import { Panel } from "./panel";
 import styles from "./rank.module.css";
+import { useCrossfade } from "@/lib/motion";
 
 function Cells({ data, metric }: { data: CharacterRank; metric: RankMetric }) {
   return (
@@ -66,6 +67,7 @@ export function RankPanel({ name }: { name: string }) {
     queryFn: ({ signal }) => fetchRank(name, signal),
     staleTime: 5 * 60_000,
   });
+  const fade = useCrossfade(query.isPending);
   const limit = useRateLimit(query.error);
   const data = query.data?.data;
   const code = query.error instanceof CharacterQueryError ? query.error.info.code : null;
@@ -100,7 +102,12 @@ export function RankPanel({ name }: { name: string }) {
       ) : (
         <>
           {METRICS.map((metric) => (
-            <section key={metric.id} className={styles.metric} aria-label={`${metric.label} 순위`}>
+            <section
+              key={metric.id}
+              ref={fade}
+              className={styles.metric}
+              aria-label={`${metric.label} 순위`}
+            >
               <h3>{metric.label}</h3>
               {state === "excluded" ? (
                 <p className={styles.muted}>-</p>

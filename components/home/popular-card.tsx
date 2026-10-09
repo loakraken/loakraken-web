@@ -8,6 +8,7 @@ import type { PopularPeriod } from "@/lib/character/popular";
 import styles from "./home.module.css";
 import { countdownText } from "@/lib/api/rate-limit";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
+import { useCrossfade } from "@/lib/motion";
 
 const PERIODS: { id: PopularPeriod; label: string }[] = [
   { id: "24h", label: "24시간" },
@@ -28,6 +29,7 @@ export function PopularCard() {
     queryFn: ({ signal }) => fetchPopular(period, signal),
     staleTime: 5 * 60_000,
   });
+  const fade = useCrossfade(query.isPending);
   const data = query.data?.data;
   const limit = useRateLimit(query.error);
 
@@ -52,7 +54,7 @@ export function PopularCard() {
       ) : data.sampleStatus === "COLLECTING" || data.items.length === 0 ? (
         <p className={styles.muted}>아직 순위를 집계하고 있어요.</p>
       ) : (
-        <ol className={styles.popular}>
+        <ol ref={fade} className={styles.popular}>
           {data.items.map((item) => (
             <li key={`${item.serverName}-${item.characterName}`}>
               <Link href={`/character/${encodeURIComponent(item.characterName)}`}>

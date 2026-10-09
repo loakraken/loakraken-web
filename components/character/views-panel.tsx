@@ -8,6 +8,7 @@ import { Panel } from "./panel";
 import styles from "./views.module.css";
 import { countdownText, retryLabel } from "@/lib/api/rate-limit";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
+import { useCrossfade } from "@/lib/motion";
 
 const ROWS = ["일", "월", "화", "수", "목", "금", "토"];
 const count = (n: number) => `${n.toLocaleString("ko-KR")}회`;
@@ -23,6 +24,7 @@ export function ViewsPanel({ name }: { name: string }) {
     queryFn: ({ signal }) => fetchViews(name, signal),
     staleTime: 60_000,
   });
+  const fade = useCrossfade(query.isPending);
   const limit = useRateLimit(query.error);
   const data = query.data?.data;
   const weeks = useMemo(() => viewWeeks(data?.days ?? []), [data]);
@@ -72,7 +74,7 @@ export function ViewsPanel({ name }: { name: string }) {
         </div>
       ) : (
         <>
-          <div className={styles.frame}>
+          <div ref={fade} className={styles.frame}>
             <div className={styles.rowLabels} aria-hidden="true">
               {ROWS.map((row, i) => (
                 <span key={row}>{i % 2 ? row : ""}</span>

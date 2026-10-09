@@ -9,6 +9,7 @@ import { CardRefresh } from "./card-refresh";
 import styles from "./card-collection.module.css";
 import { countdownText, retryLabel } from "@/lib/api/rate-limit";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
+import { useCrossfade } from "@/lib/motion";
 
 /**
  * Roster card records (F-6), inside the cards panel right under the equipped
@@ -21,6 +22,7 @@ export function CardCollection({ name }: { name: string }) {
     queryFn: ({ signal }) => fetchCardCollection(name, signal),
     staleTime: 5 * 60_000,
   });
+  const fade = useCrossfade(query.isPending);
   const data = query.data?.data;
   // Default to the character's role; either set list can be viewed (ILOA).
   const [role, setRole] = useState<"dealer" | "supporter" | null>(null);
@@ -75,7 +77,7 @@ export function CardCollection({ name }: { name: string }) {
         </div>
       ) : (
         <>
-          <ul className={styles.elements}>
+          <ul ref={fade} className={styles.elements}>
             {orderedSlots(data.elementRecords[shown]).map((slot, i) => {
               const stage = slot.record ? appliedStage(slot.record) : null;
               return (
