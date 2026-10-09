@@ -49,7 +49,9 @@
   padding: 10px 16px;
   border-radius: var(--radius-pill);
   background: var(--ink);
-  color: var(--primary-foreground);
+  /* Paired with --ink (= --foreground) like the shared Button secondary:
+     white on black in light mode, dark text on the light fill in dark. */
+  color: var(--background);
   font-size: var(--text-body);
 }
 .skip:focus {
@@ -354,7 +356,9 @@
   height: 44px;
   padding: 0 22px;
   background: var(--ink);
-  color: var(--primary-foreground);
+  /* Paired with --ink (= --foreground) like the shared Button secondary:
+     white on black in light mode, dark text on the light fill in dark. */
+  color: var(--background);
   font-size: var(--text-body);
 }
 .outlinePill {
