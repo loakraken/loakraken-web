@@ -268,7 +268,11 @@
   font-weight: 600;
   white-space: nowrap;
 }
-.refillButton:not(:disabled):hover {
+.refillButton[aria-disabled="true"] {
+  cursor: default;
+  opacity: 0.6;
+}
+.refillButton:not([aria-disabled="true"]):hover {
   background: color-mix(in oklab, var(--secondary) 80%, var(--foreground) 6%);
 }
 .refillStatus {

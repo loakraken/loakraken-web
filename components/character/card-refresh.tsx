@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { RefreshCw } from "lucide-react";
 import { InlineOrb } from "@/components/landing/orb";
@@ -54,6 +54,15 @@ export function CardRefresh({ name }: { name: string }) {
       : undefined;
   const seconds = useSecondsUntil(until);
   const busy = refill.isPending;
+  const blocked = busy || seconds > 0;
+  // Synchronous lock: a double click fires twice before React re-renders, and
+  // each refill spends up to 12 official calls.
+  const lock = useRef(false);
+  function start() {
+    if (lock.current || blocked) return;
+    lock.current = true;
+    refill.mutate(undefined, { onSettled: () => (lock.current = false) });
+  }
 
   const status = busy
     ? "원정대 카드 기록을 불러오는 중이에요. 몇 초 걸릴 수 있어요."
@@ -72,8 +81,9 @@ export function CardRefresh({ name }: { name: string }) {
       <button
         type="button"
         className={styles.refillButton}
-        onClick={() => refill.mutate()}
-        disabled={busy || seconds > 0}
+        onClick={start}
+        // aria-disabled, not disabled: keyboard focus stays on the button.
+        aria-disabled={blocked || undefined}
         aria-describedby={`card-refill-note-${name}`}
       >
         {busy ? <InlineOrb /> : <RefreshCw size={14} aria-hidden="true" />}

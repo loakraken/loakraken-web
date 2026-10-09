@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { backendUrl, forwardContext, requestBackend } from "../lib/api/backend";
+import { isSameSite } from "../lib/api/same-site";
 
 const url = () => backendUrl("http://127.0.0.1:8080", "/api/v1/x");
 const isAny = (body: unknown): body is unknown => body !== undefined;
@@ -62,4 +63,14 @@ test("crawlers are flagged by User-Agent; an incoming bot header is never passed
     context: incoming({ "user-agent": CHROME, "x-loakraken-bot": "1" }),
   });
   assert.equal(seen.at(-1)?.has("x-loakraken-bot"), false);
+});
+
+test("only same-site requests may start a refill", () => {
+  const req = (headers: Record<string, string>) => new Request("https://loakraken.gg/api/x", { method: "POST", headers });
+  assert.equal(isSameSite(req({ "sec-fetch-site": "same-origin" })), true);
+  assert.equal(isSameSite(req({ "sec-fetch-site": "cross-site" })), false);
+  assert.equal(isSameSite(req({ "sec-fetch-site": "same-site" })), false);
+  assert.equal(isSameSite(req({ origin: "https://loakraken.gg" })), true);
+  assert.equal(isSameSite(req({ origin: "https://evil.example" })), false);
+  assert.equal(isSameSite(req({})), false);
 });
