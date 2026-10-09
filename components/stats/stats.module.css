@@ -1,0 +1,360 @@
+/* Statistics (B-3): filter row, summary cards, tabs and tables on the light
+   page. One blue for data marks; collecting rows fade. No repeating motion. */
+.main {
+  max-width: 1168px;
+  margin: 0 auto;
+  padding: 0 24px 64px;
+}
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px 14px;
+  margin: 8px 0 14px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: #f5f5f7;
+}
+.filters label {
+  display: grid;
+  gap: 4px;
+  color: #6e6e73;
+  font-size: 12px;
+  font-weight: 600;
+}
+.filters select,
+.filters input:not([type="checkbox"]) {
+  min-width: 96px;
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid #d2d2d7;
+  border-radius: 10px;
+  background: #fff;
+  color: #1d1d1f;
+  font-size: 14px;
+  font-weight: 500;
+}
+.filters input:not([type="checkbox"]) {
+  width: 110px;
+  font-variant-numeric: tabular-nums;
+}
+.filters .check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  color: #1d1d1f;
+  font-size: 13px;
+  font-weight: 500;
+}
+.notice {
+  margin: 0 0 10px;
+  color: #6e6e73;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.notice strong {
+  color: #8a5a00;
+  font-weight: 600;
+}
+.cards {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0 0 20px;
+}
+.cards > div {
+  display: grid;
+  align-content: start;
+  gap: 2px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: #f5f5f7;
+}
+.cards dt {
+  color: #6e6e73;
+  font-size: 12px;
+  font-weight: 600;
+}
+.cards dd {
+  margin: 0;
+  color: #1d1d1f;
+  font-size: 22px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+.cards small {
+  color: #6e6e73;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+.tabs button,
+.segment button {
+  padding: 7px 14px;
+  border-radius: 9999px;
+  color: #1d1d1f;
+  font-size: 14px;
+  font-weight: 600;
+}
+.tabs button[aria-selected="true"],
+.segment button[aria-pressed="true"] {
+  background: #1d1d1f;
+  color: #fff;
+}
+.panel {
+  min-height: 200px;
+}
+.tableWrap {
+  overflow-x: auto;
+}
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.table th,
+.table td {
+  padding: 9px 10px;
+  border-bottom: 1px solid #e8e8ed;
+  text-align: right;
+  white-space: nowrap;
+}
+.table thead th {
+  color: #6e6e73;
+  font-size: 12px;
+  font-weight: 600;
+}
+.table tbody th {
+  color: #1d1d1f;
+  font-weight: 600;
+  text-align: left;
+}
+.table thead th:nth-child(2),
+.table thead th:first-child:last-child {
+  text-align: left;
+}
+.table td small {
+  display: block;
+  color: #6e6e73;
+  font-size: 11px;
+}
+.table tr[data-collecting] {
+  opacity: 0.5;
+}
+.table .wide {
+  width: 32%;
+  min-width: 160px;
+}
+.quantile {
+  position: relative;
+  display: block;
+  height: 14px;
+}
+.quantile i,
+.quantile b,
+.quantile em {
+  position: absolute;
+  top: 50%;
+}
+.quantile i {
+  height: 2px;
+  background: #b4d1f5;
+  transform: translateY(-50%);
+}
+.quantile b {
+  height: 10px;
+  border-radius: 3px;
+  background: #4a8fe0;
+  transform: translateY(-50%);
+}
+.quantile em {
+  width: 2px;
+  height: 14px;
+  background: #1d1d1f;
+  transform: translate(-50%, -50%);
+}
+.note {
+  margin: 10px 0 0;
+  color: #6e6e73;
+  font-size: 12px;
+}
+.muted {
+  margin: 0;
+  color: #6e6e73;
+  font-size: 13px;
+}
+.problem {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 12px;
+  background: #f5f5f7;
+  color: #1d1d1f;
+  font-size: 14px;
+}
+.problem p {
+  margin: 0;
+}
+.problem button,
+.textButton {
+  color: #0066cc;
+  font-size: 13px;
+  font-weight: 600;
+}
+.problem button:disabled {
+  color: #6e6e73;
+}
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+}
+.segment {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 9999px;
+  background: #f0f0f3;
+}
+.segment button {
+  font-size: 13px;
+}
+.lookup {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #6e6e73;
+  font-size: 13px;
+  font-weight: 600;
+}
+.lookup input {
+  width: 110px;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid #d2d2d7;
+  border-radius: 10px;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+.result {
+  min-height: 20px;
+  margin: 10px 0;
+  color: #1d1d1f;
+  font-size: 14px;
+}
+.result strong {
+  font-size: 16px;
+}
+.tier {
+  margin: 0 4px;
+  padding: 1px 6px;
+  border-radius: 9999px;
+  background: #e8f0fb;
+  color: #0055b3;
+  font-size: 11px;
+  font-weight: 700;
+}
+.histogram {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 200px;
+  margin: 0;
+  padding: 0;
+  border-bottom: 1px solid #d2d2d7;
+  list-style: none;
+}
+.histogram li {
+  display: flex;
+  flex: 1;
+  align-items: flex-end;
+  height: 100%;
+  min-width: 2px;
+}
+.histogram i {
+  display: block;
+  width: 100%;
+  min-height: 1px;
+  border-radius: 4px 4px 0 0;
+  background: #4a8fe0;
+}
+.histogram li:hover i {
+  background: #0066cc;
+}
+.histogram li[data-hit] i {
+  background: #1d1d1f;
+}
+.axis {
+  display: flex;
+  justify-content: space-between;
+  margin: 4px 0 0;
+  color: #6e6e73;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+@media (max-width: 1000px) {
+  .cards {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (max-width: 600px) {
+  .main {
+    padding: 0 16px 48px;
+  }
+  .cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .cards dd {
+    font-size: 18px;
+  }
+  .filters label {
+    flex: 1 1 40%;
+  }
+  .filters select,
+  .filters input:not([type="checkbox"]) {
+    width: 100%;
+  }
+  .histogram {
+    height: 160px;
+  }
+}
+.hero {
+  padding: 40px 0 12px;
+}
+.hero h1 {
+  margin: 0;
+  color: #1d1d1f;
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+.hero p {
+  margin: 6px 0 0;
+  color: #6e6e73;
+  font-size: 15px;
+}
+.hero .kicker {
+  margin: 0 0 4px;
+  color: #6e6e73;
+  font-size: 13px;
+  font-weight: 600;
+}

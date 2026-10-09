@@ -1192,7 +1192,9 @@ function RosterTitlesPanel({ name }: { name: string }) {
       meta={result ? `${titles.length}개 · 원정대 ${result.rosterCharacters}명 중 ${result.observedCharacters}명 기록` : undefined}
     >
       <p className={styles.titleNote} id={noteId}>
-        <span>LOAKraken에서 처음 확인한 순서</span>
+        <span>
+          LOAKraken에서 처음 확인한 순서<span className={styles.srOnly}>.</span>
+        </span>
         <span className={styles.titleInfo}>
           <Info size={13} aria-hidden="true" />
           장착한 칭호만 기록되며 실제 획득일과 다를 수 있어요

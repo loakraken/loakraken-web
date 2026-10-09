@@ -473,6 +473,91 @@ createServer(async (req, res) => {
       data: { characterName: who, serverName: "아만", rosterCharacters: 6, observedCharacters: titles.length ? 2 : 0, ruleVersion: "title-record-v1", titles },
     });
   }
+  // Statistics (B-3, backend #100): synthetic but shaped like the real thing.
+  // server=니나브 → small sample (COLLECTING everywhere).
+  if (url.pathname.startsWith("/api/v1/stats/")) {
+    const q = url.searchParams;
+    const small = q.get("server") === "니나브";
+    const scale = small ? 0.001 : q.get("activeDays") === "7" ? 0.4 : q.get("activeDays") === "90" ? 1.6 : 1;
+    const minLevel = Number(q.get("itemLevelMin") || 1640);
+    const conditions = {
+      server: q.get("server"), role: q.get("role"), className: null, activeDays: Number(q.get("activeDays") || 30),
+      itemLevelMin: minLevel, itemLevelMax: q.get("itemLevelMax") ? Number(q.get("itemLevelMax")) : null,
+      combatPowerMin: null, combatPowerMax: null, representativeOnly: q.get("representativeOnly") === "true",
+    };
+    const classes = [
+      ["바드", 9120, 0.82], ["홀리나이트", 6210, 0.74], ["도화가", 5880, 0.79], ["발키리", 4120, 0.68],
+      ["블래스터", 6120, 0], ["소울이터", 5410, 0], ["버서커", 5230, 0], ["슬레이어", 4980, 0], ["기상술사", 4710, 0],
+      ["스카우터", 4400, 0], ["아르카나", 4210, 0], ["데빌헌터", 3990, 0], ["리퍼", 3870, 0], ["창술사", 3720, 0],
+      ["워로드", 3610, 0], ["인파이터", 3400, 0], ["건슬링어", 3310, 0], ["디스트로이어", 3010, 0], ["소서리스", 2950, 0],
+      ["배틀마스터", 2890, 0], ["서머너", 2610, 0], ["블레이드", 2480, 0], ["데모닉", 2360, 0], ["호크아이", 2210, 0],
+      ["스트라이커", 2080, 0], ["브레이커", 1720, 0], ["환수사", 25, 0],
+    ].map(([className, n, sup], i) => {
+      const count = Math.max(small ? 3 : 25, Math.round(n * scale));
+      const ready = count >= 30;
+      const base = 3000 + (i % 7) * 40 - (sup ? 300 : 0);
+      return {
+        className, count, share: 0, dealers: Math.round(count * (1 - sup)), supports: Math.round(count * sup), unknownRole: 0,
+        supportShare: sup ? Math.round(sup * 10000) / 100 : null,
+        itemLevelMean: ready ? Math.round((1712 + (i % 5) * 3.1) * 100) / 100 : null,
+        gemMeanLevel: ready ? Math.round((8.2 + (i % 4) * 0.2) * 10) / 10 : null,
+        combatPower: ready ? { p10: base - 520, p25: base - 260, p50: base, p75: base + 280, p90: base + 610 } : null,
+        sampleStatus: ready ? "READY" : "COLLECTING",
+      };
+    });
+    const population = classes.reduce((a, c) => a + c.count, 0);
+    for (const c of classes) c.share = Math.round((c.count / population) * 10000) / 100;
+    const meta = {
+      population, conditions, aggregatedAt: new Date(Date.now() - 600_000).toISOString(), snapshot: "latest", ruleVersion: "stats-v1",
+      minSample: 30, sampleStatus: population >= 30 ? "READY" : "COLLECTING",
+      coverage: { observedCharacters: population + 120, knownCharacters: population + 4000, discoveredAccounts: Math.round(population / 4) },
+    };
+    const view = url.pathname.slice("/api/v1/stats/".length);
+    const ok = (code, data) => send({ code, message: "성공", data: { meta, ...data } });
+    if (view === "summary") {
+      const supports = classes.reduce((a, c) => a + c.supports, 0);
+      const dealers = population - supports;
+      return ok("STATS_SUMMARY_SUCCESS", {
+        itemLevelMean: 1714.52, itemLevelMedian: 1712.5, combatPowerMedian: 3058, combatPowerP90: 3712,
+        dealers, supports, unknownRole: 0, supportShare: Math.round((supports / Math.max(1, dealers + supports)) * 10000) / 100,
+        gemMeanLevel: 8.4, gemSample: Math.round(population * 0.93),
+      });
+    }
+    if (view === "classes") return ok("STATS_CLASSES_SUCCESS", { rows: classes });
+    if (view === "servers") {
+      const names = ["루페온", "실리안", "아만", "아브렐슈드", "카단", "카마인", "카제로스", "니나브"];
+      const weights = [0.24, 0.12, 0.14, 0.11, 0.1, 0.1, 0.13, 0.06];
+      return ok("STATS_SERVERS_SUCCESS", {
+        rows: names.map((serverName, i) => {
+          const count = Math.round(population * weights[i]);
+          return { serverName, count, share: weights[i] * 100, itemLevelMedian: 1709 + i * 1.5, combatPowerMedian: 3010 + i * 12, knownCharacters: count * 3, rosters: Math.round(count / 5), sampleStatus: count >= 30 ? "READY" : "COLLECTING" };
+        }),
+      });
+    }
+    if (view === "distribution") {
+      const metric = q.get("metric");
+      if (metric !== "ITEM_LEVEL" && metric !== "COMBAT_POWER") return send({ code: "INVALID_REQUEST", message: "x" }, 400);
+      const width = Number(q.get("width") || (metric === "ITEM_LEVEL" ? 10 : 100));
+      const [lo, hi, mid, sd] = metric === "ITEM_LEVEL" ? [minLevel, 1780, 1712, 25] : [2000, 4600, 3060, 420];
+      const bins = [];
+      for (let from = Math.floor(lo / width) * width; from < hi; from += width) {
+        const x = from + width / 2;
+        bins.push({ from, to: from + width, count: Math.round(population * (width / (sd * 2.5066)) * Math.exp(-((x - mid) ** 2) / (2 * sd * sd))) });
+      }
+      const total = bins.reduce((a, b) => a + b.count, 0);
+      let percentileOf = null;
+      if (q.get("percentileOf")) {
+        const value = Number(q.get("percentileOf"));
+        const above = bins.filter((b) => b.from >= value).reduce((a, b) => a + b.count, 0);
+        const rank = Math.max(1, above);
+        const top = Math.round((rank / total) * 10000) / 100;
+        const tier = top <= 1 ? "TOP1" : top <= 5 ? "TOP5" : top <= 10 ? "TOP10" : top <= 25 ? "TOP25" : top <= 50 ? "TOP50" : "REST";
+        percentileOf = { value, rank, total, topPercent: top, tier };
+      }
+      return ok("STATS_DISTRIBUTION_SUCCESS", { metric, width, bins: bins.filter((b) => b.count > 0), percentileOf });
+    }
+    return send({ code: "INVALID_REQUEST", message: "x" }, 400);
+  }
   if (url.pathname === "/api/v1/characters/views") {
     const who = url.searchParams.get("characterName");
     if (who === "기록끔") return send({ code: "CHARACTER_VIEWS_DISABLED" }, 503);
