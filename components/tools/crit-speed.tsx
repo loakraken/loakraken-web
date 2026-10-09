@@ -411,6 +411,8 @@ function SwiftnessTable({ speed }: { speed: CritSpeed["speed"] }) {
 
 function Results({ data, stale }: { data: CritSpeed; stale: boolean }) {
   const { crit, speed } = data;
+  // Missing on backends before #133; the validator lets those through.
+  const damage = crit.damage as typeof crit.damage | undefined;
   // Axes the screen does not know yet (newer backend): listed, not dropped.
   const unknownAxes = [
     ...new Set(data.sources.map((s) => s.axis).filter((axis) => !(axis in AXIS_LABEL))),
@@ -438,6 +440,16 @@ function Results({ data, stale }: { data: CritSpeed; stale: boolean }) {
           {over > 0.005 && ` · 상한을 넘은 ${percent(over)}는 적용되지 않아요`}
           {` · 치명 ${crit.critStatPerPercent.toLocaleString("ko-KR", { maximumFractionDigits: 2 })} = 치적 1%`}
         </p>
+        {damage && (
+          <p className={styles.damage}>
+            <span>치명타 피해</span>
+            <b>{percent(damage.total)}</b>
+            <small>
+              기본 {percent(damage.base)} + 캐릭터 {percent(damage.observed)} ·
+              스킬 한정 효과는 빼고 계산해요
+            </small>
+          </p>
+        )}
         <ul className={styles.targets}>
           {crit.targets.map((target) => {
             const copy = TARGET_LABEL[target.key] ?? {
@@ -563,6 +575,19 @@ function Results({ data, stale }: { data: CritSpeed; stale: boolean }) {
         </p>
         <h3 className={styles.sourceTitle}>치명타 적중률</h3>
         <SourceList sources={data.sources} axis="CRIT" />
+        {damage && (
+          <>
+            <h3 className={styles.sourceTitle}>치명타 피해</h3>
+            {data.sources.some((s) => s.axis === "CRIT_DAMAGE") ? (
+              <SourceList sources={data.sources} axis="CRIT_DAMAGE" />
+            ) : (
+              <p className={quote.caption}>
+                장비·팔찌·각인·아크 패시브·카드에 치명타 피해 효과가 없어 기본{" "}
+                {percent(damage.base)}예요.
+              </p>
+            )}
+          </>
+        )}
         <h3 className={styles.sourceTitle}>공격 속도</h3>
         <SourceList sources={data.sources} axis="ATTACK_SPEED" />
         <h3 className={styles.sourceTitle}>이동 속도</h3>

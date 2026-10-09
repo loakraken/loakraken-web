@@ -137,6 +137,7 @@ export const CATEGORY_LABEL: Record<CritSource["category"], string> = {
 
 export const AXIS_LABEL: Record<CritSource["axis"], string> = {
   CRIT: "치명타 적중률",
+  CRIT_DAMAGE: "치명타 피해",
   ATTACK_SPEED: "공격 속도",
   MOVE_SPEED: "이동 속도",
 };
