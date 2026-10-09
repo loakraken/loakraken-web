@@ -14,6 +14,9 @@ function SegmentedControl({ className, ...props }: RadioGroup.Props) {
       className={cn(
         // 20px = a full pill on one 40px row, a rounded box when it wraps.
         "inline-flex max-w-full flex-wrap gap-1 rounded-[20px] bg-muted p-1",
+        // Keep the track at its own height inside grid/flex columns (a stretched
+        // track left the pills hugging its top edge), and centre them anyway.
+        "items-center self-start justify-self-start",
         className
       )}
       {...props}
