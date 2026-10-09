@@ -24,7 +24,7 @@
   font-weight: 500;
 }
 .categories button[aria-pressed="true"] {
-  background: #fff;
+  background: var(--background);
   font-weight: 700;
   box-shadow: 0 0 0 1px var(--control);
 }
@@ -71,7 +71,7 @@
   gap: 2px;
   padding: 3px;
   border-radius: 10px;
-  background: #fff;
+  background: var(--background);
 }
 .tiers {
   margin-top: 10px;
@@ -90,7 +90,7 @@
 .tiers button[aria-pressed="true"],
 .ranges button[aria-pressed="true"] {
   background: var(--ink);
-  color: #fff;
+  color: var(--background);
 }
 .rows {
   display: grid;
@@ -114,7 +114,7 @@
   text-align: left;
 }
 .rows button[aria-pressed="true"] {
-  background: #fff;
+  background: var(--background);
   box-shadow: inset 3px 0 0 var(--action);
 }
 @media (hover: hover) and (pointer: fine) {
@@ -138,8 +138,8 @@
   padding: 1px 5px;
   border-radius: 5px;
   background: var(--control);
-  color: var(--slate);
-  font-size: 10px;
+  color: var(--secondary-foreground);
+  font-size: 11px;
   font-style: normal;
   font-weight: 600;
 }
@@ -161,37 +161,37 @@
 .board [data-grade="일반"],
 .detail [data-grade="일반"],
 .favorites [data-grade="일반"] {
-  color: #6e6e73;
+  color: var(--muted-foreground);
 }
 .board [data-grade="고급"],
 .detail [data-grade="고급"],
 .favorites [data-grade="고급"] {
-  color: #3f8f1f;
+  color: var(--grade-uncommon-text);
 }
 .board [data-grade="희귀"],
 .detail [data-grade="희귀"],
 .favorites [data-grade="희귀"] {
-  color: #0a74b8;
+  color: var(--grade-rare-text);
 }
 .board [data-grade="영웅"],
 .detail [data-grade="영웅"],
 .favorites [data-grade="영웅"] {
-  color: #8f2fc0;
+  color: var(--grade-epic-text);
 }
 .board [data-grade="전설"],
 .detail [data-grade="전설"],
 .favorites [data-grade="전설"] {
-  color: #b86a00;
+  color: var(--grade-legendary-text);
 }
 .board [data-grade="유물"],
 .detail [data-grade="유물"],
 .favorites [data-grade="유물"] {
-  color: #c4520a;
+  color: var(--grade-relic-text);
 }
 .board [data-grade="고대"],
 .detail [data-grade="고대"],
 .favorites [data-grade="고대"] {
-  color: #8c7333;
+  color: var(--grade-ancient-text);
 }
 .change {
   font-size: 12px;
@@ -199,10 +199,10 @@
   font-variant-numeric: tabular-nums;
 }
 .change[data-direction="up"] {
-  color: #d93a2b;
+  color: var(--market-up);
 }
 .change[data-direction="down"] {
-  color: #2f6fd9;
+  color: var(--market-down);
 }
 .change[data-direction="flat"],
 .change[data-direction="none"] {
@@ -224,7 +224,7 @@
 }
 .pages button[aria-current="page"] {
   background: var(--ink);
-  color: #fff;
+  color: var(--background);
 }
 .note {
   margin-top: 10px;
@@ -277,7 +277,7 @@
   font-weight: 600;
 }
 .favorites button svg {
-  color: #e0a100;
+  color: var(--grade-legendary-text);
 }
 .favorites button[aria-pressed="true"] {
   box-shadow: inset 0 0 0 1.5px var(--ink);
@@ -289,10 +289,10 @@
   height: 36px;
   margin-left: auto;
   border-radius: 50%;
-  color: #a1a1a6;
+  color: var(--faint);
 }
 .star[aria-pressed="true"] {
-  color: #e0a100;
+  color: var(--grade-legendary-text);
 }
 .star[aria-pressed="true"] svg {
   fill: currentColor;
@@ -334,7 +334,7 @@
 .facts div {
   padding: 10px 12px;
   border-radius: 12px;
-  background: #fff;
+  background: var(--background);
 }
 .facts dt {
   color: var(--slate);
@@ -368,7 +368,7 @@
   margin-top: 10px;
   padding: 10px 10px 6px;
   border-radius: 12px;
-  background: #fff;
+  background: var(--background);
 }
 .chartSvg {
   display: block;
@@ -382,38 +382,38 @@
   outline-offset: 4px;
 }
 .grid {
-  stroke: #e6e6e8;
+  stroke: var(--secondary);
   stroke-width: 1;
 }
 .tick {
-  fill: #707070;
+  fill: var(--muted-foreground);
   font-size: 11px;
   font-variant-numeric: tabular-nums;
 }
 .area {
-  fill: #0071e3;
+  fill: var(--ring);
   fill-opacity: 0.1;
 }
 .line {
   fill: none;
-  stroke: #0071e3;
+  stroke: var(--ring);
   stroke-width: 2;
   stroke-linejoin: round;
   stroke-linecap: round;
 }
 .dot {
-  fill: #0071e3;
-  stroke: #fff;
+  fill: var(--ring);
+  stroke: var(--background);
   stroke-width: 2;
 }
 .volume {
-  fill: #c7c7cc;
+  fill: color-mix(in oklab, var(--foreground) 22%, transparent);
 }
 .volume[data-active] {
-  fill: #86868b;
+  fill: var(--faint);
 }
 .crosshair {
-  stroke: #86868b;
+  stroke: var(--faint);
   stroke-width: 1;
 }
 .readout {
