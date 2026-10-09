@@ -365,8 +365,12 @@ function Section({
   );
 }
 
-function ScheduleBoard() {
-  const now = useClock(MINUTE);
+/**
+ * Past rounds are hidden from the server render time until the client clock
+ * starts, so the first HTML already has the final row heights (CLS, QA #181).
+ */
+function ScheduleBoard({ renderedAt }: { renderedAt?: number }) {
+  const now = useClock(MINUTE) ?? renderedAt ?? null;
   const today = now === null ? null : kstDate(now);
   const [picked, setPicked] = useState<string | null>(null);
   const [hidePast, setHidePast] = useState(true);
@@ -508,8 +512,13 @@ const useNews = () =>
   });
 
 /** Shown only on the maintenance day itself, above everything else. */
-function MaintenanceBanner() {
-  const now = useClock(MINUTE);
+/**
+ * Today/tomorrow maintenance. Decided from the server render time until the
+ * client clock starts, so the banner is already in the first HTML and never
+ * pushes the page down after hydration (CLS, QA #181).
+ */
+function MaintenanceBanner({ renderedAt }: { renderedAt?: number }) {
+  const now = useClock(MINUTE) ?? renderedAt ?? null;
   const data = useNews().data?.data;
   const upcoming =
     data && now !== null ? upcomingMaintenance(data.notices, now) : null;
@@ -531,8 +540,8 @@ function MaintenanceBanner() {
   );
 }
 
-function NewsPanels() {
-  const now = useClock(MINUTE);
+function NewsPanels({ renderedAt }: { renderedAt?: number }) {
+  const now = useClock(MINUTE) ?? renderedAt ?? null;
   const query = useNews();
   const limit = useRateLimit(query.error);
   const data = query.data?.data;
@@ -728,7 +737,7 @@ function MarketSummary() {
   );
 }
 
-export function HomeDashboard() {
+export function HomeDashboard({ renderedAt }: { renderedAt?: number }) {
   return (
     <div className={styles.page}>
       <a className={styles.skip} href="#home-main">
@@ -737,16 +746,16 @@ export function HomeDashboard() {
       <SiteHeader />
       <main id="home-main" className={styles.main}>
         <SearchHero />
-        <MaintenanceBanner />
+        <MaintenanceBanner renderedAt={renderedAt} />
         <div className={styles.grid}>
           <div className={styles.column}>
-            <ScheduleBoard />
+            <ScheduleBoard renderedAt={renderedAt} />
             <MarketSummary />
           </div>
           <aside className={styles.column} aria-label="공지와 이벤트">
             <RecentCard />
             <PopularCard />
-            <NewsPanels />
+            <NewsPanels renderedAt={renderedAt} />
             <ServerCard />
           </aside>
         </div>

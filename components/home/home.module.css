@@ -211,10 +211,11 @@
   margin-bottom: 14px;
 }
 .days button {
+  position: relative;
   display: grid;
   justify-items: center;
   gap: 1px;
-  padding: 8px 0;
+  padding: 8px 0 10px;
   border: 0;
   border-radius: 12px;
   background: #fff;
@@ -236,14 +237,18 @@
 .days button[data-weekend] span {
   color: #c4291c;
 }
-.days button[data-today] b::after {
+/* The today dot sits in the bottom padding, outside the flow, so marking
+   today after the clock starts never changes the row height (QA #181). */
+.days button[data-today]::after {
   content: "";
-  display: block;
+  position: absolute;
+  bottom: 3px;
+  left: 50%;
   width: 4px;
   height: 4px;
-  margin: 2px auto 0;
   border-radius: 50%;
   background: #0071e3;
+  transform: translateX(-50%);
 }
 .days button[aria-pressed="true"] {
   background: #1d1d1f;

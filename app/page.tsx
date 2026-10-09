@@ -25,7 +25,7 @@ export default async function Home() {
   if (news.ok) client.setQueryData(homeNewsKey, news.envelope, { updatedAt: fetchedAt });
   return (
     <HydrationBoundary state={dehydrate(client)}>
-      <HomeDashboard />
+      <HomeDashboard renderedAt={fetchedAt} />
     </HydrationBoundary>
   );
 }
