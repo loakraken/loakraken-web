@@ -6,7 +6,7 @@ import {
 } from "@tanstack/react-query";
 import { CharacterView } from "@/components/character/character-view";
 import { normalizeCharacterName } from "@/lib/character/model";
-import { getCharacter } from "@/lib/character/server";
+import { getCharacter, getRank } from "@/lib/character/server";
 
 export const dynamic = "force-dynamic";
 const decodeName = (raw: string) => {
@@ -37,7 +37,13 @@ export default async function CharacterPage({
   params: Promise<{ characterName: string }>;
 }) {
   const name = decodeName((await params).characterName);
-  const result = await getCharacter(name);
+  const [result, rank] = await Promise.all([
+    getCharacter(name),
+    // The rank panel sits in the first screen on wide layouts; painting it
+    // after a client fetch made it the late LCP element (web #246). A slow
+    // rank gives up after 1s and the panel fetches it as before.
+    getRank(name, AbortSignal.timeout(1_000)),
+  ]);
   // Request-time snapshot in a dynamic Server Component, shared with hydration.
   // eslint-disable-next-line react-hooks/purity
   const renderedAt = Date.now();
@@ -46,6 +52,8 @@ export default async function CharacterPage({
     client.setQueryData(["character", name], result.envelope, {
       updatedAt: renderedAt,
     });
+  if (result.ok && rank.ok)
+    client.setQueryData(["character-rank", name], rank.envelope, { updatedAt: renderedAt });
   return (
     <HydrationBoundary state={dehydrate(client)}>
       <CharacterView
