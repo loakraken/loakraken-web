@@ -118,7 +118,9 @@ export const NAV_SECTIONS: NavSection[] = [
       {
         title: "분포",
         links: [
-          { label: "직업·전투력 분포", description: "레벨 구간별 직업 비율과 분위" },
+          { label: "직업 통계", description: "직업별 인원과 전투력 분위", href: "/stats" },
+          { label: "전투력·레벨 분포", description: "내 값은 상위 몇 %인지", href: "/stats?tab=distribution" },
+          { label: "서버 통계", description: "서버별 인원과 중앙값", href: "/stats?tab=servers" },
           { label: "채택률", description: "각인·아크 패시브·코어 선택" },
         ],
       },

@@ -21,7 +21,8 @@
     "api:generate:card-collection": "openapi-typescript contracts/card-collection.openapi.json -o lib/api/card-collection-schema.d.ts",
     "api:generate:popular": "openapi-typescript contracts/popular.openapi.json -o lib/api/popular-schema.d.ts",
     "api:generate:rank": "openapi-typescript contracts/rank.openapi.json -o lib/api/rank-schema.d.ts",
-    "api:generate:titles": "openapi-typescript contracts/titles.openapi.json -o lib/api/titles-schema.d.ts"
+    "api:generate:titles": "openapi-typescript contracts/titles.openapi.json -o lib/api/titles-schema.d.ts",
+    "api:generate:stats": "openapi-typescript contracts/stats.openapi.json -o lib/api/stats-schema.d.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
