@@ -98,7 +98,7 @@ export interface components {
             /** @enum {string} */
             category: "STAT" | "ENGRAVING" | "ARK_PASSIVE" | "ACCESSORY" | "BRACELET" | "CARD" | "ASSUMPTION";
             /** @enum {string} */
-            axis: "CRIT" | "ATTACK_SPEED" | "MOVE_SPEED";
+            axis: "CRIT" | "CRIT_DAMAGE" | "ATTACK_SPEED" | "MOVE_SPEED";
             name: string | null;
             value: number;
             text: string | null;
@@ -116,6 +116,8 @@ export interface components {
             targets: components["schemas"]["CritSpeedTargetResponse"][];
             /** @description 치명타 적중률 1%당 치명 스탯(27.944) */
             critStatPerPercent: number;
+            /** @description 치명타 피해(%). 기본 200 + 관측 출처(axis=CRIT_DAMAGE) 합. 스킬 한정 문구 제외 */
+            damage: components["schemas"]["CritSpeedCritDamageResponse"];
         };
         CritSpeedBluntThornResponse: {
             /**
@@ -145,6 +147,14 @@ export interface components {
              */
             requiredAdditionalCritStat: number;
             reached: boolean;
+        };
+        CritSpeedCritDamageResponse: {
+            /** @description 기본 치명타 피해(200) */
+            base: number;
+            /** @description 관측 출처 합 */
+            observed: number;
+            /** @description base + observed */
+            total: number;
         };
         CritSpeedSpeedResponse: {
             swiftnessStat: number | null;

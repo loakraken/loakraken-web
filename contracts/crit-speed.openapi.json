@@ -290,6 +290,7 @@
             "type": "string",
             "enum": [
               "CRIT",
+              "CRIT_DAMAGE",
               "ATTACK_SPEED",
               "MOVE_SPEED"
             ]
@@ -369,6 +370,10 @@
           "critStatPerPercent": {
             "type": "number",
             "description": "치명타 적중률 1%당 치명 스탯(27.944)"
+          },
+          "damage": {
+            "$ref": "#/components/schemas/CritSpeedCritDamageResponse",
+            "description": "치명타 피해(%). 기본 200 + 관측 출처(axis=CRIT_DAMAGE) 합. 스킬 한정 문구 제외"
           }
         },
         "required": [
@@ -376,6 +381,7 @@
           "bluntThorn",
           "critStat",
           "critStatPerPercent",
+          "damage",
           "effectiveRate",
           "observedRate",
           "targets",
@@ -477,6 +483,28 @@
           "requiredAdditionalCritStat",
           "requiredCritStat",
           "targetRate"
+        ]
+      },
+      "CritSpeedCritDamageResponse": {
+        "type": "object",
+        "properties": {
+          "base": {
+            "type": "number",
+            "description": "기본 치명타 피해(200)"
+          },
+          "observed": {
+            "type": "number",
+            "description": "관측 출처 합"
+          },
+          "total": {
+            "type": "number",
+            "description": "base + observed"
+          }
+        },
+        "required": [
+          "base",
+          "observed",
+          "total"
         ]
       },
       "CritSpeedSpeedResponse": {

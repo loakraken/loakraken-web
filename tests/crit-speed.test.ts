@@ -29,6 +29,60 @@ test("backend-generated crit-speed fixture satisfies the contract", () => {
   assert.equal(isCritSpeedEnvelope(wrongCode), false);
 });
 
+test("crit damage (backend #133) validates and groups under its own axis", () => {
+  const value = fixture();
+  assert.deepEqual(value.data.crit.damage, { base: 200, observed: 0, total: 200 });
+  // 언새늘: 200 + bracelet 8.40 (calc-verification team, matches ILOA/LOPEC).
+  value.data.sources.push({
+    kind: "OBSERVED",
+    category: "BRACELET",
+    axis: "CRIT_DAMAGE",
+    name: "팔찌",
+    value: 8.4,
+    text: "치명타 피해 +8.40%",
+  });
+  value.data.crit.damage = { base: 200, observed: 8.4, total: 208.4 };
+  assert.equal(isCritSpeedEnvelope(value), true);
+  assert.deepEqual(
+    groupSources(value.data.sources, "CRIT_DAMAGE").map((g) => [g.category, g.total]),
+    [["BRACELET", 8.4]],
+  );
+  assert.equal(
+    groupSources(value.data.sources, "CRIT").some((g) =>
+      g.items.some((item) => item.axis === "CRIT_DAMAGE"),
+    ),
+    false,
+  );
+});
+
+test("additive backend changes never blank the screen", () => {
+  // A future axis/category the contract does not know yet is accepted and
+  // simply not grouped under any known axis.
+  const future = fixture();
+  future.data.sources.push({
+    kind: "OBSERVED",
+    category: "GEM",
+    axis: "CRIT_RESIST",
+    name: "미래 출처",
+    value: 1,
+    text: "새 효과",
+  });
+  assert.equal(isCritSpeedEnvelope(future), true);
+  for (const axis of ["CRIT", "CRIT_DAMAGE", "ATTACK_SPEED", "MOVE_SPEED"] as const)
+    assert.equal(
+      groupSources(future.data.sources, axis).some((g) => g.items.some((i) => i.name === "미래 출처")),
+      false,
+    );
+  // A backend from before #133 has no crit.damage.
+  const older = fixture();
+  delete older.data.crit.damage;
+  assert.equal(isCritSpeedEnvelope(older), true);
+  // Wrong shapes are still rejected.
+  const broken = fixture();
+  broken.data.crit.damage = { base: "200" };
+  assert.equal(isCritSpeedEnvelope(broken), false);
+});
+
 test("settings become assumptions with buff presets summed and own class excluded", () => {
   assert.deepEqual(toAssumptions(DEFAULT_SETTINGS), {
     backAttack: true,
