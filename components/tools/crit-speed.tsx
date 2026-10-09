@@ -20,6 +20,7 @@ import {
   SYNERGY_CLASSES,
   TARGET_LABEL,
   critSpeedFailureCopy,
+  classStateSources,
   groupSources,
   percent,
   toAssumptions,
@@ -171,6 +172,12 @@ function SettingsPanel({
         hint="치명타 적중률 +10%"
         checked={settings.backAttack}
         onChange={(value) => set("backAttack", value)}
+      />
+      <Toggle
+        label="직업 상태 가정"
+        hint="공식 문구의 특정 상태(예: 리퍼 혼돈)를 켠 값으로 계산 · 다른 전투정보 사이트와 같은 기준"
+        checked={settings.classState}
+        onChange={(value) => set("classState", value)}
       />
       <Toggle
         label="치명 펫"
@@ -411,8 +418,17 @@ function SwiftnessTable({ speed }: { speed: CritSpeed["speed"] }) {
   );
 }
 
-function Results({ data, stale }: { data: CritSpeed; stale: boolean }) {
+function Results({
+  data,
+  stale,
+  classState,
+}: {
+  data: CritSpeed;
+  stale: boolean;
+  classState: boolean;
+}) {
   const { crit, speed } = data;
+  const states = classStateSources(data.sources);
   // Missing on backends before #133; the validator lets those through.
   const damage = crit.damage as typeof crit.damage | undefined;
   // Axes the screen does not know yet (newer backend): listed, not dropped.
@@ -442,6 +458,15 @@ function Results({ data, stale }: { data: CritSpeed; stale: boolean }) {
           {over > 0.005 && ` · 상한을 넘은 ${percent(over)}는 적용되지 않아요`}
           {` · 치명 ${crit.critStatPerPercent.toLocaleString("ko-KR", { maximumFractionDigits: 2 })} = 치적 1%`}
         </p>
+        {classState ? (
+          states.map((s, i) => (
+            <p key={`${s.name}-${i}`} className={styles.figureNote}>
+              가정한 직업 상태 · {s.name} +{percent(s.value)}: {s.text}
+            </p>
+          ))
+        ) : (
+          <p className={styles.figureNote}>직업 상태 가정 없이 관측한 상태 그대로 계산했어요.</p>
+        )}
         {damage && (
           <p className={styles.damage}>
             <span>치명타 피해</span>
@@ -759,7 +784,11 @@ function CritSpeedContent({ initialName }: { initialName: string }) {
                         다시 계산하고 있어요
                       </p>
                     )}
-                    <Results data={data} stale={query.isPlaceholderData} />
+                    <Results
+                      data={data}
+                      stale={query.isPlaceholderData}
+                      classState={settings.classState}
+                    />
                   </>
                 ) : name ? (
                   <p className={styles.empty} role="status">
