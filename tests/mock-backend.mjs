@@ -239,6 +239,9 @@ function refiningPlan(request) {
 const port = Number(process.env.MOCK_PORT || 4180);
 createServer(async (req, res) => {
   const url = new URL(req.url, `http://127.0.0.1:${port}`);
+  // MOCK_MARKET_DELAY_MS: a slow market backend (server prefetch times out, QA #180).
+  if (url.pathname.startsWith("/api/v1/markets") && process.env.MOCK_MARKET_DELAY_MS)
+    await new Promise((resolve) => setTimeout(resolve, Number(process.env.MOCK_MARKET_DELAY_MS)));
   const send = (body, status = 200, headers = {}) => {
     res.writeHead(status, {
       "Content-Type": "application/json",

@@ -497,3 +497,63 @@
     transition: none;
   }
 }
+/* Loading placeholders with the final sizes (QA #180, slow backend): a page
+   of rows the height of real rows and a chart-sized pending box, so the
+   board and history do not move when data arrives. */
+.skeletonRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 63px;
+  padding: 0 10px;
+}
+.skeletonRow i,
+.skeletonRow span {
+  display: block;
+  border-radius: 8px;
+  background: var(--secondary);
+}
+.skeletonRow i {
+  flex: none;
+  width: 36px;
+  height: 36px;
+}
+.skeletonRow span {
+  flex: 1;
+  height: 14px;
+  max-width: 60%;
+}
+.chartPending {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 296px;
+  margin: 0;
+  color: var(--slate);
+  font-size: 13px;
+}
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.dailyPending {
+  height: 502px;
+  margin-top: 12px;
+  border-radius: 12px;
+  background: color-mix(in oklab, var(--secondary) 50%, transparent);
+}
+.detailPending {
+  min-height: 1055px;
+  border-radius: 18px;
+  background: var(--mist);
+}
+@media (max-width: 860px) {
+  .detailPending {
+    min-height: 1128px;
+  }
+}

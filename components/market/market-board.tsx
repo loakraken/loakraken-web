@@ -14,6 +14,7 @@ import {
   changeWithAmount,
   completedDays,
   goldText,
+  TAB_FALLBACK,
   isTabId,
   unitPrice,
   updatedAgo,
@@ -229,9 +230,13 @@ function Detail({
       {failure ? (
         <Problem failure={failure} onRetry={() => history.refetch()} />
       ) : history.isPending ? (
-        <p className={styles.muted} role="status">
-          <InlineOrb /> 추이를 불러오고 있어요
-        </p>
+        <>
+          <p className={styles.chartPending} role="status">
+            <InlineOrb /> 추이를 불러오고 있어요
+          </p>
+          {/* The 14-day table below the chart arrives with the history: hold its place. */}
+          <div className={styles.dailyPending} aria-hidden="true" />
+        </>
       ) : days.length ? (
         <MarketChart days={days} />
       ) : (
@@ -369,11 +374,14 @@ function MarketContent({
                 {t.label}
               </button>
             ))}
-            {!tabList.length && tabs.isPending && (
-              <span className={styles.muted}>
-                <InlineOrb /> 분류를 불러오고 있어요
-              </span>
-            )}
+            {!tabList.length &&
+              tabs.isPending &&
+              // Same names and sizes as the live list: nothing moves when it arrives.
+              TAB_FALLBACK.map((t) => (
+                <button key={t.tab} type="button" aria-pressed={t.tab === query.tab} disabled>
+                  {t.label}
+                </button>
+              ))}
           </nav>
           {favorites.length === 0 ? (
             <p className={styles.favoritesHint}>
@@ -416,7 +424,9 @@ function MarketContent({
                   ))}
                 </div>
               </div>
-              {currentTab?.defaultTier != null && (
+              {(currentTab
+                ? currentTab.defaultTier != null
+                : TAB_FALLBACK.some((t) => t.tab === query.tab && t.tiered)) && (
                 <div className={styles.tiers} role="group" aria-label="티어">
                   {TIERS.map((t) => (
                     <button
@@ -445,9 +455,18 @@ function MarketContent({
                   }}
                 />
               ) : !data ? (
-                <p className={styles.muted} role="status">
-                  <InlineOrb /> 시세를 불러오고 있어요
-                </p>
+                // One page of empty rows: the list keeps its height while loading.
+                <ul className={styles.rows} aria-busy="true">
+                  <li className={styles.srOnly} role="status">
+                    시세를 불러오고 있어요
+                  </li>
+                  {Array.from({ length: 10 }, (_, i) => (
+                    <li key={i} className={styles.skeletonRow} aria-hidden="true">
+                      <i />
+                      <span />
+                    </li>
+                  ))}
+                </ul>
               ) : !items.length ? (
                 <p className={styles.muted}>표시할 품목이 없어요.</p>
               ) : (
@@ -514,6 +533,10 @@ function MarketContent({
                   tab={favorite ? favorite.tab : query.tab}
                   outside={!!favorite}
                 />
+              ) : !data && !failure ? (
+                // Board still loading: hold the detail panel height (it sits above
+                // the board below 860px), so the board does not jump when it fills.
+                <div className={styles.detailPending} aria-hidden="true" />
               ) : (
                 <p className={styles.muted}>품목을 고르면 추이를 보여줘요.</p>
               )}
