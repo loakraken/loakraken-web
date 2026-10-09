@@ -31,7 +31,7 @@ test.describe("목 응답 계약 @regression", () => {
     expect(await response.json()).toMatchObject({ ok: false, error: { code: "INVALID_API_RESPONSE" } });
   });
 
-  test("원정대·이력·조회수·카드 기록·인기 검색 응답이 계약 검증을 통과한다", async ({ request }) => {
+  test("원정대·이력·조회수·카드 기록·인기 검색·순위·칭호·통계·랭킹 응답이 계약 검증을 통과한다", async ({ request }) => {
     for (const path of [
       `/api/characters/siblings?${q({ characterName: "상세" })}`,
       `/api/characters/history?${q({ characterName: "상세", serverName: "아만" })}`,
@@ -40,6 +40,14 @@ test.describe("목 응답 계약 @regression", () => {
         (name) => `/api/characters/card-collection?${q({ characterName: name })}`,
       ),
       ...["24h", "7d"].map((period) => `/api/characters/popular?${q({ period })}`),
+      ...["상세", "비공개", "조건밖", "집계중"].map((name) => `/api/characters/rank?${q({ characterName: name })}`),
+      ...["상세", "칭호없음"].map((name) => `/api/characters/titles?${q({ characterName: name })}`),
+      ...["summary", "classes", "servers"].map((view) => `/api/stats/${view}`),
+      // 분포는 화면이 보내는 매개변수(지표·구간 폭)가 있어야 한다.
+      `/api/stats/distribution?${q({ metric: "COMBAT_POWER", width: "100", percentileOf: "3000" })}`,
+      `/api/stats/distribution?${q({ metric: "ITEM_LEVEL", width: "5" })}`,
+      "/api/rankings",
+      `/api/rankings?${q({ metric: "ITEM_LEVEL", page: "2" })}`,
     ]) {
       const response = await request.get(path);
       const body = await response.json();
