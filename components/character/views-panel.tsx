@@ -19,12 +19,12 @@ const count = (n: number) => `${n.toLocaleString("ko-KR")}회`;
  * readout carries the exact count, so the value is never colour-only.
  */
 export function ViewsPanel({ name }: { name: string }) {
-  const fade = useCrossfade();
   const query = useQuery({
     queryKey: ["character-views", name],
     queryFn: ({ signal }) => fetchViews(name, signal),
     staleTime: 60_000,
   });
+  const fade = useCrossfade(query.isPending);
   const limit = useRateLimit(query.error);
   const data = query.data?.data;
   const weeks = useMemo(() => viewWeeks(data?.days ?? []), [data]);
@@ -74,7 +74,7 @@ export function ViewsPanel({ name }: { name: string }) {
         </div>
       ) : (
         <>
-          <div {...fade(styles.frame)}>
+          <div ref={fade} className={styles.frame}>
             <div className={styles.rowLabels} aria-hidden="true">
               {ROWS.map((row, i) => (
                 <span key={row}>{i % 2 ? row : ""}</span>

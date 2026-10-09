@@ -17,12 +17,12 @@ import { useCrossfade } from "@/lib/motion";
  * LOAWA's 도감 and buildable set effects, folded.
  */
 export function CardCollection({ name }: { name: string }) {
-  const fade = useCrossfade();
   const query = useQuery({
     queryKey: ["card-collection", name],
     queryFn: ({ signal }) => fetchCardCollection(name, signal),
     staleTime: 5 * 60_000,
   });
+  const fade = useCrossfade(query.isPending);
   const data = query.data?.data;
   // Default to the character's role; either set list can be viewed (ILOA).
   const [role, setRole] = useState<"dealer" | "supporter" | null>(null);
@@ -77,7 +77,7 @@ export function CardCollection({ name }: { name: string }) {
         </div>
       ) : (
         <>
-          <ul {...fade(styles.elements)}>
+          <ul ref={fade} className={styles.elements}>
             {orderedSlots(data.elementRecords[shown]).map((slot, i) => {
               const stage = slot.record ? appliedStage(slot.record) : null;
               return (

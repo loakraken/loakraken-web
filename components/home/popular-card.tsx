@@ -23,13 +23,13 @@ const level = (value: number | null) =>
  * a collecting state instead of a thin list.
  */
 export function PopularCard() {
-  const fade = useCrossfade();
   const [period, setPeriod] = useState<PopularPeriod>("24h");
   const query = useQuery({
     queryKey: ["home-popular", period],
     queryFn: ({ signal }) => fetchPopular(period, signal),
     staleTime: 5 * 60_000,
   });
+  const fade = useCrossfade(query.isPending);
   const data = query.data?.data;
   const limit = useRateLimit(query.error);
 
@@ -54,7 +54,7 @@ export function PopularCard() {
       ) : data.sampleStatus === "COLLECTING" || data.items.length === 0 ? (
         <p className={styles.muted}>아직 순위를 집계하고 있어요.</p>
       ) : (
-        <ol {...fade(styles.popular)}>
+        <ol ref={fade} className={styles.popular}>
           {data.items.map((item) => (
             <li key={`${item.serverName}-${item.characterName}`}>
               <Link href={`/character/${encodeURIComponent(item.characterName)}`}>

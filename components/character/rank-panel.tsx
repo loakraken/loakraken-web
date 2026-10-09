@@ -62,12 +62,12 @@ function Cells({ data, metric }: { data: CharacterRank; metric: RankMetric }) {
  * shows only "순위 비공개"; a small sample shows "집계 중", never a 0.
  */
 export function RankPanel({ name }: { name: string }) {
-  const fade = useCrossfade();
   const query = useQuery({
     queryKey: ["character-rank", name],
     queryFn: ({ signal }) => fetchRank(name, signal),
     staleTime: 5 * 60_000,
   });
+  const fade = useCrossfade(query.isPending);
   const limit = useRateLimit(query.error);
   const data = query.data?.data;
   const code = query.error instanceof CharacterQueryError ? query.error.info.code : null;
@@ -104,7 +104,8 @@ export function RankPanel({ name }: { name: string }) {
           {METRICS.map((metric) => (
             <section
               key={metric.id}
-              {...fade(styles.metric)}
+              ref={fade}
+              className={styles.metric}
               aria-label={`${metric.label} 순위`}
             >
               <h3>{metric.label}</h3>

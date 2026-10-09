@@ -132,7 +132,6 @@ function Detail({
   tab: FavoriteItem["tab"];
   outside?: boolean;
 }) {
-  const fade = useCrossfade();
   const favorites = useFavorites();
   const starred = favorites.some((f) => f.itemId === item.itemId);
   const unit = unitPrice(item.currentMinPrice, item.bundleCount);
@@ -147,6 +146,7 @@ function Detail({
   const data: ItemHistory | undefined = history.data?.data;
   const variant = data?.variants[Math.min(variantIndex, (data?.variants.length ?? 1) - 1)];
   const days = completedDays(variant, range);
+  const fade = useCrossfade(history.isPending);
   const failure = failureOf(history.error);
   return (
     <section className={styles.detail} aria-label={`${item.name} 시세`}>
@@ -240,7 +240,7 @@ function Detail({
           <div className={styles.dailyPending} aria-hidden="true" />
         </>
       ) : days.length ? (
-        <div {...fade()}>
+        <div ref={fade}>
           <MarketChart days={days} />
         </div>
       ) : (
@@ -286,7 +286,6 @@ function MarketContent({
   initial: BoardQuery;
   initialItem: number | null;
 }) {
-  const fade = useCrossfade();
   const router = useRouter();
   const [query, setQuery] = useState(initial);
   const [selected, setSelected] = useState<number | null>(initialItem);
@@ -309,6 +308,7 @@ function MarketContent({
     ...quiet,
   });
   const data = board.data?.data;
+  const fade = useCrossfade(!data);
   const items = data?.items ?? [];
   const listed = items.find((item) => item.itemId === selected);
   const favorite = !listed ? favorites.find((f) => f.itemId === selected) : undefined;
@@ -476,7 +476,8 @@ function MarketContent({
                 <p className={styles.muted}>표시할 품목이 없어요.</p>
               ) : (
                 <ul
-                  {...fade(styles.rows)}
+                  ref={fade}
+                  className={styles.rows}
                   data-stale={board.isPlaceholderData || undefined}
                 >
                   {items.map((item) => (
