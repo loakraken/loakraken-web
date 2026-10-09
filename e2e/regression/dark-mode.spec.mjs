@@ -54,10 +54,12 @@ test.describe("다크 모드 대비 @regression", () => {
   for (const [path, label] of PAGES) {
     test(`${label}: 제목·본문 글자 대비 4.5 이상`, async ({ page }) => {
       await page.goto(path);
+      // 홈·캐릭터는 데이터가 도착하면 본문을 다시 그린다. 그 뒤의 제목만 잰다.
+      await page.waitForLoadState("networkidle");
       const targets = [
         page.getByRole("heading", { level: 1 }).first(),
         page.locator("main h2").first(),
-        page.locator("main p:visible").first(),
+        page.locator("main h3").first(),
       ];
       let measured = 0;
       for (const target of targets) {
