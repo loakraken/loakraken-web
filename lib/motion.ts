@@ -16,6 +16,12 @@ const seconds = (value: string, fallback: number) => {
  *
  * Usage: `const fade = useCrossfade(query.isPending);` then
  * `<ul ref={fade} className={styles.rows}>` on the loaded content.
+ *
+ * Charts inside it play with the same load (motion guide 7, item 4): a path
+ * with `pathLength={1} data-draw` draws itself, an element with
+ * `data-grow={i}` grows from its base (`data-grow-axis="x"` from the left;
+ * give it `transform-box: fill-box` and the origin in CSS), 30ms apart up to
+ * 8 steps. Nothing replays when the chart is shown again from the cache.
  */
 export function useCrossfade(loading: boolean) {
   // A placeholder is on screen. The content that replaces it mounts in the
@@ -30,11 +36,25 @@ export function useCrossfade(loading: boolean) {
     if (!node || !waiting.current) return;
     waiting.current = false;
     if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    // The design system's reveal timing (#186), as on .k-reveal.
+    // The design system's timing (#186), as on .k-reveal / .k-draw / .k-grow.
     const style = getComputedStyle(node);
+    const easing = style.getPropertyValue("--ease-out").trim() || "ease-out";
     node.animate([{ opacity: 0 }, { opacity: 1 }], {
       duration: seconds(style.getPropertyValue("--duration-reveal"), 240),
-      easing: style.getPropertyValue("--ease-out").trim() || "ease-out",
+      easing,
     });
+    const draw = seconds(style.getPropertyValue("--duration-draw"), 600);
+    const step = seconds(style.getPropertyValue("--stagger"), 30);
+    for (const path of node.querySelectorAll<SVGElement>("[data-draw]"))
+      path.animate({ strokeDasharray: ["1 1", "1 1"], strokeDashoffset: [1, 0] }, { duration: draw, easing });
+    for (const bar of node.querySelectorAll<HTMLElement | SVGElement>("[data-grow]")) {
+      const from = bar.dataset.growAxis === "x" ? "0 1" : "1 0";
+      bar.animate({ scale: [from, "1 1"] }, {
+        duration: draw,
+        delay: Math.min(Number(bar.dataset.grow) || 0, 8) * step,
+        easing,
+        fill: "backwards",
+      });
+    }
   }, []);
 }

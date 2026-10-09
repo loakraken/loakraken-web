@@ -1321,6 +1321,7 @@ export function StatsTab({ data }: { data: Character }) {
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
   });
+  const fade = useCrossfade(query.isPending);
   const points = query.data?.data.points ?? [];
   const [table, setTable] = useState(false);
   const first = points[0];
@@ -1352,7 +1353,7 @@ export function StatsTab({ data }: { data: Character }) {
         </Panel>
       ) : (
         <>
-          <div className={styles.chartGrid}>
+          <div ref={fade} className={styles.chartGrid}>
             {METRICS.map(({ key, label }) => {
               const steps = stepSeries(points, key);
               const delta = change(steps);

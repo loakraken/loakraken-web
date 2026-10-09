@@ -118,7 +118,7 @@ export function MarketChart({ days }: { days: DailyStat[] }) {
           </g>
         ))}
         <path d={area} className={styles.area} />
-        <path d={line} className={styles.line} />
+        <path d={line} className={styles.line} pathLength={1} data-draw />
         {days.map((d, i) => (
           <rect
             key={d.date}
@@ -129,6 +129,7 @@ export function MarketChart({ days }: { days: DailyStat[] }) {
             rx={2}
             className={styles.volume}
             data-active={i === shown || undefined}
+            data-grow={i}
           />
         ))}
         <text x={PAD.left} y={H - 4} className={styles.tick}>

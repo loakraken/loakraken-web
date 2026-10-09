@@ -407,6 +407,9 @@
   stroke-width: 2;
 }
 .volume {
+  /* Grows from its base when the chart arrives (lib/motion.ts data-grow). */
+  transform-box: fill-box;
+  transform-origin: bottom;
   fill: color-mix(in oklab, var(--foreground) 22%, transparent);
 }
 .volume[data-active] {
