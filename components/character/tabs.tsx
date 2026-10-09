@@ -46,6 +46,7 @@ import { HistoryChart } from "./history-chart";
 import { AvatarsTab, CollectiblesTab } from "./inner";
 import { Panel } from "./panel";
 import { ViewsPanel } from "./views-panel";
+import { RankPanel } from "./rank-panel";
 import { CardCollection } from "./card-collection-panel";
 import { CardArt, GameIcon } from "./imagery";
 import {
@@ -984,6 +985,7 @@ export function CombatTab({ data }: { data: Character }) {
           <CardsPanel data={data} />
         </div>
         <aside className={styles.stack} aria-label="요약">
+          <RankPanel name={data.characterName} />
           <ArkPassiveSummary data={data} />
           <StatsPanel data={data} />
           <EngravingsPanel data={data} />
