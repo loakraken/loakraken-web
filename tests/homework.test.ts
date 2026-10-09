@@ -67,6 +67,12 @@ test("gold counts cleared gates, subtracts bought bonus rewards", () => {
   assert.equal(nonGold.possible, -5120);
   assert.equal(nonGold.earned, -5120);
   assert.equal(nonGold.moreSpent, 5120);
+  // Ticking a bonus on a gate that is not cleared yet only lowers the plan.
+  finalHard.cleared = [false, false];
+  const planned = characterGold({ ...character, gold: false });
+  assert.equal(planned.possible, -5120);
+  assert.equal(planned.earned, 0);
+  assert.equal(planned.moreSpent, 0);
 });
 
 test("bonus rewards are paid from bound gold first (notice 13148)", () => {
