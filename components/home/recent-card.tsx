@@ -42,7 +42,7 @@ const parseNames = (raw: string) => {
 const level = (value: number | null) =>
   value == null ? "-" : value.toLocaleString("ko-KR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const power = (value: number | null | undefined) =>
-  value == null ? null : value.toLocaleString("ko-KR", { maximumFractionDigits: 2 });
+  value == null ? null : Math.round(value).toLocaleString("ko-KR");
 
 /** Unstar from the home card; the character page reads the same list. */
 function removeFavorite(name: string) {
