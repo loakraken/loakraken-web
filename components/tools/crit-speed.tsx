@@ -610,8 +610,13 @@ function CritSpeedContent({ initialName }: { initialName: string }) {
       : query.error
         ? { code: "LOST_ARK_API_ERROR", status: 502 }
         : null;
+  // Busy buttons stay focusable (aria-disabled, not disabled) so a keyboard
+  // user keeps their place while the request runs; the handlers guard.
+  const busy = query.isFetching && !data;
+
   function submit(event: FormEvent) {
     event.preventDefault();
+    if (busy) return;
     setTouched(true);
     if (error) return;
     const target = normalizeCharacterName(input);
@@ -657,7 +662,8 @@ function CritSpeedContent({ initialName }: { initialName: string }) {
               <button
                 type="submit"
                 className={quote.secondaryPill}
-                disabled={query.isFetching && !data}
+                aria-disabled={busy || undefined}
+                aria-busy={busy || undefined}
               >
                 계산하기
               </button>
@@ -685,8 +691,9 @@ function CritSpeedContent({ initialName }: { initialName: string }) {
                     <button
                       type="button"
                       className={quote.outlinePill}
-                      disabled={query.isFetching}
-                      onClick={() => query.refetch()}
+                      aria-disabled={query.isFetching || undefined}
+                      aria-busy={query.isFetching || undefined}
+                      onClick={() => !query.isFetching && query.refetch()}
                     >
                       다시 계산
                     </button>

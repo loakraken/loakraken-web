@@ -25,9 +25,14 @@
   font: inherit;
   cursor: pointer;
 }
-.page button:disabled {
+.page button:disabled,
+.page button[aria-disabled="true"]:not([aria-busy="true"]) {
   cursor: not-allowed;
   opacity: 0.45;
+}
+/* Busy buttons keep focus and full colour (like the shared Button loading). */
+.page button[aria-busy="true"] {
+  cursor: progress;
 }
 .page :focus-visible {
   outline: 3px solid var(--action);
