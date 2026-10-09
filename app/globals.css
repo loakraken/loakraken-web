@@ -814,7 +814,7 @@ body {
      number, card list), never on data refresh. Vault: 60 디자인 시스템/모션 가이드. */
   --duration-reveal: 240ms;
   --reveal-distance: 8px;
-  --stagger: 40ms;
+  --stagger: 30ms; /* 8 steps x 30ms = 240ms at most */
   --duration-draw: 600ms; /* chart lines and bars: explanatory, capped at 600ms */
   --duration-count: 500ms;
   --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
@@ -829,6 +829,7 @@ body {
     --text-name: 21px;
     --text-display: 28px;
     --page-gutter: 16px;
+    --reveal-distance: 4px; /* shorter entrance travel on phones */
   }
 }
 
