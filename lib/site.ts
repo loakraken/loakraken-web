@@ -28,4 +28,5 @@ export const SITEMAP_PATHS = [
   "/tools/crit-speed",
   "/tools/auction",
   "/tools/stone",
+  "/tools/raid-rewards",
 ] as const;
