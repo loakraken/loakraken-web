@@ -143,13 +143,19 @@ function CharacterContent({
   const position = data ? positionOf(data) : null;
   // Remember successful searches for the home page's recent list (browser only).
   const seen = data
-    ? { name: data.characterName, server: data.serverName, className: data.className, itemLevel: data.itemLevel }
+    ? {
+        name: data.characterName,
+        server: data.serverName,
+        className: data.className,
+        itemLevel: data.itemLevel,
+        combatPower: data.combatPower,
+      }
     : null;
   useEffect(() => {
     if (seen) recordRecent(seen);
     // Record once per character and refresh, not on every re-render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [seen?.name, seen?.itemLevel]);
+  }, [seen?.name, seen?.itemLevel, seen?.combatPower]);
 
   return (
     <div className={styles.page}>

@@ -14,7 +14,7 @@ export default async function Home() {
   const prefetch = { timeoutMs: 2_500 };
   const [schedule, news] = await Promise.all([
     getSchedule(null, prefetch),
-    getNews(8, prefetch),
+    getNews(15, prefetch),
   ]);
   // Request-time snapshot in a dynamic Server Component, shared with hydration.
   // eslint-disable-next-line react-hooks/purity

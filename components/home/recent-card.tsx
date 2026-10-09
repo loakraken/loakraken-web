@@ -41,6 +41,18 @@ const parseNames = (raw: string) => {
 
 const level = (value: number | null) =>
   value == null ? "-" : value.toLocaleString("ko-KR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const power = (value: number | null | undefined) =>
+  value == null ? null : value.toLocaleString("ko-KR", { maximumFractionDigits: 2 });
+
+/** Unstar from the home card; the character page reads the same list. */
+function removeFavorite(name: string) {
+  try {
+    localStorage.setItem(FAVORITES, JSON.stringify(parseNames(favoritesSnapshot()).filter((n) => n !== name)));
+    window.dispatchEvent(new Event("loakraken:favorites"));
+  } catch {
+    /* Storage blocked. */
+  }
+}
 
 /**
  * LOAWA-style recent searches card: 최근 검색 / 즐겨찾기 tabs, each row with
@@ -89,16 +101,18 @@ export function RecentCard() {
           {rows.map((item) => (
             <li key={item.name}>
               <Link href={`/character/${encodeURIComponent(item.name)}`}>
-                {tab === "favorites" && <Star size={12} aria-hidden="true" className={styles.star} />}
                 <span className={styles.recentName}>
                   <strong>{item.name}</strong>
                   <small>
                     {[item.server, item.className].filter(Boolean).join(" · ") || "정보 없음"}
                   </small>
                 </span>
-                <b>{level(item.itemLevel)}</b>
+                <span className={styles.recentLevel}>
+                  <b>{level(item.itemLevel)}</b>
+                  {power(item.combatPower) && <small>전투력 {power(item.combatPower)}</small>}
+                </span>
               </Link>
-              {tab === "recent" && (
+              {tab === "recent" ? (
                 <button
                   type="button"
                   className={styles.remove}
@@ -106,6 +120,15 @@ export function RecentCard() {
                   onClick={() => removeRecent(item.name)}
                 >
                   <X size={14} aria-hidden="true" />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className={styles.remove}
+                  aria-label={`${item.name} 즐겨찾기 해제`}
+                  onClick={() => removeFavorite(item.name)}
+                >
+                  <Star size={14} aria-hidden="true" className={styles.starOn} />
                 </button>
               )}
             </li>

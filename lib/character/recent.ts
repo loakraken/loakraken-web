@@ -6,6 +6,8 @@ export type RecentCharacter = {
   server: string | null;
   className: string | null;
   itemLevel: number | null;
+  /** Added later; older stored rows have none. */
+  combatPower?: number | null;
   at: number;
 };
 
@@ -28,6 +30,7 @@ const isEntry = (value: unknown): value is RecentCharacter => {
     (v.server === null || typeof v.server === "string") &&
     (v.className === null || typeof v.className === "string") &&
     (v.itemLevel === null || typeof v.itemLevel === "number") &&
+    (v.combatPower === undefined || v.combatPower === null || typeof v.combatPower === "number") &&
     typeof v.at === "number"
   );
 };
