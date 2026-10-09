@@ -263,3 +263,14 @@ test("per-effect toggles (backend #193): only changed keys are sent and the allo
       JSON.stringify(toggles).slice(0, 40),
     );
 });
+
+test("toggle rows from before backend #193 5d661d7 (no axis) still validate", () => {
+  const value = fixture();
+  value.data.toggles = [
+    { key: "피냄새", label: "혼돈 상태 가정", axis: "CRIT", coreState: true, on: true, value: 23, text: "…치명타 적중률이 23.0% 로 변경된다." },
+    { key: "연가비기", label: "연가공법 16초 유지 가정", coreState: false, on: false, value: 20, text: "연가비기 사용 시 …" },
+  ];
+  assert.equal(isCritSpeedEnvelope(value), true);
+  value.data.toggles = [{ key: "피냄새" }];
+  assert.equal(isCritSpeedEnvelope(value), false, "label and on stay required");
+});

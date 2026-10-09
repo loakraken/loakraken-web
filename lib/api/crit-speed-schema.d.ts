@@ -262,11 +262,16 @@ export interface components {
             key: string;
             /** @description 화면 표시 이름(예: 악마화 상태 가정) */
             label: string;
+            /**
+             * @description 켜면 더하는 축: CRIT(치명타 적중률) 또는 CRIT_DAMAGE(치명타 피해)
+             * @enum {string}
+             */
+            axis: "CRIT" | "CRIT_DAMAGE" | "ATTACK_SPEED" | "MOVE_SPEED";
             /** @description 직업 핵심 상태·자기 버프면 true(기본 켬), 상황 조건이면 false(기본 끔) */
             coreState: boolean;
-            /** @description 이번 계산에서 켰는지 */
+            /** @description 이번 계산에서 켰는지. 동시에 적용되지 않는 효과와 함께 켜면 한쪽만 true */
             on: boolean;
-            /** @description 켜면 더하는 치명타 적중률(%) */
+            /** @description 켜면 axis에 더하는 값(%) */
             value: number;
             /** @description 공식 원문 또는 근거 */
             text: string;

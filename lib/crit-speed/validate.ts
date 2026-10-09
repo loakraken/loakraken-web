@@ -17,6 +17,9 @@ schemas.CritSpeedResponse.required =
 // Skill rows grow per backend release (#169 → #193 node·damage) and the screen
 // does not read them yet, so a row only needs its name.
 schemas.CritSpeedSkillResponse.required = ["name"];
+// Toggle rows gained axis after 3e7f7b2 (backend #193 5d661d7); older rows
+// without it default to the crit axis on screen.
+schemas.CritSpeedToggleResponse.required = ["key", "label", "on"];
 const ajv = new Ajv2020({ strict: false, validateFormats: false });
 ajv.addSchema({ $id: "crit-speed", components: { schemas } });
 const envelope = ajv.compile<CritSpeedEnvelope>({

@@ -435,7 +435,7 @@ function EffectToggles({
         <div key={t.key} className={styles.effect}>
           <Toggle
             label={t.label}
-            hint={`${AXIS_LABEL[(t as { axis?: CritSource["axis"] }).axis ?? "CRIT"] ?? "치명타 적중률"} +${percent(t.value)} · ${t.coreState ? "핵심 상태라 기본 켬" : "상황 조건이라 기본 끔"}`}
+            hint={`${AXIS_LABEL[t.axis ?? "CRIT"] ?? UNKNOWN_LABEL} +${percent(t.value)} · ${t.coreState ? "핵심 상태라 기본 켬" : "상황 조건이라 기본 끔"}`}
             checked={t.on}
             onChange={(value) => onChange(t.key, value)}
           />
