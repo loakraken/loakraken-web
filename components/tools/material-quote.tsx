@@ -115,15 +115,25 @@ function ItemSearch({
   const [name, setName] = useState("");
   const [error, setError] = useState("");
   const [submitted, setSubmitted] = useState<MarketSearch | null>(null);
+  // A search pressed before the category list arrives waits for it instead
+  // of failing with a category error the user could not have avoided: the
+  // name is kept and the search starts as soon as a category exists.
+  const [pending, setPending] = useState<string | null>(null);
   const selectedCategory =
     category ??
     categories.find((item) => item.code === 50000)?.code ??
     categories[0]?.code ??
     null;
+  const search: MarketSearch | null =
+    submitted ??
+    (pending !== null && selectedCategory
+      ? { categoryCode: selectedCategory, itemName: pending, pageNo: 1 }
+      : null);
+  const waiting = !selectedCategory && options.isFetching;
   const items = useQuery({
-    queryKey: ["market", "items", submitted],
-    queryFn: ({ signal }) => fetchMarketItems(submitted!, signal),
-    enabled: !!submitted,
+    queryKey: ["market", "items", search],
+    queryFn: ({ signal }) => fetchMarketItems(search!, signal),
+    enabled: !!search,
     retry: false,
     staleTime: 30_000,
     refetchOnWindowFocus: false,
@@ -133,16 +143,6 @@ function ItemSearch({
   useEffect(() => {
     if (failure?.retryAt) onRateLimit(failure);
   }, [failure, onRateLimit]);
-
-  // A search pressed before the category list arrives waits for it instead
-  // of failing with a category error the user could not have avoided.
-  const [pending, setPending] = useState<string | null>(null);
-  const waiting = !selectedCategory && options.isFetching;
-  useEffect(() => {
-    if (pending === null || !selectedCategory) return;
-    setPending(null);
-    setSubmitted({ categoryCode: selectedCategory, itemName: pending, pageNo: 1 });
-  }, [pending, selectedCategory]);
 
   function submit(event: FormEvent) {
     event.preventDefault();
@@ -155,6 +155,7 @@ function ItemSearch({
     const issue = searchError(selectedCategory, name);
     setError(issue);
     if (issue || wait > 0 || !selectedCategory) return;
+    setPending(null);
     setSubmitted({
       categoryCode: selectedCategory,
       itemName: normalizeText(name),
@@ -225,7 +226,7 @@ function ItemSearch({
           {items.isFetching ? "검색 중" : "검색"}
         </button>
       </form>
-      {pending !== null && (
+      {pending !== null && !search && (
         <p className={styles.caption} role="status">
           카테고리 목록을 받는 대로 검색할게요.
         </p>
@@ -272,7 +273,7 @@ function ItemSearch({
                       type="button"
                       className={styles.outlinePill}
                       disabled={added || full}
-                      onClick={() => submitted && add(item, submitted)}
+                      onClick={() => search && add(item, search)}
                       aria-label={
                         added
                           ? `${item.name} 추가됨`
