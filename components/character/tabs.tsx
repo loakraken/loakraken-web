@@ -60,6 +60,7 @@ import {
 } from "./parts";
 import styles from "./detail.module.css";
 import { rateLimitCopy, retryLabel } from "@/lib/api/rate-limit";
+import { RateLimitNote } from "@/components/site/rate-limit-note";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 
 export const TABS = [
@@ -214,7 +215,7 @@ export function TabBar({
               {fetching
                 ? "갱신 중"
                 : rateLimitSeconds > 0
-                  ? `${rateLimitSeconds}초 후 갱신`
+                  ? `${rateLimitSeconds}초 뒤 갱신`
                   : cooling
                     ? remainingLabel(window_.remainingMs)
                     : "갱신"}
@@ -1138,7 +1139,7 @@ function QueryProblem({
             text: "저장소에 문제가 생겼어요. 잠시 후 다시 시도해 주세요.",
           }
         : info.code === "LOST_ARK_RATE_LIMITED"
-          ? rateLimitCopy(limit.seconds)
+          ? rateLimitCopy()
           : info.code === "LOST_ARK_NOT_CONFIGURED" ||
             info.code === "FRONTEND_API_NOT_CONFIGURED"
           ? failureCopy(info)
@@ -1148,9 +1149,12 @@ function QueryProblem({
             };
 
   return (
-    <div className={styles.problem} role="alert">
-      <strong>{copy.title}</strong>
-      <p>{copy.text}</p>
+    <div className={styles.problem}>
+      <div role="alert">
+        <strong>{copy.title}</strong>
+        <p>{copy.text}</p>
+      </div>
+      {limit.limited && <RateLimitNote seconds={limit.seconds} />}
       <button
         type="button"
         className={styles.textButton}

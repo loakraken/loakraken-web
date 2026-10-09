@@ -18,12 +18,17 @@ export function failureOf(error: unknown): Failure | null {
 export const secondsUntil = (retryAt: number | undefined, now = Date.now()) =>
   retryAt ? Math.max(0, Math.ceil((retryAt - now) / 1000)) : 0;
 
-export function rateLimitCopy(seconds: number) {
-  return {
-    title: "요청이 많아 잠시 쉬어 가요",
-    text: seconds > 0 ? `${seconds}초 뒤 다시 시도해 주세요.` : "이제 다시 시도할 수 있어요.",
-  };
+/**
+ * The alert sentence: fixed, so a live region reads it once. The seconds
+ * left go next to it (RateLimitNote) or on the retry button.
+ */
+export function rateLimitCopy() {
+  return { title: "요청이 많아 잠시 쉬어 가요", text: "잠시 뒤 다시 시도해 주세요." };
 }
+
+/** Seconds left, for text outside live regions. */
+export const countdownText = (seconds: number) =>
+  seconds > 0 ? `${seconds}초 뒤 다시 시도해 주세요.` : "이제 다시 시도할 수 있어요.";
 
 export const retryLabel = (seconds: number, label = "다시 시도") =>
   seconds > 0 ? `${seconds}초 뒤 ${label}` : label;

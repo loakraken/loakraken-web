@@ -6,7 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { fetchPopular } from "@/lib/character/client";
 import type { PopularPeriod } from "@/lib/character/popular";
 import styles from "./home.module.css";
-import { rateLimitCopy } from "@/lib/api/rate-limit";
+import { countdownText } from "@/lib/api/rate-limit";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 
 const PERIODS: { id: PopularPeriod; label: string }[] = [
@@ -47,7 +47,7 @@ export function PopularCard() {
         <p className={styles.muted}>순위를 불러오고 있어요…</p>
       ) : !data ? (
         <p className={styles.muted}>
-          {limit.limited ? rateLimitCopy(limit.seconds).text : "순위를 불러오지 못했어요."}
+          {limit.limited ? countdownText(limit.seconds) : "순위를 불러오지 못했어요."}
         </p>
       ) : data.sampleStatus === "COLLECTING" || data.items.length === 0 ? (
         <p className={styles.muted}>아직 순위를 집계하고 있어요.</p>

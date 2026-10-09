@@ -1,5 +1,5 @@
 import type { components } from "../api/schema";
-import { rateLimitCopy, secondsUntil } from "../api/rate-limit";
+import { rateLimitCopy } from "../api/rate-limit";
 import { labelOf } from "../api/tolerant";
 
 type GeneratedCharacter = components["schemas"]["CharacterResponse"];
@@ -75,7 +75,7 @@ export function evidenceAt(
   return { found: true, value };
 }
 
-export function failureCopy(error: QueryFailure, now = Date.now()) {
+export function failureCopy(error: QueryFailure) {
   switch (error.code) {
     case "INVALID_REQUEST":
       return {
@@ -88,7 +88,7 @@ export function failureCopy(error: QueryFailure, now = Date.now()) {
         text: "이름이 정확한지 확인한 뒤 다시 검색해 주세요.",
       };
     case "LOST_ARK_RATE_LIMITED":
-      return rateLimitCopy(secondsUntil(error.retryAt, now));
+      return rateLimitCopy();
     case "LOST_ARK_API_TIMEOUT":
       return {
         title: "응답이 늦어지고 있어요",

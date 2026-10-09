@@ -52,7 +52,7 @@ import { changeLabel, goldText } from "@/lib/market/board";
 import { RecentCard } from "./recent-card";
 import { PopularCard } from "./popular-card";
 import styles from "./home.module.css";
-import { rateLimitCopy, retryLabel } from "@/lib/api/rate-limit";
+import { countdownText, retryLabel } from "@/lib/api/rate-limit";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 
 /*
@@ -436,7 +436,7 @@ function ScheduleBoard() {
         <p className={styles.muted}>일정을 불러오고 있어요…</p>
       ) : !data ? (
         <div className={styles.muted}>
-          <p>{limit.limited ? rateLimitCopy(limit.seconds).text : "일정을 불러오지 못했어요."}</p>
+          <p>{limit.limited ? countdownText(limit.seconds) : "일정을 불러오지 못했어요."}</p>
           <button
             type="button"
             className={styles.textButton}
@@ -570,7 +570,7 @@ function NewsPanels() {
             {query.isPending
               ? "공지를 불러오고 있어요…"
               : limit.limited
-                ? rateLimitCopy(limit.seconds).text
+                ? countdownText(limit.seconds)
                 : "공지를 불러오지 못했어요."}
           </p>
         ) : shownNotices.length === 0 ? (
@@ -615,7 +615,7 @@ function NewsPanels() {
             {query.isPending
               ? "이벤트를 불러오고 있어요…"
               : limit.limited
-                ? rateLimitCopy(limit.seconds).text
+                ? countdownText(limit.seconds)
                 : "이벤트를 불러오지 못했어요."}
           </p>
         ) : data.events.length === 0 ? (
@@ -693,7 +693,7 @@ function MarketSummary() {
           {query.isPending
             ? "시세를 불러오고 있어요…"
             : limit.limited
-              ? rateLimitCopy(limit.seconds).text
+              ? countdownText(limit.seconds)
               : "시세를 불러오지 못했어요."}
         </p>
       ) : (

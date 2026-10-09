@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   RATE_LIMITED,
+  countdownText,
   failureOf,
   rateLimitCopy,
   retryLabel,
@@ -13,24 +14,26 @@ import { requestBackend } from "../lib/api/backend";
 import { failureCopy } from "../lib/character/model";
 import { marketFailureCopy } from "../lib/market/model";
 
-test("copy counts down from Retry-After and never names the code", () => {
+test("the alert sentence is fixed; only the note and button count down", () => {
   const now = 1_000_000;
   assert.equal(secondsUntil(now + 29_200, now), 30);
   assert.equal(secondsUntil(now - 1, now), 0);
   assert.equal(secondsUntil(undefined, now), 0);
-  assert.deepEqual(rateLimitCopy(30), {
+  // Fixed, so a live region reads it once (no number in it).
+  assert.deepEqual(rateLimitCopy(), {
     title: "요청이 많아 잠시 쉬어 가요",
-    text: "30초 뒤 다시 시도해 주세요.",
+    text: "잠시 뒤 다시 시도해 주세요.",
   });
-  assert.equal(rateLimitCopy(0).text, "이제 다시 시도할 수 있어요.");
+  assert.equal(countdownText(30), "30초 뒤 다시 시도해 주세요.");
+  assert.equal(countdownText(0), "이제 다시 시도할 수 있어요.");
   assert.equal(retryLabel(5), "5초 뒤 다시 시도");
   assert.equal(retryLabel(0, "다시 불러오기"), "다시 불러오기");
   for (const copy of [
-    failureCopy({ code: RATE_LIMITED, status: 429, retryAt: now + 10_000 }, now),
-    marketFailureCopy({ code: RATE_LIMITED, status: 429, retryAt: now + 10_000 }, now),
+    failureCopy({ code: RATE_LIMITED, status: 429, retryAt: now + 10_000 }),
+    marketFailureCopy({ code: RATE_LIMITED, status: 429, retryAt: now + 10_000 }),
   ]) {
-    assert.equal(copy.text, "10초 뒤 다시 시도해 주세요.");
-    assert.doesNotMatch(`${copy.title} ${copy.text}`, /RATE_LIMITED|429/);
+    assert.deepEqual(copy, rateLimitCopy());
+    assert.doesNotMatch(`${copy.title} ${copy.text}`, /RATE_LIMITED|429|d/);
   }
 });
 

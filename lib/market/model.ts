@@ -1,5 +1,5 @@
 import type { components } from "../api/market-schema";
-import { rateLimitCopy, secondsUntil } from "../api/rate-limit";
+import { rateLimitCopy } from "../api/rate-limit";
 import { UNKNOWN_LABEL } from "../api/tolerant";
 
 type Schemas = components["schemas"];
@@ -244,7 +244,7 @@ export function quoteStatusCopy(status: string): { label: string; text: string }
 
 export type MarketFailure = { code: string; status: number; retryAt?: number };
 
-export function marketFailureCopy(error: MarketFailure, now = Date.now()) {
+export function marketFailureCopy(error: MarketFailure) {
   switch (error.code) {
     case "INVALID_REQUEST":
       return {
@@ -252,7 +252,7 @@ export function marketFailureCopy(error: MarketFailure, now = Date.now()) {
         text: "검색 조건이나 수량이 허용 범위를 벗어났어요.",
       };
     case "LOST_ARK_RATE_LIMITED":
-      return rateLimitCopy(secondsUntil(error.retryAt, now));
+      return rateLimitCopy();
     case "LOST_ARK_API_TIMEOUT":
       return {
         title: "응답이 늦어지고 있어요",

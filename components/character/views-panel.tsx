@@ -6,7 +6,7 @@ import { CharacterQueryError, fetchViews } from "@/lib/character/client";
 import { monthLabels, viewDateLabel, viewWeeks } from "@/lib/character/views";
 import { Panel } from "./panel";
 import styles from "./views.module.css";
-import { rateLimitCopy, retryLabel } from "@/lib/api/rate-limit";
+import { countdownText, retryLabel } from "@/lib/api/rate-limit";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 
 const ROWS = ["일", "월", "화", "수", "목", "금", "토"];
@@ -55,7 +55,7 @@ export function ViewsPanel({ name }: { name: string }) {
         <div className={styles.muted}>
           <p>
             {limit.limited
-              ? rateLimitCopy(limit.seconds).text
+              ? countdownText(limit.seconds)
               : query.error instanceof CharacterQueryError &&
                   query.error.info.code === "CHARACTER_VIEWS_DISABLED"
                 ? "조회수 기록이 꺼져 있어요."

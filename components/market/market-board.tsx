@@ -42,6 +42,7 @@ import { MarketChart } from "./market-chart";
 import { SiteHeader } from "@/components/site/site-header";
 import styles from "./market.module.css";
 import { rateLimitCopy, retryLabel } from "@/lib/api/rate-limit";
+import { RateLimitNote } from "@/components/site/rate-limit-note";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 
 const TIERS = [4, 3] as const;
@@ -99,11 +100,14 @@ function Problem({
   onRetry: () => void;
 }) {
   const limit = useRateLimit({ info: failure });
-  const copy = limit.limited ? rateLimitCopy(limit.seconds) : marketFailureCopy(failure);
+  const copy = limit.limited ? rateLimitCopy() : marketFailureCopy(failure);
   return (
-    <div className={quote.notice} role="alert">
-      <strong>{copy.title}</strong>
-      <p>{copy.text}</p>
+    <div className={quote.notice}>
+      <div role="alert">
+        <strong>{copy.title}</strong>
+        <p>{copy.text}</p>
+      </div>
+      {limit.limited && <RateLimitNote seconds={limit.seconds} />}
       <button
         type="button"
         className={quote.outlinePill}

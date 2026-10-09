@@ -6,7 +6,7 @@ import { appliedStage, elementLabel, orderedSlots, sortCards } from "@/lib/chara
 import { CharacterQueryError, fetchCardCollection } from "@/lib/character/client";
 import { CardArt } from "./imagery";
 import styles from "./card-collection.module.css";
-import { rateLimitCopy, retryLabel } from "@/lib/api/rate-limit";
+import { countdownText, retryLabel } from "@/lib/api/rate-limit";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 
 /**
@@ -56,7 +56,7 @@ export function CardCollection({ name }: { name: string }) {
         <div className={styles.muted}>
           <p>
             {limit.limited
-              ? rateLimitCopy(limit.seconds).text
+              ? countdownText(limit.seconds)
               : query.error instanceof CharacterQueryError &&
                   query.error.info.code === "CARD_COLLECTION_DISABLED"
                 ? "카드 기록 기능이 꺼져 있어요."
