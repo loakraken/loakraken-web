@@ -2,20 +2,17 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import {
-  ELEMENT_LABEL,
-  sortCards,
-} from "@/lib/character/card-collection";
+import { ELEMENT_LABEL, appliedStage, sortCards } from "@/lib/character/card-collection";
 import { CharacterQueryError, fetchCardCollection } from "@/lib/character/client";
 import { CardArt } from "./imagery";
-import { Panel } from "./panel";
 import styles from "./card-collection.module.css";
 
 /**
- * Roster card records (F-6): ILOA's six element slots for the character's
- * role, then LOAWA's 도감 and buildable set effects, folded.
+ * Roster card records (F-6), inside the cards panel right under the equipped
+ * set as ILOA shows it: six element slots for the character's role, then
+ * LOAWA's 도감 and buildable set effects, folded.
  */
-export function CardCollectionPanel({ name }: { name: string }) {
+export function CardCollection({ name }: { name: string }) {
   const query = useQuery({
     queryKey: ["card-collection", name],
     queryFn: ({ signal }) => fetchCardCollection(name, signal),
@@ -25,12 +22,31 @@ export function CardCollectionPanel({ name }: { name: string }) {
   // Default to the character's role; either set list can be viewed (ILOA).
   const [role, setRole] = useState<"dealer" | "supporter" | null>(null);
   const shown = role ?? (data?.position === "SUPPORT" ? "supporter" : "dealer");
-  const meta = data
-    ? `원정대 ${data.rosterCharacters}명 중 ${data.observedCharacters}명 기록`
-    : undefined;
 
   return (
-    <Panel title="원정대 카드 기록" meta={meta}>
+    <section className={styles.collection} aria-labelledby={`card-record-${name}`}>
+      <header className={styles.head}>
+        <h3 id={`card-record-${name}`}>원정대 카드 기록</h3>
+        {data && (
+          <span>
+            원정대 {data.rosterCharacters}명 중 {data.observedCharacters}명 기록
+          </span>
+        )}
+        {data && (
+          <span className={styles.roles} role="group" aria-label="세트 종류">
+            {(["dealer", "supporter"] as const).map((value) => (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={shown === value}
+                onClick={() => setRole(value)}
+              >
+                {value === "dealer" ? "딜러" : "서포터"}
+              </button>
+            ))}
+          </span>
+        )}
+      </header>
       {query.isPending ? (
         <p className={styles.muted}>카드 기록을 불러오고 있어요…</p>
       ) : !data ? (
@@ -47,38 +63,32 @@ export function CardCollectionPanel({ name }: { name: string }) {
         </div>
       ) : (
         <>
-          <div className={styles.roles} role="group" aria-label="세트 종류">
-            {(["dealer", "supporter"] as const).map((value) => (
-              <button
-                key={value}
-                type="button"
-                aria-pressed={shown === value}
-                onClick={() => setRole(value)}
-              >
-                {value === "dealer" ? "딜러 세트" : "서포터 세트"}
-              </button>
-            ))}
-          </div>
           <ul className={styles.elements}>
-            {data.elementRecords[shown].map((slot) => (
-              <li key={slot.element} data-recorded={slot.record ? "" : undefined}>
-                <i data-element={slot.element}>{ELEMENT_LABEL[slot.element]}</i>
-                <span className={styles.setName}>{slot.setName}</span>
-                {slot.record ? (
-                  <span className={styles.value}>
-                    <b>{slot.record.awakening}각성</b>
-                    {slot.record.awakening > slot.record.activeAwakening && (
-                      <small>{slot.record.activeAwakening}각 효과 적용</small>
-                    )}
-                    {slot.record.recordedBy && (
-                      <small className={styles.by}>{slot.record.recordedBy}</small>
-                    )}
+            {data.elementRecords[shown].map((slot) => {
+              const stage = slot.record ? appliedStage(slot.record) : null;
+              return (
+                <li
+                  key={slot.element}
+                  data-recorded={slot.record ? "" : undefined}
+                  aria-label={`${ELEMENT_LABEL[slot.element]} ${slot.setName} ${slot.record ? `${slot.record.awakening}각성` : "미기록"}`}
+                  title={slot.setName}
+                >
+                  <span className={styles.slotHead}>
+                    <i data-element={slot.element}>{ELEMENT_LABEL[slot.element]}</i>
+                    <span className={styles.setName}>{slot.setName}</span>
                   </span>
-                ) : (
-                  <span className={styles.none}>미기록</span>
-                )}
-              </li>
-            ))}
+                  {slot.record ? (
+                    <span className={styles.value}>
+                      <b>{slot.record.awakening}각성</b>
+                      {stage != null && <small>{stage}각 효과 적용</small>}
+                      <small className={styles.by}>{slot.record.recordedBy}</small>
+                    </span>
+                  ) : (
+                    <span className={styles.none}>미기록</span>
+                  )}
+                </li>
+              );
+            })}
           </ul>
           {data.observedCharacters === 0 && (
             <p className={styles.note}>
@@ -111,31 +121,34 @@ export function CardCollectionPanel({ name }: { name: string }) {
                 구성 가능한 세트 <span>{data.sets.length}개</span>
               </summary>
               <ul className={styles.sets}>
-                {data.sets.map((set) => (
-                  <li key={set.setName}>
-                    <header>
-                      <strong>{set.setName}</strong>
-                      <span>
-                        {set.cardCount}장 · {set.awakening}각성
-                        {set.awakening > set.activeAwakening && ` (${set.activeAwakening}각 효과 적용)`}
-                      </span>
-                    </header>
-                    <ul>
-                      {set.effects.map((effect) => (
-                        <li
-                          key={`${effect.pieces}-${effect.awakening}`}
-                          data-active={effect.active || undefined}
-                        >
-                          <b>
-                            {effect.pieces}세트
-                            {effect.awakening > 0 && ` ${effect.awakening}각`}
-                          </b>
-                          {effect.description}
-                        </li>
-                      ))}
-                    </ul>
-                  </li>
-                ))}
+                {data.sets.map((set) => {
+                  const stage = appliedStage(set);
+                  return (
+                    <li key={set.setName}>
+                      <header>
+                        <strong>{set.setName}</strong>
+                        <span>
+                          {set.cardCount}장 · {set.awakening}각성
+                          {stage != null && ` (${stage}각 효과 적용)`}
+                        </span>
+                      </header>
+                      <ul>
+                        {set.effects.map((effect) => (
+                          <li
+                            key={`${effect.pieces}-${effect.awakening}`}
+                            data-active={effect.active || undefined}
+                          >
+                            <b>
+                              {effect.pieces}세트
+                              {effect.awakening > 0 && ` ${effect.awakening}각`}
+                            </b>
+                            {effect.description}
+                          </li>
+                        ))}
+                      </ul>
+                    </li>
+                  );
+                })}
               </ul>
             </details>
           )}
@@ -145,6 +158,6 @@ export function CardCollectionPanel({ name }: { name: string }) {
           </p>
         </>
       )}
-    </Panel>
+    </section>
   );
 }

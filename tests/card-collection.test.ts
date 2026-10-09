@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import {
+  appliedStage,
   isCardCollectionEnvelope,
   slotsFor,
   sortCards,
@@ -14,7 +15,7 @@ const fixture = (name: string) =>
   );
 const origin = "http://127.0.0.1:8080";
 
-test("backend samples (dealer, supporter, empty) satisfy the hand-checked shape", () => {
+test("backend samples (dealer, supporter, empty) satisfy the generated contract", () => {
   for (const name of ["dealer", "supporter", "empty"])
     assert.equal(isCardCollectionEnvelope(fixture(name)), true, name);
   const reordered = fixture("dealer");
@@ -53,4 +54,10 @@ test("card collection requests validate the name and pass through allow-listed e
       Response.json({ code: "CARD_COLLECTION_DISABLED" }, { status: 503 })) as typeof fetch,
   });
   assert.deepEqual(disabled.ok ? null : disabled.error, { code: "CARD_COLLECTION_DISABLED", status: 503 });
+});
+
+test("the awakening total leads; the applied stage shows only when lower", () => {
+  assert.equal(appliedStage({ awakening: 28, activeAwakening: 24 }), 24);
+  assert.equal(appliedStage({ awakening: 30, activeAwakening: 30 }), null);
+  assert.equal(appliedStage({ awakening: 12, activeAwakening: null }), null);
 });
