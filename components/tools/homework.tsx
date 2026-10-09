@@ -206,7 +206,7 @@ function RaidRow({
           <Trash2 size={14} aria-hidden="true" />
         </button>
       </div>
-      <ul className={styles.gates}>
+      <ul className={styles.gates} role="group" aria-label={title}>
         {mode.gates.map((gate, i) => (
           <li key={gate.gate} data-done={plan.cleared[i] || undefined}>
             <label className={styles.gateCheck}>
