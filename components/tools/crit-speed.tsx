@@ -27,6 +27,7 @@ import {
   type CritSpeed,
   type Settings,
 } from "@/lib/crit-speed/model";
+import { UNKNOWN_LABEL } from "@/lib/tools/contract";
 import quote from "./material-quote.module.css";
 import { SiteHeader } from "@/components/site/site-header";
 import styles from "./crit-speed.module.css";
@@ -320,17 +321,21 @@ function SourceList({
       {groups.map((group) => (
         <li key={group.category}>
           <div className={styles.sourceHead}>
-            <strong>{CATEGORY_LABEL[group.category]}</strong>
+            <strong>{CATEGORY_LABEL[group.category] ?? UNKNOWN_LABEL}</strong>
             <span>+{percent(group.total)}</span>
           </div>
           <ul>
             {group.items.map((item, i) => (
               <li key={`${item.name}-${i}`}>
                 <span className={styles.kind} data-kind={item.kind}>
-                  {item.kind === "OBSERVED" ? "캐릭터" : "가정"}
+                  {item.kind === "OBSERVED"
+                    ? "캐릭터"
+                    : item.kind === "ASSUMED"
+                      ? "가정"
+                      : UNKNOWN_LABEL}
                 </span>
                 <span className={styles.sourceName}>
-                  {item.name ?? AXIS_LABEL[item.axis]}
+                  {item.name ?? AXIS_LABEL[item.axis] ?? UNKNOWN_LABEL}
                   {item.text && <small>{item.text}</small>}
                 </span>
                 <b>+{percent(item.value)}</b>
@@ -406,6 +411,10 @@ function SwiftnessTable({ speed }: { speed: CritSpeed["speed"] }) {
 
 function Results({ data, stale }: { data: CritSpeed; stale: boolean }) {
   const { crit, speed } = data;
+  // Axes the screen does not know yet (newer backend): listed, not dropped.
+  const unknownAxes = [
+    ...new Set(data.sources.map((s) => s.axis).filter((axis) => !(axis in AXIS_LABEL))),
+  ];
   const thorn = crit.bluntThorn;
   const sonic = speed.supersonic;
   const over = crit.totalRate - crit.effectiveRate;
@@ -558,6 +567,12 @@ function Results({ data, stale }: { data: CritSpeed; stale: boolean }) {
         <SourceList sources={data.sources} axis="ATTACK_SPEED" />
         <h3 className={styles.sourceTitle}>이동 속도</h3>
         <SourceList sources={data.sources} axis="MOVE_SPEED" />
+        {unknownAxes.map((axis) => (
+          <div key={axis}>
+            <h3 className={styles.sourceTitle}>{UNKNOWN_LABEL} 항목</h3>
+            <SourceList sources={data.sources} axis={axis} />
+          </div>
+        ))}
       </section>
 
       <div className={quote.resultFooter}>
