@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useSyncExternalStore, type ReactNode } from "react";
+import { useId, useState, useSyncExternalStore, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { ArrowRight, RefreshCw, Share2, Star } from "lucide-react";
@@ -903,6 +903,7 @@ function SkillOverview({
   full?: boolean;
 }) {
   const [showAll, setShowAll] = useState(false);
+  const listId = useId();
   const skills = data.loadout.skills;
   if (skills === undefined)
     return (
@@ -938,7 +939,7 @@ function SkillOverview({
       }
     >
       {list.length ? (
-        <ul className={styles.skillGrid} data-compact={!full || undefined}>
+        <ul id={listId} className={styles.skillGrid} data-compact={!full || undefined}>
           {list.map((skill, i) => (
             <SkillCard
               key={`${skill.name}-${i}`}
@@ -954,6 +955,8 @@ function SkillOverview({
         <button
           type="button"
           className={styles.textButton}
+          aria-expanded={showAll}
+          aria-controls={listId}
           onClick={() => setShowAll((value) => !value)}
         >
           {showAll

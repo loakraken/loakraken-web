@@ -70,14 +70,15 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     id: "tools",
     label: "성장 도구",
-    match: ["/tools/refining", "/tools/crit-speed"],
+    match: ["/tools/refining", "/tools/crit-speed", "/tools/auction", "/tools/stone"],
     groups: [
       {
         title: "계산기",
         links: [
           { label: "재련 기대 비용", description: "목표 단계까지 확률과 골드", href: "/tools/refining" },
           { label: "치적·뭉가·음돌", description: "치명·신속 목표까지 필요한 스탯", href: "/tools/crit-speed" },
-          { label: "경매 입찰가", description: "파티 인원별 손익 분기" },
+          { label: "경매 입찰가", description: "파티 인원별 손익 분기와 선점가", href: "/tools/auction" },
+          { label: "돌파고", description: "스톤 세공, 다음에 깎을 줄", href: "/tools/stone" },
           { label: "더보기 손익", description: "레이드 더보기 보상 효율" },
         ],
       },
