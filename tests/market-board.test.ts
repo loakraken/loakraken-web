@@ -5,8 +5,11 @@ import {
   boardQueryString,
   boardSearchParams,
   changeLabel,
+  changeWithAmount,
   completedDays,
   goldText,
+  unitPrice,
+  updatedAgo,
   parseItemId,
   readBoardQuery,
 } from "../lib/market/board";
@@ -16,6 +19,7 @@ import {
   isTabsEnvelope,
 } from "../lib/market/validate";
 import { requestBoard, requestItemHistory } from "../lib/market/upstream";
+import { parseFavorites, toggleFavorite } from "../lib/market/favorites";
 
 const fixture = (name: string) =>
   JSON.parse(
@@ -87,4 +91,31 @@ test("board and history requests validate input and pass through allow-listed er
     fetcher: (async () => Response.json({ code: "MARKET_ITEM_NOT_FOUND" }, { status: 404 })) as typeof fetch,
   });
   assert.deepEqual(missing.ok ? null : missing.error, { code: "MARKET_ITEM_NOT_FOUND", status: 404 });
+});
+
+test("unit price, gold change with rate, and honest update age", () => {
+  assert.equal(unitPrice(195, 10), 19.5);
+  assert.equal(unitPrice(195, 1), null);
+  assert.equal(unitPrice(null, 10), null);
+  assert.deepEqual(changeWithAmount({ currentMinPrice: 195, yesterdayAvgPrice: 186.2, changeDay: 4.73 }), {
+    text: "▲8.8 (4.7%)",
+    direction: "up",
+  });
+  assert.deepEqual(changeWithAmount({ currentMinPrice: 171, yesterdayAvgPrice: null, changeDay: -2.4 }), {
+    text: "▼2.4%",
+    direction: "down",
+  });
+  const now = Date.parse("2026-10-09T12:00:00Z");
+  assert.equal(updatedAgo("2026-10-09T11:59:40Z", now), "방금 갱신");
+  assert.equal(updatedAgo("2026-10-09T11:57:00Z", now), "3분 전 갱신");
+  assert.equal(updatedAgo("2026-10-09T09:30:00Z", now), "2시간 전 갱신");
+});
+
+test("market favourites toggle newest first and drop malformed entries", () => {
+  const item = { itemId: 66102006, name: "아비도스 융화 재료", tab: "REFINING" as const, tier: 4, icon: null, grade: "희귀" };
+  const added = toggleFavorite([], item);
+  assert.equal(added.length, 1);
+  assert.deepEqual(toggleFavorite(added, item), []);
+  assert.deepEqual(parseFavorites(JSON.stringify([item, { itemId: -1 }, { ...item, tab: "GEM" }])).length, 1);
+  assert.deepEqual(parseFavorites("oops"), []);
 });

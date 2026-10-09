@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { Pause, Play } from "lucide-react";
+import { Pause, Play, Star } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
 import { GameIcon } from "@/components/character/imagery";
 import { LandingMotion, useLandingMotion } from "@/components/landing/motion";
@@ -12,8 +12,11 @@ import {
   SORTS,
   boardQueryString,
   changeLabel,
+  changeWithAmount,
   completedDays,
   goldText,
+  unitPrice,
+  updatedAgo,
   type BoardItem,
   type BoardQuery,
   type ItemHistory,
@@ -26,6 +29,13 @@ import {
   fetchMarketTabs,
 } from "@/lib/market/client";
 import { marketFailureCopy, type MarketFailure } from "@/lib/market/model";
+import {
+  favoritesSnapshot,
+  parseFavorites,
+  saveFavorite,
+  subscribeFavorites,
+  type FavoriteItem,
+} from "@/lib/market/favorites";
 import quote from "../tools/material-quote.module.css";
 import { MarketChart } from "./market-chart";
 import { SiteHeader } from "@/components/site/site-header";
@@ -47,14 +57,30 @@ const kst = new Intl.DateTimeFormat("ko-KR", {
   hour12: false,
 });
 const at = (iso: string) => kst.format(new Date(iso));
+const subscribeMinute = (callback: () => void) => {
+  const id = setInterval(callback, 60_000);
+  return () => clearInterval(id);
+};
+const useMinute = () =>
+  useSyncExternalStore(subscribeMinute, () => Math.floor(Date.now() / 60_000) * 60_000, () => null);
+function useFavorites() {
+  const raw = useSyncExternalStore(subscribeFavorites, favoritesSnapshot, () => "[]");
+  return useMemo(() => parseFavorites(raw), [raw]);
+}
 const quiet = {
   retry: false,
   refetchOnWindowFocus: false,
   refetchOnReconnect: false,
 } as const;
 
-function Change({ value }: { value: number | null | undefined }) {
-  const label = changeLabel(value);
+function Change({
+  value,
+  item,
+}: {
+  value?: number | null;
+  item?: Pick<BoardItem, "currentMinPrice" | "yesterdayAvgPrice" | "changeDay">;
+}) {
+  const label = item ? changeWithAmount(item) : changeLabel(value);
   return (
     <b className={styles.change} data-direction={label.direction}>
       {label.text}
@@ -84,10 +110,17 @@ function Problem({
 function Detail({
   item,
   tier,
+  tab,
+  outside,
 }: {
   item: BoardItem;
   tier: number | null;
+  tab: FavoriteItem["tab"];
+  outside?: boolean;
 }) {
+  const favorites = useFavorites();
+  const starred = favorites.some((f) => f.itemId === item.itemId);
+  const unit = unitPrice(item.currentMinPrice, item.bundleCount);
   const [range, setRange] = useState<7 | 14>(14);
   const [variantIndex, setVariantIndex] = useState(0);
   const history = useQuery({
@@ -111,16 +144,33 @@ function Detail({
             {item.bundleCount > 1 && ` · ${item.bundleCount}개 묶음`}
           </small>
         </div>
+        <button
+          type="button"
+          className={styles.star}
+          aria-pressed={starred}
+          aria-label={starred ? "즐겨찾기에서 빼기" : "즐겨찾기에 추가"}
+          onClick={() =>
+            saveFavorite({ itemId: item.itemId, name: item.name, tab, tier, icon: item.icon, grade: item.grade })
+          }
+        >
+          <Star size={18} aria-hidden="true" />
+        </button>
       </header>
+      {outside && (
+        <p className={styles.note}>지금 목록 밖의 즐겨찾기 품목이에요. 최근 시세는 아래 추이에서 확인해요.</p>
+      )}
       <dl className={styles.facts}>
         <div>
           <dt>현재 최저가</dt>
-          <dd>{goldText(item.currentMinPrice)}</dd>
+          <dd>
+            {goldText(item.currentMinPrice)}
+            {unit != null && <small className={styles.unit}>개당 {goldText(unit)}</small>}
+          </dd>
         </div>
         <div>
           <dt>전일 평균 대비</dt>
           <dd>
-            <Change value={item.changeDay} />
+            <Change item={item} />
           </dd>
         </div>
         <div>
@@ -219,6 +269,8 @@ function MarketContent({
   const router = useRouter();
   const [query, setQuery] = useState(initial);
   const [selected, setSelected] = useState<number | null>(initialItem);
+  const favorites = useFavorites();
+  const now = useMinute();
   const tabs = useQuery({
     queryKey: ["market", "tabs"],
     queryFn: ({ signal }) => fetchMarketTabs(signal),
@@ -237,7 +289,26 @@ function MarketContent({
   });
   const data = board.data?.data;
   const items = data?.items ?? [];
-  const active = items.find((item) => item.itemId === selected) ?? items[0];
+  const listed = items.find((item) => item.itemId === selected);
+  const favorite = !listed ? favorites.find((f) => f.itemId === selected) : undefined;
+  // A starred item outside the current page still opens its history.
+  const active: BoardItem | undefined =
+    listed ??
+    (favorite
+      ? ({
+          ...items[0],
+          itemId: favorite.itemId,
+          name: favorite.name,
+          icon: favorite.icon,
+          grade: favorite.grade,
+          bundleCount: 1,
+          currentMinPrice: null,
+          recentPrice: null,
+          yesterdayAvgPrice: null,
+          changeDay: null,
+          changeWeek: null,
+        } as BoardItem)
+      : items[0]);
   const pages = data ? Math.min(10, Math.ceil(data.totalItems / data.pageSize)) : 1;
   const failure = failureOf(board.error) ?? failureOf(tabs.error);
 
@@ -308,6 +379,22 @@ function MarketContent({
               </span>
             )}
           </nav>
+          {favorites.length > 0 && (
+            <ul className={styles.favorites} aria-label="즐겨찾기 품목">
+              {favorites.map((f) => (
+                <li key={f.itemId}>
+                  <button
+                    type="button"
+                    aria-pressed={active?.itemId === f.itemId}
+                    onClick={() => update({ tab: f.tab, tier: f.tier, sort: "default", page: 1 }, f.itemId)}
+                  >
+                    <Star size={12} aria-hidden="true" />
+                    <span data-grade={f.grade ?? undefined}>{f.name}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
 
           <div className={styles.columns}>
             <section className={styles.board} aria-labelledby="board-heading">
@@ -382,13 +469,14 @@ function MarketContent({
                             {tier != null && <i>T{tier}</i>}
                           </strong>
                           <small>
-                            {item.bundleCount > 1 && `${item.bundleCount}개 · `}
+                            {item.bundleCount > 1 &&
+                              `${item.bundleCount}개 · 개당 ${goldText(unitPrice(item.currentMinPrice, item.bundleCount))} · `}
                             최근 거래 {goldText(item.recentPrice).replace("G", "")}
                           </small>
                         </span>
                         <span className={styles.rowPrice}>
                           <b>{goldText(item.currentMinPrice)}</b>
-                          <Change value={item.changeDay} />
+                          <Change item={item} />
                         </span>
                       </button>
                     </li>
@@ -411,14 +499,21 @@ function MarketContent({
               )}
               {data && (
                 <p className={styles.note}>
-                  {at(data.observedAt)} 기준 · {data.changeBasis}
+                  {now !== null && `${updatedAgo(data.observedAt, now)} · `}
+                  {at(data.observedAt)} 기준 · 등락: 전일 평균가 대비
                 </p>
               )}
             </section>
 
             <div className={styles.side}>
               {active ? (
-                <Detail key={active.itemId} item={active} tier={tier} />
+                <Detail
+                  key={active.itemId}
+                  item={active}
+                  tier={favorite ? favorite.tier : tier}
+                  tab={favorite ? favorite.tab : query.tab}
+                  outside={!!favorite}
+                />
               ) : (
                 <p className={styles.muted}>품목을 고르면 추이를 보여줘요.</p>
               )}
