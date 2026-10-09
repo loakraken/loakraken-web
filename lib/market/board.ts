@@ -27,6 +27,22 @@ export const TAB_IDS: readonly TabId[] = [
   "FOOD",
 ];
 /** A tab this build can open; the board skips tabs the backend added later. */
+/**
+ * Names and tier support of the tabs as the backend returns them, used only
+ * while the tab list is still loading so the layout already has its final
+ * size (the live list replaces it, QA #180 slow-backend path).
+ */
+export const TAB_FALLBACK: readonly { tab: TabId; label: string; tiered: boolean }[] = [
+  { tab: "REFINING", label: "재련 재료", tiered: true },
+  { tab: "REFINING_EXTRA", label: "재련 추가 재료", tiered: true },
+  { tab: "ARK_GRID", label: "아크 그리드 재료", tiered: false },
+  { tab: "WEAPON_EVOLUTION", label: "무기 진화 재료", tiered: false },
+  { tab: "ENGRAVING_BOOK", label: "각인서", tiered: false },
+  { tab: "LIFE", label: "생활", tiered: false },
+  { tab: "BATTLE_ITEM", label: "전투 용품", tiered: false },
+  { tab: "FOOD", label: "요리", tiered: false },
+];
+
 export const isTabId = (value: string): value is TabId => (TAB_IDS as readonly string[]).includes(value);
 
 export const SORTS = [
