@@ -1,10 +1,15 @@
 import Ajv2020 from "ajv/dist/2020";
 import contract from "../../contracts/crit-speed.openapi.json";
+import { tolerantSchemas } from "../tools/contract";
 import type { CritSpeedEnvelope } from "./model";
 
-// The backend's generated OpenAPI is also the runtime shape contract.
+// The backend's generated OpenAPI is also the runtime shape contract; response
+// enums are relaxed so a newly added value shows as unknown instead of failing.
 const ajv = new Ajv2020({ strict: false, validateFormats: false });
-ajv.addSchema({ $id: "crit-speed", components: contract.components });
+ajv.addSchema({
+  $id: "crit-speed",
+  components: { schemas: tolerantSchemas(contract.components.schemas) },
+});
 const envelope = ajv.compile<CritSpeedEnvelope>({
   $ref: "crit-speed#/components/schemas/ApiResponseCritSpeedResponse",
 });

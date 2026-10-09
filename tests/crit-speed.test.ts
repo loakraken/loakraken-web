@@ -21,8 +21,10 @@ const origin = "http://127.0.0.1:8080";
 
 test("backend-generated crit-speed fixture satisfies the contract", () => {
   assert.equal(isCritSpeedEnvelope(fixture()), true);
+  // Unknown enum values are tolerated (tests/tool-contract.test.ts); a wrong
+  // shape is not.
   const broken = fixture();
-  broken.data.sources[0].kind = "GUESSED";
+  broken.data.sources[0].value = "20.61";
   assert.equal(isCritSpeedEnvelope(broken), false);
   const wrongCode = fixture();
   wrongCode.code = "OTHER";
