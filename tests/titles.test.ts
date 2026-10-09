@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import { byObservedOrder, isTitlesEnvelope, requestTitles, titleDate } from "../lib/character/titles";
+import { byObservedOrder, groupByDay, isTitlesEnvelope, requestTitles, titleDate } from "../lib/character/titles";
 
 const fixture = () =>
   JSON.parse(readFileSync(new URL("./titles-fixtures/character-titles.json", import.meta.url), "utf8"));
@@ -43,4 +43,20 @@ test("title requests validate the name and allow-list errors", async () => {
     ok: false,
     error: { code: "CHARACTER_HISTORY_DISABLED", status: 503 },
   });
+});
+
+test("titles first seen on the same KST day fold into one group (backend #176)", () => {
+  const t = (title: string, at: string, observedOrder: number, extra = {}) => ({
+    title, firstObservedAt: at, lastObservedAt: at, observedOrder, recordedBy: "본캐", source: "OBSERVED" as const, ...extra,
+  });
+  const groups = groupByDay([
+    t("A", "2026-10-01T01:00:00Z", 1),
+    t("B", "2026-10-01T09:00:00Z", 2),
+    t("C", "2026-10-01T15:30:00Z", 3), // 10-02 00:30 KST: the next day
+    t("D", "2026-10-03T00:00:00Z", 4, { firstObservedDate: "2026-10-04" }),
+  ]);
+  assert.deepEqual(
+    groups.map((g) => [g.day, g.titles.map((x) => x.title).join("")]),
+    [["2026.10.01", "AB"], ["2026.10.02", "C"], ["2026.10.04", "D"]],
+  );
 });

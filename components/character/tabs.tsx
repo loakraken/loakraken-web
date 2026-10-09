@@ -48,7 +48,7 @@ import { AvatarsTab, CollectiblesTab } from "./inner";
 import { Panel } from "./panel";
 import { ViewsPanel } from "./views-panel";
 import { RankPanel } from "./rank-panel";
-import { byObservedOrder, titleDate } from "@/lib/character/titles";
+import { byObservedOrder, groupByDay } from "@/lib/character/titles";
 import { CardCollection } from "./card-collection-panel";
 import { CardArt, GameIcon } from "./imagery";
 import {
@@ -1185,6 +1185,7 @@ function RosterTitlesPanel({ name }: { name: string }) {
   });
   const result = query.data?.data;
   const titles = result ? byObservedOrder(result.titles) : [];
+  const groups = groupByDay(titles);
   return (
     <Panel
       title="원정대 칭호"
@@ -1212,17 +1213,33 @@ function RosterTitlesPanel({ name }: { name: string }) {
         </p>
       ) : (
         <ol className={styles.titleList} aria-describedby={noteId}>
-          {titles.map((title) => (
-            <li key={`${title.observedOrder}-${title.title}`}>
-              <b>{title.observedOrder}</b>
-              <strong>{title.title}</strong>
-              <small>
-                처음 확인 <time dateTime={title.firstObservedAt}>{titleDate(title.firstObservedAt)}</time>
-                {" · "}
-                {title.recordedBy}
-              </small>
-            </li>
-          ))}
+          {groups.map((group, i) =>
+            group.titles.length === 1 ? (
+              <li key={group.day + group.titles[0].title}>
+                <b>{i + 1}</b>
+                <strong>{group.titles[0].title}</strong>
+                <small>
+                  처음 확인 {group.day} · {group.titles[0].recordedBy}
+                </small>
+              </li>
+            ) : (
+              // Same day: these came in together, so no order inside (backend #176).
+              <li key={group.day} className={styles.titleDay}>
+                <b>{i + 1}</b>
+                <span className={styles.titleDayHead}>
+                  같은 날 확인 {group.titles.length}개 · {group.day}
+                </span>
+                <ul>
+                  {group.titles.map((title) => (
+                    <li key={title.title}>
+                      <strong>{title.title}</strong>
+                      <small>{title.recordedBy}</small>
+                    </li>
+                  ))}
+                </ul>
+              </li>
+            ),
+          )}
         </ol>
       )}
     </Panel>
