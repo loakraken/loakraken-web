@@ -5,6 +5,7 @@ import "./globals.css";
 import Providers from "./providers";
 import { SITE_NAME, siteUrl } from "@/lib/site";
 import { themeInitScript } from "@/components/ui/theme-toggle";
+import { earlyClickScript } from "@/lib/early-clicks";
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
@@ -48,6 +49,7 @@ export default function RootLayout({ children }: Readonly<{
     <html lang="ko" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+        <script dangerouslySetInnerHTML={{ __html: earlyClickScript }} />
       </head>
       <body className={`${geistMono.variable} ${korean.variable} antialiased`}>
         <Providers>{children}</Providers>

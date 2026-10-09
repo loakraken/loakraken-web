@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   QueryClient,
   QueryClientProvider,
@@ -8,6 +8,7 @@ import {
 
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { RATE_LIMITED, failureOf } from "@/lib/api/rate-limit";
+import { replayEarlyClicks } from "@/lib/early-clicks";
 
 export default function Providers({
                                     children,
@@ -28,6 +29,8 @@ export default function Providers({
           }),
   );
 
+  // Runs after the whole page hydrated: taps made before that count now.
+  useEffect(replayEarlyClicks, []);
   return (
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>{children}</TooltipProvider>
