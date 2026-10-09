@@ -6,7 +6,8 @@ import { characterNameError, normalizeCharacterName } from "../character/model";
 import { rateLimitCopy } from "../api/rate-limit";
 
 type Schemas = components["schemas"];
-export type Assumptions = Schemas["CritSpeedAssumptions"];
+/** classState: backend #193 (omitted = on = target-site basis, false = observed only). */
+export type Assumptions = Schemas["CritSpeedAssumptions"] & { classState?: boolean };
 export type CritSpeedRequest = { characterName: string; assumptions: Assumptions };
 export type CritSpeed = Schemas["CritSpeedResponse"];
 export type CritSource = Schemas["CritSpeedSourceResponse"];
@@ -46,6 +47,8 @@ export type Settings = {
   attackSpeed: number;
   moveSpeed: number;
   buffs: SpeedBuff[];
+  /** Assume class states (e.g. reaper chaos) like the target sites do. */
+  classState: boolean;
 };
 
 /** Same starting point as the common calculators: back attack and the usual party buffs. */
@@ -59,6 +62,7 @@ export const DEFAULT_SETTINGS: Settings = {
   attackSpeed: 0,
   moveSpeed: 0,
   buffs: ["support", "feast"],
+  classState: true,
 };
 
 const clamp = (value: number, max: number, min = 0) =>
@@ -83,6 +87,8 @@ export function toAssumptions(settings: Settings, className?: string | null): As
     extraMoveSpeed: round2(
       clamp(settings.moveSpeed + buffs.reduce((s, b) => s + b.move, 0), 100, -100),
     ),
+    // Omitted means on (the backend default); only "off" is sent.
+    ...(settings.classState ? {} : { classState: false }),
   };
 }
 
@@ -105,7 +111,7 @@ export function parseCritSpeedRequest(body: unknown): CritSpeedRequest | null {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
   const given = raw as Record<string, unknown>;
   const assumptions: Assumptions = {};
-  for (const key of ["backAttack", "critPet"] as const) {
+  for (const key of ["backAttack", "critPet", "classState"] as const) {
     if (given[key] === undefined) continue;
     if (typeof given[key] !== "boolean") return null;
     assumptions[key] = given[key] as boolean;
@@ -208,3 +214,9 @@ export function critSpeedFailureCopy(error: { code: string }) {
       };
   }
 }
+
+/** Class-state assumptions in the response (backend #193): "…상태 가정(노드)". */
+export const classStateSources = (sources: CritSource[]) =>
+  sources.filter(
+    (s) => s.kind === "ASSUMED" && s.category === "ASSUMPTION" && (s.name ?? "").includes("상태 가정("),
+  );

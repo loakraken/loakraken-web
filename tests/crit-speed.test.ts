@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 import {
   DEFAULT_SETTINGS,
+  classStateSources,
   groupSources,
   parseCritSpeedRequest,
   toAssumptions,
@@ -198,4 +199,25 @@ test("crit-speed requests validate input and pass through allow-listed errors", 
     code: "CHARACTER_NOT_FOUND",
     status: 404,
   });
+});
+
+test("class-state assumption (backend #193): on by default, only 'off' is sent", () => {
+  assert.equal("classState" in toAssumptions(DEFAULT_SETTINGS), false);
+  assert.equal(toAssumptions({ ...DEFAULT_SETTINGS, classState: false }).classState, false);
+  const parsed = parseCritSpeedRequest({ characterName: "언새늘", assumptions: { classState: false } });
+  assert.equal(parsed?.assumptions.classState, false);
+  assert.equal(parseCritSpeedRequest({ characterName: "언새늘", assumptions: { classState: "no" } }), null);
+  const value = fixture();
+  value.data.sources.push({
+    kind: "ASSUMED",
+    category: "ASSUMPTION",
+    axis: "CRIT",
+    name: "혼돈 상태 가정(피냄새 Lv.3)",
+    value: 23,
+    text: "혼돈 상태에서 치명타 적중률이 23.0% 로 변경된다.",
+  });
+  assert.deepEqual(
+    classStateSources(value.data.sources).map((s) => s.name),
+    ["혼돈 상태 가정(피냄새 Lv.3)"],
+  );
 });
