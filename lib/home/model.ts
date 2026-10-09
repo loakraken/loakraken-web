@@ -153,5 +153,8 @@ export function tomorrowInWeek(coveredTo: string | null, now = Date.now()) {
 
 /** Patch notes (update/patch announcements) shown apart from other notices (KLOA). */
 export function isPatchNote(notice: Notice) {
-  return notice.category !== "MAINTENANCE" && /업데이트|패치/.test(notice.title);
+  return (
+    notice.category !== "MAINTENANCE" &&
+    /업데이트 내역|패치 안내|패치 노트|패치노트/.test(notice.title)
+  );
 }

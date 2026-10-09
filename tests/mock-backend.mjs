@@ -329,6 +329,15 @@ createServer(async (req, res) => {
     }));
     return send({ code: "CHARACTER_HISTORY_SUCCESS", message: "성공", data: { characterName: who, serverName: url.searchParams.get("serverName"), points } });
   }
+  if (url.pathname === "/api/v1/characters/popular") {
+    // Backend F-10 sample; 7d shows the collecting state.
+    const body = JSON.parse(readFileSync(new URL("./popular-fixtures/characters-popular.json", import.meta.url), "utf8"));
+    const period = url.searchParams.get("period") || "24h";
+    body.data.period = period;
+    body.data.aggregatedAt = new Date().toISOString();
+    if (period === "7d") Object.assign(body.data, { sampleStatus: "COLLECTING", items: [] });
+    return send(body);
+  }
   if (url.pathname === "/api/v1/characters/card-collection") {
     // Backend F-6 samples; card art swapped for official legend card icons.
     const who = url.searchParams.get("characterName");

@@ -1,0 +1,226 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "LOAKraken popular",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/v1/characters/popular": {
+      "get": {
+        "tags": [
+          "캐릭터"
+        ],
+        "summary": "인기 검색 캐릭터",
+        "description": "LOAKraken 캐릭터 검색으로 집계한 인기 캐릭터입니다(popular-v1). 순위 기준: 같은 클라이언트·같은 캐릭터를 KST 하루 1회만 센 고유 조회 수의 기간 합계(24h는 최근 24개 시간 버킷, 7d는 168개)이며, 고유 5회 이상인 캐릭터만 올립니다. 조회 수 숫자는 공개하지 않습니다. 기간 전체 고유 조회가 30회 미만이면 sampleStatus=COLLECTING이고 목록이 비어 있습니다. 운영 제외 목록에 있는 캐릭터는 빠집니다. 10분 캐시이며 공식 API를 부르지 않습니다.",
+        "operationId": "popular",
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "description": "24h(최근 24시간) 또는 7d(최근 7일)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "24h",
+              "description": "24h(최근 24시간) 또는 7d(최근 7일)",
+              "enum": [
+                "24h",
+                "7d"
+              ],
+              "pattern": "24h|7d"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "개수",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 10,
+              "description": "개수",
+              "maximum": 50,
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "조회 성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseCharacterPopularResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_REQUEST: period·limit 오류",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "CHARACTER_POPULAR_DISABLED 또는 CHARACTER_POPULAR_UNAVAILABLE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ApiResponseCharacterPopularResponse": {
+        "type": "object",
+        "description": "공통 API 응답. 오류 응답의 data는 null입니다.",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "업무 결과 코드",
+            "example": "CHARACTER_SEARCH_SUCCESS"
+          },
+          "message": {
+            "type": "string",
+            "description": "공개용 안내 메시지",
+            "example": "캐릭터 조회에 성공했습니다."
+          },
+          "data": {
+            "$ref": "#/components/schemas/CharacterPopularResponse",
+            "description": "성공 응답 데이터. 오류일 때 null"
+          }
+        },
+        "required": [
+          "code",
+          "data",
+          "message"
+        ]
+      },
+      "CharacterPopularResponse": {
+        "type": "object",
+        "description": "인기 검색 캐릭터(popular-v1). 순위 기준은 KST 하루 1회 중복을 제거한 고유 조회 수의 기간 합계이며, 숫자는 공개하지 않습니다.",
+        "properties": {
+          "period": {
+            "type": "string",
+            "enum": [
+              "24h",
+              "7d"
+            ]
+          },
+          "aggregatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "sampleStatus": {
+            "type": "string",
+            "description": "COLLECTING이면 items가 비어 있습니다",
+            "enum": [
+              "COLLECTING",
+              "READY"
+            ]
+          },
+          "minUniqueViews": {
+            "type": "integer",
+            "format": "int32",
+            "description": "순위에 오르는 최소 고유 조회 수"
+          },
+          "ruleVersion": {
+            "type": "string",
+            "example": "popular-v1"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CharacterPopularItemResponse"
+            }
+          }
+        },
+        "required": [
+          "aggregatedAt",
+          "items",
+          "minUniqueViews",
+          "period",
+          "ruleVersion",
+          "sampleStatus"
+        ]
+      },
+      "CharacterPopularItemResponse": {
+        "type": "object",
+        "properties": {
+          "rank": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "characterName": {
+            "type": "string"
+          },
+          "serverName": {
+            "type": "string"
+          },
+          "className": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "최근 관측값. 없으면 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "itemLevel": {
+            "anyOf": [
+              {
+                "type": "number",
+                "description": "최근 관측값. 없으면 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "characterName",
+          "className",
+          "itemLevel",
+          "rank",
+          "serverName"
+        ]
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "description": "공통 오류 응답. HTTP 상태와 업무 코드를 함께 확인합니다.",
+        "properties": {
+          "code": {
+            "type": "string",
+            "example": "INVALID_REQUEST"
+          },
+          "message": {
+            "type": "string",
+            "example": "요청 값이 올바르지 않습니다."
+          },
+          "data": {
+            "type": "null"
+          }
+        },
+        "required": [
+          "code",
+          "data",
+          "message"
+        ]
+      }
+    }
+  }
+}

@@ -44,6 +44,7 @@ import {
 import { fetchMarketBoard } from "@/lib/market/client";
 import { changeLabel, goldText } from "@/lib/market/board";
 import { RecentCard } from "./recent-card";
+import { PopularCard } from "./popular-card";
 import styles from "./home.module.css";
 
 /*
@@ -645,6 +646,7 @@ export function HomeDashboard() {
           </div>
           <aside className={styles.column} aria-label="공지와 이벤트">
             <RecentCard />
+            <PopularCard />
             <NewsPanels />
           </aside>
         </div>

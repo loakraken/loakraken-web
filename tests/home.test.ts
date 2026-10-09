@@ -111,3 +111,9 @@ test("patch notes are update/patch announcements, never maintenance", () => {
   assert.equal(isPatchNote(notice("알려진 이슈를 안내해 드립니다.")), false);
   assert.equal(isPatchNote(notice("10월 9일 업데이트 점검 안내", "MAINTENANCE")), false);
 });
+
+test("event posts that merely mention an update are not patch notes", () => {
+  const notice = (title: string) =>
+    ({ title, category: "NOTICE" as const, publishedAt: "2026-10-09T00:00:00Z", url: null, maintenanceDate: null, maintenanceDateText: null });
+  assert.equal(isPatchNote(notice("익스트림 업데이트 기념 치지직 드롭스 스페셜 보상 당첨자를 발표합니다!")), false);
+});

@@ -6,9 +6,14 @@ import {
   requestViews,
 } from "./related";
 import { requestCharacter } from "./upstream";
+import { requestPopular } from "./popular";
 
 export function getCharacter(name: string, signal?: AbortSignal) {
   return requestCharacter(name, process.env.LOAKRAKEN_API_ORIGIN, { signal });
+}
+
+export function getPopular(period: string, limit: number, signal?: AbortSignal) {
+  return requestPopular(period, limit, process.env.LOAKRAKEN_API_ORIGIN, { signal });
 }
 
 export function getCardCollection(name: string, signal?: AbortSignal) {
