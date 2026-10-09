@@ -208,6 +208,8 @@ export function TabBar({
             <button
               type="button"
               className={styles.refresh}
+              // Spends official API calls: never pressed again after hydration.
+              data-no-replay
               onClick={onRefresh}
               disabled={disabled}
               aria-describedby={tooltipId}

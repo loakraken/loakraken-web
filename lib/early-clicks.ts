@@ -6,13 +6,15 @@
  * `replayEarlyClicks()` clicks them again, in order. Taps after React attached
  * are React's own (it replays those itself), so recording stops there. Only
  * plain buttons (type="button"): links and forms already work without script.
+ * A button whose press costs something (official API calls) opts out with
+ * `data-no-replay`: a late, unseen press should not spend that.
  */
 export const earlyClickScript = `(function(){
 var q=[];window.__lkEarlyClicks=q;
 function attached(){var k=Object.keys(document);for(var i=0;i<k.length;i++)if(k[i].indexOf("__reactContainer")===0)return true;return false;}
 function on(e){
 if(window.__lkHydrated||attached()){document.removeEventListener("click",on,true);return;}
-var b=e.target&&e.target.closest&&e.target.closest('button[type="button"]');
+var b=e.target&&e.target.closest&&e.target.closest('button[type="button"]:not([data-no-replay])');
 if(b&&!b.disabled&&b.getAttribute("aria-disabled")!=="true"&&q.length<5)q.push(b);
 }
 document.addEventListener("click",on,true);

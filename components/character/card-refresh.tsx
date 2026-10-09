@@ -81,6 +81,8 @@ export function CardRefresh({ name }: { name: string }) {
       <button
         type="button"
         className={styles.refillButton}
+        // Spends official API calls: never pressed again after hydration.
+        data-no-replay
         onClick={start}
         // aria-disabled, not disabled: keyboard focus stays on the button.
         aria-disabled={blocked || undefined}
