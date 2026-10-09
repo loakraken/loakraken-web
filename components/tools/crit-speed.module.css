@@ -61,7 +61,7 @@
   display: grid;
 }
 .toggle strong {
-  font-size: 15px;
+  font-size: var(--text-body);
   font-weight: 500;
 }
 .toggle small {
@@ -78,9 +78,9 @@
   flex: none;
   width: 44px;
   height: 26px;
-  border-radius: 26px;
+  border-radius: var(--radius-xl);
   background: var(--control);
-  transition: background-color var(--duration-base) ease-out;
+  transition: background-color var(--duration-base) var(--ease-out);
 }
 .toggle i::after {
   content: "";
@@ -95,7 +95,7 @@
   transition: transform var(--duration-base) cubic-bezier(0.32, 0.72, 0, 1);
 }
 .toggle input:checked + i {
-  background: #34c759;
+  background: var(--switch-on);
 }
 .toggle input:checked + i::after {
   transform: translateX(18px);
@@ -166,7 +166,7 @@
   border: 1px solid var(--hairline);
   border-radius: var(--radius-md);
   color: var(--ink);
-  font-size: 15px;
+  font-size: var(--text-body);
   font-variant-numeric: tabular-nums;
   text-align: right;
 }
@@ -203,7 +203,7 @@
   gap: 8px;
   padding: 40px 0;
   color: var(--slate);
-  font-size: 15px;
+  font-size: var(--text-body);
 }
 .updating {
   display: flex;
@@ -214,7 +214,7 @@
   font-size: var(--text-caption);
 }
 .results {
-  transition: opacity var(--duration-fast) ease-out;
+  transition: opacity var(--duration-fast) var(--ease-out);
 }
 .results[data-stale] {
   opacity: 0.55;
@@ -224,10 +224,10 @@
   flex-wrap: wrap;
   align-items: baseline;
   gap: 4px 6px;
-  font-size: 15px;
+  font-size: var(--text-body);
 }
 .who strong {
-  font-size: 17px;
+  font-size: var(--text-heading-sm);
   font-weight: 600;
 }
 .who small {
@@ -271,14 +271,14 @@
   justify-content: space-between;
   gap: 12px;
   padding: 14px 16px;
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   background: var(--mist);
 }
 .targets li div {
   display: grid;
 }
 .targets strong {
-  font-size: 15px;
+  font-size: var(--text-body);
   font-weight: 600;
 }
 .targets small {
@@ -287,13 +287,13 @@
 }
 .targets b {
   color: var(--action);
-  font-size: 17px;
+  font-size: var(--text-heading-sm);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 .targets li[data-reached] b {
-  color: #248a3d;
+  color: var(--success);
 }
 .node {
   margin-top: 20px;
@@ -313,7 +313,7 @@
   margin-bottom: 8px;
 }
 .nodeHead strong {
-  font-size: 15px;
+  font-size: var(--text-body);
   font-weight: 600;
 }
 .nodeHead span {
@@ -332,7 +332,7 @@
   height: 100%;
   border-radius: var(--radius-sm);
   background: var(--action);
-  transition: width 320ms var(--ease-out);
+  transition: width var(--duration-slow) var(--ease-out);
 }
 .speeds {
   display: grid;
@@ -351,13 +351,13 @@
   font-size: var(--text-caption);
 }
 .facts dd {
-  font-size: 21px;
+  font-size: var(--text-heading);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 .sourceTitle {
   margin-top: 16px;
-  font-size: 15px;
+  font-size: var(--text-body);
   font-weight: 600;
 }
 .sources {
@@ -393,7 +393,7 @@
 }
 .kind {
   padding: 1px 6px;
-  border-radius: 6px;
+  border-radius: var(--radius-xs);
   background: var(--mist);
   color: var(--slate);
   font-size: var(--text-badge);
@@ -497,7 +497,7 @@
 .tableScroll em {
   margin-left: 6px;
   padding: 1px 6px;
-  border-radius: 6px;
+  border-radius: var(--radius-xs);
   background: var(--action);
   color: var(--primary-foreground);
   font-size: var(--text-badge);
