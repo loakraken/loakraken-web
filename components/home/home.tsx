@@ -82,8 +82,10 @@ const useClock = (step: number) =>
 const SECOND = 1000;
 const MINUTE = 60_000;
 
-function Countdown({ to }: { to: string }) {
-  const now = useClock(SECOND);
+/** Seconds countdown; until the client clock starts it uses the board clock
+ *  (server render time), so the header text is already there (CLS). */
+function Countdown({ to, fallback }: { to: string; fallback: number | null }) {
+  const now = useClock(SECOND) ?? fallback;
   if (now === null) return null;
   return <b>{countdown(to, now) ?? "곧 시작"}</b>;
 }
@@ -282,16 +284,19 @@ function Section({
   title,
   items,
   live,
+  clock,
   hidePast,
   onShowTomorrow,
 }: {
   title: string;
   items: (Island | Timed | Other)[];
   live: boolean;
+  /** The board clock (server render time until the client clock starts), so
+   *  past rounds are already hidden in the first HTML (CLS, QA #181). */
+  clock: number | null;
   hidePast: boolean;
   onShowTomorrow?: () => void;
 }) {
-  const clock = useClock(MINUTE);
   const now = live ? clock : null;
   if (!items.length) return null;
   const status = now !== null ? sectionStatus(items, now) : null;
@@ -320,7 +325,7 @@ function Section({
             {status.next && (
               <>
                 {status.state !== "upcoming" && `${dayLabel(status.next, now)} `}
-                {kstTime(status.next)} · <Countdown to={status.next} />
+                {kstTime(status.next)} · <Countdown to={status.next} fallback={now} />
                 {status.state !== "upcoming" && " 후"}
               </>
             )}
@@ -462,6 +467,7 @@ function ScheduleBoard({ renderedAt }: { renderedAt?: number }) {
             onShowTomorrow={showTomorrow}
             items={data.adventureIslands}
             live={live}
+            clock={now}
           />
           <Section
             title="카오스게이트"
@@ -469,6 +475,7 @@ function ScheduleBoard({ renderedAt }: { renderedAt?: number }) {
             onShowTomorrow={showTomorrow}
             items={data.chaosGates}
             live={live}
+            clock={now}
           />
           <Section
             title="필드 보스"
@@ -476,6 +483,7 @@ function ScheduleBoard({ renderedAt }: { renderedAt?: number }) {
             onShowTomorrow={showTomorrow}
             items={data.fieldBosses}
             live={live}
+            clock={now}
           />
           {data.others.length > 0 && (
             <details className={styles.others}>
@@ -488,6 +496,7 @@ function ScheduleBoard({ renderedAt }: { renderedAt?: number }) {
                 hidePast={hidePast}
                 items={data.others}
                 live={live}
+                clock={now}
               />
             </details>
           )}
