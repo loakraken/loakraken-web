@@ -421,7 +421,7 @@ function Result({ plans, mode }: { plans: PartPlan[]; mode: Mode }) {
   });
   const priceList = prices.data?.data.items ?? null;
   const priceLimit = useRateLimit(prices.error);
-  const { lines, materialGold, unpriced } = costLines(
+  const { lines, buyGold, valueGold, unpriced } = costLines(
     summary.materials,
     Object.fromEntries(
       Object.entries(owned).map(([name, value]) => [name, Number(value || 0)]),
@@ -446,12 +446,12 @@ function Result({ plans, mode }: { plans: PartPlan[]; mode: Mode }) {
   return (
     <>
       <p className={quote.total}>
-        {formatCount(summary.gold + (priceList ? materialGold : 0))}
+        {formatCount(summary.gold + (priceList ? buyGold : 0))}
         <span>골드</span>
       </p>
       <p className={quote.totalNote}>
         {priceList
-          ? `재련 골드 ${formatCount(summary.gold)} + 재료 구매 ${formatCount(materialGold)}`
+          ? `재련 골드 ${formatCount(summary.gold)} + 구매 골드 ${formatCount(buyGold)} (소모 가치 기준 ${formatCount(summary.gold + valueGold)})`
           : `재련 골드 ${formatCount(summary.gold)}`}{" "}
         · 총 {formatCount(summary.stageCount)}단계, 시도{" "}
         {formatCount(summary.attempts, mode === "expected" ? 1 : 0)}회
@@ -518,6 +518,7 @@ function Result({ plans, mode }: { plans: PartPlan[]; mode: Mode }) {
               <th scope="col">부족</th>
               <th scope="col">단가</th>
               <th scope="col">구매 골드</th>
+              <th scope="col">소모 가치</th>
             </tr>
           </thead>
           <tbody>
@@ -556,9 +557,20 @@ function Result({ plans, mode }: { plans: PartPlan[]; mode: Mode }) {
                     : "—"}
                 </td>
                 <td className={styles.cost} data-label="구매 골드">
-                  {line.cost == null
+                  {line.purchase == null ? "—" : formatCount(line.purchase.gold)}
+                  {line.purchase != null && line.purchase.perUnit > 1 && line.purchase.units > 0 && (
+                    <small>
+                      {formatCount(line.purchase.units)}
+                      {line.price?.contentsPerItem != null ? "주머니" : "묶음"}
+                      {line.purchase.leftover > 0 &&
+                        ` · ${formatCount(line.purchase.leftover)}개 남음`}
+                    </small>
+                  )}
+                </td>
+                <td data-label="소모 가치">
+                  {line.value == null
                     ? "—"
-                    : formatCount(Math.max(0, Math.ceil(line.cost - 1e-9)))}
+                    : formatCount(Math.ceil(line.value - 1e-9))}
                 </td>
               </tr>
             ))}
@@ -566,9 +578,9 @@ function Result({ plans, mode }: { plans: PartPlan[]; mode: Mode }) {
         </table>
       </div>
       <p className={quote.caption}>
-        필요 수량은 소수를 올림했어요. 구매 골드는 부족 수량 × 1개당 단가라
-        실제 묶음 구매와 조금 다를 수 있어요. 운명의 파편은 가장 싼 주머니
-        기준이에요.
+        필요 수량은 소수를 올림했어요. 구매 골드는 부족 수량을 거래소 묶음
+        단위로 올려 산 금액이고, 소모 가치는 기대 소모량 × 1개당 시세예요(보유
+        수량과 무관). 운명의 파편은 가장 싼 주머니 기준이에요.
         {observedAt &&
           ` 거래소 첫 페이지에서 이름이 같은 상품의 ${basisLabel}를 ${kst.format(new Date(observedAt))}에 읽었어요.`}
       </p>

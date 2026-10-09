@@ -311,7 +311,8 @@
   }
   .table[data-wide] tr {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    /* minmax(0, …): a long cell (bundle count) wraps instead of widening the row. */
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 6px 16px;
     padding: 16px 0;
     border-bottom: 1px solid var(--hairline);
@@ -329,6 +330,15 @@
     grid-column: 1 / -1;
     display: block;
     font-weight: 600;
+  }
+  .table[data-wide] td {
+    flex-wrap: wrap;
+    min-width: 0;
+  }
+  .table[data-wide] td small {
+    flex-basis: 100%;
+    margin-top: 0;
+    text-align: right;
   }
   .table[data-wide] td::before {
     content: attr(data-label);
@@ -373,7 +383,8 @@
   color: var(--slate);
   font-size: var(--text-body);
 }
-.table th small {
+.table th small,
+.table td small {
   display: block;
   margin-top: 2px;
   color: var(--slate);

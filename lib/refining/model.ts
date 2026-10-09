@@ -253,7 +253,11 @@ export function summarize(plans: PartPlan[], mode: Mode) {
   const stages = plans.flatMap(({ plan }) => plan.stages);
   const materials = sumQuantities(
     stages.map((stage) => stageMaterials(stage, mode)),
-  ).map((item) => ({ ...item, amount: Math.ceil(item.amount - 1e-9) }));
+  ).map((item) => ({
+    ...item,
+    amount: Math.ceil(item.amount - 1e-9),
+    expected: item.amount,
+  }));
   const gold = Math.ceil(
     stages.reduce((sum, stage) => sum + stageGold(stage, mode), 0) - 1e-9,
   );
@@ -321,19 +325,39 @@ export function refiningFailureCopy(error: { code: string }) {
   }
 }
 
+/** What one listing on the exchange holds: bundle × items per pouch. */
+export const itemsPerPurchase = (price: MaterialPrice) =>
+  Math.max(1, price.bundleCount ?? 1) * Math.max(1, price.contentsPerItem ?? 1);
+
+export type Purchase = {
+  /** Listings to buy (bundles, or pouches for 운명의 파편). */
+  units: number;
+  perUnit: number;
+  gold: number;
+  /** Items left over after rounding up to whole listings. */
+  leftover: number;
+};
+
 export type CostLine = {
   name: string;
   amount: number;
   owned: number;
   missing: number;
   price: MaterialPrice | null;
-  /** Gold for the missing quantity; null when the material has no price. */
-  cost: number | null;
+  /** Missing quantity rounded up to whole listings; null when unpriced. */
+  purchase: Purchase | null;
+  /** Expected consumption × unit price; null when unpriced. */
+  value: number | null;
 };
 
-/** Missing quantity × unit price (#76). Unpriced materials stay out of the total. */
+/**
+ * Two named values (PM 총괄 2026-10-10 01:30, #235): 구매 골드 rounds the
+ * missing quantity up to whole exchange listings (what is actually paid,
+ * 로아와 method); 소모 가치 is expected consumption × 1개 단가 (일로아 method).
+ * Unpriced materials stay out of both totals.
+ */
 export function costLines(
-  materials: Quantity[],
+  materials: (Quantity & { expected?: number })[],
   owned: Record<string, number>,
   prices: MaterialPrice[] | null,
 ) {
@@ -341,20 +365,44 @@ export function costLines(
     const have = Math.max(0, owned[item.name] ?? 0);
     const missing = Math.max(0, item.amount - have);
     const price = prices?.find((p) => p.name === item.name) ?? null;
-    const unit = price?.status === "PRICED" ? price.unitPriceGold : null;
+    const priced = price?.status === "PRICED" && price.unitPriceGold != null;
+    const perUnit = priced ? itemsPerPurchase(price) : 1;
+    const units = Math.ceil(missing / perUnit - 1e-9);
+    const purchase: Purchase | null =
+      missing === 0
+        ? { units: 0, perUnit, gold: 0, leftover: 0 }
+        : priced
+          ? {
+              units,
+              perUnit,
+              // Without a listing price, whole listings at the unit price.
+              gold:
+                price.bundlePrice != null
+                  ? units * price.bundlePrice
+                  : units * perUnit * price.unitPriceGold!,
+              leftover: units * perUnit - missing,
+            }
+          : null;
     return {
       name: item.name,
       amount: item.amount,
       owned: have,
       missing,
       price,
-      cost: missing === 0 ? 0 : unit == null ? null : missing * unit,
+      purchase,
+      value: priced ? (item.expected ?? item.amount) * price.unitPriceGold! : null,
     };
   });
-  const known = lines.reduce((sum, line) => sum + (line.cost ?? 0), 0);
+  const sum = (pick: (line: CostLine) => number | null) =>
+    Math.ceil(lines.reduce((total, line) => total + (pick(line) ?? 0), 0) - 1e-9);
   return {
     lines,
-    materialGold: Math.ceil(known - 1e-9),
-    unpriced: lines.filter((line) => line.cost === null).map((l) => l.name),
+    buyGold: sum((line) => line.purchase?.gold ?? null),
+    valueGold: sum((line) => line.value),
+    // Out of either total: no unit price (소모 가치), or still missing and
+    // impossible to buy (구매 골드).
+    unpriced: lines
+      .filter((line) => line.value === null || (line.purchase === null && line.missing > 0))
+      .map((l) => l.name),
   };
 }
