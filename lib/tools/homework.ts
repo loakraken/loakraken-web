@@ -73,6 +73,18 @@ export function eligibleModes(itemLevel: number): { raid: Raid; mode: Mode }[] {
     );
 }
 
+/**
+ * Modes a gold character could enter whose clear gold is not settled
+ * (no official value and no two sites agreeing). They stay out of the totals
+ * and the screen names them (PM 총괄 2026-10-10 03:05).
+ */
+export function unsettledModes(characters: Pick<Character, "itemLevel" | "gold">[]) {
+  const top = Math.max(0, ...characters.filter((c) => c.gold).map((c) => c.itemLevel));
+  return eligibleModes(top)
+    .filter(({ mode }) => mode.status === "UNVERIFIED")
+    .map(({ raid, mode }) => ({ raid, mode }));
+}
+
 const planFor = (raid: Raid, mode: Mode): RaidPlan => ({
   raidId: raid.id,
   difficulty: mode.difficulty,

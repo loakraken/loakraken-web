@@ -21,6 +21,7 @@ import {
   parseState,
   rollWeek,
   rosterSummary,
+  unsettledModes,
   type Character,
   type HomeworkState,
   type RaidPlan,
@@ -43,6 +44,7 @@ function load(now: number): HomeworkState {
 
 function Summary({ state, now }: { state: HomeworkState; now: number }) {
   const s = rosterSummary(state);
+  const unsettled = unsettledModes(state.characters);
   return (
     <section className={styles.summary} aria-labelledby="hw-summary">
       <h2 id="hw-summary" className={styles.sr}>
@@ -59,6 +61,15 @@ function Summary({ state, now }: { state: HomeworkState; now: number }) {
           {s.moreSpent > 0 && ` · 더보기 지출 −${formatGold(s.moreSpent)} 반영`}
           {s.unknownGates > 0 && ` · 골드 미확인 관문 ${s.unknownGates}개는 빠져 있어요`}
         </p>
+        {unsettled.length > 0 && (
+          <p className={styles.note}>
+            합계에서 뺀 미확정 항목:{" "}
+            {unsettled
+              .map(({ raid, mode }) => `${raid.shortName} ${DIFFICULTY_LABEL[mode.difficulty]}`)
+              .join(", ")}{" "}
+            클리어 골드(공식 값과 두 사이트가 일치하는 값이 아직 없어요)
+          </p>
+        )}
       </div>
       <dl className={styles.stats}>
         <div>
