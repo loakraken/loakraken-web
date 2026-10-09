@@ -2,8 +2,8 @@
    with notices, events and a market summary beside it. */
 .page {
   min-height: 100vh;
-  background: #fff;
-  color: #1d1d1f;
+  background: var(--background);
+  color: var(--foreground);
   font-family: var(--font-ui);
   font-size: 14px;
   line-height: 1.43;
@@ -14,10 +14,10 @@
   cursor: pointer;
 }
 .remove:hover {
-  background: #e8e8ed;
+  background: var(--secondary);
 }
 .page :focus-visible {
-  outline: 3px solid #0071e3;
+  outline: 3px solid var(--ring);
   outline-offset: 2px;
 }
 .skip {
@@ -27,8 +27,8 @@
   z-index: 60;
   padding: 8px 14px;
   border-radius: 10px;
-  background: #1d1d1f;
-  color: #fff;
+  background: var(--foreground);
+  color: var(--background);
 }
 .skip:focus {
   top: 12px;
@@ -61,16 +61,16 @@
   width: min(640px, 100%);
   height: 56px;
   padding: 0 8px 0 20px;
-  border: 1px solid #d2d2d7;
+  border: 1px solid var(--border);
   border-radius: 9999px;
-  background: #fff;
+  background: var(--background);
   box-shadow: 0 6px 24px -14px #0000004d;
-  color: #6e6e73;
+  color: var(--muted-foreground);
   transition: border-color 160ms ease, box-shadow 160ms ease;
 }
 .search:focus-within {
-  border-color: #0071e3;
-  box-shadow: 0 0 0 4px #0071e324;
+  border-color: var(--ring);
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--primary) 14%, transparent);
 }
 .search input {
   flex: 1;
@@ -78,7 +78,7 @@
   border: 0;
   outline: none;
   background: transparent;
-  color: #1d1d1f;
+  color: var(--foreground);
   font-size: 17px;
 }
 .page .search input:focus-visible {
@@ -86,9 +86,9 @@
 }
 .kbd {
   padding: 2px 7px;
-  border: 1px solid #d2d2d7;
+  border: 1px solid var(--border);
   border-radius: 6px;
-  color: #86868b;
+  color: var(--muted-foreground);
   font-family: inherit;
   font-size: 11px;
 }
@@ -99,15 +99,15 @@
   height: 40px;
   border: 0;
   border-radius: 50%;
-  background: #0071e3;
-  color: #fff;
+  background: var(--primary);
+  color: var(--primary-foreground);
   transition: transform 120ms ease-out;
 }
 .search button:active {
   transform: scale(0.96);
 }
 .searchError {
-  color: #c4291c;
+  color: var(--destructive);
   font-size: 13px;
 }
 /* Layout */
@@ -126,7 +126,7 @@
   min-width: 0;
   padding: 20px 22px;
   border-radius: 22px;
-  background: #f5f5f7;
+  background: var(--muted);
 }
 .panelHead {
   display: flex;
@@ -145,7 +145,7 @@
   display: inline-flex;
   align-items: center;
   gap: 2px;
-  color: #6e6e73;
+  color: var(--muted-foreground);
   font-size: 12px;
   text-decoration: none;
 }
@@ -154,13 +154,13 @@
   justify-items: start;
   gap: 6px;
   padding: 16px 0;
-  color: #6e6e73;
+  color: var(--muted-foreground);
   font-size: 13px;
 }
 .textButton {
   border: 0;
   background: none;
-  color: #0066cc;
+  color: var(--link);
   font-size: 13px;
   font-weight: 600;
 }
@@ -176,15 +176,15 @@
   padding: 0 10px;
   border: 0;
   border-radius: 9999px;
-  background: #fff;
-  color: #6e6e73;
+  background: var(--background);
+  color: var(--muted-foreground);
   font-size: 12px;
   font-weight: 600;
-  box-shadow: inset 0 0 0 1px #e5e5ea;
+  box-shadow: inset 0 0 0 1px var(--secondary);
 }
 .toggle[aria-pressed="true"] {
-  background: #1d1d1f;
-  color: #fff;
+  background: var(--foreground);
+  color: var(--background);
   box-shadow: none;
 }
 .section header .textButton {
@@ -195,14 +195,14 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  color: #6e6e73;
+  color: var(--muted-foreground);
   font-size: 12px;
 }
 .legend i {
   width: 10px;
   height: 10px;
   border-radius: 3px;
-  box-shadow: inset 0 0 0 2px #e0a100;
+  box-shadow: inset 0 0 0 2px var(--grade-legendary-b);
 }
 .days {
   display: grid;
@@ -218,9 +218,9 @@
   padding: 8px 0 10px;
   border: 0;
   border-radius: 12px;
-  background: #fff;
-  color: #1d1d1f;
-  box-shadow: inset 0 0 0 1px #e5e5ea;
+  background: var(--background);
+  color: var(--foreground);
+  box-shadow: inset 0 0 0 1px var(--secondary);
 }
 .days button b {
   font-size: 16px;
@@ -228,14 +228,14 @@
   font-variant-numeric: tabular-nums;
 }
 .days button span {
-  color: #6e6e73;
+  color: var(--muted-foreground);
   font-size: 12px;
 }
 .days button[data-gold] {
-  box-shadow: inset 0 0 0 2px #e0a100;
+  box-shadow: inset 0 0 0 2px var(--grade-legendary-b);
 }
 .days button[data-weekend] span {
-  color: #c4291c;
+  color: var(--destructive);
 }
 /* The today dot sits in the bottom padding, outside the flow, so marking
    today after the clock starts never changes the row height (QA #181). */
@@ -247,16 +247,17 @@
   width: 4px;
   height: 4px;
   border-radius: 50%;
-  background: #0071e3;
+  background: var(--primary);
   transform: translateX(-50%);
 }
 .days button[aria-pressed="true"] {
-  background: #1d1d1f;
+  background: var(--foreground);
   box-shadow: none;
-  color: #fff;
+  color: var(--background);
 }
 .days button[aria-pressed="true"] span {
-  color: #ffffffb3;
+  color: var(--background);
+  opacity: 0.75;
 }
 .sections {
   display: grid;
@@ -278,20 +279,20 @@
   font-weight: 700;
 }
 .section header > span {
-  color: #86868b;
+  color: var(--muted-foreground);
   font-size: 12px;
 }
 .section header .next {
   margin-left: auto;
   text-align: right;
-  color: #6e6e73;
+  color: var(--muted-foreground);
   font-variant-numeric: tabular-nums;
 }
 .next[data-state="done"] {
-  color: #86868b;
+  color: var(--muted-foreground);
 }
 .next b {
-  color: #0066cc;
+  color: var(--link);
   font-weight: 700;
 }
 .rows {
@@ -307,14 +308,14 @@
   gap: 10px;
   padding: 8px 10px;
   border-radius: 12px;
-  background: #fff;
+  background: var(--background);
 }
 .rows img {
   flex: none;
   width: 36px;
   height: 36px;
   border-radius: 9px;
-  background: #e8e8ed;
+  background: var(--secondary);
 }
 .rowName {
   display: grid;
@@ -329,7 +330,7 @@
   text-overflow: ellipsis;
 }
 .rowName small {
-  color: #86868b;
+  color: var(--muted-foreground);
   font-size: 12px;
 }
 .rewards {
@@ -340,19 +341,19 @@
 .rewards i {
   padding: 1px 6px;
   border-radius: 5px;
-  background: #e8e8ed;
-  color: #515154;
+  background: var(--secondary);
+  color: var(--secondary-foreground);
   font-size: 11px;
   font-style: normal;
   font-weight: 600;
 }
 .rewards i[data-kind="GOLD"] {
-  background: #fff3cc;
-  color: #8a5a00;
+  background: color-mix(in oklab, var(--grade-legendary-b) 18%, transparent);
+  color: var(--grade-legendary-text);
 }
 .rewards i[data-kind="CARD_PACK"] {
-  background: #ece3ff;
-  color: #5b2fa8;
+  background: color-mix(in oklab, var(--grade-epic-b) 16%, transparent);
+  color: var(--grade-epic-text);
 }
 .times {
   display: inline-flex;
@@ -360,12 +361,12 @@
   justify-content: flex-end;
   gap: 2px 6px;
   max-width: 40%;
-  color: #1d1d1f;
+  color: var(--foreground);
   font-size: 12px;
   font-variant-numeric: tabular-nums;
 }
 .times time[data-past] {
-  color: #b0b0b5;
+  color: var(--faint);
   text-decoration: line-through;
 }
 .others summary {
@@ -382,12 +383,12 @@
   display: none;
 }
 .others summary span {
-  color: #86868b;
+  color: var(--muted-foreground);
   font-size: 12px;
   font-weight: 500;
 }
 .others summary svg {
-  color: #86868b;
+  color: var(--muted-foreground);
   transition: transform 160ms ease-out;
 }
 .others[open] summary svg {
@@ -404,7 +405,7 @@
   margin-bottom: 10px;
   padding: 3px;
   border-radius: 12px;
-  background: #fff;
+  background: var(--background);
 }
 .recentTabs button {
   flex: 1;
@@ -412,7 +413,7 @@
   border: 0;
   border-radius: 9px;
   background: transparent;
-  color: #6e6e73;
+  color: var(--muted-foreground);
   font-size: 13px;
   font-weight: 600;
 }
@@ -421,8 +422,8 @@
   font-variant-numeric: tabular-nums;
 }
 .recentTabs button[aria-pressed="true"] {
-  background: #1d1d1f;
-  color: #fff;
+  background: var(--foreground);
+  color: var(--background);
 }
 .recentList {
   display: grid;
@@ -434,7 +435,7 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  border-top: 1px solid #e5e5ea;
+  border-top: 1px solid var(--secondary);
 }
 .recentList li:first-child {
   border-top: 0;
@@ -446,7 +447,7 @@
   gap: 8px;
   min-width: 0;
   padding: 8px 0;
-  color: #1d1d1f;
+  color: var(--foreground);
   text-decoration: none;
 }
 .recentName {
@@ -462,7 +463,7 @@
   text-overflow: ellipsis;
 }
 .recentName small {
-  color: #86868b;
+  color: var(--muted-foreground);
   font-size: 12px;
 }
 .recentList b {
@@ -475,12 +476,12 @@
   justify-items: end;
 }
 .recentLevel small {
-  color: #86868b;
+  color: var(--muted-foreground);
   font-size: 11px;
   font-variant-numeric: tabular-nums;
 }
 .starOn {
-  color: #e0a100;
+  color: var(--grade-legendary-text);
   fill: currentColor;
 }
 .noticeTabs {
@@ -489,7 +490,7 @@
   margin-bottom: 6px;
   padding: 3px;
   border-radius: 10px;
-  background: #fff;
+  background: var(--background);
 }
 .noticeTabs button {
   min-height: 28px;
@@ -497,13 +498,13 @@
   border: 0;
   border-radius: 8px;
   background: transparent;
-  color: #6e6e73;
+  color: var(--muted-foreground);
   font-size: 12px;
   font-weight: 600;
 }
 .noticeTabs button[aria-pressed="true"] {
-  background: #1d1d1f;
-  color: #fff;
+  background: var(--foreground);
+  color: var(--background);
 }
 .remove {
   display: grid;
@@ -513,7 +514,7 @@
   border: 0;
   border-radius: 50%;
   background: transparent;
-  color: #86868b;
+  color: var(--muted-foreground);
 }
 .recentFoot {
   display: flex;
@@ -522,8 +523,8 @@
   gap: 8px;
   margin-top: 8px;
   padding-top: 8px;
-  border-top: 1px solid #e5e5ea;
-  color: #6e6e73;
+  border-top: 1px solid var(--secondary);
+  color: var(--muted-foreground);
   font-size: 12px;
 }
 .switch {
@@ -535,7 +536,7 @@
 .switch input {
   width: 16px;
   height: 16px;
-  accent-color: #0071e3;
+  accent-color: var(--ring);
 }
 
 /* Popular characters */
@@ -546,7 +547,7 @@
   list-style: none;
 }
 .popular li {
-  border-top: 1px solid #e5e5ea;
+  border-top: 1px solid var(--secondary);
 }
 .popular li:first-child {
   border-top: 0;
@@ -556,24 +557,24 @@
   align-items: center;
   gap: 10px;
   padding: 8px 0;
-  color: #1d1d1f;
+  color: var(--foreground);
   text-decoration: none;
 }
 .rank {
   flex: none;
   width: 22px;
-  color: #86868b;
+  color: var(--muted-foreground);
   font-size: 14px;
   font-weight: 700;
   text-align: center;
   font-variant-numeric: tabular-nums;
 }
 .rank[data-top] {
-  color: #0066cc;
+  color: var(--link);
 }
 .note {
   margin-top: 8px;
-  color: #86868b;
+  color: var(--muted-foreground);
   font-size: 11px;
 }
 
@@ -585,8 +586,8 @@
   gap: 8px;
   padding: 12px 16px;
   border-radius: 16px;
-  background: #fff4e5;
-  color: #8a4b00;
+  background: color-mix(in oklab, var(--accent-warm) 10%, transparent);
+  color: var(--accent-warm);
   font-size: 13px;
   text-decoration: none;
 }
@@ -607,8 +608,8 @@
   align-items: center;
   gap: 8px;
   padding: 8px 0;
-  border-top: 1px solid #e5e5ea;
-  color: #1d1d1f;
+  border-top: 1px solid var(--secondary);
+  color: var(--foreground);
   font-size: 13px;
   text-decoration: none;
 }
@@ -619,15 +620,15 @@
   flex: none;
   padding: 1px 6px;
   border-radius: 5px;
-  background: #e8e8ed;
-  color: #515154;
+  background: var(--secondary);
+  color: var(--secondary-foreground);
   font-size: 11px;
   font-style: normal;
   font-weight: 600;
 }
 .notices i[data-category="MAINTENANCE"] {
-  background: #fff1e0;
-  color: #9b3c00;
+  background: color-mix(in oklab, var(--accent-warm) 12%, transparent);
+  color: var(--accent-warm);
 }
 .notices span {
   flex: 1;
@@ -637,7 +638,7 @@
   text-overflow: ellipsis;
 }
 .notices time {
-  color: #86868b;
+  color: var(--muted-foreground);
   font-size: 12px;
   font-variant-numeric: tabular-nums;
 }
@@ -646,7 +647,7 @@
   align-items: center;
   gap: 10px;
   padding: 7px 0;
-  color: #1d1d1f;
+  color: var(--foreground);
   text-decoration: none;
 }
 .events img {
@@ -654,7 +655,7 @@
   width: 64px;
   height: 36px;
   border-radius: 8px;
-  background: #e8e8ed;
+  background: var(--secondary);
   object-fit: cover;
 }
 .eventText {
@@ -670,17 +671,17 @@
   text-overflow: ellipsis;
 }
 .events small {
-  color: #86868b;
+  color: var(--muted-foreground);
   font-size: 12px;
   font-variant-numeric: tabular-nums;
 }
 .events b {
-  color: #6e6e73;
+  color: var(--muted-foreground);
   font-size: 12px;
   font-weight: 700;
 }
 .events b[data-soon] {
-  color: #c4291c;
+  color: var(--destructive);
 }
 
 /* Market */
@@ -689,8 +690,8 @@
   align-items: center;
   gap: 8px;
   padding: 7px 0;
-  border-top: 1px solid #e5e5ea;
-  color: #1d1d1f;
+  border-top: 1px solid var(--secondary);
+  color: var(--foreground);
   font-size: 13px;
   text-decoration: none;
 }
@@ -719,29 +720,29 @@
   font-variant-numeric: tabular-nums;
 }
 .market small[data-direction="up"] {
-  color: #d93a2b;
+  color: var(--market-up);
 }
 .market small[data-direction="down"] {
-  color: #2f6fd9;
+  color: var(--market-down);
 }
 .market small[data-direction="flat"],
 .market small[data-direction="none"] {
-  color: #86868b;
+  color: var(--muted-foreground);
 }
 .market [data-grade="희귀"] {
-  color: #0a74b8;
+  color: var(--grade-rare-text);
 }
 .market [data-grade="영웅"] {
-  color: #8f2fc0;
+  color: var(--grade-epic-text);
 }
 .market [data-grade="전설"] {
-  color: #b86a00;
+  color: var(--grade-legendary-text);
 }
 .market [data-grade="유물"] {
-  color: #c4520a;
+  color: var(--grade-relic-text);
 }
 .market [data-grade="고대"] {
-  color: #8c7333;
+  color: var(--grade-ancient-text);
 }
 
 .footer {
@@ -752,12 +753,12 @@
   max-width: 1168px;
   margin: 0 auto;
   padding: 20px 24px 40px;
-  border-top: 1px solid #e5e5ea;
-  color: #86868b;
+  border-top: 1px solid var(--secondary);
+  color: var(--muted-foreground);
   font-size: 12px;
 }
 .footer a {
-  color: #0066cc;
+  color: var(--link);
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -829,12 +830,12 @@
   list-style: none;
 }
 .rewardItems li {
-  --grade: #86868b;
+  --grade: var(--faint);
   display: inline-flex;
   align-items: center;
   gap: 5px;
   min-width: 0;
-  color: #1d1d1f;
+  color: var(--foreground);
   font-size: 12px;
 }
 .rows .rewardItems img {
@@ -851,34 +852,34 @@
   background: var(--grade);
 }
 .rewardItems [data-grade="고급"] {
-  --grade: #3f8f1f;
+  --grade: var(--grade-uncommon-text);
 }
 .rewardItems [data-grade="희귀"] {
-  --grade: #0a74b8;
+  --grade: var(--grade-rare-text);
 }
 .rewardItems [data-grade="영웅"] {
-  --grade: #8f2fc0;
+  --grade: var(--grade-epic-text);
 }
 .rewardItems [data-grade="전설"] {
-  --grade: #b86a00;
+  --grade: var(--grade-legendary-text);
 }
 .rewardItems [data-grade="유물"] {
-  --grade: #c4520a;
+  --grade: var(--grade-relic-text);
 }
 .rewardItems [data-grade="고대"] {
-  --grade: #8c7333;
+  --grade: var(--grade-ancient-text);
 }
 .rewardMore {
   padding: 2px 8px;
   border-radius: 9999px;
-  background: #f0f0f3;
-  color: #0066cc;
+  background: var(--secondary);
+  color: var(--link);
   font-size: 12px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 .rewardMore:hover {
-  background: #e8e8ed;
+  background: var(--secondary);
 }
 .rewardPanel {
   display: grid;
@@ -886,7 +887,7 @@
   gap: 12px;
   padding: 10px 12px;
   border-radius: 10px;
-  background: #f5f5f7;
+  background: var(--muted);
 }
 .rewardPanel section {
   display: grid;
@@ -894,13 +895,13 @@
 }
 .rewardPanel h3 {
   margin: 0;
-  color: #1d1d1f;
+  color: var(--foreground);
   font-size: 12px;
   font-weight: 700;
 }
 .rewardPanel h4 {
   margin: 0 0 4px;
-  color: #6e6e73;
+  color: var(--muted-foreground);
   font-size: 11px;
   font-weight: 600;
 }
