@@ -395,7 +395,9 @@ function AuctionContent({
                 <legend>파티 인원</legend>
                 <div className={styles.segmented}>
                   {PARTY_PRESETS.map((preset) => {
-                    const checked = !customText && party === preset.size;
+                    // A typed size equal to a preset lights that preset too;
+                    // an invalid typed size lights none.
+                    const checked = !cError && party === preset.size;
                     return (
                       <label
                         key={preset.size}
