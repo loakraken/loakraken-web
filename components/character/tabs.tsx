@@ -65,6 +65,7 @@ import styles from "./detail.module.css";
 import { rateLimitCopy, retryLabel } from "@/lib/api/rate-limit";
 import { RateLimitNote } from "@/components/site/rate-limit-note";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
+import { useCrossfade } from "@/lib/motion";
 
 export const TABS = [
   { id: "combat", label: "전투" },
@@ -1177,6 +1178,7 @@ function QueryProblem({
  * date; only equipped titles are recorded (PM wording).
  */
 function RosterTitlesPanel({ name }: { name: string }) {
+  const fade = useCrossfade();
   const noteId = useId();
   const query = useQuery({
     queryKey: ["roster-titles", name],
@@ -1212,7 +1214,7 @@ function RosterTitlesPanel({ name }: { name: string }) {
           아직 확인한 칭호가 없어요. 원정대 캐릭터를 조회하면 그때 장착한 칭호가 기록돼요.
         </p>
       ) : (
-        <ol className={styles.titleList} aria-describedby={noteId}>
+        <ol {...fade(styles.titleList)} aria-describedby={noteId}>
           {groups.map((group, i) =>
             group.titles.length === 1 ? (
               <li key={group.day + group.titles[0].title}>

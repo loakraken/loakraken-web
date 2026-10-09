@@ -8,6 +8,7 @@ import type { PopularPeriod } from "@/lib/character/popular";
 import styles from "./home.module.css";
 import { countdownText } from "@/lib/api/rate-limit";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
+import { useCrossfade } from "@/lib/motion";
 
 const PERIODS: { id: PopularPeriod; label: string }[] = [
   { id: "24h", label: "24시간" },
@@ -22,6 +23,7 @@ const level = (value: number | null) =>
  * a collecting state instead of a thin list.
  */
 export function PopularCard() {
+  const fade = useCrossfade();
   const [period, setPeriod] = useState<PopularPeriod>("24h");
   const query = useQuery({
     queryKey: ["home-popular", period],
@@ -52,7 +54,7 @@ export function PopularCard() {
       ) : data.sampleStatus === "COLLECTING" || data.items.length === 0 ? (
         <p className={styles.muted}>아직 순위를 집계하고 있어요.</p>
       ) : (
-        <ol className={styles.popular}>
+        <ol {...fade(styles.popular)}>
           {data.items.map((item) => (
             <li key={`${item.serverName}-${item.characterName}`}>
               <Link href={`/character/${encodeURIComponent(item.characterName)}`}>

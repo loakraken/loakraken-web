@@ -9,6 +9,7 @@ import { CardRefresh } from "./card-refresh";
 import styles from "./card-collection.module.css";
 import { countdownText, retryLabel } from "@/lib/api/rate-limit";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
+import { useCrossfade } from "@/lib/motion";
 
 /**
  * Roster card records (F-6), inside the cards panel right under the equipped
@@ -16,6 +17,7 @@ import { useRateLimit } from "@/lib/api/use-rate-limit";
  * LOAWA's 도감 and buildable set effects, folded.
  */
 export function CardCollection({ name }: { name: string }) {
+  const fade = useCrossfade();
   const query = useQuery({
     queryKey: ["card-collection", name],
     queryFn: ({ signal }) => fetchCardCollection(name, signal),
@@ -75,7 +77,7 @@ export function CardCollection({ name }: { name: string }) {
         </div>
       ) : (
         <>
-          <ul className={styles.elements}>
+          <ul {...fade(styles.elements)}>
             {orderedSlots(data.elementRecords[shown]).map((slot, i) => {
               const stage = slot.record ? appliedStage(slot.record) : null;
               return (

@@ -44,6 +44,7 @@ import styles from "./market.module.css";
 import { rateLimitCopy, retryLabel } from "@/lib/api/rate-limit";
 import { RateLimitNote } from "@/components/site/rate-limit-note";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
+import { useCrossfade } from "@/lib/motion";
 
 const TIERS = [4, 3] as const;
 const failureOf = (error: unknown): MarketFailure | null =>
@@ -131,6 +132,7 @@ function Detail({
   tab: FavoriteItem["tab"];
   outside?: boolean;
 }) {
+  const fade = useCrossfade();
   const favorites = useFavorites();
   const starred = favorites.some((f) => f.itemId === item.itemId);
   const unit = unitPrice(item.currentMinPrice, item.bundleCount);
@@ -238,7 +240,9 @@ function Detail({
           <div className={styles.dailyPending} aria-hidden="true" />
         </>
       ) : days.length ? (
-        <MarketChart days={days} />
+        <div {...fade()}>
+          <MarketChart days={days} />
+        </div>
       ) : (
         <p className={styles.muted}>아직 수집된 시세가 없어요.</p>
       )}
@@ -282,6 +286,7 @@ function MarketContent({
   initial: BoardQuery;
   initialItem: number | null;
 }) {
+  const fade = useCrossfade();
   const router = useRouter();
   const [query, setQuery] = useState(initial);
   const [selected, setSelected] = useState<number | null>(initialItem);
@@ -471,7 +476,7 @@ function MarketContent({
                 <p className={styles.muted}>표시할 품목이 없어요.</p>
               ) : (
                 <ul
-                  className={styles.rows}
+                  {...fade(styles.rows)}
                   data-stale={board.isPlaceholderData || undefined}
                 >
                   {items.map((item) => (

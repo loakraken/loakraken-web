@@ -8,6 +8,7 @@ import { Panel } from "./panel";
 import styles from "./views.module.css";
 import { countdownText, retryLabel } from "@/lib/api/rate-limit";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
+import { useCrossfade } from "@/lib/motion";
 
 const ROWS = ["일", "월", "화", "수", "목", "금", "토"];
 const count = (n: number) => `${n.toLocaleString("ko-KR")}회`;
@@ -18,6 +19,7 @@ const count = (n: number) => `${n.toLocaleString("ko-KR")}회`;
  * readout carries the exact count, so the value is never colour-only.
  */
 export function ViewsPanel({ name }: { name: string }) {
+  const fade = useCrossfade();
   const query = useQuery({
     queryKey: ["character-views", name],
     queryFn: ({ signal }) => fetchViews(name, signal),
@@ -72,7 +74,7 @@ export function ViewsPanel({ name }: { name: string }) {
         </div>
       ) : (
         <>
-          <div className={styles.frame}>
+          <div {...fade(styles.frame)}>
             <div className={styles.rowLabels} aria-hidden="true">
               {ROWS.map((row, i) => (
                 <span key={row}>{i % 2 ? row : ""}</span>

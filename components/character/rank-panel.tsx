@@ -17,6 +17,7 @@ import {
 } from "@/lib/character/rank";
 import { Panel } from "./panel";
 import styles from "./rank.module.css";
+import { useCrossfade } from "@/lib/motion";
 
 function Cells({ data, metric }: { data: CharacterRank; metric: RankMetric }) {
   return (
@@ -61,6 +62,7 @@ function Cells({ data, metric }: { data: CharacterRank; metric: RankMetric }) {
  * shows only "순위 비공개"; a small sample shows "집계 중", never a 0.
  */
 export function RankPanel({ name }: { name: string }) {
+  const fade = useCrossfade();
   const query = useQuery({
     queryKey: ["character-rank", name],
     queryFn: ({ signal }) => fetchRank(name, signal),
@@ -100,7 +102,11 @@ export function RankPanel({ name }: { name: string }) {
       ) : (
         <>
           {METRICS.map((metric) => (
-            <section key={metric.id} className={styles.metric} aria-label={`${metric.label} 순위`}>
+            <section
+              key={metric.id}
+              {...fade(styles.metric)}
+              aria-label={`${metric.label} 순위`}
+            >
               <h3>{metric.label}</h3>
               {state === "excluded" ? (
                 <p className={styles.muted}>-</p>
