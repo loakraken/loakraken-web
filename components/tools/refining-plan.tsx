@@ -4,10 +4,7 @@ import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from "rea
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMutation, useQueries, useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Pause, Play } from "lucide-react";
-import { ThinkingOrb, type OrbState } from "thinking-orbs";
-import { LandingMotion, useLandingMotion } from "@/components/landing/motion";
-import { InlineOrb } from "@/components/landing/orb";
+import { ArrowLeft, Hammer } from "lucide-react";
 import { CharacterQueryError, fetchCharacter } from "@/lib/character/client";
 import {
   characterNameError,
@@ -452,7 +449,7 @@ function Result({ plans, mode }: { plans: PartPlan[]; mode: Mode }) {
       </p>
       {prices.isFetching && (
         <p className={styles.priceStatus} role="status">
-          <InlineOrb /> 재료 시세를 불러오고 있어요.
+          재료 시세를 불러오고 있어요.
         </p>
       )}
       {priceList && unpriced.length > 0 && (
@@ -634,7 +631,6 @@ function Result({ plans, mode }: { plans: PartPlan[]; mode: Mode }) {
 }
 
 function RefiningContent({ initialName }: { initialName: string }) {
-  const { enabled, paused, toggle } = useLandingMotion();
   const [parts, setParts] = useState(initialParts);
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [options, setOptions] = useState<Options>({
@@ -673,11 +669,6 @@ function RefiningContent({ initialName }: { initialName: string }) {
     q.data ? [{ part: requests[i].part, plan: q.data.data }] : [],
   );
   const complete = requests.length > 0 && plans.length === requests.length;
-  const orb: OrbState = pending
-    ? "solving"
-    : complete
-      ? "breathing"
-      : "composing";
   const nextLevel = targetItemLevel(loaded?.itemLevel ?? null, parts);
   const failure =
     failed?.error instanceof RefiningQueryError
@@ -692,29 +683,12 @@ function RefiningContent({ initialName }: { initialName: string }) {
       <a className={quote.skip} href="#refining-main">
         본문으로 건너뛰기
       </a>
-      <SiteHeader>
-        <button
-          type="button"
-          className={quote.motionButton}
-          aria-label={paused ? "모션 재생" : "모션 일시정지"}
-          aria-pressed={paused}
-          onClick={toggle}
-        >
-          {paused ? <Play size={16} /> : <Pause size={16} />}
-        </button>
-      </SiteHeader>
+      <SiteHeader />
       <main id="refining-main">
         <section className={quote.hero} aria-labelledby="refining-heading">
-          <div className={quote.heroOrb} aria-hidden="true">
-            <ThinkingOrb
-              state={orb}
-              size={64}
-              theme="light"
-              color="#0066cc"
-              speed={0.7}
-              paused={!enabled}
-            />
-          </div>
+          <span className={quote.heroIcon} aria-hidden="true">
+            <Hammer size={18} />
+          </span>
           <p className={quote.heroKicker}>성장 도구</p>
           <h1 id="refining-heading">재련 기대 비용</h1>
           <p className={quote.heroCopy}>목표 단계까지, 확률로 미리.</p>
@@ -897,8 +871,6 @@ function RefiningContent({ initialName }: { initialName: string }) {
 
 export function RefiningPlanTool({ initialName }: { initialName: string }) {
   return (
-    <LandingMotion>
-      <RefiningContent initialName={initialName} />
-    </LandingMotion>
+    <RefiningContent initialName={initialName} />
   );
 }

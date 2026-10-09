@@ -4,10 +4,7 @@ import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Pause, Play } from "lucide-react";
-import { ThinkingOrb, type OrbState } from "thinking-orbs";
-import { LandingMotion, useLandingMotion } from "@/components/landing/motion";
-import { InlineOrb } from "@/components/landing/orb";
+import { ArrowLeft, Gauge } from "lucide-react";
 import {
   characterNameError,
   normalizeCharacterName,
@@ -577,7 +574,6 @@ function Results({ data, stale }: { data: CritSpeed; stale: boolean }) {
 }
 
 function CritSpeedContent({ initialName }: { initialName: string }) {
-  const { enabled, paused, toggle } = useLandingMotion();
   const router = useRouter();
   const [input, setInput] = useState(initialName);
   const [touched, setTouched] = useState(false);
@@ -614,12 +610,6 @@ function CritSpeedContent({ initialName }: { initialName: string }) {
       : query.error
         ? { code: "LOST_ARK_API_ERROR", status: 502 }
         : null;
-  const orb: OrbState = query.isFetching
-    ? "solving"
-    : data
-      ? "breathing"
-      : "composing";
-
   function submit(event: FormEvent) {
     event.preventDefault();
     setTouched(true);
@@ -636,29 +626,12 @@ function CritSpeedContent({ initialName }: { initialName: string }) {
       <a className={quote.skip} href="#crit-main">
         본문으로 건너뛰기
       </a>
-      <SiteHeader>
-        <button
-          type="button"
-          className={quote.motionButton}
-          aria-label={paused ? "모션 재생" : "모션 일시정지"}
-          aria-pressed={paused}
-          onClick={toggle}
-        >
-          {paused ? <Play size={16} /> : <Pause size={16} />}
-        </button>
-      </SiteHeader>
+      <SiteHeader />
       <main id="crit-main">
         <section className={quote.hero} aria-labelledby="crit-page-heading">
-          <div className={quote.heroOrb} aria-hidden="true">
-            <ThinkingOrb
-              state={orb}
-              size={64}
-              theme="light"
-              color="#0066cc"
-              speed={0.7}
-              paused={!enabled}
-            />
-          </div>
+          <span className={quote.heroIcon} aria-hidden="true">
+            <Gauge size={18} />
+          </span>
           <p className={quote.heroKicker}>전투 계산</p>
           <h1 id="crit-page-heading">치적·뭉가·음돌</h1>
           <p className={quote.heroCopy}>내 캐릭터 기준으로, 가정은 따로.</p>
@@ -722,14 +695,14 @@ function CritSpeedContent({ initialName }: { initialName: string }) {
                   <>
                     {query.isFetching && (
                       <p className={styles.updating} role="status">
-                        <InlineOrb state="solving" /> 다시 계산하고 있어요
+                        다시 계산하고 있어요
                       </p>
                     )}
                     <Results data={data} stale={query.isPlaceholderData} />
                   </>
                 ) : name ? (
                   <p className={styles.empty} role="status">
-                    <InlineOrb /> 캐릭터 정보를 읽고 있어요
+                    캐릭터 정보를 읽고 있어요
                   </p>
                 ) : (
                   <p className={styles.empty}>
@@ -751,8 +724,6 @@ function CritSpeedContent({ initialName }: { initialName: string }) {
 
 export function CritSpeedTool({ initialName }: { initialName: string }) {
   return (
-    <LandingMotion>
-      <CritSpeedContent initialName={initialName} />
-    </LandingMotion>
+    <CritSpeedContent initialName={initialName} />
   );
 }

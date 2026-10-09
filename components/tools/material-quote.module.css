@@ -127,6 +127,18 @@
   flex: none;
   transform: scale(0.5);
 }
+/* Still icon in the orb's place: tools are information screens, so no
+   repeating motion (design decision D2). */
+.heroIcon {
+  grid-row: 1 / 4;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--muted);
+  color: var(--link);
+}
 .heroKicker {
   grid-column: 2;
   color: var(--slate);
