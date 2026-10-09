@@ -37,6 +37,8 @@ jobs:
       CI: "true"
       NEXT_TELEMETRY_DISABLED: 1
       E2E_CHANNEL: chromium
+      # 운영 빌드(next build → standalone server.js)로 띄운다(QA #133). dev 서버는 CI에서 홈 화면 수화 지연으로 flaky가 났다(10-09 비교).
+      E2E_SERVER: standalone
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -83,7 +85,7 @@ jobs:
             if (!fs.existsSync("results.json")) { console.log("results.json 없음(실행 전 실패)"); process.exit(0); }
             const s = JSON.parse(fs.readFileSync("results.json", "utf8")).stats ?? {};
             const row = {
-              run: process.env.GITHUB_RUN_ID, pr: process.env.PR, sha: process.env.GITHUB_SHA,
+              run: process.env.GITHUB_RUN_ID, pr: process.env.PR, sha: process.env.GITHUB_SHA, server: process.env.E2E_SERVER ?? "dev",
               expected: s.expected ?? 0, unexpected: s.unexpected ?? 0, flaky: s.flaky ?? 0, skipped: s.skipped ?? 0,
               minutes: Math.round((s.duration ?? 0) / 600) / 100,
             };
