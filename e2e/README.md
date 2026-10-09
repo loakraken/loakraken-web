@@ -20,6 +20,7 @@ npx playwright show-report       # 실패 시 trace·스크린샷
 - 포트: 앱 3200, 목 3201(QA 대역). `E2E_WEB_PORT`, `E2E_MOCK_PORT`로 바꾼다.
 - 이미 떠 있는 서버를 재사용한다. CI에서는 새로 띄운다.
 - 다른 미리보기(예: PR 작업 트리)를 검사하려면 `E2E_BASE_URL=http://localhost:3002 npx playwright test`로 실행한다. 이때 서버는 띄우지 않는다.
+- 운영 빌드로 돌리기: `E2E_SERVER=standalone npx playwright test`. `next build` 뒤 컨테이너 이미지와 같은 standalone `server.js`를 3202번에 띄운다(`.next/static`·`public` 복사). 빌드를 건너뛰려면 `E2E_SKIP_BUILD=1`을 쓴다. 로컬 기준 빌드 포함 약 3분이다. **같은 작업 트리에서 dev 서버가 떠 있으면 먼저 끈다.** `next build`가 같은 `.next`를 덮어써 dev 화면이 깨질 수 있다. dev를 계속 써야 하면 별도 작업 트리에서 돌린다.
 - 브라우저: 기본은 설치된 Chrome(`channel: chrome`)이다. CI에서 크로미움을 쓰려면 `npx playwright install chromium` 후 `E2E_CHANNEL=chromium`으로 실행한다.
 
 ## 구성

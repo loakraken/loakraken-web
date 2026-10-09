@@ -2,8 +2,13 @@
 // no Lost Ark API and no OpenAI calls. Ports are in the QA range (3200s).
 import { defineConfig, devices } from "@playwright/test";
 
-const WEB_PORT = Number(process.env.E2E_WEB_PORT ?? 3200);
+// E2E_SERVER=standalone runs the production build (next build + standalone
+// server.js, like the container image) instead of `next dev`. It uses its own
+// default port so it never collides with a dev server left running on 3200.
+const standalone = process.env.E2E_SERVER === "standalone";
+const WEB_PORT = Number(process.env.E2E_WEB_PORT ?? (standalone ? 3202 : 3200));
 const MOCK_PORT = Number(process.env.E2E_MOCK_PORT ?? 3201);
+const api = { LOAKRAKEN_API_ORIGIN: `http://127.0.0.1:${MOCK_PORT}` };
 // E2E_BASE_URL points the suite at an already running preview (e.g. a PR
 // worktree on another port). The servers below are then not started.
 const external = process.env.E2E_BASE_URL;
@@ -60,13 +65,21 @@ export default defineConfig({
           reuseExistingServer: !process.env.CI,
           timeout: 30_000,
         },
-        {
-          command: `npx next dev --port ${WEB_PORT} --hostname 127.0.0.1`,
-          cwd: "..",
-          env: { LOAKRAKEN_API_ORIGIN: `http://127.0.0.1:${MOCK_PORT}` },
-          url: baseURL,
-          reuseExistingServer: !process.env.CI,
-          timeout: 180_000,
-        },
+        standalone
+          ? {
+              command: "node support/standalone-server.mjs",
+              env: { ...api, PORT: String(WEB_PORT) },
+              url: baseURL,
+              reuseExistingServer: !process.env.CI,
+              timeout: 600_000, // includes `next build`
+            }
+          : {
+              command: `npx next dev --port ${WEB_PORT} --hostname 127.0.0.1`,
+              cwd: "..",
+              env: api,
+              url: baseURL,
+              reuseExistingServer: !process.env.CI,
+              timeout: 180_000,
+            },
       ],
 });
