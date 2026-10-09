@@ -97,3 +97,44 @@ test.describe("경매 입찰가 @smoke", () => {
     await expect(page.getByRole("radio", { name: "16인" })).toBeChecked();
   });
 });
+
+// 돌파고(web #86). 대조값은 성장 도구팀 제공(2026-10-09):
+// 새 돌 77돌 4.8%·97돌 0.14%, ?m=1s1s2f3f → 77돌 6.4%·추천 증가 각인 2.
+test.describe("돌파고 @smoke", () => {
+  test("새 돌의 목표 확률과 깎기·되돌리기", async ({ page }) => {
+    await page.goto("/tools/stone");
+    await expect(page.getByRole("heading", { level: 1, name: "돌파고" })).toBeVisible();
+    const cutting = page.getByRole("region", { name: "세공" });
+    await expect(cutting).toContainText("75%");
+    await expect(cutting.getByRole("listitem").filter({ hasText: /^77돌/ }).first()).toContainText("4.8%");
+    await expect(cutting.getByRole("listitem").filter({ hasText: /^97돌/ }).first()).toContainText("0.14%");
+    const undo = page.getByRole("button", { name: "되돌리기" });
+    await expect(undo).toBeDisabled();
+
+    await page.getByRole("button", { name: "증가 각인 1 성공" }).click();
+    await expect(page).toHaveURL(/[?&]m=1s/);
+    await expect(cutting).toContainText("성공 1 · 남은 칸 9");
+    await expect(cutting.getByRole("status")).toContainText("증가 각인 1 성공");
+    await expect(undo).toBeEnabled();
+    await undo.click();
+    await expect(cutting).toContainText("성공 0 · 남은 칸 10");
+    await expectNoHorizontalOverflow(page);
+  });
+
+  test("주소의 세공 기록을 복원하고 추천 줄을 보여 준다", async ({ page }) => {
+    await page.goto("/tools/stone?m=1s1s2f3f");
+    const cutting = page.getByRole("region", { name: "세공" });
+    await expect(cutting.getByRole("listitem").filter({ hasText: /^77돌/ }).first()).toContainText("증가 각인 2");
+    await expect(cutting.getByRole("listitem").filter({ hasText: /^77돌/ }).first()).toContainText("6.4%");
+    const line2 = cutting.getByRole("list", { name: "증가 각인 2을 깎으면 목표 확률" });
+    await expect(line2.getByRole("listitem").filter({ hasText: "77돌" })).toContainText("추천");
+    await expect(cutting).toContainText("성공 2 · 남은 칸 8");
+  });
+
+  test("필요한 돌 표를 보여 준다", async ({ page }) => {
+    await page.goto("/tools/stone");
+    const need = page.getByRole("region", { name: "필요한 돌" });
+    await expect(need.getByRole("rowheader", { name: /77돌/ })).toBeVisible();
+    await expect(need.getByRole("cell").first()).toHaveText(/\d+개/);
+  });
+});
