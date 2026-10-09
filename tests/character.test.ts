@@ -131,7 +131,10 @@ test("a successful lookup makes exactly one normalized backend request with no c
     assert.equal(url.searchParams.get("includeSiblings"), "false");
     assert.equal(options?.cache, "no-store");
     assert.equal(options?.redirect, "error");
-    assert.deepEqual(options?.headers, { Accept: "application/json" });
+    // Outside a request: no client address or bot flag, only a fresh request id.
+    const { "X-Request-Id": requestId, ...rest } = options?.headers as Record<string, string>;
+    assert.deepEqual(rest, { Accept: "application/json" });
+    assert.match(requestId, /^[0-9a-f-]{36}$/);
     return Response.json(full());
   };
   assert.equal(

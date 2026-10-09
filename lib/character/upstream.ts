@@ -4,7 +4,7 @@ import {
   type CharacterResult,
 } from "./model";
 import { isCharacterEnvelope } from "./validate";
-import { incomingForwardedFor } from "../api/backend";
+import { forwardHeaders, incomingContext } from "../api/backend";
 
 const errorCodes: Record<number, readonly string[]> = {
   400: ["INVALID_REQUEST"],
@@ -62,7 +62,7 @@ export async function requestCharacter(
     };
   }
 
-  const forwardedFor = await incomingForwardedFor();
+  const context = await incomingContext();
   const timeout = AbortSignal.timeout(options.timeoutMs ?? 15_000);
   const signal = options.signal
     ? AbortSignal.any([timeout, options.signal])
@@ -71,7 +71,7 @@ export async function requestCharacter(
     const response = await (options.fetcher ?? fetch)(url, {
       headers: {
         Accept: "application/json",
-        ...(forwardedFor && { "X-Forwarded-For": forwardedFor }),
+        ...forwardHeaders(context),
       },
       cache: "no-store",
       redirect: "error",

@@ -32,22 +32,58 @@ export function backendUrl(origin: string | undefined, path: string) {
   }
 }
 
+/** What the web server tells the backend about the request it is serving. */
+export type ForwardContext = {
+  /** Incoming X-Forwarded-For, untouched (per-client limits, backend #108). */
+  forwardedFor: string | null;
+  /** Correlation id shared with the backend logs (O-8). */
+  requestId: string;
+  /** A search-engine crawler by User-Agent: the backend's separate bot bucket. */
+  bot: boolean;
+};
+
+const REQUEST_ID = /^[A-Za-z0-9._:-]{8,128}$/;
+/** Crawlers and link-preview fetchers that announce themselves. */
+export const BOT_AGENT =
+  /bot\b|bot\/|crawl|spider|slurp|yeti|daumoa|facebookexternalhit|kakaotalk-scrap|embedly/i;
+
 /**
- * The incoming request's X-Forwarded-For, passed through untouched so the
- * backend can rate-limit public traffic per client (backend #108). The edge
- * proxy overwrites or appends it in production (the backend reads from the
- * right); outside a request (tests, scripts) there
- * is none and nothing is sent.
+ * Builds the context from incoming headers. Only these three values are ever
+ * forwarded; nothing else from the incoming request (an incoming
+ * X-Loakraken-Bot included) reaches the backend.
  */
-export async function incomingForwardedFor(): Promise<string | null> {
+export function forwardContext(incoming: Pick<Headers, "get"> | null): ForwardContext {
+  const id = incoming?.get("x-request-id")?.trim() ?? "";
+  return {
+    forwardedFor: incoming?.get("x-forwarded-for") || null,
+    requestId: REQUEST_ID.test(id) ? id : crypto.randomUUID(),
+    bot: BOT_AGENT.test(incoming?.get("user-agent") ?? ""),
+  };
+}
+
+/**
+ * The context of the request being served. The edge proxy overwrites or
+ * appends X-Forwarded-For in production (the backend reads from the right);
+ * outside a request (tests, scripts) there is no address and no bot flag, and
+ * a fresh request id is made.
+ */
+export async function incomingContext(): Promise<ForwardContext> {
   try {
     const { headers } = await import("next/headers");
-    return (await headers()).get("x-forwarded-for");
+    return forwardContext(await headers());
   } catch (error) {
     const { unstable_rethrow } = await import("next/navigation");
     unstable_rethrow(error);
-    return null;
+    return forwardContext(null);
   }
+}
+
+export function forwardHeaders(context: ForwardContext): Record<string, string> {
+  return {
+    ...(context.forwardedFor && { "X-Forwarded-For": context.forwardedFor }),
+    "X-Request-Id": context.requestId,
+    ...(context.bot && { "X-Loakraken-Bot": "1" }),
+  };
 }
 
 export async function requestBackend<T>(
@@ -60,8 +96,8 @@ export async function requestBackend<T>(
     fetcher?: typeof fetch;
     signal?: AbortSignal;
     timeoutMs?: number;
-    /** Overrides the incoming request header (tests). */
-    forwardedFor?: string | null;
+    /** Overrides the incoming request context (tests). */
+    context?: ForwardContext;
   },
 ): Promise<BackendResult<T>> {
   if (!url)
@@ -73,16 +109,13 @@ export async function requestBackend<T>(
   const signal = options.signal
     ? AbortSignal.any([timeout, options.signal])
     : timeout;
-  const forwardedFor =
-    options.forwardedFor !== undefined
-      ? options.forwardedFor
-      : await incomingForwardedFor();
+  const context = options.context ?? (await incomingContext());
   try {
     const response = await (options.fetcher ?? fetch)(url, {
       method: options.method ?? "GET",
       headers: {
         Accept: "application/json",
-        ...(forwardedFor && { "X-Forwarded-For": forwardedFor }),
+        ...forwardHeaders(context),
         ...(options.body !== undefined && {
           "Content-Type": "application/json",
         }),
