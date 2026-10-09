@@ -47,6 +47,7 @@ import { HistoryChart } from "./history-chart";
 import { AvatarsTab, CollectiblesTab } from "./inner";
 import { Panel } from "./panel";
 import { ViewsPanel } from "./views-panel";
+import { useTabPill } from "./tab-pill";
 import { useStagger } from "./entrance";
 import { RankPanel } from "./rank-panel";
 import { byObservedOrder, groupByDay } from "@/lib/character/titles";
@@ -146,6 +147,7 @@ export function TabBar({
 }) {
   const [favorite, toggleFavorite] = useFavorite(name);
   const [shareStatus, setShareStatus] = useState("");
+  const { nav: pillNav, layer: pillLayer, onKeyDown: pillKey, onPointerDown: pillPointer } = useTabPill(tab);
   const window_ = refreshWindow(data, now);
   const cooling = window_.remainingMs > 0;
   const disabled = fetching || cooling || rateLimitSeconds > 0;
@@ -169,7 +171,13 @@ export function TabBar({
   return (
     <div className={styles.tabBar}>
       <div className={styles.tabInner}>
-        <nav className={styles.tabs} aria-label="캐릭터 정보 탭">
+        <nav
+          ref={pillNav}
+          className={styles.tabs}
+          aria-label="캐릭터 정보 탭"
+          onKeyDown={pillKey}
+          onPointerDown={pillPointer}
+        >
           {TABS.map((item) => (
             <Link
               key={item.id}
@@ -181,6 +189,14 @@ export function TabBar({
               {item.label}
             </Link>
           ))}
+          {/* The selected style, clipped to the current tab (tab-pill.ts). */}
+          <span ref={pillLayer} className={styles.pillLayer} aria-hidden="true">
+            {TABS.map((item) => (
+              <span key={item.id} data-current={tab === item.id || undefined}>
+                {item.label}
+              </span>
+            ))}
+          </span>
         </nav>
         <div className={styles.tabActions}>
           <button
