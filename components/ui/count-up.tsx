@@ -46,7 +46,9 @@ function CountUp({ value, format = defaultFormat, className, ...props }: CountUp
     let frame = 0
     node.nodeValue = latest.current.format(0)
     const tick = (now: number) => {
-      const t = Math.min(1, (now - start) / duration)
+      // A frame's timestamp can be earlier than `start` (it marks the frame's
+      // beginning), so clamp to 0 or the first frame shows a negative value.
+      const t = Math.max(0, Math.min(1, (now - start) / duration))
       const { value: target, format: fmt } = latest.current
       node.nodeValue = fmt(t < 1 ? target * easeOut(t) : target)
       if (t < 1) frame = requestAnimationFrame(tick)
