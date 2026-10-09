@@ -415,20 +415,13 @@
 .bannerFacts dd {
   overflow-wrap: anywhere;
 }
-/* Position (dealer/support) — LOAKraken tokens, readable on both band tones. */
+/* Position (dealer/support) — shown only on the banner, which is dark in
+   every theme, so the light tints are used. */
 .page [data-position="DEALER"] {
-  color: #c4291c;
+  color: #ff8a80;
 }
 .page [data-position="SUPPORT"] {
-  color: #1f8a3b;
-}
-@media (prefers-color-scheme: dark) {
-  .page [data-position="DEALER"] {
-    color: #ff8a80;
-  }
-  .page [data-position="SUPPORT"] {
-    color: #7ed98f;
-  }
+  color: #7ed98f;
 }
 .headerNav {
   display: flex;

@@ -10,7 +10,7 @@ import {
 import { ThinkingOrb } from "thinking-orbs";
 import { useLandingMotion } from "@/components/landing/motion";
 import { gradeKey, safeGameImage } from "@/lib/character/model";
-import { cutoutPortrait, glowTint } from "@/lib/character/portrait-cutout";
+import { bannerBackdrop, cutoutPortrait, glowTint } from "@/lib/character/portrait-cutout";
 import styles from "./imagery.module.css";
 
 type Phase = "server" | "loading" | "loaded" | "failed";
@@ -134,35 +134,20 @@ export function CardArt({
   );
 }
 
-type Cutout = {
-  status: "none" | "pending" | "ready" | "failed";
-  url: string | null;
-  ambient: string | null;
-  backdrop: string | null;
-};
+type Tones = { ambient: string | null; backdrop: string | null };
+const NO_TONES: Tones = { ambient: null, backdrop: null };
 
-// Light surfaces need the render without its baked-in dark backdrop. A separate
-// anonymous-CORS request feeds the canvas, so the visible original never
-// depends on CORS; any failure falls back to the dark band with the original.
-function usePortraitCutout(src: string | null): Cutout {
-  const [cutout, setCutout] = useState<Cutout>({
-    status: src ? "pending" : "none",
-    url: null,
-    ambient: null,
-    backdrop: null,
-  });
+// The band takes the render's own backdrop colour (capped dark enough for the
+// banner text) and the glow its effect colour. A separate anonymous-CORS
+// request feeds the canvas, so the visible original never depends on CORS;
+// any failure keeps the default --banner band and no glow.
+function usePortraitTones(src: string | null): Tones {
+  const [tones, setTones] = useState<Tones>(NO_TONES);
   useEffect(() => {
     if (!src) return;
     let cancelled = false;
-    let objectUrl: string | null = null;
     const fail = () => {
-      if (!cancelled)
-        setCutout({
-          status: "failed",
-          url: null,
-          ambient: null,
-          backdrop: null,
-        });
+      if (!cancelled) setTones(NO_TONES);
     };
     const probe = new Image();
     probe.crossOrigin = "anonymous";
@@ -179,20 +164,15 @@ function usePortraitCutout(src: string | null): Cutout {
         if (!context) return fail();
         context.drawImage(probe, 0, 0);
         const pixels = context.getImageData(0, 0, width, height);
+        // Only the tones are read; the processed pixels are discarded.
         const result = cutoutPortrait(pixels.data, width, height);
         if (!result) return fail();
-        context.putImageData(pixels, 0, 0);
         // Soft glow behind the figure takes the effect colour, normalised.
         const ambient = result.ambient
           ? glowTint(result.ambient).join(" ")
           : null;
-        const backdrop = result.backdrop.map((v) => Math.round(v)).join(" ");
-        canvas.toBlob((blob) => {
-          if (cancelled) return;
-          if (!blob) return fail();
-          objectUrl = URL.createObjectURL(blob);
-          setCutout({ status: "ready", url: objectUrl, ambient, backdrop });
-        }, "image/png");
+        const backdrop = bannerBackdrop(result.backdrop).join(" ");
+        if (!cancelled) setTones({ ambient, backdrop });
       } catch {
         fail();
       }
@@ -200,18 +180,16 @@ function usePortraitCutout(src: string | null): Cutout {
     probe.src = src;
     return () => {
       cancelled = true;
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
+      setTones(NO_TONES);
     };
   }, [src]);
-  return cutout;
+  return tones;
 }
 
 // Character banner (ILOA-equivalent composition, LOAKraken visuals): identity on
 // the left, the render in the middle cropped head-to-waist (about the top 6-61%
 // of the render, enlarged to ~1.8x the band), extra facts on the right.
-// Light scheme: light band + locally generated backdrop-free cutout.
-// Dark scheme or cutout failure: dark band + original render. CSS switches the
-// tone, so the first paint never flashes.
+// The band is dark in every theme (ILOA, LOPEC) and shows the original render.
 export function CharacterBanner({
   url,
   name,
@@ -226,20 +204,19 @@ export function CharacterBanner({
   const safe = safeGameImage(url);
   const { enabled } = useLandingMotion();
   const [phase, bind] = useImagePhase(safe);
-  const cutout = usePortraitCutout(safe);
-  const waiting = phase === "loading" || cutout.status === "pending";
+  const tones = usePortraitTones(safe);
+  const waiting = phase === "loading";
 
   return (
     <section
       className={styles.banner}
       data-phase={phase}
-      data-cutout={cutout.status}
       aria-label={`${name} 캐릭터 요약`}
       style={
-        cutout.backdrop || cutout.ambient
+        tones.backdrop || tones.ambient
           ? ({
-              ...(cutout.backdrop && { "--backdrop": cutout.backdrop }),
-              ...(cutout.ambient && { "--ambient": cutout.ambient }),
+              ...(tones.backdrop && { "--backdrop": tones.backdrop }),
+              ...(tones.ambient && { "--ambient": tones.ambient }),
             } as CSSProperties)
           : undefined
       }
@@ -248,13 +225,13 @@ export function CharacterBanner({
         <div className={styles.bannerIdentity}>{identity}</div>
         <span
           className={styles.bannerGlow}
-          data-ready={(cutout.ambient && phase !== "failed") || undefined}
+          data-ready={(tones.ambient && phase !== "failed") || undefined}
           aria-hidden="true"
         />
         <div className={styles.bannerFigure}>
           {safe && phase !== "failed" && (
             <>
-              {/* Original render (dark surfaces). Official CDN, not proxied. */}
+              {/* Original render. Official CDN, not proxied. */}
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 {...bind}
@@ -267,18 +244,6 @@ export function CharacterBanner({
                 fetchPriority="high"
                 referrerPolicy="no-referrer"
               />
-              {cutout.url && (
-                // Backdrop-removed render (light surfaces), generated locally.
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  className={styles.figureCutout}
-                  src={cutout.url}
-                  alt=""
-                  aria-hidden="true"
-                  width={612}
-                  height={708}
-                />
-              )}
             </>
           )}
           {waiting && (
