@@ -12,6 +12,20 @@ const root = fileURLToPath(new URL("../..", import.meta.url));
 const standalone = join(root, ".next", "standalone");
 const port = process.env.PORT ?? "3202";
 
+// `next build` rewrites .next, which a dev server in the same worktree also uses.
+async function devServerRunning() {
+  try {
+    await fetch("http://127.0.0.1:3200/", { signal: AbortSignal.timeout(1000) });
+    return true;
+  } catch {
+    return false;
+  }
+}
+if (process.env.E2E_SKIP_BUILD !== "1" && (await devServerRunning()))
+  console.warn(
+    "[e2e] 3200번에 dev 서버가 떠 있습니다. next build가 같은 .next를 덮어써 dev 화면이 깨질 수 있습니다. 먼저 끄거나 별도 작업 트리에서 실행하세요.",
+  );
+
 if (process.env.E2E_SKIP_BUILD !== "1") {
   const build = spawnSync("npx", ["next", "build"], { cwd: root, stdio: "inherit", shell: true });
   if (build.status !== 0) process.exit(build.status ?? 1);
