@@ -69,13 +69,13 @@ export const titleDate = (iso: string) => day.format(new Date(iso)).replace(/\.\
 /**
  * First-seen order folded by KST day (backend #176): titles first seen on the
  * same day came in together (one roster scan), so their order means nothing
- * and they are shown as one "같은 날 확인" group. Uses firstObservedDate when
- * the backend sends it, otherwise the KST date of firstObservedAt.
+ * and they are shown as one "같은 날 확인" group. Uses the backend's
+ * firstObservedDate (KST), or the KST date of firstObservedAt if it is malformed.
  */
 export function groupByDay(titles: RosterTitle[]) {
   const groups: { day: string; titles: RosterTitle[] }[] = [];
   for (const title of byObservedOrder(titles)) {
-    const given = (title as RosterTitle & { firstObservedDate?: string }).firstObservedDate;
+    const given = title.firstObservedDate;
     const day = given && /^\d{4}-\d{2}-\d{2}$/.test(given) ? given.replaceAll("-", ".") : titleDate(title.firstObservedAt);
     const last = groups.at(-1);
     if (last && last.day === day) last.titles.push(title);

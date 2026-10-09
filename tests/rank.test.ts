@@ -10,6 +10,7 @@ import {
   rankState,
   requestRank,
   scopeLabel,
+  scopesOf,
 } from "../lib/character/rank";
 
 const fixture = (name: string) =>
@@ -71,4 +72,17 @@ test("rank requests validate the name and allow-list errors", async () => {
   assert.equal(calls, 0);
   const result = await requestRank(" 가1 ", "http://127.0.0.1:8080", { fetcher });
   assert.deepEqual(result, { ok: false, error: { code: "STATS_CHARACTER_NOT_OBSERVED", status: 404 } });
+});
+
+test("server-class box (backend #171) shows only when sent", () => {
+  const data = fixture("character-rank.json").data;
+  assert.deepEqual(scopesOf(data).map((s) => s.id), ["ALL", "SERVER", "CLASS", "SERVER_CLASS"]);
+  assert.equal(scopeLabel(data, "SERVER_CLASS"), "서버 직업 · 통계테스트서버 통계바드");
+  assert.deepEqual(rankCell(data, "COMBAT_POWER", "SERVER_CLASS"), {
+    state: "ready", rank: "5위", total: "35명 중", top: "상위 14.29%", tier: "대양",
+    tierNote: "LOAKraken이 확인한 캐릭터 중 상위 25% 이내",
+  });
+  const older = structuredClone(data);
+  older.entries = older.entries.filter((e: { scope: string }) => e.scope !== "SERVER_CLASS");
+  assert.deepEqual(scopesOf(older).map((s) => s.id), ["ALL", "SERVER", "CLASS"]);
 });

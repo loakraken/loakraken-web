@@ -6,12 +6,12 @@ import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { CharacterQueryError, fetchRank } from "@/lib/character/client";
 import {
   METRICS,
-  SCOPES,
   conditionsText,
   TIER_LEGEND,
   rankCell,
   rankState,
   scopeLabel,
+  scopesOf,
   type CharacterRank,
   type RankMetric,
 } from "@/lib/character/rank";
@@ -21,8 +21,8 @@ import { useCrossfade } from "@/lib/motion";
 
 function Cells({ data, metric }: { data: CharacterRank; metric: RankMetric }) {
   return (
-    <ul className={styles.cells}>
-      {SCOPES.map((scope) => {
+    <ul className={styles.cells} data-count={scopesOf(data).length}>
+      {scopesOf(data).map((scope) => {
         const cell = rankCell(data, metric, scope.id);
         return (
           <li key={scope.id}>

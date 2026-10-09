@@ -70,6 +70,11 @@ export interface components {
              */
             firstObservedAt: string;
             /**
+             * Format: date
+             * @description firstObservedAt의 KST 날짜. 같은 날 처음 확인한 칭호는 한 번에 기록된 것이라 observedOrder의 앞뒤에 의미가 없다(#144)
+             */
+            firstObservedDate: string;
+            /**
              * Format: date-time
              * @description 마지막으로 장착 상태를 확인한 시각
              */
@@ -146,7 +151,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description LOST_ARK_RATE_LIMITED */
+            /** @description LOST_ARK_RATE_LIMITED / CLIENT_RATE_LIMITED: 이 클라이언트의 분당 요청·공식 호출 한도 초과. Retry-After(초) 뒤 다시 시도 */
             429: {
                 headers: {
                     [name: string]: unknown;
