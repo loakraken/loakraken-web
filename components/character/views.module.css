@@ -10,7 +10,7 @@
   grid-template-rows: repeat(7, 1fr);
   gap: 3px;
   margin-top: 18px;
-  color: #86868b;
+  color: var(--muted-foreground);
   font-size: 10px;
   line-height: 1;
 }
@@ -26,7 +26,7 @@
   gap: 3px;
   height: 14px;
   margin-bottom: 4px;
-  color: #86868b;
+  color: var(--muted-foreground);
   font-size: 10px;
   white-space: nowrap;
 }
@@ -42,7 +42,7 @@
   display: block;
   aspect-ratio: 1;
   border-radius: 3px;
-  background: #e3e3e8;
+  background: var(--secondary);
 }
 .grid i[data-pad] {
   background: transparent;
@@ -64,7 +64,7 @@
   background: #0b5bb5;
 }
 .grid i[data-active] {
-  box-shadow: 0 0 0 1.5px #1d1d1f;
+  box-shadow: 0 0 0 1.5px var(--foreground);
 }
 .grid:focus-visible {
   outline-offset: 4px;
@@ -78,13 +78,13 @@
   margin-top: 10px;
 }
 .readout {
-  color: #6e6e73;
+  color: var(--muted-foreground);
   font-size: 12px;
   font-variant-numeric: tabular-nums;
 }
 .readout b {
   margin-right: 4px;
-  color: #1d1d1f;
+  color: var(--foreground);
   font-size: 14px;
   font-weight: 700;
 }
@@ -92,7 +92,7 @@
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  color: #86868b;
+  color: var(--muted-foreground);
   font-size: 10px;
 }
 .legend i {
@@ -113,10 +113,10 @@
 .totals div {
   padding: 10px 12px;
   border-radius: 12px;
-  background: #fff;
+  background: var(--background);
 }
 .totals dt {
-  color: #6e6e73;
+  color: var(--muted-foreground);
   font-size: 12px;
 }
 .totals dd {
@@ -127,22 +127,22 @@
 }
 .note {
   margin-top: 10px;
-  color: #86868b;
+  color: var(--muted-foreground);
   font-size: 11px;
 }
 .muted {
   display: grid;
   justify-items: start;
   gap: 6px;
-  color: #6e6e73;
+  color: var(--muted-foreground);
   font-size: 13px;
 }
 .retry {
   min-height: 32px;
   padding: 0 12px;
   border-radius: 9999px;
-  background: #fff;
-  color: #0066cc;
+  background: var(--background);
+  color: var(--link);
   font-size: 12px;
   font-weight: 600;
 }

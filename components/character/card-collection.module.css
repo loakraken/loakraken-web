@@ -3,7 +3,7 @@
 .collection {
   margin-top: 16px;
   padding-top: 14px;
-  border-top: 1px solid #e6e6e8;
+  border-top: 1px solid var(--secondary);
 }
 .head {
   display: flex;
@@ -17,7 +17,7 @@
   font-weight: 700;
 }
 .head > span:not(.roles) {
-  color: #707070;
+  color: var(--muted-foreground);
   font-size: 12px;
 }
 .head .roles {
@@ -38,7 +38,7 @@
   min-width: 0;
   padding: 9px 9px 10px;
   border-radius: 12px;
-  background: #fff;
+  background: var(--background);
 }
 .slotHead {
   display: flex;
@@ -53,42 +53,42 @@
   width: 22px;
   height: 22px;
   border-radius: 6px;
-  background: #e8e8ed;
-  color: #86868b;
+  background: var(--secondary);
+  color: var(--secondary-foreground);
   font-size: 13px;
   font-style: normal;
   font-weight: 700;
 }
 /* Element hues only on recorded slots; text stays ink for contrast. */
 .elements li[data-recorded] i[data-element="LIGHT"] {
-  background: #fff1c2;
-  color: #7a5400;
+  background: light-dark(#fff1c2, #3a2f0f);
+  color: light-dark(#7a5400, #f2c75c);
 }
 .elements li[data-recorded] i[data-element="DARK"] {
-  background: #ebe2f7;
-  color: #55307f;
+  background: light-dark(#ebe2f7, #2d2140);
+  color: light-dark(#55307f, #c9a8f0);
 }
 .elements li[data-recorded] i[data-element="LIGHTNING"] {
-  background: #e3ecfb;
-  color: #244f8f;
+  background: light-dark(#e3ecfb, #1c2a40);
+  color: light-dark(#244f8f, #9cc2f5);
 }
 .elements li[data-recorded] i[data-element="EARTH"] {
-  background: #efe6da;
-  color: #6b4a22;
+  background: light-dark(#efe6da, #352a1d);
+  color: light-dark(#6b4a22, #e0bf94);
 }
 .elements li[data-recorded] i[data-element="WATER"] {
-  background: #dff3f7;
-  color: #1f6475;
+  background: light-dark(#dff3f7, #15323a);
+  color: light-dark(#1f6475, #8fd6e6);
 }
 .elements li[data-recorded] i[data-element="FIRE"] {
-  background: #fde4df;
-  color: #9a2f1d;
+  background: light-dark(#fde4df, #3d1d18);
+  color: light-dark(#9a2f1d, #f5a593);
 }
 .setName {
   display: -webkit-box;
   min-width: 0;
   overflow: hidden;
-  color: #6e6e73;
+  color: var(--muted-foreground);
   font-size: 11px;
   line-height: 1.3;
   word-break: keep-all;
@@ -109,7 +109,7 @@
 }
 .value small {
   flex-basis: 100%;
-  color: #86868b;
+  color: var(--muted-foreground);
   font-size: 11px;
 }
 .value .by {
@@ -123,32 +123,32 @@
   gap: 2px;
   padding: 3px;
   border-radius: 10px;
-  background: #fff;
+  background: var(--background);
 }
 .roles button {
   min-height: 26px;
   padding: 0 9px;
   border-radius: 8px;
-  color: #6e6e73;
+  color: var(--muted-foreground);
   font-size: 12px;
   font-weight: 600;
 }
 .roles button[aria-pressed="true"] {
-  background: #1d1d1f;
-  color: #fff;
+  background: var(--foreground);
+  color: var(--background);
 }
 .none {
-  color: #a1a1a6;
+  color: var(--muted-foreground);
   font-size: 13px;
 }
 .note {
   margin-top: 10px;
-  color: #86868b;
+  color: var(--muted-foreground);
   font-size: 12px;
 }
 .fold {
   margin-top: 12px;
-  border-top: 1px solid #e6e6e8;
+  border-top: 1px solid var(--secondary);
 }
 .fold summary {
   display: flex;
@@ -160,7 +160,7 @@
   cursor: pointer;
 }
 .fold summary span {
-  color: #86868b;
+  color: var(--muted-foreground);
   font-size: 12px;
   font-weight: 500;
 }
@@ -182,7 +182,7 @@
 .sets > li {
   padding: 10px 12px;
   border-radius: 12px;
-  background: #fff;
+  background: var(--background);
 }
 .sets header {
   display: flex;
@@ -196,7 +196,7 @@
   font-weight: 700;
 }
 .sets header span {
-  color: #6e6e73;
+  color: var(--muted-foreground);
   font-size: 12px;
   font-variant-numeric: tabular-nums;
 }
@@ -212,10 +212,10 @@
   display: grid;
   grid-template-columns: 72px minmax(0, 1fr);
   gap: 8px;
-  color: #a1a1a6;
+  color: var(--muted-foreground);
 }
 .sets ul li[data-active] {
-  color: #1d1d1f;
+  color: var(--foreground);
 }
 .sets ul b {
   font-weight: 600;
@@ -225,15 +225,15 @@
   display: grid;
   justify-items: start;
   gap: 6px;
-  color: #6e6e73;
+  color: var(--muted-foreground);
   font-size: 13px;
 }
 .retry {
   min-height: 32px;
   padding: 0 12px;
   border-radius: 9999px;
-  background: #fff;
-  color: #0066cc;
+  background: var(--background);
+  color: var(--link);
   font-size: 12px;
   font-weight: 600;
 }

@@ -127,7 +127,7 @@
   text-overflow: ellipsis;
 }
 .card figcaption small {
-  color: #6e6e73;
+  color: var(--muted-foreground);
   font-size: 12px;
 }
 
