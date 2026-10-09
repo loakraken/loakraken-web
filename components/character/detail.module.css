@@ -36,12 +36,14 @@
   padding: 0 28px;
 }
 .tabs {
+  position: relative; /* the pill copy scrolls with the tabs */
   display: flex;
   gap: 4px;
   overflow-x: auto;
   scrollbar-width: none;
 }
-.tabs a {
+.tabs a,
+.pillLayer > span {
   flex: 0 0 auto;
   padding: 8px 15px;
   border-radius: 980px;
@@ -50,10 +52,33 @@
   letter-spacing: -0.016em;
   transition: background-color 160ms ease-out;
 }
-.tabs a[aria-current="page"] {
+.tabs a[aria-current="page"],
+.pillLayer > span {
   background: var(--foreground);
   color: var(--background);
-  font-weight: 600;
+}
+.tabs a[aria-current="page"],
+.pillLayer > span[data-current] {
+  font-weight: 600; /* same widths in both rows */
+}
+/* Once placed, the copy carries the selected style; the link underneath is plain. */
+.tabs[data-pill="on"] a[aria-current="page"] {
+  background: transparent;
+  color: var(--foreground);
+}
+.pillLayer {
+  position: absolute;
+  inset: 0 auto 0 0;
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  width: max-content;
+  pointer-events: none;
+  clip-path: inset(0 100% 0 0);
+  transition: clip-path var(--duration-fast, 200ms) var(--ease-out);
+}
+.pillLayer[data-instant] {
+  transition: none;
 }
 @media (hover: hover) and (pointer: fine) {
   .tabs a:not([aria-current="page"]):hover {
@@ -868,7 +893,8 @@
     padding: 0 12px;
     gap: 6px;
   }
-  .tabs a {
+  .tabs a,
+  .pillLayer > span {
     padding: 8px 11px;
     font-size: 13px;
   }
@@ -894,6 +920,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .pillLayer,
   .tabs a,
   .tooltip,
   .refresh,
