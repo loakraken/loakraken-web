@@ -1,9 +1,12 @@
-// 공통 상단 메뉴(web #50·#56): 호버 플라이아웃, 키보드(↓·Esc), 390px 메뉴 시트.
+// 공통 상단 메뉴(web #50·#56): 호버 플라이아웃, 키보드(↓·Esc), 900px 이하 메뉴 시트.
 import { test, expect } from "../support/fixtures.mjs";
 
+// components/site/site-nav.module.css 의 max-width: 900px
+const NARROW = 900;
+
 test.describe("상단 메뉴 데스크톱 @smoke", () => {
-  test.beforeEach(async ({ page }, testInfo) => {
-    test.skip(testInfo.project.name === "mobile-390", "390px은 메뉴 시트를 쓴다");
+  test.beforeEach(async ({ page }) => {
+    test.skip(page.viewportSize().width <= NARROW, "900px 이하는 메뉴 시트를 쓴다");
     await page.goto("/market");
   });
 
@@ -61,10 +64,9 @@ test.describe("상단 메뉴 데스크톱 @smoke", () => {
   });
 });
 
-test.describe("상단 메뉴 390px @smoke", () => {
-  test.beforeEach(async ({ page }, testInfo) => {
-    void page;
-    test.skip(testInfo.project.name !== "mobile-390", "모바일 전용");
+test.describe("상단 메뉴 시트(900px 이하) @smoke", () => {
+  test.beforeEach(async ({ page }) => {
+    test.skip(page.viewportSize().width > NARROW, "900px 이하 전용");
   });
 
   test("메뉴 버튼으로 시트를 열고 이동한다", async ({ page }) => {

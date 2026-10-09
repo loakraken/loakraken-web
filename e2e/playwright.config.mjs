@@ -40,6 +40,11 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"], ...browser, viewport: { width: 1440, height: 900 } },
     },
     {
+      name: "tablet-768",
+      grep: /@smoke/,
+      use: { ...devices["Desktop Chrome"], ...browser, viewport: { width: 768, height: 1024 }, hasTouch: true, isMobile: false },
+    },
+    {
       name: "mobile-390",
       grep: /@smoke/,
       use: { ...devices["Desktop Chrome"], ...browser, viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: false },
