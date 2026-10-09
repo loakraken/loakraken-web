@@ -21,6 +21,7 @@ import { SiteHeader } from "@/components/site/site-header";
 import {
   characterNameError,
   normalizeCharacterName,
+  safeGameImage,
 } from "@/lib/character/model";
 import { fetchNews, fetchSchedule, homeNewsKey, homeScheduleKey } from "@/lib/home/client";
 import {
@@ -163,16 +164,19 @@ function Rewards({ kinds }: { kinds: Island["rewardKinds"] }) {
   );
 }
 
+/** Name in body ink; the grade shows as the dot or icon ring colour and as hidden text. */
 function RewardItem({ reward }: { reward: Reward }) {
+  const icon = safeGameImage(reward.icon);
   return (
     <li data-grade={reward.grade ?? undefined} title={reward.grade ? `${reward.name} · ${reward.grade}` : reward.name}>
-      {reward.icon ? (
+      {icon ? (
         // eslint-disable-next-line @next/next/no-img-element -- official CDN icon at a fixed size
-        <img src={reward.icon} alt="" width={20} height={20} loading="lazy" referrerPolicy="no-referrer" />
+        <img src={icon} alt="" width={20} height={20} loading="lazy" referrerPolicy="no-referrer" />
       ) : (
         <i aria-hidden="true" />
       )}
       <span>{reward.name}</span>
+      {reward.grade && <span className={styles.srOnly}>({reward.grade})</span>}
     </li>
   );
 }
@@ -214,6 +218,9 @@ function RowRewards({ name, groups }: { name: string; groups: RewardGroup[] }) {
             className={styles.rewardMore}
             aria-expanded={open}
             aria-controls={id}
+            aria-label={
+              open ? `${name} 보상 접기` : rest > 0 ? `${name} 보상 ${rest}개 더 보기` : `${name} 보상 자세히 보기`
+            }
             onClick={() => setOpen((value) => !value)}
           >
             {open ? "접기" : rest > 0 ? `+${rest}` : "자세히"}

@@ -824,42 +824,44 @@
   list-style: none;
 }
 .rewardItems li {
+  --grade: #86868b;
   display: inline-flex;
   align-items: center;
   gap: 5px;
   min-width: 0;
-  color: #515154;
+  color: #1d1d1f;
   font-size: 12px;
 }
 .rows .rewardItems img {
   width: 20px;
   height: 20px;
   border-radius: 5px;
+  box-shadow: 0 0 0 1.5px var(--grade);
 }
 .rewardItems i {
   flex: none;
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
-  background: currentColor;
+  background: var(--grade);
 }
 .rewardItems [data-grade="고급"] {
-  color: #3f8f1f;
+  --grade: #3f8f1f;
 }
 .rewardItems [data-grade="희귀"] {
-  color: #0a74b8;
+  --grade: #0a74b8;
 }
 .rewardItems [data-grade="영웅"] {
-  color: #8f2fc0;
+  --grade: #8f2fc0;
 }
 .rewardItems [data-grade="전설"] {
-  color: #b86a00;
+  --grade: #b86a00;
 }
 .rewardItems [data-grade="유물"] {
-  color: #c4520a;
+  --grade: #c4520a;
 }
 .rewardItems [data-grade="고대"] {
-  color: #8c7333;
+  --grade: #8c7333;
 }
 .rewardMore {
   padding: 2px 8px;
