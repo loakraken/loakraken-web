@@ -23,9 +23,10 @@ export default async function MarketPage({
   const params = await searchParams;
   const item = typeof params.item === "string" ? parseItemId(params.item) : null;
   const initial = readBoardQuery(params);
-  // A slow backend must not hold the first HTML: one 2.5s deadline for all
-  // three calls together; whatever is missing the client fetches.
-  const deadline = AbortSignal.timeout(2_500);
+  // A slow backend must not hold the first HTML: one 1s deadline for all three
+  // calls together; whatever is missing the client fetches into placeholders
+  // that already have the final sizes (#213), so the page never shifts.
+  const deadline = AbortSignal.timeout(1_000);
   const [tabs, board] = await Promise.all([
     getMarketTabs(deadline),
     getMarketBoard(new URLSearchParams(boardQueryString(initial)), deadline),
