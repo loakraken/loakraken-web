@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import { dehydrate, HydrationBoundary, QueryClient } from "@tanstack/react-query";
 import { MarketBoardView } from "@/components/market/market-board";
-import { parseItemId, readBoardQuery } from "@/lib/market/board";
+import { boardQueryString, parseItemId, readBoardQuery } from "@/lib/market/board";
+import { getItemHistory, getMarketBoard, getMarketTabs } from "@/lib/market/server";
 
 export const metadata: Metadata = {
   title: "시세",
@@ -9,6 +11,10 @@ export const metadata: Metadata = {
   alternates: { canonical: "/market" },
 };
 
+// Prices change through the day: render per request so the first HTML carries
+// the categories, the board and the chosen item's history (no layout shift).
+export const dynamic = "force-dynamic";
+
 export default async function MarketPage({
   searchParams,
 }: {
@@ -16,5 +22,27 @@ export default async function MarketPage({
 }) {
   const params = await searchParams;
   const item = typeof params.item === "string" ? parseItemId(params.item) : null;
-  return <MarketBoardView initial={readBoardQuery(params)} initialItem={item} />;
+  const initial = readBoardQuery(params);
+  // A slow backend must not hold the first HTML: one 2.5s deadline for all
+  // three calls together; whatever is missing the client fetches.
+  const deadline = AbortSignal.timeout(2_500);
+  const [tabs, board] = await Promise.all([
+    getMarketTabs(deadline),
+    getMarketBoard(new URLSearchParams(boardQueryString(initial)), deadline),
+  ]);
+  const first = item ?? (board.ok ? board.envelope.data.items[0]?.itemId : undefined);
+  const history = first != null ? await getItemHistory(String(first), deadline).catch(() => null) : null;
+  // Request-time snapshot in a dynamic Server Component, shared with hydration.
+  // eslint-disable-next-line react-hooks/purity
+  const fetchedAt = Date.now();
+  const client = new QueryClient();
+  if (tabs.ok) client.setQueryData(["market", "tabs"], tabs.envelope, { updatedAt: fetchedAt });
+  if (board.ok) client.setQueryData(["market", "board", initial], board.envelope, { updatedAt: fetchedAt });
+  if (history?.ok && first != null)
+    client.setQueryData(["market", "history", first], history.envelope, { updatedAt: fetchedAt });
+  return (
+    <HydrationBoundary state={dehydrate(client)}>
+      <MarketBoardView initial={initial} initialItem={item} />
+    </HydrationBoundary>
+  );
 }
