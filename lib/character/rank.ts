@@ -108,6 +108,11 @@ export function rankCell(data: CharacterRank, metric: RankMetric, scope: RankSco
   };
 }
 
+/** Visible legend (the badge title is hover-only): 크라켄 상위 1% · 해구 5% · … */
+export const TIER_LEGEND = Object.entries(TIER_LABEL)
+  .map(([tier, label], i) => `${label} ${i === 0 ? "상위 " : ""}${TIER_PERCENT[tier]}%`)
+  .join(" · ");
+
 /** Scope label with its value: 서버 · 루페온, 직업 · 바드. */
 export function scopeLabel(data: CharacterRank, scope: RankScope) {
   const label = SCOPES.find((s) => s.id === scope)?.label ?? scope;
