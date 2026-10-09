@@ -809,6 +809,15 @@ body {
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-sheet: cubic-bezier(0.32, 0.72, 0, 1);
   --press-scale: 0.97;
+
+  /* Entrance motion: plays once when an element first appears (chart, key
+     number, card list), never on data refresh. Vault: 60 디자인 시스템/모션 가이드. */
+  --duration-reveal: 240ms;
+  --reveal-distance: 8px;
+  --stagger: 40ms;
+  --duration-draw: 600ms; /* chart lines and bars: explanatory, capped at 600ms */
+  --duration-count: 500ms;
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
 }
 
 @media (max-width: 700px) {
@@ -946,4 +955,49 @@ body {
   --polish-mid: #ed6bff; /* 7.34 */
   --polish-low: #00bcff; /* 8.68 */
   --shadow-pop: 0 18px 40px -16px rgb(0 0 0 / 80%), 0 0 0 1px rgb(255 255 255 / 8%);
+}
+
+/* Entrance utilities. @starting-style runs the transition only when the
+   element is first rendered, so a re-render with new data does not replay;
+   browsers without it simply show the final state. Reduced motion is covered
+   by the global rule above (transitions collapse to 0.01ms). */
+.k-reveal {
+  transition:
+    opacity var(--duration-reveal) var(--ease-out),
+    translate var(--duration-reveal) var(--ease-out);
+  /* Stagger: set style={{ "--i": index }} on each item; capped at 8 steps. */
+  transition-delay: calc(min(var(--i, 0), 8) * var(--stagger));
+}
+@starting-style {
+  .k-reveal {
+    opacity: 0;
+    translate: 0 var(--reveal-distance);
+  }
+}
+
+/* Chart line drawing: give the path pathLength="1". */
+.k-draw {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset var(--duration-draw) var(--ease-out);
+}
+@starting-style {
+  .k-draw {
+    stroke-dashoffset: 1;
+  }
+}
+
+/* Bars and areas growing from their baseline (clip-path, not height/scale). */
+.k-grow,
+.k-grow-x {
+  clip-path: inset(0);
+  transition: clip-path var(--duration-draw) var(--ease-out);
+}
+@starting-style {
+  .k-grow {
+    clip-path: inset(100% 0 0 0);
+  }
+  .k-grow-x {
+    clip-path: inset(0 100% 0 0);
+  }
 }
