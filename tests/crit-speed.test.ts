@@ -237,5 +237,6 @@ test("ARK_GRID sources get a label and an older backend without skills still val
   assert.equal(isCritSpeedEnvelope(value), true);
   assert.ok(groupSources(value.data.sources, "CRIT").some((g) => g.category === "ARK_GRID"));
   delete value.data.skills;
+  delete value.data.toggles;
   assert.equal(isCritSpeedEnvelope(value), true);
 });
