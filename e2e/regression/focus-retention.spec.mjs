@@ -1,7 +1,7 @@
 // 회귀: 키보드로 실행한 뒤 로딩 중·완료 후 포커스가 BODY로 사라지지 않는다.
 // web #89 검토에서 공통 Button의 로딩(disabled) 때문에 포커스가 BODY로 빠진 P1이 나왔다.
 // 공통 부품을 아직 쓰지 않는 화면도 같은 문제가 생길 수 있어 실제 흐름으로 확인한다.
-// 응답을 1.2초 늦춰 로딩 상태를 만든다.
+// web #106(성장 도구 3화면 포커스 유실)은 #113에서 고쳤다. 응답을 1.2초 늦춰 로딩 상태를 만든다.
 import { test, expect } from "../support/fixtures.mjs";
 
 const slow = (page, pattern) =>
@@ -24,7 +24,6 @@ async function expectFocusKept(page, label) {
 const FLOWS = [
   {
     name: "치적·뭉가·음돌 계산하기",
-    bug: "web #106",
     path: "/tools/crit-speed",
     api: "**/api/crit-speed**",
     start: async (page) => {
@@ -35,7 +34,6 @@ const FLOWS = [
   },
   {
     name: "재련 장비 불러오기",
-    bug: "web #106",
     path: "/tools/refining",
     api: "**/api/characters?**",
     start: async (page) => {
@@ -46,7 +44,6 @@ const FLOWS = [
   },
   {
     name: "재료 견적 검색",
-    bug: "web #106",
     path: "/tools/material-quote",
     api: "**/api/markets/items**",
     start: async (page) => {
@@ -71,7 +68,6 @@ const FLOWS = [
 test.describe("로딩 중 포커스 유지 @regression", () => {
   for (const flow of FLOWS) {
     test(flow.name, async ({ page }) => {
-      test.fail(!!flow.bug, `${flow.bug}: 로딩 중 버튼 disabled로 포커스가 BODY로 사라짐. 고치면 bug 값을 지운다.`);
       await page.goto(flow.path);
       await slow(page, flow.api);
       await flow.start(page);

@@ -46,5 +46,4 @@ npx playwright show-report       # 실패 시 trace·스크린샷
 
 `test.fail()`로 표시한 테스트는 열린 버그를 재현한다. 버그를 고치면 Playwright가 "예상 밖 통과"로 알려 준다. 그때 해당 줄을 지운다.
 
-- web #106 — 성장 도구 3화면 로딩 중 포커스 BODY 유실(`regression/focus-retention.spec.mjs`)
-- web #112 — 재료 견적 목록 요청 실패 뒤 대기 안내 남음(`regression/material-quote-options.spec.mjs`)
+- 지금은 없다.

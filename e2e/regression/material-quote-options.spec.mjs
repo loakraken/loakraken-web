@@ -1,6 +1,6 @@
 // 회귀: 재료 구매 견적의 카테고리 목록(/api/markets/options) 도착 전 검색.
 // web #67: 목록 도착 후에도 "카테고리를 선택해 주세요."가 남아 화면이 모순됐다.
-// web #95에서 "도착 후 이어서 검색"으로 고쳤다.
+// web #95에서 "도착 후 이어서 검색"으로 고쳤다. 목록 요청 실패 시 대기 안내(web #112)는 #113에서 고쳤다.
 import { test, expect } from "../support/fixtures.mjs";
 
 /** options 응답을 잡아 두었다가 release()로 풀어 준다. fail이면 502로 응답한다. */
@@ -41,7 +41,6 @@ test.describe("재료 구매 견적 카테고리 로딩 @regression", () => {
   });
 
   test("목록 요청이 실패하면 '받는 대로 검색' 대기 안내를 지운다", async ({ page }) => {
-    test.fail(true, "web #112: 목록 요청 실패 뒤에도 대기 안내가 남음(PM-프론트 #95 P2). 고치면 이 줄을 지운다.");
     const release = await holdOptions(page, { fail: true });
     await page.goto("/tools/material-quote");
     await page.getByRole("textbox", { name: "재료 이름" }).fill("합성");
