@@ -5,7 +5,11 @@ export type NavLink = {
   label: string;
   description: string;
   href?: string;
+  /** Shown only when this runtime flag is on (lib/tools/flags.ts, /api/flags). */
+  flag?: NavFlag;
 };
+export type NavFlag = "critSpeed";
+export type NavFlags = Partial<Record<NavFlag, boolean>>;
 export type NavSection = {
   id: string;
   label: string;
@@ -76,7 +80,7 @@ export const NAV_SECTIONS: NavSection[] = [
         title: "계산기",
         links: [
           { label: "재련 기대 비용", description: "목표 단계까지 확률과 골드", href: "/tools/refining" },
-          { label: "치적·뭉가·음돌", description: "치명·신속 목표까지 필요한 스탯", href: "/tools/crit-speed" },
+          { label: "치적·뭉가·음돌", description: "치명·신속 목표까지 필요한 스탯", href: "/tools/crit-speed", flag: "critSpeed" },
           { label: "경매 입찰가", description: "파티 인원별 손익 분기와 선점가", href: "/tools/auction" },
           { label: "돌파고", description: "스톤 세공, 다음에 깎을 줄", href: "/tools/stone" },
           { label: "레이드 보상표", description: "관문별 골드·더보기 비용", href: "/tools/raid-rewards" },
