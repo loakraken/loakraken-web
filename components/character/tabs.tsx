@@ -47,6 +47,7 @@ import { HistoryChart } from "./history-chart";
 import { AvatarsTab, CollectiblesTab } from "./inner";
 import { Panel } from "./panel";
 import { ViewsPanel } from "./views-panel";
+import { useStagger } from "./entrance";
 import { RankPanel } from "./rank-panel";
 import { byObservedOrder, groupByDay } from "@/lib/character/titles";
 import { CardCollection } from "./card-collection-panel";
@@ -285,6 +286,7 @@ function refineOf(item: Equipment) {
 }
 
 function EquipmentPanel({ data }: { data: Character }) {
+  const stagger = useStagger();
   const groups = groupEquipment(data.loadout.equipment);
   const qualityGroups = data.analysis.equipment?.qualityGroups;
   const armorQ = averageQuality(qualityGroups, "WEAPON_ARMOR");
@@ -308,7 +310,7 @@ function EquipmentPanel({ data }: { data: Character }) {
             {groups.armor.map((item, i) => {
               const refine = refineOf(item);
               return (
-                <li key={i} className={styles.item}>
+                <li key={i} {...stagger(i, styles.item)}>
                   <GameIcon src={item.icon} grade={item.grade} />
                   <div className={styles.itemText}>
                     <strong>
@@ -346,7 +348,7 @@ function EquipmentPanel({ data }: { data: Character }) {
           )}
           <ul className={styles.itemList}>
             {groups.accessories.map((item, i) => (
-              <li key={i} className={styles.item}>
+              <li key={i} {...stagger(i, styles.item)}>
                 <GameIcon src={item.icon} grade={item.grade} />
                 <div className={styles.itemText}>
                   <strong>
@@ -446,6 +448,7 @@ function EquipmentPanel({ data }: { data: Character }) {
 }
 
 function GemsPanel({ data }: { data: Character }) {
+  const stagger = useStagger();
   const gems = data.loadout.gems?.items ?? [];
   const summary = data.analysis.gems;
   const baseAttack = gemBaseAttack(data.loadout.gems?.effects?.description);
@@ -468,7 +471,7 @@ function GemsPanel({ data }: { data: Character }) {
       {gems.length ? (
         <ul className={styles.gemGrid}>
           {gems.map((gem, i) => (
-            <li key={i}>
+            <li key={i} {...stagger(i)}>
               <GameIcon src={gem.icon} grade={gem.grade} size={44} />
               <span data-kind={gemKind(gem.name) ?? undefined}>
                 {gem.level != null && gem.level > 0 ? gem.level : "?"}
@@ -632,6 +635,7 @@ function ArkGridPanel({ data }: { data: Character }) {
 }
 
 function CardsPanel({ data }: { data: Character }) {
+  const stagger = useStagger();
   const cards = data.loadout.cards;
   const summary = data.analysis.cards;
   return (
@@ -643,7 +647,7 @@ function CardsPanel({ data }: { data: Character }) {
         <>
           <ul className={styles.cardGrid}>
             {cards.items.map((card, i) => (
-              <li key={i}>
+              <li key={i} {...stagger(i)}>
                 <CardArt
                   src={card.icon}
                   name={text(card.name)}
@@ -821,6 +825,7 @@ function StatsPanel({ data }: { data: Character }) {
 }
 
 function EngravingsPanel({ data }: { data: Character }) {
+  const stagger = useStagger();
   const effects = data.loadout.engravings?.arkPassiveEffects ?? [];
   const book = engravingBookString(effects);
   const bonus = stoneBonus(groupEquipment(data.loadout.equipment).stone);
@@ -832,7 +837,7 @@ function EngravingsPanel({ data }: { data: Character }) {
       {effects.length ? (
         <ul className={styles.engravings}>
           {effects.map((effect, i) => (
-            <li key={i}>
+            <li key={i} {...stagger(i)}>
               <strong>{text(effect.name)}</strong>
               <span>
                 {text(effect.grade)} ×{number(effect.level)}

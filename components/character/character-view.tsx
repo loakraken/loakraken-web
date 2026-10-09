@@ -26,6 +26,7 @@ import { SiteHeader } from "@/components/site/site-header";
 import { recordRecent } from "@/lib/character/recent";
 import { CharacterBanner } from "./imagery";
 import { HeadlineNumber } from "./headline-number";
+import { Entrance } from "./entrance";
 import { kstTime, level, number, text } from "./parts";
 import { TabBar, TabPanel, tabOf } from "./tabs";
 import styles from "./character.module.css";
@@ -294,7 +295,9 @@ function CharacterContent({
                 {limited && <RateLimitNote seconds={rateLimitSeconds} />}
               </div>
             )}
-            <TabPanel tab={tab} data={data} envelope={envelope} />
+            <Entrance tab={tab}>
+              <TabPanel tab={tab} data={data} envelope={envelope} />
+            </Entrance>
           </>
         ) : (
           <div className={styles.main}>
