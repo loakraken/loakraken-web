@@ -180,6 +180,10 @@ function ItemSearch({
           <select
             value={selectedCategory ?? ""}
             onChange={(event) => {
+              // A waiting search that already ran keeps its category, like
+              // any other search: changing the select alone never re-runs it.
+              if (!submitted && search) setSubmitted(search);
+              setPending(null);
               setCategory(Number(event.target.value));
               setError("");
             }}
@@ -226,7 +230,7 @@ function ItemSearch({
           {items.isFetching ? "검색 중" : "검색"}
         </button>
       </form>
-      {pending !== null && !search && (
+      {pending !== null && !search && options.isFetching && (
         <p className={styles.caption} role="status">
           카테고리 목록을 받는 대로 검색할게요.
         </p>
