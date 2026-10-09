@@ -4,6 +4,7 @@ import { Geist_Mono, Noto_Sans_KR } from "next/font/google";
 import "./globals.css";
 import Providers from "./providers";
 import { SITE_NAME, siteUrl } from "@/lib/site";
+import { themeInitScript } from "@/components/ui/theme-toggle";
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
@@ -43,7 +44,11 @@ export default function RootLayout({ children }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ko" style={{ colorScheme: "light" }}>
+    // The pre-paint script sets data-theme before hydration (stored dark choice).
+    <html lang="ko" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+      </head>
       <body className={`${geistMono.variable} ${korean.variable} antialiased`}>
         <Providers>{children}</Providers>
       </body>
