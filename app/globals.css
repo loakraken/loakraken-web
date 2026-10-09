@@ -841,6 +841,14 @@ body {
   --color-polish-high: var(--polish-high);
   --color-polish-mid: var(--polish-mid);
   --color-polish-low: var(--polish-low);
+  --color-grade-normal: var(--grade-normal-text);
+  --color-grade-uncommon: var(--grade-uncommon-text);
+  --color-grade-rare: var(--grade-rare-text);
+  --color-grade-epic: var(--grade-epic-text);
+  --color-grade-legendary: var(--grade-legendary-text);
+  --color-grade-relic: var(--grade-relic-text);
+  --color-grade-ancient: var(--grade-ancient-text);
+  --color-grade-esther: var(--grade-esther-text);
 }
 
 /* Contrast-checked values that differ from today's literals (WCAG 2.x:
