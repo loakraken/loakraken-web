@@ -95,7 +95,7 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     id: "schedule",
     label: "일정",
-    match: ["/schedule"],
+    match: ["/schedule", "/tools/homework"],
     groups: [
       {
         title: "오늘",
@@ -106,7 +106,7 @@ export const NAV_SECTIONS: NavSection[] = [
       },
       {
         title: "내 진행",
-        links: [{ label: "숙제 체크", description: "원정대 일일·주간 숙제" }],
+        links: [{ label: "숙제 체크", description: "원정대 일일·주간 숙제", href: "/tools/homework" }],
       },
     ],
   },
