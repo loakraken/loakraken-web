@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import { CritSpeedTool } from "@/components/tools/crit-speed";
+import { isCritSpeedEnabled } from "@/lib/tools/flags";
 
 export const metadata: Metadata = {
   title: "치적·뭉가·음돌 계산",
@@ -13,6 +15,7 @@ export default async function CritSpeedPage({
   searchParams: Promise<{ character?: string | string[] }>;
 }) {
   const { character } = await searchParams;
+  if (!isCritSpeedEnabled()) notFound();
   const name = typeof character === "string" ? character.slice(0, 64) : "";
   return <CritSpeedTool initialName={name} />;
 }
