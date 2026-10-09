@@ -991,17 +991,26 @@ body {
   }
 }
 
-/* Bars and areas growing from their baseline (clip-path, not height/scale). */
+/* Bars growing from their baseline: transform scale only (composited), with
+   the origin on the baseline. Starting at 0 is the point here: the bar
+   explains its value by growing from the axis, unlike a popup that should
+   never appear from nothing. */
 .k-grow,
 .k-grow-x {
-  clip-path: inset(0);
-  transition: clip-path var(--duration-draw) var(--ease-out);
+  scale: 1;
+  transition: scale var(--duration-draw) var(--ease-out);
+}
+.k-grow {
+  transform-origin: bottom;
+}
+.k-grow-x {
+  transform-origin: left;
 }
 @starting-style {
   .k-grow {
-    clip-path: inset(100% 0 0 0);
+    scale: 1 0;
   }
   .k-grow-x {
-    clip-path: inset(0 100% 0 0);
+    scale: 0 1;
   }
 }
