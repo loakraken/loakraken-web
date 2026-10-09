@@ -846,9 +846,9 @@ body {
 
   /* Quality badge, iloa's six bands (PM decision D1), measured on its page:
      an 80% fill over its dark surface. Bands that already pass 4.5:1 with
-     white numerals use that colour as is (100, 90~99, 70~89, 0~9); 30~69 is
-     iloa's hue darkened only as far as 4.6. Olive keeps dark numerals until
-     PM decides. Numerals stay at weight 600 or more. */
+     white numerals use that colour as is (100, 90~99, 70~89, 0~9); 30~69 and
+     10~29 are iloa's hue darkened only as far as 4.6, so all six bands read
+     white-on-colour. Numerals stay at weight 600 or more. */
   --quality-max: #be5712;
   --quality-max-foreground: #fff; /* 4.60 */
   --quality-high: #b718bb;
@@ -857,8 +857,8 @@ body {
   --quality-good-foreground: #fff; /* 6.97 */
   --quality-normal: #0a880a;
   --quality-normal-foreground: #fff; /* 4.63 (iloa #0a8f0b is 4.25) */
-  --quality-low: #b8a21e;
-  --quality-low-foreground: #1d1d1f; /* 6.59 */
+  --quality-low: #857504;
+  --quality-low-foreground: #fff; /* 4.62 (iloa #897904 is 4.37) */
   --quality-poor: #cf0304;
   --quality-poor-foreground: #fff; /* 5.73 */
   --quality-none: #747479;
