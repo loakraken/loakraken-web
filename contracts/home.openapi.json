@@ -46,7 +46,7 @@
             }
           },
           "429": {
-            "description": "LOST_ARK_RATE_LIMITED",
+            "description": "LOST_ARK_RATE_LIMITED / CLIENT_RATE_LIMITED: 이 클라이언트의 분당 요청·공식 호출 한도 초과. Retry-After(초) 뒤 다시 시도",
             "content": {
               "application/json": {
                 "schema": {
@@ -146,7 +146,7 @@
             }
           },
           "429": {
-            "description": "LOST_ARK_RATE_LIMITED",
+            "description": "LOST_ARK_RATE_LIMITED / CLIENT_RATE_LIMITED: 이 클라이언트의 분당 요청·공식 호출 한도 초과. Retry-After(초) 뒤 다시 시도",
             "content": {
               "application/json": {
                 "schema": {
@@ -364,6 +364,13 @@
             },
             "uniqueItems": true
           },
+          "rewardGroups": {
+            "type": "array",
+            "description": "그 날 보상. 공식 ItemLevel 그룹 순서이며, 시간 지정 보상은 그 날 회차를 가리킬 때만 넣는다(timed=true)",
+            "items": {
+              "$ref": "#/components/schemas/HomeRewardGroupResponse"
+            }
+          },
           "nextAt": {
             "anyOf": [
               {
@@ -382,8 +389,75 @@
           "minItemLevel",
           "name",
           "nextAt",
+          "rewardGroups",
           "rewardKinds",
           "startTimes"
+        ]
+      },
+      "HomeRewardGroupResponse": {
+        "type": "object",
+        "properties": {
+          "minItemLevel": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32",
+                "description": "공식 ItemLevel. 이 레벨 이상 보상"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "rewards": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HomeRewardResponse"
+            }
+          }
+        },
+        "required": [
+          "minItemLevel",
+          "rewards"
+        ]
+      },
+      "HomeRewardResponse": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "grade": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "공식 등급 문자열"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "timed": {
+            "type": "boolean",
+            "description": "true: 그 날 회차를 가리키는 시간 지정 보상, false: 시간 지정 없는 공통 보상"
+          }
+        },
+        "required": [
+          "grade",
+          "icon",
+          "name",
+          "timed"
         ]
       },
       "HomeTimedResponse": {
@@ -421,6 +495,13 @@
               "format": "date-time"
             }
           },
+          "rewardGroups": {
+            "type": "array",
+            "description": "그 날 보상. 공식 ItemLevel 그룹 순서이며, 시간 지정 보상은 그 날 회차를 가리킬 때만 넣는다(timed=true)",
+            "items": {
+              "$ref": "#/components/schemas/HomeRewardGroupResponse"
+            }
+          },
           "nextAt": {
             "anyOf": [
               {
@@ -438,6 +519,7 @@
           "minItemLevel",
           "name",
           "nextAt",
+          "rewardGroups",
           "startTimes"
         ]
       },
@@ -479,6 +561,13 @@
               "format": "date-time"
             }
           },
+          "rewardGroups": {
+            "type": "array",
+            "description": "그 날 보상. 공식 ItemLevel 그룹 순서이며, 시간 지정 보상은 그 날 회차를 가리킬 때만 넣는다(timed=true)",
+            "items": {
+              "$ref": "#/components/schemas/HomeRewardGroupResponse"
+            }
+          },
           "nextAt": {
             "anyOf": [
               {
@@ -497,6 +586,7 @@
           "minItemLevel",
           "name",
           "nextAt",
+          "rewardGroups",
           "startTimes"
         ]
       },

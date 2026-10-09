@@ -12,6 +12,8 @@ import {
   maintenanceToday,
   nextOf,
   periodText,
+  rewardGroupLabel,
+  rewardSummary,
   sectionStatus,
   tomorrowInWeek,
   upcomingMaintenance,
@@ -30,6 +32,30 @@ test("backend-generated schedule and news fixtures satisfy the contract", () => 
   const broken = fixture("home-schedule.json");
   broken.data.adventureIslands[0].nextAt = "곧";
   assert.equal(isScheduleEnvelope(broken), false);
+  // Backend #118 sample with rewardGroups; a row without the field is rejected.
+  assert.equal(isScheduleEnvelope(fixture("home-schedule-rewards.json")), true);
+  const missing = fixture("home-schedule.json");
+  delete missing.data.chaosGates[0].rewardGroups;
+  assert.equal(isScheduleEnvelope(missing), false);
+});
+
+test("rewards: three per row, round rewards first, then grade; groups by item level", () => {
+  const data = fixture("home-schedule.json").data;
+  const island = rewardSummary(data.adventureIslands[0].rewardGroups);
+  assert.deepEqual(
+    island.top.map((reward: { name: string }) => reward.name),
+    ["해적 주화", "섬의 마음", "전설 ~ 고급 카드 팩 III"],
+  );
+  assert.equal(island.rest, 2);
+  // The same reward in several level groups counts once.
+  const gate = rewardSummary([
+    ...data.chaosGates[0].rewardGroups,
+    { minItemLevel: 1680, rewards: [{ name: "1레벨 겁화의 보석", icon: null, grade: "고급", timed: false }] },
+  ]);
+  assert.equal(gate.top.length + gate.rest, 4);
+  assert.deepEqual(rewardSummary([]), { top: [], rest: 0 });
+  assert.equal(rewardGroupLabel(data.chaosGates[0].rewardGroups[1]), "1,640 이상");
+  assert.equal(rewardGroupLabel({ minItemLevel: null, rewards: [] }), null);
 });
 
 test("week, time and countdown helpers use KST", () => {
