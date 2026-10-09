@@ -14,6 +14,9 @@ schemas.CritSpeedCritResponse.required =
   schemas.CritSpeedCritResponse.required.filter((key) => key !== "damage");
 schemas.CritSpeedResponse.required =
   schemas.CritSpeedResponse.required.filter((key) => key !== "skills" && key !== "toggles");
+// Skill rows grow per backend release (#169 → #193 node·damage) and the screen
+// does not read them yet, so a row only needs its name.
+schemas.CritSpeedSkillResponse.required = ["name"];
 const ajv = new Ajv2020({ strict: false, validateFormats: false });
 ajv.addSchema({ $id: "crit-speed", components: { schemas } });
 const envelope = ajv.compile<CritSpeedEnvelope>({

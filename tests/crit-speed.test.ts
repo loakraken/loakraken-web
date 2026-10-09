@@ -236,6 +236,9 @@ test("ARK_GRID sources get a label and an older backend without skills still val
   });
   assert.equal(isCritSpeedEnvelope(value), true);
   assert.ok(groupSources(value.data.sources, "CRIT").some((g) => g.category === "ARK_GRID"));
+  // A #169-era skill row without node·damage fields is not rejected.
+  value.data.skills = [{ name: "스킬", attackType: null, base: 20, backAttack: null, tripod: null, total: null, effective: null }];
+  assert.equal(isCritSpeedEnvelope(value), true);
   delete value.data.skills;
   delete value.data.toggles;
   assert.equal(isCritSpeedEnvelope(value), true);
