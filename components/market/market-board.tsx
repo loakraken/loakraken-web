@@ -500,7 +500,7 @@ function MarketContent({
               {data && (
                 <p className={styles.note}>
                   {now !== null && `${updatedAgo(data.observedAt, now)} · `}
-                  {at(data.observedAt)} 기준 · {data.changeBasis}
+                  {at(data.observedAt)} 기준 · 등락: 전일 평균가 대비
                 </p>
               )}
             </section>
