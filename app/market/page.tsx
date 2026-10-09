@@ -23,14 +23,15 @@ export default async function MarketPage({
   const params = await searchParams;
   const item = typeof params.item === "string" ? parseItemId(params.item) : null;
   const initial = readBoardQuery(params);
-  // A slow backend must not hold the first HTML: give up after 2.5s.
-  const timeoutMs = 2_500;
+  // A slow backend must not hold the first HTML: one 2.5s deadline for all
+  // three calls together; whatever is missing the client fetches.
+  const deadline = AbortSignal.timeout(2_500);
   const [tabs, board] = await Promise.all([
-    getMarketTabs(undefined, timeoutMs),
-    getMarketBoard(new URLSearchParams(boardQueryString(initial)), undefined, timeoutMs),
+    getMarketTabs(deadline),
+    getMarketBoard(new URLSearchParams(boardQueryString(initial)), deadline),
   ]);
   const first = item ?? (board.ok ? board.envelope.data.items[0]?.itemId : undefined);
-  const history = first != null ? await getItemHistory(String(first), undefined, timeoutMs) : null;
+  const history = first != null ? await getItemHistory(String(first), deadline).catch(() => null) : null;
   // Request-time snapshot in a dynamic Server Component, shared with hydration.
   // eslint-disable-next-line react-hooks/purity
   const fetchedAt = Date.now();
