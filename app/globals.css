@@ -639,7 +639,9 @@
   }
 }
 
-@custom-variant dark (&:is(.dark *));
+/* Dark theme is opt-in via data-theme="dark" on <html> (light is the default
+   and the system setting is not followed: user decision D3). */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 @theme inline {
   --color-background: var(--background);
@@ -666,9 +668,10 @@
 }
 
 /* Base roles under the shadcn names, so Tailwind classes and module CSS
-   (var(--muted-foreground)) read the same values. Dark values arrive with the
-   theme switch in a follow-up; keep the names when adding them. */
+   (var(--muted-foreground)) read the same values. Dark values override the
+   same names under :root[data-theme="dark"] at the end of this file. */
 :root {
+  color-scheme: light;
   --background: #ffffff;
   --foreground: #1d1d1f; /* 16.83 */
   --card: #ffffff;
@@ -893,4 +896,45 @@ body {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* Dark theme (data-theme="dark" on <html>). Surfaces and text follow iloa's
+   measured dark page: 15,17,20 page / 22,24,29 header row / 27,29,34 row;
+   text 234 / labels 179 / secondary 166. Ratios are against --background,
+   then --card. Quality badges, grade tiles and the character banner keep the
+   same colours in both themes, as on the target sites. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --background: #0f1114;
+  --foreground: #eaeaec; /* 15.74, 14.78 */
+  --card: #16181d;
+  --card-foreground: #eaeaec;
+  --popover: #1b1d22;
+  --popover-foreground: #eaeaec;
+  --primary: #0071e3; /* white text 4.70; as a fill 4.03 against the page */
+  --primary-foreground: #ffffff;
+  --primary-hover: #0068d1; /* white text 5.38 */
+  --secondary: #26282e; /* control fill */
+  --secondary-foreground: #b3b5bc; /* 7.19 on --secondary */
+  --muted: #16181d;
+  --muted-foreground: #a6a8b0; /* 7.97, 7.48 */
+  --accent: #1b1d22;
+  --accent-foreground: #eaeaec;
+  --destructive: #ff6b6b; /* 6.81, 6.40 */
+  --border: rgb(255 255 255 / 10%);
+  --input: #73767f; /* 4.17, 3.91 */
+  --ring: #4da3ff; /* 7.20, 6.76 */
+  --ring-halo: 0 0 0 3px rgb(77 163 255 / 30%);
+  --link: #4da3ff; /* 7.20, 6.76 */
+  --faint: #6b6e77; /* icons and rules: 3.71, 3.49 */
+  --accent-warm: #ff9a4d; /* 8.99, 8.44 */
+  --success: #3ccf6a; /* 9.30, 8.73 */
+  --market-up: #ff5c52; /* 6.22, 5.84 */
+  --market-down: #4da3ff;
+  --switch-on: #30b955; /* 7.38, 6.93 */
+  /* Polishing grade: iloa's dark-theme hues */
+  --polish-high: #ff8903; /* 7.95 */
+  --polish-mid: #ed6bff; /* 7.34 */
+  --polish-low: #00bcff; /* 8.68 */
+  --shadow-pop: 0 18px 40px -16px rgb(0 0 0 / 80%), 0 0 0 1px rgb(255 255 255 / 8%);
 }
