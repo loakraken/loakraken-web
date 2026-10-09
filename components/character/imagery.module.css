@@ -277,6 +277,26 @@
   display: none;
 }
 
+/* Tablets: the three desktop columns leave the identity too narrow (768:
+   about 64px), so the render column narrows, it no longer reaches left under
+   the text, and the band grows with its content. */
+@media (min-width: 761px) and (max-width: 920px) {
+  .bannerInner {
+    grid-template-columns: minmax(0, 1fr) 200px 220px;
+    gap: 20px;
+    height: auto;
+    min-height: 240px;
+    padding: 20px 24px;
+  }
+  .bannerFigure {
+    margin-left: 0;
+  }
+  .bannerFigure img,
+  .bannerOrb {
+    left: 50%;
+  }
+}
+
 @media (max-width: 760px) {
   /* Phones: one band with the render on the right and the identity on the
      left, as on the other armory sites; facts follow below. */
