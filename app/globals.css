@@ -901,15 +901,15 @@ body {
 /* Dark theme (data-theme="dark" on <html>). Surfaces and text follow iloa's
    measured dark page: 15,17,20 page / 22,24,29 header row / 27,29,34 row;
    text 234 / labels 179 / secondary 166. Ratios are against --background,
-   then --card. Quality badges, grade tiles and the character banner keep the
+   then --muted (the band); every text colour also passes on --card. Quality badges, grade tiles and the character banner keep the
    same colours in both themes, as on the target sites. */
 :root[data-theme="dark"] {
   color-scheme: dark;
   --background: #0f1114;
   --foreground: #eaeaec; /* 15.74, 14.78 */
-  --card: #16181d;
-  --card-foreground: #eaeaec;
-  --popover: #1b1d22;
+  --card: #1b1d22; /* a step above the --muted band, so cards show on it */
+  --card-foreground: #eaeaec; /* 14.03 */
+  --popover: #212329; /* menus float a step above cards */
   --popover-foreground: #eaeaec;
   --primary: #0071e3; /* white text 4.70; as a fill 4.03 against the page */
   --primary-foreground: #ffffff;
