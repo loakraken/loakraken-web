@@ -234,3 +234,30 @@ export function decodeMoves(slots: number, text: string): Move[] {
     return [];
   }
 }
+
+/**
+ * Distribution of total successes over all 3 × slots facets. The chance is
+ * shared by the three lines, so this does not depend on which line is cut —
+ * the official "자동 세공" table can be checked against it directly.
+ */
+export function totalSuccessDistribution(slots: number): number[] {
+  const attempts = slots * 3;
+  // dist[step][successes]
+  let dist = CHANCES.map(() => new Array<number>(attempts + 1).fill(0));
+  dist[START_STEP][0] = 1;
+  for (let n = 0; n < attempts; n++) {
+    const next = CHANCES.map(() => new Array<number>(attempts + 1).fill(0));
+    dist.forEach((row, step) => {
+      const p = CHANCES[step] / 100;
+      const up = Math.max(0, step - 1);
+      const down = Math.min(CHANCES.length - 1, step + 1);
+      row.forEach((prob, s) => {
+        if (!prob) return;
+        next[up][s + 1] += prob * p;
+        next[down][s] += prob * (1 - p);
+      });
+    });
+    dist = next;
+  }
+  return dist[0].map((_, s) => dist.reduce((sum, row) => sum + row[s], 0));
+}
