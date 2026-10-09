@@ -7,7 +7,7 @@ import { rateLimitCopy } from "../api/rate-limit";
 
 type Schemas = components["schemas"];
 /** classState: backend #193 (omitted = on = target-site basis, false = observed only). */
-export type Assumptions = Schemas["CritSpeedAssumptions"] & { classState?: boolean };
+export type Assumptions = Schemas["CritSpeedAssumptions"];
 export type CritSpeedRequest = { characterName: string; assumptions: Assumptions };
 export type CritSpeed = Schemas["CritSpeedResponse"];
 export type CritSource = Schemas["CritSpeedSourceResponse"];
@@ -139,6 +139,7 @@ export const CATEGORY_LABEL: Record<CritSource["category"], string> = {
   ACCESSORY: "장신구",
   BRACELET: "팔찌",
   CARD: "카드",
+  ARK_GRID: "아크 그리드",
   ASSUMPTION: "가정",
 };
 
