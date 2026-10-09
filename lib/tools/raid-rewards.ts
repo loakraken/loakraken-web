@@ -4,11 +4,19 @@
 // show as "데이터 없음" (calc-verification team verifies and fills them).
 import raw from "./data/raid-rewards.json";
 
-export type Difficulty = "NORMAL" | "HARD" | "NIGHTMARE" | "SINGLE";
-export type Category = "KAZEROS" | "SHADOW" | "EPIC" | "EXTREME";
-/** OFFICIAL: from an official notice/guide. ESTIMATED: other sites or derived.
- * UNVERIFIED: no value yet. */
-export type Status = "OFFICIAL" | "ESTIMATED" | "UNVERIFIED";
+export type Difficulty =
+  | "NORMAL"
+  | "HARD"
+  | "NIGHTMARE"
+  | "SINGLE"
+  | "STAGE_1"
+  | "STAGE_2"
+  | "STAGE_3";
+export type Category = "KAZEROS" | "SHADOW" | "EPIC" | "EXTREME" | "ABYSS";
+/** OFFICIAL: from an official notice/guide. SITES: not published officially,
+ * and target sites agree on the value (PM 총괄 2026-10-10: shown as
+ * "사이트 실측" with the check date). UNVERIFIED: no value yet. */
+export type Status = "OFFICIAL" | "SITES" | "UNVERIFIED";
 
 export type Gate = {
   gate: number;
@@ -61,16 +69,20 @@ export const CATEGORY_LABEL: Record<Category, string> = {
   EPIC: "에픽 레이드",
   SHADOW: "그림자 레이드",
   EXTREME: "익스트림",
+  ABYSS: "어비스 던전",
 };
 export const DIFFICULTY_LABEL: Record<Difficulty, string> = {
   NORMAL: "노말",
   HARD: "하드",
   NIGHTMARE: "나이트메어",
   SINGLE: "싱글",
+  STAGE_1: "1단계",
+  STAGE_2: "2단계",
+  STAGE_3: "3단계",
 };
 export const STATUS_LABEL: Record<Status, string> = {
   OFFICIAL: "공식",
-  ESTIMATED: "추정",
+  SITES: "사이트 실측",
   UNVERIFIED: "데이터 없음",
 };
 
