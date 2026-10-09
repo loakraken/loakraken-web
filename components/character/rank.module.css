@@ -8,7 +8,7 @@
 }
 .metric h3 {
   margin: 0;
-  color: #6e6e73;
+  color: var(--muted-foreground);
   font-size: 12px;
   font-weight: 600;
 }
@@ -27,24 +27,24 @@
   min-width: 0;
   padding: 10px;
   border-radius: 12px;
-  background: #fff;
+  background: var(--background);
 }
 .scope {
   overflow: hidden;
-  color: #6e6e73;
+  color: var(--muted-foreground);
   font-size: 11px;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
 .cells strong {
-  color: #1d1d1f;
+  color: var(--foreground);
   font-size: 17px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.01em;
 }
 .cells small {
-  color: #6e6e73;
+  color: var(--muted-foreground);
   font-size: 11px;
   font-variant-numeric: tabular-nums;
 }
@@ -53,7 +53,7 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 4px;
-  color: #1d1d1f;
+  color: var(--foreground);
   font-size: 12px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
@@ -61,41 +61,41 @@
 .tier {
   padding: 1px 6px;
   border-radius: 9999px;
-  background: #e8f0fb;
-  color: #0055b3;
+  background: color-mix(in oklab, var(--primary) 12%, transparent);
+  color: var(--link);
   font-size: 11px;
   font-weight: 700;
 }
 .cells strong.pending {
-  color: #6e6e73;
+  color: var(--muted-foreground);
   font-size: 14px;
   font-weight: 600;
 }
 .hidden {
   margin: 0;
-  color: #1d1d1f;
+  color: var(--foreground);
   font-size: 15px;
   font-weight: 600;
 }
 .muted {
   margin: 0;
-  color: #6e6e73;
+  color: var(--muted-foreground);
   font-size: 13px;
 }
 .note {
   margin: 10px 0 0;
-  color: #6e6e73;
+  color: var(--muted-foreground);
   font-size: 11px;
   line-height: 1.5;
 }
 .retry {
   margin-top: 6px;
-  color: #0066cc;
+  color: var(--link);
   font-size: 13px;
   font-weight: 600;
 }
 .retry:disabled {
-  color: #6e6e73;
+  color: var(--muted-foreground);
 }
 @media (max-width: 480px) {
   .cells strong {
