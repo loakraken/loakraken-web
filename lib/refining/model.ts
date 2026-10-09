@@ -4,6 +4,7 @@
 import type { components } from "../api/refining-schema";
 import type { Character } from "../character/model";
 import type { MaterialPrice } from "../market/model";
+import { rateLimitCopy } from "../api/rate-limit";
 
 type Schemas = components["schemas"];
 export type PlanRequest = Schemas["RefiningPlanRequest"];
@@ -305,6 +306,8 @@ export function refiningFailureCopy(error: { code: string }) {
         title: "계산 서비스 연결을 준비하고 있어요",
         text: "서비스 연결 설정이 완료되면 재련 비용을 계산할 수 있어요.",
       };
+    case "LOST_ARK_RATE_LIMITED":
+      return rateLimitCopy();
     case "LOST_ARK_API_TIMEOUT":
       return {
         title: "응답이 늦어지고 있어요",

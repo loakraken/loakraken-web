@@ -21,6 +21,8 @@ import {
   type PriceBasis,
 } from "@/lib/market/model";
 import { RefiningQueryError, postRefiningPlan } from "@/lib/refining/client";
+import { retryLabel } from "@/lib/api/rate-limit";
+import { useRateLimit } from "@/lib/api/use-rate-limit";
 import {
   GRADES,
   MAX_STAGE,
@@ -143,10 +145,13 @@ function CharacterLoader({
     load.mutate(normalizeCharacterName(initialName));
   }, [initialName, load]);
 
+  const loadLimit = useRateLimit(load.error);
+
   function submit(event: FormEvent) {
     event.preventDefault();
-    // The button stays focusable while loading (aria-disabled); guard here.
-    if (load.isPending) return;
+    // The button stays focusable while loading or rate limited
+    // (aria-disabled); guard here.
+    if (load.isPending || loadLimit.seconds > 0) return;
     setTouched(true);
     if (error) return;
     const target = normalizeCharacterName(name);
@@ -179,10 +184,10 @@ function CharacterLoader({
         <button
           type="submit"
           className={quote.secondaryPill}
-          aria-disabled={load.isPending || undefined}
+          aria-disabled={load.isPending || loadLimit.seconds > 0 || undefined}
           aria-busy={load.isPending || undefined}
         >
-          {load.isPending ? "불러오는 중" : "장비 불러오기"}
+          {load.isPending ? "불러오는 중" : retryLabel(loadLimit.seconds, "장비 불러오기")}
         </button>
       </form>
       {touched && error && <p className={quote.inputError}>{error}</p>}
@@ -415,6 +420,7 @@ function Result({ plans, mode }: { plans: PartPlan[]; mode: Mode }) {
     refetchOnReconnect: false,
   });
   const priceList = prices.data?.data.items ?? null;
+  const priceLimit = useRateLimit(prices.error);
   const { lines, materialGold, unpriced } = costLines(
     summary.materials,
     Object.fromEntries(
@@ -484,17 +490,21 @@ function Result({ plans, mode }: { plans: PartPlan[]; mode: Mode }) {
         ))}
       </div>
       {priceFailure && (
-        <div className={quote.notice} role="alert">
-          <strong>{marketFailureCopy(priceFailure).title}</strong>
-          <p>{marketFailureCopy(priceFailure).text}</p>
+        <div className={quote.notice}>
+          {/* The alert holds the sentence only; the retry button's countdown
+              ticks outside it so it is not re-announced every second. */}
+          <div role="alert">
+            <strong>{marketFailureCopy(priceFailure).title}</strong>
+            <p>{marketFailureCopy(priceFailure).text}</p>
+          </div>
           <button
             type="button"
             className={quote.outlinePill}
-            aria-disabled={prices.isFetching || undefined}
+            aria-disabled={prices.isFetching || priceLimit.seconds > 0 || undefined}
             aria-busy={prices.isFetching || undefined}
-            onClick={() => !prices.isFetching && prices.refetch()}
+            onClick={() => !prices.isFetching && priceLimit.seconds === 0 && prices.refetch()}
           >
-            시세 다시 불러오기
+            {retryLabel(priceLimit.seconds, "시세 다시 불러오기")}
           </button>
         </div>
       )}
@@ -669,6 +679,7 @@ function RefiningContent({ initialName }: { initialName: string }) {
   });
   const pending = queries.some((q) => q.isPending);
   const failed = queries.find((q) => q.isError);
+  const planLimit = useRateLimit(failed?.error);
   const plans: PartPlan[] = queries.flatMap((q, i) =>
     q.data ? [{ part: requests[i].part, plan: q.data.data }] : [],
   );
@@ -842,15 +853,20 @@ function RefiningContent({ initialName }: { initialName: string }) {
           </div>
           <p className={quote.hint}>{modeHint}</p>
           {failure ? (
-            <div className={quote.notice} role="alert">
-              <strong>{refiningFailureCopy(failure).title}</strong>
-              <p>{refiningFailureCopy(failure).text}</p>
+            <div className={quote.notice}>
+              {/* The alert holds the sentence only; the retry button's countdown
+                  ticks outside it so it is not re-announced every second. */}
+              <div role="alert">
+                <strong>{refiningFailureCopy(failure).title}</strong>
+                <p>{refiningFailureCopy(failure).text}</p>
+              </div>
               <button
                 type="button"
                 className={quote.outlinePill}
-                onClick={() => failed?.refetch()}
+                aria-disabled={planLimit.seconds > 0 || undefined}
+                onClick={() => planLimit.seconds === 0 && failed?.refetch()}
               >
-                다시 계산
+                {retryLabel(planLimit.seconds, "다시 계산")}
               </button>
             </div>
           ) : !requests.length ? (

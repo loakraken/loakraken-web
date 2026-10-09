@@ -6,6 +6,8 @@ import { ArrowLeft, ListChecks, Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { SiteHeader } from "@/components/site/site-header";
 import { CharacterQueryError, fetchSiblings } from "@/lib/character/client";
+import { rateLimitCopy, retryLabel } from "@/lib/api/rate-limit";
+import { useRateLimit } from "@/lib/api/use-rate-limit";
 import {
   GOLD_CHARACTERS,
   GOLD_RAIDS_PER_CHARACTER,
@@ -101,11 +103,12 @@ function AddRoster({ onAdd }: { onAdd: (picked: Sibling[]) => void }) {
     ? [...siblings.data.data.siblings].sort((a, b) => b.itemLevel - a.itemLevel)
     : [];
   const failure = siblings.error instanceof CharacterQueryError ? siblings.error.info : null;
+  const limit = useRateLimit(siblings.error);
 
   function submit(event: FormEvent) {
     event.preventDefault();
     const target = name.trim();
-    if (!target || siblings.isPending) return;
+    if (!target || siblings.isPending || limit.seconds > 0) return;
     siblings.mutate(target);
   }
 
@@ -130,17 +133,19 @@ function AddRoster({ onAdd }: { onAdd: (picked: Sibling[]) => void }) {
         <button
           type="submit"
           className={quote.secondaryPill}
-          aria-disabled={siblings.isPending || undefined}
+          aria-disabled={siblings.isPending || limit.seconds > 0 || undefined}
           aria-busy={siblings.isPending || undefined}
         >
-          {siblings.isPending ? "불러오는 중" : "불러오기"}
+          {siblings.isPending ? "불러오는 중" : retryLabel(limit.seconds, "불러오기")}
         </button>
       </form>
       {failure && (
         <p className={styles.error} role="alert">
-          {failure.code === "CHARACTER_NOT_FOUND"
-            ? "그 이름의 캐릭터를 찾지 못했어요."
-            : "원정대를 불러오지 못했어요. 잠시 뒤 다시 시도해 주세요."}
+          {limit.limited
+            ? `${rateLimitCopy().title}. ${rateLimitCopy().text}`
+            : failure.code === "CHARACTER_NOT_FOUND"
+              ? "그 이름의 캐릭터를 찾지 못했어요."
+              : "원정대를 불러오지 못했어요. 잠시 뒤 다시 시도해 주세요."}
         </p>
       )}
       {list.length > 0 && (
