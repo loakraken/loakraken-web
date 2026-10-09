@@ -3,8 +3,9 @@
 import { useCallback, useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import { ChevronDown, Menu, X } from "lucide-react";
-import { NAV_SECTIONS, sectionOf, type NavLink } from "./nav-data";
+import { NAV_SECTIONS, sectionOf, type NavFlags, type NavLink } from "./nav-data";
 import styles from "./site-nav.module.css";
 
 const OPEN_DELAY = 120;
@@ -19,7 +20,28 @@ function Entry({ link, onNavigate }: { link: NavLink & { href: string }; onNavig
   );
 }
 
-const live = (links: NavLink[]) => links.filter((link): link is NavLink & { href: string } => !!link.href);
+/**
+ * Runtime flags for menu entries. They are read per request on the server (the
+ * image is promoted from staging to production, and some pages are static
+ * HTML), so the menu asks once; a flagged entry stays out until the answer
+ * says it is on. The flyout is closed while this loads, so nothing shifts.
+ */
+function useNavFlags(): NavFlags {
+  const query = useQuery({
+    queryKey: ["nav-flags"],
+    queryFn: async ({ signal }) => {
+      const response = await fetch("/api/flags", { signal });
+      if (!response.ok) throw new Error(String(response.status));
+      return (await response.json()) as NavFlags;
+    },
+    staleTime: Infinity,
+  });
+  return query.data ?? {};
+}
+
+const visible = (link: NavLink, flags: NavFlags) => !link.flag || flags[link.flag] === true;
+const live = (links: NavLink[], flags: NavFlags) =>
+  links.filter((link): link is NavLink & { href: string } => !!link.href && visible(link, flags));
 const planned = (links: NavLink[]) => links.filter((link) => !link.href).map((link) => link.label);
 
 /** Planned features folded into one quiet line instead of a list of dead entries. */
@@ -42,6 +64,7 @@ export function SiteNav() {
   const id = useId();
   const pathname = usePathname();
   const current = pathname === "/about" ? "about" : sectionOf(pathname);
+  const flags = useNavFlags();
   const [open, setOpenState] = useState<string | null>(null);
   // Last opened panel stays rendered while the flyout fades out.
   const [shown, setShown] = useState<string | null>(null);
@@ -177,12 +200,12 @@ export function SiteNav() {
             <p className={styles.panelTitle}>{section.label}</p>
             <div className={styles.groups}>
               {section.groups
-                .filter((group) => live(group.links).length)
+                .filter((group) => live(group.links, flags).length)
                 .map((group) => (
                   <div key={group.title} className={styles.group}>
                     <p className={styles.groupTitle}>{group.title}</p>
                     <ul>
-                      {live(group.links).map((link) => (
+                      {live(group.links, flags).map((link) => (
                         <li key={link.label}>
                           <Entry link={link} onNavigate={close} />
                         </li>
@@ -213,7 +236,7 @@ export function SiteNav() {
           <section key={section.id} className={styles.sheetSection}>
             <h2>{section.label}</h2>
             <ul>
-              {live(section.groups.flatMap((group) => group.links)).map((link) => (
+              {live(section.groups.flatMap((group) => group.links), flags).map((link) => (
                 <li key={link.label}>
                   <Entry link={link} onNavigate={() => setSheet(false)} />
                 </li>
