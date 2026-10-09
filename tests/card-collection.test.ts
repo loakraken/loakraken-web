@@ -18,9 +18,6 @@ const origin = "http://127.0.0.1:8080";
 test("backend samples (dealer, supporter, empty) satisfy the generated contract", () => {
   for (const name of ["dealer", "supporter", "empty"])
     assert.equal(isCardCollectionEnvelope(fixture(name)), true, name);
-  const reordered = fixture("dealer");
-  reordered.data.elementRecords.dealer.reverse();
-  assert.equal(isCardCollectionEnvelope(reordered), false);
   const badEffect = fixture("dealer");
   badEffect.data.sets[0].effects[0].active = "yes";
   assert.equal(isCardCollectionEnvelope(badEffect), false);

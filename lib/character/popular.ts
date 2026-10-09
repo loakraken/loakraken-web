@@ -4,6 +4,7 @@ import Ajv2020 from "ajv/dist/2020";
 import contract from "../../contracts/popular.openapi.json";
 import type { components } from "../api/popular-schema";
 import { backendUrl, requestBackend, type BackendResult } from "../api/backend";
+import { tolerantSchemas } from "../api/tolerant";
 
 type Schemas = components["schemas"];
 export type PopularEnvelope = Schemas["ApiResponseCharacterPopularResponse"];
@@ -13,7 +14,7 @@ export const POPULAR_PERIODS: readonly PopularPeriod[] = ["24h", "7d"];
 
 const validate = new Ajv2020({ strict: false, validateFormats: false }).compile<PopularEnvelope>({
   $ref: "#/components/schemas/ApiResponseCharacterPopularResponse",
-  components: contract.components,
+  components: { ...contract.components, schemas: tolerantSchemas(contract.components.schemas) },
 });
 
 export function isPopularEnvelope(value: unknown): value is PopularEnvelope {

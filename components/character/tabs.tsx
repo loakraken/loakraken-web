@@ -30,7 +30,7 @@ import {
 } from "@/lib/character/detail";
 import {
   characterNameError,
-  coverageLabels,
+  coverageLabel,
   normalizeCharacterName,
   type Character,
   type CharacterEnvelope,
@@ -1398,14 +1398,14 @@ export function EvidenceTab({
               <li key={key}>
                 <strong>{key}</strong>
                 <span data-state={state ?? undefined}>
-                  {state ? coverageLabels[state] : "조회 안 함"}
+                  {state ? coverageLabel(state) : "조회 안 함"}
                 </span>
                 {value && typeof value === "object" && (
                   <small>
                     {Object.entries(value.collections)
                       .map(
                         ([name, item]) =>
-                          `${collectionLabels[name] ?? name} ${item ? coverageLabels[item] : "-"}`,
+                          `${collectionLabels[name] ?? name} ${item ? coverageLabel(item) : "-"}`,
                       )
                       .join(" · ")}
                   </small>

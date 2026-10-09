@@ -23,12 +23,12 @@ import {
 } from "@/lib/character/model";
 import { fetchNews, fetchSchedule, homeNewsKey, homeScheduleKey } from "@/lib/home/client";
 import {
-  NOTICE_LABEL,
-  REWARD_LABEL,
   countdown,
   dDay,
   kstDate,
   kstTime,
+  noticeLabel,
+  rewardLabel,
   tomorrowInWeek,
   upcomingMaintenance,
   isPatchNote,
@@ -151,7 +151,7 @@ function Rewards({ kinds }: { kinds: Island["rewardKinds"] }) {
     <span className={styles.rewards}>
       {kinds.map((kind) => (
         <i key={kind} data-kind={kind}>
-          {REWARD_LABEL[kind]}
+          {rewardLabel(kind)}
         </i>
       ))}
     </span>
@@ -490,11 +490,7 @@ function NewsPanels() {
                   rel="noreferrer"
                 >
                   <i data-category={notice.category ?? undefined}>
-                    {noticeTab === "patch"
-                      ? "패치"
-                      : notice.category
-                        ? NOTICE_LABEL[notice.category]
-                        : "공지"}
+                    {noticeTab === "patch" ? "패치" : noticeLabel(notice.category)}
                   </i>
                   <span>{notice.title}</span>
                   <time dateTime={notice.publishedAt}>

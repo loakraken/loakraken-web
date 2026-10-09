@@ -1,4 +1,5 @@
 import type { components } from "../api/schema";
+import { labelOf } from "../api/tolerant";
 
 type GeneratedCharacter = components["schemas"]["CharacterResponse"];
 type GeneratedAnalysis = GeneratedCharacter["analysis"];
@@ -43,6 +44,9 @@ export const coverageLabels: Record<CoverageState, string> = {
   PROVIDED_EMPTY: "빈 목록 제공",
   NOT_PROVIDED: "데이터 미제공",
 };
+
+/** Coverage label; a state this build does not know yet reads "알 수 없음". */
+export const coverageLabel = (state: string) => labelOf(coverageLabels, state);
 
 export function emptyObservation(state: CoverageState) {
   if (state === "NOT_PROVIDED")

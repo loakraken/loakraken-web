@@ -1,10 +1,16 @@
 import Ajv2020 from "ajv/dist/2020";
 import contract from "../../contracts/home.openapi.json";
+import { tolerantSchemas } from "../api/tolerant";
 import type { NewsEnvelope, ScheduleEnvelope } from "./model";
 
-// The backend's generated OpenAPI is also the runtime shape contract.
+// The backend's generated OpenAPI is also the runtime shape contract. Response
+// enums are loosened: a value added later shows as unknown instead of
+// rejecting the whole response (#125).
 const ajv = new Ajv2020({ strict: false, validateFormats: false });
-ajv.addSchema({ $id: "home", components: contract.components });
+ajv.addSchema({
+  $id: "home",
+  components: { ...contract.components, schemas: tolerantSchemas(contract.components.schemas) },
+});
 const schedule = ajv.compile<ScheduleEnvelope>({
   $ref: "home#/components/schemas/ApiResponseHomeScheduleResponse",
 });

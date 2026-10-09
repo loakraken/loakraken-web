@@ -1,6 +1,7 @@
 import Ajv2020 from "ajv/dist/2020";
 import contract from "../../contracts/character.openapi.json";
 import type { CharacterEnvelope } from "./model";
+import { tolerantSchemas } from "../api/tolerant";
 import siblingsContract from "../../contracts/siblings.openapi.json";
 import historyContract from "../../contracts/history.openapi.json";
 import viewsContract from "../../contracts/views.openapi.json";
@@ -8,15 +9,11 @@ import type { components as SiblingsSchemas } from "../api/siblings-schema";
 import type { components as HistorySchemas } from "../api/history-schema";
 import type { components as ViewsSchemas } from "../api/views-schema";
 
-// The backend's generated OpenAPI is also the runtime shape contract.
+// The backend's generated OpenAPI is also the runtime shape contract. Response
+// enums are loosened: a value added later shows as unknown instead of
+// rejecting the whole response (#125).
 const ajv = new Ajv2020({ strict: false, validateFormats: false });
-const components = structuredClone(contract.components);
-// A newly added rule must not hide an otherwise valid character response.
-// Keep categories, evidence shape, and every other generated constraint strict.
-Reflect.deleteProperty(
-  components.schemas.DiagnosticFindingResponse.properties.code,
-  "enum",
-);
+const components = { ...contract.components, schemas: tolerantSchemas(contract.components.schemas) };
 // Fields added after the first backend release. A server deployed before them
 // still passes validation; the missing values get neutral defaults so the UI
 // can treat them as "not provided" instead of crashing.
@@ -128,7 +125,7 @@ export type DailyViews = ViewsSchemas["schemas"]["CharacterDailyViewsResponse"];
 const compileWith = <T>(source: { components: object }, schema: string) =>
   new Ajv2020({ strict: false, validateFormats: false }).compile<T>({
     $ref: `#/components/schemas/${schema}`,
-    components: source.components,
+    components: { ...source.components, schemas: tolerantSchemas((source.components as { schemas: Record<string, unknown> }).schemas) },
   });
 const siblings = compileWith<SiblingsEnvelope>(
   siblingsContract,
