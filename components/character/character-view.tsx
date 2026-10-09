@@ -25,6 +25,7 @@ import {
 import { SiteHeader } from "@/components/site/site-header";
 import { recordRecent } from "@/lib/character/recent";
 import { CharacterBanner } from "./imagery";
+import { HeadlineNumber } from "./headline-number";
 import { kstTime, level, number, text } from "./parts";
 import { TabBar, TabPanel, tabOf } from "./tabs";
 import styles from "./character.module.css";
@@ -195,12 +196,12 @@ function CharacterContent({
                   <dl className={styles.bannerMetrics}>
                     <div>
                       <dt>아이템</dt>
-                      <dd>{number(data.itemLevel)}</dd>
+                      <dd>{data.itemLevel == null ? number(data.itemLevel) : <HeadlineNumber value={data.itemLevel} format={number} />}</dd>
                     </div>
                     <div>
                       <dt>전투력</dt>
                       <dd data-position={position ?? undefined}>
-                        {number(data.combatPower)}
+                        {data.combatPower == null ? number(data.combatPower) : <HeadlineNumber value={data.combatPower} format={number} />}
                       </dd>
                     </div>
                     <div>
