@@ -998,6 +998,7 @@ body {
 .k-grow,
 .k-grow-x {
   scale: 1;
+  transform-box: fill-box; /* SVG <rect> bars: origin on the bar, not the svg */
   transition: scale var(--duration-draw) var(--ease-out);
 }
 .k-grow {
