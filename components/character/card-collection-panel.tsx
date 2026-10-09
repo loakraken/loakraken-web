@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { appliedStage, elementLabel, orderedSlots, sortCards } from "@/lib/character/card-collection";
 import { CharacterQueryError, fetchCardCollection } from "@/lib/character/client";
 import { CardArt } from "./imagery";
+import { CardRefresh } from "./card-refresh";
 import styles from "./card-collection.module.css";
 import { countdownText, retryLabel } from "@/lib/api/rate-limit";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
@@ -50,6 +51,7 @@ export function CardCollection({ name }: { name: string }) {
           </span>
         )}
       </header>
+      <CardRefresh name={name} />
       {query.isPending ? (
         <p className={styles.muted}>카드 기록을 불러오고 있어요…</p>
       ) : !data ? (

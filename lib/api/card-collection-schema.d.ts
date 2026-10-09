@@ -24,6 +24,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/characters/card-collection/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 원정대 카드 기록 채우기
+         * @description 같은 서버 원정대 중 최근 7일 안에 프로필을 관측하지 못한 캐릭터를 아이템 레벨이 높은 순으로 최대 12명 조회해 카드 기록을 채웁니다. 캐릭터 검색과 같은 경로라 공식 호출은 1회 최대 12회이고, 원정대 목록은 캐시를 씁니다. 같은 원정대는 10분에 1회만 받으며, 쿨다운 중에는 429와 Retry-After(초)를 줍니다. 카드 기록은 비동기로 저장되므로 응답 직후 card-collection을 다시 조회하면 됩니다.
+         */
+        post: operations["refreshCardCollection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -139,6 +159,54 @@ export interface components {
             message: string;
             data: null;
         };
+        /** @description 공통 API 응답. 오류 응답의 data는 null입니다. */
+        ApiResponseCardCollectionRefreshResponse: {
+            /**
+             * @description 업무 결과 코드
+             * @example CHARACTER_SEARCH_SUCCESS
+             */
+            code: string;
+            /**
+             * @description 공개용 안내 메시지
+             * @example 캐릭터 조회에 성공했습니다.
+             */
+            message: string;
+            /** @description 성공 응답 데이터. 오류일 때 null */
+            data: components["schemas"]["CardCollectionRefreshResponse"];
+        };
+        /** @description 원정대 카드 기록 채우기 결과 */
+        CardCollectionRefreshResponse: {
+            /**
+             * Format: int32
+             * @description 같은 서버 원정대 캐릭터 수
+             */
+            rosterCharacters: number;
+            /**
+             * Format: int32
+             * @description 이번에 조회해 기록한 캐릭터 수
+             */
+            refreshed: number;
+            /**
+             * Format: int32
+             * @description 최근 7일 안에 이미 기록이 있어 건너뛴 수
+             */
+            skipped: number;
+            /**
+             * Format: int32
+             * @description 못 찾았거나 공식 오류가 난 수
+             */
+            failed: number;
+            /**
+             * Format: int32
+             * @description 1회 상한(12명)이나 공식 오류로 이번에 못 한 수
+             */
+            remaining: number;
+            /**
+             * Format: date-time
+             * @description 다시 채울 수 있는 시각(10분 쿨다운)
+             */
+            nextAvailableAt: string;
+        };
     };
     responses: never;
     parameters: never;
@@ -190,7 +258,87 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description LOST_ARK_RATE_LIMITED */
+            /** @description LOST_ARK_RATE_LIMITED / CLIENT_RATE_LIMITED: 이 클라이언트의 분당 요청·공식 호출 한도 초과. Retry-After(초) 뒤 다시 시도 */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description LOST_ARK_API_ERROR */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description CARD_COLLECTION_DISABLED, CARD_COLLECTION_UNAVAILABLE, LOST_ARK_NOT_CONFIGURED 또는 CHARACTER_CACHE_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description LOST_ARK_API_TIMEOUT */
+            504: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    refreshCardCollection: {
+        parameters: {
+            query: {
+                /**
+                 * @description 원정대를 조회할 캐릭터명
+                 * @example 모험가
+                 */
+                characterName: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 처리 완료(일부 실패 포함) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponseCardCollectionRefreshResponse"];
+                };
+            };
+            /** @description INVALID_REQUEST: 캐릭터명 누락 또는 형식 오류 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description CHARACTER_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description CARD_COLLECTION_REFRESH_COOLDOWN(Retry-After 헤더) 또는 LOST_ARK_RATE_LIMITED / CLIENT_RATE_LIMITED: 이 클라이언트의 분당 요청·공식 호출 한도 초과. Retry-After(초) 뒤 다시 시도 */
             429: {
                 headers: {
                     [name: string]: unknown;

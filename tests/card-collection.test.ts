@@ -4,10 +4,12 @@ import test from "node:test";
 import {
   appliedStage,
   isCardCollectionEnvelope,
+  isCardRefreshEnvelope,
+  refreshSummary,
   slotsFor,
   sortCards,
 } from "../lib/character/card-collection";
-import { requestCardCollection } from "../lib/character/related";
+import { requestCardCollection, requestCardRefresh } from "../lib/character/related";
 
 const fixture = (name: string) =>
   JSON.parse(
@@ -57,4 +59,29 @@ test("the awakening total leads; the applied stage shows only when lower", () =>
   assert.equal(appliedStage({ awakening: 28, activeAwakening: 24 }), 24);
   assert.equal(appliedStage({ awakening: 30, activeAwakening: 30 }), null);
   assert.equal(appliedStage({ awakening: 12, activeAwakening: null }), null);
+});
+
+test("refill: summary in words, POST, cooldown 429 keeps its code, other 429 is the rate limit", async () => {
+  const sample = fixture("refresh");
+  assert.equal(isCardRefreshEnvelope(sample), true);
+  assert.equal(
+    refreshSummary(sample.data),
+    "원정대 14명 중 11명을 새로 기록했어요. 1명은 최근 7일 안에 기록이 있어 그대로 두었어요. 1명은 불러오지 못했어요. 1명은 다음에 이어서 채울 수 있어요.",
+  );
+  assert.doesNotMatch(refreshSummary(sample.data), /skipped|failed|remaining/);
+  const calls: RequestInit[] = [];
+  const reply = (status: number, body: object, headers: Record<string, string> = {}) =>
+    (async (_url: URL, init: RequestInit) => {
+      calls.push(init);
+      return Response.json(body, { status, headers });
+    }) as unknown as typeof fetch;
+  assert.equal((await requestCardRefresh("가1", origin, { fetcher: reply(200, sample) })).ok, true);
+  assert.equal(calls[0].method, "POST");
+  const cooldown = await requestCardRefresh("가1", origin, {
+    fetcher: reply(429, { code: "CARD_COLLECTION_REFRESH_COOLDOWN" }, { "Retry-After": "420" }),
+  });
+  assert.equal(cooldown.ok, false);
+  if (!cooldown.ok) assert.equal(cooldown.error.code, "CARD_COLLECTION_REFRESH_COOLDOWN");
+  const client = await requestCardRefresh("가1", origin, { fetcher: reply(429, { code: "CLIENT_RATE_LIMITED" }) });
+  if (!client.ok) assert.equal(client.error.code, "LOST_ARK_RATE_LIMITED");
 });
