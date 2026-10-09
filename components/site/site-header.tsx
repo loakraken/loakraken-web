@@ -31,6 +31,7 @@ export function SiteHeader({
         <SiteNav />
       </nav>
       {children && <div className={styles.slot}>{children}</div>}
+      {/* ThemeToggle joins here once every page body uses theme tokens (PM). */}
     </header>
   );
 }
