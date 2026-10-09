@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { cutoutPortrait } from "../lib/character/portrait-cutout";
+import {
+  BANNER_BACKDROP_MAX,
+  bannerBackdrop,
+  cutoutPortrait,
+} from "../lib/character/portrait-cutout";
 
 const W = 20;
 const H = 20;
@@ -110,4 +114,34 @@ test("dim coloured effect light connected to the backdrop becomes translucent, e
   assert.equal(at(data, 13, 9)[3], 255, "red detail enclosed by the subject stays opaque");
   assert.equal(at(data, 5, 18)[3], 255, "neutral dark detail stops the fill");
   assert.equal(at(data, 12, 7)[3], 255, "bright subject stays opaque");
+});
+
+// WCAG relative luminance and contrast, for the banner text on its band.
+const lum = (hex: string | readonly number[]) => {
+  const rgb = typeof hex === "string" ? [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)) : hex;
+  const [r, g, b] = rgb.map((v) => {
+    const c = v / 255;
+    return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+};
+const contrast = (a: string, b: readonly number[]) => {
+  const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p);
+  return (x + 0.05) / (y + 0.05);
+};
+
+test("banner band is capped so the light banner text keeps 4.5:1", () => {
+  assert.deepEqual(bannerBackdrop([16, 17, 20]), [16, 17, 20]);
+  assert.deepEqual(bannerBackdrop([48, 48, 48]), [48, 48, 48]);
+  assert.deepEqual(bannerBackdrop([70, 70, 70]), [48, 48, 48]);
+  assert.deepEqual(bannerBackdrop([70, 35, 0]), [48, 24, 0]);
+  // Every backdrop the cutout accepts (channels up to 70) on a coarse grid.
+  for (let r = 0; r <= 70; r += 7)
+    for (let g = 0; g <= 70; g += 7)
+      for (let b = 0; b <= 70; b += 7) {
+        const band = bannerBackdrop([r, g, b]);
+        assert.ok(Math.max(...band) <= BANNER_BACKDROP_MAX);
+        for (const ink of ["#f5f5f7", "#a1a1a6", "#ff8a80", "#7ed98f"])
+          assert.ok(contrast(ink, band) >= 4.5, `${ink} on ${band}`);
+      }
 });

@@ -212,6 +212,22 @@ export function cutoutPortrait(
   return { backdrop, ambient, removed };
 }
 
+/** Brightest channel the banner band may take (RGB 0-255). */
+export const BANNER_BACKDROP_MAX = 48;
+
+/**
+ * Banner band colour from the render's backdrop: channels scaled down (hue
+ * kept) so the brightest is at most BANNER_BACKDROP_MAX. The banner's light
+ * text (muted #a1a1a6, dealer #ff8a80) then keeps 4.5:1 on any accepted
+ * backdrop (up to 70); the render's own edges fade into the band.
+ */
+export function bannerBackdrop(rgb: Rgb): Rgb {
+  const max = Math.max(...rgb);
+  const k = max > BANNER_BACKDROP_MAX ? BANNER_BACKDROP_MAX / max : 1;
+  const [r, g, b] = rgb.map((v) => Math.round(v * k));
+  return [r, g, b];
+}
+
 /**
  * Normalises the subject's dominant colour into a clean glow tint: keeps the
  * hue, lifts saturation and pins lightness so a muddy average still reads as

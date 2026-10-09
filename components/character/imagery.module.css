@@ -131,13 +131,14 @@
   font-size: 12px;
 }
 
-/* Character banner. Light: #f5f5f7 band with the backdrop-free cutout.
-   Dark (OS scheme) or cutout failure: band filled with the render's own
-   backdrop colour and the original render. */
+/* Character banner: a dark band in every theme, as ILOA and LOPEC show it
+   (PM decision). The band takes the render's own backdrop colour so the
+   original render blends in; until that is known it is the --banner token
+   (16 17 20 = #101114). */
 .banner {
-  --band: #f5f5f7;
-  --band-ink: #1d1d1f;
-  --band-muted: #707070;
+  --band: var(--banner);
+  --band-ink: var(--banner-foreground);
+  --band-muted: var(--banner-muted);
   position: relative;
   background: var(--band);
   color: var(--band-ink);
@@ -196,12 +197,13 @@
   border-radius: 50%;
   background: radial-gradient(
     closest-side,
-    rgb(var(--ambient, 0 0 0) / 26%),
-    rgb(var(--ambient, 0 0 0) / 10%) 55%,
+    rgb(var(--ambient, 0 0 0) / 34%),
+    rgb(var(--ambient, 0 0 0) / 12%) 55%,
     transparent
   );
   filter: blur(28px);
   transform: translate(-50%, -50%);
+  mix-blend-mode: screen;
 }
 /* The figure box reaches left into the empty band; the render inside is
    enlarged and anchored so roughly head to waist is visible. */
@@ -252,15 +254,11 @@
     opacity 420ms ease-out,
     transform 420ms cubic-bezier(0.23, 1, 0.32, 1);
 }
+.banner:not([data-phase="failed"]) {
+  --band: rgb(var(--backdrop, 16 17 20));
+}
 .figureOriginal {
-  opacity: 0;
-}
-.figureCutout {
   opacity: 1;
-}
-.banner[data-cutout="pending"] .figureCutout {
-  opacity: 0;
-  transform: translateX(-50%) translateY(12px);
 }
 .bannerOrb {
   position: absolute;
@@ -268,59 +266,15 @@
   left: calc(50% + 100px);
   transform: translate(-50%, -50%);
 }
-.orbDark {
+.orbLight {
   display: none;
-}
-/* Dark tone */
-.banner[data-cutout="failed"]:not([data-phase="failed"]) {
-  --band: rgb(var(--backdrop, 16 17 20));
-  --band-ink: #f5f5f7;
-  --band-muted: #a1a1a6;
-}
-.banner[data-cutout="failed"] .figureOriginal {
-  opacity: 1;
-}
-.banner[data-cutout="failed"] .orbLight {
-  display: none;
-}
-.banner[data-cutout="failed"] .orbDark {
-  display: block;
 }
 .banner[data-phase="loading"] .figureOriginal {
   opacity: 0;
 }
-@media (prefers-color-scheme: dark) {
-  /* On the dark band the glow adds light, like the effect itself. */
-  .bannerGlow::before {
-    background: radial-gradient(
-      closest-side,
-      rgb(var(--ambient, 0 0 0) / 34%),
-      rgb(var(--ambient, 0 0 0) / 12%) 55%,
-      transparent
-    );
-    mix-blend-mode: screen;
-  }
-  .banner:not([data-phase="failed"]) {
-    --band: rgb(var(--backdrop, 16 17 20));
-    --band-ink: #f5f5f7;
-    --band-muted: #a1a1a6;
-  }
-  .figureOriginal {
-    opacity: 1;
-  }
-  .figureCutout {
-    opacity: 0 !important;
-  }
-  .orbLight {
-    display: none;
-  }
-  .orbDark {
-    display: block;
-  }
-  .banner[data-phase="server"] .bannerOrb,
-  .banner[data-phase="loaded"] .bannerOrb {
-    display: none;
-  }
+.banner[data-phase="server"] .bannerOrb,
+.banner[data-phase="loaded"] .bannerOrb {
+  display: none;
 }
 
 @media (max-width: 760px) {
@@ -390,8 +344,5 @@
   }
   .bannerFigure img {
     transition: opacity 200ms ease;
-  }
-  .banner[data-cutout="pending"] .figureCutout {
-    transform: translateX(-50%);
   }
 }
