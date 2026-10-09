@@ -63,5 +63,9 @@ test("bound-gold option leaves out the part bound gold pays (notice 13148)", () 
   assert.equal(boundGoldFor("kazeros-prologue", "하드", 1), 0);
   assert.equal(gateResult(hard.gates[0], {}, () => 0, 0, true).paid, 720);
   assert.equal(boundGoldFor("horizon-cathedral", "3단계", 1), null, "not in the reward table");
+  // 노말 · 싱글 rows need both modes to agree (PM-프론트 #261 P2).
+  assert.equal(boundGoldFor("kazeros-act1", "노말 · 싱글", 1), null, "normal 0 vs single 1,750");
+  assert.equal(boundGoldFor("kazeros-act4", "노말 · 싱글", 1), null, "single has no value");
+  assert.equal(boundGoldFor("serka", "노말 · 싱글", 1), 6500, "no single mode in the table");
   assert.equal(INPUT_MATERIALS.length, 7);
 });

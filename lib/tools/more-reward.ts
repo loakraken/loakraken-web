@@ -39,22 +39,32 @@ export const INPUT_MATERIALS = [
 export const gateKey = (raidId: string, mode: string, gate: number) =>
   `${raidId}/${mode}/${gate}`;
 
-const DIFFICULTY_BY_LABEL: Record<string, Difficulty> = {
-  나이트메어: "NIGHTMARE",
-  하드: "HARD",
-  노말: "NORMAL",
-  "노말 · 싱글": "NORMAL",
+const DIFFICULTIES_BY_LABEL: Record<string, Difficulty[]> = {
+  나이트메어: ["NIGHTMARE"],
+  하드: ["HARD"],
+  노말: ["NORMAL"],
+  "노말 · 싱글": ["NORMAL", "SINGLE"],
 };
 
 /**
  * Bound gold a clear of this gate pays, which the bonus cost spends first
- * (official notice 13148). null when the reward table has no value.
+ * (official notice 13148). A row shared by normal and single mode needs the
+ * same value in both; otherwise (or with no value) it is null.
  */
 export function boundGoldFor(raidId: string, modeLabel: string, gate: number) {
-  const difficulty = DIFFICULTY_BY_LABEL[modeLabel];
   const raid = RAID_DATA.raids.find((r) => r.id === raidId);
-  const mode = raid?.modes.find((m) => m.difficulty === difficulty);
-  return mode?.gates.find((g) => g.gate === gate)?.boundGold ?? null;
+  const values = (DIFFICULTIES_BY_LABEL[modeLabel] ?? []).map(
+    (difficulty) =>
+      raid?.modes.find((m) => m.difficulty === difficulty)?.gates.find((g) => g.gate === gate)
+        ?.boundGold ?? null,
+  );
+  const known = values.filter((v): v is number => v !== null);
+  if (known.length === 0 || known.length !== values.length) {
+    // A single mode the table does not list shares the normal row's reward.
+    const single = raid?.modes.some((m) => m.difficulty === "SINGLE");
+    return known.length === 1 && !single ? known[0] : null;
+  }
+  return known.every((v) => v === known[0]) ? known[0] : null;
 }
 
 export type ValueLine = {

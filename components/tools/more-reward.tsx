@@ -102,7 +102,9 @@ function GateDetail({
         </p>
       )}
       {excludeBound && boundGold === null && (
-        <p className={styles.small}>이 관문은 귀속 골드 자료가 없어 전액으로 계산했어요.</p>
+        <p className={styles.small}>
+          이 관문은 귀속 골드를 하나로 정할 수 없어(자료 없음, 또는 노말과 싱글이 다름) 전액으로 계산했어요.
+        </p>
       )}
       <ul className={styles.lines}>
         {result.lines.map((line) => (
