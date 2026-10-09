@@ -243,3 +243,23 @@ test("ARK_GRID sources get a label and an older backend without skills still val
   delete value.data.toggles;
   assert.equal(isCritSpeedEnvelope(value), true);
 });
+
+test("per-effect toggles (backend #193): only changed keys are sent and the allow-list checks them", () => {
+  assert.equal("toggles" in toAssumptions(DEFAULT_SETTINGS), false);
+  assert.deepEqual(
+    toAssumptions({ ...DEFAULT_SETTINGS, toggles: { 연가비기: true, 피냄새: false } }).toggles,
+    { 연가비기: true, 피냄새: false },
+  );
+  assert.deepEqual(
+    parseCritSpeedRequest({ characterName: "언새늘", assumptions: { toggles: { "피스메이커 - 샷건": true } } })
+      ?.assumptions.toggles,
+    { "피스메이커 - 샷건": true },
+  );
+  const many = Object.fromEntries(Array.from({ length: 33 }, (_, i) => [`k${i}`, true]));
+  for (const toggles of [[], { 피냄새: "on" }, { " ": true }, many, { ["x".repeat(65)]: true }])
+    assert.equal(
+      parseCritSpeedRequest({ characterName: "언새늘", assumptions: { toggles } }),
+      null,
+      JSON.stringify(toggles).slice(0, 40),
+    );
+});

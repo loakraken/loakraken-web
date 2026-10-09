@@ -536,3 +536,27 @@
   color: var(--slate);
   font-size: var(--text-caption);
 }
+.effects {
+  margin-top: 12px;
+  padding-top: 4px;
+  border-top: 1px solid var(--hairline);
+}
+.effectsTitle {
+  margin: 8px 0 0;
+  color: var(--slate);
+  font-size: var(--text-caption);
+  font-weight: 600;
+}
+.effect {
+  display: grid;
+  gap: 2px;
+  padding-bottom: 8px;
+}
+.effect > small {
+  color: var(--slate);
+  font-size: var(--text-caption);
+  line-height: 1.5;
+}
+.effect > .effectBlocked {
+  color: var(--ink);
+}

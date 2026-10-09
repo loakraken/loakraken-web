@@ -26,6 +26,7 @@ import {
   toAssumptions,
   type CritSource,
   type CritSpeed,
+  type CritToggle,
   type Settings,
 } from "@/lib/crit-speed/model";
 import { UNKNOWN_LABEL } from "@/lib/tools/contract";
@@ -418,17 +419,55 @@ function SwiftnessTable({ speed }: { speed: CritSpeed["speed"] }) {
   );
 }
 
+function EffectToggles({
+  toggles,
+  changed,
+  onChange,
+}: {
+  toggles: CritToggle[];
+  changed: Record<string, boolean>;
+  onChange: (key: string, value: boolean) => void;
+}) {
+  return (
+    <div className={styles.effects}>
+      <p className={styles.effectsTitle}>조건부 효과</p>
+      {toggles.map((t) => (
+        <div key={t.key} className={styles.effect}>
+          <Toggle
+            label={t.label}
+            hint={`${AXIS_LABEL[(t as { axis?: CritSource["axis"] }).axis ?? "CRIT"] ?? "치명타 적중률"} +${percent(t.value)} · ${t.coreState ? "핵심 상태라 기본 켬" : "상황 조건이라 기본 끔"}`}
+            checked={t.on}
+            onChange={(value) => onChange(t.key, value)}
+          />
+          <small>{t.text}</small>
+          {changed[t.key] === true && !t.on && (
+            <small className={styles.effectBlocked}>
+              공식 문구대로 다른 효과와 동시에 적용되지 않아 꺼진 상태로 계산했어요.
+            </small>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function Results({
   data,
   stale,
   classState,
+  changed,
+  onToggle,
 }: {
   data: CritSpeed;
   stale: boolean;
   classState: boolean;
+  changed: Record<string, boolean>;
+  onToggle: (key: string, value: boolean) => void;
 }) {
   const { crit, speed } = data;
   const states = classStateSources(data.sources);
+  // Missing on backends before #193; then the class-state notes stand alone.
+  const toggles = (data.toggles as CritToggle[] | undefined) ?? [];
   // Missing on backends before #133; the validator lets those through.
   const damage = crit.damage as typeof crit.damage | undefined;
   // Axes the screen does not know yet (newer backend): listed, not dropped.
@@ -458,7 +497,9 @@ function Results({
           {over > 0.005 && ` · 상한을 넘은 ${percent(over)}는 적용되지 않아요`}
           {` · 치명 ${crit.critStatPerPercent.toLocaleString("ko-KR", { maximumFractionDigits: 2 })} = 치적 1%`}
         </p>
-        {classState ? (
+        {toggles.length > 0 ? (
+          <EffectToggles toggles={toggles} changed={changed} onChange={onToggle} />
+        ) : classState ? (
           states.map((s, i) => (
             <p key={`${s.name}-${i}`} className={styles.figureNote}>
               가정한 직업 상태 · {s.name} +{percent(s.value)}: {s.text}
@@ -694,6 +735,8 @@ function CritSpeedContent({ initialName }: { initialName: string }) {
     router.replace(`?${new URLSearchParams({ character: target })}`, {
       scroll: false,
     });
+    // Effect keys belong to one character's class and nodes.
+    if (target !== name) setSettings((prev) => ({ ...prev, toggles: {} }));
     setName(target);
   }
 
@@ -788,6 +831,13 @@ function CritSpeedContent({ initialName }: { initialName: string }) {
                       data={data}
                       stale={query.isPlaceholderData}
                       classState={settings.classState}
+                      changed={settings.toggles}
+                      onToggle={(key, value) =>
+                        setSettings((prev) => ({
+                          ...prev,
+                          toggles: { ...prev.toggles, [key]: value },
+                        }))
+                      }
                     />
                   </>
                 ) : name ? (
