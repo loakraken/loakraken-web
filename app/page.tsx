@@ -6,6 +6,7 @@ import { getNews, getSchedule } from "@/lib/home/server";
 // Schedule and notices change through the day; render per request so the
 // first HTML already carries them (the backend caches 30 / 10 minutes).
 export const dynamic = "force-dynamic";
+export const metadata = { alternates: { canonical: "/" } };
 
 export default async function Home() {
   // A slow backend must not hold the first HTML: give up after 2.5s and let

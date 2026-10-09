@@ -9,24 +9,34 @@ import { normalizeCharacterName } from "@/lib/character/model";
 import { getCharacter } from "@/lib/character/server";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = {
-  title: "캐릭터 정보",
-  robots: { index: false, follow: false },
+const decodeName = (raw: string) => {
+  try {
+    return normalizeCharacterName(decodeURIComponent(raw));
+  } catch {
+    return normalizeCharacterName(raw);
+  }
 };
+
+// One canonical URL however the name was encoded in the request (ops O-6).
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ characterName: string }>;
+}): Promise<Metadata> {
+  const name = decodeName((await params).characterName);
+  return {
+    title: name ? `${name} · 캐릭터 정보` : "캐릭터 정보",
+    robots: { index: false, follow: false },
+    alternates: { canonical: `/character/${encodeURIComponent(name)}` },
+  };
+}
 
 export default async function CharacterPage({
   params,
 }: {
   params: Promise<{ characterName: string }>;
 }) {
-  const { characterName } = await params;
-  let decoded: string;
-  try {
-    decoded = decodeURIComponent(characterName);
-  } catch {
-    decoded = characterName;
-  }
-  const name = normalizeCharacterName(decoded);
+  const name = decodeName((await params).characterName);
   const result = await getCharacter(name);
   // Request-time snapshot in a dynamic Server Component, shared with hydration.
   // eslint-disable-next-line react-hooks/purity
