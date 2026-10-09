@@ -35,11 +35,15 @@ test.describe("홈 인기 검색 캐릭터 @smoke", () => {
   });
 
   test("순위 요청이 실패하면 실패를 안내한다", async ({ page }) => {
-    await page.route("**/api/characters/popular**", (route) =>
+    // 24시간 순위는 서버가 첫 HTML에 넣으므로(web #236) 브라우저가 부르는 7일 전환을 실패시킨다.
+    await page.route(/\/api\/characters\/popular\?.*period=7d/, (route) =>
       route.fulfill({ status: 502, json: { ok: false, error: { code: "LOST_ARK_API_ERROR", status: 502 } } }),
     );
     await gotoReady(page, "/");
-    await expect(page.getByRole("region", { name: "인기 검색 캐릭터" })).toContainText("순위를 불러오지 못했어요.");
+    const card = page.getByRole("region", { name: "인기 검색 캐릭터" });
+    await expect(card.getByRole("listitem").first()).toBeVisible();
+    await card.getByRole("group", { name: "기간" }).getByRole("button", { name: "7일" }).click();
+    await expect(card).toContainText("순위를 불러오지 못했어요.");
   });
 });
 
