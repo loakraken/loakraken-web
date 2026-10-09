@@ -30,10 +30,13 @@ test.describe("aria-expanded @regression", () => {
   });
 
   test("스킬 탭 '전체 N개 스킬 보기'가 상태를 알린다", async ({ page }) => {
-    test.fail(true, "web #66: 스킬 펼침 버튼 aria-expanded 누락. 고치면 이 줄을 지운다.");
     await page.goto(characterPath("상세", "skills"));
     const toggle = page.getByRole("button", { name: /전체 \d+개 스킬 보기/ });
     await expect(toggle).toHaveAttribute("aria-expanded", "false");
+    // web #90: aria-controls가 스킬 목록을 가리킨다.
+    const controls = await toggle.getAttribute("aria-controls");
+    expect(controls).toBeTruthy();
+    await expect(page.locator(`[id="${controls}"]`)).toBeVisible();
     await toggle.click();
     await expect(page.getByRole("button", { name: "사용 중인 스킬만 보기" })).toHaveAttribute("aria-expanded", "true");
   });
@@ -53,7 +56,6 @@ test.describe("aria-expanded @regression", () => {
 
   for (const tab of TABS) {
     test(`${tab} 탭의 모든 펼침 버튼에 aria-expanded가 있다`, async ({ page }) => {
-      test.fail(tab === "skills", "web #66: 스킬 펼침 버튼 aria-expanded 누락. 고치면 이 줄을 지운다.");
       await page.goto(characterPath("상세", tab));
       await expect(page.getByRole("heading", { level: 1, name: "상세" })).toBeVisible();
       const missing = await page.locator("main button:visible").evaluateAll(
