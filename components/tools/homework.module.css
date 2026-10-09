@@ -1,0 +1,272 @@
+/* Weekly homework — design tokens only; the page shell comes from
+   material-quote. Summary and roster loader on top, character cards in a
+   grid (three on wide screens, one on phones). */
+.sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.workspace {
+  display: grid;
+  gap: var(--space-5);
+  max-width: 1120px;
+  margin: 0 auto;
+}
+.summary,
+.card {
+  border-radius: var(--radius-xl);
+  background: var(--card);
+  padding: var(--space-6) clamp(20px, 3vw, 28px);
+}
+.summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  gap: var(--space-5);
+  align-items: center;
+}
+.label {
+  color: var(--muted-foreground);
+  font-size: var(--text-caption);
+  font-weight: 600;
+}
+.big {
+  margin-top: var(--space-1);
+  font-size: var(--text-display);
+  font-weight: 700;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+.big small {
+  color: var(--muted-foreground);
+  font-size: var(--text-figure);
+  font-weight: 600;
+}
+.note {
+  margin-top: var(--space-1);
+  color: var(--muted-foreground);
+  font-size: var(--text-caption);
+}
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+.stats div {
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--muted);
+}
+.stats dt {
+  color: var(--muted-foreground);
+  font-size: var(--text-caption);
+}
+.stats dd {
+  margin-top: 2px;
+  font-size: var(--text-figure);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.cardTitle {
+  font-size: var(--text-heading-sm);
+  font-weight: 700;
+}
+.addForm {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+.input,
+.select {
+  height: 44px;
+  padding: 0 var(--space-4);
+  border: 1px solid var(--faint);
+  border-radius: var(--radius-pill);
+  background: var(--card);
+  color: var(--foreground);
+  font-size: var(--text-field);
+}
+.input {
+  flex: 1;
+  min-width: 0;
+}
+.input:focus-visible,
+.select:focus-visible {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: var(--ring-halo);
+}
+.error {
+  margin-top: var(--space-2);
+  color: var(--destructive);
+  font-size: var(--text-caption);
+  font-weight: 600;
+}
+.pick {
+  margin: var(--space-4) 0 0;
+  padding: 0;
+  border: 0;
+}
+.pick legend {
+  padding: 0;
+  font-size: var(--text-body);
+  font-weight: 600;
+}
+.pick ul {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--space-1) var(--space-3);
+  margin: var(--space-2) 0 var(--space-3);
+}
+.pick label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 36px;
+  font-size: var(--text-meta);
+  cursor: pointer;
+}
+.pick input,
+.gateCheck input,
+.moreCheck input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary);
+}
+.empty,
+.footnote {
+  color: var(--muted-foreground);
+  font-size: var(--text-caption);
+}
+.footnote a {
+  color: var(--link);
+  text-decoration: underline;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: var(--space-5);
+  align-items: start;
+}
+.charHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+.charName {
+  font-size: var(--text-figure);
+  font-weight: 700;
+}
+.iconButton {
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--muted-foreground);
+}
+.goldToggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--muted);
+  font-size: var(--text-body);
+  font-weight: 600;
+  cursor: pointer;
+}
+.goldToggle input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--switch-on);
+}
+.goldToggle small {
+  display: block;
+  color: var(--muted-foreground);
+  font-size: var(--text-caption);
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+.raids {
+  display: grid;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+.raid {
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border);
+}
+.raidHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: var(--text-body);
+}
+.gates {
+  display: grid;
+  gap: var(--space-1);
+  margin-top: var(--space-1);
+}
+.gates li {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-2);
+}
+.gateCheck,
+.moreCheck {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 32px;
+  font-size: var(--text-meta);
+  cursor: pointer;
+}
+.gateCheck small {
+  margin-left: var(--space-2);
+  color: var(--muted-foreground);
+  font-variant-numeric: tabular-nums;
+}
+.gates li[data-done] .gateCheck span {
+  color: var(--muted-foreground);
+  text-decoration: line-through;
+}
+.moreCheck {
+  color: var(--muted-foreground);
+  font-size: var(--text-caption);
+}
+.addRaid {
+  margin-top: var(--space-3);
+}
+.select {
+  width: 100%;
+  height: 40px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .iconButton:hover {
+    background: var(--muted);
+    color: var(--foreground);
+  }
+}
+@media (max-width: 760px) {
+  .summary {
+    grid-template-columns: 1fr;
+  }
+  .stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
