@@ -26,7 +26,7 @@ export const fetchSchedule = (date: string | null, signal: AbortSignal) =>
   call<ScheduleEnvelope>(`/api/home/schedule${date ? `?date=${date}` : ""}`, signal);
 
 export const fetchNews = (signal: AbortSignal) =>
-  call<NewsEnvelope>("/api/home/news?limit=8", signal);
+  call<NewsEnvelope>("/api/home/news?limit=15", signal);
 
 /** Query key for a schedule day; null is "today" so the server prefetch hydrates. */
 export const homeScheduleKey = (date: string | null) =>

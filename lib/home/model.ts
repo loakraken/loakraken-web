@@ -150,3 +150,8 @@ export function tomorrowInWeek(coveredTo: string | null, now = Date.now()) {
   const tomorrow = kstDate(now + DAY);
   return coveredTo && tomorrow <= coveredTo ? tomorrow : null;
 }
+
+/** Patch notes (update/patch announcements) shown apart from other notices (KLOA). */
+export function isPatchNote(notice: Notice) {
+  return notice.category !== "MAINTENANCE" && /업데이트|패치/.test(notice.title);
+}

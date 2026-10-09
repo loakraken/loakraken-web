@@ -31,6 +31,7 @@ import {
   kstTime,
   tomorrowInWeek,
   upcomingMaintenance,
+  isPatchNote,
   sectionStatus,
   dayLabel,
   periodText,
@@ -438,6 +439,10 @@ function NewsPanels() {
   const now = useClock(MINUTE);
   const query = useNews();
   const data = query.data?.data;
+  const [noticeTab, setNoticeTab] = useState<"notice" | "patch">("notice");
+  const shownNotices = (data?.notices ?? [])
+    .filter((notice) => isPatchNote(notice) === (noticeTab === "patch"))
+    .slice(0, 6);
   return (
     <>
       <section
@@ -456,15 +461,27 @@ function NewsPanels() {
             더보기 <ChevronRight size={14} aria-hidden="true" />
           </a>
         </div>
+        <div className={styles.noticeTabs} role="group" aria-label="공지 종류">
+          <button type="button" aria-pressed={noticeTab === "notice"} onClick={() => setNoticeTab("notice")}>
+            공지
+          </button>
+          <button type="button" aria-pressed={noticeTab === "patch"} onClick={() => setNoticeTab("patch")}>
+            패치노트
+          </button>
+        </div>
         {!data ? (
           <p className={styles.muted}>
             {query.isPending
               ? "공지를 불러오고 있어요…"
               : "공지를 불러오지 못했어요."}
           </p>
+        ) : shownNotices.length === 0 ? (
+          <p className={styles.muted}>
+            {noticeTab === "patch" ? "최근 패치노트가 없어요." : "최근 공지가 없어요."}
+          </p>
         ) : (
           <ul className={styles.notices}>
-            {data.notices.slice(0, 6).map((notice) => (
+            {shownNotices.map((notice) => (
               <li key={`${notice.publishedAt}${notice.title}`}>
                 <a
                   href={notice.url ?? undefined}
@@ -472,7 +489,11 @@ function NewsPanels() {
                   rel="noreferrer"
                 >
                   <i data-category={notice.category ?? undefined}>
-                    {notice.category ? NOTICE_LABEL[notice.category] : "공지"}
+                    {noticeTab === "patch"
+                      ? "패치"
+                      : notice.category
+                        ? NOTICE_LABEL[notice.category]
+                        : "공지"}
                   </i>
                   <span>{notice.title}</span>
                   <time dateTime={notice.publishedAt}>
@@ -556,7 +577,7 @@ function MarketSummary() {
     queryKey: ["home-market"],
     queryFn: ({ signal }) =>
       fetchMarketBoard(
-        { tab: "REFINING", tier: 4, sort: "default", page: 1 },
+        { tab: "REFINING", tier: null, sort: "default", page: 1 },
         signal,
       ),
     staleTime: 5 * 60_000,
@@ -582,7 +603,7 @@ function MarketSummary() {
             const change = changeLabel(item.changeDay);
             return (
               <li key={item.itemId}>
-                <Link href="/market?tab=REFINING&tier=4">
+                <Link href="/market?tab=REFINING">
                   {item.icon && (
                     // eslint-disable-next-line @next/next/no-img-element -- official CDN icon at a fixed size
                     <img

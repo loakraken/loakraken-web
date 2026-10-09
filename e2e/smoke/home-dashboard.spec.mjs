@@ -57,11 +57,16 @@ test.describe("홈 일정 시각 상태 @regression", () => {
     await expect(header).not.toContainText("남음");
   });
 
-  test("13:30 — 다음 회차와 남은 개수", async ({ page }) => {
+  test("13:30 — 다음 회차, 지난 회차 시각은 숨김", async ({ page }) => {
     await page.clock.setFixedTime(kstAt("13:30"));
     await page.goto("/");
-    const header = page.getByRole("region", { name: "모험 섬" }).locator("header");
-    await expect(header).toContainText(/19:00 · 5시간 30분/);
+    const islands = page.getByRole("region", { name: "모험 섬" });
+    await expect(islands.locator("header")).toContainText(/19:00 · 5시간 30분/);
+    await expect(page.getByRole("button", { name: "지난 회차 숨김" })).toHaveAttribute("aria-pressed", "true");
+    // 숨김이 켜져 있으면 지난 시각(09·11·13시)은 보이지 않고 남은 시각만 보인다.
+    await expect(islands.locator("time[data-past]")).toHaveCount(0);
+    await expect(islands.locator("time", { hasText: "19:00" }).first()).toBeVisible();
+    await expect(islands.locator("time", { hasText: "09:00" })).toHaveCount(0);
   });
 
   test("23:30 — 오늘 일정 종료와 내일 일정 보기", async ({ page }) => {
@@ -77,5 +82,23 @@ test.describe("홈 일정 시각 상태 @regression", () => {
       const tomorrowDay = Number(new Date(kstAt("12:00", 1) + 9 * 3_600_000).toISOString().slice(8, 10));
       await expect(pressed).toHaveAccessibleName(new RegExp(`^${tomorrowDay}일`));
     }
+  });
+
+  test("23:30 — 지난 회차 숨김을 끄면 지난 회차가 취소선으로 다시 보인다", async ({ page }) => {
+    await page.clock.setFixedTime(kstAt("23:30"));
+    await page.goto("/");
+    const islands = page.getByRole("region", { name: "모험 섬" });
+    await expect(islands.locator("header")).toContainText("오늘 일정 종료");
+    // 숨김 켬(기본): 오늘 회차가 모두 지난 행은 숨겨진다.
+    const hide = page.getByRole("button", { name: "지난 회차 숨김" });
+    await expect(hide).toHaveAttribute("aria-pressed", "true");
+    await expect(islands.getByRole("listitem")).toHaveCount(0);
+    // 숨김 끔: 행과 지난 시각이 다시 보이고, 지난 시각은 취소선이다.
+    await hide.click();
+    await expect(hide).toHaveAttribute("aria-pressed", "false");
+    await expect(islands.getByRole("listitem").first()).toBeVisible();
+    const past = islands.locator("time[data-past]");
+    expect(await past.count()).toBeGreaterThan(0);
+    await expect(past.first()).toHaveCSS("text-decoration-line", "line-through");
   });
 });
