@@ -14,7 +14,6 @@ import {
   ArrowRight,
   ChevronRight,
   Search,
-  Star,
   TriangleAlert,
 } from "lucide-react";
 import { SiteHeader } from "@/components/site/site-header";
@@ -43,6 +42,7 @@ import {
 } from "@/lib/home/model";
 import { fetchMarketBoard } from "@/lib/market/client";
 import { changeLabel, goldText } from "@/lib/market/board";
+import { RecentCard } from "./recent-card";
 import styles from "./home.module.css";
 
 /*
@@ -77,43 +77,11 @@ function Countdown({ to }: { to: string }) {
   return <b>{countdown(to, now) ?? "곧 시작"}</b>;
 }
 
-/* Favourites written by the character page (per browser). */
-const FAVORITES = "loakraken:favorites";
-const readFavorites = () => {
-  try {
-    const value = JSON.parse(localStorage.getItem(FAVORITES) ?? "[]");
-    return Array.isArray(value)
-      ? value
-          .filter((v) => typeof v === "string")
-          .slice(0, 8)
-          .join("\n")
-      : "";
-  } catch {
-    return "";
-  }
-};
-const subscribeStorage = (callback: () => void) => {
-  window.addEventListener("storage", callback);
-  window.addEventListener("loakraken:favorites", callback);
-  return () => {
-    window.removeEventListener("storage", callback);
-    window.removeEventListener("loakraken:favorites", callback);
-  };
-};
-
 function SearchHero() {
   const router = useRouter();
   const input = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
   const [error, setError] = useState("");
-  const favorites = useSyncExternalStore(
-    subscribeStorage,
-    readFavorites,
-    () => "",
-  )
-    .split("\n")
-    .filter(Boolean);
-
   useEffect(() => {
     const shortcut = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
@@ -170,18 +138,6 @@ function SearchHero() {
         <p id="home-search-error" className={styles.searchError} role="alert">
           {error}
         </p>
-      )}
-      {favorites.length > 0 && (
-        <ul className={styles.favorites} aria-label="즐겨찾기">
-          {favorites.map((name) => (
-            <li key={name}>
-              <Link href={`/character/${encodeURIComponent(name)}`}>
-                <Star size={12} aria-hidden="true" />
-                {name}
-              </Link>
-            </li>
-          ))}
-        </ul>
       )}
     </section>
   );
@@ -667,6 +623,7 @@ export function HomeDashboard() {
             <MarketSummary />
           </div>
           <aside className={styles.column} aria-label="공지와 이벤트">
+            <RecentCard />
             <NewsPanels />
           </aside>
         </div>
