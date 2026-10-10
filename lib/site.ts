@@ -33,6 +33,7 @@ export const SITEMAP_PATHS = [
   "/tools/homework",
   "/stats",
   "/rankings",
+  "/news",
   "/schedule",
   "/schedule/adventure-island",
   "/schedule/chaos-gate",

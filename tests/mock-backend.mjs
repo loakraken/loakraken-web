@@ -464,6 +464,38 @@ createServer(async (req, res) => {
       },
     });
   }
+  // Patch history (backend #126, patch-notice-v1): 45 stored notices, newest
+  // first, filtered by category and paged like the backend.
+  if (url.pathname === "/api/v1/home/patch-notes") {
+    const kinds = ["UPDATE", "BALANCE", "CLIENT_PATCH", "MAINTENANCE_COMPLETE"];
+    const titles = { UPDATE: "업데이트 내역 안내", BALANCE: "밸런스 패치 안내", CLIENT_PATCH: "클라이언트 패치 안내", MAINTENANCE_COMPLETE: "로스트아크 정기 점검 완료 안내" };
+    const category = url.searchParams.get("category");
+    const page = Number(url.searchParams.get("page") ?? 1);
+    const size = Number(url.searchParams.get("size") ?? 20);
+    if (category && !kinds.includes(category)) return send({ code: "INVALID_REQUEST", message: "invalid" }, 400);
+    if (!(page >= 1 && page <= 100 && size >= 1 && size <= 50)) return send({ code: "INVALID_REQUEST", message: "invalid" }, 400);
+    const all = Array.from({ length: 45 }, (_, i) => {
+      const kind = kinds[i % 4];
+      const at = new Date(Date.now() - (i * 2 + 0.3) * 86_400_000);
+      const [, mm, dd] = new Date(at.getTime() + 9 * 3_600_000).toISOString().slice(0, 10).split("-").map(Number);
+      return { noticeId: 13600 - i, title: `${mm}월 ${dd}일 ${titles[kind]}`, category: kind, publishedAt: at.toISOString(), url: `https://lostark.game.onstove.com/News/Notice/Views/${13600 - i}` };
+    }).filter((item) => !category || item.category === category);
+    return send({
+      code: "HOME_PATCH_NOTES_SUCCESS",
+      message: "성공",
+      data: {
+        ruleVersion: "patch-notice-v1",
+        category,
+        page,
+        size,
+        total: all.length,
+        oldestPublishedAt: all.at(-1)?.publishedAt ?? null,
+        firstObservedAt: new Date(Date.now() - 3 * 86_400_000).toISOString(),
+        sourceFetchedAt: new Date().toISOString(),
+        items: all.slice((page - 1) * size, page * size),
+      },
+    });
+  }
   // Ranking (F-7, backend #100/#112). 비공개 → HIDDEN, 조건밖 → not included,
   // 집계중 → class scope still collecting, 미관측 → 404, otherwise ranked.
   if (url.pathname === "/api/v1/characters/rank") {

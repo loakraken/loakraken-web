@@ -1,12 +1,19 @@
 import { backendUrl, requestBackend, type BackendResult } from "../api/backend";
-import { isDate, type NewsEnvelope, type ScheduleEnvelope } from "./model";
-import { isNewsEnvelope, isScheduleEnvelope } from "./validate";
+import {
+  isDate,
+  isPatchCategory,
+  type NewsEnvelope,
+  type PatchCategory,
+  type PatchNotesEnvelope,
+  type ScheduleEnvelope,
+} from "./model";
+import { isNewsEnvelope, isPatchNotesEnvelope, isScheduleEnvelope } from "./validate";
 
 const errorCodes: Record<number, readonly string[]> = {
   400: ["INVALID_REQUEST"],
   429: ["LOST_ARK_RATE_LIMITED"],
   502: ["LOST_ARK_API_ERROR"],
-  503: ["LOST_ARK_NOT_CONFIGURED", "HOME_CACHE_UNAVAILABLE"],
+  503: ["LOST_ARK_NOT_CONFIGURED", "HOME_CACHE_UNAVAILABLE", "HOME_STORAGE_UNAVAILABLE"],
   504: ["LOST_ARK_API_TIMEOUT"],
 };
 const invalid = {
@@ -37,4 +44,22 @@ export function requestNews(
   const url = backendUrl(origin, "/api/v1/home/news");
   url?.searchParams.set("limit", String(limit));
   return requestBackend(url, { ...options, isValid: isNewsEnvelope, errorCodes });
+}
+
+export const PATCH_PAGE_SIZE = 20;
+
+/** Stored patch notices, newest first (backend patch-notice-v1). */
+export function requestPatchNotes(
+  query: { category: string | null; page: number },
+  origin: string | undefined,
+  options: Options = {},
+): Promise<BackendResult<PatchNotesEnvelope>> {
+  const { category, page } = query;
+  if ((category !== null && !isPatchCategory(category)) || !Number.isInteger(page) || page < 1 || page > 100)
+    return Promise.resolve(invalid);
+  const url = backendUrl(origin, "/api/v1/home/patch-notes");
+  if (category) url?.searchParams.set("category", category satisfies PatchCategory);
+  url?.searchParams.set("page", String(page));
+  url?.searchParams.set("size", String(PATCH_PAGE_SIZE));
+  return requestBackend(url, { ...options, isValid: isPatchNotesEnvelope, errorCodes });
 }

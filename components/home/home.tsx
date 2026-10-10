@@ -17,16 +17,14 @@ import {
 } from "@/lib/character/model";
 import { fetchNews, homeNewsKey } from "@/lib/home/client";
 import {
-  dDay,
-  kstDate,
   noticeLabel,
   upcomingMaintenance,
   isPatchNote,
-  periodText,
 } from "@/lib/home/model";
 import { fetchMarketBoard } from "@/lib/market/client";
 import { changeLabel, goldText } from "@/lib/market/board";
 import { ScheduleBoard } from "@/components/schedule/schedule-board";
+import { EventItems, NoticeItem } from "@/components/news/news-parts";
 import { MINUTE, useClock } from "./clock";
 import { RecentCard } from "./recent-card";
 import { PopularCard } from "./popular-card";
@@ -155,14 +153,9 @@ function NewsPanels({ renderedAt }: { renderedAt?: number }) {
       >
         <div className={styles.panelHead}>
           <h2 id="notice-heading">공지사항</h2>
-          <a
-            href="https://lostark.game.onstove.com/News/Notice/List"
-            target="_blank"
-            rel="noreferrer"
-            className={styles.more}
-          >
-            더보기 <ChevronRight size={14} aria-hidden="true" />
-          </a>
+          <Link href="/news" className={styles.more}>
+            전체 보기 <ChevronRight size={14} aria-hidden="true" />
+          </Link>
         </div>
         <div className={styles.noticeTabs} role="group" aria-label="공지 종류">
           <button type="button" aria-pressed={noticeTab === "notice"} onClick={() => setNoticeTab("notice")}>
@@ -187,27 +180,14 @@ function NewsPanels({ renderedAt }: { renderedAt?: number }) {
         ) : (
           <ul className={styles.notices}>
             {shownNotices.map((notice) => (
-              <li key={`${notice.publishedAt}${notice.title}`}>
-                <a
-                  href={notice.url ?? undefined}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  <i data-category={notice.category ?? undefined}>
-                    {noticeTab === "patch" ? "패치" : noticeLabel(notice.category)}
-                  </i>
-                  <span title={notice.title}>{notice.title}</span>
-                  <time dateTime={notice.publishedAt}>
-                    {Number(
-                      kstDate(Date.parse(notice.publishedAt)).slice(5, 7),
-                    )}
-                    .
-                    {Number(
-                      kstDate(Date.parse(notice.publishedAt)).slice(8, 10),
-                    )}
-                  </time>
-                </a>
-              </li>
+              <NoticeItem
+                key={`${notice.publishedAt}${notice.title}`}
+                title={notice.title}
+                url={notice.url}
+                publishedAt={notice.publishedAt}
+                tag={noticeTab === "patch" ? "패치" : noticeLabel(notice.category)}
+                category={notice.category ?? undefined}
+              />
             ))}
           </ul>
         )}
@@ -215,7 +195,10 @@ function NewsPanels({ renderedAt }: { renderedAt?: number }) {
       <section className={styles.panel} aria-labelledby="event-heading">
         <div className={styles.panelHead}>
           <h2 id="event-heading">진행 중인 이벤트</h2>
-          {data && <span className={styles.count}>{data.events.length}개</span>}
+          <Link href="/news#events" className={styles.more}>
+            {data ? `${data.events.length}개 전체 보기` : "전체 보기"}
+            <ChevronRight size={14} aria-hidden="true" />
+          </Link>
         </div>
         {!data ? (
           <p className={styles.muted}>
@@ -228,47 +211,7 @@ function NewsPanels({ renderedAt }: { renderedAt?: number }) {
         ) : data.events.length === 0 ? (
           <p className={styles.muted}>진행 중인 이벤트가 없어요.</p>
         ) : (
-          <ul className={styles.events}>
-            {data.events.map((event) => {
-              const left = now !== null ? dDay(event.endAt, now) : null;
-              return (
-                <li key={`${event.startAt}${event.title}`}>
-                  <a
-                    href={event.url ?? undefined}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    {event.thumbnail ? (
-                      // eslint-disable-next-line @next/next/no-img-element -- official event banner
-                      <img
-                        src={event.thumbnail}
-                        alt=""
-                        width={64}
-                        height={36}
-                        loading="lazy"
-                        referrerPolicy="no-referrer"
-                      />
-                    ) : null}
-                    <span className={styles.eventText}>
-                      <strong>{event.title}</strong>
-                      <small>{periodText(event.startAt, event.endAt)}</small>
-                    </span>
-                    {left && (
-                      <b
-                        data-soon={
-                          left === "D-day" ||
-                          /^D-[1-3]$/.test(left) ||
-                          undefined
-                        }
-                      >
-                        {left}
-                      </b>
-                    )}
-                  </a>
-                </li>
-              );
-            })}
-          </ul>
+          <EventItems events={data.events} now={now} />
         )}
       </section>
     </>

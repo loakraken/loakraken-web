@@ -187,6 +187,118 @@
           }
         }
       }
+    },
+    "/api/v1/home/patch-notes": {
+      "get": {
+        "tags": [
+          "홈"
+        ],
+        "summary": "패치 이력",
+        "description": "공식 공지 중 패치 공지(업데이트 내역·밸런스·클라이언트 패치·점검 완료)를 공지 번호로 쌓은 목록입니다(patch-notice-v1). 소식 캐시(10분)를 공유하므로 공식 호출이 늘지 않습니다. 공식 API는 최근 약 3개월만 주므로 그보다 앞선 이력은 LOAKraken이 관측을 시작한 뒤부터 쌓입니다. 본문은 수집하지 않고 공식 원문 링크를 줍니다. 503 HOME_CACHE_UNAVAILABLE·HOME_STORAGE_UNAVAILABLE, 400 INVALID_REQUEST",
+        "operationId": "patchNotes",
+        "parameters": [
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "UPDATE",
+                "BALANCE",
+                "CLIENT_PATCH",
+                "MAINTENANCE_COMPLETE"
+              ]
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1,
+              "maximum": 100,
+              "minimum": 1
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20,
+              "maximum": 50,
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "조회 성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseHomePatchNotesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_REQUEST",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "LOST_ARK_RATE_LIMITED / CLIENT_RATE_LIMITED: 이 클라이언트의 분당 요청·공식 호출 한도 초과. Retry-After(초) 뒤 다시 시도",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "LOST_ARK_API_ERROR",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "LOST_ARK_NOT_CONFIGURED 또는 HOME_CACHE_UNAVAILABLE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "LOST_ARK_API_TIMEOUT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -863,6 +975,153 @@
           "rewardAt",
           "startAt",
           "thumbnail",
+          "title",
+          "url"
+        ]
+      },
+      "ApiResponseHomePatchNotesResponse": {
+        "type": "object",
+        "description": "공통 API 응답. 오류 응답의 data는 null입니다.",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "업무 결과 코드",
+            "example": "CHARACTER_SEARCH_SUCCESS"
+          },
+          "message": {
+            "type": "string",
+            "description": "공개용 안내 메시지",
+            "example": "캐릭터 조회에 성공했습니다."
+          },
+          "data": {
+            "$ref": "#/components/schemas/HomePatchNotesResponse",
+            "description": "성공 응답 데이터. 오류일 때 null"
+          }
+        },
+        "required": [
+          "code",
+          "data",
+          "message"
+        ]
+      },
+      "HomePatchNotesResponse": {
+        "type": "object",
+        "description": "패치 이력(patch-notice-v1). 공식 공지 중 제목 규칙에 맞는 패치 공지만 모은 목록입니다. 공식 API는 최근 약 3개월만 주므로 LOAKraken이 관측한 공지를 쌓아 이력을 늘립니다. 본문은 공식 원문 링크로 봅니다.",
+        "properties": {
+          "ruleVersion": {
+            "type": "string",
+            "example": "patch-notice-v1"
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "UPDATE",
+                  "BALANCE",
+                  "CLIENT_PATCH",
+                  "MAINTENANCE_COMPLETE"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "oldestPublishedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "description": "저장된 가장 오래된 공지의 게시 시각(KST). 이보다 앞선 이력은 아직 없습니다"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "firstObservedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "description": "LOAKraken이 패치 공지를 처음 쌓기 시작한 시각"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sourceFetchedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "공식 공지를 마지막으로 받은 시각(소식 캐시)"
+          },
+          "items": {
+            "type": "array",
+            "description": "게시 시각 내림차순",
+            "items": {
+              "$ref": "#/components/schemas/HomePatchNoticeResponse"
+            }
+          }
+        },
+        "required": [
+          "category",
+          "firstObservedAt",
+          "items",
+          "oldestPublishedAt",
+          "page",
+          "ruleVersion",
+          "size",
+          "sourceFetchedAt",
+          "total"
+        ]
+      },
+      "HomePatchNoticeResponse": {
+        "type": "object",
+        "properties": {
+          "noticeId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "공식 공지 번호"
+          },
+          "title": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "UPDATE",
+              "BALANCE",
+              "CLIENT_PATCH",
+              "MAINTENANCE_COMPLETE"
+            ]
+          },
+          "publishedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "url": {
+            "type": "string",
+            "description": "공식 원문 링크(lostark.game.onstove.com만 허용)"
+          }
+        },
+        "required": [
+          "category",
+          "noticeId",
+          "publishedAt",
           "title",
           "url"
         ]
