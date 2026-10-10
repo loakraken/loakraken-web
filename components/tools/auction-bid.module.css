@@ -407,6 +407,14 @@
 .table tr[data-pick] th {
   box-shadow: inset 3px 0 0 var(--primary);
 }
+/* Room for the recommended row's left bar and tint (사용자 발견 23:24: the bar
+   sat on the text). Every row gets it so the columns stay aligned. */
+.table tr > :first-child {
+  padding-left: var(--space-3);
+}
+.table tr > :last-child {
+  padding-right: var(--space-3);
+}
 .loss {
   font-size: var(--text-caption);
   font-weight: 600;
