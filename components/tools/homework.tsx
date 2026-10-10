@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useState, type FormEvent } from "react";
+import { useRemaining } from "@/components/home/clock";
 import { useMutation } from "@tanstack/react-query";
 import { Add, ArrowLeft, TaskSquare, TrashSquare } from "@/components/ui/icons";
 import Link from "next/link";
@@ -15,7 +16,6 @@ import {
   addCharacters,
   characterGold,
   eligibleModes,
-  formatCountdown,
   modeOf,
   nextReset,
   parseState,
@@ -40,6 +40,15 @@ function load(now: number): HomeworkState {
   } catch {
     return parseState(null, now);
   }
+}
+
+/**
+ * Weekly reset countdown in the site-wide format (web #372, 사용자 19:32):
+ * "H시간 M분" above an hour, a ticking "M분 SS초" under it.
+ */
+function ResetLeft({ now }: { now: number }) {
+  const left = useRemaining(nextReset(now), now);
+  return <>{left === undefined ? null : (left ?? "곧 초기화")}</>;
 }
 
 function Summary({ state, now }: { state: HomeworkState; now: number }) {
@@ -92,7 +101,9 @@ function Summary({ state, now }: { state: HomeworkState; now: number }) {
         </div>
         <div>
           <dt>주간 초기화까지</dt>
-          <dd>{formatCountdown(nextReset(now) - now)}</dd>
+          <dd>
+            <ResetLeft now={now} />
+          </dd>
         </div>
       </dl>
     </section>
