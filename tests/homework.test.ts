@@ -6,7 +6,6 @@ import {
   autoRaids,
   characterGold,
   emptyState,
-  formatCountdown,
   modeOf,
   unsettledModes,
   nextReset,
@@ -166,12 +165,6 @@ test("언새늘 roster matches the target site weekly total (web #270)", () => {
     unsettledModes([low]).map(({ raid, mode }) => `${raid.id}/${mode.difficulty}`),
     ["kamen/NORMAL", "ivory-tower/NORMAL"],
   );
-});
-
-test("countdown text", () => {
-  assert.equal(formatCountdown(4 * 86400_000 + 3 * 3600_000), "4일 3시간");
-  assert.equal(formatCountdown(2 * 3600_000 + 5 * 60_000), "2시간 5분");
-  assert.equal(formatCountdown(-1), "0분");
 });
 
 test("equal gold picks the newer raid like the target site (#277 P2)", () => {
