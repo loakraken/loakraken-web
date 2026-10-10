@@ -217,6 +217,7 @@ function RaidRow({
   // Some sites pay nothing for a lower difficulty when a higher one is open;
   // the official guide limits gold only by six characters and three clears
   // a week, so the gold stays (PM 총괄 2026-10-10 09:30).
+  const guide = RAID_DATA.sources[RAID_DATA.rules.source];
   const higherOpen = RAID_DATA.raids
     .find((r) => r.id === plan.raidId)
     ?.modes.some(
@@ -235,7 +236,11 @@ function RaidRow({
       </div>
       {higherOpen && (
         <p className={styles.note}>
-          상위 난이도에 갈 수 있지만 골드를 그대로 계산해요. 공식 가이드 기준: 골드 제한은 캐릭터 6개·주 3회예요.
+          상위 난이도에 갈 수 있지만 골드를 그대로 계산해요.{" "}
+          <a href={guide?.url ?? undefined} target="_blank" rel="noreferrer">
+            공식 게임 가이드 &lsquo;콘텐츠 현황 확인&rsquo;
+          </a>
+          ({guide?.date} 수정) 기준 골드 제한은 캐릭터 6개·주 3회예요.
         </p>
       )}
       <ul className={styles.gates} role="group" aria-label={title}>
