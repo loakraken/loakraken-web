@@ -132,15 +132,24 @@ export const percent = (n: number | null | undefined) =>
   n == null ? "-" : `${n.toLocaleString("ko-KR", { maximumFractionDigits: 1 })}%`;
 
 /** The sample in words: who is counted, and that it is not the whole game. */
-export function sampleText(meta: StatsMeta) {
+/** The filters alone ("최근 30일 안에 확인 · 아이템 레벨 1,640 이상"), for under the basis line. */
+export function sampleConditions(meta: StatsMeta) {
+  return conditionParts(meta, "확인").join(" · ");
+}
+
+function conditionParts(meta: StatsMeta, seen: string) {
   const c = meta.conditions;
-  const parts = [`최근 ${c.activeDays}일 안에 LOAKraken이 확인한 캐릭터`];
+  const parts = [`최근 ${c.activeDays}일 안에 ${seen}`];
   if (c.itemLevelMin > 0) parts.push(`아이템 레벨 ${count(c.itemLevelMin)} 이상`);
   if (c.itemLevelMax != null) parts.push(`${count(c.itemLevelMax)} 이하`);
   if (c.server) parts.push(c.server);
   if (c.role) parts.push(c.role === "SUPPORT" ? "서포터" : "딜러");
   if (c.representativeOnly) parts.push("원정대 대표 캐릭터만");
-  return `${parts.join(" · ")} ${count(meta.population)}명 기준`;
+  return parts;
+}
+
+export function sampleText(meta: StatsMeta) {
+  return `${conditionParts(meta, "LOAKraken이 확인한 캐릭터").join(" · ")} ${count(meta.population)}명 기준`;
 }
 
 /** Shared scale for the class quantile bars: the widest p10…p90 span. */

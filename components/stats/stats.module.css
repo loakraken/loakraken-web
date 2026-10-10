@@ -47,6 +47,35 @@
   font-size: 13px;
   font-weight: 500;
 }
+/* The basis line: whose characters and how many, before any number. */
+.basis {
+  display: grid;
+  gap: 2px;
+  margin: 0 0 12px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--muted);
+  border-left: 3px solid var(--primary);
+}
+.basis > p:first-child {
+  margin: 0;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+.basis > p:first-child strong {
+  color: var(--foreground);
+  font-weight: 700;
+}
+.basis > p:first-child span {
+  display: inline-block;
+  margin-left: 6px;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  font-weight: 600;
+}
+.basis .notice {
+  margin: 0;
+}
 .notice {
   margin: 0 0 10px;
   color: var(--muted-foreground);
@@ -136,7 +165,9 @@
   font-weight: 600;
   text-align: left;
 }
-.table thead th:nth-child(2),
+/* Label columns (직업·서버·구간) start left; number headers sit over their
+   right-aligned numbers. */
+.table thead th.left,
 .table thead th:first-child:last-child {
   text-align: left;
 }
@@ -393,27 +424,15 @@
   border-radius: inherit;
   background: var(--primary);
 }
-.shortToggle {
-  min-height: 36px;
-  margin-top: 8px;
-  padding: 0 14px;
-  border: 0;
-  border-radius: 9999px;
-  background: var(--secondary);
-  color: var(--foreground);
-  font: inherit;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
+/* Rows short of the sample minimum stay in place, in gray (user, 23:23). */
+.table tr[data-short] th,
+.table tr[data-short] td {
+  color: var(--muted-foreground);
 }
-.shortToggle:active {
-  transform: scale(0.97);
-}
-@media (prefers-reduced-motion: reduce) {
-  .shortToggle {
-    transition: none;
-  }
+/* Share in its own column so it never runs into the count ("17721.8%"). */
+.table td.share {
+  color: var(--muted-foreground);
+  font-size: 12px;
 }
 .quantile[data-short] {
   opacity: 0.5;
