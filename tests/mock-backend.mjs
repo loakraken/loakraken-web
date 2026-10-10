@@ -849,6 +849,22 @@ createServer(async (req, res) => {
       data: { characterName: who, timezone: "Asia/Seoul", from: days[0].date, to: days.at(-1).date, days, rangeTotal, total: rangeTotal + 184 },
     });
   }
+  // Remaining official tooltip lines (backend #227), keyed to the search
+  // response's equipment order. "툴팁캐시없음" has no cache (404).
+  if (url.pathname === "/api/v1/characters/item-tooltips") {
+    const who = url.searchParams.get("characterName") ?? "";
+    if (who === "툴팁캐시없음") return send({ code: "CHARACTER_NOT_CACHED", message: "no cache" }, 404);
+    const equipment = read("character-full-data.json").loadout.equipment.map((item, index) => ({
+      index,
+      type: item.type,
+      extraLines: ["분해불가", "[제작] 대도시", "내구도 61 / 66"],
+    }));
+    return send({
+      code: "CHARACTER_ITEM_TOOLTIPS_SUCCESS",
+      message: "성공",
+      data: { characterName: who, hidden: false, fetchedAt: new Date().toISOString(), equipment, gems: [], cards: [], skills: [] },
+    });
+  }
   if (url.pathname !== "/api/v1/characters/search") return send({}, 404);
   const name = url.searchParams.get("characterName");
   counts[name] = (counts[name] || 0) + 1;

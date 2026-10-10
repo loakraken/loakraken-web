@@ -1,108 +1,156 @@
 "use client";
 
-import { useRef, useState, type CSSProperties, type ReactNode } from "react";
-import { Popover } from "@base-ui/react/popover";
-import { qualityTier } from "@/lib/character/detail";
+import type { CSSProperties, ReactNode } from "react";
+import {
+  ItemDetail,
+  ItemDetailSection,
+  ItemLine,
+  ItemProgress,
+  ItemQuality,
+  ItemTooltip as Tooltip,
+  ItemTooltipContent,
+  ItemTooltipTrigger,
+  type ItemGrade,
+} from "@/components/ui/item-tooltip";
 import { gradeKey } from "@/lib/character/model";
 import type { Character } from "@/lib/character/model";
-import styles from "./item-tooltip.module.css";
+import { lineTone } from "@/lib/character/item-tooltips";
 
 type Equipment = Character["loadout"]["equipment"][number];
 
 const POLISH: Record<string, string> = { HIGH: "상", MID: "중", LOW: "하" };
+const POLISH_TONE: Record<string, string> = { HIGH: "#ffb37a", MID: "#d3a6ff", LOW: "#8cc4ff" };
+const GRADES = new Set(["normal", "uncommon", "rare", "epic", "legendary", "relic", "ancient", "esther"]);
 
-/** The card itself: the official tooltip's lines, in the game's order. */
-function Card({ item, slot }: { item: Equipment; slot?: string }) {
-  const d = item.detail;
-  const key = gradeKey(item.grade);
+/** The item's grade as the card part knows it (unknown grades draw as 일반). */
+export const itemGrade = (grade: string | null | undefined): ItemGrade => {
+  const key = gradeKey(grade);
+  return (GRADES.has(key) ? key : "normal") as ItemGrade;
+};
+
+/** One official line in its colour: restrictions red, "[제작] …" cyan. */
+function Line({ children }: { children: string }) {
+  const tone = lineTone(children);
+  return <ItemLine tone={tone === "plain" ? undefined : tone}>{children}</ItemLine>;
+}
+
+/**
+ * Bound/trade lines. The official tooltip has two boxes — bound and trade
+ * limits, then whether it trades — so the last line is its own section
+ * (reference sheet v2.1 §2c: "캐릭터 귀속됨 · 거래 불가", "거래 제한 … / 캐릭터
+ * 귀속됨 / 거래 2회 가능 · 거래가능").
+ */
+function TradeLines({ lines }: { lines: string[] }) {
+  if (!lines.length) return null;
+  const last = lines[lines.length - 1];
   return (
-    <div className={styles.card} style={{ "--grade": `var(--grade-${key}-a, var(--tooltip-foreground))` } as CSSProperties}>
-      <header className={styles.head}>
-        <strong>{item.name ?? slot ?? "-"}</strong>
-        <span>{[item.grade, slot ?? item.type].filter(Boolean).join(" ")}</span>
-      </header>
-      {d?.itemLevel != null && (
-        <p className={styles.level}>
-          아이템 레벨 {d.itemLevel}
-          {d.tier != null && ` (티어 ${d.tier})`}
-          {d.refineLevel != null && d.refineLevel > 0 && <b> · +{d.refineLevel}</b>}
-        </p>
+    <>
+      {lines.length > 1 && (
+        <ItemDetailSection>
+          {lines.slice(0, -1).map((line, i) => (
+            <Line key={i}>{line}</Line>
+          ))}
+        </ItemDetailSection>
       )}
-      {d?.quality != null && d.quality >= 0 && (
-        <div className={styles.quality} data-tier={qualityTier(d.quality)}>
-          <span>품질 {d.quality}</span>
-          <i aria-hidden="true">
-            <b style={{ width: `${Math.max(0, Math.min(100, d.quality))}%` }} />
-          </i>
-        </div>
-      )}
-      {d?.arkPassivePoint && (
-        <p className={styles.point}>
-          {d.arkPassivePoint.name} +{d.arkPassivePoint.value}
-        </p>
-      )}
-      {d?.polishEffects.length ? (
-        <section className={styles.group}>
-          <h4>연마 효과</h4>
-          <ul>
-            {d.polishEffects.map((e, i) => (
-              <li key={i} data-grade={e.grade ?? undefined}>
-                {e.grade && <em>{POLISH[e.grade] ?? ""}</em>}
-                {e.name} {e.value}
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
-      {d?.stoneEngravings.length ? (
-        <section className={styles.group}>
-          <h4>무작위 각인 효과</h4>
-          <ul>
-            {d.stoneEngravings.map((e, i) => (
-              <li key={i}>
-                [{e.name}] Lv.{e.level}
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
-      {d?.braceletEffects.length ? (
-        <section className={styles.group}>
-          <h4>팔찌 효과</h4>
-          <ul>
-            {d.braceletEffects.map((e, i) => (
-              <li key={i} data-grade={e.grade ?? undefined} className={styles.pre}>
-                {e.text}
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
-      {d?.effects.map((group, i) => (
-        <section key={i} className={styles.group}>
-          <h4>{group.title}</h4>
-          <ul>
-            {group.lines.map((line, j) => (
-              <li key={j} className={styles.pre}>
-                {line}
-              </li>
-            ))}
-          </ul>
-        </section>
-      ))}
-    </div>
+      <ItemDetailSection>
+        <Line>{last}</Line>
+      </ItemDetailSection>
+    </>
   );
 }
 
 /**
- * Item details on hover, keyboard focus or tap (target sites: hovering an
- * item shows its in-game tooltip; user 10-56). The row itself is the trigger,
- * so the whole item answers the pointer; Esc or a tap outside closes it. The
- * card renders only while open and stays inside the viewport.
+ * The equipment card in the reference site's order (sheet v2.1 §2c): name;
+ * icon row (grade·part, item level, quality, 장착중); bound/trade; effects;
+ * polish; bracelet; stone engravings; refine exp; ark passive point; then the
+ * official tooltip's remaining lines (restrictions, crafting, durability,
+ * sources) as they come.
+ */
+export function EquipmentCard({ item, slot, lines = [] }: { item: Equipment; slot?: string; lines?: string[] }) {
+  const d = item.detail;
+  const gradeLine = d?.titleLine ?? [item.grade, slot ?? item.type].filter(Boolean).join(" ");
+  const level =
+    d?.itemLevel != null
+      ? `아이템 레벨 ${d.itemLevel}${d.tier != null ? ` (티어 ${d.tier})` : ""}`
+      : d?.tier != null
+        ? `아이템 티어 ${d.tier}`
+        : null;
+  const quality = d?.quality != null && d.quality >= 0 ? d.quality : null;
+  const info: ReactNode[] = [gradeLine];
+  if (level) info.push(level);
+  if (quality != null) info.push(<ItemQuality value={quality} />);
+  return (
+    <ItemDetail
+      grade={itemGrade(item.grade)}
+      title={item.name ?? slot ?? "-"}
+      // eslint-disable-next-line @next/next/no-img-element -- official CDN icon at a fixed size
+      icon={item.icon ? <img src={item.icon} alt="" width={56} height={56} referrerPolicy="no-referrer" /> : undefined}
+      lines={info}
+      aside="장착중"
+    >
+      {d && <TradeLines lines={d.tradeLines} />}
+      {d?.advancedRefineLevel ? <ItemLine>[상급 재련] {d.advancedRefineLevel}단계</ItemLine> : null}
+      {d?.effects.map((group, i) => (
+        <ItemDetailSection key={i} label={group.title}>
+          {group.lines.map((line, j) => (
+            <ItemLine key={j}>{line}</ItemLine>
+          ))}
+        </ItemDetailSection>
+      ))}
+      {d?.polishEffects.length ? (
+        <ItemDetailSection label="연마 효과">
+          {d.polishEffects.map((e, i) => (
+            <p key={i} style={e.grade ? ({ color: POLISH_TONE[e.grade] } as CSSProperties) : undefined}>
+              {e.grade && <b>{POLISH[e.grade] ?? ""} </b>}
+              {e.name} {e.value}
+            </p>
+          ))}
+        </ItemDetailSection>
+      ) : null}
+      {d?.braceletEffects.length ? (
+        <ItemDetailSection label="팔찌 효과">
+          {d.braceletEffects.map((e, i) => (
+            <ItemLine key={i}>
+              <span style={e.grade ? ({ color: POLISH_TONE[e.grade] } as CSSProperties) : undefined}>{e.text}</span>
+            </ItemLine>
+          ))}
+        </ItemDetailSection>
+      ) : null}
+      {d?.stoneEngravings.length ? (
+        <ItemDetailSection label="무작위 각인 효과">
+          {d.stoneEngravings.map((e, i) => (
+            <ItemLine key={i}>
+              [{e.name}] Lv.{e.level}
+            </ItemLine>
+          ))}
+        </ItemDetailSection>
+      ) : null}
+      {d?.refineExp && (
+        <ItemProgress label="현재 단계 재련 경험치" value={d.refineExp.current ?? 0} max={d.refineExp.max} />
+      )}
+      {d?.arkPassivePoint && (
+        <ItemDetailSection label="아크 패시브 포인트 효과">
+          <ItemLine>
+            {d.arkPassivePoint.name} +{d.arkPassivePoint.value}
+          </ItemLine>
+        </ItemDetailSection>
+      )}
+      {lines.map((line, i) => (
+        <Line key={`x${i}`}>{line}</Line>
+      ))}
+    </ItemDetail>
+  );
+}
+
+/**
+ * An equipment row that opens its card: hover, click or Enter on desktop
+ * (beside the row, the reference site's place and timing), a tap on touch
+ * screens (bottom sheet). The row itself is the trigger.
  */
 export function ItemTooltip({
   item,
   slot,
+  lines,
   as = "li",
   className,
   style,
@@ -111,6 +159,8 @@ export function ItemTooltip({
 }: {
   item: Equipment;
   slot?: string;
+  /** The official tooltip's remaining lines (item-tooltips, loaded when idle). */
+  lines?: string[];
   as?: "li" | "div";
   className?: string;
   style?: CSSProperties;
@@ -118,45 +168,20 @@ export function ItemTooltip({
   wide?: boolean;
   children: ReactNode;
 }) {
-  const [open, setOpen] = useState(false);
-  // Closing hands focus back to the item; that focus must not reopen it.
-  const closedAt = useRef(0);
   const Tag = as;
+  const name = item.name ?? slot ?? "아이템";
   return (
-    <Popover.Root
-      open={open}
-      onOpenChange={(next, details) => {
-        // A press on the item never closes it: a tap (or a click after the hover
-        // opened it) would otherwise open and close in the same gesture.
-        if (!next && details.reason === "trigger-press") return;
-        if (!next && details.reason === "escape-key") closedAt.current = performance.now();
-        setOpen(next);
-      }}
-    >
-      <Popover.Trigger
+    <Tooltip>
+      <ItemTooltipTrigger
         nativeButton={false}
-        openOnHover
-        delay={0}
-        closeDelay={0}
         render={<Tag className={className} style={style} data-wide={wide ? "" : undefined} />}
-        aria-label={`${item.name ?? slot ?? "아이템"} 상세 보기`}
-        // Keyboard focus opens it; a tap focuses too, but its press already opens
-        // it. Leaving with the keyboard closes it through Base UI (focus-out):
-        // closing on blur here would also fire when focus moves into the card.
-        onFocus={(event) => {
-          if (performance.now() - closedAt.current < 300) return;
-          if (event.currentTarget.matches(":focus-visible")) setOpen(true);
-        }}
+        aria-label={`${name} 상세 보기`}
       >
         {children}
-      </Popover.Trigger>
-      <Popover.Portal>
-        <Popover.Positioner side="right" align="start" sideOffset={8} collisionPadding={12} className={styles.positioner}>
-          <Popover.Popup className={styles.popup}>
-            <Card item={item} slot={slot} />
-          </Popover.Popup>
-        </Popover.Positioner>
-      </Popover.Portal>
-    </Popover.Root>
+      </ItemTooltipTrigger>
+      <ItemTooltipContent aria-label={name}>
+        <EquipmentCard item={item} slot={slot} lines={lines} />
+      </ItemTooltipContent>
+    </Tooltip>
   );
 }

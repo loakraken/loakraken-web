@@ -1,4 +1,5 @@
 import "server-only";
+import { requestItemTooltips } from "./item-tooltips";
 import {
   requestCardCollection,
   requestCardRefresh,
@@ -30,6 +31,10 @@ export function getRank(name: string, signal?: AbortSignal) {
 
 export function getReceipt(name: string, assumeBook: boolean, signal?: AbortSignal) {
   return requestReceipt(name, assumeBook, process.env.LOAKRAKEN_API_ORIGIN, { signal });
+}
+
+export function getItemTooltips(name: string, signal?: AbortSignal) {
+  return requestItemTooltips(name, process.env.LOAKRAKEN_API_ORIGIN, { signal });
 }
 
 export function getTitles(name: string, signal?: AbortSignal) {
