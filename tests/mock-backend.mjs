@@ -167,6 +167,10 @@ async function market(url, req, send) {
       "운명의 돌파석": [1, 3],
       "아비도스 융화 재료": [1, 190],
       "빙하의 숨결": [1, 430],
+      // 더보기 손익(은총의 파편 = 지평의 재련 재료 상자 구성 ÷ 60)용 결정 재료.
+      "운명의 파괴석 결정": [100, 900],
+      "운명의 수호석 결정": [100, 190],
+      "위대한 운명의 돌파석": [1, 33],
     };
     const observedAt = nowIso();
     const items = [...new Set(request.names.map((n) => n.trim()))].map((name) => {

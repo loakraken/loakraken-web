@@ -263,7 +263,8 @@ export function MoreRewardTool() {
   );
   const exchangeNote = (name: string) => {
     const recipe = EXCHANGES[name];
-    if (recipe) return `${recipe.into}(${recipe.per}개 교환) 구성 시세 ÷ ${recipe.per}`;
+    // Only when the recipe actually priced it (not typed, contents priced).
+    if (recipe && !userUnits[name] && exchangeValue(name, marketPrice) != null) return `${recipe.into}(${recipe.per}개 교환) 구성 시세 ÷ ${recipe.per}`;
     return null;
   };
   const unitValue = (name: string) => {
