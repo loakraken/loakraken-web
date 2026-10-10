@@ -103,11 +103,13 @@
 }
 .cell[aria-expanded="true"] {
   border-color: var(--hairline);
-  background: var(--control);
+  /* --muted, not --control: the caption (--slate) and gain (--gain) keep
+     4.5:1 on it (PM-프론트 #352 P1: 4.15 on --control). */
+  background: var(--muted);
 }
 @media (hover: hover) and (pointer: fine) {
   .cell:hover {
-    background: var(--control);
+    background: var(--muted);
   }
 }
 .detailRow > td {
@@ -282,7 +284,8 @@
   padding: var(--space-3) var(--space-4);
   border: 1.5px solid var(--primary);
   border-radius: 14px;
-  background: color-mix(in oklab, var(--primary) 6%, transparent);
+  /* Plain surface: green gain text was 4.37:1 on a blue wash (#352 P1). */
+  background: var(--background);
   font-size: var(--text-body);
 }
 .verdict p + p {
