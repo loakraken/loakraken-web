@@ -726,3 +726,12 @@
     animation: none;
   }
 }
+
+/* The reason line wraps to two lines in the fallback font on phones and to
+   one once the web font arrives; keep two lines of room so nothing below
+   jumps (CLS 0.137 → 0 at 390). */
+@media (max-width: 520px) {
+  .pickWhy {
+    min-height: 2lh;
+  }
+}
