@@ -1,54 +1,173 @@
-/* 404 (#336): A Color Bright's 404 layout (user decision 18:19) — two columns,
-   "404" left and the sentence with a black pill button right, both at one text
-   size, generous space above and below; one column on phones. Our words,
-   Kraken Sans and tokens (the dark theme inverts the pill). */
+/* 404 (#336): Anti Average's layout with our kraken, mark, words and tokens. */
 .page {
-  max-width: var(--page-max);
-  margin: 0 auto;
-  padding: 96px var(--page-gutter);
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  row-gap: 32px;
-  font-size: var(--text-heading);
-  line-height: 1.3;
-  font-weight: 500;
-  letter-spacing: -0.02em;
+  --nf-digits: #bdbec2;
+  --nf-tile: rgb(0 0 0 / 7%);
+  position: relative;
+  min-height: 100svh;
+  overflow: hidden;
+  background: var(--background);
+  color: var(--foreground);
 }
-@media (min-width: 768px) {
-  .page {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    column-gap: 24px;
-  }
+:global([data-theme="dark"]) .page {
+  --nf-digits: #3a3d44;
+  --nf-tile: rgb(255 255 255 / 9%);
 }
-.code,
-.title {
+.lead {
+  position: absolute;
+  top: 18px;
+  left: 18px;
   margin: 0;
-  font: inherit;
-}
-.body {
-  display: grid;
-  justify-items: start;
-  gap: 24px;
-}
-.title {
+  max-width: calc(100% - 36px);
+  font-size: clamp(17px, 1.7vw, 24px);
+  font-weight: 400;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
   word-break: keep-all;
 }
-.home {
-  display: inline-flex;
-  align-items: center;
-  height: 44px;
-  padding: 0 22px;
-  border-radius: var(--radius-pill);
-  background: var(--foreground);
-  color: var(--background);
-  font-size: var(--text-body);
-  font-weight: 600;
-  letter-spacing: -0.01em;
+.stage {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+  width: min(520px, 92vw);
+  aspect-ratio: 520 / 460;
+}
+.digits {
+  position: absolute;
+  inset: 4% 0 auto;
+  text-align: center;
+  font-size: calc(min(520px, 92vw) * 0.58);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.06em;
+  color: var(--nf-digits);
+  font-variant-numeric: tabular-nums;
+}
+.kraken {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  translate: -50% 0;
+  width: 81%;
+  height: auto;
+  color: var(--foreground);
+}
+/* Frosted lens over the head (static, as in the original). */
+.lens {
+  position: absolute;
+  left: 50%;
+  top: 15%;
+  translate: -50% 0;
+  width: 44%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  backdrop-filter: blur(15px);
+  background: radial-gradient(circle, transparent 55%, color-mix(in oklab, var(--background) 55%, transparent) 100%);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--foreground) 6%, transparent);
+}
+.corner {
+  position: absolute;
+  left: 9px;
+  bottom: 9px;
+  display: flex;
+  gap: 9px;
+}
+.tile {
+  display: inline-grid;
+  place-items: center;
+  height: 68px;
+  border-radius: 6px;
+  background: var(--nf-tile);
+  backdrop-filter: blur(6px);
+  color: inherit;
   text-decoration: none;
-  transition: background-color var(--duration-fast) var(--ease-out);
+}
+.mark {
+  width: 68px;
+}
+.error {
+  padding: 0 10px;
+  font-size: 72px;
+  line-height: 1;
+  font-weight: 800;
+  letter-spacing: -0.05em;
+}
+.menu {
+  position: absolute;
+  right: 9px;
+  bottom: 9px;
+}
+.plus {
+  width: 68px;
+  list-style: none;
+  cursor: pointer;
+}
+.plus::-webkit-details-marker {
+  display: none;
+}
+.plus svg {
+  width: 30px;
+  height: 30px;
+  transition: rotate var(--duration-base) var(--ease-out);
+}
+.menu[open] .plus svg {
+  rotate: 45deg;
+}
+.sheet {
+  position: absolute;
+  right: 0;
+  bottom: 77px;
+  display: grid;
+  min-width: 180px;
+  padding: 6px;
+  border-radius: 8px;
+  background: var(--nf-tile);
+  backdrop-filter: blur(12px);
+}
+.sheet a {
+  padding: 10px 12px;
+  border-radius: 6px;
+  color: inherit;
+  font-size: 20px;
+  font-weight: 600;
+  text-decoration: none;
 }
 @media (hover: hover) and (pointer: fine) {
-  .home:hover {
-    background: var(--secondary-foreground);
+  .tile:hover,
+  .sheet a:hover {
+    background: color-mix(in oklab, var(--foreground) 12%, transparent);
+  }
+}
+.caret {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 9px;
+  height: 34px;
+  background: var(--foreground);
+  pointer-events: none;
+  opacity: 0;
+}
+.caret[data-on] {
+  opacity: 1;
+}
+@media (max-width: 600px) {
+  .tile {
+    height: 52px;
+  }
+  .mark,
+  .plus {
+    width: 52px;
+  }
+  .error {
+    font-size: 52px;
+  }
+  .sheet {
+    bottom: 61px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .plus svg {
+    transition: none;
   }
 }
