@@ -127,12 +127,12 @@ function SampleProgress({ ready, total, unit, minSample }: { ready: number; tota
   return (
     <div className={styles.progress}>
       <p>
-        <b>표본 수집 중</b> · {minSample}명 넘은 {unit} {ready}/{total}개
+        <b>표본 수집 중</b> · {minSample}명 이상 모인 {unit} {ready}/{total}개
       </p>
       <span
         className={styles.progressBar}
         role="progressbar"
-        aria-label={`표본 ${minSample}명 넘은 ${unit}`}
+        aria-label={`표본 ${minSample}명 이상 모인 ${unit}`}
         aria-valuemin={0}
         aria-valuemax={total}
         aria-valuenow={ready}
@@ -144,12 +144,12 @@ function SampleProgress({ ready, total, unit, minSample }: { ready: number; tota
   );
 }
 
-/** "표본 부족 직업 K개 보기": short rows stay folded under the ready ones. */
-function ShortToggle({ count, unit, open, onToggle }: { count: number; unit: string; open: boolean; onToggle: () => void }) {
+/** "표본 30명 미만 직업 K개 보기": short rows stay folded under the ready ones. */
+function ShortToggle({ count, unit, minSample, open, onToggle }: { count: number; unit: string; minSample: number; open: boolean; onToggle: () => void }) {
   if (!count) return null;
   return (
     <button type="button" className={styles.shortToggle} aria-expanded={open} onClick={onToggle}>
-      {open ? `표본 부족 ${unit} 접기` : `표본 부족 ${unit} ${count}개 보기`}
+      {open ? `표본 ${minSample}명 미만 ${unit} 접기` : `표본 ${minSample}명 미만 ${unit} ${count}개 보기`}
     </button>
   );
 }
@@ -233,7 +233,7 @@ function ClassesTab({ query }: { query: StatsQuery }) {
           </tbody>
         </DataTable>
       )}
-      <ShortToggle count={short.length} unit="직업" open={showShort} onToggle={() => setShowShort(!showShort)} />
+      <ShortToggle count={short.length} unit="직업" minSample={minSample} open={showShort} onToggle={() => setShowShort(!showShort)} />
       <p className={styles.note}>
         분포 막대: 옅은 선 하위 10%~상위 10%, 진한 칸 가운데 50%, 세로선 중앙값. 표본이 {minSample}명 미만인 직업은 분포 없이 표본 수만 보여요.
       </p>
@@ -400,7 +400,7 @@ function ServersTab({ query }: { query: StatsQuery }) {
           </tbody>
       </DataTable>
     )}
-    <ShortToggle count={short.length} unit="서버" open={showShort} onToggle={() => setShowShort(!showShort)} />
+    <ShortToggle count={short.length} unit="서버" minSample={servers.data.data.meta.minSample} open={showShort} onToggle={() => setShowShort(!showShort)} />
     </div>
   );
 }
