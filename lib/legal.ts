@@ -12,12 +12,12 @@ export const REQUEST_DAYS = 7;
 /**
  * Still to be confirmed before launch (null shows "확정 후 기재"):
  * - EFFECTIVE_DATE: the public launch day (PM 총괄 announces it)
- * - RATE_LIMIT_IP_RETENTION: how long the traffic-limit IP hash lives (backend #108 TTL)
  * - AWS_TRANSFER: whether server management involves a transfer abroad
  */
 export const EFFECTIVE_DATE: string | null = null;
-export const RATE_LIMIT_IP_RETENTION: string | null = null;
 export const AWS_TRANSFER: string | null = null;
+/** Traffic-limit IP hash (backend ClientLimiter): 1-minute window + 1s TTL (PM-백엔드 11:07). */
+export const RATE_LIMIT_IP_RETENTION: string | null = "61초";
 
 export const PENDING_TEXT = "확정 후 기재";
 export const OFFICIAL_API_URL = "https://developer-lostark.game.onstove.com";
