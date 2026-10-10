@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { memo, useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
@@ -20,6 +20,7 @@ import {
   characterNameError,
   failureCopy,
   normalizeCharacterName,
+  type Character,
   type QueryFailure,
 } from "@/lib/character/model";
 import { SiteHeader } from "@/components/site/site-header";
@@ -97,6 +98,101 @@ function SearchBox({ name }: { name: string }) {
   );
 }
 
+/** Banner and facts: re-rendered only when the character data changes (not on clock ticks). */
+const Banner = memo(function Banner({ data }: { data: Character }) {
+  const position = positionOf(data);
+  return (
+    <CharacterBanner
+      url={data.imageUrl}
+      name={data.characterName}
+      identity={
+        <>
+          <p className={styles.bannerKicker}>
+            {data.serverName} · {data.className}
+          </p>
+          <h1 className={styles.bannerName}>{data.characterName}</h1>
+          {data.title && (
+            <p className={styles.bannerTitle}>{data.title}</p>
+          )}
+          <dl className={styles.bannerMetrics}>
+            <div>
+              <dt>아이템</dt>
+              <dd>{data.itemLevel == null ? number(data.itemLevel) : <HeadlineNumber value={data.itemLevel} format={number} />}</dd>
+            </div>
+            <div>
+              <dt>전투력</dt>
+              <dd data-position={position ?? undefined}>
+                {data.combatPower == null ? number(data.combatPower) : <HeadlineNumber value={data.combatPower} format={number} />}
+              </dd>
+            </div>
+            <div>
+              <dt>전투</dt>
+              <dd>{level(data.characterLevel)}</dd>
+            </div>
+            <div>
+              <dt>원정대</dt>
+              <dd>{level(data.expeditionLevel)}</dd>
+            </div>
+          </dl>
+        </>
+      }
+      facts={
+        <dl className={styles.bannerFacts}>
+          {position && (
+            <>
+              <dt>포지션</dt>
+              <dd data-position={position}>
+                {position === "SUPPORT" ? "서포터" : "딜러"}
+                {data.analysis.positionEvidence && (
+                  <small className={styles.evidenceNote}>
+                    {data.analysis.positionEvidence}
+                  </small>
+                )}
+              </dd>
+            </>
+          )}
+          <dt>길드</dt>
+          <dd>
+            {text(data.guildName)}
+            {data.guildName && data.guildMemberGrade && (
+              <small className={styles.evidenceNote}>
+                {data.guildMemberGrade}
+              </small>
+            )}
+          </dd>
+          {data.townName && (
+            <>
+              <dt>영지</dt>
+              <dd>
+                {data.townName}
+                {data.townLevel != null && (
+                  <small className={styles.evidenceNote}>
+                    Lv.{data.townLevel}
+                  </small>
+                )}
+              </dd>
+            </>
+          )}
+          {data.honorPoint != null && (
+            <>
+              <dt>명예</dt>
+              <dd>{number(data.honorPoint)}</dd>
+            </>
+          )}
+          <dt>칭호</dt>
+          <dd>{text(data.title)}</dd>
+          <dt>마지막 갱신</dt>
+          <dd>
+            <time dateTime={data.fetchedAt}>
+              {kstTime(data.fetchedAt)}
+            </time>
+          </dd>
+        </dl>
+      }
+    />
+  );
+});
+
 function CharacterContent({
   name,
   initialError,
@@ -145,7 +241,6 @@ function CharacterContent({
     setRefreshed(true);
     setNow(Date.now());
   }
-  const position = data ? positionOf(data) : null;
   // Remember successful searches for the home page's recent list (browser only).
   const seen = data
     ? {
@@ -182,94 +277,7 @@ function CharacterContent({
       <main id="character-main">
         {data && envelope ? (
           <>
-            <CharacterBanner
-              url={data.imageUrl}
-              name={data.characterName}
-              identity={
-                <>
-                  <p className={styles.bannerKicker}>
-                    {data.serverName} · {data.className}
-                  </p>
-                  <h1 className={styles.bannerName}>{data.characterName}</h1>
-                  {data.title && (
-                    <p className={styles.bannerTitle}>{data.title}</p>
-                  )}
-                  <dl className={styles.bannerMetrics}>
-                    <div>
-                      <dt>아이템</dt>
-                      <dd>{data.itemLevel == null ? number(data.itemLevel) : <HeadlineNumber value={data.itemLevel} format={number} />}</dd>
-                    </div>
-                    <div>
-                      <dt>전투력</dt>
-                      <dd data-position={position ?? undefined}>
-                        {data.combatPower == null ? number(data.combatPower) : <HeadlineNumber value={data.combatPower} format={number} />}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt>전투</dt>
-                      <dd>{level(data.characterLevel)}</dd>
-                    </div>
-                    <div>
-                      <dt>원정대</dt>
-                      <dd>{level(data.expeditionLevel)}</dd>
-                    </div>
-                  </dl>
-                </>
-              }
-              facts={
-                <dl className={styles.bannerFacts}>
-                  {position && (
-                    <>
-                      <dt>포지션</dt>
-                      <dd data-position={position}>
-                        {position === "SUPPORT" ? "서포터" : "딜러"}
-                        {data.analysis.positionEvidence && (
-                          <small className={styles.evidenceNote}>
-                            {data.analysis.positionEvidence}
-                          </small>
-                        )}
-                      </dd>
-                    </>
-                  )}
-                  <dt>길드</dt>
-                  <dd>
-                    {text(data.guildName)}
-                    {data.guildName && data.guildMemberGrade && (
-                      <small className={styles.evidenceNote}>
-                        {data.guildMemberGrade}
-                      </small>
-                    )}
-                  </dd>
-                  {data.townName && (
-                    <>
-                      <dt>영지</dt>
-                      <dd>
-                        {data.townName}
-                        {data.townLevel != null && (
-                          <small className={styles.evidenceNote}>
-                            Lv.{data.townLevel}
-                          </small>
-                        )}
-                      </dd>
-                    </>
-                  )}
-                  {data.honorPoint != null && (
-                    <>
-                      <dt>명예</dt>
-                      <dd>{number(data.honorPoint)}</dd>
-                    </>
-                  )}
-                  <dt>칭호</dt>
-                  <dd>{text(data.title)}</dd>
-                  <dt>마지막 갱신</dt>
-                  <dd>
-                    <time dateTime={data.fetchedAt}>
-                      {kstTime(data.fetchedAt)}
-                    </time>
-                  </dd>
-                </dl>
-              }
-            />
+            <Banner data={data} />
             <TabBar
               name={name}
               tab={tab}

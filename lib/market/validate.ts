@@ -12,6 +12,7 @@ import type {
   PricesEnvelope,
   QuoteEnvelope,
 } from "./model";
+import { lazyValidator } from "@/lib/api/lazy-validator";
 
 // The backend's generated OpenAPI is also the runtime shape contract. Response
 // enums are loosened: a value added later shows as unknown instead of
@@ -22,7 +23,7 @@ ajv.addSchema({
   components: { ...contract.components, schemas: tolerantSchemas(contract.components.schemas) },
 });
 const compile = <T>(schema: string) =>
-  ajv.compile<T>({ $ref: `market#/components/schemas/${schema}` });
+  lazyValidator(() => ajv.compile<T>({ $ref: `market#/components/schemas/${schema}` }));
 const options = compile<OptionsEnvelope>("ApiResponseMarketOptionsResponse");
 const items = compile<ItemsEnvelope>("ApiResponseMarketPriceResponse");
 const quote = compile<QuoteEnvelope>("ApiResponseMaterialQuoteResponse");

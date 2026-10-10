@@ -5,6 +5,7 @@ import Ajv2020 from "ajv/dist/2020";
 import contract from "../../contracts/card-collection.openapi.json";
 import type { components } from "../api/card-collection-schema";
 import { labelOf, tolerantSchemas } from "../api/tolerant";
+import { lazyValidator } from "@/lib/api/lazy-validator";
 
 type Schemas = components["schemas"];
 export type CardCollectionEnvelope = Schemas["ApiResponseCardCollectionResponse"];
@@ -26,10 +27,10 @@ export const ELEMENT_LABEL: Record<Element, string> = {
 
 // The backend's generated OpenAPI (#102) is also the runtime shape contract,
 // with response enums loosened (#125): an unknown element shows as unknown.
-const validate = new Ajv2020({ strict: false, validateFormats: false }).compile<CardCollectionEnvelope>({
+const validate = lazyValidator(() => new Ajv2020({ strict: false, validateFormats: false }).compile<CardCollectionEnvelope>({
   $ref: "#/components/schemas/ApiResponseCardCollectionResponse",
   components: { ...contract.components, schemas: tolerantSchemas(contract.components.schemas) },
-});
+}));
 const isTime = (value: string) => Number.isFinite(Date.parse(value));
 
 export function isCardCollectionEnvelope(value: unknown): value is CardCollectionEnvelope {
@@ -86,10 +87,10 @@ export function sortCards(cards: RecordedCard[]) {
 // order (several seconds), then a 10-minute cooldown.
 export type CardRefreshEnvelope = Schemas["ApiResponseCardCollectionRefreshResponse"];
 export type CardRefresh = Schemas["CardCollectionRefreshResponse"];
-const validateRefresh = new Ajv2020({ strict: false, validateFormats: false }).compile<CardRefreshEnvelope>({
+const validateRefresh = lazyValidator(() => new Ajv2020({ strict: false, validateFormats: false }).compile<CardRefreshEnvelope>({
   $ref: "#/components/schemas/ApiResponseCardCollectionRefreshResponse",
   components: { ...contract.components, schemas: tolerantSchemas(contract.components.schemas) },
-});
+}));
 export function isCardRefreshEnvelope(value: unknown): value is CardRefreshEnvelope {
   return (
     validateRefresh(value) &&
