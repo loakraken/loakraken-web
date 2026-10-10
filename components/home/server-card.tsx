@@ -6,7 +6,7 @@ import { ChevronRight } from "@/components/ui/icons";
 import { countdownText } from "@/lib/api/rate-limit";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { fetchStats } from "@/lib/stats/client";
-import { fixed, percent, whole } from "@/lib/stats/model";
+import { fixed, share, whole } from "@/lib/stats/model";
 import styles from "./home.module.css";
 
 /**
@@ -56,7 +56,7 @@ export function ServerCard() {
                 <td>
                   {whole(row.count)}
                   <span className={styles.srOnly}>, </span>
-                  <small>{percent(row.share)}</small>
+                  <small>{share(row.share)}</small>
                 </td>
                 <td>
                   {row.sampleStatus === "READY" ? (

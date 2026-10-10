@@ -13,6 +13,7 @@ import {
   fixed,
   percent,
   quantileScale,
+  share,
   sampleConditions,
   statsSearch,
   whole,
@@ -215,7 +216,7 @@ function ClassesTab({ query }: { query: StatsQuery }) {
                 <td>{i + 1}</td>
                 <th scope="row">{row.className}</th>
                 <td>{whole(row.count)}</td>
-                <td className={styles.share}>{percent(row.share)}</td>
+                <td className={styles.share}>{share(row.share)}</td>
                 <td>{row.supports > 0 ? percent(row.supportShare) : "-"}</td>
                 <td>{fixed(row.itemLevelMean)}</td>
                 <td>{fixed(row.gemMeanLevel, 1)}</td>
@@ -375,7 +376,7 @@ function ServersTab({ query }: { query: StatsQuery }) {
               <tr key={row.serverName} data-short={row.sampleStatus !== "READY" || undefined}>
                 <th scope="row">{row.serverName}</th>
                 <td>{whole(row.count)}</td>
-                <td className={styles.share}>{percent(row.share)}</td>
+                <td className={styles.share}>{share(row.share)}</td>
                 {row.sampleStatus === "READY" ? (
                   <>
                     <td>{fixed(row.itemLevelMedian)}</td>
