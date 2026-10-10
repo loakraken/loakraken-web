@@ -16,8 +16,11 @@ import {
 import { retryLabel } from "@/lib/api/rate-limit";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import {
+  CHOICE_EXCHANGES,
+  EXCHANGES,
   INPUT_MATERIALS,
   MORE_DATA,
+  exchangeValue,
   boundGoldFor,
   gateKey,
   gateResult,
@@ -72,6 +75,7 @@ function GateDetail({
   onQuantity,
   boundGold,
   excludeBound,
+  note,
 }: {
   title: string;
   result: GateResult;
@@ -79,6 +83,7 @@ function GateDetail({
   onQuantity: (name: string, value: number) => void;
   boundGold: number | null;
   excludeBound: boolean;
+  note: (name: string) => string | null;
 }) {
   return (
     <div className={styles.detail}>
@@ -113,6 +118,7 @@ function GateDetail({
             <span>
               {line.name} <b>×{count(line.qty)}</b>
               {line.entered && <small>직접 입력</small>}
+              {note(line.name) && <small>{note(line.name)}</small>}
             </span>
             <span>
               {line.unit == null ? "값 없음 · 0G" : `1개 ${unitText(line.unit)}G · ${count(line.value)}G`}
@@ -155,7 +161,9 @@ function RaidRows({
   open,
   setOpen,
   renderDetail,
+  bestKey,
 }: {
+  bestKey: string | null;
   raid: MoreRaid;
   results: Record<string, GateResult>;
   open: string | null;
@@ -185,12 +193,16 @@ function RaidRows({
                       className={styles.cell}
                       aria-expanded={open === key}
                       data-gain={r.hasInput ? (r.gain >= 0 ? "up" : "down") : "none"}
+                      data-pick={bestKey === key || undefined}
                       onClick={() => setOpen(open === key ? null : key)}
                     >
                       {r.hasInput ? (
                         <>
+                          {bestKey === key && <em className={styles.pick}>추천</em>}
                           <b>{signed(r.gain)}</b>
-                          <small>{r.paid > 0 ? `${(r.value / r.paid).toFixed(2)}배` : "무료"}</small>
+                          <small>
+                            {r.gain >= 0 ? "누르기" : "넘기기"} · {r.paid > 0 ? `${(r.value / r.paid).toFixed(2)}배` : "무료"}
+                          </small>
                         </>
                       ) : (
                         <>
@@ -241,11 +253,24 @@ export function MoreRewardTool() {
       .filter((p) => p.status === "PRICED" && p.unitPriceGold != null)
       .map((p) => [p.name, p.unitPriceGold as number]),
   );
-  const unpricedNames = names.filter((n) => prices.data && !market.has(n) && !(INPUT_MATERIALS as readonly string[]).includes(n));
+  const marketPrice = (name: string) => market.get(name) ?? null;
+  const unpricedNames = names.filter(
+    (n) =>
+      prices.data &&
+      !market.has(n) &&
+      exchangeValue(n, marketPrice) == null &&
+      !(INPUT_MATERIALS as readonly string[]).includes(n),
+  );
+  const exchangeNote = (name: string) => {
+    const recipe = EXCHANGES[name];
+    // Only when the recipe actually priced it (not typed, contents priced).
+    if (recipe && !userUnits[name] && exchangeValue(name, marketPrice) != null) return `${recipe.into}(${recipe.per}개 교환) 구성 시세 ÷ ${recipe.per}`;
+    return null;
+  };
   const unitValue = (name: string) => {
     const typed = userUnits[name];
     if (typed !== undefined && typed !== "") return Number(typed);
-    return market.get(name) ?? null;
+    return market.get(name) ?? exchangeValue(name, marketPrice);
   };
 
   const results: Record<string, GateResult> = {};
@@ -265,7 +290,7 @@ export function MoreRewardTool() {
   const best = MORE_DATA.raids
     .flatMap((raid) =>
       raid.modes.flatMap((mode) =>
-        mode.gates.map((g) => ({ title: `${raid.name} ${mode.label} ${g.gate}관문`, r: results[gateKey(raid.id, mode.label, g.gate)] })),
+        mode.gates.map((g) => ({ key: gateKey(raid.id, mode.label, g.gate), title: `${raid.name} ${mode.label} ${g.gate}관문`, r: results[gateKey(raid.id, mode.label, g.gate)] })),
       ),
     )
     .filter((x) => x.r.hasInput)
@@ -303,11 +328,30 @@ export function MoreRewardTool() {
               <h2 id="gates-heading" className={styles.sectionTitle}>
                 관문별 더보기
               </h2>
-              <p className={styles.summary} aria-live="polite">
-                {entered.length === 0
-                  ? "관문을 눌러 재련 재료 수량을 넣으면 이득을 계산해요."
-                  : `재료를 넣은 ${entered.length}관문 중 ${entered.filter((r) => r.gain >= 0).length}관문이 이득이에요.`}
-                {best && best.r.gain >= 0 && ` 가장 이득: ${best.title} ${signed(best.r.gain)}G`}
+              <div className={styles.verdict} aria-live="polite">
+                {entered.length === 0 ? (
+                  <p>관문을 눌러 재련 재료 수량을 넣으면 누를지 넘길지 알려 드려요.</p>
+                ) : (
+                  <>
+                    <p className={styles.verdictHead}>
+                      누를 더보기 <b>{entered.filter((r) => r.gain >= 0).length}</b>관문
+                      <span> · 재료를 넣은 {entered.length}관문 중</span>
+                    </p>
+                    {best && best.r.gain >= 0 ? (
+                      <p>
+                        <em className={styles.pick}>추천</em> {best.title} <b className={styles.up}>{signed(best.r.gain)}G</b>
+                      </p>
+                    ) : (
+                      <p>
+                        <span className={styles.down} aria-hidden="true">✕ </span>재료를 넣은 관문은 모두 손해예요.
+                      </p>
+                    )}
+                  </>
+                )}
+              </div>
+              <p className={styles.condition}>
+                {priceBases.find((b) => b.value === basis)?.label} 기준 · 귀속 골드 제외 {excludeBound ? "켬" : "끔"} ·{" "}
+                <a href="#value-heading">값 매기기 바꾸기</a>
               </p>
               <div className={styles.tableScroll}>
                 <table className={styles.table}>
@@ -329,6 +373,7 @@ export function MoreRewardTool() {
                         results={results}
                         open={open}
                         setOpen={setOpen}
+                        bestKey={best && best.r.gain >= 0 ? best.key : null}
                         renderDetail={(r, label, gate) => {
                           const key = gateKey(r.id, label, gate.gate);
                           return (
@@ -338,6 +383,7 @@ export function MoreRewardTool() {
                               quantities={quantities[key] ?? {}}
                               boundGold={boundGoldFor(r.id, label, gate.gate)}
                               excludeBound={excludeBound}
+                              note={exchangeNote}
                               onQuantity={(name, value) => {
                                 const next = {
                                   ...quantities,
@@ -410,6 +456,12 @@ export function MoreRewardTool() {
                 <fieldset className={styles.inputs}>
                   <legend>시세가 없는 재료</legend>
                   <p className={styles.small}>거래소에 없는 재료는 1개 값을 직접 넣어 주세요. 넣지 않으면 0G예요.</p>
+                  {unpricedNames.some((n) => (CHOICE_EXCHANGES as readonly string[]).includes(n)) && (
+                    <p className={styles.small}>
+                      고통의 가시·죽음의 손·사령의 잔영은 교환소에서 구성을 고르는 상자로 바뀌는데, 확률이 공개되지 않아
+                      자동으로 값을 매기지 않아요.
+                    </p>
+                  )}
                   <div className={styles.inputGrid}>
                     {unpricedNames.map((name) => (
                       <label key={name}>
