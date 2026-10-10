@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type CSSProperties, type ReactNode } from "react";
+import { useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { Popover } from "@base-ui/react/popover";
 import { qualityTier } from "@/lib/character/detail";
 import { gradeKey } from "@/lib/character/model";
@@ -119,9 +119,20 @@ export function ItemTooltip({
   children: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
+  // Closing hands focus back to the item; that focus must not reopen it.
+  const closedAt = useRef(0);
   const Tag = as;
   return (
-    <Popover.Root open={open} onOpenChange={setOpen}>
+    <Popover.Root
+      open={open}
+      onOpenChange={(next, details) => {
+        // A press on the item never closes it: a tap (or a click after the hover
+        // opened it) would otherwise open and close in the same gesture.
+        if (!next && details.reason === "trigger-press") return;
+        if (!next && details.reason === "escape-key") closedAt.current = performance.now();
+        setOpen(next);
+      }}
+    >
       <Popover.Trigger
         nativeButton={false}
         openOnHover
@@ -129,9 +140,13 @@ export function ItemTooltip({
         closeDelay={0}
         render={<Tag className={className} style={style} data-wide={wide ? "" : undefined} />}
         aria-label={`${item.name ?? slot ?? "아이템"} 상세 보기`}
-        // Keyboard focus opens it; a tap focuses too, but its click already toggles.
-        onFocus={(event) => event.currentTarget.matches(":focus-visible") && setOpen(true)}
-        onBlur={() => setOpen(false)}
+        // Keyboard focus opens it; a tap focuses too, but its press already opens
+        // it. Leaving with the keyboard closes it through Base UI (focus-out):
+        // closing on blur here would also fire when focus moves into the card.
+        onFocus={(event) => {
+          if (performance.now() - closedAt.current < 300) return;
+          if (event.currentTarget.matches(":focus-visible")) setOpen(true);
+        }}
       >
         {children}
       </Popover.Trigger>
