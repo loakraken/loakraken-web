@@ -161,6 +161,19 @@ function SampleProgress({ ready, total, unit, minSample }: { ready: number; tota
  */
 function Quantiles({ row, scale, index }: { row: ClassRow; scale: ((v: number) => number) | null; index: number }) {
   const p = row.combatPower;
+  // Under the sample minimum: the median as a dot only (user, 23:50) — the
+  // spread needs the full sample. "표본 N명 · 참고값" says why.
+  if (row.sampleStatus !== "READY")
+    return (
+      <span className={styles.shortCell}>
+        {p?.p50 != null && scale ? (
+          <span className={styles.quantile} role="img" aria-label={`전투력 중앙값 ${whole(p.p50)} (참고값)`}>
+            <em style={{ left: `${scale(p.p50)}%` }} />
+          </span>
+        ) : null}
+        <small>표본 {whole(row.count)}명 · 참고값</small>
+      </span>
+    );
   if (!p || !scale) return <span className={styles.muted}>-</span>;
   return (
     <span
@@ -221,7 +234,7 @@ function ClassesTab({ query }: { query: StatsQuery }) {
                 <td>{fixed(row.itemLevelMean)}</td>
                 <td>{fixed(row.gemMeanLevel, 1)}</td>
                 <td className={styles.wide}>
-                  {row.sampleStatus === "READY" ? <Quantiles row={row} scale={scale} index={i} /> : <span className={styles.muted}>표본 {whole(row.count)}명</span>}
+                  <Quantiles row={row} scale={scale} index={i} />
                 </td>
                 <td>{whole(row.combatPower?.p50)}</td>
               </tr>
@@ -230,7 +243,7 @@ function ClassesTab({ query }: { query: StatsQuery }) {
         </DataTable>
       )}
       <p className={styles.note}>
-        분포 막대: 옅은 선 하위 10%~상위 10%, 진한 칸 가운데 50%, 세로선 중앙값. 표본이 {minSample}명 미만인 직업은 분포 없이 표본 수만 보여요.
+        분포 막대: 옅은 선 하위 10%~상위 10%, 진한 칸 가운데 50%, 세로선 중앙값. 표본이 {minSample}명 미만인 직업은 분포 대신 중앙값 점만 찍고, 다른 값은 참고값(회색)으로 보여요.
       </p>
     </div>
   );
@@ -369,6 +382,7 @@ function ServersTab({ query }: { query: StatsQuery }) {
               <th scope="col">비율</th>
               <th scope="col">아이템 레벨 중앙값</th>
               <th scope="col">전투력 중앙값</th>
+              <th scope="col"><span className={styles.srOnly}>표본</span></th>
             </tr>
           </thead>
           <tbody>
@@ -377,16 +391,13 @@ function ServersTab({ query }: { query: StatsQuery }) {
                 <th scope="row">{row.serverName}</th>
                 <td>{whole(row.count)}</td>
                 <td className={styles.share}>{share(row.share)}</td>
-                {row.sampleStatus === "READY" ? (
-                  <>
-                    <td>{fixed(row.itemLevelMedian)}</td>
-                    <td>{fixed(row.combatPowerMedian)}</td>
-                  </>
-                ) : (
-                  <td colSpan={2}>
-                    <span className={styles.muted}>표본 {whole(row.count)}명</span>
-                  </td>
-                )}
+                {/* Values show from one character up (user, 23:50); a short
+                    sample is marked at the row end instead of hidden. */}
+                <td>{fixed(row.itemLevelMedian)}</td>
+                <td>{fixed(row.combatPowerMedian)}</td>
+                <td className={styles.share}>
+                  {row.sampleStatus !== "READY" && `표본 ${whole(row.count)}명 · 참고값`}
+                </td>
               </tr>
             ))}
           </tbody>
