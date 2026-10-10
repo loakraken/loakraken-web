@@ -31,7 +31,7 @@ npx playwright show-report       # 실패 시 trace·스크린샷
 | `perf/budget.spec.mjs` | 성능 기준(작업 규칙 '성능 우선') 측정, `E2E_PERF=1`일 때만 |
 | `smoke/home.spec.mjs` | 홈·/about 검색(정상·빈 값·문자 제한·64자 초과), Ctrl K 포커스 |
 | `smoke/home-dashboard.spec.mjs` | 홈 일정·시세·공지, 요일 선택 재조회, 점검 배너, 08:00·13:30·23:30 섹션 문구, 지난 회차 숨김 켬·끔(시계 고정) |
-| `smoke/site-nav.spec.mjs` | 상단 메뉴 이동·호버·↓/Esc/←→, 성장 도구 메뉴(경매·돌파고)·현재 위치, 390px 메뉴 시트·Esc 포커스 복귀 |
+| `smoke/site-nav.spec.mjs` | 상단 메뉴 이동·호버·↓/Esc/←→, 성장 도구 메뉴(경매·도구 전체)·현재 위치, 390px 메뉴 시트·Esc 포커스 복귀 |
 | `smoke/character.spec.mjs` | 캐릭터 8개 탭, 탭 이동·새로고침 유지, 원정대 이동, 404·429·502·503·504 |
 | `smoke/market.spec.mjs` | 시세 분류·정렬·페이지·품목 추이·기간 |
 | `smoke/tools.spec.mjs` | 재련 기대 비용(계산·장비 불러오기), 재료 구매 견적, 치적·뭉가·음돌 |
