@@ -56,7 +56,7 @@ function MaintenanceBanner({ renderedAt }: { renderedAt?: number }) {
       target="_blank"
       rel="noreferrer"
     >
-      <TriangleAlert size={16} aria-hidden="true" />
+      <Warning size={16} aria-hidden="true" />
       <span>
         <b>{upcoming.when === "today" ? "오늘 점검" : "내일 점검"}</b> {maintenance.title}
       </span>
