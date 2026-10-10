@@ -48,6 +48,7 @@ import { AvatarsTab, CollectiblesTab } from "./inner";
 import { Panel } from "./panel";
 import { ViewsPanel } from "./views-panel";
 import { useTabPill } from "./tab-pill";
+import { ItemTooltip } from "./item-tooltip";
 import { ReceiptPanel } from "./receipt-panel";
 import { useStagger } from "./entrance";
 import { RankPanel } from "./rank-panel";
@@ -330,7 +331,7 @@ function EquipmentPanel({ data }: { data: Character }) {
             {groups.armor.map((item, i) => {
               const refine = refineOf(item);
               return (
-                <li key={i} {...stagger(i, styles.item)}>
+                <ItemTooltip key={i} item={item} slot={SLOT_LABEL[item.type ?? ""] ?? undefined} {...stagger(i, styles.item)}>
                   <GameIcon src={item.icon} grade={item.grade} />
                   <div className={styles.itemText}>
                     <strong>
@@ -355,7 +356,7 @@ function EquipmentPanel({ data }: { data: Character }) {
                       )}
                     </span>
                   </div>
-                </li>
+                </ItemTooltip>
               );
             })}
           </ul>
@@ -368,7 +369,7 @@ function EquipmentPanel({ data }: { data: Character }) {
           )}
           <ul className={styles.itemList}>
             {groups.accessories.map((item, i) => (
-              <li key={i} {...stagger(i, styles.item)}>
+              <ItemTooltip key={i} item={item} {...stagger(i, styles.item)}>
                 <GameIcon src={item.icon} grade={item.grade} />
                 <div className={styles.itemText}>
                   <strong>
@@ -401,14 +402,14 @@ function EquipmentPanel({ data }: { data: Character }) {
                     ))}
                   </ul>
                 ) : null}
-              </li>
+              </ItemTooltip>
             ))}
           </ul>
         </div>
       </div>
       <div className={styles.equipFoot}>
         {groups.stone && (
-          <div className={styles.footItem}>
+          <ItemTooltip item={groups.stone} slot="어빌리티 스톤" as="div" className={styles.footItem}>
             <GameIcon
               src={groups.stone.icon}
               grade={groups.stone.grade}
@@ -428,10 +429,10 @@ function EquipmentPanel({ data }: { data: Character }) {
                 <small>{text(groups.stone.name)}</small>
               )}
             </div>
-          </div>
+          </ItemTooltip>
         )}
         {groups.bracelet && (
-          <div className={styles.footItem} data-wide="">
+          <ItemTooltip item={groups.bracelet} slot="팔찌" as="div" className={styles.footItem} wide>
             <GameIcon
               src={groups.bracelet.icon}
               grade={groups.bracelet.grade}
@@ -451,7 +452,7 @@ function EquipmentPanel({ data }: { data: Character }) {
                 <small>{text(groups.bracelet.name)}</small>
               )}
             </div>
-          </div>
+          </ItemTooltip>
         )}
         {groups.others.map((item, i) => (
           <div key={i} className={styles.footItem}>
