@@ -1,0 +1,237 @@
+/* The schedule page (/schedule) on top of the home dashboard styles. */
+.head {
+  display: grid;
+  gap: 4px;
+  padding: 28px 0 18px;
+}
+.head h1 {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+.reset {
+  color: var(--muted-foreground);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.reset b {
+  color: var(--foreground);
+  font-weight: 600;
+}
+
+/* Upcoming rounds: one card per category, the next time large. */
+.upcoming {
+  margin-bottom: 16px;
+}
+.upcoming h2 {
+  margin-bottom: 8px;
+  font-size: 15px;
+  font-weight: 700;
+}
+.upcoming ul {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.upcoming li > a,
+.upcoming li > div {
+  display: grid;
+  gap: 2px;
+  height: 100%;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: var(--muted);
+  color: inherit;
+  text-decoration: none;
+  transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.upcoming li > a:active {
+  transform: scale(0.97);
+}
+.roundLabel {
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-weight: 600;
+}
+.roundTime {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-variant-numeric: tabular-nums;
+}
+.roundTime time {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.roundTime b {
+  color: var(--link);
+  font-size: 12px;
+  font-weight: 700;
+}
+.roundNames {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+/* The page board title is a date ("10월 10일 토요일 오늘"): on phones the
+   tools move under it instead of squeezing the title and the toggle. */
+.pageHead {
+  flex-wrap: wrap;
+  row-gap: 8px;
+}
+.pageHead h2,
+.pageHead span,
+.pageHead button {
+  white-space: nowrap;
+}
+.todayMark {
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  background: var(--foreground);
+  color: var(--background);
+  font-size: 11px;
+  font-weight: 700;
+  vertical-align: 2px;
+}
+
+/* Category links (ILOA category tabs). They wrap instead of scrolling. */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.chips a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 12px;
+  border-radius: 9999px;
+  background: var(--background);
+  color: var(--muted-foreground);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: inset 0 0 0 1px var(--secondary);
+}
+.chips a[aria-current="page"] {
+  background: var(--foreground);
+  color: var(--background);
+  box-shadow: none;
+}
+
+/* Home card link to the page. */
+.all {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 40px;
+  margin-top: 14px;
+  border-radius: 12px;
+  background: var(--background);
+  color: var(--foreground);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+/* This week's adventure islands. */
+.week {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.week > li {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: var(--background);
+}
+.week > li[data-gold] {
+  box-shadow: inset 0 0 0 2px var(--grade-legendary-b);
+}
+.week > li[data-today] .weekDay b {
+  color: var(--primary);
+}
+.weekDay {
+  display: grid;
+  flex: none;
+  justify-items: center;
+  width: 28px;
+}
+.weekDay b {
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.weekDay span {
+  color: var(--muted-foreground);
+  font-size: 11px;
+}
+.weekDay span[data-weekend] {
+  color: var(--destructive);
+}
+.weekIslands {
+  display: grid;
+  flex: 1;
+  gap: 4px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.weekIslands li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  font-size: 13px;
+}
+.weekIslands li > span:first-child {
+  overflow-wrap: anywhere;
+}
+.weekIslands li[data-gold] > span:first-child {
+  font-weight: 700;
+}
+.weekNone {
+  align-self: center;
+  color: var(--muted-foreground);
+  font-size: 13px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .upcoming li > a:hover .roundNames,
+  .all:hover {
+    text-decoration: underline;
+  }
+}
+@media (max-width: 600px) {
+  .head {
+    padding: 20px 0 14px;
+  }
+  .head h1 {
+    font-size: 21px;
+  }
+  .upcoming ul {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .upcoming li > a {
+    transition: none;
+  }
+}
