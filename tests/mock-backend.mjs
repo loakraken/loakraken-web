@@ -1,6 +1,7 @@
 // Local synthetic backend only. This process never accesses Lost Ark.
 import { createServer } from "node:http";
 import { readFileSync } from "node:fs";
+const failures = new Map();
 
 const read = (name) =>
   JSON.parse(
@@ -251,6 +252,29 @@ createServer(async (req, res) => {
     res.end(JSON.stringify(body));
   };
   if (url.pathname === "/__counts") return send(counts);
+  // Planned failures (QA, PM-프론트 #236 follow-up): the next N backend requests
+  // to a path answer with an error, whether the web server (prefetch) or the
+  // browser (through the proxy) makes them. Arm:
+  //   POST /__fail {"path": "/api/v1/characters/popular", "status": 502, "times": 2}
+  // ("code" optional, Retry-After 30 on 429). DELETE /__fail clears them.
+  if (url.pathname === "/__fail") {
+    if (req.method === "DELETE") {
+      failures.clear();
+      return send({ ok: true });
+    }
+    let body = "";
+    for await (const chunk of req) body += chunk;
+    const plan = JSON.parse(body || "{}");
+    failures.set(plan.path, { status: Number(plan.status) || 502, times: Number(plan.times) || 1, code: plan.code });
+    return send({ ok: true, armed: Object.fromEntries(failures) });
+  }
+  const planned = failures.get(url.pathname);
+  if (planned && planned.times > 0) {
+    planned.times -= 1;
+    if (planned.times === 0) failures.delete(url.pathname);
+    const code = planned.code ?? (planned.status === 429 ? "LOST_ARK_RATE_LIMITED" : planned.status === 503 ? "CHARACTER_CACHE_UNAVAILABLE" : "LOST_ARK_API_ERROR");
+    return send({ code, message: "planned failure" }, planned.status, planned.status === 429 ? { "Retry-After": "30" } : {});
+  }
   if (url.pathname.startsWith("/api/v1/markets/"))
     return market(url, req, send);
   if (url.pathname === "/api/v1/refining/plans" && req.method === "POST") {
