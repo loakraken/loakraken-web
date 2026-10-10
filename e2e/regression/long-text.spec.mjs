@@ -14,10 +14,16 @@ const CASES = [
   { name: "캐릭터 배너 이름", path: characterPath("상세"), scope: '[aria-label$="캐릭터 요약"]', cell: "h1, h1 + *", text: LONG_NAME },
   { name: "캐릭터 장비 이름", path: characterPath("상세"), scope: 'section[aria-label="장비"]', cell: "li", text: LONG_TITLE },
   { name: "시세 품목 이름", path: "/market", scope: 'section[aria-labelledby="board-heading"]', cell: "li", pick: "strong", text: LONG_TITLE },
+  { name: "캐릭터 수집품 이름", path: characterPath("상세", "collectibles"), scope: 'section[aria-label$=" 목록"]', cell: "li", pick: ":scope > :not(small)", text: LONG_TITLE },
+  { name: "캐릭터 수집품 목록", path: characterPath("상세", "collectibles"), scope: 'section[aria-label$=" 목록"]', cell: "li", pick: "small", text: LONG_TITLE },
 ];
 
 // 열린 버그가 있는 경우: test.fail 표시(고치면 "예상 밖 통과"로 알려 준다).
-const KNOWN = { "홈 공지 제목": "web #304: 공지 제목 span이 nowrap·ellipsis인데 flex 조상에 min-width:0이 없어 칸이 늘어남" };
+const KNOWN = {
+  // #304 수정 PR(web #314)과 이 파일 중 나중에 병합되는 쪽이 이 줄을 지운다.
+  "홈 공지 제목": "web #304: 공지 제목 span이 nowrap·ellipsis인데 flex 조상에 min-width:0이 없어 칸이 늘어남",
+  "캐릭터 수집품 목록": "web #322: 상태 칸 small이 flex:none이라 긴 글자에서 칸 밖으로 넘침(P2)",
+};
 
 test.describe("긴 텍스트 넘침 @regression", () => {
   for (const c of CASES)
