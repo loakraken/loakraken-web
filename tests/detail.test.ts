@@ -106,6 +106,7 @@ test("only invested skills count for part break and counter (backend guidance)",
     tripods: [],
     rune: null,
     gemEffects: [],
+    attackType: null,
     ...over,
   });
   const skills = [
@@ -114,7 +115,7 @@ test("only invested skills count for part break and counter (backend guidance)",
     skill({ name: "카운터", level: 10, counter: true }),
     skill({
       name: "트포",
-      tripods: [{ tier: 0, slot: 1, name: "t", icon: null }],
+      tripods: [{ tier: 0, slot: 1, name: "t", icon: null, effect: null }],
     }),
   ];
   assert.deepEqual(
