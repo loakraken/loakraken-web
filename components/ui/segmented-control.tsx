@@ -6,13 +6,13 @@ import { RadioGroup } from "@base-ui/react/radio-group"
 import { cn } from "cn"
 
 // Width the row needs on one line, and the width its parent offers.
-function useFitsOnOneLine<T extends HTMLElement>() {
+function useFitsOnOneLine<T extends HTMLElement>(auto: boolean) {
   const ref = React.useRef<T>(null)
   const [vertical, setVertical] = React.useState(false)
   React.useLayoutEffect(() => {
     const track = ref.current
     const parent = track?.parentElement
-    if (!track || !parent) return
+    if (!auto || !track || !parent) return
     // Equal columns need n × the widest item (its full label, nowrap, plus its
     // padding) plus the gaps and track padding. The label is measured as a
     // range, so the sum is the same in either orientation and tells a vertical
@@ -39,16 +39,30 @@ function useFitsOnOneLine<T extends HTMLElement>() {
       const room = parent.clientWidth - parseFloat(box.paddingLeft) - parseFloat(box.paddingRight)
       setVertical(needed > room + 0.5)
     }
-    check()
-    const observer = new ResizeObserver(check)
-    observer.observe(parent)
-    // Label widths change when the web font arrives.
-    document.fonts.addEventListener("loadingdone", check)
-    return () => {
-      observer.disconnect()
-      document.fonts.removeEventListener("loadingdone", check)
+    // Measuring with the fallback face first could pick "vertical" and then flip
+    // back when the web font lands, moving everything below (#346). Until the
+    // fonts are ready the row stays as the server drew it (horizontal).
+    let live = true
+    let ready = document.fonts.status === "loaded"
+    const guarded = () => {
+      if (live && ready) check()
     }
-  }, [])
+    if (ready) check()
+    else
+      document.fonts.ready.then(() => {
+        ready = true
+        guarded()
+      })
+    const observer = new ResizeObserver(guarded)
+    observer.observe(parent)
+    // Label widths change when a later web font arrives.
+    document.fonts.addEventListener("loadingdone", guarded)
+    return () => {
+      live = false
+      observer.disconnect()
+      document.fonts.removeEventListener("loadingdone", guarded)
+    }
+  }, [auto])
   return [ref, vertical] as const
 }
 
@@ -62,9 +76,16 @@ function useFitsOnOneLine<T extends HTMLElement>() {
 function SegmentedControl({
   className,
   fill = false,
+  orientation = "auto",
   ...props
-}: RadioGroup.Props & { fill?: boolean }) {
-  const [ref, vertical] = useFitsOnOneLine<HTMLDivElement>()
+}: RadioGroup.Props & {
+  fill?: boolean
+  /** "auto" measures after the web font is ready. A screen that knows the slot
+   * is narrow can fix "vertical" so the server HTML is already stacked (no shift). */
+  orientation?: "auto" | "horizontal" | "vertical"
+}) {
+  const [ref, measuredVertical] = useFitsOnOneLine<HTMLDivElement>(orientation === "auto")
+  const vertical = orientation === "auto" ? measuredVertical : orientation === "vertical"
   return (
     <RadioGroup
       ref={ref}
