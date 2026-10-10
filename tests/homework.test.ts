@@ -173,3 +173,9 @@ test("countdown text", () => {
   assert.equal(formatCountdown(2 * 3600_000 + 5 * 60_000), "2시간 5분");
   assert.equal(formatCountdown(-1), "0분");
 });
+
+test("equal gold picks the newer raid like the target site (#277 P2)", () => {
+  // 언로늘 1,723.33: 종막 노말 and 세르카 노말 both pay 32,000 at entry 1,710.
+  const picks = autoRaids(1723.33).map((r) => `${r.raidId}/${r.difficulty}`);
+  assert.deepEqual(picks, ["horizon-cathedral/STAGE_2", "kazeros-act4/HARD", "serka/NORMAL"]);
+});

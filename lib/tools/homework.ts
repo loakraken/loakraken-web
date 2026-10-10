@@ -113,8 +113,16 @@ export function autoRaids(itemLevel: number, count = GOLD_RAIDS_PER_CHARACTER): 
     const current = best.get(raid.id);
     if (!current || totals.gold > current.gold) best.set(raid.id, { raid, mode, gold: totals.gold });
   }
+  // Equal gold: the higher entry level, then the newer raid (later in the
+  // table), like the target site (세르카 노말 over 종막 노말, 계산 검증 #277).
+  const order = (id: string) => RAID_DATA.raids.findIndex((r) => r.id === id);
   return [...best.values()]
-    .sort((a, b) => b.gold - a.gold)
+    .sort(
+      (a, b) =>
+        b.gold - a.gold ||
+        b.mode.minItemLevel - a.mode.minItemLevel ||
+        order(b.raid.id) - order(a.raid.id),
+    )
     .slice(0, count)
     .map(({ raid, mode }) => planFor(raid, mode));
 }
