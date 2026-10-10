@@ -41,13 +41,13 @@ type Quantities = Record<string, Partial<Record<string, number>>>;
 
 const STORE_KEY = "loakraken:more-reward:quantities";
 const count = (value: number) => Math.round(value).toLocaleString("ko-KR");
-/** Decided without quantities: fixed items alone already cover the cost. */
 /** "방금 기준" · "3분 전 기준" from the newest price reading. */
 const agoText = (now: number, iso: string) => {
   const minutes = Math.max(0, Math.floor((now - Date.parse(iso)) / MINUTE));
   return minutes === 0 ? "방금 기준" : `${minutes}분 전 기준`;
 };
 
+/** Decided without quantities: fixed items alone already cover the cost. */
 const certain = (r: GateResult) => !r.hasInput && r.gain >= 0;
 const decided = (r: GateResult) => r.hasInput || certain(r);
 
@@ -365,8 +365,39 @@ export function MoreRewardTool() {
                 관문별 더보기
               </h2>
               <div className={styles.verdict} aria-live="polite">
-                {entered.length === 0 ? (
-                  <p>시세를 불러오고 있어요. 관문을 눌러 재련 재료 수량을 넣으면 그 관문도 판정해요.</p>
+                {/* The failure sits in the card itself, not far below in the side
+                    panel (390: y=3210), so nobody waits on a load that ended. */}
+                {failure && (
+                  <div className={quote.notice}>
+                    {/* The alert holds the sentence only; the retry countdown
+                        ticks outside it so it is not re-announced every second. */}
+                    <div role="alert">
+                      <strong>시세를 불러오지 못했어요</strong>
+                      <p>
+                        {prices.data
+                          ? `${observedAt && now != null ? agoText(now, observedAt).replace(" 기준", "") : "이전"} 시세로 판정했어요. `
+                          : ""}
+                        {marketFailureCopy(failure).text}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      className={quote.outlinePill}
+                      aria-disabled={prices.isFetching || limit.seconds > 0 || undefined}
+                      aria-busy={prices.isFetching || undefined}
+                      onClick={() => !prices.isFetching && limit.seconds === 0 && prices.refetch()}
+                    >
+                      {retryLabel(limit.seconds, "시세 다시 불러오기")}
+                    </button>
+                  </div>
+                )}
+                {!prices.data ? (
+                  !failure && <p role="status">시세를 불러오고 있어요.</p>
+                ) : entered.length === 0 ? (
+                  <p>
+                    고정 품목만으로 이득이 확정된 관문은 없어요. 관문을 눌러 재련 재료 수량을 넣으면 그 관문을
+                    판정해요.
+                  </p>
                 ) : (
                   <>
                     <p className={styles.verdictHead}>
@@ -457,76 +488,59 @@ export function MoreRewardTool() {
                 거래소 {priceBases.find((b) => b.value === basis)?.label} 기준으로 자동으로 매기고 1분마다 새로 불러와요
                 {observedAt && now != null && ` · ${agoText(now, observedAt)}`}.
               </p>
-              {failure && (
-                <div className={quote.notice}>
-                  <div role="alert">
-                    <strong>{marketFailureCopy(failure).title}</strong>
-                    <p>{marketFailureCopy(failure).text}</p>
-                  </div>
-                  <button
-                    type="button"
-                    className={quote.outlinePill}
-                    aria-disabled={prices.isFetching || limit.seconds > 0 || undefined}
-                    aria-busy={prices.isFetching || undefined}
-                    onClick={() => !prices.isFetching && limit.seconds === 0 && prices.refetch()}
-                  >
-                    {retryLabel(limit.seconds, "시세 다시 불러오기")}
-                  </button>
-                </div>
-              )}
               <details className={styles.advanced}>
                 <summary>고급 설정</summary>
-              <SegmentedControl
-                fill
-                aria-label="시세 기준"
-                value={basis}
-                onValueChange={(value) => setBasis(value as PriceBasis)}
-              >
-                {priceBases.map((item) => (
-                  <SegmentedItem key={item.value} value={item.value}>
-                    {item.label}
-                  </SegmentedItem>
-                ))}
-              </SegmentedControl>
-              <label className={styles.switch}>
-                <span>
-                  <strong>귀속 골드 비용 제외</strong>
-                  <small>더보기 골드는 귀속 골드부터 빠져요. 그만큼은 손익에 넣지 않아요.</small>
-                </span>
-                <input
-                  type="checkbox"
-                  role="switch"
-                  checked={excludeBound}
-                  onChange={(event) => setExcludeBound(event.target.checked)}
-                />
-                <i aria-hidden="true" />
-              </label>
-              {autoNames.length > 0 && (
-                <fieldset className={styles.inputs}>
-                  <legend>자동 값 바꾸기</legend>
-                  <p className={styles.small}>비워 두면 자동 값(교환 구성 시세·최소 보장 가치)을 써요.</p>
-                  <div className={styles.inputGrid}>
-                    {autoNames.map((name) => {
-                      const auto = autoValue(name);
-                      return (
-                        <label key={name}>
-                          <span>{name}</span>
-                          <input
-                            type="number"
-                            inputMode="decimal"
-                            min={0}
-                            placeholder={auto == null ? "0" : auto.toFixed(2)}
-                            value={userUnits[name] ?? ""}
-                            onChange={(event) =>
-                              setUserUnits((prev) => ({ ...prev, [name]: event.target.value.replace(/[^\d.]/g, "") }))
-                            }
-                          />
-                        </label>
-                      );
-                    })}
-                  </div>
-                </fieldset>
-              )}
+                <SegmentedControl
+                  fill
+                  aria-label="시세 기준"
+                  value={basis}
+                  onValueChange={(value) => setBasis(value as PriceBasis)}
+                >
+                  {priceBases.map((item) => (
+                    <SegmentedItem key={item.value} value={item.value}>
+                      {item.label}
+                    </SegmentedItem>
+                  ))}
+                </SegmentedControl>
+                <label className={styles.switch}>
+                  <span>
+                    <strong>귀속 골드 비용 제외</strong>
+                    <small>더보기 골드는 귀속 골드부터 빠져요. 그만큼은 손익에 넣지 않아요.</small>
+                  </span>
+                  <input
+                    type="checkbox"
+                    role="switch"
+                    checked={excludeBound}
+                    onChange={(event) => setExcludeBound(event.target.checked)}
+                  />
+                  <i aria-hidden="true" />
+                </label>
+                {autoNames.length > 0 && (
+                  <fieldset className={styles.inputs}>
+                    <legend>자동 값 바꾸기</legend>
+                    <p className={styles.small}>비워 두면 자동 값(교환 구성 시세·최소 보장 가치)을 써요.</p>
+                    <div className={styles.inputGrid}>
+                      {autoNames.map((name) => {
+                        const auto = autoValue(name);
+                        return (
+                          <label key={name}>
+                            <span>{name}</span>
+                            <input
+                              type="number"
+                              inputMode="decimal"
+                              min={0}
+                              placeholder={auto == null ? "0" : auto.toFixed(2)}
+                              value={userUnits[name] ?? ""}
+                              onChange={(event) =>
+                                setUserUnits((prev) => ({ ...prev, [name]: event.target.value.replace(/[^\d.]/g, "") }))
+                              }
+                            />
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </fieldset>
+                )}
               </details>
               {unpricedNames.length > 0 && (
                 <fieldset className={styles.inputs}>

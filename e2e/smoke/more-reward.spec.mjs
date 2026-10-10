@@ -45,4 +45,29 @@ test.describe("더보기 손익 @smoke", () => {
     await expect(page.locator("details", { hasText: "고급 설정" })).not.toHaveAttribute("open", "");
     await expect(page.getByText(/1분마다 새로 불러와요/)).toBeVisible();
   });
+
+  test("시세를 못 불러오면 결론 카드 안에서 알리고 다시 시도할 수 있다", async ({ page }) => {
+    await page.route("**/api/markets/material-prices", (route) =>
+      route.fulfill({ status: 502, json: { ok: false, error: { code: "LOST_ARK_API_ERROR", status: 502 } } }),
+    );
+    await gotoReady(page, "/tools/more-reward");
+    const card = page.locator("[class*=verdict]");
+    await expect(card.getByRole("alert")).toContainText("시세를 불러오지 못했어요");
+    await expect(card.getByRole("button", { name: "시세 다시 불러오기" })).toBeVisible();
+    await expect(card).not.toContainText("불러오고 있어요");
+  });
+
+  test("시세는 받았지만 확정 관문이 없으면 그렇게 말한다", async ({ page }) => {
+    // 모든 재료가 거의 0G면 고정 품목만으로는 어느 관문도 이득이 확정되지 않는다.
+    await page.route("**/api/markets/material-prices", async (route) => {
+      const response = await route.fetch();
+      const body = await response.json();
+      for (const item of body.envelope.data.items) if (item.unitPriceGold != null) item.unitPriceGold = 0.0001;
+      await route.fulfill({ response, json: body });
+    });
+    await gotoReady(page, "/tools/more-reward");
+    const card = page.locator("[class*=verdict]");
+    await expect(card).toContainText("고정 품목만으로 이득이 확정된 관문은 없어요");
+    await expect(card).not.toContainText("불러오고 있어요");
+  });
 });
