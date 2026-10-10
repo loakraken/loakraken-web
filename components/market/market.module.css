@@ -157,6 +157,24 @@
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
+/* Price changed by a refresh (price-flash.tsx): a 12% tint behind the number. */
+.flash {
+  position: relative;
+  isolation: isolate;
+}
+.flash::after {
+  content: "";
+  position: absolute;
+  inset: -1px -4px;
+  z-index: -1;
+  border-radius: 6px;
+  background: color-mix(in oklab, var(--market-up) 12%, transparent);
+  opacity: 0;
+  pointer-events: none;
+}
+.flash[data-flash="down"]::after {
+  background: color-mix(in oklab, var(--market-down) 12%, transparent);
+}
 /* Item grade colours on a light surface (game rarity hues). */
 .board [data-grade="일반"],
 .detail [data-grade="일반"],

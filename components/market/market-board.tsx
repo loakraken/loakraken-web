@@ -45,6 +45,7 @@ import { rateLimitCopy, retryLabel } from "@/lib/api/rate-limit";
 import { RateLimitNote } from "@/components/site/rate-limit-note";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { useCrossfade } from "@/lib/motion";
+import { PriceFlash } from "./price-flash";
 
 const TIERS = [4, 3] as const;
 const failureOf = (error: unknown): MarketFailure | null =>
@@ -304,6 +305,9 @@ function MarketContent({
     queryKey: ["market", "board", query],
     queryFn: ({ signal }) => fetchMarketBoard(query, signal),
     staleTime: 30_000,
+    // Prices move all day: refresh the open board every minute while the page
+    // is visible (never in a background tab); changed prices tint briefly.
+    refetchInterval: 60_000,
     placeholderData: keepPreviousData,
     ...quiet,
   });
@@ -500,7 +504,7 @@ function MarketContent({
                           </small>
                         </span>
                         <span className={styles.rowPrice}>
-                          <b>{goldText(item.currentMinPrice)}</b>
+                          <PriceFlash value={item.currentMinPrice}>{goldText(item.currentMinPrice)}</PriceFlash>
                           <Change item={item} />
                         </span>
                       </button>
