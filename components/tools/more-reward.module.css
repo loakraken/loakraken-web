@@ -346,3 +346,23 @@
     display: block;
   }
 }
+
+/* 고급 설정: price basis, bound gold and overrides fold away (사용자 23:27). */
+.advanced {
+  display: grid;
+  gap: var(--space-3);
+}
+.advanced > summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  font-weight: 600;
+  cursor: pointer;
+}
+.advanced[open] > summary {
+  margin-bottom: var(--space-2);
+}
+.atLeast {
+  font-size: var(--text-caption);
+  font-weight: 500;
+}
