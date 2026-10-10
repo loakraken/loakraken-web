@@ -35,6 +35,7 @@ test("labels and sentences never show codes", () => {
   assert.equal(coverageText(data), "원정대 10명 중 8명 계산 · 2명 대기");
   assert.equal(excludedLabel("ARM_GUARD"), "완갑 제외");
   assert.equal(excludedLabel("GROWTH_COST_UNCONFIRMED"), "성장 비용 미확정 단계 제외");
+  assert.equal(excludedLabel("LIMIT_BREAK_UNPRICED"), "한계 해방 비용 미산정");
   assert.equal(excludedLabel("SOMETHING_NEW"), "알 수 없음");
   const done = structuredClone(data);
   done.coverage = { ...done.coverage, ready: 10, pending: 0 };
