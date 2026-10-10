@@ -48,6 +48,20 @@ import { useCrossfade } from "@/lib/motion";
 import { PriceFlash } from "./price-flash";
 
 const TIERS = [4, 3] as const;
+
+/**
+ * A refresh failed while a list is on screen: the list stays (with its own
+ * reference time) and only this line says so; the error screen is for when
+ * there is nothing to show. After a 429 it counts down to Retry-After.
+ */
+function StaleNote({ failure }: { failure: MarketFailure }) {
+  const limit = useRateLimit({ info: failure });
+  return (
+    <p className={styles.note} role="status">
+      최신 값을 불러오지 못했어요 · {limit.seconds > 0 ? `${limit.seconds}초 뒤 다시 불러와요` : "1분 뒤 다시 불러와요"}
+    </p>
+  );
+}
 const failureOf = (error: unknown): MarketFailure | null =>
   error instanceof MarketQueryError
     ? error.info
@@ -307,7 +321,10 @@ function MarketContent({
     staleTime: 30_000,
     // Prices move all day: refresh the open board every minute while the page
     // is visible (never in a background tab); changed prices tint briefly.
-    refetchInterval: 60_000,
+    refetchInterval: (q) => {
+      const retryAt = failureOf(q.state.error)?.retryAt;
+      return retryAt ? Math.max(60_000, retryAt - Date.now()) : 60_000;
+    },
     placeholderData: keepPreviousData,
     ...quiet,
   });
@@ -455,7 +472,8 @@ function MarketContent({
                   {!data.complete && " · 품목이 많아 일부 품목만 정렬했어요"}
                 </p>
               )}
-              {failure ? (
+              {data && failure && <StaleNote failure={failure} />}
+              {failure && !data ? (
                 <Problem
                   failure={failure}
                   onRetry={() => {
