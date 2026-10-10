@@ -64,6 +64,7 @@ import {
   text,
 } from "./parts";
 import styles from "./detail.module.css";
+import expand from "@/components/site/expand.module.css";
 import { rateLimitCopy, retryLabel } from "@/lib/api/rate-limit";
 import { RateLimitNote } from "@/components/site/rate-limit-note";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
@@ -567,7 +568,7 @@ function ArkGridPanel({ data }: { data: Character }) {
         <ul className={styles.coreList}>
           {grid.slots.map((slot, i) => (
             <li key={i}>
-              <details open={expanded || undefined} className={styles.core}>
+              <details open={expanded || undefined} className={`${styles.core} ${expand.expand}`}>
                 <summary>
                   <GameIcon src={slot.icon} grade={slot.grade} size={40} />
                   <div className={styles.itemText}>
@@ -820,7 +821,7 @@ function StatsPanel({ data }: { data: Character }) {
         )}
       </dl>
       {data.stats.some((stat) => stat.tooltip.length) && (
-        <details className={styles.statDetail}>
+        <details className={`${styles.statDetail} ${expand.expand}`}>
           <summary>특성 원문</summary>
           <dl>
             {data.stats

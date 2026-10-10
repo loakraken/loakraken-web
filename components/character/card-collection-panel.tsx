@@ -7,6 +7,7 @@ import { CharacterQueryError, fetchCardCollection } from "@/lib/character/client
 import { CardArt } from "./imagery";
 import { CardRefresh } from "./card-refresh";
 import styles from "./card-collection.module.css";
+import expand from "@/components/site/expand.module.css";
 import { countdownText, retryLabel } from "@/lib/api/rate-limit";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { useCrossfade } from "@/lib/motion";
@@ -109,7 +110,7 @@ export function CardCollection({ name }: { name: string }) {
             </p>
           )}
           {data.cards.length > 0 && (
-            <details className={styles.fold}>
+            <details className={`${styles.fold} ${expand.expand}`}>
               <summary>
                 도감 <span>{data.cards.length}장</span>
               </summary>
@@ -129,7 +130,7 @@ export function CardCollection({ name }: { name: string }) {
             </details>
           )}
           {data.sets.length > 0 && (
-            <details className={styles.fold}>
+            <details className={`${styles.fold} ${expand.expand}`}>
               <summary>
                 구성 가능한 세트 <span>{data.sets.length}개</span>
               </summary>
