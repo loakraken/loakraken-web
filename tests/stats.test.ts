@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import {
+  share,
   STATS_VIEWS,
   isStatsEnvelope,
   parseStatsQuery,
@@ -70,4 +71,12 @@ test("requests pass only the view's own parameters and need a metric for the dis
   const result = await requestStats("distribution", { metric: "ITEM_LEVEL", width: 10, percentileOf: 1700 }, origin, { fetcher });
   assert.equal(seen[1].searchParams.get("percentileOf"), "1700");
   assert.deepEqual(result, { ok: false, error: { code: "STATS_UNAVAILABLE", status: 503 } });
+});
+
+test("population share: one decimal, tiny non-zero shares are not 0%", () => {
+  assert.equal(share(8.7), "8.7%");
+  assert.equal(share(5), "5.0%");
+  assert.equal(share(0.024), "<0.1%");
+  assert.equal(share(0), "0.0%");
+  assert.equal(share(null), "-");
 });
