@@ -23,4 +23,17 @@ test.describe("전투력 시뮬레이터 @smoke", () => {
     await page.getByRole("button", { name: "처음 값으로" }).click();
     await expect(page.getByText("아래에서 값을 바꾸면 바로 다시 계산해요.")).toBeVisible();
   });
+
+  test("연마·팔찌·각인·스톤·아크 패시브·코어도 바꿀 수 있다", async ({ page }) => {
+    await gotoReady(page, `/tools/combat-power?character=${encodeURIComponent("전투력계산")}`);
+    await page.getByRole("combobox", { name: "테스트 목걸이 추가 피해 등급" }).selectOption("HIGH");
+    await page.getByRole("combobox", { name: "스톤 원한 레벨" }).selectOption("2");
+    await page.getByRole("textbox", { name: "아크 패시브 진화 포인트" }).fill("130");
+    const changes = page.getByRole("region", { name: "바꾼 것" });
+    // 백엔드가 돌려주는 등급 코드(HIGH)는 화면에서 상·중·하로 읽는다.
+    await expect(changes.getByText("추가 피해 +1.60% → 추가 피해 상")).toBeVisible();
+    await expect(changes.getByText("스톤 원한")).toBeVisible();
+    await expect(changes.getByText("120 → 130")).toBeVisible();
+    await expectNoHorizontalOverflow(page);
+  });
 });

@@ -16,6 +16,8 @@ export type SimulateEnvelope = { code: string; message: string; data: Simulation
 export type OptionsEnvelope = { code: string; message: string; data: Options };
 
 export const MAX_CHANGES = 64;
+/** Backend #240 range for ARK_PASSIVE_POINT (options has no field for it yet). */
+export const ARK_PASSIVE_MAX = 999;
 
 /** Weapon and armour: the slots that take refine and quality in the first cut. */
 export const GEAR_TYPES = ["무기", "투구", "상의", "하의", "장갑", "어깨"] as const;
@@ -41,16 +43,51 @@ export type Edits = {
   gems: Record<number, number>;
   refine: Record<number, number>;
   quality: Record<number, number>;
+  /** Polish grade per `${index}:${line}` (the option itself stays). */
+  polish: Record<string, Grade>;
+  /** Bracelet grade per line (the effect itself stays). */
+  bracelet: Record<number, Grade>;
+  engraving: Record<string, number>;
+  stone: Record<string, number>;
+  arkPassive: Record<string, number>;
+  core: Record<number, { grade: string; point: number }>;
 };
-export const NO_EDITS: Edits = { gemAll: null, gems: {}, refine: {}, quality: {} };
+export const NO_EDITS: Edits = {
+  gemAll: null,
+  gems: {},
+  refine: {},
+  quality: {},
+  polish: {},
+  bracelet: {},
+  engraving: {},
+  stone: {},
+  arkPassive: {},
+  core: {},
+};
+
+export const GRADES = ["LOW", "MID", "HIGH"] as const;
+export type Grade = (typeof GRADES)[number];
+/** Official tooltip colours map to 하·중·상 (backend PolishEffectResponse). */
+export const GRADE_LABEL: Record<string, string> = { LOW: "하", MID: "중", HIGH: "상" };
 
 export type Current = {
   gems: { slot: number; level: number }[];
   gear: { index: number; refine: number | null; quality: number | null }[];
+  polish?: { index: number; line: number; option: string; grade: Grade | null }[];
+  bracelet?: { line: number; name: string; grade: Grade | null }[];
+  engravings?: { name: string; level: number }[];
+  stones?: { name: string; level: number }[];
+  arkPassive?: { tree: string; points: number }[];
+  cores?: { slotIndex: number; grade: string; point: number }[];
 };
 
+/** "치명타 피해 +8.40%" → "치명타 피해": the effect name the backend echoes back. */
+export const braceletName = (text: string) =>
+  text.split(/\s*[+\-−]?\d/)[0].trim() || text.trim();
+
 /**
- * Only real differences become changes, in a fixed order (gems, then gear), so
+ * Only real differences become changes, in a fixed order (gems, gear, then the
+ * rest in screen order), so
  * the same edits always send the same body and hit the same cache entry.
  */
 export function toChanges(edits: Edits, current: Current): Change[] {
@@ -71,6 +108,36 @@ export function toChanges(edits: Edits, current: Current): Change[] {
     const quality = edits.quality[item.index];
     if (quality != null && item.quality != null && quality !== item.quality)
       changes.push({ kind: "EQUIPMENT_QUALITY", index: item.index, quality });
+  }
+  for (const line of current.polish ?? []) {
+    const grade = edits.polish[`${line.index}:${line.line}`];
+    if (grade && grade !== line.grade)
+      changes.push({ kind: "POLISH", index: line.index, line: line.line, option: line.option, grade });
+  }
+  for (const line of current.bracelet ?? []) {
+    const grade = edits.bracelet[line.line];
+    if (grade && grade !== line.grade)
+      changes.push({ kind: "BRACELET_EFFECT", line: line.line, name: line.name, grade });
+  }
+  for (const item of current.engravings ?? []) {
+    const level = edits.engraving[item.name];
+    if (level != null && level !== item.level)
+      changes.push({ kind: "ENGRAVING_LEVEL", name: item.name, level });
+  }
+  for (const item of current.stones ?? []) {
+    const level = edits.stone[item.name];
+    if (level != null && level !== item.level)
+      changes.push({ kind: "STONE_ENGRAVING", name: item.name, level });
+  }
+  for (const item of current.arkPassive ?? []) {
+    const points = edits.arkPassive[item.tree];
+    if (points != null && points !== item.points)
+      changes.push({ kind: "ARK_PASSIVE_POINT", tree: item.tree, points });
+  }
+  for (const item of current.cores ?? []) {
+    const edit = edits.core[item.slotIndex];
+    if (edit && (edit.grade !== item.grade || edit.point !== item.point))
+      changes.push({ kind: "ARK_GRID_CORE", slotIndex: item.slotIndex, grade: edit.grade, point: edit.point });
   }
   return changes.slice(0, MAX_CHANGES);
 }

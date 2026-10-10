@@ -9,6 +9,40 @@ const read = (name) =>
     readFileSync(new URL(`./fixtures/${name}`, import.meta.url), "utf8"),
   );
 const counts = {};
+
+// Synthetic accessory, bracelet and stone for the simulator screen (web #365
+// follow-up): polish/bracelet lines with tooltip grades and stone engravings.
+function withSimulatorGear(data) {
+  const base = data.loadout.equipment.find((item) => item.detail);
+  const make = (type, name, detail) => ({
+    ...base,
+    type,
+    name,
+    detail: { ...base.detail, refineLevel: null, quality: null, effects: [], stoneEngravings: [], polishEffects: [], braceletEffects: [], ...detail },
+  });
+  data.loadout.equipment.push(
+    make("목걸이", "테스트 목걸이", {
+      quality: 90,
+      polishEffects: [
+        { name: "추가 피해", value: "+1.60%", grade: "MID" },
+        { name: "적에게 주는 피해", value: "+0.55%", grade: "LOW" },
+      ],
+    }),
+    make("팔찌", "테스트 팔찌", {
+      braceletEffects: [
+        { text: "특화 +100", grade: null },
+        { text: "치명타 피해 +6.80%", grade: "MID" },
+      ],
+    }),
+    make("어빌리티 스톤", "테스트 스톤", {
+      stoneEngravings: [
+        { name: "원한", level: 1 },
+        { name: "공격력 감소", level: 0 },
+      ],
+    }),
+  );
+  return data;
+}
 const marketRead = (name) =>
   JSON.parse(
     readFileSync(new URL(`./market-fixtures/${name}`, import.meta.url), "utf8"),
@@ -303,6 +337,50 @@ createServer(async (req, res) => {
   // Combat-power simulator (backend #240). Stage A answers UNSUPPORTED for every
   // item like the real contract; "전투력계산" gets synthetic OK numbers (not game
   // formulas) so the computed path can be seen, "갱신됨" a 409.
+  // Targets read the way backend #240 names them (CombatPowerSimulationService.describe).
+  const powerTarget = (data, change) => {
+    const { loadout } = data;
+    const item = loadout.equipment[change.index];
+    switch (change.kind) {
+      case "GEM_LEVEL_ALL": return ["보석 전체", null];
+      case "GEM_LEVEL": {
+        const gem = loadout.gems.items.find((g) => g.slot === change.slot);
+        return [`보석 ${gem.slot}번(${gem.name})`, String(gem.level)];
+      }
+      case "EQUIPMENT_REFINE": return [item.name, String(item.detail.refineLevel)];
+      case "EQUIPMENT_QUALITY": return [item.name, String(item.detail.quality)];
+      case "POLISH": {
+        const line = item.detail.polishEffects[change.line];
+        return [`${item.name} 연마 ${change.line + 1}`, `${line.name} ${line.value}`];
+      }
+      case "BRACELET_EFFECT": {
+        const bracelet = loadout.equipment.find((e) => e.type === "팔찌");
+        return [`팔찌 효과 ${change.line + 1}`, bracelet.detail.braceletEffects[change.line].text];
+      }
+      case "ENGRAVING_LEVEL": {
+        const e = loadout.engravings.arkPassiveEffects.find((x) => x.name === change.name);
+        return [e.name, String(e.level)];
+      }
+      case "STONE_ENGRAVING": {
+        const s = loadout.equipment.flatMap((e) => e.detail?.stoneEngravings ?? []).find((x) => x.name === change.name);
+        return [`스톤 ${s.name}`, String(s.level)];
+      }
+      case "ARK_PASSIVE_POINT": {
+        const p = loadout.arkPassive.points.find((x) => x.name === change.tree);
+        return [`아크 패시브 ${p.name}`, String(p.value)];
+      }
+      case "ARK_GRID_CORE": {
+        const s = loadout.arkGrid.slots.find((x) => x.index === change.slotIndex);
+        return [s.name, `${s.grade} ${s.point}P`];
+      }
+      default: return [change.kind, null];
+    }
+  };
+  const powerTo = (change) =>
+    change.kind === "POLISH" ? `${change.option} ${change.grade}`
+    : change.kind === "BRACELET_EFFECT" ? `${change.name} ${change.grade}`
+    : change.kind === "ARK_GRID_CORE" ? `${change.grade} ${change.point}P`
+    : String(change.level ?? change.refine ?? change.quality ?? change.points ?? "");
   const powerRead = (name) =>
     JSON.parse(readFileSync(new URL(`./combat-power-fixtures/${name}`, import.meta.url), "utf8"));
   if (url.pathname === "/api/v1/characters/combat-power/options")
@@ -317,15 +395,16 @@ createServer(async (req, res) => {
     const d = envelope.data;
     const search = read("character-full-data.json");
     const computed = request.characterName === "전투력계산";
+    if (computed) withSimulatorGear(search);
     const r2 = (v) => Math.round(v * 100) / 100;
     d.characterName = request.characterName;
     d.fetchedAt = search.fetchedAt;
     d.before = search.combatPower;
     d.contributions = request.changes.map((change, i) => ({
       kind: change.kind,
-      target: `${change.kind} ${change.slot ?? change.index ?? ""}`.trim(),
-      from: null,
-      to: String(change.level ?? change.refine ?? change.quality ?? ""),
+      target: powerTarget(search, change)[0],
+      from: powerTarget(search, change)[1],
+      to: powerTo(change),
       delta: computed ? r2(10 + i) : null,
       status: computed ? "OK" : "UNSUPPORTED",
       basis: computed ? "합성 값(목 서버)" : d.contributions[0].basis,
@@ -798,6 +877,7 @@ createServer(async (req, res) => {
   if (name === "빈목록") envelope = read("observation-gems-items-empty.json");
   if (name === "미제공") envelope = read("observation-gems-items-null.json");
   envelope.data.characterName = name;
+  if (name === "전투력계산") withSimulatorGear(envelope.data);
   if (name === "마크업") {
     // Synthetic copy of the official Tooltip markup shape seen in live responses.
     const { engravings, arkPassive } = envelope.data.loadout;

@@ -263,3 +263,23 @@
   color: var(--muted-foreground);
   font-size: var(--text-caption);
 }
+.rowSub {
+  display: block;
+  color: var(--muted-foreground);
+  font-size: var(--text-caption);
+}
+.number {
+  width: 72px;
+  min-height: 40px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--background);
+  color: var(--foreground);
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+}
+.select[data-changed] .number {
+  border-color: var(--primary);
+  box-shadow: inset 0 0 0 1px var(--primary);
+}
