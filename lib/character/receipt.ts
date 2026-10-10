@@ -75,6 +75,8 @@ export const EXCLUDED_LABEL: Record<string, string> = {
   ADVANCED_REFINING: "상급 재련 미산정",
   PRICE_UNAVAILABLE: "시세 없음",
   GROWTH_COST_UNCONFIRMED: "성장 비용 미확정 단계 제외",
+  /** Backend #236: limit-break steps have no confirmed cost yet. */
+  LIMIT_BREAK_UNPRICED: "한계 해방 비용 미산정",
 };
 export const NOT_INCLUDED_REASON: Record<string, string> = { VERIFYING: "산정 기준 검증 중" };
 export const GEM_STATUS: Record<string, string> = { NO_PRICE: "시세 없음", PENDING: "칸 확인 대기" };
