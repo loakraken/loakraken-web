@@ -36,8 +36,11 @@ import styles from "./stone-optimizer.module.css";
 
 const LINES = [0, 1, 2] as const;
 
-const bestNames = (advice: Advice) =>
-  advice.best.length ? advice.best.map((line) => LINE_NAMES[line]).join(" · ") : null;
+// One name, ties going to the lower line (same rule as the recommendation card).
+const bestNames = (advice: Advice) => {
+  const line = recommendLine(advice).line;
+  return line === null ? null : LINE_NAMES[line];
+};
 
 function SlotDots({
   slots,
