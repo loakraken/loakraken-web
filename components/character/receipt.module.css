@@ -1,0 +1,211 @@
+/* Roster receipt (receipt-panel.tsx): total first, then what it leaves out,
+   the book toggle with its assumption, coverage, and the breakdowns. */
+.muted {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.total {
+  display: grid;
+  gap: 4px;
+}
+.total strong {
+  color: var(--foreground);
+  font-size: 30px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+.total p {
+  margin: 0;
+  color: var(--foreground);
+  font-size: 13px;
+}
+.total p.muted {
+  color: var(--muted-foreground);
+}
+.assume {
+  display: grid;
+  gap: 4px;
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--muted);
+}
+.assume label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--foreground);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.assume input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--primary);
+}
+.assume p {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.coverage {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-top: 14px;
+}
+.coverage p {
+  margin: 0;
+  color: var(--foreground);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.bar {
+  flex: 1 1 120px;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 9999px;
+  background: var(--muted);
+}
+.bar i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--primary);
+}
+.again {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 9999px;
+  background: var(--secondary);
+  color: var(--secondary-foreground);
+  font-size: 13px;
+  font-weight: 600;
+}
+.again[aria-disabled="true"],
+.again:disabled {
+  color: var(--muted-foreground);
+  cursor: default;
+}
+.block {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--secondary);
+}
+.block h3 {
+  display: flex;
+  justify-content: space-between;
+  margin: 0 0 8px;
+  font-size: 14px;
+  font-weight: 700;
+}
+.block h3 b,
+.row summary b,
+.parts b,
+.gems b {
+  font-variant-numeric: tabular-nums;
+}
+.characters,
+.parts,
+.excluded,
+.gems,
+.notes {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.row summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 4px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+.who {
+  display: grid;
+  min-width: 0;
+}
+.who strong {
+  overflow: hidden;
+  font-size: 14px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.who small {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.pending {
+  color: var(--muted-foreground);
+  font-weight: 600;
+}
+.parts {
+  padding: 0 4px 8px 16px;
+}
+.parts li,
+.gems li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--foreground);
+  font-size: 13px;
+}
+.excluded {
+  gap: 4px;
+  padding: 0 4px 10px 16px;
+}
+.excluded li {
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.tag {
+  display: inline-block;
+  margin-right: 6px;
+  padding: 0 6px;
+  border-radius: 9999px;
+  background: var(--secondary);
+  color: var(--secondary-foreground);
+  font-weight: 600;
+}
+.gems {
+  margin-top: 8px;
+}
+.notes {
+  gap: 4px;
+  margin: 16px 0 6px;
+}
+.notes li {
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.problem {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+  color: var(--foreground);
+  font-size: 14px;
+}
+.problem p {
+  margin: 0;
+}
+@media (hover: hover) and (pointer: fine) {
+  .row summary:hover {
+    background: var(--muted);
+  }
+}

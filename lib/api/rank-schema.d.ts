@@ -87,7 +87,7 @@ export interface components {
             /** @enum {string} */
             metric: "COMBAT_POWER" | "ITEM_LEVEL";
             /** @enum {string} */
-            scope: "ALL" | "SERVER" | "CLASS";
+            scope: "ALL" | "SERVER" | "CLASS" | "SERVER_CLASS";
             scopeValue: string | null;
             /** Format: int64 */
             rank: number;

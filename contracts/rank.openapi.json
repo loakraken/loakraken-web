@@ -626,7 +626,8 @@
             "enum": [
               "ALL",
               "SERVER",
-              "CLASS"
+              "CLASS",
+              "SERVER_CLASS"
             ]
           },
           "scopeValue": {

@@ -48,6 +48,7 @@ import { AvatarsTab, CollectiblesTab } from "./inner";
 import { Panel } from "./panel";
 import { ViewsPanel } from "./views-panel";
 import { useTabPill } from "./tab-pill";
+import { ReceiptPanel } from "./receipt-panel";
 import { useStagger } from "./entrance";
 import { RankPanel } from "./rank-panel";
 import { byObservedOrder, groupByDay } from "@/lib/character/titles";
@@ -1293,6 +1294,7 @@ export function SiblingsTab({ data }: { data: Character }) {
             <Empty state={data.coverage.siblings} />
           </Panel>
         )}
+        <ReceiptPanel name={data.characterName} />
         <RosterTitlesPanel name={data.characterName} />
       </div>
     );
@@ -1330,6 +1332,7 @@ export function SiblingsTab({ data }: { data: Character }) {
           <p className={styles.muted}>원정대 캐릭터가 없어요.</p>
         </Panel>
       )}
+      <ReceiptPanel name={data.characterName} />
       <RosterTitlesPanel name={data.characterName} />
     </div>
   );
