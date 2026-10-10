@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { BorderBeam } from "border-beam";
 import { m, useInView, useMotionTemplate, useScroll, useSpring, useTransform } from "motion/react";
-import { ArrowDown, ArrowRight, ArrowUpRight, Check, ChevronDown, Command, Fingerprint, Focus, Layers3, Pause, Play, ScanLine, Search, ShieldCheck, Terminal } from "lucide-react";
+import { ArrowDown, ArrowRight, ArrowUpRight, Check, ChevronDown, Command, Fingerprint, Focus, Layers3, ScanLine, Search, ShieldCheck, Terminal } from "lucide-react";
 import { CharacterCockpit } from "./cockpit";
 import { IntelligenceOrb, InlineOrb } from "./orb";
 import { LandingMotion, Reveal, useLandingMotion } from "./motion";
@@ -27,7 +27,7 @@ function PrecisionLanding() {
   const input = useRef<HTMLInputElement>(null);
   const hero = useRef<HTMLElement>(null);
   const heroVisible = useInView(hero);
-  const { enabled, paused, toggle } = useLandingMotion();
+  const { enabled, looping, wake } = useLandingMotion();
   const [query, setQuery] = useState("");
   const [error, setError] = useState("");
   const [searching, setSearching] = useState(false);
@@ -83,7 +83,6 @@ function PrecisionLanding() {
       <a className={styles.skipLink} href="#main">본문으로 건너뛰기</a>
       <m.div className={styles.readingProgress} style={{ transform: progressTransform }} aria-hidden="true" />
       <SiteHeader fixed>
-        <button type="button" className={styles.motionToggle} onClick={toggle} aria-label={paused ? "모션 재생" : "모션 일시정지"} aria-pressed={paused} title={paused ? "모션 재생" : "모션 일시정지"}>{paused ? <Play size={14} /> : <Pause size={14} />}</button>
         <button type="button" className={styles.navCta} onClick={focusSearch}>캐릭터 검색 <ArrowUpRight size={14} /></button>
       </SiteHeader>
 
@@ -103,13 +102,13 @@ function PrecisionLanding() {
               <IntelligenceOrb state={searching ? "searching" : focused ? "connecting" : "breathing"} />
             </m.div>
             <p className={styles.orbCaption}><span className={styles.statusDot} />{searching ? "캐릭터 화면으로 이동하고 있어요" : focused ? "어떤 캐릭터를 살펴볼까요?" : "당신의 다음 선택을 기다리고 있어요"}</p>
-            <div className={styles.searchArea}>
-              <BorderBeam className={styles.searchBeam} theme="light" colorVariant="mono" staticColors size="line" duration={5} strength={focused ? 0.55 : 0.22} active={enabled && heroVisible} borderRadius={36}>
+            <div className={styles.searchArea} onPointerEnter={wake}>
+              <BorderBeam className={styles.searchBeam} theme="light" colorVariant="mono" staticColors size="line" duration={5} strength={focused ? 0.55 : 0.22} active={looping && heroVisible} borderRadius={36}>
                 <form className={styles.searchForm} onSubmit={search} noValidate aria-busy={searching}>
                   <label htmlFor="character-search" className={styles.srOnly}>캐릭터 이름</label>
                   <Search className={styles.searchIcon} size={19} aria-hidden="true" />
                   <input ref={input} id="character-search" name="character" value={query} onChange={(event) => { setQuery(event.target.value); if (error) setError(""); }}
-                    onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} placeholder="캐릭터 이름을 입력하세요" maxLength={65} autoComplete="off" spellCheck={false} disabled={searching} aria-invalid={!!error} aria-describedby={error ? "search-error" : "search-help"} />
+                    onFocus={() => { setFocused(true); wake(); }} onBlur={() => setFocused(false)} placeholder="캐릭터 이름을 입력하세요" maxLength={65} autoComplete="off" spellCheck={false} disabled={searching} aria-invalid={!!error} aria-describedby={error ? "search-error" : "search-help"} />
                   {shortcutKey && <kbd className={styles.shortcut} aria-hidden="true">{shortcutKey === "mac" ? <Command size={12} /> : "Ctrl"} K</kbd>}
                   <button className={styles.searchSubmit} type="submit" disabled={searching} aria-label={searching ? "캐릭터 화면으로 이동 중" : undefined}>{searching ? <InlineOrb /> : <>캐릭터 검색 <ArrowRight size={16} /></>}</button>
                 </form>

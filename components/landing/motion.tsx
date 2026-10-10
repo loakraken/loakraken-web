@@ -1,9 +1,17 @@
 "use client";
 
-import { createContext, useContext, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { LazyMotion, domAnimation, m, useInView } from "motion/react";
 
-const MotionContext = createContext({ enabled: false, paused: false, toggle: () => {} });
+/**
+ * enabled: one-shot motion (entrances, transitions) may play.
+ * looping: repeating motion (orb, border beam, looping CSS) may play. It stops
+ * on its own 5s after it starts, so no pause button is needed (WCAG 2.2.2,
+ * user 10:57); wake() runs it 5s more (search focus or hover).
+ */
+const MotionContext = createContext({ enabled: false, looping: false, wake: () => {} });
+const LOOP_MS = 5_000;
+const noSubscribe = () => () => {};
 const subscribe = (callback: () => void) => {
   document.addEventListener("visibilitychange", callback);
   return () => document.removeEventListener("visibilitychange", callback);
@@ -20,13 +28,29 @@ const getServerReducedMotion = () => true;
 
 export function LandingMotion({ children }: { children: ReactNode }) {
   const reduced = useSyncExternalStore(subscribeReducedMotion, getReducedMotion, getServerReducedMotion);
-  const [paused, setPaused] = useState(false);
   const visible = useSyncExternalStore(subscribe, getVisible, getServerVisible);
-  const enabled = !reduced && !paused && visible;
+  const enabled = !reduced && visible;
+  // The CSS loops start at first paint, before hydration: on the first load
+  // count from navigation start, after a client navigation from mount.
+  const hydrating = useSyncExternalStore(noSubscribe, () => false, () => true);
+  const [startedAt] = useState(() => (hydrating ? 0 : performance.now()));
+  const [awake, setAwake] = useState(true);
+  const [wakes, setWakes] = useState(0);
+  useEffect(() => {
+    if (!enabled) return;
+    const delay = wakes ? LOOP_MS : Math.max(0, startedAt + LOOP_MS - performance.now());
+    const timer = setTimeout(() => setAwake(false), delay);
+    return () => clearTimeout(timer);
+  }, [enabled, wakes, startedAt]);
+  const wake = useCallback(() => {
+    setAwake(true);
+    setWakes((n) => n + 1);
+  }, []);
+  const looping = enabled && awake;
   return (
-    <MotionContext.Provider value={{ enabled, paused, toggle: () => setPaused((value) => !value) }}>
+    <MotionContext.Provider value={{ enabled, looping, wake }}>
       <LazyMotion features={domAnimation}>
-        <div data-motion={enabled ? "on" : "off"}>{children}</div>
+        <div data-motion={enabled ? "on" : "off"} data-loop={looping ? "on" : "off"}>{children}</div>
       </LazyMotion>
     </MotionContext.Provider>
   );
