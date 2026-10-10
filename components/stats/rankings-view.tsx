@@ -227,6 +227,9 @@ export function RankingsView({ initial }: { initial: RankingQuery }) {
         <p className={styles.note}>
           순위는 LOAKraken이 조회·갱신한 캐릭터 기준이며, 순위 비공개로 설정된 캐릭터는 나오지 않아요. 티어: 크라켄 상위 1% · 해구 5% · 심해 10% · 대양 25% · 연안 50%
         </p>
+        <p className={styles.note}>
+          내 캐릭터를 순위에서 빼고 싶다면 <Link href="/contact#removal">순위 제외 요청</Link>을 보내 주세요.
+        </p>
       </main>
     </div>
   );

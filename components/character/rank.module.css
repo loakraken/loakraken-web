@@ -109,6 +109,11 @@
     padding: 8px;
   }
 }
+.removal {
+  color: var(--link);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
 .note + .note {
   margin-top: 2px;
 }
