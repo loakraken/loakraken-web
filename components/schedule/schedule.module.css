@@ -103,16 +103,20 @@
   vertical-align: 2px;
 }
 
-/* Category links (ILOA category tabs). They wrap instead of scrolling. */
+/* Category links (ILOA category tabs), and the /news kind filters (buttons).
+   They wrap instead of scrolling. */
 .chips {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
   margin-bottom: 14px;
 }
-.chips a {
+.chips a,
+.chips button {
   display: inline-flex;
   align-items: center;
+  gap: 5px;
+  border: 0;
   min-height: 30px;
   padding: 0 12px;
   border-radius: 9999px;
@@ -123,7 +127,13 @@
   text-decoration: none;
   box-shadow: inset 0 0 0 1px var(--secondary);
 }
-.chips a[aria-current="page"] {
+/* Counts stay in the chip ink: an opacity fade dropped them below 4.5:1. */
+.chips span {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.chips a[aria-current="page"],
+.chips button[aria-pressed="true"] {
   background: var(--foreground);
   color: var(--background);
   box-shadow: none;

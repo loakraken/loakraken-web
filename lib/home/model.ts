@@ -15,6 +15,10 @@ export type HomeEvent = Schemas["HomeEventResponse"];
 export type RewardKind = Island["rewardKinds"][number];
 export type RewardGroup = Schemas["HomeRewardGroupResponse"];
 export type Reward = Schemas["HomeRewardResponse"];
+export type PatchNotesEnvelope = Schemas["ApiResponseHomePatchNotesResponse"];
+export type PatchNotes = Schemas["HomePatchNotesResponse"];
+export type PatchNotice = Schemas["HomePatchNoticeResponse"];
+export type PatchCategory = NonNullable<PatchNotice["category"]>;
 
 export const REWARD_LABEL: Record<RewardKind, string> = {
   GOLD: "골드",
@@ -29,6 +33,18 @@ export const NOTICE_LABEL: Record<NonNullable<Notice["category"]>, string> = {
   EVENT: "이벤트",
   SHOP: "상점",
 };
+
+/** Patch history kinds (backend patch-notice-v1 title rules). */
+export const PATCH_LABEL: Record<PatchCategory, string> = {
+  UPDATE: "업데이트",
+  BALANCE: "밸런스",
+  CLIENT_PATCH: "클라이언트 패치",
+  MAINTENANCE_COMPLETE: "점검 완료",
+};
+export const PATCH_CATEGORIES = Object.keys(PATCH_LABEL) as PatchCategory[];
+export const isPatchCategory = (value: string | null | undefined): value is PatchCategory =>
+  !!value && Object.hasOwn(PATCH_LABEL, value);
+export const patchLabel = (category: string) => labelOf(PATCH_LABEL, category);
 
 /** Labels that fall back for a kind or category this build does not know yet. */
 export const rewardLabel = (kind: string) => labelOf(REWARD_LABEL, kind);

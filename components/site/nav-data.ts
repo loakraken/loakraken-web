@@ -101,13 +101,13 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     id: "schedule",
     label: "일정",
-    match: ["/schedule", "/tools/homework"],
+    match: ["/schedule", "/news", "/tools/homework"],
     groups: [
       {
         title: "오늘",
         links: [
           { label: "주간 일정", description: "모험 섬·카오스게이트·필드 보스·섬·항해·로웬", href: "/schedule" },
-          { label: "공지·이벤트", description: "점검과 진행 중인 이벤트", href: "/#news" },
+          { label: "공지·이벤트", description: "공지·패치 이력·진행 중인 이벤트", href: "/news" },
         ],
       },
       {
