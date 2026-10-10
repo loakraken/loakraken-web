@@ -50,6 +50,9 @@
 /* Search */
 .hero {
   display: grid;
+  /* One column no wider than the page: the input's intrinsic width (20 average
+     glyphs; Pretendard's average is a Hangul-wide 0.82em) must not widen it. */
+  grid-template-columns: minmax(0, 1fr);
   justify-items: center;
   gap: 12px;
   padding: 40px 0 28px;
@@ -74,6 +77,7 @@
 }
 .search input {
   flex: 1;
+  width: 0;
   min-width: 0;
   border: 0;
   outline: none;
