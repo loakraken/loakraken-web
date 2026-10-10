@@ -837,6 +837,12 @@
   --duration-draw: 600ms; /* chart lines and bars: explanatory, capped at 600ms */
   --duration-count: 400ms;
   --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  /* Apple's default UI spring (damping 1.0, response 0.35s: critically
+     damped, no overshoot) sampled into linear(); it settles in ~515ms. A CSS
+     transition re-targets from the current value, so a second press mid-way
+     carries on from where the pill is. */
+  --ease-spring: linear(0, 0.058 4%, 0.181 8%, 0.321 13%, 0.456 17%, 0.574 21%, 0.672 25%, 0.751 29%, 0.813 33%, 0.861 38%, 0.897 42%, 0.924 46%, 0.945 50%, 0.96 54%, 0.971 58%, 0.979 63%, 0.985 67%, 0.989 71%, 0.992 75%, 0.994 79%, 0.996 83%, 0.997 88%, 0.998 92%, 0.999 96%, 1);
+  --duration-spring: 515ms;
 }
 
 @media (max-width: 700px) {
