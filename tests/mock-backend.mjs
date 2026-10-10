@@ -667,7 +667,7 @@ createServer(async (req, res) => {
       data.coverage = { ...data.coverage, ready: data.coverage.rosterCharacters, pending: 0, nextAvailableAt: null };
     } else data.coverage.nextAvailableAt = new Date(Date.now() + 20_000).toISOString();
     if (url.searchParams.get("assumeBook") === "true") {
-      data.assumptions[0] = "책(재봉술·야금술) 효과가 항상 적용된다고 가정합니다(일로아·로아와와 같은 가정, 확률 미공개).";
+      data.assumptions[0] = "책(재봉술·야금술) 효과가 항상 적용된다고 가정합니다(확률 미공개).";
       data.equipment.gold = Math.round(data.equipment.gold * 0.8);
       data.total.gold = data.equipment.gold + data.gems.gold;
     }
