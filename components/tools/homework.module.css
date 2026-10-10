@@ -9,8 +9,11 @@
   clip-path: inset(50%);
   white-space: nowrap;
 }
+/* minmax(0, …): a wide child (wider CJK fonts on Linux/Android) wraps
+   instead of widening the page (web #292). */
 .workspace {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-5);
   max-width: 1120px;
   margin: 0 auto;
@@ -90,7 +93,10 @@
   font-size: var(--text-field);
 }
 .input {
-  flex: 1;
+  /* width: 0 drops the input's intrinsic ~20-character width from the
+     form's min-content; flex fills the row (web #292). */
+  flex: 1 1 0;
+  width: 0;
   min-width: 0;
 }
 .input:focus-visible,
@@ -261,12 +267,12 @@
 }
 @media (max-width: 760px) {
   .summary {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
   .stats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
