@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 import {
   NO_EDITS,
+  braceletName,
   gemLevel,
   hasComputed,
   parseSimulateRequest,
@@ -34,7 +35,7 @@ test("only real differences become changes, in a fixed order", () => {
     [],
   );
   assert.deepEqual(
-    toChanges({ gemAll: 9, gems: { 1: 10 }, refine: { 0: 22, 1: 25 }, quality: { 0: 100 } }, current),
+    toChanges({ ...NO_EDITS, gemAll: 9, gems: { 1: 10 }, refine: { 0: 22, 1: 25 }, quality: { 0: 100 } }, current),
     [
       { kind: "GEM_LEVEL_ALL", level: 9 },
       { kind: "GEM_LEVEL", slot: 1, level: 10 },
@@ -49,6 +50,55 @@ test("only real differences become changes, in a fixed order", () => {
   );
   assert.equal(gemLevel({ ...NO_EDITS, gemAll: 7 }, current.gems[0]), 7);
   assert.equal(gemLevel({ ...NO_EDITS, gemAll: 7, gems: { 0: 6 } }, current.gems[0]), 6);
+});
+
+test("polish, bracelet, engravings, stones, ark passive and cores become backend changes", () => {
+  const full = {
+    ...current,
+    polish: [{ index: 3, line: 0, option: "추가 피해", grade: "LOW" as const }],
+    bracelet: [{ line: 1, name: "치명타 피해", grade: "MID" as const }],
+    engravings: [{ name: "원한", level: 3 }],
+    stones: [{ name: "원한", level: 1 }],
+    arkPassive: [{ tree: "진화", points: 100 }],
+    cores: [{ slotIndex: 0, grade: "유물", point: 17 }],
+  };
+  // Same values as now: nothing to send.
+  assert.deepEqual(
+    toChanges(
+      {
+        ...NO_EDITS,
+        polish: { "3:0": "LOW" },
+        engraving: { 원한: 3 },
+        core: { 0: { grade: "유물", point: 17 } },
+      },
+      full,
+    ),
+    [],
+  );
+  assert.deepEqual(
+    toChanges(
+      {
+        ...NO_EDITS,
+        polish: { "3:0": "HIGH" },
+        bracelet: { 1: "HIGH" },
+        engraving: { 원한: 4 },
+        stone: { 원한: 2 },
+        arkPassive: { 진화: 120 },
+        core: { 0: { grade: "고대", point: 20 } },
+      },
+      full,
+    ),
+    [
+      { kind: "POLISH", index: 3, line: 0, option: "추가 피해", grade: "HIGH" },
+      { kind: "BRACELET_EFFECT", line: 1, name: "치명타 피해", grade: "HIGH" },
+      { kind: "ENGRAVING_LEVEL", name: "원한", level: 4 },
+      { kind: "STONE_ENGRAVING", name: "원한", level: 2 },
+      { kind: "ARK_PASSIVE_POINT", tree: "진화", points: 120 },
+      { kind: "ARK_GRID_CORE", slotIndex: 0, grade: "고대", point: 20 },
+    ],
+  );
+  assert.equal(braceletName("치명타 피해 +8.40%"), "치명타 피해");
+  assert.equal(braceletName("특화 +100"), "특화");
 });
 
 test("the proxy forwards only known kinds with integer or short string fields", () => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
@@ -17,8 +17,13 @@ import {
   postSimulation,
 } from "@/lib/combat-power/client";
 import {
+  ARK_PASSIVE_MAX,
   GEAR_TYPES,
+  GRADES,
+  GRADE_LABEL,
   KIND_LABEL,
+  braceletName,
+  type Grade,
   NO_EDITS,
   combatPowerFailureCopy,
   gemLevel,
@@ -74,7 +79,80 @@ function currentOf(data: Character) {
         ]
       : [],
   );
-  return { gems, gear };
+  const isGrade = (value: string | null | undefined): value is Grade =>
+    (GRADES as readonly string[]).includes(value ?? "");
+  const polish = data.loadout.equipment.flatMap((item, index) =>
+    (item.detail?.polishEffects ?? []).map((effect, line) => ({
+      index,
+      line,
+      item: item.name ?? item.type ?? "",
+      option: effect.name,
+      value: effect.value,
+      grade: isGrade(effect.grade) ? effect.grade : null,
+    })),
+  );
+  const braceletItem = data.loadout.equipment.find((item) => item.type === "팔찌");
+  // Range-type lines (combat stats) have no grade and are not changeable yet.
+  const bracelet = (braceletItem?.detail?.braceletEffects ?? []).flatMap((effect, line) =>
+    isGrade(effect.grade)
+      ? [{ line, text: effect.text, name: braceletName(effect.text), grade: effect.grade }]
+      : [],
+  );
+  const engravings = (data.loadout.engravings?.arkPassiveEffects ?? []).flatMap((item) =>
+    item.name && item.level != null ? [{ name: item.name, level: item.level }] : [],
+  );
+  const stones = data.loadout.equipment.flatMap((item) => item.detail?.stoneEngravings ?? []);
+  const arkPassive = (data.loadout.arkPassive?.points ?? []).flatMap((item) =>
+    item.name && item.value != null ? [{ tree: item.name, points: item.value }] : [],
+  );
+  const cores = (data.loadout.arkGrid?.slots ?? []).flatMap((slot) =>
+    slot.index != null && slot.grade && slot.point != null
+      ? [{ slotIndex: slot.index, name: slot.name ?? `코어 ${slot.index + 1}`, grade: slot.grade, point: slot.point }]
+      : [],
+  );
+  return { gems, gear, polish, bracelet, engravings, stones, arkPassive, cores };
+}
+
+function Choice({
+  label,
+  caption,
+  value,
+  original,
+  values,
+  onChange,
+}: {
+  label: string;
+  caption?: string;
+  value: string;
+  original: string | null;
+  values: { value: string; label: string }[];
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className={styles.select} data-changed={(original != null && value !== original) || undefined}>
+      {caption && <span className={styles.caption} aria-hidden="true">{caption}</span>}
+      <span className={styles.sr}>{label}</span>
+      <select value={value} onChange={(event) => onChange(event.target.value)}>
+        {original == null && <option value="">—</option>}
+        {values.map((item) => (
+          <option key={item.value} value={item.value}>
+            {item.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+function Card({ id, title, children }: { id: string; title: string; children: ReactNode }) {
+  return (
+    <section className={styles.card} aria-labelledby={id}>
+      <header className={styles.cardHead}>
+        <h2 id={id}>{title}</h2>
+      </header>
+      <ul className={styles.rows}>{children}</ul>
+    </section>
+  );
 }
 
 function Select({
@@ -122,6 +200,10 @@ function Editors({
   const gemValues = options.gemLevels;
   const refineValues = range(options.refineMin, options.refineMax);
   const qualityValues = range(0, options.qualityMax);
+  const gradeValues = options.polishGrades.map((grade) => ({
+    value: grade,
+    label: GRADE_LABEL[grade] ?? grade,
+  }));
   return (
     <div className={styles.editors}>
       <section className={styles.card} aria-labelledby="cp-gems">
@@ -218,10 +300,180 @@ function Editors({
           </ul>
         )}
       </section>
+
+      {current.polish.length > 0 && (
+        <Card id="cp-polish" title="연마">
+          {current.polish.map((line) => {
+            const key = `${line.index}:${line.line}`;
+            return (
+              <li key={key}>
+                <span className={styles.rowName}>
+                  {line.option}
+                  <small className={styles.rowSub}>
+                    {line.item} · {line.value}
+                  </small>
+                </span>
+                <Choice
+                  label={`${line.item} ${line.option} 등급`}
+                  value={edits.polish[key] ?? line.grade ?? ""}
+                  original={line.grade}
+                  values={gradeValues}
+                  onChange={(grade) =>
+                    setEdits((prev) => ({ ...prev, polish: { ...prev.polish, [key]: grade as Grade } }))
+                  }
+                />
+              </li>
+            );
+          })}
+        </Card>
+      )}
+
+      {current.bracelet.length > 0 && (
+        <Card id="cp-bracelet" title="팔찌">
+          {current.bracelet.map((line) => (
+            <li key={line.line}>
+              <span className={styles.rowName}>{line.text}</span>
+              <Choice
+                label={`팔찌 ${line.name} 등급`}
+                value={edits.bracelet[line.line] ?? line.grade ?? ""}
+                original={line.grade}
+                values={gradeValues}
+                onChange={(grade) =>
+                  setEdits((prev) => ({ ...prev, bracelet: { ...prev.bracelet, [line.line]: grade as Grade } }))
+                }
+              />
+            </li>
+          ))}
+        </Card>
+      )}
+
+      {(current.engravings.length > 0 || current.stones.length > 0) && (
+        <Card id="cp-engravings" title="각인·스톤">
+          {current.engravings.map((item) => (
+            <li key={`e-${item.name}`}>
+              <span className={styles.rowName}>{item.name}</span>
+              <span className={styles.rowFrom}>Lv.{item.level}</span>
+              <Select
+                label={`${item.name} 각인 레벨`}
+                value={edits.engraving[item.name] ?? item.level}
+                original={item.level}
+                values={options.engravingLevels}
+                onChange={(level) =>
+                  setEdits((prev) => ({ ...prev, engraving: { ...prev.engraving, [item.name]: level } }))
+                }
+              />
+            </li>
+          ))}
+          {current.stones.map((item) => (
+            <li key={`s-${item.name}`}>
+              <span className={styles.rowName}>
+                {item.name}
+                <small className={styles.rowSub}>어빌리티 스톤</small>
+              </span>
+              <span className={styles.rowFrom}>Lv.{item.level}</span>
+              <Select
+                label={`스톤 ${item.name} 레벨`}
+                value={edits.stone[item.name] ?? item.level}
+                original={item.level}
+                values={options.stoneLevels}
+                onChange={(level) =>
+                  setEdits((prev) => ({ ...prev, stone: { ...prev.stone, [item.name]: level } }))
+                }
+              />
+            </li>
+          ))}
+        </Card>
+      )}
+
+      {current.arkPassive.length > 0 && (
+        <Card id="cp-ark-passive" title="아크 패시브">
+          {current.arkPassive.map((item) => (
+            <li key={item.tree}>
+              <span className={styles.rowName}>{item.tree}</span>
+              <span className={styles.rowFrom}>{item.points}P</span>
+              <PointField
+                label={`아크 패시브 ${item.tree} 포인트`}
+                value={edits.arkPassive[item.tree] ?? item.points}
+                original={item.points}
+                max={ARK_PASSIVE_MAX}
+                onChange={(points) =>
+                  setEdits((prev) => ({ ...prev, arkPassive: { ...prev.arkPassive, [item.tree]: points } }))
+                }
+              />
+            </li>
+          ))}
+        </Card>
+      )}
+
+      {current.cores.length > 0 && (
+        <Card id="cp-cores" title="아크 그리드 코어">
+          {current.cores.map((item) => {
+            const edit = edits.core[item.slotIndex] ?? { grade: item.grade, point: item.point };
+            const set = (next: Partial<typeof edit>) =>
+              setEdits((prev) => ({ ...prev, core: { ...prev.core, [item.slotIndex]: { ...edit, ...next } } }));
+            return (
+              <li key={item.slotIndex}>
+                <span className={styles.rowName}>{item.name}</span>
+                <Choice
+                  label={`${item.name} 등급`}
+                  caption="등급"
+                  value={edit.grade}
+                  original={item.grade}
+                  values={options.coreGrades.map((grade) => ({ value: grade, label: grade }))}
+                  onChange={(grade) => set({ grade })}
+                />
+                <Select
+                  label={`${item.name} 포인트`}
+                  caption="포인트"
+                  value={edit.point}
+                  original={item.point}
+                  values={range(0, options.corePointMax)}
+                  onChange={(point) => set({ point })}
+                />
+              </li>
+            );
+          })}
+        </Card>
+      )}
       <p className={styles.later}>
-        연마·팔찌·각인·스톤·아크 패시브·아크 그리드는 계산식이 확인되는 대로 이어서 열어요.
+        연마 옵션·팔찌 효과 종류 바꾸기와 상급 재련은 공식 표가 들어오는 대로 이어서 열어요.
       </p>
     </div>
+  );
+}
+
+/** Ark passive points: typed, applied only when a whole number in range. */
+function PointField({
+  label,
+  value,
+  original,
+  max,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  original: number;
+  max: number;
+  onChange: (value: number) => void;
+}) {
+  // Typed text while focused; otherwise the applied value (so a reset shows).
+  const [draft, setDraft] = useState<string | null>(null);
+  return (
+    <label className={styles.select} data-changed={value !== original || undefined}>
+      <span className={styles.sr}>{label}</span>
+      <input
+        className={styles.number}
+        inputMode="numeric"
+        value={draft ?? String(value)}
+        onChange={(event) => {
+          const next = event.target.value.replace(/[^\d]/g, "").slice(0, 3);
+          setDraft(next);
+          const number = Number(next);
+          if (next !== "" && number <= max) onChange(number);
+        }}
+        onBlur={() => setDraft(null)}
+      />
+    </label>
   );
 }
 
