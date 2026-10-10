@@ -55,6 +55,10 @@ function useDebounced<T>(value: T, delay = 300) {
   return debounced;
 }
 
+/** Backend echoes polish/bracelet grades as LOW·MID·HIGH; show 하·중·상. */
+const gradeText = (text: string | null | undefined) =>
+  text?.replace(/\b(LOW|MID|HIGH)\b/g, (grade) => GRADE_LABEL[grade] ?? grade);
+
 const range = (from: number, to: number) =>
   Array.from({ length: Math.max(0, to - from + 1) }, (_, i) => from + i);
 
@@ -529,7 +533,7 @@ function ChangeList({ data }: { data: Simulation }) {
               {item.target}
               {(item.from != null || item.to != null) && (
                 <small>
-                  {item.from ?? "—"} → {item.to ?? "—"}
+                  {gradeText(item.from) ?? "—"} → {gradeText(item.to) ?? "—"}
                 </small>
               )}
             </span>
