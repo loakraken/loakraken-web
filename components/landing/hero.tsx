@@ -22,7 +22,8 @@ export function Hero({
 }: {
   /** Lets the page focus the search box (the /about header button). */
   inputRef?: RefObject<HTMLInputElement | null>;
-  /** On the home page: the page has its own h1 and the preview lives on /about. */
+  /** On the home page: the page has its own h1, and no help line or preview
+   *  link under the search (user, 19:4x) — only the error slot, same height. */
   embedded?: boolean;
 }) {
   const shortcutKey = useSyncExternalStore(noSubscribe, platformKey, () => null);
@@ -37,7 +38,6 @@ export function Hero({
   const [searching, setSearching] = useState(false);
   const [focused, setFocused] = useState(false);
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
-  const preview = embedded ? "/about#preview" : "#preview";
   const Title = embedded ? "h2" : "h1";
 
   useEffect(() => {
@@ -84,15 +84,15 @@ export function Hero({
               <label htmlFor="character-search" className={styles.srOnly}>캐릭터 이름</label>
               <Search className={styles.searchIcon} size={19} aria-hidden="true" />
               <input ref={input} id="character-search" name="character" value={query} onChange={(event) => { setQuery(event.target.value); if (error) setError(""); }}
-                onFocus={() => { setFocused(true); wake(); }} onBlur={() => setFocused(false)} placeholder="캐릭터 이름을 입력하세요" maxLength={65} autoComplete="off" spellCheck={false} disabled={searching} aria-invalid={!!error} aria-describedby={error ? "search-error" : "search-help"} />
+                onFocus={() => { setFocused(true); wake(); }} onBlur={() => setFocused(false)} placeholder="캐릭터 이름을 입력하세요" maxLength={65} autoComplete="off" spellCheck={false} disabled={searching} aria-invalid={!!error} aria-describedby={error ? "search-error" : embedded ? undefined : "search-help"} />
               {shortcutKey && <kbd className={styles.shortcut} aria-hidden="true">{shortcutKey === "mac" ? <Command size={12} /> : "Ctrl"} K</kbd>}
               <button className={styles.searchSubmit} type="submit" disabled={searching} aria-label={searching ? "캐릭터 화면으로 이동 중" : undefined}>{searching ? <InlineOrb /> : <>캐릭터 검색 <ArrowRight size={16} /></>}</button>
             </form>
           </BorderBeam>
-          <div className={styles.searchMessage} aria-live="polite">{error ? <p id="search-error" className={styles.error}>{error}</p> : <p id="search-help">이름으로 캐릭터의 현재 정보를 조회하세요. <a href={preview}>예시 화면 살펴보기 <ArrowUpRight size={12} /></a></p>}</div>
+          <div className={styles.searchMessage} aria-live="polite">{error ? <p id="search-error" className={styles.error}>{error}</p> : embedded ? null : <p id="search-help">이름으로 캐릭터의 현재 정보를 조회하세요. <a href="#preview">예시 화면 살펴보기 <ArrowUpRight size={12} /></a></p>}</div>
         </div>
       </div>
-      <a className={styles.exploreLink} href={preview}>캐릭터 화면 미리보기 <ArrowDown size={16} /></a>
+      {!embedded && <a className={styles.exploreLink} href="#preview">캐릭터 화면 미리보기 <ArrowDown size={16} /></a>}
     </section>
   );
 }
