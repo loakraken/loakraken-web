@@ -26,6 +26,12 @@
   gap: var(--space-4);
   position: sticky;
   top: 72px;
+  /* Taller than the window: scroll inside instead of hiding the bottom
+     until the page ends. */
+  max-height: calc(100dvh - 72px - 16px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
 }
 .sectionTitle {
   font-size: var(--text-heading-sm);
@@ -269,6 +275,8 @@
      (CLS 0.29 at 390). */
   .side {
     position: static;
+    max-height: none;
+    overflow: visible;
   }
 }
 @media (prefers-reduced-motion: reduce) {
