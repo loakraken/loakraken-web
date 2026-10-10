@@ -6,6 +6,7 @@ import Providers from "./providers";
 import { SITE_NAME, siteUrl } from "@/lib/site";
 import { themeInitScript } from "@/components/ui/theme-toggle";
 import { earlyClickScript } from "@/lib/early-clicks";
+import { SiteLegal } from "@/components/site/site-legal";
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
@@ -53,6 +54,7 @@ export default function RootLayout({ children }: Readonly<{
       </head>
       <body className={`${geistMono.variable} ${korean.variable} antialiased`}>
         <Providers>{children}</Providers>
+        <SiteLegal />
       </body>
     </html>
   );

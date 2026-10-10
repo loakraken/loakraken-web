@@ -1,0 +1,112 @@
+/* Privacy policy and contact pages: a readable single column of text and
+   tables on the page background, the same tokens in light and dark. */
+.page {
+  min-height: 100vh;
+  background: var(--background);
+  color: var(--foreground);
+}
+.main {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 48px 24px 80px;
+}
+.main h1 {
+  margin: 0 0 8px;
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+.lead {
+  margin: 0 0 28px;
+  color: var(--muted-foreground);
+  font-size: 15px;
+  line-height: 1.7;
+}
+.main h2 {
+  margin: 36px 0 12px;
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.main h3 {
+  margin: 20px 0 8px;
+  font-size: 15px;
+  font-weight: 700;
+}
+.main p,
+.main li {
+  font-size: 15px;
+  line-height: 1.75;
+}
+.main p {
+  margin: 0 0 10px;
+}
+.main ul {
+  margin: 0 0 10px;
+  padding-left: 20px;
+  list-style: disc;
+}
+.main a {
+  color: var(--link);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.tableWrap {
+  overflow-x: auto;
+  margin: 8px 0 14px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+}
+.main table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.main th,
+.main td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+.main thead th {
+  background: var(--muted);
+  font-weight: 700;
+  white-space: nowrap;
+}
+.main tbody tr:last-child th,
+.main tbody tr:last-child td {
+  border-bottom: 0;
+}
+.pending {
+  color: var(--muted-foreground);
+  font-style: normal;
+}
+.card {
+  display: grid;
+  gap: 6px;
+  margin: 12px 0;
+  padding: 18px 20px;
+  border-radius: 20px;
+  background: var(--muted);
+}
+.card strong {
+  font-size: 16px;
+}
+.card p {
+  margin: 0;
+}
+.mail {
+  font-size: 18px;
+  font-weight: 700;
+}
+@media (max-width: 480px) {
+  .main {
+    padding: 32px 16px 64px;
+  }
+  .main h1 {
+    font-size: 26px;
+  }
+}
