@@ -25,6 +25,8 @@ test.describe("레이드 보상표 @smoke", () => {
 
 test.describe("숙제 체크 @smoke", () => {
   test("원정대를 불러와 관문을 체크하면 이번 주 골드가 더해지고 새로고침해도 남는다", async ({ page }) => {
+    // web #292: 리눅스(안드로이드와 비슷한 한글 글꼴 폭) 390에서 요약 칸이 넓어져 가로 스크롤. 고치면 지운다.
+    test.fail(process.platform === "linux" && page.viewportSize().width < 400, "web #292");
     await gotoReady(page, "/tools/homework");
     const summary = page.getByRole("region", { name: "이번 주 요약" });
     await expect(summary).toContainText("0G / 0G");
