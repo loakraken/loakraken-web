@@ -43,6 +43,8 @@ npx playwright show-report       # 실패 시 trace·스크린샷
 | `regression/focus-retention.spec.mjs` | 키보드 실행 뒤 로딩 중·완료 후 포커스가 BODY로 사라지지 않음(성장 도구 3화면·시세) |
 | `regression/dark-mode.spec.mjs` | OS 다크 모드에서 7개 화면 제목·본문 대비 4.5:1 이상 |
 | `regression/favorites.spec.mjs` | 즐겨찾기 추가 → 새로고침 → 새 탭 홈 목록 → 해제, 깨진 저장소 |
+| `regression/long-text.spec.mjs` | 긴 텍스트 넘침(렌더된 글자에 긴 글자를 넣고 boundingBox 확인): 공지·이벤트·인기·최근 검색·랭킹·배너 이름·장비·시세 품목 × 1440·768·390 |
+| `regression/mock-failures.spec.mjs` | 목 실패 장치(`POST /__fail`): 인기 검색 서버 선조회+재조회 실패, 시세 1분 갱신 503·429에도 목록 유지. **`isolated` 프로젝트**로 다른 프로젝트가 끝난 뒤 단독 실행(실패 예약은 목 전체 공유) |
 | `regression/card-panel.spec.mjs` | 전투 탭 카드 패널 구조(카드 이름·각성·세트 효과), 원정대 카드 기록(web #85부터 카드 패널 안, 역할 세트·6속성·빈 기록) |
 
 ## 알려진 실패
