@@ -29,9 +29,10 @@ test.describe("캐릭터 순위 패널 @regression", () => {
     await expect(rankPanel(page)).toContainText("순위 집계 조건에 들지 않아요");
   });
 
-  test("표본이 작으면 0이 아니라 '집계 중'을 보여 준다", async ({ page }) => {
+  test("표본이 작으면 0이 아니라 표본 수를 한 줄로 보여 준다", async ({ page }) => {
     await gotoReady(page, characterPath("집계중"));
-    await expect(rankPanel(page)).toContainText("집계 중");
+    // web #359: '집계 중' 대신 "표본 … n명 — 30명이 모이면 순위를 보여 드려요."(표본이 작은 범위만, 나머지 범위는 순위 그대로)
+    await expect(rankPanel(page)).toContainText("명이 모이면 순위를 보여 드려요");
   });
 
   test("아직 관측하지 않은 캐릭터는 안내한다", async ({ page }) => {
