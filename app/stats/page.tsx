@@ -26,6 +26,6 @@ export default async function StatsPage({
   delete query.metric;
   delete query.width;
   delete query.percentileOf;
-  // Keyed by tab so a menu link to another tab opens it.
-  return <StatsView key={tab} initial={query} initialTab={tab} />;
+  // StatsView follows initialTab itself, so a menu link to another tab opens it.
+  return <StatsView initial={query} initialTab={tab} />;
 }
