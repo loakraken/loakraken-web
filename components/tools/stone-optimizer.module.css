@@ -413,6 +413,12 @@
 .lineChances li[data-best] span {
   color: inherit;
 }
+/* Other goals' picks: outlined, so the filled one stays the single
+   recommendation on screen (시안 ②). */
+.lineChances li[data-best]:not([data-lead]) {
+  background: transparent;
+  color: var(--foreground);
+}
 .lineChances em {
   font-size: var(--text-caption);
   font-style: normal;

@@ -119,11 +119,11 @@ function LineRow({
       </div>
       <SlotDots slots={slots} history={moves} line={line} />
       <ul className={styles.lineChances} aria-label={`${name}을 깎으면 목표 확률`}>
-        {advice.map((a) => {
+        {advice.map((a, i) => {
           const value = a.perLine[line];
           const best = recommendLine(a).line === line;
           return (
-            <li key={a.goal.id} data-best={best || undefined}>
+            <li key={a.goal.id} data-best={best || undefined} data-lead={i === 0 || undefined}>
               <span>{a.goal.label}</span>
               <b>{value === null ? "—" : formatChance(value)}</b>
               {best && <em>추천</em>}
