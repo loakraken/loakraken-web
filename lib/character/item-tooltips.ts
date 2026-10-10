@@ -62,3 +62,35 @@ export function lineTone(line: string): LineTone {
   if (/^\[[^\]]+\]/.test(line.trim())) return "craft";
   return "plain";
 }
+
+type LineKind = "warn" | "source" | "more" | "count" | "plain";
+const kindOf = (line: string): LineKind =>
+  /불가/.test(line)
+    ? "warn"
+    : /^\[[^\]]+\]/.test(line.trim())
+      ? "source"
+      : /^그 외에 획득처/.test(line)
+        ? "more"
+        : /^내구도\s/.test(line)
+          ? "count"
+          : "plain";
+
+/**
+ * The remaining lines as the reference site's sections (sheet v2.1 §2c): a
+ * run of sources ("[가디언 토벌] …") with "그 외에 획득처가 더 존재합니다." is one
+ * section, so are consecutive description sentences; a restriction, a single
+ * "[제작] …" line and durability stand alone.
+ */
+export function groupExtraLines(lines: string[]): string[][] {
+  const groups: { kind: LineKind; lines: string[] }[] = [];
+  for (const line of lines) {
+    const kind = kindOf(line);
+    const last = groups.at(-1);
+    const joins =
+      last &&
+      (kind === "more" ? last.kind === "source" : kind === last.kind && (kind === "source" || kind === "plain"));
+    if (last && joins) last.lines.push(line);
+    else groups.push({ kind, lines: [line] });
+  }
+  return groups.map((group) => group.lines);
+}

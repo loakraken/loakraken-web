@@ -1,0 +1,18 @@
+/* The icon is the tooltip's trigger (a button around it). */
+.trigger {
+  display: inline-flex;
+  flex: none;
+  padding: 0;
+  border: 0;
+  border-radius: 12px;
+  background: none;
+  color: inherit;
+}
+.trigger:focus-visible {
+  outline: 3px solid var(--ring);
+  outline-offset: 2px;
+}
+/* The last trade line ("거래 불가", "거래가능") is right-aligned in the game. */
+.tradeEnd {
+  text-align: right;
+}

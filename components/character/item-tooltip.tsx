@@ -14,11 +14,11 @@ import {
 } from "@/components/ui/item-tooltip";
 import { gradeKey } from "@/lib/character/model";
 import type { Character } from "@/lib/character/model";
-import { lineTone } from "@/lib/character/item-tooltips";
+import { groupExtraLines, lineTone } from "@/lib/character/item-tooltips";
+import styles from "./item-tooltip.module.css";
 
 type Equipment = Character["loadout"]["equipment"][number];
 
-const POLISH: Record<string, string> = { HIGH: "상", MID: "중", LOW: "하" };
 const POLISH_TONE: Record<string, string> = { HIGH: "#ffb37a", MID: "#d3a6ff", LOW: "#8cc4ff" };
 const GRADES = new Set(["normal", "uncommon", "rare", "epic", "legendary", "relic", "ancient", "esther"]);
 
@@ -52,9 +52,82 @@ function TradeLines({ lines }: { lines: string[] }) {
           ))}
         </ItemDetailSection>
       )}
-      <ItemDetailSection>
+      {/* "거래 불가"·"거래가능" sit on the right, as in the game's tooltip. */}
+      <ItemDetailSection className={styles.tradeEnd}>
         <Line>{last}</Line>
       </ItemDetailSection>
+    </>
+  );
+}
+
+type Detail = NonNullable<Equipment["detail"]>;
+
+/** Polish and bracelet lines in the official tooltip's grade colour (상·중·하). */
+function Graded({ text, grade }: { text: string; grade: string | null }) {
+  return (
+    <ItemLine>
+      <span style={grade ? ({ color: POLISH_TONE[grade] } as CSSProperties) : undefined}>{text}</span>
+    </ItemLine>
+  );
+}
+
+/**
+ * The effect sections in the official order. The plain effect groups already
+ * hold "연마 효과" and "팔찌 효과"; those two are drawn from the graded lists in
+ * the same place (for the colours), never twice. The stone's "무작위 각인 효과"
+ * group is kept as is — it also has the level bonus line the list lacks.
+ */
+function Effects({ detail: d }: { detail: Detail }) {
+  const polish = d.polishEffects.length > 0;
+  const bracelet = d.braceletEffects.length > 0;
+  const titles = new Set(d.effects.map((group) => group.title));
+  return (
+    <>
+      {d.effects.map((group, i) =>
+        polish && group.title === "연마 효과" ? (
+          <ItemDetailSection key={i} label={group.title}>
+            {d.polishEffects.map((e, j) => (
+              <Graded key={j} text={`${e.name} ${e.value}`} grade={e.grade} />
+            ))}
+          </ItemDetailSection>
+        ) : bracelet && group.title === "팔찌 효과" ? (
+          <ItemDetailSection key={i} label={group.title}>
+            {d.braceletEffects.map((e, j) => (
+              <Graded key={j} text={e.text} grade={e.grade} />
+            ))}
+          </ItemDetailSection>
+        ) : (
+          <ItemDetailSection key={i} label={group.title}>
+            {group.lines.map((line, j) => (
+              <ItemLine key={j}>{line}</ItemLine>
+            ))}
+          </ItemDetailSection>
+        ),
+      )}
+      {/* An older parser without these groups: the lists alone, after the effects. */}
+      {polish && !titles.has("연마 효과") && (
+        <ItemDetailSection label="연마 효과">
+          {d.polishEffects.map((e, j) => (
+            <Graded key={j} text={`${e.name} ${e.value}`} grade={e.grade} />
+          ))}
+        </ItemDetailSection>
+      )}
+      {bracelet && !titles.has("팔찌 효과") && (
+        <ItemDetailSection label="팔찌 효과">
+          {d.braceletEffects.map((e, j) => (
+            <Graded key={j} text={e.text} grade={e.grade} />
+          ))}
+        </ItemDetailSection>
+      )}
+      {d.stoneEngravings.length > 0 && !titles.has("무작위 각인 효과") && (
+        <ItemDetailSection label="무작위 각인 효과">
+          {d.stoneEngravings.map((e, j) => (
+            <ItemLine key={j}>
+              [{e.name}] Lv.{e.level}
+            </ItemLine>
+          ))}
+        </ItemDetailSection>
+      )}
     </>
   );
 }
@@ -90,41 +163,7 @@ export function EquipmentCard({ item, slot, lines = [] }: { item: Equipment; slo
     >
       {d && <TradeLines lines={d.tradeLines} />}
       {d?.advancedRefineLevel ? <ItemLine>[상급 재련] {d.advancedRefineLevel}단계</ItemLine> : null}
-      {d?.effects.map((group, i) => (
-        <ItemDetailSection key={i} label={group.title}>
-          {group.lines.map((line, j) => (
-            <ItemLine key={j}>{line}</ItemLine>
-          ))}
-        </ItemDetailSection>
-      ))}
-      {d?.polishEffects.length ? (
-        <ItemDetailSection label="연마 효과">
-          {d.polishEffects.map((e, i) => (
-            <p key={i} style={e.grade ? ({ color: POLISH_TONE[e.grade] } as CSSProperties) : undefined}>
-              {e.grade && <b>{POLISH[e.grade] ?? ""} </b>}
-              {e.name} {e.value}
-            </p>
-          ))}
-        </ItemDetailSection>
-      ) : null}
-      {d?.braceletEffects.length ? (
-        <ItemDetailSection label="팔찌 효과">
-          {d.braceletEffects.map((e, i) => (
-            <ItemLine key={i}>
-              <span style={e.grade ? ({ color: POLISH_TONE[e.grade] } as CSSProperties) : undefined}>{e.text}</span>
-            </ItemLine>
-          ))}
-        </ItemDetailSection>
-      ) : null}
-      {d?.stoneEngravings.length ? (
-        <ItemDetailSection label="무작위 각인 효과">
-          {d.stoneEngravings.map((e, i) => (
-            <ItemLine key={i}>
-              [{e.name}] Lv.{e.level}
-            </ItemLine>
-          ))}
-        </ItemDetailSection>
-      ) : null}
+      {d && <Effects detail={d} />}
       {d?.refineExp && (
         <ItemProgress label="현재 단계 재련 경험치" value={d.refineExp.current ?? 0} max={d.refineExp.max} />
       )}
@@ -135,48 +174,39 @@ export function EquipmentCard({ item, slot, lines = [] }: { item: Equipment; slo
           </ItemLine>
         </ItemDetailSection>
       )}
-      {lines.map((line, i) => (
-        <Line key={`x${i}`}>{line}</Line>
+      {groupExtraLines(lines).map((group, i) => (
+        <ItemDetailSection key={`x${i}`}>
+          {group.map((line, j) => (
+            <Line key={j}>{line}</Line>
+          ))}
+        </ItemDetailSection>
       ))}
     </ItemDetail>
   );
 }
 
 /**
- * An equipment row that opens its card: hover, click or Enter on desktop
- * (beside the row, the reference site's place and timing), a tap on touch
- * screens (bottom sheet). The row itself is the trigger.
+ * The item's icon opens its card, as on the reference site (sheet v2.1 §1:
+ * the card hangs off the icon, 12px to its right, top 8px above): hover,
+ * click or Enter on desktop, a tap on touch screens (bottom sheet).
  */
 export function ItemTooltip({
   item,
   slot,
   lines,
-  as = "li",
-  className,
-  style,
-  wide,
   children,
 }: {
   item: Equipment;
   slot?: string;
   /** The official tooltip's remaining lines (item-tooltips, loaded when idle). */
   lines?: string[];
-  as?: "li" | "div";
-  className?: string;
-  style?: CSSProperties;
-  /** The bracelet row spans two columns (data-wide). */
-  wide?: boolean;
+  /** The icon. */
   children: ReactNode;
 }) {
-  const Tag = as;
   const name = item.name ?? slot ?? "아이템";
   return (
     <Tooltip>
-      <ItemTooltipTrigger
-        nativeButton={false}
-        render={<Tag className={className} style={style} data-wide={wide ? "" : undefined} />}
-        aria-label={`${name} 상세 보기`}
-      >
+      <ItemTooltipTrigger className={styles.trigger} aria-label={`${name} 상세 보기`}>
         {children}
       </ItemTooltipTrigger>
       <ItemTooltipContent aria-label={name}>

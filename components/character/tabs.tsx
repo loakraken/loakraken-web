@@ -337,8 +337,10 @@ function EquipmentPanel({ data }: { data: Character }) {
             {groups.armor.map((item, i) => {
               const refine = refineOf(item);
               return (
-                <ItemTooltip key={i} item={item} slot={SLOT_LABEL[item.type ?? ""] ?? undefined} lines={linesOf(item)} {...stagger(i, styles.item)}>
-                  <GameIcon src={item.icon} grade={item.grade} />
+                <li key={i} {...stagger(i, styles.item)}>
+                  <ItemTooltip item={item} slot={SLOT_LABEL[item.type ?? ""] ?? undefined} lines={linesOf(item)}>
+                    <GameIcon src={item.icon} grade={item.grade} />
+                  </ItemTooltip>
                   <div className={styles.itemText}>
                     <strong>
                       {SLOT_LABEL[item.type ?? ""] ?? text(item.type)}
@@ -362,7 +364,7 @@ function EquipmentPanel({ data }: { data: Character }) {
                       )}
                     </span>
                   </div>
-                </ItemTooltip>
+                </li>
               );
             })}
           </ul>
@@ -375,8 +377,10 @@ function EquipmentPanel({ data }: { data: Character }) {
           )}
           <ul className={styles.itemList}>
             {groups.accessories.map((item, i) => (
-              <ItemTooltip key={i} item={item} lines={linesOf(item)} {...stagger(i, styles.item)}>
-                <GameIcon src={item.icon} grade={item.grade} />
+              <li key={i} {...stagger(i, styles.item)}>
+                <ItemTooltip item={item} lines={linesOf(item)}>
+                  <GameIcon src={item.icon} grade={item.grade} />
+                </ItemTooltip>
                 <div className={styles.itemText}>
                   <strong>
                     {text(item.type)}
@@ -408,19 +412,21 @@ function EquipmentPanel({ data }: { data: Character }) {
                     ))}
                   </ul>
                 ) : null}
-              </ItemTooltip>
+              </li>
             ))}
           </ul>
         </div>
       </div>
       <div className={styles.equipFoot}>
         {groups.stone && (
-          <ItemTooltip item={groups.stone} slot="어빌리티 스톤" lines={linesOf(groups.stone)} as="div" className={styles.footItem}>
-            <GameIcon
-              src={groups.stone.icon}
-              grade={groups.stone.grade}
-              size={40}
-            />
+          <div className={styles.footItem}>
+            <ItemTooltip item={groups.stone} slot="어빌리티 스톤" lines={linesOf(groups.stone)}>
+              <GameIcon
+                src={groups.stone.icon}
+                grade={groups.stone.grade}
+                size={40}
+              />
+            </ItemTooltip>
             <div>
               <strong>어빌리티 스톤</strong>
               {groups.stone.detail?.stoneEngravings.length ? (
@@ -435,15 +441,17 @@ function EquipmentPanel({ data }: { data: Character }) {
                 <small>{text(groups.stone.name)}</small>
               )}
             </div>
-          </ItemTooltip>
+          </div>
         )}
         {groups.bracelet && (
-          <ItemTooltip item={groups.bracelet} slot="팔찌" lines={linesOf(groups.bracelet)} as="div" className={styles.footItem} wide>
-            <GameIcon
-              src={groups.bracelet.icon}
-              grade={groups.bracelet.grade}
-              size={40}
-            />
+          <div className={styles.footItem} data-wide="">
+            <ItemTooltip item={groups.bracelet} slot="팔찌" lines={linesOf(groups.bracelet)}>
+              <GameIcon
+                src={groups.bracelet.icon}
+                grade={groups.bracelet.grade}
+                size={40}
+              />
+            </ItemTooltip>
             <div>
               <strong>팔찌</strong>
               {groups.bracelet.detail?.braceletEffects.length ? (
@@ -458,7 +466,7 @@ function EquipmentPanel({ data }: { data: Character }) {
                 <small>{text(groups.bracelet.name)}</small>
               )}
             </div>
-          </ItemTooltip>
+          </div>
         )}
         {groups.others.map((item, i) => (
           <div key={i} className={styles.footItem}>

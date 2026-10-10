@@ -38,3 +38,16 @@ test("item tooltip request checks the name before calling the backend", async ()
   assert.equal((await requestItemTooltips("상세", "http://127.0.0.1:8080", { fetcher })).ok, true);
   assert.match(calls[0], /\/api\/v1\/characters\/item-tooltips\?characterName=/);
 });
+
+test("remaining lines group into the reference site's sections", async () => {
+  const { groupExtraLines } = await import("../lib/character/item-tooltips");
+  assert.deepEqual(groupExtraLines(["분해불가", "[제작] 대도시", "내구도 61 / 66"]), [["분해불가"], ["[제작] 대도시"], ["내구도 61 / 66"]]);
+  assert.deepEqual(
+    groupExtraLines(["효과 부여 불가", "[가디언 토벌] 스콜라키아", "[카제로스 레이드] 1막", "그 외에 획득처가 더 존재합니다."]),
+    [["효과 부여 불가"], ["[가디언 토벌] 스콜라키아", "[카제로스 레이드] 1막", "그 외에 획득처가 더 존재합니다."]],
+  );
+  assert.deepEqual(
+    groupExtraLines(["빛나는 황금을 이용해 만들어진 고급 나침반.", "수십 년을 사용해도 녹 하나 슬지 않는다고 전해진다.", "판매불가, 파괴불가", "[제작] 외로운 섬"]),
+    [["빛나는 황금을 이용해 만들어진 고급 나침반.", "수십 년을 사용해도 녹 하나 슬지 않는다고 전해진다."], ["판매불가, 파괴불가"], ["[제작] 외로운 섬"]],
+  );
+});
