@@ -32,6 +32,19 @@ export function isCombatPowerEnabled(env: Env = process.env) {
   return !isProductionHost(env.SITE_URL);
 }
 
+/**
+ * The roster receipt stays hidden on production until its growth costs and
+ * the refine gold are matched again (PM 총괄, v0.2.0). Same rule:
+ * `RECEIPT_TOOL=on|off` overrides, otherwise hidden only on the production
+ * host.
+ */
+export function isReceiptEnabled(env: Env = process.env) {
+  const flag = env.RECEIPT_TOOL?.trim().toLowerCase();
+  if (flag === "on") return true;
+  if (flag === "off") return false;
+  return !isProductionHost(env.SITE_URL);
+}
+
 const PRODUCTION_HOST = new URL(PRODUCTION_URL).hostname;
 
 function isProductionHost(value: string | undefined) {

@@ -22,6 +22,7 @@ import { CharacterBanner } from "./imagery";
 import { Entrance } from "./entrance";
 import { kstTime, level, number, text } from "./parts";
 import { TabBar, TabPanel, tabOf } from "./tabs";
+import { ReceiptEnabled } from "./receipt-panel";
 import styles from "./character.module.css";
 import { RATE_LIMITED } from "@/lib/api/rate-limit";
 import { RateLimitNote } from "@/components/site/rate-limit-note";
@@ -345,14 +346,21 @@ function CharacterContent({
   );
 }
 
-export function CharacterView(props: {
+export function CharacterView({
+  receipt = true,
+  ...props
+}: {
   name: string;
   initialError?: QueryFailure;
   renderedAt: number;
+  /** RECEIPT_TOOL on this deployment (server flag). */
+  receipt?: boolean;
 }) {
   return (
-    <LandingMotion>
-      <CharacterContent {...props} />
-    </LandingMotion>
+    <ReceiptEnabled.Provider value={receipt}>
+      <LandingMotion>
+        <CharacterContent {...props} />
+      </LandingMotion>
+    </ReceiptEnabled.Provider>
   );
 }
