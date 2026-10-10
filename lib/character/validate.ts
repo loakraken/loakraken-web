@@ -67,6 +67,16 @@ const ROLLOUT: Record<string, Record<string, () => unknown>> = {
     willpowerEfficiency: () => null,
     options: () => [],
   },
+  // Tooltip lines (backend #228) and advanced refining (backend #234).
+  EquipmentDetailResponse: {
+    titleLine: () => null,
+    tradeLines: () => [],
+    refineExp: () => null,
+    advancedRefineLevel: () => null,
+  },
+  SkillResponse: { attackType: () => null },
+  TripodResponse: { effect: () => null },
+  RuneResponse: { effect: () => null },
 };
 for (const [schema, fields] of Object.entries(ROLLOUT)) {
   const target = (components.schemas as Record<string, { required?: string[] }>)[schema];
@@ -100,6 +110,12 @@ export function isCharacterEnvelope(
   for (const stat of data.stats) fill(stat, "StatResponse");
   for (const effect of data.loadout.arkPassive?.effects ?? [])
     fill(effect, "PassiveEffectResponse");
+  for (const item of data.loadout.equipment) if (item.detail) fill(item.detail, "EquipmentDetailResponse");
+  for (const skill of data.loadout.skills) {
+    fill(skill, "SkillResponse");
+    for (const tripod of skill.tripods) fill(tripod, "TripodResponse");
+    if (skill.rune) fill(skill.rune, "RuneResponse");
+  }
   const grid = data.loadout.arkGrid;
   if (grid) {
     fill(grid, "ArkGridResponse");
