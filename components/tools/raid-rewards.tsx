@@ -26,10 +26,11 @@ const gold = (value: number | null) => (value === null ? NO_DATA : formatGold(va
 function SourceLink({ id }: { id: string | null }) {
   const source = id ? RAID_DATA.sources[id] : null;
   if (!source) return <span className={styles.sourceNone}>공식 출처를 아직 찾지 못했어요</span>;
+  const label = `${source.title}${source.date ? ` (확인 ${source.date})` : ""}`;
+  if (!source.url) return <span className={styles.source}>{label}</span>;
   return (
     <a className={styles.source} href={source.url} target="_blank" rel="noreferrer">
-      {source.title}
-      {source.date && ` (${source.date})`}
+      {label}
     </a>
   );
 }

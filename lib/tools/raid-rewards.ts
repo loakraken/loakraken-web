@@ -48,7 +48,9 @@ export type Raid = {
   goldWithoutDesignation?: boolean;
   modes: Mode[];
 };
-export type Source = { title: string; url: string; date: string | null };
+/** url is null for site measurements: the comparison record lives in the
+ * vault, and the screen does not link other sites. */
+export type Source = { title: string; url: string | null; date: string | null };
 export type RaidData = {
   version: string;
   checkedAt: string;

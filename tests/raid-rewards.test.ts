@@ -51,5 +51,8 @@ test("the checker catches the mistakes it is meant to catch", () => {
 test("weekly gold rules come from the official guide", () => {
   assert.equal(RAID_DATA.rules.goldCharactersPerRoster, 6);
   assert.equal(RAID_DATA.rules.endContentGoldClearsPerCharacter, 3);
-  assert.ok(RAID_DATA.sources[RAID_DATA.rules.source].url.startsWith("https://lostark.game.onstove.com/"));
+  assert.ok(RAID_DATA.sources[RAID_DATA.rules.source].url?.startsWith("https://lostark.game.onstove.com/"));
+  // Site measurements link nowhere and name no other site (PM-프론트 #277 P2).
+  const sites = Object.values(RAID_DATA.sources).filter((s) => s.url === null);
+  assert.ok(sites.length > 0 && sites.every((s) => !/일로아|로아와|RLoA/.test(s.title)));
 });
