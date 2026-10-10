@@ -1081,7 +1081,8 @@
 }
 .collectionItems {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  /* min(): a column never forces the panel wider than the screen. */
+  grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 1fr));
   gap: 0 20px;
   padding: 0;
   list-style: none;
@@ -1094,8 +1095,15 @@
   border-bottom: 1px solid var(--secondary);
   font-size: 14px;
 }
+.collectionItems li > * {
+  /* Long names (or values) wrap inside the row instead of widening it. */
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
 .collectionItems small {
   flex: none;
+  max-width: 50%;
+  text-align: right;
   color: var(--accent-warm);
   font-size: 12px;
   font-variant-numeric: tabular-nums;
