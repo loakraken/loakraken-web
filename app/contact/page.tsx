@@ -30,7 +30,7 @@ export default function ContactPage() {
           <p>오류 제보, 제안, 그 밖의 문의를 보내 주세요.</p>
         </div>
 
-        <h2>순위 제외·기록 삭제 요청</h2>
+        <h2 id="removal">순위 제외·기록 삭제 요청</h2>
         <p>
           캐릭터 주인은 순위에서 빼거나 LOAKraken이 기록한 캐릭터 이력을 지워 달라고 요청할 수 있습니다.
         </p>

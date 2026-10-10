@@ -15,6 +15,7 @@ import {
   type CharacterRank,
   type RankMetric,
 } from "@/lib/character/rank";
+import Link from "next/link";
 import { Panel } from "./panel";
 import styles from "./rank.module.css";
 import { useCrossfade } from "@/lib/motion";
@@ -122,6 +123,11 @@ export function RankPanel({ name }: { name: string }) {
               : `${conditionsText(data)}이에요. 게임 전체 순위와 다를 수 있어요.`}
           </p>
           {state === "ranked" && <p className={styles.note}>티어: {TIER_LEGEND}</p>}
+          <p className={styles.note}>
+            <Link href="/contact#removal" className={styles.removal}>
+              순위 제외 요청
+            </Link>
+          </p>
         </>
       )}
     </Panel>
