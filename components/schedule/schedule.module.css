@@ -127,10 +127,10 @@
   text-decoration: none;
   box-shadow: inset 0 0 0 1px var(--secondary);
 }
+/* Counts stay in the chip ink: an opacity fade dropped them below 4.5:1. */
 .chips span {
   font-size: 11px;
   font-variant-numeric: tabular-nums;
-  opacity: 0.7;
 }
 .chips a[aria-current="page"],
 .chips button[aria-pressed="true"] {
