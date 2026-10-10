@@ -4,6 +4,7 @@ import Ajv2020 from "ajv/dist/2020";
 import contract from "../../contracts/stats.openapi.json";
 import type { components } from "../api/stats-schema";
 import { tolerantSchemas } from "../api/tolerant";
+import { lazyValidator } from "@/lib/api/lazy-validator";
 
 type Schemas = components["schemas"];
 export type StatsMeta = Schemas["StatsMetaResponse"];
@@ -38,8 +39,8 @@ const SCHEMA: Record<StatsView, [string, string]> = {
   distribution: ["ApiResponseStatsDistributionResponse", "STATS_DISTRIBUTION_SUCCESS"],
 };
 const validators = Object.fromEntries(
-  STATS_VIEWS.map((view) => [view, ajv.compile({ $ref: `stats#/components/schemas/${SCHEMA[view][0]}` })]),
-) as Record<StatsView, ReturnType<typeof ajv.compile>>;
+  STATS_VIEWS.map((view) => [view, lazyValidator(() => ajv.compile({ $ref: `stats#/components/schemas/${SCHEMA[view][0]}` }))]),
+) as Record<StatsView, (value: unknown) => value is unknown>;
 
 export function isStatsEnvelope<V extends StatsView>(view: V, value: unknown): value is StatsEnvelopes[V] {
   if (!validators[view](value)) return false;

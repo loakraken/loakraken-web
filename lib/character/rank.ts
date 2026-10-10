@@ -7,6 +7,7 @@ import type { components } from "../api/rank-schema";
 import { backendUrl, requestBackend, type BackendResult } from "../api/backend";
 import { tolerantSchemas } from "../api/tolerant";
 import { characterNameError, normalizeCharacterName } from "./model";
+import { lazyValidator } from "@/lib/api/lazy-validator";
 
 type Schemas = components["schemas"];
 export type RankEnvelope = Schemas["ApiResponseStatsCharacterRankResponse"];
@@ -18,10 +19,10 @@ export type RankMetric = RankEntry["metric"];
 export type RankScope = RankEntry["scope"] | "SERVER_CLASS";
 
 // Response enums loosened (#125): an unknown tier or scope affects that cell only.
-const validate = new Ajv2020({ strict: false, validateFormats: false }).compile<RankEnvelope>({
+const validate = lazyValidator(() => new Ajv2020({ strict: false, validateFormats: false }).compile<RankEnvelope>({
   $ref: "#/components/schemas/ApiResponseStatsCharacterRankResponse",
   components: { ...contract.components, schemas: tolerantSchemas(contract.components.schemas) },
-});
+}));
 const isTime = (value: string) => Number.isFinite(Date.parse(value));
 
 export function isRankEnvelope(value: unknown): value is RankEnvelope {

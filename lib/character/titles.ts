@@ -7,6 +7,7 @@ import type { components } from "../api/titles-schema";
 import { backendUrl, requestBackend, type BackendResult } from "../api/backend";
 import { tolerantSchemas } from "../api/tolerant";
 import { characterNameError, normalizeCharacterName } from "./model";
+import { lazyValidator } from "@/lib/api/lazy-validator";
 
 type Schemas = components["schemas"];
 export type TitlesEnvelope = Schemas["ApiResponseRosterTitlesResponse"];
@@ -20,10 +21,10 @@ export type RosterTitle = Omit<Schemas["RosterTitleResponse"], "firstObservedDat
 const schemas = tolerantSchemas(contract.components.schemas);
 const title = schemas.RosterTitleResponse as { required?: string[] };
 title.required = title.required?.filter((field) => field !== "firstObservedDate");
-const validate = new Ajv2020({ strict: false, validateFormats: false }).compile<TitlesEnvelope>({
+const validate = lazyValidator(() => new Ajv2020({ strict: false, validateFormats: false }).compile<TitlesEnvelope>({
   $ref: "#/components/schemas/ApiResponseRosterTitlesResponse",
   components: { ...contract.components, schemas },
-});
+}));
 const isTime = (value: string) => Number.isFinite(Date.parse(value));
 
 export function isTitlesEnvelope(value: unknown): value is TitlesEnvelope {

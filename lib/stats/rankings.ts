@@ -6,16 +6,17 @@ import type { components } from "../api/rankings-schema";
 import { backendUrl, requestBackend, type BackendResult } from "../api/backend";
 import { tolerantSchemas } from "../api/tolerant";
 import { parseStatsQuery, statsSearch, type Metric, type StatsQuery } from "./model";
+import { lazyValidator } from "@/lib/api/lazy-validator";
 
 type Schemas = components["schemas"];
 export type RankingEnvelope = Schemas["ApiResponseStatsRankingResponse"];
 export type Ranking = Schemas["StatsRankingResponse"];
 export type RankedCharacter = Schemas["StatsRankedCharacterResponse"];
 
-const validate = new Ajv2020({ strict: false, validateFormats: false }).compile<RankingEnvelope>({
+const validate = lazyValidator(() => new Ajv2020({ strict: false, validateFormats: false }).compile<RankingEnvelope>({
   $ref: "#/components/schemas/ApiResponseStatsRankingResponse",
   components: { ...contract.components, schemas: tolerantSchemas(contract.components.schemas) },
-});
+}));
 
 export function isRankingEnvelope(value: unknown): value is RankingEnvelope {
   return (

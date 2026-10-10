@@ -8,6 +8,7 @@ import viewsContract from "../../contracts/views.openapi.json";
 import type { components as SiblingsSchemas } from "../api/siblings-schema";
 import type { components as HistorySchemas } from "../api/history-schema";
 import type { components as ViewsSchemas } from "../api/views-schema";
+import { lazyValidator } from "@/lib/api/lazy-validator";
 
 // The backend's generated OpenAPI is also the runtime shape contract. Response
 // enums are loosened: a value added later shows as unknown instead of
@@ -76,10 +77,10 @@ const fill = (object: unknown, schema: string) => {
   for (const [name, value] of Object.entries(ROLLOUT[schema]))
     if (!(name in object)) (object as Record<string, unknown>)[name] = value();
 };
-const validate = ajv.compile<CharacterEnvelope>({
+const validate = lazyValidator(() => ajv.compile<CharacterEnvelope>({
   $ref: "#/components/schemas/ApiResponseCharacterResponse",
   components,
-});
+}));
 
 /** Validates the envelope, then fills rollout defaults in place. */
 export function isCharacterEnvelope(
@@ -123,10 +124,10 @@ export type ViewsEnvelope =
 export type DailyViews = ViewsSchemas["schemas"]["CharacterDailyViewsResponse"];
 
 const compileWith = <T>(source: { components: object }, schema: string) =>
-  new Ajv2020({ strict: false, validateFormats: false }).compile<T>({
+  lazyValidator(() => new Ajv2020({ strict: false, validateFormats: false }).compile<T>({
     $ref: `#/components/schemas/${schema}`,
     components: { ...source.components, schemas: tolerantSchemas((source.components as { schemas: Record<string, unknown> }).schemas) },
-  });
+  }));
 const siblings = compileWith<SiblingsEnvelope>(
   siblingsContract,
   "ApiResponseCharacterSiblingsResponse",

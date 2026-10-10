@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState, useSyncExternalStore, type ReactNode } from "react";
+import { memo, useId, useState, useSyncExternalStore, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { ArrowRight, Info, RefreshCw, Share2, Star } from "lucide-react";
@@ -1540,7 +1540,7 @@ export function EvidenceTab({
   );
 }
 
-export function TabPanel({
+function TabPanelView({
   tab,
   data,
   envelope,
@@ -1571,3 +1571,11 @@ export function TabPanel({
     </Reveal>
   );
 }
+
+/**
+ * The tab's content, re-rendered only when the tab or the character data
+ * changes. The page above it ticks every second (refresh countdown) and
+ * updates once after hydration (motion context); without this every tick
+ * re-rendered every panel — hundreds of ms on a slow phone.
+ */
+export const TabPanel = memo(TabPanelView);

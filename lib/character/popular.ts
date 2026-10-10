@@ -5,6 +5,7 @@ import contract from "../../contracts/popular.openapi.json";
 import type { components } from "../api/popular-schema";
 import { backendUrl, requestBackend, type BackendResult } from "../api/backend";
 import { tolerantSchemas } from "../api/tolerant";
+import { lazyValidator } from "@/lib/api/lazy-validator";
 
 type Schemas = components["schemas"];
 export type PopularEnvelope = Schemas["ApiResponseCharacterPopularResponse"];
@@ -12,10 +13,10 @@ export type Popular = Schemas["CharacterPopularResponse"];
 export type PopularPeriod = Popular["period"];
 export const POPULAR_PERIODS: readonly PopularPeriod[] = ["24h", "7d"];
 
-const validate = new Ajv2020({ strict: false, validateFormats: false }).compile<PopularEnvelope>({
+const validate = lazyValidator(() => new Ajv2020({ strict: false, validateFormats: false }).compile<PopularEnvelope>({
   $ref: "#/components/schemas/ApiResponseCharacterPopularResponse",
   components: { ...contract.components, schemas: tolerantSchemas(contract.components.schemas) },
-});
+}));
 
 export function isPopularEnvelope(value: unknown): value is PopularEnvelope {
   return (
