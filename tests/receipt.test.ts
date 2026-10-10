@@ -27,7 +27,11 @@ test("backend sample satisfies the captured contract; unknown reasons keep the r
 test("labels and sentences never show codes", () => {
   const data = fixture().data;
   assert.equal(includedText(data), "장비 재련 · 보석");
-  assert.equal(notIncludedText(data), "아크 그리드 젬 0 · 팔찌 0 · 장신구 0 (산정 기준 검증 중)");
+  // Empty kinds drop out; nothing left hides the line (PM #294).
+  assert.equal(notIncludedText(data), "");
+  const some = structuredClone(data);
+  some.notIncluded[1].count = 5;
+  assert.equal(notIncludedText(some), "팔찌 5 (산정 기준 검증 중)");
   assert.equal(coverageText(data), "원정대 10명 중 8명 계산 · 2명 대기");
   assert.equal(excludedLabel("ARM_GUARD"), "완갑 제외");
   assert.equal(excludedLabel("GROWTH_COST_UNCONFIRMED"), "성장 비용 미확정 단계 제외");

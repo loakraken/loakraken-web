@@ -1294,8 +1294,9 @@ export function SiblingsTab({ data }: { data: Character }) {
             <Empty state={data.coverage.siblings} />
           </Panel>
         )}
-        <ReceiptPanel name={data.characterName} />
         <RosterTitlesPanel name={data.characterName} />
+        {/* Last: it arrives after a slow roster calculation and must not push the titles. */}
+        <ReceiptPanel name={data.characterName} />
       </div>
     );
   const result = query.data?.data;
@@ -1332,8 +1333,8 @@ export function SiblingsTab({ data }: { data: Character }) {
           <p className={styles.muted}>원정대 캐릭터가 없어요.</p>
         </Panel>
       )}
-      <ReceiptPanel name={data.characterName} />
       <RosterTitlesPanel name={data.characterName} />
+      <ReceiptPanel name={data.characterName} />
     </div>
   );
 }

@@ -85,11 +85,12 @@ export const excludedLabel = (reason: string) => labelOf(EXCLUDED_LABEL, reason)
 /** "장비 재련 · 보석" — what the total counts. */
 export const includedText = (data: Receipt) => data.total.includedKinds.map(kindLabel).join(" · ");
 
-/** "아크 그리드 젬 12 · 팔찌 5 · 장신구 25 (산정 기준 검증 중)" — what it leaves out. */
+/** "아크 그리드 젬 12 · 팔찌 5 · 장신구 25 (산정 기준 검증 중)" — what it leaves out (empty kinds dropped, PM #294). */
 export function notIncludedText(data: Receipt) {
-  if (!data.notIncluded.length) return "";
-  const kinds = data.notIncluded.map((n) => `${kindLabel(n.kind)} ${n.count.toLocaleString("ko-KR")}`).join(" · ");
-  const reasons = [...new Set(data.notIncluded.map((n) => labelOf(NOT_INCLUDED_REASON, n.reason)))].join(", ");
+  const left = data.notIncluded.filter((n) => n.count > 0);
+  if (!left.length) return "";
+  const kinds = left.map((n) => `${kindLabel(n.kind)} ${n.count.toLocaleString("ko-KR")}`).join(" · ");
+  const reasons = [...new Set(left.map((n) => labelOf(NOT_INCLUDED_REASON, n.reason)))].join(", ");
   return `${kinds} (${reasons})`;
 }
 

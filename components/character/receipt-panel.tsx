@@ -99,7 +99,7 @@ function Body({
       <div className={styles.assume}>
         <label>
           <input type="checkbox" checked={assumeBook} onChange={(event) => onAssumeBook(event.target.checked)} />
-          책 사용 가정
+          책 효과 항상 적용 가정
         </label>
         {first && <p>{first}</p>}
       </div>
