@@ -39,6 +39,10 @@
   position: relative; /* the pill copy scrolls with the tabs */
   display: flex;
   gap: 4px;
+  /* Room for the focus ring (3px + 4px offset), which the horizontal scroll
+     would otherwise clip; the negative margin keeps the layout unchanged. */
+  padding: 8px;
+  margin: -8px;
   overflow-x: auto;
   scrollbar-width: none;
 }
@@ -69,6 +73,7 @@
 .pillLayer {
   position: absolute;
   inset: 0 auto 0 0;
+  padding: 0 8px; /* the same start as the tabs inside their focus room */
   display: flex;
   gap: 4px;
   align-items: center;
