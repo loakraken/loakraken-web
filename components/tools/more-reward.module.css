@@ -269,3 +269,63 @@
     transition: none;
   }
 }
+
+/* 결론 카드(피아식별 규칙): 맨 위에 누를 관문 수와 하나의 추천. */
+.verdict {
+  margin-top: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 1.5px solid var(--primary);
+  border-radius: 14px;
+  background: color-mix(in oklab, var(--primary) 6%, transparent);
+  font-size: var(--text-body);
+}
+.verdict p + p {
+  margin-top: 4px;
+}
+.verdictHead {
+  font-weight: 600;
+}
+.verdictHead span {
+  color: var(--slate);
+  font-size: var(--text-caption);
+  font-weight: 400;
+}
+.pick {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-size: var(--text-caption);
+  font-style: normal;
+  font-weight: 700;
+}
+.up {
+  color: var(--gain);
+}
+.down {
+  color: var(--loss);
+}
+.cell[data-pick] {
+  border-color: var(--primary);
+}
+.cell .pick {
+  justify-self: end;
+  margin-bottom: 2px;
+}
+/* 표 위 조건 요약: 값 매기기 패널이 표 아래로 가는 좁은 화면에서만. */
+.condition {
+  display: none;
+  margin-top: var(--space-2);
+  color: var(--slate);
+  font-size: var(--text-caption);
+}
+.condition a {
+  color: var(--link);
+  text-decoration: underline;
+}
+@media (max-width: 900px) {
+  .condition {
+    display: block;
+  }
+}

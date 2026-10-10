@@ -147,3 +147,39 @@ export function checkMoreData(data: MoreData = MORE_DATA): string[] {
       });
   return problems;
 }
+
+/**
+ * Bound exchange materials valued through what they trade into. Only fixed
+ * recipes are here: 은총의 파편 ×60 → 지평의 재련 재료 상자 with fixed
+ * contents (user's 제작소 capture, 계산 검증 2026-10-10 18:12; matches
+ * 일로아 497.33 at the same prices). 고통의 가시·죽음의 손·사령의 잔영 trade into
+ * pouches with a choice whose odds are not published, so they stay user input.
+ */
+export const EXCHANGES: Record<string, { per: number; into: string; contents: MoreItem[] }> = {
+  "은총의 파편": {
+    per: 60,
+    into: "지평의 재련 재료 상자",
+    contents: [
+      { name: "운명의 파편", qty: 22500 },
+      { name: "운명의 파괴석 결정", qty: 2000 },
+      { name: "운명의 수호석 결정", qty: 4000 },
+      { name: "위대한 운명의 돌파석", qty: 60 },
+    ],
+  },
+};
+
+/** Exchange items whose recipe has a choice with unpublished odds. */
+export const CHOICE_EXCHANGES = ["고통의 가시", "죽음의 손", "사령의 잔영"] as const;
+
+/** Gold per exchange item from its fixed recipe; null if a content has no price. */
+export function exchangeValue(name: string, price: (name: string) => number | null) {
+  const recipe = EXCHANGES[name];
+  if (!recipe) return null;
+  let total = 0;
+  for (const item of recipe.contents) {
+    const unit = price(item.name);
+    if (unit == null) return null;
+    total += unit * item.qty;
+  }
+  return total / recipe.per;
+}

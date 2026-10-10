@@ -32,6 +32,8 @@ test.describe("더보기 손익 @smoke", () => {
     const cost = gold(await value("더보기 골드").innerText());
     const worth = gold(await value("받는 재료 가치").innerText());
     await expect(value("이득")).toHaveText(new RegExp(`^${(worth - cost).toLocaleString("ko-KR").replace("-", "[−-]")}G$`));
-    await expect(page.getByText(/재료를 넣은 \d+관문 중 \d+관문이 이득이에요\./)).toBeVisible();
+    // 결론 카드(피아식별 규칙): 누를 관문 수, 재료를 넣은 관문 수.
+    await expect(page.getByText(/누를 더보기 \d+관문/)).toBeVisible();
+    await expect(page.getByText(/재료를 넣은 1관문 중/)).toBeVisible();
   });
 });
