@@ -6,7 +6,7 @@
 import { useEffect, useRef, useState, useSyncExternalStore, type FormEvent, type RefObject } from "react";
 import { useRouter } from "next/navigation";
 import { BorderBeam } from "border-beam";
-import { ArrowDown, ArrowRight, ArrowUpRight, Command, Search } from "lucide-react";
+import { ArrowDown, ArrowRight, Command, ExportCircle, SearchNormal } from "@/components/ui/icons";
 import { IntelligenceOrb, InlineOrb } from "./orb";
 import { useLandingMotion, useVisible } from "./motion-context";
 import { characterNameError, normalizeCharacterName } from "@/lib/character/model";
@@ -82,14 +82,14 @@ export function Hero({
           <BorderBeam className={styles.searchBeam} theme="light" colorVariant="mono" staticColors size="line" duration={5} strength={focused ? 0.55 : 0.22} active={looping && heroVisible} borderRadius={36}>
             <form className={styles.searchForm} onSubmit={search} noValidate aria-busy={searching}>
               <label htmlFor="character-search" className={styles.srOnly}>캐릭터 이름</label>
-              <Search className={styles.searchIcon} size={19} aria-hidden="true" />
+              <SearchNormal className={styles.searchIcon} size={19} aria-hidden="true" />
               <input ref={input} id="character-search" name="character" value={query} onChange={(event) => { setQuery(event.target.value); if (error) setError(""); }}
                 onFocus={() => { setFocused(true); wake(); }} onBlur={() => setFocused(false)} placeholder="캐릭터 이름을 입력하세요" maxLength={65} autoComplete="off" spellCheck={false} disabled={searching} aria-invalid={!!error} aria-describedby={error ? "search-error" : embedded ? undefined : "search-help"} />
               {shortcutKey && <kbd className={styles.shortcut} aria-hidden="true">{shortcutKey === "mac" ? <Command size={12} /> : "Ctrl"} K</kbd>}
               <button className={styles.searchSubmit} type="submit" disabled={searching} aria-label={searching ? "캐릭터 화면으로 이동 중" : undefined}>{searching ? <InlineOrb /> : <>캐릭터 검색 <ArrowRight size={16} /></>}</button>
             </form>
           </BorderBeam>
-          <div className={styles.searchMessage} aria-live="polite">{error ? <p id="search-error" className={styles.error}>{error}</p> : embedded ? null : <p id="search-help">이름으로 캐릭터의 현재 정보를 조회하세요. <a href="#preview">예시 화면 살펴보기 <ArrowUpRight size={12} /></a></p>}</div>
+          <div className={styles.searchMessage} aria-live="polite">{error ? <p id="search-error" className={styles.error}>{error}</p> : embedded ? null : <p id="search-help">이름으로 캐릭터의 현재 정보를 조회하세요. <a href="#preview">예시 화면 살펴보기 <ExportCircle size={12} /></a></p>}</div>
         </div>
       </div>
       {!embedded && <a className={styles.exploreLink} href="#preview">캐릭터 화면 미리보기 <ArrowDown size={16} /></a>}

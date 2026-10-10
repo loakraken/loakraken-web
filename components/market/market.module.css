@@ -312,9 +312,6 @@
 .star[aria-pressed="true"] {
   color: var(--grade-legendary-text);
 }
-.star[aria-pressed="true"] svg {
-  fill: currentColor;
-}
 .unit {
   display: block;
   margin-top: 1px;

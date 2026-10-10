@@ -4,7 +4,7 @@ import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from "rea
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMutation, useQueries, useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Hammer } from "lucide-react";
+import { ArrowLeft, Setting } from "@/components/ui/icons";
 import { CharacterQueryError, fetchCharacter } from "@/lib/character/client";
 import {
   characterNameError,
@@ -716,7 +716,7 @@ function RefiningContent({ initialName }: { initialName: string }) {
       <main id="refining-main">
         <section className={quote.hero} aria-labelledby="refining-heading">
           <span className={quote.heroIcon} aria-hidden="true">
-            <Hammer size={18} />
+            <Setting size={18} />
           </span>
           <p className={quote.heroKicker}>성장 도구</p>
           <h1 id="refining-heading">재련 기대 비용</h1>

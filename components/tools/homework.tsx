@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useState, type FormEvent } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { ArrowLeft, ListChecks, Plus, Trash2 } from "lucide-react";
+import { Add, ArrowLeft, TaskSquare, TrashSquare } from "@/components/ui/icons";
 import Link from "next/link";
 import { SiteHeader } from "@/components/site/site-header";
 import { CharacterQueryError, fetchSiblings } from "@/lib/character/client";
@@ -193,7 +193,7 @@ function AddRoster({ onAdd }: { onAdd: (picked: Sibling[]) => void }) {
               setName("");
             }}
           >
-            <Plus size={16} aria-hidden="true" /> {picked.size}명 추가
+            <Add size={16} aria-hidden="true" /> {picked.size}명 추가
           </button>
         </fieldset>
       )}
@@ -231,7 +231,7 @@ function RaidRow({
       <div className={styles.raidHead}>
         <strong>{title}</strong>
         <button type="button" className={styles.iconButton} onClick={onRemove} aria-label={`${title} 빼기`}>
-          <Trash2 size={14} aria-hidden="true" />
+          <TrashSquare size={14} aria-hidden="true" />
         </button>
       </div>
       {higherOpen && (
@@ -297,7 +297,7 @@ function CharacterCard({
           onClick={onRemove}
           aria-label={`${character.name} 빼기`}
         >
-          <Trash2 size={16} aria-hidden="true" />
+          <TrashSquare size={16} aria-hidden="true" />
         </button>
       </div>
       <label className={styles.goldToggle}>
@@ -408,7 +408,7 @@ export default function HomeworkTool() {
       <main id="hw-main">
         <section className={quote.hero} aria-labelledby="hw-heading">
           <span className={quote.heroIcon} aria-hidden="true">
-            <ListChecks size={18} />
+            <TaskSquare size={18} />
           </span>
           <p className={quote.heroKicker}>내 진행</p>
           <h1 id="hw-heading">숙제 체크</h1>

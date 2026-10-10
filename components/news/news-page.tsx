@@ -6,7 +6,7 @@
 
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
-import { ArrowUpRight } from "lucide-react";
+import { ExportCircle } from "@/components/ui/icons";
 import { SiteHeader } from "@/components/site/site-header";
 import { MINUTE, useClock } from "@/components/home/clock";
 import home from "@/components/home/home.module.css";
@@ -222,7 +222,7 @@ export function NewsPage({ renderedAt }: { renderedAt?: number }) {
             <div className={home.panelHead}>
               <h2 id="notices-heading">{tab === "patch" ? "패치 이력" : "공지사항"}</h2>
               <a href={OFFICIAL_NOTICES} target="_blank" rel="noreferrer" className={home.more}>
-                공식 공지 <ArrowUpRight size={14} aria-hidden="true" />
+                공식 공지 <ExportCircle size={14} aria-hidden="true" />
               </a>
             </div>
             <div className={home.noticeTabs} role="group" aria-label="공지 종류">

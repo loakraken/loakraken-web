@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { connection } from "next/server";
 import Link from "next/link";
-import { ArrowLeft, ChevronRight, Wrench } from "lucide-react";
+import { ArrowLeft, ChevronRight, Setting } from "@/components/ui/icons";
 import { SiteHeader } from "@/components/site/site-header";
 import { TOOLS, visibleTools } from "@/lib/tools/catalog";
 import { isCombatPowerEnabled, isCritSpeedEnabled } from "@/lib/tools/flags";
@@ -32,7 +32,7 @@ export default async function ToolsPage() {
       <main id="tools-main">
         <section className={quote.hero} aria-labelledby="tools-heading">
           <span className={quote.heroIcon} aria-hidden="true">
-            <Wrench size={18} />
+            <Setting size={18} />
           </span>
           <p className={quote.heroKicker}>성장 도구</p>
           <h1 id="tools-heading">도구 모음</h1>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowLeft, Coins } from "lucide-react";
+import { ArrowLeft, Coin } from "@/components/ui/icons";
 import Link from "next/link";
 import { SiteHeader } from "@/components/site/site-header";
 import { SegmentedControl, SegmentedItem } from "@/components/ui/segmented-control";
@@ -174,7 +174,7 @@ export function RaidRewardsTable() {
       <main id="raid-main">
         <section className={quote.hero} aria-labelledby="raid-heading">
           <span className={quote.heroIcon} aria-hidden="true">
-            <Coins size={18} />
+            <Coin size={18} />
           </span>
           <p className={quote.heroKicker}>레이드 · 보상</p>
           <h1 id="raid-heading">레이드 보상표</h1>

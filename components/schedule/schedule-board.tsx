@@ -7,7 +7,7 @@ import { useEffect, useId, useState, type MouseEvent } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { ArrowRight, ChevronRight } from "lucide-react";
+import { ArrowRight, ChevronRight } from "@/components/ui/icons";
 import { safeGameImage } from "@/lib/character/model";
 import { fetchSchedule, homeScheduleKey } from "@/lib/home/client";
 import {

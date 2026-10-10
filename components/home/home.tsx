@@ -3,10 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import {
-  ChevronRight,
-  TriangleAlert,
-} from "lucide-react";
+import { ChevronRight, Warning } from "@/components/ui/icons";
 import { SiteHeader } from "@/components/site/site-header";
 import { Hero } from "@/components/landing/hero";
 import { MotionScope } from "@/components/landing/motion-context";
@@ -56,7 +53,7 @@ function MaintenanceBanner({ renderedAt }: { renderedAt?: number }) {
       target="_blank"
       rel="noreferrer"
     >
-      <TriangleAlert size={16} aria-hidden="true" />
+      <Warning size={16} aria-hidden="true" />
       <span>
         <b>{upcoming.when === "today" ? "오늘 점검" : "내일 점검"}</b> {maintenance.title}
       </span>
