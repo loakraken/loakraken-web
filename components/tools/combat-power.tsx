@@ -59,6 +59,13 @@ function useDebounced<T>(value: T, delay = 300) {
 const gradeText = (text: string | null | undefined) =>
   text?.replace(/\b(LOW|MID|HIGH)\b/g, (grade) => GRADE_LABEL[grade] ?? grade);
 
+/** Gem level 0 removes the gem (backend #250). */
+const gemOption = (level: number) => (level === 0 ? "빼기" : String(level));
+
+/** How a change's from/to reads: gem 0 is "빼기", grade codes are 하·중·상. */
+const changeText = (kind: string, text: string | null | undefined) =>
+  (kind === "GEM_LEVEL" || kind === "GEM_LEVEL_ALL") && text === "0" ? "빼기" : gradeText(text);
+
 const range = (from: number, to: number) =>
   Array.from({ length: Math.max(0, to - from + 1) }, (_, i) => from + i);
 
@@ -165,6 +172,7 @@ function Select({
   value,
   original,
   values,
+  format = String,
   onChange,
 }: {
   label: string;
@@ -173,6 +181,8 @@ function Select({
   value: number;
   original: number;
   values: number[];
+  /** Option text; the number itself by default. */
+  format?: (value: number) => string;
   onChange: (value: number) => void;
 }) {
   return (
@@ -182,7 +192,7 @@ function Select({
       <select value={value} onChange={(event) => onChange(Number(event.target.value))}>
         {values.map((level) => (
           <option key={level} value={level}>
-            {level}
+            {format(level)}
           </option>
         ))}
       </select>
@@ -230,7 +240,7 @@ function Editors({
                 <option value="">그대로</option>
                 {gemValues.map((level) => (
                   <option key={level} value={level}>
-                    {level}레벨
+                    {level === 0 ? "모두 빼기" : `${level}레벨`}
                   </option>
                 ))}
               </select>
@@ -250,6 +260,7 @@ function Editors({
                   value={gemLevel(edits, gem)}
                   original={gem.level}
                   values={gemValues}
+                  format={gemOption}
                   onChange={(level) =>
                     setEdits((prev) => ({ ...prev, gems: { ...prev.gems, [gem.slot]: level } }))
                   }
@@ -533,7 +544,7 @@ function ChangeList({ data }: { data: Simulation }) {
               {item.target}
               {(item.from != null || item.to != null) && (
                 <small>
-                  {gradeText(item.from) ?? "—"} → {gradeText(item.to) ?? "—"}
+                  {changeText(item.kind, item.from) ?? "—"} → {changeText(item.kind, item.to) ?? "—"}
                 </small>
               )}
             </span>
