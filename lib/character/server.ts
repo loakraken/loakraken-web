@@ -9,6 +9,7 @@ import {
 import { requestCharacter } from "./upstream";
 import { requestPopular } from "./popular";
 import { requestRank } from "./rank";
+import { requestReceipt } from "./receipt";
 import { requestTitles } from "./titles";
 
 export function getCharacter(name: string, signal?: AbortSignal) {
@@ -25,6 +26,10 @@ export function getCardCollection(name: string, signal?: AbortSignal) {
 
 export function getRank(name: string, signal?: AbortSignal) {
   return requestRank(name, process.env.LOAKRAKEN_API_ORIGIN, { signal });
+}
+
+export function getReceipt(name: string, assumeBook: boolean, signal?: AbortSignal) {
+  return requestReceipt(name, assumeBook, process.env.LOAKRAKEN_API_ORIGIN, { signal });
 }
 
 export function getTitles(name: string, signal?: AbortSignal) {

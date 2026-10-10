@@ -6,7 +6,7 @@ import {
 } from "@tanstack/react-query";
 import { CharacterView } from "@/components/character/character-view";
 import { normalizeCharacterName } from "@/lib/character/model";
-import { getCharacter, getRank } from "@/lib/character/server";
+import { getCharacter, getRank, getSiblings } from "@/lib/character/server";
 
 export const dynamic = "force-dynamic";
 const decodeName = (raw: string) => {
@@ -33,16 +33,22 @@ export async function generateMetadata({
 
 export default async function CharacterPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ characterName: string }>;
+  searchParams: Promise<{ tab?: string | string[] }>;
 }) {
   const name = decodeName((await params).characterName);
-  const [result, rank] = await Promise.all([
+  const { tab } = await searchParams;
+  const [result, rank, siblings] = await Promise.all([
     getCharacter(name),
     // The rank panel sits in the first screen on wide layouts; painting it
     // after a client fetch made it the late LCP element (web #246). A slow
     // rank gives up after 1s and the panel fetches it as before.
     getRank(name, AbortSignal.timeout(1_000)),
+    // Opened on the 원정대 tab: the roster list comes in the first HTML, so it
+    // does not push the titles and receipt panels down when it arrives (CLS).
+    tab === "siblings" ? getSiblings(name, AbortSignal.timeout(1_000)) : null,
   ]);
   // Request-time snapshot in a dynamic Server Component, shared with hydration.
   // eslint-disable-next-line react-hooks/purity
@@ -54,6 +60,11 @@ export default async function CharacterPage({
     });
   if (result.ok && rank.ok)
     client.setQueryData(["character-rank", name], rank.envelope, { updatedAt: renderedAt });
+  // The tab keys the roster by the character's own name from the response.
+  if (result.ok && siblings?.ok)
+    client.setQueryData(["siblings", result.envelope.data.characterName], siblings.envelope, {
+      updatedAt: renderedAt,
+    });
   return (
     <HydrationBoundary state={dehydrate(client)}>
       <CharacterView

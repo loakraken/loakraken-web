@@ -14,9 +14,7 @@ export type RankEnvelope = Schemas["ApiResponseStatsCharacterRankResponse"];
 export type CharacterRank = Schemas["StatsCharacterRankResponse"];
 export type RankEntry = Schemas["StatsRankEntryResponse"];
 export type RankMetric = RankEntry["metric"];
-// SERVER_CLASS (backend #171) is sent but not yet listed in the contract's
-// scope enum; the validator already accepts it (loosened enums).
-export type RankScope = RankEntry["scope"] | "SERVER_CLASS";
+export type RankScope = RankEntry["scope"];
 
 // Response enums loosened (#125): an unknown tier or scope affects that cell only.
 const validate = lazyValidator(() => new Ajv2020({ strict: false, validateFormats: false }).compile<RankEnvelope>({

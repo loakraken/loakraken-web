@@ -2,6 +2,7 @@
 import { createServer } from "node:http";
 import { readFileSync } from "node:fs";
 const failures = new Map();
+const receiptCalls = new Map();
 
 const read = (name) =>
   JSON.parse(
@@ -493,6 +494,31 @@ createServer(async (req, res) => {
         aggregatedAt: new Date(Date.now() - 600_000).toISOString(), ruleVersion: "stats-v1", minSample: 30, entries,
       },
     });
+  }
+  // Roster receipt (backend #174/#208/#211): the backend sample; 영수증꺼짐 → route
+  // absent (receipt off), 영수증한도 → 429. The first request leaves two
+  // characters pending; asking again fills them. assumeBook=true swaps the
+  // first assumption and lowers the equipment cost.
+  if (url.pathname === "/api/v1/characters/receipt") {
+    const who = url.searchParams.get("characterName") ?? "";
+    if (who === "영수증꺼짐") return send({ code: "NOT_FOUND", message: "not found" }, 404);
+    if (who === "영수증한도")
+      return send({ code: "CLIENT_RATE_LIMITED", message: "rate limited" }, 429, { "Retry-After": "30" });
+    const body = JSON.parse(readFileSync(new URL("./receipt-fixtures/character-receipt.json", import.meta.url), "utf8"));
+    const data = body.data;
+    data.characterName = who;
+    data.computedAt = new Date().toISOString();
+    receiptCalls.set(who, (receiptCalls.get(who) ?? 0) + 1);
+    if (receiptCalls.get(who) > 1) {
+      for (const c of data.equipment.characters) if (c.status === "PENDING") Object.assign(c, { status: "READY", gold: 2887361 });
+      data.coverage = { ...data.coverage, ready: data.coverage.rosterCharacters, pending: 0, nextAvailableAt: null };
+    } else data.coverage.nextAvailableAt = new Date(Date.now() + 20_000).toISOString();
+    if (url.searchParams.get("assumeBook") === "true") {
+      data.assumptions[0] = "책(재봉술·야금술) 효과가 항상 적용된다고 가정합니다(일로아·로아와와 같은 가정, 확률 미공개).";
+      data.equipment.gold = Math.round(data.equipment.gold * 0.8);
+      data.total.gold = data.equipment.gold + data.gems.gold;
+    }
+    return send(body);
   }
   // Roster titles (backend #123): first-seen order; 칭호없음 → none recorded yet.
   if (url.pathname === "/api/v1/characters/titles") {

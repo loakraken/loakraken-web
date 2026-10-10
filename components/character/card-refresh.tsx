@@ -10,7 +10,7 @@ import { postCardRefresh } from "@/lib/character/client";
 import styles from "./card-collection.module.css";
 
 /** Seconds left until a time, ticking each second while positive. */
-function useSecondsUntil(until: number | undefined) {
+export function useSecondsUntil(until: number | undefined) {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     if (!until) return;

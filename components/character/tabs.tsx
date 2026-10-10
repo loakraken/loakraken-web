@@ -48,6 +48,7 @@ import { AvatarsTab, CollectiblesTab } from "./inner";
 import { Panel } from "./panel";
 import { ViewsPanel } from "./views-panel";
 import { useTabPill } from "./tab-pill";
+import { ReceiptPanel } from "./receipt-panel";
 import { useStagger } from "./entrance";
 import { RankPanel } from "./rank-panel";
 import { byObservedOrder, groupByDay } from "@/lib/character/titles";
@@ -1294,6 +1295,8 @@ export function SiblingsTab({ data }: { data: Character }) {
           </Panel>
         )}
         <RosterTitlesPanel name={data.characterName} />
+        {/* Last: it arrives after a slow roster calculation and must not push the titles. */}
+        <ReceiptPanel name={data.characterName} />
       </div>
     );
   const result = query.data?.data;
@@ -1331,6 +1334,7 @@ export function SiblingsTab({ data }: { data: Character }) {
         </Panel>
       )}
       <RosterTitlesPanel name={data.characterName} />
+      <ReceiptPanel name={data.characterName} />
     </div>
   );
 }
