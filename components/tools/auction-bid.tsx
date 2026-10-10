@@ -118,6 +118,52 @@ function useCopy() {
   return { copied, copy };
 }
 
+// Worked example for the empty state (same formula as the result).
+const EXAMPLE = calculateAuction(100_000, 8);
+
+function BidPick({ result }: { result: AuctionResult | null }) {
+  const { copied, copy } = useCopy();
+  if (!result)
+    return (
+      <section className={styles.pick} aria-labelledby="auction-pick">
+        <p id="auction-pick" className={styles.pickLabel}>
+          이 값까지 입찰하세요
+        </p>
+        <p className={styles.pickEmpty}>
+          아이템 가격과 파티 인원을 넣으면 손해 보지 않는 입찰 상한을 알려 드려요.
+        </p>
+        <p className={styles.pickNote}>
+          예: 거래소 {formatGold(EXAMPLE.price)} · {EXAMPLE.party}인이면 {formatGold(EXAMPLE.breakEven)}까지
+        </p>
+      </section>
+    );
+  const done = copied?.id === "breakEven";
+  return (
+    <section className={styles.pick} aria-labelledby="auction-pick">
+      <p id="auction-pick" className={styles.pickLabel}>
+        이 값까지 입찰하세요 <span className={styles.badge}>추천</span>
+      </p>
+      <p className={styles.pickValue}>
+        <button
+          type="button"
+          className={styles.copy}
+          onClick={() => copy("breakEven", result.breakEven)}
+          aria-label={`추천 입찰 상한 ${formatGold(result.breakEven)} 복사`}
+        >
+          <span>{formatGold(result.breakEven)}</span>
+          {done && copied.ok ? <Check size={16} aria-hidden="true" /> : <Copy size={16} aria-hidden="true" />}
+        </button>
+      </p>
+      <p className={styles.pickNote}>
+        판매 손익 분기 · 이보다 높게 부르면 팔아도 손해예요. 직접 쓸 거라면 {formatGold(result.useMyself)}까지.
+      </p>
+      <p className={styles.sr} role="status" aria-live="polite">
+        {done ? (copied.ok ? "추천 입찰 상한을 복사했어요." : "복사하지 못했어요.") : ""}
+      </p>
+    </section>
+  );
+}
+
 function Summary({ result }: { result: AuctionResult | null }) {
   const value = (pick: (r: AuctionResult) => number) =>
     result ? formatGold(pick(result)) : "—";
@@ -204,10 +250,15 @@ function Strategies({ result }: { result: AuctionResult | null }) {
             const text = STRATEGY_COPY[id];
             const done = copied?.id === id;
             return (
-              <tr key={id} data-kind={id === "useMyself" ? "use" : "sale"}>
+              <tr
+                key={id}
+                data-kind={id === "useMyself" ? "use" : "sale"}
+                data-pick={(row && id === "breakEven") || undefined}
+              >
                 <th scope="row">
                   <span className={styles.strategyName}>
                     {text.name}
+                    {row && id === "breakEven" && <span className={styles.badge}>추천</span>}
                     <FormulaTip label={text.name} formula={text.formula} />
                   </span>
                   <span className={styles.strategyNote}>{text.note}</span>
@@ -243,6 +294,7 @@ function Strategies({ result }: { result: AuctionResult | null }) {
                   }
                 >
                   {row ? formatSigned(row.saleProfit) : "—"}
+                  {row && row.saleProfit < 0 && <span className={styles.loss}> 손해</span>}
                 </td>
               </tr>
             );
@@ -462,6 +514,7 @@ function AuctionContent({
             </form>
 
             <div className={styles.output}>
+              <BidPick result={result} />
               <Summary result={result} />
               <Strategies result={result} />
               <Basis />
