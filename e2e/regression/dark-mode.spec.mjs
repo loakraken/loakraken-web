@@ -45,7 +45,7 @@ const PAGES = [
   ["/market", "시세"],
   ["/tools/refining", "재련"],
   ["/tools/auction", "경매"],
-  ["/tools/stone", "돌파고"],
+  ["/tools", "도구 목록"],
   [characterPath("상세"), "캐릭터"],
   [characterPath("상세", "skills"), "캐릭터 스킬"],
 ];

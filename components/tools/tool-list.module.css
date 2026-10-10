@@ -1,0 +1,63 @@
+/* /tools list: one card per tool, grouped. */
+.workspace {
+  display: grid;
+  gap: 28px;
+  max-width: 1024px;
+  margin: 0 auto;
+}
+.groupTitle {
+  margin-bottom: 12px;
+  color: var(--slate);
+  font-size: var(--text-caption);
+  font-weight: 600;
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+  gap: 12px;
+  padding: 0;
+  list-style: none;
+}
+.card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 76px;
+  padding: 16px 20px;
+  border-radius: var(--radius-xl);
+  background: var(--background);
+  color: var(--ink);
+  transition: box-shadow var(--duration-fast) var(--ease-out);
+}
+.card span {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.card strong {
+  font-size: var(--text-body);
+  font-weight: 600;
+}
+.card small {
+  color: var(--slate);
+  font-size: var(--text-caption);
+}
+.card svg {
+  flex: none;
+  color: var(--slate);
+}
+.card:focus-visible {
+  outline: 3px solid var(--action);
+  outline-offset: 2px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .card:hover {
+    box-shadow: 0 0 0 1px var(--control);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    transition: none;
+  }
+}
