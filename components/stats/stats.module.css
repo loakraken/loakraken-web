@@ -429,6 +429,20 @@
 .table tr[data-short] td {
   color: var(--muted-foreground);
 }
+/* Short-sample distribution cell: the median dot, then the note. */
+.shortCell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.shortCell .quantile {
+  flex: 1;
+}
+.shortCell small {
+  flex: none;
+  color: var(--muted-foreground);
+  font-size: 11px;
+}
 /* Share in its own column so it never runs into the count ("17721.8%"). */
 .table td.share {
   color: var(--muted-foreground);

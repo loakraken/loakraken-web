@@ -164,7 +164,8 @@ export function sampleText(meta: StatsMeta) {
 
 /** Shared scale for the class quantile bars: the widest p10…p90 span. */
 export function quantileScale(rows: ClassRow[]) {
-  const ready = rows.flatMap((row) => (row.combatPower ? [row.combatPower] : []));
+  // Only full samples set the scale; a short row (median dot only) cannot stretch it.
+  const ready = rows.flatMap((row) => (row.combatPower && row.sampleStatus === "READY" ? [row.combatPower] : []));
   if (!ready.length) return null;
   const min = Math.min(...ready.map((p) => p.p10));
   const max = Math.max(...ready.map((p) => p.p90));
