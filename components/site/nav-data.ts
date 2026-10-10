@@ -74,15 +74,17 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     id: "tools",
     label: "성장 도구",
-    match: ["/tools/refining", "/tools/crit-speed", "/tools/auction", "/tools/stone", "/tools/raid-rewards", "/tools/more-reward"],
+    // "/tools$": the tool list itself (exact; a bare prefix would also take the
+    // tools filed under other menus, such as /tools/material-quote).
+    match: ["/tools$", "/tools/refining", "/tools/crit-speed", "/tools/auction", "/tools/raid-rewards", "/tools/more-reward"],
     groups: [
       {
         title: "계산기",
         links: [
+          { label: "도구 전체", description: "모든 성장 도구를 한눈에", href: "/tools" },
           { label: "재련 기대 비용", description: "목표 단계까지 확률과 골드", href: "/tools/refining" },
           { label: "치적·뭉가·음돌", description: "치명·신속 목표까지 필요한 스탯", href: "/tools/crit-speed", flag: "critSpeed" },
           { label: "경매 입찰가", description: "파티 인원별 손익 분기와 선점가", href: "/tools/auction" },
-          { label: "돌파고", description: "스톤 세공, 다음에 깎을 줄", href: "/tools/stone" },
           { label: "레이드 보상표", description: "관문별 골드·더보기 비용", href: "/tools/raid-rewards" },
           { label: "더보기 손익", description: "관문마다 더보기가 남는지 지금 시세로", href: "/tools/more-reward" },
         ],
@@ -135,7 +137,9 @@ export const NAV_SECTIONS: NavSection[] = [
 export function sectionOf(pathname: string) {
   return (
     NAV_SECTIONS.find((section) =>
-      section.match?.some((prefix) => pathname.startsWith(prefix)),
+      section.match?.some((prefix) =>
+        prefix.endsWith("$") ? pathname === prefix.slice(0, -1) : pathname.startsWith(prefix),
+      ),
     )?.id ?? null
   );
 }
