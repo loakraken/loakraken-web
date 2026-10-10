@@ -1,52 +1,95 @@
 "use client"
 
 import * as React from "react"
+import { Drawer as DrawerPrimitive } from "@base-ui/react/drawer"
 import { Popover as PopoverPrimitive } from "@base-ui/react/popover"
 import { cn } from "cn"
 
-// Item detail on hover (equipment, gems, cards, accessories), as the target
-// sites show it: a dark game-style card in both themes with a grade-coloured
-// title, ruled sections and emphasised numbers.
+// Item detail (equipment, accessories, stone, bracelet, gems, cores), laid out
+// as iloa's card (user 10-10 23:13/23:15: same place, same look, same lines,
+// same spacing). Every number below is from the reference team's measurement
+// (40 레퍼런스/작은 동작 전수표 v2.1 §1·2·2b·2d·2e).
 //
-// Built on Base UI Popover rather than Tooltip (#319, frontend-a11y check):
-// hovering previews it, while a click, Enter/Space or a tap opens it with
-// focus inside, so keyboard and screen reader users can read and scroll a
-// long card and Esc returns focus to the item. A plain tooltip opens on focus
-// but is never announced and cannot be scrolled from the keyboard.
+// Pointer devices get a Base UI Popover beside the item, as iloa's is:
+// hovering previews it, while a click, Enter/Space opens it with focus inside,
+// so keyboard and screen reader users can read and scroll a long card and Esc
+// returns focus to the item (#319). Touch devices (no hover, coarse pointer)
+// get the same card in a bottom sheet, as iloa does at 390px.
 //
 // <ItemTooltip>
-//   <ItemTooltipTrigger aria-label="머리 방어구 +19 운명의 결단 상세">…</ItemTooltipTrigger>
-//   <ItemTooltipContent aria-label="+19 운명의 결단 머리">
-//     <ItemDetail grade="ancient" title="+19 운명의 결단 머리" subtitle="고대 머리 방어구" icon={<img alt="" … />}>
+//   <ItemTooltipTrigger aria-label="+19 운명의 전율 머리장식 상세">…</ItemTooltipTrigger>
+//   <ItemTooltipContent aria-label="+19 운명의 전율 머리장식">
+//     <ItemDetail grade="ancient" title="+19 운명의 전율 머리장식" icon={<img alt="" src={api} />}
+//       lines={["고대 머리 방어구", "아이템 레벨 1770 (티어 4)", <ItemQuality value={95} />]} aside="장착중">
+//       <ItemLine>캐릭터 귀속됨</ItemLine>
 //       <ItemDetailSection label="기본 효과"><ItemStat label="힘" value="+48,012" /></ItemDetailSection>
+//       <ItemProgress label="현재 단계 재련 경험치" value={0} max={67000} />
+//       <ItemLine tone="warn">분해불가</ItemLine>
 //     </ItemDetail>
 //   </ItemTooltipContent>
 // </ItemTooltip>
 
 type Grade = "normal" | "uncommon" | "rare" | "epic" | "legendary" | "relic" | "ancient" | "esther"
 
-const GRADE_TEXT: Record<Grade, string> = {
-  normal: "text-(--item-tip-grade-normal)",
-  uncommon: "text-(--item-tip-grade-uncommon)",
-  rare: "text-(--item-tip-grade-rare)",
-  epic: "text-(--item-tip-grade-epic)",
-  legendary: "text-(--item-tip-grade-legendary)",
-  relic: "text-(--item-tip-grade-relic)",
-  ancient: "text-(--item-tip-grade-ancient)",
-  esther: "text-(--item-tip-grade-esther)",
+const GRADES: Grade[] = ["normal", "uncommon", "rare", "epic", "legendary", "relic", "ancient", "esther"]
+
+// --- Popover on pointer devices, bottom sheet on touch ------------------------
+
+const TOUCH_QUERY = "(hover: none) and (pointer: coarse)"
+const subscribeTouch = (onChange: () => void) => {
+  const media = window.matchMedia(TOUCH_QUERY)
+  media.addEventListener("change", onChange)
+  return () => media.removeEventListener("change", onChange)
+}
+const ModeContext = React.createContext<"popover" | "sheet">("popover")
+
+function ItemTooltip({ open, defaultOpen, onOpenChange, children, ...props }: PopoverPrimitive.Root.Props) {
+  // The server and the first client render use the popover; a touch device
+  // switches before anything can open, since nothing opens until a press.
+  const touch = React.useSyncExternalStore(subscribeTouch, () => window.matchMedia(TOUCH_QUERY).matches, () => false)
+  if (touch) {
+    return (
+      <ModeContext.Provider value="sheet">
+        <DrawerPrimitive.Root
+          open={open}
+          defaultOpen={defaultOpen}
+          onOpenChange={onOpenChange && ((next, details) => onOpenChange(next, details as never))}
+          swipeDirection="down"
+        >
+          {children}
+        </DrawerPrimitive.Root>
+      </ModeContext.Provider>
+    )
+  }
+  return (
+    <ModeContext.Provider value="popover">
+      <PopoverPrimitive.Root open={open} defaultOpen={defaultOpen} onOpenChange={onOpenChange} {...props}>
+        {children}
+      </PopoverPrimitive.Root>
+    </ModeContext.Provider>
+  )
 }
 
-function ItemTooltip(props: PopoverPrimitive.Root.Props) {
-  return <PopoverPrimitive.Root {...props} />
-}
-
-/** The item itself, as a button. Hover opens after 150ms (closes 100ms after leaving). */
+/** The item itself, as a button. Hover opens 180ms after the pointer rests
+ * (iloa 160–200ms) and closes 100ms after it leaves; moving onto the card
+ * keeps it open. The card does not follow the pointer. On touch a tap opens
+ * the sheet. */
 function ItemTooltipTrigger({ className, ...props }: PopoverPrimitive.Trigger.Props) {
+  const mode = React.useContext(ModeContext)
+  if (mode === "sheet") {
+    return (
+      <DrawerPrimitive.Trigger
+        data-slot="item-tooltip-trigger"
+        className={cn("cursor-default", className as string)}
+        {...(props as DrawerPrimitive.Trigger.Props)}
+      />
+    )
+  }
   return (
     <PopoverPrimitive.Trigger
       data-slot="item-tooltip-trigger"
       openOnHover
-      delay={150}
+      delay={180}
       closeDelay={100}
       className={cn("cursor-default", className)}
       {...props}
@@ -54,36 +97,85 @@ function ItemTooltipTrigger({ className, ...props }: PopoverPrimitive.Trigger.Pr
   )
 }
 
-/** The positioned card. Flips and shifts to stay 8px inside the viewport; a long body scrolls inside it. */
+// The glass face both shapes share: iloa's fill, blur and edge.
+const FACE = "bg-(--item-tip) text-(--item-tip-foreground) shadow-(--item-tip-shadow) backdrop-blur-[24px] backdrop-saturate-[1.8]"
+const SCROLL = "overflow-y-auto overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+
+/** Pointer: right of the item, top edges 8px apart (card higher), 12px gap;
+ * flips to the left when the right has no room. 288px wide, 16px padding, at
+ * most half the viewport tall, scrolling inside with the scrollbar hidden.
+ * Touch: a sheet 7px in from the sides and bottom, a 35×4 handle above it,
+ * a 60% black backdrop, 500ms up; drag down, tap outside or Esc closes. */
 function ItemTooltipContent({
   className,
   side = "right",
-  sideOffset = 8,
+  sideOffset = 12,
   align = "start",
+  alignOffset = -8,
   children,
   ...props
 }: PopoverPrimitive.Popup.Props &
-  Pick<PopoverPrimitive.Positioner.Props, "align" | "side" | "sideOffset">) {
+  Pick<PopoverPrimitive.Positioner.Props, "align" | "alignOffset" | "side" | "sideOffset">) {
+  const mode = React.useContext(ModeContext)
+  if (mode === "sheet") {
+    return (
+      <DrawerPrimitive.Portal>
+        <DrawerPrimitive.Backdrop
+          className={cn(
+            "fixed inset-0 z-50 bg-black/60",
+            "opacity-[calc(1-var(--drawer-swipe-progress,0))] transition-opacity duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]",
+            "data-starting-style:opacity-0 data-ending-style:opacity-0 data-swiping:transition-none"
+          )}
+        />
+        {/* The viewport carries swipe-to-close and touch scroll locking. */}
+        <DrawerPrimitive.Viewport className="fixed inset-0 z-50">
+        <DrawerPrimitive.Popup
+          data-slot="item-tooltip"
+          className={cn(
+            "fixed inset-x-[7px] bottom-[7px] z-50 mx-auto flex max-w-[376px] flex-col",
+            "rounded-t-[24.5px] rounded-b-[10.5px]",
+            FACE,
+            "translate-y-(--drawer-swipe-movement-y) transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]",
+            "data-starting-style:translate-y-[calc(100%+7px)] data-ending-style:translate-y-[calc(100%+7px)] data-swiping:transition-none",
+            "outline-none focus-visible:outline-3 focus-visible:outline-(--ring)",
+            className as string
+          )}
+          {...(props as DrawerPrimitive.Popup.Props)}
+        >
+          <span aria-hidden="true" className="absolute -top-3 left-1/2 h-1 w-[35px] -translate-x-1/2 rounded-full bg-white/60" />
+          <div className={cn("max-h-[calc(100dvh-56px)] p-4", SCROLL)}>{children}</div>
+        </DrawerPrimitive.Popup>
+        </DrawerPrimitive.Viewport>
+      </DrawerPrimitive.Portal>
+    )
+  }
   return (
     <PopoverPrimitive.Portal>
       <PopoverPrimitive.Positioner
         side={side}
         sideOffset={sideOffset}
         align={align}
-        collisionPadding={8}
+        alignOffset={alignOffset}
+        collisionPadding={12}
         collisionAvoidance={{ side: "flip", align: "shift" }}
         className="isolate z-50"
       >
         <PopoverPrimitive.Popup
           data-slot="item-tooltip"
           className={cn(
-            "w-[min(320px,calc(100vw-16px))] max-h-[min(480px,calc(100dvh-16px))] overflow-y-auto overscroll-contain",
-            "rounded-(--radius-md) bg-(--item-tip) text-(--item-tip-foreground) shadow-(--tooltip-shadow)",
+            "w-[min(288px,calc(100vw-24px))] max-h-[50vh] p-4",
+            SCROLL,
+            "rounded-[12px]",
+            FACE,
             "origin-(--transform-origin)",
-            // 140ms fade with a 4px lift; reduced motion is instant (global rule).
-            "transition-[opacity,translate] duration-[140ms] ease-(--ease-out)",
-            "data-starting-style:translate-y-1 data-starting-style:opacity-0",
-            "data-ending-style:opacity-0 data-ending-style:duration-[100ms]",
+            // iloa: 150ms in, 100ms out on cubic-bezier(0.23, 1, 0.32, 1), from
+            // 0.98 and 4px back towards the item. Reduced motion is instant
+            // (global rule).
+            "transition-[opacity,scale,translate] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)]",
+            "data-starting-style:scale-[0.98] data-starting-style:opacity-0",
+            "data-ending-style:scale-[0.98] data-ending-style:opacity-0 data-ending-style:duration-100",
+            "data-[side=right]:data-starting-style:-translate-x-1 data-[side=left]:data-starting-style:translate-x-1",
+            "data-[side=bottom]:data-starting-style:-translate-y-1 data-[side=top]:data-starting-style:translate-y-1",
             "data-instant:transition-none",
             // Focus lands on the card itself when opened by click or keyboard.
             "outline-none focus-visible:outline-3 focus-visible:outline-(--ring)",
@@ -98,48 +190,150 @@ function ItemTooltipContent({
   )
 }
 
-/** The card body: icon + grade-coloured title row, then sections. */
+// --- The card ---------------------------------------------------------------
+
+/** The card body. A centred grade-coloured name (16/24 bold, row 32), then a
+ * 56px icon on its grade gradient with up to three 12px lines (16px pitch)
+ * 12px to its right — the first in the grade colour, with a narrow right
+ * column — then the rest, 8px apart, with no rules between them. Every line
+ * is 12px type on a 16px line. */
 function ItemDetail({
   grade = "normal",
   title,
-  subtitle,
   icon,
+  plainIcon = false,
+  lines,
   aside,
   children,
   className,
 }: {
   grade?: Grade
-  title: React.ReactNode
-  subtitle?: React.ReactNode
-  /** Icon from the official API image URL (decorative: alt=""). */
+  /** Leave out for a body-only card (engravings). */
+  title?: React.ReactNode
+  /** Official API item image (decorative: alt=""), drawn over the gradient. */
   icon?: React.ReactNode
-  /** Right side of the title row, e.g. a QualityBadge. */
+  /** Ark passive nodes and skills: the image alone, no grade box. */
+  plainIcon?: boolean
+  /** Beside the icon, top to bottom: grade·part, item level, ItemQuality. */
+  lines?: React.ReactNode[]
+  /** Right column on the first line, e.g. "장착중". */
   aside?: React.ReactNode
   children?: React.ReactNode
   className?: string
 }) {
+  const key = GRADES.includes(grade) ? grade : "normal"
   return (
-    <div data-slot="item-detail" className={cn("grid text-(length:--text-caption) leading-[1.45]", className)}>
-      <div className="flex items-start gap-3 px-3.5 pt-3 pb-2.5">
-        {icon && <div className="size-10 shrink-0 overflow-hidden rounded-(--radius-xs) [&>img]:size-full">{icon}</div>}
-        <div className="grid min-w-0 flex-1 gap-0.5">
-          <p className={cn("text-(length:--text-body) leading-[1.3] font-semibold break-keep", GRADE_TEXT[grade])}>{title}</p>
-          {subtitle && <p className="text-(--item-tip-muted)">{subtitle}</p>}
+    <div
+      data-slot="item-detail"
+      data-grade={key}
+      className={cn("flex flex-col gap-2 text-[12px] leading-4 font-normal", className)}
+      style={
+        {
+          "--item-grade": `var(--item-tip-grade-${key})`,
+          "--item-icon-a": `var(--item-tip-icon-${key}-a)`,
+          "--item-icon-b": `var(--item-tip-icon-${key}-b)`,
+        } as React.CSSProperties
+      }
+    >
+      {title && <p className="pb-2 text-center text-[16px] leading-6 font-bold break-keep text-(--item-grade)">{title}</p>}
+      {(icon || lines?.length || aside) && (
+        <div className="flex min-h-14 items-center gap-3">
+          {icon && (
+            <div
+              className={cn(
+                "size-14 shrink-0 overflow-hidden rounded-[4px] [&>img]:size-full [&>img]:object-cover",
+                // iloa paints the box with the grade as a gradient (2d); the
+                // official image sits on top. Its own artwork is not copied.
+                !plainIcon && "bg-linear-to-br/srgb from-(--item-icon-a) to-(--item-icon-b)"
+              )}
+            >
+              {icon}
+            </div>
+          )}
+          {/* The right column sits on the first line only; the quality bar
+              below takes the block's full width (iloa 188). */}
+          <div className="grid min-w-0 flex-1 gap-1 leading-3">
+            {(lines?.length ? lines : [null]).map((line, i) => (
+              <div key={i} className={cn("flex min-w-0 gap-1 break-keep", i === 0 && "text-(--item-grade)")}>
+                <div className="min-w-0 flex-1">{line}</div>
+                {i === 0 && aside && <div className="shrink-0 text-(--item-tip-equipped)">{aside}</div>}
+              </div>
+            ))}
+          </div>
         </div>
-        {aside && <div className="shrink-0">{aside}</div>}
-      </div>
+      )}
       {children}
     </div>
   )
 }
 
-/** A ruled section with a muted label. */
+const qualityTier = (value: number | null | undefined) =>
+  value == null || value < 0
+    ? "none"
+    : value >= 100
+      ? "max"
+      : value >= 90
+        ? "high"
+        : value >= 70
+          ? "good"
+          : value >= 30
+            ? "normal"
+            : value >= 10
+              ? "low"
+              : "poor"
+
+/** "품질 95" and a 145×12 bar, both in the quality tier's colour. */
+function ItemQuality({ value }: { value: number | null | undefined }) {
+  const tier = qualityTier(value)
+  const known = value != null && value >= 0
+  return (
+    <div
+      data-slot="item-quality"
+      data-tier={tier}
+      className="flex items-center gap-1"
+      style={{ "--q": `var(--item-tip-quality-${tier})` } as React.CSSProperties}
+    >
+      <span>품질</span>
+      <span className="tabular-nums text-(--q)">{known ? value : "-"}</span>
+      <span aria-hidden="true" className="ml-auto h-3 w-[145px] min-w-0 shrink overflow-hidden rounded-[8px] bg-(--item-tip-track)">
+        <span className="block h-full rounded-[8px] bg-(--q)" style={{ width: `${known ? Math.min(100, value) : 0}%` }} />
+      </span>
+    </div>
+  )
+}
+
+/** A section: a sky-blue head line, then 16px lines. No rule. */
 function ItemDetailSection({ label, children, className }: { label?: React.ReactNode; children: React.ReactNode; className?: string }) {
   return (
-    <section className={cn("grid gap-1 border-t border-(--item-tip-rule) px-3.5 py-2.5", className)}>
-      {label && <p className="text-(--item-tip-muted) font-medium">{label}</p>}
+    <section className={cn("grid", className)}>
+      {label && <p className="text-(--item-tip-section)">{label}</p>}
       {children}
     </section>
+  )
+}
+
+/** One plain line (귀속, 거래, 분해불가, [제작], 내구도); `\n` breaks it. */
+function ItemLine({
+  tone,
+  children,
+  className,
+}: {
+  tone?: "warn" | "craft" | "muted"
+  children: React.ReactNode
+  className?: string
+}) {
+  return (
+    <p
+      className={cn(
+        "break-keep whitespace-pre-line",
+        tone === "warn" && "text-(--item-tip-warn)",
+        tone === "craft" && "text-(--item-tip-craft)",
+        tone === "muted" && "text-(--item-tip-muted)",
+        className
+      )}
+    >
+      {children}
+    </p>
   )
 }
 
@@ -172,5 +366,32 @@ function ItemStat({
   )
 }
 
-export { ItemTooltip, ItemTooltipTrigger, ItemTooltipContent, ItemDetail, ItemDetailSection, ItemStat }
+/** Refine experience: a head line, then a 12px bar 4px below with "0 / 67000" on it (row 32). */
+function ItemProgress({ label, value, max }: { label: React.ReactNode; value: number; max: number }) {
+  const pct = max > 0 ? Math.max(0, Math.min(100, (value / max) * 100)) : 0
+  return (
+    <section className="grid gap-1">
+      <p className="text-(--item-tip-section)">{label}</p>
+      <div className="relative h-3 overflow-hidden rounded-[8px] bg-(--item-tip-track)">
+        <span aria-hidden="true" className="absolute inset-y-0 left-0 rounded-[8px] bg-(--item-tip-exp)" style={{ width: `${pct}%` }} />
+        <span className="relative block text-center text-[12px] leading-3 font-medium tabular-nums text-(--item-tip-exp-foreground)">
+          {/* written as iloa does, without thousands separators */}
+          {value} / {max}
+        </span>
+      </div>
+    </section>
+  )
+}
+
+export {
+  ItemTooltip,
+  ItemTooltipTrigger,
+  ItemTooltipContent,
+  ItemDetail,
+  ItemDetailSection,
+  ItemLine,
+  ItemProgress,
+  ItemQuality,
+  ItemStat,
+}
 export type { Grade as ItemGrade }
