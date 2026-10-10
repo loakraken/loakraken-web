@@ -262,9 +262,18 @@ createServer(async (req, res) => {
       failures.clear();
       return send({ ok: true });
     }
+    if (req.method !== "POST") return send({ code: "INVALID_REQUEST", message: "POST or DELETE" }, 405);
     let body = "";
     for await (const chunk of req) body += chunk;
-    const plan = JSON.parse(body || "{}");
+    // A bad plan answers 400; it never takes the mock (and every e2e run) down.
+    let plan;
+    try {
+      plan = JSON.parse(body || "{}");
+    } catch {
+      return send({ code: "INVALID_REQUEST", message: "JSON body" }, 400);
+    }
+    if (typeof plan.path !== "string" || !plan.path.startsWith("/"))
+      return send({ code: "INVALID_REQUEST", message: "path required" }, 400);
     failures.set(plan.path, { status: Number(plan.status) || 502, times: Number(plan.times) || 1, code: plan.code });
     return send({ ok: true, armed: Object.fromEntries(failures) });
   }
