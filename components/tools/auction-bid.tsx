@@ -135,9 +135,13 @@ function BidPick({ result }: { result: AuctionResult | null }) {
         <p className={styles.pickNote}>
           예: 거래소 {formatGold(EXAMPLE.price)} · {EXAMPLE.party}인이면 {formatGold(EXAMPLE.breakEven)}까지
         </p>
+        <p className={styles.pickAlt}>
+          남기고 싶다면 선점 {formatGold(EXAMPLE.strategies[0].bid)}처럼 더 낮은 값도 함께 알려 드려요
+        </p>
       </section>
     );
   const done = copied?.id === "breakEven";
+  const preempt = result.strategies.find((item) => item.id === "preempt");
   return (
     <section className={styles.pick} aria-labelledby="auction-pick">
       <p id="auction-pick" className={styles.pickLabel}>
@@ -157,6 +161,11 @@ function BidPick({ result }: { result: AuctionResult | null }) {
       <p className={styles.pickNote}>
         판매 손익 분기 · 이보다 높게 부르면 팔아도 손해예요. 직접 쓸 거라면 {formatGold(result.useMyself)}까지.
       </p>
+      {preempt && (
+        <p className={styles.pickAlt}>
+          남기고 싶다면 <b>선점 {formatGold(preempt.bid)}</b> · 팔면 {formatSigned(preempt.saleProfit)} 남아요
+        </p>
+      )}
       <p className={styles.sr} role="status" aria-live="polite">
         {done ? (copied.ok ? "추천 입찰 상한을 복사했어요." : "복사하지 못했어요.") : ""}
       </p>
