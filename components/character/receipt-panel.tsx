@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, createContext, useContext } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { RefreshArrow } from "@/components/ui/icons";
 import { InlineOrb } from "@/components/landing/orb";
@@ -180,7 +180,19 @@ function Body({
  * shown as they come. Hidden where the receipt is off (the backend route is
  * absent) and never requested for crawlers (the proxy refuses them).
  */
+/**
+ * Whether this deployment shows the receipt (RECEIPT_TOOL, decided by the
+ * server page): when off the panel is never drawn, so the roster tab does not
+ * show a loading box that then disappears.
+ */
+export const ReceiptEnabled = createContext(true);
+
 export function ReceiptPanel({ name }: { name: string }) {
+  if (!useContext(ReceiptEnabled)) return null;
+  return <ReceiptPanelBody name={name} />;
+}
+
+function ReceiptPanelBody({ name }: { name: string }) {
   const [assumeBook, setAssumeBook] = useState(false);
   const query = useQuery({
     queryKey: ["receipt", name, assumeBook],
