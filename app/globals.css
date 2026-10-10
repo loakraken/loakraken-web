@@ -942,13 +942,13 @@
   --item-tip-grade-normal: #c4c4cc; /* 9.30 */
   --item-tip-grade-uncommon: #8bd45c; /* 8.96 */
   --item-tip-grade-rare: #5fa8ff; /* 6.55 */
-  --item-tip-grade-epic: #b388ff; /* 6.05 */
-  --item-tip-grade-legendary: #f5b031; /* 8.55 */
-  --item-tip-grade-relic: #ff8a3d; /* 6.87 */
+  --item-tip-grade-epic: #ce43fc; /* iloa, 4.32 / 4.70 */
+  --item-tip-grade-legendary: #f99200; /* iloa, 6.78 / 7.37 */
+  --item-tip-grade-relic: #fa5d00; /* iloa, 4.92 / 5.35 */
   --item-tip-grade-ancient: #e3c7a1; /* iloa, 9.60 */
-  --item-tip-grade-esther: #3cd3c1; /* 8.66 */
+  --item-tip-grade-esther: #3cf2e6; /* iloa, 11.15 / 12.12 */
   /* Icon box gradient, top-left → bottom-right (v2.1 §2d). Ancient, relic,
-     legendary and epic are iloa's; the others were not on the reference
+     legendary, epic and esther are iloa's; the others were not on the reference
      character and are derived from the grade colour the same way. */
   --item-tip-icon-ancient-a: rgb(61 51 37);
   --item-tip-icon-ancient-b: rgb(220 201 153);
@@ -958,8 +958,8 @@
   --item-tip-icon-legendary-b: rgb(158 95 4);
   --item-tip-icon-epic-a: rgb(38 19 49);
   --item-tip-icon-epic-b: rgb(72 13 93);
-  --item-tip-icon-esther-a: color-mix(in srgb, var(--item-tip-grade-esther) 25%, #000);
-  --item-tip-icon-esther-b: color-mix(in srgb, var(--item-tip-grade-esther) 70%, #000);
+  --item-tip-icon-esther-a: rgb(12 46 44);
+  --item-tip-icon-esther-b: rgb(47 171 168);
   --item-tip-icon-rare-a: color-mix(in srgb, var(--item-tip-grade-rare) 25%, #000);
   --item-tip-icon-rare-b: color-mix(in srgb, var(--item-tip-grade-rare) 70%, #000);
   --item-tip-icon-uncommon-a: color-mix(in srgb, var(--item-tip-grade-uncommon) 25%, #000);
