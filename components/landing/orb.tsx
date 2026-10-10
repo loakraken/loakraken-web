@@ -1,14 +1,13 @@
 "use client";
 
 import { useRef } from "react";
-import { useInView } from "motion/react";
 import { ThinkingOrb, type OrbState } from "thinking-orbs";
-import { useLandingMotion } from "./motion";
+import { useLandingMotion, useVisible } from "./motion-context";
 import styles from "./landing.module.css";
 
 export function IntelligenceOrb({ state = "breathing" }: { state?: OrbState }) {
   const ref = useRef<HTMLDivElement>(null);
-  const visible = useInView(ref, { margin: "60px" });
+  const visible = useVisible(ref, 60);
   // Decorative and repeating: stops with the 5s loop budget.
   const { looping } = useLandingMotion();
 

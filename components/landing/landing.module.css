@@ -49,7 +49,7 @@
 .heroEnter { animation: hero-enter 750ms var(--ease-out) both; }
 .heroEnter:nth-child(2) { animation-delay: 60ms; }
 .heroEnter:nth-child(3) { animation-delay: 120ms; }
-.orbInteraction { margin-top: 2px; width: 320px; height: 276px; display: grid; place-items: center; }
+.orbInteraction { margin-top: 2px; width: 320px; height: 276px; display: grid; place-items: center; transition: transform 450ms var(--ease-out); }
 .orbStage { width: 276px; height: 276px; display: grid; place-items: center; position: relative; isolation: isolate; }
 /* Refraction belongs to the orb visual; interface surfaces remain flat. */
 .orbAtmosphere { position: absolute; bottom: 25px; left: 65px; width: 146px; height: 13px; border-radius: 50%; background: #9aacc0; filter: blur(15px); opacity: 0.3; animation: orb-shadow 8s ease-in-out infinite; }
@@ -385,4 +385,18 @@
 @media (prefers-reduced-motion: reduce) {
   .landing *, .landing *::before, .landing *::after { animation: none !important; transition-duration: 0ms !important; scroll-behavior: auto !important; }
   .heroEnter { opacity: 1; transform: none; }
+}
+/* The hero at the top of the home page (user 11:05): no fixed-header offset,
+   no full-screen canvas, and site tokens so it follows the dark theme there
+   (/about itself stays light). */
+.landing[data-embedded] { min-height: 0; overflow: visible; background: transparent; color: var(--foreground); font-size: 16px; }
+.hero.heroEmbedded { padding: 36px 0 8px; }
+.heroEmbedded .heroTitle > span, .heroEmbedded .orbCaption, .heroEmbedded .searchIcon, .heroEmbedded .shortcut, .heroEmbedded .searchMessage, .heroEmbedded .searchForm input::placeholder { color: var(--muted-foreground); }
+.heroEmbedded .heroDescription { color: var(--muted-foreground); }
+.heroEmbedded .searchForm { background: var(--background); border-color: var(--muted-foreground); }
+.heroEmbedded .searchForm input { color: var(--foreground); }
+.heroEmbedded .searchMessage a, .heroEmbedded .exploreLink { color: var(--link); }
+.heroEmbedded .exploreLink { margin-top: 4px; }
+@media (max-width: 600px) {
+  .hero.heroEmbedded { padding: 20px 0 4px; }
 }
