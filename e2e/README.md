@@ -51,4 +51,4 @@ npx playwright show-report       # 실패 시 trace·스크린샷
 
 `test.fail()`로 표시한 테스트는 열린 버그를 재현한다. 버그를 고치면 Playwright가 "예상 밖 통과"로 알려 준다. 그때 해당 줄을 지운다.
 
-- 지금은 없다.
+- web #304 — 홈 공지 긴 제목 넘침(`regression/long-text.spec.mjs` "홈 공지 제목" 3폭)
