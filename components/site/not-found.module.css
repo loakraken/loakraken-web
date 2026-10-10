@@ -1,0 +1,83 @@
+/* 404 (#336). Tokens only; the mark takes the text colour, so it follows the theme. */
+.page {
+  min-height: 70vh;
+  max-width: var(--page-max);
+  margin: 0 auto;
+  padding: 24px var(--page-gutter) 64px;
+  display: grid;
+  align-content: start;
+  grid-template-columns: minmax(0, 1fr);
+}
+.code {
+  margin: 0 0 8px;
+  color: var(--muted-foreground);
+  font-size: var(--text-meta);
+  font-variant-numeric: tabular-nums;
+}
+.title {
+  margin: 0;
+  max-width: 18ch;
+  font-size: clamp(24px, 3.2vw, var(--text-display));
+  line-height: 1.25;
+  font-weight: 650;
+  letter-spacing: -0.03em;
+  word-break: keep-all;
+}
+.stage {
+  position: relative;
+  justify-self: center;
+  width: min(320px, 70vw);
+  aspect-ratio: 1;
+  margin: 32px 0 24px;
+  color: var(--foreground);
+}
+.stage > svg {
+  width: 100%;
+  height: 100%;
+  transition: transform var(--duration-base) var(--ease-out);
+  transform-origin: 50% 30%;
+}
+/* The legs curl a little while an action is hovered (precise pointers only). */
+@media (hover: hover) and (pointer: fine) {
+  .page:has(.actions a:hover) .stage > svg {
+    transform: scale(1.03) rotate(-2deg);
+  }
+}
+.eyes {
+  position: absolute;
+  left: 50%;
+  top: 63%;
+  translate: -50% -50%;
+  display: flex;
+  gap: 10%;
+  width: 46%;
+}
+.eye {
+  flex: 1;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--background);
+  box-shadow: inset 0 0 0 clamp(4px, 1.4vw, 7px) var(--foreground);
+  display: grid;
+  place-items: center;
+}
+.pupil {
+  width: 38%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--foreground);
+  transition: transform 90ms linear;
+}
+.actions {
+  justify-self: center;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .pupil,
+  .stage > svg {
+    transition: none;
+  }
+}
