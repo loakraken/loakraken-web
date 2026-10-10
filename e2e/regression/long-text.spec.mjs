@@ -20,9 +20,8 @@ const CASES = [
 
 // 열린 버그가 있는 경우: test.fail 표시(고치면 "예상 밖 통과"로 알려 준다).
 // 홈 공지 제목(web #304)은 web #314로 고침.
-const KNOWN = {
-  "캐릭터 수집품 목록": "web #322: 상태 칸 small이 flex:none이라 긴 글자에서 칸 밖으로 넘침(P2)",
-};
+// 캐릭터 수집품 목록(web #322)은 web #329로 고침.
+const KNOWN = {};
 
 test.describe("긴 텍스트 넘침 @regression", () => {
   for (const c of CASES)
