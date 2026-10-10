@@ -277,10 +277,4 @@ export function parseState(text: string | null, now: number): HomeworkState {
   }
 }
 
-export function formatCountdown(ms: number) {
-  const minutes = Math.max(0, Math.floor(ms / 60_000));
-  const days = Math.floor(minutes / 1440);
-  const hours = Math.floor((minutes % 1440) / 60);
-  const mins = minutes % 60;
-  return days > 0 ? `${days}일 ${hours}시간` : hours > 0 ? `${hours}시간 ${mins}분` : `${mins}분`;
-}
+

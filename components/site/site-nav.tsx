@@ -4,7 +4,7 @@ import { useCallback, useEffect, useId, useRef, useState, type KeyboardEvent } f
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronDown, Menu, X } from "lucide-react";
+import { ChevronDown, CloseCircle, Menu } from "@/components/ui/icons";
 import { NAV_SECTIONS, sectionOf, type NavFlags, type NavLink } from "./nav-data";
 import styles from "./site-nav.module.css";
 
@@ -229,7 +229,7 @@ export function SiteNav() {
         aria-label={sheet ? "메뉴 닫기" : "메뉴 열기"}
         onClick={() => setSheet(!sheet)}
       >
-        {sheet ? <X size={18} /> : <Menu size={18} />}
+        {sheet ? <CloseCircle size={18} /> : <Menu size={18} />}
       </button>
       <div id={`${id}-sheet`} className={styles.sheet} data-open={sheet || undefined} hidden={!sheet}>
         {NAV_SECTIONS.map((section) => (

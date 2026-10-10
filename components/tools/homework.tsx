@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useId, useState, type FormEvent } from "react";
+import { useRemaining } from "@/components/home/clock";
 import { useMutation } from "@tanstack/react-query";
-import { ArrowLeft, ListChecks, Plus, Trash2 } from "lucide-react";
+import { Add, ArrowLeft, TaskSquare, TrashSquare } from "@/components/ui/icons";
 import Link from "next/link";
 import { SiteHeader } from "@/components/site/site-header";
 import { CharacterQueryError, fetchSiblings } from "@/lib/character/client";
@@ -15,7 +16,6 @@ import {
   addCharacters,
   characterGold,
   eligibleModes,
-  formatCountdown,
   modeOf,
   nextReset,
   parseState,
@@ -40,6 +40,15 @@ function load(now: number): HomeworkState {
   } catch {
     return parseState(null, now);
   }
+}
+
+/**
+ * Weekly reset countdown in the site-wide format (web #372, 사용자 19:32):
+ * "H시간 M분" above an hour, a ticking "M분 SS초" under it.
+ */
+function ResetLeft({ now }: { now: number }) {
+  const left = useRemaining(nextReset(now), now);
+  return <>{left === undefined ? null : (left ?? "곧 초기화")}</>;
 }
 
 function Summary({ state, now }: { state: HomeworkState; now: number }) {
@@ -92,7 +101,9 @@ function Summary({ state, now }: { state: HomeworkState; now: number }) {
         </div>
         <div>
           <dt>주간 초기화까지</dt>
-          <dd>{formatCountdown(nextReset(now) - now)}</dd>
+          <dd>
+            <ResetLeft now={now} />
+          </dd>
         </div>
       </dl>
     </section>
@@ -193,7 +204,7 @@ function AddRoster({ onAdd }: { onAdd: (picked: Sibling[]) => void }) {
               setName("");
             }}
           >
-            <Plus size={16} aria-hidden="true" /> {picked.size}명 추가
+            <Add size={16} aria-hidden="true" /> {picked.size}명 추가
           </button>
         </fieldset>
       )}
@@ -231,7 +242,7 @@ function RaidRow({
       <div className={styles.raidHead}>
         <strong>{title}</strong>
         <button type="button" className={styles.iconButton} onClick={onRemove} aria-label={`${title} 빼기`}>
-          <Trash2 size={14} aria-hidden="true" />
+          <TrashSquare size={14} aria-hidden="true" />
         </button>
       </div>
       {higherOpen && (
@@ -297,7 +308,7 @@ function CharacterCard({
           onClick={onRemove}
           aria-label={`${character.name} 빼기`}
         >
-          <Trash2 size={16} aria-hidden="true" />
+          <TrashSquare size={16} aria-hidden="true" />
         </button>
       </div>
       <label className={styles.goldToggle}>
@@ -408,7 +419,7 @@ export default function HomeworkTool() {
       <main id="hw-main">
         <section className={quote.hero} aria-labelledby="hw-heading">
           <span className={quote.heroIcon} aria-hidden="true">
-            <ListChecks size={18} />
+            <TaskSquare size={18} />
           </span>
           <p className={quote.heroKicker}>내 진행</p>
           <h1 id="hw-heading">숙제 체크</h1>

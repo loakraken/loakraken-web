@@ -147,7 +147,7 @@ export function RankingsView({ initial }: { initial: RankingQuery }) {
         {data && (
           <p className={styles.notice}>
             {sampleText(data.meta)} · 공식 랭킹이 아니에요
-            {data.meta.sampleStatus !== "READY" && <strong> · 표본이 {data.meta.minSample}명 미만이라 아직 집계 중이에요</strong>}
+            {data.meta.sampleStatus !== "READY" && <strong> · 표본 {data.meta.minSample}명이 모이면 순위를 보여 드려요</strong>}
           </p>
         )}
 
@@ -226,6 +226,9 @@ export function RankingsView({ initial }: { initial: RankingQuery }) {
         )}
         <p className={styles.note}>
           순위는 LOAKraken이 조회·갱신한 캐릭터 기준이며, 순위 비공개로 설정된 캐릭터는 나오지 않아요. 티어: 크라켄 상위 1% · 해구 5% · 심해 10% · 대양 25% · 연안 50%
+        </p>
+        <p className={styles.note}>
+          내 캐릭터를 순위에서 빼고 싶다면 <Link href="/contact#removal">순위 제외 요청</Link>을 보내 주세요.
         </p>
       </main>
     </div>

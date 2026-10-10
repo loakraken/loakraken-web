@@ -2,18 +2,22 @@
 
 import * as React from "react"
 
-// Key number that counts up the first time it appears (combat power, total
-// gold, top %), then simply shows new values on refresh. Screen readers get
-// the final value from the start; the counting digits are hidden from them.
-// Reduced motion shows the final value immediately. Keep it to the one to
-// three headline numbers of a screen, never numbers inside tables.
+// Key number that counts up when it appears (combat power, total gold), then
+// simply shows new values on refresh. It counts the last stretch only (from
+// 90% of the value) inside a box sized by the final text, so nothing beside it
+// moves (#315). Screen readers get the final value from the start; the
+// counting digits are hidden from them. Reduced motion shows the final value
+// immediately. Keep it to one headline number of a screen (motion guide 7.1),
+// never numbers inside tables.
 type CountUpProps = Omit<React.ComponentProps<"span">, "children"> & {
   value: number
   /** Formats every frame and the final value (e.g. v => v.toLocaleString("ko-KR", { maximumFractionDigits: 2 })). */
   format?: (value: number) => string
+  /** Where counting starts, as a share of the value (default 0.9). */
+  from?: number
 }
 
-const DURATION_FALLBACK = 500
+const DURATION_FALLBACK = 400
 // --ease-out cubic-bezier(0.23, 1, 0.32, 1), approximated for rAF frames.
 const easeOut = (t: number) => 1 - Math.pow(1 - t, 4)
 const defaultFormat = (v: number) => v.toLocaleString("ko-KR")
@@ -24,13 +28,13 @@ function readDuration(element: HTMLElement) {
   return Number.isFinite(ms) ? ms : DURATION_FALLBACK
 }
 
-function CountUp({ value, format = defaultFormat, className, ...props }: CountUpProps) {
+function CountUp({ value, format = defaultFormat, from = 0.9, className, ...props }: CountUpProps) {
   const digits = React.useRef<HTMLSpanElement>(null)
-  const latest = React.useRef({ value, format })
+  const latest = React.useRef({ value, format, from })
 
   React.useEffect(() => {
-    latest.current = { value, format }
-  }, [value, format])
+    latest.current = { value, format, from }
+  }, [value, format, from])
 
   // Runs once. The frames write the text node React rendered, so there is no
   // re-render per frame; it starts before paint, so a number that mounts with
@@ -44,13 +48,14 @@ function CountUp({ value, format = defaultFormat, className, ...props }: CountUp
     const duration = readDuration(element)
     const start = performance.now()
     let frame = 0
-    node.nodeValue = latest.current.format(0)
+    const first = latest.current
+    node.nodeValue = first.format(first.value * first.from)
     const tick = (now: number) => {
       // A frame's timestamp can be earlier than `start` (it marks the frame's
-      // beginning), so clamp to 0 or the first frame shows a negative value.
+      // beginning), so clamp to 0 or the first frame shows a value below the start.
       const t = Math.max(0, Math.min(1, (now - start) / duration))
-      const { value: target, format: fmt } = latest.current
-      node.nodeValue = fmt(t < 1 ? target * easeOut(t) : target)
+      const { value: target, format: fmt, from: share } = latest.current
+      node.nodeValue = fmt(t < 1 ? target * (share + (1 - share) * easeOut(t)) : target)
       if (t < 1) frame = requestAnimationFrame(tick)
     }
     frame = requestAnimationFrame(tick)
@@ -61,10 +66,15 @@ function CountUp({ value, format = defaultFormat, className, ...props }: CountUp
   }, [])
 
   const finalText = format(value)
+  // The invisible final text holds the width; the counting digits sit on it
+  // in the same grid cell, end-aligned like an odometer.
   return (
     <span data-slot="count-up" className={className} {...props}>
-      <span ref={digits} aria-hidden className="tabular-nums">
-        {finalText}
+      <span aria-hidden className="inline-grid tabular-nums">
+        <span className="invisible [grid-area:1/1]">{finalText}</span>
+        <span ref={digits} className="justify-self-end [grid-area:1/1]">
+          {finalText}
+        </span>
       </span>
       <span className="sr-only">{finalText}</span>
     </span>

@@ -15,43 +15,55 @@ import {
   type CharacterRank,
   type RankMetric,
 } from "@/lib/character/rank";
+import Link from "next/link";
 import { Panel } from "./panel";
 import styles from "./rank.module.css";
 import { useCrossfade } from "@/lib/motion";
 
+/**
+ * Ranked scopes as boxes; scopes still short of the sample minimum do not get
+ * a box each (user, 11:20: "집계 중" everywhere) but one line with their
+ * sample sizes. Never a 0 or a made-up rank.
+ */
 function Cells({ data, metric }: { data: CharacterRank; metric: RankMetric }) {
+  const cells = scopesOf(data).map((scope) => ({ scope, cell: rankCell(data, metric, scope.id) }));
+  const shown = cells.filter(({ cell }) => cell.state !== "collecting");
+  const waiting = cells.flatMap(({ scope, cell }) =>
+    cell.state === "collecting" ? [`${scopeLabel(data, scope.id).replace(" · ", " ")} ${cell.total.toLocaleString("ko-KR")}명`] : [],
+  );
   return (
-    <ul className={styles.cells} data-count={scopesOf(data).length}>
-      {scopesOf(data).map((scope) => {
-        const cell = rankCell(data, metric, scope.id);
-        return (
-          <li key={scope.id}>
-            <span className={styles.scope}>{scopeLabel(data, scope.id)}</span>
-            {cell.state === "ready" ? (
-              <>
-                <strong>{cell.rank}</strong>
-                <small>{cell.total}</small>
-                <span className={styles.top}>
-                  {cell.top ?? "-"}
-                  {cell.tier && (
-                    <b className={styles.tier} title={cell.tierNote ?? undefined}>
-                      {cell.tier}
-                    </b>
-                  )}
-                </span>
-              </>
-            ) : cell.state === "collecting" ? (
-              <>
-                <strong className={styles.pending}>집계 중</strong>
-                <small>표본 {data.minSample}명 미만</small>
-              </>
-            ) : (
-              <strong className={styles.pending}>-</strong>
-            )}
-          </li>
-        );
-      })}
-    </ul>
+    <>
+      {shown.length > 0 && (
+        <ul className={styles.cells} data-count={shown.length}>
+          {shown.map(({ scope, cell }) => (
+            <li key={scope.id}>
+              <span className={styles.scope}>{scopeLabel(data, scope.id)}</span>
+              {cell.state === "ready" ? (
+                <>
+                  <strong>{cell.rank}</strong>
+                  <small>{cell.total}</small>
+                  <span className={styles.top}>
+                    {cell.top ?? "-"}
+                    {cell.tier && (
+                      <b className={styles.tier} title={cell.tierNote ?? undefined}>
+                        {cell.tier}
+                      </b>
+                    )}
+                  </span>
+                </>
+              ) : (
+                <strong className={styles.pending}>-</strong>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+      {waiting.length > 0 && (
+        <p className={styles.waiting}>
+          표본 {waiting.join(", ")} — {data.minSample.toLocaleString("ko-KR")}명이 모이면 순위를 보여 드려요.
+        </p>
+      )}
+    </>
   );
 }
 
@@ -59,7 +71,7 @@ function Cells({ data, metric }: { data: CharacterRank; metric: RankMetric }) {
  * LOAWA-style ranking boxes (F-7): combat power and item level, each over all,
  * the server and the class. Ranks are over the characters LOAKraken has
  * observed (said under the boxes), never the whole game. A hidden character
- * shows only "순위 비공개"; a small sample shows "집계 중", never a 0.
+ * shows only "순위 비공개"; a small sample shows its size on one line, never a 0.
  */
 export function RankPanel({ name }: { name: string }) {
   const query = useQuery({
@@ -122,6 +134,11 @@ export function RankPanel({ name }: { name: string }) {
               : `${conditionsText(data)}이에요. 게임 전체 순위와 다를 수 있어요.`}
           </p>
           {state === "ranked" && <p className={styles.note}>티어: {TIER_LEGEND}</p>}
+          <p className={styles.note}>
+            <Link href="/contact#removal" className={styles.removal}>
+              순위 제외 요청
+            </Link>
+          </p>
         </>
       )}
     </Panel>

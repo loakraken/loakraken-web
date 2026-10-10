@@ -1,21 +1,30 @@
 import type { Metadata } from "next";
-import { Geist_Mono, Noto_Sans_KR } from "next/font/google";
+import { Geist_Mono } from "next/font/google";
+import localFont from "next/font/local";
 
 import "./globals.css";
 import Providers from "./providers";
 import { SITE_NAME, siteUrl } from "@/lib/site";
 import { themeInitScript } from "@/components/ui/theme-toggle";
 import { earlyClickScript } from "@/lib/early-clicks";
+import { SiteLegal } from "@/components/site/site-legal";
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
 });
 
-const korean = Noto_Sans_KR({
-  variable: "--font-korean",
-  subsets: ["latin"],
-  display: "swap",
+// Pretendard Variable subset (KS X 1001 Hangul + ASCII, wght 400–700),
+// renamed Kraken Sans per the OFL Reserved Font Name; licence in app/fonts.
+// One preloaded file, so text re-lays out at most once (#300). No generated
+// Arial fallback: it has no Hangul, so every glyph would go through system
+// fallback lookup; the --font-ui stack names the system Hangul faces instead.
+const kraken = localFont({
+  src: "./fonts/kraken-sans.woff2",
+  variable: "--font-kraken",
+  weight: "400 700",
+  display: "fallback",
+  adjustFontFallback: false,
 });
 
 const TITLE = "LOAKraken — 로스트아크 캐릭터 정보·시세·성장 도구";
@@ -46,13 +55,14 @@ export default function RootLayout({ children }: Readonly<{
 }>) {
   return (
     // The pre-paint script sets data-theme before hydration (stored dark choice).
-    <html lang="ko" suppressHydrationWarning>
+    <html lang="ko" className={`${geistMono.variable} ${kraken.variable}`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
         <script dangerouslySetInnerHTML={{ __html: earlyClickScript }} />
       </head>
-      <body className={`${geistMono.variable} ${korean.variable} antialiased`}>
+      <body className="antialiased">
         <Providers>{children}</Providers>
+        <SiteLegal />
       </body>
     </html>
   );

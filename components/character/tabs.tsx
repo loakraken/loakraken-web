@@ -1,9 +1,9 @@
 "use client";
 
-import { useId, useState, useSyncExternalStore, type ReactNode } from "react";
+import { memo, useId, useState, useSyncExternalStore, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
-import { ArrowRight, Info, RefreshCw, Share2, Star } from "lucide-react";
+import { ArrowRight, Bookmark, BookmarkBold, InfoCircle, RefreshArrow, Share } from "@/components/ui/icons";
 import { InlineOrb } from "@/components/landing/orb";
 import { Reveal } from "@/components/landing/motion";
 import {
@@ -48,6 +48,8 @@ import { AvatarsTab, CollectiblesTab } from "./inner";
 import { Panel } from "./panel";
 import { ViewsPanel } from "./views-panel";
 import { useTabPill } from "./tab-pill";
+import { ItemTooltip } from "./item-tooltip";
+import { ReceiptPanel } from "./receipt-panel";
 import { useStagger } from "./entrance";
 import { RankPanel } from "./rank-panel";
 import { byObservedOrder, groupByDay } from "@/lib/character/titles";
@@ -206,7 +208,7 @@ export function TabBar({
             onClick={share}
             aria-label="공유하기"
           >
-            <Share2 size={16} aria-hidden="true" />
+            <Share size={16} aria-hidden="true" />
           </button>
           <button
             type="button"
@@ -215,11 +217,11 @@ export function TabBar({
             aria-pressed={favorite}
             aria-label={favorite ? "즐겨찾기 해제" : "즐겨찾기"}
           >
-            <Star
-              size={16}
-              aria-hidden="true"
-              fill={favorite ? "currentColor" : "none"}
-            />
+            {favorite ? (
+              <BookmarkBold size={16} aria-hidden="true" />
+            ) : (
+              <Bookmark size={16} aria-hidden="true" />
+            )}
           </button>
           <span className={styles.refreshWrap}>
             <button
@@ -234,12 +236,12 @@ export function TabBar({
               {fetching ? (
                 <InlineOrb />
               ) : (
-                <RefreshCw size={14} aria-hidden="true" />
+                <RefreshArrow size={14} aria-hidden="true" />
               )}
               {fetching
                 ? "갱신 중"
                 : rateLimitSeconds > 0
-                  ? `${rateLimitSeconds}초 뒤 갱신`
+                  ? `${remainingLabel(rateLimitSeconds * 1000)} 뒤 갱신`
                   : cooling
                     ? remainingLabel(window_.remainingMs)
                     : "갱신"}
@@ -329,7 +331,7 @@ function EquipmentPanel({ data }: { data: Character }) {
             {groups.armor.map((item, i) => {
               const refine = refineOf(item);
               return (
-                <li key={i} {...stagger(i, styles.item)}>
+                <ItemTooltip key={i} item={item} slot={SLOT_LABEL[item.type ?? ""] ?? undefined} {...stagger(i, styles.item)}>
                   <GameIcon src={item.icon} grade={item.grade} />
                   <div className={styles.itemText}>
                     <strong>
@@ -354,7 +356,7 @@ function EquipmentPanel({ data }: { data: Character }) {
                       )}
                     </span>
                   </div>
-                </li>
+                </ItemTooltip>
               );
             })}
           </ul>
@@ -367,7 +369,7 @@ function EquipmentPanel({ data }: { data: Character }) {
           )}
           <ul className={styles.itemList}>
             {groups.accessories.map((item, i) => (
-              <li key={i} {...stagger(i, styles.item)}>
+              <ItemTooltip key={i} item={item} {...stagger(i, styles.item)}>
                 <GameIcon src={item.icon} grade={item.grade} />
                 <div className={styles.itemText}>
                   <strong>
@@ -400,14 +402,14 @@ function EquipmentPanel({ data }: { data: Character }) {
                     ))}
                   </ul>
                 ) : null}
-              </li>
+              </ItemTooltip>
             ))}
           </ul>
         </div>
       </div>
       <div className={styles.equipFoot}>
         {groups.stone && (
-          <div className={styles.footItem}>
+          <ItemTooltip item={groups.stone} slot="어빌리티 스톤" as="div" className={styles.footItem}>
             <GameIcon
               src={groups.stone.icon}
               grade={groups.stone.grade}
@@ -427,10 +429,10 @@ function EquipmentPanel({ data }: { data: Character }) {
                 <small>{text(groups.stone.name)}</small>
               )}
             </div>
-          </div>
+          </ItemTooltip>
         )}
         {groups.bracelet && (
-          <div className={styles.footItem} data-wide="">
+          <ItemTooltip item={groups.bracelet} slot="팔찌" as="div" className={styles.footItem} wide>
             <GameIcon
               src={groups.bracelet.icon}
               grade={groups.bracelet.grade}
@@ -450,7 +452,7 @@ function EquipmentPanel({ data }: { data: Character }) {
                 <small>{text(groups.bracelet.name)}</small>
               )}
             </div>
-          </div>
+          </ItemTooltip>
         )}
         {groups.others.map((item, i) => (
           <div key={i} className={styles.footItem}>
@@ -1223,7 +1225,7 @@ function RosterTitlesPanel({ name }: { name: string }) {
           LOAKraken에서 처음 확인한 순서<span className={styles.srOnly}>.</span>
         </span>
         <span className={styles.titleInfo}>
-          <Info size={13} aria-hidden="true" />
+          <InfoCircle size={13} aria-hidden="true" />
           장착한 칭호만 기록되며 실제 획득일과 다를 수 있어요
         </span>
       </p>
@@ -1294,6 +1296,8 @@ export function SiblingsTab({ data }: { data: Character }) {
           </Panel>
         )}
         <RosterTitlesPanel name={data.characterName} />
+        {/* Last: it arrives after a slow roster calculation and must not push the titles. */}
+        <ReceiptPanel name={data.characterName} />
       </div>
     );
   const result = query.data?.data;
@@ -1331,6 +1335,7 @@ export function SiblingsTab({ data }: { data: Character }) {
         </Panel>
       )}
       <RosterTitlesPanel name={data.characterName} />
+      <ReceiptPanel name={data.characterName} />
     </div>
   );
 }
@@ -1540,7 +1545,7 @@ export function EvidenceTab({
   );
 }
 
-export function TabPanel({
+function TabPanelView({
   tab,
   data,
   envelope,
@@ -1571,3 +1576,11 @@ export function TabPanel({
     </Reveal>
   );
 }
+
+/**
+ * The tab's content, re-rendered only when the tab or the character data
+ * changes. The page above it ticks every second (refresh countdown) and
+ * updates once after hydration (motion context); without this every tick
+ * re-rendered every panel — hundreds of ms on a slow phone.
+ */
+export const TabPanel = memo(TabPanelView);

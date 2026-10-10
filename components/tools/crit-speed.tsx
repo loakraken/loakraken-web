@@ -4,7 +4,7 @@ import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Gauge } from "lucide-react";
+import { ArrowLeft, Speedometer } from "@/components/ui/icons";
 import {
   characterNameError,
   normalizeCharacterName,
@@ -177,7 +177,7 @@ function SettingsPanel({
       />
       <Toggle
         label="직업 상태 가정"
-        hint="공식 문구의 특정 상태(예: 리퍼 혼돈)를 켠 값으로 계산 · 다른 전투정보 사이트와 같은 기준"
+        hint="공식 문구의 특정 상태(예: 리퍼 혼돈)를 켠 값으로 계산"
         checked={settings.classState}
         onChange={(value) => set("classState", value)}
       />
@@ -189,7 +189,7 @@ function SettingsPanel({
       />
       <p className={styles.groupLabel} id="support-label">
         서포터 약점 노출{" "}
-        <small>로아랩 프리셋 값 · 공식 원문에서 근거를 찾지 못한 사용자 가정</small>
+        <small>공식 원문에서 근거를 찾지 못한 사용자 가정 값</small>
       </p>
       <div className={styles.chips} role="group" aria-labelledby="support-label">
         {SUPPORT_PRESETS.map((value) => (
@@ -751,7 +751,7 @@ function CritSpeedContent({ initialName }: { initialName: string }) {
       <main id="crit-main">
         <section className={quote.hero} aria-labelledby="crit-page-heading">
           <span className={quote.heroIcon} aria-hidden="true">
-            <Gauge size={18} />
+            <Speedometer size={18} />
           </span>
           <p className={quote.heroKicker}>전투 계산</p>
           <h1 id="crit-page-heading">치적·뭉가·음돌</h1>

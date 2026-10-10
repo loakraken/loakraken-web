@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Check, Copy } from "lucide-react";
+import { Copy, TickCircle } from "@/components/ui/icons";
 import {
   emptyObservation,
   evidenceAt,
@@ -97,7 +97,7 @@ export function Evidence({
           : "현재 응답에서 해당 근거를 찾지 못했습니다."}
       </pre>
       <button type="button" onClick={copy}>
-        {copied ? <Check size={14} /> : <Copy size={14} />}
+        {copied ? <TickCircle size={14} /> : <Copy size={14} />}
         {copied ? "복사됨" : "근거 복사"}
       </button>
       <span role="status" className={styles.copyStatus}>

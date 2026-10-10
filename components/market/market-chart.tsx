@@ -118,7 +118,9 @@ export function MarketChart({ days }: { days: DailyStat[] }) {
           </g>
         ))}
         <path d={area} className={styles.area} />
-        <path d={line} className={styles.line} pathLength={1} data-draw />
+        {/* Draws itself on every entry (CSS .k-draw: first paint included, no
+            replay while the same chart updates; user rule 10-10). */}
+        <path d={line} className={`${styles.line} k-draw`} pathLength={1} />
         {days.map((d, i) => (
           <rect
             key={d.date}
@@ -127,9 +129,14 @@ export function MarketChart({ days }: { days: DailyStat[] }) {
             width={barW}
             height={Math.max(1, bar(d.tradeCount))}
             rx={2}
-            className={styles.volume}
+            className={`${styles.volume} k-grow`}
             data-active={i === shown || undefined}
-            data-grow={i}
+            // Grows from the base on every entry; later bars start later but all
+            // finish with the line, within --duration-draw (PM #253).
+            style={{
+              transitionDelay: `${Math.min(i, 8) * 30}ms`,
+              transitionDuration: `${600 - Math.min(i, 8) * 30}ms`,
+            }}
           />
         ))}
         <text x={PAD.left} y={H - 4} className={styles.tick}>

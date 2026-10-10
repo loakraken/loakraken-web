@@ -1,0 +1,582 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "LOAKraken combat-power",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/v1/characters/combat-power/simulate": {
+      "post": {
+        "tags": [
+          "캐릭터"
+        ],
+        "summary": "전투력 시뮬레이션(공식 호출 없음)",
+        "description": "캐릭터 캐시의 현재 세팅에 바꾼 항목(changes)을 순서대로 적용합니다. 같은 대상은 뒤의 변경이 이깁니다. after는 바꾼 항목을 함께 적용한 값이고 contributions[].delta는 순서대로 하나씩 적용했을 때의 증가분입니다(합 = delta). 계산식이 확정되지 않은 항목은 status=UNSUPPORTED이고 delta=null이며 after에 들어가지 않습니다(partial=true). 반올림은 서버에서 끝냅니다(전투력 소수 둘째 자리, deltaPercent % 소수 셋째 자리).",
+        "operationId": "simulate",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CombatPowerSimulationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "CHARACTER_COMBAT_POWER_SIMULATE_SUCCESS",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseCombatPowerSimulationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_REQUEST: 범위 밖·모르는 kind·필수 값 없음(메시지에 필드와 허용 범위)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "CHARACTER_NOT_CACHED: 캐릭터 캐시 없음(공식 호출 없음)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "CHANGE_TARGET_NOT_FOUND: 캐시가 바뀌어 바꿀 대상이 캐릭터에 없음(다시 불러오기)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "UNSUPPORTED_MEDIA_TYPE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "CLIENT_RATE_LIMITED: 이 클라이언트의 분당 요청·공식 호출 한도 초과. Retry-After(초) 뒤 다시 시도",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/characters/combat-power/options": {
+      "get": {
+        "tags": [
+          "캐릭터"
+        ],
+        "summary": "전투력 시뮬레이터 입력 범위",
+        "description": "화면 입력의 허용 범위입니다. verified=false면 숫자 범위가 공식 근거로 확정되기 전 예시입니다.",
+        "operationId": "options_1",
+        "responses": {
+          "200": {
+            "description": "CHARACTER_COMBAT_POWER_OPTIONS_SUCCESS",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseCombatPowerOptionsResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "CLIENT_RATE_LIMITED: 이 클라이언트의 분당 요청·공식 호출 한도 초과. Retry-After(초) 뒤 다시 시도",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CombatPowerSimulationRequest": {
+        "type": "object",
+        "properties": {
+          "characterName": {
+            "type": "string",
+            "description": "캐릭터명",
+            "example": "모험가",
+            "maxLength": 16,
+            "minLength": 0,
+            "pattern": "\\s*[\\p{L}\\p{N}]+\\s*"
+          },
+          "changes": {
+            "type": "array",
+            "description": "바꾼 항목(순서대로 적용, 최대 64개)",
+            "items": {
+              "$ref": "#/components/schemas/ChangeRequest"
+            },
+            "maxItems": 64,
+            "minItems": 0
+          }
+        },
+        "required": [
+          "changes",
+          "characterName"
+        ]
+      },
+      "ChangeRequest": {
+        "type": "object",
+        "description": "바꾼 항목 하나. kind마다 쓰는 필드가 다르다(docs/combat-power-simulator.md)",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "GEM_LEVEL_ALL",
+              "GEM_LEVEL",
+              "EQUIPMENT_REFINE",
+              "EQUIPMENT_ADVANCED_REFINE",
+              "EQUIPMENT_QUALITY",
+              "POLISH",
+              "BRACELET_EFFECT",
+              "ENGRAVING_LEVEL",
+              "STONE_ENGRAVING",
+              "ARK_PASSIVE_POINT",
+              "ARK_GRID_CORE"
+            ]
+          },
+          "slot": {
+            "type": "integer",
+            "format": "int32",
+            "description": "보석 slot(GEM_LEVEL)"
+          },
+          "index": {
+            "type": "integer",
+            "format": "int32",
+            "description": "검색 응답 loadout.equipment 순번(EQUIPMENT_*·POLISH)"
+          },
+          "line": {
+            "type": "integer",
+            "format": "int32",
+            "description": "연마·팔찌 효과 줄 번호(0부터)"
+          },
+          "level": {
+            "type": "integer",
+            "format": "int32",
+            "description": "보석 레벨·상급 재련 단계·각인·스톤 레벨"
+          },
+          "refine": {
+            "type": "integer",
+            "format": "int32",
+            "description": "재련 단계(EQUIPMENT_REFINE)"
+          },
+          "quality": {
+            "type": "integer",
+            "format": "int32",
+            "description": "품질(EQUIPMENT_QUALITY)"
+          },
+          "option": {
+            "type": "string",
+            "description": "연마 옵션 이름(POLISH)",
+            "maxLength": 32,
+            "minLength": 0
+          },
+          "grade": {
+            "type": "string",
+            "description": "LOW·MID·HIGH(POLISH·BRACELET_EFFECT), 코어 등급(ARK_GRID_CORE)",
+            "maxLength": 8,
+            "minLength": 0
+          },
+          "name": {
+            "type": "string",
+            "description": "팔찌 효과·각인·스톤 각인 이름",
+            "maxLength": 32,
+            "minLength": 0
+          },
+          "tree": {
+            "type": "string",
+            "description": "아크 패시브 트리(진화·깨달음·도약)",
+            "maxLength": 8,
+            "minLength": 0
+          },
+          "points": {
+            "type": "integer",
+            "format": "int32",
+            "description": "아크 패시브 포인트"
+          },
+          "slotIndex": {
+            "type": "integer",
+            "format": "int32",
+            "description": "아크 그리드 slot index"
+          },
+          "point": {
+            "type": "integer",
+            "format": "int32",
+            "description": "아크 그리드 코어 포인트"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "ApiResponseCombatPowerSimulationResponse": {
+        "type": "object",
+        "description": "공통 API 응답. 오류 응답의 data는 null입니다.",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "업무 결과 코드",
+            "example": "CHARACTER_SEARCH_SUCCESS"
+          },
+          "message": {
+            "type": "string",
+            "description": "공개용 안내 메시지",
+            "example": "캐릭터 조회에 성공했습니다."
+          },
+          "data": {
+            "$ref": "#/components/schemas/CombatPowerSimulationResponse",
+            "description": "성공 응답 데이터. 오류일 때 null"
+          }
+        },
+        "required": [
+          "code",
+          "data",
+          "message"
+        ]
+      },
+      "CombatPowerSimulationResponse": {
+        "type": "object",
+        "properties": {
+          "ruleVersion": {
+            "type": "string",
+            "description": "계산 규칙 버전(문자열)"
+          },
+          "characterName": {
+            "type": "string"
+          },
+          "fetchedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "현재 세팅을 읽은 캐릭터 캐시의 수집 시각(검색 응답 fetchedAt과 비교)"
+          },
+          "before": {
+            "anyOf": [
+              {
+                "type": "number",
+                "description": "공식 전투력(armory CombatPower). 없으면 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "modelBefore": {
+            "anyOf": [
+              {
+                "type": "number",
+                "description": "현재 세팅의 모델값(계산 검증·QA용, 화면 표시 안 함). 계산식 확정 전 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "after": {
+            "anyOf": [
+              {
+                "type": "number",
+                "description": "바꾼 항목을 함께 적용한 전투력(계산된 항목만)"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "delta": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "deltaPercent": {
+            "anyOf": [
+              {
+                "type": "number",
+                "description": "% 단위, 소수 셋째 자리"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "partial": {
+            "type": "boolean",
+            "description": "UNSUPPORTED 항목이 있어 after가 일부 변경만 반영했으면 true"
+          },
+          "contributions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ContributionResponse"
+            }
+          },
+          "unsupportedCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "assumptions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "after",
+          "assumptions",
+          "before",
+          "characterName",
+          "contributions",
+          "delta",
+          "deltaPercent",
+          "fetchedAt",
+          "modelBefore",
+          "partial",
+          "ruleVersion",
+          "unsupportedCount"
+        ]
+      },
+      "ContributionResponse": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "description": "요청 kind와 같은 문자열(응답에서는 enum으로 고정하지 않음)",
+            "example": "GEM_LEVEL"
+          },
+          "target": {
+            "type": "string",
+            "description": "바꾼 대상 표시 이름"
+          },
+          "from": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "to": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "delta": {
+            "anyOf": [
+              {
+                "type": "number",
+                "description": "순서대로 적용했을 때의 증가분. UNSUPPORTED면 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "OK",
+              "UNSUPPORTED"
+            ]
+          },
+          "basis": {
+            "type": "string",
+            "description": "근거 문장(사이트 이름 없음)"
+          }
+        },
+        "required": [
+          "basis",
+          "delta",
+          "from",
+          "kind",
+          "status",
+          "target",
+          "to"
+        ]
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "description": "공통 오류 응답. HTTP 상태와 업무 코드를 함께 확인합니다.",
+        "properties": {
+          "code": {
+            "type": "string",
+            "example": "INVALID_REQUEST"
+          },
+          "message": {
+            "type": "string",
+            "example": "요청 값이 올바르지 않습니다."
+          },
+          "data": {
+            "type": "null"
+          }
+        },
+        "required": [
+          "code",
+          "data",
+          "message"
+        ]
+      },
+      "ApiResponseCombatPowerOptionsResponse": {
+        "type": "object",
+        "description": "공통 API 응답. 오류 응답의 data는 null입니다.",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "업무 결과 코드",
+            "example": "CHARACTER_SEARCH_SUCCESS"
+          },
+          "message": {
+            "type": "string",
+            "description": "공개용 안내 메시지",
+            "example": "캐릭터 조회에 성공했습니다."
+          },
+          "data": {
+            "$ref": "#/components/schemas/CombatPowerOptionsResponse",
+            "description": "성공 응답 데이터. 오류일 때 null"
+          }
+        },
+        "required": [
+          "code",
+          "data",
+          "message"
+        ]
+      },
+      "CombatPowerOptionsResponse": {
+        "type": "object",
+        "properties": {
+          "ruleVersion": {
+            "type": "string"
+          },
+          "verified": {
+            "type": "boolean",
+            "description": "false면 숫자 범위가 공식 근거로 확정되기 전 예시"
+          },
+          "gemLevels": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          "refineMin": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "refineMax": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "advancedRefineMax": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "qualityMax": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "engravingLevels": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          "stoneLevels": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          "arkPassiveTrees": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "coreGrades": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "corePointMax": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "polishGrades": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "advancedRefineMax",
+          "arkPassiveTrees",
+          "coreGrades",
+          "corePointMax",
+          "engravingLevels",
+          "gemLevels",
+          "notes",
+          "polishGrades",
+          "qualityMax",
+          "refineMax",
+          "refineMin",
+          "ruleVersion",
+          "stoneLevels",
+          "verified"
+        ]
+      }
+    }
+  }
+}

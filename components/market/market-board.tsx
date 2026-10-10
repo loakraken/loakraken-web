@@ -3,7 +3,7 @@
 import { useMemo, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { ChartLine, Star } from "lucide-react";
+import { Bookmark, BookmarkBold, TrendUp } from "@/components/ui/icons";
 import { GameIcon } from "@/components/character/imagery";
 import { LandingMotion } from "@/components/landing/motion";
 import { InlineOrb } from "@/components/landing/orb";
@@ -183,7 +183,7 @@ function Detail({
             saveFavorite({ itemId: item.itemId, name: item.name, tab, tier, icon: item.icon, grade: item.grade })
           }
         >
-          <Star size={18} aria-hidden="true" />
+          {starred ? <BookmarkBold size={18} aria-hidden="true" /> : <Bookmark size={18} aria-hidden="true" />}
         </button>
       </header>
       {outside && (
@@ -379,7 +379,7 @@ function MarketContent({
         <section className={quote.hero} aria-labelledby="market-heading">
           {/* Static mark like the tool screens: no repeating motion on information pages (D2). */}
           <span className={quote.heroIcon} aria-hidden="true">
-            <ChartLine size={18} />
+            <TrendUp size={18} />
           </span>
           <p className={quote.heroKicker}>거래소</p>
           <h1 id="market-heading">시세</h1>
@@ -411,7 +411,7 @@ function MarketContent({
           </nav>
           {favorites.length === 0 ? (
             <p className={styles.favoritesHint}>
-              <Star size={12} aria-hidden="true" /> 품목의 별을 누르면 여기에 모아 볼 수 있어요.
+              <Bookmark size={12} aria-hidden="true" /> 품목의 즐겨찾기 표시를 누르면 여기에 모아 볼 수 있어요.
             </p>
           ) : (
             <ul className={styles.favorites} aria-label="즐겨찾기 품목">
@@ -422,7 +422,7 @@ function MarketContent({
                     aria-pressed={active?.itemId === f.itemId}
                     onClick={() => update({ tab: f.tab, tier: f.tier, sort: "default", page: 1 }, f.itemId)}
                   >
-                    <Star size={12} aria-hidden="true" />
+                    <Bookmark size={12} aria-hidden="true" />
                     <span data-grade={f.grade ?? undefined}>{f.name}</span>
                   </button>
                 </li>

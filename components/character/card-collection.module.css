@@ -256,6 +256,7 @@
   margin-bottom: 12px;
 }
 .refillButton {
+  font-variant-numeric: tabular-nums;
   display: inline-flex;
   align-items: center;
   gap: 6px;

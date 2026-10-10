@@ -2,15 +2,16 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { RefreshCw } from "lucide-react";
+import { RefreshArrow } from "@/components/ui/icons";
 import { InlineOrb } from "@/components/landing/orb";
 import { failureOf, secondsUntil } from "@/lib/api/rate-limit";
+import { remainingText } from "@/lib/time/remaining";
 import { refreshSummary } from "@/lib/character/card-collection";
 import { postCardRefresh } from "@/lib/character/client";
 import styles from "./card-collection.module.css";
 
 /** Seconds left until a time, ticking each second while positive. */
-function useSecondsUntil(until: number | undefined) {
+export function useSecondsUntil(until: number | undefined) {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     if (!until) return;
@@ -29,8 +30,7 @@ function useSecondsUntil(until: number | undefined) {
   return secondsUntil(until, now);
 }
 
-const wait = (seconds: number) =>
-  seconds >= 60 ? `${Math.ceil(seconds / 60)}분` : `${seconds}초`;
+const wait = (seconds: number) => remainingText(seconds * 1000) ?? "0초";
 
 /**
  * "기록 채우기" (backend #138): reads the same-server roster (up to 12
@@ -88,7 +88,7 @@ export function CardRefresh({ name }: { name: string }) {
         aria-disabled={blocked || undefined}
         aria-describedby={`card-refill-note-${name}`}
       >
-        {busy ? <InlineOrb /> : <RefreshCw size={14} aria-hidden="true" />}
+        {busy ? <InlineOrb /> : <RefreshArrow size={14} aria-hidden="true" />}
         {busy ? "불러오는 중" : seconds > 0 ? `${wait(seconds)} 뒤 다시 채우기` : "기록 채우기"}
       </button>
       <p className={styles.refillStatus} aria-live="polite">

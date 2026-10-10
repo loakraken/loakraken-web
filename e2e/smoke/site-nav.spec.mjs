@@ -21,15 +21,15 @@ test.describe("상단 메뉴 데스크톱 @smoke", () => {
     await expect(page.getByRole("heading", { level: 1, name: "재련 기대 비용" })).toBeVisible();
   });
 
-  test("성장 도구 메뉴에 경매 입찰가·돌파고가 있고, 그 화면에서 현재 위치로 표시된다", async ({ page }) => {
-    // web #90: 두 도구가 메뉴에 연결됐다.
+  test("성장 도구 메뉴에 경매 입찰가·도구 전체가 있고, 그 화면에서 현재 위치로 표시된다", async ({ page }) => {
+    // web #90: 경매 입찰가 연결. 방향 전환(2026-10-10 §6): 돌파고 삭제, 도구 전체(/tools) 추가.
     const trigger = page.getByRole("navigation", { name: "주요 메뉴" }).getByRole("button", { name: "성장 도구" });
     await trigger.click();
     const panel = page.locator(`#${await trigger.getAttribute("aria-controls")}`);
     await expect(panel.getByRole("link", { name: /경매 입찰가/ })).toHaveAttribute("href", "/tools/auction");
-    await panel.getByRole("link", { name: /돌파고/ }).click();
-    // 돌파고는 도착 뒤 주소에 기본 조건(?n=…&dec=…&goals=…)을 붙인다.
-    await expect(page).toHaveURL(/\/tools\/stone(\?|$)/);
+    await expect(panel.getByRole("link", { name: /돌파고/ })).toHaveCount(0);
+    await panel.getByRole("link", { name: /도구 전체/ }).click();
+    await expect(page).toHaveURL(/\/tools$/);
     await expect(trigger).toHaveAttribute("data-current", "true");
     await page.goto("/tools/auction");
     await expect(trigger).toHaveAttribute("data-current", "true");

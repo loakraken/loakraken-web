@@ -397,3 +397,49 @@
 .cost {
   font-weight: 600;
 }
+
+/* Spacing for the shared SegmentedControl (components/ui). */
+.segment {
+  margin-top: 24px;
+}
+
+/* Conclusion card above the inputs (피아식별 심각 2). Height reserved for the
+   total + note so arriving numbers do not push the inputs down. */
+.top {
+  box-sizing: border-box;
+  max-width: 1024px;
+  min-height: 132px;
+  margin: 0 auto 20px;
+  padding: 20px 24px;
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-xl);
+  background: var(--background);
+}
+.topMode {
+  margin-left: 8px;
+  color: var(--muted-foreground);
+  font-size: var(--text-caption);
+  font-weight: 500;
+}
+.topTotal {
+  margin-top: 8px;
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.015em;
+}
+.topTotal span {
+  margin-left: 8px;
+  color: var(--muted-foreground);
+  font-size: 0.45em;
+  font-weight: 500;
+}
+.topNote {
+  margin-top: 8px;
+  color: var(--muted-foreground);
+  font-size: var(--text-caption);
+}
+.topNote a {
+  color: var(--link);
+}

@@ -4,7 +4,7 @@ import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from "rea
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMutation, useQueries, useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Hammer } from "lucide-react";
+import { ArrowLeft, Setting } from "@/components/ui/icons";
 import { CharacterQueryError, fetchCharacter } from "@/lib/character/client";
 import {
   characterNameError,
@@ -51,6 +51,7 @@ import {
 } from "@/lib/refining/model";
 import quote from "./material-quote.module.css";
 import { SiteHeader } from "@/components/site/site-header";
+import { SegmentedControl, SegmentedItem } from "@/components/ui/segmented-control";
 import styles from "./refining-plan.module.css";
 
 const range = (from: number, to: number) =>
@@ -412,10 +413,15 @@ function PriceSource({ line }: { line: CostLine }) {
   ) : null;
 }
 
-function Result({ plans, mode }: { plans: PartPlan[]; mode: Mode }) {
+type Owned = Record<string, string>;
+
+/**
+ * Plan totals plus market prices for the materials. The top summary and the
+ * result section both call it with the same key, so react-query shares one
+ * request and the two always show the same total.
+ */
+function useRefiningCost(plans: PartPlan[], mode: Mode, basis: PriceBasis, owned: Owned) {
   const summary = summarize(plans, mode);
-  const [owned, setOwned] = useState<Record<string, string>>({});
-  const [basis, setBasis] = useState<PriceBasis>("CURRENT_MIN_PRICE");
   const names = summary.materials.map((item) => item.name);
   const prices = useQuery({
     queryKey: ["material-prices", basis, [...names].sort().join("|")],
@@ -428,14 +434,64 @@ function Result({ plans, mode }: { plans: PartPlan[]; mode: Mode }) {
     refetchOnReconnect: false,
   });
   const priceList = prices.data?.data.items ?? null;
-  const priceLimit = useRateLimit(prices.error);
-  const { lines, buyGold, valueRaw, unpriced } = costLines(
+  const cost = costLines(
     summary.materials,
     Object.fromEntries(
       Object.entries(owned).map(([name, value]) => [name, Number(value || 0)]),
     ),
     priceList,
   );
+  const total = summary.gold + (priceList ? cost.buyGold : 0);
+  return { summary, prices, priceList, total, ...cost };
+}
+
+/** Conclusion first (피아식별 심각 2): the total sits above the inputs. */
+function TopSummary({
+  plans,
+  mode,
+  basis,
+  owned,
+}: {
+  plans: PartPlan[];
+  mode: Mode;
+  basis: PriceBasis;
+  owned: Owned;
+}) {
+  const { summary, priceList, total } = useRefiningCost(plans, mode, basis, owned);
+  return (
+    <>
+      <p className={styles.topTotal}>
+        {formatCount(total)}
+        <span>골드</span>
+      </p>
+      <p className={styles.topNote}>
+        {priceList ? "재련 골드 + 부족한 재료 구매 골드" : "재련 골드(재료 시세를 불러오는 중)"} · 총{" "}
+        {formatCount(summary.stageCount)}단계, 시도{" "}
+        {formatCount(summary.attempts, mode === "expected" ? 1 : 0)}회 ·{" "}
+        <a href="#estimate-heading">재료와 부위별 내역</a>
+      </p>
+    </>
+  );
+}
+
+function Result({
+  plans,
+  mode,
+  basis,
+  setBasis,
+  owned,
+  setOwned,
+}: {
+  plans: PartPlan[];
+  mode: Mode;
+  basis: PriceBasis;
+  setBasis: (basis: PriceBasis) => void;
+  owned: Owned;
+  setOwned: (update: (prev: Owned) => Owned) => void;
+}) {
+  const { summary, prices, priceList, total, lines, buyGold, valueRaw, unpriced } =
+    useRefiningCost(plans, mode, basis, owned);
+  const priceLimit = useRateLimit(prices.error);
   const priceFailure =
     prices.error instanceof MarketQueryError
       ? prices.error.info
@@ -454,7 +510,7 @@ function Result({ plans, mode }: { plans: PartPlan[]; mode: Mode }) {
   return (
     <>
       <p className={quote.total}>
-        {formatCount(summary.gold + (priceList ? buyGold : 0))}
+        {formatCount(total)}
         <span>골드</span>
       </p>
       <p className={quote.totalNote}>
@@ -476,27 +532,18 @@ function Result({ plans, mode }: { plans: PartPlan[]; mode: Mode }) {
       )}
 
       <h3 className={styles.sectionTitle}>필요 재료</h3>
-      <div
-        className={quote.segmented}
-        role="radiogroup"
+      <SegmentedControl
+        className={styles.segment}
         aria-label="재료 가격 기준"
+        value={basis}
+        onValueChange={(value) => setBasis(value as PriceBasis)}
       >
         {priceBases.map((item) => (
-          <label
-            key={item.value}
-            data-checked={basis === item.value || undefined}
-          >
-            <input
-              type="radio"
-              name="refining-price-basis"
-              value={item.value}
-              checked={basis === item.value}
-              onChange={() => setBasis(item.value)}
-            />
+          <SegmentedItem key={item.value} value={item.value}>
             {item.label}
-          </label>
+          </SegmentedItem>
         ))}
-      </div>
+      </SegmentedControl>
       {priceFailure && (
         <div className={quote.notice}>
           {/* The alert holds the sentence only; the retry button's countdown
@@ -655,7 +702,7 @@ function Result({ plans, mode }: { plans: PartPlan[]; mode: Mode }) {
       <div className={quote.resultFooter}>
         <span>
           공식 확률표가 아니라 공개 데이터를 교차 검증한 값이에요. 출처{" "}
-          {source.name} ({source.license}) · 교차 검증 {source.crossCheckedWith}{" "}
+          {source.name} · 교차 검증 {source.crossCheckedWith}{" "}
           · 확인 {source.verifiedOn} · 규칙 {plans[0].plan.ruleVersion}
         </span>
         {assumptions.map((text) => (
@@ -677,6 +724,8 @@ function RefiningContent({ initialName }: { initialName: string }) {
     growthSupport: true,
   });
   const [mode, setMode] = useState<Mode>("expected");
+  const [owned, setOwned] = useState<Owned>({});
+  const [basis, setBasis] = useState<PriceBasis>("CURRENT_MIN_PRICE");
   const setPart = (id: PartId, next: PartState) =>
     setParts((prev) => ({ ...prev, [id]: next }));
 
@@ -724,7 +773,7 @@ function RefiningContent({ initialName }: { initialName: string }) {
       <main id="refining-main">
         <section className={quote.hero} aria-labelledby="refining-heading">
           <span className={quote.heroIcon} aria-hidden="true">
-            <Hammer size={18} />
+            <Setting size={18} />
           </span>
           <p className={quote.heroKicker}>성장 도구</p>
           <h1 id="refining-heading">재련 기대 비용</h1>
@@ -735,6 +784,24 @@ function RefiningContent({ initialName }: { initialName: string }) {
         </section>
 
         <div className={quote.band}>
+          <section
+            className={styles.top}
+            aria-labelledby="top-summary-heading"
+            aria-live="polite"
+          >
+            <p className={quote.kicker} id="top-summary-heading">
+              목표까지 예상 비용 <span className={styles.topMode}>{MODES.find((m) => m.id === mode)?.label}</span>
+            </p>
+            {failure ? (
+              <p className={styles.topNote}>계산하지 못했어요. 아래 결과에서 다시 시도할 수 있어요.</p>
+            ) : complete ? (
+              <TopSummary plans={plans} mode={mode} basis={basis} owned={owned} />
+            ) : (
+              <p className={styles.topNote}>
+                {requests.length ? "계산하고 있어요." : "아래에서 목표 단계를 현재보다 높게 고르면 여기에 총 비용이 나와요."}
+              </p>
+            )}
+          </section>
           <div className={quote.workspace}>
             <section className={quote.card} aria-labelledby="load-heading">
               <p className={quote.step}>1</p>
@@ -851,8 +918,8 @@ function RefiningContent({ initialName }: { initialName: string }) {
               <p className={quote.hint}>
                 책은 기본으로 빼고 계산해요. 게임에는 &ldquo;특수 재료 별 효과는
                 확률에 따라 적용되지 않을 수 있습니다&rdquo;라고 나오고, 그 확률은
-                공개되지 않았어요. 켜면 책 효과가 매번 적용된다고 보고 계산하며,
-                다른 계산 사이트와 같은 가정이에요. 책은 운명의 업화에만 적용돼요.
+                공개되지 않았어요. 켜면 책 효과가 매번 적용된다고 보고 계산해요.
+                책은 운명의 업화에만 적용돼요.
               </p>
             </section>
           </div>
@@ -866,24 +933,18 @@ function RefiningContent({ initialName }: { initialName: string }) {
           <p className={quote.kicker} id="estimate-heading">
             예상 소모
           </p>
-          <div
-            className={quote.segmented}
-            role="radiogroup"
+          <SegmentedControl
+            className={styles.segment}
             aria-label="확률 기준"
+            value={mode}
+            onValueChange={(value) => setMode(value as Mode)}
           >
             {MODES.map((item) => (
-              <label key={item.id} data-checked={mode === item.id || undefined}>
-                <input
-                  type="radio"
-                  name="refining-mode"
-                  value={item.id}
-                  checked={mode === item.id}
-                  onChange={() => setMode(item.id)}
-                />
+              <SegmentedItem key={item.id} value={item.id}>
                 {item.label}
-              </label>
+              </SegmentedItem>
             ))}
-          </div>
+          </SegmentedControl>
           <p className={quote.hint}>{modeHint}</p>
           {failure ? (
             <div className={quote.notice}>
@@ -911,7 +972,14 @@ function RefiningContent({ initialName }: { initialName: string }) {
               계산하고 있어요.
             </p>
           ) : (
-            <Result plans={plans} mode={mode} />
+            <Result
+              plans={plans}
+              mode={mode}
+              basis={basis}
+              setBasis={setBasis}
+              owned={owned}
+              setOwned={setOwned}
+            />
           )}
         </section>
       </main>

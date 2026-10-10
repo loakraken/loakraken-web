@@ -19,7 +19,7 @@ export type MoreData = {
   version: number;
   checkedAt: string;
   rule: string;
-  sources: Record<string, { title: string; url: string; date: string }>;
+  sources: Record<string, { title: string; url: string | null; date: string }>;
   raids: MoreRaid[];
 };
 
@@ -126,10 +126,29 @@ export function gateResult(
 /** Every item name the screen needs a price for (fixed items + inputs). */
 export function priceNames(data: MoreData = MORE_DATA) {
   const names = new Set<string>(INPUT_MATERIALS);
+  // Prices behind the automatic values (exchange contents, guarantee results).
+  for (const recipe of Object.values(EXCHANGES)) for (const item of recipe.contents) names.add(item.name);
+  for (const exchange of Object.values(GUARANTEE_EXCHANGES))
+    for (const recipe of exchange.recipes) for (const item of recipe.results) names.add(item.name);
   for (const raid of data.raids)
     for (const mode of raid.modes)
       for (const gate of mode.gates) for (const item of gate.items) names.add(item.name);
   return [...names];
+}
+
+/**
+ * The names sent to the market: exchange-only bound items (은총의 파편,
+ * 고통의 가시, 죽음의 손 …) are never listed, so they are left out to keep
+ * one request (MAX_PRICE_NAMES).
+ */
+export function marketNames(data: MoreData = MORE_DATA) {
+  const exchangeOnly = new Set<string>([
+    ...Object.keys(EXCHANGES),
+    ...Object.keys(GUARANTEE_EXCHANGES),
+    ...CHOICE_EXCHANGES,
+    "사령의 잔영",
+  ]);
+  return priceNames(data).filter((name) => !exchangeOnly.has(name));
 }
 
 /** Data checks for tests: costs positive, gates in order, known sources. */
@@ -146,4 +165,105 @@ export function checkMoreData(data: MoreData = MORE_DATA): string[] {
           if (!(Number.isInteger(item.qty) && item.qty > 0)) problems.push(`${where}: ${item.name} 수량`);
       });
   return problems;
+}
+
+/**
+ * Bound exchange materials valued through what they trade into. Only fixed
+ * recipes are here: 은총의 파편 ×60 → 지평의 재련 재료 상자 with fixed
+ * contents (user's 제작소 capture, 계산 검증 2026-10-10 18:12; matches
+ * 일로아 497.33 at the same prices). 고통의 가시·죽음의 손·사령의 잔영 trade into
+ * pouches with a choice whose odds are not published, so they stay user input.
+ */
+export const EXCHANGES: Record<string, { per: number; into: string; contents: MoreItem[] }> = {
+  "은총의 파편": {
+    per: 60,
+    into: "지평의 재련 재료 상자",
+    contents: [
+      { name: "운명의 파편", qty: 22500 },
+      { name: "운명의 파괴석 결정", qty: 2000 },
+      { name: "운명의 수호석 결정", qty: 4000 },
+      { name: "위대한 운명의 돌파석", qty: 60 },
+    ],
+  },
+};
+
+/**
+ * Exchange items whose recipes give one of several results with unpublished
+ * odds. Valued at the **minimum guarantee** (사용자 23:27, 계산 검증 23:33):
+ * each recipe is worth at least its cheapest result, and the user picks the
+ * better recipe, so the item is worth max over recipes of that minimum ÷ per.
+ * No made-up odds. 죽음의 손·사령의 잔영 wait for the workshop capture (which
+ * material makes which pouch, and the box contents), so they stay user input.
+ */
+export const GUARANTEE_EXCHANGES: Record<string, { per: number; recipes: { into: string; results: MoreItem[] }[] }> = {
+  "고통의 가시": {
+    per: 5,
+    recipes: [
+      {
+        into: "고통의 재련 보조 재료 주머니",
+        results: [
+          { name: "용암의 숨결", qty: 4 },
+          { name: "빙하의 숨결", qty: 12 },
+        ],
+      },
+      {
+        into: "고통의 재련 재료 상자",
+        results: [
+          { name: "운명의 파편 주머니(대)", qty: 2 },
+          { name: "위대한 운명의 돌파석", qty: 3 },
+          { name: "운명의 파괴석 결정", qty: 100 },
+          { name: "운명의 수호석 결정", qty: 300 },
+        ],
+      },
+    ],
+  },
+};
+
+/** Exchange items whose recipe has a choice with unpublished odds and no value yet. */
+export const CHOICE_EXCHANGES = ["죽음의 손", "사령의 잔영"] as const;
+
+/**
+ * Minimum guaranteed gold per item. A recipe with an unpriced result cannot
+ * prove its minimum, so it is left out; null when no recipe is fully priced.
+ */
+export function guaranteeValue(name: string, price: (name: string) => number | null) {
+  const exchange = GUARANTEE_EXCHANGES[name];
+  if (!exchange) return null;
+  let best: number | null = null;
+  for (const recipe of exchange.recipes) {
+    const values = recipe.results.map((item) => {
+      const unit = price(item.name);
+      return unit == null ? null : unit * item.qty;
+    });
+    if (values.some((value) => value == null)) continue;
+    const least = Math.min(...(values as number[]));
+    if (best == null || least > best) best = least;
+  }
+  return best == null ? null : best / exchange.per;
+}
+
+/** The recipe whose minimum sets the guarantee (for the screen's basis line). */
+export function guaranteeRecipe(name: string, price: (name: string) => number | null) {
+  const exchange = GUARANTEE_EXCHANGES[name];
+  const value = guaranteeValue(name, price);
+  if (!exchange || value == null) return null;
+  return (
+    exchange.recipes.find((recipe) => {
+      const values = recipe.results.map((item) => (price(item.name) ?? NaN) * item.qty);
+      return values.every(Number.isFinite) && Math.min(...values) / exchange.per === value;
+    }) ?? null
+  );
+}
+
+/** Gold per exchange item from its fixed recipe; null if a content has no price. */
+export function exchangeValue(name: string, price: (name: string) => number | null) {
+  const recipe = EXCHANGES[name];
+  if (!recipe) return null;
+  let total = 0;
+  for (const item of recipe.contents) {
+    const unit = price(item.name);
+    if (unit == null) return null;
+    total += unit * item.qty;
+  }
+  return total / recipe.per;
 }

@@ -18,6 +18,9 @@ const baseURL = external ?? `http://127.0.0.1:${WEB_PORT}`;
 const channel = process.env.E2E_CHANNEL ?? "chrome";
 const browser = channel === "chromium" ? {} : { channel };
 
+// Specs that arm the shared mock failure queue (POST /__fail).
+const ISOLATED = ["regression/mock-failures.spec.mjs"];
+
 export default defineConfig({
   testDir: ".",
   testMatch: ["smoke/**/*.spec.mjs", "regression/**/*.spec.mjs"],
@@ -42,17 +45,29 @@ export default defineConfig({
   projects: [
     {
       name: "desktop-1440",
+      testIgnore: ISOLATED,
       use: { ...devices["Desktop Chrome"], ...browser, viewport: { width: 1440, height: 900 } },
     },
     {
       name: "tablet-768",
       grep: /@smoke/,
+      testIgnore: ISOLATED,
       use: { ...devices["Desktop Chrome"], ...browser, viewport: { width: 768, height: 1024 }, hasTouch: true, isMobile: false },
     },
     {
       name: "mobile-390",
       grep: /@smoke/,
+      testIgnore: ISOLATED,
       use: { ...devices["Desktop Chrome"], ...browser, viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: false },
+    },
+    // 목 실패 장치(/__fail)는 목 전체가 공유한다. 다른 테스트와 동시에 돌면 서로의 실패 예약을
+    // 소모·삭제하므로, 다른 프로젝트가 모두 끝난 뒤 이 프로젝트만 혼자 돈다.
+    {
+      name: "isolated",
+      testMatch: ISOLATED,
+      dependencies: ["desktop-1440", "tablet-768", "mobile-390"],
+      fullyParallel: false,
+      use: { ...devices["Desktop Chrome"], ...browser, viewport: { width: 1440, height: 900 } },
     },
     // Performance budget (작업 규칙 "성능 우선"): opt-in with E2E_PERF=1, mobile size.
     ...(process.env.E2E_PERF === "1"
@@ -61,6 +76,9 @@ export default defineConfig({
             name: "perf",
             testMatch: ["perf/**/*.spec.mjs"],
             retries: 0,
+            // 한 파일 안에서는 차례로 잰다(측정끼리 CPU를 다투지 않게). serial 모드가 아니라서
+            // ENFORCE로 한 화면이 실패해도 나머지 화면은 계속 잰다(배포·운영 #197 지적).
+            fullyParallel: false,
             use: { ...devices["Desktop Chrome"], ...browser, viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: false, trace: "off" },
           },
         ]

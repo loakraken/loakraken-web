@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Tabs } from "@base-ui/react/tabs";
 import { AnimatePresence, m } from "motion/react";
-import { ArrowUpRight, Check, ChevronRight, CircleHelp, Gem, Swords } from "lucide-react";
+import { ChevronRight, Diamonds, ExportCircle, FlashCircle, MessageQuestion, TickCircle } from "@/components/ui/icons";
 import { GameIcon } from "@/components/character/imagery";
 import { InlineOrb } from "./orb";
 import { useLandingMotion } from "./motion";
@@ -57,7 +57,7 @@ export function CharacterCockpit() {
                 <Tabs.Panel value={tab} className={styles.cockpitPanel}>
                   {tab === "overview" ? <>
                     <div className={styles.equipmentOverview}>
-                      <div className={styles.cardHeading}><span>성장의 기반</span><Swords size={15} /></div>
+                      <div className={styles.cardHeading}><span>성장의 기반</span><FlashCircle size={15} /></div>
                       {equipment.map(({ name, value, progress, icon }) => <div key={name} className={styles.equipmentRow}>
                         <GameIcon src={icon} grade="고대" size={32} />
                         <div><div className={styles.metricHeading}><span>{name}</span><strong>{value}</strong></div>
@@ -70,12 +70,12 @@ export function CharacterCockpit() {
                       <div className={styles.observedCount}><strong>06</strong><span>/ 08 영역</span></div>
                       <div className={styles.coverageBlocks} aria-label="8개 영역 중 6개 확인 예시">{Array.from({ length: 8 }, (_, i) => <i key={i} data-observed={i < 6} />)}</div>
                       <ul className={styles.statusList}>
-                        <li><span><Check size={13} /> 장비 · 각인 · 보석</span><b>확인됨</b></li>
-                        <li><span><CircleHelp size={13} /> 아크 그리드</span><b>데이터 없음</b></li>
+                        <li><span><TickCircle size={13} /> 장비 · 각인 · 보석</span><b>확인됨</b></li>
+                        <li><span><MessageQuestion size={13} /> 아크 그리드</span><b>데이터 없음</b></li>
                       </ul>
                     </div>
                     <div className={styles.diagnosticCard}>
-                      <div className={styles.cardHeading}><span>다음으로 살펴볼 것</span><ArrowUpRight size={16} /></div>
+                      <div className={styles.cardHeading}><span>다음으로 살펴볼 것</span><ExportCircle size={16} /></div>
                       <span className={styles.diagnosticLabel}><span /> 확인 필요</span>
                       <h4>9레벨 보석 {belowMaxGems.length}개,<br />다음 성장 후보예요.</h4>
                       <p>{belowMaxGems.map((g) => `${g.skill} ${g.kind}`).join(" · ")}.<br />수치와 근거를 함께 살펴봅니다.</p>
@@ -83,7 +83,7 @@ export function CharacterCockpit() {
                     </div>
                   </> : <div className={styles.gemPanel}>
                     <div>
-                      <div className={styles.cardHeading}><span>장비</span><Swords size={15} /></div>
+                      <div className={styles.cardHeading}><span>장비</span><FlashCircle size={15} /></div>
                       <ul className={styles.gearGrid}>{armor.map((piece) => <li key={piece.slot} title={piece.name}>
                         <GameIcon src={piece.icon} grade={piece.grade} size={36} />
                         <span><b>{piece.slot} +{piece.refine}</b><small>T4 · {piece.name}</small></span>
@@ -95,7 +95,7 @@ export function CharacterCockpit() {
                       </li>)}</ul>
                     </div>
                     <div>
-                      <div className={styles.cardHeading}><span>보석 · 평균 {gemAverage.toFixed(1)}</span><Gem size={16} /></div>
+                      <div className={styles.cardHeading}><span>보석 · 평균 {gemAverage.toFixed(1)}</span><Diamonds size={16} /></div>
                       <ul className={styles.gemGrid}>{gems.map((g, i) => <li key={i} className={styles.gemSlot} data-below={g.level < 10 || undefined} title={`${g.level}레벨 ${g.kind}의 보석 · ${g.skill}`}>
                         <GameIcon src={g.icon} grade={g.level === 10 ? "고대" : "유물"} size={34} />
                         <b>{g.level}{g.kind === "겁화" ? "뎀" : "쿨"}</b>

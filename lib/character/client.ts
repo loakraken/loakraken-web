@@ -4,6 +4,7 @@ import type { CardCollectionEnvelope, CardRefreshEnvelope } from "./card-collect
 import type { PopularEnvelope, PopularPeriod } from "./popular";
 import type { RankEnvelope } from "./rank";
 import type { TitlesEnvelope } from "./titles";
+import type { ReceiptEnvelope } from "./receipt";
 
 export class CharacterQueryError extends Error {
   info: QueryFailure;
@@ -53,6 +54,12 @@ export const fetchSiblings = (name: string, signal: AbortSignal) =>
 
 export const fetchPopular = (period: PopularPeriod, signal: AbortSignal) =>
   getJson<PopularEnvelope>(`/api/characters/popular?period=${period}&limit=10`, signal);
+
+export const fetchReceipt = (name: string, assumeBook: boolean, signal: AbortSignal) =>
+  getJson<ReceiptEnvelope>(
+    `/api/characters/receipt?${new URLSearchParams({ characterName: name, ...(assumeBook && { assumeBook: "true" }) })}`,
+    signal,
+  );
 
 export const fetchCardCollection = (name: string, signal: AbortSignal) =>
   getJson<CardCollectionEnvelope>(

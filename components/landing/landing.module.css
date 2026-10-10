@@ -37,7 +37,6 @@
 .brandTag { font-size: 9px; color: #6e6e73; font-weight: 400; letter-spacing: 0.4px; margin-left: 3px; }
 .navigation { display: flex; align-items: center; }
 .headerActions { display: flex; align-items: center; gap: 8px; }
-.motionToggle { width: 40px; min-height: 44px; display: grid; place-items: center; background: transparent; border: 0; border-radius: 50%; color: #515154; }
 .navCta, .primaryButton, .searchSubmit { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 0; border-radius: 9999px; background: #0071e3; color: #fff; font-weight: 500; white-space: nowrap; text-decoration: none; transition: transform 160ms var(--ease-out), background-color 160ms ease; }
 .navCta { min-height: 36px; padding: 0 16px; font-size: 12px; }
 .navCta:active, .primaryButton:active, .searchSubmit:active { transform: scale(0.97); transition-duration: 100ms; }
@@ -50,7 +49,7 @@
 .heroEnter { animation: hero-enter 750ms var(--ease-out) both; }
 .heroEnter:nth-child(2) { animation-delay: 60ms; }
 .heroEnter:nth-child(3) { animation-delay: 120ms; }
-.orbInteraction { margin-top: 2px; width: 320px; height: 276px; display: grid; place-items: center; }
+.orbInteraction { margin-top: 2px; width: 320px; height: 276px; display: grid; place-items: center; transition: transform 450ms var(--ease-out); }
 .orbStage { width: 276px; height: 276px; display: grid; place-items: center; position: relative; isolation: isolate; }
 /* Refraction belongs to the orb visual; interface surfaces remain flat. */
 .orbAtmosphere { position: absolute; bottom: 25px; left: 65px; width: 146px; height: 13px; border-radius: 50%; background: #9aacc0; filter: blur(15px); opacity: 0.3; animation: orb-shadow 8s ease-in-out infinite; }
@@ -249,9 +248,10 @@
 .orbStage[data-orb-active="false"] *, .landing [data-in-view="false"] *, .landing [data-in-view="false"] *::before { animation-play-state: paused !important; }
 :global([data-motion="off"]) .landing *, :global([data-motion="off"]) .landing *::before, :global([data-motion="off"]) .landing *::after { animation-play-state: paused !important; transition-duration: 0ms !important; }
 :global([data-motion="off"]) .heroEnter { animation: none; }
+/* Repeating motion stops 5s after it starts (no pause button, WCAG 2.2.2). */
+:global([data-loop="off"]) .landing *, :global([data-loop="off"]) .landing *::before, :global([data-loop="off"]) .landing *::after { animation-play-state: paused !important; }
 @media (hover: hover) and (pointer: fine) {
   .footer > a:last-child:hover { color: #0066cc; }
-  .motionToggle:hover { background: #e8e8ed; }
   .navCta:hover, .primaryButton:hover, .searchSubmit:hover { background: #0077ed; }
   .roadmapItem:hover { background: #fafafc; }
   .roadmapItem:hover > svg { transform: translate(2px, -2px); }
@@ -385,4 +385,18 @@
 @media (prefers-reduced-motion: reduce) {
   .landing *, .landing *::before, .landing *::after { animation: none !important; transition-duration: 0ms !important; scroll-behavior: auto !important; }
   .heroEnter { opacity: 1; transform: none; }
+}
+/* The hero at the top of the home page (user 11:05): no fixed-header offset,
+   no full-screen canvas, and site tokens so it follows the dark theme there
+   (/about itself stays light). */
+.landing[data-embedded] { min-height: 0; overflow: visible; background: transparent; color: var(--foreground); font-size: 16px; }
+.hero.heroEmbedded { padding: 36px 0 8px; }
+.heroEmbedded .heroTitle > span, .heroEmbedded .orbCaption, .heroEmbedded .searchIcon, .heroEmbedded .shortcut, .heroEmbedded .searchMessage, .heroEmbedded .searchForm input::placeholder { color: var(--muted-foreground); }
+.heroEmbedded .heroDescription { color: var(--muted-foreground); }
+.heroEmbedded .searchForm { background: var(--background); border-color: var(--muted-foreground); }
+.heroEmbedded .searchForm input { color: var(--foreground); }
+.heroEmbedded .searchMessage a, .heroEmbedded .exploreLink { color: var(--link); }
+.heroEmbedded .exploreLink { margin-top: 4px; }
+@media (max-width: 600px) {
+  .hero.heroEmbedded { padding: 20px 0 4px; }
 }

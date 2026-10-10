@@ -47,6 +47,35 @@
   font-size: 13px;
   font-weight: 500;
 }
+/* The basis line: whose characters and how many, before any number. */
+.basis {
+  display: grid;
+  gap: 2px;
+  margin: 0 0 12px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--muted);
+  border-left: 3px solid var(--primary);
+}
+.basis > p:first-child {
+  margin: 0;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+.basis > p:first-child strong {
+  color: var(--foreground);
+  font-weight: 700;
+}
+.basis > p:first-child span {
+  display: inline-block;
+  margin-left: 6px;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  font-weight: 600;
+}
+.basis .notice {
+  margin: 0;
+}
 .notice {
   margin: 0 0 10px;
   color: var(--muted-foreground);
@@ -136,7 +165,9 @@
   font-weight: 600;
   text-align: left;
 }
-.table thead th:nth-child(2),
+/* Label columns (직업·서버·구간) start left; number headers sit over their
+   right-aligned numbers. */
+.table thead th.left,
 .table thead th:first-child:last-child {
   text-align: left;
 }
@@ -184,6 +215,11 @@
   margin: 10px 0 0;
   color: var(--muted-foreground);
   font-size: 12px;
+}
+.note a {
+  color: var(--link);
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 .muted {
   margin: 0;
@@ -358,14 +394,59 @@
   font-size: 13px;
   font-weight: 600;
 }
-.short {
-  margin-left: 6px;
-  padding: 1px 6px;
+/* Sample progress over a table (one line, not "집계 중" per row) and the
+   folded short-sample rows under it. */
+.progress {
+  display: grid;
+  gap: 6px;
+  margin: 0 0 12px;
+}
+.progress p {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.progress b {
+  color: var(--foreground);
+  font-weight: 600;
+}
+.progressBar {
+  display: block;
+  height: 6px;
+  overflow: hidden;
   border-radius: 9999px;
   background: var(--secondary);
-  color: var(--foreground);
+}
+.progressBar i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--primary);
+}
+/* Rows short of the sample minimum stay in place, in gray (user, 23:23). */
+.table tr[data-short] th,
+.table tr[data-short] td {
+  color: var(--muted-foreground);
+}
+/* Short-sample distribution cell: the median dot, then the note. */
+.shortCell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.shortCell .quantile {
+  flex: 1;
+}
+.shortCell small {
+  flex: none;
+  color: var(--muted-foreground);
   font-size: 11px;
-  font-weight: 600;
+}
+/* Share in its own column so it never runs into the count ("17721.8%"). */
+.table td.share {
+  color: var(--muted-foreground);
+  font-size: 12px;
 }
 .quantile[data-short] {
   opacity: 0.5;

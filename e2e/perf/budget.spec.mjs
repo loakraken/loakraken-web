@@ -1,4 +1,4 @@
-// 성능 점검(비필수): 작업 규칙 "성능 우선" 기준을 홈·캐릭터·시세에서 잰다.
+// 성능 점검(비필수): 작업 규칙 "성능 우선" 기준을 홈·캐릭터·시세·통계·랭킹에서 잰다.
 // - 모바일 기준: 390×844, CPU 4배 감속(CDP Emulation.setCPUThrottlingRate)
 // - LCP ≤ 2.5초, CLS ≤ 0.1, INP(클릭 1회 응답, Event Timing 근사) ≤ 200ms, 긴 작업(50ms 초과) 수 기록
 // - 기본 실행에서는 빠진다(E2E_PERF=1일 때만). 기준 초과는 E2E_PERF_ENFORCE=1일 때만 실패로 본다.
@@ -22,11 +22,11 @@ const PAGES = [
   { name: "홈", path: "/", interact: (page) => page.getByRole("group", { name: "요일 선택" }).locator('button[aria-pressed="false"]').first().click() },
   { name: "캐릭터", path: characterPath("상세"), interact: (page) => page.getByRole("navigation", { name: "캐릭터 정보 탭" }).getByRole("link", { name: "스킬", exact: true }).click() },
   { name: "시세", path: "/market", interact: (page) => page.getByRole("navigation", { name: "시세 분류" }).getByRole("button", { name: "각인서" }).click() },
+  { name: "통계", path: "/stats", interact: (page) => page.getByRole("tab", { name: "분포" }).click() },
+  { name: "랭킹", path: "/rankings", interact: (page) => page.getByRole("form", { name: "랭킹 조건" }).getByRole("button", { name: "아이템 레벨" }).click() },
 ];
 
 test.describe("성능 기준 @perf", () => {
-  // 측정끼리 CPU를 다투지 않게 한 번에 하나씩 잰다.
-  test.describe.configure({ mode: "serial" });
   for (const target of PAGES) {
     test(`${target.name}: CPU 4배 감속 LCP·CLS·INP`, async ({ page }, testInfo) => {
       const cdp = await page.context().newCDPSession(page);

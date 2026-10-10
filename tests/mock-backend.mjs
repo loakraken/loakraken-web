@@ -1,12 +1,48 @@
 // Local synthetic backend only. This process never accesses Lost Ark.
 import { createServer } from "node:http";
 import { readFileSync } from "node:fs";
+const failures = new Map();
+const receiptCalls = new Map();
 
 const read = (name) =>
   JSON.parse(
     readFileSync(new URL(`./fixtures/${name}`, import.meta.url), "utf8"),
   );
 const counts = {};
+
+// Synthetic accessory, bracelet and stone for the simulator screen (web #365
+// follow-up): polish/bracelet lines with tooltip grades and stone engravings.
+function withSimulatorGear(data) {
+  const base = data.loadout.equipment.find((item) => item.detail);
+  const make = (type, name, detail) => ({
+    ...base,
+    type,
+    name,
+    detail: { ...base.detail, refineLevel: null, quality: null, effects: [], stoneEngravings: [], polishEffects: [], braceletEffects: [], ...detail },
+  });
+  data.loadout.equipment.push(
+    make("목걸이", "테스트 목걸이", {
+      quality: 90,
+      polishEffects: [
+        { name: "추가 피해", value: "+1.60%", grade: "MID" },
+        { name: "적에게 주는 피해", value: "+0.55%", grade: "LOW" },
+      ],
+    }),
+    make("팔찌", "테스트 팔찌", {
+      braceletEffects: [
+        { text: "특화 +100", grade: null },
+        { text: "치명타 피해 +6.80%", grade: "MID" },
+      ],
+    }),
+    make("어빌리티 스톤", "테스트 스톤", {
+      stoneEngravings: [
+        { name: "원한", level: 1 },
+        { name: "공격력 감소", level: 0 },
+      ],
+    }),
+  );
+  return data;
+}
 const marketRead = (name) =>
   JSON.parse(
     readFileSync(new URL(`./market-fixtures/${name}`, import.meta.url), "utf8"),
@@ -165,6 +201,12 @@ async function market(url, req, send) {
       "운명의 돌파석": [1, 3],
       "아비도스 융화 재료": [1, 190],
       "빙하의 숨결": [1, 430],
+      // 더보기 손익(은총의 파편 = 지평의 재련 재료 상자 구성 ÷ 60)용 결정 재료.
+      "운명의 파괴석 결정": [100, 900],
+      "운명의 수호석 결정": [100, 190],
+      "위대한 운명의 돌파석": [1, 33],
+      // 고통의 가시 최소 보장 가치(재료 상자 쪽 결과 중 하나).
+      "운명의 파편 주머니(대)": [1, 232],
     };
     const observedAt = nowIso();
     const items = [...new Set(request.names.map((n) => n.trim()))].map((name) => {
@@ -251,6 +293,38 @@ createServer(async (req, res) => {
     res.end(JSON.stringify(body));
   };
   if (url.pathname === "/__counts") return send(counts);
+  // Planned failures (QA, PM-프론트 #236 follow-up): the next N backend requests
+  // to a path answer with an error, whether the web server (prefetch) or the
+  // browser (through the proxy) makes them. Arm:
+  //   POST /__fail {"path": "/api/v1/characters/popular", "status": 502, "times": 2}
+  // ("code" optional, Retry-After 30 on 429). DELETE /__fail clears them.
+  if (url.pathname === "/__fail") {
+    if (req.method === "DELETE") {
+      failures.clear();
+      return send({ ok: true });
+    }
+    if (req.method !== "POST") return send({ code: "INVALID_REQUEST", message: "POST or DELETE" }, 405);
+    let body = "";
+    for await (const chunk of req) body += chunk;
+    // A bad plan answers 400; it never takes the mock (and every e2e run) down.
+    let plan;
+    try {
+      plan = JSON.parse(body || "{}");
+    } catch {
+      return send({ code: "INVALID_REQUEST", message: "JSON body" }, 400);
+    }
+    if (typeof plan.path !== "string" || !plan.path.startsWith("/"))
+      return send({ code: "INVALID_REQUEST", message: "path required" }, 400);
+    failures.set(plan.path, { status: Number(plan.status) || 502, times: Number(plan.times) || 1, code: plan.code });
+    return send({ ok: true, armed: Object.fromEntries(failures) });
+  }
+  const planned = failures.get(url.pathname);
+  if (planned && planned.times > 0) {
+    planned.times -= 1;
+    if (planned.times === 0) failures.delete(url.pathname);
+    const code = planned.code ?? (planned.status === 429 ? "LOST_ARK_RATE_LIMITED" : planned.status === 503 ? "CHARACTER_CACHE_UNAVAILABLE" : "LOST_ARK_API_ERROR");
+    return send({ code, message: "planned failure" }, planned.status, planned.status === 429 ? { "Retry-After": "30" } : {});
+  }
   if (url.pathname.startsWith("/api/v1/markets/"))
     return market(url, req, send);
   if (url.pathname === "/api/v1/refining/plans" && req.method === "POST") {
@@ -261,6 +335,89 @@ createServer(async (req, res) => {
     if (request.fromStage === 24 && request.toStage === 25 && request.currentFailedAttempts === 10)
       return send({ code: "INVALID_REQUEST" }, 400);
     return send(refiningPlan(request));
+  }
+  // Combat-power simulator (backend #240). Stage A answers UNSUPPORTED for every
+  // item like the real contract; "전투력계산" gets synthetic OK numbers (not game
+  // formulas) so the computed path can be seen, "갱신됨" a 409.
+  // Targets read the way backend #240 names them (CombatPowerSimulationService.describe).
+  const powerTarget = (data, change) => {
+    const { loadout } = data;
+    const item = loadout.equipment[change.index];
+    switch (change.kind) {
+      case "GEM_LEVEL_ALL": return ["보석 전체", null];
+      case "GEM_LEVEL": {
+        const gem = loadout.gems.items.find((g) => g.slot === change.slot);
+        return [`보석 ${gem.slot}번(${gem.name})`, String(gem.level)];
+      }
+      case "EQUIPMENT_REFINE": return [item.name, String(item.detail.refineLevel)];
+      case "EQUIPMENT_QUALITY": return [item.name, String(item.detail.quality)];
+      case "POLISH": {
+        const line = item.detail.polishEffects[change.line];
+        return [`${item.name} 연마 ${change.line + 1}`, `${line.name} ${line.value}`];
+      }
+      case "BRACELET_EFFECT": {
+        const bracelet = loadout.equipment.find((e) => e.type === "팔찌");
+        return [`팔찌 효과 ${change.line + 1}`, bracelet.detail.braceletEffects[change.line].text];
+      }
+      case "ENGRAVING_LEVEL": {
+        const e = loadout.engravings.arkPassiveEffects.find((x) => x.name === change.name);
+        return [e.name, String(e.level)];
+      }
+      case "STONE_ENGRAVING": {
+        const s = loadout.equipment.flatMap((e) => e.detail?.stoneEngravings ?? []).find((x) => x.name === change.name);
+        return [`스톤 ${s.name}`, String(s.level)];
+      }
+      case "ARK_PASSIVE_POINT": {
+        const p = loadout.arkPassive.points.find((x) => x.name === change.tree);
+        return [`아크 패시브 ${p.name}`, String(p.value)];
+      }
+      case "ARK_GRID_CORE": {
+        const s = loadout.arkGrid.slots.find((x) => x.index === change.slotIndex);
+        return [s.name, `${s.grade} ${s.point}P`];
+      }
+      default: return [change.kind, null];
+    }
+  };
+  const powerTo = (change) =>
+    change.kind === "POLISH" ? `${change.option} ${change.grade}`
+    : change.kind === "BRACELET_EFFECT" ? `${change.name} ${change.grade}`
+    : change.kind === "ARK_GRID_CORE" ? `${change.grade} ${change.point}P`
+    : String(change.level ?? change.refine ?? change.quality ?? change.points ?? "");
+  const powerRead = (name) =>
+    JSON.parse(readFileSync(new URL(`./combat-power-fixtures/${name}`, import.meta.url), "utf8"));
+  if (url.pathname === "/api/v1/characters/combat-power/options")
+    return send(powerRead("combat-power-options.json"));
+  if (url.pathname === "/api/v1/characters/combat-power/simulate" && req.method === "POST") {
+    counts.combatPower = (counts.combatPower || 0) + 1;
+    let body = "";
+    for await (const chunk of req) body += chunk;
+    const request = JSON.parse(body);
+    if (request.characterName === "갱신됨") return send({ code: "CHANGE_TARGET_NOT_FOUND" }, 409);
+    const envelope = powerRead("character-combat-power-simulate.json");
+    const d = envelope.data;
+    const search = read("character-full-data.json");
+    const computed = request.characterName === "전투력계산";
+    if (computed) withSimulatorGear(search);
+    const r2 = (v) => Math.round(v * 100) / 100;
+    d.characterName = request.characterName;
+    d.fetchedAt = search.fetchedAt;
+    d.before = search.combatPower;
+    d.contributions = request.changes.map((change, i) => ({
+      kind: change.kind,
+      target: powerTarget(search, change)[0],
+      from: powerTarget(search, change)[1],
+      to: powerTo(change),
+      delta: computed ? r2(10 + i) : null,
+      status: computed ? "OK" : "UNSUPPORTED",
+      basis: computed ? "합성 값(목 서버)" : d.contributions[0].basis,
+    }));
+    const delta = computed ? r2(d.contributions.reduce((sum, item) => sum + item.delta, 0)) : 0;
+    d.after = d.before == null ? null : r2(d.before + delta);
+    d.delta = d.before == null ? null : delta;
+    d.deltaPercent = d.before ? Math.round((delta / d.before) * 100_000) / 1000 : null;
+    d.unsupportedCount = computed ? 0 : d.contributions.length;
+    d.partial = !computed && d.contributions.length > 0;
+    return send(envelope);
   }
   if (url.pathname === "/api/v1/characters/crit-speed" && req.method === "POST") {
     counts.critSpeed = (counts.critSpeed || 0) + 1;
@@ -426,6 +583,38 @@ createServer(async (req, res) => {
       },
     });
   }
+  // Patch history (backend #126, patch-notice-v1): 45 stored notices, newest
+  // first, filtered by category and paged like the backend.
+  if (url.pathname === "/api/v1/home/patch-notes") {
+    const kinds = ["UPDATE", "BALANCE", "CLIENT_PATCH", "MAINTENANCE_COMPLETE"];
+    const titles = { UPDATE: "업데이트 내역 안내", BALANCE: "밸런스 패치 안내", CLIENT_PATCH: "클라이언트 패치 안내", MAINTENANCE_COMPLETE: "로스트아크 정기 점검 완료 안내" };
+    const category = url.searchParams.get("category");
+    const page = Number(url.searchParams.get("page") ?? 1);
+    const size = Number(url.searchParams.get("size") ?? 20);
+    if (category && !kinds.includes(category)) return send({ code: "INVALID_REQUEST", message: "invalid" }, 400);
+    if (!(page >= 1 && page <= 100 && size >= 1 && size <= 50)) return send({ code: "INVALID_REQUEST", message: "invalid" }, 400);
+    const all = Array.from({ length: 45 }, (_, i) => {
+      const kind = kinds[i % 4];
+      const at = new Date(Date.now() - (i * 2 + 0.3) * 86_400_000);
+      const [, mm, dd] = new Date(at.getTime() + 9 * 3_600_000).toISOString().slice(0, 10).split("-").map(Number);
+      return { noticeId: 13600 - i, title: `${mm}월 ${dd}일 ${titles[kind]}`, category: kind, publishedAt: at.toISOString(), url: `https://lostark.game.onstove.com/News/Notice/Views/${13600 - i}` };
+    }).filter((item) => !category || item.category === category);
+    return send({
+      code: "HOME_PATCH_NOTES_SUCCESS",
+      message: "성공",
+      data: {
+        ruleVersion: "patch-notice-v1",
+        category,
+        page,
+        size,
+        total: all.length,
+        oldestPublishedAt: all.at(-1)?.publishedAt ?? null,
+        firstObservedAt: new Date(Date.now() - 3 * 86_400_000).toISOString(),
+        sourceFetchedAt: new Date().toISOString(),
+        items: all.slice((page - 1) * size, page * size),
+      },
+    });
+  }
   // Ranking (F-7, backend #100/#112). 비공개 → HIDDEN, 조건밖 → not included,
   // 집계중 → class scope still collecting, 미관측 → 404, otherwise ranked.
   if (url.pathname === "/api/v1/characters/rank") {
@@ -460,6 +649,31 @@ createServer(async (req, res) => {
         aggregatedAt: new Date(Date.now() - 600_000).toISOString(), ruleVersion: "stats-v1", minSample: 30, entries,
       },
     });
+  }
+  // Roster receipt (backend #174/#208/#211): the backend sample; 영수증꺼짐 → route
+  // absent (receipt off), 영수증한도 → 429. The first request leaves two
+  // characters pending; asking again fills them. assumeBook=true swaps the
+  // first assumption and lowers the equipment cost.
+  if (url.pathname === "/api/v1/characters/receipt") {
+    const who = url.searchParams.get("characterName") ?? "";
+    if (who === "영수증꺼짐") return send({ code: "NOT_FOUND", message: "not found" }, 404);
+    if (who === "영수증한도")
+      return send({ code: "CLIENT_RATE_LIMITED", message: "rate limited" }, 429, { "Retry-After": "30" });
+    const body = JSON.parse(readFileSync(new URL("./receipt-fixtures/character-receipt.json", import.meta.url), "utf8"));
+    const data = body.data;
+    data.characterName = who;
+    data.computedAt = new Date().toISOString();
+    receiptCalls.set(who, (receiptCalls.get(who) ?? 0) + 1);
+    if (receiptCalls.get(who) > 1) {
+      for (const c of data.equipment.characters) if (c.status === "PENDING") Object.assign(c, { status: "READY", gold: 2887361 });
+      data.coverage = { ...data.coverage, ready: data.coverage.rosterCharacters, pending: 0, nextAvailableAt: null };
+    } else data.coverage.nextAvailableAt = new Date(Date.now() + 20_000).toISOString();
+    if (url.searchParams.get("assumeBook") === "true") {
+      data.assumptions[0] = "책(재봉술·야금술) 효과가 항상 적용된다고 가정합니다(확률 미공개).";
+      data.equipment.gold = Math.round(data.equipment.gold * 0.8);
+      data.total.gold = data.equipment.gold + data.gems.gold;
+    }
+    return send(body);
   }
   // Roster titles (backend #123): first-seen order; 칭호없음 → none recorded yet.
   if (url.pathname === "/api/v1/characters/titles") {
@@ -665,6 +879,7 @@ createServer(async (req, res) => {
   if (name === "빈목록") envelope = read("observation-gems-items-empty.json");
   if (name === "미제공") envelope = read("observation-gems-items-null.json");
   envelope.data.characterName = name;
+  if (name === "전투력계산") withSimulatorGear(envelope.data);
   if (name === "마크업") {
     // Synthetic copy of the official Tooltip markup shape seen in live responses.
     const { engravings, arkPassive } = envelope.data.loadout;

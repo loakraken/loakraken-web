@@ -1,7 +1,7 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "LOAKraken character search",
+    "title": "LOAKraken character",
     "version": "1.0.0"
   },
   "paths": {
@@ -83,7 +83,7 @@
             }
           },
           "429": {
-            "description": "LOST_ARK_RATE_LIMITED",
+            "description": "LOST_ARK_RATE_LIMITED / CLIENT_RATE_LIMITED: 이 클라이언트의 분당 요청·공식 호출 한도 초과. Retry-After(초) 뒤 다시 시도",
             "content": {
               "application/json": {
                 "schema": {
@@ -869,7 +869,7 @@
           "parserVersion": {
             "type": "string",
             "description": "해석 규칙 버전",
-            "example": "equipment-tooltip-v3"
+            "example": "equipment-tooltip-v5"
           },
           "refineLevel": {
             "anyOf": [
@@ -956,9 +956,51 @@
             "items": {
               "$ref": "#/components/schemas/BraceletEffectResponse"
             }
+          },
+          "titleLine": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "공식 Tooltip 등급·부위 줄(예: 고대 머리 방어구). 이전 캐시면 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "tradeLines": {
+            "type": "array",
+            "description": "귀속·거래 줄 원문 순서(예: 캐릭터 귀속됨, 거래 제한 아이템 레벨 1680, 거래 2회 가능, 거래가능)",
+            "items": {
+              "type": "string"
+            }
+          },
+          "refineExp": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RefineExpResponse",
+                "description": "현재 단계 재련 경험치 막대. 없는 장비·이전 캐시면 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "advancedRefineLevel": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32",
+                "description": "상급 재련 단계. 공식 Tooltip \"[상급 재련] N단계\"(1단계 이상일 때만 나옴), 재련 단계가 있는 4티어 장비에 문구가 없으면 0, 그 밖·이전 캐시면 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
+          "advancedRefineLevel",
           "arkPassivePoint",
           "braceletEffects",
           "effects",
@@ -966,9 +1008,12 @@
           "parserVersion",
           "polishEffects",
           "quality",
+          "refineExp",
           "refineLevel",
           "stoneEngravings",
-          "tier"
+          "tier",
+          "titleLine",
+          "tradeLines"
         ]
       },
       "PointBonusResponse": {
@@ -1082,6 +1127,32 @@
         "required": [
           "grade",
           "text"
+        ]
+      },
+      "RefineExpResponse": {
+        "type": "object",
+        "properties": {
+          "current": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int64",
+                "description": "현재 경험치. 공식 값이 없으면 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "max": {
+            "type": "integer",
+            "format": "int64",
+            "description": "최대 경험치"
+          }
+        },
+        "required": [
+          "current",
+          "max"
         ]
       },
       "EngravingsResponse": {
@@ -2268,9 +2339,26 @@
             "items": {
               "$ref": "#/components/schemas/SkillGemEffectResponse"
             }
+          },
+          "attackType": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "Tooltip의 \"공격 타입\". BACK_ATTACK(백 어택)·HEAD_ATTACK(헤드 어택)·NONE(없음). Tooltip을 해석할 수 없거나 갱신 전 캐시(최대 5분)면 null. 스킬별 치명타 적중률은 crit.observedRate + BACK_ATTACK이면 10%p다",
+                "enum": [
+                  "BACK_ATTACK",
+                  "HEAD_ATTACK",
+                  "NONE"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
+          "attackType",
           "counter",
           "gemEffects",
           "icon",
@@ -2327,9 +2415,21 @@
                 "type": "null"
               }
             ]
+          },
+          "effect": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "트라이포드 효과 공식 원문. 이전 캐시면 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
+          "effect",
           "icon",
           "name",
           "slot",
@@ -2368,9 +2468,21 @@
                 "type": "null"
               }
             ]
+          },
+          "effect": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "공식 Tooltip '스킬 룬 효과' 원문. 이전 캐시면 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
+          "effect",
           "grade",
           "icon",
           "name"

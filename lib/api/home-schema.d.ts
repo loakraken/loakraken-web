@@ -44,6 +44,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/home/patch-notes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 패치 이력
+         * @description 공식 공지 중 패치 공지(업데이트 내역·밸런스·클라이언트 패치·점검 완료)를 공지 번호로 쌓은 목록입니다(patch-notice-v1). 소식 캐시(10분)를 공유하므로 공식 호출이 늘지 않습니다. 공식 API는 최근 약 3개월만 주므로 그보다 앞선 이력은 LOAKraken이 관측을 시작한 뒤부터 쌓입니다. 본문은 수집하지 않고 공식 원문 링크를 줍니다. 503 HOME_CACHE_UNAVAILABLE·HOME_STORAGE_UNAVAILABLE, 400 INVALID_REQUEST
+         */
+        get: operations["patchNotes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -198,6 +218,56 @@ export interface components {
             rewardAt: string | null;
             url: string | null;
         };
+        /** @description 공통 API 응답. 오류 응답의 data는 null입니다. */
+        ApiResponseHomePatchNotesResponse: {
+            /**
+             * @description 업무 결과 코드
+             * @example CHARACTER_SEARCH_SUCCESS
+             */
+            code: string;
+            /**
+             * @description 공개용 안내 메시지
+             * @example 캐릭터 조회에 성공했습니다.
+             */
+            message: string;
+            /** @description 성공 응답 데이터. 오류일 때 null */
+            data: components["schemas"]["HomePatchNotesResponse"];
+        };
+        /** @description 패치 이력(patch-notice-v1). 공식 공지 중 제목 규칙에 맞는 패치 공지만 모은 목록입니다. 공식 API는 최근 약 3개월만 주므로 LOAKraken이 관측한 공지를 쌓아 이력을 늘립니다. 본문은 공식 원문 링크로 봅니다. */
+        HomePatchNotesResponse: {
+            /** @example patch-notice-v1 */
+            ruleVersion: string;
+            category: ("UPDATE" | "BALANCE" | "CLIENT_PATCH" | "MAINTENANCE_COMPLETE") | null;
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            size: number;
+            /** Format: int64 */
+            total: number;
+            oldestPublishedAt: string | null;
+            firstObservedAt: string | null;
+            /**
+             * Format: date-time
+             * @description 공식 공지를 마지막으로 받은 시각(소식 캐시)
+             */
+            sourceFetchedAt: string;
+            /** @description 게시 시각 내림차순 */
+            items: components["schemas"]["HomePatchNoticeResponse"][];
+        };
+        HomePatchNoticeResponse: {
+            /**
+             * Format: int64
+             * @description 공식 공지 번호
+             */
+            noticeId: number;
+            title: string;
+            /** @enum {string} */
+            category: "UPDATE" | "BALANCE" | "CLIENT_PATCH" | "MAINTENANCE_COMPLETE";
+            /** Format: date-time */
+            publishedAt: string;
+            /** @description 공식 원문 링크(lostark.game.onstove.com만 허용) */
+            url: string;
+        };
     };
     responses: never;
     parameters: never;
@@ -293,6 +363,75 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApiResponseHomeNewsResponse"];
+                };
+            };
+            /** @description INVALID_REQUEST */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description LOST_ARK_RATE_LIMITED / CLIENT_RATE_LIMITED: 이 클라이언트의 분당 요청·공식 호출 한도 초과. Retry-After(초) 뒤 다시 시도 */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description LOST_ARK_API_ERROR */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description LOST_ARK_NOT_CONFIGURED 또는 HOME_CACHE_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description LOST_ARK_API_TIMEOUT */
+            504: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    patchNotes: {
+        parameters: {
+            query?: {
+                category?: "UPDATE" | "BALANCE" | "CLIENT_PATCH" | "MAINTENANCE_COMPLETE";
+                page?: number;
+                size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 조회 성공 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponseHomePatchNotesResponse"];
                 };
             };
             /** @description INVALID_REQUEST */

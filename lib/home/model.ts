@@ -2,6 +2,7 @@
 // LOAWA's home shows them (weekday tabs, countdowns, notices, events).
 import type { components } from "../api/home-schema";
 import { labelOf } from "../api/tolerant";
+import { remainingText } from "../time/remaining";
 
 type Schemas = components["schemas"];
 export type ScheduleEnvelope = Schemas["ApiResponseHomeScheduleResponse"];
@@ -15,6 +16,10 @@ export type HomeEvent = Schemas["HomeEventResponse"];
 export type RewardKind = Island["rewardKinds"][number];
 export type RewardGroup = Schemas["HomeRewardGroupResponse"];
 export type Reward = Schemas["HomeRewardResponse"];
+export type PatchNotesEnvelope = Schemas["ApiResponseHomePatchNotesResponse"];
+export type PatchNotes = Schemas["HomePatchNotesResponse"];
+export type PatchNotice = Schemas["HomePatchNoticeResponse"];
+export type PatchCategory = NonNullable<PatchNotice["category"]>;
 
 export const REWARD_LABEL: Record<RewardKind, string> = {
   GOLD: "골드",
@@ -29,6 +34,18 @@ export const NOTICE_LABEL: Record<NonNullable<Notice["category"]>, string> = {
   EVENT: "이벤트",
   SHOP: "상점",
 };
+
+/** Patch history kinds (backend patch-notice-v1 title rules). */
+export const PATCH_LABEL: Record<PatchCategory, string> = {
+  UPDATE: "업데이트",
+  BALANCE: "밸런스",
+  CLIENT_PATCH: "클라이언트 패치",
+  MAINTENANCE_COMPLETE: "점검 완료",
+};
+export const PATCH_CATEGORIES = Object.keys(PATCH_LABEL) as PatchCategory[];
+export const isPatchCategory = (value: string | null | undefined): value is PatchCategory =>
+  !!value && Object.hasOwn(PATCH_LABEL, value);
+export const patchLabel = (category: string) => labelOf(PATCH_LABEL, category);
 
 /** Labels that fall back for a kind or category this build does not know yet. */
 export const rewardLabel = (kind: string) => labelOf(REWARD_LABEL, kind);
@@ -72,15 +89,9 @@ export function kstTime(iso: string) {
   return new Date(Date.parse(iso) + KST).toISOString().slice(11, 16);
 }
 
-/** "29분 43초" / "1시간 5분" until the time, or null once it has passed. */
+/** Time left until `iso` in the shared format, or null once it has passed. */
 export function countdown(iso: string | null | undefined, now = Date.now()) {
-  if (!iso) return null;
-  const left = Math.floor((Date.parse(iso) - now) / 1000);
-  if (!Number.isFinite(left) || left < 0) return null;
-  const h = Math.floor(left / 3600);
-  const m = Math.floor((left % 3600) / 60);
-  const s = left % 60;
-  return h > 0 ? `${h}시간 ${m}분` : `${m}분 ${s}초`;
+  return iso ? remainingText(Date.parse(iso) - now) : null;
 }
 
 /** Days left until an event ends, by KST calendar date ("D-4", "D-day"). */

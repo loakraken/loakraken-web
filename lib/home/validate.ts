@@ -1,7 +1,8 @@
 import Ajv2020 from "ajv/dist/2020";
 import contract from "../../contracts/home.openapi.json";
 import { tolerantSchemas } from "../api/tolerant";
-import type { NewsEnvelope, ScheduleEnvelope } from "./model";
+import type { NewsEnvelope, PatchNotesEnvelope, ScheduleEnvelope } from "./model";
+import { lazyValidator } from "@/lib/api/lazy-validator";
 
 // The backend's generated OpenAPI is also the runtime shape contract. Response
 // enums are loosened: a value added later shows as unknown instead of
@@ -11,12 +12,15 @@ ajv.addSchema({
   $id: "home",
   components: { ...contract.components, schemas: tolerantSchemas(contract.components.schemas) },
 });
-const schedule = ajv.compile<ScheduleEnvelope>({
+const schedule = lazyValidator(() => ajv.compile<ScheduleEnvelope>({
   $ref: "home#/components/schemas/ApiResponseHomeScheduleResponse",
-});
-const news = ajv.compile<NewsEnvelope>({
+}));
+const news = lazyValidator(() => ajv.compile<NewsEnvelope>({
   $ref: "home#/components/schemas/ApiResponseHomeNewsResponse",
-});
+}));
+const patchNotes = lazyValidator(() => ajv.compile<PatchNotesEnvelope>({
+  $ref: "home#/components/schemas/ApiResponseHomePatchNotesResponse",
+}));
 const time = (value: string | null) => value === null || Number.isFinite(Date.parse(value));
 
 export function isScheduleEnvelope(value: unknown): value is ScheduleEnvelope {
@@ -35,5 +39,16 @@ export function isNewsEnvelope(value: unknown): value is NewsEnvelope {
   return (
     value.data.notices.every((notice) => time(notice.publishedAt)) &&
     value.data.events.every((event) => time(event.startAt) && time(event.endAt))
+  );
+}
+
+export function isPatchNotesEnvelope(value: unknown): value is PatchNotesEnvelope {
+  if (!patchNotes(value) || value.code !== "HOME_PATCH_NOTES_SUCCESS") return false;
+  const d = value.data;
+  return (
+    time(d.sourceFetchedAt) &&
+    time(d.oldestPublishedAt) &&
+    time(d.firstObservedAt) &&
+    d.items.every((item) => time(item.publishedAt))
   );
 }

@@ -1,21 +1,105 @@
 "use client"
 
+import * as React from "react"
 import { Radio } from "@base-ui/react/radio"
 import { RadioGroup } from "@base-ui/react/radio-group"
 import { cn } from "cn"
 
+// Width the row needs on one line, and the width its parent offers.
+function useFitsOnOneLine<T extends HTMLElement>(auto: boolean) {
+  const ref = React.useRef<T>(null)
+  const [vertical, setVertical] = React.useState(false)
+  React.useLayoutEffect(() => {
+    const track = ref.current
+    const parent = track?.parentElement
+    if (!auto || !track || !parent) return
+    // Equal columns need n × the widest item (its full label, nowrap, plus its
+    // padding) plus the gaps and track padding. The label is measured as a
+    // range, so the sum is the same in either orientation and tells a vertical
+    // track when it may go back to one row.
+    const range = document.createRange()
+    const natural = (el: HTMLElement) => {
+      range.selectNodeContents(el)
+      const s = getComputedStyle(el)
+      return range.getBoundingClientRect().width + parseFloat(s.paddingLeft) + parseFloat(s.paddingRight)
+    }
+    const check = () => {
+      const items = [...track.children].filter(
+        (el): el is HTMLElement => el instanceof HTMLElement && el.dataset.slot === "segmented-item"
+      )
+      if (!items.length) return
+      const style = getComputedStyle(track)
+      const widest = Math.max(...items.map(natural))
+      const needed =
+        widest * items.length +
+        parseFloat(style.columnGap || "0") * (items.length - 1) +
+        parseFloat(style.paddingLeft) +
+        parseFloat(style.paddingRight)
+      const box = getComputedStyle(parent)
+      const room = parent.clientWidth - parseFloat(box.paddingLeft) - parseFloat(box.paddingRight)
+      setVertical(needed > room + 0.5)
+    }
+    // Measuring with the fallback face first could pick "vertical" and then flip
+    // back when the web font lands, moving everything below (#346). Until the
+    // fonts are ready the row stays as the server drew it (horizontal).
+    let live = true
+    let ready = document.fonts.status === "loaded"
+    const guarded = () => {
+      if (live && ready) check()
+    }
+    if (ready) check()
+    else
+      document.fonts.ready.then(() => {
+        ready = true
+        guarded()
+      })
+    const observer = new ResizeObserver(guarded)
+    observer.observe(parent)
+    // Label widths change when a later web font arrives.
+    document.fonts.addEventListener("loadingdone", guarded)
+    return () => {
+      live = false
+      observer.disconnect()
+      document.fonts.removeEventListener("loadingdone", guarded)
+    }
+  }, [auto])
+  return [ref, vertical] as const
+}
+
 // One-of-few choice shown as a pill row (price basis, period, sort). Base UI
 // RadioGroup gives role="radiogroup", arrow-key movement and a single tab
 // stop; name the group with aria-label or aria-labelledby.
-function SegmentedControl({ className, ...props }: RadioGroup.Props) {
+//
+// Never wraps: items share one width (Apple segmented control). `fill`
+// stretches the row to its parent. When the parent cannot hold the row on one
+// line, the items stack as a vertical list instead of breaking mid-row.
+function SegmentedControl({
+  className,
+  fill = false,
+  orientation = "auto",
+  ...props
+}: RadioGroup.Props & {
+  fill?: boolean
+  /** "auto" measures after the web font is ready. A screen that knows the slot
+   * is narrow can fix "vertical" so the server HTML is already stacked (no shift). */
+  orientation?: "auto" | "horizontal" | "vertical"
+}) {
+  const [ref, measuredVertical] = useFitsOnOneLine<HTMLDivElement>(orientation === "auto")
+  const vertical = orientation === "auto" ? measuredVertical : orientation === "vertical"
   return (
     <RadioGroup
+      ref={ref}
       data-slot="segmented-control"
+      data-orientation={vertical ? "vertical" : "horizontal"}
       className={cn(
-        // 20px = a full pill on one 40px row, a rounded box when it wraps.
-        "inline-flex max-w-full flex-wrap gap-1 rounded-[20px] bg-muted p-1",
+        "grid max-w-full gap-1 bg-muted p-1",
+        // Equal columns on one row; a full pill on a 40px row.
+        "data-[orientation=horizontal]:auto-cols-fr data-[orientation=horizontal]:grid-flow-col data-[orientation=horizontal]:rounded-full",
+        // Stacked: full-width rows in a rounded box.
+        "data-[orientation=vertical]:w-full data-[orientation=vertical]:grid-flow-row data-[orientation=vertical]:rounded-[20px]",
+        fill ? "w-full" : "w-max",
         // Keep the track at its own height inside grid/flex columns (a stretched
-        // track left the pills hugging its top edge), and centre them anyway.
+        // track left the pills hugging its top edge).
         "items-center self-start justify-self-start",
         className
       )}
@@ -29,8 +113,8 @@ function SegmentedItem({ className, ...props }: Radio.Root.Props) {
     <Radio.Root
       data-slot="segmented-item"
       className={cn(
-        "inline-flex h-8 items-center justify-center rounded-full px-4 whitespace-nowrap select-none",
-        "text-(length:--text-body) text-foreground",
+        "inline-flex h-8 min-w-0 items-center justify-center rounded-full px-4 whitespace-nowrap select-none",
+        "text-(length:--text-body) leading-none text-foreground",
         "transition-[background-color,box-shadow,color] duration-(--duration-fast) ease-(--ease-out)",
         "pointer-fine:not-data-checked:not-data-disabled:hover:bg-secondary",
         // Selected: a raised face outlined in --input (3:1 against the track, WCAG

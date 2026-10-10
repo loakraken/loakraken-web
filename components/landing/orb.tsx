@@ -1,25 +1,25 @@
 "use client";
 
 import { useRef } from "react";
-import { useInView } from "motion/react";
 import { ThinkingOrb, type OrbState } from "thinking-orbs";
-import { useLandingMotion } from "./motion";
+import { useLandingMotion, useVisible } from "./motion-context";
 import styles from "./landing.module.css";
 
 export function IntelligenceOrb({ state = "breathing" }: { state?: OrbState }) {
   const ref = useRef<HTMLDivElement>(null);
-  const visible = useInView(ref, { margin: "60px" });
-  const { enabled } = useLandingMotion();
+  const visible = useVisible(ref, 60);
+  // Decorative and repeating: stops with the 5s loop budget.
+  const { looping } = useLandingMotion();
 
   return (
-    <div ref={ref} className={styles.orbStage} data-orb-active={enabled && visible} aria-hidden="true">
+    <div ref={ref} className={styles.orbStage} data-orb-active={looping && visible} aria-hidden="true">
       <div className={styles.orbAtmosphere} />
       <div className={`${styles.orbit} ${styles.orbitOuter}`}><i /></div>
       <div className={`${styles.orbit} ${styles.orbitInner}`}><i /></div>
       <div className={styles.orbShell}>
         <div className={styles.orbGlass} />
         <div className={styles.orbCore}>
-          <ThinkingOrb state={state} size={64} theme="light" color="#0066cc" speed={0.65} paused={!enabled || !visible} />
+          <ThinkingOrb state={state} size={64} theme="light" color="#0066cc" speed={0.65} paused={!looping || !visible} />
         </div>
       </div>
     </div>

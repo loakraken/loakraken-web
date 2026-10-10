@@ -1,4 +1,4 @@
-/* Home dashboard: ILOA-style search first, then LOAWA-style weekly schedule
+/* Home dashboard: the /about hero (search) first, then LOAWA-style weekly schedule
    with notices, events and a market summary beside it. */
 .page {
   min-height: 100vh;
@@ -47,69 +47,6 @@
   padding: 0 24px 64px;
 }
 
-/* Search */
-.hero {
-  display: grid;
-  justify-items: center;
-  gap: 12px;
-  padding: 40px 0 28px;
-}
-.search {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: min(640px, 100%);
-  height: 56px;
-  padding: 0 8px 0 20px;
-  border: 1px solid var(--border);
-  border-radius: 9999px;
-  background: var(--background);
-  box-shadow: 0 6px 24px -14px #0000004d;
-  color: var(--muted-foreground);
-  transition: border-color 160ms ease, box-shadow 160ms ease;
-}
-.search:focus-within {
-  border-color: var(--ring);
-  box-shadow: 0 0 0 4px color-mix(in oklab, var(--primary) 14%, transparent);
-}
-.search input {
-  flex: 1;
-  min-width: 0;
-  border: 0;
-  outline: none;
-  background: transparent;
-  color: var(--foreground);
-  font-size: 17px;
-}
-.page .search input:focus-visible {
-  outline: none;
-}
-.kbd {
-  padding: 2px 7px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  color: var(--muted-foreground);
-  font-family: inherit;
-  font-size: 11px;
-}
-.search button {
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  border: 0;
-  border-radius: 50%;
-  background: var(--primary);
-  color: var(--primary-foreground);
-  transition: transform 120ms ease-out;
-}
-.search button:active {
-  transform: scale(0.96);
-}
-.searchError {
-  color: var(--destructive);
-  font-size: 13px;
-}
 /* Layout */
 .grid {
   display: grid;
@@ -482,7 +419,6 @@
 }
 .starOn {
   color: var(--grade-legendary-text);
-  fill: currentColor;
 }
 .noticeTabs {
   display: inline-flex;
@@ -599,6 +535,9 @@
 .events,
 .market {
   display: grid;
+  /* One column that may shrink below its content: a long title ends in an
+     ellipsis inside the panel instead of widening the row (user, 10:41). */
+  grid-template-columns: minmax(0, 1fr);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -778,12 +717,6 @@
   .main {
     padding: 0 12px 48px;
   }
-  .hero {
-    padding: 20px 0 18px;
-  }
-  .kbd {
-    display: none;
-  }
   .panel {
     padding: 16px 14px;
     border-radius: 18px;
@@ -803,8 +736,7 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .sections,
-  .others summary svg,
-  .search {
+  .others summary svg {
     transition: none;
   }
 }
@@ -938,14 +870,9 @@
   color: var(--muted-foreground);
   font-size: 11px;
 }
-.servers .short {
-  margin-left: 4px;
-  padding: 0 5px;
-  border-radius: 9999px;
-  background: var(--secondary);
-  color: var(--foreground);
-  font-size: 11px;
-  font-weight: 600;
+.servers .sampleSize {
+  color: var(--muted-foreground);
+  font-size: 12px;
 }
 .serverNote {
   margin-top: 8px;

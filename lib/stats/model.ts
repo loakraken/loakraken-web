@@ -4,6 +4,7 @@ import Ajv2020 from "ajv/dist/2020";
 import contract from "../../contracts/stats.openapi.json";
 import type { components } from "../api/stats-schema";
 import { tolerantSchemas } from "../api/tolerant";
+import { lazyValidator } from "@/lib/api/lazy-validator";
 
 type Schemas = components["schemas"];
 export type StatsMeta = Schemas["StatsMetaResponse"];
@@ -38,8 +39,8 @@ const SCHEMA: Record<StatsView, [string, string]> = {
   distribution: ["ApiResponseStatsDistributionResponse", "STATS_DISTRIBUTION_SUCCESS"],
 };
 const validators = Object.fromEntries(
-  STATS_VIEWS.map((view) => [view, ajv.compile({ $ref: `stats#/components/schemas/${SCHEMA[view][0]}` })]),
-) as Record<StatsView, ReturnType<typeof ajv.compile>>;
+  STATS_VIEWS.map((view) => [view, lazyValidator(() => ajv.compile({ $ref: `stats#/components/schemas/${SCHEMA[view][0]}` }))]),
+) as Record<StatsView, (value: unknown) => value is unknown>;
 
 export function isStatsEnvelope<V extends StatsView>(view: V, value: unknown): value is StatsEnvelopes[V] {
   if (!validators[view](value)) return false;
@@ -130,21 +131,41 @@ export const whole = (n: number | null | undefined) =>
 export const percent = (n: number | null | undefined) =>
   n == null ? "-" : `${n.toLocaleString("ko-KR", { maximumFractionDigits: 1 })}%`;
 
-/** The sample in words: who is counted, and that it is not the whole game. */
-export function sampleText(meta: StatsMeta) {
+/**
+ * A population share, always one decimal so a column lines up ("8.7%",
+ * "5.0%"); a small but non-zero share is "<0.1%", never a false "0%".
+ */
+export function share(n: number | null | undefined) {
+  if (n == null) return "-";
+  if (n > 0 && n < 0.05) return "<0.1%";
+  return `${n.toLocaleString("ko-KR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
+}
+
+/** The filters alone ("최근 30일 안에 확인 · 아이템 레벨 1,640 이상"), for under the basis line. */
+export function sampleConditions(meta: StatsMeta) {
+  return conditionParts(meta, "확인").join(" · ");
+}
+
+function conditionParts(meta: StatsMeta, seen: string) {
   const c = meta.conditions;
-  const parts = [`최근 ${c.activeDays}일 안에 LOAKraken이 확인한 캐릭터`];
+  const parts = [`최근 ${c.activeDays}일 안에 ${seen}`];
   if (c.itemLevelMin > 0) parts.push(`아이템 레벨 ${count(c.itemLevelMin)} 이상`);
   if (c.itemLevelMax != null) parts.push(`${count(c.itemLevelMax)} 이하`);
   if (c.server) parts.push(c.server);
   if (c.role) parts.push(c.role === "SUPPORT" ? "서포터" : "딜러");
   if (c.representativeOnly) parts.push("원정대 대표 캐릭터만");
-  return `${parts.join(" · ")} ${count(meta.population)}명 기준`;
+  return parts;
+}
+
+/** The sample in words: who is counted, and that it is not the whole game. */
+export function sampleText(meta: StatsMeta) {
+  return `${conditionParts(meta, "LOAKraken이 확인한 캐릭터").join(" · ")} ${count(meta.population)}명 기준`;
 }
 
 /** Shared scale for the class quantile bars: the widest p10…p90 span. */
 export function quantileScale(rows: ClassRow[]) {
-  const ready = rows.flatMap((row) => (row.combatPower ? [row.combatPower] : []));
+  // Only full samples set the scale; a short row (median dot only) cannot stretch it.
+  const ready = rows.flatMap((row) => (row.combatPower && row.sampleStatus === "READY" ? [row.combatPower] : []));
   if (!ready.length) return null;
   const min = Math.min(...ready.map((p) => p.p10));
   const max = Math.max(...ready.map((p) => p.p90));

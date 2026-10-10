@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { SiteHeader } from "@/components/site/site-header";
@@ -13,7 +13,8 @@ import {
   fixed,
   percent,
   quantileScale,
-  sampleText,
+  share,
+  sampleConditions,
   statsSearch,
   whole,
   type ClassRow,
@@ -57,14 +58,22 @@ function Problem({ error, onRetry }: { error: unknown; onRetry: () => void }) {
   );
 }
 
+/**
+ * Whose numbers these are, before any number (user, 23:23): LOAKraken's
+ * observed characters, never the game's population. Conditions under it.
+ */
 function Notice({ meta }: { meta: StatsMeta }) {
   return (
-    <p className={styles.notice}>
-      {sampleText(meta)} · 게임 전체 인구가 아니에요 · {kst.format(new Date(meta.aggregatedAt))} 집계
-      {meta.sampleStatus !== "READY" && (
-        <strong> · 표본이 {meta.minSample}명 미만이라 아직 집계 중이에요</strong>
-      )}
-    </p>
+    <div className={styles.basis} role="note">
+      <p>
+        <strong>LOAKraken이 확인한 캐릭터 {whole(meta.population)}명 기준</strong>
+        <span>(게임 전체 인구 아님)</span>
+      </p>
+      <p className={styles.notice}>
+        {sampleConditions(meta)} · {kst.format(new Date(meta.aggregatedAt))} 집계
+        {meta.sampleStatus !== "READY" && ` · 표본 ${meta.minSample}명이 모이면 분포를 보여 드려요`}
+      </p>
+    </div>
   );
 }
 
@@ -118,13 +127,58 @@ function SummaryCards({ query }: { query: StatsQuery }) {
   );
 }
 
-/** ILOA-style quantile bar: p10–p90 thin line, p25–p75 box, median tick. */
-function Quantiles({ row, scale }: { row: ClassRow; scale: ((v: number) => number) | null }) {
+/**
+ * One progress line over a table instead of "집계 중" in every row (user,
+ * 11:20): how many rows already have the sample minimum. Hidden once all do.
+ */
+function SampleProgress({ ready, total, unit, minSample }: { ready: number; total: number; unit: string; minSample: number }) {
+  if (!total || ready >= total) return null;
+  return (
+    <div className={styles.progress}>
+      <p>
+        <b>표본 수집 중</b> · {minSample}명 이상 모인 {unit} {ready}/{total}개
+      </p>
+      <span
+        className={styles.progressBar}
+        role="progressbar"
+        aria-label={`표본 ${minSample}명 이상 모인 ${unit}`}
+        aria-valuemin={0}
+        aria-valuemax={total}
+        aria-valuenow={ready}
+        aria-valuetext={`${total}개 중 ${ready}개`}
+      >
+        <i className="k-grow-x" style={{ width: `${(ready / total) * 100}%` }} />
+      </span>
+    </div>
+  );
+}
+
+/**
+ * ILOA-style quantile bar: p10–p90 thin line, p25–p75 box, median tick. It
+ * grows from the left each time the tab is shown (motion rule 10-10: on every
+ * entry, not on in-place updates), 30ms apart up to 8 rows; only the first 12
+ * rows move (PM 12-item cap), the rest are simply there.
+ */
+function Quantiles({ row, scale, index }: { row: ClassRow; scale: ((v: number) => number) | null; index: number }) {
   const p = row.combatPower;
+  // Under the sample minimum: the median as a dot only (user, 23:50) — the
+  // spread needs the full sample. "표본 N명 · 참고값" says why.
+  if (row.sampleStatus !== "READY")
+    return (
+      <span className={styles.shortCell}>
+        {p?.p50 != null && scale ? (
+          <span className={styles.quantile} role="img" aria-label={`전투력 중앙값 ${whole(p.p50)} (참고값)`}>
+            <em style={{ left: `${scale(p.p50)}%` }} />
+          </span>
+        ) : null}
+        <small>표본 {whole(row.count)}명 · 참고값</small>
+      </span>
+    );
   if (!p || !scale) return <span className={styles.muted}>-</span>;
   return (
     <span
-      className={styles.quantile}
+      className={index < 12 ? `${styles.quantile} k-grow-x` : styles.quantile}
+      style={index < 12 ? ({ "--i": index } as CSSProperties) : undefined}
       role="img"
       aria-label={`전투력 하위 10% ${whole(p.p10)}, 중간 50% ${whole(p.p25)}~${whole(p.p75)}, 상위 10% ${whole(p.p90)}`}
     >
@@ -143,51 +197,53 @@ function ClassesTab({ query }: { query: StatsQuery }) {
     placeholderData: keepPreviousData,
     ...quiet,
   });
+  // Every class, in the backend order (user, 23:23: no folded rows).
   const rows = classes.data?.data.rows ?? [];
+  const ready = rows.filter((row) => row.sampleStatus === "READY").length;
   if (classes.isError && !classes.data) return <Problem error={classes.error} onRetry={() => classes.refetch()} />;
   if (!classes.data) return <p className={styles.muted}>직업 통계를 불러오고 있어요…</p>;
   const scale = quantileScale(rows);
+  const minSample = classes.data.data.meta.minSample;
   return (
     <div>
-      <DataTable label="직업별 인원과 전투력 분포" className={styles.table}>
-        <caption className={styles.srOnly}>직업별 인원과 전투력 분포</caption>
-        <thead>
-          <tr>
-            <th scope="col">#</th>
-            <th scope="col">직업</th>
-            <th scope="col">인원</th>
-            <th scope="col">서포터</th>
-            <th scope="col">평균 레벨</th>
-            <th scope="col">보석</th>
-            <th scope="col" className={styles.wide}>전투력 분포</th>
-            <th scope="col">중앙값</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row, i) => (
-            <tr key={row.className}>
-              <td>{i + 1}</td>
-              <th scope="row">
-                {row.className}
-                {row.sampleStatus !== "READY" && <small className={styles.short}>표본 부족</small>}
-              </th>
-              <td>
-                {whole(row.count)}
-                <small>{percent(row.share)}</small>
-              </td>
-              <td>{row.supports > 0 ? percent(row.supportShare) : "-"}</td>
-              <td>{fixed(row.itemLevelMean)}</td>
-              <td>{fixed(row.gemMeanLevel, 1)}</td>
-              <td className={styles.wide}>
-                {row.sampleStatus === "READY" ? <Quantiles row={row} scale={scale} /> : <span className={styles.muted}>집계 중</span>}
-              </td>
-              <td>{whole(row.combatPower?.p50)}</td>
+      <SampleProgress ready={ready} total={rows.length} unit="직업" minSample={minSample} />
+      {rows.length > 0 && (
+        <DataTable label="직업별 인원과 전투력 분포" className={styles.table}>
+          <caption className={styles.srOnly}>직업별 인원과 전투력 분포</caption>
+          <thead>
+            <tr>
+              <th scope="col">#</th>
+              <th scope="col" className={styles.left}>직업</th>
+              <th scope="col">인원</th>
+              <th scope="col">비율</th>
+              <th scope="col">서포터</th>
+              <th scope="col">평균 레벨</th>
+              <th scope="col">보석</th>
+              <th scope="col" className={styles.wide}>전투력 분포</th>
+              <th scope="col">중앙값</th>
             </tr>
-          ))}
-        </tbody>
-      </DataTable>
+          </thead>
+          <tbody>
+            {rows.map((row, i) => (
+              <tr key={row.className} data-short={row.sampleStatus !== "READY" || undefined}>
+                <td>{i + 1}</td>
+                <th scope="row">{row.className}</th>
+                <td>{whole(row.count)}</td>
+                <td className={styles.share}>{share(row.share)}</td>
+                <td>{row.supports > 0 ? percent(row.supportShare) : "-"}</td>
+                <td>{fixed(row.itemLevelMean)}</td>
+                <td>{fixed(row.gemMeanLevel, 1)}</td>
+                <td className={styles.wide}>
+                  <Quantiles row={row} scale={scale} index={i} />
+                </td>
+                <td>{whole(row.combatPower?.p50)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </DataTable>
+      )}
       <p className={styles.note}>
-        분포 막대: 옅은 선 하위 10%~상위 10%, 진한 칸 가운데 50%, 세로선 중앙값. 표본이 {classes.data.data.meta.minSample}명 미만인 직업은 &apos;표본 부족&apos;으로 표시하고 분포는 집계 중이에요.
+        분포 막대: 옅은 선 하위 10%~상위 10%, 진한 칸 가운데 50%, 세로선 중앙값. 표본이 {minSample}명 미만인 직업은 분포 대신 중앙값 점만 찍고, 다른 값은 참고값(회색)으로 보여요.
       </p>
     </div>
   );
@@ -259,7 +315,7 @@ function DistributionTab({ query }: { query: StatsQuery }) {
             <caption className={styles.srOnly}>{label} 구간별 인원</caption>
             <thead>
               <tr>
-                <th scope="col">구간</th>
+                <th scope="col" className={styles.left}>구간</th>
                 <th scope="col">인원</th>
               </tr>
             </thead>
@@ -276,11 +332,12 @@ function DistributionTab({ query }: { query: StatsQuery }) {
         </DataTable>
       ) : (
         <ol className={styles.histogram} aria-label={`${label} 구간별 인원`}>
-          {data.bins.map((bin) => {
+          {data.bins.map((bin, i) => {
             const hit = p && p.value >= bin.from && p.value < bin.to;
             return (
               <li key={bin.from} title={`${fmt(bin.from)} ~ ${fmt(bin.to)} · ${whole(bin.count)}명`} data-hit={hit || undefined}>
-                <i style={{ height: `${(bin.count / max) * 100}%` }} />
+                {/* Each bar grows from the axis on every entry (motion rule 10-10). */}
+                <i className="k-grow" style={{ height: `${(bin.count / max) * 100}%`, "--i": i } as CSSProperties} />
                 <span className={styles.srOnly}>
                   {fmt(bin.from)} ~ {fmt(bin.to)}: {whole(bin.count)}명
                 </span>
@@ -309,34 +366,44 @@ function ServersTab({ query }: { query: StatsQuery }) {
   });
   if (servers.isError && !servers.data) return <Problem error={servers.error} onRetry={() => servers.refetch()} />;
   if (!servers.data) return <p className={styles.muted}>서버 통계를 불러오고 있어요…</p>;
+  // Every server (user, 23:23: no folded rows).
+  const rows = servers.data.data.rows;
+  const ready = rows.filter((row) => row.sampleStatus === "READY").length;
   return (
-    <DataTable label="서버별 인원과 중앙값" className={styles.table}>
-        <caption className={styles.srOnly}>서버별 인원과 중앙값</caption>
-        <thead>
-          <tr>
-            <th scope="col">서버</th>
-            <th scope="col">인원</th>
-            <th scope="col">아이템 레벨 중앙값</th>
-            <th scope="col">전투력 중앙값</th>
-          </tr>
-        </thead>
-        <tbody>
-          {servers.data.data.rows.map((row) => (
-            <tr key={row.serverName}>
-              <th scope="row">
-                {row.serverName}
-                {row.sampleStatus !== "READY" && <small className={styles.short}>표본 부족</small>}
-              </th>
-              <td>
-                {whole(row.count)}
-                <small>{percent(row.share)}</small>
-              </td>
-              <td>{fixed(row.itemLevelMedian)}</td>
-              <td>{fixed(row.combatPowerMedian)}</td>
+    <div>
+      <SampleProgress ready={ready} total={rows.length} unit="서버" minSample={servers.data.data.meta.minSample} />
+      {rows.length > 0 && (
+      <DataTable label="서버별 인원과 중앙값" className={styles.table}>
+          <caption className={styles.srOnly}>서버별 인원과 중앙값</caption>
+          <thead>
+            <tr>
+              <th scope="col" className={styles.left}>서버</th>
+              <th scope="col">인원</th>
+              <th scope="col">비율</th>
+              <th scope="col">아이템 레벨 중앙값</th>
+              <th scope="col">전투력 중앙값</th>
+              <th scope="col"><span className={styles.srOnly}>표본</span></th>
             </tr>
-          ))}
-        </tbody>
-    </DataTable>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.serverName} data-short={row.sampleStatus !== "READY" || undefined}>
+                <th scope="row">{row.serverName}</th>
+                <td>{whole(row.count)}</td>
+                <td className={styles.share}>{share(row.share)}</td>
+                {/* Values show from one character up (user, 23:50); a short
+                    sample is marked at the row end instead of hidden. */}
+                <td>{fixed(row.itemLevelMedian)}</td>
+                <td>{fixed(row.combatPowerMedian)}</td>
+                <td className={styles.share}>
+                  {row.sampleStatus !== "READY" && `표본 ${whole(row.count)}명 · 참고값`}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+      </DataTable>
+    )}
+    </div>
   );
 }
 
@@ -349,6 +416,13 @@ export function StatsView({ initial, initialTab }: { initial: StatsQuery; initia
   const router = useRouter();
   const [query, setQuery] = useState<StatsQuery>(initial);
   const [tab, setTab] = useState<Tab>(initialTab);
+  // A menu link to another tab changes the URL without remounting the page:
+  // follow it here (remounting replayed every chart twice on a tab click).
+  const [urlTab, setUrlTab] = useState<Tab>(initialTab);
+  if (initialTab !== urlTab) {
+    setUrlTab(initialTab);
+    setTab(initialTab);
+  }
   const [levelText, setLevelText] = useState(initial.itemLevelMin != null ? String(initial.itemLevelMin) : "");
   const latest = useRef(initial);
   const levelTimer = useRef<ReturnType<typeof setTimeout>>(undefined);

@@ -142,7 +142,7 @@ export interface components {
         EquipmentDetailResponse: {
             /**
              * @description 해석 규칙 버전
-             * @example equipment-tooltip-v3
+             * @example equipment-tooltip-v5
              */
             parserVersion: string;
             refineLevel: number | null;
@@ -158,6 +158,11 @@ export interface components {
             polishEffects: components["schemas"]["PolishEffectResponse"][];
             /** @description 팔찌 효과와 공식 Tooltip 색 기준 등급. 팔찌가 아니면 빈 목록 */
             braceletEffects: components["schemas"]["BraceletEffectResponse"][];
+            titleLine: string | null;
+            /** @description 귀속·거래 줄 원문 순서(예: 캐릭터 귀속됨, 거래 제한 아이템 레벨 1680, 거래 2회 가능, 거래가능) */
+            tradeLines: string[];
+            refineExp: components["schemas"]["RefineExpResponse"] | null;
+            advancedRefineLevel: number | null;
         };
         PointBonusResponse: {
             name: string;
@@ -186,6 +191,14 @@ export interface components {
             /** @example 치명타 피해 +8.40% */
             text: string;
             grade: ("HIGH" | "MID" | "LOW") | null;
+        };
+        RefineExpResponse: {
+            current: number | null;
+            /**
+             * Format: int64
+             * @description 최대 경험치
+             */
+            max: number;
         };
         EngravingsResponse: {
             slots: components["schemas"]["EngravingResponse"][];
@@ -349,17 +362,20 @@ export interface components {
             rune: components["schemas"]["RuneResponse"] | null;
             /** @description 스킬 Tooltip의 보석 효과 줄 */
             gemEffects: components["schemas"]["SkillGemEffectResponse"][];
+            attackType: ("BACK_ATTACK" | "HEAD_ATTACK" | "NONE") | null;
         };
         TripodResponse: {
             tier: number | null;
             slot: number | null;
             name: string | null;
             icon: string | null;
+            effect: string | null;
         };
         RuneResponse: {
             name: string | null;
             icon: string | null;
             grade: string | null;
+            effect: string | null;
         };
         SkillGemEffectResponse: {
             /** @example [블레이드] 윈드 컷 피해 28.00% 증가 */
@@ -638,7 +654,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description LOST_ARK_RATE_LIMITED */
+            /** @description LOST_ARK_RATE_LIMITED / CLIENT_RATE_LIMITED: 이 클라이언트의 분당 요청·공식 호출 한도 초과. Retry-After(초) 뒤 다시 시도 */
             429: {
                 headers: {
                     [name: string]: unknown;

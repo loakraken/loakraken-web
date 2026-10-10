@@ -1,38 +1,18 @@
 "use client";
 
-import { createContext, useContext, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
 import { LazyMotion, domAnimation, m, useInView } from "motion/react";
+import { MotionScope, useLandingMotion } from "./motion-context";
 
-const MotionContext = createContext({ enabled: false, paused: false, toggle: () => {} });
-const subscribe = (callback: () => void) => {
-  document.addEventListener("visibilitychange", callback);
-  return () => document.removeEventListener("visibilitychange", callback);
-};
-const getVisible = () => document.visibilityState === "visible";
-const getServerVisible = () => false;
-const subscribeReducedMotion = (callback: () => void) => {
-  const media = window.matchMedia("(prefers-reduced-motion: reduce)");
-  media.addEventListener("change", callback);
-  return () => media.removeEventListener("change", callback);
-};
-const getReducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-const getServerReducedMotion = () => true;
+export { useLandingMotion } from "./motion-context";
 
 export function LandingMotion({ children }: { children: ReactNode }) {
-  const reduced = useSyncExternalStore(subscribeReducedMotion, getReducedMotion, getServerReducedMotion);
-  const [paused, setPaused] = useState(false);
-  const visible = useSyncExternalStore(subscribe, getVisible, getServerVisible);
-  const enabled = !reduced && !paused && visible;
   return (
-    <MotionContext.Provider value={{ enabled, paused, toggle: () => setPaused((value) => !value) }}>
-      <LazyMotion features={domAnimation}>
-        <div data-motion={enabled ? "on" : "off"}>{children}</div>
-      </LazyMotion>
-    </MotionContext.Provider>
+    <MotionScope>
+      <LazyMotion features={domAnimation}>{children}</LazyMotion>
+    </MotionScope>
   );
 }
-
-export const useLandingMotion = () => useContext(MotionContext);
 
 export function Reveal({ children, className, delay = 0 }: {
   children: ReactNode;

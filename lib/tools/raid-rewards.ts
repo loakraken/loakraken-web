@@ -85,7 +85,7 @@ export const DIFFICULTY_LABEL: Record<Difficulty, string> = {
 };
 export const STATUS_LABEL: Record<Status, string> = {
   OFFICIAL: "공식",
-  SITES: "사이트 실측",
+  SITES: "실측 일치",
   UNVERIFIED: "데이터 없음",
 };
 
