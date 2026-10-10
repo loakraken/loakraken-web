@@ -19,9 +19,8 @@ const CASES = [
 ];
 
 // 열린 버그가 있는 경우: test.fail 표시(고치면 "예상 밖 통과"로 알려 준다).
+// 홈 공지 제목(web #304)은 web #314로 고침.
 const KNOWN = {
-  // #304 수정 PR(web #314)과 이 파일 중 나중에 병합되는 쪽이 이 줄을 지운다.
-  "홈 공지 제목": "web #304: 공지 제목 span이 nowrap·ellipsis인데 flex 조상에 min-width:0이 없어 칸이 늘어남",
   "캐릭터 수집품 목록": "web #322: 상태 칸 small이 flex:none이라 긴 글자에서 칸 밖으로 넘침(P2)",
 };
 
