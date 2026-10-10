@@ -719,15 +719,16 @@
   }
 }
 
-/* One UI font for every screen (Apple typography: system font first). Apple
-   platforms get SF + Apple SD Gothic Neo; elsewhere Segoe UI for Latin and the
-   bundled Noto Sans KR for Hangul. Declared on body too, where next/font sets
-   --font-korean, so the bundled face is used instead of the fallback name. */
+/* One UI font for every screen: Kraken Sans (Pretendard Variable subset, OFL,
+   renamed per its Reserved Font Name) on every platform, as the target sites
+   do. The subset holds KS X 1001 Hangul + ASCII at wght 400–700; anything else
+   (rare Hanja, old Hangul, emoji) falls through to the system faces below.
+   Declared on body too, where next/font sets --font-kraken. */
 :root,
 body {
   --font-ui:
-    -apple-system, BlinkMacSystemFont, "SF Pro Text", "Apple SD Gothic Neo",
-    "Segoe UI", var(--font-korean, "Noto Sans KR"), "Malgun Gothic", sans-serif;
+    var(--font-kraken, "Kraken Sans"), -apple-system, BlinkMacSystemFont,
+    "Apple SD Gothic Neo", "Segoe UI", "Malgun Gothic", sans-serif;
 }
 
 /* LOAKraken design values. One source for every screen; spec lives in the
