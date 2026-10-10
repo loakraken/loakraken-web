@@ -33,4 +33,6 @@ export const SITEMAP_PATHS = [
   "/tools/homework",
   "/stats",
   "/rankings",
+  "/privacy",
+  "/contact",
 ] as const;
