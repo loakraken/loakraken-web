@@ -101,6 +101,16 @@ test("polish, bracelet, engravings, stones, ark passive and cores become backend
   assert.equal(braceletName("특화 +100"), "특화");
 });
 
+test("advanced refining becomes EQUIPMENT_ADVANCED_REFINE (search advancedRefineLevel, web #374)", () => {
+  const gear = { ...current, gear: [{ index: 0, refine: 20, quality: 90, advanced: 10 }] };
+  assert.deepEqual(toChanges({ ...NO_EDITS, advanced: { 0: 10 } }, gear), []);
+  assert.deepEqual(toChanges({ ...NO_EDITS, advanced: { 0: 20 } }, gear), [
+    { kind: "EQUIPMENT_ADVANCED_REFINE", index: 0, level: 20 },
+  ]);
+  // No current step read from the tooltip: nothing to change from.
+  assert.deepEqual(toChanges({ ...NO_EDITS, advanced: { 0: 20 } }, current), []);
+});
+
 test("the proxy forwards only known kinds with integer or short string fields", () => {
   const ok = parseSimulateRequest({
     characterName: " 언새늘 ",

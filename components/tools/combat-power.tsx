@@ -86,6 +86,7 @@ function currentOf(data: Character) {
             name: item.name ?? item.type ?? "",
             refine: item.detail?.refineLevel ?? null,
             quality: item.detail?.quality ?? null,
+            advanced: item.detail?.advancedRefineLevel ?? null,
           },
         ]
       : [],
@@ -296,6 +297,18 @@ function Editors({
                 ) : (
                   <span className={styles.rowFrom}>재련 —</span>
                 )}
+                {item.advanced != null && (
+                  <Select
+                    label={`${item.type} 상급 재련 단계`}
+                    caption="상급"
+                    value={edits.advanced[item.index] ?? item.advanced}
+                    original={item.advanced}
+                    values={range(0, options.advancedRefineMax)}
+                    onChange={(level) =>
+                      setEdits((prev) => ({ ...prev, advanced: { ...prev.advanced, [item.index]: level } }))
+                    }
+                  />
+                )}
                 {item.quality != null ? (
                   <Select
                     label={`${item.type} 품질`}
@@ -451,7 +464,7 @@ function Editors({
         </Card>
       )}
       <p className={styles.later}>
-        연마 옵션·팔찌 효과 종류 바꾸기와 상급 재련은 공식 표가 들어오는 대로 이어서 열어요.
+        연마 옵션·팔찌 효과 종류 바꾸기는 공식 표가 들어오는 대로 이어서 열어요.
       </p>
     </div>
   );
