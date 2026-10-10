@@ -1,22 +1,27 @@
 "use client"
 
 import * as React from "react"
-import { Tooltip as TooltipPrimitive } from "@base-ui/react/tooltip"
+import { Popover as PopoverPrimitive } from "@base-ui/react/popover"
 import { cn } from "cn"
 
 // Item detail on hover (equipment, gems, cards, accessories), as the target
 // sites show it: a dark game-style card in both themes with a grade-coloured
-// title, ruled sections and emphasised numbers. Tooltips do not open on
-// touch, so the body (ItemDetail) also works inside a tap Popover.
+// title, ruled sections and emphasised numbers.
 //
-// <Tooltip>
-//   <TooltipTrigger render={<button aria-label="머리 방어구 상세" />}>…</TooltipTrigger>
-//   <ItemTooltipContent>
-//     <ItemDetail grade="ancient" title="+19 운명의 결단 머리" subtitle="고대 머리 방어구" icon={<img … />}>
+// Built on Base UI Popover rather than Tooltip (#319, frontend-a11y check):
+// hovering previews it, while a click, Enter/Space or a tap opens it with
+// focus inside, so keyboard and screen reader users can read and scroll a
+// long card and Esc returns focus to the item. A plain tooltip opens on focus
+// but is never announced and cannot be scrolled from the keyboard.
+//
+// <ItemTooltip>
+//   <ItemTooltipTrigger aria-label="머리 방어구 +19 운명의 결단 상세">…</ItemTooltipTrigger>
+//   <ItemTooltipContent aria-label="+19 운명의 결단 머리">
+//     <ItemDetail grade="ancient" title="+19 운명의 결단 머리" subtitle="고대 머리 방어구" icon={<img alt="" … />}>
 //       <ItemDetailSection label="기본 효과"><ItemStat label="힘" value="+48,012" /></ItemDetailSection>
 //     </ItemDetail>
 //   </ItemTooltipContent>
-// </Tooltip>
+// </ItemTooltip>
 
 type Grade = "normal" | "uncommon" | "rare" | "epic" | "legendary" | "relic" | "ancient" | "esther"
 
@@ -31,6 +36,24 @@ const GRADE_TEXT: Record<Grade, string> = {
   esther: "text-(--item-tip-grade-esther)",
 }
 
+function ItemTooltip(props: PopoverPrimitive.Root.Props) {
+  return <PopoverPrimitive.Root {...props} />
+}
+
+/** The item itself, as a button. Hover opens after 150ms (closes 100ms after leaving). */
+function ItemTooltipTrigger({ className, ...props }: PopoverPrimitive.Trigger.Props) {
+  return (
+    <PopoverPrimitive.Trigger
+      data-slot="item-tooltip-trigger"
+      openOnHover
+      delay={150}
+      closeDelay={100}
+      className={cn("cursor-default", className)}
+      {...props}
+    />
+  )
+}
+
 /** The positioned card. Flips and shifts to stay 8px inside the viewport; a long body scrolls inside it. */
 function ItemTooltipContent({
   className,
@@ -39,11 +62,11 @@ function ItemTooltipContent({
   align = "start",
   children,
   ...props
-}: TooltipPrimitive.Popup.Props &
-  Pick<TooltipPrimitive.Positioner.Props, "align" | "side" | "sideOffset">) {
+}: PopoverPrimitive.Popup.Props &
+  Pick<PopoverPrimitive.Positioner.Props, "align" | "side" | "sideOffset">) {
   return (
-    <TooltipPrimitive.Portal>
-      <TooltipPrimitive.Positioner
+    <PopoverPrimitive.Portal>
+      <PopoverPrimitive.Positioner
         side={side}
         sideOffset={sideOffset}
         align={align}
@@ -51,7 +74,7 @@ function ItemTooltipContent({
         collisionAvoidance={{ side: "flip", align: "shift" }}
         className="isolate z-50"
       >
-        <TooltipPrimitive.Popup
+        <PopoverPrimitive.Popup
           data-slot="item-tooltip"
           className={cn(
             "w-[min(320px,calc(100vw-16px))] max-h-[min(480px,calc(100dvh-16px))] overflow-y-auto overscroll-contain",
@@ -62,14 +85,16 @@ function ItemTooltipContent({
             "data-starting-style:translate-y-1 data-starting-style:opacity-0",
             "data-ending-style:opacity-0 data-ending-style:duration-[100ms]",
             "data-instant:transition-none",
+            // Focus lands on the card itself when opened by click or keyboard.
+            "outline-none focus-visible:outline-3 focus-visible:outline-(--ring)",
             className
           )}
           {...props}
         >
           {children}
-        </TooltipPrimitive.Popup>
-      </TooltipPrimitive.Positioner>
-    </TooltipPrimitive.Portal>
+        </PopoverPrimitive.Popup>
+      </PopoverPrimitive.Positioner>
+    </PopoverPrimitive.Portal>
   )
 }
 
@@ -112,7 +137,7 @@ function ItemDetail({
 function ItemDetailSection({ label, children, className }: { label?: React.ReactNode; children: React.ReactNode; className?: string }) {
   return (
     <section className={cn("grid gap-1 border-t border-(--item-tip-rule) px-3.5 py-2.5", className)}>
-      {label && <h4 className="text-(--item-tip-muted) font-medium">{label}</h4>}
+      {label && <p className="text-(--item-tip-muted) font-medium">{label}</p>}
       {children}
     </section>
   )
@@ -147,5 +172,5 @@ function ItemStat({
   )
 }
 
-export { ItemTooltipContent, ItemDetail, ItemDetailSection, ItemStat }
+export { ItemTooltip, ItemTooltipTrigger, ItemTooltipContent, ItemDetail, ItemDetailSection, ItemStat }
 export type { Grade as ItemGrade }
