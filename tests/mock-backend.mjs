@@ -300,6 +300,44 @@ createServer(async (req, res) => {
       return send({ code: "INVALID_REQUEST" }, 400);
     return send(refiningPlan(request));
   }
+  // Combat-power simulator (backend #240). Stage A answers UNSUPPORTED for every
+  // item like the real contract; "전투력계산" gets synthetic OK numbers (not game
+  // formulas) so the computed path can be seen, "갱신됨" a 409.
+  const powerRead = (name) =>
+    JSON.parse(readFileSync(new URL(`./combat-power-fixtures/${name}`, import.meta.url), "utf8"));
+  if (url.pathname === "/api/v1/characters/combat-power/options")
+    return send(powerRead("combat-power-options.json"));
+  if (url.pathname === "/api/v1/characters/combat-power/simulate" && req.method === "POST") {
+    counts.combatPower = (counts.combatPower || 0) + 1;
+    let body = "";
+    for await (const chunk of req) body += chunk;
+    const request = JSON.parse(body);
+    if (request.characterName === "갱신됨") return send({ code: "CHANGE_TARGET_NOT_FOUND" }, 409);
+    const envelope = powerRead("character-combat-power-simulate.json");
+    const d = envelope.data;
+    const search = read("character-full-data.json");
+    const computed = request.characterName === "전투력계산";
+    const r2 = (v) => Math.round(v * 100) / 100;
+    d.characterName = request.characterName;
+    d.fetchedAt = search.fetchedAt;
+    d.before = search.combatPower;
+    d.contributions = request.changes.map((change, i) => ({
+      kind: change.kind,
+      target: `${change.kind} ${change.slot ?? change.index ?? ""}`.trim(),
+      from: null,
+      to: String(change.level ?? change.refine ?? change.quality ?? ""),
+      delta: computed ? r2(10 + i) : null,
+      status: computed ? "OK" : "UNSUPPORTED",
+      basis: computed ? "합성 값(목 서버)" : d.contributions[0].basis,
+    }));
+    const delta = computed ? r2(d.contributions.reduce((sum, item) => sum + item.delta, 0)) : 0;
+    d.after = d.before == null ? null : r2(d.before + delta);
+    d.delta = d.before == null ? null : delta;
+    d.deltaPercent = d.before ? Math.round((delta / d.before) * 100_000) / 1000 : null;
+    d.unsupportedCount = computed ? 0 : d.contributions.length;
+    d.partial = !computed && d.contributions.length > 0;
+    return send(envelope);
+  }
   if (url.pathname === "/api/v1/characters/crit-speed" && req.method === "POST") {
     counts.critSpeed = (counts.critSpeed || 0) + 1;
     let body = "";

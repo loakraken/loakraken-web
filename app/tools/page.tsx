@@ -4,7 +4,7 @@ import Link from "next/link";
 import { ArrowLeft, ChevronRight, Wrench } from "lucide-react";
 import { SiteHeader } from "@/components/site/site-header";
 import { TOOLS, visibleTools } from "@/lib/tools/catalog";
-import { isCritSpeedEnabled } from "@/lib/tools/flags";
+import { isCombatPowerEnabled, isCritSpeedEnabled } from "@/lib/tools/flags";
 import quote from "@/components/tools/material-quote.module.css";
 import styles from "@/components/tools/tool-list.module.css";
 
@@ -19,7 +19,10 @@ const GROUPS = [...new Set(TOOLS.map((tool) => tool.group))];
 export default async function ToolsPage() {
   // Runtime flags (crit-speed is hidden on production until it is re-checked).
   await connection();
-  const tools = visibleTools({ critSpeed: isCritSpeedEnabled() });
+  const tools = visibleTools({
+    critSpeed: isCritSpeedEnabled(),
+    combatPower: isCombatPowerEnabled(),
+  });
   return (
     <div className={quote.page}>
       <a className={quote.skip} href="#tools-main">
