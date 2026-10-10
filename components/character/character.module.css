@@ -1,0 +1,488 @@
+.page {
+  min-height: 100vh;
+  color: var(--foreground);
+  background: var(--background);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  line-height: 1.43;
+  letter-spacing: -0.01em;
+  overflow-wrap: anywhere;
+}
+.page button,
+.page input {
+  font: inherit;
+}
+.page button,
+.page a {
+  touch-action: manipulation;
+}
+.page button {
+  cursor: pointer;
+}
+/* Low specificity so a button with its own disabled look (refresh chip) keeps it. */
+:where(.page) button:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+.page [id] {
+  scroll-margin-top: 96px;
+}
+.page :focus-visible {
+  outline: 3px solid var(--ring);
+  outline-offset: 4px;
+}
+/* Floating translucent material: content scrolls beneath the navigation. */
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 12px max(24px, calc((100% - 1120px) / 2));
+  border-bottom: 1px solid color-mix(in oklab, var(--foreground) 8%, transparent);
+  background: var(--muted);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
+}
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .header {
+    background: var(--muted);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+.brand {
+  font-size: 20px;
+  font-weight: 650;
+  letter-spacing: -0.6px;
+}
+.motionButton {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 50%;
+}
+.searchWrap {
+  margin-left: auto;
+  width: min(450px, 60%);
+}
+.search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-left: 18px;
+  background: var(--background);
+  border: 1px solid var(--faint);
+  border-radius: 30px;
+  transition:
+    border-color 160ms ease-out,
+    box-shadow 160ms ease-out;
+}
+.search input {
+  min-width: 0;
+  flex: 1;
+  padding: 10px 0;
+  outline: none;
+  background: transparent;
+  color: var(--foreground);
+  font-size: 16px;
+}
+.search input::placeholder {
+  color: var(--muted-foreground);
+  opacity: 1;
+}
+/* The pill is the focus target; the inner input must not draw a second ring. */
+.search input:focus-visible {
+  outline: none;
+}
+.search:focus-within {
+  border-color: var(--ring);
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--ring) 18%, transparent);
+}
+.search button {
+  display: grid;
+  place-items: center;
+  min-width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  color: var(--link);
+}
+.search button:focus-visible {
+  outline-offset: -4px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .search button:not(:disabled):hover {
+    background: color-mix(in oklab, var(--primary) 6%, var(--background));
+  }
+}
+.inputNotice {
+  color: var(--muted-foreground);
+  font-size: 13px;
+}
+.inputNotice:not(:empty) {
+  margin-top: 8px;
+}
+.inputError {
+  color: var(--destructive);
+  font-size: 13px;
+  margin-top: 8px;
+}
+.main {
+  max-width: 1170px;
+  margin: 0 auto;
+  padding: 36px 24px 64px;
+}
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--link);
+  font-size: 14px;
+}
+.hero {
+  display: flex;
+  align-items: center;
+  gap: 26px;
+  margin: 40px 0 20px;
+}
+.identity {
+  flex: 1;
+  min-width: 0;
+}
+.eyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  color: var(--muted-foreground);
+  margin-bottom: 8px;
+}
+.identity h1 {
+  font-size: clamp(28px, 4vw, 48px);
+  font-weight: 650;
+  letter-spacing: -1.5px;
+  line-height: 1.18;
+  margin-bottom: 14px;
+}
+.identity > p:not(.eyebrow) {
+  color: var(--muted-foreground);
+  font-size: 15px;
+}
+.refresh {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  padding: 11px 20px;
+  border-radius: 28px;
+  flex-shrink: 0;
+  font-size: 14px !important;
+}
+.refresh:active {
+  transform: scale(0.97);
+}
+/* Hero — Apple product-page rhythm: name, product shot, specs, action.
+   Large type tightens tracking and leading; small type stays near zero. */
+.hero:not([data-empty]) {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  margin: 36px 0 28px;
+}
+.queryStatus {
+  min-height: 24px;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+.error {
+  border: 1px solid color-mix(in oklab, var(--accent-warm) 30%, transparent);
+  border-radius: 20px;
+  padding: 22px 26px;
+  margin-bottom: 24px;
+  background: color-mix(in oklab, var(--accent-warm) 5%, var(--background));
+}
+.error h2 {
+  font-size: 19px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.error p {
+  color: var(--accent-warm);
+  font-size: 14px;
+}
+.noData {
+  margin: 60px auto 110px;
+  text-align: center;
+  color: var(--muted-foreground);
+  max-width: 500px;
+}
+.noData a {
+  color: var(--link);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 22px;
+}
+.empty {
+  font-size: 14px;
+  color: var(--muted-foreground);
+}
+.empty {
+  margin: 22px 0 12px;
+}
+.sourceText {
+  white-space: pre-line;
+}
+.sourceText [data-tone="positive"] {
+  color: var(--success);
+  font-weight: 550;
+}
+.sourceText [data-tone="negative"] {
+  color: var(--destructive);
+  font-weight: 550;
+}
+.sourceText [data-tone="emphasis"] {
+  color: var(--foreground);
+  font-weight: 600;
+}
+.evidence {
+  margin-top: 14px;
+  font-size: 12px;
+}
+.evidence summary {
+  color: var(--link);
+  cursor: pointer;
+  padding: 7px 0;
+}
+.evidence code {
+  display: block;
+  margin: 10px 0;
+  color: var(--muted-foreground);
+  font-size: 11px;
+}
+.evidence pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 200px;
+  overflow: auto;
+  padding: 14px;
+  background: var(--muted);
+  border-radius: 10px;
+}
+.evidence button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 0;
+  color: var(--link);
+}
+.copyStatus {
+  display: block;
+  color: var(--destructive);
+}
+.footer {
+  background: var(--muted);
+  color: var(--muted-foreground);
+  padding: 26px;
+  text-align: center;
+  font-size: 12px;
+}
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+.skip {
+  position: fixed;
+  top: -100px;
+  left: 16px;
+  padding: 12px 18px;
+  z-index: 100;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border-radius: 24px;
+}
+.skip:focus {
+  top: 12px;
+}
+@media (max-width: 700px) {
+  .page [id] {
+    scroll-margin-top: 150px;
+  }
+  .header {
+    padding: 16px 20px;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .brand {
+    flex: 1;
+  }
+  .searchWrap {
+    order: 3;
+    width: 100%;
+  }
+  .main {
+    padding: 24px 20px 48px;
+  }
+  .hero {
+    gap: 18px;
+    flex-wrap: wrap;
+    margin-top: 30px;
+  }
+  .identity h1 {
+    font-size: 29px;
+    letter-spacing: -1px;
+  }
+  .identity > p:not(.eyebrow) {
+    font-size: 13px;
+  }
+  .refresh {
+    width: 100%;
+  }
+  .eyebrow {
+    font-size: 10px;
+  }
+  .error {
+    padding: 20px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .page *,
+  .page *::before,
+  .page *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+  .refresh:active {
+    transform: none;
+  }
+}
+
+/* Banner identity (sits on the banner band; colours come from --band-*). */
+.bannerKicker {
+  color: var(--band-muted);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+/* Type sizes sit inside the range Korean Lost Ark info sites share (name
+   20-24, key figures 20-26, labels 11-14) using Apple scale steps, so the
+   portrait stays the visual anchor and the name reads as a label. */
+.bannerName {
+  margin-top: 4px;
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  overflow-wrap: anywhere;
+}
+.bannerTitle {
+  margin-top: 2px;
+  color: var(--band-muted);
+  font-size: 15px;
+}
+.bannerMetrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 32px;
+  margin-top: 20px;
+}
+.bannerMetrics dt {
+  color: var(--band-muted);
+  font-size: 13px;
+}
+.bannerMetrics dd {
+  margin-top: 2px;
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+.bannerFacts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 14px;
+  font-size: 14px;
+}
+.bannerFacts dt {
+  color: var(--band-muted);
+}
+.bannerFacts dd {
+  overflow-wrap: anywhere;
+}
+/* Position (dealer/support) — shown only on the banner, which is dark in
+   every theme, so the light tints are used. */
+.page [data-position="DEALER"] {
+  color: #ff8a80;
+}
+.page [data-position="SUPPORT"] {
+  color: #7ed98f;
+}
+.headerNav {
+  display: flex;
+  gap: 20px;
+  font-size: 13px;
+}
+.headerNav a {
+  color: color-mix(in oklab, var(--foreground) 80%, transparent);
+}
+.bandNotice {
+  max-width: 1124px;
+  margin: 16px auto 0;
+  padding: 14px 20px;
+  border-radius: 18px;
+  background: var(--muted);
+  font-size: 14px;
+}
+.bandNotice strong {
+  font-weight: 600;
+}
+.bandNotice p {
+  color: var(--muted-foreground);
+}
+@media (max-width: 760px) {
+  .headerNav {
+    display: none;
+  }
+  .bannerName {
+    font-size: 21px;
+  }
+  .bannerKicker {
+    font-size: 13px;
+  }
+  .bannerTitle {
+    font-size: 14px;
+  }
+  .bannerMetrics {
+    gap: 10px 22px;
+  }
+  .bannerMetrics dt {
+    font-size: 12px;
+  }
+  .bannerMetrics dd {
+    font-size: 17px;
+  }
+  .bannerFacts {
+    font-size: 13px;
+  }
+  .bandNotice {
+    margin: 12px 12px 0;
+  }
+}
+
+.evidenceNote {
+  margin-left: 6px;
+  color: var(--band-muted);
+  font-size: 12px;
+}

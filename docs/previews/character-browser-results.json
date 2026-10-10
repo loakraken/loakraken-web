@@ -1,0 +1,35 @@
+{
+  "passed": [
+    "SSR data hydrates without a duplicate request or sibling prefetch",
+    "evidence opens with keyboard and copies actual response value",
+    "manual refresh makes one request and preserves cached source time",
+    "1440 / 768 / 390 / 320 responsive widths and motion controls",
+    "refresh failure retains data and source timestamp",
+    "rate limit counts down and never retries automatically",
+    "not found, bad response, upstream and config errors display distinct safe states",
+    "missing data and empty collections remain different observations",
+    "long names wrap; upstream strings render as text",
+    "search validation and client navigation use normalized names",
+    "invalid direct URLs do not reach the backend",
+    "JavaScript-disabled visitors get an explicit explanation and a return link"
+  ],
+  "runtimeErrors": [],
+  "mockRequests": {
+    "전체": 4,
+    "갱신실패": 2,
+    "제한": 1,
+    "미존재": 1,
+    "잘못된응답": 1,
+    "오류": 1,
+    "설정": 1,
+    "시간초과": 1,
+    "빈목록": 1,
+    "미제공": 1,
+    "부분": 1,
+    "가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가": 1,
+    "문자열": 1,
+    "가1": 1,
+    "로딩": 1
+  },
+  "officialApiCalls": 0
+}

@@ -1,0 +1,219 @@
+/* Raid reward table — design tokens only; the page shell (hero, band,
+   footer) comes from material-quote. Cards in a two-column grid on wide
+   screens, one column on phones. */
+.sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.workspace {
+  display: grid;
+  gap: var(--space-5);
+  max-width: 1024px;
+  margin: 0 auto;
+}
+.rules,
+.card {
+  border-radius: var(--radius-xl);
+  background: var(--card);
+  padding: var(--space-6) clamp(20px, 3vw, 28px);
+}
+.rulesTitle {
+  font-size: var(--text-heading-sm);
+  font-weight: 700;
+}
+.rules ul {
+  display: grid;
+  gap: var(--space-1);
+  margin-top: var(--space-2);
+  padding-left: 18px;
+  font-size: var(--text-body);
+  list-style: disc;
+}
+.note {
+  margin-top: var(--space-2);
+  color: var(--muted-foreground);
+  font-size: var(--text-caption);
+}
+.source {
+  color: var(--link);
+  text-decoration: underline;
+}
+.sourceNone {
+  color: var(--muted-foreground);
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.chip {
+  min-height: 36px;
+  padding: 0 var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--card);
+  color: var(--foreground);
+  font-size: var(--text-meta);
+  font-weight: 600;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out);
+}
+.chip[aria-pressed="true"] {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-5);
+  align-items: start;
+}
+.cardHead {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.category {
+  color: var(--muted-foreground);
+  font-size: var(--text-caption);
+  font-weight: 600;
+}
+.title {
+  margin-top: 2px;
+  font-size: var(--text-figure);
+  font-weight: 700;
+}
+.facts {
+  margin-top: 2px;
+  color: var(--muted-foreground);
+  font-size: var(--text-caption);
+}
+
+.segmented {
+  display: grid;
+  grid-auto-columns: 1fr;
+  grid-auto-flow: column;
+  gap: var(--space-1);
+  margin-top: var(--space-4);
+  padding: var(--space-1);
+  border-radius: var(--radius-pill);
+  background: var(--muted);
+}
+.segmented label {
+  position: relative;
+  padding: var(--space-2) 0;
+  border-radius: var(--radius-pill);
+  font-size: var(--text-meta);
+  text-align: center;
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+.segmented label[data-checked] {
+  background: var(--card);
+  font-weight: 600;
+  box-shadow: 0 0 0 1px var(--border);
+}
+.segmented input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.segmented label:has(input:focus-visible) {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.modeBody {
+  margin-top: var(--space-3);
+}
+.modeMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  color: var(--muted-foreground);
+  font-size: var(--text-caption);
+}
+.status {
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--muted);
+  color: var(--muted-foreground);
+  font-weight: 600;
+}
+.status[data-status="OFFICIAL"] {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+.status[data-status="SITES"] {
+  background: var(--muted);
+  color: var(--accent-warm);
+}
+.tableScroll {
+  overflow-x: auto;
+}
+.table {
+  width: 100%;
+  margin-top: var(--space-2);
+  border-collapse: collapse;
+  font-size: var(--text-body);
+  font-variant-numeric: tabular-nums;
+}
+.table th,
+.table td {
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  white-space: nowrap;
+}
+.table thead th {
+  color: var(--muted-foreground);
+  font-size: var(--text-caption);
+  font-weight: 500;
+}
+.table tbody th,
+.table tfoot th {
+  font-weight: 600;
+}
+.table tfoot td,
+.table tfoot th {
+  border-bottom: 0;
+  font-weight: 700;
+}
+.num {
+  padding-left: var(--space-3) !important;
+  text-align: right !important;
+}
+.table td[data-empty] {
+  color: var(--muted-foreground);
+  font-size: var(--text-caption);
+}
+.footnote {
+  color: var(--muted-foreground);
+  font-size: var(--text-caption);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .chip:not([aria-pressed="true"]):hover {
+    background: var(--muted);
+  }
+}
+@media (max-width: 760px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .chip,
+  .segmented label {
+    transition: none;
+  }
+}

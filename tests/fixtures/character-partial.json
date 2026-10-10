@@ -1,0 +1,161 @@
+{
+  "code": "CHARACTER_SEARCH_SUCCESS",
+  "message": "캐릭터 조회에 성공했습니다.",
+  "data": {
+    "characterName": "통합테스트캐릭터",
+    "serverName": "루페온",
+    "className": "바드",
+    "characterLevel": 70,
+    "itemLevel": 1700.5,
+    "combatPower": 12345,
+    "expeditionLevel": 300,
+    "imageUrl": null,
+    "title": null,
+    "guildName": null,
+    "stats": [],
+    "loadout": {
+      "equipment": [
+        {
+          "type": "무기",
+          "name": "테스트 무기",
+          "icon": "icon",
+          "grade": "고대",
+          "detail": null
+        }
+      ],
+      "engravings": null,
+      "gems": null,
+      "cards": null,
+      "arkPassive": null,
+      "arkGrid": null
+    },
+    "siblings": [],
+    "coverage": {
+      "equipment": "PROVIDED",
+      "engravings": {
+        "state": "NOT_PROVIDED",
+        "collections": {
+          "arkPassiveEffects": "NOT_PROVIDED",
+          "effects": "NOT_PROVIDED",
+          "slots": "NOT_PROVIDED"
+        }
+      },
+      "gems": {
+        "state": "NOT_PROVIDED",
+        "collections": {
+          "items": "NOT_PROVIDED"
+        }
+      },
+      "cards": {
+        "state": "NOT_PROVIDED",
+        "collections": {
+          "items": "NOT_PROVIDED",
+          "effects": "NOT_PROVIDED"
+        }
+      },
+      "arkPassive": {
+        "state": "NOT_PROVIDED",
+        "collections": {
+          "points": "NOT_PROVIDED",
+          "effects": "NOT_PROVIDED"
+        }
+      },
+      "arkGrid": {
+        "state": "NOT_PROVIDED",
+        "collections": {
+          "slots": "NOT_PROVIDED",
+          "effects": "NOT_PROVIDED"
+        }
+      },
+      "siblings": "PROVIDED_EMPTY"
+    },
+    "analysis": {
+      "equipmentCount": 1,
+      "gems": null,
+      "cards": null,
+      "engravings": null,
+      "arkPassive": null,
+      "arkGrid": null,
+      "diagnostics": {
+        "ruleVersion": "observed-v2",
+        "findings": [
+          {
+            "code": "GEMS_UNAVAILABLE",
+            "category": "DATA_GAP",
+            "evidencePath": "/data/analysis/gems",
+            "observedCount": null,
+            "message": "보석 정보가 제공되지 않아 상태를 판단할 수 없습니다."
+          },
+          {
+            "code": "CARDS_UNAVAILABLE",
+            "category": "DATA_GAP",
+            "evidencePath": "/data/analysis/cards",
+            "observedCount": null,
+            "message": "카드 정보가 제공되지 않아 상태를 판단할 수 없습니다."
+          },
+          {
+            "code": "ENGRAVINGS_UNAVAILABLE",
+            "category": "DATA_GAP",
+            "evidencePath": "/data/analysis/engravings",
+            "observedCount": null,
+            "message": "각인 정보가 제공되지 않아 상태를 판단할 수 없습니다."
+          },
+          {
+            "code": "ARK_PASSIVE_UNAVAILABLE",
+            "category": "DATA_GAP",
+            "evidencePath": "/data/analysis/arkPassive",
+            "observedCount": null,
+            "message": "아크패시브 정보가 제공되지 않아 상태를 판단할 수 없습니다."
+          },
+          {
+            "code": "ARK_GRID_UNAVAILABLE",
+            "category": "DATA_GAP",
+            "evidencePath": "/data/analysis/arkGrid",
+            "observedCount": null,
+            "message": "아크그리드 정보가 제공되지 않아 상태를 판단할 수 없습니다."
+          }
+        ]
+      },
+      "equipment": {
+        "detailCount": 1,
+        "detailUnavailableCount": 1,
+        "refineCount": 1,
+        "minRefineLevel": 19,
+        "maxRefineLevel": 19,
+        "refineDistribution": [
+          {
+            "level": 19,
+            "count": 1
+          }
+        ],
+        "qualityCount": 1,
+        "minQuality": 95,
+        "maxQuality": 95,
+        "averageQuality": 95,
+        "arkPassivePoints": [
+          {
+            "name": "진화",
+            "value": 24
+          }
+        ],
+        "qualityGroups": [
+          {
+            "group": "WEAPON_ARMOR",
+            "count": 1,
+            "min": 95,
+            "max": 95,
+            "average": 95
+          },
+          {
+            "group": "ACCESSORY",
+            "count": 0,
+            "min": null,
+            "max": null,
+            "average": null
+          }
+        ]
+      }
+    },
+    "fetchedAt": "2026-10-04T13:38:51.225012700Z"
+  }
+}

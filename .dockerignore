@@ -1,0 +1,15 @@
+.git
+.github
+.gstack
+.idea
+.next
+node_modules
+coverage
+test-results
+docs
+*.iml
+*.tsbuildinfo
+.env
+.env.*
+Dockerfile
+.dockerignore

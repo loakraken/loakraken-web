@@ -1,0 +1,399 @@
+/* Refining estimate — extends the material-quote gallery tokens (same page
+   class supplies --ink/--slate/--mist/--action). Flat surfaces, hairlines,
+   blue reserved for the active choice. */
+.loaded {
+  display: grid;
+  gap: 4px;
+  margin-top: 20px;
+  font-size: var(--text-body);
+}
+.loaded small {
+  color: var(--slate);
+  font-size: var(--text-meta);
+}
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 24px;
+}
+.chips button {
+  min-width: 52px;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: var(--radius-pill);
+  background: var(--mist);
+  color: var(--ink);
+  font-size: var(--text-body);
+  font-variant-numeric: tabular-nums;
+  transition:
+    background-color 160ms ease-out,
+    transform 100ms ease-out;
+}
+.chips button:active {
+  transform: scale(0.96);
+}
+@media (hover: hover) and (pointer: fine) {
+  .chips button:hover {
+    background: var(--control);
+  }
+}
+.parts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+  margin-top: 28px;
+  padding: 0;
+  list-style: none;
+}
+.part {
+  padding: 18px 18px 20px;
+  border: 1px solid var(--control);
+  border-radius: var(--radius-lg);
+  transition: border-color var(--duration-fast) var(--ease-out);
+}
+.part[data-active] {
+  border-color: var(--action);
+}
+.partHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+}
+.include {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  color: var(--slate);
+  font-size: var(--text-caption);
+  cursor: pointer;
+}
+.include input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--action);
+}
+.part[data-off] .partFields {
+  opacity: 0.4;
+}
+.partHead strong {
+  font-size: var(--text-body);
+  font-weight: 600;
+}
+.partHead span {
+  color: var(--slate);
+  font-size: var(--text-meta);
+  font-variant-numeric: tabular-nums;
+}
+.part[data-active] .partHead span {
+  color: var(--action);
+  font-weight: 600;
+}
+.partFields {
+  min-width: 0;
+  border: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 1fr;
+  gap: 8px;
+  margin-top: 12px;
+}
+.mini {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.mini span {
+  color: var(--slate);
+  font-size: var(--text-caption);
+}
+.mini select,
+.mini input {
+  width: 100%;
+  height: 38px;
+  padding: 0 12px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  background: var(--background);
+  color: var(--ink);
+  font-size: var(--text-body);
+  font-variant-numeric: tabular-nums;
+}
+.mini select:focus-visible,
+.mini input:focus-visible {
+  outline: none;
+  border-color: var(--action);
+  box-shadow: var(--ring-halo);
+}
+.levelLine {
+  margin-top: 20px;
+  color: var(--slate);
+  font-size: var(--text-body);
+  font-variant-numeric: tabular-nums;
+}
+.levelLine strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.disclosure {
+  margin-top: 28px;
+  border-top: 1px solid var(--hairline);
+  padding-top: 18px;
+}
+.disclosure summary {
+  width: fit-content;
+  color: var(--link);
+  font-size: var(--text-body);
+  cursor: pointer;
+}
+.progressList {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 0;
+  list-style: none;
+}
+.progressList li {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 180px) minmax(0, 140px);
+  align-items: end;
+  gap: 12px;
+}
+.progressList strong {
+  padding-bottom: 9px;
+  font-size: var(--text-body);
+  font-weight: 600;
+}
+.switches {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 0 32px;
+  margin-top: 20px;
+}
+.switchRow {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--hairline);
+  cursor: pointer;
+}
+.switchRow span {
+  display: grid;
+}
+.switchRow strong {
+  font-size: var(--text-body);
+  font-weight: 500;
+}
+.switchRow small {
+  color: var(--slate);
+  font-size: var(--text-caption);
+}
+.switchRow input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+/* Track + knob; the input stays the accessible control. */
+.switchRow i {
+  position: relative;
+  flex: none;
+  width: 51px;
+  height: 31px;
+  border-radius: var(--radius-xl);
+  background: var(--control);
+  transition: background-color var(--duration-base) var(--ease-out);
+}
+.switchRow i::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 27px;
+  height: 27px;
+  border-radius: 50%;
+  background: var(--background);
+  box-shadow: var(--shadow-thumb);
+  transition: transform var(--duration-base) cubic-bezier(0.32, 0.72, 0, 1);
+}
+.switchRow input:checked + i {
+  background: var(--switch-on);
+}
+.switchRow input:checked + i::after {
+  transform: translateX(20px);
+}
+.switchRow input:focus-visible + i {
+  outline: 3px solid var(--action);
+  outline-offset: 2px;
+}
+.sectionTitle {
+  margin-top: 32px;
+  font-size: var(--text-heading-sm);
+  font-weight: 700;
+  letter-spacing: 0.011em;
+}
+.tableWrap {
+  margin-top: 16px;
+  overflow-x: auto;
+}
+.table {
+  width: 100%;
+  margin-top: 16px;
+  border-collapse: collapse;
+  font-size: var(--text-body);
+  font-variant-numeric: tabular-nums;
+}
+.tableWrap .table {
+  margin-top: 0;
+  min-width: 560px;
+}
+.table th,
+.table td {
+  padding: 12px 8px;
+  border-bottom: 1px solid var(--hairline);
+  text-align: right;
+  white-space: nowrap;
+}
+.table th:first-child {
+  padding-left: 0;
+  text-align: left;
+  font-weight: 500;
+  white-space: normal;
+}
+.table thead th {
+  color: var(--slate);
+  font-size: var(--text-caption);
+  font-weight: 500;
+}
+.table td[data-mode] {
+  color: var(--action);
+  font-weight: 600;
+}
+.table td[data-done] {
+  color: var(--slate);
+}
+.ownedInput {
+  width: 110px;
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  color: var(--ink);
+  font: inherit;
+  text-align: right;
+}
+.ownedInput:focus-visible {
+  outline: none;
+  border-color: var(--action);
+  box-shadow: var(--ring-halo);
+}
+
+@media (max-width: 700px) {
+  /* Materials stack as labelled rows instead of a six-column table. */
+  .table[data-wide] thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .table[data-wide] tr {
+    display: grid;
+    /* minmax(0, …): a long cell (bundle count) wraps instead of widening the row. */
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px 16px;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--hairline);
+  }
+  .table[data-wide] th,
+  .table[data-wide] td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 0;
+    border: 0;
+  }
+  .table[data-wide] th {
+    grid-column: 1 / -1;
+    display: block;
+    font-weight: 600;
+  }
+  .table[data-wide] td {
+    flex-wrap: wrap;
+    min-width: 0;
+  }
+  .table[data-wide] td small {
+    flex-basis: 100%;
+    margin-top: 0;
+    text-align: right;
+  }
+  .table[data-wide] td::before {
+    content: attr(data-label);
+    color: var(--slate);
+    font-size: var(--text-caption);
+    font-weight: 400;
+  }
+  .parts {
+    grid-template-columns: 1fr;
+  }
+  .progressList li {
+    grid-template-columns: 1fr 1fr;
+  }
+  .progressList strong {
+    grid-column: 1 / -1;
+    padding-bottom: 0;
+  }
+  .ownedInput {
+    width: 84px;
+  }
+  .table th,
+  .table td {
+    padding: 10px 4px;
+    font-size: var(--text-body);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .chips button,
+  .switchRow i,
+  .switchRow i::after,
+  .part {
+    transition: none;
+  }
+}
+
+/* Material prices */
+.priceStatus {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  color: var(--slate);
+  font-size: var(--text-body);
+}
+.table th small,
+.table td small {
+  display: block;
+  margin-top: 2px;
+  color: var(--slate);
+  font-size: var(--text-caption);
+  font-weight: 400;
+}
+.materialWrap {
+  margin-top: 16px;
+}
+.cost {
+  font-weight: 600;
+}

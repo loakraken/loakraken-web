@@ -1,0 +1,1277 @@
+/* Character detail (A2): white canvas, flat #f5f5f7 28px panels, ink type,
+   blue only for links/compact actions. Structure mirrors ILOA; visuals are ours. */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* Sticky tab bar (translucent material) */
+.tabBar {
+  position: sticky;
+  top: var(--header-h, 73px);
+  z-index: 40;
+  border-bottom: 1px solid color-mix(in oklab, var(--foreground) 8%, transparent);
+  background: var(--background);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
+}
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .tabBar {
+    background: var(--background);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+.tabInner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 1180px;
+  height: 56px;
+  margin: 0 auto;
+  padding: 0 28px;
+}
+.tabs {
+  position: relative; /* the pill copy scrolls with the tabs */
+  display: flex;
+  gap: 4px;
+  /* Room for the focus ring (3px + 4px offset), which the horizontal scroll
+     would otherwise clip; the negative margin keeps the layout unchanged. */
+  padding: 8px;
+  margin: -8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.tabs a,
+.pillLayer > span {
+  flex: 0 0 auto;
+  padding: 8px 15px;
+  border-radius: 980px;
+  color: var(--foreground);
+  font-size: 14px;
+  letter-spacing: -0.016em;
+  transition: background-color 160ms ease-out;
+}
+.tabs a[aria-current="page"],
+.pillLayer > span {
+  background: var(--foreground);
+  color: var(--background);
+}
+.tabs a[aria-current="page"],
+.pillLayer > span[data-current] {
+  font-weight: 600; /* same widths in both rows */
+}
+/* Once placed, the copy carries the selected style; the link underneath is plain. */
+.tabs[data-pill="on"] a[aria-current="page"] {
+  background: transparent;
+  color: var(--foreground);
+}
+.pillLayer {
+  position: absolute;
+  inset: 0 auto 0 0;
+  padding: 0 8px; /* the same start as the tabs inside their focus room */
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  width: max-content;
+  pointer-events: none;
+  clip-path: inset(0 100% 0 0);
+  transition: clip-path var(--duration-fast, 200ms) var(--ease-out);
+}
+.pillLayer[data-instant] {
+  transition: none;
+}
+@media (hover: hover) and (pointer: fine) {
+  .tabs a:not([aria-current="page"]):hover {
+    background: var(--muted);
+  }
+}
+.tabActions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+.iconAction {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  color: var(--foreground);
+  transition: transform 100ms ease-out;
+}
+.iconAction[aria-pressed="true"] {
+  color: var(--accent-warm);
+}
+.iconAction:active {
+  transform: scale(0.94);
+}
+.refreshWrap {
+  position: relative;
+}
+.refresh {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 14px;
+  border-radius: 9999px;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  transition: transform 100ms ease-out;
+}
+.refresh:disabled {
+  background: var(--secondary);
+  color: var(--secondary-foreground);
+  cursor: default;
+  opacity: 1;
+}
+.refresh:not(:disabled):active {
+  transform: scale(0.97);
+}
+.refresh canvas {
+  filter: brightness(0) invert(1);
+}
+.tooltip {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  z-index: 5;
+  width: max-content;
+  max-width: 280px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: var(--foreground);
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+  opacity: 0;
+  transform: translateY(-4px);
+  pointer-events: none;
+  transition:
+    opacity 140ms ease-out,
+    transform 140ms ease-out;
+}
+.refreshWrap:hover .tooltip,
+.refreshWrap:focus-within .tooltip {
+  opacity: 1;
+  transform: none;
+}
+.toast {
+  position: absolute;
+  right: max(28px, calc((100% - 1180px) / 2 + 28px));
+  top: calc(100% + 8px);
+  padding: 8px 14px;
+  border-radius: 980px;
+  background: var(--foreground);
+  color: var(--background);
+  font-size: 12px;
+}
+
+/* Layout */
+.tabPanel {
+  min-height: 40vh;
+}
+.layout {
+  display: grid;
+  gap: 20px;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 24px 28px 90px;
+}
+.columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 20px;
+  align-items: start;
+}
+.stack {
+  display: grid;
+  gap: 20px;
+  min-width: 0;
+}
+.panel {
+  min-width: 0;
+  border-radius: 28px;
+  background: var(--muted);
+  padding: 28px;
+}
+.panelHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px 16px;
+  margin-bottom: 16px;
+}
+.panelHead h2 {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.panelMeta {
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.panelMeta a {
+  color: var(--link);
+}
+.muted {
+  color: var(--muted-foreground);
+  font-size: 14px;
+}
+
+/* Equipment */
+.equipGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  gap: 0 28px;
+}
+.itemList {
+  list-style: none;
+  padding: 0;
+}
+.item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--secondary);
+}
+.item:last-child {
+  border-bottom: 0;
+}
+.itemText {
+  min-width: 0;
+  flex: 1;
+}
+.itemText strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.itemText strong em {
+  font-style: normal;
+  color: var(--link);
+}
+.itemText small {
+  display: block;
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+/* Quality: in-game tier colour badge with the number (the convention users
+   know from the other armory sites), plus a neutral level badge beside it. */
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+}
+.quality,
+.levelBadge {
+  display: inline-flex;
+  align-items: center;
+  min-width: 26px;
+  height: 18px;
+  justify-content: center;
+  padding: 0 5px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.quality {
+  background: var(--quality-none);
+  color: var(--quality-none-foreground);
+}
+.levelBadge {
+  background: var(--secondary);
+  color: var(--foreground);
+}
+/* In-game quality tiers */
+.quality[data-tier="max"] {
+  background: var(--quality-max);
+  color: var(--quality-max-foreground);
+}
+.quality[data-tier="high"] {
+  background: var(--quality-high);
+  color: var(--quality-high-foreground);
+}
+.quality[data-tier="good"] {
+  background: var(--quality-good);
+  color: var(--quality-good-foreground);
+}
+.quality[data-tier="normal"] {
+  background: var(--quality-normal);
+  color: var(--quality-normal-foreground);
+}
+.quality[data-tier="low"] {
+  background: var(--quality-low);
+  color: var(--quality-low-foreground);
+}
+/* Below 10 the game (and other armory sites) switch to red. */
+.quality[data-tier="poor"] {
+  background: var(--quality-poor);
+  color: var(--quality-poor-foreground);
+}
+.tierText {
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-weight: 500;
+}
+.item .gradeList {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+.gradeList {
+  list-style: none;
+  padding: 0;
+  margin-left: auto;
+  text-align: right;
+  font-size: 12px;
+}
+.gradeList[data-flow] {
+  margin-left: 0;
+  text-align: left;
+  display: grid;
+  gap: 2px;
+  margin-top: 4px;
+}
+.gradeLine span:first-child {
+  display: inline-block;
+  width: 1.6em;
+  margin-right: 2px;
+  font-weight: 600;
+  color: var(--muted-foreground);
+}
+.gradeLine[data-grade="HIGH"] span:first-child {
+  color: var(--accent-warm);
+}
+.gradeLine[data-grade="MID"] span:first-child {
+  color: var(--grade-epic-text);
+}
+.gradeLine[data-grade="LOW"] span:first-child {
+  color: var(--link);
+}
+.preLine {
+  white-space: pre-line;
+}
+.equipFoot {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px 24px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--secondary);
+}
+.footItem {
+  display: flex;
+  gap: 12px;
+  min-width: 0;
+}
+.footItem[data-wide] {
+  grid-column: span 2;
+}
+.footItem strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+}
+.footItem small {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.inlineList {
+  list-style: none;
+  padding: 0;
+  font-size: 12px;
+}
+.inlineList b {
+  font-weight: 600;
+}
+
+/* Gems */
+.gemGrid {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+  gap: 12px;
+}
+.gemGrid li {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  text-align: center;
+}
+.gemGrid span {
+  font-size: 13px;
+  font-weight: 600;
+}
+.gemGrid small {
+  color: var(--muted-foreground);
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+
+/* Ark grid */
+.effectGrid {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 24px;
+  margin-bottom: 14px;
+  font-size: 14px;
+}
+.effectGrid li {
+  display: flex;
+  justify-content: space-between;
+}
+.effectGrid b {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.coreList {
+  list-style: none;
+  padding: 0;
+}
+.coreList > li {
+  border-top: 1px solid var(--secondary);
+}
+.core summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 0;
+  list-style: none;
+  cursor: pointer;
+}
+.core summary::-webkit-details-marker {
+  display: none;
+}
+.core summary .itemText {
+  flex: 1;
+}
+.coreFacts {
+  display: grid;
+  justify-items: end;
+  font-variant-numeric: tabular-nums;
+}
+.coreFacts b {
+  font-size: 14px;
+  font-weight: 700;
+}
+.coreFacts small {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.coreGems {
+  display: flex;
+  gap: 4px;
+}
+.coreDetail {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 12px 52px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--background);
+}
+.coreOptions,
+.gemRows {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+}
+.coreOptions li {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: 8px;
+  color: var(--muted-foreground);
+}
+.coreOptions li[data-active] {
+  color: var(--foreground);
+}
+.coreOptions b {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.gemRows li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+/* Inactive gems: the icon fades, the text keeps its contrast. */
+.gemRows li[data-inactive] img {
+  opacity: 0.55;
+}
+.gemRows li[data-inactive] strong {
+  color: var(--muted-foreground);
+}
+.gemRows span {
+  display: grid;
+  min-width: 0;
+}
+.gemRows strong {
+  font-size: 13px;
+  font-weight: 600;
+}
+.gemRows small,
+.coreNote {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.stoneBonus {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--secondary);
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.stoneBonus b {
+  color: var(--foreground);
+  font-weight: 600;
+}
+.gridMeta {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  font-variant-numeric: tabular-nums;
+}
+.gridMeta b {
+  color: var(--foreground);
+  font-weight: 700;
+}
+.effectGrid li > span:last-child {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.effectGrid small {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+@media (max-width: 700px) {
+  .coreDetail {
+    margin-left: 0;
+  }
+  .core summary .coreGems {
+    display: none;
+  }
+}
+
+/* Cards */
+.cardGrid {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+}
+.setList {
+  list-style: none;
+  padding: 0;
+  margin-top: 16px;
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+}
+.setList strong {
+  font-weight: 600;
+  margin-right: 8px;
+}
+.setList span {
+  color: var(--secondary-foreground);
+}
+
+/* Ark passive */
+.points {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.points div {
+  padding: 10px 12px;
+  border-radius: 16px;
+  background: var(--background);
+}
+.points dt {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.points dd {
+  font-size: 18px;
+  letter-spacing: -0.02em;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.points small {
+  color: var(--muted-foreground);
+  font-size: 11px;
+}
+.tree h3 {
+  margin: 14px 0 6px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.tree ul {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+.tree li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+.nodeName {
+  flex: 1;
+  min-width: 0;
+}
+.tree li small {
+  color: var(--muted-foreground);
+  font-size: 11px;
+}
+.tree li b {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.passiveDetail {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 14px;
+}
+.passiveDetail li {
+  display: flex;
+  gap: 12px;
+}
+.passiveDetail p {
+  margin-top: 2px;
+  color: var(--secondary-foreground);
+  font-size: 13px;
+}
+.passiveDetail strong small {
+  display: inline;
+  margin-left: 6px;
+}
+
+/* Stats & engravings */
+.statGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+.statGrid dt {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.statGrid dd {
+  font-size: 18px;
+  letter-spacing: -0.02em;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.engravings {
+  list-style: none;
+  padding: 0;
+}
+.engravings li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--secondary);
+  font-size: 14px;
+}
+.engravings li:last-child {
+  border-bottom: 0;
+}
+.engravings strong {
+  font-weight: 600;
+}
+.engravings span {
+  color: var(--muted-foreground);
+  font-size: 12px;
+  text-align: right;
+}
+
+/* Skills */
+.skillGrid {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+}
+.skillGrid[data-compact] {
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+}
+.skill {
+  min-width: 0;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: var(--background);
+}
+.skillHead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.tripods {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  margin-top: 10px;
+  font-size: 12px;
+}
+.tripods li {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.gemEffects {
+  list-style: none;
+  padding: 0;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--secondary-foreground);
+}
+.gemEffects li[data-kind="DAMAGE"]::before {
+  content: "피해 · ";
+  color: var(--accent-warm);
+  font-weight: 600;
+}
+.gemEffects li[data-kind="COOLDOWN"]::before {
+  content: "쿨감 · ";
+  color: var(--link);
+  font-weight: 600;
+}
+.textButton {
+  margin-top: 14px;
+  color: var(--link);
+  font-size: 14px;
+}
+
+/* Siblings */
+.siblingGrid {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 10px;
+}
+.siblingGrid a,
+.siblingGrid div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-areas: "name level arrow" "meta level arrow";
+  align-items: center;
+  gap: 2px 10px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: var(--background);
+  color: inherit;
+}
+.siblingGrid strong {
+  grid-area: name;
+  font-size: 14px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.siblingGrid small {
+  grid-area: meta;
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.siblingGrid b {
+  grid-area: level;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.siblingGrid svg {
+  grid-area: arrow;
+  color: var(--link);
+}
+.siblingGrid li[data-current] div {
+  box-shadow: inset 0 0 0 2px var(--foreground);
+}
+
+/* Evidence */
+.findings {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 14px;
+}
+.findings li {
+  min-width: 0;
+  padding: 18px;
+  border-radius: 18px;
+  background: var(--background);
+}
+.findingCategory {
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-weight: 600;
+}
+.findings li[data-category="SETTING_CHECK"] .findingCategory {
+  color: var(--accent-warm);
+}
+.findings p {
+  margin: 4px 0;
+  font-size: 14px;
+}
+.findings small {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.coverageList {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 10px;
+}
+.coverageList li {
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: var(--background);
+  font-size: 13px;
+}
+.coverageList strong {
+  display: block;
+  font-weight: 600;
+}
+.coverageList span[data-state="NOT_PROVIDED"] {
+  color: var(--accent-warm);
+}
+.coverageList small {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted-foreground);
+  font-size: 11px;
+}
+
+/* The site body is light-only for now; only the banner follows the OS scheme.
+   Revisit these surfaces when a site-wide dark mode lands. */
+
+@media (max-width: 900px) {
+  .columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .equipGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .cardGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (max-width: 760px) {
+  .tabInner {
+    padding: 0 12px;
+    gap: 6px;
+  }
+  .tabs a,
+  .pillLayer > span {
+    padding: 8px 11px;
+    font-size: 13px;
+  }
+  .refresh {
+    padding: 0 10px;
+  }
+  .layout {
+    padding: 16px 12px 64px;
+  }
+  .panel {
+    padding: 22px 18px;
+    border-radius: 24px;
+  }
+  .footItem[data-wide] {
+    grid-column: auto;
+  }
+  .findings {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .effectGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pillLayer,
+  .tabs a,
+  .tooltip,
+  .refresh,
+  .iconAction {
+    transition: none;
+  }
+}
+
+/* Stats & siblings */
+.caption {
+  color: var(--muted-foreground);
+  font-size: 13px;
+}
+.chartGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 20px;
+}
+.problem strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+}
+.problem p {
+  margin-top: 4px;
+  color: var(--muted-foreground);
+  font-size: 14px;
+}
+.tableWrap {
+  margin-top: 12px;
+  overflow-x: auto;
+}
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.table th,
+.table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--secondary);
+  text-align: right;
+  white-space: nowrap;
+}
+.table th:first-child,
+.table td:first-child {
+  text-align: left;
+}
+.table th {
+  color: var(--muted-foreground);
+  font-weight: 500;
+}
+
+/* Collectibles, tendencies and avatars (내실·아바타 tabs). */
+.progress {
+  display: block;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 6px;
+  background: var(--secondary);
+}
+.progress i {
+  display: block;
+  height: 100%;
+  border-radius: 6px;
+  background: var(--primary);
+}
+.collectionGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px;
+  padding: 0;
+  list-style: none;
+}
+.collectionGrid button {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px 10px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid transparent;
+  border-radius: 16px;
+  background: var(--background);
+  color: var(--foreground);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 160ms ease-out;
+}
+.collectionGrid button[aria-pressed="true"] {
+  border-color: var(--ring);
+}
+.collectionGrid button:focus-visible {
+  outline: 3px solid var(--ring);
+  outline-offset: 2px;
+}
+.collectionGrid .progress {
+  grid-column: 1 / -1;
+}
+.collectionName {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.collectionName > span {
+  display: grid;
+  min-width: 0;
+}
+.collectionName strong {
+  font-size: 14px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.collectionName small {
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.collectionGrid b {
+  font-size: 14px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.collectionDetail {
+  margin-top: 20px;
+}
+.collectionDetail h3 {
+  font-size: 15px;
+  font-weight: 700;
+}
+.filterRow {
+  display: flex;
+  gap: 6px;
+  margin: 10px 0 12px;
+}
+.filterRow button {
+  min-height: 30px;
+  padding: 0 12px;
+  border: 1px solid var(--secondary);
+  border-radius: 980px;
+  background: var(--background);
+  color: var(--foreground);
+  font-size: 13px;
+  cursor: pointer;
+}
+.filterRow button[aria-pressed="true"] {
+  border-color: var(--foreground);
+  background: var(--foreground);
+  color: var(--background);
+}
+.collectionItems {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 0 20px;
+  padding: 0;
+  list-style: none;
+}
+.collectionItems li {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--secondary);
+  font-size: 14px;
+}
+.collectionItems small {
+  flex: none;
+  color: var(--accent-warm);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.collectionItems li[data-done] small {
+  color: var(--muted-foreground);
+}
+.tendencies {
+  display: grid;
+  gap: 12px;
+}
+.tendencies div {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px;
+}
+.tendencies dt {
+  font-size: 14px;
+}
+.tendencies dd {
+  font-size: 14px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.tendencies dd small {
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-weight: 400;
+}
+.tendencies .progress {
+  grid-column: 1 / -1;
+}
+.avatarList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px 20px;
+  padding: 0;
+  list-style: none;
+}
+.avatarList h3 {
+  margin-bottom: 6px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-weight: 600;
+}
+.avatarList ul {
+  display: grid;
+  gap: 8px;
+  padding: 0;
+  list-style: none;
+}
+.statDetail {
+  margin-top: 14px;
+}
+.statDetail summary {
+  width: fit-content;
+  color: var(--link);
+  font-size: 13px;
+  cursor: pointer;
+}
+.statDetail dl {
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+}
+.statDetail dt {
+  font-size: 13px;
+  font-weight: 600;
+}
+.statDetail dt b {
+  margin-left: 4px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.statDetail dd {
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 1.5;
+}
+@media (prefers-reduced-motion: reduce) {
+  .collectionGrid button {
+    transition: none;
+  }
+}
+
+/* Column head above armour / accessories: average quality, as on the other
+   armory sites. */
+.columnHead {
+  margin-bottom: 6px;
+  color: var(--muted-foreground);
+  font-size: 13px;
+}
+.columnHead b {
+  color: var(--foreground);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+/* Roster titles (backend #123): first-seen order, never acquisition order. */
+.titleNote {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  margin: 0 0 10px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.titleNote > span:first-child {
+  color: var(--foreground);
+  font-weight: 600;
+}
+.titleInfo {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.titleList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.titleList > li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: baseline;
+  gap: 2px 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--background);
+}
+.titleList b {
+  grid-row: span 2;
+  min-width: 18px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.titleList strong {
+  overflow: hidden;
+  color: var(--foreground);
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.titleList small {
+  color: var(--muted-foreground);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+/* Titles first seen on the same day: one group, no order inside (#176). */
+.titleList > li.titleDay {
+  grid-column: 1 / -1;
+  grid-template-columns: auto minmax(0, 1fr);
+}
+.titleDayHead {
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-weight: 600;
+}
+.titleDay ul {
+  grid-column: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.titleDay ul li {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+}

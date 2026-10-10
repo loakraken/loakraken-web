@@ -1,0 +1,410 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "LOAKraken refining",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/v1/refining/plans": {
+      "post": {
+        "tags": [
+          "재련"
+        ],
+        "summary": "티어 4 재련 기대 비용",
+        "description": "운명의 업화·운명의 전율 무기/방어구의 현재 단계부터 목표 단계(11~25)까지 기대·중앙값·90%·최대 시도 수와 재료·골드를 계산합니다. 외부 API·DB를 사용하지 않습니다. 단계별 수치는 공개 데이터(아이스펭, MIT)를 다른 서비스와 전수 대조한 값이며 공식 표가 아닙니다.",
+        "operationId": "plan",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefiningPlanRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "REFINING_PLAN_SUCCESS",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseRefiningPlanResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_REQUEST: 단계 범위·장인의 기운·실패 횟수 오류",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "406": {
+            "description": "NOT_ACCEPTABLE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "UNSUPPORTED_MEDIA_TYPE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "INTERNAL_SERVER_ERROR",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "RefiningPlanRequest": {
+        "type": "object",
+        "properties": {
+          "grade": {
+            "type": "string",
+            "description": "UPHWA: 운명의 업화, JEONYUL: 운명의 전율",
+            "enum": [
+              "UPHWA",
+              "JEONYUL"
+            ],
+            "example": "UPHWA"
+          },
+          "equipmentType": {
+            "type": "string",
+            "enum": [
+              "WEAPON",
+              "ARMOR"
+            ],
+            "example": "ARMOR"
+          },
+          "fromStage": {
+            "type": "integer",
+            "format": "int32",
+            "description": "현재 재련 단계",
+            "example": 18,
+            "maximum": 24,
+            "minimum": 10
+          },
+          "toStage": {
+            "type": "integer",
+            "format": "int32",
+            "description": "목표 재련 단계",
+            "example": 20,
+            "maximum": 25,
+            "minimum": 11
+          },
+          "useBreath": {
+            "type": "boolean",
+            "default": false,
+            "description": "매 시도 숨결을 최대 개수로 사용"
+          },
+          "useBook": {
+            "type": "boolean",
+            "default": false,
+            "description": "책(재봉술·야금술)을 사용할 수 있는 단계에서 사용. 업화 11~20단계만 지원"
+          },
+          "growthSupport": {
+            "type": "boolean",
+            "default": false,
+            "description": "업화 목표 18단계 이하 재련 골드 20% 감소(공식 성장 지원)"
+          },
+          "currentArtisanEnergy": {
+            "type": "number",
+            "default": 0,
+            "description": "첫 단계의 현재 장인의 기운(%)",
+            "example": 46.5,
+            "maximum": 100,
+            "minimum": 0
+          },
+          "currentFailedAttempts": {
+            "type": "integer",
+            "format": "int32",
+            "default": 0,
+            "description": "첫 단계에서 이미 실패한 횟수",
+            "maximum": 10,
+            "minimum": 0
+          }
+        },
+        "required": [
+          "equipmentType",
+          "fromStage",
+          "grade",
+          "toStage"
+        ]
+      },
+      "ApiResponseRefiningPlanResponse": {
+        "type": "object",
+        "description": "공통 API 응답. 오류 응답의 data는 null입니다.",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "업무 결과 코드",
+            "example": "CHARACTER_SEARCH_SUCCESS"
+          },
+          "message": {
+            "type": "string",
+            "description": "공개용 안내 메시지",
+            "example": "캐릭터 조회에 성공했습니다."
+          },
+          "data": {
+            "$ref": "#/components/schemas/RefiningPlanResponse",
+            "description": "성공 응답 데이터. 오류일 때 null"
+          }
+        },
+        "required": [
+          "code",
+          "data",
+          "message"
+        ]
+      },
+      "RefiningPlanResponse": {
+        "type": "object",
+        "description": "재련 기대 비용. 기대값은 확률 분포의 평균이며, 최악은 장인의 기운으로 확정될 때까지 모두 실패한 경우입니다. 시세 환산·실링은 포함하지 않습니다.",
+        "properties": {
+          "ruleVersion": {
+            "type": "string"
+          },
+          "source": {
+            "$ref": "#/components/schemas/SourceResponse"
+          },
+          "grade": {
+            "type": "string",
+            "enum": [
+              "UPHWA",
+              "JEONYUL"
+            ]
+          },
+          "equipmentType": {
+            "type": "string",
+            "enum": [
+              "WEAPON",
+              "ARMOR"
+            ]
+          },
+          "fromStage": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "toStage": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "useBreath": {
+            "type": "boolean"
+          },
+          "useBook": {
+            "type": "boolean"
+          },
+          "growthSupport": {
+            "type": "boolean"
+          },
+          "stages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StageResponse"
+            }
+          },
+          "expectedMaterials": {
+            "type": "array",
+            "description": "단계별 기대 소모량(소수 둘째 자리 반올림)의 합",
+            "items": {
+              "$ref": "#/components/schemas/QuantityResponse"
+            }
+          },
+          "worstCaseMaterials": {
+            "type": "array",
+            "description": "모든 단계가 최대 시도 수까지 간 경우의 소모량",
+            "items": {
+              "$ref": "#/components/schemas/QuantityResponse"
+            }
+          },
+          "expectedGold": {
+            "type": "number"
+          },
+          "worstCaseGold": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "assumptions": {
+            "type": "array",
+            "description": "계산 가정과 제외 항목",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "assumptions",
+          "equipmentType",
+          "expectedGold",
+          "expectedMaterials",
+          "fromStage",
+          "grade",
+          "growthSupport",
+          "ruleVersion",
+          "source",
+          "stages",
+          "toStage",
+          "useBook",
+          "useBreath",
+          "worstCaseGold",
+          "worstCaseMaterials"
+        ]
+      },
+      "SourceResponse": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "단계별 수치 출처"
+          },
+          "commit": {
+            "type": "string"
+          },
+          "license": {
+            "type": "string"
+          },
+          "crossCheckedWith": {
+            "type": "string",
+            "description": "교차 검증한 다른 출처"
+          },
+          "verifiedOn": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "commit",
+          "crossCheckedWith",
+          "license",
+          "name",
+          "verifiedOn"
+        ]
+      },
+      "StageResponse": {
+        "type": "object",
+        "properties": {
+          "targetStage": {
+            "type": "integer",
+            "format": "int32",
+            "description": "이 단계 재련 후 단계"
+          },
+          "firstAttemptSuccessRateBp": {
+            "type": "integer",
+            "format": "int32",
+            "description": "첫 시도 성공률(만분율, 1 = 0.01%). 숨결·책 포함"
+          },
+          "expectedAttempts": {
+            "type": "number",
+            "description": "기대 시도 수"
+          },
+          "medianAttempts": {
+            "type": "integer",
+            "format": "int32",
+            "description": "50% 확률로 이 시도 안에 성공"
+          },
+          "p90Attempts": {
+            "type": "integer",
+            "format": "int32",
+            "description": "90% 확률로 이 시도 안에 성공"
+          },
+          "maxAttempts": {
+            "type": "integer",
+            "format": "int32",
+            "description": "장인의 기운으로 확정되는 최대 시도 수"
+          },
+          "expectedMaterials": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QuantityResponse"
+            }
+          },
+          "worstCaseMaterials": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QuantityResponse"
+            }
+          },
+          "expectedGold": {
+            "type": "number"
+          },
+          "worstCaseGold": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "required": [
+          "expectedAttempts",
+          "expectedGold",
+          "expectedMaterials",
+          "firstAttemptSuccessRateBp",
+          "maxAttempts",
+          "medianAttempts",
+          "p90Attempts",
+          "targetStage",
+          "worstCaseGold",
+          "worstCaseMaterials"
+        ]
+      },
+      "QuantityResponse": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "amount",
+          "name"
+        ]
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "description": "공통 오류 응답. HTTP 상태와 업무 코드를 함께 확인합니다.",
+        "properties": {
+          "code": {
+            "type": "string",
+            "example": "INVALID_REQUEST"
+          },
+          "message": {
+            "type": "string",
+            "example": "요청 값이 올바르지 않습니다."
+          },
+          "data": {
+            "type": "null"
+          }
+        },
+        "required": [
+          "code",
+          "data",
+          "message"
+        ]
+      }
+    }
+  }
+}

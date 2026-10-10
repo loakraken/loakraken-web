@@ -1,0 +1,872 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "LOAKraken home",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/v1/home/schedule": {
+      "get": {
+        "tags": [
+          "홈"
+        ],
+        "summary": "홈 일정",
+        "description": "공식 이번 주 일정(수요일~다음 주 화요일)에서 요청 날짜(KST, 생략 시 오늘)의 모험 섬·필드보스·카오스게이트·기타 일정과 이번 주 골드 섬·주간 표를 줍니다. 모험 섬 대표 보상은 그 날 회차에 시간 지정으로 붙은 보상만 봅니다. 기본 캐시 30분, 동시 요청 병합, 공유 호출 예산 1회.",
+        "operationId": "schedule",
+        "parameters": [
+          {
+            "name": "date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "조회 성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseHomeScheduleResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_REQUEST",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "LOST_ARK_RATE_LIMITED / CLIENT_RATE_LIMITED: 이 클라이언트의 분당 요청·공식 호출 한도 초과. Retry-After(초) 뒤 다시 시도",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "LOST_ARK_API_ERROR",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "LOST_ARK_NOT_CONFIGURED 또는 HOME_CACHE_UNAVAILABLE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "LOST_ARK_API_TIMEOUT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/home/news": {
+      "get": {
+        "tags": [
+          "홈"
+        ],
+        "summary": "홈 소식",
+        "description": "공식 공지 최신순(limit, 분류 필터)과 진행 중 이벤트 종료 임박순입니다. 제목에 '점검'이 있으면 'N월 N일'을 maintenanceDate로 읽습니다. 기본 캐시 10분, 공유 호출 예산 2회.",
+        "operationId": "news",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 10,
+              "maximum": 50,
+              "minimum": 1
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "NOTICE",
+                "MAINTENANCE",
+                "EVENT",
+                "SHOP"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "조회 성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseHomeNewsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_REQUEST",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "LOST_ARK_RATE_LIMITED / CLIENT_RATE_LIMITED: 이 클라이언트의 분당 요청·공식 호출 한도 초과. Retry-After(초) 뒤 다시 시도",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "LOST_ARK_API_ERROR",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "LOST_ARK_NOT_CONFIGURED 또는 HOME_CACHE_UNAVAILABLE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "LOST_ARK_API_TIMEOUT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ApiResponseHomeScheduleResponse": {
+        "type": "object",
+        "description": "공통 API 응답. 오류 응답의 data는 null입니다.",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "업무 결과 코드",
+            "example": "CHARACTER_SEARCH_SUCCESS"
+          },
+          "message": {
+            "type": "string",
+            "description": "공개용 안내 메시지",
+            "example": "캐릭터 조회에 성공했습니다."
+          },
+          "data": {
+            "$ref": "#/components/schemas/HomeScheduleResponse",
+            "description": "성공 응답 데이터. 오류일 때 null"
+          }
+        },
+        "required": [
+          "code",
+          "data",
+          "message"
+        ]
+      },
+      "HomeScheduleResponse": {
+        "type": "object",
+        "description": "공식 이번 주 일정 중 요청 날짜(KST) 보기. 시각은 +09:00 오프셋입니다.",
+        "properties": {
+          "ruleVersion": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string",
+            "format": "date",
+            "description": "요청 날짜(KST)"
+          },
+          "timezone": {
+            "type": "string"
+          },
+          "fetchedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "공식 일정 수집 시각(UTC)"
+          },
+          "coveredFrom": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date",
+                "description": "공식 일정이 덮는 첫 날짜. 일정이 없으면 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "coveredTo": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "adventureIslands": {
+            "type": "array",
+            "description": "그 날 열리는 모험 섬",
+            "items": {
+              "$ref": "#/components/schemas/HomeIslandResponse"
+            }
+          },
+          "fieldBosses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HomeTimedResponse"
+            }
+          },
+          "chaosGates": {
+            "type": "array",
+            "description": "카오스게이트(지역별 공식 항목 그대로)",
+            "items": {
+              "$ref": "#/components/schemas/HomeTimedResponse"
+            }
+          },
+          "others": {
+            "type": "array",
+            "description": "섬·항해·로웬·태초의 섬 등 그 날 회차가 있는 기타 일정",
+            "items": {
+              "$ref": "#/components/schemas/HomeOtherResponse"
+            }
+          },
+          "goldIslandDays": {
+            "type": "array",
+            "description": "이번 주 골드 회차가 있는 날",
+            "items": {
+              "$ref": "#/components/schemas/HomeGoldDayResponse"
+            }
+          },
+          "weekly": {
+            "type": "array",
+            "description": "이번 주 날짜별 모험 섬",
+            "items": {
+              "$ref": "#/components/schemas/HomeWeeklyDayResponse"
+            }
+          }
+        },
+        "required": [
+          "adventureIslands",
+          "chaosGates",
+          "coveredFrom",
+          "coveredTo",
+          "date",
+          "fetchedAt",
+          "fieldBosses",
+          "goldIslandDays",
+          "others",
+          "ruleVersion",
+          "timezone",
+          "weekly"
+        ]
+      },
+      "HomeIslandResponse": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "minItemLevel": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "startTimes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          "rewardKinds": {
+            "type": "array",
+            "description": "그 날 회차에 시간 지정으로 붙은 대표 보상(GOLD, CARD_PACK, SILLING, PIRATE_COIN)",
+            "items": {
+              "type": "string",
+              "enum": [
+                "GOLD",
+                "CARD_PACK",
+                "SILLING",
+                "PIRATE_COIN"
+              ]
+            },
+            "uniqueItems": true
+          },
+          "rewardGroups": {
+            "type": "array",
+            "description": "그 날 보상. 공식 ItemLevel 그룹 순서이며, 시간 지정 보상은 그 날 회차를 가리킬 때만 넣는다(timed=true)",
+            "items": {
+              "$ref": "#/components/schemas/HomeRewardGroupResponse"
+            }
+          },
+          "nextAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "description": "현재 이후 첫 회차(이번 주 범위). 없으면 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "icon",
+          "minItemLevel",
+          "name",
+          "nextAt",
+          "rewardGroups",
+          "rewardKinds",
+          "startTimes"
+        ]
+      },
+      "HomeRewardGroupResponse": {
+        "type": "object",
+        "properties": {
+          "minItemLevel": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32",
+                "description": "공식 ItemLevel. 이 레벨 이상 보상"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "rewards": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HomeRewardResponse"
+            }
+          }
+        },
+        "required": [
+          "minItemLevel",
+          "rewards"
+        ]
+      },
+      "HomeRewardResponse": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "grade": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "공식 등급 문자열"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "timed": {
+            "type": "boolean",
+            "description": "true: 그 날 회차를 가리키는 시간 지정 보상, false: 시간 지정 없는 공통 보상"
+          }
+        },
+        "required": [
+          "grade",
+          "icon",
+          "name",
+          "timed"
+        ]
+      },
+      "HomeTimedResponse": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "minItemLevel": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "startTimes": {
+            "type": "array",
+            "description": "요청 날짜의 회차",
+            "items": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          "rewardGroups": {
+            "type": "array",
+            "description": "그 날 보상. 공식 ItemLevel 그룹 순서이며, 시간 지정 보상은 그 날 회차를 가리킬 때만 넣는다(timed=true)",
+            "items": {
+              "$ref": "#/components/schemas/HomeRewardGroupResponse"
+            }
+          },
+          "nextAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "icon",
+          "minItemLevel",
+          "name",
+          "nextAt",
+          "rewardGroups",
+          "startTimes"
+        ]
+      },
+      "HomeOtherResponse": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string",
+            "description": "공식 범주 이름(섬, 항해, 로웬, 태초의 섬 등)"
+          },
+          "name": {
+            "type": "string"
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "minItemLevel": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "startTimes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          "rewardGroups": {
+            "type": "array",
+            "description": "그 날 보상. 공식 ItemLevel 그룹 순서이며, 시간 지정 보상은 그 날 회차를 가리킬 때만 넣는다(timed=true)",
+            "items": {
+              "$ref": "#/components/schemas/HomeRewardGroupResponse"
+            }
+          },
+          "nextAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "category",
+          "icon",
+          "minItemLevel",
+          "name",
+          "nextAt",
+          "rewardGroups",
+          "startTimes"
+        ]
+      },
+      "HomeGoldDayResponse": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "islands": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "date",
+          "islands"
+        ]
+      },
+      "HomeWeeklyDayResponse": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "islands": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HomeWeeklyIslandResponse"
+            }
+          }
+        },
+        "required": [
+          "date",
+          "islands"
+        ]
+      },
+      "HomeWeeklyIslandResponse": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "rewardKinds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "GOLD",
+                "CARD_PACK",
+                "SILLING",
+                "PIRATE_COIN"
+              ]
+            },
+            "uniqueItems": true
+          }
+        },
+        "required": [
+          "name",
+          "rewardKinds"
+        ]
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "description": "공통 오류 응답. HTTP 상태와 업무 코드를 함께 확인합니다.",
+        "properties": {
+          "code": {
+            "type": "string",
+            "example": "INVALID_REQUEST"
+          },
+          "message": {
+            "type": "string",
+            "example": "요청 값이 올바르지 않습니다."
+          },
+          "data": {
+            "type": "null"
+          }
+        },
+        "required": [
+          "code",
+          "data",
+          "message"
+        ]
+      },
+      "ApiResponseHomeNewsResponse": {
+        "type": "object",
+        "description": "공통 API 응답. 오류 응답의 data는 null입니다.",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "업무 결과 코드",
+            "example": "CHARACTER_SEARCH_SUCCESS"
+          },
+          "message": {
+            "type": "string",
+            "description": "공개용 안내 메시지",
+            "example": "캐릭터 조회에 성공했습니다."
+          },
+          "data": {
+            "$ref": "#/components/schemas/HomeNewsResponse",
+            "description": "성공 응답 데이터. 오류일 때 null"
+          }
+        },
+        "required": [
+          "code",
+          "data",
+          "message"
+        ]
+      },
+      "HomeNewsResponse": {
+        "type": "object",
+        "description": "공식 공지(최신순)와 진행 중 이벤트(종료 임박순). 링크·이미지는 공식 https 도메인만 통과합니다.",
+        "properties": {
+          "fetchedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "공식 소식 수집 시각(UTC)"
+          },
+          "notices": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HomeNoticeResponse"
+            }
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HomeEventResponse"
+            }
+          }
+        },
+        "required": [
+          "events",
+          "fetchedAt",
+          "notices"
+        ]
+      },
+      "HomeNoticeResponse": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "NOTICE(공지), MAINTENANCE(점검), EVENT(이벤트), SHOP(상점). 모르는 공식 분류면 null",
+                "enum": [
+                  "NOTICE",
+                  "MAINTENANCE",
+                  "EVENT",
+                  "SHOP"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "publishedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "maintenanceDate": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date",
+                "description": "제목에 '점검'이 있고 'N월 N일'을 읽을 수 있으면 그 날짜(KST)"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "maintenanceDateText": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "maintenanceDate를 읽은 제목 원문 조각"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "category",
+          "maintenanceDate",
+          "maintenanceDateText",
+          "publishedAt",
+          "title",
+          "url"
+        ]
+      },
+      "HomeEventResponse": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "thumbnail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "startAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "endAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "rewardAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "endAt",
+          "rewardAt",
+          "startAt",
+          "thumbnail",
+          "title",
+          "url"
+        ]
+      }
+    }
+  }
+}

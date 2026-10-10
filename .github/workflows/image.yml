@@ -1,0 +1,39 @@
+name: Frontend Image
+
+# PR에서 이미지 빌드 설정이 바뀔 때만 빌드되는지 확인한다(읽기 권한만, Actions 사용 시간 절약).
+# GHCR 업로드는 frontend-ci.yml의 publish job이 검사 통과 뒤에만 한다(테스트 통과한 커밋만 이미지, PM 총괄 결정 2026-10-09).
+# 서드파티 액션은 커밋 SHA로 고정한다(주석은 해당 태그).
+on:
+  pull_request:
+    branches: [develop, master]
+    paths:
+      - Dockerfile
+      - .dockerignore
+      - package.json
+      - package-lock.json
+      - next.config.ts
+      - .github/workflows/image.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: frontend-image-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          push: false
+          cache-from: type=gha,scope=frontend-image
+          cache-to: type=gha,mode=max,scope=frontend-image
+          provenance: false

@@ -1,0 +1,167 @@
+name: E2E
+
+# QA 스모크·회귀 E2E(e2e/ Playwright). 합성 목 백엔드만 쓰며 공식 API·OpenAI 호출과 비밀값이 없다.
+# 비필수(정보용) 검사로 시작한다(PM-프론트 결정 2026-10-09). 10-23쯤 실행 통계를 보고 필수 전환을 판단한다.
+# Actions 사용 시간 절약: develop·master 대상 PR에서 앱 코드·e2e 경로가 바뀔 때만 돈다. 같은 PR의 이전 실행은 취소한다.
+on:
+  pull_request:
+    branches: [develop, master]
+    paths:
+      - app/**
+      - components/**
+      - lib/**
+      - public/**
+      - contracts/**
+      - e2e/**
+      - tests/mock-backend.mjs
+      - package.json
+      - package-lock.json
+      - next.config.ts
+      - tsconfig.json
+      - postcss.config.mjs
+      - .github/workflows/e2e.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: e2e-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      CI: "true"
+      NEXT_TELEMETRY_DISABLED: 1
+      E2E_CHANNEL: chromium
+      # 운영 빌드(next build → standalone server.js)로 띄운다(QA #133). dev 서버는 CI에서 홈 화면 수화 지연으로 flaky가 났다(10-09 비교).
+      E2E_SERVER: standalone
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            e2e/package-lock.json
+      - name: Install app dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Install e2e dependencies
+        working-directory: e2e
+        run: npm ci --no-audit --no-fund
+      - name: Read Playwright version
+        id: pw
+        working-directory: e2e
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+      - name: Cache Playwright browsers
+        id: pw-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}-chromium
+      - name: Install Chromium with system dependencies
+        if: steps.pw-cache.outputs.cache-hit != 'true'
+        working-directory: e2e
+        run: npx playwright install --with-deps chromium
+      - name: Install Chromium system dependencies only
+        if: steps.pw-cache.outputs.cache-hit == 'true'
+        working-directory: e2e
+        run: npx playwright install-deps chromium
+      - name: Run E2E
+        working-directory: e2e
+        env:
+          PLAYWRIGHT_JSON_OUTPUT_NAME: results.json
+        run: npx playwright test --reporter=list,html,json
+      - name: Summarize run
+        if: always()
+        working-directory: e2e
+        run: |
+          node --input-type=commonjs <<'JS'
+            const fs = require("fs");
+            if (!fs.existsSync("results.json")) { console.log("results.json 없음(실행 전 실패)"); process.exit(0); }
+            const s = JSON.parse(fs.readFileSync("results.json", "utf8")).stats ?? {};
+            const row = {
+              run: process.env.GITHUB_RUN_ID, pr: process.env.PR, sha: process.env.GITHUB_SHA, server: process.env.E2E_SERVER ?? "dev",
+              expected: s.expected ?? 0, unexpected: s.unexpected ?? 0, flaky: s.flaky ?? 0, skipped: s.skipped ?? 0,
+              minutes: Math.round((s.duration ?? 0) / 600) / 100,
+            };
+            fs.writeFileSync("e2e-stats.json", JSON.stringify(row) + "\n");
+            const md = `### E2E 결과\n\n| 통과 | 실패 | 재시도 후 통과(flaky) | 건너뜀 | 테스트 시간(분) |\n|---|---|---|---|---|\n| ${row.expected} | ${row.unexpected} | ${row.flaky} | ${row.skipped} | ${row.minutes} |\n`;
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, md);
+            console.log(md);
+          JS
+        env:
+          PR: ${{ github.event.pull_request.number }}
+      # 성능 점검(비필수·정보용, PM 총괄 결정 2026-10-09). 390px·CPU 4배로 LCP·CLS·INP를 잰다.
+      # 위 기능 검사의 standalone 빌드를 다시 쓴다(E2E_SKIP_BUILD). 비공개 저장소라 별도 job으로 다시 빌드하지 않는다.
+      # 흔들림을 보려고 같은 커밋에서 3회 반복한다. perf 테스트는 순서대로(serial) 돌아 E2E_PERF_ENFORCE를 켜면
+      # 첫 기준 초과 뒤 나머지가 건너뛰어져 기록이 빠진다(10-09 확인). 그래서 여기서는 모두 재고, 기준 판정은 아래 요약 단계가 한다.
+      # 측정 자체가 실패해도 job·PR은 막지 않는다(continue-on-error).
+      - name: Run performance budget
+        id: perf
+        if: always()
+        continue-on-error: true
+        working-directory: e2e
+        env:
+          E2E_SKIP_BUILD: "1"
+          E2E_PERF: "1"
+          PLAYWRIGHT_JSON_OUTPUT_NAME: perf-results.json
+        run: npx playwright test --project=perf --repeat-each=3 --retries=0 --reporter=list,json
+      - name: Summarize performance
+        if: always()
+        working-directory: e2e
+        run: |
+          node --input-type=commonjs <<'JS'
+            const fs = require("fs");
+            if (!fs.existsSync("perf-results.json")) { console.log("perf-results.json 없음(실행 전 실패)"); process.exit(0); }
+            const report = JSON.parse(fs.readFileSync("perf-results.json", "utf8"));
+            const rows = [];
+            const seen = {}; // 같은 화면의 몇 번째 반복인지(JSON 보고서에는 반복 번호가 없다)
+            const walk = (suite) => {
+              for (const spec of suite.specs ?? []) for (const t of spec.tests ?? []) for (const r of t.results ?? []) {
+                const a = (r.attachments ?? []).find((x) => x.name === "perf" && x.body);
+                if (!a) continue;
+                const m = JSON.parse(Buffer.from(a.body, "base64").toString("utf8"));
+                // 기준(LCP 2.5초·CLS 0.1·INP 200ms)을 넘었는지 여기서 판정한다(작업 규칙 '성능 우선').
+                const over = [m.lcpMs > 2500 && "LCP", m.cls > 0.1 && "CLS", m.inpMs > 200 && "INP"].filter(Boolean);
+                rows.push({ run: process.env.GITHUB_RUN_ID, pr: process.env.PR, sha: process.env.GITHUB_SHA, status: r.status, over, ...m, repeat: (seen[m.page] = (seen[m.page] ?? 0) + 1) });
+              }
+              for (const s of suite.suites ?? []) walk(s);
+            };
+            for (const s of report.suites ?? []) walk(s);
+            fs.writeFileSync("e2e-perf.jsonl", rows.map((x) => JSON.stringify(x)).join("\n") + (rows.length ? "\n" : ""));
+            let md = "### 성능 점검(비필수, 390px·CPU 4배, 기준 LCP 2.5초·CLS 0.1·INP 200ms)\n\n| 화면 | 회차 | LCP(ms) | CLS | 로딩 CLS | INP(ms) | 긴 작업 | 결과 |\n|---|---|---|---|---|---|---|---|\n";
+            for (const x of rows) md += `| ${x.page} | ${x.repeat} | ${x.lcpMs} | ${x.cls} | ${x.loadCls} | ${x.inpMs} | ${x.longTasks} | ${x.status !== "passed" ? "측정 실패" : x.over.length ? `기준 초과(${x.over.join("·")})` : "기준 안"} |\n`;
+            if (!rows.length) md += "| (결과 없음) | | | | | | | |\n";
+            const overCount = rows.filter((x) => x.over.length).length;
+            // 막지 않고 경고 표시만 남긴다(비필수·정보용).
+            if (overCount) console.log(`::warning title=성능 기준 초과::${rows.length}회 중 ${overCount}회가 기준(LCP 2.5초·CLS 0.1·INP 200ms)을 넘었습니다. 실행 요약 표를 보세요.`);
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, md);
+            console.log(md);
+          JS
+        env:
+          PR: ${{ github.event.pull_request.number }}
+      - name: Upload stats
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: e2e-stats
+          path: |
+            e2e/e2e-stats.json
+            e2e/e2e-perf.jsonl
+          if-no-files-found: ignore
+          retention-days: 30
+      - name: Upload report and traces
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: e2e-report
+          path: |
+            e2e/playwright-report
+            e2e/test-results
+          if-no-files-found: ignore
+          retention-days: 7

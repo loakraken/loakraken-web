@@ -1,0 +1,9 @@
+import { toResponse } from "@/lib/api/respond";
+import { getCardCollection } from "@/lib/character/server";
+
+export async function GET(request: Request) {
+  const params = new URL(request.url).searchParams;
+  return toResponse(
+    await getCardCollection(params.get("characterName") ?? "", request.signal),
+  );
+}

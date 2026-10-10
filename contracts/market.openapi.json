@@ -1,0 +1,2416 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "LOAKraken market",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/v1/markets/options": {
+      "get": {
+        "tags": [
+          "거래소"
+        ],
+        "summary": "거래소 검색 옵션 조회",
+        "description": "공식 카테고리·하위 카테고리·등급·티어·직업 목록입니다. 기본 캐시는 10분이며 observedAt은 원래 수집 시각입니다. 가격 검색 시 자동으로 선행 호출하지 않습니다.",
+        "operationId": "options",
+        "responses": {
+          "200": {
+            "description": "거래소 조회 성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseMarketOptionsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_REQUEST: 검색 조건 오류",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "406": {
+            "description": "NOT_ACCEPTABLE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "LOST_ARK_RATE_LIMITED: 캐릭터와 공유하는 호출 한도 초과",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "INTERNAL_SERVER_ERROR",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "LOST_ARK_API_ERROR: 외부 검색 조건 거절 또는 응답 오류",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "LOST_ARK_NOT_CONFIGURED 또는 MARKET_CACHE_UNAVAILABLE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "LOST_ARK_API_TIMEOUT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/markets/items": {
+      "get": {
+        "tags": [
+          "거래소"
+        ],
+        "summary": "현재 판매 상품 가격 조회",
+        "description": "공식 현재 판매 상품을 조회합니다. 기본 캐시는 30초이며 observedAt은 원래 수집 시각입니다. 적용한 검색 조건을 함께 반환합니다.",
+        "operationId": "items",
+        "parameters": [
+          {
+            "name": "categoryCode",
+            "in": "query",
+            "description": "공식 거래소 카테고리 코드",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "description": "공식 거래소 카테고리 코드",
+              "example": 50000,
+              "exclusiveMinimum": 0
+            },
+            "example": 50000
+          },
+          {
+            "name": "characterClass",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 32,
+              "minLength": 0
+            }
+          },
+          {
+            "name": "itemTier",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "exclusiveMinimum": 0
+            }
+          },
+          {
+            "name": "itemGrade",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 16,
+              "minLength": 0
+            }
+          },
+          {
+            "name": "itemName",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 64,
+              "minLength": 0
+            }
+          },
+          {
+            "name": "pageNo",
+            "in": "query",
+            "description": "서비스 조회 범위: 1~1000 페이지",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1,
+              "description": "서비스 조회 범위: 1~1000 페이지",
+              "maximum": 1000,
+              "minimum": 1
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "RECENT_PRICE",
+              "enum": [
+                "GRADE",
+                "YDAY_AVG_PRICE",
+                "RECENT_PRICE",
+                "CURRENT_MIN_PRICE"
+              ]
+            }
+          },
+          {
+            "name": "sortCondition",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "ASC",
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "거래소 조회 성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseMarketPriceResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_REQUEST: 검색 조건 오류",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "406": {
+            "description": "NOT_ACCEPTABLE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "LOST_ARK_RATE_LIMITED: 캐릭터와 공유하는 호출 한도 초과",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "INTERNAL_SERVER_ERROR",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "LOST_ARK_API_ERROR: 외부 검색 조건 거절 또는 응답 오류",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "LOST_ARK_NOT_CONFIGURED 또는 MARKET_CACHE_UNAVAILABLE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "LOST_ARK_API_TIMEOUT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/markets/material-quotes": {
+      "post": {
+        "tags": [
+          "거래소"
+        ],
+        "summary": "재료 구매 견적 계산",
+        "description": "필요·보유 수량과 선택한 공식 묶음 가격으로 계산합니다. 최대 10개 항목의 검색 페이지를 캐시·공유 호출 예산 안에서 순차 조회합니다. 미계산 항목이 있으면 complete=false와 totalCostGold=null입니다. 재련 기대 비용·매물 수량 보장·자동 구매는 제공하지 않습니다.",
+        "operationId": "materialQuote",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MaterialQuoteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "거래소 조회 성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseMaterialQuoteResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_REQUEST: 검색 조건 오류",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "406": {
+            "description": "NOT_ACCEPTABLE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "UNSUPPORTED_MEDIA_TYPE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "LOST_ARK_RATE_LIMITED: 캐릭터와 공유하는 호출 한도 초과",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "INTERNAL_SERVER_ERROR",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "LOST_ARK_API_ERROR: 외부 검색 조건 거절 또는 응답 오류",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "LOST_ARK_NOT_CONFIGURED 또는 MARKET_CACHE_UNAVAILABLE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "LOST_ARK_API_TIMEOUT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/markets/material-prices": {
+      "post": {
+        "tags": [
+          "거래소"
+        ],
+        "summary": "재료 이름별 1개당 시세",
+        "description": "재료 이름(최대 20개)마다 강화 재료 분류의 현재 판매 목록 첫 페이지에서 이름이 정확히 같은 상품을 찾아 선택한 기준 가격 ÷ 묶음 수로 1개당 골드를 계산합니다. 운명의 파편은 운명의 파편 주머니(소 1,000·중 2,000·대 3,000개, 공식 Tooltip)를 파편 1개당 가격으로 바꿔 가장 싼 주머니를 고릅니다. 이름별 검색 페이지를 기존 30초 캐시·공유 호출 예산 안에서 조회합니다. 재련 계획의 재료 이름을 그대로 넣을 수 있습니다.",
+        "operationId": "materialPrices",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MaterialPriceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "거래소 조회 성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseMaterialPriceResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_REQUEST: 검색 조건 오류",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "406": {
+            "description": "NOT_ACCEPTABLE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "UNSUPPORTED_MEDIA_TYPE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "LOST_ARK_RATE_LIMITED: 캐릭터와 공유하는 호출 한도 초과",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "INTERNAL_SERVER_ERROR",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "LOST_ARK_API_ERROR: 외부 검색 조건 거절 또는 응답 오류",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "LOST_ARK_NOT_CONFIGURED 또는 MARKET_CACHE_UNAVAILABLE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "LOST_ARK_API_TIMEOUT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/markets/tabs": {
+      "get": {
+        "tags": [
+          "거래소"
+        ],
+        "summary": "시세 보드 탭",
+        "description": "보드 탭과 공식 카테고리 코드, 기본 티어, 정렬 값입니다. 외부 호출이 없습니다.",
+        "operationId": "tabs",
+        "responses": {
+          "200": {
+            "description": "거래소 조회 성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseMarketTabsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_REQUEST: 검색 조건 오류",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "406": {
+            "description": "NOT_ACCEPTABLE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "LOST_ARK_RATE_LIMITED: 캐릭터와 공유하는 호출 한도 초과",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "INTERNAL_SERVER_ERROR",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "LOST_ARK_API_ERROR: 외부 검색 조건 거절 또는 응답 오류",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "LOST_ARK_NOT_CONFIGURED 또는 MARKET_CACHE_UNAVAILABLE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "LOST_ARK_API_TIMEOUT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/markets/board": {
+      "get": {
+        "tags": [
+          "거래소"
+        ],
+        "summary": "시세 보드",
+        "description": "탭별 현재 판매 품목과 전일 대비 등락률입니다. default·high·low는 공식 정렬 한 페이지(검색 캐시 30초)를 씁니다. rise·fall은 공식 정렬에 없어 탭 전체(최대 10페이지)를 순차 스캔하고 3분 캐시합니다. 동시 요청은 합칩니다. changeWeek·spark7은 상품 이력 캐시가 있을 때만 채웁니다(추가 외부 호출 없음).",
+        "operationId": "board",
+        "parameters": [
+          {
+            "name": "tab",
+            "in": "query",
+            "description": "보드 탭(GET /api/v1/markets/tabs)",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "보드 탭(GET /api/v1/markets/tabs)",
+              "enum": [
+                "REFINING",
+                "REFINING_EXTRA",
+                "ARK_GRID",
+                "WEAPON_EVOLUTION",
+                "ENGRAVING_BOOK",
+                "LIFE",
+                "BATTLE_ITEM",
+                "FOOD"
+              ],
+              "example": "REFINING"
+            },
+            "example": "REFINING"
+          },
+          {
+            "name": "tier",
+            "in": "query",
+            "description": "아이템 티어. 생략하면 탭 기본 티어",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "description": "아이템 티어. 생략하면 탭 기본 티어",
+              "maximum": 4,
+              "minimum": 1
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "default(공식 등급순), high/low(현재 최저가), rise/fall(전일 대비 등락률, 탭 전체 스캔)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "default",
+              "description": "default(공식 등급순), high/low(현재 최저가), rise/fall(전일 대비 등락률, 탭 전체 스캔)",
+              "pattern": "default|high|low|rise|fall"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "10개 단위 페이지",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1,
+              "description": "10개 단위 페이지",
+              "maximum": 10,
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "거래소 조회 성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseMarketBoardResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_REQUEST: 검색 조건 오류",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "406": {
+            "description": "NOT_ACCEPTABLE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "LOST_ARK_RATE_LIMITED: 캐릭터와 공유하는 호출 한도 초과",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "INTERNAL_SERVER_ERROR",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "LOST_ARK_API_ERROR: 외부 검색 조건 거절 또는 응답 오류",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "LOST_ARK_NOT_CONFIGURED 또는 MARKET_CACHE_UNAVAILABLE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "LOST_ARK_API_TIMEOUT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/markets/items/{itemId}/history": {
+      "get": {
+        "tags": [
+          "거래소"
+        ],
+        "summary": "상품 14일 시세 이력",
+        "description": "공식 거래소 상품 상세의 최근 14일 일별 평균가·거래량입니다. 오늘(한국 날짜) 값은 진행 중인 부분 집계라 partial=true이며 요약에서 제외합니다. 기본 캐시 10분, 같은 상품 동시 요청 병합, 캐릭터·거래소 공유 호출 예산을 사용합니다. 공식 API가 모르는 상품은 404 MARKET_ITEM_NOT_FOUND입니다.",
+        "operationId": "itemHistory",
+        "parameters": [
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "exclusiveMinimum": 0,
+              "maximum": 999999999
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "거래소 조회 성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseMarketItemHistoryResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_REQUEST: 검색 조건 오류",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "MARKET_ITEM_NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "406": {
+            "description": "NOT_ACCEPTABLE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "LOST_ARK_RATE_LIMITED: 캐릭터와 공유하는 호출 한도 초과",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "INTERNAL_SERVER_ERROR",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "LOST_ARK_API_ERROR: 외부 검색 조건 거절 또는 응답 오류",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "LOST_ARK_NOT_CONFIGURED 또는 MARKET_CACHE_UNAVAILABLE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "LOST_ARK_API_TIMEOUT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ApiResponseMarketOptionsResponse": {
+        "type": "object",
+        "description": "공통 API 응답. 오류 응답의 data는 null입니다.",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "업무 결과 코드",
+            "example": "CHARACTER_SEARCH_SUCCESS"
+          },
+          "message": {
+            "type": "string",
+            "description": "공개용 안내 메시지",
+            "example": "캐릭터 조회에 성공했습니다."
+          },
+          "data": {
+            "$ref": "#/components/schemas/MarketOptionsResponse",
+            "description": "성공 응답 데이터. 오류일 때 null"
+          }
+        },
+        "required": [
+          "code",
+          "data",
+          "message"
+        ]
+      },
+      "MarketOptionsResponse": {
+        "type": "object",
+        "properties": {
+          "observedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "공식 검색 옵션을 수집한 시각. 캐시 적중 시 유지됩니다."
+          },
+          "categories": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MarketCategoryResponse"
+            }
+          },
+          "itemGrades": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "itemTiers": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          "classes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "categories",
+          "classes",
+          "itemGrades",
+          "itemTiers",
+          "observedAt"
+        ]
+      },
+      "MarketCategoryResponse": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "codeName": {
+            "type": "string"
+          },
+          "subs": {
+            "anyOf": [
+              {
+                "type": "array",
+                "description": "하위 카테고리. 원천 미제공은 null, 제공된 빈 목록은 []",
+                "items": {
+                  "$ref": "#/components/schemas/MarketSubcategoryResponse"
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "code",
+          "codeName",
+          "subs"
+        ]
+      },
+      "MarketSubcategoryResponse": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "codeName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "codeName"
+        ]
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "description": "공통 오류 응답. HTTP 상태와 업무 코드를 함께 확인합니다.",
+        "properties": {
+          "code": {
+            "type": "string",
+            "example": "INVALID_REQUEST"
+          },
+          "message": {
+            "type": "string",
+            "example": "요청 값이 올바르지 않습니다."
+          },
+          "data": {
+            "type": "null"
+          }
+        },
+        "required": [
+          "code",
+          "data",
+          "message"
+        ]
+      },
+      "ApiResponseMarketPriceResponse": {
+        "type": "object",
+        "description": "공통 API 응답. 오류 응답의 data는 null입니다.",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "업무 결과 코드",
+            "example": "CHARACTER_SEARCH_SUCCESS"
+          },
+          "message": {
+            "type": "string",
+            "description": "공개용 안내 메시지",
+            "example": "캐릭터 조회에 성공했습니다."
+          },
+          "data": {
+            "$ref": "#/components/schemas/MarketPriceResponse",
+            "description": "성공 응답 데이터. 오류일 때 null"
+          }
+        },
+        "required": [
+          "code",
+          "data",
+          "message"
+        ]
+      },
+      "MarketPriceResponse": {
+        "type": "object",
+        "properties": {
+          "source": {
+            "type": "string",
+            "description": "공식 API의 목록 유형. ACTIVE_LISTING도 개별 매물 목록이 아닌 상품별 가격 요약입니다.",
+            "enum": [
+              "ACTIVE_LISTING",
+              "RECENT_TRADE"
+            ]
+          },
+          "observedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "공식 API에서 읽은 시각. 거래 체결 시각이나 가격 갱신 시각이 아닙니다."
+          },
+          "windowFrom": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "description": "공식 API가 집계 시작 시각을 제공하지 않아 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "windowTo": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "description": "공식 API가 집계 종료 시각을 제공하지 않아 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "search": {
+            "$ref": "#/components/schemas/MarketSearchCriteria"
+          },
+          "pageNo": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MarketPriceItem"
+            }
+          }
+        },
+        "required": [
+          "items",
+          "observedAt",
+          "pageNo",
+          "pageSize",
+          "search",
+          "source",
+          "totalCount",
+          "windowFrom",
+          "windowTo"
+        ]
+      },
+      "MarketSearchCriteria": {
+        "type": "object",
+        "properties": {
+          "categoryCode": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "characterClass": {
+            "type": "string"
+          },
+          "itemTier": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "itemGrade": {
+            "type": "string"
+          },
+          "itemName": {
+            "type": "string"
+          },
+          "pageNo": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sort": {
+            "type": "string",
+            "enum": [
+              "GRADE",
+              "YDAY_AVG_PRICE",
+              "RECENT_PRICE",
+              "CURRENT_MIN_PRICE"
+            ]
+          },
+          "sortCondition": {
+            "type": "string",
+            "enum": [
+              "ASC",
+              "DESC"
+            ]
+          }
+        },
+        "required": [
+          "categoryCode",
+          "characterClass",
+          "itemGrade",
+          "itemName",
+          "itemTier",
+          "pageNo",
+          "sort",
+          "sortCondition"
+        ]
+      },
+      "MarketPriceItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string"
+          },
+          "grade": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "bundleCount": {
+            "type": "integer",
+            "format": "int32",
+            "description": "공식 가격의 판매 묶음 수량. 개당 가격으로 자동 환산하지 않습니다."
+          },
+          "tradeRemainCount": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "yDayAvgPrice": {
+            "anyOf": [
+              {
+                "type": "number",
+                "description": "공식 전일 평균 가격. 미제공은 null, 0과 구분합니다."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "recentPrice": {
+            "anyOf": [
+              {
+                "type": "number",
+                "description": "공식 최근 거래 가격. 현재 구매 가능한 가격을 뜻하지 않습니다."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "currentMinPrice": {
+            "anyOf": [
+              {
+                "type": "number",
+                "description": "현재 판매 목록의 최저 가격. 최근 거래 목록에서는 항상 null입니다."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "bundleCount",
+          "currentMinPrice",
+          "grade",
+          "icon",
+          "id",
+          "name",
+          "recentPrice",
+          "tradeRemainCount",
+          "yDayAvgPrice"
+        ]
+      },
+      "MaterialQuoteRequest": {
+        "type": "object",
+        "properties": {
+          "priceBasis": {
+            "type": "string",
+            "description": "비교에 사용할 묶음 가격. 자동 대체하지 않습니다.",
+            "enum": [
+              "CURRENT_MIN_PRICE",
+              "RECENT_PRICE",
+              "YDAY_AVG_PRICE"
+            ]
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MaterialQuoteItemRequest"
+            },
+            "maxItems": 10,
+            "minItems": 1
+          }
+        },
+        "required": [
+          "items",
+          "priceBasis"
+        ]
+      },
+      "MaterialQuoteItemRequest": {
+        "type": "object",
+        "properties": {
+          "itemId": {
+            "type": "string",
+            "format": "int64",
+            "description": "조회 결과에서 선택한 정확한 상품 ID",
+            "example": 123,
+            "maximum": 9007199254740991,
+            "minimum": 1
+          },
+          "requiredQuantity": {
+            "type": "string",
+            "format": "int64",
+            "description": "필요한 상품 개수. 주머니 내용물 개수가 아닙니다.",
+            "example": 250,
+            "maximum": 999999999,
+            "minimum": 0
+          },
+          "ownedQuantity": {
+            "type": "string",
+            "format": "int64",
+            "description": "이번 계획에 사용할 수 있는 보유 개수",
+            "example": 40,
+            "maximum": 999999999,
+            "minimum": 0
+          },
+          "search": {
+            "$ref": "#/components/schemas/MarketSearchRequest"
+          }
+        },
+        "required": [
+          "itemId",
+          "ownedQuantity",
+          "requiredQuantity",
+          "search"
+        ]
+      },
+      "MarketSearchRequest": {
+        "type": "object",
+        "properties": {
+          "categoryCode": {
+            "type": "integer",
+            "format": "int32",
+            "description": "공식 거래소 카테고리 코드",
+            "example": 50000,
+            "exclusiveMinimum": 0
+          },
+          "characterClass": {
+            "type": "string",
+            "maxLength": 32,
+            "minLength": 0
+          },
+          "itemTier": {
+            "type": "integer",
+            "format": "int32",
+            "exclusiveMinimum": 0
+          },
+          "itemGrade": {
+            "type": "string",
+            "maxLength": 16,
+            "minLength": 0
+          },
+          "itemName": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 0
+          },
+          "pageNo": {
+            "type": "integer",
+            "format": "int32",
+            "default": 1,
+            "description": "서비스 조회 범위: 1~1000 페이지",
+            "maximum": 1000,
+            "minimum": 1
+          },
+          "sort": {
+            "type": "string",
+            "default": "RECENT_PRICE",
+            "enum": [
+              "GRADE",
+              "YDAY_AVG_PRICE",
+              "RECENT_PRICE",
+              "CURRENT_MIN_PRICE"
+            ]
+          },
+          "sortCondition": {
+            "type": "string",
+            "default": "ASC",
+            "enum": [
+              "ASC",
+              "DESC"
+            ]
+          }
+        },
+        "required": [
+          "categoryCode"
+        ]
+      },
+      "ApiResponseMaterialQuoteResponse": {
+        "type": "object",
+        "description": "공통 API 응답. 오류 응답의 data는 null입니다.",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "업무 결과 코드",
+            "example": "CHARACTER_SEARCH_SUCCESS"
+          },
+          "message": {
+            "type": "string",
+            "description": "공개용 안내 메시지",
+            "example": "캐릭터 조회에 성공했습니다."
+          },
+          "data": {
+            "$ref": "#/components/schemas/MaterialQuoteResponse",
+            "description": "성공 응답 데이터. 오류일 때 null"
+          }
+        },
+        "required": [
+          "code",
+          "data",
+          "message"
+        ]
+      },
+      "MaterialQuoteResponse": {
+        "type": "object",
+        "properties": {
+          "ruleVersion": {
+            "type": "string"
+          },
+          "priceBasis": {
+            "type": "string",
+            "enum": [
+              "CURRENT_MIN_PRICE",
+              "RECENT_PRICE",
+              "YDAY_AVG_PRICE"
+            ]
+          },
+          "source": {
+            "type": "string",
+            "description": "가격을 읽은 목록. 현재 판매 목록의 최근/전일 가격도 선택할 수 있습니다.",
+            "enum": [
+              "ACTIVE_LISTING",
+              "RECENT_TRADE"
+            ]
+          },
+          "calculatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "견적 계산 완료 시각. 각 항목의 가격 수집 시각과 다릅니다."
+          },
+          "complete": {
+            "type": "boolean",
+            "description": "모든 항목의 구매 비용을 계산할 수 있는지 여부. 실제 구매 가능 보장은 아닙니다."
+          },
+          "knownCostGold": {
+            "type": "number",
+            "description": "계산 가능한 항목만의 골드 소계"
+          },
+          "totalCostGold": {
+            "anyOf": [
+              {
+                "type": "number",
+                "description": "미계산 항목이 하나라도 있으면 null. 재련 골드·페온·판매 수수료는 제외합니다."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MaterialQuoteLineResponse"
+            }
+          }
+        },
+        "required": [
+          "calculatedAt",
+          "complete",
+          "items",
+          "knownCostGold",
+          "priceBasis",
+          "ruleVersion",
+          "source",
+          "totalCostGold"
+        ]
+      },
+      "MaterialQuoteLineResponse": {
+        "type": "object",
+        "properties": {
+          "itemId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "requiredQuantity": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "ownedQuantity": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "missingQuantity": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "search": {
+            "$ref": "#/components/schemas/MaterialQuoteSearchResponse"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PRICED",
+              "COVERED_BY_INVENTORY",
+              "ITEM_NOT_IN_PAGE",
+              "AMBIGUOUS_ITEM",
+              "TRADE_RESTRICTED_ITEM",
+              "PRICE_UNAVAILABLE",
+              "ZERO_PRICE"
+            ]
+          },
+          "observedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "description": "가격 페이지 관측 시각. 재고로 충당하면 조회하지 않아 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "itemName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "bundleCount": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "pricePerBundle": {
+            "anyOf": [
+              {
+                "type": "number",
+                "description": "선택한 공식 묶음 가격. 0을 무료로 해석하지 않고 ZERO_PRICE로 계산 제외"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "purchase": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MaterialPurchaseResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "bundleCount",
+          "itemId",
+          "itemName",
+          "missingQuantity",
+          "observedAt",
+          "ownedQuantity",
+          "pricePerBundle",
+          "purchase",
+          "requiredQuantity",
+          "search",
+          "status"
+        ]
+      },
+      "MaterialQuoteSearchResponse": {
+        "type": "object",
+        "properties": {
+          "categoryCode": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "characterClass": {
+            "type": "string"
+          },
+          "itemTier": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "itemGrade": {
+            "type": "string"
+          },
+          "itemName": {
+            "type": "string"
+          },
+          "pageNo": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sort": {
+            "type": "string",
+            "enum": [
+              "GRADE",
+              "YDAY_AVG_PRICE",
+              "RECENT_PRICE",
+              "CURRENT_MIN_PRICE"
+            ]
+          },
+          "sortCondition": {
+            "type": "string",
+            "enum": [
+              "ASC",
+              "DESC"
+            ]
+          }
+        },
+        "required": [
+          "categoryCode",
+          "characterClass",
+          "itemGrade",
+          "itemName",
+          "itemTier",
+          "pageNo",
+          "sort",
+          "sortCondition"
+        ]
+      },
+      "MaterialPurchaseResponse": {
+        "type": "object",
+        "properties": {
+          "bundleQuantity": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "purchaseQuantity": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "surplusQuantity": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "costGold": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "bundleQuantity",
+          "costGold",
+          "purchaseQuantity",
+          "surplusQuantity"
+        ]
+      },
+      "MaterialPriceRequest": {
+        "type": "object",
+        "properties": {
+          "priceBasis": {
+            "type": "string",
+            "description": "단가 계산에 쓸 묶음 가격. 자동 대체하지 않습니다.",
+            "enum": [
+              "CURRENT_MIN_PRICE",
+              "RECENT_PRICE",
+              "YDAY_AVG_PRICE"
+            ]
+          },
+          "names": {
+            "type": "array",
+            "description": "재료 이름(재련 계획 응답의 이름 그대로). 운명의 파편은 주머니 시세로 환산합니다.",
+            "items": {
+              "type": "string",
+              "maxLength": 64,
+              "minLength": 0
+            },
+            "maxItems": 20,
+            "minItems": 1
+          }
+        },
+        "required": [
+          "names",
+          "priceBasis"
+        ]
+      },
+      "ApiResponseMaterialPriceResponse": {
+        "type": "object",
+        "description": "공통 API 응답. 오류 응답의 data는 null입니다.",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "업무 결과 코드",
+            "example": "CHARACTER_SEARCH_SUCCESS"
+          },
+          "message": {
+            "type": "string",
+            "description": "공개용 안내 메시지",
+            "example": "캐릭터 조회에 성공했습니다."
+          },
+          "data": {
+            "$ref": "#/components/schemas/MaterialPriceResponse",
+            "description": "성공 응답 데이터. 오류일 때 null"
+          }
+        },
+        "required": [
+          "code",
+          "data",
+          "message"
+        ]
+      },
+      "MaterialPriceResponse": {
+        "type": "object",
+        "description": "재료 이름별 1개당 골드. 거래소 현재 판매 목록 첫 페이지에서 이름이 정확히 같은 상품만 사용합니다.",
+        "properties": {
+          "priceBasis": {
+            "type": "string",
+            "enum": [
+              "CURRENT_MIN_PRICE",
+              "RECENT_PRICE",
+              "YDAY_AVG_PRICE"
+            ]
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MaterialPriceItemResponse"
+            }
+          }
+        },
+        "required": [
+          "items",
+          "priceBasis"
+        ]
+      },
+      "MaterialPriceItemResponse": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "요청한 재료 이름"
+          },
+          "status": {
+            "type": "string",
+            "description": "PRICED: 단가 계산, NOT_FOUND: 같은 이름 상품 없음, PRICE_UNAVAILABLE: 선택 가격이 없거나 0",
+            "enum": [
+              "PRICED",
+              "NOT_FOUND",
+              "PRICE_UNAVAILABLE"
+            ]
+          },
+          "unitPriceGold": {
+            "anyOf": [
+              {
+                "type": "number",
+                "description": "1개당 골드(소수 여섯째 자리). 파편은 가장 싼 주머니 기준 파편 1개당"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sourceItemName": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "사용한 거래소 상품 이름"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "bundleCount": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "bundlePrice": {
+            "anyOf": [
+              {
+                "type": "number",
+                "description": "선택한 기준의 묶음 가격"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "contentsPerItem": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32",
+                "description": "주머니 1개에 든 파편 수(공식 Tooltip). 파편이 아니면 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "observedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "거래소 페이지를 읽은 UTC 시각. 캐시 적중에도 유지"
+          }
+        },
+        "required": [
+          "bundleCount",
+          "bundlePrice",
+          "contentsPerItem",
+          "name",
+          "observedAt",
+          "sourceItemName",
+          "status",
+          "unitPriceGold"
+        ]
+      },
+      "ApiResponseMarketTabsResponse": {
+        "type": "object",
+        "description": "공통 API 응답. 오류 응답의 data는 null입니다.",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "업무 결과 코드",
+            "example": "CHARACTER_SEARCH_SUCCESS"
+          },
+          "message": {
+            "type": "string",
+            "description": "공개용 안내 메시지",
+            "example": "캐릭터 조회에 성공했습니다."
+          },
+          "data": {
+            "$ref": "#/components/schemas/MarketTabsResponse",
+            "description": "성공 응답 데이터. 오류일 때 null"
+          }
+        },
+        "required": [
+          "code",
+          "data",
+          "message"
+        ]
+      },
+      "MarketTabsResponse": {
+        "type": "object",
+        "description": "시세 보드 탭 정의. 보석·장신구는 경매장 대상이라 포함하지 않습니다.",
+        "properties": {
+          "tabs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MarketTabResponse"
+            }
+          },
+          "sorts": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "sorts",
+          "tabs"
+        ]
+      },
+      "MarketTabResponse": {
+        "type": "object",
+        "properties": {
+          "tab": {
+            "type": "string",
+            "enum": [
+              "REFINING",
+              "REFINING_EXTRA",
+              "ARK_GRID",
+              "WEAPON_EVOLUTION",
+              "ENGRAVING_BOOK",
+              "LIFE",
+              "BATTLE_ITEM",
+              "FOOD"
+            ]
+          },
+          "label": {
+            "type": "string"
+          },
+          "categoryCode": {
+            "type": "integer",
+            "format": "int32",
+            "description": "공식 거래소 카테고리 코드"
+          },
+          "defaultTier": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32",
+                "description": "기본 티어. null이면 티어 조건 없음"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "categoryCode",
+          "defaultTier",
+          "label",
+          "tab"
+        ]
+      },
+      "ApiResponseMarketBoardResponse": {
+        "type": "object",
+        "description": "공통 API 응답. 오류 응답의 data는 null입니다.",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "업무 결과 코드",
+            "example": "CHARACTER_SEARCH_SUCCESS"
+          },
+          "message": {
+            "type": "string",
+            "description": "공개용 안내 메시지",
+            "example": "캐릭터 조회에 성공했습니다."
+          },
+          "data": {
+            "$ref": "#/components/schemas/MarketBoardResponse",
+            "description": "성공 응답 데이터. 오류일 때 null"
+          }
+        },
+        "required": [
+          "code",
+          "data",
+          "message"
+        ]
+      },
+      "MarketBoardResponse": {
+        "type": "object",
+        "description": "시세 보드 한 페이지. 가격은 모두 묶음 기준 골드입니다.",
+        "properties": {
+          "ruleVersion": {
+            "type": "string"
+          },
+          "changeBasis": {
+            "type": "string",
+            "description": "등락률 계산 기준 설명"
+          },
+          "tab": {
+            "type": "string",
+            "enum": [
+              "REFINING",
+              "REFINING_EXTRA",
+              "ARK_GRID",
+              "WEAPON_EVOLUTION",
+              "ENGRAVING_BOOK",
+              "LIFE",
+              "BATTLE_ITEM",
+              "FOOD"
+            ]
+          },
+          "tabLabel": {
+            "type": "string"
+          },
+          "tier": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32",
+                "description": "적용한 티어. null이면 티어 조건 없음"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sort": {
+            "type": "string"
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "observedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "보드에 쓴 공식 페이지 중 가장 이른 수집 시각(UTC)"
+          },
+          "totalItems": {
+            "type": "integer",
+            "format": "int32",
+            "description": "공식 검색의 탭 전체 품목 수"
+          },
+          "scannedItems": {
+            "type": "integer",
+            "format": "int32",
+            "description": "정렬에 사용한 품목 수. rise/fall은 스캔 품목 수, 그 외는 이 페이지 품목 수"
+          },
+          "complete": {
+            "type": "boolean",
+            "description": "rise/fall이 탭 전체를 스캔했는지. 스캔 상한(10페이지)을 넘으면 false"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MarketBoardItemResponse"
+            }
+          }
+        },
+        "required": [
+          "changeBasis",
+          "complete",
+          "items",
+          "observedAt",
+          "page",
+          "pageSize",
+          "ruleVersion",
+          "scannedItems",
+          "sort",
+          "tab",
+          "tabLabel",
+          "tier",
+          "totalItems"
+        ]
+      },
+      "MarketBoardItemResponse": {
+        "type": "object",
+        "properties": {
+          "itemId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "공식 상품 ID. 상세는 /api/v1/markets/items/{itemId}/history"
+          },
+          "name": {
+            "type": "string"
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "grade": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "bundleCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "tradeRemainCount": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "currentMinPrice": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "recentPrice": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "yesterdayAvgPrice": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "changeDay": {
+            "anyOf": [
+              {
+                "type": "number",
+                "description": "전일 평균가 대비 현재 최저가 등락률 %. 전일 평균 0·없음 또는 최저가 없음이면 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "changeWeek": {
+            "anyOf": [
+              {
+                "type": "number",
+                "description": "7일 가중 평균가 대비 등락률 %. 이력 캐시가 없으면 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "spark7": {
+            "type": "array",
+            "description": "최근 완료일 최대 7일 평균가(오래된 날부터). 이력 캐시가 없으면 빈 배열",
+            "items": {
+              "$ref": "#/components/schemas/MarketSparkPointResponse"
+            }
+          },
+          "historyAvailable": {
+            "type": "boolean",
+            "description": "이력 캐시로 changeWeek·spark7을 채웠는지"
+          }
+        },
+        "required": [
+          "bundleCount",
+          "changeDay",
+          "changeWeek",
+          "currentMinPrice",
+          "grade",
+          "historyAvailable",
+          "icon",
+          "itemId",
+          "name",
+          "recentPrice",
+          "spark7",
+          "tradeRemainCount",
+          "yesterdayAvgPrice"
+        ]
+      },
+      "MarketSparkPointResponse": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "averagePrice": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "averagePrice",
+          "date"
+        ]
+      },
+      "ApiResponseMarketItemHistoryResponse": {
+        "type": "object",
+        "description": "공통 API 응답. 오류 응답의 data는 null입니다.",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "업무 결과 코드",
+            "example": "CHARACTER_SEARCH_SUCCESS"
+          },
+          "message": {
+            "type": "string",
+            "description": "공개용 안내 메시지",
+            "example": "캐릭터 조회에 성공했습니다."
+          },
+          "data": {
+            "$ref": "#/components/schemas/MarketItemHistoryResponse",
+            "description": "성공 응답 데이터. 오류일 때 null"
+          }
+        },
+        "required": [
+          "code",
+          "data",
+          "message"
+        ]
+      },
+      "MarketItemHistoryResponse": {
+        "type": "object",
+        "description": "공식 거래소 상품의 최근 14일 일별 평균가·거래량. 같은 상품 ID의 거래 가능 횟수·묶음별 변형을 나눠 제공합니다.",
+        "properties": {
+          "itemId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "observedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "서버가 공식 상세를 읽은 UTC 시각. 캐시 적중 시 유지"
+          },
+          "baseDate": {
+            "type": "string",
+            "format": "date",
+            "description": "부분 집계 판단 기준일(observedAt의 한국 날짜). 이 날짜 이후 값은 partial=true"
+          },
+          "variants": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MarketItemVariantResponse"
+            }
+          }
+        },
+        "required": [
+          "baseDate",
+          "itemId",
+          "observedAt",
+          "variants"
+        ]
+      },
+      "MarketItemVariantResponse": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "tradeRemainCount": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32",
+                "description": "남은 거래 가능 횟수. 공식 값이 없으면 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "bundleCount": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "days": {
+            "type": "array",
+            "description": "최신순 일별 시세",
+            "items": {
+              "$ref": "#/components/schemas/MarketDailyStatResponse"
+            }
+          },
+          "summary": {
+            "$ref": "#/components/schemas/MarketItemSummaryResponse"
+          }
+        },
+        "required": [
+          "bundleCount",
+          "days",
+          "name",
+          "summary",
+          "tradeRemainCount"
+        ]
+      },
+      "MarketDailyStatResponse": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "averagePrice": {
+            "type": "number",
+            "description": "공식 일별 평균 거래가(묶음 기준)"
+          },
+          "tradeCount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "partial": {
+            "type": "boolean",
+            "description": "오늘(진행 중) 부분 집계 여부"
+          }
+        },
+        "required": [
+          "averagePrice",
+          "date",
+          "partial",
+          "tradeCount"
+        ]
+      },
+      "MarketItemSummaryResponse": {
+        "type": "object",
+        "description": "완료일만 사용한 요약. 등락률은 % 단위(소수 둘째 자리)",
+        "properties": {
+          "latestDate": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date",
+                "description": "가장 최근 완료일"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "latestAveragePrice": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "previousAveragePrice": {
+            "anyOf": [
+              {
+                "type": "number",
+                "description": "그 전 완료일 평균가"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "dayChangeRate": {
+            "anyOf": [
+              {
+                "type": "number",
+                "description": "전일 대비 등락률 %"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sevenDayDays": {
+            "type": "integer",
+            "format": "int32",
+            "description": "7일 평균에 쓴 완료일 수(최대 7)"
+          },
+          "sevenDayAveragePrice": {
+            "anyOf": [
+              {
+                "type": "number",
+                "description": "최근 완료일 최대 7일의 거래량 가중 평균가"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sevenDayChangeRate": {
+            "anyOf": [
+              {
+                "type": "number",
+                "description": "7일 가중 평균 대비 최근 완료일 등락률 %"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sevenDayTradeCount": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "required": [
+          "dayChangeRate",
+          "latestAveragePrice",
+          "latestDate",
+          "previousAveragePrice",
+          "sevenDayAveragePrice",
+          "sevenDayChangeRate",
+          "sevenDayDays",
+          "sevenDayTradeCount"
+        ]
+      }
+    }
+  }
+}
