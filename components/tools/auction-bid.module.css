@@ -75,39 +75,6 @@
   color: var(--muted-foreground);
   font-size: var(--text-caption);
 }
-.segmented {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: var(--space-1);
-  padding: var(--space-1);
-  border-radius: var(--radius-pill);
-  background: var(--muted);
-}
-.segmented label {
-  position: relative;
-  padding: var(--space-2) 0;
-  border-radius: var(--radius-pill);
-  font-size: var(--text-body);
-  text-align: center;
-  cursor: pointer;
-  transition: 
-    background-color var(--duration-fast) var(--ease-out),
-    box-shadow var(--duration-fast) var(--ease-out);
-}
-.segmented label[data-checked] {
-  background: var(--card);
-  font-weight: 600;
-  box-shadow: 0 0 0 1px var(--secondary);
-}
-.segmented input {
-  position: absolute;
-  opacity: 0;
-  pointer-events: none;
-}
-.segmented label:has(input:focus-visible) {
-  outline: 3px solid var(--primary);
-  outline-offset: 2px;
-}
 .partyHint {
   color: var(--muted-foreground);
   font-size: var(--text-caption);
@@ -360,8 +327,11 @@
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .segmented label,
   .copy {
     transition: none;
   }
+}
+
+.partySegment {
+  margin-top: var(--space-2);
 }

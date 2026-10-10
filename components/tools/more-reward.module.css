@@ -256,9 +256,11 @@
   .workspace {
     grid-template-columns: minmax(0, 1fr);
   }
+  /* Below the table on phones: the value panel grows when prices arrive
+     (unpriced inputs), and above the table that pushed everything down
+     (CLS 0.29 at 390). */
   .side {
     position: static;
-    order: -1;
   }
 }
 @media (prefers-reduced-motion: reduce) {

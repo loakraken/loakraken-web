@@ -4,6 +4,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { ArrowLeft, Check, Copy, Gavel, Info } from "lucide-react";
 import Link from "next/link";
 import { SiteHeader } from "@/components/site/site-header";
+import { SegmentedControl, SegmentedItem } from "@/components/ui/segmented-control";
 import {
   Tooltip,
   TooltipContent,
@@ -393,32 +394,27 @@ function AuctionContent({
 
               <fieldset className={styles.party}>
                 <legend>파티 인원</legend>
-                <div className={styles.segmented}>
-                  {PARTY_PRESETS.map((preset) => {
-                    // A typed size equal to a preset lights that preset too;
-                    // an invalid typed size lights none.
-                    const checked = !cError && party === preset.size;
-                    return (
-                      <label
-                        key={preset.size}
-                        data-checked={checked || undefined}
-                        title={"hint" in preset ? preset.hint : undefined}
-                      >
-                        <input
-                          type="radio"
-                          name="party"
-                          value={preset.size}
-                          checked={checked}
-                          onChange={() => {
-                            setCustomText("");
-                            setParty(preset.size);
-                          }}
-                        />
-                        {preset.label}
-                      </label>
-                    );
-                  })}
-                </div>
+                <SegmentedControl
+                  className={styles.partySegment}
+                  aria-label="파티 인원"
+                  // A typed size equal to a preset lights that preset too;
+                  // an invalid or other typed size lights none.
+                  value={!cError && PARTY_PRESETS.some((p) => p.size === party) ? party : null}
+                  onValueChange={(value) => {
+                    setCustomText("");
+                    setParty(value as number);
+                  }}
+                >
+                  {PARTY_PRESETS.map((preset) => (
+                    <SegmentedItem
+                      key={preset.size}
+                      value={preset.size}
+                      title={"hint" in preset ? preset.hint : undefined}
+                    >
+                      {preset.label}
+                    </SegmentedItem>
+                  ))}
+                </SegmentedControl>
                 <p className={styles.partyHint}>
                   30인은 필드 보스·카오스게이트 기준이에요.
                 </p>

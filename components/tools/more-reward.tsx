@@ -5,6 +5,7 @@ import { ArrowLeft, Gift } from "lucide-react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { SiteHeader } from "@/components/site/site-header";
+import { SegmentedControl, SegmentedItem } from "@/components/ui/segmented-control";
 import { MarketQueryError, postMaterialPrices } from "@/lib/market/client";
 import {
   marketFailureCopy,
@@ -363,20 +364,18 @@ export function MoreRewardTool() {
               <h2 id="value-heading" className={styles.sectionTitle}>
                 재료 값 매기기
               </h2>
-              <div className={quote.segmented} role="radiogroup" aria-label="시세 기준">
+              <SegmentedControl
+                fill
+                aria-label="시세 기준"
+                value={basis}
+                onValueChange={(value) => setBasis(value as PriceBasis)}
+              >
                 {priceBases.map((item) => (
-                  <label key={item.value} data-checked={basis === item.value || undefined}>
-                    <input
-                      type="radio"
-                      name="more-price-basis"
-                      value={item.value}
-                      checked={basis === item.value}
-                      onChange={() => setBasis(item.value)}
-                    />
+                  <SegmentedItem key={item.value} value={item.value}>
                     {item.label}
-                  </label>
+                  </SegmentedItem>
                 ))}
-              </div>
+              </SegmentedControl>
               {failure && (
                 <div className={quote.notice}>
                   <div role="alert">

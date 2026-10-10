@@ -397,3 +397,8 @@
 .cost {
   font-weight: 600;
 }
+
+/* Spacing for the shared SegmentedControl (components/ui). */
+.segment {
+  margin-top: 24px;
+}

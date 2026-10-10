@@ -36,9 +36,11 @@ import {
   type MarketFailure,
   type MarketSearch,
   type MaterialQuote,
+  type PriceBasis,
 } from "@/lib/market/model";
 import { toQuoteRequest, usePlan, type PlanRow } from "@/lib/market/store";
 import { SiteHeader } from "@/components/site/site-header";
+import { SegmentedControl, SegmentedItem } from "@/components/ui/segmented-control";
 import styles from "./material-quote.module.css";
 
 const kst = new Intl.DateTimeFormat("ko-KR", {
@@ -566,27 +568,18 @@ function MaterialQuoteContent() {
             <section className={styles.card} aria-labelledby="basis-heading">
               <p className={styles.step}>1</p>
               <h2 id="basis-heading">가격 기준</h2>
-              <div
-                className={styles.segmented}
-                role="radiogroup"
+              <SegmentedControl
+                className={styles.basis}
                 aria-label="가격 기준"
+                value={basis}
+                onValueChange={(value) => setBasis(value as PriceBasis)}
               >
                 {priceBases.map((item) => (
-                  <label
-                    key={item.value}
-                    data-checked={basis === item.value || undefined}
-                  >
-                    <input
-                      type="radio"
-                      name="price-basis"
-                      value={item.value}
-                      checked={basis === item.value}
-                      onChange={() => setBasis(item.value)}
-                    />
+                  <SegmentedItem key={item.value} value={item.value}>
                     {item.label}
-                  </label>
+                  </SegmentedItem>
                 ))}
-              </div>
+              </SegmentedControl>
               <p className={styles.hint}>{basisHint}</p>
             </section>
 
