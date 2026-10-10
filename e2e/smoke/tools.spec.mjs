@@ -11,7 +11,9 @@ test.describe("재련 기대 비용 @smoke", () => {
   test("모든 부위 목표를 고르면 바로 계산한다", async ({ page }) => {
     await page.getByRole("group", { name: "모든 부위 목표 단계" }).getByRole("button", { name: "+20" }).click();
     // 6부위 × (+18 → +20) = 12단계
-    await expect(page.getByText(/총 12단계/)).toBeVisible();
+    // 결론 카드(맨 위)와 결과 영역이 같은 단계 수를 보여 준다(피아식별 심각 2).
+    await expect(page.getByRole("region", { name: /목표까지 예상 비용/ }).getByText(/총 12단계/)).toBeVisible();
+    await expect(page.getByRole("region", { name: "예상 소모" }).getByText(/총 12단계/)).toBeVisible();
     await expect(page.getByRole("heading", { name: "필요 재료" }).or(page.getByText("필요 재료")).first()).toBeVisible();
     await expectNoHorizontalOverflow(page);
   });

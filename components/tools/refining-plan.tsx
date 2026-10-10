@@ -413,10 +413,15 @@ function PriceSource({ line }: { line: CostLine }) {
   ) : null;
 }
 
-function Result({ plans, mode }: { plans: PartPlan[]; mode: Mode }) {
+type Owned = Record<string, string>;
+
+/**
+ * Plan totals plus market prices for the materials. The top summary and the
+ * result section both call it with the same key, so react-query shares one
+ * request and the two always show the same total.
+ */
+function useRefiningCost(plans: PartPlan[], mode: Mode, basis: PriceBasis, owned: Owned) {
   const summary = summarize(plans, mode);
-  const [owned, setOwned] = useState<Record<string, string>>({});
-  const [basis, setBasis] = useState<PriceBasis>("CURRENT_MIN_PRICE");
   const names = summary.materials.map((item) => item.name);
   const prices = useQuery({
     queryKey: ["material-prices", basis, [...names].sort().join("|")],
@@ -429,14 +434,64 @@ function Result({ plans, mode }: { plans: PartPlan[]; mode: Mode }) {
     refetchOnReconnect: false,
   });
   const priceList = prices.data?.data.items ?? null;
-  const priceLimit = useRateLimit(prices.error);
-  const { lines, buyGold, valueRaw, unpriced } = costLines(
+  const cost = costLines(
     summary.materials,
     Object.fromEntries(
       Object.entries(owned).map(([name, value]) => [name, Number(value || 0)]),
     ),
     priceList,
   );
+  const total = summary.gold + (priceList ? cost.buyGold : 0);
+  return { summary, prices, priceList, total, ...cost };
+}
+
+/** Conclusion first (피아식별 심각 2): the total sits above the inputs. */
+function TopSummary({
+  plans,
+  mode,
+  basis,
+  owned,
+}: {
+  plans: PartPlan[];
+  mode: Mode;
+  basis: PriceBasis;
+  owned: Owned;
+}) {
+  const { summary, priceList, total } = useRefiningCost(plans, mode, basis, owned);
+  return (
+    <>
+      <p className={styles.topTotal}>
+        {formatCount(total)}
+        <span>골드</span>
+      </p>
+      <p className={styles.topNote}>
+        {priceList ? "재련 골드 + 부족한 재료 구매 골드" : "재련 골드(재료 시세를 불러오는 중)"} · 총{" "}
+        {formatCount(summary.stageCount)}단계, 시도{" "}
+        {formatCount(summary.attempts, mode === "expected" ? 1 : 0)}회 ·{" "}
+        <a href="#estimate-heading">재료와 부위별 내역</a>
+      </p>
+    </>
+  );
+}
+
+function Result({
+  plans,
+  mode,
+  basis,
+  setBasis,
+  owned,
+  setOwned,
+}: {
+  plans: PartPlan[];
+  mode: Mode;
+  basis: PriceBasis;
+  setBasis: (basis: PriceBasis) => void;
+  owned: Owned;
+  setOwned: (update: (prev: Owned) => Owned) => void;
+}) {
+  const { summary, prices, priceList, total, lines, buyGold, valueRaw, unpriced } =
+    useRefiningCost(plans, mode, basis, owned);
+  const priceLimit = useRateLimit(prices.error);
   const priceFailure =
     prices.error instanceof MarketQueryError
       ? prices.error.info
@@ -455,7 +510,7 @@ function Result({ plans, mode }: { plans: PartPlan[]; mode: Mode }) {
   return (
     <>
       <p className={quote.total}>
-        {formatCount(summary.gold + (priceList ? buyGold : 0))}
+        {formatCount(total)}
         <span>골드</span>
       </p>
       <p className={quote.totalNote}>
@@ -669,6 +724,8 @@ function RefiningContent({ initialName }: { initialName: string }) {
     growthSupport: true,
   });
   const [mode, setMode] = useState<Mode>("expected");
+  const [owned, setOwned] = useState<Owned>({});
+  const [basis, setBasis] = useState<PriceBasis>("CURRENT_MIN_PRICE");
   const setPart = (id: PartId, next: PartState) =>
     setParts((prev) => ({ ...prev, [id]: next }));
 
@@ -727,6 +784,24 @@ function RefiningContent({ initialName }: { initialName: string }) {
         </section>
 
         <div className={quote.band}>
+          <section
+            className={styles.top}
+            aria-labelledby="top-summary-heading"
+            aria-live="polite"
+          >
+            <p className={quote.kicker} id="top-summary-heading">
+              목표까지 예상 비용 <span className={styles.topMode}>{MODES.find((m) => m.id === mode)?.label}</span>
+            </p>
+            {failure ? (
+              <p className={styles.topNote}>계산하지 못했어요. 아래 결과에서 다시 시도할 수 있어요.</p>
+            ) : complete ? (
+              <TopSummary plans={plans} mode={mode} basis={basis} owned={owned} />
+            ) : (
+              <p className={styles.topNote}>
+                {requests.length ? "계산하고 있어요." : "아래에서 목표 단계를 현재보다 높게 고르면 여기에 총 비용이 나와요."}
+              </p>
+            )}
+          </section>
           <div className={quote.workspace}>
             <section className={quote.card} aria-labelledby="load-heading">
               <p className={quote.step}>1</p>
@@ -897,7 +972,14 @@ function RefiningContent({ initialName }: { initialName: string }) {
               계산하고 있어요.
             </p>
           ) : (
-            <Result plans={plans} mode={mode} />
+            <Result
+              plans={plans}
+              mode={mode}
+              basis={basis}
+              setBasis={setBasis}
+              owned={owned}
+              setOwned={setOwned}
+            />
           )}
         </section>
       </main>
