@@ -10,6 +10,7 @@ import {
 } from "@/lib/character/model";
 import { parseSourceText, sourcePlainText } from "@/lib/character/source-text";
 import styles from "./character.module.css";
+import expand from "@/components/site/expand.module.css";
 
 // Missing values read as "-" (as the other sites show them).
 export const number = (value: number | null | undefined) =>
@@ -87,7 +88,7 @@ export function Evidence({
     }
   }
   return (
-    <details className={styles.evidence}>
+    <details className={`${styles.evidence} ${expand.expand}`}>
       <summary>원본 데이터 보기</summary>
       <code>{path}</code>
       <pre>

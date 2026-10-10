@@ -1,0 +1,22 @@
+/* Opening a <details> (motion guide 7, item 8): the content's height eases
+   open and closed in 220ms. Chrome animates the height through
+   ::details-content and interpolate-size; other browsers open at once, as
+   before. Reduced motion opens at once everywhere. */
+.expand {
+  interpolate-size: allow-keywords;
+}
+.expand::details-content {
+  block-size: 0;
+  overflow: clip;
+  transition:
+    block-size 220ms var(--ease-out),
+    content-visibility 220ms allow-discrete;
+}
+.expand[open]::details-content {
+  block-size: auto;
+}
+@media (prefers-reduced-motion: reduce) {
+  .expand::details-content {
+    transition: none;
+  }
+}

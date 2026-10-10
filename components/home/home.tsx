@@ -53,6 +53,7 @@ import { RecentCard } from "./recent-card";
 import { PopularCard } from "./popular-card";
 import { ServerCard } from "./server-card";
 import styles from "./home.module.css";
+import expand from "@/components/site/expand.module.css";
 import { countdownText, retryLabel } from "@/lib/api/rate-limit";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 
@@ -486,7 +487,7 @@ function ScheduleBoard({ renderedAt }: { renderedAt?: number }) {
             clock={now}
           />
           {data.others.length > 0 && (
-            <details className={styles.others}>
+            <details className={`${styles.others} ${expand.expand}`}>
               <summary>
                 기타 일정 <span>{data.others.length}개</span>
                 <ChevronRight size={14} aria-hidden="true" />
