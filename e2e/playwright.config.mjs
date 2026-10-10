@@ -61,6 +61,9 @@ export default defineConfig({
             name: "perf",
             testMatch: ["perf/**/*.spec.mjs"],
             retries: 0,
+            // 한 파일 안에서는 차례로 잰다(측정끼리 CPU를 다투지 않게). serial 모드가 아니라서
+            // ENFORCE로 한 화면이 실패해도 나머지 화면은 계속 잰다(배포·운영 #197 지적).
+            fullyParallel: false,
             use: { ...devices["Desktop Chrome"], ...browser, viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: false, trace: "off" },
           },
         ]
