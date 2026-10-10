@@ -19,7 +19,7 @@ export type MoreData = {
   version: number;
   checkedAt: string;
   rule: string;
-  sources: Record<string, { title: string; url: string; date: string }>;
+  sources: Record<string, { title: string; url: string | null; date: string }>;
   raids: MoreRaid[];
 };
 

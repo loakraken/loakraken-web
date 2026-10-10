@@ -918,8 +918,8 @@ function RefiningContent({ initialName }: { initialName: string }) {
               <p className={quote.hint}>
                 책은 기본으로 빼고 계산해요. 게임에는 &ldquo;특수 재료 별 효과는
                 확률에 따라 적용되지 않을 수 있습니다&rdquo;라고 나오고, 그 확률은
-                공개되지 않았어요. 켜면 책 효과가 매번 적용된다고 보고 계산하며,
-                다른 계산 사이트와 같은 가정이에요. 책은 운명의 업화에만 적용돼요.
+                공개되지 않았어요. 켜면 책 효과가 매번 적용된다고 보고 계산해요.
+                책은 운명의 업화에만 적용돼요.
               </p>
             </section>
           </div>
