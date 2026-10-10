@@ -4,7 +4,7 @@ import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Gauge } from "lucide-react";
+import { ArrowLeft, Speedometer } from "@/components/ui/icons";
 import {
   characterNameError,
   normalizeCharacterName,
@@ -751,7 +751,7 @@ function CritSpeedContent({ initialName }: { initialName: string }) {
       <main id="crit-main">
         <section className={quote.hero} aria-labelledby="crit-page-heading">
           <span className={quote.heroIcon} aria-hidden="true">
-            <Gauge size={18} />
+            <Speedometer size={18} />
           </span>
           <p className={quote.heroKicker}>전투 계산</p>
           <h1 id="crit-page-heading">치적·뭉가·음돌</h1>

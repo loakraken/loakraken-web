@@ -62,7 +62,7 @@ function SearchBox({ name }: { name: string }) {
         className={styles.search}
         aria-busy={moving}
       >
-        <Search size={17} aria-hidden="true" />
+        <SearchNormal size={17} aria-hidden="true" />
         <label className={styles.srOnly} htmlFor="detail-search">
           다른 캐릭터 이름
         </label>
@@ -313,7 +313,7 @@ function CharacterContent({
                   onClick={refresh}
                   disabled={query.isFetching || rateLimitSeconds > 0}
                 >
-                  {query.isFetching ? <InlineOrb /> : <RefreshCw size={15} />}
+                  {query.isFetching ? <InlineOrb /> : <RefreshArrow size={15} />}
                   {query.isFetching
                     ? "조회 중"
                     : rateLimitSeconds > 0

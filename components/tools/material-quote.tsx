@@ -11,7 +11,7 @@ import {
 import Link from "next/link";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { AnimatePresence, m } from "motion/react";
-import { ArrowLeft, Calculator, Check, Plus, Search, X } from "lucide-react";
+import { Add, ArrowLeft, Calculator, CloseCircle, SearchNormal, TickCircle } from "@/components/ui/icons";
 import { GameIcon } from "@/components/character/imagery";
 import {
   LandingMotion,
@@ -230,7 +230,7 @@ function ItemSearch({
           aria-disabled={items.isFetching || wait > 0 || undefined}
           aria-busy={items.isFetching || undefined}
         >
-          <Search size={15} aria-hidden="true" />{" "}
+          <SearchNormal size={15} aria-hidden="true" />{" "}
           {items.isFetching ? "검색 중" : "검색"}
         </button>
       </form>
@@ -290,11 +290,11 @@ function ItemSearch({
                     >
                       {added ? (
                         <>
-                          <Check size={14} aria-hidden="true" /> 추가됨
+                          <TickCircle size={14} aria-hidden="true" /> 추가됨
                         </>
                       ) : (
                         <>
-                          <Plus size={14} aria-hidden="true" /> 추가
+                          <Add size={14} aria-hidden="true" /> 추가
                         </>
                       )}
                     </button>
@@ -398,7 +398,7 @@ function Plan() {
               onClick={() => remove(row.item.id)}
               aria-label={`${row.item.name} 견적에서 빼기`}
             >
-              <X size={16} aria-hidden="true" />
+              <CloseCircle size={16} aria-hidden="true" />
             </button>
           </m.li>
         ))}

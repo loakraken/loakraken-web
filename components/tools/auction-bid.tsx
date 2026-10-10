@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
-import { ArrowLeft, Check, Copy, Gavel, Info } from "lucide-react";
+import { ArrowLeft, Copy, InfoCircle, Judge, TickCircle } from "@/components/ui/icons";
 import Link from "next/link";
 import { SiteHeader } from "@/components/site/site-header";
 import { SegmentedControl, SegmentedItem } from "@/components/ui/segmented-control";
@@ -69,7 +69,7 @@ function FormulaTip({ label, formula }: { label: string; formula: string }) {
         className={styles.tipButton}
         aria-label={`${label} 계산식`}
       >
-        <Info size={14} aria-hidden="true" />
+        <InfoCircle size={14} aria-hidden="true" />
       </TooltipTrigger>
       <TooltipContent>{formula}</TooltipContent>
     </Tooltip>
@@ -155,7 +155,7 @@ function BidPick({ result }: { result: AuctionResult | null }) {
           aria-label={`추천 입찰 상한 ${formatGold(result.breakEven)} 복사`}
         >
           <span>{formatGold(result.breakEven)}</span>
-          {done && copied.ok ? <Check size={16} aria-hidden="true" /> : <Copy size={16} aria-hidden="true" />}
+          {done && copied.ok ? <TickCircle size={16} aria-hidden="true" /> : <Copy size={16} aria-hidden="true" />}
         </button>
       </p>
       <p className={styles.pickNote}>
@@ -282,7 +282,7 @@ function Strategies({ result }: { result: AuctionResult | null }) {
                     >
                       <span className={styles.bid}>{formatGold(row.bid)}</span>
                       {done && copied.ok ? (
-                        <Check size={14} aria-hidden="true" />
+                        <TickCircle size={14} aria-hidden="true" />
                       ) : (
                         <Copy size={14} aria-hidden="true" />
                       )}
@@ -404,7 +404,7 @@ function AuctionContent({
           {/* A still icon: the calculation is instant, so nothing here
               should read as loading. */}
           <span className={styles.heroIcon} aria-hidden="true">
-            <Gavel size={18} />
+            <Judge size={18} />
           </span>
           <p className={quote.heroKicker}>레이드 계산</p>
           <h1 id="auction-heading">경매 입찰가</h1>

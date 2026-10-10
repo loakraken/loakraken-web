@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
-import { ArrowLeft, Gift } from "lucide-react";
+import { ArrowLeft, Gift } from "@/components/ui/icons";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { SiteHeader } from "@/components/site/site-header";

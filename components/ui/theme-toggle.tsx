@@ -1,7 +1,7 @@
 "use client"
 
 import { cn } from "cn"
-import { Moon, Sun } from "lucide-react"
+import { Moon, Sun } from "@/components/ui/icons"
 import { useSyncExternalStore } from "react"
 import { IconButton, type IconButtonProps } from "@/components/ui/icon-button"
 

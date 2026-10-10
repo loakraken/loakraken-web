@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { RefreshCw } from "lucide-react";
+import { RefreshArrow } from "@/components/ui/icons";
 import { InlineOrb } from "@/components/landing/orb";
 import { failureOf, secondsUntil } from "@/lib/api/rate-limit";
 import { refreshSummary } from "@/lib/character/card-collection";
@@ -88,7 +88,7 @@ export function CardRefresh({ name }: { name: string }) {
         aria-disabled={blocked || undefined}
         aria-describedby={`card-refill-note-${name}`}
       >
-        {busy ? <InlineOrb /> : <RefreshCw size={14} aria-hidden="true" />}
+        {busy ? <InlineOrb /> : <RefreshArrow size={14} aria-hidden="true" />}
         {busy ? "불러오는 중" : seconds > 0 ? `${wait(seconds)} 뒤 다시 채우기` : "기록 채우기"}
       </button>
       <p className={styles.refillStatus} aria-live="polite">

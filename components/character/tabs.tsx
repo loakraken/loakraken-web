@@ -3,7 +3,7 @@
 import { memo, useId, useState, useSyncExternalStore, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
-import { ArrowRight, Info, RefreshCw, Share2, Star } from "lucide-react";
+import { ArrowRight, Bookmark, BookmarkBold, InfoCircle, RefreshArrow, Share } from "@/components/ui/icons";
 import { InlineOrb } from "@/components/landing/orb";
 import { Reveal } from "@/components/landing/motion";
 import {
@@ -208,7 +208,7 @@ export function TabBar({
             onClick={share}
             aria-label="공유하기"
           >
-            <Share2 size={16} aria-hidden="true" />
+            <Share size={16} aria-hidden="true" />
           </button>
           <button
             type="button"
@@ -217,11 +217,11 @@ export function TabBar({
             aria-pressed={favorite}
             aria-label={favorite ? "즐겨찾기 해제" : "즐겨찾기"}
           >
-            <Star
-              size={16}
-              aria-hidden="true"
-              fill={favorite ? "currentColor" : "none"}
-            />
+            {favorite ? (
+              <BookmarkBold size={16} aria-hidden="true" />
+            ) : (
+              <Bookmark size={16} aria-hidden="true" />
+            )}
           </button>
           <span className={styles.refreshWrap}>
             <button
@@ -236,7 +236,7 @@ export function TabBar({
               {fetching ? (
                 <InlineOrb />
               ) : (
-                <RefreshCw size={14} aria-hidden="true" />
+                <RefreshArrow size={14} aria-hidden="true" />
               )}
               {fetching
                 ? "갱신 중"
@@ -1225,7 +1225,7 @@ function RosterTitlesPanel({ name }: { name: string }) {
           LOAKraken에서 처음 확인한 순서<span className={styles.srOnly}>.</span>
         </span>
         <span className={styles.titleInfo}>
-          <Info size={13} aria-hidden="true" />
+          <InfoCircle size={13} aria-hidden="true" />
           장착한 칭호만 기록되며 실제 획득일과 다를 수 있어요
         </span>
       </p>

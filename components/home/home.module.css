@@ -419,7 +419,6 @@
 }
 .starOn {
   color: var(--grade-legendary-text);
-  fill: currentColor;
 }
 .noticeTabs {
   display: inline-flex;

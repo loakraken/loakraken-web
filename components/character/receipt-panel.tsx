@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { RefreshCw } from "lucide-react";
+import { RefreshArrow } from "@/components/ui/icons";
 import { InlineOrb } from "@/components/landing/orb";
 import { RateLimitNote } from "@/components/site/rate-limit-note";
 import expand from "@/components/site/expand.module.css";
@@ -118,7 +118,7 @@ function Body({
             // Spends official API calls: never pressed again after hydration.
             data-no-replay
           >
-            {refreshing ? <InlineOrb /> : <RefreshCw size={14} aria-hidden="true" />}
+            {refreshing ? <InlineOrb /> : <RefreshArrow size={14} aria-hidden="true" />}
             {refreshing ? "계산하는 중" : seconds > 0 ? `${seconds}초 뒤 다시 계산` : "다시 계산(8명씩)"}
           </button>
         )}

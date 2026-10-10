@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
-import { Star, X } from "lucide-react";
+import { BookmarkBold, CloseCircle } from "@/components/ui/icons";
 import {
   clearRecent,
   readSnapshot,
@@ -119,7 +119,7 @@ export function RecentCard() {
                   aria-label={`${item.name} 기록 삭제`}
                   onClick={() => removeRecent(item.name)}
                 >
-                  <X size={14} aria-hidden="true" />
+                  <CloseCircle size={14} aria-hidden="true" />
                 </button>
               ) : (
                 <button
@@ -128,7 +128,7 @@ export function RecentCard() {
                   aria-label={`${item.name} 즐겨찾기 해제`}
                   onClick={() => removeFavorite(item.name)}
                 >
-                  <Star size={14} aria-hidden="true" className={styles.starOn} />
+                  <BookmarkBold size={14} aria-hidden="true" className={styles.starOn} />
                 </button>
               )}
             </li>
