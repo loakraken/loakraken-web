@@ -8,7 +8,9 @@ import {
   decodeMoves,
   encodeMoves,
   formatChance,
+  goalFromId,
   meetsGoal,
+  recommendLine,
   replay,
   stonesFor,
   type Move,
@@ -120,4 +122,20 @@ test("chance text stays readable at the extremes", () => {
   assert.equal(formatChance(1), "100%");
   assert.equal(formatChance(0.00000005), "0.01% 미만");
   assert.equal(formatChance(0.25), "25.0%");
+});
+
+test("one recommended line: ties go to the lower number (돌파고 시안)", () => {
+  const goal = goalFromId("77")!;
+  const solver = createSolver(10, 4, goal);
+  // Fresh stone: lines 1 and 2 tie, so line 1 is the single recommendation.
+  const fresh = recommendLine(advise(solver, goal, replay(10, [])));
+  assert.equal(fresh.line, 0);
+  assert.equal(fresh.tie, true);
+  // After 1s1s2f3f (e2e state) line 2 is strictly best.
+  const state = replay(10, decodeMoves(10, "1s1s2f3f"));
+  const a = advise(solver, goal, state);
+  const pick = recommendLine(a);
+  assert.equal(pick.line, 1);
+  assert.equal(pick.tie, false);
+  assert.ok(pick.othersBest !== null && pick.othersBest < a.perLine[1]!);
 });

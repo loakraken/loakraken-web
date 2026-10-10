@@ -192,6 +192,26 @@ export function advise(
   return { goal, chance, perLine, best };
 }
 
+/**
+ * The one line to facet next. Ties go to the lower line number so there is
+ * always a single recommendation (돌파고 시안, 디자인 시스템 2026-10-10).
+ */
+export function recommendLine(advice: Advice): {
+  line: LineIndex | null;
+  tie: boolean;
+  /** Best chance among the other lines (null when none can be faceted). */
+  othersBest: number | null;
+} {
+  if (!advice.best.length || advice.chance <= 0) return { line: null, tie: false, othersBest: null };
+  const line = Math.min(...advice.best) as LineIndex;
+  const others = advice.perLine.filter((v, i): v is number => i !== line && v !== null);
+  return {
+    line,
+    tie: advice.best.length > 1,
+    othersBest: others.length ? Math.max(...others) : null,
+  };
+}
+
 /** Stones needed so the goal is reached with probability q (geometric). */
 export function stonesFor(chance: number, q: number): number | null {
   if (chance <= 0) return null;

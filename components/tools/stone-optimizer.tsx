@@ -21,6 +21,7 @@ import {
   goalText,
   isFinished,
   meetsGoal,
+  recommendLine,
   replay,
   stonesFor,
   type Advice,
@@ -48,10 +49,16 @@ function SlotDots({
   line: LineIndex;
 }) {
   const marks = history.filter((m) => m.line === line).map((m) => m.success);
+  const hits = marks.filter(Boolean).length;
+  // Shape, not only color: filled = success (or hit on the decrease line),
+  // ✕ = failure, empty = still to cut.
+  const label = `${line === 2 ? "적중" : "성공"} ${hits}, 실패 ${marks.length - hits}, 남은 칸 ${slots - marks.length}`;
   return (
-    <ol className={styles.dots} aria-hidden="true" data-line={line}>
+    <ol className={styles.dots} role="img" aria-label={label} data-line={line}>
       {Array.from({ length: slots }, (_, i) => (
-        <li key={i} data-mark={i < marks.length ? (marks[i] ? "hit" : "miss") : undefined} />
+        <li key={i} data-mark={i < marks.length ? (marks[i] ? "hit" : "miss") : undefined}>
+          {i < marks.length && !marks[i] && <span aria-hidden="true">✕</span>}
+        </li>
       ))}
     </ol>
   );
@@ -63,6 +70,8 @@ function LineRow({
   state,
   moves,
   advice,
+  recommended,
+  decreaseMax,
   onMove,
 }: {
   line: LineIndex;
@@ -70,24 +79,46 @@ function LineRow({
   state: StoneState;
   moves: Move[];
   advice: Advice[];
+  recommended: boolean;
+  decreaseMax: number | null;
   onMove: (move: Move) => void;
 }) {
   const left = slots - state.used[line];
   const full = left === 0;
   const name = LINE_NAMES[line];
+  const decrease = line === 2;
+  const first = advice[0];
+  const firstValue = first?.perLine[line] ?? null;
   return (
-    <li className={styles.line} data-kind={line === 2 ? "decrease" : "increase"}>
+    <li
+      className={styles.line}
+      data-kind={decrease ? "decrease" : "increase"}
+      data-recommended={recommended || undefined}
+    >
+      {/* Remounts when the recommendation moves here: one soft glow. */}
+      {recommended && <span key={`glow-${line}`} className={styles.glow} aria-hidden="true" />}
       <div className={styles.lineHead}>
-        <strong>{name}</strong>
+        <strong>
+          {decrease && <span aria-hidden="true">↓ </span>}
+          {name}
+        </strong>
+        {decrease && <span className={styles.badgeDanger}>감소</span>}
+        {recommended && <span className={styles.badge}>추천</span>}
         <span className={styles.lineMeta}>
-          성공 {state.hits[line]} · 남은 칸 {left}
+          {decrease ? "적중" : "성공"} {state.hits[line]} · 남은 칸 {left}
+          {decrease && decreaseMax !== null && ` · ${decreaseMax}회 이하 유지`}
         </span>
+        {first && (
+          <span className={styles.lineGoal}>
+            {first.goal.label} <b>{firstValue === null ? "—" : formatChance(firstValue)}</b>
+          </span>
+        )}
       </div>
       <SlotDots slots={slots} history={moves} line={line} />
       <ul className={styles.lineChances} aria-label={`${name}을 깎으면 목표 확률`}>
         {advice.map((a) => {
           const value = a.perLine[line];
-          const best = a.best.includes(line);
+          const best = recommendLine(a).line === line;
           return (
             <li key={a.goal.id} data-best={best || undefined}>
               <span>{a.goal.label}</span>
@@ -101,6 +132,7 @@ function LineRow({
         <button
           type="button"
           className={styles.hit}
+          data-primary={recommended || undefined}
           disabled={full}
           aria-label={`${name} 성공`}
           onClick={() => onMove({ line, success: true })}
@@ -366,6 +398,11 @@ export function StoneOptimizer({ initial }: { initial: StoneInitial }) {
   const fresh = solvers.map((solver) => solver.at(replay(slots, [])));
   const done = isFinished(slots, state);
   const last = moves.at(-1);
+  // The first goal drives the single recommendation (시안 ①②).
+  const lead = advice[0];
+  const pick = lead ? recommendLine(lead) : { line: null, tie: false, othersBest: null };
+  const reached = lead ? meetsGoal(lead.goal, state.hits[0], state.hits[1]) && lead.chance >= 1 : false;
+  const ended = done || !lead || lead.chance <= 0 || reached;
 
   useEffect(() => {
     const params = new URLSearchParams();
@@ -382,7 +419,7 @@ export function StoneOptimizer({ initial }: { initial: StoneInitial }) {
   };
 
   const announce = last
-    ? `${LINE_NAMES[last.line]} ${last.success ? "성공" : "실패"}. 지금 확률 ${chanceOf(state)}%. ` +
+    ? `${LINE_NAMES[last.line]} ${last.success ? "성공" : "실패"}. 이번 세공 성공 확률 ${chanceOf(state)}%. ` +
       advice
         .map((a) =>
           done
@@ -421,7 +458,7 @@ export function StoneOptimizer({ initial }: { initial: StoneInitial }) {
                   <h2 id="facet-heading" className={styles.cardTitle}>
                     세공
                   </h2>
-                  <p className={styles.note}>세공할 때마다 결과를 눌러 기록해요.</p>
+                  <p className={styles.note}>확률을 계산해 다음에 누를 줄을 추천합니다.</p>
                   <p className={styles.progress}>
                     남은 칸 {slots * 3 - state.used.reduce((sum, u) => sum + u, 0)}
                     /{slots * 3} · 감소{" "}
@@ -431,11 +468,44 @@ export function StoneOptimizer({ initial }: { initial: StoneInitial }) {
                     조건 바꾸기
                   </a>
                 </div>
-                <div className={styles.chance}>
-                  <span>지금 확률</span>
-                  <strong>{chanceOf(state)}%</strong>
-                </div>
               </div>
+
+              {lead && !ended && pick.line !== null ? (
+                <div className={styles.pick}>
+                  <p className={styles.pickLabel}>다음에 깎을 줄</p>
+                  <p className={styles.pickLine}>
+                    {pick.line + 1}번 · {LINE_NAMES[pick.line]}
+                    <span className={styles.badge}>추천</span>
+                  </p>
+                  <p className={styles.pickWhy}>
+                    {lead.goal.label} 달성 확률 <b>{formatChance(lead.perLine[pick.line] ?? 0)}</b>
+                    {pick.tie
+                      ? " — 두 줄이 같아요, 1번부터"
+                      : pick.othersBest !== null && (
+                          <>
+                            {" "}— 다른 줄을 깎으면 최대 <b>{formatChance(pick.othersBest)}</b>
+                          </>
+                        )}
+                  </p>
+                </div>
+              ) : lead ? (
+                <div className={styles.result} data-result={reached ? "done" : "fail"}>
+                  <p className={styles.pickLine}>
+                    <span aria-hidden="true">{reached ? "✓" : "✕"} </span>
+                    {reached ? `${lead.goal.label} 달성했어요` : `이 돌로는 ${lead.goal.label} 어려워요`}
+                  </p>
+                  {!reached && (
+                    <button type="button" className={quote.outlinePill} onClick={() => restart()}>
+                      <RotateCcw size={14} aria-hidden="true" /> 새 돌로 다시
+                    </button>
+                  )}
+                </div>
+              ) : null}
+
+              <p className={styles.chanceRow}>
+                <span>이번 세공 성공 확률</span>
+                <strong>{chanceOf(state)}%</strong>
+              </p>
 
               <ul className={styles.summary}>
                 {advice.map((a) => (
@@ -467,10 +537,20 @@ export function StoneOptimizer({ initial }: { initial: StoneInitial }) {
                     state={state}
                     moves={moves}
                     advice={advice}
+                    recommended={!ended && pick.line === line}
+                    decreaseMax={decreaseMax}
                     onMove={(move) => setMoves((prev) => [...prev, move])}
                   />
                 ))}
               </ol>
+
+              <ul className={styles.legend} aria-label="범례">
+                <li><i data-mark="hit" aria-hidden="true" /> 성공(증가)</li>
+                <li><i data-mark="hit" data-line="2" aria-hidden="true" /> 적중(감소)</li>
+                <li><i data-mark="miss" aria-hidden="true">✕</i> 실패</li>
+                <li><i data-mark="row" aria-hidden="true" /> 빨간 줄 = 감소 각인</li>
+                <li><span className={styles.badge}>추천</span> 다음에 깎을 줄</li>
+              </ul>
 
               <div className={styles.actions}>
                 <button

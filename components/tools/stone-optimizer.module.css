@@ -127,6 +127,7 @@
   margin-top: var(--space-5);
 }
 .line {
+  position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   grid-template-areas:
@@ -134,8 +135,189 @@
     "dots buttons"
     "chances chances";
   gap: var(--space-2) var(--space-4);
-  padding: var(--space-4) 0;
+  margin-top: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+}
+/* 추천 줄: 2px primary edge + faint primary wash (시안 ②). */
+.line[data-recommended] {
+  border: 2px solid var(--primary);
+  padding: calc(var(--space-4) - 1px);
+  background: color-mix(in oklab, var(--primary) 7%, transparent);
+}
+:global([data-theme="dark"]) .line[data-recommended] {
+  background: color-mix(in oklab, var(--primary) 12%, transparent);
+}
+.line:not([data-recommended]) .dots {
+  opacity: 0.6;
+}
+/* 감소 줄: red wash, edge, arrow and badge (시안 ④). */
+.line[data-kind="decrease"] {
+  border-color: color-mix(in oklab, var(--destructive) 35%, transparent);
+  background: color-mix(in oklab, var(--destructive) 6%, transparent);
+}
+:global([data-theme="dark"]) .line[data-kind="decrease"] {
+  background: color-mix(in oklab, var(--destructive) 9%, transparent);
+}
+.line[data-kind="decrease"] .lineGoal b {
+  color: var(--destructive);
+}
+.glow {
+  position: absolute;
+  inset: -2px;
+  border-radius: 16px;
+  pointer-events: none;
+  animation: glow 900ms var(--ease-out) 1;
+}
+@keyframes glow {
+  from {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--primary) 45%, transparent);
+  }
+  to {
+    box-shadow: 0 0 0 10px color-mix(in oklab, var(--primary) 0%, transparent);
+  }
+}
+.badge,
+.badgeDanger {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  font-size: var(--text-caption);
+  font-weight: 700;
+  line-height: 1.4;
+}
+.badge {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+.badgeDanger {
+  background: var(--destructive);
+  color: #fff;
+}
+/* Dark --destructive is light (#ff6b6b): outline it so the text keeps 6.4:1. */
+:global([data-theme="dark"]) .badgeDanger {
+  border: 1px solid var(--destructive);
+  background: transparent;
+  color: var(--destructive);
+}
+.lineGoal {
+  font-size: var(--text-meta);
+  font-variant-numeric: tabular-nums;
+}
+.lineGoal b {
+  font-weight: 700;
+}
+.line[data-recommended] .lineGoal b {
+  color: var(--primary);
+}
+:global([data-theme="dark"]) .line[data-recommended] .lineGoal b {
+  color: var(--foreground);
+}
+/* 추천 카드·결과 카드 (시안 ①, 끝 상태). */
+.pick,
+.result {
+  margin-top: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  border: 1.5px solid var(--primary);
+  border-radius: 16px;
+  background: color-mix(in oklab, var(--primary) 7%, transparent);
+}
+:global([data-theme="dark"]) .pick {
+  background: color-mix(in oklab, var(--primary) 12%, transparent);
+}
+.result[data-result="done"] {
+  border-color: var(--success);
+  background: color-mix(in oklab, var(--success) 8%, transparent);
+}
+.result[data-result="fail"] {
+  border-color: var(--destructive);
+  background: color-mix(in oklab, var(--destructive) 6%, transparent);
+}
+.result[data-result="done"] .pickLine {
+  color: var(--success);
+}
+.result[data-result="fail"] .pickLine {
+  color: var(--destructive);
+}
+.result button {
+  margin-top: var(--space-3);
+  gap: var(--space-1);
+}
+.pickLabel {
+  color: var(--muted-foreground);
+  font-size: var(--text-caption);
+  font-weight: 600;
+}
+.pickLine {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+  font-size: var(--text-heading-sm);
+  font-weight: 700;
+}
+.pickWhy {
+  margin-top: var(--space-1);
+  font-size: var(--text-meta);
+  font-variant-numeric: tabular-nums;
+}
+.pickWhy b {
+  font-weight: 700;
+}
+.chanceRow {
+  display: flex;
+  justify-content: space-between;
+  margin-top: var(--space-4);
+  padding-top: var(--space-3);
   border-top: 1px solid var(--border);
+  color: var(--muted-foreground);
+  font-size: var(--text-meta);
+}
+.chanceRow strong {
+  color: var(--foreground);
+  font-variant-numeric: tabular-nums;
+}
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  margin-top: var(--space-4);
+  color: var(--muted-foreground);
+  font-size: var(--text-caption);
+}
+.legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.legend i {
+  display: inline-grid;
+  place-items: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 700;
+}
+.legend i[data-mark="hit"] {
+  background: var(--primary);
+}
+.legend i[data-mark="hit"][data-line="2"] {
+  background: var(--destructive);
+}
+.legend i[data-mark="miss"] {
+  border: 1.5px solid var(--destructive);
+  color: var(--destructive);
+}
+.legend i[data-mark="row"] {
+  width: 20px;
+  border: 1px solid color-mix(in oklab, var(--destructive) 35%, transparent);
+  border-radius: 4px;
+  background: color-mix(in oklab, var(--destructive) 6%, transparent);
 }
 .lineHead {
   grid-area: head;
@@ -166,17 +348,41 @@
   border: 1px solid var(--faint);
   border-radius: 50%;
 }
+.dots li {
+  display: grid;
+  place-items: center;
+}
 .dots li[data-mark="hit"] {
   border-color: var(--primary);
   background: var(--primary);
+  animation: fill 150ms var(--ease-out);
 }
 .dots[data-line="2"] li[data-mark="hit"] {
   border-color: var(--destructive);
   background: var(--destructive);
 }
 .dots li[data-mark="miss"] {
-  border-color: var(--faint);
-  background: var(--border);
+  border: 1.5px solid var(--destructive);
+  background: transparent;
+  color: var(--destructive);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  animation: miss 120ms var(--ease-out);
+}
+@keyframes fill {
+  from {
+    transform: scale(0);
+  }
+}
+@keyframes miss {
+  0% {
+    opacity: 0;
+    transform: translateX(-2px);
+  }
+  50% {
+    transform: translateX(2px);
+  }
 }
 .lineChances {
   grid-area: chances;
@@ -230,7 +436,13 @@
     border-color var(--duration-fast) var(--ease-out);
 }
 .hit {
-  border: 1px solid var(--primary);
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--foreground);
+}
+/* Only the recommended line's success button is the primary action. */
+.hit[data-primary] {
+  border-color: var(--primary);
   background: var(--primary);
   color: var(--primary-foreground);
 }
@@ -498,5 +710,13 @@
   .chip,
   .segmented label {
     transition: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glow,
+  .dots li[data-mark="hit"],
+  .dots li[data-mark="miss"] {
+    animation: none;
   }
 }
