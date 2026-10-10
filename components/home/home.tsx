@@ -609,7 +609,7 @@ function NewsPanels({ renderedAt }: { renderedAt?: number }) {
                   <i data-category={notice.category ?? undefined}>
                     {noticeTab === "patch" ? "패치" : noticeLabel(notice.category)}
                   </i>
-                  <span>{notice.title}</span>
+                  <span title={notice.title}>{notice.title}</span>
                   <time dateTime={notice.publishedAt}>
                     {Number(
                       kstDate(Date.parse(notice.publishedAt)).slice(5, 7),

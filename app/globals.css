@@ -719,15 +719,15 @@
   }
 }
 
-/* One UI font for every screen (Apple typography: system font first). Apple
-   platforms get SF + Apple SD Gothic Neo; elsewhere Segoe UI for Latin and the
-   bundled Noto Sans KR for Hangul. Declared on body too, where next/font sets
-   --font-korean, so the bundled face is used instead of the fallback name. */
-:root,
-body {
+/* One UI font for every screen: Kraken Sans (Pretendard Variable subset, OFL,
+   renamed per its Reserved Font Name) on every platform, as the target sites
+   do. The subset holds KS X 1001 Hangul + ASCII at wght 400–700; anything else
+   (rare Hanja, old Hangul, emoji) falls through to the system faces below.
+   next/font sets --font-kraken on <html>, so :root resolves it. */
+:root {
   --font-ui:
-    -apple-system, BlinkMacSystemFont, "SF Pro Text", "Apple SD Gothic Neo",
-    "Segoe UI", var(--font-korean, "Noto Sans KR"), "Malgun Gothic", sans-serif;
+    var(--font-kraken, "Kraken Sans"), -apple-system, BlinkMacSystemFont,
+    "Apple SD Gothic Neo", "Segoe UI", "Malgun Gothic", sans-serif;
 }
 
 /* LOAKraken design values. One source for every screen; spec lives in the
@@ -827,7 +827,7 @@ body {
   --reveal-distance: 8px;
   --stagger: 30ms; /* 8 steps x 30ms = 240ms at most */
   --duration-draw: 600ms; /* chart lines and bars: explanatory, capped at 600ms */
-  --duration-count: 500ms;
+  --duration-count: 400ms;
   --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
 }
 
@@ -911,6 +911,24 @@ body {
   --tooltip-muted: #a6a8b0;
   --tooltip-shadow: inset 0 0 0 1px rgb(255 255 255 / 8%), inset 0 1px 0 rgb(255 255 255 / 7%),
     0 16px 40px -16px rgb(0 0 0 / 80%), 0 4px 14px -6px rgb(0 0 0 / 45%);
+
+  /* Item detail tooltip (#319): the game-style dark card in both themes,
+     nearly opaque so long stat lists stay legible over any page. Contrast
+     on its fill over the white page (#1f2125) / dark page (#16181c). */
+  --item-tip: rgb(22 24 28 / 96%);
+  --item-tip-foreground: #f5f5f7; /* 14.81 / 16.32 */
+  --item-tip-muted: #a1a1a6; /* 6.27 / 6.91 */
+  --item-tip-rule: rgb(255 255 255 / 10%);
+  --item-tip-up: #ff6b5e; /* 5.77 / 6.36 */
+  --item-tip-down: #5fa8ff; /* 6.55 / 7.22 */
+  --item-tip-grade-normal: #c4c4cc; /* 9.30 */
+  --item-tip-grade-uncommon: #8bd45c; /* 8.96 */
+  --item-tip-grade-rare: #5fa8ff; /* 6.55 */
+  --item-tip-grade-epic: #b388ff; /* 6.05 */
+  --item-tip-grade-legendary: #f5b031; /* 8.55 */
+  --item-tip-grade-relic: #ff8a3d; /* 6.87 */
+  --item-tip-grade-ancient: #e3cf9a; /* 10.49 */
+  --item-tip-grade-esther: #3cd3c1; /* 8.66 */
 }
 
 @theme inline {

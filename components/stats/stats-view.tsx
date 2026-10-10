@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { SiteHeader } from "@/components/site/site-header";
@@ -118,13 +118,19 @@ function SummaryCards({ query }: { query: StatsQuery }) {
   );
 }
 
-/** ILOA-style quantile bar: p10–p90 thin line, p25–p75 box, median tick. */
-function Quantiles({ row, scale }: { row: ClassRow; scale: ((v: number) => number) | null }) {
+/**
+ * ILOA-style quantile bar: p10–p90 thin line, p25–p75 box, median tick. It
+ * grows from the left each time the tab is shown (motion rule 10-10: on every
+ * entry, not on in-place updates), 30ms apart up to 8 rows; only the first 12
+ * rows move (PM 12-item cap), the rest are simply there.
+ */
+function Quantiles({ row, scale, index }: { row: ClassRow; scale: ((v: number) => number) | null; index: number }) {
   const p = row.combatPower;
   if (!p || !scale) return <span className={styles.muted}>-</span>;
   return (
     <span
-      className={styles.quantile}
+      className={index < 12 ? `${styles.quantile} k-grow-x` : styles.quantile}
+      style={index < 12 ? ({ "--i": index } as CSSProperties) : undefined}
       role="img"
       aria-label={`전투력 하위 10% ${whole(p.p10)}, 중간 50% ${whole(p.p25)}~${whole(p.p75)}, 상위 10% ${whole(p.p90)}`}
     >
@@ -179,7 +185,7 @@ function ClassesTab({ query }: { query: StatsQuery }) {
               <td>{fixed(row.itemLevelMean)}</td>
               <td>{fixed(row.gemMeanLevel, 1)}</td>
               <td className={styles.wide}>
-                {row.sampleStatus === "READY" ? <Quantiles row={row} scale={scale} /> : <span className={styles.muted}>집계 중</span>}
+                {row.sampleStatus === "READY" ? <Quantiles row={row} scale={scale} index={i} /> : <span className={styles.muted}>집계 중</span>}
               </td>
               <td>{whole(row.combatPower?.p50)}</td>
             </tr>
@@ -276,11 +282,12 @@ function DistributionTab({ query }: { query: StatsQuery }) {
         </DataTable>
       ) : (
         <ol className={styles.histogram} aria-label={`${label} 구간별 인원`}>
-          {data.bins.map((bin) => {
+          {data.bins.map((bin, i) => {
             const hit = p && p.value >= bin.from && p.value < bin.to;
             return (
               <li key={bin.from} title={`${fmt(bin.from)} ~ ${fmt(bin.to)} · ${whole(bin.count)}명`} data-hit={hit || undefined}>
-                <i style={{ height: `${(bin.count / max) * 100}%` }} />
+                {/* Each bar grows from the axis on every entry (motion rule 10-10). */}
+                <i className="k-grow" style={{ height: `${(bin.count / max) * 100}%`, "--i": i } as CSSProperties} />
                 <span className={styles.srOnly}>
                   {fmt(bin.from)} ~ {fmt(bin.to)}: {whole(bin.count)}명
                 </span>
@@ -349,6 +356,13 @@ export function StatsView({ initial, initialTab }: { initial: StatsQuery; initia
   const router = useRouter();
   const [query, setQuery] = useState<StatsQuery>(initial);
   const [tab, setTab] = useState<Tab>(initialTab);
+  // A menu link to another tab changes the URL without remounting the page:
+  // follow it here (remounting replayed every chart twice on a tab click).
+  const [urlTab, setUrlTab] = useState<Tab>(initialTab);
+  if (initialTab !== urlTab) {
+    setUrlTab(initialTab);
+    setTab(initialTab);
+  }
   const [levelText, setLevelText] = useState(initial.itemLevelMin != null ? String(initial.itemLevelMin) : "");
   const latest = useRef(initial);
   const levelTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
