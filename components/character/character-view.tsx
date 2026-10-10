@@ -117,7 +117,7 @@ const Banner = memo(function Banner({ data }: { data: Character }) {
           <dl className={styles.bannerMetrics}>
             <div>
               <dt>아이템</dt>
-              <dd>{data.itemLevel == null ? number(data.itemLevel) : <HeadlineNumber value={data.itemLevel} format={number} />}</dd>
+              <dd>{number(data.itemLevel)}</dd>
             </div>
             <div>
               <dt>전투력</dt>

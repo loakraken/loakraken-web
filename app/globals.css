@@ -827,7 +827,7 @@
   --reveal-distance: 8px;
   --stagger: 30ms; /* 8 steps x 30ms = 240ms at most */
   --duration-draw: 600ms; /* chart lines and bars: explanatory, capped at 600ms */
-  --duration-count: 500ms;
+  --duration-count: 400ms;
   --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
 }
 
