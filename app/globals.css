@@ -723,9 +723,8 @@
    renamed per its Reserved Font Name) on every platform, as the target sites
    do. The subset holds KS X 1001 Hangul + ASCII at wght 400–700; anything else
    (rare Hanja, old Hangul, emoji) falls through to the system faces below.
-   Declared on body too, where next/font sets --font-kraken. */
-:root,
-body {
+   next/font sets --font-kraken on <html>, so :root resolves it. */
+:root {
   --font-ui:
     var(--font-kraken, "Kraken Sans"), -apple-system, BlinkMacSystemFont,
     "Apple SD Gothic Neo", "Segoe UI", "Malgun Gothic", sans-serif;

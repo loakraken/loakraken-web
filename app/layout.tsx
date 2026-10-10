@@ -54,12 +54,12 @@ export default function RootLayout({ children }: Readonly<{
 }>) {
   return (
     // The pre-paint script sets data-theme before hydration (stored dark choice).
-    <html lang="ko" suppressHydrationWarning>
+    <html lang="ko" className={`${geistMono.variable} ${kraken.variable}`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
         <script dangerouslySetInnerHTML={{ __html: earlyClickScript }} />
       </head>
-      <body className={`${geistMono.variable} ${kraken.variable} antialiased`}>
+      <body className="antialiased">
         <Providers>{children}</Providers>
       </body>
     </html>
