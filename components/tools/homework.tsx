@@ -21,6 +21,7 @@ import {
   parseState,
   rollWeek,
   rosterSummary,
+  unsettledModes,
   type Character,
   type HomeworkState,
   type RaidPlan,
@@ -43,6 +44,7 @@ function load(now: number): HomeworkState {
 
 function Summary({ state, now }: { state: HomeworkState; now: number }) {
   const s = rosterSummary(state);
+  const unsettled = unsettledModes(state.characters);
   return (
     <section className={styles.summary} aria-labelledby="hw-summary">
       <h2 id="hw-summary" className={styles.sr}>
@@ -59,6 +61,15 @@ function Summary({ state, now }: { state: HomeworkState; now: number }) {
           {s.moreSpent > 0 && ` · 더보기 지출 −${formatGold(s.moreSpent)} 반영`}
           {s.unknownGates > 0 && ` · 골드 미확인 관문 ${s.unknownGates}개는 빠져 있어요`}
         </p>
+        {unsettled.length > 0 && (
+          <p className={styles.note}>
+            합계에서 뺀 미확정 항목:{" "}
+            {unsettled
+              .map(({ raid, mode }) => `${raid.shortName} ${DIFFICULTY_LABEL[mode.difficulty]}`)
+              .join(", ")}{" "}
+            클리어 골드(공식 값과 두 사이트가 일치하는 값이 아직 없어요)
+          </p>
+        )}
       </div>
       <dl className={styles.stats}>
         <div>
@@ -192,15 +203,25 @@ function AddRoster({ onAdd }: { onAdd: (picked: Sibling[]) => void }) {
 
 function RaidRow({
   plan,
+  itemLevel,
   onChange,
   onRemove,
 }: {
   plan: RaidPlan;
+  itemLevel: number;
   onChange: (plan: RaidPlan) => void;
   onRemove: () => void;
 }) {
   const mode = modeOf(plan);
   if (!mode) return null;
+  // Some sites pay nothing for a lower difficulty when a higher one is open;
+  // the official guide limits gold only by six characters and three clears
+  // a week, so the gold stays (PM 총괄 2026-10-10 09:30).
+  const higherOpen = RAID_DATA.raids
+    .find((r) => r.id === plan.raidId)
+    ?.modes.some(
+      (m) => m.difficulty !== "SINGLE" && m.minItemLevel > mode.minItemLevel && m.minItemLevel <= itemLevel,
+    );
   const title = `${raidName(plan.raidId)} ${DIFFICULTY_LABEL[plan.difficulty]}`;
   const toggle = (key: "cleared" | "more", i: number) =>
     onChange({ ...plan, [key]: plan[key].map((v, j) => (j === i ? !v : v)) });
@@ -212,6 +233,11 @@ function RaidRow({
           <Trash2 size={14} aria-hidden="true" />
         </button>
       </div>
+      {higherOpen && (
+        <p className={styles.note}>
+          상위 난이도에 갈 수 있지만 골드를 그대로 계산해요. 공식 가이드 기준: 골드 제한은 캐릭터 6개·주 3회예요.
+        </p>
+      )}
       <ul className={styles.gates} role="group" aria-label={title}>
         {mode.gates.map((gate, i) => (
           <li key={gate.gate} data-done={plan.cleared[i] || undefined}>
@@ -293,6 +319,7 @@ function CharacterCard({
           <RaidRow
             key={plan.raidId}
             plan={plan}
+            itemLevel={character.itemLevel}
             onChange={(next) =>
               onChange({ ...character, raids: character.raids.map((r, j) => (j === index ? next : r)) })
             }

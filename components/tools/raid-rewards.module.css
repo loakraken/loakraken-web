@@ -153,7 +153,7 @@
   background: var(--primary);
   color: var(--primary-foreground);
 }
-.status[data-status="ESTIMATED"] {
+.status[data-status="SITES"] {
   background: var(--muted);
   color: var(--accent-warm);
 }

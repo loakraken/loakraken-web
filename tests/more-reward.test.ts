@@ -60,11 +60,15 @@ test("bound-gold option leaves out the part bound gold pays (notice 13148)", () 
   const result = gateResult(normal.gates[0], {}, () => 0, bound, true);
   assert.equal(result.paid, 0);
   const hard = prologue.modes.find((m) => m.label === "하드")!;
-  assert.equal(boundGoldFor("kazeros-prologue", "하드", 1), 0);
-  assert.equal(gateResult(hard.gates[0], {}, () => 0, 0, true).paid, 720);
-  assert.equal(boundGoldFor("horizon-cathedral", "3단계", 1), null, "not in the reward table");
+  // 서막 하드 is half bound since notice 13416: 1,100 bound covers the 720 cost.
+  assert.equal(boundGoldFor("kazeros-prologue", "하드", 1), 1100);
+  assert.equal(gateResult(hard.gates[0], {}, () => 0, 1100, true).paid, 0);
+  const belgardinHard = MORE_DATA.raids.find((r) => r.id === "belgardin")!.modes.find((m) => m.label === "하드")!;
+  assert.equal(boundGoldFor("belgardin", "하드", 1), 0);
+  assert.equal(gateResult(belgardinHard.gates[0], {}, () => 0, 0, true).paid, 8000);
+  assert.equal(boundGoldFor("horizon-cathedral", "3단계", 1), 20000, "all bound");
   // 노말 · 싱글 rows need both modes to agree (PM-프론트 #261 P2).
-  assert.equal(boundGoldFor("kazeros-act1", "노말 · 싱글", 1), null, "normal 0 vs single 1,750");
+  assert.equal(boundGoldFor("kazeros-act1", "노말 · 싱글", 1), 1750, "both half bound (notices 13307·13416)");
   assert.equal(boundGoldFor("kazeros-act4", "노말 · 싱글", 1), null, "single has no value");
   assert.equal(boundGoldFor("serka", "노말 · 싱글", 1), 6500, "no single mode in the table");
   assert.equal(INPUT_MATERIALS.length, 7);

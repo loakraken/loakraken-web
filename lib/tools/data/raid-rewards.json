@@ -47,6 +47,16 @@
       "title": "게임 가이드 — 콘텐츠 현황 확인(골드 보상 획득 제한)",
       "url": "https://lostark.game.onstove.com/GameGuide/Pages/%EC%BD%98%ED%85%90%EC%B8%A0%20%ED%98%84%ED%99%A9%20%ED%99%95%EC%9D%B8",
       "date": "2026-03-18"
+    },
+    "notice-13416": {
+      "title": "4월 22일(수) 업데이트 내역 안내 — 권장 1710 이하 엔드 콘텐츠 골드 50% 귀속(골드 액수는 공지 13307)",
+      "url": "https://lostark.game.onstove.com/News/Notice/Views/13416",
+      "date": "2026-04-22"
+    },
+    "sites-20261010": {
+      "title": "사이트 실측 — 목표 사이트 2곳 이상 같은 값",
+      "url": null,
+      "date": "2026-10-10"
     }
   },
   "raids": [
@@ -72,10 +82,10 @@
           "difficulty": "HARD",
           "minItemLevel": 1640,
           "status": "OFFICIAL",
-          "source": "notice-13307",
+          "source": "notice-13416",
           "gates": [
-            { "gate": 1, "gold": 2200, "boundGold": 0, "moreCost": 720 },
-            { "gate": 2, "gold": 5000, "boundGold": 0, "moreCost": 1630 }
+            { "gate": 1, "gold": 2200, "boundGold": 1100, "moreCost": 720 },
+            { "gate": 2, "gold": 5000, "boundGold": 2500, "moreCost": 1630 }
           ]
         },
         {
@@ -102,10 +112,10 @@
           "difficulty": "NORMAL",
           "minItemLevel": 1640,
           "status": "OFFICIAL",
-          "source": "notice-13307",
+          "source": "notice-13416",
           "gates": [
-            { "gate": 1, "gold": 2200, "boundGold": 0, "moreCost": 720 },
-            { "gate": 2, "gold": 5000, "boundGold": 0, "moreCost": 1630 }
+            { "gate": 1, "gold": 2200, "boundGold": 1100, "moreCost": 720 },
+            { "gate": 2, "gold": 5000, "boundGold": 2500, "moreCost": 1630 }
           ]
         }
       ]
@@ -122,20 +132,20 @@
           "difficulty": "NORMAL",
           "minItemLevel": 1660,
           "status": "OFFICIAL",
-          "source": "notice-13307",
+          "source": "notice-13416",
           "gates": [
-            { "gate": 1, "gold": 3500, "boundGold": 0, "moreCost": 750 },
-            { "gate": 2, "gold": 8000, "boundGold": 0, "moreCost": 1780 }
+            { "gate": 1, "gold": 3500, "boundGold": 1750, "moreCost": 750 },
+            { "gate": 2, "gold": 8000, "boundGold": 4000, "moreCost": 1780 }
           ]
         },
         {
           "difficulty": "HARD",
           "minItemLevel": 1680,
           "status": "OFFICIAL",
-          "source": "notice-13307",
+          "source": "notice-13416",
           "gates": [
-            { "gate": 1, "gold": 5500, "boundGold": 0, "moreCost": 1820 },
-            { "gate": 2, "gold": 12500, "boundGold": 0, "moreCost": 4150 }
+            { "gate": 1, "gold": 5500, "boundGold": 2750, "moreCost": 1820 },
+            { "gate": 2, "gold": 12500, "boundGold": 6250, "moreCost": 4150 }
           ]
         },
         {
@@ -162,20 +172,20 @@
           "difficulty": "NORMAL",
           "minItemLevel": 1670,
           "status": "OFFICIAL",
-          "source": "notice-13307",
+          "source": "notice-13416",
           "gates": [
-            { "gate": 1, "gold": 5500, "boundGold": 0, "moreCost": 1820 },
-            { "gate": 2, "gold": 11000, "boundGold": 0, "moreCost": 3720 }
+            { "gate": 1, "gold": 5500, "boundGold": 2750, "moreCost": 1820 },
+            { "gate": 2, "gold": 11000, "boundGold": 5500, "moreCost": 3720 }
           ]
         },
         {
           "difficulty": "HARD",
           "minItemLevel": 1690,
           "status": "OFFICIAL",
-          "source": "notice-13307",
+          "source": "notice-13416",
           "gates": [
-            { "gate": 1, "gold": 7500, "boundGold": 0, "moreCost": 2400 },
-            { "gate": 2, "gold": 15500, "boundGold": 0, "moreCost": 5100 }
+            { "gate": 1, "gold": 7500, "boundGold": 3750, "moreCost": 2400 },
+            { "gate": 2, "gold": 15500, "boundGold": 7750, "moreCost": 5100 }
           ]
         },
         {
@@ -202,22 +212,22 @@
           "difficulty": "NORMAL",
           "minItemLevel": 1680,
           "status": "OFFICIAL",
-          "source": "notice-13307",
+          "source": "notice-13416",
           "gates": [
-            { "gate": 1, "gold": 4000, "boundGold": 0, "moreCost": 1300 },
-            { "gate": 2, "gold": 7000, "boundGold": 0, "moreCost": 2350 },
-            { "gate": 3, "gold": 10000, "boundGold": 0, "moreCost": 3360 }
+            { "gate": 1, "gold": 4000, "boundGold": 2000, "moreCost": 1300 },
+            { "gate": 2, "gold": 7000, "boundGold": 3500, "moreCost": 2350 },
+            { "gate": 3, "gold": 10000, "boundGold": 5000, "moreCost": 3360 }
           ]
         },
         {
           "difficulty": "HARD",
           "minItemLevel": 1700,
           "status": "OFFICIAL",
-          "source": "notice-13307",
+          "source": "notice-13416",
           "gates": [
-            { "gate": 1, "gold": 5000, "boundGold": 0, "moreCost": 1650 },
-            { "gate": 2, "gold": 8000, "boundGold": 0, "moreCost": 2640 },
-            { "gate": 3, "gold": 14000, "boundGold": 0, "moreCost": 4060 }
+            { "gate": 1, "gold": 5000, "boundGold": 2500, "moreCost": 1650 },
+            { "gate": 2, "gold": 8000, "boundGold": 4000, "moreCost": 2640 },
+            { "gate": 3, "gold": 14000, "boundGold": 7000, "moreCost": 4060 }
           ]
         },
         {
@@ -344,11 +354,11 @@
         {
           "difficulty": "NIGHTMARE",
           "minItemLevel": 1740,
-          "status": "UNVERIFIED",
-          "source": null,
+          "status": "SITES",
+          "source": "sites-20261010",
           "gates": [
-            { "gate": 1, "gold": null, "boundGold": null, "moreCost": null },
-            { "gate": 2, "gold": null, "boundGold": null, "moreCost": null }
+            { "gate": 1, "gold": 21000, "boundGold": 0, "moreCost": null },
+            { "gate": 2, "gold": 33000, "boundGold": 0, "moreCost": null }
           ]
         }
       ]
@@ -374,11 +384,11 @@
         {
           "difficulty": "HARD",
           "minItemLevel": 1770,
-          "status": "UNVERIFIED",
-          "source": null,
+          "status": "SITES",
+          "source": "sites-20261010",
           "gates": [
-            { "gate": 1, "gold": null, "boundGold": null, "moreCost": null },
-            { "gate": 2, "gold": null, "boundGold": null, "moreCost": null }
+            { "gate": 1, "gold": 25000, "boundGold": 0, "moreCost": null },
+            { "gate": 2, "gold": 37000, "boundGold": 0, "moreCost": null }
           ]
         },
         {
@@ -423,6 +433,290 @@
         { "difficulty": "NORMAL", "minItemLevel": 1730, "status": "OFFICIAL", "source": "gmnote-1226", "gates": [{ "gate": 1, "gold": 20000, "boundGold": 0, "moreCost": null }] },
         { "difficulty": "HARD", "minItemLevel": 1770, "status": "OFFICIAL", "source": "gmnote-1226", "gates": [{ "gate": 1, "gold": 50000, "boundGold": 0, "moreCost": null }] },
         { "difficulty": "NIGHTMARE", "minItemLevel": 1780, "status": "OFFICIAL", "source": "gmnote-1226", "gates": [{ "gate": 1, "gold": 50000, "boundGold": 0, "moreCost": null }] }
+      ]
+    },
+    {
+      "id": "horizon-cathedral",
+      "category": "ABYSS",
+      "name": "지평의 성당",
+      "shortName": "지평의 성당",
+      "players": 4,
+      "structureSource": "sites-20261010",
+      "modes": [
+        {
+          "difficulty": "STAGE_1",
+          "minItemLevel": 1700,
+          "status": "SITES",
+          "source": "sites-20261010",
+          "gates": [
+            { "gate": 1, "gold": 13500, "boundGold": 13500, "moreCost": null },
+            { "gate": 2, "gold": 16500, "boundGold": 16500, "moreCost": null }
+          ]
+        },
+        {
+          "difficulty": "STAGE_2",
+          "minItemLevel": 1720,
+          "status": "SITES",
+          "source": "sites-20261010",
+          "gates": [
+            { "gate": 1, "gold": 16000, "boundGold": 16000, "moreCost": null },
+            { "gate": 2, "gold": 24000, "boundGold": 24000, "moreCost": null }
+          ]
+        },
+        {
+          "difficulty": "STAGE_3",
+          "minItemLevel": 1750,
+          "status": "SITES",
+          "source": "sites-20261010",
+          "gates": [
+            { "gate": 1, "gold": 20000, "boundGold": 20000, "moreCost": null },
+            { "gate": 2, "gold": 30000, "boundGold": 30000, "moreCost": null }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "kamen",
+      "category": "LEGION",
+      "name": "어둠의 군단장, 카멘",
+      "shortName": "카멘",
+      "players": 8,
+      "structureSource": "sites-20261010",
+      "modes": [
+        {
+          "difficulty": "NORMAL",
+          "minItemLevel": 1610,
+          "status": "UNVERIFIED",
+          "source": null,
+          "gates": [
+            { "gate": 1, "gold": null, "boundGold": null, "moreCost": null },
+            { "gate": 2, "gold": null, "boundGold": null, "moreCost": null },
+            { "gate": 3, "gold": null, "boundGold": null, "moreCost": null }
+          ]
+        },
+        {
+          "difficulty": "HARD",
+          "minItemLevel": 1630,
+          "status": "UNVERIFIED",
+          "source": null,
+          "gates": [
+            { "gate": 1, "gold": null, "boundGold": null, "moreCost": null },
+            { "gate": 2, "gold": null, "boundGold": null, "moreCost": null },
+            { "gate": 3, "gold": null, "boundGold": null, "moreCost": null },
+            { "gate": 4, "gold": null, "boundGold": null, "moreCost": null }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ivory-tower",
+      "category": "ABYSS",
+      "name": "혼돈의 상아탑",
+      "shortName": "상아탑",
+      "players": 4,
+      "structureSource": "sites-20261010",
+      "modes": [
+        {
+          "difficulty": "NORMAL",
+          "minItemLevel": 1600,
+          "status": "UNVERIFIED",
+          "source": null,
+          "gates": [
+            { "gate": 1, "gold": null, "boundGold": null, "moreCost": null },
+            { "gate": 2, "gold": null, "boundGold": null, "moreCost": null },
+            { "gate": 3, "gold": null, "boundGold": null, "moreCost": null }
+          ]
+        },
+        {
+          "difficulty": "HARD",
+          "minItemLevel": 1620,
+          "status": "UNVERIFIED",
+          "source": null,
+          "gates": [
+            { "gate": 1, "gold": null, "boundGold": null, "moreCost": null },
+            { "gate": 2, "gold": null, "boundGold": null, "moreCost": null },
+            { "gate": 3, "gold": null, "boundGold": null, "moreCost": null }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "illiakan",
+      "category": "LEGION",
+      "name": "질병군단장, 일리아칸",
+      "shortName": "일리아칸",
+      "players": 8,
+      "structureSource": "sites-20261010",
+      "modes": [
+        {
+          "difficulty": "NORMAL",
+          "minItemLevel": 1580,
+          "status": "SITES",
+          "source": "sites-20261010",
+          "gates": [
+            { "gate": 1, "gold": 850, "boundGold": 850, "moreCost": null },
+            { "gate": 2, "gold": 1550, "boundGold": 1550, "moreCost": null },
+            { "gate": 3, "gold": 2300, "boundGold": 2300, "moreCost": null }
+          ]
+        },
+        {
+          "difficulty": "HARD",
+          "minItemLevel": 1600,
+          "status": "UNVERIFIED",
+          "source": null,
+          "gates": [
+            { "gate": 1, "gold": null, "boundGold": null, "moreCost": null },
+            { "gate": 2, "gold": null, "boundGold": null, "moreCost": null },
+            { "gate": 3, "gold": null, "boundGold": null, "moreCost": null }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "kayangel",
+      "category": "ABYSS",
+      "name": "천공의 문 넬라시아(카양겔)",
+      "shortName": "카양겔",
+      "players": 4,
+      "structureSource": "sites-20261010",
+      "modes": [
+        {
+          "difficulty": "NORMAL",
+          "minItemLevel": 1540,
+          "status": "SITES",
+          "source": "sites-20261010",
+          "gates": [
+            { "gate": 1, "gold": 750, "boundGold": 750, "moreCost": null },
+            { "gate": 2, "gold": 1100, "boundGold": 1100, "moreCost": null },
+            { "gate": 3, "gold": 1450, "boundGold": 1450, "moreCost": null }
+          ]
+        },
+        {
+          "difficulty": "HARD",
+          "minItemLevel": 1580,
+          "status": "SITES",
+          "source": "sites-20261010",
+          "gates": [
+            { "gate": 1, "gold": 900, "boundGold": 900, "moreCost": null },
+            { "gate": 2, "gold": 1400, "boundGold": 1400, "moreCost": null },
+            { "gate": 3, "gold": 2000, "boundGold": 2000, "moreCost": null }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "abrelshud",
+      "category": "LEGION",
+      "name": "몽환군단장, 아브렐슈드",
+      "shortName": "아브렐슈드",
+      "players": 8,
+      "structureSource": "sites-20261010",
+      "modes": [
+        {
+          "difficulty": "NORMAL",
+          "minItemLevel": 1490,
+          "status": "SITES",
+          "source": "sites-20261010",
+          "gates": [
+            { "gate": 1, "gold": 1000, "boundGold": 1000, "moreCost": null },
+            { "gate": 2, "gold": 1000, "boundGold": 1000, "moreCost": null },
+            { "gate": 3, "gold": 1000, "boundGold": 1000, "moreCost": null },
+            { "gate": 4, "gold": 1600, "boundGold": 1600, "moreCost": null }
+          ]
+        },
+        {
+          "difficulty": "HARD",
+          "minItemLevel": 1540,
+          "status": "SITES",
+          "source": "sites-20261010",
+          "gates": [
+            { "gate": 1, "gold": 1200, "boundGold": 1200, "moreCost": null },
+            { "gate": 2, "gold": 1200, "boundGold": 1200, "moreCost": null },
+            { "gate": 3, "gold": 1200, "boundGold": 1200, "moreCost": null },
+            { "gate": 4, "gold": 2000, "boundGold": 2000, "moreCost": null }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "kouku",
+      "category": "LEGION",
+      "name": "광기군단장, 쿠크세이튼",
+      "shortName": "쿠크세이튼",
+      "players": 4,
+      "structureSource": "sites-20261010",
+      "modes": [
+        {
+          "difficulty": "NORMAL",
+          "minItemLevel": 1475,
+          "status": "SITES",
+          "source": "sites-20261010",
+          "gates": [
+            { "gate": 1, "gold": 600, "boundGold": 600, "moreCost": null },
+            { "gate": 2, "gold": 900, "boundGold": 900, "moreCost": null },
+            { "gate": 3, "gold": 1500, "boundGold": 1500, "moreCost": null }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "vykas",
+      "category": "LEGION",
+      "name": "욕망군단장, 비아키스",
+      "shortName": "비아키스",
+      "players": 8,
+      "structureSource": "sites-20261010",
+      "modes": [
+        {
+          "difficulty": "NORMAL",
+          "minItemLevel": 1430,
+          "status": "UNVERIFIED",
+          "source": null,
+          "gates": [
+            { "gate": 1, "gold": null, "boundGold": null, "moreCost": null },
+            { "gate": 2, "gold": null, "boundGold": null, "moreCost": null }
+          ]
+        },
+        {
+          "difficulty": "HARD",
+          "minItemLevel": 1460,
+          "status": "UNVERIFIED",
+          "source": null,
+          "gates": [
+            { "gate": 1, "gold": null, "boundGold": null, "moreCost": null },
+            { "gate": 2, "gold": null, "boundGold": null, "moreCost": null }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "valtan",
+      "category": "LEGION",
+      "name": "마수군단장, 발탄",
+      "shortName": "발탄",
+      "players": 8,
+      "structureSource": "sites-20261010",
+      "modes": [
+        {
+          "difficulty": "NORMAL",
+          "minItemLevel": 1415,
+          "status": "UNVERIFIED",
+          "source": null,
+          "gates": [
+            { "gate": 1, "gold": null, "boundGold": null, "moreCost": null },
+            { "gate": 2, "gold": null, "boundGold": null, "moreCost": null }
+          ]
+        },
+        {
+          "difficulty": "HARD",
+          "minItemLevel": 1445,
+          "status": "UNVERIFIED",
+          "source": null,
+          "gates": [
+            { "gate": 1, "gold": null, "boundGold": null, "moreCost": null },
+            { "gate": 2, "gold": null, "boundGold": null, "moreCost": null }
+          ]
+        }
       ]
     }
   ]

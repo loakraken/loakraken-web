@@ -7,6 +7,8 @@ import {
   characterGold,
   emptyState,
   formatCountdown,
+  modeOf,
+  unsettledModes,
   nextReset,
   parseState,
   rollWeek,
@@ -27,12 +29,17 @@ test("the homework week starts on Wednesday 06:00 KST", () => {
 
 test("auto raids pick the three best known modes for the level", () => {
   const at1730 = autoRaids(1730).map((r) => `${r.raidId}/${r.difficulty}`);
-  // 종막 하드 48,000 > 4막 하드 38,000 > 세르카 노말 32,000 (official values).
-  assert.deepEqual(at1730, ["kazeros-final/HARD", "kazeros-act4/HARD", "serka/NORMAL"]);
-  // Unpublished gold (벨가르딘) is never auto-picked, singles and extremes neither.
-  assert.ok(autoRaids(1780).every((r) => r.raidId !== "belgardin" && r.difficulty !== "SINGLE"));
+  // 종막 하드 48,000 > 지평의 성당 2단계 40,000 > 4막 하드 38,000; 세르카 하드
+  // (44,000) is unsettled and never auto-picked.
+  assert.deepEqual(at1730, ["kazeros-final/HARD", "horizon-cathedral/STAGE_2", "kazeros-act4/HARD"]);
+  // Unsettled gold is never auto-picked, singles and extremes neither.
+  assert.ok(
+    autoRaids(1780).every(
+      (r) => modeOf(r)?.status !== "UNVERIFIED" && r.difficulty !== "SINGLE",
+    ),
+  );
   assert.ok(autoRaids(1780).every((r) => !r.raidId.endsWith("extreme")));
-  assert.deepEqual(autoRaids(1500), [], "too low for any end content");
+  assert.deepEqual(autoRaids(1400), [], "too low for any gold raid with a settled value");
 });
 
 test("only six characters get gold, highest level first", () => {
@@ -59,8 +66,8 @@ test("gold counts cleared gates, subtracts bought bonus rewards", () => {
   finalHard.more = [true, false];
   const gold = characterGold(character);
   assert.equal(gold.earned, 16000 - 5120);
-  assert.equal(gold.possible, 48000 - 5120 + 38000 + 32000);
-  assert.equal(gold.possibleBound, 16000, "세르카 노말 is half bound");
+  assert.equal(gold.possible, 48000 - 5120 + 40000 + 38000);
+  assert.equal(gold.possibleBound, 40000, "지평의 성당 is all bound");
   assert.equal(gold.moreSpent, 5120);
   // A non-gold character earns nothing but still pays for its bonus rewards.
   const nonGold = characterGold({ ...character, gold: false });
@@ -96,7 +103,7 @@ test("unknown gold is counted separately, never as zero gold earned", () => {
   const [character] = addCharacters(emptyState(0), [
     { name: "벨가", server: "루페온", className: "바드", itemLevel: 1780 },
   ]).characters;
-  character.raids = [{ raidId: "belgardin", difficulty: "HARD", cleared: [true, true], more: [false, false] }];
+  character.raids = [{ raidId: "belgardin", difficulty: "NIGHTMARE", cleared: [true, true], more: [false, false] }];
   const gold = characterGold(character);
   assert.equal(gold.earned, 0);
   assert.equal(gold.unknownGates, 2);
@@ -136,8 +143,39 @@ test("stored state is parsed defensively", () => {
   assert.equal(state.characters[0].raids.length, 1, "unknown raid and wrong gate count dropped");
 });
 
+test("언새늘 roster matches the target site weekly total (web #270)", () => {
+  // 계산 검증 02:45: 일로아 숙제 관리 401,100G for the top six characters.
+  const roster = [
+    ["언새늘", 1770],
+    ["언로늘", 1723.33],
+    ["비극화", 1704.33],
+    ["무협권", 1585],
+    ["엉람쥐", 1585],
+    ["돈땃쥐밍", 1556.67],
+  ].map(([name, itemLevel]) => ({ name: String(name), server: "루페온", className: "", itemLevel: Number(itemLevel) }));
+  const state = addCharacters(emptyState(0), roster);
+  const totals = state.characters.map((c) => characterGold(c).possible);
+  assert.deepEqual(totals, [166000, 110000, 84000, 14600, 14600, 11900]);
+  assert.equal(rosterSummary(state).possible, 401100);
+  // Every pick is settled; nothing unsettled could replace one.
+  assert.deepEqual(unsettledModes(state.characters), []);
+  // 1,612: 카멘·상아탑 노말 could replace a pick; 일리아칸 하드 is the same raid
+  // as the picked 일리아칸 노말, so it is not listed.
+  const [low] = addCharacters(emptyState(0), [{ name: "카멘", server: "", className: "", itemLevel: 1612 }]).characters;
+  assert.deepEqual(
+    unsettledModes([low]).map(({ raid, mode }) => `${raid.id}/${mode.difficulty}`),
+    ["kamen/NORMAL", "ivory-tower/NORMAL"],
+  );
+});
+
 test("countdown text", () => {
   assert.equal(formatCountdown(4 * 86400_000 + 3 * 3600_000), "4일 3시간");
   assert.equal(formatCountdown(2 * 3600_000 + 5 * 60_000), "2시간 5분");
   assert.equal(formatCountdown(-1), "0분");
+});
+
+test("equal gold picks the newer raid like the target site (#277 P2)", () => {
+  // 언로늘 1,723.33: 종막 노말 and 세르카 노말 both pay 32,000 at entry 1,710.
+  const picks = autoRaids(1723.33).map((r) => `${r.raidId}/${r.difficulty}`);
+  assert.deepEqual(picks, ["horizon-cathedral/STAGE_2", "kazeros-act4/HARD", "serka/NORMAL"]);
 });
