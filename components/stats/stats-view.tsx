@@ -121,15 +121,16 @@ function SummaryCards({ query }: { query: StatsQuery }) {
 /**
  * ILOA-style quantile bar: p10–p90 thin line, p25–p75 box, median tick. It
  * grows from the left each time the tab is shown (motion rule 10-10: on every
- * entry, not on in-place updates), 30ms apart up to 8 rows.
+ * entry, not on in-place updates), 30ms apart up to 8 rows; only the first 12
+ * rows move (PM 12-item cap), the rest are simply there.
  */
 function Quantiles({ row, scale, index }: { row: ClassRow; scale: ((v: number) => number) | null; index: number }) {
   const p = row.combatPower;
   if (!p || !scale) return <span className={styles.muted}>-</span>;
   return (
     <span
-      className={`${styles.quantile} k-grow-x`}
-      style={{ "--i": index } as CSSProperties}
+      className={index < 12 ? `${styles.quantile} k-grow-x` : styles.quantile}
+      style={index < 12 ? ({ "--i": index } as CSSProperties) : undefined}
       role="img"
       aria-label={`전투력 하위 10% ${whole(p.p10)}, 중간 50% ${whole(p.p25)}~${whole(p.p75)}, 상위 10% ${whole(p.p90)}`}
     >
