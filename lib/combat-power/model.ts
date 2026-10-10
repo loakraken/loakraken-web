@@ -43,6 +43,8 @@ export type Edits = {
   gems: Record<number, number>;
   refine: Record<number, number>;
   quality: Record<number, number>;
+  /** Advanced refining step per equipment index (search advancedRefineLevel, web #374). */
+  advanced: Record<number, number>;
   /** Polish grade per `${index}:${line}` (the option itself stays). */
   polish: Record<string, Grade>;
   /** Bracelet grade per line (the effect itself stays). */
@@ -57,6 +59,7 @@ export const NO_EDITS: Edits = {
   gems: {},
   refine: {},
   quality: {},
+  advanced: {},
   polish: {},
   bracelet: {},
   engraving: {},
@@ -72,7 +75,7 @@ export const GRADE_LABEL: Record<string, string> = { LOW: "하", MID: "중", HIG
 
 export type Current = {
   gems: { slot: number; level: number }[];
-  gear: { index: number; refine: number | null; quality: number | null }[];
+  gear: { index: number; refine: number | null; quality: number | null; advanced?: number | null }[];
   polish?: { index: number; line: number; option: string; grade: Grade | null }[];
   bracelet?: { line: number; name: string; grade: Grade | null }[];
   engravings?: { name: string; level: number }[];
@@ -108,6 +111,9 @@ export function toChanges(edits: Edits, current: Current): Change[] {
     const quality = edits.quality[item.index];
     if (quality != null && item.quality != null && quality !== item.quality)
       changes.push({ kind: "EQUIPMENT_QUALITY", index: item.index, quality });
+    const advanced = edits.advanced[item.index];
+    if (advanced != null && item.advanced != null && advanced !== item.advanced)
+      changes.push({ kind: "EQUIPMENT_ADVANCED_REFINE", index: item.index, level: advanced });
   }
   for (const line of current.polish ?? []) {
     const grade = edits.polish[`${line.index}:${line.line}`];

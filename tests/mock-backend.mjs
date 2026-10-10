@@ -14,11 +14,13 @@ const counts = {};
 // follow-up): polish/bracelet lines with tooltip grades and stone engravings.
 function withSimulatorGear(data) {
   const base = data.loadout.equipment.find((item) => item.detail);
+  // Advanced refining on the armour piece (search advancedRefineLevel, backend #234).
+  base.detail = { ...base.detail, advancedRefineLevel: 10 };
   const make = (type, name, detail) => ({
     ...base,
     type,
     name,
-    detail: { ...base.detail, refineLevel: null, quality: null, effects: [], stoneEngravings: [], polishEffects: [], braceletEffects: [], ...detail },
+    detail: { ...base.detail, refineLevel: null, advancedRefineLevel: null, quality: null, effects: [], stoneEngravings: [], polishEffects: [], braceletEffects: [], ...detail },
   });
   data.loadout.equipment.push(
     make("목걸이", "테스트 목걸이", {
@@ -351,6 +353,7 @@ createServer(async (req, res) => {
       }
       case "EQUIPMENT_REFINE": return [item.name, String(item.detail.refineLevel)];
       case "EQUIPMENT_QUALITY": return [item.name, String(item.detail.quality)];
+      case "EQUIPMENT_ADVANCED_REFINE": return [item.name, String(item.detail.advancedRefineLevel ?? "")];
       case "POLISH": {
         const line = item.detail.polishEffects[change.line];
         return [`${item.name} 연마 ${change.line + 1}`, `${line.name} ${line.value}`];

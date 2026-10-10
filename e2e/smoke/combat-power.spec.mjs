@@ -38,11 +38,13 @@ test.describe("전투력 시뮬레이터 @smoke", () => {
     await page.getByRole("combobox", { name: "테스트 목걸이 추가 피해 등급" }).selectOption("HIGH");
     await page.getByRole("combobox", { name: "스톤 원한 레벨" }).selectOption("2");
     await page.getByRole("textbox", { name: "아크 패시브 진화 포인트" }).fill("130");
+    await page.getByRole("combobox", { name: "투구 상급 재련 단계" }).selectOption("20");
     const changes = page.getByRole("region", { name: "바꾼 것" });
     // 백엔드가 돌려주는 등급 코드(HIGH)는 화면에서 상·중·하로 읽는다.
     await expect(changes.getByText("추가 피해 +1.60% → 추가 피해 상")).toBeVisible();
     await expect(changes.getByText("스톤 원한")).toBeVisible();
     await expect(changes.getByText("120 → 130")).toBeVisible();
+    await expect(changes.getByText("10 → 20")).toBeVisible();
     await expectNoHorizontalOverflow(page);
   });
 });
