@@ -808,7 +808,15 @@
   --page-max: 1120px;
   --page-gutter: 24px;
 
-  /* Surfaces stay flat; shadows only for things that float */
+  /* Surface depth (#334, bencho-style two layers): a band behind, panels on
+     it with a hairline and a barely-there shadow, inset rows inside. Screens
+     use these names instead of --muted/--secondary for surfaces. */
+  --surface-page: #f5f5f7;
+  --surface-panel: #ffffff;
+  --surface-inset: #f5f5f7;
+  --shadow-card: 0 0 0 1px rgb(0 0 0 / 5%), 0 1px 2px rgb(0 0 0 / 4%), 0 12px 28px -18px rgb(0 0 0 / 18%);
+
+  /* Floating layers (popovers, menus) */
   --shadow-pop: 0 18px 40px -24px rgb(0 0 0 / 24%), 0 0 0 1px rgb(0 0 0 / 8%);
   --shadow-thumb: 0 2px 4px rgb(0 0 0 / 18%);
   --ring-halo: 0 0 0 3px rgb(0 113 227 / 22%);
@@ -1006,6 +1014,11 @@
   --grade-ancient-text: #a98a52; /* 4.82 */
   --grade-esther-text: #2a9b8d; /* 4.62 */
   --shadow-pop: 0 18px 40px -16px rgb(0 0 0 / 80%), 0 0 0 1px rgb(255 255 255 / 8%);
+  /* Dark: depth by lighter layers; the hairline is light, the shadow only grounds it. */
+  --surface-page: #0f1114;
+  --surface-panel: #1b1d22;
+  --surface-inset: #23262c;
+  --shadow-card: 0 0 0 1px rgb(255 255 255 / 6%), 0 12px 28px -18px rgb(0 0 0 / 70%);
 }
 
 /* Entrance utilities. @starting-style runs the transition only when the

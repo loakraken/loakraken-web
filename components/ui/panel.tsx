@@ -2,16 +2,17 @@ import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "cn"
 
-// Flat information surface for tool cards, character panels, market boards and
-// home widgets. Surfaces are told apart by fill and spacing, not shadows.
-// "card" sits on a --muted band, "muted" on the plain page.
+// Information surface for tool cards, character panels, market boards and home
+// widgets. "card" is the raised layer (#334): --surface-panel with a hairline
+// and a barely-there shadow on a --surface-page band; "muted" is the flat
+// inset layer for groups inside a card or on the plain page.
 // min-w-0: inside grid/flex parents a wide table must scroll within the panel
 // rather than stretch it past the screen.
-const panelVariants = cva("min-w-0 rounded-(--radius-lg) text-card-foreground", {
+const panelVariants = cva("min-w-0 text-card-foreground", {
   variants: {
     surface: {
-      card: "bg-card",
-      muted: "bg-muted",
+      card: "rounded-(--radius-xl) bg-(--surface-panel) shadow-(--shadow-card)",
+      muted: "rounded-(--radius-lg) bg-(--surface-inset)",
     },
     padding: {
       md: "p-4 min-[701px]:p-6",
