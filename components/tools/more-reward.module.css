@@ -114,6 +114,12 @@
   padding: 0 0 var(--space-4);
 }
 .detail {
+  /* The table scrolls sideways on phones; the opened gate stays in view at
+     the visible width instead of being cut by the scroll box. */
+  position: sticky;
+  left: 0;
+  box-sizing: border-box;
+  width: min(100%, calc(100vw - 56px));
   padding: var(--space-4);
   border-radius: 14px;
   background: var(--background);
