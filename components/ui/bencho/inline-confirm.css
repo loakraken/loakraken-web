@@ -1,0 +1,120 @@
+/* MIT © 2026 Lorenzo Cabra — https://bencho.dev/blocks/confirm (see ./NOTICE).
+   Only the .say-* rules of Bencho's shared stylesheet; the glass, deck and
+   test-board rules that came with the export belong to other blocks. */
+
+/* ── our tokens (#368) ─────────────────────────────────────
+   Bencho's names, mapped once on the block root so nothing
+   leaks out. The pill is our control fill, the words our ink,
+   undo our link blue (4.5:1 as text in both themes). */
+.say-well {
+  --fill-slab: var(--secondary);
+  --pane: var(--secondary);
+  --fill-on: var(--foreground);
+  --ink: var(--foreground);
+  --ink-3: var(--muted-foreground);
+  --font-ui: inherit;
+  --pick: var(--link);
+  --pick-rgb: 0 102 204;
+}
+:root[data-theme="dark"] .say-well {
+  --pick-rgb: 77 163 255;
+}
+
+/* ── 4 · confirm in place ────────────────────────────────── */
+.say-well {
+  position: relative;
+  width: 260px; height: 96px;
+  /* the pill springs `left` and `width`; keep that layout work
+     inside the well (#368) */
+  contain: layout paint;}
+
+/* ── the surface: one pill, sprung between two widths ────── */
+.say-body {
+  position: absolute;
+  top: 26px;
+  height: 44px;
+  border-radius: var(--say-r, 999px);
+  background: var(--fill-slab, var(--pane));
+  transition: scale 180ms cubic-bezier(0.3, 0.9, 0.4, 1);}
+
+/* the resting pill answers a hover by giving a little, never by
+   changing colour; the words and the surfaces give together */
+.say-well[data-phase="idle"]:has(.say-face:hover) .say-body,
+.say-well[data-phase="idle"]:has(.say-face:hover) .say-face { scale: 0.97; }
+
+.say-well[data-phase="idle"]:has(.say-face:active) .say-body,
+.say-well[data-phase="idle"]:has(.say-face:active) .say-face { scale: 0.94; }
+
+/* ── the words, on top of the pill ────────────────────────── */
+.say-face {
+  position: absolute;
+  top: 26px;
+  height: 44px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: var(--say-r, 999px);
+  background: transparent;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  color: var(--fill-on, var(--ink));
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 160ms ease, scale 180ms cubic-bezier(0.3, 0.9, 0.4, 1);}
+
+/* deleted, and the undo that is on offer: one wide pill again */
+.say-merged {
+  position: absolute;
+  top: 26px;
+  height: 44px;
+  display: flex; align-items: center;
+  padding-right: 4px;
+  border-radius: var(--say-r, 999px);
+  overflow: hidden;}
+
+.say-done {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 0 14px;
+  font-size: 13px;
+  color: var(--ink-3);
+  white-space: nowrap;}
+
+.say-undo {
+  position: relative;
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 36px;
+  padding: 0 13px;
+  border-radius: 999px;
+  margin-left: auto;
+  border: 0;
+  /* the canvas's own undo: the selection blue, no pad of its own,
+     a blue wash under the pointer — one "undo" on the site, not
+     two that happen to say the same word */
+  background: transparent;
+  font-family: var(--font-ui);
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--pick);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 140ms ease;}
+
+.say-undo:hover { background: rgb(var(--pick-rgb) / 0.12); }
+
+/* how long undo is still on offer. Bencho burns `width`; ours
+   burns a scaleX from the left edge, the same line drawn with
+   transform only (performance rule, #368). */
+.say-fuse {
+  position: absolute;
+  left: 0; bottom: 0;
+  width: 100%;
+  height: 2px;
+  background: var(--pick);
+  transform-origin: 0 50%;
+  animation: say-burn linear forwards;}
+
+@media (prefers-reduced-motion: reduce) {
+  .say-body { transition-duration: 1ms; }
+}
+
+@keyframes say-burn { from { transform: scaleX(1); } to { transform: scaleX(0); } }
