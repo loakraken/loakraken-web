@@ -106,7 +106,7 @@ export const NAV_SECTIONS: NavSection[] = [
       {
         title: "오늘",
         links: [
-          { label: "주간 일정표", description: "모험 섬 보상·필드 보스·카오스게이트", href: "/#schedule" },
+          { label: "주간 일정", description: "모험 섬·카오스게이트·필드 보스·섬·항해·로웬", href: "/schedule" },
           { label: "공지·이벤트", description: "점검과 진행 중인 이벤트", href: "/#news" },
         ],
       },
