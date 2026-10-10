@@ -1,71 +1,34 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { BorderBeam } from "border-beam";
-import { m, useInView, useMotionTemplate, useScroll, useSpring, useTransform } from "motion/react";
-import { ArrowDown, ArrowRight, ArrowUpRight, Check, ChevronDown, Command, Fingerprint, Focus, Layers3, Pause, Play, ScanLine, Search, ShieldCheck, Terminal } from "lucide-react";
+import { m, useScroll, useTransform } from "motion/react";
+import { ArrowRight, ArrowUpRight, Check, ChevronDown, Fingerprint, Focus, Layers3, ScanLine, ShieldCheck, Terminal } from "lucide-react";
 import { CharacterCockpit } from "./cockpit";
-import { IntelligenceOrb, InlineOrb } from "./orb";
+import { Hero } from "./hero";
 import { LandingMotion, Reveal, useLandingMotion } from "./motion";
 import { roadmap } from "./roadmap";
 import { SiteHeader } from "@/components/site/site-header";
 import { KrakenMark } from "@/components/site/kraken-mark";
-import { characterNameError, normalizeCharacterName } from "@/lib/character/model";
 import styles from "./landing.module.css";
 
 export { KrakenMark } from "@/components/site/kraken-mark";
 
-const noSubscribe = () => () => {};
-// Platform is unknown during SSR; render the hint only after hydration to avoid a mismatch.
-const platformKey = () => (/mac|iphone|ipad/i.test(navigator.platform) ? "mac" : "other");
-
 function PrecisionLanding() {
-  const shortcutKey = useSyncExternalStore(noSubscribe, platformKey, () => null);
-  const router = useRouter();
   const input = useRef<HTMLInputElement>(null);
-  const hero = useRef<HTMLElement>(null);
-  const heroVisible = useInView(hero);
-  const { enabled, paused, toggle } = useLandingMotion();
-  const [query, setQuery] = useState("");
-  const [error, setError] = useState("");
-  const [searching, setSearching] = useState(false);
-  const [focused, setFocused] = useState(false);
+  const { enabled } = useLandingMotion();
   const [copied, setCopied] = useState(false);
   const [copyError, setCopyError] = useState(false);
   const copyTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const { scrollYProgress } = useScroll();
   const progressTransform = useTransform(scrollYProgress, (value) => `scaleX(${value})`);
-  const rotateX = useSpring(0, { stiffness: 100, damping: 20 });
-  const rotateY = useSpring(0, { stiffness: 100, damping: 20 });
-  const orbTransform = useMotionTemplate`perspective(700px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
 
-  useEffect(() => {
-    const shortcut = (event: KeyboardEvent) => {
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
-        event.preventDefault();
-        input.current?.scrollIntoView({ behavior: "instant", block: "center" });
-        input.current?.focus({ preventScroll: true });
-      }
-    };
-    window.addEventListener("keydown", shortcut);
-    return () => { window.removeEventListener("keydown", shortcut); clearTimeout(copyTimer.current); };
-  }, []);
+  useEffect(() => () => clearTimeout(copyTimer.current), []);
 
   const focusSearch = () => {
     input.current?.scrollIntoView({ behavior: enabled ? "smooth" : "instant", block: "center" });
     input.current?.focus({ preventScroll: true });
   };
-
-  function search(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const name = normalizeCharacterName(query);
-    const issue = characterNameError(name);
-    if (issue) { setError(issue); input.current?.focus(); return; }
-    setError(""); setSearching(true);
-    router.push(`/character/${encodeURIComponent(name)}`);
-  }
 
   const evidence = JSON.stringify({ character: "블레이드", className: "블레이드", source: "design-preview", observation: { gems: 11, level10: 9, level9: [{ slot: 5, kind: "겁화", skill: "마엘스톰" }, { slot: 10, kind: "작열", skill: "터닝 슬래쉬" }] }, diagnosis: "9레벨 보석 2개 확인", evidencePath: "/example/gems/5,10", ruleVersion: "preview-v1" }, null, 2);
 
@@ -83,42 +46,11 @@ function PrecisionLanding() {
       <a className={styles.skipLink} href="#main">본문으로 건너뛰기</a>
       <m.div className={styles.readingProgress} style={{ transform: progressTransform }} aria-hidden="true" />
       <SiteHeader fixed>
-        <button type="button" className={styles.motionToggle} onClick={toggle} aria-label={paused ? "모션 재생" : "모션 일시정지"} aria-pressed={paused} title={paused ? "모션 재생" : "모션 일시정지"}>{paused ? <Play size={14} /> : <Pause size={14} />}</button>
         <button type="button" className={styles.navCta} onClick={focusSearch}>캐릭터 검색 <ArrowUpRight size={14} /></button>
       </SiteHeader>
 
       <main id="main">
-        <section ref={hero} className={styles.hero} id="intro" aria-labelledby="hero-heading" data-in-view={heroVisible}>
-          <div className={styles.heroContent}>
-            <div className={`${styles.statusPill} ${styles.heroEnter}`}>LOAKraken</div>
-            <h1 className={`${styles.heroTitle} ${styles.heroEnter}`} id="hero-heading">당신의 캐릭터.<br /><span>가능성을 더 선명하게.</span></h1>
-            <p className={`${styles.heroDescription} ${styles.heroEnter}`}>지금의 세팅부터 다음 성장까지.<br />흩어진 정보를 모아, 더 명확한 선택으로.</p>
-            <m.div className={styles.orbInteraction} style={{ transform: enabled ? orbTransform : "none" }}
-              onPointerMove={(event) => {
-                if (!enabled || !window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
-                const box = event.currentTarget.getBoundingClientRect();
-                rotateX.set((0.5 - (event.clientY - box.top) / box.height) * 12);
-                rotateY.set(((event.clientX - box.left) / box.width - 0.5) * 12);
-              }} onPointerLeave={() => { rotateX.set(0); rotateY.set(0); }}>
-              <IntelligenceOrb state={searching ? "searching" : focused ? "connecting" : "breathing"} />
-            </m.div>
-            <p className={styles.orbCaption}><span className={styles.statusDot} />{searching ? "캐릭터 화면으로 이동하고 있어요" : focused ? "어떤 캐릭터를 살펴볼까요?" : "당신의 다음 선택을 기다리고 있어요"}</p>
-            <div className={styles.searchArea}>
-              <BorderBeam className={styles.searchBeam} theme="light" colorVariant="mono" staticColors size="line" duration={5} strength={focused ? 0.55 : 0.22} active={enabled && heroVisible} borderRadius={36}>
-                <form className={styles.searchForm} onSubmit={search} noValidate aria-busy={searching}>
-                  <label htmlFor="character-search" className={styles.srOnly}>캐릭터 이름</label>
-                  <Search className={styles.searchIcon} size={19} aria-hidden="true" />
-                  <input ref={input} id="character-search" name="character" value={query} onChange={(event) => { setQuery(event.target.value); if (error) setError(""); }}
-                    onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} placeholder="캐릭터 이름을 입력하세요" maxLength={65} autoComplete="off" spellCheck={false} disabled={searching} aria-invalid={!!error} aria-describedby={error ? "search-error" : "search-help"} />
-                  {shortcutKey && <kbd className={styles.shortcut} aria-hidden="true">{shortcutKey === "mac" ? <Command size={12} /> : "Ctrl"} K</kbd>}
-                  <button className={styles.searchSubmit} type="submit" disabled={searching} aria-label={searching ? "캐릭터 화면으로 이동 중" : undefined}>{searching ? <InlineOrb /> : <>캐릭터 검색 <ArrowRight size={16} /></>}</button>
-                </form>
-              </BorderBeam>
-              <div className={styles.searchMessage} aria-live="polite">{error ? <p id="search-error" className={styles.error}>{error}</p> : <p id="search-help">이름으로 캐릭터의 현재 정보를 조회하세요. <a href="#preview">예시 화면 살펴보기 <ArrowUpRight size={12} /></a></p>}</div>
-            </div>
-          </div>
-          <a className={styles.exploreLink} href="#preview">캐릭터 화면 미리보기 <ArrowDown size={16} /></a>
-        </section>
+        <Hero inputRef={input} />
 
         <div className={styles.previewBand}><section className={styles.section} id="preview" aria-labelledby="preview-heading">
           <Reveal className={styles.sectionHeading}><div><span className={styles.eyebrow}>캐릭터 미리보기</span><h2 id="preview-heading">캐릭터의 지금을,<br className={styles.mobileBreak} /> 한눈에.</h2></div><p>장비부터 놓치기 쉬운 세팅까지.<br />당신에게 필요한 정보만, 명료하게.</p></Reveal>

@@ -7,12 +7,10 @@ import { useQuery } from "@tanstack/react-query";
 import {
   ArrowLeft,
   ArrowRight,
-  Pause,
-  Play,
   RefreshCw,
   Search,
 } from "lucide-react";
-import { LandingMotion, useLandingMotion } from "@/components/landing/motion";
+import { LandingMotion } from "@/components/landing/motion";
 import { InlineOrb } from "@/components/landing/orb";
 import { CharacterQueryError, fetchCharacter } from "@/lib/character/client";
 import { positionOf } from "@/lib/character/detail";
@@ -202,7 +200,6 @@ function CharacterContent({
   initialError?: QueryFailure;
   renderedAt: number;
 }) {
-  const { paused, toggle } = useLandingMotion();
   const tab = tabOf(useSearchParams().get("tab"));
   const [now, setNow] = useState(renderedAt);
   const [refreshed, setRefreshed] = useState(false);
@@ -264,15 +261,6 @@ function CharacterContent({
       </a>
       <SiteHeader>
         <SearchBox name={name} />
-        <button
-          className={styles.motionButton}
-          type="button"
-          aria-label={paused ? "모션 재생" : "모션 일시정지"}
-          aria-pressed={paused}
-          onClick={toggle}
-        >
-          {paused ? <Play size={16} /> : <Pause size={16} />}
-        </button>
       </SiteHeader>
       <main id="character-main">
         {data && envelope ? (

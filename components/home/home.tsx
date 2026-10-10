@@ -1,20 +1,16 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import {
-  ArrowRight,
   ChevronRight,
-  Search,
   TriangleAlert,
 } from "lucide-react";
 import { SiteHeader } from "@/components/site/site-header";
-import {
-  characterNameError,
-  normalizeCharacterName,
-} from "@/lib/character/model";
+import { Hero } from "@/components/landing/hero";
+import { MotionScope } from "@/components/landing/motion-context";
+import landing from "@/components/landing/landing.module.css";
 import { fetchNews, homeNewsKey } from "@/lib/home/client";
 import {
   noticeLabel,
@@ -32,72 +28,6 @@ import { ServerCard } from "./server-card";
 import styles from "./home.module.css";
 import { countdownText } from "@/lib/api/rate-limit";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
-
-function SearchHero() {
-  const router = useRouter();
-  const input = useRef<HTMLInputElement>(null);
-  const [query, setQuery] = useState("");
-  const [error, setError] = useState("");
-  useEffect(() => {
-    const shortcut = (event: KeyboardEvent) => {
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
-        event.preventDefault();
-        input.current?.focus();
-      }
-    };
-    window.addEventListener("keydown", shortcut);
-    return () => window.removeEventListener("keydown", shortcut);
-  }, []);
-
-  function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const name = normalizeCharacterName(query);
-    const issue = characterNameError(name);
-    if (issue) {
-      setError(issue);
-      input.current?.focus();
-      return;
-    }
-    router.push(`/character/${encodeURIComponent(name)}`);
-  }
-
-  return (
-    <section className={styles.hero} aria-labelledby="home-search">
-      <h1 id="home-search" className={styles.srOnly}>
-        로스트아크 캐릭터 검색
-      </h1>
-      <form className={styles.search} onSubmit={submit} role="search">
-        <Search size={20} aria-hidden="true" />
-        <input
-          ref={input}
-          value={query}
-          onChange={(event) => {
-            setQuery(event.target.value);
-            setError("");
-          }}
-          placeholder="캐릭터 이름을 입력하세요"
-          aria-label="캐릭터 이름"
-          aria-invalid={!!error}
-          aria-describedby={error ? "home-search-error" : undefined}
-          autoComplete="off"
-          spellCheck={false}
-          enterKeyHint="search"
-        />
-        <kbd className={styles.kbd} aria-hidden="true">
-          Ctrl K
-        </kbd>
-        <button type="submit" aria-label="검색">
-          <ArrowRight size={18} />
-        </button>
-      </form>
-      {error && (
-        <p id="home-search-error" className={styles.searchError} role="alert">
-          {error}
-        </p>
-      )}
-    </section>
-  );
-}
 
 const useNews = () =>
   useQuery({
@@ -285,7 +215,13 @@ export function HomeDashboard({ renderedAt }: { renderedAt?: number }) {
       </a>
       <SiteHeader />
       <main id="home-main" className={styles.main}>
-        <SearchHero />
+        <h1 className={styles.srOnly}>로스트아크 캐릭터 검색</h1>
+        {/* The /about hero on top of the dashboard (user, 11:05). */}
+        <MotionScope>
+          <div className={landing.landing} data-embedded="">
+            <Hero embedded />
+          </div>
+        </MotionScope>
         <MaintenanceBanner renderedAt={renderedAt} />
         <div className={styles.grid}>
           <div className={styles.column}>
