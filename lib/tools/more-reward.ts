@@ -44,6 +44,9 @@ const DIFFICULTIES_BY_LABEL: Record<string, Difficulty[]> = {
   하드: ["HARD"],
   노말: ["NORMAL"],
   "노말 · 싱글": ["NORMAL", "SINGLE"],
+  "1단계": ["STAGE_1"],
+  "2단계": ["STAGE_2"],
+  "3단계": ["STAGE_3"],
 };
 
 /**

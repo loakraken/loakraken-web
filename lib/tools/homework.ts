@@ -78,11 +78,19 @@ export function eligibleModes(itemLevel: number): { raid: Raid; mode: Mode }[] {
  * (no official value and no two sites agreeing). They stay out of the totals
  * and the screen names them (PM 총괄 2026-10-10 03:05).
  */
-export function unsettledModes(characters: Pick<Character, "itemLevel" | "gold">[]) {
-  const top = Math.max(0, ...characters.filter((c) => c.gold).map((c) => c.itemLevel));
-  return eligibleModes(top)
-    .filter(({ mode }) => mode.status === "UNVERIFIED")
-    .map(({ raid, mode }) => ({ raid, mode }));
+export function unsettledModes(characters: Pick<Character, "itemLevel" | "gold" | "raids">[]) {
+  const found = new Map<string, { raid: Raid; mode: Mode }>();
+  for (const character of characters.filter((c) => c.gold)) {
+    const chosen = character.raids.map((plan) => modeOf(plan)).filter((m): m is Mode => !!m);
+    const floor = Math.min(...chosen.map((m) => m.minItemLevel), character.itemLevel);
+    const taken = new Set(character.raids.map((plan) => plan.raidId));
+    // Only what could replace a chosen raid: not the same raid, and at least
+    // as high as the lowest raid picked (lower content pays less).
+    for (const { raid, mode } of eligibleModes(character.itemLevel))
+      if (mode.status === "UNVERIFIED" && !taken.has(raid.id) && mode.minItemLevel >= floor)
+        found.set(`${raid.id}/${mode.difficulty}`, { raid, mode });
+  }
+  return [...found.values()];
 }
 
 const planFor = (raid: Raid, mode: Mode): RaidPlan => ({
