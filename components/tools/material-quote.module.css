@@ -236,41 +236,6 @@
   font-size: var(--text-body);
 }
 
-/* Segmented control for the price basis. */
-.segmented {
-  display: inline-flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-top: 24px;
-  padding: 4px;
-  border-radius: var(--radius-pill);
-  background: var(--mist);
-}
-.segmented label {
-  position: relative;
-  padding: 9px 18px;
-  border-radius: var(--radius-pill);
-  color: var(--ink);
-  font-size: var(--text-body);
-  cursor: pointer;
-  transition:
-    background-color 160ms ease-out,
-    box-shadow 160ms ease-out;
-}
-.segmented label[data-checked] {
-  background: var(--background);
-  font-weight: 600;
-  box-shadow: 0 0 0 1px var(--control);
-}
-.segmented input {
-  position: absolute;
-  opacity: 0;
-  pointer-events: none;
-}
-.segmented label:has(input:focus-visible) {
-  outline: 3px solid var(--action);
-  outline-offset: 2px;
-}
 
 /* Search */
 .searchArea {
@@ -610,15 +575,6 @@
   .card {
     padding: 20px 16px;
   }
-  .segmented {
-    display: flex;
-  }
-  .segmented label {
-    flex: 1;
-    padding: 9px 8px;
-    text-align: center;
-    font-size: var(--text-meta);
-  }
   .searchForm .secondaryPill {
     width: 100%;
   }
@@ -658,4 +614,9 @@
   .iconButton:active {
     transform: none;
   }
+}
+
+/* Spacing for the shared SegmentedControl (components/ui) on tool screens. */
+.basis {
+  margin-top: 24px;
 }
