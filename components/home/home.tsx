@@ -3,10 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import {
-  ChevronRight,
-  TriangleAlert,
-} from "lucide-react";
+import { ChevronRight, Warning } from "@/components/ui/icons";
 import { SiteHeader } from "@/components/site/site-header";
 import { Hero } from "@/components/landing/hero";
 import { MotionScope } from "@/components/landing/motion-context";

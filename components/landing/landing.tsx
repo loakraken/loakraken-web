@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { m, useScroll, useTransform } from "motion/react";
-import { ArrowRight, ArrowUpRight, Check, ChevronDown, Fingerprint, Focus, Layers3, ScanLine, ShieldCheck, Terminal } from "lucide-react";
+import { ArrowRight, ChevronDown, DocumentCode, ExportCircle, FingerScan, Gps, Layer, ScanBarcode, ShieldTick, TickCircle } from "@/components/ui/icons";
 import { CharacterCockpit } from "./cockpit";
 import { Hero } from "./hero";
 import { LandingMotion, Reveal, useLandingMotion } from "./motion";
@@ -46,7 +46,7 @@ function PrecisionLanding() {
       <a className={styles.skipLink} href="#main">본문으로 건너뛰기</a>
       <m.div className={styles.readingProgress} style={{ transform: progressTransform }} aria-hidden="true" />
       <SiteHeader fixed>
-        <button type="button" className={styles.navCta} onClick={focusSearch}>캐릭터 검색 <ArrowUpRight size={14} /></button>
+        <button type="button" className={styles.navCta} onClick={focusSearch}>캐릭터 검색 <ExportCircle size={14} /></button>
       </SiteHeader>
 
       <main id="main">

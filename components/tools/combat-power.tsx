@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { ArrowLeft, RotateCcw, Swords } from "lucide-react";
+import { ArrowLeft, FlashCircle, RotateLeft } from "@/components/ui/icons";
 import {
   characterNameError,
   normalizeCharacterName,
@@ -383,7 +383,7 @@ function CombatPowerContent({ initialName }: { initialName: string }) {
       <main id="cp-main">
         <section className={quote.hero} aria-labelledby="cp-page-heading">
           <span className={quote.heroIcon} aria-hidden="true">
-            <Swords size={18} />
+            <FlashCircle size={18} />
           </span>
           <p className={quote.heroKicker}>전투 계산</p>
           <h1 id="cp-page-heading">전투력 시뮬레이터</h1>
@@ -452,7 +452,7 @@ function CombatPowerContent({ initialName }: { initialName: string }) {
                         className={quote.outlinePill}
                         onClick={() => setEdits(NO_EDITS)}
                       >
-                        <RotateCcw size={14} aria-hidden="true" /> 처음 값으로
+                        <RotateLeft size={14} aria-hidden="true" /> 처음 값으로
                       </button>
                     )}
                     {outdated && (

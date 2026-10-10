@@ -4,12 +4,7 @@ import { memo, useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import {
-  ArrowLeft,
-  ArrowRight,
-  RefreshCw,
-  Search,
-} from "lucide-react";
+import { ArrowLeft, ArrowRight, RefreshArrow, SearchNormal } from "@/components/ui/icons";
 import { LandingMotion } from "@/components/landing/motion";
 import { InlineOrb } from "@/components/landing/orb";
 import { CharacterQueryError, fetchCharacter } from "@/lib/character/client";
