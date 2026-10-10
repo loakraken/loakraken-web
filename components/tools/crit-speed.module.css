@@ -27,6 +27,12 @@
 .settings {
   position: sticky;
   top: 72px;
+  /* Taller than the window: scroll inside instead of hiding the bottom
+     until the page ends. */
+  max-height: calc(100dvh - 72px - 16px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
   padding: 28px 24px;
   border-radius: var(--radius-xl);
   background: var(--background);
@@ -447,6 +453,8 @@
   }
   .settings {
     position: static;
+    max-height: none;
+    overflow: visible;
   }
 }
 @media (max-width: 700px) {
