@@ -2,6 +2,8 @@
 // CLIENT_RATE_LIMITED): every proxy route reports it as LOST_ARK_RATE_LIMITED
 // with a retry time, and every screen shows the same notice with the seconds
 // left. The retry button stays disabled until then; nothing retries by itself.
+import { remainingText } from "../time/remaining";
+
 export const RATE_LIMITED = "LOST_ARK_RATE_LIMITED";
 
 type Failure = { code: string; retryAt?: number };
@@ -26,9 +28,9 @@ export function rateLimitCopy() {
   return { title: "요청이 많아 잠시 쉬어 가요", text: "잠시 뒤 다시 시도해 주세요." };
 }
 
-/** Seconds left, for text outside live regions. */
+/** Time left (shared format), for text outside live regions. */
 export const countdownText = (seconds: number) =>
-  seconds > 0 ? `${seconds}초 뒤 다시 시도해 주세요.` : "이제 다시 시도할 수 있어요.";
+  seconds > 0 ? `${remainingText(seconds * 1000)} 뒤 다시 시도해 주세요.` : "이제 다시 시도할 수 있어요.";
 
 export const retryLabel = (seconds: number, label = "다시 시도") =>
-  seconds > 0 ? `${seconds}초 뒤 ${label}` : label;
+  seconds > 0 ? `${remainingText(seconds * 1000)} 뒤 ${label}` : label;

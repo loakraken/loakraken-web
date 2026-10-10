@@ -4,10 +4,11 @@
 // past, this week's gold islands) with 로아랩 /calendars per-category views.
 
 import { SiteHeader } from "@/components/site/site-header";
-import { Countdown, MINUTE, useClock } from "@/components/home/clock";
+import { Countdown, MINUTE, useClock, useRemaining } from "@/components/home/clock";
 import home from "@/components/home/home.module.css";
 import { kstDate, kstTime, weekDays } from "@/lib/home/model";
-import { resetLeft, scheduleGroups, schedulePath, upcomingRounds } from "@/lib/home/schedule";
+import { scheduleGroups, schedulePath, upcomingRounds } from "@/lib/home/schedule";
+import { nextReset } from "@/lib/tools/homework";
 import { Rewards, ScheduleBoard, useCategoryNav, useSchedule } from "./schedule-board";
 import styles from "./schedule.module.css";
 
@@ -107,10 +108,12 @@ function WeekIslands({ renderedAt }: { renderedAt?: number }) {
 
 function ResetLine({ renderedAt }: { renderedAt?: number }) {
   const now = useClock(MINUTE) ?? renderedAt ?? null;
+  // Seconds tick only in the last hour (shared remaining-time rule).
+  const left = useRemaining(now === null ? Number.NaN : nextReset(now), now);
   return (
     <p className={styles.reset}>
       매주 수요일 06:00 초기화
-      {now !== null && <> · 다음 초기화까지 <b>{resetLeft(now)}</b></>}
+      {left && <> · 다음 초기화까지 <b>{left}</b></>}
     </p>
   );
 }
