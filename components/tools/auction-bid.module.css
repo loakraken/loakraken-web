@@ -75,39 +75,6 @@
   color: var(--muted-foreground);
   font-size: var(--text-caption);
 }
-.segmented {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: var(--space-1);
-  padding: var(--space-1);
-  border-radius: var(--radius-pill);
-  background: var(--muted);
-}
-.segmented label {
-  position: relative;
-  padding: var(--space-2) 0;
-  border-radius: var(--radius-pill);
-  font-size: var(--text-body);
-  text-align: center;
-  cursor: pointer;
-  transition: 
-    background-color var(--duration-fast) var(--ease-out),
-    box-shadow var(--duration-fast) var(--ease-out);
-}
-.segmented label[data-checked] {
-  background: var(--card);
-  font-weight: 600;
-  box-shadow: 0 0 0 1px var(--secondary);
-}
-.segmented input {
-  position: absolute;
-  opacity: 0;
-  pointer-events: none;
-}
-.segmented label:has(input:focus-visible) {
-  outline: 3px solid var(--primary);
-  outline-offset: 2px;
-}
 .partyHint {
   color: var(--muted-foreground);
   font-size: var(--text-caption);
@@ -360,8 +327,72 @@
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .segmented label,
   .copy {
     transition: none;
   }
+}
+
+.partySegment {
+  margin-top: var(--space-2);
+}
+
+/* 추천 카드(피아식별 규칙): 맨 위에 하나의 답 — 입찰 상한. */
+.pick {
+  padding: var(--space-5) clamp(20px, 3vw, 28px);
+  border: 1.5px solid var(--primary);
+  border-radius: var(--radius-xl);
+  background: var(--card);
+}
+.pickLabel {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--muted-foreground);
+  font-size: var(--text-caption);
+  font-weight: 600;
+}
+.pickValue {
+  margin-top: var(--space-2);
+}
+.pickValue .copy {
+  min-height: 48px;
+  padding: 0 var(--space-4);
+  font-size: var(--text-figure);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.pickEmpty {
+  /* Same height as the filled value button: the card does not jump when
+     the first price arrives. */
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  margin-top: var(--space-2);
+  font-size: var(--text-body);
+}
+.pickNote {
+  margin-top: var(--space-2);
+  color: var(--muted-foreground);
+  font-size: var(--text-caption);
+}
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-size: var(--text-caption);
+  font-weight: 700;
+}
+.table tr[data-pick] th,
+.table tr[data-pick] td {
+  background: color-mix(in oklab, var(--primary) 5%, transparent);
+}
+.table tr[data-pick] th {
+  box-shadow: inset 3px 0 0 var(--primary);
+}
+.loss {
+  font-size: var(--text-caption);
+  font-weight: 600;
 }

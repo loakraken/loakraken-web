@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ArrowLeft, Coins } from "lucide-react";
 import Link from "next/link";
 import { SiteHeader } from "@/components/site/site-header";
+import { SegmentedControl, SegmentedItem } from "@/components/ui/segmented-control";
 import {
   CATEGORY_LABEL,
   DIFFICULTY_LABEL,
@@ -12,6 +13,7 @@ import {
   formatGold,
   modeTotals,
   type Category,
+  type Difficulty,
   type Mode,
   type Raid,
 } from "@/lib/tools/raid-rewards";
@@ -141,19 +143,18 @@ function RaidCard({ raid }: { raid: Raid }) {
         </div>
       </div>
       {raid.modes.length > 1 && (
-        <div className={styles.segmented} role="radiogroup" aria-label={`${raid.shortName} 난이도`}>
+        <SegmentedControl
+          className={styles.segment}
+          aria-label={`${raid.shortName} 난이도`}
+          value={mode.difficulty}
+          onValueChange={(value) => setDifficulty(value as Difficulty)}
+        >
           {raid.modes.map((m) => (
-            <label key={m.difficulty} data-checked={m.difficulty === mode.difficulty || undefined}>
-              <input
-                type="radio"
-                name={groupName}
-                checked={m.difficulty === mode.difficulty}
-                onChange={() => setDifficulty(m.difficulty)}
-              />
+            <SegmentedItem key={m.difficulty} value={m.difficulty}>
               {DIFFICULTY_LABEL[m.difficulty]}
-            </label>
+            </SegmentedItem>
           ))}
-        </div>
+        </SegmentedControl>
       )}
       <ModeTable raid={raid} mode={mode} />
     </section>

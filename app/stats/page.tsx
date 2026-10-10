@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import { dehydrate, HydrationBoundary, QueryClient } from "@tanstack/react-query";
 import { StatsView } from "@/components/stats/stats-view";
+import { getStats } from "@/lib/stats/server";
 import { parseStatsQuery, type StatsQuery } from "@/lib/stats/model";
 
 export const metadata: Metadata = {
@@ -26,6 +28,25 @@ export default async function StatsPage({
   delete query.metric;
   delete query.width;
   delete query.percentileOf;
+  // The summary cards sit above the tabs: arriving after hydration they pushed
+  // the tabs and table down (CLS 0.12 at 390). The summary and the table of a
+  // classes/servers tab come in the first HTML; a slow backend gives up after
+  // 1s and the client fetches as before.
+  const deadline = AbortSignal.timeout(1_000);
+  const view = tab === "distribution" ? null : tab;
+  const [summary, table] = await Promise.all([
+    getStats("summary", query, deadline),
+    view ? getStats(view, query, deadline) : null,
+  ]);
+  // eslint-disable-next-line react-hooks/purity
+  const fetchedAt = Date.now();
+  const client = new QueryClient();
+  if (summary.ok) client.setQueryData(["stats", "summary", query], summary.envelope, { updatedAt: fetchedAt });
+  if (view && table?.ok) client.setQueryData(["stats", view, query], table.envelope, { updatedAt: fetchedAt });
   // StatsView follows initialTab itself, so a menu link to another tab opens it.
-  return <StatsView initial={query} initialTab={tab} />;
+  return (
+    <HydrationBoundary state={dehydrate(client)}>
+      <StatsView initial={query} initialTab={tab} />
+    </HydrationBoundary>
+  );
 }

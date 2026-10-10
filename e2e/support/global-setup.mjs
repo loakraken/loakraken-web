@@ -7,7 +7,7 @@ const ROUTES = [
   "/tools/material-quote",
   "/tools/crit-speed",
   "/tools/auction",
-  "/tools/stone",
+  "/tools",
   `/character/${encodeURIComponent("상세")}`,
   `/api/characters?characterName=${encodeURIComponent("상세")}`,
   "/about",

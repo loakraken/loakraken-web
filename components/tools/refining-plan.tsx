@@ -51,6 +51,7 @@ import {
 } from "@/lib/refining/model";
 import quote from "./material-quote.module.css";
 import { SiteHeader } from "@/components/site/site-header";
+import { SegmentedControl, SegmentedItem } from "@/components/ui/segmented-control";
 import styles from "./refining-plan.module.css";
 
 const range = (from: number, to: number) =>
@@ -476,27 +477,18 @@ function Result({ plans, mode }: { plans: PartPlan[]; mode: Mode }) {
       )}
 
       <h3 className={styles.sectionTitle}>필요 재료</h3>
-      <div
-        className={quote.segmented}
-        role="radiogroup"
+      <SegmentedControl
+        className={styles.segment}
         aria-label="재료 가격 기준"
+        value={basis}
+        onValueChange={(value) => setBasis(value as PriceBasis)}
       >
         {priceBases.map((item) => (
-          <label
-            key={item.value}
-            data-checked={basis === item.value || undefined}
-          >
-            <input
-              type="radio"
-              name="refining-price-basis"
-              value={item.value}
-              checked={basis === item.value}
-              onChange={() => setBasis(item.value)}
-            />
+          <SegmentedItem key={item.value} value={item.value}>
             {item.label}
-          </label>
+          </SegmentedItem>
         ))}
-      </div>
+      </SegmentedControl>
       {priceFailure && (
         <div className={quote.notice}>
           {/* The alert holds the sentence only; the retry button's countdown
@@ -866,24 +858,18 @@ function RefiningContent({ initialName }: { initialName: string }) {
           <p className={quote.kicker} id="estimate-heading">
             예상 소모
           </p>
-          <div
-            className={quote.segmented}
-            role="radiogroup"
+          <SegmentedControl
+            className={styles.segment}
             aria-label="확률 기준"
+            value={mode}
+            onValueChange={(value) => setMode(value as Mode)}
           >
             {MODES.map((item) => (
-              <label key={item.id} data-checked={mode === item.id || undefined}>
-                <input
-                  type="radio"
-                  name="refining-mode"
-                  value={item.id}
-                  checked={mode === item.id}
-                  onChange={() => setMode(item.id)}
-                />
+              <SegmentedItem key={item.id} value={item.id}>
                 {item.label}
-              </label>
+              </SegmentedItem>
             ))}
-          </div>
+          </SegmentedControl>
           <p className={quote.hint}>{modeHint}</p>
           {failure ? (
             <div className={quote.notice}>
