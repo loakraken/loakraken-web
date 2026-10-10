@@ -2,6 +2,7 @@
 // 로아랩 /calendars per-category view over the home schedule response.
 
 import { nextReset } from "../tools/homework";
+import { remainingText } from "../time/remaining";
 import { sectionStatus, type Island, type Other, type Schedule, type Timed } from "./model";
 
 /** Category routes, in the page order. "섬"·"태초의 섬"·"항해"·"로웬" are the
@@ -90,11 +91,7 @@ export function upcomingRounds(groups: ScheduleGroup[], now: number) {
   });
 }
 
-/** "3일 11시간" / "5시간 20분" until the next weekly reset (Wednesday 06:00 KST). */
+/** Time left until the next weekly reset (Wednesday 06:00 KST), shared format. */
 export function resetLeft(now: number) {
-  const minutes = Math.max(0, Math.floor((nextReset(now) - now) / 60_000));
-  const d = Math.floor(minutes / 1440);
-  const h = Math.floor((minutes % 1440) / 60);
-  const m = minutes % 60;
-  return d > 0 ? `${d}일 ${h}시간` : `${h}시간 ${m}분`;
+  return remainingText(nextReset(now) - now) ?? "0초";
 }

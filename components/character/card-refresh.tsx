@@ -5,6 +5,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { RefreshCw } from "lucide-react";
 import { InlineOrb } from "@/components/landing/orb";
 import { failureOf, secondsUntil } from "@/lib/api/rate-limit";
+import { remainingText } from "@/lib/time/remaining";
 import { refreshSummary } from "@/lib/character/card-collection";
 import { postCardRefresh } from "@/lib/character/client";
 import styles from "./card-collection.module.css";
@@ -29,8 +30,7 @@ export function useSecondsUntil(until: number | undefined) {
   return secondsUntil(until, now);
 }
 
-const wait = (seconds: number) =>
-  seconds >= 60 ? `${Math.ceil(seconds / 60)}분` : `${seconds}초`;
+const wait = (seconds: number) => remainingText(seconds * 1000) ?? "0초";
 
 /**
  * "기록 채우기" (backend #138): reads the same-server roster (up to 12

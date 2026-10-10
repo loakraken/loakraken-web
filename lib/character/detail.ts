@@ -1,6 +1,7 @@
 // Pure helpers for the character detail page (ILOA-equivalent behaviour).
 import type { Character } from "./model";
 import { sourcePlainText } from "./source-text";
+import { remainingText } from "../time/remaining";
 
 type Loadout = Character["loadout"];
 export type Equipment = Loadout["equipment"][number];
@@ -64,13 +65,9 @@ export function relativeAgo(ms: number) {
   return `${Math.floor(hours / 24)}일 전`;
 }
 
+/** Refresh cooldown left (whole seconds, rounded up), shared format. */
 export function remainingLabel(ms: number) {
-  const total = Math.ceil(ms / 1000);
-  const minutes = Math.floor(total / 60);
-  const seconds = total % 60;
-  return minutes
-    ? `${minutes}분 ${String(seconds).padStart(2, "0")}초`
-    : `${seconds}초`;
+  return remainingText(Math.ceil(ms / 1000) * 1000) ?? "0초";
 }
 
 /* Equipment ---------------------------------------------------------------- */

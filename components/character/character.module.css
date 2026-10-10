@@ -173,6 +173,8 @@
   border-radius: 28px;
   flex-shrink: 0;
   font-size: 14px !important;
+  /* The cooldown ticks every second: fixed-width digits, no jitter. */
+  font-variant-numeric: tabular-nums;
 }
 .refresh:active {
   transform: scale(0.97);

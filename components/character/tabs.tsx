@@ -241,7 +241,7 @@ export function TabBar({
               {fetching
                 ? "갱신 중"
                 : rateLimitSeconds > 0
-                  ? `${rateLimitSeconds}초 뒤 갱신`
+                  ? `${remainingLabel(rateLimitSeconds * 1000)} 뒤 갱신`
                   : cooling
                     ? remainingLabel(window_.remainingMs)
                     : "갱신"}
