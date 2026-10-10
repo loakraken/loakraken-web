@@ -21,8 +21,12 @@
   list-style: none;
 }
 /* Four boxes (with 서버 직업) as two rows of two: the side column is narrow. */
+.cells[data-count="2"],
 .cells[data-count="4"] {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.cells[data-count="1"] {
+  grid-template-columns: minmax(0, 1fr);
 }
 .cells li {
   display: grid;
@@ -116,4 +120,11 @@
 }
 .note + .note {
   margin-top: 2px;
+}
+/* Scopes short of the sample minimum: one line instead of a box each. */
+.waiting {
+  margin: 6px 0 0;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
 }

@@ -147,7 +147,7 @@ export function RankingsView({ initial }: { initial: RankingQuery }) {
         {data && (
           <p className={styles.notice}>
             {sampleText(data.meta)} · 공식 랭킹이 아니에요
-            {data.meta.sampleStatus !== "READY" && <strong> · 표본이 {data.meta.minSample}명 미만이라 아직 집계 중이에요</strong>}
+            {data.meta.sampleStatus !== "READY" && <strong> · 표본 {data.meta.minSample}명이 모이면 순위를 보여 드려요</strong>}
           </p>
         )}
 

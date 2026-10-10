@@ -52,16 +52,20 @@ export function ServerCard() {
           <tbody>
             {rows.map((row) => (
               <tr key={row.serverName}>
-                <th scope="row">
-                  {row.serverName}
-                  {row.sampleStatus !== "READY" && <small className={styles.short}>표본 부족</small>}
-                </th>
+                <th scope="row">{row.serverName}</th>
                 <td>
                   {whole(row.count)}
                   <span className={styles.srOnly}>, </span>
                   <small>{percent(row.share)}</small>
                 </td>
-                <td>{row.sampleStatus === "READY" ? fixed(row.itemLevelMedian) : "집계 중"}</td>
+                <td>
+                  {row.sampleStatus === "READY" ? (
+                    fixed(row.itemLevelMedian)
+                  ) : (
+                    // Too few to call a median (user, 11:20): the sample size, dimmed.
+                    <span className={styles.sampleSize}>표본 {whole(row.count)}명</span>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>

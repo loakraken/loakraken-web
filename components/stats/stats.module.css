@@ -363,14 +363,57 @@
   font-size: 13px;
   font-weight: 600;
 }
-.short {
-  margin-left: 6px;
-  padding: 1px 6px;
+/* Sample progress over a table (one line, not "집계 중" per row) and the
+   folded short-sample rows under it. */
+.progress {
+  display: grid;
+  gap: 6px;
+  margin: 0 0 12px;
+}
+.progress p {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.progress b {
+  color: var(--foreground);
+  font-weight: 600;
+}
+.progressBar {
+  display: block;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 9999px;
+  background: var(--secondary);
+}
+.progressBar i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--primary);
+}
+.shortToggle {
+  min-height: 36px;
+  margin-top: 8px;
+  padding: 0 14px;
+  border: 0;
   border-radius: 9999px;
   background: var(--secondary);
   color: var(--foreground);
-  font-size: 11px;
+  font: inherit;
+  font-size: 13px;
   font-weight: 600;
+  cursor: pointer;
+  transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.shortToggle:active {
+  transform: scale(0.97);
+}
+@media (prefers-reduced-motion: reduce) {
+  .shortToggle {
+    transition: none;
+  }
 }
 .quantile[data-short] {
   opacity: 0.5;
