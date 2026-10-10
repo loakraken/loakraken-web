@@ -5,10 +5,11 @@ export type ToolEntry = {
   description: string;
   group: "계산기" | "레이드·숙제";
   /** Hidden where its runtime flag is off (see lib/tools/flags.ts). */
-  flag?: "critSpeed";
+  flag?: "critSpeed" | "combatPower";
 };
 
 export const TOOLS: ToolEntry[] = [
+  { href: "/tools/combat-power", label: "전투력 시뮬레이터", description: "보석·재련·품질을 바꾸면 전투력이 얼마나 오르는지", group: "계산기", flag: "combatPower" },
   { href: "/tools/refining", label: "재련 기대 비용", description: "목표 단계까지 확률과 골드, 구매 골드·소모 가치", group: "계산기" },
   { href: "/tools/material-quote", label: "재료 구매 견적", description: "필요한 재료와 보유 수량으로 추가 구매 골드", group: "계산기" },
   { href: "/tools/crit-speed", label: "치적·뭉가·음돌", description: "치명·신속 목표까지 필요한 스탯", group: "계산기", flag: "critSpeed" },
@@ -18,6 +19,6 @@ export const TOOLS: ToolEntry[] = [
   { href: "/tools/homework", label: "숙제 체크", description: "원정대 주간 레이드와 골드", group: "레이드·숙제" },
 ];
 
-export function visibleTools(flags: { critSpeed: boolean }) {
+export function visibleTools(flags: Record<NonNullable<ToolEntry["flag"]>, boolean>) {
   return TOOLS.filter((tool) => !tool.flag || flags[tool.flag]);
 }

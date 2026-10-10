@@ -19,6 +19,19 @@ export function isCritSpeedEnabled(env: Env = process.env) {
   return !isProductionHost(env.SITE_URL);
 }
 
+/**
+ * The combat-power simulator (backend #240) stays hidden on production until
+ * its main items (gems, refine, engravings) are verified against the target
+ * sites (PM 총괄 10-10). Same rule as crit-speed: `COMBAT_POWER_SIM=on|off`
+ * overrides, otherwise hidden only on the production host.
+ */
+export function isCombatPowerEnabled(env: Env = process.env) {
+  const flag = env.COMBAT_POWER_SIM?.trim().toLowerCase();
+  if (flag === "on") return true;
+  if (flag === "off") return false;
+  return !isProductionHost(env.SITE_URL);
+}
+
 const PRODUCTION_HOST = new URL(PRODUCTION_URL).hostname;
 
 function isProductionHost(value: string | undefined) {
