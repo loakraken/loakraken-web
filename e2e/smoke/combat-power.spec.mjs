@@ -24,6 +24,15 @@ test.describe("전투력 시뮬레이터 @smoke", () => {
     await expect(page.getByText("아래에서 값을 바꾸면 바로 다시 계산해요.")).toBeVisible();
   });
 
+  test("보석 레벨 0은 '빼기'로 고르고 '빼기'로 읽는다(백엔드 #250)", async ({ page }) => {
+    await gotoReady(page, `/tools/combat-power?character=${encodeURIComponent("전투력계산")}`);
+    const gem = page.getByRole("combobox", { name: "테스트 보석 레벨" });
+    await expect(gem.locator("option").first()).toHaveText("빼기");
+    await gem.selectOption("0");
+    await expect(page.getByRole("region", { name: "바꾼 것" }).getByText("9 → 빼기")).toBeVisible();
+    await expect(page.getByRole("combobox", { name: "보석 모두 같은 레벨로" }).locator("option", { hasText: "모두 빼기" })).toHaveCount(1);
+  });
+
   test("연마·팔찌·각인·스톤·아크 패시브·코어도 바꿀 수 있다", async ({ page }) => {
     await gotoReady(page, `/tools/combat-power?character=${encodeURIComponent("전투력계산")}`);
     await page.getByRole("combobox", { name: "테스트 목걸이 추가 피해 등급" }).selectOption("HIGH");
