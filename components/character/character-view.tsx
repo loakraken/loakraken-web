@@ -19,7 +19,6 @@ import {
 import { SiteHeader } from "@/components/site/site-header";
 import { recordRecent } from "@/lib/character/recent";
 import { CharacterBanner } from "./imagery";
-import { HeadlineNumber } from "./headline-number";
 import { Entrance } from "./entrance";
 import { kstTime, level, number, text } from "./parts";
 import { TabBar, TabPanel, tabOf } from "./tabs";
@@ -115,7 +114,8 @@ const Banner = memo(function Banner({ data }: { data: Character }) {
             <div>
               <dt>전투력</dt>
               <dd data-position={position ?? undefined}>
-                {data.combatPower == null ? number(data.combatPower) : <HeadlineNumber value={data.combatPower} format={number} />}
+                {/* Final value at once, no count-up (user, 23:17: the number "moved"). */}
+                {number(data.combatPower)}
               </dd>
             </div>
             <div>
