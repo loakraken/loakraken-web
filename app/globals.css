@@ -930,19 +930,20 @@
   --item-tip-section: #a9d0f5; /* section heads, 9.66 / 10.50 */
   --item-tip-equipped: #ffd200; /* "장착중", 10.73 / 11.67 */
   --item-tip-craft: #5fd3f1; /* "[제작] …", 8.95 / 9.73 */
-  /* iloa's red for "거래 불가"·"분해불가": 3.25 / 3.54, under 4.5 for 12px
-     text — kept as measured pending PM's call (#PR body). */
-  --item-tip-warn: #c24b46;
+  /* "거래 불가"·"분해불가": iloa's red (#c24b46, 3.25) lifted in lightness only to
+     pass 4.5 for 12px text (PM-프론트 #393: the site's contrast rule wins). */
+  --item-tip-warn: #e4665f; /* 4.72 / 5.13 */
   --item-tip-track: #49505a; /* quality and refine bars */
   --item-tip-exp: oklch(0.75 0.183 55.9); /* refine experience fill */
-  --item-tip-exp-foreground: #eaeaec;
+  --item-tip-exp-foreground: #eaeaec; /* on the track, 6.78 */
+  --item-tip-exp-foreground-fill: #1b1d22; /* on the orange fill, 7.09 */
   --item-tip-rule: rgb(255 255 255 / 10%);
   --item-tip-up: #ff6b5e; /* 5.77 / 6.36 */
   --item-tip-down: #5fa8ff; /* 6.55 / 7.22 */
   --item-tip-grade-normal: #c4c4cc; /* 9.30 */
   --item-tip-grade-uncommon: #8bd45c; /* 8.96 */
   --item-tip-grade-rare: #5fa8ff; /* 6.55 */
-  --item-tip-grade-epic: #ce43fc; /* iloa, 4.32 / 4.70 */
+  --item-tip-grade-epic: #d35cfc; /* iloa #ce43fc (4.32) lifted, 4.97 / 5.41 */
   --item-tip-grade-legendary: #f99200; /* iloa, 6.78 / 7.37 */
   --item-tip-grade-relic: #fa5d00; /* iloa, 4.92 / 5.35 */
   --item-tip-grade-ancient: #e3c7a1; /* iloa, 9.60 */
@@ -966,11 +967,11 @@
   --item-tip-icon-uncommon-b: color-mix(in srgb, var(--item-tip-grade-uncommon) 70%, #000);
   --item-tip-icon-normal-a: color-mix(in srgb, var(--item-tip-grade-normal) 25%, #000);
   --item-tip-icon-normal-b: color-mix(in srgb, var(--item-tip-grade-normal) 70%, #000);
-  /* Quality number and bar fill. 90–99 is iloa's measured #df18e3 (3.99 /
-     4.33, under 4.5 — see warn); the other tiers were not measured on
+  /* Quality number and bar fill. 90–99 is iloa's #df18e3 (3.99) lifted in
+     lightness to pass 4.5 (5.09 / 5.53); the other tiers were not measured on
      iloa's card and keep the in-game colours the character tab used. */
   --item-tip-quality-max: #f39c12;
-  --item-tip-quality-high: #df18e3;
+  --item-tip-quality-high: #ec4cf0;
   --item-tip-quality-good: #4fa3ff;
   --item-tip-quality-normal: #7bd36a;
   --item-tip-quality-low: #f2e24f;

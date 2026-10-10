@@ -374,8 +374,17 @@ function ItemProgress({ label, value, max }: { label: React.ReactNode; value: nu
       <p className="text-(--item-tip-section)">{label}</p>
       <div className="relative h-3 overflow-hidden rounded-[8px] bg-(--item-tip-track)">
         <span aria-hidden="true" className="absolute inset-y-0 left-0 rounded-[8px] bg-(--item-tip-exp)" style={{ width: `${pct}%` }} />
+        {/* Written as iloa does, without thousands separators. iloa's light
+            figures drop to 2.0 over the orange, so the part over the fill is
+            drawn again in dark ink (7.09), the rest stays light (6.78). */}
         <span className="relative block text-center text-[12px] leading-3 font-medium tabular-nums text-(--item-tip-exp-foreground)">
-          {/* written as iloa does, without thousands separators */}
+          {value} / {max}
+        </span>
+        <span
+          aria-hidden="true"
+          className="absolute inset-0 text-center text-[12px] leading-3 font-medium tabular-nums text-(--item-tip-exp-foreground-fill)"
+          style={{ clipPath: `inset(0 ${100 - pct}% 0 0)` }}
+        >
           {value} / {max}
         </span>
       </div>
