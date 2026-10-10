@@ -5,7 +5,6 @@ import {
   useId,
   useMemo,
   useState,
-  type CSSProperties,
   type KeyboardEvent,
   type PointerEvent,
 } from "react";
@@ -134,7 +133,10 @@ export function MarketChart({ days }: { days: DailyStat[] }) {
             data-active={i === shown || undefined}
             // Grows from the base on every entry; later bars start later but all
             // finish with the line, within --duration-draw (PM #253).
-            style={{ "--i": i, transitionDuration: `${600 - Math.min(i, 8) * 30}ms` } as CSSProperties}
+            style={{
+              transitionDelay: `${Math.min(i, 8) * 30}ms`,
+              transitionDuration: `${600 - Math.min(i, 8) * 30}ms`,
+            }}
           />
         ))}
         <text x={PAD.left} y={H - 4} className={styles.tick}>
