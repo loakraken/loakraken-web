@@ -305,9 +305,6 @@ function MarketContent({
     queryKey: ["market", "board", query],
     queryFn: ({ signal }) => fetchMarketBoard(query, signal),
     staleTime: 30_000,
-    // Prices move all day: refresh the open board every minute while the page
-    // is visible (never in a background tab); changed prices tint briefly.
-    refetchInterval: 60_000,
     placeholderData: keepPreviousData,
     ...quiet,
   });
