@@ -11,7 +11,7 @@ test.describe("더보기 손익 @smoke", () => {
     await expect(page.getByRole("heading", { level: 1, name: "더보기 손익" })).toBeVisible();
     const table = page.getByRole("table", { name: "레이드·난이도·관문별 더보기 이득" });
     await expect(table.getByRole("rowheader").first()).toBeVisible();
-    await expect(table.getByRole("button", { name: /^재료 입력 더보기 [\d,]+G$/ }).first()).toBeVisible();
+    await expect(table.getByRole("button", { name: /^수량 확인 중 더보기 [\d,]+G · 재료 입력$/ }).first()).toBeVisible();
     await expectNoHorizontalOverflow(page);
   });
 
@@ -32,8 +32,17 @@ test.describe("더보기 손익 @smoke", () => {
     const cost = gold(await value("더보기 골드").innerText());
     const worth = gold(await value("받는 재료 가치").innerText());
     await expect(value("이득")).toHaveText(new RegExp(`^${(worth - cost).toLocaleString("ko-KR").replace("-", "[−-]")}G$`));
-    // 결론 카드(피아식별 규칙): 누를 관문 수, 재료를 넣은 관문 수.
+    // 결론 카드(피아식별 규칙): 누를 관문 수, 결론 난 관문 수(입력한 관문 + 고정 품목만으로 이득인 관문).
     await expect(page.getByText(/누를 더보기 \d+관문/)).toBeVisible();
-    await expect(page.getByText(/재료를 넣은 1관문 중/)).toBeVisible();
+    await expect(page.getByText(/결론 난 \d+관문 중/)).toBeVisible();
+  });
+
+  test("입력 없이도 고정 품목만으로 이득인 관문은 결론이 나고, 설정은 접혀 있다", async ({ page }) => {
+    await gotoReady(page, "/tools/more-reward");
+    // 사용자 23:27: 아무것도 안 눌러도 결론. 재련 재료를 빼고도 이득인 관문은 "최소" 하한으로 판정.
+    await expect(page.getByText(/누를 더보기 [1-9]\d*관문/)).toBeVisible();
+    await expect(page.getByRole("button", { name: /최소 \+[\d,]+ 누르기 · 재련 재료 빼고도 이득/ }).first()).toBeVisible();
+    await expect(page.locator("details", { hasText: "고급 설정" })).not.toHaveAttribute("open", "");
+    await expect(page.getByText(/1분마다 새로 불러와요/)).toBeVisible();
   });
 });

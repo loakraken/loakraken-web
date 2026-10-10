@@ -205,6 +205,8 @@ async function market(url, req, send) {
       "운명의 파괴석 결정": [100, 900],
       "운명의 수호석 결정": [100, 190],
       "위대한 운명의 돌파석": [1, 33],
+      // 고통의 가시 최소 보장 가치(재료 상자 쪽 결과 중 하나).
+      "운명의 파편 주머니(대)": [1, 232],
     };
     const observedAt = nowIso();
     const items = [...new Set(request.names.map((n) => n.trim()))].map((name) => {

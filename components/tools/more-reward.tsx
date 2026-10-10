@@ -15,15 +15,20 @@ import {
 } from "@/lib/market/model";
 import { retryLabel } from "@/lib/api/rate-limit";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
+import { MINUTE, useClock } from "@/components/home/clock";
 import {
   CHOICE_EXCHANGES,
   EXCHANGES,
+  GUARANTEE_EXCHANGES,
+  guaranteeRecipe,
+  guaranteeValue,
   INPUT_MATERIALS,
   MORE_DATA,
   exchangeValue,
   boundGoldFor,
   gateKey,
   gateResult,
+  marketNames,
   priceNames,
   type GateResult,
   type MoreGate,
@@ -36,6 +41,16 @@ type Quantities = Record<string, Partial<Record<string, number>>>;
 
 const STORE_KEY = "loakraken:more-reward:quantities";
 const count = (value: number) => Math.round(value).toLocaleString("ko-KR");
+/** Decided without quantities: fixed items alone already cover the cost. */
+/** "방금 기준" · "3분 전 기준" from the newest price reading. */
+const agoText = (now: number, iso: string) => {
+  const minutes = Math.max(0, Math.floor((now - Date.parse(iso)) / MINUTE));
+  return minutes === 0 ? "방금 기준" : `${minutes}분 전 기준`;
+};
+
+const certain = (r: GateResult) => !r.hasInput && r.gain >= 0;
+const decided = (r: GateResult) => r.hasInput || certain(r);
+
 const signed = (value: number) =>
   `${value >= 0 ? "+" : "−"}${Math.abs(Math.round(value)).toLocaleString("ko-KR")}`;
 const unitText = (value: number) =>
@@ -192,22 +207,30 @@ function RaidRows({
                       type="button"
                       className={styles.cell}
                       aria-expanded={open === key}
-                      data-gain={r.hasInput ? (r.gain >= 0 ? "up" : "down") : "none"}
+                      data-gain={decided(r) ? (r.gain >= 0 ? "up" : "down") : "none"}
                       data-pick={bestKey === key || undefined}
                       onClick={() => setOpen(open === key ? null : key)}
                     >
-                      {r.hasInput ? (
+                      {decided(r) ? (
                         <>
                           {bestKey === key && <em className={styles.pick}>추천</em>}
-                          <b>{signed(r.gain)}</b>
+                          <b>
+                            {certain(r) && <span className={styles.atLeast}>최소 </span>}
+                            {signed(r.gain)}
+                          </b>
                           <small>
-                            {r.gain >= 0 ? "누르기" : "넘기기"} · {r.paid > 0 ? `${(r.value / r.paid).toFixed(2)}배` : "무료"}
+                            {r.gain >= 0 ? "누르기" : "넘기기"} ·{" "}
+                            {certain(r)
+                              ? "재련 재료 빼고도 이득"
+                              : r.paid > 0
+                                ? `${(r.value / r.paid).toFixed(2)}배`
+                                : "무료"}
                           </small>
                         </>
                       ) : (
                         <>
-                          <b>재료 입력</b>
-                          <small>더보기 {count(r.paid)}G</small>
+                          <b>수량 확인 중</b>
+                          <small>더보기 {count(r.paid)}G · 재료 입력</small>
                         </>
                       )}
                     </button>
@@ -239,13 +262,16 @@ export function MoreRewardTool() {
 
 
   const names = useMemo(() => priceNames(), []);
+  const requested = useMemo(() => marketNames(), []);
   const prices = useQuery({
-    queryKey: ["more-reward-prices", basis, names],
-    queryFn: ({ signal }) => postMaterialPrices({ priceBasis: basis, names }, signal),
-    staleTime: 5 * 60_000,
+    queryKey: ["more-reward-prices", basis, requested],
+    queryFn: ({ signal }) => postMaterialPrices({ priceBasis: basis, names: requested }, signal),
+    staleTime: MINUTE,
+    refetchInterval: MINUTE,
     retry: false,
     refetchOnWindowFocus: false,
   });
+  const now = useClock(MINUTE);
   const limit = useRateLimit(prices.error);
   const priceList: MaterialPrice[] = prices.data?.data.items ?? [];
   const market = new Map(
@@ -259,19 +285,28 @@ export function MoreRewardTool() {
       prices.data &&
       !market.has(n) &&
       exchangeValue(n, marketPrice) == null &&
+      guaranteeValue(n, marketPrice) == null &&
       !(INPUT_MATERIALS as readonly string[]).includes(n),
   );
   const exchangeNote = (name: string) => {
     const recipe = EXCHANGES[name];
     // Only when the recipe actually priced it (not typed, contents priced).
     if (recipe && !userUnits[name] && exchangeValue(name, marketPrice) != null) return `${recipe.into}(${recipe.per}개 교환) 구성 시세 ÷ ${recipe.per}`;
+    const least = guaranteeRecipe(name, marketPrice);
+    if (least && !userUnits[name])
+      return `최소 보장 가치: ${least.into}(${GUARANTEE_EXCHANGES[name].per}개 교환)에서 가장 싼 결과 ÷ ${GUARANTEE_EXCHANGES[name].per} · 결과 확률이 공개되지 않아 하한으로 매겨요`;
     return null;
   };
   const unitValue = (name: string) => {
     const typed = userUnits[name];
     if (typed !== undefined && typed !== "") return Number(typed);
-    return market.get(name) ?? exchangeValue(name, marketPrice);
+    return market.get(name) ?? exchangeValue(name, marketPrice) ?? guaranteeValue(name, marketPrice);
   };
+  // Automatic values the user may overwrite (고급 설정).
+  const autoNames = [...Object.keys(EXCHANGES), ...Object.keys(GUARANTEE_EXCHANGES)].filter(
+    (name) => names.includes(name) && !market.has(name),
+  );
+  const autoValue = (name: string) => exchangeValue(name, marketPrice) ?? guaranteeValue(name, marketPrice);
 
   const results: Record<string, GateResult> = {};
   for (const raid of MORE_DATA.raids)
@@ -286,14 +321,15 @@ export function MoreRewardTool() {
           excludeBound,
         );
       }
-  const entered = Object.values(results).filter((r) => r.hasInput);
+  const entered = Object.values(results).filter(decided);
+  const pending = Object.values(results).length - entered.length;
   const best = MORE_DATA.raids
     .flatMap((raid) =>
       raid.modes.flatMap((mode) =>
         mode.gates.map((g) => ({ key: gateKey(raid.id, mode.label, g.gate), title: `${raid.name} ${mode.label} ${g.gate}관문`, r: results[gateKey(raid.id, mode.label, g.gate)] })),
       ),
     )
-    .filter((x) => x.r.hasInput)
+    .filter((x) => decided(x.r))
     .sort((a, b) => b.r.gain - a.r.gain)[0];
   const failure =
     prices.error instanceof MarketQueryError
@@ -330,12 +366,12 @@ export function MoreRewardTool() {
               </h2>
               <div className={styles.verdict} aria-live="polite">
                 {entered.length === 0 ? (
-                  <p>관문을 눌러 재련 재료 수량을 넣으면 누를지 넘길지 알려 드려요.</p>
+                  <p>시세를 불러오고 있어요. 관문을 눌러 재련 재료 수량을 넣으면 그 관문도 판정해요.</p>
                 ) : (
                   <>
                     <p className={styles.verdictHead}>
                       누를 더보기 <b>{entered.filter((r) => r.gain >= 0).length}</b>관문
-                      <span> · 재료를 넣은 {entered.length}관문 중</span>
+                      <span> · 결론 난 {entered.length}관문 중</span>
                     </p>
                     {best && best.r.gain >= 0 ? (
                       <p>
@@ -343,14 +379,20 @@ export function MoreRewardTool() {
                       </p>
                     ) : (
                       <p>
-                        <span className={styles.down} aria-hidden="true">✕ </span>재료를 넣은 관문은 모두 손해예요.
+                        <span className={styles.down} aria-hidden="true">✕ </span>결론 난 관문은 모두 손해예요.
+                      </p>
+                    )}
+                    {pending > 0 && (
+                      <p className={styles.small}>
+                        나머지 {pending}관문은 재련 재료 수량이 확인되지 않아 판정에서 뺐어요(관문을 눌러 수량을 넣으면 판정).
                       </p>
                     )}
                   </>
                 )}
               </div>
               <p className={styles.condition}>
-                {priceBases.find((b) => b.value === basis)?.label} 기준 · 귀속 골드 제외 {excludeBound ? "켬" : "끔"} ·{" "}
+                {priceBases.find((b) => b.value === basis)?.label} 기준
+                {observedAt && now != null && ` · ${agoText(now, observedAt)}`} · 귀속 골드 제외 {excludeBound ? "켬" : "끔"} ·{" "}
                 <a href="#value-heading">값 매기기 바꾸기</a>
               </p>
               <div className={styles.tableScroll}>
@@ -401,8 +443,9 @@ export function MoreRewardTool() {
                 </table>
               </div>
               <p className={styles.small}>
-                이득 = 받는 재료 가치 − 더보기 골드. 더보기 골드는 공식 공지 또는 두 사이트가 같은 값, 고정 품목은
-                두 사이트가 같은 수량만 넣었어요(확인 {MORE_DATA.checkedAt}).
+                이득 = 받는 재료 가치 − 더보기 골드. 더보기 골드는 공식 공지 또는 실측 출처 2곳이 같은 값, 고정 품목은
+                실측 출처 2곳이 같은 수량만 넣었어요(확인 {MORE_DATA.checkedAt}). &ldquo;최소&rdquo;는 재련 재료를 빼고
+                고정 품목만으로 매긴 하한이에요.
               </p>
             </section>
 
@@ -410,18 +453,10 @@ export function MoreRewardTool() {
               <h2 id="value-heading" className={styles.sectionTitle}>
                 재료 값 매기기
               </h2>
-              <SegmentedControl
-                fill
-                aria-label="시세 기준"
-                value={basis}
-                onValueChange={(value) => setBasis(value as PriceBasis)}
-              >
-                {priceBases.map((item) => (
-                  <SegmentedItem key={item.value} value={item.value}>
-                    {item.label}
-                  </SegmentedItem>
-                ))}
-              </SegmentedControl>
+              <p className={styles.small}>
+                거래소 {priceBases.find((b) => b.value === basis)?.label} 기준으로 자동으로 매기고 1분마다 새로 불러와요
+                {observedAt && now != null && ` · ${agoText(now, observedAt)}`}.
+              </p>
               {failure && (
                 <div className={quote.notice}>
                   <div role="alert">
@@ -439,6 +474,20 @@ export function MoreRewardTool() {
                   </button>
                 </div>
               )}
+              <details className={styles.advanced}>
+                <summary>고급 설정</summary>
+              <SegmentedControl
+                fill
+                aria-label="시세 기준"
+                value={basis}
+                onValueChange={(value) => setBasis(value as PriceBasis)}
+              >
+                {priceBases.map((item) => (
+                  <SegmentedItem key={item.value} value={item.value}>
+                    {item.label}
+                  </SegmentedItem>
+                ))}
+              </SegmentedControl>
               <label className={styles.switch}>
                 <span>
                   <strong>귀속 골드 비용 제외</strong>
@@ -452,14 +501,41 @@ export function MoreRewardTool() {
                 />
                 <i aria-hidden="true" />
               </label>
+              {autoNames.length > 0 && (
+                <fieldset className={styles.inputs}>
+                  <legend>자동 값 바꾸기</legend>
+                  <p className={styles.small}>비워 두면 자동 값(교환 구성 시세·최소 보장 가치)을 써요.</p>
+                  <div className={styles.inputGrid}>
+                    {autoNames.map((name) => {
+                      const auto = autoValue(name);
+                      return (
+                        <label key={name}>
+                          <span>{name}</span>
+                          <input
+                            type="number"
+                            inputMode="decimal"
+                            min={0}
+                            placeholder={auto == null ? "0" : auto.toFixed(2)}
+                            value={userUnits[name] ?? ""}
+                            onChange={(event) =>
+                              setUserUnits((prev) => ({ ...prev, [name]: event.target.value.replace(/[^\d.]/g, "") }))
+                            }
+                          />
+                        </label>
+                      );
+                    })}
+                  </div>
+                </fieldset>
+              )}
+              </details>
               {unpricedNames.length > 0 && (
                 <fieldset className={styles.inputs}>
                   <legend>시세가 없는 재료</legend>
                   <p className={styles.small}>거래소에 없는 재료는 1개 값을 직접 넣어 주세요. 넣지 않으면 0G예요.</p>
                   {unpricedNames.some((n) => (CHOICE_EXCHANGES as readonly string[]).includes(n)) && (
                     <p className={styles.small}>
-                      고통의 가시·죽음의 손·사령의 잔영은 교환소에서 구성을 고르는 상자로 바뀌는데, 확률이 공개되지 않아
-                      자동으로 값을 매기지 않아요.
+                      죽음의 손·사령의 잔영은 결과 확률이 공개되지 않은 주머니로 바뀌고, 어떤 재료가 어떤 주머니가
+                      되는지 아직 확인 중이라 자동으로 값을 매기지 않아요.
                     </p>
                   )}
                   <div className={styles.inputGrid}>
@@ -481,11 +557,7 @@ export function MoreRewardTool() {
                   </div>
                 </fieldset>
               )}
-              {observedAt && (
-                <p className={styles.small}>
-                  거래소 시세 {new Date(observedAt).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })} 기준
-                </p>
-              )}
+
             </aside>
           </div>
         </div>

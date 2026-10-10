@@ -7,6 +7,9 @@ import {
   checkMoreData,
   exchangeValue,
   gateResult,
+  marketNames,
+  guaranteeRecipe,
+  guaranteeValue,
   priceNames,
 } from "../lib/tools/more-reward";
 import { RAID_DATA } from "../lib/tools/raid-rewards";
@@ -30,7 +33,9 @@ test("more-reward data passes its checks and matches the official reward table",
     }
   }
   assert.ok(compared >= 20, `compared ${compared} gates`);
-  assert.ok(priceNames().length <= MAX_PRICE_NAMES, "one price request");
+  assert.ok(marketNames().length <= MAX_PRICE_NAMES, "one price request");
+  // Exchange-only bound items are never on the market.
+  assert.ok(!marketNames().includes("고통의 가시") && priceNames().includes("고통의 가시"));
 });
 
 test("gate result: fixed items + entered materials − cost, unpriced items count 0", () => {
@@ -88,4 +93,25 @@ test("은총의 파편 is worth its fixed box contents ÷ 60 (계산 검증 18:1
   assert.ok(Math.abs(value - 497.33) < 2, `${value} ≈ 일로아 497.33`);
   assert.equal(exchangeValue("은총의 파편", () => null), null, "a missing content price → no value");
   assert.equal(exchangeValue("고통의 가시", () => 1), null, "choice recipes stay user input");
+});
+
+test("고통의 가시 is worth its minimum guarantee, never made-up odds (계산 검증 23:33)", () => {
+  const prices: Record<string, number> = {
+    "용암의 숨결": 515,
+    "빙하의 숨결": 461,
+    "운명의 파편 주머니(대)": 500,
+    "위대한 운명의 돌파석": 36,
+    "운명의 파괴석 결정": 9.04,
+    "운명의 수호석 결정": 1.91,
+  };
+  const price = (name: string) => prices[name] ?? null;
+  // Pouch: min(4 × 515, 12 × 461) = 2,060; box: min(…, 3 × 36 = 108, …) = 108.
+  // The better recipe's minimum, ÷ 5 thorns: 412 (18:54 market, vault 더보기 자동 값 근거).
+  assert.equal(guaranteeValue("고통의 가시", price), 412);
+  assert.equal(guaranteeRecipe("고통의 가시", price)?.into, "고통의 재련 보조 재료 주머니");
+  // A recipe with an unpriced result cannot prove its minimum and drops out.
+  const noLava = (name: string) => (name === "용암의 숨결" ? null : price(name));
+  assert.equal(guaranteeValue("고통의 가시", noLava), 108 / 5);
+  assert.equal(guaranteeValue("고통의 가시", () => null), null);
+  assert.equal(guaranteeValue("사령의 잔영", price), null);
 });
