@@ -1,3 +1,20 @@
+/* MIT © 2026 Lorenzo Cabra — https://bencho.dev/blocks/checklist (see ./NOTICE).
+   (ours) Bencho's tokens mapped once on the block root, nothing global. The
+   -rgb pair is our --foreground as bare numbers, per theme. */
+.chk {
+  --card: var(--muted);
+  --fill-slab: var(--muted);
+  --fill-on: var(--foreground);
+  --ink: var(--foreground);
+  --pane-edge: var(--input);
+  --ink-rgb: 29, 29, 31;
+  --fill-on-rgb: 29, 29, 31;
+}
+:root[data-theme="dark"] .chk {
+  --ink-rgb: 234, 234, 236;
+  --fill-on-rgb: 234, 234, 236;
+}
+
 .chk {
   box-sizing: border-box;
   /* ── it opens, it does not jump ──────────────────────────

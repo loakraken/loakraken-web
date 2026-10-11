@@ -1,11 +1,14 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
+import { useEffect, useId, useState, type FormEvent, type KeyboardEvent } from "react";
 import { useRemaining } from "@/components/home/clock";
 import { useMutation } from "@tanstack/react-query";
 import { Add, ArrowDown, ArrowLeft, TaskSquare, TrashSquare } from "@/components/ui/icons";
 import Link from "next/link";
 import { SiteHeader } from "@/components/site/site-header";
+import { LazyMotion, domAnimation } from "motion/react";
+import { Arrange } from "@/components/ui/bencho/reorder-list";
+import { Checklist } from "@/components/ui/bencho/checklist";
 import { CharacterQueryError, fetchSiblings } from "@/lib/character/client";
 import { rateLimitCopy, retryLabel } from "@/lib/api/rate-limit";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
@@ -16,7 +19,6 @@ import {
   raidCheckState,
   setCharacterCleared,
   setRaidCleared,
-  type CheckState,
   GOLD_CHARACTERS,
   GOLD_RAIDS_PER_CHARACTER,
   STORAGE_KEY,
@@ -223,41 +225,6 @@ function AddRoster({ onAdd }: { onAdd: (picked: Sibling[]) => void }) {
   );
 }
 
-/**
- * 전체 체크(사용자 14:44): a native check box with the "some" state shown as
- * indeterminate (read out as mixed). Pressing it ticks everything unless all
- * is already ticked. The bencho Checklist look replaces this once its source
- * is in the vault; the behaviour and labels stay.
- */
-function TriCheck({
-  state,
-  label,
-  onChange,
-  className,
-}: {
-  state: CheckState;
-  label: string;
-  onChange: (cleared: boolean) => void;
-  className?: string;
-}) {
-  const box = useRef<HTMLInputElement>(null);
-  useEffect(() => {
-    if (box.current) box.current.indeterminate = state === "some";
-  }, [state]);
-  return (
-    <label className={className ?? styles.allCheck}>
-      <input
-        ref={box}
-        type="checkbox"
-        checked={state === "all"}
-        aria-checked={state === "some" ? "mixed" : state === "all"}
-        onChange={() => onChange(nextCleared(state))}
-      />
-      <span>{label}</span>
-    </label>
-  );
-}
-
 function RaidRow({
   plan,
   itemLevel,
@@ -301,12 +268,7 @@ function RaidRow({
   return (
     <li className={styles.raid} onKeyDown={onKeyDown}>
       <div className={styles.raidHead}>
-        <TriCheck
-          className={styles.raidAll}
-          state={raidCheckState(plan)}
-          label={title}
-          onChange={(cleared) => onChange(setRaidCleared(plan, cleared))}
-        />
+        <strong className={styles.raidTitle}>{title}</strong>
         <span className={styles.raidTools}>
           <button
             type="button"
@@ -380,6 +342,7 @@ function CharacterCard({
   const gold = characterGold(character);
   // Announces a move once (PM-프론트 기준 ③); the moved row keeps focus.
   const [moved, setMoved] = useState("");
+  const [arranging, setArranging] = useState(false);
   const used = new Set(character.raids.map((r) => r.raidId));
   const options = eligibleModes(character.itemLevel).filter(({ raid }) => !used.has(raid.id));
   return (
@@ -421,11 +384,83 @@ function CharacterCard({
         </span>
       </label>
       {character.raids.length > 0 && (
-        <TriCheck
-          state={characterCheckState(character)}
-          label="전체 완료"
-          onChange={(cleared) => onChange(setCharacterCleared(character, cleared))}
-        />
+        // 전체 체크(사용자 14:44): Bencho "Checklist" — the first row is the
+        // whole character, the rest one per raid; some gates done shows as
+        // mixed. The wall demo's fall-and-reset and typed tasks are off.
+        <div className={styles.checklist}>
+          <Checklist
+            width="100%"
+            addable={false}
+            fall={false}
+            items={[
+              {
+                key: "all",
+                label: "전체 완료",
+                done: characterCheckState(character) === "all",
+                mixed: characterCheckState(character) === "some",
+              },
+              ...character.raids.map((plan) => ({
+                key: plan.raidId,
+                label: `${raidName(plan.raidId)} ${DIFFICULTY_LABEL[plan.difficulty]}`,
+                done: raidCheckState(plan) === "all",
+                mixed: raidCheckState(plan) === "some",
+              })),
+            ]}
+            onToggle={(i) => {
+              if (i === 0) {
+                onChange(setCharacterCleared(character, nextCleared(characterCheckState(character))));
+                return;
+              }
+              const plan = character.raids[i - 1];
+              onChange({
+                ...character,
+                raids: character.raids.map((r, j) =>
+                  j === i - 1 ? setRaidCleared(plan, nextCleared(raidCheckState(plan))) : r,
+                ),
+              });
+            }}
+          />
+        </div>
+      )}
+      {character.raids.length > 1 && (
+        <div className={styles.reorder}>
+          <button
+            type="button"
+            className={styles.reorderToggle}
+            aria-expanded={arranging}
+            onClick={() => setArranging((v) => !v)}
+          >
+            {arranging ? "순서 바꾸기 닫기" : "순서 바꾸기"}
+          </button>
+          {arranging && (
+            <>
+              <p className={styles.note}>
+                끌어서 순서를 바꿔요. 위 {GOLD_RAIDS_PER_CHARACTER}개가 골드를 받아요(초록 점). 키보드는 각
+                레이드의 화살표나 Alt+↑↓.
+              </p>
+              {/* Bencho "Reorder list": pointer only, so it is hidden from
+                  assistive tech — the arrows and Alt+↑↓ are the same moves. */}
+              <div aria-hidden="true" className={styles.arrange}>
+                <Arrange
+                  items={character.raids.map((plan, index) => ({
+                    id: plan.raidId,
+                    name: `${raidName(plan.raidId)} ${DIFFICULTY_LABEL[plan.difficulty]}`,
+                    mark: character.gold && index < GOLD_RAIDS_PER_CHARACTER,
+                    tint: "var(--primary)",
+                  }))}
+                  onReorder={(ids) => {
+                    const raids = ids
+                      .map((id) => character.raids.find((r) => r.raidId === id))
+                      .filter((r): r is RaidPlan => !!r);
+                    if (raids.length !== character.raids.length) return;
+                    onChange({ ...character, raids });
+                    setMoved("순서를 바꿨어요.");
+                  }}
+                />
+              </div>
+            </>
+          )}
+        </div>
       )}
       <ul className={styles.raids}>
         {character.raids.map((plan, index) => (
@@ -518,6 +553,8 @@ export default function HomeworkTool() {
     setState((s) => ({ ...s, characters: s.characters.map((c, j) => (j === index ? next : c)) }));
 
   return (
+    // The Bencho blocks use the light `m` components; LazyMotion supplies them.
+    <LazyMotion features={domAnimation}>
     <div className={quote.page}>
       <a className={quote.skip} href="#hw-main">
         본문으로 건너뛰기
@@ -588,5 +625,6 @@ export default function HomeworkTool() {
         LOAKraken · 브라우저 저장
       </footer>
     </div>
+    </LazyMotion>
   );
 }

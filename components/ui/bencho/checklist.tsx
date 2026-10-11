@@ -7,7 +7,7 @@
 //  2. Data in and out: `items` (key, label, done, mixed) and `onToggle(i)`.
 //     Bencho's three tasks stay as the default, so it still renders alone.
 //  3. `mixed`: some of a row's parts are done — aria-checked="mixed", the box
-//     half filled and a bar drawn where the tick would be.
+//     half filled and a bar drawn where the tick would be; not crossed out.
 //  4. `addable`, `fall`, `width`: a screen's list cannot take a typed task,
 //     must not fall over and reset itself (that is the wall demo putting
 //     itself away), and sits in a column of its own width.
@@ -720,7 +720,8 @@ function Row({
   const t = useSpring(on ? 1 : mixed ? 0.5 : 0, clamp(bounce, 0, 100), still);
   const held = clamp(t, 0, 1);
   /* the rule's own window on the same number */
-  const cut = clamp((held - LAG) / RUN, 0, 1);
+  /* (ours) a mixed row is not crossed out: the rule and fade wait for done */
+  const cut = mixed ? 0 : clamp((held - LAG) / RUN, 0, 1);
 
   /* ── falling and climbing are not the same motion ────────
      Down is a duration with gravity's shape in it: it starts
@@ -822,7 +823,7 @@ function Row({
         {/* the words give up their ink as the rule crosses
             them — read off the same number, so a half-crossed
             line is half-faded and the two can never disagree */}
-        <span className="chk-word" style={{ opacity: mix(1, 0.42, held) }}>
+        <span className="chk-word" style={{ opacity: mix(1, 0.42, mixed ? 0 : held) }}>
           {label}
         </span>
         {/* ── the rule is scaled, not grown ───────────────

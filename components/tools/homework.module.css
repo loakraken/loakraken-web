@@ -137,9 +137,7 @@
 }
 .pick input,
 .gateCheck input,
-.moreCheck input,
-.allCheck input,
-.raidAll input {
+.moreCheck input {
   width: 18px;
   height: 18px;
   accent-color: var(--primary);
@@ -259,9 +257,7 @@
 /* Drawn check: the box fills and the tick sweeps in from the left in 200ms
    (transform only). */
 .gateCheck input,
-.moreCheck input,
-.allCheck input,
-.raidAll input {
+.moreCheck input {
   appearance: none;
   display: grid;
   place-content: center;
@@ -278,9 +274,7 @@
     border-color var(--duration-fast) var(--ease-out);
 }
 .gateCheck input::before,
-.moreCheck input::before,
-.allCheck input::before,
-.raidAll input::before {
+.moreCheck input::before {
   content: "";
   width: 10px;
   height: 8px;
@@ -291,24 +285,16 @@
   transition: transform var(--duration-base) var(--ease-out);
 }
 .gateCheck input:checked,
-.moreCheck input:checked,
-.allCheck input:checked,
-.allCheck input:indeterminate,
-.raidAll input:checked,
-.raidAll input:indeterminate {
+.moreCheck input:checked {
   border-color: var(--primary);
   background: var(--primary);
 }
 .gateCheck input:checked::before,
-.moreCheck input:checked::before,
-.allCheck input:checked::before,
-.raidAll input:checked::before {
+.moreCheck input:checked::before {
   transform: scaleX(1);
 }
 .gateCheck input:focus-visible,
-.moreCheck input:focus-visible,
-.allCheck input:focus-visible,
-.raidAll input:focus-visible {
+.moreCheck input:focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
 }
@@ -376,30 +362,6 @@
   min-height: 100dvh;
 }
 
-/* 전체 체크(사용자 14:44): character-wide and per-raid tri-state boxes. Some
-   ticked = indeterminate, drawn as a bar instead of the tick. */
-.allCheck,
-.raidAll {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  min-height: 32px;
-  cursor: pointer;
-}
-.allCheck {
-  margin-top: var(--space-2);
-  font-size: var(--text-meta);
-  font-weight: 600;
-}
-.raidAll {
-  font-weight: 700;
-}
-.allCheck input:indeterminate::before,
-.raidAll input:indeterminate::before {
-  height: 2px;
-  clip-path: none;
-  transform: scaleX(1);
-}
 .raidTools {
   display: inline-flex;
   align-items: center;
@@ -408,4 +370,40 @@
 .raidTools button:disabled {
   opacity: 0.4;
   cursor: default;
+}
+
+/* Bencho blocks on the card (2단계). */
+.raidTitle {
+  font-weight: 700;
+}
+.checklist {
+  margin-top: var(--space-2);
+}
+/* Box outline: Bencho draws it at 16% ink, under 3:1 on our panels; our
+   --input outline keeps the WCAG 1.4.11 edge (the fill and tick are Bencho's). */
+.checklist :global(.chk-box) {
+  box-shadow: inset 0 0 0 1.5px var(--input);
+}
+.reorder {
+  margin-top: var(--space-2);
+}
+.reorderToggle {
+  min-height: 36px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--input);
+  border-radius: 999px;
+  background: var(--background);
+  color: var(--foreground);
+  font: inherit;
+  font-size: var(--text-caption);
+  cursor: pointer;
+}
+.reorderToggle:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+.arrange {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--space-2);
 }

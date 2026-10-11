@@ -1,3 +1,20 @@
+/* MIT © 2026 Lorenzo Cabra — https://bencho.dev/blocks/liq-arrange (see ./NOTICE).
+   (ours) Bencho's tokens mapped once on the block root, nothing global.
+   Rows read in --foreground on the --secondary slab (16:1 light, 13:1 dark);
+   the gold dot (--ok) is our --success. */
+.arr-stage {
+  --surface-2: var(--card);
+  --fill-slab: var(--secondary);
+  --fill-on: var(--foreground);
+  --ink: var(--foreground);
+  --ink-2: var(--foreground);
+  --ink-3: var(--muted-foreground);
+  --ink-4: var(--faint);
+  --ok: var(--success);
+  --pane-edge: var(--input);
+  --arr-inset: 6px;
+}
+
 [data-stroke="on"] .arr-row {
   box-shadow: 0 0 0 1px var(--pane-edge);
   /* the hairline is drawn on the row and the fill on the skin
