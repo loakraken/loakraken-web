@@ -171,6 +171,25 @@ export function skillSummary(skills: Skill[] | undefined) {
   };
 }
 
+/**
+ * The gems set on the skill named `name` as the reference site's chips
+ * ("6뎀", "6쿨"): level plus kind, with the gem and its effect for the card.
+ * A radiance gem (both kinds) reads its kind from the effect text.
+ */
+export function skillGems(gems: Character["loadout"]["gems"], name: string | null | undefined) {
+  if (!gems || !name) return [];
+  return (gems.effects?.skills ?? [])
+    .filter((effect) => effect.name === name)
+    .flatMap((effect) => {
+      const gem = gems.items.find((item) => item.slot === effect.gemSlot);
+      if (!gem) return [];
+      const kind = gemKind(gem.name);
+      const label =
+        kind === "뎀" || kind === "쿨" ? kind : /재사용/.test(effect.description.join(" ")) ? "쿨" : "뎀";
+      return [{ gem, effect, label: `${gem.level ?? ""}${label}` }];
+    });
+}
+
 /* Stats -------------------------------------------------------------------- */
 
 export const COMBAT_STATS = ["치명", "특화", "신속", "제압", "인내", "숙련"];
