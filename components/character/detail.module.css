@@ -1472,3 +1472,68 @@
   font-style: normal;
   font-variant-numeric: tabular-nums;
 }
+/* Ark passive: one tree's active nodes by tier, then all trees' active
+   effects in three columns (one column under 900px). */
+.passiveTier + .passiveTier {
+  margin-top: 14px;
+}
+.passiveTier h3 {
+  margin-bottom: 8px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-weight: 600;
+}
+.passiveColumns {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+@media (max-width: 900px) {
+  .passiveColumns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.passiveColumns h3 {
+  font-size: 14px;
+  font-weight: 650;
+}
+.passiveColumnMeta {
+  margin: 2px 0 8px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.passiveSummaryList {
+  display: grid;
+  gap: 6px;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+}
+.passiveSummaryList li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.passiveSummaryList span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.passiveSummaryList b {
+  flex: none;
+  padding: 0 5px;
+  border-radius: 9999px;
+  background: var(--secondary);
+  color: var(--secondary-foreground);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 18px;
+}
+.passiveSummaryList small {
+  flex: none;
+  margin-left: auto;
+  color: var(--muted-foreground);
+  font-variant-numeric: tabular-nums;
+}
