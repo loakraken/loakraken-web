@@ -61,7 +61,7 @@ export function MarketChart({ days }: { days: DailyStat[] }) {
     const bar = (count: number) => (count / maxVolume) * VOLUME_H;
     return { ticks, x, y, curved, barW, volumeTop, bar };
   }, [days, W]);
-  // Mouse, touch (sideways drag; a vertical swipe still scrolls) and ← → Home End.
+  // Mouse, touch (sideways drag; a vertical swipe still scrolls) and ← →.
   const { active, svgProps } = useChartScrub({
     count: days.length,
     xOf: geometry.x,
@@ -71,6 +71,7 @@ export function MarketChart({ days }: { days: DailyStat[] }) {
   const { ticks, x, y, curved, barW, volumeTop, bar } = geometry;
   const last = days.length - 1;
   const shown = active ?? last;
+  const priceWidth = Math.max(...days.map((d) => fmt(d.averagePrice).length + 1));
   const direction =
     days[last].averagePrice > days[0].averagePrice
       ? "up"
@@ -187,7 +188,11 @@ export function MarketChart({ days }: { days: DailyStat[] }) {
         )}
       </div>
       <p id={`${id}-readout`} className={styles.readout} aria-live="polite">
-        <strong>{fmt(days[shown].averagePrice)}G</strong>
+        {/* As wide as the longest price, so the date after it stays put while
+            scrubbing (PM-프론트 #591: the G moved, a 0.0001 shift at 360). */}
+        <strong style={{ minWidth: `${priceWidth}ch` }}>
+          {fmt(days[shown].averagePrice)}G
+        </strong>
         {days[shown].date} · 거래량{" "}
         {days[shown].tradeCount.toLocaleString("ko-KR")}
       </p>

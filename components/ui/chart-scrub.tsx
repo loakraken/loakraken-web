@@ -11,7 +11,7 @@ import { cn } from "cn"
 //   hundreds of points; scanning all of them on every pointermove is waste);
 // - touch: a press shows the reading, a sideways drag follows it, an upward or
 //   downward swipe still scrolls the page (touch-action: pan-y) and clears it;
-// - keyboard: ← → move one reading, Home / End jump to the ends;
+// - keyboard: ← → move one reading (no other keys: checklist A20);
 // - the tooltip moves by transform only (no left/top), so scrubbing never
 //   lays the page out again.
 
@@ -65,7 +65,7 @@ function useChartScrub({ count, xOf, viewWidth }: ScrubOptions) {
     onKeyDown: (event: React.KeyboardEvent<SVGSVGElement>) => {
       const at = active ?? last
       const next =
-        event.key === "ArrowRight" ? at + 1 : event.key === "ArrowLeft" ? at - 1 : event.key === "Home" ? 0 : event.key === "End" ? last : null
+        event.key === "ArrowRight" ? at + 1 : event.key === "ArrowLeft" ? at - 1 : null
       if (next === null) return
       event.preventDefault()
       setActive(Math.min(last, Math.max(0, next)))
