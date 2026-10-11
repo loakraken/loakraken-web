@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "checkedAt": "2026-10-10",
-  "rule": "더보기 골드는 공식(공지 13307) 또는 실측 출처 2곳이 같은 값. 품목은 실측 출처 2곳이 같은 수량만 넣는다(출처 목록은 볼트 90 성장 도구/더보기 품목 출처 대조). 재련 재료 수량은 공식 공개가 없고 한 곳뿐이라 사용자 입력(PM 총괄 2026-10-10 결정 ②).",
+  "checkedAt": "2026-10-11",
+  "rule": "더보기 골드는 공식(공지 13307) 또는 실측 출처 2곳이 같은 값. 품목은 실측 출처 2곳이 같은 수량만 넣는다(출처 목록은 볼트 90 성장 도구/더보기 품목 출처 대조). 관문별 재련 재료 수량도 서로 다른 실측 출처 2곳 이상이 같은 값만(46관문, 6/24 조정분은 공지 13472 함께, 계산 검증 2026-10-11 9절).",
   "sources": {
     "notice-13307": {
       "title": "12월 10일(수) 업데이트 내역 안내 — 더보기 소모 골드 조정",
@@ -22,22 +22,22 @@
         {
           "label": "나이트메어",
           "gates": [
-            { "gate": 1, "cost": 9600, "costSource": "two-sites", "items": [{ "name": "아크 그리드 코어", "qty": 4 }] },
-            { "gate": 2, "cost": 14400, "costSource": "two-sites", "items": [{ "name": "아크 그리드 코어", "qty": 4 }] }
+            { "gate": 1, "cost": 9600, "costSource": "two-sites", "items": [{ "name": "운명의 파괴석 결정", "qty": 1300 }, { "name": "운명의 수호석 결정", "qty": 2600 }, { "name": "위대한 운명의 돌파석", "qty": 49 }, { "name": "운명의 파편", "qty": 26220 }, { "name": "아크 그리드 코어", "qty": 4 }, { "name": "죽음의 손", "qty": 12 }] },
+            { "gate": 2, "cost": 14400, "costSource": "two-sites", "items": [{ "name": "운명의 파괴석 결정", "qty": 1980 }, { "name": "운명의 수호석 결정", "qty": 3960 }, { "name": "위대한 운명의 돌파석", "qty": 83 }, { "name": "운명의 파편", "qty": 44440 }, { "name": "아크 그리드 코어", "qty": 4 }, { "name": "죽음의 손", "qty": 18 }] }
           ]
         },
         {
           "label": "하드",
           "gates": [
-            { "gate": 1, "cost": 8000, "costSource": "two-sites", "items": [{ "name": "죽음의 손", "qty": 12 }, { "name": "아크 그리드 코어", "qty": 3 }] },
-            { "gate": 2, "cost": 11840, "costSource": "two-sites", "items": [{ "name": "죽음의 손", "qty": 18 }, { "name": "아크 그리드 코어", "qty": 3 }] }
+            { "gate": 1, "cost": 8000, "costSource": "two-sites", "items": [{ "name": "운명의 파괴석 결정", "qty": 1130 }, { "name": "운명의 수호석 결정", "qty": 2260 }, { "name": "위대한 운명의 돌파석", "qty": 43 }, { "name": "운명의 파편", "qty": 22800 }, { "name": "죽음의 손", "qty": 12 }, { "name": "아크 그리드 코어", "qty": 3 }] },
+            { "gate": 2, "cost": 11840, "costSource": "two-sites", "items": [{ "name": "운명의 파괴석 결정", "qty": 1720 }, { "name": "운명의 수호석 결정", "qty": 3440 }, { "name": "위대한 운명의 돌파석", "qty": 72 }, { "name": "운명의 파편", "qty": 38640 }, { "name": "죽음의 손", "qty": 18 }, { "name": "아크 그리드 코어", "qty": 3 }] }
           ]
         },
         {
           "label": "노말",
           "gates": [
-            { "gate": 1, "cost": 6400, "costSource": "two-sites", "items": [{ "name": "아크 그리드 코어", "qty": 3 }] },
-            { "gate": 2, "cost": 9600, "costSource": "two-sites", "items": [{ "name": "아크 그리드 코어", "qty": 3 }] }
+            { "gate": 1, "cost": 6400, "costSource": "two-sites", "items": [{ "name": "운명의 파괴석 결정", "qty": 860 }, { "name": "운명의 수호석 결정", "qty": 1720 }, { "name": "위대한 운명의 돌파석", "qty": 36 }, { "name": "운명의 파편", "qty": 19000 }, { "name": "아크 그리드 코어", "qty": 3 }, { "name": "사령의 잔영", "qty": 12 }] },
+            { "gate": 2, "cost": 9600, "costSource": "two-sites", "items": [{ "name": "운명의 파괴석 결정", "qty": 1430 }, { "name": "운명의 수호석 결정", "qty": 2860 }, { "name": "위대한 운명의 돌파석", "qty": 60 }, { "name": "운명의 파편", "qty": 32200 }, { "name": "아크 그리드 코어", "qty": 3 }, { "name": "사령의 잔영", "qty": 18 }] }
           ]
         }
       ]
@@ -49,22 +49,22 @@
         {
           "label": "3단계",
           "gates": [
-            { "gate": 1, "cost": 6400, "costSource": "two-sites", "items": [{ "name": "은총의 파편", "qty": 24 }, { "name": "아크 그리드 코어", "qty": 3 }] },
-            { "gate": 2, "cost": 9600, "costSource": "two-sites", "items": [{ "name": "은총의 파편", "qty": 36 }, { "name": "아크 그리드 코어", "qty": 3 }] }
+            { "gate": 1, "cost": 6400, "costSource": "two-sites", "items": [{ "name": "운명의 파괴석 결정", "qty": 860 }, { "name": "운명의 수호석 결정", "qty": 1720 }, { "name": "위대한 운명의 돌파석", "qty": 36 }, { "name": "운명의 파편", "qty": 19000 }, { "name": "은총의 파편", "qty": 24 }, { "name": "아크 그리드 코어", "qty": 3 }] },
+            { "gate": 2, "cost": 9600, "costSource": "two-sites", "items": [{ "name": "운명의 파괴석 결정", "qty": 1430 }, { "name": "운명의 수호석 결정", "qty": 2860 }, { "name": "위대한 운명의 돌파석", "qty": 60 }, { "name": "운명의 파편", "qty": 32200 }, { "name": "은총의 파편", "qty": 36 }, { "name": "아크 그리드 코어", "qty": 3 }] }
           ]
         },
         {
           "label": "2단계",
           "gates": [
-            { "gate": 1, "cost": 5120, "costSource": "two-sites", "items": [{ "name": "은총의 파편", "qty": 12 }, { "name": "아크 그리드 코어", "qty": 2 }] },
-            { "gate": 2, "cost": 7680, "costSource": "two-sites", "items": [{ "name": "은총의 파편", "qty": 18 }, { "name": "아크 그리드 코어", "qty": 2 }] }
+            { "gate": 1, "cost": 5120, "costSource": "two-sites", "items": [{ "name": "운명의 파괴석", "qty": 1680 }, { "name": "운명의 수호석", "qty": 3360 }, { "name": "운명의 돌파석", "qty": 53 }, { "name": "운명의 파편", "qty": 14250 }, { "name": "은총의 파편", "qty": 12 }, { "name": "아크 그리드 코어", "qty": 2 }] },
+            { "gate": 2, "cost": 7680, "costSource": "two-sites", "items": [{ "name": "운명의 파괴석", "qty": 2880 }, { "name": "운명의 수호석", "qty": 5760 }, { "name": "운명의 돌파석", "qty": 94 }, { "name": "운명의 파편", "qty": 24200 }, { "name": "은총의 파편", "qty": 18 }, { "name": "아크 그리드 코어", "qty": 2 }] }
           ]
         },
         {
           "label": "1단계",
           "gates": [
-            { "gate": 1, "cost": 4320, "costSource": "two-sites", "items": [{ "name": "은총의 파편", "qty": 4 }, { "name": "아크 그리드 코어", "qty": 2 }] },
-            { "gate": 2, "cost": 5280, "costSource": "two-sites", "items": [{ "name": "은총의 파편", "qty": 6 }, { "name": "아크 그리드 코어", "qty": 2 }] }
+            { "gate": 1, "cost": 4320, "costSource": "two-sites", "items": [{ "name": "운명의 파괴석", "qty": 1400 }, { "name": "운명의 수호석", "qty": 2800 }, { "name": "운명의 돌파석", "qty": 44 }, { "name": "운명의 파편", "qty": 11880 }, { "name": "은총의 파편", "qty": 4 }, { "name": "아크 그리드 코어", "qty": 2 }] },
+            { "gate": 2, "cost": 5280, "costSource": "two-sites", "items": [{ "name": "운명의 파괴석", "qty": 2400 }, { "name": "운명의 수호석", "qty": 4800 }, { "name": "운명의 돌파석", "qty": 78 }, { "name": "운명의 파편", "qty": 20160 }, { "name": "은총의 파편", "qty": 6 }, { "name": "아크 그리드 코어", "qty": 2 }] }
           ]
         }
       ]
@@ -76,22 +76,22 @@
         {
           "label": "나이트메어",
           "gates": [
-            { "gate": 1, "cost": 6720, "costSource": "two-sites", "items": [{ "name": "고통의 가시", "qty": 10 }, { "name": "아크 그리드 코어", "qty": 3 }] },
-            { "gate": 2, "cost": 10560, "costSource": "two-sites", "items": [{ "name": "고통의 가시", "qty": 15 }, { "name": "아크 그리드 코어", "qty": 3 }] }
+            { "gate": 1, "cost": 6720, "costSource": "two-sites", "items": [{ "name": "운명의 파괴석 결정", "qty": 860 }, { "name": "운명의 수호석 결정", "qty": 1720 }, { "name": "위대한 운명의 돌파석", "qty": 36 }, { "name": "운명의 파편", "qty": 19000 }, { "name": "고통의 가시", "qty": 10 }, { "name": "아크 그리드 코어", "qty": 3 }] },
+            { "gate": 2, "cost": 10560, "costSource": "two-sites", "items": [{ "name": "운명의 파괴석 결정", "qty": 1430 }, { "name": "운명의 수호석 결정", "qty": 2860 }, { "name": "위대한 운명의 돌파석", "qty": 60 }, { "name": "운명의 파편", "qty": 32200 }, { "name": "고통의 가시", "qty": 15 }, { "name": "아크 그리드 코어", "qty": 3 }] }
           ]
         },
         {
           "label": "하드",
           "gates": [
-            { "gate": 1, "cost": 5600, "costSource": "two-sites", "items": [{ "name": "고통의 가시", "qty": 10 }, { "name": "아크 그리드 코어", "qty": 2 }] },
-            { "gate": 2, "cost": 8480, "costSource": "two-sites", "items": [{ "name": "고통의 가시", "qty": 15 }, { "name": "아크 그리드 코어", "qty": 2 }] }
+            { "gate": 1, "cost": 5600, "costSource": "two-sites", "items": [{ "name": "운명의 파괴석 결정", "qty": 750 }, { "name": "운명의 수호석 결정", "qty": 1500 }, { "name": "위대한 운명의 돌파석", "qty": 30 }, { "name": "운명의 파편", "qty": 17500 }, { "name": "고통의 가시", "qty": 10 }, { "name": "아크 그리드 코어", "qty": 2 }] },
+            { "gate": 2, "cost": 8480, "costSource": "two-sites", "items": [{ "name": "운명의 파괴석 결정", "qty": 1130 }, { "name": "운명의 수호석 결정", "qty": 2260 }, { "name": "위대한 운명의 돌파석", "qty": 45 }, { "name": "운명의 파편", "qty": 26820 }, { "name": "고통의 가시", "qty": 15 }, { "name": "아크 그리드 코어", "qty": 2 }] }
           ]
         },
         {
           "label": "노말 · 싱글",
           "gates": [
-            { "gate": 1, "cost": 4160, "costSource": "two-sites", "items": [{ "name": "아크 그리드 코어", "qty": 2 }] },
-            { "gate": 2, "cost": 6080, "costSource": "two-sites", "items": [{ "name": "아크 그리드 코어", "qty": 2 }] }
+            { "gate": 1, "cost": 4160, "costSource": "two-sites", "items": [{ "name": "운명의 파괴석", "qty": 1500 }, { "name": "운명의 수호석", "qty": 3000 }, { "name": "운명의 돌파석", "qty": 47 }, { "name": "운명의 파편", "qty": 12680 }, { "name": "아크 그리드 코어", "qty": 2 }, { "name": "고통의 가시", "qty": 4 }] },
+            { "gate": 2, "cost": 6080, "costSource": "two-sites", "items": [{ "name": "운명의 파괴석", "qty": 2250 }, { "name": "운명의 수호석", "qty": 4500 }, { "name": "운명의 돌파석", "qty": 75 }, { "name": "운명의 파편", "qty": 18900 }, { "name": "아크 그리드 코어", "qty": 2 }, { "name": "고통의 가시", "qty": 6 }] }
           ]
         }
       ]
@@ -103,15 +103,15 @@
         {
           "label": "하드",
           "gates": [
-            { "gate": 1, "cost": 5120, "costSource": "two-sites", "items": [{ "name": "아크 그리드 코어", "qty": 2 }] },
-            { "gate": 2, "cost": 10240, "costSource": "two-sites", "items": [{ "name": "아크 그리드 코어", "qty": 2 }] }
+            { "gate": 1, "cost": 5120, "costSource": "two-sites", "items": [{ "name": "운명의 파괴석 결정", "qty": 710 }, { "name": "운명의 수호석 결정", "qty": 1420 }, { "name": "위대한 운명의 돌파석", "qty": 29 }, { "name": "운명의 파편", "qty": 16480 }, { "name": "아크 그리드 코어", "qty": 2 }] },
+            { "gate": 2, "cost": 10240, "costSource": "two-sites", "items": [{ "name": "운명의 파괴석 결정", "qty": 1210 }, { "name": "운명의 수호석 결정", "qty": 2420 }, { "name": "위대한 운명의 돌파석", "qty": 46 }, { "name": "운명의 파편", "qty": 27250 }, { "name": "아크 그리드 코어", "qty": 2 }] }
           ]
         },
         {
           "label": "노말 · 싱글",
           "gates": [
-            { "gate": 1, "cost": 3520, "costSource": "two-sites", "items": [{ "name": "아크 그리드 코어", "qty": 2 }] },
-            { "gate": 2, "cost": 6720, "costSource": "two-sites", "items": [{ "name": "아크 그리드 코어", "qty": 2 }] }
+            { "gate": 1, "cost": 3520, "costSource": "two-sites", "items": [{ "name": "운명의 파괴석", "qty": 1270 }, { "name": "운명의 수호석", "qty": 2540 }, { "name": "운명의 돌파석", "qty": 40 }, { "name": "운명의 파편", "qty": 10730 }, { "name": "아크 그리드 코어", "qty": 2 }] },
+            { "gate": 2, "cost": 6720, "costSource": "two-sites", "items": [{ "name": "운명의 파괴석", "qty": 2230 }, { "name": "운명의 수호석", "qty": 4460 }, { "name": "운명의 돌파석", "qty": 73 }, { "name": "운명의 파편", "qty": 18740 }, { "name": "아크 그리드 코어", "qty": 2 }] }
           ]
         }
       ]
@@ -123,15 +123,15 @@
         {
           "label": "하드",
           "gates": [
-            { "gate": 1, "cost": 4320, "costSource": "two-sites", "items": [{ "name": "아크 그리드 코어", "qty": 1 }] },
-            { "gate": 2, "cost": 7840, "costSource": "two-sites", "items": [{ "name": "아크 그리드 코어", "qty": 1 }] }
+            { "gate": 1, "cost": 4320, "costSource": "two-sites", "items": [{ "name": "운명의 파괴석", "qty": 1520 }, { "name": "운명의 수호석", "qty": 3040 }, { "name": "운명의 돌파석", "qty": 48 }, { "name": "운명의 파편", "qty": 12830 }, { "name": "아크 그리드 코어", "qty": 1 }] },
+            { "gate": 2, "cost": 7840, "costSource": "two-sites", "items": [{ "name": "운명의 파괴석", "qty": 2620 }, { "name": "운명의 수호석", "qty": 5240 }, { "name": "운명의 돌파석", "qty": 86 }, { "name": "운명의 파편", "qty": 21960 }, { "name": "아크 그리드 코어", "qty": 1 }] }
           ]
         },
         {
           "label": "노말 · 싱글",
           "gates": [
-            { "gate": 1, "cost": 3200, "costSource": "two-sites", "items": [{ "name": "아크 그리드 코어", "qty": 1 }] },
-            { "gate": 2, "cost": 5440, "costSource": "two-sites", "items": [{ "name": "아크 그리드 코어", "qty": 1 }] }
+            { "gate": 1, "cost": 3200, "costSource": "two-sites", "items": [{ "name": "운명의 파괴석", "qty": 1120 }, { "name": "운명의 수호석", "qty": 2240 }, { "name": "운명의 돌파석", "qty": 36 }, { "name": "운명의 파편", "qty": 9510 }, { "name": "아크 그리드 코어", "qty": 1 }] },
+            { "gate": 2, "cost": 5440, "costSource": "two-sites", "items": [{ "name": "운명의 파괴석", "qty": 2000 }, { "name": "운명의 수호석", "qty": 4000 }, { "name": "운명의 돌파석", "qty": 65 }, { "name": "운명의 파편", "qty": 16720 }, { "name": "아크 그리드 코어", "qty": 1 }] }
           ]
         }
       ]
@@ -143,17 +143,17 @@
         {
           "label": "하드",
           "gates": [
-            { "gate": 1, "cost": 1650, "costSource": "notice-13307", "items": [{ "name": "우레의 뇌옥", "qty": 3 }] },
-            { "gate": 2, "cost": 2640, "costSource": "notice-13307", "items": [{ "name": "우레의 뇌옥", "qty": 5 }] },
-            { "gate": 3, "cost": 4060, "costSource": "notice-13307", "items": [{ "name": "우레의 뇌옥", "qty": 10 }, { "name": "순환 돌파석", "qty": 10 }] }
+            { "gate": 1, "cost": 1650, "costSource": "notice-13307", "items": [{ "name": "운명의 파괴석", "qty": 600 }, { "name": "운명의 수호석", "qty": 1200 }, { "name": "운명의 돌파석", "qty": 23 }, { "name": "운명의 파편", "qty": 5000 }, { "name": "우레의 뇌옥", "qty": 3 }] },
+            { "gate": 2, "cost": 2640, "costSource": "notice-13307", "items": [{ "name": "운명의 파괴석", "qty": 830 }, { "name": "운명의 수호석", "qty": 1660 }, { "name": "운명의 돌파석", "qty": 27 }, { "name": "운명의 파편", "qty": 7200 }, { "name": "우레의 뇌옥", "qty": 5 }] },
+            { "gate": 3, "cost": 4060, "costSource": "notice-13307", "items": [{ "name": "운명의 파괴석", "qty": 1460 }, { "name": "운명의 수호석", "qty": 2920 }, { "name": "운명의 돌파석", "qty": 45 }, { "name": "운명의 파편", "qty": 11760 }, { "name": "우레의 뇌옥", "qty": 10 }, { "name": "순환 돌파석", "qty": 10 }] }
           ]
         },
         {
           "label": "노말 · 싱글",
           "gates": [
-            { "gate": 1, "cost": 1300, "costSource": "notice-13307", "items": [{ "name": "낙뢰의 뿔", "qty": 3 }] },
-            { "gate": 2, "cost": 2350, "costSource": "notice-13307", "items": [{ "name": "낙뢰의 뿔", "qty": 5 }] },
-            { "gate": 3, "cost": 3360, "costSource": "notice-13307", "items": [{ "name": "낙뢰의 뿔", "qty": 10 }, { "name": "순환 돌파석", "qty": 7 }] }
+            { "gate": 1, "cost": 1300, "costSource": "notice-13307", "items": [{ "name": "운명의 파괴석", "qty": 390 }, { "name": "운명의 수호석", "qty": 780 }, { "name": "운명의 돌파석", "qty": 12 }, { "name": "운명의 파편", "qty": 3680 }, { "name": "낙뢰의 뿔", "qty": 3 }] },
+            { "gate": 2, "cost": 2350, "costSource": "notice-13307", "items": [{ "name": "운명의 파괴석", "qty": 530 }, { "name": "운명의 수호석", "qty": 1060 }, { "name": "운명의 돌파석", "qty": 15 }, { "name": "운명의 파편", "qty": 4750 }, { "name": "낙뢰의 뿔", "qty": 5 }] },
+            { "gate": 3, "cost": 3360, "costSource": "notice-13307", "items": [{ "name": "운명의 파괴석", "qty": 780 }, { "name": "운명의 수호석", "qty": 1560 }, { "name": "운명의 돌파석", "qty": 21 }, { "name": "운명의 파편", "qty": 6810 }, { "name": "낙뢰의 뿔", "qty": 10 }, { "name": "순환 돌파석", "qty": 7 }] }
           ]
         }
       ]
@@ -165,15 +165,15 @@
         {
           "label": "하드",
           "gates": [
-            { "gate": 1, "cost": 2400, "costSource": "notice-13307", "items": [{ "name": "카르마의 잔영", "qty": 8 }] },
-            { "gate": 2, "cost": 5100, "costSource": "notice-13307", "items": [{ "name": "카르마의 잔영", "qty": 12 }, { "name": "순환 돌파석", "qty": 9 }] }
+            { "gate": 1, "cost": 2400, "costSource": "notice-13307", "items": [{ "name": "운명의 파괴석", "qty": 720 }, { "name": "운명의 수호석", "qty": 1440 }, { "name": "운명의 돌파석", "qty": 30 }, { "name": "운명의 파편", "qty": 6000 }, { "name": "카르마의 잔영", "qty": 8 }] },
+            { "gate": 2, "cost": 5100, "costSource": "notice-13307", "items": [{ "name": "운명의 파괴석", "qty": 1320 }, { "name": "운명의 수호석", "qty": 2640 }, { "name": "운명의 돌파석", "qty": 50 }, { "name": "운명의 파편", "qty": 10590 }, { "name": "카르마의 잔영", "qty": 12 }, { "name": "순환 돌파석", "qty": 9 }] }
           ]
         },
         {
           "label": "노말 · 싱글",
           "gates": [
-            { "gate": 1, "cost": 1820, "costSource": "notice-13307", "items": [{ "name": "카르마의 잔영", "qty": 4 }] },
-            { "gate": 2, "cost": 3720, "costSource": "notice-13307", "items": [{ "name": "카르마의 잔영", "qty": 6 }, { "name": "순환 돌파석", "qty": 7 }] }
+            { "gate": 1, "cost": 1820, "costSource": "notice-13307", "items": [{ "name": "운명의 파괴석", "qty": 610 }, { "name": "운명의 수호석", "qty": 1220 }, { "name": "운명의 돌파석", "qty": 13 }, { "name": "운명의 파편", "qty": 5220 }, { "name": "카르마의 잔영", "qty": 4 }] },
+            { "gate": 2, "cost": 3720, "costSource": "notice-13307", "items": [{ "name": "운명의 파괴석", "qty": 810 }, { "name": "운명의 수호석", "qty": 1620 }, { "name": "운명의 돌파석", "qty": 21 }, { "name": "운명의 파편", "qty": 8060 }, { "name": "카르마의 잔영", "qty": 6 }, { "name": "순환 돌파석", "qty": 7 }] }
           ]
         }
       ]
@@ -185,15 +185,15 @@
         {
           "label": "하드",
           "gates": [
-            { "gate": 1, "cost": 1820, "costSource": "notice-13307", "items": [{ "name": "업화의 쐐기돌", "qty": 8 }] },
-            { "gate": 2, "cost": 4150, "costSource": "notice-13307", "items": [{ "name": "업화의 쐐기돌", "qty": 12 }, { "name": "순환 돌파석", "qty": 9 }] }
+            { "gate": 1, "cost": 1820, "costSource": "notice-13307", "items": [{ "name": "운명의 파괴석", "qty": 610 }, { "name": "운명의 수호석", "qty": 1220 }, { "name": "운명의 돌파석", "qty": 18 }, { "name": "운명의 파편", "qty": 5280 }, { "name": "업화의 쐐기돌", "qty": 8 }] },
+            { "gate": 2, "cost": 4150, "costSource": "notice-13307", "items": [{ "name": "운명의 파괴석", "qty": 940 }, { "name": "운명의 수호석", "qty": 1880 }, { "name": "운명의 돌파석", "qty": 31 }, { "name": "운명의 파편", "qty": 8930 }, { "name": "업화의 쐐기돌", "qty": 12 }, { "name": "순환 돌파석", "qty": 9 }] }
           ]
         },
         {
           "label": "노말 · 싱글",
           "gates": [
-            { "gate": 1, "cost": 750, "costSource": "notice-13307", "items": [{ "name": "업화의 쐐기돌", "qty": 4 }] },
-            { "gate": 2, "cost": 1780, "costSource": "notice-13307", "items": [{ "name": "업화의 쐐기돌", "qty": 6 }, { "name": "순환 돌파석", "qty": 7 }] }
+            { "gate": 1, "cost": 750, "costSource": "notice-13307", "items": [{ "name": "운명의 파괴석", "qty": 310 }, { "name": "운명의 수호석", "qty": 620 }, { "name": "운명의 돌파석", "qty": 8 }, { "name": "운명의 파편", "qty": 2800 }, { "name": "업화의 쐐기돌", "qty": 4 }] },
+            { "gate": 2, "cost": 1780, "costSource": "notice-13307", "items": [{ "name": "운명의 파괴석", "qty": 460 }, { "name": "운명의 수호석", "qty": 920 }, { "name": "운명의 돌파석", "qty": 15 }, { "name": "운명의 파편", "qty": 4480 }, { "name": "업화의 쐐기돌", "qty": 6 }, { "name": "순환 돌파석", "qty": 7 }] }
           ]
         }
       ]
@@ -205,8 +205,8 @@
         {
           "label": "노말",
           "gates": [
-            { "gate": 1, "cost": 720, "costSource": "notice-13307", "items": [{ "name": "베히모스의 비늘", "qty": 10 }] },
-            { "gate": 2, "cost": 1630, "costSource": "notice-13307", "items": [{ "name": "베히모스의 비늘", "qty": 20 }] }
+            { "gate": 1, "cost": 720, "costSource": "notice-13307", "items": [{ "name": "운명의 파괴석", "qty": 240 }, { "name": "운명의 수호석", "qty": 480 }, { "name": "운명의 돌파석", "qty": 7 }, { "name": "운명의 파편", "qty": 1620 }, { "name": "베히모스의 비늘", "qty": 10 }] },
+            { "gate": 2, "cost": 1630, "costSource": "notice-13307", "items": [{ "name": "운명의 파괴석", "qty": 460 }, { "name": "운명의 수호석", "qty": 920 }, { "name": "운명의 돌파석", "qty": 20 }, { "name": "운명의 파편", "qty": 2990 }, { "name": "베히모스의 비늘", "qty": 20 }] }
           ]
         }
       ]
@@ -218,15 +218,15 @@
         {
           "label": "하드",
           "gates": [
-            { "gate": 1, "cost": 720, "costSource": "notice-13307", "items": [{ "name": "알키오네의 눈", "qty": 3 }] },
-            { "gate": 2, "cost": 1630, "costSource": "notice-13307", "items": [{ "name": "알키오네의 눈", "qty": 6 }, { "name": "순환 돌파석", "qty": 6 }] }
+            { "gate": 1, "cost": 720, "costSource": "notice-13307", "items": [{ "name": "운명의 파괴석", "qty": 240 }, { "name": "운명의 수호석", "qty": 480 }, { "name": "운명의 돌파석", "qty": 7 }, { "name": "운명의 파편", "qty": 1620 }, { "name": "알키오네의 눈", "qty": 3 }] },
+            { "gate": 2, "cost": 1630, "costSource": "notice-13307", "items": [{ "name": "운명의 파괴석", "qty": 460 }, { "name": "운명의 수호석", "qty": 920 }, { "name": "운명의 돌파석", "qty": 20 }, { "name": "운명의 파편", "qty": 2990 }, { "name": "알키오네의 눈", "qty": 6 }, { "name": "순환 돌파석", "qty": 6 }] }
           ]
         },
         {
           "label": "노말 · 싱글",
           "gates": [
-            { "gate": 1, "cost": 310, "costSource": "notice-13307", "items": [{ "name": "아그리스의 비늘", "qty": 3 }] },
-            { "gate": 2, "cost": 700, "costSource": "notice-13307", "items": [{ "name": "아그리스의 비늘", "qty": 6 }] }
+            { "gate": 1, "cost": 310, "costSource": "notice-13307", "items": [{ "name": "운명의 파괴석", "qty": 90 }, { "name": "운명의 수호석", "qty": 180 }, { "name": "운명의 돌파석", "qty": 2 }, { "name": "운명의 파편", "qty": 1320 }, { "name": "아그리스의 비늘", "qty": 3 }] },
+            { "gate": 2, "cost": 700, "costSource": "notice-13307", "items": [{ "name": "운명의 파괴석", "qty": 160 }, { "name": "운명의 수호석", "qty": 320 }, { "name": "운명의 돌파석", "qty": 3 }, { "name": "운명의 파편", "qty": 1900 }, { "name": "아그리스의 비늘", "qty": 6 }] }
           ]
         }
       ]

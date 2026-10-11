@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 import {
   INPUT_MATERIALS,
@@ -38,24 +39,44 @@ test("more-reward data passes its checks and matches the official reward table",
   assert.ok(!marketNames().includes("고통의 가시") && priceNames().includes("고통의 가시"));
 });
 
-test("gate result: fixed items + entered materials − cost, unpriced items count 0", () => {
+test("gate result: data items (+ any typed extras) − cost, unpriced items count 0", () => {
   const gate = MORE_DATA.raids.find((r) => r.id === "serka")!.modes[1].gates[0];
   const prices: Record<string, number> = { "운명의 파괴석 결정": 9.04, "운명의 파편": 0.091 };
-  const result = gateResult(
-    gate,
-    { "운명의 파괴석 결정": 750, "운명의 파편": 17500, "운명의 수호석": -3 },
-    (name) => prices[name] ?? null,
-    null,
-    false,
-  );
+  const result = gateResult(gate, {}, (name) => prices[name] ?? null, null, false);
+  // 세르카 하드 1관문: 파괴석 결정 750 · 파편 17,500 (계산 검증 9절).
   assert.equal(result.cost, 5600);
   assert.equal(result.paid, 5600);
   assert.ok(Math.abs(result.value - (750 * 9.04 + 17500 * 0.091)) < 1e-9);
   assert.ok(Math.abs(result.gain - (result.value - 5600)) < 1e-9);
-  assert.deepEqual(result.unpriced.sort(), ["고통의 가시", "아크 그리드 코어"].sort());
-  assert.equal(result.hasInput, true);
-  assert.equal(result.lines.some((l) => l.name === "운명의 수호석"), false, "negative input ignored");
-  assert.equal(gateResult(gate, {}, () => null, null, false).hasInput, false);
+  assert.deepEqual(
+    result.unpriced.sort(),
+    ["고통의 가시", "아크 그리드 코어", "운명의 수호석 결정", "위대한 운명의 돌파석"].sort(),
+  );
+  assert.equal(result.hasInput, false);
+  const typed = gateResult(gate, { "운명의 파편": 1000, "운명의 수호석": -3 }, (name) => prices[name] ?? null, null, false);
+  assert.ok(Math.abs(typed.value - result.value - 1000 * 0.091) < 1e-9);
+  assert.equal(typed.lines.some((l) => l.name === "운명의 수호석"), false, "negative input ignored");
+});
+
+test("every gate carries the 46-gate quantity table (계산 검증 2026-10-11 9절)", () => {
+  type Row = { raid: string; mode: string; gate: number; cost: number; items: { name: string; qty: number }[] };
+  const table: Row[] = JSON.parse(
+    readFileSync(new URL("./more-reward-fixtures/gates-2026-10-11.json", import.meta.url), "utf8"),
+  );
+  let gates = 0;
+  for (const raid of MORE_DATA.raids) for (const mode of raid.modes) gates += mode.gates.length;
+  assert.equal(table.length, gates);
+  for (const row of table) {
+    const where = `${row.raid} ${row.mode} ${row.gate}`;
+    const gate = MORE_DATA.raids
+      .find((r) => r.name === row.raid)
+      ?.modes.find((m) => m.label === row.mode)
+      ?.gates.find((g) => g.gate === row.gate);
+    assert.ok(gate, where);
+    assert.equal(gate.cost, row.cost, `${where} cost`);
+    for (const item of row.items)
+      assert.equal(gate.items.find((i) => i.name === item.name)?.qty, item.qty, `${where} ${item.name}`);
+  }
 });
 
 test("bound-gold option leaves out the part bound gold pays (notice 13148)", () => {
@@ -113,5 +134,7 @@ test("고통의 가시 is worth its minimum guarantee, never made-up odds (계�
   const noLava = (name: string) => (name === "용암의 숨결" ? null : price(name));
   assert.equal(guaranteeValue("고통의 가시", noLava), 108 / 5);
   assert.equal(guaranteeValue("고통의 가시", () => null), null);
-  assert.equal(guaranteeValue("사령의 잔영", price), null);
+  // 사령: pouch min(용암 5 × 515, 빙하 15 × 461) = 2,575 → ÷ 20 · ÷ 10 (계산 검증 00:09).
+  assert.equal(guaranteeValue("사령의 잔영", price), 2575 / 20);
+  assert.equal(guaranteeValue("죽음의 손", price), 2575 / 10);
 });

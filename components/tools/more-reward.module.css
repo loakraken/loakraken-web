@@ -82,7 +82,9 @@
 .cell {
   display: grid;
   width: 100%;
-  min-width: 84px;
+  /* Fits "누르기 · 1.23배" on one line, so cells keep their size when prices
+     arrive (390 CLS). The table scrolls sideways on phones. */
+  min-width: 7.5rem;
   padding: 6px 8px;
   border: 1px solid transparent;
   border-radius: 10px;
@@ -94,6 +96,7 @@
   font-weight: 600;
 }
 .cell small {
+  white-space: nowrap;
   color: var(--slate);
   font-size: var(--text-caption);
 }
