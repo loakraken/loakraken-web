@@ -19,7 +19,7 @@ const bids = (price: number, party: number) =>
     calculateAuction(price, party).strategies.map((s) => [s.id, s.bid]),
   );
 
-test("matches ILOA for 100,000G in a 4-player party", () => {
+test("matches target site C for 100,000G in a 4-player party", () => {
   const result = calculateAuction(100_000, 4);
   assert.equal(result.fee, 5_000);
   assert.equal(result.saleGold, 95_000);
@@ -37,7 +37,7 @@ test("matches ILOA for 100,000G in a 4-player party", () => {
   assert.deepEqual(profits, [6_478, 4_971, 3_393, 1_738, 0, -3_750]);
 });
 
-test("matches ILOA rounding for 99,999G in an 8-player party", () => {
+test("matches target site C rounding for 99,999G in an 8-player party", () => {
   const result = calculateAuction(99_999, 8);
   assert.equal(result.fee, 5_000, "fee rounds up");
   assert.equal(result.breakEven, 83_124, "bids round down");
@@ -52,7 +52,7 @@ test("matches ILOA rounding for 99,999G in an 8-player party", () => {
   });
 });
 
-test("30-player field boss party matches ILOA", () => {
+test("30-player field boss party matches target site C", () => {
   const result = calculateAuction(100_000, 30);
   assert.equal(result.breakEven, 91_833);
   assert.equal(result.breakEvenShare, 3_166);

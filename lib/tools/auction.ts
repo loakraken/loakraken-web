@@ -1,12 +1,12 @@
-// Raid auction bid calculator — pure, client-only. Follows ILOA /tools/bid
-// (checked 2026-10-08 with 100,000G·4인 and 99,999G·8인); LOALAB differs only
+// Raid auction bid calculator — pure, client-only. Follows target site C's bid tool
+// (checked 2026-10-08 with 100,000G·4인 and 99,999G·8인); target site A differs only
 // in also taking the market fee off the "use it myself" price.
 //
 // Rules:
 // - The winning bid is split equally among the other party members.
-// - Selling on the market costs a 5% fee, rounded up (ILOA: 99,999 → 5,000).
+// - Selling on the market costs a 5% fee, rounded up (target site C: 99,999 → 5,000).
 // - A counter-bid must be 10% higher, so bidding break-even ÷ 1.1 leaves no
-//   room for a profitable counter-bid. ILOA and LOALAB share this basis; the
+//   room for a profitable counter-bid. Target sites C and A share this basis; the
 //   official rule text was not checked, so the UI marks it "추정".
 // - A winning bid over 100,000G loses 5% of the part above 100,000 before it
 //   is shared (계산 검증 10-11 16:42, PM 총괄 반영 결정; the target sites

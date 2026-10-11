@@ -5,7 +5,7 @@ import { test, expect, gotoReady, expectNoHorizontalOverflow, chooseOption } fro
 
 test.describe("전투력 시뮬레이터 @smoke", () => {
   test("계산식 확인 전 항목은 숫자 없이 '계산 준비 중'으로 보여 준다", async ({ page }) => {
-    await gotoReady(page, `/tools/combat-power?character=${encodeURIComponent("언새늘")}`);
+    await gotoReady(page, `/tools/combat-power?character=${encodeURIComponent("기준캐릭터A")}`);
     await expect(page.getByRole("heading", { level: 1, name: "전투력 시뮬레이터" })).toBeVisible();
     await chooseOption(page, page.getByRole("combobox", { name: "테스트 보석 레벨" }), "10");
     await expect(page.getByText("계산 준비 중")).toBeVisible();

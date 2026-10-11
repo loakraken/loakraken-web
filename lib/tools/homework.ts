@@ -1,5 +1,5 @@
 // Weekly raid homework and gold — pure model, stored in the browser.
-// Follows ILOA /tasks: pick a roster, three gold raids per character, gate and
+// Follows target site C's homework page: pick a roster, three gold raids per character, gate and
 // "더보기" checks, gold characters n/6, weekly reset on Wednesday 06:00 KST.
 // Gold values come from the raid reward data; unknown values stay unknown.
 import {

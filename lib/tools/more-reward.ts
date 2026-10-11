@@ -169,7 +169,7 @@ export function checkMoreData(data: MoreData = MORE_DATA): string[] {
  * Bound exchange materials valued through what they trade into. Only fixed
  * recipes are here: 은총의 파편 ×60 → 지평의 재련 재료 상자 with fixed
  * contents (user's 제작소 capture, 계산 검증 2026-10-10 18:12; matches
- * 일로아 497.33 at the same prices). 고통의 가시·죽음의 손·사령의 잔영 trade into
+ * 목표 사이트 C 497.33 at the same prices). 고통의 가시·죽음의 손·사령의 잔영 trade into
  * pouches with a choice whose odds are not published, so they stay user input.
  */
 export const EXCHANGES: Record<string, { per: number; into: string; contents: MoreItem[] }> = {

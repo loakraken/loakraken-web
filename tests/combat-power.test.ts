@@ -116,14 +116,14 @@ test("advanced refining becomes EQUIPMENT_ADVANCED_REFINE (search advancedRefine
 
 test("the proxy forwards only known kinds with integer or short string fields", () => {
   const ok = parseSimulateRequest({
-    characterName: " 언새늘 ",
+    characterName: " 기준캐릭터A ",
     changes: [{ kind: "GEM_LEVEL", slot: 0, level: 10, extra: "dropped" }],
   });
-  assert.deepEqual(ok, { characterName: "언새늘", changes: [{ kind: "GEM_LEVEL", slot: 0, level: 10 }] });
-  assert.equal(parseSimulateRequest({ characterName: "언새늘", changes: [{ kind: "NOPE" }] }), null);
-  assert.equal(parseSimulateRequest({ characterName: "언새늘", changes: [{ kind: "GEM_LEVEL", level: 1.5 }] }), null);
+  assert.deepEqual(ok, { characterName: "기준캐릭터A", changes: [{ kind: "GEM_LEVEL", slot: 0, level: 10 }] });
+  assert.equal(parseSimulateRequest({ characterName: "기준캐릭터A", changes: [{ kind: "NOPE" }] }), null);
+  assert.equal(parseSimulateRequest({ characterName: "기준캐릭터A", changes: [{ kind: "GEM_LEVEL", level: 1.5 }] }), null);
   assert.equal(
-    parseSimulateRequest({ characterName: "언새늘", changes: Array(65).fill({ kind: "GEM_LEVEL_ALL", level: 1 }) }),
+    parseSimulateRequest({ characterName: "기준캐릭터A", changes: Array(65).fill({ kind: "GEM_LEVEL_ALL", level: 1 }) }),
     null,
   );
   assert.equal(parseSimulateRequest({ characterName: "", changes: [] }), null);
@@ -148,9 +148,9 @@ test("simulate requests validate input and pass through allow-listed errors", as
     assert.equal(init.method, "POST");
     return Response.json(read("character-combat-power-simulate.json"));
   }) as unknown as typeof fetch;
-  const body = { characterName: "언새늘", changes: [{ kind: "GEM_LEVEL_ALL", level: 10 }] };
+  const body = { characterName: "기준캐릭터A", changes: [{ kind: "GEM_LEVEL_ALL", level: 10 }] };
   assert.equal((await requestSimulation(body, origin, { fetcher })).ok, true);
-  assert.equal((await requestSimulation({ characterName: "언새늘", changes: "x" }, origin, { fetcher })).ok, false);
+  assert.equal((await requestSimulation({ characterName: "기준캐릭터A", changes: "x" }, origin, { fetcher })).ok, false);
   assert.equal(calls, 1);
   const moved = await requestSimulation(body, origin, {
     fetcher: (async () =>

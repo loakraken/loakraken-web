@@ -15,7 +15,7 @@ test.describe("경매 입찰가 @smoke", () => {
     await page.waitForLoadState("networkidle");
   });
 
-  test("일로아 대조 100,000G·8인", async ({ page }) => {
+  test("목표 사이트 C 대조 100,000G·8인", async ({ page }) => {
     await priceBox(page).fill("100,000");
     const summary = page.getByRole("region", { name: "요약" });
     await expect(summary).toContainText("83,125G"); // 판매 손익 분기

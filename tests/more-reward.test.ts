@@ -102,7 +102,7 @@ test("bound-gold option leaves out the part bound gold pays (notice 13148)", () 
 });
 
 test("은총의 파편 is worth its fixed box contents ÷ 60 (계산 검증 18:12)", () => {
-  // 일로아 02:30 prices: 파편 0.0913, 파괴석 결정 9.04, 수호석 결정 1.91, 위대한 돌파석 33.
+  // 목표 사이트 C 02:30 prices: 파편 0.0913, 파괴석 결정 9.04, 수호석 결정 1.91, 위대한 돌파석 33.
   const prices: Record<string, number> = {
     "운명의 파편": 0.0913,
     "운명의 파괴석 결정": 9.04,
@@ -111,7 +111,7 @@ test("은총의 파편 is worth its fixed box contents ÷ 60 (계산 검증 18:1
   };
   const value = exchangeValue("은총의 파편", (n) => prices[n] ?? null)!;
   assert.ok(Math.abs(value - (22500 * 0.0913 + 2000 * 9.04 + 4000 * 1.91 + 60 * 33) / 60) < 1e-9);
-  assert.ok(Math.abs(value - 497.33) < 2, `${value} ≈ 일로아 497.33`);
+  assert.ok(Math.abs(value - 497.33) < 2, `${value} ≈ 목표 사이트 C 497.33`);
   assert.equal(exchangeValue("은총의 파편", () => null), null, "a missing content price → no value");
   assert.equal(exchangeValue("고통의 가시", () => 1), null, "choice recipes stay user input");
 });

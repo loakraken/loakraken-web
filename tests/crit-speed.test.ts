@@ -37,7 +37,7 @@ test("backend-generated crit-speed fixture satisfies the contract", () => {
 test("crit damage (backend #133) validates and groups under its own axis", () => {
   const value = fixture();
   assert.deepEqual(value.data.crit.damage, { base: 200, observed: 0, total: 200 });
-  // 언새늘: 200 + bracelet 8.40 (calc-verification team, matches ILOA/LOPEC).
+  // 기준캐릭터A: 200 + bracelet 8.40 (calc-verification team, matches the target sites).
   value.data.sources.push({
     kind: "OBSERVED",
     category: "BRACELET",
@@ -123,22 +123,22 @@ test("settings become assumptions with buff presets summed and own class exclude
 test("requests are allow-listed before the backend", () => {
   assert.deepEqual(
     parseCritSpeedRequest({
-      characterName: " 언새늘 ",
+      characterName: " 기준캐릭터A ",
       assumptions: { backAttack: true, critSynergyCount: 2, extraAttackSpeed: 14, extra: 1 },
       other: true,
     }),
     {
-      characterName: "언새늘",
+      characterName: "기준캐릭터A",
       assumptions: { backAttack: true, critSynergyCount: 2, extraAttackSpeed: 14 },
     },
   );
   assert.deepEqual(
-    parseCritSpeedRequest({ characterName: "언새늘", assumptions: { extraAttackSpeed: -10 } })?.assumptions,
+    parseCritSpeedRequest({ characterName: "기준캐릭터A", assumptions: { extraAttackSpeed: -10 } })?.assumptions,
     { extraAttackSpeed: -10 },
     "v2 accepts slowdowns",
   );
-  assert.deepEqual(parseCritSpeedRequest({ characterName: "언새늘" }), {
-    characterName: "언새늘",
+  assert.deepEqual(parseCritSpeedRequest({ characterName: "기준캐릭터A" }), {
+    characterName: "기준캐릭터A",
     assumptions: {},
   });
   for (const bad of [
@@ -146,12 +146,12 @@ test("requests are allow-listed before the backend", () => {
     [],
     { characterName: "" },
     { characterName: "이름!" },
-    { characterName: "언새늘", assumptions: [] },
-    { characterName: "언새늘", assumptions: { backAttack: "yes" } },
-    { characterName: "언새늘", assumptions: { critSynergyCount: 4 } },
-    { characterName: "언새늘", assumptions: { critSynergyCount: 1.5 } },
-    { characterName: "언새늘", assumptions: { supportCritRate: 31 } },
-    { characterName: "언새늘", assumptions: { extraMoveSpeed: -101 } },
+    { characterName: "기준캐릭터A", assumptions: [] },
+    { characterName: "기준캐릭터A", assumptions: { backAttack: "yes" } },
+    { characterName: "기준캐릭터A", assumptions: { critSynergyCount: 4 } },
+    { characterName: "기준캐릭터A", assumptions: { critSynergyCount: 1.5 } },
+    { characterName: "기준캐릭터A", assumptions: { supportCritRate: 31 } },
+    { characterName: "기준캐릭터A", assumptions: { extraMoveSpeed: -101 } },
   ])
     assert.equal(parseCritSpeedRequest(bad), null, JSON.stringify(bad));
 });
@@ -184,12 +184,12 @@ test("crit-speed requests validate input and pass through allow-listed errors", 
     calls++;
     assert.equal(url.pathname, "/api/v1/characters/crit-speed");
     assert.equal(init.method, "POST");
-    assert.equal(JSON.parse(String(init.body)).characterName, "언새늘");
+    assert.equal(JSON.parse(String(init.body)).characterName, "기준캐릭터A");
     return Response.json(fixture());
   }) as unknown as typeof fetch;
-  assert.equal((await requestCritSpeed({ characterName: "언새늘" }, origin, { fetcher })).ok, true);
+  assert.equal((await requestCritSpeed({ characterName: "기준캐릭터A" }, origin, { fetcher })).ok, true);
   assert.equal(
-    (await requestCritSpeed({ characterName: "언새늘", assumptions: { critSynergyCount: 9 } }, origin, { fetcher })).ok,
+    (await requestCritSpeed({ characterName: "기준캐릭터A", assumptions: { critSynergyCount: 9 } }, origin, { fetcher })).ok,
     false,
   );
   assert.equal(calls, 1);
@@ -206,9 +206,9 @@ test("crit-speed requests validate input and pass through allow-listed errors", 
 test("class-state assumption (backend #193): on by default, only 'off' is sent", () => {
   assert.equal("classState" in toAssumptions(DEFAULT_SETTINGS), false);
   assert.equal(toAssumptions({ ...DEFAULT_SETTINGS, classState: false }).classState, false);
-  const parsed = parseCritSpeedRequest({ characterName: "언새늘", assumptions: { classState: false } });
+  const parsed = parseCritSpeedRequest({ characterName: "기준캐릭터A", assumptions: { classState: false } });
   assert.equal(parsed?.assumptions.classState, false);
-  assert.equal(parseCritSpeedRequest({ characterName: "언새늘", assumptions: { classState: "no" } }), null);
+  assert.equal(parseCritSpeedRequest({ characterName: "기준캐릭터A", assumptions: { classState: "no" } }), null);
   const value = fixture();
   value.data.sources.push({
     kind: "ASSUMED",
@@ -252,14 +252,14 @@ test("per-effect toggles (backend #193): only changed keys are sent and the allo
     { 연가비기: true, 피냄새: false },
   );
   assert.deepEqual(
-    parseCritSpeedRequest({ characterName: "언새늘", assumptions: { toggles: { "피스메이커 - 샷건": true } } })
+    parseCritSpeedRequest({ characterName: "기준캐릭터A", assumptions: { toggles: { "피스메이커 - 샷건": true } } })
       ?.assumptions.toggles,
     { "피스메이커 - 샷건": true },
   );
   const many = Object.fromEntries(Array.from({ length: 33 }, (_, i) => [`k${i}`, true]));
   for (const toggles of [[], { 피냄새: "on" }, { " ": true }, many, { ["x".repeat(65)]: true }])
     assert.equal(
-      parseCritSpeedRequest({ characterName: "언새늘", assumptions: { toggles } }),
+      parseCritSpeedRequest({ characterName: "기준캐릭터A", assumptions: { toggles } }),
       null,
       JSON.stringify(toggles).slice(0, 40),
     );
