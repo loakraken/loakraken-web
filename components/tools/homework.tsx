@@ -6,9 +6,7 @@ import { useMutation } from "@tanstack/react-query";
 import { Add, ArrowDown, ArrowLeft, TaskSquare, TrashSquare } from "@/components/ui/icons";
 import Link from "next/link";
 import { SiteHeader } from "@/components/site/site-header";
-import { LazyMotion, domAnimation } from "motion/react";
-import { Arrange } from "@/components/ui/bencho/reorder-list";
-import { Checklist } from "@/components/ui/bencho/checklist";
+import dynamic from "next/dynamic";
 import { CharacterQueryError, fetchSiblings } from "@/lib/character/client";
 import { rateLimitCopy, retryLabel } from "@/lib/api/rate-limit";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
@@ -225,6 +223,18 @@ function AddRoster({ onAdd }: { onAdd: (picked: Sibling[]) => void }) {
   );
 }
 
+/**
+ * Bencho "Reorder list", loaded when "순서 바꾸기" first opens — it is not
+ * needed for the page to work (arrows and Alt+↑↓ do the same moves).
+ */
+const Arrange = dynamic(() => import("./homework-arrange"), {
+  ssr: false,
+  loading: () => <p className={styles.note}>순서 목록을 불러오고 있어요.</p>,
+});
+
+/** Bencho "Checklist", loaded with the first character card (same height held). */
+const Checklist = dynamic(() => import("./homework-checklist"), { ssr: false });
+
 function RaidRow({
   plan,
   itemLevel,
@@ -387,11 +397,10 @@ function CharacterCard({
         // 전체 체크(사용자 14:44): Bencho "Checklist" — the first row is the
         // whole character, the rest one per raid; some gates done shows as
         // mixed. The wall demo's fall-and-reset and typed tasks are off.
-        <div className={styles.checklist}>
+        // Held at the block's own height (6 + 40 per row) until its chunk
+        // arrives, so the raids below do not move.
+        <div className={styles.checklist} style={{ minHeight: 6 + 40 * (character.raids.length + 1) }}>
           <Checklist
-            width="100%"
-            addable={false}
-            fall={false}
             items={[
               {
                 key: "all",
@@ -553,8 +562,6 @@ export default function HomeworkTool() {
     setState((s) => ({ ...s, characters: s.characters.map((c, j) => (j === index ? next : c)) }));
 
   return (
-    // The Bencho blocks use the light `m` components; LazyMotion supplies them.
-    <LazyMotion features={domAnimation}>
     <div className={quote.page}>
       <a className={quote.skip} href="#hw-main">
         본문으로 건너뛰기
@@ -625,6 +632,5 @@ export default function HomeworkTool() {
         LOAKraken · 브라우저 저장
       </footer>
     </div>
-    </LazyMotion>
   );
 }

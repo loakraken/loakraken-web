@@ -2,8 +2,10 @@
 // MIT © 2026 Lorenzo Cabra — https://bencho.dev/blocks/checklist
 // Bencho "Checklist", kept as published (full licence in ./NOTICE). Our
 // changes, and only these (PM 총괄 2026-10-11 안 A):
-//  1. framer-motion → motion/react, `m` imported as `motion` (same library,
-//     the screen supplies LazyMotion) — the body is unchanged.
+//  1. framer-motion → ./static-motion, `m` imported as `motion`: plain
+//     elements without the library. On a screen nothing here moves by motion
+//     (no fall, rows rest at 0), so it was 52KB of first-load JS for a 0.18s
+//     fade of a leaving row (PM-프론트 #483). The body is unchanged.
 //  2. Data in and out: `items` (key, label, done, mixed) and `onToggle(i)`.
 //     Bencho's three tasks stay as the default, so it still renders alone.
 //  3. `mixed`: some of a row's parts are done — aria-checked="mixed", the box
@@ -14,7 +16,7 @@
 //  5. One eslint line exception where the rule misreads the original.
 import "./checklist.css";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { AnimatePresence, m as motion } from "motion/react";
+import { AnimatePresence, m as motion } from "./static-motion";
 
 /* ══ Checklist ════════════════════════════════════════════
    Three tasks, and the only thing this block does is cross

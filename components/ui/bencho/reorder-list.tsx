@@ -12,6 +12,10 @@
 //  4. The stage is as tall as its rows (n × step) instead of a fixed 200px.
 //  5. `here` reads `mark` (homework: this raid pays gold).
 //  6. Two eslint line exceptions where the rule misreads the original.
+//  7. Tokens are read back as rgb(): our palette computes to color(srgb …),
+//     which motion cannot tween (it warned and snapped the label colour).
+//  8. The blob's marginLeft is handed over in px; a bare number came back
+//     from the DOM as "-98", which motion would not animate either.
 import "./reorder-list.css";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { animate, m as motion, useMotionValue, useTransform } from "motion/react";
@@ -108,6 +112,19 @@ function useGoo(blur = 7, cut = 28) {
 
    Re-read whenever the theme or fill flips, or the animation
    would tween toward the previous palette. */
+/* (ours) any CSS colour → rgb()/rgba(), by painting one pixel */
+let pixel: CanvasRenderingContext2D | null = null;
+function rgb(colour: string): string {
+  if (colour.startsWith("rgb")) return colour;
+  pixel ??= document.createElement("canvas").getContext("2d", { willReadFrequently: true });
+  if (!pixel) return colour;
+  pixel.clearRect(0, 0, 1, 1);
+  pixel.fillStyle = colour;
+  pixel.fillRect(0, 0, 1, 1);
+  const [r, g, b, a] = pixel.getImageData(0, 0, 1, 1).data;
+  return a === 255 ? `rgb(${r}, ${g}, ${b})` : `rgba(${r}, ${g}, ${b}, ${(a / 255).toFixed(3)})`;
+}
+
 function useTokens(
   ref: React.RefObject<HTMLElement | null>,
   names: string[],
@@ -129,7 +146,7 @@ function useTokens(
         /* a bare token gets wrapped; anything else (a fallback
            chain, a literal) is already a colour expression */
         probe.style.color = n.startsWith("--") ? `var(${n})` : n;
-        next[n] = getComputedStyle(probe).color;
+        next[n] = rgb(getComputedStyle(probe).color);
       }
       probe.remove();
       const sig = JSON.stringify(next);
@@ -477,7 +494,7 @@ export function Arrange({
               style={{ y: ys[p.id] }}
               animate={{
                 width: isHeld ? PILL + 12 : PILL,
-                marginLeft: isHeld ? -(PILL / 2) - 6 : -(PILL / 2),
+                marginLeft: `${isHeld ? -(PILL / 2) - 6 : -(PILL / 2)}px`,
               }}
               transition={LIQUID}
             >
