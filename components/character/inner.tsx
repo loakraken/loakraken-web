@@ -4,14 +4,14 @@ import { useState } from "react";
 import { AvatarCard, DetailTooltip } from "./item-tooltip";
 import type { Character } from "@/lib/character/model";
 import { groupEquipment } from "@/lib/character/detail";
-import { avatarEffectTotals, avatarSlot } from "@/lib/character/inner";
+import { avatarEffectTotals, avatarSlots } from "@/lib/character/inner";
+import { safeGameImage } from "@/lib/character/model";
 import { GameIcon } from "./imagery";
 import { Panel } from "./panel";
 import { Empty, number, text } from "./parts";
 import styles from "./detail.module.css";
 
 type Collectible = Character["collectibles"][number];
-type Avatar = Character["avatars"][number];
 
 const ratio = (point: number | null, max: number | null) =>
   point != null && max ? Math.min(1, point / max) : 0;
@@ -229,48 +229,35 @@ export function CollectiblesTab({ data }: { data: Character }) {
 
 export function AvatarsTab({ data }: { data: Character }) {
   const avatars = data.avatars;
-  const slots = new Map<string, Avatar[]>();
-  for (const avatar of avatars) {
-    const slot = avatarSlot(avatar);
-    slots.set(slot, [...(slots.get(slot) ?? []), avatar]);
-  }
   const totals = avatarEffectTotals(avatars);
   return (
     <div className={styles.layout}>
-      <div className={styles.columns}>
+      <div className={styles.avatarColumns}>
+        <Panel title="아바타 미리보기">
+          <AvatarPreview url={data.imageUrl} name={data.characterName} />
+        </Panel>
         <div className={styles.stack}>
           <Panel
-            title="아바타"
+            title="아바타 목록"
             meta={avatars.length ? `${avatars.length}개 장착` : undefined}
           >
             {avatars.length ? (
-              <ul className={styles.avatarList}>
-                {[...slots].map(([slot, items]) => (
-                  <li key={slot}>
-                    <h3>{slot}</h3>
-                    <ul>
-                      {[...items]
-                        .sort((a, b) => Number(a.isInner) - Number(b.isInner))
-                        .map((avatar, i) => (
-                          <li key={`${avatar.name}-${i}`} className={styles.item}>
-                            <DetailTooltip name={avatar.name ?? "아바타"} card={<AvatarCard avatar={avatar} />}>
-                              <GameIcon src={avatar.icon} grade={avatar.grade} size={40} />
-                            </DetailTooltip>
-                            <div className={styles.itemText}>
-                              <strong>
-                                {text(avatar.name)}
-                                {avatar.isInner && <em> 덧입기</em>}
-                              </strong>
-                              <small>
-                                {text(avatar.grade)}
-                                {avatar.isSet && " · 세트"}
-                                {avatar.effects.length > 0 &&
-                                  ` · ${avatar.effects.join(", ")}`}
-                              </small>
-                            </div>
-                          </li>
-                        ))}
-                    </ul>
+              <ul className={styles.avatarSlots}>
+                {avatarSlots(avatars).map(({ slot, avatar }, i) => (
+                  <li key={`${slot}-${i}`} data-empty={avatar ? undefined : true}>
+                    {avatar ? (
+                      <DetailTooltip name={avatar.name ?? "아바타"} card={<AvatarCard avatar={avatar} />}>
+                        <GameIcon src={avatar.icon} grade={avatar.grade} size={36} />
+                      </DetailTooltip>
+                    ) : (
+                      <span className={styles.avatarEmpty} aria-hidden="true" />
+                    )}
+                    <div className={styles.itemText}>
+                      <small>{slot}</small>
+                      <strong data-grade={avatar?.grade ?? undefined}>
+                        {avatar ? text(avatar.name) : "-"}
+                      </strong>
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -281,8 +268,6 @@ export function AvatarsTab({ data }: { data: Character }) {
               염색 정보는 공식 전투정보실 응답에 없어 표시하지 않아요.
             </p>
           </Panel>
-        </div>
-        <aside className={styles.stack}>
           <Panel title="아바타 효과">
             {totals.length ? (
               <dl className={styles.statGrid}>
@@ -297,8 +282,37 @@ export function AvatarsTab({ data }: { data: Character }) {
               <p className={styles.muted}>합산할 효과가 없어요.</p>
             )}
           </Panel>
-        </aside>
+        </div>
       </div>
+    </div>
+  );
+}
+
+/**
+ * The full-body render (the official profile image the banner uses, 612×708)
+ * on a dark stage in every theme, as the game shows it. Lazy: it sits below
+ * the banner, which already holds the same image.
+ */
+function AvatarPreview({ url, name }: { url: string | null; name: string }) {
+  const safe = safeGameImage(url);
+  const [failed, setFailed] = useState(false);
+  return (
+    <div className={styles.avatarStage}>
+      {safe && !failed ? (
+        // eslint-disable-next-line @next/next/no-img-element -- official CDN render, not proxied
+        <img
+          src={safe}
+          alt={`${name} 캐릭터 전신(장착한 아바타)`}
+          width={612}
+          height={708}
+          loading="lazy"
+          decoding="async"
+          referrerPolicy="no-referrer"
+          onError={() => setFailed(true)}
+        />
+      ) : (
+        <p className={styles.avatarStageEmpty}>캐릭터 이미지를 불러오지 못했어요.</p>
+      )}
     </div>
   );
 }
