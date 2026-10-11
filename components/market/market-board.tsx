@@ -68,6 +68,7 @@ const TAB_ICON: Record<string, ReactNode> = {
 import styles from "./market.module.css";
 import { rateLimitCopy, retryLabel } from "@/lib/api/rate-limit";
 import { RateLimitNote } from "@/components/site/rate-limit-note";
+import { pendingProps } from "@/lib/api/pending";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { useCrossfade } from "@/lib/motion";
 import { PriceFlash } from "./price-flash";
@@ -525,7 +526,7 @@ function MarketContent({
                 <ul
                   ref={fade}
                   className={styles.rows}
-                  data-stale={board.isPlaceholderData || undefined}
+                  {...pendingProps(board)}
                 >
                   {items.map((item) => (
                     <li key={item.itemId}>

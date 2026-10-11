@@ -40,6 +40,7 @@ import styles from "@/components/home/home.module.css";
 import expand from "@/components/site/expand.module.css";
 import own from "./schedule.module.css";
 import { countdownText, retryLabel } from "@/lib/api/rate-limit";
+import { pendingProps } from "@/lib/api/pending";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 
 /** One schedule day; null is "today" (the key the server prefetch fills). */
@@ -410,7 +411,7 @@ export function ScheduleBoard({
       ) : page ? (
         <div
           className={styles.sections}
-          data-stale={query.isPlaceholderData || undefined}
+          {...pendingProps(query)}
         >
           {shownGroups.map((group) => (
             <Section
@@ -434,7 +435,7 @@ export function ScheduleBoard({
       ) : (
         <div
           className={styles.sections}
-          data-stale={query.isPlaceholderData || undefined}
+          {...pendingProps(query)}
         >
           <Section
             title="모험 섬"

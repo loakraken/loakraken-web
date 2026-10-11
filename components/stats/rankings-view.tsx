@@ -8,6 +8,7 @@ import { SiteHeader } from "@/components/site/site-header";
 import { DataTable } from "@/components/ui/data-table";
 import { Select } from "@/components/ui/select";
 import { countdownText, retryLabel } from "@/lib/api/rate-limit";
+import { pendingProps } from "@/lib/api/pending";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { TIER_LABEL } from "@/lib/character/rank";
 import { fetchRankings } from "@/lib/stats/client";
@@ -151,7 +152,7 @@ export function RankingsView({ initial, typeTabs = false }: { initial: RankingQu
         </form>
 
         {data && (
-          <p className={styles.notice}>
+          <p className={styles.notice} {...pendingProps(list)}>
             {sampleText(data.meta)} · 공식 랭킹이 아니에요
             {data.meta.sampleStatus !== "READY" && <strong> · 표본 {data.meta.minSample}명이 모이면 순위를 보여 드려요</strong>}
           </p>
@@ -173,7 +174,7 @@ export function RankingsView({ initial, typeTabs = false }: { initial: RankingQu
         ) : data.rows.length === 0 ? (
           <p className={styles.muted}>조건에 맞는 캐릭터가 없어요.</p>
         ) : (
-          <DataTable label={`${metricLabel} 랭킹 ${query.page}쪽`} className={styles.table}>
+          <DataTable label={`${metricLabel} 랭킹 ${query.page}쪽`} className={styles.table} {...pendingProps(list)}>
             <caption className={styles.srOnly}>
               {metricLabel} 랭킹 {query.page}쪽
             </caption>

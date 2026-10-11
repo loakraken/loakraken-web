@@ -64,3 +64,10 @@
     transition: none;
   }
 }
+
+/* Values of the previous conditions while new ones load (lib/api/pending.ts):
+   dimmed in place, so they never pass for the new conditions (user 10-12). */
+.note[data-stale] {
+  opacity: 0.55;
+  transition: opacity 160ms ease-out;
+}

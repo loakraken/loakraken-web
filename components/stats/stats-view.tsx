@@ -8,6 +8,7 @@ import { Select } from "@/components/ui/select";
 import { DataTable } from "@/components/ui/data-table";
 import { PillTab, PillTabs, PillTabsPanel } from "@/components/ui/pill-tabs";
 import { countdownText, retryLabel } from "@/lib/api/rate-limit";
+import { pendingProps } from "@/lib/api/pending";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { TIER_LABEL } from "@/lib/character/rank";
 import { fetchStats } from "@/lib/stats/client";
@@ -65,9 +66,9 @@ function Problem({ error, onRetry }: { error: unknown; onRetry: () => void }) {
  * Whose numbers these are, before any number (user, 23:23): LOAKraken's
  * observed characters, never the game's population. Conditions under it.
  */
-function Notice({ meta }: { meta: StatsMeta }) {
+function Notice({ meta, stale }: { meta: StatsMeta; stale: boolean }) {
   return (
-    <div className={styles.basis} role="note">
+    <div className={styles.basis} role="note" {...pendingProps({ isPlaceholderData: stale })}>
       <p>
         <strong>LOAKraken이 확인한 캐릭터 {whole(meta.population)}명 기준</strong>
         <span>(게임 전체 인구 아님)</span>
@@ -91,7 +92,7 @@ function StatsBasis({ query }: { query: StatsQuery }) {
   });
   const meta = summary.data?.data.meta;
   if (!meta) return null;
-  return <BasisNote basis={meta} />;
+  return <BasisNote basis={meta} stale={summary.isPlaceholderData} />;
 }
 
 function SummaryCards({ query }: { query: StatsQuery }) {
@@ -111,8 +112,8 @@ function SummaryCards({ query }: { query: StatsQuery }) {
   const reference = s.meta.sampleStatus !== "READY";
   return (
     <>
-      <Notice meta={s.meta} />
-      <dl className={styles.cards} data-reference={reference || undefined}>
+      <Notice meta={s.meta} stale={summary.isPlaceholderData} />
+      <dl className={styles.cards} data-reference={reference || undefined} {...pendingProps(summary)}>
         <div>
           <dt>표본</dt>
           <dd>{whole(s.meta.population)}명</dd>
@@ -225,7 +226,7 @@ function ClassesTab({ query }: { query: StatsQuery }) {
   const scale = quantileScale(rows);
   const minSample = classes.data.data.meta.minSample;
   return (
-    <div>
+    <div {...pendingProps(classes)}>
       <SampleProgress ready={ready} total={rows.length} unit="직업" minSample={minSample} />
       {rows.length > 0 && (
         <DataTable label="직업별 인원과 전투력 분포" className={styles.table}>
@@ -313,7 +314,7 @@ function DistributionTab({ query }: { query: StatsQuery }) {
           {asTable ? "그래프로 보기" : "표로 보기"}
         </button>
       </div>
-      <p className={styles.result} aria-live="polite">
+      <p className={styles.result} aria-live="polite" {...pendingProps(dist)}>
         {p ? (
           <>
             {label} {fmt(p.value)}은 상위 <strong>{percent(p.topPercent)}</strong>
@@ -331,7 +332,7 @@ function DistributionTab({ query }: { query: StatsQuery }) {
       ) : !data ? (
         <p className={styles.muted}>분포를 불러오고 있어요…</p>
       ) : asTable ? (
-        <DataTable label={`${label} 구간별 인원`} className={styles.table}>
+        <DataTable label={`${label} 구간별 인원`} className={styles.table} {...pendingProps(dist)}>
             <caption className={styles.srOnly}>{label} 구간별 인원</caption>
             <thead>
               <tr>
@@ -351,7 +352,7 @@ function DistributionTab({ query }: { query: StatsQuery }) {
             </tbody>
         </DataTable>
       ) : (
-        <ol className={styles.histogram} aria-label={`${label} 구간별 인원`}>
+        <ol className={styles.histogram} aria-label={`${label} 구간별 인원`} {...pendingProps(dist)}>
           {data.bins.map((bin, i) => {
             const hit = p && p.value >= bin.from && p.value < bin.to;
             return (
@@ -367,7 +368,7 @@ function DistributionTab({ query }: { query: StatsQuery }) {
         </ol>
       )}
       {data && data.bins.length > 0 && (
-        <p className={styles.axis} aria-hidden="true">
+        <p className={styles.axis} aria-hidden="true" {...pendingProps(dist)}>
           <span>{fmt(data.bins[0].from)}</span>
           <span>{fmt(data.bins.at(-1)!.to)}</span>
         </p>
@@ -390,7 +391,7 @@ function ServersTab({ query }: { query: StatsQuery }) {
   const rows = servers.data.data.rows;
   const ready = rows.filter((row) => row.sampleStatus === "READY").length;
   return (
-    <div>
+    <div {...pendingProps(servers)}>
       <SampleProgress ready={ready} total={rows.length} unit="서버" minSample={servers.data.data.meta.minSample} />
       {rows.length > 0 && (
       <DataTable label="서버별 인원과 중앙값" className={styles.table}>
