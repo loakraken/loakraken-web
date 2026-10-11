@@ -9,6 +9,7 @@ import {
 } from "./related";
 import { requestCharacter } from "./upstream";
 import { requestPopular } from "./popular";
+import { requestSuggest } from "./suggest";
 import { requestRank } from "./rank";
 import { requestArmoryPage } from "./armory-page";
 import { requestCollectibleOwnership, requestCollectibleStanding } from "./collectible-standing";
@@ -21,6 +22,10 @@ export function getCharacter(name: string, signal?: AbortSignal) {
 
 export function getPopular(period: string, limit: number, signal?: AbortSignal) {
   return requestPopular(period, limit, process.env.LOAKRAKEN_API_ORIGIN, { signal });
+}
+
+export function getSuggest(q: string, signal?: AbortSignal) {
+  return requestSuggest(q, process.env.LOAKRAKEN_API_ORIGIN, { signal });
 }
 
 export function getCardCollection(name: string, signal?: AbortSignal) {
