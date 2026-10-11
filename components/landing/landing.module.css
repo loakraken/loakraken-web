@@ -56,11 +56,11 @@
 .orbGlass { position: absolute; inset: 9px; border-radius: 50%; background: radial-gradient(ellipse at 44% 8%, #ffffffd9, #ffffff15 30%, transparent 56%); border-top: 1px solid #fff; pointer-events: none; }
 /* Dark theme: the same glass sphere in deep blues, so it does not glare on
    the dark page. Colour only — size, motion and blur are unchanged. */
-:global([data-theme="dark"]) .orbShell { background: radial-gradient(circle at 35% 28%, #5d7a99 3%, #2b4664 30%, #1a3350 63%, #13253b 82%, #22384f 100%); border-color: #2c4560; box-shadow: inset 4px 5px 13px #ffffff26, inset -6px -10px 23px #00000059; }
-:global([data-theme="dark"]) .orbGlass { background: radial-gradient(ellipse at 44% 8%, #ffffff40, #ffffff08 30%, transparent 56%); border-top-color: #ffffff33; }
-:global([data-theme="dark"]) .orbAtmosphere { background: #4da3ff; opacity: 0.18; }
-:global([data-theme="dark"]) .orbit { border-color: #4da3ff26; }
-:global([data-theme="dark"]) .orbit i { background: #4da3ff; }
+:global(:is([data-theme="dark"], [data-theme="dim"])) .orbShell { background: radial-gradient(circle at 35% 28%, #5d7a99 3%, #2b4664 30%, #1a3350 63%, #13253b 82%, #22384f 100%); border-color: #2c4560; box-shadow: inset 4px 5px 13px #ffffff26, inset -6px -10px 23px #00000059; }
+:global(:is([data-theme="dark"], [data-theme="dim"])) .orbGlass { background: radial-gradient(ellipse at 44% 8%, #ffffff40, #ffffff08 30%, transparent 56%); border-top-color: #ffffff33; }
+:global(:is([data-theme="dark"], [data-theme="dim"])) .orbAtmosphere { background: #4da3ff; opacity: 0.18; }
+:global(:is([data-theme="dark"], [data-theme="dim"])) .orbit { border-color: #4da3ff26; }
+:global(:is([data-theme="dark"], [data-theme="dim"])) .orbit i { background: #4da3ff; }
 .orbCore { position: relative; width: 100px; height: 100px; display: grid; place-items: center; border-radius: 50%; }
 .orbCore canvas { width: 96px !important; height: 96px !important; }
 .orbit { position: absolute; border: 1px solid #aac4d73d; border-radius: 50%; animation: orbit 26s linear infinite; }

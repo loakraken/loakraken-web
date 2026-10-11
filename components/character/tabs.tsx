@@ -1249,55 +1249,111 @@ export function SkillsTab({ data }: { data: Character }) {
   );
 }
 
+/**
+ * Ark passive as the reference lays it out: one tree at a time picked by its
+ * points (진화 140 · 깨달음 101 · 도약 70), its rank and level total and the
+ * active nodes row by tier; then every tree's active effects side by side.
+ * Inactive nodes (the full grid) need each class's whole tree from the
+ * backend and come later.
+ */
 export function ArkPassiveTab({ data }: { data: Character }) {
   const trees = passiveByTree(data);
+  const [picked, setPicked] = useState<string | null>(null);
+  const tree = picked ?? trees.find((item) => item.nodes.length)?.tree ?? ARK_TREES[0];
+  const current = trees.find((item) => item.tree === tree) ?? trees[0];
+  const tiers = [...new Set(current.nodes.map(({ parsed }) => parsed.tier ?? 0))].sort((a, b) => a - b);
+  const card = (tree: string, { effect, parsed }: (typeof current.nodes)[number]) => (
+    <PassiveNodeCard
+      name={parsed.node ?? tree}
+      tree={tree}
+      level={parsed.level}
+      icon={effect.icon}
+      text={sourcePlainText(effect.effect ?? effect.description) || null}
+    />
+  );
   return (
     <div className={styles.layout}>
       <div className={styles.columns}>
         <div className={styles.stack}>
-          {trees.map(({ tree, nodes }) => (
-            <Panel key={tree} title={tree} meta={`${nodes.length}개 노드`}>
-              {nodes.length ? (
-                <ul className={styles.passiveDetail}>
-                  {nodes.map(({ effect, parsed }, i) => (
-                    <li key={i}>
-                      <DetailTooltip
-                        name={parsed.node ?? tree}
-                        card={
-                          <PassiveNodeCard
-                            name={parsed.node ?? tree}
-                            tree={tree}
-                            level={parsed.level}
-                            icon={effect.icon}
-                            text={sourcePlainText(effect.effect ?? effect.description) || null}
-                          />
-                        }
-                      >
-                        <GameIcon src={effect.icon} size={36} />
-                      </DetailTooltip>
-                      <div className={styles.itemText}>
-                        <strong>
-                          {parsed.node}{" "}
-                          <small>
-                            T{parsed.tier} · Lv.{parsed.level}
-                          </small>
-                        </strong>
-                        <p>
-                          <SourceText
-                            value={effect.effect ?? effect.description}
-                          />
-                        </p>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className={styles.muted}>
-                  이 트리에서 확인된 노드가 없어요.
-                </p>
-              )}
-            </Panel>
-          ))}
+          <PillTabs
+            aria-label="아크 패시브 트리"
+            listClassName={styles.rosterViews}
+            value={tree}
+            onValueChange={(next) => setPicked(next as string)}
+            panels={
+              <PillTabsPanel value={tree}>
+                <Panel
+                  title={`${tree} 노드`}
+                  meta={[current.point?.description, `활성 ${current.nodes.length}개`].filter(Boolean).join(" · ")}
+                >
+                  {current.nodes.length ? (
+                    tiers.map((tier) => (
+                      <section key={tier} className={styles.passiveTier} aria-label={`${tier}티어`}>
+                        <h3>{tier ? `${tier}티어` : "기타"}</h3>
+                        <ul className={styles.passiveDetail}>
+                          {current.nodes
+                            .filter(({ parsed }) => (parsed.tier ?? 0) === tier)
+                            .map((node, i) => (
+                              <li key={i}>
+                                <DetailTooltip name={node.parsed.node ?? tree} card={card(tree, node)}>
+                                  <GameIcon src={node.effect.icon} size={36} />
+                                </DetailTooltip>
+                                <div className={styles.itemText}>
+                                  <strong>
+                                    {node.parsed.node} <small>Lv.{node.parsed.level}</small>
+                                  </strong>
+                                  <p>
+                                    <SourceText value={node.effect.effect ?? node.effect.description} />
+                                  </p>
+                                </div>
+                              </li>
+                            ))}
+                        </ul>
+                      </section>
+                    ))
+                  ) : (
+                    <p className={styles.muted}>이 트리에서 확인된 노드가 없어요.</p>
+                  )}
+                </Panel>
+              </PillTabsPanel>
+            }
+          >
+            {trees.map((item) => (
+              <PillTab key={item.tree} value={item.tree}>
+                {item.tree} {number(item.point?.value)}
+              </PillTab>
+            ))}
+          </PillTabs>
+          <Panel title="활성 효과" wide>
+            <div className={styles.passiveColumns}>
+              {trees.map((item) => (
+                <section key={item.tree} aria-label={`${item.tree} 활성 효과`}>
+                  <h3>{item.tree}</h3>
+                  <p className={styles.passiveColumnMeta}>
+                    {[item.point?.value != null ? `${number(item.point.value)}P` : null, item.point?.description]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </p>
+                  {item.nodes.length ? (
+                    <ul className={styles.passiveSummaryList}>
+                      {item.nodes.map((node, i) => (
+                        <li key={i}>
+                          <DetailTooltip name={node.parsed.node ?? item.tree} card={card(item.tree, node)}>
+                            <GameIcon src={node.effect.icon} size={24} />
+                          </DetailTooltip>
+                          <span>{node.parsed.node}</span>
+                          {node.parsed.tier != null && <b>T{node.parsed.tier}</b>}
+                          <small>Lv.{node.parsed.level}</small>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className={styles.muted}>활성 노드가 없어요.</p>
+                  )}
+                </section>
+              ))}
+            </div>
+          </Panel>
         </div>
         <aside className={styles.stack}>
           <ArkPassiveSummary data={data} detailed />

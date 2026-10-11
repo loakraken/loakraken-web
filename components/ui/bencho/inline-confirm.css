@@ -16,7 +16,7 @@
   --pick: var(--link);
   --pick-rgb: 0 102 204;
 }
-:root[data-theme="dark"] .say-well {
+:root:is([data-theme="dark"], [data-theme="dim"]) .say-well {
   --pick-rgb: 77 163 255;
 }
 

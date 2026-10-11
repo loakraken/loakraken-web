@@ -19,7 +19,7 @@
   background: var(--background);
   color: var(--foreground);
 }
-:global([data-theme="dark"]) .page {
+:global(:is([data-theme="dark"], [data-theme="dim"])) .page {
   --nf-four: #3a3d44;
   --nf-ink: #eaeaec;
   --nf-eye: var(--background);

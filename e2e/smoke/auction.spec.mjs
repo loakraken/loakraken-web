@@ -1,4 +1,4 @@
-// 경매 입찰가(web #72·#81). 계산 기준은 일로아 /tools/bid(lib/tools/auction.ts 주석):
+// 경매 입찰가(web #72·#81). 계산 기준은 lib/tools/auction.ts 주석(10만 골드 초과분 5% 분배 수수료 포함):
 // 수수료 5%(올림), 판매 손익 분기 = (가격 − 수수료) × (n−1)/n, 직접 사용 = 가격 × (n−1)/n,
 // 선점 = 판매 손익 분기 ÷ 1.1, 금액은 골드 단위 내림.
 import { test, expect, expectNoHorizontalOverflow } from "../support/fixtures.mjs";
@@ -33,6 +33,18 @@ test.describe("경매 입찰가 @smoke", () => {
     await expect(summary).toContainText("5,000G"); // 4,999.95 → 5,000
     await expect(summary).toContainText("83,124G"); // 94,999 × 7/8 내림
     await expect(bidRow(page, "선점")).toContainText("75,567");
+  });
+
+  test("10만 골드 초과분 5%를 떼고 나눈다: 280,000G·4인", async ({ page }) => {
+    // 계산 검증 10-11 16:42 표본: 손익 분기 ((3 × 266,000) − 5,000) ÷ 3.95 = 200,759,
+    // 1인 (200,759 − 5,037.95) ÷ 3 = 65,240, 직접 사용 211,392.
+    await priceBox(page).fill("280000");
+    await page.getByRole("group", { name: "파티 인원" }).getByText("4인", { exact: true }).click();
+    const summary = page.getByRole("region", { name: "요약" });
+    await expect(summary).toContainText("200,759G");
+    await expect(summary).toContainText("65,240G");
+    await expect(summary).toContainText("211,392G");
+    await expect(page.getByText("10만 골드를 넘는 낙찰액은 넘는 부분의 5%를 떼고 나눠요.")).toBeVisible();
   });
 
   const PRESETS = [
