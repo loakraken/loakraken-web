@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   NO_EDITS,
   braceletName,
+  isOpen,
   gemLevel,
   hasComputed,
   parseSimulateRequest,
@@ -161,4 +162,17 @@ test("the simulator is hidden on the production host unless turned on", () => {
   assert.equal(isCombatPowerEnabled({ SITE_URL: "https://loakraken.gg", COMBAT_POWER_SIM: "on" }), true);
   assert.equal(isCombatPowerEnabled({ SITE_URL: "http://127.0.0.1:3402" }), true);
   assert.equal(isCombatPowerEnabled({ COMBAT_POWER_SIM: "off" }), false);
+});
+
+test("1차판 opens only the kinds that matched the target site (PM 총괄 23:59)", () => {
+  assert.deepEqual(
+    ["GEM_LEVEL_ALL", "GEM_LEVEL", "EQUIPMENT_QUALITY", "ENGRAVING_LEVEL", "STONE_ENGRAVING"].map((k) => isOpen(k as never)),
+    [true, true, true, true, true],
+  );
+  assert.deepEqual(
+    ["EQUIPMENT_REFINE", "EQUIPMENT_ADVANCED_REFINE", "POLISH", "BRACELET_EFFECT", "ARK_PASSIVE_POINT", "ARK_GRID_CORE"].map((k) =>
+      isOpen(k as never),
+    ),
+    [false, false, false, false, false, false],
+  );
 });

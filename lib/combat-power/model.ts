@@ -19,6 +19,21 @@ export const MAX_CHANGES = 64;
 /** Backend #240 range for ARK_PASSIVE_POINT (options has no field for it yet). */
 export const ARK_PASSIVE_MAX = 999;
 
+/**
+ * 1차판(PM 총괄 2026-10-10 23:59): only the kinds that matched the target
+ * site's simulator can be changed — gems, quality, engravings and stones.
+ * The rest show their current value as "준비 중" until calc verification
+ * finds the cause and they join the 2차판 (no made-up values).
+ */
+export const OPEN_KINDS: ReadonlySet<string> = new Set([
+  "GEM_LEVEL_ALL",
+  "GEM_LEVEL",
+  "EQUIPMENT_QUALITY",
+  "ENGRAVING_LEVEL",
+  "STONE_ENGRAVING",
+]);
+export const isOpen = (kind: Change["kind"]) => OPEN_KINDS.has(kind);
+
 /** Weapon and armour: the slots that take refine and quality in the first cut. */
 export const GEAR_TYPES = ["무기", "투구", "상의", "하의", "장갑", "어깨"] as const;
 

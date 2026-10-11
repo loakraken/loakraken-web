@@ -23,6 +23,7 @@ import {
   GRADE_LABEL,
   KIND_LABEL,
   braceletName,
+  isOpen,
   type Grade,
   NO_EDITS,
   combatPowerFailureCopy,
@@ -156,14 +157,38 @@ function Choice({
   );
 }
 
-function Card({ id, title, children }: { id: string; title: string; children: ReactNode }) {
+function Card({
+  id,
+  title,
+  locked,
+  children,
+}: {
+  id: string;
+  title: string;
+  /** 1차판 밖: current values only, with the reason once under the title. */
+  locked?: boolean;
+  children: ReactNode;
+}) {
   return (
     <section className={styles.card} aria-labelledby={id}>
       <header className={styles.cardHead}>
         <h2 id={id}>{title}</h2>
+        {locked && <span className={styles.lockedBadge}>준비 중</span>}
       </header>
+      {locked && <p className={styles.none}>{LOCKED_NOTE}</p>}
       <ul className={styles.rows}>{children}</ul>
     </section>
+  );
+}
+
+const LOCKED_NOTE = "계산식을 확인하고 있어 아직 바꿀 수 없어요. 확인되는 대로 열어요.";
+
+/** A control the 1차판 keeps closed: the current value and "준비 중". */
+function Locked({ caption, value }: { caption: string; value: ReactNode }) {
+  return (
+    <span className={styles.locked} title={LOCKED_NOTE}>
+      {caption} {value} · 준비 중
+    </span>
   );
 }
 
@@ -283,7 +308,9 @@ function Editors({
             {current.gear.map((item) => (
               <li key={item.index}>
                 <span className={styles.rowName}>{item.name}</span>
-                {item.refine != null ? (
+                {item.refine != null && !isOpen("EQUIPMENT_REFINE") ? (
+                  <Locked caption="재련" value={`+${item.refine}`} />
+                ) : item.refine != null ? (
                   <Select
                     label={`${item.type} 재련 단계`}
                     caption="재련"
@@ -297,7 +324,10 @@ function Editors({
                 ) : (
                   <span className={styles.rowFrom}>재련 —</span>
                 )}
-                {item.advanced != null && (
+                {item.advanced != null && !isOpen("EQUIPMENT_ADVANCED_REFINE") && (
+                  <Locked caption="상급" value={item.advanced} />
+                )}
+                {item.advanced != null && isOpen("EQUIPMENT_ADVANCED_REFINE") && (
                   <Select
                     label={`${item.type} 상급 재련 단계`}
                     caption="상급"
@@ -330,7 +360,7 @@ function Editors({
       </section>
 
       {current.polish.length > 0 && (
-        <Card id="cp-polish" title="연마">
+        <Card id="cp-polish" title="연마" locked={!isOpen("POLISH")}>
           {current.polish.map((line) => {
             const key = `${line.index}:${line.line}`;
             return (
@@ -341,15 +371,19 @@ function Editors({
                     {line.item} · {line.value}
                   </small>
                 </span>
-                <Choice
-                  label={`${line.item} ${line.option} 등급`}
-                  value={edits.polish[key] ?? line.grade ?? ""}
-                  original={line.grade}
-                  values={gradeValues}
-                  onChange={(grade) =>
-                    setEdits((prev) => ({ ...prev, polish: { ...prev.polish, [key]: grade as Grade } }))
-                  }
-                />
+                {!isOpen("POLISH") ? (
+                  <Locked caption="등급" value={line.grade ? (GRADE_LABEL[line.grade] ?? line.grade) : "—"} />
+                ) : (
+                  <Choice
+                    label={`${line.item} ${line.option} 등급`}
+                    value={edits.polish[key] ?? line.grade ?? ""}
+                    original={line.grade}
+                    values={gradeValues}
+                    onChange={(grade) =>
+                      setEdits((prev) => ({ ...prev, polish: { ...prev.polish, [key]: grade as Grade } }))
+                    }
+                  />
+                )}
               </li>
             );
           })}
@@ -357,19 +391,23 @@ function Editors({
       )}
 
       {current.bracelet.length > 0 && (
-        <Card id="cp-bracelet" title="팔찌">
+        <Card id="cp-bracelet" title="팔찌" locked={!isOpen("BRACELET_EFFECT")}>
           {current.bracelet.map((line) => (
             <li key={line.line}>
               <span className={styles.rowName}>{line.text}</span>
-              <Choice
-                label={`팔찌 ${line.name} 등급`}
-                value={edits.bracelet[line.line] ?? line.grade ?? ""}
-                original={line.grade}
-                values={gradeValues}
-                onChange={(grade) =>
-                  setEdits((prev) => ({ ...prev, bracelet: { ...prev.bracelet, [line.line]: grade as Grade } }))
-                }
-              />
+              {!isOpen("BRACELET_EFFECT") ? (
+                <Locked caption="등급" value={line.grade ? (GRADE_LABEL[line.grade] ?? line.grade) : "—"} />
+              ) : (
+                <Choice
+                  label={`팔찌 ${line.name} 등급`}
+                  value={edits.bracelet[line.line] ?? line.grade ?? ""}
+                  original={line.grade}
+                  values={gradeValues}
+                  onChange={(grade) =>
+                    setEdits((prev) => ({ ...prev, bracelet: { ...prev.bracelet, [line.line]: grade as Grade } }))
+                  }
+                />
+              )}
             </li>
           ))}
         </Card>
@@ -414,27 +452,29 @@ function Editors({
       )}
 
       {current.arkPassive.length > 0 && (
-        <Card id="cp-ark-passive" title="아크 패시브">
+        <Card id="cp-ark-passive" title="아크 패시브" locked={!isOpen("ARK_PASSIVE_POINT")}>
           {current.arkPassive.map((item) => (
             <li key={item.tree}>
               <span className={styles.rowName}>{item.tree}</span>
               <span className={styles.rowFrom}>{item.points}P</span>
-              <PointField
-                label={`아크 패시브 ${item.tree} 포인트`}
-                value={edits.arkPassive[item.tree] ?? item.points}
-                original={item.points}
-                max={ARK_PASSIVE_MAX}
-                onChange={(points) =>
-                  setEdits((prev) => ({ ...prev, arkPassive: { ...prev.arkPassive, [item.tree]: points } }))
-                }
-              />
+              {isOpen("ARK_PASSIVE_POINT") && (
+                <PointField
+                  label={`아크 패시브 ${item.tree} 포인트`}
+                  value={edits.arkPassive[item.tree] ?? item.points}
+                  original={item.points}
+                  max={ARK_PASSIVE_MAX}
+                  onChange={(points) =>
+                    setEdits((prev) => ({ ...prev, arkPassive: { ...prev.arkPassive, [item.tree]: points } }))
+                  }
+                />
+              )}
             </li>
           ))}
         </Card>
       )}
 
       {current.cores.length > 0 && (
-        <Card id="cp-cores" title="아크 그리드 코어">
+        <Card id="cp-cores" title="아크 그리드 코어" locked={!isOpen("ARK_GRID_CORE")}>
           {current.cores.map((item) => {
             const edit = edits.core[item.slotIndex] ?? { grade: item.grade, point: item.point };
             const set = (next: Partial<typeof edit>) =>
@@ -442,29 +482,36 @@ function Editors({
             return (
               <li key={item.slotIndex}>
                 <span className={styles.rowName}>{item.name}</span>
-                <Choice
-                  label={`${item.name} 등급`}
-                  caption="등급"
-                  value={edit.grade}
-                  original={item.grade}
-                  values={options.coreGrades.map((grade) => ({ value: grade, label: grade }))}
-                  onChange={(grade) => set({ grade })}
-                />
-                <Select
-                  label={`${item.name} 포인트`}
-                  caption="포인트"
-                  value={edit.point}
-                  original={item.point}
-                  values={range(0, options.corePointMax)}
-                  onChange={(point) => set({ point })}
-                />
+                {!isOpen("ARK_GRID_CORE") ? (
+                  <Locked caption={item.grade} value={`${item.point}P`} />
+                ) : (
+                  <>
+                    <Choice
+                      label={`${item.name} 등급`}
+                      caption="등급"
+                      value={edit.grade}
+                      original={item.grade}
+                      values={options.coreGrades.map((grade) => ({ value: grade, label: grade }))}
+                      onChange={(grade) => set({ grade })}
+                    />
+                    <Select
+                      label={`${item.name} 포인트`}
+                      caption="포인트"
+                      value={edit.point}
+                      original={item.point}
+                      values={range(0, options.corePointMax)}
+                      onChange={(point) => set({ point })}
+                    />
+                  </>
+                )}
               </li>
             );
           })}
         </Card>
       )}
       <p className={styles.later}>
-        연마 옵션·팔찌 효과 종류 바꾸기는 공식 표가 들어오는 대로 이어서 열어요.
+        지금은 보석·품질·각인·스톤을 바꿀 수 있어요. 재련·연마·팔찌·아크 패시브·아크 그리드는 계산식을 확인하는 대로
+        열어요.
       </p>
     </div>
   );
