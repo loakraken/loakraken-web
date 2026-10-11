@@ -186,3 +186,8 @@
 .segment {
   margin-top: var(--space-3);
 }
+
+/* After the entry (see the tool): later cards appear without the reveal. */
+.grid[data-settled] > :global(.k-reveal) {
+  transition: none;
+}
