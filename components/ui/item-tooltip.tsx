@@ -127,12 +127,14 @@ function ItemTooltipContent({
             "data-starting-style:opacity-0 data-ending-style:opacity-0 data-swiping:transition-none"
           )}
         />
-        {/* The viewport carries swipe-to-close and touch scroll locking. */}
+        {/* The viewport carries swipe-to-close and touch scroll locking. Under
+            640px the sheet spans the screen minus 7px each side; wider, it is
+            at most 512px, centred (reference re-measure, PM 09:37). */}
         <DrawerPrimitive.Viewport className="fixed inset-0 z-50">
         <DrawerPrimitive.Popup
           data-slot="item-tooltip"
           className={cn(
-            "fixed inset-x-[7px] bottom-[7px] z-50 mx-auto flex max-w-[376px] flex-col",
+            "fixed inset-x-[7px] bottom-[7px] z-50 mx-auto flex flex-col min-[640px]:max-w-[512px]",
             "rounded-t-[24.5px] rounded-b-[10.5px]",
             FACE,
             "translate-y-(--drawer-swipe-movement-y) transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]",

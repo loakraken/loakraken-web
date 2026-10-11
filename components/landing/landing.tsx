@@ -101,7 +101,7 @@ function PrecisionLanding() {
           <Reveal><span className={styles.closingMark}><KrakenMark size={40} /></span><h2 id="closing-heading">다음 성장은,<br /><span>더 명확한 선택에서.</span></h2><p>당신의 캐릭터를 이해하는 새로운 시선.</p><button type="button" className={styles.primaryButton} onClick={focusSearch}>캐릭터 검색 <ArrowRight size={16} /></button></Reveal>
         </section>
       </main>
-      <footer className={styles.footer}><Link href="/" className={styles.brand}><KrakenMark />LOAKraken</Link><p>로스트아크 비공식 팬 프로젝트</p><a href="https://libraries.dev/orbs" target="_blank" rel="noreferrer">Motion with Libraries.dev <ExportCircle size={12} /></a></footer>
+      <footer className={styles.footer}><Link href="/" className={styles.brand}><KrakenMark />LOAKraken</Link><a href="https://libraries.dev/orbs" target="_blank" rel="noreferrer">Motion with Libraries.dev <ExportCircle size={12} /></a></footer>
     </div>
   );
 }

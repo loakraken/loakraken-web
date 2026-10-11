@@ -48,7 +48,8 @@ import { AvatarsTab, CollectiblesTab } from "./inner";
 import { Panel } from "./panel";
 import { ViewsPanel } from "./views-panel";
 import { useTabPill } from "./tab-pill";
-import { DetailTooltip, EngravingCard, GemCard, ItemTooltip } from "./item-tooltip";
+import { CoreCard, DetailTooltip, EngravingCard, GemCard, GridGemCard, ItemTooltip, PassiveNodeCard } from "./item-tooltip";
+import { sourcePlainText } from "@/lib/character/source-text";
 import { useItemTooltips } from "./use-item-tooltips";
 import { equipmentLines, gemLines } from "@/lib/character/item-tooltips";
 import { ReceiptPanel } from "./receipt-panel";
@@ -602,7 +603,9 @@ function ArkGridPanel({ data }: { data: Character }) {
             <li key={i}>
               <details open={expanded || undefined} className={`${styles.core} ${expand.expand}`}>
                 <summary>
-                  <GameIcon src={slot.icon} grade={slot.grade} size={40} />
+                  <DetailTooltip name={slot.name ?? "아크 그리드 코어"} card={<CoreCard slot={slot} />}>
+                    <GameIcon src={slot.icon} grade={slot.grade} size={40} />
+                  </DetailTooltip>
                   <div className={styles.itemText}>
                     <small>
                       {slot.coreType ?? text(slot.name).split(" : ")[0]}
@@ -621,13 +624,9 @@ function ArkGridPanel({ data }: { data: Character }) {
                   </span>
                   <span className={styles.coreGems}>
                     {slot.gems.map((gem, j) => (
-                      <GameIcon
-                        key={j}
-                        src={gem.icon}
-                        grade={gem.grade}
-                        size={24}
-                        inactive={gem.active === false}
-                      />
+                      <DetailTooltip key={j} name={gem.name ?? "아크 그리드 젬"} card={<GridGemCard gem={gem} />}>
+                        <GameIcon src={gem.icon} grade={gem.grade} size={24} inactive={gem.active === false} />
+                      </DetailTooltip>
                     ))}
                   </span>
                 </summary>
@@ -647,7 +646,9 @@ function ArkGridPanel({ data }: { data: Character }) {
                       <ul className={styles.gemRows}>
                         {slot.gems.map((gem, j) => (
                           <li key={j} data-inactive={gem.active === false || undefined}>
-                            <GameIcon src={gem.icon} grade={gem.grade} size={28} />
+                            <DetailTooltip name={gem.name ?? "아크 그리드 젬"} card={<GridGemCard gem={gem} />}>
+                              <GameIcon src={gem.icon} grade={gem.grade} size={28} />
+                            </DetailTooltip>
                             <span>
                               <strong>{text(gem.name)}</strong>
                               <small>
@@ -793,7 +794,20 @@ function ArkPassiveSummary({
             <ul>
               {nodes.map(({ effect, parsed }, i) => (
                 <li key={i}>
-                  <GameIcon src={effect.icon} size={28} />
+                  <DetailTooltip
+                    name={parsed.node ?? tree}
+                    card={
+                      <PassiveNodeCard
+                        name={parsed.node ?? tree}
+                        tree={tree}
+                        level={parsed.level}
+                        icon={effect.icon}
+                        text={sourcePlainText(effect.effect ?? effect.description) || null}
+                      />
+                    }
+                  >
+                    <GameIcon src={effect.icon} size={28} />
+                  </DetailTooltip>
                   <span className={styles.nodeName}>{parsed.node}</span>
                   <small>T{parsed.tier}</small>
                   <b>Lv.{parsed.level}</b>
@@ -1082,7 +1096,20 @@ export function ArkPassiveTab({ data }: { data: Character }) {
                 <ul className={styles.passiveDetail}>
                   {nodes.map(({ effect, parsed }, i) => (
                     <li key={i}>
-                      <GameIcon src={effect.icon} size={36} />
+                      <DetailTooltip
+                        name={parsed.node ?? tree}
+                        card={
+                          <PassiveNodeCard
+                            name={parsed.node ?? tree}
+                            tree={tree}
+                            level={parsed.level}
+                            icon={effect.icon}
+                            text={sourcePlainText(effect.effect ?? effect.description) || null}
+                          />
+                        }
+                      >
+                        <GameIcon src={effect.icon} size={36} />
+                      </DetailTooltip>
                       <div className={styles.itemText}>
                         <strong>
                           {parsed.node}{" "}

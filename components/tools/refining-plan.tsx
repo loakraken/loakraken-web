@@ -990,7 +990,7 @@ function RefiningContent({ initialName }: { initialName: string }) {
         </section>
       </main>
       <footer className={quote.footer}>
-        LOAKraken · 로스트아크 비공식 팬 프로젝트 · 공개 확률 데이터 기반 계산
+        LOAKraken · 공개 확률 데이터 기반 계산
       </footer>
     </div>
   );

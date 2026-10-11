@@ -532,7 +532,7 @@ function AuctionContent({
         </div>
       </main>
       <footer className={quote.footer}>
-        LOAKraken · 로스트아크 비공식 팬 프로젝트 · 브라우저 안에서만 계산
+        LOAKraken · 브라우저 안에서만 계산
       </footer>
     </div>
   );

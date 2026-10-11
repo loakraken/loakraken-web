@@ -1,11 +1,25 @@
 .legal {
-  display: flex;
-  justify-content: center;
-  gap: 8px;
+  display: grid;
+  justify-items: center;
+  gap: 6px;
   padding: 14px 16px 28px;
   background: var(--background);
   color: var(--muted-foreground);
   font-size: 12px;
+  line-height: 1.5;
+  text-align: center;
+}
+/* The trademark notice: 12px gray (5.07:1 light, 7.97:1 dark), wraps to at
+   most two lines at 390. */
+.notice {
+  max-width: 640px;
+  margin: 0;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+.links {
+  display: flex;
+  gap: 8px;
 }
 .legal a {
   color: var(--muted-foreground);

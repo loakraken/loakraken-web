@@ -370,7 +370,10 @@
   border-radius: 12px;
   background: var(--background);
 }
+/* Line, dot and guide take one colour from the direction of the window
+   (Bencho's Balance chart sets it once on the plot so they all agree). */
 .chartSvg {
+  color: var(--slate);
   display: block;
   width: 100%;
   height: auto;
@@ -390,21 +393,32 @@
   font-size: 11px;
   font-variant-numeric: tabular-nums;
 }
-.area {
-  fill: var(--ring);
-  fill-opacity: 0.1;
+.chartSvg[data-direction="up"] {
+  color: var(--market-up);
 }
+.chartSvg[data-direction="down"] {
+  color: var(--market-down);
+}
+/* Bencho .bal-curve: 2.1 round stroke, no fill under it. */
 .line {
   fill: none;
-  stroke: var(--ring);
-  stroke-width: 2;
+  stroke: currentColor;
+  stroke-width: 2.1;
   stroke-linejoin: round;
   stroke-linecap: round;
 }
+/* Bencho .bal-tip: a 9px ring on the reading, filled with the page; it
+   grows a little while you read the line back. Position never eases. */
 .dot {
-  fill: var(--ring);
-  stroke: var(--background);
+  fill: var(--background);
+  stroke: currentColor;
   stroke-width: 2;
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: scale 160ms cubic-bezier(0.28, 1.4, 0.36, 1);
+}
+.chartSvg[data-scrub] .dot {
+  scale: 1.18;
 }
 .volume {
   /* Grows from its base when the chart arrives (lib/motion.ts data-grow). */
@@ -415,8 +429,10 @@
 .volume[data-active] {
   fill: var(--faint);
 }
+/* Bencho .bal-guide: only while reading, the line's colour at 28%. */
 .crosshair {
-  stroke: var(--faint);
+  stroke: currentColor;
+  stroke-opacity: 0.28;
   stroke-width: 1;
 }
 .readout {

@@ -476,7 +476,7 @@ export default function HomeworkTool() {
         </div>
       </main>
       <footer className={quote.footer}>
-        LOAKraken · 로스트아크 비공식 팬 프로젝트 · 브라우저 저장
+        LOAKraken · 브라우저 저장
       </footer>
     </div>
   );
