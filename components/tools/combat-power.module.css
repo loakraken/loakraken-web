@@ -18,9 +18,49 @@
   display: grid;
   grid-template-columns: 340px minmax(0, 1fr);
   grid-template-rows: auto 1fr;
-  grid-template-areas: "band editors" "side editors";
+  grid-template-areas: "rail editors";
   gap: 12px 20px;
   align-items: start;
+}
+/* The sticky column (사용자 지적 10-12): lead, result, buttons and 바꾼 것
+   move together. Taller than the screen, it scrolls inside itself and the
+   result stays at its top. */
+.rail {
+  grid-area: rail;
+  position: sticky;
+  top: var(--cp-band-top, calc(var(--header-h, 73px) + 8px));
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  max-height: calc(100dvh - var(--cp-band-top, calc(var(--header-h, 73px) + 8px)) - 16px);
+}
+.railHead {
+  min-width: 0;
+}
+/* Inside the column the parts simply stack; their areas (band, side, head)
+   apply only when the column dissolves on one-column screens. */
+@media (min-width: 901px) {
+  .rail > * {
+    grid-area: auto;
+    flex: none;
+  }
+  /* The lead and the result stay put; only the buttons and 바꾼 것 below
+     them scroll when the column is taller than the screen, so nothing
+     ever slides under the result. */
+  .rail > .band {
+    position: static;
+  }
+  .rail > .side {
+    flex: 0 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+  }
+}
+.railHead > * {
+  margin: 0;
 }
 .side {
   grid-area: side;
@@ -40,10 +80,9 @@
 /* Result band */
 .band {
   grid-area: band;
+  /* Held at the top of the column while 바꾼 것 scrolls under it. */
   position: sticky;
-  /* Below the sticky site header (and the character tab bar, which sets
-     --cp-band-top), not under it: at 16px the band slid beneath them. */
-  top: var(--cp-band-top, calc(var(--header-h, 73px) + 8px));
+  top: 0;
   z-index: 1;
   padding: 24px;
   border-radius: var(--radius-xl);
@@ -271,7 +310,15 @@
   .columns {
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: none;
-    grid-template-areas: "editors" "band" "side";
+    grid-template-areas: "head" "editors" "band" "side";
+  }
+  /* One column: the column dissolves and only the result stays pinned to
+     the bottom, as before, so nothing covers the inputs. */
+  .rail {
+    display: contents;
+  }
+  .railHead {
+    grid-area: head;
   }
   .band {
     top: auto;
@@ -338,4 +385,12 @@
   color: var(--foreground);
   font-size: var(--text-caption);
   white-space: nowrap;
+}
+
+/* Why a change moved nothing (L23, 사용자 지적 10-12). */
+.why {
+  grid-column: 1 / -1;
+  color: var(--muted-foreground);
+  font-size: var(--text-caption);
+  line-height: 1.5;
 }

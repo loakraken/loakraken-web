@@ -12,6 +12,10 @@ const counts = {};
 
 // Synthetic accessory, bracelet and stone for the simulator screen (web #365
 // follow-up): polish/bracelet lines with tooltip grades and stone engravings.
+/** The synthetic glove: an armour quality change the backend scores as ±0. */
+const armourQuality = (search, change) =>
+  change.kind === "EQUIPMENT_QUALITY" && search.loadout.equipment[change.index]?.type === "장갑";
+
 function withSimulatorGear(data) {
   const base = data.loadout.equipment.find((item) => item.detail);
   // Advanced refining on the armour piece (search advancedRefineLevel, backend #234).
@@ -36,6 +40,8 @@ function withSimulatorGear(data) {
         { text: "치명타 피해 +6.80%", grade: "MID" },
       ],
     }),
+    // 방어구 품질은 생명 활성력만 올려 딜러 전투력이 그대로(계산 검증 10-12): ±0과 이유.
+    make("장갑", "테스트 장갑", { refineLevel: 18, quality: 95 }),
     make("어빌리티 스톤", "테스트 스톤", {
       stoneEngravings: [
         { name: "원한", level: 1 },
@@ -410,9 +416,13 @@ createServer(async (req, res) => {
       target: powerTarget(search, change)[0],
       from: powerTarget(search, change)[1],
       to: powerTo(change),
-      delta: computed ? r2(10 + i) : null,
+      delta: computed ? (armourQuality(search, change) ? 0 : r2(10 + i)) : null,
       status: computed ? "OK" : "UNSUPPORTED",
-      basis: computed ? "합성 값(목 서버)" : d.contributions[0].basis,
+      basis: computed
+        ? armourQuality(search, change)
+          ? "방어구 품질은 체력에만 붙어 전투력이 바뀌지 않습니다."
+          : "합성 값(목 서버)"
+        : d.contributions[0].basis,
     }));
     const delta = computed ? r2(d.contributions.reduce((sum, item) => sum + item.delta, 0)) : 0;
     d.after = d.before == null ? null : r2(d.before + delta);
