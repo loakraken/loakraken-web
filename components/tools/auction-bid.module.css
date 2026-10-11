@@ -42,7 +42,6 @@
   max-height: calc(100dvh - 72px - 16px);
   overflow-y: auto;
   overscroll-behavior: contain;
-  scrollbar-width: thin;
   display: grid;
   gap: var(--space-5);
 }

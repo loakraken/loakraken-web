@@ -717,6 +717,50 @@
     outline: 3px solid var(--ring);
     outline-offset: 2px;
   }
+
+  /* Scrollbars (user 10-11 P1: "기본 스크롤바"): one thin style for the page
+     and every scroll area, in the theme's ink — a rounded thumb that darkens
+     under the pointer, on a clear track, no arrow buttons. Chromium and
+     Safari draw it from the WebKit parts (setting the standard properties
+     there would bring Windows' arrow buttons back); Firefox, which has no
+     WebKit parts, takes the standard pair. In the base layer on purpose: a
+     row that hides its bar ([scrollbar-width:none], .no-scrollbar, a module's
+     own rule) still wins, so chip and tab rows stay bar-free. */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track,
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-button {
+    display: none;
+  }
+  ::-webkit-scrollbar-thumb {
+    border: 3px solid transparent;
+    border-radius: 9999px;
+    background: var(--scrollbar-thumb) padding-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: var(--scrollbar-thumb-hover);
+  }
+  @supports (-moz-appearance: none) {
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: var(--scrollbar-thumb) transparent;
+    }
+    *:not(html):hover {
+      scrollbar-color: var(--scrollbar-thumb-hover) transparent;
+    }
+  }
+}
+
+/* Scrollbar ink, from the theme's own foreground so light and dark need no
+   second set. */
+:root {
+  --scrollbar-thumb: color-mix(in oklab, var(--foreground) 22%, transparent);
+  --scrollbar-thumb-hover: color-mix(in oklab, var(--foreground) 45%, transparent);
 }
 
 /* One UI font for every screen: Kraken Sans (Pretendard Variable subset, OFL,
