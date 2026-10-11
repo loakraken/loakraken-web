@@ -96,6 +96,10 @@ export function MarketChart({ days }: { days: DailyStat[] }) {
     <figure className={styles.chart} ref={measure}>
       <svg
         viewBox={`0 0 ${W} ${H}`}
+        // Fixed height (A6): with height:auto the box followed W/H, so the
+        // first paint at the default width was taller or shorter than the
+        // measured one and moved the readout and table below.
+        height={H}
         className={styles.chartSvg}
         role="img"
         data-direction={direction}
