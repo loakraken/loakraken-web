@@ -1,9 +1,21 @@
 "use client";
 
-import { useMemo, useState, useSyncExternalStore } from "react";
+import { useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { Bookmark, BookmarkBold, TrendUp } from "@/components/ui/icons";
+import {
+  AddSquare,
+  Bookmark,
+  BookmarkBold,
+  BookSquare,
+  Box,
+  Coffee,
+  Flash,
+  HierarchySquare,
+  MagicStar,
+  Tree,
+  TrendUp,
+} from "@/components/ui/icons";
 import { GameIcon } from "@/components/character/imagery";
 import { LandingMotion } from "@/components/landing/motion";
 import { InlineOrb } from "@/components/landing/orb";
@@ -41,6 +53,18 @@ import quote from "../tools/material-quote.module.css";
 import { MarketChart } from "./market-chart";
 import { SiteHeader } from "@/components/site/site-header";
 import { PillTab, PillTabs } from "@/components/ui/pill-tabs";
+
+// One Iconsax mark per category (decorative; the label names the tab).
+const TAB_ICON: Record<string, ReactNode> = {
+  REFINING: <MagicStar />,
+  REFINING_EXTRA: <AddSquare />,
+  ARK_GRID: <HierarchySquare />,
+  WEAPON_EVOLUTION: <Flash />,
+  ENGRAVING_BOOK: <BookSquare />,
+  LIFE: <Tree />,
+  BATTLE_ITEM: <Box />,
+  FOOD: <Coffee />,
+};
 import styles from "./market.module.css";
 import { rateLimitCopy, retryLabel } from "@/lib/api/rate-limit";
 import { RateLimitNote } from "@/components/site/rate-limit-note";
@@ -398,13 +422,13 @@ function MarketContent({
             >
               {tabList.length
                 ? tabList.map((t) => (
-                    <PillTab key={t.tab} value={t.tab}>
+                    <PillTab key={t.tab} value={t.tab} icon={TAB_ICON[t.tab]}>
                       {t.label}
                     </PillTab>
                   ))
                 : // Same names and sizes as the live list: nothing moves when it arrives.
                   TAB_FALLBACK.map((t) => (
-                    <PillTab key={t.tab} value={t.tab} disabled>
+                    <PillTab key={t.tab} value={t.tab} icon={TAB_ICON[t.tab]} disabled>
                       {t.label}
                     </PillTab>
                   ))}
