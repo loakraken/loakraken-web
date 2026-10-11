@@ -80,11 +80,10 @@ function Summary({ state, now }: { state: HomeworkState; now: number }) {
         </p>
         {unsettled.length > 0 && (
           <p className={styles.note}>
-            합계에서 뺀 미확정 항목:{" "}
+            합계에서 뺀 항목(클리어 골드 데이터 없음):{" "}
             {unsettled
               .map(({ raid, mode }) => `${raid.shortName} ${DIFFICULTY_LABEL[mode.difficulty]}`)
-              .join(", ")}{" "}
-            클리어 골드(공식 값이나 서로 다른 실측 출처 2곳이 일치하는 값이 아직 없어요)
+              .join(", ")}
           </p>
         )}
       </div>

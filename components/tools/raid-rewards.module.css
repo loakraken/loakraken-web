@@ -38,14 +38,6 @@
   color: var(--muted-foreground);
   font-size: var(--text-caption);
 }
-.source {
-  color: var(--link);
-  text-decoration: underline;
-}
-.sourceNone {
-  color: var(--muted-foreground);
-}
-
 .filters {
   display: flex;
   flex-wrap: wrap;

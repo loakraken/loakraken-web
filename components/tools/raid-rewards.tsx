@@ -25,18 +25,6 @@ const NO_DATA = "데이터 없음";
 
 const gold = (value: number | null) => (value === null ? NO_DATA : formatGold(value));
 
-function SourceLink({ id }: { id: string | null }) {
-  const source = id ? RAID_DATA.sources[id] : null;
-  if (!source) return <span className={styles.sourceNone}>공식 출처를 아직 찾지 못했어요</span>;
-  const label = `${source.title}${source.date ? ` (확인 ${source.date})` : ""}`;
-  if (!source.url) return <span className={styles.source}>{label}</span>;
-  return (
-    <a className={styles.source} href={source.url} target="_blank" rel="noreferrer">
-      {label}
-    </a>
-  );
-}
-
 function ModeTable({ raid, mode }: { raid: Raid; mode: Mode }) {
   const totals = modeTotals(mode);
   const hasMore = mode.gates.some((g) => g.moreCost !== null) || mode.status === "UNVERIFIED";
@@ -114,9 +102,6 @@ function ModeTable({ raid, mode }: { raid: Raid; mode: Mode }) {
             : `거래 가능한 골드 ${formatGold(totals.tradableGold)} · 귀속 골드는 받은 캐릭터만 쓸 수 있어요.`}
         </p>
       )}
-      <p className={styles.note}>
-        출처 <SourceLink id={mode.source} />
-      </p>
     </div>
   );
 }
@@ -209,9 +194,6 @@ export function RaidRewardsTable() {
                 </li>
                 <li>매주 {rules.weeklyReset}에 초기화돼요.</li>
               </ul>
-              <p className={styles.note}>
-                출처 <SourceLink id={rules.source} /> · 확인 {RAID_DATA.checkedAt}
-              </p>
             </section>
 
             <div className={styles.filters} role="group" aria-label="레이드 분류">

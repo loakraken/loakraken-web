@@ -8,8 +8,8 @@ test.describe("레이드 보상표 @smoke", () => {
     await expect(page.getByRole("heading", { level: 1, name: "레이드 보상표" })).toBeVisible();
     await expect(page.getByRole("table", { name: /관문별 보상/ }).first()).toBeVisible();
     // 근거는 공식 공지·가이드 링크(날짜 포함)로 남는다.
-    // 표기는 "(YYYY-MM-DD)" 또는 web #277부터 "(확인 YYYY-MM-DD)" 둘 다 받는다.
-    await expect(page.getByRole("link", { name: /\((확인 )?\d{4}-\d{2}-\d{2}\)$/ }).first()).toBeVisible();
+    // 사용자 결정 10-12: 화면에 출처·확인일을 쓰지 않는다(데이터 파일에만 남김).
+    await expect(page.getByText(/출처|확인 \d{4}-\d{2}-\d{2}|공식 출처를 아직/)).toHaveCount(0);
     await expectNoHorizontalOverflow(page);
   });
 
