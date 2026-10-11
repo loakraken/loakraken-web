@@ -477,7 +477,6 @@ function Result({
     .sort()
     .at(-1);
   const basisLabel = priceBases.find((item) => item.value === basis)?.label;
-  const source = plans[0].plan.source;
   const assumptions = [
     // Books are in by default (PM 총괄 10-11 00:20); say so next to the result.
     ...(plans.some(({ plan }) => plan.useBook) ? [BOOK_ASSUMPTION] : []),
@@ -676,12 +675,6 @@ function Result({
       </details>
 
       <div className={quote.resultFooter}>
-        <span>
-          {/* No other site or repository names on screen (사용자 10-10 23:25):
-              the backend source fields stay for verification, not display. */}
-          공식 확률표가 아니라 공개 데이터를 서로 다른 출처로 교차 검증한
-          값이에요. 확인 {source.verifiedOn} · 규칙 {plans[0].plan.ruleVersion}
-        </span>
         {assumptions.map((text) => (
           <span key={text}>{text}</span>
         ))}
