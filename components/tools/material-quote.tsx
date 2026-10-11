@@ -552,7 +552,7 @@ function Result({ quote }: { quote: MaterialQuote }) {
       <footer className={styles.resultFooter}>
         <p>
           {time(quote.calculatedAt)} 계산 · 규칙 {quote.ruleVersion}. 시세
-          기준 시각은 항목마다 다를 수 있으며 실시간 시세가 아니에요.
+          기준 시각은 항목마다 따로 수집한 시각이고, 실시간 시세가 아니에요.
         </p>
         <p>
           판매 수수료·페온·재련 골드와 실링·이벤트 보정은 포함하지 않아요.
