@@ -4,6 +4,8 @@ import test from "node:test";
 import {
   NO_EDITS,
   braceletName,
+  gradeWithValue,
+  polishValue,
   isOpen,
   gemLevel,
   hasComputed,
@@ -175,4 +177,21 @@ test("1차판 opens only the kinds that matched the target site (PM 총괄 23:59
     ),
     [false, false, false, false, false, false],
   );
+});
+
+test("polish grades read with their official value (backend #254, PM-프론트 #370 P2)", () => {
+  const options = read("combat-power-options.json");
+  assert.equal(isOptionsEnvelope(options), true);
+  const values = options.data.polishValues;
+  assert.equal(polishValue(values, "추가 피해", true, "HIGH"), "+2.60%");
+  // Same name, % or flat: told apart by the current value.
+  assert.equal(polishValue(values, "공격력", true, "MID"), "+0.95%");
+  assert.equal(polishValue(values, "공격력", false, "MID"), "+195");
+  assert.equal(polishValue(values, "없는 옵션", true, "HIGH"), null);
+  assert.equal(polishValue(undefined, "추가 피해", true, "HIGH"), null);
+  assert.equal(gradeWithValue("HIGH", "+2.60%"), "상(+2.60%)");
+  assert.equal(gradeWithValue("LOW", null), "하");
+  // Backends before #254 send no table: still a valid answer.
+  delete options.data.polishValues;
+  assert.equal(isOptionsEnvelope(options), true);
 });

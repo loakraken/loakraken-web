@@ -211,6 +211,29 @@ export interface components {
             corePointMax: number;
             polishGrades: string[];
             notes: string[];
+            /** @description 고대 장신구 연마 옵션별 하·중·상 수치(backend #254). 그 전 백엔드에는 없다 */
+            polishValues?: components["schemas"]["PolishValuesResponse"];
+        };
+        PolishValueResponse: {
+            /** @description 연마 옵션 이름(공식 툴팁 그대로) */
+            option: string;
+            /** @description true: % 옵션, false: 고정값 옵션 */
+            percent: boolean;
+            /** @description 이 옵션이 붙는 부위 */
+            parts: string[];
+            /** @description 하 */
+            low: string | null;
+            /** @description 중 */
+            mid: string | null;
+            /** @description 상 */
+            high: string | null;
+        };
+        PolishValuesResponse: {
+            version: string;
+            accessoryGrade: string;
+            /** Format: int32 */
+            itemLevel: number;
+            options: components["schemas"]["PolishValueResponse"][];
         };
     };
     responses: never;

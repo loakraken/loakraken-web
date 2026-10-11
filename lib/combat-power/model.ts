@@ -99,6 +99,31 @@ export type Current = {
   cores?: { slotIndex: number; grade: string; point: number }[];
 };
 
+export type PolishValues = NonNullable<Options["polishValues"]>;
+
+/**
+ * The official tooltip value of a polish option at a grade (backend #254,
+ * 고대 1680 장신구), e.g. 추가 피해 HIGH → "+2.60%". The same name can be a %
+ * or a flat option (공격력·무기 공격력), told apart by the current value's
+ * "%". null when the table has no such cell (or an older backend sent none).
+ */
+export function polishValue(
+  values: PolishValues | undefined,
+  option: string,
+  percent: boolean,
+  grade: string,
+): string | null {
+  const row = values?.options.find((item) => item.option === option && item.percent === percent);
+  if (!row) return null;
+  return (grade === "LOW" ? row.low : grade === "MID" ? row.mid : grade === "HIGH" ? row.high : null) ?? null;
+}
+
+/** "상(+2.60%)" when the value is known, else just "상" (PM-프론트 #370 P2). */
+export function gradeWithValue(grade: string, value: string | null) {
+  const label = GRADE_LABEL[grade] ?? grade;
+  return value ? `${label}(${value})` : label;
+}
+
 /** "치명타 피해 +8.40%" → "치명타 피해": the effect name the backend echoes back. */
 export const braceletName = (text: string) =>
   text.split(/\s*[+\-−]?\d/)[0].trim() || text.trim();
