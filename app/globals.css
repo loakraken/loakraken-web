@@ -658,6 +658,7 @@
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
   --color-muted: var(--muted);
+  --color-hover-surface: var(--hover-surface);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-secondary: var(--secondary);
   --color-primary-foreground: var(--primary-foreground);
@@ -684,7 +685,7 @@
   --secondary: #e8e8ed; /* control fill: level badge, switch track */
   --secondary-foreground: #424245;
   --muted: #f5f5f7; /* bands and panels */
-  --muted-foreground: #6e6e73; /* 5.07, 4.66 on --muted */
+  --muted-foreground: #6c6c71; /* 5.21, 4.80 on --muted; 4.53 on --muted under the hover tint */
   --accent: #f5f5f7; /* hover fill */
   --accent-foreground: #1d1d1f;
   --destructive: #a32323; /* the one error colour: 7.44, 6.83 on --muted */
@@ -775,6 +776,18 @@
 :root {
   --scrollbar-thumb: color-mix(in oklab, var(--foreground) 22%, transparent);
   --scrollbar-thumb-hover: color-mix(in oklab, var(--foreground) 45%, transparent);
+}
+
+/* The one hover tint (user 10-12: "색 넣는 건 좋은데 글씨가 안 보이게 된다").
+   Rows, cards, chips and icon buttons take this faint wash of the theme ink
+   on hover and keep their text colour, so text stays at 4.5:1 (body) / 3:1
+   (large, icons) in every theme; strong fills (--primary, --accent) are for
+   buttons only. Measured in e2e/regression/hover-contrast.spec.mjs. */
+:root {
+  --hover-surface: color-mix(in oklab, var(--foreground) 3%, transparent);
+}
+:root:is([data-theme="dark"], [data-theme="dim"]) {
+  --hover-surface: color-mix(in oklab, var(--foreground) 6%, transparent);
 }
 
 /* One UI font for every screen: Kraken Sans (Pretendard Variable subset, OFL,
@@ -1142,7 +1155,7 @@
   --secondary: #383d47;
   --secondary-foreground: #b3b5bc; /* 5.32 on --secondary */
   --muted: #272a31;
-  --muted-foreground: #a2a8b1; /* 6.41 … 4.55 */
+  --muted-foreground: #a4aab3; /* 6.52 … 4.66; 4.53 on the menu under the hover tint */
   --accent: #2c3038;
   --accent-foreground: #d5d8de;
   --destructive: #ff8181; /* 6.37 … 4.52 */

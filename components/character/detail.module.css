@@ -87,7 +87,7 @@
 }
 @media (hover: hover) and (pointer: fine) {
   .tabs a:not([aria-current="page"]):hover {
-    background: var(--muted);
+    background: var(--hover-surface);
   }
 }
 .tabActions {
@@ -1729,7 +1729,7 @@
 }
 @media (hover: hover) and (pointer: fine) {
   .gridToggle:hover {
-    background: var(--secondary);
+    background: var(--hover-surface);
     color: var(--foreground);
   }
 }
