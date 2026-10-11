@@ -32,15 +32,15 @@ test("official values match the notices they cite", () => {
 });
 
 test("missing values never turn into zero", () => {
-  assert.equal(modeTotals(mode("belgardin", "NORMAL")), null);
-  assert.equal(modeTotals(mode("serka", "HARD")), null);
+  assert.equal(modeTotals(mode("valtan", "NORMAL")), null);
+  assert.equal(modeTotals(mode("vykas", "HARD")), null);
 });
 
 test("the checker catches the mistakes it is meant to catch", () => {
   const broken = structuredClone(RAID_DATA) as RaidData;
   broken.raids[0].modes[0].gates[0].boundGold = 999999;
   broken.raids[1].modes[0].source = "nowhere";
-  const unverified = broken.raids.find((r) => r.id === "belgardin")!.modes[0];
+  const unverified = broken.raids.find((r) => r.id === "valtan")!.modes[0];
   unverified.gates[0].gold = 1;
   const problems = checkRaidData(broken);
   assert.ok(problems.some((p) => p.includes("bound gold above gold")));
