@@ -23,6 +23,7 @@ import {
   refreshWindow,
   relativeAgo,
   remainingLabel,
+  skillGems,
   skillSummary,
   statNumber,
   stoneBonus,
@@ -979,7 +980,36 @@ function EngravingsPanel({ data }: { data: Character }) {
   );
 }
 
-function SkillCard({ skill, compact, rune }: { skill: Skill; compact?: boolean; rune?: string[] }) {
+const ATTACK_LABEL: Record<string, string> = { BACK_ATTACK: "백 어택", HEAD_ATTACK: "헤드 어택" };
+
+type SkillGem = ReturnType<typeof skillGems>[number];
+
+function SkillCard({
+  skill,
+  compact,
+  rune,
+  gems = [],
+  className,
+  gemLinesOf,
+}: {
+  skill: Skill;
+  compact?: boolean;
+  rune?: string[];
+  /** Gems on this skill (full view): chips that open the gem card. */
+  gems?: SkillGem[];
+  className?: string;
+  gemLinesOf?: (slot: number | null) => string[];
+}) {
+  // Full view: the reference site's chips (type, attack direction, counter,
+  // part break, gems); compact keeps the one-line summary.
+  const chips = compact
+    ? []
+    : [
+        skill.type,
+        skill.attackType ? ATTACK_LABEL[skill.attackType] : null,
+        skill.counter ? "카운터" : null,
+        skill.partBreakLevel != null ? `파괴 ${skill.partBreakLevel}` : null,
+      ].filter((chip): chip is string => chip != null);
   return (
     <li className={styles.skill}>
       <div className={styles.skillHead}>
@@ -991,9 +1021,9 @@ function SkillCard({ skill, compact, rune }: { skill: Skill; compact?: boolean; 
           <small>
             {level(skill.level)}
             {skill.rune && ` · ${text(skill.rune.name)}`}
-            {skill.partBreakLevel != null &&
+            {compact && skill.partBreakLevel != null &&
               ` · 부위 파괴 Lv.${skill.partBreakLevel}`}
-            {skill.counter && " · 카운터"}
+            {compact && skill.counter && " · 카운터"}
           </small>
         </div>
         {skill.rune && (
@@ -1002,6 +1032,25 @@ function SkillCard({ skill, compact, rune }: { skill: Skill; compact?: boolean; 
           </DetailTooltip>
         )}
       </div>
+      {(chips.length > 0 || gems.length > 0) && (
+        <ul className={styles.skillChips} aria-label="스킬 정보">
+          {chips.map((chip) => (
+            <li key={chip}>{chip}</li>
+          ))}
+          {gems.map(({ gem, effect, label }) => (
+            <li key={`gem-${gem.slot}`} data-gem={label.endsWith("쿨") ? "cooldown" : "damage"}>
+              <DetailTooltip
+                name={gem.name ?? "보석"}
+                card={
+                  <GemCard gem={gem} skill={effect} className={className ?? ""} lines={gemLinesOf?.(gem.slot) ?? []} />
+                }
+              >
+                <span>{label}</span>
+              </DetailTooltip>
+            </li>
+          ))}
+        </ul>
+      )}
       {skill.tripods.length > 0 && (
         <ul className={styles.tripods}>
           {skill.tripods.map((tripod, i) => (
@@ -1046,7 +1095,9 @@ function SkillOverview({
       </Panel>
     );
   const summary = skillSummary(skills);
-  const list = full && showAll ? skills : summary.active;
+  // Full view: highest skill level first, as the reference lists them.
+  const shown = full && showAll ? skills : summary.active;
+  const list = full ? [...shown].sort((a, b) => (b.level ?? 0) - (a.level ?? 0)) : shown;
   return (
     <Panel
       title="스킬"
@@ -1077,6 +1128,9 @@ function SkillOverview({
               skill={skill}
               compact={!full}
               rune={runeLines(extra, skill.name)}
+              gems={full ? skillGems(data.loadout.gems, skill.name) : undefined}
+              className={data.className}
+              gemLinesOf={(slot) => gemLines(extra, slot)}
             />
           ))}
         </ul>
@@ -1126,9 +1180,66 @@ export function CombatTab({ data }: { data: Character }) {
 }
 
 export function SkillsTab({ data }: { data: Character }) {
+  const skills = data.loadout.skills ?? [];
+  const summary = skillSummary(skills);
+  const counters = summary.active.filter((skill) => skill.counter === true);
+  const points = data.skillPoints;
+  const left = points?.used != null && points.total != null ? points.total - points.used : null;
   return (
     <div className={styles.layout}>
-      <SkillOverview data={data} full />
+      <div className={styles.columns}>
+        <SkillOverview data={data} full />
+        <aside className={styles.stack} aria-label="스킬 요약">
+          <Panel title="스킬 포인트">
+            {points?.used != null && points.total != null ? (
+              <>
+                <p className={styles.spValue}>
+                  <b>{number(points.used)}</b> / {number(points.total)}
+                </p>
+                <div
+                  className={styles.spBar}
+                  role="meter"
+                  aria-label="사용한 스킬 포인트"
+                  aria-valuemin={0}
+                  aria-valuemax={points.total}
+                  aria-valuenow={points.used}
+                >
+                  <span style={{ width: `${Math.min(100, (points.used / Math.max(1, points.total)) * 100)}%` }} />
+                </div>
+                <p className={styles.muted}>남은 포인트 {number(left)}</p>
+              </>
+            ) : (
+              <p className={styles.muted}>스킬 포인트 정보가 없어요.</p>
+            )}
+          </Panel>
+          <Panel title="카운터 스킬" meta={`${counters.length}개`}>
+            {counters.length ? (
+              <ul className={styles.counterList}>
+                {counters.map((skill, i) => (
+                  <li key={`${skill.name}-${i}`}>
+                    <GameIcon src={skill.icon} size={24} />
+                    <span>{text(skill.name)}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className={styles.muted}>사용 중인 카운터 스킬이 없어요.</p>
+            )}
+          </Panel>
+          <Panel title="스킬 효과">
+            <dl className={styles.statGrid}>
+              <div>
+                <dt>부위 파괴</dt>
+                <dd>
+                  {summary.partBreakLevel != null
+                    ? `합계 Lv.${summary.partBreakLevel} × ${summary.partBreakCount}`
+                    : "-"}
+                </dd>
+              </div>
+            </dl>
+          </Panel>
+        </aside>
+      </div>
     </div>
   );
 }
