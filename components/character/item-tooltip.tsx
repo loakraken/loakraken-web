@@ -1,6 +1,6 @@
 "use client";
 
-import type { CSSProperties, ReactNode } from "react";
+import { Fragment, type CSSProperties, type ReactNode } from "react";
 import {
   ItemDetail,
   ItemDetailSection,
@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/item-tooltip";
 import { gradeKey } from "@/lib/character/model";
 import type { Character } from "@/lib/character/model";
-import { groupExtraLines, lineTone } from "@/lib/character/item-tooltips";
+import { groupExtraLines, lineTone, placeExtraLines, type ExtraLines } from "@/lib/character/item-tooltips";
 import styles from "./item-tooltip.module.css";
 
 type Equipment = Character["loadout"]["equipment"][number];
@@ -77,59 +77,101 @@ function Graded({ text, grade }: { text: string; grade: string | null }) {
  * the same place (for the colours), never twice. The stone's "무작위 각인 효과"
  * group is kept as is — it also has the level bonus line the list lacks.
  */
-function Effects({ detail: d }: { detail: Detail }) {
+function Effects({ detail: d, after }: { detail: Detail; after: Map<string, string[]> }) {
   const polish = d.polishEffects.length > 0;
   const bracelet = d.braceletEffects.length > 0;
   const titles = new Set(d.effects.map((group) => group.title));
   return (
     <>
-      {d.effects.map((group, i) =>
-        polish && group.title === "연마 효과" ? (
-          <ItemDetailSection key={i} label={group.title}>
+      {d.effects.map((group, i) => (
+        <Fragment key={i}>
+          {polish && group.title === "연마 효과" ? (
+            <ItemDetailSection label={group.title}>
+              {d.polishEffects.map((e, j) => (
+                <Graded key={j} text={`${e.name} ${e.value}`} grade={e.grade} />
+              ))}
+            </ItemDetailSection>
+          ) : bracelet && group.title === "팔찌 효과" ? (
+            <ItemDetailSection label={group.title}>
+              {d.braceletEffects.map((e, j) => (
+                <Graded key={j} text={e.text} grade={e.grade} />
+              ))}
+            </ItemDetailSection>
+          ) : (
+            <ItemDetailSection label={group.title}>
+              {group.lines.map((line, j) => (
+                <ItemLine key={j}>{line}</ItemLine>
+              ))}
+            </ItemDetailSection>
+          )}
+          <ExtraSections lines={after.get(group.title)} />
+        </Fragment>
+      ))}
+      {/* An older parser without these groups: the lists alone, after the effects. */}
+      {polish && !titles.has("연마 효과") && (
+        <>
+          <ItemDetailSection label="연마 효과">
             {d.polishEffects.map((e, j) => (
               <Graded key={j} text={`${e.name} ${e.value}`} grade={e.grade} />
             ))}
           </ItemDetailSection>
-        ) : bracelet && group.title === "팔찌 효과" ? (
-          <ItemDetailSection key={i} label={group.title}>
+          <ExtraSections lines={after.get("연마 효과")} />
+        </>
+      )}
+      {bracelet && !titles.has("팔찌 효과") && (
+        <>
+          <ItemDetailSection label="팔찌 효과">
             {d.braceletEffects.map((e, j) => (
               <Graded key={j} text={e.text} grade={e.grade} />
             ))}
           </ItemDetailSection>
-        ) : (
-          <ItemDetailSection key={i} label={group.title}>
-            {group.lines.map((line, j) => (
-              <ItemLine key={j}>{line}</ItemLine>
-            ))}
-          </ItemDetailSection>
-        ),
-      )}
-      {/* An older parser without these groups: the lists alone, after the effects. */}
-      {polish && !titles.has("연마 효과") && (
-        <ItemDetailSection label="연마 효과">
-          {d.polishEffects.map((e, j) => (
-            <Graded key={j} text={`${e.name} ${e.value}`} grade={e.grade} />
-          ))}
-        </ItemDetailSection>
-      )}
-      {bracelet && !titles.has("팔찌 효과") && (
-        <ItemDetailSection label="팔찌 효과">
-          {d.braceletEffects.map((e, j) => (
-            <Graded key={j} text={e.text} grade={e.grade} />
-          ))}
-        </ItemDetailSection>
+          <ExtraSections lines={after.get("팔찌 효과")} />
+        </>
       )}
       {d.stoneEngravings.length > 0 && !titles.has("무작위 각인 효과") && (
-        <ItemDetailSection label="무작위 각인 효과">
-          {d.stoneEngravings.map((e, j) => (
-            <ItemLine key={j}>
-              [{e.name}] Lv.{e.level}
-            </ItemLine>
-          ))}
-        </ItemDetailSection>
+        <>
+          <ItemDetailSection label="무작위 각인 효과">
+            {d.stoneEngravings.map((e, j) => (
+              <ItemLine key={j}>
+                [{e.name}] Lv.{e.level}
+              </ItemLine>
+            ))}
+          </ItemDetailSection>
+          <ExtraSections lines={after.get("무작위 각인 효과")} />
+        </>
       )}
     </>
   );
+}
+
+/** Remaining official lines as the reference site's sections (see groupExtraLines). */
+function ExtraSections({ lines }: { lines?: string[] }) {
+  if (!lines?.length) return null;
+  return groupExtraLines(lines).map((group, i) => (
+    <ItemDetailSection key={`x${i}`}>
+      {group.map((line, j) => (
+        <Line key={j}>{line}</Line>
+      ))}
+    </ItemDetailSection>
+  ));
+}
+
+/** Section titles the equipment card shows, for placing the remaining lines. */
+function shownSections(d: Detail | null | undefined): Set<string> {
+  const shown = new Set<string>();
+  if (!d) return shown;
+  for (const group of d.effects) shown.add(group.title);
+  if (d.polishEffects.length) shown.add("연마 효과");
+  if (d.braceletEffects.length) shown.add("팔찌 효과");
+  if (d.stoneEngravings.length) shown.add("무작위 각인 효과");
+  if (d.arkPassivePoint) shown.add("아크 패시브 포인트 효과");
+  return shown;
+}
+
+/** "아이템 레벨 1640 (티어 4)", or the tier alone. */
+function levelLine(itemLevel: number | null | undefined, tier: number | null | undefined) {
+  if (itemLevel != null) return `아이템 레벨 ${itemLevel}${tier != null ? ` (티어 ${tier})` : ""}`;
+  return tier != null ? `아이템 티어 ${tier}` : null;
 }
 
 /**
@@ -137,17 +179,14 @@ function Effects({ detail: d }: { detail: Detail }) {
  * icon row (grade·part, item level, quality, 장착중); bound/trade; effects;
  * polish; bracelet; stone engravings; refine exp; ark passive point; then the
  * official tooltip's remaining lines (restrictions, crafting, durability,
- * sources) as they come.
+ * sources) as they come — a line that followed an earlier section right after
+ * it (a bracelet's "효과 부여 불가" under 팔찌 효과).
  */
-export function EquipmentCard({ item, slot, lines = [] }: { item: Equipment; slot?: string; lines?: string[] }) {
+export function EquipmentCard({ item, slot, extra }: { item: Equipment; slot?: string; extra?: ExtraLines }) {
   const d = item.detail;
   const gradeLine = d?.titleLine ?? [item.grade, slot ?? item.type].filter(Boolean).join(" ");
-  const level =
-    d?.itemLevel != null
-      ? `아이템 레벨 ${d.itemLevel}${d.tier != null ? ` (티어 ${d.tier})` : ""}`
-      : d?.tier != null
-        ? `아이템 티어 ${d.tier}`
-        : null;
+  const level = levelLine(d?.itemLevel, d?.tier);
+  const { after, tail } = placeExtraLines(extra ?? { lines: [], sections: [] }, shownSections(d));
   const quality = d?.quality != null && d.quality >= 0 ? d.quality : null;
   const info: ReactNode[] = [gradeLine];
   if (level) info.push(level);
@@ -163,7 +202,7 @@ export function EquipmentCard({ item, slot, lines = [] }: { item: Equipment; slo
     >
       {d && <TradeLines lines={d.tradeLines} />}
       {d?.advancedRefineLevel ? <ItemLine>[상급 재련] {d.advancedRefineLevel}단계</ItemLine> : null}
-      {d && <Effects detail={d} />}
+      {d && <Effects detail={d} after={after} />}
       {d?.refineExp && (
         <ItemProgress label="현재 단계 재련 경험치" value={d.refineExp.current ?? 0} max={d.refineExp.max} />
       )}
@@ -174,13 +213,8 @@ export function EquipmentCard({ item, slot, lines = [] }: { item: Equipment; slo
           </ItemLine>
         </ItemDetailSection>
       )}
-      {groupExtraLines(lines).map((group, i) => (
-        <ItemDetailSection key={`x${i}`}>
-          {group.map((line, j) => (
-            <Line key={j}>{line}</Line>
-          ))}
-        </ItemDetailSection>
-      ))}
+      {d?.arkPassivePoint && <ExtraSections lines={after.get("아크 패시브 포인트 효과")} />}
+      <ExtraSections lines={tail} />
     </ItemDetail>
   );
 }
@@ -193,13 +227,13 @@ export function EquipmentCard({ item, slot, lines = [] }: { item: Equipment; slo
 export function ItemTooltip({
   item,
   slot,
-  lines,
+  extra,
   children,
 }: {
   item: Equipment;
   slot?: string;
   /** The official tooltip's remaining lines (item-tooltips, loaded when idle). */
-  lines?: string[];
+  extra?: ExtraLines;
   /** The icon. */
   children: ReactNode;
 }) {
@@ -210,7 +244,7 @@ export function ItemTooltip({
         {children}
       </ItemTooltipTrigger>
       <ItemTooltipContent aria-label={name}>
-        <EquipmentCard item={item} slot={slot} lines={lines} />
+        <EquipmentCard item={item} slot={slot} extra={extra} />
       </ItemTooltipContent>
     </Tooltip>
   );
@@ -245,7 +279,7 @@ type GemSkill = NonNullable<NonNullable<Character["loadout"]["gems"]>["effects"]
 
 /**
  * The gem card in the reference site's order (sheet v2.1 §2c): name, icon row
- * (grade 보석, 장착중), gem level, the effect on its skill ("[직업] 스킬 …"),
+ * (전설 보석, item level and tier, 장착중), bound/trade, gem level, the effect on its skill ("[직업] 스킬 …"),
  * the extra effect, then the official remaining lines (tuning notes as one
  * section, restrictions, sources).
  */
@@ -261,19 +295,22 @@ export function GemCard({
   className: string;
   lines?: string[];
 }) {
-  const levelLine = lines.find((line) => /^보석 레벨/.test(line));
-  const rest = lines.filter((line) => line !== levelLine);
+  const gemLevel = lines.find((line) => /^보석 레벨/.test(line));
+  const rest = lines.filter((line) => line !== gemLevel);
   return (
     <ItemDetail
       grade={itemGrade(gem.grade)}
       title={gem.name ?? "보석"}
       // eslint-disable-next-line @next/next/no-img-element -- official CDN icon at a fixed size
       icon={gem.icon ? <img src={gem.icon} alt="" width={56} height={56} referrerPolicy="no-referrer" /> : undefined}
-      lines={[[gem.grade, "보석"].filter(Boolean).join(" ")]}
+      lines={[gem.titleLine ?? [gem.grade, "보석"].filter(Boolean).join(" "), levelLine(gem.itemLevel, gem.tier)].filter(
+        (line): line is string => line != null,
+      )}
       aside="장착중"
     >
-      {levelLine ? (
-        <ItemLine>{levelLine}</ItemLine>
+      <TradeLines lines={gem.tradeLines} />
+      {gemLevel ? (
+        <ItemLine>{gemLevel}</ItemLine>
       ) : gem.level != null ? (
         <ItemLine>보석 레벨 {gem.level}</ItemLine>
       ) : null}
@@ -291,13 +328,7 @@ export function GemCard({
           <ItemLine>{skill.option}</ItemLine>
         </ItemDetailSection>
       )}
-      {groupExtraLines(rest).map((group, i) => (
-        <ItemDetailSection key={i}>
-          {group.map((line, j) => (
-            <Line key={j}>{line}</Line>
-          ))}
-        </ItemDetailSection>
-      ))}
+      <ExtraSections lines={rest} />
     </ItemDetail>
   );
 }

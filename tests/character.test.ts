@@ -56,7 +56,10 @@ test("responses from a backend before the rollout fields still pass with neutral
   delete old.data.analysis.position;
   for (const stat of old.data.stats) delete stat.tooltip;
   for (const effect of old.data.loadout.arkPassive?.effects ?? []) delete effect.effect;
+  for (const gem of old.data.loadout.gems.items) for (const key of ["titleLine", "itemLevel", "tier", "tradeLines"]) delete gem[key];
   assert.equal(isCharacterEnvelope(old), true);
+  assert.equal(old.data.loadout.gems.items[0].titleLine, null);
+  assert.deepEqual(old.data.loadout.gems.items[0].tradeLines, []);
   assert.deepEqual(old.data.avatars, []);
   assert.deepEqual(old.data.collectibles, []);
   assert.equal(old.data.townName, null);
