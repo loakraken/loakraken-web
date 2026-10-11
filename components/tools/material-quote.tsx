@@ -9,10 +9,12 @@ import {
   type FormEvent,
 } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { AnimatePresence, m } from "motion/react";
 import { Add, ArrowLeft, Calculator, CloseCircle, SearchNormal, TickCircle } from "@/components/ui/icons";
 import { GameIcon } from "@/components/character/imagery";
+import { PillTab, PillTabs } from "@/components/ui/pill-tabs";
 import {
   LandingMotion,
   Reveal,
@@ -94,11 +96,15 @@ function Notice({ failure, wait }: { failure: MarketFailure; wait: number }) {
 function ItemSearch({
   wait,
   onRateLimit,
+  initialCategory,
 }: {
   wait: number;
   onRateLimit: (failure: MarketFailure) => void;
+  initialCategory: number | null;
 }) {
   const formId = useId();
+  const router = useRouter();
+  const chipRow = useRef<HTMLDivElement>(null);
   const { rows, add } = usePlan();
   const options = useQuery({
     queryKey: ["market", "options"],
@@ -112,7 +118,7 @@ function ItemSearch({
     () => options.data?.data.categories ?? [],
     [options.data],
   );
-  const [category, setCategory] = useState<number | null>(null);
+  const [category, setCategory] = useState<number | null>(initialCategory);
   const [name, setName] = useState("");
   const [error, setError] = useState("");
   const [submitted, setSubmitted] = useState<MarketSearch | null>(null);
@@ -120,11 +126,39 @@ function ItemSearch({
   // of failing with a category error the user could not have avoided: the
   // name is kept and the search starts as soon as a category exists.
   const [pending, setPending] = useState<string | null>(null);
+  // A linked code the list does not have falls back like no choice at all.
+  const known = (code: number | null) =>
+    code !== null &&
+    categories.some((group) => group.code === code || group.subs?.some((sub) => sub.code === code));
   const selectedCategory =
-    category ??
+    (known(category) ? category : null) ??
     categories.find((item) => item.code === 50000)?.code ??
     categories[0]?.code ??
     null;
+  const activeGroup =
+    categories.find(
+      (group) => group.code === selectedCategory || group.subs?.some((sub) => sub.code === selectedCategory),
+    ) ?? null;
+  // Keep the chosen chip inside its row (a deep link to a later kind); scrolls
+  // the row only, never the page.
+  useEffect(() => {
+    const row = chipRow.current;
+    const chip = row?.querySelector<HTMLElement>("[aria-pressed=true]");
+    if (!row || !chip) return;
+    const right = chip.offsetLeft + chip.offsetWidth + 24 - row.clientWidth;
+    if (chip.offsetLeft < row.scrollLeft) row.scrollLeft = chip.offsetLeft;
+    else if (right > row.scrollLeft) row.scrollLeft = right;
+  }, [selectedCategory]);
+
+  function choose(code: number) {
+    // A waiting search that already ran keeps its category, like any other
+    // search: changing the category alone never re-runs it.
+    if (!submitted && search) setSubmitted(search);
+    setPending(null);
+    setCategory(code);
+    setError("");
+    router.replace(`?${new URLSearchParams({ category: String(code) })}`, { scroll: false });
+  }
   const search: MarketSearch | null =
     submitted ??
     (pending !== null && selectedCategory
@@ -172,43 +206,50 @@ function ItemSearch({
       className={styles.searchArea}
       data-busy={items.isFetching || undefined}
     >
+      {/* 사용자 10-11 00:04: the category was a plain drop-down. Groups are
+          the shared pill tabs (#417); the group's own kinds are chips. */}
+      <div className={styles.categoryPicker} aria-busy={!categories.length || undefined}>
+        {categories.length ? (
+          <>
+            <PillTabs
+              value={activeGroup?.code ?? null}
+              onValueChange={(value) => choose(Number(value))}
+              aria-label="카테고리"
+            >
+              {categories.map((group) => (
+                <PillTab key={group.code} value={group.code}>
+                  {group.codeName}
+                </PillTab>
+              ))}
+            </PillTabs>
+            {activeGroup && (activeGroup.subs?.length ?? 0) > 0 && (
+              <div ref={chipRow} className={styles.chips} role="group" aria-label={`${activeGroup.codeName} 분류`}>
+                {[{ code: activeGroup.code, codeName: "전체" }, ...(activeGroup.subs ?? [])].map((sub) => (
+                  <button
+                    key={sub.code}
+                    type="button"
+                    className={styles.chip}
+                    aria-pressed={selectedCategory === sub.code}
+                    onClick={() => choose(sub.code)}
+                  >
+                    {sub.codeName}
+                  </button>
+                ))}
+              </div>
+            )}
+          </>
+        ) : (
+          <p className={styles.categoryLoading} role="status">
+            {options.isFetching ? "카테고리를 불러오고 있어요." : "카테고리를 불러오지 못했어요."}
+          </p>
+        )}
+      </div>
       <form
         className={styles.searchForm}
         onSubmit={submit}
         noValidate
         aria-busy={items.isFetching}
       >
-        <label className={styles.field}>
-          <span>카테고리</span>
-          <select
-            value={selectedCategory ?? ""}
-            onChange={(event) => {
-              // A waiting search that already ran keeps its category, like
-              // any other search: changing the select alone never re-runs it.
-              if (!submitted && search) setSubmitted(search);
-              setPending(null);
-              setCategory(Number(event.target.value));
-              setError("");
-            }}
-            disabled={!categories.length}
-          >
-            {!categories.length && (
-              <option value="">
-                {options.isFetching ? "불러오는 중" : "카테고리 없음"}
-              </option>
-            )}
-            {categories.map((group) => (
-              <optgroup key={group.code} label={group.codeName}>
-                <option value={group.code}>{group.codeName} 전체</option>
-                {group.subs?.map((sub) => (
-                  <option key={sub.code} value={sub.code}>
-                    {sub.codeName}
-                  </option>
-                ))}
-              </optgroup>
-            ))}
-          </select>
-        </label>
         <label className={styles.field} data-grow="">
           <span>재료 이름</span>
           <input
@@ -519,7 +560,7 @@ function Result({ quote }: { quote: MaterialQuote }) {
   );
 }
 
-function MaterialQuoteContent() {
+function MaterialQuoteContent({ initialCategory }: { initialCategory: number | null }) {
   const { enabled } = useLandingMotion();
   const { basis, setBasis, rows } = usePlan();
   const quote = useMutation({
@@ -591,7 +632,7 @@ function MaterialQuoteContent() {
                   {rows.length}/{MAX_QUOTE_ITEMS}
                 </span>
               </h2>
-              <ItemSearch wait={wait} onRateLimit={setSearchFailure} />
+              <ItemSearch wait={wait} onRateLimit={setSearchFailure} initialCategory={initialCategory} />
               <h3 className={styles.subheading}>견적에 넣은 재료</h3>
               <Plan />
             </section>
@@ -647,10 +688,10 @@ function MaterialQuoteContent() {
   );
 }
 
-export function MaterialQuoteTool() {
+export function MaterialQuoteTool({ initialCategory = null }: { initialCategory?: number | null }) {
   return (
     <LandingMotion>
-      <MaterialQuoteContent />
+      <MaterialQuoteContent initialCategory={initialCategory} />
     </LandingMotion>
   );
 }

@@ -24,16 +24,17 @@ test.describe("재료 구매 견적 카테고리 로딩 @regression", () => {
   test("목록 도착 전 검색하면, 도착 뒤 이어서 검색하고 모순된 오류가 없다", async ({ page }) => {
     const release = await holdOptions(page);
     await page.goto("/tools/material-quote");
-    const category = page.getByRole("combobox", { name: "카테고리" });
-    await expect(category).toBeDisabled();
+    // 카테고리는 묶음 알약 탭 + 분류 칩이다(web #417 PillTabs). 목록 전에는 탭이 없다.
+    const category = page.getByRole("tablist", { name: "카테고리" });
+    await expect(category).toHaveCount(0);
 
     await page.getByRole("textbox", { name: "재료 이름" }).fill("합성");
     await page.getByRole("button", { name: "검색", exact: true }).click();
     await expect(page.getByRole("status").filter({ hasText: "카테고리 목록을 받는 대로 검색할게요." })).toBeVisible();
 
     release();
-    await expect(category).toBeEnabled();
-    await expect(category).not.toHaveValue("");
+    await expect(category).toBeVisible();
+    await expect(category.getByRole("tab", { selected: true })).toHaveCount(1);
     await expect(page.getByRole("alert").filter({ hasText: "카테고리를 선택해 주세요." })).toHaveCount(0);
     // 기억해 둔 검색어로 이어서 검색한다(web #95).
     await expect(page.getByRole("button", { name: "합성 재련 재료 견적에 추가" })).toBeVisible();
@@ -49,7 +50,7 @@ test.describe("재료 구매 견적 카테고리 로딩 @regression", () => {
 
     release();
     // 실패 안내가 나온 뒤에는 오지 않을 목록을 기다린다는 안내가 없어야 한다.
-    await expect(page.getByRole("combobox", { name: "카테고리" }).locator("option")).toHaveText(["카테고리 없음"]);
+    await expect(page.getByText("카테고리를 불러오지 못했어요.")).toBeVisible();
     await expect(page.getByText("카테고리 목록을 받는 대로 검색할게요.")).toHaveCount(0);
   });
 });
