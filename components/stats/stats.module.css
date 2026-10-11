@@ -288,6 +288,9 @@
   font-size: 16px;
 }
 .tier {
+  /* A31: one line, never split (badge/chip/unit). */
+  flex: none;
+  white-space: nowrap;
   margin: 0 4px;
   padding: 1px 6px;
   border-radius: 9999px;
@@ -426,6 +429,9 @@
 }
 /* Outline only: muted text on the card itself keeps 4.5:1 (on --secondary it was 4.15). */
 .refTag {
+  /* A31: one line, never split (badge/chip/unit). */
+  flex: none;
+  white-space: nowrap;
   margin-left: 6px;
   padding: 0 6px;
   border-radius: 9999px;
@@ -540,7 +546,7 @@
 }
 
 /* Collectible ranking (K33): points under the progress; finished kinds in
-   amber, the same rule as the character collectible list (#539). */
+   blue, the same rule as the character collectible list (#568). */
 .points {
   display: block;
   color: var(--muted-foreground);
@@ -548,5 +554,5 @@
   font-weight: 400;
 }
 .rosterMembers li[data-done] b {
-  color: var(--accent-warm);
+  color: var(--link);
 }

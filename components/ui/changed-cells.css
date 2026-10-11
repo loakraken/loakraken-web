@@ -1,0 +1,74 @@
+/* changed-cells.tsx — adapted from Motiq "Streaming Data Rows" (MIT, see
+   ./NOTICE-motiq). The wash fades out once and never blinks; opacity only. */
+.chg {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  isolation: isolate;
+}
+.chg[data-tone="up"] {
+  --chg-tone: var(--market-up);
+}
+.chg[data-tone="down"] {
+  --chg-tone: var(--market-down);
+}
+.chg[data-tone="same"] {
+  --chg-tone: var(--link);
+}
+.chg-wash {
+  position: absolute;
+  inset: -2px -6px;
+  z-index: -1;
+  border-radius: var(--radius-xs, 6px);
+  background: color-mix(in oklab, var(--chg-tone) 18%, transparent);
+  pointer-events: none;
+  animation: chg-fade 1.4s ease-out both;
+}
+.chg-dir {
+  color: var(--chg-tone);
+  font-size: 0.8em;
+  line-height: 1;
+  animation: chg-fade 1.4s ease-out 0.35s both;
+}
+@keyframes chg-fade {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  /* no fade: the arrow simply shows until the hook clears it */
+  .chg-dir {
+    animation: none;
+  }
+}
+
+.chg-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: var(--text-caption);
+  font-weight: 500;
+  white-space: nowrap;
+  color: var(--chg-pill);
+  /* 8%: at 12% the light neutral and positive words fell to 4.33 / 4.52 */
+  background: color-mix(in oklab, var(--chg-pill) 8%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--chg-pill) 30%, transparent);
+}
+.chg-pill[data-tone="positive"] {
+  --chg-pill: var(--success);
+}
+.chg-pill[data-tone="neutral"] {
+  --chg-pill: var(--muted-foreground);
+}
+.chg-pill[data-tone="warning"] {
+  --chg-pill: var(--accent-warm);
+}
+.chg-pill[data-tone="negative"] {
+  --chg-pill: var(--destructive);
+}

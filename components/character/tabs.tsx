@@ -88,9 +88,13 @@ import {
 } from "@/lib/character/item-tooltips";
 import { ReceiptEnabled, ReceiptPanel } from "./receipt-panel";
 import { PillTab, PillTabs, PillTabsPanel } from "@/components/ui/pill-tabs";
+import { SegmentedControl, SegmentedItem } from "@/components/ui/segmented-control";
+import { Switch } from "@/components/ui/switch";
+import { ROSTER_SORTS, ROSTER_TOTAL_MIN, maskName, rosterSummary, sortSiblings, type RosterSort } from "@/lib/character/roster-list";
 import { useStagger } from "./entrance";
 import { RankPanel } from "./rank-panel";
 import { SimulatorTab } from "./simulator-tab";
+import { SpecUpTab } from "./spec-up-tab";
 import { byObservedOrder, groupByDay } from "@/lib/character/titles";
 import { CardCollection } from "./card-collection-panel";
 import { CardArt, GameIcon } from "./imagery";
@@ -114,6 +118,7 @@ import { useCrossfade } from "@/lib/motion";
 export const TABS = [
   { id: "combat", label: "전투" },
   { id: "simulator", label: "시뮬레이터" },
+  { id: "specup", label: "스펙업" },
   { id: "skills", label: "스킬" },
   { id: "arkpassive", label: "아크 패시브" },
   { id: "collectibles", label: "내실" },
@@ -128,8 +133,15 @@ export type TabId = (typeof TABS)[number]["id"];
 export const SettingCheckEnabled = createContext(true);
 /** COMBAT_POWER_SIM (server flag): off hides the 시뮬레이터 tab the same way. */
 export const SimulatorEnabled = createContext(true);
-const visibleTabs = (settingCheck: boolean, simulator = true) =>
-  TABS.filter((tab) => (tab.id !== "evidence" || settingCheck) && (tab.id !== "simulator" || simulator));
+/** SPEC_UP_GUIDE (server flag): off hides the 스펙업 tab the same way. */
+export const SpecUpEnabled = createContext(true);
+const visibleTabs = (settingCheck: boolean, simulator = true, specUp = true) =>
+  TABS.filter(
+    (tab) =>
+      (tab.id !== "evidence" || settingCheck) &&
+      (tab.id !== "simulator" || simulator) &&
+      (tab.id !== "specup" || specUp),
+  );
 
 /** The visually hidden heading each tab panel starts with (focus target). */
 const TAB_HEADING = "character-tab-heading";
@@ -152,8 +164,8 @@ export function useTabTop(tab: TabId) {
 }
 
 /** The tab in ?tab=, or 전투 for an unknown one or a hidden one. */
-export const tabOf = (value: string | null, settingCheck = true, simulator = true): TabId =>
-  visibleTabs(settingCheck, simulator).some((tab) => tab.id === value) ? (value as TabId) : "combat";
+export const tabOf = (value: string | null, settingCheck = true, simulator = true, specUp = true): TabId =>
+  visibleTabs(settingCheck, simulator, specUp).some((tab) => tab.id === value) ? (value as TabId) : "combat";
 
 /** "베타" next to a tab still growing its rules (shown wherever the tab is). */
 function TabLabel({ id, label }: { id: TabId; label: string }) {
@@ -231,7 +243,7 @@ export function TabBar({
   const [favorite, toggleFavorite] = useFavorite(name);
   const [shareStatus, setShareStatus] = useState("");
   const { nav: pillNav, layer: pillLayer, onKeyDown: pillKey, onPointerDown: pillPointer } = useTabPill(tab);
-  const tabs = visibleTabs(useContext(SettingCheckEnabled), useContext(SimulatorEnabled));
+  const tabs = visibleTabs(useContext(SettingCheckEnabled), useContext(SimulatorEnabled), useContext(SpecUpEnabled));
   const window_ = refreshWindow(data, now);
   const cooling = window_.remainingMs > 0;
   const disabled = fetching || cooling || rateLimitSeconds > 0;
@@ -647,16 +659,6 @@ function ArkGridPanel({ data }: { data: Character }) {
               의지력 <b>{grid.willpower.used}</b>/{grid.willpower.supply}
             </span>
           )}
-          {hasDetail && (
-            <button
-              type="button"
-              className={styles.textButton}
-              aria-expanded={expanded}
-              onClick={() => setExpanded(!expanded)}
-            >
-              {expanded ? "모두 접기" : "모두 펼치기"}
-            </button>
-          )}
         </span>
       }
     >
@@ -679,6 +681,7 @@ function ArkGridPanel({ data }: { data: Character }) {
         <ul className={styles.coreList}>
           {grid.slots.map((slot, i) => {
             const lines = gridLines(extra, i);
+            const detail = slot.options.length > 0 || slot.gems.some((gem) => gem.name);
             return (
               <li key={i}>
                 <details open={expanded || undefined} className={`${styles.core} ${expand.expand}`}>
@@ -714,8 +717,10 @@ function ArkGridPanel({ data }: { data: Character }) {
                         </DetailTooltip>
                       ))}
                     </span>
+                    {/* Each core opens on its own; the arrow turns over (user 10-12). */}
+                    {detail && <ChevronDown size={16} className={styles.coreChevron} aria-hidden="true" />}
                   </summary>
-                  {(slot.options.length > 0 || slot.gems.some((gem) => gem.name)) && (
+                  {detail && (
                     <div className={styles.coreDetail}>
                       {slot.options.length > 0 && (
                         <ul className={styles.coreOptions}>
@@ -772,7 +777,8 @@ function ArkGridPanel({ data }: { data: Character }) {
       ) : (
         <Empty state={data.coverage.arkGrid.collections.slots} />
       )}
-      {/* Under the cores too (user 10-11): the same toggle as in the head. */}
+      {/* Every core at once, under the list (user 10-11); the head button
+          went away because it did the same (user 10-12). */}
       {hasDetail && grid.slots.length > 0 && (
         <button
           type="button"
@@ -1600,6 +1606,12 @@ export function ArkPassiveTab({ data }: { data: Character }) {
 
 type Sibling = NonNullable<Character["siblings"]>[number];
 
+/**
+ * The roster's characters by server (checklist L17·L18): sort (item level,
+ * character level, name), a compact view, hiding names for screenshots, and
+ * the six-man average with the 1,680+ count. Server panels keep the item
+ * level order so switching the sort only reorders inside each server.
+ */
 function SiblingList({
   siblings,
   current,
@@ -1607,12 +1619,47 @@ function SiblingList({
   siblings: Sibling[];
   current: string;
 }) {
-  const sorted = [...siblings].sort(
-    (a, b) => (b.itemLevel ?? 0) - (a.itemLevel ?? 0),
-  );
-  const servers = [...new Set(sorted.map((sibling) => sibling.serverName))];
+  const [sort, setSort] = useState<RosterSort>("itemLevel");
+  const [compact, setCompact] = useState(false);
+  const [masked, setMasked] = useState(false);
+  const ids = { compact: useId(), masked: useId() };
+  const sorted = sortSiblings(siblings, sort);
+  const servers = [...new Set(sortSiblings(siblings, "itemLevel").map((sibling) => sibling.serverName))];
+  const summary = rosterSummary(siblings);
+  const shown = (name: string) => (masked ? maskName(name) : name);
   return (
     <>
+      <div className={styles.rosterTools}>
+        <SegmentedControl aria-label="원정대 정렬" value={sort} onValueChange={(value) => setSort(value as RosterSort)}>
+          {ROSTER_SORTS.map((item) => (
+            <SegmentedItem key={item.id} value={item.id}>
+              {item.label}
+            </SegmentedItem>
+          ))}
+        </SegmentedControl>
+        <span className={styles.rosterSwitch}>
+          <Switch id={ids.compact} checked={compact} onCheckedChange={setCompact} />
+          <label htmlFor={ids.compact}>축약</label>
+        </span>
+        <span className={styles.rosterSwitch}>
+          <Switch id={ids.masked} checked={masked} onCheckedChange={setMasked} />
+          <label htmlFor={ids.masked}>닉네임 가리기</label>
+        </span>
+      </div>
+      {summary.sixAverage != null && (
+        <p className={styles.rosterSummary}>
+          식스맨 평균 <b>{number(summary.sixAverage)}</b>
+          <small> (아이템 레벨 상위 {summary.sixCount}명)</small>
+          {" · "}
+          {number(ROSTER_TOTAL_MIN)} 이상 <b>{summary.highCount}명</b>
+          {summary.highCount > 0 && (
+            <small>
+              {" "}
+              (합 {number(summary.highSum)})
+            </small>
+          )}
+        </p>
+      )}
       {servers.map((server) => (
         <Panel
           key={server}
@@ -1620,7 +1667,7 @@ function SiblingList({
           meta={`${sorted.filter((s) => s.serverName === server).length}명`}
           wide
         >
-          <ul className={styles.siblingGrid}>
+          <ul className={styles.siblingGrid} data-compact={compact || undefined}>
             {sorted
               .filter((sibling) => sibling.serverName === server)
               .map((sibling, i) => {
@@ -1629,7 +1676,7 @@ function SiblingList({
                   !isCurrent && !characterNameError(sibling.characterName);
                 const body = (
                   <>
-                    <strong>{sibling.characterName}</strong>
+                    <strong>{shown(sibling.characterName)}</strong>
                     <small>
                       {sibling.className} · Lv.{number(sibling.characterLevel)}
                     </small>
@@ -2157,6 +2204,8 @@ function TabPanelView({
       </h2>
       {tab === "simulator" ? (
         <SimulatorTab data={data} />
+      ) : tab === "specup" ? (
+        <SpecUpTab data={data} />
       ) : tab === "skills" ? (
         <SkillsTab data={data} />
       ) : tab === "arkpassive" ? (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useState, type FormEvent, type KeyboardEvent } from "react";
+import { useEffect, useId, useState, type FormEvent } from "react";
 import { useRemaining } from "@/components/home/clock";
 import { useMutation } from "@tanstack/react-query";
 import { Add, ArrowDown, ArrowLeft, CloseCircle, TaskSquare } from "@/components/ui/icons";
@@ -80,11 +80,10 @@ function Summary({ state, now }: { state: HomeworkState; now: number }) {
         </p>
         {unsettled.length > 0 && (
           <p className={styles.note}>
-            합계에서 뺀 미확정 항목:{" "}
+            합계에서 뺀 항목(클리어 골드 데이터 없음):{" "}
             {unsettled
               .map(({ raid, mode }) => `${raid.shortName} ${DIFFICULTY_LABEL[mode.difficulty]}`)
-              .join(", ")}{" "}
-            클리어 골드(공식 값이나 서로 다른 실측 출처 2곳이 일치하는 값이 아직 없어요)
+              .join(", ")}
           </p>
         )}
       </div>
@@ -226,7 +225,7 @@ function AddRoster({ onAdd }: { onAdd: (picked: Sibling[]) => void }) {
 
 /**
  * Bencho "Reorder list", loaded when "순서 바꾸기" first opens — it is not
- * needed for the page to work (arrows and Alt+↑↓ do the same moves).
+ * needed for the page to work (the arrow buttons do the same moves).
  */
 const Arrange = dynamic(() => import("./homework-arrange"), {
   ssr: false,
@@ -244,8 +243,6 @@ function RaidRow({
   onChange,
   onRemove,
   onMove,
-  selected,
-  onSelect,
 }: {
   plan: RaidPlan;
   itemLevel: number;
@@ -256,9 +253,6 @@ function RaidRow({
   onRemove: () => void;
   /** Move to a new position; the parent saves and announces it. */
   onMove: (to: number) => void;
-  /** 선택 (사용자 안 10-11 21:06): while selected, ↑↓ move this raid. */
-  selected: boolean;
-  onSelect: (on: boolean) => void;
 }) {
   const mode = modeOf(plan);
   if (!mode) return null;
@@ -274,41 +268,19 @@ function RaidRow({
   const title = `${raidName(plan.raidId)} ${DIFFICULTY_LABEL[plan.difficulty]}`;
   const toggle = (key: "cleared" | "more", i: number) =>
     onChange({ ...plan, [key]: plan[key].map((v, j) => (j === i ? !v : v)) });
-  // Keyboard move: Alt+↑/↓ anywhere in the raid (PM-프론트 기준 ③), plain
-  // ↑/↓ while the raid is selected, Esc lets go (사용자 안 10-11 21:06).
-  const onKeyDown = (event: KeyboardEvent<HTMLLIElement>) => {
-    if (selected && event.key === "Escape") {
-      event.preventDefault();
-      onSelect(false);
-      return;
-    }
-    if (!(event.altKey || selected) || (event.key !== "ArrowUp" && event.key !== "ArrowDown")) return;
-    event.preventDefault();
-    const to = event.key === "ArrowUp" ? index - 1 : index + 1;
-    if (to >= 0 && to < count) onMove(to);
-  };
+  // Order moves only by the arrow buttons and the order list: no select
+  // button and no keyboard shortcut on the row (user 10-12).
   return (
-    <li className={styles.raid} data-selected={selected || undefined} onKeyDown={onKeyDown}>
+    <li className={styles.raid}>
       <div className={styles.raidHead}>
         <strong className={styles.raidTitle}>{title}</strong>
         <span className={styles.raidTools}>
-          <button
-            type="button"
-            className={styles.selectButton}
-            aria-pressed={selected}
-            aria-label={`${title} 선택`}
-            aria-keyshortcuts="ArrowUp ArrowDown Escape"
-            onClick={() => onSelect(!selected)}
-          >
-            선택
-          </button>
           <button
             type="button"
             className={styles.iconButton}
             onClick={() => onMove(index - 1)}
             disabled={index === 0}
             aria-label={`${title} 위로`}
-            aria-keyshortcuts="Alt+ArrowUp"
           >
             <ArrowDown size={14} aria-hidden="true" style={{ rotate: "180deg" }} />
           </button>
@@ -318,7 +290,6 @@ function RaidRow({
             onClick={() => onMove(index + 1)}
             disabled={index === count - 1}
             aria-label={`${title} 아래로`}
-            aria-keyshortcuts="Alt+ArrowDown"
           >
             <ArrowDown size={14} aria-hidden="true" />
           </button>
@@ -375,9 +346,8 @@ function CharacterCard({
   // Announces a move once (PM-프론트 기준 ③); the moved row keeps focus.
   const [moved, setMoved] = useState("");
   const [arranging, setArranging] = useState(false);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
   const used = new Set(character.raids.map((r) => r.raidId));
-  // One move for the arrows, 선택 + ↑↓, Alt+↑↓ and the order list's rows:
+  // One move for the arrow buttons and the order list's rows:
   // saved, then announced once ("…를 N번째로 옮겼어요").
   const move = (from: number, to: number) => {
     if (from < 0 || to < 0 || to >= character.raids.length || from === to) return;
@@ -484,7 +454,7 @@ function CharacterCard({
           </button>
           {arranging && (
             <>
-              <p className={styles.note}>끌거나, 줄을 고른 뒤 ↑↓(또는 Alt+↑↓)로 옮겨요.</p>
+              <p className={styles.note}>끌거나, 줄에서 ↑↓로 옮겨요.</p>
               {character.gold && (
                 <p className={styles.legend}>
                   <span className={styles.legendDot} aria-hidden="true" />
@@ -530,8 +500,6 @@ function CharacterCard({
             index={index}
             count={character.raids.length}
             onMove={(to) => move(index, to)}
-            selected={selectedId === plan.raidId}
-            onSelect={(on) => setSelectedId(on ? plan.raidId : null)}
             onChange={(next) =>
               onChange({ ...character, raids: character.raids.map((r, j) => (j === index ? next : r)) })
             }

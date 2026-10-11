@@ -550,9 +550,15 @@
   color: var(--foreground);
   font-weight: 600;
 }
+/* 질서·혼돈·의지력 sit at the right end of the head, also when they wrap
+   under the title (user 10-12). */
+.panelMeta:has(> .gridMeta) {
+  margin-left: auto;
+}
 .gridMeta {
   display: inline-flex;
   flex-wrap: wrap;
+  justify-content: flex-end;
   align-items: center;
   gap: 4px 12px;
   font-variant-numeric: tabular-nums;
@@ -819,6 +825,50 @@
 }
 .siblingGrid li[data-current] div {
   box-shadow: inset 0 0 0 2px var(--foreground);
+}
+/* Roster tools (L17·L18): sort, compact, hide names; then the six-man line. */
+.rosterTools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 18px;
+}
+.rosterSwitch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+.rosterSwitch label {
+  cursor: pointer;
+}
+.rosterSummary {
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+.rosterSummary b {
+  font-weight: 700;
+}
+.rosterSummary small {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+/* Compact: name and item level only, more per row. */
+.siblingGrid[data-compact] {
+  grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+  gap: 6px;
+}
+.siblingGrid[data-compact] a,
+.siblingGrid[data-compact] div {
+  grid-template-areas: "name level arrow";
+  padding: 8px 12px;
+  border-radius: 12px;
+}
+.siblingGrid[data-compact] small {
+  display: none;
+}
+.siblingGrid[data-compact] strong {
+  font-size: 13px;
 }
 
 /* Evidence */
@@ -1106,17 +1156,18 @@
   min-width: 0;
   overflow-wrap: anywhere;
 }
-/* Finished items in amber, unfinished in gray (user 10-12). */
+/* Finished items in the site blue (the same as the used skill points),
+   unfinished in the plain text color (user 10-12, second pass). */
 .collectionItems small {
   flex: none;
   max-width: 50%;
   text-align: right;
-  color: var(--muted-foreground);
+  color: var(--foreground);
   font-size: 12px;
   font-variant-numeric: tabular-nums;
 }
 .collectionItems li[data-done] small {
-  color: var(--accent-warm);
+  color: var(--link);
   font-weight: 600;
 }
 .tendencies {
@@ -1372,6 +1423,9 @@
   font-weight: 600;
 }
 .skillChips > li {
+  /* A31: one line, never split (badge/chip/unit). */
+  flex: none;
+  white-space: nowrap;
   display: inline-flex;
   align-items: center;
   min-height: 22px;
@@ -1414,6 +1468,9 @@
 }
 /* "베타" next to a tab name (세팅 점검, dev and preview only). */
 .betaChip {
+  /* A31: one line, never split (badge/chip/unit). */
+  flex: none;
+  white-space: nowrap;
   margin-left: 1px;
   padding: 1px 5px;
   border: 1px solid currentColor;
@@ -1737,4 +1794,240 @@
   .gridToggle svg {
     transition: none;
   }
+}
+/* Per-core arrow at the row end; turns over when that core is open. */
+.coreChevron {
+  flex: none;
+  color: var(--muted-foreground);
+  transition: transform 200ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.core[open] > summary .coreChevron {
+  transform: rotate(180deg);
+}
+@media (prefers-reduced-motion: reduce) {
+  .coreChevron {
+    transition: none;
+  }
+}
+
+/* 스펙업 tab (spec-up-guide.tsx) */
+.specUpNote {
+  margin: -8px 0 16px;
+  color: var(--muted-foreground);
+  font-size: 13px;
+}
+.specUpBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+}
+.specUpSorts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.specUpSorts button,
+.specUpFailure button {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--secondary);
+  border-radius: 980px;
+  background: var(--background);
+  color: var(--foreground);
+  font-size: 13px;
+  cursor: pointer;
+}
+.specUpSorts button[aria-pressed="true"] {
+  border-color: var(--foreground);
+  background: var(--foreground);
+  color: var(--background);
+}
+.specUpPrices {
+  /* A fixed line, empty or not: with line-height normal the empty line was
+     4px taller than the text and the list moved up when it arrived. */
+  height: 18px;
+  margin: 8px 0 0;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 18px;
+}
+.specUpMuted {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.specUpBody {
+  /* One height for the chunk loading, the list loading and the list, so the
+     footer does not move as each arrives (CLS 0). A longer list grows below
+     the fold. */
+  min-height: 75vh;
+}
+.specUpLoading {
+  margin: 16px 0 0;
+  color: var(--muted-foreground);
+  font-size: 14px;
+}
+.specUpFailure {
+  display: grid;
+  justify-items: start;
+  gap: 6px;
+  margin-top: 16px;
+}
+.specUpFailure p {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 13px;
+}
+.specUp .tableWrap {
+  /* Keeps the visually hidden caption and header inside the scroller: an
+     absolute element otherwise escapes overflow-x and widens the page. */
+  position: relative;
+}
+.specUpTable thead th:nth-child(2),
+.specUpTable thead th:nth-child(3),
+.specUpTable thead th:nth-child(4),
+.specUpTable [data-cell="kind"],
+.specUpTable [data-cell="target"],
+.specUpTable [data-cell="change"] {
+  text-align: left;
+}
+.specUpTable [data-cell="target"] {
+  color: var(--foreground);
+  font-weight: 500;
+  white-space: normal;
+}
+.specUpTarget {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 180px;
+}
+/* Phones: one card per candidate, the gain and the cost in view without
+   scrolling the table sideways. */
+@media (max-width: 700px) {
+  .specUpTable,
+  .specUpTable tbody {
+    display: block;
+  }
+  .specUpTable thead {
+    display: none;
+  }
+  .specUpTable tr {
+    display: grid;
+    grid-template-columns: 24px minmax(0, 1fr) auto;
+    grid-template-areas:
+      "rank target try"
+      "rank change change"
+      "rank gain cost"
+      "rank eff eff";
+    gap: 4px 10px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--secondary);
+  }
+  .specUpTable tr > * {
+    padding: 0;
+    border: 0;
+    text-align: left;
+    white-space: normal;
+  }
+  .specUpTable [data-cell="rank"] {
+    grid-area: rank;
+    color: var(--muted-foreground);
+  }
+  .specUpTable [data-cell="kind"] {
+    display: none;
+  }
+  .specUpTable [data-cell="target"] {
+    grid-area: target;
+  }
+  .specUpTarget {
+    min-width: 0;
+  }
+  .specUpTable [data-cell="change"] {
+    grid-area: change;
+    color: var(--muted-foreground);
+  }
+  .specUpTable [data-cell="gain"] {
+    grid-area: gain;
+  }
+  .specUpTable [data-cell="cost"] {
+    grid-area: cost;
+    text-align: right;
+  }
+  .specUpTable [data-cell="eff"] {
+    grid-area: eff;
+  }
+  .specUpTable [data-cell="try"] {
+    grid-area: try;
+    align-self: center;
+  }
+  .specUpTable [data-label]::before {
+    content: attr(data-label) " ";
+    color: var(--muted-foreground);
+    font-size: 11px;
+    font-weight: 400;
+  }
+}
+.specUpGain {
+  color: var(--gain, var(--foreground));
+  font-weight: 600;
+}
+.specUpGain small {
+  color: var(--muted-foreground);
+  font-weight: 400;
+}
+.specUpTable a {
+  color: var(--link);
+}
+.specUpBases {
+  display: grid;
+  gap: 4px;
+  margin: 12px 0 0;
+  padding-left: 18px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.specUpFolded {
+  margin-top: 24px;
+}
+.specUpFolded h3 {
+  margin: 0 0 8px;
+  font-size: 14px;
+  font-weight: 650;
+}
+.specUpFolded > ul {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+}
+.specUpFolded summary {
+  cursor: pointer;
+  color: var(--muted-foreground);
+}
+.specUpFolded summary b {
+  color: var(--foreground);
+  font-weight: 600;
+}
+.specUpFolded details ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  color: var(--muted-foreground);
+}
+.sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* A new sort: the old list stays, dimmed, until the new one arrives. */
+.specUpList[data-stale] .tableWrap {
+  opacity: 0.55;
+  transition: opacity 150ms ease;
 }

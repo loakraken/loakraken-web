@@ -21,7 +21,7 @@ import { recordRecent } from "@/lib/character/recent";
 import { CharacterBanner } from "./imagery";
 import { Entrance } from "./entrance";
 import { kstTime, level, number, text } from "./parts";
-import { SettingCheckEnabled, SimulatorEnabled, TabBar, TabPanel, tabOf, useTabTop } from "./tabs";
+import { SettingCheckEnabled, SimulatorEnabled, SpecUpEnabled, TabBar, TabPanel, tabOf, useTabTop } from "./tabs";
 import { ArmoryPageEnabled } from "./use-armory-page";
 import { ReceiptEnabled } from "./receipt-panel";
 import styles from "./character.module.css";
@@ -201,6 +201,7 @@ function CharacterContent({
     useSearchParams().get("tab"),
     useContext(SettingCheckEnabled),
     useContext(SimulatorEnabled),
+    useContext(SpecUpEnabled),
   );
   useTabTop(tab);
   const [now, setNow] = useState(renderedAt);
@@ -356,6 +357,7 @@ export function CharacterView({
   receipt = true,
   settingCheck = true,
   simulator = true,
+  specUp = true,
   armoryPage = true,
   ...props
 }: {
@@ -368,6 +370,8 @@ export function CharacterView({
   settingCheck?: boolean;
   /** COMBAT_POWER_SIM on this deployment (server flag). */
   simulator?: boolean;
+  /** SPEC_UP_GUIDE on this deployment (server flag). */
+  specUp?: boolean;
   /** ARMORY_PAGE on this deployment (server flag). */
   armoryPage?: boolean;
 }) {
@@ -375,11 +379,13 @@ export function CharacterView({
     <ReceiptEnabled.Provider value={receipt}>
       <SettingCheckEnabled.Provider value={settingCheck}>
         <SimulatorEnabled.Provider value={simulator}>
-          <ArmoryPageEnabled.Provider value={armoryPage}>
-            <LandingMotion>
-              <CharacterContent {...props} />
-            </LandingMotion>
-          </ArmoryPageEnabled.Provider>
+          <SpecUpEnabled.Provider value={specUp}>
+            <ArmoryPageEnabled.Provider value={armoryPage}>
+              <LandingMotion>
+                <CharacterContent {...props} />
+              </LandingMotion>
+            </ArmoryPageEnabled.Provider>
+          </SpecUpEnabled.Provider>
         </SimulatorEnabled.Provider>
       </SettingCheckEnabled.Provider>
     </ReceiptEnabled.Provider>

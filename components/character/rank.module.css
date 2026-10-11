@@ -67,6 +67,9 @@
   font-variant-numeric: tabular-nums;
 }
 .tier {
+  /* A31: one line, never split (badge/chip/unit). */
+  flex: none;
+  white-space: nowrap;
   padding: 1px 6px;
   border-radius: 9999px;
   background: color-mix(in oklab, var(--primary) 12%, transparent);
