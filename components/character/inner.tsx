@@ -1,6 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { fetchCollectibleOwnership, fetchCollectibleStanding } from "@/lib/character/client";
+import { standingReason, topPercentText } from "@/lib/character/collectible-standing";
 import { AvatarCard, DetailTooltip, ItemTooltip } from "./item-tooltip";
 import { useItemTooltips } from "./use-item-tooltips";
 import { equipmentExtra } from "@/lib/character/item-tooltips";
@@ -48,10 +51,26 @@ type Filter = (typeof FILTERS)[number]["id"];
 
 function CollectionList({ collectible }: { collectible: Collectible }) {
   const [filter, setFilter] = useState<Filter>("all");
-  const items = collectible.items.filter((item) => {
+  const [rarest, setRarest] = useState(false);
+  // How many observed rosters own each item (backend #306). Off on the
+  // backend until the ranking ships: then the list shows no shares.
+  const ownership = useQuery({
+    queryKey: ["collectible-ownership", collectible.type],
+    queryFn: ({ signal }) => fetchCollectibleOwnership(collectible.type ?? "", signal),
+    enabled: Boolean(collectible.type),
+    staleTime: 10 * 60_000,
+    retry: false,
+  });
+  const owned = new Map((ownership.data?.data.items ?? []).map((item) => [item.name, item]));
+  const sample = ownership.data?.data.meta;
+  const shareOf = (name: string | null) => (name ? owned.get(name)?.ownedPercent ?? null : null);
+  const filtered = collectible.items.filter((item) => {
     const done = item.maxPoint != null && item.point === item.maxPoint;
     return filter === "all" || (filter === "done") === done;
   });
+  const items = rarest && owned.size
+    ? [...filtered].sort((a, b) => (shareOf(a.name) ?? 101) - (shareOf(b.name) ?? 101))
+    : filtered;
   const missing = collectible.items.filter(
     (item) => item.maxPoint == null || item.point !== item.maxPoint,
   ).length;
@@ -69,6 +88,11 @@ function CollectionList({ collectible }: { collectible: Collectible }) {
             {item.id === "missing" && ` ${missing}`}
           </button>
         ))}
+        {owned.size > 0 && (
+          <button type="button" aria-pressed={rarest} onClick={() => setRarest((value) => !value)}>
+            희귀한 순
+          </button>
+        )}
       </div>
       {!collectible.items.length ? (
         <p className={styles.muted}>항목 목록이 제공되지 않았어요.</p>
@@ -84,7 +108,12 @@ function CollectionList({ collectible }: { collectible: Collectible }) {
             const done = item.maxPoint != null && item.point === item.maxPoint;
             return (
               <li key={`${item.name}-${i}`} data-done={done || undefined}>
-                <span>{text(item.name)}</span>
+                <span>
+                  {text(item.name)}
+                  {shareOf(item.name) != null && (
+                    <em className={styles.ownedShare}> 보유율 {shareOf(item.name)!.toFixed(1)}%</em>
+                  )}
+                </span>
                 <small>
                   {item.maxPoint != null && item.maxPoint > 1
                     ? `${number(item.point)} / ${number(item.maxPoint)}`
@@ -96,6 +125,13 @@ function CollectionList({ collectible }: { collectible: Collectible }) {
             );
           })}
         </ol>
+      )}
+      {/* Below the list: it arrives after the list and must not push it. */}
+      {owned.size > 0 && sample && (
+        <p className={styles.caption}>
+          보유율: 크라켄 표본 원정대 {number(sample.population)}개 기준
+          {sample.sampleStatus !== "READY" && ` · 표본 ${number(sample.minSample)}개 미만이라 참고값`}
+        </p>
       )}
     </>
   );
@@ -233,6 +269,9 @@ export function CollectiblesTab({ data }: { data: Character }) {
               <p className={styles.muted}>성향이 제공되지 않았어요.</p>
             )}
           </Panel>
+          {/* Last in the column: it arrives late (and not at all while the
+              ranking is off), so it pushes nothing (CLS). */}
+          <CollectibleStandingPanel name={data.characterName} />
         </aside>
       </div>
     </div>
@@ -328,5 +367,60 @@ function AvatarPreview({ url, name }: { url: string | null; name: string }) {
         <p className={styles.avatarStageEmpty}>캐릭터 이미지를 불러오지 못했어요.</p>
       )}
     </div>
+  );
+}
+
+/**
+ * Where the roster stands in the collectible ranking (backend #304): rank of
+ * all observed rosters, top percent (first decimal rounded up), progress and
+ * points; with no rank, why. On LOAKraken's own sample, said so. Hidden while
+ * the ranking is off on the backend (the request fails).
+ */
+function CollectibleStandingPanel({ name }: { name: string }) {
+  const query = useQuery({
+    queryKey: ["collectible-standing", name],
+    queryFn: ({ signal }) => fetchCollectibleStanding(name, signal),
+    staleTime: 5 * 60_000,
+    retry: false,
+  });
+  const standing = query.data?.data;
+  if (query.isError || (!query.isPending && !standing)) return null;
+  const reference = standing?.meta.sampleStatus !== "READY";
+  return (
+    <Panel
+      title="수집품 순위"
+      meta={standing ? `크라켄 표본 원정대 ${number(standing.meta.population)}개 기준` : undefined}
+    >
+      {!standing ? (
+        <p className={styles.muted} role="status">
+          순위를 불러오고 있어요.
+        </p>
+      ) : standing.rank == null ? (
+        <p className={styles.muted}>{standingReason(standing.reason, standing.meta.conditions.activeDays)}</p>
+      ) : (
+        <dl className={styles.standing} data-reference={reference || undefined}>
+          <div>
+            <dt>원정대 순위</dt>
+            <dd>
+              <b>{number(standing.rank)}위</b> / {number(standing.total)}개
+            </dd>
+          </div>
+          <div>
+            <dt>상위</dt>
+            <dd>{topPercentText(standing.topPercent) ?? "-"}</dd>
+          </div>
+          <div>
+            <dt>모은 수집품</dt>
+            <dd>
+              {number(standing.point)} / {number(standing.maxPoint)}
+              {standing.progressPercent != null && <small> ({standing.progressPercent.toFixed(2)}%)</small>}
+            </dd>
+          </div>
+          {reference && (
+            <p className={styles.caption}>표본 {number(standing.meta.minSample)}개 미만이라 참고값이에요.</p>
+          )}
+        </dl>
+      )}
+    </Panel>
   );
 }

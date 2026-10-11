@@ -4,6 +4,7 @@ import type { HistoryEnvelope, SiblingsEnvelope, ViewsEnvelope } from "./validat
 import type { CardCollectionEnvelope, CardRefreshEnvelope } from "./card-collection";
 import type { PopularEnvelope, PopularPeriod } from "./popular";
 import type { RankEnvelope } from "./rank";
+import type { OwnershipEnvelope, StandingEnvelope } from "./collectible-standing";
 import type { TitlesEnvelope } from "./titles";
 import type { ReceiptEnvelope } from "./receipt";
 
@@ -67,6 +68,15 @@ export const fetchCardCollection = (name: string, signal: AbortSignal) =>
     `/api/characters/card-collection?${new URLSearchParams({ characterName: name })}`,
     signal,
   );
+
+export const fetchCollectibleStanding = (name: string, signal: AbortSignal) =>
+  getJson<StandingEnvelope>(
+    `/api/characters/collectible-standing?${new URLSearchParams({ characterName: name })}`,
+    signal,
+  );
+
+export const fetchCollectibleOwnership = (type: string, signal: AbortSignal) =>
+  getJson<OwnershipEnvelope>(`/api/collectibles/ownership?${new URLSearchParams({ type })}`, signal);
 
 export const fetchRank = (name: string, signal: AbortSignal) =>
   getJson<RankEnvelope>(
