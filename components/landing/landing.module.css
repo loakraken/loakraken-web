@@ -50,6 +50,9 @@
 .heroEnter:nth-child(3) { animation-delay: 120ms; }
 .orbInteraction { margin-top: 2px; width: 320px; height: 276px; display: grid; place-items: center; transition: transform 450ms var(--ease-out); }
 .orbStage { width: 276px; height: 276px; display: grid; place-items: center; position: relative; isolation: isolate; }
+/* The orb is the pause button: no button look, a round focus ring. */
+button.orbStage { padding: 0; border: 0; border-radius: 50%; background: none; color: inherit; font: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+button.orbStage:focus-visible { outline: 3px solid var(--ring); outline-offset: -4px; }
 /* Refraction belongs to the orb visual; interface surfaces remain flat. */
 .orbAtmosphere { position: absolute; bottom: 25px; left: 65px; width: 146px; height: 13px; border-radius: 50%; background: #9aacc0; filter: blur(15px); opacity: 0.3; animation: orb-shadow 8s ease-in-out infinite; }
 .orbShell { position: relative; width: 184px; height: 184px; border-radius: 50%; display: grid; place-items: center; background: radial-gradient(circle at 35% 28%, #fff 3%, #e6f4ff 30%, #a5cbea 63%, #72a2cc 82%, #d2e4f4 100%); border: 1px solid #c0d5e7; box-shadow: inset 4px 5px 13px #fff, inset -6px -10px 23px #327ab333; animation: orb-float 8s ease-in-out infinite; }
@@ -210,7 +213,7 @@
 .roadmapSection { padding-top: 0; padding-bottom: 110px; }
 .roadmap { border-top: 1px solid var(--border); }
 .roadmapNote { max-width: 760px; margin: -12px 0 36px; color: var(--muted-foreground); font-size: 14px; line-height: 1.8; }
-.roadmapItem { display: flex; align-items: flex-start; gap: 40px; padding: 36px 8px 36px 0; border-bottom: 1px solid var(--border); transition: background-color 200ms ease; }
+.roadmapItem { display: flex; align-items: flex-start; gap: 40px; padding: 36px 8px 36px 0; border-bottom: 1px solid var(--border); }
 .roadmapNumber { width: 40px; padding-top: 4px; font-size: 17px; font-weight: 500; color: var(--muted-foreground); }
 .roadmapItem > div { flex: 1; min-width: 0; }
 .roadmapStatus { display: flex; align-items: center; gap: 6px; float: right; margin-top: 7px; color: var(--muted-foreground); font-size: 12px; }
@@ -220,7 +223,6 @@
 .roadmapItem h3 { font-size: 24px; font-weight: 600; letter-spacing: -0.6px; }
 .roadmapItem p { max-width: 620px; margin-top: 12px; color: var(--muted-foreground); font-size: 15px; }
 .roadmapItem .roadmapScope { color: var(--foreground); font-size: 13px; }
-.roadmapItem > svg { margin-top: 8px; color: var(--input); transition: transform 160ms var(--ease-out); }
 .closing { text-align: center; padding: 100px 24px; background: var(--muted); }
 .closingMark { display: inline-grid; place-items: center; color: var(--foreground); margin-bottom: 26px; }
 .closingMark svg { width: 40px; height: 40px; }
@@ -252,13 +254,14 @@
 .orbStage[data-orb-active="false"] *, .landing [data-in-view="false"] *, .landing [data-in-view="false"] *::before { animation-play-state: paused !important; }
 :global([data-motion="off"]) .landing *, :global([data-motion="off"]) .landing *::before, :global([data-motion="off"]) .landing *::after { animation-play-state: paused !important; transition-duration: 0ms !important; }
 :global([data-motion="off"]) .heroEnter { animation: none; }
-/* Repeating motion stops 5s after it starts (no pause button, WCAG 2.2.2). */
+/* Repeating motion keeps going; the orb pauses it (WCAG 2.2.2). data-loop is
+   off while paused or the tab is hidden; data-motion-paused on <html> is the
+   remembered choice, there from the first paint (before hydration). */
+:global(:root[data-motion-paused]) .landing *, :global(:root[data-motion-paused]) .landing *::before, :global(:root[data-motion-paused]) .landing *::after { animation-play-state: paused !important; }
 :global([data-loop="off"]) .landing *, :global([data-loop="off"]) .landing *::before, :global([data-loop="off"]) .landing *::after { animation-play-state: paused !important; }
 @media (hover: hover) and (pointer: fine) {
   .footer > a:last-child:hover { color: var(--link); }
   .navCta:hover, .primaryButton:hover, .searchSubmit:hover { background: color-mix(in oklab, var(--primary) 90%, var(--foreground)); }
-  .roadmapItem:hover { background: var(--accent); }
-  .roadmapItem:hover > svg { transform: translate(2px, -2px); }
   .cardLink:hover, .exploreLink:hover, .searchMessage a:hover { text-decoration: underline; text-underline-offset: 4px; }
 }
 @media (max-width: 1050px) {

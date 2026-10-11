@@ -30,6 +30,10 @@
      until the page ends. */
   max-height: calc(100dvh - 72px - 16px);
   overflow-y: auto;
+  /* the bar stays inside the rounded card, and appearing does not move the
+     content */
+  --scrollbar-inset: var(--radius-xl);
+  scrollbar-gutter: stable;
   overscroll-behavior: contain;
 }
 .sectionTitle {

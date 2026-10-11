@@ -1316,6 +1316,11 @@ export function SkillsTab({ data }: { data: Character }) {
   const short = engravings.map((engraving) => (engraving.name ?? "").slice(0, 1)).join("");
   const classEngraving = data.loadout.arkPassive?.title;
   const ratio = points?.used != null && points.total ? Math.min(1, points.used / points.total) : 0;
+  // Two pieces on the ring: used (blue) and left (amber), with small gaps.
+  // The left piece never shrinks below 4% so 478/483 still shows it (user 10-11).
+  const gap = 0.02;
+  const leftShare = ratio >= 1 ? 0 : Math.max(1 - ratio, 0.04);
+  const usedShare = ratio <= 0 ? 0 : leftShare ? 1 - leftShare - gap * 2 : 1;
   return (
     <div className={styles.layout}>
       <div className={styles.skillHeadRow}>
@@ -1348,15 +1353,27 @@ export function SkillsTab({ data }: { data: Character }) {
           {points?.used != null && points.total != null ? (
             <div className={styles.spRing}>
               <svg viewBox="0 0 64 64" role="img" aria-label={`스킬 포인트 ${points.used} / ${points.total}`}>
-                <circle cx="32" cy="32" r="27" className={styles.spTrack} />
-                <circle
-                  cx="32"
-                  cy="32"
-                  r="27"
-                  className={styles.spFill}
-                  pathLength={1}
-                  strokeDasharray={`${ratio} 1`}
-                />
+                {usedShare > 0 && (
+                  <circle
+                    cx="32"
+                    cy="32"
+                    r="27"
+                    className={styles.spFill}
+                    pathLength={1}
+                    strokeDasharray={`${usedShare} 1`}
+                  />
+                )}
+                {leftShare > 0 && (
+                  <circle
+                    cx="32"
+                    cy="32"
+                    r="27"
+                    className={styles.spLeft}
+                    pathLength={1}
+                    strokeDasharray={`${leftShare} 1`}
+                    strokeDashoffset={-(usedShare + (usedShare > 0 ? gap : 0))}
+                  />
+                )}
               </svg>
               <p>
                 <b>{number(points.used)}</b> / {number(points.total)}
