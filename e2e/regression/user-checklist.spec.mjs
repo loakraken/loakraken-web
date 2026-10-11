@@ -49,6 +49,10 @@ const ROUTES = [
   characterPath("상세", "skills"),
   characterPath("상세", "collectibles"),
   characterPath("상세", "siblings"),
+  characterPath("상세", "arkpassive"),
+  characterPath("상세", "stats"),
+  characterPath("상세", "simulator"),
+  characterPath("상세", "specup"),
 ];
 
 /**
@@ -159,52 +163,96 @@ test.describe("사용자 지적 회귀 점검표 @regression", () => {
     });
   });
 
-  test("@A7 조건·탭·버튼을 눌러도 다른 영역이 흔들리지 않는다", async ({
-    page,
-  }) => {
-    await watchShifts(page);
-    const flows = [
-      [
-        "/rankings",
-        async () =>
-          chooseOption(
-            page,
-            page.getByRole("combobox", { name: "최근 확인" }),
-            "7일",
-          ),
-      ],
-      ["/stats", async () => page.getByRole("tab", { name: "서버" }).click()],
-      [
-        "/market",
-        async () =>
-          page
-            .getByRole("group", { name: "정렬" })
-            .getByRole("button", { name: "고가" })
-            .click(),
-      ],
-      [
-        characterPath("상세"),
-        async () =>
-          page
-            .getByRole("button", { name: "아크 그리드 코어 전체 펼치기" })
-            .click(),
-      ],
-    ];
-    const moved = [];
-    for (const [path, act] of flows) {
-      await gotoReady(page, path);
+  // A7 (PM-프론트 #589 P1): a control that should grow nothing (a period, a
+  // tab, a sort) moves nothing at all, input-triggered shifts included, and
+  // stays where it was; a control that opens content below (the ark grid's
+  // expand) may push what is under it, so there only shifts with no input count.
+  const A7_FLOWS = [
+    {
+      name: "랭킹 기간",
+      path: "/rankings",
+      grows: false,
+      control: (page) => page.getByRole("combobox", { name: "최근 확인" }),
+      act: (page) =>
+        chooseOption(
+          page,
+          page.getByRole("combobox", { name: "최근 확인" }),
+          "7일",
+        ),
+    },
+    {
+      name: "통계 탭",
+      path: "/stats",
+      grows: false,
+      control: (page) => page.getByRole("tab", { name: "서버" }),
+      act: (page) => page.getByRole("tab", { name: "서버" }).click(),
+    },
+    {
+      name: "시세 정렬",
+      path: "/market",
+      grows: false,
+      control: (page) =>
+        page
+          .getByRole("group", { name: "정렬" })
+          .getByRole("button", { name: "고가" }),
+      act: (page) =>
+        page
+          .getByRole("group", { name: "정렬" })
+          .getByRole("button", { name: "고가" })
+          .click(),
+    },
+    {
+      name: "아크 그리드 펼치기",
+      path: characterPath("상세"),
+      grows: true,
+      control: (page) =>
+        page.getByRole("button", { name: "아크 그리드 코어 전체 펼치기" }),
+      act: (page) =>
+        page
+          .getByRole("button", { name: "아크 그리드 코어 전체 펼치기" })
+          .click(),
+    },
+  ];
+  // Found by this stricter A7 (10-12 06:0x) and handed to the next front PR
+  // (#594): expected failures until fixed, then drop the line.
+  const KNOWN_A7 = {
+    "랭킹 기간": "누른 직후 0.0001",
+    "통계 탭": "서버 탭으로 바꾸면 아래 안내가 밀림 0.0711",
+    "시세 정렬": "정렬을 바꾸면 목록 아래가 밀림 0.0130",
+  };
+  for (const flow of A7_FLOWS) {
+    test(`@A7 ${flow.name}: ${flow.grows ? "아래로 펼치는 것 말고는" : "누른 뒤에도"} 흔들림 0`, async ({
+      page,
+    }) => {
+      test.fail(flow.name in KNOWN_A7, KNOWN_A7[flow.name]);
+      await watchShifts(page);
+      await gotoReady(page, flow.path);
       await page.waitForTimeout(500);
+      const control = flow.control(page);
+      const where = async () => {
+        const box = await control.boundingBox();
+        return box && [Math.round(box.x), Math.round(box.y)];
+      };
       const before = await shifts(page);
-      await act();
+      const at = await where();
+      await flow.act(page);
       await page.waitForTimeout(1200);
       const after = await shifts(page);
-      // Content growing below what was pressed (a list opening) is the user's own change;
-      // shifts with no recent input during loading are not.
-      if (after.quiet > before.quiet)
-        moved.push(`${path}: ${after.quiet - before.quiet}`);
-    }
-    expect(moved, "조작 뒤 저절로 흔들린 화면").toEqual([]);
-  });
+      expect(
+        (after.quiet - before.quiet).toFixed(4),
+        "입력 없이 생긴 흔들림",
+      ).toBe("0.0000");
+      if (!flow.grows) {
+        expect(
+          (after.input - before.input).toFixed(4),
+          "누른 직후 흔들림",
+        ).toBe("0.0000");
+        // The pressed control may be gone (a closed list) or renamed; when it is there, it has not moved.
+        if (await control.count())
+          expect(await where(), "누른 컨트롤 위치").toEqual(at);
+      }
+    });
+  }
 
   test("@A8 keepPreviousData를 쓰는 파일은 isPlaceholderData(흐림 표시)도 쓴다", async () => {
     const files = [];
@@ -266,14 +314,12 @@ test.describe("사용자 지적 회귀 점검표 @regression", () => {
     const inMenu = new Set();
     // Menu buttons with a name (the icon-only sheet button is for narrow screens).
     const menus = (
-      await nav
-        .locator("button[aria-controls]")
-        .evaluateAll((buttons) =>
-          buttons.map((b) => ({
-            name: b.textContent.trim(),
-            panel: b.getAttribute("aria-controls"),
-          })),
-        )
+      await nav.locator("button[aria-controls]").evaluateAll((buttons) =>
+        buttons.map((b) => ({
+          name: b.textContent.trim(),
+          panel: b.getAttribute("aria-controls"),
+        })),
+      )
     ).filter((m) => m.name);
     expect(menus.length).toBeGreaterThan(2);
     for (const { name, panel } of menus) {
