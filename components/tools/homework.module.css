@@ -222,12 +222,23 @@
   gap: var(--space-1);
   margin-top: var(--space-1);
 }
+/* 사용자 지적 10-11 21:06: every gate row puts its checkboxes at the same x —
+   the clear check at the left, the 더보기 check at the left of a fixed
+   right column whose amount is right-aligned (tabular), so a longer amount
+   no longer pushes its box. */
 .gates li {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 11.5em;
   align-items: center;
   gap: var(--space-2);
+}
+.gates li > .moreCheck {
+  grid-column: 2;
+}
+.moreCheck span {
+  flex: 1;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 .gateCheck,
 .moreCheck {
@@ -406,4 +417,52 @@
   display: flex;
   justify-content: center;
   margin-top: var(--space-2);
+}
+
+/* 순서 바꾸기 ↔ 완료 in one cell: the button is as wide as the wider word. */
+.swap {
+  display: inline-grid;
+}
+.swap > span {
+  grid-area: 1 / 1;
+  text-align: center;
+}
+.swap > span[data-off] {
+  visibility: hidden;
+}
+/* What the green dot means, next to the list. */
+.legend {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: var(--text-caption);
+}
+.legendDot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ok, var(--success));
+}
+/* 선택: a selected raid takes ↑↓ (사용자 안 10-11 21:06). */
+.selectButton {
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--input);
+  border-radius: 999px;
+  background: var(--background);
+  color: var(--foreground);
+  font-size: var(--text-caption);
+  cursor: pointer;
+}
+.selectButton[aria-pressed="true"] {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+.raid[data-selected] {
+  border-radius: var(--radius-lg, 12px);
+  box-shadow: 0 0 0 2px var(--primary);
 }
