@@ -167,8 +167,8 @@ export function ContributionTool() {
               <p className={quote.caption}>기준 시점 {gate.basisDate}</p>
               <ul className={styles.notes}>
                 <li>하한은 1인분의 0.9배, 상한은 1.2배예요. 내 위치는 하한이 0%, 상한이 100%예요.</li>
-                <li>보스 체력과 기준값은 공식 자료가 없어, 관문마다 최근 기준으로 맞춘 값이에요.</li>
-                <li>공대 구성·택틱에 따라 실제 피해량은 달라질 수 있어 서포터는 이 기준을 쓰지 않아요.</li>
+                <li>관문마다 위의 기준 시점에 맞춘 값이에요.</li>
+                <li>딜러 기준이에요. 서포터는 이 기준을 쓰지 않아요.</li>
               </ul>
             </section>
           </div>
