@@ -1,15 +1,22 @@
 "use client";
 
-import { useEffect, useId, useState, type FormEvent } from "react";
+import { useEffect, useId, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { useRemaining } from "@/components/home/clock";
 import { useMutation } from "@tanstack/react-query";
-import { Add, ArrowLeft, TaskSquare, TrashSquare } from "@/components/ui/icons";
+import { Add, ArrowDown, ArrowLeft, TaskSquare, TrashSquare } from "@/components/ui/icons";
 import Link from "next/link";
 import { SiteHeader } from "@/components/site/site-header";
 import { CharacterQueryError, fetchSiblings } from "@/lib/character/client";
 import { rateLimitCopy, retryLabel } from "@/lib/api/rate-limit";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import {
+  characterCheckState,
+  moveRaid,
+  nextCleared,
+  raidCheckState,
+  setCharacterCleared,
+  setRaidCleared,
+  type CheckState,
   GOLD_CHARACTERS,
   GOLD_RAIDS_PER_CHARACTER,
   STORAGE_KEY,
@@ -216,16 +223,59 @@ function AddRoster({ onAdd }: { onAdd: (picked: Sibling[]) => void }) {
   );
 }
 
+/**
+ * 전체 체크(사용자 14:44): a native check box with the "some" state shown as
+ * indeterminate (read out as mixed). Pressing it ticks everything unless all
+ * is already ticked. The bencho Checklist look replaces this once its source
+ * is in the vault; the behaviour and labels stay.
+ */
+function TriCheck({
+  state,
+  label,
+  onChange,
+  className,
+}: {
+  state: CheckState;
+  label: string;
+  onChange: (cleared: boolean) => void;
+  className?: string;
+}) {
+  const box = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (box.current) box.current.indeterminate = state === "some";
+  }, [state]);
+  return (
+    <label className={className ?? styles.allCheck}>
+      <input
+        ref={box}
+        type="checkbox"
+        checked={state === "all"}
+        aria-checked={state === "some" ? "mixed" : state === "all"}
+        onChange={() => onChange(nextCleared(state))}
+      />
+      <span>{label}</span>
+    </label>
+  );
+}
+
 function RaidRow({
   plan,
   itemLevel,
+  index,
+  count,
   onChange,
   onRemove,
+  onMove,
 }: {
   plan: RaidPlan;
   itemLevel: number;
+  /** Position in the character's list (gold goes to the first three). */
+  index: number;
+  count: number;
   onChange: (plan: RaidPlan) => void;
   onRemove: () => void;
+  /** Move to a new position; the parent saves and announces it. */
+  onMove: (to: number) => void;
 }) {
   const mode = modeOf(plan);
   if (!mode) return null;
@@ -241,13 +291,47 @@ function RaidRow({
   const title = `${raidName(plan.raidId)} ${DIFFICULTY_LABEL[plan.difficulty]}`;
   const toggle = (key: "cleared" | "more", i: number) =>
     onChange({ ...plan, [key]: plan[key].map((v, j) => (j === i ? !v : v)) });
+  // Keyboard move (PM-프론트 기준 ③): Alt+↑/↓ anywhere in the raid.
+  const onKeyDown = (event: KeyboardEvent<HTMLLIElement>) => {
+    if (!event.altKey || (event.key !== "ArrowUp" && event.key !== "ArrowDown")) return;
+    event.preventDefault();
+    const to = event.key === "ArrowUp" ? index - 1 : index + 1;
+    if (to >= 0 && to < count) onMove(to);
+  };
   return (
-    <li className={styles.raid}>
+    <li className={styles.raid} onKeyDown={onKeyDown}>
       <div className={styles.raidHead}>
-        <strong>{title}</strong>
-        <button type="button" className={styles.iconButton} onClick={onRemove} aria-label={`${title} 빼기`}>
-          <TrashSquare size={14} aria-hidden="true" />
-        </button>
+        <TriCheck
+          className={styles.raidAll}
+          state={raidCheckState(plan)}
+          label={title}
+          onChange={(cleared) => onChange(setRaidCleared(plan, cleared))}
+        />
+        <span className={styles.raidTools}>
+          <button
+            type="button"
+            className={styles.iconButton}
+            onClick={() => onMove(index - 1)}
+            disabled={index === 0}
+            aria-label={`${title} 위로`}
+            aria-keyshortcuts="Alt+ArrowUp"
+          >
+            <ArrowDown size={14} aria-hidden="true" style={{ rotate: "180deg" }} />
+          </button>
+          <button
+            type="button"
+            className={styles.iconButton}
+            onClick={() => onMove(index + 1)}
+            disabled={index === count - 1}
+            aria-label={`${title} 아래로`}
+            aria-keyshortcuts="Alt+ArrowDown"
+          >
+            <ArrowDown size={14} aria-hidden="true" />
+          </button>
+          <button type="button" className={styles.iconButton} onClick={onRemove} aria-label={`${title} 빼기`}>
+            <TrashSquare size={14} aria-hidden="true" />
+          </button>
+        </span>
       </div>
       {higherOpen && (
         <p className={styles.note}>
@@ -294,6 +378,8 @@ function CharacterCard({
 }) {
   const selectId = useId();
   const gold = characterGold(character);
+  // Announces a move once (PM-프론트 기준 ③); the moved row keeps focus.
+  const [moved, setMoved] = useState("");
   const used = new Set(character.raids.map((r) => r.raidId));
   const options = eligibleModes(character.itemLevel).filter(({ raid }) => !used.has(raid.id));
   return (
@@ -334,12 +420,26 @@ function CharacterCard({
           </small>
         </span>
       </label>
+      {character.raids.length > 0 && (
+        <TriCheck
+          state={characterCheckState(character)}
+          label="전체 완료"
+          onChange={(cleared) => onChange(setCharacterCleared(character, cleared))}
+        />
+      )}
       <ul className={styles.raids}>
         {character.raids.map((plan, index) => (
           <RaidRow
             key={plan.raidId}
             plan={plan}
             itemLevel={character.itemLevel}
+            index={index}
+            count={character.raids.length}
+            onMove={(to) => {
+              if (to < 0 || to >= character.raids.length) return;
+              onChange(moveRaid(character, index, to));
+              setMoved(`${raidName(plan.raidId)} ${DIFFICULTY_LABEL[plan.difficulty]}: ${to + 1}번째로 옮겼어요.`);
+            }}
             onChange={(next) =>
               onChange({ ...character, raids: character.raids.map((r, j) => (j === index ? next : r)) })
             }
@@ -349,9 +449,12 @@ function CharacterCard({
       </ul>
       {character.raids.length > GOLD_RAIDS_PER_CHARACTER && (
         <p className={styles.note}>
-          골드는 위에서부터 {GOLD_RAIDS_PER_CHARACTER}개 레이드만 받아요.
+          골드는 위에서부터 {GOLD_RAIDS_PER_CHARACTER}개 레이드만 받아요. 순서는 화살표나 Alt+↑↓로 바꿀 수 있어요.
         </p>
       )}
+      <p className={styles.sr} role="status" aria-live="polite">
+        {moved}
+      </p>
       {options.length > 0 && (
         <div className={styles.addRaid}>
           <label htmlFor={selectId} className={styles.sr}>

@@ -3,6 +3,13 @@ import test from "node:test";
 import {
   GOLD_CHARACTERS,
   addCharacters,
+  characterCheckState,
+  moveRaid,
+  nextCleared,
+  raidCheckState,
+  setCharacterCleared,
+  setRaidCleared,
+  STORAGE_KEY,
   autoRaids,
   characterGold,
   emptyState,
@@ -171,4 +178,47 @@ test("equal gold picks the newer raid like the target site (#277 P2)", () => {
   // 언로늘 1,723.33: 종막 노말 and 세르카 노말 both pay 32,000 at entry 1,710.
   const picks = autoRaids(1723.33).map((r) => `${r.raidId}/${r.difficulty}`);
   assert.deepEqual(picks, ["horizon-cathedral/STAGE_2", "kazeros-act4/HARD", "serka/NORMAL"]);
+});
+
+test("moving a raid reorders the stored list, and gold follows the order (사용자 14:44)", () => {
+  const now = Date.parse("2026-10-11T03:00:00Z");
+  const state = addCharacters(emptyState(now), [
+    { name: "순서", server: "루페온", className: "블래스터", itemLevel: 1730 },
+  ]);
+  const before = state.characters[0];
+  assert.ok(before.raids.length >= 3);
+  const extra = { ...before, raids: [...before.raids, { ...before.raids[0], raidId: "behemoth", difficulty: "NORMAL" as const }] };
+  // Last raid to the top: it is now among the first three and pays gold; the
+  // previous third does not.
+  const moved = moveRaid(extra, extra.raids.length - 1, 0);
+  assert.equal(moved.raids[0].raidId, "behemoth");
+  assert.deepEqual(moved.raids.slice(1).map((r) => r.raidId), extra.raids.slice(0, -1).map((r) => r.raidId));
+  // Out of range or no-op: unchanged (same object).
+  assert.equal(moveRaid(extra, 0, 0), extra);
+  assert.equal(moveRaid(extra, -1, 2), extra);
+  assert.equal(moveRaid(extra, 0, 99), extra);
+  // Stored as is: the order survives a save and load (no new field, version 1).
+  const saved = JSON.stringify({ ...state, characters: [moved] });
+  const loaded = parseState(saved, now);
+  assert.deepEqual(loaded.characters[0].raids.map((r) => r.raidId), moved.raids.map((r) => r.raidId));
+  assert.equal(STORAGE_KEY, "loakraken-homework");
+});
+
+test("전체 체크: raid and character tri-state, and bulk ticks keep bonus choices", () => {
+  const now = Date.parse("2026-10-11T03:00:00Z");
+  const c = addCharacters(emptyState(now), [{ name: "체크", server: "루페온", className: "블래스터", itemLevel: 1730 }]).characters[0];
+  const raid = { ...c.raids[0], more: c.raids[0].more.map((_, i) => i === 0) };
+  assert.equal(raidCheckState(raid), "none");
+  const partly = { ...raid, cleared: raid.cleared.map((_, i) => i === 0) };
+  assert.equal(raidCheckState(partly), raid.cleared.length > 1 ? "some" : "all");
+  const all = setRaidCleared(partly, nextCleared(raidCheckState(partly)));
+  assert.equal(raidCheckState(all), "all");
+  assert.deepEqual(all.more, raid.more, "bonus choices stay");
+  assert.equal(raidCheckState(setRaidCleared(all, nextCleared("all"))), "none");
+
+  const mixed = { ...c, raids: [all, ...c.raids.slice(1)] };
+  assert.equal(characterCheckState(mixed), "some");
+  assert.equal(characterCheckState(setCharacterCleared(mixed, true)), "all");
+  assert.equal(characterCheckState(setCharacterCleared(mixed, false)), "none");
+  assert.equal(characterCheckState({ ...c, raids: [] }), "none");
 });

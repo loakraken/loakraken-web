@@ -278,3 +278,49 @@ export function parseState(text: string | null, now: number): HomeworkState {
 }
 
 
+
+/* Order and bulk checks (사용자 요청 2026-10-11 14:44) ---------------------- */
+
+/**
+ * Moves a raid within the character's list. The list order is what is stored
+ * (raids[] in the same homework storage, no new field), and it is also what
+ * decides gold: the first GOLD_RAIDS_PER_CHARACTER raids pay. Out-of-range
+ * moves return the character unchanged.
+ */
+export function moveRaid(character: Character, from: number, to: number): Character {
+  const count = character.raids.length;
+  if (from === to || from < 0 || to < 0 || from >= count || to >= count) return character;
+  const raids = [...character.raids];
+  const [moved] = raids.splice(from, 1);
+  raids.splice(to, 0, moved);
+  return { ...character, raids };
+}
+
+/** "all" · "none" · "some" over cleared gates, for a tri-state check box. */
+export type CheckState = "all" | "none" | "some";
+
+const checkStateOf = (flags: boolean[]): CheckState =>
+  flags.length > 0 && flags.every(Boolean) ? "all" : flags.some(Boolean) ? "some" : "none";
+
+export const raidCheckState = (plan: RaidPlan): CheckState => checkStateOf(plan.cleared);
+
+export const characterCheckState = (character: Character): CheckState =>
+  checkStateOf(character.raids.flatMap((plan) => plan.cleared));
+
+/**
+ * Ticks or clears every gate of a raid. Bonus rewards (more[]) stay as chosen:
+ * they are a purchase decision, not progress, and only count on cleared gates.
+ */
+export const setRaidCleared = (plan: RaidPlan, cleared: boolean): RaidPlan => ({
+  ...plan,
+  cleared: plan.cleared.map(() => cleared),
+});
+
+/** The same for every raid of a character (전체 체크). */
+export const setCharacterCleared = (character: Character, cleared: boolean): Character => ({
+  ...character,
+  raids: character.raids.map((plan) => setRaidCleared(plan, cleared)),
+});
+
+/** A tri-state box toggles to "all" unless it already is all (then none). */
+export const nextCleared = (state: CheckState) => state !== "all";
