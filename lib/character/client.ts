@@ -58,7 +58,7 @@ export const fetchPopular = (period: PopularPeriod, signal: AbortSignal) =>
 
 export const fetchReceipt = (name: string, assumeBook: boolean, signal: AbortSignal) =>
   getJson<ReceiptEnvelope>(
-    `/api/characters/receipt?${new URLSearchParams({ characterName: name, ...(assumeBook && { assumeBook: "true" }) })}`,
+    `/api/characters/receipt?${new URLSearchParams({ characterName: name, assumeBook: String(assumeBook) })}`,
     signal,
   );
 

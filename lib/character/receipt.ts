@@ -48,7 +48,8 @@ export function requestReceipt(
   if (characterNameError(name)) return Promise.resolve(invalid);
   const url = backendUrl(origin, "/api/v1/characters/receipt");
   url?.searchParams.set("characterName", normalizeCharacterName(name));
-  if (assumeBook) url?.searchParams.set("assumeBook", "true");
+  // Always explicit (PM 총괄 10-11): if the backend default changes, "책 제외" still holds.
+  url?.searchParams.set("assumeBook", String(assumeBook));
   return requestBackend(url, { ...options, isValid: isReceiptEnvelope, errorCodes });
 }
 
