@@ -1695,3 +1695,35 @@
 .skillCode .textButton {
   margin-top: 10px;
 }
+/* Ark grid: expand/collapse every core from under the list (44px target);
+   the chevron turns over when open. */
+.gridToggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+  min-height: 44px;
+  margin-top: 8px;
+  border-radius: 12px;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  cursor: pointer;
+}
+.gridToggle svg {
+  transition: transform 200ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.gridToggle[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+@media (hover: hover) and (pointer: fine) {
+  .gridToggle:hover {
+    background: var(--secondary);
+    color: var(--foreground);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gridToggle svg {
+    transition: none;
+  }
+}
