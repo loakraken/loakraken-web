@@ -4,6 +4,12 @@
 export const PRODUCTION_URL = "https://loakraken.gg";
 export const SITE_NAME = "LOAKraken";
 
+/**
+ * The community Discord invite (header and footer read it from here). The
+ * current invite expires 2026-11-10 — swap in the non-expiring one here.
+ */
+export const DISCORD_URL = "https://discord.gg/qVhArj2rb";
+
 /** Origin of the running site; an unset or invalid SITE_URL means production. */
 export function siteUrl(env: string | undefined = process.env.SITE_URL) {
   if (!env) return PRODUCTION_URL;
