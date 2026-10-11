@@ -148,8 +148,18 @@
   font-size: var(--text-caption);
 }
 .footnote a {
-  color: var(--link);
+  /* A source reads like the text round it (user 10-12): same colour and
+     weight; a link keeps only a faint underline, darker on hover. */
+  color: inherit;
+  font-weight: inherit;
   text-decoration: underline;
+  text-decoration-color: color-mix(in oklab, currentColor 40%, transparent);
+  text-underline-offset: 0.2em;
+}
+@media (hover: hover) and (pointer: fine) {
+  .footnote a:hover {
+    text-decoration-color: currentColor;
+  }
 }
 
 .grid {
@@ -341,7 +351,7 @@
 
 @media (hover: hover) and (pointer: fine) {
   .iconButton:hover {
-    background: var(--muted);
+    background: var(--hover-surface);
     color: var(--foreground);
   }
 }

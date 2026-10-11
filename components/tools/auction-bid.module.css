@@ -303,13 +303,16 @@
   list-style: disc;
 }
 .basis strong {
-  color: var(--accent-warm);
+  /* "추정" reads like the sentence it is in (user 10-12: no emphasis on
+     sources and grounds). */
+  color: inherit;
+  font-weight: inherit;
 }
 
 @media (hover: hover) and (pointer: fine) {
   .copy:hover {
     border-color: var(--primary);
-    background: var(--muted);
+    background: var(--hover-surface);
   }
 }
 

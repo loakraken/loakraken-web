@@ -39,11 +39,25 @@
   font-size: var(--text-caption);
 }
 .source {
-  color: var(--link);
+  /* A source reads like the text round it (user 10-12): same colour and
+     weight; a link keeps only a faint underline, darker on hover. */
+  color: inherit;
+  font-weight: inherit;
   text-decoration: underline;
+  text-decoration-color: color-mix(in oklab, currentColor 40%, transparent);
+  text-underline-offset: 0.2em;
+}
+@media (hover: hover) and (pointer: fine) {
+  a.source:hover {
+    text-decoration-color: currentColor;
+  }
+}
+/* Not underlined unless it links somewhere. */
+span.source {
+  text-decoration: none;
 }
 .sourceNone {
-  color: var(--muted-foreground);
+  color: inherit;
 }
 
 .filters {
@@ -169,7 +183,7 @@
 
 @media (hover: hover) and (pointer: fine) {
   .chip:not([aria-pressed="true"]):hover {
-    background: var(--muted);
+    background: var(--hover-surface);
   }
 }
 @media (max-width: 760px) {
