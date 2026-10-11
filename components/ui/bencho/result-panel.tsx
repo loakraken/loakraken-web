@@ -37,7 +37,16 @@ type ResultItem = {
   avatar?: { src?: string | null; fallback?: ReactNode };
 };
 
-type ResultGroup = { id: string; title?: ReactNode; items: ResultItem[] };
+type ResultGroup = {
+  id: string;
+  title?: ReactNode;
+  items: ResultItem[];
+  /** (ours, 10-12) rows of room held while the items load, so later groups
+      do not move when they arrive; the group shows its title meanwhile */
+  reserve?: number;
+  /** (ours) shown in the held room when the group came back empty */
+  note?: ReactNode;
+};
 
 type ResultPanelProps = {
   open: boolean;
@@ -93,10 +102,10 @@ function ResultPanel({ open, id, label, groups, activeId, onPick, onActive, head
               opacity: { duration: 0.12 },
             }}
           >
-            {header && <div className="rsp-head">{header}</div>}
+            {header && <div className="rsp-top">{header}</div>}
             <div className="rsp-scroll" id={id} role="listbox" aria-label={label}>
               {groups.map((group) =>
-                group.items.length === 0 ? null : (
+                group.items.length === 0 && !group.reserve ? null : (
                   <div key={group.id} role="group" aria-labelledby={group.title ? `${id}-g-${group.id}` : undefined}>
                     {group.title && (
                       <div className="rsp-head" id={`${id}-g-${group.id}`} role="presentation">
@@ -150,6 +159,14 @@ function ResultPanel({ open, id, label, groups, activeId, onPick, onActive, head
                         </motion.div>
                       );
                     })}
+                    {!!group.reserve && group.items.length < group.reserve && (
+                      <div
+                        className="rsp-hold"
+                        style={{ height: `${(group.reserve - group.items.length) * 48}px` }}
+                      >
+                        {group.items.length === 0 && group.note}
+                      </div>
+                    )}
                   </div>
                 )
               )}

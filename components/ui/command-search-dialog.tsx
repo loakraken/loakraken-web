@@ -132,6 +132,24 @@ function CommandSearchDialog({
           run: () => goCharacter(c.name),
         })),
       })
+    // The user's order is recent → popular → features (PM-프론트 #593). The
+    // popular rows are fetched, so the group holds five rows of room from the
+    // first frame and the features under it never move when they land (A7).
+    const hot = popular.data?.data.items ?? []
+    groups.push({
+      id: "popular",
+      title: "실시간 인기 캐릭터",
+      reserve: 5,
+      note: popular.isPending ? undefined : "인기 검색을 모으는 중이에요.",
+      items: hot.slice(0, 5).map((c) => ({
+        id: `popular:${c.characterName}`,
+        title: c.characterName,
+        sub: who(c.className, c.itemLevel),
+        side: `${c.rank}위`,
+        avatar: { fallback: initial(c.characterName) },
+        run: () => goCharacter(c.characterName),
+      })),
+    })
     const next = THEME_CHOICES[(THEME_CHOICES.findIndex((t) => t.value === choice) + 1) % THEME_CHOICES.length]
     groups.push({
       id: "features",
@@ -168,22 +186,6 @@ function CommandSearchDialog({
         },
       ],
     })
-    // Fetched rows last: arriving late they grow the card downwards and move
-    // nothing already shown (A7, PM-프론트 #593 P1).
-    const hot = popular.data?.data.items ?? []
-    if (hot.length)
-      groups.push({
-        id: "popular",
-        title: "실시간 인기 캐릭터",
-        items: hot.slice(0, 5).map((c) => ({
-          id: `popular:${c.characterName}`,
-          title: c.characterName,
-          sub: who(c.className, c.itemLevel),
-          side: `${c.rank}위`,
-          avatar: { fallback: initial(c.characterName) },
-          run: () => goCharacter(c.characterName),
-        })),
-      })
   } else {
     const menus = menuMatches(query, flags)
     if (menus.length)

@@ -130,7 +130,7 @@
 /* (ours) The same line on top: rows that arrive later grow the card
    downwards without moving it (A7, 10-12). The rows scroll with a stable
    gutter, so a scrollbar appearing does not narrow and re-wrap them. */
-.rsp-head {
+.rsp-top {
   padding: 4px 8px 8px;
   border-bottom: 1px solid var(--border);
   margin-bottom: 4px;
@@ -139,6 +139,12 @@
 }
 .rsp-scroll {
   scrollbar-gutter: stable;
+}
+/* (ours) The held room of a group still loading, or its one-line note. */
+.rsp-hold {
+  padding: 12px 8px 0;
+  color: var(--muted-foreground);
+  font-size: var(--text-caption);
 }
 .rsp-foot {
   padding: 8px 8px 4px;

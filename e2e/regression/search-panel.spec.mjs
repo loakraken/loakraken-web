@@ -91,3 +91,26 @@ for (const width of [1440, 360]) {
     expect((await page.evaluate(() => window.__quiet)) - before, "자동완성이 온 뒤 흔들림").toBe(0);
   });
 }
+
+test("@A7 빈 칸: 순서는 최근 본 → 인기 → 기능, 인기가 늦게 와도 기능 줄이 밀리지 않는다 @regression", async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem("loakraken:recent", JSON.stringify([{ name: "상세", server: "아만", className: "블래스터", itemLevel: 1780.83, at: Date.now() }]));
+    window.__quiet = 0;
+    new PerformanceObserver((list) => {
+      for (const e of list.getEntries()) if (!e.hadRecentInput) window.__quiet += e.value;
+    }).observe({ type: "layout-shift", buffered: true });
+  });
+  await page.route("**/api/characters/popular**", async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 1200));
+    await route.continue();
+  });
+  await openSearch(page);
+  const list = page.getByRole("listbox", { name: "검색 결과" });
+  await expect(list.getByRole("group", { name: "기능" })).toBeVisible();
+  const before = await page.evaluate(() => window.__quiet);
+  await expect(list.getByRole("group", { name: "실시간 인기 캐릭터" }).getByRole("option").first()).toBeVisible();
+  await page.waitForTimeout(400);
+  expect((await page.evaluate(() => window.__quiet)) - before, "인기가 온 뒤 흔들림").toBe(0);
+  const order = await list.getByRole("group").evaluateAll((groups) => groups.map((g) => g.getAttribute("aria-labelledby") && document.getElementById(g.getAttribute("aria-labelledby"))?.textContent));
+  expect(order).toEqual(["최근 본 캐릭터", "실시간 인기 캐릭터", "기능"]);
+});
