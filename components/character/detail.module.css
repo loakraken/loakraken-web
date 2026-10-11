@@ -1584,17 +1584,18 @@
   height: 64px;
   transform: rotate(-90deg);
 }
-.spTrack,
-.spFill {
+/* Used points in blue, points left in amber (each 3:1+ on the panel in
+   light, dark and dim), flat ends so a small piece stays visible. */
+.spFill,
+.spLeft {
   fill: none;
   stroke-width: 6;
 }
-.spTrack {
-  stroke: var(--secondary);
-}
 .spFill {
-  stroke: var(--foreground);
-  stroke-linecap: round;
+  stroke: var(--link);
+}
+.spLeft {
+  stroke: var(--accent-warm);
 }
 .spRing p {
   display: grid;
@@ -1605,8 +1606,9 @@
   font-size: 20px;
 }
 .spRing small {
-  color: var(--muted-foreground);
+  color: var(--accent-warm);
   font-size: 12px;
+  font-weight: 600;
 }
 .gemFilterRow {
   display: flex;
