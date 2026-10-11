@@ -1,7 +1,18 @@
-/* 404 (#336): Anti Average's layout with our kraken, mark, words and tokens. */
+/* 404: the original Anti Average layout, measured at 1440×900 (10-11):
+   picture 668×459 centred, 4s 160×189 at x 100/408 y 68, lens 227 at x 220
+   y 40 (34% wide, 6% down), body box left 18.5% width 50% on the floor; text
+   24/400 at 18,18; tiles 68 tall, 9px from the edges, radius 7.92, no border.
+   Light is the original's colours; dark keeps every place and motion and
+   only swaps the colours. */
 .page {
-  --nf-digits: #bdbec2;
-  --nf-tile: rgb(0 0 0 / 7%);
+  --nf-four: #bdbec0;
+  --nf-ink: #000;
+  --nf-eye: #fff;
+  --nf-lens: hsl(0 0% 92% / 0.5);
+  --nf-lens-edge: #ddd;
+  --nf-tile: hsl(0 0% 92% / 0.7);
+  --nf-tile-hover: hsl(0 0% 88% / 0.8);
+  --nf-tile-active: hsl(0 0% 84% / 0.8);
   position: relative;
   min-height: 100svh;
   overflow: hidden;
@@ -9,62 +20,118 @@
   color: var(--foreground);
 }
 :global([data-theme="dark"]) .page {
-  --nf-digits: #3a3d44;
+  --nf-four: #3a3d44;
+  --nf-ink: #eaeaec;
+  --nf-eye: var(--background);
+  --nf-lens: color-mix(in oklab, var(--background) 50%, transparent);
+  --nf-lens-edge: rgb(255 255 255 / 12%);
   --nf-tile: rgb(255 255 255 / 9%);
+  --nf-tile-hover: rgb(255 255 255 / 14%);
+  --nf-tile-active: rgb(255 255 255 / 18%);
 }
+
 .lead {
   position: absolute;
   top: 18px;
   left: 18px;
+  display: grid;
   margin: 0;
   max-width: calc(100% - 36px);
-  font-size: clamp(17px, 1.7vw, 24px);
+  font-size: 24px;
   font-weight: 400;
-  line-height: 1.1;
-  letter-spacing: -0.02em;
-  word-break: keep-all;
+  line-height: 26.4px;
 }
+
+/* ── the picture ───────────────────────────────────────── */
 .stage {
   position: absolute;
   left: 50%;
   top: 50%;
   translate: -50% -50%;
-  width: min(520px, 92vw);
-  aspect-ratio: 520 / 460;
+  width: min(668px, 80%);
+  aspect-ratio: 668 / 459;
 }
-.digits {
-  position: absolute;
-  inset: 4% 0 auto;
-  text-align: center;
-  font-size: calc(min(520px, 92vw) * 0.58);
-  font-weight: 800;
-  line-height: 1;
-  letter-spacing: -0.06em;
-  color: var(--nf-digits);
-  font-variant-numeric: tabular-nums;
+.picture {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+/* Our font's 4 at the original's box (≈160×189); a same-colour stroke
+   gives it the original's weight without copying its glyph. */
+.four {
+  fill: var(--nf-four);
+  stroke: var(--nf-four);
+  stroke-width: 14px;
+  stroke-linejoin: round;
+  paint-order: stroke;
+  font-family: var(--font-ui);
+  font-size: 250px;
+  font-weight: 700;
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+}
+.four text {
+  transition: transform 0.3s;
+}
+/* Hovering the picture parts the 4s by 12.8 (the original's 0.1em). SVG
+   user units, so it scales with the picture. */
+@media (hover: hover) and (pointer: fine) {
+  .stage:hover .left text {
+    transform: translateX(-12.8px);
+  }
+  .stage:hover .right text {
+    transform: translateX(12.8px);
+  }
 }
 .kraken {
-  position: absolute;
-  left: 50%;
-  bottom: 0;
-  translate: -50% 0;
-  width: 81%;
-  height: auto;
-  color: var(--foreground);
+  fill: var(--nf-ink);
 }
-/* Frosted lens over the head (static, as in the original). */
+.arm {
+  fill: none;
+  stroke: var(--nf-ink);
+  stroke-width: 22px;
+  stroke-linecap: round;
+}
+.eye {
+  fill: var(--nf-eye);
+}
+/* The glass lens over the head: the original's own values. */
 .lens {
   position: absolute;
-  left: 50%;
-  top: 15%;
-  translate: -50% 0;
-  width: 44%;
+  left: 0;
+  right: 0;
+  top: 0;
+  width: 34%;
   aspect-ratio: 1;
+  margin: 6% auto 0;
+  border: 1px solid var(--nf-lens-edge);
   border-radius: 50%;
-  backdrop-filter: blur(15px);
-  background: radial-gradient(circle, transparent 55%, color-mix(in oklab, var(--background) 55%, transparent) 100%);
-  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--foreground) 6%, transparent);
+  background: var(--nf-lens);
+  backdrop-filter: blur(0.37rem);
 }
+@media (min-width: 500px) {
+  .lens {
+    backdrop-filter: blur(0.6rem);
+  }
+}
+@media (min-width: 900px) {
+  .lens {
+    backdrop-filter: blur(0.7rem);
+  }
+}
+@media (min-width: 1200px) {
+  .lens {
+    backdrop-filter: blur(0.65rem);
+  }
+}
+@media (min-width: 1600px) {
+  .lens {
+    backdrop-filter: blur(0.5rem);
+  }
+}
+
+/* ── the tiles ─────────────────────────────────────────── */
 .corner {
   position: absolute;
   left: 9px;
@@ -76,21 +143,31 @@
   display: inline-grid;
   place-items: center;
   height: 68px;
-  border-radius: 6px;
+  border: none;
+  border-radius: 7.92px;
   background: var(--nf-tile);
   backdrop-filter: blur(6px);
   color: inherit;
   text-decoration: none;
+  transition: background-color 0.15s;
+}
+@media (hover: hover) and (pointer: fine) {
+  .tile:hover {
+    background: var(--nf-tile-hover);
+  }
+}
+.tile:active {
+  background: var(--nf-tile-active);
 }
 .mark {
   width: 68px;
 }
 .error {
-  padding: 0 10px;
+  width: 178px;
   font-size: 72px;
   line-height: 1;
-  font-weight: 800;
-  letter-spacing: -0.05em;
+  font-weight: 600;
+  letter-spacing: -0.04em;
 }
 .menu {
   position: absolute;
@@ -120,7 +197,7 @@
   display: grid;
   min-width: 180px;
   padding: 6px;
-  border-radius: 8px;
+  border-radius: 7.92px;
   background: var(--nf-tile);
   backdrop-filter: blur(12px);
 }
@@ -133,25 +210,51 @@
   text-decoration: none;
 }
 @media (hover: hover) and (pointer: fine) {
-  .tile:hover,
   .sheet a:hover {
-    background: color-mix(in oklab, var(--foreground) 12%, transparent);
+    background: var(--nf-tile-hover);
   }
 }
-.caret {
-  position: fixed;
-  left: 0;
-  top: 0;
-  width: 9px;
-  height: 34px;
-  background: var(--foreground);
-  pointer-events: none;
-  opacity: 0;
+
+/* ── first visit, in the original's order (measured 10-11): the picture is
+   there first; then the words rise 12px into place, the tiles rise one by
+   one 0.1s apart, and the 4s grow from 0.8 (left, then right 0.1s later).
+   Once per page load; CSS only, so nothing waits on script. ──────── */
+.lead,
+.corner > *,
+.menu {
+  animation: nf-rise 0.5s cubic-bezier(0.03, 0.71, 0.31, 1) both;
+  animation-delay: 0.4s;
 }
-.caret[data-on] {
-  opacity: 1;
+.corner > :nth-child(2) {
+  animation-delay: 0.5s;
 }
+.menu {
+  animation-delay: 0.6s;
+}
+.left {
+  animation: nf-four 0.7s cubic-bezier(0.03, 0.71, 0.31, 1) 0.5s both;
+}
+.right {
+  animation: nf-four 0.7s cubic-bezier(0.03, 0.71, 0.31, 1) 0.6s both;
+}
+@keyframes nf-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+@keyframes nf-four {
+  from {
+    opacity: 0;
+    transform: scale(0.8) translateY(5%);
+  }
+}
+
 @media (max-width: 600px) {
+  .lead {
+    font-size: 18px;
+    line-height: 20px;
+  }
   .tile {
     height: 52px;
   }
@@ -160,6 +263,8 @@
     width: 52px;
   }
   .error {
+    width: auto;
+    padding: 0 8px;
     font-size: 52px;
   }
   .sheet {
@@ -167,6 +272,14 @@
   }
 }
 @media (prefers-reduced-motion: reduce) {
+  .lead,
+  .corner > *,
+  .menu,
+  .left,
+  .right {
+    animation: none;
+  }
+  .four text,
   .plus svg {
     transition: none;
   }
