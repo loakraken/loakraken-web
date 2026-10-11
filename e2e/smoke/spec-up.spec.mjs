@@ -33,16 +33,30 @@ test.describe("스펙업 가이드 @smoke", () => {
     await expect(page.getByRole("table", { name: /전투력 증가 순/ }).locator("tbody tr").first()).toContainText("+90.33");
   });
 
-  test("적용해 보기는 시뮬레이터 탭에 그 변화를 넣고, 이전으로 되돌린다", async ({ page }) => {
-    await page.goto(characterPath(NAME, "specup"));
-    await page.getByRole("link", { name: /10레벨 시뮬레이터에서 적용해 보기/ }).click();
-    const tabs = page.getByRole("navigation", { name: "캐릭터 정보 탭" });
-    await expect(tabs.getByRole("link", { name: "시뮬레이터", exact: true })).toHaveAttribute("aria-current", "page");
-    const gem = page.getByRole("combobox", { name: "테스트 보석 레벨" });
-    await expect(gem).toHaveText("10");
-    await page.getByRole("button", { name: "이전" }).click();
-    await expect(gem).not.toHaveText("10");
-  });
+  // PM-프론트 10-12 P1: every OK row, each kind — the simulator tab takes the
+  // change, asks for a simulation, and 이전 takes it back.
+  for (const [row, combo, value] of [
+    [/테스트 스킬 · 8레벨 겁화 9레벨/, "테스트 보석 2 레벨", "9"],
+    [/테스트 스킬 · 8레벨 겁화 10레벨/, "테스트 보석 2 레벨", "10"],
+    [/테스트 무기 품질 100/, "무기 품질", "100"],
+  ]) {
+    test(`적용해 보기(${combo} → ${value})는 시뮬레이터 탭에서 계산하고, 이전으로 되돌린다`, async ({ page }) => {
+      await page.goto(characterPath(NAME, "specup"));
+      let simulations = 0;
+      page.on("request", (r) => {
+        if (r.url().includes("/api/combat-power/simulate")) simulations++;
+      });
+      await page.getByRole("link", { name: new RegExp(row.source + ".*시뮬레이터에서 적용해 보기") }).click();
+      const tabs = page.getByRole("navigation", { name: "캐릭터 정보 탭" });
+      await expect(tabs.getByRole("link", { name: "시뮬레이터", exact: true })).toHaveAttribute("aria-current", "page");
+      const box = page.getByRole("combobox", { name: combo });
+      await expect(box).toHaveText(value);
+      await expect(page.getByRole("region", { name: "예상 전투력" })).toBeVisible();
+      await expect.poll(() => simulations).toBeGreaterThan(0);
+      await page.getByRole("button", { name: "이전" }).click();
+      await expect(box).not.toHaveText(value);
+    });
+  }
 
   test("기능이 꺼져 있으면 그렇게 알리고, 요청을 되풀이하지 않는다", async ({ page }) => {
     let requests = 0;

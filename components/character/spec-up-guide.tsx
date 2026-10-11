@@ -52,8 +52,8 @@ function CostCell({ candidate }: { candidate: Candidate }) {
     );
   if (cost.status === "OK" && cost.amount != null)
     return (
-      <td data-cell="cost" data-label="기대 비용" data-figure="" title={`${cost.amount.toLocaleString("ko-KR")}G`}>
-        {koreanGold(cost.amount)}G
+      <td data-cell="cost" data-label="기대 비용" data-figure="" title={`${cost.amount.toLocaleString("ko-KR")}${cost.unit === "GOLD" ? "G" : ` ${cost.unit}`}`}>
+        {cost.unit === "GOLD" ? `${koreanGold(cost.amount)}G` : `${cost.amount.toLocaleString("ko-KR")} ${cost.unit}`}
       </td>
     );
   return (
@@ -112,7 +112,15 @@ export default function SpecUpGuide({ data }: { data: Character }) {
         {guide?.pricesAt ? `시세 ${kstTime(guide.pricesAt)} 기준` : ""}
       </p>
 
-      <div aria-live="polite" aria-busy={query.isFetching || undefined}>
+      <div
+        aria-live="polite"
+        aria-busy={query.isFetching || undefined}
+        className={styles.specUpList}
+        data-stale={query.isPlaceholderData || undefined}
+      >
+        <p className={styles.specUpPrices} role="status">
+          {query.isPlaceholderData ? "새 순서로 다시 불러오고 있어요" : ""}
+        </p>
         {failure ? (
           <div className={styles.specUpFailure} role="alert">
             <strong>{failureCopy(failure).title}</strong>

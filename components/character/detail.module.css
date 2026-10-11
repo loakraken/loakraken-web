@@ -1952,3 +1952,9 @@
   clip-path: inset(50%);
   white-space: nowrap;
 }
+
+/* A new sort: the old list stays, dimmed, until the new one arrives. */
+.specUpList[data-stale] .tableWrap {
+  opacity: 0.55;
+  transition: opacity 150ms ease;
+}

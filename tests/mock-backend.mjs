@@ -16,6 +16,23 @@ function withSimulatorGear(data) {
   const base = data.loadout.equipment.find((item) => item.detail);
   // Advanced refining on the armour piece (search advancedRefineLevel, backend #234).
   base.detail = { ...base.detail, advancedRefineLevel: 10 };
+  // Matches the backend spec-up sample (#318): a weapon at quality 90 and a
+  // second gem at level 8 in slot 1, so every sample candidate applies.
+  const weapon = data.loadout.equipment.find((item) => item.type === "무기");
+  if (weapon)
+    weapon.detail = {
+      ...base.detail,
+      advancedRefineLevel: null,
+      effects: [],
+      stoneEngravings: [],
+      polishEffects: [],
+      braceletEffects: [],
+      ...(weapon.detail ?? {}),
+      refineLevel: 20,
+      quality: 90,
+    };
+  const gems = data.loadout.gems?.items;
+  if (gems?.length === 1) gems.push({ ...gems[0], slot: 1, level: 8, name: "테스트 보석 2" });
   const make = (type, name, detail) => ({
     ...base,
     type,
@@ -398,6 +415,9 @@ createServer(async (req, res) => {
     if (who === "미존재") return send(specUp("character-spec-up-not-cached.json"), 404);
     const envelope = specUp(who === "스펙업시세" ? "character-spec-up-pending.json" : "character-spec-up.json");
     envelope.data.characterName = who;
+    // The sample's gem is the mock simulator character's slot-1 gem (level 8).
+    for (const c of envelope.data.candidates)
+      if (c.change?.kind === "GEM_LEVEL") c.change.slot = 1;
     if (url.searchParams.get("sort") === "DELTA") {
       envelope.data.sort = "DELTA";
       const ok = envelope.data.candidates.filter((c) => c.status === "OK");
