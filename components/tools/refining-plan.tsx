@@ -61,17 +61,20 @@ const initialParts = () =>
     PartId,
     PartState
   >;
+const BOOK_ASSUMPTION =
+  "책(야금술·재봉술) 효과가 매번 적용된다고 가정했어요. 게임에서 적용 확률은 공개되지 않았어요.";
+
 const OPTION_COPY: { key: keyof Options; label: string; hint: string }[] = [
   { key: "weaponBreath", label: "무기 숨결", hint: "매 시도 최대 개수" },
   { key: "armorBreath", label: "방어구 숨결", hint: "매 시도 최대 개수" },
   {
     key: "weaponBook",
-    label: "무기 책 효과 항상 적용 가정",
+    label: "무기 책 효과 적용",
     hint: "야금술 · 업화 11~20단계",
   },
   {
     key: "armorBook",
-    label: "방어구 책 효과 항상 적용 가정",
+    label: "방어구 책 효과 적용",
     hint: "재봉술 · 업화 11~20단계",
   },
 ];
@@ -505,6 +508,8 @@ function Result({
   const basisLabel = priceBases.find((item) => item.value === basis)?.label;
   const source = plans[0].plan.source;
   const assumptions = [
+    // Books are in by default (PM 총괄 10-11 00:20); say so next to the result.
+    ...(plans.some(({ plan }) => plan.useBook) ? [BOOK_ASSUMPTION] : []),
     ...new Set(plans.flatMap(({ plan }) => plan.assumptions)),
   ];
   return (
@@ -719,8 +724,8 @@ function RefiningContent({ initialName }: { initialName: string }) {
   const [options, setOptions] = useState<Options>({
     weaponBreath: false,
     armorBreath: false,
-    weaponBook: false,
-    armorBook: false,
+    weaponBook: true,
+    armorBook: true,
     growthSupport: true,
   });
   const [mode, setMode] = useState<Mode>("expected");
@@ -916,10 +921,10 @@ function RefiningContent({ initialName }: { initialName: string }) {
                 계산하지 않아요.
               </p>
               <p className={quote.hint}>
-                책은 기본으로 빼고 계산해요. 게임에는 &ldquo;특수 재료 별 효과는
-                확률에 따라 적용되지 않을 수 있습니다&rdquo;라고 나오고, 그 확률은
-                공개되지 않았어요. 켜면 책 효과가 매번 적용된다고 보고 계산해요.
-                책은 운명의 업화에만 적용돼요.
+                책은 기본으로 넣고, 책 효과가 매번 적용된다고 보고 계산해요.
+                게임에는 &ldquo;특수 재료 별 효과는 확률에 따라 적용되지 않을 수
+                있습니다&rdquo;라고 나오고, 그 확률은 공개되지 않았어요. 끄면 책
+                없이 계산해요. 책은 운명의 업화 11~20단계에만 적용돼요.
               </p>
             </section>
           </div>
