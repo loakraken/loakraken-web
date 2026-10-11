@@ -43,6 +43,48 @@
 .theme {
   flex: none;
 }
+/* Discord: a 28px pill (radius 8, 14px label, 14px logo) in the muted text
+   colour on a 4% tint, the text colour on hover. */
+.discord {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  margin-right: -8px;
+  padding: 0 8px;
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--foreground) 4%, transparent);
+  color: var(--muted-foreground);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color 150ms ease, transform 100ms ease-out;
+}
+/* Feedback on press, not on release. */
+.discord:active {
+  transform: scale(0.97);
+}
+@media (prefers-reduced-motion: reduce) {
+  .discord:active {
+    transform: none;
+  }
+}
+.discord svg {
+  width: 14px;
+  height: 14px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .discord:hover {
+    color: var(--foreground);
+  }
+}
+.discord:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
 .slot {
   display: flex;
   flex: none;
@@ -70,6 +112,30 @@
   }
   .header:not(:has(.slot)) .theme {
     margin-left: auto;
+  }
+  /* Narrow screens: the logo alone on a 44px target, before the toggle. */
+  .discord {
+    order: 1;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    margin-right: -10px;
+    padding: 0;
+    border-radius: 9999px;
+    background: transparent;
+  }
+  .discord span {
+    display: none;
+  }
+  .discord svg {
+    width: 20px;
+    height: 20px;
+  }
+  .header:not(:has(.slot)) .discord {
+    margin-left: auto;
+  }
+  .header:not(:has(.slot)) .discord + .theme {
+    margin-left: 0;
   }
 }
 @media (max-width: 600px) {
