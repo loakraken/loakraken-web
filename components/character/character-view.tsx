@@ -21,7 +21,7 @@ import { recordRecent } from "@/lib/character/recent";
 import { CharacterBanner } from "./imagery";
 import { Entrance } from "./entrance";
 import { kstTime, level, number, text } from "./parts";
-import { SettingCheckEnabled, SimulatorEnabled, TabBar, TabPanel, tabOf } from "./tabs";
+import { SettingCheckEnabled, SimulatorEnabled, SpecUpEnabled, TabBar, TabPanel, tabOf } from "./tabs";
 import { ReceiptEnabled } from "./receipt-panel";
 import styles from "./character.module.css";
 import { RATE_LIMITED } from "@/lib/api/rate-limit";
@@ -200,6 +200,7 @@ function CharacterContent({
     useSearchParams().get("tab"),
     useContext(SettingCheckEnabled),
     useContext(SimulatorEnabled),
+    useContext(SpecUpEnabled),
   );
   const [now, setNow] = useState(renderedAt);
   const [refreshed, setRefreshed] = useState(false);
@@ -354,6 +355,7 @@ export function CharacterView({
   receipt = true,
   settingCheck = true,
   simulator = true,
+  specUp = true,
   ...props
 }: {
   name: string;
@@ -365,14 +367,18 @@ export function CharacterView({
   settingCheck?: boolean;
   /** COMBAT_POWER_SIM on this deployment (server flag). */
   simulator?: boolean;
+  /** SPEC_UP_GUIDE on this deployment (server flag). */
+  specUp?: boolean;
 }) {
   return (
     <ReceiptEnabled.Provider value={receipt}>
       <SettingCheckEnabled.Provider value={settingCheck}>
         <SimulatorEnabled.Provider value={simulator}>
-          <LandingMotion>
-            <CharacterContent {...props} />
-          </LandingMotion>
+          <SpecUpEnabled.Provider value={specUp}>
+            <LandingMotion>
+              <CharacterContent {...props} />
+            </LandingMotion>
+          </SpecUpEnabled.Provider>
         </SimulatorEnabled.Provider>
       </SettingCheckEnabled.Provider>
     </ReceiptEnabled.Provider>

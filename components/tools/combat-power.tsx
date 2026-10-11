@@ -36,6 +36,7 @@ import {
   isOpen,
   polishValue,
   type Grade,
+  NO_EDITS,
   combatPowerFailureCopy,
   gemLevel,
   hasComputed,
@@ -54,6 +55,7 @@ import {
   serializeSaved,
   startHistory,
 } from "@/lib/combat-power/history";
+import { editsFor, type SpecUpChange } from "@/lib/spec-up/model";
 import { retryLabel } from "@/lib/api/rate-limit";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { SiteHeader } from "@/components/site/site-header";
@@ -679,10 +681,23 @@ function ChangeList({ data, values }: { data: Simulation; values?: PolishValues 
  * tool page puts its own search above it; the character page shows it as the
  * 시뮬레이터 tab (PM-프론트 16:37 ①), where the character is already loaded.
  */
-export function CombatPowerSimulator({ name, initial }: { name: string; initial?: Character }) {
+export function CombatPowerSimulator({
+  name,
+  initial,
+  start,
+}: {
+  name: string;
+  initial?: Character;
+  /** One change to begin with (스펙업 "적용해 보기"), as a step 이전 can undo. */
+  start?: SpecUpChange | null;
+}) {
   const embedded = !!initial;
   // 이전·다음·초기화 (PM-프론트 16:37 ②): every edit is a step.
-  const [history, dispatch] = useReducer(historyReducer, undefined, () => startHistory());
+  const [history, dispatch] = useReducer(historyReducer, undefined, () => {
+    const empty = startHistory();
+    const first = editsFor(start, NO_EDITS);
+    return first ? historyReducer(empty, { type: "load", edits: first }) : empty;
+  });
   const edits = history.present;
   const setEdits = useCallback(
     (update: (prev: Edits) => Edits) => dispatch({ type: "set", next: update }),

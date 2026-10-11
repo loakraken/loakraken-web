@@ -57,6 +57,19 @@ export function isSettingCheckEnabled(env: Env = process.env) {
   return !isProductionHost(env.SITE_URL);
 }
 
+/**
+ * The character "스펙업" tab (backend #318, PM-프론트 16:37 ⑤) stays hidden on
+ * production until the backend opens spec-up.enabled there too. Same rule:
+ * `SPEC_UP_GUIDE=on|off` overrides, otherwise hidden only on the production
+ * host. A backend that answers SPEC_UP_DISABLED also hides it (the tab says so).
+ */
+export function isSpecUpEnabled(env: Env = process.env) {
+  const flag = env.SPEC_UP_GUIDE?.trim().toLowerCase();
+  if (flag === "on") return true;
+  if (flag === "off") return false;
+  return !isProductionHost(env.SITE_URL);
+}
+
 const PRODUCTION_HOST = new URL(PRODUCTION_URL).hostname;
 
 function isProductionHost(value: string | undefined) {

@@ -388,6 +388,24 @@ createServer(async (req, res) => {
     : String(change.level ?? change.refine ?? change.quality ?? change.points ?? "");
   const powerRead = (name) =>
     JSON.parse(readFileSync(new URL(`./combat-power-fixtures/${name}`, import.meta.url), "utf8"));
+  // 스펙업 가이드(백엔드 #318 표본). '스펙업꺼짐'은 SPEC_UP_DISABLED, '스펙업시세'는
+  // 비용 PENDING, 캐시에 없는 이름은 CHARACTER_NOT_CACHED.
+  if (url.pathname === "/api/v1/characters/spec-up") {
+    const specUp = (name) =>
+      JSON.parse(readFileSync(new URL(`./spec-up-fixtures/${name}`, import.meta.url), "utf8"));
+    const who = url.searchParams.get("characterName");
+    if (who === "스펙업꺼짐") return send(specUp("character-spec-up-disabled.json"), 404);
+    if (who === "미존재") return send(specUp("character-spec-up-not-cached.json"), 404);
+    const envelope = specUp(who === "스펙업시세" ? "character-spec-up-pending.json" : "character-spec-up.json");
+    envelope.data.characterName = who;
+    if (url.searchParams.get("sort") === "DELTA") {
+      envelope.data.sort = "DELTA";
+      const ok = envelope.data.candidates.filter((c) => c.status === "OK");
+      ok.sort((a, b) => b.deltaCombatPower - a.deltaCombatPower);
+      envelope.data.candidates = [...ok, ...envelope.data.candidates.filter((c) => c.status !== "OK")];
+    }
+    return send(envelope);
+  }
   if (url.pathname === "/api/v1/characters/combat-power/options")
     return send(powerRead("combat-power-options.json"));
   if (url.pathname === "/api/v1/characters/combat-power/simulate" && req.method === "POST") {

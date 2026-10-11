@@ -4,7 +4,7 @@ import { test, expect, characterPath } from "../support/fixtures.mjs";
 
 // 내용을 펼치거나 접는 버튼 문구.
 const TOGGLE_LABEL = /(펼치기|접기|\d+개 (스킬|기록) 보기|스킬만 보기)$/;
-const TABS = ["combat", "simulator", "skills", "arkpassive", "collectibles", "avatars", "stats", "siblings", "evidence"];
+const TABS = ["combat", "simulator", "specup", "skills", "arkpassive", "collectibles", "avatars", "stats", "siblings", "evidence"];
 
 test.describe("aria-expanded @regression", () => {
   test("아크 그리드 '모두 펼치기'가 상태를 알리고 코어를 모두 연다", async ({ page }) => {
