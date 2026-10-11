@@ -18,6 +18,7 @@ import {
   quantileScale,
   share,
   sampleConditions,
+  statsKey,
   statsSearch,
   whole,
   type ClassRow,
@@ -84,7 +85,7 @@ function Notice({ meta, stale }: { meta: StatsMeta; stale: boolean }) {
 /** "집계 기준 안내" under the tables, from the summary's meta (same query, cached). */
 function StatsBasis({ query }: { query: StatsQuery }) {
   const summary = useQuery({
-    queryKey: ["stats", "summary", query],
+    queryKey: ["stats", "summary", statsKey(query)],
     queryFn: ({ signal }) => fetchStats("summary", query, signal),
     staleTime: 5 * 60_000,
     placeholderData: keepPreviousData,
@@ -97,7 +98,7 @@ function StatsBasis({ query }: { query: StatsQuery }) {
 
 function SummaryCards({ query }: { query: StatsQuery }) {
   const summary = useQuery({
-    queryKey: ["stats", "summary", query],
+    queryKey: ["stats", "summary", statsKey(query)],
     queryFn: ({ signal }) => fetchStats("summary", query, signal),
     staleTime: 5 * 60_000,
     placeholderData: keepPreviousData,
@@ -212,7 +213,7 @@ function Quantiles({ row, scale, index }: { row: ClassRow; scale: ((v: number) =
 
 function ClassesTab({ query }: { query: StatsQuery }) {
   const classes = useQuery({
-    queryKey: ["stats", "classes", query],
+    queryKey: ["stats", "classes", statsKey(query)],
     queryFn: ({ signal }) => fetchStats("classes", query, signal),
     staleTime: 5 * 60_000,
     placeholderData: keepPreviousData,
@@ -277,7 +278,7 @@ function DistributionTab({ query }: { query: StatsQuery }) {
   const value = useDebounced(mine);
   const percentileOf = value.trim() && Number.isFinite(Number(value)) ? Number(value) : undefined;
   const dist = useQuery({
-    queryKey: ["stats", "distribution", query, metric, percentileOf],
+    queryKey: ["stats", "distribution", statsKey(query), metric, percentileOf],
     queryFn: ({ signal }) =>
       fetchStats("distribution", { ...query, metric, width: WIDTH[metric], percentileOf }, signal),
     staleTime: 5 * 60_000,
@@ -379,7 +380,7 @@ function DistributionTab({ query }: { query: StatsQuery }) {
 
 function ServersTab({ query }: { query: StatsQuery }) {
   const servers = useQuery({
-    queryKey: ["stats", "servers", query],
+    queryKey: ["stats", "servers", statsKey(query)],
     queryFn: ({ signal }) => fetchStats("servers", query, signal),
     staleTime: 5 * 60_000,
     placeholderData: keepPreviousData,
