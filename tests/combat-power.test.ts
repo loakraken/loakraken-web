@@ -166,7 +166,7 @@ test("the simulator is hidden on the production host unless turned on", () => {
   assert.equal(isCombatPowerEnabled({ COMBAT_POWER_SIM: "off" }), false);
 });
 
-test("1차판 opens only the kinds that matched the target site (PM 총괄 23:59)", () => {
+test("1차판 opens only the kinds that passed verification (PM 총괄 23:59)", () => {
   assert.deepEqual(
     ["GEM_LEVEL_ALL", "GEM_LEVEL", "EQUIPMENT_QUALITY", "ENGRAVING_LEVEL", "STONE_ENGRAVING"].map((k) => isOpen(k as never)),
     [true, true, true, true, true],

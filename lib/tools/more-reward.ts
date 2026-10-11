@@ -1,7 +1,7 @@
 // "더보기" (bonus reward) profit per raid gate: what the bonus box is worth
 // at market prices minus the gold it costs. Data in data/more-reward.json
-// holds only sure values (official notice 13307, or two target sites with the
-// same number); refining material quantities are not public and come from
+// holds only sure values (official notice 13307, or two independent measurements
+// with the same number); refining material quantities are not public and come from
 // the user (PM 총괄 2026-10-10 결정 ②).
 import raw from "./data/more-reward.json";
 import { RAID_DATA, type Difficulty } from "./raid-rewards";
@@ -169,7 +169,7 @@ export function checkMoreData(data: MoreData = MORE_DATA): string[] {
  * Bound exchange materials valued through what they trade into. Only fixed
  * recipes are here: 은총의 파편 ×60 → 지평의 재련 재료 상자 with fixed
  * contents (user's 제작소 capture, 계산 검증 2026-10-10 18:12; matches
- * 목표 사이트 C 497.33 at the same prices). 고통의 가시·죽음의 손·사령의 잔영 trade into
+ * 497.33 at the same prices, 계산 검증). 고통의 가시·죽음의 손·사령의 잔영 trade into
  * pouches with a choice whose odds are not published, so they stay user input.
  */
 export const EXCHANGES: Record<string, { per: number; into: string; contents: MoreItem[] }> = {

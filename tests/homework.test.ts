@@ -150,8 +150,8 @@ test("stored state is parsed defensively", () => {
   assert.equal(state.characters[0].raids.length, 1, "unknown raid and wrong gate count dropped");
 });
 
-test("기준캐릭터A roster matches the target site weekly total (web #270)", () => {
-  // 계산 검증 02:45: 목표 사이트 C 숙제 관리 401,100G for the top six characters.
+test("기준캐릭터A roster weekly total (web #270, 계산 검증)", () => {
+  // 계산 검증 02:45: 401,100G for the top six characters.
   const roster = [
     ["기준캐릭터A", 1770],
     ["원정대캐릭터B", 1723.33],
@@ -172,7 +172,7 @@ test("기준캐릭터A roster matches the target site weekly total (web #270)", 
   assert.deepEqual(unsettledModes([low]), []);
 });
 
-test("equal gold picks the newer raid like the target site (#277 P2)", () => {
+test("equal gold picks the newer raid (#277 P2)", () => {
   // 원정대캐릭터B 1,723.33: 종막 노말 and 세르카 노말 both pay 32,000 at entry 1,710.
   const picks = autoRaids(1723.33).map((r) => `${r.raidId}/${r.difficulty}`);
   assert.deepEqual(picks, ["horizon-cathedral/STAGE_2", "kazeros-act4/HARD", "serka/NORMAL"]);

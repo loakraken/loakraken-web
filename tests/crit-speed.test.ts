@@ -37,7 +37,7 @@ test("backend-generated crit-speed fixture satisfies the contract", () => {
 test("crit damage (backend #133) validates and groups under its own axis", () => {
   const value = fixture();
   assert.deepEqual(value.data.crit.damage, { base: 200, observed: 0, total: 200 });
-  // 기준캐릭터A: 200 + bracelet 8.40 (calc-verification team, matches the target sites).
+  // 기준캐릭터A: 200 + bracelet 8.40 (calc-verification team).
   value.data.sources.push({
     kind: "OBSERVED",
     category: "BRACELET",
