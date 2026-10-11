@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { CommandSearch } from "@/components/ui/command-search";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { DiscordLink } from "./discord-link";
 import { KrakenMark } from "./kraken-mark";
@@ -35,6 +36,9 @@ export function SiteHeader({
       </nav>
       {children && <div className={styles.slot}>{children}</div>}
       <DiscordLink />
+      {/* Character search from any page (button, Ctrl K / ⌘K); the command
+          bar loads on first open. */}
+      <CommandSearch className={styles.search} />
       <ThemeToggle className={styles.theme} />
     </header>
   );

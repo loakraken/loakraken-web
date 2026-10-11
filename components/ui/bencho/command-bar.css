@@ -1,0 +1,164 @@
+/* MIT © 2026 Lorenzo Cabra — https://bencho.dev (block "Command bar"), see ./NOTICE.
+   The block's own .cmd* rules from Bencho's stylesheet, as published; the
+   glass-surface rim rules shared by its other blocks are left out (our bar
+   is flat). Our tokens are mapped once on the group. */
+
+/* ── our tokens ────────────────────────────────────────────
+   The bar is our control fill (opaque, as the goo needs), the
+   words our ink, the placeholder our muted text (4.5:1), and
+   the armed send button our ink with page-coloured glyph. */
+.cmd-goo {
+  --fill-slab: var(--secondary);
+  --board: var(--secondary);
+  --fill-on: var(--foreground);
+  --ink: var(--foreground);
+  --on-ink: var(--background);
+  --ink-4: var(--muted-foreground);
+  --ink-5: var(--muted-foreground);
+  --font-ui: inherit;
+}
+.cmd-goo .cmd-go:focus-visible,
+.cmd-goo .cmd-mic:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+/* the field's own focus is the bar opening; keep a visible ring for keyboards */
+.cmd-goo .cmd:has(input:focus-visible) { box-shadow: 0 0 0 2px var(--ring); }
+
+
+
+/* D — command bar */
+/* the group lays the two bodies out; the library moves them */
+.cmd-goo {
+  display: flex;
+  align-items: center;
+  gap: 8px;}
+
+/* NO 1/k CORRECTION HERE. These are morph items, and morph
+   positions its bodies with a CSS transform in layout pixels,
+   which the card's own scale then handles correctly. The
+   correction exists for `move`, which measures screen pixels —
+   applying it to morph shrinks the silhouette below the
+   element it belongs to. */
+.cmd-slot { display: block; }
+
+.cmd {
+  position: relative;
+  display: flex; align-items: center;
+  gap: 6px;
+/* ── THE BAR AND THE BUTTON TRADE ONE WIDTH ───────────────
+     Both states add up to the same 320 the component sits in —
+     274 + 8 + 38 at rest, 266 + 8 + 46 once the button opens
+     out. Holding the total fixed is not tidiness: this is a
+     card on the wall, and a box that changes size re-packs
+     every column around it. So the bar gives up exactly what
+     the button takes, and the outer box never moves. */
+  width: 274px;
+  transition: width 340ms cubic-bezier(0.24, 1.34, 0.38, 1);
+  /* smaller: 54 was a bar you could have put two lines in */
+  height: 56px;
+  /* the right side is padded for the mic rather than for text */
+  padding: 0 8px 0 20px;
+  border-radius: var(--cmd-r, 28px);
+  /* no background: <Liquid> paints the bar, and a fill here
+     would lay a hard rectangle over the liquid edge exactly
+     where the button is leaving it */
+  background: none;
+  isolation: isolate;}
+
+.cmd[data-has="true"] { width: 266px; }
+
+/* ── NOT THE STROKE'S ANY MORE, THE GLASS'S ─────────────────
+   Stroke is gone from this component, so on a flat surface
+   this border stays transparent and draws nothing. It is kept
+   because the GLASS surface needs a box to paint its lit rim
+   into — a gradient cannot go in a border without a second
+   element to carry it, and this is that element. Delete it and
+   the bar loses its rim under glass. */
+.cmd::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 1px solid transparent;
+  pointer-events: none;}
+
+.cmd input {
+  flex: 1; min-width: 0;
+  border: 0; outline: none; background: none;
+  font-family: var(--font-ui);
+  font-size: 15px;
+  letter-spacing: -0.005em;
+  color: var(--fill-on, var(--ink));}
+
+.cmd input::placeholder { color: var(--ink-5); }
+
+/* one slot, two faces, stacked so neither one moves the other */
+/* Inside the bar, and it does not travel. Fading is the whole
+   of what it does — see the note in the component. */
+.cmd-mic {
+  flex: none;
+  display: grid; place-items: center;
+  width: 36px; height: 36px;
+  border: 0; border-radius: 999px;
+  background: none;
+  color: var(--ink-4);
+  cursor: pointer;
+  /* it only fades. No scale, no travel — the one thing it does
+     is stop being there. */
+  opacity: 0;
+  transition: opacity 150ms ease;}
+
+.cmd-mic[data-show="true"] { opacity: 1; }
+
+.cmd-mic:hover { color: var(--fill-on, var(--ink)); }
+
+.cmd-go {
+  position: relative;
+  flex: none;
+  width: 38px; height: 38px;
+  border: 0; border-radius: 999px;
+  /* NOTHING AT REST. Tucked inside the bar it is a body for
+     the goo to split from and nothing more — no disc, and its
+     glyph is hidden too, so what you see is one bar. */
+  background: none;
+  color: var(--fill-slab, var(--on-ink));
+  cursor: pointer;
+  display: grid; place-items: center;
+  opacity: 0;
+  transition:
+    background 220ms ease, color 220ms ease, opacity 160ms ease,
+    width 340ms cubic-bezier(0.24, 1.34, 0.38, 1),
+    height 340ms cubic-bezier(0.24, 1.34, 0.38, 1),
+    transform 320ms cubic-bezier(0.24, 1.34, 0.38, 1);}
+
+/* it arrives at full size, into the room the bar just made */
+.cmd-go[data-on="true"] { opacity: 1; width: 46px; height: 46px; }
+
+/* ── THE SAME MATERIAL AS THE BAR ───────────────────────────
+   It was an ink disc with a light glyph, which made the thing
+   that splits off a different object from the thing it split
+   FROM — and the goo's whole claim is that they are one body
+   separating. Same fill as the field, ink glyph, and the seam
+   between them while they neck is now continuous. */
+.cmd-go[data-on="true"] {
+  background: var(--fill-slab, var(--board));
+  color: var(--fill-on, var(--ink));}
+
+/* ── TWO STATES, AND NEITHER HAS AN EDGE ────────────────────
+   Focused with an empty field, the button is the same material
+   as the bar it just split out of: present and offered, asking
+   for nothing. The first character makes it the thing you are
+   about to press, and it says so by filling — the only solid
+   object in the component, which is what a primary action is.
+
+   Filled, not outlined, in both: the only edge either state
+   can ever have is the hairline the Stroke switch draws
+   below. */
+.cmd-go[data-armed="true"] {
+  background: var(--fill-on, var(--ink));
+  color: var(--fill-slab, var(--on-ink));}
+
+.cmd-go:active { transform: scale(0.92); }
+
+/* Ours: reduced motion lands every width and fade at once. */
+@media (prefers-reduced-motion: reduce) {
+  .cmd, .cmd-go, .cmd-mic { transition: none; }
+}

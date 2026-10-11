@@ -40,8 +40,13 @@
   align-items: center;
   min-width: 0;
 }
+.search,
 .theme {
   flex: none;
+}
+/* Search sits just before the theme toggle, touching it. */
+.search + .theme {
+  margin-left: -16px;
 }
 /* Discord: a 28px pill (radius 8, 14px label, 14px logo) in the muted text
    colour on a 4% tint, the text colour on hover. */
@@ -106,12 +111,13 @@
     flex: 1;
     justify-content: flex-end;
   }
-  /* Toggle between the page slot and the menu button. */
+  /* Search and toggle between the page slot and the menu button. */
+  .search,
   .theme {
     order: 1;
   }
-  .header:not(:has(.slot)) .theme {
-    margin-left: auto;
+  .search + .theme {
+    margin-left: -6px;
   }
   /* Narrow screens: the logo alone on a 44px target, before the toggle. */
   .discord {
@@ -133,9 +139,6 @@
   }
   .header:not(:has(.slot)) .discord {
     margin-left: auto;
-  }
-  .header:not(:has(.slot)) .discord + .theme {
-    margin-left: 0;
   }
 }
 @media (max-width: 600px) {
