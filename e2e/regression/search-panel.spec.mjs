@@ -147,3 +147,17 @@ for (const width of [1440, 360]) {
     expect([...headTops], "키 안내 위치").toHaveLength(1);
   });
 }
+
+test("한글 조합 중(상 → 상ㅅ → 상세)에도 '정보 보기' 줄은 떠났다 돌아오지 않는다 @regression", async ({ page }) => {
+  await openSearch(page);
+  await page.keyboard.type("상");
+  const lookup = page.getByRole("option", { name: /정보 보기/ });
+  await expect(lookup).toBeVisible();
+  await lookup.evaluate((el) => (el.dataset.kept = "1"));
+  // 조합 중간(받침 없는 자음 하나가 붙은 상태)을 그대로 넣어 본다.
+  await page.keyboard.insertText("ㅅ");
+  await expect(page.getByRole("option", { name: /‘상ㅅ’ 캐릭터 정보 보기/ })).toBeVisible();
+  await page.keyboard.press("Backspace");
+  await page.keyboard.insertText("세");
+  await expect(page.getByRole("option", { name: /‘상세’ 캐릭터 정보 보기/ })).toHaveAttribute("data-kept", "1");
+});

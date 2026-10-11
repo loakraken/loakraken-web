@@ -194,23 +194,22 @@ function CommandSearchDialog({
     // Character first, its suggestions in five held rows, the menu under it:
     // typing on (상 → 상세) or a late answer never moves a row (A7, #593).
     const names = (settled === query ? suggest.data?.data.items ?? [] : []).filter((c) => c.characterName !== name)
-    const lookupOk = !characterNameError(name)
+    // The row stays while anything is typed, also through Hangul composition
+    // (상 → 상ㅅ → 상세: the middle step is not a valid name), so it never
+    // leaves and comes back with its entrance (PM-프론트 #593 4차). Enter checks
+    // the name and says what is wrong.
     groups.push({
       id: "character",
       title: "캐릭터",
-      reserve: lookupOk ? SUGGEST_ROWS + 1 : 0,
+      reserve: SUGGEST_ROWS + 1,
       items: [
-        ...(characterNameError(name)
-          ? []
-          : [
-              {
-                id: "lookup",
-                title: `‘${name}’ 캐릭터 정보 보기`,
-                side: "Enter",
-                avatar: { fallback: <SearchNormal size={16} aria-hidden /> },
-                run: () => void submit(name),
-              },
-            ]),
+        {
+          id: "lookup",
+          title: `‘${name}’ 캐릭터 정보 보기`,
+          side: "Enter",
+          avatar: { fallback: <SearchNormal size={16} aria-hidden /> },
+          run: () => void submit(name),
+        },
         ...names.slice(0, SUGGEST_ROWS).map((c) => {
           const { head, tail } = splitPrefix(c.characterName, query)
           return {
@@ -321,7 +320,7 @@ function CommandSearchDialog({
               />
             </React.Suspense>
             <ResultPanel
-              open={open && (rows.length > 0 || !!query)}
+              open={open && rows.length > 0}
               id={panelId}
               label="검색 결과"
               groups={groups}
@@ -329,11 +328,6 @@ function CommandSearchDialog({
               onActive={setActive}
               onPick={(item) => rows.find((r) => r.id === item.id)?.run()}
               header="↑↓ 이동, Enter 열기, Esc 닫기"
-              footer={
-                query && !rows.length
-                  ? "맞는 메뉴가 없어요. 캐릭터 이름은 한글·영문·숫자로 입력해 주세요."
-                  : undefined
-              }
             />
           </div>
           <p id={errorId} role="alert" className="min-h-5 text-(length:--text-caption) text-destructive">
