@@ -66,7 +66,7 @@ test.describe("전투력 시뮬레이터 @smoke", () => {
     await page.keyboard.press("Escape");
   });
 
-  test("1차판: 각인·스톤은 바꾸고, 재련·연마·팔찌·아크 패시브·코어는 '준비 중'으로 잠긴다", async ({ page }) => {
+  test("각인·스톤·팔찌·팔 보호구는 바꾸고, 재련·연마·아크 패시브·코어는 '준비 중'으로 잠긴다", async ({ page }) => {
     // PM 총괄 23:59: 계산 검증을 통과한 항목(보석·품질·각인·스톤)만 바꿀 수 있다.
     await gotoReady(page, `/tools/combat-power?character=${encodeURIComponent("전투력계산")}`);
     await chooseOption(page, page.getByRole("combobox", { name: "스톤 원한 레벨" }), "2");
@@ -74,10 +74,10 @@ test.describe("전투력 시뮬레이터 @smoke", () => {
     const changes = page.getByRole("region", { name: "바꾼 것" });
     await expect(changes.getByText("스톤 원한")).toBeVisible();
     await expect(changes.getByText("4 → 3")).toBeVisible();
-    for (const name of ["투구 재련 단계", "투구 상급 재련 단계", "테스트 목걸이 추가 피해 등급", "팔찌 치명타 피해 등급", "테스트 코어 등급"])
+    for (const name of ["투구 재련 단계", "투구 상급 재련 단계", "테스트 목걸이 추가 피해 등급", "테스트 코어 등급"])
       await expect(page.getByRole("combobox", { name })).toHaveCount(0);
     await expect(page.getByRole("textbox", { name: "아크 패시브 진화 포인트" })).toHaveCount(0);
-    for (const title of ["연마", "팔찌", "아크 패시브", "아크 그리드 코어"])
+    for (const title of ["연마", "아크 패시브", "아크 그리드 코어"])
       await expect(page.getByRole("region", { name: title, exact: true })).toContainText("준비 중");
     await expect(page.getByText("재련 +19 · 준비 중")).toBeVisible();
     // 잠긴 연마 줄도 등급과 공식 수치를 같은 단위로(backend #254): "중(+1.60%)".
@@ -138,5 +138,29 @@ test.describe("전투력 시뮬레이터 @smoke", () => {
     await page.getByRole("button", { name: "저장한 입력 불러오기" }).click();
     await expect(page.getByRole("status").filter({ hasText: "다시 저장해 주세요" })).toBeVisible();
     await expect(page.getByText("아래에서 값을 바꾸면 바로 다시 계산해요.")).toBeVisible();
+  });
+
+  test("팔 보호구 단계·등급과 팔찌 계열을 바꿔 계산한다(백엔드 #342·#332)", async ({ page }) => {
+    await gotoReady(page, `/tools/combat-power?character=${encodeURIComponent("전투력계산")}`);
+    const guard = page.getByRole("region", { name: "팔 보호구" });
+    await expect(guard).toContainText("+13 전율 완갑");
+    await chooseOption(page, page.getByRole("combobox", { name: "팔 보호구 단계" }), "15");
+    const changes = page.getByRole("region", { name: "바꾼 것" });
+    await expect(changes.getByText("팔 보호구")).toBeVisible();
+    await expect(changes.getByText("+13 유물 → +15 유물")).toBeVisible();
+    await chooseOption(page, page.getByRole("combobox", { name: "팔찌 2번째 효과 계열" }), "추가 피해");
+    await expect(changes.getByText("팔찌", { exact: true })).toBeVisible();
+    await expectNoHorizontalOverflow(page);
+  });
+
+  test("서포터는 '계산하지 않음' 이유를 줄마다 반복하지 않고 결과 위에 한 번만 말한다(백엔드 #332)", async ({ page }) => {
+    await gotoReady(page, `/tools/combat-power?character=${encodeURIComponent("상세서포터")}`);
+    // Any change: the first gem one step down.
+    const gem = page.getByRole("combobox", { name: / 레벨$/ }).first();
+    await gem.click();
+    await page.getByRole("option").first().click();
+    const note = page.getByText("서포터 전투력 계산식은 아직 적용하지 않았습니다.");
+    await expect(note).toHaveCount(1);
+    await expect(note).toBeVisible();
   });
 });

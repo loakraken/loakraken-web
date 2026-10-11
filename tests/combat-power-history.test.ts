@@ -136,3 +136,16 @@ test("an old save without targets is not applied (asks to save again)", () => {
   const old = parseSaved(JSON.stringify({ edits: { ...NO_EDITS, quality: { 1: 100 } }, savedAt: "2026-10-11T10:00:00.000Z" }))!;
   assert.deepEqual(applySaved(old, identity()), { legacy: true });
 });
+
+test("a saved 팔 보호구 change applies only to the same 완갑 (sim v8)", () => {
+  const edits: Edits = { ...NO_EDITS, armGuard: { level: 15 } };
+  const withGuard = (name: string): Identity => ({ ...identity(), armGuard: { name } });
+  const saved = parseSaved(serializeSaved(edits, new Date("2026-10-12T05:00:00Z"), withGuard("+13 전율 완갑")))!;
+  assert.deepEqual(saved.edits.armGuard, { level: 15 });
+  const same = applySaved(saved, withGuard("+13 전율 완갑"));
+  assert.ok(!("legacy" in same) && same.edits.armGuard.level === 15 && same.skipped === 0);
+  const other = applySaved(saved, withGuard("+10 다른 완갑"));
+  assert.ok(!("legacy" in other));
+  assert.deepEqual(other.edits.armGuard, {});
+  assert.equal(other.skipped, 1);
+});

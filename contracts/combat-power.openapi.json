@@ -1,8 +1,8 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "LOAKraken combat-power",
-    "version": "1.0.0"
+    "title": "LOAKraken combat-power 발췌",
+    "version": "combat-power-sim-v8 (feat/344 기준, develop + #382)"
   },
   "paths": {
     "/api/v1/characters/combat-power/simulate": {
@@ -118,6 +118,61 @@
           }
         }
       }
+    },
+    "/api/v1/characters/combat-power/contributions": {
+      "get": {
+        "tags": [
+          "캐릭터"
+        ],
+        "summary": "장착 항목의 전투력 기여(공식 호출 없음)",
+        "description": "그 항목을 뺐을 때 공식 전투력이 몇 % 줄어드는지입니다(전투력 기여 % = 1 − 뺀 전투력 / 지금 전투력). 지금은 팔찌(효과 줄 전부 + 팔찌 도약 포인트)만 주고, kind는 문자열이라 늘어날 수 있습니다. 계산할 수 없으면 status=UNSUPPORTED이고 contributionPct=null입니다.",
+        "operationId": "contributions",
+        "parameters": [
+          {
+            "name": "characterName",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 16,
+              "minLength": 0,
+              "pattern": "\\s*[\\p{L}\\p{N}]+\\s*"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "CHARACTER_COMBAT_POWER_CONTRIBUTIONS_SUCCESS",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseCombatPowerContributionsResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "CHARACTER_NOT_CACHED: 캐릭터 캐시 없음(공식 호출 없음)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "CLIENT_RATE_LIMITED: 이 클라이언트의 분당 요청·공식 호출 한도 초과. Retry-After(초) 뒤 다시 시도",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -165,7 +220,8 @@
               "ENGRAVING_LEVEL",
               "STONE_ENGRAVING",
               "ARK_PASSIVE_POINT",
-              "ARK_GRID_CORE"
+              "ARK_GRID_CORE",
+              "ARM_GUARD"
             ]
           },
           "slot": {
@@ -186,7 +242,7 @@
           "level": {
             "type": "integer",
             "format": "int32",
-            "description": "보석 레벨·상급 재련 단계·각인·스톤 레벨"
+            "description": "보석 레벨(0은 보석 빼기)·상급 재련 단계·각인·스톤 레벨"
           },
           "refine": {
             "type": "integer",
@@ -425,6 +481,18 @@
           "basis": {
             "type": "string",
             "description": "근거 문장(사이트 이름 없음)"
+          },
+          "reasonCode": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "UNSUPPORTED 이유 코드(문자열, 값이 늘 수 있음, 스펙업·전투력 기여와 같은 코드). OK면 null",
+                "example": "SUPPORTER_MODEL_PENDING"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -432,6 +500,7 @@
           "delta",
           "from",
           "kind",
+          "reasonCode",
           "status",
           "target",
           "to"
@@ -553,32 +622,72 @@
               "type": "string"
             }
           },
+          "polishValues": {
+            "$ref": "#/components/schemas/PolishValuesResponse",
+            "description": "연마 옵션별 하·중·상 수치(공식 툴팁 표기 그대로, 고대 장신구). 표본에서 확인하지 못한 칸은 null"
+          },
+          "braceletOptions": {
+            "type": "array",
+            "description": "팔찌 효과 교체에 쓰는 옵션 계열(#327). name을 BRACELET_EFFECT의 name으로, grades는 LOW·MID·HIGH별 공식 문구. 줄을 빼려면 name \"없음\"",
+            "items": {
+              "$ref": "#/components/schemas/BraceletOptionResponse"
+            }
+          },
           "notes": {
             "type": "array",
             "items": {
               "type": "string"
             }
-          },
-          "polishValues": {
-            "$ref": "#/components/schemas/PolishValuesResponse",
-            "description": "고대 장신구 연마 옵션별 하·중·상 수치(backend #254). 그 전 백엔드에는 없다"
           }
         },
         "required": [
           "advancedRefineMax",
           "arkPassiveTrees",
+          "braceletOptions",
           "coreGrades",
           "corePointMax",
           "engravingLevels",
           "gemLevels",
           "notes",
           "polishGrades",
+          "polishValues",
           "qualityMax",
           "refineMax",
           "refineMin",
           "ruleVersion",
           "stoneLevels",
           "verified"
+        ]
+      },
+      "PolishValuesResponse": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string",
+            "description": "수치 표 버전"
+          },
+          "accessoryGrade": {
+            "type": "string",
+            "description": "장신구 등급(지금은 고대만)"
+          },
+          "itemLevel": {
+            "type": "integer",
+            "format": "int32",
+            "description": "수치가 맞는 장신구 아이템 레벨(지금은 1680만)",
+            "example": 1680
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PolishValueResponse"
+            }
+          }
+        },
+        "required": [
+          "accessoryGrade",
+          "itemLevel",
+          "options",
+          "version"
         ]
       },
       "PolishValueResponse": {
@@ -590,84 +699,187 @@
           },
           "percent": {
             "type": "boolean",
-            "description": "true: % 옵션, false: 고정값 옵션"
+            "description": "true: % 옵션, false: 고정값 옵션(같은 이름의 공격력·무기 공격력을 가른다)"
           },
           "parts": {
             "type": "array",
+            "description": "이 옵션이 붙는 부위(공식 연마 확률 정보: 목걸이·귀걸이·반지)",
             "items": {
               "type": "string"
-            },
-            "description": "이 옵션이 붙는 부위"
+            }
           },
           "low": {
             "anyOf": [
               {
-                "type": "string"
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "description": "하",
+                    "example": "+0.70%"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               },
               {
                 "type": "null"
               }
-            ],
-            "description": "하"
+            ]
           },
           "mid": {
             "anyOf": [
               {
-                "type": "string"
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "description": "중",
+                    "example": "+1.60%"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               },
               {
                 "type": "null"
               }
-            ],
-            "description": "중"
+            ]
           },
           "high": {
             "anyOf": [
               {
-                "type": "string"
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "description": "상",
+                    "example": "+2.60%"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               },
               {
                 "type": "null"
               }
-            ],
-            "description": "상"
+            ]
           }
         },
         "required": [
-          "option",
-          "percent",
-          "parts",
+          "high",
           "low",
           "mid",
-          "high"
+          "option",
+          "parts",
+          "percent"
         ]
       },
-      "PolishValuesResponse": {
+      "BraceletOptionResponse": {
         "type": "object",
         "properties": {
-          "version": {
-            "type": "string"
+          "name": {
+            "type": "string",
+            "description": "옵션 계열 이름(BRACELET_EFFECT의 name)",
+            "example": "추가 피해"
           },
-          "accessoryGrade": {
-            "type": "string"
-          },
-          "itemLevel": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "options": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/PolishValueResponse"
-            }
+          "grades": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "LOW·MID·HIGH → 공식 문구"
           }
         },
         "required": [
-          "version",
-          "accessoryGrade",
-          "itemLevel",
-          "options"
+          "grades",
+          "name"
         ]
+      },
+      "ApiResponseCombatPowerContributionsResponse": {
+        "type": "object",
+        "description": "공통 API 응답. 오류 응답의 data는 null입니다.",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "업무 결과 코드",
+            "example": "CHARACTER_SEARCH_SUCCESS"
+          },
+          "message": {
+            "type": "string",
+            "description": "공개용 안내 메시지",
+            "example": "캐릭터 조회에 성공했습니다."
+          },
+          "data": {
+            "$ref": "#/components/schemas/CombatPowerContributionsResponse",
+            "description": "성공 응답 데이터. 오류일 때 null"
+          }
+        },
+        "required": [
+          "code",
+          "data",
+          "message"
+        ]
+      },
+      "CombatPowerContributionsResponse": {
+        "type": "object",
+        "properties": {
+          "characterName": {
+            "type": "string"
+          },
+          "fetchedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "combatPower": {
+            "type": "number",
+            "description": "공식 전투력(소수 둘째 자리)"
+          },
+          "ruleVersion": {
+            "type": "string"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ContributionItemResponse"
+            }
+          }
+        }
+      },
+      "ContributionItemResponse": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "description": "BRACELET 등(문자열, 값이 늘 수 있음)",
+            "example": "BRACELET"
+          },
+          "target": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "description": "OK 또는 UNSUPPORTED(문자열)",
+            "example": "OK"
+          },
+          "contributionPct": {
+            "type": "number",
+            "description": "전투력 기여 %(소수 둘째 자리). UNSUPPORTED면 null",
+            "example": 12.6
+          },
+          "withoutCombatPower": {
+            "type": "number",
+            "description": "그 항목을 뺐을 때 전투력(소수 둘째 자리)"
+          },
+          "basis": {
+            "type": "string",
+            "description": "계산 근거 또는 계산하지 않은 이유"
+          },
+          "reasonCode": {
+            "type": "string",
+            "description": "UNSUPPORTED 이유 코드(시뮬레이터·스펙업과 같은 코드). OK면 null"
+          }
+        }
       }
     }
   }
