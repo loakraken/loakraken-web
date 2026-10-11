@@ -313,7 +313,9 @@ function Meter({
       aria-valuemax={max}
       aria-valuenow={value}
     >
-      <i style={{ width: `${ratio * 100}%` }} />
+      {/* 모션 목록(치명·속도): scale only (no layout); grows from the start
+          once on arrival (.k-grow-x), then eases to new values. */}
+      <i className="k-grow-x" style={{ scale: `${ratio} 1` }} />
     </div>
   );
 }
@@ -849,7 +851,7 @@ function CritSpeedContent({ initialName }: { initialName: string }) {
                       />
                     </>
                   ) : name ? (
-                    <p className={styles.empty} role="status">
+                    <p className={styles.empty} data-loading="" role="status">
                       캐릭터 정보를 읽고 있어요
                     </p>
                   ) : (

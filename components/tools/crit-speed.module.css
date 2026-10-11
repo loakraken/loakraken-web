@@ -360,10 +360,9 @@
 }
 .meter i {
   display: block;
+  width: 100%;
   height: 100%;
-  border-radius: var(--radius-sm);
   background: var(--action);
-  transition: width var(--duration-slow) var(--ease-out);
 }
 .speeds {
   display: grid;
@@ -450,6 +449,13 @@
   /* Phones: the answer first, the assumptions to tweak below it. */
   .output {
     order: -1;
+  }
+  /* The answer comes first on phones, so while it loads hold a screen of
+     room: the settings below start off screen and do not jump when the
+     result arrives (390 CLS 0.37 → see PR). */
+  .empty[data-loading] {
+    min-height: 100dvh;
+    align-items: flex-start;
   }
   .settings {
     position: static;
