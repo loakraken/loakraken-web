@@ -24,7 +24,7 @@ import {
 import quote from "@/components/tools/material-quote.module.css";
 import styles from "./stats.module.css";
 import { BasisNote } from "./basis-note";
-import { RankingTypeTabs } from "./ranking-type-tabs";
+import { RankingTypeTabs, type RankingType } from "./ranking-type-tabs";
 
 const SERVERS = [
   "루페온",
@@ -43,7 +43,7 @@ const SERVERS = [
  * combat power or item level. Each row shows the representative character,
  * how many characters made the value, and the members on demand.
  */
-export function RosterRankingsView({ initial }: { initial: RosterQuery }) {
+export function RosterRankingsView({ initial, types }: { initial: RosterQuery; types: readonly RankingType[] }) {
   const router = useRouter();
   const [query, setQuery] = useState<RosterQuery>(initial);
   const latest = useRef(initial);
@@ -97,7 +97,7 @@ export function RosterRankingsView({ initial }: { initial: RosterQuery }) {
             보여줘요.
           </p>
         </section>
-        <RankingTypeTabs value="roster" />
+        <RankingTypeTabs value="roster" types={types} />
 
         <form
           className={styles.filters}

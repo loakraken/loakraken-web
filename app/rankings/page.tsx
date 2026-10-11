@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
 import { RankingsView } from "@/components/stats/rankings-view";
 import { RosterRankingsView } from "@/components/stats/roster-rankings-view";
+import { CollectibleRankingsView } from "@/components/stats/collectible-rankings-view";
+import type { RankingType } from "@/components/stats/ranking-type-tabs";
+import { parseCollectibleQuery } from "@/lib/stats/collectible-ranking";
 import { parseRosterQuery } from "@/lib/stats/roster-ranking";
-import { isRosterRankingEnabled } from "@/lib/tools/flags";
+import { isCollectibleRankingEnabled, isRosterRankingEnabled } from "@/lib/tools/flags";
 import { parseRankingQuery } from "@/lib/stats/rankings";
 
 export const metadata: Metadata = {
@@ -20,11 +23,18 @@ export default async function RankingsPage({
   const raw = await searchParams;
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(raw)) if (typeof value === "string") params.set(key, value);
-  // ?type=roster opens the roster ranking (ROSTER_RANKING); while it is
-  // hidden, the character ranking shows without the type tabs.
-  const roster = isRosterRankingEnabled();
-  if (roster && params.get("type") === "roster") return <RosterRankingsView initial={parseRosterQuery(params)} />;
+  // ?type=roster opens the roster ranking (ROSTER_RANKING), ?type=collectibles
+  // the collectible ranking (COLLECTIBLE_RANKING). A hidden one falls back to
+  // the character ranking; with neither on, there are no type tabs.
+  const types: RankingType[] = [
+    "character",
+    ...(isRosterRankingEnabled() ? (["roster"] as const) : []),
+    ...(isCollectibleRankingEnabled() ? (["collectibles"] as const) : []),
+  ];
+  const type = types.find((t) => t === params.get("type")) ?? "character";
+  if (type === "roster") return <RosterRankingsView initial={parseRosterQuery(params)} types={types} />;
+  if (type === "collectibles") return <CollectibleRankingsView initial={parseCollectibleQuery(params)} types={types} />;
   // Invalid values in a shared link fall back to the defaults.
   const query = parseRankingQuery(params) ?? { metric: "COMBAT_POWER" as const, page: 1 };
-  return <RankingsView initial={query} typeTabs={roster} />;
+  return <RankingsView initial={query} types={types} />;
 }
