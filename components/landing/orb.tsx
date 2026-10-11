@@ -3,7 +3,7 @@
 import { useRef } from "react";
 import { ThinkingOrb, type OrbState } from "thinking-orbs";
 import { useTheme } from "@/components/ui/theme-toggle";
-import { useLandingMotion, useVisible } from "./motion-context";
+import { useLandingMotion, useVisible, useWakeOnReturn } from "./motion-context";
 
 // The orb takes the site theme and our link blue for it (--link: #0066cc
 // light, #4da3ff dark), so it never draws a light orb on a dark page.
@@ -13,12 +13,14 @@ import styles from "./landing.module.css";
 export function IntelligenceOrb({ state = "breathing" }: { state?: OrbState }) {
   const ref = useRef<HTMLDivElement>(null);
   const visible = useVisible(ref, 60);
-  // Decorative and repeating: stops with the 5s loop budget.
-  const { looping } = useLandingMotion();
+  // Decorative and repeating: stops with the 5s loop budget, and plays 5s
+  // more when it comes back on screen or is pointed at or touched.
+  const { looping, wake } = useLandingMotion();
+  useWakeOnReturn(visible);
   const theme = useTheme();
 
   return (
-    <div ref={ref} className={styles.orbStage} data-orb-active={looping && visible} aria-hidden="true">
+    <div ref={ref} className={styles.orbStage} data-orb-active={looping && visible} onPointerEnter={wake} onPointerDown={wake} aria-hidden="true">
       <div className={styles.orbAtmosphere} />
       <div className={`${styles.orbit} ${styles.orbitOuter}`}><i /></div>
       <div className={`${styles.orbit} ${styles.orbitInner}`}><i /></div>

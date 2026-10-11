@@ -9,7 +9,7 @@ import { BorderBeam } from "border-beam";
 import { ArrowDown, ArrowRight, Command, ExportCircle, SearchNormal } from "@/components/ui/icons";
 import { useTheme } from "@/components/ui/theme-toggle";
 import { IntelligenceOrb, InlineOrb } from "./orb";
-import { useLandingMotion, useVisible } from "./motion-context";
+import { useLandingMotion, useVisible, useWakeOnReturn } from "./motion-context";
 import { characterNameError, normalizeCharacterName } from "@/lib/character/model";
 import styles from "./landing.module.css";
 
@@ -34,6 +34,7 @@ export function Hero({
   const hero = useRef<HTMLElement>(null);
   const heroVisible = useVisible(hero);
   const { enabled, looping, wake } = useLandingMotion();
+  useWakeOnReturn(heroVisible);
   const [query, setQuery] = useState("");
   const [error, setError] = useState("");
   const [searching, setSearching] = useState(false);
