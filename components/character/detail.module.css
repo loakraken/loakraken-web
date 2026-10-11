@@ -1647,3 +1647,32 @@
     inset: -10px -2px;
   }
 }
+/* Official armory page details (backend flag on only): tripod level on the
+   icon, the skill code copy under the info card. */
+.tripodIcon {
+  position: relative;
+  display: inline-flex;
+}
+.tripodIcon b {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  min-width: 13px;
+  height: 13px;
+  padding: 0 2px;
+  border-radius: 9999px;
+  background: var(--foreground);
+  color: var(--background);
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 13px;
+  text-align: center;
+}
+.skillCode {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.skillCode .textButton {
+  margin-top: 10px;
+}
