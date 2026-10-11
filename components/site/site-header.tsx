@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { CommandSearch } from "@/components/ui/command-search";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { KrakenMark } from "./kraken-mark";
 import { SiteNav } from "./site-nav";
@@ -34,6 +35,8 @@ export function SiteHeader({
       </nav>
       {children && <div className={styles.slot}>{children}</div>}
       <ThemeToggle className={styles.theme} />
+      {/* Ctrl K / ⌘K anywhere: the command bar loads on first open. */}
+      <CommandSearch />
     </header>
   );
 }
