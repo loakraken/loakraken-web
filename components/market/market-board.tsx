@@ -40,6 +40,7 @@ import {
 import quote from "../tools/material-quote.module.css";
 import { MarketChart } from "./market-chart";
 import { SiteHeader } from "@/components/site/site-header";
+import { PillTab, PillTabs } from "@/components/ui/pill-tabs";
 import styles from "./market.module.css";
 import { rateLimitCopy, retryLabel } from "@/lib/api/rate-limit";
 import { RateLimitNote } from "@/components/site/rate-limit-note";
@@ -389,26 +390,26 @@ function MarketContent({
         </section>
 
         <div className={styles.band}>
-          <nav className={styles.categories} aria-label="시세 분류">
-            {(tabList.length ? tabList : []).map((t) => (
-              <button
-                key={t.tab}
-                type="button"
-                aria-pressed={t.tab === query.tab}
-                onClick={() => update({ tab: t.tab, tier: null, page: 1 })}
-              >
-                {t.label}
-              </button>
-            ))}
-            {!tabList.length &&
-              tabs.isPending &&
-              // Same names and sizes as the live list: nothing moves when it arrives.
-              TAB_FALLBACK.map((t) => (
-                <button key={t.tab} type="button" aria-pressed={t.tab === query.tab} disabled>
-                  {t.label}
-                </button>
-              ))}
-          </nav>
+          {(tabList.length > 0 || tabs.isPending) && (
+            <PillTabs
+              aria-label="시세 분류"
+              value={query.tab}
+              onValueChange={(tab) => update({ tab: tab as MarketTab["tab"], tier: null, page: 1 })}
+            >
+              {tabList.length
+                ? tabList.map((t) => (
+                    <PillTab key={t.tab} value={t.tab}>
+                      {t.label}
+                    </PillTab>
+                  ))
+                : // Same names and sizes as the live list: nothing moves when it arrives.
+                  TAB_FALLBACK.map((t) => (
+                    <PillTab key={t.tab} value={t.tab} disabled>
+                      {t.label}
+                    </PillTab>
+                  ))}
+            </PillTabs>
+          )}
           {favorites.length === 0 ? (
             <p className={styles.favoritesHint}>
               <Bookmark size={12} aria-hidden="true" /> 품목의 즐겨찾기 표시를 누르면 여기에 모아 볼 수 있어요.

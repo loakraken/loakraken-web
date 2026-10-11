@@ -59,7 +59,7 @@ const FLOWS = [
     api: "**/api/markets/board**",
     start: async (page) => {
       await expect(page.getByRole("region", { name: /재련 재료 시세/ }).getByRole("listitem").first()).toBeVisible();
-      await page.getByRole("navigation", { name: "시세 분류" }).getByRole("button", { name: "각인서" }).focus();
+      await page.getByRole("tablist", { name: "시세 분류" }).getByRole("tab", { name: "각인서" }).focus();
     },
     done: (page) => page.getByRole("heading", { name: /각인서 시세/ }),
   },
