@@ -416,9 +416,10 @@
   text-underline-offset: 3px;
   cursor: help;
 }
+/* The same increase colour as the spec-up tab (blue is "done", A26). */
 .braceletEffHead b,
 .braceletEffShare {
-  color: var(--link);
+  color: var(--gain, var(--foreground));
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
