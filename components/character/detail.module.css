@@ -1378,24 +1378,6 @@
   background: var(--secondary);
   color: var(--secondary-foreground);
 }
-.skillChips > li[data-gem] {
-  padding: 0;
-}
-.skillChips > li[data-gem] button {
-  display: inline-flex;
-  align-items: center;
-  min-height: 22px;
-  padding: 0 7px;
-  border-radius: 9999px;
-  font-weight: 700;
-  cursor: pointer;
-}
-.skillChips > li[data-gem="damage"] {
-  background: color-mix(in oklab, var(--accent-warm) 16%, var(--secondary));
-}
-.skillChips > li[data-gem="cooldown"] {
-  background: color-mix(in oklab, var(--link) 16%, var(--secondary));
-}
 .spValue {
   font-size: 15px;
   font-variant-numeric: tabular-nums;
@@ -1536,4 +1518,132 @@
   margin-left: auto;
   color: var(--muted-foreground);
   font-variant-numeric: tabular-nums;
+}
+/* Skill tab head row (info · skill point ring · counts), the gem summary
+   and filter, gems at the end of a skill's head row. */
+.skillHeadRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1.2fr);
+  gap: 20px;
+}
+@media (max-width: 900px) {
+  .skillHeadRow {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.skillInfo,
+.skillCounts {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  font-size: 13px;
+}
+.skillInfo > div,
+.skillCounts > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+.skillInfo dt,
+.skillCounts dt {
+  color: var(--muted-foreground);
+}
+.skillInfo dd,
+.skillCounts dd {
+  margin: 0;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.spRing {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.spRing svg {
+  flex: none;
+  width: 64px;
+  height: 64px;
+  transform: rotate(-90deg);
+}
+.spTrack,
+.spFill {
+  fill: none;
+  stroke-width: 6;
+}
+.spTrack {
+  stroke: var(--secondary);
+}
+.spFill {
+  stroke: var(--foreground);
+  stroke-linecap: round;
+}
+.spRing p {
+  display: grid;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+.spRing b {
+  font-size: 20px;
+}
+.spRing small {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.gemFilterRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin-bottom: 12px;
+}
+.gemCounts {
+  display: flex;
+  gap: 10px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.gemCounts [data-gem="damage"] {
+  color: var(--accent-warm);
+  font-weight: 600;
+}
+.gemCounts [data-gem="cooldown"] {
+  color: var(--link);
+  font-weight: 600;
+}
+.skillGems {
+  display: inline-flex;
+  flex: none;
+  gap: 4px;
+  margin-left: auto;
+}
+.skillGems > span {
+  display: inline-flex;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+.skillGems > span[data-gem="damage"] {
+  background: color-mix(in oklab, var(--accent-warm) 16%, var(--secondary));
+}
+.skillGems > span[data-gem="cooldown"] {
+  background: color-mix(in oklab, var(--link) 16%, var(--secondary));
+}
+.skillGems button {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 8px;
+  border-radius: 9999px;
+  cursor: pointer;
+}
+@media (pointer: coarse) {
+  .skillGems button {
+    position: relative;
+  }
+  .skillGems button::after {
+    content: "";
+    position: absolute;
+    inset: -10px -2px;
+  }
 }

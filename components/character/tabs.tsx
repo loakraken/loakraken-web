@@ -23,6 +23,7 @@ import {
   refreshWindow,
   relativeAgo,
   remainingLabel,
+  gemCounts,
   skillGems,
   skillSummary,
   statNumber,
@@ -63,7 +64,16 @@ import {
 } from "./item-tooltip";
 import { sourcePlainText } from "@/lib/character/source-text";
 import { useItemTooltips } from "./use-item-tooltips";
-import { equipmentExtra, gemLines, gridGemLines, gridLines, runeLines } from "@/lib/character/item-tooltips";
+import {
+  equipmentExtra,
+  gemLines,
+  gridGemLines,
+  gridLines,
+  runeLines,
+  skillLines,
+  staggerOf,
+  type SkillLines,
+} from "@/lib/character/item-tooltips";
 import { ReceiptEnabled, ReceiptPanel } from "./receipt-panel";
 import { PillTab, PillTabs, PillTabsPanel } from "@/components/ui/pill-tabs";
 import { useStagger } from "./entrance";
@@ -798,9 +808,12 @@ function passiveByTree(data: Character) {
 function ArkPassiveSummary({
   data,
   detailed = false,
+  pointsOnly = false,
 }: {
   data: Character;
   detailed?: boolean;
+  /** The ark passive tab lists the nodes itself: points only (no repeat). */
+  pointsOnly?: boolean;
 }) {
   if (!data.loadout.arkPassive)
     return (
@@ -831,7 +844,7 @@ function ArkPassiveSummary({
           </div>
         ))}
       </dl>
-      {trees.map(({ tree, nodes }) =>
+      {!pointsOnly && trees.map(({ tree, nodes }) =>
         nodes.length ? (
           <div key={tree} className={styles.tree}>
             <h3>{tree}</h3>
@@ -991,6 +1004,7 @@ function SkillCard({
   gems = [],
   className,
   gemLinesOf,
+  lines,
 }: {
   skill: Skill;
   compact?: boolean;
@@ -999,7 +1013,10 @@ function SkillCard({
   gems?: SkillGem[];
   className?: string;
   gemLinesOf?: (slot: number | null) => string[];
+  /** Official tooltip lines (backend #300): the card's lines and the stagger chip. */
+  lines?: SkillLines;
 }) {
+  const stagger = staggerOf(lines?.infoLines);
   // Full view: the reference site's chips (type, attack direction, counter,
   // part break, gems); compact keeps the one-line summary.
   const chips = compact
@@ -1007,13 +1024,14 @@ function SkillCard({
     : [
         skill.type,
         skill.attackType ? ATTACK_LABEL[skill.attackType] : null,
+        stagger ? `무력 ${stagger}` : null,
         skill.counter ? "카운터" : null,
         skill.partBreakLevel != null ? `파괴 ${skill.partBreakLevel}` : null,
       ].filter((chip): chip is string => chip != null);
   return (
     <li className={styles.skill}>
       <div className={styles.skillHead}>
-        <DetailTooltip name={skill.name ?? "스킬"} card={<SkillDetailCard skill={skill} />}>
+        <DetailTooltip name={skill.name ?? "스킬"} card={<SkillDetailCard skill={skill} lines={lines} />}>
           <GameIcon src={skill.icon} size={36} />
         </DetailTooltip>
         <div className={styles.itemText}>
@@ -1026,28 +1044,32 @@ function SkillCard({
             {compact && skill.counter && " · 카운터"}
           </small>
         </div>
+        {gems.length > 0 && (
+          <span className={styles.skillGems} aria-label="보석">
+            {gems.map(({ gem, effect, label }) => (
+              <span key={`gem-${gem.slot}`} data-gem={label.endsWith("쿨") ? "cooldown" : "damage"}>
+                <DetailTooltip
+                  name={gem.name ?? "보석"}
+                  card={
+                    <GemCard gem={gem} skill={effect} className={className ?? ""} lines={gemLinesOf?.(gem.slot) ?? []} />
+                  }
+                >
+                  <span>{label}</span>
+                </DetailTooltip>
+              </span>
+            ))}
+          </span>
+        )}
         {skill.rune && (
           <DetailTooltip name={skill.rune.name ?? "스킬 룬"} card={<RuneCard rune={skill.rune} lines={rune} />}>
             <GameIcon src={skill.rune.icon} grade={skill.rune.grade} size={24} />
           </DetailTooltip>
         )}
       </div>
-      {(chips.length > 0 || gems.length > 0) && (
+      {chips.length > 0 && (
         <ul className={styles.skillChips} aria-label="스킬 정보">
           {chips.map((chip) => (
             <li key={chip}>{chip}</li>
-          ))}
-          {gems.map(({ gem, effect, label }) => (
-            <li key={`gem-${gem.slot}`} data-gem={label.endsWith("쿨") ? "cooldown" : "damage"}>
-              <DetailTooltip
-                name={gem.name ?? "보석"}
-                card={
-                  <GemCard gem={gem} skill={effect} className={className ?? ""} lines={gemLinesOf?.(gem.slot) ?? []} />
-                }
-              >
-                <span>{label}</span>
-              </DetailTooltip>
-            </li>
           ))}
         </ul>
       )}
@@ -1074,6 +1096,15 @@ function SkillCard({
   );
 }
 
+const GEM_FILTERS = [
+  { id: "all", label: "전체" },
+  { id: "any", label: "겁화+작열" },
+  { id: "damage", label: "겁화만" },
+  { id: "cooldown", label: "작열만" },
+  { id: "none", label: "미장착" },
+] as const;
+type GemFilter = (typeof GEM_FILTERS)[number]["id"];
+
 function SkillOverview({
   data,
   full = false,
@@ -1082,6 +1113,7 @@ function SkillOverview({
   full?: boolean;
 }) {
   const [showAll, setShowAll] = useState(false);
+  const [gemFilter, setGemFilter] = useState<GemFilter>("all");
   const listId = useId();
   const skills = data.loadout.skills;
   const extra = useItemTooltips(data.characterName);
@@ -1097,7 +1129,16 @@ function SkillOverview({
   const summary = skillSummary(skills);
   // Full view: highest skill level first, as the reference lists them.
   const shown = full && showAll ? skills : summary.active;
-  const list = full ? [...shown].sort((a, b) => (b.level ?? 0) - (a.level ?? 0)) : shown;
+  const sorted = full ? [...shown].sort((a, b) => (b.level ?? 0) - (a.level ?? 0)) : shown;
+  const gemsOf = (skill: Skill) => skillGems(data.loadout.gems, skill.name);
+  const list = sorted.filter((skill) => {
+    if (!full || gemFilter === "all") return true;
+    const labels = gemsOf(skill).map((gem) => gem.label);
+    if (gemFilter === "none") return labels.length === 0;
+    if (gemFilter === "any") return labels.length > 0;
+    return labels.some((label) => label.endsWith(gemFilter === "damage" ? "뎀" : "쿨"));
+  });
+  const counts = gemCounts(data.loadout.gems);
   return (
     <Panel
       title="스킬"
@@ -1120,6 +1161,27 @@ function SkillOverview({
         </>
       }
     >
+      {full && (
+        <div className={styles.gemFilterRow}>
+          <p className={styles.gemCounts}>
+            <span data-gem="damage">겁화 {counts.damage}</span>
+            <span data-gem="cooldown">작열 {counts.cooldown}</span>
+            <span>미장착 {counts.empty}</span>
+          </p>
+          <div className={styles.filterRow} role="group" aria-label="보석으로 거르기">
+            {GEM_FILTERS.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                aria-pressed={gemFilter === item.id}
+                onClick={() => setGemFilter(item.id)}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       {list.length ? (
         <ul id={listId} className={styles.skillGrid} data-compact={!full || undefined}>
           {list.map((skill, i) => (
@@ -1128,9 +1190,10 @@ function SkillOverview({
               skill={skill}
               compact={!full}
               rune={runeLines(extra, skill.name)}
-              gems={full ? skillGems(data.loadout.gems, skill.name) : undefined}
+              gems={full ? gemsOf(skill) : undefined}
               className={data.className}
               gemLinesOf={(slot) => gemLines(extra, slot)}
+              lines={skillLines(extra, skill.name)}
             />
           ))}
         </ul>
@@ -1182,36 +1245,92 @@ export function CombatTab({ data }: { data: Character }) {
 export function SkillsTab({ data }: { data: Character }) {
   const skills = data.loadout.skills ?? [];
   const summary = skillSummary(skills);
+  const extra = useItemTooltips(data.characterName);
   const counters = summary.active.filter((skill) => skill.counter === true);
+  const staggers = summary.active.filter((skill) => staggerOf(skillLines(extra, skill.name)?.infoLines)).length;
   const points = data.skillPoints;
   const left = points?.used != null && points.total != null ? points.total - points.used : null;
+  // The two highest combat stats ("특화 1816 · 치명 576"), the engravings by
+  // first letter, and the class engraving (ark passive title).
+  const topStats = COMBAT_STATS.map((type) => ({ type, value: statNumber(data.stats, type) }))
+    .filter((stat): stat is { type: string; value: number } => stat.value != null)
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 2);
+  const engravings = data.loadout.engravings?.arkPassiveEffects ?? [];
+  const short = engravings.map((engraving) => (engraving.name ?? "").slice(0, 1)).join("");
+  const classEngraving = data.loadout.arkPassive?.title;
+  const ratio = points?.used != null && points.total ? Math.min(1, points.used / points.total) : 0;
   return (
     <div className={styles.layout}>
+      <div className={styles.skillHeadRow}>
+        <Panel title="정보">
+          <dl className={styles.skillInfo}>
+            {topStats.length > 0 && (
+              <div>
+                <dt>특성</dt>
+                <dd>{topStats.map((stat) => `${stat.type} ${number(stat.value)}`).join(" · ")}</dd>
+              </div>
+            )}
+            {short && (
+              <div>
+                <dt>각인</dt>
+                <dd title={engravings.map((engraving) => engraving.name).join(", ")}>
+                  {short}
+                  <span className={styles.srOnly}> ({engravings.map((engraving) => engraving.name).join(", ")})</span>
+                </dd>
+              </div>
+            )}
+            {classEngraving && (
+              <div>
+                <dt>직업 각인</dt>
+                <dd>{classEngraving}</dd>
+              </div>
+            )}
+          </dl>
+        </Panel>
+        <Panel title="스킬 포인트">
+          {points?.used != null && points.total != null ? (
+            <div className={styles.spRing}>
+              <svg viewBox="0 0 64 64" role="img" aria-label={`스킬 포인트 ${points.used} / ${points.total}`}>
+                <circle cx="32" cy="32" r="27" className={styles.spTrack} />
+                <circle
+                  cx="32"
+                  cy="32"
+                  r="27"
+                  className={styles.spFill}
+                  pathLength={1}
+                  strokeDasharray={`${ratio} 1`}
+                />
+              </svg>
+              <p>
+                <b>{number(points.used)}</b> / {number(points.total)}
+                <small>남은 포인트 {number(left)}</small>
+              </p>
+            </div>
+          ) : (
+            <p className={styles.muted}>스킬 포인트 정보가 없어요.</p>
+          )}
+        </Panel>
+        <Panel title="요약">
+          <dl className={styles.skillCounts}>
+            <div>
+              <dt>카운터</dt>
+              <dd>{counters.length}개</dd>
+            </div>
+            <div>
+              <dt>무력화</dt>
+              <dd>{staggers}개</dd>
+            </div>
+            <div>
+              <dt>부위 파괴</dt>
+              <dd>{summary.partBreakCount}개</dd>
+            </div>
+          </dl>
+        </Panel>
+      </div>
       <div className={styles.columns}>
         <SkillOverview data={data} full />
         <aside className={styles.stack} aria-label="스킬 요약">
-          <Panel title="스킬 포인트">
-            {points?.used != null && points.total != null ? (
-              <>
-                <p className={styles.spValue}>
-                  <b>{number(points.used)}</b> / {number(points.total)}
-                </p>
-                <div
-                  className={styles.spBar}
-                  role="meter"
-                  aria-label="사용한 스킬 포인트"
-                  aria-valuemin={0}
-                  aria-valuemax={points.total}
-                  aria-valuenow={points.used}
-                >
-                  <span style={{ width: `${Math.min(100, (points.used / Math.max(1, points.total)) * 100)}%` }} />
-                </div>
-                <p className={styles.muted}>남은 포인트 {number(left)}</p>
-              </>
-            ) : (
-              <p className={styles.muted}>스킬 포인트 정보가 없어요.</p>
-            )}
-          </Panel>
           <Panel title="카운터 스킬" meta={`${counters.length}개`}>
             {counters.length ? (
               <ul className={styles.counterList}>
@@ -1351,7 +1470,7 @@ export function ArkPassiveTab({ data }: { data: Character }) {
           </Panel>
         </div>
         <aside className={styles.stack}>
-          <ArkPassiveSummary data={data} detailed />
+          <ArkPassiveSummary data={data} detailed pointsOnly />
           <EngravingsPanel data={data} />
         </aside>
       </div>

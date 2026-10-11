@@ -190,6 +190,28 @@ export function skillGems(gems: Character["loadout"]["gems"], name: string | nul
     });
 }
 
+/** Gem slots a character can fill (the game's gem window). */
+export const GEM_SLOTS = 11;
+
+/**
+ * Gems by kind for the skill tab summary: damage (겁화·멸화, or a radiance
+ * gem whose effect raises damage), cooldown (작열·홍염, or a radiance gem
+ * that cuts cooldown), and empty slots.
+ */
+export function gemCounts(gems: Character["loadout"]["gems"]) {
+  const items = gems?.items ?? [];
+  let damage = 0;
+  let cooldown = 0;
+  for (const gem of items) {
+    const kind = gemKind(gem.name);
+    const effect = gems?.effects?.skills.find((skill) => skill.gemSlot === gem.slot);
+    const cool = kind === "쿨" || (kind !== "뎀" && /재사용/.test(effect?.description.join(" ") ?? ""));
+    if (cool) cooldown += 1;
+    else damage += 1;
+  }
+  return { damage, cooldown, empty: Math.max(0, GEM_SLOTS - items.length) };
+}
+
 /* Stats -------------------------------------------------------------------- */
 
 export const COMBAT_STATS = ["치명", "특화", "신속", "제압", "인내", "숙련"];

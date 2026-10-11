@@ -111,6 +111,37 @@ export interface components {
              *     ]
              */
             runeExtraLines: string[];
+            /**
+             * @description 공식 Tooltip 제목 줄(아이콘 옆, 원문 순서: 스킬 종류·재사용 대기시간·분류). 이전 캐시면 빈 목록
+             * @example [
+             *       "일반",
+             *       "재사용 대기시간 5초",
+             *       "[일반 스킬]"
+             *     ]
+             */
+            titleLines: string[];
+            /**
+             * @description 공식 Tooltip 현재 레벨 정보 줄(원문 순서: PvE·스킬 레벨·마나 소모·부위 파괴·무력화·공격 타입·슈퍼아머 등). 다음 레벨 정보·트라이포드·룬·보석 효과는 빼고, 이전 캐시면 빈 목록
+             * @example [
+             *       "PvE",
+             *       "스킬 레벨 10",
+             *       "마나 349 소모",
+             *       "공격 타입 : 백 어택",
+             *       "슈퍼아머 : 경직 면역"
+             *     ]
+             */
+            infoLines: string[];
+            /** @description 공식 트라이포드 전체 선택지(선택 여부 포함, 공식 순서). 효과 문장은 검색 응답 skills[].tripods(선택된 것)에만 있음. 이전 캐시면 빈 목록 */
+            tripodOptions: components["schemas"]["TripodOptionResponse"][];
+        };
+        TripodOptionResponse: {
+            tier: number | null;
+            slot: number | null;
+            /** @example 약점 노출 */
+            name: string;
+            icon: string | null;
+            /** @description 선택한 트라이포드면 true */
+            selected: boolean;
         };
         GridLinesResponse: {
             index: number | null;
