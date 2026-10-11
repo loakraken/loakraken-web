@@ -30,7 +30,7 @@
      until the page ends. */
   max-height: calc(100dvh - 72px - 16px);
   overflow-y: auto;
-  overscroll-behavior: contain;
+  overscroll-behavior: contain;
 }
 .sectionTitle {
   font-size: var(--text-heading-sm);

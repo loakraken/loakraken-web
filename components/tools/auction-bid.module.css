@@ -41,7 +41,7 @@
      until the page ends. */
   max-height: calc(100dvh - 72px - 16px);
   overflow-y: auto;
-  overscroll-behavior: contain;
+  overscroll-behavior: contain;
   display: grid;
   gap: var(--space-5);
 }

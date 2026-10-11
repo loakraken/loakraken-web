@@ -33,7 +33,7 @@
      until the page ends. */
   max-height: calc(100dvh - 72px - 16px);
   overflow-y: auto;
-  overscroll-behavior: contain;
+  overscroll-behavior: contain;
   padding: 28px 24px;
   border-radius: var(--radius-xl);
   background: var(--background);
