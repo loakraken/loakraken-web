@@ -119,11 +119,8 @@
   font-variant-numeric: tabular-nums;
 }
 .tabs {
-  display: flex;
-  gap: 4px;
   margin-bottom: 10px;
 }
-.tabs button,
 .segment button {
   padding: 7px 14px;
   border-radius: 9999px;
@@ -131,7 +128,6 @@
   font-size: 14px;
   font-weight: 600;
 }
-.tabs button[aria-selected="true"],
 .segment button[aria-pressed="true"] {
   background: var(--foreground);
   color: var(--background);

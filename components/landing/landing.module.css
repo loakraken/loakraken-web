@@ -3,7 +3,6 @@
   --panel: #f5f5f7;
   --accent: #0066cc;
   --text: #1d1d1f;
-  --muted: #6e6e73;
   --line: #d6d6d6;
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   min-height: 100dvh;
@@ -106,11 +105,10 @@
 .itemLevel > span { font-size: 12px; color: #6e6e73; }
 .itemLevel strong { display: block; font-size: 36px; font-weight: 500; line-height: 1.3; letter-spacing: -1.5px; font-variant-numeric: tabular-nums; }
 .itemLevel strong span { font-size: 26px; color: #6e6e73; }
-.cockpitTabs { position: relative; display: flex; gap: 6px; width: fit-content; background: #f5f5f7; padding: 4px; margin-top: 30px; border-radius: 24px; }
-.cockpitTab { position: relative; z-index: 1; padding: 10px 20px; min-height: 44px; border: 0; border-radius: 24px; color: #6e6e73; font-size: 13px; background: transparent; }
-.cockpitTab[data-active] { color: #1d1d1f; font-weight: 600; }
-.tabIndicator { position: absolute; top: 4px; left: 0; height: calc(100% - 8px); width: var(--active-tab-width); transform: translateX(var(--active-tab-left)); background: #fff; border: 1px solid #e6e6e8; border-radius: 24px; transition: transform 180ms var(--ease-out); }
-.cockpitTabs[data-keyboard="true"] .tabIndicator { transition: none; }
+.cockpitTabs { margin-top: 30px; }
+/* The standalone page is always light, so the shared pill tabs keep the light
+   site tokens there even under the dark theme (embedded, they follow it). */
+.landing:not([data-embedded]) .cockpitTabs { --muted: #f5f5f7; --background: #fff; --secondary: #fff; --input: #86868b; --foreground: #1d1d1f; --muted-foreground: #6e6e73; }
 .panelSpace { min-height: 290px; padding-top: 26px; }
 .cockpitPanel { display: grid; grid-template-columns: 1.05fr 1fr 1.15fr; gap: 0; outline: 0; }
 .equipmentOverview, .observationCard, .diagnosticCard { padding: 10px 26px; }
@@ -318,8 +316,7 @@
   .itemLevel > span { font-size: 9px; }
   .itemLevel strong { font-size: 24px; letter-spacing: -1px; }
   .itemLevel strong span { font-size: 16px; }
-  .cockpitTabs { margin-top: 25px; width: 100%; }
-  .cockpitTab { flex: 1; padding: 10px 12px; font-size: 12px; }
+  .cockpitTabs { margin-top: 25px; }
   .cockpitPanel { grid-template-columns: 1fr; }
   .equipmentOverview, .observationCard, .diagnosticCard { padding: 22px 0; }
   .equipmentOverview { padding-top: 0; }

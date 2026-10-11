@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { SiteHeader } from "@/components/site/site-header";
 import { DataTable } from "@/components/ui/data-table";
+import { PillTab, PillTabs, PillTabsPanel } from "@/components/ui/pill-tabs";
 import { countdownText, retryLabel } from "@/lib/api/rate-limit";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { TIER_LABEL } from "@/lib/character/rank";
@@ -538,31 +539,32 @@ export function StatsView({ initial, initialTab }: { initial: StatsQuery; initia
 
         <SummaryCards query={query} />
 
-        <div className={styles.tabs} role="tablist" aria-label="통계 보기">
+        <PillTabs
+          aria-label="통계 보기"
+          listClassName={styles.tabs}
+          value={tab}
+          onValueChange={(next) => {
+            setTab(next as Tab);
+            apply(query, next as Tab);
+          }}
+          panels={
+            <PillTabsPanel value={tab} className={styles.panel}>
+              {tab === "classes" ? (
+                <ClassesTab query={query} />
+              ) : tab === "distribution" ? (
+                <DistributionTab query={query} />
+              ) : (
+                <ServersTab query={query} />
+              )}
+            </PillTabsPanel>
+          }
+        >
           {TABS.map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              role="tab"
-              aria-selected={tab === t.id}
-              onClick={() => {
-                setTab(t.id);
-                apply(query, t.id);
-              }}
-            >
+            <PillTab key={t.id} value={t.id}>
               {t.label}
-            </button>
+            </PillTab>
           ))}
-        </div>
-        <section role="tabpanel" aria-label={TABS.find((t) => t.id === tab)?.label} className={styles.panel}>
-          {tab === "classes" ? (
-            <ClassesTab query={query} />
-          ) : tab === "distribution" ? (
-            <DistributionTab query={query} />
-          ) : (
-            <ServersTab query={query} />
-          )}
-        </section>
+        </PillTabs>
         <StatsBasis query={query} />
       </main>
     </div>
