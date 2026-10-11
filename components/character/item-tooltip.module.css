@@ -15,6 +15,25 @@
   text-align: inherit;
   cursor: default;
 }
+/* Touch screens: small grid icons get a larger invisible target ("row": 28px
+   icon + 8px all round = 44; "tight": 24px icons 4px apart, taller only). */
+@media (pointer: coarse) {
+  .hitRow,
+  .hitTight {
+    position: relative;
+  }
+  .hitRow::after,
+  .hitTight::after {
+    content: "";
+    position: absolute;
+  }
+  .hitRow::after {
+    inset: -8px;
+  }
+  .hitTight::after {
+    inset: -10px -2px;
+  }
+}
 .trigger:focus-visible {
   outline: 3px solid var(--ring);
   outline-offset: 2px;

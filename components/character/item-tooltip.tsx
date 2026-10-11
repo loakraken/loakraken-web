@@ -14,7 +14,15 @@ import {
 } from "@/components/ui/item-tooltip";
 import { gradeKey } from "@/lib/character/model";
 import type { Character } from "@/lib/character/model";
-import { groupExtraLines, lineTone, placeExtraLines, type ExtraLines } from "@/lib/character/item-tooltips";
+import {
+  groupExtraLines,
+  lineTone,
+  placeExtraLines,
+  splitLeadingTrade,
+  type ExtraLines,
+  type GridGemLines,
+  type GridLines,
+} from "@/lib/character/item-tooltips";
 import styles from "./item-tooltip.module.css";
 
 type Equipment = Character["loadout"]["equipment"][number];
@@ -257,16 +265,22 @@ export function ItemTooltip({
 export function DetailTooltip({
   name,
   card,
+  hit,
   children,
 }: {
   /** What the card is about ("… 상세 보기"). */
   name: string;
   card: ReactNode;
+  /** A larger touch target round a small icon: "row" (8px all round) or "tight" (taller only). */
+  hit?: "row" | "tight";
   children: ReactNode;
 }) {
   return (
     <Tooltip>
-      <ItemTooltipTrigger className={styles.trigger} aria-label={`${name} 상세 보기`}>
+      <ItemTooltipTrigger
+        className={[styles.trigger, hit && styles[hit === "row" ? "hitRow" : "hitTight"]].filter(Boolean).join(" ")}
+        aria-label={`${name} 상세 보기`}
+      >
         {children}
       </ItemTooltipTrigger>
       <ItemTooltipContent aria-label={name}>{card}</ItemTooltipContent>
@@ -351,17 +365,20 @@ const img56 = (src: string | null | undefined) =>
 
 /**
  * The ark grid core card (sheet v2.1 §2c): name, icon row (grade 아크 그리드
- * 코어), core type, supplied willpower, the [10P]/[14P]/[17P]… options (inactive
- * ones muted) and the activation conditions.
+ * 코어), bound/trade, core type, supplied willpower, the [10P]/[14P]/[17P]…
+ * options (inactive ones muted), the activation conditions, then the official
+ * remaining lines (분해불가, sources — backend #289).
  */
-export function CoreCard({ slot }: { slot: GridSlot }) {
+export function CoreCard({ slot, lines }: { slot: GridSlot; lines?: GridLines }) {
+  const { trade, rest } = splitLeadingTrade(lines?.extraLines ?? []);
   return (
     <ItemDetail
       grade={itemGrade(slot.grade)}
       title={slot.name ?? "아크 그리드 코어"}
       icon={img56(slot.icon)}
-      lines={[[slot.grade, "아크 그리드 코어"].filter(Boolean).join(" ")]}
+      lines={[lines?.titleLine ?? [slot.grade, "아크 그리드 코어"].filter(Boolean).join(" ")]}
     >
+      <TradeLines lines={[...(lines?.tradeLines ?? []), ...trade]} />
       {slot.coreType && (
         <ItemDetailSection label="코어 타입">
           <ItemLine>{slot.coreType}</ItemLine>
@@ -388,25 +405,28 @@ export function CoreCard({ slot }: { slot: GridSlot }) {
           ))}
         </ItemDetailSection>
       )}
+      <ExtraSections lines={rest} />
     </ItemDetail>
   );
 }
 
 /**
- * The ark grid gem card (§2c): name, icon row (grade 아크 그리드 젬), basic info
- * (type, point) and effects (willpower = base - efficiency, the core point,
- * each option with its level and value).
+ * The ark grid gem card (§2c): name, icon row (grade 아크 그리드 젬), 가공 완료 ·
+ * 거래 불가, basic info (type, point), effects (willpower = base - efficiency,
+ * the core point, each option with its level and value), then the official
+ * sources ("[젬 가공] …", backend #289).
  */
-export function GridGemCard({ gem }: { gem: GridGem }) {
+export function GridGemCard({ gem, lines }: { gem: GridGem; lines?: GridGemLines }) {
   const type = gem.gemType ?? "젬";
   return (
     <ItemDetail
       grade={itemGrade(gem.grade)}
       title={gem.name ?? "아크 그리드 젬"}
       icon={img56(gem.icon)}
-      lines={[[gem.grade, "아크 그리드 젬"].filter(Boolean).join(" ")]}
+      lines={[lines?.titleLine ?? [gem.grade, "아크 그리드 젬"].filter(Boolean).join(" ")]}
       aside={gem.active === false ? undefined : "장착중"}
     >
+      <TradeLines lines={lines?.tradeLines ?? []} />
       {(gem.gemType || gem.gemPoint != null) && (
         <ItemDetailSection label="젬 기본 정보">
           {gem.gemType && <ItemLine>젬 타입 : {gem.gemType}</ItemLine>}
@@ -436,6 +456,7 @@ export function GridGemCard({ gem }: { gem: GridGem }) {
           </div>
         ))}
       </ItemDetailSection>
+      <ExtraSections lines={lines?.extraLines} />
     </ItemDetail>
   );
 }
