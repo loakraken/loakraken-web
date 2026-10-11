@@ -51,4 +51,18 @@ test.describe("전투력 시뮬레이터 @smoke", () => {
     await expect(page.getByRole("region", { name: "연마", exact: true }).getByText("등급 중(+1.60%) · 준비 중")).toBeVisible();
     await expectNoHorizontalOverflow(page);
   });
+
+  test("캐릭터 화면 시뮬레이터 탭에서도 같은 계산을 하고, 도구 화면으로 이어진다", async ({ page }) => {
+    // PM-프론트 10-11 ①: 캐릭터 탭으로 연결, 도구 경로는 그대로.
+    await gotoReady(page, `/character/${encodeURIComponent("전투력계산")}?tab=simulator`);
+    const tabs = page.getByRole("navigation", { name: "캐릭터 정보 탭" });
+    await expect(tabs.getByRole("link", { name: "시뮬레이터", exact: true })).toHaveAttribute("aria-current", "page");
+    await page.getByRole("combobox", { name: "투구 품질" }).selectOption("100");
+    await expect(page.getByRole("region", { name: "바꾼 것" }).getByText("+10.00")).toBeVisible();
+    await expect(page.getByText("12,355.67")).toBeVisible();
+    await expectNoHorizontalOverflow(page);
+    await page.getByRole("link", { name: "도구 화면으로" }).click();
+    await expect(page).toHaveURL(/\/tools\/combat-power\?character=/, { timeout: 15_000 });
+    await expect(page.getByRole("heading", { level: 1, name: "전투력 시뮬레이터" })).toBeVisible();
+  });
 });

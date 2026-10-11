@@ -21,7 +21,7 @@ import { recordRecent } from "@/lib/character/recent";
 import { CharacterBanner } from "./imagery";
 import { Entrance } from "./entrance";
 import { kstTime, level, number, text } from "./parts";
-import { SettingCheckEnabled, TabBar, TabPanel, tabOf } from "./tabs";
+import { SettingCheckEnabled, SimulatorEnabled, TabBar, TabPanel, tabOf } from "./tabs";
 import { ReceiptEnabled } from "./receipt-panel";
 import styles from "./character.module.css";
 import { RATE_LIMITED } from "@/lib/api/rate-limit";
@@ -196,7 +196,11 @@ function CharacterContent({
   initialError?: QueryFailure;
   renderedAt: number;
 }) {
-  const tab = tabOf(useSearchParams().get("tab"), useContext(SettingCheckEnabled));
+  const tab = tabOf(
+    useSearchParams().get("tab"),
+    useContext(SettingCheckEnabled),
+    useContext(SimulatorEnabled),
+  );
   const [now, setNow] = useState(renderedAt);
   const [refreshed, setRefreshed] = useState(false);
   const query = useQuery({
@@ -349,6 +353,7 @@ function CharacterContent({
 export function CharacterView({
   receipt = true,
   settingCheck = true,
+  simulator = true,
   ...props
 }: {
   name: string;
@@ -358,13 +363,17 @@ export function CharacterView({
   receipt?: boolean;
   /** SETTING_CHECK_TAB on this deployment (server flag). */
   settingCheck?: boolean;
+  /** COMBAT_POWER_SIM on this deployment (server flag). */
+  simulator?: boolean;
 }) {
   return (
     <ReceiptEnabled.Provider value={receipt}>
       <SettingCheckEnabled.Provider value={settingCheck}>
-        <LandingMotion>
-          <CharacterContent {...props} />
-        </LandingMotion>
+        <SimulatorEnabled.Provider value={simulator}>
+          <LandingMotion>
+            <CharacterContent {...props} />
+          </LandingMotion>
+        </SimulatorEnabled.Provider>
       </SettingCheckEnabled.Provider>
     </ReceiptEnabled.Provider>
   );
