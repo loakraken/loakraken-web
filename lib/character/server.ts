@@ -10,6 +10,7 @@ import {
 import { requestCharacter } from "./upstream";
 import { requestPopular } from "./popular";
 import { requestRank } from "./rank";
+import { requestCollectibleOwnership, requestCollectibleStanding } from "./collectible-standing";
 import { requestReceipt } from "./receipt";
 import { requestTitles } from "./titles";
 
@@ -57,4 +58,12 @@ export function getHistory(name: string, server: string, signal?: AbortSignal) {
   return requestHistory(name, server, process.env.LOAKRAKEN_API_ORIGIN, {
     signal,
   });
+}
+
+export function getCollectibleStanding(name: string, signal?: AbortSignal) {
+  return requestCollectibleStanding(name, process.env.LOAKRAKEN_API_ORIGIN, { signal });
+}
+
+export function getCollectibleOwnership(type: string, signal?: AbortSignal) {
+  return requestCollectibleOwnership(type, process.env.LOAKRAKEN_API_ORIGIN, { signal });
 }

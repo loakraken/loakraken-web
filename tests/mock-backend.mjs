@@ -620,6 +620,50 @@ createServer(async (req, res) => {
   }
   // Ranking (F-7, backend #100/#112). 비공개 → HIDDEN, 조건밖 → not included,
   // 집계중 → class scope still collecting, 미관측 → 404, otherwise ranked.
+  // Collectible standing and ownership (backend #304/#306): a ranked roster
+  // for 상세, the no-rank reasons for 미관측·제외, and per-item shares.
+  if (url.pathname === "/api/v1/rankings/collectibles/standing" || url.pathname === "/api/v1/collectibles/ownership") {
+    const meta = (population, sampleStatus = "READY") => ({
+      population,
+      conditions: { server: null, role: null, className: null, activeDays: 30, itemLevelMin: 1640, itemLevelMax: null, combatPowerMin: null, combatPowerMax: null, representativeOnly: false },
+      aggregatedAt: "2026-10-11T07:00:00Z",
+      snapshot: "latest",
+      ruleVersion: "stats-v1",
+      minSample: 30,
+      sampleStatus,
+      coverage: { observedCharacters: population * 4, knownCharacters: population * 5, discoveredAccounts: population },
+      populationUnit: "ROSTER",
+    });
+    if (url.pathname.endsWith("/standing")) {
+      const who = url.searchParams.get("characterName") ?? "";
+      const reason = who === "미관측" ? "NOT_OBSERVED" : who === "제외" ? "EXCLUDED" : null;
+      return send({
+        code: "COLLECTIBLE_STANDING_SUCCESS",
+        message: "ok",
+        data: {
+          meta: meta(667840),
+          unit: "ROSTER",
+          characterName: who,
+          serverName: "루페온",
+          rank: reason ? null : 213572,
+          total: 667840,
+          topPercent: reason ? null : 31.98,
+          progressPercent: reason ? null : 63.92,
+          point: reason ? null : 1210,
+          maxPoint: reason ? null : 1893,
+          reason,
+        },
+      });
+    }
+    const type = url.searchParams.get("type");
+    // Same names as the 상세 mock items ("{type} {n}"), shares spread out.
+    const items = Array.from({ length: 12 }, (_, i) => {
+      const share = Math.round((95 - ((i * 37) % 90)) * 10) / 10;
+      const rosters = Math.round(667840 * share / 100);
+      return { type, name: `${type} ${i + 1}`, sortOrder: i, maxPoint: 1, ownedRosters: rosters, completedRosters: rosters, ownedPercent: share, completedPercent: share };
+    });
+    return send({ code: "COLLECTIBLE_OWNERSHIP_SUCCESS", message: "ok", data: { meta: meta(667840), type, items } });
+  }
   if (url.pathname === "/api/v1/characters/rank") {
     const who = url.searchParams.get("characterName") ?? "";
     if (who === "미관측") return send({ code: "STATS_CHARACTER_NOT_OBSERVED", message: "private" }, 404);
