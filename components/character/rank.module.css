@@ -79,12 +79,6 @@
   font-size: 14px;
   font-weight: 600;
 }
-.hidden {
-  margin: 0;
-  color: var(--foreground);
-  font-size: 15px;
-  font-weight: 600;
-}
 .muted {
   margin: 0;
   color: var(--muted-foreground);
@@ -112,11 +106,6 @@
   .cells li {
     padding: 8px;
   }
-}
-.removal {
-  color: var(--link);
-  text-decoration: underline;
-  text-underline-offset: 2px;
 }
 .note + .note {
   margin-top: 2px;

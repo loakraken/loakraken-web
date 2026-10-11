@@ -15,7 +15,7 @@ import {
   type CharacterRank,
   type RankMetric,
 } from "@/lib/character/rank";
-import Link from "next/link";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Panel } from "./panel";
 import styles from "./rank.module.css";
 import { useCrossfade } from "@/lib/motion";
@@ -46,9 +46,15 @@ function Cells({ data, metric }: { data: CharacterRank; metric: RankMetric }) {
                   <span className={styles.top}>
                     {cell.top ?? "-"}
                     {cell.tier && (
-                      <b className={styles.tier} title={cell.tierNote ?? undefined}>
-                        {cell.tier}
-                      </b>
+                      // Hover or focus explains the name (user 10-12).
+                      <Tooltip>
+                        <TooltipTrigger className={styles.tier} aria-label={`티어 ${cell.tier}: ${cell.tierNote}`}>
+                          {cell.tier}
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {cell.tier}: {cell.tierNote}
+                        </TooltipContent>
+                      </Tooltip>
                     )}
                   </span>
                 </>
@@ -71,8 +77,8 @@ function Cells({ data, metric }: { data: CharacterRank; metric: RankMetric }) {
 /**
  * LOAWA-style ranking boxes (F-7): combat power and item level, each over all,
  * the server and the class. Ranks are over the characters LOAKraken has
- * observed (said under the boxes), never the whole game. A hidden character
- * shows only "순위 비공개"; a small sample shows its size on one line, never a 0.
+ * observed (said under the boxes), never the whole game. A small sample
+ * shows its size on one line, never a 0.
  */
 export function RankPanel({ name }: { name: string }) {
   const query = useQuery({
@@ -110,8 +116,6 @@ export function RankPanel({ name }: { name: string }) {
             </button>
           )}
         </div>
-      ) : state === "hidden" ? (
-        <p className={styles.hidden}>순위 비공개</p>
       ) : (
         <>
           {METRICS.map((metric) => (
@@ -142,12 +146,9 @@ export function RankPanel({ name }: { name: string }) {
               }}
             />
           </p>
-          {state === "ranked" && <p className={styles.note}>티어: {TIER_LEGEND}</p>}
-          <p className={styles.note}>
-            <Link href="/contact#removal" className={styles.removal}>
-              순위 제외 요청
-            </Link>
-          </p>
+          {state === "ranked" && (
+            <p className={styles.note}>티어(그 칸 순위에서 상위 몇 %인지): {TIER_LEGEND}</p>
+          )}
         </>
       )}
     </Panel>

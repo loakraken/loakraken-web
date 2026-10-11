@@ -76,9 +76,13 @@ export function scopesOf(data: CharacterRank) {
   return SCOPES.filter((s) => s.id !== "SERVER_CLASS" || data.entries.some((e) => e.scope === s.id));
 }
 
-/** What the whole panel shows. HIDDEN wins over everything else (backend #112). */
-export function rankState(data: CharacterRank): "hidden" | "excluded" | "ranked" {
-  if (data.rankVisibility !== "VISIBLE") return "hidden";
+/**
+ * What the whole panel shows. "excluded" is the ranking conditions (item
+ * level, activity), not a request. A character on the operators' processing-
+ * stop list gets the same 404 as one with no record (backend #366), so there
+ * is no hidden state any more and the two cannot be told apart.
+ */
+export function rankState(data: CharacterRank): "excluded" | "ranked" {
   return data.included ? "ranked" : "excluded";
 }
 
@@ -111,14 +115,19 @@ export function rankCell(data: CharacterRank, metric: RankMetric, scope: RankSco
         ? null
         : `상위 ${entry.topPercent.toLocaleString("ko-KR", { maximumFractionDigits: 2 })}%`,
     tier: tier && TIER_LABEL[tier],
-    tierNote: tier && `LOAKraken이 확인한 캐릭터 중 상위 ${TIER_PERCENT[tier]}% 이내`,
+    tierNote:
+      tier &&
+      `${METRICS.find((m) => m.id === metric)?.label} 순위에서 상위 ${TIER_PERCENT[tier]}% 이내예요(LOAKraken이 확인한 캐릭터 기준).`,
   };
 }
 
-/** Visible legend (the badge title is hover-only): 크라켄 상위 1% · 해구 5% · … */
-export const TIER_LEGEND = Object.entries(TIER_LABEL)
-  .map(([tier, label], i) => `${label} ${i === 0 ? "상위 " : ""}${TIER_PERCENT[tier]}%`)
-  .join(" · ");
+/**
+ * Visible legend: 크라켄 1% · 해구 5% · … 이내. Callers say which ranking the
+ * share is of (user 10-12 asked what "연안 크라켄" meant).
+ */
+export const TIER_LEGEND = `${Object.entries(TIER_LABEL)
+  .map(([tier, label]) => `${label} ${TIER_PERCENT[tier]}%`)
+  .join(" · ")} 이내`;
 
 /** Scope label with its value: 서버 · 루페온, 직업 · 바드, 서버 직업 · 루페온 바드. */
 export function scopeLabel(data: CharacterRank, scope: RankScope) {

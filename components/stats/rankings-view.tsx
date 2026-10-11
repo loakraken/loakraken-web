@@ -9,7 +9,7 @@ import { DataTable } from "@/components/ui/data-table";
 import { Select } from "@/components/ui/select";
 import { countdownText, retryLabel } from "@/lib/api/rate-limit";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
-import { TIER_LABEL } from "@/lib/character/rank";
+import { TIER_LABEL, TIER_LEGEND } from "@/lib/character/rank";
 import { fetchRankings } from "@/lib/stats/client";
 import { fixed, percent, sampleText, whole } from "@/lib/stats/model";
 import { MAX_PAGE, PAGE_SIZE, rankingSearch, type RankingQuery } from "@/lib/stats/rankings";
@@ -235,7 +235,7 @@ export function RankingsView({ initial, typeTabs = false }: { initial: RankingQu
           </nav>
         )}
         <p className={styles.note}>
-          순위는 LOAKraken이 조회·갱신한 캐릭터 기준이며, 순위 비공개로 설정된 캐릭터는 나오지 않아요. 티어: 크라켄 상위 1% · 해구 5% · 심해 10% · 대양 25% · 연안 50%
+          순위는 LOAKraken이 조회·갱신한 캐릭터 기준이에요. 티어(이 순위에서 상위 몇 %인지): {TIER_LEGEND}
         </p>
         {data && <BasisNote basis={data.meta} />}
       </main>
