@@ -3,7 +3,7 @@
 import { useEffect, useId, useState, type FormEvent, type KeyboardEvent } from "react";
 import { useRemaining } from "@/components/home/clock";
 import { useMutation } from "@tanstack/react-query";
-import { Add, ArrowDown, ArrowLeft, TaskSquare, TrashSquare } from "@/components/ui/icons";
+import { Add, ArrowDown, ArrowLeft, CloseCircle, TaskSquare } from "@/components/ui/icons";
 import { Select } from "@/components/ui/select";
 import Link from "next/link";
 import { SiteHeader } from "@/components/site/site-header";
@@ -321,8 +321,8 @@ function RaidRow({
           >
             <ArrowDown size={14} aria-hidden="true" />
           </button>
-          <button type="button" className={styles.iconButton} onClick={onRemove} aria-label={`${title} 빼기`}>
-            <TrashSquare size={14} aria-hidden="true" />
+          <button type="button" className={styles.removeButton} onClick={onRemove} aria-label={`${title} 빼기`}>
+            <CloseCircle size={18} aria-hidden="true" />
           </button>
         </span>
       </div>
@@ -397,11 +397,11 @@ function CharacterCard({
         </div>
         <button
           type="button"
-          className={styles.iconButton}
+          className={styles.removeButton}
           onClick={onRemove}
           aria-label={`${character.name} 빼기`}
         >
-          <TrashSquare size={16} aria-hidden="true" />
+          <CloseCircle size={18} aria-hidden="true" />
         </button>
       </div>
       <label className={styles.goldToggle}>

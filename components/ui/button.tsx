@@ -23,7 +23,7 @@ const buttonVariants = cva(
         secondary:
           "bg-foreground text-background pointer-fine:not-data-disabled:hover:bg-secondary-foreground",
         outline:
-          "border border-faint text-foreground pointer-fine:not-data-disabled:hover:bg-muted",
+          "border border-faint text-foreground pointer-fine:not-data-disabled:hover:bg-hover-surface",
       },
       size: {
         md: "h-11 px-[22px] text-(length:--text-body) [&_svg]:size-[18px]",

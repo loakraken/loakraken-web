@@ -72,8 +72,9 @@ export function requestCollectibleOwnership(
 /** Why there is no rank (string codes, more may come — PM-프론트 15:16). */
 export function standingReason(code: string | null | undefined, activeDays: number | null | undefined) {
   switch (code) {
+    // A roster on the operators' processing-stop list reads exactly like one
+    // with no record, so the two cannot be told apart (PM-프론트 00:59).
     case "EXCLUDED":
-      return "순위 제외를 요청한 원정대예요.";
     case "NOT_OBSERVED":
       return "아직 확인한 기록이 없어요.";
     case "INACTIVE":

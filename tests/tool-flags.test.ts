@@ -52,3 +52,11 @@ test("roster ranking tab is hidden on production unless ROSTER_RANKING says othe
   assert.equal(isRosterRankingEnabled({ SITE_URL: "https://loakraken.gg", ROSTER_RANKING: "on" }), true);
   assert.equal(isRosterRankingEnabled({ ROSTER_RANKING: "off" }), false);
 });
+
+test("collectible ranking tab is hidden on production unless COLLECTIBLE_RANKING says otherwise", async () => {
+  const { isCollectibleRankingEnabled } = await import("../lib/tools/flags");
+  assert.equal(isCollectibleRankingEnabled({}), true, "local and e2e (no SITE_URL)");
+  assert.equal(isCollectibleRankingEnabled({ SITE_URL: "https://loakraken.gg" }), false);
+  assert.equal(isCollectibleRankingEnabled({ SITE_URL: "https://loakraken.gg", COLLECTIBLE_RANKING: "on" }), true);
+  assert.equal(isCollectibleRankingEnabled({ COLLECTIBLE_RANKING: "off" }), false);
+});

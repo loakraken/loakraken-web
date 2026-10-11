@@ -38,6 +38,7 @@
   color: var(--muted-foreground);
   font-size: var(--text-caption);
 }
+
 .filters {
   display: flex;
   flex-wrap: wrap;
@@ -161,7 +162,7 @@
 
 @media (hover: hover) and (pointer: fine) {
   .chip:not([aria-pressed="true"]):hover {
-    background: var(--muted);
+    background: var(--hover-surface);
   }
 }
 @media (max-width: 760px) {

@@ -127,7 +127,7 @@
 }
 @media (hover: hover) and (pointer: fine) {
   .cell:hover {
-    background: var(--muted);
+    background: var(--hover-surface);
   }
 }
 .detailRow > td {

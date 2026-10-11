@@ -103,8 +103,12 @@
   box-shadow: inset 3px 0 0 var(--action);
 }
 @media (hover: hover) and (pointer: fine) {
+  /* Rows sit on the grey band, and their grade-coloured names are tuned
+     to 4.5:1 on the page colour, not on anything darker than the band: so
+     hover lifts the row to the page colour, as the chosen row (without its
+     bar), instead of the usual --hover-surface tint. */
   .rows button:hover {
-    background: rgb(255 255 255 / 70%);
+    background: var(--background);
   }
 }
 .rowName {
@@ -306,7 +310,7 @@
 }
 @media (hover: hover) and (pointer: fine) {
   .star:hover {
-    background: rgb(0 0 0 / 5%);
+    background: var(--hover-surface);
   }
 }
 

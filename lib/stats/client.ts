@@ -2,6 +2,7 @@ import type { BackendFailure, BackendResult } from "../api/backend";
 import { statsSearch, type StatsEnvelopes, type StatsQuery, type StatsView } from "./model";
 import { rankingSearch, type RankingEnvelope, type RankingQuery } from "./rankings";
 import { rosterSearch, type RosterQuery, type RosterRankingEnvelope } from "./roster-ranking";
+import { collectibleSearch, type CollectibleQuery, type CollectibleRankingEnvelope } from "./collectible-ranking";
 
 export class StatsQueryError extends Error {
   info: BackendFailure;
@@ -29,6 +30,9 @@ export const fetchRankings = (query: RankingQuery, signal: AbortSignal) =>
 
 export const fetchRosterRanking = (query: RosterQuery, signal: AbortSignal) =>
   call<RosterRankingEnvelope>(`/api/rankings/rosters?${rosterSearch(query)}`, signal);
+
+export const fetchCollectibleRanking = (query: CollectibleQuery, signal: AbortSignal) =>
+  call<CollectibleRankingEnvelope>(`/api/rankings/collectibles?${collectibleSearch(query)}`, signal);
 
 export async function fetchStats<V extends StatsView>(
   view: V,
