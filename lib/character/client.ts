@@ -1,4 +1,5 @@
 import type { ItemTooltipsEnvelope } from "./item-tooltips";
+import type { ArmoryPageEnvelope } from "./armory-page";
 import type { CharacterResult, QueryFailure } from "./model";
 import type { HistoryEnvelope, SiblingsEnvelope, ViewsEnvelope } from "./validate";
 import type { CardCollectionEnvelope, CardRefreshEnvelope } from "./card-collection";
@@ -83,6 +84,9 @@ export const fetchRank = (name: string, signal: AbortSignal) =>
     `/api/characters/rank?${new URLSearchParams({ characterName: name })}`,
     signal,
   );
+
+export const fetchArmoryPage = (name: string, signal: AbortSignal) =>
+  getJson<ArmoryPageEnvelope>(`/api/characters/armory-page?${new URLSearchParams({ characterName: name })}`, signal);
 
 export const fetchItemTooltips = (name: string, signal: AbortSignal) =>
   getJson<ItemTooltipsEnvelope>(

@@ -895,6 +895,32 @@ createServer(async (req, res) => {
   }
   // Remaining official tooltip lines (backend #227), keyed to the search
   // response's equipment order. "툴팁캐시없음" has no cache (404).
+  // Official armory page details (backend draft 19:58): on for 상세 (the
+  // mock skills' tripods with levels and a skill code), off (200, all null)
+  // for everyone else, as the backend answers with its flag off.
+  if (url.pathname === "/api/v1/characters/armory-page") {
+    const who = url.searchParams.get("characterName") ?? "";
+    if (who === "툴팁캐시없음") return send({ code: "CHARACTER_NOT_CACHED", message: "no cache" }, 404);
+    const on = who === "상세";
+    return send({
+      code: "CHARACTER_ARMORY_PAGE_SUCCESS",
+      message: "성공",
+      data: on
+        ? {
+            characterName: who,
+            enabled: true,
+            source: "공식 전투정보실 페이지",
+            fetchedAt: "2026-10-11T10:00:00Z",
+            skills: [
+              { name: "합성 포격", tripods: [{ tier: 0, slot: 1, name: "기동 포격", level: 5 }, { tier: 1, slot: 2, name: "연발 포격", level: 4 }, { tier: 2, slot: 1, name: "화약 추가", level: 1 }] },
+              { name: "합성 화염", tripods: [{ tier: 0, slot: 2, name: "장전", level: 5 }] },
+            ],
+            skillCode: "MOCK-SKILL-CODE-1234",
+            lifeSkills: [{ name: "채집", level: 70, grade: null }],
+          }
+        : { characterName: who, enabled: false, source: null, fetchedAt: null, skills: null, skillCode: null, lifeSkills: null },
+    });
+  }
   if (url.pathname === "/api/v1/characters/item-tooltips") {
     const who = url.searchParams.get("characterName") ?? "";
     if (who === "툴팁캐시없음") return send({ code: "CHARACTER_NOT_CACHED", message: "no cache" }, 404);
