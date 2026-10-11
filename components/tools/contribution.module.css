@@ -1,0 +1,84 @@
+/* 기여도 계산기 (L41). */
+.fields {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 12px;
+  margin-top: 16px;
+}
+.range {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 28px;
+  margin: 16px 0 0;
+}
+.range div {
+  display: grid;
+  gap: 2px;
+}
+.range dt {
+  color: var(--slate);
+  font-size: var(--text-caption);
+}
+.range dd {
+  margin: 0;
+  font-size: var(--text-heading-sm);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+/* The lower bound at the left end, the upper at the right. */
+.bar {
+  position: relative;
+  height: 24px;
+  margin-top: 18px;
+}
+.track {
+  position: absolute;
+  inset: 9px 0;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--foreground) 10%, transparent);
+}
+.ref {
+  position: absolute;
+  top: 4px;
+  width: 2px;
+  height: 16px;
+  margin-left: -1px;
+  background: var(--slate);
+}
+.marker {
+  position: absolute;
+  top: 2px;
+  width: 20px;
+  height: 20px;
+  margin-left: -10px;
+  border: 3px solid var(--background);
+  border-radius: 50%;
+  background: var(--primary);
+  box-shadow: 0 0 0 1px var(--steel);
+}
+.marker[data-band="BELOW_LOW"],
+.verdict b[data-band="BELOW_LOW"] {
+  color: var(--loss);
+}
+.marker[data-band="BELOW_LOW"] {
+  background: var(--loss);
+}
+.verdict {
+  /* One line held, typed or not. */
+  min-height: 1lh;
+  margin-top: 12px;
+  font-size: var(--text-body);
+}
+.verdict b {
+  font-variant-numeric: tabular-nums;
+}
+.notes {
+  display: grid;
+  gap: 4px;
+  margin: 16px 0 0;
+  padding-left: 18px;
+  color: var(--slate);
+  font-size: var(--text-caption);
+  list-style: disc;
+}
