@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { SiteHeader } from "@/components/site/site-header";
 import { DataTable } from "@/components/ui/data-table";
+import { Select } from "@/components/ui/select";
 import { countdownText, retryLabel } from "@/lib/api/rate-limit";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { TIER_LABEL } from "@/lib/character/rank";
@@ -93,45 +94,47 @@ export function RankingsView({ initial }: { initial: RankingQuery }) {
           </span>
           <label htmlFor={ids.server}>
             서버
-            <select id={ids.server} value={query.server ?? ""} onChange={(e) => filter({ server: e.target.value || undefined })}>
-              <option value="">전체</option>
-              {SERVERS.map((s) => (
-                <option key={s}>{s}</option>
-              ))}
-            </select>
+            <Select
+              id={ids.server}
+              value={query.server ?? ""}
+              onValueChange={(v) => filter({ server: v || undefined })}
+              items={[{ value: "", label: "전체" }, ...SERVERS.map((s) => ({ value: s, label: s }))]}
+            />
           </label>
           <label htmlFor={ids.cls}>
             직업
-            <select id={ids.cls} value={query.className ?? ""} onChange={(e) => filter({ className: e.target.value || undefined })}>
-              <option value="">전체</option>
-              {CLASSES.map((c) => (
-                <option key={c}>{c}</option>
-              ))}
-            </select>
+            <Select
+              id={ids.cls}
+              value={query.className ?? ""}
+              onValueChange={(v) => filter({ className: v || undefined })}
+              items={[{ value: "", label: "전체" }, ...CLASSES.map((c) => ({ value: c, label: c }))]}
+            />
           </label>
           <label htmlFor={ids.role}>
             역할
-            <select
+            <Select
               id={ids.role}
               value={query.role ?? ""}
-              onChange={(e) => filter({ role: (e.target.value || undefined) as RankingQuery["role"] })}
-            >
-              <option value="">전체</option>
-              <option value="DEALER">딜러</option>
-              <option value="SUPPORT">서포터</option>
-            </select>
+              onValueChange={(v) => filter({ role: (v || undefined) as RankingQuery["role"] })}
+              items={[
+                { value: "", label: "전체" },
+                { value: "DEALER", label: "딜러" },
+                { value: "SUPPORT", label: "서포터" },
+              ]}
+            />
           </label>
           <label htmlFor={ids.days}>
             최근 확인
-            <select
+            <Select
               id={ids.days}
               value={query.activeDays ?? 30}
-              onChange={(e) => filter({ activeDays: Number(e.target.value) as 7 | 30 | 90 })}
-            >
-              <option value={7}>7일</option>
-              <option value={30}>30일</option>
-              <option value={90}>90일</option>
-            </select>
+              onValueChange={(v) => filter({ activeDays: v as 7 | 30 | 90 })}
+              items={[
+                { value: 7, label: "7일" },
+                { value: 30, label: "30일" },
+                { value: 90, label: "90일" },
+              ]}
+            />
           </label>
           <label htmlFor={ids.level}>
             아이템 레벨 이상

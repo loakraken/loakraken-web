@@ -1,7 +1,7 @@
 "use client"
 
 import { cn } from "cn"
-import { CloudSunny, Monitor, Moon, Sun } from "@/components/ui/icons"
+import { Moon, Sun } from "@/components/ui/icons"
 import { useEffect, useId, useRef, useState, useSyncExternalStore, type KeyboardEvent } from "react"
 import { IconButton, type IconButtonProps } from "@/components/ui/icon-button"
 
@@ -28,10 +28,8 @@ const DARK_QUERY = "(prefers-color-scheme: dark)"
 // Inline this in <head> before any paint so a stored choice never flashes
 // light first: <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
 // It also keeps "system" in step with the OS on pages without the header.
-// Old stored values ("light"/"dark") read the same as before. The choice
-// itself goes on <html> as data-theme-choice, so the header button shows the
-// chosen mode's icon from the first paint (CSS below), before hydration.
-const themeInitScript = `(function(){try{var k="${THEME_STORAGE_KEY}",d=document.documentElement,m=matchMedia("${DARK_QUERY}");function a(){var s=localStorage.getItem(k),t=s==="system"?(m.matches?"dark":"light"):s;if(t==="dark"||t==="dim")d.dataset.theme=t;else delete d.dataset.theme;d.dataset.themeChoice=s==="dim"||s==="dark"||s==="system"?s:"light"}a();m.addEventListener("change",function(){try{if(localStorage.getItem(k)==="system")a()}catch(e){}})}catch(e){}})()`
+// Old stored values ("light"/"dark") read the same as before.
+const themeInitScript = `(function(){try{var k="${THEME_STORAGE_KEY}",d=document.documentElement,m=matchMedia("${DARK_QUERY}");function a(){var s=localStorage.getItem(k),t=s==="system"?(m.matches?"dark":"light"):s;if(t==="dark"||t==="dim")d.dataset.theme=t;else delete d.dataset.theme}a();m.addEventListener("change",function(){try{if(localStorage.getItem(k)==="system")a()}catch(e){}})}catch(e){}})()`
 
 const listeners = new Set<() => void>()
 
@@ -84,7 +82,6 @@ function setThemeAttribute(theme: AppliedTheme) {
 
 function applyChoice(value: ThemeChoice) {
   choice = value
-  document.documentElement.dataset.themeChoice = value
   setThemeAttribute(resolve(value))
   try {
     localStorage.setItem(THEME_STORAGE_KEY, value)
@@ -100,7 +97,6 @@ function subscribe(listener: () => void) {
   const onStorage = (event: StorageEvent) => {
     if (event.key !== THEME_STORAGE_KEY) return
     choice = toChoice(event.newValue)
-    document.documentElement.dataset.themeChoice = choice
     setThemeAttribute(resolve(choice))
     listener()
   }
@@ -130,20 +126,7 @@ function useThemeChoice() {
   return useSyncExternalStore(subscribe, readChoice, () => "light" as const)
 }
 
-// Each mode's Iconsax icon (Linear): sun, a cloud over the sun for dim, moon,
-// and a screen for "system".
-const ICON = { light: Sun, dim: CloudSunny, dark: Moon, system: Monitor } satisfies Record<ThemeChoice, unknown>
-
-// The header icon follows data-theme-choice on <html> (set before paint), so
-// all four are in the button and CSS shows one: no icon swap after hydration.
-const SHOWN_WHEN: Record<ThemeChoice, string> = {
-  light: "[:root[data-theme-choice]:not([data-theme-choice=light])_&]:hidden",
-  dim: "hidden [:root[data-theme-choice=dim]_&]:block",
-  dark: "hidden [:root[data-theme-choice=dark]_&]:block",
-  system: "hidden [:root[data-theme-choice=system]_&]:block",
-}
-
-// Each option previews its page colour (a small dot after the name); system is half light, half dark.
+// Each option previews its page colour; system is half light, half dark.
 const SWATCH: Record<ThemeChoice, string> = {
   light: "bg-white",
   dim: "bg-[#22252b]",
@@ -158,6 +141,7 @@ type ThemeToggleProps = Omit<IconButtonProps, "aria-label" | "aria-pressed" | "o
 // Arrow keys move and apply at once, as radios do; a click applies and
 // closes; Esc or a press outside closes and focus returns to the button.
 function ThemeToggle({ className, ...props }: ThemeToggleProps) {
+  const appearance = useTheme()
   const current = useThemeChoice()
   const [open, setOpen] = useState(false)
   const wrap = useRef<HTMLDivElement>(null)
@@ -221,10 +205,7 @@ function ThemeToggle({ className, ...props }: ThemeToggleProps) {
         onClick={() => setOpen((value) => !value)}
         {...props}
       >
-        {CHOICES.map(({ value }) => {
-          const Icon = ICON[value]
-          return <Icon key={value} aria-hidden className={SHOWN_WHEN[value]} />
-        })}
+        {appearance === "dark" ? <Moon aria-hidden /> : <Sun aria-hidden />}
       </IconButton>
       {open && (
         <div
@@ -240,7 +221,6 @@ function ThemeToggle({ className, ...props }: ThemeToggleProps) {
         >
           {CHOICES.map(({ value, label }) => {
             const checked = current === value
-            const Icon = ICON[value]
             return (
               <button
                 key={value}
@@ -258,12 +238,11 @@ function ThemeToggle({ className, ...props }: ThemeToggleProps) {
                   "aria-checked:font-semibold"
                 )}
               >
-                <Icon size={20} aria-hidden className="shrink-0" />
-                <span className="flex-1">{label}</span>
                 <span
                   aria-hidden
-                  className={cn("size-3 shrink-0 rounded-full shadow-[inset_0_0_0_1px_rgb(128_128_128/45%)]", SWATCH[value])}
+                  className={cn("size-5 shrink-0 rounded-full shadow-[inset_0_0_0_1px_rgb(128_128_128/45%)]", SWATCH[value])}
                 />
+                <span className="flex-1">{label}</span>
                 {/* the check: a ring that fills, not colour alone */}
                 <span
                   aria-hidden

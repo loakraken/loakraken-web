@@ -21,7 +21,7 @@
   letter-spacing: -0.01em;
 }
 .page button,
-.page select {
+.page [data-slot="select"] {
   font: inherit;
   cursor: pointer;
 }
@@ -262,7 +262,7 @@
   font-size: var(--text-caption);
   letter-spacing: -0.01em;
 }
-.field select,
+.field [data-slot="select"],
 .field input,
 .quantity input {
   height: 44px;
@@ -274,7 +274,7 @@
   font-size: var(--text-heading-sm);
   transition: border-color var(--duration-fast) var(--ease-out);
 }
-.field select:focus-visible,
+.field [data-slot="select"]:focus-visible,
 .field input:focus-visible,
 .quantity input:focus-visible {
   outline: none;

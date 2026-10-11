@@ -4,6 +4,7 @@ import { useEffect, useId, useState, type FormEvent, type KeyboardEvent } from "
 import { useRemaining } from "@/components/home/clock";
 import { useMutation } from "@tanstack/react-query";
 import { Add, ArrowDown, ArrowLeft, TaskSquare, TrashSquare } from "@/components/ui/icons";
+import { Select } from "@/components/ui/select";
 import Link from "next/link";
 import { SiteHeader } from "@/components/site/site-header";
 import dynamic from "next/dynamic";
@@ -504,12 +505,12 @@ function CharacterCard({
           <label htmlFor={selectId} className={styles.sr}>
             레이드 추가
           </label>
-          <select
+          <Select
             id={selectId}
             className={styles.select}
             value=""
-            onChange={(e) => {
-              const [raidId, difficulty] = e.target.value.split("|");
+            onValueChange={(picked) => {
+              const [raidId, difficulty] = picked.split("|");
               const found = options.find((o) => o.raid.id === raidId && o.mode.difficulty === difficulty);
               if (!found) return;
               const plan: RaidPlan = {
@@ -520,15 +521,14 @@ function CharacterCard({
               };
               onChange({ ...character, raids: [...character.raids, plan] });
             }}
-          >
-            <option value="">레이드 추가…</option>
-            {options.map(({ raid, mode }) => (
-              <option key={`${raid.id}|${mode.difficulty}`} value={`${raid.id}|${mode.difficulty}`}>
-                {raid.shortName} {DIFFICULTY_LABEL[mode.difficulty]}
-                {mode.status === "UNVERIFIED" ? " (골드 미확인)" : ""}
-              </option>
-            ))}
-          </select>
+            items={[
+              { value: "", label: "레이드 추가…", disabled: true },
+              ...options.map(({ raid, mode }) => ({
+                value: `${raid.id}|${mode.difficulty}`,
+                label: `${raid.shortName} ${DIFFICULTY_LABEL[mode.difficulty]}${mode.status === "UNVERIFIED" ? " (골드 미확인)" : ""}`,
+              })),
+            ]}
+          />
         </div>
       )}
     </section>
