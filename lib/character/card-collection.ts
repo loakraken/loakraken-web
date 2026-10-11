@@ -1,6 +1,6 @@
 // Roster card records (F-6): the best card set each element slot has reached
-// on any character of the same-server roster, as ILOA's "원정대 카드 기록",
-// plus LOAWA's 도감 (best awakening per card) and 장착 효과 (buildable sets).
+// on any character of the same-server roster ("원정대 카드 기록"), plus the
+// 도감 (best awakening per card) and 장착 효과 (buildable sets).
 import Ajv2020 from "ajv/dist/2020";
 import contract from "../../contracts/card-collection.openapi.json";
 import type { components } from "../api/card-collection-schema";

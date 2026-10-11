@@ -149,7 +149,7 @@ export function completedDays(variant: ItemVariant | undefined, limit = 14) {
     .reverse();
 }
 
-/** Price per unit when an item trades in bundles (LOAWA's 개당 column). */
+/** Price per unit when an item trades in bundles (the 개당 column). */
 export function unitPrice(price: number | null | undefined, bundleCount: number) {
   if (price == null || bundleCount <= 1) return null;
   return price / bundleCount;

@@ -1,5 +1,5 @@
-// The dedicated schedule page (/schedule): ILOA /calendar categories and the
-// 로아랩 /calendars per-category view over the home schedule response.
+// The dedicated schedule page (/schedule): categories and a per-category
+// view over the home schedule response.
 
 import { nextReset } from "../tools/homework";
 import { remainingText } from "../time/remaining";

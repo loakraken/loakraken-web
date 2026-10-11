@@ -1,5 +1,5 @@
-// Home dashboard (B-4): today's schedule and official news, laid out the way
-// LOAWA's home shows them (weekday tabs, countdowns, notices, events).
+// Home dashboard (B-4): today's schedule and official news (weekday tabs,
+// countdowns, notices, events).
 import type { components } from "../api/home-schema";
 import { labelOf } from "../api/tolerant";
 import { remainingText } from "../time/remaining";
@@ -170,7 +170,7 @@ export function tomorrowInWeek(coveredTo: string | null, now = Date.now()) {
   return coveredTo && tomorrow <= coveredTo ? tomorrow : null;
 }
 
-/** Patch notes (update/patch announcements) shown apart from other notices (KLOA). */
+/** Patch notes (update/patch announcements) shown apart from other notices. */
 export function isPatchNote(notice: Notice) {
   return (
     notice.category !== "MAINTENANCE" &&
@@ -185,7 +185,7 @@ const gradeRank = (grade: string | null) => {
 };
 
 /**
- * The rewards a schedule row shows inline (LOAWA shows a few icons per row):
+ * The rewards a schedule row shows inline (a few icons per row):
  * every reward once by name, rewards tied to that day's rounds first, then by
  * grade. `rest` is how many more the expanded list holds.
  */

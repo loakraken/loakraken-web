@@ -176,7 +176,7 @@ function SampleProgress({ ready, total, unit, minSample }: { ready: number; tota
 }
 
 /**
- * ILOA-style quantile bar: p10–p90 thin line, p25–p75 box, median tick. It
+ * Quantile bar: p10–p90 thin line, p25–p75 box, median tick. It
  * grows from the left each time the tab is shown (motion rule 10-10: on every
  * entry, not on in-place updates), 30ms apart up to 8 rows; only the first 12
  * rows move (PM 12-item cap), the rest are simply there.
@@ -430,8 +430,8 @@ function ServersTab({ query }: { query: StatsQuery }) {
 }
 
 /**
- * Statistics (B-3): ILOA's summary + class quantile table + distribution and
- * server tabs, LOAWA's filter row. Filters live in the URL (shareable) and
+ * Statistics (B-3): summary + class quantile table + distribution and
+ * server tabs, and a filter row. Filters live in the URL (shareable) and
  * apply at once; numbers are debounced.
  */
 export function StatsView({ initial, initialTab }: { initial: StatsQuery; initialTab: Tab }) {

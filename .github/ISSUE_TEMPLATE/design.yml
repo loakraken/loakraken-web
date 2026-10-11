@@ -9,7 +9,7 @@ body:
         ## 🌿 GitFlow 안내
         이슈 생성 후 발급된 번호로 `develop`에서 `feat/{issueNumber}-{english-kebab-case}` 브랜치를 만듭니다. 시각 오류 수정이면 `fix/{issueNumber}-{english-kebab-case}`입니다.
         PR 제목과 커밋은 `feat: 한글` 또는 `fix: 한글` 형식입니다. `[DESIGN]`은 이슈 제목과 `design` 라벨에만 씁니다.
-        PR 대상은 `develop`입니다. 목표 사이트를 약 90% 따르고, 이미지·아이콘·문구·CSS 원본은 복사하지 않습니다.
+        PR 대상은 `develop`입니다. 이미지·아이콘·문구·CSS는 직접 만들고 다른 곳의 원본을 복사하지 않습니다.
 
   - type: textarea
     id: summary
@@ -22,11 +22,11 @@ body:
   - type: textarea
     id: reference
     attributes:
-      label: 📐 근거 (목표 사이트 실측)
-      description: 따르는 목표 사이트, 실측 값(언새늘 기준 1440·390), 볼트 실측 문서나 스크린샷 경로를 적어 주세요. 확인할 수 없는 값은 "추정"으로 표시합니다.
+      label: 📐 근거 (실측)
+      description: 실측 값(기준 캐릭터, 1440·390), 볼트 실측 문서나 스크린샷 경로를 적어 주세요. 확인할 수 없는 값은 "추정"으로 표시합니다.
       placeholder: |
         e.g.
-        - 일로아 전투 탭 품질 배지: 11px / 600, 높이 17px (`40 레퍼런스/화면 실측.md` §1)
+        - 전투 탭 품질 배지: 11px / 600, 높이 17px
 
   - type: textarea
     id: todo-list
