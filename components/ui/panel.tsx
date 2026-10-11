@@ -48,7 +48,7 @@ function PanelHeader({ className, ...props }: React.ComponentProps<"div">) {
   )
 }
 
-// Panel titles follow iloa's 14/700, two pixels up for our wider panels.
+// Panel titles: 14/700 measured, two pixels up for our wider panels.
 function PanelTitle({ className, ...props }: React.ComponentProps<"h2">) {
   return (
     <h2

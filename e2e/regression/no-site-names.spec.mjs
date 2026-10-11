@@ -1,14 +1,13 @@
 // 회귀: 도구 화면에 다른 사이트·저장소 이름이 나가지 않는다(사용자 2026-10-10 23:25).
 // 백엔드가 내려주는 출처·가정 문장도 화면에 그대로 나가므로 결과까지 띄운 뒤 본다.
 // 이름 목록은 공개 저장소에 두지 않는다 — scripts/blocked-terms.mjs가 CI 비밀값
-// BLOCKED_TERMS나 로컬 .blocked-terms에서 읽는다. 목록이 없으면 일반 표현만 본다.
+// BLOCKED_TERMS나 로컬 .blocked-terms에서 읽는다. 목록이 없으면 건너뛴다.
 import { test, expect, gotoReady } from "../support/fixtures.mjs";
 import { blockedPattern, loadBlockedTerms } from "../../scripts/blocked-terms.mjs";
 
-const GENERIC = /목표 사이트|다른 계산 사이트/i;
 const blocked = loadBlockedTerms();
 const listed = blockedPattern(blocked.terms.filter((t) => t.kind === "site"));
-const NAMES = listed ? new RegExp(`${listed.source}|${GENERIC.source}`, "i") : GENERIC;
+const NAMES = listed && new RegExp(listed.source, "i");
 // 목 서버는 어떤 이름이든 같은 캐릭터를 돌려준다 — 실제 캐릭터명 대신 익명 ID.
 const CHARACTER = encodeURIComponent("목캐릭터A");
 
@@ -30,6 +29,7 @@ const PAGES = [
 test.describe("도구 화면 다른 사이트 이름 없음 @regression", () => {
   test.beforeEach(({}, testInfo) => {
     test.skip(testInfo.project.name !== "desktop-1440", "문구는 폭과 무관");
+    test.skip(!NAMES, "금지 이름 목록 없음(BLOCKED_TERMS·.blocked-terms) — 건너뜀");
   });
   for (const item of PAGES)
     test(item.name, async ({ page }) => {

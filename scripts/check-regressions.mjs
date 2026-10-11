@@ -2,7 +2,7 @@
 // Guards against regressions the user has already pointed out once
 // (vault: 30 PM/사용자 지적 회귀 점검표, rows A1 A2 A9 A11 A13 B2 B3).
 // Fast and dependency-free: it reads the source, strips comments (a comment
-// may name a target site or a rule; the screen may not) and fails CI with the
+// may name a rule; the screen may not) and fails CI with the
 // file, line and the checklist row that was broken.
 //
 //   node scripts/check-regressions.mjs        # exit 1 on any violation
