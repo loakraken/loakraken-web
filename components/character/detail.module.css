@@ -1687,11 +1687,16 @@
   line-height: 13px;
   text-align: center;
 }
+/* In the info panel's head: no height of its own beyond the head row. */
 .skillCode {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 .skillCode .textButton {
-  margin-top: 10px;
+  margin-top: 0;
+  font-size: 13px;
+}
+.skillCode [role="status"]:empty {
+  display: none;
 }

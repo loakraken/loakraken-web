@@ -1297,7 +1297,7 @@ export function SkillsTab({ data }: { data: Character }) {
   return (
     <div className={styles.layout}>
       <div className={styles.skillHeadRow}>
-        <Panel title="정보">
+        <Panel title="정보" meta={armory?.skillCode ? <SkillCodeCopy code={armory.skillCode} /> : undefined}>
           <dl className={styles.skillInfo}>
             {topStats.length > 0 && (
               <div>
@@ -1321,7 +1321,6 @@ export function SkillsTab({ data }: { data: Character }) {
               </div>
             )}
           </dl>
-          {armory?.skillCode && <SkillCodeCopy code={armory.skillCode} />}
         </Panel>
         <Panel title="스킬 포인트">
           {points?.used != null && points.total != null ? (
@@ -1399,13 +1398,6 @@ export function SkillsTab({ data }: { data: Character }) {
 }
 
 /**
- * Ark passive as the reference lays it out: one tree at a time picked by its
- * points (진화 140 · 깨달음 101 · 도약 70), its rank and level total and the
- * active nodes row by tier; then every tree's active effects side by side.
- * Inactive nodes (the full grid) need each class's whole tree from the
- * backend and come later.
- */
-/**
  * Copies the skill code (official armory page, backend flag on) for pasting
  * in the game's skill code window; says so for a moment, also to screen readers.
  */
@@ -1432,6 +1424,13 @@ function SkillCodeCopy({ code }: { code: string }) {
   );
 }
 
+/**
+ * Ark passive as the reference lays it out: one tree at a time picked by its
+ * points (진화 140 · 깨달음 101 · 도약 70), its rank and level total and the
+ * active nodes row by tier; then every tree's active effects side by side.
+ * Inactive nodes (the full grid) need each class's whole tree from the
+ * backend and come later.
+ */
 export function ArkPassiveTab({ data }: { data: Character }) {
   const trees = passiveByTree(data);
   const [picked, setPicked] = useState<string | null>(null);
