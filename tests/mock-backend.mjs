@@ -978,6 +978,45 @@ createServer(async (req, res) => {
       },
     });
   }
+  // Collectible ranking (backend #295/#304, K33): three rosters; unit=CHARACTER
+  // lists each 상세 roster character with the roster value.
+  if (url.pathname === "/api/v1/rankings/collectibles") {
+    const unit = url.searchParams.get("unit") ?? "ROSTER";
+    const kinds = (done) => [
+      { type: "모코코 씨앗", point: done ? 1569 : 1402, maxPoint: 1569 },
+      { type: "섬의 마음", point: done ? 100 : 87, maxPoint: 100 },
+      { type: "거인의 심장", point: 15, maxPoint: 15 },
+    ];
+    const roster = (rank, characterName, serverName, className, itemLevel, characterCount, done) => {
+      const types = kinds(done);
+      const point = types.reduce((a, t) => a + t.point, 0);
+      const maxPoint = types.reduce((a, t) => a + t.maxPoint, 0);
+      return { rank, serverName, characterName, className, itemLevel, characterCount, progressPercent: Math.round((point / maxPoint) * 10000) / 100, point, maxPoint, observedAt: "2026-10-11T07:00:00Z", types };
+    };
+    const rosters = [roster(1, "합성원정대", "루페온", "바드", 1740, 8, true), roster(2, "상세", "아만", "블래스터", 1780.83, 7, false), roster(3, "작은원정대", "아만", "블레이드", 1690, 4, false)];
+    const rows = unit === "CHARACTER" ? [rosters[1], { ...rosters[1], characterName: "상세서포터", className: "바드", itemLevel: 1712.5 }] : rosters;
+    return send({
+      code: "COLLECTIBLE_RANKING_SUCCESS",
+      message: "ok",
+      data: {
+        meta: {
+          population: unit === "CHARACTER" ? 4210 : 1240,
+          conditions: { server: url.searchParams.get("server"), role: null, className: null, activeDays: Number(url.searchParams.get("activeDays") ?? 30), itemLevelMin: 1640, itemLevelMax: null, combatPowerMin: null, combatPowerMax: null, representativeOnly: false },
+          aggregatedAt: "2026-10-11T07:00:00Z",
+          snapshot: "latest",
+          ruleVersion: "stats-v1",
+          minSample: 30,
+          sampleStatus: "READY",
+          coverage: { observedCharacters: 6200, knownCharacters: 7400, discoveredAccounts: 1240 },
+          populationUnit: unit,
+        },
+        unit,
+        page: 1,
+        size: 50,
+        rows,
+      },
+    });
+  }
   if (url.pathname === "/api/v1/characters/item-tooltips") {
     const who = url.searchParams.get("characterName") ?? "";
     if (who === "툴팁캐시없음") return send({ code: "CHARACTER_NOT_CACHED", message: "no cache" }, 404);

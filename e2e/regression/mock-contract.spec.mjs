@@ -48,6 +48,8 @@ test.describe("목 응답 계약 @regression", () => {
       `/api/stats/distribution?${q({ metric: "ITEM_LEVEL", width: "5" })}`,
       "/api/rankings",
       `/api/rankings?${q({ metric: "ITEM_LEVEL", page: "2" })}`,
+      "/api/rankings/collectibles",
+      `/api/rankings/collectibles?${q({ unit: "CHARACTER" })}`,
     ]) {
       const response = await request.get(path);
       const body = await response.json();
