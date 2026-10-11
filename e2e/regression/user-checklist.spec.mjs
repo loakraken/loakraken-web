@@ -61,10 +61,11 @@ const ROUTES = [
  * stays green now and turns red the moment one is fixed (then drop the line).
  */
 const KNOWN_SHIFT = {
-  "/tools/auction":
-    "성장 도구: 파티 인원 SegmentedControl 폭 측정 뒤 아래 칸이 밀림(0.0066~0.0105)",
-  "/tools/more-reward":
+  "/tools/auction@1280":
+    "성장 도구: 파티 인원 SegmentedControl 폭 측정 뒤 아래 칸이 밀림(0.0066~0.0105, 360에서는 0)",
+  "/tools/more-reward@1280":
     "성장 도구: 머리 문장 글자가 첫 그림 뒤 바뀜(0.0001~0.0002)",
+  "/tools/more-reward@360": "성장 도구: 같은 머리 문장",
 };
 
 /** Collects layout shifts from the very start of the page (buffered), with or without recent input. */
@@ -125,17 +126,23 @@ test.describe("사용자 지적 회귀 점검표 @regression", () => {
     }
   });
 
-  for (const path of ROUTES) {
-    test(`@A6 첫 로드 흔들림 0: ${path}`, async ({ page }) => {
-      test.fail(path in KNOWN_SHIFT, KNOWN_SHIFT[path]);
-      await watchShifts(page);
-      await gotoReady(page, path);
-      await page.waitForTimeout(800);
-      expect((await shifts(page)).quiet, `${path} 첫 로드 layout-shift`).toBe(
-        0,
-      );
-    });
-  }
+  // Two widths (QA 10-12): the wide layout and the phone.
+  for (const width of [1280, 360])
+    for (const path of ROUTES) {
+      test(`@A6 첫 로드 흔들림 0: ${path} @${width}`, async ({ page }) => {
+        test.fail(
+          `${path}@${width}` in KNOWN_SHIFT,
+          KNOWN_SHIFT[`${path}@${width}`],
+        );
+        await page.setViewportSize({ width, height: 900 });
+        await watchShifts(page);
+        await gotoReady(page, path);
+        await page.waitForTimeout(800);
+        expect((await shifts(page)).quiet, `${path} 첫 로드 layout-shift`).toBe(
+          0,
+        );
+      });
+    }
 
   test.describe("404", () => {
     // The 404 page answers 404 by design; its resource error is expected.
