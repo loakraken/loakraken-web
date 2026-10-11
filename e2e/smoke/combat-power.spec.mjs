@@ -14,14 +14,44 @@ test.describe("전투력 시뮬레이터 @smoke", () => {
     await expectNoHorizontalOverflow(page);
   });
 
-  test("계산된 항목은 증가분과 함께 반영하고, 처음 값으로 되돌린다", async ({ page }) => {
+  test("계산된 항목은 증가분과 함께 반영하고, 초기화로 되돌린다", async ({ page }) => {
     await gotoReady(page, `/tools/combat-power?character=${encodeURIComponent("전투력계산")}`);
     await page.getByRole("combobox", { name: "투구 품질" }).selectOption("100");
     const changes = page.getByRole("region", { name: "바꾼 것" });
     await expect(changes.getByText("+10.00")).toBeVisible();
     await expect(page.getByText("12,355.67")).toBeVisible();
-    await page.getByRole("button", { name: "처음 값으로" }).click();
+    await page.getByRole("button", { name: "초기화" }).click();
     await expect(page.getByText("아래에서 값을 바꾸면 바로 다시 계산해요.")).toBeVisible();
+  });
+
+  test("이전·다음으로 입력을 오가고, 저장한 입력은 새로고침 뒤 불러온다", async ({ page }) => {
+    // PM-프론트 10-11 16:37 ②·L6: 버튼 없이 자동 계산, 이전/다음/초기화, 브라우저 저장.
+    await gotoReady(page, `/tools/combat-power?character=${encodeURIComponent("전투력계산")}`);
+    const band = page.getByRole("region", { name: /전투력$/ });
+    await expect(band).toContainText("아이템 레벨 1,700.5");
+    const quality = page.getByRole("combobox", { name: "투구 품질" });
+    const before = await quality.inputValue();
+    await quality.selectOption("100");
+    await expect(page.getByText("12,355.67")).toBeVisible();
+    await expect(band).toContainText("예상 전투력");
+
+    await page.getByRole("button", { name: "이전" }).click();
+    await expect(quality).toHaveValue(before);
+    await expect(page.getByText("아래에서 값을 바꾸면 바로 다시 계산해요.")).toBeVisible();
+    await page.getByRole("button", { name: "다음" }).click();
+    await expect(quality).toHaveValue("100");
+    await expect(page.getByText("12,355.67")).toBeVisible();
+
+    await page.getByRole("button", { name: "입력 저장" }).click();
+    await expect(page.getByRole("status").filter({ hasText: "입력을 저장했어요" })).toBeVisible();
+    await page.reload();
+    await expect(quality).toHaveValue(before);
+    await page.getByRole("button", { name: "저장한 입력 불러오기" }).click();
+    await expect(quality).toHaveValue("100");
+    await expect(page.getByText("12,355.67")).toBeVisible();
+    // 불러오기도 한 단계라 이전으로 돌아간다.
+    await page.getByRole("button", { name: "이전" }).click();
+    await expect(quality).toHaveValue(before);
   });
 
   test("보석 레벨 0은 '빼기'로 고르고 '빼기'로 읽는다(백엔드 #250)", async ({ page }) => {

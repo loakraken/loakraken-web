@@ -1474,6 +1474,10 @@
 }
 
 /* 시뮬레이터 tab (simulator-tab.tsx) */
+.simulatorPanel {
+  /* The result band sticks under the header and the 57px tab bar. */
+  --cp-band-top: calc(var(--header-h, 73px) + 57px + 16px);
+}
 .simulatorLead {
   margin: 0 0 16px;
   color: var(--muted-foreground);
