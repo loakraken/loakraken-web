@@ -234,7 +234,6 @@ export function HomeDashboard({ renderedAt }: { renderedAt?: number }) {
         </div>
       </main>
       <footer className={styles.footer}>
-        <p>로스트아크 비공식 팬 프로젝트 · 공식 OPEN API 데이터 사용</p>
         <Link href="/about">LOAKraken 소개</Link>
       </footer>
     </div>
