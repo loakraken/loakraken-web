@@ -692,3 +692,9 @@
     transition: none;
   }
 }
+
+/* Totals on a price basis still loading (refining plan): dimmed, not emptied. */
+.total[data-stale] {
+  opacity: 0.55;
+  transition: opacity 150ms ease;
+}

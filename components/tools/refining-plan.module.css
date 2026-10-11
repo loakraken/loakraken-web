@@ -379,6 +379,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  min-height: 1lh;
   margin-top: 12px;
   color: var(--slate);
   font-size: var(--text-body);
@@ -442,4 +443,10 @@
 }
 .topNote a {
   color: var(--link);
+}
+
+/* A new price basis: the totals and the table stay, dimmed, until it lands. */
+.materialWrap[data-stale] {
+  opacity: 0.55;
+  transition: opacity 150ms ease;
 }

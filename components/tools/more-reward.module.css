@@ -378,3 +378,10 @@
   font-size: var(--text-caption);
   font-weight: 500;
 }
+
+/* A new price basis: the table keeps its shape, dimmed, until it arrives. */
+.verdict[data-stale],
+.tableScroll[data-stale] {
+  opacity: 0.55;
+  transition: opacity 150ms ease;
+}
