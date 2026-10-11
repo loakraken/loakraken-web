@@ -3,21 +3,21 @@
 // Motion state shared by the landing parts, without motion/react: the home
 // hero uses it on its own (route budget), /about wraps it in LazyMotion.
 
-import { createContext, useCallback, useContext, useEffect, useRef, useState, useSyncExternalStore, type ReactNode, type RefObject } from "react";
+import { createContext, useContext, useEffect, useState, useSyncExternalStore, type ReactNode, type RefObject } from "react";
+import { MOTION_STORAGE_KEY } from "@/components/ui/theme-toggle";
 
 /**
  * enabled: one-shot motion (entrances, transitions) may play.
- * looping: repeating motion (orb, border beam, looping CSS) may play. It stops
- * on its own 5s after it starts, so no pause button is needed (WCAG 2.2.2,
- * user 10:57); wake() runs it 5s more: search focus or hover, the orb coming
- * back on screen or being touched, the tab coming back (user, 16:22: the orb
- * stayed still after scrolling away and back). It never stops dead: the CSS
- * loops slow to a halt over the last SETTLE_MS of the 5s, then pause there.
+ * looping: repeating motion (orb, border beam, looping CSS) may play. It keeps
+ * moving (user, 20:58 — replaces the 10:57 five-second stop); pressing the orb
+ * pauses and resumes it (WCAG 2.2.2), and that choice is remembered. It also
+ * rests while the tab is hidden, and each part pauses itself off screen.
+ * Reduced motion: never.
+ * paused / togglePaused: the remembered choice, set on <html> as
+ * data-motion-paused before the first paint (themeInitScript), so a paused
+ * page does not move for a moment before hydration.
  */
-const MotionContext = createContext({ enabled: false, looping: false, wake: () => {} });
-const LOOP_MS = 5_000;
-const SETTLE_MS = 700;
-const noSubscribe = () => () => {};
+const MotionContext = createContext({ enabled: false, looping: false, paused: false, togglePaused: () => {} });
 const subscribe = (callback: () => void) => {
   document.addEventListener("visibilitychange", callback);
   return () => document.removeEventListener("visibilitychange", callback);
@@ -32,84 +32,55 @@ const subscribeReducedMotion = (callback: () => void) => {
 const getReducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 const getServerReducedMotion = () => true;
 
+const pauseListeners = new Set<() => void>();
+const subscribePaused = (callback: () => void) => {
+  pauseListeners.add(callback);
+  // Another tab pausing or resuming.
+  const onStorage = (event: StorageEvent) => {
+    if (event.key !== MOTION_STORAGE_KEY) return;
+    setPausedAttribute(event.newValue === "paused");
+    callback();
+  };
+  window.addEventListener("storage", onStorage);
+  return () => {
+    pauseListeners.delete(callback);
+    window.removeEventListener("storage", onStorage);
+  };
+};
+const getPaused = () => document.documentElement.hasAttribute("data-motion-paused");
+const getServerPaused = () => false;
+function setPausedAttribute(paused: boolean) {
+  document.documentElement.toggleAttribute("data-motion-paused", paused);
+}
+function togglePaused() {
+  const paused = !getPaused();
+  setPausedAttribute(paused);
+  try {
+    if (paused) localStorage.setItem(MOTION_STORAGE_KEY, "paused");
+    else localStorage.removeItem(MOTION_STORAGE_KEY);
+  } catch {
+    // Storage blocked: the choice lasts for this page only.
+  }
+  pauseListeners.forEach((listener) => listener());
+}
+
 export function MotionScope({ children }: { children: ReactNode }) {
   const reduced = useSyncExternalStore(subscribeReducedMotion, getReducedMotion, getServerReducedMotion);
   const visible = useSyncExternalStore(subscribe, getVisible, getServerVisible);
+  const paused = useSyncExternalStore(subscribePaused, getPaused, getServerPaused);
   const enabled = !reduced && visible;
-  // The CSS loops start at first paint, before hydration: on the first load
-  // count from navigation start, after a client navigation from mount.
-  const hydrating = useSyncExternalStore(noSubscribe, () => false, () => true);
-  const [startedAt] = useState(() => (hydrating ? 0 : performance.now()));
-  const [phase, setPhase] = useState<"awake" | "settling" | "asleep">("awake");
-  const [wakes, setWakes] = useState(0);
-  const root = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!enabled) return;
-    // Settling starts SETTLE_MS early, so the motion has stopped by 5s.
-    const run = LOOP_MS - SETTLE_MS;
-    const delay = wakes ? run : Math.max(0, startedAt + run - performance.now());
-    const timer = setTimeout(() => setPhase("settling"), delay);
-    return () => clearTimeout(timer);
-  }, [enabled, wakes, startedAt]);
-  // Settling: every repeating CSS animation in the scope slows from full speed
-  // to 0 (ease-out), then data-loop="off" pauses it there. playbackRate keeps
-  // the current position, so nothing jumps; a wake puts the rate back at 1.
-  useEffect(() => {
-    const loops = () =>
-      (root.current?.getAnimations({ subtree: true }) ?? []).filter(
-        (animation) => animation.effect?.getTiming().iterations === Infinity
-      );
-    if (phase !== "settling") {
-      loops().forEach((animation) => (animation.playbackRate = 1));
-      return;
-    }
-    const start = performance.now();
-    let frame = requestAnimationFrame(function step(now) {
-      const t = Math.min(1, (now - start) / SETTLE_MS);
-      const rate = Math.max(0.001, (1 - t) ** 2);
-      loops().forEach((animation) => (animation.playbackRate = rate));
-      if (t < 1) frame = requestAnimationFrame(step);
-      else setPhase("asleep");
-    });
-    return () => cancelAnimationFrame(frame);
-  }, [phase]);
-  const wake = useCallback(() => {
-    setPhase("awake");
-    setWakes((n) => n + 1);
-  }, []);
-  // The tab coming back runs the loops again (the budget counts while shown).
-  // Only a real visibilitychange counts: hydration also turns `visible` from
-  // the server's false to true, and that is not a return (#506 review).
-  useEffect(() => {
-    const onVisibility = () => {
-      if (document.visibilityState === "visible") wake();
-    };
-    document.addEventListener("visibilitychange", onVisibility);
-    return () => document.removeEventListener("visibilitychange", onVisibility);
-  }, [wake]);
-  const looping = enabled && phase !== "asleep";
+  const looping = enabled && !paused;
   return (
-    <MotionContext.Provider value={{ enabled, looping, wake }}>
-      <div ref={root} data-motion={enabled ? "on" : "off"} data-loop={looping ? "on" : "off"}>{children}</div>
+    <MotionContext.Provider value={{ enabled, looping, paused, togglePaused }}>
+      <div data-motion={enabled ? "on" : "off"} data-loop={looping ? "on" : "off"}>{children}</div>
     </MotionContext.Provider>
   );
 }
 
 export const useLandingMotion = () => useContext(MotionContext);
 
-
-/** wake() each time the element comes back on screen after leaving it (not
- * on its first appearance: the page-load budget already covers that). */
-export function useWakeOnReturn(visible: boolean) {
-  const { wake } = useLandingMotion();
-  const state = useRef<"unseen" | "seen" | "left">("unseen");
-  useEffect(() => {
-    if (visible) {
-      if (state.current === "left") wake();
-      state.current = "seen";
-    } else if (state.current === "seen") state.current = "left";
-  }, [visible, wake]);
-}
+/** Whether the user asked for reduced motion (false on the server). */
+export const useReducedMotion = () => useSyncExternalStore(subscribeReducedMotion, getReducedMotion, () => false);
 
 /** Whether the element is on screen (margin in px), without motion/react. */
 export function useVisible(ref: RefObject<Element | null>, margin = 0) {
