@@ -12,7 +12,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState, us
  * user 10:57); wake() runs it 5s more: search focus or hover, the orb coming
  * back on screen or being touched, the tab coming back (user, 16:22: the orb
  * stayed still after scrolling away and back). It never stops dead: the CSS
- * loops slow to a halt over SETTLE_MS, then pause where they are.
+ * loops slow to a halt over the last SETTLE_MS of the 5s, then pause there.
  */
 const MotionContext = createContext({ enabled: false, looping: false, wake: () => {} });
 const LOOP_MS = 5_000;
@@ -45,7 +45,9 @@ export function MotionScope({ children }: { children: ReactNode }) {
   const root = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!enabled) return;
-    const delay = wakes ? LOOP_MS : Math.max(0, startedAt + LOOP_MS - performance.now());
+    // Settling starts SETTLE_MS early, so the motion has stopped by 5s.
+    const run = LOOP_MS - SETTLE_MS;
+    const delay = wakes ? run : Math.max(0, startedAt + run - performance.now());
     const timer = setTimeout(() => setPhase("settling"), delay);
     return () => clearTimeout(timer);
   }, [enabled, wakes, startedAt]);
@@ -76,11 +78,15 @@ export function MotionScope({ children }: { children: ReactNode }) {
     setWakes((n) => n + 1);
   }, []);
   // The tab coming back runs the loops again (the budget counts while shown).
-  const wasVisible = useRef(visible);
+  // Only a real visibilitychange counts: hydration also turns `visible` from
+  // the server's false to true, and that is not a return (#506 review).
   useEffect(() => {
-    if (visible && !wasVisible.current) wake();
-    wasVisible.current = visible;
-  }, [visible, wake]);
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") wake();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
+  }, [wake]);
   const looping = enabled && phase !== "asleep";
   return (
     <MotionContext.Provider value={{ enabled, looping, wake }}>
