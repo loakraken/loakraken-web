@@ -574,7 +574,7 @@ function MarketContent({
         </div>
       </main>
       <footer className={quote.footer}>
-        LOAKraken · 로스트아크 비공식 팬 프로젝트 · 공식 거래소 시세 기반
+        공식 거래소 시세 기반
       </footer>
     </div>
   );

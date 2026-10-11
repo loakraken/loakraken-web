@@ -340,7 +340,7 @@ function CharacterContent({
         )}
       </main>
       <footer className={styles.footer}>
-        LOAKraken · 로스트아크 비공식 팬 프로젝트 · 공식 전투정보실 데이터 기반
+        공식 전투정보실 데이터 기반
       </footer>
     </div>
   );
