@@ -18,6 +18,9 @@
   margin-top: 24px;
 }
 .chips button {
+  /* A31: one line, never split (badge/chip/unit). */
+  flex: none;
+  white-space: nowrap;
   min-width: 52px;
   height: 36px;
   padding: 0 12px;

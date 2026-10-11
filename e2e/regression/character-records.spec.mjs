@@ -47,7 +47,7 @@ test.describe("원정대 칭호 @regression", () => {
     await gotoReady(page, `${characterPath("상세", "siblings")}&view=titles`);
     const panel = page.getByRole("region", { name: "원정대 칭호" });
     await expect(panel).toContainText(/\d+개 · 원정대 \d+명 중 \d+명 기록/);
-    await expect(panel).toContainText("장착한 칭호만 기록되며 실제 획득일과 다를 수 있어요");
+    await expect(panel).toContainText("장착한 칭호만 기록해요. 날짜는 획득일이 아니라 LOAKraken이 처음 확인한 날이에요");
     await expect(panel.getByRole("list").first().locator(":scope > li").first()).toContainText(/처음 확인|같은 날 확인/);
   });
 

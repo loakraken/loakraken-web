@@ -1791,7 +1791,7 @@ function RosterTitlesPanel({ name }: { name: string }) {
         </span>
         <span className={styles.titleInfo}>
           <InfoCircle size={13} aria-hidden="true" />
-          장착한 칭호만 기록되며 실제 획득일과 다를 수 있어요
+          장착한 칭호만 기록해요. 날짜는 획득일이 아니라 LOAKraken이 처음 확인한 날이에요
         </span>
       </p>
       {query.isPending ? (

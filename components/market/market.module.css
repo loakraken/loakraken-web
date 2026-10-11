@@ -42,6 +42,23 @@
   font-size: 16px;
   font-weight: 700;
 }
+/* the line under the list: when the prices were observed, then how fresh the
+   shown board is and its refresh button, at the end */
+.freshness {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 12px;
+  margin-top: 6px;
+}
+.freshness .note {
+  margin-top: 0;
+}
+/* stays at the end, also when it wraps under the note on a phone */
+.freshness > [data-slot="data-refresh-state"] {
+  margin-left: auto;
+}
 .boardHead h2 small {
   margin-left: 4px;
   color: var(--slate);
@@ -122,8 +139,13 @@
   font-size: 14px;
   font-weight: 600;
   overflow-wrap: anywhere;
+  /* The name may wrap; the tier badge stays one piece (A31). */
+  min-width: 0;
 }
 .rowName strong i {
+  /* A31: one line, never split (badge/chip/unit). */
+  flex: none;
+  white-space: nowrap;
   padding: 1px 5px;
   border-radius: 5px;
   background: var(--control);
@@ -302,6 +324,9 @@
   color: var(--grade-legendary-text);
 }
 .unit {
+  /* A31: one line, never split (badge/chip/unit). */
+  flex: none;
+  white-space: nowrap;
   display: block;
   margin-top: 1px;
   color: var(--slate);
@@ -374,6 +399,10 @@
   border-radius: 12px;
   background: var(--background);
 }
+/* the SVG and the tooltip that follows its reading share this box */
+.plot {
+  position: relative;
+}
 /* Line, dot and guide take one colour from the direction of the window
    (Bencho's Balance chart sets it once on the plot so they all agree). */
 .chartSvg {
@@ -445,7 +474,9 @@
   font-size: 12px;
 }
 .readout strong {
+  display: inline-block;
   margin-right: 6px;
+  font-variant-numeric: tabular-nums;
   color: var(--ink);
   font-size: 14px;
   font-weight: 700;

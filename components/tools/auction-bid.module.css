@@ -404,6 +404,9 @@
   font-variant-numeric: tabular-nums;
 }
 .badge {
+  /* A31: one line, never split (badge/chip/unit). */
+  flex: none;
+  white-space: nowrap;
   display: inline-flex;
   align-items: center;
   padding: 1px 8px;

@@ -29,7 +29,6 @@ import {
   TAB_FALLBACK,
   isTabId,
   unitPrice,
-  updatedAgo,
   type BoardItem,
   type BoardQuery,
   type ItemHistory,
@@ -72,6 +71,7 @@ import { pendingProps } from "@/lib/api/pending";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { useCrossfade } from "@/lib/motion";
 import { PriceFlash } from "./price-flash";
+import { DataRefreshState } from "@/components/ui/data-refresh-state";
 
 const TIERS = [4, 3] as const;
 
@@ -103,12 +103,6 @@ const kst = new Intl.DateTimeFormat("ko-KR", {
   hour12: false,
 });
 const at = (iso: string) => kst.format(new Date(iso));
-const subscribeMinute = (callback: () => void) => {
-  const id = setInterval(callback, 60_000);
-  return () => clearInterval(id);
-};
-const useMinute = () =>
-  useSyncExternalStore(subscribeMinute, () => Math.floor(Date.now() / 60_000) * 60_000, () => null);
 function useFavorites() {
   const raw = useSyncExternalStore(subscribeFavorites, favoritesSnapshot, () => "[]");
   return useMemo(() => parseFavorites(raw), [raw]);
@@ -331,7 +325,6 @@ function MarketContent({
   const [query, setQuery] = useState(initial);
   const [selected, setSelected] = useState<number | null>(initialItem);
   const favorites = useFavorites();
-  const now = useMinute();
   const tabs = useQuery({
     queryKey: ["market", "tabs"],
     queryFn: ({ signal }) => fetchMarketTabs(signal),
@@ -571,10 +564,20 @@ function MarketContent({
                 </nav>
               )}
               {data && (
-                <p className={styles.note}>
-                  {now !== null && `${updatedAgo(data.observedAt, now)} · `}
-                  {at(data.observedAt)} 기준 · 등락: 전일 평균가 대비
-                </p>
+                <div className={styles.freshness}>
+                  <p className={styles.note}>{at(data.observedAt)} 기준 · 등락: 전일 평균가 대비</p>
+                  {/* The board refreshes every minute on its own; this says how
+                      old the shown prices are and asks again on demand, resting
+                      30s after data arrives (the backend cache) so a press never
+                      spends the official quota for the same numbers. */}
+                  <DataRefreshState
+                    label="시세 갱신"
+                    updatedAt={board.dataUpdatedAt}
+                    fetching={board.isFetching}
+                    failed={board.isError}
+                    onRefresh={() => void board.refetch()}
+                  />
+                </div>
               )}
             </section>
 
