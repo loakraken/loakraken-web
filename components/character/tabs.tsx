@@ -4,7 +4,7 @@ import { createContext, memo, useContext, useId, useState, useSyncExternalStore,
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
-import { ArrowRight, Bookmark, BookmarkBold, InfoCircle, RefreshArrow, Share } from "@/components/ui/icons";
+import { ArrowRight, Bookmark, BookmarkBold, ChevronDown, InfoCircle, RefreshArrow, Share } from "@/components/ui/icons";
 import { InlineOrb } from "@/components/landing/orb";
 import { Reveal } from "@/components/landing/motion";
 import {
@@ -742,6 +742,19 @@ function ArkGridPanel({ data }: { data: Character }) {
         </ul>
       ) : (
         <Empty state={data.coverage.arkGrid.collections.slots} />
+      )}
+      {/* Under the cores too (user 10-11): the same toggle as in the head. */}
+      {hasDetail && grid.slots.length > 0 && (
+        <button
+          type="button"
+          className={styles.gridToggle}
+          aria-expanded={expanded}
+          aria-label={expanded ? "아크 그리드 코어 전체 접기" : "아크 그리드 코어 전체 펼치기"}
+          onClick={() => setExpanded(!expanded)}
+        >
+          <ChevronDown size={18} aria-hidden="true" />
+          <span aria-hidden="true">{expanded ? "접기" : "펼치기"}</span>
+        </button>
       )}
     </Panel>
   );
