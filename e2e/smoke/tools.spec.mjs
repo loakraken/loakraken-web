@@ -18,6 +18,24 @@ test.describe("재련 기대 비용 @smoke", () => {
     await expectNoHorizontalOverflow(page);
   });
 
+  test("책 효과는 기본으로 넣고, 끄면 값과 가정 문장이 바뀐다", async ({ page }) => {
+    // PM 총괄 10-11 00:20 결정 ②: 책 기본 포함.
+    const weaponBook = page.getByRole("switch", { name: /무기 책 효과 적용/ });
+    const armorBook = page.getByRole("switch", { name: /방어구 책 효과 적용/ });
+    await expect(weaponBook).toBeChecked();
+    await expect(armorBook).toBeChecked();
+    await page.getByRole("group", { name: "모든 부위 목표 단계" }).getByRole("button", { name: "+20" }).click();
+    const result = page.getByRole("region", { name: "예상 소모" });
+    await expect(result.getByText(/책\(야금술·재봉술\) 효과가 매번 적용된다고 가정했어요/)).toBeVisible();
+    const total = page.getByRole("region", { name: /목표까지 예상 비용/ }).locator("[class*=topTotal]");
+    await expect(total).toBeVisible();
+    const withBooks = await total.innerText();
+    await page.getByText("무기 책 효과 적용").click();
+    await page.getByText("방어구 책 효과 적용").click();
+    await expect(total).not.toHaveText(withBooks);
+    await expect(result.getByText(/효과가 매번 적용된다고 가정했어요/)).toHaveCount(0);
+  });
+
   test("캐릭터 장비를 불러와 현재 단계를 채운다", async ({ page }) => {
     await page.getByRole("textbox", { name: "캐릭터 이름" }).fill("재련");
     await page.getByRole("button", { name: "장비 불러오기" }).click();
