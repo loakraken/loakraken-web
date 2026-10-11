@@ -6,6 +6,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type CSSProperties,
   type FormEvent,
 } from "react";
 import Link from "next/link";
@@ -298,11 +299,13 @@ function ItemSearch({
             </p>
           ) : (
             <ul className={styles.resultList}>
-              {results.items.map((item) => {
+              {results.items.map((item, index) => {
                 const added = rows.some((row) => row.item.id === item.id);
                 const full = rows.length >= MAX_QUOTE_ITEMS;
                 return (
-                  <li key={item.id}>
+                  // 모션 목록(재료 시세): a new result list enters 30ms apart (max 8
+                  // steps). Items keep their key, so a repeat search does not replay.
+                  <li key={item.id} className="k-reveal" style={{ "--i": index } as CSSProperties}>
                     <GameIcon
                       key={item.icon}
                       src={item.icon}
