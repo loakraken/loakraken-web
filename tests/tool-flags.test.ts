@@ -36,3 +36,11 @@ test("세팅 점검 tab is hidden on production unless SETTING_CHECK_TAB says ot
   assert.equal(isSettingCheckEnabled({ SETTING_CHECK_TAB: " OFF " }), false);
 });
 
+
+test("armory page details are never requested on production unless ARMORY_PAGE says so", async () => {
+  const { isArmoryPageEnabled } = await import("../lib/tools/flags");
+  assert.equal(isArmoryPageEnabled({}), true, "local and e2e (no SITE_URL)");
+  assert.equal(isArmoryPageEnabled({ SITE_URL: "https://loakraken.gg" }), false);
+  assert.equal(isArmoryPageEnabled({ SITE_URL: "https://loakraken.gg", ARMORY_PAGE: "on" }), true);
+  assert.equal(isArmoryPageEnabled({ ARMORY_PAGE: "off" }), false);
+});

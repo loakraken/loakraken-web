@@ -57,6 +57,19 @@ export function isSettingCheckEnabled(env: Env = process.env) {
   return !isProductionHost(env.SITE_URL);
 }
 
+/**
+ * Official armory page details (tripod levels, skill code; backend flag off
+ * by default). The web asks for them only where ARMORY_PAGE allows it:
+ * `ARMORY_PAGE=on|off` overrides, otherwise never on the production host, so
+ * production sends no request while the backend keeps it off (PM #507 P2).
+ */
+export function isArmoryPageEnabled(env: Env = process.env) {
+  const flag = env.ARMORY_PAGE?.trim().toLowerCase();
+  if (flag === "on") return true;
+  if (flag === "off") return false;
+  return !isProductionHost(env.SITE_URL);
+}
+
 const PRODUCTION_HOST = new URL(PRODUCTION_URL).hostname;
 
 function isProductionHost(value: string | undefined) {

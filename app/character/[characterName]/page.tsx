@@ -1,4 +1,4 @@
-import { isCombatPowerEnabled, isReceiptEnabled, isSettingCheckEnabled } from "@/lib/tools/flags";
+import { isArmoryPageEnabled, isCombatPowerEnabled, isReceiptEnabled, isSettingCheckEnabled } from "@/lib/tools/flags";
 import type { Metadata } from "next";
 import {
   dehydrate,
@@ -75,6 +75,7 @@ export default async function CharacterPage({
         renderedAt={renderedAt}
         receipt={isReceiptEnabled()}
         settingCheck={isSettingCheckEnabled()}
+        armoryPage={isArmoryPageEnabled()}
         simulator={isCombatPowerEnabled()}
       />
     </HydrationBoundary>
