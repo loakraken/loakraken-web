@@ -213,7 +213,7 @@ button.orbStage:focus-visible { outline: 3px solid var(--ring); outline-offset: 
 .roadmapSection { padding-top: 0; padding-bottom: 110px; }
 .roadmap { border-top: 1px solid var(--border); }
 .roadmapNote { max-width: 760px; margin: -12px 0 36px; color: var(--muted-foreground); font-size: 14px; line-height: 1.8; }
-.roadmapItem { display: flex; align-items: flex-start; gap: 40px; padding: 36px 8px 36px 0; border-bottom: 1px solid var(--border); transition: background-color 200ms ease; }
+.roadmapItem { display: flex; align-items: flex-start; gap: 40px; padding: 36px 8px 36px 0; border-bottom: 1px solid var(--border); }
 .roadmapNumber { width: 40px; padding-top: 4px; font-size: 17px; font-weight: 500; color: var(--muted-foreground); }
 .roadmapItem > div { flex: 1; min-width: 0; }
 .roadmapStatus { display: flex; align-items: center; gap: 6px; float: right; margin-top: 7px; color: var(--muted-foreground); font-size: 12px; }
@@ -223,7 +223,6 @@ button.orbStage:focus-visible { outline: 3px solid var(--ring); outline-offset: 
 .roadmapItem h3 { font-size: 24px; font-weight: 600; letter-spacing: -0.6px; }
 .roadmapItem p { max-width: 620px; margin-top: 12px; color: var(--muted-foreground); font-size: 15px; }
 .roadmapItem .roadmapScope { color: var(--foreground); font-size: 13px; }
-.roadmapItem > svg { margin-top: 8px; color: var(--input); transition: transform 160ms var(--ease-out); }
 .closing { text-align: center; padding: 100px 24px; background: var(--muted); }
 .closingMark { display: inline-grid; place-items: center; color: var(--foreground); margin-bottom: 26px; }
 .closingMark svg { width: 40px; height: 40px; }
@@ -263,8 +262,6 @@ button.orbStage:focus-visible { outline: 3px solid var(--ring); outline-offset: 
 @media (hover: hover) and (pointer: fine) {
   .footer > a:last-child:hover { color: var(--link); }
   .navCta:hover, .primaryButton:hover, .searchSubmit:hover { background: color-mix(in oklab, var(--primary) 90%, var(--foreground)); }
-  .roadmapItem:hover { background: var(--accent); }
-  .roadmapItem:hover > svg { transform: translate(2px, -2px); }
   .cardLink:hover, .exploreLink:hover, .searchMessage a:hover { text-decoration: underline; text-underline-offset: 4px; }
 }
 @media (max-width: 1050px) {

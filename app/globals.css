@@ -735,6 +735,12 @@
   ::-webkit-scrollbar-corner {
     background: transparent;
   }
+  /* A rounded scroll area sets --scrollbar-inset to its corner radius, so the
+     track (and the thumb on it) stops short of the corners instead of running
+     out through the curve. */
+  ::-webkit-scrollbar-track {
+    margin-block: var(--scrollbar-inset, 0px);
+  }
   ::-webkit-scrollbar-button {
     display: none;
   }
@@ -755,6 +761,13 @@
       scrollbar-color: var(--scrollbar-thumb-hover) transparent;
     }
   }
+}
+
+/* Select lists (select-full.tsx): Base UI hides the list bar with its own
+   unlayered .base-ui-disable-scrollbar rule; long lists show the thin site
+   bar instead, so it is clear there is more (#514 review P2). */
+[data-slot="select-popup"].base-ui-disable-scrollbar::-webkit-scrollbar {
+  display: block;
 }
 
 /* Scrollbar ink, from the theme's own foreground so light and dark need no

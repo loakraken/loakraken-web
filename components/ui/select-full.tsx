@@ -70,6 +70,11 @@ function SelectFull<V extends string | number>({
             data-slot="select-popup"
             className={cn(
               "max-h-[min(var(--available-height),320px)] min-w-(--anchor-width) overflow-y-auto overscroll-contain p-1",
+              // Base UI hides the list scrollbar inline; show the thin site bar, kept
+              // off the rounded corners.
+              "[scrollbar-width:auto]! [--scrollbar-inset:var(--radius-md)]",
+              // focus shows on the highlighted item, not as a ring round the list
+              "outline-none",
               "rounded-(--radius-md) bg-(--surface-panel) text-foreground shadow-(--shadow-card) ring-1 ring-(--border)",
               "origin-(--transform-origin) transition-[opacity,scale] duration-150 ease-(--ease-out)",
               "data-starting-style:scale-[0.98] data-starting-style:opacity-0",
