@@ -406,7 +406,7 @@ export function MultiSearchView({ initialNames }: { initialNames: string[] }) {
                 setText(e.target.value);
                 if (error) setError("");
               }}
-              placeholder="예: 모험가, 바드장인…"
+              placeholder="예: 이름1, 이름2…"
               name="names"
               autoComplete="off"
               spellCheck={false}
