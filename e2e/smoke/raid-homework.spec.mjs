@@ -54,4 +54,43 @@ test.describe("숙제 체크 @smoke", () => {
     await expect(page.getByRole("region", { name: "이번 주 요약" })).toContainText(`${gold}G / ${total}G`);
     await expectNoHorizontalOverflow(page);
   });
+
+  test("레이드 순서를 키보드로 바꾸면 새로고침 뒤에도 남고, 전체 체크는 일부만이면 mixed다", async ({ page }) => {
+    // 사용자 10-11 14:44: 순서 조절·전체 체크. 골드는 위에서부터 3개라 순서가 의미 있다.
+    await gotoReady(page, "/tools/homework");
+    await page.getByRole("textbox", { name: "캐릭터 이름" }).fill("상세");
+    await page.getByRole("button", { name: "불러오기" }).click();
+    await page.getByRole("button", { name: /^\d+명 추가$/ }).click();
+    const card = page.getByRole("region", { name: "상세 숙제" });
+    const titles = () => card.locator("[class*=raidAll] span").allInnerTexts();
+    const before = await titles();
+    expect(before.length).toBeGreaterThan(1);
+
+    // 첫 레이드의 '아래로' 버튼에 포커스를 두고 Alt+↓ → 두 번째로, 포커스는 그 버튼에 남는다.
+    const down = card.getByRole("button", { name: `${before[0]} 아래로` });
+    await down.focus();
+    await page.keyboard.press("Alt+ArrowDown");
+    await expect.poll(titles).toEqual([before[1], before[0], ...before.slice(2)]);
+    await expect(down).toBeFocused();
+    await expect(card.getByRole("status")).toContainText(`${before[0]}: 2번째로 옮겼어요.`);
+
+    await page.reload();
+    const reloaded = page.getByRole("region", { name: "상세 숙제" });
+    await expect(reloaded.locator("[class*=raidAll] span")).toHaveText([before[1], before[0], ...before.slice(2)]);
+
+    // 전체 체크: 관문 하나만 → 레이드·캐릭터 모두 mixed, 누르면 전부 / 다시 누르면 전부 해제.
+    const all = reloaded.getByRole("checkbox", { name: "전체 완료" });
+    await expect(all).not.toBeChecked();
+    await reloaded.getByRole("group").first().getByRole("checkbox", { name: /^1관문/ }).check();
+    await expect(all).toHaveAttribute("aria-checked", "mixed");
+    const raidBox = reloaded.getByRole("checkbox", { name: before[1], exact: true });
+    await expect(raidBox).toHaveAttribute("aria-checked", "mixed");
+    await raidBox.click();
+    await expect(raidBox).toBeChecked();
+    await all.click();
+    await expect(all).toBeChecked();
+    await all.click();
+    await expect(all).not.toBeChecked();
+    await expectNoHorizontalOverflow(page);
+  });
 });

@@ -137,7 +137,9 @@
 }
 .pick input,
 .gateCheck input,
-.moreCheck input {
+.moreCheck input,
+.allCheck input,
+.raidAll input {
   width: 18px;
   height: 18px;
   accent-color: var(--primary);
@@ -257,7 +259,9 @@
 /* Drawn check: the box fills and the tick sweeps in from the left in 200ms
    (transform only). */
 .gateCheck input,
-.moreCheck input {
+.moreCheck input,
+.allCheck input,
+.raidAll input {
   appearance: none;
   display: grid;
   place-content: center;
@@ -274,7 +278,9 @@
     border-color var(--duration-fast) var(--ease-out);
 }
 .gateCheck input::before,
-.moreCheck input::before {
+.moreCheck input::before,
+.allCheck input::before,
+.raidAll input::before {
   content: "";
   width: 10px;
   height: 8px;
@@ -285,16 +291,24 @@
   transition: transform var(--duration-base) var(--ease-out);
 }
 .gateCheck input:checked,
-.moreCheck input:checked {
+.moreCheck input:checked,
+.allCheck input:checked,
+.allCheck input:indeterminate,
+.raidAll input:checked,
+.raidAll input:indeterminate {
   border-color: var(--primary);
   background: var(--primary);
 }
 .gateCheck input:checked::before,
-.moreCheck input:checked::before {
+.moreCheck input:checked::before,
+.allCheck input:checked::before,
+.raidAll input:checked::before {
   transform: scaleX(1);
 }
 .gateCheck input:focus-visible,
-.moreCheck input:focus-visible {
+.moreCheck input:focus-visible,
+.allCheck input:focus-visible,
+.raidAll input:focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
 }
@@ -360,4 +374,38 @@
 /* Same height as the loading shell (homework-loader): a screen at least. */
 .main {
   min-height: 100dvh;
+}
+
+/* 전체 체크(사용자 14:44): character-wide and per-raid tri-state boxes. Some
+   ticked = indeterminate, drawn as a bar instead of the tick. */
+.allCheck,
+.raidAll {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 32px;
+  cursor: pointer;
+}
+.allCheck {
+  margin-top: var(--space-2);
+  font-size: var(--text-meta);
+  font-weight: 600;
+}
+.raidAll {
+  font-weight: 700;
+}
+.allCheck input:indeterminate::before,
+.raidAll input:indeterminate::before {
+  height: 2px;
+  clip-path: none;
+  transform: scaleX(1);
+}
+.raidTools {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+.raidTools button:disabled {
+  opacity: 0.4;
+  cursor: default;
 }
