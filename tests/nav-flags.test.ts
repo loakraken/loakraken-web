@@ -38,5 +38,5 @@ test("the combat-power simulator is in the menu behind its own flag (사용자 �
   const link = tools?.groups[0].links.find((item) => item.href === "/tools/combat-power");
   assert.equal(link?.flag, "combatPower");
   assert.equal(tools?.groups[0].links[1], link, "first calculator after 도구 전체");
-  assert.ok(tools?.match.includes("/tools/combat-power"));
+  assert.ok(tools?.match?.includes("/tools/combat-power"));
 });
