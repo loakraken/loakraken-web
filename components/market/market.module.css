@@ -42,6 +42,23 @@
   font-size: 16px;
   font-weight: 700;
 }
+/* the line under the list: when the prices were observed, then how fresh the
+   shown board is and its refresh button, at the end */
+.freshness {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 12px;
+  margin-top: 6px;
+}
+.freshness .note {
+  margin-top: 0;
+}
+/* stays at the end, also when it wraps under the note on a phone */
+.freshness > [data-slot="data-refresh-state"] {
+  margin-left: auto;
+}
 .boardHead h2 small {
   margin-left: 4px;
   color: var(--slate);
