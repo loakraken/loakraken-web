@@ -19,6 +19,8 @@ export type ItemTooltips = Schemas["CharacterItemTooltipsResponse"];
 const ROLLOUT: Record<string, string[]> = {
   EquipmentLinesResponse: ["extraLineSections"],
   CharacterItemTooltipsResponse: ["arkGrid"],
+  // Before #300/#310: no official skill lines or tripod options.
+  SkillLinesResponse: ["titleLines", "infoLines", "tripodOptions"],
 };
 const validate = lazyValidator(() => {
   const schemas = tolerantSchemas(contract.components.schemas) as Record<string, { required?: string[] }>;
@@ -159,6 +161,19 @@ export function splitLeadingTrade(lines: string[]) {
   let i = 0;
   while (i < lines.length && /^(거래|캐릭터 귀속|원정대 귀속|귀속)/.test(lines[i])) i++;
   return { trade: lines.slice(0, i), rest: lines.slice(i) };
+}
+
+export type SkillLines = ItemTooltips["skills"][number];
+
+/** The official skill tooltip lines (backend #300) for the skill named `name`. */
+export function skillLines(data: ItemTooltips | undefined, name: string | null | undefined): SkillLines | undefined {
+  return name ? data?.skills.find((skill) => skill.name === name) : undefined;
+}
+
+/** The stagger grade from the official line "무력화 : 중" (하·중·상·최상), or null. */
+export function staggerOf(lines: string[] | undefined) {
+  const line = lines?.find((text) => /^무력화\s*:/.test(text));
+  return line ? line.replace(/^무력화\s*:\s*/, "").trim() || null : null;
 }
 
 /** The rune's remaining lines (description, sources) for the skill named `name`. */

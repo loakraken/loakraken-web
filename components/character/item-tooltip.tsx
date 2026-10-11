@@ -15,6 +15,7 @@ import {
 import { gradeKey } from "@/lib/character/model";
 import type { Character } from "@/lib/character/model";
 import {
+  type SkillLines,
   groupExtraLines,
   lineTone,
   placeExtraLines,
@@ -499,9 +500,12 @@ const ATTACK_TYPE: Record<string, string> = { BACK_ATTACK: "백 어택", HEAD_AT
  * The skill card (sheet v2.1 §2c): title = skill name, the image without a
  * grade box, type and skill level, attack info (part break, counter, attack
  * type), the chosen tripods (28px icon, name, effect), then the rune and gem
- * effects. Cooldown, mana and stagger come when the backend sends them.
+ * effects. With the official tooltip lines (backend #300) the icon row is
+ * "일반 / 재사용 대기시간 5초 / [일반 스킬]" and the info is the game's own
+ * lines (PvE, skill level, mana, part break, stagger, attack type, super armor).
  */
-export function SkillDetailCard({ skill }: { skill: Skill }) {
+export function SkillDetailCard({ skill, lines }: { skill: Skill; lines?: SkillLines }) {
+  const official = lines?.infoLines.length ? lines.infoLines : null;
   const attack = [
     skill.partBreakLevel != null ? `부위 파괴 : 레벨 ${skill.partBreakLevel}` : null,
     skill.counter ? "카운터 : 가능" : null,
@@ -512,11 +516,22 @@ export function SkillDetailCard({ skill }: { skill: Skill }) {
       title={skill.name ?? "스킬"}
       icon={img56(skill.icon)}
       plainIcon
-      lines={[skill.type, skill.level != null ? `스킬 레벨 ${skill.level}` : null].filter(
-        (line): line is string => line != null,
-      )}
+      lines={
+        lines?.titleLines.length
+          ? lines.titleLines
+          : [skill.type, skill.level != null ? `스킬 레벨 ${skill.level}` : null].filter(
+              (line): line is string => line != null,
+            )
+      }
     >
-      {attack.length > 0 && (
+      {official && (
+        <ItemDetailSection>
+          {official.map((line, i) => (
+            <ItemLine key={i}>{line}</ItemLine>
+          ))}
+        </ItemDetailSection>
+      )}
+      {!official && attack.length > 0 && (
         <ItemDetailSection>
           {attack.map((line) => (
             <ItemLine key={line}>{line}</ItemLine>
