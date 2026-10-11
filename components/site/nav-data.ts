@@ -37,13 +37,13 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     id: "character",
     label: "캐릭터",
-    match: ["/character", "/rankings"],
+    match: ["/character", "/multi-search", "/rankings"],
     groups: [
       {
         title: "조회",
         links: [
           { label: "캐릭터 검색", description: "장비·스킬·아크 패시브·내실", href: "/" },
-          { label: "군장검사", description: "여러 캐릭터를 한 번에 비교" },
+          { label: "멀티서치", description: "여러 캐릭터를 나란히 비교", href: "/multi-search" },
           { label: "길드", description: "길드원 세팅 한눈에" },
         ],
       },
