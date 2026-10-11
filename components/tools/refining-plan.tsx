@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMutation, useQueries, useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Setting } from "@/components/ui/icons";
+import { Select } from "@/components/ui/select";
 import { CharacterQueryError, fetchCharacter } from "@/lib/character/client";
 import {
   characterNameError,
@@ -255,53 +256,33 @@ function PartRow({
       >
         <label className={styles.mini}>
           <span>등급</span>
-          <select
+          <Select
             value={state.grade}
-            onChange={(event) =>
-              onChange({ ...state, grade: event.target.value as Grade })
-            }
-          >
-            {GRADES.map((grade) => (
-              <option key={grade.value} value={grade.value}>
-                {grade.label.replace("운명의 ", "")}
-              </option>
-            ))}
-          </select>
+            onValueChange={(grade) => onChange({ ...state, grade: grade as Grade })}
+            items={GRADES.map((grade) => ({ value: grade.value, label: grade.label.replace("운명의 ", "") }))}
+          />
         </label>
         <label className={styles.mini}>
           <span>현재</span>
-          <select
+          <Select
             value={state.current}
-            onChange={(event) => {
-              const current = Number(event.target.value);
+            onValueChange={(current) => {
               onChange({
                 ...state,
                 current,
                 target: Math.max(current, state.target),
               });
             }}
-          >
-            {range(MIN_STAGE, MAX_STAGE).map((stage) => (
-              <option key={stage} value={stage}>
-                +{stage}
-              </option>
-            ))}
-          </select>
+            items={range(MIN_STAGE, MAX_STAGE).map((stage) => ({ value: stage, label: `+${stage}` }))}
+          />
         </label>
         <label className={styles.mini}>
           <span>목표</span>
-          <select
+          <Select
             value={state.target}
-            onChange={(event) =>
-              onChange({ ...state, target: Number(event.target.value) })
-            }
-          >
-            {range(state.current, MAX_STAGE).map((stage) => (
-              <option key={stage} value={stage}>
-                +{stage}
-              </option>
-            ))}
-          </select>
+            onValueChange={(target) => onChange({ ...state, target })}
+            items={range(state.current, MAX_STAGE).map((stage) => ({ value: stage, label: `+${stage}` }))}
+          />
         </label>
       </fieldset>
     </li>
@@ -357,21 +338,11 @@ function Progress({
                 </label>
                 <label className={styles.mini}>
                   <span>실패 횟수</span>
-                  <select
+                  <Select
                     value={state.failedAttempts}
-                    onChange={(event) =>
-                      setPart(part.id, {
-                        ...state,
-                        failedAttempts: Number(event.target.value),
-                      })
-                    }
-                  >
-                    {range(0, 10).map((n) => (
-                      <option key={n} value={n}>
-                        {n}회
-                      </option>
-                    ))}
-                  </select>
+                    onValueChange={(failedAttempts) => setPart(part.id, { ...state, failedAttempts })}
+                    items={range(0, 10).map((n) => ({ value: n, label: `${n}회` }))}
+                  />
                 </label>
               </li>
             );

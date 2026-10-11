@@ -64,6 +64,17 @@ export async function gotoReady(page, path) {
   await page.waitForLoadState("networkidle");
 }
 
+/**
+ * Picks an option from the shared Select (components/ui/select.tsx, Base UI):
+ * it is a combobox button with a listbox popup, not a native <select>, so
+ * selectOption does not apply. Opens the list and clicks the option by name.
+ */
+export async function chooseOption(page, combobox, name) {
+  await combobox.click();
+  await page.getByRole("option", { name, exact: true }).click();
+  await expect(page.getByRole("listbox")).toHaveCount(0);
+}
+
 export const characterPath = (name, tab) =>
   `/character/${encodeURIComponent(name)}${tab && tab !== "combat" ? `?tab=${tab}` : ""}`;
 

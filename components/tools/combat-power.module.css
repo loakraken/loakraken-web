@@ -230,8 +230,8 @@
   font-size: var(--text-caption);
   font-variant-numeric: tabular-nums;
 }
-.select select,
-.bulk select {
+.select [data-slot="select"],
+.bulk [data-slot="select"] {
   min-width: 72px;
   min-height: 40px;
   padding: 0 10px;
@@ -242,7 +242,7 @@
   font: inherit;
   font-variant-numeric: tabular-nums;
 }
-.select[data-changed] select {
+.select[data-changed] [data-slot="select"] {
   border-color: var(--primary);
   box-shadow: inset 0 0 0 1px var(--primary);
 }
@@ -297,6 +297,13 @@
 .caption {
   color: var(--muted-foreground);
   font-size: var(--text-caption);
+}
+/* Labels beside a select keep their width: the select fills the rest and
+   shrinks first (w-full min-w-0 trigger), so "모두"·"품질" never break. */
+.bulk > span,
+.caption {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 .rowSub {
   display: block;
