@@ -2,6 +2,9 @@
 .trigger {
   display: inline-flex;
   flex: none;
+  /* Hug the icon: a set height is never stretched by a row (stone, bracelet),
+     and centred rows stay centred. */
+  height: max-content;
   padding: 0;
   border: 0;
   border-radius: 12px;
