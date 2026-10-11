@@ -1,14 +1,8 @@
 "use client";
 
-import {
-  useCallback,
-  useId,
-  useMemo,
-  useState,
-  type KeyboardEvent,
-  type PointerEvent,
-} from "react";
+import { useCallback, useId, useMemo, useState } from "react";
 import { curve } from "@/components/ui/bencho/balance-curve";
+import { ChartTooltip, useChartScrub } from "@/components/ui/chart-scrub";
 import { niceTicks } from "@/lib/character/history";
 import type { DailyStat } from "@/lib/market/board";
 import styles from "./market.module.css";
@@ -43,7 +37,6 @@ export function MarketChart({ days }: { days: DailyStat[] }) {
     observer.observe(node);
     return () => observer.disconnect();
   }, []);
-  const [active, setActive] = useState<number | null>(null);
   const geometry = useMemo(() => {
     const prices = days.map((d) => d.averagePrice);
     const ticks = niceTicks(Math.min(...prices), Math.max(...prices), 3);
@@ -52,7 +45,8 @@ export function MarketChart({ days }: { days: DailyStat[] }) {
     const maxVolume = Math.max(1, ...days.map((d) => d.tradeCount));
     const plotW = W - PAD.left - PAD.right;
     const step = days.length > 1 ? plotW / (days.length - 1) : 0;
-    const x = (i: number) => PAD.left + (days.length > 1 ? i * step : plotW / 2);
+    const x = (i: number) =>
+      PAD.left + (days.length > 1 ? i * step : plotW / 2);
     const y = (v: number) =>
       PAD.top + PRICE_H - ((v - v0) / (v1 - v0 || 1)) * PRICE_H;
     // Bencho's curve (Catmull-Rom through every reading) on our axis: it maps
@@ -60,12 +54,19 @@ export function MarketChart({ days }: { days: DailyStat[] }) {
     // chosen to land those on the tick scale (target-site convention).
     const top = y(Math.max(...prices));
     const bottom = y(Math.min(...prices));
-    const curved = days.length > 1 ? curve(prices, plotW, top + bottom, top) : null;
+    const curved =
+      days.length > 1 ? curve(prices, plotW, top + bottom, top) : null;
     const barW = Math.max(3, Math.min(18, (step || plotW) * 0.55));
     const volumeTop = PAD.top + PRICE_H + GAP;
     const bar = (count: number) => (count / maxVolume) * VOLUME_H;
     return { ticks, x, y, curved, barW, volumeTop, bar };
   }, [days, W]);
+  // Mouse, touch (sideways drag; a vertical swipe still scrolls) and ← → Home End.
+  const { active, svgProps } = useChartScrub({
+    count: days.length,
+    xOf: geometry.x,
+    viewWidth: W,
+  });
   if (!days.length) return null;
   const { ticks, x, y, curved, barW, volumeTop, bar } = geometry;
   const last = days.length - 1;
@@ -77,117 +78,118 @@ export function MarketChart({ days }: { days: DailyStat[] }) {
         ? "down"
         : "flat";
 
-  function onMove(event: PointerEvent<SVGSVGElement>) {
-    const box = event.currentTarget.getBoundingClientRect();
-    const px = ((event.clientX - box.left) / box.width) * W;
-    let best = 0;
-    for (let i = 1; i < days.length; i++)
-      if (Math.abs(x(i) - px) < Math.abs(x(best) - px)) best = i;
-    setActive(best);
-  }
-  function onKey(event: KeyboardEvent<SVGSVGElement>) {
-    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
-    event.preventDefault();
-    const next = (active ?? last) + (event.key === "ArrowRight" ? 1 : -1);
-    setActive(Math.min(last, Math.max(0, next)));
-  }
-
   return (
     <figure className={styles.chart} ref={measure}>
-      <svg
-        viewBox={`0 0 ${W} ${H}`}
-        className={styles.chartSvg}
-        role="img"
-        data-direction={direction}
-        data-scrub={active != null || undefined}
-        aria-label="일 평균 거래가와 거래량. 화살표 키로 날짜를 이동할 수 있어요."
-        aria-describedby={`${id}-readout`}
-        tabIndex={0}
-        onPointerMove={onMove}
-        onPointerLeave={() => setActive(null)}
-        onBlur={() => setActive(null)}
-        onKeyDown={onKey}
-      >
-        {ticks.map((tick) => (
-          <g key={tick}>
-            <line
-              x1={PAD.left}
-              x2={W - PAD.right}
-              y1={y(tick)}
-              y2={y(tick)}
-              className={styles.grid}
-            />
-            <text
-              x={W - PAD.right + 6}
-              y={y(tick)}
-              className={styles.tick}
-              dominantBaseline="middle"
-            >
-              {fmt(tick)}
-            </text>
-          </g>
-        ))}
-        {/* Bencho's line: one curve, nothing under or around it (its note: a
+      <div className={styles.plot}>
+        <svg
+          viewBox={`0 0 ${W} ${H}`}
+          className={styles.chartSvg}
+          role="img"
+          data-direction={direction}
+          data-scrub={active != null || undefined}
+          aria-label="일 평균 거래가와 거래량. 화살표 키로 날짜를 이동할 수 있어요."
+          aria-describedby={`${id}-readout`}
+          {...svgProps}
+          // A fixed height: the first render guesses the width (DEFAULT_W) and
+          // the real one arrives a frame later; with height: auto the chart
+          // grew with it and pushed the 14-day table down (CLS 0.016 at 360,
+          // PM-프론트 10-12 A6). The drawing is fitted inside meanwhile.
+          style={{ ...svgProps.style, height: H }}
+        >
+          {ticks.map((tick) => (
+            <g key={tick}>
+              <line
+                x1={PAD.left}
+                x2={W - PAD.right}
+                y1={y(tick)}
+                y2={y(tick)}
+                className={styles.grid}
+              />
+              <text
+                x={W - PAD.right + 6}
+                y={y(tick)}
+                className={styles.tick}
+                dominantBaseline="middle"
+              >
+                {fmt(tick)}
+              </text>
+            </g>
+          ))}
+          {/* Bencho's line: one curve, nothing under or around it (its note: a
             wash makes the line the edge of a shape). Red when the window
             rose, blue when it fell, as Korean market screens do. Draws itself
             on every entry (CSS .k-draw; user rule 10-10). */}
-        {curved && (
-          <path
-            d={curved.d}
-            transform={`translate(${PAD.left} 0)`}
-            className={`${styles.line} k-draw`}
-            pathLength={1}
+          {curved && (
+            <path
+              d={curved.d}
+              transform={`translate(${PAD.left} 0)`}
+              className={`${styles.line} k-draw`}
+              pathLength={1}
+            />
+          )}
+          {days.map((d, i) => (
+            <rect
+              key={d.date}
+              x={x(i) - barW / 2}
+              y={volumeTop + VOLUME_H - bar(d.tradeCount)}
+              width={barW}
+              height={Math.max(1, bar(d.tradeCount))}
+              rx={2}
+              className={`${styles.volume} k-grow`}
+              data-active={i === shown || undefined}
+              // Grows from the base on every entry; later bars start later but all
+              // finish with the line, within --duration-draw (PM #253).
+              style={{
+                transitionDelay: `${Math.min(i, 8) * 30}ms`,
+                transitionDuration: `${600 - Math.min(i, 8) * 30}ms`,
+              }}
+            />
+          ))}
+          <text x={PAD.left} y={H - 4} className={styles.tick}>
+            {short(days[0].date)}
+          </text>
+          <text
+            x={W - PAD.right}
+            y={H - 4}
+            className={styles.tick}
+            textAnchor="end"
+          >
+            {short(days[last].date)}
+          </text>
+          {active != null && (
+            <line
+              x1={x(active)}
+              x2={x(active)}
+              y1={PAD.top}
+              y2={volumeTop + VOLUME_H}
+              className={styles.crosshair}
+              aria-hidden="true"
+            />
+          )}
+          <circle
+            cx={x(shown)}
+            cy={y(days[shown].averagePrice)}
+            r={4.5}
+            className={styles.dot}
           />
-        )}
-        {days.map((d, i) => (
-          <rect
-            key={d.date}
-            x={x(i) - barW / 2}
-            y={volumeTop + VOLUME_H - bar(d.tradeCount)}
-            width={barW}
-            height={Math.max(1, bar(d.tradeCount))}
-            rx={2}
-            className={`${styles.volume} k-grow`}
-            data-active={i === shown || undefined}
-            // Grows from the base on every entry; later bars start later but all
-            // finish with the line, within --duration-draw (PM #253).
-            style={{
-              transitionDelay: `${Math.min(i, 8) * 30}ms`,
-              transitionDuration: `${600 - Math.min(i, 8) * 30}ms`,
-            }}
-          />
-        ))}
-        <text x={PAD.left} y={H - 4} className={styles.tick}>
-          {short(days[0].date)}
-        </text>
-        <text
-          x={W - PAD.right}
-          y={H - 4}
-          className={styles.tick}
-          textAnchor="end"
-        >
-          {short(days[last].date)}
-        </text>
+        </svg>
+        {/* The reading next to the point while scrubbing; the line below
+          (a polite live region) is what a screen reader hears. */}
         {active != null && (
-          <line
-            x1={x(active)}
-            x2={x(active)}
-            y1={PAD.top}
-            y2={volumeTop + VOLUME_H}
-            className={styles.crosshair}
-            aria-hidden="true"
-          />
+          <ChartTooltip
+            x={x(active)}
+            y={y(days[active].averagePrice) - 8}
+            boxWidth={W}
+          >
+            <strong>{fmt(days[active].averagePrice)}G</strong> ·{" "}
+            {short(days[active].date)}
+          </ChartTooltip>
         )}
-        <circle
-          cx={x(shown)}
-          cy={y(days[shown].averagePrice)}
-          r={4.5}
-          className={styles.dot}
-        />
-      </svg>
+      </div>
       <p id={`${id}-readout`} className={styles.readout} aria-live="polite">
         <strong>{fmt(days[shown].averagePrice)}G</strong>
-        {days[shown].date} · 거래량 {days[shown].tradeCount.toLocaleString("ko-KR")}
+        {days[shown].date} · 거래량{" "}
+        {days[shown].tradeCount.toLocaleString("ko-KR")}
       </p>
     </figure>
   );
