@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "check:regressions": "node scripts/check-regressions.mjs",
     "api:generate": "openapi-typescript contracts/character.openapi.json -o lib/api/schema.d.ts",
     "test": "node --import tsx --test tests/*.test.ts",
     "test:mock": "node tests/mock-backend.mjs",
