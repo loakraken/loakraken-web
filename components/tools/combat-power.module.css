@@ -41,7 +41,9 @@
 .band {
   grid-area: band;
   position: sticky;
-  top: 16px;
+  /* Below the sticky site header (and the character tab bar, which sets
+     --cp-band-top), not under it: at 16px the band slid beneath them. */
+  top: var(--cp-band-top, calc(var(--header-h, 73px) + 8px));
   z-index: 1;
   padding: 24px;
   border-radius: var(--radius-xl);
