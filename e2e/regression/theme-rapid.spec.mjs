@@ -1,22 +1,26 @@
-// 회귀: 테마 버튼을 빠르게 여러 번 눌러도 마지막 선택만 남고, 전환 중에
+// 회귀: 테마를 빠르게 여러 번 바꿔도 마지막 선택만 남고, 전환 중에
 // 색이 섞여 보이지 않는다(사용자 지적 10-11 "여러 번 누르면 가끔 이상").
-// 확인: 10회 연타 뒤 html data-theme·저장값·aria-pressed가 모두 같은 상태,
-// 누르는 동안 color/background-color 전환이 하나도 돌지 않음.
+// 테마는 라이트·딤·다크·시스템 네 가지(PM 10-11): 헤더 버튼 하나가 4칸
+// 라디오 패널을 연다. 확인: 화살표 10회 연타 뒤 html data-theme·저장값·
+// aria-checked가 모두 같은 상태, 바꾸는 동안 color/background-color 전환 0개.
 import { test, expect, gotoReady } from "../support/fixtures.mjs";
+
+const ORDER = ["light", "dim", "dark", "system"];
 
 test.describe("테마 연타 @regression", () => {
   for (const path of ["/", "/market", "/about"]) {
-    test(`${path}: 10회 연타 뒤 상태가 마지막 선택과 같다`, async ({ page }) => {
+    test(`${path}: 화살표 10회 연타 뒤 상태가 마지막 선택과 같다`, async ({ page }) => {
       await gotoReady(page, path);
-      const toggle = page.getByRole("banner").getByRole("button", { name: "다크 모드" });
-      await expect(toggle).toBeVisible();
+      const trigger = page.getByRole("banner").getByRole("button", { name: "화면 테마" });
+      await trigger.click();
+      const group = page.getByRole("radiogroup", { name: "화면 테마" });
+      await expect(group).toBeVisible();
 
-      const result = await toggle.evaluate(async (btn) => {
+      const result = await group.evaluate(async (el) => {
         const root = document.documentElement;
-        const start = root.dataset.theme === "dark";
         let colourTransitions = 0;
         for (let i = 0; i < 10; i++) {
-          btn.click();
+          document.activeElement.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }));
           colourTransitions += document
             .getAnimations()
             .filter((a) => a.transitionProperty === "color" || a.transitionProperty === "background-color").length;
@@ -25,27 +29,73 @@ test.describe("테마 연타 @regression", () => {
         // let the switch settle (two frames) before reading the end state
         await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(r))));
         return {
-          start,
-          dark: root.dataset.theme === "dark",
+          theme: root.dataset.theme ?? "light",
           stored: localStorage.getItem("loakraken-theme"),
-          pressed: btn.getAttribute("aria-pressed"),
+          checked: el.querySelector('[aria-checked="true"]')?.textContent,
+          focused: document.activeElement?.textContent,
           switching: root.hasAttribute("data-theme-switching"),
           colourTransitions,
         };
       });
 
-      // 10 presses from any start land back on it.
-      expect(result.dark).toBe(result.start);
-      expect(result.stored).toBe(result.start ? "dark" : "light");
-      expect(result.pressed).toBe(String(result.start));
+      // From light, 10 steps round four choices land on the third: dark.
+      expect(ORDER[10 % 4]).toBe("dark");
+      expect(result.theme).toBe("dark");
+      expect(result.stored).toBe("dark");
+      expect(result.checked).toBe("다크");
+      expect(result.focused).toBe("다크");
       expect(result.switching).toBe(false);
       expect(result.colourTransitions).toBe(0);
 
-      // One more press is a clean single switch.
-      await toggle.click();
-      await expect
-        .poll(() => page.evaluate(() => document.documentElement.dataset.theme === "dark"))
-        .toBe(!result.start);
+      // Esc closes the panel and returns focus to the button.
+      await page.keyboard.press("Escape");
+      await expect(group).toBeHidden();
+      await expect(trigger).toBeFocused();
     });
   }
+});
+
+test.describe("테마 4종 @regression", () => {
+  test("딤을 고르면 새로고침 뒤에도 첫 화면부터 딤", async ({ page }) => {
+    await gotoReady(page, "/");
+    await page.getByRole("banner").getByRole("button", { name: "화면 테마" }).click();
+    await page.getByRole("radio", { name: "딤" }).click();
+    await expect(page.getByRole("radiogroup")).toBeHidden();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "dim");
+    await expect(page.locator("body")).toHaveCSS("background-color", "rgb(34, 37, 43)");
+
+    // The pre-paint script sets it before any script of the page runs.
+    await page.addInitScript(() => {
+      document.addEventListener("DOMContentLoaded", () => {
+        window.__themeAtLoad = document.documentElement.dataset.theme;
+      });
+    });
+    await page.reload();
+    expect(await page.evaluate(() => window.__themeAtLoad)).toBe("dim");
+    await page.getByRole("banner").getByRole("button", { name: "화면 테마" }).click();
+    await expect(page.getByRole("radio", { name: "딤" })).toHaveAttribute("aria-checked", "true");
+  });
+
+  test("예전 저장값 dark·light는 그대로 읽힌다", async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem("loakraken-theme", "dark"));
+    await gotoReady(page, "/");
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  });
+
+  test("시스템은 OS 설정을 실시간으로 따른다", async ({ page }) => {
+    await page.emulateMedia({ colorScheme: "light" });
+    await page.addInitScript(() => localStorage.setItem("loakraken-theme", "system"));
+    await gotoReady(page, "/");
+    await expect(page.locator("html")).not.toHaveAttribute("data-theme");
+    await page.emulateMedia({ colorScheme: "dark" });
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+    await page.emulateMedia({ colorScheme: "light" });
+    await expect(page.locator("html")).not.toHaveAttribute("data-theme");
+  });
+
+  test("저장값이 없으면 OS가 다크여도 라이트(D3)", async ({ page }) => {
+    await page.emulateMedia({ colorScheme: "dark" });
+    await gotoReady(page, "/");
+    await expect(page.locator("html")).not.toHaveAttribute("data-theme");
+  });
 });

@@ -10,7 +10,7 @@
   --ink-rgb: 29, 29, 31;
   --fill-on-rgb: 29, 29, 31;
 }
-:root[data-theme="dark"] .chk {
+:root:is([data-theme="dark"], [data-theme="dim"]) .chk {
   --ink-rgb: 234, 234, 236;
   --fill-on-rgb: 234, 234, 236;
 }
