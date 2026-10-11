@@ -4,10 +4,13 @@ import test from "node:test";
 import {
   equipmentExtra,
   equipmentLines,
+  gridGemLines,
+  gridLines,
   isItemTooltipsEnvelope,
   lineTone,
   placeExtraLines,
   requestItemTooltips,
+  splitLeadingTrade,
 } from "../lib/character/item-tooltips";
 
 const sample = () =>
@@ -80,4 +83,36 @@ test("a line that followed an earlier section goes right after it", () => {
   // A section the card does not show, or a length mismatch: the end, in order.
   assert.deepEqual(placeExtraLines(bracelet, new Set(["아크 패시브 포인트 효과"])).tail, bracelet.lines);
   assert.deepEqual(placeExtraLines({ ...bracelet, sections: ["팔찌 효과"] }, new Set(["팔찌 효과"])).tail, bracelet.lines);
+});
+
+test("ark grid lines join cores by index and gems by position; older responses have none", () => {
+  const data = {
+    ...sample().data,
+    arkGrid: [
+      {
+        index: 0,
+        titleLine: "고대 아크 그리드 코어",
+        tradeLines: [],
+        extraLines: ["거래 불가", "분해불가", "[카제로스 레이드] 4막 : 파멸의 성채"],
+        gems: [{ index: 1, titleLine: "유물 아크 그리드 젬", tradeLines: ["가공 완료", "거래 불가"], extraLines: [] }],
+      },
+    ],
+  };
+  assert.equal(isItemTooltipsEnvelope({ ...sample(), data }), true);
+  assert.equal(gridLines(data, 0)?.titleLine, "고대 아크 그리드 코어");
+  assert.equal(gridLines(data, 1), undefined);
+  assert.equal(gridGemLines(gridLines(data, 0), 1)?.titleLine, "유물 아크 그리드 젬");
+  assert.equal(gridGemLines(gridLines(data, 0), 0), undefined);
+  const old = sample();
+  delete old.data.arkGrid;
+  assert.equal(isItemTooltipsEnvelope(old), true);
+  assert.equal(gridLines(old.data, 0), undefined);
+});
+
+test("the core's leading bound/trade line goes to the trade box", () => {
+  assert.deepEqual(splitLeadingTrade(["거래 불가", "분해불가", "[제작] 대도시"]), {
+    trade: ["거래 불가"],
+    rest: ["분해불가", "[제작] 대도시"],
+  });
+  assert.deepEqual(splitLeadingTrade(["분해불가"]), { trade: [], rest: ["분해불가"] });
 });

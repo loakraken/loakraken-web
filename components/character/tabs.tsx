@@ -51,7 +51,7 @@ import { useTabPill } from "./tab-pill";
 import { CoreCard, DetailTooltip, EngravingCard, GemCard, GridGemCard, ItemTooltip, PassiveNodeCard } from "./item-tooltip";
 import { sourcePlainText } from "@/lib/character/source-text";
 import { useItemTooltips } from "./use-item-tooltips";
-import { equipmentExtra, gemLines } from "@/lib/character/item-tooltips";
+import { equipmentExtra, gemLines, gridGemLines, gridLines } from "@/lib/character/item-tooltips";
 import { ReceiptPanel } from "./receipt-panel";
 import { useStagger } from "./entrance";
 import { RankPanel } from "./rank-panel";
@@ -548,6 +548,7 @@ function ArkGridPanel({ data }: { data: Character }) {
   const grid = data.loadout.arkGrid;
   const summary = data.analysis.arkGrid;
   const [expanded, setExpanded] = useState(false);
+  const extra = useItemTooltips(data.characterName);
   if (!grid)
     return (
       <Panel title="아크 그리드">
@@ -599,85 +600,97 @@ function ArkGridPanel({ data }: { data: Character }) {
       )}
       {grid.slots.length ? (
         <ul className={styles.coreList}>
-          {grid.slots.map((slot, i) => (
-            <li key={i}>
-              <details open={expanded || undefined} className={`${styles.core} ${expand.expand}`}>
-                <summary>
-                  <DetailTooltip name={slot.name ?? "아크 그리드 코어"} card={<CoreCard slot={slot} />}>
-                    <GameIcon src={slot.icon} grade={slot.grade} size={40} />
-                  </DetailTooltip>
-                  <div className={styles.itemText}>
-                    <small>
-                      {slot.coreType ?? text(slot.name).split(" : ")[0]}
-                    </small>
-                    <strong data-grade={slot.grade ?? undefined}>
-                      {text(slot.name).replace(/^.*?:\s*/, "")}
-                    </strong>
-                  </div>
-                  <span className={styles.coreFacts}>
-                    <b>{number(slot.point)}P</b>
-                    {slot.optionCount > 0 && (
+          {grid.slots.map((slot, i) => {
+            const lines = gridLines(extra, i);
+            return (
+              <li key={i}>
+                <details open={expanded || undefined} className={`${styles.core} ${expand.expand}`}>
+                  <summary>
+                    <DetailTooltip name={slot.name ?? "아크 그리드 코어"} card={<CoreCard slot={slot} lines={lines} />}>
+                      <GameIcon src={slot.icon} grade={slot.grade} size={40} />
+                    </DetailTooltip>
+                    <div className={styles.itemText}>
                       <small>
-                        옵션 {slot.activeOptionCount}/{slot.optionCount}
+                        {slot.coreType ?? text(slot.name).split(" : ")[0]}
                       </small>
-                    )}
-                  </span>
-                  <span className={styles.coreGems}>
-                    {slot.gems.map((gem, j) => (
-                      <DetailTooltip key={j} name={gem.name ?? "아크 그리드 젬"} card={<GridGemCard gem={gem} />}>
-                        <GameIcon src={gem.icon} grade={gem.grade} size={24} inactive={gem.active === false} />
-                      </DetailTooltip>
-                    ))}
-                  </span>
-                </summary>
-                {(slot.options.length > 0 || slot.gems.some((gem) => gem.name)) && (
-                  <div className={styles.coreDetail}>
-                    {slot.options.length > 0 && (
-                      <ul className={styles.coreOptions}>
-                        {slot.options.map((option) => (
-                          <li key={option.threshold} data-active={option.active || undefined}>
-                            <b>{option.threshold}P</b>
-                            <SourceText value={option.text} />
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                    {slot.gems.some((gem) => gem.name) && (
-                      <ul className={styles.gemRows}>
-                        {slot.gems.map((gem, j) => (
-                          <li key={j} data-inactive={gem.active === false || undefined}>
-                            <DetailTooltip name={gem.name ?? "아크 그리드 젬"} card={<GridGemCard gem={gem} />}>
-                              <GameIcon src={gem.icon} grade={gem.grade} size={28} />
-                            </DetailTooltip>
-                            <span>
-                              <strong>{text(gem.name)}</strong>
-                              <small>
-                                {[
-                                  gem.corePoint != null && `포인트 ${gem.corePoint}`,
-                                  gem.requiredWillpower != null && `의지력 ${gem.requiredWillpower}`,
-                                  ...gem.options.map(
-                                    (o) => `${o.name}${o.level != null ? ` Lv.${o.level}` : ""}`,
-                                  ),
-                                ]
-                                  .filter(Boolean)
-                                  .join(" · ")}
-                              </small>
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                    {slot.supplyWillpower != null && (
-                      <p className={styles.coreNote}>
-                        의지력 {number(slot.usedWillpower)}/{slot.supplyWillpower}
-                        {slot.conditions.length > 0 && ` · ${slot.conditions.join(" · ")}`}
-                      </p>
-                    )}
-                  </div>
-                )}
-              </details>
-            </li>
-          ))}
+                      <strong data-grade={slot.grade ?? undefined}>
+                        {text(slot.name).replace(/^.*?:\s*/, "")}
+                      </strong>
+                    </div>
+                    <span className={styles.coreFacts}>
+                      <b>{number(slot.point)}P</b>
+                      {slot.optionCount > 0 && (
+                        <small>
+                          옵션 {slot.activeOptionCount}/{slot.optionCount}
+                        </small>
+                      )}
+                    </span>
+                    <span className={styles.coreGems}>
+                      {slot.gems.map((gem, j) => (
+                        <DetailTooltip
+                          key={j}
+                          name={gem.name ?? "아크 그리드 젬"}
+                          card={<GridGemCard gem={gem} lines={gridGemLines(lines, j)} />}
+                          hit="tight"
+                        >
+                          <GameIcon src={gem.icon} grade={gem.grade} size={24} inactive={gem.active === false} />
+                        </DetailTooltip>
+                      ))}
+                    </span>
+                  </summary>
+                  {(slot.options.length > 0 || slot.gems.some((gem) => gem.name)) && (
+                    <div className={styles.coreDetail}>
+                      {slot.options.length > 0 && (
+                        <ul className={styles.coreOptions}>
+                          {slot.options.map((option) => (
+                            <li key={option.threshold} data-active={option.active || undefined}>
+                              <b>{option.threshold}P</b>
+                              <SourceText value={option.text} />
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                      {slot.gems.some((gem) => gem.name) && (
+                        <ul className={styles.gemRows}>
+                          {slot.gems.map((gem, j) => (
+                            <li key={j} data-inactive={gem.active === false || undefined}>
+                              <DetailTooltip
+                                name={gem.name ?? "아크 그리드 젬"}
+                                card={<GridGemCard gem={gem} lines={gridGemLines(lines, j)} />}
+                                hit="row"
+                              >
+                                <GameIcon src={gem.icon} grade={gem.grade} size={28} />
+                              </DetailTooltip>
+                              <span>
+                                <strong>{text(gem.name)}</strong>
+                                <small>
+                                  {[
+                                    gem.corePoint != null && `포인트 ${gem.corePoint}`,
+                                    gem.requiredWillpower != null && `의지력 ${gem.requiredWillpower}`,
+                                    ...gem.options.map(
+                                      (o) => `${o.name}${o.level != null ? ` Lv.${o.level}` : ""}`,
+                                    ),
+                                  ]
+                                    .filter(Boolean)
+                                    .join(" · ")}
+                                </small>
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                      {slot.supplyWillpower != null && (
+                        <p className={styles.coreNote}>
+                          의지력 {number(slot.usedWillpower)}/{slot.supplyWillpower}
+                          {slot.conditions.length > 0 && ` · ${slot.conditions.join(" · ")}`}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </details>
+              </li>
+            );
+          })}
         </ul>
       ) : (
         <Empty state={data.coverage.arkGrid.collections.slots} />

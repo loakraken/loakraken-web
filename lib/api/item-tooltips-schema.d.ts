@@ -53,6 +53,8 @@ export interface components {
             gems: components["schemas"]["SlotLinesResponse"][];
             cards: components["schemas"]["SlotLinesResponse"][];
             skills: components["schemas"]["SkillLinesResponse"][];
+            /** @description 아크 그리드 코어·젬 툴팁 줄(#288). 키는 검색 응답 arkGrid.slots[].index와 그 gems[].index */
+            arkGrid: components["schemas"]["GridLinesResponse"][];
         };
         EquipmentLinesResponse: {
             /**
@@ -109,6 +111,35 @@ export interface components {
              *     ]
              */
             runeExtraLines: string[];
+        };
+        GridLinesResponse: {
+            index: number | null;
+            titleLine: string | null;
+            /** @description 공식 Tooltip 귀속·거래 줄(제목 바로 뒤) */
+            tradeLines: string[];
+            /**
+             * @description 공식 Tooltip 나머지 줄(원문 순서)
+             * @example [
+             *       "거래 불가",
+             *       "분해불가"
+             *     ]
+             */
+            extraLines: string[];
+            gems: components["schemas"]["GridGemLinesResponse"][];
+        };
+        GridGemLinesResponse: {
+            index: number | null;
+            titleLine: string | null;
+            /**
+             * @description 공식 Tooltip 귀속·거래 줄
+             * @example [
+             *       "가공 완료",
+             *       "거래 불가"
+             *     ]
+             */
+            tradeLines: string[];
+            /** @description 공식 Tooltip 나머지 줄(원문 순서) */
+            extraLines: string[];
         };
         /** @description 공통 오류 응답. HTTP 상태와 업무 코드를 함께 확인합니다. */
         ErrorResponse: {

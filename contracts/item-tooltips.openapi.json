@@ -158,9 +158,17 @@
             "items": {
               "$ref": "#/components/schemas/SkillLinesResponse"
             }
+          },
+          "arkGrid": {
+            "type": "array",
+            "description": "아크 그리드 코어·젬 툴팁 줄(#288). 키는 검색 응답 arkGrid.slots[].index와 그 gems[].index",
+            "items": {
+              "$ref": "#/components/schemas/GridLinesResponse"
+            }
           }
         },
         "required": [
+          "arkGrid",
           "cards",
           "characterName",
           "equipment",
@@ -271,6 +279,121 @@
         "required": [
           "name",
           "runeExtraLines"
+        ]
+      },
+      "GridLinesResponse": {
+        "type": "object",
+        "properties": {
+          "index": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32",
+                "description": "검색 응답 arkGrid.slots[].index",
+                "example": 0
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "titleLine": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "공식 Tooltip 등급 줄",
+                "example": "유물 아크 그리드 코어"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "tradeLines": {
+            "type": "array",
+            "description": "공식 Tooltip 귀속·거래 줄(제목 바로 뒤)",
+            "items": {
+              "type": "string"
+            }
+          },
+          "extraLines": {
+            "type": "array",
+            "description": "공식 Tooltip 나머지 줄(원문 순서)",
+            "example": [
+              "거래 불가",
+              "분해불가"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "gems": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GridGemLinesResponse"
+            }
+          }
+        },
+        "required": [
+          "extraLines",
+          "gems",
+          "index",
+          "titleLine",
+          "tradeLines"
+        ]
+      },
+      "GridGemLinesResponse": {
+        "type": "object",
+        "properties": {
+          "index": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32",
+                "description": "검색 응답 arkGrid.slots[].gems[].index",
+                "example": 0
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "titleLine": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "공식 Tooltip 등급 줄",
+                "example": "전설 아크 그리드 젬"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "tradeLines": {
+            "type": "array",
+            "description": "공식 Tooltip 귀속·거래 줄",
+            "example": [
+              "가공 완료",
+              "거래 불가"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "extraLines": {
+            "type": "array",
+            "description": "공식 Tooltip 나머지 줄(원문 순서)",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "extraLines",
+          "index",
+          "titleLine",
+          "tradeLines"
         ]
       },
       "ErrorResponse": {

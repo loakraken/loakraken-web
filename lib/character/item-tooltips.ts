@@ -14,8 +14,12 @@ type Schemas = components["schemas"];
 export type ItemTooltipsEnvelope = Schemas["ApiResponseCharacterItemTooltipsResponse"];
 export type ItemTooltips = Schemas["CharacterItemTooltipsResponse"];
 
-// A backend before #286 has no extraLineSections (the lines then stay at the end).
-const ROLLOUT: Record<string, string[]> = { EquipmentLinesResponse: ["extraLineSections"] };
+// A backend before #286 has no extraLineSections (the lines then stay at the
+// end); one before #289 has no ark grid lines (the cards keep the search data).
+const ROLLOUT: Record<string, string[]> = {
+  EquipmentLinesResponse: ["extraLineSections"],
+  CharacterItemTooltipsResponse: ["arkGrid"],
+};
 const validate = lazyValidator(() => {
   const schemas = tolerantSchemas(contract.components.schemas) as Record<string, { required?: string[] }>;
   for (const [name, fields] of Object.entries(ROLLOUT))
@@ -129,6 +133,32 @@ export function groupExtraLines(lines: string[]): string[][] {
     else groups.push({ kind, lines: [line] });
   }
   return groups.map((group) => group.lines);
+}
+
+export type GridLines = ItemTooltips["arkGrid"][number];
+export type GridGemLines = GridLines["gems"][number];
+
+/**
+ * Official lines for the ark grid core at `index` (search arkGrid.slots order)
+ * and its gems by position (backend #289).
+ */
+export function gridLines(data: ItemTooltips | undefined, index: number): GridLines | undefined {
+  return (data?.arkGrid ?? []).find((core) => core.index === index);
+}
+
+export function gridGemLines(core: GridLines | undefined, index: number): GridGemLines | undefined {
+  return core?.gems.find((gem) => gem.index === index);
+}
+
+/**
+ * The core's bound/trade line comes first in its remaining lines ("거래 불가"
+ * right under the title in the game): split that leading run off for the
+ * trade box, the rest (분해불가, sources) goes to the card's end.
+ */
+export function splitLeadingTrade(lines: string[]) {
+  let i = 0;
+  while (i < lines.length && /^(거래|캐릭터 귀속|원정대 귀속|귀속)/.test(lines[i])) i++;
+  return { trade: lines.slice(0, i), rest: lines.slice(i) };
 }
 
 /** Extra lines for the gem in `slot` (search response gems.items[].slot). */
