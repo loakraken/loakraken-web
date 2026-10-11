@@ -1,8 +1,8 @@
 import * as React from "react"
 import { cn } from "cn"
 
-// Equipment quality as the target sites show it: a small coloured badge with
-// a bold white number (iloa: 11/600, 17px tall, 4px radius, 2px 6px padding).
+// Equipment quality: a small coloured badge with a bold white number
+// (measured: 11/600, 17px tall, 4px radius, 2px 6px padding).
 // Colours are the --quality-* tokens (PM decision D1, all past 4.5:1).
 type QualityTier = "max" | "high" | "good" | "normal" | "low" | "poor"
 
@@ -38,7 +38,7 @@ function QualityBadge({ value, className, ...props }: QualityBadgeProps) {
         "data-[tier=normal]:bg-(--quality-normal) data-[tier=normal]:text-(--quality-normal-foreground)",
         "data-[tier=low]:bg-(--quality-low) data-[tier=low]:text-(--quality-low-foreground)",
         "data-[tier=poor]:bg-(--quality-poor) data-[tier=poor]:text-(--quality-poor-foreground)",
-        // Unmeasured quality: no fill, as on iloa.
+        // Unmeasured quality: no fill.
         "data-[tier=none]:text-muted-foreground data-[tier=none]:shadow-[inset_0_0_0_1px_var(--border)]",
         className
       )}
