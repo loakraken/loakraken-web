@@ -61,8 +61,6 @@ const ROUTES = [
  * stays green now and turns red the moment one is fixed (then drop the line).
  */
 const KNOWN_SHIFT = {
-  "/tools/auction@1280":
-    "성장 도구: 파티 인원 SegmentedControl 폭 측정 뒤 아래 칸이 밀림(0.0066~0.0105, 360에서는 0)",
   "/tools/more-reward@1280":
     "성장 도구: 머리 문장 글자가 첫 그림 뒤 바뀜(0.0001~0.0002)",
   "/tools/more-reward@360": "성장 도구: 같은 머리 문장",
