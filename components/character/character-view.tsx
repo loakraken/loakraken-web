@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useEffect, useState, type FormEvent } from "react";
+import { memo, useContext, useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
@@ -21,7 +21,7 @@ import { recordRecent } from "@/lib/character/recent";
 import { CharacterBanner } from "./imagery";
 import { Entrance } from "./entrance";
 import { kstTime, level, number, text } from "./parts";
-import { TabBar, TabPanel, tabOf } from "./tabs";
+import { SettingCheckEnabled, TabBar, TabPanel, tabOf } from "./tabs";
 import { ReceiptEnabled } from "./receipt-panel";
 import styles from "./character.module.css";
 import { RATE_LIMITED } from "@/lib/api/rate-limit";
@@ -196,7 +196,7 @@ function CharacterContent({
   initialError?: QueryFailure;
   renderedAt: number;
 }) {
-  const tab = tabOf(useSearchParams().get("tab"));
+  const tab = tabOf(useSearchParams().get("tab"), useContext(SettingCheckEnabled));
   const [now, setNow] = useState(renderedAt);
   const [refreshed, setRefreshed] = useState(false);
   const query = useQuery({
@@ -348,6 +348,7 @@ function CharacterContent({
 
 export function CharacterView({
   receipt = true,
+  settingCheck = true,
   ...props
 }: {
   name: string;
@@ -355,12 +356,16 @@ export function CharacterView({
   renderedAt: number;
   /** RECEIPT_TOOL on this deployment (server flag). */
   receipt?: boolean;
+  /** SETTING_CHECK_TAB on this deployment (server flag). */
+  settingCheck?: boolean;
 }) {
   return (
     <ReceiptEnabled.Provider value={receipt}>
-      <LandingMotion>
-        <CharacterContent {...props} />
-      </LandingMotion>
+      <SettingCheckEnabled.Provider value={settingCheck}>
+        <LandingMotion>
+          <CharacterContent {...props} />
+        </LandingMotion>
+      </SettingCheckEnabled.Provider>
     </ReceiptEnabled.Provider>
   );
 }

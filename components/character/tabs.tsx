@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useContext, useId, useState, useSyncExternalStore, type ReactNode } from "react";
+import { createContext, memo, useContext, useId, useState, useSyncExternalStore, type ReactNode } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
@@ -99,8 +99,25 @@ export const TABS = [
   { id: "evidence", label: "세팅 점검" },
 ] as const;
 export type TabId = (typeof TABS)[number]["id"];
-export const tabOf = (value: string | null): TabId =>
-  TABS.some((tab) => tab.id === value) ? (value as TabId) : "combat";
+
+/** SETTING_CHECK_TAB (server flag): off hides the tab and its ?tab= link. */
+export const SettingCheckEnabled = createContext(true);
+const visibleTabs = (settingCheck: boolean) => TABS.filter((tab) => tab.id !== "evidence" || settingCheck);
+
+/** The tab in ?tab=, or 전투 for an unknown one or a hidden 세팅 점검. */
+export const tabOf = (value: string | null, settingCheck = true): TabId =>
+  visibleTabs(settingCheck).some((tab) => tab.id === value) ? (value as TabId) : "combat";
+
+/** "베타" next to a tab still growing its rules (shown wherever the tab is). */
+function TabLabel({ id, label }: { id: TabId; label: string }) {
+  return id === "evidence" ? (
+    <>
+      {label} <span className={styles.betaChip}>베타</span>
+    </>
+  ) : (
+    label
+  );
+}
 
 /* Favourites (per browser) -------------------------------------------------- */
 
@@ -167,6 +184,7 @@ export function TabBar({
   const [favorite, toggleFavorite] = useFavorite(name);
   const [shareStatus, setShareStatus] = useState("");
   const { nav: pillNav, layer: pillLayer, onKeyDown: pillKey, onPointerDown: pillPointer } = useTabPill(tab);
+  const tabs = visibleTabs(useContext(SettingCheckEnabled));
   const window_ = refreshWindow(data, now);
   const cooling = window_.remainingMs > 0;
   const disabled = fetching || cooling || rateLimitSeconds > 0;
@@ -197,7 +215,7 @@ export function TabBar({
           onKeyDown={pillKey}
           onPointerDown={pillPointer}
         >
-          {TABS.map((item) => (
+          {tabs.map((item) => (
             <Link
               key={item.id}
               href={item.id === "combat" ? "?" : `?tab=${item.id}`}
@@ -205,14 +223,14 @@ export function TabBar({
               scroll={false}
               aria-current={tab === item.id ? "page" : undefined}
             >
-              {item.label}
+              <TabLabel id={item.id} label={item.label} />
             </Link>
           ))}
           {/* The selected style, clipped to the current tab (tab-pill.ts). */}
           <span ref={pillLayer} className={styles.pillLayer} aria-hidden="true">
-            {TABS.map((item) => (
+            {tabs.map((item) => (
               <span key={item.id} data-current={tab === item.id || undefined}>
-                {item.label}
+                <TabLabel id={item.id} label={item.label} />
               </span>
             ))}
           </span>
@@ -1768,8 +1786,8 @@ export function EvidenceTab({
         wide
       >
         <p className={styles.muted}>
-          정보 부족은 세팅 오류를 뜻하지 않아요. 확인 항목도 의도한 세팅일 수
-          있어요.
+          점검 규칙을 늘려 가는 중인 베타 기능이에요. 정보 부족은 세팅 오류를
+          뜻하지 않고, 확인 항목도 의도한 세팅일 수 있어요.
         </p>
         {findings.length === 0 ? (
           <p className={styles.muted}>
