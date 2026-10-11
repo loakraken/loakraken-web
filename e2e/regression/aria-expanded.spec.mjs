@@ -7,18 +7,33 @@ const TOGGLE_LABEL = /(펼치기|접기|\d+개 (스킬|기록) 보기|스킬만 
 const TABS = ["combat", "simulator", "skills", "arkpassive", "collectibles", "avatars", "stats", "siblings", "evidence"];
 
 test.describe("aria-expanded @regression", () => {
-  test("아크 그리드 '모두 펼치기'가 상태를 알리고 코어를 모두 연다", async ({ page }) => {
+  test("아크 그리드 아래 화살표가 상태를 알리고 코어를 모두 연다", async ({ page }) => {
+    // 머리 줄 '모두 펼치기'는 같은 일을 해서 지웠다(사용자 10-12). 아래 화살표만 남는다.
     await page.goto(characterPath("상세"));
-    const toggle = page.getByRole("button", { name: "모두 펼치기" });
+    const panel = page.getByRole("region", { name: "아크 그리드" });
+    await expect(panel.getByRole("button", { name: /^모두 (펼치기|접기)$/ })).toHaveCount(0);
+    const toggle = panel.getByRole("button", { name: "아크 그리드 코어 전체 펼치기" });
     await expect(toggle).toHaveAttribute("aria-expanded", "false");
     await toggle.click();
-    const collapse = page.getByRole("button", { name: "모두 접기" });
+    const collapse = panel.getByRole("button", { name: "아크 그리드 코어 전체 접기" });
     await expect(collapse).toHaveAttribute("aria-expanded", "true");
-    const cores = page.getByRole("region", { name: "아크 그리드" }).locator("details");
+    const cores = panel.locator("details");
     expect(await cores.count()).toBeGreaterThan(0);
     for (const core of await cores.all()) await expect(core).toHaveAttribute("open", "");
     await collapse.click();
-    await expect(page.getByRole("button", { name: "모두 펼치기" })).toHaveAttribute("aria-expanded", "false");
+    await expect(panel.getByRole("button", { name: "아크 그리드 코어 전체 펼치기" })).toHaveAttribute("aria-expanded", "false");
+  });
+
+  test("아크 그리드 코어는 하나씩 따로 펼치고, 줄 끝 화살표가 뒤집힌다", async ({ page }) => {
+    await page.goto(characterPath("상세"));
+    const cores = page.getByRole("region", { name: "아크 그리드" }).locator("details");
+    const first = cores.first();
+    const arrow = first.locator("summary svg[class*=coreChevron]");
+    await expect(arrow).toBeVisible();
+    await first.locator("summary [class*=itemText]").click();
+    await expect(first).toHaveAttribute("open", "");
+    await expect(cores.nth(1)).not.toHaveAttribute("open", "");
+    await expect.poll(() => arrow.evaluate((el) => getComputedStyle(el).transform)).not.toBe("none");
   });
 
   test("통계 '기록 보기'가 상태를 알린다", async ({ page }) => {
