@@ -23,7 +23,9 @@ import {
   GRADE_LABEL,
   KIND_LABEL,
   braceletName,
+  gradeWithValue,
   isOpen,
+  polishValue,
   type Grade,
   NO_EDITS,
   combatPowerFailureCopy,
@@ -33,6 +35,7 @@ import {
   type Current,
   type Edits,
   type Options,
+  type PolishValues,
   type Simulation,
 } from "@/lib/combat-power/model";
 import { retryLabel } from "@/lib/api/rate-limit";
@@ -372,13 +375,19 @@ function Editors({
                   </small>
                 </span>
                 {!isOpen("POLISH") ? (
-                  <Locked caption="등급" value={line.grade ? (GRADE_LABEL[line.grade] ?? line.grade) : "—"} />
+                  <Locked caption="등급" value={line.grade ? gradeWithValue(line.grade, line.value) : "—"} />
                 ) : (
                   <Choice
                     label={`${line.item} ${line.option} 등급`}
                     value={edits.polish[key] ?? line.grade ?? ""}
                     original={line.grade}
-                    values={gradeValues}
+                    values={options.polishGrades.map((grade) => ({
+                      value: grade,
+                      label: gradeWithValue(
+                        grade,
+                        polishValue(options.polishValues, line.option, { value: line.value, grade: line.grade }, grade),
+                      ),
+                    }))}
                     onChange={(grade) =>
                       setEdits((prev) => ({ ...prev, polish: { ...prev.polish, [key]: grade as Grade } }))
                     }
@@ -591,7 +600,18 @@ function ResultBand({
   );
 }
 
-function ChangeList({ data }: { data: Simulation }) {
+/** POLISH from/to read "옵션 +1.60%" → "옵션 HIGH": show the grade with its value. */
+function polishText(text: string | null, from: string | null, values: PolishValues | undefined) {
+  const match = text?.match(/^(.*) (LOW|MID|HIGH)$/);
+  if (!match) return gradeText(text);
+  const [, option, grade] = match;
+  // from is "옵션 +1.60%": the accessory's current value decides if the table fits.
+  const current = from?.startsWith(`${option} `) ? from.slice(option.length + 1) : null;
+  const value = current ? polishValue(values, option, { value: current, grade: null }, grade) : null;
+  return `${option} ${gradeWithValue(grade, value)}`;
+}
+
+function ChangeList({ data, values }: { data: Simulation; values?: PolishValues }) {
   if (data.contributions.length === 0) return null;
   return (
     <section className={styles.changes} aria-labelledby="cp-changes">
@@ -604,7 +624,8 @@ function ChangeList({ data }: { data: Simulation }) {
               {item.target}
               {(item.from != null || item.to != null) && (
                 <small>
-                  {changeText(item.kind, item.from) ?? "—"} → {changeText(item.kind, item.to) ?? "—"}
+                  {changeText(item.kind, item.from) ?? "—"} →{" "}
+                  {(item.kind === "POLISH" ? polishText(item.to, item.from, values) : changeText(item.kind, item.to)) ?? "—"}
                 </small>
               )}
             </span>
@@ -790,7 +811,7 @@ function CombatPowerContent({ initialName }: { initialName: string }) {
                         </button>
                       </p>
                     )}
-                    {result && <ChangeList data={result} />}
+                    {result && <ChangeList data={result} values={options.data.data.polishValues} />}
                   </div>
                   <Editors
                     options={options.data.data}

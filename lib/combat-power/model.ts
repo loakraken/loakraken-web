@@ -99,6 +99,37 @@ export type Current = {
   cores?: { slotIndex: number; grade: string; point: number }[];
 };
 
+export type PolishValues = NonNullable<Options["polishValues"]>;
+
+/**
+ * The official tooltip value of a polish option at a grade (backend #254),
+ * e.g. 추가 피해 HIGH → "+2.60%". The table is for 고대 1680 장신구 only, so it
+ * applies only when this accessory's own line matches it: its current value
+ * equals the table at its current grade (or, grade unknown, at some grade).
+ * Another tier's accessory (other values) gets the grade alone (PM-프론트 #447
+ * P1). The same name can be a % or a flat option (공격력·무기 공격력), told
+ * apart by the current value's "%". null when it does not fit or has no cell.
+ */
+export function polishValue(
+  values: PolishValues | undefined,
+  option: string,
+  current: { value: string; grade: string | null },
+  grade: string,
+): string | null {
+  const percent = current.value.includes("%");
+  const row = values?.options.find((item) => item.option === option && item.percent === percent);
+  if (!row) return null;
+  const at = (g: string) => (g === "LOW" ? row.low : g === "MID" ? row.mid : g === "HIGH" ? row.high : null) ?? null;
+  const fits = current.grade ? at(current.grade) === current.value : [row.low, row.mid, row.high].includes(current.value);
+  return fits ? at(grade) : null;
+}
+
+/** "상(+2.60%)" when the value is known, else just "상" (PM-프론트 #370 P2). */
+export function gradeWithValue(grade: string, value: string | null) {
+  const label = GRADE_LABEL[grade] ?? grade;
+  return value ? `${label}(${value})` : label;
+}
+
 /** "치명타 피해 +8.40%" → "치명타 피해": the effect name the backend echoes back. */
 export const braceletName = (text: string) =>
   text.split(/\s*[+\-−]?\d/)[0].trim() || text.trim();

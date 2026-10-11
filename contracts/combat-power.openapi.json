@@ -558,6 +558,10 @@
             "items": {
               "type": "string"
             }
+          },
+          "polishValues": {
+            "$ref": "#/components/schemas/PolishValuesResponse",
+            "description": "고대 장신구 연마 옵션별 하·중·상 수치(backend #254). 그 전 백엔드에는 없다"
           }
         },
         "required": [
@@ -575,6 +579,94 @@
           "ruleVersion",
           "stoneLevels",
           "verified"
+        ]
+      },
+      "PolishValueResponse": {
+        "type": "object",
+        "properties": {
+          "option": {
+            "type": "string",
+            "description": "연마 옵션 이름(공식 툴팁 그대로)"
+          },
+          "percent": {
+            "type": "boolean",
+            "description": "true: % 옵션, false: 고정값 옵션"
+          },
+          "parts": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "이 옵션이 붙는 부위"
+          },
+          "low": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "하"
+          },
+          "mid": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "중"
+          },
+          "high": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "상"
+          }
+        },
+        "required": [
+          "option",
+          "percent",
+          "parts",
+          "low",
+          "mid",
+          "high"
+        ]
+      },
+      "PolishValuesResponse": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string"
+          },
+          "accessoryGrade": {
+            "type": "string"
+          },
+          "itemLevel": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PolishValueResponse"
+            }
+          }
+        },
+        "required": [
+          "version",
+          "accessoryGrade",
+          "itemLevel",
+          "options"
         ]
       }
     }

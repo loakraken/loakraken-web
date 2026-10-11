@@ -47,6 +47,8 @@ test.describe("전투력 시뮬레이터 @smoke", () => {
     for (const title of ["연마", "팔찌", "아크 패시브", "아크 그리드 코어"])
       await expect(page.getByRole("region", { name: title, exact: true })).toContainText("준비 중");
     await expect(page.getByText("재련 +19 · 준비 중")).toBeVisible();
+    // 잠긴 연마 줄도 등급과 공식 수치를 같은 단위로(backend #254): "중(+1.60%)".
+    await expect(page.getByRole("region", { name: "연마", exact: true }).getByText("등급 중(+1.60%) · 준비 중")).toBeVisible();
     await expectNoHorizontalOverflow(page);
   });
 });
