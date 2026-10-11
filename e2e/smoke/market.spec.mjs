@@ -8,8 +8,8 @@ test.describe("시세 @smoke", () => {
   });
 
   test("기본 분류 보드와 첫 품목 추이를 보여 준다", async ({ page }) => {
-    const categories = page.getByRole("navigation", { name: "시세 분류" });
-    await expect(categories.getByRole("button", { name: "재련 재료" })).toHaveAttribute("aria-pressed", "true");
+    const categories = page.getByRole("tablist", { name: "시세 분류" });
+    await expect(categories.getByRole("tab", { name: "재련 재료" })).toHaveAttribute("aria-selected", "true");
     const board = page.getByRole("region", { name: /재련 재료 시세 11종/ });
     await expect(board.getByRole("listitem")).toHaveCount(10);
     await expect(page.getByRole("heading", { name: "시세 추이" })).toBeVisible();
@@ -17,9 +17,9 @@ test.describe("시세 @smoke", () => {
   });
 
   test("분류를 바꾸면 보드가 바뀐다", async ({ page }) => {
-    const categories = page.getByRole("navigation", { name: "시세 분류" });
-    await categories.getByRole("button", { name: "각인서" }).click();
-    await expect(categories.getByRole("button", { name: "각인서" })).toHaveAttribute("aria-pressed", "true");
+    const categories = page.getByRole("tablist", { name: "시세 분류" });
+    await categories.getByRole("tab", { name: "각인서" }).click();
+    await expect(categories.getByRole("tab", { name: "각인서" })).toHaveAttribute("aria-selected", "true");
     await expect(page.getByRole("heading", { name: /각인서 시세 23종/ })).toBeVisible();
   });
 
