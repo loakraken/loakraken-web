@@ -13,7 +13,7 @@ const TABS = [
   { id: "skills", label: "스킬", headings: ["스킬"] },
   { id: "arkpassive", label: "아크 패시브", headings: ["진화", "깨달음", "도약"] },
   { id: "collectibles", label: "내실", headings: ["수집품", "성향"] },
-  { id: "avatars", label: "아바타", headings: ["아바타", "아바타 효과"] },
+  { id: "avatars", label: "아바타", headings: ["아바타 미리보기", "아바타 목록", "아바타 효과"] },
   { id: "stats", label: "통계", headings: ["아이템 레벨", "전투력", "원정대 레벨"] },
   { id: "siblings", label: "원정대", headings: ["아만", "루페온"] },
   { id: "evidence", label: "세팅 점검", headings: ["세팅 점검 결과", "원천 제공 상태"] },
