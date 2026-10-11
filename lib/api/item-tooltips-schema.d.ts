@@ -75,6 +75,15 @@ export interface components {
              *     ]
              */
             extraLines: string[];
+            /**
+             * @description extraLines와 같은 길이로, 각 줄 바로 앞에 나온 공식 Tooltip 섹션 제목(예: '팔찌 효과', '아크 패시브 포인트 효과'). 앞에 섹션이 없으면 빈 문자열. 캐시가 이전 형식이면 빈 목록이라 웹은 지금처럼 끝에 둔다(#285)
+             * @example [
+             *       "",
+             *       "팔찌 효과",
+             *       "팔찌 효과"
+             *     ]
+             */
+            extraLineSections: string[];
         };
         SlotLinesResponse: {
             slot: number | null;

@@ -121,6 +121,30 @@ function useCopy() {
 // Worked example for the empty state (same formula as the result).
 const EXAMPLE = calculateAuction(100_000, 8);
 
+/**
+ * 모션 목록(경매): when a result settles — the inputs rest for 300ms — its
+ * numbers cross-fade once (opacity only, 160ms). Typing does not replay it,
+ * and reduced motion skips it.
+ */
+function useSettleFade(key: string, root: React.RefObject<HTMLElement | null>) {
+  const [settled, setSettled] = useState(key);
+  useEffect(() => {
+    const timer = setTimeout(() => setSettled(key), 300);
+    return () => clearTimeout(timer);
+  }, [key]);
+  const first = useRef(true);
+  useEffect(() => {
+    if (first.current) {
+      first.current = false;
+      return;
+    }
+    if (!settled || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    root.current?.querySelectorAll("[data-figure]").forEach((node) =>
+      node.animate([{ opacity: 0.35 }, { opacity: 1 }], { duration: 160, easing: "cubic-bezier(0.23, 1, 0.32, 1)" }),
+    );
+  }, [settled, root]);
+}
+
 function BidPick({ result }: { result: AuctionResult | null }) {
   const { copied, copy } = useCopy();
   if (!result)
@@ -147,7 +171,7 @@ function BidPick({ result }: { result: AuctionResult | null }) {
       <p id="auction-pick" className={styles.pickLabel}>
         이 값까지 입찰하세요 <span className={styles.badge}>추천</span>
       </p>
-      <p className={styles.pickValue}>
+      <p className={styles.pickValue} data-figure="">
         <button
           type="button"
           className={styles.copy}
@@ -190,7 +214,7 @@ function Summary({ result }: { result: AuctionResult | null }) {
               formula={STRATEGY_COPY.breakEven.formula}
             />
           </p>
-          <p className={styles.headValue} data-tone="sale">
+          <p className={styles.headValue} data-tone="sale" data-figure="">
             {value((r) => r.breakEven)}
           </p>
           <p className={styles.headNote}>거래소에 팔 때 · 수수료 5% 반영</p>
@@ -203,22 +227,24 @@ function Summary({ result }: { result: AuctionResult | null }) {
               formula={STRATEGY_COPY.useMyself.formula}
             />
           </p>
-          <p className={styles.headValue}>{value((r) => r.useMyself)}</p>
+          <p className={styles.headValue} data-figure="">
+            {value((r) => r.useMyself)}
+          </p>
           <p className={styles.headNote}>내가 쓸 때 · 수수료 없음</p>
         </div>
       </div>
       <dl className={styles.facts}>
         <div>
           <dt>판매하면 받는 골드</dt>
-          <dd>{value((r) => r.saleGold)}</dd>
+          <dd data-figure="">{value((r) => r.saleGold)}</dd>
         </div>
         <div>
           <dt>거래소 수수료 5%</dt>
-          <dd>{value((r) => r.fee)}</dd>
+          <dd data-figure="">{value((r) => r.fee)}</dd>
         </div>
         <div>
           <dt>1인 분배금 (판매 손익 분기)</dt>
-          <dd>{value((r) => r.breakEvenShare)}</dd>
+          <dd data-figure="">{value((r) => r.breakEvenShare)}</dd>
         </div>
       </dl>
     </section>
@@ -280,7 +306,9 @@ function Strategies({ result }: { result: AuctionResult | null }) {
                       onClick={() => copy(id, row.bid)}
                       aria-label={`${text.name} 입찰가 ${formatGold(row.bid)} 복사`}
                     >
-                      <span className={styles.bid}>{formatGold(row.bid)}</span>
+                      <span className={styles.bid} data-figure="">
+                        {formatGold(row.bid)}
+                      </span>
                       {done && copied.ok ? (
                         <TickCircle size={14} aria-hidden="true" />
                       ) : (
@@ -384,6 +412,8 @@ function AuctionContent({
     price !== null && !pError && !cError
       ? calculateAuction(price, party)
       : null;
+  const output = useRef<HTMLDivElement>(null);
+  useSettleFade(result ? `${result.price}:${result.party}` : "", output);
 
   // Keep the URL shareable without a server round trip.
   useEffect(() => {
@@ -522,7 +552,7 @@ function AuctionContent({
               )}
             </form>
 
-            <div className={styles.output}>
+            <div className={styles.output} ref={output}>
               <BidPick result={result} />
               <Summary result={result} />
               <Strategies result={result} />

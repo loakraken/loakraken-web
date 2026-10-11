@@ -1,0 +1,127 @@
+/* MIT © 2026 Lorenzo Cabra — https://bencho.dev (block "Notify"), see ./NOTICE.
+   Only this block's rules from Bencho's shared stylesheet: the .bell-* rules
+   and the bare glass pane (.gpane) the button is built on, scoped to the
+   block; the other blocks' rules that came with the export are left out. */
+
+/* ── our tokens (#notify) ──────────────────────────────────
+   Bencho's names, mapped once on the block root. At rest the
+   pill is our control fill; pressed it is the page with our
+   --input hairline (3:1 against the page, WCAG 1.4.11), the
+   same edge Bencho's Stroke switch would give it. */
+.bell-well {
+  --pane: var(--secondary);
+  --board: var(--background);
+  --slab-btn: var(--background);
+  --ink: var(--foreground);
+  --font-ui: inherit;
+  /* the pill grows between two label widths (Bencho's core); keep that
+     layout work inside the stage */
+  contain: layout paint;
+}
+.bell-well .bell-btn[data-on="true"] { box-shadow: 0 0 0 1px var(--input); }
+.bell-well .bell-btn:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+
+/* The bare pane (Bencho .gpane), for this block only. */
+.bell-well .gpane {
+  position: relative;
+  background: var(--pane);
+  -webkit-backdrop-filter:
+    blur(var(--g-blur, 2px)) saturate(var(--g-sat, 150%)) brightness(var(--g-bright, 100%));
+  backdrop-filter:
+    blur(var(--g-blur, 2px)) saturate(var(--g-sat, 150%)) brightness(var(--g-bright, 100%));
+  isolation: isolate;
+  color: var(--ink);}
+
+.bell-well .gpane::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 1px solid transparent;
+  pointer-events: none;
+  z-index: 3;}
+
+/* 260 wide, like the confirm's stage. The wall locks a
+   component's longest side to 260, so a 300 wide stage was
+   being drawn at 0.867 and its 42px button landed at 36 on
+   screen while the confirm's 44 landed at 44. Matching the
+   stage is what makes the two buttons the same size; matching
+   only the CSS height would not have. */
+.bell-well {
+  position: relative;
+  width: 260px; height: 146px;
+  display: grid; place-items: center;}
+
+.bell-btn {
+  position: relative;
+  display: inline-flex; align-items: center; gap: 9px;
+  height: 44px; padding: 0 19px;
+  border: 0; border-radius: var(--bell-r, 999px);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: 13.5px;
+  cursor: pointer;
+  transition: transform 220ms cubic-bezier(0.28, 1.3, 0.36, 1);}
+
+.bell-btn:active { transform: scale(0.96); }
+
+/* the bell hangs from its crown, so that is where it pivots */
+.bell-glyph {
+  display: grid; place-items: center;
+  transform-origin: 50% 16%;}
+
+/* the two labels sit on top of each other so the pill can be
+   given the width of whichever is showing and travel between
+   the two. Out of flow, so neither one sizes the box. */
+.bell-say {
+  position: relative;
+  display: block;
+  height: 18px;
+  overflow: hidden;}
+
+.bell-say[data-ready="true"] {
+  transition: width 460ms cubic-bezier(0.24, 1.34, 0.38, 1);}
+
+.bell-say i {
+  position: absolute;
+  left: 0; top: 0;
+  font-style: normal;
+  white-space: nowrap;
+  line-height: 18px;
+  opacity: 0;
+  transition: opacity 200ms ease;}
+
+.bell-say i[data-show="true"] { opacity: 1; }
+
+/* pressed and holding: the button is its own receipt */
+/* The armed state used to be --ink, which is a black slab in
+   the light theme — the brightest, loudest object on a wall of
+   quiet ones, and the exact mistake --slab exists to prevent
+   (see "A filled block is not --ink"). --slab is white here
+   and the near-black board in the dark, so the button reads
+   as raised in both rather than inverted in one. */
+/* NO EDGE OF ITS OWN, ARMED OR NOT. The armed pill carried a
+   soft drop shadow and a hairline ring baked into one
+   box-shadow, which made it the only thing on the wall that
+   lifted off the page — and neither of them could be turned
+   off, though the bench has a control for exactly that
+   question. The fill is enough: it is a white pill on a grey
+   card and it does not need a shadow to say it changed.
+
+   Same conclusion the command bar reached, and the sleep and
+   humidity pills before it. */
+.bell-btn[data-on="true"] {
+  background: var(--slab-btn, var(--board));
+  color: var(--ink);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;}
+
+.bell-btn[data-on="true"]::before,
+.bell-btn[data-on="true"]::after { opacity: 0; }
+
+
+/* Ours: reduced motion lands the pill on its new width at once (the bell
+   already skips its swing in notify.tsx). */
+@media (prefers-reduced-motion: reduce) {
+  .bell-say[data-ready="true"], .bell-say i, .bell-btn { transition: none; }
+}

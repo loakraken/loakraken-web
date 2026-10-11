@@ -74,6 +74,8 @@ const ROLLOUT: Record<string, Record<string, () => unknown>> = {
     refineExp: () => null,
     advancedRefineLevel: () => null,
   },
+  // Gem tooltip lines (backend #286).
+  GemResponse: { titleLine: () => null, itemLevel: () => null, tier: () => null, tradeLines: () => [] },
   SkillResponse: { attackType: () => null },
   TripodResponse: { effect: () => null },
   RuneResponse: { effect: () => null },
@@ -111,6 +113,7 @@ export function isCharacterEnvelope(
   for (const effect of data.loadout.arkPassive?.effects ?? [])
     fill(effect, "PassiveEffectResponse");
   for (const item of data.loadout.equipment) if (item.detail) fill(item.detail, "EquipmentDetailResponse");
+  for (const gem of data.loadout.gems?.items ?? []) fill(gem, "GemResponse");
   for (const skill of data.loadout.skills) {
     fill(skill, "SkillResponse");
     for (const tripod of skill.tripods) fill(tripod, "TripodResponse");

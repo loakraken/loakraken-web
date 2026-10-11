@@ -232,6 +232,11 @@ export interface components {
             icon: string | null;
             level: number | null;
             grade: string | null;
+            titleLine: string | null;
+            itemLevel: number | null;
+            tier: number | null;
+            /** @description 공식 Tooltip 귀속·거래 줄(예: '캐릭터 귀속됨', '거래 불가') */
+            tradeLines: string[];
         };
         GemEffectsResponse: {
             description: string | null;

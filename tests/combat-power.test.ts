@@ -4,6 +4,8 @@ import test from "node:test";
 import {
   NO_EDITS,
   braceletName,
+  gradeWithValue,
+  polishValue,
   isOpen,
   gemLevel,
   hasComputed,
@@ -175,4 +177,27 @@ test("1차판 opens only the kinds that matched the target site (PM 총괄 23:59
     ),
     [false, false, false, false, false, false],
   );
+});
+
+test("polish grades read with their official value (backend #254, PM-프론트 #370 P2)", () => {
+  const options = read("combat-power-options.json");
+  assert.equal(isOptionsEnvelope(options), true);
+  const values = options.data.polishValues;
+  const mid = { value: "+1.60%", grade: "MID" };
+  assert.equal(polishValue(values, "추가 피해", mid, "HIGH"), "+2.60%");
+  // Same name, % or flat: told apart by the current value.
+  assert.equal(polishValue(values, "공격력", { value: "+0.95%", grade: "MID" }, "HIGH"), "+1.55%");
+  assert.equal(polishValue(values, "공격력", { value: "+195", grade: "MID" }, "HIGH"), "+390");
+  // Another tier (1540 공격력 % 중 0.66): the 1680 table does not fit → grade only.
+  assert.equal(polishValue(values, "공격력", { value: "+0.66%", grade: "MID" }, "HIGH"), null);
+  // Grade unknown (change list "from"): fits when the value is in the row.
+  assert.equal(polishValue(values, "추가 피해", { value: "+1.60%", grade: null }, "HIGH"), "+2.60%");
+  assert.equal(polishValue(values, "추가 피해", { value: "+1.10%", grade: null }, "HIGH"), null);
+  assert.equal(polishValue(values, "없는 옵션", mid, "HIGH"), null);
+  assert.equal(polishValue(undefined, "추가 피해", mid, "HIGH"), null);
+  assert.equal(gradeWithValue("HIGH", "+2.60%"), "상(+2.60%)");
+  assert.equal(gradeWithValue("LOW", null), "하");
+  // Backends before #254 send no table: still a valid answer.
+  delete options.data.polishValues;
+  assert.equal(isOptionsEnvelope(options), true);
 });

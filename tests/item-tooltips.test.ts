@@ -1,7 +1,14 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import { equipmentLines, isItemTooltipsEnvelope, lineTone, requestItemTooltips } from "../lib/character/item-tooltips";
+import {
+  equipmentExtra,
+  equipmentLines,
+  isItemTooltipsEnvelope,
+  lineTone,
+  placeExtraLines,
+  requestItemTooltips,
+} from "../lib/character/item-tooltips";
 
 const sample = () =>
   JSON.parse(readFileSync(new URL("./item-tooltips-fixtures/character-item-tooltips.json", import.meta.url), "utf8"));
@@ -50,4 +57,27 @@ test("remaining lines group into the reference site's sections", async () => {
     groupExtraLines(["빛나는 황금을 이용해 만들어진 고급 나침반.", "수십 년을 사용해도 녹 하나 슬지 않는다고 전해진다.", "판매불가, 파괴불가", "[제작] 외로운 섬"]),
     [["빛나는 황금을 이용해 만들어진 고급 나침반.", "수십 년을 사용해도 녹 하나 슬지 않는다고 전해진다."], ["판매불가, 파괴불가"], ["[제작] 외로운 섬"]],
   );
+});
+
+test("a backend before #286 (no section titles) still passes and keeps the lines at the end", () => {
+  const old = sample();
+  for (const item of old.data.equipment) delete item.extraLineSections;
+  assert.equal(isItemTooltipsEnvelope(old), true);
+  const extra = equipmentExtra(old.data, 1, "귀걸이");
+  assert.deepEqual(extra.sections, []);
+  assert.deepEqual(placeExtraLines(extra, new Set(["팔찌 효과"])).tail, extra.lines);
+});
+
+test("a line that followed an earlier section goes right after it", () => {
+  // The bracelet as the official tooltip has it (local backend, 언새늘).
+  const bracelet = {
+    lines: ["효과 부여 불가", "[가디언 토벌] 스콜라키아", "그 외에 획득처가 더 존재합니다."],
+    sections: ["팔찌 효과", "아크 패시브 포인트 효과", "아크 패시브 포인트 효과"],
+  };
+  const placed = placeExtraLines(bracelet, new Set(["팔찌 효과", "아크 패시브 포인트 효과"]));
+  assert.deepEqual(placed.after.get("팔찌 효과"), ["효과 부여 불가"]);
+  assert.deepEqual(placed.tail, ["[가디언 토벌] 스콜라키아", "그 외에 획득처가 더 존재합니다."]);
+  // A section the card does not show, or a length mismatch: the end, in order.
+  assert.deepEqual(placeExtraLines(bracelet, new Set(["아크 패시브 포인트 효과"])).tail, bracelet.lines);
+  assert.deepEqual(placeExtraLines({ ...bracelet, sections: ["팔찌 효과"] }, new Set(["팔찌 효과"])).tail, bracelet.lines);
 });

@@ -256,6 +256,13 @@
 .table td[data-sign] {
   font-weight: 600;
   font-variant-numeric: tabular-nums;
+  /* 손익 색 전환 160ms(모션 목록 경매). */
+  transition: color var(--duration-fast) var(--ease-out);
+}
+@media (prefers-reduced-motion: reduce) {
+  .table td[data-sign] {
+    transition: none;
+  }
 }
 .table td[data-sign="1"] {
   color: var(--gain);
