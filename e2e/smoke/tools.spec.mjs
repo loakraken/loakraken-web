@@ -40,7 +40,7 @@ test.describe("재련 기대 비용 @smoke", () => {
     await page.getByRole("textbox", { name: "캐릭터 이름" }).fill("재련");
     await page.getByRole("button", { name: "장비 불러오기" }).click();
     await expect(page.getByText(/재련 · 루페온 · 아이템 레벨 1,738\.33/)).toBeVisible();
-    await expect(page.getByRole("group", { name: "무기" }).getByRole("combobox", { name: "현재" })).toHaveValue("21");
+    await expect(page.getByRole("group", { name: "무기" }).getByRole("combobox", { name: "현재" })).toHaveText("+21");
     // 업화·전율이 아닌 어깨는 계산에서 빠진다.
     await expect(page.getByText(/어깨 부위는 업화·전율 장비가 아니거나/)).toBeVisible();
   });

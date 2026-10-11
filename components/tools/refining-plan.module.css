@@ -109,7 +109,7 @@
   color: var(--slate);
   font-size: var(--text-caption);
 }
-.mini select,
+.mini [data-slot="select"],
 .mini input {
   width: 100%;
   height: 38px;
@@ -121,7 +121,7 @@
   font-size: var(--text-body);
   font-variant-numeric: tabular-nums;
 }
-.mini select:focus-visible,
+.mini [data-slot="select"]:focus-visible,
 .mini input:focus-visible {
   outline: none;
   border-color: var(--action);

@@ -22,7 +22,7 @@
   font-size: 12px;
   font-weight: 600;
 }
-.filters select,
+.filters [data-slot="select"],
 .filters input:not([type="checkbox"]) {
   min-width: 96px;
   height: 34px;
@@ -360,7 +360,7 @@
   .filters label {
     flex: 1 1 40%;
   }
-  .filters select,
+  .filters [data-slot="select"],
   .filters input:not([type="checkbox"]) {
     width: 100%;
   }

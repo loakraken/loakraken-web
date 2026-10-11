@@ -14,6 +14,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { ArrowLeft, FlashCircle, RotateLeft, UndoArrow } from "@/components/ui/icons";
+import { Select as ChoiceSelect } from "@/components/ui/select";
 import {
   characterNameError,
   normalizeCharacterName,
@@ -164,14 +165,11 @@ function Choice({
     <label className={styles.select} data-changed={(original != null && value !== original) || undefined}>
       {caption && <span className={styles.caption} aria-hidden="true">{caption}</span>}
       <span className={styles.sr}>{label}</span>
-      <select value={value} onChange={(event) => onChange(event.target.value)}>
-        {original == null && <option value="">—</option>}
-        {values.map((item) => (
-          <option key={item.value} value={item.value}>
-            {item.label}
-          </option>
-        ))}
-      </select>
+      <ChoiceSelect
+        value={value}
+        onValueChange={onChange}
+        items={[...(original == null ? [{ value: "", label: "—" }] : []), ...values]}
+      />
     </label>
   );
 }
@@ -234,13 +232,11 @@ function Select({
     <label className={styles.select} data-changed={value !== original || undefined}>
       {caption && <span className={styles.caption} aria-hidden="true">{caption}</span>}
       <span className={styles.sr}>{label}</span>
-      <select value={value} onChange={(event) => onChange(Number(event.target.value))}>
-        {values.map((level) => (
-          <option key={level} value={level}>
-            {format(level)}
-          </option>
-        ))}
-      </select>
+      <ChoiceSelect
+        value={value}
+        onValueChange={onChange}
+        items={values.map((level) => ({ value: level, label: format(level) }))}
+      />
     </label>
   );
 }
@@ -271,24 +267,21 @@ function Editors({
           {current.gems.length > 0 && (
             <label className={styles.bulk}>
               <span>모두</span>
-              <select
-                value={edits.gemAll ?? ""}
-                onChange={(event) =>
+              <ChoiceSelect
+                value={edits.gemAll == null ? "" : String(edits.gemAll)}
+                onValueChange={(v) =>
                   setEdits((prev) => ({
                     ...prev,
-                    gemAll: event.target.value ? Number(event.target.value) : null,
+                    gemAll: v ? Number(v) : null,
                     gems: {},
                   }))
                 }
                 aria-label="보석 모두 같은 레벨로"
-              >
-                <option value="">그대로</option>
-                {gemValues.map((level) => (
-                  <option key={level} value={level}>
-                    {level === 0 ? "모두 빼기" : `${level}레벨`}
-                  </option>
-                ))}
-              </select>
+                items={[
+                  { value: "", label: "그대로" },
+                  ...gemValues.map((level) => ({ value: String(level), label: level === 0 ? "모두 빼기" : `${level}레벨` })),
+                ]}
+              />
             </label>
           )}
         </header>

@@ -4,6 +4,7 @@ import { useEffect, useId, useRef, useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { SiteHeader } from "@/components/site/site-header";
+import { Select } from "@/components/ui/select";
 import { DataTable } from "@/components/ui/data-table";
 import { PillTab, PillTabs, PillTabsPanel } from "@/components/ui/pill-tabs";
 import { countdownText, retryLabel } from "@/lib/api/rate-limit";
@@ -482,40 +483,30 @@ export function StatsView({ initial, initialTab }: { initial: StatsQuery; initia
         <form className={styles.filters} onSubmit={(e) => e.preventDefault()} aria-label="통계 조건">
           <label htmlFor={ids.server}>
             서버
-            <select
+            <Select
               id={ids.server}
               value={query.server ?? ""}
-              onChange={(e) => apply({ ...query, server: e.target.value || undefined })}
-            >
-              <option value="">전체</option>
-              {SERVERS.map((s) => (
-                <option key={s}>{s}</option>
-              ))}
-            </select>
+              onValueChange={(v) => apply({ ...query, server: v || undefined })}
+              items={[{ value: "", label: "전체" }, ...SERVERS.map((s) => ({ value: s, label: s }))]}
+            />
           </label>
           <label htmlFor={ids.role}>
             역할
-            <select
+            <Select
               id={ids.role}
               value={query.role ?? ""}
-              onChange={(e) => apply({ ...query, role: (e.target.value || undefined) as StatsQuery["role"] })}
-            >
-              <option value="">전체</option>
-              <option value="DEALER">딜러</option>
-              <option value="SUPPORT">서포터</option>
-            </select>
+              onValueChange={(v) => apply({ ...query, role: (v || undefined) as StatsQuery["role"] })}
+              items={[{ value: "", label: "전체" }, { value: "DEALER", label: "딜러" }, { value: "SUPPORT", label: "서포터" }]}
+            />
           </label>
           <label htmlFor={ids.days}>
             최근 확인
-            <select
+            <Select
               id={ids.days}
               value={query.activeDays ?? 30}
-              onChange={(e) => apply({ ...query, activeDays: Number(e.target.value) as 7 | 30 | 90 })}
-            >
-              <option value={7}>7일</option>
-              <option value={30}>30일</option>
-              <option value={90}>90일</option>
-            </select>
+              onValueChange={(v) => apply({ ...query, activeDays: v as 7 | 30 | 90 })}
+              items={[{ value: 7, label: "7일" }, { value: 30, label: "30일" }, { value: 90, label: "90일" }]}
+            />
           </label>
           <label htmlFor={ids.level}>
             아이템 레벨 이상

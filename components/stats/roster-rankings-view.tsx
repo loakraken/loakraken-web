@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { SiteHeader } from "@/components/site/site-header";
 import { DataTable } from "@/components/ui/data-table";
+import { Select } from "@/components/ui/select";
 import { countdownText, retryLabel } from "@/lib/api/rate-limit";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { fetchRosterRanking } from "@/lib/stats/client";
@@ -128,16 +129,12 @@ export function RosterRankingsView({ initial }: { initial: RosterQuery }) {
           </span>
           <label htmlFor={serverId}>
             서버
-            <select
+            <Select
               id={serverId}
               value={query.server ?? ""}
-              onChange={(e) => filter({ server: e.target.value || undefined })}
-            >
-              <option value="">전체</option>
-              {SERVERS.map((s) => (
-                <option key={s}>{s}</option>
-              ))}
-            </select>
+              onValueChange={(v) => filter({ server: v || undefined })}
+              items={[{ value: "", label: "전체" }, ...SERVERS.map((s) => ({ value: s, label: s }))]}
+            />
           </label>
         </form>
 
