@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Popover } from "@base-ui/react/popover";
 import { InfoCircle } from "@/components/ui/icons";
+import { pendingProps } from "@/lib/api/pending";
 import { conditionsText, whole, type StatsMeta } from "@/lib/stats/model";
 import styles from "./basis-note.module.css";
 
@@ -57,9 +58,9 @@ function NoteBody({ basis }: { basis: Basis }) {
 }
 
 /** Under a stats or rankings table: small gray text, always open. */
-export function BasisNote({ basis }: { basis: Basis }) {
+export function BasisNote({ basis, stale = false }: { basis: Basis; stale?: boolean }) {
   return (
-    <section className={styles.note} aria-label="집계 기준 안내">
+    <section className={styles.note} aria-label="집계 기준 안내" {...pendingProps({ isPlaceholderData: stale })}>
       <NoteBody basis={basis} />
     </section>
   );

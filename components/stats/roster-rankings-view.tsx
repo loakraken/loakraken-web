@@ -8,6 +8,7 @@ import { SiteHeader } from "@/components/site/site-header";
 import { DataTable } from "@/components/ui/data-table";
 import { Select } from "@/components/ui/select";
 import { countdownText, retryLabel } from "@/lib/api/rate-limit";
+import { pendingProps } from "@/lib/api/pending";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { fetchRosterRanking } from "@/lib/stats/client";
 import { fixed, sampleText, whole } from "@/lib/stats/model";
@@ -140,7 +141,7 @@ export function RosterRankingsView({ initial }: { initial: RosterQuery }) {
 
         {/* One height for loading, empty and short lists, so the notes below
             never move when the rows arrive (CLS). */}
-        <div className={styles.listHold}>
+        <div className={styles.listHold} {...pendingProps(list)}>
           {data?.meta && (
             <p className={styles.notice}>
               {sampleText(data.meta, "roster")} ·
