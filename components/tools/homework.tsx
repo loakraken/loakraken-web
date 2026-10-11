@@ -76,7 +76,7 @@ function Summary({ state, now }: { state: HomeworkState; now: number }) {
             {unsettled
               .map(({ raid, mode }) => `${raid.shortName} ${DIFFICULTY_LABEL[mode.difficulty]}`)
               .join(", ")}{" "}
-            클리어 골드(공식 값과 두 사이트가 일치하는 값이 아직 없어요)
+            클리어 골드(공식 값이나 서로 다른 실측 출처 2곳이 일치하는 값이 아직 없어요)
           </p>
         )}
       </div>
@@ -98,6 +98,10 @@ function Summary({ state, now }: { state: HomeworkState; now: number }) {
           <dd>
             {s.gatesDone}/{s.gates}
           </dd>
+          {/* Progress at a glance; grows on each check (모션 목록 숙제 진행률). */}
+          <span className={styles.progress} aria-hidden="true">
+            <i style={{ transform: `scaleX(${s.gates ? s.gatesDone / s.gates : 0})` }} />
+          </span>
         </div>
         <div>
           <dt>주간 초기화까지</dt>
@@ -416,7 +420,9 @@ export default function HomeworkTool() {
         본문으로 건너뛰기
       </a>
       <SiteHeader />
-      <main id="hw-main">
+      {/* At least a screen tall, like the loading shell: the footer starts below
+          the fold either way, so stored rosters arriving do not push it (390 CLS). */}
+      <main id="hw-main" className={styles.main}>
         <section className={quote.hero} aria-labelledby="hw-heading">
           <span className={quote.heroIcon} aria-hidden="true">
             <TaskSquare size={18} />

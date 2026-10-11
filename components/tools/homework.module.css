@@ -247,6 +247,86 @@
   color: var(--muted-foreground);
   text-decoration: line-through;
 }
+/* 모션 목록(숙제): a done gate's text eases to muted in 160ms. The list asked
+   for opacity 0.5, which would drop the text under 4.5:1, so the colour moves
+   instead (transform/opacity-free, no layout). */
+.gateCheck span {
+  transition: color var(--duration-fast) var(--ease-out);
+}
+
+/* Drawn check: the box fills and the tick sweeps in from the left in 200ms
+   (transform only). */
+.gateCheck input,
+.moreCheck input {
+  appearance: none;
+  display: grid;
+  place-content: center;
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  border: 1.5px solid var(--input);
+  border-radius: 5px;
+  background: var(--background);
+  cursor: pointer;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out);
+}
+.gateCheck input::before,
+.moreCheck input::before {
+  content: "";
+  width: 10px;
+  height: 8px;
+  background: var(--primary-foreground);
+  clip-path: polygon(0 52%, 14% 38%, 38% 62%, 86% 0, 100% 14%, 38% 90%);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--duration-base) var(--ease-out);
+}
+.gateCheck input:checked,
+.moreCheck input:checked {
+  border-color: var(--primary);
+  background: var(--primary);
+}
+.gateCheck input:checked::before,
+.moreCheck input:checked::before {
+  transform: scaleX(1);
+}
+.gateCheck input:focus-visible,
+.moreCheck input:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+/* Summary progress: one bar, scaleX only, 200ms per check. */
+.progress {
+  display: block;
+  height: 4px;
+  margin-top: var(--space-2);
+  overflow: hidden;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--foreground) 10%, transparent);
+}
+.progress i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--primary);
+  transform-origin: left;
+  transition: transform var(--duration-base) var(--ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gateCheck span,
+  .gateCheck input,
+  .moreCheck input,
+  .gateCheck input::before,
+  .moreCheck input::before,
+  .progress i {
+    transition: none;
+  }
+}
 .moreCheck {
   color: var(--muted-foreground);
   font-size: var(--text-caption);
@@ -275,4 +355,9 @@
   .grid {
     grid-template-columns: minmax(0, 1fr);
   }
+}
+
+/* Same height as the loading shell (homework-loader): a screen at least. */
+.main {
+  min-height: 100dvh;
 }
