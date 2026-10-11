@@ -1,9 +1,16 @@
 // 회귀: 도구 화면에 다른 사이트·저장소 이름이 나가지 않는다(사용자 2026-10-10 23:25).
 // 백엔드가 내려주는 출처·가정 문장도 화면에 그대로 나가므로 결과까지 띄운 뒤 본다.
+// 이름 목록은 공개 저장소에 두지 않는다 — scripts/blocked-terms.mjs가 CI 비밀값
+// BLOCKED_TERMS나 로컬 .blocked-terms에서 읽는다. 목록이 없으면 일반 표현만 본다.
 import { test, expect, gotoReady } from "../support/fixtures.mjs";
+import { blockedPattern, loadBlockedTerms } from "../../scripts/blocked-terms.mjs";
 
-const NAMES =
-  /일로아|로아랩|로펙|lopec|클로아|kloa|RLoA|rloa|로아와|loawa|icepeng|loa-calc|gcalc|껨산기|lobal|로아쿤|로아로골|loalogol|lo4\.app|목표 사이트|다른 계산 사이트/i;
+const GENERIC = /목표 사이트|다른 계산 사이트/i;
+const blocked = loadBlockedTerms();
+const listed = blockedPattern(blocked.terms.filter((t) => t.kind === "site"));
+const NAMES = listed ? new RegExp(`${listed.source}|${GENERIC.source}`, "i") : GENERIC;
+// 목 서버는 어떤 이름이든 같은 캐릭터를 돌려준다 — 실제 캐릭터명 대신 익명 ID.
+const CHARACTER = encodeURIComponent("목캐릭터A");
 
 const PAGES = [
   {
@@ -12,12 +19,12 @@ const PAGES = [
     run: (page) => page.getByRole("group", { name: "모든 부위 목표 단계" }).getByRole("button", { name: "+20" }).click(),
     ready: (page) => page.getByRole("region", { name: "예상 소모" }).getByText(/총 \d+단계/),
   },
-  { name: "치적·뭉가·음돌", path: `/tools/crit-speed?character=${encodeURIComponent("언새늘")}` },
+  { name: "치적·뭉가·음돌", path: `/tools/crit-speed?character=${CHARACTER}` },
   { name: "경매 입찰가", path: "/tools/auction" },
   { name: "더보기 손익", path: "/tools/more-reward" },
   { name: "레이드 보상표", path: "/tools/raid-rewards" },
   { name: "숙제 체크", path: "/tools/homework" },
-  { name: "전투력 시뮬레이터", path: `/tools/combat-power?character=${encodeURIComponent("언새늘")}` },
+  { name: "전투력 시뮬레이터", path: `/tools/combat-power?character=${CHARACTER}` },
 ];
 
 test.describe("도구 화면 다른 사이트 이름 없음 @regression", () => {
