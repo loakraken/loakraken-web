@@ -47,14 +47,14 @@
   padding: 0 24px 64px;
 }
 
-/* Quick menu (L46): one row of the most used screens under the search; four
-   to a row on a phone. Static links, so nothing arrives late. */
+/* Quick menu (L46): one row of the most used screens under the search, two
+   rows of five below 860px. Static links, so nothing arrives late. */
 .quick {
   margin: 0 0 16px;
 }
 .quick ul {
   display: grid;
-  grid-template-columns: repeat(9, minmax(0, 1fr));
+  grid-template-columns: repeat(10, minmax(0, 1fr));
   gap: 8px;
   margin: 0;
   padding: 0;
@@ -64,7 +64,6 @@
   display: grid;
   justify-items: center;
   gap: 6px;
-  min-height: 76px;
   padding: 12px 4px 10px;
   border-radius: 16px;
   background: var(--muted);
@@ -105,7 +104,11 @@
 }
 @media (max-width: 520px) {
   .quick ul {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+  }
+  .quick a {
+    padding: 10px 2px 8px;
+    font-size: 12px;
   }
 }
 

@@ -7,6 +7,7 @@ import {
   Judge,
   Layer,
   Notification,
+  SearchNormal,
   Setting,
   TaskSquare,
   TrendUp,
@@ -14,12 +15,13 @@ import {
 import styles from "./home.module.css";
 
 // Quick menu (L46): the screens people open most, one press from home. Only
-// tools that are on for every deployment (no runtime flag), so the row is the
+// screens that are on for every deployment (no runtime flag), so the row is the
 // same in the first HTML and after hydration. Icons follow each screen's own
 // header mark where it has one.
 const QUICK: { href: string; label: string; icon: ReactNode }[] = [
   { href: "/schedule", label: "주간 일정", icon: <Notification /> },
   { href: "/market", label: "거래소 시세", icon: <TrendUp /> },
+  { href: "/multi-search", label: "멀티서치", icon: <SearchNormal /> },
   { href: "/rankings", label: "랭킹", icon: <Layer /> },
   { href: "/stats", label: "통계", icon: <HierarchySquare /> },
   { href: "/tools/refining", label: "재련 비용", icon: <Setting /> },

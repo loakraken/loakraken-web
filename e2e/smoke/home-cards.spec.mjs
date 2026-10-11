@@ -71,7 +71,8 @@ test.describe("홈 바로 가기 @smoke", () => {
   test("자주 쓰는 화면으로 바로 간다", async ({ page }) => {
     await gotoReady(page, "/");
     const quick = page.getByRole("navigation", { name: "바로 가기" });
-    await expect(quick.getByRole("link")).toHaveCount(9);
+    await expect(quick.getByRole("link")).toHaveCount(10);
+    await expect(quick.getByRole("link", { name: "멀티서치" })).toHaveAttribute("href", "/multi-search");
     await expect(quick.getByRole("link", { name: "숙제 체크" })).toHaveAttribute("href", "/tools/homework");
     await quick.getByRole("link", { name: "거래소 시세" }).click();
     await expect(page).toHaveURL(/\/market$/);
