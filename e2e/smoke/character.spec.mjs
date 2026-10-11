@@ -16,7 +16,8 @@ const TABS = [
   { id: "avatars", label: "아바타", headings: ["아바타", "아바타 효과"] },
   { id: "stats", label: "통계", headings: ["아이템 레벨", "전투력", "원정대 레벨"] },
   { id: "siblings", label: "원정대", headings: ["아만", "루페온"] },
-  { id: "evidence", label: "세팅 점검", headings: ["세팅 점검 결과", "원천 제공 상태"] },
+  // 개발·미리보기에서는 탭 이름 옆에 "베타" 칩이 읽힘(web #489).
+  { id: "evidence", label: "세팅 점검 베타", headings: ["세팅 점검 결과", "원천 제공 상태"] },
 ];
 
 test.describe("캐릭터 탭 @smoke", () => {
