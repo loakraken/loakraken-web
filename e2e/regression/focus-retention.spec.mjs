@@ -47,7 +47,7 @@ const FLOWS = [
     path: "/tools/material-quote",
     api: "**/api/markets/items**",
     start: async (page) => {
-      await expect(page.getByRole("combobox", { name: "카테고리" })).toBeEnabled();
+      await expect(page.getByRole("tablist", { name: "카테고리" })).toBeVisible();
       await page.getByRole("textbox", { name: "재료 이름" }).fill("합성");
       await page.getByRole("button", { name: "검색", exact: true }).focus();
     },
