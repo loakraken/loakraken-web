@@ -648,19 +648,21 @@ function ChangeList({ data, values }: { data: Simulation; values?: PolishValues 
   );
 }
 
-function CombatPowerContent({ initialName }: { initialName: string }) {
-  const router = useRouter();
-  const [input, setInput] = useState(initialName);
-  const [touched, setTouched] = useState(false);
-  const [name, setName] = useState(
-    initialName && !characterNameError(initialName) ? normalizeCharacterName(initialName) : "",
-  );
+/**
+ * The simulator itself — result, changes and editors for one character. The
+ * tool page puts its own search above it; the character page shows it as the
+ * 시뮬레이터 tab (PM-프론트 16:37 ①), where the character is already loaded.
+ */
+export function CombatPowerSimulator({ name, initial }: { name: string; initial?: Character }) {
+  const embedded = !!initial;
   const [edits, setEdits] = useState<Edits>(NO_EDITS);
 
   const character = useQuery({
     queryKey: ["character", name],
     queryFn: ({ signal }) => fetchCharacter(name, signal),
-    enabled: !!name,
+    // On the character page the page owns this query (and its refresh
+    // cooldown); the tab only reads it.
+    enabled: !!name && !embedded,
     retry: false,
     refetchOnWindowFocus: false,
   });
@@ -670,7 +672,7 @@ function CombatPowerContent({ initialName }: { initialName: string }) {
     staleTime: Infinity,
     retry: false,
   });
-  const data = character.data?.data ?? null;
+  const data = character.data?.data ?? initial ?? null;
   const current = useMemo(() => (data ? currentOf(data) : null), [data]);
   const changes = useMemo(
     () => (current ? toChanges(edits, current as Current) : []),
@@ -691,7 +693,6 @@ function CombatPowerContent({ initialName }: { initialName: string }) {
   // The backend read a newer cache than the screen: reload the character first.
   const outdated = !!result && !!data && result.fetchedAt !== data.fetchedAt;
 
-  const error = characterNameError(input);
   const failure =
     character.error instanceof CharacterQueryError
       ? character.error.info
@@ -704,7 +705,101 @@ function CombatPowerContent({ initialName }: { initialName: string }) {
             : null;
   const limit = useRateLimit(character.error ?? simulation.error);
   const waiting = limit.seconds > 0;
-  const busy = character.isFetching && !data;
+
+  function reload() {
+    setEdits(NO_EDITS);
+    void character.refetch();
+  }
+
+  return (
+    <div aria-live="polite">
+      {failure ? (
+        <div className={quote.notice}>
+          <div role="alert">
+            <strong>{combatPowerFailureCopy(failure).title}</strong>
+            <p>{combatPowerFailureCopy(failure).text}</p>
+          </div>
+          <button
+            type="button"
+            className={quote.outlinePill}
+            aria-disabled={character.isFetching || waiting || undefined}
+            onClick={() => !character.isFetching && !waiting && reload()}
+          >
+            다시 불러오기
+          </button>
+        </div>
+      ) : data && current && options.data ? (
+        <div className={styles.columns}>
+          {/* Desktop: result on the left, sticky at the top. Phones: inputs
+              first and the result pinned to the bottom, so nothing above
+              the inputs grows when an answer arrives. */}
+          <ResultBand
+            base={data.combatPower}
+            data={result}
+            changed={changes.length}
+            stale={simulation.isFetching || changes !== debounced}
+          />
+          <div className={styles.side}>
+            {changes.length > 0 && (
+              <button
+                type="button"
+                className={quote.outlinePill}
+                onClick={() => setEdits(NO_EDITS)}
+              >
+                <RotateLeft size={14} aria-hidden="true" /> 처음 값으로
+              </button>
+            )}
+            {outdated && (
+              <p className={styles.outdated} role="status">
+                캐릭터 정보가 새로 갱신됐어요.{" "}
+                <button type="button" className={styles.link} onClick={reload}>
+                  다시 불러오기
+                </button>
+              </p>
+            )}
+            {result && <ChangeList data={result} values={options.data.data.polishValues} />}
+          </div>
+          <Editors
+            options={options.data.data}
+            current={current}
+            edits={edits}
+            setEdits={setEdits}
+          />
+        </div>
+      ) : name ? (
+        <p className={styles.empty} data-loading="" role="status">
+          {embedded ? "시뮬레이터를 준비하고 있어요" : "캐릭터 정보를 읽고 있어요"}
+        </p>
+      ) : (
+        <p className={styles.empty}>
+          캐릭터를 불러오면 보석·재련·품질을 바꿨을 때 전투력이 얼마나 오르는지 보여 드려요.
+        </p>
+      )}
+    </div>
+  );
+}
+
+function CombatPowerContent({ initialName }: { initialName: string }) {
+  const router = useRouter();
+  const [input, setInput] = useState(initialName);
+  const [touched, setTouched] = useState(false);
+  const [name, setName] = useState(
+    initialName && !characterNameError(initialName) ? normalizeCharacterName(initialName) : "",
+  );
+
+  // The same query the simulator reads (one request): the search button
+  // waits on it and on its rate limit.
+  const character = useQuery({
+    queryKey: ["character", name],
+    queryFn: ({ signal }) => fetchCharacter(name, signal),
+    enabled: !!name,
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+  const error = characterNameError(input);
+  const limit = useRateLimit(character.error);
+  const waiting = limit.seconds > 0;
+  const busy = character.isFetching && !character.data;
 
   function submit(event: FormEvent) {
     event.preventDefault();
@@ -713,13 +808,7 @@ function CombatPowerContent({ initialName }: { initialName: string }) {
     if (error) return;
     const target = normalizeCharacterName(input);
     router.replace(`?${new URLSearchParams({ character: target })}`, { scroll: false });
-    if (target !== name) setEdits(NO_EDITS);
     setName(target);
-  }
-
-  function reload() {
-    setEdits(NO_EDITS);
-    void character.refetch();
   }
 
   return (
@@ -766,70 +855,8 @@ function CombatPowerContent({ initialName }: { initialName: string }) {
               {touched && error && <p className={quote.inputError}>{error}</p>}
             </form>
 
-            <div aria-live="polite">
-              {failure ? (
-                <div className={quote.notice}>
-                  <div role="alert">
-                    <strong>{combatPowerFailureCopy(failure).title}</strong>
-                    <p>{combatPowerFailureCopy(failure).text}</p>
-                  </div>
-                  <button
-                    type="button"
-                    className={quote.outlinePill}
-                    aria-disabled={character.isFetching || waiting || undefined}
-                    onClick={() => !character.isFetching && !waiting && reload()}
-                  >
-                    다시 불러오기
-                  </button>
-                </div>
-              ) : data && current && options.data ? (
-                <div className={styles.columns}>
-                  {/* Desktop: result on the left, sticky at the top. Phones: inputs
-                      first and the result pinned to the bottom, so nothing above
-                      the inputs grows when an answer arrives. */}
-                  <ResultBand
-                    base={data.combatPower}
-                    data={result}
-                    changed={changes.length}
-                    stale={simulation.isFetching || changes !== debounced}
-                  />
-                  <div className={styles.side}>
-                    {changes.length > 0 && (
-                      <button
-                        type="button"
-                        className={quote.outlinePill}
-                        onClick={() => setEdits(NO_EDITS)}
-                      >
-                        <RotateLeft size={14} aria-hidden="true" /> 처음 값으로
-                      </button>
-                    )}
-                    {outdated && (
-                      <p className={styles.outdated} role="status">
-                        캐릭터 정보가 새로 갱신됐어요.{" "}
-                        <button type="button" className={styles.link} onClick={reload}>
-                          다시 불러오기
-                        </button>
-                      </p>
-                    )}
-                    {result && <ChangeList data={result} values={options.data.data.polishValues} />}
-                  </div>
-                  <Editors
-                    options={options.data.data}
-                    current={current}
-                    edits={edits}
-                    setEdits={setEdits}
-                  />
-                </div>
-              ) : name ? (
-                <p className={styles.empty} data-loading="" role="status">
-                  캐릭터 정보를 읽고 있어요
-                </p>
-              ) : (
-                <p className={styles.empty}>
-                  캐릭터를 불러오면 보석·재련·품질을 바꿨을 때 전투력이 얼마나 오르는지 보여 드려요.
-                </p>
-              )}
-            </div>
+            {/* A new character starts from its own values (keyed). */}
+            <CombatPowerSimulator key={name} name={name} />
           </div>
         </div>
       </main>

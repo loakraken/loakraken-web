@@ -68,6 +68,7 @@ import { ReceiptEnabled, ReceiptPanel } from "./receipt-panel";
 import { PillTab, PillTabs, PillTabsPanel } from "@/components/ui/pill-tabs";
 import { useStagger } from "./entrance";
 import { RankPanel } from "./rank-panel";
+import { SimulatorTab } from "./simulator-tab";
 import { byObservedOrder, groupByDay } from "@/lib/character/titles";
 import { CardCollection } from "./card-collection-panel";
 import { CardArt, GameIcon } from "./imagery";
@@ -90,6 +91,7 @@ import { useCrossfade } from "@/lib/motion";
 
 export const TABS = [
   { id: "combat", label: "전투" },
+  { id: "simulator", label: "시뮬레이터" },
   { id: "skills", label: "스킬" },
   { id: "arkpassive", label: "아크 패시브" },
   { id: "collectibles", label: "내실" },
@@ -102,11 +104,14 @@ export type TabId = (typeof TABS)[number]["id"];
 
 /** SETTING_CHECK_TAB (server flag): off hides the tab and its ?tab= link. */
 export const SettingCheckEnabled = createContext(true);
-const visibleTabs = (settingCheck: boolean) => TABS.filter((tab) => tab.id !== "evidence" || settingCheck);
+/** COMBAT_POWER_SIM (server flag): off hides the 시뮬레이터 tab the same way. */
+export const SimulatorEnabled = createContext(true);
+const visibleTabs = (settingCheck: boolean, simulator = true) =>
+  TABS.filter((tab) => (tab.id !== "evidence" || settingCheck) && (tab.id !== "simulator" || simulator));
 
-/** The tab in ?tab=, or 전투 for an unknown one or a hidden 세팅 점검. */
-export const tabOf = (value: string | null, settingCheck = true): TabId =>
-  visibleTabs(settingCheck).some((tab) => tab.id === value) ? (value as TabId) : "combat";
+/** The tab in ?tab=, or 전투 for an unknown one or a hidden one. */
+export const tabOf = (value: string | null, settingCheck = true, simulator = true): TabId =>
+  visibleTabs(settingCheck, simulator).some((tab) => tab.id === value) ? (value as TabId) : "combat";
 
 /** "베타" next to a tab still growing its rules (shown wherever the tab is). */
 function TabLabel({ id, label }: { id: TabId; label: string }) {
@@ -184,7 +189,7 @@ export function TabBar({
   const [favorite, toggleFavorite] = useFavorite(name);
   const [shareStatus, setShareStatus] = useState("");
   const { nav: pillNav, layer: pillLayer, onKeyDown: pillKey, onPointerDown: pillPointer } = useTabPill(tab);
-  const tabs = visibleTabs(useContext(SettingCheckEnabled));
+  const tabs = visibleTabs(useContext(SettingCheckEnabled), useContext(SimulatorEnabled));
   const window_ = refreshWindow(data, now);
   const cooling = window_.remainingMs > 0;
   const disabled = fetching || cooling || rateLimitSeconds > 0;
@@ -1912,7 +1917,9 @@ function TabPanelView({
 }) {
   return (
     <Reveal key={tab} className={styles.tabPanel}>
-      {tab === "skills" ? (
+      {tab === "simulator" ? (
+        <SimulatorTab data={data} />
+      ) : tab === "skills" ? (
         <SkillsTab data={data} />
       ) : tab === "arkpassive" ? (
         <ArkPassiveTab data={data} />

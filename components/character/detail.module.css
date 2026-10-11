@@ -1472,6 +1472,21 @@
   font-style: normal;
   font-variant-numeric: tabular-nums;
 }
+
+/* 시뮬레이터 tab (simulator-tab.tsx) */
+.simulatorLead {
+  margin: 0 0 16px;
+  color: var(--muted-foreground);
+  font-size: 14px;
+}
+.simulatorLoading {
+  /* Holds the simulator's space while its chunk arrives, as the tool page
+     does, so the footer does not jump when it lands. */
+  min-height: 80vh;
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 14px;
+}
 /* Ark passive: one tree's active nodes by tier, then all trees' active
    effects in three columns (one column under 900px). */
 .passiveTier + .passiveTier {
