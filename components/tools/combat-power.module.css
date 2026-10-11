@@ -76,6 +76,36 @@
   color: var(--muted-foreground);
   font-size: var(--text-caption);
 }
+.bandSub {
+  margin-top: 8px;
+  color: var(--muted-foreground);
+  font-size: var(--text-caption);
+  font-variant-numeric: tabular-nums;
+}
+.bandSub b {
+  color: var(--foreground);
+  font-weight: 600;
+}
+/* 이전·다음·초기화·저장 (PM-프론트 16:37 ②) */
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.toolbar [aria-disabled] {
+  opacity: 0.45;
+  cursor: default;
+}
+.redoIcon {
+  transform: scaleX(-1);
+}
+.toolbarNote {
+  /* One line held, so a notice arriving does not push the list down. */
+  min-height: 1lh;
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: var(--text-caption);
+}
 .gain {
   color: var(--gain);
 }
