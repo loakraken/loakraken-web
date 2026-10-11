@@ -88,6 +88,9 @@ import {
 } from "@/lib/character/item-tooltips";
 import { ReceiptEnabled, ReceiptPanel } from "./receipt-panel";
 import { PillTab, PillTabs, PillTabsPanel } from "@/components/ui/pill-tabs";
+import { SegmentedControl, SegmentedItem } from "@/components/ui/segmented-control";
+import { Switch } from "@/components/ui/switch";
+import { ROSTER_SORTS, ROSTER_TOTAL_MIN, maskName, rosterSummary, sortSiblings, type RosterSort } from "@/lib/character/roster-list";
 import { useStagger } from "./entrance";
 import { RankPanel } from "./rank-panel";
 import { SimulatorTab } from "./simulator-tab";
@@ -1600,6 +1603,12 @@ export function ArkPassiveTab({ data }: { data: Character }) {
 
 type Sibling = NonNullable<Character["siblings"]>[number];
 
+/**
+ * The roster's characters by server (checklist L17·L18): sort (item level,
+ * character level, name), a compact view, hiding names for screenshots, and
+ * the six-man average with the 1,680+ count. Server panels keep the item
+ * level order so switching the sort only reorders inside each server.
+ */
 function SiblingList({
   siblings,
   current,
@@ -1607,12 +1616,47 @@ function SiblingList({
   siblings: Sibling[];
   current: string;
 }) {
-  const sorted = [...siblings].sort(
-    (a, b) => (b.itemLevel ?? 0) - (a.itemLevel ?? 0),
-  );
-  const servers = [...new Set(sorted.map((sibling) => sibling.serverName))];
+  const [sort, setSort] = useState<RosterSort>("itemLevel");
+  const [compact, setCompact] = useState(false);
+  const [masked, setMasked] = useState(false);
+  const ids = { compact: useId(), masked: useId() };
+  const sorted = sortSiblings(siblings, sort);
+  const servers = [...new Set(sortSiblings(siblings, "itemLevel").map((sibling) => sibling.serverName))];
+  const summary = rosterSummary(siblings);
+  const shown = (name: string) => (masked ? maskName(name) : name);
   return (
     <>
+      <div className={styles.rosterTools}>
+        <SegmentedControl aria-label="원정대 정렬" value={sort} onValueChange={(value) => setSort(value as RosterSort)}>
+          {ROSTER_SORTS.map((item) => (
+            <SegmentedItem key={item.id} value={item.id}>
+              {item.label}
+            </SegmentedItem>
+          ))}
+        </SegmentedControl>
+        <span className={styles.rosterSwitch}>
+          <Switch id={ids.compact} checked={compact} onCheckedChange={setCompact} />
+          <label htmlFor={ids.compact}>축약</label>
+        </span>
+        <span className={styles.rosterSwitch}>
+          <Switch id={ids.masked} checked={masked} onCheckedChange={setMasked} />
+          <label htmlFor={ids.masked}>닉네임 가리기</label>
+        </span>
+      </div>
+      {summary.sixAverage != null && (
+        <p className={styles.rosterSummary}>
+          식스맨 평균 <b>{number(summary.sixAverage)}</b>
+          <small> (아이템 레벨 상위 {summary.sixCount}명)</small>
+          {" · "}
+          {number(ROSTER_TOTAL_MIN)} 이상 <b>{summary.highCount}명</b>
+          {summary.highCount > 0 && (
+            <small>
+              {" "}
+              (합 {number(summary.highSum)})
+            </small>
+          )}
+        </p>
+      )}
       {servers.map((server) => (
         <Panel
           key={server}
@@ -1620,7 +1664,7 @@ function SiblingList({
           meta={`${sorted.filter((s) => s.serverName === server).length}명`}
           wide
         >
-          <ul className={styles.siblingGrid}>
+          <ul className={styles.siblingGrid} data-compact={compact || undefined}>
             {sorted
               .filter((sibling) => sibling.serverName === server)
               .map((sibling, i) => {
@@ -1629,7 +1673,7 @@ function SiblingList({
                   !isCurrent && !characterNameError(sibling.characterName);
                 const body = (
                   <>
-                    <strong>{sibling.characterName}</strong>
+                    <strong>{shown(sibling.characterName)}</strong>
                     <small>
                       {sibling.className} · Lv.{number(sibling.characterLevel)}
                     </small>
