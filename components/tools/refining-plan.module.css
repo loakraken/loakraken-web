@@ -35,7 +35,7 @@
 }
 @media (hover: hover) and (pointer: fine) {
   .chips button:hover {
-    background: var(--control);
+    background: var(--hover-surface);
   }
 }
 .parts {

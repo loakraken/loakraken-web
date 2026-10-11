@@ -123,6 +123,20 @@ export function statsSearch(query: StatsQuery) {
   return out;
 }
 
+/**
+ * Cache key for a set of conditions: the same conditions are one entry
+ * however they were reached. Leaving 30 days (the backend default) out makes
+ * the first screen (no activeDays) and "30일" picked again the same entry, so
+ * going back shows the cached numbers at once (PM-프론트 #540 P2).
+ */
+export function conditionsKey(params: URLSearchParams) {
+  const out = new URLSearchParams(params);
+  if (out.get("activeDays") === "30") out.delete("activeDays");
+  out.sort();
+  return out.toString();
+}
+export const statsKey = (query: StatsQuery) => conditionsKey(statsSearch(query));
+
 const count = (n: number) => n.toLocaleString("ko-KR");
 export const fixed = (n: number | null | undefined, digits = 2) =>
   n == null ? "-" : n.toLocaleString("ko-KR", { minimumFractionDigits: digits, maximumFractionDigits: digits });

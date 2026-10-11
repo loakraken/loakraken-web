@@ -261,7 +261,7 @@ function ThemeToggle({ className, ...props }: ThemeToggleProps) {
                 // different mark: a tint and a thin dashed outline outside.
                 className={cn(
                   "flex h-11 items-center gap-3 rounded-xl px-2.5 text-left text-[15px]",
-                  "transition-colors duration-(--duration-fast) pointer-fine:hover:bg-muted",
+                  "transition-colors duration-(--duration-fast) pointer-fine:hover:bg-hover-surface",
                   // important on the weight too: screen modules reset `button { font: inherit }`
                   // unlayered, which beats a plain utility (#517 review: weight stayed 400).
                   "aria-checked:font-semibold! aria-checked:shadow-[inset_0_0_0_1.5px_var(--ring)]",

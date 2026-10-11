@@ -35,9 +35,9 @@ test("the homework week starts on Wednesday 06:00 KST", () => {
 
 test("auto raids pick the three best known modes for the level", () => {
   const at1730 = autoRaids(1730).map((r) => `${r.raidId}/${r.difficulty}`);
-  // 종막 하드 48,000 > 지평의 성당 2단계 40,000 > 4막 하드 38,000; 세르카 하드
-  // (44,000) is unsettled and never auto-picked.
-  assert.deepEqual(at1730, ["kazeros-final/HARD", "horizon-cathedral/STAGE_2", "kazeros-act4/HARD"]);
+  // 종막 하드 48,000 > 세르카 하드 44,000 (빈 정보 전수표 E4, 10-12) > 지평의 성당
+  // 2단계 40,000.
+  assert.deepEqual(at1730, ["kazeros-final/HARD", "serka/HARD", "horizon-cathedral/STAGE_2"]);
   // Unsettled gold is never auto-picked, singles and extremes neither.
   assert.ok(
     autoRaids(1780).every(
@@ -72,7 +72,7 @@ test("gold counts cleared gates, subtracts bought bonus rewards", () => {
   finalHard.more = [true, false];
   const gold = characterGold(character);
   assert.equal(gold.earned, 16000 - 5120);
-  assert.equal(gold.possible, 48000 - 5120 + 40000 + 38000);
+  assert.equal(gold.possible, 48000 - 5120 + 44000 + 40000);
   assert.equal(gold.possibleBound, 40000, "지평의 성당 is all bound");
   assert.equal(gold.moreSpent, 5120);
   // A non-gold character earns nothing but still pays for its bonus rewards.
@@ -109,7 +109,8 @@ test("unknown gold is counted separately, never as zero gold earned", () => {
   const [character] = addCharacters(emptyState(0), [
     { name: "벨가", server: "루페온", className: "바드", itemLevel: 1780 },
   ]).characters;
-  character.raids = [{ raidId: "belgardin", difficulty: "NIGHTMARE", cleared: [true, true], more: [false, false] }];
+  // 발탄 노말 has no official value yet: its gates count as unknown, not 0G.
+  character.raids = [{ raidId: "valtan", difficulty: "NORMAL", cleared: [true, true], more: [false, false] }];
   const gold = characterGold(character);
   assert.equal(gold.earned, 0);
   assert.equal(gold.unknownGates, 2);
@@ -165,13 +166,10 @@ test("언새늘 roster matches the target site weekly total (web #270)", () => {
   assert.equal(rosterSummary(state).possible, 401100);
   // Every pick is settled; nothing unsettled could replace one.
   assert.deepEqual(unsettledModes(state.characters), []);
-  // 1,612: 카멘·상아탑 노말 could replace a pick; 일리아칸 하드 is the same raid
-  // as the picked 일리아칸 노말, so it is not listed.
+  // 1,612: 카멘·상아탑 노말 are settled since 10-12 (공식 13148), so nothing
+  // unsettled could replace a pick there either.
   const [low] = addCharacters(emptyState(0), [{ name: "카멘", server: "", className: "", itemLevel: 1612 }]).characters;
-  assert.deepEqual(
-    unsettledModes([low]).map(({ raid, mode }) => `${raid.id}/${mode.difficulty}`),
-    ["kamen/NORMAL", "ivory-tower/NORMAL"],
-  );
+  assert.deepEqual(unsettledModes([low]), []);
 });
 
 test("equal gold picks the newer raid like the target site (#277 P2)", () => {

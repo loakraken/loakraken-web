@@ -33,8 +33,11 @@ export function SimulatorTab({ data }: { data: Character }) {
       }
     >
       <div className={styles.simulatorPanel}>
-        <p className={styles.simulatorLead}>값을 바꾸면 전투력이 얼마나 바뀌는지 항목별로 바로 계산해요.</p>
-        <Simulator name={data.characterName} initial={data} />
+        <Simulator
+          name={data.characterName}
+          initial={data}
+          head={<p className={styles.simulatorLead}>값을 바꾸면 전투력이 얼마나 바뀌는지 항목별로 바로 계산해요.</p>}
+        />
       </div>
     </Panel>
   );

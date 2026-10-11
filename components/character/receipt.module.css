@@ -206,6 +206,6 @@
 }
 @media (hover: hover) and (pointer: fine) {
   .row summary:hover {
-    background: var(--muted);
+    background: var(--hover-surface);
   }
 }

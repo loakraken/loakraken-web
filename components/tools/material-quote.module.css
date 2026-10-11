@@ -346,7 +346,7 @@
     background: var(--primary-hover);
   }
   .outlinePill:not(:disabled):hover {
-    background: var(--mist);
+    background: var(--hover-surface);
   }
 }
 
@@ -431,7 +431,7 @@
 }
 @media (hover: hover) and (pointer: fine) {
   .iconButton:hover {
-    background: var(--mist);
+    background: var(--hover-surface);
   }
 }
 

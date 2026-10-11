@@ -14,7 +14,7 @@
   cursor: pointer;
 }
 .remove:hover {
-  background: var(--secondary);
+  background: var(--hover-surface);
 }
 .page :focus-visible {
   outline: 3px solid var(--ring);
