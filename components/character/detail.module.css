@@ -1283,3 +1283,11 @@
   align-items: baseline;
   gap: 6px;
 }
+/* The roster tab's view picker (same pill tabs as the stats screen). */
+.rosterViews {
+  margin-bottom: 12px;
+}
+.rosterPanel {
+  display: grid;
+  gap: 20px;
+}

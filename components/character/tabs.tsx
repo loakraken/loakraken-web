@@ -1,6 +1,7 @@
 "use client";
 
-import { memo, useId, useState, useSyncExternalStore, type ReactNode } from "react";
+import { memo, useContext, useId, useState, useSyncExternalStore, type ReactNode } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { ArrowRight, Bookmark, BookmarkBold, InfoCircle, RefreshArrow, Share } from "@/components/ui/icons";
@@ -62,7 +63,8 @@ import {
 import { sourcePlainText } from "@/lib/character/source-text";
 import { useItemTooltips } from "./use-item-tooltips";
 import { equipmentExtra, gemLines, gridGemLines, gridLines, runeLines } from "@/lib/character/item-tooltips";
-import { ReceiptPanel } from "./receipt-panel";
+import { ReceiptEnabled, ReceiptPanel } from "./receipt-panel";
+import { PillTab, PillTabs, PillTabsPanel } from "@/components/ui/pill-tabs";
 import { useStagger } from "./entrance";
 import { RankPanel } from "./rank-panel";
 import { byObservedOrder, groupByDay } from "@/lib/character/titles";
@@ -1366,7 +1368,67 @@ function RosterTitlesPanel({ name }: { name: string }) {
   );
 }
 
+const ROSTER_VIEWS = [
+  { id: "characters", label: "캐릭터" },
+  { id: "titles", label: "칭호" },
+  { id: "cards", label: "카드 기록" },
+  { id: "receipt", label: "영수증" },
+] as const;
+type RosterView = (typeof ROSTER_VIEWS)[number]["id"];
+
+/**
+ * The roster tab picks one view at a time with the same pill tabs as the
+ * stats screen (user 10-11: "원정대" means the character list first, so the
+ * titles, card record and receipt are one choice away). The choice lives in
+ * ?view= so it can be shared and survives going back; characters is the
+ * default (no parameter), and the receipt follows its release flag.
+ */
 export function SiblingsTab({ data }: { data: Character }) {
+  const receipt = useContext(ReceiptEnabled);
+  const views = ROSTER_VIEWS.filter((item) => item.id !== "receipt" || receipt);
+  const asked = useSearchParams().get("view");
+  const view: RosterView = views.find((item) => item.id === asked)?.id ?? "characters";
+  const router = useRouter();
+  const choose = (next: RosterView) => {
+    const params = new URLSearchParams(window.location.search);
+    if (next === "characters") params.delete("view");
+    else params.set("view", next);
+    router.replace(`?${params}`, { scroll: false });
+  };
+  return (
+    <div className={styles.layout}>
+      <PillTabs
+        aria-label="원정대 보기"
+        listClassName={styles.rosterViews}
+        value={view}
+        onValueChange={(next) => choose(next as RosterView)}
+        panels={
+          <PillTabsPanel value={view} className={styles.rosterPanel}>
+            {view === "characters" ? (
+              <RosterCharacters data={data} />
+            ) : view === "titles" ? (
+              <RosterTitlesPanel name={data.characterName} />
+            ) : view === "cards" ? (
+              <Panel title="카드 기록" wide>
+                <CardCollection name={data.characterName} />
+              </Panel>
+            ) : (
+              <ReceiptPanel name={data.characterName} />
+            )}
+          </PillTabsPanel>
+        }
+      >
+        {views.map((item) => (
+          <PillTab key={item.id} value={item.id}>
+            {item.label}
+          </PillTab>
+        ))}
+      </PillTabs>
+    </div>
+  );
+}
+
+function RosterCharacters({ data }: { data: Character }) {
   const embedded = data.siblings;
   const query = useQuery({
     queryKey: ["siblings", data.characterName],
@@ -1378,23 +1440,16 @@ export function SiblingsTab({ data }: { data: Character }) {
     refetchOnReconnect: false,
   });
   if (embedded != null)
-    return (
-      <div className={styles.layout}>
-        {embedded.length ? (
-          <SiblingList siblings={embedded} current={data.characterName} />
-        ) : (
-          <Panel title="원정대" wide>
-            <Empty state={data.coverage.siblings} />
-          </Panel>
-        )}
-        <RosterTitlesPanel name={data.characterName} />
-        {/* Last: it arrives after a slow roster calculation and must not push the titles. */}
-        <ReceiptPanel name={data.characterName} />
-      </div>
+    return embedded.length ? (
+      <SiblingList siblings={embedded} current={data.characterName} />
+    ) : (
+      <Panel title="원정대" wide>
+        <Empty state={data.coverage.siblings} />
+      </Panel>
     );
   const result = query.data?.data;
   return (
-    <div className={styles.layout}>
+    <>
       {query.isPending ? (
         <Panel title="원정대" wide>
           <p className={styles.muted} role="status">
@@ -1426,9 +1481,7 @@ export function SiblingsTab({ data }: { data: Character }) {
           <p className={styles.muted}>원정대 캐릭터가 없어요.</p>
         </Panel>
       )}
-      <RosterTitlesPanel name={data.characterName} />
-      <ReceiptPanel name={data.characterName} />
-    </div>
+    </>
   );
 }
 

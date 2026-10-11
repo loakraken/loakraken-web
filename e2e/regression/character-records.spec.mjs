@@ -43,7 +43,7 @@ test.describe("캐릭터 순위 패널 @regression", () => {
 
 test.describe("원정대 칭호 @regression", () => {
   test("기록된 칭호를 처음 확인한 순서로 보여 준다", async ({ page }) => {
-    await gotoReady(page, characterPath("상세", "siblings"));
+    await gotoReady(page, `${characterPath("상세", "siblings")}&view=titles`);
     const panel = page.getByRole("region", { name: "원정대 칭호" });
     await expect(panel).toContainText(/\d+개 · 원정대 \d+명 중 \d+명 기록/);
     await expect(panel).toContainText("장착한 칭호만 기록되며 실제 획득일과 다를 수 있어요");
@@ -51,7 +51,7 @@ test.describe("원정대 칭호 @regression", () => {
   });
 
   test("기록이 없으면 안내한다", async ({ page }) => {
-    await gotoReady(page, characterPath("칭호없음", "siblings"));
+    await gotoReady(page, `${characterPath("칭호없음", "siblings")}&view=titles`);
     await expect(page.getByRole("region", { name: "원정대 칭호" })).toContainText("아직 확인한 칭호가 없어요.");
   });
 });
