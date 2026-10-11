@@ -1964,6 +1964,7 @@ export function EvidenceTab({
           점검 규칙을 늘려 가는 중인 베타 기능이에요. 정보 부족은 세팅 오류를
           뜻하지 않고, 확인 항목도 의도한 세팅일 수 있어요.
         </p>
+        <p className={styles.muted}>세팅 해설 기능은 준비 중이에요.</p>
         {findings.length === 0 ? (
           <p className={styles.muted}>
             현재 규칙에서 발견된 확인 항목이 없어요. 모든 세팅이 완성됐다는 뜻은
