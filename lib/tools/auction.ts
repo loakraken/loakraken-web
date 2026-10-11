@@ -8,6 +8,12 @@
 // - A counter-bid must be 10% higher, so bidding break-even ÷ 1.1 leaves no
 //   room for a profitable counter-bid. ILOA and LOALAB share this basis; the
 //   official rule text was not checked, so the UI marks it "추정".
+// - A winning bid over 100,000G loses 5% of the part above 100,000 before it
+//   is shared (계산 검증 10-11 16:42, PM 총괄 반영 결정; the target sites
+//   leave it out, so above 100,000 our bids differ from theirs on purpose).
+//   Shared total D(y) = y − 0.05 × max(0, y − 100,000), each gets D ÷ (n − 1),
+//   and the break-even above 100,000 solves S − y = D(y) ÷ (n − 1):
+//   y = ((n − 1) × S − 5,000) ÷ (n − 0.05).
 // Bids and shares round down to whole gold. Everything stays in integer
 // arithmetic so large prices never drift.
 
@@ -15,6 +21,9 @@ export const MARKET_FEE_PERCENT = 5;
 export const MIN_PARTY = 2;
 export const MAX_PARTY = 30;
 export const MAX_PRICE = 1_000_000_000;
+/** Above this winning bid, 5% of the excess is taken before sharing. */
+export const SHARE_FEE_FROM = 100_000;
+export const SHARE_FEE_PERCENT = 5;
 
 export const PARTY_PRESETS = [
   { size: 4, label: "4인" },
@@ -80,19 +89,37 @@ export function marketFee(price: number) {
   return Math.ceil((price * MARKET_FEE_PERCENT) / 100);
 }
 
+/** Gold each other member receives when `bid` wins (after the 100,000G fee). */
+export function shareOf(bid: number, party: number) {
+  // ×20 keeps 5% in whole numbers: 20·D = 20·bid − max(0, bid − 100,000).
+  const shared20 = 20 * bid - Math.max(0, bid - SHARE_FEE_FROM);
+  return Math.floor(shared20 / (20 * (party - 1)));
+}
+
+/** The bid where the winner keeps exactly what each other member gets. */
+function evenBid(gold: number, party: number) {
+  const others = party - 1;
+  const plain = scale(gold, others, party);
+  if (plain <= SHARE_FEE_FROM) return plain;
+  // y = ((n − 1)·S − 5,000) ÷ (n − 0.05), ×20 top and bottom.
+  return Math.max(
+    SHARE_FEE_FROM,
+    Math.floor((20 * others * gold - SHARE_FEE_FROM) / (20 * party - 1)),
+  );
+}
+
 export function calculateAuction(price: number, party: number): AuctionResult {
   const fee = marketFee(price);
   const saleGold = price - fee;
-  const others = party - 1;
-  const breakEven = scale(saleGold, others, party);
-  const useMyself = scale(price, others, party);
+  const breakEven = evenBid(saleGold, party);
+  const useMyself = evenBid(price, party);
   const strategies = STRATEGY_ORDER.map((id): Strategy => {
     const bid =
       id === "useMyself" ? useMyself : scale(breakEven, ...RATIOS[id]);
     return {
       id,
       bid,
-      share: Math.floor(bid / others),
+      share: shareOf(bid, party),
       saleProfit: breakEven - bid,
     };
   });
@@ -102,7 +129,7 @@ export function calculateAuction(price: number, party: number): AuctionResult {
     fee,
     saleGold,
     breakEven,
-    breakEvenShare: Math.floor(breakEven / others),
+    breakEvenShare: shareOf(breakEven, party),
     useMyself,
     strategies,
   };

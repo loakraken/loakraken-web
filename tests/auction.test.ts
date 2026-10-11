@@ -11,6 +11,7 @@ import {
   partyError,
   priceError,
   readAuctionParams,
+  shareOf,
 } from "../lib/tools/auction";
 
 const bids = (price: number, party: number) =>
@@ -86,7 +87,8 @@ test("tiny and huge prices stay whole and finite", () => {
   assert.equal(one.useMyself, 0);
   const big = calculateAuction(MAX_PRICE, 8);
   assert.equal(big.fee, 50_000_000);
-  assert.equal(big.breakEven, 831_250_000);
+  // Above 100,000G the share fee applies: ((7 × 950,000,000) − 5,000) ÷ 7.95.
+  assert.equal(big.breakEven, 836_477_358);
   for (const s of big.strategies) assert.ok(Number.isSafeInteger(s.bid));
   assert.equal(marketFee(20), 1);
   assert.equal(marketFee(21), 2);
@@ -135,4 +137,36 @@ test("signed gold uses a real minus sign", () => {
   assert.equal(formatSigned(1_234), "+1,234G");
   assert.equal(formatSigned(-3_750), "−3,750G");
   assert.equal(formatSigned(0), "0G");
+});
+
+test("over 100,000G the winning bid loses 5% of the excess before sharing (게임 내 분배금 기준)", () => {
+  // 계산 검증 10-11 16:42 표본(내림). 10만 이하 구간은 예전 값 그대로.
+  const cases: [number, number, number, number, number][] = [
+    // price, party, break-even, its 1인 share, use-myself
+    [140_000, 4, 99_750, 33_250, 105_063],
+    [150_000, 4, 106_962, 35_537, 112_658],
+    [280_000, 4, 200_759, 65_240, 211_392],
+    [280_000, 8, 233_584, 32_414, 245_911],
+    [500_000, 16, 446_394, 28_604, 469_905],
+    [1_000_000, 30, 919_699, 30_300, 968_113],
+  ];
+  for (const [price, party, breakEven, share, useMyself] of cases) {
+    const result = calculateAuction(price, party);
+    assert.equal(result.breakEven, breakEven, `${price}·${party} break-even`);
+    assert.equal(result.breakEvenShare, share, `${price}·${party} share`);
+    assert.equal(result.useMyself, useMyself, `${price}·${party} use-myself`);
+  }
+  // A 4-player bid of 199,500 shares 64,841 each, not 66,500.
+  assert.equal(shareOf(199_500, 4), 64_841);
+  assert.equal(shareOf(100_000, 4), 33_333, "no fee at exactly 100,000");
+});
+
+test("break-even still leaves the winner a fair share above 100,000G", () => {
+  for (const price of [150_000, 280_000, 1_000_000, MAX_PRICE]) {
+    for (const party of [2, 4, 8, 16, 30]) {
+      const { saleGold, breakEven, breakEvenShare } = calculateAuction(price, party);
+      // Both sides round down (the bid and the share), so up to 2G apart.
+      assert.ok(Math.abs(saleGold - breakEven - breakEvenShare) <= 2, `${price}/${party}`);
+    }
+  }
 });
