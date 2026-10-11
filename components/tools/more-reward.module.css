@@ -374,6 +374,10 @@
 .condition .when {
   white-space: nowrap;
 }
+.agoLine {
+  display: block;
+  min-height: 1lh;
+}
 @media (max-width: 900px) {
   .condition {
     display: block;

@@ -439,8 +439,11 @@ export function MoreRewardTool() {
                 재료 값 매기기
               </h2>
               <p className={styles.small}>
-                거래소 {priceBases.find((b) => b.value === basis)?.label} 기준으로 자동으로 매기고 1분마다 새로 불러와요
-                {observedAt && now != null && ` · ${agoText(now, observedAt)}`}.
+                거래소 {priceBases.find((b) => b.value === basis)?.label} 기준으로 자동으로 매기고 1분마다 새로 불러와요.
+                {/* Its own line, held from the first paint: the time arrives after
+                    it (client clock) and inside the sentence it moved the full
+                    stop (PM-프론트 #556, 1280 CLS 0.0001). */}
+                <span className={styles.agoLine}>{observedAt && now != null ? agoText(now, observedAt) : ""}</span>
               </p>
               <details className={styles.advanced}>
                 <summary>고급 설정</summary>
