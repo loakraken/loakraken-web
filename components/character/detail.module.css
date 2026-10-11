@@ -395,6 +395,51 @@
   color: var(--muted-foreground);
   font-size: 12px;
 }
+/* 팔찌 효율 (backend #350): the total under the name, each line's share at
+   the end of its own effect line on demand. */
+.braceletBody {
+  min-width: 0;
+  flex: 1;
+}
+.braceletEffHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  margin: 2px 0 6px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.braceletEffTerm {
+  color: var(--muted-foreground);
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+  cursor: help;
+}
+.braceletEffHead b,
+.braceletEffShare {
+  color: var(--link);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.braceletEffShare,
+.braceletEffNote {
+  margin-left: auto;
+  padding-left: 12px;
+}
+.braceletEffNote {
+  color: var(--muted-foreground);
+  font-size: 12px;
+  text-align: right;
+}
+.braceletEffReason {
+  color: var(--muted-foreground);
+}
+.gradeList[data-shares] .gradeLine {
+  display: flex;
+  align-items: baseline;
+}
 .inlineList {
   list-style: none;
   padding: 0;

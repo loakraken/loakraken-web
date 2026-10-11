@@ -107,6 +107,7 @@ test("only invested skills count for part break and counter (backend guidance)",
     rune: null,
     gemEffects: [],
     attackType: null,
+    cooldown: null,
     ...over,
   });
   const skills = [
