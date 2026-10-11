@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { Popover } from "@base-ui/react/popover";
 import { InfoCircle } from "@/components/ui/icons";
+import { pendingProps } from "@/lib/api/pending";
 import { conditionsText, whole, type StatsMeta } from "@/lib/stats/model";
 import styles from "./basis-note.module.css";
 
@@ -45,21 +45,15 @@ function NoteBody({ basis }: { basis: Basis }) {
           {basis.minSample}명 미만인 항목은 참고값으로 보여요.
         </li>
         <li>검색되는 캐릭터가 늘수록 집계 대상도 늘어나요.</li>
-        <li>
-          순위에서 빠지거나 기록을 지우려면{" "}
-          <Link href="/contact#removal" className={styles.link}>
-            순위 제외 요청
-          </Link>
-        </li>
       </ul>
     </>
   );
 }
 
 /** Under a stats or rankings table: small gray text, always open. */
-export function BasisNote({ basis }: { basis: Basis }) {
+export function BasisNote({ basis, stale = false }: { basis: Basis; stale?: boolean }) {
   return (
-    <section className={styles.note} aria-label="집계 기준 안내">
+    <section className={styles.note} aria-label="집계 기준 안내" {...pendingProps({ isPlaceholderData: stale })}>
       <NoteBody basis={basis} />
     </section>
   );

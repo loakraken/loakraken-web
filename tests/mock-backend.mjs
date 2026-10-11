@@ -12,6 +12,18 @@ const counts = {};
 
 // Synthetic accessory, bracelet and stone for the simulator screen (web #365
 // follow-up): polish/bracelet lines with tooltip grades and stone engravings.
+/** The spec-up sample's own gains, so "적용해 보기" shows the same number as its row. */
+const specUpDelta = (change) =>
+  change.kind === "GEM_LEVEL" && change.slot === 1
+    ? { 9: 24, 10: 48.07 }[change.level] ?? null
+    : change.kind === "EQUIPMENT_QUALITY" && change.index === 0 && change.quality === 100
+      ? 90.33
+      : null;
+
+/** The synthetic glove: an armour quality change the backend scores as ±0. */
+const armourQuality = (search, change) =>
+  change.kind === "EQUIPMENT_QUALITY" && search.loadout.equipment[change.index]?.type === "장갑";
+
 function withSimulatorGear(data) {
   const base = data.loadout.equipment.find((item) => item.detail);
   // Advanced refining on the armour piece (search advancedRefineLevel, backend #234).
@@ -53,6 +65,8 @@ function withSimulatorGear(data) {
         { text: "치명타 피해 +6.80%", grade: "MID" },
       ],
     }),
+    // 방어구 품질은 생명 활성력만 올려 딜러 전투력이 그대로(계산 검증 10-12): ±0과 이유.
+    make("장갑", "테스트 장갑", { refineLevel: 18, quality: 95 }),
     make("어빌리티 스톤", "테스트 스톤", {
       stoneEngravings: [
         { name: "원한", level: 1 },
@@ -448,9 +462,13 @@ createServer(async (req, res) => {
       target: powerTarget(search, change)[0],
       from: powerTarget(search, change)[1],
       to: powerTo(change),
-      delta: computed ? r2(10 + i) : null,
+      delta: computed ? (armourQuality(search, change) ? 0 : (specUpDelta(change) ?? r2(10 + i))) : null,
       status: computed ? "OK" : "UNSUPPORTED",
-      basis: computed ? "합성 값(목 서버)" : d.contributions[0].basis,
+      basis: computed
+        ? armourQuality(search, change)
+          ? "방어구 품질은 체력에만 붙어 전투력이 바뀌지 않습니다."
+          : "합성 값(목 서버)"
+        : d.contributions[0].basis,
     }));
     const delta = computed ? r2(d.contributions.reduce((sum, item) => sum + item.delta, 0)) : 0;
     d.after = d.before == null ? null : r2(d.before + delta);
@@ -656,8 +674,9 @@ createServer(async (req, res) => {
       },
     });
   }
-  // Ranking (F-7, backend #100/#112). 비공개 → HIDDEN, 조건밖 → not included,
-  // 집계중 → class scope still collecting, 미관측 → 404, otherwise ranked.
+  // Ranking (F-7, backend #100/#112). 조건밖 → not included, 집계중 → class
+  // scope still collecting, 미관측 and 비공개 (the processing-stop list, backend
+  // #366) → the same 404, otherwise ranked.
   // Collectible standing and ownership (backend #304/#306): a ranked roster
   // for 상세, the no-rank reasons for 미관측·제외, and per-item shares.
   if (url.pathname === "/api/v1/rankings/collectibles/standing" || url.pathname === "/api/v1/collectibles/ownership") {
@@ -704,8 +723,7 @@ createServer(async (req, res) => {
   }
   if (url.pathname === "/api/v1/characters/rank") {
     const who = url.searchParams.get("characterName") ?? "";
-    if (who === "미관측") return send({ code: "STATS_CHARACTER_NOT_OBSERVED", message: "private" }, 404);
-    const hidden = who === "비공개";
+    if (who === "미관측" || who === "비공개") return send({ code: "STATS_CHARACTER_NOT_OBSERVED", message: "private" }, 404);
     const excluded = who === "조건밖";
     const entry = (metric, scope, scopeValue, rank, total, sampleStatus = "READY") => {
       const top = sampleStatus === "READY" ? Math.round((rank / total) * 10000) / 100 : null;
@@ -713,7 +731,7 @@ createServer(async (req, res) => {
       return { metric, scope, scopeValue, rank, total, topPercent: top, tier, sampleStatus };
     };
     const collecting = who === "집계중" ? "COLLECTING" : "READY";
-    const entries = hidden || excluded ? [] : [
+    const entries = excluded ? [] : [
       entry("COMBAT_POWER", "ALL", null, 4120, 18231),
       entry("COMBAT_POWER", "SERVER", "아만", 211, 2311),
       entry("COMBAT_POWER", "CLASS", "블래스터", 37, collecting === "READY" ? 612 : 21, collecting),
@@ -729,7 +747,7 @@ createServer(async (req, res) => {
       data: {
         characterName: who, serverName: "아만", className: "블래스터", position: "DEALER", itemLevel: 1780.83, combatPower: 3180.29,
         refreshedAt: new Date(Date.now() - 3_600_000).toISOString(),
-        rankVisibility: hidden ? "HIDDEN" : "VISIBLE", included: !hidden && !excluded,
+        rankVisibility: "VISIBLE", included: !excluded,
         conditions: { server: null, role: null, className: null, activeDays: 30, itemLevelMin: 1640, itemLevelMax: null, combatPowerMin: null, combatPowerMax: null, representativeOnly: false },
         aggregatedAt: new Date(Date.now() - 600_000).toISOString(), ruleVersion: "stats-v1", minSample: 30, entries,
       },
@@ -1012,6 +1030,45 @@ createServer(async (req, res) => {
         page: 1,
         size: 50,
         excludedRosters: 2,
+        rows,
+      },
+    });
+  }
+  // Collectible ranking (backend #295/#304, K33): three rosters; unit=CHARACTER
+  // lists each 상세 roster character with the roster value.
+  if (url.pathname === "/api/v1/rankings/collectibles") {
+    const unit = url.searchParams.get("unit") ?? "ROSTER";
+    const kinds = (done) => [
+      { type: "모코코 씨앗", point: done ? 1569 : 1402, maxPoint: 1569 },
+      { type: "섬의 마음", point: done ? 100 : 87, maxPoint: 100 },
+      { type: "거인의 심장", point: 15, maxPoint: 15 },
+    ];
+    const roster = (rank, characterName, serverName, className, itemLevel, characterCount, done) => {
+      const types = kinds(done);
+      const point = types.reduce((a, t) => a + t.point, 0);
+      const maxPoint = types.reduce((a, t) => a + t.maxPoint, 0);
+      return { rank, serverName, characterName, className, itemLevel, characterCount, progressPercent: Math.round((point / maxPoint) * 10000) / 100, point, maxPoint, observedAt: "2026-10-11T07:00:00Z", types };
+    };
+    const rosters = [roster(1, "합성원정대", "루페온", "바드", 1740, 8, true), roster(2, "상세", "아만", "블래스터", 1780.83, 7, false), roster(3, "작은원정대", "아만", "블레이드", 1690, 4, false)];
+    const rows = unit === "CHARACTER" ? [rosters[1], { ...rosters[1], characterName: "상세서포터", className: "바드", itemLevel: 1712.5 }] : rosters;
+    return send({
+      code: "COLLECTIBLE_RANKING_SUCCESS",
+      message: "ok",
+      data: {
+        meta: {
+          population: unit === "CHARACTER" ? 4210 : 1240,
+          conditions: { server: url.searchParams.get("server"), role: null, className: null, activeDays: Number(url.searchParams.get("activeDays") ?? 30), itemLevelMin: 1640, itemLevelMax: null, combatPowerMin: null, combatPowerMax: null, representativeOnly: false },
+          aggregatedAt: "2026-10-11T07:00:00Z",
+          snapshot: "latest",
+          ruleVersion: "stats-v1",
+          minSample: 30,
+          sampleStatus: "READY",
+          coverage: { observedCharacters: 6200, knownCharacters: 7400, discoveredAccounts: 1240 },
+          populationUnit: unit,
+        },
+        unit,
+        page: 1,
+        size: 50,
         rows,
       },
     });

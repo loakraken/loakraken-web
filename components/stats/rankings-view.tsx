@@ -8,15 +8,16 @@ import { SiteHeader } from "@/components/site/site-header";
 import { DataTable } from "@/components/ui/data-table";
 import { Select } from "@/components/ui/select";
 import { countdownText, retryLabel } from "@/lib/api/rate-limit";
+import { pendingProps } from "@/lib/api/pending";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
-import { TIER_LABEL } from "@/lib/character/rank";
+import { TIER_LABEL, TIER_LEGEND } from "@/lib/character/rank";
 import { fetchRankings } from "@/lib/stats/client";
 import { fixed, percent, sampleText, whole } from "@/lib/stats/model";
 import { MAX_PAGE, PAGE_SIZE, rankingSearch, type RankingQuery } from "@/lib/stats/rankings";
 import quote from "@/components/tools/material-quote.module.css";
 import styles from "./stats.module.css";
 import { BasisNote } from "./basis-note";
-import { RankingTypeTabs } from "./ranking-type-tabs";
+import { RankingTypeTabs, type RankingType } from "./ranking-type-tabs";
 
 const SERVERS = ["루페온", "실리안", "아만", "아브렐슈드", "카단", "카마인", "카제로스", "니나브"];
 const CLASSES = [
@@ -30,7 +31,7 @@ const CLASSES = [
  * like the statistics page, 50 per page. The list is LOAKraken's sample, not
  * the official ranking, and hidden characters never appear.
  */
-export function RankingsView({ initial, typeTabs = false }: { initial: RankingQuery; typeTabs?: boolean }) {
+export function RankingsView({ initial, types }: { initial: RankingQuery; types: readonly RankingType[] }) {
   const router = useRouter();
   const [query, setQuery] = useState<RankingQuery>(initial);
   const [levelText, setLevelText] = useState(initial.itemLevelMin != null ? String(initial.itemLevelMin) : "");
@@ -84,7 +85,7 @@ export function RankingsView({ initial, typeTabs = false }: { initial: RankingQu
           <h1 id="rankings-heading">랭킹</h1>
           <p>LOAKraken이 확인한 캐릭터를 {metricLabel} 순으로 보여줘요.</p>
         </section>
-        {typeTabs && <RankingTypeTabs value="character" />}
+        {types.length > 1 && <RankingTypeTabs value="character" types={types} />}
 
         <form className={styles.filters} onSubmit={(e) => e.preventDefault()} aria-label="랭킹 조건">
           <span className={styles.segment} role="group" aria-label="기준">
@@ -151,7 +152,7 @@ export function RankingsView({ initial, typeTabs = false }: { initial: RankingQu
         </form>
 
         {data && (
-          <p className={styles.notice}>
+          <p className={styles.notice} {...pendingProps(list)}>
             {sampleText(data.meta)} · 공식 랭킹이 아니에요
             {data.meta.sampleStatus !== "READY" && <strong> · 표본 {data.meta.minSample}명이 모이면 순위를 보여 드려요</strong>}
           </p>
@@ -173,7 +174,7 @@ export function RankingsView({ initial, typeTabs = false }: { initial: RankingQu
         ) : data.rows.length === 0 ? (
           <p className={styles.muted}>조건에 맞는 캐릭터가 없어요.</p>
         ) : (
-          <DataTable label={`${metricLabel} 랭킹 ${query.page}쪽`} className={styles.table}>
+          <DataTable label={`${metricLabel} 랭킹 ${query.page}쪽`} className={styles.table} {...pendingProps(list)}>
             <caption className={styles.srOnly}>
               {metricLabel} 랭킹 {query.page}쪽
             </caption>
@@ -235,7 +236,7 @@ export function RankingsView({ initial, typeTabs = false }: { initial: RankingQu
           </nav>
         )}
         <p className={styles.note}>
-          순위는 LOAKraken이 조회·갱신한 캐릭터 기준이며, 순위 비공개로 설정된 캐릭터는 나오지 않아요. 티어: 크라켄 상위 1% · 해구 5% · 심해 10% · 대양 25% · 연안 50%
+          순위는 LOAKraken이 조회·갱신한 캐릭터 기준이에요. 티어(이 순위에서 상위 몇 %인지): {TIER_LEGEND}
         </p>
         {data && <BasisNote basis={data.meta} />}
       </main>

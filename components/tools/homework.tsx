@@ -3,7 +3,7 @@
 import { useEffect, useId, useState, type FormEvent, type KeyboardEvent } from "react";
 import { useRemaining } from "@/components/home/clock";
 import { useMutation } from "@tanstack/react-query";
-import { Add, ArrowDown, ArrowLeft, TaskSquare, TrashSquare } from "@/components/ui/icons";
+import { Add, ArrowDown, ArrowLeft, CloseCircle, TaskSquare } from "@/components/ui/icons";
 import { Select } from "@/components/ui/select";
 import Link from "next/link";
 import { SiteHeader } from "@/components/site/site-header";
@@ -244,6 +244,8 @@ function RaidRow({
   onChange,
   onRemove,
   onMove,
+  selected,
+  onSelect,
 }: {
   plan: RaidPlan;
   itemLevel: number;
@@ -254,6 +256,9 @@ function RaidRow({
   onRemove: () => void;
   /** Move to a new position; the parent saves and announces it. */
   onMove: (to: number) => void;
+  /** 선택 (사용자 안 10-11 21:06): while selected, ↑↓ move this raid. */
+  selected: boolean;
+  onSelect: (on: boolean) => void;
 }) {
   const mode = modeOf(plan);
   if (!mode) return null;
@@ -269,18 +274,34 @@ function RaidRow({
   const title = `${raidName(plan.raidId)} ${DIFFICULTY_LABEL[plan.difficulty]}`;
   const toggle = (key: "cleared" | "more", i: number) =>
     onChange({ ...plan, [key]: plan[key].map((v, j) => (j === i ? !v : v)) });
-  // Keyboard move (PM-프론트 기준 ③): Alt+↑/↓ anywhere in the raid.
+  // Keyboard move: Alt+↑/↓ anywhere in the raid (PM-프론트 기준 ③), plain
+  // ↑/↓ while the raid is selected, Esc lets go (사용자 안 10-11 21:06).
   const onKeyDown = (event: KeyboardEvent<HTMLLIElement>) => {
-    if (!event.altKey || (event.key !== "ArrowUp" && event.key !== "ArrowDown")) return;
+    if (selected && event.key === "Escape") {
+      event.preventDefault();
+      onSelect(false);
+      return;
+    }
+    if (!(event.altKey || selected) || (event.key !== "ArrowUp" && event.key !== "ArrowDown")) return;
     event.preventDefault();
     const to = event.key === "ArrowUp" ? index - 1 : index + 1;
     if (to >= 0 && to < count) onMove(to);
   };
   return (
-    <li className={styles.raid} onKeyDown={onKeyDown}>
+    <li className={styles.raid} data-selected={selected || undefined} onKeyDown={onKeyDown}>
       <div className={styles.raidHead}>
         <strong className={styles.raidTitle}>{title}</strong>
         <span className={styles.raidTools}>
+          <button
+            type="button"
+            className={styles.selectButton}
+            aria-pressed={selected}
+            aria-label={`${title} 선택`}
+            aria-keyshortcuts="ArrowUp ArrowDown Escape"
+            onClick={() => onSelect(!selected)}
+          >
+            선택
+          </button>
           <button
             type="button"
             className={styles.iconButton}
@@ -301,8 +322,8 @@ function RaidRow({
           >
             <ArrowDown size={14} aria-hidden="true" />
           </button>
-          <button type="button" className={styles.iconButton} onClick={onRemove} aria-label={`${title} 빼기`}>
-            <TrashSquare size={14} aria-hidden="true" />
+          <button type="button" className={styles.removeButton} onClick={onRemove} aria-label={`${title} 빼기`}>
+            <CloseCircle size={18} aria-hidden="true" />
           </button>
         </span>
       </div>
@@ -354,7 +375,16 @@ function CharacterCard({
   // Announces a move once (PM-프론트 기준 ③); the moved row keeps focus.
   const [moved, setMoved] = useState("");
   const [arranging, setArranging] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const used = new Set(character.raids.map((r) => r.raidId));
+  // One move for the arrows, 선택 + ↑↓, Alt+↑↓ and the order list's rows:
+  // saved, then announced once ("…를 N번째로 옮겼어요").
+  const move = (from: number, to: number) => {
+    if (from < 0 || to < 0 || to >= character.raids.length || from === to) return;
+    const plan = character.raids[from];
+    onChange(moveRaid(character, from, to));
+    setMoved(`${raidName(plan.raidId)} ${DIFFICULTY_LABEL[plan.difficulty]}: ${to + 1}번째로 옮겼어요.`);
+  };
   const options = eligibleModes(character.itemLevel).filter(({ raid }) => !used.has(raid.id));
   return (
     <section className={styles.card} aria-label={`${character.name} 숙제`}>
@@ -368,11 +398,11 @@ function CharacterCard({
         </div>
         <button
           type="button"
-          className={styles.iconButton}
+          className={styles.removeButton}
           onClick={onRemove}
           aria-label={`${character.name} 빼기`}
         >
-          <TrashSquare size={16} aria-hidden="true" />
+          <CloseCircle size={18} aria-hidden="true" />
         </button>
       </div>
       <label className={styles.goldToggle}>
@@ -434,30 +464,49 @@ function CharacterCard({
       )}
       {character.raids.length > 1 && (
         <div className={styles.reorder}>
+          {/* 사용자 지적 10-11 21:00: one word at a time, 순서 바꾸기 ↔ 완료,
+              and the button keeps the wider word's width (both are laid out
+              in one grid cell, the other one hidden). */}
           <button
             type="button"
             className={styles.reorderToggle}
             aria-expanded={arranging}
             onClick={() => setArranging((v) => !v)}
           >
-            {arranging ? "순서 바꾸기 닫기" : "순서 바꾸기"}
+            <span className={styles.swap}>
+              <span aria-hidden={arranging || undefined} data-off={arranging || undefined}>
+                순서 바꾸기
+              </span>
+              <span aria-hidden={!arranging || undefined} data-off={!arranging || undefined}>
+                완료
+              </span>
+            </span>
           </button>
           {arranging && (
             <>
-              <p className={styles.note}>
-                끌어서 순서를 바꿔요. 위 {GOLD_RAIDS_PER_CHARACTER}개가 골드를 받아요(초록 점). 키보드는 각
-                레이드의 화살표나 Alt+↑↓.
-              </p>
-              {/* Bencho "Reorder list": pointer only, so it is hidden from
-                  assistive tech — the arrows and Alt+↑↓ are the same moves. */}
-              <div aria-hidden="true" className={styles.arrange}>
+              <p className={styles.note}>끌거나, 줄을 고른 뒤 ↑↓(또는 Alt+↑↓)로 옮겨요.</p>
+              {character.gold && (
+                <p className={styles.legend}>
+                  <span className={styles.legendDot} aria-hidden="true" />
+                  주간 골드를 받는 레이드 — 위에서부터 캐릭터당 {GOLD_RAIDS_PER_CHARACTER}개
+                </p>
+              )}
+              <div className={styles.arrange}>
                 <Arrange
+                  label={`${character.name} 레이드 순서`}
+                  describe={(name, position, gold) =>
+                    `${name}, ${position}번째${gold ? ", 골드 받음" : ""}`
+                  }
                   items={character.raids.map((plan, index) => ({
                     id: plan.raidId,
                     name: `${raidName(plan.raidId)} ${DIFFICULTY_LABEL[plan.difficulty]}`,
                     mark: character.gold && index < GOLD_RAIDS_PER_CHARACTER,
                     tint: "var(--primary)",
                   }))}
+                  onMove={(id, delta) => {
+                    const from = character.raids.findIndex((r) => r.raidId === id);
+                    move(from, from + delta);
+                  }}
                   onReorder={(ids) => {
                     const raids = ids
                       .map((id) => character.raids.find((r) => r.raidId === id))
@@ -480,11 +529,9 @@ function CharacterCard({
             itemLevel={character.itemLevel}
             index={index}
             count={character.raids.length}
-            onMove={(to) => {
-              if (to < 0 || to >= character.raids.length) return;
-              onChange(moveRaid(character, index, to));
-              setMoved(`${raidName(plan.raidId)} ${DIFFICULTY_LABEL[plan.difficulty]}: ${to + 1}번째로 옮겼어요.`);
-            }}
+            onMove={(to) => move(index, to)}
+            selected={selectedId === plan.raidId}
+            onSelect={(on) => setSelectedId(on ? plan.raidId : null)}
             onChange={(next) =>
               onChange({ ...character, raids: character.raids.map((r, j) => (j === index ? next : r)) })
             }
@@ -494,7 +541,8 @@ function CharacterCard({
       </ul>
       {character.raids.length > GOLD_RAIDS_PER_CHARACTER && (
         <p className={styles.note}>
-          골드는 위에서부터 {GOLD_RAIDS_PER_CHARACTER}개 레이드만 받아요. 순서는 화살표나 Alt+↑↓로 바꿀 수 있어요.
+          골드는 위에서부터 {GOLD_RAIDS_PER_CHARACTER}개 레이드만 받아요. 순서는 화살표, 또는 &lsquo;선택&rsquo;을 누른 뒤
+          ↑↓로 바꿔요(Esc로 끝).
         </p>
       )}
       <p className={styles.sr} role="status" aria-live="polite">

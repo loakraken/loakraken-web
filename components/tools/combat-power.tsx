@@ -315,6 +315,12 @@ function Editors({
         <header className={styles.cardHead}>
           <h2 id="cp-gear">장비 재련·품질</h2>
         </header>
+        {/* 계산 검증 10-12 00:46: armour quality only raises 생명 활성력. */}
+        {current.gear.some((item) => item.type !== "무기" && item.quality != null) && (
+          <p className={styles.none}>
+            방어구 품질은 생명 활성력(체력)만 올려 딜러 전투력은 그대로예요. 전투력에는 무기 품질이 들어가요.
+          </p>
+        )}
         {current.gear.length === 0 ? (
           <p className={styles.none}>재련 단계나 품질을 읽은 장비가 없어요.</p>
         ) : (
@@ -606,7 +612,9 @@ function ResultBand({
       <p className={styles.bandNote}>
         {changed === 0
           ? "아래에서 값을 바꾸면 바로 다시 계산해요."
-          : computed
+          : computed && data.delta === 0 && !data.partial
+            ? "바꾼 항목은 전투력에 영향이 없어요. 이유는 아래 '바꾼 것'에 있어요."
+            : computed
             ? `바꾼 ${changed}개 중 계산된 항목만 반영했어요${data.partial ? ` · 계산 준비 중 ${data.unsupportedCount}개` : ""}.`
             : `바꾼 ${changed}개 항목은 계산식을 확인하고 있어 아직 반영하지 않았어요.`}
       </p>
@@ -653,18 +661,17 @@ function ChangeList({ data, values }: { data: Simulation; values?: PolishValues 
             {item.status === "OK" && item.delta != null ? (
               <b className={item.delta >= 0 ? styles.gain : styles.loss}>{signed(item.delta)}</b>
             ) : (
-              <span className={styles.pending} title={item.basis}>
-                계산 준비 중
-              </span>
+              <span className={styles.pending}>계산 준비 중</span>
+            )}
+            {/* 사용자 지적 10-12 (L23): a change that moved nothing, or was
+                not computed, says why right under it — the backend's
+                sentence as it is. A bare ±0.00 read as broken. */}
+            {(item.status !== "OK" || item.delta === 0) && item.basis && (
+              <small className={styles.why}>{item.basis}</small>
             )}
           </li>
         ))}
       </ul>
-      {data.contributions.some((item) => item.status !== "OK") && (
-        <p className={styles.basis}>
-          {data.contributions.find((item) => item.status !== "OK")?.basis}
-        </p>
-      )}
     </section>
   );
 }
@@ -678,11 +685,14 @@ export function CombatPowerSimulator({
   name,
   initial,
   start,
+  head,
 }: {
   name: string;
   initial?: Character;
   /** One change to begin with (스펙업 "적용해 보기"), as a step 이전 can undo. */
   start?: SpecUpChange | null;
+  /** Shown at the top of the sticky column (the character tab's lead line). */
+  head?: ReactNode;
 }) {
   const embedded = !!initial;
   // 이전·다음·초기화 (PM-프론트 16:37 ②): every edit is a step.
@@ -792,6 +802,12 @@ export function CombatPowerSimulator({
           {/* Desktop: result on the left, sticky at the top. Phones: inputs
               first and the result pinned to the bottom, so nothing above
               the inputs grows when an answer arrives. */}
+          {/* 사용자 지적 10-12: on wide screens the whole column — lead,
+              result, buttons and 바꾼 것 — follows the scroll, not the
+              result alone; a column taller than the screen scrolls inside
+              itself with the result held at its top. */}
+          <div className={styles.rail}>
+          {head && <div className={styles.railHead}>{head}</div>}
           <ResultBand
             base={data.combatPower}
             itemLevel={data.itemLevel ?? null}
@@ -851,6 +867,7 @@ export function CombatPowerSimulator({
               </p>
             )}
             {result && <ChangeList data={result} values={options.data.data.polishValues} />}
+          </div>
           </div>
           <Editors
             options={options.data.data}

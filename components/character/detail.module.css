@@ -87,7 +87,7 @@
 }
 @media (hover: hover) and (pointer: fine) {
   .tabs a:not([aria-current="page"]):hover {
-    background: var(--muted);
+    background: var(--hover-surface);
   }
 }
 .tabActions {
@@ -1106,16 +1106,18 @@
   min-width: 0;
   overflow-wrap: anywhere;
 }
+/* Finished items in amber, unfinished in gray (user 10-12). */
 .collectionItems small {
   flex: none;
   max-width: 50%;
   text-align: right;
-  color: var(--accent-warm);
+  color: var(--muted-foreground);
   font-size: 12px;
   font-variant-numeric: tabular-nums;
 }
 .collectionItems li[data-done] small {
-  color: var(--muted-foreground);
+  color: var(--accent-warm);
+  font-weight: 600;
 }
 .tendencies {
   display: grid;
@@ -1727,7 +1729,7 @@
 }
 @media (hover: hover) and (pointer: fine) {
   .gridToggle:hover {
-    background: var(--secondary);
+    background: var(--hover-surface);
     color: var(--foreground);
   }
 }

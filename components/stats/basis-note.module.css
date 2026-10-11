@@ -18,11 +18,6 @@
   font-size: 13px;
   font-weight: 600;
 }
-.link {
-  color: var(--link);
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
 .info {
   display: inline-grid;
   place-items: center;
@@ -63,4 +58,11 @@
   .popup {
     transition: none;
   }
+}
+
+/* Values of the previous conditions while new ones load (lib/api/pending.ts):
+   dimmed in place, so they never pass for the new conditions (user 10-12). */
+.note[data-stale] {
+  opacity: 0.55;
+  transition: opacity 160ms ease-out;
 }

@@ -98,4 +98,33 @@ test.describe("전투력 시뮬레이터 @smoke", () => {
     await expect(page).toHaveURL(/\/tools\/combat-power\?character=/, { timeout: 15_000 });
     await expect(page.getByRole("heading", { level: 1, name: "전투력 시뮬레이터" })).toBeVisible();
   });
+
+  test("전투력이 그대로인 변경은 그 이유를 바로 보여 준다(방어구 품질, L23)", async ({ page }) => {
+    // 사용자 지적 10-12: 머리장식(방어구) 품질 95→100이 ±0.00만 보였다.
+    await gotoReady(page, `/tools/combat-power?character=${encodeURIComponent("전투력계산")}`);
+    await expect(page.getByText("방어구 품질은 생명 활성력(체력)만 올려 딜러 전투력은 그대로예요.", { exact: false })).toBeVisible();
+    await chooseOption(page, page.getByRole("combobox", { name: "장갑 품질" }), "100");
+    const changes = page.getByRole("region", { name: "바꾼 것" });
+    await expect(changes.getByText("±0.00")).toBeVisible();
+    await expect(changes.getByText("방어구 품질은 체력에만 붙어 전투력이 바뀌지 않습니다.")).toBeVisible();
+    await expect(page.getByText("바꾼 항목은 전투력에 영향이 없어요.", { exact: false })).toBeVisible();
+  });
+
+  test("넓은 화면에서는 결과·버튼·바꾼 것이 한 묶음으로 따라온다", async ({ page }, info) => {
+    // 사용자 지적 10-12: 예상 전투력 칸만 따라오던 것.
+    test.skip((info.project.use.viewport?.width ?? 0) <= 900, "한 칸 화면은 결과 띠만 아래에 고정");
+    await gotoReady(page, `/tools/combat-power?character=${encodeURIComponent("전투력계산")}`);
+    await chooseOption(page, page.getByRole("combobox", { name: "투구 품질" }), "100");
+    await expect(page.getByRole("region", { name: "바꾼 것" })).toBeVisible();
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    await page.waitForTimeout(300);
+    const inView = async (locator) => {
+      const box = await locator.boundingBox();
+      const height = page.viewportSize().height;
+      return !!box && box.y >= 0 && box.y + box.height <= height;
+    };
+    expect(await inView(page.getByRole("region", { name: /전투력$/ }))).toBe(true);
+    expect(await inView(page.getByRole("button", { name: "초기화" }))).toBe(true);
+    expect(await inView(page.getByRole("heading", { name: "바꾼 것" }))).toBe(true);
+  });
 });

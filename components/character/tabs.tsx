@@ -1,6 +1,16 @@
 "use client";
 
-import { createContext, memo, useContext, useId, useState, useSyncExternalStore, type ReactNode } from "react";
+import {
+  createContext,
+  memo,
+  useContext,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type ReactNode,
+} from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
@@ -130,6 +140,26 @@ const visibleTabs = (settingCheck: boolean, simulator = true, specUp = true) =>
       (tab.id !== "specup" || specUp),
   );
 
+/** The visually hidden heading each tab panel starts with (focus target). */
+const TAB_HEADING = "character-tab-heading";
+
+/**
+ * Going to another tab (the tab bar or a "자세히" link) starts at the top of
+ * the page, with focus on the new tab's heading (user 10-11, PM 총괄 21:46).
+ * The page itself stays on screen, so Next keeps the position by default;
+ * this does it explicitly. The first render keeps the browser's position,
+ * and filters inside a tab keep theirs because they leave ?tab= alone.
+ */
+export function useTabTop(tab: TabId) {
+  const last = useRef(tab);
+  useEffect(() => {
+    if (last.current === tab) return;
+    last.current = tab;
+    window.scrollTo({ top: 0, behavior: "instant" });
+    document.getElementById(TAB_HEADING)?.focus({ preventScroll: true });
+  }, [tab]);
+}
+
 /** The tab in ?tab=, or 전투 for an unknown one or a hidden one. */
 export const tabOf = (value: string | null, settingCheck = true, simulator = true, specUp = true): TabId =>
   visibleTabs(settingCheck, simulator, specUp).some((tab) => tab.id === value) ? (value as TabId) : "combat";
@@ -246,7 +276,6 @@ export function TabBar({
               key={item.id}
               href={item.id === "combat" ? "?" : `?tab=${item.id}`}
               replace
-              scroll={false}
               aria-current={tab === item.id ? "page" : undefined}
             >
               <TabLabel id={item.id} label={item.label} />
@@ -856,7 +885,7 @@ function ArkPassiveSummary({
       title="아크 패시브"
       meta={
         detailed ? undefined : (
-          <Link href="?tab=arkpassive" replace scroll={false}>
+          <Link href="?tab=arkpassive" replace>
             자세히
           </Link>
         )
@@ -1207,7 +1236,7 @@ function SkillOverview({
           {!full && (
             <>
               {" · "}
-              <Link href="?tab=skills" replace scroll={false}>
+              <Link href="?tab=skills" replace>
                 자세히
               </Link>
             </>
@@ -2132,6 +2161,9 @@ function TabPanelView({
 }) {
   return (
     <Reveal key={tab} className={styles.tabPanel}>
+      <h2 id={TAB_HEADING} className={styles.srOnly} tabIndex={-1}>
+        {TABS.find((item) => item.id === tab)?.label} 탭
+      </h2>
       {tab === "simulator" ? (
         <SimulatorTab data={data} />
       ) : tab === "specup" ? (

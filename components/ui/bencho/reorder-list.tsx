@@ -16,6 +16,11 @@
 //     which motion cannot tween (it warned and snapped the label colour).
 //  8. The blob's marginLeft is handed over in px; a bare number came back
 //     from the DOM as "-98", which motion would not animate either.
+//  9. Keyboard (사용자 지적 10-11 21:02): the list is a list of focusable
+//     rows (role=list/listitem, tabIndex 0, aria-label "이름, N번째, 골드
+//     받음"); ↑↓ or Alt+↑↓ on a row moves it one place through `onMove`
+//     (or the block's own order when nothing is handed in) and focus stays
+//     on that row. A focus ring is drawn; nothing else changes.
 import "./reorder-list.css";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { animate, m as motion, useMotionValue, useTransform } from "motion/react";
@@ -272,6 +277,12 @@ export function Arrange({
   /* (ours) data in and out */
   items: given,
   onReorder,
+  /* (ours) keyboard: a row asks to move one place up (−1) or down (+1) */
+  onMove,
+  /* (ours) the list's name, and how a row is read out */
+  label = "순서",
+  describe = (name: string, position: number, here: boolean) =>
+    `${name}, ${position}번째${here ? ", 표시됨" : ""}`,
 }: {
   give?: number;
   lean?: number;
@@ -279,6 +290,9 @@ export function Arrange({
   corner?: number;
   items?: ArrangeItem[];
   onReorder?: (ids: string[]) => void;
+  onMove?: (id: string, delta: -1 | 1) => void;
+  label?: string;
+  describe?: (name: string, position: number, here: boolean) => string;
 } = {}) {
   /* (ours) the rows, from the screen or Bencho's own four */
   const rows = useMemo<Person[]>(
@@ -307,6 +321,34 @@ export function Arrange({
      being DRAGGED has to keep showing its grip even when the
      pointer has left it, which a CSS hover cannot say. */
   const [over, setOver] = useState<string | null>(null);
+
+  /* (ours) 9. keyboard moves. The row keeps focus: React may move its node
+     when the order comes back from the screen, so it is focused again. */
+  const rowEls = useRef(new Map<string, HTMLDivElement>());
+  const [keyed, setKeyed] = useState<string | null>(null);
+  useEffect(() => {
+    if (!keyed) return;
+    const el = rowEls.current.get(keyed);
+    if (el && document.activeElement !== el) el.focus({ preventScroll: true });
+  }, [order, keyed]);
+  const keyMove = (id: string) => (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
+    const delta = event.key === "ArrowUp" ? -1 : 1;
+    const from = order.indexOf(id);
+    const to = from + delta;
+    if (to < 0 || to >= order.length) return;
+    event.preventDefault();
+    setKeyed(id);
+    if (onMove) {
+      onMove(id, delta);
+      return;
+    }
+    const next = [...order];
+    next.splice(from, 1);
+    next.splice(to, 0, id);
+    setOrder(next);
+    onReorder?.(next);
+  };
 
   const grab = useRef<{ id: string; y: number; slot: number; last: number; at: number } | null>(null);
   const stage = useRef<HTMLDivElement | null>(null);
@@ -516,13 +558,22 @@ export function Arrange({
       </div>
 
       {/* and the unfiltered layer that carries the type */}
-      <div className="arr-ink">
+      <div className="arr-ink" role="list" aria-label={label}>
         {rows.map((p) => {
           const isHeld = held === p.id;
           return (
             <motion.div
               key={p.id}
+              ref={(el: HTMLDivElement | null) => {
+                if (el) rowEls.current.set(p.id, el);
+                else rowEls.current.delete(p.id);
+              }}
               className="arr-row"
+              /* (ours) 9. a row you can reach and move from the keyboard */
+              role="listitem"
+              tabIndex={0}
+              aria-label={describe(p.name, order.indexOf(p.id) + 1, p.here)}
+              onKeyDown={keyMove(p.id)}
               data-held={isHeld || undefined}
               style={{ y: ys[p.id] }}
               animate={{ color: isHeld ? T["--ink"] : T["--ink-2"] }}

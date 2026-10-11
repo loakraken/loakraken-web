@@ -95,6 +95,18 @@ export function isRosterRankingEnabled(env: Env = process.env) {
   return !isProductionHost(env.SITE_URL);
 }
 
+/**
+ * The collectible ranking tab (backend #295/#304, checklist K33; off on the
+ * backend until it ships). Same rule: `COLLECTIBLE_RANKING=on|off` overrides,
+ * otherwise hidden only on the production host.
+ */
+export function isCollectibleRankingEnabled(env: Env = process.env) {
+  const flag = env.COLLECTIBLE_RANKING?.trim().toLowerCase();
+  if (flag === "on") return true;
+  if (flag === "off") return false;
+  return !isProductionHost(env.SITE_URL);
+}
+
 const PRODUCTION_HOST = new URL(PRODUCTION_URL).hostname;
 
 function isProductionHost(value: string | undefined) {
