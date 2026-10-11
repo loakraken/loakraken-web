@@ -127,4 +127,16 @@ test.describe("전투력 시뮬레이터 @smoke", () => {
     expect(await inView(page.getByRole("button", { name: "초기화" }))).toBe(true);
     expect(await inView(page.getByRole("heading", { name: "바꾼 것" }))).toBe(true);
   });
+
+  test("예전 방식으로 저장한 입력은 장비를 확인할 수 없어 불러오지 않고 다시 저장을 안내한다", async ({ page }) => {
+    // PM 총괄 10-12 01:54: 장비 순번만 남은 저장값은 다른 장비에 붙을 수 있다.
+    const name = "전투력계산";
+    await page.addInitScript((key) => {
+      localStorage.setItem(key, JSON.stringify({ edits: { gemAll: null, gems: {}, refine: {}, quality: { 1: 100 }, advanced: {}, polish: {}, bracelet: {}, engraving: {}, stone: {}, arkPassive: {}, core: {} }, savedAt: "2026-10-11T10:00:00.000Z" }));
+    }, `loakraken:combat-power:saved:${name}`);
+    await gotoReady(page, `/tools/combat-power?character=${encodeURIComponent(name)}`);
+    await page.getByRole("button", { name: "저장한 입력 불러오기" }).click();
+    await expect(page.getByRole("status").filter({ hasText: "다시 저장해 주세요" })).toBeVisible();
+    await expect(page.getByText("아래에서 값을 바꾸면 바로 다시 계산해요.")).toBeVisible();
+  });
 });
