@@ -228,6 +228,9 @@
   align-items: center;
   gap: 8px;
   padding: 40px 0;
+  /* The same height for one to three lines, so the web font arriving (a line
+     more or a pixel taller) does not push the footer (web #491). */
+  min-height: calc(80px + 3lh);
   color: var(--slate);
   font-size: var(--text-body);
 }

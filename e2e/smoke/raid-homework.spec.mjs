@@ -62,7 +62,7 @@ test.describe("숙제 체크 @smoke", () => {
     await page.getByRole("button", { name: "불러오기" }).click();
     await page.getByRole("button", { name: /^\d+명 추가$/ }).click();
     const card = page.getByRole("region", { name: "상세 숙제" });
-    const titles = () => card.locator("[class*=raidAll] span").allInnerTexts();
+    const titles = () => card.locator("[class*=raidTitle]").allInnerTexts();
     const before = await titles();
     expect(before.length).toBeGreaterThan(1);
 
@@ -76,7 +76,7 @@ test.describe("숙제 체크 @smoke", () => {
 
     await page.reload();
     const reloaded = page.getByRole("region", { name: "상세 숙제" });
-    await expect(reloaded.locator("[class*=raidAll] span")).toHaveText([before[1], before[0], ...before.slice(2)]);
+    await expect(reloaded.locator("[class*=raidTitle]")).toHaveText([before[1], before[0], ...before.slice(2)]);
 
     // 전체 체크: 관문 하나만 → 레이드·캐릭터 모두 mixed, 누르면 전부 / 다시 누르면 전부 해제.
     const all = reloaded.getByRole("checkbox", { name: "전체 완료" });
@@ -92,5 +92,32 @@ test.describe("숙제 체크 @smoke", () => {
     await all.click();
     await expect(all).not.toBeChecked();
     await expectNoHorizontalOverflow(page);
+  });
+
+  test("순서 바꾸기에서 끌어 놓으면 레이드 순서가 바뀌고 남는다(bencho Reorder list)", async ({ page }) => {
+    await gotoReady(page, "/tools/homework");
+    await page.getByRole("textbox", { name: "캐릭터 이름" }).fill("상세");
+    await page.getByRole("button", { name: "불러오기" }).click();
+    await page.getByRole("button", { name: /^\d+명 추가$/ }).click();
+    const card = page.getByRole("region", { name: "상세 숙제" });
+    const before = await card.locator("[class*=raidTitle]").allInnerTexts();
+    await card.getByRole("button", { name: "순서 바꾸기" }).click();
+    await expect(card.getByRole("button", { name: "순서 바꾸기 닫기" })).toHaveAttribute("aria-expanded", "true");
+
+    await card.locator(".arr-row").first().scrollIntoViewIfNeeded();
+    const box = await card.locator(".arr-row").first().boundingBox();
+    await page.mouse.move(box.x + 60, box.y + box.height / 2);
+    await page.mouse.down();
+    // Real pointer pace (one move a frame), as a hand would.
+    for (let i = 1; i <= 12; i++) {
+      await page.mouse.move(box.x + 60, box.y + box.height / 2 + i * 5);
+      await page.waitForTimeout(16);
+    }
+    await page.mouse.up();
+
+    const moved = [before[1], before[0], ...before.slice(2)];
+    await expect.poll(() => card.locator("[class*=raidTitle]").allInnerTexts()).toEqual(moved);
+    await page.reload();
+    await expect(page.getByRole("region", { name: "상세 숙제" }).locator("[class*=raidTitle]")).toHaveText(moved);
   });
 });
