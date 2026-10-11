@@ -19,6 +19,7 @@ import Link from "next/link";
 import { Panel } from "./panel";
 import styles from "./rank.module.css";
 import { useCrossfade } from "@/lib/motion";
+import { BasisInfo } from "@/components/stats/basis-note";
 
 /**
  * Ranked scopes as boxes; scopes still short of the sample minimum do not get
@@ -131,7 +132,15 @@ export function RankPanel({ name }: { name: string }) {
           <p className={styles.note}>
             {state === "excluded"
               ? `순위 집계 조건에 들지 않아요(${conditionsText(data)}).`
-              : `${conditionsText(data)}이에요. 게임 전체 순위와 다를 수 있어요.`}
+              : `${conditionsText(data)}이에요.`}
+            <BasisInfo
+              basis={{
+                population: data.entries.find((e) => e.scope === "ALL")?.total ?? null,
+                conditions: data.conditions,
+                aggregatedAt: data.aggregatedAt,
+                minSample: data.minSample,
+              }}
+            />
           </p>
           {state === "ranked" && <p className={styles.note}>티어: {TIER_LEGEND}</p>}
           <p className={styles.note}>
