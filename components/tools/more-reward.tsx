@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useMemo, useState, type ReactNode } from "react";
+import { Fragment, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import { ArrowLeft, Gift } from "@/components/ui/icons";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
@@ -114,7 +114,10 @@ function RaidRows({
   renderDetail,
   bestKey,
   priced,
+  order,
 }: {
+  /** Raid position, for the entry stagger (capped at 8 steps by .k-reveal). */
+  order: number;
   bestKey: string | null;
   /** Prices arrived; before that the cells show the cost only. */
   priced: boolean;
@@ -130,7 +133,9 @@ function RaidRows({
         const openGate = mode.gates.find((g) => open === gateKey(raid.id, mode.label, g.gate));
         return (
           <Fragment key={mode.label}>
-            <tr>
+            {/* 모션 목록(더보기): rows enter once on arrival, 30ms apart per raid.
+                Price refreshes keep the rows, so it does not replay. */}
+            <tr className="k-reveal" style={{ "--i": order } as CSSProperties}>
               <th scope="row" className={styles.raid}>
                 {mi === 0 ? raid.name : <span className={styles.sr}>{raid.name}</span>}
               </th>
@@ -366,8 +371,9 @@ export function MoreRewardTool() {
                     </tr>
                   </thead>
                   <tbody>
-                    {MORE_DATA.raids.map((raid) => (
+                    {MORE_DATA.raids.map((raid, order) => (
                       <RaidRows
+                        order={order}
                         key={raid.id}
                         raid={raid}
                         results={results}
