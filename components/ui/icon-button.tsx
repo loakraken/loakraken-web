@@ -10,7 +10,7 @@ const iconButtonVariants = cva(
     "inline-grid shrink-0 place-items-center rounded-full text-foreground",
     "transition-[background-color,color,transform] duration-(--duration-fast) ease-(--ease-out)",
     "not-disabled:active:scale-(--press-scale)",
-    "pointer-fine:not-disabled:hover:bg-muted",
+    "pointer-fine:not-disabled:hover:bg-hover-surface",
     "aria-pressed:text-accent-warm",
     "disabled:cursor-not-allowed disabled:opacity-40",
     "[&_svg]:pointer-events-none [&_svg]:shrink-0",

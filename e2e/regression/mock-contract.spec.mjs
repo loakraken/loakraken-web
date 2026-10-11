@@ -40,7 +40,7 @@ test.describe("목 응답 계약 @regression", () => {
         (name) => `/api/characters/card-collection?${q({ characterName: name })}`,
       ),
       ...["24h", "7d"].map((period) => `/api/characters/popular?${q({ period })}`),
-      ...["상세", "비공개", "조건밖", "집계중"].map((name) => `/api/characters/rank?${q({ characterName: name })}`),
+      ...["상세", "조건밖", "집계중"].map((name) => `/api/characters/rank?${q({ characterName: name })}`),
       ...["상세", "칭호없음"].map((name) => `/api/characters/titles?${q({ characterName: name })}`),
       ...["summary", "classes", "servers"].map((view) => `/api/stats/${view}`),
       // 분포는 화면이 보내는 매개변수(지표·구간 폭)가 있어야 한다.
@@ -48,6 +48,8 @@ test.describe("목 응답 계약 @regression", () => {
       `/api/stats/distribution?${q({ metric: "ITEM_LEVEL", width: "5" })}`,
       "/api/rankings",
       `/api/rankings?${q({ metric: "ITEM_LEVEL", page: "2" })}`,
+      "/api/rankings/collectibles",
+      `/api/rankings/collectibles?${q({ unit: "CHARACTER" })}`,
     ]) {
       const response = await request.get(path);
       const body = await response.json();

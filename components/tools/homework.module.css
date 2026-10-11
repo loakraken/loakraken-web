@@ -148,8 +148,18 @@
   font-size: var(--text-caption);
 }
 .footnote a {
-  color: var(--link);
+  /* A source reads like the text round it (user 10-12): same colour and
+     weight; a link keeps only a faint underline, darker on hover. */
+  color: inherit;
+  font-weight: inherit;
   text-decoration: underline;
+  text-decoration-color: color-mix(in oklab, currentColor 40%, transparent);
+  text-underline-offset: 0.2em;
+}
+@media (hover: hover) and (pointer: fine) {
+  .footnote a:hover {
+    text-decoration-color: currentColor;
+  }
 }
 
 .grid {
@@ -352,7 +362,7 @@
 
 @media (hover: hover) and (pointer: fine) {
   .iconButton:hover {
-    background: var(--muted);
+    background: var(--hover-surface);
     color: var(--foreground);
   }
 }
@@ -445,4 +455,30 @@
   height: 8px;
   border-radius: 50%;
   background: var(--ok, var(--success));
+}
+/* 빼기 (사용자 지적 10-12 01:42): a circled X at 18px instead of the small
+   trash square; the resting colour keeps 3:1 against the card, and hover or
+   focus tints it with the one error colour. */
+.removeButton {
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  transition:
+    color var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out);
+}
+.removeButton:hover,
+.removeButton:focus-visible {
+  color: var(--destructive);
+  background: color-mix(in oklab, var(--destructive) 10%, transparent);
+}
+.removeButton:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
 }

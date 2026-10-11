@@ -538,3 +538,15 @@
   opacity: 0.55;
   transition: opacity 160ms ease-out;
 }
+
+/* Collectible ranking (K33): points under the progress; finished kinds in
+   blue, the same rule as the character collectible list (#568). */
+.points {
+  display: block;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-weight: 400;
+}
+.rosterMembers li[data-done] b {
+  color: var(--link);
+}

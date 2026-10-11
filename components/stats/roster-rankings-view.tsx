@@ -24,7 +24,7 @@ import {
 import quote from "@/components/tools/material-quote.module.css";
 import styles from "./stats.module.css";
 import { BasisNote } from "./basis-note";
-import { RankingTypeTabs } from "./ranking-type-tabs";
+import { RankingTypeTabs, type RankingType } from "./ranking-type-tabs";
 
 const SERVERS = [
   "루페온",
@@ -43,7 +43,7 @@ const SERVERS = [
  * combat power or item level. Each row shows the representative character,
  * how many characters made the value, and the members on demand.
  */
-export function RosterRankingsView({ initial }: { initial: RosterQuery }) {
+export function RosterRankingsView({ initial, types }: { initial: RosterQuery; types: readonly RankingType[] }) {
   const router = useRouter();
   const [query, setQuery] = useState<RosterQuery>(initial);
   const latest = useRef(initial);
@@ -97,7 +97,7 @@ export function RosterRankingsView({ initial }: { initial: RosterQuery }) {
             보여줘요.
           </p>
         </section>
-        <RankingTypeTabs value="roster" />
+        <RankingTypeTabs value="roster" types={types} />
 
         <form
           className={styles.filters}
@@ -289,8 +289,7 @@ export function RosterRankingsView({ initial }: { initial: RosterQuery }) {
         )}
         <p className={styles.note}>
           식스맨 평균은 원정대에서 {basisLabel}이 높은 6명의 평균이고, 6명보다
-          적으면 있는 인원으로 계산해요(인원 칸에 표시). 순위 비공개 캐릭터는
-          나오지 않아요.
+          적으면 있는 인원으로 계산해요(인원 칸에 표시).
         </p>
         {data?.meta && <BasisNote basis={data.meta} />}
       </main>

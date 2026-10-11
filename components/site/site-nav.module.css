@@ -175,7 +175,7 @@
     color: var(--foreground);
   }
   a.entry:hover {
-    background: color-mix(in oklab, var(--foreground) 4%, transparent);
+    background: var(--hover-surface);
   }
   a.entry:hover .entryLabel {
     color: var(--link);

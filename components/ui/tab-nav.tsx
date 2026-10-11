@@ -33,7 +33,7 @@ function TabLink({ current = false, className, ...props }: TabLinkProps) {
           "inline-flex h-9 items-center rounded-full px-3.5 whitespace-nowrap",
           "text-(length:--text-body) tracking-(--tracking-body) text-foreground",
           "transition-[background-color,color] duration-(--duration-fast) ease-(--ease-out)",
-          "pointer-fine:not-aria-[current=page]:hover:bg-muted",
+          "pointer-fine:not-aria-[current=page]:hover:bg-hover-surface",
           "aria-[current=page]:bg-foreground aria-[current=page]:text-background",
           className
         )}

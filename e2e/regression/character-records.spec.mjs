@@ -1,5 +1,5 @@
 // 회귀: 캐릭터 순위 패널(F-7, web #168·#170·#259)과 원정대 칭호(web #172·#202).
-// 목 이름: 상세(순위 있음), 비공개(HIDDEN → "순위 비공개"만), 조건밖(집계 조건 밖), 집계중(표본 작음),
+// 목 이름: 상세(순위 있음), 비공개(처리정지 목록 → 기록 없는 캐릭터와 같은 404, 백엔드 #366), 조건밖(집계 조건 밖), 집계중(표본 작음),
 // 미관측(404). 칭호: 상세(기록 있음), 칭호없음(빈 기록).
 // PM-프론트 #144 P2③: rankVisibility HIDDEN이면 순위 수치가 어디에도 보이면 안 된다.
 import { test, expect, characterPath, gotoReady } from "../support/fixtures.mjs";
@@ -13,13 +13,14 @@ test.describe("캐릭터 순위 패널 @regression", () => {
     await expect(panel.getByRole("region", { name: "전투력 순위" })).toBeVisible();
     await expect(panel.getByRole("region", { name: "아이템 레벨 순위" })).toBeVisible();
     await expect(panel).toContainText("LOAKraken 수집 기준");
-    await expect(panel).toContainText("티어:");
+    await expect(panel).toContainText("티어(그 칸 순위에서 상위 몇 %인지):");
   });
 
-  test("비공개면 '순위 비공개'만 보이고 순위·백분위 숫자가 없다", async ({ page }) => {
+  test("처리정지 캐릭터는 기록 없는 캐릭터와 같은 문구이고 순위·백분위 숫자가 없다", async ({ page }) => {
     await gotoReady(page, characterPath("비공개"));
     const panel = rankPanel(page);
-    await expect(panel).toContainText("순위 비공개");
+    await expect(panel).toContainText("아직 순위 집계에 들어가지 않은 캐릭터예요.");
+    await expect(panel).not.toContainText("비공개");
     await expect(panel).not.toContainText(/상위\s*[\d.]+%|\d+위/);
     await expect(panel.getByRole("region", { name: /순위$/ })).toHaveCount(0);
   });
