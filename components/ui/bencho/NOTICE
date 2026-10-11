@@ -2,6 +2,8 @@ Blocks in this folder come from Bencho (https://bencho.dev) and are used under
 the MIT licence (https://bencho.dev/licence, checked 2026-10-10). Bencho's
 photographs, the Maison Neue typeface and the Bencho name and mark are not
 included. Changes made for LOAKraken are listed at the top of each file.
+result-panel.tsx/.css come from the Assignees block (https://bencho.dev/blocks/picker,
+checked 2026-10-12) under the same licence.
 
 MIT License
 
