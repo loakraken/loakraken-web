@@ -311,6 +311,14 @@
 .verdict p + p {
   margin-top: 4px;
 }
+/* A fixed line: the "추천" badge (inline-block) arriving with the prices
+   grew the empty line by 1px (점검표 A6). */
+.verdict p {
+  line-height: 24px;
+}
+.verdict .pick {
+  line-height: 18px;
+}
 .verdictHead {
   font-weight: 600;
 }
@@ -338,9 +346,17 @@
 .cell[data-pick] {
   border-color: var(--primary);
 }
+/* The badge sits on the cell's top edge instead of taking a line: arriving
+   with the prices, a line of its own grew the row and pushed every row
+   below (점검표 A6, 360 첫 로드). */
+.cell {
+  position: relative;
+}
 .cell .pick {
-  justify-self: end;
-  margin-bottom: 2px;
+  position: absolute;
+  top: -9px;
+  right: 6px;
+  line-height: 16px;
 }
 /* 표 위 조건 요약: 값 매기기 패널이 표 아래로 가는 좁은 화면에서만. */
 .condition {
@@ -356,6 +372,14 @@
 @media (max-width: 900px) {
   .condition {
     display: block;
+  }
+}
+/* Narrow screens: " · 방금 기준" arrives with the prices and wraps the line,
+   which pushed the table 19px on first load (점검표 A6, 360 CLS 0.0326).
+   Two lines are held from the start. */
+@media (max-width: 600px) {
+  .condition {
+    min-height: 2lh;
   }
 }
 
