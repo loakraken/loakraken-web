@@ -79,6 +79,16 @@ test.describe("더보기 손익 @smoke", () => {
     const table = page.getByRole("table", { name: "레이드·난이도·관문별 더보기 이득" });
     const cells = table.getByRole("button", { name: /^(추천 )?[+−][\d,]+ (누르기|넘기기) · / });
     const before = await cells.count();
+    // Let every row play its entrance (k-reveal, the same on develop) first.
+    await table.scrollIntoViewIfNeeded();
+    await table.locator("tbody tr").last().scrollIntoViewIfNeeded();
+    await page.waitForTimeout(1000);
+    // PM-프론트 #556 P1: with a slow answer (1.2s) the loading state lasts long
+    // enough to be seen; 390 moved 0.1387 when its note wrapped.
+    await page.route("**/api/markets/material-prices", async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 1200));
+      await route.continue();
+    });
     const start = await page.evaluate(() => window.__shift);
     for (const label of ["현재 최저가", "전일 평균가", "최근 거래가", "현재 최저가"]) {
       await page.getByRole("radio", { name: label }).click();
@@ -86,6 +96,7 @@ test.describe("더보기 손익 @smoke", () => {
       expect(await cells.count()).toBe(before);
     }
     await expect(page.getByText(/누를 더보기 \d+관문/)).toBeVisible();
+    await expect(page.getByRole("status").filter({ hasText: "이 기준으로 다시 불러오고 있어요" })).toHaveCount(0, { timeout: 15_000 });
     await page.waitForTimeout(800);
     expect(await page.evaluate(() => window.__shift) - start).toBe(0);
   });

@@ -385,3 +385,27 @@
   opacity: 0.55;
   transition: opacity 150ms ease;
 }
+
+/* "Loading this basis" sits over the table's top edge: it takes no room, so
+   nothing moves when it comes and goes (PM-프론트 #556 P1, 390). */
+.tableArea {
+  position: relative;
+}
+.switchBadge {
+  position: absolute;
+  top: calc(var(--space-3) + 6px);
+  right: 8px;
+  z-index: 1;
+  margin: 0;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--foreground);
+  color: var(--background);
+  font-size: var(--text-caption);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 150ms ease;
+}
+.switchBadge[data-show] {
+  opacity: 1;
+}

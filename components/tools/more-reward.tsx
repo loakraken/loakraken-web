@@ -367,9 +367,17 @@ export function MoreRewardTool() {
               </div>
               <p className={styles.condition}>
                 {priceBases.find((b) => b.value === basis)?.label} 기준
-                {switching ? " · 이 기준으로 다시 불러오고 있어요" : observedAt && now != null && ` · ${agoText(now, observedAt)}`} · 귀속 골드
-                제외 {excludeBound ? "켬" : "끔"} ·{" "}
+                {observedAt && now != null && ` · ${agoText(now, observedAt)}`} · 귀속 골드 제외 {excludeBound ? "켬" : "끔"} ·{" "}
                 <a href="#value-heading">값 매기기 바꾸기</a>
+              </p>
+              <div className={styles.tableArea}>
+              {/* Always laid out, shown by opacity: text arriving would change its
+                  width and slide it. The announcement is a separate line. */}
+              <p className={styles.switchBadge} aria-hidden="true" data-show={switching || undefined}>
+                이 기준으로 다시 불러오고 있어요
+              </p>
+              <p className={styles.sr} role="status">
+                {switching ? "이 기준으로 다시 불러오고 있어요" : ""}
               </p>
               <div className={styles.tableScroll} aria-busy={switching || undefined} data-stale={switching || undefined}>
                 <table className={styles.table}>
@@ -411,6 +419,7 @@ export function MoreRewardTool() {
                     ))}
                   </tbody>
                 </table>
+              </div>
               </div>
               <p className={styles.small}>
                 이득 = 받는 재료 가치 − 더보기 골드. 더보기 골드는 공식 공지 또는 서로 다른 실측 출처 2곳 일치, 받는
