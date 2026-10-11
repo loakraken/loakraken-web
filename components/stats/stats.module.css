@@ -503,3 +503,7 @@
   color: var(--muted-foreground);
   font-size: 12px;
 }
+/* Rankings while loading: most of a screen, like the table it becomes. */
+.listHold {
+  min-height: 75vh;
+}
