@@ -109,11 +109,12 @@ export function ContributionTool() {
                   </label>
                   <input
                     id={damageId}
+                    name="damage"
                     value={text}
                     onChange={(event) => setText(event.target.value)}
                     inputMode="decimal"
                     autoComplete="off"
-                    placeholder="예: 1,800"
+                    placeholder="예: 1,800…"
                     maxLength={12}
                     aria-invalid={!!error}
                     aria-describedby={error ? `${damageId}-error` : undefined}
