@@ -15,6 +15,7 @@ export function IntelligenceOrb({ state = "breathing" }: { state?: OrbState }) {
   const visible = useVisible(ref, 60);
   // Decorative and repeating: stops with the 5s loop budget.
   const { looping } = useLandingMotion();
+  const theme = useTheme();
 
   return (
     <div ref={ref} className={styles.orbStage} data-orb-active={looping && visible} aria-hidden="true">
@@ -33,5 +34,6 @@ export function IntelligenceOrb({ state = "breathing" }: { state?: OrbState }) {
 
 export function InlineOrb({ state = "searching" }: { state?: OrbState }) {
   const { enabled } = useLandingMotion();
+  const theme = useTheme();
   return <ThinkingOrb state={state} size={20} theme="light" color="#0066cc" paused={!enabled} aria-hidden="true" />;
 }

@@ -9,6 +9,7 @@ import styles from "./landing.module.css";
 
 function LoadingContent() {
   const { enabled } = useLandingMotion();
+  const theme = useTheme();
   return <main className={styles.routeState} aria-busy="true">
     <ThinkingOrb state="searching" size={64} theme={theme} color={orbColor(theme)} paused={!enabled} aria-label="캐릭터 조회 중" />
     <p role="status">캐릭터 정보를 조회하고 있어요.</p>
