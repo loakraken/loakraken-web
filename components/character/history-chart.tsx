@@ -29,7 +29,13 @@ const stamp = new Intl.DateTimeFormat("ko-KR", {
   minute: "2-digit",
 });
 
-/** Single-series step chart: 2px line, 10% wash, end dot, crosshair + tooltip. */
+/**
+ * Single-series step chart, drawn as Bencho's Balance chart draws its line
+ * (2.1px stroke, nothing under it, a ring on the reading, a 28% guide while
+ * reading back) in the window's direction colour. It stays a STEP line: a
+ * level or a combat power holds between two checks, so a smoothed curve would
+ * draw values that were never there.
+ */
 export function HistoryChart({
   label,
   steps,
@@ -64,16 +70,15 @@ export function HistoryChart({
     let line = `M${x(steps[0].t)},${y(steps[0].v)}`;
     for (let i = 1; i < steps.length; i++)
       line += ` H${x(steps[i].t)} V${y(steps[i].v)}`;
-    const base = H - PAD.bottom;
-    const area = `${line} V${base} H${x(steps[0].t)} Z`;
-    return { t0, t1, ticks, x, y, line, area };
+    return { t0, t1, ticks, x, y, line };
   }, [steps, W]);
-  const { t0, t1, ticks, x, y, line, area } = geometry;
+  const { t0, t1, ticks, x, y, line } = geometry;
   const last = steps.at(-1)!;
   // Crosshair snaps to observation times so readers land on real data.
   const stops = steps.map((s) => s.t);
   const active = hover ?? null;
   const activeValue = active != null ? valueAt(steps, active) : null;
+  const direction = last.v > steps[0].v ? "up" : last.v < steps[0].v ? "down" : "flat";
 
   function onMove(event: PointerEvent<SVGSVGElement>) {
     const box = event.currentTarget.getBoundingClientRect();
@@ -102,6 +107,8 @@ export function HistoryChart({
         viewBox={`0 0 ${W} ${H}`}
         className={styles.svg}
         role="img"
+        data-direction={direction}
+        data-scrub={active != null || undefined}
         aria-label={`${label} 변화 그래프. 화살표 키로 기록 시점을 이동할 수 있어요.`}
         aria-describedby={`${id}-readout`}
         tabIndex={0}
@@ -141,9 +148,8 @@ export function HistoryChart({
         >
           {day.format(t1)}
         </text>
-        <path d={area} className={styles.area} />
         <path d={line} className={`${styles.line} k-draw`} pathLength={1} />
-        <circle cx={x(last.t)} cy={y(last.v)} r={4} className={styles.dot} />
+        <circle cx={x(last.t)} cy={y(last.v)} r={4.5} className={styles.dot} />
         {active != null && activeValue != null && (
           <g aria-hidden="true">
             <line
@@ -156,7 +162,7 @@ export function HistoryChart({
             <circle
               cx={x(active)}
               cy={y(activeValue)}
-              r={4}
+              r={4.5}
               className={styles.dot}
             />
           </g>

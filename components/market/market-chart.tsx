@@ -8,6 +8,7 @@ import {
   type KeyboardEvent,
   type PointerEvent,
 } from "react";
+import { curve } from "@/components/ui/bencho/balance-curve";
 import { niceTicks } from "@/lib/character/history";
 import type { DailyStat } from "@/lib/market/board";
 import styles from "./market.module.css";
@@ -54,20 +55,27 @@ export function MarketChart({ days }: { days: DailyStat[] }) {
     const x = (i: number) => PAD.left + (days.length > 1 ? i * step : plotW / 2);
     const y = (v: number) =>
       PAD.top + PRICE_H - ((v - v0) / (v1 - v0 || 1)) * PRICE_H;
-    const line = days
-      .map((d, i) => `${i ? "L" : "M"}${x(i)},${y(d.averagePrice)}`)
-      .join(" ");
-    const base = PAD.top + PRICE_H;
-    const area = `${line} L${x(days.length - 1)},${base} L${x(0)},${base} Z`;
+    // Bencho's curve (Catmull-Rom through every reading) on our axis: it maps
+    // the lowest price to h − pad and the highest to pad, so h and pad are
+    // chosen to land those on the tick scale (target-site convention).
+    const top = y(Math.max(...prices));
+    const bottom = y(Math.min(...prices));
+    const curved = days.length > 1 ? curve(prices, plotW, top + bottom, top) : null;
     const barW = Math.max(3, Math.min(18, (step || plotW) * 0.55));
     const volumeTop = PAD.top + PRICE_H + GAP;
     const bar = (count: number) => (count / maxVolume) * VOLUME_H;
-    return { ticks, x, y, line, area, barW, volumeTop, bar };
+    return { ticks, x, y, curved, barW, volumeTop, bar };
   }, [days, W]);
   if (!days.length) return null;
-  const { ticks, x, y, line, area, barW, volumeTop, bar } = geometry;
+  const { ticks, x, y, curved, barW, volumeTop, bar } = geometry;
   const last = days.length - 1;
   const shown = active ?? last;
+  const direction =
+    days[last].averagePrice > days[0].averagePrice
+      ? "up"
+      : days[last].averagePrice < days[0].averagePrice
+        ? "down"
+        : "flat";
 
   function onMove(event: PointerEvent<SVGSVGElement>) {
     const box = event.currentTarget.getBoundingClientRect();
@@ -90,6 +98,8 @@ export function MarketChart({ days }: { days: DailyStat[] }) {
         viewBox={`0 0 ${W} ${H}`}
         className={styles.chartSvg}
         role="img"
+        data-direction={direction}
+        data-scrub={active != null || undefined}
         aria-label="일 평균 거래가와 거래량. 화살표 키로 날짜를 이동할 수 있어요."
         aria-describedby={`${id}-readout`}
         tabIndex={0}
@@ -117,10 +127,18 @@ export function MarketChart({ days }: { days: DailyStat[] }) {
             </text>
           </g>
         ))}
-        <path d={area} className={styles.area} />
-        {/* Draws itself on every entry (CSS .k-draw: first paint included, no
-            replay while the same chart updates; user rule 10-10). */}
-        <path d={line} className={`${styles.line} k-draw`} pathLength={1} />
+        {/* Bencho's line: one curve, nothing under or around it (its note: a
+            wash makes the line the edge of a shape). Red when the window
+            rose, blue when it fell, as Korean market screens do. Draws itself
+            on every entry (CSS .k-draw; user rule 10-10). */}
+        {curved && (
+          <path
+            d={curved.d}
+            transform={`translate(${PAD.left} 0)`}
+            className={`${styles.line} k-draw`}
+            pathLength={1}
+          />
+        )}
         {days.map((d, i) => (
           <rect
             key={d.date}
@@ -163,7 +181,7 @@ export function MarketChart({ days }: { days: DailyStat[] }) {
         <circle
           cx={x(shown)}
           cy={y(days[shown].averagePrice)}
-          r={4}
+          r={4.5}
           className={styles.dot}
         />
       </svg>
