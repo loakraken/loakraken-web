@@ -891,10 +891,11 @@ function useSavedEdits(name: string) {
 }
 const savedTime = (iso: string) =>
   new Date(iso).toLocaleString("ko-KR", {
-    month: "numeric",
+    month: "long",
     day: "numeric",
     hour: "2-digit",
     minute: "2-digit",
+    hourCycle: "h23",
     timeZone: "Asia/Seoul",
   });
 
