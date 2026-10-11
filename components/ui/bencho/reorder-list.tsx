@@ -1,4 +1,18 @@
 "use client";
+// MIT © 2026 Lorenzo Cabra — https://bencho.dev/blocks/liq-arrange
+// Bencho "Reorder list" (Arrange), kept as published (full licence in
+// ./NOTICE). Our changes, and only these (PM 총괄 2026-10-11 안 A):
+//  1. framer-motion → motion/react, `m` imported as `motion` (same library,
+//     the screen supplies LazyMotion) — the body is unchanged.
+//  2. Data in and out: `items` (id, name, mark, tint) and `onReorder(ids)`.
+//     PEOPLE stays as the default, so the block still renders on its own.
+//  3. Rows are tracked by id, not by data index, so the parent can reorder
+//     `items` (our keyboard and arrow buttons) and the rows spring there.
+//     The motion values become a pool of 8 instead of 4 named ones.
+//  4. The stage is as tall as its rows (n × step) instead of a fixed 200px.
+//  5. `here` reads `mark` (homework: this raid pays gold).
+//  6. Two eslint line exceptions where the rule misreads the original.
+import "./reorder-list.css";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { animate, m as motion, useMotionValue, useTransform } from "motion/react";
 
@@ -175,6 +189,11 @@ const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v
    depends on exactly that. */
 
 type Person = { id: string; name: string; here: boolean; tint: string };
+/* (ours) what a screen hands in: `mark` lights the dot `here` used to */
+export type ArrangeItem = { id: string; name: string; mark?: boolean; tint?: string };
+/* (ours) the pool of motion values: hooks cannot be called in a loop, so a
+   fixed count — more than any character has raids. */
+const POOL = 8;
 
 /* `id` is the avatar key in avatars.ts, so it stays put even when
    the name on the row changes — it names the photograph. */
@@ -233,25 +252,46 @@ export function Arrange({
   /* the row's corner, 0..22 — 22 is half of 44 and therefore
      a full pill, which is where it sits */
   corner = CORNER,
+  /* (ours) data in and out */
+  items: given,
+  onReorder,
 }: {
   give?: number;
   lean?: number;
   step?: number;
   corner?: number;
+  items?: ArrangeItem[];
+  onReorder?: (ids: string[]) => void;
 } = {}) {
+  /* (ours) the rows, from the screen or Bencho's own four */
+  const rows = useMemo<Person[]>(
+    () =>
+      (given ?? PEOPLE.map((p) => ({ id: p.id, name: p.name, mark: p.here, tint: p.tint })))
+        .slice(0, POOL)
+        .map((p) => ({ id: p.id, name: p.name, here: !!p.mark, tint: p.tint ?? "var(--ink-3)" })),
+    [given],
+  );
+  const ids = rows.map((p) => p.id).join("|");
   /* visual order, as data indices. The ONLY thing here that is
      React state — everything that moves is a motion value, so a
      drag re-renders when the order changes and not before. */
-  const [order, setOrder] = useState<number[]>([0, 1, 2, 3]);
-  const [held, setHeld] = useState<number | null>(null);
+  const [order, setOrder] = useState<string[]>(() => rows.map((p) => p.id));
+  const [held, setHeld] = useState<string | null>(null);
+  /* (ours) the screen moved a row (keyboard, arrows) or the list changed:
+     adopt its order. Set during render, the React way to follow a prop. */
+  const [seen, setSeen] = useState(ids);
+  if (seen !== ids && held === null) {
+    setSeen(ids);
+    setOrder(rows.map((p) => p.id));
+  }
   /* which row the pointer is over. A hover state and not a
      `:hover` rule, because what it drives is a spring in
      Framer rather than a colour — and because a row that is
      being DRAGGED has to keep showing its grip even when the
      pointer has left it, which a CSS hover cannot say. */
-  const [over, setOver] = useState<number | null>(null);
+  const [over, setOver] = useState<string | null>(null);
 
-  const grab = useRef<{ id: number; y: number; slot: number; last: number; at: number } | null>(null);
+  const grab = useRef<{ id: string; y: number; slot: number; last: number; at: number } | null>(null);
   const stage = useRef<HTMLDivElement | null>(null);
   /* ── 2.6, down from 3.6 ──────────────────────────────────
      The blur is what fuses two rows, and it is also why the
@@ -288,7 +328,29 @@ export function Arrange({
      order wrong if PEOPLE ever changes length. */
   const y0 = useMotionValue(0), y1 = useMotionValue(0);
   const y2 = useMotionValue(0), y3 = useMotionValue(0);
-  const ys = useMemo(() => [y0, y1, y2, y3], [y0, y1, y2, y3]);
+  /* (ours) four more, and each id keeps the value it was given first, so a
+     row reordered by the screen moves rather than swapping values */
+  const y4 = useMotionValue(0), y5 = useMotionValue(0);
+  const y6 = useMotionValue(0), y7 = useMotionValue(0);
+  const pool = useMemo(() => [y0, y1, y2, y3, y4, y5, y6, y7], [y0, y1, y2, y3, y4, y5, y6, y7]);
+  const [owner] = useState(() => new Map<string, number>());
+  const ys = useMemo(() => {
+    const live = new Set(rows.map((p) => p.id));
+    for (const [id] of owner) if (!live.has(id)) owner.delete(id);
+    const taken = new Set(owner.values());
+    const map: Record<string, (typeof pool)[number]> = {};
+    for (const p of rows) {
+      if (!owner.has(p.id)) {
+        const free = pool.findIndex((_, i) => !taken.has(i));
+        owner.set(p.id, free);
+        taken.add(free);
+        /* a new row starts in its slot rather than flying in from 0 */
+        pool[free].jump(rows.indexOf(p) * step);
+      }
+      map[p.id] = pool[owner.get(p.id)!];
+    }
+    return map;
+  }, [rows, pool, owner, step]);
 
   /* the throw, as a value rather than as state — this changes on
      every pointermove and must not cost a render */
@@ -308,7 +370,7 @@ export function Arrange({
     });
   }, [order, step, held, ys]);
 
-  const down = (id: number) => (e: React.PointerEvent) => {
+  const down = (id: string) => (e: React.PointerEvent) => {
     if (grab.current) return;
     /* capture so a drag that wanders off the row keeps
        reporting to it. It THROWS if the id is not a live
@@ -352,7 +414,7 @@ export function Arrange({
 
     /* where the row's own height says it belongs — this reading
        is clamped, the row itself is not */
-    const want = clamp(Math.round((g.slot * step + d) / step), 0, PEOPLE.length - 1);
+    const want = clamp(Math.round((g.slot * step + d) / step), 0, rows.length - 1);
     if (want !== order.indexOf(g.id)) {
       /* a detent: the one moment in the drag with a real event
          in it, so it gets the dry click rather than the slide */
@@ -370,6 +432,8 @@ export function Arrange({
     grab.current = null;
     setHeld(null);
     vel.set(0);
+    /* (ours) hand the new order out once, on release */
+    if (order.join("|") !== ids) onReorder?.(order);
   };
 
   return (
@@ -378,6 +442,8 @@ export function Arrange({
       ref={stage}
       style={{
         "--step": `${step}px`,
+        /* (ours) as tall as its rows: n × step, the last row's 44 included */
+        height: Math.max(1, rows.length - 1) * step + 44,
         "--pill": `${PILL}px`,
         /* ── the corner, and the METABALL cares about it ────
            Two round-ended rows fuse into a shape that still
@@ -398,17 +464,17 @@ export function Arrange({
 
       {/* the opaque layer that fuses */}
       <div className="arr-blobs" aria-hidden="true" style={{ filter: gooUrl }}>
-        {PEOPLE.map((p, i) => {
-          const isHeld = held === i;
+        {rows.map((p) => {
+          const isHeld = held === p.id;
           /* the hover lives on the BLOB, because the blob is
              what is painted — the row you point at is a layer
              above it and has no colour of its own */
-          const warm = !isHeld && over === i;
+          const warm = !isHeld && over === p.id;
           return (
             <motion.span
               key={p.id}
               className="arr-blob"
-              style={{ y: ys[i] }}
+              style={{ y: ys[p.id] }}
               animate={{
                 width: isHeld ? PILL + 12 : PILL,
                 marginLeft: isHeld ? -(PILL / 2) - 6 : -(PILL / 2),
@@ -434,22 +500,22 @@ export function Arrange({
 
       {/* and the unfiltered layer that carries the type */}
       <div className="arr-ink">
-        {PEOPLE.map((p, i) => {
-          const isHeld = held === i;
+        {rows.map((p) => {
+          const isHeld = held === p.id;
           return (
             <motion.div
               key={p.id}
               className="arr-row"
               data-held={isHeld || undefined}
-              style={{ y: ys[i] }}
+              style={{ y: ys[p.id] }}
               animate={{ color: isHeld ? T["--ink"] : T["--ink-2"] }}
               transition={{ duration: 0.2 }}
-              onPointerDown={down(i)}
+              onPointerDown={down(p.id)}
               onPointerMove={move}
               onPointerUp={up}
               onLostPointerCapture={up}
-              onPointerEnter={() => setOver(i)}
-              onPointerLeave={() => setOver((v) => (v === i ? null : v))}
+              onPointerEnter={() => setOver(p.id)}
+              onPointerLeave={() => setOver((v) => (v === p.id ? null : v))}
             >
                             {/* ── nothing opens, and nothing is drawn ────────
                   There was a grip here — six dots, then two

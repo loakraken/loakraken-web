@@ -1,4 +1,18 @@
 "use client";
+// MIT © 2026 Lorenzo Cabra — https://bencho.dev/blocks/checklist
+// Bencho "Checklist", kept as published (full licence in ./NOTICE). Our
+// changes, and only these (PM 총괄 2026-10-11 안 A):
+//  1. framer-motion → motion/react, `m` imported as `motion` (same library,
+//     the screen supplies LazyMotion) — the body is unchanged.
+//  2. Data in and out: `items` (key, label, done, mixed) and `onToggle(i)`.
+//     Bencho's three tasks stay as the default, so it still renders alone.
+//  3. `mixed`: some of a row's parts are done — aria-checked="mixed", the box
+//     half filled and a bar drawn where the tick would be.
+//  4. `addable`, `fall`, `width`: a screen's list cannot take a typed task,
+//     must not fall over and reset itself (that is the wall demo putting
+//     itself away), and sits in a column of its own width.
+//  5. One eslint line exception where the rule misreads the original.
+import "./checklist.css";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { AnimatePresence, m as motion } from "motion/react";
 
@@ -358,6 +372,9 @@ const TASKS = ["Book the studio", "Send the estimate", "Pick a typeface"];
    cannot add is a control lying about itself. */
 const MAX = 5;
 
+/* (ours) what a screen hands in */
+export type ChecklistItem = { key: string; label: string; done: boolean; mixed?: boolean };
+
 export function Checklist({
   corner = CORNER,
   /* how far the box swells past full before it settles,
@@ -366,18 +383,33 @@ export function Checklist({
   bounce = BOUNCE,
   /* the box, px */
   box = BOX,
+  /* (ours) data in and out, and the wall-only behaviours off */
+  items: given,
+  onToggle,
+  addable = true,
+  fall = true,
+  width = W,
 }: {
   corner?: number;
   bounce?: number;
   box?: number;
+  items?: ChecklistItem[];
+  onToggle?: (index: number) => void;
+  addable?: boolean;
+  fall?: boolean;
+  width?: number | string;
 } = {}) {
   /* ── one array, not two ─────────────────────────────────
      The list used to be a constant and the ticks a parallel
      array of booleans, which was fine while the list could not
      change. It can now, and two arrays that have to stay the
      same length are two arrays that will not. */
-  const [items, setItems] = useState(() =>
+  const [own, setItems] = useState(() =>
     TASKS.map((text) => ({ text, done: false })));
+  /* (ours) the screen's rows when it hands them in, else the block's own */
+  const items: { text: string; done: boolean; mixed?: boolean; key?: string }[] = given
+    ? given.map((g) => ({ text: g.label, done: g.done, mixed: g.mixed, key: g.key }))
+    : own;
   /* the row being typed into, or null. The draft is separate
      from the list so an abandoned one leaves nothing behind. */
   const [adding, setAdding] = useState(false);
@@ -411,11 +443,11 @@ export function Checklist({
      start climbing back without anything having to remember
      that they had fallen. That is the entire "you can undo
      it while it is on the floor" behaviour, and it is free. */
-  const fell = items.length > 0 && items.every((t) => t.done);
+  const fell = fall && items.length > 0 && items.every((t) => t.done);
   /* the spare row, and it holds its space even while the heap
      is down — fading it is a paint, removing it would change
      the card's height in the middle of a fall */
-  const spare = items.length < MAX;
+  const spare = addable && !given && items.length < MAX;
 
   /* ── and it puts itself away ─────────────────────────────
      Three seconds on the floor, then the list is new again.
@@ -423,7 +455,8 @@ export function Checklist({
      cancels the reset rather than having it fire later and
      wipe the box you just reopened. */
   useEffect(() => {
-    if (!fell) return;
+    /* (ours) a screen's list is never reset by the block */
+    if (!fell || given) return;
     /* ── ALL THE WAY BACK, tasks included ────────────────
        It used to only take the ticks off and leave anything
        you had added, on the reasoning that deleting your work
@@ -441,7 +474,7 @@ export function Checklist({
       HOLD,
     );
     return () => window.clearTimeout(id);
-  }, [fell]);
+  }, [fell, given]);
 
   /* ── the vertical padding is DERIVED, not declared ───────
      A row is taller than the box in it, for the same reason
@@ -515,7 +548,7 @@ export function Checklist({
     <div
       className="chk"
       style={{
-        width: W,
+        width,
         /* ── STATED, so it can be animated ─────────────────
            It was whatever the rows added up to. The same
            number, written down, is a number CSS can move
@@ -538,9 +571,10 @@ export function Checklist({
           /* the TEXT is the key, and two tasks with the same
              words would collide — so it is the text and the
              position it was added at, which nothing reorders */
-          key={`${i}-${task.text}`}
+          key={task.key ?? `${i}-${task.text}`}
           label={task.text}
           on={task.done}
+          mixed={!task.done && !!task.mixed}
           side={side}
           bounce={bounce}
           still={still}
@@ -559,6 +593,8 @@ export function Checklist({
              the bottom row over everything. */
           layer={fell ? items.length - i : undefined}
           onToggle={() => {
+            /* (ours) the screen owns its rows */
+            if (given) return onToggle?.(i);
             setItems((v) =>
               v.map((t, k) => (k === i ? { ...t, done: !t.done } : t)));
           }}
@@ -627,6 +663,7 @@ export function Checklist({
 function Row({
   label,
   on,
+  mixed = false,
   side,
   bounce,
   still,
@@ -643,6 +680,8 @@ function Row({
 }: {
   label: string;
   on: boolean;
+  /* (ours) some parts done */
+  mixed?: boolean;
   side: number;
   bounce: number;
   still: boolean;
@@ -677,7 +716,8 @@ function Row({
     if (el) onRun(index, el.offsetLeft + el.offsetWidth, el.offsetHeight);
   }, [label, side, index, onRun]);
 
-  const t = useSpring(on ? 1 : 0, clamp(bounce, 0, 100), still);
+  /* (ours) a mixed box fills halfway: the same spring, a smaller target */
+  const t = useSpring(on ? 1 : mixed ? 0.5 : 0, clamp(bounce, 0, 100), still);
   const held = clamp(t, 0, 1);
   /* the rule's own window on the same number */
   const cut = clamp((held - LAG) / RUN, 0, 1);
@@ -714,7 +754,7 @@ function Row({
       type="button"
       className="chk-row"
       role="checkbox"
-      aria-checked={on}
+      aria-checked={mixed ? "mixed" : on}
       data-fell={fell || undefined}
       onClick={onToggle}
       style={{ height: ROW, zIndex: layer, "--slip": `${inset}px` } as React.CSSProperties}
@@ -769,10 +809,11 @@ function Row({
             itself past its own end and pulls back. */}
         <svg className="chk-tick" viewBox="0 0 24 24" aria-hidden="true">
           <path
-            d="M6 12.4 L10.3 16.7 L18 7.6"
+            /* (ours) mixed draws a bar where the tick would be */
+            d={mixed ? "M7 12 L17 12" : "M6 12.4 L10.3 16.7 L18 7.6"}
             pathLength={1}
             strokeDasharray={1}
-            strokeDashoffset={1 - held}
+            strokeDashoffset={mixed ? 0 : 1 - held}
           />
         </svg>
       </span>
