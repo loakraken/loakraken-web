@@ -3,16 +3,20 @@
 // Motion state shared by the landing parts, without motion/react: the home
 // hero uses it on its own (route budget), /about wraps it in LazyMotion.
 
-import { createContext, useCallback, useContext, useEffect, useState, useSyncExternalStore, type ReactNode, type RefObject } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState, useSyncExternalStore, type ReactNode, type RefObject } from "react";
 
 /**
  * enabled: one-shot motion (entrances, transitions) may play.
  * looping: repeating motion (orb, border beam, looping CSS) may play. It stops
  * on its own 5s after it starts, so no pause button is needed (WCAG 2.2.2,
- * user 10:57); wake() runs it 5s more (search focus or hover).
+ * user 10:57); wake() runs it 5s more: search focus or hover, the orb coming
+ * back on screen or being touched, the tab coming back (user, 16:22: the orb
+ * stayed still after scrolling away and back). It never stops dead: the CSS
+ * loops slow to a halt over SETTLE_MS, then pause where they are.
  */
 const MotionContext = createContext({ enabled: false, looping: false, wake: () => {} });
 const LOOP_MS = 5_000;
+const SETTLE_MS = 700;
 const noSubscribe = () => () => {};
 const subscribe = (callback: () => void) => {
   document.addEventListener("visibilitychange", callback);
@@ -36,28 +40,70 @@ export function MotionScope({ children }: { children: ReactNode }) {
   // count from navigation start, after a client navigation from mount.
   const hydrating = useSyncExternalStore(noSubscribe, () => false, () => true);
   const [startedAt] = useState(() => (hydrating ? 0 : performance.now()));
-  const [awake, setAwake] = useState(true);
+  const [phase, setPhase] = useState<"awake" | "settling" | "asleep">("awake");
   const [wakes, setWakes] = useState(0);
+  const root = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!enabled) return;
     const delay = wakes ? LOOP_MS : Math.max(0, startedAt + LOOP_MS - performance.now());
-    const timer = setTimeout(() => setAwake(false), delay);
+    const timer = setTimeout(() => setPhase("settling"), delay);
     return () => clearTimeout(timer);
   }, [enabled, wakes, startedAt]);
+  // Settling: every repeating CSS animation in the scope slows from full speed
+  // to 0 (ease-out), then data-loop="off" pauses it there. playbackRate keeps
+  // the current position, so nothing jumps; a wake puts the rate back at 1.
+  useEffect(() => {
+    const loops = () =>
+      (root.current?.getAnimations({ subtree: true }) ?? []).filter(
+        (animation) => animation.effect?.getTiming().iterations === Infinity
+      );
+    if (phase !== "settling") {
+      loops().forEach((animation) => (animation.playbackRate = 1));
+      return;
+    }
+    const start = performance.now();
+    let frame = requestAnimationFrame(function step(now) {
+      const t = Math.min(1, (now - start) / SETTLE_MS);
+      const rate = Math.max(0.001, (1 - t) ** 2);
+      loops().forEach((animation) => (animation.playbackRate = rate));
+      if (t < 1) frame = requestAnimationFrame(step);
+      else setPhase("asleep");
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [phase]);
   const wake = useCallback(() => {
-    setAwake(true);
+    setPhase("awake");
     setWakes((n) => n + 1);
   }, []);
-  const looping = enabled && awake;
+  // The tab coming back runs the loops again (the budget counts while shown).
+  const wasVisible = useRef(visible);
+  useEffect(() => {
+    if (visible && !wasVisible.current) wake();
+    wasVisible.current = visible;
+  }, [visible, wake]);
+  const looping = enabled && phase !== "asleep";
   return (
     <MotionContext.Provider value={{ enabled, looping, wake }}>
-      <div data-motion={enabled ? "on" : "off"} data-loop={looping ? "on" : "off"}>{children}</div>
+      <div ref={root} data-motion={enabled ? "on" : "off"} data-loop={looping ? "on" : "off"}>{children}</div>
     </MotionContext.Provider>
   );
 }
 
 export const useLandingMotion = () => useContext(MotionContext);
 
+
+/** wake() each time the element comes back on screen after leaving it (not
+ * on its first appearance: the page-load budget already covers that). */
+export function useWakeOnReturn(visible: boolean) {
+  const { wake } = useLandingMotion();
+  const state = useRef<"unseen" | "seen" | "left">("unseen");
+  useEffect(() => {
+    if (visible) {
+      if (state.current === "left") wake();
+      state.current = "seen";
+    } else if (state.current === "seen") state.current = "left";
+  }, [visible, wake]);
+}
 
 /** Whether the element is on screen (margin in px), without motion/react. */
 export function useVisible(ref: RefObject<Element | null>, margin = 0) {
