@@ -393,6 +393,15 @@ export function MoreRewardTool() {
               <div className={styles.tableScroll} aria-busy={switching || undefined} data-stale={switching || undefined}>
                 <table className={styles.table}>
                   <caption className={styles.sr}>레이드·난이도·관문별 더보기 이득</caption>
+                  {/* Fixed columns: widths no longer follow the text, so the web
+                      font arriving late does not slide the gate columns (A6). */}
+                  <colgroup>
+                    <col className={styles.colRaid} />
+                    <col className={styles.colMode} />
+                    <col />
+                    <col />
+                    <col />
+                  </colgroup>
                   <thead>
                     <tr>
                       <th scope="col">레이드</th>
