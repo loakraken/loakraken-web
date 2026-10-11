@@ -40,8 +40,13 @@
   align-items: center;
   min-width: 0;
 }
+.search,
 .theme {
   flex: none;
+}
+/* Search sits just before the theme toggle, touching it. */
+.search + .theme {
+  margin-left: -16px;
 }
 .slot {
   display: flex;
@@ -64,11 +69,15 @@
     flex: 1;
     justify-content: flex-end;
   }
-  /* Toggle between the page slot and the menu button. */
+  /* Search and toggle between the page slot and the menu button. */
+  .search,
   .theme {
     order: 1;
   }
-  .header:not(:has(.slot)) .theme {
+  .search + .theme {
+    margin-left: -6px;
+  }
+  .header:not(:has(.slot)) .search {
     margin-left: auto;
   }
 }

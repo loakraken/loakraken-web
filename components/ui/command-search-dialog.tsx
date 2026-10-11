@@ -13,7 +13,16 @@ const CommandBar = React.lazy(() =>
   import("@/components/ui/bencho/command-bar").then((m) => ({ default: m.CommandBar }))
 )
 
-function CommandSearchDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+function CommandSearchDialog({
+  open,
+  onOpenChange,
+  returnFocus,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  /** Focus target on close (the header button when it opened the dialog). */
+  returnFocus?: React.RefObject<HTMLElement | null>
+}) {
   const router = useRouter()
   const [error, setError] = React.useState("")
   const setOpen = onOpenChange
@@ -47,6 +56,7 @@ function CommandSearchDialog({ open, onOpenChange }: { open: boolean; onOpenChan
         />
         <Dialog.Popup
           data-slot="command-search"
+          finalFocus={returnFocus ?? true}
           className={cn(
             "fixed top-[18vh] left-1/2 z-50 grid w-[min(360px,calc(100vw-32px))] -translate-x-1/2 justify-items-center gap-2",
             "transition-[opacity,scale] duration-(--duration-base) ease-(--ease-out)",

@@ -34,9 +34,10 @@ export function SiteHeader({
         <SiteNav />
       </nav>
       {children && <div className={styles.slot}>{children}</div>}
+      {/* Character search from any page (button, Ctrl K / ⌘K); the command
+          bar loads on first open. */}
+      <CommandSearch className={styles.search} />
       <ThemeToggle className={styles.theme} />
-      {/* Ctrl K / ⌘K anywhere: the command bar loads on first open. */}
-      <CommandSearch />
     </header>
   );
 }
