@@ -21,7 +21,7 @@ import { recordRecent } from "@/lib/character/recent";
 import { CharacterBanner } from "./imagery";
 import { Entrance } from "./entrance";
 import { kstTime, level, number, text } from "./parts";
-import { SettingCheckEnabled, SimulatorEnabled, TabBar, TabPanel, tabOf } from "./tabs";
+import { SettingCheckEnabled, SimulatorEnabled, TabBar, TabPanel, tabOf, useTabTop } from "./tabs";
 import { ArmoryPageEnabled } from "./use-armory-page";
 import { ReceiptEnabled } from "./receipt-panel";
 import styles from "./character.module.css";
@@ -202,6 +202,7 @@ function CharacterContent({
     useContext(SettingCheckEnabled),
     useContext(SimulatorEnabled),
   );
+  useTabTop(tab);
   const [now, setNow] = useState(renderedAt);
   const [refreshed, setRefreshed] = useState(false);
   const query = useQuery({
