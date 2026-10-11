@@ -15,6 +15,7 @@ import { GameIcon } from "./imagery";
 import { Panel } from "./panel";
 import { Empty, number, text } from "./parts";
 import styles from "./detail.module.css";
+import { ProgressBar } from "@/components/ui/progress-bar";
 
 type Collectible = Character["collectibles"][number];
 
@@ -25,19 +26,9 @@ const percentText = (point: number | null, max: number | null) =>
     ? `${(Math.floor((point / max) * 1000) / 10).toLocaleString("ko-KR")}%`
     : "—";
 
-function Bar({ value, label }: { value: number; label: string }) {
-  return (
-    <span
-      className={styles.progress}
-      role="meter"
-      aria-label={label}
-      aria-valuemin={0}
-      aria-valuemax={100}
-      aria-valuenow={Math.round(value * 100)}
-    >
-      <i style={{ width: `${value * 100}%` }} />
-    </span>
-  );
+/** Grows once when first seen (shared ProgressBar); the % beside it is final. */
+function Bar({ value, label, index }: { value: number; label: string; index: number }) {
+  return <ProgressBar className={styles.progress} value={value} label={label} index={index} />;
 }
 
 /* 내실 ---------------------------------------------------------------------- */
@@ -190,6 +181,7 @@ export function CollectiblesTab({ data }: { data: Character }) {
                         <Bar
                           value={ratio(item.point, item.maxPoint)}
                           label={`${text(item.type)} 진행도`}
+                          index={i}
                         />
                       </button>
                     </li>
@@ -261,6 +253,7 @@ export function CollectiblesTab({ data }: { data: Character }) {
                     <Bar
                       value={ratio(item.point, item.maxPoint)}
                       label={`${text(item.type)} 성향`}
+                      index={i}
                     />
                   </div>
                 ))}
