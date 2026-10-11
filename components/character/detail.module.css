@@ -944,6 +944,12 @@
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 20px;
 }
+/* While the records load: the chart figure's height (history-chart). */
+.chartHold {
+  display: grid;
+  place-items: center;
+  height: 208px;
+}
 .problem strong {
   display: block;
   font-size: 14px;

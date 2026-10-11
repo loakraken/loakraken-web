@@ -1506,11 +1506,37 @@ export function StatsTab({ data }: { data: Character }) {
         시점만 점으로 남고, 마지막 값은 최근 확인 시각까지 이어서 그려요.
       </p>
       {query.isPending ? (
-        <Panel title="통계" wide>
-          <p className={styles.muted} role="status">
-            <InlineOrb /> 기록을 불러오고 있어요.
-          </p>
-        </Panel>
+        // The same three chart panels and the table panel, holding the
+        // charts' height, so the records arriving move nothing below
+        // (user 10-11: text jumping on first load).
+        <>
+          <div className={styles.chartGrid}>
+            {METRICS.map(({ key, label }, i) => (
+              <Panel key={key} title={label}>
+                <div className={styles.chartHold}>
+                  {i === 0 && (
+                    <p className={styles.muted} role="status">
+                      <InlineOrb /> 기록을 불러오고 있어요.
+                    </p>
+                  )}
+                </div>
+              </Panel>
+            ))}
+          </div>
+          <Panel
+            title="기록 표"
+            wide
+            meta={
+              <button type="button" className={styles.textButton} disabled>
+                기록 보기
+              </button>
+            }
+          >
+            <p className={styles.muted} aria-hidden="true">
+              &nbsp;
+            </p>
+          </Panel>
+        </>
       ) : query.isError ? (
         <Panel title="통계" wide>
           <QueryProblem

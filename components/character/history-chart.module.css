@@ -8,7 +8,10 @@
   color: var(--muted-foreground);
   display: block;
   width: 100%;
-  height: auto;
+  /* H in history-chart.tsx: the height is fixed from the first frame, before
+     the width is measured (auto height grew 96 -> 180px and moved everything
+     below, user 10-11 "text jumping"). */
+  height: 180px;
   overflow: visible;
   border-radius: 12px;
   touch-action: pan-y;

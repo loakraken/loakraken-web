@@ -160,7 +160,11 @@ export function RankingsView({ initial }: { initial: RankingQuery }) {
             </button>
           </div>
         ) : !data ? (
-          <p className={styles.muted}>랭킹을 불러오고 있어요…</p>
+          // Holds most of the screen so the note below starts out of view and
+          // the 50-row table arriving moves nothing visible (user 10-11).
+          <p className={`${styles.muted} ${styles.listHold}`} role="status">
+            랭킹을 불러오고 있어요…
+          </p>
         ) : data.rows.length === 0 ? (
           <p className={styles.muted}>조건에 맞는 캐릭터가 없어요.</p>
         ) : (
