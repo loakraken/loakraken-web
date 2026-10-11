@@ -813,7 +813,7 @@ function CombatPowerContent({ initialName }: { initialName: string }) {
         </div>
       </main>
       <footer className={quote.footer}>
-        LOAKraken · 로스트아크 비공식 팬 프로젝트 · 공식 전투정보실 원문 기반 계산
+        LOAKraken · 공식 전투정보실 원문 기반 계산
       </footer>
     </div>
   );
