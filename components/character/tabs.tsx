@@ -48,10 +48,20 @@ import { AvatarsTab, CollectiblesTab } from "./inner";
 import { Panel } from "./panel";
 import { ViewsPanel } from "./views-panel";
 import { useTabPill } from "./tab-pill";
-import { CoreCard, DetailTooltip, EngravingCard, GemCard, GridGemCard, ItemTooltip, PassiveNodeCard } from "./item-tooltip";
+import {
+  CoreCard,
+  DetailTooltip,
+  EngravingCard,
+  GemCard,
+  GridGemCard,
+  ItemTooltip,
+  PassiveNodeCard,
+  RuneCard,
+  SkillDetailCard,
+} from "./item-tooltip";
 import { sourcePlainText } from "@/lib/character/source-text";
 import { useItemTooltips } from "./use-item-tooltips";
-import { equipmentExtra, gemLines, gridGemLines, gridLines } from "@/lib/character/item-tooltips";
+import { equipmentExtra, gemLines, gridGemLines, gridLines, runeLines } from "@/lib/character/item-tooltips";
 import { ReceiptPanel } from "./receipt-panel";
 import { useStagger } from "./entrance";
 import { RankPanel } from "./rank-panel";
@@ -949,11 +959,13 @@ function EngravingsPanel({ data }: { data: Character }) {
   );
 }
 
-function SkillCard({ skill, compact }: { skill: Skill; compact?: boolean }) {
+function SkillCard({ skill, compact, rune }: { skill: Skill; compact?: boolean; rune?: string[] }) {
   return (
     <li className={styles.skill}>
       <div className={styles.skillHead}>
-        <GameIcon src={skill.icon} size={36} />
+        <DetailTooltip name={skill.name ?? "스킬"} card={<SkillDetailCard skill={skill} />}>
+          <GameIcon src={skill.icon} size={36} />
+        </DetailTooltip>
         <div className={styles.itemText}>
           <strong>{text(skill.name)}</strong>
           <small>
@@ -965,7 +977,9 @@ function SkillCard({ skill, compact }: { skill: Skill; compact?: boolean }) {
           </small>
         </div>
         {skill.rune && (
-          <GameIcon src={skill.rune.icon} grade={skill.rune.grade} size={24} />
+          <DetailTooltip name={skill.rune.name ?? "스킬 룬"} card={<RuneCard rune={skill.rune} lines={rune} />}>
+            <GameIcon src={skill.rune.icon} grade={skill.rune.grade} size={24} />
+          </DetailTooltip>
         )}
       </div>
       {skill.tripods.length > 0 && (
@@ -1001,6 +1015,7 @@ function SkillOverview({
   const [showAll, setShowAll] = useState(false);
   const listId = useId();
   const skills = data.loadout.skills;
+  const extra = useItemTooltips(data.characterName);
   if (skills === undefined)
     return (
       <Panel title="스킬" wide>
@@ -1041,6 +1056,7 @@ function SkillOverview({
               key={`${skill.name}-${i}`}
               skill={skill}
               compact={!full}
+              rune={runeLines(extra, skill.name)}
             />
           ))}
         </ul>

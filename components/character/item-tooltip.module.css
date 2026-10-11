@@ -38,6 +38,19 @@
   outline: 3px solid var(--ring);
   outline-offset: 2px;
 }
+/* A tripod in the skill card: 28px icon, then name and effect. */
+.tripod {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  gap: 8px;
+  align-items: start;
+}
+.tripod + .tripod {
+  margin-top: 6px;
+}
+.tripod img {
+  border-radius: 4px;
+}
 /* The last trade line ("거래 불가", "거래가능") is right-aligned in the game. */
 .tradeEnd {
   text-align: right;
