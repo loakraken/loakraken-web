@@ -118,11 +118,11 @@ export function ContributionTool() {
                     aria-invalid={!!error}
                     aria-describedby={error ? `${damageId}-error` : undefined}
                   />
-                  {error && (
-                    <span id={`${damageId}-error`} className={quote.inputError}>
-                      {error}
-                    </span>
-                  )}
+                  {/* Always laid out, one line high: an error arriving pushed the
+                      result card 31px (PM-프론트 #582 P1, 점검표 A7). */}
+                  <span id={`${damageId}-error`} className={`${quote.inputError} ${styles.errorSlot}`} role="alert">
+                    {error ?? ""}
+                  </span>
                 </div>
               </div>
             </section>

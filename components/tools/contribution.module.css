@@ -1,10 +1,31 @@
 /* 기여도 계산기 (L41). */
+/* Fixed columns: the gate list is wider for some raids (boss names), and in
+   a wrapping flex row that slid the damage field 10px sideways (#582 P1). */
 .fields {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
+  display: grid;
+  grid-template-columns: 9rem 9rem minmax(0, 17rem) minmax(10rem, 1fr);
+  align-items: start;
   gap: 12px;
   margin-top: 16px;
+}
+.fields > div {
+  min-width: 0;
+}
+.fields [data-slot="select"] {
+  width: 100%;
+}
+@media (max-width: 1000px) {
+  .fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 560px) {
+  .fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.errorSlot {
+  min-height: 1lh;
 }
 .range {
   display: flex;

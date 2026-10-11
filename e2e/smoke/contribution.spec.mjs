@@ -36,4 +36,25 @@ test.describe("기여도 계산기 @smoke", () => {
     await page.getByRole("textbox", { name: "내 피해량(억)" }).fill("1800");
     await expect(page.getByRole("status")).toContainText("이 관문은 기준값을 확인하고 있어 아직 계산하지 않아요.");
   });
+
+  test("오류 문구나 레이드를 바꿔도 입력 칸과 결과 카드가 움직이지 않는다(PM-프론트 #582 P1, 점검표 A7)", async ({ page }) => {
+    await gotoReady(page, "/tools/contribution");
+    const input = page.getByRole("textbox", { name: "내 피해량(억)" });
+    const result = page.getByRole("region", { name: /관문$/ });
+    const x0 = (await input.boundingBox()).x;
+    const y0 = (await result.boundingBox()).y;
+    await input.fill("abc");
+    await expect(page.getByText("숫자만 입력해 주세요(억 단위).")).toBeVisible();
+    expect((await result.boundingBox()).y).toBe(y0);
+    await input.fill("");
+    for (const raid of ["1막", "세르카", "3막 익스트림", "벨가르딘"]) {
+      // A pick changes the page height, and the pointer left behind can land on
+      // the sticky header and open its menu over the list. Park it on the result.
+      const box = await result.boundingBox();
+      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+      await expect(page.getByRole("navigation", { name: "주요 메뉴" }).getByRole("button", { expanded: true })).toHaveCount(0);
+      await chooseOption(page, page.getByRole("combobox", { name: "레이드" }), raid);
+      expect((await input.boundingBox()).x, raid).toBe(x0);
+    }
+  });
 });
