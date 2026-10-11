@@ -310,3 +310,130 @@ export function EngravingCard({ description }: { description: string }) {
     </ItemDetail>
   );
 }
+
+type GridSlot = NonNullable<Character["loadout"]["arkGrid"]>["slots"][number];
+type GridGem = GridSlot["gems"][number];
+
+const img56 = (src: string | null | undefined) =>
+  // eslint-disable-next-line @next/next/no-img-element -- official CDN icon at a fixed size
+  src ? <img src={src} alt="" width={56} height={56} referrerPolicy="no-referrer" /> : undefined;
+
+/**
+ * The ark grid core card (sheet v2.1 §2c): name, icon row (grade 아크 그리드
+ * 코어), core type, supplied willpower, the [10P]/[14P]/[17P]… options (inactive
+ * ones muted) and the activation conditions.
+ */
+export function CoreCard({ slot }: { slot: GridSlot }) {
+  return (
+    <ItemDetail
+      grade={itemGrade(slot.grade)}
+      title={slot.name ?? "아크 그리드 코어"}
+      icon={img56(slot.icon)}
+      lines={[[slot.grade, "아크 그리드 코어"].filter(Boolean).join(" ")]}
+    >
+      {slot.coreType && (
+        <ItemDetailSection label="코어 타입">
+          <ItemLine>{slot.coreType}</ItemLine>
+        </ItemDetailSection>
+      )}
+      {slot.supplyWillpower != null && (
+        <ItemDetailSection label="코어 공급 의지력">
+          <ItemLine>{slot.supplyWillpower} 포인트</ItemLine>
+        </ItemDetailSection>
+      )}
+      {slot.options.length > 0 && (
+        <ItemDetailSection label="코어 옵션">
+          {slot.options.map((option) => (
+            <ItemLine key={option.threshold} tone={option.active ? undefined : "muted"}>
+              [{option.threshold}P] {option.text}
+            </ItemLine>
+          ))}
+        </ItemDetailSection>
+      )}
+      {slot.conditions.length > 0 && (
+        <ItemDetailSection label="코어 옵션 발동 조건">
+          {slot.conditions.map((condition, i) => (
+            <ItemLine key={i}>{condition}</ItemLine>
+          ))}
+        </ItemDetailSection>
+      )}
+    </ItemDetail>
+  );
+}
+
+/**
+ * The ark grid gem card (§2c): name, icon row (grade 아크 그리드 젬), basic info
+ * (type, point) and effects (willpower = base - efficiency, the core point,
+ * each option with its level and value).
+ */
+export function GridGemCard({ gem }: { gem: GridGem }) {
+  const type = gem.gemType ?? "젬";
+  return (
+    <ItemDetail
+      grade={itemGrade(gem.grade)}
+      title={gem.name ?? "아크 그리드 젬"}
+      icon={img56(gem.icon)}
+      lines={[[gem.grade, "아크 그리드 젬"].filter(Boolean).join(" ")]}
+      aside={gem.active === false ? undefined : "장착중"}
+    >
+      {(gem.gemType || gem.gemPoint != null) && (
+        <ItemDetailSection label="젬 기본 정보">
+          {gem.gemType && <ItemLine>젬 타입 : {gem.gemType}</ItemLine>}
+          {gem.gemPoint != null && <ItemLine>젬 포인트 : {gem.gemPoint}</ItemLine>}
+        </ItemDetailSection>
+      )}
+      <ItemDetailSection label="젬 효과">
+        {gem.requiredWillpower != null && (
+          <ItemLine>
+            필요 의지력 : {gem.requiredWillpower}
+            {gem.baseWillpower != null && gem.willpowerEfficiency != null
+              ? ` (기본 값 ${gem.baseWillpower} – 의지력 효율 ${gem.willpowerEfficiency})`
+              : ""}
+          </ItemLine>
+        )}
+        {gem.corePoint != null && (
+          <ItemLine>
+            {type} 포인트 : {gem.corePoint}
+          </ItemLine>
+        )}
+        {gem.options.map((option, i) => (
+          <div key={i}>
+            <ItemLine>
+              [{option.name}]{option.level != null ? ` Lv.${option.level}` : ""}
+            </ItemLine>
+            {option.effect && <ItemLine>{option.effect}</ItemLine>}
+          </div>
+        ))}
+      </ItemDetailSection>
+    </ItemDetail>
+  );
+}
+
+/**
+ * An ark passive node card (§2c): title = node, the image without a grade
+ * box, "트리 / 아크 패시브 레벨 N", then the effect text.
+ */
+export function PassiveNodeCard({
+  name,
+  tree,
+  level,
+  icon,
+  text,
+}: {
+  name: string;
+  tree: string;
+  level: number | null;
+  icon: string | null;
+  text: string | null;
+}) {
+  return (
+    <ItemDetail
+      title={name}
+      icon={img56(icon)}
+      plainIcon
+      lines={[tree, level != null ? `아크 패시브 레벨 ${level}` : null].filter((line): line is string => line != null)}
+    >
+      {text && <ItemLine>{text}</ItemLine>}
+    </ItemDetail>
+  );
+}
