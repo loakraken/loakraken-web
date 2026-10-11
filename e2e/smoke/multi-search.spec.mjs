@@ -46,6 +46,10 @@ test.describe("멀티서치 @smoke", () => {
     await expect(alert).toContainText("이름!");
     await expect(alert).toContainText("가나, 다라");
     await expect(page.getByText("최대 6명까지 비교할 수 있어요. 지금 6명")).toBeVisible();
+    // 꽉 찬 뒤에도 버튼은 눌리고, 왜 안 되는지 알려 준다
+    await field(page).fill("");
+    await page.getByRole("button", { name: "비교하기" }).click();
+    await expect(page.getByRole("alert").filter({ hasText: "이미 6명이에요" })).toBeVisible();
   });
 
   test("못 찾은 캐릭터는 이유 한 줄, 값 없는 칸도 이유를 쓴다", async ({ page }) => {
