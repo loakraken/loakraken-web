@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { AvatarCard, DetailTooltip } from "./item-tooltip";
 import type { Character } from "@/lib/character/model";
 import { groupEquipment } from "@/lib/character/detail";
 import { avatarEffectTotals, avatarSlot } from "@/lib/character/inner";
@@ -252,7 +253,9 @@ export function AvatarsTab({ data }: { data: Character }) {
                         .sort((a, b) => Number(a.isInner) - Number(b.isInner))
                         .map((avatar, i) => (
                           <li key={`${avatar.name}-${i}`} className={styles.item}>
-                            <GameIcon src={avatar.icon} grade={avatar.grade} size={40} />
+                            <DetailTooltip name={avatar.name ?? "아바타"} card={<AvatarCard avatar={avatar} />}>
+                              <GameIcon src={avatar.icon} grade={avatar.grade} size={40} />
+                            </DetailTooltip>
                             <div className={styles.itemText}>
                               <strong>
                                 {text(avatar.name)}
