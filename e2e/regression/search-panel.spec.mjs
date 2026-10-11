@@ -114,3 +114,36 @@ test("@A7 빈 칸: 순서는 최근 본 → 인기 → 기능, 인기가 늦게 
   const order = await list.getByRole("group").evaluateAll((groups) => groups.map((g) => g.getAttribute("aria-labelledby") && document.getElementById(g.getAttribute("aria-labelledby"))?.textContent));
   expect(order).toEqual(["최근 본 캐릭터", "실시간 인기 캐릭터", "기능"]);
 });
+
+for (const width of [1440, 360]) {
+  test(`@A7 ${width}: 상 → 세 이어 치면 줄이 미끄러지지 않는다(입력 직후 포함) @regression`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 800 });
+    await page.route("**/api/characters/suggest**", async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 700));
+      await route.continue();
+    });
+    await openSearch(page);
+    await page.keyboard.type("상");
+    await expect(page.getByRole("option", { name: /상세서포터/ })).toBeVisible();
+    // Watch the lookup row and the key hints every frame from the next key on.
+    await page.evaluate(() => {
+      window.__ys = [];
+      const t0 = performance.now();
+      const tick = () => {
+        const lookup = [...document.querySelectorAll("[role=option]")].find((o) => o.textContent.includes("정보 보기"));
+        const head = document.querySelector(".rsp-top");
+        window.__ys.push([lookup ? Math.round(lookup.getBoundingClientRect().top) : null, head ? Math.round(head.getBoundingClientRect().top) : null]);
+        if (performance.now() - t0 < 1800) requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    });
+    await page.keyboard.type("세");
+    await expect(page.getByRole("option", { name: /‘상세’ 캐릭터 정보 보기/ })).toBeVisible();
+    await page.waitForTimeout(1900);
+    const ys = await page.evaluate(() => window.__ys);
+    const lookupTops = new Set(ys.map(([y]) => y).filter((y) => y != null));
+    const headTops = new Set(ys.map(([, y]) => y).filter((y) => y != null));
+    expect([...lookupTops], "정보 보기 줄 위치").toHaveLength(1);
+    expect([...headTops], "키 안내 위치").toHaveLength(1);
+  });
+}

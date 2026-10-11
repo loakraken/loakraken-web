@@ -58,6 +58,9 @@ function useSettled(value: string, ms = 150) {
 
 type Row = ResultItem & { run: () => void }
 
+/** Name suggestions shown (the backend sends up to 8); their room is held. */
+const SUGGEST_ROWS = 5
+
 function CommandSearchDialog({
   open,
   onOpenChange,
@@ -187,27 +190,15 @@ function CommandSearchDialog({
       ],
     })
   } else {
-    const menus = menuMatches(query, flags)
-    if (menus.length)
-      groups.push({
-        id: "menu",
-        title: "메뉴",
-        items: menus.map((m) => ({
-          id: m.id,
-          title: m.label,
-          side: m.section,
-          run: () => {
-            close()
-            router.push(m.href)
-          },
-        })),
-      })
     const name = normalizeCharacterName(query)
-    // Suggestions come last (after the menu and "정보 보기") for the same reason.
+    // Character first, its suggestions in five held rows, the menu under it:
+    // typing on (상 → 상세) or a late answer never moves a row (A7, #593).
     const names = (settled === query ? suggest.data?.data.items ?? [] : []).filter((c) => c.characterName !== name)
+    const lookupOk = !characterNameError(name)
     groups.push({
       id: "character",
       title: "캐릭터",
+      reserve: lookupOk ? SUGGEST_ROWS + 1 : 0,
       items: [
         ...(characterNameError(name)
           ? []
@@ -220,7 +211,7 @@ function CommandSearchDialog({
                 run: () => void submit(name),
               },
             ]),
-        ...names.map((c) => {
+        ...names.slice(0, SUGGEST_ROWS).map((c) => {
           const { head, tail } = splitPrefix(c.characterName, query)
           return {
             id: `suggest:${c.characterName}`,
@@ -239,6 +230,21 @@ function CommandSearchDialog({
         }),
       ],
     })
+    const menus = menuMatches(query, flags)
+    if (menus.length)
+      groups.push({
+        id: "menu",
+        title: "메뉴",
+        items: menus.map((m) => ({
+          id: m.id,
+          title: m.label,
+          side: m.section,
+          run: () => {
+            close()
+            router.push(m.href)
+          },
+        })),
+      })
   }
   const rows = groups.flatMap((g) => g.items)
   const ids = rows.map((r) => r.id)
@@ -335,7 +341,11 @@ function CommandSearchDialog({
           </p>
           {/* How many rows the typed text found, read once it settles. */}
           <p role="status" className="sr-only">
-            {query && settled === query && !suggest.isFetching ? `결과 ${rows.length}개` : ""}
+            {query && settled === query && !suggest.isFetching
+              ? `결과 ${rows.length}개`
+              : !query && popular.isSuccess && !popular.data.data.items.length
+                ? "인기 검색을 모으는 중이에요."
+                : ""}
           </p>
         </Dialog.Popup>
       </Dialog.Portal>

@@ -44,7 +44,8 @@ type ResultGroup = {
   /** (ours, 10-12) rows of room held while the items load, so later groups
       do not move when they arrive; the group shows its title meanwhile */
   reserve?: number;
-  /** (ours) shown in the held room when the group came back empty */
+  /** (ours) shown in the held room when the group came back empty (visual
+      only, aria-hidden; the caller announces it) */
   note?: ReactNode;
 };
 
@@ -162,6 +163,7 @@ function ResultPanel({ open, id, label, groups, activeId, onPick, onActive, head
                     {!!group.reserve && group.items.length < group.reserve && (
                       <div
                         className="rsp-hold"
+                        aria-hidden="true"
                         style={{ height: `${(group.reserve - group.items.length) * 48}px` }}
                       >
                         {group.items.length === 0 && group.note}
