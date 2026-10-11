@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { NotFoundCaret } from "@/components/site/not-found-caret";
 import styles from "@/components/site/not-found.module.css";
 import { LogoMark } from "@/components/ui/logo";
 
@@ -9,28 +8,44 @@ export const metadata: Metadata = {
   robots: { index: false },
 };
 
-/* Anti Average's 404 layout (user decision): two short lines top left, a big
-   grey 404 with a black silhouette in front and a frosted lens over its head,
-   a square logo tile and a big "Error" tile bottom left, a "+" menu tile
-   bottom right. Their cat is their own symbol, so ours is a kraken seen from
-   behind (tentacles for a tail) with our mark; words, font and colours ours. */
+/* The 404 as the original Anti Average page draws it (user decision; measured
+   10-11, 60 디자인 시스템/방향 전환/404 원본 실측): two lines top left, a
+   668×459 picture in the middle — two grey 4s with a black head between them
+   under a frosted glass lens and a body below — a logo tile and an "Error"
+   tile bottom left, a "+" tile bottom right. Their cat is their own symbol,
+   so the head and body are our kraken, in the cat's place and box. No
+   pointer-following caret (the original has none). The words are the
+   original's design copy (no site or brand name in them). */
 export default function NotFound() {
   return (
     <main id="main" className={styles.page}>
       <h1 className={styles.lead}>
-        여기서 무슨 일이 있었는지 모르겠어요. 미안해요!
-        <br />
-        주소를 다시 확인해 볼까요?
+        <span>We’re not sure what happened there—sorry!</span>
+        <span>Check for typos, try again?</span>
       </h1>
 
+      {/* Hovering the picture parts the two 4s (pointer devices only). */}
       <div className={styles.stage} aria-hidden="true">
-        <span className={styles.digits}>404</span>
-        <svg className={styles.kraken} viewBox="0 0 420 330" fill="currentColor">
-          <path d="M210 14C270 14 300 60 296 114C293 152 278 172 274 198C306 224 322 264 322 330H98C98 264 114 224 146 198C142 172 127 152 124 114C120 60 150 14 210 14Z" />
-          <path d="M122 300C80 300 44 286 32 252C22 222 44 194 72 204C92 211 90 238 70 238C59 238 57 227 62 220C48 223 46 246 62 260C80 277 114 277 136 268Z" />
-          <path d="M112 330C72 330 28 318 14 290C6 272 21 261 34 270C53 284 84 300 120 300Z" />
-          <path d="M298 300C340 300 376 286 388 252C398 222 376 194 348 204C328 211 330 238 350 238C361 238 363 227 358 220C372 223 374 246 358 260C340 277 306 277 284 268Z" />
-          <path d="M308 330C348 330 392 318 406 290C414 272 399 261 386 270C367 284 336 300 300 300Z" />
+        <svg className={styles.picture} viewBox="0 0 668 459">
+          <g className={`${styles.four} ${styles.left}`}>
+            <text x="180" y="252" textAnchor="middle">4</text>
+          </g>
+          <g className={`${styles.four} ${styles.right}`}>
+            <text x="488" y="252" textAnchor="middle">4</text>
+          </g>
+          {/* The kraken, where the cat sits: its box is left 18.5%, width
+              50%, on the floor; the head is the dark round under the lens. */}
+          <g className={styles.kraken}>
+            {/* a pear-shaped mantle widening from the neck to the floor
+                (the original's silhouette), head on top under the lens, two
+                tentacles curling up on the left where the cat's tail is */}
+            <path d="M292 160C286 200 276 240 262 270C240 315 214 345 212 400C210 440 214 470 216 478H452C454 470 458 440 456 400C452 345 426 315 404 270C392 240 382 200 376 160Z" />
+            <circle cx="334" cy="128" r="56" />
+            <path className={styles.arm} d="M236 474C170 468 128 430 128 380C128 345 145 318 168 308" />
+            <path className={styles.arm} d="M248 438C206 428 182 404 184 372C186 352 198 338 216 334" />
+            <ellipse className={styles.eye} cx="315" cy="124" rx="6" ry="12" />
+            <ellipse className={styles.eye} cx="353" cy="124" rx="6" ry="12" />
+          </g>
         </svg>
         <span className={styles.lens} />
       </div>
@@ -54,8 +69,6 @@ export default function NotFound() {
           <Link href="/rankings">랭킹</Link>
         </nav>
       </details>
-
-      <NotFoundCaret />
     </main>
   );
 }
