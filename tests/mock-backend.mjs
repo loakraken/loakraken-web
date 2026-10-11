@@ -1367,6 +1367,32 @@ createServer(async (req, res) => {
     const stone = d.loadout.equipment.find((item) => item.type === "어빌리티 스톤");
     if (stone?.detail) stone.detail.effects = [...stone.detail.effects, { title: "무작위 각인 효과", lines: ["[레벨 보너스] 기본 공격력 +1.50%"] }];
     d.analysis.arkGrid = { coreCount: 6, activeGemCount: 18, inactiveGemCount: 6, unknownGemCount: 0, orderPoints: 53, chaosPoints: 51 };
+    // A bracelet to carry the efficiency (the fixture has weapon and helmet only).
+    if (!d.loadout.equipment.some((item) => item.type === "팔찌"))
+      d.loadout.equipment.push({
+        type: "팔찌", name: "찬란한 구원자의 팔찌", icon: null, grade: "고대",
+        detail: {
+          parserVersion: "equipment-tooltip-v5", refineLevel: null, quality: null, itemLevel: null, tier: 4, arkPassivePoint: null,
+          effects: [], stoneEngravings: [], polishEffects: [],
+          braceletEffects: [
+            { text: "치명타 피해 +8.40%", grade: "HIGH" },
+            { text: "공격 및 이동 속도 +4%", grade: "MID" },
+          ],
+          titleLine: null, tradeLines: [], refineExp: null, advancedRefineLevel: 0,
+        },
+      });
+    // Bracelet efficiency (backend #350): the reference sample for 상세, the
+    // support reason for 상세서포터.
+    d.braceletEfficiency = name === "상세서포터"
+      ? { percent: null, status: "UNSUPPORTED", reasonCode: "SUPPORT_POSITION", reason: "서포터는 전투력이 딜러와 다르게 계산돼 팔찌 효율을 매기지 않아요.", lines: [], ruleVersion: "combat-power-v3" }
+      : {
+          percent: 14.42, status: "OK", reasonCode: null, reason: "팔찌를 뺀 전투력과 비교했어요.", ruleVersion: "combat-power-v3",
+          lines: [
+            { text: "치명타 피해 +8.40%", percent: 4.12, status: "OK", reasonCode: null, reason: null },
+            { text: "공격 및 이동 속도 +4%", percent: null, status: "UNSUPPORTED", reasonCode: "SPEED", reason: "속도는 전투력에 들어가지 않아요." },
+            { text: "팔찌 도약 +18", percent: 2.05, status: "OK", reasonCode: null, reason: null },
+          ],
+        };
     if (name === "상세서포터") {
       d.className = "바드";
       d.loadout.arkPassive.effects = [
