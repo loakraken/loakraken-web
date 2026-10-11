@@ -252,28 +252,29 @@ function ThemeToggle({ className, ...props }: ThemeToggleProps) {
                   applyChoice(value)
                   close(true)
                 }}
+                // Selected: a blue edge, always (not only with focus), and bold
+                // text, so it never rests on colour alone. Keyboard focus is a
+                // different mark: a tint and a thin dashed outline outside.
                 className={cn(
                   "flex h-11 items-center gap-3 rounded-xl px-2.5 text-left text-[15px]",
                   "transition-colors duration-(--duration-fast) pointer-fine:hover:bg-muted",
-                  "aria-checked:font-semibold"
+                  // important on the weight too: screen modules reset `button { font: inherit }`
+                  // unlayered, which beats a plain utility (#517 review: weight stayed 400).
+                  "aria-checked:font-semibold! aria-checked:shadow-[inset_0_0_0_1.5px_var(--ring)]",
+                  // important: some screen modules style every :focus-visible on the page
+                  // (unlayered), which would turn this back into the blue ring.
+                  "focus-visible:bg-muted focus-visible:[outline:1.5px_dashed_var(--muted-foreground)]! focus-visible:[outline-offset:3px]!"
                 )}
               >
                 <Icon size={20} aria-hidden className="shrink-0" />
                 <span className="flex-1">{label}</span>
+                {/* The same ring outside every dot (field-edge colour, 3:1 on
+                    the panel), so the white and the near-black dots read as
+                    the same size on any theme. */}
                 <span
                   aria-hidden
-                  className={cn("size-3 shrink-0 rounded-full shadow-[inset_0_0_0_1px_rgb(128_128_128/45%)]", SWATCH[value])}
+                  className={cn("size-3.5 shrink-0 rounded-full shadow-[0_0_0_1.5px_var(--input)]", SWATCH[value])}
                 />
-                {/* the check: a ring that fills, not colour alone */}
-                <span
-                  aria-hidden
-                  className={cn(
-                    "grid size-4 place-items-center rounded-full border-[1.5px]",
-                    checked ? "border-foreground bg-foreground" : "border-input"
-                  )}
-                >
-                  {checked && <span className="size-1.5 rounded-full bg-background" />}
-                </span>
               </button>
             )
           })}
