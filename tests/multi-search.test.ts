@@ -17,8 +17,8 @@ const fixture = (): Character =>
   JSON.parse(readFileSync(new URL("./fixtures/character-full-data.json", import.meta.url), "utf8"));
 
 test("names split on commas, spaces and new lines; duplicates and non-names are left out", () => {
-  const parsed = parseNames(" 모험가, 바드장인\n블래스터 모험가 / 이름!  ");
-  assert.deepEqual(parsed.names, ["모험가", "바드장인", "블래스터"]);
+  const parsed = parseNames(" 이름1, 이름2\n이름3 이름1 / 이름!  ");
+  assert.deepEqual(parsed.names, ["이름1", "이름2", "이름3"]);
   assert.deepEqual(parsed.invalid, ["이름!"]);
   assert.deepEqual(parsed.dropped, []);
 });
