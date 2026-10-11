@@ -710,6 +710,13 @@
   }
   body {
     @apply bg-background text-foreground;
+    /* Korean wraps between words, never inside one (PM-프론트 #591 별건 P1:
+       "아비도스 융 / 화" at 360). A string with no space that is wider than
+       its box (a long English name, a number run) still breaks, so nothing
+       overflows; break-word, not anywhere, so table and flex columns keep
+       their width instead of shrinking to one letter. */
+    word-break: keep-all;
+    overflow-wrap: break-word;
   }
   html {
     @apply font-sans;
