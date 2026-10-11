@@ -64,6 +64,8 @@ import {
 } from "./item-tooltip";
 import { sourcePlainText } from "@/lib/character/source-text";
 import { useItemTooltips } from "./use-item-tooltips";
+import { useArmoryPage } from "./use-armory-page";
+import { tripodLevel, type ArmoryPage } from "@/lib/character/armory-page";
 import {
   equipmentExtra,
   gemLines,
@@ -1005,6 +1007,7 @@ function SkillCard({
   className,
   gemLinesOf,
   lines,
+  levelOf,
 }: {
   skill: Skill;
   compact?: boolean;
@@ -1015,6 +1018,8 @@ function SkillCard({
   gemLinesOf?: (slot: number | null) => string[];
   /** Official tooltip lines (backend #300): the card's lines and the stagger chip. */
   lines?: SkillLines;
+  /** Tripod level from the official armory page (backend flag on), else null. */
+  levelOf?: (tier: number | null, slot: number | null) => number | null;
 }) {
   const stagger = staggerOf(lines?.infoLines);
   // Full view: the reference site's chips (type, attack direction, counter,
@@ -1075,12 +1080,23 @@ function SkillCard({
       )}
       {skill.tripods.length > 0 && (
         <ul className={styles.tripods}>
-          {skill.tripods.map((tripod, i) => (
-            <li key={i}>
-              <GameIcon src={tripod.icon} size={20} />
-              {compact ? null : <span>{text(tripod.name)}</span>}
-            </li>
-          ))}
+          {skill.tripods.map((tripod, i) => {
+            const tripodLv = compact ? null : levelOf?.(tripod.tier, tripod.slot) ?? null;
+            return (
+              <li key={i}>
+                <span className={styles.tripodIcon}>
+                  <GameIcon src={tripod.icon} size={20} />
+                  {tripodLv != null && <b aria-hidden="true">{tripodLv}</b>}
+                </span>
+                {compact ? null : (
+                  <span>
+                    {text(tripod.name)}
+                    {tripodLv != null && <span className={styles.srOnly}> 레벨 {tripodLv}</span>}
+                  </span>
+                )}
+              </li>
+            );
+          })}
         </ul>
       )}
       {!compact && skill.gemEffects.length > 0 && (
@@ -1098,7 +1114,7 @@ function SkillCard({
 
 const GEM_FILTERS = [
   { id: "all", label: "전체" },
-  { id: "any", label: "겁화+작열" },
+  { id: "both", label: "둘 다" },
   { id: "damage", label: "겁화만" },
   { id: "cooldown", label: "작열만" },
   { id: "none", label: "미장착" },
@@ -1108,9 +1124,12 @@ type GemFilter = (typeof GEM_FILTERS)[number]["id"];
 function SkillOverview({
   data,
   full = false,
+  armory,
 }: {
   data: Character;
   full?: boolean;
+  /** Official armory page details (skill tab, backend flag on). */
+  armory?: ArmoryPage;
 }) {
   const [showAll, setShowAll] = useState(false);
   const [gemFilter, setGemFilter] = useState<GemFilter>("all");
@@ -1131,14 +1150,22 @@ function SkillOverview({
   const shown = full && showAll ? skills : summary.active;
   const sorted = full ? [...shown].sort((a, b) => (b.level ?? 0) - (a.level ?? 0)) : shown;
   const gemsOf = (skill: Skill) => skillGems(data.loadout.gems, skill.name);
-  const list = sorted.filter((skill) => {
-    if (!full || gemFilter === "all") return true;
+  // One group per skill, so the groups never overlap (PM #507 P1): both kinds,
+  // damage only, cooldown only, none. The head counts the same chips.
+  const groupOf = (skill: Skill): GemFilter => {
     const labels = gemsOf(skill).map((gem) => gem.label);
-    if (gemFilter === "none") return labels.length === 0;
-    if (gemFilter === "any") return labels.length > 0;
-    return labels.some((label) => label.endsWith(gemFilter === "damage" ? "뎀" : "쿨"));
-  });
-  const counts = gemCounts(data.loadout.gems);
+    const damage = labels.some((label) => label.endsWith("뎀"));
+    const cooldown = labels.some((label) => label.endsWith("쿨"));
+    return damage && cooldown ? "both" : damage ? "damage" : cooldown ? "cooldown" : "none";
+  };
+  const groupCount = (id: GemFilter) => (id === "all" ? sorted.length : sorted.filter((skill) => groupOf(skill) === id).length);
+  const list = !full || gemFilter === "all" ? sorted : sorted.filter((skill) => groupOf(skill) === gemFilter);
+  const chips = sorted.flatMap((skill) => gemsOf(skill).map((gem) => gem.label));
+  const counts = {
+    damage: chips.filter((label) => label.endsWith("뎀")).length,
+    cooldown: chips.filter((label) => label.endsWith("쿨")).length,
+    empty: gemCounts(data.loadout.gems).empty,
+  };
   return (
     <Panel
       title="스킬"
@@ -1166,7 +1193,7 @@ function SkillOverview({
           <p className={styles.gemCounts}>
             <span data-gem="damage">겁화 {counts.damage}</span>
             <span data-gem="cooldown">작열 {counts.cooldown}</span>
-            <span>미장착 {counts.empty}</span>
+            <span>빈 칸 {counts.empty}</span>
           </p>
           <div className={styles.filterRow} role="group" aria-label="보석으로 거르기">
             {GEM_FILTERS.map((item) => (
@@ -1176,7 +1203,7 @@ function SkillOverview({
                 aria-pressed={gemFilter === item.id}
                 onClick={() => setGemFilter(item.id)}
               >
-                {item.label}
+                {item.label} {groupCount(item.id)}
               </button>
             ))}
           </div>
@@ -1194,6 +1221,7 @@ function SkillOverview({
               className={data.className}
               gemLinesOf={(slot) => gemLines(extra, slot)}
               lines={skillLines(extra, skill.name)}
+              levelOf={armory ? (tier, slot) => tripodLevel(armory, skill.name, tier, slot) : undefined}
             />
           ))}
         </ul>
@@ -1246,6 +1274,7 @@ export function SkillsTab({ data }: { data: Character }) {
   const skills = data.loadout.skills ?? [];
   const summary = skillSummary(skills);
   const extra = useItemTooltips(data.characterName);
+  const armory = useArmoryPage(data.characterName);
   const counters = summary.active.filter((skill) => skill.counter === true);
   const staggers = summary.active.filter((skill) => staggerOf(skillLines(extra, skill.name)?.infoLines)).length;
   const points = data.skillPoints;
@@ -1287,6 +1316,7 @@ export function SkillsTab({ data }: { data: Character }) {
               </div>
             )}
           </dl>
+          {armory?.skillCode && <SkillCodeCopy code={armory.skillCode} />}
         </Panel>
         <Panel title="스킬 포인트">
           {points?.used != null && points.total != null ? (
@@ -1329,7 +1359,7 @@ export function SkillsTab({ data }: { data: Character }) {
         </Panel>
       </div>
       <div className={styles.columns}>
-        <SkillOverview data={data} full />
+        <SkillOverview data={data} full armory={armory} />
         <aside className={styles.stack} aria-label="스킬 요약">
           <Panel title="카운터 스킬" meta={`${counters.length}개`}>
             {counters.length ? (
@@ -1370,6 +1400,33 @@ export function SkillsTab({ data }: { data: Character }) {
  * Inactive nodes (the full grid) need each class's whole tree from the
  * backend and come later.
  */
+/**
+ * Copies the skill code (official armory page, backend flag on) for pasting
+ * in the game's skill code window; says so for a moment, also to screen readers.
+ */
+function SkillCodeCopy({ code }: { code: string }) {
+  const [status, setStatus] = useState("");
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(code);
+      setStatus("스킬 코드를 복사했어요.");
+    } catch {
+      setStatus("복사하지 못했어요. 다시 눌러 주세요.");
+    }
+    window.setTimeout(() => setStatus(""), 2_000);
+  }
+  return (
+    <div className={styles.skillCode}>
+      <button type="button" className={styles.textButton} onClick={copy}>
+        스킬 코드 복사
+      </button>
+      <span role="status" className={styles.muted}>
+        {status}
+      </span>
+    </div>
+  );
+}
+
 export function ArkPassiveTab({ data }: { data: Character }) {
   const trees = passiveByTree(data);
   const [picked, setPicked] = useState<string | null>(null);
