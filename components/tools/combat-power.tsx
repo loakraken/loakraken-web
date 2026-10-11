@@ -385,7 +385,7 @@ function Editors({
                       value: grade,
                       label: gradeWithValue(
                         grade,
-                        polishValue(options.polishValues, line.option, line.value.includes("%"), grade),
+                        polishValue(options.polishValues, line.option, { value: line.value, grade: line.grade }, grade),
                       ),
                     }))}
                     onChange={(grade) =>
@@ -605,8 +605,10 @@ function polishText(text: string | null, from: string | null, values: PolishValu
   const match = text?.match(/^(.*) (LOW|MID|HIGH)$/);
   if (!match) return gradeText(text);
   const [, option, grade] = match;
-  const percent = from ? from.includes("%") : true;
-  return `${option} ${gradeWithValue(grade, polishValue(values, option, percent, grade))}`;
+  // from is "옵션 +1.60%": the accessory's current value decides if the table fits.
+  const current = from?.startsWith(`${option} `) ? from.slice(option.length + 1) : null;
+  const value = current ? polishValue(values, option, { value: current, grade: null }, grade) : null;
+  return `${option} ${gradeWithValue(grade, value)}`;
 }
 
 function ChangeList({ data, values }: { data: Simulation; values?: PolishValues }) {
