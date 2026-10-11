@@ -1602,7 +1602,9 @@
   font-size: 14px;
   font-variant-numeric: tabular-nums;
 }
+/* The used count matches the blue piece, "남은 포인트" the amber one. */
 .spRing b {
+  color: var(--link);
   font-size: 20px;
 }
 .spRing small {
