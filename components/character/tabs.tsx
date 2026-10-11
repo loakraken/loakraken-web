@@ -91,6 +91,7 @@ import { PillTab, PillTabs, PillTabsPanel } from "@/components/ui/pill-tabs";
 import { useStagger } from "./entrance";
 import { RankPanel } from "./rank-panel";
 import { SimulatorTab } from "./simulator-tab";
+import { SpecUpTab } from "./spec-up-tab";
 import { byObservedOrder, groupByDay } from "@/lib/character/titles";
 import { CardCollection } from "./card-collection-panel";
 import { CardArt, GameIcon } from "./imagery";
@@ -114,6 +115,7 @@ import { useCrossfade } from "@/lib/motion";
 export const TABS = [
   { id: "combat", label: "전투" },
   { id: "simulator", label: "시뮬레이터" },
+  { id: "specup", label: "스펙업" },
   { id: "skills", label: "스킬" },
   { id: "arkpassive", label: "아크 패시브" },
   { id: "collectibles", label: "내실" },
@@ -128,8 +130,15 @@ export type TabId = (typeof TABS)[number]["id"];
 export const SettingCheckEnabled = createContext(true);
 /** COMBAT_POWER_SIM (server flag): off hides the 시뮬레이터 tab the same way. */
 export const SimulatorEnabled = createContext(true);
-const visibleTabs = (settingCheck: boolean, simulator = true) =>
-  TABS.filter((tab) => (tab.id !== "evidence" || settingCheck) && (tab.id !== "simulator" || simulator));
+/** SPEC_UP_GUIDE (server flag): off hides the 스펙업 tab the same way. */
+export const SpecUpEnabled = createContext(true);
+const visibleTabs = (settingCheck: boolean, simulator = true, specUp = true) =>
+  TABS.filter(
+    (tab) =>
+      (tab.id !== "evidence" || settingCheck) &&
+      (tab.id !== "simulator" || simulator) &&
+      (tab.id !== "specup" || specUp),
+  );
 
 /** The visually hidden heading each tab panel starts with (focus target). */
 const TAB_HEADING = "character-tab-heading";
@@ -152,8 +161,8 @@ export function useTabTop(tab: TabId) {
 }
 
 /** The tab in ?tab=, or 전투 for an unknown one or a hidden one. */
-export const tabOf = (value: string | null, settingCheck = true, simulator = true): TabId =>
-  visibleTabs(settingCheck, simulator).some((tab) => tab.id === value) ? (value as TabId) : "combat";
+export const tabOf = (value: string | null, settingCheck = true, simulator = true, specUp = true): TabId =>
+  visibleTabs(settingCheck, simulator, specUp).some((tab) => tab.id === value) ? (value as TabId) : "combat";
 
 /** "베타" next to a tab still growing its rules (shown wherever the tab is). */
 function TabLabel({ id, label }: { id: TabId; label: string }) {
@@ -231,7 +240,7 @@ export function TabBar({
   const [favorite, toggleFavorite] = useFavorite(name);
   const [shareStatus, setShareStatus] = useState("");
   const { nav: pillNav, layer: pillLayer, onKeyDown: pillKey, onPointerDown: pillPointer } = useTabPill(tab);
-  const tabs = visibleTabs(useContext(SettingCheckEnabled), useContext(SimulatorEnabled));
+  const tabs = visibleTabs(useContext(SettingCheckEnabled), useContext(SimulatorEnabled), useContext(SpecUpEnabled));
   const window_ = refreshWindow(data, now);
   const cooling = window_.remainingMs > 0;
   const disabled = fetching || cooling || rateLimitSeconds > 0;
@@ -2151,6 +2160,8 @@ function TabPanelView({
       </h2>
       {tab === "simulator" ? (
         <SimulatorTab data={data} />
+      ) : tab === "specup" ? (
+        <SpecUpTab data={data} />
       ) : tab === "skills" ? (
         <SkillsTab data={data} />
       ) : tab === "arkpassive" ? (
