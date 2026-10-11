@@ -826,6 +826,50 @@
 .siblingGrid li[data-current] div {
   box-shadow: inset 0 0 0 2px var(--foreground);
 }
+/* Roster tools (L17·L18): sort, compact, hide names; then the six-man line. */
+.rosterTools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 18px;
+}
+.rosterSwitch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+.rosterSwitch label {
+  cursor: pointer;
+}
+.rosterSummary {
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+.rosterSummary b {
+  font-weight: 700;
+}
+.rosterSummary small {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+/* Compact: name and item level only, more per row. */
+.siblingGrid[data-compact] {
+  grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+  gap: 6px;
+}
+.siblingGrid[data-compact] a,
+.siblingGrid[data-compact] div {
+  grid-template-areas: "name level arrow";
+  padding: 8px 12px;
+  border-radius: 12px;
+}
+.siblingGrid[data-compact] small {
+  display: none;
+}
+.siblingGrid[data-compact] strong {
+  font-size: 13px;
+}
 
 /* Evidence */
 .findings {
