@@ -1,6 +1,7 @@
 import type { BackendFailure, BackendResult } from "../api/backend";
 import { statsSearch, type StatsEnvelopes, type StatsQuery, type StatsView } from "./model";
 import { rankingSearch, type RankingEnvelope, type RankingQuery } from "./rankings";
+import { rosterSearch, type RosterQuery, type RosterRankingEnvelope } from "./roster-ranking";
 
 export class StatsQueryError extends Error {
   info: BackendFailure;
@@ -25,6 +26,9 @@ async function call<T>(path: string, signal: AbortSignal): Promise<T> {
 
 export const fetchRankings = (query: RankingQuery, signal: AbortSignal) =>
   call<RankingEnvelope>(`/api/rankings?${rankingSearch(query)}`, signal);
+
+export const fetchRosterRanking = (query: RosterQuery, signal: AbortSignal) =>
+  call<RosterRankingEnvelope>(`/api/rankings/rosters?${rosterSearch(query)}`, signal);
 
 export async function fetchStats<V extends StatsView>(
   view: V,
