@@ -298,6 +298,13 @@
   color: var(--muted-foreground);
   font-size: var(--text-caption);
 }
+/* Labels beside a select keep their width: the select fills the rest and
+   shrinks first (w-full min-w-0 trigger), so "모두"·"품질" never break. */
+.bulk > span,
+.caption {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
 .rowSub {
   display: block;
   color: var(--muted-foreground);
