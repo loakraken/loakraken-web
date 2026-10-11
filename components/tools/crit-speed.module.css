@@ -2,6 +2,8 @@
    (the page class supplies --ink/--slate/--mist/--action). Settings left,
    results right on wide screens; one column on phones. */
 .workspace {
+  /* --action for text: same hue, mixed toward the foreground for 4.5:1. */
+  --action-text: color-mix(in oklab, var(--action) 72%, var(--foreground));
   display: grid;
   gap: 20px;
   max-width: var(--page-max);
@@ -317,7 +319,9 @@
   font-size: var(--text-caption);
 }
 .targets b {
-  color: var(--action);
+  /* Same hue as --action, nudged toward the text colour so it reads 4.5:1 on
+     the muted rows in both themes (PM-프론트 #461 P1: 4.31·3.78). */
+  color: var(--action-text);
   font-size: var(--text-heading-sm);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
@@ -430,7 +434,7 @@
 }
 .kind[data-kind="ASSUMED"] {
   background: rgb(0 113 227 / 10%);
-  color: var(--action);
+  color: var(--action-text);
 }
 .sourceName small {
   display: block;
