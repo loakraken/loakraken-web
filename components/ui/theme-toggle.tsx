@@ -10,6 +10,10 @@ import { IconButton, type IconButtonProps } from "@/components/ui/icon-button"
 // only followed when chosen. The applied theme is data-theme on <html>:
 // none = light, "dim" or "dark".
 const THEME_STORAGE_KEY = "loakraken-theme"
+// The remembered "pause the repeating motion" choice (components/landing/
+// motion-context.tsx). Read by the same pre-paint script, so a paused page
+// never moves for a moment before hydration.
+const MOTION_STORAGE_KEY = "loakraken-motion"
 
 type ThemeChoice = "light" | "dim" | "dark" | "system"
 type AppliedTheme = "light" | "dim" | "dark"
@@ -31,7 +35,7 @@ const DARK_QUERY = "(prefers-color-scheme: dark)"
 // Old stored values ("light"/"dark") read the same as before. The choice
 // itself goes on <html> as data-theme-choice, so the header button shows the
 // chosen mode's icon from the first paint (CSS below), before hydration.
-const themeInitScript = `(function(){try{var k="${THEME_STORAGE_KEY}",d=document.documentElement,m=matchMedia("${DARK_QUERY}");function a(){var s=localStorage.getItem(k),t=s==="system"?(m.matches?"dark":"light"):s;if(t==="dark"||t==="dim")d.dataset.theme=t;else delete d.dataset.theme;d.dataset.themeChoice=s==="dim"||s==="dark"||s==="system"?s:"light"}a();m.addEventListener("change",function(){try{if(localStorage.getItem(k)==="system")a()}catch(e){}})}catch(e){}})()`
+const themeInitScript = `(function(){try{var k="${THEME_STORAGE_KEY}",d=document.documentElement,m=matchMedia("${DARK_QUERY}");function a(){var s=localStorage.getItem(k),t=s==="system"?(m.matches?"dark":"light"):s;if(t==="dark"||t==="dim")d.dataset.theme=t;else delete d.dataset.theme;d.dataset.themeChoice=s==="dim"||s==="dark"||s==="system"?s:"light"}a();if(localStorage.getItem("${MOTION_STORAGE_KEY}")==="paused")d.setAttribute("data-motion-paused","");m.addEventListener("change",function(){try{if(localStorage.getItem(k)==="system")a()}catch(e){}})}catch(e){}})()`
 
 const listeners = new Set<() => void>()
 
@@ -283,5 +287,5 @@ function ThemeToggle({ className, ...props }: ThemeToggleProps) {
   )
 }
 
-export { ThemeToggle, THEME_STORAGE_KEY, themeInitScript, useTheme, useThemeChoice }
+export { ThemeToggle, THEME_STORAGE_KEY, MOTION_STORAGE_KEY, themeInitScript, useTheme, useThemeChoice }
 export type { Theme, ThemeChoice }
