@@ -161,6 +161,12 @@ export function splitLeadingTrade(lines: string[]) {
   return { trade: lines.slice(0, i), rest: lines.slice(i) };
 }
 
+/** The rune's remaining lines (description, sources) for the skill named `name`. */
+export function runeLines(data: ItemTooltips | undefined, name: string | null | undefined) {
+  if (!name) return [];
+  return data?.skills.find((skill) => skill.name === name)?.runeExtraLines ?? [];
+}
+
 /** Extra lines for the gem in `slot` (search response gems.items[].slot). */
 export function gemLines(data: ItemTooltips | undefined, slot: number | null | undefined) {
   if (slot == null) return [];

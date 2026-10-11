@@ -489,3 +489,86 @@ export function PassiveNodeCard({
     </ItemDetail>
   );
 }
+
+type Skill = Character["loadout"]["skills"][number];
+type Rune = NonNullable<Skill["rune"]>;
+
+const ATTACK_TYPE: Record<string, string> = { BACK_ATTACK: "백 어택", HEAD_ATTACK: "헤드 어택" };
+
+/**
+ * The skill card (sheet v2.1 §2c): title = skill name, the image without a
+ * grade box, type and skill level, attack info (part break, counter, attack
+ * type), the chosen tripods (28px icon, name, effect), then the rune and gem
+ * effects. Cooldown, mana and stagger come when the backend sends them.
+ */
+export function SkillDetailCard({ skill }: { skill: Skill }) {
+  const attack = [
+    skill.partBreakLevel != null ? `부위 파괴 : 레벨 ${skill.partBreakLevel}` : null,
+    skill.counter ? "카운터 : 가능" : null,
+    skill.attackType && ATTACK_TYPE[skill.attackType] ? `공격 타입 : ${ATTACK_TYPE[skill.attackType]}` : null,
+  ].filter((line): line is string => line != null);
+  return (
+    <ItemDetail
+      title={skill.name ?? "스킬"}
+      icon={img56(skill.icon)}
+      plainIcon
+      lines={[skill.type, skill.level != null ? `스킬 레벨 ${skill.level}` : null].filter(
+        (line): line is string => line != null,
+      )}
+    >
+      {attack.length > 0 && (
+        <ItemDetailSection>
+          {attack.map((line) => (
+            <ItemLine key={line}>{line}</ItemLine>
+          ))}
+        </ItemDetailSection>
+      )}
+      {skill.tripods.length > 0 && (
+        <ItemDetailSection label="트라이포드">
+          {skill.tripods.map((tripod, i) => (
+            <div key={i} className={styles.tripod}>
+              {/* eslint-disable-next-line @next/next/no-img-element -- official CDN icon at a fixed size */}
+              {tripod.icon ? <img src={tripod.icon} alt="" width={28} height={28} referrerPolicy="no-referrer" /> : <span />}
+              <div>
+                <ItemLine>{tripod.name ?? "-"}</ItemLine>
+                {tripod.effect && <ItemLine tone="muted">{tripod.effect}</ItemLine>}
+              </div>
+            </div>
+          ))}
+        </ItemDetailSection>
+      )}
+      {skill.rune?.effect && (
+        <ItemDetailSection label="스킬 룬 효과">
+          <ItemLine>
+            [{skill.rune.name}] {skill.rune.effect}
+          </ItemLine>
+        </ItemDetailSection>
+      )}
+      {skill.gemEffects.length > 0 && (
+        <ItemDetailSection label="보석 효과">
+          {skill.gemEffects.map((effect, i) => (
+            <ItemLine key={i}>{effect.text}</ItemLine>
+          ))}
+        </ItemDetailSection>
+      )}
+    </ItemDetail>
+  );
+}
+
+/**
+ * The skill rune card (§2c): name, icon row (전설 스킬 룬), the effect, then the
+ * official remaining lines (description, sources).
+ */
+export function RuneCard({ rune, lines = [] }: { rune: Rune; lines?: string[] }) {
+  return (
+    <ItemDetail
+      grade={itemGrade(rune.grade)}
+      title={rune.name ?? "스킬 룬"}
+      icon={img56(rune.icon)}
+      lines={[[rune.grade, "스킬 룬"].filter(Boolean).join(" ")]}
+    >
+      {rune.effect && <ItemLine>{rune.effect}</ItemLine>}
+      <ExtraSections lines={lines} />
+    </ItemDetail>
+  );
+}

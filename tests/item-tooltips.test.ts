@@ -10,6 +10,7 @@ import {
   lineTone,
   placeExtraLines,
   requestItemTooltips,
+  runeLines,
   splitLeadingTrade,
 } from "../lib/character/item-tooltips";
 
@@ -115,4 +116,11 @@ test("the core's leading bound/trade line goes to the trade box", () => {
     rest: ["분해불가", "[제작] 대도시"],
   });
   assert.deepEqual(splitLeadingTrade(["분해불가"]), { trade: [], rest: ["분해불가"] });
+});
+
+test("rune lines join the skill by name", () => {
+  const data = { ...sample().data, skills: [{ name: "블레이드 버스트", runeExtraLines: ["스킬에 강력한 힘을 부여할 수 있는 특별한 룬이다."] }] };
+  assert.deepEqual(runeLines(data, "블레이드 버스트"), ["스킬에 강력한 힘을 부여할 수 있는 특별한 룬이다."]);
+  assert.deepEqual(runeLines(data, "다른 스킬"), []);
+  assert.deepEqual(runeLines(data, null), []);
 });
