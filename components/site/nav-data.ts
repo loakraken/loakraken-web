@@ -8,7 +8,7 @@ export type NavLink = {
   /** Shown only when this runtime flag is on (lib/tools/flags.ts, /api/flags). */
   flag?: NavFlag;
 };
-export type NavFlag = "critSpeed";
+export type NavFlag = "critSpeed" | "combatPower";
 export type NavFlags = Partial<Record<NavFlag, boolean>>;
 export type NavSection = {
   id: string;
@@ -76,12 +76,14 @@ export const NAV_SECTIONS: NavSection[] = [
     label: "성장 도구",
     // "/tools$": the tool list itself (exact; a bare prefix would also take the
     // tools filed under other menus, such as /tools/material-quote).
-    match: ["/tools$", "/tools/refining", "/tools/crit-speed", "/tools/auction", "/tools/raid-rewards", "/tools/more-reward"],
+    match: ["/tools$", "/tools/combat-power", "/tools/refining", "/tools/crit-speed", "/tools/auction", "/tools/raid-rewards", "/tools/more-reward"],
     groups: [
       {
         title: "계산기",
         links: [
           { label: "도구 전체", description: "모든 성장 도구를 한눈에", href: "/tools" },
+          // 사용자 지적(PM-프론트 21:27): the simulator was missing from the menu.
+          { label: "전투력 시뮬레이터", description: "무엇을 바꾸면 전투력이 얼마나 오르는지", href: "/tools/combat-power", flag: "combatPower" },
           { label: "재련 기대 비용", description: "목표 단계까지 확률과 골드", href: "/tools/refining" },
           { label: "치적·뭉가·음돌", description: "치명·신속 목표까지 필요한 스탯", href: "/tools/crit-speed", flag: "critSpeed" },
           { label: "경매 입찰가", description: "파티 인원별 손익 분기와 선점가", href: "/tools/auction" },

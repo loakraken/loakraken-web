@@ -4,7 +4,7 @@ import { createContext, memo, useContext, useId, useState, useSyncExternalStore,
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
-import { ArrowRight, Bookmark, BookmarkBold, InfoCircle, RefreshArrow, Share } from "@/components/ui/icons";
+import { ArrowRight, Bookmark, BookmarkBold, ChevronDown, InfoCircle, RefreshArrow, Share } from "@/components/ui/icons";
 import { InlineOrb } from "@/components/landing/orb";
 import { Reveal } from "@/components/landing/motion";
 import {
@@ -752,6 +752,19 @@ function ArkGridPanel({ data }: { data: Character }) {
       ) : (
         <Empty state={data.coverage.arkGrid.collections.slots} />
       )}
+      {/* Under the cores too (user 10-11): the same toggle as in the head. */}
+      {hasDetail && grid.slots.length > 0 && (
+        <button
+          type="button"
+          className={styles.gridToggle}
+          aria-expanded={expanded}
+          aria-label={expanded ? "아크 그리드 코어 전체 접기" : "아크 그리드 코어 전체 펼치기"}
+          onClick={() => setExpanded(!expanded)}
+        >
+          <ChevronDown size={18} aria-hidden="true" />
+          <span aria-hidden="true">{expanded ? "접기" : "펼치기"}</span>
+        </button>
+      )}
     </Panel>
   );
 }
@@ -1306,7 +1319,7 @@ export function SkillsTab({ data }: { data: Character }) {
   return (
     <div className={styles.layout}>
       <div className={styles.skillHeadRow}>
-        <Panel title="정보">
+        <Panel title="정보" meta={armory?.skillCode ? <SkillCodeCopy code={armory.skillCode} /> : undefined}>
           <dl className={styles.skillInfo}>
             {topStats.length > 0 && (
               <div>
@@ -1330,7 +1343,6 @@ export function SkillsTab({ data }: { data: Character }) {
               </div>
             )}
           </dl>
-          {armory?.skillCode && <SkillCodeCopy code={armory.skillCode} />}
         </Panel>
         <Panel title="스킬 포인트">
           {points?.used != null && points.total != null ? (
@@ -1408,13 +1420,6 @@ export function SkillsTab({ data }: { data: Character }) {
 }
 
 /**
- * Ark passive as the reference lays it out: one tree at a time picked by its
- * points (진화 140 · 깨달음 101 · 도약 70), its rank and level total and the
- * active nodes row by tier; then every tree's active effects side by side.
- * Inactive nodes (the full grid) need each class's whole tree from the
- * backend and come later.
- */
-/**
  * Copies the skill code (official armory page, backend flag on) for pasting
  * in the game's skill code window; says so for a moment, also to screen readers.
  */
@@ -1441,6 +1446,13 @@ function SkillCodeCopy({ code }: { code: string }) {
   );
 }
 
+/**
+ * Ark passive as the reference lays it out: one tree at a time picked by its
+ * points (진화 140 · 깨달음 101 · 도약 70), its rank and level total and the
+ * active nodes row by tier; then every tree's active effects side by side.
+ * Inactive nodes (the full grid) need each class's whole tree from the
+ * backend and come later.
+ */
 export function ArkPassiveTab({ data }: { data: Character }) {
   const trees = passiveByTree(data);
   const [picked, setPicked] = useState<string | null>(null);

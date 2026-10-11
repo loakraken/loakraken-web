@@ -22,6 +22,7 @@ import { CharacterBanner } from "./imagery";
 import { Entrance } from "./entrance";
 import { kstTime, level, number, text } from "./parts";
 import { SettingCheckEnabled, SimulatorEnabled, SpecUpEnabled, TabBar, TabPanel, tabOf } from "./tabs";
+import { ArmoryPageEnabled } from "./use-armory-page";
 import { ReceiptEnabled } from "./receipt-panel";
 import styles from "./character.module.css";
 import { RATE_LIMITED } from "@/lib/api/rate-limit";
@@ -356,6 +357,7 @@ export function CharacterView({
   settingCheck = true,
   simulator = true,
   specUp = true,
+  armoryPage = true,
   ...props
 }: {
   name: string;
@@ -369,15 +371,19 @@ export function CharacterView({
   simulator?: boolean;
   /** SPEC_UP_GUIDE on this deployment (server flag). */
   specUp?: boolean;
+  /** ARMORY_PAGE on this deployment (server flag). */
+  armoryPage?: boolean;
 }) {
   return (
     <ReceiptEnabled.Provider value={receipt}>
       <SettingCheckEnabled.Provider value={settingCheck}>
         <SimulatorEnabled.Provider value={simulator}>
           <SpecUpEnabled.Provider value={specUp}>
-            <LandingMotion>
-              <CharacterContent {...props} />
-            </LandingMotion>
+            <ArmoryPageEnabled.Provider value={armoryPage}>
+              <LandingMotion>
+                <CharacterContent {...props} />
+              </LandingMotion>
+            </ArmoryPageEnabled.Provider>
           </SpecUpEnabled.Provider>
         </SimulatorEnabled.Provider>
       </SettingCheckEnabled.Provider>

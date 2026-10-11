@@ -39,9 +39,9 @@ test.describe("스펙업 가이드 @smoke", () => {
     const tabs = page.getByRole("navigation", { name: "캐릭터 정보 탭" });
     await expect(tabs.getByRole("link", { name: "시뮬레이터", exact: true })).toHaveAttribute("aria-current", "page");
     const gem = page.getByRole("combobox", { name: "테스트 보석 레벨" });
-    await expect(gem).toHaveValue("10");
+    await expect(gem).toHaveText("10");
     await page.getByRole("button", { name: "이전" }).click();
-    await expect(gem).not.toHaveValue("10");
+    await expect(gem).not.toHaveText("10");
   });
 
   test("기능이 꺼져 있으면 그렇게 알리고, 요청을 되풀이하지 않는다", async ({ page }) => {

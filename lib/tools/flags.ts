@@ -71,6 +71,19 @@ export function isSpecUpEnabled(env: Env = process.env) {
 }
 
 /**
+ * Official armory page details (tripod levels, skill code; backend flag off
+ * by default). The web asks for them only where ARMORY_PAGE allows it:
+ * `ARMORY_PAGE=on|off` overrides, otherwise never on the production host, so
+ * production sends no request while the backend keeps it off (PM #507 P2).
+ */
+export function isArmoryPageEnabled(env: Env = process.env) {
+  const flag = env.ARMORY_PAGE?.trim().toLowerCase();
+  if (flag === "on") return true;
+  if (flag === "off") return false;
+  return !isProductionHost(env.SITE_URL);
+}
+
+/**
  * The roster ranking tab (backend #298, off on the backend until it ships).
  * Same rule: `ROSTER_RANKING=on|off` overrides, otherwise hidden only on the
  * production host.

@@ -1,4 +1,5 @@
 import {
+  isArmoryPageEnabled,
   isCombatPowerEnabled,
   isReceiptEnabled,
   isSettingCheckEnabled,
@@ -80,6 +81,7 @@ export default async function CharacterPage({
         renderedAt={renderedAt}
         receipt={isReceiptEnabled()}
         settingCheck={isSettingCheckEnabled()}
+        armoryPage={isArmoryPageEnabled()}
         simulator={isCombatPowerEnabled()}
         specUp={isSpecUpEnabled()}
       />
