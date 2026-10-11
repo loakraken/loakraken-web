@@ -7,6 +7,7 @@ import { useEffect, useRef, useState, useSyncExternalStore, type FormEvent, type
 import { useRouter } from "next/navigation";
 import { BorderBeam } from "border-beam";
 import { ArrowDown, ArrowRight, Command, ExportCircle, SearchNormal } from "@/components/ui/icons";
+import { useTheme } from "@/components/ui/theme-toggle";
 import { IntelligenceOrb, InlineOrb } from "./orb";
 import { useLandingMotion, useVisible } from "./motion-context";
 import { characterNameError, normalizeCharacterName } from "@/lib/character/model";
@@ -39,6 +40,7 @@ export function Hero({
   const [focused, setFocused] = useState(false);
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
   const Title = embedded ? "h2" : "h1";
+  const theme = useTheme();
 
   useEffect(() => {
     const shortcut = (event: KeyboardEvent) => {
@@ -79,7 +81,7 @@ export function Hero({
         </div>
         <p className={styles.orbCaption}><span className={styles.statusDot} />{searching ? "캐릭터 화면으로 이동하고 있어요" : focused ? "어떤 캐릭터를 살펴볼까요?" : "당신의 다음 선택을 기다리고 있어요"}</p>
         <div className={styles.searchArea} onPointerEnter={wake}>
-          <BorderBeam className={styles.searchBeam} theme="light" colorVariant="mono" staticColors size="line" duration={5} strength={focused ? 0.55 : 0.22} active={looping && heroVisible} borderRadius={36}>
+          <BorderBeam className={styles.searchBeam} theme={theme} colorVariant="mono" staticColors size="line" duration={5} strength={focused ? 0.55 : 0.22} active={looping && heroVisible} borderRadius={36}>
             <form className={styles.searchForm} onSubmit={search} noValidate aria-busy={searching}>
               <label htmlFor="character-search" className={styles.srOnly}>캐릭터 이름</label>
               <SearchNormal className={styles.searchIcon} size={19} aria-hidden="true" />

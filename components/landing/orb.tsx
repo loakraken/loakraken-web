@@ -2,7 +2,12 @@
 
 import { useRef } from "react";
 import { ThinkingOrb, type OrbState } from "thinking-orbs";
+import { useTheme } from "@/components/ui/theme-toggle";
 import { useLandingMotion, useVisible } from "./motion-context";
+
+// The orb takes the site theme and our link blue for it (--link: #0066cc
+// light, #4da3ff dark), so it never draws a light orb on a dark page.
+export const orbColor = (theme: "light" | "dark") => (theme === "dark" ? "#4da3ff" : "#0066cc");
 import styles from "./landing.module.css";
 
 export function IntelligenceOrb({ state = "breathing" }: { state?: OrbState }) {
@@ -19,7 +24,7 @@ export function IntelligenceOrb({ state = "breathing" }: { state?: OrbState }) {
       <div className={styles.orbShell}>
         <div className={styles.orbGlass} />
         <div className={styles.orbCore}>
-          <ThinkingOrb state={state} size={64} theme="light" color="#0066cc" speed={0.65} paused={!looping || !visible} />
+          <ThinkingOrb state={state} size={64} theme={theme} color={orbColor(theme)} speed={0.65} paused={!looping || !visible} />
         </div>
       </div>
     </div>
