@@ -3,7 +3,8 @@ import test from "node:test";
 import { isStandingEnvelope, standingReason, topPercentText } from "../lib/character/collectible-standing";
 
 test("collectible standing: no-rank reasons in Korean, unknown codes fall back", () => {
-  assert.equal(standingReason("EXCLUDED", 30), "순위 제외를 요청한 원정대예요.");
+  // The processing-stop list reads exactly like no record (PM-프론트 00:59).
+  assert.equal(standingReason("EXCLUDED", 30), standingReason("NOT_OBSERVED", 30));
   assert.equal(standingReason("NOT_OBSERVED", 30), "아직 확인한 기록이 없어요.");
   assert.equal(standingReason("INACTIVE", 7), "최근 7일 안에 확인되지 않았어요.");
   assert.equal(standingReason("NO_COLLECTIBLES", 30), "모은 수집품이 없어요.");

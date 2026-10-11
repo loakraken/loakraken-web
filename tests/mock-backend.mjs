@@ -628,8 +628,9 @@ createServer(async (req, res) => {
       },
     });
   }
-  // Ranking (F-7, backend #100/#112). 비공개 → HIDDEN, 조건밖 → not included,
-  // 집계중 → class scope still collecting, 미관측 → 404, otherwise ranked.
+  // Ranking (F-7, backend #100/#112). 조건밖 → not included, 집계중 → class
+  // scope still collecting, 미관측 and 비공개 (the processing-stop list, backend
+  // #366) → the same 404, otherwise ranked.
   // Collectible standing and ownership (backend #304/#306): a ranked roster
   // for 상세, the no-rank reasons for 미관측·제외, and per-item shares.
   if (url.pathname === "/api/v1/rankings/collectibles/standing" || url.pathname === "/api/v1/collectibles/ownership") {
@@ -676,8 +677,7 @@ createServer(async (req, res) => {
   }
   if (url.pathname === "/api/v1/characters/rank") {
     const who = url.searchParams.get("characterName") ?? "";
-    if (who === "미관측") return send({ code: "STATS_CHARACTER_NOT_OBSERVED", message: "private" }, 404);
-    const hidden = who === "비공개";
+    if (who === "미관측" || who === "비공개") return send({ code: "STATS_CHARACTER_NOT_OBSERVED", message: "private" }, 404);
     const excluded = who === "조건밖";
     const entry = (metric, scope, scopeValue, rank, total, sampleStatus = "READY") => {
       const top = sampleStatus === "READY" ? Math.round((rank / total) * 10000) / 100 : null;
@@ -685,7 +685,7 @@ createServer(async (req, res) => {
       return { metric, scope, scopeValue, rank, total, topPercent: top, tier, sampleStatus };
     };
     const collecting = who === "집계중" ? "COLLECTING" : "READY";
-    const entries = hidden || excluded ? [] : [
+    const entries = excluded ? [] : [
       entry("COMBAT_POWER", "ALL", null, 4120, 18231),
       entry("COMBAT_POWER", "SERVER", "아만", 211, 2311),
       entry("COMBAT_POWER", "CLASS", "블래스터", 37, collecting === "READY" ? 612 : 21, collecting),
@@ -701,7 +701,7 @@ createServer(async (req, res) => {
       data: {
         characterName: who, serverName: "아만", className: "블래스터", position: "DEALER", itemLevel: 1780.83, combatPower: 3180.29,
         refreshedAt: new Date(Date.now() - 3_600_000).toISOString(),
-        rankVisibility: hidden ? "HIDDEN" : "VISIBLE", included: !hidden && !excluded,
+        rankVisibility: "VISIBLE", included: !excluded,
         conditions: { server: null, role: null, className: null, activeDays: 30, itemLevelMin: 1640, itemLevelMax: null, combatPowerMin: null, combatPowerMax: null, representativeOnly: false },
         aggregatedAt: new Date(Date.now() - 600_000).toISOString(), ruleVersion: "stats-v1", minSample: 30, entries,
       },
