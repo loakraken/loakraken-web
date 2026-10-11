@@ -12,7 +12,7 @@ import { pendingProps } from "@/lib/api/pending";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { TIER_LABEL, TIER_LEGEND } from "@/lib/character/rank";
 import { fetchRankings } from "@/lib/stats/client";
-import { fixed, percent, sampleText, whole } from "@/lib/stats/model";
+import { conditionsKey, fixed, percent, sampleText, whole } from "@/lib/stats/model";
 import { MAX_PAGE, PAGE_SIZE, rankingSearch, type RankingQuery } from "@/lib/stats/rankings";
 import quote from "@/components/tools/material-quote.module.css";
 import styles from "./stats.module.css";
@@ -39,7 +39,7 @@ export function RankingsView({ initial, types }: { initial: RankingQuery; types:
   const levelTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const ids = { server: useId(), role: useId(), cls: useId(), days: useId(), level: useId() };
   const list = useQuery({
-    queryKey: ["rankings", query],
+    queryKey: ["rankings", conditionsKey(rankingSearch(query))],
     queryFn: ({ signal }) => fetchRankings(query, signal),
     staleTime: 5 * 60_000,
     placeholderData: keepPreviousData,

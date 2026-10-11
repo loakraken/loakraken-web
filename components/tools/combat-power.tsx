@@ -51,6 +51,7 @@ import {
 import {
   historyReducer,
   isEmpty,
+  applySaved,
   parseSaved,
   savedKey,
   serializeSaved,
@@ -766,7 +767,8 @@ export function CombatPowerSimulator({
   function save() {
     const at = new Date();
     try {
-      localStorage.setItem(savedKey(name), serializeSaved(edits, at));
+      if (!current) return;
+      localStorage.setItem(savedKey(name), serializeSaved(edits, at, current));
       window.dispatchEvent(new Event(SAVED_EVENT));
       setNotice(`입력을 저장했어요(${savedTime(at.toISOString())}).`);
     } catch {
@@ -775,9 +777,18 @@ export function CombatPowerSimulator({
   }
 
   function load() {
-    if (!saved) return;
-    dispatch({ type: "load", edits: saved.edits });
-    setNotice(`${savedTime(saved.savedAt)}에 저장한 입력을 불러왔어요.`);
+    if (!saved || !current) return;
+    // Only what still points at the same gear (PM 총괄 10-12 01:54).
+    const applied = applySaved(saved, current);
+    if ("legacy" in applied) {
+      setNotice("예전 방식으로 저장한 입력이라 장비를 확인할 수 없어 불러오지 않았어요. 다시 저장해 주세요.");
+      return;
+    }
+    dispatch({ type: "load", edits: applied.edits });
+    setNotice(
+      `${savedTime(saved.savedAt)}에 저장한 입력을 불러왔어요.` +
+        (applied.skipped > 0 ? ` 장비가 바뀌어 ${applied.skipped}개는 불러오지 않았어요.` : ""),
+    );
   }
 
   return (

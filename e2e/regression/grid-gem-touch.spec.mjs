@@ -7,7 +7,7 @@ test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true
 
 test("그리드 젬은 아이콘 밖을 탭해도 카드가 열린다 @regression", async ({ page }) => {
   await page.goto(characterPath("상세", "combat"));
-  await page.getByRole("button", { name: "모두 펼치기" }).click();
+  await page.getByRole("button", { name: "아크 그리드 코어 전체 펼치기" }).click();
   const gem = page.locator('button[aria-label="질서의 젬 : 안정 상세 보기"]:visible').first();
   await gem.scrollIntoViewIfNeeded();
   const box = await gem.boundingBox();

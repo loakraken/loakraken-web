@@ -60,7 +60,69 @@ export function isEmpty(edits: Edits) {
 const SAVED_PREFIX = "loakraken:combat-power:saved:";
 export const savedKey = (name: string) => SAVED_PREFIX + name;
 
-export type Saved = { edits: Edits; savedAt: string };
+/**
+ * What each saved entry was aimed at (PM 총괄 10-12 01:54): the gear's type
+ * and name, the gem's name, the polish line's item and option… Edits are
+ * keyed by position (equipment index, gem slot), so after the character's
+ * gear changes the same key can point at another piece. A load applies only
+ * the entries whose target is still the same thing.
+ */
+export type Targets = Partial<Record<keyof Omit<Edits, "gemAll">, Record<string, string>>>;
+export type Saved = { edits: Edits; savedAt: string; targets?: Targets };
+
+/** The parts of the character a saved input can be checked against. */
+export type Identity = {
+  gems: { slot: number; name: string }[];
+  gear: { index: number; type: string; name: string }[];
+  polish: { index: number; line: number; item: string; option: string }[];
+  bracelet: { line: number; name: string }[];
+  engravings: { name: string }[];
+  stones: { name: string }[];
+  arkPassive: { tree: string }[];
+  cores: { slotIndex: number; name: string }[];
+};
+
+/** Every key an edit can use, mapped to what it names on this character. */
+export function targetsOf(identity: Identity): Required<Targets> {
+  const gear = Object.fromEntries(identity.gear.map((g) => [String(g.index), `${g.type}|${g.name}`]));
+  return {
+    gems: Object.fromEntries(identity.gems.map((g) => [String(g.slot), g.name])),
+    refine: gear,
+    quality: gear,
+    advanced: gear,
+    polish: Object.fromEntries(identity.polish.map((p) => [`${p.index}:${p.line}`, `${p.item}|${p.option}`])),
+    bracelet: Object.fromEntries(identity.bracelet.map((b) => [String(b.line), b.name])),
+    engraving: Object.fromEntries(identity.engravings.map((e) => [e.name, e.name])),
+    stone: Object.fromEntries(identity.stones.map((e) => [e.name, e.name])),
+    arkPassive: Object.fromEntries(identity.arkPassive.map((a) => [a.tree, a.tree])),
+    core: Object.fromEntries(identity.cores.map((c) => [String(c.slotIndex), c.name])),
+  };
+}
+
+const GROUPS = ["gems", "refine", "quality", "advanced", "polish", "bracelet", "engraving", "stone", "arkPassive", "core"] as const;
+
+/**
+ * Applies a saved input to the character as it is now: entries whose target
+ * changed are left out and counted. An old save without targets cannot be
+ * checked, so it is not applied at all (legacy) — a wrong number is worse
+ * than asking to save again.
+ */
+export function applySaved(saved: Saved, identity: Identity): { edits: Edits; skipped: number } | { legacy: true } {
+  if (!saved.targets) return { legacy: true };
+  const now = targetsOf(identity);
+  let skipped = 0;
+  const edits: Edits = { ...saved.edits };
+  for (const group of GROUPS) {
+    const kept: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(saved.edits[group])) {
+      const was = saved.targets[group]?.[key];
+      if (was !== undefined && was === now[group][key]) kept[key] = value;
+      else skipped++;
+    }
+    (edits as Record<string, unknown>)[group] = kept;
+  }
+  return { edits, skipped };
+}
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -114,8 +176,27 @@ export function parseSaved(text: string | null): Saved | null {
     arkPassive: numbers("arkPassive"),
     core: cores as Edits["core"],
   };
-  return { edits, savedAt: raw.savedAt };
+  let targets: Targets | undefined;
+  if (isRecord(raw.targets)) {
+    targets = {};
+    for (const group of GROUPS) {
+      const value = raw.targets[group];
+      if (isRecord(value))
+        targets[group] = Object.fromEntries(
+          Object.entries(value).filter((entry): entry is [string, string] => typeof entry[1] === "string"),
+        );
+    }
+  }
+  return { edits, savedAt: raw.savedAt, targets };
 }
 
-export const serializeSaved = (edits: Edits, savedAt: Date) =>
-  JSON.stringify({ edits, savedAt: savedAt.toISOString() } satisfies Saved);
+/** Saves the edits with what each one is aimed at on this character now. */
+export function serializeSaved(edits: Edits, savedAt: Date, identity: Identity) {
+  const now = targetsOf(identity);
+  const targets: Targets = {};
+  for (const group of GROUPS) {
+    const keys = Object.keys(edits[group]);
+    if (keys.length) targets[group] = Object.fromEntries(keys.map((key) => [key, now[group][key] ?? ""]));
+  }
+  return JSON.stringify({ edits, savedAt: savedAt.toISOString(), targets } satisfies Saved);
+}

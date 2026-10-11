@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { dehydrate, HydrationBoundary, QueryClient } from "@tanstack/react-query";
 import { StatsView } from "@/components/stats/stats-view";
 import { getStats } from "@/lib/stats/server";
-import { parseStatsQuery, type StatsQuery } from "@/lib/stats/model";
+import { parseStatsQuery, statsKey, type StatsQuery } from "@/lib/stats/model";
 
 export const metadata: Metadata = {
   title: "통계",
@@ -41,8 +41,8 @@ export default async function StatsPage({
   // eslint-disable-next-line react-hooks/purity
   const fetchedAt = Date.now();
   const client = new QueryClient();
-  if (summary.ok) client.setQueryData(["stats", "summary", query], summary.envelope, { updatedAt: fetchedAt });
-  if (view && table?.ok) client.setQueryData(["stats", view, query], table.envelope, { updatedAt: fetchedAt });
+  if (summary.ok) client.setQueryData(["stats", "summary", statsKey(query)], summary.envelope, { updatedAt: fetchedAt });
+  if (view && table?.ok) client.setQueryData(["stats", view, statsKey(query)], table.envelope, { updatedAt: fetchedAt });
   // StatsView follows initialTab itself, so a menu link to another tab opens it.
   return (
     <HydrationBoundary state={dehydrate(client)}>
