@@ -16,6 +16,7 @@ import { MAX_PAGE, PAGE_SIZE, rankingSearch, type RankingQuery } from "@/lib/sta
 import quote from "@/components/tools/material-quote.module.css";
 import styles from "./stats.module.css";
 import { BasisNote } from "./basis-note";
+import { RankingTypeTabs } from "./ranking-type-tabs";
 
 const SERVERS = ["루페온", "실리안", "아만", "아브렐슈드", "카단", "카마인", "카제로스", "니나브"];
 const CLASSES = [
@@ -29,7 +30,7 @@ const CLASSES = [
  * like the statistics page, 50 per page. The list is LOAKraken's sample, not
  * the official ranking, and hidden characters never appear.
  */
-export function RankingsView({ initial }: { initial: RankingQuery }) {
+export function RankingsView({ initial, typeTabs = false }: { initial: RankingQuery; typeTabs?: boolean }) {
   const router = useRouter();
   const [query, setQuery] = useState<RankingQuery>(initial);
   const [levelText, setLevelText] = useState(initial.itemLevelMin != null ? String(initial.itemLevelMin) : "");
@@ -83,6 +84,7 @@ export function RankingsView({ initial }: { initial: RankingQuery }) {
           <h1 id="rankings-heading">랭킹</h1>
           <p>LOAKraken이 확인한 캐릭터를 {metricLabel} 순으로 보여줘요.</p>
         </section>
+        {typeTabs && <RankingTypeTabs value="character" />}
 
         <form className={styles.filters} onSubmit={(e) => e.preventDefault()} aria-label="랭킹 조건">
           <span className={styles.segment} role="group" aria-label="기준">

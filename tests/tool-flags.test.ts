@@ -36,3 +36,11 @@ test("세팅 점검 tab is hidden on production unless SETTING_CHECK_TAB says ot
   assert.equal(isSettingCheckEnabled({ SETTING_CHECK_TAB: " OFF " }), false);
 });
 
+
+test("roster ranking tab is hidden on production unless ROSTER_RANKING says otherwise", async () => {
+  const { isRosterRankingEnabled } = await import("../lib/tools/flags");
+  assert.equal(isRosterRankingEnabled({}), true, "local and e2e (no SITE_URL)");
+  assert.equal(isRosterRankingEnabled({ SITE_URL: "https://loakraken.gg" }), false);
+  assert.equal(isRosterRankingEnabled({ SITE_URL: "https://loakraken.gg", ROSTER_RANKING: "on" }), true);
+  assert.equal(isRosterRankingEnabled({ ROSTER_RANKING: "off" }), false);
+});

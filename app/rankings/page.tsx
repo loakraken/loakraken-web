@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import { RankingsView } from "@/components/stats/rankings-view";
+import { RosterRankingsView } from "@/components/stats/roster-rankings-view";
+import { parseRosterQuery } from "@/lib/stats/roster-ranking";
+import { isRosterRankingEnabled } from "@/lib/tools/flags";
 import { parseRankingQuery } from "@/lib/stats/rankings";
 
 export const metadata: Metadata = {
@@ -17,7 +20,11 @@ export default async function RankingsPage({
   const raw = await searchParams;
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(raw)) if (typeof value === "string") params.set(key, value);
+  // ?type=roster opens the roster ranking (ROSTER_RANKING); while it is
+  // hidden, the character ranking shows without the type tabs.
+  const roster = isRosterRankingEnabled();
+  if (roster && params.get("type") === "roster") return <RosterRankingsView initial={parseRosterQuery(params)} />;
   // Invalid values in a shared link fall back to the defaults.
   const query = parseRankingQuery(params) ?? { metric: "COMBAT_POWER" as const, page: 1 };
-  return <RankingsView initial={query} />;
+  return <RankingsView initial={query} typeTabs={roster} />;
 }

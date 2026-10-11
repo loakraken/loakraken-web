@@ -57,6 +57,18 @@ export function isSettingCheckEnabled(env: Env = process.env) {
   return !isProductionHost(env.SITE_URL);
 }
 
+/**
+ * The roster ranking tab (backend #298, off on the backend until it ships).
+ * Same rule: `ROSTER_RANKING=on|off` overrides, otherwise hidden only on the
+ * production host.
+ */
+export function isRosterRankingEnabled(env: Env = process.env) {
+  const flag = env.ROSTER_RANKING?.trim().toLowerCase();
+  if (flag === "on") return true;
+  if (flag === "off") return false;
+  return !isProductionHost(env.SITE_URL);
+}
+
 const PRODUCTION_HOST = new URL(PRODUCTION_URL).hostname;
 
 function isProductionHost(value: string | undefined) {
