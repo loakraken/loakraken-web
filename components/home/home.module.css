@@ -874,6 +874,10 @@
   color: var(--muted-foreground);
   font-size: 12px;
 }
+.servers .sampleSize small {
+  display: block;
+  font-size: 11px;
+}
 .serverNote {
   margin-top: 8px;
   color: var(--muted-foreground);

@@ -424,6 +424,19 @@
   border-radius: inherit;
   background: var(--primary);
 }
+/* Summary under the sample minimum: values in gray with a "참고값" tag (user 23:50). */
+.cards[data-reference] dd {
+  color: var(--muted-foreground);
+}
+.refTag {
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: 9999px;
+  background: var(--secondary);
+  color: var(--muted-foreground);
+  font-size: 11px;
+  font-weight: 600;
+}
 /* Rows short of the sample minimum stay in place, in gray (user, 23:23). */
 .table tr[data-short] th,
 .table tr[data-short] td {

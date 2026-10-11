@@ -89,21 +89,24 @@ function SummaryCards({ query }: { query: StatsQuery }) {
   if (summary.isError && !s) return <Problem error={summary.error} onRetry={() => summary.refetch()} />;
   if (!s) return <p className={styles.muted}>통계를 불러오고 있어요…</p>;
   const roles = s.dealers + s.supports;
+  // A filter narrower than the sample minimum: the numbers still show, in gray
+  // with "참고값" (user 23:50, backend #274); the top 10% stays "-".
+  const reference = s.meta.sampleStatus !== "READY";
   return (
     <>
       <Notice meta={s.meta} />
-      <dl className={styles.cards}>
+      <dl className={styles.cards} data-reference={reference || undefined}>
         <div>
           <dt>표본</dt>
           <dd>{whole(s.meta.population)}명</dd>
         </div>
         <div>
-          <dt>아이템 레벨</dt>
+          <dt>아이템 레벨{reference && <span className={styles.refTag}>참고값</span>}</dt>
           <dd>{fixed(s.itemLevelMean)}</dd>
           <small>중앙값 {fixed(s.itemLevelMedian)}</small>
         </div>
         <div>
-          <dt>전투력 중앙값</dt>
+          <dt>전투력 중앙값{reference && <span className={styles.refTag}>참고값</span>}</dt>
           <dd>{fixed(s.combatPowerMedian)}</dd>
           <small>상위 10% {fixed(s.combatPowerP90)}</small>
         </div>
@@ -118,7 +121,7 @@ function SummaryCards({ query }: { query: StatsQuery }) {
           </small>
         </div>
         <div>
-          <dt>보석 평균 레벨</dt>
+          <dt>보석 평균 레벨{reference && <span className={styles.refTag}>참고값</span>}</dt>
           <dd>{fixed(s.gemMeanLevel, 1)}</dd>
           <small>{whole(s.gemSample)}명 기준</small>
         </div>
