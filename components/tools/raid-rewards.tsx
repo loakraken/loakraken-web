@@ -231,7 +231,7 @@ export function RaidRewardsTable() {
         </div>
       </main>
       <footer className={quote.footer}>
-        LOAKraken · 로스트아크 비공식 팬 프로젝트 · 공식 공지 기준 자료
+        LOAKraken · 공식 공지 기준 자료
       </footer>
     </div>
   );
