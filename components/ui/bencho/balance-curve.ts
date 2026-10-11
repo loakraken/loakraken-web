@@ -1,8 +1,14 @@
 // MIT © 2026 Lorenzo Cabra — https://bencho.dev (block "Pull to refresh")
 // The chart part of Bencho "Pull to refresh" (its Balance card): the curve
-// builder, kept as published (full licence in ./NOTICE). Our only change
-// (direction rule 10-10): it is exported on its own so the market and
-// character history charts can draw their line with it.
+// builder, published with the full licence in ./NOTICE. Our changes:
+// - exported on its own so the market chart can draw its line with it
+//   (direction rule 10-10);
+// - the tangents (#432, PM-프론트 P1): uniform Catmull-Rom does overshoot
+//   where a flat run meets a change — [100,100,200,200,200] drew 92.6–207.4,
+//   prices that were never recorded. The control points now come from
+//   monotone cubic tangents (Fritsch–Carlson, as d3's curveMonotoneX), so
+//   between two readings the line never leaves the range they span. Shape
+//   of the API, the path string and `at` are otherwise as published.
 
 /* ── the line ──────────────────────────────────────────────
    A CURVE, not a polyline. The first version joined the
@@ -15,6 +21,8 @@
    through every reading exactly, and the control points come
    from the neighbours on either side, so nothing is invented
    and nothing overshoots into a shape the data does not have.
+   (Ours: monotone tangents in place of Catmull-Rom's — see the
+   file header — because Catmull-Rom alone does overshoot.)
 
    Three things come out of one pass — the stroke, the area
    underneath it, and the points themselves — because they all
@@ -31,17 +39,33 @@ export function curve(vals: number[], w: number, h: number, pad: number) {
 
   /* the control points, kept rather than thrown away with the
      string. `at` needs exactly these — see below. */
+  /* Monotone tangents (Fritsch–Carlson). The slope at a reading is 0 where
+     the line turns (a peak, a trough or a flat run), otherwise the smaller
+     neighbour slope capped by their mean — which keeps each bézier inside
+     the two readings it joins. The ends take the one-sided form. */
+  const step = pt.length > 1 ? pt[1].x - pt[0].x : 1;
+  const slope = pt.slice(0, -1).map((p1, i) => (pt[i + 1].y - p1.y) / (step || 1));
+  const sign = (v: number) => (v > 0 ? 1 : v < 0 ? -1 : 0);
+  const inner = pt.map((_, i) => {
+    const s0 = slope[i - 1];
+    const s1 = slope[i];
+    if (s0 === undefined || s1 === undefined) return 0;
+    return (sign(s0) + sign(s1)) * Math.min(Math.abs(s0), Math.abs(s1), 0.5 * Math.abs((s0 + s1) / 2)) || 0;
+  });
+  const tangent = inner.map((m, i) => {
+    if (pt.length === 2) return slope[0];
+    if (i === 0) return (3 * slope[0] - inner[1]) / 2;
+    if (i === pt.length - 1) return (3 * slope[i - 1] - inner[i - 1]) / 2;
+    return m;
+  });
   const seg = pt.slice(0, -1).map((p1, i) => {
-    const p0 = pt[i - 1] ?? p1;
     const p2 = pt[i + 1];
-    const p3 = pt[i + 2] ?? p2;
-    /* a sixth of the neighbour span is the standard Catmull-Rom
-       tension — tighter and it corners, looser and it loops */
+    const third = (p2.x - p1.x) / 3;
     return {
       p1,
       p2,
-      c1: { x: p1.x + (p2.x - p0.x) / 6, y: p1.y + (p2.y - p0.y) / 6 },
-      c2: { x: p2.x - (p3.x - p1.x) / 6, y: p2.y - (p3.y - p1.y) / 6 },
+      c1: { x: p1.x + third, y: p1.y + tangent[i] * third },
+      c2: { x: p2.x - third, y: p2.y - tangent[i + 1] * third },
     };
   });
 
