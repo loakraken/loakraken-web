@@ -1379,6 +1379,9 @@
   font-weight: 600;
 }
 .skillChips > li {
+  /* A31: one line, never split (badge/chip/unit). */
+  flex: none;
+  white-space: nowrap;
   display: inline-flex;
   align-items: center;
   min-height: 22px;
@@ -1421,6 +1424,9 @@
 }
 /* "베타" next to a tab name (세팅 점검, dev and preview only). */
 .betaChip {
+  /* A31: one line, never split (badge/chip/unit). */
+  flex: none;
+  white-space: nowrap;
   margin-left: 1px;
   padding: 1px 5px;
   border: 1px solid currentColor;
