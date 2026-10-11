@@ -1121,3 +1121,11 @@
     scale: 0 1;
   }
 }
+
+/* Theme switch (theme-toggle.tsx): no transitions for the frame the colour
+   tokens flip, so nothing fades between light and dark. */
+:root[data-theme-switching] *,
+:root[data-theme-switching] *::before,
+:root[data-theme-switching] *::after {
+  transition: none !important;
+}

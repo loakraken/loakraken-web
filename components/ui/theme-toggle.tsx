@@ -21,10 +21,26 @@ function readTheme(): Theme {
   return document.documentElement.dataset.theme === "dark" ? "dark" : "light"
 }
 
-function applyTheme(theme: Theme) {
+// Switching flips every colour token at once, but elements with a colour
+// transition (buttons, links, chips) would then fade over 150–300ms, so for a
+// moment light and dark mix — and rapid presses stack those fades (user,
+// 10-11: "여러 번 누르면 가끔 이상"). For the frame of the switch, transitions
+// are off everywhere (data-theme-switching, globals.css); the attribute comes
+// off two frames later, and a newer press restarts that wait.
+let settle = 0
+function setThemeAttribute(theme: Theme) {
   const root = document.documentElement
+  root.setAttribute("data-theme-switching", "")
   if (theme === "dark") root.dataset.theme = "dark"
   else delete root.dataset.theme
+  cancelAnimationFrame(settle)
+  settle = requestAnimationFrame(() => {
+    settle = requestAnimationFrame(() => root.removeAttribute("data-theme-switching"))
+  })
+}
+
+function applyTheme(theme: Theme) {
+  setThemeAttribute(theme)
   try {
     localStorage.setItem(THEME_STORAGE_KEY, theme)
   } catch {
@@ -38,9 +54,7 @@ function subscribe(listener: () => void) {
   // Keep other open tabs in step with a choice made here.
   const onStorage = (event: StorageEvent) => {
     if (event.key !== THEME_STORAGE_KEY) return
-    const root = document.documentElement
-    if (event.newValue === "dark") root.dataset.theme = "dark"
-    else delete root.dataset.theme
+    setThemeAttribute(event.newValue === "dark" ? "dark" : "light")
     listener()
   }
   window.addEventListener("storage", onStorage)
@@ -65,7 +79,9 @@ function ThemeToggle({ className, ...props }: ThemeToggleProps) {
     <IconButton
       aria-label="다크 모드"
       aria-pressed={dark}
-      onClick={() => applyTheme(dark ? "light" : "dark")}
+      // Read the page, not this render: the last press always wins, even if
+      // presses land faster than React re-renders.
+      onClick={() => applyTheme(readTheme() === "dark" ? "light" : "dark")}
       // Pressed means "dark is on", not a warm highlight like a favourite.
       className={cn("aria-pressed:text-foreground", className)}
       {...props}
