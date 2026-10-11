@@ -113,6 +113,9 @@
 }
 .chips a,
 .chips button {
+  /* A31: one line, never split (badge/chip/unit). */
+  flex: none;
+  white-space: nowrap;
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -129,6 +132,9 @@
 }
 /* Counts stay in the chip ink: an opacity fade dropped them below 4.5:1. */
 .chips span {
+  /* A31: one line, never split (badge/chip/unit). */
+  flex: none;
+  white-space: nowrap;
   font-size: 11px;
   font-variant-numeric: tabular-nums;
 }

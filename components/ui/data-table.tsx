@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import { cn } from "cn"
+import { ArrowDown, ArrowUp } from "@/components/ui/icons"
 
 // Data tables (swiftness table, refining plan, character detail, market).
 // The wrapper scrolls sideways on narrow screens; it is a named region and
@@ -12,6 +13,12 @@ import { cn } from "cn"
 type DataTableProps = React.ComponentProps<"table"> & {
   /** Name of the scroll region, read by screen readers (e.g. "신속 스탯별 공이속"). */
   label: string
+  /**
+   * Keep the first column in place while the rest scrolls sideways (rankings,
+   * multi-search on a phone: the name stays readable). It takes the panel's
+   * colour (--table-bg, default --card) so rows do not show through.
+   */
+  stickyFirst?: boolean
 }
 
 function useOverflowX<T extends HTMLElement>() {
@@ -30,7 +37,7 @@ function useOverflowX<T extends HTMLElement>() {
   return [ref, overflowing] as const
 }
 
-function DataTable({ label, className, ...props }: DataTableProps) {
+function DataTable({ label, stickyFirst = false, className, ...props }: DataTableProps) {
   const [ref, overflowing] = useOverflowX<HTMLDivElement>()
   return (
     <div
@@ -57,6 +64,12 @@ function DataTable({ label, className, ...props }: DataTableProps) {
           "[&_tr:is([data-current],[aria-current=true])]:bg-[color-mix(in_oklab,var(--primary)_6%,transparent)]",
           "[&_tr:is([data-current],[aria-current=true])>:first-child]:shadow-[inset_3px_0_0_var(--ring)]",
           "[&_tr[data-optimal]_:is(th,td)]:font-semibold",
+          stickyFirst && [
+            "[&_:is(th,td):first-child]:sticky [&_:is(th,td):first-child]:left-0 [&_:is(th,td):first-child]:z-1",
+            "[&_:is(th,td):first-child]:bg-(--table-bg,var(--card)) [&_:is(th,td):first-child]:shadow-[1px_0_0_var(--border)]",
+            // a long name may not take the screen: 40% at most, the rest ellipsised
+            "[&_:is(th,td):first-child]:max-w-[40vw] [&_:is(th,td):first-child]:overflow-hidden [&_:is(th,td):first-child]:text-ellipsis",
+          ],
           className
         )}
         {...props}
@@ -65,5 +78,92 @@ function DataTable({ label, className, ...props }: DataTableProps) {
   )
 }
 
-export { DataTable }
-export type { DataTableProps }
+type SortDir = "asc" | "desc"
+type SortState<K extends string> = { key: K; dir: SortDir } | null
+
+/**
+ * Sort rows by the column a header points at. Numbers sort as numbers,
+ * text by Korean collation; empty values (null) always go last. Stable, and
+ * the caller's array is never changed.
+ */
+function useTableSort<T, K extends string>(
+  rows: readonly T[],
+  accessors: Record<K, (row: T) => number | string | null | undefined>,
+  // the column names come from `accessors`; `initial` must use one of them
+  initial: NoInfer<SortState<K>> = null
+) {
+  const [sort, setSort] = React.useState<SortState<K>>(initial)
+  const sorted = React.useMemo(() => {
+    if (!sort) return rows
+    const get = accessors[sort.key]
+    const factor = sort.dir === "asc" ? 1 : -1
+    return rows
+      .map((row, index) => ({ row, index, v: get(row) }))
+      .sort((a, b) => {
+        const an = a.v == null || a.v === ""
+        const bn = b.v == null || b.v === ""
+        if (an || bn) return an === bn ? a.index - b.index : an ? 1 : -1
+        const d =
+          typeof a.v === "number" && typeof b.v === "number"
+            ? a.v - b.v
+            : String(a.v).localeCompare(String(b.v), "ko-KR", { numeric: true })
+        return d === 0 ? a.index - b.index : d * factor
+      })
+      .map((entry) => entry.row)
+    // accessors are the caller's lookup table (often a new object each render);
+    // only the rows and the chosen sort decide the order
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rows, sort])
+  /** First press on a column uses its first direction (numbers: high first). */
+  const toggle = React.useCallback((key: K, first: SortDir = "desc") => {
+    setSort((current) =>
+      current?.key === key ? { key, dir: current.dir === "desc" ? "asc" : "desc" } : { key, dir: first }
+    )
+  }, [])
+  return { sorted, sort, toggle, setSort }
+}
+
+type SortHeaderProps<K extends string> = Omit<React.ComponentProps<"th">, "onClick"> & {
+  sortKey: K
+  sort: SortState<K>
+  onSort: (key: K) => void
+  /** A number column: right-aligned like its cells. */
+  numeric?: boolean
+}
+
+/**
+ * A sortable column header: the whole label is a button (Enter / Space), the
+ * th carries aria-sort, and the arrow shows the direction. Unsorted columns
+ * show no arrow; the button's name is the column's name.
+ */
+function SortHeader<K extends string>({ sortKey, sort, onSort, numeric, className, children, ...props }: SortHeaderProps<K>) {
+  const dir = sort?.key === sortKey ? sort.dir : null
+  return (
+    <th
+      aria-sort={dir === "asc" ? "ascending" : dir === "desc" ? "descending" : "none"}
+      data-numeric={numeric || undefined}
+      className={cn("p-0!", className)}
+      {...props}
+    >
+      <button
+        type="button"
+        onClick={() => onSort(sortKey)}
+        className={cn(
+          "inline-flex min-h-9 w-full items-center gap-1 px-3 py-2 font-[inherit] whitespace-nowrap",
+          numeric && "justify-end",
+          dir ? "text-foreground" : "text-muted-foreground",
+          "pointer-fine:hover:text-foreground",
+          "outline-none focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-(--ring)"
+        )}
+      >
+        {children}
+        <span aria-hidden className="inline-grid size-3.5 place-items-center">
+          {dir === "asc" ? <ArrowUp size={14} /> : dir === "desc" ? <ArrowDown size={14} /> : null}
+        </span>
+      </button>
+    </th>
+  )
+}
+
+export { DataTable, SortHeader, useTableSort }
+export type { DataTableProps, SortDir, SortState, SortHeaderProps }
