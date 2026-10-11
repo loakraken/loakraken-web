@@ -572,3 +572,35 @@ export function RuneCard({ rune, lines = [] }: { rune: Rune; lines?: string[] })
     </ItemDetail>
   );
 }
+
+type Avatar = Character["avatars"][number];
+
+/**
+ * The avatar card (sheet v2.1 §2c): name, icon row (grade and type, 장착중),
+ * the 덧입기 note (its effects do not apply), then the base effect. Bound/trade,
+ * tendencies and sources come when the backend sends the tooltip lines.
+ */
+export function AvatarCard({ avatar }: { avatar: Avatar }) {
+  return (
+    <ItemDetail
+      grade={itemGrade(avatar.grade)}
+      title={avatar.name ?? "아바타"}
+      icon={img56(avatar.icon)}
+      // The type already reads "무기 아바타", "이동 효과"; the official line
+      // ("영웅 검 아바타") comes with the backend tooltip lines.
+      lines={[[avatar.grade, avatar.type ?? "아바타"].filter(Boolean).join(" ")]}
+      aside="장착중"
+    >
+      {avatar.isInner && (
+        <ItemLine tone="muted">아래 능력들이 적용되지 않는 상태입니다.(덧입기 슬롯에 착용 중)</ItemLine>
+      )}
+      {avatar.effects.length > 0 && (
+        <ItemDetailSection label="기본 효과">
+          {avatar.effects.map((effect, i) => (
+            <ItemLine key={i}>{effect}</ItemLine>
+          ))}
+        </ItemDetailSection>
+      )}
+    </ItemDetail>
+  );
+}
