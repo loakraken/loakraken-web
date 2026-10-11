@@ -21,7 +21,7 @@ const OBSERVE = () => {
 const PAGES = [
   { name: "홈", path: "/", interact: (page) => page.getByRole("group", { name: "요일 선택" }).locator('button[aria-pressed="false"]').first().click() },
   { name: "캐릭터", path: characterPath("상세"), interact: (page) => page.getByRole("navigation", { name: "캐릭터 정보 탭" }).getByRole("link", { name: "스킬", exact: true }).click() },
-  { name: "시세", path: "/market", interact: (page) => page.getByRole("navigation", { name: "시세 분류" }).getByRole("button", { name: "각인서" }).click() },
+  { name: "시세", path: "/market", interact: (page) => page.getByRole("tablist", { name: "시세 분류" }).getByRole("tab", { name: "각인서" }).click() },
   { name: "통계", path: "/stats", interact: (page) => page.getByRole("tab", { name: "분포" }).click() },
   { name: "랭킹", path: "/rankings", interact: (page) => page.getByRole("form", { name: "랭킹 조건" }).getByRole("button", { name: "아이템 레벨" }).click() },
 ];
