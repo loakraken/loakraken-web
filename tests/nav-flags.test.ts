@@ -4,14 +4,14 @@ import sitemap from "../app/sitemap";
 import { GET } from "../app/api/flags/route";
 import { NAV_SECTIONS } from "../components/site/nav-data";
 
-function withFlag<T>(value: string, run: () => T) {
-  const before = process.env.CRIT_SPEED_TOOL;
-  process.env.CRIT_SPEED_TOOL = value;
+function withFlag<T>(value: string, run: () => T, name = "CRIT_SPEED_TOOL") {
+  const before = process.env[name];
+  process.env[name] = value;
   try {
     return run();
   } finally {
-    if (before === undefined) delete process.env.CRIT_SPEED_TOOL;
-    else process.env.CRIT_SPEED_TOOL = before;
+    if (before === undefined) delete process.env[name];
+    else process.env[name] = before;
   }
 }
 
@@ -25,8 +25,18 @@ test("the sitemap leaves out the crit-speed tool while it is hidden (web #237)",
 });
 
 test("the menu's flag answer follows the same switch", async () => {
-  assert.deepEqual(await withFlag("off", GET).json(), { critSpeed: false });
-  assert.deepEqual(await withFlag("on", GET).json(), { critSpeed: true });
+  assert.equal((await withFlag("off", GET).json()).critSpeed, false);
+  assert.equal((await withFlag("on", GET).json()).critSpeed, true);
   const links = NAV_SECTIONS.flatMap((section) => section.groups.flatMap((group) => group.links));
   assert.equal(links.find((link) => link.href === "/tools/crit-speed")?.flag, "critSpeed");
+});
+
+test("the combat-power simulator is in the menu behind its own flag (사용자 지적 10-11)", async () => {
+  assert.equal((await withFlag("off", GET, "COMBAT_POWER_SIM").json()).combatPower, false);
+  assert.equal((await withFlag("on", GET, "COMBAT_POWER_SIM").json()).combatPower, true);
+  const tools = NAV_SECTIONS.find((section) => section.id === "tools");
+  const link = tools?.groups[0].links.find((item) => item.href === "/tools/combat-power");
+  assert.equal(link?.flag, "combatPower");
+  assert.equal(tools?.groups[0].links[1], link, "first calculator after 도구 전체");
+  assert.ok(tools?.match.includes("/tools/combat-power"));
 });

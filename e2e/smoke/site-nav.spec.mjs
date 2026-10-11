@@ -35,6 +35,16 @@ test.describe("상단 메뉴 데스크톱 @smoke", () => {
     await expect(trigger).toHaveAttribute("data-current", "true");
   });
 
+  test("성장 도구 메뉴에서 전투력 시뮬레이터로 간다(사용자 지적 10-11)", async ({ page }) => {
+    const trigger = page.getByRole("navigation", { name: "주요 메뉴" }).getByRole("button", { name: "성장 도구" });
+    await trigger.click();
+    const panel = page.locator(`#${await trigger.getAttribute("aria-controls")}`);
+    await panel.getByRole("link", { name: /전투력 시뮬레이터/ }).click();
+    await expect(page).toHaveURL(/\/tools\/combat-power$/);
+    await expect(page.getByRole("heading", { level: 1, name: "전투력 시뮬레이터" })).toBeVisible();
+    await expect(trigger).toHaveAttribute("data-current", "true");
+  });
+
   test("호버하면 플라이아웃이 열린다", async ({ page }) => {
     const trigger = page.getByRole("navigation", { name: "주요 메뉴" }).getByRole("button", { name: "성장 도구" });
     await trigger.hover();
