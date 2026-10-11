@@ -505,6 +505,10 @@ function AuctionContent({
                   {PARTY_PRESETS.map((preset) => (
                     <SegmentedItem
                       key={preset.size}
+                      // 12px sides: four items fit the 254px side column on one
+                      // row (263px at 16px), so the row is never re-measured
+                      // into a stack after the font loads (A6, 1280 CLS 0.0094).
+                      className="px-3"
                       value={preset.size}
                       title={"hint" in preset ? preset.hint : undefined}
                     >
