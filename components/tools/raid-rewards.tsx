@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { ArrowLeft, Coin } from "@/components/ui/icons";
 import Link from "next/link";
 import { SiteHeader } from "@/components/site/site-header";
@@ -121,12 +121,16 @@ function ModeTable({ raid, mode }: { raid: Raid; mode: Mode }) {
   );
 }
 
-function RaidCard({ raid }: { raid: Raid }) {
+function RaidCard({ raid, order }: { raid: Raid; order: number }) {
   const [difficulty, setDifficulty] = useState(raid.modes[0].difficulty);
   const mode = raid.modes.find((m) => m.difficulty === difficulty) ?? raid.modes[0];
   const groupName = `raid-${raid.id}`;
   return (
-    <section className={styles.card} aria-labelledby={`${groupName}-title`}>
+    <section
+      className={`${styles.card} k-reveal`}
+      style={{ "--i": order } as CSSProperties}
+      aria-labelledby={`${groupName}-title`}
+    >
       <div className={styles.cardHead}>
         <div>
           <p className={styles.category}>{CATEGORY_LABEL[raid.category]}</p>
@@ -162,6 +166,14 @@ function RaidCard({ raid }: { raid: Raid }) {
 }
 
 export function RaidRewardsTable() {
+  // 모션 목록(레이드 보상): the cards enter once, 30ms apart (.k-reveal).
+  // Once that is over, cards a filter brings back appear at once — a filter
+  // is a frequent action and should not replay the entry.
+  const grid = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const timer = setTimeout(() => grid.current?.setAttribute("data-settled", ""), 800);
+    return () => clearTimeout(timer);
+  }, []);
   const [filter, setFilter] = useState<Category | "ALL">("ALL");
   const raids = RAID_DATA.raids.filter((r) => filter === "ALL" || r.category === filter);
   const rules = RAID_DATA.rules;
@@ -216,9 +228,9 @@ export function RaidRewardsTable() {
               ))}
             </div>
 
-            <div className={styles.grid}>
-              {raids.map((raid) => (
-                <RaidCard key={raid.id} raid={raid} />
+            <div className={styles.grid} ref={grid}>
+              {raids.map((raid, order) => (
+                <RaidCard key={raid.id} raid={raid} order={order} />
               ))}
             </div>
 
