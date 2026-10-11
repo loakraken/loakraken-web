@@ -68,7 +68,9 @@ function DataTable({ label, stickyFirst = false, className, ...props }: DataTabl
             "[&_:is(th,td):first-child]:sticky [&_:is(th,td):first-child]:left-0 [&_:is(th,td):first-child]:z-1",
             "[&_:is(th,td):first-child]:bg-(--table-bg,var(--card)) [&_:is(th,td):first-child]:shadow-[1px_0_0_var(--border)]",
             // a long name may not take the screen: 40% at most, the rest ellipsised
-            "[&_:is(th,td):first-child]:max-w-[40vw] [&_:is(th,td):first-child]:overflow-hidden [&_:is(th,td):first-child]:text-ellipsis",
+            // (one line: an ellipsis only works on unwrapped text — give the cell
+            // a title when the full name matters)
+            "[&_:is(th,td):first-child]:max-w-[40vw] [&_:is(th,td):first-child]:overflow-hidden [&_:is(th,td):first-child]:text-ellipsis [&_:is(th,td):first-child]:whitespace-nowrap",
           ],
           className
         )}
@@ -126,9 +128,12 @@ function useTableSort<T, K extends string>(
 type SortHeaderProps<K extends string> = Omit<React.ComponentProps<"th">, "onClick"> & {
   sortKey: K
   sort: SortState<K>
-  onSort: (key: K) => void
+  onSort: (key: K, first?: SortDir) => void
   /** A number column: right-aligned like its cells. */
   numeric?: boolean
+  /** Direction of the first press: high-to-low for numbers, A→Z (가→하)
+   *  for words unless set. */
+  first?: SortDir
 }
 
 /**
@@ -136,7 +141,7 @@ type SortHeaderProps<K extends string> = Omit<React.ComponentProps<"th">, "onCli
  * th carries aria-sort, and the arrow shows the direction. Unsorted columns
  * show no arrow; the button's name is the column's name.
  */
-function SortHeader<K extends string>({ sortKey, sort, onSort, numeric, className, children, ...props }: SortHeaderProps<K>) {
+function SortHeader<K extends string>({ sortKey, sort, onSort, numeric, first, className, children, ...props }: SortHeaderProps<K>) {
   const dir = sort?.key === sortKey ? sort.dir : null
   return (
     <th
@@ -147,7 +152,7 @@ function SortHeader<K extends string>({ sortKey, sort, onSort, numeric, classNam
     >
       <button
         type="button"
-        onClick={() => onSort(sortKey)}
+        onClick={() => onSort(sortKey, first ?? (numeric ? "desc" : "asc"))}
         className={cn(
           "inline-flex min-h-9 w-full items-center gap-1 px-3 py-2 font-[inherit] whitespace-nowrap",
           numeric && "justify-end",

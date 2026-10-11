@@ -41,7 +41,7 @@ function Sparkline({
     tone !== "auto" ? tone : finite[finite.length - 1] > finite[0] ? "up" : finite[finite.length - 1] < finite[0] ? "down" : "neutral"
   const color =
     resolved === "up" ? "var(--market-up)" : resolved === "down" ? "var(--market-down)" : "var(--muted-foreground)"
-  // 2px inside the box so the 1.5px stroke and the end dot are not clipped
+  // 3px inside the box so the 1.5px stroke and the end dot are not clipped
   const pad = 3
   const w = width - pad * 2
   const flat = Math.min(...finite) === Math.max(...finite)

@@ -26,10 +26,6 @@ const ALLOW = {
   A13: [
     { path: "app/contact/page.tsx", why: "공식 API 표기(점검표 A13 예외)" },
     { path: "components/tools/crit-speed.tsx", why: "능력치 출처 분해(점검표 A13 예외)" },
-    { path: "components/tools/homework.tsx", why: "성장 도구 출처 표시 삭제 PR 진행 중", temp: true },
-    { path: "components/tools/more-reward.tsx", why: "성장 도구 출처 표시 삭제 PR 진행 중", temp: true },
-    { path: "components/tools/raid-rewards.tsx", why: "성장 도구 출처 표시 삭제 PR 진행 중", temp: true },
-    { path: "components/tools/refining-plan.tsx", why: "성장 도구 출처 표시 삭제 PR 진행 중", temp: true },
   ],
 };
 
@@ -63,7 +59,9 @@ function stripComments(src, css = false) {
         i += 2;
         continue;
       }
-      if (c === quote) quote = null;
+      // ' and " strings end at the line (only template strings span lines),
+      // so a stray quote in JSX text cannot hide the lines after it.
+      if (c === quote || (c === "\n" && quote !== "`")) quote = null;
       i++;
       continue;
     }
@@ -81,7 +79,10 @@ function stripComments(src, css = false) {
       i = stop;
       continue;
     }
-    if (c === '"' || c === "'" || (!css && c === "`")) quote = c;
+    // An apostrophe inside a word (JSX text: don't, it's) opens no string —
+    // a quote never follows a letter or digit in code.
+    const inWord = c === "'" && !css && /[\p{L}\p{N}]/u.test(src[i - 1] ?? "");
+    if (!inWord && (c === '"' || c === "'" || (!css && c === "`"))) quote = c;
     out += c;
     i++;
   }
