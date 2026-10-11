@@ -33,6 +33,8 @@ test.describe("시세판 바뀐 칸 강조 @smoke", () => {
     // 바뀐 것은 첫 품목의 가격·등락 두 칸뿐이다
     await expect(board.locator('[data-slot="change-mark"][data-tone]')).toHaveCount(2);
     await expect(firstPrice.getByText("▲")).toBeAttached();
+    // 등락 칸은 자기 ▲/▼가 있어 강조 화살표 없이 바탕만 바뀐다
+    await expect(rows.first().locator('[data-slot="change-mark"]').nth(1)).toHaveAttribute("data-tone", "same");
     const after = await firstPrice.boundingBox();
     expect(after.x).toBe(before.x);
     expect(after.y).toBe(before.y);

@@ -70,7 +70,7 @@ import { RateLimitNote } from "@/components/site/rate-limit-note";
 import { pendingProps } from "@/lib/api/pending";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { useCrossfade } from "@/lib/motion";
-import { ChangeMark, UpdateAnnouncer, useChangedCells } from "@/components/ui/changed-cells";
+import { ChangeMark, UpdateAnnouncer, useChangedCells, type Pulse } from "@/components/ui/changed-cells";
 import { DataRefreshState } from "@/components/ui/data-refresh-state";
 
 const TIERS = [4, 3] as const;
@@ -317,9 +317,11 @@ function Detail({
 /**
  * The board's rows. Each minute's refresh compares the prices with the last
  * ones: a changed current price or day change gets the shared changed-cell
- * mark (a wash that fades once and ▲/▼; the number is final at once, no
- * counting), and a screen reader hears one short summary.
+ * mark (a wash that fades once, plus ▲/▼ on the price; the number is final
+ * at once, no counting), and a screen reader hears one short summary.
  */
+const washOnly = (pulse: Pulse | undefined): Pulse | undefined => pulse && { ...pulse, dir: 0 };
+
 function BoardRows({
   items,
   tier,
@@ -361,7 +363,8 @@ function BoardRows({
                 <ChangeMark pulse={pulse(String(item.itemId), "price")}>
                   <b>{goldText(item.currentMinPrice)}</b>
                 </ChangeMark>
-                <ChangeMark pulse={pulse(String(item.itemId), "change")}>
+                {/* The day change carries its own ▲/▼: mark it with the wash only. */}
+                <ChangeMark pulse={washOnly(pulse(String(item.itemId), "change"))}>
                   <Change item={item} />
                 </ChangeMark>
               </span>
