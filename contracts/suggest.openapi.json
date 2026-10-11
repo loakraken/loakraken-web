@@ -98,7 +98,10 @@
               "$ref": "#/components/schemas/CharacterSuggestItemResponse"
             }
           }
-        }
+        },
+        "required": [
+          "items"
+        ]
       },
       "CharacterSuggestItemResponse": {
         "type": "object",
@@ -117,10 +120,24 @@
             "description": "마지막으로 기록한 아이템 레벨"
           },
           "characterImage": {
-            "type": "string",
-            "description": "공식 프로필 초상 이미지 주소. 프로필을 아직 기록하지 않았으면 null"
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "공식 프로필 초상 이미지 주소. 프로필을 아직 기록하지 않았으면 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
-        }
+        },
+        "required": [
+          "characterImage",
+          "characterName",
+          "className",
+          "itemLevel",
+          "serverName"
+        ]
       },
       "ErrorResponse": {
         "type": "object",

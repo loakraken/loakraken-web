@@ -46,16 +46,15 @@ export interface components {
         /** @description 캐릭터 이름 자동완성(#369) */
         CharacterSuggestResponse: {
             /** @description 아이템 레벨 높은 순, 최대 8개. 없으면 빈 배열 */
-            items?: components["schemas"]["CharacterSuggestItemResponse"][];
+            items: components["schemas"]["CharacterSuggestItemResponse"][];
         };
         CharacterSuggestItemResponse: {
-            characterName?: string;
-            serverName?: string;
-            className?: string;
+            characterName: string;
+            serverName: string;
+            className: string;
             /** @description 마지막으로 기록한 아이템 레벨 */
-            itemLevel?: number;
-            /** @description 공식 프로필 초상 이미지 주소. 프로필을 아직 기록하지 않았으면 null */
-            characterImage?: string;
+            itemLevel: number;
+            characterImage: string | null;
         };
         /** @description 공통 오류 응답. HTTP 상태와 업무 코드를 함께 확인합니다. */
         ErrorResponse: {

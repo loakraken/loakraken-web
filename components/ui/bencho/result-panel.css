@@ -127,6 +127,19 @@
   font-size: var(--text-caption);
 }
 
+/* (ours) The same line on top: rows that arrive later grow the card
+   downwards without moving it (A7, 10-12). The rows scroll with a stable
+   gutter, so a scrollbar appearing does not narrow and re-wrap them. */
+.rsp-head {
+  padding: 4px 8px 8px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+  color: var(--muted-foreground);
+  font-size: var(--text-caption);
+}
+.rsp-scroll {
+  scrollbar-gutter: stable;
+}
 .rsp-foot {
   padding: 8px 8px 4px;
   border-top: 1px solid var(--border);

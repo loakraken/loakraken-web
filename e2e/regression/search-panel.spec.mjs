@@ -20,7 +20,7 @@ test("빈 칸이면 인기 캐릭터와 기능이 보이고, 입력칸이 결과
   for (const name of ["테마 바꾸기", "문의하기", "지금 페이지 링크 복사"])
     await expect(list.getByRole("option", { name: new RegExp(name) })).toBeVisible();
   await expect(list.getByRole("group", { name: "실시간 인기 캐릭터" })).toBeVisible();
-  await expect(page.getByText("↑↓ 이동 · Enter 열기 · Esc 닫기")).toBeVisible();
+  await expect(page.getByText("↑↓ 이동, Enter 열기, Esc 닫기")).toBeVisible();
 
   // ↓ moves the active row; the field keeps focus and points at it.
   await page.keyboard.press("ArrowDown");
@@ -69,3 +69,25 @@ test("이름을 치면 정보 보기 줄과 자동완성이 나오고, ↓ Enter
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/\/character\/%EC%83%81%EC%84%B8%EC%84%9C%ED%8F%AC%ED%84%B0$/);
 });
+
+for (const width of [1440, 360]) {
+  test(`@A7 ${width}: 자동완성이 늦게 와도 패널 안 줄과 안내가 밀리지 않는다 @regression`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 800 });
+    await page.addInitScript(() => {
+      window.__quiet = 0;
+      new PerformanceObserver((list) => {
+        for (const e of list.getEntries()) if (!e.hadRecentInput) window.__quiet += e.value;
+      }).observe({ type: "layout-shift", buffered: true });
+    });
+    await page.route("**/api/characters/suggest**", async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 1200));
+      await route.continue();
+    });
+    await openSearch(page);
+    const before = await page.evaluate(() => window.__quiet);
+    await page.keyboard.type("상");
+    await expect(page.getByRole("option", { name: /상세서포터/ })).toBeVisible();
+    await page.waitForTimeout(400);
+    expect((await page.evaluate(() => window.__quiet)) - before, "자동완성이 온 뒤 흔들림").toBe(0);
+  });
+}

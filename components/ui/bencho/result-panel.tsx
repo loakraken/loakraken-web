@@ -51,6 +51,8 @@ type ResultPanelProps = {
   onPick: (item: ResultItem) => void;
   /** pointer over a row: let the arrows carry on from there */
   onActive?: (id: string) => void;
+  /** above the rows (ours, 10-12): what must not move when rows arrive later */
+  header?: ReactNode;
   /** under the rows: key hints, an empty state */
   footer?: ReactNode;
   className?: string;
@@ -59,7 +61,7 @@ type ResultPanelProps = {
 /** The option element's id for a row, for the input's aria-activedescendant. */
 const optionId = (panelId: string, rowId: string) => `${panelId}-opt-${rowId}`;
 
-function ResultPanel({ open, id, label, groups, activeId, onPick, onActive, footer, className }: ResultPanelProps) {
+function ResultPanel({ open, id, label, groups, activeId, onPick, onActive, header, footer, className }: ResultPanelProps) {
   const reduce = useReducedMotion();
   let order = 0;
   return (
@@ -91,6 +93,7 @@ function ResultPanel({ open, id, label, groups, activeId, onPick, onActive, foot
               opacity: { duration: 0.12 },
             }}
           >
+            {header && <div className="rsp-head">{header}</div>}
             <div className="rsp-scroll" id={id} role="listbox" aria-label={label}>
               {groups.map((group) =>
                 group.items.length === 0 ? null : (

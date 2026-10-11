@@ -132,20 +132,6 @@ function CommandSearchDialog({
           run: () => goCharacter(c.name),
         })),
       })
-    const hot = popular.data?.data.items ?? []
-    if (hot.length)
-      groups.push({
-        id: "popular",
-        title: "실시간 인기 캐릭터",
-        items: hot.slice(0, 5).map((c) => ({
-          id: `popular:${c.characterName}`,
-          title: c.characterName,
-          sub: who(c.className, c.itemLevel),
-          side: `${c.rank}위`,
-          avatar: { fallback: initial(c.characterName) },
-          run: () => goCharacter(c.characterName),
-        })),
-      })
     const next = THEME_CHOICES[(THEME_CHOICES.findIndex((t) => t.value === choice) + 1) % THEME_CHOICES.length]
     groups.push({
       id: "features",
@@ -182,6 +168,22 @@ function CommandSearchDialog({
         },
       ],
     })
+    // Fetched rows last: arriving late they grow the card downwards and move
+    // nothing already shown (A7, PM-프론트 #593 P1).
+    const hot = popular.data?.data.items ?? []
+    if (hot.length)
+      groups.push({
+        id: "popular",
+        title: "실시간 인기 캐릭터",
+        items: hot.slice(0, 5).map((c) => ({
+          id: `popular:${c.characterName}`,
+          title: c.characterName,
+          sub: who(c.className, c.itemLevel),
+          side: `${c.rank}위`,
+          avatar: { fallback: initial(c.characterName) },
+          run: () => goCharacter(c.characterName),
+        })),
+      })
   } else {
     const menus = menuMatches(query, flags)
     if (menus.length)
@@ -199,10 +201,8 @@ function CommandSearchDialog({
         })),
       })
     const name = normalizeCharacterName(query)
-    // The contract leaves every field optional (tolerant); a row needs a name.
-    const names = (settled === query ? suggest.data?.data.items ?? [] : []).flatMap((c) =>
-      c.characterName && c.characterName !== name ? [{ ...c, characterName: c.characterName }] : []
-    )
+    // Suggestions come last (after the menu and "정보 보기") for the same reason.
+    const names = (settled === query ? suggest.data?.data.items ?? [] : []).filter((c) => c.characterName !== name)
     groups.push({
       id: "character",
       title: "캐릭터",
@@ -313,14 +313,19 @@ function CommandSearchDialog({
               />
             </React.Suspense>
             <ResultPanel
-              open={open && rows.length > 0}
+              open={open && (rows.length > 0 || !!query)}
               id={panelId}
               label="검색 결과"
               groups={groups}
               activeId={current}
               onActive={setActive}
               onPick={(item) => rows.find((r) => r.id === item.id)?.run()}
-              footer="↑↓ 이동 · Enter 열기 · Esc 닫기"
+              header="↑↓ 이동, Enter 열기, Esc 닫기"
+              footer={
+                query && !rows.length
+                  ? "맞는 메뉴가 없어요. 캐릭터 이름은 한글·영문·숫자로 입력해 주세요."
+                  : undefined
+              }
             />
           </div>
           <p id={errorId} role="alert" className="min-h-5 text-(length:--text-caption) text-destructive">

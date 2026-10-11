@@ -16,18 +16,10 @@ export type SuggestItem = Schemas["CharacterSuggestItemResponse"];
 /** The same limit as a character name; longer input cannot match. */
 export const SUGGEST_MAX = 16;
 
-// Backend #372's OpenAPI marks no item field required or nullable (its
-// ResponseContracts step was not applied; asked 10-12), yet characterImage is
-// null until a profile is recorded, as its own description says. Until the
-// published contract says so, null is allowed for that one field here.
-const schemas = structuredClone(tolerantSchemas(contract.components.schemas)) as Record<string, { properties?: Record<string, unknown> }>;
-const item = schemas.CharacterSuggestItemResponse?.properties;
-if (item) item.characterImage = { type: ["string", "null"] };
-
 const validate = lazyValidator(() =>
   new Ajv2020({ strict: false, validateFormats: false }).compile<SuggestEnvelope>({
     $ref: "#/components/schemas/ApiResponseCharacterSuggestResponse",
-    components: { ...contract.components, schemas },
+    components: { ...contract.components, schemas: tolerantSchemas(contract.components.schemas) },
   }),
 );
 export const isSuggestEnvelope = (value: unknown): value is SuggestEnvelope =>
