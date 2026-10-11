@@ -701,9 +701,10 @@ function Result({
 
       <div className={quote.resultFooter}>
         <span>
-          공식 확률표가 아니라 공개 데이터를 교차 검증한 값이에요. 출처{" "}
-          {source.name} · 교차 검증 {source.crossCheckedWith}{" "}
-          · 확인 {source.verifiedOn} · 규칙 {plans[0].plan.ruleVersion}
+          {/* No other site or repository names on screen (사용자 10-10 23:25):
+              the backend source fields stay for verification, not display. */}
+          공식 확률표가 아니라 공개 데이터를 서로 다른 출처로 교차 검증한
+          값이에요. 확인 {source.verifiedOn} · 규칙 {plans[0].plan.ruleVersion}
         </span>
         {assumptions.map((text) => (
           <span key={text}>{text}</span>
