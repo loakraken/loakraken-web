@@ -1,0 +1,499 @@
+Add the "Command bar" component from Bencho to my project.
+
+It is MIT licensed — bencho.dev/licence. Please:
+
+1. Create the component at a sensible path for this
+   project, named CommandBar, from the source below.
+2. Install what it needs: npm i liquid-gooey lucide-react
+3. Add the CSS to the project's stylesheet.
+
+4. THE PART THAT NEEDS YOUR JUDGEMENT. The CSS reads
+   these custom properties and does not define them:
+
+     --board
+     --fill-on
+     --fill-slab
+     --font-ui
+     --g-edge-far
+     --g-edge-hi
+     --g-edge-lo
+     --g-lift
+     --g-shadow
+     --g-spec
+     --ink
+     --ink-4
+     --ink-5
+     --on-ink
+     --shadow-rgb
+     --try-edge
+
+   They are Bencho's design tokens. Map each one to
+   whatever this project already uses for the same
+   job — its own ink, ground, surface and UI font —
+   rather than defining them as new globals. If the
+   project has no equivalent, define it locally on
+   the component's own root so nothing leaks out.
+   Anything ending -rgb wants three bare numbers,
+   because the CSS builds rgba() from it.
+
+Keep the comments. They say why the numbers are what
+they are, and they are most of what makes this worth
+copying rather than rewriting.
+
+--- CommandBar.tsx ---
+
+import { useEffect, useRef, useState } from "react";
+import { Liquid } from "liquid-gooey";
+import { ArrowUp, AudioLines } from "lucide-react";
+
+/* the one helper this file wants from the shared kit */
+const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
+
+/* ── D · command bar ───────────────────────────────────── */
+/* THE CHIP ROW IS GONE. Attach, Image and Project were three
+   toggles that toggled nothing — the bar has no attachment to
+   carry and never did, so what they demonstrated was a row of
+   chips rather than a command bar. What is left is the field
+   and the one action it can take. */
+/* ── the split ────────────────────────────────────────────
+   The bar and the send button are two bodies in one liquid
+   group, and they are MORPH items rather than move ones: the
+   library owns their x and animates the element and its
+   silhouette in perfect sync, so while the button is leaving
+   the two are still one body of liquid, necking thinner until
+   the goo gives up.
+
+   That choice carries a second one with it. Morph positions
+   its items with a CSS transform on a real wrapper, in layout
+   pixels, which scales correctly inside a scaled card on its
+   own — so this component must NOT carry the 1/k correction
+   every `move` group here needs. Applying it would over-shrink
+   the silhouette until it sat smaller than the bar it is meant
+   to be. Right for move, wrong for morph.
+
+   ── THE BAR DOES NOT MOVE ───────────────────────────────
+   The reference splits the offset between the two so the pair
+   stays centred — the field slides one way while the button
+   slides the other. That is right for a form that only ever
+   holds those two things, and wrong here: everything inside
+   the bar travels with it, so the mic fading out was also
+   sliding sideways, and a thing that is leaving in two
+   different ways at once reads as neither.
+
+   So the whole offset goes on the button. The bar is fixed and
+   the button walks out from under its right edge. The cost is
+   that the composition is no longer centred at rest — it grows
+   rightwards into the space the button will occupy, which is
+   48px of slack on the right while nothing is typed. That is a
+   fair trade for a field whose contents hold still. */
+const CMD_BTN = 40;
+const CMD_GAP = 8;
+/* how far the button has to travel to be fused into the bar:
+   its whole width plus the gap it would otherwise sit across,
+   which lands its right edge exactly on the bar's */
+const CMD_TUCK = CMD_BTN + CMD_GAP;
+/* the reference's curve — a little past its target and back,
+   so the neck snaps rather than easing apart */
+const CMD_MORPH = { duration: 520, ease: "cubic-bezier(0.22, 1.3, 0.71, 1)" } as const;
+
+/* 28 is half of the bar's 56px height — the pill it already
+   is, so the slider only runs downwards from the default. */
+const CMD_CORNER = 28;
+
+export function Command({
+  /* How far apart the bar and the button still bridge, px, and
+     it is deliberately LOW. A long neck reads as the button
+     being reluctant to leave; a short one reads as it snapping
+     off, which is what a control appearing the instant you
+     type should feel like. */
+  bridge = 3,
+  /* how sharp the liquid edge is */
+  edge = 22,
+  /* the bar's corner, 0..28 */
+  corner = CMD_CORNER,
+}: {
+  bridge?: number;
+  edge?: number;
+  corner?: number;
+} = {}) {
+  const [q, setQ] = useState("");
+  const [live, setLive] = useState(false);
+
+  /* ── OPEN ON FOCUS, NOT ON THE FIRST CHARACTER ────────────
+     It used to key off content alone: the button appeared with
+     the first keystroke and vanished when you deleted it,
+     which puts the largest movement in the component in the
+     middle of typing — the one moment you are looking at the
+     words rather than at the bar.
+
+     Clicking into the field is the moment you have decided to
+     send something, so that is when the bar offers the way to.
+     Content still counts on its own, so a field filled
+     programmatically or restored from a draft opens it too. */
+  const has = live || !!q.trim();
+
+  /* ── the split, heard ────────────────────────────────────
+     The button leaving and returning is the largest thing this
+     component does and it happened in silence. `expand` and
+     `collapse` are the bench's two notes for something opening
+     and closing, so it uses the same pair every other block
+     does rather than inventing a sound of its own.
+
+     A ref, not a plain effect on `has`: it must not fire on
+     mount, and it must not fire again while you keep typing —
+     only on the frame the state actually flips. */
+  const was = useRef(false);
+  useEffect(() => {
+    if (was.current === has) return;
+    was.current = has;
+  }, [has]);
+
+  /* ── send, and nothing after it ──────────────────────────
+     This used to spend two seconds on "Working..." and then
+     unfold a paragraph of invented answer. Neither belonged to
+     the component: the shimmer was a loading state for a
+     request that never happens, and the answer was a mock of
+     somebody else's product wearing this one's clothes. What
+     the block is about is the field and the split — so the
+     send empties the field, and the button merges back into
+     the bar it came from. The gesture has an outcome you can
+     see, and it is the component's own. */
+  const run = () => {
+    /* it is not reachable with nothing to send — it is inside
+       the bar and hidden — but Enter still arrives here */
+    if (!has) return;
+    setQ("");
+  };
+
+  return (
+    <div
+      style={{ width: 320, "--cmd-r": `${clamp(corner, 0, CMD_CORNER)}px` } as React.CSSProperties}
+    >
+      {/* OPAQUE FILL. --pane is rgba glass, and the goo's alpha
+          contrast erases anything under about 0.39 — a
+          translucent bar would not look faint here, it would
+          not be drawn at all. Mixed from the fill's own ink and
+          ground so it still inverts with the Fill control. */}
+      <Liquid
+        className="cmd-goo"
+        blur={bridge}
+        contrast={edge}
+        fill="var(--fill-slab, var(--board))"
+        /* NO SHADOW AT ALL. It carried a 1px ring first, which
+           the Stroke switch could not turn off, and then a soft
+           drop shadow — and the bar does not need lifting off
+           anything. It is a flat white body on a flat card, and
+           the only edge it should ever draw is the one Stroke
+           asks for. */
+        filterPadding={60}
+      >
+        {/* x is never set: the bar stays exactly where it is */}
+        <Liquid.Item className="cmd-slot" transition={CMD_MORPH}>
+          {/* the bar gives up the width the button is taking — see .cmd */}
+          <div className="cmd" data-has={has || undefined}>
+            <input
+              value={q}
+              placeholder="Ask anything..."
+              onChange={(e) => setQ(e.target.value)}
+              onFocus={() => setLive(true)}
+              /* it closes again when you leave — unless there
+                 is something in it, which `has` already covers */
+              onBlur={() => setLive(false)}
+              onKeyDown={(e) => e.key === "Enter" && run()}
+              onPointerDown={(e) => e.stopPropagation()}
+            />
+            {/* ── the mic STAYS IN THE BAR ──────────────────
+                It used to be the other face of the send button,
+                which meant it rode out of the bar on the split:
+                the icon you are watching disappear was also
+                sliding right while it faded, and the two
+                movements read as one confused thing. They are
+                different objects with different jobs — the mic
+                belongs to the field, the send button is what
+                the field produces — so the mic sits still and
+                simply goes. */}
+            <button
+              className="cmd-mic"
+              data-show={!has}
+              tabIndex={has ? -1 : 0}
+              aria-hidden={has}
+              aria-label="Dictate"
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={() => void 0}
+            >
+              <AudioLines size={18} strokeWidth={2} />
+            </button>
+          </div>
+        </Liquid.Item>
+
+        {/* One slot, two faces. Both are always mounted and
+            crossfade in place — swapping the element would
+            snap, and the swap is the whole point.
+
+            At rest it is tucked inside the bar's right end and
+            reads as a control within it; the first character
+            typed pushes it out and the goo necks and breaks. */}
+        <Liquid.Item
+          className="cmd-slot"
+          x={has ? 0 : -CMD_TUCK}
+          transition={CMD_MORPH}
+        >
+          {/* only ever Send. At rest it is tucked inside the
+              bar with nothing drawn in it — a body for the goo
+              to split from, and nothing else. */}
+          <button
+            className="cmd-go"
+            /* shown on focus, filled once there is something
+               to send — see .cmd-go */
+            data-on={has}
+            data-armed={!!q.trim() || undefined}
+            tabIndex={has ? 0 : -1}
+            aria-hidden={!has}
+            onClick={run}
+            onPointerDown={(e) => e.stopPropagation()}
+            aria-label="Send"
+          >
+            <ArrowUp size={20} strokeWidth={2} />
+          </button>
+        </Liquid.Item>
+      </Liquid>
+
+    </div>
+  );
+}
+
+--- css ---
+
+/* D — command bar */
+/* the group lays the two bodies out; the library moves them */
+.cmd-goo {
+  display: flex;
+  align-items: center;
+  gap: 8px;}
+
+/* NO 1/k CORRECTION HERE. These are morph items, and morph
+   positions its bodies with a CSS transform in layout pixels,
+   which the card's own scale then handles correctly. The
+   correction exists for `move`, which measures screen pixels —
+   applying it to morph shrinks the silhouette below the
+   element it belongs to. */
+.cmd-slot { display: block; }
+
+.cmd {
+  position: relative;
+  display: flex; align-items: center;
+  gap: 6px;
+/* ── THE BAR AND THE BUTTON TRADE ONE WIDTH ───────────────
+     Both states add up to the same 320 the component sits in —
+     274 + 8 + 38 at rest, 266 + 8 + 46 once the button opens
+     out. Holding the total fixed is not tidiness: this is a
+     card on the wall, and a box that changes size re-packs
+     every column around it. So the bar gives up exactly what
+     the button takes, and the outer box never moves. */
+  width: 274px;
+  transition: width 340ms cubic-bezier(0.24, 1.34, 0.38, 1);
+  /* smaller: 54 was a bar you could have put two lines in */
+  height: 56px;
+  /* the right side is padded for the mic rather than for text */
+  padding: 0 8px 0 20px;
+  border-radius: var(--cmd-r, 28px);
+  /* no background: <Liquid> paints the bar, and a fill here
+     would lay a hard rectangle over the liquid edge exactly
+     where the button is leaving it */
+  background: none;
+  isolation: isolate;}
+
+.cmd[data-has="true"] { width: 266px; }
+
+/* ── NOT THE STROKE'S ANY MORE, THE GLASS'S ─────────────────
+   Stroke is gone from this component, so on a flat surface
+   this border stays transparent and draws nothing. It is kept
+   because the GLASS surface needs a box to paint its lit rim
+   into — a gradient cannot go in a border without a second
+   element to carry it, and this is that element. Delete it and
+   the bar loses its rim under glass. */
+.cmd::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 1px solid transparent;
+  pointer-events: none;}
+
+.cmd input {
+  flex: 1; min-width: 0;
+  border: 0; outline: none; background: none;
+  font-family: var(--font-ui);
+  font-size: 15px;
+  letter-spacing: -0.005em;
+  color: var(--fill-on, var(--ink));}
+
+.cmd input::placeholder { color: var(--ink-5); }
+
+/* one slot, two faces, stacked so neither one moves the other */
+/* Inside the bar, and it does not travel. Fading is the whole
+   of what it does — see the note in the component. */
+.cmd-mic {
+  flex: none;
+  display: grid; place-items: center;
+  width: 36px; height: 36px;
+  border: 0; border-radius: 999px;
+  background: none;
+  color: var(--ink-4);
+  cursor: pointer;
+  /* it only fades. No scale, no travel — the one thing it does
+     is stop being there. */
+  opacity: 0;
+  transition: opacity 150ms ease;}
+
+.cmd-mic[data-show="true"] { opacity: 1; }
+
+.cmd-mic:hover { color: var(--fill-on, var(--ink)); }
+
+.cmd-go {
+  position: relative;
+  flex: none;
+  width: 38px; height: 38px;
+  border: 0; border-radius: 999px;
+  /* NOTHING AT REST. Tucked inside the bar it is a body for
+     the goo to split from and nothing more — no disc, and its
+     glyph is hidden too, so what you see is one bar. */
+  background: none;
+  color: var(--fill-slab, var(--on-ink));
+  cursor: pointer;
+  display: grid; place-items: center;
+  opacity: 0;
+  transition:
+    background 220ms ease, color 220ms ease, opacity 160ms ease,
+    width 340ms cubic-bezier(0.24, 1.34, 0.38, 1),
+    height 340ms cubic-bezier(0.24, 1.34, 0.38, 1),
+    transform 320ms cubic-bezier(0.24, 1.34, 0.38, 1);}
+
+/* it arrives at full size, into the room the bar just made */
+.cmd-go[data-on="true"] { opacity: 1; width: 46px; height: 46px; }
+
+/* ── THE SAME MATERIAL AS THE BAR ───────────────────────────
+   It was an ink disc with a light glyph, which made the thing
+   that splits off a different object from the thing it split
+   FROM — and the goo's whole claim is that they are one body
+   separating. Same fill as the field, ink glyph, and the seam
+   between them while they neck is now continuous. */
+.cmd-go[data-on="true"] {
+  background: var(--fill-slab, var(--board));
+  color: var(--fill-on, var(--ink));}
+
+/* ── TWO STATES, AND NEITHER HAS AN EDGE ────────────────────
+   Focused with an empty field, the button is the same material
+   as the bar it just split out of: present and offered, asking
+   for nothing. The first character makes it the thing you are
+   about to press, and it says so by filling — the only solid
+   object in the component, which is what a primary action is.
+
+   Filled, not outlined, in both: the only edge either state
+   can ever have is the hairline the Stroke switch draws
+   below. */
+.cmd-go[data-armed="true"] {
+  background: var(--fill-on, var(--ink));
+  color: var(--fill-slab, var(--on-ink));}
+
+.cmd-go:active { transform: scale(0.92); }
+
+/* ── the rim ─────────────────────────────────────────────────
+   Every glass surface already drew a 1px ring in one flat
+   colour. A flat rim is the single clearest tell that a thing
+   is a rectangle with a border rather than a pane with
+   thickness: real edges are lit unevenly, and evenly lit ones
+   read as ink.
+
+   So the ring becomes a gradient — bright at the corner
+   facing the light, almost nothing along the sides that run
+   edge-on to it, and a second weaker catch at the far corner
+   where the light has come through the pane and out again.
+
+   Painting a gradient in a border needs the border box filled
+   and the padding box punched out of it, which is what the
+   two masks do: one covers the whole element, one covers only
+   the inside, and compositing them apart leaves the rim. It
+   is the only way to get a gradient into a border without a
+   second element to draw it on.
+
+   Only under glass. Flat keeps its honest hairline, which is
+   what a solid pane should have. */
+[data-surface="glass"] .lab::before,
+[data-surface="glass"] .gcard::before,
+[data-surface="glass"] .cmd::before,
+[data-surface="glass"] .gpane::before,
+[data-surface="glass"] .gnav::before,
+[data-surface="glass"] .gdock::before {
+  border-color: transparent;
+  background:
+    linear-gradient(
+      142deg,
+      rgba(255, 255, 255, var(--g-edge-hi, 0)) 0%,
+      rgba(255, 255, 255, var(--g-edge-lo, 0)) 26%,
+      rgba(255, 255, 255, var(--g-edge-lo, 0)) 62%,
+      rgba(255, 255, 255, var(--g-edge-far, 0)) 100%
+    ) border-box;
+  -webkit-mask:
+    linear-gradient(#000 0 0) padding-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) padding-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;}
+
+/* ── thickness ───────────────────────────────────────────────
+   Three marks, and between them they are the difference
+   between a pane and a wash.
+
+   The lit line along the top is where light enters the edge of
+   a real sheet. The ring is the sheet's own thickness seen
+   from straight on. The shadow underneath says the pane is
+   ABOVE the page rather than painted onto it — which is the
+   one thing a backdrop-filter alone can never say, because a
+   filter has no depth.
+
+   All three ride on --glass and are gone at zero, where the
+   fallbacks take over and the surface is flat. */
+[data-surface="glass"] .lab,
+[data-surface="glass"] .gcard,
+[data-surface="glass"] .cmd,
+[data-surface="glass"] .gpane,
+[data-surface="glass"] .gnav,
+[data-surface="glass"] .gdock {
+  box-shadow: var(--g-shadow,
+    /* the top face, catching light through the thickness of
+       the pane — inside the rim, not on it */
+    inset 0 1px 0 rgba(255, 255, 255, var(--g-spec, 0)),
+    /* And what it casts on the page below — wide and soft
+       rather than tight and close. It is a different claim
+       about how far the pane floats, and the softer one is
+       what reads as a sheet resting above the page instead of
+       a card stuck to it. */
+    0 10px 40px rgba(var(--shadow-rgb), var(--g-lift, 0)));}
+
+[data-surface="flat"] .lab,
+[data-surface="flat"] .gcard,
+[data-surface="flat"] .cmd,
+[data-surface="flat"] .gnav,
+[data-surface="flat"] .gdock {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;}
+
+/* ── a flat rim, for comparison ──────────────────────────────
+   Reverts the graded rim to one colour all the way round —
+   which is what almost every published glass snippet does,
+   Apple's own included. It is here so the two can be judged
+   against each other on the same ground rather than taken on
+   trust, and it applies only inside a test board. */
+.gtry[data-rim="flat"] .lab::before,
+.gtry[data-rim="flat"] .gcard::before,
+.gtry[data-rim="flat"] .cmd::before,
+.gtry[data-rim="flat"] .gpane::before,
+.gtry[data-rim="flat"] .gnav::before,
+.gtry[data-rim="flat"] .gdock::before {
+  border-color: var(--try-edge, transparent);
+  background: none;
+  -webkit-mask: none;
+  mask: none;}

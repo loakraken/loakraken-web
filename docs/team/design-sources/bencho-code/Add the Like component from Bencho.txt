@@ -1,0 +1,383 @@
+Add the "Like" component from Bencho to my project.
+
+It is MIT licensed — bencho.dev/licence. Please:
+
+1. Create the component at a sensible path for this
+   project, named Like, from the source below.
+2. Install what it needs: npm i framer-motion lucide-react
+3. Add the CSS to the project's stylesheet.
+
+4. THE PART THAT NEEDS YOUR JUDGEMENT. The CSS reads
+   these custom properties and does not define them:
+
+     --card
+     --fill-on
+     --fill-slab
+     --font-ui
+     --ink
+     --pane-edge
+     --signal
+
+   They are Bencho's design tokens. Map each one to
+   whatever this project already uses for the same
+   job — its own ink, ground, surface and UI font —
+   rather than defining them as new globals. If the
+   project has no equivalent, define it locally on
+   the component's own root so nothing leaks out.
+   Anything ending -rgb wants three bare numbers,
+   because the CSS builds rgba() from it.
+
+Keep the comments. They say why the numbers are what
+they are, and they are most of what makes this worth
+copying rather than rewriting.
+
+--- Like.tsx ---
+
+import { useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { Heart } from "lucide-react";
+
+/* ══ Like ═════════════════════════════════════════════════
+   A heart and a count. Press it and the heart vanishes, a disc
+   blooms where it was and hollows out into a ring, seven pairs
+   of coloured dots burst off the ring, and the heart springs
+   back in red and past its size — while the count rolls up one.
+   Press again and it empties and the count rolls back down.
+
+   ── ONLY THE DIGITS THAT CHANGE ROLL ────────────────────
+   An odometer, not a number being replaced: 1,284 to 1,285
+   turns the last wheel and leaves the rest where they are,
+   and 1,299 to 1,300 turns three, each a beat after the one
+   to its right, the way a carry travels. Every digit is keyed
+   by its place and its value, so a digit that did not change
+   is the same element and never moves.
+
+   ── UP FOR MORE, DOWN FOR LESS ─────────────────────────
+   Liking rolls the new digit in from below and the old one out
+   the top; unliking runs the other way. Direction is the whole
+   difference between a count going up and a count being
+   replaced. */
+
+const H = 44;
+const RED = "#e5484d";
+/* the confetti: a pair of dots per spoke, never the same colour
+   twice in a pair */
+const CONFETTI = ["#f48ea7", "#cc8ef5", "#8ce8c3", "#91d2fa", "#f5a524", "#e5484d", "#9fc7fa"];
+
+const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
+const fmt = (n: number) => n.toLocaleString("en-US");
+
+function Roll({ value, up }: { value: number; up: boolean }) {
+  const chars = fmt(value).split("");
+  /* places counted from the right, so a new leading digit does
+     not shift the keys of the ones already there */
+  return (
+    <span className="lk-count" aria-hidden="true">
+      {chars.map((c, i) => {
+        const place = chars.length - 1 - i;
+        if (c === ",") return <span key={`c${place}`} className="lk-comma">,</span>;
+        return (
+          <span key={`p${place}`} className="lk-wheel">
+            <AnimatePresence initial={false} mode="popLayout">
+              <motion.span
+                key={c}
+                className="lk-digit"
+                initial={{ y: up ? "100%" : "-100%", opacity: 0 }}
+                animate={{ y: "0%", opacity: 1 }}
+                exit={{ y: up ? "-100%" : "100%", opacity: 0 }}
+                transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1], delay: place * 0.04 }}
+              >
+                {c}
+              </motion.span>
+            </AnimatePresence>
+          </span>
+        );
+      })}
+    </span>
+  );
+}
+
+/* ── the effects ───────────────────────────────────────────
+   Two ways for a like to land, one knob. Every one plays once
+   per press from a layer keyed by the press, and every number
+   in them is fixed rather than random: several copies share a
+   wall and a bench, and must all do the same thing. */
+export const EFFECTS = ["Bloom", "Firework"] as const;
+
+/* a spread of fixed "random" numbers, one per particle */
+const jit = (k: number, seed: number) => {
+  const x = Math.sin(k * 12.9898 + seed * 78.233) * 43758.5453;
+  return x - Math.floor(x);
+};
+
+function Burst({ fx, fly, ink }: { fx: string; fly: number; ink: boolean }) {
+  const c = (k: number) => (ink ? "var(--lk-on)" : CONFETTI[k % CONFETTI.length]);
+  const style = (o: Record<string, string | number>) => o as React.CSSProperties;
+
+  if (fx === "Firework") {
+    /* thrown up and out, then they fall: the x is steady, the y
+       is its own element on a rise-then-drop curve */
+    return (
+      <>
+        {Array.from({ length: 12 }, (_, k) => {
+          const a = -Math.PI / 2 + (k / 11 - 0.5) * Math.PI * 1.25;
+          const v = 22 + fly * 22 + jit(k, 7) * 10;
+          return (
+            <span key={k} className="lk-fw" style={style({ "--x": `${Math.cos(a) * v}px`, "--d": `${jit(k, 8) * 60}ms` })}>
+              <i style={style({ "--y": `${Math.sin(a) * v}px`, background: c(k) })} />
+            </span>
+          );
+        })}
+      </>
+    );
+  }
+  /* Bloom: a disc that hollows into a ring, and pairs of confetti */
+  return (
+    <>
+      <span className="lk-bloom" />
+      {Array.from({ length: 7 }, (_, k) => (
+        <span key={k} className="lk-spoke" style={style({ "--a": `${k * (360 / 7) - 90}deg` })}>
+          <i style={style({ "--c": c(k) })} />
+          <i style={style({ "--c": c(k + 3) })} />
+        </span>
+      ))}
+    </>
+  );
+}
+
+export function Like({
+  /* the count before you press */
+  start = 1300,
+  /* how the like lands */
+  effect = "Bloom",
+  /* how far the particles fly, 0..100 */
+  burst = 50,
+  color = "Red",
+  corner = H / 2,
+}: {
+  start?: number;
+  effect?: string;
+  burst?: number;
+  color?: string;
+  corner?: number;
+} = {}) {
+  const base = Math.max(0, Math.round(start));
+  const [liked, setLiked] = useState(false);
+  const [beat, setBeat] = useState(0);
+  const count = base + (liked ? 1 : 0);
+  const fly = clamp(burst, 0, 100) / 100;
+  const r = clamp(corner, 0, H / 2);
+  const ink = color === "Ink";
+  const fx = (EFFECTS as readonly string[]).includes(effect) ? effect : "Bloom";
+
+  const press = () => {
+    const next = !liked;
+    setLiked(next);
+    if (next) {
+      setBeat((b) => b + 1);
+    }
+  };
+
+  return (
+    <div className="lk-frame">
+      <button
+        type="button"
+        className="lk"
+        data-liked={liked || undefined}
+        data-color={color}
+        data-fx={fx}
+        aria-pressed={liked}
+        aria-label={`Like. ${fmt(count)} likes`}
+        style={{ height: H, "--r": `${r}px`, "--lk-on": ink ? "var(--fill-on, var(--ink))" : RED } as React.CSSProperties}
+        onClick={press}
+      >
+        <span className="lk-heart">
+          {/* keyed by the press, so every like plays once */}
+          <span key={liked ? `on${beat}` : "off"} className="lk-glyph" data-on={liked || undefined}>
+            <Heart size={19} strokeWidth={2.3} fill={liked ? "currentColor" : "none"} />
+          </span>
+          {liked && fly > 0 && (
+            <span key={beat} className="lk-burst" style={{ "--fly": fly } as React.CSSProperties} aria-hidden="true">
+              <Burst fx={fx} fly={fly} ink={ink} />
+            </span>
+          )}
+        </span>
+        <Roll value={count} up={liked} />
+      </button>
+    </div>
+  );
+}
+
+--- css ---
+
+/* ══ Like ═════════════════════════════════════════════════ */
+/* a fixed frame: the pill grows by a digit at 9,999 and the
+   block must not rescale on the wall when it does */
+.lk-frame {
+  width: 240px;
+  height: 130px;
+  display: grid;
+  place-items: center;}
+
+.lk {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 18px 0 15px;
+  border: 0;
+  border-radius: var(--r);
+  background: var(--fill-slab, var(--card));
+  color: var(--fill-on, var(--ink));
+  font: inherit;
+  font-family: var(--font-ui);
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: scale 200ms cubic-bezier(0.3, 0.9, 0.4, 1);}
+
+[data-stroke="on"] .lk { box-shadow: inset 0 0 0 1px var(--pane-edge); }
+
+.lk:active { scale: 0.95; }
+
+.lk:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--fill-slab, #fff), 0 0 0 4px var(--signal, #2231dd);}
+
+.lk-heart {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;}
+
+.lk-glyph { position: relative; z-index: 1; display: grid; }
+
+/* the heart is gone while the bloom happens, then springs in
+   from nothing, red, past its size and back */
+.lk-glyph[data-on] {
+  color: var(--lk-on);
+  /* the default landing: squeeze, swell past its size, settle */
+  animation: lk-pop 520ms cubic-bezier(0.3, 1.5, 0.4, 1) both;}
+
+.lk[data-fx="Bloom"] .lk-glyph[data-on] {
+  animation: lk-heart 760ms cubic-bezier(0.3, 1.6, 0.4, 1) both;}
+
+.lk-burst {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  pointer-events: none;}
+
+/* the bloom: a full disc that grows, then hollows out from the
+   middle into a ring and thins to nothing — a border as wide as
+   the radius is a disc, and a border going to 0 is the hole */
+.lk-bloom {
+  position: absolute;
+  left: -17px;
+  top: -17px;
+  width: 34px;
+  height: 34px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  border: 17px solid #cc8ef5;
+  animation: lk-bloom 560ms cubic-bezier(0.25, 0.8, 0.35, 1) both;}
+
+.lk[data-color="Ink"] .lk-bloom { border-color: var(--lk-on); animation-name: lk-bloom-ink; }
+
+/* seven spokes, each a pair of dots, thrown as the ring opens */
+.lk-spoke {
+  position: absolute;
+  left: 0;
+  top: 0;
+  rotate: var(--a);}
+
+.lk-spoke i {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  margin: -2.5px 0 0 -2.5px;
+  border-radius: 50%;
+  background: var(--c);
+  animation: lk-dot 620ms cubic-bezier(0.2, 0.8, 0.3, 1) 200ms both;}
+
+/* the pair sits either side of the spoke, one a little behind */
+.lk-spoke i:first-child { --side: -4px; --far: 0px; }
+
+.lk-spoke i:last-child { --side: 4px; --far: -5px; width: 4px; height: 4px; margin: -2px 0 0 -2px; }
+
+/* ── Firework: up and out, then they fall ────── */
+.lk-fw {
+  position: absolute;
+  left: 0;
+  top: 0;
+  animation: lk-fw-x 1000ms cubic-bezier(0.2, 0.7, 0.4, 1) var(--d) both;}
+
+.lk-fw i {
+  position: absolute;
+  left: -2px;
+  top: -2px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  animation: lk-fw-y 1000ms linear var(--d) both;}
+
+/* the count: one wheel per digit, each its own window */
+.lk-count {
+  display: flex;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;}
+
+.lk-wheel {
+  position: relative;
+  display: inline-block;
+  height: 1.25em;
+  overflow: hidden;}
+
+.lk-digit {
+  display: block;
+  line-height: 1.25em;}
+
+.lk-comma { line-height: 1.25em; }
+
+@media (prefers-reduced-motion: reduce) {
+  .lk-glyph[data-on], .lk-bloom, .lk-spoke i, .lk-fw, .lk-fw i { animation: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lk-burst { display: none; }
+}
+
+@keyframes lk-pop {
+  0% { scale: 0.6; }
+  45% { scale: 1.28; }
+  100% { scale: 1; }}
+
+@keyframes lk-heart {
+  0%, 28% { scale: 0; }
+  62% { scale: 1.25; }
+  100% { scale: 1; }}
+
+@keyframes lk-bloom {
+  0% { scale: 0.15; border-width: 17px; border-color: #e5484d; }
+  40% { scale: 1; border-width: 17px; border-color: #cc8ef5; }
+  75% { border-width: 2px; opacity: 1; }
+  100% { scale: 1.12; border-width: 0; opacity: 0; border-color: #cc8ef5; }}
+
+@keyframes lk-bloom-ink {
+  0% { scale: 0.15; border-width: 17px; }
+  40% { scale: 1; border-width: 17px; }
+  75% { border-width: 2px; opacity: 1; }
+  100% { scale: 1.12; border-width: 0; opacity: 0; }}
+
+@keyframes lk-dot {
+  0% { translate: 12px var(--side); scale: 1; opacity: 0; }
+  12% { opacity: 1; }
+  100% { translate: calc(18px + var(--fly) * 14px + var(--far)) calc(var(--side) * 1.6); scale: 0; opacity: 1; }}
+
+@keyframes lk-fw-x { from { translate: 0 0; } to { translate: var(--x) 0; } }
+
+@keyframes lk-fw-y {
+  0% { translate: 0 0; opacity: 1; animation-timing-function: cubic-bezier(0.2, 0.7, 0.4, 1); }
+  45% { translate: 0 var(--y); opacity: 1; animation-timing-function: cubic-bezier(0.5, 0, 0.8, 0.5); }
+  100% { translate: 0 calc(var(--y) + 30px); opacity: 0; }}

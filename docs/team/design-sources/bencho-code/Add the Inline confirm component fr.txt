@@ -1,0 +1,445 @@
+Add the "Inline confirm" component from Bencho to my project.
+
+It is MIT licensed — bencho.dev/licence. Please:
+
+1. Create the component at a sensible path for this
+   project, named InlineConfirm, from the source below.
+2. Install what it needs: npm i framer-motion lucide-react
+3. Add the CSS to the project's stylesheet.
+
+4. THE PART THAT NEEDS YOUR JUDGEMENT. The CSS reads
+   these custom properties and does not define them:
+
+     --deck-r
+     --depth
+     --fill-on
+     --fill-slab
+     --font-ui
+     --g-blur
+     --g-bright
+     --g-edge-far
+     --g-edge-hi
+     --g-edge-lo
+     --g-lift
+     --g-sat
+     --g-shadow
+     --g-spec
+     --ink
+     --ink-3
+     --ink-rgb
+     --pane
+     --pane-edge
+     --pick
+     --pick-rgb
+     --pull
+     --shadow-rgb
+     --try-edge
+
+   They are Bencho's design tokens. Map each one to
+   whatever this project already uses for the same
+   job — its own ink, ground, surface and UI font —
+   rather than defining them as new globals. If the
+   project has no equivalent, define it locally on
+   the component's own root so nothing leaks out.
+   Anything ending -rgb wants three bare numbers,
+   because the CSS builds rgba() from it.
+
+Keep the comments. They say why the numbers are what
+they are, and they are most of what makes this worth
+copying rather than rewriting.
+
+--- InlineConfirm.tsx ---
+
+import { useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { Check, Trash2, Undo2 } from "lucide-react";
+
+const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
+const hold = (e: React.PointerEvent) => e.stopPropagation();
+
+/* ══ 4 · confirm in place ═════════════════════════════════
+   The button becomes its own dialog. Nothing opens over the
+   page, nothing shifts around it, and the choice stays under
+   the cursor that asked for it — a modal moves your attention
+   somewhere else to answer a question you just asked here.
+
+   Undo lives in the same footprint too, on a timer, so the
+   destructive path never needs a toast either. */
+
+const GRACE = 4000;
+
+/* 22 is half of the 44px shell — the pill it already is */
+const SAY_CORNER = 22;
+
+/* ── one pill, two widths ─────────────────────────────────
+   "Delete" at rest; pressed, it deletes at once and the same
+   pill springs wide to say so and offer Undo. No confirmation
+   step: an undo that is right there is kinder than a question,
+   because it asks only of the people who changed their mind. */
+const SAY_W = 260;
+const SAY_IDLE = 112;
+const SAY_DONE = 206;
+
+export function Confirm({ corner = SAY_CORNER }: { corner?: number } = {}) {
+  const [phase, setPhase] = useState<"idle" | "done">("idle");
+  const timer = useRef<number | undefined>(undefined);
+
+  useEffect(() => () => window.clearTimeout(timer.current), []);
+
+  const commit = () => {
+    /* the one destructive action on the bench, and the only
+       place `land` is used: something has happened and it is
+       over. A bright note here would be celebrating a
+       delete. */
+    setPhase("done");
+    timer.current = window.setTimeout(() => setPhase("idle"), GRACE);
+  };
+  const undo = () => {
+    window.clearTimeout(timer.current);
+    setPhase("idle");
+  };
+
+  /* out with a little give, back in firmly */
+  const done = phase === "done";
+  const w = done ? SAY_DONE : SAY_IDLE;
+  const left = (SAY_W - w) / 2;
+  const spring = done
+    ? { type: "spring" as const, stiffness: 420, damping: 20, mass: 0.9 }
+    : { type: "spring" as const, stiffness: 460, damping: 30, mass: 0.9 };
+  const r = clamp(corner, 0, SAY_CORNER);
+
+  return (
+    <div
+      className="say-well"
+      data-phase={phase}
+      style={{ "--say-r": `${r}px` } as React.CSSProperties}
+    >
+      <motion.span className="say-body" initial={false} animate={{ left, width: w }} transition={spring} />
+
+      <AnimatePresence initial={false}>
+        {!done && (
+          <motion.button
+            key="idle"
+            className="say-face"
+            style={{ left, width: w }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1, transition: { duration: 0.18, delay: 0.08 } }}
+            exit={{ opacity: 0, transition: { duration: 0.08 } }}
+            onClick={commit}
+            onPointerDown={hold}
+          >
+            <Trash2 size={15} strokeWidth={2} />
+            Delete
+          </motion.button>
+        )}
+
+        {done && (
+          <motion.div
+            key="done"
+            className="say-merged"
+            style={{ left, width: w }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1, transition: { duration: 0.2, delay: 0.1 } }}
+            exit={{ opacity: 0, transition: { duration: 0.08 } }}
+          >
+            <span className="say-done">
+              <Check size={14} strokeWidth={2} />
+              Deleted
+            </span>
+            <button className="say-undo" onClick={undo} onPointerDown={hold}>
+              <Undo2 size={13} strokeWidth={2} />
+              Undo
+            </button>
+            <i className="say-fuse" style={{ animationDuration: `${GRACE}ms` }} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+--- css ---
+
+/* ── glass navigation ──────────────────────────────────────
+   Same recipe as .gcard: 60% white, 2px frost, refraction,
+   lit inner edge. Shapes differ, the material does not. */
+
+/* The bare pane. Same recipe as .gnav and .gdock, with no
+   layout of its own — for components that are just a surface
+   and want to arrange themselves. A card with a title in one
+   corner and a chip in the other is a house style, not a
+   requirement, and most things do not need either. */
+.gpane, .gnav, .gdock {
+  position: relative;
+  background: var(--pane);
+  -webkit-backdrop-filter:
+    blur(var(--g-blur, 2px)) saturate(var(--g-sat, 150%)) brightness(var(--g-bright, 100%));
+  backdrop-filter:
+    blur(var(--g-blur, 2px)) saturate(var(--g-sat, 150%)) brightness(var(--g-bright, 100%));
+  isolation: isolate;
+  color: var(--ink);}
+
+.gpane::before, .gnav::before, .gdock::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  /* transparent unless Stroke says otherwise — see the
+     stroke block below */
+  border: 1px solid transparent;
+  pointer-events: none;
+  z-index: 3;}
+
+/* ── flat panes ────────────────────────────────────────────
+   Set data-surface="flat" on any ancestor and every glass
+   surface under it becomes a solid fill with a hairline. The
+   inner buttons already sit on rgba(var(--ink-rgb), 0.05)
+   with no border, which is what flat wants anyway, so they
+   need nothing.
+
+   The frost is switched off at the element rather than through
+   a token. A var() holding a url() filter cannot be validated
+   at parse time, so the browser would treat it as invalid at
+   computed-value time and drop the property outright — which
+   breaks the two-declaration fallback the glass depends on. */
+/* ══ stroke ═════════════════════════════════════════════════
+   Whether a component draws a hairline round itself. OFF by
+   default, which is the change: every glass surface carried
+   one unconditionally, and a grey line round everything makes
+   a wall of components look like a wall of boxes rather than
+   a wall of things.
+
+   The line is not load-bearing. A flat pane is a fill against
+   a different fill and reads on its own; the ring was there
+   to sharpen an edge that was already there.
+
+   Placed ABOVE the glass rules on purpose. Glass draws its
+   own lit rim, and that rim is the material rather than a
+   stroke — it is what gives a pane thickness. So glass wins
+   the border wherever the two meet, and Stroke governs the
+   drawn line that flat surfaces would otherwise have. */
+[data-stroke="on"] .lab::before,
+[data-stroke="on"] .gcard::before,
+[data-stroke="on"] .gpane::before,
+[data-stroke="on"] .gnav::before,
+[data-stroke="on"] .gdock::before,
+/* the playful blocks. None of them is glass, so none has a
+   lit rim for the stroke to lose to — the hairline is the
+   only edge they can have, and it is the whole of what this
+   control does for them. */
+[data-stroke="on"] .esc-btn::before,
+[data-stroke="on"] .slo-track::before,
+[data-stroke="on"] .sek-skin::before {
+  border-color: var(--pane-edge);}
+
+/* ── the rim ─────────────────────────────────────────────────
+   Every glass surface already drew a 1px ring in one flat
+   colour. A flat rim is the single clearest tell that a thing
+   is a rectangle with a border rather than a pane with
+   thickness: real edges are lit unevenly, and evenly lit ones
+   read as ink.
+
+   So the ring becomes a gradient — bright at the corner
+   facing the light, almost nothing along the sides that run
+   edge-on to it, and a second weaker catch at the far corner
+   where the light has come through the pane and out again.
+
+   Painting a gradient in a border needs the border box filled
+   and the padding box punched out of it, which is what the
+   two masks do: one covers the whole element, one covers only
+   the inside, and compositing them apart leaves the rim. It
+   is the only way to get a gradient into a border without a
+   second element to draw it on.
+
+   Only under glass. Flat keeps its honest hairline, which is
+   what a solid pane should have. */
+[data-surface="glass"] .lab::before,
+[data-surface="glass"] .gcard::before,
+[data-surface="glass"] .cmd::before,
+[data-surface="glass"] .gpane::before,
+[data-surface="glass"] .gnav::before,
+[data-surface="glass"] .gdock::before {
+  border-color: transparent;
+  background:
+    linear-gradient(
+      142deg,
+      rgba(255, 255, 255, var(--g-edge-hi, 0)) 0%,
+      rgba(255, 255, 255, var(--g-edge-lo, 0)) 26%,
+      rgba(255, 255, 255, var(--g-edge-lo, 0)) 62%,
+      rgba(255, 255, 255, var(--g-edge-far, 0)) 100%
+    ) border-box;
+  -webkit-mask:
+    linear-gradient(#000 0 0) padding-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) padding-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;}
+
+/* ── thickness ───────────────────────────────────────────────
+   Three marks, and between them they are the difference
+   between a pane and a wash.
+
+   The lit line along the top is where light enters the edge of
+   a real sheet. The ring is the sheet's own thickness seen
+   from straight on. The shadow underneath says the pane is
+   ABOVE the page rather than painted onto it — which is the
+   one thing a backdrop-filter alone can never say, because a
+   filter has no depth.
+
+   All three ride on --glass and are gone at zero, where the
+   fallbacks take over and the surface is flat. */
+[data-surface="glass"] .lab,
+[data-surface="glass"] .gcard,
+[data-surface="glass"] .cmd,
+[data-surface="glass"] .gpane,
+[data-surface="glass"] .gnav,
+[data-surface="glass"] .gdock {
+  box-shadow: var(--g-shadow,
+    /* the top face, catching light through the thickness of
+       the pane — inside the rim, not on it */
+    inset 0 1px 0 rgba(255, 255, 255, var(--g-spec, 0)),
+    /* And what it casts on the page below — wide and soft
+       rather than tight and close. It is a different claim
+       about how far the pane floats, and the softer one is
+       what reads as a sheet resting above the page instead of
+       a card stuck to it. */
+    0 10px 40px rgba(var(--shadow-rgb), var(--g-lift, 0)));}
+
+/* .gpane paints the fill and the edge. What is left here is
+   only the drop shadow, which the pane does not carry — a
+   stack needs it or the three cards read as one sheet. */
+.deck-card {
+  position: absolute;
+  left: 0; right: 0;
+  height: 248px;
+  /* the wall's gap — see .lab */
+  padding: 12px;
+  /* nothing to lay out any more — the one child centres itself */
+  display: block;
+  border-radius: var(--deck-r, 20px);
+  box-shadow:
+    0 1px 2px rgba(var(--shadow-rgb), 0.05),
+    0 10px 26px rgba(var(--shadow-rgb), 0.09);
+  touch-action: none;
+  will-change: transform;
+  transform-origin: 50% 60%;
+  /* the resting stack is CSS, keyed off depth. --pull is how
+     far the top card has been dragged, so the ones behind rise
+     to meet the gap as it clears them. */
+  transform:
+    translate3d(0, calc(var(--depth) * 13px * (1 - var(--pull, 0) * 0.55)), 0)
+    scale(calc(1 - var(--depth) * 0.045 + var(--pull, 0) * var(--depth) * 0.026));
+  transition:
+    transform 560ms cubic-bezier(0.24, 1.34, 0.38, 1),
+    opacity 280ms ease;}
+
+/* ── 4 · confirm in place ────────────────────────────────── */
+.say-well {
+  position: relative;
+  width: 260px; height: 96px;}
+
+/* ── the surface: one pill, sprung between two widths ────── */
+.say-body {
+  position: absolute;
+  top: 26px;
+  height: 44px;
+  border-radius: var(--say-r, 999px);
+  background: var(--fill-slab, var(--pane));
+  transition: scale 180ms cubic-bezier(0.3, 0.9, 0.4, 1);}
+
+/* the resting pill answers a hover by giving a little, never by
+   changing colour; the words and the surfaces give together */
+.say-well[data-phase="idle"]:has(.say-face:hover) .say-body,
+.say-well[data-phase="idle"]:has(.say-face:hover) .say-face { scale: 0.97; }
+
+.say-well[data-phase="idle"]:has(.say-face:active) .say-body,
+.say-well[data-phase="idle"]:has(.say-face:active) .say-face { scale: 0.94; }
+
+/* ── the words, on top of the pill ────────────────────────── */
+.say-face {
+  position: absolute;
+  top: 26px;
+  height: 44px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: var(--say-r, 999px);
+  background: transparent;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  color: var(--fill-on, var(--ink));
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 160ms ease, scale 180ms cubic-bezier(0.3, 0.9, 0.4, 1);}
+
+/* deleted, and the undo that is on offer: one wide pill again */
+.say-merged {
+  position: absolute;
+  top: 26px;
+  height: 44px;
+  display: flex; align-items: center;
+  padding-right: 4px;
+  border-radius: var(--say-r, 999px);
+  overflow: hidden;}
+
+.say-done {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 0 14px;
+  font-size: 13px;
+  color: var(--ink-3);
+  white-space: nowrap;}
+
+.say-undo {
+  position: relative;
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 36px;
+  padding: 0 13px;
+  border-radius: 999px;
+  margin-left: auto;
+  border: 0;
+  /* the canvas's own undo: the selection blue, no pad of its own,
+     a blue wash under the pointer — one "undo" on the site, not
+     two that happen to say the same word */
+  background: transparent;
+  font-family: var(--font-ui);
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--pick);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 140ms ease;}
+
+.say-undo:hover { background: rgba(var(--pick-rgb), 0.12); }
+
+/* how long undo is still on offer */
+.say-fuse {
+  position: absolute;
+  left: 0; bottom: 0;
+  height: 2px;
+  background: var(--pick);
+  animation: say-burn linear forwards;}
+
+@media (prefers-reduced-motion: reduce) {
+  .fan-opt, .fan-core, .say-body, .step-pill { transition-duration: 1ms; }
+}
+
+/* ── a flat rim, for comparison ──────────────────────────────
+   Reverts the graded rim to one colour all the way round —
+   which is what almost every published glass snippet does,
+   Apple's own included. It is here so the two can be judged
+   against each other on the same ground rather than taken on
+   trust, and it applies only inside a test board. */
+.gtry[data-rim="flat"] .lab::before,
+.gtry[data-rim="flat"] .gcard::before,
+.gtry[data-rim="flat"] .cmd::before,
+.gtry[data-rim="flat"] .gpane::before,
+.gtry[data-rim="flat"] .gnav::before,
+.gtry[data-rim="flat"] .gdock::before {
+  border-color: var(--try-edge, transparent);
+  background: none;
+  -webkit-mask: none;
+  mask: none;}
+
+@keyframes say-burn { from { width: 100%; } to { width: 0; } }
