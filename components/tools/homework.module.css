@@ -446,23 +446,3 @@
   border-radius: 50%;
   background: var(--ok, var(--success));
 }
-/* 선택: a selected raid takes ↑↓ (사용자 안 10-11 21:06). */
-.selectButton {
-  min-height: 32px;
-  padding: 0 10px;
-  border: 1px solid var(--input);
-  border-radius: 999px;
-  background: var(--background);
-  color: var(--foreground);
-  font-size: var(--text-caption);
-  cursor: pointer;
-}
-.selectButton[aria-pressed="true"] {
-  border-color: var(--primary);
-  background: var(--primary);
-  color: var(--primary-foreground);
-}
-.raid[data-selected] {
-  border-radius: var(--radius-lg, 12px);
-  box-shadow: 0 0 0 2px var(--primary);
-}
