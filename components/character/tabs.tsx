@@ -48,9 +48,9 @@ import { AvatarsTab, CollectiblesTab } from "./inner";
 import { Panel } from "./panel";
 import { ViewsPanel } from "./views-panel";
 import { useTabPill } from "./tab-pill";
-import { ItemTooltip } from "./item-tooltip";
+import { DetailTooltip, EngravingCard, GemCard, ItemTooltip } from "./item-tooltip";
 import { useItemTooltips } from "./use-item-tooltips";
-import { equipmentLines } from "@/lib/character/item-tooltips";
+import { equipmentLines, gemLines } from "@/lib/character/item-tooltips";
 import { ReceiptPanel } from "./receipt-panel";
 import { useStagger } from "./entrance";
 import { RankPanel } from "./rank-panel";
@@ -470,7 +470,9 @@ function EquipmentPanel({ data }: { data: Character }) {
         )}
         {groups.others.map((item, i) => (
           <div key={i} className={styles.footItem}>
-            <GameIcon src={item.icon} grade={item.grade} size={40} />
+            <ItemTooltip item={item} slot={item.type ?? undefined} lines={linesOf(item)}>
+              <GameIcon src={item.icon} grade={item.grade} size={40} />
+            </ItemTooltip>
             <div>
               <strong>{text(item.type)}</strong>
               <small>{text(item.name)}</small>
@@ -485,6 +487,8 @@ function EquipmentPanel({ data }: { data: Character }) {
 function GemsPanel({ data }: { data: Character }) {
   const stagger = useStagger();
   const gems = data.loadout.gems?.items ?? [];
+  const skills = data.loadout.gems?.effects?.skills ?? [];
+  const extra = useItemTooltips(data.characterName);
   const summary = data.analysis.gems;
   const baseAttack = gemBaseAttack(data.loadout.gems?.effects?.description);
   return (
@@ -507,7 +511,19 @@ function GemsPanel({ data }: { data: Character }) {
         <ul className={styles.gemGrid}>
           {gems.map((gem, i) => (
             <li key={i} {...stagger(i)}>
-              <GameIcon src={gem.icon} grade={gem.grade} size={44} />
+              <DetailTooltip
+                name={gem.name ?? "보석"}
+                card={
+                  <GemCard
+                    gem={gem}
+                    skill={skills.find((skill) => skill.gemSlot === gem.slot)}
+                    className={data.className}
+                    lines={gemLines(extra, gem.slot)}
+                  />
+                }
+              >
+                <GameIcon src={gem.icon} grade={gem.grade} size={44} />
+              </DetailTooltip>
               <span data-kind={gemKind(gem.name) ?? undefined}>
                 {gem.level != null && gem.level > 0 ? gem.level : "?"}
                 {gemKind(gem.name) ?? ""}
@@ -873,7 +889,13 @@ function EngravingsPanel({ data }: { data: Character }) {
         <ul className={styles.engravings}>
           {effects.map((effect, i) => (
             <li key={i} {...stagger(i)}>
-              <strong>{text(effect.name)}</strong>
+              {effect.description ? (
+                <DetailTooltip name={effect.name ?? "각인"} card={<EngravingCard description={effect.description} />}>
+                  <strong>{text(effect.name)}</strong>
+                </DetailTooltip>
+              ) : (
+                <strong>{text(effect.name)}</strong>
+              )}
               <span>
                 {text(effect.grade)} ×{number(effect.level)}
                 {effect.abilityStoneLevel != null &&
