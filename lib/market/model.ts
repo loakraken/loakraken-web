@@ -56,7 +56,7 @@ export const priceBases: {
   {
     value: "RECENT_PRICE",
     label: "최근 거래가",
-    hint: "가장 최근에 체결된 묶음 가격입니다. 지금 살 수 있는 가격과 다를 수 있어요.",
+    hint: "가장 최근에 체결된 묶음 가격입니다. 지금 살 수 있는 가격은 현재 최저가예요.",
   },
   {
     value: "YDAY_AVG_PRICE",

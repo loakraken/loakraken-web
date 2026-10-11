@@ -49,9 +49,12 @@
      out. Holding the total fixed is not tidiness: this is a
      card on the wall, and a box that changes size re-packs
      every column around it. So the bar gives up exactly what
-     the button takes, and the outer box never moves. */
-  width: 274px;
-  transition: width 340ms cubic-bezier(0.24, 1.34, 0.38, 1);
+     the button takes, and the outer box never moves.
+     Ours (A7, PM-프론트 10-12): the trade is now drawn, not laid
+     out — both boxes keep the open sizes (266 + 8 + 46) from the
+     first frame and only the button's scale changes, so nothing
+     re-lays out when the first character goes in. */
+  width: 266px;
   /* smaller: 54 was a bar you could have put two lines in */
   height: 56px;
   /* the right side is padded for the mic rather than for text */
@@ -62,8 +65,6 @@
      where the button is leaving it */
   background: none;
   isolation: isolate;}
-
-.cmd[data-has="true"] { width: 266px; }
 
 /* ── NOT THE STROKE'S ANY MORE, THE GLASS'S ─────────────────
    Stroke is gone from this component, so on a flat surface
@@ -113,8 +114,10 @@
 .cmd-go {
   position: relative;
   flex: none;
-  width: 38px; height: 38px;
+  width: 46px; height: 46px;
   border: 0; border-radius: 999px;
+  /* 38px at rest, drawn by scale on the 46px box (see .cmd) */
+  transform: scale(0.826);
   /* NOTHING AT REST. Tucked inside the bar it is a body for
      the goo to split from and nothing more — no disc, and its
      glyph is hidden too, so what you see is one bar. */
@@ -125,12 +128,10 @@
   opacity: 0;
   transition:
     background 220ms ease, color 220ms ease, opacity 160ms ease,
-    width 340ms cubic-bezier(0.24, 1.34, 0.38, 1),
-    height 340ms cubic-bezier(0.24, 1.34, 0.38, 1),
-    transform 320ms cubic-bezier(0.24, 1.34, 0.38, 1);}
+    transform 340ms cubic-bezier(0.24, 1.34, 0.38, 1);}
 
 /* it arrives at full size, into the room the bar just made */
-.cmd-go[data-on="true"] { opacity: 1; width: 46px; height: 46px; }
+.cmd-go[data-on="true"] { opacity: 1; transform: scale(1); }
 
 /* ── THE SAME MATERIAL AS THE BAR ───────────────────────────
    It was an ink disc with a light glyph, which made the thing
@@ -156,9 +157,9 @@
   background: var(--fill-on, var(--ink));
   color: var(--fill-slab, var(--on-ink));}
 
-.cmd-go:active { transform: scale(0.92); }
+.cmd-go[data-on="true"]:active { transform: scale(0.92); }
 
-/* Ours: reduced motion lands every width and fade at once. */
+/* Ours: reduced motion lands every scale and fade at once. */
 @media (prefers-reduced-motion: reduce) {
-  .cmd, .cmd-go, .cmd-mic { transition: none; }
+  .cmd-go, .cmd-mic { transition: none; }
 }

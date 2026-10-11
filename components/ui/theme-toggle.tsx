@@ -98,7 +98,19 @@ function applyChoice(value: ThemeChoice) {
   listeners.forEach((listener) => listener())
 }
 
+// A hydration retry anywhere on the page re-renders <html> and drops the
+// attributes the pre-paint script set, so the page fell back to light while
+// dim or dark was chosen (회귀 점검표 A5, 10-12). Subscribing runs after
+// hydration on every page (the header toggle), so put them back here.
+function restoreAttributes() {
+  const root = document.documentElement
+  const value = readChoice()
+  if (root.dataset.themeChoice !== value) root.dataset.themeChoice = value
+  setThemeAttribute(resolve(value))
+}
+
 function subscribe(listener: () => void) {
+  restoreAttributes()
   listeners.add(listener)
   // Keep other open tabs in step with a choice made here.
   const onStorage = (event: StorageEvent) => {

@@ -19,11 +19,15 @@ const geistMono = Geist_Mono({
 // One preloaded file, so text re-lays out at most once (#300). No generated
 // Arial fallback: it has no Hangul, so every glyph would go through system
 // fallback lookup; the --font-ui stack names the system Hangul faces instead.
+// display "optional": if the file is not there within the short block period,
+// this visit keeps the system face and the cached file is used from the next
+// page on — never a swap mid-read (with "fallback" a late file re-laid out
+// text and tables by 26–48px, CLS 0.16 on /privacy; checklist A6).
 const kraken = localFont({
   src: "./fonts/kraken-sans.woff2",
   variable: "--font-kraken",
   weight: "400 700",
-  display: "fallback",
+  display: "optional",
   adjustFontFallback: false,
 });
 

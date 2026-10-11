@@ -90,6 +90,7 @@ import { ReceiptEnabled, ReceiptPanel } from "./receipt-panel";
 import { PillTab, PillTabs, PillTabsPanel } from "@/components/ui/pill-tabs";
 import { SegmentedControl, SegmentedItem } from "@/components/ui/segmented-control";
 import { Switch } from "@/components/ui/switch";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ROSTER_SORTS, ROSTER_TOTAL_MIN, maskName, rosterSummary, sortSiblings, type RosterSort } from "@/lib/character/roster-list";
 import { useStagger } from "./entrance";
 import { RankPanel } from "./rank-panel";
@@ -542,20 +543,11 @@ function EquipmentPanel({ data }: { data: Character }) {
                 size={40}
               />
             </ItemTooltip>
-            <div>
-              <strong>팔찌</strong>
-              {groups.bracelet.detail?.braceletEffects.length ? (
-                <ul className={styles.gradeList} data-flow="">
-                  {groups.bracelet.detail.braceletEffects.map((effect, i) => (
-                    <GradeLine key={i} grade={effect.grade}>
-                      <span className={styles.preLine}>{effect.text}</span>
-                    </GradeLine>
-                  ))}
-                </ul>
-              ) : (
-                <small>{text(groups.bracelet.name)}</small>
-              )}
-            </div>
+            <BraceletBody
+              name={text(groups.bracelet.name)}
+              effects={groups.bracelet.detail?.braceletEffects ?? []}
+              efficiency={data.braceletEfficiency}
+            />
           </div>
         )}
         {groups.others.map((item, i) => (
@@ -571,6 +563,90 @@ function EquipmentPanel({ data }: { data: Character }) {
         ))}
       </div>
     </Panel>
+  );
+}
+
+const percentText = (value: number) =>
+  `+${value.toLocaleString("ko-KR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
+
+const spaced = (value: string) => value.replace(/\s+/g, " ").trim();
+
+/**
+ * The bracelet's effects with 팔찌 효율 (backend #350, PM 총괄 21:21·21:46):
+ * how much this bracelet adds to combat power, current ÷ without it − 1. The
+ * total sits under the name; "줄별 보기" puts each line's share at the end of
+ * its own effect line (no second copy of the list) and adds 팔찌 도약 as a
+ * last line. A value not worked out, or a line that moves nothing, says why
+ * on screen (회귀 점검표 A21); the term carries its definition (A22).
+ */
+function BraceletBody({
+  name,
+  effects,
+  efficiency,
+}: {
+  name: string;
+  effects: { text: string; grade: unknown }[];
+  efficiency: Character["braceletEfficiency"];
+}) {
+  const [open, setOpen] = useState(false);
+  const listId = useId();
+  const ok = efficiency?.status === "OK" && efficiency.percent != null;
+  const byText = new Map((efficiency?.lines ?? []).map((line) => [spaced(line.text), line]));
+  // Lines with no effect of that text (팔찌 도약 +N) go after the effects.
+  const extra = (efficiency?.lines ?? []).filter((line) => !effects.some((e) => spaced(e.text) === spaced(line.text)));
+  const share = (line: { percent: number | null; status: string; reason: string | null } | undefined) =>
+    !open || !line ? null : line.status === "OK" && line.percent === 0 ? (
+      <small className={styles.braceletEffNote}>전투력이 바뀌지 않는 효과예요.</small>
+    ) : line.status === "OK" && line.percent != null ? (
+      <b className={styles.braceletEffShare}>{percentText(line.percent)}</b>
+    ) : (
+      <small className={styles.braceletEffNote}>{line.reason ?? "계산하지 않는 줄이에요."}</small>
+    );
+  return (
+    <div className={styles.braceletBody}>
+      <strong>팔찌</strong>
+      {efficiency && (
+        <p className={styles.braceletEffHead}>
+          <Tooltip>
+            <TooltipTrigger className={styles.braceletEffTerm} aria-label="팔찌 효율: 이 팔찌가 전투력을 몇 % 올려 주는지예요.">
+              팔찌 효율
+            </TooltipTrigger>
+            <TooltipContent>이 팔찌가 전투력을 몇 % 올려 주는지예요.</TooltipContent>
+          </Tooltip>
+          {ok ? <b>{percentText(efficiency.percent!)}</b> : <span className={styles.braceletEffReason}>{efficiency.reason}</span>}
+          {ok && efficiency.lines.length > 0 && effects.length > 0 && (
+            <button
+              type="button"
+              className={styles.textButton}
+              aria-expanded={open}
+              aria-controls={listId}
+              onClick={() => setOpen(!open)}
+            >
+              {open ? "줄별 접기" : "줄별 보기"}
+            </button>
+          )}
+        </p>
+      )}
+      {effects.length ? (
+        <ul id={listId} className={styles.gradeList} data-flow="" data-shares={open || undefined}>
+          {effects.map((effect, i) => (
+            <GradeLine key={i} grade={effect.grade}>
+              <span className={styles.preLine}>{effect.text}</span>
+              {share(byText.get(spaced(effect.text)))}
+            </GradeLine>
+          ))}
+          {open &&
+            extra.map((line) => (
+              <GradeLine key={line.text} grade={null}>
+                <span className={styles.preLine}>{line.text}</span>
+                {share(line)}
+              </GradeLine>
+            ))}
+        </ul>
+      ) : (
+        <small>{name}</small>
+      )}
+    </div>
   );
 }
 
@@ -1791,7 +1867,7 @@ function RosterTitlesPanel({ name }: { name: string }) {
         </span>
         <span className={styles.titleInfo}>
           <InfoCircle size={13} aria-hidden="true" />
-          장착한 칭호만 기록되며 실제 획득일과 다를 수 있어요
+          장착한 칭호만 기록해요. 날짜는 획득일이 아니라 LOAKraken이 처음 확인한 날이에요
         </span>
       </p>
       {query.isPending ? (

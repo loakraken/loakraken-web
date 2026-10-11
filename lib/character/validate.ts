@@ -31,6 +31,8 @@ const ROLLOUT: Record<string, Record<string, () => unknown>> = {
     guildMemberGrade: () => null,
     avatars: () => [],
     collectibles: () => [],
+    // Bracelet efficiency (backend #350): how much the bracelet adds to combat power.
+    braceletEfficiency: () => null,
   },
   CharacterLoadoutResponse: { skills: () => [] },
   CharacterObservationCoverageResponse: {
@@ -76,7 +78,8 @@ const ROLLOUT: Record<string, Record<string, () => unknown>> = {
   },
   // Gem tooltip lines (backend #286).
   GemResponse: { titleLine: () => null, itemLevel: () => null, tier: () => null, tradeLines: () => [] },
-  SkillResponse: { attackType: () => null },
+  // Gem-adjusted cooldown (backend #378, K20).
+  SkillResponse: { attackType: () => null, cooldown: () => null },
   TripodResponse: { effect: () => null },
   RuneResponse: { effect: () => null },
 };

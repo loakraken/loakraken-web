@@ -132,10 +132,13 @@ function DataRefreshState({
 
   return (
     <div data-slot="data-refresh-state" data-state={state} className={cn("inline-flex items-center gap-1.5", className)}>
-      <span className="inline-flex min-w-[9em] items-center justify-end gap-1.5 text-(length:--text-caption) tabular-nums text-muted-foreground">
+      {/* One fixed width for the words: "마지막 갱신 59초 전" and the longest state
+          word fit, so the row never moves as the clock ticks or a state comes
+          and goes (PM-프론트 #575 review, A7: it shifted 36px). */}
+      <span className="inline-flex w-[15em] shrink-0 items-center justify-end gap-1.5 text-(length:--text-caption) tabular-nums text-muted-foreground">
         {known && <span>마지막 갱신 {agoText(now - updatedAt)}</span>}
         {/* Announced when it changes; empty when idle. */}
-        <span role="status" className="inline-flex items-center gap-1">
+        <span role="status" className="inline-flex w-[5.25em] shrink-0 items-center gap-1">
           {STATE[state].word && (
             <>
               <span aria-hidden className={cn("size-1.5 rounded-full", STATE[state].dot)} />
