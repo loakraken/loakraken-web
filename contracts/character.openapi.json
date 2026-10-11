@@ -1407,14 +1407,60 @@
                 "type": "null"
               }
             ]
+          },
+          "titleLine": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "공식 Tooltip 등급 줄(예: '전설 보석', #285)"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "itemLevel": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32",
+                "description": "공식 Tooltip 아이템 레벨"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "tier": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32",
+                "description": "공식 Tooltip 티어"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "tradeLines": {
+            "type": "array",
+            "description": "공식 Tooltip 귀속·거래 줄(예: '캐릭터 귀속됨', '거래 불가')",
+            "items": {
+              "type": "string"
+            }
           }
         },
         "required": [
           "grade",
           "icon",
+          "itemLevel",
           "level",
           "name",
-          "slot"
+          "slot",
+          "tier",
+          "titleLine",
+          "tradeLines"
         ]
       },
       "GemEffectsResponse": {
