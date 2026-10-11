@@ -356,3 +356,8 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* Same height as the loading shell (homework-loader): a screen at least. */
+.main {
+  min-height: 100dvh;
+}

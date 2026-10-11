@@ -420,7 +420,9 @@ export default function HomeworkTool() {
         본문으로 건너뛰기
       </a>
       <SiteHeader />
-      <main id="hw-main">
+      {/* At least a screen tall, like the loading shell: the footer starts below
+          the fold either way, so stored rosters arriving do not push it (390 CLS). */}
+      <main id="hw-main" className={styles.main}>
         <section className={quote.hero} aria-labelledby="hw-heading">
           <span className={quote.heroIcon} aria-hidden="true">
             <TaskSquare size={18} />
