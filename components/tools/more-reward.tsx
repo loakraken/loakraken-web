@@ -366,9 +366,17 @@ export function MoreRewardTool() {
                 )}
               </div>
               <p className={styles.condition}>
-                {priceBases.find((b) => b.value === basis)?.label} 기준
-                {observedAt && now != null && ` · ${agoText(now, observedAt)}`} · 귀속 골드 제외 {excludeBound ? "켬" : "끔"} ·{" "}
+                {/* The time is last: it arrives after the first paint (the clock is
+                    client-only), and placed earlier it pushed the words after it
+                    onto the next line (PM-프론트 #556, 360 CLS 0.0017). */}
+                {priceBases.find((b) => b.value === basis)?.label} 기준 · 귀속 골드 제외 {excludeBound ? "켬" : "끔"} ·{" "}
                 <a href="#value-heading">값 매기기 바꾸기</a>
+                {observedAt && now != null && (
+                  <>
+                    {" "}
+                    <span className={styles.when}>· {agoText(now, observedAt)}</span>
+                  </>
+                )}
               </p>
               <div className={styles.tableArea}>
               {/* Always laid out, shown by opacity: text arriving would change its

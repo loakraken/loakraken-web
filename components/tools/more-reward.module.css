@@ -368,6 +368,11 @@
 .condition a {
   color: var(--link);
   text-decoration: underline;
+  /* one unit at 360: it split as "바꾸 / 기" (PM-프론트 #556) */
+  white-space: nowrap;
+}
+.condition .when {
+  white-space: nowrap;
 }
 @media (max-width: 900px) {
   .condition {
