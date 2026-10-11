@@ -215,3 +215,98 @@ export function ItemTooltip({
     </Tooltip>
   );
 }
+
+/**
+ * Any element that opens a detail card (gems, engravings and the rest of the
+ * reference site's hover targets): the trigger hugs its children.
+ */
+export function DetailTooltip({
+  name,
+  card,
+  children,
+}: {
+  /** What the card is about ("… 상세 보기"). */
+  name: string;
+  card: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <Tooltip>
+      <ItemTooltipTrigger className={styles.trigger} aria-label={`${name} 상세 보기`}>
+        {children}
+      </ItemTooltipTrigger>
+      <ItemTooltipContent aria-label={name}>{card}</ItemTooltipContent>
+    </Tooltip>
+  );
+}
+
+type Gem = NonNullable<Character["loadout"]["gems"]>["items"][number];
+type GemSkill = NonNullable<NonNullable<Character["loadout"]["gems"]>["effects"]>["skills"][number];
+
+/**
+ * The gem card in the reference site's order (sheet v2.1 §2c): name, icon row
+ * (grade 보석, 장착중), gem level, the effect on its skill ("[직업] 스킬 …"),
+ * the extra effect, then the official remaining lines (tuning notes as one
+ * section, restrictions, sources).
+ */
+export function GemCard({
+  gem,
+  skill,
+  className,
+  lines = [],
+}: {
+  gem: Gem;
+  skill?: GemSkill;
+  /** The character's class, for "[블레이드] …" as the game writes it. */
+  className: string;
+  lines?: string[];
+}) {
+  const levelLine = lines.find((line) => /^보석 레벨/.test(line));
+  const rest = lines.filter((line) => line !== levelLine);
+  return (
+    <ItemDetail
+      grade={itemGrade(gem.grade)}
+      title={gem.name ?? "보석"}
+      // eslint-disable-next-line @next/next/no-img-element -- official CDN icon at a fixed size
+      icon={gem.icon ? <img src={gem.icon} alt="" width={56} height={56} referrerPolicy="no-referrer" /> : undefined}
+      lines={[[gem.grade, "보석"].filter(Boolean).join(" ")]}
+      aside="장착중"
+    >
+      {levelLine ? (
+        <ItemLine>{levelLine}</ItemLine>
+      ) : gem.level != null ? (
+        <ItemLine>보석 레벨 {gem.level}</ItemLine>
+      ) : null}
+      {skill && (
+        <ItemDetailSection label="효과">
+          {skill.description.map((text, i) => (
+            <ItemLine key={i}>
+              [{className}] {skill.name} {text}
+            </ItemLine>
+          ))}
+        </ItemDetailSection>
+      )}
+      {skill?.option && (
+        <ItemDetailSection label="추가 효과">
+          <ItemLine>{skill.option}</ItemLine>
+        </ItemDetailSection>
+      )}
+      {groupExtraLines(rest).map((group, i) => (
+        <ItemDetailSection key={i}>
+          {group.map((line, j) => (
+            <Line key={j}>{line}</Line>
+          ))}
+        </ItemDetailSection>
+      ))}
+    </ItemDetail>
+  );
+}
+
+/** The engraving card: no title or icon, the effect text only (sheet v2.1 §2c). */
+export function EngravingCard({ description }: { description: string }) {
+  return (
+    <ItemDetail>
+      <ItemLine>{description}</ItemLine>
+    </ItemDetail>
+  );
+}

@@ -94,3 +94,9 @@ export function groupExtraLines(lines: string[]): string[][] {
   }
   return groups.map((group) => group.lines);
 }
+
+/** Extra lines for the gem in `slot` (search response gems.items[].slot). */
+export function gemLines(data: ItemTooltips | undefined, slot: number | null | undefined) {
+  if (slot == null) return [];
+  return data?.gems.find((gem) => gem.slot === slot)?.extraLines ?? [];
+}
