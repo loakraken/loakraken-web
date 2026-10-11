@@ -185,7 +185,7 @@ export function TabBar({
   }
 
   return (
-    <div className={styles.tabBar}>
+    <div className={styles.tabBar} data-sticky-chrome>
       <div className={styles.tabInner}>
         <nav
           ref={pillNav}

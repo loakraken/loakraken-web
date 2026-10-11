@@ -43,10 +43,83 @@ const subscribeTouch = (onChange: () => void) => {
 }
 const ModeContext = React.createContext<"popover" | "sheet">("popover")
 
+// --- Staying below the sticky header and tab bar ----------------------------
+
+/** Elements pinned at the top of the page (site header, a page's sticky tab
+ * bar) carry data-sticky-chrome; the card never goes over them. */
+const CHROME = "[data-sticky-chrome]"
+const EDGE = 12
+
+/** The bottom of the pinned chrome in the upper half of the viewport, or 0. */
+function chromeBottom() {
+  let bottom = 0
+  for (const element of document.querySelectorAll<HTMLElement>(CHROME)) {
+    const rect = element.getBoundingClientRect()
+    if (rect.height > 0 && rect.bottom > bottom && rect.bottom <= window.innerHeight / 2) bottom = rect.bottom
+  }
+  return bottom
+}
+
+const AnchorContext = React.createContext<{
+  setTrigger: (element: HTMLElement | null) => void
+  top: number
+}>({ setTrigger: () => {}, top: EDGE })
+
+/**
+ * While the card is open (pointer devices): keep its top below the chrome
+ * (collision padding from the measured bottom, not a fixed number), and close
+ * it once its item has scrolled up under the chrome — the card would point at
+ * nothing (user 10-11: the open card covered the tab bar while scrolling).
+ */
+function useBelowChrome(open: boolean, close: () => void) {
+  const trigger = React.useRef<HTMLElement | null>(null)
+  const [top, setTop] = React.useState(EDGE)
+  const closeRef = React.useRef(close)
+  React.useEffect(() => {
+    closeRef.current = close
+  })
+  React.useEffect(() => {
+    if (!open) return
+    let frame = 0
+    const check = () => {
+      frame = 0
+      const bottom = chromeBottom()
+      setTop(bottom + EDGE)
+      const rect = trigger.current?.getBoundingClientRect()
+      if (rect && rect.height > 0 && rect.top + rect.height / 2 < bottom) closeRef.current()
+    }
+    const schedule = () => {
+      if (!frame) frame = requestAnimationFrame(check)
+    }
+    check()
+    window.addEventListener("scroll", schedule, { passive: true, capture: true })
+    window.addEventListener("resize", schedule, { passive: true })
+    return () => {
+      cancelAnimationFrame(frame)
+      window.removeEventListener("scroll", schedule, { capture: true })
+      window.removeEventListener("resize", schedule)
+    }
+  }, [open])
+  const setTrigger = React.useCallback((element: HTMLElement | null) => {
+    trigger.current = element
+  }, [])
+  return { setTrigger, top }
+}
+
 function ItemTooltip({ open, defaultOpen, onOpenChange, children, ...props }: PopoverPrimitive.Root.Props) {
   // The server and the first client render use the popover; a touch device
   // switches before anything can open, since nothing opens until a press.
   const touch = React.useSyncExternalStore(subscribeTouch, () => window.matchMedia(TOUCH_QUERY).matches, () => false)
+  const [innerOpen, setInnerOpen] = React.useState(defaultOpen ?? false)
+  const shown = open ?? innerOpen
+  const change: NonNullable<PopoverPrimitive.Root.Props["onOpenChange"]> = (next, details) => {
+    if (open === undefined) setInnerOpen(next)
+    onOpenChange?.(next, details)
+  }
+  const anchor = useBelowChrome(!touch && shown, () => {
+    if (open === undefined) setInnerOpen(false)
+    onOpenChange?.(false, { reason: "none" } as never)
+  })
   if (touch) {
     return (
       <ModeContext.Provider value="sheet">
@@ -63,9 +136,11 @@ function ItemTooltip({ open, defaultOpen, onOpenChange, children, ...props }: Po
   }
   return (
     <ModeContext.Provider value="popover">
-      <PopoverPrimitive.Root open={open} defaultOpen={defaultOpen} onOpenChange={onOpenChange} {...props}>
-        {children}
-      </PopoverPrimitive.Root>
+      <AnchorContext.Provider value={anchor}>
+        <PopoverPrimitive.Root open={shown} onOpenChange={change} {...props}>
+          {children}
+        </PopoverPrimitive.Root>
+      </AnchorContext.Provider>
     </ModeContext.Provider>
   )
 }
@@ -76,6 +151,7 @@ function ItemTooltip({ open, defaultOpen, onOpenChange, children, ...props }: Po
  * the sheet. */
 function ItemTooltipTrigger({ className, ...props }: PopoverPrimitive.Trigger.Props) {
   const mode = React.useContext(ModeContext)
+  const { setTrigger } = React.useContext(AnchorContext)
   if (mode === "sheet") {
     return (
       <DrawerPrimitive.Trigger
@@ -88,6 +164,7 @@ function ItemTooltipTrigger({ className, ...props }: PopoverPrimitive.Trigger.Pr
   return (
     <PopoverPrimitive.Trigger
       data-slot="item-tooltip-trigger"
+      ref={setTrigger}
       openOnHover
       delay={180}
       closeDelay={100}
@@ -102,7 +179,8 @@ const FACE = "bg-(--item-tip) text-(--item-tip-foreground) shadow-(--item-tip-sh
 const SCROLL = "overflow-y-auto overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
 
 /** Pointer: right of the item, top edges 8px apart (card higher), 12px gap;
- * flips to the left when the right has no room. 288px wide, 16px padding, at
+ * flips to the left when the right has no room, and stays below the sticky
+ * header and tab bar (closing once its item scrolls under them). 288px wide, 16px padding, at
  * most half the viewport tall, scrolling inside with the scrollbar hidden.
  * Touch: a sheet 7px in from the sides and bottom, a 35×4 handle above it,
  * a 60% black backdrop, 500ms up; drag down, tap outside or Esc closes. */
@@ -117,6 +195,7 @@ function ItemTooltipContent({
 }: PopoverPrimitive.Popup.Props &
   Pick<PopoverPrimitive.Positioner.Props, "align" | "alignOffset" | "side" | "sideOffset">) {
   const mode = React.useContext(ModeContext)
+  const { top } = React.useContext(AnchorContext)
   if (mode === "sheet") {
     return (
       <DrawerPrimitive.Portal>
@@ -158,7 +237,8 @@ function ItemTooltipContent({
         sideOffset={sideOffset}
         align={align}
         alignOffset={alignOffset}
-        collisionPadding={12}
+        // Below the header and a sticky tab bar (measured while open).
+        collisionPadding={{ top, right: EDGE, bottom: EDGE, left: EDGE }}
         collisionAvoidance={{ side: "flip", align: "shift" }}
         className="isolate z-50"
       >

@@ -24,6 +24,7 @@ export function SiteHeader({
 }) {
   return (
     <header
+      data-sticky-chrome
       className={[styles.header, className].filter(Boolean).join(" ")}
       data-fixed={fixed || undefined}
     >
