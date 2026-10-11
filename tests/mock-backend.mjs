@@ -1120,6 +1120,30 @@ createServer(async (req, res) => {
   if (name === "빈목록") envelope = read("observation-gems-items-empty.json");
   if (name === "미제공") envelope = read("observation-gems-items-null.json");
   envelope.data.characterName = name;
+  // Multi-search (web #611): 비교1…비교6 differ in level, power, class and
+  // gear so the comparison has a best value and a sort to show.
+  const compare = /^비교([1-6])$/.exec(name);
+  if (compare) {
+    const n = Number(compare[1]);
+    const d = envelope.data;
+    d.itemLevel = 1680 + n * 12.5;
+    d.combatPower = n === 4 ? null : 2000 + n * 350.25;
+    d.className = ["바드", "블래스터", "버서커", "소서리스", "도화가", "슬레이어"][n - 1];
+    d.analysis.position = n === 1 || n === 5 ? "SUPPORT" : "DEALER";
+    d.analysis.equipment.minRefineLevel = 17 + n;
+    d.analysis.equipment.maxRefineLevel = 19 + n;
+    d.analysis.equipment.averageQuality = 70 + n * 4.5;
+    d.analysis.gems.averageLevel = 6 + n * 0.5;
+    d.analysis.gems.count = 11;
+    d.loadout.engravings.arkPassiveEffects = ["원한", "아드레날린", "예리한 둔기", "돌격대장", "질량 증가"]
+      .slice(0, 3 + (n % 3))
+      .map((engraving, i) => ({ name: engraving, grade: "유물", level: (n + i) % 5, abilityStoneLevel: null, description: null }));
+    d.loadout.arkPassive.points = [
+      { name: "진화", value: 100 + n * 4, description: null },
+      { name: "깨달음", value: 80 + n * 4, description: null },
+      { name: "도약", value: 50 + n * 4, description: null },
+    ];
+  }
   if (name === "전투력계산") withSimulatorGear(envelope.data);
   if (name === "마크업") {
     // Synthetic copy of the official Tooltip markup shape seen in live responses.
