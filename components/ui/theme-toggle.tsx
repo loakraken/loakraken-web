@@ -258,7 +258,9 @@ function ThemeToggle({ className, ...props }: ThemeToggleProps) {
                 className={cn(
                   "flex h-11 items-center gap-3 rounded-xl px-2.5 text-left text-[15px]",
                   "transition-colors duration-(--duration-fast) pointer-fine:hover:bg-muted",
-                  "aria-checked:font-semibold aria-checked:shadow-[inset_0_0_0_1.5px_var(--ring)]",
+                  // important on the weight too: screen modules reset `button { font: inherit }`
+                  // unlayered, which beats a plain utility (#517 review: weight stayed 400).
+                  "aria-checked:font-semibold! aria-checked:shadow-[inset_0_0_0_1.5px_var(--ring)]",
                   // important: some screen modules style every :focus-visible on the page
                   // (unlayered), which would turn this back into the blue ring.
                   "focus-visible:bg-muted focus-visible:[outline:1.5px_dashed_var(--muted-foreground)]! focus-visible:[outline-offset:3px]!"
