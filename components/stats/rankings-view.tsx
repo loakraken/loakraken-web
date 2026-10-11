@@ -14,6 +14,7 @@ import { fixed, percent, sampleText, whole } from "@/lib/stats/model";
 import { MAX_PAGE, PAGE_SIZE, rankingSearch, type RankingQuery } from "@/lib/stats/rankings";
 import quote from "@/components/tools/material-quote.module.css";
 import styles from "./stats.module.css";
+import { BasisNote } from "./basis-note";
 
 const SERVERS = ["루페온", "실리안", "아만", "아브렐슈드", "카단", "카마인", "카제로스", "니나브"];
 const CLASSES = [
@@ -227,9 +228,7 @@ export function RankingsView({ initial }: { initial: RankingQuery }) {
         <p className={styles.note}>
           순위는 LOAKraken이 조회·갱신한 캐릭터 기준이며, 순위 비공개로 설정된 캐릭터는 나오지 않아요. 티어: 크라켄 상위 1% · 해구 5% · 심해 10% · 대양 25% · 연안 50%
         </p>
-        <p className={styles.note}>
-          내 캐릭터를 순위에서 빼고 싶다면 <Link href="/contact#removal">순위 제외 요청</Link>을 보내 주세요.
-        </p>
+        {data && <BasisNote basis={data.meta} />}
       </main>
     </div>
   );

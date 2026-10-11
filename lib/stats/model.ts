@@ -143,11 +143,15 @@ export function share(n: number | null | undefined) {
 
 /** The filters alone ("최근 30일 안에 확인 · 아이템 레벨 1,640 이상"), for under the basis line. */
 export function sampleConditions(meta: StatsMeta) {
-  return conditionParts(meta, "확인").join(" · ");
+  return conditionsText(meta.conditions);
 }
 
-function conditionParts(meta: StatsMeta, seen: string) {
-  const c = meta.conditions;
+/** The filters in words, from any stats or rank response conditions. */
+export function conditionsText(c: StatsMeta["conditions"]) {
+  return conditionParts(c, "확인").join(" · ");
+}
+
+function conditionParts(c: StatsMeta["conditions"], seen: string) {
   const parts = [`최근 ${c.activeDays}일 안에 ${seen}`];
   if (c.itemLevelMin > 0) parts.push(`아이템 레벨 ${count(c.itemLevelMin)} 이상`);
   if (c.itemLevelMax != null) parts.push(`${count(c.itemLevelMax)} 이하`);
@@ -159,7 +163,7 @@ function conditionParts(meta: StatsMeta, seen: string) {
 
 /** The sample in words: who is counted, and that it is not the whole game. */
 export function sampleText(meta: StatsMeta) {
-  return `${conditionParts(meta, "LOAKraken이 확인한 캐릭터").join(" · ")} ${count(meta.population)}명 기준`;
+  return `${conditionParts(meta.conditions, "LOAKraken이 확인한 캐릭터").join(" · ")} ${count(meta.population)}명 기준`;
 }
 
 /** Shared scale for the class quantile bars: the widest p10…p90 span. */

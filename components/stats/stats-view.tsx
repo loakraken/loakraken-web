@@ -24,6 +24,7 @@ import {
 } from "@/lib/stats/model";
 import quote from "@/components/tools/material-quote.module.css";
 import styles from "./stats.module.css";
+import { BasisNote } from "./basis-note";
 
 const SERVERS = ["루페온", "실리안", "아만", "아브렐슈드", "카단", "카마인", "카제로스", "니나브"];
 const TABS = [
@@ -75,6 +76,20 @@ function Notice({ meta }: { meta: StatsMeta }) {
       </p>
     </div>
   );
+}
+
+/** "집계 기준 안내" under the tables, from the summary's meta (same query, cached). */
+function StatsBasis({ query }: { query: StatsQuery }) {
+  const summary = useQuery({
+    queryKey: ["stats", "summary", query],
+    queryFn: ({ signal }) => fetchStats("summary", query, signal),
+    staleTime: 5 * 60_000,
+    placeholderData: keepPreviousData,
+    ...quiet,
+  });
+  const meta = summary.data?.data.meta;
+  if (!meta) return null;
+  return <BasisNote basis={meta} />;
 }
 
 function SummaryCards({ query }: { query: StatsQuery }) {
@@ -545,6 +560,7 @@ export function StatsView({ initial, initialTab }: { initial: StatsQuery; initia
             <ServersTab query={query} />
           )}
         </section>
+        <StatsBasis query={query} />
       </main>
     </div>
   );
