@@ -38,27 +38,6 @@
   color: var(--muted-foreground);
   font-size: var(--text-caption);
 }
-.source {
-  /* A source reads like the text round it (user 10-12): same colour and
-     weight; a link keeps only a faint underline, darker on hover. */
-  color: inherit;
-  font-weight: inherit;
-  text-decoration: underline;
-  text-decoration-color: color-mix(in oklab, currentColor 40%, transparent);
-  text-underline-offset: 0.2em;
-}
-@media (hover: hover) and (pointer: fine) {
-  a.source:hover {
-    text-decoration-color: currentColor;
-  }
-}
-/* Not underlined unless it links somewhere. */
-span.source {
-  text-decoration: none;
-}
-.sourceNone {
-  color: inherit;
-}
 
 .filters {
   display: flex;

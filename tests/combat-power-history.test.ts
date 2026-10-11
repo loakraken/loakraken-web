@@ -2,16 +2,33 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   HISTORY_LIMIT,
+  applySaved,
   historyReducer,
   isEmpty,
   parseSaved,
   serializeSaved,
   startHistory,
   type History,
+  type Identity,
 } from "../lib/combat-power/history";
 import { NO_EDITS, type Edits } from "../lib/combat-power/model";
 
 const withGem = (level: number): Edits => ({ ...NO_EDITS, gems: { 0: level } });
+
+/** A character as the simulator reads it (only what saved inputs check). */
+const identity = (helmet = "+19 테스트 투구"): Identity => ({
+  gems: [{ slot: 0, name: "10레벨 겁화의 보석" }],
+  gear: [
+    { index: 0, type: "무기", name: "+20 테스트 무기" },
+    { index: 1, type: "투구", name: helmet },
+  ],
+  polish: [{ index: 3, line: 0, item: "테스트 목걸이", option: "추가 피해" }],
+  bracelet: [],
+  engravings: [{ name: "원한" }],
+  stones: [],
+  arkPassive: [],
+  cores: [{ slotIndex: 0, name: "테스트 코어" }],
+});
 const run = (history: History, ...actions: Parameters<typeof historyReducer>[1][]) =>
   actions.reduce(historyReducer, history);
 
@@ -67,7 +84,7 @@ test("saved inputs round-trip and drop malformed entries", () => {
     polish: { "3:0": "HIGH" },
     core: { 0: { grade: "유물", point: 17 } },
   };
-  const saved = parseSaved(serializeSaved(edits, new Date("2026-10-11T10:00:00Z")));
+  const saved = parseSaved(serializeSaved(edits, new Date("2026-10-11T10:00:00Z"), identity()));
   assert.deepEqual(saved?.edits, edits);
   assert.equal(saved?.savedAt, "2026-10-11T10:00:00.000Z");
 
@@ -86,4 +103,36 @@ test("saved inputs round-trip and drop malformed entries", () => {
   assert.equal(parseSaved(null), null);
   assert.equal(parseSaved("{"), null);
   assert.equal(parseSaved(JSON.stringify({ edits: [] , savedAt: "x" })), null);
+});
+
+test("a saved input applies only to the gear it was aimed at (PM 총괄 10-12 01:54)", () => {
+  const edits: Edits = {
+    ...NO_EDITS,
+    gemAll: 9,
+    quality: { 0: 100, 1: 100 },
+    engraving: { 원한: 4 },
+    polish: { "3:0": "HIGH" },
+  };
+  const saved = parseSaved(serializeSaved(edits, new Date("2026-10-12T01:00:00Z"), identity()))!;
+  // Same character: everything comes back.
+  const same = applySaved(saved, identity());
+  assert.ok(!("legacy" in same));
+  assert.deepEqual(same.edits, edits);
+  assert.equal(same.skipped, 0);
+  // The helmet was replaced: its quality is left out and counted, the rest stays.
+  const changed = applySaved(saved, identity("+18 다른 투구"));
+  assert.ok(!("legacy" in changed));
+  assert.deepEqual(changed.edits.quality, { 0: 100 });
+  assert.deepEqual(changed.edits.engraving, { 원한: 4 });
+  assert.equal(changed.edits.gemAll, 9);
+  assert.equal(changed.skipped, 1);
+  // An engraving the character no longer has is skipped too.
+  const gone = applySaved(saved, { ...identity(), engravings: [] });
+  assert.ok(!("legacy" in gone));
+  assert.equal(gone.skipped, 1);
+});
+
+test("an old save without targets is not applied (asks to save again)", () => {
+  const old = parseSaved(JSON.stringify({ edits: { ...NO_EDITS, quality: { 1: 100 } }, savedAt: "2026-10-11T10:00:00.000Z" }))!;
+  assert.deepEqual(applySaved(old, identity()), { legacy: true });
 });

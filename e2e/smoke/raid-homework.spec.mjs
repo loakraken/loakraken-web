@@ -8,8 +8,8 @@ test.describe("레이드 보상표 @smoke", () => {
     await expect(page.getByRole("heading", { level: 1, name: "레이드 보상표" })).toBeVisible();
     await expect(page.getByRole("table", { name: /관문별 보상/ }).first()).toBeVisible();
     // 근거는 공식 공지·가이드 링크(날짜 포함)로 남는다.
-    // 표기는 "(YYYY-MM-DD)" 또는 web #277부터 "(확인 YYYY-MM-DD)" 둘 다 받는다.
-    await expect(page.getByRole("link", { name: /\((확인 )?\d{4}-\d{2}-\d{2}\)$/ }).first()).toBeVisible();
+    // 사용자 결정 10-12: 화면에 출처·확인일을 쓰지 않는다(데이터 파일에만 남김).
+    await expect(page.getByText(/출처|확인 \d{4}-\d{2}-\d{2}|공식 출처를 아직/)).toHaveCount(0);
     await expectNoHorizontalOverflow(page);
   });
 
@@ -66,10 +66,10 @@ test.describe("숙제 체크 @smoke", () => {
     const before = await titles();
     expect(before.length).toBeGreaterThan(1);
 
-    // 첫 레이드의 '아래로' 버튼에 포커스를 두고 Alt+↓ → 두 번째로, 포커스는 그 버튼에 남는다.
+    // 첫 레이드의 '아래로' 버튼을 키보드로 누르면 두 번째로, 포커스는 그 버튼에 남는다.
     const down = card.getByRole("button", { name: `${before[0]} 아래로` });
     await down.focus();
-    await page.keyboard.press("Alt+ArrowDown");
+    await page.keyboard.press("Enter");
     await expect.poll(titles).toEqual([before[1], before[0], ...before.slice(2)]);
     await expect(down).toBeFocused();
     await expect(card.getByRole("status")).toContainText(`${before[0]}: 2번째로 옮겼어요.`);
@@ -144,13 +144,13 @@ test.describe("숙제 체크 @smoke", () => {
   });
 
   test("순서 목록 줄을 키보드로 옮기면 포커스가 따라가고 알리며, 새로고침 뒤에도 남는다", async ({ page }) => {
-    // 사용자 지적 10-11 21:02: Tab → 줄 → Alt+↓
+    // 사용자 지적 10-11 21:02: Tab → 줄 → ↓
     const card = await addRoster(page);
     const before = await card.locator("[class*=raidTitle]").allInnerTexts();
     await card.getByRole("button", { name: "순서 바꾸기" }).click();
     const list = card.getByRole("list", { name: "상세 레이드 순서" });
     await list.getByRole("listitem", { name: new RegExp(`^${before[0]}, 1번째`) }).focus();
-    await page.keyboard.press("Alt+ArrowDown");
+    await page.keyboard.press("ArrowDown");
     await expect(card.getByRole("status")).toContainText(`${before[0]}: 2번째로 옮겼어요.`);
     await expect(list.getByRole("listitem", { name: new RegExp(`^${before[0]}, 2번째`) })).toBeFocused();
     await page.keyboard.press("ArrowDown");
@@ -161,23 +161,16 @@ test.describe("숙제 체크 @smoke", () => {
     await expect(page.getByRole("region", { name: "상세 숙제" }).locator("[class*=raidTitle]")).toHaveText(moved);
   });
 
-  test("'선택'한 레이드는 ↑↓로 옮기고 Esc로 놓는다", async ({ page }) => {
-    // 사용자 안 10-11 21:06
+  test("레이드 줄에는 '선택' 버튼과 단축키가 없다: Alt+↓·↓를 눌러도 순서가 그대로", async ({ page }) => {
+    // 사용자 지적 10-12: 선택 버튼·↑↓·Esc·Alt+↑↓ 삭제, 순서는 화살표 버튼과 순서 목록으로만.
     const card = await addRoster(page);
     const before = await card.locator("[class*=raidTitle]").allInnerTexts();
-    const select = card.getByRole("button", { name: `${before[0]} 선택` });
-    await select.click();
-    await expect(select).toHaveAttribute("aria-pressed", "true");
+    await expect(card.getByRole("button", { name: / 선택$/ })).toHaveCount(0);
+    await expect(card.locator("[aria-keyshortcuts]")).toHaveCount(0);
+    await card.getByRole("button", { name: `${before[0]} 아래로` }).focus();
+    await page.keyboard.press("Alt+ArrowDown");
     await page.keyboard.press("ArrowDown");
-    await page.keyboard.press("ArrowDown");
-    await expect(card.getByRole("status")).toContainText(`${before[0]}: 3번째로 옮겼어요.`);
-    const moved = [before[1], before[2], before[0], ...before.slice(3)];
-    await expect.poll(() => card.locator("[class*=raidTitle]").allInnerTexts()).toEqual(moved);
-    await expect(select).toBeFocused();
-    await page.keyboard.press("Escape");
-    await expect(select).toHaveAttribute("aria-pressed", "false");
-    await page.keyboard.press("ArrowDown");
-    await expect.poll(() => card.locator("[class*=raidTitle]").allInnerTexts()).toEqual(moved);
+    await expect.poll(() => card.locator("[class*=raidTitle]").allInnerTexts()).toEqual(before);
   });
 
   test("관문 줄의 체크박스는 모든 줄에서 같은 x에 있다", async ({ page }) => {

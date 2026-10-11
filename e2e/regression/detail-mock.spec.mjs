@@ -3,7 +3,7 @@
 // 보인 문제(목 서버 코드 오류, web #54에서 수정)가 다시 생기지 않는지 고정한다.
 import { test, expect, characterPath, CONTRACT_FAILURE } from "../support/fixtures.mjs";
 
-const TABS = ["combat", "simulator", "skills", "arkpassive", "collectibles", "avatars", "stats", "siblings", "evidence"];
+const TABS = ["combat", "simulator", "specup", "skills", "arkpassive", "collectibles", "avatars", "stats", "siblings", "evidence"];
 
 for (const name of ["상세", "상세서포터"]) {
   test.describe(`목 캐릭터 '${name}' @regression`, () => {

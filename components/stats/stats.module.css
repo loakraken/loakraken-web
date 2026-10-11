@@ -540,7 +540,7 @@
 }
 
 /* Collectible ranking (K33): points under the progress; finished kinds in
-   amber, the same rule as the character collectible list (#539). */
+   blue, the same rule as the character collectible list (#568). */
 .points {
   display: block;
   color: var(--muted-foreground);
@@ -548,5 +548,5 @@
   font-weight: 400;
 }
 .rosterMembers li[data-done] b {
-  color: var(--accent-warm);
+  color: var(--link);
 }

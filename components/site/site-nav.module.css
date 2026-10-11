@@ -117,6 +117,15 @@
   padding: 0;
   list-style: none;
 }
+/* A long group (5+ links, e.g. 성장 도구 계산기) spreads over two columns
+   instead of one tall list (user 10-12). The flyout is desktop only (> 900px). */
+.group:has(> ul > li:nth-child(5)) {
+  grid-column: span 2;
+}
+.group:has(> ul > li:nth-child(5)) ul {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 28px;
+}
 .groupTitle {
   margin: 0 0 6px 10px;
   color: var(--muted-foreground);
