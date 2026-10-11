@@ -30,28 +30,28 @@ test.describe("전투력 시뮬레이터 @smoke", () => {
     const band = page.getByRole("region", { name: /전투력$/ });
     await expect(band).toContainText("아이템 레벨 1,700.5");
     const quality = page.getByRole("combobox", { name: "투구 품질" });
-    const before = await quality.inputValue();
-    await quality.selectOption("100");
+    const before = (await quality.textContent()).trim();
+    await chooseOption(page, quality, "100");
     await expect(page.getByText("12,355.67")).toBeVisible();
     await expect(band).toContainText("예상 전투력");
 
     await page.getByRole("button", { name: "이전" }).click();
-    await expect(quality).toHaveValue(before);
+    await expect(quality).toHaveText(before);
     await expect(page.getByText("아래에서 값을 바꾸면 바로 다시 계산해요.")).toBeVisible();
     await page.getByRole("button", { name: "다음" }).click();
-    await expect(quality).toHaveValue("100");
+    await expect(quality).toHaveText("100");
     await expect(page.getByText("12,355.67")).toBeVisible();
 
     await page.getByRole("button", { name: "입력 저장" }).click();
     await expect(page.getByRole("status").filter({ hasText: "입력을 저장했어요" })).toBeVisible();
     await page.reload();
-    await expect(quality).toHaveValue(before);
+    await expect(quality).toHaveText(before);
     await page.getByRole("button", { name: "저장한 입력 불러오기" }).click();
-    await expect(quality).toHaveValue("100");
+    await expect(quality).toHaveText("100");
     await expect(page.getByText("12,355.67")).toBeVisible();
     // 불러오기도 한 단계라 이전으로 돌아간다.
     await page.getByRole("button", { name: "이전" }).click();
-    await expect(quality).toHaveValue(before);
+    await expect(quality).toHaveText(before);
   });
 
   test("보석 레벨 0은 '빼기'로 고르고 '빼기'로 읽는다(백엔드 #250)", async ({ page }) => {
