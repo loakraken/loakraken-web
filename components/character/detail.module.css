@@ -550,9 +550,15 @@
   color: var(--foreground);
   font-weight: 600;
 }
+/* 질서·혼돈·의지력 sit at the right end of the head, also when they wrap
+   under the title (user 10-12). */
+.panelMeta:has(> .gridMeta) {
+  margin-left: auto;
+}
 .gridMeta {
   display: inline-flex;
   flex-wrap: wrap;
+  justify-content: flex-end;
   align-items: center;
   gap: 4px 12px;
   font-variant-numeric: tabular-nums;
@@ -1735,6 +1741,20 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .gridToggle svg {
+    transition: none;
+  }
+}
+/* Per-core arrow at the row end; turns over when that core is open. */
+.coreChevron {
+  flex: none;
+  color: var(--muted-foreground);
+  transition: transform 200ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.core[open] > summary .coreChevron {
+  transform: rotate(180deg);
+}
+@media (prefers-reduced-motion: reduce) {
+  .coreChevron {
     transition: none;
   }
 }

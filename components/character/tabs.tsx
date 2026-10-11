@@ -647,16 +647,6 @@ function ArkGridPanel({ data }: { data: Character }) {
               의지력 <b>{grid.willpower.used}</b>/{grid.willpower.supply}
             </span>
           )}
-          {hasDetail && (
-            <button
-              type="button"
-              className={styles.textButton}
-              aria-expanded={expanded}
-              onClick={() => setExpanded(!expanded)}
-            >
-              {expanded ? "모두 접기" : "모두 펼치기"}
-            </button>
-          )}
         </span>
       }
     >
@@ -679,6 +669,7 @@ function ArkGridPanel({ data }: { data: Character }) {
         <ul className={styles.coreList}>
           {grid.slots.map((slot, i) => {
             const lines = gridLines(extra, i);
+            const detail = slot.options.length > 0 || slot.gems.some((gem) => gem.name);
             return (
               <li key={i}>
                 <details open={expanded || undefined} className={`${styles.core} ${expand.expand}`}>
@@ -714,8 +705,10 @@ function ArkGridPanel({ data }: { data: Character }) {
                         </DetailTooltip>
                       ))}
                     </span>
+                    {/* Each core opens on its own; the arrow turns over (user 10-12). */}
+                    {detail && <ChevronDown size={16} className={styles.coreChevron} aria-hidden="true" />}
                   </summary>
-                  {(slot.options.length > 0 || slot.gems.some((gem) => gem.name)) && (
+                  {detail && (
                     <div className={styles.coreDetail}>
                       {slot.options.length > 0 && (
                         <ul className={styles.coreOptions}>
@@ -772,7 +765,8 @@ function ArkGridPanel({ data }: { data: Character }) {
       ) : (
         <Empty state={data.coverage.arkGrid.collections.slots} />
       )}
-      {/* Under the cores too (user 10-11): the same toggle as in the head. */}
+      {/* Every core at once, under the list (user 10-11); the head button
+          went away because it did the same (user 10-12). */}
       {hasDetail && grid.slots.length > 0 && (
         <button
           type="button"
