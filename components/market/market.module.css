@@ -399,6 +399,10 @@
   border-radius: 12px;
   background: var(--background);
 }
+/* the SVG and the tooltip that follows its reading share this box */
+.plot {
+  position: relative;
+}
 /* Line, dot and guide take one colour from the direction of the window
    (Bencho's Balance chart sets it once on the plot so they all agree). */
 .chartSvg {
@@ -470,7 +474,9 @@
   font-size: 12px;
 }
 .readout strong {
+  display: inline-block;
   margin-right: 6px;
+  font-variant-numeric: tabular-nums;
   color: var(--ink);
   font-size: 14px;
   font-weight: 700;
