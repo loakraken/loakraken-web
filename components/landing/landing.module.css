@@ -26,7 +26,7 @@
 .landing :where(a, button, input, summary):focus-visible { outline: 3px solid var(--ring); outline-offset: 4px; }
 .landing section { scroll-margin-top: 88px; }
 .srOnly { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
-.skipLink { position: fixed; z-index: 100; top: -80px; left: 16px; padding: 12px 18px; background: var(--primary); color: white; border-radius: 24px; }
+.skipLink { position: fixed; z-index: 100; top: -80px; left: 16px; padding: 12px 18px; background: var(--primary); color: var(--primary-foreground); border-radius: 24px; }
 .skipLink:focus { top: 12px; }
 .readingProgress { position: fixed; inset: 0 0 auto; height: 2px; background: var(--primary); transform-origin: left; z-index: 55; }
 /* A web approximation of Apple's translucent product navigation. */
@@ -54,6 +54,13 @@
 .orbAtmosphere { position: absolute; bottom: 25px; left: 65px; width: 146px; height: 13px; border-radius: 50%; background: #9aacc0; filter: blur(15px); opacity: 0.3; animation: orb-shadow 8s ease-in-out infinite; }
 .orbShell { position: relative; width: 184px; height: 184px; border-radius: 50%; display: grid; place-items: center; background: radial-gradient(circle at 35% 28%, #fff 3%, #e6f4ff 30%, #a5cbea 63%, #72a2cc 82%, #d2e4f4 100%); border: 1px solid #c0d5e7; box-shadow: inset 4px 5px 13px #fff, inset -6px -10px 23px #327ab333; animation: orb-float 8s ease-in-out infinite; }
 .orbGlass { position: absolute; inset: 9px; border-radius: 50%; background: radial-gradient(ellipse at 44% 8%, #ffffffd9, #ffffff15 30%, transparent 56%); border-top: 1px solid #fff; pointer-events: none; }
+/* Dark theme: the same glass sphere in deep blues, so it does not glare on
+   the dark page. Colour only — size, motion and blur are unchanged. */
+:global([data-theme="dark"]) .orbShell { background: radial-gradient(circle at 35% 28%, #5d7a99 3%, #2b4664 30%, #1a3350 63%, #13253b 82%, #22384f 100%); border-color: #2c4560; box-shadow: inset 4px 5px 13px #ffffff26, inset -6px -10px 23px #00000059; }
+:global([data-theme="dark"]) .orbGlass { background: radial-gradient(ellipse at 44% 8%, #ffffff40, #ffffff08 30%, transparent 56%); border-top-color: #ffffff33; }
+:global([data-theme="dark"]) .orbAtmosphere { background: #4da3ff; opacity: 0.18; }
+:global([data-theme="dark"]) .orbit { border-color: #4da3ff26; }
+:global([data-theme="dark"]) .orbit i { background: #4da3ff; }
 .orbCore { position: relative; width: 100px; height: 100px; display: grid; place-items: center; border-radius: 50%; }
 .orbCore canvas { width: 96px !important; height: 96px !important; }
 .orbit { position: absolute; border: 1px solid #aac4d73d; border-radius: 50%; animation: orbit 26s linear infinite; }
@@ -85,7 +92,7 @@
 .section h2 { font-size: clamp(32px, 3.8vw, 52px); line-height: 1.2; font-weight: 600; letter-spacing: -0.04em; margin-top: 12px; }
 .sectionHeading > p { color: var(--muted-foreground); font-size: 17px; line-height: 1.6; }
 .mobileBreak { display: none; }
-.cockpit { background: white; border-radius: 28px; overflow: hidden; }
+.cockpit { background: var(--card); border-radius: 28px; overflow: hidden; }
 .windowBar { min-height: 54px; padding: 0 30px; display: flex; align-items: center; gap: 16px; font-size: 12px; font-weight: 500; color: var(--muted-foreground); border-bottom: 1px solid var(--secondary); }
 .windowDots { display: flex; gap: 6px; }
 .windowDots i { width: 7px; height: 7px; border-radius: 50%; background: var(--border); }

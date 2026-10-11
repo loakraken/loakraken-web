@@ -35,5 +35,5 @@ export function IntelligenceOrb({ state = "breathing" }: { state?: OrbState }) {
 export function InlineOrb({ state = "searching" }: { state?: OrbState }) {
   const { enabled } = useLandingMotion();
   const theme = useTheme();
-  return <ThinkingOrb state={state} size={20} theme="light" color="#0066cc" paused={!enabled} aria-hidden="true" />;
+  return <ThinkingOrb state={state} size={20} theme={theme} color={orbColor(theme)} paused={!enabled} aria-hidden="true" />;
 }

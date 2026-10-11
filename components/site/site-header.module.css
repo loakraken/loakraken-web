@@ -145,8 +145,9 @@
   .slot > * {
     min-width: 0;
   }
-  /* With a search field in the bar, the mark alone carries the brand. */
-  .header:has(.slot input) .brand span {
+  /* With anything in the page slot (a search field, the about page's CTA),
+     the mark alone carries the brand so the slot keeps its width. */
+  .header:has(.slot) .brand span {
     display: none;
   }
 }
