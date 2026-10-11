@@ -3,6 +3,23 @@
 // 돌아오면 캐시 값을 바로 보여 준다. 응답을 1.2초 늦춰 불러오는 구간을 만든다.
 import { test, expect, chooseOption, gotoReady } from "../support/fixtures.mjs";
 
+/** Samples "anything busy?" every frame for a while; true if it ever was. */
+const everBusy = (page, ms) =>
+  page.evaluate(
+    (ms) =>
+      new Promise((resolve) => {
+        const end = performance.now() + ms;
+        let busy = false;
+        const tick = () => {
+          busy ||= !!document.querySelector("main [aria-busy=true]");
+          if (performance.now() < end) requestAnimationFrame(tick);
+          else resolve(busy);
+        };
+        requestAnimationFrame(tick);
+      }),
+    ms,
+  );
+
 const slow = (page, pattern) =>
   page.route(pattern, async (route) => {
     await new Promise((resolve) => setTimeout(resolve, 1200));
@@ -38,8 +55,9 @@ test("통계: 최근 확인 30일→7일→30일 동안 다른 조건의 표본 
   await chooseOption(page, days, "7일");
   await expect(page.locator("main [aria-busy=true]").first()).toBeAttached();
   await expect(page.locator("main [aria-busy=true]")).toHaveCount(0, { timeout: 10_000 });
+  // 처음 본 조건(30일)으로 돌아오면 캐시 값이 바로: 흐려지는 프레임이 없다(#540 P2).
   await chooseOption(page, days, "30일");
-  await page.waitForTimeout(1500);
+  expect(await everBusy(page, 1500), "이미 본 30일로 돌아왔는데 흐려짐").toBe(false);
   const frames = await page.evaluate(() => window.__frames);
   const wrong = frames.flatMap((f) =>
     f.shown.filter((s) => expected[f.chosen] && s.value !== expected[f.chosen] && !s.busy).map((s) => `${f.chosen}에 ${s.value}`),
@@ -58,7 +76,7 @@ test("랭킹: 새 조건을 불러오는 동안 표가 흐려지고 aria-busy, �
   await expect(table).toHaveAttribute("aria-busy", "true");
   expect(await table.evaluate((el) => getComputedStyle(el).opacity)).not.toBe("1");
   await expect(table).not.toHaveAttribute("aria-busy", "true", { timeout: 10_000 });
-  // 이미 본 조건(30일)은 캐시에서 바로: 흐려지지 않는다.
+  // 이미 본 조건(첫 화면 = 30일)은 캐시에서 바로: 흐려지는 프레임이 없다(#540 P2).
   await chooseOption(page, days, "30일");
-  await expect(table).not.toHaveAttribute("aria-busy", "true");
+  expect(await everBusy(page, 1500), "이미 본 30일로 돌아왔는데 흐려짐").toBe(false);
 });

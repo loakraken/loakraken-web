@@ -8,6 +8,7 @@ import {
   parseStatsQuery,
   quantileScale,
   sampleText,
+  statsKey,
   statsSearch,
 } from "../lib/stats/model";
 import { requestStats } from "../lib/stats/upstream";
@@ -36,6 +37,12 @@ test("filters are allow-listed; any invalid value rejects the query", () => {
   for (const bad of ["role=TANK", "activeDays=14", "itemLevelMin=3000", "server=아만%20서버", "metric=GOLD", "width=0", "percentileOf=-1"])
     assert.equal(parseStatsQuery(new URLSearchParams(bad)), null, bad);
   assert.equal(statsSearch({ server: "아만", activeDays: 30 }).toString(), "server=%EC%95%84%EB%A7%8C&activeDays=30");
+});
+
+test("one cache entry per set of conditions: 30 days is the default, order does not matter (#540 P2)", () => {
+  assert.equal(statsKey({}), statsKey({ activeDays: 30 }));
+  assert.equal(statsKey({ server: "아만", role: "DEALER" }), statsKey({ role: "DEALER", server: "아만", activeDays: 30 }));
+  assert.notEqual(statsKey({ activeDays: 7 }), statsKey({}));
 });
 
 test("the sample is described as LOAKraken's, never the whole game", () => {
