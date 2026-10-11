@@ -1,0 +1,1 @@
+{"code":"CHARACTER_ITEM_TOOLTIPS_SUCCESS","message":"아이템 툴팁 줄 조회에 성공했습니다.","data":{"characterName":"툴팁캐시","hidden":false,"fetchedAt":"2026-10-10T14:42:49.583948800Z","equipment":[{"index":1,"type":"귀걸이","extraLines":["내구도 62 / 175"]}],"gems":[{"slot":3,"extraLines":["보석 레벨 6"]}],"cards":[{"slot":0,"extraLines":["카드 설명"]}],"skills":[{"name":"테스트 스킬","runeExtraLines":["룬 설명"]}]}}

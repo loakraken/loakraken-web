@@ -25,7 +25,8 @@
     "api:generate:receipt": "openapi-typescript contracts/receipt.openapi.json -o lib/api/receipt-schema.d.ts",
     "api:generate:stats": "openapi-typescript contracts/stats.openapi.json -o lib/api/stats-schema.d.ts",
     "api:generate:rankings": "openapi-typescript contracts/rankings.openapi.json -o lib/api/rankings-schema.d.ts",
-    "api:generate:combat-power": "openapi-typescript contracts/combat-power.openapi.json -o lib/api/combat-power-schema.d.ts"
+    "api:generate:combat-power": "openapi-typescript contracts/combat-power.openapi.json -o lib/api/combat-power-schema.d.ts",
+    "api:generate:item-tooltips": "openapi-typescript contracts/item-tooltips.openapi.json -o lib/api/item-tooltips-schema.d.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",

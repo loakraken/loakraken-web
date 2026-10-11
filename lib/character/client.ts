@@ -1,3 +1,4 @@
+import type { ItemTooltipsEnvelope } from "./item-tooltips";
 import type { CharacterResult, QueryFailure } from "./model";
 import type { HistoryEnvelope, SiblingsEnvelope, ViewsEnvelope } from "./validate";
 import type { CardCollectionEnvelope, CardRefreshEnvelope } from "./card-collection";
@@ -70,6 +71,12 @@ export const fetchCardCollection = (name: string, signal: AbortSignal) =>
 export const fetchRank = (name: string, signal: AbortSignal) =>
   getJson<RankEnvelope>(
     `/api/characters/rank?${new URLSearchParams({ characterName: name })}`,
+    signal,
+  );
+
+export const fetchItemTooltips = (name: string, signal: AbortSignal) =>
+  getJson<ItemTooltipsEnvelope>(
+    `/api/characters/item-tooltips?${new URLSearchParams({ characterName: name })}`,
     signal,
   );
 
