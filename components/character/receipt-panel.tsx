@@ -6,6 +6,7 @@ import { RefreshArrow } from "@/components/ui/icons";
 import { InlineOrb } from "@/components/landing/orb";
 import { RateLimitNote } from "@/components/site/rate-limit-note";
 import expand from "@/components/site/expand.module.css";
+import { remainingText } from "@/lib/time/remaining";
 import { countdownText, rateLimitCopy } from "@/lib/api/rate-limit";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { labelOf } from "@/lib/api/tolerant";
@@ -101,6 +102,7 @@ function Body({
           <input type="checkbox" checked={assumeBook} onChange={(event) => onAssumeBook(event.target.checked)} />
           책 효과 항상 적용 가정
         </label>
+        {assumeBook && <p>책 효과가 적용된다고 가정했어요 · 끄면 책 없이 계산해요</p>}
         {first && <p>{first}</p>}
       </div>
 
@@ -119,7 +121,7 @@ function Body({
             data-no-replay
           >
             {refreshing ? <InlineOrb /> : <RefreshArrow size={14} aria-hidden="true" />}
-            {refreshing ? "계산하는 중" : seconds > 0 ? `${seconds}초 뒤 다시 계산` : "다시 계산(8명씩)"}
+            {refreshing ? "계산하는 중" : seconds > 0 ? `${remainingText(seconds * 1000)} 뒤 다시 계산` : "다시 계산(8명씩)"}
           </button>
         )}
       </div>
@@ -193,7 +195,8 @@ export function ReceiptPanel({ name }: { name: string }) {
 }
 
 function ReceiptPanelBody({ name }: { name: string }) {
-  const [assumeBook, setAssumeBook] = useState(false);
+  // Books on by default (PM 총괄 10-11 00:20): the receipt assumes them unless turned off.
+  const [assumeBook, setAssumeBook] = useState(true);
   const query = useQuery({
     queryKey: ["receipt", name, assumeBook],
     queryFn: ({ signal }) => fetchReceipt(name, assumeBook, signal),
