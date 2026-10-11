@@ -507,3 +507,27 @@
 .listHold {
   min-height: 75vh;
 }
+/* Roster ranking: the members behind a value, on demand. */
+.rosterMembers summary {
+  width: fit-content;
+  color: var(--link);
+  font-size: 12px;
+  cursor: pointer;
+}
+.rosterMembers ol {
+  display: grid;
+  gap: 2px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+}
+.rosterMembers li {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+}
+.rosterMembers b {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+}

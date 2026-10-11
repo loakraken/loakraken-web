@@ -921,6 +921,63 @@ createServer(async (req, res) => {
         : { characterName: who, enabled: false, source: null, fetchedAt: null, skills: null, skillCode: null, lifeSkills: null },
     });
   }
+  // Roster ranking (backend #298): three rosters, the last one short of six
+  // characters (usedCharacters 4 of 4), values by basis and aggregate.
+  if (url.pathname === "/api/v1/rankings/rosters") {
+    const basis = url.searchParams.get("basis") ?? "ITEM_LEVEL";
+    const aggregate = url.searchParams.get("aggregate") ?? "TOP6_AVG";
+    const base = basis === "COMBAT_POWER" ? 3200 : 1720;
+    const rosters = [
+      ["합성원정대", "루페온", "바드", 8, 0],
+      ["상세", "루페온", "블래스터", 7, -40],
+      ["작은원정대", "아만", "블레이드", 4, -90],
+    ];
+    const rows = rosters.map(([name, server, cls, count, delta], i) => {
+      const members = Array.from({ length: count }, (_, k) => ({
+        characterName: k === 0 ? name : `${name}${k + 1}`,
+        className: k === 0 ? cls : "버서커",
+        value: Math.round((base + delta - k * 12) * 100) / 100,
+      }));
+      const used = aggregate === "ALL_AVG" ? count : Math.min(6, count);
+      const top = members.slice(0, used).map((m) => m.value);
+      const sum = top.reduce((a, b) => a + b, 0);
+      return {
+        rank: i + 1,
+        serverName: server,
+        characterName: name,
+        className: cls,
+        itemLevel: 1720 + delta,
+        combatPower: 3200 + delta,
+        characterCount: count,
+        usedCharacters: used,
+        value: Math.round((aggregate === "TOP6_SUM" ? sum : sum / used) * 100) / 100,
+        composition: members.slice(0, used),
+      };
+    });
+    return send({
+      code: "ROSTER_RANKING_SUCCESS",
+      message: "ok",
+      data: {
+        meta: {
+          population: 1240,
+          conditions: { server: url.searchParams.get("server"), role: null, className: null, activeDays: 30, itemLevelMin: 1640, itemLevelMax: null, combatPowerMin: null, combatPowerMax: null, representativeOnly: false },
+          aggregatedAt: "2026-10-11T07:00:00Z",
+          snapshot: "latest",
+          ruleVersion: "stats-v1",
+          minSample: 30,
+          sampleStatus: "READY",
+          coverage: { observedCharacters: 6200, knownCharacters: 7400, discoveredAccounts: 1240 },
+          populationUnit: "ROSTER",
+        },
+        basis,
+        aggregate,
+        page: 1,
+        size: 50,
+        excludedRosters: 2,
+        rows,
+      },
+    });
+  }
   if (url.pathname === "/api/v1/characters/item-tooltips") {
     const who = url.searchParams.get("characterName") ?? "";
     if (who === "툴팁캐시없음") return send({ code: "CHARACTER_NOT_CACHED", message: "no cache" }, 404);
