@@ -6,15 +6,15 @@ import { Popover as PopoverPrimitive } from "@base-ui/react/popover"
 import { cn } from "cn"
 
 // Item detail (equipment, accessories, stone, bracelet, gems, cores), laid out
-// as a measured card (user 10-10 23:13/23:15: same place, same look, same lines,
+// as iloa's card (user 10-10 23:13/23:15: same place, same look, same lines,
 // same spacing). Every number below is from the reference team's measurement
 // (40 레퍼런스/작은 동작 전수표 v2.1 §1·2·2b·2d·2e).
 //
-// Pointer devices get a Base UI Popover beside the item:
+// Pointer devices get a Base UI Popover beside the item, as iloa's is:
 // hovering previews it, while a click, Enter/Space opens it with focus inside,
 // so keyboard and screen reader users can read and scroll a long card and Esc
 // returns focus to the item (#319). Touch devices (no hover, coarse pointer)
-// get the same card in a bottom sheet (measured at 390px).
+// get the same card in a bottom sheet, as iloa does at 390px.
 //
 // <ItemTooltip>
 //   <ItemTooltipTrigger aria-label="+19 운명의 전율 머리장식 상세">…</ItemTooltipTrigger>
@@ -146,7 +146,7 @@ function ItemTooltip({ open, defaultOpen, onOpenChange, children, ...props }: Po
 }
 
 /** The item itself, as a button. Hover opens 180ms after the pointer rests
- * (measured 160–200ms) and closes 100ms after it leaves; moving onto the card
+ * (iloa 160–200ms) and closes 100ms after it leaves; moving onto the card
  * keeps it open. The card does not follow the pointer. On touch a tap opens
  * the sheet. */
 function ItemTooltipTrigger({ className, ...props }: PopoverPrimitive.Trigger.Props) {
@@ -174,7 +174,7 @@ function ItemTooltipTrigger({ className, ...props }: PopoverPrimitive.Trigger.Pr
   )
 }
 
-// The glass face both shapes share: measured fill, blur and edge.
+// The glass face both shapes share: iloa's fill, blur and edge.
 const FACE = "bg-(--item-tip) text-(--item-tip-foreground) shadow-(--item-tip-shadow) backdrop-blur-[24px] backdrop-saturate-[1.8]"
 const SCROLL = "overflow-y-auto overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
 
@@ -250,7 +250,7 @@ function ItemTooltipContent({
             "rounded-[12px]",
             FACE,
             "origin-(--transform-origin)",
-            // Measured: 150ms in, 100ms out on cubic-bezier(0.23, 1, 0.32, 1), from
+            // iloa: 150ms in, 100ms out on cubic-bezier(0.23, 1, 0.32, 1), from
             // 0.98 and 4px back towards the item. Reduced motion is instant
             // (global rule).
             "transition-[opacity,scale,translate] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)]",
@@ -324,7 +324,7 @@ function ItemDetail({
             <div
               className={cn(
                 "size-14 shrink-0 overflow-hidden rounded-[4px] [&>img]:size-full [&>img]:object-cover",
-                // The box is painted with the grade as a gradient (2d); the
+                // iloa paints the box with the grade as a gradient (2d); the
                 // official image sits on top. Its own artwork is not copied.
                 !plainIcon && "bg-linear-to-br/srgb from-(--item-icon-a) to-(--item-icon-b)"
               )}
@@ -333,7 +333,7 @@ function ItemDetail({
             </div>
           )}
           {/* The right column sits on the first line only; the quality bar
-              below takes the block's full width (measured 188). */}
+              below takes the block's full width (iloa 188). */}
           <div className="grid min-w-0 flex-1 gap-1 leading-3">
             {(lines?.length ? lines : [null]).map((line, i) => (
               <div key={i} className={cn("flex min-w-0 gap-1 break-keep", i === 0 && "text-(--item-grade)")}>
@@ -456,7 +456,7 @@ function ItemProgress({ label, value, max }: { label: React.ReactNode; value: nu
       <p className="text-(--item-tip-section)">{label}</p>
       <div className="relative h-3 overflow-hidden rounded-[8px] bg-(--item-tip-track)">
         <span aria-hidden="true" className="absolute inset-y-0 left-0 rounded-[8px] bg-(--item-tip-exp)" style={{ width: `${pct}%` }} />
-        {/* Written without thousands separators. Light
+        {/* Written as iloa does, without thousands separators. iloa's light
             figures drop to 2.0 over the orange, so the part over the fill is
             drawn again in dark ink (7.09), the rest stays light (6.78). */}
         <span className="relative block text-center text-[12px] leading-3 font-medium tabular-nums text-(--item-tip-exp-foreground)">
