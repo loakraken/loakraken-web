@@ -25,3 +25,14 @@ test("receipt: hidden only on production unless RECEIPT_TOOL says otherwise", as
   assert.equal(isReceiptEnabled({ SITE_URL: "https://loakraken.gg", RECEIPT_TOOL: "on" }), true);
   assert.equal(isReceiptEnabled({ RECEIPT_TOOL: " OFF " }), false);
 });
+
+test("세팅 점검 tab is hidden on production unless SETTING_CHECK_TAB says otherwise", async () => {
+  const { isSettingCheckEnabled } = await import("../lib/tools/flags");
+  assert.equal(isSettingCheckEnabled({}), true, "local and e2e (no SITE_URL)");
+  assert.equal(isSettingCheckEnabled({ SITE_URL: "https://staging.loakraken.gg" }), true);
+  assert.equal(isSettingCheckEnabled({ SITE_URL: "https://loakraken.gg" }), false);
+  assert.equal(isSettingCheckEnabled({ SITE_URL: "https://www.loakraken.gg/" }), false);
+  assert.equal(isSettingCheckEnabled({ SITE_URL: "https://loakraken.gg", SETTING_CHECK_TAB: "on" }), true);
+  assert.equal(isSettingCheckEnabled({ SETTING_CHECK_TAB: " OFF " }), false);
+});
+

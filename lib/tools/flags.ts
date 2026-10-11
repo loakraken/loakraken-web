@@ -45,6 +45,18 @@ export function isReceiptEnabled(env: Env = process.env) {
   return !isProductionHost(env.SITE_URL);
 }
 
+/**
+ * The character "세팅 점검" tab stays hidden on production while its rules
+ * are still few (user 10-11, PM 총괄 14:56). Same rule: `SETTING_CHECK_TAB=on|off`
+ * overrides, otherwise hidden only on the production host.
+ */
+export function isSettingCheckEnabled(env: Env = process.env) {
+  const flag = env.SETTING_CHECK_TAB?.trim().toLowerCase();
+  if (flag === "on") return true;
+  if (flag === "off") return false;
+  return !isProductionHost(env.SITE_URL);
+}
+
 const PRODUCTION_HOST = new URL(PRODUCTION_URL).hostname;
 
 function isProductionHost(value: string | undefined) {

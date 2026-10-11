@@ -1,4 +1,4 @@
-import { isReceiptEnabled } from "@/lib/tools/flags";
+import { isReceiptEnabled, isSettingCheckEnabled } from "@/lib/tools/flags";
 import type { Metadata } from "next";
 import {
   dehydrate,
@@ -74,6 +74,7 @@ export default async function CharacterPage({
         initialError={result.ok ? undefined : result.error}
         renderedAt={renderedAt}
         receipt={isReceiptEnabled()}
+        settingCheck={isSettingCheckEnabled()}
       />
     </HydrationBoundary>
   );
