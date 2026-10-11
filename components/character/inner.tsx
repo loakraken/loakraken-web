@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { AvatarCard, DetailTooltip } from "./item-tooltip";
+import { AvatarCard, DetailTooltip, ItemTooltip } from "./item-tooltip";
+import { useItemTooltips } from "./use-item-tooltips";
+import { equipmentExtra } from "@/lib/character/item-tooltips";
 import type { Character } from "@/lib/character/model";
 import { groupEquipment } from "@/lib/character/detail";
 import { avatarEffectTotals, avatarSlots } from "@/lib/character/inner";
@@ -104,6 +106,12 @@ export function CollectiblesTab({ data }: { data: Character }) {
   const [selected, setSelected] = useState(0);
   const current = collectibles[Math.min(selected, collectibles.length - 1)];
   const special = groupEquipment(data.loadout.equipment).others;
+  const extra = useItemTooltips(data.characterName);
+  // The reference also shows each kind's average, not only the overall share.
+  const shares = collectibles
+    .filter((item) => item.maxPoint)
+    .map((item) => (item.point ?? 0) / (item.maxPoint ?? 1));
+  const average = shares.length ? shares.reduce((a, b) => a + b, 0) / shares.length : null;
   const total = collectibles.reduce(
     (sum, item) => ({
       point: sum.point + (item.point ?? 0),
@@ -119,7 +127,7 @@ export function CollectiblesTab({ data }: { data: Character }) {
             title="수집품"
             meta={
               collectibles.length
-                ? `전체 ${percentText(total.point, total.max)}`
+                ? `전체 ${percentText(total.point, total.max)}${average != null ? ` · 종류 평균 ${(average * 100).toFixed(2)}%` : ""}`
                 : undefined
             }
           >
@@ -172,7 +180,13 @@ export function CollectiblesTab({ data }: { data: Character }) {
               <ul className={styles.itemList}>
                 {special.map((item, i) => (
                   <li key={`${item.type}-${i}`} className={styles.item}>
-                    <GameIcon src={item.icon} grade={item.grade} size={36} />
+                    <ItemTooltip
+                      item={item}
+                      slot={item.type ?? undefined}
+                      extra={equipmentExtra(extra, data.loadout.equipment.indexOf(item), item.type)}
+                    >
+                      <GameIcon src={item.icon} grade={item.grade} size={36} />
+                    </ItemTooltip>
                     <div className={styles.itemText}>
                       <strong>{text(item.type)}</strong>
                       <small>{text(item.name)}</small>
