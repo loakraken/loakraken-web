@@ -2,11 +2,12 @@ import type { Metadata } from "next";
 import { RankingsView } from "@/components/stats/rankings-view";
 import { RosterRankingsView } from "@/components/stats/roster-rankings-view";
 import { CollectibleRankingsView } from "@/components/stats/collectible-rankings-view";
+import { EfficiencyRankingsView } from "@/components/stats/efficiency-rankings-view";
 import type { RankingType } from "@/components/stats/ranking-type-tabs";
 import { parseCollectibleQuery } from "@/lib/stats/collectible-ranking";
 import { parseRosterQuery } from "@/lib/stats/roster-ranking";
-import { isCollectibleRankingEnabled, isRosterRankingEnabled } from "@/lib/tools/flags";
-import { parseRankingQuery } from "@/lib/stats/rankings";
+import { isCollectibleRankingEnabled, isEfficiencyRankingEnabled, isRosterRankingEnabled } from "@/lib/tools/flags";
+import { parseEfficiencyQuery, parseRankingQuery } from "@/lib/stats/rankings";
 
 export const metadata: Metadata = {
   title: "랭킹",
@@ -30,10 +31,14 @@ export default async function RankingsPage({
     "character",
     ...(isRosterRankingEnabled() ? (["roster"] as const) : []),
     ...(isCollectibleRankingEnabled() ? (["collectibles"] as const) : []),
+    // 팔찌·젬 효율 랭킹 (api #444, EFFICIENCY_RANKING).
+    ...(isEfficiencyRankingEnabled() ? (["bracelets", "gems"] as const) : []),
   ];
   const type = types.find((t) => t === params.get("type")) ?? "character";
   if (type === "roster") return <RosterRankingsView initial={parseRosterQuery(params)} types={types} />;
   if (type === "collectibles") return <CollectibleRankingsView initial={parseCollectibleQuery(params)} types={types} />;
+  if (type === "bracelets" || type === "gems")
+    return <EfficiencyRankingsView kind={type} initial={parseEfficiencyQuery(params)} types={types} />;
   // Invalid values in a shared link fall back to the defaults.
   const query = parseRankingQuery(params) ?? { metric: "COMBAT_POWER" as const, page: 1 };
   return <RankingsView initial={query} types={types} />;

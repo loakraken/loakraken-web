@@ -903,6 +903,10 @@ createServer(async (req, res) => {
         position: cls === "바드" || cls === "홀리나이트" || cls === "도화가" ? "SUPPORT" : "DEALER",
         itemLevel: Math.round((1790 - rank * 0.05) * 100) / 100, combatPower: Math.round((4800 - rank * 1.3) * 100) / 100,
         topPercent: top, tier,
+        bestCombatPower: rank % 3 === 0 ? null : Math.round((4810 - rank * 1.2) * 100) / 100,
+        arkPassivePoints: rank % 3 === 0 ? null : { evolution: 140, enlightenment: 101 - (rank % 4), leap: 70 },
+        classEngraving: rank % 3 === 0 ? null : ["광기", "버스트", "절정", "잔재된 기운"][rank % 4],
+        estherWeapon: rank % 5 === 0 ? { refineLevel: 25, ellaStage: 2 } : rank % 5 === 1 ? { refineLevel: 8, ellaStage: null } : null,
       });
     }
     return send({
@@ -915,6 +919,41 @@ createServer(async (req, res) => {
           sampleStatus: population >= 30 ? "READY" : "COLLECTING", coverage: { observedCharacters: population, knownCharacters: population * 3, discoveredAccounts: 100 },
         },
         metric, page, size, rows,
+      },
+    });
+  }
+  if (url.pathname === "/api/v1/rankings/bracelets" || url.pathname === "/api/v1/rankings/ark-grid-gems") {
+    const q = url.searchParams;
+    const bracelet = url.pathname.endsWith("bracelets");
+    const page = Number(q.get("page") || 1);
+    const size = Number(q.get("size") || 50);
+    const population = q.get("className") === "환수사" ? 0 : q.get("server") ? 64 : 230;
+    const servers = ["루페온", "실리안", "아만", "아브렐슈드", "카단", "카마인", "카제로스", "니나브"];
+    const classes = ["블래스터", "소울이터", "슬레이어", "기상술사", "버서커", "블레이드"];
+    const rows = [];
+    for (let rank = (page - 1) * size + 1; rank <= Math.min(population, page * size); rank++) {
+      const top = Math.round((rank / population) * 10000) / 100;
+      const tier = top <= 1 ? "TOP1" : top <= 5 ? "TOP5" : top <= 10 ? "TOP10" : top <= 25 ? "TOP25" : top <= 50 ? "TOP50" : "REST";
+      rows.push({
+        rank, characterName: `효율${rank}`, serverName: q.get("server") || servers[rank % servers.length],
+        className: q.get("className") || classes[rank % classes.length], position: "DEALER",
+        itemLevel: Math.round((1785 - rank * 0.1) * 100) / 100, combatPower: Math.round((4700 - rank * 2.1) * 100) / 100,
+        valuePercent: Math.round(((bracelet ? 16 : 6.5) - rank * 0.03) * 100) / 100,
+        observedAt: new Date(Date.now() - rank * 3_600_000).toISOString(), topPercent: top, tier,
+      });
+    }
+    return send({
+      code: "RANKING_SUCCESS",
+      message: "성공",
+      data: {
+        meta: {
+          population, conditions: { server: q.get("server"), role: "DEALER", className: q.get("className"), activeDays: Number(q.get("activeDays") || 30), itemLevelMin: Number(q.get("itemLevelMin") || 1640), itemLevelMax: null, combatPowerMin: null, combatPowerMax: null, representativeOnly: false },
+          aggregatedAt: new Date(Date.now() - 600_000).toISOString(), snapshot: "latest", ruleVersion: "stats-v1", minSample: 30,
+          sampleStatus: population >= 30 ? "READY" : "COLLECTING", coverage: { observedCharacters: population, knownCharacters: population * 3, discoveredAccounts: 100 },
+        },
+        kind: bracelet ? "BRACELET" : "ARK_GRID_GEM", ruleVersion: "efficiency-v1",
+        populationNote: "캐릭터 검색으로 장비를 관측해 효율을 계산한 캐릭터만 순위에 들어갑니다.",
+        page, size, rows,
       },
     });
   }
