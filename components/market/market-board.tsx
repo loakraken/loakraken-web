@@ -128,6 +128,28 @@ function Change({
   );
 }
 
+/**
+ * The day change in the detail facts: the amount on the big line and the
+ * rate on a small line under it that is always there (a blank one when there
+ * is no rate). The cell is narrower than "▲4.7 (4.8%)" at 18px, so the one
+ * line used to fold into two on some refreshes and push the chart down
+ * (A7, PM-프론트 #617); now it is two lines every time, neither wraps.
+ */
+function FactChange({ item }: { item: Pick<BoardItem, "currentMinPrice" | "yesterdayAvgPrice" | "changeDay"> }) {
+  const label = changeWithAmount(item);
+  const cut = label.text.indexOf(" (");
+  const main = cut < 0 ? label.text : label.text.slice(0, cut);
+  const rate = cut < 0 ? "" : label.text.slice(cut + 2, -1);
+  return (
+    <>
+      <b className={styles.change} data-direction={label.direction}>
+        {main}
+      </b>
+      <small className={styles.unit}>{rate || "\u00a0"}</small>
+    </>
+  );
+}
+
 function Problem({
   failure,
   onRetry,
@@ -220,7 +242,7 @@ function Detail({
         <div>
           <dt>전일 평균 대비</dt>
           <dd>
-            <Change item={item} />
+            <FactChange item={item} />
           </dd>
         </div>
         <div>

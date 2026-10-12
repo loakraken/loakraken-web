@@ -31,6 +31,9 @@ test.describe("시세판 바뀐 칸 강조 @smoke", () => {
     // 20G·30G 폭이 다름) 칸 상자는 그대로다.
     const group = firstPrice.locator("xpath=..");
     const groupBefore = await group.boundingBox();
+    // 오른쪽 상세: 등락이 늘 두 줄(금액·비율)이라 갱신해도 아래 차트가 밀리지 않는다
+    const trend = page.getByRole("heading", { name: "시세 추이" });
+    const trendBefore = await trend.boundingBox();
     await expect(board.locator('[data-slot="change-mark"][data-tone]')).toHaveCount(0);
 
     await page.clock.fastForward(61_000);
@@ -44,6 +47,7 @@ test.describe("시세판 바뀐 칸 강조 @smoke", () => {
     expect(after.x).toBe(before.x);
     expect(after.y).toBe(before.y);
     expect(await group.boundingBox()).toEqual(groupBefore);
+    expect(await trend.boundingBox()).toEqual(trendBefore);
     await page.clock.fastForward(2_000);
     await expect(page.getByRole("status").filter({ hasText: "시세 1개 바뀜." })).toBeAttached();
     await expect(board.locator('[data-slot="change-mark"][data-tone]')).toHaveCount(0);

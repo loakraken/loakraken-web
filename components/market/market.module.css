@@ -374,6 +374,7 @@
 .facts dd .change {
   font-size: 18px;
   font-weight: 700;
+  white-space: nowrap;
 }
 .trendHead {
   display: flex;
