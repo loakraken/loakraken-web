@@ -28,18 +28,22 @@ const sample = (): CheatSheetData => ({
               patterns: [
                 {
                   id: "pattern-a",
+                  phase: "240줄",
                   name: "패턴 A",
                   description: "보스가 바닥에 장판을 깐다.",
                   counterplay: "장판 밖으로 나간다.",
                   hpBars: { from: 240, to: 240 },
+                  hpBarsReason: null,
                   sources: ["guide-1"],
                 },
                 {
                   id: "pattern-b",
+                  phase: "통상",
                   name: "패턴 B",
                   description: "보스가 돌진한다.",
                   counterplay: "옆으로 피한다.",
                   hpBars: null,
+                  hpBarsReason: "줄 구간 자료 없음",
                   sources: ["guide-1"],
                 },
               ],
@@ -111,4 +115,31 @@ test("hp bar ranges cannot exceed the boss total, and difficulties must exist", 
   const problems = checkCheatSheet(broken);
   assert.ok(problems.some((p) => p.includes("above the boss total")));
   assert.ok(problems.some((p) => p.includes("difficulty not in raid-rewards")));
+});
+
+test("a pattern without hp bars must say why, and one with bars must not (PM 총괄 10-12)", () => {
+  const broken = sample();
+  const [withBars, withoutBars] = broken.raids[0].difficulties[0].gates[0].patterns;
+  withBars.hpBarsReason = "필요 없음";
+  withoutBars.hpBarsReason = null;
+  const problems = checkCheatSheet(broken);
+  assert.ok(problems.some((p) => p.includes("hpBarsReason set but hp bars present")));
+  assert.ok(problems.some((p) => p.includes("no hp bars and no hpBarsReason")));
+});
+
+test("bars stay out where sources disagree or are missing (벨가르딘·종막 2관문)", () => {
+  for (const [raid, difficulty] of [
+    ["belgardin", "NIGHTMARE"],
+    ["kazeros-final", "HARD"],
+  ] as const) {
+    const gate2 = cheatSheetFor(raid, difficulty)!.gates[1];
+    assert.ok(gate2.patterns.length > 0);
+    assert.ok(gate2.patterns.every((p) => p.hpBars === null && p.hpBarsReason), `${raid} G2`);
+  }
+  // A single source with the difficulty named: 세르카 나이트메어 1관문.
+  const serka = cheatSheetFor("serka", "NIGHTMARE")!.gates[0];
+  assert.deepEqual(
+    serka.patterns.map((p) => p.hpBars?.from),
+    [235, 195, 180, 100, 80],
+  );
 });

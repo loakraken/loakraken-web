@@ -18,10 +18,15 @@ export type HpBarRange = { from: number | null; to: number | null };
 
 export type Pattern = {
   id: string;
+  /** Where in the fight it comes: "1페이즈", "235줄", "정산 게이지", "통상"… */
+  phase: string;
   name: string;
   description: string;
   counterplay: string;
   hpBars: HpBarRange | null;
+  /** Why `hpBars` is null (kept for review; the screen says "줄 구간 정보 없음").
+   * Required exactly when `hpBars` is null: no guessed bars (PM 총괄 10-12). */
+  hpBarsReason: string | null;
   sources: string[];
 };
 export type CheatGate = {
@@ -94,6 +99,7 @@ export function checkCheatSheet(data: CheatSheetData, rewards: RaidData = RAID_D
           if (patternIds.has(pattern.id)) problems.push(`${p}: duplicate pattern id`);
           patternIds.add(pattern.id);
           for (const [field, text, max] of [
+            ["phase", pattern.phase, 12],
             ["name", pattern.name, 30],
             ["description", pattern.description, DESCRIPTION_MAX],
             ["counterplay", pattern.counterplay, COUNTERPLAY_MAX],
@@ -103,6 +109,9 @@ export function checkCheatSheet(data: CheatSheetData, rewards: RaidData = RAID_D
             if (FORBIDDEN_TEXT.test(text)) problems.push(`${p}: ${field} names a source or hedges`);
           }
           const range = pattern.hpBars;
+          if (!range && !pattern.hpBarsReason?.trim()) problems.push(`${p}: no hp bars and no hpBarsReason`);
+          if (range && pattern.hpBarsReason !== null) problems.push(`${p}: hpBarsReason set but hp bars present`);
+          if (range && range.from === null && range.to === null) problems.push(`${p}: empty hp bar range (use null)`);
           if (range) {
             for (const v of [range.from, range.to])
               if (v !== null && (!Number.isInteger(v) || v < 0)) problems.push(`${p}: bad hp bar ${v}`);
