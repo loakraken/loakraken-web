@@ -33,6 +33,8 @@ const ROLLOUT: Record<string, Record<string, () => unknown>> = {
     collectibles: () => [],
     // Bracelet efficiency (backend #350): how much the bracelet adds to combat power.
     braceletEfficiency: () => null,
+    // Ark grid efficiency (backend #424): the same shape plus cores only.
+    arkGridEfficiency: () => null,
   },
   CharacterLoadoutResponse: { skills: () => [] },
   CharacterObservationCoverageResponse: {

@@ -10,11 +10,13 @@ test("딜러: 팔찌 효율 합계와 줄별 기여, 계산하지 않는 줄의 
   await term.focus();
   await expect(page.locator("[data-slot=tooltip-content]")).toHaveText("이 팔찌가 전투력을 몇 % 올려 주는지예요.");
 
-  const toggle = page.getByRole("button", { name: "줄별 보기" });
+  // 아크 그리드 효율에도 같은 버튼이 있어 팔찌 효율 줄 안에서 찾는다
+  const head = term.locator("xpath=ancestor::p[1]");
+  const toggle = head.getByRole("button", { name: "줄별 보기" });
   await expect(toggle).toHaveAttribute("aria-expanded", "false");
   await toggle.click();
-  await expect(page.getByRole("button", { name: "줄별 접기" })).toHaveAttribute("aria-expanded", "true");
-  const lines = page.locator(`[id="${await page.getByRole("button", { name: "줄별 접기" }).getAttribute("aria-controls")}"]`);
+  await expect(head.getByRole("button", { name: "줄별 접기" })).toHaveAttribute("aria-expanded", "true");
+  const lines = page.locator(`[id="${await head.getByRole("button", { name: "줄별 접기" }).getAttribute("aria-controls")}"]`);
   await expect(lines.getByRole("listitem")).toHaveCount(3);
   await expect(lines.getByRole("listitem").nth(0)).toContainText("+4.12%");
   await expect(lines.getByRole("listitem").nth(1)).toContainText("속도는 전투력에 들어가지 않아요.");
@@ -25,5 +27,5 @@ test("딜러: 팔찌 효율 합계와 줄별 기여, 계산하지 않는 줄의 
 test("서포터: 값 대신 계산하지 않는 이유 한 줄, 줄별 보기 없음 @regression", async ({ page }) => {
   await gotoReady(page, characterPath("상세서포터"));
   await expect(page.getByText("서포터는 전투력이 딜러와 다르게 계산돼 팔찌 효율을 매기지 않아요.")).toBeVisible();
-  await expect(page.getByRole("button", { name: "줄별 보기" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /^팔찌 효율/ }).locator("xpath=ancestor::p[1]").getByRole("button", { name: "줄별 보기" })).toHaveCount(0);
 });

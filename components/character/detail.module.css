@@ -2077,3 +2077,32 @@
   opacity: 0.55;
   transition: opacity 150ms ease;
 }
+/* 아크 그리드 효율 (backend #424): cores only beside the total, the gem
+   options' share as a last line under the cores. */
+.arkEffCores {
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.arkEffGem {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 2px 8px;
+  margin-top: 8px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--background);
+  font-size: 13px;
+}
+/* In a core row the share sits under the points, right-aligned; a reason
+   wraps in a narrow column instead of squeezing the core name. */
+.coreFacts .braceletEffShare,
+.coreFacts .braceletEffNote {
+  padding-left: 0;
+}
+.coreFacts .braceletEffNote {
+  max-width: 9em;
+}
