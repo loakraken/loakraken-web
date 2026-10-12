@@ -620,6 +620,7 @@ function BraceletBody({
               className={styles.textButton}
               aria-expanded={open}
               aria-controls={listId}
+              aria-label={open ? "팔찌 줄별 접기" : "팔찌 줄별 보기"}
               onClick={() => setOpen(!open)}
             >
               {open ? "줄별 접기" : "줄별 보기"}
@@ -791,6 +792,7 @@ function ArkGridPanel({ data }: { data: Character }) {
               className={styles.textButton}
               aria-expanded={shares}
               aria-controls={listId}
+              aria-label={shares ? "아크 그리드 줄별 접기" : "아크 그리드 줄별 보기"}
               onClick={() => setShares(!shares)}
             >
               {shares ? "줄별 접기" : "줄별 보기"}
