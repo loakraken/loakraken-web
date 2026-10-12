@@ -2129,3 +2129,29 @@
   color: var(--muted-foreground);
   white-space: nowrap;
 }
+/* 통계 탭: 현재 · 최고 · 변화 over each history chart. */
+.historyCells {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0 0 12px;
+}
+.historyCells div {
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--background);
+}
+.historyCells dt {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.historyCells dd {
+  margin: 2px 0 0;
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.historyCells dd[data-direction="up"] {
+  color: var(--gain, var(--foreground));
+}

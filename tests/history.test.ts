@@ -3,7 +3,9 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 import {
   change,
+  historySummary,
   niceTicks,
+  shortDate,
   stepSeries,
   valueAt,
 } from "../lib/character/history";
@@ -103,4 +105,20 @@ test("history and siblings requests validate input before calling the backend", 
     code: "CHARACTER_HISTORY_DISABLED",
     status: 503,
   });
+});
+
+test("history summary: now, highest, change and the KST period", () => {
+  const t = (iso: string) => Date.parse(iso);
+  const steps = [
+    { t: t("2023-03-13T16:00:00Z"), v: 1510 }, // 03-14 01:00 KST
+    { t: t("2024-02-01T00:00:00Z"), v: 1680 },
+    { t: t("2025-06-01T00:00:00Z"), v: 1770 },
+    { t: t("2026-10-11T00:00:00Z"), v: 1760 },
+  ];
+  const summary = historySummary(steps, t("2026-10-12T05:00:00Z"));
+  assert.deepEqual(summary, { current: 1760, best: 1770, delta: 250, since: steps[0].t, days: 1308 });
+  assert.equal(shortDate(steps[0].t), "23.03.14");
+  // One record: no change yet; no records: nothing to show.
+  assert.equal(historySummary([steps[0]], steps[0].t)?.delta, null);
+  assert.equal(historySummary([], 0), null);
 });
