@@ -1,0 +1,99 @@
+/* 레이드 컨닝페이퍼 (N20). */
+.workspace {
+  display: grid;
+  gap: 20px;
+  max-width: 1024px;
+  margin: 0 auto;
+}
+/* Fixed columns: a longer raid name does not move the difficulty field (A7). */
+.fields {
+  display: grid;
+  grid-template-columns: minmax(0, 18rem) minmax(0, 10rem);
+  gap: 12px;
+  margin-top: 16px;
+}
+.fields > div {
+  min-width: 0;
+}
+.fields [data-slot="select"] {
+  width: 100%;
+}
+@media (max-width: 560px) {
+  .fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.gates {
+  margin-top: 16px;
+}
+.meta {
+  margin-top: 4px;
+  color: var(--slate);
+  font-size: var(--text-caption);
+}
+.empty {
+  margin-top: 16px;
+  color: var(--slate);
+}
+.list {
+  display: grid;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.item {
+  padding: 14px 0;
+  border-top: 1px solid var(--hairline);
+}
+.item:first-child {
+  border-top: 0;
+  padding-top: 4px;
+}
+.itemHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+}
+.itemHead h3 {
+  font-size: var(--text-body);
+  font-weight: 600;
+}
+.phase {
+  padding: 1px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--muted);
+  color: var(--slate);
+  font-size: var(--text-caption);
+  white-space: nowrap;
+}
+.bars {
+  margin-left: auto;
+  font-size: var(--text-caption);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.bars[data-missing] {
+  color: var(--slate);
+}
+.body {
+  display: grid;
+  gap: 4px;
+  margin: 8px 0 0;
+}
+.body div {
+  display: grid;
+  grid-template-columns: 2.5rem minmax(0, 1fr);
+  gap: 8px;
+}
+.body dt {
+  color: var(--slate);
+  font-size: var(--text-caption);
+  line-height: 1.6;
+}
+.body dd {
+  margin: 0;
+  font-size: var(--text-body);
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
