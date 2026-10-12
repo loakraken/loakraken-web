@@ -120,7 +120,7 @@ function SegmentedItem({ className, ...props }: Radio.Root.Props) {
         // Selected: a raised face outlined in --input (3:1 against the track, WCAG
         // 1.4.11); no weight change, so the row does not reflow.
         "data-checked:bg-background data-checked:shadow-[0_0_0_1px_var(--input)]",
-        // In dark the face must sit lighter than the track, as iloa's tabs do.
+        // In dark the face must sit lighter than the track.
         "dark:data-checked:bg-secondary",
         "data-disabled:cursor-not-allowed data-disabled:text-faint",
         className

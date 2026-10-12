@@ -356,6 +356,17 @@
           "analysis": {
             "$ref": "#/components/schemas/CharacterAnalysisResponse"
           },
+          "braceletEfficiency": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BraceletEfficiencyResponse",
+                "description": "팔찌 효율(전투력 기준): 지금 전투력이 팔찌(효과 줄 전부와 팔찌 도약 포인트)를 뺀 전투력보다 몇 % 높은지(지금 ÷ 뺀 전투력 − 1)와 줄별 값(그 줄만 뺐을 때, 팔찌 도약은 따로 한 줄). 곱 구조라 줄별 합과 전체는 다를 수 있습니다. 팔찌가 없으면 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "fetchedAt": {
             "type": "string",
             "format": "date-time",
@@ -377,6 +388,7 @@
         "required": [
           "analysis",
           "avatars",
+          "braceletEfficiency",
           "characterLevel",
           "characterName",
           "className",
@@ -2401,10 +2413,22 @@
                 "type": "null"
               }
             ]
+          },
+          "cooldown": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SkillCooldownResponse",
+                "description": "보석 반영 쿨타임(공식 재사용 대기시간과 장착 보석의 재사용 대기시간 감소만 반영). 제목 줄에 재사용 대기시간이 없으면(갱신 전 캐시 등) null"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
           "attackType",
+          "cooldown",
           "counter",
           "gemEffects",
           "icon",
@@ -2560,6 +2584,36 @@
         "required": [
           "kind",
           "text"
+        ]
+      },
+      "SkillCooldownResponse": {
+        "type": "object",
+        "properties": {
+          "cooldownSec": {
+            "type": "number",
+            "description": "공식 Tooltip 재사용 대기시간(초, 선택한 트라이포드 반영)",
+            "example": 8
+          },
+          "gemCooldownReductionPct": {
+            "type": "number",
+            "description": "이 스킬 보석 효과의 재사용 대기시간 감소 % 합(없으면 0)",
+            "example": 16
+          },
+          "cooldownWithGemsSec": {
+            "type": "number",
+            "description": "cooldownSec × (1 − gemCooldownReductionPct/100), 소수 둘째 자리",
+            "example": 6.72
+          },
+          "basis": {
+            "type": "string",
+            "description": "계산 근거 문장"
+          }
+        },
+        "required": [
+          "basis",
+          "cooldownSec",
+          "cooldownWithGemsSec",
+          "gemCooldownReductionPct"
         ]
       },
       "SiblingResponse": {
@@ -3331,6 +3385,114 @@
           "evidencePath",
           "message",
           "observedCount"
+        ]
+      },
+      "BraceletEfficiencyResponse": {
+        "type": "object",
+        "properties": {
+          "percent": {
+            "anyOf": [
+              {
+                "type": "number",
+                "description": "팔찌 전체 효율 %(소수 둘째 자리). UNSUPPORTED면 null",
+                "example": 14.42
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "type": "string",
+            "description": "OK 또는 UNSUPPORTED(문자열)",
+            "example": "OK"
+          },
+          "reasonCode": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "UNSUPPORTED 이유 코드(시뮬레이터·스펙업과 같은 코드). OK면 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "description": "근거 문장 또는 계산하지 않은 이유"
+          },
+          "lines": {
+            "type": "array",
+            "description": "팔찌 효과 줄마다 그 줄만 뺐을 때의 효율(공식 순서), 팔찌 도약 포인트가 있으면 마지막에 '팔찌 도약 +N' 한 줄",
+            "items": {
+              "$ref": "#/components/schemas/BraceletLineEfficiencyResponse"
+            }
+          },
+          "ruleVersion": {
+            "type": "string",
+            "description": "계산 규칙 버전(전투력 시뮬레이터와 같음)"
+          }
+        },
+        "required": [
+          "lines",
+          "percent",
+          "reason",
+          "reasonCode",
+          "ruleVersion",
+          "status"
+        ]
+      },
+      "BraceletLineEfficiencyResponse": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "공식 팔찌 효과 문구(팔찌 도약 줄은 '팔찌 도약 +N')"
+          },
+          "percent": {
+            "anyOf": [
+              {
+                "type": "number",
+                "description": "지금 전투력이 그 줄만 뺀 전투력보다 몇 % 높은지(소수 둘째 자리). UNSUPPORTED면 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "type": "string",
+            "description": "OK 또는 UNSUPPORTED(문자열)"
+          },
+          "reasonCode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "계산하지 않은 이유(OK면 null)"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "percent",
+          "reason",
+          "reasonCode",
+          "status",
+          "text"
         ]
       },
       "ErrorResponse": {

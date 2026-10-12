@@ -1,0 +1,72 @@
+{
+  "version": "2026-10-12",
+  "checkedAt": "2026-10-12",
+  "sources": {
+    "official-hal": {
+      "title": "게임 가이드 — 할의 유산(에브니 큐브 단계·입장 레벨)",
+      "url": "https://lostark.game.onstove.com/",
+      "date": "2026-06-24",
+      "checkedAt": "2026-10-12",
+      "kind": "OFFICIAL",
+      "note": "단계와 입장 레벨만 있음. 보상 구성·수량·확률은 없음"
+    },
+    "inven-unlock4": {
+      "title": "큐브 4해금 보상 정리(이용자 글)",
+      "url": "https://www.inven.co.kr/board/lostark/6271/2487547",
+      "date": "2025-08-21",
+      "checkedAt": "2026-10-12",
+      "kind": "INVEN",
+      "note": "1배 입장 기준. 작성일은 제4해금 추가(2025-08-20, 공지 13204) 다음 날이고, 그 뒤 업데이트 내역 안내 58건에 제4해금 보상 변경 문구가 없음(PM 총괄 승인 10-12 08:31). 3배 입장권은 클리어 보상 3배(럭키 스테이지 보상 제외, 공지 13247)"
+    }
+  },
+  "boxProbability": {
+    "values": null,
+    "reason": "상자 등급·스테이지 종류 확률은 공식 확률 공개에도 없고 정리된 자료도 없음"
+  },
+  "stages": [
+    { "id": "seal-1", "name": "제1금제", "entryLevel": 1250, "rewards": null, "reason": "최신 보상을 확인 중" },
+    { "id": "seal-2", "name": "제2금제", "entryLevel": 1490, "rewards": null, "reason": "최신 보상을 확인 중" },
+    { "id": "seal-3", "name": "제3금제", "entryLevel": 1540, "rewards": null, "reason": "최신 보상을 확인 중" },
+    { "id": "seal-4", "name": "제4금제", "entryLevel": 1580, "rewards": null, "reason": "최신 보상을 확인 중" },
+    { "id": "seal-5", "name": "제5금제", "entryLevel": 1600, "rewards": null, "reason": "최신 보상을 확인 중" },
+    { "id": "unlock-1", "name": "제1해금", "entryLevel": 1640, "rewards": null, "reason": "최신 보상을 확인 중" },
+    { "id": "unlock-2", "name": "제2해금", "entryLevel": 1680, "rewards": null, "reason": "최신 보상을 확인 중" },
+    { "id": "unlock-3", "name": "제3해금", "entryLevel": 1700, "rewards": null, "reason": "최신 보상을 확인 중" },
+    {
+      "id": "unlock-4",
+      "name": "제4해금",
+      "entryLevel": 1720,
+      "source": "inven-unlock4",
+      "basis": "1배 입장 기준",
+      "rewards": {
+        "clear": [
+          { "item": "보석", "count": 11, "unit": "2레벨 환산", "note": "4레벨 1개와 2레벨 2개를 2레벨로 바꾼 개수" },
+          { "item": "영웅 카드 경험치 카드", "count": 5 },
+          { "item": "고급 카드 경험치 카드", "count": 1, "note": "초록색 카드 경험치 카드" },
+          { "item": "돌파석", "count": 41 },
+          { "item": "용암의 숨결", "count": 8 },
+          { "item": "빙하의 숨결", "count": 8 }
+        ],
+        "hiddenCommon": [
+          { "item": "보석", "count": 7, "unit": "3레벨 환산", "note": "4레벨 2개와 3레벨 1개를 3레벨로 바꾼 개수" }
+        ],
+        "hiddenRooms": [
+          { "room": "두키왕", "rewards": null, "reason": "근사값만 있어 넣지 않음" },
+          { "room": "두두리", "rewards": [{ "item": "돌파석", "count": 60 }], "reason": null },
+          { "room": "황금 슬라임", "rewards": [{ "item": "영웅 카드 경험치 카드", "count": 5 }], "reason": null },
+          {
+            "room": "수정",
+            "rewards": [
+              { "item": "용암의 숨결", "count": 30 },
+              { "item": "빙하의 숨결", "count": 30 }
+            ],
+            "reason": null
+          }
+        ],
+        "megaLucky": null,
+        "megaLuckyReason": "보상이 정리된 자료가 없음"
+      },
+      "reason": null
+    }
+  ]
+}

@@ -64,4 +64,59 @@ test.describe("더보기 손익 @smoke", () => {
     await expect(card).toContainText("누를 더보기 0관문");
     await expect(card).toContainText("지금 시세로는 모든 관문이 손해예요");
   });
+
+  test("시세 기준을 빠르게 바꿔도 표 모양이 그대로이고 레이아웃 이동이 없다", async ({ page }) => {
+    // 사용자 지적 10-12 01:36: 기준을 누르면 칸이 바뀌고 아래 묶음이 사라졌다 생겼다.
+    await page.addInitScript(() => {
+      window.__shift = 0;
+      new PerformanceObserver((list) => {
+        for (const entry of list.getEntries()) window.__shift += entry.value;
+      }).observe({ type: "layout-shift", buffered: true });
+    });
+    await gotoReady(page, "/tools/more-reward");
+    await expect(page.getByText(/누를 더보기 \d+관문/)).toBeVisible();
+    await page.getByText("고급 설정").click();
+    const table = page.getByRole("table", { name: "레이드·난이도·관문별 더보기 이득" });
+    const cells = table.getByRole("button", { name: /^(추천 )?[+−][\d,]+ (누르기|넘기기) · / });
+    const before = await cells.count();
+    // Let every row play its entrance (k-reveal, the same on develop) first.
+    await table.scrollIntoViewIfNeeded();
+    await table.locator("tbody tr").last().scrollIntoViewIfNeeded();
+    await page.waitForTimeout(1000);
+    // PM-프론트 #556 P1: with a slow answer (1.2s) the loading state lasts long
+    // enough to be seen; 390 moved 0.1387 when its note wrapped.
+    await page.route("**/api/markets/material-prices", async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 1200));
+      await route.continue();
+    });
+    const start = await page.evaluate(() => window.__shift);
+    for (const label of ["현재 최저가", "전일 평균가", "최근 거래가", "현재 최저가"]) {
+      await page.getByRole("radio", { name: label }).click();
+      // 바뀌는 동안에도 손익 칸이 그대로 있다(비우지 않음).
+      expect(await cells.count()).toBe(before);
+    }
+    await expect(page.getByText(/누를 더보기 \d+관문/)).toBeVisible();
+    await expect(page.getByRole("status").filter({ hasText: "이 기준으로 다시 불러오고 있어요" })).toHaveCount(0, { timeout: 15_000 });
+    await page.waitForTimeout(800);
+    expect(await page.evaluate(() => window.__shift) - start).toBe(0);
+  });
+
+  test("거래소에 없는 재료는 입력 칸 없이 '거래 불가 · 손익에 넣지 않음'으로 보인다", async ({ page }) => {
+    // 사용자 지적 10-12 01:36 ②
+    await gotoReady(page, "/tools/more-reward");
+    await expect(page.getByText(/누를 더보기 \d+관문/)).toBeVisible();
+    await expect(page.getByRole("group", { name: "시세가 없는 재료" })).toHaveCount(0);
+    await expect(page.getByText("거래소에서 사고팔 수 없는 재료는 손익에 넣지 않아요.", { exact: false })).toBeVisible();
+    const table = page.getByRole("table", { name: "레이드·난이도·관문별 더보기 이득" });
+    const rows = table.getByRole("row");
+    let found = false;
+    for (let i = 1; i < (await rows.count()) && !found; i++) {
+      const open = rows.nth(i).getByRole("button").first();
+      if (!(await open.isVisible())) continue;
+      await open.click();
+      found = (await table.getByText("거래 불가 · 손익에 넣지 않음").count()) > 0;
+      await open.click();
+    }
+    expect(found, "귀속 재료를 받는 관문이 하나는 있다").toBe(true);
+  });
 });

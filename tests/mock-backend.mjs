@@ -548,6 +548,17 @@ createServer(async (req, res) => {
     }));
     return send({ code: "CHARACTER_HISTORY_SUCCESS", message: "성공", data: { characterName: who, serverName: url.searchParams.get("serverName"), points } });
   }
+  // Name autocomplete (backend #372): names starting with q, item level order, max 8.
+  if (url.pathname === "/api/v1/characters/suggest") {
+    const q = (url.searchParams.get("q") ?? "").trim();
+    const known = [
+      { characterName: "상세", serverName: "아만", className: "블래스터", itemLevel: 1780.83, characterImage: null },
+      { characterName: "상세서포터", serverName: "루페온", className: "바드", itemLevel: 1712.5, characterImage: null },
+      { characterName: "상수", serverName: "카단", className: "버서커", itemLevel: 1690, characterImage: null },
+    ];
+    const items = q.length < 1 ? [] : known.filter((c) => c.characterName.startsWith(q)).slice(0, 8);
+    return send({ code: "CHARACTER_SUGGEST_SUCCESS", message: "ok", data: { items } });
+  }
   if (url.pathname === "/api/v1/characters/popular") {
     // Backend F-10 sample; 7d shows the collecting state.
     const body = JSON.parse(readFileSync(new URL("./popular-fixtures/characters-popular.json", import.meta.url), "utf8"));
@@ -1120,6 +1131,30 @@ createServer(async (req, res) => {
   if (name === "빈목록") envelope = read("observation-gems-items-empty.json");
   if (name === "미제공") envelope = read("observation-gems-items-null.json");
   envelope.data.characterName = name;
+  // Multi-search (web #611): 비교1…비교6 differ in level, power, class and
+  // gear so the comparison has a best value and a sort to show.
+  const compare = /^비교([1-6])$/.exec(name);
+  if (compare) {
+    const n = Number(compare[1]);
+    const d = envelope.data;
+    d.itemLevel = 1680 + n * 12.5;
+    d.combatPower = n === 4 ? null : 2000 + n * 350.25;
+    d.className = ["바드", "블래스터", "버서커", "소서리스", "도화가", "슬레이어"][n - 1];
+    d.analysis.position = n === 1 || n === 5 ? "SUPPORT" : "DEALER";
+    d.analysis.equipment.minRefineLevel = 17 + n;
+    d.analysis.equipment.maxRefineLevel = 19 + n;
+    d.analysis.equipment.averageQuality = 70 + n * 4.5;
+    d.analysis.gems.averageLevel = 6 + n * 0.5;
+    d.analysis.gems.count = 11;
+    d.loadout.engravings.arkPassiveEffects = ["원한", "아드레날린", "예리한 둔기", "돌격대장", "질량 증가"]
+      .slice(0, 3 + (n % 3))
+      .map((engraving, i) => ({ name: engraving, grade: "유물", level: (n + i) % 5, abilityStoneLevel: null, description: null }));
+    d.loadout.arkPassive.points = [
+      { name: "진화", value: 100 + n * 4, description: null },
+      { name: "깨달음", value: 80 + n * 4, description: null },
+      { name: "도약", value: 50 + n * 4, description: null },
+    ];
+  }
   if (name === "전투력계산") withSimulatorGear(envelope.data);
   if (name === "마크업") {
     // Synthetic copy of the official Tooltip markup shape seen in live responses.
@@ -1343,6 +1378,32 @@ createServer(async (req, res) => {
     const stone = d.loadout.equipment.find((item) => item.type === "어빌리티 스톤");
     if (stone?.detail) stone.detail.effects = [...stone.detail.effects, { title: "무작위 각인 효과", lines: ["[레벨 보너스] 기본 공격력 +1.50%"] }];
     d.analysis.arkGrid = { coreCount: 6, activeGemCount: 18, inactiveGemCount: 6, unknownGemCount: 0, orderPoints: 53, chaosPoints: 51 };
+    // A bracelet to carry the efficiency (the fixture has weapon and helmet only).
+    if (!d.loadout.equipment.some((item) => item.type === "팔찌"))
+      d.loadout.equipment.push({
+        type: "팔찌", name: "찬란한 구원자의 팔찌", icon: null, grade: "고대",
+        detail: {
+          parserVersion: "equipment-tooltip-v5", refineLevel: null, quality: null, itemLevel: null, tier: 4, arkPassivePoint: null,
+          effects: [], stoneEngravings: [], polishEffects: [],
+          braceletEffects: [
+            { text: "치명타 피해 +8.40%", grade: "HIGH" },
+            { text: "공격 및 이동 속도 +4%", grade: "MID" },
+          ],
+          titleLine: null, tradeLines: [], refineExp: null, advancedRefineLevel: 0,
+        },
+      });
+    // Bracelet efficiency (backend #350): the reference sample for 상세, the
+    // support reason for 상세서포터.
+    d.braceletEfficiency = name === "상세서포터"
+      ? { percent: null, status: "UNSUPPORTED", reasonCode: "SUPPORT_POSITION", reason: "서포터는 전투력이 딜러와 다르게 계산돼 팔찌 효율을 매기지 않아요.", lines: [], ruleVersion: "combat-power-v3" }
+      : {
+          percent: 14.42, status: "OK", reasonCode: null, reason: "팔찌를 뺀 전투력과 비교했어요.", ruleVersion: "combat-power-v3",
+          lines: [
+            { text: "치명타 피해 +8.40%", percent: 4.12, status: "OK", reasonCode: null, reason: null },
+            { text: "공격 및 이동 속도 +4%", percent: null, status: "UNSUPPORTED", reasonCode: "SPEED", reason: "속도는 전투력에 들어가지 않아요." },
+            { text: "팔찌 도약 +18", percent: 2.05, status: "OK", reasonCode: null, reason: null },
+          ],
+        };
     if (name === "상세서포터") {
       d.className = "바드";
       d.loadout.arkPassive.effects = [

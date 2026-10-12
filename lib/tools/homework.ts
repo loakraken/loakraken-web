@@ -1,5 +1,5 @@
 // Weekly raid homework and gold — pure model, stored in the browser.
-// Follows ILOA /tasks: pick a roster, three gold raids per character, gate and
+// Pick a roster, three gold raids per character, gate and
 // "더보기" checks, gold characters n/6, weekly reset on Wednesday 06:00 KST.
 // Gold values come from the raid reward data; unknown values stay unknown.
 import {
@@ -114,7 +114,7 @@ export function autoRaids(itemLevel: number, count = GOLD_RAIDS_PER_CHARACTER): 
     if (!current || totals.gold > current.gold) best.set(raid.id, { raid, mode, gold: totals.gold });
   }
   // Equal gold: the higher entry level, then the newer raid (later in the
-  // table), like the target site (세르카 노말 over 종막 노말, 계산 검증 #277).
+  // table) (세르카 노말 over 종막 노말, 계산 검증 #277).
   const order = (id: string) => RAID_DATA.raids.findIndex((r) => r.id === id);
   return [...best.values()]
     .sort(

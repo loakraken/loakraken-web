@@ -3,7 +3,7 @@
 import { Fragment, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import { ArrowLeft, Gift } from "@/components/ui/icons";
 import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { SiteHeader } from "@/components/site/site-header";
 import { SegmentedControl, SegmentedItem } from "@/components/ui/segmented-control";
 import { MarketQueryError, postMaterialPrices } from "@/lib/market/client";
@@ -55,12 +55,15 @@ function GateDetail({
   boundGold,
   excludeBound,
   note,
+  untradable,
 }: {
   title: string;
   result: GateResult;
   boundGold: number | null;
   excludeBound: boolean;
   note: (name: string) => string | null;
+  /** Bound materials the market does not sell: listed, not valued. */
+  untradable: (name: string) => boolean;
 }) {
   return (
     <div className={styles.detail}>
@@ -97,7 +100,11 @@ function GateDetail({
               {note(line.name) && <small>{note(line.name)}</small>}
             </span>
             <span>
-              {line.unit == null ? "값 없음 · 0G" : `1개 ${unitText(line.unit)}G · ${count(line.value)}G`}
+              {line.unit != null
+                ? `1개 ${unitText(line.unit)}G · ${count(line.value)}G`
+                : untradable(line.name)
+                  ? "거래 불가 · 손익에 넣지 않음"
+                  : "값 없음 · 0G"}
             </span>
           </li>
         ))}
@@ -201,9 +208,14 @@ export function MoreRewardTool() {
     queryFn: ({ signal }) => postMaterialPrices({ priceBasis: basis, names: requested }, signal),
     staleTime: MINUTE,
     refetchInterval: MINUTE,
+    // 사용자 지적 10-12 01:36: switching the basis emptied the data, every
+    // cell changed shape and the list below came and went. The old basis'
+    // table stays, dimmed and marked as loading, until the new one lands.
+    placeholderData: keepPreviousData,
     retry: false,
     refetchOnWindowFocus: false,
   });
+  const switching = prices.isPlaceholderData;
   const now = useClock(MINUTE);
   const limit = useRateLimit(prices.error);
   const priceList: MaterialPrice[] = prices.data?.data.items ?? [];
@@ -285,7 +297,10 @@ export function MoreRewardTool() {
           </span>
           <p className={quote.heroKicker}>레이드 · 보상</p>
           <h1 id="more-heading">더보기 손익</h1>
-          <p className={quote.heroCopy}>관문마다 더보기를 누르면 남는지, 지금 시세로.</p>
+          {/* Short enough for one line at 360 in the fallback face too: the longer
+              line wrapped until the web font came and then pulled the page up
+              20px (점검표 A6, 360 CLS 0.0185). */}
+          <p className={quote.heroCopy}>관문마다 더보기가 남는지, 지금 시세로.</p>
           <Link href="/" className={quote.back}>
             <ArrowLeft size={14} aria-hidden="true" /> 홈으로
           </Link>
@@ -297,7 +312,7 @@ export function MoreRewardTool() {
               <h2 id="gates-heading" className={styles.sectionTitle}>
                 관문별 더보기
               </h2>
-              <div className={styles.verdict} aria-live="polite">
+              <div className={styles.verdict} aria-live="polite" aria-busy={switching || undefined} data-stale={switching || undefined}>
                 {/* The failure sits in the card itself, not far below in the side
                     panel (390: y=3210), so nobody waits on a load that ended. */}
                 {failure && (
@@ -354,13 +369,39 @@ export function MoreRewardTool() {
                 )}
               </div>
               <p className={styles.condition}>
-                {priceBases.find((b) => b.value === basis)?.label} 기준
-                {observedAt && now != null && ` · ${agoText(now, observedAt)}`} · 귀속 골드 제외 {excludeBound ? "켬" : "끔"} ·{" "}
+                {/* The time is last: it arrives after the first paint (the clock is
+                    client-only), and placed earlier it pushed the words after it
+                    onto the next line (PM-프론트 #556, 360 CLS 0.0017). */}
+                {priceBases.find((b) => b.value === basis)?.label} 기준 · 귀속 골드 제외 {excludeBound ? "켬" : "끔"} ·{" "}
                 <a href="#value-heading">값 매기기 바꾸기</a>
+                {observedAt && now != null && (
+                  <>
+                    {" "}
+                    <span className={styles.when}>· {agoText(now, observedAt)}</span>
+                  </>
+                )}
               </p>
-              <div className={styles.tableScroll}>
+              <div className={styles.tableArea}>
+              {/* Always laid out, shown by opacity: text arriving would change its
+                  width and slide it. The announcement is a separate line. */}
+              <p className={styles.switchBadge} aria-hidden="true" data-show={switching || undefined}>
+                이 기준으로 다시 불러오고 있어요
+              </p>
+              <p className={styles.sr} role="status">
+                {switching ? "이 기준으로 다시 불러오고 있어요" : ""}
+              </p>
+              <div className={styles.tableScroll} aria-busy={switching || undefined} data-stale={switching || undefined}>
                 <table className={styles.table}>
                   <caption className={styles.sr}>레이드·난이도·관문별 더보기 이득</caption>
+                  {/* Fixed columns: widths no longer follow the text, so the web
+                      font arriving late does not slide the gate columns (A6). */}
+                  <colgroup>
+                    <col className={styles.colRaid} />
+                    <col className={styles.colMode} />
+                    <col />
+                    <col />
+                    <col />
+                  </colgroup>
                   <thead>
                     <tr>
                       <th scope="col">레이드</th>
@@ -390,6 +431,7 @@ export function MoreRewardTool() {
                               boundGold={boundGoldFor(r.id, label, gate.gate)}
                               excludeBound={excludeBound}
                               note={exchangeNote}
+                              untradable={(name) => unpricedNames.includes(name)}
                             />
                           );
                         }}
@@ -398,8 +440,9 @@ export function MoreRewardTool() {
                   </tbody>
                 </table>
               </div>
+              </div>
               <p className={styles.small}>
-                이득 = 받는 재료 가치 − 더보기 골드.
+                이득 = 받는 재료 가치 − 더보기 골드. 거래소에서 사고팔 수 없는 재료는 손익에 넣지 않아요.
               </p>
             </section>
 
@@ -408,8 +451,11 @@ export function MoreRewardTool() {
                 재료 값 매기기
               </h2>
               <p className={styles.small}>
-                거래소 {priceBases.find((b) => b.value === basis)?.label} 기준으로 자동으로 매기고 1분마다 새로 불러와요
-                {observedAt && now != null && ` · ${agoText(now, observedAt)}`}.
+                거래소 {priceBases.find((b) => b.value === basis)?.label} 기준으로 자동으로 매기고 1분마다 새로 불러와요.
+                {/* Its own line, held from the first paint: the time arrives after
+                    it (client clock) and inside the sentence it moved the full
+                    stop (PM-프론트 #556, 1280 CLS 0.0001). */}
+                <span className={styles.agoLine}>{observedAt && now != null ? agoText(now, observedAt) : ""}</span>
               </p>
               <details className={styles.advanced}>
                 <summary>고급 설정</summary>
@@ -465,29 +511,8 @@ export function MoreRewardTool() {
                   </fieldset>
                 )}
               </details>
-              {unpricedNames.length > 0 && (
-                <fieldset className={styles.inputs}>
-                  <legend>시세가 없는 재료</legend>
-                  <p className={styles.small}>거래소에 없는 재료는 1개 값을 직접 넣어 주세요. 넣지 않으면 0G예요.</p>
-                  <div className={styles.inputGrid}>
-                    {unpricedNames.map((name) => (
-                      <label key={name}>
-                        <span>{name}</span>
-                        <input
-                          type="number"
-                          inputMode="decimal"
-                          min={0}
-                          placeholder="0"
-                          value={userUnits[name] ?? ""}
-                          onChange={(event) =>
-                            setUserUnits((prev) => ({ ...prev, [name]: event.target.value.replace(/[^\d.]/g, "") }))
-                          }
-                        />
-                      </label>
-                    ))}
-                  </div>
-                </fieldset>
-              )}
+              {/* 사용자 지적 10-12 01:36: no input for bound materials (a typed
+                  value only moved the result); they are marked in each gate. */}
 
             </aside>
           </div>

@@ -131,7 +131,7 @@
   font-size: 12px;
 }
 
-/* Character banner: a dark band in every theme, as ILOA and LOPEC show it
+/* Character banner: a dark band in every theme
    (PM decision). The band takes the render's own backdrop colour so the
    original render blends in; until that is known it is the --banner token
    (16 17 20 = #101114). */

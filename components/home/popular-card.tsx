@@ -18,7 +18,7 @@ const level = (value: number | null) =>
   value == null ? "-" : value.toLocaleString("ko-KR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 /**
- * LOAWA-style "인기 검색 캐릭터" (F-10): rank, name, server · class and item
+ * "인기 검색 캐릭터" (F-10): rank, name, server · class and item
  * level. Search counts stay hidden (PM decision); too few searches yet shows
  * a collecting state instead of a thin list.
  */

@@ -1,5 +1,5 @@
 // Popular characters (F-10): most searched on LOAKraken in the last 24 hours
-// or 7 days, as LOAWA's "인기 검색 캐릭터". View counts are never shown.
+// or 7 days ("인기 검색 캐릭터"). View counts are never shown.
 import Ajv2020 from "ajv/dist/2020";
 import contract from "../../contracts/popular.openapi.json";
 import type { components } from "../api/popular-schema";

@@ -57,6 +57,10 @@
 }
 .table {
   width: 100%;
+  /* Column widths come from the colgroup, not the text (font swap, A6). The
+     gate columns share the rest; below this width the table scrolls. */
+  table-layout: fixed;
+  min-width: calc(9rem + 6.5rem + 3 * 8.5rem);
   border-collapse: collapse;
   font-size: var(--text-body);
   font-variant-numeric: tabular-nums;
@@ -67,6 +71,12 @@
   border-bottom: 1px solid var(--hairline);
   text-align: left;
   vertical-align: middle;
+}
+.colRaid {
+  width: 9rem;
+}
+.colMode {
+  width: 6.5rem;
 }
 .table thead th {
   color: var(--slate);
@@ -311,6 +321,14 @@
 .verdict p + p {
   margin-top: 4px;
 }
+/* A fixed line: the "추천" badge (inline-block) arriving with the prices
+   grew the empty line by 1px (점검표 A6). */
+.verdict p {
+  line-height: 24px;
+}
+.verdict .pick {
+  line-height: 18px;
+}
 .verdictHead {
   font-weight: 600;
 }
@@ -338,9 +356,17 @@
 .cell[data-pick] {
   border-color: var(--primary);
 }
+/* The badge sits on the cell's top edge instead of taking a line: arriving
+   with the prices, a line of its own grew the row and pushed every row
+   below (점검표 A6, 360 첫 로드). */
+.cell {
+  position: relative;
+}
 .cell .pick {
-  justify-self: end;
-  margin-bottom: 2px;
+  position: absolute;
+  top: -9px;
+  right: 6px;
+  line-height: 16px;
 }
 /* 표 위 조건 요약: 값 매기기 패널이 표 아래로 가는 좁은 화면에서만. */
 .condition {
@@ -352,10 +378,27 @@
 .condition a {
   color: var(--link);
   text-decoration: underline;
+  /* one unit at 360: it split as "바꾸 / 기" (PM-프론트 #556) */
+  white-space: nowrap;
+}
+.condition .when {
+  white-space: nowrap;
+}
+.agoLine {
+  display: block;
+  min-height: 1lh;
 }
 @media (max-width: 900px) {
   .condition {
     display: block;
+  }
+}
+/* Narrow screens: " · 방금 기준" arrives with the prices and wraps the line,
+   which pushed the table 19px on first load (점검표 A6, 360 CLS 0.0326).
+   Two lines are held from the start. */
+@media (max-width: 600px) {
+  .condition {
+    min-height: 2lh;
   }
 }
 
@@ -377,4 +420,35 @@
 .atLeast {
   font-size: var(--text-caption);
   font-weight: 500;
+}
+
+/* A new price basis: the table keeps its shape, dimmed, until it arrives. */
+.verdict[data-stale],
+.tableScroll[data-stale] {
+  opacity: 0.55;
+  transition: opacity 150ms ease;
+}
+
+/* "Loading this basis" sits over the table's top edge: it takes no room, so
+   nothing moves when it comes and goes (PM-프론트 #556 P1, 390). */
+.tableArea {
+  position: relative;
+}
+.switchBadge {
+  position: absolute;
+  top: calc(var(--space-3) + 6px);
+  right: 8px;
+  z-index: 1;
+  margin: 0;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--foreground);
+  color: var(--background);
+  font-size: var(--text-caption);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 150ms ease;
+}
+.switchBadge[data-show] {
+  opacity: 1;
 }

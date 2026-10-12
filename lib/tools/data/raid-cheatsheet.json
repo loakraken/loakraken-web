@@ -1,0 +1,1016 @@
+{
+  "version": "2026-10-12",
+  "checkedAt": "2026-10-12",
+  "sources": {
+    "final-g1": {
+      "title": "종막 1관문 공략(더퍼스트·하드, 2025-09-06 수정)",
+      "url": "https://www.inven.co.kr/board/lostark/4821/107854",
+      "checkedAt": "2026-10-12",
+      "kind": "INVEN"
+    },
+    "final-g2": {
+      "title": "종막 2관문 공략(더퍼스트·하드, 2025-09-07 수정)",
+      "url": "https://www.inven.co.kr/board/lostark/4821/107896",
+      "checkedAt": "2026-10-12",
+      "kind": "INVEN"
+    },
+    "serka-nm": {
+      "title": "세르카 나이트메어 1·2관문 임시 공략(2026-01-12 최종 수정)",
+      "url": "https://www.inven.co.kr/board/lostark/4821/109103",
+      "checkedAt": "2026-10-12",
+      "kind": "INVEN"
+    },
+    "serka-nm-g2": {
+      "title": "세르카 2관문 나이트메어 공략",
+      "url": "https://www.inven.co.kr/board/lostark/4821/109163",
+      "checkedAt": "2026-10-12",
+      "kind": "INVEN"
+    },
+    "serka-g2-misc": {
+      "title": "세르카 2관문 짤·가드·간파 모음",
+      "url": "https://www.inven.co.kr/board/lostark/4821/109179",
+      "checkedAt": "2026-10-12",
+      "kind": "INVEN"
+    },
+    "belgardin-g1": {
+      "title": "벨가르딘 1관문 나이트메어 공략(08/06 수정)",
+      "url": "https://www.inven.co.kr/board/lostark/4821/110616",
+      "checkedAt": "2026-10-12",
+      "kind": "INVEN"
+    },
+    "belgardin-g2": {
+      "title": "벨가르딘 2관문 짤패턴 요약(나이트메어)",
+      "url": "https://www.inven.co.kr/board/lostark/4821/110652",
+      "checkedAt": "2026-10-12",
+      "kind": "INVEN"
+    },
+    "belgardin-g2-run": {
+      "title": "벨가르딘 2관문 나이트메어 운영",
+      "url": "https://www.inven.co.kr/board/lostark/4821/110671",
+      "checkedAt": "2026-10-12",
+      "kind": "INVEN"
+    }
+  },
+  "raids": [
+    {
+      "raidId": "kazeros-final",
+      "difficulties": [
+        {
+          "difficulty": "HARD",
+          "gates": [
+            {
+              "gate": 1,
+              "boss": "카제로스",
+              "hpBars": 1000,
+              "missingReason": null,
+              "patterns": [
+                {
+                  "id": "aggro-triple",
+                  "phase": "1페이즈",
+                  "name": "어글자 3연타",
+                  "description": "가장 먼 사람이 어글자가 되어 3연타를 받는다.",
+                  "counterplay": "어글자는 방향을 고정하고 두 번 저스트 가드, 마지막 타는 보스 뒤로 피한다.",
+                  "hpBars": {
+                    "from": 1000,
+                    "to": 700
+                  },
+                  "hpBarsReason": null,
+                  "sources": [
+                    "final-g1"
+                  ]
+                },
+                {
+                  "id": "co-counter",
+                  "phase": "1페이즈",
+                  "name": "협동 카운터 + 카운터",
+                  "description": "창 찌르기 뒤 바깥이 위험해지고, 협동 카운터와 일반 카운터가 이어진다.",
+                  "counterplay": "딜러가 협동 카운터, 서포터가 일반 카운터. 실패하면 넓은 범위 피해.",
+                  "hpBars": {
+                    "from": 1000,
+                    "to": 700
+                  },
+                  "hpBarsReason": null,
+                  "sources": [
+                    "final-g1"
+                  ]
+                },
+                {
+                  "id": "grab",
+                  "phase": "1페이즈",
+                  "name": "잡기",
+                  "description": "경직 장판이 밖에서 안으로 터진 뒤 어글자 쪽을 잡는다.",
+                  "counterplay": "장판을 피하고, 어글자가 아닌 사람이 잡히지 않게 어그로를 관리한다.",
+                  "hpBars": {
+                    "from": 1000,
+                    "to": 700
+                  },
+                  "hpBarsReason": null,
+                  "sources": [
+                    "final-g1"
+                  ]
+                },
+                {
+                  "id": "mark-dash",
+                  "phase": "1페이즈",
+                  "name": "표식자 돌진",
+                  "description": "체력 비율이 가장 낮은 사람에게 표식, 길게 돌진한 뒤 뒤쪽 부채꼴 공격.",
+                  "counterplay": "표식자가 보스를 끌고 갈 방향을 미리 정한다.",
+                  "hpBars": {
+                    "from": 1000,
+                    "to": 700
+                  },
+                  "hpBarsReason": null,
+                  "sources": [
+                    "final-g1"
+                  ]
+                },
+                {
+                  "id": "double-slam",
+                  "phase": "1페이즈",
+                  "name": "어글자 두 번 찍기",
+                  "description": "안개 뒤 분신 4마리와 함께 어글자를 두 번 찍고 회전 공격.",
+                  "counterplay": "어글자는 머리를 고정하고, 마지막 회전은 뒤에서 살짝 비킨다.",
+                  "hpBars": {
+                    "from": 1000,
+                    "to": 700
+                  },
+                  "hpBarsReason": null,
+                  "sources": [
+                    "final-g1"
+                  ]
+                },
+                {
+                  "id": "empowered",
+                  "phase": "1페이즈",
+                  "name": "강화 4중첩 장판",
+                  "description": "강화가 4중첩 이상이면 원·별 장판과 랜덤 4인 표식이 나온다.",
+                  "counterplay": "원은 터진 뒤 안으로, 표식자는 밖으로. 별은 멀리 피한다.",
+                  "hpBars": {
+                    "from": 1000,
+                    "to": 700
+                  },
+                  "hpBarsReason": null,
+                  "sources": [
+                    "final-g1"
+                  ]
+                },
+                {
+                  "id": "telekinesis-orb",
+                  "phase": "900줄",
+                  "name": "염동력 구슬",
+                  "description": "구슬에 맞으면 떠오르고 카운터가 나온다. 맞은 인원만큼 보스가 강해진다.",
+                  "counterplay": "모두 구슬을 피하고, 걸리면 카운터를 꼭 성공한다(실패하면 쓰러진다).",
+                  "hpBars": {
+                    "from": 900,
+                    "to": 900
+                  },
+                  "hpBarsReason": null,
+                  "sources": [
+                    "final-g1"
+                  ]
+                },
+                {
+                  "id": "electric-tornado",
+                  "phase": "시간",
+                  "name": "전기 장판 + 회오리",
+                  "description": "약 1분마다 전류와 회오리 디버프. 둘 다 걸리면 크게 터진다.",
+                  "counterplay": "멀리 떨어지고, 둘 다 걸리면 알린 뒤 바깥에서 터뜨린다.",
+                  "hpBars": null,
+                  "hpBarsReason": "줄과 상관없이 시간·게이지로 나오는 패턴",
+                  "sources": [
+                    "final-g1"
+                  ]
+                },
+                {
+                  "id": "light-order",
+                  "phase": "시간",
+                  "name": "불빛 순서 피하기",
+                  "description": "흰 불은 뒤, 파란 불은 대각선이 안전하고 마지막은 머리 쪽이 안전하다.",
+                  "counterplay": "발사 순서를 기억해 세 번 피한다.",
+                  "hpBars": null,
+                  "hpBarsReason": "줄과 상관없이 시간·게이지로 나오는 패턴",
+                  "sources": [
+                    "final-g1"
+                  ]
+                },
+                {
+                  "id": "leap-slam",
+                  "phase": "시간",
+                  "name": "날아올라 찍기",
+                  "description": "어글자 주변 원형, 중간, 바깥 순서로 터지고 뒤만 안전하다.",
+                  "counterplay": "어글자는 방향을 고정하고 나머지는 보스 뒤로 간다.",
+                  "hpBars": null,
+                  "hpBarsReason": "줄과 상관없이 시간·게이지로 나오는 패턴",
+                  "sources": [
+                    "final-g1"
+                  ]
+                },
+                {
+                  "id": "chain-guard",
+                  "phase": "정산 게이지",
+                  "name": "사슬 저스트 가드",
+                  "description": "게이지가 차면 사슬로 끌어당긴 뒤 저스트 가드. 실패하면 쓰러진다.",
+                  "counterplay": "보스 뒤에서 경직 면역 스킬로 넘기거나 저스트 가드를 맞춘다.",
+                  "hpBars": null,
+                  "hpBarsReason": "줄과 상관없이 시간·게이지로 나오는 패턴",
+                  "sources": [
+                    "final-g1"
+                  ]
+                },
+                {
+                  "id": "cross-strike",
+                  "phase": "정산 게이지",
+                  "name": "십자 베기",
+                  "description": "어글자 뒤로 이동해 벤 뒤 십자 모양으로 크게 공격한다.",
+                  "counterplay": "피격 이상 면역이나 이동으로 넘어짐을 피하고, 어글자는 머리를 고정한다.",
+                  "hpBars": null,
+                  "hpBarsReason": "줄과 상관없이 시간·게이지로 나오는 패턴",
+                  "sources": [
+                    "final-g1"
+                  ]
+                },
+                {
+                  "id": "stagger-700",
+                  "phase": "700줄",
+                  "name": "700줄 무력화 구간",
+                  "description": "무력화 구간에 전방 가드, 창던지기, 돌진·백스텝 카운터가 섞인다.",
+                  "counterplay": "보고 반응해 가드·카운터를 넣고, 주기적인 원·별 장판은 미리 알린다.",
+                  "hpBars": {
+                    "from": 700,
+                    "to": 700
+                  },
+                  "hpBarsReason": null,
+                  "sources": [
+                    "final-g1"
+                  ]
+                },
+                {
+                  "id": "orb-wave",
+                  "phase": "2페이즈",
+                  "name": "구슬 소환 + 물결 장판",
+                  "description": "구슬이 쫓아오고 어글자에게 돌진·날리기 2회 뒤 선 장판.",
+                  "counterplay": "어글자가 머리를 고정하고, 구슬은 다른 사람이 받아 반대쪽으로 끈다.",
+                  "hpBars": {
+                    "from": 700,
+                    "to": 300
+                  },
+                  "hpBarsReason": null,
+                  "sources": [
+                    "final-g1"
+                  ]
+                },
+                {
+                  "id": "kinesis",
+                  "phase": "2페이즈",
+                  "name": "키네시스",
+                  "description": "모두의 자리에 장판 뒤 저스트 가드 3회와 찌르기. 첫 가드는 느리다.",
+                  "counterplay": "장판을 멀리 빼고 들어와 가드 타이밍을 맞춘다.",
+                  "hpBars": {
+                    "from": 700,
+                    "to": 300
+                  },
+                  "hpBarsReason": null,
+                  "sources": [
+                    "final-g1"
+                  ]
+                },
+                {
+                  "id": "knockdown-wave",
+                  "phase": "2페이즈",
+                  "name": "뒤쪽 넘어뜨리기",
+                  "description": "뒤쪽을 넘어뜨리고, 넘어진 사람이 있으면 검기가 이어진다.",
+                  "counterplay": "첫 공격에 넘어진 사람이 있는지 보고 다음 공격에 대비한다.",
+                  "hpBars": {
+                    "from": 700,
+                    "to": 300
+                  },
+                  "hpBarsReason": null,
+                  "sources": [
+                    "final-g1"
+                  ]
+                },
+                {
+                  "id": "phase3-sword",
+                  "phase": "3페이즈",
+                  "name": "검기·용기둥",
+                  "description": "검기 날리기, 용기둥, 차원문 추가 공격, 구석에서 가운데로 쓸기가 이어진다.",
+                  "counterplay": "어글자가 한 방향으로 검기를 유도하고, 기상기·각성기를 아껴 둔다.",
+                  "hpBars": {
+                    "from": 300,
+                    "to": 0
+                  },
+                  "hpBarsReason": null,
+                  "sources": [
+                    "final-g1"
+                  ]
+                },
+                {
+                  "id": "reverse-pizza",
+                  "phase": "3페이즈",
+                  "name": "반전 피자",
+                  "description": "날개를 올려친 뒤 표식자에게 찍기와 피자 모양 장판.",
+                  "counterplay": "표식을 확인하고 안전한 조각으로 옮긴다.",
+                  "hpBars": {
+                    "from": 300,
+                    "to": 0
+                  },
+                  "hpBarsReason": null,
+                  "sources": [
+                    "final-g1"
+                  ]
+                }
+              ]
+            },
+            {
+              "gate": 2,
+              "boss": "카제로스",
+              "hpBars": null,
+              "missingReason": null,
+              "patterns": [
+                {
+                  "id": "glass",
+                  "phase": "2-1",
+                  "name": "유리창",
+                  "description": "양손을 맞잡은 뒤 세 갈래: 손을 풀면 머리, 벌리면 앞뒤, 뒤로 가면 뒤가 안전.",
+                  "counterplay": "전조가 보이면 머리 쪽에서 기다리고, 뒤로 이동하면 바로 뒤로 간다.",
+                  "hpBars": null,
+                  "hpBarsReason": "2관문 줄 수가 정리된 자료가 없음",
+                  "sources": [
+                    "final-g2"
+                  ]
+                },
+                {
+                  "id": "front-back-grab",
+                  "phase": "2-1",
+                  "name": "앞뒤앞·잡기 연계",
+                  "description": "경직·넉백 뒤 잡기, 점프 찍기 뒤 10초 있다 터지는 불 디버프.",
+                  "counterplay": "머리 쪽을 비우고, 불 디버프는 정화나 서포터 해제로 지운다.",
+                  "hpBars": null,
+                  "hpBarsReason": "2관문 줄 수가 정리된 자료가 없음",
+                  "sources": [
+                    "final-g2"
+                  ]
+                },
+                {
+                  "id": "slow-guards",
+                  "phase": "2-1",
+                  "name": "느린 저스트 가드 2회",
+                  "description": "어글자 뒤로 이동해 느린 저스트 가드 2회와 앞차기.",
+                  "counterplay": "뒤에서 공격하면 타이밍이 잘 보인다. 어글자는 머리를 고정한다.",
+                  "hpBars": null,
+                  "hpBarsReason": "2관문 줄 수가 정리된 자료가 없음",
+                  "sources": [
+                    "final-g2"
+                  ]
+                },
+                {
+                  "id": "five-hit",
+                  "phase": "2-1",
+                  "name": "전진 5타",
+                  "description": "5타로 밀고 나가며 마지막에 올려친다. 맵 밖으로 떨어질 수 있다.",
+                  "counterplay": "보스 머리 쪽을 항상 비워 둔다.",
+                  "hpBars": null,
+                  "hpBarsReason": "2관문 줄 수가 정리된 자료가 없음",
+                  "sources": [
+                    "final-g2"
+                  ]
+                },
+                {
+                  "id": "dual-blade",
+                  "phase": "쌍검",
+                  "name": "쌍검 연계 + 협동 카운터",
+                  "description": "쌍검 찍기, 타일 파괴, 부메랑, 장판 두 번 뒤 협동 카운터.",
+                  "counterplay": "첫 공격은 경직 면역, 두 번째는 저스트 가드, 협동 카운터는 꼭 성공한다.",
+                  "hpBars": null,
+                  "hpBarsReason": "2관문 줄 수가 정리된 자료가 없음",
+                  "sources": [
+                    "final-g2"
+                  ]
+                },
+                {
+                  "id": "rain-quake",
+                  "phase": "강화",
+                  "name": "비 세 번 뒤 지진",
+                  "description": "세 번째 비 직후 전 범위 기절 공격. 기절 뒤 협동 카운터에 실패하면 쓰러진다.",
+                  "counterplay": "세 번째 비가 닿는 순간 이동기로 면역을 받는다.",
+                  "hpBars": null,
+                  "hpBarsReason": "2관문 줄 수가 정리된 자료가 없음",
+                  "sources": [
+                    "final-g2"
+                  ]
+                },
+                {
+                  "id": "triple-guard",
+                  "phase": "2-2",
+                  "name": "3연속 저스트 가드",
+                  "description": "전조 없는 빠른 원형 가드 뒤 넓은 가드 두 번. 맞으면 실명.",
+                  "counterplay": "타이밍을 외우고, 실명 상태에서도 가드를 누른다.",
+                  "hpBars": null,
+                  "hpBarsReason": "2관문 줄 수가 정리된 자료가 없음",
+                  "sources": [
+                    "final-g2"
+                  ]
+                },
+                {
+                  "id": "jail-x",
+                  "phase": "2-2",
+                  "name": "감금 장판 3회 + 엑스자",
+                  "description": "반투명 장판 세 번(맞으면 감금) 뒤 어글자 자리에 엑스자 공격.",
+                  "counterplay": "장판을 피하고, 어글자는 멀리서 엑스자를 빼 준다.",
+                  "hpBars": null,
+                  "hpBarsReason": "2관문 줄 수가 정리된 자료가 없음",
+                  "sources": [
+                    "final-g2"
+                  ]
+                },
+                {
+                  "id": "dark-fog",
+                  "phase": "2-2",
+                  "name": "검은 안개 구슬",
+                  "description": "어글자에게 3회 돌진(맞으면 실명) 뒤 가운데 검은 구슬이 떨어질 때 가드.",
+                  "counterplay": "구슬이 닿는 순간 가드하고, 서포터는 보스 몸과 뒤를 지원한다.",
+                  "hpBars": null,
+                  "hpBarsReason": "2관문 줄 수가 정리된 자료가 없음",
+                  "sources": [
+                    "final-g2"
+                  ]
+                },
+                {
+                  "id": "find-real",
+                  "phase": "2-2",
+                  "name": "진짜 찾기",
+                  "description": "분신 8개 중 사람이 적은 쪽이 안전하고, 시계 방향 흰 선이 지나간다.",
+                  "counterplay": "안전한 분신 쪽으로 가고, 흰 선은 이동기로 넘긴다.",
+                  "hpBars": null,
+                  "hpBarsReason": "2관문 줄 수가 정리된 자료가 없음",
+                  "sources": [
+                    "final-g2"
+                  ]
+                },
+                {
+                  "id": "clash",
+                  "phase": "2-2",
+                  "name": "격돌",
+                  "description": "어글자에게 표식 뒤 거리를 두고 격돌. 입력 키는 무작위다.",
+                  "counterplay": "어글자는 머리를 고정하고, 실패에 대비해 생존기를 준비한다.",
+                  "hpBars": null,
+                  "hpBarsReason": "2관문 줄 수가 정리된 자료가 없음",
+                  "sources": [
+                    "final-g2"
+                  ]
+                },
+                {
+                  "id": "slingshot",
+                  "phase": "2-2",
+                  "name": "끌어당겨 발사",
+                  "description": "약 1분 40초마다 캐릭터를 끌어당겨 쏜다. 쏠 방향을 정해야 한다.",
+                  "counterplay": "보스 뒤·머리 기준 반시계 방향이 안전하다.",
+                  "hpBars": null,
+                  "hpBarsReason": "2관문 줄 수가 정리된 자료가 없음",
+                  "sources": [
+                    "final-g2"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "raidId": "serka",
+      "difficulties": [
+        {
+          "difficulty": "NIGHTMARE",
+          "gates": [
+            {
+              "gate": 1,
+              "boss": "세르카",
+              "hpBars": null,
+              "missingReason": null,
+              "patterns": [
+                {
+                  "id": "chessboard",
+                  "phase": "235줄",
+                  "name": "체스판",
+                  "description": "맵이 4×4 체스판으로 바뀌고 노란 불 없는 칸이 안전하다. 세 번 반복한다.",
+                  "counterplay": "안전 칸으로 옮겨 저스트 가드. 첫 회 폭탄 대상은 따로 떨어진다.",
+                  "hpBars": {
+                    "from": 235,
+                    "to": 235
+                  },
+                  "hpBarsReason": null,
+                  "sources": [
+                    "serka-nm"
+                  ]
+                },
+                {
+                  "id": "crush",
+                  "phase": "195줄",
+                  "name": "짓뭉개기",
+                  "description": "좌우 망치 벽이 닫히고 테두리 없는 노란 장판이 안전, 개인 폭발 장판이 온다.",
+                  "counterplay": "망치가 뒤로 밀리면 닫힌다는 신호. 안전 칸으로 세 번 옮긴다.",
+                  "hpBars": {
+                    "from": 195,
+                    "to": 195
+                  },
+                  "hpBarsReason": null,
+                  "sources": [
+                    "serka-nm"
+                  ]
+                },
+                {
+                  "id": "cross-bomb",
+                  "phase": "180줄",
+                  "name": "가로세로 큰 폭탄",
+                  "description": "전투 구역이 줄고 가로세로 폭탄이 맵 끝까지 터진다.",
+                  "counterplay": "안전 칸을 미리 계산한다. 가드에 실패하면 갇힌다.",
+                  "hpBars": {
+                    "from": 180,
+                    "to": 180
+                  },
+                  "hpBarsReason": null,
+                  "sources": [
+                    "serka-nm"
+                  ]
+                },
+                {
+                  "id": "chess-race",
+                  "phase": "100줄",
+                  "name": "체스판 눈치게임",
+                  "description": "개인 장판과 노란 체스판. 낫이 붉어지기 전에 모두 흰 장판에 들어가야 한다.",
+                  "counterplay": "폭탄을 피해 한 칸씩 옮긴다. 못 들어가면 쓰러진다.",
+                  "hpBars": {
+                    "from": 100,
+                    "to": 100
+                  },
+                  "hpBarsReason": null,
+                  "sources": [
+                    "serka-nm"
+                  ]
+                },
+                {
+                  "id": "fire-lines",
+                  "phase": "80줄",
+                  "name": "불 피하기",
+                  "description": "맵이 4×4로 좁아지고 쇠틀이 직선으로 불을 뿜는다.",
+                  "counterplay": "카운터 → 낫 던지기 전 가드 → 안전지대 공격을 두 번 반복한다.",
+                  "hpBars": {
+                    "from": 80,
+                    "to": 80
+                  },
+                  "hpBarsReason": null,
+                  "sources": [
+                    "serka-nm"
+                  ]
+                }
+              ]
+            },
+            {
+              "gate": 2,
+              "boss": "세르카",
+              "hpBars": null,
+              "missingReason": null,
+              "patterns": [
+                {
+                  "id": "dive-insight",
+                  "phase": "285줄",
+                  "name": "강하 간파",
+                  "description": "뛰어올라 강하할 때 간파하면 이후 타격 위치가 미리 보인다.",
+                  "counterplay": "간파한 뒤 그림자 자리를 피한다. 실패하면 봉인·얽매임 디버프가 쌓인다.",
+                  "hpBars": {
+                    "from": 285,
+                    "to": 285
+                  },
+                  "hpBarsReason": null,
+                  "sources": [
+                    "serka-nm",
+                    "serka-nm-g2"
+                  ]
+                },
+                {
+                  "id": "find-real",
+                  "phase": "240줄",
+                  "name": "진짜 찾기 + 무력화",
+                  "description": "맵이 어두워지고 분신 4개 중 건드려도 가만히 있는 것이 진짜다.",
+                  "counterplay": "가볍게 쳐서 진짜를 찾고, 모여서 가드한 뒤 10초 무력화한다.",
+                  "hpBars": {
+                    "from": 240,
+                    "to": 240
+                  },
+                  "hpBarsReason": null,
+                  "sources": [
+                    "serka-nm",
+                    "serka-nm-g2"
+                  ]
+                },
+                {
+                  "id": "guard-chain",
+                  "phase": "190~195줄",
+                  "name": "가드·카운터 연계",
+                  "description": "백스텝 뒤 바닥 폭발, 가드 2회와 찍기·카운터 또는 빠른 가드 3회가 이어진다.",
+                  "counterplay": "전조를 보고 카운터와 가드를 고른다. 성공하면 공격 시간이 난다.",
+                  "hpBars": {
+                    "from": 195,
+                    "to": 190
+                  },
+                  "hpBarsReason": null,
+                  "sources": [
+                    "serka-nm",
+                    "serka-nm-g2"
+                  ]
+                },
+                {
+                  "id": "roar-blade",
+                  "phase": "120줄",
+                  "name": "포효·칼 꽂기",
+                  "description": "개인 장판 뒤 네 방향 붉은 장판이 가운데로 모이고, 분신 8개 중 갑옷 입은 쪽이 진짜.",
+                  "counterplay": "가운데 안전지대로 모이고 진짜를 확인한다.",
+                  "hpBars": {
+                    "from": 120,
+                    "to": 120
+                  },
+                  "hpBarsReason": null,
+                  "sources": [
+                    "serka-nm",
+                    "serka-nm-g2"
+                  ]
+                },
+                {
+                  "id": "spin-field",
+                  "phase": "60줄",
+                  "name": "회전 장판",
+                  "description": "화면이 멀어진 뒤 삼각형 직선 장판이 피자처럼 돌며 세 번 터진다.",
+                  "counterplay": "장판 밖으로 빠진다.",
+                  "hpBars": {
+                    "from": 60,
+                    "to": 60
+                  },
+                  "hpBarsReason": null,
+                  "sources": [
+                    "serka-nm",
+                    "serka-nm-g2"
+                  ]
+                },
+                {
+                  "id": "blood-pool",
+                  "phase": "상시",
+                  "name": "피웅덩이",
+                  "description": "밟으면 이동·동작 속도가 줄어든다.",
+                  "counterplay": "웅덩이를 피해 움직인다.",
+                  "hpBars": null,
+                  "hpBarsReason": "줄과 상관없이 나오는 패턴",
+                  "sources": [
+                    "serka-g2-misc"
+                  ]
+                },
+                {
+                  "id": "dash-guards",
+                  "phase": "상시",
+                  "name": "3회 돌진 가드",
+                  "description": "돌진 세 번에 맞춰 가드. 첫 번째는 느리다. 모두 성공하면 카운터와 공격 시간.",
+                  "counterplay": "첫 돌진은 늦게 누른다. 실패하면 개인 장판과 보스 주변 장판이 온다.",
+                  "hpBars": null,
+                  "hpBarsReason": "줄과 상관없이 나오는 패턴",
+                  "sources": [
+                    "serka-g2-misc"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "raidId": "belgardin",
+      "difficulties": [
+        {
+          "difficulty": "NIGHTMARE",
+          "gates": [
+            {
+              "gate": 1,
+              "boss": "벨가르딘",
+              "hpBars": null,
+              "missingReason": null,
+              "patterns": [
+                {
+                  "id": "aggro-five",
+                  "phase": "통상",
+                  "name": "어글자 5타",
+                  "description": "관이 떨어지고 3타부터 어글자 쪽으로 연타한다.",
+                  "counterplay": "어글자는 머리를 고정한다. 뒤에 붙어도 맞는다.",
+                  "hpBars": null,
+                  "hpBarsReason": "이 패턴의 줄 구간이 정리된 자료가 없음",
+                  "sources": [
+                    "belgardin-g1"
+                  ]
+                },
+                {
+                  "id": "chakram",
+                  "phase": "통상",
+                  "name": "차크람 시선",
+                  "description": "등 뒤 차크람이 작아지면 보스를 보고, 커지면 보지 않는다. 공포 파장이 함께 온다.",
+                  "counterplay": "차크람 크기 변화를 보고, 공포 파장은 이동기로 넘긴다.",
+                  "hpBars": null,
+                  "hpBarsReason": "이 패턴의 줄 구간이 정리된 자료가 없음",
+                  "sources": [
+                    "belgardin-g1"
+                  ]
+                },
+                {
+                  "id": "holding-guard",
+                  "phase": "통상",
+                  "name": "홀딩 가드 → 느린 가드",
+                  "description": "양손 구체 전조 뒤 긴 홀딩 가드, 이어서 느린 가드.",
+                  "counterplay": "홀딩을 끝까지 성공한 사람만 느린 가드를 할 수 있다. 모두 성공하면 공격 시간.",
+                  "hpBars": null,
+                  "hpBarsReason": "이 패턴의 줄 구간이 정리된 자료가 없음",
+                  "sources": [
+                    "belgardin-g1"
+                  ]
+                },
+                {
+                  "id": "gap-guard",
+                  "phase": "통상",
+                  "name": "빈틈 가드",
+                  "description": "빠른 가드에 성공하면 빈틈 버프. 넣은 피해만큼 안쪽 장판이 줄어든다.",
+                  "counterplay": "성공한 사람이 집중 공격해 장판을 줄이고, 도넛 안전지대에서 기다린다.",
+                  "hpBars": null,
+                  "hpBarsReason": "이 패턴의 줄 구간이 정리된 자료가 없음",
+                  "sources": [
+                    "belgardin-g1"
+                  ]
+                },
+                {
+                  "id": "suck-grab",
+                  "phase": "통상",
+                  "name": "빨아들여 잡기",
+                  "description": "관을 들고 뒤쪽을 빨아들여 가까운 사람을 잡아 멀리 던진다.",
+                  "counterplay": "누가 잡히면 보스 머리를 맵 안쪽으로 돌린다.",
+                  "hpBars": null,
+                  "hpBarsReason": "이 패턴의 줄 구간이 정리된 자료가 없음",
+                  "sources": [
+                    "belgardin-g1"
+                  ]
+                },
+                {
+                  "id": "gaze",
+                  "phase": "통상",
+                  "name": "검은 바닥 시선",
+                  "description": "바닥이 검게 변하면 보스를 등지거나 면역기로 넘긴다. 뒤이어 안전지대가 두 갈래.",
+                  "counterplay": "보스가 나타나는 자리를 보고 도넛·부채꼴 중 안전한 쪽으로 간다.",
+                  "hpBars": null,
+                  "hpBarsReason": "이 패턴의 줄 구간이 정리된 자료가 없음",
+                  "sources": [
+                    "belgardin-g1"
+                  ]
+                },
+                {
+                  "id": "insight",
+                  "phase": "간파",
+                  "name": "맨손·칼 간파",
+                  "description": "글리치 전조 뒤 간파. 맨손은 3명 이상 성공하면 모두 안전, 칼은 실패자만 맞는다.",
+                  "counterplay": "맨손은 늦게, 칼은 칼이 보이는 순간 누른다. 실패자는 가운데 모여 지원을 받는다.",
+                  "hpBars": null,
+                  "hpBarsReason": "이 패턴의 줄 구간이 정리된 자료가 없음",
+                  "sources": [
+                    "belgardin-g1"
+                  ]
+                },
+                {
+                  "id": "spin-pizza",
+                  "phase": "위험",
+                  "name": "두 번 회전 뒤 피자",
+                  "description": "칼을 두 번 휘두른 뒤 붉은 피자 장판. 맞으면 크게 다친다.",
+                  "counterplay": "두 번째 회전 동작을 기억하고 범위를 보고 옮긴다.",
+                  "hpBars": null,
+                  "hpBarsReason": "이 패턴의 줄 구간이 정리된 자료가 없음",
+                  "sources": [
+                    "belgardin-g1"
+                  ]
+                },
+                {
+                  "id": "coffin-laser",
+                  "phase": "위험",
+                  "name": "관 레이저",
+                  "description": "관 2개가 시간차로 떨어지면 양방향, 동시에 떨어지면 한 방향 레이저.",
+                  "counterplay": "관 방향을 보고 멀리 또는 뒤로 피한다. 스치기만 해도 쓰러진다.",
+                  "hpBars": null,
+                  "hpBarsReason": "이 패턴의 줄 구간이 정리된 자료가 없음",
+                  "sources": [
+                    "belgardin-g1"
+                  ]
+                },
+                {
+                  "id": "vanish-grab",
+                  "phase": "위험",
+                  "name": "사라졌다 뒤 잡기",
+                  "description": "사라졌다가 등 뒤에 나타나 부채꼴로 잡는다. 아무도 안 잡히면 가드가 이어진다.",
+                  "counterplay": "가드 성공 뒤 보스 뒤로 간다. 잡히면 기상기를 꼭 쓴다.",
+                  "hpBars": null,
+                  "hpBarsReason": "이 패턴의 줄 구간이 정리된 자료가 없음",
+                  "sources": [
+                    "belgardin-g1"
+                  ]
+                },
+                {
+                  "id": "coffins-240",
+                  "phase": "240줄 이후",
+                  "name": "관 4개 무력화",
+                  "description": "240줄 이후 관 4개가 나오고 무력화에 실패하면 터진다. 유령도 나온다.",
+                  "counterplay": "정해진 자리에서 관 4개를 무력화하고, 유령은 송곳을 유도해 없앤다.",
+                  "hpBars": {
+                    "from": 240,
+                    "to": null
+                  },
+                  "hpBarsReason": null,
+                  "sources": [
+                    "belgardin-g1"
+                  ]
+                }
+              ]
+            },
+            {
+              "gate": 2,
+              "boss": "페투스 안 크라그마",
+              "hpBars": null,
+              "missingReason": null,
+              "patterns": [
+                {
+                  "id": "aggro-four",
+                  "phase": "통상",
+                  "name": "어글자 4타",
+                  "description": "어글자 쪽으로 전진하며 원·투·회전·찍기. 마지막 찍기에 떨어질 수 있다.",
+                  "counterplay": "회전은 붙어서, 찍기는 머리 쪽에서 피한다.",
+                  "hpBars": null,
+                  "hpBarsReason": "자료마다 줄 수가 달라 넣지 않음",
+                  "sources": [
+                    "belgardin-g2",
+                    "belgardin-g2-run"
+                  ]
+                },
+                {
+                  "id": "orb-slam",
+                  "phase": "통상",
+                  "name": "구슬 소환 → 큰 찍기",
+                  "description": "네 방향 구슬과 큰 내려찍기. 찍힌 바닥은 사라져 떨어질 수 있다.",
+                  "counterplay": "면역기를 쓰거나 뒤로 멀리 피한다.",
+                  "hpBars": null,
+                  "hpBarsReason": "자료마다 줄 수가 달라 넣지 않음",
+                  "sources": [
+                    "belgardin-g2",
+                    "belgardin-g2-run"
+                  ]
+                },
+                {
+                  "id": "holding-counter",
+                  "phase": "통상",
+                  "name": "홀딩 가드 → 협동 카운터",
+                  "description": "전조 없이 홀딩 가드, 이어서 협동 카운터.",
+                  "counterplay": "반응이 핵심이다. 구석의 딜러가 특히 조심한다.",
+                  "hpBars": null,
+                  "hpBarsReason": "자료마다 줄 수가 달라 넣지 않음",
+                  "sources": [
+                    "belgardin-g2",
+                    "belgardin-g2-run"
+                  ]
+                },
+                {
+                  "id": "march-guard",
+                  "phase": "통상",
+                  "name": "걸어가 홀딩 가드",
+                  "description": "먼 초록 장판까지 걸어가 홀딩 가드. 성공 인원에 따라 결과가 갈린다.",
+                  "counterplay": "4명 이상 성공하면 퍼펙트 가드로 긴 공격 시간. 파티가 미리 정한다.",
+                  "hpBars": null,
+                  "hpBarsReason": "자료마다 줄 수가 달라 넣지 않음",
+                  "sources": [
+                    "belgardin-g2",
+                    "belgardin-g2-run"
+                  ]
+                },
+                {
+                  "id": "vanish-barrage",
+                  "phase": "통상",
+                  "name": "소멸 난사",
+                  "description": "모두에게 3초 디버프 뒤 바닥이 사라지는 장판과 부채꼴 가드 2회.",
+                  "counterplay": "빨리 흩어져 장판을 빼고, 가드는 전조 불빛 직후에 누른다.",
+                  "hpBars": null,
+                  "hpBarsReason": "자료마다 줄 수가 달라 넣지 않음",
+                  "sources": [
+                    "belgardin-g2",
+                    "belgardin-g2-run"
+                  ]
+                },
+                {
+                  "id": "slingshot",
+                  "phase": "통상",
+                  "name": "새총",
+                  "description": "지나는 길의 모두를 띄워 끌고 가 부채꼴로 잡은 뒤 협동 카운터.",
+                  "counterplay": "어글자는 머리를 고정하고 이동기·면역기로 넘긴다. 협동 카운터는 잡기 시작한 쪽.",
+                  "hpBars": null,
+                  "hpBarsReason": "자료마다 줄 수가 달라 넣지 않음",
+                  "sources": [
+                    "belgardin-g2",
+                    "belgardin-g2-run"
+                  ]
+                },
+                {
+                  "id": "mirror",
+                  "phase": "통상",
+                  "name": "거울 무력화",
+                  "description": "순간 이동 뒤 거울들이 나오고, 색 없는 검은 거울 쪽이 안전하다.",
+                  "counterplay": "머리 위 거울이 한 번 퍼진 뒤 무력화한다. 너무 빠르면 터진다.",
+                  "hpBars": null,
+                  "hpBarsReason": "자료마다 줄 수가 달라 넣지 않음",
+                  "sources": [
+                    "belgardin-g2",
+                    "belgardin-g2-run"
+                  ]
+                },
+                {
+                  "id": "donut-laser",
+                  "phase": "통상",
+                  "name": "도넛 → 양옆 레이저",
+                  "description": "도넛 장판 뒤 어글자 양옆으로 레이저. 레이저가 관에 맞으면 크게 터진다.",
+                  "counterplay": "어글자가 머리를 돌려 레이저가 관을 맞지 않게 한다.",
+                  "hpBars": null,
+                  "hpBarsReason": "자료마다 줄 수가 달라 넣지 않음",
+                  "sources": [
+                    "belgardin-g2",
+                    "belgardin-g2-run"
+                  ]
+                },
+                {
+                  "id": "walls",
+                  "phase": "통상",
+                  "name": "벽 생성 유도",
+                  "description": "벽이 생기고 장판이 벽에 닿으면 터진다.",
+                  "counterplay": "첫째는 벽 반대로, 둘째는 두 벽의 옆구리 쪽으로 보스를 유도한다.",
+                  "hpBars": null,
+                  "hpBarsReason": "자료마다 줄 수가 달라 넣지 않음",
+                  "sources": [
+                    "belgardin-g2",
+                    "belgardin-g2-run"
+                  ]
+                },
+                {
+                  "id": "grind",
+                  "phase": "통상",
+                  "name": "전진 땅고르기",
+                  "description": "두 번 전진하며 갈아 버린 뒤 양옆 또는 전방 부채꼴. 강화되면 세 번 전진한다.",
+                  "counterplay": "두 변형 모두 뒤가 안전하다. 떨어지지 않게 주의한다.",
+                  "hpBars": null,
+                  "hpBarsReason": "자료마다 줄 수가 달라 넣지 않음",
+                  "sources": [
+                    "belgardin-g2",
+                    "belgardin-g2-run"
+                  ]
+                },
+                {
+                  "id": "orb-guards",
+                  "phase": "통상",
+                  "name": "구슬 → 빠른·느린 가드",
+                  "description": "장판 뒤 구슬을 터뜨리며 빠른 가드, 이동 뒤 느린 가드. 강화되면 순서가 반대다.",
+                  "counterplay": "보스가 아니라 보스 앞 구슬을 보고 가드한다.",
+                  "hpBars": null,
+                  "hpBarsReason": "자료마다 줄 수가 달라 넣지 않음",
+                  "sources": [
+                    "belgardin-g2",
+                    "belgardin-g2-run"
+                  ]
+                },
+                {
+                  "id": "grab-range",
+                  "phase": "잡기",
+                  "name": "범위 잡기",
+                  "description": "큰 촉수가 하얗게, 작은 촉수가 보라색으로 변해 잡을 방향을 알린다.",
+                  "counterplay": "보라 촉수 사이가 안전하다. 반시계 방향으로 피한다.",
+                  "hpBars": null,
+                  "hpBarsReason": "자료마다 줄 수가 달라 넣지 않음",
+                  "sources": [
+                    "belgardin-g2",
+                    "belgardin-g2-run"
+                  ]
+                },
+                {
+                  "id": "grab-circle",
+                  "phase": "잡기",
+                  "name": "원형 잡기",
+                  "description": "촉수 4개를 펼친다. 흰 촉수는 놓인 자리에서 시계 방향 90도를 잡는다.",
+                  "counterplay": "흰 촉수 기준 반시계 방향이 안전하다.",
+                  "hpBars": null,
+                  "hpBarsReason": "자료마다 줄 수가 달라 넣지 않음",
+                  "sources": [
+                    "belgardin-g2",
+                    "belgardin-g2-run"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

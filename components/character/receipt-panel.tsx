@@ -176,7 +176,7 @@ function Body({
 }
 
 /**
- * LOAWA-style roster receipt (원정대 영수증), counting only verified items:
+ * Roster receipt (원정대 영수증), counting only verified items:
  * equipment refining and tradable gems at current prices. What it leaves out
  * and why sits right under the total; the backend's assumption sentences are
  * shown as they come. Hidden where the receipt is off (the backend route is

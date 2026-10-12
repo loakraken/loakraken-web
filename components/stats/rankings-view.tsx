@@ -27,7 +27,7 @@ const CLASSES = [
 ];
 
 /**
- * LOAWA-style ranking (backend #100): combat power or item level, filtered
+ * Ranking (backend #100): combat power or item level, filtered
  * like the statistics page, 50 per page. The list is LOAKraken's sample, not
  * the official ranking, and hidden characters never appear.
  */

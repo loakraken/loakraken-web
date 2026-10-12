@@ -61,9 +61,6 @@ const ROUTES = [
  * stays green now and turns red the moment one is fixed (then drop the line).
  */
 const KNOWN_SHIFT = {
-  "/tools/more-reward@1280":
-    "성장 도구: 머리 문장 글자가 첫 그림 뒤 바뀜(0.0001~0.0002)",
-  "/tools/more-reward@360": "성장 도구: 같은 머리 문장",
 };
 
 /** Collects layout shifts from the very start of the page (buffered), with or without recent input. */

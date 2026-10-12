@@ -4,6 +4,7 @@ import type { CharacterResult, QueryFailure } from "./model";
 import type { HistoryEnvelope, SiblingsEnvelope, ViewsEnvelope } from "./validate";
 import type { CardCollectionEnvelope, CardRefreshEnvelope } from "./card-collection";
 import type { PopularEnvelope, PopularPeriod } from "./popular";
+import type { SuggestEnvelope } from "./suggest";
 import type { RankEnvelope } from "./rank";
 import type { OwnershipEnvelope, StandingEnvelope } from "./collectible-standing";
 import type { TitlesEnvelope } from "./titles";
@@ -57,6 +58,9 @@ export const fetchSiblings = (name: string, signal: AbortSignal) =>
 
 export const fetchPopular = (period: PopularPeriod, signal: AbortSignal) =>
   getJson<PopularEnvelope>(`/api/characters/popular?period=${period}&limit=10`, signal);
+
+export const fetchSuggest = (q: string, signal: AbortSignal) =>
+  getJson<SuggestEnvelope>(`/api/characters/suggest?${new URLSearchParams({ q })}`, signal);
 
 export const fetchReceipt = (name: string, assumeBook: boolean, signal: AbortSignal) =>
   getJson<ReceiptEnvelope>(
