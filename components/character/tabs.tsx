@@ -54,7 +54,13 @@ import {
   fetchSiblings,
   fetchTitles,
 } from "@/lib/character/client";
-import { METRICS, change, stepSeries } from "@/lib/character/history";
+import {
+  METRICS,
+  historySummary,
+  shortDate,
+  stepSeries,
+} from "@/lib/character/history";
+import { MINUTE, useClock } from "@/components/home/clock";
 import { failureCopy } from "@/lib/character/model";
 import { HistoryChart } from "./history-chart";
 import { AvatarsTab, CollectiblesTab } from "./inner";
@@ -2140,6 +2146,33 @@ function RosterCharacters({ data }: { data: Character }) {
   );
 }
 
+/**
+ * 현재 · 최고 · 변화 over a history chart (character screen checklist, 통계 탭
+ * 3칸). Always three cells, also while loading (blank) and with one record
+ * ("—" for the change), so the chart under them never moves.
+ */
+function HistoryCells({ summary }: { summary?: ReturnType<typeof historySummary> }) {
+  const delta = summary?.delta;
+  return (
+    <dl className={styles.historyCells}>
+      <div>
+        <dt>현재</dt>
+        <dd>{summary ? number(summary.current) : "\u00a0"}</dd>
+      </div>
+      <div>
+        <dt>최고</dt>
+        <dd>{summary ? number(summary.best) : "\u00a0"}</dd>
+      </div>
+      <div>
+        <dt>변화</dt>
+        <dd data-direction={delta == null || delta === 0 ? undefined : delta > 0 ? "up" : "down"}>
+          {!summary ? "\u00a0" : delta == null ? "—" : delta === 0 ? "0" : `${delta > 0 ? "▲" : "▼"}${number(Math.abs(delta))}`}
+        </dd>
+      </div>
+    </dl>
+  );
+}
+
 export function StatsTab({ data }: { data: Character }) {
   const query = useQuery({
     queryKey: ["history", data.characterName, data.serverName],
@@ -2153,6 +2186,8 @@ export function StatsTab({ data }: { data: Character }) {
   const fade = useCrossfade(query.isPending);
   const points = query.data?.data.points ?? [];
   const [table, setTable] = useState(false);
+  // Minute clock (null until hydrated) for "~ 오늘 · N일".
+  const now = useClock(MINUTE);
   const first = points[0];
   return (
     <div className={styles.layout}>
@@ -2168,6 +2203,7 @@ export function StatsTab({ data }: { data: Character }) {
           <div className={styles.chartGrid}>
             {METRICS.map(({ key, label }, i) => (
               <Panel key={key} title={label}>
+                <HistoryCells />
                 <div className={styles.chartHold}>
                   {i === 0 && (
                     <p className={styles.muted} role="status">
@@ -2211,17 +2247,14 @@ export function StatsTab({ data }: { data: Character }) {
           <div ref={fade} className={styles.chartGrid}>
             {METRICS.map(({ key, label }) => {
               const steps = stepSeries(points, key);
-              const delta = change(steps);
+              const summary = historySummary(steps, now ?? steps.at(-1)?.t ?? 0);
               return (
                 <Panel
                   key={key}
                   title={label}
-                  meta={
-                    delta == null
-                      ? "기록 1개"
-                      : `기록 이후 ${delta >= 0 ? "+" : ""}${number(delta)}`
-                  }
+                  meta={summary ? `${shortDate(summary.since)} ~ 오늘 · ${number(summary.days)}일` : undefined}
                 >
+                  <HistoryCells summary={summary} />
                   {steps.length ? (
                     <HistoryChart label={label} steps={steps} />
                   ) : (
