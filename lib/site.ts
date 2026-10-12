@@ -41,6 +41,7 @@ export const SITEMAP_PATHS = [
   "/tools/homework",
   "/stats",
   "/rankings",
+  "/multi-search",
   "/news",
   "/schedule",
   "/schedule/adventure-island",
