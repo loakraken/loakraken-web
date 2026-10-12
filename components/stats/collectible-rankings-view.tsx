@@ -29,8 +29,8 @@ import { BasisNote } from "./basis-note";
 import { RankingTypeTabs, type RankingType } from "./ranking-type-tabs";
 
 const SERVERS = ["루페온", "실리안", "아만", "아브렐슈드", "카단", "카마인", "카제로스", "니나브"];
-const ROSTER_COLUMNS = rankingColumns([3.5, 10, 6, 6.5, 8, 4.5, 9]);
-const CHARACTER_COLUMNS = rankingColumns([3.5, 10, 6, 6.5, 8, 9]);
+const ROSTER_COLUMNS = rankingColumns([3.5, 14, 6, 6.5, 8, 4.5, 9]);
+const CHARACTER_COLUMNS = rankingColumns([3.5, 14, 6, 6.5, 8, 9]);
 
 /**
  * Collectible ranking (backend #295/#304, checklist K33): rosters LOAKraken has

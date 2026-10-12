@@ -34,7 +34,7 @@ const CLASSES = [
   "서머너", "아르카나", "소서리스", "블레이드", "데모닉", "리퍼", "소울이터", "도화가", "기상술사", "환수사",
 ];
 
-const COLUMNS = rankingColumns([3.5, 10, 7, 6, 7, 6.5, 7, 7.5]);
+const COLUMNS = rankingColumns([3.5, 14, 7, 6, 7, 6.5, 7, 7.5]);
 
 /** "+14.42%" — the efficiency the backend computed, two decimals. */
 const efficiencyText = (value: number) =>

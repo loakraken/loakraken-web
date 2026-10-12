@@ -27,7 +27,7 @@ import { rankingColumns } from "./ranking-columns";
 import { BasisNote } from "./basis-note";
 import { RankingTypeTabs, type RankingType } from "./ranking-type-tabs";
 
-const ROSTER_COLUMNS = rankingColumns([3.5, 10, 6, 7.5, 4.5, 16]);
+const ROSTER_COLUMNS = rankingColumns([3.5, 14, 6, 7.5, 4.5, 16]);
 
 const SERVERS = [
   "루페온",
