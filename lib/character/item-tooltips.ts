@@ -95,7 +95,7 @@ export function placeExtraLines({ lines, sections }: ExtraLines, shown: Readonly
 export type LineTone = "warn" | "craft" | "plain";
 
 /**
- * Colour of an official tooltip line as the game (and the reference site)
+ * Colour of an official tooltip line as the game
  * shows it: "…불가" restrictions red, "[제작] …"-style sources cyan, the rest
  * plain (durability, descriptions).
  */
@@ -118,7 +118,7 @@ const kindOf = (line: string): LineKind =>
           : "plain";
 
 /**
- * The remaining lines as the reference site's sections (sheet v2.1 §2c): a
+ * The remaining lines in sections (sheet v2.1 §2c): a
  * run of sources ("[가디언 토벌] …") with "그 외에 획득처가 더 존재합니다." is one
  * section, so are consecutive description sentences; a restriction, a single
  * "[제작] …" line and durability stand alone.

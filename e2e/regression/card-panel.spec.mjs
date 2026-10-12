@@ -1,7 +1,7 @@
 // 회귀: 전투 탭 "카드" 패널이 오류 없이 그려진다(카드 이름·각성 점·세트 효과).
 // 백엔드 OpenAPI 카드 스키마 이름 충돌 수정(backend #102) 뒤 프론트 생성 타입이 바뀔 수 있어
 // 감시한다(PM-프론트 요청 2026-10-08). 값이 아니라 구조만 본다.
-// '언새늘'은 목 서버의 기본 합성 표본(tests/fixtures/character-full-data.json)을 받는다.
+// '목캐릭터A'는 목 서버의 기본 합성 표본(tests/fixtures/character-full-data.json)을 받는다.
 import { test, expect, characterPath, CONTRACT_FAILURE } from "../support/fixtures.mjs";
 
 // 장착 카드 목록과 세트 효과 목록은 패널의 직계 목록이다.
@@ -9,7 +9,7 @@ import { test, expect, characterPath, CONTRACT_FAILURE } from "../support/fixtur
 const equipped = (panel) => panel.locator(":scope > ul").first();
 const setEffects = (panel) => panel.locator(":scope > ul").nth(1);
 
-for (const name of ["언새늘", "상세", "상세서포터"]) {
+for (const name of ["목캐릭터A", "상세", "상세서포터"]) {
   test(`'${name}' 카드 패널이 그려진다 @regression`, async ({ page }) => {
     await page.goto(characterPath(name));
     await expect(page.getByText(CONTRACT_FAILURE)).toHaveCount(0);
@@ -29,9 +29,9 @@ for (const name of ["언새늘", "상세", "상세서포터"]) {
 }
 
 // 원정대 카드 기록(web #61, F-6 → #85에서 카드 패널 안으로 이동): 역할별 6속성 기록, 도감·세트 접기.
-// 목 표본: 언새늘 → 딜러, 상세서포터 → 서포터, 기록없음 → 빈 기록.
+// 목 표본: 목캐릭터A → 딜러, 상세서포터 → 서포터, 기록없음 → 빈 기록.
 const ROSTER = [
-  ["언새늘", "딜러"],
+  ["목캐릭터A", "딜러"],
   ["상세서포터", "서포터"],
   ["기록없음", "딜러"],
 ];

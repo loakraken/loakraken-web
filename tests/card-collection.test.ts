@@ -45,10 +45,10 @@ test("card collection requests validate the name and pass through allow-listed e
     assert.equal(url.pathname, "/api/v1/characters/card-collection");
     return Response.json(fixture("dealer"));
   }) as unknown as typeof fetch;
-  assert.equal((await requestCardCollection("언새늘", origin, { fetcher })).ok, true);
+  assert.equal((await requestCardCollection("목캐릭터A", origin, { fetcher })).ok, true);
   assert.equal((await requestCardCollection("", origin, { fetcher })).ok, false);
   assert.equal(calls, 1);
-  const disabled = await requestCardCollection("언새늘", origin, {
+  const disabled = await requestCardCollection("목캐릭터A", origin, {
     fetcher: (async () =>
       Response.json({ code: "CARD_COLLECTION_DISABLED" }, { status: 503 })) as typeof fetch,
   });

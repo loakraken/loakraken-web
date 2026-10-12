@@ -48,7 +48,7 @@ export type Settings = {
   attackSpeed: number;
   moveSpeed: number;
   buffs: SpeedBuff[];
-  /** Assume class states (e.g. reaper chaos) like the target sites do. */
+  /** Assume class states (e.g. reaper chaos) are on. */
   classState: boolean;
   /** Per-effect switches the user changed (key = response toggles[].key). */
   toggles: Record<string, boolean>;

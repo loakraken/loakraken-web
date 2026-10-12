@@ -1,4 +1,4 @@
-// Recent searches (per browser), shown on the home page like LOAWA's
+// Recent searches (per browser), shown on the home page as
 // "최근 검색" card: name, item level, server and class of each character that
 // was searched successfully. Users can stop saving and clear the list.
 export type RecentCharacter = {
