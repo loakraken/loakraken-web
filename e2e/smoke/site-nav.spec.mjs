@@ -84,8 +84,11 @@ test.describe("상단 메뉴 시트(900px 이하) @smoke", () => {
     const open = page.getByRole("button", { name: "메뉴 열기" });
     await expect(open).toHaveAttribute("aria-expanded", "false");
     await open.click();
-    await expect(page.getByRole("button", { name: "메뉴 닫기" })).toHaveAttribute("aria-expanded", "true");
-    await page.getByRole("link", { name: /거래소 시세/ }).click();
+    const close = page.getByRole("button", { name: "메뉴 닫기" });
+    await expect(close).toHaveAttribute("aria-expanded", "true");
+    // 홈 바로 가기에도 같은 이름 링크가 있어 메뉴 시트 안에서 찾는다
+    const sheet = page.locator(`[id="${await close.getAttribute("aria-controls")}"]`);
+    await sheet.getByRole("link", { name: /거래소 시세/ }).click();
     await expect(page).toHaveURL(/\/market$/);
   });
 
