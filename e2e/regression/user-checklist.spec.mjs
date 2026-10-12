@@ -220,7 +220,6 @@ test.describe("사용자 지적 회귀 점검표 @regression", () => {
   const KNOWN_A7 = {
     "랭킹 기간": "누른 직후 0.0001",
     "통계 탭": "서버 탭으로 바꾸면 아래 안내가 밀림 0.0711",
-    "시세 정렬": "정렬을 바꾸면 목록 아래가 밀림 0.0130",
   };
   for (const flow of A7_FLOWS) {
     test(`@A7 ${flow.name}: ${flow.grows ? "아래로 펼치는 것 말고는" : "누른 뒤에도"} 흔들림 0`, async ({
