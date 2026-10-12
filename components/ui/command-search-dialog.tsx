@@ -290,7 +290,12 @@ function CommandSearchDialog({
           <Dialog.Title className="sr-only">캐릭터 검색</Dialog.Title>
           {/* The bar is 320 wide and 56 tall; the box holds that space so
               nothing moves when the lazy chunk lands. The panel hangs under
-              it at the same width. */}
+              the input pill, not the pill plus its round button (A33): the
+              panel keeps the old 320 width with its middle under the input's
+              middle (input 266 = 320 − 8 gap − 46 button, so 27px to the
+              left) and opens from there (user decision B, 10-12). Below 390px
+              that would leave the screen, so it lines up with the input's
+              left edge instead and opens from the input's middle (133px). */}
           <div className="relative grid h-14 w-80 max-w-full place-items-center">
             <React.Suspense fallback={<span className="text-(length:--text-caption) text-muted-foreground">불러오는 중…</span>}>
               <CommandBar
@@ -328,6 +333,9 @@ function CommandSearchDialog({
               onActive={setActive}
               onPick={(item) => rows.find((r) => r.id === item.id)?.run()}
               header="↑↓ 이동, Enter 열기, Esc 닫기"
+              // result-panel.css is unlayered (left 0, right 0, origin 0 0), so
+              // the utilities need !important to win.
+              className="left-[-27px]! right-[27px]! origin-[50%_0]! max-[389px]:left-0! max-[389px]:right-0! max-[389px]:origin-[133px_0]!"
             />
           </div>
           <p id={errorId} role="alert" className="min-h-5 text-(length:--text-caption) text-destructive">
