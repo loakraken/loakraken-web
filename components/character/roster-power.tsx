@@ -46,12 +46,16 @@ export function RosterPower({
   const refresh = useMutation({
     mutationKey: refreshKey(name),
     mutationFn: () => postRosterPowerRefresh(name, AbortSignal.timeout(35_000)),
-    onSuccess: (result) =>
+    onSuccess: (result) => {
+      // The answer is the whole roster after the read: no second request.
       client.setQueryData<RosterPowerEnvelope>(rosterPowerKey(name), {
         code: "CHARACTER_ROSTER_COMBAT_POWER_SUCCESS",
         message: result.message,
         data: viewOfRefresh(result.data),
-      }),
+      });
+      // A read records like a search, so this character may have a new history point.
+      void client.invalidateQueries({ queryKey: ["history", name] });
+    },
   });
   const failure = failureOf(refresh.error);
   const cooling = failure?.code === "ROSTER_REFRESH_COOLDOWN";

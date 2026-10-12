@@ -1857,7 +1857,7 @@ function SiblingList({
   const power = useQuery({
     queryKey: rosterPowerKey(current),
     queryFn: ({ signal }) => fetchRosterPower(current, signal),
-    retry: false,
+    retry: 1,
     staleTime: 60_000,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
