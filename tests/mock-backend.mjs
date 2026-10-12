@@ -67,6 +67,8 @@ function withSimulatorGear(data) {
     }),
     // 방어구 품질은 생명 활성력만 올려 딜러 전투력이 그대로(계산 검증 10-12): ±0과 이유.
     make("장갑", "테스트 장갑", { refineLevel: 18, quality: 95 }),
+    // 전율 armour: no advanced refining at all (backend refine model, PM-프론트 P1).
+    make("상의", "+20 전율의 상의", { refineLevel: 20, quality: 95, advancedRefineLevel: 0 }),
     // 팔 보호구(backend #342): type "완갑", step = refineLevel, grade on the item.
     { ...make("완갑", "+13 전율 완갑", { refineLevel: 13 }), grade: "유물" },
     make("어빌리티 스톤", "테스트 스톤", {
@@ -382,11 +384,13 @@ createServer(async (req, res) => {
       case "GEM_LEVEL_ALL": return ["보석 전체", null];
       case "GEM_LEVEL": {
         const gem = loadout.gems.items.find((g) => g.slot === change.slot);
+        // A character without that gem (e.g. "상세" on the spec-up goal path) still answers.
+        if (!gem) return [`보석 ${change.slot}번`, null];
         return [`보석 ${gem.slot}번(${gem.name})`, String(gem.level)];
       }
-      case "EQUIPMENT_REFINE": return [item.name, String(item.detail.refineLevel)];
-      case "EQUIPMENT_QUALITY": return [item.name, String(item.detail.quality)];
-      case "EQUIPMENT_ADVANCED_REFINE": return [item.name, String(item.detail.advancedRefineLevel ?? "")];
+      case "EQUIPMENT_REFINE": return [item?.name ?? "장비", item?.detail ? String(item.detail.refineLevel) : null];
+      case "EQUIPMENT_QUALITY": return [item?.name ?? "장비", item?.detail ? String(item.detail.quality) : null];
+      case "EQUIPMENT_ADVANCED_REFINE": return [item?.name ?? "장비", item?.detail ? String(item.detail.advancedRefineLevel ?? "") : null];
       case "POLISH": {
         const line = item.detail.polishEffects[change.line];
         return [`${item.name} 연마 ${change.line + 1}`, `${line.name} ${line.value}`];
@@ -436,6 +440,9 @@ createServer(async (req, res) => {
     if (who === "미존재") return send(specUp("character-spec-up-not-cached.json"), 404);
     const envelope = specUp(who === "스펙업시세" ? "character-spec-up-pending.json" : "character-spec-up.json");
     envelope.data.characterName = who;
+    // The same combat power the mock simulator starts from (the backend's
+    // spec-up and simulator read one character), so the L31 goal path adds up.
+    envelope.data.combatPower = read("character-full-data.json").combatPower;
     // The sample's gem is the mock simulator character's slot-1 gem (level 8).
     for (const c of envelope.data.candidates)
       if (c.change?.kind === "GEM_LEVEL") c.change.slot = 1;
@@ -1347,9 +1354,9 @@ createServer(async (req, res) => {
       tripods: [], rune: null, gemEffects: [], ...extra,
     });
     d.loadout.skills = [
-      skill("합성 포격", 14, { tripods: [{ tier: 0, slot: 1, name: "기동 포격", icon: null }, { tier: 1, slot: 2, name: "연발 포격", icon: null }, { tier: 2, slot: 1, name: "화약 추가", icon: null }], rune: { name: "풍요", icon: null, grade: "전설" }, gemEffects: [{ text: "합성 포격 피해 28.00% 증가", kind: "DAMAGE" }] }),
+      skill("합성 포격", 14, { tripods: [{ tier: 0, slot: 1, name: "기동 포격", icon: null }, { tier: 1, slot: 2, name: "연발 포격", icon: null }, { tier: 2, slot: 1, name: "화약 추가", icon: null }], rune: { name: "풍요", icon: null, grade: "전설" }, gemEffects: [{ text: "합성 포격 피해 28.00% 증가", kind: "DAMAGE" }], cooldown: { cooldownSec: 18, gemCooldownReductionPct: 0, cooldownWithGemsSec: 18, basis: "공식 재사용 대기시간과 장착 보석의 재사용 대기시간 감소만 반영했습니다." } }),
       skill("합성 화염", 14, { partBreakLevel: 1, tripods: [{ tier: 0, slot: 2, name: "장전", icon: null }], rune: { name: "풍요", icon: null, grade: "전설" } }),
-      skill("합성 중력", 10, { counter: true, rune: { name: "속행", icon: null, grade: "영웅" }, gemEffects: [{ text: "합성 중력 재사용 대기시간 20.00% 감소", kind: "COOLDOWN" }] }),
+      skill("합성 중력", 10, { counter: true, rune: { name: "속행", icon: null, grade: "영웅" }, gemEffects: [{ text: "합성 중력 재사용 대기시간 20.00% 감소", kind: "COOLDOWN" }], cooldown: { cooldownSec: 24, gemCooldownReductionPct: 20, cooldownWithGemsSec: 19.2, basis: "공식 재사용 대기시간과 장착 보석의 재사용 대기시간 감소만 반영했습니다." } }),
       skill("기본 스킬", 1, { partBreakLevel: 1, counter: true }),
     ];
     d.coverage.skills = "PROVIDED";
