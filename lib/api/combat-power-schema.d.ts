@@ -77,7 +77,7 @@ export interface components {
             /** @description 바꾼 항목(순서대로 적용, 최대 64개) */
             changes: components["schemas"]["ChangeRequest"][];
         };
-        /** @description 바꾼 항목 하나. kind마다 쓰는 필드가 다르다(docs/combat-power-simulator.md) */
+        /** @description 바꾼 항목 하나. kind마다 쓰는 필드가 다르다 */
         ChangeRequest: {
             /** @enum {string} */
             kind: "GEM_LEVEL_ALL" | "GEM_LEVEL" | "EQUIPMENT_REFINE" | "EQUIPMENT_ADVANCED_REFINE" | "EQUIPMENT_QUALITY" | "POLISH" | "BRACELET_EFFECT" | "ENGRAVING_LEVEL" | "STONE_ENGRAVING" | "ARK_PASSIVE_POINT" | "ARK_GRID_CORE" | "ARM_GUARD";
@@ -184,7 +184,7 @@ export interface components {
             delta: number | null;
             /** @enum {string} */
             status: "OK" | "UNSUPPORTED";
-            /** @description 근거 문장(사이트 이름 없음) */
+            /** @description 근거 문장 */
             basis: string;
             reasonCode: string | null;
         };
@@ -233,7 +233,7 @@ export interface components {
             polishGrades: string[];
             /** @description 연마 옵션별 하·중·상 수치(공식 툴팁 표기 그대로, 고대 장신구). 표본에서 확인하지 못한 칸은 null */
             polishValues: components["schemas"]["PolishValuesResponse"];
-            /** @description 팔찌 효과 교체에 쓰는 옵션 계열(#327). name을 BRACELET_EFFECT의 name으로, grades는 LOW·MID·HIGH별 공식 문구. 줄을 빼려면 name "없음" */
+            /** @description 팔찌 효과 교체에 쓰는 옵션 계열. name을 BRACELET_EFFECT의 name으로, grades는 LOW·MID·HIGH별 공식 문구. 줄을 빼려면 name "없음" */
             braceletOptions: components["schemas"]["BraceletOptionResponse"][];
             notes: string[];
         };
