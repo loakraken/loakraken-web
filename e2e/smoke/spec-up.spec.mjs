@@ -70,4 +70,40 @@ test.describe("스펙업 가이드 @smoke", () => {
     // React StrictMode가 처음 한 번을 두 번 보낼 수 있다.
     expect(requests).toBeLessThanOrEqual(2);
   });
+
+  test("목표 전투력을 넣으면 효율 순 경로를 시뮬레이터로 계산해 보여 준다(L31)", async ({ page }) => {
+    await page.goto(characterPath(NAME, "specup"));
+    const goal = page.getByRole("region", { name: "목표 전투력" });
+    await expect(goal.getByText("지금 12,345.67")).toBeVisible();
+    const input = goal.getByRole("textbox", { name: "목표 전투력" });
+    // 경로에 넣는 후보: 보석 8→9(62만G) 하나 — 같은 칸 8→10은 빠지고, 품질은 비용 미확인.
+    await input.fill("12,360");
+    await goal.getByRole("button", { name: "경로 찾기" }).click();
+    await expect(goal).toContainText("1단계면 전투력 12,369.67(목표 12,360.00) · 기대 비용 62만G");
+    await expect(goal.getByRole("list", { name: "효율 순으로 고른 경로" }).getByRole("listitem")).toHaveCount(1);
+    await input.fill("13000");
+    await goal.getByRole("button", { name: "경로 찾기" }).click();
+    await expect(goal).toContainText("고를 수 있는 1단계를 모두 해도 전투력 12,369.67, 목표까지 630.33 남아요");
+    await input.fill("12000");
+    await goal.getByRole("button", { name: "경로 찾기" }).click();
+    await expect(goal).toContainText("이미 목표 전투력(12,000.00) 이상이에요.");
+    await input.fill("abc");
+    await expect(goal.getByText("숫자만 입력해 주세요(소수 둘째 자리까지).")).toBeVisible();
+    await expectNoHorizontalOverflow(page);
+  });
+
+  test("후보를 못 받으면 목표 칸이 이유를 말한다(PM-프론트 #649 P1, A21)", async ({ page }) => {
+    await page.goto(characterPath("스펙업꺼짐", "specup"));
+    const goal = page.getByRole("region", { name: "목표 전투력" });
+    await expect(goal.getByText("스펙업 후보를 불러오지 못해 경로를 계산할 수 없어요.", { exact: false })).toBeVisible();
+    await expect(goal.getByRole("button", { name: "경로 찾기" })).toHaveAttribute("aria-disabled", "true");
+  });
+
+  test("시뮬레이터가 계산하지 못하는 캐릭터는 결과 대신 이유를 보여 준다(PM-프론트 #649 P2)", async ({ page }) => {
+    await page.goto(characterPath("상세", "specup"));
+    const goal = page.getByRole("region", { name: "목표 전투력" });
+    await goal.getByRole("textbox", { name: "목표 전투력" }).fill("99999");
+    await goal.getByRole("button", { name: "경로 찾기" }).click();
+    await expect(goal.getByText("고른 단계 중 시뮬레이터가 계산하지 못한 것이 있어요.")).toBeVisible();
+  });
 });
