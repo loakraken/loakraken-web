@@ -1269,6 +1269,20 @@ createServer(async (req, res) => {
     ];
   }
   if (name === "전투력계산") withSimulatorGear(envelope.data);
+  // 특성 자세히 (§14.1 ④): stats with synthetic official-style tooltip lines.
+  if (name === "특성상세") {
+    const line = (type, effect, bonus) => [effect, `${type}은(는) 물약 및 원정대 레벨 보상으로 ${bonus}만큼 영구 증가되었습니다.`];
+    envelope.data.stats = [
+      { type: "치명", value: "646", tooltip: line("치명", "치명타 적중률이 23.12% 증가합니다.", 50) },
+      { type: "특화", value: "1832", tooltip: line("특화", "고유 능력의 효과가 65.43% 증가합니다.", 50) },
+      { type: "신속", value: "88", tooltip: line("신속", "공격 속도와 이동 속도가 1.51% 증가합니다.", 50) },
+      { type: "제압", value: "60", tooltip: [] },
+      { type: "인내", value: "61", tooltip: [] },
+      { type: "숙련", value: "62", tooltip: [] },
+      { type: "공격력", value: "142077", tooltip: ["공격력은 힘, 민첩, 지능과 무기 공격력을 기반으로 증가합니다."] },
+      { type: "최대 생명력", value: "377857", tooltip: ["최대 생명력은 체력과 생명 활성력을 기반으로 증가합니다."] },
+    ];
+  }
   if (name === "마크업") {
     // Synthetic copy of the official Tooltip markup shape seen in live responses.
     const { engravings, arkPassive } = envelope.data.loadout;

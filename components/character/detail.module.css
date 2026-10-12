@@ -1263,30 +1263,133 @@
 .statDetail {
   margin-top: 14px;
 }
-.statDetail summary {
-  width: fit-content;
+.statMore {
   color: var(--link);
   font-size: 13px;
   cursor: pointer;
 }
-.statDetail dl {
-  display: grid;
-  gap: 10px;
-  margin-top: 10px;
+@media (hover: hover) and (pointer: fine) {
+  .statMore:hover {
+    text-decoration: underline;
+  }
 }
-.statDetail dt {
+/* 특성 자세히 sheet (§14.1 ④): centred, 512 wide on wide screens; a bottom
+   sheet on phones. Opacity and transform only; none with reduced motion. */
+.sheetBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgb(0 0 0 / 45%);
+  transition: opacity 200ms ease-out;
+}
+.sheetBackdrop[data-starting-style],
+.sheetBackdrop[data-ending-style] {
+  opacity: 0;
+}
+.statSheet {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  z-index: 50;
+  box-sizing: border-box;
+  width: min(512px, calc(100vw - 32px));
+  max-height: min(696px, calc(100dvh - 48px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 20px;
+  border-radius: 20px;
+  background: var(--background);
+  box-shadow: 0 0 0 1px var(--border), 0 24px 48px -16px rgb(0 0 0 / 35%);
+  outline: none;
+  transform: translate(-50%, -50%);
+  transition: opacity 200ms cubic-bezier(0.23, 1, 0.32, 1), transform 200ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.statSheet[data-starting-style],
+.statSheet[data-ending-style] {
+  opacity: 0;
+  transform: translate(-50%, -48%) scale(0.98);
+}
+.statSheet header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.statSheet h2 {
+  font-size: 17px;
+  font-weight: 700;
+}
+.statSheet h3 {
+  margin: 18px 0 8px;
+  color: var(--muted-foreground);
   font-size: 13px;
   font-weight: 600;
 }
-.statDetail dt b {
-  margin-left: 4px;
-  font-weight: 500;
+.statSheet ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.sheetClose {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  color: var(--muted-foreground);
+}
+.statTotal {
+  margin-top: 6px;
+  font-size: 14px;
   font-variant-numeric: tabular-nums;
 }
-.statDetail dd {
+.statTotal b {
+  font-size: 17px;
+  font-weight: 700;
+}
+.statCard {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--secondary);
+}
+.statCard p {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
+}
+.statCard b {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.statCard span {
   color: var(--muted-foreground);
   font-size: 12px;
   line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 640px) {
+  .statSheet {
+    top: auto;
+    bottom: 8px;
+    width: calc(100vw - 16px);
+    max-height: calc(100dvh - 56px);
+    border-radius: 24px 24px 12px 12px;
+    transform: translate(-50%, 0);
+  }
+  .statSheet[data-starting-style],
+  .statSheet[data-ending-style] {
+    transform: translate(-50%, calc(100% + 8px));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .statSheet,
+  .sheetBackdrop {
+    transition: none;
+  }
 }
 @media (prefers-reduced-motion: reduce) {
   .collectionGrid button {
