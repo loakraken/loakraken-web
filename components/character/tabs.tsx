@@ -1882,8 +1882,9 @@ function SiblingList({
   return (
     <>
       <div className={styles.rosterTools}>
-        {/* Up to 400px the pills fill the row and drop the trailing "순"
-            ("아이템 레벨 순" in the system font is wider than a 360 screen). */}
+        {/* Up to 400px the pills fill the row with one-word names (four sorts
+            in the system font are wider than a 360 screen); the full name
+            stays the accessible name. */}
         <SegmentedControl
           aria-label="원정대 정렬"
           value={sort}
