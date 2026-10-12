@@ -67,6 +67,8 @@ function withSimulatorGear(data) {
     }),
     // 방어구 품질은 생명 활성력만 올려 딜러 전투력이 그대로(계산 검증 10-12): ±0과 이유.
     make("장갑", "테스트 장갑", { refineLevel: 18, quality: 95 }),
+    // 팔 보호구(backend #342): type "완갑", step = refineLevel, grade on the item.
+    { ...make("완갑", "+13 전율 완갑", { refineLevel: 13 }), grade: "유물" },
     make("어빌리티 스톤", "테스트 스톤", {
       stoneEngravings: [
         { name: "원한", level: 1 },
@@ -409,6 +411,10 @@ createServer(async (req, res) => {
         const s = loadout.arkGrid.slots.find((x) => x.index === change.slotIndex);
         return [s.name, `${s.grade} ${s.point}P`];
       }
+      case "ARM_GUARD": {
+        const g = loadout.equipment.find((x) => x.type === "완갑");
+        return [g?.name ?? "팔 보호구", g ? `+${g.detail.refineLevel} ${g.grade}` : null];
+      }
       default: return [change.kind, null];
     }
   };
@@ -416,6 +422,7 @@ createServer(async (req, res) => {
     change.kind === "POLISH" ? `${change.option} ${change.grade}`
     : change.kind === "BRACELET_EFFECT" ? `${change.name} ${change.grade}`
     : change.kind === "ARK_GRID_CORE" ? `${change.grade} ${change.point}P`
+    : change.kind === "ARM_GUARD" ? `+${change.level} ${change.grade}`
     : String(change.level ?? change.refine ?? change.quality ?? change.points ?? "");
   const powerRead = (name) =>
     JSON.parse(readFileSync(new URL(`./combat-power-fixtures/${name}`, import.meta.url), "utf8"));
@@ -452,6 +459,8 @@ createServer(async (req, res) => {
     const d = envelope.data;
     const search = read("character-full-data.json");
     const computed = request.characterName === "전투력계산";
+    // 서포터(backend #332): every change comes back unsupported with the role reason.
+    const supporter = request.characterName === "상세서포터";
     if (computed) withSimulatorGear(search);
     const r2 = (v) => Math.round(v * 100) / 100;
     d.characterName = request.characterName;
@@ -464,11 +473,14 @@ createServer(async (req, res) => {
       to: powerTo(change),
       delta: computed ? (armourQuality(search, change) ? 0 : (specUpDelta(change) ?? r2(10 + i))) : null,
       status: computed ? "OK" : "UNSUPPORTED",
-      basis: computed
-        ? armourQuality(search, change)
-          ? "방어구 품질은 체력에만 붙어 전투력이 바뀌지 않습니다."
-          : "합성 값(목 서버)"
-        : d.contributions[0].basis,
+      basis: supporter
+        ? "서포터 전투력 계산식은 아직 적용하지 않았습니다."
+        : computed
+          ? armourQuality(search, change)
+            ? "방어구 품질은 체력에만 붙어 전투력이 바뀌지 않습니다."
+            : "합성 값(목 서버)"
+          : d.contributions[0].basis,
+      reasonCode: supporter ? "SUPPORTER_MODEL_PENDING" : computed ? null : "MODEL_UNCONFIRMED",
     }));
     const delta = computed ? r2(d.contributions.reduce((sum, item) => sum + item.delta, 0)) : 0;
     d.after = d.before == null ? null : r2(d.before + delta);

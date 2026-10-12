@@ -31,6 +31,9 @@ export const OPEN_KINDS: ReadonlySet<string> = new Set([
   "EQUIPMENT_QUALITY",
   "ENGRAVING_LEVEL",
   "STONE_ENGRAVING",
+  // backend #332 (bracelet families) and #342 (팔 보호구), sim v8
+  "BRACELET_EFFECT",
+  "ARM_GUARD",
 ]);
 export const isOpen = (kind: Change["kind"]) => OPEN_KINDS.has(kind);
 
@@ -50,6 +53,7 @@ export const KIND_LABEL: Record<string, string> = {
   STONE_ENGRAVING: "스톤",
   ARK_PASSIVE_POINT: "아크 패시브",
   ARK_GRID_CORE: "아크 그리드",
+  ARM_GUARD: "팔 보호구",
 };
 
 /** What the user has changed, keyed by the target the backend uses. */
@@ -62,12 +66,16 @@ export type Edits = {
   advanced: Record<number, number>;
   /** Polish grade per `${index}:${line}` (the option itself stays). */
   polish: Record<string, Grade>;
-  /** Bracelet grade per line (the effect itself stays). */
+  /** Bracelet grade per line. */
   bracelet: Record<number, Grade>;
+  /** Bracelet option family per line (options.braceletOptions name, "없음" removes it; backend #332). */
+  braceletName: Record<number, string>;
   engraving: Record<string, number>;
   stone: Record<string, number>;
   arkPassive: Record<string, number>;
   core: Record<number, { grade: string; point: number }>;
+  /** 팔 보호구(완갑) step and grade (backend #342). */
+  armGuard: { level?: number; grade?: string };
 };
 export const NO_EDITS: Edits = {
   gemAll: null,
@@ -77,10 +85,12 @@ export const NO_EDITS: Edits = {
   advanced: {},
   polish: {},
   bracelet: {},
+  braceletName: {},
   engraving: {},
   stone: {},
   arkPassive: {},
   core: {},
+  armGuard: {},
 };
 
 export const GRADES = ["LOW", "MID", "HIGH"] as const;
@@ -97,6 +107,7 @@ export type Current = {
   stones?: { name: string; level: number }[];
   arkPassive?: { tree: string; points: number }[];
   cores?: { slotIndex: number; grade: string; point: number }[];
+  armGuard?: { level: number; grade: string } | null;
 };
 
 export type PolishValues = NonNullable<Options["polishValues"]>;
@@ -167,9 +178,11 @@ export function toChanges(edits: Edits, current: Current): Change[] {
       changes.push({ kind: "POLISH", index: line.index, line: line.line, option: line.option, grade });
   }
   for (const line of current.bracelet ?? []) {
-    const grade = edits.bracelet[line.line];
-    if (grade && grade !== line.grade)
-      changes.push({ kind: "BRACELET_EFFECT", line: line.line, name: line.name, grade });
+    // The family (braceletOptions name) or the grade, or both (backend #332).
+    const name = edits.braceletName[line.line] ?? line.name;
+    const grade = edits.bracelet[line.line] ?? line.grade;
+    if ((name !== line.name || grade !== line.grade) && grade)
+      changes.push({ kind: "BRACELET_EFFECT", line: line.line, name, grade });
   }
   for (const item of current.engravings ?? []) {
     const level = edits.engraving[item.name];
@@ -191,8 +204,21 @@ export function toChanges(edits: Edits, current: Current): Change[] {
     if (edit && (edit.grade !== item.grade || edit.point !== item.point))
       changes.push({ kind: "ARK_GRID_CORE", slotIndex: item.slotIndex, grade: edit.grade, point: edit.point });
   }
+  const guard = current.armGuard;
+  if (guard) {
+    const level = edits.armGuard.level ?? guard.level;
+    const grade = edits.armGuard.grade ?? guard.grade;
+    if (level !== guard.level || grade !== guard.grade) changes.push({ kind: "ARM_GUARD", level, grade });
+  }
   return changes.slice(0, MAX_CHANGES);
 }
+
+/** Supporters and unjudged roles are not computed at all (backend #332): one line, not one per row. */
+export const ROLE_REASONS: ReadonlySet<string> = new Set(["SUPPORTER_MODEL_PENDING", "ROLE_UNKNOWN"]);
+
+/** 팔 보호구 grades the simulator takes (backend #342). */
+export const ARM_GUARD_GRADES = ["영웅", "전설", "유물", "고대"] as const;
+export const ARM_GUARD_MAX = 25;
 
 /** The effective level a gem shows while editing (its own edit, then the bulk one). */
 export function gemLevel(edits: Edits, gem: { slot: number; level: number }) {

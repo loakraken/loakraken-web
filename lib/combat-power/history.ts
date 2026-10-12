@@ -76,6 +76,7 @@ export type Identity = {
   gear: { index: number; type: string; name: string }[];
   polish: { index: number; line: number; item: string; option: string }[];
   bracelet: { line: number; name: string }[];
+  armGuard?: { name: string } | null;
   engravings: { name: string }[];
   stones: { name: string }[];
   arkPassive: { tree: string }[];
@@ -92,6 +93,8 @@ export function targetsOf(identity: Identity): Required<Targets> {
     advanced: gear,
     polish: Object.fromEntries(identity.polish.map((p) => [`${p.index}:${p.line}`, `${p.item}|${p.option}`])),
     bracelet: Object.fromEntries(identity.bracelet.map((b) => [String(b.line), b.name])),
+    braceletName: Object.fromEntries(identity.bracelet.map((b) => [String(b.line), b.name])),
+    armGuard: identity.armGuard ? { level: identity.armGuard.name, grade: identity.armGuard.name } : {},
     engraving: Object.fromEntries(identity.engravings.map((e) => [e.name, e.name])),
     stone: Object.fromEntries(identity.stones.map((e) => [e.name, e.name])),
     arkPassive: Object.fromEntries(identity.arkPassive.map((a) => [a.tree, a.tree])),
@@ -99,7 +102,20 @@ export function targetsOf(identity: Identity): Required<Targets> {
   };
 }
 
-const GROUPS = ["gems", "refine", "quality", "advanced", "polish", "bracelet", "engraving", "stone", "arkPassive", "core"] as const;
+const GROUPS = [
+  "gems",
+  "refine",
+  "quality",
+  "advanced",
+  "polish",
+  "bracelet",
+  "braceletName",
+  "engraving",
+  "stone",
+  "arkPassive",
+  "core",
+  "armGuard",
+] as const;
 
 /**
  * Applies a saved input to the character as it is now: entries whose target
@@ -175,6 +191,17 @@ export function parseSaved(text: string | null): Saved | null {
     stone: numbers("stone"),
     arkPassive: numbers("arkPassive"),
     core: cores as Edits["core"],
+    braceletName: isRecord(source.braceletName)
+      ? Object.fromEntries(
+          Object.entries(source.braceletName).filter((entry): entry is [string, string] => typeof entry[1] === "string"),
+        )
+      : {},
+    armGuard: isRecord(source.armGuard)
+      ? {
+          ...(isNumber(source.armGuard.level) && { level: source.armGuard.level }),
+          ...(typeof source.armGuard.grade === "string" && { grade: source.armGuard.grade }),
+        }
+      : {},
   };
   let targets: Targets | undefined;
   if (isRecord(raw.targets)) {
