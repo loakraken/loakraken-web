@@ -124,7 +124,8 @@ export function CollectibleRankingsView({
         <div className={styles.listHold} {...pendingProps(list)}>
           {data?.meta && (
             <p className={styles.notice}>
-              {sampleText(data.meta, "roster")} · 공식 랭킹이 아니에요
+              {/* Fixed words first, as on the character ranking (A7, #594). */}
+              공식 랭킹이 아니에요 · {sampleText(data.meta, "roster")}
               {!ready && <strong> · 표본 {data.meta.minSample}개 원정대가 모이면 순위를 보여 드려요</strong>}
             </p>
           )}

@@ -430,6 +430,28 @@ function ServersTab({ query }: { query: StatsQuery }) {
 }
 
 /**
+ * The tallest the tab panel has been on this visit. A shorter tab (or its
+ * loading line) keeps that room, so the notice under the tabs never moves up
+ * on a tab click and back down when the data lands (A7, #594); a taller tab
+ * still grows the room.
+ */
+function useTallest() {
+  const ref = useRef<HTMLDivElement>(null);
+  const [tallest, setTallest] = useState(0);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new ResizeObserver(() => {
+      const height = el.offsetHeight;
+      setTallest((current) => (height > current ? height : current));
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+  return [ref, tallest] as const;
+}
+
+/**
  * Statistics (B-3): summary + class quantile table + distribution and
  * server tabs, and a filter row. Filters live in the URL (shareable) and
  * apply at once; numbers are debounced.
@@ -449,6 +471,7 @@ export function StatsView({ initial, initialTab }: { initial: StatsQuery; initia
   const latest = useRef(initial);
   const levelTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const ids = { server: useId(), role: useId(), days: useId(), level: useId() };
+  const [panelRef, tallest] = useTallest();
 
   function apply(next: StatsQuery, nextTab = tab) {
     latest.current = next;
@@ -542,13 +565,15 @@ export function StatsView({ initial, initialTab }: { initial: StatsQuery; initia
           }}
           panels={
             <PillTabsPanel value={tab} className={styles.panel}>
-              {tab === "classes" ? (
-                <ClassesTab query={query} />
-              ) : tab === "distribution" ? (
-                <DistributionTab query={query} />
-              ) : (
-                <ServersTab query={query} />
-              )}
+              <div ref={panelRef} style={tallest ? { minHeight: tallest } : undefined}>
+                {tab === "classes" ? (
+                  <ClassesTab query={query} />
+                ) : tab === "distribution" ? (
+                  <DistributionTab query={query} />
+                ) : (
+                  <ServersTab query={query} />
+                )}
+              </div>
             </PillTabsPanel>
           }
         >

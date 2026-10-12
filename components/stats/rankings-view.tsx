@@ -153,7 +153,9 @@ export function RankingsView({ initial, types }: { initial: RankingQuery; types:
 
         {data && (
           <p className={styles.notice} {...pendingProps(list)}>
-            {sampleText(data.meta)} · 공식 랭킹이 아니에요
+            {/* The fixed words first: the count changes with the filters, and
+                text after it slid sideways (A7, #594). */}
+            공식 랭킹이 아니에요 · {sampleText(data.meta)}
             {data.meta.sampleStatus !== "READY" && <strong> · 표본 {data.meta.minSample}명이 모이면 순위를 보여 드려요</strong>}
           </p>
         )}
