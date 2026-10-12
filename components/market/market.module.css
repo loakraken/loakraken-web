@@ -162,6 +162,10 @@
 .rowPrice {
   display: grid;
   justify-items: end;
+  /* A fixed floor wide enough for a usual day change (▲1,234 (12.3%)), so a
+     refresh that adds a digit does not widen the column and slide the price
+     box and the name beside it (A7, PM-프론트 #617). */
+  min-width: 8rem;
 }
 .rowPrice b {
   font-size: 15px;

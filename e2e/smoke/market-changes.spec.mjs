@@ -26,6 +26,9 @@ test.describe("시세판 바뀐 칸 강조 @smoke", () => {
     await expect(rows).toHaveCount(10);
     const firstPrice = rows.first().locator('[data-slot="change-mark"]').first();
     const before = await firstPrice.boundingBox();
+    // 가격·등락 묶음: 등락 자릿수가 늘어도 폭이 그대로라 왼쪽 끝도 그대로다(A7)
+    const group = firstPrice.locator("xpath=..");
+    const groupBefore = await group.boundingBox();
     await expect(board.locator('[data-slot="change-mark"][data-tone]')).toHaveCount(0);
 
     await page.clock.fastForward(61_000);
@@ -38,6 +41,7 @@ test.describe("시세판 바뀐 칸 강조 @smoke", () => {
     const after = await firstPrice.boundingBox();
     expect(after.x).toBe(before.x);
     expect(after.y).toBe(before.y);
+    expect(await group.boundingBox()).toEqual(groupBefore);
     await page.clock.fastForward(2_000);
     await expect(page.getByRole("status").filter({ hasText: "시세 1개 바뀜." })).toBeAttached();
     await expect(board.locator('[data-slot="change-mark"][data-tone]')).toHaveCount(0);
