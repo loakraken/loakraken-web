@@ -66,7 +66,7 @@ test.describe("전투력 시뮬레이터 @smoke", () => {
     await page.keyboard.press("Escape");
   });
 
-  test("각인·스톤은 바꾸고, 재련·연마·팔찌·팔 보호구·아크 패시브·코어는 '준비 중'으로 잠긴다", async ({ page }) => {
+  test("각인·스톤·팔찌·팔 보호구는 바꾸고, 재련·연마·아크 패시브·코어는 '준비 중'으로 잠긴다", async ({ page }) => {
     // PM 총괄 23:59: 계산 검증을 통과한 항목(보석·품질·각인·스톤)만 바꿀 수 있다.
     await gotoReady(page, `/tools/combat-power?character=${encodeURIComponent("전투력계산")}`);
     await chooseOption(page, page.getByRole("combobox", { name: "스톤 원한 레벨" }), "2");
@@ -77,7 +77,7 @@ test.describe("전투력 시뮬레이터 @smoke", () => {
     for (const name of ["투구 재련 단계", "투구 상급 재련 단계", "테스트 목걸이 추가 피해 등급", "테스트 코어 등급"])
       await expect(page.getByRole("combobox", { name })).toHaveCount(0);
     await expect(page.getByRole("textbox", { name: "아크 패시브 진화 포인트" })).toHaveCount(0);
-    for (const title of ["연마", "팔찌", "팔 보호구", "아크 패시브", "아크 그리드 코어"])
+    for (const title of ["연마", "아크 패시브", "아크 그리드 코어"])
       await expect(page.getByRole("region", { name: title, exact: true })).toContainText("준비 중");
     await expect(page.getByText("재련 +19 · 준비 중")).toBeVisible();
     // 잠긴 연마 줄도 등급과 공식 수치를 같은 단위로(backend #254): "중(+1.60%)".
@@ -140,13 +140,16 @@ test.describe("전투력 시뮬레이터 @smoke", () => {
     await expect(page.getByText("아래에서 값을 바꾸면 바로 다시 계산해요.")).toBeVisible();
   });
 
-  test("팔 보호구는 지금 단계·등급을 보여 주고, 검증 전이라 바꾸는 칸은 없다(백엔드 #342, PM-프론트 #640)", async ({ page }) => {
+  test("팔 보호구 단계·등급과 팔찌 계열을 바꿔 계산한다(백엔드 #342·#332)", async ({ page }) => {
     await gotoReady(page, `/tools/combat-power?character=${encodeURIComponent("전투력계산")}`);
     const guard = page.getByRole("region", { name: "팔 보호구" });
     await expect(guard).toContainText("+13 전율 완갑");
-    await expect(guard).toContainText("+13 · 유물");
-    for (const name of ["팔 보호구 단계", "팔 보호구 등급", "팔찌 2번째 효과 계열"])
-      await expect(page.getByRole("combobox", { name })).toHaveCount(0);
+    await chooseOption(page, page.getByRole("combobox", { name: "팔 보호구 단계" }), "15");
+    const changes = page.getByRole("region", { name: "바꾼 것" });
+    await expect(changes.getByText("팔 보호구")).toBeVisible();
+    await expect(changes.getByText("+13 유물 → +15 유물")).toBeVisible();
+    await chooseOption(page, page.getByRole("combobox", { name: "팔찌 2번째 효과 계열" }), "추가 피해");
+    await expect(changes.getByText("팔찌", { exact: true })).toBeVisible();
     await expectNoHorizontalOverflow(page);
   });
 

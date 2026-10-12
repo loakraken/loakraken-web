@@ -31,8 +31,9 @@ export const OPEN_KINDS: ReadonlySet<string> = new Set([
   "EQUIPMENT_QUALITY",
   "ENGRAVING_LEVEL",
   "STONE_ENGRAVING",
-  // BRACELET_EFFECT (#332) and ARM_GUARD (#342) are wired but stay closed
-  // until sim v8 passes calc verification (PM-프론트 #640).
+  // backend #332 (bracelet families) and #342 (팔 보호구), sim v8
+  "BRACELET_EFFECT",
+  "ARM_GUARD",
 ]);
 export const isOpen = (kind: Change["kind"]) => OPEN_KINDS.has(kind);
 

@@ -168,11 +168,11 @@ test("the simulator is hidden on the production host unless turned on", () => {
 
 test("1차판 opens only the kinds that passed verification (PM 총괄 23:59)", () => {
   assert.deepEqual(
-    // sim v8: bracelet families (#332) and 팔 보호구 (#342) wait for verification.
+    // sim v8: bracelet families (#332) and 팔 보호구 (#342) opened too.
     ["GEM_LEVEL_ALL", "GEM_LEVEL", "EQUIPMENT_QUALITY", "ENGRAVING_LEVEL", "STONE_ENGRAVING", "BRACELET_EFFECT", "ARM_GUARD"].map(
       (k) => isOpen(k as never),
     ),
-    [true, true, true, true, true, false, false],
+    [true, true, true, true, true, true, true],
   );
   assert.deepEqual(
     ["EQUIPMENT_REFINE", "EQUIPMENT_ADVANCED_REFINE", "POLISH", "ARK_PASSIVE_POINT", "ARK_GRID_CORE"].map((k) =>
