@@ -5,10 +5,10 @@
 import type { RosterPower, RosterPowerRefresh } from "./roster-power";
 
 export const ROSTER_SORTS = [
-  { id: "combatPower", label: "전투력 순" },
-  { id: "itemLevel", label: "아이템 레벨 순" },
-  { id: "characterLevel", label: "캐릭터 레벨 순" },
-  { id: "name", label: "이름 순" },
+  { id: "combatPower", label: "전투력 순", short: "전투력" },
+  { id: "itemLevel", label: "아이템 레벨 순", short: "아이템" },
+  { id: "characterLevel", label: "캐릭터 레벨 순", short: "레벨" },
+  { id: "name", label: "이름 순", short: "이름" },
 ] as const;
 export type RosterSort = (typeof ROSTER_SORTS)[number]["id"];
 

@@ -1893,7 +1893,7 @@ function SiblingList({
           {ROSTER_SORTS.map((item) => (
             <SegmentedItem key={item.id} value={item.id} aria-label={item.label} className="max-[400px]:px-2">
               <span className="max-[400px]:hidden">{item.label}</span>
-              <span className="hidden max-[400px]:inline">{item.label.replace(/ 순$/, "")}</span>
+              <span className="hidden max-[400px]:inline">{item.short}</span>
             </SegmentedItem>
           ))}
         </SegmentedControl>

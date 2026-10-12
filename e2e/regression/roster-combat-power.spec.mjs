@@ -1,7 +1,7 @@
 // 회귀(L19): 원정대 캐릭터별 전투력 — 기본 정렬은 전투력(기록 없음은 맨 아래), 식스맨·총합은
 // 기록 있는 캐릭터 기준('n명 기준'), '전투력 불러오기'는 기록 없는 캐릭터가 있을 때만.
 // 불러오는 동안 목록은 흐리게(A8), 기록이 오고 불러오기가 끝나도 화면이 흔들리지 않는다(A6·A7).
-import { test, expect, characterPath, gotoReady } from "../support/fixtures.mjs";
+import { test, expect, characterPath, gotoReady, expectNoHorizontalOverflow } from "../support/fixtures.mjs";
 
 const trackShifts = (page) =>
   page.addInitScript(() => {
