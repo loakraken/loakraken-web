@@ -6,7 +6,7 @@ import { characterNameError, normalizeCharacterName } from "../character/model";
 import { rateLimitCopy } from "../api/rate-limit";
 
 type Schemas = components["schemas"];
-/** classState: backend #193 (omitted = on = target-site basis, false = observed only). */
+/** classState: backend #193 (omitted = on, false = observed only). */
 export type Assumptions = Schemas["CritSpeedAssumptions"];
 export type CritSpeedRequest = { characterName: string; assumptions: Assumptions };
 export type CritSpeed = Schemas["CritSpeedResponse"];
