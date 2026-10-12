@@ -163,22 +163,22 @@ test("한글 조합 중(상 → 상ㅅ → 상세)에도 '정보 보기' 줄은 
 });
 
 for (const width of [1440, 360]) {
-  test(`@A33 ${width}: 결과 패널은 연 입력칸의 왼쪽 끝·폭에 맞고 둥근 버튼은 밖에 있다 @regression`, async ({ page }) => {
+  test(`@A33 ${width}: 결과 패널은 320px, 가운데가 연 입력칸 가운데(좁으면 왼쪽 끝), 화면 밖 0 @regression`, async ({ page }) => {
     await page.setViewportSize({ width, height: 800 });
     const box = await openSearch(page);
     await page.keyboard.type("상");
-    const list = page.getByRole("listbox", { name: "검색 결과" });
-    await expect(list).toBeVisible();
+    await expect(page.getByRole("listbox", { name: "검색 결과" })).toBeVisible();
     // 입력칸 알약(.cmd)이 기준 — 콤보박스 input은 알약 안쪽 여백만큼 작다
     const pill = await box.evaluate((el) => {
       const r = el.closest(".cmd").getBoundingClientRect();
-      return { x: r.x, width: r.width, right: r.right };
+      return { x: r.x, width: r.width };
     });
     // 패널 바깥 상자(.rsp) — listbox는 그 안쪽 목록이라 여백만큼 작다
     const panel = await page.locator(".rsp").boundingBox();
-    expect(Math.abs(panel.x - pill.x)).toBeLessThanOrEqual(1);
-    expect(Math.abs(panel.width - pill.width)).toBeLessThanOrEqual(1);
-    const go = await page.locator(".cmd-go").boundingBox();
-    expect(go.x).toBeGreaterThanOrEqual(panel.x + panel.width);
+    expect(Math.abs(panel.width - 320)).toBeLessThanOrEqual(1);
+    if (width >= 390) expect(Math.abs(panel.x + panel.width / 2 - (pill.x + pill.width / 2))).toBeLessThanOrEqual(1);
+    else expect(Math.abs(panel.x - pill.x)).toBeLessThanOrEqual(1);
+    expect(panel.x).toBeGreaterThanOrEqual(0);
+    expect(panel.x + panel.width).toBeLessThanOrEqual(width);
   });
 }
