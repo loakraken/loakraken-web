@@ -1128,6 +1128,37 @@ const ATTACK_LABEL: Record<string, string> = { BACK_ATTACK: "백 어택", HEAD_A
 
 type SkillGem = ReturnType<typeof skillGems>[number];
 
+const seconds = (value: number) => `${value.toLocaleString("ko-KR", { maximumFractionDigits: 2 })}초`;
+
+/**
+ * 보석 반영 쿨타임 (backend #378, checklist K20): the official cooldown and
+ * the equipped gems' reduction only, nothing else (engravings, swiftness are
+ * not in it), so the basis sentence rides along as the term's tooltip.
+ */
+function SkillCooldown({ cooldown }: { cooldown: NonNullable<Skill["cooldown"]> }) {
+  const reduced = cooldown.gemCooldownReductionPct > 0;
+  return (
+    <p className={styles.skillCooldown}>
+      <Tooltip>
+        <TooltipTrigger className={styles.braceletEffTerm} aria-label={`쿨타임: ${cooldown.basis}`}>
+          쿨타임
+        </TooltipTrigger>
+        <TooltipContent>{cooldown.basis}</TooltipContent>
+      </Tooltip>
+      {reduced ? (
+        <>
+          <span className={styles.skillCooldownFrom}>{seconds(cooldown.cooldownSec)}</span>
+          <span aria-hidden="true">→</span>
+          <b>{seconds(cooldown.cooldownWithGemsSec)}</b>
+          <small>보석 {cooldown.gemCooldownReductionPct.toLocaleString("ko-KR", { maximumFractionDigits: 2 })}% 감소</small>
+        </>
+      ) : (
+        <b>{seconds(cooldown.cooldownSec)}</b>
+      )}
+    </p>
+  );
+}
+
 function SkillCard({
   skill,
   compact,
@@ -1200,6 +1231,7 @@ function SkillCard({
           </DetailTooltip>
         )}
       </div>
+      {!compact && skill.cooldown && <SkillCooldown cooldown={skill.cooldown} />}
       {chips.length > 0 && (
         <ul className={styles.skillChips} aria-label="스킬 정보">
           {chips.map((chip) => (
