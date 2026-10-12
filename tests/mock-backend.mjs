@@ -639,7 +639,16 @@ createServer(async (req, res) => {
     const now = Date.now();
     const base = JSON.parse(readFileSync(new URL("./siblings-fixtures/character-siblings.json", import.meta.url), "utf8"));
     base.data.characterName = who;
-    base.data.siblings = [
+    // L19: the same five as the roster-combat-power records.
+    if (who === "원정대전투력" || who === "전투력쿨다운")
+      base.data.siblings = [
+        [who, "블래스터", 1780.83],
+        ["전투력둘", "바드", 1750],
+        ["전투력셋", "버서커", 1720],
+        ["전투력넷", "소서리스", 1700],
+        ["전투력다섯", "도화가", 1680],
+      ].map(([characterName, className, itemLevel]) => ({ characterName, serverName: "아만", className, characterLevel: 70, itemLevel }));
+    else base.data.siblings = [
       { characterName: who, serverName: "아만", className: "블래스터", characterLevel: 70, itemLevel: 1780.83 },
       { characterName: "합성원정대", serverName: "아만", className: "바드", characterLevel: 70, itemLevel: 1720 },
       { characterName: "합성부캐", serverName: "루페온", className: "버서커", characterLevel: 60, itemLevel: 1640 },
@@ -1283,15 +1292,6 @@ createServer(async (req, res) => {
   if (name === "빈목록") envelope = read("observation-gems-items-empty.json");
   if (name === "미제공") envelope = read("observation-gems-items-null.json");
   envelope.data.characterName = name;
-  // L19: a five-character roster whose combat powers come from roster-combat-power.
-  if (name === "원정대전투력" || name === "전투력쿨다운")
-    envelope.data.siblings = [
-      [name, "블래스터", 1780.83],
-      ["전투력둘", "바드", 1750],
-      ["전투력셋", "버서커", 1720],
-      ["전투력넷", "소서리스", 1700],
-      ["전투력다섯", "도화가", 1680],
-    ].map(([characterName, className, itemLevel]) => ({ characterName, serverName: "아만", className, characterLevel: 70, itemLevel }));
   // Multi-search (web #611): 비교1…비교6 differ in level, power, class and
   // gear so the comparison has a best value and a sort to show.
   const compare = /^비교([1-6])$/.exec(name);
