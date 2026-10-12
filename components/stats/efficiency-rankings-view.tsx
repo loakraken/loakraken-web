@@ -161,7 +161,7 @@ export function EfficiencyRankingsView({
         </form>
 
         {data && (
-          <p className={styles.notice} {...pendingProps(list)}>
+          <p className={`${styles.notice} ${styles.rankingNotice}`} {...pendingProps(list)}>
             {/* Fixed words first, as on the character ranking (A7, #594). */}
             공식 랭킹이 아니에요 · {sampleText(data.meta)}
           </p>

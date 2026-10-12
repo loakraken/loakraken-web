@@ -146,7 +146,7 @@ export function RosterRankingsView({ initial, types }: { initial: RosterQuery; t
             never move when the rows arrive (CLS). */}
         <div className={styles.listHold} {...pendingProps(list)}>
           {data?.meta && (
-            <p className={styles.notice}>
+            <p className={`${styles.notice} ${styles.rankingNotice}`}>
               {sampleText(data.meta, "roster")} ·
               공식 랭킹이 아니에요
               {!ready && (

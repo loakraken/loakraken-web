@@ -586,12 +586,13 @@
 }
 /* The note over the table keeps two lines (three on a phone): its numbers
    change with the filters, and a line break coming or going moved the table. */
-.notice {
+/* ranking pages only */
+.rankingNotice {
   line-height: 1.5;
   min-height: 3em;
 }
 @media (max-width: 420px) {
-  .notice {
+  .rankingNotice {
     min-height: 4.5em;
   }
 }

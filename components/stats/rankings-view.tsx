@@ -155,7 +155,7 @@ export function RankingsView({ initial, types }: { initial: RankingQuery; types:
         </form>
 
         {data && (
-          <p className={styles.notice} {...pendingProps(list)}>
+          <p className={`${styles.notice} ${styles.rankingNotice}`} {...pendingProps(list)}>
             {/* The fixed words first: the count changes with the filters, and
                 text after it slid sideways (A7, #594). */}
             공식 랭킹이 아니에요 · {sampleText(data.meta)}
