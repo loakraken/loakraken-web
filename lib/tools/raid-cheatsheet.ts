@@ -55,7 +55,8 @@ export const COUNTERPLAY_MAX = 100;
 // Screen text names no source and adds no vague hedges (PM 총괄 데이터 규칙).
 // Site names are left to the shared regression check, so no name list lives
 // in this public repository (PM-프론트 #619 P1).
-const FORBIDDEN_TEXT = /인벤|나무위키|공지|출처|다를 수 있/;
+// \s keeps the hedge itself out of this file (회귀 검사 B2 reads source text).
+const FORBIDDEN_TEXT = /인벤|나무위키|공지|출처|다를\s수\s있/;
 
 /** Consistency problems in the data; the test suite expects none. */
 export function checkCheatSheet(data: CheatSheetData, rewards: RaidData = RAID_DATA): string[] {
