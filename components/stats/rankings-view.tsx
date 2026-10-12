@@ -16,6 +16,7 @@ import { conditionsKey, fixed, percent, sampleText, whole } from "@/lib/stats/mo
 import { MAX_PAGE, PAGE_SIZE, arkPassiveText, estherText, rankingSearch, type RankingQuery } from "@/lib/stats/rankings";
 import quote from "@/components/tools/material-quote.module.css";
 import styles from "./stats.module.css";
+import { rankingColumns } from "./ranking-columns";
 import { BasisNote } from "./basis-note";
 import { RankingTypeTabs, type RankingType } from "./ranking-type-tabs";
 
@@ -25,6 +26,8 @@ const CLASSES = [
   "창술사", "스트라이커", "브레이커", "데빌헌터", "블래스터", "호크아이", "스카우터", "건슬링어", "바드",
   "서머너", "아르카나", "소서리스", "블레이드", "데모닉", "리퍼", "소울이터", "도화가", "기상술사", "환수사",
 ];
+
+const COLUMNS = rankingColumns([3.5, 10, 6, 8.5, 6, 6.5, 6.5, 14, 7, 9.5, 7.5]);
 
 /**
  * Ranking (backend #100): combat power or item level, filtered
@@ -176,10 +179,16 @@ export function RankingsView({ initial, types }: { initial: RankingQuery; types:
         ) : data.rows.length === 0 ? (
           <p className={styles.muted}>조건에 맞는 캐릭터가 없어요.</p>
         ) : (
-          <DataTable label={`${metricLabel} 랭킹 ${query.page}쪽`} className={styles.table} {...pendingProps(list)}>
+          <DataTable
+            label={`${metricLabel} 랭킹 ${query.page}쪽`}
+            className={styles.table}
+            {...COLUMNS.tableProps}
+            {...pendingProps(list)}
+          >
             <caption className={styles.srOnly}>
               {metricLabel} 랭킹 {query.page}쪽
             </caption>
+            {COLUMNS.colgroup}
             <thead>
               <tr>
                 <th scope="col">순위</th>

@@ -574,3 +574,24 @@
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
+/* Fixed ranking columns (ranking-columns.tsx, A7 #673): the widths come from
+   the colgroup; a longer value ends in an ellipsis inside its cell. */
+.table[data-fixed] {
+  table-layout: fixed;
+  width: max(100%, var(--ranking-cols));
+}
+.table[data-fixed] :is(th, td) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* The note over the table keeps two lines (three on a phone): its numbers
+   change with the filters, and a line break coming or going moved the table. */
+.notice {
+  line-height: 1.5;
+  min-height: 3em;
+}
+@media (max-width: 420px) {
+  .notice {
+    min-height: 4.5em;
+  }
+}
