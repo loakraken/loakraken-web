@@ -44,6 +44,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/characters/combat-power/contributions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 장착 항목의 전투력 기여(공식 호출 없음)
+         * @description 그 항목을 뺐을 때 공식 전투력이 몇 % 줄어드는지입니다(전투력 기여 % = 1 − 뺀 전투력 / 지금 전투력). 지금은 팔찌(효과 줄 전부 + 팔찌 도약 포인트)만 주고, kind는 문자열이라 늘어날 수 있습니다. 계산할 수 없으면 status=UNSUPPORTED이고 contributionPct=null입니다.
+         */
+        get: operations["contributions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -60,7 +80,7 @@ export interface components {
         /** @description 바꾼 항목 하나. kind마다 쓰는 필드가 다르다(docs/combat-power-simulator.md) */
         ChangeRequest: {
             /** @enum {string} */
-            kind: "GEM_LEVEL_ALL" | "GEM_LEVEL" | "EQUIPMENT_REFINE" | "EQUIPMENT_ADVANCED_REFINE" | "EQUIPMENT_QUALITY" | "POLISH" | "BRACELET_EFFECT" | "ENGRAVING_LEVEL" | "STONE_ENGRAVING" | "ARK_PASSIVE_POINT" | "ARK_GRID_CORE";
+            kind: "GEM_LEVEL_ALL" | "GEM_LEVEL" | "EQUIPMENT_REFINE" | "EQUIPMENT_ADVANCED_REFINE" | "EQUIPMENT_QUALITY" | "POLISH" | "BRACELET_EFFECT" | "ENGRAVING_LEVEL" | "STONE_ENGRAVING" | "ARK_PASSIVE_POINT" | "ARK_GRID_CORE" | "ARM_GUARD";
             /**
              * Format: int32
              * @description 보석 slot(GEM_LEVEL)
@@ -78,7 +98,7 @@ export interface components {
             line?: number;
             /**
              * Format: int32
-             * @description 보석 레벨·상급 재련 단계·각인·스톤 레벨
+             * @description 보석 레벨(0은 보석 빼기)·상급 재련 단계·각인·스톤 레벨
              */
             level?: number;
             /**
@@ -166,6 +186,7 @@ export interface components {
             status: "OK" | "UNSUPPORTED";
             /** @description 근거 문장(사이트 이름 없음) */
             basis: string;
+            reasonCode: string | null;
         };
         /** @description 공통 오류 응답. HTTP 상태와 업무 코드를 함께 확인합니다. */
         ErrorResponse: {
@@ -210,30 +231,94 @@ export interface components {
             /** Format: int32 */
             corePointMax: number;
             polishGrades: string[];
+            /** @description 연마 옵션별 하·중·상 수치(공식 툴팁 표기 그대로, 고대 장신구). 표본에서 확인하지 못한 칸은 null */
+            polishValues: components["schemas"]["PolishValuesResponse"];
+            /** @description 팔찌 효과 교체에 쓰는 옵션 계열(#327). name을 BRACELET_EFFECT의 name으로, grades는 LOW·MID·HIGH별 공식 문구. 줄을 빼려면 name "없음" */
+            braceletOptions: components["schemas"]["BraceletOptionResponse"][];
             notes: string[];
-            /** @description 고대 장신구 연마 옵션별 하·중·상 수치(backend #254). 그 전 백엔드에는 없다 */
-            polishValues?: components["schemas"]["PolishValuesResponse"];
+        };
+        PolishValuesResponse: {
+            /** @description 수치 표 버전 */
+            version: string;
+            /** @description 장신구 등급(지금은 고대만) */
+            accessoryGrade: string;
+            /**
+             * Format: int32
+             * @description 수치가 맞는 장신구 아이템 레벨(지금은 1680만)
+             * @example 1680
+             */
+            itemLevel: number;
+            options: components["schemas"]["PolishValueResponse"][];
         };
         PolishValueResponse: {
             /** @description 연마 옵션 이름(공식 툴팁 그대로) */
             option: string;
-            /** @description true: % 옵션, false: 고정값 옵션 */
+            /** @description true: % 옵션, false: 고정값 옵션(같은 이름의 공격력·무기 공격력을 가른다) */
             percent: boolean;
-            /** @description 이 옵션이 붙는 부위 */
+            /** @description 이 옵션이 붙는 부위(공식 연마 확률 정보: 목걸이·귀걸이·반지) */
             parts: string[];
-            /** @description 하 */
-            low: string | null;
-            /** @description 중 */
-            mid: string | null;
-            /** @description 상 */
-            high: string | null;
+            low: (string | null) | null;
+            mid: (string | null) | null;
+            high: (string | null) | null;
         };
-        PolishValuesResponse: {
-            version: string;
-            accessoryGrade: string;
-            /** Format: int32 */
-            itemLevel: number;
-            options: components["schemas"]["PolishValueResponse"][];
+        BraceletOptionResponse: {
+            /**
+             * @description 옵션 계열 이름(BRACELET_EFFECT의 name)
+             * @example 추가 피해
+             */
+            name: string;
+            /** @description LOW·MID·HIGH → 공식 문구 */
+            grades: {
+                [key: string]: string;
+            };
+        };
+        /** @description 공통 API 응답. 오류 응답의 data는 null입니다. */
+        ApiResponseCombatPowerContributionsResponse: {
+            /**
+             * @description 업무 결과 코드
+             * @example CHARACTER_SEARCH_SUCCESS
+             */
+            code: string;
+            /**
+             * @description 공개용 안내 메시지
+             * @example 캐릭터 조회에 성공했습니다.
+             */
+            message: string;
+            /** @description 성공 응답 데이터. 오류일 때 null */
+            data: components["schemas"]["CombatPowerContributionsResponse"];
+        };
+        CombatPowerContributionsResponse: {
+            characterName?: string;
+            /** Format: date-time */
+            fetchedAt?: string;
+            /** @description 공식 전투력(소수 둘째 자리) */
+            combatPower?: number;
+            ruleVersion?: string;
+            items?: components["schemas"]["ContributionItemResponse"][];
+        };
+        ContributionItemResponse: {
+            /**
+             * @description BRACELET 등(문자열, 값이 늘 수 있음)
+             * @example BRACELET
+             */
+            kind?: string;
+            target?: string;
+            /**
+             * @description OK 또는 UNSUPPORTED(문자열)
+             * @example OK
+             */
+            status?: string;
+            /**
+             * @description 전투력 기여 %(소수 둘째 자리). UNSUPPORTED면 null
+             * @example 12.6
+             */
+            contributionPct?: number;
+            /** @description 그 항목을 뺐을 때 전투력(소수 둘째 자리) */
+            withoutCombatPower?: number;
+            /** @description 계산 근거 또는 계산하지 않은 이유 */
+            basis?: string;
+            /** @description UNSUPPORTED 이유 코드(시뮬레이터·스펙업과 같은 코드). OK면 null */
+            reasonCode?: string;
         };
     };
     responses: never;
@@ -329,6 +414,46 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApiResponseCombatPowerOptionsResponse"];
+                };
+            };
+            /** @description CLIENT_RATE_LIMITED: 이 클라이언트의 분당 요청·공식 호출 한도 초과. Retry-After(초) 뒤 다시 시도 */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    contributions: {
+        parameters: {
+            query: {
+                characterName: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description CHARACTER_COMBAT_POWER_CONTRIBUTIONS_SUCCESS */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponseCombatPowerContributionsResponse"];
+                };
+            };
+            /** @description CHARACTER_NOT_CACHED: 캐릭터 캐시 없음(공식 호출 없음) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
             /** @description CLIENT_RATE_LIMITED: 이 클라이언트의 분당 요청·공식 호출 한도 초과. Retry-After(초) 뒤 다시 시도 */

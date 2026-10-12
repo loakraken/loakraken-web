@@ -1182,7 +1182,7 @@ function SkillCard({
   levelOf?: (tier: number | null, slot: number | null) => number | null;
 }) {
   const stagger = staggerOf(lines?.infoLines);
-  // Full view: the reference site's chips (type, attack direction, counter,
+  // Full view: chips (type, attack direction, counter,
   // part break, gems); compact keeps the one-line summary.
   const chips = compact
     ? []

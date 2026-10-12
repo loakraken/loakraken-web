@@ -1,5 +1,5 @@
 // 회귀: 즐겨찾기·최근 검색은 이 브라우저에 저장된다(localStorage "loakraken:favorites"·"loakraken:recent").
-// 새로고침·재접속(새 탭) 뒤에도 남고, 홈 "최근 검색과 즐겨찾기" 카드(web #114, 로아와식)에 보인다.
+// 새로고침·재접속(새 탭) 뒤에도 남고, 홈 "최근 검색과 즐겨찾기" 카드(web #114)에 보인다.
 import { test, expect, characterPath, gotoReady } from "../support/fixtures.mjs";
 
 const star = (page) => page.getByRole("button", { name: /^즐겨찾기( 해제)?$/ });

@@ -51,7 +51,7 @@ export function MarketChart({ days }: { days: DailyStat[] }) {
       PAD.top + PRICE_H - ((v - v0) / (v1 - v0 || 1)) * PRICE_H;
     // Bencho's curve (Catmull-Rom through every reading) on our axis: it maps
     // the lowest price to h − pad and the highest to pad, so h and pad are
-    // chosen to land those on the tick scale (target-site convention).
+    // chosen to land those on the tick scale.
     const top = y(Math.max(...prices));
     const bottom = y(Math.min(...prices));
     const curved =
