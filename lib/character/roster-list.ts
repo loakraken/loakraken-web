@@ -48,3 +48,72 @@ export function rosterSummary(siblings: readonly Sibling[]) {
     highSum: Math.round(high.reduce((a, b) => a + b, 0) * 100) / 100,
   };
 }
+
+const round2 = (value: number) => Math.round(value * 100) / 100;
+
+/**
+ * The roster in numbers (character screen checklist §14.1 ②): how many
+ * characters, and their item levels' mean, median, highest and lowest.
+ */
+export function rosterStats(siblings: readonly Sibling[]) {
+  const levels = siblings
+    .map((s) => s.itemLevel)
+    .filter((v): v is number => v != null)
+    .sort((a, b) => a - b);
+  if (!levels.length) return { count: siblings.length, average: null, median: null, max: null, min: null };
+  const mid = Math.floor(levels.length / 2);
+  const median = levels.length % 2 ? levels[mid] : (levels[mid - 1] + levels[mid]) / 2;
+  return {
+    count: siblings.length,
+    average: round2(levels.reduce((a, b) => a + b, 0) / levels.length),
+    median: round2(median),
+    max: levels.at(-1)!,
+    min: levels[0],
+  };
+}
+
+export type Share = { label: string; count: number; percent: number };
+
+/**
+ * Counts as shares of the whole with one decimal that add up to exactly
+ * 100.0 (largest remainder), biggest first, ties in the given order.
+ */
+export function shares(groups: readonly { label: string; count: number }[]): Share[] {
+  const total = groups.reduce((a, g) => a + g.count, 0);
+  if (!total) return [];
+  const raw = groups.map((g, i) => ({ ...g, i, tenths: (g.count / total) * 1000 }));
+  const floors = raw.map((g) => ({ ...g, whole: Math.floor(g.tenths) }));
+  let left = 1000 - floors.reduce((a, g) => a + g.whole, 0);
+  for (const g of [...floors].sort((a, b) => b.tenths - b.whole - (a.tenths - a.whole) || a.i - b.i)) {
+    if (left <= 0) break;
+    g.whole += 1;
+    left -= 1;
+  }
+  return floors
+    .filter((g) => g.count > 0)
+    .sort((a, b) => b.count - a.count || a.i - b.i)
+    .map((g) => ({ label: g.label, count: g.count, percent: g.whole / 10 }));
+}
+
+/** Item level bands, 20 apart from 1780+ down to "1640 미만", only bands with someone in them. */
+export const LEVEL_BANDS = [1780, 1760, 1740, 1720, 1700, 1680, 1660, 1640] as const;
+
+export function levelBands(siblings: readonly Sibling[]): Share[] {
+  const groups = [
+    ...LEVEL_BANDS.map((min, i) => ({
+      label: i === 0 ? `${min}+` : String(min),
+      count: siblings.filter((s) => s.itemLevel != null && s.itemLevel >= min && (i === 0 || s.itemLevel < LEVEL_BANDS[i - 1])).length,
+    })),
+    { label: "1640 미만", count: siblings.filter((s) => s.itemLevel != null && s.itemLevel < 1640).length },
+  ];
+  // Bands keep their own order (high to low), not biggest first.
+  const order = new Map(groups.map((g, i) => [g.label, i]));
+  return shares(groups).sort((a, b) => order.get(a.label)! - order.get(b.label)!);
+}
+
+/** Classes in the roster, biggest first. */
+export function classMix(siblings: readonly (Sibling & { className: string })[]): Share[] {
+  const counts = new Map<string, number>();
+  for (const s of siblings) counts.set(s.className, (counts.get(s.className) ?? 0) + 1);
+  return shares([...counts].map(([label, count]) => ({ label, count })));
+}

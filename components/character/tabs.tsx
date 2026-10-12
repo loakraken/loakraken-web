@@ -91,7 +91,17 @@ import { PillTab, PillTabs, PillTabsPanel } from "@/components/ui/pill-tabs";
 import { SegmentedControl, SegmentedItem } from "@/components/ui/segmented-control";
 import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { ROSTER_SORTS, ROSTER_TOTAL_MIN, maskName, rosterSummary, sortSiblings, type RosterSort } from "@/lib/character/roster-list";
+import {
+  classMix,
+  levelBands,
+  maskName,
+  ROSTER_SORTS,
+  ROSTER_TOTAL_MIN,
+  rosterStats,
+  rosterSummary,
+  sortSiblings,
+  type RosterSort,
+} from "@/lib/character/roster-list";
 import { useStagger } from "./entrance";
 import { RankPanel } from "./rank-panel";
 import { SimulatorTab } from "./simulator-tab";
@@ -668,6 +678,32 @@ function ArkShare({
   if (line.status === "OK" && line.percent != null)
     return <b className={styles.braceletEffShare}>{percentText(line.percent)}</b>;
   return <small className={styles.braceletEffNote}>{line.reason ?? "계산하지 않는 줄이에요."}</small>;
+}
+
+/**
+ * A group of share bars (원정대 구성): label, a bar as wide as the share, and
+ * "n명 · x%". Shares add up to 100.0 exactly (roster-list.shares). The bar is
+ * drawn once at its width, no animation.
+ */
+function ShareBars({ title, rows }: { title: string; rows: { label: string; count: number; percent: number }[] }) {
+  return (
+    <section className={styles.shareBars} aria-label={title}>
+      <h3>{title}</h3>
+      <ul>
+        {rows.map((row) => (
+          <li key={row.label}>
+            <span>{row.label}</span>
+            <span className={styles.shareTrack} aria-hidden="true">
+              <span style={{ width: `${row.percent}%` }} />
+            </span>
+            <span className={styles.shareValue}>
+              {row.count}명 · {row.percent.toFixed(1)}%
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
 }
 
 function GemsPanel({ data }: { data: Character }) {
@@ -1810,14 +1846,25 @@ function SiblingList({
   const sorted = sortSiblings(siblings, sort);
   const servers = [...new Set(sortSiblings(siblings, "itemLevel").map((sibling) => sibling.serverName))];
   const summary = rosterSummary(siblings);
+  const stats = rosterStats(siblings);
+  const bands = levelBands(siblings);
+  const mix = classMix(siblings);
   const shown = (name: string) => (masked ? maskName(name) : name);
   return (
     <>
       <div className={styles.rosterTools}>
-        <SegmentedControl aria-label="원정대 정렬" value={sort} onValueChange={(value) => setSort(value as RosterSort)}>
+        {/* Up to 400px the pills fill the row and drop the trailing "순"
+            ("아이템 레벨 순" in the system font is wider than a 360 screen). */}
+        <SegmentedControl
+          aria-label="원정대 정렬"
+          value={sort}
+          onValueChange={(value) => setSort(value as RosterSort)}
+          className="max-[400px]:w-full"
+        >
           {ROSTER_SORTS.map((item) => (
-            <SegmentedItem key={item.id} value={item.id}>
-              {item.label}
+            <SegmentedItem key={item.id} value={item.id} aria-label={item.label} className="max-[400px]:px-2">
+              <span className="max-[400px]:hidden">{item.label}</span>
+              <span className="hidden max-[400px]:inline">{item.label.replace(/ 순$/, "")}</span>
             </SegmentedItem>
           ))}
         </SegmentedControl>
@@ -1843,6 +1890,38 @@ function SiblingList({
             </small>
           )}
         </p>
+      )}
+      {stats.average != null && (
+        <>
+          <dl className={styles.rosterStats} aria-label="원정대 아이템 레벨">
+            <div>
+              <dt>캐릭터</dt>
+              <dd>{number(stats.count)}개</dd>
+            </div>
+            <div>
+              <dt>평균</dt>
+              <dd>{number(stats.average)}</dd>
+            </div>
+            <div>
+              <dt>중앙값</dt>
+              <dd>{number(stats.median)}</dd>
+            </div>
+            <div>
+              <dt>최고</dt>
+              <dd>{number(stats.max)}</dd>
+            </div>
+            <div>
+              <dt>최저</dt>
+              <dd>{number(stats.min)}</dd>
+            </div>
+          </dl>
+          <Panel title="구성" wide>
+            <div className={styles.rosterMix}>
+              <ShareBars title="아이템 레벨 구간" rows={bands} />
+              <ShareBars title={`직업 ${mix.length}개`} rows={mix} />
+            </div>
+          </Panel>
+        </>
       )}
       {servers.map((server) => (
         <Panel

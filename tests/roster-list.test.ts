@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { maskName, rosterSummary, sortSiblings } from "../lib/character/roster-list";
+import { classMix, levelBands, maskName, rosterStats, rosterSummary, shares, sortSiblings } from "../lib/character/roster-list";
 
 const roster = [
   { characterName: "다람쥐", characterLevel: 60, itemLevel: 1690 },
@@ -31,4 +31,32 @@ test("hidden names keep the first letter and a fixed two stars", () => {
   assert.equal(maskName("목캐릭터A"), "목**");
   assert.equal(maskName("버서커로아원정대"), "버**");
   assert.equal(maskName("🐙문어"), "🐙**");
+});
+
+test("roster numbers: count, mean, median, highest, lowest", () => {
+  const roster = [1770, 1720, 1640, 1585, 915].map((itemLevel, i) => ({ characterName: `이름${i}`, itemLevel }));
+  assert.deepEqual(rosterStats(roster), { count: 5, average: 1526, median: 1640, max: 1770, min: 915 });
+  assert.equal(rosterStats(roster.slice(0, 4)).median, 1680);
+  assert.deepEqual(rosterStats([]), { count: 0, average: null, median: null, max: null, min: null });
+});
+
+test("shares add up to exactly 100.0, biggest first", () => {
+  const three = shares([{ label: "가", count: 1 }, { label: "나", count: 1 }, { label: "다", count: 1 }]);
+  assert.deepEqual(three.map((s) => s.percent), [33.4, 33.3, 33.3]);
+  assert.equal(Math.round(three.reduce((a, s) => a + s.percent, 0) * 10), 1000);
+  const mix = classMix([
+    { characterName: "a", className: "블레이드", itemLevel: 1700 },
+    { characterName: "b", className: "리퍼", itemLevel: 1700 },
+    { characterName: "c", className: "블레이드", itemLevel: 1700 },
+  ]);
+  assert.deepEqual(mix, [
+    { label: "블레이드", count: 2, percent: 66.7 },
+    { label: "리퍼", count: 1, percent: 33.3 },
+  ]);
+});
+
+test("level bands keep high-to-low order and skip empty bands", () => {
+  const bands = levelBands([1785, 1770, 1700, 1650, 1500].map((itemLevel, i) => ({ characterName: `이름${i}`, itemLevel })));
+  assert.deepEqual(bands.map((b) => [b.label, b.count]), [["1780+", 1], ["1760", 1], ["1700", 1], ["1640", 1], ["1640 미만", 1]]);
+  assert.equal(Math.round(bands.reduce((a, b) => a + b.percent, 0) * 10), 1000);
 });
