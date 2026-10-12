@@ -1,4 +1,4 @@
-// Pure helpers for the character detail page (ILOA-equivalent behaviour).
+// Pure helpers for the character detail page.
 import type { Character } from "./model";
 import { sourcePlainText } from "./source-text";
 import { remainingText } from "../time/remaining";
@@ -172,7 +172,7 @@ export function skillSummary(skills: Skill[] | undefined) {
 }
 
 /**
- * The gems set on the skill named `name` as the reference site's chips
+ * The gems set on the skill named `name` as chips
  * ("6뎀", "6쿨"): level plus kind, with the gem and its effect for the card.
  * A radiance gem (both kinds) reads its kind from the effect text.
  */

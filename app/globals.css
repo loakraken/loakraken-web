@@ -798,8 +798,7 @@
 }
 
 /* One UI font for every screen: Kraken Sans (Pretendard Variable subset, OFL,
-   renamed per its Reserved Font Name) on every platform, as the target sites
-   do. The subset holds KS X 1001 Hangul + ASCII at wght 400–700; anything else
+   renamed per its Reserved Font Name) on every platform. The subset holds KS X 1001 Hangul + ASCII at wght 400–700; anything else
    (rare Hanja, old Hangul, emoji) falls through to the system faces below.
    next/font sets --font-kraken on <html>, so :root resolves it. */
 :root {
@@ -809,8 +808,8 @@
 }
 
 /* LOAKraken design values. One source for every screen; spec lives in the
-   vault (60 디자인 시스템/디자인 값 명세). Target sites (the first 목표 사이트) set the
-   conventions: grade/quality colours, type range; the rest is our light finish.
+   vault (60 디자인 시스템/디자인 값 명세). Grade/quality colours and the type
+   range follow measured conventions; the rest is our light finish.
    Screens adopt these by swapping literals in their own modules. */
 :root {
   /* Text and accents */
@@ -850,13 +849,13 @@
   --grade-ancient-text: #836b40; /* 4.66 */
   --grade-esther-text: #227c71; /* 4.60 */
 
-  /* Polishing grade (상·중·하), same hues as the target sites */
+  /* Polishing grade (상·중·하) */
   --polish-high: #b64400;
   --polish-mid: #7b3fbf;
   --polish-low: #0066cc;
 
-  /* Type scale: sizes fall inside the measured target-site ranges
-     (목표 사이트 combat tab and calculators). Mobile steps below 700px. */
+  /* Type scale: sizes fall inside measured ranges for combat tabs and
+     calculators. Mobile steps below 700px. */
   --text-badge: 11px;
   --text-caption: 12px;
   --text-meta: 13px;
@@ -968,10 +967,10 @@
   --loss: var(--destructive);
   --switch-on: #2aa048; /* track vs page 3.38, 3.10 on #f5f5f7 (was #34c759, 2.22) */
 
-  /* Quality badge, the 목표 사이트's six bands (PM decision D1), measured on its page:
-     an 80% fill over its dark surface. Bands that already pass 4.5:1 with
-     white numerals use that colour as is (100, 90~99, 70~89, 0~9); 30~69 and
-     10~29 are the 목표 사이트's hue darkened only as far as 4.6, so all six bands read
+  /* Quality badge, six bands (PM decision D1), measured as an 80% fill over
+     a dark surface. Bands that already pass 4.5:1 with white numerals use
+     that colour as is (100, 90~99, 70~89, 0~9); 30~69 and 10~29 are the
+     measured hue darkened only as far as 4.6, so all six bands read
      white-on-colour. Numerals stay at weight 600 or more. */
   --quality-max: #be5712;
   --quality-max-foreground: #fff; /* 4.60 */
@@ -980,22 +979,21 @@
   --quality-good: #1352c2;
   --quality-good-foreground: #fff; /* 6.97 */
   --quality-normal: #0a880a;
-  --quality-normal-foreground: #fff; /* 4.63 (목표 사이트 #0a8f0b is 4.25) */
+  --quality-normal-foreground: #fff; /* 4.63 (measured #0a8f0b is 4.25) */
   --quality-low: #857504;
-  --quality-low-foreground: #fff; /* 4.62 (목표 사이트 #897904 is 4.37) */
+  --quality-low-foreground: #fff; /* 4.62 (measured #897904 is 4.37) */
   --quality-poor: #cf0304;
   --quality-poor-foreground: #fff; /* 5.73 */
   --quality-none: #747479;
   --quality-none-foreground: #fff; /* 4.65 */
 
-  /* Character banner: a dark band in both themes, as on the 목표 사이트
-     (user decision). Image-derived --backdrop tints may replace --banner. */
+  /* Character banner: a dark band in both themes (user decision). Image-derived --backdrop tints may replace --banner. */
   --banner: #101114;
   --banner-foreground: #f5f5f7; /* 17.34 */
   --banner-muted: #a1a1a6; /* 7.34 */
   --banner-border: rgb(255 255 255 / 10%);
 
-  /* Tooltip: the 목표 사이트's dark glass in both themes. Its 80% fill drops the
+  /* Tooltip: dark glass in both themes. An 80% fill drops the
      second line to 3.73 on our white page, so 88% is used: text 9.75,
      muted 4.93 on white; 14.26 / 7.22 on the dark page. */
   --tooltip: rgb(27 29 34 / 88%);
@@ -1004,7 +1002,7 @@
   --tooltip-shadow: inset 0 0 0 1px rgb(255 255 255 / 8%), inset 0 1px 0 rgb(255 255 255 / 7%),
     0 16px 40px -16px rgb(0 0 0 / 80%), 0 4px 14px -6px rgb(0 0 0 / 45%);
 
-  /* Item detail tooltip: the 목표 사이트's card, measured 10-10 (작은 동작 전수표 v2
+  /* Item detail tooltip card, measured 10-10 (작은 동작 전수표 v2
      §2·2b), the same in both themes. Contrast is on the fill over the white
      page / the dark page. */
   --item-tip: rgb(27 29 34 / 97%);
@@ -1014,8 +1012,8 @@
   --item-tip-section: #a9d0f5; /* section heads, 9.66 / 10.50 */
   --item-tip-equipped: #ffd200; /* "장착중", 10.73 / 11.67 */
   --item-tip-craft: #5fd3f1; /* "[제작] …", 8.95 / 9.73 */
-  /* "거래 불가"·"분해불가": the 목표 사이트's red (#c24b46, 3.25) lifted in lightness only to
-     pass 4.5 for 12px text (PM-프론트 #393: the site's contrast rule wins). */
+  /* "거래 불가"·"분해불가": the measured red (#c24b46, 3.25) lifted in lightness only to
+     pass 4.5 for 12px text (PM-프론트 #393: our contrast rule wins). */
   --item-tip-warn: #e4665f; /* 4.72 / 5.13 */
   --item-tip-track: #49505a; /* quality and refine bars */
   --item-tip-exp: oklch(0.75 0.183 55.9); /* refine experience fill */
@@ -1027,14 +1025,14 @@
   --item-tip-grade-normal: #c4c4cc; /* 9.30 */
   --item-tip-grade-uncommon: #8bd45c; /* 8.96 */
   --item-tip-grade-rare: #5fa8ff; /* 6.55 */
-  --item-tip-grade-epic: #d35cfc; /* 목표 사이트 #ce43fc (4.32) lifted, 4.97 / 5.41 */
-  --item-tip-grade-legendary: #f99200; /* 목표 사이트, 6.78 / 7.37 */
-  --item-tip-grade-relic: #fa5d00; /* 목표 사이트, 4.92 / 5.35 */
-  --item-tip-grade-ancient: #e3c7a1; /* 목표 사이트, 9.60 */
-  --item-tip-grade-esther: #3cf2e6; /* 목표 사이트, 11.15 / 12.12 */
+  --item-tip-grade-epic: #d35cfc; /* measured #ce43fc (4.32) lifted, 4.97 / 5.41 */
+  --item-tip-grade-legendary: #f99200; /* measured, 6.78 / 7.37 */
+  --item-tip-grade-relic: #fa5d00; /* measured, 4.92 / 5.35 */
+  --item-tip-grade-ancient: #e3c7a1; /* measured, 9.60 */
+  --item-tip-grade-esther: #3cf2e6; /* measured, 11.15 / 12.12 */
   /* Icon box gradient, top-left → bottom-right (v2.1 §2d). Ancient, relic,
-     legendary, epic and esther are the 목표 사이트's; the others were not on the reference
-     character and are derived from the grade colour the same way. */
+     legendary, epic and esther are measured; the others were not available
+     and are derived from the grade colour the same way. */
   --item-tip-icon-ancient-a: rgb(61 51 37);
   --item-tip-icon-ancient-b: rgb(220 201 153);
   --item-tip-icon-relic-a: rgb(52 26 9);
@@ -1051,9 +1049,9 @@
   --item-tip-icon-uncommon-b: color-mix(in srgb, var(--item-tip-grade-uncommon) 70%, #000);
   --item-tip-icon-normal-a: color-mix(in srgb, var(--item-tip-grade-normal) 25%, #000);
   --item-tip-icon-normal-b: color-mix(in srgb, var(--item-tip-grade-normal) 70%, #000);
-  /* Quality number and bar fill. 90–99 is the 목표 사이트's #df18e3 (3.99) lifted in
-     lightness to pass 4.5 (5.09 / 5.53); the other tiers were not measured on
-     the 목표 사이트's card and keep the in-game colours the character tab used. */
+  /* Quality number and bar fill. 90–99 is the measured #df18e3 (3.99) lifted in
+     lightness to pass 4.5 (5.09 / 5.53); the other tiers were not measured
+     and keep the in-game colours the character tab used. */
   --item-tip-quality-max: #f39c12;
   --item-tip-quality-high: #ec4cf0;
   --item-tip-quality-good: #4fa3ff;
@@ -1089,11 +1087,11 @@
   }
 }
 
-/* Dark theme (data-theme="dark" on <html>). Surfaces and text follow the 목표 사이트's
+/* Dark theme (data-theme="dark" on <html>). Surfaces and text follow a
    measured dark page: 15,17,20 page / 22,24,29 header row / 27,29,34 row;
    text 234 / labels 179 / secondary 166. Ratios are against --background,
    then --muted (the band); every text colour also passes on --card. Quality badges, grade tiles and the character banner keep the
-   same colours in both themes, as on the target sites. */
+   same colours in both themes. */
 :root:is([data-theme="dark"], [data-theme="dim"]) {
   color-scheme: dark;
   --background: #0f1114;
@@ -1123,7 +1121,7 @@
   --market-up: #ff5c52; /* 6.22, 5.84 */
   --market-down: #4da3ff;
   --switch-on: #30b955; /* 7.38, 6.93 */
-  /* Polishing grade: the 목표 사이트's dark-theme hues */
+  /* Polishing grade: dark-theme hues */
   --polish-high: #ff8903; /* 7.95 */
   --polish-mid: #ed6bff; /* 7.34 */
   --polish-low: #00bcff; /* 8.68 */

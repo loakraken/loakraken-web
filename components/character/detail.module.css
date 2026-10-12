@@ -1,5 +1,5 @@
 /* Character detail (A2): white canvas, flat #f5f5f7 28px panels, ink type,
-   blue only for links/compact actions. Structure mirrors ILOA; visuals are ours. */
+   blue only for links/compact actions. */
 .srOnly {
   position: absolute;
   width: 1px;

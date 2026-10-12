@@ -8,6 +8,9 @@
 // handed to onSubmit (return false to keep it), autoFocus, an accessible
 // name for the field, type="button", and the mic drawn only when there is
 // something for it to do (onDictate) — Bencho's mic is a demo with no action.
+// For the header search's result panel (10-12): onValueChange, onInputKeyDown
+// (runs first; preventDefault stops the bar's own Enter) and inputProps (the
+// combobox's role and aria-*) pass through to the field.
 // Tokens are mapped on the block root in command-bar.css.
 import "./command-bar.css";
 import { useEffect, useRef, useState } from "react";
@@ -84,6 +87,9 @@ export function CommandBar({
   onSubmit,
   onDictate,
   autoFocus = false,
+  onValueChange,
+  onInputKeyDown,
+  inputProps,
 }: {
   bridge?: number;
   edge?: number;
@@ -96,6 +102,12 @@ export function CommandBar({
   /** Shows the mic; without it the bar has no mic at all. */
   onDictate?: () => void;
   autoFocus?: boolean;
+  /** Every change of the field's text (also the emptying after a send). */
+  onValueChange?: (text: string) => void;
+  /** Before the bar's own keys; preventDefault keeps Enter from sending. */
+  onInputKeyDown?: (event: React.KeyboardEvent<HTMLInputElement>) => void;
+  /** Extra attributes for the field (role="combobox", aria-*). */
+  inputProps?: React.InputHTMLAttributes<HTMLInputElement>;
 } = {}) {
   const [q, setQ] = useState("");
   const [live, setLive] = useState(false);
@@ -147,6 +159,7 @@ export function CommandBar({
     if (!text) return;
     if (onSubmit?.(text) === false) return;
     setQ("");
+    onValueChange?.("");
   };
 
   return (
@@ -176,17 +189,24 @@ export function CommandBar({
           {/* the bar gives up the width the button is taking — see .cmd */}
           <div className="cmd" data-has={has || undefined}>
             <input
+              {...inputProps}
               value={q}
               placeholder={placeholder}
               aria-label={label}
               autoFocus={autoFocus}
               enterKeyHint="search"
-              onChange={(e) => setQ(e.target.value)}
+              onChange={(e) => {
+                setQ(e.target.value);
+                onValueChange?.(e.target.value);
+              }}
               onFocus={() => setLive(true)}
               /* it closes again when you leave — unless there
                  is something in it, which `has` already covers */
               onBlur={() => setLive(false)}
-              onKeyDown={(e) => e.key === "Enter" && run()}
+              onKeyDown={(e) => {
+                onInputKeyDown?.(e);
+                if (!e.defaultPrevented && e.key === "Enter") run();
+              }}
               onPointerDown={(e) => e.stopPropagation()}
             />
             {/* ── the mic STAYS IN THE BAR ──────────────────

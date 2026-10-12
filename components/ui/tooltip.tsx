@@ -46,7 +46,7 @@ function TooltipContent({
         sideOffset={sideOffset}
         className="isolate z-50"
       >
-        {/* iloa's tooltip: a dark translucent glass panel in both themes,
+        {/* A dark translucent glass panel in both themes,
             12px radius, 12/14 padding, 12px text, no arrow. A second line
             can use text-(--tooltip-muted). */}
         <TooltipPrimitive.Popup

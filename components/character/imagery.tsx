@@ -186,10 +186,10 @@ function usePortraitTones(src: string | null): Tones {
   return tones;
 }
 
-// Character banner (ILOA-equivalent composition, LOAKraken visuals): identity on
+// Character banner: identity on
 // the left, the render in the middle cropped head-to-waist (about the top 6-61%
 // of the render, enlarged to ~1.8x the band), extra facts on the right.
-// The band is dark in every theme (ILOA, LOPEC) and shows the original render.
+// The band is dark in every theme and shows the original render.
 export function CharacterBanner({
   url,
   name,

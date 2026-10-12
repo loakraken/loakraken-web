@@ -153,7 +153,7 @@ function Effects({ detail: d, after }: { detail: Detail; after: Map<string, stri
   );
 }
 
-/** Remaining official lines as the reference site's sections (see groupExtraLines). */
+/** Remaining official lines in sections (see groupExtraLines). */
 function ExtraSections({ lines }: { lines?: string[] }) {
   if (!lines?.length) return null;
   return groupExtraLines(lines).map((group, i) => (
@@ -184,7 +184,7 @@ function levelLine(itemLevel: number | null | undefined, tier: number | null | u
 }
 
 /**
- * The equipment card in the reference site's order (sheet v2.1 §2c): name;
+ * The equipment card in this order (sheet v2.1 §2c): name;
  * icon row (grade·part, item level, quality, 장착중); bound/trade; effects;
  * polish; bracelet; stone engravings; refine exp; ark passive point; then the
  * official tooltip's remaining lines (restrictions, crafting, durability,
@@ -229,7 +229,7 @@ export function EquipmentCard({ item, slot, extra }: { item: Equipment; slot?: s
 }
 
 /**
- * The item's icon opens its card, as on the reference site (sheet v2.1 §1:
+ * The item's icon opens its card (sheet v2.1 §1:
  * the card hangs off the icon, 12px to its right, top 8px above): hover,
  * click or Enter on desktop, a tap on touch screens (bottom sheet).
  */
@@ -261,7 +261,7 @@ export function ItemTooltip({
 
 /**
  * Any element that opens a detail card (gems, engravings and the rest of the
- * reference site's hover targets): the trigger hugs its children.
+ * hover targets): the trigger hugs its children.
  */
 export function DetailTooltip({
   name,
@@ -293,7 +293,7 @@ type Gem = NonNullable<Character["loadout"]["gems"]>["items"][number];
 type GemSkill = NonNullable<NonNullable<Character["loadout"]["gems"]>["effects"]>["skills"][number];
 
 /**
- * The gem card in the reference site's order (sheet v2.1 §2c): name, icon row
+ * The gem card in this order (sheet v2.1 §2c): name, icon row
  * (전설 보석, item level and tier, 장착중), bound/trade, gem level, the effect on its skill ("[직업] 스킬 …"),
  * the extra effect, then the official remaining lines (tuning notes as one
  * section, restrictions, sources).

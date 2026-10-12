@@ -37,7 +37,17 @@ type ResultItem = {
   avatar?: { src?: string | null; fallback?: ReactNode };
 };
 
-type ResultGroup = { id: string; title?: ReactNode; items: ResultItem[] };
+type ResultGroup = {
+  id: string;
+  title?: ReactNode;
+  items: ResultItem[];
+  /** (ours, 10-12) rows of room held while the items load, so later groups
+      do not move when they arrive; the group shows its title meanwhile */
+  reserve?: number;
+  /** (ours) shown in the held room when the group came back empty (visual
+      only, aria-hidden; the caller announces it) */
+  note?: ReactNode;
+};
 
 type ResultPanelProps = {
   open: boolean;
@@ -51,6 +61,8 @@ type ResultPanelProps = {
   onPick: (item: ResultItem) => void;
   /** pointer over a row: let the arrows carry on from there */
   onActive?: (id: string) => void;
+  /** above the rows (ours, 10-12): what must not move when rows arrive later */
+  header?: ReactNode;
   /** under the rows: key hints, an empty state */
   footer?: ReactNode;
   className?: string;
@@ -59,7 +71,7 @@ type ResultPanelProps = {
 /** The option element's id for a row, for the input's aria-activedescendant. */
 const optionId = (panelId: string, rowId: string) => `${panelId}-opt-${rowId}`;
 
-function ResultPanel({ open, id, label, groups, activeId, onPick, onActive, footer, className }: ResultPanelProps) {
+function ResultPanel({ open, id, label, groups, activeId, onPick, onActive, header, footer, className }: ResultPanelProps) {
   const reduce = useReducedMotion();
   let order = 0;
   return (
@@ -91,9 +103,10 @@ function ResultPanel({ open, id, label, groups, activeId, onPick, onActive, foot
               opacity: { duration: 0.12 },
             }}
           >
+            {header && <div className="rsp-top">{header}</div>}
             <div className="rsp-scroll" id={id} role="listbox" aria-label={label}>
               {groups.map((group) =>
-                group.items.length === 0 ? null : (
+                group.items.length === 0 && !group.reserve ? null : (
                   <div key={group.id} role="group" aria-labelledby={group.title ? `${id}-g-${group.id}` : undefined}>
                     {group.title && (
                       <div className="rsp-head" id={`${id}-g-${group.id}`} role="presentation">
@@ -147,6 +160,15 @@ function ResultPanel({ open, id, label, groups, activeId, onPick, onActive, foot
                         </motion.div>
                       );
                     })}
+                    {!!group.reserve && group.items.length < group.reserve && (
+                      <div
+                        className="rsp-hold"
+                        aria-hidden="true"
+                        style={{ height: `${(group.reserve - group.items.length) * 48}px` }}
+                      >
+                        {group.items.length === 0 && group.note}
+                      </div>
+                    )}
                   </div>
                 )
               )}

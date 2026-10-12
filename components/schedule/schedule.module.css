@@ -103,7 +103,7 @@
   vertical-align: 2px;
 }
 
-/* Category links (ILOA category tabs), and the /news kind filters (buttons).
+/* Category links, and the /news kind filters (buttons).
    They wrap instead of scrolling. */
 .chips {
   display: flex;

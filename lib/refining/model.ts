@@ -352,7 +352,7 @@ export type CostLine = {
 /**
  * Two named values (PM 총괄 2026-10-10 01:30, #235): 구매 골드 rounds the
  * missing quantity up to whole exchange listings (what is actually paid,
- * 로아와 method); 소모 가치 is expected consumption × 1개 단가 (일로아 method).
+ * method); 소모 가치 is expected consumption × 1개 단가.
  * Unpriced materials stay out of both totals.
  */
 export function costLines(
