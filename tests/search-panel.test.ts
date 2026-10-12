@@ -26,14 +26,14 @@ test("arrow keys wrap around the rows", () => {
 });
 
 test("the typed prefix of a suggested name", () => {
-  assert.deepEqual(splitPrefix("언새늘", "언새"), { head: "언새", tail: "늘" });
-  assert.deepEqual(splitPrefix("언새늘", " 언 "), { head: "언", tail: "새늘" });
-  assert.deepEqual(splitPrefix("언새늘", "새늘"), { head: "", tail: "언새늘" });
+  assert.deepEqual(splitPrefix("목캐릭터", "목캐"), { head: "목캐", tail: "릭터" });
+  assert.deepEqual(splitPrefix("목캐릭터", " 목 "), { head: "목", tail: "캐릭터" });
+  assert.deepEqual(splitPrefix("목캐릭터", "캐릭"), { head: "", tail: "목캐릭터" });
 });
 
 test("suggest envelope: the backend's answer with a null portrait passes", async () => {
   const { isSuggestEnvelope } = await import("../lib/character/suggest");
-  const ok = { code: "CHARACTER_SUGGEST_SUCCESS", message: "ok", data: { items: [{ characterName: "언새늘", serverName: "아만", className: "블레이드", itemLevel: 1770, characterImage: null }] } };
+  const ok = { code: "CHARACTER_SUGGEST_SUCCESS", message: "ok", data: { items: [{ characterName: "목캐릭터A", serverName: "아만", className: "블레이드", itemLevel: 1700, characterImage: null }] } };
   assert.equal(isSuggestEnvelope(ok), true);
   assert.equal(isSuggestEnvelope({ ...ok, data: { items: [] } }), true);
   assert.equal(isSuggestEnvelope({ ...ok, code: "CHARACTER_POPULAR_SUCCESS" }), false);
