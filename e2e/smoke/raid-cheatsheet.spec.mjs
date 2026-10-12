@@ -1,6 +1,12 @@
 // 레이드 컨닝페이퍼(/tools/raid-cheatsheet, 체크리스트 N20). 데이터는
 // lib/tools/data/raid-cheatsheet.json, 화면에는 출처 없이 기준 시점만.
 import { test, expect, gotoReady, expectNoHorizontalOverflow, chooseOption } from "../support/fixtures.mjs";
+import { blockedPattern, loadBlockedTerms } from "../../scripts/blocked-terms.mjs";
+
+// Source wording, plus the shared name list when one is set (CI secret or the
+// local file; the list itself is never in this repository).
+const listed = blockedPattern(loadBlockedTerms().terms.filter((t) => t.kind === "site"));
+const SOURCE_TEXT = new RegExp(["출처", listed?.source].filter(Boolean).join("|"), "i");
 
 test.describe("레이드 컨닝페이퍼 @smoke", () => {
   test("레이드·난이도·관문을 고르면 패턴의 동작·대응·줄 구간을 보여 준다", async ({ page }) => {
@@ -12,7 +18,7 @@ test.describe("레이드 컨닝페이퍼 @smoke", () => {
     await expect(gate).toContainText("235줄");
     await page.getByRole("radio", { name: "2관문" }).click();
     await expect(page.getByRole("region", { name: "2관문 · 세르카" })).toContainText("285줄");
-    await expect(page.getByText(/출처|인벤/)).toHaveCount(0);
+    await expect(page.getByText(SOURCE_TEXT)).toHaveCount(0);
     await expectNoHorizontalOverflow(page);
   });
 
