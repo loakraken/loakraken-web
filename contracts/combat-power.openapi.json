@@ -1,8 +1,8 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "LOAKraken combat-power 발췌",
-    "version": "combat-power-sim-v8 (feat/344 기준, develop + #382)"
+    "title": "LOAKraken combat-power",
+    "version": "1.0.0"
   },
   "paths": {
     "/api/v1/characters/combat-power/simulate": {
@@ -205,7 +205,7 @@
       },
       "ChangeRequest": {
         "type": "object",
-        "description": "바꾼 항목 하나. kind마다 쓰는 필드가 다르다(docs/combat-power-simulator.md)",
+        "description": "바꾼 항목 하나. kind마다 쓰는 필드가 다르다",
         "properties": {
           "kind": {
             "type": "string",
@@ -353,7 +353,7 @@
             "anyOf": [
               {
                 "type": "number",
-                "description": "현재 세팅의 모델값(계산 검증·QA용, 화면 표시 안 함). 계산식 확정 전 null"
+                "description": "현재 세팅의 모델값(검증용, 화면 표시 안 함). 계산식 확정 전 null"
               },
               {
                 "type": "null"
@@ -480,7 +480,7 @@
           },
           "basis": {
             "type": "string",
-            "description": "근거 문장(사이트 이름 없음)"
+            "description": "근거 문장"
           },
           "reasonCode": {
             "anyOf": [
@@ -628,7 +628,7 @@
           },
           "braceletOptions": {
             "type": "array",
-            "description": "팔찌 효과 교체에 쓰는 옵션 계열(#327). name을 BRACELET_EFFECT의 name으로, grades는 LOW·MID·HIGH별 공식 문구. 줄을 빼려면 name \"없음\"",
+            "description": "팔찌 효과 교체에 쓰는 옵션 계열. name을 BRACELET_EFFECT의 name으로, grades는 LOW·MID·HIGH별 공식 문구. 줄을 빼려면 name \"없음\"",
             "items": {
               "$ref": "#/components/schemas/BraceletOptionResponse"
             }
