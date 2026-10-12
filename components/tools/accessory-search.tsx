@@ -184,7 +184,7 @@ export function AccessorySearchTool() {
                             aria-labelledby={id}
                             value={polish[option] ?? OFF}
                             items={[
-                              { value: OFF, label: "조건 없음" },
+                              { value: OFF, label: "상관없음" },
                               { value: ANY, label: "붙어 있기만" },
                               ...LEVELS.map((level) => ({ value: level.id, label: `${level.label} 이상` })),
                             ]}
