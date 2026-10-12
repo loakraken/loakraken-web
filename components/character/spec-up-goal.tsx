@@ -73,7 +73,7 @@ export function SpecUpGoal({ data }: { data: Character }) {
     <section className={styles.goal} aria-labelledby="spec-up-goal">
       <h3 id="spec-up-goal">목표 전투력</h3>
       <p className={styles.lead}>
-        목표를 넣으면 효율이 높은 순서로 단계를 골라, 목표에 닿는 가장 짧은 경로를 보여 드려요.
+        목표를 넣으면 효율이 높은 단계부터 차례로 더해, 목표에 닿을 때까지의 단계를 보여 드려요.
       </p>
       <form
         className={styles.form}
