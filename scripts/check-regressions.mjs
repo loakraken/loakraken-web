@@ -209,9 +209,26 @@ for (const top of SCAN) {
 // Blocked names: every tracked text file, raw (comments included), and every path.
 // Game data keeps where each value came from (user rule 10-12): in data JSON
 // the source fields (source, sources, sourceUrl…, checkedAt) are not checked,
-// also when "sources" is an array over several lines.
+// and when such a key opens an object or array ("sources": { id: { title,
+// url, date } }), nothing inside it is either — up to its closing bracket.
+// Every other field (what reaches the screen) is still checked.
 const DATA_JSON = /^lib[\\/](.+[\\/])?data[\\/].+\.json$/;
 const SOURCE_KEY = /^\s*"(source[A-Za-z]*|checkedAt)"\s*:/;
+/** Net bracket depth of a JSON line, ignoring brackets inside strings. */
+function depthOf(line) {
+  let depth = 0;
+  let inString = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (inString) {
+      if (c === "\\") i++;
+      else if (c === '"') inString = false;
+    } else if (c === '"') inString = true;
+    else if (c === "{" || c === "[") depth++;
+    else if (c === "}" || c === "]") depth--;
+  }
+  return depth;
+}
 const BINARY = /\.(png|jpe?g|gif|webp|avif|ico|woff2?|ttf|otf|pdf|zip|gz|mp4|webm)$/i;
 const blocked = loadBlockedTerms();
 const blockedRe = blockedPattern(blocked.terms);
@@ -234,15 +251,15 @@ if (!blockedRe) {
     }
     if (raw.includes("\0")) continue;
     const data = DATA_JSON.test(path);
-    let inSources = false;
+    let sourceDepth = 0; // > 0 while inside a source object or array
     raw.split("\n").forEach((line, i) => {
       if (data) {
-        if (inSources) {
-          if (/^\s*\]/.test(line)) inSources = false;
+        if (sourceDepth > 0) {
+          sourceDepth += depthOf(line);
           return;
         }
         if (SOURCE_KEY.test(line)) {
-          if (/\[\s*$/.test(line)) inSources = true;
+          sourceDepth = Math.max(0, depthOf(line));
           return;
         }
       }
