@@ -35,7 +35,7 @@ import {
   schedulePath,
   type ScheduleCategory,
 } from "@/lib/home/schedule";
-import { Countdown, MINUTE, useClock } from "@/components/home/clock";
+import { Countdown, useNow } from "@/components/home/clock";
 import styles from "@/components/home/home.module.css";
 import expand from "@/components/site/expand.module.css";
 import own from "./schedule.module.css";
@@ -302,7 +302,7 @@ export function ScheduleBoard({
   variant?: "home" | "page";
 }) {
   const page = variant === "page";
-  const now = useClock(MINUTE) ?? renderedAt ?? null;
+  const now = useNow(renderedAt);
   const today = now === null ? null : kstDate(now);
   const [picked, setPicked] = useState<string | null>(null);
   const [hidePast, setHidePast] = useState(true);

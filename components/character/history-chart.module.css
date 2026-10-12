@@ -67,6 +67,14 @@
   color: var(--muted-foreground);
   font-size: 12px;
 }
+/* The resting line has no value now (the 현재 cell above shows it): a
+   zero-width strut at the value size keeps the line as tall as the hover
+   line and the loading hold, so records landing move nothing (A6). */
+.readout::before {
+  content: "\200b";
+  font-size: 15px;
+  font-weight: 600;
+}
 .readout strong {
   margin-right: 6px;
   color: var(--foreground);
