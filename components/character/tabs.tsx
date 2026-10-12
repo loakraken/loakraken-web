@@ -1182,6 +1182,11 @@ function SkillCard({
   levelOf?: (tier: number | null, slot: number | null) => number | null;
 }) {
   const stagger = staggerOf(lines?.infoLines);
+  // The cooldown line already says "보석 n% 감소": the cooldown gem's own
+  // effect row would say it again (PM-프론트 #650 P2), so it stays in the gem
+  // chip's card only. Damage rows and rows without the line stay.
+  const cooled = !compact && skill.cooldown != null && skill.cooldown.gemCooldownReductionPct > 0;
+  const gemEffects = cooled ? skill.gemEffects.filter((effect) => effect.kind !== "COOLDOWN") : skill.gemEffects;
   // Full view: chips (type, attack direction, counter,
   // part break, gems); compact keeps the one-line summary. The stagger chip
   // comes from the official tooltip lines, which can land after the card is
@@ -1262,9 +1267,9 @@ function SkillCard({
           })}
         </ul>
       )}
-      {!compact && skill.gemEffects.length > 0 && (
+      {!compact && gemEffects.length > 0 && (
         <ul className={styles.gemEffects}>
-          {skill.gemEffects.map((effect, i) => (
+          {gemEffects.map((effect, i) => (
             <li key={i} data-kind={effect.kind ?? undefined}>
               {effect.text}
             </li>

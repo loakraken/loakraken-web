@@ -89,6 +89,9 @@ test.describe("사용자 지적 회귀 점검표 @regression", () => {
       test(`@A5 모든 경로가 ${theme} 테마를 따른다`, async ({
         page,
       }, testInfo) => {
+        // Every route in one test: under a busy parallel run 60s ran out (3 of
+        // 24 repeats timed out on 10-12 with every theme right), so 3x time.
+        test.slow();
         // Read after hydration: a hydration retry used to drop data-theme then (10-12).
         let current = "";
         page.on("pageerror", (error) => {
