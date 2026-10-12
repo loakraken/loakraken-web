@@ -23,6 +23,7 @@ import {
   type Sort,
 } from "@/lib/spec-up/model";
 import { GameIcon } from "./imagery";
+import { SpecUpGoal } from "./spec-up-goal";
 import { kstTime } from "./parts";
 import styles from "./detail.module.css";
 
@@ -245,6 +246,7 @@ export default function SpecUpGuide({ data }: { data: Character }) {
           </>
         )}
       </div>
+      <SpecUpGoal data={data} />
     </div>
   );
 }

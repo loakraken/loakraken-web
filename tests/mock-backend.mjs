@@ -436,6 +436,9 @@ createServer(async (req, res) => {
     if (who === "미존재") return send(specUp("character-spec-up-not-cached.json"), 404);
     const envelope = specUp(who === "스펙업시세" ? "character-spec-up-pending.json" : "character-spec-up.json");
     envelope.data.characterName = who;
+    // The same combat power the mock simulator starts from (the backend's
+    // spec-up and simulator read one character), so the L31 goal path adds up.
+    envelope.data.combatPower = read("character-full-data.json").combatPower;
     // The sample's gem is the mock simulator character's slot-1 gem (level 8).
     for (const c of envelope.data.candidates)
       if (c.change?.kind === "GEM_LEVEL") c.change.slot = 1;
