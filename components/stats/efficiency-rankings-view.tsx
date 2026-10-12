@@ -147,6 +147,8 @@ export function EfficiencyRankingsView({
             아이템 레벨 이상
             <input
               id={ids.level}
+              name="itemLevelMin"
+              autoComplete="off"
               inputMode="decimal"
               value={levelText}
               placeholder="1640"
