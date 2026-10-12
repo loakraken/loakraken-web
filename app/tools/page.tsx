@@ -4,7 +4,7 @@ import Link from "next/link";
 import { ArrowLeft, ChevronRight, Setting } from "@/components/ui/icons";
 import { SiteHeader } from "@/components/site/site-header";
 import { TOOLS, visibleTools } from "@/lib/tools/catalog";
-import { isCombatPowerEnabled, isCritSpeedEnabled } from "@/lib/tools/flags";
+import { isAccessorySearchEnabled, isCombatPowerEnabled, isCritSpeedEnabled } from "@/lib/tools/flags";
 import quote from "@/components/tools/material-quote.module.css";
 import styles from "@/components/tools/tool-list.module.css";
 
@@ -22,6 +22,7 @@ export default async function ToolsPage() {
   const tools = visibleTools({
     critSpeed: isCritSpeedEnabled(),
     combatPower: isCombatPowerEnabled(),
+    accessorySearch: isAccessorySearchEnabled(),
   });
   return (
     <div className={quote.page}>

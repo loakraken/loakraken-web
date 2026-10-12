@@ -1,0 +1,518 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "LOAKraken accessory-search",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/v1/markets/auctions/accessories/search": {
+      "post": {
+        "tags": [
+          "경매장 시세"
+        ],
+        "summary": "T4 장신구 조건 검색",
+        "description": "연마 효과(최대 3줄, 하·중·상 또는 단계 무관)·깨달음 최솟값·최소 품질은 공식 경매장 서버 필터로, 힘민지 범위 %는 받은 페이지 안에서 거릅니다(최대 3페이지, complete·scannedPages·nextPage). 같은 조건은 120초 캐시(빈 결과 포함)하고, 캐시 미스 검색은 클라이언트당 분당 6회입니다. 검색이 몰리면 503 MARKET_SEARCH_BUSY와 Retry-After를 주며, 캐시에 있는 결과는 계속 줍니다. 읽기 전용입니다.",
+        "operationId": "search",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccessorySearchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "검색 성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseAccessorySearchResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_REQUEST 또는 INVALID_AUCTION_FILTER(부위에 없는 연마 효과, 같은 효과 두 번, 범위 밖 값)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "CLIENT_RATE_LIMITED(캐시 미스 검색·공식 호출 한도, Retry-After)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "LOST_ARK_API_ERROR",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "MARKET_SEARCH_BUSY(Retry-After) 또는 LOST_ARK_NOT_CONFIGURED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "LOST_ARK_API_TIMEOUT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AccessorySearchRequest": {
+        "type": "object",
+        "properties": {
+          "slot": {
+            "type": "string",
+            "description": "NECKLACE·EARRING·RING",
+            "enum": [
+              "NECKLACE",
+              "EARRING",
+              "RING"
+            ]
+          },
+          "grade": {
+            "type": "string",
+            "description": "RELIC(유물)·ANCIENT(고대)",
+            "enum": [
+              "ANCIENT",
+              "RELIC"
+            ]
+          },
+          "polish": {
+            "type": "array",
+            "description": "연마 효과 조건 최대 3줄. 부위에 붙는 효과만, 같은 효과는 한 번만",
+            "items": {
+              "$ref": "#/components/schemas/PolishLine"
+            },
+            "maxItems": 3,
+            "minItems": 0
+          },
+          "enlightenmentMin": {
+            "type": "integer",
+            "format": "int32",
+            "description": "깨달음 최솟값(등급·부위 최댓값 이하)",
+            "maximum": 13,
+            "minimum": 0
+          },
+          "mainStatRangeMinPct": {
+            "type": "integer",
+            "format": "int32",
+            "description": "힘민지 범위 % 최솟값(0~100). 받은 페이지 안에서 걸러 complete·scannedPages로 알립니다",
+            "maximum": 100,
+            "minimum": 0
+          },
+          "minQuality": {
+            "type": "integer",
+            "format": "int32",
+            "description": "최소 품질(0~100, 0이면 무관)",
+            "maximum": 100,
+            "minimum": 0
+          },
+          "sort": {
+            "type": "string",
+            "description": "BUY_PRICE(즉시 구매가 오름차순)만 지원",
+            "enum": [
+              "BUY_PRICE"
+            ]
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32",
+            "description": "공식 시작 페이지(1~10, 기본 1). 더 보기는 응답의 nextPage",
+            "maximum": 10,
+            "minimum": 1
+          }
+        },
+        "required": [
+          "grade",
+          "slot"
+        ]
+      },
+      "PolishLine": {
+        "type": "object",
+        "properties": {
+          "option": {
+            "type": "string",
+            "description": "연마 효과(PolishOption 이름, 예: ENEMY_DAMAGE)",
+            "enum": [
+              "ENEMY_DAMAGE",
+              "ADDITIONAL_DAMAGE",
+              "WEAPON_ATTACK_PERCENT",
+              "ATTACK_PERCENT",
+              "CRIT_DAMAGE",
+              "CRIT_RATE",
+              "BRAND",
+              "IDENTITY_GAUGE",
+              "ALLY_DAMAGE",
+              "ALLY_ATTACK"
+            ]
+          },
+          "level": {
+            "type": "string",
+            "description": "LOW·MID·HIGH. 비우면 단계 무관",
+            "enum": [
+              "LOW",
+              "MID",
+              "HIGH"
+            ]
+          }
+        },
+        "required": [
+          "option"
+        ]
+      },
+      "ApiResponseAccessorySearchResponse": {
+        "type": "object",
+        "description": "공통 API 응답. 오류 응답의 data는 null입니다.",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "업무 결과 코드",
+            "example": "CHARACTER_SEARCH_SUCCESS"
+          },
+          "message": {
+            "type": "string",
+            "description": "공개용 안내 메시지",
+            "example": "캐릭터 조회에 성공했습니다."
+          },
+          "data": {
+            "$ref": "#/components/schemas/AccessorySearchResponse",
+            "description": "성공 응답 데이터. 오류일 때 null"
+          }
+        },
+        "required": [
+          "code",
+          "data",
+          "message"
+        ]
+      },
+      "AccessorySearchResponse": {
+        "type": "object",
+        "properties": {
+          "ruleVersion": {
+            "type": "string",
+            "description": "계산 규칙 버전",
+            "example": "accessory-search-v1"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int64",
+            "description": "공식 TotalCount(서버 필터 기준 매물 수, 뒤 필터 전)"
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32",
+            "description": "요청한 공식 시작 페이지"
+          },
+          "observedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "공식 조회 시각(캐시면 처음 조회한 시각)"
+          },
+          "cached": {
+            "type": "boolean",
+            "description": "캐시에서 준 결과면 true"
+          },
+          "complete": {
+            "type": "boolean",
+            "description": "힘민지 범위 % 조건이 없거나, 결과가 10개 이상 찼거나, 공식 매물을 끝까지 읽었으면 true. false면 scannedPages 안에서 찾은 결과입니다"
+          },
+          "scannedPages": {
+            "type": "integer",
+            "format": "int32",
+            "description": "이번에 읽은 공식 페이지 수(뒤 필터면 최대 3)"
+          },
+          "nextPage": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32",
+                "description": "이어서 읽을 공식 페이지(page로 다시 요청). 더 없으면 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "items": {
+            "type": "array",
+            "description": "즉시 구매가 오름차순",
+            "items": {
+              "$ref": "#/components/schemas/AccessorySearchItemResponse"
+            }
+          }
+        },
+        "required": [
+          "cached",
+          "complete",
+          "items",
+          "nextPage",
+          "observedAt",
+          "page",
+          "ruleVersion",
+          "scannedPages",
+          "totalCount"
+        ]
+      },
+      "AccessorySearchItemResponse": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "grade": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "quality": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "polish": {
+            "type": "array",
+            "description": "연마 효과 줄(공식 순서)",
+            "items": {
+              "$ref": "#/components/schemas/AccessorySearchPolishResponse"
+            }
+          },
+          "polishStage": {
+            "type": "integer",
+            "format": "int32",
+            "description": "연마 단계 = 연마 효과 줄 수"
+          },
+          "enlightenment": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32",
+                "description": "깨달음(아크 패시브 포인트)"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "mainStat": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32",
+                "description": "힘·민첩·지능 기본 효과"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "mainStatRangePct": {
+            "anyOf": [
+              {
+                "type": "number",
+                "description": "힘민지 범위 % = (힘민지 − 그 연마 단계 최솟값) ÷ (최댓값 − 최솟값) × 100, 소수 둘째 자리. 범위표는 공식 아이템 사전. 연마 단계가 0~3 밖이거나 힘민지가 없으면 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "tradeAllowCount": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32",
+                "description": "구매 후 거래 가능 횟수(0이면 거래 불가)"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "buyPrice": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int64",
+                "description": "즉시 구매가. 입찰만 가능한 매물이면 null(0은 주지 않음)"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "bidStartPrice": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int64"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "endDate": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "description": "경매 종료 시각"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "bidStartPrice",
+          "buyPrice",
+          "endDate",
+          "enlightenment",
+          "grade",
+          "mainStat",
+          "mainStatRangePct",
+          "name",
+          "polish",
+          "polishStage",
+          "quality",
+          "tradeAllowCount"
+        ]
+      },
+      "AccessorySearchPolishResponse": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "공식 연마 효과 이름"
+          },
+          "option": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "검색 조건에 쓰는 핵심 연마 효과면 그 코드(PolishOption 이름), 아니면 null(최대 생명력 등)"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "shortName": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "줄임 이름(예: 적주피). option이 null이면 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "percentage": {
+            "type": "boolean"
+          },
+          "level": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "T4 하·중·상 값이면 LOW·MID·HIGH, 아니면 null",
+                "enum": [
+                  "LOW",
+                  "MID",
+                  "HIGH"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "level",
+          "name",
+          "option",
+          "percentage",
+          "shortName",
+          "value"
+        ]
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "description": "공통 오류 응답. HTTP 상태와 업무 코드를 함께 확인합니다.",
+        "properties": {
+          "code": {
+            "type": "string",
+            "example": "INVALID_REQUEST"
+          },
+          "message": {
+            "type": "string",
+            "example": "요청 값이 올바르지 않습니다."
+          },
+          "data": {
+            "type": "null"
+          }
+        },
+        "required": [
+          "code",
+          "data",
+          "message"
+        ]
+      }
+    }
+  }
+}
