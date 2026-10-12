@@ -163,4 +163,14 @@ test.describe("전투력 시뮬레이터 @smoke", () => {
     await expect(note).toHaveCount(1);
     await expect(note).toBeVisible();
   });
+
+  test("전율 장비는 '상급 0 · 준비 중' 대신 상급 재련이 없다고만 말한다(PM-프론트 P1, A21)", async ({ page }) => {
+    await gotoReady(page, `/tools/combat-power?character=${encodeURIComponent("전투력계산")}`);
+    const row = page.getByRole("listitem").filter({ hasText: "+20 전율의 상의" });
+    await expect(row).toContainText("상급 재련 없음");
+    await expect(row).not.toContainText("상급 0");
+    await expect(page.getByRole("combobox", { name: "상의 상급 재련 단계" })).toHaveCount(0);
+    // 상급이 있는 장비는 그대로 '준비 중'.
+    await expect(page.getByRole("listitem").filter({ hasText: "+19 테스트 투구" })).toContainText("상급 10 · 준비 중");
+  });
 });

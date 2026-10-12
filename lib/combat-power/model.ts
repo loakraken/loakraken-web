@@ -37,6 +37,11 @@ export const OPEN_KINDS: ReadonlySet<string> = new Set([
 ]);
 export const isOpen = (kind: Change["kind"]) => OPEN_KINDS.has(kind);
 
+/** 전율 gear has no advanced refining (the backend's refine model reads the
+ * same name: "전율 장비에는 상급 재련이 없습니다."). */
+export const hasNoAdvancedRefine = (name: string | null | undefined) => !!name?.includes("전율");
+export const NO_ADVANCED_REFINE = "전율 장비에는 상급 재련이 없어요.";
+
 /** Weapon and armour: the slots that take refine and quality in the first cut. */
 export const GEAR_TYPES = ["무기", "투구", "상의", "하의", "장갑", "어깨"] as const;
 
