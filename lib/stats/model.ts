@@ -1,4 +1,4 @@
-// Statistics (B-3, backend #100): LOAWA's /stat and ILOA's /statistics over the
+// Statistics (B-3, backend #100): class and server statistics over the
 // characters LOAKraken has observed — never the whole game population.
 import Ajv2020 from "ajv/dist/2020";
 import contract from "../../contracts/stats.openapi.json";

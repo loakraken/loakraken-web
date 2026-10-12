@@ -21,7 +21,7 @@ export function sortSiblings<T extends Sibling>(siblings: readonly T[], sort: Ro
 }
 
 /**
- * "언새늘" → "언**": the first letter and a fixed two stars, so the length does
+ * "목캐릭터A" → "목**": the first letter and a fixed two stars, so the length does
  * not give the name away and long names do not wrap.
  */
 export const maskName = (name: string) => {

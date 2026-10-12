@@ -1,5 +1,5 @@
 // Character ranking (F-7, backend #100/#112): rank, top percent and tier of a
-// character among the characters LOAKraken has observed, as LOAWA's ranking
+// character among the characters LOAKraken has observed, as a ranking
 // boxes (item level and combat power × all, server, class).
 import Ajv2020 from "ajv/dist/2020";
 import contract from "../../contracts/rank.openapi.json";

@@ -6,7 +6,7 @@ import { characterNameError, normalizeCharacterName } from "../character/model";
 import { rateLimitCopy } from "../api/rate-limit";
 
 type Schemas = components["schemas"];
-/** classState: backend #193 (omitted = on = target-site basis, false = observed only). */
+/** classState: backend #193 (omitted = on, false = observed only). */
 export type Assumptions = Schemas["CritSpeedAssumptions"];
 export type CritSpeedRequest = { characterName: string; assumptions: Assumptions };
 export type CritSpeed = Schemas["CritSpeedResponse"];
@@ -48,7 +48,7 @@ export type Settings = {
   attackSpeed: number;
   moveSpeed: number;
   buffs: SpeedBuff[];
-  /** Assume class states (e.g. reaper chaos) like the target sites do. */
+  /** Assume class states (e.g. reaper chaos) are on. */
   classState: boolean;
   /** Per-effect switches the user changed (key = response toggles[].key). */
   toggles: Record<string, boolean>;

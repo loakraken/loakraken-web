@@ -1,0 +1,263 @@
+/* Multi-search (K37): a name field, then the characters side by side — a
+   sortable table on wide screens, comparison cards on a phone. Both are in
+   the HTML; CSS picks one so nothing moves when the width is read. */
+.main {
+  max-width: 1168px;
+  margin: 0 auto;
+  padding: 0 24px 64px;
+}
+.hero {
+  padding: 40px 0 12px;
+}
+.hero h1 {
+  margin: 0;
+  color: var(--foreground);
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+.hero p {
+  margin: 6px 0 0;
+  color: var(--muted-foreground);
+  font-size: 15px;
+}
+.hero .kicker {
+  margin: 0 0 4px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.form {
+  display: grid;
+  gap: 8px;
+  margin: 8px 0 12px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: var(--muted);
+}
+.form label {
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-weight: 600;
+}
+.field {
+  display: flex;
+  gap: 8px;
+}
+.field [data-slot="input"] {
+  flex: 1;
+  background: var(--card);
+}
+.hint,
+.error {
+  margin: 0;
+  min-height: 1lh;
+  font-size: 13px;
+}
+.hint {
+  color: var(--muted-foreground);
+}
+.error {
+  color: var(--destructive);
+}
+
+.bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 14px;
+  min-height: 32px;
+  margin: 0 0 8px;
+}
+.status {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 13px;
+}
+.textButton {
+  color: var(--link);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.textButton:disabled {
+  color: var(--muted-foreground);
+}
+
+.panel {
+  padding: 4px;
+  border-radius: 16px;
+  background: var(--card);
+  box-shadow: 0 0 0 1px var(--border);
+}
+
+/* Wide: the table. Phone: the cards. */
+.cards {
+  display: none;
+}
+@media (max-width: 640px) {
+  .main {
+    padding: 0 16px 48px;
+  }
+  .hero {
+    padding-top: 28px;
+  }
+  .hero h1 {
+    font-size: 26px;
+  }
+  .panel {
+    display: none;
+  }
+  /* --card is the page colour in the light theme; the cards sit on the
+     same muted panel as the form so each card reads as one. */
+  .cards {
+    display: block;
+    padding: 12px 0 10px 12px;
+    border-radius: 16px;
+    background: var(--muted);
+  }
+  .field {
+    flex-direction: column;
+  }
+  .field [data-slot="input"] {
+    flex: none;
+  }
+}
+
+/* Two lines per row whatever arrives (name over server; engravings clamp to
+   two), so a loaded row is as tall as its placeholder. */
+.table {
+  min-width: 1110px;
+  table-layout: fixed;
+}
+.table td,
+.table th[scope="row"] {
+  height: 64px;
+  vertical-align: middle;
+}
+.table td,
+.table th {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.name {
+  display: grid;
+  min-width: 0;
+}
+.name a {
+  overflow: hidden;
+  color: var(--foreground);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  text-decoration: none;
+}
+.name a:hover {
+  text-decoration: underline;
+}
+.sub {
+  overflow: hidden;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-weight: 400;
+  text-overflow: ellipsis;
+}
+.chips {
+  display: -webkit-box;
+  overflow: hidden;
+  line-height: 20px;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  white-space: normal;
+}
+.chip {
+  display: inline-block;
+  margin: 0 6px 0 0;
+  white-space: nowrap;
+}
+.chip b {
+  margin-left: 3px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.reason {
+  color: var(--muted-foreground);
+  font-size: 13px;
+}
+.best {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.mark {
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--secondary);
+  color: var(--foreground);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 18px;
+}
+.failed {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+}
+/* Card rows with a list: a fixed number of lines whatever arrives, so the
+   same row lines up across cards. */
+/* Every card value is as wide as its placeholder, so a value that arrives
+   does not move along the row. */
+.cardValue {
+  display: block;
+  width: 8rem;
+  overflow: hidden;
+  text-align: right;
+  text-overflow: ellipsis;
+}
+.cardLines2,
+.cardLines3 {
+  display: flex;
+  width: 8rem;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: flex-end;
+  line-height: 20px;
+  text-align: right;
+  white-space: normal;
+}
+.cardLines2 {
+  height: 40px;
+}
+.cardLines3 {
+  height: 60px;
+}
+.cardLines2 .chip,
+.cardLines3 .chip {
+  margin: 0 0 0 6px;
+}
+.cardFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 32px;
+}
+.cardFooter a {
+  color: var(--link);
+  font-size: 13px;
+  font-weight: 600;
+}
+.cardReason {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 13px;
+}
+.main [data-stale] {
+  opacity: 0.55;
+  transition: opacity 160ms ease-out;
+}

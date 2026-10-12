@@ -1,7 +1,7 @@
 "use client";
 
-// /schedule: ILOA /calendar (weekly reset, upcoming rounds, categories, hide
-// past, this week's gold islands) with 로아랩 /calendars per-category views.
+// /schedule: weekly reset, upcoming rounds, categories, hide past, this
+// week's gold islands, and per-category views.
 
 import { SiteHeader } from "@/components/site/site-header";
 import { Countdown, MINUTE, useClock, useRemaining } from "@/components/home/clock";
@@ -54,7 +54,7 @@ function Upcoming({ renderedAt }: { renderedAt?: number }) {
   );
 }
 
-/** The week's adventure islands by day, gold days marked (ILOA "이번 주 골드 섬"). */
+/** The week's adventure islands by day, gold days marked ("이번 주 골드 섬"). */
 function WeekIslands({ renderedAt }: { renderedAt?: number }) {
   const now = useClock(MINUTE) ?? renderedAt ?? null;
   const data = useSchedule(null).data?.data;

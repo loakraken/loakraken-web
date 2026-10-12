@@ -8,7 +8,7 @@ const SIZES = [
   { width: 1366, height: 768 },
 ];
 const PAGES = [
-  { name: "치적·뭉가·음돌", path: `/tools/crit-speed?character=${encodeURIComponent("언새늘")}` },
+  { name: "치적·뭉가·음돌", path: `/tools/crit-speed?character=${encodeURIComponent("목캐릭터A")}` },
   { name: "경매 입찰가", path: "/tools/auction" },
   { name: "더보기 손익", path: "/tools/more-reward" },
 ];

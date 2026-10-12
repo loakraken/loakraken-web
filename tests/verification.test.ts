@@ -10,7 +10,7 @@ const read = (path: string) =>
   JSON.parse(readFileSync(new URL(`./verification-fixtures/${path}`, import.meta.url), "utf8"));
 
 test("auction bids match every verified case", () => {
-  const sample = read("auction/iloa-loalab-2026-10-09.json");
+  const sample = read("auction/cross-check-2026-10-09.json");
   assert.ok(sample.cases.length >= 3);
   for (const c of sample.cases) {
     const r = calculateAuction(c.price, c.party);

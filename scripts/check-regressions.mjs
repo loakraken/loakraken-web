@@ -2,17 +2,25 @@
 // Guards against regressions the user has already pointed out once
 // (vault: 30 PM/사용자 지적 회귀 점검표, rows A1 A2 A9 A11 A13 B2 B3).
 // Fast and dependency-free: it reads the source, strips comments (a comment
-// may name a target site or a rule; the screen may not) and fails CI with the
+// may name a rule; the screen may not) and fails CI with the
 // file, line and the checklist row that was broken.
 //
 //   node scripts/check-regressions.mjs        # exit 1 on any violation
 //
+// Blocked names (other sites, real characters) are checked across every
+// tracked file — docs, comments, tests, fixtures and file names too — against
+// a list that is not in this public repository (scripts/blocked-terms.mjs:
+// the BLOCKED_TERMS secret in CI, .blocked-terms locally). Hits are printed
+// masked; with no list the check says 건너뜀.
+//
 // An exception is a path (and why) in ALLOW below. TEMP entries print a
 // warning every run so they are removed when the owning PR lands.
 
+import { execFileSync } from "node:child_process";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import { blockedPattern, kindOf, loadBlockedTerms, mask } from "./blocked-terms.mjs";
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const SCAN = ["app", "components", "lib"];
@@ -118,14 +126,6 @@ const RULES = [
   },
   {
     row: "A13",
-    what: "화면에 다른 사이트 이름 — 공식 출처만, 이름은 쓰지 않습니다",
-    files: CODE,
-    // screens only: data files keep their source names (데이터 출처 규칙, 10-12)
-    only: /^(app|components)[\\/]/,
-    test: /(일로아|로펙|클로아|로아와|로아랩|\biloa\b|\blopec\b|\bkloa\b|\bloawa\b|lo4\.app|korlark)/i,
-  },
-  {
-    row: "A13",
     what: "화면에 '출처' 표기 — 사용자 결정(10-12)으로 출처 표시를 쓰지 않습니다",
     files: CODE,
     test: /출처/,
@@ -206,7 +206,57 @@ for (const top of SCAN) {
   }
 }
 
+// Blocked names: every tracked text file, raw (comments included), and every path.
+// Game data keeps where each value came from (user rule 10-12): in data JSON
+// the source fields (source, sources, sourceUrl…, checkedAt) are not checked,
+// also when "sources" is an array over several lines.
+const DATA_JSON = /^lib[\\/](.+[\\/])?data[\\/].+\.json$/;
+const SOURCE_KEY = /^\s*"(source[A-Za-z]*|checkedAt)"\s*:/;
+const BINARY = /\.(png|jpe?g|gif|webp|avif|ico|woff2?|ttf|otf|pdf|zip|gz|mp4|webm)$/i;
+const blocked = loadBlockedTerms();
+const blockedRe = blockedPattern(blocked.terms);
+let blockedNote;
+if (!blockedRe) {
+  blockedNote = "금지 이름 검사 건너뜀 (BLOCKED_TERMS 비밀값도 .blocked-terms 파일도 없음)";
+} else {
+  const tracked = execFileSync("git", ["ls-files", "-z"], { cwd: ROOT, encoding: "utf8" }).split("\0").filter(Boolean);
+  const label = (text) => (kindOf(blocked.terms, text) === "character" ? "실제 캐릭터명" : "다른 사이트 이름");
+  for (const path of tracked) {
+    blockedRe.lastIndex = 0;
+    const inPath = blockedRe.exec(path);
+    if (inPath) errors.push(`${mask(path, blockedRe)}  [공개 저장소] 파일 이름에 ${label(inPath[0])}`);
+    if (BINARY.test(path)) continue;
+    let raw;
+    try {
+      raw = readFileSync(join(ROOT, path), "utf8");
+    } catch {
+      continue; // deleted in the working tree
+    }
+    if (raw.includes("\0")) continue;
+    const data = DATA_JSON.test(path);
+    let inSources = false;
+    raw.split("\n").forEach((line, i) => {
+      if (data) {
+        if (inSources) {
+          if (/^\s*\]/.test(line)) inSources = false;
+          return;
+        }
+        if (SOURCE_KEY.test(line)) {
+          if (/\[\s*$/.test(line)) inSources = true;
+          return;
+        }
+      }
+      blockedRe.lastIndex = 0;
+      const hit = blockedRe.exec(line);
+      if (!hit) return;
+      errors.push(`${mask(path, blockedRe)}:${i + 1}  [공개 저장소] ${label(hit[0])} — 이름 없이 쓰거나 익명 ID로\n    ${mask(line.trim(), blockedRe).slice(0, 140)}`);
+    });
+  }
+  blockedNote = `금지 이름 ${blocked.terms.length}개 검사 (${blocked.source}, 파일 ${tracked.length}개)`;
+}
+
 for (const w of warnings) console.warn(`warning  ${w}`);
+console.log(blockedNote);
 if (errors.length) {
   console.error(`\n회귀 점검표 위반 ${errors.length}건 (30 PM/사용자 지적 회귀 점검표):\n`);
   for (const e of errors) console.error(`  ${e}`);

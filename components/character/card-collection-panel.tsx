@@ -14,8 +14,8 @@ import { useCrossfade } from "@/lib/motion";
 
 /**
  * Roster card records (F-6), inside the cards panel right under the equipped
- * set as ILOA shows it: six element slots for the character's role, then
- * LOAWA's 도감 and buildable set effects, folded.
+ * set: six element slots for the character's role, then the 도감 and
+ * buildable set effects, folded.
  */
 export function CardCollection({ name }: { name: string }) {
   const query = useQuery({
@@ -25,7 +25,7 @@ export function CardCollection({ name }: { name: string }) {
   });
   const fade = useCrossfade(query.isPending);
   const data = query.data?.data;
-  // Default to the character's role; either set list can be viewed (ILOA).
+  // Default to the character's role; either set list can be viewed.
   const [role, setRole] = useState<"dealer" | "supporter" | null>(null);
   const limit = useRateLimit(query.error);
   const shown = role ?? (data?.position === "SUPPORT" ? "supporter" : "dealer");

@@ -75,7 +75,7 @@ function Cells({ data, metric }: { data: CharacterRank; metric: RankMetric }) {
 }
 
 /**
- * LOAWA-style ranking boxes (F-7): combat power and item level, each over all,
+ * Ranking boxes (F-7): combat power and item level, each over all,
  * the server and the class. Ranks are over the characters LOAKraken has
  * observed (said under the boxes), never the whole game. A small sample
  * shows its size on one line, never a 0.

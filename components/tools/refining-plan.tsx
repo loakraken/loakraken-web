@@ -3,7 +3,7 @@
 import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMutation, useQueries, useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQueries, useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Setting } from "@/components/ui/icons";
 import { Select } from "@/components/ui/select";
 import { CharacterQueryError, fetchCharacter } from "@/lib/character/client";
@@ -403,6 +403,9 @@ function useRefiningCost(plans: PartPlan[], mode: Mode, basis: PriceBasis, owned
       postMaterialPrices({ priceBasis: basis, names }, signal),
     enabled: names.length > 0 && names.length <= MAX_PRICE_NAMES,
     staleTime: 5 * 60_000,
+    // Same rule as 더보기 손익 (사용자 지적 10-12 01:36): a new basis keeps
+    // the old table, dimmed, instead of emptying it and refilling it.
+    placeholderData: keepPreviousData,
     retry: false,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
@@ -484,7 +487,7 @@ function Result({
   ];
   return (
     <>
-      <p className={quote.total}>
+      <p className={quote.total} data-stale={prices.isPlaceholderData || undefined}>
         {formatCount(total)}
         <span>골드</span>
       </p>
@@ -495,11 +498,10 @@ function Result({
         · 총 {formatCount(summary.stageCount)}단계, 시도{" "}
         {formatCount(summary.attempts, mode === "expected" ? 1 : 0)}회
       </p>
-      {prices.isFetching && (
-        <p className={styles.priceStatus} role="status">
-          재료 시세를 불러오고 있어요.
-        </p>
-      )}
+      {/* Always there, one line high: appearing and leaving moved the table. */}
+      <p className={styles.priceStatus} role="status">
+        {prices.isFetching ? "재료 시세를 불러오고 있어요." : ""}
+      </p>
       {priceList && unpriced.length > 0 && (
         <p className={quote.status}>
           시세가 없어 합계에서 뺀 재료: {unpriced.join(", ")}
@@ -538,7 +540,7 @@ function Result({
           </button>
         </div>
       )}
-      <div className={styles.materialWrap}>
+      <div className={styles.materialWrap} aria-busy={prices.isPlaceholderData || undefined} data-stale={prices.isPlaceholderData || undefined}>
         <table className={styles.table} data-wide="">
           <thead>
             <tr>

@@ -6,8 +6,8 @@ import { PRODUCTION_URL } from "@/lib/site";
 type Env = Record<string, string | undefined>;
 
 /**
- * The crit-speed tool stays hidden on production until every row matches the
- * target sites again. `CRIT_SPEED_TOOL=on|off` overrides; otherwise it is
+ * The crit-speed tool stays hidden on production until every row is
+ * re-verified. `CRIT_SPEED_TOOL=on|off` overrides; otherwise it is
  * hidden only where SITE_URL explicitly names the production host (www
  * included), so local, e2e and staging keep it. Production also sets
  * CRIT_SPEED_TOOL=off explicitly (PM-프론트 23:41).
