@@ -1347,9 +1347,9 @@ createServer(async (req, res) => {
       tripods: [], rune: null, gemEffects: [], ...extra,
     });
     d.loadout.skills = [
-      skill("합성 포격", 14, { tripods: [{ tier: 0, slot: 1, name: "기동 포격", icon: null }, { tier: 1, slot: 2, name: "연발 포격", icon: null }, { tier: 2, slot: 1, name: "화약 추가", icon: null }], rune: { name: "풍요", icon: null, grade: "전설" }, gemEffects: [{ text: "합성 포격 피해 28.00% 증가", kind: "DAMAGE" }] }),
+      skill("합성 포격", 14, { tripods: [{ tier: 0, slot: 1, name: "기동 포격", icon: null }, { tier: 1, slot: 2, name: "연발 포격", icon: null }, { tier: 2, slot: 1, name: "화약 추가", icon: null }], rune: { name: "풍요", icon: null, grade: "전설" }, gemEffects: [{ text: "합성 포격 피해 28.00% 증가", kind: "DAMAGE" }], cooldown: { cooldownSec: 18, gemCooldownReductionPct: 0, cooldownWithGemsSec: 18, basis: "공식 재사용 대기시간과 장착 보석의 재사용 대기시간 감소만 반영했습니다." } }),
       skill("합성 화염", 14, { partBreakLevel: 1, tripods: [{ tier: 0, slot: 2, name: "장전", icon: null }], rune: { name: "풍요", icon: null, grade: "전설" } }),
-      skill("합성 중력", 10, { counter: true, rune: { name: "속행", icon: null, grade: "영웅" }, gemEffects: [{ text: "합성 중력 재사용 대기시간 20.00% 감소", kind: "COOLDOWN" }] }),
+      skill("합성 중력", 10, { counter: true, rune: { name: "속행", icon: null, grade: "영웅" }, gemEffects: [{ text: "합성 중력 재사용 대기시간 20.00% 감소", kind: "COOLDOWN" }], cooldown: { cooldownSec: 24, gemCooldownReductionPct: 20, cooldownWithGemsSec: 19.2, basis: "공식 재사용 대기시간과 장착 보석의 재사용 대기시간 감소만 반영했습니다." } }),
       skill("기본 스킬", 1, { partBreakLevel: 1, counter: true }),
     ];
     d.coverage.skills = "PROVIDED";

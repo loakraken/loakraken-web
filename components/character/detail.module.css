@@ -2077,3 +2077,26 @@
   opacity: 0.55;
   transition: opacity 150ms ease;
 }
+/* 보석 반영 쿨타임 (K20): base → with gems, the reduction, basis on the term. */
+.skillCooldown {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 6px;
+  margin-top: 6px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.skillCooldown b {
+  color: var(--foreground);
+  font-weight: 700;
+  white-space: nowrap;
+}
+.skillCooldownFrom {
+  color: var(--muted-foreground);
+  white-space: nowrap;
+}
+.skillCooldown small {
+  color: var(--muted-foreground);
+  white-space: nowrap;
+}
