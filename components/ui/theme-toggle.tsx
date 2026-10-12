@@ -300,5 +300,15 @@ function ThemeToggle({ className, ...props }: ThemeToggleProps) {
   )
 }
 
-export { ThemeToggle, THEME_STORAGE_KEY, MOTION_STORAGE_KEY, themeInitScript, useTheme, useThemeChoice }
+// applyThemeChoice and THEME_CHOICES: the header search panel's "테마 바꾸기" row (10-12).
+export {
+  ThemeToggle,
+  THEME_STORAGE_KEY,
+  MOTION_STORAGE_KEY,
+  themeInitScript,
+  useTheme,
+  useThemeChoice,
+  applyChoice as applyThemeChoice,
+  CHOICES as THEME_CHOICES,
+}
 export type { Theme, ThemeChoice }

@@ -64,7 +64,7 @@ test("only six characters get gold, highest level first", () => {
 
 test("gold counts cleared gates, subtracts bought bonus rewards", () => {
   const [character] = addCharacters(emptyState(0), [
-    { name: "언새늘", server: "루페온", className: "블레이드", itemLevel: 1730 },
+    { name: "기준캐릭터A", server: "루페온", className: "블레이드", itemLevel: 1730 },
   ]).characters;
   // 종막 하드: 16,000 + 32,000, bonus 5,120 + 10,240.
   const finalHard = character.raids[0];
@@ -118,7 +118,7 @@ test("unknown gold is counted separately, never as zero gold earned", () => {
 
 test("a new week clears progress but keeps the setup", () => {
   const state = addCharacters(emptyState(kst("2026-10-09T12:00:00")), [
-    { name: "언새늘", server: "루페온", className: "블레이드", itemLevel: 1730 },
+    { name: "기준캐릭터A", server: "루페온", className: "블레이드", itemLevel: 1730 },
   ]);
   state.characters[0].raids[0].cleared = [true, true];
   assert.equal(rollWeek(state, kst("2026-10-13T12:00:00")), state, "same week untouched");
@@ -150,15 +150,15 @@ test("stored state is parsed defensively", () => {
   assert.equal(state.characters[0].raids.length, 1, "unknown raid and wrong gate count dropped");
 });
 
-test("언새늘 roster matches the target site weekly total (web #270)", () => {
-  // 계산 검증 02:45: 일로아 숙제 관리 401,100G for the top six characters.
+test("기준캐릭터A roster weekly total (web #270, 계산 검증)", () => {
+  // 계산 검증 02:45: 401,100G for the top six characters.
   const roster = [
-    ["언새늘", 1770],
-    ["언로늘", 1723.33],
-    ["비극화", 1704.33],
-    ["무협권", 1585],
-    ["엉람쥐", 1585],
-    ["돈땃쥐밍", 1556.67],
+    ["기준캐릭터A", 1770],
+    ["원정대캐릭터B", 1723.33],
+    ["원정대캐릭터C", 1704.33],
+    ["원정대캐릭터D", 1585],
+    ["원정대캐릭터E", 1585],
+    ["원정대캐릭터F", 1556.67],
   ].map(([name, itemLevel]) => ({ name: String(name), server: "루페온", className: "", itemLevel: Number(itemLevel) }));
   const state = addCharacters(emptyState(0), roster);
   const totals = state.characters.map((c) => characterGold(c).possible);
@@ -172,8 +172,8 @@ test("언새늘 roster matches the target site weekly total (web #270)", () => {
   assert.deepEqual(unsettledModes([low]), []);
 });
 
-test("equal gold picks the newer raid like the target site (#277 P2)", () => {
-  // 언로늘 1,723.33: 종막 노말 and 세르카 노말 both pay 32,000 at entry 1,710.
+test("equal gold picks the newer raid (#277 P2)", () => {
+  // 원정대캐릭터B 1,723.33: 종막 노말 and 세르카 노말 both pay 32,000 at entry 1,710.
   const picks = autoRaids(1723.33).map((r) => `${r.raidId}/${r.difficulty}`);
   assert.deepEqual(picks, ["horizon-cathedral/STAGE_2", "kazeros-act4/HARD", "serka/NORMAL"]);
 });

@@ -1,4 +1,4 @@
-// Market item favourites (per browser), as LOAWA's 품목 즐겨찾기: a starred
+// Market item favourites (per browser), 품목 즐겨찾기: a starred
 // item stays one click away across category tabs.
 import { TAB_IDS, type TabId } from "./board";
 

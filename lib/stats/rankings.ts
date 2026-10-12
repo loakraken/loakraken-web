@@ -1,4 +1,4 @@
-// Character ranking list (backend #100 /rankings): LOAWA's 랭킹 over the
+// Character ranking list (backend #100 /rankings): 랭킹 over the
 // characters LOAKraken has observed. Hidden characters are never listed.
 import Ajv2020 from "ajv/dist/2020";
 import contract from "../../contracts/rankings.openapi.json";

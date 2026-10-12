@@ -1,16 +1,14 @@
-// Raid auction bid calculator — pure, client-only. Follows ILOA /tools/bid
-// (checked 2026-10-08 with 100,000G·4인 and 99,999G·8인); LOALAB differs only
-// in also taking the market fee off the "use it myself" price.
+// Raid auction bid calculator — pure, client-only. Checked 2026-10-08 with
+// 100,000G·4인 and 99,999G·8인 (계산 검증 표본, tests/verification-fixtures).
+// "Use it myself" has no market fee (PM 총괄 결정 2026-10-08).
 //
 // Rules:
 // - The winning bid is split equally among the other party members.
-// - Selling on the market costs a 5% fee, rounded up (ILOA: 99,999 → 5,000).
+// - Selling on the market costs a 5% fee, rounded up (99,999 → 5,000).
 // - A counter-bid must be 10% higher, so bidding break-even ÷ 1.1 leaves no
-//   room for a profitable counter-bid. ILOA and LOALAB share this basis; the
-//   official rule text was not checked, so the UI marks it "추정".
+//   room for a profitable counter-bid. The official rule text was not checked, so the UI marks it "추정".
 // - A winning bid over 100,000G loses 5% of the part above 100,000 before it
-//   is shared (계산 검증 10-11 16:42, PM 총괄 반영 결정; the target sites
-//   leave it out, so above 100,000 our bids differ from theirs on purpose).
+//   is shared (계산 검증 10-11 16:42, PM 총괄 반영 결정).
 //   Shared total D(y) = y − 0.05 × max(0, y − 100,000), each gets D ÷ (n − 1),
 //   and the break-even above 100,000 solves S − y = D(y) ÷ (n − 1):
 //   y = ((n − 1) × S − 5,000) ÷ (n − 0.05).

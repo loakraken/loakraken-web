@@ -56,7 +56,7 @@ function removeFavorite(name: string) {
 }
 
 /**
- * LOAWA-style recent searches card: 최근 검색 / 즐겨찾기 tabs, each row with
+ * Recent searches card: 최근 검색 / 즐겨찾기 tabs, each row with
  * item level and server · class, a "검색어 저장" switch and 전체 삭제.
  */
 export function RecentCard() {

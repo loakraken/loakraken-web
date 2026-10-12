@@ -70,7 +70,7 @@ import { RateLimitNote } from "@/components/site/rate-limit-note";
 import { pendingProps } from "@/lib/api/pending";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { useCrossfade } from "@/lib/motion";
-import { PriceFlash } from "./price-flash";
+import { ChangeMark, UpdateAnnouncer, useChangedCells, type Pulse } from "@/components/ui/changed-cells";
 import { DataRefreshState } from "@/components/ui/data-refresh-state";
 
 const TIERS = [4, 3] as const;
@@ -125,6 +125,28 @@ function Change({
     <b className={styles.change} data-direction={label.direction}>
       {label.text}
     </b>
+  );
+}
+
+/**
+ * The day change in the detail facts: the amount on the big line and the
+ * rate on a small line under it that is always there (a blank one when there
+ * is no rate). The cell is narrower than "▲4.7 (4.8%)" at 18px, so the one
+ * line used to fold into two on some refreshes and push the chart down
+ * (A7, PM-프론트 #617); now it is two lines every time, neither wraps.
+ */
+function FactChange({ item }: { item: Pick<BoardItem, "currentMinPrice" | "yesterdayAvgPrice" | "changeDay"> }) {
+  const label = changeWithAmount(item);
+  const cut = label.text.indexOf(" (");
+  const main = cut < 0 ? label.text : label.text.slice(0, cut);
+  const rate = cut < 0 ? "" : label.text.slice(cut + 2, -1);
+  return (
+    <>
+      <b className={styles.change} data-direction={label.direction}>
+        {main}
+      </b>
+      <small className={styles.unit}>{rate || "\u00a0"}</small>
+    </>
   );
 }
 
@@ -220,7 +242,7 @@ function Detail({
         <div>
           <dt>전일 평균 대비</dt>
           <dd>
-            <Change item={item} />
+            <FactChange item={item} />
           </dd>
         </div>
         <div>
@@ -311,6 +333,69 @@ function Detail({
         </p>
       )}
     </section>
+  );
+}
+
+/**
+ * The board's rows. Each minute's refresh compares the prices with the last
+ * ones: a changed current price or day change gets the shared changed-cell
+ * mark (a wash that fades once, plus ▲/▼ on the price; the number is final
+ * at once, no counting), and a screen reader hears one short summary.
+ */
+const washOnly = (pulse: Pulse | undefined): Pulse | undefined => pulse && { ...pulse, dir: 0 };
+
+function BoardRows({
+  items,
+  tier,
+  activeId,
+  onChoose,
+  listRef,
+  pending,
+}: {
+  items: BoardItem[];
+  tier: number | null;
+  activeId: number | undefined;
+  onChoose: (item: BoardItem) => void;
+  listRef: ReturnType<typeof useCrossfade>;
+  pending: ReturnType<typeof pendingProps>;
+}) {
+  const { pulse, summary } = useChangedCells(items, (item) => String(item.itemId), {
+    price: (item) => item.currentMinPrice,
+    change: (item) => item.changeDay,
+  });
+  return (
+    <>
+      <ul ref={listRef} className={styles.rows} {...pending}>
+        {items.map((item) => (
+          <li key={item.itemId}>
+            <button type="button" aria-pressed={activeId === item.itemId} onClick={() => onChoose(item)}>
+              <GameIcon src={item.icon} grade={item.grade} size={36} />
+              <span className={styles.rowName}>
+                <strong data-grade={item.grade ?? undefined}>
+                  {item.name}
+                  {tier != null && <i>T{tier}</i>}
+                </strong>
+                <small>
+                  {item.bundleCount > 1 &&
+                    `${item.bundleCount}개 · 개당 ${goldText(unitPrice(item.currentMinPrice, item.bundleCount))} · `}
+                  최근 거래 {goldText(item.recentPrice).replace("G", "")}
+                </small>
+              </span>
+              <span className={styles.rowPrice}>
+                <ChangeMark pulse={pulse(String(item.itemId), "price")}>
+                  <b>{goldText(item.currentMinPrice)}</b>
+                </ChangeMark>
+                {/* The day change carries its own ▲/▼: mark it with the wash only. */}
+                <ChangeMark pulse={washOnly(pulse(String(item.itemId), "change"))}>
+                  <Change item={item} />
+                </ChangeMark>
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
+      <UpdateAnnouncer text={summary ? `시세 ${summary}` : ""} />
+    </>
   );
 }
 
@@ -516,38 +601,17 @@ function MarketContent({
               ) : !items.length ? (
                 <p className={styles.muted}>표시할 품목이 없어요.</p>
               ) : (
-                <ul
-                  ref={fade}
-                  className={styles.rows}
-                  {...pendingProps(board)}
-                >
-                  {items.map((item) => (
-                    <li key={item.itemId}>
-                      <button
-                        type="button"
-                        aria-pressed={active?.itemId === item.itemId}
-                        onClick={() => choose(item)}
-                      >
-                        <GameIcon src={item.icon} grade={item.grade} size={36} />
-                        <span className={styles.rowName}>
-                          <strong data-grade={item.grade ?? undefined}>
-                            {item.name}
-                            {tier != null && <i>T{tier}</i>}
-                          </strong>
-                          <small>
-                            {item.bundleCount > 1 &&
-                              `${item.bundleCount}개 · 개당 ${goldText(unitPrice(item.currentMinPrice, item.bundleCount))} · `}
-                            최근 거래 {goldText(item.recentPrice).replace("G", "")}
-                          </small>
-                        </span>
-                        <span className={styles.rowPrice}>
-                          <PriceFlash value={item.currentMinPrice}>{goldText(item.currentMinPrice)}</PriceFlash>
-                          <Change item={item} />
-                        </span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
+                // A new board (tab, tier, sort, page) is not a "change": the
+                // rows are compared again from the first real answer for it.
+                <BoardRows
+                  key={`${JSON.stringify(query)}${board.isPlaceholderData ? ":previous" : ""}`}
+                  listRef={fade}
+                  items={items}
+                  tier={tier}
+                  activeId={active?.itemId}
+                  onChoose={choose}
+                  pending={pendingProps(board)}
+                />
               )}
               {pages > 1 && (
                 <nav className={styles.pages} aria-label="페이지">

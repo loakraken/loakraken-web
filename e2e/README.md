@@ -36,7 +36,7 @@ npx playwright show-report       # 실패 시 trace·스크린샷
 | `smoke/market.spec.mjs` | 시세 분류·정렬·페이지·품목 추이·기간 |
 | `smoke/multi-search.spec.mjs` | 멀티서치: 여러 이름 입력·주소 유지, 한 명씩 차례로 조회, 6명 초과·이름 아닌 값 안내, 못 찾은 캐릭터·값 없는 칸 이유, 빼기·정렬 |
 | `smoke/tools.spec.mjs` | 재련 기대 비용(계산·장비 불러오기), 재료 구매 견적, 치적·뭉가·음돌 |
-| `smoke/auction.spec.mjs` | 경매 입찰가: 일로아 대조 100,000G·8인, 수수료 올림(99,999G), 프리셋 4·8·16·30, 직접 입력·범위 오류, 가격 오류, 화살표 키, 주소 유지 |
+| `smoke/auction.spec.mjs` | 경매 입찰가: 100,000G·8인, 수수료 올림(99,999G), 프리셋 4·8·16·30, 직접 입력·범위 오류, 가격 오류, 화살표 키, 주소 유지 |
 | `regression/mock-contract.spec.mjs` | 목 응답이 앱 프록시의 계약 검증을 통과하는지(캐릭터·원정대·이력·조회수·카드 기록·시세·홈) |
 | `regression/detail-mock.spec.mjs` | '상세'·'상세서포터' 전 탭에 계약 실패 화면이 없음 |
 | `regression/aria-expanded.spec.mjs` | 펼침 버튼 aria-expanded(아크 그리드·기록 표·스킬·상단 메뉴, 전 탭 검사) |

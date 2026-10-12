@@ -50,7 +50,7 @@ test("item tooltip request checks the name before calling the backend", async ()
   assert.match(calls[0], /\/api\/v1\/characters\/item-tooltips\?characterName=/);
 });
 
-test("remaining lines group into the reference site's sections", async () => {
+test("remaining lines group into sections", async () => {
   const { groupExtraLines } = await import("../lib/character/item-tooltips");
   assert.deepEqual(groupExtraLines(["분해불가", "[제작] 대도시", "내구도 61 / 66"]), [["분해불가"], ["[제작] 대도시"], ["내구도 61 / 66"]]);
   assert.deepEqual(
@@ -73,7 +73,7 @@ test("a backend before #286 (no section titles) still passes and keeps the lines
 });
 
 test("a line that followed an earlier section goes right after it", () => {
-  // The bracelet as the official tooltip has it (local backend, 언새늘).
+  // The bracelet as the official tooltip has it (local backend sample).
   const bracelet = {
     lines: ["효과 부여 불가", "[가디언 토벌] 스콜라키아", "그 외에 획득처가 더 존재합니다."],
     sections: ["팔찌 효과", "아크 패시브 포인트 효과", "아크 패시브 포인트 효과"],

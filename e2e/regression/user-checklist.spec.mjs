@@ -61,8 +61,6 @@ const ROUTES = [
  * stays green now and turns red the moment one is fixed (then drop the line).
  */
 const KNOWN_SHIFT = {
-  "/tools/auction@1280":
-    "성장 도구: 파티 인원 SegmentedControl 폭 측정 뒤 아래 칸이 밀림(0.0066~0.0105, 360에서는 0)",
 };
 
 /** Collects layout shifts from the very start of the page (buffered), with or without recent input. */
@@ -222,7 +220,6 @@ test.describe("사용자 지적 회귀 점검표 @regression", () => {
   const KNOWN_A7 = {
     "랭킹 기간": "누른 직후 0.0001",
     "통계 탭": "서버 탭으로 바꾸면 아래 안내가 밀림 0.0711",
-    "시세 정렬": "정렬을 바꾸면 목록 아래가 밀림 0.0130",
   };
   for (const flow of A7_FLOWS) {
     test(`@A7 ${flow.name}: ${flow.grows ? "아래로 펼치는 것 말고는" : "누른 뒤에도"} 흔들림 0`, async ({

@@ -28,7 +28,7 @@ test("six-man average of the six highest item levels; 1,680+ count and sum", () 
 });
 
 test("hidden names keep the first letter and a fixed two stars", () => {
-  assert.equal(maskName("언새늘"), "언**");
+  assert.equal(maskName("목캐릭터A"), "목**");
   assert.equal(maskName("버서커로아원정대"), "버**");
   assert.equal(maskName("🐙문어"), "🐙**");
 });

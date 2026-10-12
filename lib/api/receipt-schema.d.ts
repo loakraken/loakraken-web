@@ -114,9 +114,9 @@ export interface components {
             stage: number;
             /** @description 그 단계 기대 비용(골드) */
             gold: number;
-            /** @description 숨결을 쓰는 쪽이 더 싸서 고름 */
+            /** @description 회차별 최적 전략에서 숨결을 쓰는 회차가 있음 */
             breath: boolean;
-            /** @description 책을 쓰는 쪽이 더 싸서 고름 */
+            /** @description 회차별 최적 전략에서 책을 쓰는 회차가 있음 */
             book: boolean;
             /** @description 성장 지원 적용(업화 18단계 이하) */
             growthSupport: boolean;
@@ -128,7 +128,7 @@ export interface components {
              * @description UNSUPPORTED_GRADE·UNSUPPORTED_STAGE·ARM_GUARD·ADVANCED_REFINING·PRICE_UNAVAILABLE
              * @enum {string}
              */
-            reason: "UNSUPPORTED_GRADE" | "UNSUPPORTED_STAGE" | "ARM_GUARD" | "ADVANCED_REFINING" | "PRICE_UNAVAILABLE" | "GROWTH_COST_UNCONFIRMED";
+            reason: "UNSUPPORTED_GRADE" | "UNSUPPORTED_STAGE" | "ARM_GUARD" | "ADVANCED_REFINING" | "PRICE_UNAVAILABLE" | "GROWTH_COST_UNCONFIRMED" | "LIMIT_BREAK_UNPRICED";
             message: string;
         };
         ReceiptGemsResponse: {
@@ -212,7 +212,7 @@ export interface operations {
             query: {
                 /** @description 원정대 캐릭터 이름 */
                 characterName: string;
-                /** @description 책(재봉술·야금술) 효과 항상 적용 가정. 생략하면 false(책 제외). 게임 문구 '특수 재료 별 효과는 확률에 따라 적용되지 않을 수 있습니다'의 확률이 공개되지 않아 기본은 숨결만 쓴 확인된 값이다. true면 일로아·로아와와 같은 가정 */
+                /** @description 책(재봉술·야금술) 효과 적용 가정. 생략하면 true(책 포함). false면 책을 빼고 숨결만 쓴 값이다(게임 문구 '특수 재료 별 효과는 확률에 따라 적용되지 않을 수 있습니다'의 확률은 공개되지 않음) */
                 assumeBook?: boolean;
             };
             header?: never;

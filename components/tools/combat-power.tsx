@@ -28,6 +28,9 @@ import {
 } from "@/lib/combat-power/client";
 import {
   ARK_PASSIVE_MAX,
+  ARM_GUARD_GRADES,
+  ARM_GUARD_MAX,
+  ROLE_REASONS,
   GEAR_TYPES,
   GRADES,
   GRADE_LABEL,
@@ -146,7 +149,12 @@ function currentOf(data: Character) {
       ? [{ slotIndex: slot.index, name: slot.name ?? `코어 ${slot.index + 1}`, grade: slot.grade, point: slot.point }]
       : [],
   );
-  return { gems, gear, polish, bracelet, engravings, stones, arkPassive, cores };
+  const guardItem = data.loadout.equipment.find((item) => item.type === "완갑");
+  const armGuard =
+    guardItem && guardItem.detail?.refineLevel != null && guardItem.grade
+      ? { level: guardItem.detail.refineLevel, grade: guardItem.grade, name: guardItem.name ?? "팔 보호구" }
+      : null;
+  return { gems, gear, polish, bracelet, engravings, stones, arkPassive, cores, armGuard };
 }
 
 function Choice({
@@ -258,6 +266,7 @@ function Editors({
   const gemValues = options.gemLevels;
   const refineValues = range(options.refineMin, options.refineMax);
   const qualityValues = range(0, options.qualityMax);
+  const braceletFamilies = (options.braceletOptions ?? []).map((option) => ({ value: option.name, label: option.name }));
   const gradeValues = options.polishGrades.map((grade) => ({
     value: grade,
     label: GRADE_LABEL[grade] ?? grade,
@@ -380,6 +389,36 @@ function Editors({
         )}
       </section>
 
+      {current.armGuard && (
+        <Card id="cp-arm-guard" title="팔 보호구" locked={!isOpen("ARM_GUARD")}>
+          <li>
+            <span className={styles.rowName}>{current.armGuard.name}</span>
+            {!isOpen("ARM_GUARD") ? (
+              <Locked caption="단계" value={`+${current.armGuard.level} · ${current.armGuard.grade}`} />
+            ) : (
+              <>
+                <Select
+                  label="팔 보호구 단계"
+                  caption="단계"
+                  value={edits.armGuard.level ?? current.armGuard.level}
+                  original={current.armGuard.level}
+                  values={range(0, ARM_GUARD_MAX)}
+                  onChange={(level) => setEdits((prev) => ({ ...prev, armGuard: { ...prev.armGuard, level } }))}
+                />
+                <Choice
+                  label="팔 보호구 등급"
+                  caption="등급"
+                  value={edits.armGuard.grade ?? current.armGuard.grade}
+                  original={current.armGuard.grade}
+                  values={ARM_GUARD_GRADES.map((grade) => ({ value: grade, label: grade }))}
+                  onChange={(grade) => setEdits((prev) => ({ ...prev, armGuard: { ...prev.armGuard, grade } }))}
+                />
+              </>
+            )}
+          </li>
+        </Card>
+      )}
+
       {current.polish.length > 0 && (
         <Card id="cp-polish" title="연마" locked={!isOpen("POLISH")}>
           {current.polish.map((line) => {
@@ -425,15 +464,34 @@ function Editors({
               {!isOpen("BRACELET_EFFECT") ? (
                 <Locked caption="등급" value={line.grade ? (GRADE_LABEL[line.grade] ?? line.grade) : "—"} />
               ) : (
-                <Choice
-                  label={`팔찌 ${line.name} 등급`}
-                  value={edits.bracelet[line.line] ?? line.grade ?? ""}
-                  original={line.grade}
-                  values={gradeValues}
-                  onChange={(grade) =>
-                    setEdits((prev) => ({ ...prev, bracelet: { ...prev.bracelet, [line.line]: grade as Grade } }))
-                  }
-                />
+                <>
+                  {/* The family comes from the backend's list (#332); a line
+                      whose text is not a listed family keeps its own name. */}
+                  <Choice
+                    label={`팔찌 ${line.line + 1}번째 효과 계열`}
+                    caption="계열"
+                    value={edits.braceletName[line.line] ?? line.name}
+                    original={line.name}
+                    values={[
+                      ...(braceletFamilies.some((f) => f.value === line.name) ? [] : [{ value: line.name, label: line.name }]),
+                      ...braceletFamilies,
+                      { value: "없음", label: "빼기" },
+                    ]}
+                    onChange={(name) =>
+                      setEdits((prev) => ({ ...prev, braceletName: { ...prev.braceletName, [line.line]: name } }))
+                    }
+                  />
+                  <Choice
+                    label={`팔찌 ${line.name} 등급`}
+                    caption="등급"
+                    value={edits.bracelet[line.line] ?? line.grade ?? ""}
+                    original={line.grade}
+                    values={gradeValues}
+                    onChange={(grade) =>
+                      setEdits((prev) => ({ ...prev, bracelet: { ...prev.bracelet, [line.line]: grade as Grade } }))
+                    }
+                  />
+                </>
               )}
             </li>
           ))}
@@ -537,8 +595,8 @@ function Editors({
         </Card>
       )}
       <p className={styles.later}>
-        지금은 보석·품질·각인·스톤을 바꿀 수 있어요. 재련·연마·팔찌·아크 패시브·아크 그리드는 계산식을 확인하는 대로
-        열어요.
+        지금은 보석·품질·각인·스톤·팔찌·팔 보호구를 바꿀 수 있어요. 재련·연마·아크 패시브·아크 그리드는 계산식을 확인하는
+        대로 열어요.
       </p>
     </div>
   );
@@ -643,6 +701,8 @@ function polishText(text: string | null, from: string | null, values: PolishValu
 
 function ChangeList({ data, values }: { data: Simulation; values?: PolishValues }) {
   if (data.contributions.length === 0) return null;
+  // Rows held back by the role are said once, above the result.
+  const role = (item: Simulation["contributions"][number]) => !!item.reasonCode && ROLE_REASONS.has(item.reasonCode);
   return (
     <section className={styles.changes} aria-labelledby="cp-changes">
       <h2 id="cp-changes">바꾼 것</h2>
@@ -667,7 +727,7 @@ function ChangeList({ data, values }: { data: Simulation; values?: PolishValues 
             {/* 사용자 지적 10-12 (L23): a change that moved nothing, or was
                 not computed, says why right under it — the backend's
                 sentence as it is. A bare ±0.00 read as broken. */}
-            {(item.status !== "OK" || item.delta === 0) && item.basis && (
+            {(item.status !== "OK" || item.delta === 0) && item.basis && !role(item) && (
               <small className={styles.why}>{item.basis}</small>
             )}
           </li>
@@ -743,6 +803,9 @@ export function CombatPowerSimulator({
     refetchOnWindowFocus: false,
   });
   const result = changes.length > 0 ? (simulation.data?.data ?? null) : null;
+  // 서포터·판정 불가(backend #332): every change comes back with this reason.
+  const roleReason =
+    result?.contributions.find((item) => item.reasonCode && ROLE_REASONS.has(item.reasonCode))?.basis ?? null;
   // The backend read a newer cache than the screen: reload the character first.
   const outdated = !!result && !!data && result.fetchedAt !== data.fetchedAt;
 
@@ -819,6 +882,11 @@ export function CombatPowerSimulator({
               itself with the result held at its top. */}
           <div className={styles.rail}>
           {head && <div className={styles.railHead}>{head}</div>}
+          {roleReason && (
+            <p className={styles.roleNote} role="status">
+              {roleReason}
+            </p>
+          )}
           <ResultBand
             base={data.combatPower}
             itemLevel={data.itemLevel ?? null}

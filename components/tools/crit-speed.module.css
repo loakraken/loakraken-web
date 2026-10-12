@@ -272,8 +272,7 @@
   color: var(--slate);
   font-size: var(--text-body);
 }
-/* Crit damage: a secondary figure under the crit rate (ILOA/LOPEC show it
-   next to the rate). */
+/* Crit damage: a secondary figure under the crit rate. */
 .damage {
   display: flex;
   flex-wrap: wrap;

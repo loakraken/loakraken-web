@@ -113,7 +113,7 @@ function RewardList({ title, rewards }: { title: string | null; rewards: Reward[
 }
 
 /**
- * LOAWA-style rewards on a schedule row: the top three inline, "+N" opens the
+ * Rewards on a schedule row: the top three inline, "+N" opens the
  * full list by item-level group (chaos gates differ by level), with rewards
  * tied to that day's rounds apart from the common ones.
  */

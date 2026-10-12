@@ -294,7 +294,7 @@ function cardOf(entry: Entry, best: Record<SortKey, string[]>, onRemove: (name: 
       ),
       footer: (
         <div className={styles.cardFooter}>
-          {busy ? <span className={styles.cardReason}>불러오는 중</span> : <Failure entry={entry} compact />}
+          {busy ? <span className={styles.cardReason}>불러오는 중…</span> : <Failure entry={entry} compact />}
           {remove}
         </div>
       ),
@@ -352,7 +352,11 @@ export function MultiSearchView({ initialNames }: { initialNames: string[] }) {
     event.preventDefault();
     const typed = parseNames(text);
     if (!typed.names.length && !typed.invalid.length && !typed.dropped.length) {
-      setError("캐릭터 이름을 입력해 주세요.");
+      setError(
+        names.length >= MULTI_SEARCH_LIMIT
+          ? `이미 ${MULTI_SEARCH_LIMIT}명이에요. 한 명을 빼고 넣어 주세요.`
+          : "캐릭터 이름을 입력해 주세요."
+      );
       return;
     }
     const merged = parseNames([...names, ...typed.names, ...typed.dropped].join(","));
@@ -402,13 +406,16 @@ export function MultiSearchView({ initialNames }: { initialNames: string[] }) {
                 setText(e.target.value);
                 if (error) setError("");
               }}
-              placeholder="이름을 쉼표나 띄어쓰기로 나눠 입력"
+              placeholder="예: 이름1, 이름2…"
+              name="names"
               autoComplete="off"
+              spellCheck={false}
               enterKeyHint="search"
               aria-invalid={error ? true : undefined}
               aria-describedby={`${ids.hint} ${ids.error}`}
             />
-            <Button type="submit" disabled={names.length >= MULTI_SEARCH_LIMIT && !text.trim()}>
+            {/* Always pressable: a full list says why in the message line. */}
+            <Button type="submit">
               비교하기
             </Button>
           </div>
