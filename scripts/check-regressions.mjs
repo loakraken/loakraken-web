@@ -237,11 +237,22 @@ if (!blockedRe) {
   blockedNote = "금지 이름 검사 건너뜀 (BLOCKED_TERMS 비밀값도 .blocked-terms 파일도 없음)";
 } else {
   const tracked = execFileSync("git", ["ls-files", "-z"], { cwd: ROOT, encoding: "utf8" }).split("\0").filter(Boolean);
-  const label = (text) => (kindOf(blocked.terms, text) === "character" ? "실제 캐릭터명" : "다른 사이트 이름");
+  const label = (kind) => (kind === "character" ? "실제 캐릭터명" : "다른 사이트 이름");
+  /** The kinds ("site" | "character") of every blocked term in a text. */
+  const kindsIn = (text) => new Set([...text.matchAll(blockedRe)].map((m) => kindOf(blocked.terms, m[0])));
   for (const path of tracked) {
     blockedRe.lastIndex = 0;
-    const inPath = blockedRe.exec(path);
-    if (inPath) errors.push(`${mask(path, blockedRe)}  [공개 저장소] 파일 이름에 ${label(inPath[0])}`);
+    // A real character's name is hidden whole: masking only the name would
+    // still print its pieces elsewhere on the line (public CI log). Such a
+    // path or line is reported by position only.
+    const pathKinds = kindsIn(path);
+    const dir = path.includes("/") ? path.slice(0, path.lastIndexOf("/")) : "";
+    const shown = !pathKinds.has("character")
+      ? mask(path, blockedRe)
+      : dir && !kindsIn(dir).has("character")
+        ? `${mask(dir, blockedRe)}/(파일 이름 가림)`
+        : "(파일 이름 가림)";
+    if (pathKinds.size) errors.push(`${shown}  [공개 저장소] 파일 이름에 ${label([...pathKinds][0])}`);
     if (BINARY.test(path)) continue;
     let raw;
     try {
@@ -264,9 +275,13 @@ if (!blockedRe) {
         }
       }
       blockedRe.lastIndex = 0;
-      const hit = blockedRe.exec(line);
-      if (!hit) return;
-      errors.push(`${mask(path, blockedRe)}:${i + 1}  [공개 저장소] ${label(hit[0])} — 이름 없이 쓰거나 익명 ID로\n    ${mask(line.trim(), blockedRe).slice(0, 140)}`);
+      const kinds = kindsIn(line);
+      if (!kinds.size) return;
+      if (kinds.has("character")) {
+        errors.push(`${shown}:${i + 1}  [공개 저장소] 실제 캐릭터명 — 익명 ID로 (줄 내용 가림)`);
+        return;
+      }
+      errors.push(`${shown}:${i + 1}  [공개 저장소] 다른 사이트 이름 — 이름 없이 쓰거나 익명 ID로\n    ${mask(line.trim(), blockedRe).slice(0, 140)}`);
     });
   }
   blockedNote = `금지 이름 ${blocked.terms.length}개 검사 (${blocked.source}, 파일 ${tracked.length}개)`;
