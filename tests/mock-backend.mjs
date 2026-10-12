@@ -67,6 +67,8 @@ function withSimulatorGear(data) {
     }),
     // 방어구 품질은 생명 활성력만 올려 딜러 전투력이 그대로(계산 검증 10-12): ±0과 이유.
     make("장갑", "테스트 장갑", { refineLevel: 18, quality: 95 }),
+    // 전율 armour: no advanced refining at all (backend refine model, PM-프론트 P1).
+    make("상의", "+20 전율의 상의", { refineLevel: 20, quality: 95, advancedRefineLevel: 0 }),
     // 팔 보호구(backend #342): type "완갑", step = refineLevel, grade on the item.
     { ...make("완갑", "+13 전율 완갑", { refineLevel: 13 }), grade: "유물" },
     make("어빌리티 스톤", "테스트 스톤", {

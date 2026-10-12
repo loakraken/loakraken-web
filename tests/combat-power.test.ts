@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 import {
   NO_EDITS,
+  hasNoAdvancedRefine,
   braceletName,
   gradeWithValue,
   polishValue,
@@ -203,4 +204,10 @@ test("polish grades read with their official value (backend #254, PM-프론트 #
   // Since sim v8 the table (and braceletOptions) is part of the contract.
   delete options.data.polishValues;
   assert.equal(isOptionsEnvelope(options), false);
+});
+
+test("전율 gear has no advanced refining, so it is never shown as pending (PM-프론트 P1, A21)", () => {
+  assert.equal(hasNoAdvancedRefine("+20 전율의 투구"), true);
+  assert.equal(hasNoAdvancedRefine("+19 테스트 투구"), false);
+  assert.equal(hasNoAdvancedRefine(null), false);
 });

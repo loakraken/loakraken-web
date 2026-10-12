@@ -32,6 +32,8 @@ import {
   ARM_GUARD_MAX,
   ROLE_REASONS,
   GEAR_TYPES,
+  NO_ADVANCED_REFINE,
+  hasNoAdvancedRefine,
   GRADES,
   GRADE_LABEL,
   KIND_LABEL,
@@ -113,7 +115,9 @@ function currentOf(data: Character) {
             name: item.name ?? item.type ?? "",
             refine: item.detail?.refineLevel ?? null,
             quality: item.detail?.quality ?? null,
-            advanced: item.detail?.advancedRefineLevel ?? null,
+            // No advanced step on 전율 gear: nothing to show or edit.
+            advanced: hasNoAdvancedRefine(item.name) ? null : (item.detail?.advancedRefineLevel ?? null),
+            noAdvanced: hasNoAdvancedRefine(item.name),
           },
         ]
       : [],
@@ -353,6 +357,11 @@ function Editors({
                   />
                 ) : (
                   <span className={styles.rowFrom}>재련 —</span>
+                )}
+                {item.noAdvanced && (
+                  <span className={styles.rowFrom} title={NO_ADVANCED_REFINE}>
+                    상급 재련 없음
+                  </span>
                 )}
                 {item.advanced != null && !isOpen("EQUIPMENT_ADVANCED_REFINE") && (
                   <Locked caption="상급" value={item.advanced} />
