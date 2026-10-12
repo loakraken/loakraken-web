@@ -2155,3 +2155,81 @@
 .historyCells dd[data-direction="up"] {
   color: var(--gain, var(--foreground));
 }
+/* 원정대 요약 수치와 구성 막대 (character screen checklist §14.1 ②). */
+.rosterStats {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0 0 16px;
+}
+.rosterStats div {
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--muted);
+}
+.rosterStats dt {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.rosterStats dd {
+  margin: 2px 0 0;
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+@media (max-width: 700px) {
+  .rosterStats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+.rosterMix {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+}
+.shareBars h3 {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted-foreground);
+}
+.shareBars ul {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.shareBars li {
+  display: grid;
+  grid-template-columns: 6.5em minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+.shareBars li > span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.shareTrack {
+  display: block;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--muted);
+  overflow: hidden;
+}
+.shareTrack > span {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  /* Neutral ink: blue means done/links here (A26), and a share is neither. */
+  background: color-mix(in oklab, var(--foreground) 55%, transparent);
+}
+.shareValue {
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
