@@ -1,6 +1,12 @@
 // 기여도 계산기(/tools/contribution, 체크리스트 L41). 관문별 하한·상한은 계산 검증 표본
 // (lib/tools/data/raid-contribution.json), 화면에는 기준 시점만.
 import { test, expect, gotoReady, expectNoHorizontalOverflow, chooseOption } from "../support/fixtures.mjs";
+import { blockedPattern, loadBlockedTerms } from "../../scripts/blocked-terms.mjs";
+
+// Source wording, plus the shared name list when one is set (CI secret or the
+// local file; the list itself is never in this repository).
+const listed = blockedPattern(loadBlockedTerms().terms.filter((t) => t.kind === "site"));
+const SOURCE_TEXT = new RegExp(["출처", listed?.source].filter(Boolean).join("|"), "i");
 
 test.describe("기여도 계산기 @smoke", () => {
   test("관문을 골라 피해량을 넣으면 하한~상한 사이 위치를 보여 준다", async ({ page }) => {
@@ -22,7 +28,7 @@ test.describe("기여도 계산기 @smoke", () => {
     await expect(page.getByRole("status")).toContainText("116.9% · 상한 위예요");
     await damage.fill("abc");
     await expect(page.getByText("숫자만 입력해 주세요(억 단위).")).toBeVisible();
-    await expect(page.getByText(/출처|인벤/)).toHaveCount(0);
+    await expect(page.getByText(SOURCE_TEXT)).toHaveCount(0);
     await expectNoHorizontalOverflow(page);
   });
 
