@@ -9,6 +9,7 @@ import type { RankEnvelope } from "./rank";
 import type { OwnershipEnvelope, StandingEnvelope } from "./collectible-standing";
 import type { TitlesEnvelope } from "./titles";
 import type { ReceiptEnvelope } from "./receipt";
+import type { RosterPowerEnvelope, RosterPowerRefreshEnvelope } from "./roster-power";
 
 export class CharacterQueryError extends Error {
   info: QueryFailure;
@@ -124,6 +125,21 @@ export const fetchHistory = (
 export const postCardRefresh = (name: string, signal: AbortSignal) =>
   getJson<CardRefreshEnvelope>(
     `/api/characters/card-collection/refresh?${new URLSearchParams({ characterName: name })}`,
+    signal,
+    "POST",
+  );
+
+/** Roster combat power records (L19): records only, no official call. */
+export const fetchRosterPower = (name: string, signal: AbortSignal) =>
+  getJson<RosterPowerEnvelope>(
+    `/api/characters/roster-combat-power?${new URLSearchParams({ characterName: name })}`,
+    signal,
+  );
+
+/** Read the missing roster combat powers (POST; up to 12 official profiles). */
+export const postRosterPowerRefresh = (name: string, signal: AbortSignal) =>
+  getJson<RosterPowerRefreshEnvelope>(
+    `/api/characters/roster-combat-power/refresh?${new URLSearchParams({ characterName: name })}`,
     signal,
     "POST",
   );

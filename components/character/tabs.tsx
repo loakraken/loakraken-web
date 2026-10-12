@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useId,
+  useMemo,
   useRef,
   useState,
   useSyncExternalStore,
@@ -51,6 +52,7 @@ import {
 import {
   CharacterQueryError,
   fetchHistory,
+  fetchRosterPower,
   fetchSiblings,
   fetchTitles,
 } from "@/lib/character/client";
@@ -102,13 +104,16 @@ import {
   levelBands,
   maskName,
   ROSTER_SORTS,
+  powerByName,
   ROSTER_TOTAL_MIN,
   rosterStats,
   rosterSummary,
   sortSiblings,
+  type PowerRecord,
   type RosterSort,
 } from "@/lib/character/roster-list";
 import { useStagger } from "./entrance";
+import { RosterPower, rosterPowerKey, useRosterPowerRefreshing } from "./roster-power";
 import { RankPanel } from "./rank-panel";
 import { SimulatorTab } from "./simulator-tab";
 import { SpecUpTab } from "./spec-up-tab";
@@ -1845,11 +1850,29 @@ function SiblingList({
   siblings: Sibling[];
   current: string;
 }) {
-  const [sort, setSort] = useState<RosterSort>("itemLevel");
+  // Combat power records (L19), records only: no official call until the
+  // button. Sorted by combat power by default; until they arrive (or if they
+  // fail) that is the item level order, and rows keep their place (key by
+  // position), so the answer only changes the text in them (A6).
+  const power = useQuery({
+    queryKey: rosterPowerKey(current),
+    queryFn: ({ signal }) => fetchRosterPower(current, signal),
+    retry: false,
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+  });
+  const records = useMemo(
+    () => (power.data ? powerByName(power.data.data) : new Map<string, PowerRecord>()),
+    [power.data],
+  );
+  const refreshing = useRosterPowerRefreshing(current);
+  const now = useClock(MINUTE);
+  const [sort, setSort] = useState<RosterSort>("combatPower");
   const [compact, setCompact] = useState(false);
   const [masked, setMasked] = useState(false);
   const ids = { compact: useId(), masked: useId() };
-  const sorted = sortSiblings(siblings, sort);
+  const sorted = sortSiblings(siblings, sort, records);
   const servers = [...new Set(sortSiblings(siblings, "itemLevel").map((sibling) => sibling.serverName))];
   const summary = rosterSummary(siblings);
   const stats = rosterStats(siblings);
@@ -1897,6 +1920,7 @@ function SiblingList({
           )}
         </p>
       )}
+      <RosterPower name={current} siblings={siblings} records={records} query={power} />
       {stats.average != null && (
         <>
           <dl className={styles.rosterStats} aria-label="원정대 아이템 레벨">
@@ -1936,7 +1960,12 @@ function SiblingList({
           meta={`${sorted.filter((s) => s.serverName === server).length}명`}
           wide
         >
-          <ul className={styles.siblingGrid} data-compact={compact || undefined}>
+          <ul
+            className={styles.siblingGrid}
+            data-compact={compact || undefined}
+            data-stale={refreshing || undefined}
+            aria-busy={refreshing || undefined}
+          >
             {sorted
               .filter((sibling) => sibling.serverName === server)
               .map((sibling, i) => {
@@ -1950,11 +1979,18 @@ function SiblingList({
                       {sibling.className} · Lv.{number(sibling.characterLevel)}
                     </small>
                     <b>{number(sibling.itemLevel)}</b>
+                    <PowerLine
+                      record={records.get(sibling.characterName)}
+                      ready={power.isSuccess}
+                      now={now}
+                    />
                   </>
                 );
                 return (
                   <li
-                    key={`${sibling.characterName}-${i}`}
+                    // By position, not name: a new order rewrites the rows
+                    // in place instead of moving them (no layout shift).
+                    key={i}
                     data-current={isCurrent || undefined}
                   >
                     {linkable ? (
@@ -1975,6 +2011,32 @@ function SiblingList({
         </Panel>
       ))}
     </>
+  );
+}
+
+/**
+ * A roster row's combat power: the recorded value and how long ago it was
+ * seen, or '전투력 기록 없음'. Blank (same height) while loading or when the
+ * records could not be read.
+ */
+function PowerLine({
+  record,
+  ready,
+  now,
+}: {
+  record: PowerRecord | undefined;
+  ready: boolean;
+  now: number | null;
+}) {
+  const seen = record?.observedAt ? Date.parse(record.observedAt) : NaN;
+  return (
+    <span className={styles.siblingPower}>
+      {!ready
+        ? "\u00a0"
+        : record?.combatPower == null
+          ? "전투력 기록 없음"
+          : `전투력 ${number(record.combatPower)}${now != null && Number.isFinite(seen) ? ` · ${relativeAgo(Math.max(0, now - seen))} 확인` : ""}`}
+    </span>
   );
 }
 

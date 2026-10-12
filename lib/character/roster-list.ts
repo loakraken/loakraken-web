@@ -1,9 +1,11 @@
 // Roster tab list tools (checklist L17·L18): sort, compact view, hide names,
 // and the six-man summary. Siblings come from the official roster API, which
-// has item level and character level only; combat power columns and the
-// combat-power six-man wait for the backend sibling fields (L19).
+// has item level and character level only; combat power comes from the
+// records (L19, roster-power.ts) and is joined here by character name.
+import type { RosterPower, RosterPowerRefresh } from "./roster-power";
 
 export const ROSTER_SORTS = [
+  { id: "combatPower", label: "전투력 순" },
   { id: "itemLevel", label: "아이템 레벨 순" },
   { id: "characterLevel", label: "캐릭터 레벨 순" },
   { id: "name", label: "이름 순" },
@@ -13,7 +15,12 @@ export type RosterSort = (typeof ROSTER_SORTS)[number]["id"];
 type Sibling = { characterName: string; characterLevel?: number | null; itemLevel?: number | null };
 
 /** Highest first; ties keep the official order. Names in Korean order. */
-export function sortSiblings<T extends Sibling>(siblings: readonly T[], sort: RosterSort): T[] {
+export function sortSiblings<T extends Sibling>(
+  siblings: readonly T[],
+  sort: RosterSort,
+  records: ReadonlyMap<string, PowerRecord> = new Map(),
+): T[] {
+  if (sort === "combatPower") return sortByPower(siblings, records);
   const list = [...siblings];
   if (sort === "name") return list.sort((a, b) => a.characterName.localeCompare(b.characterName, "ko"));
   const key = sort === "itemLevel" ? "itemLevel" : "characterLevel";
@@ -116,4 +123,69 @@ export function classMix(siblings: readonly (Sibling & { className: string })[])
   const counts = new Map<string, number>();
   for (const s of siblings) counts.set(s.className, (counts.get(s.className) ?? 0) + 1);
   return shares([...counts].map(([label, count]) => ({ label, count })));
+}
+
+/** The refill's items as the view the list reads (missing count from the items). */
+export function viewOfRefresh(refresh: RosterPowerRefresh): RosterPower {
+  return {
+    items: refresh.items,
+    missingCount: refresh.items.filter((item) => item.combatPower == null).length,
+    refreshAvailableAt: refresh.refreshAvailableAt,
+  };
+}
+
+export type PowerRecord = { combatPower: number | null; observedAt: string | null };
+
+/** Records by character name (the roster list and this response name the same characters). */
+export function powerByName(power: RosterPower): Map<string, PowerRecord> {
+  return new Map(
+    power.items.map((item) => [
+      item.characterName,
+      { combatPower: item.combatPower ?? null, observedAt: item.combatPowerObservedAt ?? null },
+    ]),
+  );
+}
+
+/**
+ * Combat power, highest first; characters without a record go to the bottom
+ * (in item level order), ties keep the given order.
+ */
+export function sortByPower<T extends { characterName: string; itemLevel?: number | null }>(
+  siblings: readonly T[],
+  records: ReadonlyMap<string, PowerRecord>,
+): T[] {
+  const power = (s: T) => records.get(s.characterName)?.combatPower ?? null;
+  return [...siblings].sort((a, b) => {
+    const pa = power(a);
+    const pb = power(b);
+    if (pa == null || pb == null) {
+      if (pa != null) return -1;
+      if (pb != null) return 1;
+      return (b.itemLevel ?? 0) - (a.itemLevel ?? 0);
+    }
+    return pb - pa;
+  });
+}
+
+/**
+ * 식스맨 and total by combat power: the six highest recorded values' mean and
+ * every recorded value added up. `recorded` of `count` says how many it is
+ * based on when some have no record; no estimate stands in for them.
+ */
+export function powerSummary(
+  siblings: readonly { characterName: string }[],
+  records: ReadonlyMap<string, PowerRecord>,
+) {
+  const values = siblings
+    .map((s) => records.get(s.characterName)?.combatPower)
+    .filter((v): v is number => v != null)
+    .sort((a, b) => b - a);
+  const top = values.slice(0, 6);
+  return {
+    count: siblings.length,
+    recorded: values.length,
+    sixAverage: top.length ? round2(top.reduce((a, b) => a + b, 0) / top.length) : null,
+    sixCount: top.length,
+    total: values.length ? round2(values.reduce((a, b) => a + b, 0)) : null,
+  };
 }
