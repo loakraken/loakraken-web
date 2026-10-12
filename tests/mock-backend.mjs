@@ -1478,6 +1478,23 @@ createServer(async (req, res) => {
             { text: "팔찌 도약 +18", percent: 2.05, status: "OK", reasonCode: null, reason: null },
           ],
         };
+    // Ark grid efficiency (backend #424): one line per core by slot index, a
+    // core that moves nothing, one not worked out, and the gem options last.
+    d.arkGridEfficiency = name === "상세서포터"
+      ? { percent: null, coresPercent: null, status: "UNSUPPORTED", reasonCode: "SUPPORT_POSITION", reason: "서포터는 전투력이 딜러와 다르게 계산돼 아크 그리드 효율을 매기지 않아요.", lines: [], ruleVersion: "ark-grid-efficiency-v1" }
+      : {
+          percent: 37.36, coresPercent: 31.74, status: "OK", reasonCode: null, ruleVersion: "ark-grid-efficiency-v1",
+          reason: "아크 그리드 코어와 젬 옵션을 모두 뺀 전투력보다 지금 전투력이 몇 % 높은지입니다.",
+          lines: [
+            { slotIndex: 0, text: "질서의 해 코어 : 살상연희 유물 18P", percent: 7.67, status: "OK", reasonCode: null, reason: null },
+            { slotIndex: 1, text: "질서의 달 코어 : 쌍검난무 유물 17P", percent: 7.5, status: "OK", reasonCode: null, reason: null },
+            { slotIndex: 2, text: "질서의 별 코어 : 쾌도난마 유물 18P", percent: 4.67, status: "OK", reasonCode: null, reason: null },
+            { slotIndex: 3, text: "혼돈의 해 코어 : 현란한 공격 유물 17P", percent: 0, status: "OK", reasonCode: null, reason: null },
+            { slotIndex: 4, text: "혼돈의 달 코어 : 불타는 일격 유물 17P", percent: null, status: "UNSUPPORTED", reasonCode: "UNKNOWN_CORE", reason: "아직 계산식이 없는 코어예요." },
+            { slotIndex: 5, text: "혼돈의 별 코어 : 공격 유물 17P", percent: 2.5, status: "OK", reasonCode: null, reason: null },
+            { slotIndex: null, text: "젬 옵션(공격력 Lv.28 · 추가 피해 Lv.51 · 보스 피해 Lv.4)", percent: 4.27, status: "OK", reasonCode: null, reason: null },
+          ],
+        };
     if (name === "상세서포터") {
       d.className = "바드";
       d.loadout.arkPassive.effects = [

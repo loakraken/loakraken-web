@@ -620,6 +620,7 @@ function BraceletBody({
               className={styles.textButton}
               aria-expanded={open}
               aria-controls={listId}
+              aria-label={open ? "팔찌 줄별 접기" : "팔찌 줄별 보기"}
               onClick={() => setOpen(!open)}
             >
               {open ? "줄별 접기" : "줄별 보기"}
@@ -648,6 +649,25 @@ function BraceletBody({
       )}
     </div>
   );
+}
+
+/**
+ * One line's share of 아크 그리드 효율 (backend #424): how much higher combat
+ * power is than without that core (or without the gem options). A line that
+ * moves nothing or is not worked out says so (회귀 점검표 A21).
+ */
+function ArkShare({
+  line,
+  zero,
+}: {
+  line: { percent: number | null; status: string; reason: string | null } | undefined;
+  zero: string;
+}) {
+  if (!line) return null;
+  if (line.status === "OK" && line.percent === 0) return <small className={styles.braceletEffNote}>{zero}</small>;
+  if (line.status === "OK" && line.percent != null)
+    return <b className={styles.braceletEffShare}>{percentText(line.percent)}</b>;
+  return <small className={styles.braceletEffNote}>{line.reason ?? "계산하지 않는 줄이에요."}</small>;
 }
 
 function GemsPanel({ data }: { data: Character }) {
@@ -713,7 +733,14 @@ function ArkGridPanel({ data }: { data: Character }) {
   const grid = data.loadout.arkGrid;
   const summary = data.analysis.arkGrid;
   const [expanded, setExpanded] = useState(false);
+  const [shares, setShares] = useState(false);
+  const listId = useId();
   const extra = useItemTooltips(data.characterName);
+  const efficiency = data.arkGridEfficiency;
+  const effOk = efficiency?.status === "OK" && efficiency.percent != null;
+  const coreLine = (index: number) =>
+    shares ? efficiency?.lines.find((line) => line.slotIndex === index) : undefined;
+  const gemLine = shares ? efficiency?.lines.find((line) => line.slotIndex == null) : undefined;
   if (!grid)
     return (
       <Panel title="아크 그리드">
@@ -738,6 +765,41 @@ function ArkGridPanel({ data }: { data: Character }) {
         </span>
       }
     >
+      {efficiency && (
+        <p className={styles.braceletEffHead}>
+          <Tooltip>
+            <TooltipTrigger
+              className={styles.braceletEffTerm}
+              aria-label="아크 그리드 효율: 코어와 젬 옵션이 전투력을 몇 % 올려 주는지예요."
+            >
+              아크 그리드 효율
+            </TooltipTrigger>
+            <TooltipContent>코어와 젬 옵션이 전투력을 몇 % 올려 주는지예요.</TooltipContent>
+          </Tooltip>
+          {effOk ? (
+            <>
+              <b>{percentText(efficiency.percent!)}</b>
+              {efficiency.coresPercent != null && (
+                <small className={styles.arkEffCores}>코어 {percentText(efficiency.coresPercent)}</small>
+              )}
+            </>
+          ) : (
+            <span className={styles.braceletEffReason}>{efficiency.reason}</span>
+          )}
+          {effOk && efficiency.lines.length > 0 && grid.slots.length > 0 && (
+            <button
+              type="button"
+              className={styles.textButton}
+              aria-expanded={shares}
+              aria-controls={listId}
+              aria-label={shares ? "아크 그리드 줄별 접기" : "아크 그리드 줄별 보기"}
+              onClick={() => setShares(!shares)}
+            >
+              {shares ? "줄별 접기" : "줄별 보기"}
+            </button>
+          )}
+        </p>
+      )}
       {grid.effects.length > 0 && (
         <ul className={styles.effectGrid}>
           {grid.effects.map((effect, i) => (
@@ -754,7 +816,7 @@ function ArkGridPanel({ data }: { data: Character }) {
         </ul>
       )}
       {grid.slots.length ? (
-        <ul className={styles.coreList}>
+        <ul id={listId} className={styles.coreList}>
           {grid.slots.map((slot, i) => {
             const lines = gridLines(extra, i);
             const detail = slot.options.length > 0 || slot.gems.some((gem) => gem.name);
@@ -780,6 +842,7 @@ function ArkGridPanel({ data }: { data: Character }) {
                           옵션 {slot.activeOptionCount}/{slot.optionCount}
                         </small>
                       )}
+                      <ArkShare line={coreLine(slot.index ?? i)} zero="전투력이 바뀌지 않는 코어예요." />
                     </span>
                     <span className={styles.coreGems}>
                       {slot.gems.map((gem, j) => (
@@ -852,6 +915,12 @@ function ArkGridPanel({ data }: { data: Character }) {
         </ul>
       ) : (
         <Empty state={data.coverage.arkGrid.collections.slots} />
+      )}
+      {gemLine && (
+        <p className={styles.arkEffGem}>
+          <span>{gemLine.text}</span>
+          <ArkShare line={gemLine} zero="전투력이 바뀌지 않는 옵션이에요." />
+        </p>
       )}
       {/* Every core at once, under the list (user 10-11); the head button
           went away because it did the same (user 10-12). */}

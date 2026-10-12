@@ -73,6 +73,7 @@ export interface components {
             coverage: components["schemas"]["CharacterObservationCoverageResponse"];
             analysis: components["schemas"]["CharacterAnalysisResponse"];
             braceletEfficiency: components["schemas"]["BraceletEfficiencyResponse"] | null;
+            arkGridEfficiency: components["schemas"]["ArkGridEfficiencyResponse"] | null;
             /**
              * Format: date-time
              * @description 외부 API에서 실제 수집한 UTC 시각. 캐시 조회에서도 유지됩니다.
@@ -627,6 +628,32 @@ export interface components {
         };
         BraceletLineEfficiencyResponse: {
             /** @description 공식 팔찌 효과 문구(팔찌 도약 줄은 '팔찌 도약 +N') */
+            text: string;
+            percent: number | null;
+            /** @description OK 또는 UNSUPPORTED(문자열) */
+            status: string;
+            reasonCode: string | null;
+            reason: string | null;
+        };
+        ArkGridEfficiencyResponse: {
+            percent: number | null;
+            coresPercent: number | null;
+            /**
+             * @description OK 또는 UNSUPPORTED(문자열)
+             * @example OK
+             */
+            status: string;
+            reasonCode: string | null;
+            /** @description 근거 문장 또는 계산하지 않은 이유 */
+            reason: string;
+            /** @description 코어마다 한 줄(공식 슬롯 순서), 마지막에 젬 옵션 합계 한 줄 */
+            lines: components["schemas"]["ArkGridLineEfficiencyResponse"][];
+            /** @description 계산 규칙 버전 */
+            ruleVersion: string;
+        };
+        ArkGridLineEfficiencyResponse: {
+            slotIndex: number | null;
+            /** @description 코어 이름·등급·포인트 또는 '젬 옵션(공격력 Lv.N · …)' */
             text: string;
             percent: number | null;
             /** @description OK 또는 UNSUPPORTED(문자열) */
