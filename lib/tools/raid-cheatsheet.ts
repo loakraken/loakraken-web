@@ -6,10 +6,11 @@
 import raw from "./data/raid-cheatsheet.json";
 import { RAID_DATA, type Difficulty, type RaidData } from "./raid-rewards";
 
-/** OFFICIAL: lostark.game.onstove.com. INVEN: 로스트아크 인벤. TARGET_SITE:
- * a target site checked page by page. OTHER: anything else; a pattern backed
- * only by OTHER sources needs two of them. */
-export type SourceKind = "OFFICIAL" | "INVEN" | "TARGET_SITE" | "OTHER";
+/** OFFICIAL: lostark.game.onstove.com. COMMUNITY: the game's main community
+ * board, enough on its own (데이터 출처 규칙 10-12). REFERENCE: a reference tool
+ * checked page by page. OTHER: anything else; a pattern backed only by OTHER
+ * sources needs two of them. */
+export type SourceKind = "OFFICIAL" | "COMMUNITY" | "REFERENCE" | "OTHER";
 export type CheatSource = { title: string; url: string; checkedAt: string; kind: SourceKind };
 
 /** HP bar counts: `from` is where the pattern starts (higher), `to` where it
@@ -53,10 +54,10 @@ export const DESCRIPTION_MAX = 80;
 export const COUNTERPLAY_MAX = 100;
 
 // Screen text names no source and adds no vague hedges (PM 총괄 데이터 규칙).
-// Site names are left to the shared regression check, so no name list lives
-// in this public repository (PM-프론트 #619 P1).
+// Source and site names come from the shared list in the tests
+// (scripts/blocked-terms.mjs), so no name lives in this public repository.
 // \s keeps the hedge itself out of this file (회귀 검사 B2 reads source text).
-const FORBIDDEN_TEXT = /인벤|나무위키|공지|출처|다를\s수\s있/;
+const FORBIDDEN_TEXT = /공지|출처|다를\s수\s있/;
 
 /** Consistency problems in the data; the test suite expects none. */
 export function checkCheatSheet(data: CheatSheetData, rewards: RaidData = RAID_DATA): string[] {

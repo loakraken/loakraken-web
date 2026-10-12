@@ -27,7 +27,7 @@ export type CubeSource = {
   url: string;
   date: string;
   checkedAt: string;
-  kind: "OFFICIAL" | "INVEN";
+  kind: "OFFICIAL" | "COMMUNITY";
   note: string;
 };
 export type CubeData = {
