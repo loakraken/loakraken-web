@@ -1183,15 +1183,17 @@ function SkillCard({
 }) {
   const stagger = staggerOf(lines?.infoLines);
   // Full view: chips (type, attack direction, counter,
-  // part break, gems); compact keeps the one-line summary.
+  // part break, gems); compact keeps the one-line summary. The stagger chip
+  // comes from the official tooltip lines, which can land after the card is
+  // painted: it goes last so its arrival moves no other chip (A6).
   const chips = compact
     ? []
     : [
         skill.type,
         skill.attackType ? ATTACK_LABEL[skill.attackType] : null,
-        stagger ? `무력 ${stagger}` : null,
         skill.counter ? "카운터" : null,
         skill.partBreakLevel != null ? `파괴 ${skill.partBreakLevel}` : null,
+        stagger ? `무력 ${stagger}` : null,
       ].filter((chip): chip is string => chip != null);
   return (
     <li className={styles.skill}>
