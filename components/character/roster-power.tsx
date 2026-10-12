@@ -119,7 +119,7 @@ export function RosterPower({
             aria-disabled={blocked || undefined}
           >
             {busy ? <InlineOrb /> : <RefreshArrow size={14} aria-hidden="true" />}
-            {busy ? "불러오는 중" : seconds > 0 ? `${wait(seconds)} 뒤 다시 불러오기` : "전투력 불러오기"}
+            {busy ? "불러오는 중…" : seconds > 0 ? `${wait(seconds)} 뒤 다시 불러오기` : "전투력 불러오기"}
           </button>
         )}
         <p className={styles.rosterPowerStatus} aria-live="polite">

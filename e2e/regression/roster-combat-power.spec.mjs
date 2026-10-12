@@ -38,7 +38,7 @@ for (const width of [1280, 360]) {
     const button = power.getByRole("button", { name: "전투력 불러오기" });
     await expect(button).toBeVisible();
     await button.click();
-    await expect(power.getByRole("button", { name: /불러오는 중/ })).toHaveAttribute("aria-disabled", "true");
+    await expect(power.getByRole("button", { name: /불러오는 중…/ })).toHaveAttribute("aria-disabled", "true");
     await expect(page.locator("ul[class*=siblingGrid][data-stale]").first()).toBeVisible();
     await expect(power.getByText("전투력을 불러왔어요.")).toBeVisible();
     await expect(power.getByText("모든 캐릭터의 전투력 기록이 있어요.")).toBeVisible();
