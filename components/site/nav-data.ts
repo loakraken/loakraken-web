@@ -8,7 +8,7 @@ export type NavLink = {
   /** Shown only when this runtime flag is on (lib/tools/flags.ts, /api/flags). */
   flag?: NavFlag;
 };
-export type NavFlag = "critSpeed" | "combatPower";
+export type NavFlag = "critSpeed" | "combatPower" | "accessorySearch";
 export type NavFlags = Partial<Record<NavFlag, boolean>>;
 export type NavSection = {
   id: string;
@@ -76,7 +76,7 @@ export const NAV_SECTIONS: NavSection[] = [
     label: "성장 도구",
     // "/tools$": the tool list itself (exact; a bare prefix would also take the
     // tools filed under other menus, such as /tools/material-quote).
-    match: ["/tools$", "/tools/combat-power", "/tools/refining", "/tools/crit-speed", "/tools/auction", "/tools/raid-rewards", "/tools/more-reward", "/tools/contribution", "/tools/raid-cheatsheet"],
+    match: ["/tools$", "/tools/combat-power", "/tools/refining", "/tools/crit-speed", "/tools/auction", "/tools/raid-rewards", "/tools/more-reward", "/tools/contribution", "/tools/raid-cheatsheet", "/tools/accessory-search"],
     groups: [
       {
         title: "계산기",
@@ -87,6 +87,7 @@ export const NAV_SECTIONS: NavSection[] = [
           { label: "재련 기대 비용", description: "목표 단계까지 확률과 골드", href: "/tools/refining" },
           { label: "치적·뭉가·음돌", description: "치명·신속 목표까지 필요한 스탯", href: "/tools/crit-speed", flag: "critSpeed" },
           { label: "경매 입찰가", description: "파티 인원별 손익 분기와 선점가", href: "/tools/auction" },
+          { label: "악세 경매 검색", description: "연마 효과·깨달음·힘민지 범위로 매물 찾기", href: "/tools/accessory-search", flag: "accessorySearch" },
           { label: "레이드 보상표", description: "관문별 골드·더보기 비용", href: "/tools/raid-rewards" },
           { label: "더보기 손익", description: "관문마다 더보기가 남는지 지금 시세로", href: "/tools/more-reward" },
           { label: "기여도 계산기", description: "내 피해량이 관문 기준에서 어디쯤인지", href: "/tools/contribution" },

@@ -155,6 +155,11 @@ export async function requestBackend<T>(
           ...(status === 429 && {
             retryAt: retryAfterAt(response.headers.get("retry-after")),
           }),
+          // A busy 503 that says when to come back (MARKET_SEARCH_BUSY): same wait.
+          ...(status === 503 &&
+            response.headers.get("retry-after") && {
+              retryAt: retryAfterAt(response.headers.get("retry-after")),
+            }),
         },
       };
     }

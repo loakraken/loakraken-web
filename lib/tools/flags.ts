@@ -12,6 +12,19 @@ type Env = Record<string, string | undefined>;
  * included), so local, e2e and staging keep it. Production also sets
  * CRIT_SPEED_TOOL=off explicitly (PM-프론트 23:41).
  */
+/**
+ * T4 악세 경매 검색기 (N13, backend #431). The backend route exists only with
+ * loakraken.features.auction-search on, so the screen stays hidden on
+ * production until both are opened. `ACCESSORY_SEARCH_TOOL=on|off` overrides,
+ * otherwise hidden only on the production host.
+ */
+export function isAccessorySearchEnabled(env: Env = process.env) {
+  const flag = env.ACCESSORY_SEARCH_TOOL?.trim().toLowerCase();
+  if (flag === "on") return true;
+  if (flag === "off") return false;
+  return !isProductionHost(env.SITE_URL);
+}
+
 export function isCritSpeedEnabled(env: Env = process.env) {
   const flag = env.CRIT_SPEED_TOOL?.trim().toLowerCase();
   if (flag === "on") return true;

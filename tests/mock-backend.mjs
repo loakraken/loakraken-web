@@ -362,6 +362,61 @@ createServer(async (req, res) => {
     const code = planned.code ?? (planned.status === 429 ? "LOST_ARK_RATE_LIMITED" : planned.status === 503 ? "CHARACTER_CACHE_UNAVAILABLE" : "LOST_ARK_API_ERROR");
     return send({ code, message: "planned failure" }, planned.status, planned.status === 429 ? { "Retry-After": "30" } : {});
   }
+  // T4 악세 경매 검색기 (N13, backend #431). Synthetic listings (not game data):
+  // page 1 of a main-stat range search is partial (complete false, nextPage 2),
+  // one listing is bid-only (buyPrice null), one cannot be traded again; minQuality
+  // 99 answers 503 MARKET_SEARCH_BUSY with Retry-After.
+  if (url.pathname === "/api/v1/markets/auctions/accessories/search" && req.method === "POST") {
+    counts.accessorySearch = (counts.accessorySearch || 0) + 1;
+    let body = "";
+    for await (const chunk of req) body += chunk;
+    const request = JSON.parse(body);
+    if (request.minQuality === 99) {
+      return send({ code: "MARKET_SEARCH_BUSY", message: "검색이 몰리고 있습니다.", data: null }, 503, { "Retry-After": "30" });
+    }
+    const page = request.page ?? 1;
+    const ranged = request.mainStatRangeMinPct != null;
+    const polishLine = (name, option, shortName, value, level) => ({ name, option, shortName, value, percentage: true, level });
+    const listing = (i, extra = {}) => ({
+      name: `테스트 장신구 ${page}-${i}`,
+      grade: "고대",
+      quality: 90 - i,
+      polish: [
+        polishLine("적에게 주는 피해 증가", "ENEMY_DAMAGE", "적주피", 2.0, "HIGH"),
+        polishLine("추가 피해", "ADDITIONAL_DAMAGE", "추피", 1.6, "MID"),
+        { name: "최대 생명력", option: null, shortName: null, value: 3250, percentage: false, level: null },
+      ],
+      polishStage: 3,
+      enlightenment: 13,
+      mainStat: 17000 - i * 100,
+      mainStatRangePct: 68.5 - i,
+      tradeAllowCount: 2,
+      buyPrice: 1_200_000 + page * 100_000 + i * 50_000,
+      bidStartPrice: 900_000,
+      endDate: "2026-10-14T12:00:00Z",
+      ...extra,
+    });
+    const items = [
+      listing(1),
+      listing(2, { buyPrice: null }),
+      listing(3, { tradeAllowCount: 0 }),
+    ];
+    return send({
+      code: "AUCTION_SEARCH_SUCCESS",
+      message: "장신구 경매 검색에 성공했습니다.",
+      data: {
+        ruleVersion: "accessory-search-v1",
+        totalCount: 245,
+        page,
+        observedAt: "2026-10-12T03:00:00Z",
+        cached: false,
+        complete: !ranged || page > 1,
+        scannedPages: ranged ? 3 : 1,
+        nextPage: ranged && page === 1 ? 4 : null,
+        items,
+      },
+    });
+  }
   if (url.pathname.startsWith("/api/v1/markets/"))
     return market(url, req, send);
   if (url.pathname === "/api/v1/refining/plans" && req.method === "POST") {

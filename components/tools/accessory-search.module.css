@@ -1,0 +1,177 @@
+/* T4 악세 경매 검색 (N13). */
+.workspace {
+  display: grid;
+  gap: 20px;
+  max-width: 1024px;
+  margin: 0 auto;
+}
+.form {
+  display: grid;
+  gap: 16px;
+  margin-top: 16px;
+}
+.segment {
+  display: grid;
+  gap: 6px;
+}
+.segment > span {
+  color: var(--slate);
+  font-size: var(--text-caption);
+}
+.polish {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.polish legend {
+  margin-bottom: 6px;
+  color: var(--slate);
+  font-size: var(--text-caption);
+}
+/* Fixed columns: switching slot or role swaps the labels, not the layout (A7). */
+.polishRows,
+.numbers {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.polishRows > div,
+.numbers > div {
+  min-width: 0;
+}
+.polishRows [data-slot="select"],
+.numbers [data-slot="select"] {
+  width: 100%;
+}
+@media (max-width: 720px) {
+  .polishRows,
+  .numbers {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.submit {
+  justify-self: start;
+  height: 40px;
+  padding: 0 20px;
+  border-radius: var(--radius-pill);
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-weight: 600;
+}
+.submit[aria-disabled="true"] {
+  opacity: 0.6;
+  cursor: progress;
+}
+@media (hover: hover) and (pointer: fine) {
+  .submit:not([aria-disabled="true"]):hover,
+  .more:not([aria-disabled="true"]):hover {
+    filter: brightness(1.08);
+  }
+}
+.meta {
+  min-height: 1lh;
+  margin-top: 4px;
+  color: var(--slate);
+  font-size: var(--text-caption);
+  font-variant-numeric: tabular-nums;
+}
+.results {
+  margin-top: 12px;
+  transition: opacity var(--duration-fast) var(--ease-out);
+}
+.results[data-stale] {
+  opacity: 0.55;
+}
+.muted {
+  color: var(--slate);
+}
+.failure {
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+}
+.failure p {
+  color: var(--slate);
+}
+.failure button,
+.more {
+  height: 36px;
+  padding: 0 16px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-pill);
+  background: var(--background);
+  color: var(--ink);
+}
+.failure button[aria-disabled="true"],
+.more[aria-disabled="true"] {
+  opacity: 0.6;
+}
+.more {
+  display: block;
+  margin: 16px auto 0;
+}
+.list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.item {
+  padding: 14px 0;
+  border-top: 1px solid var(--hairline);
+}
+.item:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+.itemHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+}
+.price {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.polishLines {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+  color: var(--slate);
+  font-size: var(--text-caption);
+}
+.polishLines li[data-core] {
+  color: var(--ink);
+}
+.facts {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, auto));
+  justify-content: start;
+  gap: 4px 20px;
+  margin: 8px 0 0;
+}
+.facts div {
+  display: grid;
+  gap: 1px;
+}
+.facts dt {
+  color: var(--slate);
+  font-size: var(--text-caption);
+}
+.facts dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+@media (max-width: 720px) {
+  .facts {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
