@@ -6,13 +6,14 @@ import {
   checkCheatSheet,
   type CheatSheetData,
 } from "../lib/tools/raid-cheatsheet";
+import { blockedPattern, loadBlockedTerms } from "../scripts/blocked-terms.mjs";
 
 // Shape example only: names and numbers are placeholders, not game data.
 const sample = (): CheatSheetData => ({
   version: "2026-10-12",
   checkedAt: "2026-10-12",
   sources: {
-    "guide-1": { title: "공략 글 1", url: "https://example.com/guide-1", checkedAt: "2026-10-12", kind: "INVEN" },
+    "guide-1": { title: "공략 글 1", url: "https://example.com/guide-1", checkedAt: "2026-10-12", kind: "COMMUNITY" },
   },
   raids: [
     {
@@ -142,4 +143,17 @@ test("bars stay out where sources disagree or are missing (벨가르딘·종막 
     serka.patterns.map((p) => p.hpBars?.from),
     [235, 195, 180, 100, 80],
   );
+});
+
+test("screen text names no other site (shared list; skipped when no list is set)", () => {
+  const names = blockedPattern(loadBlockedTerms().terms);
+  if (!names) return;
+  for (const raid of CHEATSHEET_DATA.raids)
+    for (const difficulty of raid.difficulties)
+      for (const gate of difficulty.gates)
+        for (const pattern of gate.patterns)
+          for (const text of [gate.boss, pattern.phase, pattern.name, pattern.description, pattern.counterplay]) {
+            names.lastIndex = 0;
+            assert.ok(!names.test(text), `${raid.raidId} ${pattern.id}`);
+          }
 });
