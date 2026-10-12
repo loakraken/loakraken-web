@@ -109,6 +109,7 @@ import {
   type RosterSort,
 } from "@/lib/character/roster-list";
 import { useStagger } from "./entrance";
+import { AnalysisMenu } from "./analysis-menu";
 import { RankPanel } from "./rank-panel";
 import { SimulatorTab } from "./simulator-tab";
 import { SpecUpTab } from "./spec-up-tab";
@@ -311,6 +312,12 @@ export function TabBar({
           </span>
         </nav>
         <div className={styles.tabActions}>
+          <AnalysisMenu
+            name={name}
+            server={data.serverName}
+            specUp={useContext(SpecUpEnabled)}
+            simulator={useContext(SimulatorEnabled)}
+          />
           <button
             type="button"
             className={styles.iconAction}
