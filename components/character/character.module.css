@@ -487,3 +487,25 @@
   color: var(--band-muted);
   font-size: 12px;
 }
+/* 배너 순위 (§14.1 ⑤): one line under the numbers, there from the first HTML
+   (empty until the rank arrives), so the banner keeps its size (A6). */
+.bannerRank {
+  min-height: 26px;
+  margin-top: 12px;
+  line-height: 26px;
+}
+.bannerRankBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 9999px;
+  background: color-mix(in oklab, var(--band-muted) 18%, transparent);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.bannerRankBadge b {
+  font-weight: 700;
+}
