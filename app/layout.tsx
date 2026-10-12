@@ -60,11 +60,15 @@ export default function RootLayout({ children }: Readonly<{
   return (
     // The pre-paint script sets data-theme before hydration (stored dark choice).
     <html lang="ko" className={`${geistMono.variable} ${kraken.variable}`} suppressHydrationWarning>
-      <head>
+      {/* The two inline scripts open <body> instead of sitting in <head>: in
+          <head> React had to hydrate them among the tags Next streams there
+          (metadata, preloads), and when hydration started before a late
+          preload landed it lost its place at <meta charset> and rebuilt the
+          page (React #418 on /tools after another page, web #599). Here they
+          still run before any of the page is parsed or painted. */}
+      <body className="antialiased">
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
         <script dangerouslySetInnerHTML={{ __html: earlyClickScript }} />
-      </head>
-      <body className="antialiased">
         <Providers>{children}</Providers>
         <SiteLegal />
       </body>
