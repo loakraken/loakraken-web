@@ -1,7 +1,7 @@
 import "server-only";
 import type { StatsQuery, StatsView } from "./model";
 import { requestStats } from "./upstream";
-import { requestRankings, type RankingQuery } from "./rankings";
+import { requestEfficiencyRanking, requestRankings, type EfficiencyKind, type EfficiencyQuery, type RankingQuery } from "./rankings";
 import { requestRosterRanking, type RosterQuery } from "./roster-ranking";
 import { requestCollectibleRanking, type CollectibleQuery } from "./collectible-ranking";
 
@@ -19,4 +19,8 @@ export function getRosterRanking(query: RosterQuery, signal?: AbortSignal) {
 
 export function getCollectibleRanking(query: CollectibleQuery, signal?: AbortSignal) {
   return requestCollectibleRanking(query, process.env.LOAKRAKEN_API_ORIGIN, { signal });
+}
+
+export function getEfficiencyRanking(kind: EfficiencyKind, query: EfficiencyQuery, signal?: AbortSignal) {
+  return requestEfficiencyRanking(kind, query, process.env.LOAKRAKEN_API_ORIGIN, { signal });
 }

@@ -13,7 +13,7 @@ import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { TIER_LABEL, TIER_LEGEND } from "@/lib/character/rank";
 import { fetchRankings } from "@/lib/stats/client";
 import { conditionsKey, fixed, percent, sampleText, whole } from "@/lib/stats/model";
-import { MAX_PAGE, PAGE_SIZE, rankingSearch, type RankingQuery } from "@/lib/stats/rankings";
+import { MAX_PAGE, PAGE_SIZE, arkPassiveText, estherText, rankingSearch, type RankingQuery } from "@/lib/stats/rankings";
 import quote from "@/components/tools/material-quote.module.css";
 import styles from "./stats.module.css";
 import { BasisNote } from "./basis-note";
@@ -188,6 +188,10 @@ export function RankingsView({ initial, types }: { initial: RankingQuery; types:
                 <th scope="col" className={styles.left}>직업</th>
                 <th scope="col">아이템 레벨</th>
                 <th scope="col">전투력</th>
+                <th scope="col">최고 전투력</th>
+                <th scope="col" className={styles.left}>아크 패시브</th>
+                <th scope="col" className={styles.left}>직업 각인</th>
+                <th scope="col" className={styles.left}>에스더 무기</th>
                 <th scope="col">상위</th>
               </tr>
             </thead>
@@ -207,6 +211,12 @@ export function RankingsView({ initial, types }: { initial: RankingQuery; types:
                   </td>
                   <td data-strong={query.metric === "ITEM_LEVEL" || undefined}>{fixed(row.itemLevel)}</td>
                   <td data-strong={query.metric === "COMBAT_POWER" || undefined}>{fixed(row.combatPower)}</td>
+                  {/* K32 · L37 (api #446·#449): '-' when not observed; the
+                      columns stay so every row lines up. */}
+                  <td>{row.bestCombatPower != null ? fixed(row.bestCombatPower) : "-"}</td>
+                  <td className={`${styles.left} ${styles.k32}`}>{arkPassiveText(row.arkPassivePoints) ?? "-"}</td>
+                  <td className={`${styles.left} ${styles.k32}`}>{row.classEngraving?.trim() || "-"}</td>
+                  <td className={`${styles.left} ${styles.esther}`}>{estherText(row.estherWeapon) ?? "-"}</td>
                   <td>
                     {percent(row.topPercent)}
                     {row.tier && TIER_LABEL[row.tier] && <> <b className={styles.tier}>{TIER_LABEL[row.tier]}</b></>}
