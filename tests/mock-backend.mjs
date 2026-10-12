@@ -548,6 +548,17 @@ createServer(async (req, res) => {
     }));
     return send({ code: "CHARACTER_HISTORY_SUCCESS", message: "성공", data: { characterName: who, serverName: url.searchParams.get("serverName"), points } });
   }
+  // Name autocomplete (backend #372): names starting with q, item level order, max 8.
+  if (url.pathname === "/api/v1/characters/suggest") {
+    const q = (url.searchParams.get("q") ?? "").trim();
+    const known = [
+      { characterName: "상세", serverName: "아만", className: "블래스터", itemLevel: 1780.83, characterImage: null },
+      { characterName: "상세서포터", serverName: "루페온", className: "바드", itemLevel: 1712.5, characterImage: null },
+      { characterName: "상수", serverName: "카단", className: "버서커", itemLevel: 1690, characterImage: null },
+    ];
+    const items = q.length < 1 ? [] : known.filter((c) => c.characterName.startsWith(q)).slice(0, 8);
+    return send({ code: "CHARACTER_SUGGEST_SUCCESS", message: "ok", data: { items } });
+  }
   if (url.pathname === "/api/v1/characters/popular") {
     // Backend F-10 sample; 7d shows the collecting state.
     const body = JSON.parse(readFileSync(new URL("./popular-fixtures/characters-popular.json", import.meta.url), "utf8"));
