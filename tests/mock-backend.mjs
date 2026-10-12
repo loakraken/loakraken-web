@@ -382,11 +382,13 @@ createServer(async (req, res) => {
       case "GEM_LEVEL_ALL": return ["보석 전체", null];
       case "GEM_LEVEL": {
         const gem = loadout.gems.items.find((g) => g.slot === change.slot);
+        // A character without that gem (e.g. "상세" on the spec-up goal path) still answers.
+        if (!gem) return [`보석 ${change.slot}번`, null];
         return [`보석 ${gem.slot}번(${gem.name})`, String(gem.level)];
       }
-      case "EQUIPMENT_REFINE": return [item.name, String(item.detail.refineLevel)];
-      case "EQUIPMENT_QUALITY": return [item.name, String(item.detail.quality)];
-      case "EQUIPMENT_ADVANCED_REFINE": return [item.name, String(item.detail.advancedRefineLevel ?? "")];
+      case "EQUIPMENT_REFINE": return [item?.name ?? "장비", item?.detail ? String(item.detail.refineLevel) : null];
+      case "EQUIPMENT_QUALITY": return [item?.name ?? "장비", item?.detail ? String(item.detail.quality) : null];
+      case "EQUIPMENT_ADVANCED_REFINE": return [item?.name ?? "장비", item?.detail ? String(item.detail.advancedRefineLevel ?? "") : null];
       case "POLISH": {
         const line = item.detail.polishEffects[change.line];
         return [`${item.name} 연마 ${change.line + 1}`, `${line.name} ${line.value}`];

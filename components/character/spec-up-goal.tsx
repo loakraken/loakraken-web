@@ -57,6 +57,17 @@ export function SpecUpGoal({ data }: { data: Character }) {
   const error = goal !== null && Number.isNaN(goal) ? "숫자만 입력해 주세요(소수 둘째 자리까지)." : null;
   const ready = current != null && steps.length > 0;
   const outcome = run.data;
+  // Why the path cannot be worked out right now (A21: never a silent dim button).
+  const blocked = list.isError
+    ? "스펙업 후보를 불러오지 못해 경로를 계산할 수 없어요. 위 목록을 다시 불러온 뒤 시도해 주세요."
+    : !guide
+      ? "후보를 불러오고 있어요."
+      : current == null
+        ? "지금 전투력이 없어 경로를 계산할 수 없어요."
+        : steps.length === 0
+          ? "지금 경로에 넣을 수 있는 후보가 없어요."
+          : null;
+  const blockedId = `${inputId}-blocked`;
 
   return (
     <section className={styles.goal} aria-labelledby="spec-up-goal">
@@ -87,10 +98,14 @@ export function SpecUpGoal({ data }: { data: Character }) {
           />
           {/* Always one line high, so a message never moves what follows (A7). */}
           <span id={`${inputId}-hint`} className={styles.hint} role={error ? "alert" : undefined}>
-            {error ?? (current != null ? `지금 ${two(current)}` : guide ? "지금 전투력이 없어 계산할 수 없어요." : "")}
+            {error ?? (current != null ? `지금 ${two(current)}` : "")}
           </span>
         </div>
-        <button type="submit" aria-disabled={!ready || goal === null || !!error || run.isPending || undefined}>
+        <button
+          type="submit"
+          aria-disabled={!ready || goal === null || !!error || run.isPending || undefined}
+          aria-describedby={blocked ? blockedId : undefined}
+        >
           {run.isPending ? "계산하는 중…" : "경로 찾기"}
         </button>
       </form>
@@ -105,8 +120,8 @@ export function SpecUpGoal({ data }: { data: Character }) {
         ) : outcome ? (
           <GoalAnswer goal={outcome.goal} result={outcome.result} steps={outcome.steps} />
         ) : (
-          <p className={styles.muted}>
-            {guide && steps.length === 0 ? "지금 경로에 넣을 수 있는 후보가 없어요." : ""}
+          <p id={blockedId} className={styles.muted}>
+            {blocked ?? ""}
           </p>
         )}
       </div>

@@ -91,4 +91,19 @@ test.describe("스펙업 가이드 @smoke", () => {
     await expect(goal.getByText("숫자만 입력해 주세요(소수 둘째 자리까지).")).toBeVisible();
     await expectNoHorizontalOverflow(page);
   });
+
+  test("후보를 못 받으면 목표 칸이 이유를 말한다(PM-프론트 #649 P1, A21)", async ({ page }) => {
+    await page.goto(characterPath("스펙업꺼짐", "specup"));
+    const goal = page.getByRole("region", { name: "목표 전투력" });
+    await expect(goal.getByText("스펙업 후보를 불러오지 못해 경로를 계산할 수 없어요.", { exact: false })).toBeVisible();
+    await expect(goal.getByRole("button", { name: "경로 찾기" })).toHaveAttribute("aria-disabled", "true");
+  });
+
+  test("시뮬레이터가 계산하지 못하는 캐릭터는 결과 대신 이유를 보여 준다(PM-프론트 #649 P2)", async ({ page }) => {
+    await page.goto(characterPath("상세", "specup"));
+    const goal = page.getByRole("region", { name: "목표 전투력" });
+    await goal.getByRole("textbox", { name: "목표 전투력" }).fill("99999");
+    await goal.getByRole("button", { name: "경로 찾기" }).click();
+    await expect(goal.getByText("고른 단계 중 시뮬레이터가 계산하지 못한 것이 있어요.")).toBeVisible();
+  });
 });
