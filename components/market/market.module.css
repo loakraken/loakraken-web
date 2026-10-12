@@ -161,10 +161,9 @@
 }
 .rowPrice {
   display: grid;
-  justify-items: end;
   /* A fixed floor wide enough for a usual day change (▲1,234 (12.3%)), so a
-     refresh that adds a digit does not widen the column and slide the price
-     box and the name beside it (A7, PM-프론트 #617). */
+     refresh that adds a digit does not widen the column and slide the name
+     beside it (A7, PM-프론트 #617). */
   min-width: 8rem;
 }
 .rowPrice b {
@@ -172,11 +171,15 @@
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
-/* Changed by a refresh (shared ChangeMark): the ▲/▼ sits outside the
-   number's box, to its left, so showing it never moves the price (CLS 0). */
+/* Each cell (shared ChangeMark) spans the column and sets its text to the
+   right: a new number of another width (20G → 30G, not every face has even
+   digits) changes the text, never the cell's box (A7, CI #617). The ▲/▼ of a
+   refresh goes before the number inside the cell, so it moves nothing. */
+.rowPrice > [data-slot="change-mark"] {
+  justify-content: flex-end;
+}
 .rowPrice [data-slot="change-mark"] :global(.chg-dir) {
-  position: absolute;
-  right: calc(100% + 4px);
+  order: -1;
 }
 /* Item grade colours on a light surface (game rarity hues). */
 .board [data-grade="일반"],

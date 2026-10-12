@@ -26,7 +26,9 @@ test.describe("시세판 바뀐 칸 강조 @smoke", () => {
     await expect(rows).toHaveCount(10);
     const firstPrice = rows.first().locator('[data-slot="change-mark"]').first();
     const before = await firstPrice.boundingBox();
-    // 가격·등락 묶음: 등락 자릿수가 늘어도 폭이 그대로라 왼쪽 끝도 그대로다(A7)
+    // 가격·등락 묶음: 등락 자릿수가 늘어도 폭이 그대로라 왼쪽 끝도 그대로다(A7).
+    // 가격 칸은 묶음 폭을 다 쓰고 글자만 오른쪽에 붙어, 숫자 폭이 달라도(글꼴마다
+    // 20G·30G 폭이 다름) 칸 상자는 그대로다.
     const group = firstPrice.locator("xpath=..");
     const groupBefore = await group.boundingBox();
     await expect(board.locator('[data-slot="change-mark"][data-tone]')).toHaveCount(0);
