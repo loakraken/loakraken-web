@@ -65,7 +65,18 @@ function SelectFull<V extends string | number>({
         </SelectPrimitive.Icon>
       </SelectPrimitive.Trigger>
       <SelectPrimitive.Portal>
-        <SelectPrimitive.Positioner sideOffset={6} collisionPadding={12} className="isolate z-50 outline-none">
+        {/* The list hangs under the field it was opened from, its left edge on
+            the field's (checklist A33). Base UI's default lays it over the field
+            to line the chosen row up with the value text, which moves the list
+            5px off the field's edge and changes with the chosen row. */}
+        <SelectPrimitive.Positioner
+          alignItemWithTrigger={false}
+          side="bottom"
+          align="start"
+          sideOffset={6}
+          collisionPadding={12}
+          className="isolate z-50 outline-none"
+        >
           <SelectPrimitive.Popup
             data-slot="select-popup"
             className={cn(
