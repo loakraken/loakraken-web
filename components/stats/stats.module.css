@@ -556,3 +556,21 @@
 .rosterMembers li[data-done] b {
   color: var(--link);
 }
+/* K32 · L37 columns: short text cells that never wrap mid-word; the esther
+   weapon column has a fixed width so "+25 · 엘라 2단계" and "-" line up. */
+.table .k32 {
+  white-space: nowrap;
+}
+.table .esther {
+  width: 9.5em;
+  min-width: 9.5em;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+/* Bracelet / gem efficiency: the ranked value, the same gain colour as the
+   character screen's efficiency. */
+.table td.efficiency {
+  color: var(--gain, var(--foreground));
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}

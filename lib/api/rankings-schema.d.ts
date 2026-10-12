@@ -24,6 +24,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/rankings/bracelets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 팔찌 효율 랭킹
+         * @description 팔찌 효율 %(지금 전투력이 팔찌를 뺀 전투력보다 몇 % 높은지) 순위. 캐릭터 검색으로 장비를 관측한 딜러의 계산된 값만, 지금 계산 규칙 버전 값만 셉니다. 필터·페이지는 전투력 랭킹과 같습니다. 400 INVALID_REQUEST·STATS_INVALID_RANGE·STATS_TOO_MANY_BINS, 503 STATS_UNAVAILABLE
+         */
+        get: operations["braceletRanking"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/rankings/ark-grid-gems": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 젬 효율 랭킹
+         * @description 아크 그리드 젬 옵션 합계 효율 %(지금 전투력이 젬 옵션을 모두 뺀 전투력보다 몇 % 높은지, 코어 제외) 순위. 캐릭터 검색으로 장비를 관측한 딜러의 계산된 값만, 지금 계산 규칙 버전 값만 셉니다. 필터·페이지는 전투력 랭킹과 같습니다. 400 INVALID_REQUEST·STATS_INVALID_RANGE·STATS_TOO_MANY_BINS, 503 STATS_UNAVAILABLE
+         */
+        get: operations["arkGridGemRanking"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -82,21 +122,26 @@ export interface components {
              */
             sampleStatus: "COLLECTING" | "READY";
             coverage: components["schemas"]["StatsCoverageResponse"];
+            /**
+             * @description population을 세는 단위: CHARACTER(캐릭터), ROSTER(원정대), GUILD(길드). 문자열이며 값이 늘 수 있음
+             * @example CHARACTER
+             */
+            populationUnit: string;
         };
         /** @description 정규화한 조건(기본값 포함) */
         StatsConditionsResponse: {
-            server: (((((string | null) | null) | null) | null) | null) | null;
-            role: (((((("DEALER" | "SUPPORT") | null) | null) | null) | null) | null) | null;
-            className: (((((string | null) | null) | null) | null) | null) | null;
+            server: (((((((((string | null) | null) | null) | null) | null) | null) | null) | null) | null) | null;
+            role: (((((((((("DEALER" | "SUPPORT") | null) | null) | null) | null) | null) | null) | null) | null) | null) | null;
+            className: (((((((((string | null) | null) | null) | null) | null) | null) | null) | null) | null) | null;
             /**
              * Format: int32
              * @description 최근 확인 기간(일): 7, 30, 90
              */
             activeDays: number;
             itemLevelMin: number;
-            itemLevelMax: (((((number | null) | null) | null) | null) | null) | null;
-            combatPowerMin: (((((number | null) | null) | null) | null) | null) | null;
-            combatPowerMax: (((((number | null) | null) | null) | null) | null) | null;
+            itemLevelMax: (((((((((number | null) | null) | null) | null) | null) | null) | null) | null) | null) | null;
+            combatPowerMin: (((((((((number | null) | null) | null) | null) | null) | null) | null) | null) | null) | null;
+            combatPowerMax: (((((((((number | null) | null) | null) | null) | null) | null) | null) | null) | null) | null;
             /** @description 원정대(같은 서버) 대표 캐릭터(아이템 레벨 최고)만 */
             representativeOnly: boolean;
         };
@@ -132,6 +177,19 @@ export interface components {
             combatPower: number;
             topPercent: number | null;
             tier: ("TOP1" | "TOP5" | "TOP10" | "TOP25" | "TOP50" | "REST") | null;
+            bestCombatPower: number | null;
+            arkPassivePoints: components["schemas"]["StatsArkPassivePointsResponse"] | null;
+            classEngraving: string | null;
+            estherWeapon: components["schemas"]["StatsEstherWeaponResponse"] | null;
+        };
+        StatsArkPassivePointsResponse: {
+            evolution: number | null;
+            enlightenment: number | null;
+            leap: number | null;
+        };
+        StatsEstherWeaponResponse: {
+            refineLevel: number | null;
+            ellaStage: number | null;
         };
         /** @description 공통 오류 응답. HTTP 상태와 업무 코드를 함께 확인합니다. */
         ErrorResponse: {
@@ -140,6 +198,61 @@ export interface components {
             /** @example 요청 값이 올바르지 않습니다. */
             message: string;
             data: null;
+        };
+        /** @description 공통 API 응답. 오류 응답의 data는 null입니다. */
+        ApiResponseStatsEfficiencyRankingResponse: {
+            /**
+             * @description 업무 결과 코드
+             * @example CHARACTER_SEARCH_SUCCESS
+             */
+            code: string;
+            /**
+             * @description 공개용 안내 메시지
+             * @example 캐릭터 조회에 성공했습니다.
+             */
+            message: string;
+            /** @description 성공 응답 데이터. 오류일 때 null */
+            data: components["schemas"]["StatsEfficiencyRankingResponse"];
+        };
+        StatsEfficiencyRankingResponse: {
+            meta: components["schemas"]["StatsMetaResponse"];
+            /**
+             * @description BRACELET(팔찌 효율) 또는 ARK_GRID_GEM(젬 옵션 합계 효율)
+             * @enum {string}
+             */
+            kind: "BRACELET" | "ARK_GRID_GEM";
+            /** @description 순위에 쓴 계산 규칙 버전. 이 버전으로 계산된 값만 셉니다 */
+            ruleVersion: string;
+            /** @description 순위 대상: 캐릭터 검색으로 장비를 관측해 효율을 계산한 캐릭터(딜러, 계산이 된 값만)입니다. 수집기만 거친 캐릭터는 들어가지 않습니다. 계산 모델이 바뀌면 다음 관측 때 갱신된 캐릭터부터 다시 셉니다. */
+            populationNote: string;
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            size: number;
+            /** @description 효율 높은 순. 전체 순위 대상 수는 meta.population */
+            rows: components["schemas"]["StatsEfficiencyRankedCharacterResponse"][];
+        };
+        StatsEfficiencyRankedCharacterResponse: {
+            /**
+             * Format: int64
+             * @description 동률은 같은 순위(1, 1, 3)
+             */
+            rank: number;
+            characterName: string;
+            serverName: string;
+            className: string;
+            position: ("DEALER" | "SUPPORT") | null;
+            itemLevel: number;
+            combatPower: number;
+            /** @description 효율 %(소수 둘째 자리): 지금 전투력이 그 항목을 뺀 전투력보다 몇 % 높은지 */
+            valuePercent: number;
+            /**
+             * Format: date-time
+             * @description 효율을 계산한 관측 시각
+             */
+            observedAt: string;
+            topPercent: number | null;
+            tier: ("TOP1" | "TOP5" | "TOP10" | "TOP25" | "TOP50" | "REST") | null;
         };
     };
     responses: never;
@@ -188,6 +301,140 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApiResponseStatsRankingResponse"];
+                };
+            };
+            /** @description INVALID_REQUEST, STATS_INVALID_RANGE 또는 STATS_TOO_MANY_BINS */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description CLIENT_RATE_LIMITED: 이 클라이언트의 분당 요청·공식 호출 한도 초과. Retry-After(초) 뒤 다시 시도 */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description STATS_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    braceletRanking: {
+        parameters: {
+            query?: {
+                /** @description 서버명. 생략하면 전체 */
+                server?: string;
+                /** @description DEALER 또는 SUPPORT. 생략하면 전체 */
+                role?: "DEALER" | "SUPPORT";
+                /** @description 직업명. 생략하면 전체 */
+                className?: string;
+                /** @description 최근 확인 기간(일): 7, 30, 90 */
+                activeDays?: number;
+                /** @description 최소 아이템 레벨 */
+                itemLevelMin?: number;
+                itemLevelMax?: number;
+                combatPowerMin?: number;
+                combatPowerMax?: number;
+                /** @description 원정대(같은 서버) 대표 캐릭터(아이템 레벨 최고)만 */
+                representativeOnly?: boolean;
+                /** @description 1부터 */
+                page?: number;
+                /** @description 페이지 크기(기본 50, 최대 100) */
+                size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 조회 성공 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponseStatsEfficiencyRankingResponse"];
+                };
+            };
+            /** @description INVALID_REQUEST, STATS_INVALID_RANGE 또는 STATS_TOO_MANY_BINS */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description CLIENT_RATE_LIMITED: 이 클라이언트의 분당 요청·공식 호출 한도 초과. Retry-After(초) 뒤 다시 시도 */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description STATS_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    arkGridGemRanking: {
+        parameters: {
+            query?: {
+                /** @description 서버명. 생략하면 전체 */
+                server?: string;
+                /** @description DEALER 또는 SUPPORT. 생략하면 전체 */
+                role?: "DEALER" | "SUPPORT";
+                /** @description 직업명. 생략하면 전체 */
+                className?: string;
+                /** @description 최근 확인 기간(일): 7, 30, 90 */
+                activeDays?: number;
+                /** @description 최소 아이템 레벨 */
+                itemLevelMin?: number;
+                itemLevelMax?: number;
+                combatPowerMin?: number;
+                combatPowerMax?: number;
+                /** @description 원정대(같은 서버) 대표 캐릭터(아이템 레벨 최고)만 */
+                representativeOnly?: boolean;
+                /** @description 1부터 */
+                page?: number;
+                /** @description 페이지 크기(기본 50, 최대 100) */
+                size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 조회 성공 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponseStatsEfficiencyRankingResponse"];
                 };
             };
             /** @description INVALID_REQUEST, STATS_INVALID_RANGE 또는 STATS_TOO_MANY_BINS */

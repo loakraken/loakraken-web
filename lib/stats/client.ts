@@ -1,6 +1,14 @@
 import type { BackendFailure, BackendResult } from "../api/backend";
 import { statsSearch, type StatsEnvelopes, type StatsQuery, type StatsView } from "./model";
-import { rankingSearch, type RankingEnvelope, type RankingQuery } from "./rankings";
+import {
+  efficiencySearch,
+  rankingSearch,
+  type EfficiencyEnvelope,
+  type EfficiencyKind,
+  type EfficiencyQuery,
+  type RankingEnvelope,
+  type RankingQuery,
+} from "./rankings";
 import { rosterSearch, type RosterQuery, type RosterRankingEnvelope } from "./roster-ranking";
 import { collectibleSearch, type CollectibleQuery, type CollectibleRankingEnvelope } from "./collectible-ranking";
 
@@ -50,3 +58,6 @@ export async function fetchStats<V extends StatsView>(
     throw new StatsQueryError({ code: "LOST_ARK_API_ERROR", status: 502 });
   }
 }
+
+export const fetchEfficiencyRanking = (kind: EfficiencyKind, query: EfficiencyQuery, signal: AbortSignal) =>
+  call<EfficiencyEnvelope>(`/api/rankings/efficiency?${efficiencySearch(kind, query)}`, signal);

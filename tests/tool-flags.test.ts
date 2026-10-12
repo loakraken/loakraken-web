@@ -60,3 +60,11 @@ test("collectible ranking tab is hidden on production unless COLLECTIBLE_RANKING
   assert.equal(isCollectibleRankingEnabled({ SITE_URL: "https://loakraken.gg", COLLECTIBLE_RANKING: "on" }), true);
   assert.equal(isCollectibleRankingEnabled({ COLLECTIBLE_RANKING: "off" }), false);
 });
+
+test("efficiency ranking tabs are hidden on production unless EFFICIENCY_RANKING says otherwise", async () => {
+  const { isEfficiencyRankingEnabled } = await import("../lib/tools/flags");
+  assert.equal(isEfficiencyRankingEnabled({}), true, "local and e2e (no SITE_URL)");
+  assert.equal(isEfficiencyRankingEnabled({ SITE_URL: "https://loakraken.gg" }), false);
+  assert.equal(isEfficiencyRankingEnabled({ SITE_URL: "https://loakraken.gg", EFFICIENCY_RANKING: "on" }), true);
+  assert.equal(isEfficiencyRankingEnabled({ EFFICIENCY_RANKING: "off" }), false);
+});

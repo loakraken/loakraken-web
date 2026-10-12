@@ -120,6 +120,18 @@ export function isCollectibleRankingEnabled(env: Env = process.env) {
   return !isProductionHost(env.SITE_URL);
 }
 
+/**
+ * The bracelet and gem efficiency ranking tabs (api #444, checklist L38·L39).
+ * Same rule: `EFFICIENCY_RANKING=on|off` overrides, otherwise hidden only on
+ * the production host until its backend ships there.
+ */
+export function isEfficiencyRankingEnabled(env: Env = process.env) {
+  const flag = env.EFFICIENCY_RANKING?.trim().toLowerCase();
+  if (flag === "on") return true;
+  if (flag === "off") return false;
+  return !isProductionHost(env.SITE_URL);
+}
+
 const PRODUCTION_HOST = new URL(PRODUCTION_URL).hostname;
 
 function isProductionHost(value: string | undefined) {
