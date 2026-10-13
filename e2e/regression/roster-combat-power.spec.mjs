@@ -31,9 +31,9 @@ for (const width of [1280, 360]) {
     await expect(rows(page).nth(3)).toContainText("전투력 기록 없음");
     await expect(rows(page).nth(4)).toContainText("전투력 기록 없음");
     // The highest seen (backend bestCombatPower) on its own line; none reads the same for everyone.
-    await expect(rows(page).nth(0)).toContainText("최고 3,401.52");
-    await expect(rows(page).nth(2)).toContainText("최고 2,012.4");
-    await expect(rows(page).nth(3)).toContainText("최고 기록 없음");
+    await expect(rows(page).nth(0)).toContainText("최고 전투력 3,401.52");
+    await expect(rows(page).nth(2)).toContainText("최고 전투력 2,012.4");
+    await expect(rows(page).nth(3)).toContainText("최고 전투력 기록 없음");
 
     // The item level order is still one press away.
     await page.getByRole("radiogroup", { name: "원정대 정렬" }).getByRole("radio", { name: "아이템 레벨 순" }).click();
@@ -53,8 +53,8 @@ for (const width of [1280, 360]) {
     await expect(power.getByRole("button")).toHaveCount(0);
     await expect(rows(page).locator("strong")).toHaveText(["원정대전투력", "전투력넷", "전투력셋", "전투력둘", "전투력다섯"]);
     await expect(page.getByText("전투력 기록 없음")).toHaveCount(0);
-    await expect(page.getByText("최고 기록 없음")).toHaveCount(0);
-    await expect(rows(page).nth(2)).toContainText("최고 2,650.1");
+    await expect(page.getByText("최고 전투력 기록 없음")).toHaveCount(0);
+    await expect(rows(page).nth(2)).toContainText("최고 전투력 2,650.1");
     await expect(power).toContainText("(5명)");
 
     await expectNoHorizontalOverflow(page);

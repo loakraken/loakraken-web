@@ -2044,7 +2044,7 @@ function PowerLine({
           line is always there, so a value arriving never moves the row; no
           record (a stopped character too, B5) reads the same either way. */}
       <span className={styles.siblingBest}>
-        {!ready ? "\u00a0" : record?.bestCombatPower == null ? "최고 기록 없음" : `최고 ${number(record.bestCombatPower)}`}
+        {!ready ? "\u00a0" : record?.bestCombatPower == null ? "최고 전투력 기록 없음" : `최고 전투력 ${number(record.bestCombatPower)}`}
       </span>
     </>
   );
