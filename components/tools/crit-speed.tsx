@@ -137,7 +137,7 @@ function Chip({
   return (
     <button
       type="button"
-      className={styles.chip}
+      className={`${styles.chip} hit-44`}
       aria-pressed={pressed}
       disabled={disabled}
       onClick={onClick}
