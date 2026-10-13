@@ -43,7 +43,36 @@ test("@M12 표본이 적은 직업은 안내만 @regression", async ({ page }) =
   await expect(page.getByText("아직 표본이 12명이라 보여 드리지 않아요.")).toBeVisible();
   await expect(page.getByText(/표본 30명이 모이면 보여 드려요/)).toBeVisible();
   await expect(page.getByRole("region", { name: "각인 조합" })).toHaveCount(0);
+  // The whole class is short too, so no class engravings either.
+  await expect(page.getByRole("region", { name: "직업 각인" })).toHaveCount(0);
 });
+
+for (const width of [1280, 360])
+  test(`@M12 ${width} 고른 직업 각인 표본이 적어도 직업 각인 비율은 보임 @regression`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await watchShifts(page);
+    await gotoReady(page, `${BLADE}?classEngraving=${encodeURIComponent("버스트")}`);
+    await expect(page.getByText(/표본 240명/)).toBeVisible();
+    // 버스트 · 7일 is short of 30: sections go, the class engravings (whole class) stay.
+    const moved = await shiftsDuring(page, () => page.getByRole("group", { name: "최근 확인" }).getByRole("button", { name: "7일" }).click());
+    await expect(page.getByText("버스트 표본이 아직 20명이라 항목은 보여 드리지 않아요. 직업 각인 비율은 직업 전체 표본으로 보여 드려요.")).toBeVisible();
+    const classEngravings = page.getByRole("region", { name: "직업 각인" });
+    await expect(classEngravings.getByRole("listitem")).toHaveCount(2);
+    await expect(classEngravings).toContainText("잔재된 기운");
+    await expect(page.getByRole("region", { name: "각인 조합" })).toHaveCount(0);
+    // Nothing here is a reference value: the basis note says what happens instead.
+    await expect(page.getByText(/참고값/)).toHaveCount(0);
+    await expect(page.getByRole("region", { name: "집계 기준 안내" })).toContainText(
+      "표본이 30명 미만이면 항목을 보여 드리지 않고, 인원(보석은 개수)이 5 미만인 칸은 숨겨요.",
+    );
+    expect(moved.all, `표본 적은 쪽으로 전환 흔들림 (${moved.moved})`).toBe(0);
+    // The filter buttons stay, so the way back is there.
+    const back = await shiftsDuring(page, () => page.getByRole("group", { name: "직업 각인" }).getByRole("button", { name: "잔재된 기운" }).click());
+    await expect(page.getByText(/표본 320명/)).toBeVisible();
+    await expect(page.getByRole("region", { name: "각인 조합" })).toBeVisible();
+    expect(back.all, `다시 항목으로 전환 흔들림 (${back.moved})`).toBe(0);
+    await expectNoHorizontalOverflow(page);
+  });
 
 test("@M12 통계 직업 표와 캐릭터 분석 메뉴에서 직업 상세로 @regression", async ({ page }) => {
   await gotoReady(page, "/stats");

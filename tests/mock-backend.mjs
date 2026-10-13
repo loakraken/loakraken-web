@@ -1227,7 +1227,11 @@ createServer(async (req, res) => {
       const engraving = q.get("classEngraving");
       const days = Number(q.get("activeDays") || 30);
       const ready = className === "블레이드";
-      const sample = ready ? (engraving === "잔재된 기운" ? 640 : engraving ? 240 : 880) * (days === 7 ? 0.5 : 1) : 12;
+      // 블레이드 · 버스트 · 7일: the chosen engraving is short of 30 (every section empty),
+      // the class engravings still come from the whole class sample.
+      const small = ready && engraving === "버스트" && days === 7;
+      const full = ready && !small;
+      const sample = small ? 20 : ready ? (engraving === "잔재된 기운" ? 640 : engraving ? 240 : 880) * (days === 7 ? 0.5 : 1) : 12;
       const cell = (name, n, known) => ({ name, count: n, share: Math.round((n / known) * 10000) / 100 });
       const value = (v, n, known) => ({ value: v, count: n, share: Math.round((n / known) * 10000) / 100 });
       const hidden = (count, known) => ({ count, share: count ? Math.round((count / known) * 10000) / 100 : null });
@@ -1239,7 +1243,7 @@ createServer(async (req, res) => {
           conditions: { server: null, role: null, className, activeDays: days, itemLevelMin: 1680, itemLevelMax: null, combatPowerMin: null, combatPowerMax: null, representativeOnly: false },
           aggregatedAt: new Date(Date.now() - 600_000).toISOString(),
           snapshot: "latest", ruleVersion: "class-builds-v1", minSample: 30, populationUnit: "CHARACTER",
-          sampleStatus: ready ? "READY" : "COLLECTING",
+          sampleStatus: full ? "READY" : "COLLECTING",
           coverage: { observedCharacters: 4200, knownCharacters: 5100, discoveredAccounts: 900 },
         },
         className,
@@ -1261,33 +1265,33 @@ createServer(async (req, res) => {
         classEngravings: ready
           ? { known: 880, hidden: hidden(0, 880), cells: [cell("잔재된 기운", 640, 880), cell("버스트", 240, 880)] }
           : empty,
-        engravingCombos: ready
+        engravingCombos: full
           ? { known, hidden: hidden(31, known), cells: [
               { engravings: ["돌격대장", "아드레날린", "원한", "잔재된 기운", "질량 증가"], count: Math.round(known * 0.42), share: 42 },
               { engravings: ["기습의 대가", "아드레날린", "원한", "잔재된 기운", "타격의 대가"], count: Math.round(known * 0.21), share: 21 },
             ] }
           : empty,
-        engravings: ready
+        engravings: full
           ? { known, hidden: hidden(12, known), cells: [cell("원한", Math.round(known * 0.94), known), cell("아드레날린", Math.round(known * 0.9), known), cell("돌격대장", Math.round(known * 0.5), known)] }
           : empty,
-        arkPassivePoints: ready
+        arkPassivePoints: full
           ? {
               evolution: { known, hidden: hidden(3, known), cells: [value(140, Math.round(known * 0.7), known), value(130, Math.round(known * 0.2), known)] },
               enlightenment: { known, hidden: hidden(0, known), cells: [value(101, Math.round(known * 0.6), known), value(98, Math.round(known * 0.3), known)] },
               leap: { known, hidden: hidden(0, known), cells: [value(70, Math.round(known * 0.8), known)] },
             }
           : { evolution: empty, enlightenment: empty, leap: empty },
-        gems: ready
+        gems: full
           ? {
               damage: { known: known * 6, hidden: hidden(4, known * 6), cells: [value(10, known * 3, known * 6), value(9, known * 2, known * 6)] },
               cooldown: { known: known * 5, hidden: hidden(2, known * 5), cells: [value(10, known * 2, known * 5), value(8, known * 2, known * 5)] },
             }
           : { damage: empty, cooldown: empty },
-        cardSets: ready
+        cardSets: full
           ? { known, hidden: hidden(9, known), cells: [{ set: "세상을 구하는 빛", pieces: 6, awakening: 30, count: Math.round(known * 0.55), share: 55 }, { set: "카제로스의 군단장", pieces: 6, awakening: null, count: Math.round(known * 0.2), share: 20 }] }
           : empty,
-        topStats: ready ? { known, ties: 4, hidden: hidden(6, known), cells: [cell("특화", Math.round(known * 0.62), known), cell("치명", Math.round(known * 0.37), known)] } : { known: 0, ties: 0, hidden: hidden(0, 1), cells: [] },
-        braceletStats: ready ? { known, unread: 7, hidden: hidden(15, known), cells: [cell("특화", Math.round(known * 0.6), known), cell("치명", Math.round(known * 0.5), known)] } : { known: 0, unread: 0, hidden: hidden(0, 1), cells: [] },
+        topStats: full ? { known, ties: 4, hidden: hidden(6, known), cells: [cell("특화", Math.round(known * 0.62), known), cell("치명", Math.round(known * 0.37), known)] } : { known: 0, ties: 0, hidden: hidden(0, 1), cells: [] },
+        braceletStats: full ? { known, unread: 7, hidden: hidden(15, known), cells: [cell("특화", Math.round(known * 0.6), known), cell("치명", Math.round(known * 0.5), known)] } : { known: 0, unread: 0, hidden: hidden(0, 1), cells: [] },
       };
       return send({ code: "STATS_CLASS_BUILDS_SUCCESS", message: "ok", data });
     }
