@@ -63,10 +63,10 @@ test.describe("홈 일정 시각 상태 @regression", () => {
     const islands = page.getByRole("region", { name: "모험 섬" });
     await expect(islands.locator("header")).toContainText(/19:00 · 5시간 30분/);
     await expect(page.getByRole("button", { name: "지난 회차 숨김" })).toHaveAttribute("aria-pressed", "true");
-    // 숨김이 켜져 있으면 지난 시각(09·11·13시)은 보이지 않고 남은 시각만 보인다.
-    await expect(islands.locator("time[data-past]")).toHaveCount(0);
+    // 숨김이 켜져 있으면 지난 시각(09·11·13시)은 자리만 두고 보이지 않으며(A7: 남은 시각이 움직이지 않게), 남은 시각만 보인다.
+    await expect(islands.locator("time[data-past]:not([data-hidden])")).toHaveCount(0);
     await expect(islands.locator("time", { hasText: "19:00" }).first()).toBeVisible();
-    await expect(islands.locator("time", { hasText: "09:00" })).toHaveCount(0);
+    await expect(islands.locator("time", { hasText: "09:00" }).first()).toBeHidden();
   });
 
   test("23:30 — 오늘 일정 종료와 내일 일정 보기", async ({ page }) => {

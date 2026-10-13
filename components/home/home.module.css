@@ -372,6 +372,10 @@
   color: var(--faint);
   text-decoration: line-through;
 }
+/* 지난 회차 숨김: the round keeps its place, so the ones left stay put (A7). */
+.times time[data-hidden] {
+  visibility: hidden;
+}
 .others summary {
   display: flex;
   align-items: center;

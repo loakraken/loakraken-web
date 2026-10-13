@@ -174,19 +174,24 @@ function Times({
 }) {
   if (!times.length)
     return <span className={styles.times}>오늘 회차 없음</span>;
-  const shown =
-    hidePast && now !== null ? times.filter((at) => Date.parse(at) >= now) : times;
+  // Hidden past rounds keep their place: the rounds left never move when
+  // the toggle flips or a round passes (A7), they are only not shown or read.
   return (
     <span className={styles.times}>
-      {shown.map((at) => (
-        <time
-          key={at}
-          dateTime={at}
-          data-past={(now !== null && Date.parse(at) < now) || undefined}
-        >
-          {kstTime(at)}
-        </time>
-      ))}
+      {times.map((at) => {
+        const past = now !== null && Date.parse(at) < now;
+        return (
+          <time
+            key={at}
+            dateTime={at}
+            data-past={past || undefined}
+            data-hidden={(hidePast && past) || undefined}
+            aria-hidden={(hidePast && past) || undefined}
+          >
+            {kstTime(at)}
+          </time>
+        );
+      })}
     </span>
   );
 }
@@ -224,7 +229,9 @@ function Section({
     <section className={styles.section} aria-label={title}>
       <header>
         <h3>{title}</h3>
-        <span>
+        {/* Drawn anew when it changes: a different count rewritten in place
+            moves what follows it in the head (A7). */}
+        <span key={visible.length}>
           {visible.length > 0 && visible.length < items.length
             ? `${items.length}개 중 ${visible.length}개 남음`
             : `${items.length}개`}
