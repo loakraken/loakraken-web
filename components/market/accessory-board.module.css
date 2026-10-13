@@ -44,7 +44,18 @@
   background: var(--card);
   text-align: right;
   font-variant-numeric: tabular-nums;
-  transition: background-color 160ms ease-out;
+  transition:
+    background-color 160ms ease-out,
+    transform 100ms ease-out;
+}
+/* Press feedback (apple-design re-review). */
+.cell button:active {
+  transform: scale(0.97);
+}
+/* Room for a cell a slot does not have (same height as a cell, unseen). */
+.room {
+  min-height: 78px;
+  visibility: hidden;
 }
 .pending {
   grid-template-areas: "label label" "state state";
@@ -76,12 +87,16 @@
   grid-area: label;
   text-align: left;
 }
+/* Digits line up down a column. Set on the numbers themselves: the page's
+   `button { font: inherit }` resets what the cell button sets. */
 .price {
   grid-area: price;
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 .count {
   grid-area: count;
+  font-variant-numeric: tabular-nums;
   color: var(--muted-foreground);
   font-size: 11px;
   white-space: nowrap;

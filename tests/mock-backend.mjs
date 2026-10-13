@@ -494,7 +494,7 @@ createServer(async (req, res) => {
           return {
             levels, label: levels.map((l) => word[l]).join(""),
             optionLabels: levels.map((l, k) => `${opts[k].shortName} ${word[l]}`),
-            minBuyPrice: pending ? null : Math.round(base * 100_000 / (i + 1)) * (grade === "RELIC" ? 0.4 : 1),
+            minBuyPrice: pending ? null : Math.round((base * 100_000 / (i + 1)) * (grade === "RELIC" ? 0.4 : 1)),
             totalCount: pending ? null : 4 + i * 3,
             previousDayChangeRate: pending ? null : i % 2 ? -3 : 1.5,
             observedAt: pending ? null : observedAt,

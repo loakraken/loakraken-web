@@ -111,6 +111,17 @@
   display: block;
   margin: 16px auto 0;
 }
+/* Press feedback (apple-design re-review): scale only, nothing around moves. */
+.submit,
+.failure button,
+.more {
+  transition: transform 100ms ease-out;
+}
+.submit:not([aria-disabled="true"]):active,
+.failure button:not([aria-disabled="true"]):active,
+.more:not([aria-disabled="true"]):active {
+  transform: scale(0.97);
+}
 .list {
   display: grid;
   margin: 0;
