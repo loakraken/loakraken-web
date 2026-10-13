@@ -18,14 +18,16 @@ for (const path of ["/", "/schedule"])
       const islands = page.getByRole("region", { name: "모험 섬" });
       await expect(toggle).toHaveAttribute("aria-pressed", "true");
       const at19 = islands.locator("time", { hasText: "19:00" }).first();
-      const before = await at19.boundingBox();
+      // Page coordinates: the click may scroll the toggle into view first.
+      const where = () => at19.evaluate((el) => { const r = el.getBoundingClientRect(); return [Math.round(r.left + scrollX), Math.round(r.top + scrollY)]; });
+      const before = await where();
 
       // Off: past rounds come back struck through in their own place.
       const off = await shiftsDuring(page, () => toggle.click());
       await expect(toggle).toHaveAttribute("aria-pressed", "false");
       await expect(islands.locator("time", { hasText: "09:00" }).first()).toBeVisible();
       expect(off.all, `숨김 끔 흔들림 (${off.moved})`).toBe(0);
-      expect(await at19.boundingBox(), "남은 회차 시각 위치").toEqual(before);
+      expect(await where(), "남은 회차 시각 위치").toEqual(before);
 
       // On again: hidden, nothing moves.
       const on = await shiftsDuring(page, () => toggle.click());
