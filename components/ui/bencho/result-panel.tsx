@@ -19,7 +19,8 @@
 //  5. Tokens: Bencho's are mapped on the root (result-panel.css), nothing
 //     global. Height caps at 60% of the screen and scrolls inside.
 //  6. Reduced motion: the card and rows appear at once.
-// The springs and their reasons are Bencho's and are kept as published.
+// The springs are Bencho's, critically damped since 10-14 so the card and
+// its rows arrive without going past (user decision; same settle times).
 import "./result-panel.css";
 import type { ReactNode } from "react";
 import { AnimatePresence, LazyMotion, m as motion, useReducedMotion } from "motion/react";
@@ -91,15 +92,19 @@ function ResultPanel({ open, id, label, groups, activeId, onPick, onActive, head
                drags its corner radius with it. From a third of
                its height the corners arrive visibly squashed;
                from three quarters, with the spring doing the
-               work, they do not. The BOUNCE is where the
-               character is, not the distance. */
+               work, they do not.
+
+               (ours, user 10-14) No bounce: it is a menu that
+               opens, not something flung, so the spring is
+               critically damped (apple-design: overshoot only
+               after a gesture with momentum). Stiffness is set so
+               it settles in the same time as Bencho's bouncy one. */
             initial={reduce ? false : { opacity: 0, y: -10, scaleX: 0.86, scaleY: 0.72 }}
             animate={{ opacity: 1, y: 0, scaleX: 1, scaleY: 1 }}
             exit={reduce ? { opacity: 0, transition: { duration: 0 } } : { opacity: 0, y: -8, scaleX: 0.92, scaleY: 0.86 }}
             transition={{
-              /* zeta about 0.63 — it goes past and comes back,
-                 which is the whole of "bubbly" */
-              type: "spring", stiffness: 460, damping: 23, mass: 0.9,
+              /* zeta 1.0: arrives without going past */
+              type: "spring", stiffness: 470, damping: 41.2, mass: 0.9,
               opacity: { duration: 0.12 },
             }}
           >
@@ -138,7 +143,7 @@ function ResultPanel({ open, id, label, groups, activeId, onPick, onActive, head
                           initial={reduce || i >= 8 ? false : { opacity: 0, y: -8 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{
-                            type: "spring", stiffness: 620, damping: 34, mass: 0.7,
+                            type: "spring", stiffness: 760, damping: 46.2, mass: 0.7, // zeta 1.0, same settle as before
                             delay: 0.04 * i + 0.03,
                           }}
                         >
