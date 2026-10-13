@@ -1961,10 +1961,10 @@ function SiblingList({
           wide
         >
           <ul
-            // Drawn anew when records arrive (or a read ends) and on another
-            // sort: rows rewritten in place count as moving when their text
-            // starts elsewhere, new rows do not (A6·A7).
-            key={`${power.dataUpdatedAt}-${sort}`}
+            // Drawn anew when records arrive (or a read ends): rows rewritten
+            // in place count as moving when their text starts elsewhere,
+            // new rows do not (A6·A7).
+            key={power.dataUpdatedAt}
             className={styles.siblingGrid}
             data-compact={compact || undefined}
             data-stale={refreshing || undefined}
