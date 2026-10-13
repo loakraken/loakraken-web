@@ -24,10 +24,13 @@ import {
 } from "@/lib/stats/collectible-ranking";
 import quote from "@/components/tools/material-quote.module.css";
 import styles from "./stats.module.css";
+import { rankingColumns } from "./ranking-columns";
 import { BasisNote } from "./basis-note";
 import { RankingTypeTabs, type RankingType } from "./ranking-type-tabs";
 
 const SERVERS = ["루페온", "실리안", "아만", "아브렐슈드", "카단", "카마인", "카제로스", "니나브"];
+const ROSTER_COLUMNS = rankingColumns([3.5, 14, 6, 6.5, 8, 4.5, 9]);
+const CHARACTER_COLUMNS = rankingColumns([3.5, 14, 6, 6.5, 8, 9]);
 
 /**
  * Collectible ranking (backend #295/#304, checklist K33): rosters LOAKraken has
@@ -60,6 +63,7 @@ export function CollectibleRankingsView({
   const pages = Math.max(1, Math.min(COLLECTIBLE_MAX_PAGE, Math.ceil(population / COLLECTIBLE_PAGE_SIZE)));
   const ready = data?.meta?.sampleStatus === "READY";
   const roster = query.unit === "ROSTER";
+  const columns = roster ? ROSTER_COLUMNS : CHARACTER_COLUMNS;
 
   function apply(next: CollectibleQuery) {
     latest.current = next;
@@ -123,7 +127,7 @@ export function CollectibleRankingsView({
             never move when the rows arrive (CLS). */}
         <div className={styles.listHold} {...pendingProps(list)}>
           {data?.meta && (
-            <p className={styles.notice}>
+            <p key={list.dataUpdatedAt} className={`${styles.notice} ${styles.rankingNotice}`}>
               {/* Fixed words first, as on the character ranking (A7, #594). */}
               공식 랭킹이 아니에요 · {sampleText(data.meta, "roster")}
               {!ready && <strong> · 표본 {data.meta.minSample}개 원정대가 모이면 순위를 보여 드려요</strong>}
@@ -145,10 +149,11 @@ export function CollectibleRankingsView({
               {population === 0 ? "원정대 표본을 모으는 중이에요." : "조건에 맞는 원정대가 없어요."}
             </p>
           ) : (
-            <DataTable label={`수집품 랭킹 ${query.page}쪽`} className={styles.table}>
+            <DataTable label={`수집품 랭킹 ${query.page}쪽`} className={styles.table} {...columns.tableProps}>
               <caption className={styles.srOnly}>
                 {roster ? "원정대" : "캐릭터"} 수집품 랭킹 {query.page}쪽
               </caption>
+              {columns.colgroup}
               <thead>
                 <tr>
                   <th scope="col">순위</th>
@@ -164,7 +169,7 @@ export function CollectibleRankingsView({
                   </th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody key={list.dataUpdatedAt}>
                 {data.rows.map((row) => (
                   <tr key={`${row.serverName}-${row.characterName}`} data-reference={!ready || undefined}>
                     <td>{ready ? whole(row.rank) : "-"}</td>
