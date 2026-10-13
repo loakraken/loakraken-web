@@ -79,7 +79,7 @@ export const NAV_SECTIONS: NavSection[] = [
     label: "성장 도구",
     // "/tools$": the tool list itself (exact; a bare prefix would also take the
     // tools filed under other menus, such as /tools/material-quote).
-    match: ["/tools$", "/tools/combat-power", "/tools/refining", "/tools/crit-speed", "/tools/auction", "/tools/loa-shop", "/tools/raid-rewards", "/tools/more-reward", "/tools/contribution", "/tools/raid-cheatsheet", "/tools/accessory-search"],
+    match: ["/tools$", "/tools/combat-power", "/tools/refining", "/tools/crit-speed", "/tools/auction", "/tools/loa-shop", "/tools/abidos-craft", "/tools/raid-rewards", "/tools/more-reward", "/tools/contribution", "/tools/raid-cheatsheet", "/tools/accessory-search"],
     groups: [
       {
         title: "계산기",
@@ -91,6 +91,7 @@ export const NAV_SECTIONS: NavSection[] = [
           { label: "치적·뭉가·음돌", description: "치명·신속 목표까지 필요한 스탯", href: "/tools/crit-speed", flag: "critSpeed" },
           { label: "경매 입찰가", description: "파티 인원별 손익 분기와 선점가", href: "/tools/auction" },
           { label: "로아샵 효율", description: "상점 패키지 구성품을 지금 시세로", href: "/tools/loa-shop" },
+          { label: "아비도스 제작 손익", description: "융화 재료 1회 제작 비용과 손익", href: "/tools/abidos-craft" },
           { label: "악세 경매 검색", description: "연마 효과·깨달음·힘민지 범위로 매물 찾기", href: "/tools/accessory-search", flag: "accessorySearch" },
           { label: "레이드 보상표", description: "관문별 골드·더보기 비용", href: "/tools/raid-rewards" },
           { label: "더보기 손익", description: "관문마다 더보기가 남는지 지금 시세로", href: "/tools/more-reward" },

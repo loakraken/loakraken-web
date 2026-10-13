@@ -1,0 +1,202 @@
+/* 아비도스 제작 손익 — design tokens only; the page shell comes from
+   material-quote. Settings beside the result tables on wide screens, stacked
+   on phones. Lines that wait for prices or the client clock hold their space
+   from the first paint, and figures redraw instead of sliding (A6·A7). */
+.sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.workspace {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: var(--space-5);
+  max-width: 1180px;
+  margin: 0 auto;
+  align-items: start;
+}
+.settings,
+.list {
+  min-width: 0;
+  border-radius: var(--radius-xl);
+  background: var(--card);
+  padding: var(--space-6) clamp(16px, 3vw, 28px);
+}
+.settings {
+  display: grid;
+  gap: var(--space-4);
+  position: sticky;
+  top: 72px;
+}
+.sectionTitle {
+  font-size: var(--text-heading-sm);
+  font-weight: 700;
+}
+.small {
+  margin-top: var(--space-2);
+  color: var(--slate);
+  font-size: var(--text-caption);
+  line-height: 1.5;
+}
+.small[data-error] {
+  color: var(--launch);
+  font-weight: 600;
+}
+.agoLine {
+  display: block;
+  min-height: 1lh;
+}
+.field {
+  display: grid;
+  gap: 6px;
+}
+.field label {
+  color: var(--slate);
+  font-size: var(--text-caption);
+}
+.field .small {
+  min-height: 2lh;
+  margin-top: 0;
+}
+.percent {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.percent input {
+  width: 100%;
+  height: 44px;
+  padding: 0 18px;
+  border: 1px solid var(--steel);
+  border-radius: var(--radius-pill);
+  background: var(--background);
+  color: var(--ink);
+  font-size: var(--text-field);
+  font-variant-numeric: tabular-nums;
+  /* Left-aligned: a typed digit never moves the ones before it (A7). */
+  text-align: left;
+  transition: border-color var(--duration-fast) var(--ease-out);
+}
+.percent input:focus-visible {
+  outline: none;
+  border-color: var(--action);
+  box-shadow: var(--ring-halo);
+}
+.percent input[aria-invalid="true"] {
+  border-color: var(--launch);
+}
+.percent span {
+  color: var(--slate);
+}
+.basis {
+  margin-top: var(--space-3);
+}
+.cards {
+  display: grid;
+  gap: var(--space-4);
+  margin-top: var(--space-3);
+}
+.card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5) clamp(14px, 2.5vw, 24px);
+}
+.cardHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-1) var(--space-4);
+}
+.cardHead h3 {
+  font-size: var(--text-heading-sm);
+  font-weight: 700;
+}
+.meta {
+  color: var(--slate);
+  font-size: var(--text-caption);
+  font-variant-numeric: tabular-nums;
+}
+.tableScroll {
+  margin-top: var(--space-3);
+  overflow-x: auto;
+}
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  /* Fixed columns: prices arriving never move the other cells (A6). */
+  table-layout: fixed;
+  font-size: var(--text-body);
+  font-variant-numeric: tabular-nums;
+}
+.colSkill {
+  width: 40%;
+}
+.table th,
+.table td {
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+.table thead th {
+  color: var(--muted-foreground);
+  font-size: var(--text-caption);
+  font-weight: 500;
+}
+.table tbody th {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.table tbody th small {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted-foreground);
+  font-size: var(--text-caption);
+  font-weight: 400;
+}
+.table tbody th .missing {
+  min-height: 1lh;
+  color: var(--loss);
+}
+.table tbody tr:last-child th,
+.table tbody tr:last-child td {
+  border-bottom: 0;
+}
+.num {
+  padding-left: var(--space-2) !important;
+  text-align: right !important;
+  white-space: nowrap;
+}
+.table td[data-empty] {
+  color: var(--muted-foreground);
+  font-size: var(--text-caption);
+}
+.up {
+  color: var(--gain);
+  font-weight: 600;
+}
+.down {
+  color: var(--loss);
+  font-weight: 600;
+}
+/* Phones: the figures need the room. */
+@media (max-width: 480px) {
+  .colSkill {
+    width: 34%;
+  }
+  .table {
+    font-size: var(--text-caption);
+  }
+}
+@media (max-width: 900px) {
+  .workspace {
+    grid-template-columns: 1fr;
+  }
+  .settings {
+    position: static;
+  }
+}
