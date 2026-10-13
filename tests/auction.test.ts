@@ -81,8 +81,9 @@ test("bids never decrease across strategies", () => {
 
 test("tiny and huge prices stay whole and finite", () => {
   const one = calculateAuction(1, 2);
-  assert.equal(one.fee, 1);
-  assert.equal(one.saleGold, 0);
+  // 1 gold pays no market fee (official guide "거래소", E36).
+  assert.equal(one.fee, 0);
+  assert.equal(one.saleGold, 1);
   assert.equal(one.breakEven, 0);
   assert.equal(one.useMyself, 0);
   const big = calculateAuction(MAX_PRICE, 8);
@@ -90,6 +91,9 @@ test("tiny and huge prices stay whole and finite", () => {
   // Above 100,000G the share fee applies: ((7 × 950,000,000) − 5,000) ÷ 7.95.
   assert.equal(big.breakEven, 836_477_358);
   for (const s of big.strategies) assert.ok(Number.isSafeInteger(s.bid));
+  // 1 gold or less pays no fee (official guide "거래소", E36).
+  assert.equal(marketFee(1), 0);
+  assert.equal(marketFee(2), 1);
   assert.equal(marketFee(20), 1);
   assert.equal(marketFee(21), 2);
 });
