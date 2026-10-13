@@ -19,6 +19,7 @@ import {
 import { SiteHeader } from "@/components/site/site-header";
 import { recordRecent } from "@/lib/character/recent";
 import { CharacterBanner } from "./imagery";
+import { BannerRank } from "./banner-rank";
 import { Entrance } from "./entrance";
 import { kstTime, level, number, text } from "./parts";
 import { SettingCheckEnabled, SimulatorEnabled, SpecUpEnabled, TabBar, TabPanel, tabOf, useTabTop } from "./tabs";
@@ -129,6 +130,7 @@ const Banner = memo(function Banner({ data }: { data: Character }) {
               <dd>{level(data.expeditionLevel)}</dd>
             </div>
           </dl>
+          <BannerRank name={data.characterName} />
         </>
       }
       facts={
