@@ -736,15 +736,17 @@ createServer(async (req, res) => {
     const who = url.searchParams.get("characterName") ?? "";
     const now = Date.now();
     const at = (hours) => new Date(now - hours * 3_600_000).toISOString();
-    const row = (characterName, className, itemLevel, combatPower, hours) => ({
+    // best: the highest combat power seen (backend #463), at least the current one.
+    const row = (characterName, className, itemLevel, combatPower, hours, best = combatPower) => ({
       characterName, serverName: "아만", className, itemLevel, combatPower,
       combatPowerObservedAt: combatPower == null ? null : at(hours),
+      bestCombatPower: best,
     });
     const filled = req.method === "POST";
     const roster = who === "원정대전투력" || who === "전투력쿨다운";
     const items = roster
       ? [
-          row(who, "블래스터", 1780.83, 3180.29, 3.5),
+          row(who, "블래스터", 1780.83, 3180.29, 3.5, 3401.52),
           row("전투력둘", "바드", 1750, 2012.4, 26),
           row("전투력셋", "버서커", 1720, filled ? 2650.1 : null, 0),
           row("전투력넷", "소서리스", 1700, 2890.75, 50),
@@ -803,6 +805,20 @@ createServer(async (req, res) => {
         ["전투력넷", "소서리스", 1700],
         ["전투력다섯", "도화가", 1680],
       ].map(([characterName, className, itemLevel]) => ({ characterName, serverName: "아만", className, characterLevel: 70, itemLevel }));
+    // 주간 획득 골드 (M7): six on 아만 at the reference roster's levels, one
+    // more below them and one on another server, neither of which counts.
+    else if (who === "주간골드")
+      base.data.siblings = [
+        [who, 1770],
+        ["주간골드둘", 1725],
+        ["주간골드셋", 1705],
+        ["주간골드넷", 1585],
+        ["주간골드다섯", 1580],
+        ["주간골드여섯", 1560],
+        ["주간골드일곱", 1500],
+      ]
+        .map(([characterName, itemLevel]) => ({ characterName, serverName: "아만", className: "블레이드", characterLevel: 70, itemLevel }))
+        .concat({ characterName: "주간골드다른서버", serverName: "루페온", className: "바드", characterLevel: 70, itemLevel: 1780 });
     else base.data.siblings = [
       { characterName: who, serverName: "아만", className: "블래스터", characterLevel: 70, itemLevel: 1780.83 },
       { characterName: "합성원정대", serverName: "아만", className: "바드", characterLevel: 70, itemLevel: 1720 },
@@ -1570,6 +1586,21 @@ createServer(async (req, res) => {
     ];
   }
   if (name === "전투력계산") withSimulatorGear(envelope.data);
+  // 그 외 장착 보석 (L34): a second gem set on a skill the skill list does not
+  // have (an identity skill in the official gem effects).
+  if (name === "그외보석") {
+    const { gems } = envelope.data.loadout;
+    // The fixture's own gem goes on a listed skill, so only the second one is "other".
+    gems.effects.skills[0].name = "테스트 스킬";
+    gems.items.push({ slot: 1, name: "10레벨 작열의 보석", icon: "gem.png", level: 10, grade: "고대" });
+    gems.effects.skills.push({
+      gemSlot: 1,
+      name: "테스트 아이덴티티",
+      description: ["재사용 대기시간 24.00% 감소"],
+      option: null,
+      icon: "identity.png",
+    });
+  }
   // 특성 자세히 (§14.1 ④): stats with synthetic official-style tooltip lines.
   if (name === "특성상세") {
     const line = (type, effect, bonus) => [effect, `${type}은(는) 물약 및 원정대 레벨 보상으로 ${bonus}만큼 영구 증가되었습니다.`];
