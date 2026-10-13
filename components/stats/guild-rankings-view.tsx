@@ -86,6 +86,13 @@ export function GuildRankingsView({
     guildTimer.current = setTimeout(() => filter({ guild: name || undefined }), 300);
   }
   useEffect(() => () => clearTimeout(guildTimer.current), []);
+  // A link past the last page of a name search (guild=…&page=9) has matches
+  // but no rows on that page: show page 1 rather than "not in the ranking".
+  const pastLast = Boolean(query.guild && query.page > 1 && data && !data.rows?.length && (data.matchCount ?? 0) > 0);
+  useEffect(() => {
+    if (pastLast) apply({ ...latest.current, page: 1 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only when the page turns out empty
+  }, [pastLast]);
   const sortLabel = GUILD_SORTS.find((item) => item.id === query.sort)?.label ?? "아이템 레벨 평균";
   const pageWindow = Array.from({ length: Math.min(pages, 7) }, (_, i) => {
     const start = Math.min(Math.max(1, query.page - 3), Math.max(1, pages - 6));
@@ -128,32 +135,38 @@ export function GuildRankingsView({
               items={[{ value: "", label: "전체" }, ...SERVERS.map((s) => ({ value: s, label: s }))]}
             />
           </label>
-          <label htmlFor={guildId} className={styles.guildSearch}>
-            길드 찾기
-            <input
-              id={guildId}
-              type="search"
-              name="guild"
-              value={guildText}
-              maxLength={12}
-              autoComplete="off"
-              spellCheck={false}
-              placeholder="길드 이름 일부…"
-              aria-invalid={guildInvalid || undefined}
-              aria-describedby={guildInvalid ? guildHintId : undefined}
-              onChange={(e) => typeGuild(e.target.value)}
-            />
+          {/* The hint sits beside the label, not in it: the input's name stays
+              "길드 찾기" and the hint only describes it. */}
+          <span className={styles.guildSearch}>
+            <label htmlFor={guildId}>
+              길드 찾기
+              <input
+                id={guildId}
+                type="search"
+                name="guild"
+                value={guildText}
+                maxLength={12}
+                autoComplete="off"
+                spellCheck={false}
+                placeholder="길드 이름 일부…"
+                aria-invalid={guildInvalid || undefined}
+                aria-describedby={guildInvalid ? guildHintId : undefined}
+                onChange={(e) => typeGuild(e.target.value)}
+              />
+            </label>
             {/* Under the input, out of the row's layout: it never moves the
                 table while typing (A7). */}
             <small id={guildHintId} aria-live="polite">
               {guildInvalid ? "글자와 숫자만 찾을 수 있어요." : ""}
             </small>
-          </label>
+          </span>
         </form>
 
         {/* One height for loading, empty and short lists, so the notes below
             never move when the rows arrive (CLS). */}
-        <div className={styles.listHold} {...pendingProps(list)}>
+        {/* Dimmed while a name the backend would refuse is typed: the rows
+            are still the last search's (same look as new conditions loading). */}
+        <div className={styles.listHold} {...pendingProps({ isPlaceholderData: list.isPlaceholderData || guildInvalid })}>
           {data?.meta && (
             <p key={list.dataUpdatedAt} className={`${styles.notice} ${styles.rankingNotice}`}>
               {sampleText(data.meta, "guild")} · 공식 랭킹이 아니에요

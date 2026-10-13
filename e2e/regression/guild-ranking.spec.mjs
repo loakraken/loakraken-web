@@ -38,12 +38,24 @@ test("@M21 길드 찾기: 이름 일부로 거르고 순위는 전체 순위 그
   await expect(table.locator("tbody tr td").first()).toHaveText("2");
   await search.fill("빠진");
   await expect(page.getByText("‘빠진’이(가) 들어간 길드 2개는 확인한 길드원이 5명보다 적어 순위에 없어요.")).toBeVisible();
-  // Symbols the backend would refuse: nothing sent, the hint says why.
+  // Symbols the backend would refuse: nothing sent, the hint says why (as the
+  // input's description: its name stays "길드 찾기"), the last results dimmed.
   await search.fill("로아 사랑");
   await expect(page.getByText("글자와 숫자만 찾을 수 있어요.")).toBeVisible();
   await expect(search).toHaveAttribute("aria-invalid", "true");
+  await expect(page.getByRole("searchbox", { name: "길드 찾기", exact: true })).toHaveCount(1);
+  await expect(search).toHaveAccessibleName("길드 찾기");
+  await expect(search).toHaveAccessibleDescription("글자와 숫자만 찾을 수 있어요.");
+  await expect(page.locator("[data-stale]").first()).toBeVisible();
   await expect(page).toHaveURL(/guild=%EB%B9%A0%EC%A7%84/);
   await search.fill("");
   await expect(page).not.toHaveURL(/guild=/);
   await expect(table.getByRole("rowheader")).toHaveText(["합성길드", "두번째길드", "작은길드"]);
+});
+
+test("@M21 길드 찾기: 범위를 넘은 쪽 주소는 1쪽으로 @regression", async ({ page }) => {
+  await gotoReady(page, `/rankings?type=guilds&guild=${encodeURIComponent("두번")}&page=3`);
+  await expect(page).not.toHaveURL(/page=3/);
+  await expect(page.getByRole("table").first().getByRole("rowheader")).toHaveText(["두번째길드"]);
+  await expect(page.getByText(/순위에 없어요/)).toHaveCount(0);
 });

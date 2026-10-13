@@ -1387,7 +1387,9 @@ createServer(async (req, res) => {
           : { matchCount: null, excludedMatches: null }),
         rows: guilds
           .map((row, i) => ({ rank: i + 1, ...row }))
-          .filter((row) => !guild || row.guildName.toLowerCase().includes(guild.toLowerCase())),
+          .filter((row) => !guild || row.guildName.toLowerCase().includes(guild.toLowerCase()))
+          // One page holds every guild here: a later page is empty.
+          .filter(() => Number(url.searchParams.get("page") ?? 1) <= 1),
       },
     });
   }
