@@ -1418,6 +1418,7 @@ function SkillOverview({
   const [showAll, setShowAll] = useState(false);
   const [gemFilter, setGemFilter] = useState<GemFilter>("all");
   const listId = useId();
+  const otherId = useId();
   const skills = data.loadout.skills;
   const extra = useItemTooltips(data.characterName);
   if (skills === undefined)
@@ -1518,8 +1519,8 @@ function SkillOverview({
       )}
       {others.length > 0 && (
         <div className={styles.otherGems}>
-          <h3>그 외 장착 보석</h3>
-          <ul aria-label="그 외 장착 보석">
+          <h3 id={otherId}>그 외 장착 보석</h3>
+          <ul aria-labelledby={otherId}>
             {others.map(({ gem, effect, label }) => (
               <li key={`other-${gem.slot}`}>
                 <span className={styles.skillGems}>
