@@ -26,7 +26,7 @@ test("랭킹·통계: 360에서 조건 알약·쪽 버튼 누르는 영역 44px 
   const segment = page.getByRole("group", { name: "기준" }).getByRole("button");
   for (const i of [0, 1]) expect(await pressArea(segment.nth(i)), `기준 버튼 ${i + 1}`).toEqual([true, true, true, true]);
   const pager = page.getByRole("navigation", { name: "쪽 이동" }).getByRole("button");
-  await pager.nth(2).scrollIntoViewIfNeeded();
+  await pager.nth(2).evaluate((el) => el.scrollIntoView({ block: "center" }));
   for (const i of [1, 2, 3]) expect(await pressArea(pager.nth(i)), `쪽 버튼 ${i + 1}`).toEqual([true, true, true, true]);
   // Visible pills keep their size.
   const box = await segment.first().boundingBox();
