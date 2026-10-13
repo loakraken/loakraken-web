@@ -55,6 +55,7 @@
 }
 .change {
   grid-area: change;
+  font-variant-numeric: tabular-nums; /* on the number itself (see accessory-board) */
   color: var(--muted-foreground);
 }
 .change[data-direction="up"] {

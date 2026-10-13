@@ -17,6 +17,14 @@ for (const width of [1280, 360]) {
       await expect(slot.locator("li")).toHaveCount(count);
     }
     await expect(page.getByRole("region", { name: /^반지/ }).getByText("집계 중")).toHaveCount(1);
+    // Prices, counts and change rates line up digit by digit (tabular numbers, computed).
+    const numbers = await page.getByRole("region", { name: /^목걸이/ }).getByRole("button").first().evaluate((button) =>
+      [...button.querySelectorAll("b, small")]
+        .filter((el) => /\d/.test(el.textContent ?? ""))
+        .map((el) => `${el.textContent.trim()} ${getComputedStyle(el).fontVariantNumeric}`),
+    );
+    expect(numbers.length, "숫자 칸").toBeGreaterThan(1);
+    for (const line of numbers) expect(line, "고정폭 숫자").toContain("tabular-nums");
 
     // A7: from the first press on, shifts right after an input count too.
     const firstLoad = await page.evaluate(() => window.__shifts.reduce((a, e) => a + e.v, 0));

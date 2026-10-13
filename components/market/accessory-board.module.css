@@ -76,12 +76,16 @@
   grid-area: label;
   text-align: left;
 }
+/* Digits line up down a column. Set on the numbers themselves: the page's
+   `button { font: inherit }` resets what the cell button sets. */
 .price {
   grid-area: price;
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 .count {
   grid-area: count;
+  font-variant-numeric: tabular-nums;
   color: var(--muted-foreground);
   font-size: 11px;
   white-space: nowrap;
