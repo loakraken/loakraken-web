@@ -421,6 +421,7 @@
 }
 .bannerFacts dd {
   overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
 }
 /* Position (dealer/support) — shown only on the banner, which is dark in
    every theme, so the light tints are used. */

@@ -45,3 +45,10 @@ test("홈: 카드의 더보기 링크 누르는 영역 44px @regression", async 
   await gotoReady(page, "/");
   for (const name of [/^전체 보기/, /^시세 더보기/, /^통계 더보기/]) await expectArea(page.getByRole("link", { name }).first(), String(name));
 });
+
+test("일정: 요일 버튼 누르는 영역 44px, 이웃 요일을 잡지 않음 @regression", async ({ page }) => {
+  await gotoReady(page, "/schedule");
+  const days = page.getByRole("group", { name: "요일 선택" }).getByRole("button");
+  const count = await days.count();
+  for (let i = 0; i < count; i++) await expectArea(days.nth(i), `요일 ${i + 1}`);
+});

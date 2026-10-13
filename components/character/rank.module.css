@@ -77,6 +77,22 @@
   font-size: 11px;
   font-weight: 700;
 }
+/* On a phone the tier badge takes 44px to press, as it looks (hit-44 rule);
+   badges sit 100px+ apart, nothing else within reach (measured 10-14). */
+@media (max-width: 699px), (pointer: coarse) {
+  .tier {
+    position: relative;
+  }
+  .tier::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+    translate: -50% -50%;
+  }
+}
 .cells strong.pending {
   color: var(--muted-foreground);
   font-size: 14px;

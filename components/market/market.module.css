@@ -250,6 +250,31 @@
   background: var(--ink);
   color: var(--background);
 }
+/* Press feedback, and on a phone 44px to press (hit-44 rule): 30px buttons
+   14px apart there, so the areas meet without overlapping. */
+.pages button {
+  transition: transform 100ms ease-out;
+}
+.pages button:active {
+  transform: scale(0.97);
+}
+@media (max-width: 699px), (pointer: coarse) {
+  .pages {
+    gap: 14px;
+  }
+  .pages button {
+    position: relative;
+  }
+  .pages button::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 44px;
+    height: 44px;
+    translate: -50% -50%;
+  }
+}
 .note {
   margin-top: 10px;
   color: var(--slate);
@@ -317,6 +342,76 @@
 }
 .star[aria-pressed="true"] {
   color: var(--grade-legendary-text);
+}
+/* Press feedback (apple-design re-review): scale only, nothing around moves;
+   a whole row presses a little less. */
+.sorts button,
+.tiers button,
+.ranges button,
+.star {
+  transition: transform 100ms ease-out;
+}
+.sorts button:active,
+.tiers button:active,
+.ranges button:active,
+.star:active {
+  transform: scale(0.97);
+}
+.rows button:active {
+  transform: scale(0.99);
+}
+@media (prefers-reduced-motion: reduce) {
+  .sorts button,
+  .tiers button,
+  .ranges button,
+  .star {
+    transition: none;
+  }
+}
+/* On a phone the sort, tier and range buttons take 44px to press, as they
+   look (hit-44 rule): rows 16px+ apart and buttons at least 44px wide there,
+   so the areas never overlap. Desktop is unchanged. */
+@media (max-width: 699px), (pointer: coarse) {
+  .sorts,
+  .tiers,
+  .ranges {
+    row-gap: 16px;
+  }
+  .tiers {
+    margin-top: 12px;
+  }
+  .sorts button,
+  .tiers button,
+  .ranges button {
+    position: relative;
+    min-width: 44px;
+  }
+  .sorts button::after,
+  .tiers button::after,
+  .ranges button::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+    translate: -50% -50%;
+  }
+}
+/* The star stands alone at the row's end: 44px to press on a phone (hit-44 rule). */
+@media (max-width: 699px), (pointer: coarse) {
+  .star {
+    position: relative;
+  }
+  .star::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 44px;
+    height: 44px;
+    translate: -50% -50%;
+  }
 }
 .unit {
   /* A31: one line, never split (badge/chip/unit). */
