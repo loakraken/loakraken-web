@@ -53,6 +53,9 @@
   color: var(--muted-foreground);
   font-size: 12px;
 }
+.who small {
+  font-variant-numeric: tabular-nums;
+}
 .rows b {
   font-variant-numeric: tabular-nums;
   text-align: right;
@@ -68,6 +71,11 @@
   color: var(--link);
   text-decoration: underline;
   text-underline-offset: 2px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .note a:hover {
+    text-decoration-thickness: 2px;
+  }
 }
 @media (max-width: 600px) {
   .rows li {
