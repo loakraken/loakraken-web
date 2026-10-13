@@ -11,6 +11,7 @@ import {
   setRaidCleared,
   STORAGE_KEY,
   autoRaids,
+  eligibleModes,
   characterGold,
   emptyState,
   modeOf,
@@ -122,6 +123,14 @@ test("unknown gold is counted separately, never as zero gold earned", () => {
   } finally {
     valtan.gates = kept;
   }
+});
+
+test("single modes never enter the homework, so their item-level cap never applies", () => {
+  // 공식 가이드 "싱글 모드"(2026-09-23): 싱글은 적정 레벨을 넘으면 골드가 제한된다.
+  // The homework only offers normal/hard/… modes, so a single never counts.
+  for (const level of [1600, 1640, 1700, 1780])
+    assert.ok(eligibleModes(level).every(({ mode }) => mode.difficulty !== "SINGLE"), String(level));
+  assert.ok(autoRaids(1720).every((plan) => plan.difficulty !== "SINGLE"));
 });
 
 test("old legion raids pay their measured gates (M7)", () => {
