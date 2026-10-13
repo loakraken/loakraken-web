@@ -44,11 +44,6 @@ const KNOWN = Object.fromEntries(
   [
     "/@1280", "/@360",
     "/news@360",
-    "/rankings@1280", "/rankings@360",
-    "/rankings?type=roster@1280", "/rankings?type=roster@360",
-    "/rankings?type=collectibles@1280", "/rankings?type=collectibles@360",
-    "/rankings?type=guilds@1280", "/rankings?type=guilds@360",
-    "/rankings?type=efficiency@1280", "/rankings?type=efficiency@360",
     "/schedule@1280", "/schedule@360",
     "/tools/raid-rewards@1280", "/tools/raid-rewards@360",
     "/tools/refining@360",

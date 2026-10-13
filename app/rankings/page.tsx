@@ -48,7 +48,9 @@ export default async function RankingsPage({
   if (type === "guilds") return <GuildRankingsView initial={parseGuildQuery(params)} types={types} />;
   if (type === "collectibles") return <CollectibleRankingsView initial={parseCollectibleQuery(params)} types={types} />;
   if (type === "bracelets" || type === "gems")
-    return <EfficiencyRankingsView kind={type} initial={parseEfficiencyQuery(params)} types={types} />;
+    // Keyed by kind: 팔찌 and 젬 share the view, and text rewritten in place
+    // (the heading, the column heads) counts as moving (A7).
+    return <EfficiencyRankingsView key={type} kind={type} initial={parseEfficiencyQuery(params)} types={types} />;
   // Invalid values in a shared link fall back to the defaults.
   const query = parseRankingQuery(params) ?? { metric: "COMBAT_POWER" as const, page: 1 };
   return <RankingsView initial={query} types={types} />;
