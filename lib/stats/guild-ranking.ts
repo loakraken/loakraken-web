@@ -29,7 +29,11 @@ export const GUILD_SORTS = [
   { id: "SUM", label: "아이템 레벨 합" },
 ] as const;
 export type GuildSort = (typeof GUILD_SORTS)[number]["id"];
-export type GuildQuery = { sort: GuildSort; server?: string; page: number };
+/** guild: part of a guild name (api #466); rows keep their overall rank. */
+export type GuildQuery = { sort: GuildSort; server?: string; guild?: string; page: number };
+
+/** What the backend takes for a name: 1~12 letters or digits. */
+export const isGuildName = (value: string) => value.length >= 1 && value.length <= 12 && /^[\p{L}\p{N}]+$/u.test(value);
 
 export const GUILD_PAGE_SIZE = 50;
 export const GUILD_MAX_PAGE = 200;
@@ -39,10 +43,12 @@ const isSort = (value: string | null): value is GuildSort => GUILD_SORTS.some((i
 export function parseGuildQuery(input: URLSearchParams): GuildQuery {
   const sort = input.get("sort");
   const server = input.get("server")?.trim();
+  const guild = input.get("guild")?.trim();
   const page = Number(input.get("page") ?? 1);
   return {
     sort: isSort(sort) ? sort : "AVG",
     server: server && server.length <= 16 && /^[\p{L}\p{N}]+$/u.test(server) ? server : undefined,
+    guild: guild && isGuildName(guild) ? guild : undefined,
     page: Number.isInteger(page) && page >= 1 && page <= GUILD_MAX_PAGE ? page : 1,
   };
 }
@@ -52,6 +58,7 @@ export function guildSearch(query: GuildQuery) {
   const out = new URLSearchParams({ type: "guilds" });
   if (query.sort !== "AVG") out.set("sort", query.sort);
   if (query.server) out.set("server", query.server);
+  if (query.guild) out.set("guild", query.guild);
   if (query.page > 1) out.set("page", String(query.page));
   return out;
 }
@@ -70,6 +77,7 @@ export function requestGuildRanking(
   if (url) {
     url.searchParams.set("sort", query.sort);
     if (query.server) url.searchParams.set("server", query.server);
+    if (query.guild) url.searchParams.set("guild", query.guild);
     url.searchParams.set("page", String(query.page));
     url.searchParams.set("size", String(GUILD_PAGE_SIZE));
   }

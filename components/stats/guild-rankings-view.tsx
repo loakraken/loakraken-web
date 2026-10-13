@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { SiteHeader } from "@/components/site/site-header";
@@ -16,6 +16,7 @@ import {
   GUILD_PAGE_SIZE,
   GUILD_SORTS,
   guildSearch,
+  isGuildName,
   type GuildQuery,
 } from "@/lib/stats/guild-ranking";
 import quote from "@/components/tools/material-quote.module.css";
@@ -49,6 +50,10 @@ export function GuildRankingsView({
   const [query, setQuery] = useState<GuildQuery>(initial);
   const latest = useRef(initial);
   const serverId = useId();
+  const guildId = useId();
+  const guildHintId = useId();
+  const [guildText, setGuildText] = useState(initial.guild ?? "");
+  const guildTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const list = useQuery({
     queryKey: ["guild-rankings", query],
     queryFn: ({ signal }) => fetchGuildRanking(query, signal),
@@ -59,7 +64,9 @@ export function GuildRankingsView({
   const limit = useRateLimit(list.error);
   const data = list.data?.data;
   const population = data?.meta?.population ?? 0;
-  const pages = Math.max(1, Math.min(GUILD_MAX_PAGE, Math.ceil(population / GUILD_PAGE_SIZE)));
+  // A name search pages by the guilds that matched and made the ranking (api #466).
+  const counted = query.guild ? (data?.matchCount ?? 0) : population;
+  const pages = Math.max(1, Math.min(GUILD_MAX_PAGE, Math.ceil(counted / GUILD_PAGE_SIZE)));
   const ready = data?.meta?.sampleStatus === "READY";
 
   function apply(next: GuildQuery) {
@@ -68,6 +75,17 @@ export function GuildRankingsView({
     router.replace(`?${guildSearch(next)}`, { scroll: false });
   }
   const filter = (patch: Partial<GuildQuery>) => apply({ ...latest.current, ...patch, page: 1 });
+  /** A typed name applies 300 ms after the last keystroke; one the backend would refuse waits. */
+  const guildTrim = guildText.trim();
+  const guildInvalid = guildTrim !== "" && !isGuildName(guildTrim);
+  function typeGuild(text: string) {
+    setGuildText(text);
+    clearTimeout(guildTimer.current);
+    const name = text.trim();
+    if (name !== "" && !isGuildName(name)) return;
+    guildTimer.current = setTimeout(() => filter({ guild: name || undefined }), 300);
+  }
+  useEffect(() => () => clearTimeout(guildTimer.current), []);
   const sortLabel = GUILD_SORTS.find((item) => item.id === query.sort)?.label ?? "아이템 레벨 평균";
   const pageWindow = Array.from({ length: Math.min(pages, 7) }, (_, i) => {
     const start = Math.min(Math.max(1, query.page - 3), Math.max(1, pages - 6));
@@ -110,6 +128,27 @@ export function GuildRankingsView({
               items={[{ value: "", label: "전체" }, ...SERVERS.map((s) => ({ value: s, label: s }))]}
             />
           </label>
+          <label htmlFor={guildId} className={styles.guildSearch}>
+            길드 찾기
+            <input
+              id={guildId}
+              type="search"
+              name="guild"
+              value={guildText}
+              maxLength={12}
+              autoComplete="off"
+              spellCheck={false}
+              placeholder="길드 이름 일부…"
+              aria-invalid={guildInvalid || undefined}
+              aria-describedby={guildInvalid ? guildHintId : undefined}
+              onChange={(e) => typeGuild(e.target.value)}
+            />
+            {/* Under the input, out of the row's layout: it never moves the
+                table while typing (A7). */}
+            <small id={guildHintId} aria-live="polite">
+              {guildInvalid ? "글자와 숫자만 찾을 수 있어요." : ""}
+            </small>
+          </label>
         </form>
 
         {/* One height for loading, empty and short lists, so the notes below
@@ -136,7 +175,13 @@ export function GuildRankingsView({
             </p>
           ) : !data.rows?.length ? (
             <p className={styles.muted}>
-              {population === 0 ? "길드 표본을 모으는 중이에요." : "조건에 맞는 길드가 없어요."}
+              {population === 0
+                ? "길드 표본을 모으는 중이에요."
+                : query.guild
+                  ? (data.excludedMatches ?? 0) > 0
+                    ? `‘${query.guild}’이(가) 들어간 길드 ${whole(data.excludedMatches ?? 0)}개는 확인한 길드원이 ${whole(data.minMembers)}명보다 적어 순위에 없어요.`
+                    : `‘${query.guild}’이(가) 들어간 길드가 순위에 없어요.`
+                  : "조건에 맞는 길드가 없어요."}
             </p>
           ) : (
             <DataTable

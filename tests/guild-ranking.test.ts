@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { guildSearch, isGuildRankingEnvelope, parseGuildQuery } from "../lib/stats/guild-ranking";
+import { guildSearch, isGuildName, isGuildRankingEnvelope, parseGuildQuery } from "../lib/stats/guild-ranking";
 import { sampleText } from "../lib/stats/model";
 import { isGuildRankingEnabled } from "../lib/tools/flags";
 import { PRODUCTION_URL } from "../lib/site";
@@ -43,4 +43,14 @@ test("guild ranking tab: on unless turned off, hidden on the production host", (
   assert.equal(isGuildRankingEnabled({ GUILD_RANKING: "off" }), false);
   assert.equal(isGuildRankingEnabled({ SITE_URL: PRODUCTION_URL }), false);
   assert.equal(isGuildRankingEnabled({ SITE_URL: PRODUCTION_URL, GUILD_RANKING: "on" }), true);
+});
+
+test("guild query: a name part of 1~12 letters or digits, kept in the link and sent on", () => {
+  const q = parseGuildQuery(new URLSearchParams("guild=로아&server=아만"));
+  assert.equal(q.guild, "로아");
+  assert.equal(guildSearch(q).get("guild"), "로아");
+  assert.equal(parseGuildQuery(new URLSearchParams("guild=로아 사랑")).guild, undefined);
+  assert.equal(parseGuildQuery(new URLSearchParams("guild=가나다라마바사아자차카타파")).guild, undefined);
+  assert.equal(isGuildName("Kraken12"), true);
+  assert.equal(isGuildName(""), false);
 });

@@ -26,3 +26,24 @@ test("길드 랭킹: 탭·열·기준 전환·서버·안내 @regression", async
   await expect(table.locator("tbody tr td").first()).toHaveText("-");
   await expect(page.getByText(/표본 30개 길드가 모이면 순위를 보여 드려요/)).toBeVisible();
 });
+
+test("@M21 길드 찾기: 이름 일부로 거르고 순위는 전체 순위 그대로, 빠진 길드는 이유를 말한다 @regression", async ({ page }) => {
+  await gotoReady(page, "/rankings?type=guilds");
+  const table = page.getByRole("table").first();
+  const search = page.getByRole("searchbox", { name: "길드 찾기" });
+  await search.fill("두번");
+  await expect(page).toHaveURL(/guild=%EB%91%90%EB%B2%88/);
+  await expect(table.getByRole("rowheader")).toHaveText(["두번째길드"]);
+  // The overall rank stays (2nd), not 1.
+  await expect(table.locator("tbody tr td").first()).toHaveText("2");
+  await search.fill("빠진");
+  await expect(page.getByText("‘빠진’이(가) 들어간 길드 2개는 확인한 길드원이 5명보다 적어 순위에 없어요.")).toBeVisible();
+  // Symbols the backend would refuse: nothing sent, the hint says why.
+  await search.fill("로아 사랑");
+  await expect(page.getByText("글자와 숫자만 찾을 수 있어요.")).toBeVisible();
+  await expect(search).toHaveAttribute("aria-invalid", "true");
+  await expect(page).toHaveURL(/guild=%EB%B9%A0%EC%A7%84/);
+  await search.fill("");
+  await expect(page).not.toHaveURL(/guild=/);
+  await expect(table.getByRole("rowheader")).toHaveText(["합성길드", "두번째길드", "작은길드"]);
+});

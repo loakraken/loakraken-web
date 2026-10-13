@@ -1333,6 +1333,9 @@ createServer(async (req, res) => {
   // server change brings other rows (A7 table widths).
   if (url.pathname === "/api/v1/rankings/guilds") {
     const server = url.searchParams.get("server");
+    // Name search (api #466): matching rows keep their overall rank; "빠진" matches
+    // two guilds left out for too few members seen.
+    const guild = url.searchParams.get("guild");
     const sort = url.searchParams.get("sort") ?? "AVG";
     const guilds = (server === "아만"
       ? [["합성길드아만", "아만", 9, 1702.35, 8, 3010.5], ["짧은길드", "아만", 6, 1688, 0, null]]
@@ -1360,7 +1363,15 @@ createServer(async (req, res) => {
           populationUnit: "GUILD",
         },
         sort, page: 1, size: 50, minMembers: 5, excludedGuilds: server === "아만" ? 3 : 41,
-        rows: guilds.map((row, i) => ({ rank: i + 1, ...row })),
+        ...(guild
+          ? {
+              matchCount: guilds.filter((row) => row.guildName.toLowerCase().includes(guild.toLowerCase())).length,
+              excludedMatches: guild === "빠진" ? 2 : 0,
+            }
+          : { matchCount: null, excludedMatches: null }),
+        rows: guilds
+          .map((row, i) => ({ rank: i + 1, ...row }))
+          .filter((row) => !guild || row.guildName.toLowerCase().includes(guild.toLowerCase())),
       },
     });
   }
