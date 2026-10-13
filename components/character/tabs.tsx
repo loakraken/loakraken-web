@@ -307,7 +307,8 @@ export function TabBar({
       <div className={styles.tabInner}>
         <nav
           ref={pillNav}
-          className={styles.tabs}
+          // Fades at an end where tabs are hidden (A35).
+          className={`${styles.tabs} scroll-fade-x`}
           aria-label="캐릭터 정보 탭"
           onKeyDown={pillKey}
           onPointerDown={pillPointer}
@@ -339,10 +340,14 @@ export function TabBar({
             classEngraving={data.loadout.arkPassive?.title}
             specUp={useContext(SpecUpEnabled)}
             simulator={useContext(SimulatorEnabled)}
+            favorite={favorite}
+            onShare={share}
+            onFavorite={toggleFavorite}
           />
+          {/* On a narrow screen these two are in the menu above (A35). */}
           <button
             type="button"
-            className={styles.iconAction}
+            className={`${styles.iconAction} ${styles.wideOnly}`}
             onClick={share}
             aria-label="공유하기"
           >
@@ -350,7 +355,7 @@ export function TabBar({
           </button>
           <button
             type="button"
-            className={styles.iconAction}
+            className={`${styles.iconAction} ${styles.wideOnly}`}
             onClick={toggleFavorite}
             aria-pressed={favorite}
             aria-label={favorite ? "즐겨찾기 해제" : "즐겨찾기"}

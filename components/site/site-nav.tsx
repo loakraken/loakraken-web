@@ -223,7 +223,7 @@ export function SiteNav() {
       <button
         ref={menuButton}
         type="button"
-        className={styles.menuButton}
+        className={`${styles.menuButton} hit-44`}
         aria-expanded={sheet}
         aria-controls={`${id}-sheet`}
         aria-label={sheet ? "메뉴 닫기" : "메뉴 열기"}

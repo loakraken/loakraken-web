@@ -156,6 +156,8 @@ function PillTab({
       data-slot="pill-tab"
       className={cn(
         "relative z-1 inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full px-3.5 whitespace-nowrap select-none",
+        // 44px to tap on phones, inside the list's 4px padding (A36).
+        "hit-44",
         "text-(length:--text-body) leading-none font-medium text-muted-foreground",
         // The label answers the press at once (apple-design: response on
         // pointer-down); the pill follows on its spring.

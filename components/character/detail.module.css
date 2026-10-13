@@ -1992,6 +1992,18 @@
   color: var(--foreground);
   font-size: 13px;
   cursor: pointer;
+  transition: scale var(--duration-fast) var(--ease-out);
+}
+/* Response on press, not on release (apple-design 재검수 10-14). */
+.specUpSorts button:active,
+.specUpFailure button:not([aria-disabled="true"]):active {
+  scale: var(--press-scale);
+}
+@media (prefers-reduced-motion: reduce) {
+  .specUpSorts button:active,
+  .specUpFailure button:active {
+    scale: none;
+  }
 }
 .specUpSorts button[aria-pressed="true"] {
   border-color: var(--foreground);
@@ -2132,7 +2144,15 @@
   font-weight: 400;
 }
 .specUpTable a {
+  position: relative;
   color: var(--link);
+}
+/* The link is one line of 13px text: its hit area reaches 44px tall without
+   moving the row (touch target). */
+.specUpTable a::after {
+  content: "";
+  position: absolute;
+  inset: -14px -6px;
 }
 .specUpBases {
   display: grid;
@@ -2161,6 +2181,11 @@
 .specUpFolded summary {
   cursor: pointer;
   color: var(--muted-foreground);
+  border-radius: 6px;
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+.specUpFolded summary:active {
+  background: var(--hover-surface);
 }
 .specUpFolded summary b {
   color: var(--foreground);
@@ -2453,6 +2478,19 @@
 @media (max-width: 420px) {
   .analysisTrigger {
     padding: 0 8px;
+  }
+}
+/* A35: below 560px share and favorite move into the menu (더보기) so the tab
+   row keeps at least two whole tabs. After .iconAction so display wins. */
+.narrowOnly {
+  display: none;
+}
+@media (max-width: 560px) {
+  .wideOnly {
+    display: none;
+  }
+  .narrowOnly {
+    display: inline;
   }
 }
 /* A list held at its tallest (A7): its first child's top margin would
