@@ -14,6 +14,7 @@ import { MINUTE, useClock } from "@/components/home/clock";
 import {
   CRAFT_DATA,
   craftGoldAfterCut,
+  energyAfterCut,
   craftMarketNames,
   craftResult,
   expectedYield,
@@ -113,7 +114,7 @@ function OutputTable({ results, priced }: { results: CraftResult[]; priced: bool
       <div className={styles.cardHead}>
         <h3 id={`craft-${output.id}`}>{output.name}</h3>
         <p className={styles.meta}>
-          활동력 {output.energy} · 제작 {output.time.replace(/^0/, "").replace(/:00$/, "")} · 골드 {count(results[0].craftGold)}
+          활동력 {count(results[0].energy)} · 제작 {output.time.replace(/^0/, "").replace(/:00$/, "")} · 골드 {count(results[0].craftGold)}
         </p>
       </div>
       <div className={styles.tableScroll}>
@@ -168,6 +169,9 @@ export function AbidosCraftTool() {
   const [feeCutText, setFeeCutText] = useState("");
   const increase = parsePercent(increaseText) ?? 0;
   const feeCut = parsePercent(feeCutText) ?? 0;
+  const [energyAllText, setEnergyAllText] = useState("");
+  const [energyCategoryText, setEnergyCategoryText] = useState("");
+  const energyCut = { overall: parsePercent(energyAllText) ?? 0, category: parsePercent(energyCategoryText) ?? 0 };
 
   const requested = useMemo(() => craftMarketNames(), []);
   const prices = useQuery({
@@ -232,6 +236,18 @@ export function AbidosCraftTool() {
                 value={feeCutText}
                 onChange={setFeeCutText}
               />
+              <PercentField
+                label="활동력 소모 감소(전체)"
+                hint="모든 제작에 붙는 감소예요. 아래 특수 제작 감소와 더해서 적용해요."
+                value={energyAllText}
+                onChange={setEnergyAllText}
+              />
+              <PercentField
+                label={`활동력 소모 감소(${CRAFT_DATA.energyCut.category} 제작)`}
+                hint={`1회 활동력 ${CRAFT_DATA.outputs.map((o) => `${o.name.replace(" 융화 재료", "")} ${count(energyAfterCut(o.energy, energyCut.overall, energyCut.category))}`).join(" · ")} (내림)`}
+                value={energyCategoryText}
+                onChange={setEnergyCategoryText}
+              />
               {failure && (
                 <div className={quote.notice}>
                   <div role="alert">
@@ -272,7 +288,7 @@ export function AbidosCraftTool() {
                   <OutputTable
                     key={output.id}
                     priced={priced}
-                    results={CRAFT_DATA.skills.map((skill) => craftResult(output.id, skill.id, unit, increase, feeCut))}
+                    results={CRAFT_DATA.skills.map((skill) => craftResult(output.id, skill.id, unit, increase, feeCut, energyCut))}
                   />
                 ))}
               </div>
@@ -282,8 +298,8 @@ export function AbidosCraftTool() {
                 {MARKET_FEE_PERCENT}%(1골드 미만 올림)를 뗀 값 × 묶음 수(평균 개수 ÷ 10), 직접 사용 시 = 평균 개수 × 1개 가격.
                 직접 캔 재료도 거래소 가격으로 매겨요.
                 거래소에 가격이 없는 재료가 있으면 0이 아니라 {UNKNOWN}으로 두고 손익을 계산하지 않아요. 100 활동력당 이익은
-                제작법의 기본 활동력(아비도스 288, 상급 360)으로 나눠요. 니나브의 축복은 제작 시간·슬롯·활동력 회복량을 바꿔
-                1회 손익에는 영향이 없어요. 확인 {CRAFT_DATA.checkedAt}.
+                1회 활동력(기본 아비도스 288·상급 360에서 전체·특수 제작 감소를 더해 빼고 내림)으로 나눠요. 니나브의 축복은 제작 시간·슬롯·활동력 회복량을 바꿔
+                1회 손익에는 영향이 없어요. 손익 계산에는 넣지 않아요. 확인 {CRAFT_DATA.checkedAt}.
               </p>
             </section>
           </div>

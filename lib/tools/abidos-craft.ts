@@ -26,6 +26,17 @@ export function craftGoldAfterCut(gold: number, feeCutPercent: number) {
   return Math.ceil((gold * (1000 - Math.round(feeCutPercent * 10))) / 1000);
 }
 
+/**
+ * Estate energy one craft costs after the reductions (percent, one decimal):
+ * ⌊base × (1 − (overall + category)/100)⌋ — the cuts add up and the result
+ * rounds down (calc verification 2026-10-13 23:16: 288·13% → 250, 360·17% →
+ * 298, overall 10 + 특수 10 → 230). Never below 0.
+ */
+export function energyAfterCut(base: number, overallPercent: number, categoryPercent: number) {
+  const cut = Math.round(overallPercent * 10) + Math.round(categoryPercent * 10);
+  return Math.max(0, Math.floor((base * (1000 - cut)) / 1000));
+}
+
 /** Gold received when the expected items are sold in bundles of 10. */
 export function sellValue(unitPrice: number, expected: number) {
   const bundle = Math.round(unitPrice * SELL_BUNDLE);
@@ -39,6 +50,8 @@ export type CraftData = {
   sources: Record<string, { title: string; url: string | null; date: string }>;
   sourceNote: string;
   yield: { base: number; greatSuccess: number; greatSuccessPercent: number; source: string };
+  /** The estate energy-cost reduction: the craft category whose cut adds to the overall one. */
+  energyCut: { category: string; source: string };
   outputs: { id: OutputId; name: string; gold: number; energy: number; time: string }[];
   skills: { id: string; name: string; materials: Record<OutputId, [string, number][]> }[];
 };
@@ -78,7 +91,9 @@ export type CraftResult = {
   use: number | null;
   sellProfit: number | null;
   useProfit: number | null;
-  /** Profit per 100 estate energy (the recipe's base energy; no reduction until its rule is sourced). */
+  /** Estate energy one craft costs after the reductions. */
+  energy: number;
+  /** Profit per 100 estate energy (after the reductions); null at 0 energy. */
   sellPer100Energy: number | null;
   usePer100Energy: number | null;
   missing: string[];
@@ -90,6 +105,7 @@ export function craftResult(
   unitPrice: (name: string) => number | null,
   increasePercent: number,
   feeCutPercent: number,
+  energyCut: { overall: number; category: number } = { overall: 0, category: 0 },
 ): CraftResult {
   const output = CRAFT_DATA.outputs.find((o) => o.id === outputId)!;
   const skill = CRAFT_DATA.skills.find((s) => s.id === skillId)!;
@@ -98,6 +114,7 @@ export function craftResult(
     return { name, qty, unit, gold: unit == null ? null : unit * qty };
   });
   const craftGold = craftGoldAfterCut(output.gold, feeCutPercent);
+  const energy = energyAfterCut(output.energy, energyCut.overall, energyCut.category);
   const expected = expectedYield(increasePercent);
   const resultUnit = unitPrice(output.name);
   const missing = [...materials.filter((m) => m.unit == null).map((m) => m.name), ...(resultUnit == null ? [output.name] : [])];
@@ -115,8 +132,9 @@ export function craftResult(
     use,
     sellProfit: cost == null || sell == null ? null : sell - cost,
     useProfit: cost == null || use == null ? null : use - cost,
-    sellPer100Energy: cost == null || sell == null ? null : ((sell - cost) * 100) / output.energy,
-    usePer100Energy: cost == null || use == null ? null : ((use - cost) * 100) / output.energy,
+    energy,
+    sellPer100Energy: cost == null || sell == null || energy <= 0 ? null : ((sell - cost) * 100) / energy,
+    usePer100Energy: cost == null || use == null || energy <= 0 ? null : ((use - cost) * 100) / energy,
     missing,
   };
 }
