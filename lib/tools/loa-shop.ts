@@ -129,7 +129,6 @@ export function parseRate(value: string): number | null {
   return Number.isSafeInteger(rate) && rate > 0 ? rate : null;
 }
 
-/** Whether the data says the package is still on sale on `today` (KST date "YYYY-MM-DD"). */
 /** Regular maintenance starts at 06:00 KST: "N일 정기 점검 전" ends then. */
 export const MAINTENANCE_START_KST = "06:00:00";
 
