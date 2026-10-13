@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useId,
+  useMemo,
   useRef,
   useState,
   useSyncExternalStore,
@@ -51,6 +52,7 @@ import {
 import {
   CharacterQueryError,
   fetchHistory,
+  fetchRosterPower,
   fetchSiblings,
   fetchTitles,
 } from "@/lib/character/client";
@@ -102,13 +104,19 @@ import {
   levelBands,
   maskName,
   ROSTER_SORTS,
+  powerByName,
   ROSTER_TOTAL_MIN,
   rosterStats,
   rosterSummary,
   sortSiblings,
+  type PowerRecord,
   type RosterSort,
 } from "@/lib/character/roster-list";
 import { useStagger } from "./entrance";
+import { fetchTitleEquip } from "@/lib/stats/client";
+import { equipShare, titleEquipQuery, type EquippedTitle } from "@/lib/stats/title-equip";
+import { RosterPower, rosterPowerKey, useRosterPowerRefreshing } from "./roster-power";
+import { StatSheet } from "./stat-sheet";
 import { AnalysisMenu } from "./analysis-menu";
 import { RankPanel } from "./rank-panel";
 import { SimulatorTab } from "./simulator-tab";
@@ -151,6 +159,8 @@ export type TabId = (typeof TABS)[number]["id"];
 export const SettingCheckEnabled = createContext(true);
 /** COMBAT_POWER_SIM (server flag): off hides the 시뮬레이터 tab the same way. */
 export const SimulatorEnabled = createContext(true);
+/** TITLE_STATS (server flag): the equip share beside each roster title. */
+export const TitleStatsEnabled = createContext(true);
 /** SPEC_UP_GUIDE (server flag): off hides the 스펙업 tab the same way. */
 export const SpecUpEnabled = createContext(true);
 const visibleTabs = (settingCheck: boolean, simulator = true, specUp = true) =>
@@ -1172,24 +1182,11 @@ function StatsPanel({ data }: { data: Character }) {
           </div>
         )}
       </dl>
+      {/* 특성 자세히 (§14.1 ④): the cards with the official lines, in a sheet. */}
       {data.stats.some((stat) => stat.tooltip.length) && (
-        <details className={`${styles.statDetail} ${expand.expand}`}>
-          <summary>특성 원문</summary>
-          <dl>
-            {data.stats
-              .filter((stat) => stat.tooltip.length)
-              .map((stat) => (
-                <div key={stat.type}>
-                  <dt>
-                    {stat.type} <b>{numeric(stat.value)}</b>
-                  </dt>
-                  {stat.tooltip.map((line, i) => (
-                    <dd key={i}>{line}</dd>
-                  ))}
-                </div>
-              ))}
-          </dl>
-        </details>
+        <div className={styles.statDetail}>
+          <StatSheet stats={data.stats} total={total} />
+        </div>
       )}
     </Panel>
   );
@@ -1852,11 +1849,29 @@ function SiblingList({
   siblings: Sibling[];
   current: string;
 }) {
-  const [sort, setSort] = useState<RosterSort>("itemLevel");
+  // Combat power records (L19), records only: no official call until the
+  // button. Sorted by combat power by default; until they arrive (or if they
+  // fail) that is the item level order, and rows keep their place (key by
+  // position), so the answer only changes the text in them (A6).
+  const power = useQuery({
+    queryKey: rosterPowerKey(current),
+    queryFn: ({ signal }) => fetchRosterPower(current, signal),
+    retry: 1,
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+  });
+  const records = useMemo(
+    () => (power.data ? powerByName(power.data.data) : new Map<string, PowerRecord>()),
+    [power.data],
+  );
+  const refreshing = useRosterPowerRefreshing(current);
+  const now = useClock(MINUTE);
+  const [sort, setSort] = useState<RosterSort>("combatPower");
   const [compact, setCompact] = useState(false);
   const [masked, setMasked] = useState(false);
   const ids = { compact: useId(), masked: useId() };
-  const sorted = sortSiblings(siblings, sort);
+  const sorted = sortSiblings(siblings, sort, records);
   const servers = [...new Set(sortSiblings(siblings, "itemLevel").map((sibling) => sibling.serverName))];
   const summary = rosterSummary(siblings);
   const stats = rosterStats(siblings);
@@ -1866,8 +1881,9 @@ function SiblingList({
   return (
     <>
       <div className={styles.rosterTools}>
-        {/* Up to 400px the pills fill the row and drop the trailing "순"
-            ("아이템 레벨 순" in the system font is wider than a 360 screen). */}
+        {/* Up to 400px the pills fill the row with one-word names (four sorts
+            in the system font are wider than a 360 screen); the full name
+            stays the accessible name. */}
         <SegmentedControl
           aria-label="원정대 정렬"
           value={sort}
@@ -1877,7 +1893,7 @@ function SiblingList({
           {ROSTER_SORTS.map((item) => (
             <SegmentedItem key={item.id} value={item.id} aria-label={item.label} className="max-[400px]:px-2">
               <span className="max-[400px]:hidden">{item.label}</span>
-              <span className="hidden max-[400px]:inline">{item.label.replace(/ 순$/, "")}</span>
+              <span className="hidden max-[400px]:inline">{item.short}</span>
             </SegmentedItem>
           ))}
         </SegmentedControl>
@@ -1904,6 +1920,7 @@ function SiblingList({
           )}
         </p>
       )}
+      <RosterPower name={current} siblings={siblings} records={records} query={power} />
       {stats.average != null && (
         <>
           <dl className={styles.rosterStats} aria-label="원정대 아이템 레벨">
@@ -1943,7 +1960,16 @@ function SiblingList({
           meta={`${sorted.filter((s) => s.serverName === server).length}명`}
           wide
         >
-          <ul className={styles.siblingGrid} data-compact={compact || undefined}>
+          <ul
+            // Drawn anew when records arrive (or a read ends): rows rewritten
+            // in place count as moving when their text starts elsewhere,
+            // new rows do not (A6·A7).
+            key={power.dataUpdatedAt}
+            className={styles.siblingGrid}
+            data-compact={compact || undefined}
+            data-stale={refreshing || undefined}
+            aria-busy={refreshing || undefined}
+          >
             {sorted
               .filter((sibling) => sibling.serverName === server)
               .map((sibling, i) => {
@@ -1957,6 +1983,11 @@ function SiblingList({
                       {sibling.className} · Lv.{number(sibling.characterLevel)}
                     </small>
                     <b>{number(sibling.itemLevel)}</b>
+                    <PowerLine
+                      record={records.get(sibling.characterName)}
+                      ready={power.isSuccess}
+                      now={now}
+                    />
                   </>
                 );
                 return (
@@ -1982,6 +2013,32 @@ function SiblingList({
         </Panel>
       ))}
     </>
+  );
+}
+
+/**
+ * A roster row's combat power: the recorded value and how long ago it was
+ * seen, or '전투력 기록 없음'. Blank (same height) while loading or when the
+ * records could not be read.
+ */
+function PowerLine({
+  record,
+  ready,
+  now,
+}: {
+  record: PowerRecord | undefined;
+  ready: boolean;
+  now: number | null;
+}) {
+  const seen = record?.observedAt ? Date.parse(record.observedAt) : NaN;
+  return (
+    <span className={styles.siblingPower}>
+      {!ready
+        ? "\u00a0"
+        : record?.combatPower == null
+          ? "전투력 기록 없음"
+          : `전투력 ${number(record.combatPower)}${now != null && Number.isFinite(seen) ? ` · ${relativeAgo(Math.max(0, now - seen))} 확인` : ""}`}
+    </span>
   );
 }
 
@@ -2051,7 +2108,19 @@ function RosterTitlesPanel({ name }: { name: string }) {
     queryFn: ({ signal }) => fetchTitles(name, signal),
     staleTime: 5 * 60_000,
   });
-  const fade = useCrossfade(query.isPending);
+  // How many seen rosters had each title worn (api #314, L13·K11), same
+  // conditions as the 통계 '칭호' tab's defaults. The list waits for it so a
+  // share never lands into a line already drawn (A6); without it, no share.
+  const sharesOn = useContext(TitleStatsEnabled);
+  const shares = useQuery({
+    queryKey: ["title-equip", titleEquipQuery({})],
+    queryFn: ({ signal }) => fetchTitleEquip(titleEquipQuery({}), signal),
+    enabled: sharesOn,
+    staleTime: 5 * 60_000,
+    retry: false,
+  });
+  const shareOf = new Map((shares.data?.data.titles ?? []).map((title) => [title.title, title]));
+  const fade = useCrossfade(query.isPending || (sharesOn && shares.isPending));
   const result = query.data?.data;
   const titles = result ? byObservedOrder(result.titles) : [];
   const groups = groupByDay(titles);
@@ -2070,7 +2139,7 @@ function RosterTitlesPanel({ name }: { name: string }) {
           장착한 칭호만 기록해요. 날짜는 획득일이 아니라 LOAKraken이 처음 확인한 날이에요
         </span>
       </p>
-      {query.isPending ? (
+      {query.isPending || (sharesOn && shares.isPending) ? (
         <p className={styles.muted} role="status">
           <InlineOrb /> 칭호 기록을 불러오고 있어요.
         </p>
@@ -2089,6 +2158,7 @@ function RosterTitlesPanel({ name }: { name: string }) {
                 <strong>{group.titles[0].title}</strong>
                 <small>
                   처음 확인 {group.day} · {group.titles[0].recordedBy}
+                  <TitleShare title={shareOf.get(group.titles[0].title)} />
                 </small>
               </li>
             ) : (
@@ -2102,7 +2172,10 @@ function RosterTitlesPanel({ name }: { name: string }) {
                   {group.titles.map((title) => (
                     <li key={title.title}>
                       <strong>{title.title}</strong>
-                      <small>{title.recordedBy}</small>
+                      <small>
+                        {title.recordedBy}
+                        <TitleShare title={shareOf.get(title.title)} />
+                      </small>
                     </li>
                   ))}
                 </ul>
@@ -2113,6 +2186,12 @@ function RosterTitlesPanel({ name }: { name: string }) {
       )}
     </Panel>
   );
+}
+
+/** " · 장착 원정대 32.26%": the share of seen rosters wearing it, when known. */
+function TitleShare({ title }: { title: EquippedTitle | undefined }) {
+  if (!title || title.equippedPercent == null) return null;
+  return <> · 장착 원정대 {equipShare(title)}</>;
 }
 
 const ROSTER_VIEWS = [

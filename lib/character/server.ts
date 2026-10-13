@@ -5,6 +5,8 @@ import { requestItemTooltips } from "./item-tooltips";
 import {
   requestCardCollection,
   requestCardRefresh,
+  requestRosterPower,
+  requestRosterPowerRefresh,
   requestHistory,
   requestSiblings,
   requestViews,
@@ -60,6 +62,14 @@ export function getViews(name: string, signal?: AbortSignal) {
 
 export function getSiblings(name: string, signal?: AbortSignal) {
   return requestSiblings(name, process.env.LOAKRAKEN_API_ORIGIN, { signal });
+}
+
+export function getRosterPower(name: string, signal?: AbortSignal) {
+  return requestRosterPower(name, process.env.LOAKRAKEN_API_ORIGIN, { signal });
+}
+
+export function refreshRosterPower(name: string, signal?: AbortSignal) {
+  return requestRosterPowerRefresh(name, process.env.LOAKRAKEN_API_ORIGIN, { signal });
 }
 
 export function getHistory(name: string, server: string, signal?: AbortSignal) {
