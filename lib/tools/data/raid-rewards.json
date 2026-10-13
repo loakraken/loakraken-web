@@ -1,6 +1,6 @@
 {
   "version": "2026-10-09",
-  "checkedAt": "2026-10-12",
+  "checkedAt": "2026-10-13",
   "rules": {
     "goldCharactersPerRoster": 6,
     "endContentGoldClearsPerCharacter": 3,
@@ -67,6 +67,16 @@
       "title": "인벤 팁 — 레이드 클리어 골드 정리(벨가르딘 포함), 합계 대조",
       "url": "https://www.inven.co.kr/board/lostark/4821/110400",
       "date": "2026-10-12"
+    },
+    "sites-20261013-abrelshud-hard": {
+      "title": "실측 — 아브렐슈드 하드 합계 5,600(전액 귀속), 관문 분할 미확인",
+      "url": null,
+      "date": "2026-10-13"
+    },
+    "notice-13148-single-kouku": {
+      "title": "6월 25일(수) 업데이트 내역 안내 — 싱글 모드 골드 표 쿠크세이튼 600·900·1,500. 노말 관문 분할은 싱글 표 기준, 실측 합계 3,000(2026-10-13)과 일치",
+      "url": "https://lostark.game.onstove.com/News/Notice/Views/13148",
+      "date": "2025-06-25"
     }
   },
   "raids": [
@@ -459,8 +469,8 @@
           "status": "SITES",
           "source": "sites-20261010",
           "gates": [
-            { "gate": 1, "gold": 13500, "boundGold": 13500, "moreCost": null },
-            { "gate": 2, "gold": 16500, "boundGold": 16500, "moreCost": null }
+            { "gate": 1, "gold": 13500, "boundGold": 13500, "moreCost": 4320 },
+            { "gate": 2, "gold": 16500, "boundGold": 16500, "moreCost": 5280 }
           ]
         },
         {
@@ -469,8 +479,8 @@
           "status": "SITES",
           "source": "sites-20261010",
           "gates": [
-            { "gate": 1, "gold": 16000, "boundGold": 16000, "moreCost": null },
-            { "gate": 2, "gold": 24000, "boundGold": 24000, "moreCost": null }
+            { "gate": 1, "gold": 16000, "boundGold": 16000, "moreCost": 5120 },
+            { "gate": 2, "gold": 24000, "boundGold": 24000, "moreCost": 7680 }
           ]
         },
         {
@@ -479,8 +489,8 @@
           "status": "SITES",
           "source": "sites-20261010",
           "gates": [
-            { "gate": 1, "gold": 20000, "boundGold": 20000, "moreCost": null },
-            { "gate": 2, "gold": 30000, "boundGold": 30000, "moreCost": null }
+            { "gate": 1, "gold": 20000, "boundGold": 20000, "moreCost": 6400 },
+            { "gate": 2, "gold": 30000, "boundGold": 30000, "moreCost": 9600 }
           ]
         }
       ]
@@ -625,25 +635,26 @@
         {
           "difficulty": "NORMAL",
           "minItemLevel": 1490,
-          "status": "SITES",
-          "source": "sites-20261010",
+          "status": "UNVERIFIED",
+          "source": null,
           "gates": [
-            { "gate": 1, "gold": 1000, "boundGold": 1000, "moreCost": null },
-            { "gate": 2, "gold": 1000, "boundGold": 1000, "moreCost": null },
-            { "gate": 3, "gold": 1000, "boundGold": 1000, "moreCost": null },
-            { "gate": 4, "gold": 1600, "boundGold": 1600, "moreCost": null }
+            { "gate": 1, "gold": null, "boundGold": null, "moreCost": null },
+            { "gate": 2, "gold": null, "boundGold": null, "moreCost": null },
+            { "gate": 3, "gold": null, "boundGold": null, "moreCost": null },
+            { "gate": 4, "gold": null, "boundGold": null, "moreCost": null }
           ]
         },
         {
           "difficulty": "HARD",
           "minItemLevel": 1540,
           "status": "SITES",
-          "source": "sites-20261010",
+          "source": "sites-20261013-abrelshud-hard",
+          "total": { "gold": 5600, "boundGold": 5600 },
           "gates": [
-            { "gate": 1, "gold": 1200, "boundGold": 1200, "moreCost": null },
-            { "gate": 2, "gold": 1200, "boundGold": 1200, "moreCost": null },
-            { "gate": 3, "gold": 1200, "boundGold": 1200, "moreCost": null },
-            { "gate": 4, "gold": 2000, "boundGold": 2000, "moreCost": null }
+            { "gate": 1, "gold": null, "boundGold": null, "moreCost": null },
+            { "gate": 2, "gold": null, "boundGold": null, "moreCost": null },
+            { "gate": 3, "gold": null, "boundGold": null, "moreCost": null },
+            { "gate": 4, "gold": null, "boundGold": null, "moreCost": null }
           ]
         }
       ]
@@ -660,7 +671,7 @@
           "difficulty": "NORMAL",
           "minItemLevel": 1475,
           "status": "SITES",
-          "source": "sites-20261010",
+          "source": "notice-13148-single-kouku",
           "gates": [
             { "gate": 1, "gold": 600, "boundGold": 600, "moreCost": null },
             { "gate": 2, "gold": 900, "boundGold": 900, "moreCost": null },

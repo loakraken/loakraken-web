@@ -116,6 +116,24 @@ test("unknown gold is counted separately, never as zero gold earned", () => {
   assert.equal(gold.unknownGates, 2);
 });
 
+test("a raid with only a confirmed total pays it on a full clear, never a guessed gate share", () => {
+  const [character] = addCharacters(emptyState(0), [
+    { name: "아브", server: "루페온", className: "바드", itemLevel: 1560 },
+  ]).characters;
+  // 아브렐슈드 하드: total 5,600 (all bound) measured, gate split unknown (M7).
+  character.raids = [{ raidId: "abrelshud", difficulty: "HARD", cleared: [true, true, false, false], more: [false, false, false, false] }];
+  const partial = characterGold(character);
+  assert.equal(partial.possible, 5600);
+  assert.equal(partial.possibleBound, 5600);
+  assert.equal(partial.earned, 0);
+  assert.equal(partial.unknownGates, 2);
+  character.raids[0].cleared = [true, true, true, true];
+  const full = characterGold(character);
+  assert.equal(full.earned, 5600);
+  assert.equal(full.earnedBound, 5600);
+  assert.equal(full.unknownGates, 0);
+});
+
 test("a new week clears progress but keeps the setup", () => {
   const state = addCharacters(emptyState(kst("2026-10-09T12:00:00")), [
     { name: "기준캐릭터A", server: "루페온", className: "블레이드", itemLevel: 1730 },

@@ -36,6 +36,7 @@ import {
   remainingLabel,
   gemCounts,
   skillGems,
+  otherSkillGems,
   skillSummary,
   statNumber,
   stoneBonus,
@@ -68,6 +69,7 @@ import { HistoryChart } from "./history-chart";
 import { AvatarsTab, CollectiblesTab } from "./inner";
 import { Panel } from "./panel";
 import { ViewsPanel } from "./views-panel";
+import { WeeklyGoldPanel } from "./weekly-gold-panel";
 import { useTabPill } from "./tab-pill";
 import {
   CoreCard,
@@ -276,6 +278,13 @@ export function TabBar({
   const window_ = refreshWindow(data, now);
   const cooling = window_.remainingMs > 0;
   const disabled = fetching || cooling || rateLimitSeconds > 0;
+  const label = fetching
+    ? "갱신 중"
+    : rateLimitSeconds > 0
+      ? remainingLabel(rateLimitSeconds * 1000)
+      : cooling
+        ? remainingLabel(window_.remainingMs)
+        : "갱신";
   const tooltipId = "refresh-tooltip";
 
   async function share() {
@@ -359,26 +368,40 @@ export function TabBar({
               onClick={onRefresh}
               disabled={disabled}
               aria-describedby={tooltipId}
+              // While a countdown shows, the name says what it is for; the
+              // label itself is only the time left (one fixed width, A7).
+              aria-label={
+                fetching
+                  ? undefined
+                  : rateLimitSeconds > 0
+                    ? `${remainingLabel(rateLimitSeconds * 1000)} 뒤 갱신`
+                    : cooling
+                      ? `${remainingLabel(window_.remainingMs)} 뒤 갱신`
+                      : undefined
+              }
             >
               {fetching ? (
                 <InlineOrb />
               ) : (
                 <RefreshArrow size={14} aria-hidden="true" />
               )}
-              {fetching
-                ? "갱신 중"
-                : rateLimitSeconds > 0
-                  ? `${remainingLabel(rateLimitSeconds * 1000)} 뒤 갱신`
-                  : cooling
-                    ? remainingLabel(window_.remainingMs)
-                    : "갱신"}
+              {/* One width for "갱신" and every countdown ("3분 30초", "3분 9초",
+                  "30초" when too many requests): the ticking label never moves
+                  the buttons beside it (A6·A7). */}
+              {/* Drawn anew when the text changes: centred text rewritten in place
+                  starts elsewhere ("17초" → "7초") and counts as moving. */}
+              <span key={label} className={styles.refreshLabel}>
+                {label}
+              </span>
             </button>
             <span role="tooltip" id={tooltipId} className={styles.tooltip}>
               {relativeAgo(window_.ageMs)} 갱신 · {kstTime(window_.fetchedAt)}
               <br />
-              {cooling
-                ? `${remainingLabel(window_.remainingMs)} 후 다시 갱신할 수 있어요${window_.estimated ? " (예상)" : ""}`
-                : "지금 다시 갱신할 수 있어요"}
+              {rateLimitSeconds > 0
+                ? `요청이 많아 ${remainingLabel(rateLimitSeconds * 1000)} 뒤 다시 갱신할 수 있어요`
+                : cooling
+                  ? `${remainingLabel(window_.remainingMs)} 후 다시 갱신할 수 있어요${window_.estimated ? " (예상)" : ""}`
+                  : "지금 다시 갱신할 수 있어요"}
             </span>
           </span>
         </div>
@@ -1421,6 +1444,7 @@ function SkillOverview({
   // pull up what is under them (stacked, the side panels too) (A7).
   const [listRef, listHeight] = useTallest();
   const listId = useId();
+  const otherId = useId();
   const skills = data.loadout.skills;
   const extra = useItemTooltips(data.characterName);
   if (skills === undefined)
@@ -1437,6 +1461,10 @@ function SkillOverview({
   const shown = full && showAll ? skills : summary.active;
   const sorted = full ? [...shown].sort((a, b) => (b.level ?? 0) - (a.level ?? 0)) : shown;
   const gemsOf = (skill: Skill) => skillGems(data.loadout.gems, skill.name);
+  // Gems on skills no row shows (identity and the like), listed under the
+  // skills whatever the filter (L34). Against every skill, not only the
+  // ones in use, so a gem on an unused listed skill stays on its row.
+  const others = full ? otherSkillGems(data.loadout.gems, skills.map((skill) => skill.name)) : [];
   // One group per skill, so the groups never overlap (PM #507 P1): both kinds,
   // damage only, cooldown only, none. The head counts the same chips.
   const groupOf = (skill: Skill): GemFilter => {
@@ -1517,6 +1545,30 @@ function SkillOverview({
           <Empty state={data.coverage.skills} />
         )}
       </div>
+      {others.length > 0 && (
+        <div className={styles.otherGems}>
+          <h3 id={otherId}>그 외 장착 보석</h3>
+          <ul aria-labelledby={otherId}>
+            {others.map(({ gem, effect, label }) => (
+              <li key={`other-${gem.slot}`}>
+                <span className={styles.skillGems}>
+                  <span data-gem={label.endsWith("쿨") ? "cooldown" : "damage"}>
+                    <DetailTooltip
+                      name={gem.name ?? "보석"}
+                      card={
+                        <GemCard gem={gem} skill={effect} className={data.className ?? ""} lines={gemLines(extra, gem.slot)} />
+                      }
+                    >
+                      <span>{label}</span>
+                    </DetailTooltip>
+                  </span>
+                </span>
+                <span>{text(effect.name)}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       {full && skills.length > summary.active.length && (
         <button
           type="button"
@@ -1759,6 +1811,9 @@ export function ArkPassiveTab({ data }: { data: Character }) {
             panels={
               <PillTabsPanel value={tree}>
                 <Panel
+                  // Drawn anew per tree: the head text changes in place otherwise
+                  // and counts as moving (A7).
+                  key={tree}
                   title={`${tree} 노드`}
                   meta={[current.point?.description, `활성 ${current.nodes.length}개`].filter(Boolean).join(" · ")}
                 >
@@ -1959,6 +2014,7 @@ function SiblingList({
           </Panel>
         </>
       )}
+      <WeeklyGoldPanel siblings={siblings} current={current} shown={shown} />
       {servers.map((server) => (
         <Panel
           key={server}
@@ -2038,13 +2094,21 @@ function PowerLine({
 }) {
   const seen = record?.observedAt ? Date.parse(record.observedAt) : NaN;
   return (
-    <span className={styles.siblingPower}>
-      {!ready
-        ? "\u00a0"
-        : record?.combatPower == null
-          ? "전투력 기록 없음"
-          : `전투력 ${number(record.combatPower)}${now != null && Number.isFinite(seen) ? ` · ${relativeAgo(Math.max(0, now - seen))} 확인` : ""}`}
-    </span>
+    <>
+      <span className={styles.siblingPower}>
+        {!ready
+          ? "\u00a0"
+          : record?.combatPower == null
+            ? "전투력 기록 없음"
+            : `전투력 ${number(record.combatPower)}${now != null && Number.isFinite(seen) ? ` · ${relativeAgo(Math.max(0, now - seen))} 확인` : ""}`}
+      </span>
+      {/* The highest combat power seen (L19, the ranking's value). Its own
+          line is always there, so a value arriving never moves the row; no
+          record (a stopped character too, B5) reads the same either way. */}
+      <span className={styles.siblingBest}>
+        {!ready ? "\u00a0" : record?.bestCombatPower == null ? "최고 전투력 기록 없음" : `최고 전투력 ${number(record.bestCombatPower)}`}
+      </span>
+    </>
   );
 }
 
@@ -2221,6 +2285,9 @@ export function SiblingsTab({ data }: { data: Character }) {
   const asked = useSearchParams().get("view");
   const view: RosterView = views.find((item) => item.id === asked)?.id ?? "characters";
   const router = useRouter();
+  // Every view keeps the tallest one's room, so a shorter view (or its
+  // loading line) does not pull the footer up (A7).
+  const [viewRef, viewHeight] = useTallest();
   const choose = (next: RosterView) => {
     const params = new URLSearchParams(window.location.search);
     if (next === "characters") params.delete("view");
@@ -2236,17 +2303,19 @@ export function SiblingsTab({ data }: { data: Character }) {
         onValueChange={(next) => choose(next as RosterView)}
         panels={
           <PillTabsPanel value={view} className={styles.rosterPanel}>
-            {view === "characters" ? (
-              <RosterCharacters data={data} />
-            ) : view === "titles" ? (
-              <RosterTitlesPanel name={data.characterName} />
-            ) : view === "cards" ? (
-              <Panel title="카드 기록" wide>
-                <CardCollection name={data.characterName} />
-              </Panel>
-            ) : (
-              <ReceiptPanel name={data.characterName} />
-            )}
+            <div ref={viewRef} style={viewHeight ? { minHeight: viewHeight } : undefined}>
+              {view === "characters" ? (
+                <RosterCharacters data={data} />
+              ) : view === "titles" ? (
+                <RosterTitlesPanel name={data.characterName} />
+              ) : view === "cards" ? (
+                <Panel title="카드 기록" wide>
+                  <CardCollection name={data.characterName} />
+                </Panel>
+              ) : (
+                <ReceiptPanel name={data.characterName} />
+              )}
+            </div>
           </PillTabsPanel>
         }
       >

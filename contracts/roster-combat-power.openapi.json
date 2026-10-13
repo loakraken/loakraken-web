@@ -307,9 +307,28 @@
                 "type": "null"
               }
             ]
+          },
+          "bestCombatPower": {
+            "anyOf": [
+              {
+                "anyOf": [
+                  {
+                    "type": "number",
+                    "description": "LOAKraken이 관측한 최고 전투력(전투력 랭킹의 bestCombatPower와 같은 값). 기록이 없으면 null"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
+          "bestCombatPower",
           "characterName",
           "className",
           "combatPower",

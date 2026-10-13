@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { ArrowLeft, Coin } from "@/components/ui/icons";
 import Link from "next/link";
 import { SiteHeader } from "@/components/site/site-header";
@@ -9,6 +9,7 @@ import {
   CATEGORY_LABEL,
   DIFFICULTY_LABEL,
   RAID_DATA,
+  SPLIT_UNKNOWN,
   STATUS_LABEL,
   formatGold,
   modeTotals,
@@ -23,11 +24,20 @@ import styles from "./raid-rewards.module.css";
 const FILTERS: (Category | "ALL")[] = ["ALL", "KAZEROS", "SHADOW", "EPIC", "ABYSS", "LEGION", "EXTREME"];
 const NO_DATA = "데이터 없음";
 
-const gold = (value: number | null) => (value === null ? NO_DATA : formatGold(value));
+const gold = (value: number | null, empty = NO_DATA) => (value === null ? empty : formatGold(value));
+
+// Every difficulty of a card draws the same table: the same columns, as many
+// rows as the difficulty with the most gates (the rest held empty), fixed
+// column widths. Switching difficulty then only changes text, never the
+// card's size or where its cells sit (A7).
+const showsMore = (mode: Mode) => mode.gates.some((g) => g.moreCost !== null) || mode.status === "UNVERIFIED";
 
 function ModeTable({ raid, mode }: { raid: Raid; mode: Mode }) {
   const totals = modeTotals(mode);
-  const hasMore = mode.gates.some((g) => g.moreCost !== null) || mode.status === "UNVERIFIED";
+  // Confirmed total only: the gates say so instead of "데이터 없음".
+  const empty = mode.total ? SPLIT_UNKNOWN : NO_DATA;
+  const hasMore = raid.modes.some(showsMore);
+  const rows = Math.max(...raid.modes.map((m) => m.gates.length));
   return (
     <div className={styles.modeBody}>
       <p className={styles.modeMeta}>
@@ -41,6 +51,12 @@ function ModeTable({ raid, mode }: { raid: Raid; mode: Mode }) {
           <caption className={styles.sr}>
             {raid.shortName} {DIFFICULTY_LABEL[mode.difficulty]} 관문별 보상
           </caption>
+          <colgroup>
+            <col className={styles.colGate} />
+            <col />
+            <col />
+            {hasMore && <col />}
+          </colgroup>
           <thead>
             <tr>
               <th scope="col">관문</th>
@@ -64,10 +80,10 @@ function ModeTable({ raid, mode }: { raid: Raid; mode: Mode }) {
                   {raid.category === "EXTREME" ? "보스 처치" : `${g.gate}관문`}
                 </th>
                 <td className={styles.num} data-empty={g.gold === null || undefined}>
-                  {gold(g.gold)}
+                  {gold(g.gold, empty)}
                 </td>
                 <td className={styles.num} data-empty={g.boundGold === null || undefined}>
-                  {g.boundGold === 0 ? "—" : gold(g.boundGold)}
+                  {g.boundGold === 0 ? "—" : gold(g.boundGold, empty)}
                 </td>
                 {hasMore && (
                   <td className={styles.num} data-empty={g.moreCost === null || undefined}>
@@ -76,18 +92,31 @@ function ModeTable({ raid, mode }: { raid: Raid; mode: Mode }) {
                 )}
               </tr>
             ))}
+            {Array.from({ length: rows - mode.gates.length }, (_, i) => (
+              <tr key={`hold-${i}`} className={styles.holdRow} aria-hidden="true">
+                <th>&nbsp;</th>
+                <td>&nbsp;</td>
+                <td>&nbsp;</td>
+                {hasMore && <td>&nbsp;</td>}
+              </tr>
+            ))}
           </tbody>
-          {totals && mode.gates.length > 1 && (
+          {/* The total row and the note line below are there for every
+              difficulty (empty when unknown), so switching difficulty keeps
+              the card's height (A7). */}
+          {rows > 1 && (
             <tfoot>
               <tr>
                 <th scope="row">합계</th>
-                <td className={styles.num}>{formatGold(totals.gold)}</td>
-                <td className={styles.num}>
-                  {totals.boundGold ? formatGold(totals.boundGold) : "—"}
+                <td className={styles.num} data-empty={!totals || undefined}>
+                  {totals ? formatGold(totals.gold) : NO_DATA}
+                </td>
+                <td className={styles.num} data-empty={!totals || undefined}>
+                  {!totals ? NO_DATA : totals.boundGold ? formatGold(totals.boundGold) : "—"}
                 </td>
                 {hasMore && (
-                  <td className={styles.num}>
-                    {totals.moreCost === null ? NO_DATA : formatGold(totals.moreCost)}
+                  <td className={styles.num} data-empty={totals?.moreCost == null || undefined}>
+                    {totals?.moreCost == null ? NO_DATA : formatGold(totals.moreCost)}
                   </td>
                 )}
               </tr>
@@ -95,19 +124,28 @@ function ModeTable({ raid, mode }: { raid: Raid; mode: Mode }) {
           )}
         </table>
       </div>
-      {totals && totals.boundGold > 0 && (
-        <p className={styles.note}>
-          {totals.tradableGold === 0
+      <p className={styles.note}>
+        {totals && totals.boundGold > 0
+          ? totals.tradableGold === 0
             ? "전액 귀속 골드예요. 받은 캐릭터만 쓸 수 있어요."
-            : `거래 가능한 골드 ${formatGold(totals.tradableGold)} · 귀속 골드는 받은 캐릭터만 쓸 수 있어요.`}
-        </p>
-      )}
+            : `거래 가능한 골드 ${formatGold(totals.tradableGold)} · 귀속 골드는 받은 캐릭터만 쓸 수 있어요.`
+          : ""}
+      </p>
     </div>
   );
 }
 
-function RaidCard({ raid, order }: { raid: Raid; order: number }) {
-  const [difficulty, setDifficulty] = useState(raid.modes[0].difficulty);
+function RaidCard({
+  raid,
+  order,
+  difficulty,
+  setDifficulty,
+}: {
+  raid: Raid;
+  order: number;
+  difficulty: Difficulty | undefined;
+  setDifficulty: (difficulty: Difficulty) => void;
+}) {
   const mode = raid.modes.find((m) => m.difficulty === difficulty) ?? raid.modes[0];
   const groupName = `raid-${raid.id}`;
   return (
@@ -145,7 +183,9 @@ function RaidCard({ raid, order }: { raid: Raid; order: number }) {
           ))}
         </SegmentedControl>
       )}
-      <ModeTable raid={raid} mode={mode} />
+      {/* A new difficulty draws a new table in the same space, instead of
+          moving the old text as its width changes (A7). */}
+      <ModeTable key={mode.difficulty} raid={raid} mode={mode} />
     </section>
   );
 }
@@ -154,12 +194,14 @@ export function RaidRewardsTable() {
   // 모션 목록(레이드 보상): the cards enter once, 30ms apart (.k-reveal).
   // Once that is over, cards a filter brings back appear at once — a filter
   // is a frequent action and should not replay the entry.
-  const grid = useRef<HTMLDivElement>(null);
+  const [settled, setSettled] = useState(false);
   useEffect(() => {
-    const timer = setTimeout(() => grid.current?.setAttribute("data-settled", ""), 800);
+    const timer = setTimeout(() => setSettled(true), 800);
     return () => clearTimeout(timer);
   }, []);
   const [filter, setFilter] = useState<Category | "ALL">("ALL");
+  // Held here so a card a filter draws again keeps its difficulty.
+  const [difficulties, setDifficulties] = useState<Partial<Record<string, Difficulty>>>({});
   const raids = RAID_DATA.raids.filter((r) => filter === "ALL" || r.category === filter);
   const rules = RAID_DATA.rules;
   return (
@@ -210,9 +252,18 @@ export function RaidRewardsTable() {
               ))}
             </div>
 
-            <div className={styles.grid} ref={grid}>
+            {/* A filter draws a new grid (keyed by it) instead of sliding the
+                cards that stay, and the grid is at least a screen tall so the
+                note and footer below never move into view (A7). */}
+            <div className={styles.grid} key={filter} data-settled={settled || undefined}>
               {raids.map((raid, order) => (
-                <RaidCard key={raid.id} raid={raid} order={order} />
+                <RaidCard
+                  key={raid.id}
+                  raid={raid}
+                  order={order}
+                  difficulty={difficulties[raid.id]}
+                  setDifficulty={(difficulty) => setDifficulties((prev) => ({ ...prev, [raid.id]: difficulty }))}
+                />
               ))}
             </div>
 

@@ -190,6 +190,17 @@ export function skillGems(gems: Character["loadout"]["gems"], name: string | nul
     });
 }
 
+/**
+ * Gems set on skills that are not in the skill list (an identity skill, a
+ * skill outside the skill window): the official gem effects name the skill,
+ * but no skill row can show them (checklist L34, "그 외 장착 보석").
+ */
+export function otherSkillGems(gems: Character["loadout"]["gems"], skillNames: (string | null | undefined)[]) {
+  const listed = new Set(skillNames.filter((name): name is string => !!name));
+  const names = [...new Set((gems?.effects?.skills ?? []).map((effect) => effect.name))];
+  return names.filter((name) => name && !listed.has(name)).flatMap((name) => skillGems(gems, name));
+}
+
 /** Gem slots a character can fill (the game's gem window). */
 export const GEM_SLOTS = 11;
 
