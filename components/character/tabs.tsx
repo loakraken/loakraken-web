@@ -367,13 +367,17 @@ export function TabBar({
               ) : (
                 <RefreshArrow size={14} aria-hidden="true" />
               )}
-              {fetching
-                ? "갱신 중"
-                : rateLimitSeconds > 0
-                  ? `${remainingLabel(rateLimitSeconds * 1000)} 뒤 갱신`
-                  : cooling
-                    ? remainingLabel(window_.remainingMs)
-                    : "갱신"}
+              {/* One width for "갱신" and every countdown ("3분 30초", "3분 9초"):
+                  the ticking label never moves the buttons beside it (A6·A7). */}
+              <span className={styles.refreshLabel}>
+                {fetching
+                  ? "갱신 중"
+                  : rateLimitSeconds > 0
+                    ? `${remainingLabel(rateLimitSeconds * 1000)} 뒤 갱신`
+                    : cooling
+                      ? remainingLabel(window_.remainingMs)
+                      : "갱신"}
+              </span>
             </button>
             <span role="tooltip" id={tooltipId} className={styles.tooltip}>
               {relativeAgo(window_.ageMs)} 갱신 · {kstTime(window_.fetchedAt)}
