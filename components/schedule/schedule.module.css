@@ -87,6 +87,13 @@
   flex-wrap: wrap;
   row-gap: 8px;
 }
+/* Narrow: the date title and the tools always on two lines, so a shorter
+   date or the 오늘 mark going away never pulls the tools up (A7). */
+@media (max-width: 560px) {
+  .pageHead h2 {
+    flex-basis: 100%;
+  }
+}
 .pageHead h2,
 .pageHead span,
 .pageHead button {
