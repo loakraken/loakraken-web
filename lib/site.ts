@@ -34,6 +34,7 @@ export const SITEMAP_PATHS = [
   "/tools/refining",
   "/tools/crit-speed",
   "/tools/auction",
+  "/tools/loa-shop",
   "/tools/raid-rewards",
   "/tools/more-reward",
   "/tools/contribution",
