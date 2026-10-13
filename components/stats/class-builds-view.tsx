@@ -278,7 +278,7 @@ export function ClassBuildsView({ initial }: { initial: ClassBuildsQuery }) {
         {meta && data && (
           // Drawn anew when what it says changes: text rewritten in place moves (A7).
           <p
-            key={`${meta.population}-${data.classPopulation}-${meta.conditions?.itemLevelMin}-${meta.aggregatedAt}`}
+            key={`${meta.population}-${data.classPopulation}-${meta.conditions?.itemLevelMin}-${meta.conditions?.activeDays}-${meta.aggregatedAt}`}
             className={styles.notice}
           >
             표본 {whole(meta.population ?? 0)}명(장비를 확인한 캐릭터) · {query.className} 전체 {whole(data.classPopulation)}명 ·
