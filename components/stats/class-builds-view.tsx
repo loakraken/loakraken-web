@@ -47,6 +47,7 @@ function Section({
   people,
   note,
   unit = "명",
+  wrap = false,
 }: {
   title: string;
   definition?: string;
@@ -56,6 +57,8 @@ function Section({
   people: boolean;
   note?: string | null;
   unit?: string;
+  /** Long names that are the point (engraving sets, card sets) wrap instead of cutting off. */
+  wrap?: boolean;
 }) {
   const hide = hiddenText(hidden, people);
   const headingId = useId();
@@ -64,7 +67,7 @@ function Section({
       <h2 id={headingId}>{title}</h2>
       {definition && <p className={own.definition}>{definition}</p>}
       {rows.length ? (
-        <ol className={own.bars}>
+        <ol className={own.bars} data-wrap={wrap || undefined}>
           {rows.map((row) => (
             <li key={row.label}>
               <span className={own.label}>{row.label}</span>
@@ -117,6 +120,7 @@ function Sections({ data }: { data: ClassBuilds }) {
         }))}
         hidden={data.engravingCombos?.hidden}
         people
+        wrap
       />
       <Section
         title="각인 채용률"
@@ -162,6 +166,7 @@ function Sections({ data }: { data: ClassBuilds }) {
         }))}
         hidden={data.cardSets?.hidden}
         people
+        wrap
       />
       <Section
         title="피해 증가 보석"
