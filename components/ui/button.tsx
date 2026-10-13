@@ -9,7 +9,7 @@ import { cn } from "cn"
 const buttonVariants = cva(
   [
     "relative inline-flex shrink-0 items-center justify-center gap-2 rounded-full font-semibold whitespace-nowrap select-none",
-    "transition-[background-color,border-color,color,transform] duration-(--duration-fast) ease-(--ease-out)",
+    "transition-[background-color,border-color,color,transform,scale] duration-(--duration-fast) ease-(--ease-out)",
     "not-data-disabled:active:scale-(--press-scale)",
     "[&[data-disabled]:not([aria-busy=true])]:cursor-not-allowed [&[data-disabled]:not([aria-busy=true])]:opacity-40",
     "aria-busy:cursor-progress",
