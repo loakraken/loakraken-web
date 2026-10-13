@@ -32,7 +32,8 @@
     "api:generate:item-tooltips": "openapi-typescript contracts/item-tooltips.openapi.json -o lib/api/item-tooltips-schema.d.ts",
     "api:generate:roster-combat-power": "openapi-typescript contracts/roster-combat-power.openapi.json -o lib/api/roster-combat-power-schema.d.ts",
     "api:generate:guild-ranking": "openapi-typescript contracts/guild-ranking.openapi.json -o lib/api/guild-ranking-schema.d.ts",
-    "api:generate:title-equip": "openapi-typescript contracts/title-equip.openapi.json -o lib/api/title-equip-schema.d.ts"
+    "api:generate:title-equip": "openapi-typescript contracts/title-equip.openapi.json -o lib/api/title-equip-schema.d.ts",
+    "api:generate:auction-gems": "openapi-typescript contracts/auction-gems.openapi.json -o lib/api/auction-gems-schema.d.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",

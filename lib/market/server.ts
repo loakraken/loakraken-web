@@ -8,6 +8,7 @@ import {
   requestPrices,
   requestQuote,
 } from "./upstream";
+import { requestGemBoard, requestGemListings, type GemPick } from "./auction-gems";
 
 const origin = () => process.env.LOAKRAKEN_API_ORIGIN;
 
@@ -29,5 +30,10 @@ export const getMarketBoard = (query: URLSearchParams, signal?: AbortSignal, tim
   requestBoard(query, origin(), { signal, timeoutMs });
 export const getItemHistory = (itemId: string, signal?: AbortSignal, timeoutMs?: number) =>
   requestItemHistory(itemId, origin(), { signal, timeoutMs });
+
+export const getGemBoard = (signal?: AbortSignal, timeoutMs?: number) =>
+  requestGemBoard(origin(), { signal, timeoutMs });
+export const getGemListings = (pick: GemPick, signal?: AbortSignal) =>
+  requestGemListings(pick, origin(), { signal });
 
 export { toResponse } from "../api/respond";
