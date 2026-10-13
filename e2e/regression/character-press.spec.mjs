@@ -47,6 +47,8 @@ test("캐릭터: 360에서 탭·배너 순위·효율 설명·글자 버튼 누�
   expect(await pressArea(page.getByRole("button", { name: /^전투력 [\d,]+위/ })), "배너 순위").toEqual([true, true, true, true]);
   expect(await pressArea(page.getByRole("button", { name: /^팔찌 효율/ })), "팔찌 효율 설명").toEqual([true, true, true, true]);
   expect(await pressArea(page.getByRole("button", { name: "팔찌 줄별 보기" })), "팔찌 줄별 보기").toEqual([true, true, true, true]);
+  const tiers = page.getByRole("button", { name: /^티어 / });
+  for (const i of [0, 1]) expect(await pressArea(tiers.nth(i)), `티어 배지 ${i + 1}`).toEqual([true, true, true, true]);
 });
 
 test("캐릭터: 360에서 탭 줄 끝이 더보기 버튼 아래로 들어가지 않음 @regression", async ({ page }) => {
