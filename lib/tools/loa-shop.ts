@@ -28,7 +28,7 @@ export type ShopPackage = {
   priceRoyal: number;
   /** Sale period, the notice's words. */
   period: string;
-  /** Last day on sale (KST date), null while "별도 안내 시". */
+  /** The day whose regular maintenance ends the sale (KST date), null while "별도 안내 시". */
   until: string | null;
   /** Purchase limit, the notice's words. */
   limit: string;
@@ -130,7 +130,12 @@ export function parseRate(value: string): number | null {
 }
 
 /** Whether the data says the package is still on sale on `today` (KST date "YYYY-MM-DD"). */
-export const onSale = (pkg: ShopPackage, today: string) => pkg.until == null || today < pkg.until;
+/** Regular maintenance starts at 06:00 KST: "N일 정기 점검 전" ends then. */
+export const MAINTENANCE_START_KST = "06:00:00";
+
+/** Whether the package is still on sale at `now` (epoch ms): sales end when that day's maintenance starts. */
+export const onSale = (pkg: ShopPackage, now: number) =>
+  pkg.until == null || now < Date.parse(`${pkg.until}T${MAINTENANCE_START_KST}+09:00`);
 
 /** Consistency problems in the data; the test suite expects none. */
 export function checkShopData(data: ShopData): string[] {
