@@ -9,6 +9,7 @@ import { shiftsDuring, watchShifts } from "../support/shifts.mjs";
 const ROUTES = [
   "/",
   "/market",
+  "/market/gems",
   "/news",
   "/rankings",
   "/rankings?type=roster",
