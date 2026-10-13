@@ -836,6 +836,29 @@ createServer(async (req, res) => {
     const items = q.length < 1 ? [] : known.filter((c) => c.characterName.startsWith(q)).slice(0, 8);
     return send({ code: "CHARACTER_SUGGEST_SUCCESS", message: "ok", data: { items } });
   }
+  // Popular guilds (api #467, M21): rank, server and guild only. 24h has 10
+  // guilds on two servers, 7d four; 니나브 is still collecting.
+  if (url.pathname === "/api/v1/guilds/popular") {
+    const period = url.searchParams.get("period") || "24h";
+    const server = url.searchParams.get("server");
+    const all = Array.from({ length: period === "7d" ? 4 : 10 }, (_, i) => ({
+      serverName: i % 2 ? "카단" : "아만",
+      guildName: `인기길드${i + 1}`,
+    }));
+    const collecting = server === "니나브";
+    const items = collecting ? [] : all.filter((g) => !server || g.serverName === server).map((g, i) => ({ rank: i + 1, ...g }));
+    return send({
+      code: "GUILD_POPULAR_SUCCESS",
+      message: "성공",
+      data: {
+        period,
+        aggregatedAt: new Date().toISOString(),
+        sampleStatus: collecting ? "COLLECTING" : "READY",
+        ruleVersion: "popular-guild-v1",
+        items,
+      },
+    });
+  }
   if (url.pathname === "/api/v1/characters/popular") {
     // Backend F-10 sample; 7d shows the collecting state.
     const body = JSON.parse(readFileSync(new URL("./popular-fixtures/characters-popular.json", import.meta.url), "utf8"));

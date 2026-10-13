@@ -12,6 +12,7 @@ import {
   isCollectibleRankingEnabled,
   isEfficiencyRankingEnabled,
   isGuildRankingEnabled,
+  isPopularGuildsEnabled,
   isRosterRankingEnabled,
 } from "@/lib/tools/flags";
 import { parseEfficiencyQuery, parseRankingQuery } from "@/lib/stats/rankings";
@@ -45,7 +46,7 @@ export default async function RankingsPage({
   ];
   const type = types.find((t) => t === params.get("type")) ?? "character";
   if (type === "roster") return <RosterRankingsView initial={parseRosterQuery(params)} types={types} />;
-  if (type === "guilds") return <GuildRankingsView initial={parseGuildQuery(params)} types={types} />;
+  if (type === "guilds") return <GuildRankingsView initial={parseGuildQuery(params)} types={types} popular={isPopularGuildsEnabled()} />;
   if (type === "collectibles") return <CollectibleRankingsView initial={parseCollectibleQuery(params)} types={types} />;
   if (type === "bracelets" || type === "gems")
     return <EfficiencyRankingsView kind={type} initial={parseEfficiencyQuery(params)} types={types} />;

@@ -21,6 +21,7 @@ import {
 import quote from "@/components/tools/material-quote.module.css";
 import styles from "./stats.module.css";
 import { BasisNote } from "./basis-note";
+import { PopularGuilds } from "./popular-guilds";
 import { rankingColumns } from "./ranking-columns";
 import { RankingTypeTabs, type RankingType } from "./ranking-type-tabs";
 
@@ -34,7 +35,16 @@ const COLUMNS = rankingColumns([3.5, 14, 6, 8.5, 7, 9]);
  * their item level average or sum. Every value is over the members seen, so
  * the member column and the note say so; it is never the guild's real size.
  */
-export function GuildRankingsView({ initial, types }: { initial: GuildQuery; types: readonly RankingType[] }) {
+export function GuildRankingsView({
+  initial,
+  types,
+  popular = false,
+}: {
+  initial: GuildQuery;
+  types: readonly RankingType[];
+  /** POPULAR_GUILDS on this deployment (server flag): the 인기 길드 card. */
+  popular?: boolean;
+}) {
   const router = useRouter();
   const [query, setQuery] = useState<GuildQuery>(initial);
   const latest = useRef(initial);
@@ -212,6 +222,8 @@ export function GuildRankingsView({ initial, types }: { initial: GuildQuery; typ
           {data && "."}
         </p>
         {data?.meta && <BasisNote basis={{ ...data.meta, unit: "개 길드" }} />}
+        {/* Last on the page: arriving later, it pushes nothing above it (A6). */}
+        {popular && <PopularGuilds server={query.server} />}
       </main>
     </div>
   );
