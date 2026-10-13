@@ -32,11 +32,12 @@ test.describe("검색봇", () => {
   });
 });
 
+// Other names than the bot tests: a person makes official calls (the shared counter).
 test("사람은 그대로 실시간 화면, 메타만 색인 판단 @regression", async ({ page }) => {
-  await page.goto("/character/%EA%B3%B5%EA%B0%9C%EC%9A%94%EC%95%BD");
-  await expect(page.getByRole("region", { name: "공개요약 캐릭터 요약" })).toBeVisible();
+  await page.goto(`/character/${encodeURIComponent("공개요약사람")}`);
+  await expect(page.getByRole("region", { name: "공개요약사람 캐릭터 요약" })).toBeVisible();
   expect(await robots(page)).toBe("index, follow");
-  await page.goto("/character/%EB%B0%9C%EA%B2%AC%EB%A7%8C");
+  await page.goto(`/character/${encodeURIComponent("발견만사람")}`);
   expect(await robots(page)).toBe("noindex, nofollow");
 });
 

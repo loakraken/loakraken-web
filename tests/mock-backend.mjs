@@ -643,13 +643,13 @@ createServer(async (req, res) => {
     const who = url.searchParams.get("characterName") ?? "";
     if (who === "미기록요약" || who === "정지저장")
       return send({ code: "CHARACTER_NOT_CACHED", message: "private" }, 404);
-    const indexable = !(who === "발견만" || who === "정지캐시");
+    const indexable = !/^(발견만|정지캐시)/.test(who);
     return send({
       code: "CHARACTER_PUBLIC_SUMMARY_SUCCESS",
       message: "ok",
       data: {
         characterName: who, serverName: "아만", className: "블레이드", characterLevel: 70, itemLevel: 1770,
-        combatPower: who === "발견만" ? null : 4000, arkPassiveTitle: "버스트",
+        combatPower: who.startsWith("발견만") ? null : 4000, arkPassiveTitle: "버스트",
         observedAt: "2026-10-12T03:00:00Z", dataSource: "STORED_OBSERVATION", indexable,
       },
     });
