@@ -126,3 +126,13 @@ test("roster combat power envelopes follow the contract", () => {
   assert.equal(isRosterPowerRefreshEnvelope(refreshed), true);
   assert.equal(isRosterPowerRefreshEnvelope({ ...refreshed, code: "CHARACTER_ROSTER_COMBAT_POWER_SUCCESS" }), false);
 });
+
+test("records carry the highest combat power seen; none is null like no record (B5)", () => {
+  const records = powerByName({
+    items: [{ ...item("가나", 1750.5, 3000), bestCombatPower: 3210.5 }, { ...item("바다", 1640, null), bestCombatPower: null }],
+    missingCount: 1,
+    refreshAvailableAt: null,
+  });
+  assert.equal(records.get("가나")?.bestCombatPower, 3210.5);
+  assert.equal(records.get("바다")?.bestCombatPower, null);
+});
