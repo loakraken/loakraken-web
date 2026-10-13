@@ -44,7 +44,13 @@
   background: var(--card);
   text-align: right;
   font-variant-numeric: tabular-nums;
-  transition: background-color 160ms ease-out;
+  transition:
+    background-color 160ms ease-out,
+    transform 100ms ease-out;
+}
+/* Press feedback (apple-design re-review). */
+.cell button:active {
+  transform: scale(0.97);
 }
 /* Room for a cell a slot does not have (same height as a cell, unseen). */
 .room {

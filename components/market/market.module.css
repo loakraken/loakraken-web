@@ -318,6 +318,46 @@
 .star[aria-pressed="true"] {
   color: var(--grade-legendary-text);
 }
+/* Press feedback (apple-design re-review): scale only, nothing around moves;
+   a whole row presses a little less. */
+.sorts button,
+.tiers button,
+.ranges button,
+.star {
+  transition: transform 100ms ease-out;
+}
+.sorts button:active,
+.tiers button:active,
+.ranges button:active,
+.star:active {
+  transform: scale(0.97);
+}
+.rows button:active {
+  transform: scale(0.99);
+}
+@media (prefers-reduced-motion: reduce) {
+  .sorts button,
+  .tiers button,
+  .ranges button,
+  .star {
+    transition: none;
+  }
+}
+/* The star stands alone at the row's end: 44px to press on a phone (hit-44 rule). */
+@media (max-width: 699px), (pointer: coarse) {
+  .star {
+    position: relative;
+  }
+  .star::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 44px;
+    height: 44px;
+    translate: -50% -50%;
+  }
+}
 .unit {
   /* A31: one line, never split (badge/chip/unit). */
   flex: none;

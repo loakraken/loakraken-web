@@ -22,7 +22,13 @@
   border-radius: 10px;
   text-align: right;
   font-variant-numeric: tabular-nums;
-  transition: background-color 160ms ease-out;
+  transition:
+    background-color 160ms ease-out,
+    transform 100ms ease-out;
+}
+/* Press feedback (apple-design re-review). */
+.cell button:active {
+  transform: scale(0.97);
 }
 .cell button b {
   grid-area: price;
