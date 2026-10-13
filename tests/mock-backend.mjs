@@ -1461,6 +1461,23 @@ createServer(async (req, res) => {
     ];
   }
   if (name === "전투력계산") withSimulatorGear(envelope.data);
+  // 주간 획득 골드 (M7): six characters on 아만 at the reference roster's
+  // levels, plus one on another server that does not count.
+  if (name === "주간골드") {
+    envelope.data.serverName = "아만";
+    envelope.data.itemLevel = 1770;
+    envelope.data.siblings = [
+      [name, 1770],
+      ["주간골드둘", 1725],
+      ["주간골드셋", 1705],
+      ["주간골드넷", 1585],
+      ["주간골드다섯", 1580],
+      ["주간골드여섯", 1560],
+      ["주간골드일곱", 1500],
+    ]
+      .map(([characterName, itemLevel]) => ({ characterName, serverName: "아만", className: "블레이드", characterLevel: 70, itemLevel }))
+      .concat({ characterName: "주간골드다른서버", serverName: "루페온", className: "바드", characterLevel: 70, itemLevel: 1780 });
+  }
   // 특성 자세히 (§14.1 ④): stats with synthetic official-style tooltip lines.
   if (name === "특성상세") {
     const line = (type, effect, bonus) => [effect, `${type}은(는) 물약 및 원정대 레벨 보상으로 ${bonus}만큼 영구 증가되었습니다.`];
