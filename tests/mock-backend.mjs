@@ -1521,6 +1521,8 @@ createServer(async (req, res) => {
   // have (an identity skill in the official gem effects).
   if (name === "그외보석") {
     const { gems } = envelope.data.loadout;
+    // The fixture's own gem goes on a listed skill, so only the second one is "other".
+    gems.effects.skills[0].name = "테스트 스킬";
     gems.items.push({ slot: 1, name: "10레벨 작열의 보석", icon: "gem.png", level: 10, grade: "고대" });
     gems.effects.skills.push({
       gemSlot: 1,
