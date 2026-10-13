@@ -228,9 +228,6 @@ export function ClassBuildsView({ initial }: { initial: ClassBuildsQuery }) {
   const data = builds.data?.data;
   const meta = data?.meta;
   const collecting = meta?.sampleStatus === "COLLECTING";
-  // Whether the first answer (in the first HTML) was a short sample: only then
-  // is there no tallest height yet to hold the sections' room.
-  const [startedShort] = useState(collecting);
   // The filter's sample can be short while the whole class is not (api #468).
   const classEngravingsShown = data?.classEngravingStatus === "READY" && !!data.classEngravings?.cells.length;
   // Another filter's shorter sections keep the room (A7).
@@ -304,16 +301,7 @@ export function ClassBuildsView({ initial }: { initial: ClassBuildsQuery }) {
           </p>
         )}
 
-        {/* Opened on a short sample: a screen's height from the first HTML on,
-            so the sections another filter brings do not push the visible note
-            and footer down (A7). Opened on sections, the tallest height holds. */}
-        <div
-          ref={sectionsRef}
-          className={own.held}
-          data-short={startedShort || undefined}
-          style={sectionsHeight ? { minHeight: sectionsHeight } : undefined}
-          {...pendingProps(builds)}
-        >
+        <div ref={sectionsRef} style={sectionsHeight ? { minHeight: sectionsHeight } : undefined} {...pendingProps(builds)}>
           {builds.isError && !data ? (
             <div className={styles.problem}>
               <p>{limit.limited ? countdownText(limit.seconds) : "직업 통계를 불러오지 못했어요."}</p>

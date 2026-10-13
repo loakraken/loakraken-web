@@ -61,16 +61,7 @@
   font-weight: 600;
   transition:
     background-color var(--duration-fast) var(--ease-out),
-    border-color var(--duration-fast) var(--ease-out),
-    scale var(--duration-fast) var(--ease-out);
-}
-.chip:active {
-  scale: var(--press-scale);
-}
-@media (prefers-reduced-motion: reduce) {
-  .chip:active {
-    scale: none;
-  }
+    border-color var(--duration-fast) var(--ease-out);
 }
 .chip[aria-pressed="true"] {
   border-color: var(--primary);

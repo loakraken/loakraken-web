@@ -162,22 +162,6 @@
   border-radius: 50%;
   background: transparent;
   color: var(--faint);
-  position: relative;
-  transition: scale var(--duration-fast) var(--ease-out);
-}
-/* 24px drawn, 44px to touch: the hit area grows, the line does not move. */
-.tipButton::after {
-  content: "";
-  position: absolute;
-  inset: -10px;
-}
-.tipButton:active {
-  scale: var(--press-scale);
-}
-@media (prefers-reduced-motion: reduce) {
-  .tipButton:active {
-    scale: none;
-  }
 }
 .tipButton:hover {
   color: var(--foreground);
@@ -305,17 +289,9 @@
   padding: 18px clamp(20px, 3vw, 28px);
 }
 .basis summary {
-  /* 44px to touch, the card's spacing unchanged (padding taken back by margin). */
-  margin: -12px 0;
-  padding: 12px 0;
   font-size: var(--text-body);
   font-weight: 600;
   cursor: pointer;
-  border-radius: 8px;
-  transition: background-color var(--duration-fast) var(--ease-out);
-}
-.basis summary:active {
-  background: var(--hover-surface);
 }
 .basis ul {
   display: grid;

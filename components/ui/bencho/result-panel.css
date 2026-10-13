@@ -71,6 +71,12 @@
 /* (ours) The row the arrows point at: the same wash and a bar on its left,
    so it is not colour alone. The input keeps focus (combobox), so this is
    the keyboard's cursor. */
+/* (ours) Pressed: the wash shows the moment a row is pressed, on touch too
+   (apple-design: feedback on pointer-down; hover alone never reaches a finger). */
+.rsp-row:active {
+  background: var(--rsp-wash);
+}
+
 .rsp-row[data-active] {
   background: var(--rsp-wash);
   box-shadow: inset 2px 0 0 var(--ring);

@@ -119,7 +119,10 @@ function SegmentedItem({ className, ...props }: Radio.Root.Props) {
         // 44px to tap on phones; the 32px face stays (A36).
         "hit-44",
         "text-(length:--text-body) leading-none text-foreground",
-        "transition-[background-color,box-shadow,color] duration-(--duration-fast) ease-(--ease-out)",
+        "transition-[background-color,box-shadow,color,scale] duration-(--duration-fast) ease-(--ease-out)",
+        // Answers the press at once (apple-design: feedback on pointer-down);
+        // the face settles when the choice lands.
+        "not-data-disabled:active:scale-(--press-scale)",
         "pointer-fine:not-data-checked:not-data-disabled:hover:bg-secondary",
         // Selected: a raised face outlined in --input (3:1 against the track, WCAG
         // 1.4.11); no weight change, so the row does not reflow.

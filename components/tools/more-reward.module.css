@@ -104,15 +104,6 @@
   background: transparent;
   text-align: right;
   cursor: pointer;
-  transition: scale var(--duration-fast) var(--ease-out);
-}
-.cell:active {
-  scale: var(--press-scale);
-}
-@media (prefers-reduced-motion: reduce) {
-  .cell:active {
-    scale: none;
-  }
 }
 .cell b {
   font-weight: 600;
@@ -422,11 +413,6 @@
   align-items: center;
   font-weight: 600;
   cursor: pointer;
-  border-radius: 8px;
-  transition: background-color var(--duration-fast) var(--ease-out);
-}
-.advanced > summary:active {
-  background: var(--hover-surface);
 }
 .advanced[open] > summary {
   margin-bottom: var(--space-2);
