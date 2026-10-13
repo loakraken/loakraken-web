@@ -278,6 +278,13 @@ export function TabBar({
   const window_ = refreshWindow(data, now);
   const cooling = window_.remainingMs > 0;
   const disabled = fetching || cooling || rateLimitSeconds > 0;
+  const label = fetching
+    ? "갱신 중"
+    : rateLimitSeconds > 0
+      ? remainingLabel(rateLimitSeconds * 1000)
+      : cooling
+        ? remainingLabel(window_.remainingMs)
+        : "갱신";
   const tooltipId = "refresh-tooltip";
 
   async function share() {
@@ -381,14 +388,10 @@ export function TabBar({
               {/* One width for "갱신" and every countdown ("3분 30초", "3분 9초",
                   "30초" when too many requests): the ticking label never moves
                   the buttons beside it (A6·A7). */}
-              <span className={styles.refreshLabel}>
-                {fetching
-                  ? "갱신 중"
-                  : rateLimitSeconds > 0
-                    ? remainingLabel(rateLimitSeconds * 1000)
-                    : cooling
-                      ? remainingLabel(window_.remainingMs)
-                      : "갱신"}
+              {/* Drawn anew when the text changes: centred text rewritten in place
+                  starts elsewhere ("17초" → "7초") and counts as moving. */}
+              <span key={label} className={styles.refreshLabel}>
+                {label}
               </span>
             </button>
             <span role="tooltip" id={tooltipId} className={styles.tooltip}>
