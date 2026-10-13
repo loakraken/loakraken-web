@@ -81,6 +81,7 @@ const item = (characterName: string, itemLevel: number, combatPower: number | nu
   itemLevel,
   combatPower,
   combatPowerObservedAt: combatPower == null ? null : "2026-10-12T03:00:00Z",
+  bestCombatPower: combatPower,
 });
 const power = {
   items: [item("다람쥐", 1690, 2100.5), item("가나", 1750.5, 3000), item("바다", 1640, null), item("나무", 1720, 2950.25), item("라온", 1680, null)],
