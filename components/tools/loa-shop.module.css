@@ -221,6 +221,15 @@
   color: var(--link);
   text-decoration: underline;
 }
+/* Phones: the figures need the room (540,000 is 62px at body size). */
+@media (max-width: 480px) {
+  .colItem {
+    width: 30%;
+  }
+  .table {
+    font-size: var(--text-caption);
+  }
+}
 @media (max-width: 900px) {
   .workspace {
     grid-template-columns: 1fr;

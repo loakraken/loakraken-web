@@ -194,10 +194,11 @@ function PackageCard({
           </tbody>
           <tfoot>
             <tr>
-              <th scope="row">{value.unknown.length ? "확인된 구성품 합계" : "합계"}</th>
-              <td />
-              <td />
-              <td className={styles.num}>
+              {/* Two columns each: the total is the widest figure (360: 1,664,800G). */}
+              <th scope="row" colSpan={2}>
+                {value.unknown.length ? "확인된 구성품 합계" : "합계"}
+              </th>
+              <td className={styles.num} colSpan={2}>
                 <Figure text={priced ? `${count(value.gold)}G` : "—"} />
               </td>
             </tr>
