@@ -16,9 +16,10 @@ for (const width of [1280, 360]) {
     await expect(combat).toHaveCount(6);
     await expect(combat.first()).toContainText("치명");
     await expect(combat.first()).toContainText("영구 증가");
-    const box = await sheet.boundingBox();
-    if (width === 360) expect(Math.round(box.y + box.height)).toBeGreaterThan(880);
-    else expect(Math.round(box.width)).toBe(512);
+    // Measured once the opening motion (scale and slide) has settled.
+    const box = () => sheet.boundingBox();
+    if (width === 360) await expect.poll(async () => Math.round((await box()).y + (await box()).height)).toBeGreaterThan(880);
+    else await expect.poll(async () => Math.round((await box()).width)).toBe(512);
     await expectNoHorizontalOverflow(page);
     await page.keyboard.press("Escape");
     await expect(sheet).toBeHidden();
