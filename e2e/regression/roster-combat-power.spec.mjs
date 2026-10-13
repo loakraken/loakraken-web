@@ -12,6 +12,7 @@ const trackShifts = (page) =>
   });
 const quietShift = (page) =>
   page.evaluate(() => window.__shifts.filter((entry) => !entry.input).reduce((sum, entry) => sum + entry.v, 0));
+const allShift = (page) => page.evaluate(() => window.__shifts.reduce((sum, entry) => sum + entry.v, 0));
 const rows = (page) => page.locator("ul[class*=siblingGrid]").first().locator("li");
 
 for (const width of [1280, 360]) {
@@ -37,6 +38,9 @@ for (const width of [1280, 360]) {
 
     const button = power.getByRole("button", { name: "전투력 불러오기" });
     await expect(button).toBeVisible();
+    // A7: from the press on, shifts right after the input count too.
+    expect(await quietShift(page), "기록 도착까지 layout-shift").toBe(0);
+    await page.evaluate(() => (window.__shifts = []));
     await button.click();
     await expect(power.getByRole("button", { name: /불러오는 중…/ })).toHaveAttribute("aria-disabled", "true");
     await expect(page.locator("ul[class*=siblingGrid][data-stale]").first()).toBeVisible();
@@ -49,7 +53,7 @@ for (const width of [1280, 360]) {
 
     await expectNoHorizontalOverflow(page);
     await page.waitForTimeout(500);
-    expect(await quietShift(page), "기록 도착·불러오기 완료 뒤 layout-shift").toBe(0);
+    expect(await allShift(page), "불러오기 누른 뒤 layout-shift(입력 직후 포함)").toBe(0);
   });
 }
 
