@@ -372,6 +372,25 @@
   color: var(--faint);
   text-decoration: line-through;
 }
+/* 지난 회차 숨김: the round keeps its place, so the ones left stay put (A7). */
+.times time[data-hidden] {
+  visibility: hidden;
+}
+.times {
+  position: relative;
+  /* Room for "오늘 종료" even over a single round, the same in both modes. */
+  min-width: 5em;
+}
+/* Over the hidden times of a row that is over: out of the layout, so the
+   row keeps its height and the column its width. Muted but readable. */
+.times .ended {
+  position: absolute;
+  top: 0;
+  right: 0;
+  color: var(--muted-foreground);
+  font-weight: 600;
+  white-space: nowrap;
+}
 .others summary {
   display: flex;
   align-items: center;

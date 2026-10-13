@@ -63,10 +63,10 @@ test.describe("홈 일정 시각 상태 @regression", () => {
     const islands = page.getByRole("region", { name: "모험 섬" });
     await expect(islands.locator("header")).toContainText(/19:00 · 5시간 30분/);
     await expect(page.getByRole("button", { name: "지난 회차 숨김" })).toHaveAttribute("aria-pressed", "true");
-    // 숨김이 켜져 있으면 지난 시각(09·11·13시)은 보이지 않고 남은 시각만 보인다.
-    await expect(islands.locator("time[data-past]")).toHaveCount(0);
+    // 숨김이 켜져 있으면 지난 시각(09·11·13시)은 자리만 두고 보이지 않으며(A7: 남은 시각이 움직이지 않게), 남은 시각만 보인다.
+    await expect(islands.locator("time[data-past]:not([data-hidden])")).toHaveCount(0);
     await expect(islands.locator("time", { hasText: "19:00" }).first()).toBeVisible();
-    await expect(islands.locator("time", { hasText: "09:00" })).toHaveCount(0);
+    await expect(islands.locator("time", { hasText: "09:00" }).first()).toBeHidden();
   });
 
   test("23:30 — 오늘 일정 종료와 내일 일정 보기", async ({ page }) => {
@@ -89,14 +89,15 @@ test.describe("홈 일정 시각 상태 @regression", () => {
     await gotoReady(page, "/");
     const islands = page.getByRole("region", { name: "모험 섬" });
     await expect(islands.locator("header")).toContainText("오늘 일정 종료");
-    // 숨김 켬(기본): 오늘 회차가 모두 지난 행은 숨겨진다.
+    // 숨김 켬(기본): 오늘 회차가 모두 지난 행도 남고, 시각 자리는 숨긴 채 "오늘 종료"로 읽힌다(PM-프론트 10-13).
     const hide = page.getByRole("button", { name: "지난 회차 숨김" });
     await expect(hide).toHaveAttribute("aria-pressed", "true");
-    await expect(islands.getByRole("listitem")).toHaveCount(0);
-    // 숨김 끔: 행과 지난 시각이 다시 보이고, 지난 시각은 취소선이다.
+    await expect(islands.getByRole("listitem").first()).toContainText("오늘 종료");
+    await expect(islands.locator("time").first()).toBeHidden();
+    // 숨김 끔: 지난 시각이 같은 자리에 취소선으로 다시 보이고 "오늘 종료"는 사라진다.
     await hide.click();
     await expect(hide).toHaveAttribute("aria-pressed", "false");
-    await expect(islands.getByRole("listitem").first()).toBeVisible();
+    await expect(islands.getByText("오늘 종료")).toHaveCount(0);
     const past = islands.locator("time[data-past]");
     expect(await past.count()).toBeGreaterThan(0);
     await expect(past.first()).toHaveCSS("text-decoration-line", "line-through");
