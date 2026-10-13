@@ -47,6 +47,7 @@ for (const width of [1280, 360]) {
     await expect(page.getByText("전투력 기록 없음")).toHaveCount(0);
     await expect(power).toContainText("(5명)");
 
+    await expectNoHorizontalOverflow(page);
     await page.waitForTimeout(500);
     expect(await quietShift(page), "기록 도착·불러오기 완료 뒤 layout-shift").toBe(0);
   });
