@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { ArrowLeft, Coin } from "@/components/ui/icons";
 import Link from "next/link";
 import { SiteHeader } from "@/components/site/site-header";
@@ -106,8 +106,17 @@ function ModeTable({ raid, mode }: { raid: Raid; mode: Mode }) {
   );
 }
 
-function RaidCard({ raid, order }: { raid: Raid; order: number }) {
-  const [difficulty, setDifficulty] = useState(raid.modes[0].difficulty);
+function RaidCard({
+  raid,
+  order,
+  difficulty,
+  setDifficulty,
+}: {
+  raid: Raid;
+  order: number;
+  difficulty: Difficulty | undefined;
+  setDifficulty: (difficulty: Difficulty) => void;
+}) {
   const mode = raid.modes.find((m) => m.difficulty === difficulty) ?? raid.modes[0];
   const groupName = `raid-${raid.id}`;
   return (
@@ -154,12 +163,14 @@ export function RaidRewardsTable() {
   // 모션 목록(레이드 보상): the cards enter once, 30ms apart (.k-reveal).
   // Once that is over, cards a filter brings back appear at once — a filter
   // is a frequent action and should not replay the entry.
-  const grid = useRef<HTMLDivElement>(null);
+  const [settled, setSettled] = useState(false);
   useEffect(() => {
-    const timer = setTimeout(() => grid.current?.setAttribute("data-settled", ""), 800);
+    const timer = setTimeout(() => setSettled(true), 800);
     return () => clearTimeout(timer);
   }, []);
   const [filter, setFilter] = useState<Category | "ALL">("ALL");
+  // Held here so a card a filter draws again keeps its difficulty.
+  const [difficulties, setDifficulties] = useState<Partial<Record<string, Difficulty>>>({});
   const raids = RAID_DATA.raids.filter((r) => filter === "ALL" || r.category === filter);
   const rules = RAID_DATA.rules;
   return (
@@ -210,9 +221,18 @@ export function RaidRewardsTable() {
               ))}
             </div>
 
-            <div className={styles.grid} ref={grid}>
+            {/* A filter draws a new grid (keyed by it) instead of sliding the
+                cards that stay, and the grid is at least a screen tall so the
+                note and footer below never move into view (A7). */}
+            <div className={styles.grid} key={filter} data-settled={settled || undefined}>
               {raids.map((raid, order) => (
-                <RaidCard key={raid.id} raid={raid} order={order} />
+                <RaidCard
+                  key={raid.id}
+                  raid={raid}
+                  order={order}
+                  difficulty={difficulties[raid.id]}
+                  setDifficulty={(difficulty) => setDifficulties((prev) => ({ ...prev, [raid.id]: difficulty }))}
+                />
               ))}
             </div>
 
