@@ -117,9 +117,8 @@ function SummaryCards({ query }: { query: StatsQuery }) {
   const reference = s.meta.sampleStatus !== "READY";
   return (
     <>
-      {/* Drawn anew per answer: numbers rewritten in place count as moving (A7). */}
-      <Notice key={summary.dataUpdatedAt} meta={s.meta} stale={summary.isPlaceholderData} />
-      <dl key={summary.dataUpdatedAt} className={styles.cards} data-reference={reference || undefined} {...pendingProps(summary)}>
+      <Notice meta={s.meta} stale={summary.isPlaceholderData} />
+      <dl className={styles.cards} data-reference={reference || undefined} {...pendingProps(summary)}>
         <div>
           <dt>표본</dt>
           <dd>{whole(s.meta.population)}명</dd>
