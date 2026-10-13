@@ -18,23 +18,27 @@ for (const width of [1280, 360]) {
     await expect(board.getByRole("button", { name: /매물 보기$/ })).toHaveCount(19);
     await expect(board.getByText("집계 중")).toHaveCount(1);
 
+    // A7: from the first press on, shifts right after an input count too.
+    const firstLoad = await page.evaluate(() => window.__shifts.reduce((a, e) => a + e.v, 0));
+    expect(firstLoad, "첫 로드 layout-shift").toBe(0);
+    await page.evaluate(() => (window.__shifts = []));
     await board.getByRole("button", { name: "10레벨 겁화의 보석 매물 보기" }).click();
     await expect(page).toHaveURL(/kind=%EA%B2%81%ED%99%94&level=10/);
     const listings = page.getByRole("table", { name: "보석 매물" });
-    await expect(listings.locator("tbody tr")).toHaveCount(10);
+    await expect(listings.locator("tbody tr:not([aria-hidden])")).toHaveCount(10);
     await expect(page.getByRole("heading", { name: /10레벨 겁화의 보석 매물 · 14개 중 싼 순/ })).toBeVisible();
     await page.getByRole("navigation", { name: "매물 쪽 이동" }).getByRole("button", { name: "2" }).click();
-    await expect(listings.locator("tbody tr")).toHaveCount(4);
+    await expect(listings.locator("tbody tr:not([aria-hidden])")).toHaveCount(4);
 
     await page.waitForTimeout(500);
-    const quiet = await page.evaluate(() => window.__shifts.filter((e) => !e.input).reduce((a, e) => a + e.v, 0));
-    expect(quiet, "첫 로드·매물 도착 뒤 layout-shift").toBe(0);
+    const moved = await page.evaluate(() => window.__shifts.reduce((a, e) => a + e.v, 0));
+    expect(moved, "칸 누름·쪽 이동 뒤 layout-shift(입력 직후 포함)").toBe(0);
   });
 }
 
 test("보석 시세: 공유 주소로 바로 매물 @regression", async ({ page }) => {
   await gotoReady(page, "/market/gems?kind=%EC%9E%91%EC%97%B4&level=3");
   await expect(page.getByRole("heading", { name: /3레벨 작열의 보석 매물/ })).toBeVisible();
-  await expect(page.getByRole("table", { name: "보석 매물" }).locator("tbody tr")).toHaveCount(3);
+  await expect(page.getByRole("table", { name: "보석 매물" }).locator("tbody tr:not([aria-hidden])")).toHaveCount(3);
   await expect(page.getByRole("button", { name: "3레벨 작열의 보석 매물 보기" })).toHaveAttribute("aria-pressed", "true");
 });

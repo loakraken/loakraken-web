@@ -216,6 +216,13 @@ export function GemBoardView({ initialPick }: { initialPick: GemPick | null }) {
                       <td>{item.tradeAllowCount == null ? "-" : item.tradeAllowCount === 0 ? "불가" : `${item.tradeAllowCount}회`}</td>
                     </tr>
                   ))}
+                  {/* A short page keeps ten rows of room, so the box and the
+                      page buttons stay put from page to page (A7). */}
+                  {Array.from({ length: Math.max(0, 10 - page.items.length) }, (_, i) => (
+                    <tr key={`filler-${i}`} aria-hidden="true" className={styles.filler}>
+                      <td colSpan={5}>{" "}</td>
+                    </tr>
+                  ))}
                 </tbody>
               </DataTable>
               {pages > 1 && (
