@@ -57,3 +57,21 @@ export function avatarEffectTotals(avatars: Avatar[]) {
     value: Math.round(value * 100) / 100,
   }));
 }
+
+type CollectibleItem = Character["collectibles"][number]["items"][number];
+
+/**
+ * 가장 희귀한 보유 (character screen checklist §14.1 ⑧): of the items this
+ * character has finished, the one the fewest observed rosters own. Items
+ * without a share (not in the sample) are left out; ties keep list order.
+ */
+export function rarestOwned(items: readonly CollectibleItem[], shareOf: (name: string | null) => number | null) {
+  let best: { name: string; share: number } | null = null;
+  for (const item of items) {
+    const done = item.maxPoint != null && item.point === item.maxPoint;
+    const share = shareOf(item.name);
+    if (!done || share == null || !item.name) continue;
+    if (!best || share < best.share) best = { name: item.name, share };
+  }
+  return best;
+}
