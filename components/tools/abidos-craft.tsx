@@ -50,13 +50,18 @@ function Figure({ text, tone }: { text: string; tone?: "up" | "down" }) {
 const profitFigure = (value: number | null, priced: boolean) =>
   !priced ? <Figure text="—" /> : value == null ? <Figure text={UNKNOWN} /> : <Figure text={signed(value)} tone={value >= 0 ? "up" : "down"} />;
 
-/** Profit, and under it the same per 100 estate energy (a line held from the first paint). */
+/**
+ * Profit, and under it the same per 100 estate energy (a line held from the
+ * first paint). The words are in the header; read out here for screen readers.
+ */
 function ProfitCell({ value, per100, priced }: { value: number | null; per100: number | null; priced: boolean }) {
+  const shown = priced && per100 != null;
   return (
     <td className={styles.num}>
       {profitFigure(value, priced)}
       <small className={styles.perEnergy}>
-        <Figure text={priced && per100 != null ? `100 활동력당 ${signed(per100)}` : ""} />
+        {shown && <span className={styles.sr}>100 활동력당 </span>}
+        <Figure text={shown ? signed(per100) : ""} />
       </small>
     </td>
   );
@@ -127,10 +132,10 @@ function OutputTable({ results, priced }: { results: CraftResult[]; priced: bool
                 1회 비용
               </th>
               <th scope="col" className={styles.num}>
-                판매 시
+                판매 시<small>100 활동력당</small>
               </th>
               <th scope="col" className={styles.num}>
-                직접 사용 시
+                직접 사용 시<small>100 활동력당</small>
               </th>
             </tr>
           </thead>

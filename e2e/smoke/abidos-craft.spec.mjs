@@ -15,6 +15,7 @@ test.describe("아비도스 제작 손익 @smoke", () => {
     // 직접 사용 이익과 그 아래 100 활동력당(기본 활동력 288) 줄.
     const use = 105 * 90 - 996;
     await expect(logging.getByRole("cell").nth(2)).toHaveText(`+${use.toLocaleString("ko-KR")}100 활동력당 +${Math.round((use * 100) / 288).toLocaleString("ko-KR")}`);
+    await expect(normal.getByRole("columnheader", { name: /^직접 사용 시\s*100 활동력당$/ })).toBeVisible();
     // 목 서버에 "생선" 시세가 없다.
     const fishing = normal.getByRole("row", { name: /^낚시/ });
     await expect(fishing).toContainText("미확인: 생선");

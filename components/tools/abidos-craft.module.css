@@ -175,6 +175,10 @@
 .table thead .num {
   white-space: normal;
 }
+.table thead small {
+  display: block;
+  font-size: var(--text-caption);
+}
 .table td[data-empty] {
   color: var(--muted-foreground);
   font-size: var(--text-caption);
