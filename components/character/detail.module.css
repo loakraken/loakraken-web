@@ -1999,12 +1999,6 @@
 .specUpFailure button:not([aria-disabled="true"]):active {
   scale: var(--press-scale);
 }
-@media (prefers-reduced-motion: reduce) {
-  .specUpSorts button:active,
-  .specUpFailure button:active {
-    scale: none;
-  }
-}
 .specUpSorts button[aria-pressed="true"] {
   border-color: var(--foreground);
   background: var(--foreground);
