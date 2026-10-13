@@ -93,3 +93,7 @@
     transition: none;
   }
 }
+/* Empty rows that keep a short listings page ten rows tall. */
+.filler td {
+  border-bottom-color: transparent !important;
+}
