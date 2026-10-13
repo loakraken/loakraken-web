@@ -4,7 +4,12 @@
 //
 // Rules:
 // - The winning bid is split equally among the other party members.
-// - Selling on the market costs a 5% fee, rounded up (99,999 → 5,000).
+// - Selling on the market costs a 5% fee, rounded up (99,999 → 5,000); a sale
+//   of 1 gold or less pays none. Sources (PM 총괄 2026-10-13, E36): the
+//   exemption is the official game guide "거래소" (updated 2025-07-30,
+//   https://lostark.game.onstove.com/GameGuide/Pages/%EA%B1%B0%EB%9E%98%EC%86%8C),
+//   which states the fee without a rate; the 5% rate is the allowed single-site
+//   measurement (auction calculator, checked 2026-10-13).
 // - A counter-bid must be 10% higher, so bidding break-even ÷ 1.1 leaves no
 //   room for a profitable counter-bid. The official rule text was not checked, so the UI marks it "추정".
 // - A winning bid over 100,000G loses 5% of the part above 100,000 before it
@@ -16,6 +21,8 @@
 // arithmetic so large prices never drift.
 
 export const MARKET_FEE_PERCENT = 5;
+/** Sales at or below this price pay no market fee (official guide "거래소"). */
+export const MARKET_FEE_FREE_UPTO = 1;
 export const MIN_PARTY = 2;
 export const MAX_PARTY = 30;
 export const MAX_PRICE = 1_000_000_000;
@@ -84,6 +91,7 @@ const scale = (value: number, num: number, den: number) =>
   Math.floor((value * num) / den);
 
 export function marketFee(price: number) {
+  if (price <= MARKET_FEE_FREE_UPTO) return 0;
   return Math.ceil((price * MARKET_FEE_PERCENT) / 100);
 }
 

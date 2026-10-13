@@ -239,7 +239,7 @@ function Summary({ result }: { result: AuctionResult | null }) {
           <dd data-figure="">{value((r) => r.saleGold)}</dd>
         </div>
         <div>
-          <dt>거래소 수수료 5%</dt>
+          <dt>판매 수수료 5%(1골드 이하 면제)</dt>
           <dd data-figure="">{value((r) => r.fee)}</dd>
         </div>
         <div>
@@ -361,7 +361,7 @@ function Basis() {
       <summary>계산 기준</summary>
       <ul>
         <li>
-          거래소 판매 수수료는 5%이고, 1골드 미만은 올려서 계산해요.
+          거래소 판매 수수료는 5%이고(1골드 이하 면제), 1골드 미만은 올려서 계산해요.
         </li>
         <li>
           낙찰 골드는 낙찰자에게 돌아가지 않고 나머지 인원이 나눠요. 손익
