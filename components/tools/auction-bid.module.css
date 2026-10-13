@@ -162,22 +162,11 @@
   border-radius: 50%;
   background: transparent;
   color: var(--faint);
-  position: relative;
+  /* 24px drawn, 44px to touch on phones: the hit-44 utility (A36). */
   transition: scale var(--duration-fast) var(--ease-out);
-}
-/* 24px drawn, 44px to touch: the hit area grows, the line does not move. */
-.tipButton::after {
-  content: "";
-  position: absolute;
-  inset: -10px;
 }
 .tipButton:active {
   scale: var(--press-scale);
-}
-@media (prefers-reduced-motion: reduce) {
-  .tipButton:active {
-    scale: none;
-  }
 }
 .tipButton:hover {
   color: var(--foreground);

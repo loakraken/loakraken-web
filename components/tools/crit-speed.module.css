@@ -132,6 +132,13 @@
   gap: 6px;
   margin-top: 8px;
 }
+/* Where hit-44 is on (phones, touch), the 32px chips take 44px to tap: rows
+   12px apart so the tap areas of two rows never overlap (A36). */
+@media (max-width: 699px), (pointer: coarse) {
+  .chips {
+    row-gap: 12px;
+  }
+}
 .chips .chip {
   /* A31: one line, never split (badge/chip/unit). */
   flex: none;
@@ -210,6 +217,12 @@
   padding: 28px clamp(20px, 3vw, 36px);
   border-radius: var(--radius-xl);
   background: var(--background);
+}
+/* Its own block formatting context: the failure notice's top margin stays
+   inside instead of collapsing through and moving the region down 18px when
+   it replaces the loading line (360 0.0023). */
+.live {
+  display: flow-root;
 }
 .empty {
   display: flex;
@@ -455,15 +468,18 @@
   .columns {
     grid-template-columns: 1fr;
   }
-  /* Phones: the answer first, the assumptions to tweak below it. */
+  /* Phones: the answer first, the assumptions to tweak below it. The
+     answer area holds a screen of room in every state (before the first
+     calculation too): the settings below start off screen, so pressing
+     계산하기 no longer pushes them down (apple-design 재검수, 360 0.0228/0.30
+     → 0), nor does the result arriving (390 CLS 0.37 earlier). svh, not dvh:
+     dvh changes as the address bar hides and shows, moving the settings while
+     the page scrolls (PM-프론트 #776). */
   .output {
     order: -1;
+    min-height: 100svh;
   }
-  /* The answer comes first on phones, so while it loads hold a screen of
-     room: the settings below start off screen and do not jump when the
-     result arrives (390 CLS 0.37 → see PR). */
   .empty[data-loading] {
-    min-height: 100dvh;
     align-items: flex-start;
   }
   .settings {

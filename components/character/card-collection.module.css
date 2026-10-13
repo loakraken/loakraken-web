@@ -273,8 +273,35 @@
   cursor: default;
   opacity: 0.6;
 }
-.refillButton:not([aria-disabled="true"]):hover {
-  background: color-mix(in oklab, var(--secondary) 80%, var(--foreground) 6%);
+@media (hover: hover) and (pointer: fine) {
+  .refillButton:not([aria-disabled="true"]):hover {
+    background: color-mix(in oklab, var(--secondary) 80%, var(--foreground) 6%);
+  }
+}
+.refillButton:not([aria-disabled="true"]):active {
+  transform: scale(0.97);
+}
+.refillButton {
+  transition: transform 100ms ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .refillButton {
+    transition: none;
+  }
+}
+@media (max-width: 699px), (pointer: coarse) {
+  .refillButton {
+    position: relative;
+  }
+  .refillButton::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+    translate: -50% -50%;
+  }
 }
 .refillStatus {
   margin: 0;

@@ -378,9 +378,10 @@
   }
 }
 
-/* Same height as the loading shell (homework-loader): a screen at least. */
+/* Same height as the loading shell (homework-loader): a screen at least.
+   svh: dvh changes as a phone address bar hides and shows (PM-프론트 #776). */
 .main {
-  min-height: 100dvh;
+  min-height: 100svh;
 }
 
 .raidTools {

@@ -323,8 +323,10 @@
   border-radius: 4px 4px 0 0;
   background: color-mix(in oklab, var(--primary) 80%, transparent);
 }
-.histogram li:hover i {
-  background: var(--link);
+@media (hover: hover) and (pointer: fine) {
+  .histogram li:hover i {
+    background: var(--link);
+  }
 }
 .histogram li[data-hit] i {
   background: var(--foreground);
@@ -471,8 +473,10 @@
   color: var(--link);
   text-decoration: none;
 }
-.charLink:hover {
-  text-decoration: underline;
+@media (hover: hover) and (pointer: fine) {
+  .charLink:hover {
+    text-decoration: underline;
+  }
 }
 .table td[data-strong] {
   color: var(--foreground);
@@ -501,6 +505,53 @@
 }
 .pager button:disabled {
   color: var(--muted-foreground);
+}
+/* Segment and page buttons answer the press at once (scale, no layout), a
+   hover tint only where there is a pointer that hovers, and on a phone a
+   44px press area around the visible pill — the same rule as the hit-44
+   utility, which a module selector cannot take. */
+.segment button,
+.pager button {
+  transition:
+    transform 100ms ease-out,
+    background-color 160ms ease-out;
+}
+.segment button:active,
+.pager button:not(:disabled):active {
+  transform: scale(0.97);
+}
+@media (hover: hover) and (pointer: fine) {
+  .segment button:not([aria-pressed="true"]):hover,
+  .pager button:not([aria-current="page"]):not(:disabled):hover {
+    background: var(--hover-surface);
+  }
+}
+@media (max-width: 699px), (pointer: coarse) {
+  .segment button,
+  .pager button {
+    position: relative;
+  }
+  .segment button::after,
+  .pager button::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+    translate: -50% -50%;
+  }
+  /* 36px pills (34 tall), 44px areas: the gaps keep neighbours apart, also
+     when the row wraps. */
+  .pager {
+    gap: 10px 8px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .segment button,
+  .pager button {
+    transition: none;
+  }
 }
 .table .left {
   text-align: left;

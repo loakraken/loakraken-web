@@ -66,7 +66,7 @@ function FormulaTip({ label, formula }: { label: string; formula: string }) {
   return (
     <Tooltip>
       <TooltipTrigger
-        className={styles.tipButton}
+        className={`${styles.tipButton} hit-44`}
         aria-label={`${label} 계산식`}
       >
         <InfoCircle size={14} aria-hidden="true" />

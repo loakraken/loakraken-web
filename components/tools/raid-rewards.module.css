@@ -67,11 +67,6 @@
 .chip:active {
   scale: var(--press-scale);
 }
-@media (prefers-reduced-motion: reduce) {
-  .chip:active {
-    scale: none;
-  }
-}
 .chip[aria-pressed="true"] {
   border-color: var(--primary);
   background: var(--primary);
@@ -80,7 +75,8 @@
 
 .grid {
   display: grid;
-  min-height: 100dvh;
+  /* svh: dvh changes as a phone address bar hides and shows (PM-프론트 #776). */
+  min-height: 100svh;
   align-content: start;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-5);
