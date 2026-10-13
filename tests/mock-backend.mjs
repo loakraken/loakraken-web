@@ -859,6 +859,29 @@ createServer(async (req, res) => {
     const items = q.length < 1 ? [] : known.filter((c) => c.characterName.startsWith(q)).slice(0, 8);
     return send({ code: "CHARACTER_SUGGEST_SUCCESS", message: "ok", data: { items } });
   }
+  // Popular guilds (api #467, M21): rank, server and guild only. 24h has 10
+  // guilds on two servers, 7d four; 니나브 is still collecting.
+  if (url.pathname === "/api/v1/guilds/popular") {
+    const period = url.searchParams.get("period") || "24h";
+    const server = url.searchParams.get("server");
+    const all = Array.from({ length: period === "7d" ? 4 : 10 }, (_, i) => ({
+      serverName: i % 2 ? "카단" : "아만",
+      guildName: `인기길드${i + 1}`,
+    }));
+    const collecting = server === "니나브";
+    const items = collecting ? [] : all.filter((g) => !server || g.serverName === server).map((g, i) => ({ rank: i + 1, ...g }));
+    return send({
+      code: "GUILD_POPULAR_SUCCESS",
+      message: "성공",
+      data: {
+        period,
+        aggregatedAt: new Date().toISOString(),
+        sampleStatus: collecting ? "COLLECTING" : "READY",
+        ruleVersion: "popular-guild-v1",
+        items,
+      },
+    });
+  }
   if (url.pathname === "/api/v1/characters/popular") {
     // Backend F-10 sample; 7d shows the collecting state.
     const body = JSON.parse(readFileSync(new URL("./popular-fixtures/characters-popular.json", import.meta.url), "utf8"));
@@ -1333,6 +1356,9 @@ createServer(async (req, res) => {
   // server change brings other rows (A7 table widths).
   if (url.pathname === "/api/v1/rankings/guilds") {
     const server = url.searchParams.get("server");
+    // Name search (api #466): matching rows keep their overall rank; "빠진" matches
+    // two guilds left out for too few members seen.
+    const guild = url.searchParams.get("guild");
     const sort = url.searchParams.get("sort") ?? "AVG";
     const guilds = (server === "아만"
       ? [["합성길드아만", "아만", 9, 1702.35, 8, 3010.5], ["짧은길드", "아만", 6, 1688, 0, null]]
@@ -1360,7 +1386,17 @@ createServer(async (req, res) => {
           populationUnit: "GUILD",
         },
         sort, page: 1, size: 50, minMembers: 5, excludedGuilds: server === "아만" ? 3 : 41,
-        rows: guilds.map((row, i) => ({ rank: i + 1, ...row })),
+        ...(guild
+          ? {
+              matchCount: guilds.filter((row) => row.guildName.toLowerCase().includes(guild.toLowerCase())).length,
+              excludedMatches: guild === "빠진" ? 2 : 0,
+            }
+          : { matchCount: null, excludedMatches: null }),
+        rows: guilds
+          .map((row, i) => ({ rank: i + 1, ...row }))
+          .filter((row) => !guild || row.guildName.toLowerCase().includes(guild.toLowerCase()))
+          // One page holds every guild here: a later page is empty.
+          .filter(() => Number(url.searchParams.get("page") ?? 1) <= 1),
       },
     });
   }

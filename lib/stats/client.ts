@@ -11,6 +11,7 @@ import {
 } from "./rankings";
 import { rosterSearch, type RosterQuery, type RosterRankingEnvelope } from "./roster-ranking";
 import { guildSearch, type GuildQuery, type GuildRankingEnvelope } from "./guild-ranking";
+import { popularGuildsSearch, type PopularGuildsEnvelope, type PopularGuildsQuery } from "./popular-guilds";
 import { titleEquipSearch, type TitleEquipEnvelope, type TitleEquipQuery } from "./title-equip";
 import { collectibleSearch, type CollectibleQuery, type CollectibleRankingEnvelope } from "./collectible-ranking";
 
@@ -43,6 +44,9 @@ export const fetchTitleEquip = (query: TitleEquipQuery, signal: AbortSignal) =>
 
 export const fetchGuildRanking = (query: GuildQuery, signal: AbortSignal) =>
   call<GuildRankingEnvelope>(`/api/rankings/guilds?${guildSearch(query)}`, signal);
+
+export const fetchPopularGuilds = (query: PopularGuildsQuery, signal: AbortSignal) =>
+  call<PopularGuildsEnvelope>(`/api/guilds/popular?${popularGuildsSearch(query)}`, signal);
 
 export const fetchRosterRanking = (query: RosterQuery, signal: AbortSignal) =>
   call<RosterRankingEnvelope>(`/api/rankings/rosters?${rosterSearch(query)}`, signal);

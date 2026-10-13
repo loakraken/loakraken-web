@@ -596,3 +596,21 @@
     min-height: 4.5em;
   }
 }
+/* 길드 찾기 (M21): a name of up to 12 letters; the hint floats in the padding under it. */
+.filters .guildSearch {
+  position: relative;
+}
+.filters .guildSearch input {
+  width: 160px;
+}
+.filters .guildSearch small {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 1px;
+  color: var(--destructive);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 12px;
+  white-space: nowrap;
+}

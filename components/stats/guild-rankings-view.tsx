@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { SiteHeader } from "@/components/site/site-header";
@@ -16,11 +16,13 @@ import {
   GUILD_PAGE_SIZE,
   GUILD_SORTS,
   guildSearch,
+  isGuildName,
   type GuildQuery,
 } from "@/lib/stats/guild-ranking";
 import quote from "@/components/tools/material-quote.module.css";
 import styles from "./stats.module.css";
 import { BasisNote } from "./basis-note";
+import { PopularGuilds } from "./popular-guilds";
 import { rankingColumns } from "./ranking-columns";
 import { RankingTypeTabs, type RankingType } from "./ranking-type-tabs";
 
@@ -34,11 +36,24 @@ const COLUMNS = rankingColumns([3.5, 14, 6, 8.5, 7, 9]);
  * their item level average or sum. Every value is over the members seen, so
  * the member column and the note say so; it is never the guild's real size.
  */
-export function GuildRankingsView({ initial, types }: { initial: GuildQuery; types: readonly RankingType[] }) {
+export function GuildRankingsView({
+  initial,
+  types,
+  popular = false,
+}: {
+  initial: GuildQuery;
+  types: readonly RankingType[];
+  /** POPULAR_GUILDS on this deployment (server flag): the 인기 길드 card. */
+  popular?: boolean;
+}) {
   const router = useRouter();
   const [query, setQuery] = useState<GuildQuery>(initial);
   const latest = useRef(initial);
   const serverId = useId();
+  const guildId = useId();
+  const guildHintId = useId();
+  const [guildText, setGuildText] = useState(initial.guild ?? "");
+  const guildTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const list = useQuery({
     queryKey: ["guild-rankings", query],
     queryFn: ({ signal }) => fetchGuildRanking(query, signal),
@@ -49,7 +64,9 @@ export function GuildRankingsView({ initial, types }: { initial: GuildQuery; typ
   const limit = useRateLimit(list.error);
   const data = list.data?.data;
   const population = data?.meta?.population ?? 0;
-  const pages = Math.max(1, Math.min(GUILD_MAX_PAGE, Math.ceil(population / GUILD_PAGE_SIZE)));
+  // A name search pages by the guilds that matched and made the ranking (api #466).
+  const counted = query.guild ? (data?.matchCount ?? 0) : population;
+  const pages = Math.max(1, Math.min(GUILD_MAX_PAGE, Math.ceil(counted / GUILD_PAGE_SIZE)));
   const ready = data?.meta?.sampleStatus === "READY";
 
   function apply(next: GuildQuery) {
@@ -58,6 +75,24 @@ export function GuildRankingsView({ initial, types }: { initial: GuildQuery; typ
     router.replace(`?${guildSearch(next)}`, { scroll: false });
   }
   const filter = (patch: Partial<GuildQuery>) => apply({ ...latest.current, ...patch, page: 1 });
+  /** A typed name applies 300 ms after the last keystroke; one the backend would refuse waits. */
+  const guildTrim = guildText.trim();
+  const guildInvalid = guildTrim !== "" && !isGuildName(guildTrim);
+  function typeGuild(text: string) {
+    setGuildText(text);
+    clearTimeout(guildTimer.current);
+    const name = text.trim();
+    if (name !== "" && !isGuildName(name)) return;
+    guildTimer.current = setTimeout(() => filter({ guild: name || undefined }), 300);
+  }
+  useEffect(() => () => clearTimeout(guildTimer.current), []);
+  // A link past the last page of a name search (guild=…&page=9) has matches
+  // but no rows on that page: show page 1 rather than "not in the ranking".
+  const pastLast = Boolean(query.guild && query.page > 1 && data && !data.rows?.length && (data.matchCount ?? 0) > 0);
+  useEffect(() => {
+    if (pastLast) apply({ ...latest.current, page: 1 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only when the page turns out empty
+  }, [pastLast]);
   const sortLabel = GUILD_SORTS.find((item) => item.id === query.sort)?.label ?? "아이템 레벨 평균";
   const pageWindow = Array.from({ length: Math.min(pages, 7) }, (_, i) => {
     const start = Math.min(Math.max(1, query.page - 3), Math.max(1, pages - 6));
@@ -100,11 +135,38 @@ export function GuildRankingsView({ initial, types }: { initial: GuildQuery; typ
               items={[{ value: "", label: "전체" }, ...SERVERS.map((s) => ({ value: s, label: s }))]}
             />
           </label>
+          {/* The hint sits beside the label, not in it: the input's name stays
+              "길드 찾기" and the hint only describes it. */}
+          <span className={styles.guildSearch}>
+            <label htmlFor={guildId}>
+              길드 찾기
+              <input
+                id={guildId}
+                type="search"
+                name="guild"
+                value={guildText}
+                maxLength={12}
+                autoComplete="off"
+                spellCheck={false}
+                placeholder="길드 이름 일부…"
+                aria-invalid={guildInvalid || undefined}
+                aria-describedby={guildInvalid ? guildHintId : undefined}
+                onChange={(e) => typeGuild(e.target.value)}
+              />
+            </label>
+            {/* Under the input, out of the row's layout: it never moves the
+                table while typing (A7). */}
+            <small id={guildHintId} aria-live="polite">
+              {guildInvalid ? "글자와 숫자만 찾을 수 있어요." : ""}
+            </small>
+          </span>
         </form>
 
         {/* One height for loading, empty and short lists, so the notes below
             never move when the rows arrive (CLS). */}
-        <div className={styles.listHold} {...pendingProps(list)}>
+        {/* Dimmed while a name the backend would refuse is typed: the rows
+            are still the last search's (same look as new conditions loading). */}
+        <div className={styles.listHold} {...pendingProps({ isPlaceholderData: list.isPlaceholderData || guildInvalid })}>
           {data?.meta && (
             <p key={list.dataUpdatedAt} className={`${styles.notice} ${styles.rankingNotice}`}>
               {sampleText(data.meta, "guild")} · 공식 랭킹이 아니에요
@@ -126,7 +188,13 @@ export function GuildRankingsView({ initial, types }: { initial: GuildQuery; typ
             </p>
           ) : !data.rows?.length ? (
             <p className={styles.muted}>
-              {population === 0 ? "길드 표본을 모으는 중이에요." : "조건에 맞는 길드가 없어요."}
+              {population === 0
+                ? "길드 표본을 모으는 중이에요."
+                : query.guild
+                  ? (data.excludedMatches ?? 0) > 0
+                    ? `‘${query.guild}’이(가) 들어간 길드 ${whole(data.excludedMatches ?? 0)}개는 확인한 길드원이 ${whole(data.minMembers)}명보다 적어 순위에 없어요.`
+                    : `‘${query.guild}’이(가) 들어간 길드가 순위에 없어요.`
+                  : "조건에 맞는 길드가 없어요."}
             </p>
           ) : (
             <DataTable
@@ -212,6 +280,8 @@ export function GuildRankingsView({ initial, types }: { initial: GuildQuery; typ
           {data && "."}
         </p>
         {data?.meta && <BasisNote basis={{ ...data.meta, unit: "개 길드" }} />}
+        {/* Last on the page: arriving later, it pushes nothing above it (A6). */}
+        {popular && <PopularGuilds server={query.server} />}
       </main>
     </div>
   );
