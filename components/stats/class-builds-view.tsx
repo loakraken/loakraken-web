@@ -97,19 +97,25 @@ const values = (
   label: (value: number) => string,
 ): Row[] => (cells ?? []).map((cell) => ({ label: label(cell.value), count: cell.count, share: cell.share ?? null }));
 
+/** From the whole class sample whatever the filter, so it stands even when the filter's sample is short. */
+function ClassEngravings({ data }: { data: ClassBuilds }) {
+  return (
+    <Section
+      title="직업 각인"
+      definition={data.definitions?.classEngravings}
+      rows={names(data.classEngravings?.cells)}
+      hidden={data.classEngravings?.hidden}
+      people
+    />
+  );
+}
+
 function Sections({ data }: { data: ClassBuilds }) {
   const d = data.definitions ?? {};
   const ap = data.arkPassivePoints;
   return (
     <div className={own.grid}>
-      <Section
-        title="직업 각인"
-        definition={d.classEngravings}
-        rows={names(data.classEngravings?.cells)}
-        hidden={data.classEngravings?.hidden}
-        people
-        note={data.classEngravingStatus === "COLLECTING" ? "직업 전체 표본이 적어 참고값이에요" : null}
-      />
+      <ClassEngravings data={data} />
       <Section
         title="각인 조합"
         definition={d.engravingCombos}
@@ -222,6 +228,8 @@ export function ClassBuildsView({ initial }: { initial: ClassBuildsQuery }) {
   const data = builds.data?.data;
   const meta = data?.meta;
   const collecting = meta?.sampleStatus === "COLLECTING";
+  // The filter's sample can be short while the whole class is not (api #468).
+  const classEngravingsShown = data?.classEngravingStatus === "READY" && !!data.classEngravings?.cells.length;
   // Another filter's shorter sections keep the room (A7).
   const [sectionsRef, sectionsHeight] = useTallest();
 
@@ -306,9 +314,21 @@ export function ClassBuildsView({ initial }: { initial: ClassBuildsQuery }) {
               직업 통계를 불러오고 있어요…
             </p>
           ) : collecting ? (
-            <p className={styles.muted}>
-              {meta?.population ? `아직 표본이 ${whole(meta.population)}명이라 보여 드리지 않아요.` : "아직 이 직업의 표본이 없어요."}
-            </p>
+            // Drawn anew per answer like the sections (A7).
+            <div key={builds.dataUpdatedAt} className={own.collecting}>
+              <p className={styles.muted}>
+                {!meta?.population
+                  ? "아직 이 직업의 표본이 없어요."
+                  : query.classEngraving && classEngravingsShown
+                    ? `${query.classEngraving} 표본이 아직 ${whole(meta.population)}명이라 항목은 보여 드리지 않아요. 직업 각인 비율은 직업 전체 표본으로 보여 드려요.`
+                    : `아직 표본이 ${whole(meta.population)}명이라 보여 드리지 않아요.`}
+              </p>
+              {classEngravingsShown && (
+                <div className={own.grid}>
+                  <ClassEngravings data={data} />
+                </div>
+              )}
+            </div>
           ) : (
             // Drawn anew when an answer lands: counts rewritten in place (right
             // aligned) start elsewhere and count as moving (A7).
