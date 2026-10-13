@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Guards against regressions the user has already pointed out once
-// (vault: 30 PM/사용자 지적 회귀 점검표, rows A1 A2 A9 A11 A13 B2 B3).
+// (vault: 30 PM/사용자 지적 회귀 점검표, rows A1 A2 A9 A11 A13 A34 B2 B3).
 // Fast and dependency-free: it reads the source, strips comments (a comment
 // may name a rule; the screen may not) and fails CI with the
 // file, line and the checklist row that was broken.
@@ -133,6 +133,12 @@ const RULES = [
     allowKey: "A13",
   },
   {
+    row: "A34",
+    what: "글자색에 채우기 토큰 --primary — 글자는 --link(3테마 4.5:1)",
+    files: CODE,
+    test: /\btext-(?:primary|\(--primary\))(?![\w-])/,
+  },
+  {
     row: "B2",
     what: "'다를 수 있' 같은 애매한 단서 — 원인을 고치고 확실한 문장으로",
     files: CODE,
@@ -182,6 +188,12 @@ for (const top of SCAN) {
     const raw = readFileSync(full, "utf8");
     const src = stripComments(raw, isStyle);
     if (isStyle) {
+      // A34: --primary is a fill (button background); as text it falls under
+      // 4.5:1 in the dim and dark themes. Text and icons take --link.
+      src.split("\n").forEach((line, i) => {
+        if (/(?<![\w-])color\s*:\s*var\(--primary\)\s*(;|$|\})/.test(line))
+          errors.push(`${path}:${i + 1}  [A34] 글자색에 채우기 토큰 --primary — 글자는 --link(3테마 4.5:1)`);
+      });
       for (const hit of hoverLiterals(src)) {
         errors.push(`${path}:${lineOf(src, hit.offset)}  [A11] hover에 고정색 — 토큰(--hover-surface 등)만: ${hit.text}`);
       }

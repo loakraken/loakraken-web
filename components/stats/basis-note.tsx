@@ -21,6 +21,8 @@ export type Basis = {
   conditions: StatsMeta["conditions"];
   aggregatedAt: string;
   minSample: number;
+  /** What is counted after the number: "명" (default), "개 원정대", "개 길드". */
+  unit?: string;
 };
 
 /**
@@ -39,10 +41,13 @@ function NoteBody({ basis }: { basis: Basis }) {
           원정대 캐릭터를 모아 직접 계산해요.
         </li>
         <li>그래서 게임 전체 인구나 공식 순위가 아니라, LOAKraken이 확인한 캐릭터 안에서의 순위예요.</li>
-        <li>
-          집계 대상 {basis.population != null ? `${whole(basis.population)}명 · ` : ""}
+        {/* Keyed by what it says: new numbers draw a new line, so the text
+            after them does not count as moving (A7). */}
+        <li key={`${basis.population}-${conditionsText(basis.conditions)}-${basis.aggregatedAt}`}>
+          집계 대상 {basis.population != null ? `${whole(basis.population)}${basis.unit ?? "명"} · ` : ""}
           {conditionsText(basis.conditions)} · {kst.format(new Date(basis.aggregatedAt))} 기준. 표본이{" "}
-          {basis.minSample}명 미만인 항목은 참고값으로 보여요.
+          {basis.minSample}
+          {basis.unit ?? "명"} 미만인 항목은 참고값으로 보여요.
         </li>
         <li>검색되는 캐릭터가 늘수록 집계 대상도 늘어나요.</li>
       </ul>
@@ -70,6 +75,25 @@ export function BasisInfo({ basis }: { basis: Basis }) {
         <Popover.Positioner side="bottom" align="end" sideOffset={6} collisionPadding={12} className={styles.positioner}>
           <Popover.Popup className={`${styles.note} ${styles.popup}`}>
             <NoteBody basis={basis} />
+          </Popover.Popup>
+        </Popover.Positioner>
+      </Popover.Portal>
+    </Popover.Root>
+  );
+}
+
+/** A help text behind a small ⓘ that opens on press (touch too), e.g. 카드 기록 도움말. */
+export function HelpInfo({ label, title, children }: { label: string; title: string; children: React.ReactNode }) {
+  return (
+    <Popover.Root>
+      <Popover.Trigger className={styles.info} aria-label={label}>
+        <InfoCircle size={16} aria-hidden="true" />
+      </Popover.Trigger>
+      <Popover.Portal>
+        <Popover.Positioner side="bottom" align="start" sideOffset={6} collisionPadding={12} className={styles.positioner}>
+          <Popover.Popup className={`${styles.note} ${styles.popup}`}>
+            <Popover.Title className={styles.title}>{title}</Popover.Title>
+            {children}
           </Popover.Popup>
         </Popover.Positioner>
       </Popover.Portal>

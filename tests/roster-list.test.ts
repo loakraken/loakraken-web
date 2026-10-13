@@ -1,6 +1,18 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { classMix, levelBands, maskName, rosterStats, rosterSummary, shares, sortSiblings } from "../lib/character/roster-list";
+import {
+  classMix,
+  levelBands,
+  maskName,
+  powerByName,
+  powerSummary,
+  rosterStats,
+  rosterSummary,
+  shares,
+  sortSiblings,
+  viewOfRefresh,
+} from "../lib/character/roster-list";
+import { isRosterPowerEnvelope, isRosterPowerRefreshEnvelope } from "../lib/character/roster-power";
 
 const roster = [
   { characterName: "다람쥐", characterLevel: 60, itemLevel: 1690 },
@@ -59,4 +71,58 @@ test("level bands keep high-to-low order and skip empty bands", () => {
   const bands = levelBands([1785, 1770, 1700, 1650, 1500].map((itemLevel, i) => ({ characterName: `이름${i}`, itemLevel })));
   assert.deepEqual(bands.map((b) => [b.label, b.count]), [["1780+", 1], ["1760", 1], ["1700", 1], ["1640", 1], ["1640 미만", 1]]);
   assert.equal(Math.round(bands.reduce((a, b) => a + b.percent, 0) * 10), 1000);
+});
+
+// L19: combat power records joined by name.
+const item = (characterName: string, itemLevel: number, combatPower: number | null) => ({
+  characterName,
+  serverName: "아만",
+  className: "바드",
+  itemLevel,
+  combatPower,
+  combatPowerObservedAt: combatPower == null ? null : "2026-10-12T03:00:00Z",
+});
+const power = {
+  items: [item("다람쥐", 1690, 2100.5), item("가나", 1750.5, 3000), item("바다", 1640, null), item("나무", 1720, 2950.25), item("라온", 1680, null)],
+  missingCount: 2,
+  refreshAvailableAt: null,
+};
+
+test("combat power sort: highest first, no record at the bottom in item level order", () => {
+  const records = powerByName(power);
+  assert.deepEqual(
+    sortSiblings(roster.slice(0, 5), "combatPower", records).map((s) => s.characterName),
+    ["가나", "나무", "다람쥐", "라온", "바다"],
+  );
+  // Without records (loading or failed) it is the item level order.
+  assert.deepEqual(
+    sortSiblings(roster.slice(0, 5), "combatPower").map((s) => s.characterName),
+    sortSiblings(roster.slice(0, 5), "itemLevel").map((s) => s.characterName),
+  );
+});
+
+test("combat power six-man and total count only recorded values", () => {
+  const summary = powerSummary(roster.slice(0, 5), powerByName(power));
+  assert.deepEqual(summary, { count: 5, recorded: 3, sixAverage: 2683.58, sixCount: 3, total: 8050.75 });
+  assert.equal(powerSummary(roster, new Map()).sixAverage, null);
+});
+
+test("refill result becomes the view with the missing count from its items", () => {
+  const view = viewOfRefresh({ items: power.items, fetched: 0, remaining: 3, refreshAvailableAt: null });
+  assert.equal(view.missingCount, 2);
+  assert.equal(view.refreshAvailableAt, null);
+});
+
+test("roster combat power envelopes follow the contract", () => {
+  const ok = { code: "CHARACTER_ROSTER_COMBAT_POWER_SUCCESS", message: "ok", data: power };
+  assert.equal(isRosterPowerEnvelope(ok), true);
+  assert.equal(isRosterPowerEnvelope({ ...ok, data: { ...power, items: [{ ...power.items[0], combatPower: -1 }] } }), false);
+  assert.equal(isRosterPowerEnvelope({ ...ok, data: { ...power, refreshAvailableAt: "not a time" } }), false);
+  const refreshed = {
+    code: "CHARACTER_ROSTER_COMBAT_POWER_REFRESH_SUCCESS",
+    message: "ok",
+    data: { items: power.items, fetched: 2, remaining: 0, refreshAvailableAt: "2026-10-12T03:10:00Z" },
+  };
+  assert.equal(isRosterPowerRefreshEnvelope(refreshed), true);
+  assert.equal(isRosterPowerRefreshEnvelope({ ...refreshed, code: "CHARACTER_ROSTER_COMBAT_POWER_SUCCESS" }), false);
 });

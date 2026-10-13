@@ -23,6 +23,7 @@ import {
 } from "@/lib/stats/rankings";
 import quote from "@/components/tools/material-quote.module.css";
 import styles from "./stats.module.css";
+import { rankingColumns } from "./ranking-columns";
 import { BasisNote } from "./basis-note";
 import { RankingTypeTabs, type RankingType } from "./ranking-type-tabs";
 
@@ -32,6 +33,8 @@ const CLASSES = [
   "창술사", "스트라이커", "브레이커", "데빌헌터", "블래스터", "호크아이", "스카우터", "건슬링어", "바드",
   "서머너", "아르카나", "소서리스", "블레이드", "데모닉", "리퍼", "소울이터", "도화가", "기상술사", "환수사",
 ];
+
+const COLUMNS = rankingColumns([3.5, 14, 7, 6, 7, 6.5, 7, 7.5]);
 
 /** "+14.42%" — the efficiency the backend computed, two decimals. */
 const efficiencyText = (value: number) =>
@@ -158,7 +161,7 @@ export function EfficiencyRankingsView({
         </form>
 
         {data && (
-          <p className={styles.notice} {...pendingProps(list)}>
+          <p key={list.dataUpdatedAt} className={`${styles.notice} ${styles.rankingNotice}`} {...pendingProps(list)}>
             {/* Fixed words first, as on the character ranking (A7, #594). */}
             공식 랭킹이 아니에요 · {sampleText(data.meta)}
           </p>
@@ -178,10 +181,16 @@ export function EfficiencyRankingsView({
         ) : data.rows.length === 0 ? (
           <p className={styles.muted}>조건에 맞는 캐릭터가 없어요.</p>
         ) : (
-          <DataTable label={`${meta.value} 랭킹 ${query.page}쪽`} className={styles.table} {...pendingProps(list)}>
+          <DataTable
+            label={`${meta.value} 랭킹 ${query.page}쪽`}
+            className={styles.table}
+            {...COLUMNS.tableProps}
+            {...pendingProps(list)}
+          >
             <caption className={styles.srOnly}>
               {meta.value} 랭킹 {query.page}쪽
             </caption>
+            {COLUMNS.colgroup}
             <thead>
               <tr>
                 <th scope="col">순위</th>
@@ -196,7 +205,7 @@ export function EfficiencyRankingsView({
                 <th scope="col">상위</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody key={list.dataUpdatedAt}>
               {data.rows.map((row) => (
                 <tr key={`${row.serverName}-${row.characterName}`}>
                   <td>{whole(row.rank)}</td>

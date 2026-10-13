@@ -674,13 +674,61 @@ createServer(async (req, res) => {
     add("MOVE_SPEED", "이동 속도 가정", a.extraMoveSpeed ?? 0, "직업 각인·트라이포드·버프 합");
     return send(base);
   }
+  // Roster combat power (L19): records only; 원정대전투력 has two without a
+  // record, the refill (POST, ~1.5 s) fills them and starts the cooldown.
+  if (url.pathname.startsWith("/api/v1/characters/roster-combat-power")) {
+    const who = url.searchParams.get("characterName") ?? "";
+    const now = Date.now();
+    const at = (hours) => new Date(now - hours * 3_600_000).toISOString();
+    const row = (characterName, className, itemLevel, combatPower, hours) => ({
+      characterName, serverName: "아만", className, itemLevel, combatPower,
+      combatPowerObservedAt: combatPower == null ? null : at(hours),
+    });
+    const filled = req.method === "POST";
+    const roster = who === "원정대전투력" || who === "전투력쿨다운";
+    const items = roster
+      ? [
+          row(who, "블래스터", 1780.83, 3180.29, 3.5),
+          row("전투력둘", "바드", 1750, 2012.4, 26),
+          row("전투력셋", "버서커", 1720, filled ? 2650.1 : null, 0),
+          row("전투력넷", "소서리스", 1700, 2890.75, 50),
+          row("전투력다섯", "도화가", 1680, filled ? 1500 : null, 0),
+        ]
+      : [{ ...row("원정대캐릭터", "바드", 1650, 2345.67, 5), serverName: "카단" }];
+    const missingCount = items.filter((item) => item.combatPower == null).length;
+    if (url.pathname.endsWith("/refresh") && filled) {
+      if (who === "전투력쿨다운")
+        return send({ code: "ROSTER_REFRESH_COOLDOWN", message: "private" }, 429, { "Retry-After": "420" });
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      return send({
+        code: "CHARACTER_ROSTER_COMBAT_POWER_REFRESH_SUCCESS",
+        message: "성공",
+        data: { items, fetched: 2, remaining: 0, refreshAvailableAt: new Date(now + 600_000).toISOString() },
+      });
+    }
+    if (url.pathname.endsWith("/roster-combat-power"))
+      return send({
+        code: "CHARACTER_ROSTER_COMBAT_POWER_SUCCESS",
+        message: "성공",
+        data: { items, missingCount, refreshAvailableAt: null },
+      });
+  }
   if (url.pathname === "/api/v1/characters/siblings") {
     const who = url.searchParams.get("characterName");
     if (who === "원정대오류") return send({ code: "LOST_ARK_API_ERROR" }, 502);
     const now = Date.now();
     const base = JSON.parse(readFileSync(new URL("./siblings-fixtures/character-siblings.json", import.meta.url), "utf8"));
     base.data.characterName = who;
-    base.data.siblings = [
+    // L19: the same five as the roster-combat-power records.
+    if (who === "원정대전투력" || who === "전투력쿨다운")
+      base.data.siblings = [
+        [who, "블래스터", 1780.83],
+        ["전투력둘", "바드", 1750],
+        ["전투력셋", "버서커", 1720],
+        ["전투력넷", "소서리스", 1700],
+        ["전투력다섯", "도화가", 1680],
+      ].map(([characterName, className, itemLevel]) => ({ characterName, serverName: "아만", className, characterLevel: 70, itemLevel }));
+    else base.data.siblings = [
       { characterName: who, serverName: "아만", className: "블래스터", characterLevel: 70, itemLevel: 1780.83 },
       { characterName: "합성원정대", serverName: "아만", className: "바드", characterLevel: 70, itemLevel: 1720 },
       { characterName: "합성부캐", serverName: "루페온", className: "버서커", characterLevel: 60, itemLevel: 1640 },
@@ -1183,6 +1231,70 @@ createServer(async (req, res) => {
   }
   // Roster ranking (backend #298): three rosters, the last one short of six
   // characters (usedCharacters 4 of 4), values by basis and aggregate.
+  // Guild ranking (api #302): guilds of observed members; 아만 differs so a
+  // server change brings other rows (A7 table widths).
+  if (url.pathname === "/api/v1/rankings/guilds") {
+    const server = url.searchParams.get("server");
+    const sort = url.searchParams.get("sort") ?? "AVG";
+    const guilds = (server === "아만"
+      ? [["합성길드아만", "아만", 9, 1702.35, 8, 3010.5], ["짧은길드", "아만", 6, 1688, 0, null]]
+      : [["합성길드", "루페온", 24, 1731.12, 20, 3180.29], ["두번째길드", "루페온", 12, 1712.5, 12, 3050.4], ["작은길드", "카단", 5, 1690.4, 2, 2890.75]]
+    ).map(([guildName, serverName, memberCount, avg, cpCount, cpAvg]) => ({
+      serverName, guildName, memberCount,
+      itemLevelAvg: avg,
+      itemLevelSum: Math.round(avg * memberCount * 100) / 100,
+      combatPowerAvg: cpAvg, combatPowerCount: cpCount,
+    }));
+    guilds.sort((a, b) => (sort === "SUM" ? b.itemLevelSum - a.itemLevelSum : b.itemLevelAvg - a.itemLevelAvg));
+    return send({
+      code: "GUILD_RANKING_SUCCESS",
+      message: "ok",
+      data: {
+        meta: {
+          population: server === "아만" ? 12 : 318,
+          conditions: { server, role: null, className: null, activeDays: 30, itemLevelMin: 1640, itemLevelMax: null, combatPowerMin: null, combatPowerMax: null, representativeOnly: false },
+          aggregatedAt: "2026-10-11T07:00:00Z",
+          snapshot: "latest",
+          ruleVersion: "stats-v1",
+          minSample: 30,
+          sampleStatus: server === "아만" ? "COLLECTING" : "READY",
+          coverage: { observedCharacters: 4200, knownCharacters: 5100, discoveredAccounts: 900 },
+          populationUnit: "GUILD",
+        },
+        sort, page: 1, size: 50, minMembers: 5, excludedGuilds: server === "아만" ? 3 : 41,
+        rows: guilds.map((row, i) => ({ rank: i + 1, ...row })),
+      },
+    });
+  }
+  // Title equip shares (api #314): the roster title names of the 상세 mock,
+  // fewer rosters on 아만 (a small sample there).
+  if (url.pathname === "/api/v1/titles/equipped") {
+    const server = url.searchParams.get("server");
+    const population = server === "아만" ? 24 : 1240;
+    const rows = [["빛을 꺼트리는 자", 400], ["에키드나를 쓰러뜨린 자", 310], ["별을 제패한 자", 12], ["합성 칭호", 0]]
+      .map(([title, n]) => ({ title, equippedRosters: server === "아만" ? Math.round(n / 50) : n }))
+      .map((row) => ({ ...row, equippedPercent: Math.round((row.equippedRosters / population) * 10000) / 100 }))
+      .filter((row) => row.equippedRosters > 0);
+    return send({
+      code: "TITLE_EQUIP_SUCCESS",
+      message: "ok",
+      data: {
+        meta: {
+          population,
+          conditions: { server, role: null, className: null, activeDays: Number(url.searchParams.get("activeDays") ?? 30), itemLevelMin: 0, itemLevelMax: null, combatPowerMin: null, combatPowerMax: null, representativeOnly: false },
+          aggregatedAt: "2026-10-11T07:00:00Z",
+          snapshot: "latest",
+          ruleVersion: "stats-v1",
+          minSample: 30,
+          sampleStatus: population < 30 ? "COLLECTING" : "READY",
+          coverage: { observedCharacters: 5200, knownCharacters: 6100, discoveredAccounts: population },
+          populationUnit: "ROSTER",
+        },
+        title: url.searchParams.get("title"),
+        titles: rows,
+      },
+    });
+  }
   if (url.pathname === "/api/v1/rankings/rosters") {
     const basis = url.searchParams.get("basis") ?? "ITEM_LEVEL";
     const aggregate = url.searchParams.get("aggregate") ?? "TOP6_AVG";
@@ -1349,6 +1461,20 @@ createServer(async (req, res) => {
     ];
   }
   if (name === "전투력계산") withSimulatorGear(envelope.data);
+  // 특성 자세히 (§14.1 ④): stats with synthetic official-style tooltip lines.
+  if (name === "특성상세") {
+    const line = (type, effect, bonus) => [effect, `${type}은(는) 물약 및 원정대 레벨 보상으로 ${bonus}만큼 영구 증가되었습니다.`];
+    envelope.data.stats = [
+      { type: "치명", value: "646", tooltip: line("치명", "치명타 적중률이 23.12% 증가합니다.", 50) },
+      { type: "특화", value: "1832", tooltip: line("특화", "고유 능력의 효과가 65.43% 증가합니다.", 50) },
+      { type: "신속", value: "88", tooltip: line("신속", "공격 속도와 이동 속도가 1.51% 증가합니다.", 50) },
+      { type: "제압", value: "60", tooltip: [] },
+      { type: "인내", value: "61", tooltip: [] },
+      { type: "숙련", value: "62", tooltip: [] },
+      { type: "공격력", value: "142077", tooltip: ["공격력은 힘, 민첩, 지능과 무기 공격력을 기반으로 증가합니다."] },
+      { type: "최대 생명력", value: "377857", tooltip: ["최대 생명력은 체력과 생명 활성력을 기반으로 증가합니다."] },
+    ];
+  }
   if (name === "마크업") {
     // Synthetic copy of the official Tooltip markup shape seen in live responses.
     const { engravings, arkPassive } = envelope.data.loadout;
