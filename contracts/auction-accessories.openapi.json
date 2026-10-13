@@ -1,0 +1,751 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "LOAKraken auction-accessories",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/v1/markets/auctions/accessories": {
+      "get": {
+        "tags": [
+          "경매장 시세"
+        ],
+        "summary": "T4 장신구 시세 표",
+        "description": "목걸이·귀걸이·반지별 핵심 연마 효과 조합(상상~하중, 서포터 귀걸이는 무공% 상·중·하)의 즉시 구매 최저가와 매물 수, 전일 대비. 딜러: 적주피·추피 / 무공%·공% / 치피·치적. 서포터: 낙인력·아덴 / 무공% / 아피강·아공강.",
+        "operationId": "accessories",
+        "parameters": [
+          {
+            "name": "grade",
+            "in": "query",
+            "description": "ANCIENT(고대, 기본) 또는 RELIC(유물)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "ANCIENT",
+                "RELIC"
+              ]
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "description": "DEALER(기본) 또는 SUPPORT",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "DEALER",
+                "SUPPORT"
+              ]
+            }
+          },
+          {
+            "name": "minQuality",
+            "in": "query",
+            "description": "최소 품질 0~90(10 단위, 기본 70, 0이면 무관)",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "maximum": 90,
+              "minimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "조회 성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseAuctionAccessoryBoardResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_REQUEST 또는 INVALID_AUCTION_LEVELS",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "LOST_ARK_RATE_LIMITED(매물 조회) / CLIENT_RATE_LIMITED: 이 클라이언트의 분당 요청·공식 호출 한도 초과. Retry-After(초) 뒤 다시 시도",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "LOST_ARK_API_ERROR(매물 조회)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "LOST_ARK_NOT_CONFIGURED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "LOST_ARK_API_TIMEOUT(매물 조회)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/markets/auctions/accessories/listings": {
+      "get": {
+        "tags": [
+          "경매장 시세"
+        ],
+        "summary": "T4 장신구 매물",
+        "description": "표의 한 칸에 해당하는 매물. levels는 부위 옵션 순서대로 LOW·MID·HIGH(예: HIGH,MID). 즉시 구매가 오름차순 10개, 1분 캐시.",
+        "operationId": "accessoryListings",
+        "parameters": [
+          {
+            "name": "grade",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "ANCIENT",
+                "RELIC"
+              ]
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "DEALER",
+                "SUPPORT"
+              ]
+            }
+          },
+          {
+            "name": "slot",
+            "in": "query",
+            "description": "NECKLACE, EARRING, RING",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "NECKLACE",
+                "EARRING",
+                "RING"
+              ]
+            }
+          },
+          {
+            "name": "levels",
+            "in": "query",
+            "description": "옵션 순서대로 LOW·MID·HIGH를 쉼표로",
+            "required": true,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "LOW",
+                  "MID",
+                  "HIGH"
+                ]
+              },
+              "maxItems": 2,
+              "minItems": 1
+            }
+          },
+          {
+            "name": "minQuality",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "maximum": 90,
+              "minimum": 0
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "maximum": 10,
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "조회 성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseAuctionListingsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_REQUEST 또는 INVALID_AUCTION_LEVELS",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "LOST_ARK_RATE_LIMITED(매물 조회) / CLIENT_RATE_LIMITED: 이 클라이언트의 분당 요청·공식 호출 한도 초과. Retry-After(초) 뒤 다시 시도",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "LOST_ARK_API_ERROR(매물 조회)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "LOST_ARK_NOT_CONFIGURED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "LOST_ARK_API_TIMEOUT(매물 조회)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ApiResponseAuctionAccessoryBoardResponse": {
+        "type": "object",
+        "description": "공통 API 응답. 오류 응답의 data는 null입니다.",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "업무 결과 코드",
+            "example": "CHARACTER_SEARCH_SUCCESS"
+          },
+          "message": {
+            "type": "string",
+            "description": "공개용 안내 메시지",
+            "example": "캐릭터 조회에 성공했습니다."
+          },
+          "data": {
+            "$ref": "#/components/schemas/AuctionAccessoryBoardResponse",
+            "description": "성공 응답 데이터. 오류일 때 null"
+          }
+        },
+        "required": [
+          "code",
+          "data",
+          "message"
+        ]
+      },
+      "AuctionAccessoryBoardResponse": {
+        "type": "object",
+        "properties": {
+          "ruleVersion": {
+            "type": "string",
+            "example": "auction-board-v1"
+          },
+          "grade": {
+            "type": "string",
+            "enum": [
+              "ANCIENT",
+              "RELIC"
+            ]
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "DEALER",
+              "SUPPORT"
+            ]
+          },
+          "minQuality": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32",
+                "description": "최소 품질. null이면 품질 무관"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "complete": {
+            "type": "boolean"
+          },
+          "slots": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuctionAccessorySlotResponse"
+            }
+          }
+        },
+        "required": [
+          "complete",
+          "grade",
+          "minQuality",
+          "role",
+          "ruleVersion",
+          "slots"
+        ]
+      },
+      "AuctionAccessorySlotResponse": {
+        "type": "object",
+        "properties": {
+          "slot": {
+            "type": "string",
+            "enum": [
+              "NECKLACE",
+              "EARRING",
+              "RING"
+            ]
+          },
+          "slotName": {
+            "type": "string",
+            "example": "목걸이"
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuctionPolishOptionResponse"
+            }
+          },
+          "cells": {
+            "type": "array",
+            "description": "옵션 2개면 상상·상중·중상·중중·상하·하상·중하·하중, 1개면 상·중·하",
+            "items": {
+              "$ref": "#/components/schemas/AuctionAccessoryCellResponse"
+            }
+          }
+        },
+        "required": [
+          "cells",
+          "options",
+          "slot",
+          "slotName"
+        ]
+      },
+      "AuctionPolishOptionResponse": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "example": "ENEMY_DAMAGE"
+          },
+          "officialName": {
+            "type": "string",
+            "example": "적에게 주는 피해 증가"
+          },
+          "shortName": {
+            "type": "string",
+            "example": "적주피"
+          },
+          "values": {
+            "type": "array",
+            "description": "하·중·상 값(%, 공식 표시값)",
+            "items": {
+              "type": "number"
+            }
+          }
+        },
+        "required": [
+          "key",
+          "officialName",
+          "shortName",
+          "values"
+        ]
+      },
+      "AuctionAccessoryCellResponse": {
+        "type": "object",
+        "properties": {
+          "levels": {
+            "type": "array",
+            "description": "옵션 순서대로 LOW·MID·HIGH",
+            "items": {
+              "type": "string"
+            }
+          },
+          "label": {
+            "type": "string",
+            "example": "상중"
+          },
+          "optionLabels": {
+            "type": "array",
+            "example": [
+              "적주피 상",
+              "추피 중"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "minBuyPrice": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int64"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "totalCount": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int64"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "previousDayChangeRate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "observedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "READY",
+              "PENDING"
+            ]
+          }
+        },
+        "required": [
+          "label",
+          "levels",
+          "minBuyPrice",
+          "observedAt",
+          "optionLabels",
+          "previousDayChangeRate",
+          "status",
+          "totalCount"
+        ]
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "description": "공통 오류 응답. HTTP 상태와 업무 코드를 함께 확인합니다.",
+        "properties": {
+          "code": {
+            "type": "string",
+            "example": "INVALID_REQUEST"
+          },
+          "message": {
+            "type": "string",
+            "example": "요청 값이 올바르지 않습니다."
+          },
+          "data": {
+            "type": "null"
+          }
+        },
+        "required": [
+          "code",
+          "data",
+          "message"
+        ]
+      },
+      "ApiResponseAuctionListingsResponse": {
+        "type": "object",
+        "description": "공통 API 응답. 오류 응답의 data는 null입니다.",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "업무 결과 코드",
+            "example": "CHARACTER_SEARCH_SUCCESS"
+          },
+          "message": {
+            "type": "string",
+            "description": "공개용 안내 메시지",
+            "example": "캐릭터 조회에 성공했습니다."
+          },
+          "data": {
+            "$ref": "#/components/schemas/AuctionListingsResponse",
+            "description": "성공 응답 데이터. 오류일 때 null"
+          }
+        },
+        "required": [
+          "code",
+          "data",
+          "message"
+        ]
+      },
+      "AuctionListingsResponse": {
+        "type": "object",
+        "properties": {
+          "totalCount": {
+            "type": "integer",
+            "format": "int64",
+            "description": "공식 TotalCount"
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "observedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "items": {
+            "type": "array",
+            "description": "즉시 구매가 오름차순, 페이지당 10개",
+            "items": {
+              "$ref": "#/components/schemas/AuctionListingResponse"
+            }
+          }
+        },
+        "required": [
+          "items",
+          "observedAt",
+          "page",
+          "totalCount"
+        ]
+      },
+      "AuctionListingResponse": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "grade": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "quality": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32",
+                "description": "품질. 보석은 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "buyPrice": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int64",
+                "description": "즉시 구매가. 입찰만 가능한 매물이면 null 또는 0"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "bidPrice": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int64",
+                "description": "현재 입찰가(입찰이 없으면 0)"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "bidStartPrice": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int64"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "endDate": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "description": "경매 종료 시각"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "tradeAllowCount": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32",
+                "description": "구매 후 거래 가능 횟수(0이면 거래 불가)"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuctionListingOptionResponse"
+            }
+          }
+        },
+        "required": [
+          "bidPrice",
+          "bidStartPrice",
+          "buyPrice",
+          "endDate",
+          "grade",
+          "name",
+          "options",
+          "quality",
+          "tradeAllowCount"
+        ]
+      },
+      "AuctionListingOptionResponse": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "공식 Type(ACCESSORY_UPGRADE, STAT, GEM_SKILL_DAMAGE 등)"
+          },
+          "name": {
+            "type": "string"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "percentage": {
+            "type": "boolean"
+          },
+          "level": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "T4 연마 효과면 LOW·MID·HIGH, 아니면 null",
+                "enum": [
+                  "LOW",
+                  "MID",
+                  "HIGH"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "className": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "보석 대상 직업"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "className",
+          "level",
+          "name",
+          "percentage",
+          "type",
+          "value"
+        ]
+      }
+    }
+  }
+}
