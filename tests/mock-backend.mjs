@@ -1144,6 +1144,45 @@ createServer(async (req, res) => {
   }
   // Roster ranking (backend #298): three rosters, the last one short of six
   // characters (usedCharacters 4 of 4), values by basis and aggregate.
+  // T4 gem auction board and listings (api #139): synthetic prices; 작열 1레벨
+  // is still PENDING (blank cell), 겁화 10레벨 has listings over two pages.
+  if (url.pathname === "/api/v1/markets/auctions/gems") {
+    const observedAt = new Date(Date.now() - 4 * 60_000).toISOString();
+    const cells = ["겁화", "작열"].flatMap((kind) =>
+      [10, 9, 8, 7, 6, 5, 4, 3, 2, 1].map((level) => {
+        const pending = kind === "작열" && level === 1;
+        const price = Math.round((kind === "겁화" ? 2.4 : 1.1) * 3 ** (level - 1) * 40);
+        return {
+          kind, level, itemName: `${level}레벨 ${kind}의 보석`,
+          minBuyPrice: pending ? null : price,
+          totalCount: pending ? null : 30 + level * 7,
+          previousDayChangeRate: pending ? null : level % 3 === 0 ? -2.5 : level % 3 === 1 ? 4 : 0,
+          observedAt: pending ? null : observedAt,
+          status: pending ? "PENDING" : "READY",
+        };
+      }),
+    );
+    return send({ code: "AUCTION_GEMS_SUCCESS", message: "ok", data: { ruleVersion: "auction-board-v1", complete: false, cells } });
+  }
+  if (url.pathname === "/api/v1/markets/auctions/gems/listings") {
+    const kind = url.searchParams.get("kind");
+    const level = Number(url.searchParams.get("level"));
+    const page = Number(url.searchParams.get("page") ?? 1);
+    const total = kind === "겁화" && level === 10 ? 14 : 3;
+    const start = (page - 1) * 10;
+    const items = Array.from({ length: Math.max(0, Math.min(10, total - start)) }, (_, i) => ({
+      name: `${level}레벨 ${kind}의 보석`,
+      grade: "고대",
+      quality: null,
+      buyPrice: 1000 * (start + i + 1) + 250_000,
+      bidPrice: 0,
+      bidStartPrice: 200_000,
+      endDate: new Date(Date.now() + (start + i + 1) * 3_600_000).toISOString(),
+      tradeAllowCount: i % 4 === 3 ? 0 : 2,
+      options: [{ type: "GEM_SKILL_DAMAGE", name: "합성 스킬", value: 44, percentage: true, level: null, className: i % 2 ? "바드" : "블래스터" }],
+    }));
+    return send({ code: "AUCTION_LISTINGS_SUCCESS", message: "ok", data: { totalCount: total, page, observedAt: new Date().toISOString(), items } });
+  }
   if (url.pathname === "/api/v1/rankings/rosters") {
     const basis = url.searchParams.get("basis") ?? "ITEM_LEVEL";
     const aggregate = url.searchParams.get("aggregate") ?? "TOP6_AVG";

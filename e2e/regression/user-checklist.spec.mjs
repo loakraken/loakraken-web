@@ -30,6 +30,7 @@ const ROUTES = [
   "/contact",
   "/privacy",
   "/market",
+  "/market/gems",
   "/news",
   "/rankings",
   "/rankings?type=roster",
