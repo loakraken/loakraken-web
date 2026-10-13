@@ -494,6 +494,29 @@
   margin-top: 12px;
   line-height: 26px;
 }
+/* On a phone the rank badge takes 44px to press, as it looks (hit-44 rule). */
+@media (max-width: 699px), (pointer: coarse) {
+  .bannerRankBadge {
+    position: relative;
+  }
+  .bannerRankBadge::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+    translate: -50% -50%;
+  }
+}
+.bannerRankBadge:active {
+  transform: scale(0.97);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .bannerRankBadge {
+    transition: transform 100ms ease-out;
+  }
+}
 .bannerRankBadge {
   display: inline-flex;
   align-items: center;
