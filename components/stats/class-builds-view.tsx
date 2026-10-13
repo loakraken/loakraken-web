@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
@@ -58,9 +58,10 @@ function Section({
   unit?: string;
 }) {
   const hide = hiddenText(hidden, people);
+  const headingId = useId();
   return (
-    <section className={own.section} aria-label={title}>
-      <h2>{title}</h2>
+    <section className={own.section} aria-labelledby={headingId}>
+      <h2 id={headingId}>{title}</h2>
       {definition && <p className={own.definition}>{definition}</p>}
       {rows.length ? (
         <ol className={own.bars}>
