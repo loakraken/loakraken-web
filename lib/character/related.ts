@@ -14,6 +14,12 @@ import {
   type CardCollectionEnvelope,
   type CardRefreshEnvelope,
 } from "./card-collection";
+import {
+  isRosterPowerEnvelope,
+  isRosterPowerRefreshEnvelope,
+  type RosterPowerEnvelope,
+  type RosterPowerRefreshEnvelope,
+} from "./roster-power";
 
 // Siblings (#54) and observation history (#66) for the character page tabs.
 const siblingsErrors: Record<number, readonly string[]> = {
@@ -149,5 +155,48 @@ export function requestCardRefresh(
     timeoutMs: options.timeoutMs ?? 30_000,
     isValid: isCardRefreshEnvelope,
     errorCodes: cardRefreshErrors,
+  });
+}
+
+// Roster combat power (L19).
+const rosterPowerErrors: Record<number, readonly string[]> = {
+  400: ["INVALID_REQUEST"],
+  404: ["CHARACTER_NOT_FOUND"],
+  429: ["LOST_ARK_RATE_LIMITED", "CLIENT_RATE_LIMITED"],
+  502: ["LOST_ARK_API_ERROR"],
+  503: ["CHARACTER_STORAGE_UNAVAILABLE", "LOST_ARK_NOT_CONFIGURED", "CHARACTER_CACHE_UNAVAILABLE"],
+  504: ["LOST_ARK_API_TIMEOUT"],
+};
+const rosterPowerRefreshErrors: Record<number, readonly string[]> = {
+  ...rosterPowerErrors,
+  429: ["ROSTER_REFRESH_COOLDOWN", "LOST_ARK_RATE_LIMITED", "CLIENT_RATE_LIMITED"],
+};
+
+export function requestRosterPower(
+  name: string,
+  origin: string | undefined,
+  options: Options = {},
+): Promise<BackendResult<RosterPowerEnvelope>> {
+  if (characterNameError(name)) return Promise.resolve(invalid);
+  const url = backendUrl(origin, "/api/v1/characters/roster-combat-power");
+  url?.searchParams.set("characterName", normalizeCharacterName(name));
+  return requestBackend(url, { ...options, isValid: isRosterPowerEnvelope, errorCodes: rosterPowerErrors });
+}
+
+/** Reads up to 12 missing characters from the official profiles: several seconds. */
+export function requestRosterPowerRefresh(
+  name: string,
+  origin: string | undefined,
+  options: Options = {},
+): Promise<BackendResult<RosterPowerRefreshEnvelope>> {
+  if (characterNameError(name)) return Promise.resolve(invalid);
+  const url = backendUrl(origin, "/api/v1/characters/roster-combat-power/refresh");
+  url?.searchParams.set("characterName", normalizeCharacterName(name));
+  return requestBackend(url, {
+    ...options,
+    method: "POST",
+    timeoutMs: options.timeoutMs ?? 30_000,
+    isValid: isRosterPowerRefreshEnvelope,
+    errorCodes: rosterPowerRefreshErrors,
   });
 }

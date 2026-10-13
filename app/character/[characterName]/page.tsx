@@ -1,9 +1,11 @@
 import {
   isArmoryPageEnabled,
   isCombatPowerEnabled,
+  isCritSpeedEnabled,
   isReceiptEnabled,
   isSettingCheckEnabled,
   isSpecUpEnabled,
+  isTitleStatsEnabled,
 } from "@/lib/tools/flags";
 import type { Metadata } from "next";
 import {
@@ -84,6 +86,8 @@ export default async function CharacterPage({
         armoryPage={isArmoryPageEnabled()}
         simulator={isCombatPowerEnabled()}
         specUp={isSpecUpEnabled()}
+        titleStats={isTitleStatsEnabled()}
+        critSpeed={isCritSpeedEnabled()}
       />
     </HydrationBoundary>
   );
