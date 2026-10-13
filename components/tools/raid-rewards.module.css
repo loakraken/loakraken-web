@@ -34,6 +34,9 @@
   list-style: disc;
 }
 .note {
+  /* Held for every difficulty: the split-gold sentence takes two lines on a
+     phone, so the line is held at that from the start (A7). */
+  min-height: 1lh;
   margin-top: var(--space-2);
   color: var(--muted-foreground);
   font-size: var(--text-caption);
@@ -128,6 +131,8 @@
   width: 100%;
   margin-top: var(--space-2);
   border-collapse: collapse;
+  /* Fixed columns: a value of another width never moves the other cells (A7). */
+  table-layout: fixed;
   font-size: var(--text-body);
   font-variant-numeric: tabular-nums;
 }
@@ -151,6 +156,15 @@
 .table tfoot th {
   border-bottom: 0;
   font-weight: 700;
+}
+.colGate {
+  width: 22%;
+}
+/* Rows held for the difficulty with more gates: same height, nothing drawn. */
+.holdRow th,
+.holdRow td {
+  visibility: hidden;
+  border-bottom-color: transparent;
 }
 .num {
   padding-left: var(--space-3) !important;
@@ -188,4 +202,10 @@
 /* After the entry (see the tool): later cards appear without the reveal. */
 .grid[data-settled] > :global(.k-reveal) {
   transition: none;
+}
+
+@media (max-width: 640px) {
+  .note {
+    min-height: 2lh;
+  }
 }
