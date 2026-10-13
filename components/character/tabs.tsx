@@ -1962,6 +1962,10 @@ function SiblingList({
           wide
         >
           <ul
+            // Drawn anew when records arrive (or a read ends): rows rewritten
+            // in place count as moving when their text starts elsewhere,
+            // new rows do not (A6·A7).
+            key={power.dataUpdatedAt}
             className={styles.siblingGrid}
             data-compact={compact || undefined}
             data-stale={refreshing || undefined}
@@ -1989,9 +1993,7 @@ function SiblingList({
                 );
                 return (
                   <li
-                    // By position, not name: a new order rewrites the rows
-                    // in place instead of moving them (no layout shift).
-                    key={i}
+                    key={`${sibling.characterName}-${i}`}
                     data-current={isCurrent || undefined}
                   >
                     {linkable ? (
