@@ -12,7 +12,7 @@ for (const width of [1280, 360]) {
       }).observe({ type: "layout-shift", buffered: true });
     });
     await gotoReady(page, "/market/gems");
-    const board = page.getByRole("table", { name: "보석 시세" });
+    const board = page.getByRole("table", { name: "4티어 보석 레벨별 즉시 구매 최저가" });
     await expect(board.getByRole("columnheader")).toHaveText(["레벨", "겁화의 보석", "작열의 보석"]);
     await expect(board.getByRole("rowheader")).toHaveText(["10레벨", "9레벨", "8레벨", "7레벨", "6레벨", "5레벨", "4레벨", "3레벨", "2레벨", "1레벨"]);
     await expect(board.getByRole("button", { name: /매물 보기$/ })).toHaveCount(19);
