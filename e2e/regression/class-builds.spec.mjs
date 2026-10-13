@@ -74,6 +74,25 @@ for (const width of [1280, 360])
     await expectNoHorizontalOverflow(page);
   });
 
+for (const width of [1280, 360])
+  test(`@M12 ${width} 짧은 표본 주소로 시작해 다른 직업 각인으로 흔들림 0 @regression`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await watchShifts(page);
+    // Where the analysis menu's class link lands for a 버스트 character, a week back.
+    await gotoReady(page, `${BLADE}?classEngraving=${encodeURIComponent("버스트")}&activeDays=7`);
+    await expect(page.getByText(/버스트 표본이 아직 20명이라/)).toBeVisible();
+    await page.waitForTimeout(600);
+    expect((await shiftsSince(page)).all, "첫 로드 흔들림").toBe(0);
+    const moved = await shiftsDuring(page, () => page.getByRole("group", { name: "직업 각인" }).getByRole("button", { name: "잔재된 기운" }).click());
+    await expect(page.getByText(/표본 320명/)).toBeVisible();
+    await expect(page.getByRole("region", { name: "각인 조합" })).toBeVisible();
+    expect(moved.all, `짧은 표본에서 항목으로 전환 흔들림 (${moved.moved})`).toBe(0);
+    const all = await shiftsDuring(page, () => page.getByRole("group", { name: "직업 각인" }).getByRole("button", { name: "전체" }).click());
+    await expect(page.getByText(/표본 440명/)).toBeVisible();
+    expect(all.all, `전체로 전환 흔들림 (${all.moved})`).toBe(0);
+    await expectNoHorizontalOverflow(page);
+  });
+
 test("@M12 통계 직업 표와 캐릭터 분석 메뉴에서 직업 상세로 @regression", async ({ page }) => {
   await gotoReady(page, "/stats");
   await page.getByRole("link", { name: "블레이드", exact: true }).click();
