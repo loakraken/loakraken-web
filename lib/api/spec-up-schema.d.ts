@@ -24,6 +24,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/characters/spec-up/goal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 스펙업 목표 경로(공식 호출 없음)
+         * @description 목표 전투력에 닿을 때까지 지금 상태에서 항목마다 다음 한 단계를 만들고, 효율 순(1만 골드당 전투력, 비용을 모르는 단계는 그 뒤에 Δ전투력 순)으로 가장 앞의 단계를 적용하기를 되풀이한 경로를 줍니다. 같은 항목을 여러 단계 올릴 수 있습니다. 모든 전투력은 전투력 시뮬레이터 결과입니다(steps[].change를 차례로 시뮬레이터에 넣은 값과 같음). 금액(cost.amount·cumulativeCost·totalCost)은 모두 골드입니다. 시세가 없는 단계가 있으면 그 단계부터 cumulativeCost와 totalCost는 null입니다(0으로 더하지 않음). 같은 보석 칸을 이어서 올리면 둘째 단계부터 비용은 이번 레벨 매입가 − 직전 레벨 매입가(GEM_STEP)라 단계 비용의 합은 마지막 레벨 매입가 − 처음 보석 판매 기대가입니다. 딜러가 아니거나 공식 전투력이 없으면 200, 빈 steps, stopReasonCode에 스펙업 가이드와 같은 이유 코드를 줍니다. 최대 30단계, 계산 시간 상한이 있습니다. 같은 캐릭터 수집 시각·시세 시각·목표는 10분 동안 캐시합니다(시간 상한으로 멈춘 결과는 캐시하지 않음). 요청이 많으면 429 CLIENT_RATE_LIMITED와 Retry-After(초)를 줍니다. 503은 저장소 장애이고 Retry-After가 없으니 잠시 뒤 다시 요청합니다. stopReasonCode·kind·cost.code는 문자열이며 값이 늘 수 있습니다.
+         */
+        get: operations["goal"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -52,7 +72,7 @@ export interface components {
             ruleVersion: string;
             /**
              * @description Δ전투력을 낸 시뮬레이터 규칙
-             * @example combat-power-sim-v4
+             * @example combat-power-sim-v8
              */
             simulatorRuleVersion: string;
             /**
@@ -114,12 +134,12 @@ export interface components {
         };
         ChangeResponse: {
             kind: string;
-            slot: ((number | null) | null) | null;
-            index: ((number | null) | null) | null;
-            level: ((number | null) | null) | null;
-            refine: ((number | null) | null) | null;
-            quality: ((number | null) | null) | null;
-            name: ((string | null) | null) | null;
+            slot: ((((number | null) | null) | null) | null) | null;
+            index: ((((number | null) | null) | null) | null) | null;
+            level: ((((number | null) | null) | null) | null) | null;
+            refine: ((((number | null) | null) | null) | null) | null;
+            quality: ((((number | null) | null) | null) | null) | null;
+            name: ((((string | null) | null) | null) | null) | null;
         };
         CostResponse: {
             /**
@@ -127,7 +147,7 @@ export interface components {
              * @example GOLD
              */
             unit: string;
-            amount: ((number | null) | null) | null;
+            amount: ((((number | null) | null) | null) | null) | null;
             /**
              * @description OK·PENDING·UNKNOWN(문자열, 모르는 값은 UNKNOWN으로)
              * @example OK
@@ -148,6 +168,102 @@ export interface components {
             /** @example 요청 값이 올바르지 않습니다. */
             message: string;
             data: null;
+        };
+        /** @description 공통 API 응답. 오류 응답의 data는 null입니다. */
+        ApiResponseSpecUpGoalResponse: {
+            /**
+             * @description 업무 결과 코드
+             * @example CHARACTER_SEARCH_SUCCESS
+             */
+            code: string;
+            /**
+             * @description 공개용 안내 메시지
+             * @example 캐릭터 조회에 성공했습니다.
+             */
+            message: string;
+            /** @description 성공 응답 데이터. 오류일 때 null */
+            data: components["schemas"]["SpecUpGoalResponse"];
+        };
+        SpecUpGoalResponse: {
+            characterName: string;
+            serverName: string | null;
+            className: string | null;
+            combatPower: number | null;
+            /** @description 요청한 목표 전투력(소수 둘째 자리) */
+            targetCombatPower: number;
+            finalCombatPower: number | null;
+            /** @description 경로 끝 전투력이 목표 이상인가 */
+            reached: boolean;
+            /**
+             * @description 멈춘 이유 코드(문자열, 값이 늘 수 있음): REACHED·ALREADY_REACHED·NO_CANDIDATE·STEP_LIMIT·TIME_LIMIT, 또는 스펙업 가이드의 이유 코드(ROLE_UNKNOWN 등)
+             * @example REACHED
+             */
+            stopReasonCode: string;
+            /** @description 화면용 멈춘 이유 문장(같은 코드는 같은 문장) */
+            stopReason: string;
+            totalCost: number | null;
+            /**
+             * Format: int32
+             * @description 비용(시세)을 모르는 단계 수
+             */
+            unpricedSteps: number;
+            /** @example spec-up-goal-v1 */
+            ruleVersion: string;
+            /**
+             * @description 전투력을 낸 시뮬레이터 규칙
+             * @example combat-power-sim-v8
+             */
+            simulatorRuleVersion: string;
+            /**
+             * Format: date-time
+             * @description 캐릭터 캐시 수집 시각
+             */
+            fetchedAt: string;
+            pricesAt: string | null;
+            /** @description 효율 순으로 목표에 닿을 때까지 고른 단계(순서대로) */
+            steps: components["schemas"]["SpecUpGoalStepResponse"][];
+        };
+        SpecUpGoalStepResponse: {
+            /**
+             * Format: int32
+             * @description 1부터 시작하는 순서
+             */
+            order: number;
+            /**
+             * @description 스펙업 가이드 후보 id와 같은 형식
+             * @example GEM_LEVEL:3:8
+             */
+            candidateId: string;
+            /**
+             * @description 단계 종류(문자열, 값이 늘 수 있음). 지금 값: GEM_LEVEL·EQUIPMENT_REFINE·EQUIPMENT_ADVANCED_REFINE·EQUIPMENT_QUALITY·ENGRAVING_LEVEL. 예정: POLISH(장신구 연마 교체), EQUIPMENT_SUCCESSION(장비 계승, 나중에 추가), 같은 칸 연속 재련은 EQUIPMENT_REFINE 그대로. 모르는 값은 target·from·to로 일반 줄로 다룬다.
+             * @example GEM_LEVEL
+             */
+            kind: string;
+            /** @description 화면에 그대로 쓰는 대상 이름 */
+            target: string;
+            /**
+             * @description 이 단계 전(화면 문자열)
+             * @example 7레벨
+             */
+            from: string;
+            /**
+             * @description 이 단계 뒤(화면 문자열)
+             * @example 8레벨
+             */
+            to: string;
+            icon: (string | null) | null;
+            grade: (string | null) | null;
+            skillName: (string | null) | null;
+            /** @description 전투력 시뮬레이터 요청의 changes[] 하나와 같은 모양 */
+            change: components["schemas"]["ChangeResponse"];
+            /** @description 이 단계로 늘어난 전투력(소수 둘째 자리) */
+            deltaCombatPower: number;
+            /** @description 이 단계까지 적용한 전투력(시뮬레이터) */
+            combatPowerAfter: number;
+            /** @description 이 단계 비용(골드) */
+            cost: components["schemas"]["CostResponse"];
+            cumulativeCost: (number | null) | null;
+            combatPowerPer10kGold: (number | null) | null;
         };
     };
     responses: never;
@@ -192,7 +308,68 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description SPEC_UP_DISABLED: 기능이 꺼져 있음(메뉴 숨김) · CHARACTER_NOT_CACHED: 캐릭터를 먼저 검색해야 함(공개 제외 포함) */
+            /** @description SPEC_UP_DISABLED: 기능이 꺼져 있음(메뉴 숨김) · CHARACTER_NOT_CACHED: 캐릭터를 먼저 검색해야 함(처리정지 목록 포함) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description CLIENT_RATE_LIMITED: 이 클라이언트의 분당 요청·공식 호출 한도 초과. Retry-After(초) 뒤 다시 시도 */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description CHARACTER_STORAGE_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    goal: {
+        parameters: {
+            query: {
+                /** @description 캐릭터명 */
+                characterName: string;
+                /** @description 목표 전투력(0 초과, 소수 둘째 자리까지, 지금 전투력의 2배 이하) */
+                targetCombatPower: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description SPEC_UP_GOAL_SUCCESS */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponseSpecUpGoalResponse"];
+                };
+            };
+            /** @description INVALID_REQUEST: 캐릭터명·목표 형식(0 초과, 소수 둘째 자리까지) · SPEC_UP_GOAL_OUT_OF_RANGE: 목표가 지금 전투력의 2배 초과 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description SPEC_UP_DISABLED: 기능이 꺼져 있음 · CHARACTER_NOT_CACHED: 캐릭터를 먼저 검색해야 함 */
             404: {
                 headers: {
                     [name: string]: unknown;

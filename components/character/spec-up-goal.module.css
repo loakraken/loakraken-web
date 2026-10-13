@@ -138,3 +138,13 @@
   color: var(--slate);
   font-size: var(--text-caption);
 }
+.note a {
+  color: var(--link);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .note a:hover {
+    text-decoration-thickness: 2px;
+  }
+}
