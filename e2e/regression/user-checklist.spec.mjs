@@ -23,6 +23,7 @@ import {
   chooseOption,
   gotoReady,
 } from "../support/fixtures.mjs";
+import { shiftsDuring, shiftsSince, watchShifts } from "../support/shifts.mjs";
 
 const ROUTES = [
   "/",
@@ -63,20 +64,6 @@ const ROUTES = [
 const KNOWN_SHIFT = {
 };
 
-/** Collects layout shifts from the very start of the page (buffered), with or without recent input. */
-const watchShifts = (page) =>
-  page.addInitScript(() => {
-    window.__shift = { quiet: 0, input: 0 };
-    new PerformanceObserver((list) => {
-      for (const e of list.getEntries())
-        window.__shift[e.hadRecentInput ? "input" : "quiet"] += e.value;
-    }).observe({ type: "layout-shift", buffered: true });
-  });
-const shifts = (page) =>
-  page.evaluate(() => ({
-    quiet: +window.__shift.quiet.toFixed(4),
-    input: +window.__shift.input.toFixed(4),
-  }));
 
 test.describe("사용자 지적 회귀 점검표 @regression", () => {
   test.describe.configure({ mode: "parallel" });
@@ -136,7 +123,7 @@ test.describe("사용자 지적 회귀 점검표 @regression", () => {
         await watchShifts(page);
         await gotoReady(page, path);
         await page.waitForTimeout(800);
-        expect((await shifts(page)).quiet, `${path} 첫 로드 layout-shift`).toBe(
+        expect((await shiftsSince(page)).all, `${path} 첫 로드 layout-shift`).toBe(
           0,
         );
       });
@@ -164,7 +151,7 @@ test.describe("사용자 지적 회귀 점검표 @regression", () => {
       await page.goto("/없는-주소");
       await page.waitForLoadState("networkidle");
       await page.waitForTimeout(800);
-      expect((await shifts(page)).quiet).toBe(0);
+      expect((await shiftsSince(page)).all).toBe(0);
     });
   });
 
