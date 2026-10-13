@@ -41,7 +41,9 @@ function NoteBody({ basis }: { basis: Basis }) {
           원정대 캐릭터를 모아 직접 계산해요.
         </li>
         <li>그래서 게임 전체 인구나 공식 순위가 아니라, LOAKraken이 확인한 캐릭터 안에서의 순위예요.</li>
-        <li>
+        {/* Keyed by what it says: new numbers draw a new line, so the text
+            after them does not count as moving (A7). */}
+        <li key={`${basis.population}-${conditionsText(basis.conditions)}-${basis.aggregatedAt}`}>
           집계 대상 {basis.population != null ? `${whole(basis.population)}${basis.unit ?? "명"} · ` : ""}
           {conditionsText(basis.conditions)} · {kst.format(new Date(basis.aggregatedAt))} 기준. 표본이{" "}
           {basis.minSample}

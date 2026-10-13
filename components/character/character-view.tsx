@@ -23,7 +23,7 @@ import { BannerRank } from "./banner-rank";
 import { Entrance } from "./entrance";
 import { kstTime, level, number, text } from "./parts";
 import { CritSpeedEnabled } from "./analysis-menu";
-import { SettingCheckEnabled, SimulatorEnabled, SpecUpEnabled, TabBar, TabPanel, tabOf, useTabTop } from "./tabs";
+import { SettingCheckEnabled, SimulatorEnabled, SpecUpEnabled, TabBar, TabPanel, TitleStatsEnabled, tabOf, useTabTop } from "./tabs";
 import { ArmoryPageEnabled } from "./use-armory-page";
 import { ReceiptEnabled } from "./receipt-panel";
 import styles from "./character.module.css";
@@ -362,6 +362,7 @@ export function CharacterView({
   simulator = true,
   specUp = true,
   armoryPage = true,
+  titleStats = true,
   critSpeed = true,
   ...props
 }: {
@@ -378,6 +379,8 @@ export function CharacterView({
   specUp?: boolean;
   /** ARMORY_PAGE on this deployment (server flag). */
   armoryPage?: boolean;
+  /** TITLE_STATS on this deployment (server flag): roster title shares. */
+  titleStats?: boolean;
   /** CRIT_SPEED_TOOL on this deployment (server flag): the 분석 menu link. */
   critSpeed?: boolean;
 }) {
@@ -387,11 +390,13 @@ export function CharacterView({
         <SimulatorEnabled.Provider value={simulator}>
           <SpecUpEnabled.Provider value={specUp}>
             <ArmoryPageEnabled.Provider value={armoryPage}>
-              <CritSpeedEnabled.Provider value={critSpeed}>
-                <LandingMotion>
-                  <CharacterContent {...props} />
-                </LandingMotion>
-              </CritSpeedEnabled.Provider>
+              <TitleStatsEnabled.Provider value={titleStats}>
+                <CritSpeedEnabled.Provider value={critSpeed}>
+                  <LandingMotion>
+                    <CharacterContent {...props} />
+                  </LandingMotion>
+                </CritSpeedEnabled.Provider>
+              </TitleStatsEnabled.Provider>
             </ArmoryPageEnabled.Provider>
           </SpecUpEnabled.Provider>
         </SimulatorEnabled.Provider>
