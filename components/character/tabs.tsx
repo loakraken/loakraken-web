@@ -135,6 +135,7 @@ import {
   text,
 } from "./parts";
 import styles from "./detail.module.css";
+import { useTallest } from "@/components/ui/use-tallest";
 import expand from "@/components/site/expand.module.css";
 import { rateLimitCopy, retryLabel } from "@/lib/api/rate-limit";
 import { RateLimitNote } from "@/components/site/rate-limit-note";
@@ -1753,6 +1754,9 @@ export function ArkPassiveTab({ data }: { data: Character }) {
             panels={
               <PillTabsPanel value={tree}>
                 <Panel
+                  // Drawn anew per tree: the head text changes in place otherwise
+                  // and counts as moving (A7).
+                  key={tree}
                   title={`${tree} 노드`}
                   meta={[current.point?.description, `활성 ${current.nodes.length}개`].filter(Boolean).join(" · ")}
                 >
@@ -2215,6 +2219,9 @@ export function SiblingsTab({ data }: { data: Character }) {
   const asked = useSearchParams().get("view");
   const view: RosterView = views.find((item) => item.id === asked)?.id ?? "characters";
   const router = useRouter();
+  // Every view keeps the tallest one's room, so a shorter view (or its
+  // loading line) does not pull the footer up (A7).
+  const [viewRef, viewHeight] = useTallest();
   const choose = (next: RosterView) => {
     const params = new URLSearchParams(window.location.search);
     if (next === "characters") params.delete("view");
@@ -2230,17 +2237,19 @@ export function SiblingsTab({ data }: { data: Character }) {
         onValueChange={(next) => choose(next as RosterView)}
         panels={
           <PillTabsPanel value={view} className={styles.rosterPanel}>
-            {view === "characters" ? (
-              <RosterCharacters data={data} />
-            ) : view === "titles" ? (
-              <RosterTitlesPanel name={data.characterName} />
-            ) : view === "cards" ? (
-              <Panel title="카드 기록" wide>
-                <CardCollection name={data.characterName} />
-              </Panel>
-            ) : (
-              <ReceiptPanel name={data.characterName} />
-            )}
+            <div ref={viewRef} style={viewHeight ? { minHeight: viewHeight } : undefined}>
+              {view === "characters" ? (
+                <RosterCharacters data={data} />
+              ) : view === "titles" ? (
+                <RosterTitlesPanel name={data.characterName} />
+              ) : view === "cards" ? (
+                <Panel title="카드 기록" wide>
+                  <CardCollection name={data.characterName} />
+                </Panel>
+              ) : (
+                <ReceiptPanel name={data.characterName} />
+              )}
+            </div>
           </PillTabsPanel>
         }
       >
