@@ -769,6 +769,25 @@ createServer(async (req, res) => {
         data: { items, missingCount, refreshAvailableAt: null },
       });
   }
+  // Public summary (api #177, cache only): 공개요약 is indexable; 미기록요약 and
+  // 정지저장 (a processing-stop character found only in stored records) both
+  // answer 404 CHARACTER_NOT_CACHED; 발견만 (roster list only, no combat power)
+  // and 정지캐시 (processing-stop, live cache) come back not indexable.
+  if (url.pathname === "/api/v1/characters/public-summary") {
+    const who = url.searchParams.get("characterName") ?? "";
+    if (who === "미기록요약" || who === "정지저장")
+      return send({ code: "CHARACTER_NOT_CACHED", message: "private" }, 404);
+    const indexable = !/^(발견만|정지캐시)/.test(who);
+    return send({
+      code: "CHARACTER_PUBLIC_SUMMARY_SUCCESS",
+      message: "ok",
+      data: {
+        characterName: who, serverName: "아만", className: "블레이드", characterLevel: 70, itemLevel: 1770,
+        combatPower: who.startsWith("발견만") ? null : 4000, arkPassiveTitle: "버스트",
+        observedAt: "2026-10-12T03:00:00Z", dataSource: "STORED_OBSERVATION", indexable,
+      },
+    });
+  }
   if (url.pathname === "/api/v1/characters/siblings") {
     const who = url.searchParams.get("characterName");
     if (who === "원정대오류") return send({ code: "LOST_ARK_API_ERROR" }, 502);
