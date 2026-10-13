@@ -50,6 +50,23 @@ function Figure({ text, tone }: { text: string; tone?: "up" | "down" }) {
 const profitFigure = (value: number | null, priced: boolean) =>
   !priced ? <Figure text="—" /> : value == null ? <Figure text={UNKNOWN} /> : <Figure text={signed(value)} tone={value >= 0 ? "up" : "down"} />;
 
+/**
+ * Profit, and under it the same per 100 estate energy (a line held from the
+ * first paint). The words are in the header; read out here for screen readers.
+ */
+function ProfitCell({ value, per100, priced }: { value: number | null; per100: number | null; priced: boolean }) {
+  const shown = priced && per100 != null;
+  return (
+    <td className={styles.num}>
+      {profitFigure(value, priced)}
+      <small className={styles.perEnergy}>
+        {shown && <span className={styles.sr}>100 활동력당 </span>}
+        <Figure text={shown ? signed(per100) : ""} />
+      </small>
+    </td>
+  );
+}
+
 function PercentField({
   label,
   hint,
@@ -115,10 +132,10 @@ function OutputTable({ results, priced }: { results: CraftResult[]; priced: bool
                 1회 비용
               </th>
               <th scope="col" className={styles.num}>
-                판매 시
+                판매 시<small>100 활동력당</small>
               </th>
               <th scope="col" className={styles.num}>
-                직접 사용 시
+                직접 사용 시<small>100 활동력당</small>
               </th>
             </tr>
           </thead>
@@ -134,8 +151,8 @@ function OutputTable({ results, priced }: { results: CraftResult[]; priced: bool
                 <td className={styles.num} data-empty={(priced && r.cost == null) || undefined}>
                   <Figure text={!priced ? "—" : r.cost == null ? UNKNOWN : count(r.cost)} />
                 </td>
-                <td className={styles.num}>{profitFigure(r.sellProfit, priced)}</td>
-                <td className={styles.num}>{profitFigure(r.useProfit, priced)}</td>
+                <ProfitCell value={r.sellProfit} per100={r.sellPer100Energy} priced={priced} />
+                <ProfitCell value={r.useProfit} per100={r.usePer100Energy} priced={priced} />
               </tr>
             ))}
           </tbody>
@@ -264,7 +281,9 @@ export function AbidosCraftTool() {
                 거래소 1개 가격 + 제작 골드(수수료 감소 반영, 1골드 미만은 올림). 판매 시 = 10개 묶음 가격에서 판매 수수료{" "}
                 {MARKET_FEE_PERCENT}%(1골드 미만 올림)를 뗀 값 × 묶음 수(평균 개수 ÷ 10), 직접 사용 시 = 평균 개수 × 1개 가격.
                 직접 캔 재료도 거래소 가격으로 매겨요.
-                거래소에 가격이 없는 재료가 있으면 0이 아니라 {UNKNOWN}으로 두고 손익을 계산하지 않아요. 확인 {CRAFT_DATA.checkedAt}.
+                거래소에 가격이 없는 재료가 있으면 0이 아니라 {UNKNOWN}으로 두고 손익을 계산하지 않아요. 100 활동력당 이익은
+                제작법의 기본 활동력(아비도스 288, 상급 360)으로 나눠요. 니나브의 축복은 제작 시간·슬롯·활동력 회복량을 바꿔
+                1회 손익에는 영향이 없어요. 확인 {CRAFT_DATA.checkedAt}.
               </p>
             </section>
           </div>

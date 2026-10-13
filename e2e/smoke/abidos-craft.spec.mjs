@@ -12,7 +12,10 @@ test.describe("아비도스 제작 손익 @smoke", () => {
     // 목 시세: 벌목 재료 10·4·1, 결과물 90 → 비용 33×10 + 45×4 + 86×1 + 400 = 996, 평균 105개.
     const logging = normal.getByRole("row", { name: /^벌목/ });
     await expect(logging.getByRole("cell").nth(0)).toHaveText("996");
-    await expect(logging.getByRole("cell").nth(2)).toHaveText(`+${(105 * 90 - 996).toLocaleString("ko-KR")}`);
+    // 직접 사용 이익과 그 아래 100 활동력당(기본 활동력 288) 줄.
+    const use = 105 * 90 - 996;
+    await expect(logging.getByRole("cell").nth(2)).toHaveText(`+${use.toLocaleString("ko-KR")}100 활동력당 +${Math.round((use * 100) / 288).toLocaleString("ko-KR")}`);
+    await expect(normal.getByRole("columnheader", { name: /^직접 사용 시\s*100 활동력당$/ })).toBeVisible();
     // 목 서버에 "생선" 시세가 없다.
     const fishing = normal.getByRole("row", { name: /^낚시/ });
     await expect(fishing).toContainText("미확인: 생선");
@@ -29,7 +32,7 @@ test.describe("아비도스 제작 손익 @smoke", () => {
     const logging = page.getByRole("region", { name: "아비도스 융화 재료", exact: true }).getByRole("row", { name: /^벌목/ });
     // 비용 596 + 332 = 928, 직접 사용 110 × 90 − 928.
     await expect(logging.getByRole("cell").nth(0)).toHaveText("928");
-    await expect(logging.getByRole("cell").nth(2)).toHaveText(`+${(110 * 90 - 928).toLocaleString("ko-KR")}`);
+    await expect(logging.getByRole("cell").nth(2)).toHaveText(new RegExp(`^\\+${(110 * 90 - 928).toLocaleString("ko-KR")}100 활동력당`));
     await page.getByRole("textbox", { name: "대성공 확률 증가" }).fill("150");
     await expect(page.getByText("0~100 사이 숫자(소수 한 자리까지)로 넣어 주세요.")).toBeVisible();
   });
