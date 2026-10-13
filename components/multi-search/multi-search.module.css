@@ -153,8 +153,10 @@
   text-overflow: ellipsis;
   text-decoration: none;
 }
-.name a:hover {
-  text-decoration: underline;
+@media (hover: hover) and (pointer: fine) {
+  .name a:hover {
+    text-decoration: underline;
+  }
 }
 .sub {
   overflow: hidden;
