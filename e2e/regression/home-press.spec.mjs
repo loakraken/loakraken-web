@@ -20,7 +20,8 @@ const pressArea = (control) =>
   });
 
 async function expectArea(locator, label) {
-  await locator.scrollIntoViewIfNeeded();
+  // In the middle of the screen, so no corner falls outside the viewport.
+  await locator.evaluate((el) => el.scrollIntoView({ block: "center" }));
   expect(await pressArea(locator), label).toEqual([true, true, true, true]);
 }
 
