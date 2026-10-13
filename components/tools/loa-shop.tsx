@@ -64,6 +64,15 @@ const agoText = (now: number, iso: string) => {
   return minutes === 0 ? "방금 기준" : `${minutes}분 전 기준`;
 };
 
+/**
+ * A right-aligned figure drawn as a new node whenever it changes: rewriting the
+ * text in place slid it sideways as its width changed (prices arriving and the
+ * minute refresh, A6).
+ */
+function Figure({ text }: { text: string }) {
+  return <span key={text}>{text}</span>;
+}
+
 function Verdict({ value, rate, priced }: { value: PackageValue; rate: number | null; priced: boolean }) {
   // Always two lines, so prices or the rate arriving only change text (A6·A7).
   if (!priced)
@@ -175,10 +184,10 @@ function PackageCard({
                 </th>
                 <td className={styles.num}>{count(item.total)}</td>
                 <td className={styles.num} data-empty={(priced && item.unit == null) || undefined}>
-                  {!priced ? "—" : item.unit == null ? UNKNOWN : unitText(item.unit)}
+                  <Figure text={!priced ? "—" : item.unit == null ? UNKNOWN : unitText(item.unit)} />
                 </td>
                 <td className={styles.num} data-empty={(priced && item.gold == null) || undefined}>
-                  {!priced ? "—" : item.gold == null ? UNKNOWN : count(item.gold)}
+                  <Figure text={!priced ? "—" : item.gold == null ? UNKNOWN : count(item.gold)} />
                 </td>
               </tr>
             ))}
@@ -188,7 +197,9 @@ function PackageCard({
               <th scope="row">{value.unknown.length ? "확인된 구성품 합계" : "합계"}</th>
               <td />
               <td />
-              <td className={styles.num}>{priced ? `${count(value.gold)}G` : "—"}</td>
+              <td className={styles.num}>
+                <Figure text={priced ? `${count(value.gold)}G` : "—"} />
+              </td>
             </tr>
           </tfoot>
         </table>
@@ -278,7 +289,7 @@ export function LoaShopTool() {
                   autoComplete="off"
                   placeholder="비워 두면 이득을 계산하지 않아요"
                   aria-describedby={hintId}
-                  value={rateText ? Number(rateText).toLocaleString("ko-KR") : ""}
+                  value={rateText}
                   onChange={(event) => changeRate(event.target.value)}
                 />
               </label>
@@ -286,22 +297,6 @@ export function LoaShopTool() {
                 게임 안 크리스탈 교환소에서 블루 크리스탈 100개를 살 때 드는 골드를 넣어 주세요. 이 브라우저에만 저장하고
                 서버로 보내지 않아요. 공식 상점에서 블루 크리스탈 100개는 로열 크리스탈 {count(SHOP_DATA.crystal.royalPer100)}
                 개예요.
-              </p>
-              <SegmentedControl
-                fill
-                aria-label="시세 기준"
-                value={basis}
-                onValueChange={(value) => setBasis(value as PriceBasis)}
-              >
-                {priceBases.map((item) => (
-                  <SegmentedItem key={item.value} value={item.value}>
-                    {item.label}
-                  </SegmentedItem>
-                ))}
-              </SegmentedControl>
-              <p className={styles.small}>
-                거래소 {priceBases.find((b) => b.value === basis)?.label} 기준, 1분마다 새로 불러와요.
-                <span className={styles.agoLine}>{observedAt && now != null ? agoText(now, observedAt) : ""}</span>
               </p>
               {failure && (
                 <div className={quote.notice}>
@@ -328,6 +323,26 @@ export function LoaShopTool() {
               <p className={styles.small}>
                 공식 상점 공지 기준 · 확인 {SHOP_DATA.checkedAt}. {SHOP_DATA.unknown.join(" · ")}은 {UNKNOWN}이에요.
               </p>
+              {/* Here, in the wide column: in the narrow settings column the
+                  row did not fit and turned into a list after the fonts came,
+                  moving the page (A6). */}
+              <div className={styles.basis}>
+                <SegmentedControl
+                  aria-label="시세 기준"
+                  value={basis}
+                  onValueChange={(value) => setBasis(value as PriceBasis)}
+                >
+                  {priceBases.map((item) => (
+                    <SegmentedItem key={item.value} value={item.value}>
+                      {item.label}
+                    </SegmentedItem>
+                  ))}
+                </SegmentedControl>
+                <p className={styles.small}>
+                  거래소 {priceBases.find((b) => b.value === basis)?.label} 기준, 1분마다 새로 불러와요.
+                  <span className={styles.agoLine}>{observedAt && now != null ? agoText(now, observedAt) : ""}</span>
+                </p>
+              </div>
               <div className={styles.cards}>
                 {SHOP_DATA.packages.map((pkg) => (
                   <PackageCard

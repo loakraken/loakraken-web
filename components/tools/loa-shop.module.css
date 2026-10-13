@@ -62,17 +62,21 @@
   color: var(--ink);
   font-size: var(--text-field);
   font-variant-numeric: tabular-nums;
-  text-align: right;
+  /* Plain digits, left-aligned: a typed digit never moves the ones before
+     it (right-aligned, or with commas put in, every key moved them — A7). */
+  text-align: left;
   transition: border-color var(--duration-fast) var(--ease-out);
 }
 .field input::placeholder {
   color: var(--muted-foreground);
-  text-align: left;
 }
 .field input:focus-visible {
   outline: none;
   border-color: var(--action);
   box-shadow: var(--ring-halo);
+}
+.basis {
+  margin-top: var(--space-3);
 }
 .cards {
   display: grid;
