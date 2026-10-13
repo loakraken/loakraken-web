@@ -72,7 +72,14 @@ export function RosterPower({
     refresh.mutate(undefined, { onSettled: () => (lock.current = false) });
   }
 
+  // The list on screen decides the wording (PM #698): it can hold characters
+  // the records do not cover (another server's: the records are the
+  // same-server roster), and those can never be read here.
+  const unrecorded = siblings.filter((s) => records.get(s.characterName)?.combatPower == null);
+  const outside = unrecorded.filter((s) => !records.has(s.characterName)).length;
   const missing = (view?.missingCount ?? 0) > 0;
+  const allRecorded = view != null && unrecorded.length === 0;
+  const cannotRead = view != null && !missing && unrecorded.length > 0;
   const status = busy
     ? "기록이 없는 캐릭터를 차례로 불러오고 있어요. 몇 초 걸릴 수 있어요."
     : refresh.data
@@ -86,7 +93,9 @@ export function RosterPower({
           : refresh.isError
             ? "전투력을 불러오지 못했어요. 잠시 뒤 다시 시도해 주세요."
             : missing
-              ? "기록이 없는 캐릭터를 공식 정보에서 한 번에 12명까지 불러와요."
+              ? outside > 0
+                ? "같은 서버 원정대에서 기록이 없는 캐릭터를 한 번에 12명까지 불러와요."
+                : "기록이 없는 캐릭터를 공식 정보에서 한 번에 12명까지 불러와요."
               : "";
 
   return (
@@ -113,7 +122,10 @@ export function RosterPower({
       </p>
       {/* Two fixed rows: the button (or a note), then the status line. */}
       <div className={styles.rosterPowerAction}>
-        {view && !missing && <span className={styles.muted}>모든 캐릭터의 전투력 기록이 있어요.</span>}
+        {allRecorded && <span className={styles.muted}>모든 캐릭터의 전투력 기록이 있어요.</span>}
+        {cannotRead && (
+          <span className={styles.muted}>다른 서버 캐릭터의 전투력은 여기서 불러올 수 없어요.</span>
+        )}
         {missing && (
           <button
             type="button"

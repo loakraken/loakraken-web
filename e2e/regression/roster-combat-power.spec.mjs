@@ -60,3 +60,13 @@ test("@L19 불러오기 쿨다운: 오류처럼 보이지 않고 남은 시간 �
   await expect(power.getByText("얼마 전에 불러왔어요. 잠시 뒤 다시 불러올 수 있어요.")).toBeVisible();
   await expect(power.getByRole("button", { name: /분.* 뒤 다시 불러오기/ })).toHaveAttribute("aria-disabled", "true");
 });
+
+test("@L19 목록과 기록이 어긋나면 보이는 목록 기준 문장, 불러올 수 없는 이유 @regression", async ({ page }) => {
+  // 상세: the roster list (all servers) and the records (same server) share no one.
+  await gotoReady(page, characterPath("상세", "siblings"));
+  const power = page.getByRole("region", { name: "원정대 전투력" });
+  await expect(power).toContainText("아직 전투력 기록이 없어요.");
+  await expect(power).toContainText("다른 서버 캐릭터의 전투력은 여기서 불러올 수 없어요.");
+  await expect(power).not.toContainText("모든 캐릭터의 전투력 기록이 있어요.");
+  await expect(power.getByRole("button")).toHaveCount(0);
+});
