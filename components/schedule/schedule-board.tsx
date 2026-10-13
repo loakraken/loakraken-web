@@ -410,6 +410,9 @@ export function ScheduleBoard({
         </div>
       ) : page ? (
         <div
+          // Drawn anew for another day: rows rewritten in place count as
+          // moving when their text starts elsewhere, new rows do not (A7).
+          key={data.date}
           className={styles.sections}
           {...pendingProps(query)}
         >
@@ -434,6 +437,9 @@ export function ScheduleBoard({
         </div>
       ) : (
         <div
+          // Drawn anew for another day: rows rewritten in place count as
+          // moving when their text starts elsewhere, new rows do not (A7).
+          key={data.date}
           className={styles.sections}
           {...pendingProps(query)}
         >

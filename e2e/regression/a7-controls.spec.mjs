@@ -42,9 +42,7 @@ const CONTROLS = "main [role=group] button, main [role=tablist] [role=tab], main
 const FOUND = "10-13 A7 전수 측정에서 발견, 정리 대기";
 const KNOWN = Object.fromEntries(
   [
-    "/@1280", "/@360",
     "/news@360",
-    "/schedule@1280", "/schedule@360",
     "/tools/raid-rewards@1280", "/tools/raid-rewards@360",
     "/tools/refining@360",
     `${characterPath("상세", "skills")}@1280`, `${characterPath("상세", "skills")}@360`,
