@@ -13,6 +13,7 @@ import { rosterSearch, type RosterQuery, type RosterRankingEnvelope } from "./ro
 import { guildSearch, type GuildQuery, type GuildRankingEnvelope } from "./guild-ranking";
 import { popularGuildsSearch, type PopularGuildsEnvelope, type PopularGuildsQuery } from "./popular-guilds";
 import { classBuildsSearch, type ClassBuildsEnvelope, type ClassBuildsQuery } from "./class-builds";
+import { bestCombatPowerSearch, type BestCombatPowerEnvelope } from "./best-combat-power";
 import { titleEquipSearch, type TitleEquipEnvelope, type TitleEquipQuery } from "./title-equip";
 import { collectibleSearch, type CollectibleQuery, type CollectibleRankingEnvelope } from "./collectible-ranking";
 
@@ -80,3 +81,6 @@ export async function fetchStats<V extends StatsView>(
 
 export const fetchEfficiencyRanking = (kind: EfficiencyKind, query: EfficiencyQuery, signal: AbortSignal) =>
   call<EfficiencyEnvelope>(`/api/rankings/efficiency?${efficiencySearch(kind, query)}`, signal);
+
+export const fetchBestCombatPower = (query: StatsQuery, signal: AbortSignal) =>
+  call<BestCombatPowerEnvelope>(`/api/stats/best-combat-power?${bestCombatPowerSearch(query)}`, signal);

@@ -14,7 +14,7 @@ import { countdownText, retryLabel } from "@/lib/api/rate-limit";
 import { pendingProps } from "@/lib/api/pending";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { TIER_LABEL } from "@/lib/character/rank";
-import { fetchStats, fetchTitleEquip } from "@/lib/stats/client";
+import { fetchBestCombatPower, fetchStats, fetchTitleEquip } from "@/lib/stats/client";
 import { equipShare, titleEquipQuery } from "@/lib/stats/title-equip";
 import {
   fixed,
@@ -26,7 +26,7 @@ import {
   statsKey,
   statsSearch,
   whole,
-  type ClassRow,
+  type QuantileRow,
   type Metric,
   type StatsMeta,
   type StatsQuery,
@@ -40,6 +40,7 @@ const SERVERS = ["루페온", "실리안", "아만", "아브렐슈드", "카단"
 const TABS = [
   { id: "classes", label: "직업" },
   { id: "distribution", label: "분포" },
+  { id: "best", label: "최고 전투력" },
   { id: "servers", label: "서버" },
   { id: "titles", label: "칭호" },
 ] as const;
@@ -189,7 +190,18 @@ function SampleProgress({ ready, total, unit, minSample }: { ready: number; tota
  * entry, not on in-place updates), 30ms apart up to 8 rows; only the first 12
  * rows move (PM 12-item cap), the rest are simply there.
  */
-function Quantiles({ row, scale, index }: { row: ClassRow; scale: ((v: number) => number) | null; index: number }) {
+function Quantiles({
+  row,
+  scale,
+  index,
+  label = "전투력",
+}: {
+  row: QuantileRow;
+  scale: ((v: number) => number) | null;
+  index: number;
+  /** What the spread is of, read aloud. */
+  label?: string;
+}) {
   const p = row.combatPower;
   // Under the sample minimum: the median as a dot only (user, 23:50) — the
   // spread needs the full sample. "표본 N명 · 참고값" says why.
@@ -197,7 +209,7 @@ function Quantiles({ row, scale, index }: { row: ClassRow; scale: ((v: number) =
     return (
       <span className={styles.shortCell}>
         {p?.p50 != null && scale ? (
-          <span className={styles.quantile} role="img" aria-label={`전투력 중앙값 ${whole(p.p50)} (참고값)`}>
+          <span className={styles.quantile} role="img" aria-label={`${label} 중앙값 ${whole(p.p50)} (참고값)`}>
             <em style={{ left: `${scale(p.p50)}%` }} />
           </span>
         ) : null}
@@ -210,7 +222,7 @@ function Quantiles({ row, scale, index }: { row: ClassRow; scale: ((v: number) =
       className={index < 12 ? `${styles.quantile} k-grow-x` : styles.quantile}
       style={index < 12 ? ({ "--i": index } as CSSProperties) : undefined}
       role="img"
-      aria-label={`전투력 하위 10% ${whole(p.p10)}, 중간 50% ${whole(p.p25)}~${whole(p.p75)}, 상위 10% ${whole(p.p90)}`}
+      aria-label={`${label} 하위 10% ${whole(p.p10)}, 중간 50% ${whole(p.p25)}~${whole(p.p75)}, 상위 10% ${whole(p.p90)}`}
     >
       <i style={{ left: `${scale(p.p10)}%`, width: `${scale(p.p90) - scale(p.p10)}%` }} />
       <b style={{ left: `${scale(p.p25)}%`, width: `${Math.max(1, scale(p.p75) - scale(p.p25))}%` }} />
@@ -451,6 +463,97 @@ function ServersTab({ query }: { query: StatsQuery }) {
 // 순위 · 칭호 · 장착 원정대 · 비율
 const TITLE_COLUMNS = rankingColumns([3.5, 18, 8, 6.5]);
 
+/**
+ * 최고 전투력 (L5): each character's highest combat power over its whole
+ * history, overall and per class, over the same sample and filters. A cell
+ * under the sample minimum has its count only.
+ */
+function BestTab({ query }: { query: StatsQuery }) {
+  const best = useQuery({
+    queryKey: ["stats", "best", statsKey({ ...query, metric: undefined, width: undefined, percentileOf: undefined })],
+    queryFn: ({ signal }) => fetchBestCombatPower(query, signal),
+    staleTime: 5 * 60_000,
+    placeholderData: keepPreviousData,
+    ...quiet,
+  });
+  if (best.isError && !best.data) return <Problem error={best.error} onRetry={() => best.refetch()} />;
+  if (!best.data) return <p className={styles.muted}>최고 전투력 통계를 불러오고 있어요…</p>;
+  const { meta, overall, classes } = best.data.data;
+  const rows = classes.map((row) => ({
+    className: row.className,
+    count: row.value.count,
+    sampleStatus: row.value.sampleStatus,
+    combatPower: row.value.percentiles,
+    mean: row.value.mean,
+    max: row.value.max,
+  }));
+  const scale = quantileScale(rows);
+  const ready = rows.filter((row) => row.sampleStatus === "READY").length;
+  const short = overall.sampleStatus !== "READY";
+  return (
+    <div {...pendingProps(best)}>
+      {/* Drawn anew per answer: numbers rewritten in place move (A7). */}
+      <div key={best.dataUpdatedAt}>
+        <p className={styles.notice}>
+          조건에 맞는 캐릭터 {whole(meta.population)}명 중 최고 전투력 기록이 있는 {whole(overall.count)}명의, LOAKraken이
+          확인한 이력에서 가장 높았던 전투력이에요.
+          {(query.combatPowerMin != null || query.combatPowerMax != null) && " 전투력 범위 조건은 지금 전투력에 걸려요."}
+          {short && ` 표본이 ${meta.minSample}명 미만이라 값은 보여 드리지 않아요.`}
+        </p>
+        <dl className={styles.bestSummary}>
+          {[
+            ["평균", overall.mean],
+            ["중앙값", overall.percentiles?.p50],
+            ["상위 10%", overall.percentiles?.p90],
+            ["최고", overall.max],
+          ].map(([name, value]) => (
+            <div key={name as string}>
+              <dt>{name}</dt>
+              <dd>{value == null ? "-" : whole(value as number)}</dd>
+            </div>
+          ))}
+        </dl>
+        <SampleProgress ready={ready} total={rows.length} unit="직업" minSample={meta.minSample} />
+        {rows.length > 0 && (
+          <DataTable label="직업별 최고 전투력" className={styles.table}>
+            <caption className={styles.srOnly}>직업별 최고 전투력</caption>
+            <thead>
+              <tr>
+                <th scope="col">#</th>
+                <th scope="col" className={styles.left}>직업</th>
+                <th scope="col">인원</th>
+                <th scope="col">평균</th>
+                <th scope="col" className={styles.wide}>최고 전투력 분포</th>
+                <th scope="col">중앙값</th>
+                <th scope="col">최고</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row, i) => (
+                <tr key={row.className} data-short={row.sampleStatus !== "READY" || undefined}>
+                  <td>{i + 1}</td>
+                  <th scope="row">{row.className}</th>
+                  <td>{whole(row.count)}</td>
+                  <td>{whole(row.mean)}</td>
+                  <td className={styles.wide}>
+                    <Quantiles row={row} scale={scale} index={i} label="최고 전투력" />
+                  </td>
+                  <td>{whole(row.combatPower?.p50)}</td>
+                  <td>{whole(row.max)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </DataTable>
+        )}
+      </div>
+      <p className={styles.note}>
+        분포 막대: 옅은 선 하위 10%~상위 10%, 진한 칸 가운데 50%, 세로선 중앙값. 표본이 {meta.minSample}명 미만인 칸은
+        인원만 보여요.
+      </p>
+    </div>
+  );
+}
+
 function TitlesTab({ query }: { query: StatsQuery }) {
   const titleQuery = titleEquipQuery(query);
   const titles = useQuery({
@@ -631,6 +734,8 @@ export function StatsView({
                   <ClassesTab query={query} />
                 ) : tab === "distribution" ? (
                   <DistributionTab query={query} />
+                ) : tab === "best" ? (
+                  <BestTab query={query} />
                 ) : tab === "titles" ? (
                   <TitlesTab query={query} />
                 ) : (

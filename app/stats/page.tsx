@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { dehydrate, HydrationBoundary, QueryClient } from "@tanstack/react-query";
 import { StatsView } from "@/components/stats/stats-view";
-import { getStats } from "@/lib/stats/server";
+import { getBestCombatPower, getStats } from "@/lib/stats/server";
 import { isTitleStatsEnabled } from "@/lib/tools/flags";
 import { parseStatsQuery, statsKey, type StatsQuery } from "@/lib/stats/model";
 
@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   alternates: { canonical: "/stats" },
 };
 
-const TABS = ["classes", "distribution", "servers", "titles"] as const;
+const TABS = ["classes", "distribution", "best", "servers", "titles"] as const;
 
 export default async function StatsPage({
   searchParams,
@@ -37,15 +37,17 @@ export default async function StatsPage({
   // 1s and the client fetches as before.
   const deadline = AbortSignal.timeout(1_000);
   const view = tab === "classes" || tab === "servers" ? tab : null;
-  const [summary, table] = await Promise.all([
+  const [summary, table, best] = await Promise.all([
     getStats("summary", query, deadline),
     view ? getStats(view, query, deadline) : null,
+    tab === "best" ? getBestCombatPower(query, deadline) : null,
   ]);
   // eslint-disable-next-line react-hooks/purity
   const fetchedAt = Date.now();
   const client = new QueryClient();
   if (summary.ok) client.setQueryData(["stats", "summary", statsKey(query)], summary.envelope, { updatedAt: fetchedAt });
   if (view && table?.ok) client.setQueryData(["stats", view, statsKey(query)], table.envelope, { updatedAt: fetchedAt });
+  if (best?.ok) client.setQueryData(["stats", "best", statsKey(query)], best.envelope, { updatedAt: fetchedAt });
   // StatsView follows initialTab itself, so a menu link to another tab opens it.
   return (
     <HydrationBoundary state={dehydrate(client)}>
