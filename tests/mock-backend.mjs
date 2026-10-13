@@ -487,6 +487,47 @@ createServer(async (req, res) => {
     JSON.parse(readFileSync(new URL(`./combat-power-fixtures/${name}`, import.meta.url), "utf8"));
   // 스펙업 가이드(백엔드 #318 표본). '스펙업꺼짐'은 SPEC_UP_DISABLED, '스펙업시세'는
   // 비용 PENDING, 캐시에 없는 이름은 CHARACTER_NOT_CACHED.
+  // 스펙업 목표 경로 (api #455). The backend sample (보석 8→9→10, 무기 품질) moved
+  // onto the mock character's combat power and cut where it reaches the target,
+  // as the backend stops there. '미존재' 404, '스펙업꺼짐' 404, '상세서포터' the
+  // role reason with no steps, a target over twice today 400.
+  if (url.pathname === "/api/v1/characters/spec-up/goal") {
+    const who = url.searchParams.get("characterName");
+    const target = Number(url.searchParams.get("targetCombatPower"));
+    if (who === "스펙업꺼짐") return send({ code: "SPEC_UP_DISABLED", message: "", data: null }, 404);
+    if (who === "미존재") return send({ code: "CHARACTER_NOT_CACHED", message: "", data: null }, 404);
+    const envelope = JSON.parse(readFileSync(new URL("./spec-up-fixtures/character-spec-up-goal.json", import.meta.url), "utf8"));
+    const d = envelope.data;
+    const base = read("character-full-data.json").combatPower;
+    if (target > base * 2) return send({ code: "SPEC_UP_GOAL_OUT_OF_RANGE", message: "", data: null }, 400);
+    const sampleBase = d.combatPower;
+    const shift = (v) => Math.round((v + base - sampleBase) * 100) / 100;
+    d.characterName = who;
+    d.targetCombatPower = target;
+    d.combatPower = base;
+    if (who === "상세서포터") {
+      Object.assign(d, { steps: [], finalCombatPower: null, reached: false, totalCost: null, unpricedSteps: 0, stopReasonCode: "SUPPORTER_MODEL_PENDING", stopReason: "서포터 전투력 계산식은 아직 적용하지 않았습니다." });
+      return send(envelope);
+    }
+    if (target <= base) {
+      Object.assign(d, { steps: [], finalCombatPower: base, reached: true, totalCost: 0, unpricedSteps: 0, stopReasonCode: "ALREADY_REACHED", stopReason: "이미 목표 전투력 이상입니다." });
+      return send(envelope);
+    }
+    // The gem in the sample is the mock simulator character's slot-1 gem.
+    for (const step of d.steps) {
+      step.combatPowerAfter = shift(step.combatPowerAfter);
+      if (step.change.kind === "GEM_LEVEL") step.change.slot = 1;
+    }
+    const cut = d.steps.findIndex((step) => step.combatPowerAfter >= target);
+    d.steps = cut >= 0 ? d.steps.slice(0, cut + 1) : d.steps;
+    const last = d.steps.at(-1);
+    d.finalCombatPower = last.combatPowerAfter;
+    d.reached = d.finalCombatPower >= target;
+    d.unpricedSteps = d.steps.filter((step) => step.cost.status !== "OK").length;
+    d.totalCost = d.unpricedSteps ? null : d.steps.reduce((sum, step) => sum + step.cost.amount, 0);
+    if (!d.reached) Object.assign(d, { stopReasonCode: "NO_CANDIDATE", stopReason: "더 올릴 수 있는 후보가 없습니다." });
+    return send(envelope);
+  }
   if (url.pathname === "/api/v1/characters/spec-up") {
     const specUp = (name) =>
       JSON.parse(readFileSync(new URL(`./spec-up-fixtures/${name}`, import.meta.url), "utf8"));

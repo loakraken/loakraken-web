@@ -9,7 +9,7 @@ import { useItemTooltips } from "./use-item-tooltips";
 import { equipmentExtra } from "@/lib/character/item-tooltips";
 import type { Character } from "@/lib/character/model";
 import { groupEquipment } from "@/lib/character/detail";
-import { avatarEffectTotals, avatarSlots } from "@/lib/character/inner";
+import { avatarEffectTotals, avatarSlots, rarestOwned } from "@/lib/character/inner";
 import { safeGameImage } from "@/lib/character/model";
 import { GameIcon } from "./imagery";
 import { Panel } from "./panel";
@@ -62,6 +62,7 @@ function CollectionList({ collectible }: { collectible: Collectible }) {
   const items = rarest && owned.size
     ? [...filtered].sort((a, b) => (shareOf(a.name) ?? 101) - (shareOf(b.name) ?? 101))
     : filtered;
+  const rarestItem = rarestOwned(collectible.items, shareOf);
   const missing = collectible.items.filter(
     (item) => item.maxPoint == null || item.point !== item.maxPoint,
   ).length;
@@ -120,6 +121,11 @@ function CollectionList({ collectible }: { collectible: Collectible }) {
       {/* Below the list: it arrives after the list and must not push it. */}
       {owned.size > 0 && sample && (
         <p className={styles.caption}>
+          {rarestItem && (
+            <>
+              가장 희귀한 보유 <b>{rarestItem.name}</b> (보유율 {rarestItem.share.toFixed(1)}%) ·{" "}
+            </>
+          )}
           보유율: 크라켄 표본 원정대 {number(sample.population)}개 기준
           {sample.sampleStatus !== "READY" && ` · 표본 ${number(sample.minSample)}개 미만이라 참고값`}
         </p>

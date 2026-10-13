@@ -142,3 +142,18 @@ export function conditionsText(data: CharacterRank) {
   const level = c.itemLevelMin > 0 ? ` 아이템 레벨 ${count(c.itemLevelMin)} 이상` : "";
   return `LOAKraken이 최근 ${c.activeDays}일 안에 확인한${level} 캐릭터 기준`;
 }
+
+/**
+ * The banner line (§14.1 ⑤): combat power over everyone seen, only when that
+ * box is ready and the character is ranked; otherwise nothing (no 0, no guess).
+ */
+export function bannerRank(data: CharacterRank) {
+  if (rankState(data) !== "ranked") return null;
+  const cell = rankCell(data, "COMBAT_POWER", "ALL");
+  if (cell.state !== "ready") return null;
+  return {
+    tier: cell.tier,
+    text: `전투력 ${cell.rank}${cell.top ? ` · ${cell.top}` : ""}`,
+    note: `${conditionsText(data)} ${cell.total} 순위예요. 공식 순위가 아니에요.`,
+  };
+}

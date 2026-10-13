@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   TIER_LABEL,
   TIER_LEGEND,
+  bannerRank,
   conditionsText,
   isRankEnvelope,
   rankCell,
@@ -80,4 +81,17 @@ test("server-class box (backend #171) shows only when sent", () => {
   const older = structuredClone(data);
   older.entries = older.entries.filter((e: { scope: string }) => e.scope !== "SERVER_CLASS");
   assert.deepEqual(scopesOf(older).map((s) => s.id), ["ALL", "SERVER", "CLASS"]);
+});
+
+test("banner line: combat power over everyone seen, only when ranked and ready", () => {
+  const data = fixture("character-rank.json").data;
+  assert.deepEqual(bannerRank(data), {
+    tier: "대양",
+    text: "전투력 5위 · 상위 12.5%",
+    note: "LOAKraken이 최근 30일 안에 확인한 아이템 레벨 1,640 이상 캐릭터 기준 40명 중 순위예요. 공식 순위가 아니에요.",
+  });
+  assert.equal(bannerRank({ ...data, included: false, entries: [] }), null);
+  const collecting = structuredClone(data);
+  for (const entry of collecting.entries) entry.sampleStatus = "COLLECTING";
+  assert.equal(bannerRank(collecting), null);
 });

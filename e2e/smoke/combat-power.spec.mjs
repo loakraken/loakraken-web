@@ -66,7 +66,7 @@ test.describe("전투력 시뮬레이터 @smoke", () => {
     await page.keyboard.press("Escape");
   });
 
-  test("각인·스톤·팔찌·팔 보호구는 바꾸고, 재련·연마·아크 패시브·코어는 '준비 중'으로 잠긴다", async ({ page }) => {
+  test("각인·스톤·연마·팔찌·팔 보호구는 바꾸고, 재련·아크 패시브·코어는 '준비 중'으로 잠긴다", async ({ page }) => {
     // PM 총괄 23:59: 계산 검증을 통과한 항목(보석·품질·각인·스톤)만 바꿀 수 있다.
     await gotoReady(page, `/tools/combat-power?character=${encodeURIComponent("전투력계산")}`);
     await chooseOption(page, page.getByRole("combobox", { name: "스톤 원한 레벨" }), "2");
@@ -74,14 +74,28 @@ test.describe("전투력 시뮬레이터 @smoke", () => {
     const changes = page.getByRole("region", { name: "바꾼 것" });
     await expect(changes.getByText("스톤 원한")).toBeVisible();
     await expect(changes.getByText("4 → 3")).toBeVisible();
-    for (const name of ["투구 재련 단계", "투구 상급 재련 단계", "테스트 목걸이 추가 피해 등급", "테스트 코어 등급"])
+    for (const name of ["투구 재련 단계", "투구 상급 재련 단계", "테스트 코어 등급"])
       await expect(page.getByRole("combobox", { name })).toHaveCount(0);
     await expect(page.getByRole("textbox", { name: "아크 패시브 진화 포인트" })).toHaveCount(0);
-    for (const title of ["연마", "아크 패시브", "아크 그리드 코어"])
+    for (const title of ["아크 패시브", "아크 그리드 코어"])
       await expect(page.getByRole("region", { name: title, exact: true })).toContainText("준비 중");
     await expect(page.getByText("재련 +19 · 준비 중")).toBeVisible();
-    // 잠긴 연마 줄도 등급과 공식 수치를 같은 단위로(backend #254): "중(+1.60%)".
-    await expect(page.getByRole("region", { name: "연마", exact: true }).getByText("등급 중(+1.60%) · 준비 중")).toBeVisible();
+    await expectNoHorizontalOverflow(page);
+  });
+
+  test("연마 줄 등급을 바꾸면 계산에 들어가고, 고를 때도 공식 수치를 함께 보여 준다(api #460)", async ({ page }) => {
+    await gotoReady(page, `/tools/combat-power?character=${encodeURIComponent("전투력계산")}`);
+    const polish = page.getByRole("region", { name: "연마", exact: true });
+    await expect(polish).not.toContainText("준비 중");
+    const grade = page.getByRole("combobox", { name: "테스트 목걸이 추가 피해 등급" });
+    // 지금 값도 등급과 공식 수치를 같은 단위로(backend #254): "중(+1.60%)".
+    await expect(grade).toContainText("중(+1.60%)");
+    await chooseOption(page, grade, /^상/);
+    const changes = page.getByRole("region", { name: "바꾼 것" });
+    await expect(changes.getByText("연마", { exact: true })).toBeVisible();
+    // 등급을 바꾸면 결과가 바뀐다(목 서버: 계산된 줄마다 +10.00).
+    await expect(page.getByText("예상 전투력")).toBeVisible();
+    await expect(page.getByText("+10.00 (", { exact: false }).first()).toBeVisible();
     await expectNoHorizontalOverflow(page);
   });
 
@@ -173,4 +187,24 @@ test.describe("전투력 시뮬레이터 @smoke", () => {
     // 상급이 있는 장비는 그대로 '준비 중'.
     await expect(page.getByRole("listitem").filter({ hasText: "+19 테스트 투구" })).toContainText("상급 10 · 준비 중");
   });
+
+  for (const width of [1280, 360])
+    test(`첫 변경에도 결과 칸 높이가 그대로라 아래가 밀리지 않는다(PM-프론트 A7, ${width})`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.addInitScript(() => {
+        window.__shift = 0;
+        new PerformanceObserver((list) => {
+          for (const entry of list.getEntries()) window.__shift += entry.value;
+        }).observe({ type: "layout-shift", buffered: true });
+      });
+      await gotoReady(page, `/tools/combat-power?character=${encodeURIComponent("전투력계산")}`);
+      const band = page.getByRole("region", { name: "전투력", exact: true });
+      const height = (await band.boundingBox()).height;
+      await page.evaluate(() => (window.__shift = 0));
+      await chooseOption(page, page.getByRole("combobox", { name: "장갑 품질" }), "100");
+      await expect(page.getByText("예상 전투력")).toBeVisible();
+      await expect(page.getByRole("region", { name: "바꾼 것" })).toBeVisible();
+      expect((await page.getByRole("region", { name: "예상 전투력", exact: true }).boundingBox()).height).toBe(height);
+      expect(await page.evaluate(() => window.__shift)).toBe(0);
+    });
 });

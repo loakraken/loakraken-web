@@ -34,6 +34,8 @@ export const OPEN_KINDS: ReadonlySet<string> = new Set([
   // backend #332 (bracelet families) and #342 (팔 보호구), sim v8
   "BRACELET_EFFECT",
   "ARM_GUARD",
+  // api #460: polish lines take the line's own option and value (무공 too).
+  "POLISH",
 ]);
 export const isOpen = (kind: Change["kind"]) => OPEN_KINDS.has(kind);
 

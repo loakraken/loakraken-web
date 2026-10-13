@@ -91,7 +91,7 @@
   height: 36px;
   border-radius: 12px;
   background: var(--card);
-  color: var(--primary);
+  color: var(--link);
 }
 .quickIcon svg {
   width: 20px;
@@ -285,7 +285,8 @@
   font-size: 12px;
 }
 .section header .next {
-  margin-left: auto;
+  flex: 1 1 auto;
+  min-width: 0;
   text-align: right;
   color: var(--muted-foreground);
   font-variant-numeric: tabular-nums;

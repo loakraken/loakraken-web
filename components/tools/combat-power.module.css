@@ -107,9 +107,13 @@
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
 }
-.bandValue span {
+.bandDelta {
+  min-height: 1lh;
+  margin-top: 2px;
   font-size: var(--text-body);
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 .bandNote {
   min-height: 2lh;
