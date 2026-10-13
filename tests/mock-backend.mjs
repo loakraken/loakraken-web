@@ -803,6 +803,20 @@ createServer(async (req, res) => {
         ["전투력넷", "소서리스", 1700],
         ["전투력다섯", "도화가", 1680],
       ].map(([characterName, className, itemLevel]) => ({ characterName, serverName: "아만", className, characterLevel: 70, itemLevel }));
+    // 주간 획득 골드 (M7): six on 아만 at the reference roster's levels, one
+    // more below them and one on another server, neither of which counts.
+    else if (who === "주간골드")
+      base.data.siblings = [
+        [who, 1770],
+        ["주간골드둘", 1725],
+        ["주간골드셋", 1705],
+        ["주간골드넷", 1585],
+        ["주간골드다섯", 1580],
+        ["주간골드여섯", 1560],
+        ["주간골드일곱", 1500],
+      ]
+        .map(([characterName, itemLevel]) => ({ characterName, serverName: "아만", className: "블레이드", characterLevel: 70, itemLevel }))
+        .concat({ characterName: "주간골드다른서버", serverName: "루페온", className: "바드", characterLevel: 70, itemLevel: 1780 });
     else base.data.siblings = [
       { characterName: who, serverName: "아만", className: "블래스터", characterLevel: 70, itemLevel: 1780.83 },
       { characterName: "합성원정대", serverName: "아만", className: "바드", characterLevel: 70, itemLevel: 1720 },

@@ -68,6 +68,7 @@ import { HistoryChart } from "./history-chart";
 import { AvatarsTab, CollectiblesTab } from "./inner";
 import { Panel } from "./panel";
 import { ViewsPanel } from "./views-panel";
+import { WeeklyGoldPanel } from "./weekly-gold-panel";
 import { useTabPill } from "./tab-pill";
 import {
   CoreCard,
@@ -1953,6 +1954,7 @@ function SiblingList({
           </Panel>
         </>
       )}
+      <WeeklyGoldPanel siblings={siblings} current={current} shown={shown} />
       {servers.map((server) => (
         <Panel
           key={server}
