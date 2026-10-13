@@ -97,6 +97,27 @@
   }
 }
 
+/* Touch target 44px on phones (checklist A36, apple-design): the visible
+   control keeps its size; an invisible ::after centred on it takes taps over
+   at least 44 × 44. Phone widths or a coarse pointer only, so a mouse on
+   desktop is unchanged. The element must not clip it (no overflow:hidden on
+   itself); a scrolling parent needs room for it (PillTabs: its 4px padding). */
+@utility hit-44 {
+  @media (max-width: 699px), (pointer: coarse) {
+    position: relative;
+
+    &::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: max(100%, 44px);
+      height: max(100%, 44px);
+      translate: -50% -50%;
+    }
+  }
+}
+
 /* scroll-fade */
 @property --scroll-fade-t {
   syntax: "<length-percentage>";

@@ -39,6 +39,14 @@
   display: flex;
   gap: 8px;
 }
+/* Phones: the links take 44px to tap (hit-44, A36), so the policy row sits far
+   enough under the community link that their tap areas do not overlap
+   (18px rows, centres 44px apart). */
+@media (max-width: 699px), (pointer: coarse) {
+  .links {
+    margin-top: 20px;
+  }
+}
 .legal a {
   color: var(--muted-foreground);
 }

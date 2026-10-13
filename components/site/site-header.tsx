@@ -28,7 +28,7 @@ export function SiteHeader({
       className={[styles.header, className].filter(Boolean).join(" ")}
       data-fixed={fixed || undefined}
     >
-      <Link href="/" className={styles.brand} aria-label="LOAKraken 홈">
+      <Link href="/" className={`${styles.brand} hit-44`} aria-label="LOAKraken 홈">
         <KrakenMark />
         <span>LOAKraken</span>
       </Link>
