@@ -23,6 +23,8 @@ export type Basis = {
   minSample: number;
   /** What is counted after the number: "명" (default), "개 원정대", "개 길드". */
   unit?: string;
+  /** What happens under the sample minimum when it is not "shown as reference values" (class builds hide them). */
+  belowMin?: string;
 };
 
 /**
@@ -45,9 +47,8 @@ function NoteBody({ basis }: { basis: Basis }) {
             after them does not count as moving (A7). */}
         <li key={`${basis.population}-${conditionsText(basis.conditions)}-${basis.aggregatedAt}`}>
           집계 대상 {basis.population != null ? `${whole(basis.population)}${basis.unit ?? "명"} · ` : ""}
-          {conditionsText(basis.conditions)} · {kst.format(new Date(basis.aggregatedAt))} 기준. 표본이{" "}
-          {basis.minSample}
-          {basis.unit ?? "명"} 미만인 항목은 참고값으로 보여요.
+          {conditionsText(basis.conditions)} · {kst.format(new Date(basis.aggregatedAt))} 기준.{" "}
+          {basis.belowMin ?? `표본이 ${basis.minSample}${basis.unit ?? "명"} 미만인 항목은 참고값으로 보여요.`}
         </li>
         <li>검색되는 캐릭터가 늘수록 집계 대상도 늘어나요.</li>
       </ul>

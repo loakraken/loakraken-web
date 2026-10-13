@@ -335,7 +335,17 @@ export function ClassBuildsView({ initial }: { initial: ClassBuildsQuery }) {
             <Sections key={builds.dataUpdatedAt} data={data} />
           )}
         </div>
-        {meta && <BasisNote basis={{ ...meta, population: meta.population ?? null, unit: "명" }} />}
+        {meta && data && (
+          <BasisNote
+            basis={{
+              ...meta,
+              population: meta.population ?? null,
+              unit: "명",
+              // Here nothing is shown as a reference value: a short sample shows no sections, a small cell is hidden.
+              belowMin: `표본이 ${meta.minSample}명 미만이면 항목을 보여 드리지 않고, 인원(보석은 개수)이 ${data.minCell} 미만인 칸은 숨겨요.`,
+            }}
+          />
+        )}
       </main>
     </div>
   );

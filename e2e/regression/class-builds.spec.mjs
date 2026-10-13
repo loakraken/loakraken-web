@@ -60,7 +60,11 @@ for (const width of [1280, 360])
     await expect(classEngravings.getByRole("listitem")).toHaveCount(2);
     await expect(classEngravings).toContainText("잔재된 기운");
     await expect(page.getByRole("region", { name: "각인 조합" })).toHaveCount(0);
-    await expect(page.getByText("참고값")).toHaveCount(0);
+    // Nothing here is a reference value: the basis note says what happens instead.
+    await expect(page.getByText(/참고값/)).toHaveCount(0);
+    await expect(page.getByRole("region", { name: "집계 기준 안내" })).toContainText(
+      "표본이 30명 미만이면 항목을 보여 드리지 않고, 인원(보석은 개수)이 5 미만인 칸은 숨겨요.",
+    );
     expect(moved.all, `표본 적은 쪽으로 전환 흔들림 (${moved.moved})`).toBe(0);
     // The filter buttons stay, so the way back is there.
     const back = await shiftsDuring(page, () => page.getByRole("group", { name: "직업 각인" }).getByRole("button", { name: "잔재된 기운" }).click());
