@@ -22,5 +22,7 @@ test("원정대 칭호: 칭호마다 장착 원정대 비율 @regression", async
   const list = page.getByRole("list").filter({ hasText: "빛을 꺼트리는 자" }).first();
   await expect(list).toContainText("장착 원정대 32.26%");
   // A title not in the shares (no record of anyone wearing it) shows no share.
-  await expect(list.locator("li").filter({ hasText: "카멘을 쓰러뜨린 자" })).not.toContainText("장착 원정대");
+  // The title line itself (a same-day group is an outer list item too).
+  const kamen = page.getByText("카멘을 쓰러뜨린 자", { exact: true }).locator("xpath=..");
+  await expect(kamen).not.toContainText("장착 원정대");
 });
