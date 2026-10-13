@@ -1,0 +1,129 @@
+/* 길드 탭 (L36·K28·M10): the guild's sample in the character tab's panels. */
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+}
+.head h3 {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.held,
+.body {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(340px, 100%), 1fr));
+  gap: 20px;
+}
+.body {
+  grid-column: 1 / -1;
+}
+.held > section[data-wide],
+.body > section[data-wide] {
+  grid-column: 1 / -1;
+}
+.summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px 16px;
+  margin: 0;
+}
+.summary div {
+  display: grid;
+  gap: 2px;
+}
+.summary dt {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.summary dd {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.note {
+  margin-top: 12px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.note strong {
+  color: var(--foreground);
+  font-weight: 600;
+}
+.bars {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.bars li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(48px, 40%) 4em;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+.name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.track {
+  display: block;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 9999px;
+  background: var(--background);
+}
+.track i {
+  display: block;
+  height: 100%;
+  background: var(--link);
+  transform-origin: left center;
+}
+.bars b {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.members {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.members th,
+.members td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  text-align: right;
+  white-space: nowrap;
+}
+.members th:first-child,
+.members td:nth-child(2),
+.members td:nth-child(5) {
+  text-align: left;
+}
+.members thead th {
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-weight: 600;
+}
+.members tbody th a {
+  color: var(--foreground);
+  font-weight: 600;
+  text-decoration: none;
+}
+@media (hover: hover) and (pointer: fine) {
+  .members tbody th a:hover {
+    text-decoration: underline;
+  }
+}
+.members tr[data-current] {
+  background: var(--hover-surface);
+}

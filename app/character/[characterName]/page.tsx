@@ -6,6 +6,7 @@ import {
   isReceiptEnabled,
   isSettingCheckEnabled,
   isSpecUpEnabled,
+  isGuildRankingEnabled,
   isTitleStatsEnabled,
 } from "@/lib/tools/flags";
 import type { Metadata } from "next";
@@ -101,6 +102,7 @@ export default async function CharacterPage({
         specUp={isSpecUpEnabled()}
         titleStats={isTitleStatsEnabled()}
         critSpeed={isCritSpeedEnabled()}
+        guildTab={isGuildRankingEnabled()}
       />
     </HydrationBoundary>
   );
