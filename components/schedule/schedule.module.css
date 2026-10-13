@@ -145,6 +145,43 @@
   font-size: 11px;
   font-variant-numeric: tabular-nums;
 }
+.chips a,
+.chips button {
+  transition: transform 100ms ease-out;
+}
+.chips a:active,
+.chips button:active {
+  transform: scale(0.97);
+}
+@media (prefers-reduced-motion: reduce) {
+  .chips a,
+  .chips button {
+    transition: none;
+  }
+}
+/* On a phone each chip takes 44px to press (the hit-44 rule); 30px chips get
+   rows 16px apart and at least 44px wide so the areas do not overlap. */
+@media (max-width: 699px), (pointer: coarse) {
+  .chips {
+    gap: 16px 6px;
+  }
+  .chips a,
+  .chips button {
+    position: relative;
+    min-width: 44px;
+    justify-content: center;
+  }
+  .chips a::after,
+  .chips button::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+    translate: -50% -50%;
+  }
+}
 .chips a[aria-current="page"],
 .chips button[aria-pressed="true"] {
   background: var(--foreground);

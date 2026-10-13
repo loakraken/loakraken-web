@@ -13,8 +13,10 @@
   font: inherit;
   cursor: pointer;
 }
-.remove:hover {
-  background: var(--hover-surface);
+@media (hover: hover) and (pointer: fine) {
+  .remove:hover {
+    background: var(--hover-surface);
+  }
 }
 .page :focus-visible {
   outline: 3px solid var(--ring);
@@ -74,11 +76,15 @@
   text-align: center;
   text-decoration: none;
   word-break: keep-all;
-  transition: box-shadow 160ms ease-out;
+  transition:
+    box-shadow 160ms ease-out,
+    transform 100ms ease-out;
 }
-.quick a:hover {
-  /* the shared hover tint over the card colour */
-  box-shadow: inset 0 0 0 100vmax var(--hover-surface);
+@media (hover: hover) and (pointer: fine) {
+  .quick a:hover {
+    /* the shared hover tint over the card colour */
+    box-shadow: inset 0 0 0 100vmax var(--hover-surface);
+  }
 }
 .quick a:focus-visible {
   outline: 2px solid var(--ring);
@@ -165,6 +171,53 @@
   color: var(--link);
   font-size: 13px;
   font-weight: 600;
+}
+
+/* Press feedback (apple-design re-review): the control answers at once,
+   scale only, so nothing around it moves (.quick a has its transition above). */
+.toggle,
+.days button,
+.rewardMore,
+.remove {
+  transition: transform 100ms ease-out;
+}
+.quick a:active,
+.toggle:active,
+.days button:active,
+.rewardMore:active,
+.remove:active {
+  transform: scale(0.97);
+}
+@media (prefers-reduced-motion: reduce) {
+  .quick a,
+  .toggle,
+  .days button,
+  .rewardMore,
+  .remove {
+    transition: none;
+  }
+}
+/* On a phone the small controls take 44px to press; the pill stays as it
+   looks (the hit-44 rule, which a module selector cannot take). */
+@media (max-width: 699px), (pointer: coarse) {
+  .toggle,
+  .rewardMore,
+  .remove,
+  .more {
+    position: relative;
+  }
+  .toggle::after,
+  .rewardMore::after,
+  .remove::after,
+  .more::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+    translate: -50% -50%;
+  }
 }
 
 /* Schedule */
@@ -485,6 +538,7 @@
 .recentLevel {
   display: grid;
   justify-items: end;
+  font-variant-numeric: tabular-nums;
 }
 .recentLevel small {
   color: var(--muted-foreground);
@@ -883,9 +937,6 @@
   font-size: 12px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
-}
-.rewardMore:hover {
-  background: var(--secondary);
 }
 .rewardPanel {
   display: grid;
