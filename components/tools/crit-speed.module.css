@@ -472,10 +472,12 @@
      answer area holds a screen of room in every state (before the first
      calculation too): the settings below start off screen, so pressing
      계산하기 no longer pushes them down (apple-design 재검수, 360 0.0228/0.30
-     → 0), nor does the result arriving (390 CLS 0.37 earlier). */
+     → 0), nor does the result arriving (390 CLS 0.37 earlier). svh, not dvh:
+     dvh changes as the address bar hides and shows, moving the settings while
+     the page scrolls (PM-프론트 #776). */
   .output {
     order: -1;
-    min-height: 100dvh;
+    min-height: 100svh;
   }
   .empty[data-loading] {
     align-items: flex-start;
