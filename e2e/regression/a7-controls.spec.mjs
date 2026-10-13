@@ -51,14 +51,11 @@ const KNOWN = Object.fromEntries(
     "/rankings?type=guilds@1280", "/rankings?type=guilds@360",
     "/rankings?type=efficiency@1280", "/rankings?type=efficiency@360",
     "/schedule@1280", "/schedule@360",
-    "/tools/raid-rewards@1280", "/tools/raid-rewards@360",
-    "/tools/refining@360",
     `${characterPath("상세")}@1280`, `${characterPath("상세")}@360`,
     `${characterPath("상세", "skills")}@1280`, `${characterPath("상세", "skills")}@360`,
     `${characterPath("상세", "collectibles")}@1280`, `${characterPath("상세", "collectibles")}@360`,
     `${characterPath("상세", "siblings")}@1280`, `${characterPath("상세", "siblings")}@360`,
     `${characterPath("상세", "arkpassive")}@1280`, `${characterPath("상세", "arkpassive")}@360`,
-    `${characterPath("상세", "specup")}@1280`, `${characterPath("상세", "specup")}@360`,
   ].map((key) => [key, FOUND]),
 );
 
