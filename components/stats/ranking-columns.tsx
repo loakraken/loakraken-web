@@ -8,6 +8,10 @@ import type { CSSProperties } from "react";
  * table takes the wider of the screen and their sum (narrow screens scroll the
  * table box, as before), any extra width is shared in the same proportions, and
  * a longer value ends in an ellipsis instead of widening its column.
+ *
+ * The views also key the table body and the note over it by the answer's
+ * arrival time: text changed in place counts as moving when its start point
+ * moves (a right-aligned number of another width), new nodes do not.
  */
 export function rankingColumns(widths: readonly number[]) {
   const sum = widths.reduce((total, width) => total + width, 0);

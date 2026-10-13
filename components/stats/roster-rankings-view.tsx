@@ -146,7 +146,7 @@ export function RosterRankingsView({ initial, types }: { initial: RosterQuery; t
             never move when the rows arrive (CLS). */}
         <div className={styles.listHold} {...pendingProps(list)}>
           {data?.meta && (
-            <p className={`${styles.notice} ${styles.rankingNotice}`}>
+            <p key={list.dataUpdatedAt} className={`${styles.notice} ${styles.rankingNotice}`}>
               {sampleText(data.meta, "roster")} ·
               공식 랭킹이 아니에요
               {!ready && (
@@ -207,7 +207,7 @@ export function RosterRankingsView({ initial, types }: { initial: RosterQuery; t
                   </th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody key={list.dataUpdatedAt}>
                 {data.rows.map((row) => (
                   <tr
                     key={`${row.serverName}-${row.characterName}`}

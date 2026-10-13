@@ -161,7 +161,7 @@ export function EfficiencyRankingsView({
         </form>
 
         {data && (
-          <p className={`${styles.notice} ${styles.rankingNotice}`} {...pendingProps(list)}>
+          <p key={list.dataUpdatedAt} className={`${styles.notice} ${styles.rankingNotice}`} {...pendingProps(list)}>
             {/* Fixed words first, as on the character ranking (A7, #594). */}
             공식 랭킹이 아니에요 · {sampleText(data.meta)}
           </p>
@@ -205,7 +205,7 @@ export function EfficiencyRankingsView({
                 <th scope="col">상위</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody key={list.dataUpdatedAt}>
               {data.rows.map((row) => (
                 <tr key={`${row.serverName}-${row.characterName}`}>
                   <td>{whole(row.rank)}</td>

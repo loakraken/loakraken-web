@@ -127,7 +127,7 @@ export function CollectibleRankingsView({
             never move when the rows arrive (CLS). */}
         <div className={styles.listHold} {...pendingProps(list)}>
           {data?.meta && (
-            <p className={`${styles.notice} ${styles.rankingNotice}`}>
+            <p key={list.dataUpdatedAt} className={`${styles.notice} ${styles.rankingNotice}`}>
               {/* Fixed words first, as on the character ranking (A7, #594). */}
               공식 랭킹이 아니에요 · {sampleText(data.meta, "roster")}
               {!ready && <strong> · 표본 {data.meta.minSample}개 원정대가 모이면 순위를 보여 드려요</strong>}
@@ -169,7 +169,7 @@ export function CollectibleRankingsView({
                   </th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody key={list.dataUpdatedAt}>
                 {data.rows.map((row) => (
                   <tr key={`${row.serverName}-${row.characterName}`} data-reference={!ready || undefined}>
                     <td>{ready ? whole(row.rank) : "-"}</td>
