@@ -1,0 +1,27 @@
+/* The search-bot page of a character (cache only): one short block. */
+.main {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 48px 20px;
+}
+.main h1 {
+  margin: 4px 0 12px;
+  font-size: 28px;
+  font-weight: 700;
+}
+.kicker {
+  color: var(--muted-foreground);
+  font-size: 13px;
+}
+.line {
+  font-size: 16px;
+  line-height: 1.6;
+}
+.note {
+  margin-top: 10px;
+  color: var(--muted-foreground);
+  font-size: 13px;
+}
+.note a {
+  color: var(--link);
+}

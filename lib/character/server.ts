@@ -1,4 +1,6 @@
 import "server-only";
+import { cache } from "react";
+import { requestPublicSummary } from "./public-summary";
 import { requestItemTooltips } from "./item-tooltips";
 import {
   requestCardCollection,
@@ -77,3 +79,8 @@ export function getCollectibleOwnership(type: string, signal?: AbortSignal) {
 export function getArmoryPage(name: string, signal?: AbortSignal) {
   return requestArmoryPage(name, process.env.LOAKRAKEN_API_ORIGIN, { signal });
 }
+
+/** Cache-only summary (no official call); one request per render (metadata + page). */
+export const getPublicSummary = cache((name: string) =>
+  requestPublicSummary(name, process.env.LOAKRAKEN_API_ORIGIN, { timeoutMs: 1_500 }),
+);
