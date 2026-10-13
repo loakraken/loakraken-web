@@ -7,6 +7,13 @@ import type {
 } from "./board";
 import { boardQueryString } from "./board";
 import { gemPickSearch, type GemBoardEnvelope, type GemListingsEnvelope, type GemPick } from "./auction-gems";
+import {
+  accessorySearch,
+  type AccessoryBoardEnvelope,
+  type AccessoryFilter,
+  type AccessoryListingsEnvelope,
+  type AccessoryPick,
+} from "./auction-accessories";
 import type {
   ItemsEnvelope,
   MarketFailure,
@@ -91,3 +98,11 @@ export const fetchGemBoard = (signal: AbortSignal) => call<GemBoardEnvelope>("/a
 /** The cheapest buy-now listings of one gem cell (at most one official call). */
 export const fetchGemListings = (pick: GemPick, signal: AbortSignal) =>
   call<GemListingsEnvelope>(`/api/markets/auctions/gems/listings?${gemPickSearch(pick)}`, { signal });
+
+/** T4 accessory prices by key polish grades (backend cache). */
+export const fetchAccessoryBoard = (filter: AccessoryFilter, signal: AbortSignal) =>
+  call<AccessoryBoardEnvelope>(`/api/markets/auctions/accessories?${accessorySearch(filter, null)}`, { signal });
+
+/** The cheapest buy-now listings of one accessory cell (at most one official call). */
+export const fetchAccessoryListings = (filter: AccessoryFilter, pick: AccessoryPick, signal: AbortSignal) =>
+  call<AccessoryListingsEnvelope>(`/api/markets/auctions/accessories/listings?${accessorySearch(filter, pick)}`, { signal });
