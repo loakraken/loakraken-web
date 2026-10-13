@@ -1009,7 +1009,9 @@
 @media (max-width: 760px) {
   .tabInner {
     padding: 0 12px;
-    gap: 6px;
+    /* At least the tab row's 8px focus room, so the row never reaches under
+       the menu beside it (a press there went to the last tab). */
+    gap: 8px;
   }
   .tabs a,
   .pillLayer > span {
