@@ -282,7 +282,7 @@ export function ClassBuildsView({ initial }: { initial: ClassBuildsQuery }) {
             className={styles.notice}
           >
             표본 {whole(meta.population ?? 0)}명(장비를 확인한 캐릭터) · {query.className} 전체 {whole(data.classPopulation)}명 ·
-            아이템 레벨 {whole(Number(meta.conditions?.itemLevelMin ?? 1680))} 이상 · 최근 {query.activeDays}일 ·{" "}
+            아이템 레벨 {whole(Number(meta.conditions?.itemLevelMin ?? 1680))} 이상 · 최근 {meta.conditions?.activeDays ?? query.activeDays}일 ·{" "}
             {kst.format(new Date(meta.aggregatedAt))} 기준 · 공식 통계가 아니에요
             {collecting && <strong> · 표본 {whole(meta.minSample)}명이 모이면 보여 드려요</strong>}
           </p>
@@ -305,7 +305,9 @@ export function ClassBuildsView({ initial }: { initial: ClassBuildsQuery }) {
               {meta?.population ? `아직 표본이 ${whole(meta.population)}명이라 보여 드리지 않아요.` : "아직 이 직업의 표본이 없어요."}
             </p>
           ) : (
-            <Sections data={data} />
+            // Drawn anew when an answer lands: counts rewritten in place (right
+            // aligned) start elsewhere and count as moving (A7).
+            <Sections key={builds.dataUpdatedAt} data={data} />
           )}
         </div>
         {meta && <BasisNote basis={{ ...meta, population: meta.population ?? null, unit: "명" }} />}
