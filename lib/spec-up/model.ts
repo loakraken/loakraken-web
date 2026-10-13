@@ -119,14 +119,33 @@ export function editsFor(change: SpecUpChange | null | undefined, base: Edits): 
 /** ?try= on the simulator tab carries one change; readTry reads it back. */
 export const tryParam = (change: SpecUpChange) => JSON.stringify(change);
 
-export function readTry(text: string | null): SpecUpChange | null {
+/** ?try= for a whole path (스펙업 목표 "시뮬레이터에서 열기"). */
+export const tryPathParam = (changes: SpecUpChange[]) => JSON.stringify(changes);
+
+function parseJson(text: string | null): unknown {
   if (!text) return null;
-  let value: unknown;
   try {
-    value = JSON.parse(text);
+    return JSON.parse(text);
   } catch {
     return null;
   }
+}
+
+export function readTry(text: string | null): SpecUpChange | null {
+  return changeOf(parseJson(text));
+}
+
+/** One change or a list of them, in order; anything unreadable is left out. */
+export function readTryPath(text: string | null): SpecUpChange[] {
+  const value = parseJson(text);
+  const list = Array.isArray(value) ? value : [value];
+  return list.slice(0, 64).flatMap((item) => {
+    const change = changeOf(item);
+    return change ? [change] : [];
+  });
+}
+
+function changeOf(value: unknown): SpecUpChange | null {
   if (typeof value !== "object" || value === null) return null;
   const v = value as Record<string, unknown>;
   if (typeof v.kind !== "string") return null;

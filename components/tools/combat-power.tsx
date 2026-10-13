@@ -759,8 +759,8 @@ export function CombatPowerSimulator({
 }: {
   name: string;
   initial?: Character;
-  /** One change to begin with (스펙업 "적용해 보기"), as a step 이전 can undo. */
-  start?: SpecUpChange | null;
+  /** Changes to begin with (스펙업 "적용해 보기" or a 목표 path), as one step 이전 can undo. */
+  start?: SpecUpChange[];
   /** Shown at the top of the sticky column (the character tab's lead line). */
   head?: ReactNode;
 }) {
@@ -768,7 +768,8 @@ export function CombatPowerSimulator({
   // 이전·다음·초기화 (PM-프론트 16:37 ②): every edit is a step.
   const [history, dispatch] = useReducer(historyReducer, undefined, () => {
     const empty = startHistory();
-    const first = editsFor(start, NO_EDITS);
+    // In order: a later step on the same slot (8→9→10) leaves the last level.
+    const first = (start ?? []).reduce<Edits | null>((edits, change) => editsFor(change, edits ?? NO_EDITS) ?? edits, null);
     return first ? historyReducer(empty, { type: "load", edits: first }) : empty;
   });
   const edits = history.present;

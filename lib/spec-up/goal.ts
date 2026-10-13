@@ -1,95 +1,65 @@
-// 스펙업 목표 (checklist L31): reach a target combat power with the spec-up
-// candidates taken in efficiency order. Each candidate's delta is measured
-// alone from today's character, so deltas are never added up: the path is
-// sent to the simulator as one change set and its own result decides
-// whether the goal is met (no estimated totals, PM 총괄 데이터 규칙).
-import type { Change } from "../combat-power/model";
-import type { Candidate, SpecUpChange } from "./model";
+// 스펙업 목표 (checklist L31, api #455): the backend walks the spec-up
+// candidates in efficiency order — the same item may go up several steps —
+// until the target combat power, and every combat power on the path is the
+// simulator's (never a sum of single deltas). The web only formats it.
+import { isOpen } from "../combat-power/model";
+import type { components } from "../api/spec-up-schema";
+import { editsFor, SPEC_UP_KIND_LABEL, type SpecUpChange } from "./model";
+import { NO_EDITS } from "../combat-power/model";
 
-/** The simulator change for a spec-up change, or null for kinds it does not take. */
-export function simChange(change: SpecUpChange | null | undefined): Change | null {
-  if (!change) return null;
-  switch (change.kind) {
-    case "GEM_LEVEL":
-      return change.slot != null && change.level != null ? { kind: "GEM_LEVEL", slot: change.slot, level: change.level } : null;
-    case "EQUIPMENT_QUALITY":
-      return change.index != null && change.quality != null
-        ? { kind: "EQUIPMENT_QUALITY", index: change.index, quality: change.quality }
-        : null;
-    case "ENGRAVING_LEVEL":
-      return change.name && change.level != null ? { kind: "ENGRAVING_LEVEL", name: change.name, level: change.level } : null;
-    case "STONE_ENGRAVING":
-      return change.name && change.level != null ? { kind: "STONE_ENGRAVING", name: change.name, level: change.level } : null;
-    default:
-      return null;
-  }
-}
+type Schemas = components["schemas"];
+export type Goal = Schemas["SpecUpGoalResponse"];
+export type GoalStep = Schemas["SpecUpGoalStepResponse"];
+export type GoalEnvelope = { code: string; message: string; data: Goal };
 
-/** One edit per target: two steps on the same gem slot cannot both be taken. */
-const targetKey = (change: Change) => {
-  const c = change as Change & { slot?: number; index?: number; name?: string };
-  return `${c.kind}:${c.slot ?? c.index ?? c.name ?? ""}`;
+/** Step kinds the path may hold; a newer kind reads "기타 단계" (PM-프론트 10-12 20:28). */
+const STEP_KIND_LABEL: Record<string, string> = {
+  ...SPEC_UP_KIND_LABEL,
+  EQUIPMENT_SUCCESSION: "계승",
 };
+export const stepKindLabel = (kind: string) => STEP_KIND_LABEL[kind] ?? "기타 단계";
 
-export type GoalStep = { candidate: Candidate; change: Change; cost: number };
+/** Stop codes the screen words itself; any other code shows the backend's stopReason. */
+export const PATH_STOPS = ["REACHED", "ALREADY_REACHED", "NO_CANDIDATE", "STEP_LIMIT", "TIME_LIMIT"] as const;
 
 /**
- * Candidates usable on the path, best efficiency first (the backend's
- * EFFICIENCY order): computed (OK), with a known gold cost and a change the
- * simulator takes; the first one per target wins.
+ * The target as typed: "12,360" or "12360.5" → number; null when empty;
+ * NaN when not a number with at most two decimals.
  */
-export function goalSteps(candidates: Candidate[]): GoalStep[] {
-  const seen = new Set<string>();
-  const steps: GoalStep[] = [];
-  for (const candidate of candidates) {
-    if (candidate.status !== "OK") continue;
-    const cost = candidate.cost;
-    if (!cost || cost.status !== "OK" || cost.unit !== "GOLD" || cost.amount == null) continue;
-    const change = simChange(candidate.change);
-    if (!change) continue;
-    const key = targetKey(change);
-    if (seen.has(key)) continue;
-    seen.add(key);
-    steps.push({ candidate, change, cost: cost.amount });
-  }
-  return steps;
+export function parseTarget(text: string): number | null {
+  const plain = text.replace(/[,\s]/g, "");
+  if (!plain) return null;
+  return /^\d+(\.\d{1,2})?$/.test(plain) ? Number(plain) : Number.NaN;
 }
 
-export type GoalResult =
-  /** The shortest prefix of `steps` whose simulated power reaches the goal. */
-  | { kind: "REACHED"; count: number; power: number; cost: number }
-  /** Every step together still falls short: how far all of them get. */
-  | { kind: "SHORT"; count: number; power: number; cost: number }
-  | { kind: "ALREADY"; power: number };
+/**
+ * Why a target cannot be asked for, or null when it can. Same rule as the
+ * backend's 400s: above 0, at most two decimals, at most twice today's power.
+ */
+export function targetError(target: number | null, current: number | null): string | null {
+  if (target === null) return null;
+  if (Number.isNaN(target) || target <= 0) return "숫자만 입력해 주세요(소수 둘째 자리까지).";
+  if (current != null && target > current * 2) return "목표는 지금 전투력의 2배까지 넣을 수 있어요.";
+  return null;
+}
+
+/** "62만G", "시세 준비 중" or "비용 미확인" for one step. */
+export function stepCost(step: GoalStep, gold: (amount: number) => string): string {
+  const cost = step.cost;
+  if (cost.status === "OK" && cost.amount != null) return cost.unit === "GOLD" ? `${gold(cost.amount)}G` : `${cost.amount} ${cost.unit}`;
+  return cost.status === "PENDING" ? "시세 준비 중" : "비용 미확인";
+}
 
 /**
- * Smallest k with simulate(first k changes) >= goal, by binary search over
- * k (more upgrades never lower the power). `simulate` returns the combat
- * power after the given changes.
+ * The path as simulator input (시뮬레이터에서 열기): only the changes the
+ * simulator takes today, in order; `skipped` counts the steps left out
+ * (PM-프론트 10-12 20:28 — the /simulate proxy refuses kinds it does not know).
  */
-export async function searchGoal(
-  steps: GoalStep[],
-  current: number,
-  goal: number,
-  simulate: (changes: Change[]) => Promise<number>,
-): Promise<GoalResult> {
-  if (current >= goal) return { kind: "ALREADY", power: current };
-  const costOf = (k: number) => steps.slice(0, k).reduce((sum, s) => sum + s.cost, 0);
-  const powerAt = new Map<number, number>();
-  const at = async (k: number) => {
-    if (!powerAt.has(k)) powerAt.set(k, await simulate(steps.slice(0, k).map((s) => s.change)));
-    return powerAt.get(k)!;
-  };
-  const all = steps.length;
-  if (all === 0) return { kind: "SHORT", count: 0, power: current, cost: 0 };
-  const top = await at(all);
-  if (top < goal) return { kind: "SHORT", count: all, power: top, cost: costOf(all) };
-  let lo = 1;
-  let hi = all;
-  while (lo < hi) {
-    const mid = Math.floor((lo + hi) / 2);
-    if ((await at(mid)) >= goal) hi = mid;
-    else lo = mid + 1;
+export function simulatorPath(steps: GoalStep[]): { changes: SpecUpChange[]; skipped: number } {
+  const changes: SpecUpChange[] = [];
+  for (const step of steps) {
+    const change = step.change as SpecUpChange;
+    if (isOpen(change.kind as never) && editsFor(change, NO_EDITS)) changes.push(change);
   }
-  return { kind: "REACHED", count: lo, power: await at(lo), cost: costOf(lo) };
+  return { changes, skipped: steps.length - changes.length };
 }
