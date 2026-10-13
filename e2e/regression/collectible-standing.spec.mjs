@@ -17,5 +17,5 @@ test("내실 탭: 수집품 순위와 항목 보유율·희귀한 순 @regressio
   const values = shares.map((text) => Number(text.match(/([\d.]+)%/)[1]));
   expect(values).toEqual([...values].sort((a, b) => a - b));
   // 가장 희귀한 보유: the finished item with the lowest share, in the caption under the list.
-  await expect(page.getByText(/가장 희귀한 보유 .+ (보유율 [d.]+%)/)).toBeVisible();
+  await expect(page.getByText(/가장 희귀한 보유 .+ \(보유율 [\d.]+%\)/)).toBeVisible();
 });
