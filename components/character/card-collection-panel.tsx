@@ -11,6 +11,7 @@ import expand from "@/components/site/expand.module.css";
 import { countdownText, retryLabel } from "@/lib/api/rate-limit";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { useCrossfade } from "@/lib/motion";
+import { HelpInfo } from "@/components/stats/basis-note";
 
 /**
  * Roster card records (F-6), inside the cards panel right under the equipped
@@ -34,6 +35,15 @@ export function CardCollection({ name }: { name: string }) {
     <section className={styles.collection} aria-labelledby={`card-record-${name}`}>
       <header className={styles.head}>
         <h3 id={`card-record-${name}`}>원정대 카드 기록</h3>
+        {/* 도움말 (character screen checklist: 카드 도움말 팝오버). */}
+        <HelpInfo label="원정대 카드 기록 도움말" title="원정대 카드 기록">
+          <ul>
+            <li>같은 서버 원정대 캐릭터가 카드를 장착한 채 검색되면, 속성별 세트마다 가장 높은 각성을 기록해요.</li>
+            <li>딜러 세트와 서포터 세트를 따로 볼 수 있어요. 처음에는 이 캐릭터의 포지션 쪽을 보여 드려요.</li>
+            <li>&lsquo;기록 채우기&rsquo;를 누르면 원정대 캐릭터를 차례로 조회해 기록을 채워요.</li>
+            <li>도감은 기록된 카드별 최고 각성이고, 구성 가능한 세트는 기록된 카드로 맞출 수 있는 세트 효과예요.</li>
+          </ul>
+        </HelpInfo>
         {data && (
           <span>
             원정대 {data.rosterCharacters}명 중 {data.observedCharacters}명 기록
