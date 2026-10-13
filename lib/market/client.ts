@@ -6,6 +6,7 @@ import type {
   TabsEnvelope,
 } from "./board";
 import { boardQueryString } from "./board";
+import { gemPickSearch, type GemBoardEnvelope, type GemListingsEnvelope, type GemPick } from "./auction-gems";
 import type {
   ItemsEnvelope,
   MarketFailure,
@@ -83,3 +84,10 @@ export const fetchItemHistory = (itemId: number, signal: AbortSignal) =>
   call<ItemHistoryEnvelope>(`/api/markets/items/${itemId}/history`, {
     signal,
   });
+
+/** T4 gem prices on the auction house (backend cache). */
+export const fetchGemBoard = (signal: AbortSignal) => call<GemBoardEnvelope>("/api/markets/auctions/gems", { signal });
+
+/** The cheapest buy-now listings of one gem cell (at most one official call). */
+export const fetchGemListings = (pick: GemPick, signal: AbortSignal) =>
+  call<GemListingsEnvelope>(`/api/markets/auctions/gems/listings?${gemPickSearch(pick)}`, { signal });

@@ -1,0 +1,248 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { SiteHeader } from "@/components/site/site-header";
+import { DataTable } from "@/components/ui/data-table";
+import { Diamonds } from "@/components/ui/icons";
+import { countdownText, retryLabel } from "@/lib/api/rate-limit";
+import { pendingProps } from "@/lib/api/pending";
+import { useRateLimit } from "@/lib/api/use-rate-limit";
+import { fetchGemBoard, fetchGemListings } from "@/lib/market/client";
+import {
+  GEM_KINDS,
+  GEM_LEVELS,
+  GEM_LISTING_MAX_PAGE,
+  gemGrid,
+  gemPickSearch,
+  gemTarget,
+  type GemCell,
+  type GemKind,
+  type GemPick,
+} from "@/lib/market/auction-gems";
+import quote from "@/components/tools/material-quote.module.css";
+import stats from "@/components/stats/stats.module.css";
+import styles from "./gem-board.module.css";
+
+const gold = (n: number | null | undefined) => (n == null ? "-" : n.toLocaleString("ko-KR"));
+const kst = new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
+const endKst = new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
+
+function Change({ rate }: { rate: number | null | undefined }) {
+  if (rate == null) return <small className={styles.flat}>-</small>;
+  const direction = rate > 0 ? "up" : rate < 0 ? "down" : undefined;
+  return (
+    <small className={styles.change} data-direction={direction}>
+      {rate > 0 ? "▲" : rate < 0 ? "▼" : ""}
+      {Math.abs(rate).toLocaleString("ko-KR", { maximumFractionDigits: 1 })}%
+    </small>
+  );
+}
+
+function Cell({ cell, picked, onPick }: { cell: GemCell | undefined; picked: boolean; onPick: () => void }) {
+  if (!cell || cell.status !== "READY")
+    return (
+      <td className={styles.cell}>
+        <span className={styles.pending}>집계 중</span>
+      </td>
+    );
+  return (
+    <td className={styles.cell}>
+      <button type="button" aria-pressed={picked} onClick={onPick} aria-label={`${cell.itemName} 매물 보기`}>
+        <b>{gold(cell.minBuyPrice)}</b>
+        <Change rate={cell.previousDayChangeRate} />
+        <small>매물 {gold(cell.totalCount)}</small>
+      </button>
+    </td>
+  );
+}
+
+/**
+ * 보석 시세 (API list #8·#9): the lowest buy-now price of each T4 gem, its
+ * change from yesterday's last observed price (ours) and the listing count;
+ * pressing a cell lists the cheapest ten listings of that gem below. The
+ * listings box keeps one height from the first HTML (before a pick, while
+ * loading, failed, short), so nothing under it moves (A6·A7).
+ */
+export function GemBoardView({ initialPick }: { initialPick: GemPick | null }) {
+  const router = useRouter();
+  const [pick, setPick] = useState<GemPick | null>(initialPick);
+  const board = useQuery({
+    queryKey: ["gem-board"],
+    queryFn: ({ signal }) => fetchGemBoard(signal),
+    staleTime: 60_000,
+    retry: false,
+    // Blank cells fill once the backend has read them: look again shortly,
+    // six times at most (30 s), then the cell stays "집계 중" until a reload.
+    refetchInterval: (query) =>
+      query.state.data && !query.state.data.data.complete && query.state.dataUpdateCount < 7 ? 5_000 : false,
+  });
+  const listings = useQuery({
+    queryKey: ["gem-listings", pick],
+    queryFn: ({ signal }) => fetchGemListings(pick!, signal),
+    enabled: pick != null,
+    staleTime: 60_000,
+    placeholderData: keepPreviousData,
+    retry: false,
+  });
+  const boardLimit = useRateLimit(board.error);
+  const listingLimit = useRateLimit(listings.error);
+  const data = board.data?.data;
+  const cellOf = data ? gemGrid(data) : () => undefined;
+  const latest = data?.cells.reduce<string | null>(
+    (at, cell) => (cell.observedAt && (!at || cell.observedAt > at) ? cell.observedAt : at),
+    null,
+  );
+
+  function choose(next: GemPick) {
+    setPick(next);
+    router.replace(`?${gemPickSearch(next)}`, { scroll: false });
+  }
+  const pickedCell = pick ? cellOf(pick.kind, pick.level) : undefined;
+  const page = listings.data?.data;
+  const pages = page ? Math.max(1, Math.min(GEM_LISTING_MAX_PAGE, Math.ceil(page.totalCount / 10))) : 1;
+
+  return (
+    <div className={quote.page}>
+      <a className={quote.skip} href="#gems-main">
+        본문으로 건너뛰기
+      </a>
+      <SiteHeader />
+      <main id="gems-main" className={stats.main}>
+        <section className={quote.hero} aria-labelledby="gems-heading">
+          <span className={quote.heroIcon} aria-hidden="true">
+            <Diamonds size={18} />
+          </span>
+          <p className={quote.heroKicker}>경매장</p>
+          <h1 id="gems-heading">보석 시세</h1>
+          <p className={quote.heroCopy}>4티어 겁화·작열 보석의 레벨별 즉시 구매 최저가예요. 칸을 누르면 싼 매물부터 보여 드려요.</p>
+        </section>
+
+        <p className={stats.notice}>
+          {latest ? `${kst.format(new Date(latest))} 확인` : " "} · 전일 대비는 LOAKraken이 전날 마지막으로 확인한
+          최저가와 비교해요.
+        </p>
+        {board.isError && !data ? (
+          <div className={stats.problem}>
+            <p>{boardLimit.limited ? countdownText(boardLimit.seconds) : "보석 시세를 불러오지 못했어요."}</p>
+            <button type="button" onClick={() => board.refetch()} disabled={boardLimit.seconds > 0}>
+              {retryLabel(boardLimit.seconds)}
+            </button>
+          </div>
+        ) : (
+          <DataTable label="보석 시세" className={`${stats.table} ${styles.board}`} aria-busy={!data || undefined}>
+            <caption className={stats.srOnly}>4티어 보석 레벨별 즉시 구매 최저가</caption>
+            <thead>
+              <tr>
+                <th scope="col">레벨</th>
+                {GEM_KINDS.map((kind) => (
+                  <th key={kind} scope="col">
+                    {kind}의 보석
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {GEM_LEVELS.map((level) => (
+                <tr key={level}>
+                  <th scope="row">{level}레벨</th>
+                  {GEM_KINDS.map((kind: GemKind) =>
+                    data ? (
+                      <Cell
+                        key={kind}
+                        cell={cellOf(kind, level)}
+                        picked={pick?.kind === kind && pick.level === level}
+                        onPick={() => choose({ kind, level, page: 1 })}
+                      />
+                    ) : (
+                      <td key={kind} className={styles.cell}>
+                        <span className={styles.pending}>{" "}</span>
+                      </td>
+                    ),
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </DataTable>
+        )}
+
+        <section className={styles.listings} aria-labelledby="gem-listings-heading" {...pendingProps(listings)}>
+          <h2 id="gem-listings-heading">
+            {pick ? `${pick.level}레벨 ${pick.kind}의 보석 매물` : "매물"}
+            {page && <small> · {gold(page.totalCount)}개 중 싼 순</small>}
+          </h2>
+          {!pick ? (
+            <p className={stats.muted}>위 표에서 칸을 누르면 즉시 구매가가 싼 매물 10개를 보여 드려요.</p>
+          ) : listings.isError && !page ? (
+            <div className={stats.problem}>
+              <p>{listingLimit.limited ? countdownText(listingLimit.seconds) : "매물을 불러오지 못했어요."}</p>
+              <button type="button" onClick={() => listings.refetch()} disabled={listingLimit.seconds > 0}>
+                {retryLabel(listingLimit.seconds)}
+              </button>
+            </div>
+          ) : !page ? (
+            <p className={stats.muted} role="status">
+              매물을 불러오고 있어요…
+            </p>
+          ) : page.items.length === 0 ? (
+            <p className={stats.muted}>
+              즉시 구매할 수 있는 매물이 없어요{pickedCell?.totalCount ? "(입찰만 가능한 매물만 있음)" : ""}.
+            </p>
+          ) : (
+            <>
+              <DataTable label="보석 매물" className={stats.table}>
+                <caption className={stats.srOnly}>
+                  {pick.level}레벨 {pick.kind}의 보석 매물 {pick.page}쪽
+                </caption>
+                <thead>
+                  <tr>
+                    <th scope="col" className={stats.left}>
+                      효과
+                    </th>
+                    <th scope="col">즉시 구매가</th>
+                    <th scope="col">입찰가</th>
+                    <th scope="col">경매 종료</th>
+                    <th scope="col">거래 가능</th>
+                  </tr>
+                </thead>
+                <tbody key={listings.dataUpdatedAt}>
+                  {page.items.map((item, i) => (
+                    <tr key={`${item.name}-${i}`}>
+                      <th scope="row">{gemTarget(item) ?? item.name}</th>
+                      <td data-strong>{gold(item.buyPrice || null)}</td>
+                      <td>{gold(item.bidPrice || item.bidStartPrice)}</td>
+                      <td>{item.endDate ? endKst.format(new Date(item.endDate)) : "-"}</td>
+                      <td>{item.tradeAllowCount == null ? "-" : item.tradeAllowCount === 0 ? "불가" : `${item.tradeAllowCount}회`}</td>
+                    </tr>
+                  ))}
+                  {/* A short page keeps ten rows of room, so the box and the
+                      page buttons stay put from page to page (A7). */}
+                  {Array.from({ length: Math.max(0, 10 - page.items.length) }, (_, i) => (
+                    <tr key={`filler-${i}`} aria-hidden="true" className={styles.filler}>
+                      <td colSpan={5}>{" "}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </DataTable>
+              {pages > 1 && (
+                <nav className={stats.pager} aria-label="매물 쪽 이동">
+                  {Array.from({ length: pages }, (_, i) => i + 1).map((p) => (
+                    <button
+                      key={p}
+                      type="button"
+                      aria-current={p === pick.page ? "page" : undefined}
+                      onClick={() => choose({ ...pick, page: p })}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                </nav>
+              )}
+            </>
+          )}
+        </section>
+      </main>
+    </div>
+  );
+}
