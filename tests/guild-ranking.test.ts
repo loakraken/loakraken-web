@@ -19,16 +19,16 @@ const meta = {
 const row = { rank: 1, serverName: "아만", guildName: "합성길드", memberCount: 5, itemLevelAvg: 1656, itemLevelSum: 8280, combatPowerAvg: null, combatPowerCount: 0 };
 
 test("guild query: defaults, shared links and unknown values", () => {
-  assert.deepEqual(parseGuildQuery(new URLSearchParams("")), { sort: "AVG", server: undefined, page: 1 });
+  assert.deepEqual(parseGuildQuery(new URLSearchParams("")), { sort: "AVG", server: undefined, guild: undefined, page: 1 });
   const q = parseGuildQuery(new URLSearchParams("sort=SUM&server=아만&page=2"));
-  assert.deepEqual(q, { sort: "SUM", server: "아만", page: 2 });
+  assert.deepEqual(q, { sort: "SUM", server: "아만", guild: undefined, page: 2 });
   assert.equal(guildSearch(q).toString(), new URLSearchParams("type=guilds&sort=SUM&server=아만&page=2").toString());
-  assert.deepEqual(parseGuildQuery(new URLSearchParams("sort=MAX&server=<x>&page=0")), { sort: "AVG", server: undefined, page: 1 });
+  assert.deepEqual(parseGuildQuery(new URLSearchParams("sort=MAX&server=<x>&page=0")), { sort: "AVG", server: undefined, guild: undefined, page: 1 });
   assert.equal(guildSearch(parseGuildQuery(new URLSearchParams(""))).toString(), "type=guilds");
 });
 
 test("guild ranking envelope follows the contract", () => {
-  const ok = { code: "GUILD_RANKING_SUCCESS", message: "ok", data: { meta, sort: "AVG", page: 1, size: 50, minMembers: 5, excludedGuilds: 0, rows: [row] } };
+  const ok = { code: "GUILD_RANKING_SUCCESS", message: "ok", data: { meta, sort: "AVG", page: 1, size: 50, minMembers: 5, excludedGuilds: 0, excludedMatches: null, matchCount: null, rows: [row] } };
   assert.equal(isGuildRankingEnvelope(ok), true);
   assert.equal(isGuildRankingEnvelope({ ...ok, code: "ROSTER_RANKING_SUCCESS" }), false);
   assert.equal(isGuildRankingEnvelope({ ...ok, data: { ...ok.data, rows: [{ ...row, memberCount: "5" }] } }), false);
