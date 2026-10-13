@@ -1183,6 +1183,62 @@ createServer(async (req, res) => {
     }));
     return send({ code: "AUCTION_LISTINGS_SUCCESS", message: "ok", data: { totalCount: total, page, observedAt: new Date().toISOString(), items } });
   }
+  // T4 accessory auction board and listings (api #139): synthetic prices by
+  // key polish grade combinations; the ring's 하중 cell is still PENDING.
+  if (url.pathname === "/api/v1/markets/auctions/accessories") {
+    const role = url.searchParams.get("role") ?? "DEALER";
+    const grade = url.searchParams.get("grade") ?? "ANCIENT";
+    const minQuality = Number(url.searchParams.get("minQuality") ?? 70);
+    const opt = (key, shortName) => ({ key, officialName: `${shortName} 증가`, shortName, values: [0.55, 1.2, 2] });
+    const options = role === "SUPPORT"
+      ? { NECKLACE: [opt("BRAND", "낙인력"), opt("IDENTITY", "아덴")], EARRING: [opt("WEAPON_ATTACK_PCT", "무공%")], RING: [opt("ALLY_ATTACK", "아공강"), opt("ALLY_DAMAGE", "아피강")] }
+      : { NECKLACE: [opt("ENEMY_DAMAGE", "적주피"), opt("ADDITIONAL_DAMAGE", "추피")], EARRING: [opt("WEAPON_ATTACK_PCT", "무공%"), opt("ATTACK_PCT", "공%")], RING: [opt("CRIT_DAMAGE", "치피"), opt("CRIT_RATE", "치적")] };
+    const word = { HIGH: "상", MID: "중", LOW: "하" };
+    const pairs = [["HIGH", "HIGH"], ["HIGH", "MID"], ["MID", "HIGH"], ["MID", "MID"], ["HIGH", "LOW"], ["LOW", "HIGH"], ["MID", "LOW"], ["LOW", "MID"]];
+    const observedAt = new Date(Date.now() - 3 * 60_000).toISOString();
+    const slots = [["NECKLACE", "목걸이", 9], ["EARRING", "귀걸이", 5], ["RING", "반지", 4]].map(([slot, slotName, base]) => {
+      const opts = options[slot];
+      const combos = opts.length === 1 ? [["HIGH"], ["MID"], ["LOW"]] : pairs;
+      return {
+        slot, slotName, options: opts,
+        cells: combos.map((levels, i) => {
+          const pending = slot === "RING" && levels.join() === "LOW,MID";
+          return {
+            levels, label: levels.map((l) => word[l]).join(""),
+            optionLabels: levels.map((l, k) => `${opts[k].shortName} ${word[l]}`),
+            minBuyPrice: pending ? null : Math.round(base * 100_000 / (i + 1)) * (grade === "RELIC" ? 0.4 : 1),
+            totalCount: pending ? null : 4 + i * 3,
+            previousDayChangeRate: pending ? null : i % 2 ? -3 : 1.5,
+            observedAt: pending ? null : observedAt,
+            status: pending ? "PENDING" : "READY",
+          };
+        }),
+      };
+    });
+    return send({ code: "AUCTION_ACCESSORIES_SUCCESS", message: "ok", data: { ruleVersion: "auction-board-v1", grade, role, minQuality: minQuality || null, complete: false, slots } });
+  }
+  if (url.pathname === "/api/v1/markets/auctions/accessories/listings") {
+    const slot = url.searchParams.get("slot");
+    const page = Number(url.searchParams.get("page") ?? 1);
+    const total = slot === "NECKLACE" ? 12 : 2;
+    const start = (page - 1) * 10;
+    const names = { NECKLACE: "합성 목걸이", EARRING: "합성 귀걸이", RING: "합성 반지" };
+    const items = Array.from({ length: Math.max(0, Math.min(10, total - start)) }, (_, i) => ({
+      name: names[slot] ?? "합성 장신구",
+      grade: "고대",
+      quality: 70 + ((start + i) % 30),
+      buyPrice: 500_000 + (start + i) * 25_000,
+      bidPrice: 0,
+      bidStartPrice: 400_000,
+      endDate: new Date(Date.now() + (start + i + 1) * 3_600_000).toISOString(),
+      tradeAllowCount: 2,
+      options: [
+        { type: "ACCESSORY_UPGRADE", name: "적주피", value: 2, percentage: true, level: "HIGH", className: null },
+        { type: "ACCESSORY_UPGRADE", name: "추피", value: 1.6, percentage: true, level: "MID", className: null },
+      ],
+    }));
+    return send({ code: "AUCTION_LISTINGS_SUCCESS", message: "ok", data: { totalCount: total, page, observedAt: new Date().toISOString(), items } });
+  }
   if (url.pathname === "/api/v1/rankings/rosters") {
     const basis = url.searchParams.get("basis") ?? "ITEM_LEVEL";
     const aggregate = url.searchParams.get("aggregate") ?? "TOP6_AVG";

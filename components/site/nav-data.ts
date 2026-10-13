@@ -67,7 +67,10 @@ export const NAV_SECTIONS: NavSection[] = [
       },
       {
         title: "경매장",
-        links: [{ label: "보석 시세", description: "겁화·작열 레벨별 최저가와 매물", href: "/market/gems" }],
+        links: [
+          { label: "보석 시세", description: "겁화·작열 레벨별 최저가와 매물", href: "/market/gems" },
+          { label: "장신구 시세", description: "연마 효과 등급 조합별 최저가와 매물", href: "/market/accessories" },
+        ],
       },
     ],
   },

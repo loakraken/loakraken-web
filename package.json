@@ -30,7 +30,8 @@
     "api:generate:combat-power": "openapi-typescript contracts/combat-power.openapi.json -o lib/api/combat-power-schema.d.ts",
     "api:generate:accessory-search": "openapi-typescript contracts/accessory-search.openapi.json -o lib/api/accessory-search-schema.d.ts",
     "api:generate:item-tooltips": "openapi-typescript contracts/item-tooltips.openapi.json -o lib/api/item-tooltips-schema.d.ts",
-    "api:generate:auction-gems": "openapi-typescript contracts/auction-gems.openapi.json -o lib/api/auction-gems-schema.d.ts"
+    "api:generate:auction-gems": "openapi-typescript contracts/auction-gems.openapi.json -o lib/api/auction-gems-schema.d.ts",
+    "api:generate:auction-accessories": "openapi-typescript contracts/auction-accessories.openapi.json -o lib/api/auction-accessories-schema.d.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
