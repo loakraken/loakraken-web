@@ -171,6 +171,10 @@
   text-align: right !important;
   white-space: nowrap;
 }
+/* Headers may wrap ("직접 사용 시" at 360); the figures below never do. */
+.table thead .num {
+  white-space: normal;
+}
 .table td[data-empty] {
   color: var(--muted-foreground);
   font-size: var(--text-caption);
