@@ -109,6 +109,7 @@ import {
   type RosterSort,
 } from "@/lib/character/roster-list";
 import { useStagger } from "./entrance";
+import { StatSheet } from "./stat-sheet";
 import { AnalysisMenu } from "./analysis-menu";
 import { RankPanel } from "./rank-panel";
 import { SimulatorTab } from "./simulator-tab";
@@ -1172,24 +1173,11 @@ function StatsPanel({ data }: { data: Character }) {
           </div>
         )}
       </dl>
+      {/* 특성 자세히 (§14.1 ④): the cards with the official lines, in a sheet. */}
       {data.stats.some((stat) => stat.tooltip.length) && (
-        <details className={`${styles.statDetail} ${expand.expand}`}>
-          <summary>특성 원문</summary>
-          <dl>
-            {data.stats
-              .filter((stat) => stat.tooltip.length)
-              .map((stat) => (
-                <div key={stat.type}>
-                  <dt>
-                    {stat.type} <b>{numeric(stat.value)}</b>
-                  </dt>
-                  {stat.tooltip.map((line, i) => (
-                    <dd key={i}>{line}</dd>
-                  ))}
-                </div>
-              ))}
-          </dl>
-        </details>
+        <div className={styles.statDetail}>
+          <StatSheet stats={data.stats} total={total} />
+        </div>
       )}
     </Panel>
   );
