@@ -68,6 +68,8 @@
 
 .grid {
   display: grid;
+  min-height: 100dvh;
+  align-content: start;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-5);
   align-items: start;

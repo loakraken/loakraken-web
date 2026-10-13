@@ -408,11 +408,12 @@
 }
 
 /* Conclusion card above the inputs (피아식별 심각 2). Height reserved for the
-   total + note so arriving numbers do not push the inputs down. */
+   total + its three note lines from the start, so arriving numbers or a
+   target change never push the inputs down (A7). */
 .top {
   box-sizing: border-box;
   max-width: 1024px;
-  min-height: 132px;
+  min-height: 168px;
   margin: 0 auto 20px;
   padding: 20px 24px;
   border: 1px solid var(--primary);
@@ -446,6 +447,10 @@
 }
 .topNote a {
   color: var(--link);
+}
+.topLine {
+  display: block;
+  width: fit-content;
 }
 
 /* A new price basis: the totals and the table stay, dimmed, until it lands. */
