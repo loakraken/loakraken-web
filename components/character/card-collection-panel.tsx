@@ -48,25 +48,25 @@ export function CardCollection({ name }: { name: string }) {
             <li>도감은 기록된 카드별 최고 각성이고, 구성 가능한 세트는 기록된 카드로 맞출 수 있는 세트 효과예요.</li>
           </ul>
         </HelpInfo>
-        {data && (
-          <span>
-            원정대 {data.rosterCharacters}명 중 {data.observedCharacters}명 기록
-          </span>
-        )}
-        {data && (
-          <span className={styles.roles} role="group" aria-label="세트 종류">
-            {(["dealer", "supporter"] as const).map((value) => (
-              <button
-                key={value}
-                type="button"
-                aria-pressed={shown === value}
-                onClick={() => setRole(value)}
-              >
-                {value === "dealer" ? "딜러" : "서포터"}
-              </button>
-            ))}
-          </span>
-        )}
+        {/* Both are there from the first frame (the count blank, the kinds
+            not pressable yet), so the head does not grow when the records
+            land and push the refill line down (A7). */}
+        <span className={styles.count}>
+          {data ? `원정대 ${data.rosterCharacters}명 중 ${data.observedCharacters}명 기록` : "\u00a0"}
+        </span>
+        <span className={styles.roles} role="group" aria-label="세트 종류">
+          {(["dealer", "supporter"] as const).map((value) => (
+            <button
+              key={value}
+              type="button"
+              aria-pressed={shown === value}
+              disabled={!data}
+              onClick={() => setRole(value)}
+            >
+              {value === "dealer" ? "딜러" : "서포터"}
+            </button>
+          ))}
+        </span>
       </header>
       <CardRefresh name={name} />
       {query.isPending ? (

@@ -45,7 +45,7 @@ for (const [name, role] of ROSTER) {
     const roles = record.getByRole("group", { name: "세트 종류" });
     await expect(roles.getByRole("button", { name: role, exact: true })).toHaveAttribute("aria-pressed", "true");
     // 6속성 칸은 각각 "n각성" 또는 "미기록"을 보인다(접근 이름 구성은 프론트가 바꿀 예정이라 글자로 본다).
-    const slots = record.locator(":scope > ul").first().locator(":scope > li");
+    const slots = record.locator("ul[class*=elements] > li");
     await expect(slots).toHaveCount(6);
     for (const slot of await slots.all()) await expect(slot).toContainText(/\d+각성|미기록/);
     // 다른 역할 세트로 바꿔 볼 수 있다.
