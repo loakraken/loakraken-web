@@ -31,6 +31,7 @@ const ROUTES = [
   "/privacy",
   "/market",
   "/market/gems",
+  "/market/accessories",
   "/news",
   "/rankings",
   "/rankings?type=roster",
