@@ -2336,6 +2336,86 @@
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
+/* 원정대 전투력 (L19): six-man/total line, then two fixed rows — the button
+   (or a note) and the status — so loading, loaded, failed and all-recorded
+   are the same height (A6·A7). The status keeps two lines on a phone. */
+.rosterPower {
+  display: grid;
+  gap: 6px;
+}
+.rosterPower .rosterSummary {
+  min-height: 1.5em;
+  line-height: 1.5;
+}
+.rosterPowerAction {
+  display: grid;
+  grid-template-rows: 30px auto;
+  row-gap: 6px;
+  justify-items: start;
+  align-items: center;
+}
+.rosterPowerAction > :not(p) {
+  grid-row: 1;
+}
+.rosterPowerAction .muted {
+  font-size: 13px;
+}
+.rosterPowerButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 9999px;
+  background: var(--secondary);
+  color: var(--secondary-foreground);
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.rosterPowerButton[aria-disabled="true"] {
+  cursor: default;
+  opacity: 0.6;
+}
+.rosterPowerButton:not([aria-disabled="true"]):hover {
+  background: color-mix(in oklab, var(--secondary) 80%, var(--foreground) 6%);
+}
+.rosterPowerStatus {
+  grid-row: 2;
+  min-height: 18px;
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 18px;
+}
+@media (max-width: 420px) {
+  .rosterPower .rosterSummary {
+    min-height: 3em;
+  }
+  .rosterPowerStatus {
+    min-height: 36px;
+  }
+}
+/* Each row: its combat power under the class line, kept in the compact view. */
+.siblingGrid .siblingPower {
+  grid-area: power;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.siblingGrid a,
+.siblingGrid div {
+  grid-template-areas: "name level arrow" "meta level arrow" "power power arrow";
+}
+.siblingGrid[data-compact] a,
+.siblingGrid[data-compact] div {
+  grid-template-areas: "name level arrow" "power power arrow";
+}
+.siblingGrid[data-stale] {
+  opacity: 0.55;
+  transition: opacity 150ms ease;
+}
 /* 분석 menu trigger (§14.1 ③): a text pill like the tabs, before the icons. */
 .analysisTrigger {
   display: inline-flex;

@@ -635,13 +635,61 @@ createServer(async (req, res) => {
     add("MOVE_SPEED", "이동 속도 가정", a.extraMoveSpeed ?? 0, "직업 각인·트라이포드·버프 합");
     return send(base);
   }
+  // Roster combat power (L19): records only; 원정대전투력 has two without a
+  // record, the refill (POST, ~1.5 s) fills them and starts the cooldown.
+  if (url.pathname.startsWith("/api/v1/characters/roster-combat-power")) {
+    const who = url.searchParams.get("characterName") ?? "";
+    const now = Date.now();
+    const at = (hours) => new Date(now - hours * 3_600_000).toISOString();
+    const row = (characterName, className, itemLevel, combatPower, hours) => ({
+      characterName, serverName: "아만", className, itemLevel, combatPower,
+      combatPowerObservedAt: combatPower == null ? null : at(hours),
+    });
+    const filled = req.method === "POST";
+    const roster = who === "원정대전투력" || who === "전투력쿨다운";
+    const items = roster
+      ? [
+          row(who, "블래스터", 1780.83, 3180.29, 3.5),
+          row("전투력둘", "바드", 1750, 2012.4, 26),
+          row("전투력셋", "버서커", 1720, filled ? 2650.1 : null, 0),
+          row("전투력넷", "소서리스", 1700, 2890.75, 50),
+          row("전투력다섯", "도화가", 1680, filled ? 1500 : null, 0),
+        ]
+      : [{ ...row("원정대캐릭터", "바드", 1650, 2345.67, 5), serverName: "카단" }];
+    const missingCount = items.filter((item) => item.combatPower == null).length;
+    if (url.pathname.endsWith("/refresh") && filled) {
+      if (who === "전투력쿨다운")
+        return send({ code: "ROSTER_REFRESH_COOLDOWN", message: "private" }, 429, { "Retry-After": "420" });
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      return send({
+        code: "CHARACTER_ROSTER_COMBAT_POWER_REFRESH_SUCCESS",
+        message: "성공",
+        data: { items, fetched: 2, remaining: 0, refreshAvailableAt: new Date(now + 600_000).toISOString() },
+      });
+    }
+    if (url.pathname.endsWith("/roster-combat-power"))
+      return send({
+        code: "CHARACTER_ROSTER_COMBAT_POWER_SUCCESS",
+        message: "성공",
+        data: { items, missingCount, refreshAvailableAt: null },
+      });
+  }
   if (url.pathname === "/api/v1/characters/siblings") {
     const who = url.searchParams.get("characterName");
     if (who === "원정대오류") return send({ code: "LOST_ARK_API_ERROR" }, 502);
     const now = Date.now();
     const base = JSON.parse(readFileSync(new URL("./siblings-fixtures/character-siblings.json", import.meta.url), "utf8"));
     base.data.characterName = who;
-    base.data.siblings = [
+    // L19: the same five as the roster-combat-power records.
+    if (who === "원정대전투력" || who === "전투력쿨다운")
+      base.data.siblings = [
+        [who, "블래스터", 1780.83],
+        ["전투력둘", "바드", 1750],
+        ["전투력셋", "버서커", 1720],
+        ["전투력넷", "소서리스", 1700],
+        ["전투력다섯", "도화가", 1680],
+      ].map(([characterName, className, itemLevel]) => ({ characterName, serverName: "아만", className, characterLevel: 70, itemLevel }));
+    else base.data.siblings = [
       { characterName: who, serverName: "아만", className: "블래스터", characterLevel: 70, itemLevel: 1780.83 },
       { characterName: "합성원정대", serverName: "아만", className: "바드", characterLevel: 70, itemLevel: 1720 },
       { characterName: "합성부캐", serverName: "루페온", className: "버서커", characterLevel: 60, itemLevel: 1640 },
