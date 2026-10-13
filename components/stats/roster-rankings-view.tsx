@@ -23,8 +23,11 @@ import {
 } from "@/lib/stats/roster-ranking";
 import quote from "@/components/tools/material-quote.module.css";
 import styles from "./stats.module.css";
+import { rankingColumns } from "./ranking-columns";
 import { BasisNote } from "./basis-note";
 import { RankingTypeTabs, type RankingType } from "./ranking-type-tabs";
+
+const ROSTER_COLUMNS = rankingColumns([3.5, 14, 6, 7.5, 4.5, 16]);
 
 const SERVERS = [
   "루페온",
@@ -143,7 +146,7 @@ export function RosterRankingsView({ initial, types }: { initial: RosterQuery; t
             never move when the rows arrive (CLS). */}
         <div className={styles.listHold} {...pendingProps(list)}>
           {data?.meta && (
-            <p className={styles.notice}>
+            <p key={list.dataUpdatedAt} className={`${styles.notice} ${styles.rankingNotice}`}>
               {sampleText(data.meta, "roster")} ·
               공식 랭킹이 아니에요
               {!ready && (
@@ -184,10 +187,12 @@ export function RosterRankingsView({ initial, types }: { initial: RosterQuery; t
             <DataTable
               label={`원정대 ${aggregateLabel} 랭킹 ${query.page}쪽`}
               className={styles.table}
+              {...ROSTER_COLUMNS.tableProps}
             >
               <caption className={styles.srOnly}>
                 원정대 {basisLabel} {aggregateLabel} 랭킹 {query.page}쪽
               </caption>
+              {ROSTER_COLUMNS.colgroup}
               <thead>
                 <tr>
                   <th scope="col">순위</th>
@@ -202,7 +207,7 @@ export function RosterRankingsView({ initial, types }: { initial: RosterQuery; t
                   </th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody key={list.dataUpdatedAt}>
                 {data.rows.map((row) => (
                   <tr
                     key={`${row.serverName}-${row.characterName}`}

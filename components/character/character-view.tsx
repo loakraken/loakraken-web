@@ -19,8 +19,10 @@ import {
 import { SiteHeader } from "@/components/site/site-header";
 import { recordRecent } from "@/lib/character/recent";
 import { CharacterBanner } from "./imagery";
+import { BannerRank } from "./banner-rank";
 import { Entrance } from "./entrance";
 import { kstTime, level, number, text } from "./parts";
+import { CritSpeedEnabled } from "./analysis-menu";
 import { SettingCheckEnabled, SimulatorEnabled, SpecUpEnabled, TabBar, TabPanel, TitleStatsEnabled, tabOf, useTabTop } from "./tabs";
 import { ArmoryPageEnabled } from "./use-armory-page";
 import { ReceiptEnabled } from "./receipt-panel";
@@ -129,6 +131,7 @@ const Banner = memo(function Banner({ data }: { data: Character }) {
               <dd>{level(data.expeditionLevel)}</dd>
             </div>
           </dl>
+          <BannerRank name={data.characterName} />
         </>
       }
       facts={
@@ -360,6 +363,7 @@ export function CharacterView({
   specUp = true,
   armoryPage = true,
   titleStats = true,
+  critSpeed = true,
   ...props
 }: {
   name: string;
@@ -377,6 +381,8 @@ export function CharacterView({
   armoryPage?: boolean;
   /** TITLE_STATS on this deployment (server flag): roster title shares. */
   titleStats?: boolean;
+  /** CRIT_SPEED_TOOL on this deployment (server flag): the 분석 menu link. */
+  critSpeed?: boolean;
 }) {
   return (
     <ReceiptEnabled.Provider value={receipt}>
@@ -385,9 +391,11 @@ export function CharacterView({
           <SpecUpEnabled.Provider value={specUp}>
             <ArmoryPageEnabled.Provider value={armoryPage}>
               <TitleStatsEnabled.Provider value={titleStats}>
-                <LandingMotion>
-                  <CharacterContent {...props} />
-                </LandingMotion>
+                <CritSpeedEnabled.Provider value={critSpeed}>
+                  <LandingMotion>
+                    <CharacterContent {...props} />
+                  </LandingMotion>
+                </CritSpeedEnabled.Provider>
               </TitleStatsEnabled.Provider>
             </ArmoryPageEnabled.Provider>
           </SpecUpEnabled.Provider>

@@ -91,7 +91,7 @@
   height: 36px;
   border-radius: 12px;
   background: var(--card);
-  color: var(--primary);
+  color: var(--link);
 }
 .quickIcon svg {
   width: 20px;

@@ -111,6 +111,7 @@ import {
 import { useStagger } from "./entrance";
 import { fetchTitleEquip } from "@/lib/stats/client";
 import { equipShare, titleEquipQuery, type EquippedTitle } from "@/lib/stats/title-equip";
+import { AnalysisMenu } from "./analysis-menu";
 import { RankPanel } from "./rank-panel";
 import { SimulatorTab } from "./simulator-tab";
 import { SpecUpTab } from "./spec-up-tab";
@@ -315,6 +316,12 @@ export function TabBar({
           </span>
         </nav>
         <div className={styles.tabActions}>
+          <AnalysisMenu
+            name={name}
+            server={data.serverName}
+            specUp={useContext(SpecUpEnabled)}
+            simulator={useContext(SimulatorEnabled)}
+          />
           <button
             type="button"
             className={styles.iconAction}

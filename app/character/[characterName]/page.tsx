@@ -1,6 +1,7 @@
 import {
   isArmoryPageEnabled,
   isCombatPowerEnabled,
+  isCritSpeedEnabled,
   isReceiptEnabled,
   isSettingCheckEnabled,
   isSpecUpEnabled,
@@ -86,6 +87,7 @@ export default async function CharacterPage({
         simulator={isCombatPowerEnabled()}
         specUp={isSpecUpEnabled()}
         titleStats={isTitleStatsEnabled()}
+        critSpeed={isCritSpeedEnabled()}
       />
     </HydrationBoundary>
   );

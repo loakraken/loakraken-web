@@ -668,6 +668,10 @@ function ResultBand({
       </p>
       <p className={styles.bandValue}>
         {before == null ? "—" : power(computed && data.after != null ? data.after : before)}
+      </p>
+      {/* Its own line, held from the start: beside the value it wrapped under
+          it on the first change and pushed everything below 24px (A7). */}
+      <p className={styles.bandDelta}>
         {computed && data.delta != null && (
           <span className={data.delta >= 0 ? styles.gain : styles.loss}>
             <span aria-hidden="true">{data.delta > 0 ? "▲ " : data.delta < 0 ? "▼ " : ""}</span>
