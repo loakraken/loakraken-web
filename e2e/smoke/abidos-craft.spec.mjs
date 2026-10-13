@@ -25,7 +25,7 @@ test.describe("아비도스 제작 손익 @smoke", () => {
     await page.getByRole("textbox", { name: "대성공 확률 증가" }).fill("100");
     await expect(page.getByText("대성공 확률 10% · 1회 평균 110개")).toBeVisible();
     await page.getByRole("textbox", { name: "제작 수수료 감소" }).fill("17");
-    await expect(page.getByText(/1회 제작 골드 아비도스 332 · 상급 아비도스 431\.6/)).toBeVisible();
+    await expect(page.getByText(/1회 제작 골드 아비도스 332 · 상급 아비도스 432/)).toBeVisible();
     const logging = page.getByRole("region", { name: "아비도스 융화 재료" }).getByRole("row", { name: /^벌목/ });
     // 비용 596 + 332 = 928, 직접 사용 110 × 90 − 928.
     await expect(logging.getByRole("cell").nth(0)).toHaveText("928");

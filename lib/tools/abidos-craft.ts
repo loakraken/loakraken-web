@@ -2,14 +2,35 @@
 // 아비도스 융화 재료 per life skill, valued at today's market prices.
 //   expected items = 100 × (1 + p), p = 5% × (1 + increase)
 //     (100 a craft, 200 on a great success; increase 0~100% from the player)
-//   cost   = Σ material qty × unit price + craft gold × (1 − fee cut)
-//   value  = expected items × unit price of the result
-//            (selling: × (1 − 5% market fee); using it yourself: no fee)
+//   cost   = Σ material qty × unit price + ⌈craft gold × (1 − fee cut)⌉
+//   value  = using it yourself: expected items × unit price of the result;
+//            selling: (bundle price − ⌈bundle price × 5%⌉) × expected ÷ 10,
+//            the fee taken per 10-item bundle as the market does
+// Rounding follows comparison calculator C (calc verification 2026-10-13
+// 19:50): craft gold rounds up (520 × 0.83 = 431.6 → 432), the market fee is
+// rounded up per bundle (269 → 255). Calculator A rounds the craft gold down
+// and takes the fee as a plain × 0.95 — a proven definition difference.
 // Yields were solved from two calculators' screens (data/abidos-craft.json
 // sourceNote); materials, gold and energy come from the crafting database.
-// The market fee is the one the auction tool uses (MARKET_FEE_PERCENT).
+// The market fee is the auction tool's (marketFee: 5%, rounded up).
 import raw from "./data/abidos-craft.json";
-import { MARKET_FEE_PERCENT } from "./auction";
+import { marketFee } from "./auction";
+
+/** Items per market bundle of fusion materials (the fee is taken per bundle). */
+export const SELL_BUNDLE = 10;
+
+/** Craft gold after a fee cut given in percent with at most one decimal, rounded up. */
+export function craftGoldAfterCut(gold: number, feeCutPercent: number) {
+  // Integer arithmetic: 400 × 0.83 in floating point is 332.00000000000006,
+  // which a plain Math.ceil would turn into 333.
+  return Math.ceil((gold * (1000 - Math.round(feeCutPercent * 10))) / 1000);
+}
+
+/** Gold received when the expected items are sold in bundles of 10. */
+export function sellValue(unitPrice: number, expected: number) {
+  const bundle = Math.round(unitPrice * SELL_BUNDLE);
+  return (bundle - marketFee(bundle)) * (expected / SELL_BUNDLE);
+}
 
 export type OutputId = "abidos" | "superior";
 export type CraftData = {
@@ -73,13 +94,13 @@ export function craftResult(
     const unit = unitPrice(name);
     return { name, qty, unit, gold: unit == null ? null : unit * qty };
   });
-  const craftGold = output.gold * (1 - feeCutPercent / 100);
+  const craftGold = craftGoldAfterCut(output.gold, feeCutPercent);
   const expected = expectedYield(increasePercent);
   const resultUnit = unitPrice(output.name);
   const missing = [...materials.filter((m) => m.unit == null).map((m) => m.name), ...(resultUnit == null ? [output.name] : [])];
   const cost = materials.some((m) => m.gold == null) ? null : materials.reduce((sum, m) => sum + (m.gold as number), 0) + craftGold;
   const use = resultUnit == null ? null : expected * resultUnit;
-  const sell = use == null ? null : use * (1 - MARKET_FEE_PERCENT / 100);
+  const sell = resultUnit == null ? null : sellValue(resultUnit, expected);
   return {
     output,
     skill,

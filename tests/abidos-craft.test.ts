@@ -4,11 +4,13 @@ import { CRAFT_RECIPES as RECIPES } from "../lib/tools/craft-recipes";
 import {
   CRAFT_DATA,
   checkCraftData,
+  craftGoldAfterCut,
   craftMarketNames,
   craftResult,
   expectedYield,
   greatSuccessChance,
   parsePercent,
+  sellValue,
 } from "../lib/tools/abidos-craft";
 
 test("craft data is consistent and matches the crafting database rows", () => {
@@ -45,7 +47,8 @@ test("cost, value and profit of one craft, with the fee cut and the market fee",
   assert.ok(Math.abs(r.craftGold - 332) < 1e-9);
   assert.ok(Math.abs(r.cost! - (596 + 332)) < 1e-9);
   assert.ok(Math.abs(r.use! - 105 * 90) < 1e-6);
-  assert.ok(Math.abs(r.sell! - 105 * 90 * 0.95) < 1e-6);
+  // Sold in bundles of 10: 900 − ⌈45⌉ = 855 per bundle × 10.5 bundles.
+  assert.ok(Math.abs(r.sell! - 855 * 10.5) < 1e-6);
   assert.ok(Math.abs(r.useProfit! - (105 * 90 - 928)) < 1e-6);
   assert.deepEqual(r.missing, []);
 });
@@ -65,4 +68,16 @@ test("percent fields take 0~100 with one decimal at most", () => {
   assert.equal(parsePercent("101"), null);
   assert.equal(parsePercent("-1"), null);
   assert.equal(parsePercent("1.25"), null);
+});
+
+test("rounding follows the comparison calculator (calc verification 2026-10-13 19:50)", () => {
+  // Craft gold after the cut rounds up, computed without floating-point drift.
+  assert.equal(craftGoldAfterCut(400, 17), 332);
+  assert.equal(craftGoldAfterCut(520, 17), 432);
+  assert.equal(craftGoldAfterCut(520, 13), 453);
+  assert.equal(craftGoldAfterCut(520, 0), 520);
+  // The market fee is rounded up per 10-item bundle: 269 → 255, 215 → 204.
+  assert.equal(sellValue(26.9, 10), 255);
+  assert.equal(sellValue(21.5, 10), 204);
+  assert.ok(Math.abs(sellValue(26.9, 105) - 255 * 10.5) < 1e-9);
 });

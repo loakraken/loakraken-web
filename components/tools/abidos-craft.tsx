@@ -13,6 +13,7 @@ import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { MINUTE, useClock } from "@/components/home/clock";
 import {
   CRAFT_DATA,
+  craftGoldAfterCut,
   craftMarketNames,
   craftResult,
   expectedYield,
@@ -210,7 +211,7 @@ export function AbidosCraftTool() {
               />
               <PercentField
                 label="제작 수수료 감소"
-                hint={`1회 제작 골드 ${CRAFT_DATA.outputs.map((o) => `${o.name.replace(" 융화 재료", "")} ${percentText(o.gold * (1 - feeCut / 100))}`).join(" · ")}`}
+                hint={`1회 제작 골드 ${CRAFT_DATA.outputs.map((o) => `${o.name.replace(" 융화 재료", "")} ${count(craftGoldAfterCut(o.gold, feeCut))}`).join(" · ")}`}
                 value={feeCutText}
                 onChange={setFeeCutText}
               />
@@ -260,8 +261,9 @@ export function AbidosCraftTool() {
               </div>
               <p className={styles.small}>
                 1회 제작에 결과물 100개, 대성공이면 200개가 나와요. 대성공 확률은 기본 5%에 (1 + 증가)를 곱해요. 비용 = 재료 수량 ×
-                거래소 1개 가격 + 제작 골드(수수료 감소 반영). 판매 시 = 평균 개수 × 1개 가격 × {100 - MARKET_FEE_PERCENT}%(판매
-                수수료 {MARKET_FEE_PERCENT}%), 직접 사용 시 = 평균 개수 × 1개 가격. 직접 캔 재료도 거래소 가격으로 매겨요.
+                거래소 1개 가격 + 제작 골드(수수료 감소 반영, 1골드 미만은 올림). 판매 시 = 10개 묶음 가격에서 판매 수수료{" "}
+                {MARKET_FEE_PERCENT}%(1골드 미만 올림)를 뗀 값 × 묶음 수(평균 개수 ÷ 10), 직접 사용 시 = 평균 개수 × 1개 가격.
+                직접 캔 재료도 거래소 가격으로 매겨요.
                 거래소에 가격이 없는 재료가 있으면 0이 아니라 {UNKNOWN}으로 두고 손익을 계산하지 않아요. 확인 {CRAFT_DATA.checkedAt}.
               </p>
             </section>
