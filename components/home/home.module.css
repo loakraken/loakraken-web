@@ -939,3 +939,14 @@
   font-size: 12px;
   line-height: 1.5;
 }
+/* Tab lists sharing one cell; only the chosen one shows (A7). */
+.tabStack {
+  display: grid;
+}
+.tabStack > * {
+  grid-area: 1 / 1;
+  min-width: 0;
+}
+.tabStack > :not([data-shown]) {
+  visibility: hidden;
+}
