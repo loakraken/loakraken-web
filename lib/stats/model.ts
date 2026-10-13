@@ -176,10 +176,10 @@ function conditionParts(c: StatsMeta["conditions"], seen: string) {
 }
 
 /** The sample in words: who is counted, and that it is not the whole game. */
-export function sampleText(meta: StatsMeta, unit: "character" | "roster" = "character") {
-  const roster = unit === "roster";
-  const parts = conditionParts(meta.conditions, roster ? "LOAKraken이 확인한 원정대" : "LOAKraken이 확인한 캐릭터");
-  return `${parts.join(" · ")} ${count(meta.population)}${roster ? "개 원정대" : "명"} 기준`;
+export function sampleText(meta: StatsMeta, unit: "character" | "roster" | "guild" = "character") {
+  const seen = { character: "LOAKraken이 확인한 캐릭터", roster: "LOAKraken이 확인한 원정대", guild: "LOAKraken이 확인한 캐릭터로 묶은 길드" }[unit];
+  const counted = { character: "명", roster: "개 원정대", guild: "개 길드" }[unit];
+  return `${conditionParts(meta.conditions, seen).join(" · ")} ${count(meta.population)}${counted} 기준`;
 }
 
 /** Shared scale for the class quantile bars: the widest p10…p90 span. */

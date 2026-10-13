@@ -132,6 +132,18 @@ export function isEfficiencyRankingEnabled(env: Env = process.env) {
   return !isProductionHost(env.SITE_URL);
 }
 
+/**
+ * The guild ranking tab (api #302, checklist L36·K28; off on the backend
+ * until it ships). Same rule: `GUILD_RANKING=on|off` overrides, otherwise
+ * hidden only on the production host.
+ */
+export function isGuildRankingEnabled(env: Env = process.env) {
+  const flag = env.GUILD_RANKING?.trim().toLowerCase();
+  if (flag === "on") return true;
+  if (flag === "off") return false;
+  return !isProductionHost(env.SITE_URL);
+}
+
 const PRODUCTION_HOST = new URL(PRODUCTION_URL).hostname;
 
 function isProductionHost(value: string | undefined) {

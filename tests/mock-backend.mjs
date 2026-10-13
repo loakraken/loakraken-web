@@ -1144,6 +1144,41 @@ createServer(async (req, res) => {
   }
   // Roster ranking (backend #298): three rosters, the last one short of six
   // characters (usedCharacters 4 of 4), values by basis and aggregate.
+  // Guild ranking (api #302): guilds of observed members; 아만 differs so a
+  // server change brings other rows (A7 table widths).
+  if (url.pathname === "/api/v1/rankings/guilds") {
+    const server = url.searchParams.get("server");
+    const sort = url.searchParams.get("sort") ?? "AVG";
+    const guilds = (server === "아만"
+      ? [["합성길드아만", "아만", 9, 1702.35, 8, 3010.5], ["짧은길드", "아만", 6, 1688, 0, null]]
+      : [["합성길드", "루페온", 24, 1731.12, 20, 3180.29], ["두번째길드", "루페온", 12, 1712.5, 12, 3050.4], ["작은길드", "카단", 5, 1690.4, 2, 2890.75]]
+    ).map(([guildName, serverName, memberCount, avg, cpCount, cpAvg]) => ({
+      serverName, guildName, memberCount,
+      itemLevelAvg: avg,
+      itemLevelSum: Math.round(avg * memberCount * 100) / 100,
+      combatPowerAvg: cpAvg, combatPowerCount: cpCount,
+    }));
+    guilds.sort((a, b) => (sort === "SUM" ? b.itemLevelSum - a.itemLevelSum : b.itemLevelAvg - a.itemLevelAvg));
+    return send({
+      code: "GUILD_RANKING_SUCCESS",
+      message: "ok",
+      data: {
+        meta: {
+          population: server === "아만" ? 12 : 318,
+          conditions: { server, role: null, className: null, activeDays: 30, itemLevelMin: 1640, itemLevelMax: null, combatPowerMin: null, combatPowerMax: null, representativeOnly: false },
+          aggregatedAt: "2026-10-11T07:00:00Z",
+          snapshot: "latest",
+          ruleVersion: "stats-v1",
+          minSample: 30,
+          sampleStatus: server === "아만" ? "COLLECTING" : "READY",
+          coverage: { observedCharacters: 4200, knownCharacters: 5100, discoveredAccounts: 900 },
+          populationUnit: "GUILD",
+        },
+        sort, page: 1, size: 50, minMembers: 5, excludedGuilds: server === "아만" ? 3 : 41,
+        rows: guilds.map((row, i) => ({ rank: i + 1, ...row })),
+      },
+    });
+  }
   if (url.pathname === "/api/v1/rankings/rosters") {
     const basis = url.searchParams.get("basis") ?? "ITEM_LEVEL";
     const aggregate = url.searchParams.get("aggregate") ?? "TOP6_AVG";
