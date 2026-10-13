@@ -81,6 +81,7 @@ const item = (characterName: string, itemLevel: number, combatPower: number | nu
   itemLevel,
   combatPower,
   combatPowerObservedAt: combatPower == null ? null : "2026-10-12T03:00:00Z",
+  bestCombatPower: combatPower,
 });
 const power = {
   items: [item("다람쥐", 1690, 2100.5), item("가나", 1750.5, 3000), item("바다", 1640, null), item("나무", 1720, 2950.25), item("라온", 1680, null)],
@@ -125,4 +126,14 @@ test("roster combat power envelopes follow the contract", () => {
   };
   assert.equal(isRosterPowerRefreshEnvelope(refreshed), true);
   assert.equal(isRosterPowerRefreshEnvelope({ ...refreshed, code: "CHARACTER_ROSTER_COMBAT_POWER_SUCCESS" }), false);
+});
+
+test("records carry the highest combat power seen; none is null like no record (B5)", () => {
+  const records = powerByName({
+    items: [{ ...item("가나", 1750.5, 3000), bestCombatPower: 3210.5 }, { ...item("바다", 1640, null), bestCombatPower: null }],
+    missingCount: 1,
+    refreshAvailableAt: null,
+  });
+  assert.equal(records.get("가나")?.bestCombatPower, 3210.5);
+  assert.equal(records.get("바다")?.bestCombatPower, null);
 });

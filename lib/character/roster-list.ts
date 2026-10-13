@@ -134,14 +134,19 @@ export function viewOfRefresh(refresh: RosterPowerRefresh): RosterPower {
   };
 }
 
-export type PowerRecord = { combatPower: number | null; observedAt: string | null };
+/** bestCombatPower: the highest combat power LOAKraken has seen (the character ranking's value), null when none. */
+export type PowerRecord = { combatPower: number | null; observedAt: string | null; bestCombatPower: number | null };
 
 /** Records by character name (the roster list and this response name the same characters). */
 export function powerByName(power: RosterPower): Map<string, PowerRecord> {
   return new Map(
     power.items.map((item) => [
       item.characterName,
-      { combatPower: item.combatPower ?? null, observedAt: item.combatPowerObservedAt ?? null },
+      {
+        combatPower: item.combatPower ?? null,
+        observedAt: item.combatPowerObservedAt ?? null,
+        bestCombatPower: item.bestCombatPower ?? null,
+      },
     ]),
   );
 }

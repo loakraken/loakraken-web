@@ -736,15 +736,17 @@ createServer(async (req, res) => {
     const who = url.searchParams.get("characterName") ?? "";
     const now = Date.now();
     const at = (hours) => new Date(now - hours * 3_600_000).toISOString();
-    const row = (characterName, className, itemLevel, combatPower, hours) => ({
+    // best: the highest combat power seen (backend #463), at least the current one.
+    const row = (characterName, className, itemLevel, combatPower, hours, best = combatPower) => ({
       characterName, serverName: "아만", className, itemLevel, combatPower,
       combatPowerObservedAt: combatPower == null ? null : at(hours),
+      bestCombatPower: best,
     });
     const filled = req.method === "POST";
     const roster = who === "원정대전투력" || who === "전투력쿨다운";
     const items = roster
       ? [
-          row(who, "블래스터", 1780.83, 3180.29, 3.5),
+          row(who, "블래스터", 1780.83, 3180.29, 3.5, 3401.52),
           row("전투력둘", "바드", 1750, 2012.4, 26),
           row("전투력셋", "버서커", 1720, filled ? 2650.1 : null, 0),
           row("전투력넷", "소서리스", 1700, 2890.75, 50),
