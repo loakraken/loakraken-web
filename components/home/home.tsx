@@ -70,9 +70,8 @@ function NewsPanels({ renderedAt }: { renderedAt?: number }) {
   const limit = useRateLimit(query.error);
   const data = query.data?.data;
   const [noticeTab, setNoticeTab] = useState<"notice" | "patch">("notice");
-  const shownNotices = (data?.notices ?? [])
-    .filter((notice) => isPatchNote(notice) === (noticeTab === "patch"))
-    .slice(0, 6);
+  const noticesOf = (tab: "notice" | "patch") =>
+    (data?.notices ?? []).filter((notice) => isPatchNote(notice) === (tab === "patch")).slice(0, 6);
   return (
     <>
       <section
@@ -101,23 +100,37 @@ function NewsPanels({ renderedAt }: { renderedAt?: number }) {
                       ? countdownText(limit.seconds)
                       : "공지를 불러오지 못했어요."}
                 </p>
-              ) : shownNotices.length === 0 ? (
-                <p className={styles.muted}>
-                  {noticeTab === "patch" ? "최근 패치노트가 없어요." : "최근 공지가 없어요."}
-                </p>
               ) : (
-                <ul className={styles.notices}>
-                  {shownNotices.map((notice) => (
-                    <NoticeItem
-                      key={`${notice.publishedAt}${notice.title}`}
-                      title={notice.title}
-                      url={notice.url}
-                      publishedAt={notice.publishedAt}
-                      tag={noticeTab === "patch" ? "패치" : noticeLabel(notice.category)}
-                      category={notice.category ?? undefined}
-                    />
-                  ))}
-                </ul>
+                // Both lists in one cell, the other one hidden (not shown, focused or
+                // read): the card is always the longer list's height, so switching
+                // never moves the cards under it (A7).
+                <div className={styles.tabStack}>
+                  {(["notice", "patch"] as const).map((tab) => {
+                    const list = noticesOf(tab);
+                    return (
+                      <div key={tab} data-shown={noticeTab === tab || undefined} inert={noticeTab !== tab}>
+                        {list.length === 0 ? (
+                          <p className={styles.muted}>
+                            {tab === "patch" ? "최근 패치노트가 없어요." : "최근 공지가 없어요."}
+                          </p>
+                        ) : (
+                          <ul className={styles.notices}>
+                            {list.map((notice) => (
+                              <NoticeItem
+                                key={`${notice.publishedAt}${notice.title}`}
+                                title={notice.title}
+                                url={notice.url}
+                                publishedAt={notice.publishedAt}
+                                tag={tab === "patch" ? "패치" : noticeLabel(notice.category)}
+                                category={notice.category ?? undefined}
+                              />
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               )}
             </PillTabsPanel>
           }
