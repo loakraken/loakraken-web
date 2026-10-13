@@ -4,6 +4,7 @@ import { requestStats } from "./upstream";
 import { requestEfficiencyRanking, requestRankings, type EfficiencyKind, type EfficiencyQuery, type RankingQuery } from "./rankings";
 import { requestRosterRanking, type RosterQuery } from "./roster-ranking";
 import { requestGuildRanking, type GuildQuery } from "./guild-ranking";
+import { requestClassBuilds, type ClassBuildsQuery } from "./class-builds";
 import { requestTitleEquip, type TitleEquipQuery } from "./title-equip";
 import { requestCollectibleRanking, type CollectibleQuery } from "./collectible-ranking";
 
@@ -29,6 +30,10 @@ export function getEfficiencyRanking(kind: EfficiencyKind, query: EfficiencyQuer
 
 export function getGuildRanking(query: GuildQuery, signal?: AbortSignal) {
   return requestGuildRanking(query, process.env.LOAKRAKEN_API_ORIGIN, { signal });
+}
+
+export function getClassBuilds(query: ClassBuildsQuery, signal?: AbortSignal) {
+  return requestClassBuilds(query, process.env.LOAKRAKEN_API_ORIGIN, { signal });
 }
 
 export function getTitleEquip(query: TitleEquipQuery, signal?: AbortSignal) {

@@ -335,6 +335,8 @@ export function TabBar({
           <AnalysisMenu
             name={name}
             server={data.serverName}
+            className={data.className}
+            classEngraving={data.loadout.arkPassive?.title}
             specUp={useContext(SpecUpEnabled)}
             simulator={useContext(SimulatorEnabled)}
           />

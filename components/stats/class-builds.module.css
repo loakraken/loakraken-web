@@ -1,0 +1,79 @@
+/* 직업 상세 빌드 통계 (M12): one card per section, share bars in fixed columns. */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(360px, 100%), 1fr));
+  gap: 14px;
+}
+.section {
+  min-width: 0;
+  padding: 16px 18px;
+  border-radius: 16px;
+  background: var(--muted);
+}
+.section h2 {
+  font-size: 15px;
+  font-weight: 700;
+}
+.definition {
+  margin-top: 4px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.bars {
+  display: grid;
+  gap: 6px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.bars li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(48px, 30%) 4.5em 4.5em;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+.label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.track {
+  display: block;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 9999px;
+  background: var(--background);
+}
+.track i {
+  display: block;
+  height: 100%;
+  background: var(--link);
+  transform-origin: left center;
+}
+.bars b {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.bars small {
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+.foot {
+  margin-top: 10px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+@media (max-width: 480px) {
+  .bars li {
+    grid-template-columns: minmax(0, 1fr) 4.5em 4em;
+  }
+  .track {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+}

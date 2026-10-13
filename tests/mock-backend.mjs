@@ -1178,6 +1178,82 @@ createServer(async (req, res) => {
   }
   // Statistics (B-3, backend #100): synthetic but shaped like the real thing.
   // server=니나브 → small sample (COLLECTING everywhere).
+  // Class builds (api #468·#470, M12): 블레이드 has a sample, every other class
+  // is still collecting. Each section has a hidden part; engravings and
+  // bracelet stats count a character in several cells.
+  {
+    const builds = /^\/api\/v1\/stats\/classes\/([^/]+)\/builds$/.exec(url.pathname);
+    if (builds) {
+      const className = decodeURIComponent(builds[1]);
+      const q = url.searchParams;
+      const engraving = q.get("classEngraving");
+      const days = Number(q.get("activeDays") || 30);
+      const ready = className === "블레이드";
+      const sample = ready ? (engraving === "잔재된 기운" ? 640 : engraving ? 240 : 880) * (days === 7 ? 0.5 : 1) : 12;
+      const cell = (name, n, known) => ({ name, count: n, share: Math.round((n / known) * 10000) / 100 });
+      const value = (v, n, known) => ({ value: v, count: n, share: Math.round((n / known) * 10000) / 100 });
+      const hidden = (count, known) => ({ count, share: count ? Math.round((count / known) * 10000) / 100 : null });
+      const empty = { known: 0, hidden: hidden(0, 1), cells: [] };
+      const known = sample;
+      const data = {
+        meta: {
+          population: sample,
+          conditions: { server: null, role: null, className, activeDays: days, itemLevelMin: 1680, itemLevelMax: null, combatPowerMin: null, combatPowerMax: null, representativeOnly: false },
+          aggregatedAt: new Date(Date.now() - 600_000).toISOString(),
+          snapshot: "latest", ruleVersion: "class-builds-v1", minSample: 30,
+          sampleStatus: ready ? "READY" : "COLLECTING",
+          coverage: { observedCharacters: 4200, knownCharacters: 5100, discoveredAccounts: 900 },
+        },
+        className,
+        classEngraving: engraving,
+        classPopulation: ready ? 2480 : 25,
+        minCell: 5,
+        braceletItemLevelMin: 1680,
+        classEngravingStatus: ready ? "READY" : "COLLECTING",
+        definitions: {
+          classEngravings: "직업 각인별 인원. 직업 각인 필터와 무관하게 직업 전체 표본",
+          engravingCombos: "각인 이름 집합이 같은 캐릭터 수",
+          engravings: "그 각인을 가진 캐릭터 수 / 각인을 읽은 캐릭터 수(여러 각인에 셈)",
+          arkPassivePoints: "진화·깨달음·도약 포인트 값별 인원",
+          gems: "4티어 보석(겁화·작열·광휘) 1개 단위, 효과 종류(피해·재사용 대기시간)별 레벨 분포",
+          cardSets: "가장 큰 카드 세트의 이름·단계·각성 합계",
+          topStats: "전투 특성 6종 중 가장 큰 값(주력 특성)",
+          braceletStats: "팔찌에 그 전투 특성 줄이 있는 캐릭터 수(여러 특성에 셈)",
+        },
+        classEngravings: ready
+          ? { known: 880, hidden: hidden(0, 880), cells: [cell("잔재된 기운", 640, 880), cell("버스트", 240, 880)] }
+          : empty,
+        engravingCombos: ready
+          ? { known, hidden: hidden(31, known), cells: [
+              { engravings: ["돌격대장", "아드레날린", "원한", "잔재된 기운", "질량 증가"], count: Math.round(known * 0.42), share: 42 },
+              { engravings: ["기습의 대가", "아드레날린", "원한", "잔재된 기운", "타격의 대가"], count: Math.round(known * 0.21), share: 21 },
+            ] }
+          : empty,
+        engravings: ready
+          ? { known, hidden: hidden(12, known), cells: [cell("원한", Math.round(known * 0.94), known), cell("아드레날린", Math.round(known * 0.9), known), cell("돌격대장", Math.round(known * 0.5), known)] }
+          : empty,
+        arkPassivePoints: ready
+          ? {
+              evolution: { known, hidden: hidden(3, known), cells: [value(140, Math.round(known * 0.7), known), value(130, Math.round(known * 0.2), known)] },
+              enlightenment: { known, hidden: hidden(0, known), cells: [value(101, Math.round(known * 0.6), known), value(98, Math.round(known * 0.3), known)] },
+              leap: { known, hidden: hidden(0, known), cells: [value(70, Math.round(known * 0.8), known)] },
+            }
+          : { evolution: empty, enlightenment: empty, leap: empty },
+        gems: ready
+          ? {
+              damage: { known: known * 6, hidden: hidden(4, known * 6), cells: [value(10, known * 3, known * 6), value(9, known * 2, known * 6)] },
+              cooldown: { known: known * 5, hidden: hidden(2, known * 5), cells: [value(10, known * 2, known * 5), value(8, known * 2, known * 5)] },
+            }
+          : { damage: empty, cooldown: empty },
+        cardSets: ready
+          ? { known, hidden: hidden(9, known), cells: [{ set: "세상을 구하는 빛", pieces: 6, awakening: 30, count: Math.round(known * 0.55), share: 55 }, { set: "카제로스의 군단장", pieces: 6, awakening: null, count: Math.round(known * 0.2), share: 20 }] }
+          : empty,
+        topStats: ready ? { known, ties: 4, hidden: hidden(6, known), cells: [cell("특화", Math.round(known * 0.62), known), cell("치명", Math.round(known * 0.37), known)] } : { known: 0, ties: 0, hidden: hidden(0, 1), cells: [] },
+        braceletStats: ready ? { known, unread: 7, hidden: hidden(15, known), cells: [cell("특화", Math.round(known * 0.6), known), cell("치명", Math.round(known * 0.5), known)] } : { known: 0, unread: 0, hidden: hidden(0, 1), cells: [] },
+      };
+      return send({ code: "STATS_CLASS_BUILDS_SUCCESS", message: "ok", data });
+    }
+  }
   if (url.pathname.startsWith("/api/v1/stats/")) {
     const q = url.searchParams;
     const small = q.get("server") === "니나브";

@@ -1,7 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useId, useRef, useState, type CSSProperties } from "react";
 import { useTallest } from "@/components/ui/use-tallest";
+import { classBuildsPath } from "@/lib/stats/class-builds";
 import { useRouter } from "next/navigation";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { SiteHeader } from "@/components/site/site-header";
@@ -255,7 +257,12 @@ function ClassesTab({ query }: { query: StatsQuery }) {
             {rows.map((row, i) => (
               <tr key={row.className} data-short={row.sampleStatus !== "READY" || undefined}>
                 <td>{i + 1}</td>
-                <th scope="row">{row.className}</th>
+                <th scope="row">
+                  {/* The class page (M12): its builds over the same sample. */}
+                  <Link href={classBuildsPath(row.className)} prefetch={false}>
+                    {row.className}
+                  </Link>
+                </th>
                 <td>{whole(row.count)}</td>
                 <td className={styles.share}>{share(row.share)}</td>
                 <td>{row.supports > 0 ? percent(row.supportShare) : "-"}</td>
