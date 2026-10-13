@@ -3,6 +3,7 @@ import type { StatsQuery, StatsView } from "./model";
 import { requestStats } from "./upstream";
 import { requestEfficiencyRanking, requestRankings, type EfficiencyKind, type EfficiencyQuery, type RankingQuery } from "./rankings";
 import { requestRosterRanking, type RosterQuery } from "./roster-ranking";
+import { requestTitleEquip, type TitleEquipQuery } from "./title-equip";
 import { requestCollectibleRanking, type CollectibleQuery } from "./collectible-ranking";
 
 export function getStats<V extends StatsView>(view: V, query: StatsQuery, signal?: AbortSignal) {
@@ -23,4 +24,8 @@ export function getCollectibleRanking(query: CollectibleQuery, signal?: AbortSig
 
 export function getEfficiencyRanking(kind: EfficiencyKind, query: EfficiencyQuery, signal?: AbortSignal) {
   return requestEfficiencyRanking(kind, query, process.env.LOAKRAKEN_API_ORIGIN, { signal });
+}
+
+export function getTitleEquip(query: TitleEquipQuery, signal?: AbortSignal) {
+  return requestTitleEquip(query, process.env.LOAKRAKEN_API_ORIGIN, { signal });
 }

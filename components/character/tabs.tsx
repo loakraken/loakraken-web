@@ -109,6 +109,8 @@ import {
   type RosterSort,
 } from "@/lib/character/roster-list";
 import { useStagger } from "./entrance";
+import { fetchTitleEquip } from "@/lib/stats/client";
+import { equipShare, titleEquipQuery, type EquippedTitle } from "@/lib/stats/title-equip";
 import { RankPanel } from "./rank-panel";
 import { SimulatorTab } from "./simulator-tab";
 import { SpecUpTab } from "./spec-up-tab";
@@ -150,6 +152,8 @@ export type TabId = (typeof TABS)[number]["id"];
 export const SettingCheckEnabled = createContext(true);
 /** COMBAT_POWER_SIM (server flag): off hides the 시뮬레이터 tab the same way. */
 export const SimulatorEnabled = createContext(true);
+/** TITLE_STATS (server flag): the equip share beside each roster title. */
+export const TitleStatsEnabled = createContext(true);
 /** SPEC_UP_GUIDE (server flag): off hides the 스펙업 tab the same way. */
 export const SpecUpEnabled = createContext(true);
 const visibleTabs = (settingCheck: boolean, simulator = true, specUp = true) =>
@@ -2044,7 +2048,19 @@ function RosterTitlesPanel({ name }: { name: string }) {
     queryFn: ({ signal }) => fetchTitles(name, signal),
     staleTime: 5 * 60_000,
   });
-  const fade = useCrossfade(query.isPending);
+  // How many seen rosters had each title worn (api #314, L13·K11), same
+  // conditions as the 통계 '칭호' tab's defaults. The list waits for it so a
+  // share never lands into a line already drawn (A6); without it, no share.
+  const sharesOn = useContext(TitleStatsEnabled);
+  const shares = useQuery({
+    queryKey: ["title-equip", titleEquipQuery({})],
+    queryFn: ({ signal }) => fetchTitleEquip(titleEquipQuery({}), signal),
+    enabled: sharesOn,
+    staleTime: 5 * 60_000,
+    retry: false,
+  });
+  const shareOf = new Map((shares.data?.data.titles ?? []).map((title) => [title.title, title]));
+  const fade = useCrossfade(query.isPending || (sharesOn && shares.isPending));
   const result = query.data?.data;
   const titles = result ? byObservedOrder(result.titles) : [];
   const groups = groupByDay(titles);
@@ -2063,7 +2079,7 @@ function RosterTitlesPanel({ name }: { name: string }) {
           장착한 칭호만 기록해요. 날짜는 획득일이 아니라 LOAKraken이 처음 확인한 날이에요
         </span>
       </p>
-      {query.isPending ? (
+      {query.isPending || (sharesOn && shares.isPending) ? (
         <p className={styles.muted} role="status">
           <InlineOrb /> 칭호 기록을 불러오고 있어요.
         </p>
@@ -2082,6 +2098,7 @@ function RosterTitlesPanel({ name }: { name: string }) {
                 <strong>{group.titles[0].title}</strong>
                 <small>
                   처음 확인 {group.day} · {group.titles[0].recordedBy}
+                  <TitleShare title={shareOf.get(group.titles[0].title)} />
                 </small>
               </li>
             ) : (
@@ -2095,7 +2112,10 @@ function RosterTitlesPanel({ name }: { name: string }) {
                   {group.titles.map((title) => (
                     <li key={title.title}>
                       <strong>{title.title}</strong>
-                      <small>{title.recordedBy}</small>
+                      <small>
+                        {title.recordedBy}
+                        <TitleShare title={shareOf.get(title.title)} />
+                      </small>
                     </li>
                   ))}
                 </ul>
@@ -2106,6 +2126,12 @@ function RosterTitlesPanel({ name }: { name: string }) {
       )}
     </Panel>
   );
+}
+
+/** " · 장착 원정대 32.26%": the share of seen rosters wearing it, when known. */
+function TitleShare({ title }: { title: EquippedTitle | undefined }) {
+  if (!title || title.equippedPercent == null) return null;
+  return <> · 장착 원정대 {equipShare(title)}</>;
 }
 
 const ROSTER_VIEWS = [

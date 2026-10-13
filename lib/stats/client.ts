@@ -10,6 +10,7 @@ import {
   type RankingQuery,
 } from "./rankings";
 import { rosterSearch, type RosterQuery, type RosterRankingEnvelope } from "./roster-ranking";
+import { titleEquipSearch, type TitleEquipEnvelope, type TitleEquipQuery } from "./title-equip";
 import { collectibleSearch, type CollectibleQuery, type CollectibleRankingEnvelope } from "./collectible-ranking";
 
 export class StatsQueryError extends Error {
@@ -35,6 +36,9 @@ async function call<T>(path: string, signal: AbortSignal): Promise<T> {
 
 export const fetchRankings = (query: RankingQuery, signal: AbortSignal) =>
   call<RankingEnvelope>(`/api/rankings?${rankingSearch(query)}`, signal);
+
+export const fetchTitleEquip = (query: TitleEquipQuery, signal: AbortSignal) =>
+  call<TitleEquipEnvelope>(`/api/titles/equipped?${titleEquipSearch(query)}`, signal);
 
 export const fetchRosterRanking = (query: RosterQuery, signal: AbortSignal) =>
   call<RosterRankingEnvelope>(`/api/rankings/rosters?${rosterSearch(query)}`, signal);

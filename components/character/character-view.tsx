@@ -21,7 +21,7 @@ import { recordRecent } from "@/lib/character/recent";
 import { CharacterBanner } from "./imagery";
 import { Entrance } from "./entrance";
 import { kstTime, level, number, text } from "./parts";
-import { SettingCheckEnabled, SimulatorEnabled, SpecUpEnabled, TabBar, TabPanel, tabOf, useTabTop } from "./tabs";
+import { SettingCheckEnabled, SimulatorEnabled, SpecUpEnabled, TabBar, TabPanel, TitleStatsEnabled, tabOf, useTabTop } from "./tabs";
 import { ArmoryPageEnabled } from "./use-armory-page";
 import { ReceiptEnabled } from "./receipt-panel";
 import styles from "./character.module.css";
@@ -359,6 +359,7 @@ export function CharacterView({
   simulator = true,
   specUp = true,
   armoryPage = true,
+  titleStats = true,
   ...props
 }: {
   name: string;
@@ -374,6 +375,8 @@ export function CharacterView({
   specUp?: boolean;
   /** ARMORY_PAGE on this deployment (server flag). */
   armoryPage?: boolean;
+  /** TITLE_STATS on this deployment (server flag): roster title shares. */
+  titleStats?: boolean;
 }) {
   return (
     <ReceiptEnabled.Provider value={receipt}>
@@ -381,9 +384,11 @@ export function CharacterView({
         <SimulatorEnabled.Provider value={simulator}>
           <SpecUpEnabled.Provider value={specUp}>
             <ArmoryPageEnabled.Provider value={armoryPage}>
-              <LandingMotion>
-                <CharacterContent {...props} />
-              </LandingMotion>
+              <TitleStatsEnabled.Provider value={titleStats}>
+                <LandingMotion>
+                  <CharacterContent {...props} />
+                </LandingMotion>
+              </TitleStatsEnabled.Provider>
             </ArmoryPageEnabled.Provider>
           </SpecUpEnabled.Provider>
         </SimulatorEnabled.Provider>

@@ -132,6 +132,19 @@ export function isEfficiencyRankingEnabled(env: Env = process.env) {
   return !isProductionHost(env.SITE_URL);
 }
 
+/**
+ * Title equip shares (api #314, checklist L13·K11·L44): the 통계 '칭호' tab and
+ * the share beside each roster title. Off on the backend until it ships.
+ * Same rule: `TITLE_STATS=on|off` overrides, otherwise hidden only on the
+ * production host.
+ */
+export function isTitleStatsEnabled(env: Env = process.env) {
+  const flag = env.TITLE_STATS?.trim().toLowerCase();
+  if (flag === "on") return true;
+  if (flag === "off") return false;
+  return !isProductionHost(env.SITE_URL);
+}
+
 const PRODUCTION_HOST = new URL(PRODUCTION_URL).hostname;
 
 function isProductionHost(value: string | undefined) {

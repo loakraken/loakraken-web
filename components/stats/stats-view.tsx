@@ -11,13 +11,15 @@ import { countdownText, retryLabel } from "@/lib/api/rate-limit";
 import { pendingProps } from "@/lib/api/pending";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { TIER_LABEL } from "@/lib/character/rank";
-import { fetchStats } from "@/lib/stats/client";
+import { fetchStats, fetchTitleEquip } from "@/lib/stats/client";
+import { equipShare, titleEquipQuery } from "@/lib/stats/title-equip";
 import {
   fixed,
   percent,
   quantileScale,
   share,
   sampleConditions,
+  sampleText,
   statsKey,
   statsSearch,
   whole,
@@ -35,6 +37,7 @@ const TABS = [
   { id: "classes", label: "직업" },
   { id: "distribution", label: "분포" },
   { id: "servers", label: "서버" },
+  { id: "titles", label: "칭호" },
 ] as const;
 type Tab = (typeof TABS)[number]["id"];
 const WIDTH: Record<Metric, number> = { ITEM_LEVEL: 10, COMBAT_POWER: 100 };
@@ -430,6 +433,61 @@ function ServersTab({ query }: { query: StatsQuery }) {
 }
 
 /**
+ * 칭호 (api #314, checklist L44): every title seen worn, by how many of the
+ * rosters LOAKraken has seen had a character wearing it. Worn only: the
+ * official profile does not list titles that are owned but not worn.
+ * Server and days apply; role, level and representative do not (said).
+ */
+function TitlesTab({ query }: { query: StatsQuery }) {
+  const titleQuery = titleEquipQuery(query);
+  const titles = useQuery({
+    queryKey: ["title-equip", titleQuery],
+    queryFn: ({ signal }) => fetchTitleEquip(titleQuery, signal),
+    staleTime: 5 * 60_000,
+    placeholderData: keepPreviousData,
+    ...quiet,
+  });
+  if (titles.isError && !titles.data) return <Problem error={titles.error} onRetry={() => titles.refetch()} />;
+  if (!titles.data) return <p className={styles.muted}>칭호 통계를 불러오고 있어요…</p>;
+  const { meta, titles: rows } = titles.data.data;
+  const ready = meta.sampleStatus === "READY";
+  return (
+    <div {...pendingProps(titles)}>
+      <p className={styles.notice}>
+        {sampleText(meta, "roster")} 중 그 칭호를 장착한 캐릭터가 있는 원정대의 비율이에요. 장착하지 않은 칭호는 알 수
+        없어 세지 않아요{!ready && ` · 표본 ${meta.minSample}개 원정대 미만이라 참고값`}.
+        {(query.role || query.itemLevelMin != null || query.representativeOnly) && " 역할·아이템 레벨·대표 캐릭터 조건은 이 표에 쓰지 않아요."}
+      </p>
+      {rows.length === 0 ? (
+        <p className={styles.muted}>아직 확인한 칭호가 없어요.</p>
+      ) : (
+        <DataTable label="칭호 장착 원정대 비율" className={styles.table}>
+          <caption className={styles.srOnly}>칭호 장착 원정대 비율</caption>
+          <thead>
+            <tr>
+              <th scope="col">순위</th>
+              <th scope="col" className={styles.left}>칭호</th>
+              <th scope="col">장착 원정대</th>
+              <th scope="col">비율</th>
+            </tr>
+          </thead>
+          <tbody key={titles.dataUpdatedAt}>
+            {rows.map((row, i) => (
+              <tr key={row.title}>
+                <td>{whole(i + 1)}</td>
+                <th scope="row">{row.title}</th>
+                <td>{whole(row.equippedRosters)}개</td>
+                <td data-strong>{equipShare(row)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </DataTable>
+      )}
+    </div>
+  );
+}
+
+/**
  * The tallest the tab panel has been on this visit. A shorter tab (or its
  * loading line) keeps that room, so the notice under the tabs never moves up
  * on a tab click and back down when the data lands (A7, #594); a taller tab
@@ -456,7 +514,16 @@ function useTallest() {
  * server tabs, and a filter row. Filters live in the URL (shareable) and
  * apply at once; numbers are debounced.
  */
-export function StatsView({ initial, initialTab }: { initial: StatsQuery; initialTab: Tab }) {
+export function StatsView({
+  initial,
+  initialTab,
+  titles = true,
+}: {
+  initial: StatsQuery;
+  initialTab: Tab;
+  /** TITLE_STATS on this deployment (server flag): the '칭호' tab. */
+  titles?: boolean;
+}) {
   const router = useRouter();
   const [query, setQuery] = useState<StatsQuery>(initial);
   const [tab, setTab] = useState<Tab>(initialTab);
@@ -570,6 +637,8 @@ export function StatsView({ initial, initialTab }: { initial: StatsQuery; initia
                   <ClassesTab query={query} />
                 ) : tab === "distribution" ? (
                   <DistributionTab query={query} />
+                ) : tab === "titles" ? (
+                  <TitlesTab query={query} />
                 ) : (
                   <ServersTab query={query} />
                 )}
@@ -577,7 +646,7 @@ export function StatsView({ initial, initialTab }: { initial: StatsQuery; initia
             </PillTabsPanel>
           }
         >
-          {TABS.map((t) => (
+          {TABS.filter((t) => titles || t.id !== "titles").map((t) => (
             <PillTab key={t.id} value={t.id}>
               {t.label}
             </PillTab>
