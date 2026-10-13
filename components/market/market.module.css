@@ -250,6 +250,31 @@
   background: var(--ink);
   color: var(--background);
 }
+/* Press feedback, and on a phone 44px to press (hit-44 rule): 30px buttons
+   14px apart there, so the areas meet without overlapping. */
+.pages button {
+  transition: transform 100ms ease-out;
+}
+.pages button:active {
+  transform: scale(0.97);
+}
+@media (max-width: 699px), (pointer: coarse) {
+  .pages {
+    gap: 14px;
+  }
+  .pages button {
+    position: relative;
+  }
+  .pages button::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 44px;
+    height: 44px;
+    translate: -50% -50%;
+  }
+}
 .note {
   margin-top: 10px;
   color: var(--slate);

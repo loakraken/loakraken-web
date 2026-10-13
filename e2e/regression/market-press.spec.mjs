@@ -29,6 +29,9 @@ test("시세판: 360에서 기간·정렬·티어 버튼과 별 누르는 영역
     for (let i = 0; i < count; i++) expect(await pressArea(buttons.nth(i)), `${group} ${i + 1}`).toEqual([true, true, true, true]);
   }
   expect(await pressArea(page.getByRole("button", { name: /^즐겨찾기/ }).first()), "즐겨찾기 별").toEqual([true, true, true, true]);
+  const pages = page.getByRole("button", { name: /^\d+$/ });
+  const count = await pages.count();
+  for (let i = 0; i < count; i++) expect(await pressArea(pages.nth(i)), `쪽 ${i + 1}`).toEqual([true, true, true, true]);
 });
 
 test("시세판: 데스크톱 버튼 크기는 그대로 @regression", async ({ page }) => {
