@@ -86,6 +86,9 @@ function MemberRows({ rows, current }: { rows: MemberRow[]; current: string }) {
 /** 길드원: by item level, or by roster (K28) — same rows, grouped. */
 function Members({ detail, current }: { detail: GuildDetail; current: string }) {
   const [byRoster, setByRoster] = useState(false);
+  // The roster view adds a line per roster: going back keeps that room, or a
+  // page scrolled to its end would be pulled up (A7).
+  const [tableRef, tableHeight] = useTallest();
   const groups = rosters(detail.members);
   const shared = groups.filter((rows) => rows.length > 1).length;
   return (
@@ -109,7 +112,11 @@ function Members({ detail, current }: { detail: GuildDetail; current: string }) 
         모르는 캐릭터)
       </p>
       {/* Fades at an end where columns are hidden (a phone scrolls the table). */}
-      <div className={`${styles.tableWrap} scroll-fade-x`}>
+      <div
+        ref={tableRef}
+        className={`${styles.tableWrap} scroll-fade-x`}
+        style={tableHeight ? { minHeight: tableHeight } : undefined}
+      >
         <table className={own.members}>
           <caption className={styles.srOnly}>{detail.guildName} 길드원</caption>
           <thead>
