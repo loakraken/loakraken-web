@@ -1192,6 +1192,41 @@ createServer(async (req, res) => {
   }
   // Roster ranking (backend #298): three rosters, the last one short of six
   // characters (usedCharacters 4 of 4), values by basis and aggregate.
+  // Guild ranking (api #302): guilds of observed members; 아만 differs so a
+  // server change brings other rows (A7 table widths).
+  if (url.pathname === "/api/v1/rankings/guilds") {
+    const server = url.searchParams.get("server");
+    const sort = url.searchParams.get("sort") ?? "AVG";
+    const guilds = (server === "아만"
+      ? [["합성길드아만", "아만", 9, 1702.35, 8, 3010.5], ["짧은길드", "아만", 6, 1688, 0, null]]
+      : [["합성길드", "루페온", 24, 1731.12, 20, 3180.29], ["두번째길드", "루페온", 12, 1712.5, 12, 3050.4], ["작은길드", "카단", 5, 1690.4, 2, 2890.75]]
+    ).map(([guildName, serverName, memberCount, avg, cpCount, cpAvg]) => ({
+      serverName, guildName, memberCount,
+      itemLevelAvg: avg,
+      itemLevelSum: Math.round(avg * memberCount * 100) / 100,
+      combatPowerAvg: cpAvg, combatPowerCount: cpCount,
+    }));
+    guilds.sort((a, b) => (sort === "SUM" ? b.itemLevelSum - a.itemLevelSum : b.itemLevelAvg - a.itemLevelAvg));
+    return send({
+      code: "GUILD_RANKING_SUCCESS",
+      message: "ok",
+      data: {
+        meta: {
+          population: server === "아만" ? 12 : 318,
+          conditions: { server, role: null, className: null, activeDays: 30, itemLevelMin: 1640, itemLevelMax: null, combatPowerMin: null, combatPowerMax: null, representativeOnly: false },
+          aggregatedAt: "2026-10-11T07:00:00Z",
+          snapshot: "latest",
+          ruleVersion: "stats-v1",
+          minSample: 30,
+          sampleStatus: server === "아만" ? "COLLECTING" : "READY",
+          coverage: { observedCharacters: 4200, knownCharacters: 5100, discoveredAccounts: 900 },
+          populationUnit: "GUILD",
+        },
+        sort, page: 1, size: 50, minMembers: 5, excludedGuilds: server === "아만" ? 3 : 41,
+        rows: guilds.map((row, i) => ({ rank: i + 1, ...row })),
+      },
+    });
+  }
   if (url.pathname === "/api/v1/rankings/rosters") {
     const basis = url.searchParams.get("basis") ?? "ITEM_LEVEL";
     const aggregate = url.searchParams.get("aggregate") ?? "TOP6_AVG";
@@ -1358,6 +1393,20 @@ createServer(async (req, res) => {
     ];
   }
   if (name === "전투력계산") withSimulatorGear(envelope.data);
+  // 특성 자세히 (§14.1 ④): stats with synthetic official-style tooltip lines.
+  if (name === "특성상세") {
+    const line = (type, effect, bonus) => [effect, `${type}은(는) 물약 및 원정대 레벨 보상으로 ${bonus}만큼 영구 증가되었습니다.`];
+    envelope.data.stats = [
+      { type: "치명", value: "646", tooltip: line("치명", "치명타 적중률이 23.12% 증가합니다.", 50) },
+      { type: "특화", value: "1832", tooltip: line("특화", "고유 능력의 효과가 65.43% 증가합니다.", 50) },
+      { type: "신속", value: "88", tooltip: line("신속", "공격 속도와 이동 속도가 1.51% 증가합니다.", 50) },
+      { type: "제압", value: "60", tooltip: [] },
+      { type: "인내", value: "61", tooltip: [] },
+      { type: "숙련", value: "62", tooltip: [] },
+      { type: "공격력", value: "142077", tooltip: ["공격력은 힘, 민첩, 지능과 무기 공격력을 기반으로 증가합니다."] },
+      { type: "최대 생명력", value: "377857", tooltip: ["최대 생명력은 체력과 생명 활성력을 기반으로 증가합니다."] },
+    ];
+  }
   if (name === "마크업") {
     // Synthetic copy of the official Tooltip markup shape seen in live responses.
     const { engravings, arkPassive } = envelope.data.loadout;

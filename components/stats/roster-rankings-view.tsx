@@ -296,7 +296,7 @@ export function RosterRankingsView({ initial, types }: { initial: RosterQuery; t
           식스맨 평균은 원정대에서 {basisLabel}이 높은 6명의 평균이고, 6명보다
           적으면 있는 인원으로 계산해요(인원 칸에 표시).
         </p>
-        {data?.meta && <BasisNote basis={data.meta} />}
+        {data?.meta && <BasisNote basis={{ ...data.meta, unit: "개 원정대" }} />}
       </main>
     </div>
   );
