@@ -222,20 +222,11 @@ test.describe("사용자 지적 회귀 점검표 @regression", () => {
         const box = await control.boundingBox();
         return box && [Math.round(box.x), Math.round(box.y)];
       };
-      const before = await shifts(page);
       const at = await where();
-      await flow.act(page);
-      await page.waitForTimeout(1200);
-      const after = await shifts(page);
-      expect(
-        (after.quiet - before.quiet).toFixed(4),
-        "입력 없이 생긴 흔들림",
-      ).toBe("0.0000");
+      const moved = await shiftsDuring(page, () => flow.act(page));
+      expect(moved.quiet, `입력 없이 생긴 흔들림 (${moved.moved})`).toBe(0);
       if (!flow.grows) {
-        expect(
-          (after.input - before.input).toFixed(4),
-          "누른 직후 흔들림",
-        ).toBe("0.0000");
+        expect(moved.all, `누른 직후 포함 흔들림 (${moved.moved})`).toBe(0);
         // The pressed control may be gone (a closed list) or renamed; when it is there, it has not moved.
         if (await control.count())
           expect(await where(), "누른 컨트롤 위치").toEqual(at);
