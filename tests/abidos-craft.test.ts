@@ -51,6 +51,9 @@ test("cost, value and profit of one craft, with the fee cut and the market fee",
   assert.ok(Math.abs(r.sell! - 855 * 10.5) < 1e-6);
   assert.ok(Math.abs(r.useProfit! - (105 * 90 - 928)) < 1e-6);
   assert.deepEqual(r.missing, []);
+  // Per 100 base energy (288 for 아비도스).
+  assert.ok(Math.abs(r.usePer100Energy! - ((105 * 90 - 928) * 100) / 288) < 1e-6);
+  assert.ok(Math.abs(r.sellPer100Energy! - ((855 * 10.5 - 928) * 100) / 288) < 1e-6);
 });
 
 test("a missing price is never 0: no cost, no profit, and it is named", () => {

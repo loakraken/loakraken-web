@@ -78,6 +78,9 @@ export type CraftResult = {
   use: number | null;
   sellProfit: number | null;
   useProfit: number | null;
+  /** Profit per 100 estate energy (the recipe's base energy; no reduction until its rule is sourced). */
+  sellPer100Energy: number | null;
+  usePer100Energy: number | null;
   missing: string[];
 };
 
@@ -112,6 +115,8 @@ export function craftResult(
     use,
     sellProfit: cost == null || sell == null ? null : sell - cost,
     useProfit: cost == null || use == null ? null : use - cost,
+    sellPer100Energy: cost == null || sell == null ? null : ((sell - cost) * 100) / output.energy,
+    usePer100Energy: cost == null || use == null ? null : ((use - cost) * 100) / output.energy,
     missing,
   };
 }

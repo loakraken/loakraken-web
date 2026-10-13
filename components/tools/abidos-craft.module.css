@@ -179,6 +179,14 @@
   color: var(--muted-foreground);
   font-size: var(--text-caption);
 }
+/* Under each profit, its line held from the first paint (A6). */
+.perEnergy {
+  display: block;
+  min-height: 1lh;
+  color: var(--muted-foreground);
+  font-size: var(--text-caption);
+  font-weight: 400;
+}
 .up {
   color: var(--gain);
   font-weight: 600;
