@@ -1,0 +1,51 @@
+{
+  "version": "2026-10-13",
+  "checkedAt": "2026-10-13",
+  "sources": {
+    "guide-dungeon": {
+      "title": "게임 가이드 — 던전(카오스 던전·쿠르잔 전선·혼돈의 균열 공명의 기운·휴식 보너스)",
+      "url": "https://lostark.game.onstove.com/GameGuide/Pages/%EB%8D%98%EC%A0%84",
+      "date": "2026-08-05"
+    },
+    "guide-guardian": {
+      "title": "게임 가이드 — 가디언 토벌(휴식 보너스 포인트)",
+      "url": "https://lostark.game.onstove.com/GameGuide/Pages/%EA%B0%80%EB%94%94%EC%96%B8%20%ED%86%A0%EB%B2%8C",
+      "date": "2026-08-05"
+    },
+    "notice-13164": {
+      "title": "7월 9일(수) 업데이트 내역 안내 — 공명의 기운 회복 비약 +100, 휴식 보너스 회복 비약 +40",
+      "url": "https://lostark.game.onstove.com/News/Notice/Views/13164",
+      "date": "2025-07-09"
+    }
+  },
+  "resonance": {
+    "source": "guide-dungeon",
+    "sharedBy": [
+      "카오스 던전",
+      "쿠르잔 전선",
+      "혼돈의 균열"
+    ],
+    "costPerEntry": 100,
+    "refillAt": "매일 06:00 최대치",
+    "max": null
+  },
+  "restBonus": {
+    "source": "guide-dungeon",
+    "minToUse": 40,
+    "rechargeRule": "매일 06:00 남은 공명의 기운에 따라 회복",
+    "rechargeRatio": null,
+    "max": null,
+    "rewardIncrease": null
+  },
+  "guardianRest": {
+    "source": "guide-guardian",
+    "rechargeRule": "매일 06:00 남은 완료 가능 횟수에 따라 휴식 보너스 포인트 충전, 일정 포인트 이상이면 가디언의 의지 하나 더",
+    "rechargePerUnused": null,
+    "threshold": null
+  },
+  "potions": {
+    "source": "notice-13164",
+    "resonance": 100,
+    "restBonus": 40
+  }
+}

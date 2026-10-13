@@ -1,0 +1,1403 @@
+{
+  "version": "2026-10-13",
+  "checkedAt": "2026-10-13",
+  "source": {
+    "title": "확률 정보 공개 — 팔찌 T4",
+    "url": "https://lostark.game.onstove.com/Probability/%ED%8C%94%EC%B0%8C%20T4",
+    "date": "2025-12-30"
+  },
+  "rules": {
+    "leapPoints": {
+      "relic": 9,
+      "ancient": 18
+    },
+    "fixedEffectCount": [
+      {
+        "count": 1,
+        "percent": 65
+      },
+      {
+        "count": 2,
+        "percent": 35
+      }
+    ],
+    "grantedEffectCount": {
+      "relic": [
+        {
+          "count": 1,
+          "percent": 75
+        },
+        {
+          "count": 2,
+          "percent": 25
+        }
+      ],
+      "ancient": [
+        {
+          "count": 2,
+          "percent": 75
+        },
+        {
+          "count": 3,
+          "percent": 25
+        }
+      ]
+    },
+    "maxPerKind": {
+      "base": 2,
+      "combatStat": 2,
+      "special": 5
+    },
+    "kindPercent": {
+      "base": 35,
+      "combatStat": 35,
+      "special": 30
+    },
+    "baseKindPercent": {
+      "mainStat": 50,
+      "vitality": 50
+    },
+    "combatStats": [
+      "치명",
+      "특화",
+      "제압",
+      "신속",
+      "인내",
+      "숙련"
+    ],
+    "combatStatEachPercent": 16.6667,
+    "excludedRenormalized": true
+  },
+  "mainStat": [
+    {
+      "relic": [
+        6400,
+        7040
+      ],
+      "ancient": [
+        9600,
+        10240
+      ],
+      "percent": 10
+    },
+    {
+      "relic": [
+        7041,
+        7680
+      ],
+      "ancient": [
+        10241,
+        10880
+      ],
+      "percent": 16
+    },
+    {
+      "relic": [
+        7681,
+        8320
+      ],
+      "ancient": [
+        10881,
+        11520
+      ],
+      "percent": 16
+    },
+    {
+      "relic": [
+        8321,
+        8960
+      ],
+      "ancient": [
+        11521,
+        12160
+      ],
+      "percent": 16
+    },
+    {
+      "relic": [
+        8961,
+        9600
+      ],
+      "ancient": [
+        12161,
+        12800
+      ],
+      "percent": 10
+    },
+    {
+      "relic": [
+        9601,
+        10240
+      ],
+      "ancient": [
+        12801,
+        13440
+      ],
+      "percent": 10
+    },
+    {
+      "relic": [
+        10241,
+        10880
+      ],
+      "ancient": [
+        13441,
+        14080
+      ],
+      "percent": 10
+    },
+    {
+      "relic": [
+        10881,
+        11520
+      ],
+      "ancient": [
+        14081,
+        14720
+      ],
+      "percent": 4
+    },
+    {
+      "relic": [
+        11521,
+        12160
+      ],
+      "ancient": [
+        14721,
+        15360
+      ],
+      "percent": 4
+    },
+    {
+      "relic": [
+        12161,
+        12800
+      ],
+      "ancient": [
+        15361,
+        16000
+      ],
+      "percent": 4
+    }
+  ],
+  "vitality": [
+    {
+      "relic": [
+        3000,
+        3200
+      ],
+      "ancient": [
+        4000,
+        4200
+      ],
+      "percent": 10
+    },
+    {
+      "relic": [
+        3201,
+        3400
+      ],
+      "ancient": [
+        4201,
+        4400
+      ],
+      "percent": 16
+    },
+    {
+      "relic": [
+        3401,
+        3600
+      ],
+      "ancient": [
+        4401,
+        4600
+      ],
+      "percent": 16
+    },
+    {
+      "relic": [
+        3601,
+        3800
+      ],
+      "ancient": [
+        4601,
+        4800
+      ],
+      "percent": 16
+    },
+    {
+      "relic": [
+        3801,
+        4000
+      ],
+      "ancient": [
+        4801,
+        5000
+      ],
+      "percent": 10
+    },
+    {
+      "relic": [
+        4001,
+        4200
+      ],
+      "ancient": [
+        5001,
+        5200
+      ],
+      "percent": 10
+    },
+    {
+      "relic": [
+        4201,
+        4400
+      ],
+      "ancient": [
+        5201,
+        5400
+      ],
+      "percent": 10
+    },
+    {
+      "relic": [
+        4401,
+        4600
+      ],
+      "ancient": [
+        5401,
+        5600
+      ],
+      "percent": 4
+    },
+    {
+      "relic": [
+        4601,
+        4800
+      ],
+      "ancient": [
+        5601,
+        5800
+      ],
+      "percent": 4
+    },
+    {
+      "relic": [
+        4801,
+        5000
+      ],
+      "ancient": [
+        5801,
+        6000
+      ],
+      "percent": 4
+    }
+  ],
+  "combatStat": [
+    {
+      "relic": [
+        41,
+        46
+      ],
+      "ancient": [
+        61,
+        66
+      ],
+      "percent": 10
+    },
+    {
+      "relic": [
+        47,
+        52
+      ],
+      "ancient": [
+        67,
+        72
+      ],
+      "percent": 16
+    },
+    {
+      "relic": [
+        53,
+        58
+      ],
+      "ancient": [
+        73,
+        78
+      ],
+      "percent": 16
+    },
+    {
+      "relic": [
+        59,
+        64
+      ],
+      "ancient": [
+        79,
+        84
+      ],
+      "percent": 16
+    },
+    {
+      "relic": [
+        65,
+        70
+      ],
+      "ancient": [
+        85,
+        90
+      ],
+      "percent": 10
+    },
+    {
+      "relic": [
+        71,
+        76
+      ],
+      "ancient": [
+        91,
+        96
+      ],
+      "percent": 10
+    },
+    {
+      "relic": [
+        77,
+        82
+      ],
+      "ancient": [
+        97,
+        102
+      ],
+      "percent": 10
+    },
+    {
+      "relic": [
+        83,
+        88
+      ],
+      "ancient": [
+        103,
+        108
+      ],
+      "percent": 4
+    },
+    {
+      "relic": [
+        89,
+        94
+      ],
+      "ancient": [
+        109,
+        114
+      ],
+      "percent": 4
+    },
+    {
+      "relic": [
+        95,
+        100
+      ],
+      "ancient": [
+        115,
+        120
+      ],
+      "percent": 4
+    }
+  ],
+  "special": {
+    "relic": [
+      {
+        "text": "공격 및 이동 속도가 3% 증가한다.",
+        "fixedPercent": 6,
+        "grantedPercent": 4.2
+      },
+      {
+        "text": "공격 및 이동 속도가 4% 증가한다.",
+        "fixedPercent": 3,
+        "grantedPercent": 2.1
+      },
+      {
+        "text": "공격 및 이동 속도가 5% 증가한다.",
+        "fixedPercent": 1,
+        "grantedPercent": 0.7
+      },
+      {
+        "text": "시드 등급 이하 몬스터에게 주는 피해가 3% 증가한다.",
+        "fixedPercent": 6,
+        "grantedPercent": 4.2
+      },
+      {
+        "text": "시드 등급 이하 몬스터에게 주는 피해가 4% 증가한다.",
+        "fixedPercent": 3,
+        "grantedPercent": 2.1
+      },
+      {
+        "text": "시드 등급 이하 몬스터에게 주는 피해가 5% 증가한다.",
+        "fixedPercent": 1,
+        "grantedPercent": 0.7
+      },
+      {
+        "text": "시드 등급 이하 몬스터에게 받는 피해가 4% 감소한다.",
+        "fixedPercent": 6,
+        "grantedPercent": 4.2
+      },
+      {
+        "text": "시드 등급 이하 몬스터에게 받는 피해가 6% 감소한다.",
+        "fixedPercent": 3,
+        "grantedPercent": 2.1
+      },
+      {
+        "text": "시드 등급 이하 몬스터에게 받는 피해가 8% 감소한다.",
+        "fixedPercent": 1,
+        "grantedPercent": 0.7
+      },
+      {
+        "text": "물리 방어력 +4000",
+        "fixedPercent": 6,
+        "grantedPercent": 4.2
+      },
+      {
+        "text": "물리 방어력 +5000",
+        "fixedPercent": 3,
+        "grantedPercent": 2.1
+      },
+      {
+        "text": "물리 방어력 +6000",
+        "fixedPercent": 1,
+        "grantedPercent": 0.7
+      },
+      {
+        "text": "마법 방어력 +4000",
+        "fixedPercent": 6,
+        "grantedPercent": 4.2
+      },
+      {
+        "text": "마법 방어력 +5000",
+        "fixedPercent": 3,
+        "grantedPercent": 2.1
+      },
+      {
+        "text": "마법 방어력 +6000",
+        "fixedPercent": 1,
+        "grantedPercent": 0.7
+      },
+      {
+        "text": "최대 생명력 +8400",
+        "fixedPercent": 6,
+        "grantedPercent": 4.2
+      },
+      {
+        "text": "최대 생명력 +11200",
+        "fixedPercent": 3,
+        "grantedPercent": 2.1
+      },
+      {
+        "text": "최대 생명력 +14000",
+        "fixedPercent": 1,
+        "grantedPercent": 0.7
+      },
+      {
+        "text": "전투 중 생명력 회복량 +80",
+        "fixedPercent": 6,
+        "grantedPercent": 4.2
+      },
+      {
+        "text": "전투 중 생명력 회복량 +100",
+        "fixedPercent": 3,
+        "grantedPercent": 2.1
+      },
+      {
+        "text": "전투 중 생명력 회복량 +130",
+        "fixedPercent": 1,
+        "grantedPercent": 0.7
+      },
+      {
+        "text": "전투자원 자연 회복량 +6%",
+        "fixedPercent": 6,
+        "grantedPercent": 4.2
+      },
+      {
+        "text": "전투자원 자연 회복량 +8%",
+        "fixedPercent": 3,
+        "grantedPercent": 2.1
+      },
+      {
+        "text": "전투자원 자연 회복량 +10%",
+        "fixedPercent": 1,
+        "grantedPercent": 0.7
+      },
+      {
+        "text": "이동기 및 기상기 재사용 대기 시간이 6% 감소한다.",
+        "fixedPercent": 6,
+        "grantedPercent": 4.2
+      },
+      {
+        "text": "이동기 및 기상기 재사용 대기 시간이 8% 감소한다.",
+        "fixedPercent": 3,
+        "grantedPercent": 2.1
+      },
+      {
+        "text": "이동기 및 기상기 재사용 대기 시간이 10% 감소한다.",
+        "fixedPercent": 1,
+        "grantedPercent": 0.7
+      },
+      {
+        "text": "공격 적중 시 90초 동안 경직 및 피격 이상에 면역이 된다. (재사용 대기 시간 90초) 해당 효과는 1회 피격 시 사라진다.",
+        "fixedPercent": 6,
+        "grantedPercent": 4.2
+      },
+      {
+        "text": "공격 적중 시 80초 동안 경직 및 피격 이상에 면역이 된다. (재사용 대기 시간 80초) 해당 효과는 1회 피격 시 사라진다.",
+        "fixedPercent": 3,
+        "grantedPercent": 2.1
+      },
+      {
+        "text": "공격 적중 시 70초 동안 경직 및 피격 이상에 면역이 된다. (재사용 대기 시간 70초) 해당 효과는 1회 피격 시 사라진다.",
+        "fixedPercent": 1,
+        "grantedPercent": 0.7
+      },
+      {
+        "text": "치명타 적중률이 2.6% 증가한다. 공격이 치명타로 적중 시 적에게 주는 피해가 1.5% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.5
+      },
+      {
+        "text": "치명타 적중률이 3.4% 증가한다. 공격이 치명타로 적중 시 적에게 주는 피해가 1.5% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.25
+      },
+      {
+        "text": "치명타 적중률이 4.2% 증가한다. 공격이 치명타로 적중 시 적에게 주는 피해가 1.5% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.08333
+      },
+      {
+        "text": "치명타 피해가 5.2% 증가한다. 공격이 치명타로 적중 시 적에게 주는 피해가 1.5% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.5
+      },
+      {
+        "text": "치명타 피해가 6.8% 증가한다. 공격이 치명타로 적중 시 적에게 주는 피해가 1.5% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.25
+      },
+      {
+        "text": "치명타 피해가 8.4% 증가한다. 공격이 치명타로 적중 시 적에게 주는 피해가 1.5% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.08333
+      },
+      {
+        "text": "적에게 주는 피해가 1.5% 증가하며, 무력화 상태의 적에게 주는 피해가 3.5% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.5
+      },
+      {
+        "text": "적에게 주는 피해가 2.0% 증가하며, 무력화 상태의 적에게 주는 피해가 4.0% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.25
+      },
+      {
+        "text": "적에게 주는 피해가 2.5% 증가하며, 무력화 상태의 적에게 주는 피해가 4.5% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.08333
+      },
+      {
+        "text": "추가 피해가 2.0% 증가한다. 악마 및 대악마 계열 피해량이 2.5% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.5
+      },
+      {
+        "text": "추가 피해가 2.5% 증가한다. 악마 및 대악마 계열 피해량이 2.5% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.25
+      },
+      {
+        "text": "추가 피해가 3.0% 증가한다. 악마 및 대악마 계열 피해량이 2.5% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.08333
+      },
+      {
+        "text": "스킬의 재사용 대기 시간이 2% 증가하지만, 적에게 주는 피해가 4.0% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.5
+      },
+      {
+        "text": "스킬의 재사용 대기 시간이 2% 증가하지만, 적에게 주는 피해가 4.5% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.25
+      },
+      {
+        "text": "스킬의 재사용 대기 시간이 2% 증가하지만, 적에게 주는 피해가 5.0% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.08333
+      },
+      {
+        "text": "몬스터에게 공격 적중 시 8초 동안 대상의 방어력을 1.5% 감소시킨다. 해당 효과는 한 파티 당 하나만 적용된다. 아군 공격력 강화 효과가 1.5% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.5
+      },
+      {
+        "text": "몬스터에게 공격 적중 시 8초 동안 대상의 방어력을 1.8% 감소시킨다. 해당 효과는 한 파티 당 하나만 적용된다. 아군 공격력 강화 효과가 2.0% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.25
+      },
+      {
+        "text": "몬스터에게 공격 적중 시 8초 동안 대상의 방어력을 2.1% 감소시킨다. 해당 효과는 한 파티 당 하나만 적용된다. 아군 공격력 강화 효과가 2.5% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.08333
+      },
+      {
+        "text": "몬스터에게 공격 적중 시 8초 동안 대상의 치명타 저항을 1.5% 감소시킨다. 해당 효과는 한 파티 당 하나만 적용된다. 아군 공격력 강화 효과가 1.5% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.5
+      },
+      {
+        "text": "몬스터에게 공격 적중 시 8초 동안 대상의 치명타 저항을 1.8% 감소시킨다. 해당 효과는 한 파티 당 하나만 적용된다. 아군 공격력 강화 효과가 2.0% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.25
+      },
+      {
+        "text": "몬스터에게 공격 적중 시 8초 동안 대상의 치명타 저항을 2.1% 감소시킨다. 해당 효과는 한 파티 당 하나만 적용된다. 아군 공격력 강화 효과가 2.5% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.08333
+      },
+      {
+        "text": "파티 효과로 보호 효과가 적용된 대상이 5초 동안 적에게 주는 피해가 0.7% 증가한다. 해당 효과는 한 파티 당 하나만 적용되며, 지속 시간이 없는 보호 효과에는 적용되지 않는다. 아군 공격력 강화 효과가 1.5% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.5
+      },
+      {
+        "text": "파티 효과로 보호 효과가 적용된 대상이 5초 동안 적에게 주는 피해가 0.9% 증가한다. 해당 효과는 한 파티 당 하나만 적용되며, 지속 시간이 없는 보호 효과에는 적용되지 않는다. 아군 공격력 강화 효과가 2.0% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.25
+      },
+      {
+        "text": "파티 효과로 보호 효과가 적용된 대상이 5초 동안 적에게 주는 피해가 1.1% 증가한다. 해당 효과는 한 파티 당 하나만 적용되며, 지속 시간이 없는 보호 효과에는 적용되지 않는다. 아군 공격력 강화 효과가 2.5% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.08333
+      },
+      {
+        "text": "몬스터에게 공격 적중 시 8초 동안 대상의 치명타 피해 저항을 3.0% 감소시킨다. 해당 효과는 한 파티 당 하나만 적용된다. 아군 공격력 강화 효과가 1.5% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.5
+      },
+      {
+        "text": "몬스터에게 공격 적중 시 8초 동안 대상의 치명타 피해 저항을 3.6% 감소시킨다. 해당 효과는 한 파티 당 하나만 적용된다. 아군 공격력 강화 효과가 2.0% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.25
+      },
+      {
+        "text": "몬스터에게 공격 적중 시 8초 동안 대상의 치명타 피해 저항을 4.2% 감소시킨다. 해당 효과는 한 파티 당 하나만 적용된다. 아군 공격력 강화 효과가 2.5% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.08333
+      },
+      {
+        "text": "공격 적중 시 매 초 마다 10초 동안 무기 공격력이 1000, 공격 및 이동 속도가 1% 증가한다.(최대 6중첩)",
+        "fixedPercent": null,
+        "grantedPercent": 0.5
+      },
+      {
+        "text": "공격 적중 시 매 초 마다 10초 동안 무기 공격력이 1160, 공격 및 이동 속도가 1% 증가한다.(최대 6중첩)",
+        "fixedPercent": null,
+        "grantedPercent": 0.25
+      },
+      {
+        "text": "공격 적중 시 매 초 마다 10초 동안 무기 공격력이 1320, 공격 및 이동 속도가 1% 증가한다.(최대 6중첩)",
+        "fixedPercent": null,
+        "grantedPercent": 0.08333
+      },
+      {
+        "text": "무기 공격력이 6300 증가한다. 자신의 생명력이 50% 이상일 경우 적에게 공격 적중 시 5초 동안 무기 공격력이 1800 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.5
+      },
+      {
+        "text": "무기 공격력이 7200 증가한다. 자신의 생명력이 50% 이상일 경우 적에게 공격 적중 시 5초 동안 무기 공격력이 2000 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.25
+      },
+      {
+        "text": "무기 공격력이 8100 증가한다. 자신의 생명력이 50% 이상일 경우 적에게 공격 적중 시 5초 동안 무기 공격력이 2200 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.08333
+      },
+      {
+        "text": "무기 공격력이 6000 증가한다. 공격 적중 시 30초 마다 120초 동안 무기 공격력이 120 증가한다. (최대 30중첩)",
+        "fixedPercent": null,
+        "grantedPercent": 0.5
+      },
+      {
+        "text": "무기 공격력이 6900 증가한다. 공격 적중 시 30초 마다 120초 동안 무기 공격력이 130 증가한다. (최대 30중첩)",
+        "fixedPercent": null,
+        "grantedPercent": 0.25
+      },
+      {
+        "text": "무기 공격력이 7800 증가한다. 공격 적중 시 30초 마다 120초 동안 무기 공격력이 140 증가한다. (최대 30중첩)",
+        "fixedPercent": null,
+        "grantedPercent": 0.08333
+      },
+      {
+        "text": "적에게 주는 피해가 1.5% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 1.0909
+      },
+      {
+        "text": "적에게 주는 피해가 2.0% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.5455
+      },
+      {
+        "text": "적에게 주는 피해가 2.5% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.1818
+      },
+      {
+        "text": "추가 피해 +2.5%",
+        "fixedPercent": null,
+        "grantedPercent": 1.0909
+      },
+      {
+        "text": "추가 피해 +3.0%",
+        "fixedPercent": null,
+        "grantedPercent": 0.5455
+      },
+      {
+        "text": "추가 피해 +3.5%",
+        "fixedPercent": null,
+        "grantedPercent": 0.1818
+      },
+      {
+        "text": "백어택 스킬이 적에게 주는 피해가 2.0% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 1.0909
+      },
+      {
+        "text": "백어택 스킬이 적에게 주는 피해가 2.5% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.5455
+      },
+      {
+        "text": "백어택 스킬이 적에게 주는 피해가 3.0% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.1818
+      },
+      {
+        "text": "헤드어택 스킬이 적에게 주는 피해가 2.0% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 1.0909
+      },
+      {
+        "text": "헤드어택 스킬이 적에게 주는 피해가 2.5% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.5455
+      },
+      {
+        "text": "헤드어택 스킬이 적에게 주는 피해가 3.0% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.1818
+      },
+      {
+        "text": "방향성 공격이 아닌 스킬이 적에게 주는 피해가 2.0% 증가한다. 각성기는 적용되지 않는다.",
+        "fixedPercent": null,
+        "grantedPercent": 1.0909
+      },
+      {
+        "text": "방향성 공격이 아닌 스킬이 적에게 주는 피해가 2.5% 증가한다. 각성기는 적용되지 않는다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.5455
+      },
+      {
+        "text": "방향성 공격이 아닌 스킬이 적에게 주는 피해가 3.0% 증가한다. 각성기는 적용되지 않는다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.1818
+      },
+      {
+        "text": "파티원 보호 및 회복 효과가 2.0% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 1.0909
+      },
+      {
+        "text": "파티원 보호 및 회복 효과가 2.5% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.5455
+      },
+      {
+        "text": "파티원 보호 및 회복 효과가 3.0% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.1818
+      },
+      {
+        "text": "아군 공격력 강화 효과 +3.0%",
+        "fixedPercent": null,
+        "grantedPercent": 1.0909
+      },
+      {
+        "text": "아군 공격력 강화 효과 +4.0%",
+        "fixedPercent": null,
+        "grantedPercent": 0.5455
+      },
+      {
+        "text": "아군 공격력 강화 효과 +5.0%",
+        "fixedPercent": null,
+        "grantedPercent": 0.1818
+      },
+      {
+        "text": "아군 피해량 강화 효과 +4.5%",
+        "fixedPercent": null,
+        "grantedPercent": 1.0909
+      },
+      {
+        "text": "아군 피해량 강화 효과 +6.0%",
+        "fixedPercent": null,
+        "grantedPercent": 0.5455
+      },
+      {
+        "text": "아군 피해량 강화 효과 +7.5%",
+        "fixedPercent": null,
+        "grantedPercent": 0.1818
+      },
+      {
+        "text": "치명타 적중률 +2.6%",
+        "fixedPercent": null,
+        "grantedPercent": 1.0909
+      },
+      {
+        "text": "치명타 적중률 +3.4%",
+        "fixedPercent": null,
+        "grantedPercent": 0.5455
+      },
+      {
+        "text": "치명타 적중률 +4.2%",
+        "fixedPercent": null,
+        "grantedPercent": 0.1818
+      },
+      {
+        "text": "치명타 피해 +5.2%",
+        "fixedPercent": null,
+        "grantedPercent": 1.0909
+      },
+      {
+        "text": "치명타 피해 +6.8%",
+        "fixedPercent": null,
+        "grantedPercent": 0.5455
+      },
+      {
+        "text": "치명타 피해 +8.4%",
+        "fixedPercent": null,
+        "grantedPercent": 0.1818
+      },
+      {
+        "text": "무기 공격력 +6300",
+        "fixedPercent": null,
+        "grantedPercent": 1.0909
+      },
+      {
+        "text": "무기 공격력 +7200",
+        "fixedPercent": null,
+        "grantedPercent": 0.5455
+      },
+      {
+        "text": "무기 공격력 +8100",
+        "fixedPercent": null,
+        "grantedPercent": 0.1818
+      }
+    ],
+    "ancient": [
+      {
+        "text": "공격 및 이동 속도가 4% 증가한다.",
+        "fixedPercent": 6,
+        "grantedPercent": 4.2
+      },
+      {
+        "text": "공격 및 이동 속도가 5% 증가한다.",
+        "fixedPercent": 3,
+        "grantedPercent": 2.1
+      },
+      {
+        "text": "공격 및 이동 속도가 6% 증가한다.",
+        "fixedPercent": 1,
+        "grantedPercent": 0.7
+      },
+      {
+        "text": "시드 등급 이하 몬스터에게 주는 피해가 4% 증가한다.",
+        "fixedPercent": 6,
+        "grantedPercent": 4.2
+      },
+      {
+        "text": "시드 등급 이하 몬스터에게 주는 피해가 5% 증가한다.",
+        "fixedPercent": 3,
+        "grantedPercent": 2.1
+      },
+      {
+        "text": "시드 등급 이하 몬스터에게 주는 피해가 6% 증가한다.",
+        "fixedPercent": 1,
+        "grantedPercent": 0.7
+      },
+      {
+        "text": "시드 등급 이하 몬스터에게 받는 피해가 6% 감소한다.",
+        "fixedPercent": 6,
+        "grantedPercent": 4.2
+      },
+      {
+        "text": "시드 등급 이하 몬스터에게 받는 피해가 8% 감소한다.",
+        "fixedPercent": 3,
+        "grantedPercent": 2.1
+      },
+      {
+        "text": "시드 등급 이하 몬스터에게 받는 피해가 10% 감소한다.",
+        "fixedPercent": 1,
+        "grantedPercent": 0.7
+      },
+      {
+        "text": "물리 방어력 +5000",
+        "fixedPercent": 6,
+        "grantedPercent": 4.2
+      },
+      {
+        "text": "물리 방어력 +6000",
+        "fixedPercent": 3,
+        "grantedPercent": 2.1
+      },
+      {
+        "text": "물리 방어력 +7000",
+        "fixedPercent": 1,
+        "grantedPercent": 0.7
+      },
+      {
+        "text": "마법 방어력 +5000",
+        "fixedPercent": 6,
+        "grantedPercent": 4.2
+      },
+      {
+        "text": "마법 방어력 +6000",
+        "fixedPercent": 3,
+        "grantedPercent": 2.1
+      },
+      {
+        "text": "마법 방어력 +7000",
+        "fixedPercent": 1,
+        "grantedPercent": 0.7
+      },
+      {
+        "text": "최대 생명력 +11200",
+        "fixedPercent": 6,
+        "grantedPercent": 4.2
+      },
+      {
+        "text": "최대 생명력 +14000",
+        "fixedPercent": 3,
+        "grantedPercent": 2.1
+      },
+      {
+        "text": "최대 생명력 +16800",
+        "fixedPercent": 1,
+        "grantedPercent": 0.7
+      },
+      {
+        "text": "전투 중 생명력 회복량 +100",
+        "fixedPercent": 6,
+        "grantedPercent": 4.2
+      },
+      {
+        "text": "전투 중 생명력 회복량 +130",
+        "fixedPercent": 3,
+        "grantedPercent": 2.1
+      },
+      {
+        "text": "전투 중 생명력 회복량 +160",
+        "fixedPercent": 1,
+        "grantedPercent": 0.7
+      },
+      {
+        "text": "전투자원 자연 회복량 +8%",
+        "fixedPercent": 6,
+        "grantedPercent": 4.2
+      },
+      {
+        "text": "전투자원 자연 회복량 +10%",
+        "fixedPercent": 3,
+        "grantedPercent": 2.1
+      },
+      {
+        "text": "전투자원 자연 회복량 +12%",
+        "fixedPercent": 1,
+        "grantedPercent": 0.7
+      },
+      {
+        "text": "이동기 및 기상기 재사용 대기 시간이 8% 감소한다.",
+        "fixedPercent": 6,
+        "grantedPercent": 4.2
+      },
+      {
+        "text": "이동기 및 기상기 재사용 대기 시간이 10% 감소한다.",
+        "fixedPercent": 3,
+        "grantedPercent": 2.1
+      },
+      {
+        "text": "이동기 및 기상기 재사용 대기 시간이 12% 감소한다.",
+        "fixedPercent": 1,
+        "grantedPercent": 0.7
+      },
+      {
+        "text": "공격 적중 시 80초 동안 경직 및 피격 이상에 면역이 된다. (재사용 대기 시간 80초) 해당 효과는 1회 피격 시 사라진다.",
+        "fixedPercent": 6,
+        "grantedPercent": 4.2
+      },
+      {
+        "text": "공격 적중 시 70초 동안 경직 및 피격 이상에 면역이 된다. (재사용 대기 시간 70초) 해당 효과는 1회 피격 시 사라진다.",
+        "fixedPercent": 3,
+        "grantedPercent": 2.1
+      },
+      {
+        "text": "공격 적중 시 60초 동안 경직 및 피격 이상에 면역이 된다. (재사용 대기 시간 60초) 해당 효과는 1회 피격 시 사라진다.",
+        "fixedPercent": 1,
+        "grantedPercent": 0.7
+      },
+      {
+        "text": "치명타 적중률이 3.4% 증가한다. 공격이 치명타로 적중 시 적에게 주는 피해가 1.5% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.5
+      },
+      {
+        "text": "치명타 적중률이 4.2% 증가한다. 공격이 치명타로 적중 시 적에게 주는 피해가 1.5% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.25
+      },
+      {
+        "text": "치명타 적중률이 5.0% 증가한다. 공격이 치명타로 적중 시 적에게 주는 피해가 1.5% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.08333
+      },
+      {
+        "text": "치명타 피해가 6.8% 증가한다. 공격이 치명타로 적중 시 적에게 주는 피해가 1.5% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.5
+      },
+      {
+        "text": "치명타 피해가 8.4% 증가한다. 공격이 치명타로 적중 시 적에게 주는 피해가 1.5% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.25
+      },
+      {
+        "text": "치명타 피해가 10.0% 증가한다. 공격이 치명타로 적중 시 적에게 주는 피해가 1.5% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.08333
+      },
+      {
+        "text": "적에게 주는 피해가 2.0% 증가하며, 무력화 상태의 적에게 주는 피해가 4.0% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.5
+      },
+      {
+        "text": "적에게 주는 피해가 2.5% 증가하며, 무력화 상태의 적에게 주는 피해가 4.5% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.25
+      },
+      {
+        "text": "적에게 주는 피해가 3.0% 증가하며, 무력화 상태의 적에게 주는 피해가 5.0% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.08333
+      },
+      {
+        "text": "추가 피해가 2.5% 증가한다. 악마 및 대악마 계열 피해량이 2.5% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.5
+      },
+      {
+        "text": "추가 피해가 3.0% 증가한다. 악마 및 대악마 계열 피해량이 2.5% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.25
+      },
+      {
+        "text": "추가 피해가 3.5% 증가한다. 악마 및 대악마 계열 피해량이 2.5% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.08333
+      },
+      {
+        "text": "스킬의 재사용 대기 시간이 2% 증가하지만, 적에게 주는 피해가 4.5% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.5
+      },
+      {
+        "text": "스킬의 재사용 대기 시간이 2% 증가하지만, 적에게 주는 피해가 5.0% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.25
+      },
+      {
+        "text": "스킬의 재사용 대기 시간이 2% 증가하지만, 적에게 주는 피해가 5.5% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.08333
+      },
+      {
+        "text": "몬스터에게 공격 적중 시 8초 동안 대상의 방어력을 1.8% 감소시킨다. 해당 효과는 한 파티 당 하나만 적용된다. 아군 공격력 강화 효과가 2.0% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.5
+      },
+      {
+        "text": "몬스터에게 공격 적중 시 8초 동안 대상의 방어력을 2.1% 감소시킨다. 해당 효과는 한 파티 당 하나만 적용된다. 아군 공격력 강화 효과가 2.5% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.25
+      },
+      {
+        "text": "몬스터에게 공격 적중 시 8초 동안 대상의 방어력을 2.5% 감소시킨다. 해당 효과는 한 파티 당 하나만 적용된다. 아군 공격력 강화 효과가 3.0% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.08333
+      },
+      {
+        "text": "몬스터에게 공격 적중 시 8초 동안 대상의 치명타 저항을 1.8% 감소시킨다. 해당 효과는 한 파티 당 하나만 적용된다. 아군 공격력 강화 효과가 2.0% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.5
+      },
+      {
+        "text": "몬스터에게 공격 적중 시 8초 동안 대상의 치명타 저항을 2.1% 감소시킨다. 해당 효과는 한 파티 당 하나만 적용된다. 아군 공격력 강화 효과가 2.5% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.25
+      },
+      {
+        "text": "몬스터에게 공격 적중 시 8초 동안 대상의 치명타 저항을 2.5% 감소시킨다. 해당 효과는 한 파티 당 하나만 적용된다. 아군 공격력 강화 효과가 3.0% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.08333
+      },
+      {
+        "text": "파티 효과로 보호 효과가 적용된 대상이 5초 동안 적에게 주는 피해가 0.9% 증가한다. 해당 효과는 한 파티 당 하나만 적용되며, 지속 시간이 없는 보호 효과에는 적용되지 않는다. 아군 공격력 강화 효과가 2.0% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.5
+      },
+      {
+        "text": "파티 효과로 보호 효과가 적용된 대상이 5초 동안 적에게 주는 피해가 1.1% 증가한다. 해당 효과는 한 파티 당 하나만 적용되며, 지속 시간이 없는 보호 효과에는 적용되지 않는다. 아군 공격력 강화 효과가 2.5% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.25
+      },
+      {
+        "text": "파티 효과로 보호 효과가 적용된 대상이 5초 동안 적에게 주는 피해가 1.3% 증가한다. 해당 효과는 한 파티 당 하나만 적용되며, 지속 시간이 없는 보호 효과에는 적용되지 않는다. 아군 공격력 강화 효과가 3.0% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.08333
+      },
+      {
+        "text": "몬스터에게 공격 적중 시 8초 동안 대상의 치명타 피해 저항을 3.6% 감소시킨다. 해당 효과는 한 파티 당 하나만 적용된다. 아군 공격력 강화 효과가 2.0% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.5
+      },
+      {
+        "text": "몬스터에게 공격 적중 시 8초 동안 대상의 치명타 피해 저항을 4.2% 감소시킨다. 해당 효과는 한 파티 당 하나만 적용된다. 아군 공격력 강화 효과가 2.5% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.25
+      },
+      {
+        "text": "몬스터에게 공격 적중 시 8초 동안 대상의 치명타 피해 저항을 4.8% 감소시킨다. 해당 효과는 한 파티 당 하나만 적용된다. 아군 공격력 강화 효과가 3.0% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.08333
+      },
+      {
+        "text": "공격 적중 시 매 초 마다 10초 동안 무기 공격력이 1160, 공격 및 이동 속도가 1% 증가한다.(최대 6중첩)",
+        "fixedPercent": null,
+        "grantedPercent": 0.5
+      },
+      {
+        "text": "공격 적중 시 매 초 마다 10초 동안 무기 공격력이 1320, 공격 및 이동 속도가 1% 증가한다.(최대 6중첩)",
+        "fixedPercent": null,
+        "grantedPercent": 0.25
+      },
+      {
+        "text": "공격 적중 시 매 초 마다 10초 동안 무기 공격력이 1480, 공격 및 이동 속도가 1% 증가한다.(최대 6중첩)",
+        "fixedPercent": null,
+        "grantedPercent": 0.08333
+      },
+      {
+        "text": "무기 공격력이 7200 증가한다. 자신의 생명력이 50% 이상일 경우 적에게 공격 적중 시 5초 동안 무기 공격력이 2000 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.5
+      },
+      {
+        "text": "무기 공격력이 8100 증가한다. 자신의 생명력이 50% 이상일 경우 적에게 공격 적중 시 5초 동안 무기 공격력이 2200 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.25
+      },
+      {
+        "text": "무기 공격력이 9000 증가한다. 자신의 생명력이 50% 이상일 경우 적에게 공격 적중 시 5초 동안 무기 공격력이 2400 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.08333
+      },
+      {
+        "text": "무기 공격력이 6900 증가한다. 공격 적중 시 30초 마다 120초 동안 무기 공격력이 130 증가한다. (최대 30중첩)",
+        "fixedPercent": null,
+        "grantedPercent": 0.5
+      },
+      {
+        "text": "무기 공격력이 7800 증가한다. 공격 적중 시 30초 마다 120초 동안 무기 공격력이 140 증가한다. (최대 30중첩)",
+        "fixedPercent": null,
+        "grantedPercent": 0.25
+      },
+      {
+        "text": "무기 공격력이 8700 증가한다. 공격 적중 시 30초 마다 120초 동안 무기 공격력이 150 증가한다. (최대 30중첩)",
+        "fixedPercent": null,
+        "grantedPercent": 0.08333
+      },
+      {
+        "text": "적에게 주는 피해가 2.0% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 1.0909
+      },
+      {
+        "text": "적에게 주는 피해가 2.5% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.5455
+      },
+      {
+        "text": "적에게 주는 피해가 3.0% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.1818
+      },
+      {
+        "text": "추가 피해 +3.0%",
+        "fixedPercent": null,
+        "grantedPercent": 1.0909
+      },
+      {
+        "text": "추가 피해 +3.5%",
+        "fixedPercent": null,
+        "grantedPercent": 0.5455
+      },
+      {
+        "text": "추가 피해 +4.0%",
+        "fixedPercent": null,
+        "grantedPercent": 0.1818
+      },
+      {
+        "text": "백어택 스킬이 적에게 주는 피해가 2.5% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 1.0909
+      },
+      {
+        "text": "백어택 스킬이 적에게 주는 피해가 3.0% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.5455
+      },
+      {
+        "text": "백어택 스킬이 적에게 주는 피해가 3.5% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.1818
+      },
+      {
+        "text": "헤드어택 스킬이 적에게 주는 피해가 2.5% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 1.0909
+      },
+      {
+        "text": "헤드어택 스킬이 적에게 주는 피해가 3.0% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.5455
+      },
+      {
+        "text": "헤드어택 스킬이 적에게 주는 피해가 3.5% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.1818
+      },
+      {
+        "text": "방향성 공격이 아닌 스킬이 적에게 주는 피해가 2.5% 증가한다. 각성기는 적용되지 않는다.",
+        "fixedPercent": null,
+        "grantedPercent": 1.0909
+      },
+      {
+        "text": "방향성 공격이 아닌 스킬이 적에게 주는 피해가 3.0% 증가한다. 각성기는 적용되지 않는다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.5455
+      },
+      {
+        "text": "방향성 공격이 아닌 스킬이 적에게 주는 피해가 3.5% 증가한다. 각성기는 적용되지 않는다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.1818
+      },
+      {
+        "text": "파티원 보호 및 회복 효과가 2.5% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 1.0909
+      },
+      {
+        "text": "파티원 보호 및 회복 효과가 3.0% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.5455
+      },
+      {
+        "text": "파티원 보호 및 회복 효과가 3.5% 증가한다.",
+        "fixedPercent": null,
+        "grantedPercent": 0.1818
+      },
+      {
+        "text": "아군 공격력 강화 효과 +4.0%",
+        "fixedPercent": null,
+        "grantedPercent": 1.0909
+      },
+      {
+        "text": "아군 공격력 강화 효과 +5.0%",
+        "fixedPercent": null,
+        "grantedPercent": 0.5455
+      },
+      {
+        "text": "아군 공격력 강화 효과 +6.0%",
+        "fixedPercent": null,
+        "grantedPercent": 0.1818
+      },
+      {
+        "text": "아군 피해량 강화 효과 +6.0%",
+        "fixedPercent": null,
+        "grantedPercent": 1.0909
+      },
+      {
+        "text": "아군 피해량 강화 효과 +7.5%",
+        "fixedPercent": null,
+        "grantedPercent": 0.5455
+      },
+      {
+        "text": "아군 피해량 강화 효과 +9.0%",
+        "fixedPercent": null,
+        "grantedPercent": 0.1818
+      },
+      {
+        "text": "치명타 적중률 +3.4%",
+        "fixedPercent": null,
+        "grantedPercent": 1.0909
+      },
+      {
+        "text": "치명타 적중률 +4.2%",
+        "fixedPercent": null,
+        "grantedPercent": 0.5455
+      },
+      {
+        "text": "치명타 적중률 +5.0%",
+        "fixedPercent": null,
+        "grantedPercent": 0.1818
+      },
+      {
+        "text": "치명타 피해 +6.8%",
+        "fixedPercent": null,
+        "grantedPercent": 1.0909
+      },
+      {
+        "text": "치명타 피해 +8.4%",
+        "fixedPercent": null,
+        "grantedPercent": 0.5455
+      },
+      {
+        "text": "치명타 피해 +10.0%",
+        "fixedPercent": null,
+        "grantedPercent": 0.1818
+      },
+      {
+        "text": "무기 공격력 +7200",
+        "fixedPercent": null,
+        "grantedPercent": 1.0909
+      },
+      {
+        "text": "무기 공격력 +8100",
+        "fixedPercent": null,
+        "grantedPercent": 0.5455
+      },
+      {
+        "text": "무기 공격력 +9000",
+        "fixedPercent": null,
+        "grantedPercent": 0.1818
+      }
+    ]
+  }
+}
