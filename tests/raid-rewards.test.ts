@@ -35,7 +35,9 @@ test("a confirmed total keeps its gates unknown instead of split by guess (M7)",
   const hard = mode("abrelshud", "HARD");
   assert.ok(hard.gates.every((g) => g.gold === null && g.boundGold === null));
   assert.deepEqual(modeTotals(hard), { gold: 5600, boundGold: 5600, tradableGold: 0, moreCost: null });
-  assert.equal(modeTotals(mode("abrelshud", "NORMAL"))?.gold, 4600);
+  // 노말: only the single-mode table has a number, which is not the normal value.
+  assert.equal(mode("abrelshud", "NORMAL").status, "UNVERIFIED");
+  assert.equal(modeTotals(mode("abrelshud", "NORMAL")), null);
   // 쿠크세이튼 노말 cites the official single-mode table with the same gates.
   assert.ok(RAID_DATA.sources[mode("kouku", "NORMAL").source!].url?.endsWith("/13148"));
   const broken = structuredClone(RAID_DATA) as RaidData;
