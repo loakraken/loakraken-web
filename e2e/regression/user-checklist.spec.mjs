@@ -7,7 +7,7 @@
 // | A4  | regression/theme-rapid.spec.mjs (10회 연타 뒤 data-theme·배경·전환 0) |
 // | A5  | 이 파일: 모든 경로 × 라이트·딤·다크 배경색 |
 // | A6  | 이 파일: 모든 경로 첫 로드 layout-shift 합 0 |
-// | A7  | 이 파일: 필터·탭·버튼 조작 중 layout-shift 합 0(입력 직후 변화 포함) |
+// | A7  | 이 파일: 고른 흐름 조작 중 layout-shift 합 0(입력 직후 포함) + regression/a7-controls.spec.mjs(경로마다 모든 필터·탭 버튼) |
 // | A8  | regression/pending-numbers.spec.mjs (A→B→A, 흐림 표시) + 이 파일: keepPreviousData 파일에 isPlaceholderData |
 // | A10 | 이 파일: /about 반복 애니메이션이 6초 뒤에도 재생 중 |
 // | A14 | regression/scroll-top.spec.mjs (이동 뒤 scrollY 0, 필터는 유지) |
