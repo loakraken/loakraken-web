@@ -78,7 +78,8 @@ function Notice({ meta, stale }: { meta: StatsMeta; stale: boolean }) {
         <strong>LOAKraken이 확인한 캐릭터 {whole(meta.population)}명 기준</strong>
         <span>(게임 전체 인구 아님)</span>
       </p>
-      <p className={styles.notice}>
+      {/* Keyed by what it says (A7): see basis-note.tsx. */}
+      <p key={`${sampleConditions(meta)}-${meta.aggregatedAt}-${meta.sampleStatus}`} className={styles.notice}>
         {sampleConditions(meta)} · {kst.format(new Date(meta.aggregatedAt))} 집계
         {meta.sampleStatus !== "READY" && ` · 표본 ${meta.minSample}명이 모이면 분포를 보여 드려요`}
       </p>
