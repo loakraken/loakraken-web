@@ -1,0 +1,227 @@
+/* 로아샵 효율 — design tokens only; the page shell (hero, band, footer) comes
+   from material-quote. Settings beside the package cards on wide screens,
+   stacked on phones. Every line that waits for prices, the rate or the
+   client clock holds its space from the first paint (A6·A7). */
+.sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.workspace {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  gap: var(--space-5);
+  max-width: 1180px;
+  margin: 0 auto;
+  align-items: start;
+}
+.settings,
+.list {
+  min-width: 0;
+  border-radius: var(--radius-xl);
+  background: var(--card);
+  padding: var(--space-6) clamp(16px, 3vw, 28px);
+}
+.settings {
+  display: grid;
+  gap: var(--space-3);
+  position: sticky;
+  top: 72px;
+}
+.sectionTitle {
+  font-size: var(--text-heading-sm);
+  font-weight: 700;
+}
+.small {
+  margin-top: var(--space-2);
+  color: var(--slate);
+  font-size: var(--text-caption);
+  line-height: 1.5;
+}
+.agoLine {
+  display: block;
+  min-height: 1lh;
+}
+.field {
+  display: grid;
+  gap: 6px;
+}
+.field span {
+  color: var(--slate);
+  font-size: var(--text-caption);
+}
+.field input {
+  height: 44px;
+  padding: 0 18px;
+  border: 1px solid var(--steel);
+  border-radius: var(--radius-pill);
+  background: var(--background);
+  color: var(--ink);
+  font-size: var(--text-field);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  transition: border-color var(--duration-fast) var(--ease-out);
+}
+.field input::placeholder {
+  color: var(--muted-foreground);
+  text-align: left;
+}
+.field input:focus-visible {
+  outline: none;
+  border-color: var(--action);
+  box-shadow: var(--ring-halo);
+}
+.cards {
+  display: grid;
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+}
+.card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5) clamp(14px, 2.5vw, 24px);
+}
+.cardHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+}
+.cardHead h3 {
+  font-size: var(--text-heading-sm);
+  font-weight: 700;
+}
+.price {
+  font-size: var(--text-heading-sm);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.price small {
+  color: var(--muted-foreground);
+  font-size: var(--text-caption);
+  font-weight: 500;
+}
+.plan {
+  margin-top: 2px;
+  color: var(--slate);
+  font-size: var(--text-caption);
+}
+.facts {
+  display: grid;
+  gap: 4px;
+  margin-top: var(--space-3);
+  font-size: var(--text-caption);
+}
+.facts div {
+  display: grid;
+  grid-template-columns: 5.5em minmax(0, 1fr);
+  gap: var(--space-2);
+}
+.facts dt {
+  color: var(--muted-foreground);
+}
+.ended {
+  color: var(--loss);
+  font-weight: 600;
+}
+.tableScroll {
+  margin-top: var(--space-3);
+  overflow-x: auto;
+}
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  /* Fixed columns: prices arriving never move the other cells (A6). */
+  table-layout: fixed;
+  font-size: var(--text-body);
+  font-variant-numeric: tabular-nums;
+}
+.colItem {
+  width: 40%;
+}
+.table th,
+.table td {
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+.table thead th {
+  color: var(--muted-foreground);
+  font-size: var(--text-caption);
+  font-weight: 500;
+}
+.table tbody th {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.table tbody th small {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted-foreground);
+  font-size: var(--text-caption);
+  font-weight: 400;
+}
+.table tfoot th,
+.table tfoot td {
+  border-bottom: 0;
+  font-weight: 700;
+}
+.num {
+  padding-left: var(--space-2) !important;
+  text-align: right !important;
+  white-space: nowrap;
+}
+.table td[data-empty] {
+  color: var(--muted-foreground);
+  font-size: var(--text-caption);
+}
+.note {
+  margin-top: var(--space-2);
+  color: var(--slate);
+  font-size: var(--text-caption);
+}
+.verdict {
+  display: grid;
+  gap: 2px;
+  margin-top: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--muted);
+  font-size: var(--text-body);
+}
+/* Two lines, held whatever the state (A6·A7). */
+.verdict p {
+  min-height: 1lh;
+}
+.verdict b {
+  font-variant-numeric: tabular-nums;
+}
+.up {
+  color: var(--gain);
+}
+.down {
+  color: var(--loss);
+}
+.source {
+  margin-top: var(--space-2);
+  color: var(--muted-foreground);
+  font-size: var(--text-caption);
+}
+.source a {
+  color: var(--link);
+  text-decoration: underline;
+}
+@media (max-width: 900px) {
+  .workspace {
+    grid-template-columns: 1fr;
+  }
+  .settings {
+    position: static;
+  }
+}

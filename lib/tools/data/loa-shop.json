@@ -1,0 +1,134 @@
+{
+  "version": "2026-10-13",
+  "checkedAt": "2026-10-13",
+  "sources": {
+    "notice-13524": {
+      "title": "8월 19일(수) 신규 상품 및 확률 안내",
+      "url": "https://lostark.game.onstove.com/News/Notice/Views/13524",
+      "date": "2026-08-19"
+    },
+    "notice-13507": {
+      "title": "8월 5일(수) 신규 상품 및 확률 안내",
+      "url": "https://lostark.game.onstove.com/News/Notice/Views/13507",
+      "date": "2026-08-05"
+    },
+    "notice-13387": {
+      "title": "3월 11일(수) 신규 상품 및 확률 안내",
+      "url": "https://lostark.game.onstove.com/News/Notice/Views/13387",
+      "date": "2026-03-11"
+    },
+    "notice-13549": {
+      "title": "9월 23일(수) 신규 상품 및 확률 안내",
+      "url": "https://lostark.game.onstove.com/News/Notice/Views/13549",
+      "date": "2026-09-23"
+    },
+    "shop-crystal-200": {
+      "title": "공식 상점 — 크리스탈 [200개] 판매가 5,500 로열 크리스탈",
+      "url": "https://lostark.game.onstove.com/Shop/Goods/1000001",
+      "date": "2026-10-13"
+    }
+  },
+  "crystal": { "royalPer100": 2750, "source": "shop-crystal-200" },
+  "unknown": ["10월 7일(수) 정기 점검 뒤 새로 나온 상품(공식 상점 공지 없음)"],
+  "packages": [
+    {
+      "id": "monthly-growth-plus",
+      "name": "[3+1] 월간 운명의 성장 패키지+",
+      "priceRoyal": 33000,
+      "period": "2026년 8월 19일(수) 정기 점검 후 ~ 별도 안내 시",
+      "until": null,
+      "limit": "본 상품은 원정대당 월 3회 구매 가능하며 매월 1일 00시 기준으로 구매 제한 횟수가 초기화됩니다.",
+      "bonus": { "every": 3, "text": "본 상품 3회 구매 시, 동일한 구성품의 보너스 상품을 추가 지급합니다." },
+      "source": "notice-13524",
+      "items": [
+        { "kind": "market", "name": "운명의 파괴석 결정", "qty": 15000, "detail": "운명의 파괴석 결정 주머니 15개(주머니마다 1,000개, 귀속)" },
+        { "kind": "market", "name": "운명의 수호석 결정", "qty": 45000, "detail": "운명의 수호석 결정 주머니 45개(주머니마다 1,000개, 귀속)" },
+        { "kind": "market", "name": "상급 아비도스 융화 재료", "qty": 500, "detail": "상급 아비도스 융화 재료 상자 25개(상자마다 20개, 귀속)" },
+        { "kind": "market", "name": "용암의 숨결", "qty": 140, "detail": "용암의 숨결 상자 II 7개(상자마다 20개, 귀속)" },
+        { "kind": "market", "name": "빙하의 숨결", "qty": 140, "detail": "빙하의 숨결 상자 II 7개(상자마다 20개, 귀속)" }
+      ]
+    },
+    {
+      "id": "item-level-1700",
+      "name": "[한정] 아이템 레벨 1,700 달성",
+      "priceRoyal": 55000,
+      "period": "2026년 8월 5일(수) 정기 점검 이후 ~ 별도 안내 시",
+      "until": null,
+      "limit": "본 상품은 원정대당 1회 구매 가능합니다.",
+      "bonus": null,
+      "source": "notice-13507",
+      "items": [
+        { "kind": "crystal", "name": "크리스탈", "qty": 2600, "detail": "아이템 레벨 1,700 달성 상자 1개 — 사용 시 2,600 크리스탈 일괄 획득" }
+      ]
+    },
+    {
+      "id": "region-clear-kadarum",
+      "name": "[한정] 지역 클리어팩 - 카다룸 제도",
+      "priceRoyal": 55000,
+      "period": "2026년 3월 11일(수) 정기 점검 후 ~ 별도 안내 시",
+      "until": null,
+      "limit": "본 상품은 원정대당 1회 구매 가능합니다.",
+      "bonus": null,
+      "source": "notice-13387",
+      "items": [
+        { "kind": "crystal", "name": "크리스탈", "qty": 2600, "detail": "클리어 상자 4개(무너진 크라테르 사원·브레사 항구·카다룸 제도·지평의 성당, 상자마다 650 크리스탈)" }
+      ]
+    },
+    {
+      "id": "hangawi-battle",
+      "name": "한가위 미니 전투 지원 패키지",
+      "priceRoyal": 3300,
+      "period": "2026년 9월 23일(수) 정기 점검 후 ~ 10월 21일(수) 정기 점검 전",
+      "until": "2026-10-21",
+      "limit": "본 상품은 원정대당 5회 구매 가능합니다.",
+      "bonus": null,
+      "source": "notice-13549",
+      "items": [
+        { "kind": "market", "name": "빛나는 정령의 회복약", "qty": 100, "detail": "귀속" },
+        { "kind": "market", "name": "빛나는 암흑 수류탄", "qty": 75, "detail": "귀속" },
+        { "kind": "market", "name": "빛나는 성스러운 폭탄", "qty": 75, "detail": "귀속" },
+        { "kind": "market", "name": "아드로핀 물약", "qty": 50, "detail": "귀속" },
+        { "kind": "market", "name": "각성 물약", "qty": 50, "detail": "귀속" }
+      ]
+    },
+    {
+      "id": "hangawi-life",
+      "name": "[주간] 한가위 미니 생활 패키지",
+      "priceRoyal": 5500,
+      "period": "2026년 9월 23일(수) 정기 점검 후 ~ 10월 21일(수) 정기 점검 전",
+      "until": "2026-10-21",
+      "limit": "본 상품은 원정대당 주 3회 구매 가능하며 매주 월요일 00시 기준으로 구매 제한 횟수가 초기화됩니다.",
+      "bonus": null,
+      "source": "notice-13549",
+      "items": [
+        { "kind": "market", "name": "고급 생명의 기운 회복물약", "qty": 1, "detail": null },
+        { "kind": "market", "name": "중급 생명의 기운 회복물약", "qty": 10, "detail": null }
+      ]
+    },
+    {
+      "id": "hangawi-card",
+      "name": "[주간] 한가위 미니 카드 패키지",
+      "priceRoyal": 7700,
+      "period": "2026년 9월 23일(수) 정기 점검 후 ~ 10월 21일(수) 정기 점검 전",
+      "until": "2026-10-21",
+      "limit": "본 상품은 원정대당 주 1회 구매 가능하며 매주 월요일 00시 기준으로 구매 제한 횟수가 초기화됩니다.",
+      "bonus": null,
+      "source": "notice-13549",
+      "items": [
+        { "kind": "market", "name": "환희의 전설 카드 팩", "qty": 1, "detail": null },
+        { "kind": "market", "name": "환희의 전설~영웅 카드 팩", "qty": 10, "detail": null }
+      ]
+    },
+    {
+      "id": "hangawi-peon",
+      "name": "[할인] 한가위 페온 [50개]",
+      "priceRoyal": 5500,
+      "period": "2026년 9월 23일(수) 정기 점검 후 ~ 10월 21일(수) 정기 점검 전",
+      "until": "2026-10-21",
+      "limit": "본 상품은 원정대당 3회 구매 가능합니다.",
+      "bonus": null,
+      "source": "notice-13549",
+      "items": [{ "kind": "market", "name": "페온", "qty": 50, "detail": null }]
+    }
+  ]
+}
