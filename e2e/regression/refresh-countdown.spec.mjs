@@ -31,3 +31,28 @@ for (const width of [1280, 360])
       expect(await box(), `갱신 버튼 위치·폭 (${labels.join(" → ")})`).toEqual(first);
     }
   });
+
+// Every label the countdown can show fits the label's fixed width (the rate
+// limit's "n초 뒤 갱신" only comes after a press and may widen the button).
+const LABELS = ["갱신", "갱신 중", "10분 0초", "9분 59초", "59초"];
+for (const theme of ["light", "dim", "dark"])
+  for (const width of [1280, 360])
+    test(`@A7 갱신 버튼 가장 긴 남은 시간도 고정 폭 안 ${theme} @${width} @regression`, async ({ page }) => {
+      await page.addInitScript((t) => localStorage.setItem("loakraken-theme", t), theme);
+      await page.setViewportSize({ width, height: 900 });
+      await gotoReady(page, characterPath("상세"));
+      const label = page.locator("button[data-no-replay] span[class*=refreshLabel]").first();
+      const fits = await label.evaluate((el, texts) => {
+        const min = parseFloat(getComputedStyle(el).minWidth);
+        const probe = el.cloneNode();
+        probe.style.cssText = "position:absolute;visibility:hidden;min-width:0;width:auto;white-space:nowrap";
+        el.parentElement.append(probe);
+        const out = texts.map((text) => {
+          probe.textContent = text;
+          return [text, Math.ceil(probe.getBoundingClientRect().width), Math.floor(min)];
+        });
+        probe.remove();
+        return out;
+      }, LABELS);
+      for (const [text, natural, min] of fits) expect(natural, `'${text}' 폭 ${natural}px ≤ 고정 폭 ${min}px`).toBeLessThanOrEqual(min);
+    });

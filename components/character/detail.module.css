@@ -131,6 +131,7 @@
 .refreshLabel {
   min-width: 5.5em;
   text-align: center;
+  font-variant-numeric: tabular-nums;
 }
 .refresh:disabled {
   background: var(--secondary);
