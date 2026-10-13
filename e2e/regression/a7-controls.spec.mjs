@@ -2,7 +2,7 @@
 // 포함한 layout-shift 합이 0인지 본다. user-checklist의 A7 흐름은 손으로 고른 몇 개라
 // 새 화면의 버튼은 이 파일이 덮는다.
 // 대상: main 안의 role=group 버튼, role=tablist 탭, role=radiogroup 라디오 중 지금 눌려 있지
-// 않은 것(경로마다 앞에서 14개까지). 다른 경로로 가는 탭은 이동 뒤 원래 경로로 돌아온다.
+// 않고 누를 수 있는 것(경로마다 앞에서 14개까지). 다른 경로로 가는 탭은 이동 뒤 원래 경로로 돌아온다.
 import { test, expect, characterPath, gotoReady } from "../support/fixtures.mjs";
 import { shiftsDuring, watchShifts } from "../support/shifts.mjs";
 
@@ -80,6 +80,11 @@ for (const width of [1280, 360])
           (el) => (el.getAttribute("aria-pressed") ?? el.getAttribute("aria-selected") ?? el.getAttribute("aria-checked")) === "true",
         );
         if (pressed) continue;
+        // Disabled (or covered) controls take no press; a trial click finds them without acting.
+        const pressable = await control
+          .click({ trial: true, timeout: 2000 })
+          .then(() => true, () => false);
+        if (!pressable || (await control.getAttribute("aria-disabled")) === "true") continue;
         const name = await control.evaluate((el) => {
           const group = el.closest("[role=group],[role=tablist],[role=radiogroup]")?.getAttribute("aria-label") ?? "";
           const label = (el.getAttribute("aria-label") ?? el.textContent ?? "").replace(/\s+/g, " ").trim();
