@@ -53,17 +53,19 @@ test.describe("홈 공지·패치노트 @smoke", () => {
     const card = page.getByRole("region", { name: "공지사항" });
     const kinds = card.getByRole("tablist", { name: "공지 종류" });
     await expect(kinds.getByRole("tab", { name: "공지", exact: true })).toHaveAttribute("aria-selected", "true");
+    // The shown list only: the other tab's list stays in the card, hidden (A7).
+    const shown = card.getByRole("list");
     // 점검 공지는 패치노트처럼 보여도 공지 쪽이다.
-    await expect(card).toContainText("임시 점검 안내");
-    await expect(card).not.toContainText("업데이트 내역 안내");
-    await expect(card).not.toContainText("클라이언트 패치 안내");
+    await expect(shown).toContainText("임시 점검 안내");
+    await expect(shown).not.toContainText("업데이트 내역 안내");
+    await expect(shown).not.toContainText("클라이언트 패치 안내");
 
     await kinds.getByRole("tab", { name: "패치노트" }).click();
     await expect(kinds.getByRole("tab", { name: "패치노트" })).toHaveAttribute("aria-selected", "true");
     await expect(card.getByRole("link", { name: /전체 보기/ })).toHaveAttribute("href", "/news?tab=patch");
-    await expect(card).toContainText("업데이트 내역 안내");
-    await expect(card).toContainText("클라이언트 패치 안내");
-    await expect(card).not.toContainText("임시 점검 안내");
+    await expect(shown).toContainText("업데이트 내역 안내");
+    await expect(shown).toContainText("클라이언트 패치 안내");
+    await expect(shown).not.toContainText("임시 점검 안내");
   });
 });
 
