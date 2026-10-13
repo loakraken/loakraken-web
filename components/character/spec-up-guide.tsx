@@ -199,6 +199,7 @@ export default function SpecUpGuide({ data }: { data: Character }) {
                                 href={`?${new URLSearchParams({ tab: "simulator", try: tryParam(tryable) })}`}
                                 replace
                                 scroll={false}
+                                className="hit-44"
                                 aria-label={`${c.target} ${c.to ?? ""} 시뮬레이터에서 적용해 보기`}
                               >
                                 적용해 보기

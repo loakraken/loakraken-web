@@ -132,6 +132,13 @@
   gap: 6px;
   margin-top: 8px;
 }
+/* Where hit-44 is on (phones, touch), the 32px chips take 44px to tap: rows
+   12px apart so the tap areas of two rows never overlap (A36). */
+@media (max-width: 699px), (pointer: coarse) {
+  .chips {
+    row-gap: 12px;
+  }
+}
 .chips .chip {
   /* A31: one line, never split (badge/chip/unit). */
   flex: none;

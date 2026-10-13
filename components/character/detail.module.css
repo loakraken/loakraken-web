@@ -2143,16 +2143,9 @@
   color: var(--muted-foreground);
   font-weight: 400;
 }
+/* One line of 13px text: 44px to tap on phones through hit-44 (A36). */
 .specUpTable a {
-  position: relative;
   color: var(--link);
-}
-/* The link is one line of 13px text: its hit area reaches 44px tall without
-   moving the row (touch target). */
-.specUpTable a::after {
-  content: "";
-  position: absolute;
-  inset: -14px -6px;
 }
 .specUpBases {
   display: grid;
