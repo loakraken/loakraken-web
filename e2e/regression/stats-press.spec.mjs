@@ -39,8 +39,8 @@ test("랭킹·통계: 누르는 동안 알약이 줄어든다(레이아웃 그�
   const box = await button.boundingBox();
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
   await page.mouse.down();
-  await expect.poll(() => button.evaluate((el) => getComputedStyle(el).transform)).not.toBe("none");
-  const pressed = await button.boundingBox();
-  expect(pressed.width).toBeLessThan(box.width);
+  // The scale runs over 100ms: wait for the box itself to shrink (the
+  // computed transform is already not "none" on the first frame, near 1).
+  await expect.poll(async () => (await button.boundingBox()).width).toBeLessThan(box.width - 0.5);
   await page.mouse.up();
 });
