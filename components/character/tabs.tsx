@@ -137,6 +137,7 @@ import {
   text,
 } from "./parts";
 import styles from "./detail.module.css";
+import { useTallest } from "@/components/ui/use-tallest";
 import expand from "@/components/site/expand.module.css";
 import { rateLimitCopy, retryLabel } from "@/lib/api/rate-limit";
 import { RateLimitNote } from "@/components/site/rate-limit-note";
@@ -277,6 +278,13 @@ export function TabBar({
   const window_ = refreshWindow(data, now);
   const cooling = window_.remainingMs > 0;
   const disabled = fetching || cooling || rateLimitSeconds > 0;
+  const label = fetching
+    ? "갱신 중"
+    : rateLimitSeconds > 0
+      ? remainingLabel(rateLimitSeconds * 1000)
+      : cooling
+        ? remainingLabel(window_.remainingMs)
+        : "갱신";
   const tooltipId = "refresh-tooltip";
 
   async function share() {
@@ -360,26 +368,40 @@ export function TabBar({
               onClick={onRefresh}
               disabled={disabled}
               aria-describedby={tooltipId}
+              // While a countdown shows, the name says what it is for; the
+              // label itself is only the time left (one fixed width, A7).
+              aria-label={
+                fetching
+                  ? undefined
+                  : rateLimitSeconds > 0
+                    ? `${remainingLabel(rateLimitSeconds * 1000)} 뒤 갱신`
+                    : cooling
+                      ? `${remainingLabel(window_.remainingMs)} 뒤 갱신`
+                      : undefined
+              }
             >
               {fetching ? (
                 <InlineOrb />
               ) : (
                 <RefreshArrow size={14} aria-hidden="true" />
               )}
-              {fetching
-                ? "갱신 중"
-                : rateLimitSeconds > 0
-                  ? `${remainingLabel(rateLimitSeconds * 1000)} 뒤 갱신`
-                  : cooling
-                    ? remainingLabel(window_.remainingMs)
-                    : "갱신"}
+              {/* One width for "갱신" and every countdown ("3분 30초", "3분 9초",
+                  "30초" when too many requests): the ticking label never moves
+                  the buttons beside it (A6·A7). */}
+              {/* Drawn anew when the text changes: centred text rewritten in place
+                  starts elsewhere ("17초" → "7초") and counts as moving. */}
+              <span key={label} className={styles.refreshLabel}>
+                {label}
+              </span>
             </button>
             <span role="tooltip" id={tooltipId} className={styles.tooltip}>
               {relativeAgo(window_.ageMs)} 갱신 · {kstTime(window_.fetchedAt)}
               <br />
-              {cooling
-                ? `${remainingLabel(window_.remainingMs)} 후 다시 갱신할 수 있어요${window_.estimated ? " (예상)" : ""}`
-                : "지금 다시 갱신할 수 있어요"}
+              {rateLimitSeconds > 0
+                ? `요청이 많아 ${remainingLabel(rateLimitSeconds * 1000)} 뒤 다시 갱신할 수 있어요`
+                : cooling
+                  ? `${remainingLabel(window_.remainingMs)} 후 다시 갱신할 수 있어요${window_.estimated ? " (예상)" : ""}`
+                  : "지금 다시 갱신할 수 있어요"}
             </span>
           </span>
         </div>
@@ -1784,6 +1806,9 @@ export function ArkPassiveTab({ data }: { data: Character }) {
             panels={
               <PillTabsPanel value={tree}>
                 <Panel
+                  // Drawn anew per tree: the head text changes in place otherwise
+                  // and counts as moving (A7).
+                  key={tree}
                   title={`${tree} 노드`}
                   meta={[current.point?.description, `활성 ${current.nodes.length}개`].filter(Boolean).join(" · ")}
                 >
@@ -2255,6 +2280,9 @@ export function SiblingsTab({ data }: { data: Character }) {
   const asked = useSearchParams().get("view");
   const view: RosterView = views.find((item) => item.id === asked)?.id ?? "characters";
   const router = useRouter();
+  // Every view keeps the tallest one's room, so a shorter view (or its
+  // loading line) does not pull the footer up (A7).
+  const [viewRef, viewHeight] = useTallest();
   const choose = (next: RosterView) => {
     const params = new URLSearchParams(window.location.search);
     if (next === "characters") params.delete("view");
@@ -2270,17 +2298,19 @@ export function SiblingsTab({ data }: { data: Character }) {
         onValueChange={(next) => choose(next as RosterView)}
         panels={
           <PillTabsPanel value={view} className={styles.rosterPanel}>
-            {view === "characters" ? (
-              <RosterCharacters data={data} />
-            ) : view === "titles" ? (
-              <RosterTitlesPanel name={data.characterName} />
-            ) : view === "cards" ? (
-              <Panel title="카드 기록" wide>
-                <CardCollection name={data.characterName} />
-              </Panel>
-            ) : (
-              <ReceiptPanel name={data.characterName} />
-            )}
+            <div ref={viewRef} style={viewHeight ? { minHeight: viewHeight } : undefined}>
+              {view === "characters" ? (
+                <RosterCharacters data={data} />
+              ) : view === "titles" ? (
+                <RosterTitlesPanel name={data.characterName} />
+              ) : view === "cards" ? (
+                <Panel title="카드 기록" wide>
+                  <CardCollection name={data.characterName} />
+                </Panel>
+              ) : (
+                <ReceiptPanel name={data.characterName} />
+              )}
+            </div>
           </PillTabsPanel>
         }
       >

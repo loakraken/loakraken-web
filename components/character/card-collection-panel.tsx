@@ -12,6 +12,7 @@ import { countdownText, retryLabel } from "@/lib/api/rate-limit";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { useCrossfade } from "@/lib/motion";
 import { HelpInfo } from "@/components/stats/basis-note";
+import { useTallest } from "@/components/ui/use-tallest";
 
 /**
  * Roster card records (F-6), inside the cards panel right under the equipped
@@ -30,6 +31,9 @@ export function CardCollection({ name }: { name: string }) {
   const [role, setRole] = useState<"dealer" | "supporter" | null>(null);
   const limit = useRateLimit(query.error);
   const shown = role ?? (data?.position === "SUPPORT" ? "supporter" : "dealer");
+  // The other set kind is drawn anew (its names start elsewhere) in the
+  // tallest kind's room, so the fold under it stays put (A7).
+  const [slotsRef, slotsHeight] = useTallest();
 
   return (
     <section className={styles.collection} aria-labelledby={`card-record-${name}`}>
@@ -44,25 +48,25 @@ export function CardCollection({ name }: { name: string }) {
             <li>도감은 기록된 카드별 최고 각성이고, 구성 가능한 세트는 기록된 카드로 맞출 수 있는 세트 효과예요.</li>
           </ul>
         </HelpInfo>
-        {data && (
-          <span>
-            원정대 {data.rosterCharacters}명 중 {data.observedCharacters}명 기록
-          </span>
-        )}
-        {data && (
-          <span className={styles.roles} role="group" aria-label="세트 종류">
-            {(["dealer", "supporter"] as const).map((value) => (
-              <button
-                key={value}
-                type="button"
-                aria-pressed={shown === value}
-                onClick={() => setRole(value)}
-              >
-                {value === "dealer" ? "딜러" : "서포터"}
-              </button>
-            ))}
-          </span>
-        )}
+        {/* Both are there from the first frame (the count blank, the kinds
+            not pressable yet), so the head does not grow when the records
+            land and push the refill line down (A7). */}
+        <span className={styles.count}>
+          {data ? `원정대 ${data.rosterCharacters}명 중 ${data.observedCharacters}명 기록` : "\u00a0"}
+        </span>
+        <span className={styles.roles} role="group" aria-label="세트 종류">
+          {(["dealer", "supporter"] as const).map((value) => (
+            <button
+              key={value}
+              type="button"
+              aria-pressed={shown === value}
+              disabled={!data}
+              onClick={() => setRole(value)}
+            >
+              {value === "dealer" ? "딜러" : "서포터"}
+            </button>
+          ))}
+        </span>
       </header>
       <CardRefresh name={name} />
       {query.isPending ? (
@@ -88,32 +92,34 @@ export function CardCollection({ name }: { name: string }) {
         </div>
       ) : (
         <>
-          <ul ref={fade} className={styles.elements}>
-            {orderedSlots(data.elementRecords[shown]).map((slot, i) => {
-              const stage = slot.record ? appliedStage(slot.record) : null;
-              return (
-                <li
-                  key={`${slot.element}-${i}`}
-                  data-recorded={slot.record ? "" : undefined}
-                  title={slot.setName}
-                >
-                  <span className={styles.slotHead}>
-                    <i data-element={slot.element}>{elementLabel(slot.element)}</i>
-                    <span className={styles.setName}>{slot.setName}</span>
-                  </span>
-                  {slot.record ? (
-                    <span className={styles.value}>
-                      <b>{slot.record.awakening}각성</b>
-                      {stage != null && <small>{stage}각 효과 적용</small>}
-                      <small className={styles.by}>{slot.record.recordedBy}</small>
+          <div ref={slotsRef} style={slotsHeight ? { minHeight: slotsHeight } : undefined}>
+            <ul key={shown} ref={fade} className={styles.elements}>
+              {orderedSlots(data.elementRecords[shown]).map((slot, i) => {
+                const stage = slot.record ? appliedStage(slot.record) : null;
+                return (
+                  <li
+                    key={`${slot.element}-${i}`}
+                    data-recorded={slot.record ? "" : undefined}
+                    title={slot.setName}
+                  >
+                    <span className={styles.slotHead}>
+                      <i data-element={slot.element}>{elementLabel(slot.element)}</i>
+                      <span className={styles.setName}>{slot.setName}</span>
                     </span>
-                  ) : (
-                    <span className={styles.none}>미기록</span>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
+                    {slot.record ? (
+                      <span className={styles.value}>
+                        <b>{slot.record.awakening}각성</b>
+                        {stage != null && <small>{stage}각 효과 적용</small>}
+                        <small className={styles.by}>{slot.record.recordedBy}</small>
+                      </span>
+                    ) : (
+                      <span className={styles.none}>미기록</span>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
           {data.observedCharacters === 0 && (
             <p className={styles.note}>
               원정대 캐릭터가 카드를 장착한 채 한 번이라도 검색되면 기록돼요.

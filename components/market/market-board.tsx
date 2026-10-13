@@ -555,7 +555,9 @@ function MarketContent({
           <div className={styles.columns}>
             <section className={styles.board} aria-labelledby="board-heading">
               <div className={styles.boardHead}>
-                <h2 id="board-heading">
+                {/* Drawn anew per kind: its text changes in place otherwise and
+                    counts as moving (A7). */}
+                <h2 id="board-heading" key={`${data?.tabLabel ?? currentTab?.label}-${data?.totalItems}`}>
                   {data?.tabLabel ?? currentTab?.label ?? "시세"} 시세{" "}
                   {data && <small>{data.totalItems}종</small>}
                 </h2>

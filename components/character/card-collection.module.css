@@ -16,7 +16,7 @@
   font-size: 14px;
   font-weight: 700;
 }
-.head > span:not(.roles) {
+.head .count {
   color: var(--muted-foreground);
   font-size: 12px;
 }
@@ -287,4 +287,12 @@
   color: var(--muted-foreground);
   font-size: 11px;
   line-height: 1.5;
+}
+/* Narrow: the record count on its own last line, so its length never
+   decides whether the kinds wrap (A7). */
+@media (max-width: 520px) {
+  .head .count {
+    flex-basis: 100%;
+    order: 1;
+  }
 }

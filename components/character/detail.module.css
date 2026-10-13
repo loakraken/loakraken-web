@@ -128,6 +128,11 @@
   white-space: nowrap;
   transition: transform 100ms ease-out;
 }
+.refreshLabel {
+  min-width: 5.5em;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
 .refresh:disabled {
   background: var(--secondary);
   color: var(--secondary-foreground);
