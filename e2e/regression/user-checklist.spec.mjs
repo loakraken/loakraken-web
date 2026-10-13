@@ -7,7 +7,7 @@
 // | A4  | regression/theme-rapid.spec.mjs (10회 연타 뒤 data-theme·배경·전환 0) |
 // | A5  | 이 파일: 모든 경로 × 라이트·딤·다크 배경색 |
 // | A6  | 이 파일: 모든 경로 첫 로드 layout-shift 합 0 |
-// | A7  | 이 파일: 필터·탭·버튼 조작 중 layout-shift 합 0(입력 직후 변화 포함) |
+// | A7  | 이 파일: 고른 흐름 조작 중 layout-shift 합 0(입력 직후 포함) + regression/a7-controls.spec.mjs(경로마다 모든 필터·탭 버튼) |
 // | A8  | regression/pending-numbers.spec.mjs (A→B→A, 흐림 표시) + 이 파일: keepPreviousData 파일에 isPlaceholderData |
 // | A10 | 이 파일: /about 반복 애니메이션이 6초 뒤에도 재생 중 |
 // | A14 | regression/scroll-top.spec.mjs (이동 뒤 scrollY 0, 필터는 유지) |
@@ -23,6 +23,7 @@ import {
   chooseOption,
   gotoReady,
 } from "../support/fixtures.mjs";
+import { shiftsDuring, shiftsSince, watchShifts } from "../support/shifts.mjs";
 
 const ROUTES = [
   "/",
@@ -65,20 +66,6 @@ const ROUTES = [
 const KNOWN_SHIFT = {
 };
 
-/** Collects layout shifts from the very start of the page (buffered), with or without recent input. */
-const watchShifts = (page) =>
-  page.addInitScript(() => {
-    window.__shift = { quiet: 0, input: 0 };
-    new PerformanceObserver((list) => {
-      for (const e of list.getEntries())
-        window.__shift[e.hadRecentInput ? "input" : "quiet"] += e.value;
-    }).observe({ type: "layout-shift", buffered: true });
-  });
-const shifts = (page) =>
-  page.evaluate(() => ({
-    quiet: +window.__shift.quiet.toFixed(4),
-    input: +window.__shift.input.toFixed(4),
-  }));
 
 test.describe("사용자 지적 회귀 점검표 @regression", () => {
   test.describe.configure({ mode: "parallel" });
@@ -138,7 +125,7 @@ test.describe("사용자 지적 회귀 점검표 @regression", () => {
         await watchShifts(page);
         await gotoReady(page, path);
         await page.waitForTimeout(800);
-        expect((await shifts(page)).quiet, `${path} 첫 로드 layout-shift`).toBe(
+        expect((await shiftsSince(page)).all, `${path} 첫 로드 layout-shift`).toBe(
           0,
         );
       });
@@ -166,7 +153,7 @@ test.describe("사용자 지적 회귀 점검표 @regression", () => {
       await page.goto("/없는-주소");
       await page.waitForLoadState("networkidle");
       await page.waitForTimeout(800);
-      expect((await shifts(page)).quiet).toBe(0);
+      expect((await shiftsSince(page)).all).toBe(0);
     });
   });
 
@@ -237,20 +224,11 @@ test.describe("사용자 지적 회귀 점검표 @regression", () => {
         const box = await control.boundingBox();
         return box && [Math.round(box.x), Math.round(box.y)];
       };
-      const before = await shifts(page);
       const at = await where();
-      await flow.act(page);
-      await page.waitForTimeout(1200);
-      const after = await shifts(page);
-      expect(
-        (after.quiet - before.quiet).toFixed(4),
-        "입력 없이 생긴 흔들림",
-      ).toBe("0.0000");
+      const moved = await shiftsDuring(page, () => flow.act(page));
+      expect(moved.quiet, `입력 없이 생긴 흔들림 (${moved.moved})`).toBe(0);
       if (!flow.grows) {
-        expect(
-          (after.input - before.input).toFixed(4),
-          "누른 직후 흔들림",
-        ).toBe("0.0000");
+        expect(moved.all, `누른 직후 포함 흔들림 (${moved.moved})`).toBe(0);
         // The pressed control may be gone (a closed list) or renamed; when it is there, it has not moved.
         if (await control.count())
           expect(await where(), "누른 컨트롤 위치").toEqual(at);
