@@ -30,6 +30,10 @@
   gap: var(--space-4);
   position: sticky;
   top: 72px;
+  /* Four fields: taller than a short window, it scrolls inside instead of
+     hiding its bottom until the page ends. */
+  max-height: calc(100dvh - 72px - 16px);
+  overflow-y: auto;
 }
 .sectionTitle {
   font-size: var(--text-heading-sm);

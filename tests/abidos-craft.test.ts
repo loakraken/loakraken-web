@@ -7,6 +7,7 @@ import {
   craftGoldAfterCut,
   craftMarketNames,
   craftResult,
+  energyAfterCut,
   expectedYield,
   greatSuccessChance,
   parsePercent,
@@ -83,4 +84,19 @@ test("rounding follows the comparison calculator (calc verification 2026-10-13 1
   assert.equal(sellValue(26.9, 10), 255);
   assert.equal(sellValue(21.5, 10), 204);
   assert.ok(Math.abs(sellValue(26.9, 105) - 255 * 10.5) < 1e-9);
+});
+
+test("energy-cost reduction: the cuts add up and the energy rounds down (calc verification 23:16)", () => {
+  assert.equal(energyAfterCut(288, 13, 0), 250);
+  assert.equal(energyAfterCut(360, 17, 0), 298);
+  // overall 10 + 특수 10 = 20% → 230 (multiplying the two would give 233).
+  assert.equal(energyAfterCut(288, 10, 10), 230);
+  assert.equal(energyAfterCut(288, 0, 0), 288);
+  assert.equal(energyAfterCut(288, 60, 60), 0);
+  const prices: Record<string, number> = { "아비도스 목재": 10, "부드러운 목재": 4, "목재": 1, "아비도스 융화 재료": 90 };
+  const r = craftResult("abidos", "logging", (n) => prices[n] ?? null, 0, 0, { overall: 10, category: 10 });
+  assert.equal(r.energy, 230);
+  assert.ok(Math.abs(r.usePer100Energy! - ((105 * 90 - 996) * 100) / 230) < 1e-6);
+  const none = craftResult("abidos", "logging", (n) => prices[n] ?? null, 0, 0, { overall: 60, category: 60 });
+  assert.equal(none.usePer100Energy, null, "no energy left: no per-energy figure");
 });
