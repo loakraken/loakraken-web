@@ -91,7 +91,9 @@ export function RosterPower({
 
   return (
     <section className={styles.rosterPower} aria-label="원정대 전투력" aria-busy={query.isPending || busy || undefined}>
-      <p className={styles.rosterSummary}>
+      {/* New records draw the line anew: numbers changed in place move the
+          text after them, which counts as a layout shift (A7). */}
+      <p key={query.dataUpdatedAt} className={styles.rosterSummary}>
         {query.isPending ? (
           " "
         ) : query.isError ? (
