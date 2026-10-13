@@ -66,7 +66,11 @@ test("the exchange rate field takes a positive whole number only", () => {
 });
 
 test("a package past its last day is no longer on sale", () => {
-  assert.equal(onSale(pkg("hangawi-battle"), "2026-10-13"), true);
-  assert.equal(onSale(pkg("hangawi-battle"), "2026-10-21"), false);
-  assert.equal(onSale(pkg("monthly-growth-plus"), "2027-01-01"), true);
+  const kst = (iso: string) => Date.parse(`${iso}+09:00`);
+  assert.equal(onSale(pkg("hangawi-battle"), kst("2026-10-13T12:00:00")), true);
+  // "10월 21일(수) 정기 점검 전": still on sale at 05:59, over when maintenance starts at 06:00 (PM-프론트 #744 P3).
+  assert.equal(onSale(pkg("hangawi-battle"), kst("2026-10-21T00:30:00")), true);
+  assert.equal(onSale(pkg("hangawi-battle"), kst("2026-10-21T05:59:59")), true);
+  assert.equal(onSale(pkg("hangawi-battle"), kst("2026-10-21T06:00:00")), false);
+  assert.equal(onSale(pkg("monthly-growth-plus"), kst("2027-01-01T00:00:00")), true);
 });

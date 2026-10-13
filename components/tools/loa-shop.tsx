@@ -58,7 +58,6 @@ const UNKNOWN = "미확인";
 const count = (value: number) => Math.round(value).toLocaleString("ko-KR");
 const signed = (value: number) => `${value >= 0 ? "+" : "−"}${count(Math.abs(value))}`;
 const unitText = (value: number) => value.toLocaleString("ko-KR", { maximumFractionDigits: value < 1 ? 4 : 2 });
-const kstDate = (now: number) => new Date(now + 9 * 3_600_000).toISOString().slice(0, 10);
 const agoText = (now: number, iso: string) => {
   const minutes = Math.max(0, Math.floor((now - Date.parse(iso)) / MINUTE));
   return minutes === 0 ? "방금 기준" : `${minutes}분 전 기준`;
@@ -107,16 +106,16 @@ function PackageCard({
   value,
   rate,
   priced,
-  today,
+  now,
 }: {
   pkg: ShopPackage;
   value: PackageValue;
   rate: number | null;
   priced: boolean;
-  today: string | null;
+  now: number | null;
 }) {
   const source = SHOP_DATA.sources[pkg.source];
-  const ended = today != null && !onSale(pkg, today);
+  const ended = now != null && !onSale(pkg, now);
   const headingId = `pkg-${pkg.id}`;
   return (
     <section className={styles.card} aria-labelledby={headingId}>
@@ -254,7 +253,6 @@ export function LoaShopTool() {
         ? { code: "LOST_ARK_API_ERROR", status: 502 }
         : null;
   const observedAt = priceList.map((p) => p.observedAt).sort().at(-1);
-  const today = now != null ? kstDate(now) : null;
 
   return (
     <div className={quote.page}>
@@ -352,7 +350,7 @@ export function LoaShopTool() {
                     value={packageValue(pkg, (name) => market.get(name) ?? null, rate)}
                     rate={rate}
                     priced={priced}
-                    today={today}
+                    now={now}
                   />
                 ))}
               </div>
