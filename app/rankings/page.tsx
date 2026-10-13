@@ -1,12 +1,19 @@
 import type { Metadata } from "next";
 import { RankingsView } from "@/components/stats/rankings-view";
 import { RosterRankingsView } from "@/components/stats/roster-rankings-view";
+import { GuildRankingsView } from "@/components/stats/guild-rankings-view";
 import { CollectibleRankingsView } from "@/components/stats/collectible-rankings-view";
 import { EfficiencyRankingsView } from "@/components/stats/efficiency-rankings-view";
 import type { RankingType } from "@/components/stats/ranking-type-tabs";
 import { parseCollectibleQuery } from "@/lib/stats/collectible-ranking";
 import { parseRosterQuery } from "@/lib/stats/roster-ranking";
-import { isCollectibleRankingEnabled, isEfficiencyRankingEnabled, isRosterRankingEnabled } from "@/lib/tools/flags";
+import { parseGuildQuery } from "@/lib/stats/guild-ranking";
+import {
+  isCollectibleRankingEnabled,
+  isEfficiencyRankingEnabled,
+  isGuildRankingEnabled,
+  isRosterRankingEnabled,
+} from "@/lib/tools/flags";
 import { parseEfficiencyQuery, parseRankingQuery } from "@/lib/stats/rankings";
 
 export const metadata: Metadata = {
@@ -30,12 +37,15 @@ export default async function RankingsPage({
   const types: RankingType[] = [
     "character",
     ...(isRosterRankingEnabled() ? (["roster"] as const) : []),
+    // 길드 랭킹 (api #302, GUILD_RANKING).
+    ...(isGuildRankingEnabled() ? (["guilds"] as const) : []),
     ...(isCollectibleRankingEnabled() ? (["collectibles"] as const) : []),
     // 팔찌·젬 효율 랭킹 (api #444, EFFICIENCY_RANKING).
     ...(isEfficiencyRankingEnabled() ? (["bracelets", "gems"] as const) : []),
   ];
   const type = types.find((t) => t === params.get("type")) ?? "character";
   if (type === "roster") return <RosterRankingsView initial={parseRosterQuery(params)} types={types} />;
+  if (type === "guilds") return <GuildRankingsView initial={parseGuildQuery(params)} types={types} />;
   if (type === "collectibles") return <CollectibleRankingsView initial={parseCollectibleQuery(params)} types={types} />;
   if (type === "bracelets" || type === "gems")
     return <EfficiencyRankingsView kind={type} initial={parseEfficiencyQuery(params)} types={types} />;

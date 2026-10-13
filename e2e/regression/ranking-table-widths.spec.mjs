@@ -1,4 +1,4 @@
-// 회귀(A7, web #673): 랭킹 표 4종 — 서버 필터를 바꿔 새 행이 와도 열 폭이 다시 잡히지 않는다.
+// 회귀(A7, web #673): 랭킹 표 5종 — 서버 필터를 바꿔 새 행이 와도 열 폭이 다시 잡히지 않는다.
 // 누른 직후의 이동(hadRecentInput 포함)까지 0이고, 열 머리 위치가 그대로다.
 import { test, expect, gotoReady, chooseOption } from "../support/fixtures.mjs";
 
@@ -7,6 +7,7 @@ const RANKINGS = [
   ["원정대", "/rankings?type=roster"],
   ["수집품", "/rankings?type=collectibles"],
   ["팔찌", "/rankings?type=bracelets"],
+  ["길드", "/rankings?type=guilds"],
 ];
 
 for (const width of [1280, 360]) {

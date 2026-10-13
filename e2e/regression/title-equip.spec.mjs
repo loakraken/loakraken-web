@@ -11,9 +11,21 @@ test("통계 칭호 탭: 비율 표·서버 바꾸기·장착만 안내 @regress
   await expect(table.locator("tbody tr").first()).toContainText("32.26%");
   await expect(page.getByText(/장착하지 않은 칭호는 알 수 없어 세지 않아요/)).toBeVisible();
 
+  // A7: the server change moves nothing — shifts right after the input count too.
+  const heads = () => table.locator("thead th").evaluateAll((cells) => cells.map((cell) => Math.round(cell.getBoundingClientRect().x)));
+  const before = await heads();
+  await page.evaluate(() => {
+    window.__shifts = [];
+    new PerformanceObserver((list) => {
+      for (const entry of list.getEntries()) window.__shifts.push(entry.value);
+    }).observe({ type: "layout-shift" });
+  });
   await chooseOption(page, page.getByRole("combobox", { name: "서버" }), "아만");
   await expect(page).toHaveURL(/server=/);
   await expect(page.getByText(/표본 30개 원정대 미만이라 참고값/)).toBeVisible();
+  await page.waitForTimeout(800);
+  expect(await page.evaluate(() => window.__shifts.reduce((a, v) => a + v, 0)), "서버를 바꾼 뒤 layout-shift(입력 직후 포함)").toBe(0);
+  expect(await heads()).toEqual(before);
 });
 
 test("원정대 칭호: 칭호마다 장착 원정대 비율 @regression", async ({ page }) => {

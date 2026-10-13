@@ -244,7 +244,7 @@ export function CollectibleRankingsView({
           진행도는 공식 수집품의 모은 점수 합 ÷ 최대 점수 합이에요. 수집품은 원정대가 함께 모으므로 같은 원정대 캐릭터는 같은
           값이고, 대표 캐릭터는 원정대에서 아이템 레벨이 가장 높은 캐릭터예요.
         </p>
-        {data?.meta && <BasisNote basis={data.meta} />}
+        {data?.meta && <BasisNote basis={{ ...data.meta, unit: roster ? "개 원정대" : undefined }} />}
       </main>
     </div>
   );

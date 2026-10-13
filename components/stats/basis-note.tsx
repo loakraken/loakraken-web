@@ -21,6 +21,8 @@ export type Basis = {
   conditions: StatsMeta["conditions"];
   aggregatedAt: string;
   minSample: number;
+  /** What is counted after the number: "명" (default), "개 원정대", "개 길드". */
+  unit?: string;
 };
 
 /**
@@ -40,9 +42,10 @@ function NoteBody({ basis }: { basis: Basis }) {
         </li>
         <li>그래서 게임 전체 인구나 공식 순위가 아니라, LOAKraken이 확인한 캐릭터 안에서의 순위예요.</li>
         <li>
-          집계 대상 {basis.population != null ? `${whole(basis.population)}명 · ` : ""}
+          집계 대상 {basis.population != null ? `${whole(basis.population)}${basis.unit ?? "명"} · ` : ""}
           {conditionsText(basis.conditions)} · {kst.format(new Date(basis.aggregatedAt))} 기준. 표본이{" "}
-          {basis.minSample}명 미만인 항목은 참고값으로 보여요.
+          {basis.minSample}
+          {basis.unit ?? "명"} 미만인 항목은 참고값으로 보여요.
         </li>
         <li>검색되는 캐릭터가 늘수록 집계 대상도 늘어나요.</li>
       </ul>

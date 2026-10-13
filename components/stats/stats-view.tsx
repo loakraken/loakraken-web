@@ -31,6 +31,7 @@ import {
 import quote from "@/components/tools/material-quote.module.css";
 import styles from "./stats.module.css";
 import { BasisNote } from "./basis-note";
+import { rankingColumns } from "./ranking-columns";
 
 const SERVERS = ["루페온", "실리안", "아만", "아브렐슈드", "카단", "카마인", "카제로스", "니나브"];
 const TABS = [
@@ -438,6 +439,9 @@ function ServersTab({ query }: { query: StatsQuery }) {
  * official profile does not list titles that are owned but not worn.
  * Server and days apply; role, level and representative do not (said).
  */
+// 순위 · 칭호 · 장착 원정대 · 비율
+const TITLE_COLUMNS = rankingColumns([3.5, 18, 8, 6.5]);
+
 function TitlesTab({ query }: { query: StatsQuery }) {
   const titleQuery = titleEquipQuery(query);
   const titles = useQuery({
@@ -453,7 +457,9 @@ function TitlesTab({ query }: { query: StatsQuery }) {
   const ready = meta.sampleStatus === "READY";
   return (
     <div {...pendingProps(titles)}>
-      <p className={styles.notice}>
+      {/* Fixed columns and a note of fixed height, drawn anew per answer: a
+          server change moves nothing (A7, same as the ranking tables). */}
+      <p key={titles.dataUpdatedAt} className={`${styles.notice} ${styles.rankingNotice}`}>
         {sampleText(meta, "roster")} 중 그 칭호를 장착한 캐릭터가 있는 원정대의 비율이에요. 장착하지 않은 칭호는 알 수
         없어 세지 않아요{!ready && ` · 표본 ${meta.minSample}개 원정대 미만이라 참고값`}.
         {(query.role || query.itemLevelMin != null || query.representativeOnly) && " 역할·아이템 레벨·대표 캐릭터 조건은 이 표에 쓰지 않아요."}
@@ -461,8 +467,9 @@ function TitlesTab({ query }: { query: StatsQuery }) {
       {rows.length === 0 ? (
         <p className={styles.muted}>아직 확인한 칭호가 없어요.</p>
       ) : (
-        <DataTable label="칭호 장착 원정대 비율" className={styles.table}>
+        <DataTable label="칭호 장착 원정대 비율" className={styles.table} {...TITLE_COLUMNS.tableProps}>
           <caption className={styles.srOnly}>칭호 장착 원정대 비율</caption>
+          {TITLE_COLUMNS.colgroup}
           <thead>
             <tr>
               <th scope="col">순위</th>
