@@ -40,3 +40,9 @@
     transition: none;
   }
 }
+/* Stacked: the notices hold their tallest height so the events under them stay put (A7). */
+@media (max-width: 900px) {
+  .held {
+    min-height: var(--held, 0);
+  }
+}

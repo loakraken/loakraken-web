@@ -4,9 +4,11 @@
 // (backend patch-notice-v1, paged) and the running events. Titles open the
 // official page; nothing of the notice body is copied.
 
+import type { CSSProperties } from "react";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
 import { ExportCircle } from "@/components/ui/icons";
+import { useTallest } from "@/components/ui/use-tallest";
 import { SiteHeader } from "@/components/site/site-header";
 import { useNow } from "@/components/home/clock";
 import home from "@/components/home/home.module.css";
@@ -204,6 +206,10 @@ function Events({ renderedAt }: { renderedAt?: number }) {
 
 export function NewsPage({ renderedAt }: { renderedAt?: number }) {
   const { tab, noticeKind, patchKind } = readNewsQuery(useSearchParams());
+  // Stacked (900 and below) the events sit under the notices: the notices keep
+  // the tallest they have been, so a shorter kind or the patch tab's loading
+  // line does not pull the events up (A7).
+  const [noticesRef, tallest] = useTallest<HTMLElement>();
   return (
     <div className={home.page}>
       <a className={home.skip} href="#news-main">
@@ -218,7 +224,13 @@ export function NewsPage({ renderedAt }: { renderedAt?: number }) {
           </p>
         </header>
         <div className={home.grid}>
-          <section id="notices" className={`${home.panel} ${styles.anchor}`} aria-labelledby="notices-heading">
+          <section
+            ref={noticesRef}
+            id="notices"
+            className={`${home.panel} ${styles.anchor} ${styles.held}`}
+            style={tallest ? ({ "--held": `${tallest}px` } as CSSProperties) : undefined}
+            aria-labelledby="notices-heading"
+          >
             <div className={home.panelHead}>
               <h2 id="notices-heading">{tab === "patch" ? "패치 이력" : "공지사항"}</h2>
               <a href={OFFICIAL_NOTICES} target="_blank" rel="noreferrer" className={home.more}>
