@@ -205,11 +205,20 @@ function Detail({
   const days = completedDays(variant, range);
   const fade = useCrossfade(history.isPending);
   // The browser tab carries the chosen item's price (checklist K36), so a
-  // background tab still shows it; leaving the item puts the title back.
+  // background tab still shows it. The page's own title can land after this
+  // (streamed metadata), so it is set again whenever the head changes while
+  // the item is shown; leaving the item puts the page title back.
   useEffect(() => {
     const previous = document.title;
-    document.title = `${goldText(item.currentMinPrice)} · ${item.name} | LOAKraken`;
+    const wanted = `${goldText(item.currentMinPrice)} · ${item.name} | LOAKraken`;
+    const apply = () => {
+      if (document.title !== wanted) document.title = wanted;
+    };
+    apply();
+    const observer = new MutationObserver(apply);
+    observer.observe(document.head, { subtree: true, childList: true, characterData: true });
     return () => {
+      observer.disconnect();
       document.title = previous;
     };
   }, [item.name, item.currentMinPrice]);
