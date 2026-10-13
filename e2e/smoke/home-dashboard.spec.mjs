@@ -89,14 +89,15 @@ test.describe("홈 일정 시각 상태 @regression", () => {
     await gotoReady(page, "/");
     const islands = page.getByRole("region", { name: "모험 섬" });
     await expect(islands.locator("header")).toContainText("오늘 일정 종료");
-    // 숨김 켬(기본): 오늘 회차가 모두 지난 행은 숨겨진다.
+    // 숨김 켬(기본): 오늘 회차가 모두 지난 행도 남고, 시각 자리는 숨긴 채 "오늘 종료"로 읽힌다(PM-프론트 10-13).
     const hide = page.getByRole("button", { name: "지난 회차 숨김" });
     await expect(hide).toHaveAttribute("aria-pressed", "true");
-    await expect(islands.getByRole("listitem")).toHaveCount(0);
-    // 숨김 끔: 행과 지난 시각이 다시 보이고, 지난 시각은 취소선이다.
+    await expect(islands.getByRole("listitem").first()).toContainText("오늘 종료");
+    await expect(islands.locator("time").first()).toBeHidden();
+    // 숨김 끔: 지난 시각이 같은 자리에 취소선으로 다시 보이고 "오늘 종료"는 사라진다.
     await hide.click();
     await expect(hide).toHaveAttribute("aria-pressed", "false");
-    await expect(islands.getByRole("listitem").first()).toBeVisible();
+    await expect(islands.getByText("오늘 종료")).toHaveCount(0);
     const past = islands.locator("time[data-past]");
     expect(await past.count()).toBeGreaterThan(0);
     await expect(past.first()).toHaveCSS("text-decoration-line", "line-through");

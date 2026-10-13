@@ -176,8 +176,12 @@ function Times({
     return <span className={styles.times}>오늘 회차 없음</span>;
   // Hidden past rounds keep their place: the rounds left never move when
   // the toggle flips or a round passes (A7), they are only not shown or read.
+  // A row whose rounds are all over says so over its hidden times, so it
+  // does not read as a future one and keeps its height (PM-프론트 10-13).
+  const over = hidePast && now !== null && times.every((at) => Date.parse(at) < now);
   return (
     <span className={styles.times}>
+      {over && <span className={styles.ended}>오늘 종료</span>}
       {times.map((at) => {
         const past = now !== null && Date.parse(at) < now;
         return (
@@ -216,24 +220,25 @@ function Section({
   const now = live ? clock : null;
   if (!items.length) return null;
   const status = now !== null ? sectionStatus(items, now) : null;
-  // Rounds today all over: hide the row (it would read as a future island).
-  const visible =
-    hidePast && now !== null
+  // Every row stays, the toggle or the clock never adds or drops one (A7);
+  // a row whose rounds are all over reads "오늘 종료" (Times).
+  const left =
+    now !== null
       ? items.filter(
           (item) =>
             !item.startTimes.length ||
             item.startTimes.some((at) => Date.parse(at) >= now),
-        )
-      : items;
+        ).length
+      : items.length;
   return (
     <section className={styles.section} aria-label={title}>
       <header>
         <h3>{title}</h3>
         {/* Drawn anew when it changes: a different count rewritten in place
             moves what follows it in the head (A7). */}
-        <span key={visible.length}>
-          {visible.length > 0 && visible.length < items.length
-            ? `${items.length}개 중 ${visible.length}개 남음`
+        <span key={left}>
+          {left > 0 && left < items.length
+            ? `${items.length}개 중 ${left}개 남음`
             : `${items.length}개`}
         </span>
         {status && now !== null && (status.next || status.state === "done") && (
@@ -256,7 +261,7 @@ function Section({
         )}
       </header>
       <ul className={styles.rows}>
-        {visible.map((item) => (
+        {items.map((item) => (
           <li key={`${"category" in item ? item.category : ""}${item.name}`}>
             {item.icon ? (
               // eslint-disable-next-line @next/next/no-img-element -- official CDN icon at a fixed size
