@@ -43,11 +43,13 @@ type Filter = (typeof FILTERS)[number]["id"];
 
 function CollectionList({
   collectible,
-  hold,
+  listRef,
+  listHeight,
 }: {
   collectible: Collectible;
-  /** Keeps the list at the tallest it has been on this visit (useTallest). */
-  hold: { ref: (el: HTMLDivElement | null) => void; height: number };
+  /** Keep the list at the tallest it has been on this visit (useTallest). */
+  listRef: (el: HTMLDivElement | null) => void;
+  listHeight: number;
 }) {
   const [filter, setFilter] = useState<Filter>("all");
   const [rarest, setRarest] = useState(false);
@@ -96,7 +98,7 @@ function CollectionList({
       </div>
       {/* Held at its tallest: a shorter filter or kind does not pull up the
           caption under it or, stacked, the panels below (A7). */}
-      <div ref={hold.ref} style={hold.height ? { minHeight: hold.height } : undefined}>
+      <div ref={listRef} style={listHeight ? { minHeight: listHeight } : undefined}>
         {!collectible.items.length ? (
           <p className={styles.muted}>항목 목록이 제공되지 않았어요.</p>
         ) : !items.length ? (
@@ -212,7 +214,7 @@ export function CollectiblesTab({ data }: { data: Character }) {
                     aria-label={`${text(current.type)} 목록`}
                   >
                     <h3>{text(current.type)}</h3>
-                    <CollectionList key={selected} collectible={current} hold={{ ref: listRef, height: listHeight }} />
+                    <CollectionList key={selected} collectible={current} listRef={listRef} listHeight={listHeight} />
                   </section>
                 )}
               </>

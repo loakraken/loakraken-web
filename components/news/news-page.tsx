@@ -245,7 +245,17 @@ export function NewsPage({ renderedAt }: { renderedAt?: number }) {
                 패치 이력
               </button>
             </div>
-            {tab === "patch" ? <PatchNotes kind={patchKind} /> : <Notices kind={noticeKind} />}
+            {/* Both lists in one cell, the other one hidden (not shown, focused or
+                read): the panel is always the taller one's height, so switching
+                the tab never moves the events under it (A7). */}
+            <div className={styles.tabStack}>
+              <div data-shown={tab !== "patch" || undefined} inert={tab === "patch"}>
+                <Notices kind={noticeKind} />
+              </div>
+              <div data-shown={tab === "patch" || undefined} inert={tab !== "patch"}>
+                <PatchNotes kind={patchKind} />
+              </div>
+            </div>
           </section>
           <aside className={home.column} aria-label="진행 중인 이벤트">
             <Events renderedAt={renderedAt} />
