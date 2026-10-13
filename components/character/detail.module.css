@@ -2455,6 +2455,19 @@
     padding: 0 8px;
   }
 }
+/* A35: below 560px share and favorite move into the menu (더보기) so the tab
+   row keeps at least two whole tabs. After .iconAction so display wins. */
+.narrowOnly {
+  display: none;
+}
+@media (max-width: 560px) {
+  .wideOnly {
+    display: none;
+  }
+  .narrowOnly {
+    display: inline;
+  }
+}
 /* A list held at its tallest (A7): its first child's top margin would
    otherwise pass through the holder and move it when the child changes
    (the empty line has one, the skill grid none). The gap above stays the

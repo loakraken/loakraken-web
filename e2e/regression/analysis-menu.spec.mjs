@@ -28,9 +28,39 @@ test("분석 메뉴: 키보드로 열어 같은 화면의 탭으로 @regression"
   await expect(page).toHaveURL(/[?&]tab=(specup|simulator)/);
 });
 
-test("분석 메뉴: 360에서 탭 줄 넘침 없음 @regression", async ({ page }) => {
-  await page.setViewportSize({ width: 360, height: 800 });
+// A35: on a narrow screen the tab row shows at least two whole tabs and fades
+// where more are hidden; share and favorite move into the menu (더보기).
+for (const width of [360, 390])
+  test(`분석 메뉴: ${width}에서 탭 두 개 이상 온전히·공유와 즐겨찾기는 더보기 안 @regression`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 800 });
+    await gotoReady(page, characterPath("상세"));
+    const nav = page.getByRole("navigation", { name: "캐릭터 정보 탭" });
+    const box = await nav.boundingBox();
+    const tabs = nav.getByRole("link");
+    for (const i of [0, 1]) {
+      const tab = await tabs.nth(i).boundingBox();
+      expect(tab.x, `탭 ${i + 1} 시작`).toBeGreaterThanOrEqual(box.x);
+      expect(tab.x + tab.width, `탭 ${i + 1} 끝이 보이는 폭 안 (${box.width}px)`).toBeLessThanOrEqual(box.x + box.width - 8);
+    }
+    // More tabs than fit: the far end fades (mask), the start does not yet.
+    expect(await nav.evaluate((el) => getComputedStyle(el).maskImage)).toContain("linear-gradient");
+    await expect(page.getByRole("button", { name: /^즐겨찾기/ })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "공유하기" })).toHaveCount(0);
+
+    await page.getByRole("button", { name: "더보기" }).click();
+    const menu = page.getByRole("menu");
+    await expect(menu.getByRole("menuitem", { name: /^직업 통계/ })).toBeVisible();
+    await expect(menu.getByRole("menuitem", { name: "공유하기" })).toBeVisible();
+    await menu.getByRole("menuitem", { name: "즐겨찾기" }).click();
+    await page.getByRole("button", { name: "더보기" }).click();
+    await expect(page.getByRole("menu").getByRole("menuitem", { name: "즐겨찾기 해제" })).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expectNoHorizontalOverflow(page);
+  });
+
+test("분석 메뉴: 넓은 화면은 공유·즐겨찾기가 탭 줄에, 메뉴는 분석만 @regression", async ({ page }) => {
   await gotoReady(page, characterPath("상세"));
-  await expect(page.getByRole("button", { name: "분석" })).toBeVisible();
-  await expectNoHorizontalOverflow(page);
+  await expect(page.getByRole("button", { name: "공유하기" })).toBeVisible();
+  await page.getByRole("button", { name: "분석" }).click();
+  await expect(page.getByRole("menu").getByRole("menuitem", { name: "공유하기" })).toHaveCount(0);
 });
