@@ -26,6 +26,18 @@ for (const width of [1280, 360])
     await page.waitForTimeout(600);
     expect((await shiftsSince(page)).all, "탭 열기 흔들림").toBe(0);
 
+    // K28: the same members grouped by roster (api #494), switching moves nothing.
+    await expect(page.getByText("같은 원정대로 확인한 묶음 2개")).toBeVisible();
+    const view = page.getByRole("group", { name: "길드원 보기" });
+    const grouped = await shiftsDuring(page, () => view.getByRole("button", { name: "원정대별" }).click());
+    await expect(members.getByRole("rowheader", { name: "같은 원정대 3명" })).toBeVisible();
+    await expect(members.getByRole("rowheader", { name: "같은 원정대 2명" })).toBeVisible();
+    await expect(members.locator("tbody").first()).toContainText("상세");
+    expect(grouped.all, `원정대별 전환 흔들림 (${grouped.moved})`).toBe(0);
+    const level = await shiftsDuring(page, () => view.getByRole("button", { name: "아이템 레벨 순" }).click());
+    await expect(members.getByRole("rowheader", { name: /^같은 원정대/ })).toHaveCount(0);
+    expect(level.all, `아이템 레벨 순 전환 흔들림 (${level.moved})`).toBe(0);
+
     for (const [days, count] of [["7일", 6], ["90일", 14], ["30일", 12]]) {
       const moved = await shiftsDuring(page, () => page.getByRole("group", { name: "최근 확인" }).getByRole("button", { name: days }).click());
       await expect(basis).toContainText(`확인한 길드원 ${count}명`);

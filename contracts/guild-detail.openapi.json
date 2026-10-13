@@ -351,6 +351,19 @@
             "type": "string",
             "format": "date-time",
             "description": "마지막 프로필 관측 시각(분 단위)"
+          },
+          "rosterGroup": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32",
+                "description": "이 응답 안에서만 쓰는 원정대 묶음 번호(1부터). 같은 원정대(같은 계정) 길드원은 같은 번호이고, 이 길드에 혼자인 캐릭터도 자기 번호 하나를 받습니다. 묶음 인원 많은 순 → 묶음 최고 아이템 레벨 높은 순 → 이름순으로 매기며, 응답마다 새로 매기므로 다른 응답의 번호와 이어지지 않습니다. 원정대를 모르면 null",
+                "example": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -359,7 +372,8 @@
           "combatPower",
           "guildMemberGrade",
           "itemLevel",
-          "observedAt"
+          "observedAt",
+          "rosterGroup"
         ]
       },
       "ErrorResponse": {

@@ -49,6 +49,104 @@ function Bars({ rows, label }: { rows: { name: string; count: number }[]; label:
 const binRows = (bins: GuildBin[], width: number, digits: number) =>
   bins.map((bin, i) => ({ name: binLabel(bins, i, width, digits), count: bin.count }));
 
+type MemberRow = GuildDetail["members"][number];
+
+/**
+ * Rosters as the backend numbered them in this answer (most members first,
+ * then the highest item level); an unknown roster stands alone. The numbers
+ * mean nothing outside this answer, so they are never shown.
+ */
+function rosters(members: MemberRow[]) {
+  const known = new Map<number, MemberRow[]>();
+  const alone: MemberRow[][] = [];
+  for (const member of members) {
+    if (member.rosterGroup == null) alone.push([member]);
+    else known.set(member.rosterGroup, [...(known.get(member.rosterGroup) ?? []), member]);
+  }
+  return [...[...known.entries()].sort((a, b) => a[0] - b[0]).map(([, rows]) => rows), ...alone];
+}
+
+function MemberRows({ rows, current }: { rows: MemberRow[]; current: string }) {
+  return rows.map((member) => (
+    <tr key={member.characterName} data-current={member.characterName === current || undefined}>
+      <th scope="row">
+        <Link href={`/character/${encodeURIComponent(normalizeCharacterName(member.characterName))}`} prefetch={false}>
+          {member.characterName}
+        </Link>
+      </th>
+      <td>{member.className}</td>
+      <td>{two(member.itemLevel)}</td>
+      <td>{two(member.combatPower)}</td>
+      <td>{member.guildMemberGrade ?? "-"}</td>
+      <td>{kst.format(new Date(member.observedAt))}</td>
+    </tr>
+  ));
+}
+
+/** 길드원: by item level, or by roster (K28) — same rows, grouped. */
+function Members({ detail, current }: { detail: GuildDetail; current: string }) {
+  const [byRoster, setByRoster] = useState(false);
+  const groups = rosters(detail.members);
+  const shared = groups.filter((rows) => rows.length > 1).length;
+  return (
+    <Panel
+      title="길드원"
+      wide
+      meta={
+        <span className={stats.segment} role="group" aria-label="길드원 보기">
+          <button type="button" aria-pressed={!byRoster} onClick={() => setByRoster(false)}>
+            아이템 레벨 순
+          </button>
+          <button type="button" aria-pressed={byRoster} onClick={() => setByRoster(true)}>
+            원정대별
+          </button>
+        </span>
+      }
+    >
+      {/* The same line in both views, so switching moves nothing (A7). */}
+      <p className={own.note}>
+        {whole(detail.members.length)}명 · 같은 원정대로 확인한 묶음 {whole(shared)}개(나머지는 혼자이거나 원정대를 아직
+        모르는 캐릭터)
+      </p>
+      {/* Fades at an end where columns are hidden (a phone scrolls the table). */}
+      <div className={`${styles.tableWrap} scroll-fade-x`}>
+        <table className={own.members}>
+          <caption className={styles.srOnly}>{detail.guildName} 길드원</caption>
+          <thead>
+            <tr>
+              <th scope="col">이름</th>
+              <th scope="col">직업</th>
+              <th scope="col">아이템 레벨</th>
+              <th scope="col">전투력</th>
+              <th scope="col">직위</th>
+              <th scope="col">마지막 확인</th>
+            </tr>
+          </thead>
+          {/* Drawn anew per view: rows moved in place would count as moving (A7). */}
+          {byRoster ? (
+            groups.map((rows, i) => (
+              <tbody key={`roster-${i}`} className={own.roster} data-shared={rows.length > 1 || undefined}>
+                {rows.length > 1 && (
+                  <tr className={own.rosterHead}>
+                    <th scope="rowgroup" colSpan={6}>
+                      같은 원정대 {rows.length}명
+                    </th>
+                  </tr>
+                )}
+                <MemberRows rows={rows} current={current} />
+              </tbody>
+            ))
+          ) : (
+            <tbody key="level">
+              <MemberRows rows={detail.members} current={current} />
+            </tbody>
+          )}
+        </table>
+      </div>
+    </Panel>
+  );
+}
+
 function Body({ detail, current }: { detail: GuildDetail; current: string }) {
   const { meta, summary } = detail;
   const small = meta.sampleStatus !== "READY";
@@ -69,10 +167,12 @@ function Body({ detail, current }: { detail: GuildDetail; current: string }) {
             <dd>{two(summary.itemLevelMedian)}</dd>
           </div>
           <div>
-            <dt>아이템 레벨 최고 · 최저</dt>
-            <dd>
-              {two(summary.itemLevelMax)} · {two(summary.itemLevelMin)}
-            </dd>
+            <dt>아이템 레벨 최고</dt>
+            <dd>{two(summary.itemLevelMax)}</dd>
+          </div>
+          <div>
+            <dt>아이템 레벨 최저</dt>
+            <dd>{two(summary.itemLevelMin)}</dd>
           </div>
           <div>
             <dt>전투력 평균</dt>
@@ -101,39 +201,7 @@ function Body({ detail, current }: { detail: GuildDetail; current: string }) {
           <Bars label="전투력 구간별 길드원" rows={binRows(detail.combatPowerBins, 100, 0)} />
         </Panel>
       )}
-      <Panel title="길드원" wide meta={`아이템 레벨 높은 순 · ${whole(detail.members.length)}명`}>
-        <div className={styles.tableWrap}>
-          <table className={own.members}>
-            <caption className={styles.srOnly}>{detail.guildName} 길드원</caption>
-            <thead>
-              <tr>
-                <th scope="col">이름</th>
-                <th scope="col">직업</th>
-                <th scope="col">아이템 레벨</th>
-                <th scope="col">전투력</th>
-                <th scope="col">직위</th>
-                <th scope="col">마지막 확인</th>
-              </tr>
-            </thead>
-            <tbody>
-              {detail.members.map((member) => (
-                <tr key={member.characterName} data-current={member.characterName === current || undefined}>
-                  <th scope="row">
-                    <Link href={`/character/${encodeURIComponent(normalizeCharacterName(member.characterName))}`} prefetch={false}>
-                      {member.characterName}
-                    </Link>
-                  </th>
-                  <td>{member.className}</td>
-                  <td>{two(member.itemLevel)}</td>
-                  <td>{two(member.combatPower)}</td>
-                  <td>{member.guildMemberGrade ?? "-"}</td>
-                  <td>{kst.format(new Date(member.observedAt))}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Panel>
+      <Members detail={detail} current={current} />
     </>
   );
 }
@@ -173,7 +241,7 @@ export function GuildTab({ data }: { data: Character }) {
   return (
     <div className={styles.layout}>
       <div className={own.head}>
-        <h3>{guildName}</h3>
+        <h2>{guildName}</h2>
         <span className={stats.segment} role="group" aria-label="최근 확인">
           {GUILD_DAYS.map((value) => (
             <button key={value} type="button" aria-pressed={days === value} onClick={() => setDays(value)}>

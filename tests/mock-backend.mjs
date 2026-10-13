@@ -1460,6 +1460,9 @@ createServer(async (req, res) => {
         combatPower: i % 4 === 3 ? null : Math.round((2420 - i * 61.3) * 100) / 100,
         guildMemberGrade: i === 0 ? "길드장" : i < 3 ? "부길드장" : i === size - 1 ? null : grades[2],
         observedAt: new Date(Date.UTC(2026, 9, 13 - (i % 5), 3, 0)).toISOString(),
+        // api #494: one roster of three (the 상세 character's), one of two, the
+        // rest alone; the last one's roster is not known.
+        rosterGroup: i < 3 ? 1 : i < 5 ? 2 : i === size - 1 ? null : i - 2,
       }));
       const levels = members.map((m) => m.itemLevel).sort((a, b) => a - b);
       const powers = members.map((m) => m.combatPower).filter((v) => v != null).sort((a, b) => a - b);

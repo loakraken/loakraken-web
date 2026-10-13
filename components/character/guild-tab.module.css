@@ -6,7 +6,7 @@
   justify-content: space-between;
   gap: 10px 16px;
 }
-.head h3 {
+.head h2 {
   font-size: 20px;
   font-weight: 700;
   letter-spacing: -0.02em;
@@ -104,9 +104,10 @@
   text-align: right;
   white-space: nowrap;
 }
-.members th:first-child,
-.members td:nth-child(2),
-.members td:nth-child(5) {
+/* Name, class and grade read as words: left, header and cells alike. */
+.members :is(th, td):nth-child(1),
+.members :is(th, td):nth-child(2),
+.members :is(th, td):nth-child(5) {
   text-align: left;
 }
 .members thead th {
@@ -126,4 +127,15 @@
 }
 .members tr[data-current] {
   background: var(--hover-surface);
+}
+/* 원정대별 (K28): a roster of several members under its own line. */
+.roster[data-shared] {
+  border-top: 2px solid var(--border);
+}
+.rosterHead th {
+  padding-top: 12px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
 }
