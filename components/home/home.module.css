@@ -305,6 +305,19 @@
   background: var(--primary);
   transform: translateX(-50%);
 }
+/* On a phone a day takes 44px to press (hit-44 rule on ::before — ::after is
+   the today dot); 41px days 6px apart, so neighbours never overlap. */
+@media (max-width: 699px), (pointer: coarse) {
+  .days button::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+    translate: -50% -50%;
+  }
+}
 .days button[aria-pressed="true"] {
   background: var(--foreground);
   box-shadow: none;
