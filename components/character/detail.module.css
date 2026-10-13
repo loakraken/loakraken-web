@@ -2313,3 +2313,31 @@
   opacity: 0.55;
   transition: opacity 150ms ease;
 }
+/* 분석 menu trigger (§14.1 ③): a text pill like the tabs, before the icons. */
+.analysisTrigger {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 4px;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 980px;
+  color: var(--foreground);
+  font-size: 14px;
+  letter-spacing: -0.016em;
+  white-space: nowrap;
+  transition: background-color 160ms ease-out;
+}
+.analysisTrigger[data-popup-open] {
+  background: var(--hover-surface);
+}
+@media (hover: hover) and (pointer: fine) {
+  .analysisTrigger:hover {
+    background: var(--hover-surface);
+  }
+}
+@media (max-width: 420px) {
+  .analysisTrigger {
+    padding: 0 8px;
+  }
+}

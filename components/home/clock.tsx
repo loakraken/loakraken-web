@@ -1,7 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { MINUTE, SECOND, remainingStep, remainingText } from "@/lib/time/remaining";
+import { MINUTE, SECOND, clampNow, remainingStep, remainingText } from "@/lib/time/remaining";
 
 /*
  * Clocks, null during SSR so time-dependent text renders after hydration.
@@ -27,6 +27,9 @@ export const useClock = (step: number) =>
     () => null,
   );
 export { MINUTE, SECOND };
+
+/** The minute clock for rows that depend on the time, never before `renderedAt` (clampNow). */
+export const useNow = (renderedAt: number | null | undefined) => clampNow(useClock(MINUTE), renderedAt);
 
 /**
  * Time left until `to` in the shared format (lib/time/remaining): a minute

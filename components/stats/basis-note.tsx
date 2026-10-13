@@ -76,3 +76,22 @@ export function BasisInfo({ basis }: { basis: Basis }) {
     </Popover.Root>
   );
 }
+
+/** A help text behind a small ⓘ that opens on press (touch too), e.g. 카드 기록 도움말. */
+export function HelpInfo({ label, title, children }: { label: string; title: string; children: React.ReactNode }) {
+  return (
+    <Popover.Root>
+      <Popover.Trigger className={styles.info} aria-label={label}>
+        <InfoCircle size={16} aria-hidden="true" />
+      </Popover.Trigger>
+      <Popover.Portal>
+        <Popover.Positioner side="bottom" align="start" sideOffset={6} collisionPadding={12} className={styles.positioner}>
+          <Popover.Popup className={`${styles.note} ${styles.popup}`}>
+            <Popover.Title className={styles.title}>{title}</Popover.Title>
+            {children}
+          </Popover.Popup>
+        </Popover.Positioner>
+      </Popover.Portal>
+    </Popover.Root>
+  );
+}

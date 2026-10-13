@@ -168,16 +168,22 @@ for (const width of [1440, 360]) {
     const box = await openSearch(page);
     await page.keyboard.type("상");
     await expect(page.getByRole("listbox", { name: "검색 결과" })).toBeVisible();
-    // 입력칸 알약(.cmd)이 기준 — 콤보박스 input은 알약 안쪽 여백만큼 작다
-    const pill = await box.evaluate((el) => {
-      const r = el.closest(".cmd").getBoundingClientRect();
-      return { x: r.x, width: r.width };
-    });
-    // 패널 바깥 상자(.rsp) — listbox는 그 안쪽 목록이라 여백만큼 작다
-    const panel = await page.locator(".rsp").boundingBox();
-    expect(Math.abs(panel.width - 320)).toBeLessThanOrEqual(1);
-    if (width >= 390) expect(Math.abs(panel.x + panel.width / 2 - (pill.x + pill.width / 2))).toBeLessThanOrEqual(1);
-    else expect(Math.abs(panel.x - pill.x)).toBeLessThanOrEqual(1);
+    // 입력칸 알약(.cmd)과 패널 바깥 상자(.rsp)를 같은 순간에 잰다. 여는 움직임과
+    // 글자를 친 뒤 알약 모양이 바뀌는 동안은 값이 흔들리므로, 맞을 때까지 다시 잰다.
+    const measure = () =>
+      box.evaluate((el) => {
+        const pill = el.closest(".cmd").getBoundingClientRect();
+        const panel = document.querySelector(".rsp").getBoundingClientRect();
+        return { pill: { x: pill.x, width: pill.width }, panel: { x: panel.x, width: panel.width } };
+      });
+    await expect
+      .poll(async () => {
+        const { pill, panel } = await measure();
+        const anchor = width >= 390 ? Math.abs(panel.x + panel.width / 2 - (pill.x + pill.width / 2)) : Math.abs(panel.x - pill.x);
+        return Math.max(Math.abs(panel.width - 320), anchor);
+      }, { timeout: 3000 })
+      .toBeLessThanOrEqual(1);
+    const { panel } = await measure();
     expect(panel.x).toBeGreaterThanOrEqual(0);
     expect(panel.x + panel.width).toBeLessThanOrEqual(width);
   });

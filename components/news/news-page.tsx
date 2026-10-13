@@ -8,7 +8,7 @@ import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
 import { ExportCircle } from "@/components/ui/icons";
 import { SiteHeader } from "@/components/site/site-header";
-import { MINUTE, useClock } from "@/components/home/clock";
+import { useNow } from "@/components/home/clock";
 import home from "@/components/home/home.module.css";
 import schedule from "@/components/schedule/schedule.module.css";
 import { countdownText, retryLabel } from "@/lib/api/rate-limit";
@@ -180,7 +180,7 @@ function PatchNotes({ kind }: { kind: PatchCategory | null }) {
 }
 
 function Events({ renderedAt }: { renderedAt?: number }) {
-  const now = useClock(MINUTE) ?? renderedAt ?? null;
+  const now = useNow(renderedAt);
   const query = useNewsPage();
   const events = query.data?.data.events;
   return (
