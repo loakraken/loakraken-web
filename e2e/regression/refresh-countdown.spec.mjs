@@ -32,9 +32,47 @@ for (const width of [1280, 360])
     }
   });
 
-// Every label the countdown can show fits the label's fixed width (the rate
-// limit's "n초 뒤 갱신" only comes after a press and may widen the button).
-const LABELS = ["갱신", "갱신 중", "10분 0초", "9분 59초", "59초"];
+// Every label the button can show fits the label's fixed width: "갱신", while
+// refreshing, the cooldown, and too many requests (only the time left; "뒤 갱신"
+// is in the button's name and tooltip).
+const LABELS = ["갱신", "갱신 중", "10분 0초", "9분 59초", "59초", "30초"];
+
+for (const width of [1280, 360])
+  test(`@A7 갱신을 눌러 요청이 많다는 답이 와도 버튼 묶음 위치·폭 그대로 @${width} @regression`, async ({ page }) => {
+    await page.clock.install();
+    await page.setViewportSize({ width, height: 900 });
+    await gotoReady(page, characterPath("상세"));
+    const refresh = page.locator("button[data-no-replay]").first();
+    // Let the cooldown run out, then press.
+    await page.clock.runFor(6 * 60_000);
+    await expect(refresh).toHaveText("갱신");
+    const bundle = page.locator("div[class*=tabActions]").first();
+    const box = async () => {
+      const b = await bundle.boundingBox();
+      return [Math.round(b.x), Math.round(b.width)];
+    };
+    const before = await box();
+    // This page only: the refresh answers 429 with 30 s to wait.
+    const now = await page.evaluate(() => Date.now());
+    await page.route(
+      (url) => url.pathname === "/api/characters",
+      (route) =>
+        route.fulfill({
+          status: 429,
+          contentType: "application/json",
+          body: JSON.stringify({ ok: false, error: { code: "LOST_ARK_RATE_LIMITED", status: 429, retryAt: now + 30_000 } }),
+        }),
+    );
+    await refresh.click();
+    await expect(refresh).toHaveAccessibleName(/^\d+초 뒤 갱신$/);
+    await expect(refresh).toHaveText(/^\d+초$/);
+    // For a second after the press, the bundle keeps its place and width.
+    for (let i = 0; i < 4; i += 1) {
+      expect(await box(), `누른 뒤 ${i * 250}ms 묶음 x·폭`).toEqual(before);
+      await page.clock.runFor(250);
+    }
+    expect(await box(), "누른 뒤 1초 묶음 x·폭").toEqual(before);
+  });
 for (const theme of ["light", "dim", "dark"])
   for (const width of [1280, 360])
     test(`@A7 갱신 버튼 가장 긴 남은 시간도 고정 폭 안 ${theme} @${width} @regression`, async ({ page }) => {

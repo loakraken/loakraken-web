@@ -361,19 +361,31 @@ export function TabBar({
               onClick={onRefresh}
               disabled={disabled}
               aria-describedby={tooltipId}
+              // While a countdown shows, the name says what it is for; the
+              // label itself is only the time left (one fixed width, A7).
+              aria-label={
+                fetching
+                  ? undefined
+                  : rateLimitSeconds > 0
+                    ? `${remainingLabel(rateLimitSeconds * 1000)} 뒤 갱신`
+                    : cooling
+                      ? `${remainingLabel(window_.remainingMs)} 뒤 갱신`
+                      : undefined
+              }
             >
               {fetching ? (
                 <InlineOrb />
               ) : (
                 <RefreshArrow size={14} aria-hidden="true" />
               )}
-              {/* One width for "갱신" and every countdown ("3분 30초", "3분 9초"):
-                  the ticking label never moves the buttons beside it (A6·A7). */}
+              {/* One width for "갱신" and every countdown ("3분 30초", "3분 9초",
+                  "30초" when too many requests): the ticking label never moves
+                  the buttons beside it (A6·A7). */}
               <span className={styles.refreshLabel}>
                 {fetching
                   ? "갱신 중"
                   : rateLimitSeconds > 0
-                    ? `${remainingLabel(rateLimitSeconds * 1000)} 뒤 갱신`
+                    ? remainingLabel(rateLimitSeconds * 1000)
                     : cooling
                       ? remainingLabel(window_.remainingMs)
                       : "갱신"}
@@ -382,9 +394,11 @@ export function TabBar({
             <span role="tooltip" id={tooltipId} className={styles.tooltip}>
               {relativeAgo(window_.ageMs)} 갱신 · {kstTime(window_.fetchedAt)}
               <br />
-              {cooling
-                ? `${remainingLabel(window_.remainingMs)} 후 다시 갱신할 수 있어요${window_.estimated ? " (예상)" : ""}`
-                : "지금 다시 갱신할 수 있어요"}
+              {rateLimitSeconds > 0
+                ? `요청이 많아 ${remainingLabel(rateLimitSeconds * 1000)} 뒤 다시 갱신할 수 있어요`
+                : cooling
+                  ? `${remainingLabel(window_.remainingMs)} 후 다시 갱신할 수 있어요${window_.estimated ? " (예상)" : ""}`
+                  : "지금 다시 갱신할 수 있어요"}
             </span>
           </span>
         </div>
