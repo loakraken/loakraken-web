@@ -187,4 +187,24 @@ test.describe("전투력 시뮬레이터 @smoke", () => {
     // 상급이 있는 장비는 그대로 '준비 중'.
     await expect(page.getByRole("listitem").filter({ hasText: "+19 테스트 투구" })).toContainText("상급 10 · 준비 중");
   });
+
+  for (const width of [1280, 360])
+    test(`첫 변경에도 결과 칸 높이가 그대로라 아래가 밀리지 않는다(PM-프론트 A7, ${width})`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.addInitScript(() => {
+        window.__shift = 0;
+        new PerformanceObserver((list) => {
+          for (const entry of list.getEntries()) window.__shift += entry.value;
+        }).observe({ type: "layout-shift", buffered: true });
+      });
+      await gotoReady(page, `/tools/combat-power?character=${encodeURIComponent("전투력계산")}`);
+      const band = page.getByRole("region", { name: "전투력", exact: true });
+      const height = (await band.boundingBox()).height;
+      await page.evaluate(() => (window.__shift = 0));
+      await chooseOption(page, page.getByRole("combobox", { name: "장갑 품질" }), "100");
+      await expect(page.getByText("예상 전투력")).toBeVisible();
+      await expect(page.getByRole("region", { name: "바꾼 것" })).toBeVisible();
+      expect((await page.getByRole("region", { name: "예상 전투력", exact: true }).boundingBox()).height).toBe(height);
+      expect(await page.evaluate(() => window.__shift)).toBe(0);
+    });
 });
