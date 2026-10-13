@@ -497,7 +497,9 @@ function Results({
         </p>
         <p className={styles.figure}>{percent(crit.effectiveRate)}</p>
         <p className={styles.figureNote}>
-          캐릭터 {percent(crit.observedRate)} + 가정 {percent(crit.assumedRate)}
+          {/* The sum written out once (PM-프론트 P2, crit-speed v7): with 뭉툭한 가시 the
+              total can pass a cap, and the reader saw only the parts. */}
+          캐릭터 {percent(crit.observedRate)} + 가정 {percent(crit.assumedRate)} = 합계 {percent(crit.totalRate)}
           {over > 0.005 && ` · 상한을 넘은 ${percent(over)}는 적용되지 않아요`}
           {` · 치명 ${crit.critStatPerPercent.toLocaleString("ko-KR", { maximumFractionDigits: 2 })} = 치적 1%`}
         </p>

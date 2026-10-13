@@ -198,30 +198,6 @@ export function characterGold(character: Character): GoldSummary {
     const mode = modeOf(plan);
     if (!mode) return;
     const paysGold = character.gold && index < GOLD_RAIDS_PER_CHARACTER;
-    if (mode.total) {
-      // Only the whole clear has a known amount: it counts once every gate is
-      // cleared, and a partial clear's gates are unknown (never split by guess).
-      const costs = mode.gates.map((gate, i) => (plan.more[i] ? (gate.moreCost ?? 0) : 0));
-      const cost = costs.reduce((sum, c) => sum + c, 0);
-      const paid = costs.reduce((sum, c, i) => sum + (plan.cleared[i] ? c : 0), 0);
-      out.moreSpent += paid;
-      if (!paysGold) {
-        out.possible -= cost;
-        out.earned -= paid;
-        return;
-      }
-      out.possible += mode.total.gold - cost;
-      out.possibleBound += Math.max(0, mode.total.boundGold - cost);
-      const cleared = plan.cleared.filter(Boolean).length;
-      if (cleared === mode.gates.length) {
-        out.earned += mode.total.gold - cost;
-        out.earnedBound += Math.max(0, mode.total.boundGold - cost);
-      } else {
-        out.earned -= paid;
-        out.unknownGates += cleared;
-      }
-      return;
-    }
     mode.gates.forEach((gate, i) => {
       // A bonus reward can only be bought on a cleared gate: the planned total
       // takes every ticked bonus, the earned total and the spending only

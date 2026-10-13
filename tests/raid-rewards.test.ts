@@ -31,35 +31,30 @@ test("official values match the notices they cite", () => {
   assert.equal(modeTotals(mode("kazeros-act3-extreme", "HARD"))?.moreCost, null);
 });
 
-test("a confirmed total keeps its gates unknown instead of split by guess (M7)", () => {
-  const hard = mode("abrelshud", "HARD");
-  assert.ok(hard.gates.every((g) => g.gold === null && g.boundGold === null));
-  assert.deepEqual(modeTotals(hard), { gold: 5600, boundGold: 5600, tradableGold: 0, moreCost: null });
-  // 노말: only the single-mode table has a number, which is not the normal value.
-  assert.equal(mode("abrelshud", "NORMAL").status, "UNVERIFIED");
-  assert.equal(modeTotals(mode("abrelshud", "NORMAL")), null);
-  // 쿠크세이튼 노말 cites the official single-mode table with the same gates.
-  assert.ok(RAID_DATA.sources[mode("kouku", "NORMAL").source!].url?.endsWith("/13148"));
-  const broken = structuredClone(RAID_DATA) as RaidData;
-  const split = broken.raids.find((r) => r.id === "abrelshud")!.modes[1];
-  split.gates[0].gold = 1200;
-  split.total!.boundGold = 9999;
-  const problems = checkRaidData(broken);
-  assert.ok(problems.some((p) => p.includes("total with gate values")));
-  assert.ok(problems.some((p) => p.includes("bad total")));
+test("measured gates fill the old legion raids and the kazeros single modes (M7·E2·E3)", () => {
+  const gates = (id: string, d: string) => mode(id, d).gates.map((g) => [g.gold, g.boundGold, g.moreCost]);
+  assert.deepEqual(gates("abrelshud", "HARD"), [[1200, 1200, 400], [1200, 1200, 400], [1200, 1200, 500], [2000, 2000, 800]]);
+  assert.equal(modeTotals(mode("abrelshud", "NORMAL"))?.gold, 4600);
+  assert.equal(modeTotals(mode("kouku", "NORMAL"))?.moreCost, 1500);
+  assert.equal(modeTotals(mode("valtan", "HARD"))?.gold, 1800);
+  assert.equal(modeTotals(mode("vykas", "NORMAL"))?.gold, 1600);
+  // 2막~종막 싱글 = 노말 (같은 골드·더보기, 귀속 50%).
+  for (const id of ["kazeros-act2", "kazeros-act3", "kazeros-act4", "kazeros-final"])
+    assert.deepEqual(gates(id, "SINGLE"), gates(id, "NORMAL"), id);
+  assert.equal(modeTotals(mode("kazeros-act3", "SINGLE"))?.tradableGold, 10500);
 });
 
 test("missing values never turn into zero", () => {
-  assert.equal(modeTotals(mode("valtan", "NORMAL")), null);
-  assert.equal(modeTotals(mode("vykas", "HARD")), null);
+  const valtan = mode("valtan", "NORMAL");
+  const empty = { ...valtan, gates: valtan.gates.map((g) => ({ ...g, gold: null, boundGold: null })) };
+  assert.equal(modeTotals(empty), null);
 });
 
 test("the checker catches the mistakes it is meant to catch", () => {
   const broken = structuredClone(RAID_DATA) as RaidData;
   broken.raids[0].modes[0].gates[0].boundGold = 999999;
   broken.raids[1].modes[0].source = "nowhere";
-  const unverified = broken.raids.find((r) => r.id === "valtan")!.modes[0];
-  unverified.gates[0].gold = 1;
+  broken.raids.find((r) => r.id === "valtan")!.modes[0].status = "UNVERIFIED";
   const problems = checkRaidData(broken);
   assert.ok(problems.some((p) => p.includes("bound gold above gold")));
   assert.ok(problems.some((p) => p.includes("needs a known source")));

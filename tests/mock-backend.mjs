@@ -244,6 +244,21 @@ async function market(url, req, send) {
       "위대한 운명의 돌파석": [1, 33],
       // 고통의 가시 최소 보장 가치(재료 상자 쪽 결과 중 하나).
       "운명의 파편 주머니(대)": [1, 232],
+      // 로아샵 효율: 한 패키지(전투 지원)는 구성품 시세가 모두 있고, 성장 패키지는 용암의 숨결이 없어 미확인.
+      "상급 아비도스 융화 재료": [1, 271],
+      "빛나는 정령의 회복약": [1, 30],
+      "빛나는 암흑 수류탄": [1, 25],
+      "빛나는 성스러운 폭탄": [1, 28],
+      "아드로핀 물약": [1, 15],
+      "각성 물약": [1, 12],
+      // 아비도스 제작 손익: 벌목·채광·수렵·고고학·식물채집 재료와 결과물. 낚시의 "생선"은 없어 미확인.
+      "아비도스 융화 재료": [1, 90],
+      "아비도스 목재": [100, 1000], "부드러운 목재": [100, 400], "목재": [100, 100],
+      "아비도스 철광석": [100, 1100], "묵직한 철광석": [100, 420], "철광석": [100, 90],
+      "아비도스 두툼한 생고기": [100, 1050], "다듬은 생고기": [100, 380], "두툼한 생고기": [100, 95],
+      "아비도스 태양 잉어": [100, 980], "붉은 살 생선": [100, 390],
+      "아비도스 유물": [100, 1200], "희귀한 유물": [100, 450], "고대 유물": [100, 110],
+      "아비도스 들꽃": [100, 950], "수줍은 들꽃": [100, 360], "들꽃": [100, 80],
     };
     const observedAt = nowIso();
     const items = [...new Set(request.names.map((n) => n.trim()))].map((name) => {
@@ -852,6 +867,29 @@ createServer(async (req, res) => {
     const items = q.length < 1 ? [] : known.filter((c) => c.characterName.startsWith(q)).slice(0, 8);
     return send({ code: "CHARACTER_SUGGEST_SUCCESS", message: "ok", data: { items } });
   }
+  // Popular guilds (api #467, M21): rank, server and guild only. 24h has 10
+  // guilds on two servers, 7d four; 니나브 is still collecting.
+  if (url.pathname === "/api/v1/guilds/popular") {
+    const period = url.searchParams.get("period") || "24h";
+    const server = url.searchParams.get("server");
+    const all = Array.from({ length: period === "7d" ? 4 : 10 }, (_, i) => ({
+      serverName: i % 2 ? "카단" : "아만",
+      guildName: `인기길드${i + 1}`,
+    }));
+    const collecting = server === "니나브";
+    const items = collecting ? [] : all.filter((g) => !server || g.serverName === server).map((g, i) => ({ rank: i + 1, ...g }));
+    return send({
+      code: "GUILD_POPULAR_SUCCESS",
+      message: "성공",
+      data: {
+        period,
+        aggregatedAt: new Date().toISOString(),
+        sampleStatus: collecting ? "COLLECTING" : "READY",
+        ruleVersion: "popular-guild-v1",
+        items,
+      },
+    });
+  }
   if (url.pathname === "/api/v1/characters/popular") {
     // Backend F-10 sample; 7d shows the collecting state.
     const body = JSON.parse(readFileSync(new URL("./popular-fixtures/characters-popular.json", import.meta.url), "utf8"));
@@ -1402,6 +1440,9 @@ createServer(async (req, res) => {
   // server change brings other rows (A7 table widths).
   if (url.pathname === "/api/v1/rankings/guilds") {
     const server = url.searchParams.get("server");
+    // Name search (api #466): matching rows keep their overall rank; "빠진" matches
+    // two guilds left out for too few members seen.
+    const guild = url.searchParams.get("guild");
     const sort = url.searchParams.get("sort") ?? "AVG";
     const guilds = (server === "아만"
       ? [["합성길드아만", "아만", 9, 1702.35, 8, 3010.5], ["짧은길드", "아만", 6, 1688, 0, null]]
@@ -1429,7 +1470,17 @@ createServer(async (req, res) => {
           populationUnit: "GUILD",
         },
         sort, page: 1, size: 50, minMembers: 5, excludedGuilds: server === "아만" ? 3 : 41,
-        rows: guilds.map((row, i) => ({ rank: i + 1, ...row })),
+        ...(guild
+          ? {
+              matchCount: guilds.filter((row) => row.guildName.toLowerCase().includes(guild.toLowerCase())).length,
+              excludedMatches: guild === "빠진" ? 2 : 0,
+            }
+          : { matchCount: null, excludedMatches: null }),
+        rows: guilds
+          .map((row, i) => ({ rank: i + 1, ...row }))
+          .filter((row) => !guild || row.guildName.toLowerCase().includes(guild.toLowerCase()))
+          // One page holds every guild here: a later page is empty.
+          .filter(() => Number(url.searchParams.get("page") ?? 1) <= 1),
       },
     });
   }

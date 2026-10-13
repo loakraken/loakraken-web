@@ -9,7 +9,6 @@ import {
   CATEGORY_LABEL,
   DIFFICULTY_LABEL,
   RAID_DATA,
-  SPLIT_UNKNOWN,
   STATUS_LABEL,
   formatGold,
   modeTotals,
@@ -24,7 +23,7 @@ import styles from "./raid-rewards.module.css";
 const FILTERS: (Category | "ALL")[] = ["ALL", "KAZEROS", "SHADOW", "EPIC", "ABYSS", "LEGION", "EXTREME"];
 const NO_DATA = "데이터 없음";
 
-const gold = (value: number | null, empty = NO_DATA) => (value === null ? empty : formatGold(value));
+const gold = (value: number | null) => (value === null ? NO_DATA : formatGold(value));
 
 // Every difficulty of a card draws the same table: the same columns, as many
 // rows as the difficulty with the most gates (the rest held empty), fixed
@@ -34,8 +33,6 @@ const showsMore = (mode: Mode) => mode.gates.some((g) => g.moreCost !== null) ||
 
 function ModeTable({ raid, mode }: { raid: Raid; mode: Mode }) {
   const totals = modeTotals(mode);
-  // Confirmed total only: the gates say so instead of "데이터 없음".
-  const empty = mode.total ? SPLIT_UNKNOWN : NO_DATA;
   const hasMore = raid.modes.some(showsMore);
   const rows = Math.max(...raid.modes.map((m) => m.gates.length));
   return (
@@ -80,10 +77,10 @@ function ModeTable({ raid, mode }: { raid: Raid; mode: Mode }) {
                   {raid.category === "EXTREME" ? "보스 처치" : `${g.gate}관문`}
                 </th>
                 <td className={styles.num} data-empty={g.gold === null || undefined}>
-                  {gold(g.gold, empty)}
+                  {gold(g.gold)}
                 </td>
                 <td className={styles.num} data-empty={g.boundGold === null || undefined}>
-                  {g.boundGold === 0 ? "—" : gold(g.boundGold, empty)}
+                  {g.boundGold === 0 ? "—" : gold(g.boundGold)}
                 </td>
                 {hasMore && (
                   <td className={styles.num} data-empty={g.moreCost === null || undefined}>

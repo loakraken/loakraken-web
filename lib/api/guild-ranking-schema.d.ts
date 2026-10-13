@@ -13,7 +13,7 @@ export interface paths {
         };
         /**
          * 길드 랭킹
-         * @description 같은 서버·같은 길드 이름(공식 프로필 GuildName)의 관측 캐릭터를 묶은 순위입니다. activeDays 안에 프로필을 관측한 공개 캐릭터만 넣으므로 값은 실제 길드 전체가 아니라 확인한 길드원 기준입니다. sort: AVG(아이템 레벨 평균, 기본) 또는 SUM(아이템 레벨 합). 확인한 길드원이 minMembers(5명) 미만인 길드는 빼고 excludedGuilds에 수를 줍니다. 처리정지 목록는 캐릭터만 빼고 길드는 빼지 않습니다. 값이 같으면(소수 둘째 자리) 같은 순위입니다. 모집단이 30 미만이면 sampleStatus=COLLECTING이지만 값·순위는 그대로 줍니다(참고값). 400 INVALID_REQUEST·STATS_INVALID_RANGE, 503 STATS_UNAVAILABLE
+         * @description 같은 서버·같은 길드 이름(공식 프로필 GuildName)의 관측 캐릭터를 묶은 순위입니다. activeDays 안에 프로필을 관측한 공개 캐릭터만 넣으므로 값은 실제 길드 전체가 아니라 확인한 길드원 기준입니다. sort: AVG(아이템 레벨 평균, 기본) 또는 SUM(아이템 레벨 합). 확인한 길드원이 minMembers(5명) 미만인 길드는 빼고 excludedGuilds에 수를 줍니다. guild(이름 일부)를 주면 그 이름에 맞는 줄만 주고 rank는 전체 순위 그대로입니다(맞는 줄이 없으면 rows=[]). 처리정지 목록는 캐릭터만 빼고 길드는 빼지 않습니다. 값이 같으면(소수 둘째 자리) 같은 순위입니다. 모집단이 30 미만이면 sampleStatus=COLLECTING이지만 값·순위는 그대로 줍니다(참고값). 400 INVALID_REQUEST·STATS_INVALID_RANGE, 503 STATS_UNAVAILABLE
          */
         get: operations["guilds"];
         put?: never;
@@ -44,28 +44,30 @@ export interface components {
             data: components["schemas"]["GuildRankingResponse"];
         };
         GuildRankingResponse: {
-            meta?: components["schemas"]["StatsMetaResponse"];
+            meta: components["schemas"]["StatsMetaResponse"];
             /**
              * @description AVG 또는 SUM(문자열, 값이 늘 수 있음)
              * @example AVG
              */
-            sort?: string;
+            sort: string;
             /** Format: int32 */
-            page?: number;
+            page: number;
             /** Format: int32 */
-            size?: number;
+            size: number;
             /**
              * Format: int32
              * @description 순위에 넣는 최소 확인 길드원 수
              * @example 5
              */
-            minMembers?: number;
+            minMembers: number;
             /**
              * Format: int64
              * @description 확인한 길드원이 minMembers 미만이라 뺀 길드 수
              */
-            excludedGuilds?: number;
-            rows?: components["schemas"]["GuildRankingRowResponse"][];
+            excludedGuilds: number;
+            excludedMatches: number | null;
+            matchCount: number | null;
+            rows: components["schemas"]["GuildRankingRowResponse"][];
         };
         /** @description 공통 메타. 모집단은 LOAKraken이 관측한 캐릭터 중 최근 activeDays일 안에 프로필(전투력)을 확인한 캐릭터이며 게임 전체 인구가 아닙니다. */
         StatsMetaResponse: {
@@ -103,18 +105,18 @@ export interface components {
         };
         /** @description 정규화한 조건(기본값 포함) */
         StatsConditionsResponse: {
-            server: (((((((((string | null) | null) | null) | null) | null) | null) | null) | null) | null) | null;
-            role: (((((((((("DEALER" | "SUPPORT") | null) | null) | null) | null) | null) | null) | null) | null) | null) | null;
-            className: (((((((((string | null) | null) | null) | null) | null) | null) | null) | null) | null) | null;
+            server: string | null;
+            role: ("DEALER" | "SUPPORT") | null;
+            className: string | null;
             /**
              * Format: int32
              * @description 최근 확인 기간(일): 7, 30, 90
              */
             activeDays: number;
             itemLevelMin: number;
-            itemLevelMax: (((((((((number | null) | null) | null) | null) | null) | null) | null) | null) | null) | null;
-            combatPowerMin: (((((((((number | null) | null) | null) | null) | null) | null) | null) | null) | null) | null;
-            combatPowerMax: (((((((((number | null) | null) | null) | null) | null) | null) | null) | null) | null) | null;
+            itemLevelMax: number | null;
+            combatPowerMin: number | null;
+            combatPowerMax: number | null;
             /** @description 원정대(같은 서버) 대표 캐릭터(아이템 레벨 최고)만 */
             representativeOnly: boolean;
         };
@@ -189,6 +191,8 @@ export interface operations {
                 server?: string;
                 /** @description 최근 며칠 안에 프로필을 관측한 캐릭터(7·30·90, 기본 30) */
                 activeDays?: number;
+                /** @description 길드 이름 일부(1~12자, 글자·숫자만, 대소문자 무시). 결과 줄의 rank는 전체 순위 그대로 */
+                guild?: string;
                 /** @description AVG(기본) 또는 SUM */
                 sort?: string;
                 /** @description 1부터 */

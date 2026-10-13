@@ -104,6 +104,8 @@ test.describe("치적·뭉가·음돌 @smoke", () => {
     await page.getByRole("button", { name: "계산하기" }).click();
     await expect(page.getByText(/규칙 crit-speed-v\d+/)).toBeVisible();
     await expect(page.getByText("백어택 적중 가정")).toBeVisible();
+    // The parts and their sum, written out (PM-프론트 P2, crit-speed v7).
+    await expect(page.getByText(/캐릭터 [\d.]+% \+ 가정 [\d.]+% = 합계 [\d.]+%/)).toBeVisible();
     await expectNoHorizontalOverflow(page);
   });
 

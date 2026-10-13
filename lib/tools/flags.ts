@@ -145,6 +145,19 @@ export function isGuildRankingEnabled(env: Env = process.env) {
 }
 
 /**
+ * Popular guilds on the guild ranking (api #467, checklist M21). The backend
+ * opens the route only with both RANKING_GUILDS_ENABLED and the popular
+ * characters flag on. Same rule: `POPULAR_GUILDS=on|off` overrides,
+ * otherwise hidden only on the production host.
+ */
+export function isPopularGuildsEnabled(env: Env = process.env) {
+  const flag = env.POPULAR_GUILDS?.trim().toLowerCase();
+  if (flag === "on") return true;
+  if (flag === "off") return false;
+  return !isProductionHost(env.SITE_URL);
+}
+
+/**
  * Title equip shares (api #314, checklist L13·K11·L44): the 통계 '칭호' tab and
  * the share beside each roster title. Off on the backend until it ships.
  * Same rule: `TITLE_STATS=on|off` overrides, otherwise hidden only on the
