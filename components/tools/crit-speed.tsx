@@ -816,7 +816,7 @@ function CritSpeedContent({ initialName }: { initialName: string }) {
                     }
                   />
                 )}
-                <div aria-live="polite">
+                <div className={styles.live} aria-live="polite">
                   {failure ? (
                     <div className={quote.notice}>
                       {/* The alert holds the sentence only; the retry button's countdown

@@ -218,6 +218,12 @@
   border-radius: var(--radius-xl);
   background: var(--background);
 }
+/* Its own block formatting context: the failure notice's top margin stays
+   inside instead of collapsing through and moving the region down 18px when
+   it replaces the loading line (360 0.0023). */
+.live {
+  display: flow-root;
+}
 .empty {
   display: flex;
   align-items: center;
@@ -462,15 +468,16 @@
   .columns {
     grid-template-columns: 1fr;
   }
-  /* Phones: the answer first, the assumptions to tweak below it. */
+  /* Phones: the answer first, the assumptions to tweak below it. The
+     answer area holds a screen of room in every state (before the first
+     calculation too): the settings below start off screen, so pressing
+     계산하기 no longer pushes them down (apple-design 재검수, 360 0.0228/0.30
+     → 0), nor does the result arriving (390 CLS 0.37 earlier). */
   .output {
     order: -1;
-  }
-  /* The answer comes first on phones, so while it loads hold a screen of
-     room: the settings below start off screen and do not jump when the
-     result arrives (390 CLS 0.37 → see PR). */
-  .empty[data-loading] {
     min-height: 100dvh;
+  }
+  .empty[data-loading] {
     align-items: flex-start;
   }
   .settings {

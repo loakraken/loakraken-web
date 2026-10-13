@@ -70,11 +70,6 @@
 .form button:not([aria-disabled="true"]):active {
   scale: var(--press-scale);
 }
-@media (prefers-reduced-motion: reduce) {
-  .form button:active {
-    scale: none;
-  }
-}
 .form button[aria-disabled="true"] {
   opacity: 0.5;
   cursor: not-allowed;

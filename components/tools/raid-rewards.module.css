@@ -67,11 +67,6 @@
 .chip:active {
   scale: var(--press-scale);
 }
-@media (prefers-reduced-motion: reduce) {
-  .chip:active {
-    scale: none;
-  }
-}
 .chip[aria-pressed="true"] {
   border-color: var(--primary);
   background: var(--primary);
