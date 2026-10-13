@@ -84,7 +84,10 @@ export default function SpecUpGuide({ data }: { data: Character }) {
   const failure = query.error instanceof SpecUpQueryError ? query.error.info.code : query.error ? "ERROR" : null;
   const { ok, folded } = guide ? splitCandidates(guide.candidates) : { ok: [], folded: [] };
   // Each cost basis once, under the table (the same code is the same sentence).
-  const bases = [...new Map(ok.flatMap((c) => (c.cost ? [[c.cost.code, c.cost.basis] as const] : []))).values()];
+  // In code order, so a new sort does not reorder these lines (A7).
+  const bases = [...new Map(ok.flatMap((c) => (c.cost ? [[c.cost.code, c.cost.basis] as const] : []))).entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([, basis]) => basis);
 
   return (
     <div className={styles.specUp}>
@@ -168,7 +171,9 @@ export default function SpecUpGuide({ data }: { data: Character }) {
                     {ok.map((c, i) => {
                       const tryable = editsFor(c.change, NO_EDITS) != null && c.change;
                       return (
-                        <tr key={c.id}>
+                        // Keyed by the order of the list on screen: a new
+                        // order draws new rows instead of sliding the old ones (A7).
+                        <tr key={`${guide.sort}:${c.id}`}>
                           <td data-cell="rank">{i + 1}</td>
                           <td data-cell="kind">{kindLabel(c.kind)}</td>
                           <th scope="row" data-cell="target">

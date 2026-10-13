@@ -2403,6 +2403,12 @@
   }
 }
 /* Each row: its combat power under the class line, kept in the compact view. */
+.siblingGrid .siblingBest {
+  grid-area: best;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
 .siblingGrid .siblingPower {
   grid-area: power;
   color: var(--muted-foreground);
@@ -2411,11 +2417,11 @@
 }
 .siblingGrid a,
 .siblingGrid div {
-  grid-template-areas: "name level arrow" "meta level arrow" "power power arrow";
+  grid-template-areas: "name level arrow" "meta level arrow" "power power arrow" "best best arrow";
 }
 .siblingGrid[data-compact] a,
 .siblingGrid[data-compact] div {
-  grid-template-areas: "name level arrow" "power power arrow";
+  grid-template-areas: "name level arrow" "power power arrow" "best best arrow";
 }
 .siblingGrid[data-stale] {
   opacity: 0.55;

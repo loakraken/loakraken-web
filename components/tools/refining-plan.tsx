@@ -441,11 +441,19 @@ function TopSummary({
         {formatCount(total)}
         <span>골드</span>
       </p>
+      {/* One line per part: in a single run, a basis or count that changed
+          width moved the text after it (A7). */}
       <p className={styles.topNote}>
-        {priceList ? "재련 골드 + 부족한 재료 구매 골드" : "재련 골드(재료 시세를 불러오는 중)"} · 총{" "}
-        {formatCount(summary.stageCount)}단계, 시도{" "}
-        {formatCount(summary.attempts, mode === "expected" ? 1 : 0)}회 ·{" "}
-        <a href="#estimate-heading">재료와 부위별 내역</a>
+        <span className={styles.topLine}>
+          {priceList ? "재련 골드 + 부족한 재료 구매 골드" : "재련 골드(재료 시세를 불러오는 중)"}
+        </span>
+        <span className={styles.topLine}>
+          총 {formatCount(summary.stageCount)}단계, 시도{" "}
+          {formatCount(summary.attempts, mode === "expected" ? 1 : 0)}회
+        </span>
+        <a className={styles.topLine} href="#estimate-heading">
+          재료와 부위별 내역
+        </a>
       </p>
     </>
   );
@@ -769,7 +777,8 @@ function RefiningContent({ initialName }: { initialName: string }) {
             ) : complete ? (
               <TopSummary plans={plans} mode={mode} basis={basis} owned={owned} />
             ) : (
-              <p className={styles.topNote}>
+              // A line of its own per state: rewriting one line's text moved it by a sub-pixel (A7).
+              <p className={styles.topNote} key={requests.length ? "pending" : "empty"}>
                 {requests.length ? "계산하고 있어요." : "아래에서 목표 단계를 현재보다 높게 고르면 여기에 총 비용이 나와요."}
               </p>
             )}

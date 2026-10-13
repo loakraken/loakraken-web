@@ -2086,13 +2086,21 @@ function PowerLine({
 }) {
   const seen = record?.observedAt ? Date.parse(record.observedAt) : NaN;
   return (
-    <span className={styles.siblingPower}>
-      {!ready
-        ? "\u00a0"
-        : record?.combatPower == null
-          ? "전투력 기록 없음"
-          : `전투력 ${number(record.combatPower)}${now != null && Number.isFinite(seen) ? ` · ${relativeAgo(Math.max(0, now - seen))} 확인` : ""}`}
-    </span>
+    <>
+      <span className={styles.siblingPower}>
+        {!ready
+          ? "\u00a0"
+          : record?.combatPower == null
+            ? "전투력 기록 없음"
+            : `전투력 ${number(record.combatPower)}${now != null && Number.isFinite(seen) ? ` · ${relativeAgo(Math.max(0, now - seen))} 확인` : ""}`}
+      </span>
+      {/* The highest combat power seen (L19, the ranking's value). Its own
+          line is always there, so a value arriving never moves the row; no
+          record (a stopped character too, B5) reads the same either way. */}
+      <span className={styles.siblingBest}>
+        {!ready ? "\u00a0" : record?.bestCombatPower == null ? "최고 전투력 기록 없음" : `최고 전투력 ${number(record.bestCombatPower)}`}
+      </span>
+    </>
   );
 }
 

@@ -31,6 +31,24 @@ test("official values match the notices they cite", () => {
   assert.equal(modeTotals(mode("kazeros-act3-extreme", "HARD"))?.moreCost, null);
 });
 
+test("a confirmed total keeps its gates unknown instead of split by guess (M7)", () => {
+  const hard = mode("abrelshud", "HARD");
+  assert.ok(hard.gates.every((g) => g.gold === null && g.boundGold === null));
+  assert.deepEqual(modeTotals(hard), { gold: 5600, boundGold: 5600, tradableGold: 0, moreCost: null });
+  // 노말: only the single-mode table has a number, which is not the normal value.
+  assert.equal(mode("abrelshud", "NORMAL").status, "UNVERIFIED");
+  assert.equal(modeTotals(mode("abrelshud", "NORMAL")), null);
+  // 쿠크세이튼 노말 cites the official single-mode table with the same gates.
+  assert.ok(RAID_DATA.sources[mode("kouku", "NORMAL").source!].url?.endsWith("/13148"));
+  const broken = structuredClone(RAID_DATA) as RaidData;
+  const split = broken.raids.find((r) => r.id === "abrelshud")!.modes[1];
+  split.gates[0].gold = 1200;
+  split.total!.boundGold = 9999;
+  const problems = checkRaidData(broken);
+  assert.ok(problems.some((p) => p.includes("total with gate values")));
+  assert.ok(problems.some((p) => p.includes("bad total")));
+});
+
 test("missing values never turn into zero", () => {
   assert.equal(modeTotals(mode("valtan", "NORMAL")), null);
   assert.equal(modeTotals(mode("vykas", "HARD")), null);
