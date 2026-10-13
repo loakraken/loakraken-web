@@ -42,9 +42,6 @@ const CONTROLS = "main [role=group] button, main [role=tablist] [role=tab], main
 const FOUND = "10-13 A7 전수 측정에서 발견, 정리 대기";
 const KNOWN = Object.fromEntries(
   [
-    "/news@360",
-    `${characterPath("상세", "skills")}@1280`, `${characterPath("상세", "skills")}@360`,
-    `${characterPath("상세", "collectibles")}@1280`, `${characterPath("상세", "collectibles")}@360`,
   ].map((key) => [key, FOUND]),
 );
 

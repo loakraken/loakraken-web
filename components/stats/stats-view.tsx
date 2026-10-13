@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState, type CSSProperties } from "react";
+import { useTallest } from "@/components/ui/use-tallest";
 import { useRouter } from "next/navigation";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { SiteHeader } from "@/components/site/site-header";
@@ -493,28 +494,6 @@ function TitlesTab({ query }: { query: StatsQuery }) {
       )}
     </div>
   );
-}
-
-/**
- * The tallest the tab panel has been on this visit. A shorter tab (or its
- * loading line) keeps that room, so the notice under the tabs never moves up
- * on a tab click and back down when the data lands (A7, #594); a taller tab
- * still grows the room.
- */
-function useTallest() {
-  const ref = useRef<HTMLDivElement>(null);
-  const [tallest, setTallest] = useState(0);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const observer = new ResizeObserver(() => {
-      const height = el.offsetHeight;
-      setTallest((current) => (height > current ? height : current));
-    });
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
-  return [ref, tallest] as const;
 }
 
 /**

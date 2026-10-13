@@ -16,6 +16,7 @@ import { Panel } from "./panel";
 import { Empty, number, text } from "./parts";
 import styles from "./detail.module.css";
 import { ProgressBar } from "@/components/ui/progress-bar";
+import { useTallest } from "@/components/ui/use-tallest";
 
 type Collectible = Character["collectibles"][number];
 
@@ -40,7 +41,16 @@ const FILTERS = [
 ] as const;
 type Filter = (typeof FILTERS)[number]["id"];
 
-function CollectionList({ collectible }: { collectible: Collectible }) {
+function CollectionList({
+  collectible,
+  listRef,
+  listHeight,
+}: {
+  collectible: Collectible;
+  /** Keep the list at the tallest it has been on this visit (useTallest). */
+  listRef: (el: HTMLDivElement | null) => void;
+  listHeight: number;
+}) {
   const [filter, setFilter] = useState<Filter>("all");
   const [rarest, setRarest] = useState(false);
   // How many observed rosters own each item (backend #306). Off on the
@@ -86,38 +96,42 @@ function CollectionList({ collectible }: { collectible: Collectible }) {
           </button>
         )}
       </div>
-      {!collectible.items.length ? (
-        <p className={styles.muted}>항목 목록이 제공되지 않았어요.</p>
-      ) : !items.length ? (
-        <p className={styles.muted}>
-          {filter === "missing"
-            ? `${text(collectible.type)}을(를) 모두 모았어요.`
-            : "해당하는 항목이 없어요."}
-        </p>
-      ) : (
-        <ol className={styles.collectionItems}>
-          {items.map((item, i) => {
-            const done = item.maxPoint != null && item.point === item.maxPoint;
-            return (
-              <li key={`${item.name}-${i}`} data-done={done || undefined}>
-                <span>
-                  {text(item.name)}
-                  {shareOf(item.name) != null && (
-                    <em className={styles.ownedShare}> 보유율 {shareOf(item.name)!.toFixed(1)}%</em>
-                  )}
-                </span>
-                <small>
-                  {item.maxPoint != null && item.maxPoint > 1
-                    ? `${number(item.point)} / ${number(item.maxPoint)}`
-                    : done
-                      ? "획득"
-                      : "미획득"}
-                </small>
-              </li>
-            );
-          })}
-        </ol>
-      )}
+      {/* Held at its tallest: a shorter filter or kind does not pull up the
+          caption under it or, stacked, the panels below (A7). */}
+      <div ref={listRef} style={listHeight ? { minHeight: listHeight } : undefined}>
+        {!collectible.items.length ? (
+          <p className={styles.muted}>항목 목록이 제공되지 않았어요.</p>
+        ) : !items.length ? (
+          <p className={styles.muted}>
+            {filter === "missing"
+              ? `${text(collectible.type)}을(를) 모두 모았어요.`
+              : "해당하는 항목이 없어요."}
+          </p>
+        ) : (
+          <ol className={styles.collectionItems}>
+            {items.map((item, i) => {
+              const done = item.maxPoint != null && item.point === item.maxPoint;
+              return (
+                <li key={`${item.name}-${i}`} data-done={done || undefined}>
+                  <span>
+                    {text(item.name)}
+                    {shareOf(item.name) != null && (
+                      <em className={styles.ownedShare}> 보유율 {shareOf(item.name)!.toFixed(1)}%</em>
+                    )}
+                  </span>
+                  <small>
+                    {item.maxPoint != null && item.maxPoint > 1
+                      ? `${number(item.point)} / ${number(item.maxPoint)}`
+                      : done
+                        ? "획득"
+                        : "미획득"}
+                  </small>
+                </li>
+              );
+            })}
+          </ol>
+        )}
+      </div>
       {/* Below the list: it arrives after the list and must not push it. */}
       {owned.size > 0 && sample && (
         <p className={styles.caption}>
@@ -138,6 +152,7 @@ export function CollectiblesTab({ data }: { data: Character }) {
   const collectibles = data.collectibles;
   const [selected, setSelected] = useState(0);
   const current = collectibles[Math.min(selected, collectibles.length - 1)];
+  const [listRef, listHeight] = useTallest();
   const special = groupEquipment(data.loadout.equipment).others;
   const extra = useItemTooltips(data.characterName);
   // The reference also shows each kind's average, not only the overall share.
@@ -199,7 +214,7 @@ export function CollectiblesTab({ data }: { data: Character }) {
                     aria-label={`${text(current.type)} 목록`}
                   >
                     <h3>{text(current.type)}</h3>
-                    <CollectionList key={selected} collectible={current} />
+                    <CollectionList key={selected} collectible={current} listRef={listRef} listHeight={listHeight} />
                   </section>
                 )}
               </>

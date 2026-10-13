@@ -1440,6 +1440,9 @@ function SkillOverview({
 }) {
   const [showAll, setShowAll] = useState(false);
   const [gemFilter, setGemFilter] = useState<GemFilter>("all");
+  // The skill rows keep their tallest height: a narrower gem filter does not
+  // pull up what is under them (stacked, the side panels too) (A7).
+  const [listRef, listHeight] = useTallest();
   const listId = useId();
   const otherId = useId();
   const skills = data.loadout.skills;
@@ -1521,25 +1524,27 @@ function SkillOverview({
           </div>
         </div>
       )}
-      {list.length ? (
-        <ul id={listId} className={styles.skillGrid} data-compact={!full || undefined}>
-          {list.map((skill, i) => (
-            <SkillCard
-              key={`${skill.name}-${i}`}
-              skill={skill}
-              compact={!full}
-              rune={runeLines(extra, skill.name)}
-              gems={full ? gemsOf(skill) : undefined}
-              className={data.className}
-              gemLinesOf={(slot) => gemLines(extra, slot)}
-              lines={skillLines(extra, skill.name)}
-              levelOf={armory ? (tier, slot) => tripodLevel(armory, skill.name, tier, slot) : undefined}
-            />
-          ))}
-        </ul>
-      ) : (
-        <Empty state={data.coverage.skills} />
-      )}
+      <div ref={listRef} className={styles.heldList} style={listHeight ? { minHeight: listHeight } : undefined}>
+        {list.length ? (
+          <ul id={listId} className={styles.skillGrid} data-compact={!full || undefined}>
+            {list.map((skill, i) => (
+              <SkillCard
+                key={`${skill.name}-${i}`}
+                skill={skill}
+                compact={!full}
+                rune={runeLines(extra, skill.name)}
+                gems={full ? gemsOf(skill) : undefined}
+                className={data.className}
+                gemLinesOf={(slot) => gemLines(extra, slot)}
+                lines={skillLines(extra, skill.name)}
+                levelOf={armory ? (tier, slot) => tripodLevel(armory, skill.name, tier, slot) : undefined}
+              />
+            ))}
+          </ul>
+        ) : (
+          <Empty state={data.coverage.skills} />
+        )}
+      </div>
       {others.length > 0 && (
         <div className={styles.otherGems}>
           <h3 id={otherId}>그 외 장착 보석</h3>

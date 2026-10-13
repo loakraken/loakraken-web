@@ -40,3 +40,20 @@
     transition: none;
   }
 }
+/* Stacked: the notices hold their tallest height so the events under them stay put (A7). */
+@media (max-width: 900px) {
+  .held {
+    min-height: var(--held, 0);
+  }
+}
+/* The two tab lists share one cell; only the chosen one shows (A7). */
+.tabStack {
+  display: grid;
+}
+.tabStack > * {
+  grid-area: 1 / 1;
+  min-width: 0;
+}
+.tabStack > :not([data-shown]) {
+  visibility: hidden;
+}
