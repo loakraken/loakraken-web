@@ -1200,7 +1200,7 @@ createServer(async (req, res) => {
           population: sample,
           conditions: { server: null, role: null, className, activeDays: days, itemLevelMin: 1680, itemLevelMax: null, combatPowerMin: null, combatPowerMax: null, representativeOnly: false },
           aggregatedAt: new Date(Date.now() - 600_000).toISOString(),
-          snapshot: "latest", ruleVersion: "class-builds-v1", minSample: 30,
+          snapshot: "latest", ruleVersion: "class-builds-v1", minSample: 30, populationUnit: "CHARACTER",
           sampleStatus: ready ? "READY" : "COLLECTING",
           coverage: { observedCharacters: 4200, knownCharacters: 5100, discoveredAccounts: 900 },
         },
