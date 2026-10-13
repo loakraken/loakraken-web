@@ -34,6 +34,7 @@
   list-style: disc;
 }
 .note {
+  min-height: 1lh;
   margin-top: var(--space-2);
   color: var(--muted-foreground);
   font-size: var(--text-caption);

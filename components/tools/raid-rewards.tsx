@@ -80,17 +80,22 @@ function ModeTable({ raid, mode }: { raid: Raid; mode: Mode }) {
               </tr>
             ))}
           </tbody>
-          {totals && mode.gates.length > 1 && (
+          {/* The total row and the note line below are there for every
+              difficulty (empty when unknown), so switching difficulty keeps
+              the card's height (A7). */}
+          {mode.gates.length > 1 && (
             <tfoot>
               <tr>
                 <th scope="row">합계</th>
-                <td className={styles.num}>{formatGold(totals.gold)}</td>
-                <td className={styles.num}>
-                  {totals.boundGold ? formatGold(totals.boundGold) : "—"}
+                <td className={styles.num} data-empty={!totals || undefined}>
+                  {totals ? formatGold(totals.gold) : NO_DATA}
+                </td>
+                <td className={styles.num} data-empty={!totals || undefined}>
+                  {!totals ? NO_DATA : totals.boundGold ? formatGold(totals.boundGold) : "—"}
                 </td>
                 {hasMore && (
-                  <td className={styles.num}>
-                    {totals.moreCost === null ? NO_DATA : formatGold(totals.moreCost)}
+                  <td className={styles.num} data-empty={totals?.moreCost == null || undefined}>
+                    {totals?.moreCost == null ? NO_DATA : formatGold(totals.moreCost)}
                   </td>
                 )}
               </tr>
@@ -98,13 +103,13 @@ function ModeTable({ raid, mode }: { raid: Raid; mode: Mode }) {
           )}
         </table>
       </div>
-      {totals && totals.boundGold > 0 && (
-        <p className={styles.note}>
-          {totals.tradableGold === 0
+      <p className={styles.note}>
+        {totals && totals.boundGold > 0
+          ? totals.tradableGold === 0
             ? "전액 귀속 골드예요. 받은 캐릭터만 쓸 수 있어요."
-            : `거래 가능한 골드 ${formatGold(totals.tradableGold)} · 귀속 골드는 받은 캐릭터만 쓸 수 있어요.`}
-        </p>
-      )}
+            : `거래 가능한 골드 ${formatGold(totals.tradableGold)} · 귀속 골드는 받은 캐릭터만 쓸 수 있어요.`
+          : ""}
+      </p>
     </div>
   );
 }
