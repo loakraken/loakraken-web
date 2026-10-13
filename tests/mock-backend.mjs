@@ -771,6 +771,25 @@ createServer(async (req, res) => {
         data: { items, missingCount, refreshAvailableAt: null },
       });
   }
+  // Public summary (api #177, cache only): 공개요약 is indexable; 미기록요약 and
+  // 정지저장 (a processing-stop character found only in stored records) both
+  // answer 404 CHARACTER_NOT_CACHED; 발견만 (roster list only, no combat power)
+  // and 정지캐시 (processing-stop, live cache) come back not indexable.
+  if (url.pathname === "/api/v1/characters/public-summary") {
+    const who = url.searchParams.get("characterName") ?? "";
+    if (who === "미기록요약" || who === "정지저장")
+      return send({ code: "CHARACTER_NOT_CACHED", message: "private" }, 404);
+    const indexable = !/^(발견만|정지캐시)/.test(who);
+    return send({
+      code: "CHARACTER_PUBLIC_SUMMARY_SUCCESS",
+      message: "ok",
+      data: {
+        characterName: who, serverName: "아만", className: "블레이드", characterLevel: 70, itemLevel: 1770,
+        combatPower: who.startsWith("발견만") ? null : 4000, arkPassiveTitle: "버스트",
+        observedAt: "2026-10-12T03:00:00Z", dataSource: "STORED_OBSERVATION", indexable,
+      },
+    });
+  }
   if (url.pathname === "/api/v1/characters/siblings") {
     const who = url.searchParams.get("characterName");
     if (who === "원정대오류") return send({ code: "LOST_ARK_API_ERROR" }, 502);
@@ -786,6 +805,20 @@ createServer(async (req, res) => {
         ["전투력넷", "소서리스", 1700],
         ["전투력다섯", "도화가", 1680],
       ].map(([characterName, className, itemLevel]) => ({ characterName, serverName: "아만", className, characterLevel: 70, itemLevel }));
+    // 주간 획득 골드 (M7): six on 아만 at the reference roster's levels, one
+    // more below them and one on another server, neither of which counts.
+    else if (who === "주간골드")
+      base.data.siblings = [
+        [who, 1770],
+        ["주간골드둘", 1725],
+        ["주간골드셋", 1705],
+        ["주간골드넷", 1585],
+        ["주간골드다섯", 1580],
+        ["주간골드여섯", 1560],
+        ["주간골드일곱", 1500],
+      ]
+        .map(([characterName, itemLevel]) => ({ characterName, serverName: "아만", className: "블레이드", characterLevel: 70, itemLevel }))
+        .concat({ characterName: "주간골드다른서버", serverName: "루페온", className: "바드", characterLevel: 70, itemLevel: 1780 });
     else base.data.siblings = [
       { characterName: who, serverName: "아만", className: "블래스터", characterLevel: 70, itemLevel: 1780.83 },
       { characterName: "합성원정대", serverName: "아만", className: "바드", characterLevel: 70, itemLevel: 1720 },
@@ -1519,6 +1552,21 @@ createServer(async (req, res) => {
     ];
   }
   if (name === "전투력계산") withSimulatorGear(envelope.data);
+  // 그 외 장착 보석 (L34): a second gem set on a skill the skill list does not
+  // have (an identity skill in the official gem effects).
+  if (name === "그외보석") {
+    const { gems } = envelope.data.loadout;
+    // The fixture's own gem goes on a listed skill, so only the second one is "other".
+    gems.effects.skills[0].name = "테스트 스킬";
+    gems.items.push({ slot: 1, name: "10레벨 작열의 보석", icon: "gem.png", level: 10, grade: "고대" });
+    gems.effects.skills.push({
+      gemSlot: 1,
+      name: "테스트 아이덴티티",
+      description: ["재사용 대기시간 24.00% 감소"],
+      option: null,
+      icon: "identity.png",
+    });
+  }
   // 특성 자세히 (§14.1 ④): stats with synthetic official-style tooltip lines.
   if (name === "특성상세") {
     const line = (type, effect, bonus) => [effect, `${type}은(는) 물약 및 원정대 레벨 보상으로 ${bonus}만큼 영구 증가되었습니다.`];

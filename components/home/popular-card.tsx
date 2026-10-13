@@ -9,6 +9,7 @@ import styles from "./home.module.css";
 import { countdownText } from "@/lib/api/rate-limit";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { useCrossfade } from "@/lib/motion";
+import { useTallest } from "@/components/ui/use-tallest";
 
 const PERIODS: { id: PopularPeriod; label: string }[] = [
   { id: "24h", label: "24시간" },
@@ -32,6 +33,9 @@ export function PopularCard() {
   const fade = useCrossfade(query.isPending);
   const data = query.data?.data;
   const limit = useRateLimit(query.error);
+  // The other period's loading line and a shorter list keep the room, so the
+  // note and the cards below stay put (A7).
+  const [bodyRef, bodyHeight] = useTallest();
 
   return (
     <section className={styles.panel} aria-labelledby="popular-heading">
@@ -45,34 +49,36 @@ export function PopularCard() {
           ))}
         </span>
       </div>
-      {query.isPending ? (
-        <p className={styles.muted}>순위를 불러오고 있어요…</p>
-      ) : !data ? (
-        <p className={styles.muted}>
-          {limit.limited ? countdownText(limit.seconds) : "순위를 불러오지 못했어요."}
-        </p>
-      ) : data.sampleStatus === "COLLECTING" || data.items.length === 0 ? (
-        <p className={styles.muted}>아직 순위를 집계하고 있어요.</p>
-      ) : (
-        <ol ref={fade} className={styles.popular}>
-          {data.items.map((item) => (
-            <li key={`${item.serverName}-${item.characterName}`}>
-              <Link href={`/character/${encodeURIComponent(item.characterName)}`}>
-                <b className={styles.rank} data-top={item.rank <= 3 || undefined}>
-                  {item.rank}
-                </b>
-                <span className={styles.recentName}>
-                  <strong>{item.characterName}</strong>
-                  <small>{[item.serverName, item.className].filter(Boolean).join(" · ")}</small>
-                </span>
-                <span className={styles.recentLevel}>
-                  <b>{level(item.itemLevel)}</b>
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ol>
-      )}
+      <div ref={bodyRef} style={bodyHeight ? { minHeight: bodyHeight } : undefined}>
+        {query.isPending ? (
+          <p className={styles.muted}>순위를 불러오고 있어요…</p>
+        ) : !data ? (
+          <p className={styles.muted}>
+            {limit.limited ? countdownText(limit.seconds) : "순위를 불러오지 못했어요."}
+          </p>
+        ) : data.sampleStatus === "COLLECTING" || data.items.length === 0 ? (
+          <p className={styles.muted}>아직 순위를 집계하고 있어요.</p>
+        ) : (
+          <ol ref={fade} className={styles.popular}>
+            {data.items.map((item) => (
+              <li key={`${item.serverName}-${item.characterName}`}>
+                <Link href={`/character/${encodeURIComponent(item.characterName)}`}>
+                  <b className={styles.rank} data-top={item.rank <= 3 || undefined}>
+                    {item.rank}
+                  </b>
+                  <span className={styles.recentName}>
+                    <strong>{item.characterName}</strong>
+                    <small>{[item.serverName, item.className].filter(Boolean).join(" · ")}</small>
+                  </span>
+                  <span className={styles.recentLevel}>
+                    <b>{level(item.itemLevel)}</b>
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ol>
+        )}
+      </div>
       <p className={styles.note}>LOAKraken 검색 기준 · 같은 사람의 반복 검색은 하루 한 번만 셉니다.</p>
     </section>
   );

@@ -157,6 +157,15 @@ export function isTitleStatsEnabled(env: Env = process.env) {
   return !isProductionHost(env.SITE_URL);
 }
 
+/**
+ * Character page indexing (api #177, API list #12; PM 총괄 10-13). Off unless
+ * `CHARACTER_INDEXING=on` — every deployment, not only production — so
+ * every character page stays noindex until it is turned on on purpose.
+ */
+export function isCharacterIndexingEnabled(env: Env = process.env) {
+  return env.CHARACTER_INDEXING?.trim().toLowerCase() === "on";
+}
+
 const PRODUCTION_HOST = new URL(PRODUCTION_URL).hostname;
 
 function isProductionHost(value: string | undefined) {

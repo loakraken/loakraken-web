@@ -2450,3 +2450,31 @@
     padding: 0 8px;
   }
 }
+/* Gems on skills no row shows (L34): one wrapping line under the skills. */
+.otherGems {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.otherGems h3 {
+  color: var(--muted-foreground);
+  font-size: 13px;
+  font-weight: 600;
+}
+.otherGems ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+.otherGems li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 13px;
+}
+.otherGems li .skillGems {
+  margin-left: 0;
+}

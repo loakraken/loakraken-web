@@ -42,7 +42,6 @@ const CONTROLS = "main [role=group] button, main [role=tablist] [role=tab], main
 const FOUND = "10-13 A7 전수 측정에서 발견, 정리 대기";
 const KNOWN = Object.fromEntries(
   [
-    "/@1280", "/@360",
     "/market@1280",
     "/news@360",
     "/rankings@1280", "/rankings@360",
@@ -50,7 +49,6 @@ const KNOWN = Object.fromEntries(
     "/rankings?type=collectibles@1280", "/rankings?type=collectibles@360",
     "/rankings?type=guilds@1280", "/rankings?type=guilds@360",
     "/rankings?type=efficiency@1280", "/rankings?type=efficiency@360",
-    "/schedule@1280", "/schedule@360",
     "/tools/raid-rewards@1280", "/tools/raid-rewards@360",
     "/tools/refining@360",
     `${characterPath("상세")}@1280`, `${characterPath("상세")}@360`,
