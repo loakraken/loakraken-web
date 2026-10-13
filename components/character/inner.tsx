@@ -62,7 +62,7 @@ function CollectionList({ collectible }: { collectible: Collectible }) {
   const items = rarest && owned.size
     ? [...filtered].sort((a, b) => (shareOf(a.name) ?? 101) - (shareOf(b.name) ?? 101))
     : filtered;
-  const rarest = rarestOwned(collectible.items, shareOf);
+  const rarestItem = rarestOwned(collectible.items, shareOf);
   const missing = collectible.items.filter(
     (item) => item.maxPoint == null || item.point !== item.maxPoint,
   ).length;
@@ -121,9 +121,9 @@ function CollectionList({ collectible }: { collectible: Collectible }) {
       {/* Below the list: it arrives after the list and must not push it. */}
       {owned.size > 0 && sample && (
         <p className={styles.caption}>
-          {rarest && (
+          {rarestItem && (
             <>
-              가장 희귀한 보유 <b>{rarest.name}</b> (보유율 {rarest.share.toFixed(1)}%) ·{" "}
+              가장 희귀한 보유 <b>{rarestItem.name}</b> (보유율 {rarestItem.share.toFixed(1)}%) ·{" "}
             </>
           )}
           보유율: 크라켄 표본 원정대 {number(sample.population)}개 기준
