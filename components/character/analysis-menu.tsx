@@ -21,13 +21,17 @@ export function AnalysisMenu({
   server,
   specUp,
   simulator,
+  className,
+  classEngraving,
 }: {
   name: string;
   server: string | null | undefined;
   specUp: boolean;
   simulator: boolean;
+  className?: string | null;
+  classEngraving?: string | null;
 }) {
-  const links = analysisLinks(name, server, { specUp, simulator, critSpeed: useContext(CritSpeedEnabled) });
+  const links = analysisLinks(name, server, { specUp, simulator, critSpeed: useContext(CritSpeedEnabled) }, { className, classEngraving });
   return (
     <Menu.Root>
       <Menu.Trigger className={styles.analysisTrigger}>

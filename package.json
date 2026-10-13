@@ -36,7 +36,8 @@
     "api:generate:auction-gems": "openapi-typescript contracts/auction-gems.openapi.json -o lib/api/auction-gems-schema.d.ts",
     "api:generate:auction-accessories": "openapi-typescript contracts/auction-accessories.openapi.json -o lib/api/auction-accessories-schema.d.ts",
     "api:generate:public-summary": "openapi-typescript contracts/public-summary.openapi.json -o lib/api/public-summary-schema.d.ts",
-    "api:generate:popular-guilds": "openapi-typescript contracts/popular-guilds.openapi.json -o lib/api/popular-guilds-schema.d.ts"
+    "api:generate:popular-guilds": "openapi-typescript contracts/popular-guilds.openapi.json -o lib/api/popular-guilds-schema.d.ts",
+    "api:generate:class-builds": "openapi-typescript contracts/class-builds.openapi.json -o lib/api/class-builds-schema.d.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",

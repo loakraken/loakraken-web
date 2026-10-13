@@ -1,6 +1,7 @@
 // 분석 menu (character screen checklist §14.1 ③): the tools that already take
 // this character, in one list beside the tabs. A tool that is off on this
 // deployment (server flag) is left out, not shown greyed.
+import { classBuildsPath, isClassName } from "@/lib/stats/class-builds";
 
 export type AnalysisLink = {
   id: string;
@@ -12,8 +13,15 @@ export type AnalysisLink = {
 };
 
 export type AnalysisFlags = { specUp: boolean; simulator: boolean; critSpeed: boolean };
+/** The character's class and class engraving, for the class page (M12). */
+export type AnalysisClass = { className?: string | null; classEngraving?: string | null };
 
-export function analysisLinks(name: string, server: string | null | undefined, flags: AnalysisFlags): AnalysisLink[] {
+export function analysisLinks(
+  name: string,
+  server: string | null | undefined,
+  flags: AnalysisFlags,
+  cls: AnalysisClass = {},
+): AnalysisLink[] {
   const character = new URLSearchParams({ character: name }).toString();
   const links: (AnalysisLink | false)[] = [
     flags.specUp && {
@@ -42,12 +50,21 @@ export function analysisLinks(name: string, server: string | null | undefined, f
       description: "다른 캐릭터와 나란히",
       href: `/multi-search?${new URLSearchParams({ names: name })}`,
     },
-    {
-      id: "class-stats",
-      label: "직업 통계",
-      description: server ? `${server} 서버 직업 분포와 평균` : "직업 분포와 평균",
-      href: server ? `/stats?${new URLSearchParams({ tab: "classes", server })}` : "/stats?tab=classes",
-    },
+    // The class page (M12) with this character's class engraving; without a
+    // class (an old record), the class table of the stats screen.
+    cls.className && isClassName(cls.className)
+      ? {
+          id: "class-stats",
+          label: "직업 통계",
+          description: `${cls.className}${cls.classEngraving ? ` ${cls.classEngraving}` : ""} 인기 세팅 통계`,
+          href: classBuildsPath(cls.className, { classEngraving: cls.classEngraving ?? undefined }),
+        }
+      : {
+          id: "class-stats",
+          label: "직업 통계",
+          description: server ? `${server} 서버 직업 분포와 평균` : "직업 분포와 평균",
+          href: server ? `/stats?${new URLSearchParams({ tab: "classes", server })}` : "/stats?tab=classes",
+        },
   ];
   return links.filter((link): link is AnalysisLink => link !== false);
 }
