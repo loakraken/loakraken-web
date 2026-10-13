@@ -18,17 +18,21 @@ for (const width of [1280, 360]) {
     }
     await expect(page.getByRole("region", { name: /^반지/ }).getByText("집계 중")).toHaveCount(1);
 
+    // A7: from the first press on, shifts right after an input count too.
+    const firstLoad = await page.evaluate(() => window.__shifts.reduce((a, e) => a + e.v, 0));
+    expect(firstLoad, "첫 로드 layout-shift").toBe(0);
+    await page.evaluate(() => (window.__shifts = []));
     await page.getByRole("button", { name: "적주피 상 · 추피 중 매물 보기" }).click();
     await expect(page).toHaveURL(/slot=NECKLACE&levels=HIGH%2CMID/);
     const listings = page.getByRole("table", { name: "장신구 매물" });
-    await expect(listings.locator("tbody tr")).toHaveCount(10);
-    await expect(listings.locator("tbody tr").first()).toContainText("적주피 상 · 추피 중");
+    await expect(listings.locator("tbody tr:not([aria-hidden])")).toHaveCount(10);
+    await expect(listings.locator("tbody tr:not([aria-hidden])").first()).toContainText("적주피 상 · 추피 중");
     await page.getByRole("navigation", { name: "매물 쪽 이동" }).getByRole("button", { name: "2" }).click();
-    await expect(listings.locator("tbody tr")).toHaveCount(2);
+    await expect(listings.locator("tbody tr:not([aria-hidden])")).toHaveCount(2);
 
     await page.waitForTimeout(500);
-    const quiet = await page.evaluate(() => window.__shifts.filter((e) => !e.input).reduce((a, e) => a + e.v, 0));
-    expect(quiet, "첫 로드·매물 도착 뒤 layout-shift").toBe(0);
+    const moved = await page.evaluate(() => window.__shifts.reduce((a, e) => a + e.v, 0));
+    expect(moved, "칸 누름·쪽 이동 뒤 layout-shift(입력 직후 포함)").toBe(0);
   });
 }
 

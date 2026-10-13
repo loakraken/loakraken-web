@@ -245,6 +245,12 @@ export function AccessoryBoardView({ initialFilter, initialPick }: { initialFilt
                       <td>{item.tradeAllowCount == null ? "-" : item.tradeAllowCount === 0 ? "불가" : `${item.tradeAllowCount}회`}</td>
                     </tr>
                   ))}
+                  {/* A short page keeps ten rows of room (box and page buttons stay put, A7). */}
+                  {Array.from({ length: Math.max(0, 10 - page.items.length) }, (_, i) => (
+                    <tr key={`filler-${i}`} aria-hidden="true" className={gems.filler}>
+                      <td colSpan={5}>{" "}</td>
+                    </tr>
+                  ))}
                 </tbody>
               </DataTable>
               {pages > 1 && (
