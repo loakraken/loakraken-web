@@ -343,6 +343,36 @@
     transition: none;
   }
 }
+/* On a phone the sort, tier and range buttons take 44px to press, as they
+   look (hit-44 rule): rows 16px+ apart and buttons at least 44px wide there,
+   so the areas never overlap. Desktop is unchanged. */
+@media (max-width: 699px), (pointer: coarse) {
+  .sorts,
+  .tiers,
+  .ranges {
+    row-gap: 16px;
+  }
+  .tiers {
+    margin-top: 12px;
+  }
+  .sorts button,
+  .tiers button,
+  .ranges button {
+    position: relative;
+    min-width: 44px;
+  }
+  .sorts button::after,
+  .tiers button::after,
+  .ranges button::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+    translate: -50% -50%;
+  }
+}
 /* The star stands alone at the row's end: 44px to press on a phone (hit-44 rule). */
 @media (max-width: 699px), (pointer: coarse) {
   .star {
