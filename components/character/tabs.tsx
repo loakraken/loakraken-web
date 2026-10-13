@@ -1496,7 +1496,7 @@ function SkillOverview({
           </div>
         </div>
       )}
-      <div ref={listRef} style={listHeight ? { minHeight: listHeight } : undefined}>
+      <div ref={listRef} className={styles.heldList} style={listHeight ? { minHeight: listHeight } : undefined}>
         {list.length ? (
           <ul id={listId} className={styles.skillGrid} data-compact={!full || undefined}>
             {list.map((skill, i) => (

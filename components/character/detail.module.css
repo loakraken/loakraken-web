@@ -2444,3 +2444,10 @@
     padding: 0 8px;
   }
 }
+/* A list held at its tallest (A7): its first child's top margin would
+   otherwise pass through the holder and move it when the child changes
+   (the empty line has one, the skill grid none). The gap above stays the
+   same 12px either way. */
+.heldList > :first-child {
+  margin-top: 0;
+}
