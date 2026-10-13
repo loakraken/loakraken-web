@@ -96,7 +96,7 @@ test("bound-gold option leaves out the part bound gold pays (notice 13148)", () 
   assert.equal(boundGoldFor("horizon-cathedral", "3단계", 1), 20000, "all bound");
   // 노말 · 싱글 rows need both modes to agree (PM-프론트 #261 P2).
   assert.equal(boundGoldFor("kazeros-act1", "노말 · 싱글", 1), 1750, "both half bound (notices 13307·13416)");
-  assert.equal(boundGoldFor("kazeros-act4", "노말 · 싱글", 1), null, "single has no value");
+  assert.equal(boundGoldFor("kazeros-act4", "노말 · 싱글", 1), 5000, "single = normal, half bound (notice 13472)");
   assert.equal(boundGoldFor("serka", "노말 · 싱글", 1), 6500, "no single mode in the table");
   assert.equal(INPUT_MATERIALS.length, 7);
 });

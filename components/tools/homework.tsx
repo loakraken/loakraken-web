@@ -34,7 +34,7 @@ import {
   type HomeworkState,
   type RaidPlan,
 } from "@/lib/tools/homework";
-import { DIFFICULTY_LABEL, RAID_DATA, SPLIT_UNKNOWN, formatGold } from "@/lib/tools/raid-rewards";
+import { DIFFICULTY_LABEL, RAID_DATA, formatGold } from "@/lib/tools/raid-rewards";
 import quote from "./material-quote.module.css";
 import styles from "./homework.module.css";
 
@@ -314,7 +314,7 @@ function RaidRow({
               <input type="checkbox" checked={plan.cleared[i]} onChange={() => toggle("cleared", i)} />
               <span>
                 {gate.gate}관문
-                <small>{gate.gold !== null ? formatGold(gate.gold) : mode.total ? SPLIT_UNKNOWN : "데이터 없음"}</small>
+                <small>{gate.gold === null ? "데이터 없음" : formatGold(gate.gold)}</small>
               </span>
             </label>
             {gate.moreCost !== null && (

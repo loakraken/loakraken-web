@@ -32,12 +32,6 @@ export type Mode = {
   status: Status;
   source: string | null;
   gates: Gate[];
-  /**
-   * A confirmed clear total whose split over the gates is not: the gates'
-   * gold stays null (never divided by guess) and this total is what counts
-   * (PM 총괄 2026-10-13, M7).
-   */
-  total?: { gold: number; boundGold: number };
 };
 export type Raid = {
   id: string;
@@ -94,8 +88,6 @@ export const STATUS_LABEL: Record<Status, string> = {
   SITES: "실측 일치",
   UNVERIFIED: "데이터 없음",
 };
-/** A gate of a mode that only has a confirmed total. */
-export const SPLIT_UNKNOWN = "관문별 미확인";
 
 export type ModeTotals = {
   gold: number;
@@ -105,17 +97,8 @@ export type ModeTotals = {
   moreCost: number | null;
 };
 
-/** Totals over all gates (or the mode's confirmed total), or null while any gold value is missing. */
+/** Totals over all gates, or null while any gold value is missing. */
 export function modeTotals(mode: Mode): ModeTotals | null {
-  if (mode.total) {
-    const costs = mode.gates.map((g) => g.moreCost);
-    return {
-      gold: mode.total.gold,
-      boundGold: mode.total.boundGold,
-      tradableGold: mode.total.gold - mode.total.boundGold,
-      moreCost: costs.some((c) => c === null) ? null : costs.reduce<number>((sum, c) => sum + (c ?? 0), 0),
-    };
-  }
   if (mode.gates.some((g) => g.gold === null || g.boundGold === null)) return null;
   const gold = mode.gates.reduce((sum, g) => sum + (g.gold ?? 0), 0);
   const boundGold = mode.gates.reduce((sum, g) => sum + (g.boundGold ?? 0), 0);
@@ -155,16 +138,9 @@ export function checkRaidData(data: RaidData): string[] {
           if (value !== null && (!Number.isInteger(value) || value < 0))
             problems.push(`${where} G${gate.gate}: bad value ${value}`);
       });
-      if (mode.total) {
-        if (mode.gates.some((g) => g.gold !== null || g.boundGold !== null))
-          problems.push(`${where}: total with gate values`);
-        const { gold, boundGold } = mode.total;
-        if (!Number.isInteger(gold) || !Number.isInteger(boundGold) || boundGold < 0 || boundGold > gold)
-          problems.push(`${where}: bad total`);
-      }
-      const complete = !!mode.total || mode.gates.every((g) => g.gold !== null && g.boundGold !== null);
+      const complete = mode.gates.every((g) => g.gold !== null && g.boundGold !== null);
       if (mode.status === "UNVERIFIED") {
-        if (mode.total || mode.gates.some((g) => g.gold !== null))
+        if (mode.gates.some((g) => g.gold !== null))
           problems.push(`${where}: UNVERIFIED but has values`);
       } else {
         if (!complete) problems.push(`${where}: ${mode.status} but values missing`);
