@@ -36,6 +36,7 @@ import {
   remainingLabel,
   gemCounts,
   skillGems,
+  otherSkillGems,
   skillSummary,
   statNumber,
   stoneBonus,
@@ -1418,6 +1419,7 @@ function SkillOverview({
   const [showAll, setShowAll] = useState(false);
   const [gemFilter, setGemFilter] = useState<GemFilter>("all");
   const listId = useId();
+  const otherId = useId();
   const skills = data.loadout.skills;
   const extra = useItemTooltips(data.characterName);
   if (skills === undefined)
@@ -1434,6 +1436,10 @@ function SkillOverview({
   const shown = full && showAll ? skills : summary.active;
   const sorted = full ? [...shown].sort((a, b) => (b.level ?? 0) - (a.level ?? 0)) : shown;
   const gemsOf = (skill: Skill) => skillGems(data.loadout.gems, skill.name);
+  // Gems on skills no row shows (identity and the like), listed under the
+  // skills whatever the filter (L34). Against every skill, not only the
+  // ones in use, so a gem on an unused listed skill stays on its row.
+  const others = full ? otherSkillGems(data.loadout.gems, skills.map((skill) => skill.name)) : [];
   // One group per skill, so the groups never overlap (PM #507 P1): both kinds,
   // damage only, cooldown only, none. The head counts the same chips.
   const groupOf = (skill: Skill): GemFilter => {
@@ -1511,6 +1517,30 @@ function SkillOverview({
         </ul>
       ) : (
         <Empty state={data.coverage.skills} />
+      )}
+      {others.length > 0 && (
+        <div className={styles.otherGems}>
+          <h3 id={otherId}>그 외 장착 보석</h3>
+          <ul aria-labelledby={otherId}>
+            {others.map(({ gem, effect, label }) => (
+              <li key={`other-${gem.slot}`}>
+                <span className={styles.skillGems}>
+                  <span data-gem={label.endsWith("쿨") ? "cooldown" : "damage"}>
+                    <DetailTooltip
+                      name={gem.name ?? "보석"}
+                      card={
+                        <GemCard gem={gem} skill={effect} className={data.className ?? ""} lines={gemLines(extra, gem.slot)} />
+                      }
+                    >
+                      <span>{label}</span>
+                    </DetailTooltip>
+                  </span>
+                </span>
+                <span>{text(effect.name)}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
       {full && skills.length > summary.active.length && (
         <button

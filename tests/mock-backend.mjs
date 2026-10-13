@@ -1550,6 +1550,21 @@ createServer(async (req, res) => {
     ];
   }
   if (name === "전투력계산") withSimulatorGear(envelope.data);
+  // 그 외 장착 보석 (L34): a second gem set on a skill the skill list does not
+  // have (an identity skill in the official gem effects).
+  if (name === "그외보석") {
+    const { gems } = envelope.data.loadout;
+    // The fixture's own gem goes on a listed skill, so only the second one is "other".
+    gems.effects.skills[0].name = "테스트 스킬";
+    gems.items.push({ slot: 1, name: "10레벨 작열의 보석", icon: "gem.png", level: 10, grade: "고대" });
+    gems.effects.skills.push({
+      gemSlot: 1,
+      name: "테스트 아이덴티티",
+      description: ["재사용 대기시간 24.00% 감소"],
+      option: null,
+      icon: "identity.png",
+    });
+  }
   // 특성 자세히 (§14.1 ④): stats with synthetic official-style tooltip lines.
   if (name === "특성상세") {
     const line = (type, effect, bonus) => [effect, `${type}은(는) 물약 및 원정대 레벨 보상으로 ${bonus}만큼 영구 증가되었습니다.`];
