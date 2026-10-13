@@ -469,8 +469,8 @@
           "status": "SITES",
           "source": "sites-20261010",
           "gates": [
-            { "gate": 1, "gold": 13500, "boundGold": 13500, "moreCost": null },
-            { "gate": 2, "gold": 16500, "boundGold": 16500, "moreCost": null }
+            { "gate": 1, "gold": 13500, "boundGold": 13500, "moreCost": 4320 },
+            { "gate": 2, "gold": 16500, "boundGold": 16500, "moreCost": 5280 }
           ]
         },
         {
@@ -479,8 +479,8 @@
           "status": "SITES",
           "source": "sites-20261010",
           "gates": [
-            { "gate": 1, "gold": 16000, "boundGold": 16000, "moreCost": null },
-            { "gate": 2, "gold": 24000, "boundGold": 24000, "moreCost": null }
+            { "gate": 1, "gold": 16000, "boundGold": 16000, "moreCost": 5120 },
+            { "gate": 2, "gold": 24000, "boundGold": 24000, "moreCost": 7680 }
           ]
         },
         {
@@ -489,8 +489,8 @@
           "status": "SITES",
           "source": "sites-20261010",
           "gates": [
-            { "gate": 1, "gold": 20000, "boundGold": 20000, "moreCost": null },
-            { "gate": 2, "gold": 30000, "boundGold": 30000, "moreCost": null }
+            { "gate": 1, "gold": 20000, "boundGold": 20000, "moreCost": 6400 },
+            { "gate": 2, "gold": 30000, "boundGold": 30000, "moreCost": 9600 }
           ]
         }
       ]
