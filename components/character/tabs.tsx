@@ -135,6 +135,7 @@ import {
   text,
 } from "./parts";
 import styles from "./detail.module.css";
+import { useTallest } from "@/components/ui/use-tallest";
 import expand from "@/components/site/expand.module.css";
 import { rateLimitCopy, retryLabel } from "@/lib/api/rate-limit";
 import { RateLimitNote } from "@/components/site/rate-limit-note";
@@ -1416,6 +1417,9 @@ function SkillOverview({
 }) {
   const [showAll, setShowAll] = useState(false);
   const [gemFilter, setGemFilter] = useState<GemFilter>("all");
+  // The skill rows keep their tallest height: a narrower gem filter does not
+  // pull up what is under them (stacked, the side panels too) (A7).
+  const [listRef, listHeight] = useTallest();
   const listId = useId();
   const skills = data.loadout.skills;
   const extra = useItemTooltips(data.characterName);
@@ -1492,25 +1496,27 @@ function SkillOverview({
           </div>
         </div>
       )}
-      {list.length ? (
-        <ul id={listId} className={styles.skillGrid} data-compact={!full || undefined}>
-          {list.map((skill, i) => (
-            <SkillCard
-              key={`${skill.name}-${i}`}
-              skill={skill}
-              compact={!full}
-              rune={runeLines(extra, skill.name)}
-              gems={full ? gemsOf(skill) : undefined}
-              className={data.className}
-              gemLinesOf={(slot) => gemLines(extra, slot)}
-              lines={skillLines(extra, skill.name)}
-              levelOf={armory ? (tier, slot) => tripodLevel(armory, skill.name, tier, slot) : undefined}
-            />
-          ))}
-        </ul>
-      ) : (
-        <Empty state={data.coverage.skills} />
-      )}
+      <div ref={listRef} style={listHeight ? { minHeight: listHeight } : undefined}>
+        {list.length ? (
+          <ul id={listId} className={styles.skillGrid} data-compact={!full || undefined}>
+            {list.map((skill, i) => (
+              <SkillCard
+                key={`${skill.name}-${i}`}
+                skill={skill}
+                compact={!full}
+                rune={runeLines(extra, skill.name)}
+                gems={full ? gemsOf(skill) : undefined}
+                className={data.className}
+                gemLinesOf={(slot) => gemLines(extra, slot)}
+                lines={skillLines(extra, skill.name)}
+                levelOf={armory ? (tier, slot) => tripodLevel(armory, skill.name, tier, slot) : undefined}
+              />
+            ))}
+          </ul>
+        ) : (
+          <Empty state={data.coverage.skills} />
+        )}
+      </div>
       {full && skills.length > summary.active.length && (
         <button
           type="button"
