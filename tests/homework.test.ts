@@ -109,29 +109,31 @@ test("unknown gold is counted separately, never as zero gold earned", () => {
   const [character] = addCharacters(emptyState(0), [
     { name: "벨가", server: "루페온", className: "바드", itemLevel: 1780 },
   ]).characters;
-  // 발탄 노말 has no official value yet: its gates count as unknown, not 0G.
-  character.raids = [{ raidId: "valtan", difficulty: "NORMAL", cleared: [true, true], more: [false, false] }];
-  const gold = characterGold(character);
-  assert.equal(gold.earned, 0);
-  assert.equal(gold.unknownGates, 2);
+  // A mode with no value yet (every mode has one today, so one is emptied
+  // here): its gates count as unknown, not 0G.
+  const valtan = modeOf({ raidId: "valtan", difficulty: "NORMAL" })!;
+  const kept = valtan.gates;
+  valtan.gates = kept.map((g) => ({ ...g, gold: null, boundGold: null }));
+  try {
+    character.raids = [{ raidId: "valtan", difficulty: "NORMAL", cleared: [true, true], more: [false, false] }];
+    const gold = characterGold(character);
+    assert.equal(gold.earned, 0);
+    assert.equal(gold.unknownGates, 2);
+  } finally {
+    valtan.gates = kept;
+  }
 });
 
-test("a raid with only a confirmed total pays it on a full clear, never a guessed gate share", () => {
+test("old legion raids pay their measured gates (M7)", () => {
   const [character] = addCharacters(emptyState(0), [
     { name: "아브", server: "루페온", className: "바드", itemLevel: 1560 },
   ]).characters;
-  // 아브렐슈드 하드: total 5,600 (all bound) measured, gate split unknown (M7).
   character.raids = [{ raidId: "abrelshud", difficulty: "HARD", cleared: [true, true, false, false], more: [false, false, false, false] }];
-  const partial = characterGold(character);
-  assert.equal(partial.possible, 5600);
-  assert.equal(partial.possibleBound, 5600);
-  assert.equal(partial.earned, 0);
-  assert.equal(partial.unknownGates, 2);
-  character.raids[0].cleared = [true, true, true, true];
-  const full = characterGold(character);
-  assert.equal(full.earned, 5600);
-  assert.equal(full.earnedBound, 5600);
-  assert.equal(full.unknownGates, 0);
+  const gold = characterGold(character);
+  assert.equal(gold.possible, 5600);
+  assert.equal(gold.earned, 2400);
+  assert.equal(gold.earnedBound, 2400);
+  assert.equal(gold.unknownGates, 0);
 });
 
 test("a new week clears progress but keeps the setup", () => {
