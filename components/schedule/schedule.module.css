@@ -181,7 +181,7 @@
   box-shadow: inset 0 0 0 2px var(--grade-legendary-b);
 }
 .week > li[data-today] .weekDay b {
-  color: var(--primary);
+  color: var(--link);
 }
 .weekDay {
   display: grid;

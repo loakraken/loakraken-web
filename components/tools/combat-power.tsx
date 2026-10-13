@@ -604,7 +604,7 @@ function Editors({
         </Card>
       )}
       <p className={styles.later}>
-        지금은 보석·품질·각인·스톤·팔찌·팔 보호구를 바꿀 수 있어요. 재련·연마·아크 패시브·아크 그리드는 계산식을 확인하는
+        지금은 보석·품질·각인·스톤·연마·팔찌·팔 보호구를 바꿀 수 있어요. 재련·아크 패시브·아크 그리드는 계산식을 확인하는
         대로 열어요.
       </p>
     </div>
@@ -668,6 +668,10 @@ function ResultBand({
       </p>
       <p className={styles.bandValue}>
         {before == null ? "—" : power(computed && data.after != null ? data.after : before)}
+      </p>
+      {/* Its own line, held from the start: beside the value it wrapped under
+          it on the first change and pushed everything below 24px (A7). */}
+      <p className={styles.bandDelta}>
         {computed && data.delta != null && (
           <span className={data.delta >= 0 ? styles.gain : styles.loss}>
             <span aria-hidden="true">{data.delta > 0 ? "▲ " : data.delta < 0 ? "▼ " : ""}</span>
@@ -759,8 +763,8 @@ export function CombatPowerSimulator({
 }: {
   name: string;
   initial?: Character;
-  /** One change to begin with (스펙업 "적용해 보기"), as a step 이전 can undo. */
-  start?: SpecUpChange | null;
+  /** Changes to begin with (스펙업 "적용해 보기" or a 목표 path), as one step 이전 can undo. */
+  start?: SpecUpChange[];
   /** Shown at the top of the sticky column (the character tab's lead line). */
   head?: ReactNode;
 }) {
@@ -768,7 +772,8 @@ export function CombatPowerSimulator({
   // 이전·다음·초기화 (PM-프론트 16:37 ②): every edit is a step.
   const [history, dispatch] = useReducer(historyReducer, undefined, () => {
     const empty = startHistory();
-    const first = editsFor(start, NO_EDITS);
+    // In order: a later step on the same slot (8→9→10) leaves the last level.
+    const first = (start ?? []).reduce<Edits | null>((edits, change) => editsFor(change, edits ?? NO_EDITS) ?? edits, null);
     return first ? historyReducer(empty, { type: "load", edits: first }) : empty;
   });
   const edits = history.present;

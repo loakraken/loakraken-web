@@ -175,7 +175,7 @@ export function HistoryChart({
           </>
         ) : (
           <>
-            <strong>{fmt(last.v)}</strong> 최근 확인 {stamp.format(last.t)}
+            최근 확인 {stamp.format(last.t)}
           </>
         )}
       </p>

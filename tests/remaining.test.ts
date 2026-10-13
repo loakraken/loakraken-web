@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { HOUR, MINUTE, SECOND, remainingStep, remainingText } from "../lib/time/remaining";
+import { HOUR, MINUTE, SECOND, remainingStep, remainingText, clampNow } from "../lib/time/remaining";
 import { countdownText, retryLabel } from "../lib/api/rate-limit";
 
 test("one format for time left: days, hours, then minutes with seconds", () => {
@@ -28,4 +28,16 @@ test("rate-limit waits use the same format", () => {
   assert.equal(countdownText(30), "30초 뒤 다시 시도해 주세요.");
   assert.equal(countdownText(75), "1분 15초 뒤 다시 시도해 주세요.");
   assert.equal(retryLabel(125), "2분 05초 뒤 다시 시도");
+});
+
+test("now for time rows never goes back before the server render", () => {
+  const rendered = Date.parse("2026-10-12T14:00:07Z"); // 23:00:07 KST
+  const floored = Date.parse("2026-10-12T14:00:00Z"); // the minute clock reads 23:00:00
+  assert.equal(clampNow(null, rendered), rendered, "before the client clock starts");
+  assert.equal(clampNow(floored, rendered), rendered, "the floored minute does not bring back the 23:00 round");
+  const later = Date.parse("2026-10-12T14:01:00Z");
+  assert.equal(clampNow(later, rendered), later, "the clock moves on after the render minute");
+  const dayBefore = rendered - 24 * HOUR;
+  assert.equal(clampNow(dayBefore, rendered), dayBefore, "a browser date a day behind is kept (tests set it)");
+  assert.equal(clampNow(null, undefined), null);
 });

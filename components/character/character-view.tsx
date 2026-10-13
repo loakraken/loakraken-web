@@ -19,8 +19,10 @@ import {
 import { SiteHeader } from "@/components/site/site-header";
 import { recordRecent } from "@/lib/character/recent";
 import { CharacterBanner } from "./imagery";
+import { BannerRank } from "./banner-rank";
 import { Entrance } from "./entrance";
 import { kstTime, level, number, text } from "./parts";
+import { CritSpeedEnabled } from "./analysis-menu";
 import { SettingCheckEnabled, SimulatorEnabled, SpecUpEnabled, TabBar, TabPanel, tabOf, useTabTop } from "./tabs";
 import { ArmoryPageEnabled } from "./use-armory-page";
 import { ReceiptEnabled } from "./receipt-panel";
@@ -129,6 +131,7 @@ const Banner = memo(function Banner({ data }: { data: Character }) {
               <dd>{level(data.expeditionLevel)}</dd>
             </div>
           </dl>
+          <BannerRank name={data.characterName} />
         </>
       }
       facts={
@@ -359,6 +362,7 @@ export function CharacterView({
   simulator = true,
   specUp = true,
   armoryPage = true,
+  critSpeed = true,
   ...props
 }: {
   name: string;
@@ -374,6 +378,8 @@ export function CharacterView({
   specUp?: boolean;
   /** ARMORY_PAGE on this deployment (server flag). */
   armoryPage?: boolean;
+  /** CRIT_SPEED_TOOL on this deployment (server flag): the 분석 menu link. */
+  critSpeed?: boolean;
 }) {
   return (
     <ReceiptEnabled.Provider value={receipt}>
@@ -381,9 +387,11 @@ export function CharacterView({
         <SimulatorEnabled.Provider value={simulator}>
           <SpecUpEnabled.Provider value={specUp}>
             <ArmoryPageEnabled.Provider value={armoryPage}>
-              <LandingMotion>
-                <CharacterContent {...props} />
-              </LandingMotion>
+              <CritSpeedEnabled.Provider value={critSpeed}>
+                <LandingMotion>
+                  <CharacterContent {...props} />
+                </LandingMotion>
+              </CritSpeedEnabled.Provider>
             </ArmoryPageEnabled.Provider>
           </SpecUpEnabled.Provider>
         </SimulatorEnabled.Provider>

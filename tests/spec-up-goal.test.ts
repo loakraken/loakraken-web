@@ -1,56 +1,89 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
-import type { Change } from "../lib/combat-power/model";
-import { goalSteps, searchGoal, simChange } from "../lib/spec-up/goal";
-import type { Candidate } from "../lib/spec-up/model";
+import { parseTarget, simulatorPath, stepCost, stepKindLabel, targetError, type GoalStep } from "../lib/spec-up/goal";
+import { koreanGold, readTry, readTryPath, tryPathParam } from "../lib/spec-up/model";
+import { requestSpecUpGoal } from "../lib/spec-up/upstream";
 
-const candidate = (id: string, change: Candidate["change"], cost: number | null, status = "OK"): Candidate =>
-  ({
-    id,
-    kind: change?.kind ?? "KARMA_LEVEL",
-    target: id,
-    status,
-    change,
-    cost: cost == null ? { unit: "GOLD", amount: null, status: "PENDING", code: "X", basis: "" } : { unit: "GOLD", amount: cost, status: "OK", code: "X", basis: "" },
-  }) as Candidate;
+const sample = JSON.parse(readFileSync(new URL("./spec-up-fixtures/character-spec-up-goal.json", import.meta.url), "utf8"));
+const origin = "http://backend.test";
+const json = (body: unknown, status = 200, headers: Record<string, string> = {}) =>
+  new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json", ...headers } });
 
-const gem = (slot: number, level: number) => ({ kind: "GEM_LEVEL", slot, level, index: null, refine: null, quality: null, name: null });
-
-test("only computed, priced, simulator-ready candidates join the path, one per target", () => {
-  const steps = goalSteps([
-    candidate("a", gem(3, 8), 1000),
-    candidate("b", gem(3, 9), 2000), // same slot: the better one already taken
-    candidate("c", gem(4, 8), null), // price pending
-    candidate("d", { kind: "KARMA_LEVEL", slot: null, level: 5, index: null, refine: null, quality: null, name: null }, 500),
-    candidate("e", gem(5, 8), 3000, "UNSUPPORTED"),
-    candidate("f", { kind: "ENGRAVING_LEVEL", slot: null, level: 4, index: null, refine: null, quality: null, name: "원한" }, 4000),
-  ]);
-  assert.deepEqual(
-    steps.map((s) => s.candidate.id),
-    ["a", "f"],
-  );
-  assert.deepEqual(simChange(gem(3, 8)), { kind: "GEM_LEVEL", slot: 3, level: 8 });
-});
-
-// Fake simulator: each change adds 10, but together they add a bit less, so a
-// sum of single deltas would overshoot (why the path is simulated as a whole).
-const fake = (base: number) => async (changes: Change[]) => base + changes.length * 10 - (changes.length > 1 ? 1 : 0);
-
-test("the shortest prefix whose simulated power reaches the goal, with its summed cost", async () => {
-  const steps = goalSteps([1, 2, 3, 4, 5].map((slot) => candidate(`g${slot}`, gem(slot, 8), slot * 100)));
-  const calls: number[] = [];
-  const result = await searchGoal(steps, 1000, 1030, async (changes) => {
-    calls.push(changes.length);
-    return fake(1000)(changes);
+test("the backend sample passes the contract and reaches the target in three simulator steps", async () => {
+  const result = await requestSpecUpGoal("목캐릭터", "3100", origin, {
+    fetcher: async (url) => {
+      assert.match(String(url), /\/api\/v1\/characters\/spec-up\/goal\?characterName=.+&targetCombatPower=3100$/);
+      return json(sample);
+    },
   });
-  // 3 changes → 1029 (short), 4 → 1039.
-  assert.deepEqual(result, { kind: "REACHED", count: 4, power: 1039, cost: 100 + 200 + 300 + 400 });
-  assert.ok(calls.length <= 4, `few simulator calls (${calls.length})`);
+  assert.ok(result.ok);
+  const goal = result.envelope.data;
+  assert.equal(goal.reached, true);
+  assert.equal(goal.steps.length, 3);
+  // Same gem slot twice (8→9→10): the second step is priced as the step up.
+  assert.deepEqual(
+    goal.steps.map((s) => [s.kind, s.from, s.to, s.cost.code]),
+    [
+      ["GEM_LEVEL", "8레벨", "9레벨", "GEM_UPGRADE"],
+      ["GEM_LEVEL", "9레벨", "10레벨", "GEM_STEP"],
+      ["EQUIPMENT_QUALITY", "품질 90", "품질 100", "QUALITY_COST_UNCONFIRMED"],
+    ],
+  );
 });
 
-test("short when every step together falls short, already when the goal is met", async () => {
-  const steps = goalSteps([candidate("g1", gem(1, 8), 100), candidate("g2", gem(2, 8), 200)]);
-  assert.deepEqual(await searchGoal(steps, 1000, 2000, fake(1000)), { kind: "SHORT", count: 2, power: 1019, cost: 300 });
-  assert.deepEqual(await searchGoal(steps, 1000, 900, fake(1000)), { kind: "ALREADY", power: 1000 });
-  assert.deepEqual(await searchGoal([], 1000, 2000, fake(1000)), { kind: "SHORT", count: 0, power: 1000, cost: 0 });
+test("targets the backend would refuse never leave the proxy; its 400 and 404 codes pass through", async () => {
+  for (const target of [null, "", "0", "-5", "12.345", "abc"])
+    assert.deepEqual(await requestSpecUpGoal("목캐릭터", target, origin, { fetcher: async () => json(sample) }), {
+      ok: false,
+      error: { code: "INVALID_REQUEST", status: 400 },
+    });
+  const range = await requestSpecUpGoal("목캐릭터", "99999", origin, {
+    fetcher: async () => json({ code: "SPEC_UP_GOAL_OUT_OF_RANGE", message: "", data: null }, 400),
+  });
+  assert.ok(!range.ok && range.error.code === "SPEC_UP_GOAL_OUT_OF_RANGE");
+  const notCached = await requestSpecUpGoal("목캐릭터", "3100", origin, {
+    fetcher: async () => json({ code: "CHARACTER_NOT_CACHED", message: "", data: null }, 404),
+  });
+  assert.ok(!notCached.ok && notCached.error.code === "CHARACTER_NOT_CACHED");
+  const limited = await requestSpecUpGoal("목캐릭터", "3100", origin, {
+    fetcher: async () => json({ code: "CLIENT_RATE_LIMITED", message: "", data: null }, 429, { "Retry-After": "10" }),
+  });
+  assert.ok(!limited.ok && limited.error.code === "LOST_ARK_RATE_LIMITED" && limited.error.retryAt);
+});
+
+test("target input follows the backend rule: above 0, two decimals, at most twice today", () => {
+  assert.equal(parseTarget("12,360"), 12360);
+  assert.equal(parseTarget("12360.5"), 12360.5);
+  assert.equal(parseTarget(""), null);
+  assert.ok(Number.isNaN(parseTarget("12.345")!));
+  assert.equal(targetError(24000, 12000), null);
+  assert.equal(targetError(24000.01, 12000), "목표는 지금 전투력의 2배까지 넣을 수 있어요.");
+  assert.equal(targetError(Number.NaN, 12000), "숫자만 입력해 주세요(소수 둘째 자리까지).");
+});
+
+test("a step kind without a label reads 기타 단계; 계승 has its own (PM-프론트 10-12)", () => {
+  assert.equal(stepKindLabel("GEM_LEVEL"), "보석");
+  assert.equal(stepKindLabel("EQUIPMENT_SUCCESSION"), "계승");
+  assert.equal(stepKindLabel("SOMETHING_NEW"), "기타 단계");
+});
+
+test("costs: gold when known, 시세 준비 중 when pending, 비용 미확인 otherwise", () => {
+  const [gem, , quality] = sample.data.steps as GoalStep[];
+  assert.equal(stepCost(gem, koreanGold), "62만G");
+  assert.equal(stepCost({ ...gem, cost: { ...gem.cost, status: "PENDING", amount: null } }, koreanGold), "시세 준비 중");
+  assert.equal(stepCost(quality, koreanGold), "비용 미확인");
+});
+
+test("시뮬레이터에서 열기 carries only the changes the simulator takes, and counts the rest", () => {
+  const steps = sample.data.steps as GoalStep[];
+  const refine = { ...steps[0], kind: "EQUIPMENT_REFINE", change: { ...steps[0].change, kind: "EQUIPMENT_REFINE", refine: 21 } };
+  const path = simulatorPath([...steps, refine]);
+  assert.equal(path.changes.length, 3);
+  assert.equal(path.skipped, 1);
+  // The path round-trips through ?try=, and a single change still reads (적용해 보기).
+  assert.deepEqual(readTryPath(tryPathParam(path.changes)), path.changes);
+  assert.deepEqual(readTryPath(JSON.stringify(path.changes[0])), [path.changes[0]]);
+  assert.equal(readTry(JSON.stringify(path.changes[0]))?.level, 9);
+  assert.deepEqual(readTryPath("{"), []);
 });
