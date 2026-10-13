@@ -26,11 +26,18 @@ const NO_DATA = "데이터 없음";
 
 const gold = (value: number | null, empty = NO_DATA) => (value === null ? empty : formatGold(value));
 
+// Every difficulty of a card draws the same table: the same columns, as many
+// rows as the difficulty with the most gates (the rest held empty), fixed
+// column widths. Switching difficulty then only changes text, never the
+// card's size or where its cells sit (A7).
+const showsMore = (mode: Mode) => mode.gates.some((g) => g.moreCost !== null) || mode.status === "UNVERIFIED";
+
 function ModeTable({ raid, mode }: { raid: Raid; mode: Mode }) {
   const totals = modeTotals(mode);
   // Confirmed total only: the gates say so instead of "데이터 없음".
   const empty = mode.total ? SPLIT_UNKNOWN : NO_DATA;
-  const hasMore = mode.gates.some((g) => g.moreCost !== null) || mode.status === "UNVERIFIED";
+  const hasMore = raid.modes.some(showsMore);
+  const rows = Math.max(...raid.modes.map((m) => m.gates.length));
   return (
     <div className={styles.modeBody}>
       <p className={styles.modeMeta}>
@@ -44,6 +51,12 @@ function ModeTable({ raid, mode }: { raid: Raid; mode: Mode }) {
           <caption className={styles.sr}>
             {raid.shortName} {DIFFICULTY_LABEL[mode.difficulty]} 관문별 보상
           </caption>
+          <colgroup>
+            <col className={styles.colGate} />
+            <col />
+            <col />
+            {hasMore && <col />}
+          </colgroup>
           <thead>
             <tr>
               <th scope="col">관문</th>
@@ -79,11 +92,19 @@ function ModeTable({ raid, mode }: { raid: Raid; mode: Mode }) {
                 )}
               </tr>
             ))}
+            {Array.from({ length: rows - mode.gates.length }, (_, i) => (
+              <tr key={`hold-${i}`} className={styles.holdRow} aria-hidden="true">
+                <th>&nbsp;</th>
+                <td>&nbsp;</td>
+                <td>&nbsp;</td>
+                {hasMore && <td>&nbsp;</td>}
+              </tr>
+            ))}
           </tbody>
           {/* The total row and the note line below are there for every
               difficulty (empty when unknown), so switching difficulty keeps
               the card's height (A7). */}
-          {mode.gates.length > 1 && (
+          {rows > 1 && (
             <tfoot>
               <tr>
                 <th scope="row">합계</th>
@@ -153,7 +174,9 @@ function RaidCard({ raid, order }: { raid: Raid; order: number }) {
           ))}
         </SegmentedControl>
       )}
-      <ModeTable raid={raid} mode={mode} />
+      {/* A new difficulty draws a new table in the same space, instead of
+          moving the old text as its width changes (A7). */}
+      <ModeTable key={mode.difficulty} raid={raid} mode={mode} />
     </section>
   );
 }
