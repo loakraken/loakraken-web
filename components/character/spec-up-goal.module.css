@@ -65,6 +65,15 @@
   color: var(--primary-foreground);
   font-weight: 600;
   white-space: nowrap;
+  transition: scale var(--duration-fast) var(--ease-out);
+}
+.form button:not([aria-disabled="true"]):active {
+  scale: var(--press-scale);
+}
+@media (prefers-reduced-motion: reduce) {
+  .form button:active {
+    scale: none;
+  }
 }
 .form button[aria-disabled="true"] {
   opacity: 0.5;
