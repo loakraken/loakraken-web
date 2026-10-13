@@ -18,7 +18,7 @@ import { fetchMarketBoard } from "@/lib/market/client";
 import { changeLabel, goldText } from "@/lib/market/board";
 import { ScheduleBoard } from "@/components/schedule/schedule-board";
 import { EventItems, NoticeItem } from "@/components/news/news-parts";
-import { MINUTE, useClock } from "./clock";
+import { useNow } from "./clock";
 import { RecentCard } from "./recent-card";
 import { PopularCard } from "./popular-card";
 import { ServerCard } from "./server-card";
@@ -42,7 +42,7 @@ const useNews = () =>
  * pushes the page down after hydration (CLS, QA #181).
  */
 function MaintenanceBanner({ renderedAt }: { renderedAt?: number }) {
-  const now = useClock(MINUTE) ?? renderedAt ?? null;
+  const now = useNow(renderedAt);
   const data = useNews().data?.data;
   const upcoming =
     data && now !== null ? upcomingMaintenance(data.notices, now) : null;
@@ -65,7 +65,7 @@ function MaintenanceBanner({ renderedAt }: { renderedAt?: number }) {
 }
 
 function NewsPanels({ renderedAt }: { renderedAt?: number }) {
-  const now = useClock(MINUTE) ?? renderedAt ?? null;
+  const now = useNow(renderedAt);
   const query = useNews();
   const limit = useRateLimit(query.error);
   const data = query.data?.data;

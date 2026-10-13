@@ -29,3 +29,16 @@ export function remainingText(ms: number): string | null {
  * clock is one tick late at most when it switches, so allow one minute more).
  */
 export const remainingStep = (ms: number) => (ms < HOUR + MINUTE ? SECOND : MINUTE);
+
+/**
+ * "Now" for time-dependent rows: the minute clock, but not the part of a
+ * minute it floors away. The minute clock reads 23:00:07 as 23:00:00, so right
+ * after the hour a round the server already hid as past (23:00) came back on
+ * the first client tick and pushed the list down (A6 on /schedule, CI run at
+ * 23:00:08, web #674). Within that minute the server render time is the later,
+ * truer now; a clock further behind is the browser's own date and wins.
+ */
+export function clampNow(clock: number | null, renderedAt: number | null | undefined): number | null {
+  if (clock === null) return renderedAt ?? null;
+  return renderedAt != null && renderedAt > clock && renderedAt - clock < MINUTE ? renderedAt : clock;
+}
