@@ -1227,6 +1227,35 @@ createServer(async (req, res) => {
       },
     });
   }
+  // Title equip shares (api #314): the roster title names of the 상세 mock,
+  // fewer rosters on 아만 (a small sample there).
+  if (url.pathname === "/api/v1/titles/equipped") {
+    const server = url.searchParams.get("server");
+    const population = server === "아만" ? 24 : 1240;
+    const rows = [["빛을 꺼트리는 자", 400], ["에키드나를 쓰러뜨린 자", 310], ["별을 제패한 자", 12], ["합성 칭호", 0]]
+      .map(([title, n]) => ({ title, equippedRosters: server === "아만" ? Math.round(n / 50) : n }))
+      .map((row) => ({ ...row, equippedPercent: Math.round((row.equippedRosters / population) * 10000) / 100 }))
+      .filter((row) => row.equippedRosters > 0);
+    return send({
+      code: "TITLE_EQUIP_SUCCESS",
+      message: "ok",
+      data: {
+        meta: {
+          population,
+          conditions: { server, role: null, className: null, activeDays: Number(url.searchParams.get("activeDays") ?? 30), itemLevelMin: 0, itemLevelMax: null, combatPowerMin: null, combatPowerMax: null, representativeOnly: false },
+          aggregatedAt: "2026-10-11T07:00:00Z",
+          snapshot: "latest",
+          ruleVersion: "stats-v1",
+          minSample: 30,
+          sampleStatus: population < 30 ? "COLLECTING" : "READY",
+          coverage: { observedCharacters: 5200, knownCharacters: 6100, discoveredAccounts: population },
+          populationUnit: "ROSTER",
+        },
+        title: url.searchParams.get("title"),
+        titles: rows,
+      },
+    });
+  }
   if (url.pathname === "/api/v1/rankings/rosters") {
     const basis = url.searchParams.get("basis") ?? "ITEM_LEVEL";
     const aggregate = url.searchParams.get("aggregate") ?? "TOP6_AVG";
