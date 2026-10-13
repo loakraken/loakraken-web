@@ -1,12 +1,13 @@
 "use client";
 
-import { useId, useState } from "react";
+import { Fragment, useId, useState } from "react";
 import { useRouter } from "next/navigation";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { SiteHeader } from "@/components/site/site-header";
 import { DataTable } from "@/components/ui/data-table";
 import { Select } from "@/components/ui/select";
 import { Diamonds } from "@/components/ui/icons";
+import { useTallest } from "@/components/ui/use-tallest";
 import { countdownText, retryLabel } from "@/lib/api/rate-limit";
 import { pendingProps } from "@/lib/api/pending";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
@@ -30,6 +31,8 @@ import gems from "./gem-board.module.css";
 import styles from "./accessory-board.module.css";
 
 const gold = (n: number | null | undefined) => (n == null ? "-" : n.toLocaleString("ko-KR"));
+/** Most cells a slot has: two key effects × three grades without 하하 (one effect: 3). */
+const CELL_ROOM = 8;
 const kst = new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
 
 function Change({ rate }: { rate: number | null | undefined }) {
@@ -48,7 +51,7 @@ function Cell({ cell, picked, onPick }: { cell: AccessoryCell; picked: boolean; 
   if (cell.status !== "READY")
     return (
       <li className={styles.cell}>
-        <span className={styles.pending}>
+        <span key={cell.label} className={styles.pending}>
           <b>{cell.label}</b>
           <small>집계 중</small>
         </span>
@@ -57,13 +60,17 @@ function Cell({ cell, picked, onPick }: { cell: AccessoryCell; picked: boolean; 
   return (
     <li className={styles.cell}>
       <button type="button" aria-pressed={picked} onClick={onPick} aria-label={`${name} 매물 보기`}>
-        <span className={styles.label}>
-          <b>{cell.label}</b>
-          <small>{name}</small>
-        </span>
-        <b className={styles.price}>{gold(cell.minBuyPrice)}</b>
-        <Change rate={cell.previousDayChangeRate} />
-        <small className={styles.count}>매물 {gold(cell.totalCount)}</small>
+        {/* Right-aligned numbers rewritten in place start elsewhere and count
+            as moving (A7): new values draw new text; the button (and focus) stays. */}
+        <Fragment key={`${name}|${cell.minBuyPrice}|${cell.previousDayChangeRate}|${cell.totalCount}`}>
+          <span className={styles.label}>
+            <b>{cell.label}</b>
+            <small>{name}</small>
+          </span>
+          <b className={styles.price}>{gold(cell.minBuyPrice)}</b>
+          <Change rate={cell.previousDayChangeRate} />
+          <small className={styles.count}>매물 {gold(cell.totalCount)}</small>
+        </Fragment>
       </button>
     </li>
   );
@@ -117,6 +124,9 @@ export function AccessoryBoardView({ initialFilter, initialPick }: { initialFilt
   }
   // A new grade, role or quality changes every cell: the pick is dropped.
   const refilter = (patch: Partial<AccessoryFilter>) => go({ ...filter, ...patch }, null);
+  // The board keeps its tallest room when an answer is shorter or fails (A7).
+  const [boardRef, boardHeight] = useTallest();
+  const notice = `${latest ? `${kst.format(new Date(latest))} 확인` : "\u00a0"} · 전일 대비는 LOAKraken이 전날 마지막으로 확인한 최저가와 비교해요.`;
 
   return (
     <div className={quote.page}>
@@ -160,43 +170,50 @@ export function AccessoryBoardView({ initialFilter, initialPick }: { initialFilt
           </label>
         </form>
 
-        <p className={stats.notice}>
-          {latest ? `${kst.format(new Date(latest))} 확인` : " "} · 전일 대비는 LOAKraken이 전날 마지막으로 확인한
-          최저가와 비교해요.
+        {/* Drawn anew when it says something else (text rewritten in place moves, A7). */}
+        <p key={notice} className={stats.notice}>
+          {notice}
         </p>
-        {board.isError && !data ? (
-          <div className={stats.problem}>
-            <p>{boardLimit.limited ? countdownText(boardLimit.seconds) : "장신구 시세를 불러오지 못했어요."}</p>
-            <button type="button" onClick={() => board.refetch()} disabled={boardLimit.seconds > 0}>
-              {retryLabel(boardLimit.seconds)}
-            </button>
-          </div>
-        ) : !data ? (
-          <p className={`${stats.muted} ${styles.boardHold}`} role="status">
-            장신구 시세를 불러오고 있어요…
-          </p>
-        ) : (
-          <div className={styles.slots} {...pendingProps(board)}>
-            {data.slots.map((slot) => (
-              <section key={slot.slot} className={styles.slot} aria-labelledby={`slot-${slot.slot}`}>
-                <h2 id={`slot-${slot.slot}`}>
-                  {slot.slotName}
-                  <small> · {slot.options.map((o) => o.shortName).join(" · ")}</small>
-                </h2>
-                <ul className={styles.cells}>
-                  {slot.cells.map((cell) => (
-                    <Cell
-                      key={cell.levels.join(",")}
-                      cell={cell}
-                      picked={isPicked(pick, slot.slot, cell)}
-                      onPick={() => go(filter, { slot: slot.slot, levels: cell.levels as Level[], page: 1 })}
-                    />
-                  ))}
-                </ul>
-              </section>
-            ))}
-          </div>
-        )}
+        <div ref={boardRef} style={boardHeight ? { minHeight: boardHeight } : undefined}>
+          {board.isError && !data ? (
+            <div className={stats.problem}>
+              <p>{boardLimit.limited ? countdownText(boardLimit.seconds) : "장신구 시세를 불러오지 못했어요."}</p>
+              <button type="button" onClick={() => board.refetch()} disabled={boardLimit.seconds > 0}>
+                {retryLabel(boardLimit.seconds)}
+              </button>
+            </div>
+          ) : !data ? (
+            <p className={`${stats.muted} ${styles.boardHold}`} role="status">
+              장신구 시세를 불러오고 있어요…
+            </p>
+          ) : (
+            <div className={styles.slots} {...pendingProps(board)}>
+              {data.slots.map((slot) => (
+                <section key={slot.slot} className={styles.slot} aria-labelledby={`slot-${slot.slot}`}>
+                  <h2 id={`slot-${slot.slot}`}>
+                    {slot.slotName}
+                    <small> · {slot.options.map((o) => o.shortName).join(" · ")}</small>
+                  </h2>
+                  <ul className={styles.cells}>
+                    {slot.cells.map((cell) => (
+                      <Cell
+                        key={cell.levels.join(",")}
+                        cell={cell}
+                        picked={isPicked(pick, slot.slot, cell)}
+                        onPick={() => go(filter, { slot: slot.slot, levels: cell.levels as Level[], page: 1 })}
+                      />
+                    ))}
+                    {/* A slot with one key effect has 3 cells: the rest keep their room so
+                        a role change does not move what is below (A7). */}
+                    {Array.from({ length: Math.max(0, CELL_ROOM - slot.cells.length) }, (_, i) => (
+                      <li key={`room-${i}`} className={styles.room} aria-hidden="true" />
+                    ))}
+                  </ul>
+                </section>
+              ))}
+            </div>
+          )}
+        </div>
 
         <section className={gems.listings} aria-labelledby="accessory-listings-heading" {...pendingProps(listings)}>
           <h2 id="accessory-listings-heading">

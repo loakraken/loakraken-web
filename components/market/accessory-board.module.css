@@ -46,6 +46,11 @@
   font-variant-numeric: tabular-nums;
   transition: background-color 160ms ease-out;
 }
+/* Room for a cell a slot does not have (same height as a cell, unseen). */
+.room {
+  min-height: 78px;
+  visibility: hidden;
+}
 .pending {
   grid-template-areas: "label label" "state state";
   color: var(--muted-foreground);
