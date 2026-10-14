@@ -93,6 +93,13 @@
     translate: -50% -50%;
   }
 }
+/* 다음 티어까지 (L2): one quiet line under the share. */
+.next {
+  color: var(--muted-foreground);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
 .cells strong.pending {
   color: var(--muted-foreground);
   font-size: 14px;

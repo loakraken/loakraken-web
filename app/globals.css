@@ -111,8 +111,10 @@
       position: absolute;
       left: 50%;
       top: 50%;
-      width: max(100%, 44px);
-      height: max(100%, 44px);
+      /* 100% is the padding box: + 4px reaches over a border of up to 2px,
+         so the tap area covers the whole drawn control (A36, QA 10-14). */
+      width: max(calc(100% + 4px), 44px);
+      height: max(calc(100% + 4px), 44px);
       translate: -50% -50%;
     }
   }

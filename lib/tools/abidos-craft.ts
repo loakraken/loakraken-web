@@ -1,23 +1,21 @@
 // 아비도스 제작 손익 (checklist M46·N10, E41): one craft of 아비도스 / 상급
 // 아비도스 융화 재료 per life skill, valued at today's market prices.
-//   expected items = 100 × (1 + p), p = 5% × (1 + increase)
-//     (100 a craft, 200 on a great success; increase 0~100% from the player)
+//   expected items = 10 × (1 + p), p = 5% × (1 + increase)
+//     (10 a craft, 20 on a great success; increase 0~100% from the player)
 //   cost   = Σ material qty × unit price + ⌈craft gold × (1 − fee cut)⌉
 //   value  = using it yourself: expected items × unit price of the result;
-//            selling: (bundle price − ⌈bundle price × 5%⌉) × expected ÷ 10,
-//            the fee taken per 10-item bundle as the market does
+//            selling: (unit price − ⌈unit price × 5%⌉) × expected items —
+//            fusion materials trade one at a time (market bundle count 1),
+//            so the fee is rounded up per item
 // Rounding follows comparison calculator C (calc verification 2026-10-13
-// 19:50): craft gold rounds up (520 × 0.83 = 431.6 → 432), the market fee is
-// rounded up per bundle (269 → 255). Calculator A rounds the craft gold down
+// 19:50, sale fee re-checked 2026-10-14): craft gold rounds up (520 × 0.83 =
+// 431.6 → 432), the market fee is rounded up per item (221 → 209). Calculator A rounds the craft gold down
 // and takes the fee as a plain × 0.95 — a proven definition difference.
 // Yields were solved from two calculators' screens (data/abidos-craft.json
 // sourceNote); materials, gold and energy come from the crafting database.
 // The market fee is the auction tool's (marketFee: 5%, rounded up).
 import raw from "./data/abidos-craft.json";
 import { marketFee } from "./auction";
-
-/** Items per market bundle of fusion materials (the fee is taken per bundle). */
-export const SELL_BUNDLE = 10;
 
 /** Craft gold after a fee cut given in percent with at most one decimal, rounded up. */
 export function craftGoldAfterCut(gold: number, feeCutPercent: number) {
@@ -37,10 +35,9 @@ export function energyAfterCut(base: number, overallPercent: number, categoryPer
   return Math.max(0, Math.floor((base * (1000 - cut)) / 1000));
 }
 
-/** Gold received when the expected items are sold in bundles of 10. */
+/** Gold received when the expected items are sold one by one, the fee taken per item. */
 export function sellValue(unitPrice: number, expected: number) {
-  const bundle = Math.round(unitPrice * SELL_BUNDLE);
-  return (bundle - marketFee(bundle)) * (expected / SELL_BUNDLE);
+  return (unitPrice - marketFee(unitPrice)) * expected;
 }
 
 export type OutputId = "abidos" | "superior";

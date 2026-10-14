@@ -235,6 +235,11 @@
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
+/* The price-basis radios above take 44px to tap (hit-44); the switch row
+   starting right under them took the bottom of that area (A36). */
+.advanced > .switch {
+  margin-top: 8px;
+}
 .switch {
   position: relative;
   display: flex;
