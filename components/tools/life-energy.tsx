@@ -30,6 +30,8 @@ import styles from "./life-energy.module.css";
 const UNKNOWN = "미확인";
 const DEFAULT_ENERGY = 10000;
 const MAX_ENERGY = 1000000;
+// The price API takes at most 20 names a request; this tool needs 25.
+const NAMES_PER_REQUEST = 20;
 const count = (value: number) => Math.round(value).toLocaleString("ko-KR");
 const outputName = (id: OutputId) => CRAFT_DATA.outputs.find((o) => o.id === id)!.name;
 const methodText = (o: Option, purpose: Purpose) =>
@@ -99,7 +101,9 @@ function SwitchRow({ label, hint, checked, onChange }: { label: string; hint: st
     <div className={styles.switchRow}>
       <span>
         <label htmlFor={id}>{label}</label>
-        <small id={hintId}>{hint}</small>
+        <small id={hintId}>
+          <Figure text={hint} />
+        </small>
       </span>
       <Switch id={id} className="hit-44" aria-describedby={hintId} checked={checked} onCheckedChange={onChange} />
     </div>
@@ -113,7 +117,7 @@ function ActivityRow({ result, scale, purpose, priced }: { result: ActivityResul
     <tr>
       <th scope="row">
         {result.activity.name}
-        <small>{!priced ? "" : best ? methodText(best, purpose) : `${UNKNOWN}: ${result.missing.join(", ")}`}</small>
+        <small className={styles.method}>{!priced ? "" : best ? methodText(best, purpose) : `${UNKNOWN}: ${result.missing.join(", ")}`}</small>
         {/* Share of the top result: a plain proportion, drawn with transform only. */}
         <span className={styles.bar} aria-hidden="true">
           <i style={{ "--share": share } as CSSProperties} />
@@ -122,7 +126,9 @@ function ActivityRow({ result, scale, purpose, priced }: { result: ActivityResul
       <td className={craft.num} data-empty={(priced && !best) || undefined}>
         <Figure text={!priced ? "—" : best ? `${count(best.value)}` : UNKNOWN} className={best ? styles.gold : undefined} />
       </td>
-      <td className={craft.num}>{durationText(result.minutes)}</td>
+      <td className={craft.num}>
+        <Figure text={durationText(result.minutes)} />
+      </td>
     </tr>
   );
 }
@@ -147,7 +153,13 @@ export function LifeEnergyTool() {
   const requested = useMemo(() => lifeMarketNames(), []);
   const prices = useQuery({
     queryKey: ["life-energy-prices", basis, requested],
-    queryFn: ({ signal }) => postMaterialPrices({ priceBasis: basis, names: requested }, signal),
+    queryFn: async ({ signal }) => {
+      const chunks = Array.from({ length: Math.ceil(requested.length / NAMES_PER_REQUEST) }, (_, i) =>
+        requested.slice(i * NAMES_PER_REQUEST, (i + 1) * NAMES_PER_REQUEST),
+      );
+      const parts = await Promise.all(chunks.map((names) => postMaterialPrices({ priceBasis: basis, names }, signal)));
+      return { ...parts[0], data: { ...parts[0].data, items: parts.flatMap((p) => p.data.items) } };
+    },
     staleTime: MINUTE,
     refetchInterval: MINUTE,
     placeholderData: keepPreviousData,
@@ -276,24 +288,27 @@ export function LifeEnergyTool() {
 
             <section className={craft.list} aria-labelledby="life-results" aria-busy={prices.isPlaceholderData || undefined}>
               <h2 id="life-results" className={craft.sectionTitle}>
-                생명의 기운 {energy.toLocaleString("ko-KR")}으로 벌면
+                <Figure text={`생명의 기운 ${energy.toLocaleString("ko-KR")}으로 벌면`} />
               </h2>
               {/* Held from the first paint: two lines for the answer, one for the day (A7). */}
               <div className={styles.answer} aria-live="polite">
                 <p className={styles.headline}>
                   {topBest ? (
-                    <>
+                    // Keyed by the sentence: a new figure redraws the line instead of sliding the words after it (A7).
+                    <span key={`${top!.activity.id}-${count(topBest.value)}`}>
                       <strong>{top!.activity.name}</strong>에 쓰면 <strong className={styles.gold}>{count(topBest.value)}골드</strong>로 가장 많이 벌어요
-                    </>
+                    </span>
                   ) : priced ? (
                     `${UNKNOWN}: 시세가 없는 재료가 있어요`
                   ) : (
                     ""
                   )}
                 </p>
-                <p className={craft.small}>{topBest ? methodText(topBest, purpose) : ""}</p>
+                <p className={craft.small}>
+                  <Figure text={topBest ? methodText(topBest, purpose) : ""} />
+                </p>
                 <p className={styles.daily}>
-                  <span>하루 생기({daily.toLocaleString("ko-KR")})로 버는 골드</span>
+                  <Figure text={`하루 생기(${daily.toLocaleString("ko-KR")})로 버는 골드`} />
                   <Figure text={topBest ? count((topBest.value / energy) * daily) : "—"} className={styles.gold} />
                 </p>
               </div>
@@ -330,8 +345,10 @@ export function LifeEnergyTool() {
                     </tr>
                   </thead>
                   <tbody>
-                    {results.map((r) => (
-                      <ActivityRow key={r.activity.id} result={r} scale={scale} purpose={purpose} priced={priced} />
+                    {/* Keyed by rank: when the order changes the rows stay put and
+                        their text is redrawn, instead of rows moving past each other (A7). */}
+                    {results.map((r, rank) => (
+                      <ActivityRow key={rank} result={r} scale={scale} purpose={purpose} priced={priced} />
                     ))}
                   </tbody>
                 </table>

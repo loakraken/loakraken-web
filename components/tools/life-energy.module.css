@@ -64,6 +64,10 @@
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
+/* The method line under each activity, held from the first paint (A7). */
+.method {
+  min-height: 1lh;
+}
 .colActivity {
   width: 58%;
 }
