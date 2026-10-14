@@ -1,12 +1,12 @@
 "use client";
 
-import { useId, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Box } from "@/components/ui/icons";
 import { SiteHeader } from "@/components/site/site-header";
 import { SegmentedControl, SegmentedItem } from "@/components/ui/segmented-control";
-import { MarketQueryError, postMaterialPrices } from "@/lib/market/client";
+import { MarketQueryError, postMaterialPricesAll } from "@/lib/market/client";
 import { marketFailureCopy, priceBases, type MaterialPrice, type PriceBasis } from "@/lib/market/model";
 import { retryLabel } from "@/lib/api/rate-limit";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
@@ -23,12 +23,12 @@ import {
   type CraftResult,
 } from "@/lib/tools/abidos-craft";
 import { MARKET_FEE_PERCENT } from "@/lib/tools/auction";
+import { PercentField, SwitchRow } from "./craft-fields";
+import { goldText as count, roundGold, signedGold as signed } from "@/lib/tools/format";
 import quote from "./material-quote.module.css";
 import styles from "./abidos-craft.module.css";
 
 const UNKNOWN = "미확인";
-const count = (value: number) => Math.round(value).toLocaleString("ko-KR");
-const signed = (value: number) => `${value >= 0 ? "+" : "−"}${count(Math.abs(value))}`;
 const percentText = (value: number) => value.toLocaleString("ko-KR", { maximumFractionDigits: 2 });
 const agoText = (now: number, iso: string) => {
   const minutes = Math.max(0, Math.floor((now - Date.parse(iso)) / MINUTE));
@@ -48,8 +48,13 @@ function Figure({ text, tone }: { text: string; tone?: "up" | "down" }) {
   );
 }
 
+const viaText = (r: CraftResult) => {
+  const via = r.materials.filter((m) => m.via);
+  return via.length ? `교환으로 마련: ${via.map((m) => m.name).join(", ")}` : "";
+};
+
 const profitFigure = (value: number | null, priced: boolean) =>
-  !priced ? <Figure text="—" /> : value == null ? <Figure text={UNKNOWN} /> : <Figure text={signed(value)} tone={value >= 0 ? "up" : "down"} />;
+  !priced ? <Figure text="—" /> : value == null ? <Figure text={UNKNOWN} /> : <Figure text={signed(value)} tone={roundGold(value) > 0 ? "up" : roundGold(value) < 0 ? "down" : undefined} />;
 
 /**
  * Profit, and under it the same per 100 estate energy (a line held from the
@@ -65,45 +70,6 @@ function ProfitCell({ value, per100, priced }: { value: number | null; per100: n
         <Figure text={shown ? signed(per100) : ""} />
       </small>
     </td>
-  );
-}
-
-function PercentField({
-  label,
-  hint,
-  value,
-  onChange,
-}: {
-  label: string;
-  hint: string;
-  value: string;
-  onChange: (value: string) => void;
-}) {
-  const id = useId();
-  const hintId = useId();
-  const invalid = value !== "" && parsePercent(value) == null;
-  return (
-    <div className={styles.field}>
-      <label htmlFor={id}>{label}</label>
-      <div className={styles.percent}>
-        <input
-          id={id}
-          type="text"
-          inputMode="decimal"
-          autoComplete="off"
-          placeholder="0"
-          aria-describedby={hintId}
-          aria-invalid={invalid || undefined}
-          value={value}
-          onChange={(event) => onChange(event.target.value.replace(/[^\d.]/g, ""))}
-        />
-        <span aria-hidden="true">%</span>
-      </div>
-      {/* Held from the first paint so an error line never pushes the page. */}
-      <p id={hintId} className={styles.small} data-error={invalid || undefined}>
-        {invalid ? "0~100 사이 숫자(소수 한 자리까지)로 넣어 주세요." : hint}
-      </p>
-    </div>
   );
 }
 
@@ -146,6 +112,10 @@ function OutputTable({ results, priced }: { results: CraftResult[]; priced: bool
                 <th scope="row">
                   {r.skill.name}
                   <small>{r.materials.map((m) => `${m.name} ${m.qty}`).join(" · ")}</small>
+                  {/* Held from the first paint: what the exchange vendor supplies more cheaply. */}
+                  <small className={styles.via}>
+                    <span key={viaText(r)}>{viaText(r)}</span>
+                  </small>
                   {/* Held from the first paint: names a price the market did not give. */}
                   <small className={styles.missing}>{priced && r.missing.length ? `${UNKNOWN}: ${r.missing.join(", ")}` : ""}</small>
                 </th>
@@ -172,11 +142,14 @@ export function AbidosCraftTool() {
   const [energyAllText, setEnergyAllText] = useState("");
   const [energyCategoryText, setEnergyCategoryText] = useState("");
   const energyCut = { overall: parsePercent(energyAllText) ?? 0, category: parsePercent(energyCategoryText) ?? 0 };
+  // On by default, as on comparison basis C's screen.
+  const [exchange, setExchange] = useState(true);
 
   const requested = useMemo(() => craftMarketNames(), []);
   const prices = useQuery({
     queryKey: ["abidos-craft-prices", basis, requested],
-    queryFn: ({ signal }) => postMaterialPrices({ priceBasis: basis, names: requested }, signal),
+    // 25 names with the exchange-only rare grade: sent as requests of up to 20.
+    queryFn: ({ signal }) => postMaterialPricesAll({ priceBasis: basis, names: requested }, signal),
     staleTime: MINUTE,
     refetchInterval: MINUTE,
     placeholderData: keepPreviousData,
@@ -248,6 +221,12 @@ export function AbidosCraftTool() {
                 value={energyCategoryText}
                 onChange={setEnergyCategoryText}
               />
+              <SwitchRow
+                label="교환 상인"
+                hint="거래소에서 사는 것보다 교환 상인으로 바꾸는 게 싸면 그 값으로 재료비를 계산해요."
+                checked={exchange}
+                onChange={setExchange}
+              />
               {failure && (
                 <div className={quote.notice}>
                   <div role="alert">
@@ -288,7 +267,7 @@ export function AbidosCraftTool() {
                   <OutputTable
                     key={output.id}
                     priced={priced}
-                    results={CRAFT_DATA.skills.map((skill) => craftResult(output.id, skill.id, unit, increase, feeCut, energyCut))}
+                    results={CRAFT_DATA.skills.map((skill) => craftResult(output.id, skill.id, unit, increase, feeCut, energyCut, exchange))}
                   />
                 ))}
               </div>
@@ -296,7 +275,8 @@ export function AbidosCraftTool() {
                 1회 제작에 결과물 10개, 대성공이면 20개가 나와요. 대성공 확률은 기본 5%에 (1 + 증가)를 곱해요. 비용 = 재료 수량 ×
                 거래소 1개 가격 + 제작 골드(수수료 감소 반영, 1골드 미만은 올림). 판매 시 = 1개 가격에서 판매 수수료{" "}
                 {MARKET_FEE_PERCENT}%(1골드 미만 올림)를 뗀 값 × 평균 개수, 직접 사용 시 = 평균 개수 × 1개 가격.
-                직접 캔 재료도 거래소 가격으로 매겨요.
+                직접 캔 재료도 거래소 가격으로 매겨요. 교환 상인을 켜면 같은 생활 스킬 재료끼리 바꾸는 값(예: 목재 → 가루 →
+                아비도스 목재)이 거래소보다 0.5% 넘게 싸면 그 값으로 재료비를 계산해요. 가루는 거래소에서 사지 않아요.
                 거래소에 가격이 없는 재료가 있으면 0이 아니라 {UNKNOWN}으로 두고 손익을 계산하지 않아요. 100 활동력당 이익은
                 1회 활동력(기본 아비도스 288·상급 360에서 전체·특수 제작 감소를 더해 빼고 내림)으로 나눠요. 니나브의 축복은 제작 시간·슬롯·활동력 회복량을 바꿔
                 1회 손익에는 영향이 없어요. 손익 계산에는 넣지 않아요. 확인 {CRAFT_DATA.checkedAt}.

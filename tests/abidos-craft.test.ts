@@ -29,7 +29,8 @@ test("craft data is consistent and matches the crafting database rows", () => {
       assert.equal(row!.gold, output.gold);
       assert.equal(row!.energy, output.energy);
     }
-  assert.equal(craftMarketNames().length, 2 + 6 * 3);
+  // Both results, three materials per skill, and the rare grade the exchange can trade from (none for fishing).
+  assert.equal(craftMarketNames().length, 2 + 6 * 3 + 5);
 });
 
 test("the average yield is 10.5 at the base chance and 11 at +100% (one craft; the screen's 105·110 are 10 crafts)", () => {

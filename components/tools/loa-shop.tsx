@@ -21,6 +21,7 @@ import {
   type ShopPackage,
 } from "@/lib/tools/loa-shop";
 import quote from "./material-quote.module.css";
+import { goldText as count, roundGold, signedGold as signed } from "@/lib/tools/format";
 import styles from "./loa-shop.module.css";
 
 /** The typed rate stays in this browser only (never sent anywhere). */
@@ -55,8 +56,6 @@ const subscribeRate = (listener: () => void) => {
 };
 const UNKNOWN = "미확인";
 
-const count = (value: number) => Math.round(value).toLocaleString("ko-KR");
-const signed = (value: number) => `${value >= 0 ? "+" : "−"}${count(Math.abs(value))}`;
 const unitText = (value: number) => value.toLocaleString("ko-KR", { maximumFractionDigits: value < 1 ? 4 : 2 });
 const agoText = (now: number, iso: string) => {
   const minutes = Math.max(0, Math.floor((now - Date.parse(iso)) / MINUTE));
@@ -89,7 +88,7 @@ function Verdict({ value, rate, priced }: { value: PackageValue; rate: number | 
         </p>
         <p>
           판매가보다{" "}
-          <b className={value.gain >= 0 ? styles.up : styles.down}>{signed(value.gain)}</b> 로열 크리스탈
+          <b className={roundGold(value.gain) > 0 ? styles.up : roundGold(value.gain) < 0 ? styles.down : undefined}>{signed(value.gain)}</b> 로열 크리스탈
         </p>
       </div>
     );
