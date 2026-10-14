@@ -24,7 +24,10 @@ for (const width of [1280, 360])
     // Second in the list: different, said so.
     await expect(card(page, "아크 패시브 깨달음")).toContainText("대세와 달라요 · 내 세팅은 2위");
     await expect(card(page, "주력 전투 특성")).toContainText("대세와 같아요");
-    await expect(card(page, "팔찌 전투 특성")).toContainText("대세와 달라요 · 치명 없음");
+    // 특화 60%·치명 50% have half or more: no 치명 is different; 신속 is extra, not different.
+    await expect(card(page, "팔찌 전투 특성")).toContainText("대세와 달라요 · 과반이 쓰는 치명 없음");
+    await expect(card(page, "팔찌 전투 특성")).toContainText("추가: 신속");
+    await expect(card(page, "각인 채용")).toContainText("대세와 같아요");
     await expect(card(page, "피해 증가 보석")).toContainText("대세와 달라요 · 가장 많은 10레벨이 없음");
     await expect(card(page, "피해 증가 보석")).toContainText("내 보석: 9레벨 1개");
     await expect(card(page, "카드 세트")).toContainText("내 세팅: 세상을 구하는 빛 6세트 30각성");

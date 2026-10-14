@@ -155,9 +155,11 @@ test("comparison: first three, the rest, and where mine stands in words", () => 
   assert.equal(sections.enlightenment.verdict, "대세와 달라요 · 내 세팅은 2위");
   assert.equal(sections.enlightenment.mine, "내 세팅: 101");
   assert.equal(sections.enlightenment.differs, true);
-  // Several per character: which of the most chosen I lack, and mine outside the list.
-  assert.equal(sections.engravings.verdict, "대세와 달라요 · 돌격대장 없음");
-  assert.equal(sections.engravings.mine, "목록에 없는 내 각인: 예리한 둔기");
+  // Several per character: the most chosen is every line at least half have
+  // (원한 96%·아드레날린 60%; 돌격대장 35% is not); mine beyond it is "추가", not different.
+  assert.equal(sections.engravings.verdict, "대세와 같아요");
+  assert.equal(sections.engravings.mine, "추가: 예리한 둔기");
+  assert.equal(sections.engravings.differs, false);
   // Gems per effect kind, tier 4 only (the 멸화 is left out).
   assert.equal(sections.damage.verdict, "가장 많은 10레벨이 있어요");
   assert.equal(sections.damage.mine, "내 보석: 10레벨 1개·8레벨 1개");
@@ -166,8 +168,30 @@ test("comparison: first three, the rest, and where mine stands in words", () => 
   assert.equal(sections.cards.verdict, "대세와 같아요");
   assert.equal(sections.cards.mine, "내 세팅: 세상을 구하는 빛 6세트 30각성");
   assert.equal(sections.topStat.mine, "내 세팅: 특화");
-  assert.equal(sections.bracelet.verdict, "대세와 달라요 · 신속 없음");
+  // 특화 90%·치명 60% are the most chosen; 신속 20% is not, and lacking it is not different.
+  assert.equal(sections.bracelet.verdict, "대세와 같아요");
   assert.equal(sections.bracelet.mine, null);
+});
+
+test("comparison, several per character: a missing majority line differs; no majority, no verdict", () => {
+  const onlyCrit = { ...character(), stats: character().stats } as Character;
+  const bracelet = (onlyCrit.loadout.equipment[0] as unknown as { detail: { braceletEffects: { text: string; grade: null }[] } }).detail;
+  bracelet.braceletEffects = [{ text: "치명 +100", grade: null }, { text: "신속 +81", grade: null }];
+  const mine = myBuild(onlyCrit);
+  const lacking = compareBuild(builds, mine).find((s) => s.id === "bracelet")!;
+  assert.equal(lacking.verdict, "대세와 달라요 · 과반이 쓰는 특화 없음");
+  assert.equal(lacking.mine, "추가: 신속");
+  assert.equal(lacking.differs, true);
+
+  // No line reaching half: never call the first one the most chosen.
+  const spread = {
+    ...builds,
+    braceletStats: { known: 100, unread: 0, hidden: { count: 0, share: 0 }, cells: [{ name: "특화", count: 45, share: 45 }, { name: "치명", count: 40, share: 40 }] },
+  } as unknown as ClassBuilds;
+  const none = compareBuild(spread, mine).find((s) => s.id === "bracelet")!;
+  assert.equal(none.verdict, "뚜렷한 대세 없음");
+  assert.equal(none.differs, false);
+  assert.equal(none.mine, "내 세팅: 치명·신속");
 });
 
 test("comparison: an unread character compares nothing and says so", () => {

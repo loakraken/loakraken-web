@@ -187,23 +187,34 @@ function single<K>(
   return { id, title, top, others, verdict, mine: `내 세팅: ${mineLabel(mine)}`, differs: rank !== 0 };
 }
 
-/** Several per character (engravings, bracelet stats): which of the most chosen I have, and mine not among them. */
-function several(id: string, title: string, cells: Cell<string>[], mine: string[] | null, unit: string): CompareSection {
+/** Share (%) at or above which a line is part of the most chosen setting, for several-per-character items. */
+export const MAJORITY = 50;
+
+/**
+ * Several per character (engravings, bracelet stats). The most chosen
+ * setting is every line at least half the sample has (no fixed count, PM
+ * 총괄 10-14): same when I have them all, different when one is missing;
+ * my lines beyond them are shown as "추가" and do not count as different.
+ * No line reaching half: no clear most chosen setting, no same/different.
+ */
+function several(id: string, title: string, cells: Cell<string>[], mine: string[] | null): CompareSection {
   const have = new Set(mine ?? []);
   const top = cells.slice(0, 3).map((cell) => ({ label: cell.label, share: cell.share, count: cell.count, mine: have.has(cell.key) }));
   const rest = cells.length - top.length;
   const others = rest > 0 ? { cells: rest, share: null, hiddenSmall: false } : null;
   if (mine == null) return { id, title, top, others, verdict: UNREAD, mine: null, differs: false };
-  const missing = top.filter((row) => !row.mine).map((row) => row.label);
-  const listed = new Set(cells.map((cell) => cell.key));
-  const outside = [...have].filter((name) => !listed.has(name));
+  const majority = cells.filter((cell) => cell.share != null && cell.share >= MAJORITY);
+  const extra = [...have].filter((name) => !majority.some((cell) => cell.key === name));
+  if (!majority.length)
+    return { id, title, top, others, verdict: "뚜렷한 대세 없음", mine: have.size ? `내 세팅: ${[...have].join("·")}` : null, differs: false };
+  const missing = majority.filter((cell) => !have.has(cell.key)).map((cell) => cell.label);
   return {
     id,
     title,
     top,
     others,
-    verdict: missing.length ? `대세와 달라요 · ${missing.join("·")} 없음` : `많이 쓰는 ${unit} ${top.length}개를 모두 써요`,
-    mine: outside.length ? `목록에 없는 내 ${unit}: ${outside.join("·")}` : null,
+    verdict: missing.length ? `대세와 달라요 · 과반이 쓰는 ${missing.join("·")} 없음` : "대세와 같아요",
+    mine: extra.length ? `추가: ${extra.join("·")}` : null,
     differs: missing.length > 0,
   };
 }
@@ -264,7 +275,7 @@ export function compareBuild(builds: ClassBuilds, mine: MyBuild): CompareSection
       sameList,
       (combo) => combo.join(" · "),
     ),
-    several("engravings", "각인 채용", name(builds.engravings), mine.combo, "각인"),
+    several("engravings", "각인 채용", name(builds.engravings), mine.combo),
     point("evolution", "아크 패시브 진화", "evolution"),
     point("enlightenment", "아크 패시브 깨달음", "enlightenment"),
     point("leap", "아크 패시브 도약", "leap"),
@@ -285,6 +296,6 @@ export function compareBuild(builds: ClassBuilds, mine: MyBuild): CompareSection
       cardLabel,
     ),
     single("topStat", "주력 전투 특성", name(builds.topStats), builds.topStats?.hidden?.count ?? 0, mine.topStat, (a, b) => a === b, String),
-    several("bracelet", "팔찌 전투 특성", name(builds.braceletStats), mine.braceletStats, "특성"),
+    several("bracelet", "팔찌 전투 특성", name(builds.braceletStats), mine.braceletStats),
   ];
 }
