@@ -1,6 +1,6 @@
 // 회귀(A7, #791): 통계 화면에서 서버를 바꿔도(누른 직후 포함) 아무것도 제자리에서 움직이지 않는다.
 // 다른 서버의 숫자는 표 칸 너비를 다르게 잡아, 예전 표의 머리 칸과 아래 안내가 그 자리에서 밀렸다.
-import { test, expect, gotoReady, chooseOption } from "../support/fixtures.mjs";
+import { test, expect, gotoReady, chooseOption, expectNoHorizontalOverflow } from "../support/fixtures.mjs";
 import { shiftsDuring, watchShifts } from "../support/shifts.mjs";
 
 for (const tab of ["classes", "distribution", "best", "servers", "titles"])
@@ -33,4 +33,6 @@ for (const tab of ["classes", "distribution", "best", "servers", "titles"])
         );
         expect(cut, "잘린 칸").toEqual([]);
       }
+      // The page never widens past the screen (the table box scrolls instead, #811).
+      await expectNoHorizontalOverflow(page);
     });

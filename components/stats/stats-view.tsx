@@ -451,7 +451,10 @@ function ServersTab({ query }: { query: StatsQuery }) {
               <th scope="col">비율</th>
               <th scope="col">아이템 레벨 중앙값</th>
               <th scope="col">전투력 중앙값</th>
-              <th scope="col"><span className={styles.srOnly}>표본</span></th>
+              {/* Named by aria-label, not a visually hidden span: positioned
+                  out of the flow, that span left the scrolling table box and
+                  widened the page at 360 (#811). */}
+              <th scope="col" aria-label="표본" />
             </tr>
           </thead>
           <tbody>
