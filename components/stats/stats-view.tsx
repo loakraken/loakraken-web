@@ -378,7 +378,7 @@ function DistributionTab({ query }: { query: StatsQuery }) {
                 <th scope="col">인원</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody key={dist.dataUpdatedAt}>
               {data.bins.map((bin) => (
                 <tr key={bin.from}>
                   <th scope="row">
@@ -390,7 +390,9 @@ function DistributionTab({ query }: { query: StatsQuery }) {
             </tbody>
         </DataTable>
       ) : (
-        <ol className={styles.histogram} aria-label={`${label} 구간별 인원`} {...pendingProps(dist)}>
+        // Drawn anew per answer: another server's bins are other ranges, and
+        // the same bar moved across the axis in place (A7, #791).
+        <ol key={dist.dataUpdatedAt} className={styles.histogram} aria-label={`${label} 구간별 인원`} {...pendingProps(dist)}>
           {data.bins.map((bin, i) => {
             const hit = p && p.value >= bin.from && p.value < bin.to;
             return (
@@ -429,7 +431,9 @@ function ServersTab({ query }: { query: StatsQuery }) {
   const rows = servers.data.data.rows;
   const ready = rows.filter((row) => row.sampleStatus === "READY").length;
   return (
-    <div {...pendingProps(servers)}>
+    // Drawn anew per answer like the class table: the auto-width columns size
+    // to the numbers, and the same cells moved in place (A7, #791).
+    <div key={servers.dataUpdatedAt} {...pendingProps(servers)}>
       <SampleProgress ready={ready} total={rows.length} unit="서버" minSample={servers.data.data.meta.minSample} />
       {rows.length > 0 && (
       <DataTable label="서버별 인원과 중앙값" className={styles.table}>
