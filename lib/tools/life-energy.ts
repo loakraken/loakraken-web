@@ -13,36 +13,23 @@
 // source's own script data (data/life-energy.json sourceNote); the official
 // guide gives no numbers. The craft recipe, gold and yield are the 아비도스
 // 제작 손익 tool's. A missing market price is never counted as 0.
-import raw from "./data/life-energy.json";
+import {
+  GRADES,
+  LIFE_DATA,
+  ROLES,
+  rulesFor,
+  type Activity,
+  type ExchangeRule,
+  type Grade,
+  type LifeEnergyData,
+  type Role,
+} from "./life-exchange";
 import { CRAFT_DATA, craftGoldAfterCut, expectedYield, type OutputId } from "./abidos-craft";
 import { marketFee } from "./auction";
 
-export type Grade = "abidos" | "uncommon" | "common" | "rare";
-export type Role = Grade | "powder";
-const GRADES: Grade[] = ["abidos", "uncommon", "common", "rare"];
-const ROLES: Role[] = [...GRADES, "powder"];
+export { LIFE_DATA, rulesFor, type Activity, type ExchangeRule, type Grade, type LifeEnergyData, type Role } from "./life-exchange";
+
 const RECIPE_GRADES = ["abidos", "uncommon", "common"] as const;
-
-export type ExchangeRule = { from: Role; to: Role; give: number; get: number; only?: string[] };
-export type Activity = {
-  id: string;
-  name: string;
-  powder: string;
-  minutes: number;
-  items: Record<Grade, string | null>;
-  per10k: Record<Grade, number>;
-};
-export type LifeEnergyData = {
-  version: string;
-  checkedAt: string;
-  sources: Record<string, { title: string; url: string | null; date: string }>;
-  sourceNote: string;
-  recovery: { perTick: number; blessedPerTick: number; ticksPerDay: number; source: string };
-  exchange: ExchangeRule[];
-  activities: Activity[];
-};
-
-export const LIFE_DATA = raw as LifeEnergyData;
 
 /** A market listing: the price of one bundle and how many items it holds. */
 export type Quote = { bundlePrice: number; bundleCount: number };
@@ -70,10 +57,6 @@ export const dailyEnergy = (blessed: boolean) =>
 export function gathered(activity: Activity, energy: number): Record<Grade, number> {
   return Object.fromEntries(GRADES.map((g) => [g, Math.floor((activity.per10k[g] * energy) / 10000)])) as Record<Grade, number>;
 }
-
-/** The exchange rules that apply to an activity (rare → common only for some). */
-export const rulesFor = (activity: Activity, exchange: boolean) =>
-  exchange ? LIFE_DATA.exchange.filter((r) => !r.only || r.only.includes(activity.id)) : [];
 
 const zero = (): Record<Role, number> => ({ abidos: 0, uncommon: 0, common: 0, rare: 0, powder: 0 });
 

@@ -6,8 +6,7 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Tree } from "@/components/ui/icons";
 import { SiteHeader } from "@/components/site/site-header";
 import { SegmentedControl, SegmentedItem } from "@/components/ui/segmented-control";
-import { Switch } from "@/components/ui/switch";
-import { MarketQueryError, postMaterialPrices } from "@/lib/market/client";
+import { MarketQueryError, postMaterialPricesAll } from "@/lib/market/client";
 import { marketFailureCopy, priceBases, type MaterialPrice, type PriceBasis } from "@/lib/market/model";
 import { retryLabel } from "@/lib/api/rate-limit";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
@@ -23,6 +22,7 @@ import {
   type Purpose,
   type Quote,
 } from "@/lib/tools/life-energy";
+import { PercentField, SwitchRow } from "./craft-fields";
 import quote from "./material-quote.module.css";
 import craft from "./abidos-craft.module.css";
 import styles from "./life-energy.module.css";
@@ -30,8 +30,6 @@ import styles from "./life-energy.module.css";
 const UNKNOWN = "미확인";
 const DEFAULT_ENERGY = 10000;
 const MAX_ENERGY = 1000000;
-// The price API takes at most 20 names a request; this tool needs 25.
-const NAMES_PER_REQUEST = 20;
 const count = (value: number) => Math.round(value).toLocaleString("ko-KR");
 const outputName = (id: OutputId) => CRAFT_DATA.outputs.find((o) => o.id === id)!.name;
 const methodText = (o: Option, purpose: Purpose) =>
@@ -53,60 +51,6 @@ function Figure({ text, className }: { text: string; className?: string }) {
     <span key={text} className={className}>
       {text}
     </span>
-  );
-}
-
-function PercentField({
-  label,
-  hint,
-  value,
-  onChange,
-}: {
-  label: string;
-  hint: string;
-  value: string;
-  onChange: (value: string) => void;
-}) {
-  const id = useId();
-  const hintId = useId();
-  const invalid = value !== "" && parsePercent(value) == null;
-  return (
-    <div className={craft.field}>
-      <label htmlFor={id}>{label}</label>
-      <div className={craft.percent}>
-        <input
-          id={id}
-          type="text"
-          inputMode="decimal"
-          autoComplete="off"
-          placeholder="0"
-          aria-describedby={hintId}
-          aria-invalid={invalid || undefined}
-          value={value}
-          onChange={(event) => onChange(event.target.value.replace(/[^\d.]/g, ""))}
-        />
-        <span aria-hidden="true">%</span>
-      </div>
-      <p id={hintId} className={craft.small} data-error={invalid || undefined}>
-        {invalid ? "0~100 사이 숫자(소수 한 자리까지)로 넣어 주세요." : hint}
-      </p>
-    </div>
-  );
-}
-
-function SwitchRow({ label, hint, checked, onChange }: { label: string; hint: string; checked: boolean; onChange: (v: boolean) => void }) {
-  const id = useId();
-  const hintId = useId();
-  return (
-    <div className={styles.switchRow}>
-      <span>
-        <label htmlFor={id}>{label}</label>
-        <small id={hintId}>
-          <Figure text={hint} />
-        </small>
-      </span>
-      <Switch id={id} className="hit-44" aria-describedby={hintId} checked={checked} onCheckedChange={onChange} />
-    </div>
   );
 }
 
@@ -153,13 +97,8 @@ export function LifeEnergyTool() {
   const requested = useMemo(() => lifeMarketNames(), []);
   const prices = useQuery({
     queryKey: ["life-energy-prices", basis, requested],
-    queryFn: async ({ signal }) => {
-      const chunks = Array.from({ length: Math.ceil(requested.length / NAMES_PER_REQUEST) }, (_, i) =>
-        requested.slice(i * NAMES_PER_REQUEST, (i + 1) * NAMES_PER_REQUEST),
-      );
-      const parts = await Promise.all(chunks.map((names) => postMaterialPrices({ priceBasis: basis, names }, signal)));
-      return { ...parts[0], data: { ...parts[0].data, items: parts.flatMap((p) => p.data.items) } };
-    },
+    // 25 names: sent as requests of up to 20.
+    queryFn: ({ signal }) => postMaterialPricesAll({ priceBasis: basis, names: requested }, signal),
     staleTime: MINUTE,
     refetchInterval: MINUTE,
     placeholderData: keepPreviousData,

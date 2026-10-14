@@ -95,6 +95,31 @@
 .percent span {
   color: var(--slate);
 }
+/* A setting with an on/off switch (craft-fields.tsx). */
+.switchRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.switchRow > span {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.switchRow label {
+  font-size: var(--text-body);
+  font-weight: 500;
+}
+.switchRow small {
+  color: var(--slate);
+  font-size: var(--text-caption);
+  line-height: 1.5;
+}
+/* Materials the exchange vendor supplies, held from the first paint (A7). */
+.via {
+  min-height: 1lh;
+}
 .basis {
   margin-top: var(--space-3);
 }

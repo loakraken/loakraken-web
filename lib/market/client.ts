@@ -80,7 +80,19 @@ export const postMaterialPrices = (body: PriceRequest, signal?: AbortSignal) =>
     signal,
   });
 
-export const fetchMarketTabs = (signal: AbortSignal) =>
+/** The price API takes at most this many names a request. */
+export const PRICE_NAMES_PER_REQUEST = 20;
+
+/** Material prices for any number of names: requests of up to 20 names, sent together, items joined in order. */
+export async function postMaterialPricesAll(body: PriceRequest, signal?: AbortSignal): Promise<PricesEnvelope> {
+  const chunks = Array.from({ length: Math.ceil(body.names.length / PRICE_NAMES_PER_REQUEST) }, (_, i) =>
+    body.names.slice(i * PRICE_NAMES_PER_REQUEST, (i + 1) * PRICE_NAMES_PER_REQUEST),
+  );
+  const parts = await Promise.all(chunks.map((names) => postMaterialPrices({ ...body, names }, signal)));
+  return { ...parts[0], data: { ...parts[0].data, items: parts.flatMap((p) => p.data.items) } };
+}
+
+export const fetchMarketTabs =(signal: AbortSignal) =>
   call<TabsEnvelope>("/api/markets/tabs", { signal });
 
 export const fetchMarketBoard = (query: BoardQuery, signal: AbortSignal) =>
