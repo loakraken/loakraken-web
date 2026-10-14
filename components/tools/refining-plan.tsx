@@ -303,7 +303,7 @@ function Progress({
   );
   return (
     <details className={styles.disclosure}>
-      <summary>첫 단계 진행 상황 입력</summary>
+      <summary className="hit-44">첫 단계 진행 상황 입력</summary>
       <p className={quote.caption}>
         이미 시도 중인 단계가 있으면 현재 장인의 기운과 실패 횟수를 넣어 주세요.
         첫 단계에만 적용돼요.
@@ -891,7 +891,7 @@ function RefiningContent({ initialName }: { initialName: string }) {
               <p className={quote.hint}>
                 성장 지원(업화 1~18단계 재련 골드 20% 감소)은 기간·대상 조건이
                 없는 공식 규칙이라 자동으로 적용해요(
-                <a href={GROWTH_SUPPORT_NOTICE} target="_blank" rel="noreferrer">
+                <a href={GROWTH_SUPPORT_NOTICE} target="_blank" rel="noreferrer" className="hit-44">
                   공지
                 </a>{" "}
                 · 게임 재련 가이드). 전율 책, 실링, 상급 재련, 이벤트 확률은
