@@ -50,13 +50,13 @@ test("cost, value and profit of one craft, with the fee cut and the market fee",
   assert.ok(Math.abs(r.craftGold - 332) < 1e-9);
   assert.ok(Math.abs(r.cost! - (596 + 332)) < 1e-9);
   assert.ok(Math.abs(r.use! - 10.5 * 90) < 1e-6);
-  // Sold in bundles of 10: 900 − ⌈45⌉ = 855 per bundle × 1.05 bundles.
-  assert.ok(Math.abs(r.sell! - 855 * 1.05) < 1e-6);
+  // Sold one by one: 90 − ⌈4.5⌉ = 85 per item × 10.5 items.
+  assert.ok(Math.abs(r.sell! - 85 * 10.5) < 1e-6);
   assert.ok(Math.abs(r.useProfit! - (10.5 * 90 - 928)) < 1e-6);
   assert.deepEqual(r.missing, []);
   // Per 100 base energy (288 for 아비도스).
   assert.ok(Math.abs(r.usePer100Energy! - ((10.5 * 90 - 928) * 100) / 288) < 1e-6);
-  assert.ok(Math.abs(r.sellPer100Energy! - ((855 * 1.05 - 928) * 100) / 288) < 1e-6);
+  assert.ok(Math.abs(r.sellPer100Energy! - ((85 * 10.5 - 928) * 100) / 288) < 1e-6);
 });
 
 test("a missing price is never 0: no cost, no profit, and it is named", () => {
@@ -82,10 +82,12 @@ test("rounding follows the comparison calculator (calc verification 2026-10-13 1
   assert.equal(craftGoldAfterCut(520, 17), 432);
   assert.equal(craftGoldAfterCut(520, 13), 453);
   assert.equal(craftGoldAfterCut(520, 0), 520);
-  // The market fee is rounded up per 10-item bundle: 269 → 255, 215 → 204.
-  assert.equal(sellValue(26.9, 10), 255);
-  assert.equal(sellValue(21.5, 10), 204);
-  assert.ok(Math.abs(sellValue(26.9, 105) - 255 * 10.5) < 1e-9);
+  // The market fee is rounded up per item (bundle count 1): 221 → 209, 270 → 256.
+  assert.equal(sellValue(221, 1), 209);
+  assert.equal(sellValue(270, 1), 256);
+  assert.ok(Math.abs(sellValue(221, 10.5) - 209 * 10.5) < 1e-9);
+  // Not once per 10 items: 2210 − ⌈110.5⌉ = 2099 would be 209.9 an item.
+  assert.notEqual(sellValue(221, 10), 2099);
 });
 
 test("energy-cost reduction: the cuts add up and the energy rounds down (calc verification 23:16)", () => {
