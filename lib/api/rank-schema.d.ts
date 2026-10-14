@@ -52,7 +52,7 @@ export interface components {
             combatPower: number;
             refreshedAt: string | null;
             /**
-             * @description 순위 공개 여부. 이 값이 최우선이다. HIDDEN(운영 공개 제외 목록)이면 entries는 빈 배열이고 순위·백분위·티어는 어디에도 없다. 이때 다른 메타(included 등)로 순위 상태를 판단하지 않는다. VISIBLE이면 included와 entries의 sampleStatus로 판단한다
+             * @description 순위 공개 여부. 지금은 늘 VISIBLE이다(HIDDEN은 더 이상 쓰지 않음). included와 entries의 sampleStatus로 판단한다
              * @enum {string}
              */
             rankVisibility: "VISIBLE" | "HIDDEN";
@@ -68,18 +68,18 @@ export interface components {
         };
         /** @description 정규화한 조건(기본값 포함) */
         StatsConditionsResponse: {
-            server: (((((string | null) | null) | null) | null) | null) | null;
-            role: (((((("DEALER" | "SUPPORT") | null) | null) | null) | null) | null) | null;
-            className: (((((string | null) | null) | null) | null) | null) | null;
+            server: string | null;
+            role: ("DEALER" | "SUPPORT") | null;
+            className: string | null;
             /**
              * Format: int32
              * @description 최근 확인 기간(일): 7, 30, 90
              */
             activeDays: number;
             itemLevelMin: number;
-            itemLevelMax: (((((number | null) | null) | null) | null) | null) | null;
-            combatPowerMin: (((((number | null) | null) | null) | null) | null) | null;
-            combatPowerMax: (((((number | null) | null) | null) | null) | null) | null;
+            itemLevelMax: number | null;
+            combatPowerMin: number | null;
+            combatPowerMax: number | null;
             /** @description 원정대(같은 서버) 대표 캐릭터(아이템 레벨 최고)만 */
             representativeOnly: boolean;
         };
@@ -97,6 +97,9 @@ export interface components {
             tier: ("TOP1" | "TOP5" | "TOP10" | "TOP25" | "TOP50" | "REST") | null;
             /** @enum {string} */
             sampleStatus: "COLLECTING" | "READY";
+            nextTier: ("TOP1" | "TOP5" | "TOP10" | "TOP25" | "TOP50") | null;
+            nextTierValue: number | null;
+            nextTierGap: number | null;
         };
         /** @description 공통 오류 응답. HTTP 상태와 업무 코드를 함께 확인합니다. */
         ErrorResponse: {

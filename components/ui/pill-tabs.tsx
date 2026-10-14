@@ -99,18 +99,22 @@ function PillTabs({ className, listClassName, children, panels, "aria-label": la
 
   return (
     <TabsPrimitive.Root data-slot="pill-tabs" className={cn("min-w-0", className)} {...props}>
+      {/* The pill (rounded background) is this outer box; the scroller inside
+          is square. A rounded box that scrolls clips its content to the
+          rounding, which cut off the outer corners of the end tabs' 44px tap
+          areas (A36, QA 10-14 13시). */}
+      <div className={cn("w-max max-w-full rounded-full bg-muted", listClassName)}>
       <div
         ref={scroller}
         data-fade-start={edges.start || undefined}
         data-fade-end={edges.end || undefined}
         className={cn(
-          "w-max max-w-full overflow-x-auto overscroll-x-contain rounded-full bg-muted",
+          "max-w-full overflow-x-auto overscroll-x-contain",
           "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
           // Scroll edge effect instead of a hard cut: a 28px fade at an end
           // only while tabs are hidden past it.
           "[--fade-l:0px] [--fade-r:0px] data-fade-start:[--fade-l:28px] data-fade-end:[--fade-r:28px]",
-          "[mask-image:linear-gradient(to_right,transparent,#000_var(--fade-l),#000_calc(100%-var(--fade-r)),transparent)]",
-          listClassName
+          "[mask-image:linear-gradient(to_right,transparent,#000_var(--fade-l),#000_calc(100%-var(--fade-r)),transparent)]"
         )}
       >
         <TabsPrimitive.List aria-label={label} className="relative flex w-max gap-1 p-1">
@@ -136,6 +140,7 @@ function PillTabs({ className, listClassName, children, panels, "aria-label": la
           </TabsPrimitive.Indicator>
           {children}
         </TabsPrimitive.List>
+      </div>
       </div>
       {panels}
     </TabsPrimitive.Root>

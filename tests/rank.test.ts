@@ -7,6 +7,7 @@ import {
   bannerRank,
   conditionsText,
   isRankEnvelope,
+  nextTierText,
   rankCell,
   rankState,
   requestRank,
@@ -45,6 +46,7 @@ test("cells: rank of total, top percent and the PM tier names; collecting never 
     top: "상위 12.5%",
     tier: "대양",
     tierNote: "전투력 순위에서 상위 25% 이내예요(LOAKraken이 확인한 캐릭터 기준).",
+    next: "심해까지 전투력 12.34",
   });
   const collecting = structuredClone(data);
   collecting.entries[2] = { ...collecting.entries[2], sampleStatus: "COLLECTING", topPercent: null, tier: null };
@@ -77,6 +79,7 @@ test("server-class box (backend #171) shows only when sent", () => {
   assert.deepEqual(rankCell(data, "COMBAT_POWER", "SERVER_CLASS"), {
     state: "ready", rank: "5위", total: "35명 중", top: "상위 14.29%", tier: "대양",
     tierNote: "전투력 순위에서 상위 25% 이내예요(LOAKraken이 확인한 캐릭터 기준).",
+    next: "심해까지 전투력 24.68",
   });
   const older = structuredClone(data);
   older.entries = older.entries.filter((e: { scope: string }) => e.scope !== "SERVER_CLASS");
@@ -94,4 +97,15 @@ test("banner line: combat power over everyone seen, only when ranked and ready",
   const collecting = structuredClone(data);
   for (const entry of collecting.entries) entry.sampleStatus = "COLLECTING";
   assert.equal(bannerRank(collecting), null);
+});
+
+test("next tier (api #481): its name and the gap in the ranking's unit, none when there is none", () => {
+  assert.equal(nextTierText({ nextTier: "TOP10", nextTierGap: 312.4 }, "COMBAT_POWER"), "심해까지 전투력 312.40");
+  assert.equal(nextTierText({ nextTier: "TOP1", nextTierGap: 2.5 }, "ITEM_LEVEL"), "크라켄까지 아이템 레벨 2.50");
+  // At the top, under the sample or too few for that tier: the backend sends null.
+  assert.equal(nextTierText({ nextTier: null, nextTierGap: null }, "COMBAT_POWER"), null);
+  // A response from before the fields, or a value the screen does not know.
+  assert.equal(nextTierText({}, "COMBAT_POWER"), null);
+  assert.equal(nextTierText({ nextTier: "TOP0", nextTierGap: 1 }, "COMBAT_POWER"), null);
+  assert.equal(nextTierText({ nextTier: "TOP5", nextTierGap: 0 }, "COMBAT_POWER"), null);
 });

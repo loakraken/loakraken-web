@@ -57,6 +57,8 @@ function Cells({ data, metric }: { data: CharacterRank; metric: RankMetric }) {
                       </Tooltip>
                     )}
                   </span>
+                  {/* Every cell keeps this line, so cells with and without a next tier stand alike (A7). */}
+                  <small className={styles.next}>{cell.next ?? "\u00a0"}</small>
                 </>
               ) : (
                 <strong className={styles.pending}>-</strong>
