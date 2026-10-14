@@ -65,12 +65,19 @@ test("@M26 다른 직업 캐릭터는 비교하지 않고 그렇게 알린다 @r
   await expect(compare.getByText("내 세팅", { exact: true })).toHaveCount(0);
 });
 
-test("@M26 최근 검색 기록이 없는 캐릭터는 그렇게 알린다 @regression", async ({ page }) => {
-  await gotoReady(page, `${BLADE}?character=${encodeURIComponent("기록없는블레이드")}`);
-  const compare = page.getByRole("region", { name: "기록없는블레이드의 세팅과 대세" });
-  await expect(compare.getByRole("status")).toHaveText(/^최근 검색 기록이 없어 비교하지 못했어요\./);
-  await expect(compare.getByText("내 세팅", { exact: true })).toHaveCount(0);
-});
+for (const width of [360, 1280])
+  test(`@M26 ${width} 최근 검색 기록이 없는 캐릭터는 첫 HTML부터 그렇게 알린다 @regression`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await watchShifts(page);
+    await gotoReady(page, `${BLADE}?character=${encodeURIComponent("기록없는블레이드")}`);
+    const compare = page.getByRole("region", { name: "기록없는블레이드의 세팅과 대세" });
+    await expect(compare.getByRole("status")).toHaveText(/^최근 검색 기록이 없어 비교하지 못했어요\./);
+    await expect(compare.getByText("내 세팅", { exact: true })).toHaveCount(0);
+    // The notice is in the first HTML: no "loading" line first (that was one line, the notice two at 360).
+    await page.waitForTimeout(500);
+    const load = await shiftsSince(page);
+    expect(load.all, `첫 로드 흔들림 (${load.moved})`).toBe(0);
+  });
 
 test("@M26 표본 밖 캐릭터는 까닭을 말하고, 팔찌는 기준 레벨 미만이라 비교하지 않는다 @regression", async ({ page }) => {
   await gotoReady(page, `${BLADE}?character=${encodeURIComponent("표본밖블레이드")}`);

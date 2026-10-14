@@ -249,10 +249,13 @@ function Sections({ data }: { data: ClassBuilds }) {
 export function ClassBuildsView({
   initial,
   compare,
+  compareMissing = false,
 }: {
   initial: ClassBuildsQuery;
   /** 대세 빌드 비교 (M26): this character's setting beside the most chosen ones. */
   compare?: string | null;
+  /** The server already found no record of that character (not asked again). */
+  compareMissing?: boolean;
 }) {
   const router = useRouter();
   const [query, setQuery] = useState<ClassBuildsQuery>(initial);
@@ -364,6 +367,7 @@ export function ClassBuildsView({
                 name={compare}
                 className={query.className}
                 activeDays={query.activeDays}
+                missing={compareMissing}
                 builds={data}
               />
             )}

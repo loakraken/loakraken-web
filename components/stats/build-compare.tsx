@@ -23,11 +23,14 @@ export function BuildCompare({
   name,
   className,
   activeDays,
+  missing = false,
   builds,
 }: {
   name: string;
   className: string;
   activeDays: BuildDays;
+  /** The page's server already found no record (404): said from the first HTML, not asked again. */
+  missing?: boolean;
   builds: ClassBuilds;
 }) {
   const client = useQueryClient();
@@ -36,10 +39,12 @@ export function BuildCompare({
   // Not recorded under another day filter is not recorded under this one either
   // (the record does not depend on the days): no new request, no "loading" line
   // in between, which made the lines below jump (A7).
-  const knownMissing = client
-    .getQueryCache()
-    .findAll({ queryKey: queryKey.slice(0, 3) })
-    .some((query) => isNotCached(query.state.error));
+  const knownMissing =
+    missing ||
+    client
+      .getQueryCache()
+      .findAll({ queryKey: queryKey.slice(0, 3) })
+      .some((query) => isNotCached(query.state.error));
   const cells = useQuery<ClassBuildCellsEnvelope, Error, ClassBuildCellsEnvelope, typeof queryKey>({
     queryKey,
     queryFn: ({ signal }) => fetchClassBuildCells({ className, characterName: name, activeDays }, signal),

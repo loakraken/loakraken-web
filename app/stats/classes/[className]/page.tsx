@@ -42,9 +42,12 @@ export default async function ClassBuildsPage({ params, searchParams }: Props) {
   const client = new QueryClient();
   if (result.ok) client.setQueryData(classBuildsKey(query), result.envelope, { updatedAt: fetchedAt });
   if (cellsQuery && cells?.ok) client.setQueryData(classBuildCellsKey(cellsQuery), cells.envelope, { updatedAt: fetchedAt });
+  // Not recorded: said in the first HTML too (an error is not carried by the
+  // query cache, and "loading" then the two-line notice moved the cards, A6).
+  const compareMissing = !!cells && !cells.ok && cells.error.code === "CHARACTER_NOT_CACHED";
   return (
     <HydrationBoundary state={dehydrate(client)}>
-      <ClassBuildsView initial={query} compare={compare} />
+      <ClassBuildsView initial={query} compare={compare} compareMissing={compareMissing} />
     </HydrationBoundary>
   );
 }
