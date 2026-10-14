@@ -183,7 +183,10 @@ export function sampleText(meta: StatsMeta, unit: "character" | "roster" | "guil
 }
 
 /** Shared scale for the class quantile bars: the widest p10…p90 span. */
-export function quantileScale(rows: ClassRow[]) {
+/** A row with a combat power spread: a class row, or a best combat power row (L5). */
+export type QuantileRow = { combatPower: ClassRow["combatPower"]; sampleStatus: ClassRow["sampleStatus"]; count: number };
+
+export function quantileScale(rows: QuantileRow[]) {
   // Only full samples set the scale; a short row (median dot only) cannot stretch it.
   const ready = rows.flatMap((row) => (row.combatPower && row.sampleStatus === "READY" ? [row.combatPower] : []));
   if (!ready.length) return null;

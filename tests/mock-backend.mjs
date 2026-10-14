@@ -1341,7 +1341,7 @@ createServer(async (req, res) => {
     for (const c of classes) c.share = Math.round((c.count / population) * 10000) / 100;
     const meta = {
       population, conditions, aggregatedAt: new Date(Date.now() - 600_000).toISOString(), snapshot: "latest", ruleVersion: "stats-v1",
-      minSample: 30, sampleStatus: population >= 30 ? "READY" : "COLLECTING",
+      minSample: 30, sampleStatus: population >= 30 ? "READY" : "COLLECTING", populationUnit: "CHARACTER",
       coverage: { observedCharacters: population + 120, knownCharacters: population + 4000, discoveredAccounts: Math.round(population / 4) },
     };
     const view = url.pathname.slice("/api/v1/stats/".length);
@@ -1356,6 +1356,27 @@ createServer(async (req, res) => {
       });
     }
     if (view === "classes") return ok("STATS_CLASSES_SUCCESS", { rows: classes });
+    // Best combat power (api #477, L5): the classes' spread lifted a little
+    // (best ≥ current), 95% of each class has a best seen; 니나브 all short.
+    if (view === "best-combat-power") {
+      const best = (count, p) => {
+        const ready = count >= 30 && p;
+        const lift = (v) => Math.round((v + 140) * 100) / 100;
+        return {
+          count,
+          mean: ready ? lift(p.p50 + 20) : null,
+          max: ready ? lift(p.p90 + 900) : null,
+          percentiles: ready ? { p10: lift(p.p10), p25: lift(p.p25), p50: lift(p.p50), p75: lift(p.p75), p90: lift(p.p90) } : null,
+          sampleStatus: ready ? "READY" : "COLLECTING",
+        };
+      };
+      const rows = classes.map((c) => ({ className: c.className, value: best(Math.round(c.count * 0.95), c.combatPower) }));
+      const counted = rows.reduce((a, r) => a + r.value.count, 0);
+      return ok("STATS_BEST_COMBAT_POWER_SUCCESS", {
+        overall: small ? best(24, null) : best(counted, { p10: 2480, p25: 2760, p50: 3058, p75: 3340, p90: 3712 }),
+        classes: rows.sort((a, b) => b.value.count - a.value.count || a.className.localeCompare(b.className, "ko")),
+      });
+    }
     if (view === "servers") {
       const names = ["루페온", "실리안", "아만", "아브렐슈드", "카단", "카마인", "카제로스", "니나브"];
       const weights = [0.24, 0.12, 0.14, 0.11, 0.1, 0.1, 0.13, 0.06];
