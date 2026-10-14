@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useId, useRef, useState, type CSSProperties } from "react";
+import { Fragment, useEffect, useId, useRef, useState, type CSSProperties } from "react";
 import { useTallest } from "@/components/ui/use-tallest";
 import { classBuildsPath } from "@/lib/stats/class-builds";
 import { useRouter } from "next/navigation";
@@ -102,7 +102,8 @@ function StatsBasis({ query }: { query: StatsQuery }) {
   });
   const meta = summary.data?.data.meta;
   if (!meta) return null;
-  return <BasisNote basis={meta} stale={summary.isPlaceholderData} />;
+  // Drawn anew per answer, like the cards above (A7).
+  return <BasisNote key={summary.dataUpdatedAt} basis={meta} stale={summary.isPlaceholderData} />;
 }
 
 function SummaryCards({ query }: { query: StatsQuery }) {
@@ -121,7 +122,9 @@ function SummaryCards({ query }: { query: StatsQuery }) {
   // with "참고값" (user 23:50, backend #274); the top 10% stays "-".
   const reference = s.meta.sampleStatus !== "READY";
   return (
-    <>
+    // Drawn anew per answer: numbers and the 참고값 tag rewritten in place
+    // moved the cards' text on a server change (0.001~0.0016, A7).
+    <Fragment key={summary.dataUpdatedAt}>
       <Notice meta={s.meta} stale={summary.isPlaceholderData} />
       <dl className={styles.cards} data-reference={reference || undefined} {...pendingProps(summary)}>
         <div>
@@ -154,7 +157,7 @@ function SummaryCards({ query }: { query: StatsQuery }) {
           <small>{whole(s.gemSample)}명 기준</small>
         </div>
       </dl>
-    </>
+    </Fragment>
   );
 }
 
