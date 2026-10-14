@@ -46,6 +46,14 @@
     min-height: var(--held, 0);
   }
 }
+/* Phones: the kind chips sit far enough under the notice/patch switch that
+   their 44px press areas do not overlap (A36). div: over the home module's
+   .noticeTabs margin whatever order the two sheets load in. */
+@media (max-width: 699px), (pointer: coarse) {
+  div.kindTabs {
+    margin-bottom: 12px;
+  }
+}
 /* The two tab lists share one cell; only the chosen one shows (A7). */
 .tabStack {
   display: grid;

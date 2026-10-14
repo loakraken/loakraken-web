@@ -1,9 +1,10 @@
 "use client";
 
-import { createContext, useContext, useSyncExternalStore } from "react";
+import { createContext, useContext, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { Menu } from "@base-ui/react/menu";
 import { Bookmark, BookmarkBold, ChevronDown, Share } from "@/components/ui/icons";
+import { chromeBottom } from "@/components/ui/item-tooltip";
 import { analysisLinks } from "@/lib/character/analysis";
 import { cn } from "cn";
 import styles from "./detail.module.css";
@@ -13,6 +14,8 @@ export const CritSpeedEnabled = createContext(true);
 
 /** Below this width share and favorite live in the menu (A35): the tabs keep two whole items. */
 const NARROW = "(max-width: 560px)";
+/** Room kept between the menu and the screen edges or the pinned chrome. */
+const EDGE = 12;
 const watchNarrow = (change: () => void) => {
   const query = matchMedia(NARROW);
   query.addEventListener("change", change);
@@ -49,18 +52,36 @@ export function AnalysisMenu({
   const links = analysisLinks(name, server, { specUp, simulator, critSpeed: useContext(CritSpeedEnabled) }, { className, classEngraving });
   // Read when the menu opens (the popup is never in the first HTML).
   const narrow = useSyncExternalStore(watchNarrow, () => matchMedia(NARROW).matches, () => false);
+  // The pinned header and tab bar, measured as it opens (the page does not
+  // scroll while it is open): the menu opens upward only if it fits below
+  // them, and never covers them (A15).
+  const [top, setTop] = useState(EDGE);
   return (
-    <Menu.Root>
+    <Menu.Root
+      onOpenChange={(open) => {
+        if (open) setTop(chromeBottom() + EDGE);
+      }}
+    >
       <Menu.Trigger className={styles.analysisTrigger}>
         <span className={styles.wideOnly}>분석</span>
         <span className={styles.narrowOnly}>더보기</span>
         <ChevronDown size={14} aria-hidden="true" />
       </Menu.Trigger>
       <Menu.Portal>
-        <Menu.Positioner side="bottom" align="end" sideOffset={6} collisionPadding={12} className="isolate z-50 outline-none">
+        {/* Narrow: centred under its trigger (A33), the screen edges only
+            nudging it; wide: its right edge on the trigger's, as before. */}
+        <Menu.Positioner
+          side="bottom"
+          align={narrow ? "center" : "end"}
+          sideOffset={6}
+          collisionPadding={{ top, right: EDGE, bottom: EDGE, left: EDGE }}
+          className="isolate z-50 outline-none"
+        >
           <Menu.Popup
             className={cn(
               "w-[min(280px,calc(100vw-24px))] p-1 outline-none",
+              // A short screen: the items scroll inside rather than run off it.
+              "max-h-(--available-height) overflow-y-auto overscroll-contain",
               "rounded-(--radius-md) bg-(--surface-panel) text-foreground shadow-(--shadow-card) ring-1 ring-(--border)",
               "origin-(--transform-origin) transition-[opacity,scale] duration-150 ease-(--ease-out)",
               "data-starting-style:scale-[0.98] data-starting-style:opacity-0",

@@ -237,7 +237,7 @@ export function NewsPage({ renderedAt }: { renderedAt?: number }) {
                 공식 공지 <ExportCircle size={14} aria-hidden="true" />
               </a>
             </div>
-            <div className={home.noticeTabs} role="group" aria-label="공지 종류">
+            <div className={`${home.noticeTabs} ${styles.kindTabs}`} role="group" aria-label="공지 종류">
               <button type="button" aria-pressed={tab === "notice"} onClick={() => push("notice", null)}>
                 공지사항
               </button>

@@ -198,18 +198,25 @@
   }
 }
 /* On a phone the small controls take 44px to press; the pill stays as it
-   looks (the hit-44 rule, which a module selector cannot take). */
+   looks (the hit-44 rule, which a module selector cannot take). The period
+   and kind segments are 44px wide at least, so side by side the areas do
+   not overlap (A36). */
 @media (max-width: 699px), (pointer: coarse) {
   .toggle,
   .rewardMore,
   .remove,
-  .more {
+  .more,
+  .noticeTabs button {
     position: relative;
+  }
+  .noticeTabs button {
+    min-width: 44px;
   }
   .toggle::after,
   .rewardMore::after,
   .remove::after,
-  .more::after {
+  .more::after,
+  .noticeTabs button::after {
     content: "";
     position: absolute;
     left: 50%;
