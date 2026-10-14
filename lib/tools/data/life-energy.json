@@ -1,0 +1,63 @@
+{
+  "version": "2026-10-14",
+  "checkedAt": "2026-10-14",
+  "sources": {
+    "site-life-data": {
+      "title": "허용 단일 출처 생활 계산기의 스크립트 데이터 — 활동별 만 생명의 기운당 획득 수(재료 4등급)·소요 분, 교환 상인 규칙 6종, 하루 회복 30(축복 33) × 6 × 24. 공식 자료에는 소모·획득 숫자가 없음",
+      "url": "https://iloa.gg/tools/life",
+      "date": "2026-10-14"
+    },
+    "official-life-guide": {
+      "title": "공식 가이드 생활 활동 — 채집물·장소에 따라 소모 수치가 다르다는 문장만 있고 숫자 없음",
+      "url": "https://lostark.game.onstove.com/GameGuide/Pages/생활 활동",
+      "date": "2026-10-14"
+    },
+    "official-shop-blessing": {
+      "title": "공식 샵 베아트리스의 축복 [30일] — 생명의 기운 자연 회복량 10% 증가",
+      "url": "https://lostark.game.onstove.com/Shop/Goods/1000532",
+      "date": "2026-10-14"
+    }
+  },
+  "sourceNote": "획득 수·소요 분·교환 규칙·회복량은 허용 단일 출처의 원본 스크립트 데이터 값이고(화면 숫자에서 푼 값 아님), 공식에는 숫자가 없다. 채집 1회 소모량, 생활 도구·부적·생활 스킬 레벨 효과는 확인된 값이 없어 넣지 않는다(미확인). 축복 33은 공식 문구 +10%와 맞는다.",
+  "recovery": { "perTick": 30, "blessedPerTick": 33, "ticksPerDay": 144, "source": "site-life-data" },
+  "exchange": [
+    { "from": "common", "to": "powder", "give": 100, "get": 80 },
+    { "from": "uncommon", "to": "powder", "give": 50, "get": 80 },
+    { "from": "powder", "to": "uncommon", "give": 100, "get": 50 },
+    { "from": "powder", "to": "abidos", "give": 100, "get": 10 },
+    { "from": "uncommon", "to": "common", "give": 25, "get": 50 },
+    { "from": "rare", "to": "common", "give": 5, "get": 50, "only": ["logging", "mining"] }
+  ],
+  "activities": [
+    {
+      "id": "foraging", "name": "식물채집", "powder": "채집의 가루", "minutes": 23,
+      "items": { "abidos": "아비도스 들꽃", "uncommon": "수줍은 들꽃", "common": "들꽃", "rare": "화사한 들꽃" },
+      "per10k": { "abidos": 291, "uncommon": 1206, "common": 2787, "rare": 268 }
+    },
+    {
+      "id": "logging", "name": "벌목", "powder": "벌목의 가루", "minutes": 9,
+      "items": { "abidos": "아비도스 목재", "uncommon": "부드러운 목재", "common": "목재", "rare": "튼튼한 목재" },
+      "per10k": { "abidos": 300, "uncommon": 1151, "common": 2889, "rare": 282 }
+    },
+    {
+      "id": "mining", "name": "채광", "powder": "채광의 가루", "minutes": 22,
+      "items": { "abidos": "아비도스 철광석", "uncommon": "묵직한 철광석", "common": "철광석", "rare": "단단한 철광석" },
+      "per10k": { "abidos": 312, "uncommon": 991, "common": 2551, "rare": 248 }
+    },
+    {
+      "id": "hunting", "name": "수렵", "powder": "수렵의 가루", "minutes": 26,
+      "items": { "abidos": "아비도스 두툼한 생고기", "uncommon": "다듬은 생고기", "common": "두툼한 생고기", "rare": "진귀한 가죽" },
+      "per10k": { "abidos": 252, "uncommon": 1211, "common": 2830, "rare": 271 }
+    },
+    {
+      "id": "fishing", "name": "낚시", "powder": "낚시의 가루", "minutes": 46,
+      "items": { "abidos": "아비도스 태양 잉어", "uncommon": "붉은 살 생선", "common": "생선", "rare": null },
+      "per10k": { "abidos": 325, "uncommon": 1117, "common": 1999, "rare": 0 }
+    },
+    {
+      "id": "archaeology", "name": "고고학", "powder": "고고학의 가루", "minutes": 16,
+      "items": { "abidos": "아비도스 유물", "uncommon": "희귀한 유물", "common": "고대 유물", "rare": "진귀한 유물" },
+      "per10k": { "abidos": 388, "uncommon": 1252, "common": 2688, "rare": 316 }
+    }
+  ]
+}
