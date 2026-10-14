@@ -240,7 +240,7 @@ export function RaidRewardsTable() {
                 <button
                   key={f}
                   type="button"
-                  className={styles.chip}
+                  className={`${styles.chip} hit-44`}
                   aria-pressed={filter === f}
                   onClick={() => setFilter(f)}
                 >

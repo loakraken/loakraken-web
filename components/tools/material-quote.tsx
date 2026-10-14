@@ -229,7 +229,7 @@ function ItemSearch({
                   <button
                     key={sub.code}
                     type="button"
-                    className={styles.chip}
+                    className={`${styles.chip} hit-44`}
                     aria-pressed={selectedCategory === sub.code}
                     onClick={() => choose(sub.code)}
                   >

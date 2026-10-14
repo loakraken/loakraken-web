@@ -1107,7 +1107,18 @@ createServer(async (req, res) => {
     const entry = (metric, scope, scopeValue, rank, total, sampleStatus = "READY") => {
       const top = sampleStatus === "READY" ? Math.round((rank / total) * 10000) / 100 : null;
       const tier = top == null ? null : top <= 1 ? "TOP1" : top <= 5 ? "TOP5" : top <= 10 ? "TOP10" : top <= 25 ? "TOP25" : top <= 50 ? "TOP50" : "REST";
-      return { metric, scope, scopeValue, rank, total, topPercent: top, tier, sampleStatus };
+      // api #481: the next tier up, its boundary (the K-th, K = ⌊% × total / 100⌋)
+      // and the gap; none at the top, under the sample, or when K < 1.
+      const order = ["REST", "TOP50", "TOP25", "TOP10", "TOP5", "TOP1"];
+      const pct = { TOP50: 50, TOP25: 25, TOP10: 10, TOP5: 5, TOP1: 1 };
+      const up = tier && tier !== "TOP1" ? order[order.indexOf(tier) + 1] : null;
+      const k = up ? Math.floor((pct[up] * total) / 100) : 0;
+      const nextTier = up && k >= 1 ? up : null;
+      const step = metric === "ITEM_LEVEL" ? 0.25 : 3.17;
+      const nextTierGap = nextTier ? Math.round((rank - k) * step * 100) / 100 : null;
+      const value = metric === "ITEM_LEVEL" ? 1780.83 : 3180.29;
+      const nextTierValue = nextTier ? Math.round((value + nextTierGap) * 100) / 100 : null;
+      return { metric, scope, scopeValue, rank, total, topPercent: top, tier, sampleStatus, nextTier, nextTierValue, nextTierGap };
     };
     const collecting = who === "집계중" ? "COLLECTING" : "READY";
     const entries = excluded ? [] : [
@@ -1367,7 +1378,7 @@ createServer(async (req, res) => {
     for (const c of classes) c.share = Math.round((c.count / population) * 10000) / 100;
     const meta = {
       population, conditions, aggregatedAt: new Date(Date.now() - 600_000).toISOString(), snapshot: "latest", ruleVersion: "stats-v1",
-      minSample: 30, sampleStatus: population >= 30 ? "READY" : "COLLECTING",
+      minSample: 30, sampleStatus: population >= 30 ? "READY" : "COLLECTING", populationUnit: "CHARACTER",
       coverage: { observedCharacters: population + 120, knownCharacters: population + 4000, discoveredAccounts: Math.round(population / 4) },
     };
     const view = url.pathname.slice("/api/v1/stats/".length);
@@ -1382,6 +1393,27 @@ createServer(async (req, res) => {
       });
     }
     if (view === "classes") return ok("STATS_CLASSES_SUCCESS", { rows: classes });
+    // Best combat power (api #477, L5): the classes' spread lifted a little
+    // (best ≥ current), 95% of each class has a best seen; 니나브 all short.
+    if (view === "best-combat-power") {
+      const best = (count, p) => {
+        const ready = count >= 30 && p;
+        const lift = (v) => Math.round((v + 140) * 100) / 100;
+        return {
+          count,
+          mean: ready ? lift(p.p50 + 20) : null,
+          max: ready ? lift(p.p90 + 900) : null,
+          percentiles: ready ? { p10: lift(p.p10), p25: lift(p.p25), p50: lift(p.p50), p75: lift(p.p75), p90: lift(p.p90) } : null,
+          sampleStatus: ready ? "READY" : "COLLECTING",
+        };
+      };
+      const rows = classes.map((c) => ({ className: c.className, value: best(Math.round(c.count * 0.95), c.combatPower) }));
+      const counted = rows.reduce((a, r) => a + r.value.count, 0);
+      return ok("STATS_BEST_COMBAT_POWER_SUCCESS", {
+        overall: small ? best(24, null) : best(counted, { p10: 2480, p25: 2760, p50: 3058, p75: 3340, p90: 3712 }),
+        classes: rows.sort((a, b) => b.value.count - a.value.count || a.className.localeCompare(b.className, "ko")),
+      });
+    }
     if (view === "servers") {
       const names = ["루페온", "실리안", "아만", "아브렐슈드", "카단", "카마인", "카제로스", "니나브"];
       const weights = [0.24, 0.12, 0.14, 0.11, 0.1, 0.1, 0.13, 0.06];
