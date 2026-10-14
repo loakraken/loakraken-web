@@ -328,6 +328,12 @@
   overflow-x: auto;
   scrollbar-width: none;
 }
+.fixBar:focus-visible {
+  outline-offset: 2px;
+}
+.fixItems {
+  display: contents;
+}
 .fixChip,
 .fixClear {
   display: inline-flex;

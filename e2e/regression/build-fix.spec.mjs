@@ -38,7 +38,9 @@ for (const width of [1280, 360])
     const blocked = row(page, "아크 패시브 진화", "140 포인트");
     await expect(blocked).toHaveAttribute("aria-disabled", "true");
     await expect(blocked).toHaveAccessibleName(/고정은 3개까지예요/);
-    await blocked.click();
+    // Pressed anyway (a disabled control waits otherwise): nothing is added.
+    await blocked.click({ force: true });
+    await page.waitForTimeout(300);
     await expect(page).not.toHaveURL(/fixEvolution=/);
 
     // One freed from the bar, then all.
