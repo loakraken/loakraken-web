@@ -468,9 +468,9 @@ export function Checklist({
        who adds two and walks away leaves the next person a
        block in a state its author never chose.
 
-       Going back to three also gives the card its closing
-       animation for free — the same height transition that
-       opened it runs in reverse. */
+       (ours) The card takes the shorter height at once and the
+       two extra rows fade (exit) — no height transition since
+       10-14. */
     const id = window.setTimeout(
       () => setItems(TASKS.map((text) => ({ text, done: false }))),
       HOLD,
@@ -551,11 +551,11 @@ export function Checklist({
       className="chk"
       style={{
         width,
-        /* ── STATED, so it can be animated ─────────────────
-           It was whatever the rows added up to. The same
-           number, written down, is a number CSS can move
-           between — see the transition on .chk. Adding a task
-           used to snap the card 40px taller in one frame. */
+        /* ── STATED ─────────────────────────────────────────
+           (ours, apple-design 10-14) no longer animated: a
+           height transition re-lays out the page under the
+           card on every frame for 360ms. The card takes its
+           new height at once and the new row fades in. */
         height: padV * 2 + ROW * slots,
         padding: `${padV}px ${PAD}px`,
         borderRadius: r,
@@ -764,17 +764,21 @@ function Row({
       /* the row is drawn where it has always been drawn and
          MOVED from there, so the card's layout never changes
          and the wall's observer never hears about any of this */
-      initial={false}
+      /* (ours, apple-design 10-14) a row that arrives fades in where it
+         will sit: the card no longer animates its height (a layout
+         property), so the new row is what moves — opacity only. The
+         first rows are there at once (AnimatePresence initial={false}). */
+      initial={{ opacity: 0 }}
       exit={{ opacity: 0, transition: { duration: 0.18 } }}
       animate={
         fell
-          ? { y: [0, drop, drop - up, drop], x: drift, rotate: tilt }
-          : { y: 0, x: 0, rotate: 0 }
+          ? { opacity: 1, y: [0, drop, drop - up, drop], x: drift, rotate: tilt }
+          : { opacity: 1, y: 0, x: 0, rotate: 0 }
       }
       transition={
         fell
-          ? { y: land, x: lean, rotate: lean }
-          : { type: "spring", stiffness: 420, damping: 26, mass: 0.9 }
+          ? { opacity: { duration: 0.18 }, y: land, x: lean, rotate: lean }
+          : { opacity: { duration: 0.18 }, type: "spring", stiffness: 420, damping: 26, mass: 0.9 }
       }
     >
       {/* ── the box ───────────────────────────────────────

@@ -61,7 +61,7 @@ function CommandSearch({ className }: { className?: string }) {
         }}
         className={cn(
           "inline-flex h-11 min-w-11 shrink-0 items-center justify-center gap-1.5 rounded-full px-3 text-foreground",
-          "transition-[background-color,transform] duration-(--duration-fast) ease-(--ease-out)",
+          "transition-[background-color,transform,scale] duration-(--duration-fast) ease-(--ease-out)",
           "pointer-fine:hover:bg-hover-surface active:scale-(--press-scale)",
           "outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--ring)",
           "[&_svg]:size-5",
