@@ -30,10 +30,14 @@ for (const path of ["/", "/schedule"])
       await page.setViewportSize({ width, height: 900 });
       await watchShifts(page);
       await gotoReady(page, path);
-      const more = page.getByRole("button", { name: /보상 \d+개 더 보기$/ }).first();
-      await expect(more).toBeVisible();
-      const panelId = await more.getAttribute("aria-controls");
+      const first = page.getByRole("button", { name: /보상 \d+개 더 보기$/ }).first();
+      await expect(first).toBeVisible();
+      // Held by the panel it controls: once open its name reads "접기", and a
+      // name-based locator would move on to the next row's button.
+      const panelId = await first.getAttribute("aria-controls");
+      const more = page.locator(`button[aria-controls="${panelId}"]`);
       await opensInPlace(page, more, () => page.locator(`[id="${panelId}"]`));
+      await expect(more).toHaveAttribute("aria-expanded", "true");
     });
 
 for (const width of [1280, 360])
