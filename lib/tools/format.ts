@@ -6,11 +6,10 @@
 //   "awayFromZero" — the absolute value rounded half away from zero, the sign
 //     from the value itself: −1,087.5 → −1,088. 로아샵 효율, whose only
 //     comparison basis rounds this way.
+// In both, a value that rounds to 0 shows "0" without a sign (PM 총괄: also
+// for 로아샵, where the basis would show −0.3 as "−0").
 
 export type GoldRounding = "halfUp" | "awayFromZero";
-
-/** Below this a value counts as zero (no sign), as on the 로아샵 comparison basis. */
-const ZERO = 1e-9;
 
 /** Whole gold under the given rounding; never −0. */
 export function roundGold(value: number, rounding: GoldRounding = "halfUp") {
@@ -25,8 +24,9 @@ export const goldText = (value: number, rounding: GoldRounding = "halfUp") =>
 /** "+1,088" / "−1,087" / "0". */
 export function signedGold(value: number, rounding: GoldRounding = "halfUp") {
   if (rounding === "awayFromZero") {
-    if (Math.abs(value) < ZERO) return "0";
-    return `${value > 0 ? "+" : "−"}${Math.round(Math.abs(value)).toLocaleString("ko-KR")}`;
+    const size = Math.round(Math.abs(value));
+    if (size === 0) return "0";
+    return `${value > 0 ? "+" : "−"}${size.toLocaleString("ko-KR")}`;
   }
   const rounded = roundGold(value);
   if (rounded === 0) return "0";

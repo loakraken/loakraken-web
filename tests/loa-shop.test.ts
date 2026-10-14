@@ -108,8 +108,9 @@ test("로아샵 figures round the absolute value away from zero (its comparison 
   assert.equal(signedGold(1087.5, "awayFromZero"), "+1,088");
   assert.equal(signedGold(-1087.49, "awayFromZero"), "−1,087");
   assert.equal(goldText(-1087.5, "awayFromZero"), "-1,088");
-  // The sign follows the value; only a value within 1e-9 of 0 has none.
-  assert.equal(signedGold(-0.3, "awayFromZero"), "−0");
+  // The sign follows the value; a value that rounds to 0 has none (PM 총괄, unlike the basis' "−0").
+  assert.equal(signedGold(-0.3, "awayFromZero"), "0");
+  assert.equal(signedGold(-0.5, "awayFromZero"), "−1");
   assert.equal(signedGold(0, "awayFromZero"), "0");
   assert.equal(signedGold(1e-12, "awayFromZero"), "0");
   // The other tools keep .5 up.
