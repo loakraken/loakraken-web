@@ -9,8 +9,9 @@ export const roundGold = (value: number) => Math.round(value) || 0;
 /** "1,088" */
 export const goldText = (value: number) => roundGold(value).toLocaleString("ko-KR");
 
-/** "+1,088" / "−1,087" / "+0" — the sign of the rounded value. */
+/** "+1,088" / "−1,087" / "0" — the sign of the rounded value; zero has none (as the comparison basis shows it). */
 export function signedGold(value: number) {
   const rounded = roundGold(value);
-  return `${rounded >= 0 ? "+" : "−"}${Math.abs(rounded).toLocaleString("ko-KR")}`;
+  if (rounded === 0) return "0";
+  return `${rounded > 0 ? "+" : "−"}${Math.abs(rounded).toLocaleString("ko-KR")}`;
 }

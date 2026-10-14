@@ -88,7 +88,7 @@ function Verdict({ value, rate, priced }: { value: PackageValue; rate: number | 
         </p>
         <p>
           판매가보다{" "}
-          <b className={roundGold(value.gain) >= 0 ? styles.up : styles.down}>{signed(value.gain)}</b> 로열 크리스탈
+          <b className={roundGold(value.gain) > 0 ? styles.up : roundGold(value.gain) < 0 ? styles.down : undefined}>{signed(value.gain)}</b> 로열 크리스탈
         </p>
       </div>
     );

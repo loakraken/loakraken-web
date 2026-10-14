@@ -54,7 +54,7 @@ const viaText = (r: CraftResult) => {
 };
 
 const profitFigure = (value: number | null, priced: boolean) =>
-  !priced ? <Figure text="—" /> : value == null ? <Figure text={UNKNOWN} /> : <Figure text={signed(value)} tone={roundGold(value) >= 0 ? "up" : "down"} />;
+  !priced ? <Figure text="—" /> : value == null ? <Figure text={UNKNOWN} /> : <Figure text={signed(value)} tone={roundGold(value) > 0 ? "up" : roundGold(value) < 0 ? "down" : undefined} />;
 
 /**
  * Profit, and under it the same per 100 estate energy (a line held from the
