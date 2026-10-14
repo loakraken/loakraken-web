@@ -255,7 +255,11 @@ function ClassesTab({ query }: { query: StatsQuery }) {
   const scale = quantileScale(rows);
   const minSample = classes.data.data.meta.minSample;
   return (
-    <div {...pendingProps(classes)}>
+    // Drawn anew per answer (the previous one stays, dimmed, while the next
+    // loads): another server's numbers size the auto-width columns
+    // differently, and the old table's headings and the lines around them
+    // moved in place (A7, #791).
+    <div key={classes.dataUpdatedAt} {...pendingProps(classes)}>
       <SampleProgress ready={ready} total={rows.length} unit="직업" minSample={minSample} />
       {rows.length > 0 && (
         <DataTable label="직업별 인원과 전투력 분포" className={styles.table}>
