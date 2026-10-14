@@ -73,6 +73,8 @@
 }
 .include {
   display: inline-flex;
+  /* Centred on the header line: the 44px input would otherwise set its baseline. */
+  align-self: center;
   align-items: center;
   gap: 6px;
   margin-left: auto;
@@ -80,10 +82,54 @@
   font-size: var(--text-caption);
   cursor: pointer;
 }
+/* 계산에 포함: the drawn box stays 16px, the input itself is 44 × 44 (the
+   negative margins keep the layout), so a tap on or around the box is the
+   input (A36). Drawn here because a native box cannot grow its tap area. */
 .include input {
-  width: 16px;
-  height: 16px;
-  accent-color: var(--action);
+  appearance: none;
+  position: relative;
+  z-index: 1;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  margin: -14px;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+.include input::before {
+  content: "";
+  position: absolute;
+  inset: 14px;
+  border: 1.5px solid var(--steel);
+  border-radius: 4px;
+  background: var(--background);
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out);
+}
+.include input:checked::before {
+  border-color: var(--action);
+  background: var(--action);
+}
+/* The check mark: a rotated corner. */
+.include input:checked::after {
+  content: "";
+  position: absolute;
+  left: 19.5px;
+  top: 16.5px;
+  width: 5px;
+  height: 9px;
+  border: solid var(--background);
+  border-width: 0 2px 2px 0;
+  rotate: 45deg;
+}
+.include input:focus-visible {
+  outline: none;
+}
+.include input:focus-visible::before {
+  outline: 3px solid var(--action);
+  outline-offset: 2px;
 }
 .part[data-off] .partFields {
   opacity: 0.4;
@@ -211,10 +257,17 @@
   color: var(--slate);
   font-size: var(--text-caption);
 }
+/* The whole row is the switch: the invisible input covers it, so a tap
+   anywhere on the row is a tap on the input (A36). */
 .switchRow input {
   position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  margin: 0;
   opacity: 0;
-  pointer-events: none;
+  cursor: pointer;
 }
 /* Track + knob; the input stays the accessible control. */
 .switchRow i {
@@ -464,4 +517,12 @@
 .materialWrap[data-stale] {
   opacity: 0.55;
   transition: opacity 150ms ease;
+}
+
+/* Phones: part selects and inputs 44px tall (A36: 업화 and target stage). */
+@media (max-width: 699px), (pointer: coarse) {
+  .mini [data-slot="select"],
+  .mini input {
+    height: 44px;
+  }
 }

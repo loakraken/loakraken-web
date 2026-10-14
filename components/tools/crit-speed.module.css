@@ -79,10 +79,17 @@
   color: var(--slate);
   font-size: var(--text-caption);
 }
+/* The whole row is the switch: the invisible input covers it, so a tap
+   anywhere on the row is a tap on the input (A36). */
 .toggle input {
   position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  margin: 0;
   opacity: 0;
-  pointer-events: none;
+  cursor: pointer;
 }
 .toggle i {
   position: relative;
@@ -598,4 +605,11 @@
 }
 .effect > .effectBlocked {
   color: var(--ink);
+}
+
+/* Phones: number fields 44px tall (A36). */
+@media (max-width: 699px), (pointer: coarse) {
+  .numberInput input {
+    height: 44px;
+  }
 }
