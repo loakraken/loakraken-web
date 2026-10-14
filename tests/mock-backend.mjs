@@ -1878,7 +1878,7 @@ createServer(async (req, res) => {
       detail: { parserVersion: "equipment-tooltip-v3", refineLevel, quality: 90, itemLevel: 1640 + refineLevel * 5, tier: 4, arkPassivePoint: null, effects: [], stoneEngravings: [], polishEffects: [], braceletEffects: [] },
     }));
   }
-  if (name === "상세" || name === "상세서포터") {
+  if (name === "상세" || name === "상세서포터" || name === "대세블레이드") {
     // Detail-page mock: a locally supplied character file (never committed) or
     // the synthetic fixture, enriched with synthetic Tooltip detail and skills.
     if (process.env.MOCK_CHARACTER_FILE)
@@ -2076,6 +2076,47 @@ createServer(async (req, res) => {
             { slotIndex: null, text: "젬 옵션(공격력 Lv.28 · 추가 피해 Lv.51 · 보스 피해 Lv.4)", percent: 4.27, status: "OK", reasonCode: null, reason: null },
           ],
         };
+    // 대세 빌드 비교 (M26): a 블레이드 against the mock class builds above —
+    // the most chosen engraving set, enlightenment 98 (second), 특화 on top,
+    // no 치명 on the bracelet, damage gems without the most chosen level.
+    if (name === "대세블레이드") {
+      d.className = "블레이드";
+      d.loadout.arkPassive.title = "잔재된 기운";
+      d.loadout.arkPassive.points = [
+        { name: "진화", value: 140, description: null },
+        { name: "깨달음", value: 98, description: null },
+        { name: "도약", value: 70, description: null },
+      ];
+      d.loadout.engravings.arkPassiveEffects = ["돌격대장", "아드레날린", "원한", "잔재된 기운", "질량 증가"].map((engraving) => ({
+        abilityStoneLevel: null, grade: "유물", level: 4, name: engraving, description: null,
+      }));
+      d.stats = ["치명", "특화", "신속", "제압", "인내", "숙련"].map((type, i) => ({ type, value: ["612", "1,812", "88", "71", "70", "69"][i], tooltip: [] }));
+      const braceletEffects = [{ text: "특화 +100", grade: null }, { text: "신속 +81", grade: null }];
+      const bracelet = d.loadout.equipment.find((item) => item.type === "팔찌");
+      if (bracelet) bracelet.detail = { ...bracelet.detail, braceletEffects };
+      else
+        d.loadout.equipment.push({
+          type: "팔찌", name: "찬란한 구원자의 팔찌", icon: null, grade: "고대",
+          detail: { parserVersion: "equipment-tooltip-v3", refineLevel: null, quality: null, itemLevel: null, tier: 4, arkPassivePoint: null, effects: [], stoneEngravings: [], polishEffects: [], braceletEffects, titleLine: null, tradeLines: [], refineExp: null, advancedRefineLevel: null },
+        });
+      d.loadout.gems = {
+        items: [
+          { slot: 0, name: "9레벨 겁화의 보석", icon: null, level: 9, grade: null, titleLine: null, itemLevel: null, tier: 4, tradeLines: [] },
+          { slot: 1, name: "10레벨 작열의 보석", icon: null, level: 10, grade: null, titleLine: null, itemLevel: null, tier: 4, tradeLines: [] },
+        ],
+        effects: {
+          description: null,
+          skills: [
+            { gemSlot: 0, name: "버스트", description: ["피해 36.00% 증가"], option: null, icon: null },
+            { gemSlot: 1, name: "버스트", description: ["재사용 대기시간 20.00% 감소"], option: null, icon: null },
+          ],
+        },
+      };
+      d.loadout.cards = {
+        items: [],
+        effects: [{ index: 0, cardSlots: [], items: [{ name: "세상을 구하는 빛 6세트 (30각성합계)", description: null }] }],
+      };
+    }
     if (name === "상세서포터") {
       d.className = "바드";
       d.loadout.arkPassive.effects = [

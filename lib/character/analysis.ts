@@ -2,6 +2,7 @@
 // this character, in one list beside the tabs. A tool that is off on this
 // deployment (server flag) is left out, not shown greyed.
 import { classBuildsPath, isClassName } from "@/lib/stats/class-builds";
+import { buildComparePath } from "@/lib/stats/build-compare";
 
 export type AnalysisLink = {
   id: string;
@@ -50,6 +51,16 @@ export function analysisLinks(
       description: "다른 캐릭터와 나란히",
       href: `/multi-search?${new URLSearchParams({ names: name })}`,
     },
+    // The class page in comparison mode (M26 stage 1): this character's
+    // setting next to the most chosen ones of its class and class engraving.
+    cls.className && isClassName(cls.className)
+      ? {
+          id: "build-compare",
+          label: "대세 빌드 비교",
+          description: `${cls.className}${cls.classEngraving ? ` ${cls.classEngraving}` : ""} 대세 세팅과 내 세팅`,
+          href: buildComparePath(cls.className, cls.classEngraving, name),
+        }
+      : false,
     // The class page (M12) with this character's class engraving; without a
     // class (an old record), the class table of the stats screen.
     cls.className && isClassName(cls.className)

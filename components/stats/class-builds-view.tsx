@@ -24,6 +24,7 @@ import quote from "@/components/tools/material-quote.module.css";
 import styles from "./stats.module.css";
 import own from "./class-builds.module.css";
 import { BasisNote } from "./basis-note";
+import { BuildCompare } from "./build-compare";
 
 const kst = new Intl.DateTimeFormat("ko-KR", {
   timeZone: "Asia/Seoul",
@@ -213,7 +214,14 @@ function Sections({ data }: { data: ClassBuilds }) {
  * sample; cells too small are hidden and said so (never as people when a
  * character counts in several cells).
  */
-export function ClassBuildsView({ initial }: { initial: ClassBuildsQuery }) {
+export function ClassBuildsView({
+  initial,
+  compare,
+}: {
+  initial: ClassBuildsQuery;
+  /** 대세 빌드 비교 (M26): this character's setting beside the most chosen ones. */
+  compare?: string | null;
+}) {
   const router = useRouter();
   const [query, setQuery] = useState<ClassBuildsQuery>(initial);
   const latest = useRef(initial);
@@ -235,12 +243,17 @@ export function ClassBuildsView({ initial }: { initial: ClassBuildsQuery }) {
   const classEngravingsShown = data?.classEngravingStatus === "READY" && !!data.classEngravings?.cells.length;
   // Another filter's shorter sections keep the room (A7).
   const [sectionsRef, sectionsHeight] = useTallest();
+  // The comparison keeps its tallest too: another filter may list fewer rows.
+  const [compareRef, compareHeight] = useTallest();
 
   function apply(patch: Partial<ClassBuildsQuery>) {
     const next = { ...latest.current, ...patch };
     latest.current = next;
     setQuery(next);
-    const search = classBuildsSearch(next).toString();
+    const params = classBuildsSearch(next);
+    // The comparison stays on while the filters change.
+    if (compare) params.set("character", compare);
+    const search = params.toString();
     router.replace(search ? `?${search}` : "?", { scroll: false });
   }
   // The class engravings come from the whole class sample, the same under any filter.
@@ -302,6 +315,15 @@ export function ClassBuildsView({ initial }: { initial: ClassBuildsQuery }) {
             {kst.format(new Date(meta.aggregatedAt))} 기준 · 공식 통계가 아니에요
             {collecting && <strong> · 표본 {whole(meta.minSample)}명이 모이면 보여 드려요</strong>}
           </p>
+        )}
+
+        {compare && data && !collecting && (
+          <div ref={compareRef} style={compareHeight ? { minHeight: compareHeight } : undefined} {...pendingProps(builds)}>
+            <BuildCompare key={builds.dataUpdatedAt} name={compare} className={query.className} builds={data} />
+          </div>
+        )}
+        {compare && collecting && (
+          <p className={styles.muted}>표본이 {whole(meta?.minSample ?? 30)}명보다 적어 대세와 비교하지 않아요.</p>
         )}
 
         {/* Opened on a short sample: a screen's height from the first HTML on,
