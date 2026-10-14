@@ -9,6 +9,9 @@ export const triggerClassName = (size: "md" | "lg", className?: string) =>
     "inline-flex w-full min-w-0 items-center justify-between gap-2 text-left",
     size === "lg" ? "h-11 pr-3 pl-4" : "h-9 pr-2.5 pl-3",
     "cursor-default data-popup-open:border-(--ring)",
+    // 44px to tap on phones (A36): the 34~40px field takes taps over 44×44
+    // through an ::after (the press overlay below is the ::before).
+    "hit-44",
     // Pressed: the field tints at once, before the list opens (apple-design:
     // feedback on pointer-down; a touch opens the list only on release). Drawn
     // as an overlay: several screens set the field's background in their own
