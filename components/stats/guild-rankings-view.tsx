@@ -67,8 +67,11 @@ export function GuildRankingsView({
   // but no rows on that page: show page 1 rather than "not in the ranking".
   // Until page 1 is here the screen reads as still loading — the same first
   // paint as any other link, so nothing moves when the rows land (A6).
-  const pastLast = Boolean(query.guild && query.page > 1 && answer && !answer.rows?.length && (answer.matchCount ?? 0) > 0);
-  const data = pastLast ? undefined : answer;
+  const emptyPage = Boolean(answer && !answer.rows?.length && (answer.matchCount ?? 0) > 0);
+  const pastLast = Boolean(query.guild && query.page > 1 && emptyPage);
+  // While page 1 loads, the empty page past the last is still the placeholder
+  // answer: keep reading as loading then too, not as "not in the ranking".
+  const data = pastLast || (list.isPlaceholderData && emptyPage) ? undefined : answer;
   const population = data?.meta?.population ?? 0;
   // A name search pages by the guilds that matched and made the ranking (api #466).
   const counted = query.guild ? (data?.matchCount ?? 0) : population;
