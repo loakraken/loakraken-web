@@ -8,7 +8,7 @@ export type NavLink = {
   /** Shown only when this runtime flag is on (lib/tools/flags.ts, /api/flags). */
   flag?: NavFlag;
 };
-export type NavFlag = "critSpeed" | "combatPower" | "accessorySearch";
+export type NavFlag = "critSpeed" | "combatPower" | "accessorySearch" | "priceAlerts";
 export type NavFlags = Partial<Record<NavFlag, boolean>>;
 export type NavSection = {
   id: string;
@@ -63,6 +63,7 @@ export const NAV_SECTIONS: NavSection[] = [
         links: [
           { label: "거래소 시세", description: "분류별 최저가·등락·14일 추이", href: "/market" },
           { label: "재료 구매 견적", description: "필요한 만큼, 지금 시세로", href: "/tools/material-quote" },
+          { label: "시세 알림", description: "정한 가격이 되면 브라우저 알림", href: "/market/alerts", flag: "priceAlerts" },
         ],
       },
       {

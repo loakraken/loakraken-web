@@ -1,6 +1,7 @@
 // Local synthetic backend only. This process never accesses Lost Ark.
 import { createServer } from "node:http";
 import { readFileSync } from "node:fs";
+import { randomBytes, randomUUID } from "node:crypto";
 const failures = new Map();
 const receiptCalls = new Map();
 
@@ -330,6 +331,83 @@ function refiningPlan(request) {
     },
   };
 }
+// Price alerts (M33, api #482): anonymous subscriptions kept in memory. An
+// endpoint outside the push services is refused like the backend does; one
+// containing "undelivered" plays a browser whose push service refuses the
+// confirmation. The key is a placeholder (e2e stubs PushManager.subscribe).
+const ALERT_PUSH_HOSTS = /^https:\/\/(fcm\.googleapis\.com|updates\.push\.services\.mozilla\.com|web\.push\.apple\.com|[a-z0-9-]+\.notify\.windows\.com)\//;
+const alertItems = () => [
+  { itemId: 6861012, itemName: "아비도스 융화 재료", currentMinPrice: 95, observedAt: new Date(Date.now() - 30_000).toISOString() },
+  { itemId: 6861013, itemName: "상급 아비도스 융화 재료", currentMinPrice: 130, observedAt: new Date(Date.now() - 30_000).toISOString() },
+  { itemId: 66102006, itemName: "운명의 파괴석", currentMinPrice: 171, observedAt: new Date(Date.now() - 600_000).toISOString() },
+];
+const alertSubscriptions = new Map();
+async function alerts(req, url, send) {
+  const ok = (data) => send({ code: "ALERT_SUCCESS", message: "시세 알림 요청에 성공했습니다.", data });
+  const fail = (code, status) => send({ code, message: "private" }, status);
+  const readBody = async () => {
+    let body = "";
+    for await (const chunk of req) body += chunk;
+    try {
+      return JSON.parse(body || "null");
+    } catch {
+      return null;
+    }
+  };
+  if (url.pathname === "/api/v1/alerts/vapid-public-key" && req.method === "GET")
+    return ok({ publicKey: Buffer.concat([Buffer.from([4]), Buffer.alloc(64, 7)]).toString("base64url") });
+  if (url.pathname === "/api/v1/alerts/items" && req.method === "GET") return ok(alertItems());
+  if (url.pathname === "/api/v1/alerts/subscriptions" && req.method === "POST") {
+    const body = await readBody();
+    if (!body?.endpoint || !ALERT_PUSH_HOSTS.test(body.endpoint) || !body.keys?.p256dh || !body.keys?.auth)
+      return fail("ALERT_INVALID_SUBSCRIPTION", 400);
+    if (body.endpoint.includes("undelivered")) return fail("ALERT_PUSH_NOT_DELIVERED", 400);
+    // Same endpoint again: same subscription, new token, old conditions gone.
+    const previous = [...alertSubscriptions.entries()].find(([, s]) => s.endpoint === body.endpoint);
+    const subscriptionId = previous?.[0] ?? randomUUID();
+    const manageToken = randomBytes(32).toString("base64url");
+    alertSubscriptions.set(subscriptionId, { endpoint: body.endpoint, token: manageToken, conditions: [] });
+    return ok({ subscriptionId, manageToken });
+  }
+  const match = /^\/api\/v1\/alerts\/subscriptions\/([^/]+)(\/conditions(?:\/([^/]+))?)?$/.exec(url.pathname);
+  if (!match) return fail("NOT_FOUND", 404);
+  const subscription = alertSubscriptions.get(match[1]);
+  if (!subscription || req.headers["x-alert-token"] !== subscription.token) return fail("ALERT_SUBSCRIPTION_NOT_FOUND", 404);
+  const view = (condition) => {
+    const item = alertItems().find((i) => i.itemId === condition.itemId);
+    const matchedNow =
+      condition.comparator === "AT_OR_BELOW" ? item.currentMinPrice <= condition.price : item.currentMinPrice >= condition.price;
+    return { ...condition, itemName: item.itemName, matchedNow, currentMinPrice: item.currentMinPrice, observedAt: item.observedAt };
+  };
+  if (!match[2] && req.method === "DELETE") {
+    alertSubscriptions.delete(match[1]);
+    return ok(null);
+  }
+  if (match[2] && !match[3] && req.method === "GET") return ok(subscription.conditions.map(view));
+  if (match[2] && !match[3] && req.method === "POST") {
+    const body = await readBody();
+    if (!body || !["AT_OR_BELOW", "AT_OR_ABOVE"].includes(body.comparator) || !(body.price >= 0.01))
+      return fail("INVALID_REQUEST", 400);
+    if (!alertItems().some((i) => i.itemId === body.itemId)) return fail("ALERT_ITEM_NOT_ALERTABLE", 400);
+    if (subscription.conditions.length >= 10) return fail("ALERT_TOO_MANY_CONDITIONS", 400);
+    const condition = {
+      conditionId: randomUUID(),
+      itemId: body.itemId,
+      comparator: body.comparator,
+      price: body.price,
+      lastSentAt: null,
+      createdAt: new Date().toISOString(),
+    };
+    subscription.conditions.push(condition);
+    return ok(view(condition));
+  }
+  if (match[3] && req.method === "DELETE") {
+    const before = subscription.conditions.length;
+    subscription.conditions = subscription.conditions.filter((c) => c.conditionId !== match[3]);
+    return subscription.conditions.length < before ? ok(null) : fail("ALERT_CONDITION_NOT_FOUND", 404);
+  }
+  return fail("INVALID_REQUEST", 405);
+}
 const port = Number(process.env.MOCK_PORT || 4180);
 createServer(async (req, res) => {
   const url = new URL(req.url, `http://127.0.0.1:${port}`);
@@ -345,6 +423,7 @@ createServer(async (req, res) => {
     res.end(JSON.stringify(body));
   };
   if (url.pathname === "/__counts") return send(counts);
+  if (url.pathname.startsWith("/api/v1/alerts/")) return alerts(req, url, send);
   // Planned failures (QA, PM-프론트 #236 follow-up): the next N backend requests
   // to a path answer with an error, whether the web server (prefetch) or the
   // browser (through the proxy) makes them. Arm:

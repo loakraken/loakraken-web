@@ -39,7 +39,8 @@
     "api:generate:popular-guilds": "openapi-typescript contracts/popular-guilds.openapi.json -o lib/api/popular-guilds-schema.d.ts",
     "api:generate:class-builds": "openapi-typescript contracts/class-builds.openapi.json -o lib/api/class-builds-schema.d.ts",
     "api:generate:best-combat-power": "openapi-typescript contracts/best-combat-power.openapi.json -o lib/api/best-combat-power-schema.d.ts",
-    "api:generate:guild-detail": "openapi-typescript contracts/guild-detail.openapi.json -o lib/api/guild-detail-schema.d.ts"
+    "api:generate:guild-detail": "openapi-typescript contracts/guild-detail.openapi.json -o lib/api/guild-detail-schema.d.ts",
+    "api:generate:alerts": "openapi-typescript contracts/alerts.openapi.json -o lib/api/alerts-schema.d.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
