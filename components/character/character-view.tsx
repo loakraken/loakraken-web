@@ -23,7 +23,7 @@ import { BannerRank } from "./banner-rank";
 import { Entrance } from "./entrance";
 import { kstTime, level, number, text } from "./parts";
 import { CritSpeedEnabled } from "./analysis-menu";
-import { SettingCheckEnabled, SimulatorEnabled, SpecUpEnabled, TabBar, TabPanel, TitleStatsEnabled, tabOf, useTabTop } from "./tabs";
+import { GuildTabEnabled, SettingCheckEnabled, SimulatorEnabled, SpecUpEnabled, TabBar, TabPanel, TitleStatsEnabled, tabOf, useTabTop } from "./tabs";
 import { ArmoryPageEnabled } from "./use-armory-page";
 import { ReceiptEnabled } from "./receipt-panel";
 import styles from "./character.module.css";
@@ -205,6 +205,7 @@ function CharacterContent({
     useContext(SettingCheckEnabled),
     useContext(SimulatorEnabled),
     useContext(SpecUpEnabled),
+    useContext(GuildTabEnabled),
   );
   useTabTop(tab);
   const [now, setNow] = useState(renderedAt);
@@ -364,6 +365,7 @@ export function CharacterView({
   armoryPage = true,
   titleStats = true,
   critSpeed = true,
+  guildTab = true,
   ...props
 }: {
   name: string;
@@ -383,6 +385,8 @@ export function CharacterView({
   titleStats?: boolean;
   /** CRIT_SPEED_TOOL on this deployment (server flag): the 분석 menu link. */
   critSpeed?: boolean;
+  /** GUILD_RANKING on this deployment (server flag): the guild tab. */
+  guildTab?: boolean;
 }) {
   return (
     <ReceiptEnabled.Provider value={receipt}>
@@ -392,9 +396,11 @@ export function CharacterView({
             <ArmoryPageEnabled.Provider value={armoryPage}>
               <TitleStatsEnabled.Provider value={titleStats}>
                 <CritSpeedEnabled.Provider value={critSpeed}>
-                  <LandingMotion>
-                    <CharacterContent {...props} />
-                  </LandingMotion>
+                  <GuildTabEnabled.Provider value={guildTab}>
+                    <LandingMotion>
+                      <CharacterContent {...props} />
+                    </LandingMotion>
+                  </GuildTabEnabled.Provider>
                 </CritSpeedEnabled.Provider>
               </TitleStatsEnabled.Provider>
             </ArmoryPageEnabled.Provider>

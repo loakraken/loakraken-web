@@ -6,6 +6,7 @@ import { requestRosterRanking, type RosterQuery } from "./roster-ranking";
 import { requestGuildRanking, type GuildQuery } from "./guild-ranking";
 import { requestPopularGuilds, type PopularGuildsQuery } from "./popular-guilds";
 import { requestClassBuilds, type ClassBuildsQuery } from "./class-builds";
+import { requestGuildDetail, type GuildDetailQuery } from "./guild-detail";
 import { requestTitleEquip, type TitleEquipQuery } from "./title-equip";
 import { requestCollectibleRanking, type CollectibleQuery } from "./collectible-ranking";
 
@@ -43,4 +44,8 @@ export function getClassBuilds(query: ClassBuildsQuery, signal?: AbortSignal) {
 
 export function getTitleEquip(query: TitleEquipQuery, signal?: AbortSignal) {
   return requestTitleEquip(query, process.env.LOAKRAKEN_API_ORIGIN, { signal });
+}
+
+export function getGuildDetail(query: GuildDetailQuery, signal?: AbortSignal) {
+  return requestGuildDetail(query, process.env.LOAKRAKEN_API_ORIGIN, { signal });
 }
