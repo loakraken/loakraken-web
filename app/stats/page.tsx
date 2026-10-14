@@ -3,7 +3,7 @@ import { dehydrate, HydrationBoundary, QueryClient } from "@tanstack/react-query
 import { StatsView } from "@/components/stats/stats-view";
 import { getBestCombatPower, getStats } from "@/lib/stats/server";
 import { isTitleStatsEnabled } from "@/lib/tools/flags";
-import { parseStatsQuery, statsKey, type StatsQuery } from "@/lib/stats/model";
+import { DISTRIBUTION_WIDTH, distributionKey, parseStatsQuery, statsKey, type StatsQuery } from "@/lib/stats/model";
 
 export const metadata: Metadata = {
   title: "통계",
@@ -33,14 +33,18 @@ export default async function StatsPage({
   delete query.percentileOf;
   // The summary cards sit above the tabs: arriving after hydration they pushed
   // the tabs and table down (CLS 0.12 at 390). The summary and the table of a
-  // classes/servers tab come in the first HTML; a slow backend gives up after
+  // classes/servers tab (and the distribution tab's bars) come in the first HTML; a slow backend gives up after
   // 1s and the client fetches as before.
   const deadline = AbortSignal.timeout(1_000);
   const view = tab === "classes" || tab === "servers" ? tab : null;
-  const [summary, table, best] = await Promise.all([
+  const [summary, table, best, distribution] = await Promise.all([
     getStats("summary", query, deadline),
     view ? getStats(view, query, deadline) : null,
     tab === "best" ? getBestCombatPower(query, deadline) : null,
+    // The distribution tab opens on combat power with no value typed.
+    tab === "distribution"
+      ? getStats("distribution", { ...query, metric: "COMBAT_POWER", width: DISTRIBUTION_WIDTH.COMBAT_POWER }, deadline)
+      : null,
   ]);
   // eslint-disable-next-line react-hooks/purity
   const fetchedAt = Date.now();
@@ -48,6 +52,8 @@ export default async function StatsPage({
   if (summary.ok) client.setQueryData(["stats", "summary", statsKey(query)], summary.envelope, { updatedAt: fetchedAt });
   if (view && table?.ok) client.setQueryData(["stats", view, statsKey(query)], table.envelope, { updatedAt: fetchedAt });
   if (best?.ok) client.setQueryData(["stats", "best", statsKey(query)], best.envelope, { updatedAt: fetchedAt });
+  if (distribution?.ok)
+    client.setQueryData(distributionKey(query, "COMBAT_POWER"), distribution.envelope, { updatedAt: fetchedAt });
   // StatsView follows initialTab itself, so a menu link to another tab opens it.
   return (
     <HydrationBoundary state={dehydrate(client)}>

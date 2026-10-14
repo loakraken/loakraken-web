@@ -369,9 +369,20 @@
   .filters input:not([type="checkbox"]) {
     width: 100%;
   }
-  .histogram {
+  .histogram,
+  .histogramWait {
     height: 160px;
   }
+}
+/* The bars' room while they load (same height and axis line as .histogram):
+   the answer fills it in place, nothing under it moves (A6). */
+.histogramWait {
+  display: grid;
+  place-items: center;
+  height: 200px;
+  border-bottom: 1px solid var(--border);
+  color: var(--muted-foreground);
+  font-size: 13px;
 }
 .hero {
   padding: 40px 0 12px;

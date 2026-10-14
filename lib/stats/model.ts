@@ -137,6 +137,12 @@ export function conditionsKey(params: URLSearchParams) {
 }
 export const statsKey = (query: StatsQuery) => conditionsKey(statsSearch(query));
 
+/** Bin width per metric on the distribution tab. */
+export const DISTRIBUTION_WIDTH: Record<Metric, number> = { ITEM_LEVEL: 10, COMBAT_POWER: 100 };
+/** The distribution tab's query key (the page fills the default one in the first HTML). */
+export const distributionKey = (query: StatsQuery, metric: Metric, percentileOf?: number) =>
+  ["stats", "distribution", statsKey(query), metric, percentileOf] as const;
+
 const count = (n: number) => n.toLocaleString("ko-KR");
 export const fixed = (n: number | null | undefined, digits = 2) =>
   n == null ? "-" : n.toLocaleString("ko-KR", { minimumFractionDigits: digits, maximumFractionDigits: digits });
