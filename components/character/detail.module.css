@@ -582,6 +582,14 @@
   align-items: center;
   gap: 8px;
 }
+/* Phones and touch: each gem's 44×44 press area (28px icon + 8px round) must
+   not reach the next row's — rows 44px apart (38 + the 6px gap), from the
+   first paint (A36, QA 10-14 23시). */
+@media (max-width: 699px), (pointer: coarse) {
+  .gemRows li {
+    min-height: 38px;
+  }
+}
 /* Inactive gems: the icon fades, the text keeps its contrast. */
 .gemRows li[data-inactive] img {
   opacity: 0.55;

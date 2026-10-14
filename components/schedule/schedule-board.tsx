@@ -255,7 +255,8 @@ function Section({
           </span>
         )}
         {status?.state === "done" && onShowTomorrow && (
-          <button type="button" className={styles.textButton} onClick={onShowTomorrow}>
+          // A text button 17px high: its press area is 44 on phones and touch (A36, QA 10-14 23시).
+          <button type="button" className={`${styles.textButton} hit-44`} onClick={onShowTomorrow}>
             내일 일정 보기
           </button>
         )}
@@ -413,7 +414,7 @@ export function ScheduleBoard({
           <p>{limit.limited ? countdownText(limit.seconds) : "일정을 불러오지 못했어요."}</p>
           <button
             type="button"
-            className={styles.textButton}
+            className={`${styles.textButton} hit-44`}
             onClick={() => query.refetch()}
             disabled={limit.seconds > 0}
           >
