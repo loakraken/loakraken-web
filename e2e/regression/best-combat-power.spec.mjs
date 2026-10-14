@@ -15,7 +15,10 @@ for (const width of [1280, 360])
     const table = page.getByRole("table", { name: "직업별 최고 전투력" });
     await expect(table.locator("tbody tr")).toHaveCount(27);
     // A class under the sample minimum: its count only.
-    await expect(table.locator("tbody tr[data-short]").first()).toContainText("참고값");
+    const shortRow = table.locator("tbody tr[data-short]").first();
+    await expect(shortRow).toContainText(/표본 \d+명/);
+    // No value is given under the minimum, so nothing is called a reference value.
+    await expect(shortRow).not.toContainText("참고값");
     await expect(page.getByRole("img", { name: /^최고 전투력 하위 10%/ }).first()).toBeVisible();
     expect(tab.all, `탭 전환 흔들림 (${tab.moved})`).toBe(0);
 

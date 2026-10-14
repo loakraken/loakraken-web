@@ -198,12 +198,15 @@ function Quantiles({
   scale,
   index,
   label = "전투력",
+  shortNote = "참고값",
 }: {
   row: QuantileRow;
   scale: ((v: number) => number) | null;
   index: number;
   /** What the spread is of, read aloud. */
   label?: string;
+  /** After "표본 N명" under the minimum; null when no value is shown at all. */
+  shortNote?: string | null;
 }) {
   const p = row.combatPower;
   // Under the sample minimum: the median as a dot only (user, 23:50) — the
@@ -216,7 +219,9 @@ function Quantiles({
             <em style={{ left: `${scale(p.p50)}%` }} />
           </span>
         ) : null}
-        <small>표본 {whole(row.count)}명 · 참고값</small>
+        <small>
+          표본 {whole(row.count)}명{shortNote && ` · ${shortNote}`}
+        </small>
       </span>
     );
   if (!p || !scale) return <span className={styles.muted}>-</span>;
@@ -539,7 +544,8 @@ function BestTab({ query }: { query: StatsQuery }) {
                   <td>{whole(row.count)}</td>
                   <td>{whole(row.mean)}</td>
                   <td className={styles.wide}>
-                    <Quantiles row={row} scale={scale} index={i} label="최고 전투력" />
+                    {/* Under the minimum the backend gives no value: the count only. */}
+                    <Quantiles row={row} scale={scale} index={i} label="최고 전투력" shortNote={null} />
                   </td>
                   <td>{whole(row.combatPower?.p50)}</td>
                   <td>{whole(row.max)}</td>
