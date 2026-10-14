@@ -62,7 +62,13 @@ export function GuildRankingsView({
     retry: false,
   });
   const limit = useRateLimit(list.error);
-  const data = list.data?.data;
+  const answer = list.data?.data;
+  // A link past the last page of a name search (guild=…&page=9) has matches
+  // but no rows on that page: show page 1 rather than "not in the ranking".
+  // Until page 1 is here the screen reads as still loading — the same first
+  // paint as any other link, so nothing moves when the rows land (A6).
+  const pastLast = Boolean(query.guild && query.page > 1 && answer && !answer.rows?.length && (answer.matchCount ?? 0) > 0);
+  const data = pastLast ? undefined : answer;
   const population = data?.meta?.population ?? 0;
   // A name search pages by the guilds that matched and made the ranking (api #466).
   const counted = query.guild ? (data?.matchCount ?? 0) : population;
@@ -86,9 +92,6 @@ export function GuildRankingsView({
     guildTimer.current = setTimeout(() => filter({ guild: name || undefined }), 300);
   }
   useEffect(() => () => clearTimeout(guildTimer.current), []);
-  // A link past the last page of a name search (guild=…&page=9) has matches
-  // but no rows on that page: show page 1 rather than "not in the ranking".
-  const pastLast = Boolean(query.guild && query.page > 1 && data && !data.rows?.length && (data.matchCount ?? 0) > 0);
   useEffect(() => {
     if (pastLast) apply({ ...latest.current, page: 1 });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only when the page turns out empty
