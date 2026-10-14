@@ -11,7 +11,10 @@
 // Only the official path (royal → crystal → in-game exchange gold) is used;
 // no off-game rate exists here (PM 총괄 2026-10-13). The exchange rate is
 // typed by the player from the game and stays in this browser. Contents
-// without a market price are "미확인", never 0. Static data in
+// without a market price are "미확인", never 0, and block the gain; contents
+// that cannot be traded at all (the price API's UNTRADEABLE) are left out of
+// the gold and the gain is still computed (PM 총괄 2026-10-14, as on the
+// comparison basis). Static data in
 // data/loa-shop.json, from the official shop notices.
 import raw from "./data/loa-shop.json";
 
@@ -62,7 +65,13 @@ export const marketNames = (packages: ShopPackage[]) => [
   ...new Set(packages.flatMap((p) => p.items.filter((i) => i.kind === "market").map((i) => i.name))),
 ];
 
+/** What `unitPrice` returns for a content that cannot be traded on the market. */
+export const UNTRADEABLE = "untradeable" as const;
+export type UnitPrice = number | null | typeof UNTRADEABLE;
+
 export type ItemValue = ShopItem & {
+  /** Cannot be traded: left out of the gold, does not block the gain. */
+  untradeable: boolean;
   /** Units across the whole plan (sets × qty). */
   total: number;
   /** Gold per unit, or null when unknown (no market price, or no exchange rate for crystals). */
@@ -76,8 +85,10 @@ export type PackageValue = {
   items: ItemValue[];
   /** Gold of the contents whose value is known. */
   gold: number;
-  /** Contents left out of `gold` because their value is unknown. */
+  /** Contents left out of `gold` because their value is unknown (these block the gain). */
   unknown: ItemValue[];
+  /** Contents left out of `gold` because they cannot be traded. */
+  untradeable: ItemValue[];
   /** Crystals the same royal crystals would buy at the official shop. */
   crystalsForPrice: number;
   /** Crystals inside the package. */
@@ -99,13 +110,13 @@ export function lineGold(x: number): number | null {
 }
 
 /**
- * Values one package. `unitPrice(name)` is the market gold per unit (null when
- * unknown); `goldPer100` is the in-game crystal exchange rate, or null when
+ * Values one package. `unitPrice(name)` is the market gold per unit, null when
+ * unknown, or UNTRADEABLE when it cannot be traded at all; `goldPer100` is the in-game crystal exchange rate, or null when
  * the player has not entered it.
  */
 export function packageValue(
   pkg: ShopPackage,
-  unitPrice: (name: string) => number | null,
+  unitPrice: (name: string) => UnitPrice,
   goldPer100: number | null,
   royalPer100 = SHOP_DATA.crystal.royalPer100,
 ): PackageValue {
@@ -113,12 +124,14 @@ export function packageValue(
   const items = pkg.items.map((item): ItemValue => {
     const total = item.qty * sets;
     const price = item.kind === "crystal" ? (goldPer100 == null ? null : goldPer100 / 100) : unitPrice(item.name);
+    if (price === UNTRADEABLE) return { ...item, total, untradeable: true, unit: null, gold: null };
     // A unit price of 0 or less is unknown, never counted as 0.
     const unit = price != null && Number.isFinite(price) && price > 0 ? price : null;
-    return { ...item, total, unit, gold: unit == null ? null : lineGold(total * unit) };
+    return { ...item, total, untradeable: false, unit, gold: unit == null ? null : lineGold(total * unit) };
   });
   const known = items.filter((i) => i.gold != null);
-  const unknown = items.filter((i) => i.gold == null);
+  const unknown = items.filter((i) => i.gold == null && !i.untradeable);
+  const untradeable = items.filter((i) => i.untradeable);
   const gold = known.reduce((sum, i) => sum + (i.gold as number), 0);
   const crystals = items.filter((i) => i.kind === "crystal").reduce((sum, i) => sum + i.total, 0);
   const royalValue = goldPer100 && goldPer100 > 0 && !unknown.length ? (gold * royalPer100) / goldPer100 : null;
@@ -129,6 +142,7 @@ export function packageValue(
     items,
     gold,
     unknown,
+    untradeable,
     crystalsForPrice: Math.floor((priceRoyal * 100) / royalPer100),
     crystals,
     royalValue,

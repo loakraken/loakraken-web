@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { SHOP_DATA, checkShopData, lineGold, onSale, packageValue, parseRate, purchasePlan, type ShopData } from "../lib/tools/loa-shop";
+import { SHOP_DATA, UNTRADEABLE, checkShopData, lineGold, onSale, packageValue, parseRate, purchasePlan, type ShopData } from "../lib/tools/loa-shop";
 import { goldText, signedGold } from "../lib/tools/format";
 
 const pkg = (id: string) => SHOP_DATA.packages.find((p) => p.id === id)!;
@@ -115,4 +115,38 @@ test("로아샵 figures round the absolute value away from zero (its comparison 
   assert.equal(signedGold(1e-12, "awayFromZero"), "0");
   // The other tools keep .5 up.
   assert.equal(signedGold(-1087.5), "−1,087");
+});
+
+test("untradeable contents are left out of the gold and the gain is still computed; a tradeable one without a price blocks it (PM 총괄 2026-10-14)", () => {
+  const p = structuredClone(SHOP_DATA.packages[0]);
+  p.bonus = null;
+  p.priceRoyal = 1000;
+  p.items = [
+    { kind: "market", name: "가", qty: 10, detail: null },
+    { kind: "market", name: "불가", qty: 5, detail: null },
+  ];
+  // Untradeable: out of the gold, listed, and the gain is computed from the rest.
+  const out = packageValue(p, (n) => (n === "불가" ? UNTRADEABLE : 27.5), 27500);
+  assert.deepEqual(out.untradeable.map((i) => i.name), ["불가"]);
+  assert.deepEqual(out.unknown, []);
+  assert.equal(out.gold, 275);
+  assert.equal(out.items[1].gold, null);
+  assert.equal(out.items[1].untradeable, true);
+  // 275G × 2,750 ÷ 27,500 = 27.5 royal, gain 27.5 − 1,000.
+  assert.equal(out.royalValue, 27.5);
+  assert.equal(out.gain, 27.5 - 1000);
+  // Tradeable but no price now: 미확인, and no gain.
+  const missing = packageValue(p, (n) => (n === "불가" ? null : 27.5), 27500);
+  assert.deepEqual(missing.unknown.map((i) => i.name), ["불가"]);
+  assert.deepEqual(missing.untradeable, []);
+  assert.equal(missing.gain, null);
+  // Both at once: the unknown one still blocks the gain.
+  p.items.push({ kind: "market", name: "없음", qty: 1, detail: null });
+  const both = packageValue(p, (n) => (n === "불가" ? UNTRADEABLE : n === "없음" ? null : 27.5), 27500);
+  assert.deepEqual([both.untradeable.length, both.unknown.length, both.gain], [1, 1, null]);
+  // A package of untradeable contents only: 0 tradeable gold, the gain is −price.
+  const life = packageValue(pkg("hangawi-life"), () => UNTRADEABLE, 27500);
+  assert.equal(life.gold, 0);
+  assert.equal(life.untradeable.length, 2);
+  assert.equal(life.gain, -SHOP_DATA.packages.find((x) => x.id === "hangawi-life")!.priceRoyal);
 });
