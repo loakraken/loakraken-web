@@ -101,8 +101,14 @@ test("builds and top requests carry the conditions and fixes; an unknown fix's c
     message: "ok",
     data: {
       meta: {
-        population: 120, conditions: { className: "블레이드", activeDays: 30, itemLevelMin: 1680 }, aggregatedAt: "2026-10-14T00:00:00Z",
+        population: 120,
+        conditions: {
+          server: null, role: null, className: "블레이드", activeDays: 30, itemLevelMin: 1680, itemLevelMax: null,
+          combatPowerMin: null, combatPowerMax: null, representativeOnly: false,
+        },
+        aggregatedAt: "2026-10-14T00:00:00Z",
         snapshot: "latest", ruleVersion: "class-builds-v1", minSample: 30, populationUnit: "CHARACTER", sampleStatus: "READY",
+        coverage: { observedCharacters: 4200, knownCharacters: 5100, discoveredAccounts: 900 },
       },
       className: "블레이드", classEngraving: null, braceletItemLevelMin: 1680,
       rows: [{ rank: 1, characterName: "모험가", serverName: "아만", itemLevel: 1780.5, combatPower: 5200.25, observedAt: null }],
