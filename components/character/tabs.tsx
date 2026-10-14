@@ -121,6 +121,7 @@ import { RosterPower, rosterPowerKey, useRosterPowerRefreshing } from "./roster-
 import { StatSheet } from "./stat-sheet";
 import { AnalysisMenu } from "./analysis-menu";
 import { RankPanel } from "./rank-panel";
+import { GuildTab } from "./guild-tab";
 import { SimulatorTab } from "./simulator-tab";
 import { SpecUpTab } from "./spec-up-tab";
 import { byObservedOrder, groupByDay } from "@/lib/character/titles";
@@ -154,6 +155,7 @@ export const TABS = [
   { id: "avatars", label: "아바타" },
   { id: "stats", label: "통계" },
   { id: "siblings", label: "원정대" },
+  { id: "guild", label: "길드" },
   { id: "evidence", label: "세팅 점검" },
 ] as const;
 export type TabId = (typeof TABS)[number]["id"];
@@ -166,12 +168,15 @@ export const SimulatorEnabled = createContext(true);
 export const TitleStatsEnabled = createContext(true);
 /** SPEC_UP_GUIDE (server flag): off hides the 스펙업 tab the same way. */
 export const SpecUpEnabled = createContext(true);
-const visibleTabs = (settingCheck: boolean, simulator = true, specUp = true) =>
+/** GUILD_RANKING (server flag): the guild tab uses the guild ranking's data; off hides it. */
+export const GuildTabEnabled = createContext(true);
+const visibleTabs = (settingCheck: boolean, simulator = true, specUp = true, guild = true) =>
   TABS.filter(
     (tab) =>
       (tab.id !== "evidence" || settingCheck) &&
       (tab.id !== "simulator" || simulator) &&
-      (tab.id !== "specup" || specUp),
+      (tab.id !== "specup" || specUp) &&
+      (tab.id !== "guild" || guild),
   );
 
 /** The visually hidden heading each tab panel starts with (focus target). */
@@ -195,8 +200,8 @@ export function useTabTop(tab: TabId) {
 }
 
 /** The tab in ?tab=, or 전투 for an unknown one or a hidden one. */
-export const tabOf = (value: string | null, settingCheck = true, simulator = true, specUp = true): TabId =>
-  visibleTabs(settingCheck, simulator, specUp).some((tab) => tab.id === value) ? (value as TabId) : "combat";
+export const tabOf = (value: string | null, settingCheck = true, simulator = true, specUp = true, guild = true): TabId =>
+  visibleTabs(settingCheck, simulator, specUp, guild).some((tab) => tab.id === value) ? (value as TabId) : "combat";
 
 /** "베타" next to a tab still growing its rules (shown wherever the tab is). */
 function TabLabel({ id, label }: { id: TabId; label: string }) {
@@ -274,7 +279,13 @@ export function TabBar({
   const [favorite, toggleFavorite] = useFavorite(name);
   const [shareStatus, setShareStatus] = useState("");
   const { nav: pillNav, layer: pillLayer, onKeyDown: pillKey, onPointerDown: pillPointer } = useTabPill(tab);
-  const tabs = visibleTabs(useContext(SettingCheckEnabled), useContext(SimulatorEnabled), useContext(SpecUpEnabled));
+  // The guild tab only for a character in a guild.
+  const tabs = visibleTabs(
+    useContext(SettingCheckEnabled),
+    useContext(SimulatorEnabled),
+    useContext(SpecUpEnabled),
+    useContext(GuildTabEnabled) && Boolean(data.guildName),
+  );
   const window_ = refreshWindow(data, now);
   const cooling = window_.remainingMs > 0;
   const disabled = fetching || cooling || rateLimitSeconds > 0;
@@ -2682,6 +2693,8 @@ function TabPanelView({
         <StatsTab data={data} />
       ) : tab === "siblings" ? (
         <SiblingsTab data={data} />
+      ) : tab === "guild" ? (
+        <GuildTab data={data} />
       ) : tab === "evidence" ? (
         <EvidenceTab data={data} envelope={envelope} />
       ) : (

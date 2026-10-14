@@ -1461,6 +1461,72 @@ createServer(async (req, res) => {
   }
   // Roster ranking (backend #298): three rosters, the last one short of six
   // characters (usedCharacters 4 of 4), values by basis and aggregate.
+  // Guild tab (api #472, L36·K28·M10): 합성길드 has 12 members seen in 30 days
+  // (7 days 6, 90 days 14, the 상세 character among them), 작은길드 is SMALL
+  // (3), any other guild has none seen (404).
+  {
+    const guildPath = /^\/api\/v1\/guilds\/([^/]+)\/([^/]+)$/.exec(url.pathname);
+    if (guildPath && guildPath[1] !== "popular") {
+      const serverName = decodeURIComponent(guildPath[1]);
+      const guildName = decodeURIComponent(guildPath[2]);
+      const days = Number(url.searchParams.get("activeDays") || 30);
+      const size = guildName === "합성길드" ? (days === 7 ? 6 : days === 90 ? 14 : 12) : guildName === "작은길드" ? 3 : 0;
+      if (!size) return send({ code: "STATS_GUILD_NOT_OBSERVED", message: "", data: null }, 404);
+      const classes = ["바드", "블레이드", "버서커", "소서리스", "건슬링어", "홀리나이트"];
+      const grades = ["길드장", "부길드장", "길드원"];
+      const members = Array.from({ length: size }, (_, i) => ({
+        characterName: i === 0 ? "상세" : `합성길드원${i}`,
+        className: classes[i % classes.length],
+        itemLevel: Math.round((1745 - i * 7.5) * 100) / 100,
+        combatPower: i % 4 === 3 ? null : Math.round((2420 - i * 61.3) * 100) / 100,
+        guildMemberGrade: i === 0 ? "길드장" : i < 3 ? "부길드장" : i === size - 1 ? null : grades[2],
+        observedAt: new Date(Date.UTC(2026, 9, 13 - (i % 5), 3, 0)).toISOString(),
+        // api #494: one roster of three (the 상세 character's), one of two, the
+        // rest alone; the last one's roster is not known.
+        rosterGroup: i < 3 ? 1 : i < 5 ? 2 : i === size - 1 ? null : i - 2,
+      }));
+      const levels = members.map((m) => m.itemLevel).sort((a, b) => a - b);
+      const powers = members.map((m) => m.combatPower).filter((v) => v != null).sort((a, b) => a - b);
+      const avg = (list) => Math.round((list.reduce((a, b) => a + b, 0) / list.length) * 100) / 100;
+      const median = (list) => {
+        const mid = Math.floor(list.length / 2);
+        return Math.round((list.length % 2 ? list[mid] : (list[mid - 1] + list[mid]) / 2) * 100) / 100;
+      };
+      const bins = (list, width) => {
+        const out = new Map();
+        for (const v of list) {
+          const from = Math.floor(v / width) * width;
+          out.set(from, (out.get(from) ?? 0) + 1);
+        }
+        return [...out.entries()].sort((a, b) => a[0] - b[0]).map(([from, count]) => ({ from, count }));
+      };
+      const counts = new Map();
+      for (const m of members) counts.set(m.className, (counts.get(m.className) ?? 0) + 1);
+      return send({
+        code: "GUILD_DETAIL_SUCCESS",
+        message: "ok",
+        data: {
+          meta: {
+            memberCount: size, sampleStatus: size < 5 ? "SMALL" : "READY", minMembers: 5, activeDays: days,
+            aggregatedAt: new Date(Date.now() - 600_000).toISOString(), ruleVersion: "guild-detail-v1",
+          },
+          serverName,
+          guildName,
+          summary: {
+            itemLevelAvg: avg(levels), itemLevelMedian: median(levels), itemLevelMax: levels.at(-1), itemLevelMin: levels[0],
+            combatPowerAvg: powers.length ? avg(powers) : null, combatPowerMedian: powers.length ? median(powers) : null,
+            combatPowerCount: powers.length,
+          },
+          classes: [...counts.entries()]
+            .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "ko"))
+            .map(([className, count]) => ({ className, count, share: Math.round((count / size) * 10000) / 100 })),
+          itemLevelBins: bins(levels, 10),
+          combatPowerBins: bins(powers, 100),
+          members,
+        },
+      });
+    }
+  }
   // Guild ranking (api #302): guilds of observed members; 아만 differs so a
   // server change brings other rows (A7 table widths).
   if (url.pathname === "/api/v1/rankings/guilds") {
@@ -1892,6 +1958,7 @@ createServer(async (req, res) => {
     d.townName = "합성 영지";
     d.townLevel = 70;
     d.honorPoint = 183;
+    d.guildName = "합성길드";
     d.guildMemberGrade = "길드장";
     d.avatars = [
       ["무기 아바타", "합성 무기 아바타", "전설", false, ["민첩 +2.00%"]],

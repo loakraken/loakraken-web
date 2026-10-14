@@ -14,6 +14,7 @@ import { guildSearch, type GuildQuery, type GuildRankingEnvelope } from "./guild
 import { popularGuildsSearch, type PopularGuildsEnvelope, type PopularGuildsQuery } from "./popular-guilds";
 import { classBuildsSearch, type ClassBuildsEnvelope, type ClassBuildsQuery } from "./class-builds";
 import { bestCombatPowerSearch, type BestCombatPowerEnvelope } from "./best-combat-power";
+import { guildDetailPath, type GuildDetailEnvelope, type GuildDetailQuery } from "./guild-detail";
 import { titleEquipSearch, type TitleEquipEnvelope, type TitleEquipQuery } from "./title-equip";
 import { collectibleSearch, type CollectibleQuery, type CollectibleRankingEnvelope } from "./collectible-ranking";
 
@@ -84,3 +85,5 @@ export const fetchEfficiencyRanking = (kind: EfficiencyKind, query: EfficiencyQu
 
 export const fetchBestCombatPower = (query: StatsQuery, signal: AbortSignal) =>
   call<BestCombatPowerEnvelope>(`/api/stats/best-combat-power?${bestCombatPowerSearch(query)}`, signal);
+export const fetchGuildDetail = (query: GuildDetailQuery, signal: AbortSignal) =>
+  call<GuildDetailEnvelope>(guildDetailPath(query), signal);
