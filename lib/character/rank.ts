@@ -96,11 +96,28 @@ export type RankCell =
       top: string | null;
       tier: string | null;
       tierNote: string | null;
+      /** "해구까지 전투력 312.45" (L2); null when there is no next tier. */
+      next: string | null;
     };
 
 const count = (n: number) => n.toLocaleString("ko-KR");
 
 /** One box: a metric within a scope. Collecting never shows 0 or a guess. */
+/**
+ * What is left to the next tier (api #481): its name and the gap in the
+ * ranking's own unit. None at the top tier, under the sample minimum, or when
+ * too few are counted for that tier to have a boundary.
+ */
+export function nextTierText(
+  entry: { nextTier?: string | null; nextTierGap?: number | null },
+  metric: RankMetric,
+) {
+  const next = entry.nextTier && Object.hasOwn(TIER_LABEL, entry.nextTier) ? TIER_LABEL[entry.nextTier] : null;
+  if (!next || entry.nextTierGap == null || !(entry.nextTierGap > 0)) return null;
+  const unit = metric === "ITEM_LEVEL" ? "아이템 레벨" : "전투력";
+  return `${next}까지 ${unit} ${entry.nextTierGap.toLocaleString("ko-KR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
 export function rankCell(data: CharacterRank, metric: RankMetric, scope: RankScope): RankCell {
   const entry = data.entries.find((e) => e.metric === metric && e.scope === scope);
   if (!entry) return { state: "none" };
@@ -118,6 +135,7 @@ export function rankCell(data: CharacterRank, metric: RankMetric, scope: RankSco
     tierNote:
       tier &&
       `${METRICS.find((m) => m.id === metric)?.label} 순위에서 상위 ${TIER_PERCENT[tier]}% 이내예요(LOAKraken이 확인한 캐릭터 기준).`,
+    next: nextTierText(entry, metric),
   };
 }
 

@@ -1070,7 +1070,18 @@ createServer(async (req, res) => {
     const entry = (metric, scope, scopeValue, rank, total, sampleStatus = "READY") => {
       const top = sampleStatus === "READY" ? Math.round((rank / total) * 10000) / 100 : null;
       const tier = top == null ? null : top <= 1 ? "TOP1" : top <= 5 ? "TOP5" : top <= 10 ? "TOP10" : top <= 25 ? "TOP25" : top <= 50 ? "TOP50" : "REST";
-      return { metric, scope, scopeValue, rank, total, topPercent: top, tier, sampleStatus };
+      // api #481: the next tier up, its boundary (the K-th, K = ⌊% × total / 100⌋)
+      // and the gap; none at the top, under the sample, or when K < 1.
+      const order = ["REST", "TOP50", "TOP25", "TOP10", "TOP5", "TOP1"];
+      const pct = { TOP50: 50, TOP25: 25, TOP10: 10, TOP5: 5, TOP1: 1 };
+      const up = tier && tier !== "TOP1" ? order[order.indexOf(tier) + 1] : null;
+      const k = up ? Math.floor((pct[up] * total) / 100) : 0;
+      const nextTier = up && k >= 1 ? up : null;
+      const step = metric === "ITEM_LEVEL" ? 0.25 : 3.17;
+      const nextTierGap = nextTier ? Math.round((rank - k) * step * 100) / 100 : null;
+      const value = metric === "ITEM_LEVEL" ? 1780.83 : 3180.29;
+      const nextTierValue = nextTier ? Math.round((value + nextTierGap) * 100) / 100 : null;
+      return { metric, scope, scopeValue, rank, total, topPercent: top, tier, sampleStatus, nextTier, nextTierValue, nextTierGap };
     };
     const collecting = who === "집계중" ? "COLLECTING" : "READY";
     const entries = excluded ? [] : [
