@@ -12,6 +12,7 @@ test("분석 메뉴: 항목과 이동 @regression", async ({ page }) => {
     /^전투력 시뮬레이터/,
     /^치적·뭉가·음돌/,
     /^캐릭터 비교/,
+    /^대세 빌드 비교/,
     /^직업 통계/,
   ]);
   await menu.getByRole("menuitem", { name: /^캐릭터 비교/ }).click();
