@@ -1391,6 +1391,61 @@ createServer(async (req, res) => {
       });
     }
   }
+  // 고정 (api #503, M26 stage 2) on the class builds below and their top list:
+  // each fix keeps 40% of the sample (3 fixes on 블레이드 still ≥ 30, so the
+  // sections stay), an engraving or card set the builds do not list is
+  // 400 STATS_UNKNOWN_FIX, more than three fixes 400 INVALID_REQUEST.
+  const fixesOf = (q) => {
+    const list = [
+      ...q.getAll("fixEngraving").map((v) => ["engraving", v]),
+      ...["fixCardSet", "fixTopStat", "fixEvolution", "fixEnlightenment", "fixLeap"].flatMap((k) => (q.get(k) ? [[k, q.get(k)]] : [])),
+      ...q.getAll("fixBracelet").map((v) => ["bracelet", v]),
+    ];
+    const known = ["원한", "아드레날린", "돌격대장"];
+    const unknown = list.some(([k, v]) => (k === "engraving" && !known.includes(v)) || (k === "fixCardSet" && !["세상을 구하는 빛", "카제로스의 군단장"].includes(v)));
+    return { count: list.length, unknown };
+  };
+  {
+    const top = /^\/api\/v1\/stats\/classes\/([^/]+)\/builds\/top$/.exec(url.pathname);
+    if (top) {
+      const className = decodeURIComponent(top[1]);
+      const q = url.searchParams;
+      const fixes = fixesOf(q);
+      if (fixes.count > 3) return send({ code: "INVALID_REQUEST", message: "", data: null }, 400);
+      if (fixes.unknown) return send({ code: "STATS_UNKNOWN_FIX", message: "", data: null }, 400);
+      const days = Number(q.get("activeDays") || 30);
+      const engraving = q.get("classEngraving");
+      const short = className !== "블레이드" || (engraving === "버스트" && days === 7);
+      const population = short ? 12 : Math.round(880 * 0.4 ** fixes.count);
+      return send({
+        code: "STATS_CLASS_BUILDS_SUCCESS",
+        message: "ok",
+        data: {
+          meta: {
+            population,
+            conditions: { server: null, role: null, className, activeDays: days, itemLevelMin: 1680, itemLevelMax: null, combatPowerMin: null, combatPowerMax: null, representativeOnly: false },
+            aggregatedAt: new Date(Date.now() - 600_000).toISOString(),
+            snapshot: "latest", ruleVersion: "class-builds-v1", minSample: 30, populationUnit: "CHARACTER",
+            sampleStatus: short ? "COLLECTING" : "READY",
+            coverage: { observedCharacters: 4200, knownCharacters: 5100, discoveredAccounts: 900 },
+          },
+          className,
+          classEngraving: engraving,
+          braceletItemLevelMin: 1680,
+          rows: short
+            ? []
+            : Array.from({ length: 30 }, (_, i) => ({
+                rank: i + 1,
+                characterName: `상위블레이드${String(i + 1).padStart(2, "0")}`,
+                serverName: ["아만", "루페온", "카단"][i % 3],
+                itemLevel: 1780 - i * 1.25 - fixes.count,
+                combatPower: Math.round((5200 - i * 37.5 - fixes.count * 3) * 100) / 100,
+                observedAt: new Date(Date.now() - (i + 1) * 3_600_000).toISOString(),
+              })),
+        },
+      });
+    }
+  }
   {
     const builds = /^\/api\/v1\/stats\/classes\/([^/]+)\/builds$/.exec(url.pathname);
     if (builds) {
@@ -1398,12 +1453,18 @@ createServer(async (req, res) => {
       const q = url.searchParams;
       const engraving = q.get("classEngraving");
       const days = Number(q.get("activeDays") || 30);
+      const fixes = fixesOf(q);
+      if (fixes.count > 3) return send({ code: "INVALID_REQUEST", message: "", data: null }, 400);
+      if (fixes.unknown) return send({ code: "STATS_UNKNOWN_FIX", message: "", data: null }, 400);
       const ready = className === "블레이드";
       // 블레이드 · 버스트 · 7일: the chosen engraving is short of 30 (every section empty),
       // the class engravings still come from the whole class sample.
       const small = ready && engraving === "버스트" && days === 7;
       const full = ready && !small;
-      const sample = small ? 20 : ready ? (engraving === "잔재된 기운" ? 640 : engraving ? 240 : 880) * (days === 7 ? 0.5 : 1) : 12;
+      const sample = Math.round(
+        (small ? 20 : ready ? (engraving === "잔재된 기운" ? 640 : engraving ? 240 : 880) * (days === 7 ? 0.5 : 1) : 12) *
+          0.4 ** fixes.count,
+      );
       const cell = (name, n, known) => ({ name, count: n, share: Math.round((n / known) * 10000) / 100 });
       const value = (v, n, known) => ({ value: v, count: n, share: Math.round((n / known) * 10000) / 100 });
       const hidden = (count, known) => ({ count, share: count ? Math.round((count / known) * 10000) / 100 : null });

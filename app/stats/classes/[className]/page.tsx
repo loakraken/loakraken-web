@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { dehydrate, HydrationBoundary, QueryClient } from "@tanstack/react-query";
 import { ClassBuildsView } from "@/components/stats/class-builds-view";
-import { classBuildCellsKey, classBuildsKey, parseClassBuildsQuery } from "@/lib/stats/class-builds";
-import { getClassBuildCells, getClassBuilds } from "@/lib/stats/server";
+import { classBuildCellsKey, classBuildsKey, classBuildTopKey, parseClassBuildsQuery } from "@/lib/stats/class-builds";
+import { getClassBuildCells, getClassBuilds, getClassBuildTop } from "@/lib/stats/server";
 import { parseCompareCharacter } from "@/lib/stats/build-compare";
 
 type Props = {
@@ -33,14 +33,16 @@ export default async function ClassBuildsPage({ params, searchParams }: Props) {
   // The sections (and the character's cells) come in the first HTML (no
   // shift when they land); a slow backend gives up after 1s and the client
   // fetches as before.
-  const [result, cells] = await Promise.all([
+  const [result, cells, top] = await Promise.all([
     getClassBuilds(query, AbortSignal.timeout(1_000)),
     cellsQuery ? getClassBuildCells(cellsQuery, AbortSignal.timeout(1_000)) : null,
+    getClassBuildTop(query, AbortSignal.timeout(1_000)),
   ]);
   // eslint-disable-next-line react-hooks/purity
   const fetchedAt = Date.now();
   const client = new QueryClient();
   if (result.ok) client.setQueryData(classBuildsKey(query), result.envelope, { updatedAt: fetchedAt });
+  if (top.ok) client.setQueryData(classBuildTopKey(query), top.envelope, { updatedAt: fetchedAt });
   if (cellsQuery && cells?.ok) client.setQueryData(classBuildCellsKey(cellsQuery), cells.envelope, { updatedAt: fetchedAt });
   // Not recorded: said in the first HTML too (an error is not carried by the
   // query cache, and "loading" then the two-line notice moved the cards, A6).

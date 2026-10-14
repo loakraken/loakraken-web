@@ -9,16 +9,28 @@ import { useTallest } from "@/components/ui/use-tallest";
 import { countdownText, retryLabel } from "@/lib/api/rate-limit";
 import { pendingProps } from "@/lib/api/pending";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
+import { CloseCircle, TickCircle } from "@/components/ui/icons";
+import { DataTable } from "@/components/ui/data-table";
 import {
   BUILD_DAYS,
+  COMBAT_STATS,
+  MAX_FIXES,
+  classBuildTopKey,
   classBuildsKey,
   classBuildsSearch,
+  fixCount,
+  fixItems,
+  hasFix,
   hiddenText,
+  toggleFix,
+  type BuildFix,
   type ClassBuilds,
   type ClassBuildHidden,
   type ClassBuildsQuery,
+  type FixItem,
+  type FixPoint,
 } from "@/lib/stats/class-builds";
-import { fetchClassBuilds } from "@/lib/stats/client";
+import { fetchClassBuilds, fetchClassBuildTop, StatsQueryError } from "@/lib/stats/client";
 import { whole } from "@/lib/stats/model";
 import quote from "@/components/tools/material-quote.module.css";
 import styles from "./stats.module.css";
@@ -37,9 +49,12 @@ const kst = new Intl.DateTimeFormat("ko-KR", {
 const percent = (value: number | null | undefined) =>
   value == null ? "-" : `${value.toLocaleString("ko-KR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
 
-type Row = { label: string; count: number; share: number | null };
+type Row = { label: string; count: number; share: number | null; fix?: FixItem };
 
-/** One section: a definition line, share bars and what was hidden. */
+/** 고정 (M26 stage 2): what is fixed now and how to change it, shared by every section. */
+type Fixing = { fix: BuildFix | undefined; onFix: (item: FixItem) => void };
+
+/** One section: a definition line, share bars and what was hidden; rows that can be fixed are buttons. */
 function Section({
   title,
   definition,
@@ -49,6 +64,7 @@ function Section({
   note,
   unit = "명",
   wrap = false,
+  fixing,
 }: {
   title: string;
   definition?: string;
@@ -60,28 +76,55 @@ function Section({
   unit?: string;
   /** Long names that are the point (engraving sets, card sets) wrap instead of cutting off. */
   wrap?: boolean;
+  fixing?: Fixing;
 }) {
   const hide = hiddenText(hidden, people);
   const headingId = useId();
+  const full = fixCount(fixing?.fix) >= MAX_FIXES;
+  const cells = (row: Row) => (
+    <>
+      <span className={own.label}>
+        {row.fix && hasFix(fixing?.fix, row.fix) && <TickCircle size={14} className={own.fixMark} aria-hidden="true" />}
+        {row.label}
+      </span>
+      <span className={own.track} aria-hidden="true">
+        <i style={{ transform: `scaleX(${Math.min(100, row.share ?? 0) / 100})` }} />
+      </span>
+      <b>{percent(row.share)}</b>
+      <small>
+        {whole(row.count)}
+        {unit}
+      </small>
+    </>
+  );
   return (
     <section className={own.section} aria-labelledby={headingId}>
       <h2 id={headingId}>{title}</h2>
       {definition && <p className={own.definition}>{definition}</p>}
       {rows.length ? (
-        <ol className={own.bars} data-wrap={wrap || undefined}>
-          {rows.map((row) => (
-            <li key={row.label}>
-              <span className={own.label}>{row.label}</span>
-              <span className={own.track} aria-hidden="true">
-                <i style={{ transform: `scaleX(${Math.min(100, row.share ?? 0) / 100})` }} />
-              </span>
-              <b>{percent(row.share)}</b>
-              <small>
-                {whole(row.count)}
-                {unit}
-              </small>
-            </li>
-          ))}
+        <ol className={own.bars} data-wrap={wrap || undefined} data-fixable={(fixing && rows.some((row) => row.fix)) || undefined}>
+          {rows.map((row) => {
+            if (!row.fix || !fixing) return <li key={row.label}>{cells(row)}</li>;
+            const fixed = hasFix(fixing.fix, row.fix);
+            // Past three, an unfixed row cannot be pressed and says why (not by colour alone).
+            const blocked = !fixed && full;
+            const item = row.fix;
+            return (
+              <li key={row.label}>
+                <button
+                  type="button"
+                  className={own.fixRow}
+                  aria-pressed={fixed}
+                  aria-disabled={blocked || undefined}
+                  aria-label={`${row.label} 고정${blocked ? " — 고정은 3개까지예요" : ""}`}
+                  title={blocked ? "고정은 3개까지예요" : fixed ? "누르면 고정을 풀어요" : "이 세팅을 쓰는 캐릭터만 남겨 다시 세요"}
+                  onClick={() => !blocked && fixing.onFix(item)}
+                >
+                  {cells(row)}
+                </button>
+              </li>
+            );
+          })}
         </ol>
       ) : (
         <p className={styles.muted}>보여 드릴 칸이 아직 없어요.</p>
@@ -91,12 +134,17 @@ function Section({
   );
 }
 
-const names = (cells: { name: string; count: number; share?: number | null }[] | undefined): Row[] =>
-  (cells ?? []).map((cell) => ({ label: cell.name, count: cell.count, share: cell.share ?? null }));
+const names = (
+  cells: { name: string; count: number; share?: number | null }[] | undefined,
+  fix?: (name: string) => FixItem | undefined,
+): Row[] => (cells ?? []).map((cell) => ({ label: cell.name, count: cell.count, share: cell.share ?? null, fix: fix?.(cell.name) }));
 const values = (
   cells: { value: number; count: number; share?: number | null }[] | undefined,
   label: (value: number) => string,
-): Row[] => (cells ?? []).map((cell) => ({ label: label(cell.value), count: cell.count, share: cell.share ?? null }));
+  fix?: (value: number) => FixItem | undefined,
+): Row[] =>
+  (cells ?? []).map((cell) => ({ label: label(cell.value), count: cell.count, share: cell.share ?? null, fix: fix?.(cell.value) }));
+const isStat = (name: string) => (COMBAT_STATS as readonly string[]).includes(name);
 
 /** From the whole class sample whatever the filter, so it stands even when the filter's sample is short. */
 function ClassEngravings({ data }: { data: ClassBuilds }) {
@@ -143,9 +191,10 @@ function UpcomingSections() {
   );
 }
 
-function Sections({ data }: { data: ClassBuilds }) {
+function Sections({ data, fixing }: { data: ClassBuilds; fixing: Fixing }) {
   const d = data.definitions ?? {};
   const ap = data.arkPassivePoints;
+  const point = (kind: FixPoint) => (value: number) => ({ kind, value }) as FixItem;
   return (
     <div className={own.grid}>
       <ClassEngravings data={data} />
@@ -164,14 +213,16 @@ function Sections({ data }: { data: ClassBuilds }) {
       <Section
         title="각인 채용률"
         definition={d.engravings}
-        rows={names(data.engravings?.cells)}
+        rows={names(data.engravings?.cells, (value) => ({ kind: "engraving", value }))}
         hidden={data.engravings?.hidden}
         people={false}
+        fixing={fixing}
       />
       <Section
         title="주력 전투 특성"
         definition={d.topStats}
-        rows={names(data.topStats?.cells)}
+        rows={names(data.topStats?.cells, (value) => (isStat(value) ? { kind: "topStat", value } : undefined))}
+        fixing={fixing}
         hidden={data.topStats?.hidden}
         people
         note={data.topStats && data.topStats.ties > 0 ? `가장 큰 특성이 둘 이상인 ${whole(data.topStats.ties)}명은 치명→특화→신속→제압→인내→숙련 순으로 골랐어요` : null}
@@ -179,21 +230,24 @@ function Sections({ data }: { data: ClassBuilds }) {
       <Section
         title="아크 패시브 진화"
         definition={d.arkPassivePoints}
-        rows={values(ap?.evolution?.cells, (v) => `${whole(v)} 포인트`)}
+        rows={values(ap?.evolution?.cells, (v) => `${whole(v)} 포인트`, point("evolution"))}
         hidden={ap?.evolution?.hidden}
         people
+        fixing={fixing}
       />
       <Section
         title="아크 패시브 깨달음"
-        rows={values(ap?.enlightenment?.cells, (v) => `${whole(v)} 포인트`)}
+        rows={values(ap?.enlightenment?.cells, (v) => `${whole(v)} 포인트`, point("enlightenment"))}
         hidden={ap?.enlightenment?.hidden}
         people
+        fixing={fixing}
       />
       <Section
         title="아크 패시브 도약"
-        rows={values(ap?.leap?.cells, (v) => `${whole(v)} 포인트`)}
+        rows={values(ap?.leap?.cells, (v) => `${whole(v)} 포인트`, point("leap"))}
         hidden={ap?.leap?.hidden}
         people
+        fixing={fixing}
       />
       <Section
         title="카드 세트"
@@ -202,10 +256,13 @@ function Sections({ data }: { data: ClassBuilds }) {
           label: `${cell.set} ${cell.pieces}세트${cell.awakening != null ? ` · 각성 ${cell.awakening}` : ""}`,
           count: cell.count,
           share: cell.share ?? null,
+          // Fixed by the set's name (any size and awakening), as the backend fixes it.
+          fix: { kind: "cardSet", value: cell.set },
         }))}
         hidden={data.cardSets?.hidden}
         people
         wrap
+        fixing={fixing}
       />
       <Section
         title="피해 증가 보석"
@@ -225,9 +282,10 @@ function Sections({ data }: { data: ClassBuilds }) {
       <Section
         title="팔찌 전투 특성"
         definition={d.braceletStats}
-        rows={names(data.braceletStats?.cells)}
+        rows={names(data.braceletStats?.cells, (value) => (isStat(value) ? { kind: "bracelet", value } : undefined))}
         hidden={data.braceletStats?.hidden}
         people={false}
+        fixing={fixing}
         note={[
           `아이템 레벨 ${whole(Number(data.braceletItemLevelMin))} 이상`,
           data.braceletStats && data.braceletStats.unread > 0 ? `팔찌를 못 읽은 ${whole(data.braceletStats.unread)}명 제외` : null,
@@ -236,6 +294,124 @@ function Sections({ data }: { data: ClassBuilds }) {
           .join(" · ")}
       />
     </div>
+  );
+}
+
+/**
+ * What is fixed, each freed on its own, or all at once. One line high from the
+ * first paint (a hint when nothing is fixed) and scrolled sideways rather than
+ * wrapped, so fixing or freeing never moves the sections under it (A7).
+ */
+function FixBar({ fixing, onClear, population }: { fixing: Fixing; onClear: () => void; population: number | null }) {
+  const items = fixItems(fixing.fix);
+  return (
+    <div className={own.fixBar} role="group" aria-label="고정한 세팅">
+      {items.length ? (
+        <>
+          {items.map((item) => (
+            <button
+              key={`${item.kind}-${item.value}`}
+              type="button"
+              className={own.fixChip}
+              aria-label={`${item.label} 고정 풀기`}
+              onClick={() => fixing.onFix(item)}
+            >
+              {item.label}
+              <CloseCircle size={14} aria-hidden="true" />
+            </button>
+          ))}
+          <button type="button" className={own.fixClear} onClick={onClear}>
+            모두 풀기
+          </button>
+          <span className={own.fixNote}>
+            {population != null ? `이 세팅을 쓰는 ${whole(population)}명으로 다시 셌어요` : "이 세팅을 쓰는 캐릭터로 다시 세요"}
+            {items.length >= MAX_FIXES ? " · 고정은 3개까지" : ""}
+          </span>
+        </>
+      ) : (
+        <span className={own.fixHint}>세팅을 누르면 그 세팅을 쓰는 캐릭터만 남겨 다시 세요(3개까지)</span>
+      )}
+    </div>
+  );
+}
+
+const day = new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", month: "numeric", day: "numeric" });
+
+/**
+ * 이 세팅을 쓰는 상위 30명 (api #503): the highest observed combat power among
+ * the characters the conditions and fixes keep. Held at its tallest, redrawn
+ * per answer, so another fix's list lands without moving the page (A7).
+ */
+function TopCharacters({ query }: { query: ClassBuildsQuery }) {
+  const top = useQuery({
+    queryKey: classBuildTopKey(query),
+    queryFn: ({ signal }) => fetchClassBuildTop(query, signal),
+    staleTime: 5 * 60_000,
+    placeholderData: keepPreviousData,
+    retry: false,
+  });
+  const [ref, height] = useTallest();
+  const data = top.data?.data;
+  const headingId = useId();
+  return (
+    <section className={own.top} aria-labelledby={headingId}>
+      <h2 id={headingId}>이 세팅을 쓰는 상위 30명</h2>
+      <p className={own.definition}>
+        조건{fixCount(query.fix) ? "과 고정한 세팅" : ""}에 맞는 캐릭터를 LOAKraken이 마지막으로 확인한 전투력 높은 순으로 보여 드려요.
+      </p>
+      <div ref={ref} style={height ? { minHeight: height } : undefined} {...pendingProps(top)}>
+        {top.isError && !data ? (
+          <p className={styles.muted}>목록을 불러오지 못했어요. 잠시 뒤 새로 고쳐 주세요.</p>
+        ) : !data ? (
+          <p className={styles.muted} role="status">
+            목록을 불러오고 있어요…
+          </p>
+        ) : data.meta.sampleStatus === "COLLECTING" || !data.rows.length ? (
+          <p key={top.dataUpdatedAt} className={styles.muted}>
+            이 조건의 캐릭터가 {whole(data.meta.minSample)}명보다 적어 목록을 보여 드리지 않아요.
+          </p>
+        ) : (
+          <DataTable label="이 세팅을 쓰는 상위 30명" className={own.topTable}>
+            <colgroup>
+              <col style={{ width: "3em" }} />
+              <col />
+              <col style={{ width: "6em" }} />
+              <col style={{ width: "6.5em" }} />
+              <col style={{ width: "7.5em" }} />
+              <col style={{ width: "4.5em" }} />
+            </colgroup>
+            <thead>
+              <tr>
+                <th scope="col">순위</th>
+                <th scope="col" className={own.left}>
+                  캐릭터
+                </th>
+                <th scope="col" className={own.left}>
+                  서버
+                </th>
+                <th scope="col">아이템 레벨</th>
+                <th scope="col">전투력</th>
+                <th scope="col">확인</th>
+              </tr>
+            </thead>
+            <tbody key={top.dataUpdatedAt}>
+              {data.rows.map((row) => (
+                <tr key={`${row.rank}-${row.characterName}`}>
+                  <td>{row.rank}</td>
+                  <th scope="row" className={own.left}>
+                    <Link href={`/character/${encodeURIComponent(row.characterName)}`}>{row.characterName}</Link>
+                  </th>
+                  <td className={own.left}>{row.serverName}</td>
+                  <td>{row.itemLevel.toLocaleString("ko-KR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                  <td>{row.combatPower.toLocaleString("ko-KR", { maximumFractionDigits: 2 })}</td>
+                  <td>{row.observedAt ? day.format(new Date(row.observedAt)) : "-"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </DataTable>
+        )}
+      </div>
+    </section>
   );
 }
 
@@ -293,6 +469,16 @@ export function ClassBuildsView({
   }
   // The class engravings come from the whole class sample, the same under any filter.
   const engravings = (data?.classEngravings?.cells ?? []).map((cell) => cell.name);
+  // 고정: kept in the address like the filters; no fix left reads as none.
+  const fixing: Fixing = {
+    fix: query.fix,
+    onFix: (item) => {
+      const next = toggleFix(latest.current.fix, item);
+      apply({ fix: fixCount(next) ? next : undefined });
+    },
+  };
+  // An old link's fix this class's statistics do not have (400): said, with the way out.
+  const unknownFix = builds.error instanceof StatsQueryError && builds.error.info.code === "STATS_UNKNOWN_FIX";
 
   return (
     <div className={quote.page}>
@@ -374,6 +560,8 @@ export function ClassBuildsView({
           </div>
         )}
 
+        <FixBar fixing={fixing} onClear={() => apply({ fix: undefined })} population={fixCount(query.fix) && meta ? (meta.population ?? null) : null} />
+
         {/* Opened on a short sample: a screen's height from the first HTML on,
             so the sections another filter brings do not push the visible note
             and footer down (A7). Opened on sections, the tallest height holds. */}
@@ -384,7 +572,14 @@ export function ClassBuildsView({
           style={sectionsHeight ? { minHeight: sectionsHeight } : undefined}
           {...pendingProps(builds)}
         >
-          {builds.isError && !data ? (
+          {unknownFix ? (
+            <div className={styles.problem}>
+              <p>고정한 세팅 가운데 지금 이 조건의 통계에 없는 것이 있어요.</p>
+              <button type="button" onClick={() => apply({ fix: undefined })}>
+                고정 모두 풀기
+              </button>
+            </div>
+          ) : builds.isError && !data ? (
             <div className={styles.problem}>
               <p>{limit.limited ? countdownText(limit.seconds) : "직업 통계를 불러오지 못했어요."}</p>
               <button type="button" onClick={() => builds.refetch()} disabled={limit.seconds > 0}>
@@ -415,9 +610,10 @@ export function ClassBuildsView({
           ) : (
             // Drawn anew when an answer lands: counts rewritten in place (right
             // aligned) start elsewhere and count as moving (A7).
-            <Sections key={builds.dataUpdatedAt} data={data} />
+            <Sections key={builds.dataUpdatedAt} data={data} fixing={fixing} />
           )}
         </div>
+        {!unknownFix && <TopCharacters query={query} />}
         {meta && data && (
           <BasisNote
             basis={{
