@@ -211,6 +211,133 @@
           }
         }
       }
+    },
+    "/api/v1/stats/classes/{className}/builds/character": {
+      "get": {
+        "tags": [
+          "통계·랭킹"
+        ],
+        "summary": "직업 빌드 통계에서 캐릭터 한 명의 칸",
+        "description": "캐릭터 한 명이 직업 빌드 통계(class-builds-v1)의 어느 칸에 드는지 줍니다. 집계와 같은 규칙이며, cells의 항목 이름은 빌드 통계 응답의 항목, 값은 그 항목 cells[]의 key와 같은 모양입니다. 공식 API를 부르지 않습니다: 최근 검색 캐시 → 저장된 마지막 장비 요약 순서로 찾고, 둘 다 없으면 404 CHARACTER_NOT_CACHED입니다. inSample은 그 캐릭터 값이 이 조건(직업·아이템 레벨 범위·최근 확인 기간·전투력 관측)에 맞는지이며, 실제로 집계에 들어갔는지는 뜻하지 않습니다. itemLevelMin·braceletItemLevelMin 기본값은 빌드 통계와 같습니다. 400 INVALID_REQUEST, 404 CHARACTER_NOT_CACHED, 503 CHARACTER_STORAGE_UNAVAILABLE",
+        "operationId": "character",
+        "parameters": [
+          {
+            "name": "className",
+            "in": "path",
+            "description": "직업 이름(공식 표기)",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 16,
+              "minLength": 1,
+              "pattern": "[\\p{L}]+"
+            }
+          },
+          {
+            "name": "characterName",
+            "in": "query",
+            "description": "캐릭터 이름",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "캐릭터 이름",
+              "maxLength": 16,
+              "minLength": 1,
+              "pattern": "[\\p{L}\\p{N}]+"
+            }
+          },
+          {
+            "name": "itemLevelMin",
+            "in": "query",
+            "description": "최소 아이템 레벨(빌드 통계와 같은 기본값)",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "최소 아이템 레벨(빌드 통계와 같은 기본값)",
+              "maximum": 2000,
+              "minimum": 0
+            }
+          },
+          {
+            "name": "itemLevelMax",
+            "in": "query",
+            "description": "최대 아이템 레벨",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "최대 아이템 레벨",
+              "maximum": 2000,
+              "minimum": 0
+            }
+          },
+          {
+            "name": "activeDays",
+            "in": "query",
+            "description": "최근 확인 기간(일): 7, 30, 90",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 30,
+              "description": "최근 확인 기간(일): 7, 30, 90"
+            }
+          },
+          {
+            "name": "braceletItemLevelMin",
+            "in": "query",
+            "description": "팔찌 전투 특성 기준 아이템 레벨(빌드 통계와 같은 기본값)",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "description": "팔찌 전투 특성 기준 아이템 레벨(빌드 통계와 같은 기본값)",
+              "maximum": 2000,
+              "minimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "조회 성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseClassBuildCellsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_REQUEST, STATS_INVALID_RANGE 또는 STATS_TOO_MANY_BINS",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "CLIENT_RATE_LIMITED: 이 클라이언트의 분당 요청·공식 호출 한도 초과. Retry-After(초) 뒤 다시 시도",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "STATS_UNAVAILABLE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -866,6 +993,395 @@
           "code",
           "data",
           "message"
+        ]
+      },
+      "ApiResponseClassBuildCellsResponse": {
+        "type": "object",
+        "description": "공통 API 응답. 오류 응답의 data는 null입니다.",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "업무 결과 코드",
+            "example": "CHARACTER_SEARCH_SUCCESS"
+          },
+          "message": {
+            "type": "string",
+            "description": "공개용 안내 메시지",
+            "example": "캐릭터 조회에 성공했습니다."
+          },
+          "data": {
+            "$ref": "#/components/schemas/ClassBuildCellsResponse",
+            "description": "성공 응답 데이터. 오류일 때 null"
+          }
+        },
+        "required": [
+          "code",
+          "data",
+          "message"
+        ]
+      },
+      "ClassBuildCellsResponse": {
+        "type": "object",
+        "description": "캐릭터 한 명의 칸. cells의 항목 이름 = 빌드 통계 응답 항목, 값 = 그 항목 cells[] key와 같은 모양. 값이 null이면 그 항목을 못 읽어 분모에서 빠지는 캐릭터",
+        "properties": {
+          "characterName": {
+            "type": "string"
+          },
+          "serverName": {
+            "type": "string"
+          },
+          "className": {
+            "type": "string",
+            "description": "캐릭터의 직업(공식 표기)"
+          },
+          "itemLevel": {
+            "type": "number"
+          },
+          "observedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "description": "값을 읽은 관측 시각(캐시면 검색 시각, 저장이면 마지막 프로필 확인 시각)"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "source": {
+            "type": "string",
+            "description": "LIVE_CACHE: 최근 검색 캐시, STORED_OBSERVATION: 저장된 마지막 장비 요약",
+            "enum": [
+              "LIVE_CACHE",
+              "STORED_OBSERVATION"
+            ]
+          },
+          "inSample": {
+            "type": "boolean",
+            "description": "이 캐릭터 값이 조건(직업·아이템 레벨·최근 확인 기간·전투력 관측)에 맞는가. 실제 집계 포함 여부는 뜻하지 않음"
+          },
+          "reasons": {
+            "type": "array",
+            "description": "inSample=false인 까닭(여러 개 가능, 맞으면 빈 목록). OTHER_CLASS: 요청 직업과 다름, ITEM_LEVEL_OUT_OF_RANGE: 아이템 레벨 범위 밖, NOT_RECENT: activeDays 안에 확인 안 됨, NO_COMBAT_POWER: 전투력 관측 없음. 문자열이며 값이 늘 수 있음",
+            "items": {
+              "type": "string"
+            }
+          },
+          "conditions": {
+            "$ref": "#/components/schemas/ClassBuildCellsConditions"
+          },
+          "cells": {
+            "$ref": "#/components/schemas/ClassBuildCells"
+          },
+          "ruleVersion": {
+            "type": "string",
+            "example": "class-builds-v1"
+          }
+        },
+        "required": [
+          "cells",
+          "characterName",
+          "className",
+          "conditions",
+          "inSample",
+          "itemLevel",
+          "observedAt",
+          "reasons",
+          "ruleVersion",
+          "serverName",
+          "source"
+        ]
+      },
+      "ClassBuildCellsConditions": {
+        "type": "object",
+        "description": "실제로 쓴 조건(빌드 통계 meta.conditions와 같은 기본값 규칙)",
+        "properties": {
+          "itemLevelMin": {
+            "type": "number"
+          },
+          "itemLevelMax": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "activeDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "braceletItemLevelMin": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "activeDays",
+          "braceletItemLevelMin",
+          "itemLevelMax",
+          "itemLevelMin"
+        ]
+      },
+      "ClassBuildCells": {
+        "type": "object",
+        "description": "항목 이름은 빌드 통계 응답과 같다. 값이 null이면 그 항목을 못 읽음(분모에서 빠짐)",
+        "properties": {
+          "classEngravings": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ClassBuildNameKey",
+                "description": "classEngravings cells[].name과 같음"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "engravingCombos": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ClassBuildComboKey",
+                "description": "engravingCombos cells[].engravings와 같음"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "engravings": {
+            "anyOf": [
+              {
+                "type": "array",
+                "description": "engravings에서 이 캐릭터가 세지는 칸들(cells[].name)",
+                "items": {
+                  "$ref": "#/components/schemas/ClassBuildNameKey"
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "arkPassivePoints": {
+            "$ref": "#/components/schemas/ClassBuildPointKeys"
+          },
+          "gems": {
+            "$ref": "#/components/schemas/ClassBuildGemKeys"
+          },
+          "cardSets": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ClassBuildCardKey",
+                "description": "cardSets cells[]의 set·pieces·awakening과 같음"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "topStats": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ClassBuildTopStatKey",
+                "description": "topStats cells[].name과 같음. tie는 집계의 ties에 세지는 캐릭터"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "braceletEligible": {
+            "type": "boolean",
+            "description": "아이템 레벨이 braceletItemLevelMin 이상이라 팔찌 전투 특성 집계 대상인가. false면 braceletStats는 null"
+          },
+          "braceletStats": {
+            "anyOf": [
+              {
+                "type": "array",
+                "description": "braceletStats에서 이 캐릭터가 세지는 칸들(cells[].name). 대상이 아니거나 팔찌를 못 읽었으면 null, 전투 특성 줄이 없으면 빈 목록",
+                "items": {
+                  "$ref": "#/components/schemas/ClassBuildNameKey"
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "arkPassivePoints",
+          "braceletEligible",
+          "braceletStats",
+          "cardSets",
+          "classEngravings",
+          "engravingCombos",
+          "engravings",
+          "gems",
+          "topStats"
+        ]
+      },
+      "ClassBuildNameKey": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "ClassBuildComboKey": {
+        "type": "object",
+        "properties": {
+          "engravings": {
+            "type": "array",
+            "description": "각인 이름(가나다순)",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "engravings"
+        ]
+      },
+      "ClassBuildPointKeys": {
+        "type": "object",
+        "properties": {
+          "evolution": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ClassBuildValueKey"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "enlightenment": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ClassBuildValueKey"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "leap": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ClassBuildValueKey"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "enlightenment",
+          "evolution",
+          "leap"
+        ]
+      },
+      "ClassBuildValueKey": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "integer",
+            "format": "int32",
+            "description": "포인트 값 또는 보석 레벨"
+          }
+        },
+        "required": [
+          "value"
+        ]
+      },
+      "ClassBuildGemKeys": {
+        "type": "object",
+        "description": "보석 1개마다 한 칸(높은 레벨부터). 보석을 못 읽었으면 null, 그 효과 종류 4티어 보석이 없으면 빈 목록",
+        "properties": {
+          "damage": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ClassBuildValueKey"
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "cooldown": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ClassBuildValueKey"
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "cooldown",
+          "damage"
+        ]
+      },
+      "ClassBuildCardKey": {
+        "type": "object",
+        "properties": {
+          "set": {
+            "type": "string"
+          },
+          "pieces": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "awakening": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32",
+                "description": "각성 합계(없으면 null)"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "awakening",
+          "pieces",
+          "set"
+        ]
+      },
+      "ClassBuildTopStatKey": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "tie": {
+            "type": "boolean",
+            "description": "가장 큰 값이 둘 이상이라 고정 순서(치명→특화→신속→제압→인내→숙련)로 골랐는가"
+          }
+        },
+        "required": [
+          "name",
+          "tie"
         ]
       }
     }

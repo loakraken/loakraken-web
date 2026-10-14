@@ -24,6 +24,8 @@ test("분석 메뉴: 키보드로 열어 같은 화면의 탭으로 @regression"
   await page.getByRole("button", { name: "분석" }).focus();
   await page.keyboard.press("Enter");
   await expect(page.getByRole("menu")).toBeVisible();
+  // Keys go to the menu only once focus is in it (a press before that went to the trigger).
+  await expect.poll(() => page.evaluate(() => !!document.activeElement?.closest("[role=menu]"))).toBe(true);
   await page.keyboard.press("ArrowDown");
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/[?&]tab=(specup|simulator)/);

@@ -14,15 +14,24 @@ type Schemas = components["schemas"];
 export type ClassBuildsEnvelope = Schemas["ApiResponseClassBuildsResponse"];
 export type ClassBuilds = Schemas["ClassBuildsResponse"];
 export type ClassBuildHidden = Schemas["ClassBuildHidden"];
+/** One character's cells in the statistics (api #498): the same item names and keys. */
+export type ClassBuildCellsEnvelope = Schemas["ApiResponseClassBuildCellsResponse"];
+export type ClassBuildCellsResult = Schemas["ClassBuildCellsResponse"];
+export type ClassBuildCells = Schemas["ClassBuildCells"];
 
-const validate = lazyValidator(() =>
-  new Ajv2020({ strict: false, validateFormats: false }).compile<ClassBuildsEnvelope>({
-    $ref: "#/components/schemas/ApiResponseClassBuildsResponse",
-    components: { ...contract.components, schemas: tolerantSchemas(contract.components.schemas) },
-  }),
-);
+const compile = <T>(ref: string) =>
+  lazyValidator(() =>
+    new Ajv2020({ strict: false, validateFormats: false }).compile<T>({
+      $ref: `#/components/schemas/${ref}`,
+      components: { ...contract.components, schemas: tolerantSchemas(contract.components.schemas) },
+    }),
+  );
+const validate = compile<ClassBuildsEnvelope>("ApiResponseClassBuildsResponse");
 export const isClassBuildsEnvelope = (value: unknown): value is ClassBuildsEnvelope =>
   validate(value) && value.code === "STATS_CLASS_BUILDS_SUCCESS";
+const validateCells = compile<ClassBuildCellsEnvelope>("ApiResponseClassBuildCellsResponse");
+export const isClassBuildCellsEnvelope = (value: unknown): value is ClassBuildCellsEnvelope =>
+  validateCells(value) && value.code === "STATS_CLASS_BUILDS_SUCCESS";
 
 export const BUILD_DAYS = [7, 30, 90] as const;
 export type BuildDays = (typeof BUILD_DAYS)[number];
@@ -87,3 +96,38 @@ export function requestClassBuilds(
 
 export const classBuildsKey = (query: ClassBuildsQuery) =>
   ["class-builds", query.className, query.classEngraving ?? null, query.activeDays] as const;
+
+/** One character's cells: the class, the character and the recent-check days (the rest at the statistics' defaults). */
+export type ClassBuildCellsQuery = { className: string; characterName: string; activeDays: BuildDays };
+
+/** From the web route's address; null when the class, the name or the days are not ones the page sends. */
+export function parseClassBuildCellsQuery(className: string, input: URLSearchParams): ClassBuildCellsQuery | null {
+  const characterName = input.get("characterName")?.trim().normalize("NFC") ?? "";
+  const days = Number(input.get("activeDays") ?? 30);
+  if (!isClassName(className) || !/^[\p{L}\p{N}]{1,16}$/u.test(characterName)) return null;
+  if (!(BUILD_DAYS as readonly number[]).includes(days)) return null;
+  return { className, characterName, activeDays: days as BuildDays };
+}
+
+export const classBuildCellsSearch = (query: ClassBuildCellsQuery) =>
+  new URLSearchParams({ characterName: query.characterName, activeDays: String(query.activeDays) });
+
+const cellsErrorCodes: Record<number, readonly string[]> = {
+  400: ["INVALID_REQUEST"],
+  404: ["CHARACTER_NOT_CACHED"],
+  503: ["CHARACTER_STORAGE_UNAVAILABLE"],
+};
+
+/** No official call behind it: an unknown character is 404 CHARACTER_NOT_CACHED. */
+export function requestClassBuildCells(
+  query: ClassBuildCellsQuery,
+  origin: string | undefined,
+  options: { fetcher?: typeof fetch; signal?: AbortSignal; timeoutMs?: number } = {},
+): Promise<BackendResult<ClassBuildCellsEnvelope>> {
+  const url = backendUrl(origin, `/api/v1/stats/classes/${encodeURIComponent(query.className)}/builds/character`);
+  if (url) for (const [key, value] of classBuildCellsSearch(query)) url.searchParams.set(key, value);
+  return requestBackend(url, { ...options, isValid: isClassBuildCellsEnvelope, errorCodes: cellsErrorCodes });
+}
+
+export const classBuildCellsKey = (query: ClassBuildCellsQuery) =>
+  ["class-build-cells", query.className, query.characterName, query.activeDays] as const;
