@@ -243,6 +243,8 @@ function Quantiles({
 const CLASS_COLUMNS = rankingColumns([3, 7.5, 6, 5.5, 5.5, 7, 4.5, 13, 7]);
 // 서버 · 인원 · 비율 · 아이템 레벨 중앙값 · 전투력 중앙값 · 표본
 const SERVER_COLUMNS = rankingColumns([6.5, 6.5, 5.5, 11, 8.5, 10]);
+// # · 직업 · 인원 · 평균 · 최고 전투력 분포 · 중앙값 · 최고
+const BEST_COLUMNS = rankingColumns([3, 7.5, 6, 7.5, 13, 7.5, 7.5]);
 
 function ClassesTab({ query }: { query: StatsQuery }) {
   const classes = useQuery({
@@ -540,8 +542,9 @@ function BestTab({ query }: { query: StatsQuery }) {
         </dl>
         <SampleProgress ready={ready} total={rows.length} unit="직업" minSample={meta.minSample} />
         {rows.length > 0 && (
-          <DataTable label="직업별 최고 전투력" className={styles.table}>
+          <DataTable label="직업별 최고 전투력" className={styles.table} {...BEST_COLUMNS.tableProps}>
             <caption className={styles.srOnly}>직업별 최고 전투력</caption>
+            {BEST_COLUMNS.colgroup}
             <thead>
               <tr>
                 <th scope="col">#</th>
