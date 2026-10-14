@@ -647,6 +647,10 @@
   scrollbar-width: none;
   /* Room for the edge fade, so a row that fits never dims its last chip. */
   padding-right: 24px;
+  /* A scrolling row clips: 4px above and below for the chips' 44px tap
+     areas (hit-44, A36), the spacing given back by margin. */
+  padding-block: 4px;
+  margin-block: -4px;
   /* Scroll edge: fade the right end on narrow screens where chips continue. */
   mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent);
 }

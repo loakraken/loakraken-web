@@ -826,6 +826,7 @@ function RefiningContent({ initialName }: { initialName: string }) {
                   <button
                     key={stage}
                     type="button"
+                    className="hit-44"
                     onClick={() =>
                       setParts((prev) =>
                         Object.fromEntries(

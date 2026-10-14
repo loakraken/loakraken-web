@@ -285,7 +285,7 @@ function SettingsPanel({
       </div>
       <button
         type="button"
-        className={styles.reset}
+        className={`${styles.reset} hit-44`}
         onClick={onReset}
       >
         기본값으로
