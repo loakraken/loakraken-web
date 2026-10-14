@@ -1,7 +1,7 @@
 // 아비도스 제작 손익 (checklist M46·N10, E41): one craft of 아비도스 / 상급
 // 아비도스 융화 재료 per life skill, valued at today's market prices.
 //   expected items = 100 × (1 + p), p = 5% × (1 + increase)
-//     (100 a craft, 200 on a great success; increase 0~100% from the player)
+//     (10 a craft, 20 on a great success; increase 0~100% from the player)
 //   cost   = Σ material qty × unit price + ⌈craft gold × (1 − fee cut)⌉
 //   value  = using it yourself: expected items × unit price of the result;
 //            selling: (bundle price − ⌈bundle price × 5%⌉) × expected ÷ 10,

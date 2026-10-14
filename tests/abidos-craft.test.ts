@@ -32,13 +32,15 @@ test("craft data is consistent and matches the crafting database rows", () => {
   assert.equal(craftMarketNames().length, 2 + 6 * 3);
 });
 
-test("the average yield is 105 at the base chance and 110 at +100% (the screens it was solved from)", () => {
+test("the average yield is 10.5 at the base chance and 11 at +100% (one craft; the screen's 105·110 are 10 crafts)", () => {
   assert.equal(greatSuccessChance(0), 0.05);
   assert.ok(Math.abs(greatSuccessChance(7) - 0.0535) < 1e-12);
-  assert.ok(Math.abs(expectedYield(0) - 105) < 1e-9);
-  assert.ok(Math.abs(expectedYield(100) - 110) < 1e-9);
-  // 4 crafts at +7% → 421.4 items (the other calculator's sale amount, read back).
-  assert.equal(Math.round(expectedYield(7) * 4 * 10) / 10, 421.4);
+  assert.ok(Math.abs(expectedYield(0) - 10.5) < 1e-9);
+  assert.ok(Math.abs(expectedYield(100) - 11) < 1e-9);
+  // 10 crafts = the screen's 평균 개수 105 (the site script's output is 10 a craft).
+  assert.ok(Math.abs(expectedYield(0) * 10 - 105) < 1e-9);
+  // 4 crafts at +7% → 42.14 items.
+  assert.equal(Math.round(expectedYield(7) * 4 * 100) / 100, 42.14);
 });
 
 test("cost, value and profit of one craft, with the fee cut and the market fee", () => {
@@ -47,14 +49,14 @@ test("cost, value and profit of one craft, with the fee cut and the market fee",
   // 33×10 + 45×4 + 86×1 = 596, craft gold 400 × 0.83 = 332.
   assert.ok(Math.abs(r.craftGold - 332) < 1e-9);
   assert.ok(Math.abs(r.cost! - (596 + 332)) < 1e-9);
-  assert.ok(Math.abs(r.use! - 105 * 90) < 1e-6);
-  // Sold in bundles of 10: 900 − ⌈45⌉ = 855 per bundle × 10.5 bundles.
-  assert.ok(Math.abs(r.sell! - 855 * 10.5) < 1e-6);
-  assert.ok(Math.abs(r.useProfit! - (105 * 90 - 928)) < 1e-6);
+  assert.ok(Math.abs(r.use! - 10.5 * 90) < 1e-6);
+  // Sold in bundles of 10: 900 − ⌈45⌉ = 855 per bundle × 1.05 bundles.
+  assert.ok(Math.abs(r.sell! - 855 * 1.05) < 1e-6);
+  assert.ok(Math.abs(r.useProfit! - (10.5 * 90 - 928)) < 1e-6);
   assert.deepEqual(r.missing, []);
   // Per 100 base energy (288 for 아비도스).
-  assert.ok(Math.abs(r.usePer100Energy! - ((105 * 90 - 928) * 100) / 288) < 1e-6);
-  assert.ok(Math.abs(r.sellPer100Energy! - ((855 * 10.5 - 928) * 100) / 288) < 1e-6);
+  assert.ok(Math.abs(r.usePer100Energy! - ((10.5 * 90 - 928) * 100) / 288) < 1e-6);
+  assert.ok(Math.abs(r.sellPer100Energy! - ((855 * 1.05 - 928) * 100) / 288) < 1e-6);
 });
 
 test("a missing price is never 0: no cost, no profit, and it is named", () => {
@@ -96,7 +98,7 @@ test("energy-cost reduction: the cuts add up and the energy rounds down (calc ve
   const prices: Record<string, number> = { "아비도스 목재": 10, "부드러운 목재": 4, "목재": 1, "아비도스 융화 재료": 90 };
   const r = craftResult("abidos", "logging", (n) => prices[n] ?? null, 0, 0, { overall: 10, category: 10 });
   assert.equal(r.energy, 230);
-  assert.ok(Math.abs(r.usePer100Energy! - ((105 * 90 - 996) * 100) / 230) < 1e-6);
+  assert.ok(Math.abs(r.usePer100Energy! - ((10.5 * 90 - 996) * 100) / 230) < 1e-6);
   const none = craftResult("abidos", "logging", (n) => prices[n] ?? null, 0, 0, { overall: 60, category: 60 });
   assert.equal(none.usePer100Energy, null, "no energy left: no per-energy figure");
 });
