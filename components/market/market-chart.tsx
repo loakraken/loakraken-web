@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useId, useMemo, useState } from "react";
+import { useCallback, useId, useMemo, useState, type ReactNode } from "react";
 import { curve } from "@/components/ui/bencho/balance-curve";
 import { ChartTooltip, useChartScrub } from "@/components/ui/chart-scrub";
 import { niceTicks } from "@/lib/character/history";
@@ -20,6 +20,25 @@ const short = (date: string) => {
   const [, m, d] = date.split("-");
   return `${Number(m)}/${Number(d)}`;
 };
+
+/**
+ * A message in the chart's own frame (same box, drawing height and reading
+ * line): loading, or nothing to draw. Built like the chart, so it is the
+ * chart's height at every width and font, and swapping one for the other
+ * moves nothing under it (A7).
+ */
+export function ChartPlaceholder({ children, busy = false }: { children: ReactNode; busy?: boolean }) {
+  return (
+    <figure className={styles.chart} {...(busy && { role: "status" })}>
+      <div className={styles.chartMessage} style={{ height: H }}>
+        {children}
+      </div>
+      <p className={styles.readout} aria-hidden="true">
+        <strong>&nbsp;</strong>
+      </p>
+    </figure>
+  );
+}
 
 /** One reading on the chart: a day, or a minute (K35). */
 export type ChartPoint = {
@@ -55,7 +74,8 @@ export const minutePoints = (points: MinutePoint[]): ChartPoint[] =>
             value: p.currentMinPrice,
             volume: null,
             axis: minuteLabel(p.minute),
-            detail: `${minuteLabel(p.minute)} 판매 최저가${p.recentPrice != null ? ` · 최근 거래가 ${fmt(p.recentPrice)}G` : ""}`,
+            // Short enough for one line at 360 (the caption says the price is the lowest listing).
+            detail: `${minuteLabel(p.minute)}${p.recentPrice != null ? ` · 최근 거래 ${fmt(p.recentPrice)}G` : ""}`,
             t: Date.parse(p.minute),
           },
         ],

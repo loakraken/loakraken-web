@@ -50,7 +50,7 @@ import {
   type FavoriteItem,
 } from "@/lib/market/favorites";
 import quote from "../tools/material-quote.module.css";
-import { MarketChart, dayPoints, minutePoints } from "./market-chart";
+import { ChartPlaceholder, MarketChart, dayPoints, minutePoints } from "./market-chart";
 import { sampleText } from "@/lib/market/minutes";
 import { SiteHeader } from "@/components/site/site-header";
 import { PillTab, PillTabs } from "@/components/ui/pill-tabs";
@@ -327,9 +327,9 @@ function Detail({
         minuteFailure ? (
           <Problem failure={minuteFailure} onRetry={() => minutes.refetch()} />
         ) : !minute ? (
-          <p className={styles.chartPending} role="status">
+          <ChartPlaceholder busy>
             <InlineOrb /> 최근 1시간을 불러오고 있어요
-          </p>
+          </ChartPlaceholder>
         ) : minutePoints(minute.points).length ? (
           <MarketChart
             key="hour"
@@ -338,18 +338,14 @@ function Detail({
             label="최근 1시간 판매 최저가. 화살표 키로 분을 이동할 수 있어요."
           />
         ) : (
-          <p className={styles.chartPending}>이 품목은 분 단위로 확인하지 않아요. 7일·14일 추이를 봐 주세요.</p>
+          <ChartPlaceholder>이 품목은 분 단위로 확인하지 않아요. 7일·14일 추이를 봐 주세요.</ChartPlaceholder>
         )
       ) : failure ? (
         <Problem failure={failure} onRetry={() => history.refetch()} />
       ) : history.isPending ? (
-        <>
-          <p className={styles.chartPending} role="status">
-            <InlineOrb /> 추이를 불러오고 있어요
-          </p>
-          {/* The 14-day table below the chart arrives with the history: hold its place. */}
-          <div className={styles.dailyPending} aria-hidden="true" />
-        </>
+        <ChartPlaceholder busy>
+          <InlineOrb /> 추이를 불러오고 있어요
+        </ChartPlaceholder>
       ) : days.length ? (
         <div ref={fade}>
           <MarketChart points={dayPoints(days)} />
@@ -364,6 +360,9 @@ function Detail({
           ? [`판매 최저가`, sampleText(minute?.sampleEverySeconds), "확인하지 않은 분은 비어 있어요"].filter(Boolean).join(" · ")
           : "하루 평균 거래가와 거래량"}
       </p>
+      {/* The 14-day table under the caption arrives with the history: hold its
+          place, so the caption stays put when it lands (A7). */}
+      {history.isPending && <div className={styles.dailyPending} aria-hidden="true" />}
       {variant && variant.days.length > 0 && (
         <table className={styles.daily}>
           <thead>

@@ -563,10 +563,15 @@
   stroke-opacity: 0.28;
   stroke-width: 1;
 }
+/* One line whatever it reads (a day, or a minute with its last trade): a
+   longer reading never wraps and moves the table (A7). */
 .readout {
+  overflow: hidden;
   margin-top: 4px;
   color: var(--slate);
   font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .readout strong {
   display: inline-block;
@@ -675,15 +680,16 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.chartPending {
+/* A message where the drawing goes (ChartPlaceholder). */
+.chartMessage {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  min-height: 296px;
-  margin: 0;
+  padding: 0 12px;
   color: var(--slate);
   font-size: 13px;
+  text-align: center;
 }
 .srOnly {
   position: absolute;
