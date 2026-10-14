@@ -81,6 +81,14 @@ for (const width of [1280, 360])
     // Where the analysis menu's class link lands for a 버스트 character, a week back.
     await gotoReady(page, `${BLADE}?classEngraving=${encodeURIComponent("버스트")}&activeDays=7`);
     await expect(page.getByText(/버스트 표본이 아직 20명이라/)).toBeVisible();
+    // The held room is not blank: the sections to come, by name, inside it.
+    const upcoming = page.getByRole("list", { name: "표본이 모이면 보여 드릴 항목" });
+    await expect(upcoming.getByRole("listitem")).toHaveCount(10);
+    const room = await upcoming.evaluate((el) => {
+      const hold = el.closest("[data-short]").getBoundingClientRect();
+      return { bottom: el.getBoundingClientRect().bottom, hold: hold.bottom };
+    });
+    expect(room.bottom, "자리표시가 잡아 둔 높이 안").toBeLessThanOrEqual(room.hold);
     await page.waitForTimeout(600);
     expect((await shiftsSince(page)).all, "첫 로드 흔들림").toBe(0);
     const moved = await shiftsDuring(page, () => page.getByRole("group", { name: "직업 각인" }).getByRole("button", { name: "잔재된 기운" }).click());
