@@ -523,6 +523,10 @@
 .chartSvg[data-direction="down"] {
   color: var(--market-down);
 }
+/* By minute (K35): each reading of a sparse item, small and solid on the line. */
+.reading {
+  fill: currentColor;
+}
 /* Bencho .bal-curve: 2.1 round stroke, no fill under it. */
 .line {
   fill: none;
@@ -559,10 +563,15 @@
   stroke-opacity: 0.28;
   stroke-width: 1;
 }
+/* One line whatever it reads (a day, or a minute with its last trade): a
+   longer reading never wraps and moves the table (A7). */
 .readout {
+  overflow: hidden;
   margin-top: 4px;
   color: var(--slate);
   font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .readout strong {
   display: inline-block;
@@ -662,15 +671,25 @@
   height: 14px;
   max-width: 60%;
 }
-.chartPending {
+/* Under the trend chart: what it shows, one line in every range (K35). */
+.chartCaption {
+  overflow: hidden;
+  margin: 4px 0 0;
+  color: var(--slate);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* A message where the drawing goes (ChartPlaceholder). */
+.chartMessage {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  min-height: 296px;
-  margin: 0;
+  padding: 0 12px;
   color: var(--slate);
   font-size: 13px;
+  text-align: center;
 }
 .srOnly {
   position: absolute;

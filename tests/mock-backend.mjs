@@ -151,6 +151,43 @@ async function market(url, req, send) {
     const tier = url.searchParams.get("tier") ? Number(url.searchParams.get("tier")) : def.defaultTier;
     return send({ code: "MARKET_BOARD_SUCCESS", message: "성공", data: { ruleVersion: "market-board-v1", changeBasis: "changeDay = 현재 최저가 ÷ 전일 평균가 − 1 (합성 목 데이터)", tab, tabLabel: def.label, tier, sort, page, pageSize: 10, observedAt: new Date(Date.now() - 60000).toISOString(), totalItems: items.length, scannedItems: items.length, complete: true, items: items.slice((page - 1) * 10, page * 10) } });
   }
+  // Minute prices (api #484, K35): the two fusion materials are fetched about
+  // every 30 seconds (minutes 20~22 unseen, minute 40 without listings), the
+  // other refining materials every 10 minutes, anything else not at all.
+  const minuteMatch = /^\/api\/v1\/markets\/items\/(\d+)\/minutes$/.exec(url.pathname);
+  if (minuteMatch) {
+    const itemId = Number(minuteMatch[1]);
+    const window = Number(url.searchParams.get("minutes") ?? 60);
+    if (!(window >= 1 && window <= 120)) return send({ code: "INVALID_REQUEST" }, 400);
+    const now = Math.floor(Date.now() / 60000) * 60000;
+    const from = now - (window - 1) * 60000;
+    const fast = itemId === 6861012 || itemId === 6861013;
+    const refining = boardItems("REFINING").some((item) => item.itemId === itemId);
+    const every = fast ? 30 : refining ? 600 : null;
+    const base = 50 + (itemId % 400);
+    const points = every
+      ? Array.from({ length: window }, (_, i) => i)
+          .filter((i) => (fast ? i < 20 || i > 22 : i % 10 === 0))
+          .map((i) => ({
+            minute: new Date(from + i * 60000).toISOString(),
+            currentMinPrice: fast && i === 40 ? null : Math.round(base * (1 + Math.sin(itemId + i / 6) * 0.03) * 10) / 10,
+            recentPrice: Math.round(base * (1 + Math.cos(itemId + i / 6) * 0.03) * 10) / 10,
+          }))
+      : [];
+    return send({
+      code: "MARKET_ITEM_MINUTES_SUCCESS",
+      message: "성공",
+      data: {
+        itemId,
+        itemName: every ? (boardItems("REFINING").find((item) => item.itemId === itemId)?.name ?? null) : null,
+        intervalSeconds: 60,
+        sampleEverySeconds: every,
+        from: new Date(from).toISOString(),
+        to: new Date(now).toISOString(),
+        points,
+      },
+    });
+  }
   const historyMatch = /^\/api\/v1\/markets\/items\/(\d+)\/history$/.exec(url.pathname);
   if (historyMatch) {
     const itemId = Number(historyMatch[1]);
