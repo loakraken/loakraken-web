@@ -17,7 +17,9 @@ import {
   onSale,
   packageValue,
   parseRate,
+  UNTRADEABLE,
   type PackageValue,
+  type UnitPrice,
   type ShopPackage,
 } from "@/lib/tools/loa-shop";
 import quote from "./material-quote.module.css";
@@ -59,6 +61,7 @@ const subscribeRate = (listener: () => void) => {
 const count = (value: number) => goldText(value, "awayFromZero");
 const signed = (value: number) => signedGold(value, "awayFromZero");
 const UNKNOWN = "미확인";
+const NOT_TRADED = "거래 불가";
 
 const unitText = (value: number) => value.toLocaleString("ko-KR", { maximumFractionDigits: value < 1 ? 4 : 2 });
 const agoText = (now: number, iso: string) => {
@@ -186,10 +189,10 @@ function PackageCard({
                 </th>
                 <td className={styles.num}>{count(item.total)}</td>
                 <td className={styles.num} data-empty={(priced && item.unit == null) || undefined}>
-                  <Figure text={!priced ? "—" : item.unit == null ? UNKNOWN : unitText(item.unit)} />
+                  <Figure text={!priced ? "—" : item.untradeable ? NOT_TRADED : item.unit == null ? UNKNOWN : unitText(item.unit)} />
                 </td>
                 <td className={styles.num} data-empty={(priced && item.gold == null) || undefined}>
-                  <Figure text={!priced ? "—" : item.gold == null ? UNKNOWN : count(item.gold)} />
+                  <Figure text={!priced ? "—" : item.untradeable ? NOT_TRADED : item.gold == null ? UNKNOWN : count(item.gold)} />
                 </td>
               </tr>
             ))}
@@ -198,7 +201,12 @@ function PackageCard({
             <tr>
               {/* Two columns each: the total is the widest figure (360: 1,664,800G). */}
               <th scope="row" colSpan={2}>
-                {value.unknown.length ? "확인된 구성품 합계" : "합계"}
+                {value.unknown.length ? "확인된 구성품 합계" : value.untradeable.length ? "거래 가능한 구성품 가치" : "합계"}
+                {/* Said in words, not by colour alone; the line is held from the first
+                    paint so prices arriving never push the card (A6). */}
+                <small className={styles.footNote}>
+                  {priced && value.untradeable.length > 0 ? `거래 불가 ${value.untradeable.length}개 제외` : ""}
+                </small>
               </th>
               <td className={styles.num} colSpan={2}>
                 <Figure text={priced ? `${count(value.gold)}G` : "—"} />
@@ -245,9 +253,13 @@ export function LoaShopTool() {
   const now = useClock(MINUTE);
   const limit = useRateLimit(prices.error);
   const priceList: MaterialPrice[] = prices.data?.data.items ?? [];
-  const market = new Map(
-    priceList.filter((p) => p.status === "PRICED" && p.unitPriceGold != null).map((p) => [p.name, p.unitPriceGold as number]),
-  );
+  // PRICED → its price; UNTRADEABLE → left out of the gold; anything else
+  // (no listing, no price now, or a status this screen does not know yet) is 미확인.
+  const market = new Map<string, UnitPrice>();
+  for (const p of priceList) {
+    if (p.status === "PRICED" && p.unitPriceGold != null) market.set(p.name, p.unitPriceGold);
+    else if (p.status === "UNTRADEABLE") market.set(p.name, UNTRADEABLE);
+  }
   const priced = !!prices.data;
   const failure =
     prices.error instanceof MarketQueryError

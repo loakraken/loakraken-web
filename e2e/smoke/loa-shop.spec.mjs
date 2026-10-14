@@ -44,4 +44,21 @@ test.describe("로아샵 효율 @smoke", () => {
     await expect(page.getByRole("textbox", { name: RATE })).toHaveValue("27300");
     expect(sent.filter((line) => line.includes("27300")), "입력한 시세를 서버로 보내지 않는다").toEqual([]);
   });
+
+  // PM 총괄 판정(비교 기준 방식): 거래 불가 품목(백엔드 UNTRADEABLE)은 골드 합계에서 빼고 이득은 계산한다.
+  // 합계 제목은 '거래 가능한 구성품 가치', 줄에 '거래 불가 n개 제외'를 글로 적는다. 시세가 없는 거래 가능
+  // 품목은 지금처럼 미확인이고 이득을 막는다(목 서버: 생명의 기운 회복물약 2종은 UNTRADEABLE).
+  test("거래 불가 구성품은 합계에서 빼고 '거래 불가 n개 제외'로 적으며, 이득은 계산한다", async ({ page }) => {
+    await gotoReady(page, "/tools/loa-shop");
+    const life = page.getByRole("region", { name: "[주간] 한가위 미니 생활 패키지" });
+    await expect(life.getByRole("row", { name: /^고급 생명의 기운 회복물약/ })).toContainText("거래 불가");
+    await expect(life.getByRole("rowheader", { name: /거래 가능한 구성품 가치/ })).toContainText("거래 불가 2개 제외");
+    await expect(life.getByText("미확인", { exact: true })).toHaveCount(0);
+    await page.getByRole("textbox", { name: RATE }).fill("27300");
+    await expect(life.getByText(/로열 크리스탈로 환산한 가치/)).toBeVisible();
+    // 시세가 없는 거래 가능 품목(용암의 숨결)은 그대로 미확인이고 이득을 계산하지 않는다.
+    const growth = page.getByRole("region", { name: "[3+1] 월간 운명의 성장 패키지+" });
+    await expect(growth.getByRole("rowheader", { name: /확인된 구성품 합계/ })).toBeVisible();
+    await expect(growth.getByText(/로열 크리스탈로 환산한 가치/)).toHaveCount(0);
+  });
 });

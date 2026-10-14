@@ -306,6 +306,9 @@ async function market(url, req, send) {
       if (name === "운명의 파편")
         return { ...empty, status: "PRICED", unitPriceGold: 0.077333, sourceItemName: "운명의 파편 주머니(대)", bundleCount: 1, bundlePrice: 232, contentsPerItem: 3000 };
       if (name === "용암의 숨결") return { ...empty, status: "PRICE_UNAVAILABLE", sourceItemName: name, bundleCount: 1 };
+      // 로아샵: 공식 거래소에서 사고팔 수 없는 품목(백엔드 UNTRADEABLE, 검색하지 않음).
+      if (["고급 생명의 기운 회복물약", "중급 생명의 기운 회복물약", "환희의 전설 카드 팩", "환희의 전설~영웅 카드 팩"].includes(name))
+        return { ...empty, status: "UNTRADEABLE" };
       const row = table[name];
       if (!row) return { ...empty, status: "NOT_FOUND" };
       const [bundleCount, bundlePrice] = row;
