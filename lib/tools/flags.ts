@@ -179,6 +179,16 @@ export function isCharacterIndexingEnabled(env: Env = process.env) {
   return env.CHARACTER_INDEXING?.trim().toLowerCase() === "on";
 }
 
+/**
+ * Price alerts by web push (api #482·#486·#491, checklist M33). Off unless
+ * `PRICE_ALERTS=on` — every deployment — until the privacy policy covers it
+ * and the backend side is on (PM 총괄 10-14). Off: no page, no routes, no
+ * policy section.
+ */
+export function isPriceAlertsEnabled(env: Env = process.env) {
+  return env.PRICE_ALERTS?.trim().toLowerCase() === "on";
+}
+
 const PRODUCTION_HOST = new URL(PRODUCTION_URL).hostname;
 
 function isProductionHost(value: string | undefined) {
