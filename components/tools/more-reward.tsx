@@ -373,7 +373,9 @@ export function MoreRewardTool() {
                     client-only), and placed earlier it pushed the words after it
                     onto the next line (PM-프론트 #556, 360 CLS 0.0017). */}
                 {priceBases.find((b) => b.value === basis)?.label} 기준 · 귀속 골드 제외 {excludeBound ? "켬" : "끔"} ·{" "}
-                <a href="#value-heading">값 매기기 바꾸기</a>
+                <a href="#value-heading" className="hit-44">
+                  값 매기기 바꾸기
+                </a>
                 {observedAt && now != null && (
                   <>
                     {" "}

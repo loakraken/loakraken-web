@@ -39,6 +39,46 @@ test.describe("더보기 손익 @smoke", () => {
     await expect(value("이득")).toHaveText(new RegExp(`^\\+?${(worth - cost).toLocaleString("ko-KR").replace("-", "[−-]")}G$`));
   });
 
+  // PM-프론트 판정(#809): 상세는 표 안에서 펼친다. 아래 내용이 내려가는 것은 사용자가 고른 결과라
+  // 괜찮지만, 누른 버튼은 제자리(±1px)이고 상세는 누른 줄 바로 아래에서 열리며, 접을 때도 같고,
+  // 늦은 이동은 없다.
+  test("관문을 펼치고 접어도 누른 버튼은 제자리이고, 상세는 바로 아래에서 열리며 늦은 이동이 없다", async ({ page }) => {
+    await gotoReady(page, "/tools/more-reward");
+    await expect(page.getByText(/누를 더보기 \d+관문/)).toBeVisible();
+    const open = page.getByRole("row", { name: /^세르카 하드/ }).getByRole("button").first();
+    await open.scrollIntoViewIfNeeded();
+    await page.waitForTimeout(300);
+    const y = async () => (await open.boundingBox()).y;
+    const before = await y();
+    await page.evaluate(() => {
+      window.__lateShifts = [];
+      new PerformanceObserver((list) => {
+        for (const e of list.getEntries()) if (!e.hadRecentInput) window.__lateShifts.push(e.value);
+      }).observe({ type: "layout-shift" });
+    });
+
+    await open.click();
+    await expect(open).toHaveAttribute("aria-expanded", "true");
+    expect(Math.abs((await y()) - before)).toBeLessThanOrEqual(1);
+    // The detail row is the next row, starting where the pressed row ends.
+    const gap = await open.evaluate((button) => {
+      const row = button.closest("tr");
+      const next = row.nextElementSibling;
+      return next && next.querySelector("[role=cell], td") ? next.getBoundingClientRect().top - row.getBoundingClientRect().bottom : null;
+    });
+    expect(gap).not.toBeNull();
+    expect(Math.abs(gap)).toBeLessThanOrEqual(1);
+    await expect(page.getByRole("cell", { name: /^세르카 하드 1관문/ })).toBeVisible();
+
+    await open.click();
+    await expect(open).toHaveAttribute("aria-expanded", "false");
+    expect(Math.abs((await y()) - before)).toBeLessThanOrEqual(1);
+    await expect(page.getByRole("cell", { name: /^세르카 하드 1관문/ })).toHaveCount(0);
+    // Nothing moves on its own afterwards.
+    await page.waitForTimeout(1000);
+    expect(await page.evaluate(() => window.__lateShifts)).toEqual([]);
+  });
+
   test("시세를 못 불러오면 결론 카드 안에서 알리고 다시 시도할 수 있다", async ({ page }) => {
     await page.route("**/api/markets/material-prices", (route) =>
       route.fulfill({ status: 502, json: { ok: false, error: { code: "LOST_ARK_API_ERROR", status: 502 } } }),
