@@ -97,4 +97,17 @@ test.describe("로아샵 효율 @smoke", () => {
     await expect(page.getByRole("region", { name: "한가위 미니 전투 지원 패키지" })).toContainText("판매 기간이 지났어요");
     expect(Math.abs((await y()) - before)).toBeLessThanOrEqual(1);
   });
+
+  // PM 총괄 판정(P3): 페온은 값을 정하지 않고 거래 불가처럼 합계에서 뺀다. 페온만 든 패키지는 계산하지 않고 안내한다.
+  test("페온만 든 패키지는 '페온 1개 제외'와 안내만 보이고 미확인으로 막지 않는다", async ({ page }) => {
+    await gotoReady(page, "/tools/loa-shop");
+    const peon = page.getByRole("region", { name: "[할인] 한가위 페온 [50개]" });
+    await expect(peon.getByRole("row", { name: /^페온/ })).toContainText("제외");
+    await expect(peon.getByRole("rowheader", { name: /거래 가능한 구성품 가치/ })).toContainText("페온 1개 제외");
+    await expect(peon.getByText("페온만 들어 있어 골드로 매길 구성품이 없어요.")).toBeVisible();
+    await expect(peon.getByText("미확인", { exact: true })).toHaveCount(0);
+    await page.getByRole("textbox", { name: RATE }).fill("27300");
+    await expect(peon.getByText(/로열 크리스탈로 환산한 가치/)).toHaveCount(0);
+    await expect(peon.getByText("페온만 들어 있어 골드로 매길 구성품이 없어요.")).toBeVisible();
+  });
 });

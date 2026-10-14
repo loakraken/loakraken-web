@@ -63,6 +63,15 @@ const count = (value: number) => goldText(value, "awayFromZero");
 const signed = (value: number) => signedGold(value, "awayFromZero");
 const UNKNOWN = "미확인";
 const NOT_TRADED = "거래 불가";
+const EXCLUDED = "제외";
+/** "거래 불가 2개 제외 · 페온 1개 제외" under the total: said in words, not by colour alone. 페온 is known before prices arrive. */
+const excludedNote = (value: PackageValue, priced: boolean) =>
+  [
+    priced && value.untradeable.length ? `거래 불가 ${value.untradeable.length}개 제외` : "",
+    value.pheon.length ? `페온 ${value.pheon.length}개 제외` : "",
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
 const unitText = (value: number) => value.toLocaleString("ko-KR", { maximumFractionDigits: value < 1 ? 4 : 2 });
 const agoText = (now: number, iso: string) => {
@@ -86,6 +95,13 @@ function Verdict({ value, rate, priced }: { value: PackageValue; rate: number | 
       <div className={styles.verdict}>
         <p>시세를 불러오고 있어요.</p>
         <p aria-hidden="true">&nbsp;</p>
+      </div>
+    );
+  if (value.onlyPheon)
+    return (
+      <div className={styles.verdict}>
+        <p>페온만 들어 있어 골드로 매길 구성품이 없어요.</p>
+        <p>페온의 골드 값은 정하지 않아 이득을 계산하지 않아요.</p>
       </div>
     );
   if (value.gain != null)
@@ -190,10 +206,10 @@ function PackageCard({
                 </th>
                 <td className={styles.num}>{count(item.total)}</td>
                 <td className={styles.num} data-empty={(priced && item.unit == null) || undefined}>
-                  <Figure text={!priced ? "—" : item.untradeable ? NOT_TRADED : item.unit == null ? UNKNOWN : unitText(item.unit)} />
+                  <Figure text={item.pheon ? EXCLUDED : !priced ? "—" : item.untradeable ? NOT_TRADED : item.unit == null ? UNKNOWN : unitText(item.unit)} />
                 </td>
                 <td className={styles.num} data-empty={(priced && item.gold == null) || undefined}>
-                  <Figure text={!priced ? "—" : item.untradeable ? NOT_TRADED : item.gold == null ? UNKNOWN : count(item.gold)} />
+                  <Figure text={item.pheon ? EXCLUDED : !priced ? "—" : item.untradeable ? NOT_TRADED : item.gold == null ? UNKNOWN : count(item.gold)} />
                 </td>
               </tr>
             ))}
@@ -202,11 +218,11 @@ function PackageCard({
             <tr>
               {/* Two columns each: the total is the widest figure (360: 1,664,800G). */}
               <th scope="row" colSpan={2}>
-                {value.unknown.length ? "확인된 구성품 합계" : value.untradeable.length ? "거래 가능한 구성품 가치" : "합계"}
+                {value.unknown.length ? "확인된 구성품 합계" : value.untradeable.length || value.pheon.length ? "거래 가능한 구성품 가치" : "합계"}
                 {/* Said in words, not by colour alone; the line is held from the first
                     paint so prices arriving never push the card (A6). */}
                 <small className={styles.footNote}>
-                  {priced && value.untradeable.length > 0 ? `거래 불가 ${value.untradeable.length}개 제외` : ""}
+                  {excludedNote(value, priced)}
                 </small>
               </th>
               <td className={styles.num} colSpan={2}>

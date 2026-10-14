@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { SHOP_DATA, UNTRADEABLE, checkShopData, lineGold, onSale, packageValue, parseRate, purchasePlan, splitBySale, type ShopData } from "../lib/tools/loa-shop";
+import { SHOP_DATA, UNTRADEABLE, checkShopData, lineGold, marketNames, onSale, packageValue, parseRate, purchasePlan, splitBySale, type ShopData } from "../lib/tools/loa-shop";
 import { goldText, signedGold } from "../lib/tools/format";
 
 const pkg = (id: string) => SHOP_DATA.packages.find((p) => p.id === id)!;
@@ -164,4 +164,35 @@ test("untradeable contents are left out of the gold and the gain is still comput
   assert.equal(life.gold, 0);
   assert.equal(life.untradeable.length, 2);
   assert.equal(life.gain, -SHOP_DATA.packages.find((x) => x.id === "hangawi-life")!.priceRoyal);
+});
+
+test("페온 is left out of the gold like an untradeable content; a package of nothing but 페온 is not valued (PM 총괄 2026-10-14)", () => {
+  const p = structuredClone(SHOP_DATA.packages[0]);
+  p.bonus = null;
+  p.priceRoyal = 1000;
+  p.items = [
+    { kind: "market", name: "가", qty: 10, detail: null },
+    { kind: "pheon", name: "페온", qty: 30, detail: null },
+  ];
+  // 페온 is never asked for a price.
+  assert.deepEqual(marketNames([p]), ["가"]);
+  const asked: string[] = [];
+  const mixed = packageValue(p, (n) => (asked.push(n), 27.5), 27500);
+  assert.deepEqual(asked, ["가"]);
+  assert.deepEqual(mixed.pheon.map((i) => i.name), ["페온"]);
+  assert.deepEqual(mixed.unknown, []);
+  assert.equal(mixed.onlyPheon, false);
+  assert.equal(mixed.gold, 275);
+  assert.equal(mixed.gain, 27.5 - 1000);
+  // Nothing but 페온: no gold, no gain, and it is not 미확인 either.
+  const only = packageValue(pkg("hangawi-peon"), () => 100, 27500);
+  assert.equal(only.onlyPheon, true);
+  assert.deepEqual(only.unknown, []);
+  assert.equal(only.gold, 0);
+  assert.equal(only.royalValue, null);
+  assert.equal(only.gain, null);
+  // 페온 with an unpriced tradeable content: the unknown one still blocks the gain.
+  p.items.push({ kind: "market", name: "없음", qty: 1, detail: null });
+  const blocked = packageValue(p, (n) => (n === "없음" ? null : 27.5), 27500);
+  assert.deepEqual([blocked.pheon.length, blocked.unknown.length, blocked.gain], [1, 1, null]);
 });
