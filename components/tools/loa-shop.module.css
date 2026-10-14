@@ -252,3 +252,16 @@
 .table tfoot th .footNote {
   min-height: 1lh;
 }
+/* Ended sales, folded below the list. */
+.past {
+  margin-top: var(--space-4);
+}
+.past summary {
+  width: fit-content;
+  color: var(--link);
+  font-size: var(--text-body);
+  cursor: pointer;
+}
+.past .cards {
+  margin-top: var(--space-3);
+}

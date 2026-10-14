@@ -33,8 +33,11 @@ export type ShopPackage = {
   priceRoyal: number;
   /** Sale period, the notice's words. */
   period: string;
-  /** The day whose regular maintenance ends the sale (KST date), null while "별도 안내 시". */
-  until: string | null;
+  /**
+   * When the sale ends, KST, from the notice: "N일 정기 점검 전" is that
+   * Wednesday's maintenance start, 06:00 KST. null while "별도 안내 시".
+   */
+  endsAt: string | null;
   /** Purchase limit, the notice's words. */
   limit: string;
   /** A bonus set every `every` purchases; `text` is the notice's words. */
@@ -158,12 +161,16 @@ export function parseRate(value: string): number | null {
   return Number.isSafeInteger(rate) && rate > 0 ? rate : null;
 }
 
-/** Regular maintenance starts at 06:00 KST: "N일 정기 점검 전" ends then. */
-export const MAINTENANCE_START_KST = "06:00:00";
+/** Whether the package is still on sale at `now` (epoch ms). */
+export const onSale = (pkg: ShopPackage, now: number) => pkg.endsAt == null || now < Date.parse(pkg.endsAt);
 
-/** Whether the package is still on sale at `now` (epoch ms): sales end when that day's maintenance starts. */
-export const onSale = (pkg: ShopPackage, now: number) =>
-  pkg.until == null || now < Date.parse(`${pkg.until}T${MAINTENANCE_START_KST}+09:00`);
+/** Packages on sale at `now`, and those whose sale has ended (kept, folded away on screen). */
+export function splitBySale(packages: ShopPackage[], now: number) {
+  return {
+    current: packages.filter((p) => onSale(p, now)),
+    past: packages.filter((p) => !onSale(p, now)),
+  };
+}
 
 /** Consistency problems in the data; the test suite expects none. */
 export function checkShopData(data: ShopData): string[] {
@@ -179,7 +186,7 @@ export function checkShopData(data: ShopData): string[] {
     if (!Number.isInteger(p.priceRoyal) || p.priceRoyal <= 0) problems.push(`${p.id}: bad price`);
     if (!p.items.length) problems.push(`${p.id}: no items`);
     for (const i of p.items) if (!Number.isInteger(i.qty) || i.qty <= 0) problems.push(`${p.id}: bad qty ${i.name}`);
-    if (p.until !== null && !/^\d{4}-\d{2}-\d{2}$/.test(p.until)) problems.push(`${p.id}: bad until`);
+    if (p.endsAt !== null && !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\+09:00$/.test(p.endsAt)) problems.push(`${p.id}: bad endsAt`);
   }
   return problems;
 }
