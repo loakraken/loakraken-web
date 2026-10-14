@@ -9,6 +9,7 @@ import {
   requestQuote,
 } from "./upstream";
 import { requestGemBoard, requestGemListings, type GemPick } from "./auction-gems";
+import { requestItemMinutes } from "./minutes";
 import {
   requestAccessoryBoard,
   requestAccessoryListings,
@@ -36,6 +37,8 @@ export const getMarketBoard = (query: URLSearchParams, signal?: AbortSignal, tim
   requestBoard(query, origin(), { signal, timeoutMs });
 export const getItemHistory = (itemId: string, signal?: AbortSignal, timeoutMs?: number) =>
   requestItemHistory(itemId, origin(), { signal, timeoutMs });
+export const getItemMinutes = (itemId: number, signal?: AbortSignal) =>
+  requestItemMinutes(itemId, origin(), { signal });
 
 export const getGemBoard = (signal?: AbortSignal, timeoutMs?: number) =>
   requestGemBoard(origin(), { signal, timeoutMs });

@@ -239,6 +239,13 @@ function Quantiles({
   );
 }
 
+// # · 직업 · 인원 · 비율 · 서포터 · 평균 레벨 · 보석 · 전투력 분포 · 중앙값
+const CLASS_COLUMNS = rankingColumns([3, 7.5, 6, 5.5, 5.5, 7, 4.5, 13, 7]);
+// 서버 · 인원 · 비율 · 아이템 레벨 중앙값 · 전투력 중앙값 · 표본
+const SERVER_COLUMNS = rankingColumns([6.5, 6.5, 5.5, 11, 8.5, 10]);
+// # · 직업 · 인원 · 평균 · 최고 전투력 분포 · 중앙값 · 최고
+const BEST_COLUMNS = rankingColumns([3, 7.5, 6, 7.5, 13, 7.5, 7.5]);
+
 function ClassesTab({ query }: { query: StatsQuery }) {
   const classes = useQuery({
     queryKey: ["stats", "classes", statsKey(query)],
@@ -255,11 +262,16 @@ function ClassesTab({ query }: { query: StatsQuery }) {
   const scale = quantileScale(rows);
   const minSample = classes.data.data.meta.minSample;
   return (
-    <div {...pendingProps(classes)}>
+    // Fixed column widths, so another server's numbers do not size the
+    // columns again (the headings would slide even when drawn anew), and
+    // drawn anew per answer (the previous one stays, dimmed, while the next
+    // loads) so text rewritten in place does not count as moving (A7, #791).
+    <div key={classes.dataUpdatedAt} {...pendingProps(classes)}>
       <SampleProgress ready={ready} total={rows.length} unit="직업" minSample={minSample} />
       {rows.length > 0 && (
-        <DataTable label="직업별 인원과 전투력 분포" className={styles.table}>
+        <DataTable label="직업별 인원과 전투력 분포" className={styles.table} {...CLASS_COLUMNS.tableProps}>
           <caption className={styles.srOnly}>직업별 인원과 전투력 분포</caption>
+          {CLASS_COLUMNS.colgroup}
           <thead>
             <tr>
               <th scope="col">#</th>
@@ -374,7 +386,7 @@ function DistributionTab({ query }: { query: StatsQuery }) {
                 <th scope="col">인원</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody key={dist.dataUpdatedAt}>
               {data.bins.map((bin) => (
                 <tr key={bin.from}>
                   <th scope="row">
@@ -386,7 +398,9 @@ function DistributionTab({ query }: { query: StatsQuery }) {
             </tbody>
         </DataTable>
       ) : (
-        <ol className={styles.histogram} aria-label={`${label} 구간별 인원`} {...pendingProps(dist)}>
+        // Drawn anew per answer: another server's bins are other ranges, and
+        // the same bar moved across the axis in place (A7, #791).
+        <ol key={dist.dataUpdatedAt} className={styles.histogram} aria-label={`${label} 구간별 인원`} {...pendingProps(dist)}>
           {data.bins.map((bin, i) => {
             const hit = p && p.value >= bin.from && p.value < bin.to;
             return (
@@ -425,11 +439,13 @@ function ServersTab({ query }: { query: StatsQuery }) {
   const rows = servers.data.data.rows;
   const ready = rows.filter((row) => row.sampleStatus === "READY").length;
   return (
-    <div {...pendingProps(servers)}>
+    // Fixed columns and drawn anew per answer, like the class table (A7, #791).
+    <div key={servers.dataUpdatedAt} {...pendingProps(servers)}>
       <SampleProgress ready={ready} total={rows.length} unit="서버" minSample={servers.data.data.meta.minSample} />
       {rows.length > 0 && (
-      <DataTable label="서버별 인원과 중앙값" className={styles.table}>
+      <DataTable label="서버별 인원과 중앙값" className={styles.table} {...SERVER_COLUMNS.tableProps}>
           <caption className={styles.srOnly}>서버별 인원과 중앙값</caption>
+          {SERVER_COLUMNS.colgroup}
           <thead>
             <tr>
               <th scope="col" className={styles.left}>서버</th>
@@ -437,7 +453,10 @@ function ServersTab({ query }: { query: StatsQuery }) {
               <th scope="col">비율</th>
               <th scope="col">아이템 레벨 중앙값</th>
               <th scope="col">전투력 중앙값</th>
-              <th scope="col"><span className={styles.srOnly}>표본</span></th>
+              {/* Named by aria-label, not a visually hidden span: positioned
+                  out of the flow, that span left the scrolling table box and
+                  widened the page at 360 (#811). */}
+              <th scope="col" aria-label="표본" />
             </tr>
           </thead>
           <tbody>
@@ -523,8 +542,9 @@ function BestTab({ query }: { query: StatsQuery }) {
         </dl>
         <SampleProgress ready={ready} total={rows.length} unit="직업" minSample={meta.minSample} />
         {rows.length > 0 && (
-          <DataTable label="직업별 최고 전투력" className={styles.table}>
+          <DataTable label="직업별 최고 전투력" className={styles.table} {...BEST_COLUMNS.tableProps}>
             <caption className={styles.srOnly}>직업별 최고 전투력</caption>
+            {BEST_COLUMNS.colgroup}
             <thead>
               <tr>
                 <th scope="col">#</th>

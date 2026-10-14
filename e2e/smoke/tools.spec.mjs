@@ -30,8 +30,9 @@ test.describe("재련 기대 비용 @smoke", () => {
     const total = page.getByRole("region", { name: /목표까지 예상 비용/ }).locator("[class*=topTotal]");
     await expect(total).toBeVisible();
     const withBooks = await total.innerText();
-    await page.getByText("무기 책 효과 적용").click();
-    await page.getByText("방어구 책 효과 적용").click();
+    // The switch covers its whole row (A36), so it is pressed as the switch.
+    await page.getByRole("switch", { name: /^무기 책 효과 적용/ }).click();
+    await page.getByRole("switch", { name: /^방어구 책 효과 적용/ }).click();
     await expect(total).not.toHaveText(withBooks);
     await expect(result.getByText(/효과가 매번 적용된다고 가정했어요/)).toHaveCount(0);
   });

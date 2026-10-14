@@ -111,6 +111,38 @@ function ClassEngravings({ data }: { data: ClassBuilds }) {
   );
 }
 
+/** The sections a filter with enough sample shows, by name (Sections below, after 직업 각인). */
+const SECTION_NAMES = [
+  "각인 조합",
+  "각인 채용률",
+  "주력 전투 특성",
+  "아크 패시브 진화",
+  "아크 패시브 깨달음",
+  "아크 패시브 도약",
+  "카드 세트",
+  "피해 증가 보석",
+  "재사용 대기시간 감소 보석",
+  "팔찌 전투 특성",
+] as const;
+
+/**
+ * A short sample's room (held at a screen's height) is not left blank: the
+ * sections that come once the sample is enough, by name, as quiet cards.
+ * Compact, so they fit the held room at 360 without growing it.
+ */
+function UpcomingSections() {
+  return (
+    <ul className={own.upcoming} aria-label="표본이 모이면 보여 드릴 항목">
+      {SECTION_NAMES.map((name) => (
+        <li key={name}>
+          <b>{name}</b>
+          <small>표본이 모이면 보여요</small>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function Sections({ data }: { data: ClassBuilds }) {
   const d = data.definitions ?? {};
   const ap = data.arkPassivePoints;
@@ -368,6 +400,7 @@ export function ClassBuildsView({
                   <ClassEngravings data={data} />
                 </div>
               )}
+              <UpcomingSections />
             </div>
           ) : (
             // Drawn anew when an answer lands: counts rewritten in place (right

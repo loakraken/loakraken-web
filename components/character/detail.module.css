@@ -2503,18 +2503,34 @@
 }
 /* On a phone small controls take 44px to press, as they look (the hit-44
    rule, which a module selector cannot take). The tab row has 8px of room
-   above and below inside its scroller. */
+   above and below inside its scroller. Filter and sort pills are 44px wide
+   at least, so side by side the areas do not overlap (A36). */
 @media (max-width: 699px), (pointer: coarse) {
   .tabs a,
   .textButton,
   .braceletEffTerm,
-  .rosterPowerButton {
+  .rosterPowerButton,
+  .filterRow button,
+  .specUpSorts button,
+  .analysisTrigger {
     position: relative;
+  }
+  .filterRow button,
+  .specUpSorts button {
+    min-width: 44px;
+  }
+  /* The roster switches under the full-width sort: rows far enough apart
+     that their areas and the sort's do not overlap. */
+  .rosterTools {
+    row-gap: 16px;
   }
   .tabs a::after,
   .textButton::after,
   .braceletEffTerm::after,
-  .rosterPowerButton::after {
+  .rosterPowerButton::after,
+  .filterRow button::after,
+  .specUpSorts button::after,
+  .analysisTrigger::after {
     content: "";
     position: absolute;
     left: 50%;

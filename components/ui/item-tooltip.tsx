@@ -50,7 +50,7 @@ const CHROME = "[data-sticky-chrome]"
 const EDGE = 12
 
 /** The bottom of the pinned chrome in the upper half of the viewport, or 0. */
-function chromeBottom() {
+export function chromeBottom() {
   let bottom = 0
   for (const element of document.querySelectorAll<HTMLElement>(CHROME)) {
     const rect = element.getBoundingClientRect()

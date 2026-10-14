@@ -14,6 +14,116 @@
   display: grid;
   gap: 14px;
 }
+/* The sections still to come (short sample), quiet and compact: two columns
+   of 56px cards at 360 stay inside the held room. */
+.upcoming {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.upcoming li {
+  display: grid;
+  align-content: center;
+  gap: 2px;
+  height: 56px;
+  padding: 0 14px;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.upcoming b {
+  overflow: hidden;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.upcoming small {
+  color: var(--muted-foreground);
+  font-size: 11px;
+}
+.section {
+  min-width: 0;
+  padding: 16px 18px;
+  border-radius: 16px;
+  background: var(--muted);
+}
+.section h2 {
+  font-size: 15px;
+  font-weight: 700;
+}
+.definition {
+  margin-top: 4px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.bars {
+  display: grid;
+  gap: 6px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.bars li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(48px, 30%) 4.5em 4.5em;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+.label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bars[data-wrap] .label {
+  overflow: visible;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.track {
+  display: block;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 9999px;
+  background: var(--background);
+}
+.track i {
+  display: block;
+  height: 100%;
+  background: var(--link);
+  transform-origin: left center;
+}
+.bars b {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.bars small {
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+.foot {
+  margin-top: 10px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+@media (max-width: 480px) {
+  .bars li {
+    grid-template-columns: minmax(0, 1fr) 4.5em 4em;
+  }
+  .track {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+}
 /* 대세 빌드 비교 (M26): one card per item, the verdict line kept two lines
    high so the character arriving later moves nothing (A6). */
 .compare {
@@ -120,82 +230,4 @@
 .compareMineLine {
   color: var(--muted-foreground);
   font-size: 12px;
-}
-.section {
-  min-width: 0;
-  padding: 16px 18px;
-  border-radius: 16px;
-  background: var(--muted);
-}
-.section h2 {
-  font-size: 15px;
-  font-weight: 700;
-}
-.definition {
-  margin-top: 4px;
-  color: var(--muted-foreground);
-  font-size: 12px;
-  line-height: 1.5;
-}
-.bars {
-  display: grid;
-  gap: 6px;
-  margin: 12px 0 0;
-  padding: 0;
-  list-style: none;
-}
-.bars li {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(48px, 30%) 4.5em 4.5em;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-}
-.label {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.bars[data-wrap] .label {
-  overflow: visible;
-  white-space: normal;
-  overflow-wrap: anywhere;
-}
-.track {
-  display: block;
-  height: 6px;
-  overflow: hidden;
-  border-radius: 9999px;
-  background: var(--background);
-}
-.track i {
-  display: block;
-  height: 100%;
-  background: var(--link);
-  transform-origin: left center;
-}
-.bars b {
-  font-variant-numeric: tabular-nums;
-  text-align: right;
-}
-.bars small {
-  color: var(--muted-foreground);
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
-  text-align: right;
-  white-space: nowrap;
-}
-.foot {
-  margin-top: 10px;
-  color: var(--muted-foreground);
-  font-size: 12px;
-}
-@media (max-width: 480px) {
-  .bars li {
-    grid-template-columns: minmax(0, 1fr) 4.5em 4em;
-  }
-  .track {
-    grid-column: 1 / -1;
-    grid-row: 2;
-  }
 }

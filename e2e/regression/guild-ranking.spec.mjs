@@ -1,6 +1,7 @@
 // 회귀(L36·K28, API 목록 #4): 랭킹 '길드' 탭 — 확인한 길드원으로 묶은 길드의 아이템 레벨 평균·합 순위.
 // 길드원 수는 '확인한' 수라고 적고, 기준(평균↔합)·서버를 바꾸면 순위가 바뀐다. 집계 기준은 길드 단위로.
 import { test, expect, gotoReady, chooseOption } from "../support/fixtures.mjs";
+import { shiftsSince, watchShifts } from "../support/shifts.mjs";
 
 test("길드 랭킹: 탭·열·기준 전환·서버·안내 @regression", async ({ page }) => {
   await gotoReady(page, "/rankings?type=guilds");
@@ -59,3 +60,16 @@ test("@M21 길드 찾기: 범위를 넘은 쪽 주소는 1쪽으로 @regression"
   await expect(page.getByRole("table").first().getByRole("rowheader")).toHaveText(["두번째길드"]);
   await expect(page.getByText(/순위에 없어요/)).toHaveCount(0);
 });
+
+// The correction happens before anything else is drawn: the page reads as
+// loading until page 1 is here, like any other first load (A6, P3 from #733).
+for (const width of [1280, 360])
+  test(`@M21 길드 찾기: 범위를 넘은 쪽 주소 첫 로드 흔들림 0 @${width} @regression`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await watchShifts(page);
+    await gotoReady(page, `/rankings?type=guilds&guild=${encodeURIComponent("두번")}&page=3`);
+    await expect(page.getByRole("table").first().getByRole("rowheader")).toHaveText(["두번째길드"]);
+    await page.waitForTimeout(500);
+    const load = await shiftsSince(page);
+    expect(load.all, `첫 로드 흔들림 (${load.moved})`).toBe(0);
+  });
