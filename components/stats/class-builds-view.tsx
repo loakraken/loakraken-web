@@ -317,13 +317,19 @@ export function ClassBuildsView({
           </p>
         )}
 
-        {compare && data && !collecting && (
+        {/* One room for the comparison whatever the filter: a short sample
+            says so inside it, held at the comparison's height, so the
+            sections under it do not jump up and back (A7). */}
+        {compare && data && (
           <div ref={compareRef} style={compareHeight ? { minHeight: compareHeight } : undefined} {...pendingProps(builds)}>
-            <BuildCompare key={builds.dataUpdatedAt} name={compare} className={query.className} builds={data} />
+            {collecting ? (
+              <p key={builds.dataUpdatedAt} className={styles.muted}>
+                표본이 {whole(meta?.minSample ?? 30)}명보다 적어 대세와 비교하지 않아요.
+              </p>
+            ) : (
+              <BuildCompare key={builds.dataUpdatedAt} name={compare} className={query.className} builds={data} />
+            )}
           </div>
-        )}
-        {compare && collecting && (
-          <p className={styles.muted}>표본이 {whole(meta?.minSample ?? 30)}명보다 적어 대세와 비교하지 않아요.</p>
         )}
 
         {/* Opened on a short sample: a screen's height from the first HTML on,

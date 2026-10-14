@@ -37,6 +37,17 @@ for (const width of [1280, 360])
     await expect(page).toHaveURL(/character=/);
     await expect(compare).toBeVisible();
     expect(moved.all, `직업 각인 전환 흔들림 (${moved.moved})`).toBe(0);
+    // A filter whose sample is short (버스트 · 7일): the comparison's room says so and keeps its height; back again.
+    const engravings = page.getByRole("group", { name: "직업 각인" });
+    const days = page.getByRole("group", { name: "최근 확인" });
+    await engravings.getByRole("button", { name: "버스트" }).click();
+    await expect(page.getByText(/표본 240명/)).toBeVisible();
+    const short = await shiftsDuring(page, () => days.getByRole("button", { name: "7일" }).click(), 1500);
+    await expect(page.getByText(/명보다 적어 대세와 비교하지 않아요/)).toBeVisible();
+    expect(short.all, `표본 적은 조건으로 전환 흔들림 (${short.moved})`).toBe(0);
+    const back = await shiftsDuring(page, () => days.getByRole("button", { name: "30일" }).click(), 1500);
+    await expect(page.getByRole("region", { name: "대세블레이드의 세팅과 대세" })).toBeVisible();
+    expect(back.all, `다시 비교로 전환 흔들림 (${back.moved})`).toBe(0);
     await expectNoHorizontalOverflow(page);
   });
 
