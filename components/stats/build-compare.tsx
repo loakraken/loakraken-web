@@ -32,14 +32,28 @@ export function BuildCompare({
 }) {
   const client = useQueryClient();
   const queryKey = classBuildCellsKey({ className, characterName: name, activeDays });
+  const isNotCached = (error: unknown) => error instanceof StatsQueryError && error.info.code === "CHARACTER_NOT_CACHED";
+  // Not recorded under another day filter is not recorded under this one either
+  // (the record does not depend on the days): no new request, no "loading" line
+  // in between, which made the lines below jump (A7).
+  const knownMissing = client
+    .getQueryCache()
+    .findAll({ queryKey: queryKey.slice(0, 3) })
+    .some((query) => isNotCached(query.state.error));
   const cells = useQuery<ClassBuildCellsEnvelope, Error, ClassBuildCellsEnvelope, typeof queryKey>({
     queryKey,
     queryFn: ({ signal }) => fetchClassBuildCells({ className, characterName: name, activeDays }, signal),
+    enabled: !knownMissing,
     // Another day filter shows the cells already here until its own land (the
     // cells are the same; only the sample check moves), so the lines do not
     // blink to "loading" and back.
     placeholderData: () =>
       client.getQueriesData<ClassBuildCellsEnvelope>({ queryKey: queryKey.slice(0, 3) }).find(([, envelope]) => envelope)?.[1],
+    // Drawn anew for each statistics answer: an answer already here (or an
+    // error) is kept rather than asked again, which would pass through
+    // "loading" (A7). A page opened anew brings its own from the server.
+    refetchOnMount: false,
+    retryOnMount: false,
     retry: false,
     refetchOnWindowFocus: false,
   });
@@ -47,20 +61,21 @@ export function BuildCompare({
   const otherClass = data?.reasons.includes("OTHER_CLASS");
   const mine = data && !otherClass ? data.cells : null;
   const sections = compareBuild(builds, mine, data?.conditions.braceletItemLevelMin);
-  const notCached = cells.error instanceof StatsQueryError && cells.error.info.code === "CHARACTER_NOT_CACHED";
+  const notCached = knownMissing || isNotCached(cells.error);
   const characterPath = `/character/${encodeURIComponent(name)}`;
-  const waiting = cells.isPending
-    ? "캐릭터 세팅을 불러오고 있어요…"
-    : notCached
-      ? "최근 검색 기록이 없어 비교하지 못했어요."
+  const waiting = notCached
+    ? "최근 검색 기록이 없어 비교하지 못했어요."
+    : cells.isPending
+      ? "캐릭터 세팅을 불러오고 있어요…"
       : cells.isError
         ? "캐릭터 정보를 불러오지 못해 비교하지 않았어요. 잠시 뒤 새로 고쳐 주세요."
         : otherClass
           ? `${data?.className} 캐릭터라 ${className} 대세와 비교하지 않았어요.`
           : null;
   const differs = mine ? sections.filter((section) => section.differs).length : null;
-  // Another filter's sample check is not this one's: said only once this filter's cells are here.
-  const outside = data && !otherClass && !cells.isPlaceholderData ? outsideSample(data) : null;
+  // Until this filter's cells land, the last filter's sample check stays said, as
+  // the statistics keep the last answer on screen (dropping it moved the cards, A7).
+  const outside = data && !otherClass ? outsideSample(data) : null;
 
   return (
     <section className={own.compare} aria-labelledby="compare-heading">
