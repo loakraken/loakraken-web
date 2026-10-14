@@ -28,9 +28,11 @@ const hold = (e: React.PointerEvent) => e.stopPropagation();
    dismiss. Press it again to call the promise off.
 
    The label swap would jolt the pill from one width to
-   another, so the two labels are stacked out of flow and the
-   pill is given the width of whichever one is showing. It
-   grows into its answer instead of snapping to it. */
+   another, so the two labels are stacked out of flow.
+   (ours, apple-design 10-14) Bencho animated the pill's width
+   between them — a layout property, re-laid out every frame.
+   The pill now holds the wider label's width from the start
+   and only the labels cross-fade (opacity), so nothing moves. */
 
 /* 22 is half of the 44px button — the pill it already is */
 const BELL_CORNER = 22;
@@ -57,11 +59,12 @@ export function Notify({
   const on = pressed ?? own;
   const [w, setW] = useState<number>();
 
-  /* before paint, or the pill is briefly the wrong width */
+  /* before paint, or the pill is briefly the wrong width: the
+     wider of the two labels, measured once per label pair */
   useLayoutEffect(() => {
-    const shown = say.current?.querySelector<HTMLElement>('[data-show="true"]');
-    if (shown) setW(shown.offsetWidth);
-  }, [on]);
+    const labels = say.current?.querySelectorAll<HTMLElement>("i");
+    if (labels?.length) setW(Math.max(...[...labels].map((l) => l.offsetWidth)));
+  }, [label, onLabel]);
 
   const ring = () => {
     const b = bell.current;
