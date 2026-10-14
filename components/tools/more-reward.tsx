@@ -387,10 +387,10 @@ export function MoreRewardTool() {
               {/* Always laid out, shown by opacity: text arriving would change its
                   width and slide it. The announcement is a separate line. */}
               <p className={styles.switchBadge} aria-hidden="true" data-show={switching || undefined}>
-                이 기준으로 다시 불러오고 있어요
+                이 기준으로 다시 불러오고 있어요…
               </p>
               <p className={styles.sr} role="status">
-                {switching ? "이 기준으로 다시 불러오고 있어요" : ""}
+                {switching ? "이 기준으로 다시 불러오고 있어요…" : ""}
               </p>
               <div className={styles.tableScroll} aria-busy={switching || undefined} data-stale={switching || undefined}>
                 <table className={styles.table}>

@@ -16,7 +16,7 @@ const Guide = dynamic(() => loadGuide(), {
   ssr: false,
   loading: () => (
     <p className={styles.specUpLoading} role="status">
-      스펙업 가이드를 준비하고 있어요
+      스펙업 가이드를 준비하고 있어요…
     </p>
   ),
 });
@@ -48,7 +48,7 @@ export function SpecUpTab({ data }: { data: Character }) {
           <Guide data={data} />
         ) : (
           <p className={styles.specUpLoading} role="status">
-            스펙업 가이드를 준비하고 있어요
+            스펙업 가이드를 준비하고 있어요…
           </p>
         )}
       </div>

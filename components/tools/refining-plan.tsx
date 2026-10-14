@@ -200,7 +200,7 @@ function CharacterLoader({
           aria-disabled={load.isPending || loadLimit.seconds > 0 || undefined}
           aria-busy={load.isPending || undefined}
         >
-          {load.isPending ? "불러오는 중" : retryLabel(loadLimit.seconds, "장비 불러오기")}
+          {load.isPending ? "불러오는 중…" : retryLabel(loadLimit.seconds, "장비 불러오기")}
         </button>
       </form>
       {touched && error && <p className={quote.inputError}>{error}</p>}
@@ -445,7 +445,7 @@ function TopSummary({
           width moved the text after it (A7). */}
       <p className={styles.topNote}>
         <span className={styles.topLine}>
-          {priceList ? "재련 골드 + 부족한 재료 구매 골드" : "재련 골드(재료 시세를 불러오는 중)"}
+          {priceList ? "재련 골드 + 부족한 재료 구매 골드" : "재련 골드(재료 시세를 불러오는 중…)"}
         </span>
         <span className={styles.topLine}>
           총 {formatCount(summary.stageCount)}단계, 시도{" "}

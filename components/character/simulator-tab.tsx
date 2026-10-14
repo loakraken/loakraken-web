@@ -17,7 +17,7 @@ const Simulator = dynamic(
     ssr: false,
     loading: () => (
       <p className={styles.simulatorLoading} role="status">
-        시뮬레이터를 준비하고 있어요
+        시뮬레이터를 준비하고 있어요…
       </p>
     ),
   },

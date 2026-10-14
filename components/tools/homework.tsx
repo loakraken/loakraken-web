@@ -169,7 +169,7 @@ function AddRoster({ onAdd }: { onAdd: (picked: Sibling[]) => void }) {
           aria-disabled={siblings.isPending || limit.seconds > 0 || undefined}
           aria-busy={siblings.isPending || undefined}
         >
-          {siblings.isPending ? "불러오는 중" : retryLabel(limit.seconds, "불러오기")}
+          {siblings.isPending ? "불러오는 중…" : retryLabel(limit.seconds, "불러오기")}
         </button>
       </form>
       {failure && (
