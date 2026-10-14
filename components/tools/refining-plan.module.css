@@ -131,22 +131,25 @@
   outline: 3px solid var(--action);
   outline-offset: 2px;
 }
-/* Forced colours: the drawn box would lose its fill and mark; fall back to
-   the system checkbox (16px) there. */
+/* Forced colours: the same 44px input, drawn in system colours (the browser
+   would otherwise drop the fill and the mark). */
 @media (forced-colors: active) {
   .include input {
-    appearance: auto;
-    width: 16px;
-    height: 16px;
-    margin: 0;
+    forced-color-adjust: none;
   }
-  .include input::before,
-  .include input::after {
-    content: none;
+  .include input::before {
+    border-color: ButtonText;
+    background: Canvas;
   }
-  .include input:focus-visible {
-    outline: 2px solid CanvasText;
-    outline-offset: 2px;
+  .include input:checked::before {
+    border-color: Highlight;
+    background: Highlight;
+  }
+  .include input:checked::after {
+    border-color: HighlightText;
+  }
+  .include input:focus-visible::before {
+    outline-color: Highlight;
   }
 }
 .part[data-off] .partFields {
