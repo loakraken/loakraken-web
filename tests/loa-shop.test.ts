@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { SHOP_DATA, checkShopData, onSale, packageValue, parseRate, purchasePlan, type ShopData } from "../lib/tools/loa-shop";
+import { SHOP_DATA, checkShopData, lineGold, onSale, packageValue, parseRate, purchasePlan, type ShopData } from "../lib/tools/loa-shop";
+import { goldText, signedGold } from "../lib/tools/format";
 
 const pkg = (id: string) => SHOP_DATA.packages.find((p) => p.id === id)!;
 
@@ -73,4 +74,45 @@ test("a package past its last day is no longer on sale", () => {
   assert.equal(onSale(pkg("hangawi-battle"), kst("2026-10-21T05:59:59")), true);
   assert.equal(onSale(pkg("hangawi-battle"), kst("2026-10-21T06:00:00")), false);
   assert.equal(onSale(pkg("monthly-growth-plus"), kst("2027-01-01T00:00:00")), true);
+});
+
+test("each content line rounds up to whole gold, as on the comparison basis (calc verification 2026-10-14)", () => {
+  assert.equal(lineGold(274.3), 275);
+  assert.equal(lineGold(274.0001), 275);
+  assert.equal(lineGold(0.01), 1);
+  // Within float error of a whole number: that number, not one more.
+  assert.equal(1.1 * 100 === 110, false);
+  assert.equal(lineGold(1.1 * 100), 110);
+  assert.equal(lineGold(60000 * 8.8), 528000);
+  assert.equal(lineGold(3 * 0.1), 1);
+  assert.equal(lineGold(Infinity), null);
+  assert.equal(lineGold(NaN), null);
+  // Per line, not on the sum: two lines of 0.4 make 2, not 1.
+  const p = structuredClone(SHOP_DATA.packages[0]);
+  p.bonus = null;
+  p.items = [
+    { kind: "market", name: "가", qty: 1, detail: null },
+    { kind: "market", name: "나", qty: 1, detail: null },
+  ];
+  const value = packageValue(p, () => 0.4, 27300);
+  assert.deepEqual(value.items.map((i) => i.gold), [1, 1]);
+  assert.equal(value.gold, 2);
+  // A price of 0 is unknown, never counted as 0.
+  const zero = packageValue(p, (n) => (n === "가" ? 0 : 0.4), 27300);
+  assert.deepEqual(zero.unknown.map((i) => i.name), ["가"]);
+  assert.equal(zero.gain, null);
+});
+
+test("로아샵 figures round the absolute value away from zero (its comparison basis)", () => {
+  assert.equal(signedGold(-1087.5, "awayFromZero"), "−1,088");
+  assert.equal(signedGold(1087.5, "awayFromZero"), "+1,088");
+  assert.equal(signedGold(-1087.49, "awayFromZero"), "−1,087");
+  assert.equal(goldText(-1087.5, "awayFromZero"), "-1,088");
+  // The sign follows the value; a value that rounds to 0 has none (PM 총괄, unlike the basis' "−0").
+  assert.equal(signedGold(-0.3, "awayFromZero"), "0");
+  assert.equal(signedGold(-0.5, "awayFromZero"), "−1");
+  assert.equal(signedGold(0, "awayFromZero"), "0");
+  assert.equal(signedGold(1e-12, "awayFromZero"), "0");
+  // The other tools keep .5 up.
+  assert.equal(signedGold(-1087.5), "−1,087");
 });
