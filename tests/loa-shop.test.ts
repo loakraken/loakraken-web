@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { SHOP_DATA, UNTRADEABLE, checkShopData, lineGold, onSale, packageValue, parseRate, purchasePlan, type ShopData } from "../lib/tools/loa-shop";
+import { SHOP_DATA, UNTRADEABLE, checkShopData, lineGold, onSale, packageValue, parseRate, purchasePlan, splitBySale, type ShopData } from "../lib/tools/loa-shop";
 import { goldText, signedGold } from "../lib/tools/format";
 
 const pkg = (id: string) => SHOP_DATA.packages.find((p) => p.id === id)!;
@@ -115,6 +115,21 @@ test("로아샵 figures round the absolute value away from zero (its comparison 
   assert.equal(signedGold(1e-12, "awayFromZero"), "0");
   // The other tools keep .5 up.
   assert.equal(signedGold(-1087.5), "−1,087");
+});
+
+test("ended sales are split off from those on sale (folded on screen), by the KST end time in the data", () => {
+  const kst = (iso: string) => Date.parse(`${iso}+09:00`);
+  // Every end time is a KST timestamp; "정기 점검 전" is Wednesday 06:00.
+  for (const p of SHOP_DATA.packages) if (p.endsAt) assert.match(p.endsAt, /T06:00:00\+09:00$/);
+  const before = splitBySale(SHOP_DATA.packages, kst("2026-10-21T05:59:59"));
+  assert.equal(before.past.length, 0);
+  const after = splitBySale(SHOP_DATA.packages, kst("2026-10-21T06:00:00"));
+  assert.deepEqual(after.past.map((p) => p.id), ["hangawi-battle", "hangawi-life", "hangawi-card", "hangawi-peon"]);
+  assert.deepEqual(after.current.map((p) => p.id), ["monthly-growth-plus", "item-level-1700", "region-clear-kadarum"]);
+  // A malformed end time is reported.
+  const broken = structuredClone(SHOP_DATA) as ShopData;
+  broken.packages[3].endsAt = "2026-10-21";
+  assert.ok(checkShopData(broken).some((p) => p.includes("bad endsAt")));
 });
 
 test("untradeable contents are left out of the gold and the gain is still computed; a tradeable one without a price blocks it (PM 총괄 2026-10-14)", () => {

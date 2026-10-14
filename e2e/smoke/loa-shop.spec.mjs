@@ -61,4 +61,40 @@ test.describe("로아샵 효율 @smoke", () => {
     await expect(growth.getByRole("rowheader", { name: /확인된 구성품 합계/ })).toBeVisible();
     await expect(growth.getByText(/로열 크리스탈로 환산한 가치/)).toHaveCount(0);
   });
+
+  // PM 총괄 판정(#831): 판매가 끝난 패키지는 목록에서 빼고 아래 '지난 상품 n개' 접기(기본 접힘)에 둔다.
+  // 종료 시각은 공지 기준 KST(정기 점검 전 = 수요일 06:00). 접기 제목은 누름 영역 44px이고, 펼쳐도
+  // 위 내용은 움직이지 않는다. 브라우저 시계만 10월 22일로 옮겨 본다.
+  test("판매가 끝난 패키지는 '지난 상품' 접기에 모이고, 펼쳐도 위가 움직이지 않는다", async ({ page }) => {
+    await page.clock.setFixedTime(new Date("2026-10-22T12:00:00+09:00"));
+    await gotoReady(page, "/tools/loa-shop");
+    const past = page.locator("details", { hasText: "지난 상품" });
+    const summary = past.locator("summary");
+    await expect(summary).toHaveText("지난 상품 4개");
+    await expect(past).not.toHaveAttribute("open", "");
+    await expect(page.getByRole("region", { name: "[3+1] 월간 운명의 성장 패키지+" })).toBeVisible();
+    await expect(page.getByRole("region", { name: "한가위 미니 전투 지원 패키지" })).toBeHidden();
+
+    // 44px on phones and touch screens (hit-44; a mouse keeps the drawn size): the four points
+    // 21px from the centre all land on the summary.
+    await summary.scrollIntoViewIfNeeded();
+    const misses = await summary.evaluate((node) => {
+      if (!matchMedia("(max-width: 699px), (pointer: coarse)").matches) return 0;
+      const b = node.getBoundingClientRect();
+      const [cx, cy] = [b.left + b.width / 2, b.top + b.height / 2];
+      return [[cx, cy - 21], [cx, cy + 21], [cx - 21, cy], [cx + 21, cy]].filter(([x, y]) => {
+        const hit = document.elementFromPoint(x, y);
+        return !(hit === node || node.contains(hit));
+      }).length;
+    });
+    expect(misses).toBe(0);
+
+    const y = async () => (await summary.boundingBox()).y;
+    const before = await y();
+    await summary.click();
+    await expect(past).toHaveAttribute("open", "");
+    await expect(page.getByRole("region", { name: "한가위 미니 전투 지원 패키지" })).toBeVisible();
+    await expect(page.getByRole("region", { name: "한가위 미니 전투 지원 패키지" })).toContainText("판매 기간이 지났어요");
+    expect(Math.abs((await y()) - before)).toBeLessThanOrEqual(1);
+  });
 });

@@ -15,6 +15,7 @@ import {
   SHOP_DATA,
   marketNames,
   onSale,
+  splitBySale,
   packageValue,
   parseRate,
   UNTRADEABLE,
@@ -232,7 +233,8 @@ function PackageCard({
   );
 }
 
-export function LoaShopTool() {
+/** `renderedAt`: the server render time (epoch ms), the clock until the client one starts. */
+export function LoaShopTool({ renderedAt }: { renderedAt: number }) {
   const [basis, setBasis] = useState<PriceBasis>("CURRENT_MIN_PRICE");
   const rateText = useSyncExternalStore(subscribeRate, readRate, () => "");
   const rateId = useId();
@@ -251,6 +253,20 @@ export function LoaShopTool() {
     refetchOnWindowFocus: false,
   });
   const now = useClock(MINUTE);
+  // Which packages are on sale is decided from the server's render time until
+  // the client clock starts, so the first HTML already folds the ended ones
+  // away and nothing moves after it (A6).
+  const { current, past } = splitBySale(SHOP_DATA.packages, now ?? renderedAt);
+  const card = (pkg: ShopPackage) => (
+    <PackageCard
+      key={pkg.id}
+      pkg={pkg}
+      value={packageValue(pkg, (name) => market.get(name) ?? null, rate)}
+      rate={rate}
+      priced={priced}
+      now={now ?? renderedAt}
+    />
+  );
   const limit = useRateLimit(prices.error);
   const priceList: MaterialPrice[] = prices.data?.data.items ?? [];
   // PRICED → its price; UNTRADEABLE → left out of the gold; anything else
@@ -357,18 +373,14 @@ export function LoaShopTool() {
                   <span className={styles.agoLine}>{observedAt && now != null ? agoText(now, observedAt) : ""}</span>
                 </p>
               </div>
-              <div className={styles.cards}>
-                {SHOP_DATA.packages.map((pkg) => (
-                  <PackageCard
-                    key={pkg.id}
-                    pkg={pkg}
-                    value={packageValue(pkg, (name) => market.get(name) ?? null, rate)}
-                    rate={rate}
-                    priced={priced}
-                    now={now}
-                  />
-                ))}
-              </div>
+              <div className={styles.cards}>{current.map(card)}</div>
+              {/* Ended sales, folded by default below the list: opening it only adds below (A7). */}
+              {past.length > 0 && (
+                <details className={styles.past}>
+                  <summary className="hit-44">지난 상품 {past.length}개</summary>
+                  <div className={styles.cards}>{past.map(card)}</div>
+                </details>
+              )}
               <p className={styles.small}>
                 구성품 가치 = 수량 × 거래소 1개 가격(묶음 가격 ÷ 묶음 수). 귀속 구성품도 같은 재료의 거래소 가격으로 매겨요.
                 로열 크리스탈 환산 가치 = 골드 가치 × {count(SHOP_DATA.crystal.royalPer100)} ÷ 교환소 시세, 이득 = 환산 가치
