@@ -9,7 +9,7 @@ const chipClassName = cn(
   // 44px to tap on phones; the 32px chip stays (A36).
   "hit-44",
   "bg-muted text-(length:--text-meta) text-foreground tabular-nums whitespace-nowrap select-none",
-  "transition-[background-color,color,transform] duration-(--duration-fast) ease-(--ease-out)",
+  "transition-[background-color,color,transform,scale] duration-(--duration-fast) ease-(--ease-out)",
   "not-data-disabled:active:scale-(--press-scale)",
   "pointer-fine:not-data-disabled:not-data-pressed:hover:bg-secondary",
   // Colour only: a weight change would reflow the chip row on every toggle.

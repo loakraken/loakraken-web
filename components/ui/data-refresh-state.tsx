@@ -158,7 +158,7 @@ function DataRefreshState({
           }}
           className={cn(
             "inline-grid size-11 shrink-0 place-items-center rounded-full text-foreground",
-            "transition-[background-color,transform] duration-(--duration-fast) ease-(--ease-out)",
+            "transition-[background-color,transform,scale] duration-(--duration-fast) ease-(--ease-out)",
             "pointer-fine:not-aria-disabled:hover:bg-hover-surface not-aria-disabled:active:scale-(--press-scale)",
             "aria-disabled:cursor-default aria-disabled:text-faint",
             "outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--ring)"

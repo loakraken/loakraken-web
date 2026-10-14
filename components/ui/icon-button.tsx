@@ -8,7 +8,7 @@ import { cn } from "cn"
 const iconButtonVariants = cva(
   [
     "inline-grid shrink-0 place-items-center rounded-full text-foreground",
-    "transition-[background-color,color,transform] duration-(--duration-fast) ease-(--ease-out)",
+    "transition-[background-color,color,transform,scale] duration-(--duration-fast) ease-(--ease-out)",
     "not-disabled:active:scale-(--press-scale)",
     "pointer-fine:not-disabled:hover:bg-hover-surface",
     "aria-pressed:text-accent-warm",
