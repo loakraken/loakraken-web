@@ -23,6 +23,7 @@ import {
   type Quote,
 } from "@/lib/tools/life-energy";
 import { PercentField, SwitchRow } from "./craft-fields";
+import { goldText as count } from "@/lib/tools/format";
 import quote from "./material-quote.module.css";
 import craft from "./abidos-craft.module.css";
 import styles from "./life-energy.module.css";
@@ -30,7 +31,6 @@ import styles from "./life-energy.module.css";
 const UNKNOWN = "미확인";
 const DEFAULT_ENERGY = 10000;
 const MAX_ENERGY = 1000000;
-const count = (value: number) => Math.round(value).toLocaleString("ko-KR");
 const outputName = (id: OutputId) => CRAFT_DATA.outputs.find((o) => o.id === id)!.name;
 const methodText = (o: Option, purpose: Purpose) =>
   o.kind === "raw" ? "캔 재료 그대로 팔기" : `${outputName(o.kind)} ${count(o.crafts)}번 만들어 ${purpose === "sell" ? "팔기" : "쓰기"}`;

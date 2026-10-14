@@ -34,17 +34,15 @@ import {
   type MoreRaid,
 } from "@/lib/tools/more-reward";
 import quote from "./material-quote.module.css";
+import { goldText as count, signedGold as signed } from "@/lib/tools/format";
 import styles from "./more-reward.module.css";
 
-const count = (value: number) => Math.round(value).toLocaleString("ko-KR");
 /** "방금 기준" · "3분 전 기준" from the newest price reading. */
 const agoText = (now: number, iso: string) => {
   const minutes = Math.max(0, Math.floor((now - Date.parse(iso)) / MINUTE));
   return minutes === 0 ? "방금 기준" : `${minutes}분 전 기준`;
 };
 
-const signed = (value: number) =>
-  `${value >= 0 ? "+" : "−"}${Math.abs(Math.round(value)).toLocaleString("ko-KR")}`;
 const unitText = (value: number) =>
   value.toLocaleString("ko-KR", { maximumFractionDigits: value < 1 ? 4 : 2 });
 

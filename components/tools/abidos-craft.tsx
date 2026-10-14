@@ -24,12 +24,11 @@ import {
 } from "@/lib/tools/abidos-craft";
 import { MARKET_FEE_PERCENT } from "@/lib/tools/auction";
 import { PercentField, SwitchRow } from "./craft-fields";
+import { goldText as count, roundGold, signedGold as signed } from "@/lib/tools/format";
 import quote from "./material-quote.module.css";
 import styles from "./abidos-craft.module.css";
 
 const UNKNOWN = "미확인";
-const count = (value: number) => Math.round(value).toLocaleString("ko-KR");
-const signed = (value: number) => `${value >= 0 ? "+" : "−"}${count(Math.abs(value))}`;
 const percentText = (value: number) => value.toLocaleString("ko-KR", { maximumFractionDigits: 2 });
 const agoText = (now: number, iso: string) => {
   const minutes = Math.max(0, Math.floor((now - Date.parse(iso)) / MINUTE));
@@ -55,7 +54,7 @@ const viaText = (r: CraftResult) => {
 };
 
 const profitFigure = (value: number | null, priced: boolean) =>
-  !priced ? <Figure text="—" /> : value == null ? <Figure text={UNKNOWN} /> : <Figure text={signed(value)} tone={value >= 0 ? "up" : "down"} />;
+  !priced ? <Figure text="—" /> : value == null ? <Figure text={UNKNOWN} /> : <Figure text={signed(value)} tone={roundGold(value) >= 0 ? "up" : "down"} />;
 
 /**
  * Profit, and under it the same per 100 estate energy (a line held from the
