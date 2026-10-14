@@ -75,6 +75,12 @@
   .method {
     min-height: 2lh;
   }
+  /* The answer above the daily line too: a 7-digit total or "상급 … 140번
+     만들어 쓰기" takes two lines there (PM-프론트 360 0.0032). */
+  .headline,
+  .answer .headline + p {
+    min-height: 2lh;
+  }
 }
 .colActivity {
   width: 58%;

@@ -66,4 +66,37 @@ test.describe("생명의 기운 효율 @smoke", () => {
     await page.waitForTimeout(500);
     expect(await page.evaluate(() => window.__shifts)).toEqual([]);
   });
+
+  // PM-프론트 재측정(#806): 설정을 모두 바꾼 뒤 입력, 그리고 아주 큰 기운(7자리 골드, 세 자리 횟수)에서도
+  // 결과 문장·방법 줄이 두 줄을 넘나들며 아래 '하루 생기' 줄이 밀렸다. 좁은 화면에서는 두 줄씩 잡아 둔다.
+  for (const [label, prepare, text] of [
+    ["설정을 모두 바꾼 뒤 123", true, "123"],
+    ["100000", false, "100000"],
+    ["설정을 모두 바꾼 뒤 1000000", true, "1000000"],
+  ]) {
+    test(`좁은 화면 입력 이동 0: ${label}`, async ({ page }) => {
+      await page.setViewportSize({ width: 360, height: 2400 });
+      await gotoReady(page, "/tools/life-energy");
+      await expect(page.getByText("벌목에 쓰면 31,955골드로 가장 많이 벌어요")).toBeVisible();
+      if (prepare) {
+        for (const sw of await page.getByRole("switch").all()) await sw.click();
+        for (const name of ["직접 쓰기", "최근 거래가", "전일 평균가"]) await page.getByRole("radio", { name }).click();
+        await expect(page.getByRole("radio", { name: "전일 평균가" })).toBeChecked();
+      }
+      await page.waitForTimeout(500);
+      await page.evaluate(() => {
+        window.__shifts = [];
+        new PerformanceObserver((list) => {
+          for (const e of list.getEntries()) window.__shifts.push(e.value);
+        }).observe({ type: "layout-shift" });
+      });
+      const input = page.getByRole("textbox", { name: "쓸 생명의 기운" });
+      await input.pressSequentially(text, { delay: 80 });
+      await expect(page.getByText(new RegExp(`^생명의 기운 ${Number(text).toLocaleString("ko-KR")}으로 벌면$`))).toBeVisible();
+      for (let i = 0; i < text.length; i++) await input.press("Backspace");
+      await expect(page.getByText(/^생명의 기운 10,000으로 벌면$/)).toBeVisible();
+      await page.waitForTimeout(500);
+      expect(await page.evaluate(() => window.__shifts)).toEqual([]);
+    });
+  }
 });
