@@ -1,0 +1,218 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "LOAKraken market-minutes",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/v1/markets/items/{itemId}/minutes": {
+      "get": {
+        "tags": [
+          "거래소"
+        ],
+        "summary": "상품 분 단위 시세",
+        "description": "시세 예열이 이미 받은 가격을 관측 시각의 UTC 분 칸으로 모은 최근 minutes분(1~120, 기본 60)입니다. 공식 API를 부르지 않습니다. 관측한 분만 점으로 주고 빈 분은 채우지 않습니다. 품목마다 다시 받는 주기가 달라(sampleEverySeconds, 예: 30·600·1800초) 분마다 점이 있는 것은 짧은 주기 품목뿐입니다. 예열하지 않는 품목은 빈 points입니다. 400 INVALID_REQUEST",
+        "operationId": "minutes",
+        "parameters": [
+          {
+            "name": "itemId",
+            "in": "path",
+            "description": "공식 거래소 상품 id",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "exclusiveMinimum": 0,
+              "maximum": 999999999
+            }
+          },
+          {
+            "name": "minutes",
+            "in": "query",
+            "description": "최근 몇 분(1~120, 기본 60)",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseMarketMinuteChartResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "CLIENT_RATE_LIMITED: 이 클라이언트의 분당 요청·공식 호출 한도 초과. Retry-After(초) 뒤 다시 시도",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ApiResponseMarketMinuteChartResponse": {
+        "type": "object",
+        "description": "공통 API 응답. 오류 응답의 data는 null입니다.",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "업무 결과 코드",
+            "example": "CHARACTER_SEARCH_SUCCESS"
+          },
+          "message": {
+            "type": "string",
+            "description": "공개용 안내 메시지",
+            "example": "캐릭터 조회에 성공했습니다."
+          },
+          "data": {
+            "$ref": "#/components/schemas/MarketMinuteChartResponse",
+            "description": "성공 응답 데이터. 오류일 때 null"
+          }
+        },
+        "required": [
+          "code",
+          "data",
+          "message"
+        ]
+      },
+      "MarketMinuteChartResponse": {
+        "type": "object",
+        "properties": {
+          "itemId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "itemName": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "관측한 적이 없으면 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "intervalSeconds": {
+            "type": "integer",
+            "format": "int32",
+            "description": "칸 크기(초). 늘 60",
+            "example": 60
+          },
+          "sampleEverySeconds": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32",
+                "description": "이 품목을 다시 받는 실제 주기(초, 마지막 점 기준). 점이 없으면 null",
+                "example": 30
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "from": {
+            "type": "string",
+            "format": "date-time",
+            "description": "첫 칸(포함), UTC 분"
+          },
+          "to": {
+            "type": "string",
+            "format": "date-time",
+            "description": "마지막 칸(포함, 진행 중인 분), UTC 분"
+          },
+          "points": {
+            "type": "array",
+            "description": "관측한 분만, 오래된 분부터",
+            "items": {
+              "$ref": "#/components/schemas/MarketMinutePointResponse"
+            }
+          }
+        },
+        "required": [
+          "from",
+          "intervalSeconds",
+          "itemId",
+          "itemName",
+          "points",
+          "sampleEverySeconds",
+          "to"
+        ]
+      },
+      "MarketMinutePointResponse": {
+        "type": "object",
+        "properties": {
+          "minute": {
+            "type": "string",
+            "format": "date-time",
+            "description": "관측 시각의 UTC 분"
+          },
+          "currentMinPrice": {
+            "anyOf": [
+              {
+                "type": "number",
+                "description": "판매 최저가(매물 없으면 null)"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "recentPrice": {
+            "anyOf": [
+              {
+                "type": "number",
+                "description": "최근 거래가(없으면 null)"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "currentMinPrice",
+          "minute",
+          "recentPrice"
+        ]
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "description": "공통 오류 응답. HTTP 상태와 업무 코드를 함께 확인합니다.",
+        "properties": {
+          "code": {
+            "type": "string",
+            "example": "INVALID_REQUEST"
+          },
+          "message": {
+            "type": "string",
+            "example": "요청 값이 올바르지 않습니다."
+          },
+          "data": {
+            "type": "null"
+          }
+        },
+        "required": [
+          "code",
+          "data",
+          "message"
+        ]
+      }
+    }
+  }
+}

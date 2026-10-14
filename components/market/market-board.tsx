@@ -37,6 +37,7 @@ import {
 import {
   MarketQueryError,
   fetchItemHistory,
+  fetchItemMinutes,
   fetchMarketBoard,
   fetchMarketTabs,
 } from "@/lib/market/client";
@@ -49,7 +50,8 @@ import {
   type FavoriteItem,
 } from "@/lib/market/favorites";
 import quote from "../tools/material-quote.module.css";
-import { MarketChart } from "./market-chart";
+import { MarketChart, dayPoints, minutePoints } from "./market-chart";
+import { sampleText } from "@/lib/market/minutes";
 import { SiteHeader } from "@/components/site/site-header";
 import { PillTab, PillTabs } from "@/components/ui/pill-tabs";
 
@@ -192,7 +194,8 @@ function Detail({
   const favorites = useFavorites();
   const starred = favorites.some((f) => f.itemId === item.itemId);
   const unit = unitPrice(item.currentMinPrice, item.bundleCount);
-  const [range, setRange] = useState<7 | 14>(14);
+  // 1시간 (K35): the last hour by minute, from prices the warm-up already fetched.
+  const [range, setRange] = useState<"hour" | 7 | 14>(14);
   const [variantIndex, setVariantIndex] = useState(0);
   const history = useQuery({
     queryKey: ["market", "history", item.itemId],
@@ -202,7 +205,19 @@ function Detail({
   });
   const data: ItemHistory | undefined = history.data?.data;
   const variant = data?.variants[Math.min(variantIndex, (data?.variants.length ?? 1) - 1)];
-  const days = completedDays(variant, range);
+  // The 14-day table stays as it was while the hour is shown.
+  const tableDays = range === "hour" ? 14 : range;
+  const days = completedDays(variant, tableDays);
+  const minutes = useQuery({
+    queryKey: ["market", "minutes", item.itemId],
+    queryFn: ({ signal }) => fetchItemMinutes(item.itemId, signal),
+    enabled: range === "hour",
+    staleTime: 30_000,
+    refetchInterval: range === "hour" ? 60_000 : false,
+    ...quiet,
+  });
+  const minute = minutes.data?.data;
+  const minuteFailure = failureOf(minutes.error);
   const fade = useCrossfade(history.isPending);
   // The browser tab carries the chosen item's price (checklist K36), so a
   // background tab still shows it. The page's own title can land after this
@@ -276,14 +291,18 @@ function Detail({
       <div className={styles.trendHead}>
         <h3>시세 추이</h3>
         <div className={styles.ranges} role="group" aria-label="기간">
-          {([7, 14] as const).map((value) => (
+          {([
+            ["hour", "1시간"],
+            [7, "7일"],
+            [14, "14일"],
+          ] as const).map(([value, label]) => (
             <button
               key={value}
               type="button"
               aria-pressed={range === value}
               onClick={() => setRange(value)}
             >
-              {value}일
+              {label}
             </button>
           ))}
         </div>
@@ -304,7 +323,24 @@ function Detail({
           ))}
         </div>
       )}
-      {failure ? (
+      {range === "hour" ? (
+        minuteFailure ? (
+          <Problem failure={minuteFailure} onRetry={() => minutes.refetch()} />
+        ) : !minute ? (
+          <p className={styles.chartPending} role="status">
+            <InlineOrb /> 최근 1시간을 불러오고 있어요
+          </p>
+        ) : minutePoints(minute.points).length ? (
+          <MarketChart
+            key="hour"
+            points={minutePoints(minute.points)}
+            span={[Date.parse(minute.from), Date.parse(minute.to)]}
+            label="최근 1시간 판매 최저가. 화살표 키로 분을 이동할 수 있어요."
+          />
+        ) : (
+          <p className={styles.chartPending}>이 품목은 분 단위로 확인하지 않아요. 7일·14일 추이를 봐 주세요.</p>
+        )
+      ) : failure ? (
         <Problem failure={failure} onRetry={() => history.refetch()} />
       ) : history.isPending ? (
         <>
@@ -316,12 +352,18 @@ function Detail({
         </>
       ) : days.length ? (
         <div ref={fade}>
-          <MarketChart days={days} />
+          <MarketChart points={dayPoints(days)} />
         </div>
       ) : (
         <p className={styles.muted}>아직 수집된 시세가 없어요.</p>
       )}
 
+      {/* One line in both ranges, so switching keeps the table in place (A7). */}
+      <p className={styles.chartCaption}>
+        {range === "hour"
+          ? [`판매 최저가`, sampleText(minute?.sampleEverySeconds), "확인하지 않은 분은 비어 있어요"].filter(Boolean).join(" · ")
+          : "하루 평균 거래가와 거래량"}
+      </p>
       {variant && variant.days.length > 0 && (
         <table className={styles.daily}>
           <thead>
@@ -332,7 +374,7 @@ function Detail({
             </tr>
           </thead>
           <tbody>
-            {variant.days.slice(0, range).map((day) => (
+            {variant.days.slice(0, tableDays).map((day) => (
               <tr key={day.date} data-partial={day.partial || undefined}>
                 <th scope="row">
                   {day.date.slice(5).replace("-", "/")}

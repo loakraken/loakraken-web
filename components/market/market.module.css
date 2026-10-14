@@ -523,6 +523,10 @@
 .chartSvg[data-direction="down"] {
   color: var(--market-down);
 }
+/* By minute (K35): each reading of a sparse item, small and solid on the line. */
+.reading {
+  fill: currentColor;
+}
 /* Bencho .bal-curve: 2.1 round stroke, no fill under it. */
 .line {
   fill: none;
@@ -661,6 +665,15 @@
   flex: 1;
   height: 14px;
   max-width: 60%;
+}
+/* Under the trend chart: what it shows, one line in every range (K35). */
+.chartCaption {
+  overflow: hidden;
+  margin: 4px 0 0;
+  color: var(--slate);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .chartPending {
   display: flex;

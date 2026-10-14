@@ -6,6 +6,7 @@ import type {
   TabsEnvelope,
 } from "./board";
 import { boardQueryString } from "./board";
+import type { MinuteChartEnvelope } from "./minutes";
 import { gemPickSearch, type GemBoardEnvelope, type GemListingsEnvelope, type GemPick } from "./auction-gems";
 import {
   accessorySearch,
@@ -91,6 +92,10 @@ export const fetchItemHistory = (itemId: number, signal: AbortSignal) =>
   call<ItemHistoryEnvelope>(`/api/markets/items/${itemId}/history`, {
     signal,
   });
+
+/** The last hour by minute (K35), from prices the warm-up already fetched. */
+export const fetchItemMinutes = (itemId: number, signal: AbortSignal) =>
+  call<MinuteChartEnvelope>(`/api/markets/items/${itemId}/minutes`, { signal });
 
 /** T4 gem prices on the auction house (backend cache). */
 export const fetchGemBoard = (signal: AbortSignal) => call<GemBoardEnvelope>("/api/markets/auctions/gems", { signal });
