@@ -128,8 +128,8 @@
 .members tr[data-current] {
   background: var(--hover-surface);
 }
-/* 원정대별 (K28): a roster of several members under its own line. */
-.roster[data-shared] {
+/* 원정대별 (K28): each roster, and the members alone or unknown, under its own line. */
+.roster {
   border-top: 2px solid var(--border);
 }
 .rosterHead th {

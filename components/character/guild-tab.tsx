@@ -53,17 +53,23 @@ type MemberRow = GuildDetail["members"][number];
 
 /**
  * Rosters as the backend numbered them in this answer (most members first,
- * then the highest item level); an unknown roster stands alone. The numbers
- * mean nothing outside this answer, so they are never shown.
+ * then the highest item level). A member alone in the guild, or whose roster
+ * is not known, goes into one last group of their own — never under the
+ * roster above it (PM-프론트 #788 P2). The numbers mean nothing outside this
+ * answer, so they are never shown.
  */
-function rosters(members: MemberRow[]) {
+export function rosters(members: MemberRow[]) {
   const known = new Map<number, MemberRow[]>();
-  const alone: MemberRow[][] = [];
-  for (const member of members) {
-    if (member.rosterGroup == null) alone.push([member]);
-    else known.set(member.rosterGroup, [...(known.get(member.rosterGroup) ?? []), member]);
-  }
-  return [...[...known.entries()].sort((a, b) => a[0] - b[0]).map(([, rows]) => rows), ...alone];
+  for (const member of members)
+    if (member.rosterGroup != null) known.set(member.rosterGroup, [...(known.get(member.rosterGroup) ?? []), member]);
+  const shared = [...known.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .map(([, rows]) => rows)
+    .filter((rows) => rows.length > 1);
+  const single = new Set(shared.flat());
+  // In the item level order the members came in.
+  const rest = members.filter((member) => !single.has(member));
+  return { shared, rest };
 }
 
 function MemberRows({ rows, current }: { rows: MemberRow[]; current: string }) {
@@ -90,7 +96,7 @@ function Members({ detail, current }: { detail: GuildDetail; current: string }) 
   // page scrolled to its end would be pulled up (A7).
   const [tableRef, tableHeight] = useTallest();
   const groups = rosters(detail.members);
-  const shared = groups.filter((rows) => rows.length > 1).length;
+  const shared = groups.shared.length;
   return (
     <Panel
       title="길드원"
@@ -131,18 +137,28 @@ function Members({ detail, current }: { detail: GuildDetail; current: string }) 
           </thead>
           {/* Drawn anew per view: rows moved in place would count as moving (A7). */}
           {byRoster ? (
-            groups.map((rows, i) => (
-              <tbody key={`roster-${i}`} className={own.roster} data-shared={rows.length > 1 || undefined}>
-                {rows.length > 1 && (
+            <>
+              {groups.shared.map((rows, i) => (
+                <tbody key={`roster-${i}`} className={own.roster}>
                   <tr className={own.rosterHead}>
                     <th scope="rowgroup" colSpan={6}>
                       같은 원정대 {rows.length}명
                     </th>
                   </tr>
-                )}
-                <MemberRows rows={rows} current={current} />
-              </tbody>
-            ))
+                  <MemberRows rows={rows} current={current} />
+                </tbody>
+              ))}
+              {groups.rest.length > 0 && (
+                <tbody key="rest" className={own.roster}>
+                  <tr className={own.rosterHead}>
+                    <th scope="rowgroup" colSpan={6}>
+                      혼자이거나 원정대를 모르는 길드원 {groups.rest.length}명
+                    </th>
+                  </tr>
+                  <MemberRows rows={groups.rest} current={current} />
+                </tbody>
+              )}
+            </>
           ) : (
             <tbody key="level">
               <MemberRows rows={detail.members} current={current} />

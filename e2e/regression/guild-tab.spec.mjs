@@ -32,6 +32,12 @@ for (const width of [1280, 360])
     const grouped = await shiftsDuring(page, () => view.getByRole("button", { name: "원정대별" }).click());
     await expect(members.getByRole("rowheader", { name: "같은 원정대 3명" })).toBeVisible();
     await expect(members.getByRole("rowheader", { name: "같은 원정대 2명" })).toBeVisible();
+    // Each group holds only its own members; the ones alone or unknown sit in a
+    // last group of their own, not under the roster above (PM-프론트 #788 P2).
+    const group = (name) => members.locator("tbody", { has: page.getByRole("rowheader", { name }) }).getByRole("row");
+    await expect(group("같은 원정대 3명")).toHaveCount(4);
+    await expect(group("같은 원정대 2명")).toHaveCount(3);
+    await expect(group("혼자이거나 원정대를 모르는 길드원 7명")).toHaveCount(8);
     await expect(members.locator("tbody").first()).toContainText("상세");
     expect(grouped.all, `원정대별 전환 흔들림 (${grouped.moved})`).toBe(0);
     const level = await shiftsDuring(page, () => view.getByRole("button", { name: "아이템 레벨 순" }).click());
