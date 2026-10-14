@@ -115,6 +115,8 @@ test("로아샵 figures round the absolute value away from zero (its comparison 
   assert.equal(signedGold(1e-12, "awayFromZero"), "0");
   // The other tools keep .5 up.
   assert.equal(signedGold(-1087.5), "−1,087");
+});
+
 test("ended sales are split off from those on sale (folded on screen), by the KST end time in the data", () => {
   const kst = (iso: string) => Date.parse(`${iso}+09:00`);
   // Every end time is a KST timestamp; "정기 점검 전" is Wednesday 06:00.
