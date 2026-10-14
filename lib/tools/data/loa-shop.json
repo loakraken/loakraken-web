@@ -128,7 +128,7 @@
       "limit": "본 상품은 원정대당 3회 구매 가능합니다.",
       "bonus": null,
       "source": "notice-13549",
-      "items": [{ "kind": "market", "name": "페온", "qty": 50, "detail": null }]
+      "items": [{ "kind": "pheon", "name": "페온", "qty": 50, "detail": null }]
     }
   ]
 }

@@ -14,12 +14,15 @@
 // without a market price are "미확인", never 0, and block the gain; contents
 // that cannot be traded at all (the price API's UNTRADEABLE) are left out of
 // the gold and the gain is still computed (PM 총괄 2026-10-14, as on the
-// comparison basis). Static data in
+// comparison basis). 페온 is handled the same way: it has no market and no
+// sourced gold value, so it is left out and named ("페온 n개 제외"); a package
+// with nothing but 페온 is not valued at all (PM 총괄 2026-10-14, P3). Static data in
 // data/loa-shop.json, from the official shop notices.
 import raw from "./data/loa-shop.json";
 
 export type ShopItem = {
-  kind: "market" | "crystal";
+  /** pheon: no market and no gold value; left out of the gold. */
+  kind: "market" | "crystal" | "pheon";
   /** Market item name (or "크리스탈"). */
   name: string;
   /** Units per set. */
@@ -75,6 +78,8 @@ export type UnitPrice = number | null | typeof UNTRADEABLE;
 export type ItemValue = ShopItem & {
   /** Cannot be traded: left out of the gold, does not block the gain. */
   untradeable: boolean;
+  /** 페온: left out of the gold, does not block the gain. */
+  pheon: boolean;
   /** Units across the whole plan (sets × qty). */
   total: number;
   /** Gold per unit, or null when unknown (no market price, or no exchange rate for crystals). */
@@ -92,6 +97,10 @@ export type PackageValue = {
   unknown: ItemValue[];
   /** Contents left out of `gold` because they cannot be traded. */
   untradeable: ItemValue[];
+  /** 페온 contents, left out of `gold`. */
+  pheon: ItemValue[];
+  /** Nothing but 페온: no gold to value, so no gain either. */
+  onlyPheon: boolean;
   /** Crystals the same royal crystals would buy at the official shop. */
   crystalsForPrice: number;
   /** Crystals inside the package. */
@@ -126,18 +135,21 @@ export function packageValue(
   const { purchases, sets, priceRoyal } = purchasePlan(pkg);
   const items = pkg.items.map((item): ItemValue => {
     const total = item.qty * sets;
+    if (item.kind === "pheon") return { ...item, total, untradeable: false, pheon: true, unit: null, gold: null };
     const price = item.kind === "crystal" ? (goldPer100 == null ? null : goldPer100 / 100) : unitPrice(item.name);
-    if (price === UNTRADEABLE) return { ...item, total, untradeable: true, unit: null, gold: null };
+    if (price === UNTRADEABLE) return { ...item, total, untradeable: true, pheon: false, unit: null, gold: null };
     // A unit price of 0 or less is unknown, never counted as 0.
     const unit = price != null && Number.isFinite(price) && price > 0 ? price : null;
-    return { ...item, total, untradeable: false, unit, gold: unit == null ? null : lineGold(total * unit) };
+    return { ...item, total, untradeable: false, pheon: false, unit, gold: unit == null ? null : lineGold(total * unit) };
   });
   const known = items.filter((i) => i.gold != null);
-  const unknown = items.filter((i) => i.gold == null && !i.untradeable);
+  const unknown = items.filter((i) => i.gold == null && !i.untradeable && !i.pheon);
   const untradeable = items.filter((i) => i.untradeable);
+  const pheon = items.filter((i) => i.pheon);
+  const onlyPheon = pheon.length > 0 && pheon.length === items.length;
   const gold = known.reduce((sum, i) => sum + (i.gold as number), 0);
   const crystals = items.filter((i) => i.kind === "crystal").reduce((sum, i) => sum + i.total, 0);
-  const royalValue = goldPer100 && goldPer100 > 0 && !unknown.length ? (gold * royalPer100) / goldPer100 : null;
+  const royalValue = goldPer100 && goldPer100 > 0 && !unknown.length && !onlyPheon ? (gold * royalPer100) / goldPer100 : null;
   return {
     purchases,
     sets,
@@ -146,6 +158,8 @@ export function packageValue(
     gold,
     unknown,
     untradeable,
+    pheon,
+    onlyPheon,
     crystalsForPrice: Math.floor((priceRoyal * 100) / royalPer100),
     crystals,
     royalValue,
