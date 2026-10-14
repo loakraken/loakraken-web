@@ -289,11 +289,18 @@
     transition: none;
   }
 }
+/* Phones: 44px to press (hit-44, A36); the set kinds 44px wide at least, so
+   the two areas side by side do not overlap. */
 @media (max-width: 699px), (pointer: coarse) {
-  .refillButton {
+  .refillButton,
+  .roles button {
     position: relative;
   }
-  .refillButton::after {
+  .roles button {
+    min-width: 44px;
+  }
+  .refillButton::after,
+  .roles button::after {
     content: "";
     position: absolute;
     left: 50%;

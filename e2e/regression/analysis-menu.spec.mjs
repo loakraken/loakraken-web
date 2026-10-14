@@ -58,6 +58,39 @@ for (const width of [360, 390])
     await expectNoHorizontalOverflow(page);
   });
 
+// A33·A15: on a phone the menu hangs centred under 더보기 (not stuck to the
+// left edge), inside the screen, and never over the pinned header — at the
+// top of the page and scrolled, on a short screen too.
+for (const [width, height] of [
+  [360, 800],
+  [390, 844],
+  [360, 640],
+])
+  for (const scrolled of [false, true])
+    test(`더보기 메뉴: ${width}×${height} ${scrolled ? "스크롤한 뒤" : "첫 화면"} 트리거 가운데·헤더 아래 @regression`, async ({ page }) => {
+      await page.setViewportSize({ width, height });
+      await gotoReady(page, characterPath("상세"));
+      if (scrolled) await page.mouse.wheel(0, 600);
+      const trigger = page.getByRole("button", { name: "더보기" });
+      await trigger.click();
+      const menu = page.getByRole("menu");
+      await expect(menu).toBeVisible();
+      // Settled: the open transition scales from 0.98.
+      await expect.poll(() => menu.evaluate((el) => el.getAnimations().length)).toBe(0);
+      const t = await trigger.boundingBox();
+      const m = await menu.boundingBox();
+      const header = await page.locator("header[data-sticky-chrome]").boundingBox();
+      expect(Math.abs(m.x + m.width / 2 - (t.x + t.width / 2)), "메뉴 가운데 = 트리거 가운데").toBeLessThanOrEqual(1);
+      expect(m.x, "왼쪽 끝 화면 안").toBeGreaterThanOrEqual(12);
+      expect(m.x + m.width, "오른쪽 끝 화면 안").toBeLessThanOrEqual(width - 12);
+      expect(m.y, "헤더를 덮지 않음").toBeGreaterThanOrEqual(header.y + header.height);
+      expect(m.y + m.height, "아래 끝 화면 안").toBeLessThanOrEqual(height - 12 + 0.5);
+      // Every item can be reached: the list scrolls inside when it is cut.
+      const last = menu.getByRole("menuitem").last();
+      await last.scrollIntoViewIfNeeded();
+      await expect(last).toBeInViewport();
+    });
+
 test("분석 메뉴: 넓은 화면은 공유·즐겨찾기가 탭 줄에, 메뉴는 분석만 @regression", async ({ page }) => {
   await gotoReady(page, characterPath("상세"));
   await expect(page.getByRole("button", { name: "공유하기" })).toBeVisible();
