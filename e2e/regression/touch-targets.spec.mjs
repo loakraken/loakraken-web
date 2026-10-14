@@ -65,12 +65,19 @@ test("캐릭터 화면 작은 버튼 누르는 영역 44 @regression @A36", asyn
   ]);
 });
 
-test("홈 인기 검색 기간·소식 분류 누르는 영역 44 @regression @A36", async ({ page }) => {
+test("홈 인기 검색 기간·소개 바닥글·소식 분류 누르는 영역 44 @regression @A36", async ({ page }) => {
   await gotoReady(page, "/");
   const period = page.getByRole("group", { name: "기간", exact: true });
   await expectPressable([
     ["24시간", period.getByRole("button", { name: "24시간" })],
     ["7일", period.getByRole("button", { name: "7일" })],
+  ]);
+
+  await gotoReady(page, "/about");
+  const footer = page.getByRole("contentinfo").filter({ has: page.getByRole("link", { name: /Libraries\.dev/ }) });
+  await expectPressable([
+    ["소개 바닥글 LOAKraken", footer.getByRole("link", { name: "LOAKraken" })],
+    ["소개 바닥글 바깥 링크", footer.getByRole("link", { name: /Libraries\.dev/ })],
   ]);
 
   await gotoReady(page, "/news");
