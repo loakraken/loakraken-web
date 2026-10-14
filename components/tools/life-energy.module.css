@@ -68,6 +68,14 @@
 .method {
   min-height: 1lh;
 }
+/* Narrow columns: "상급 아비도스 융화 재료 14번 만들어 팔기" takes two lines while
+   "캔 재료 그대로 팔기" takes one, so a new energy would change the row
+   heights (PM-프론트 360 0.0093). Two lines are held there. */
+@media (max-width: 599px) {
+  .method {
+    min-height: 2lh;
+  }
+}
 .colActivity {
   width: 58%;
 }

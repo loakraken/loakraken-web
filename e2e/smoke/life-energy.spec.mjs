@@ -44,4 +44,26 @@ test.describe("생명의 기운 효율 @smoke", () => {
     await page.getByRole("textbox", { name: "쓸 생명의 기운" }).fill("0");
     await expect(page.getByText("1~1,000,000 사이 정수로 넣어 주세요.")).toBeVisible();
   });
+
+  // PM-프론트 측정(#806, 360 0.0093): 기운을 바꾸면 방법 줄 길이가 바뀌어(재료 판매 ↔ 상급 N번 만들어 팔기)
+  // 좁은 화면에서 표 줄 높이가 달라졌다. 두 줄을 미리 잡아 두어, 입력 중에도 이동이 0이어야 한다.
+  test("좁은 화면에서 기운을 넣었다 지워도 결과 표가 움직이지 않는다", async ({ page }) => {
+    // Tall enough that the whole table is in view, so every shift is counted.
+    await page.setViewportSize({ width: 360, height: 2400 });
+    await gotoReady(page, "/tools/life-energy");
+    await expect(page.getByText("벌목에 쓰면 31,955골드로 가장 많이 벌어요")).toBeVisible();
+    await page.evaluate(() => {
+      window.__shifts = [];
+      new PerformanceObserver((list) => {
+        for (const e of list.getEntries()) window.__shifts.push(e.value);
+      }).observe({ type: "layout-shift" });
+    });
+    const input = page.getByRole("textbox", { name: "쓸 생명의 기운" });
+    await input.pressSequentially("123", { delay: 100 });
+    await expect(page.getByText(/^생명의 기운 123으로 벌면$/)).toBeVisible();
+    for (let i = 0; i < 3; i++) await input.press("Backspace");
+    await expect(page.getByText("벌목에 쓰면 31,955골드로 가장 많이 벌어요")).toBeVisible();
+    await page.waitForTimeout(500);
+    expect(await page.evaluate(() => window.__shifts)).toEqual([]);
+  });
 });
