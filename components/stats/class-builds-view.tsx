@@ -359,7 +359,13 @@ export function ClassBuildsView({
                 표본이 {whole(meta?.minSample ?? 30)}명보다 적어 대세와 비교하지 않아요.
               </p>
             ) : (
-              <BuildCompare key={builds.dataUpdatedAt} name={compare} className={query.className} builds={data} />
+              <BuildCompare
+                key={builds.dataUpdatedAt}
+                name={compare}
+                className={query.className}
+                activeDays={query.activeDays}
+                builds={data}
+              />
             )}
           </div>
         )}

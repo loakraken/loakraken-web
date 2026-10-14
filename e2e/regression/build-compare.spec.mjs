@@ -31,6 +31,9 @@ for (const width of [1280, 360])
     await expect(card(page, "피해 증가 보석")).toContainText("대세와 달라요 · 가장 많은 10레벨이 없음");
     await expect(card(page, "피해 증가 보석")).toContainText("내 보석: 9레벨 1개");
     await expect(card(page, "카드 세트")).toContainText("내 세팅: 세상을 구하는 빛 6세트 30각성");
+    // The verdict naming what is missing is read whole, not cut with an ellipsis (phones: two lines).
+    const verdict = card(page, "팔찌 전투 특성").getByText(/^대세와 달라요 · 과반이 쓰는/);
+    expect(await verdict.evaluate((el) => el.scrollHeight <= el.clientHeight + 1 && el.scrollWidth <= el.clientWidth + 1), "판정 줄 잘림").toBe(true);
 
     await page.waitForTimeout(500);
     const load = await shiftsSince(page);
@@ -60,6 +63,21 @@ test("@M26 다른 직업 캐릭터는 비교하지 않고 그렇게 알린다 @r
   await expect(compare.getByRole("status")).toHaveText(/^\S+ 캐릭터라 블레이드 대세와 비교하지 않았어요\.$/);
   // No card claims anything about this character.
   await expect(compare.getByText("내 세팅", { exact: true })).toHaveCount(0);
+});
+
+test("@M26 최근 검색 기록이 없는 캐릭터는 그렇게 알린다 @regression", async ({ page }) => {
+  await gotoReady(page, `${BLADE}?character=${encodeURIComponent("기록없는블레이드")}`);
+  const compare = page.getByRole("region", { name: "기록없는블레이드의 세팅과 대세" });
+  await expect(compare.getByRole("status")).toHaveText(/^최근 검색 기록이 없어 비교하지 못했어요\./);
+  await expect(compare.getByText("내 세팅", { exact: true })).toHaveCount(0);
+});
+
+test("@M26 표본 밖 캐릭터는 까닭을 말하고, 팔찌는 기준 레벨 미만이라 비교하지 않는다 @regression", async ({ page }) => {
+  await gotoReady(page, `${BLADE}?character=${encodeURIComponent("표본밖블레이드")}`);
+  const compare = page.getByRole("region", { name: "표본밖블레이드의 세팅과 대세" });
+  await expect(compare.getByRole("status")).toContainText("이 캐릭터는 표본에 들지 않아요(아이템 레벨 1,680 미만).");
+  await expect(card(page, "각인 조합")).toContainText("대세와 같아요");
+  await expect(card(page, "팔찌 전투 특성")).toContainText("아이템 레벨 1,680 미만이라 비교하지 않았어요");
 });
 
 test("@M26 표본이 적은 직업은 비교하지 않는다 @regression", async ({ page }) => {

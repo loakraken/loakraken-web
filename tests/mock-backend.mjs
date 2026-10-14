@@ -1346,6 +1346,49 @@ createServer(async (req, res) => {
   // Class builds (api #468·#470, M12): 블레이드 has a sample, every other class
   // is still collecting. Each section has a hidden part; engravings and
   // bracelet stats count a character in several cells.
+  // One character's cells (api #498, M26): 대세블레이드 is the 블레이드 the
+  // comparison is drawn against (its cells as the backend reads the character
+  // below); 표본밖블레이드 is one under the statistics' item level (outside the
+  // sample, no bracelet compared); 상세 is another class; any other name is not cached.
+  {
+    const cellsPath = /^\/api\/v1\/stats\/classes\/([^/]+)\/builds\/character$/.exec(url.pathname);
+    if (cellsPath) {
+      const className = decodeURIComponent(cellsPath[1]);
+      const who = url.searchParams.get("characterName") ?? "";
+      const days = Number(url.searchParams.get("activeDays") || 30);
+      const own = { 대세블레이드: ["블레이드", 1700], 표본밖블레이드: ["블레이드", 1660], 상세: ["블래스터", 1780.83] }[who];
+      if (!own) return send({ code: "CHARACTER_NOT_CACHED", message: "", data: null }, 404);
+      const [characterClass, itemLevel] = own;
+      const key = (name) => ({ name });
+      const reasons = [
+        ...(characterClass !== className ? ["OTHER_CLASS"] : []),
+        ...(itemLevel < 1680 ? ["ITEM_LEVEL_OUT_OF_RANGE"] : []),
+      ];
+      const combo = ["돌격대장", "아드레날린", "원한", "잔재된 기운", "질량 증가"];
+      return send({
+        code: "STATS_CLASS_BUILDS_SUCCESS",
+        message: "ok",
+        data: {
+          characterName: who, serverName: "아만", className: characterClass, itemLevel,
+          observedAt: new Date(Date.now() - 3_600_000).toISOString(), source: "LIVE_CACHE",
+          inSample: reasons.length === 0, reasons,
+          conditions: { itemLevelMin: 1680, itemLevelMax: null, activeDays: days, braceletItemLevelMin: 1680 },
+          cells: {
+            classEngravings: key("잔재된 기운"),
+            engravingCombos: { engravings: combo },
+            engravings: combo.map(key),
+            arkPassivePoints: { evolution: { value: 140 }, enlightenment: { value: 98 }, leap: { value: 70 } },
+            gems: { damage: [{ value: 9 }], cooldown: [{ value: 10 }] },
+            cardSets: { set: "세상을 구하는 빛", pieces: 6, awakening: 30 },
+            topStats: { name: "특화", tie: false },
+            braceletEligible: itemLevel >= 1680,
+            braceletStats: itemLevel >= 1680 ? [key("특화"), key("신속")] : null,
+          },
+          ruleVersion: "class-builds-v1",
+        },
+      });
+    }
+  }
   {
     const builds = /^\/api\/v1\/stats\/classes\/([^/]+)\/builds$/.exec(url.pathname);
     if (builds) {

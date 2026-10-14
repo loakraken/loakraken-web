@@ -231,3 +231,17 @@
   color: var(--muted-foreground);
   font-size: 12px;
 }
+/* Phones: a card is about 22 letters wide, so a verdict naming what is missing
+   was cut with no way to read the rest. Two lines each, held from the first
+   paint (the lines fill in place when the character lands, A6). */
+@media (max-width: 699px) {
+  .compareVerdict,
+  .compareMineLine {
+    display: -webkit-box;
+    min-height: 40px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+}

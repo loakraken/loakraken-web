@@ -1,120 +1,29 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { compareBuild, myBuild } from "../lib/stats/build-compare";
-import type { Character } from "../lib/character/model";
-import type { ClassBuilds } from "../lib/stats/class-builds";
+import { compareBuild, outsideSample } from "../lib/stats/build-compare";
+import type { ClassBuildCells, ClassBuilds } from "../lib/stats/class-builds";
 
-/** A character with only what the comparison reads (synthetic values). */
-function character(overrides: Record<string, unknown> = {}): Character {
-  const stat = (type: string, value: string) => ({ type, value, tooltip: [] });
+/** One character's cells as the backend gives them (synthetic values). */
+function cells(overrides: Partial<ClassBuildCells> = {}): ClassBuildCells {
+  const key = (name: string) => ({ name });
   return {
-    stats: [stat("치명", "612"), stat("특화", "1,812"), stat("신속", "88"), stat("제압", "71"), stat("인내", "70"), stat("숙련", "69")],
-    loadout: {
-      engravings: {
-        slots: [],
-        effects: [],
-        arkPassiveEffects: [
-          { name: "원한", grade: "유물", level: 4, abilityStoneLevel: 2, description: null },
-          { name: "아드레날린", grade: "유물", level: 4, abilityStoneLevel: 0, description: null },
-          { name: " ", grade: null, level: null, abilityStoneLevel: null, description: null },
-          { name: "예리한 둔기", grade: "유물", level: 4, abilityStoneLevel: null, description: null },
-        ],
-      },
-      arkPassive: {
-        title: "버스트",
-        enabled: true,
-        points: [
-          { name: "진화", value: 140, description: null },
-          { name: "깨달음", value: 101, description: null },
-          { name: "도약", value: 70, description: null },
-        ],
-        effects: [],
-      },
-      gems: {
-        items: [
-          { slot: 2, name: "10레벨 겁화의 보석", level: 10, icon: null, grade: null, titleLine: null, itemLevel: null, tier: 4, tradeLines: [] },
-          { slot: 1, name: "9레벨 작열의 보석", level: 9, icon: null, grade: null, titleLine: null, itemLevel: null, tier: 4, tradeLines: [] },
-          { slot: 3, name: "10레벨 멸화의 보석", level: 10, icon: null, grade: null, titleLine: null, itemLevel: null, tier: 3, tradeLines: [] },
-          { slot: 4, name: "8레벨 광휘의 보석", level: 8, icon: null, grade: null, titleLine: null, itemLevel: null, tier: 4, tradeLines: [] },
-        ],
-        effects: {
-          description: null,
-          skills: [
-            { gemSlot: 1, name: "a", description: ["재사용 대기시간 20.00% 감소"], option: null, icon: null },
-            { gemSlot: 2, name: "b", description: ["피해 40.00% 증가"], option: null, icon: null },
-            { gemSlot: 3, name: "c", description: ["피해 30.00% 증가"], option: null, icon: null },
-            { gemSlot: 4, name: "d", description: ["피해 24.00% 증가"], option: null, icon: null },
-          ],
-        },
-      },
-      cards: {
-        items: [],
-        effects: [
-          {
-            index: 0,
-            cardSlots: [],
-            items: [
-              { name: "세상을 구하는 빛 2세트", description: "암속성 피해 감소" },
-              { name: "세상을 구하는 빛 6세트", description: null },
-              { name: "세상을 구하는 빛 6세트 (18각성합계)", description: null },
-              { name: "세상을 구하는 빛 6세트 (30각성합계)", description: null },
-            ],
-          },
-        ],
-      },
-      equipment: [
-        {
-          type: "팔찌",
-          name: "팔찌",
-          icon: null,
-          grade: null,
-          detail: { braceletEffects: [{ text: "특화 +100\n치명타 피해 +8.40%", grade: null }, { text: "치명 +81", grade: null }] },
-        },
-      ],
-      arkGrid: null,
-      skills: [],
-    },
+    classEngravings: key("버스트"),
+    engravingCombos: { engravings: ["아드레날린", "예리한 둔기", "원한"] },
+    engravings: ["아드레날린", "예리한 둔기", "원한"].map(key),
+    arkPassivePoints: { evolution: { value: 140 }, enlightenment: { value: 101 }, leap: { value: 70 } },
+    // Tier 4 only, higher levels first (the 멸화 is not here: the backend leaves it out).
+    gems: { damage: [{ value: 10 }, { value: 8 }], cooldown: [{ value: 9 }] },
+    cardSets: { set: "세상을 구하는 빛", pieces: 6, awakening: 30 },
+    topStats: { name: "특화", tie: false },
+    braceletEligible: true,
+    braceletStats: ["특화", "치명"].map(key),
     ...overrides,
-  } as unknown as Character;
+  };
 }
-
-test("my build: read with the class statistics' own rules", () => {
-  const mine = myBuild(character());
-  assert.equal(mine.classEngraving, "버스트");
-  // Names sorted as the statistics sort them, blanks left out.
-  assert.deepEqual(mine.combo, ["아드레날린", "예리한 둔기", "원한"]);
-  assert.deepEqual(mine.points, { evolution: 140, enlightenment: 101, leap: 70 });
-  // In slot order; the kind from the name, the effect kind from that slot's skill line.
-  assert.deepEqual(mine.gems, [
-    { kind: "작열", level: 9, mode: "COOLDOWN" },
-    { kind: "겁화", level: 10, mode: "DAMAGE" },
-    { kind: "멸화", level: 10, mode: "DAMAGE" },
-    { kind: "광휘", level: 8, mode: "DAMAGE" },
-  ]);
-  // The largest set; at the same size, the highest awakening total.
-  assert.deepEqual(mine.cardSet, { set: "세상을 구하는 빛", pieces: 6, awakening: 30 });
-  // "1,812" reads 1812: 특화 is the top stat.
-  assert.equal(mine.topStat, "특화");
-  // Only "stat +n" lines count.
-  assert.deepEqual(mine.braceletStats, ["특화", "치명"]);
-});
-
-test("my build: ties go to the earlier stat, an unread stat or part gives nothing", () => {
-  const tie = character({
-    stats: ["치명", "특화", "신속", "제압", "인내", "숙련"].map((type, i) => ({ type, value: i < 2 ? "900" : "60", tooltip: [] })),
-  });
-  assert.equal(myBuild(tie).topStat, "치명");
-  const missing = character({ stats: [{ type: "치명", value: "900", tooltip: [] }] });
-  assert.equal(myBuild(missing).topStat, null);
-  const bare = character();
-  (bare.loadout as unknown as Record<string, unknown>).engravings = null;
-  (bare.loadout as unknown as Record<string, unknown>).equipment = [];
-  assert.equal(myBuild(bare).combo, null);
-  assert.equal(myBuild(bare).braceletStats, null);
-});
 
 const section = <T>(cells: T[], hidden = 0) => ({ known: 100, hidden: { count: hidden, share: hidden }, cells });
 const builds = {
+  braceletItemLevelMin: 1680,
   engravingCombos: section(
     [
       { engravings: ["아드레날린", "예리한 둔기", "원한"], count: 50, share: 50 },
@@ -144,7 +53,7 @@ const builds = {
 } as unknown as ClassBuilds;
 
 test("comparison: first three, the rest, and where mine stands in words", () => {
-  const sections = Object.fromEntries(compareBuild(builds, myBuild(character())).map((s) => [s.id, s]));
+  const sections = Object.fromEntries(compareBuild(builds, cells()).map((s) => [s.id, s]));
   // One setting per character: mine is the first; the rest share 100 − the first three.
   assert.equal(sections.combo.verdict, "대세와 같아요");
   assert.equal(sections.combo.mine, "내 세팅: 아드레날린 · 예리한 둔기 · 원한");
@@ -160,7 +69,7 @@ test("comparison: first three, the rest, and where mine stands in words", () => 
   assert.equal(sections.engravings.verdict, "대세와 같아요");
   assert.equal(sections.engravings.mine, "추가: 예리한 둔기");
   assert.equal(sections.engravings.differs, false);
-  // Gems per effect kind, tier 4 only (the 멸화 is left out).
+  // Gems per effect kind, per gem.
   assert.equal(sections.damage.verdict, "가장 많은 10레벨이 있어요");
   assert.equal(sections.damage.mine, "내 보석: 10레벨 1개·8레벨 1개");
   assert.equal(sections.cooldown.verdict, "대세와 달라요 · 가장 많은 10레벨이 없음");
@@ -173,11 +82,17 @@ test("comparison: first three, the rest, and where mine stands in words", () => 
   assert.equal(sections.bracelet.mine, null);
 });
 
+test("comparison: the combo matches whatever order the names come in; a tie says how it was counted", () => {
+  const sections = Object.fromEntries(
+    compareBuild(builds, cells({ engravingCombos: { engravings: ["원한", "아드레날린", "예리한 둔기"] }, topStats: { name: "치명", tie: true } })).map((s) => [s.id, s]),
+  );
+  assert.equal(sections.combo.verdict, "대세와 같아요");
+  assert.equal(sections.topStat.verdict, "대세와 달라요 · 내 세팅은 2위");
+  assert.equal(sections.topStat.mine, "내 세팅: 치명 (같은 값이 있어 앞 순서로 셈)");
+});
+
 test("comparison, several per character: a missing majority line differs; no majority, no verdict", () => {
-  const onlyCrit = { ...character(), stats: character().stats } as Character;
-  const bracelet = (onlyCrit.loadout.equipment[0] as unknown as { detail: { braceletEffects: { text: string; grade: null }[] } }).detail;
-  bracelet.braceletEffects = [{ text: "치명 +100", grade: null }, { text: "신속 +81", grade: null }];
-  const mine = myBuild(onlyCrit);
+  const mine = cells({ braceletStats: [{ name: "치명" }, { name: "신속" }] });
   const lacking = compareBuild(builds, mine).find((s) => s.id === "bracelet")!;
   assert.equal(lacking.verdict, "대세와 달라요 · 과반이 쓰는 특화 없음");
   assert.equal(lacking.mine, "추가: 신속");
@@ -194,11 +109,49 @@ test("comparison, several per character: a missing majority line differs; no maj
   assert.equal(none.mine, "내 세팅: 치명·신속");
 });
 
-test("comparison: an unread character compares nothing and says so", () => {
-  const empty = { classEngraving: null, combo: null, points: null, gems: null, cardSet: null, topStat: null, braceletStats: null };
-  for (const section of compareBuild(builds, empty)) {
-    assert.equal(section.differs, false, section.id);
-    assert.equal(section.mine, null, section.id);
-    assert.match(section.verdict, /읽지 못해 비교하지 않았어요/, section.id);
-  }
+test("comparison: what the backend could not read compares nothing and says so", () => {
+  const unread = cells({
+    engravingCombos: null,
+    engravings: null,
+    arkPassivePoints: { evolution: null, enlightenment: null, leap: null },
+    gems: { damage: null, cooldown: null },
+    cardSets: null,
+    topStats: null,
+    braceletStats: null,
+  });
+  for (const mine of [unread, null])
+    for (const section of compareBuild(builds, mine)) {
+      assert.equal(section.differs, false, section.id);
+      assert.equal(section.mine, null, section.id);
+      assert.match(section.verdict, /읽지 못해 비교하지 않았어요/, section.id);
+    }
+  // No gem of that effect kind is not unread: it is said as none.
+  const noCooldown = compareBuild(builds, cells({ gems: { damage: [{ value: 10 }], cooldown: [] } })).find((s) => s.id === "cooldown")!;
+  assert.equal(noCooldown.verdict, "대세와 달라요 · 가장 많은 10레벨이 없음");
+  assert.equal(noCooldown.mine, "내 보석: 이 효과의 4티어 보석 없음");
+});
+
+test("comparison: under the bracelet item level the bracelet is not compared, as it is not counted", () => {
+  const low = compareBuild(builds, cells({ braceletEligible: false, braceletStats: null }), 1680).find((s) => s.id === "bracelet")!;
+  assert.equal(low.verdict, "아이템 레벨 1,680 미만이라 비교하지 않았어요");
+  assert.equal(low.differs, false);
+  assert.equal(low.mine, null);
+});
+
+test("outside the sample: each reason in words, other class left to the caller, unknown ones as the conditions", () => {
+  const conditions = { itemLevelMin: 1680, itemLevelMax: null, activeDays: 30, braceletItemLevelMin: 1680 };
+  assert.equal(outsideSample({ inSample: true, reasons: [], conditions, itemLevel: 1700 }), null);
+  assert.equal(
+    outsideSample({ inSample: false, reasons: ["ITEM_LEVEL_OUT_OF_RANGE", "NOT_RECENT", "NO_COMBAT_POWER"], conditions, itemLevel: 1660 }),
+    "이 캐릭터는 표본에 들지 않아요(아이템 레벨 1,680 미만 · 최근 30일 안에 확인되지 않음 · 전투력 확인 없음).",
+  );
+  assert.equal(
+    outsideSample({ inSample: false, reasons: ["ITEM_LEVEL_OUT_OF_RANGE"], conditions: { ...conditions, itemLevelMax: 1700 }, itemLevel: 1720.5 }),
+    "이 캐릭터는 표본에 들지 않아요(아이템 레벨 1,700 초과).",
+  );
+  assert.equal(outsideSample({ inSample: false, reasons: ["OTHER_CLASS"], conditions, itemLevel: 1700 }), null);
+  assert.equal(
+    outsideSample({ inSample: false, reasons: ["SOMETHING_NEW", "ANOTHER_NEW"], conditions, itemLevel: 1700 }),
+    "이 캐릭터는 표본에 들지 않아요(통계 조건 밖).",
+  );
 });

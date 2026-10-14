@@ -24,6 +24,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/stats/classes/{className}/builds/character": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 직업 빌드 통계에서 캐릭터 한 명의 칸
+         * @description 캐릭터 한 명이 직업 빌드 통계(class-builds-v1)의 어느 칸에 드는지 줍니다. 집계와 같은 규칙이며, cells의 항목 이름은 빌드 통계 응답의 항목, 값은 그 항목 cells[]의 key와 같은 모양입니다. 공식 API를 부르지 않습니다: 최근 검색 캐시 → 저장된 마지막 장비 요약 순서로 찾고, 둘 다 없으면 404 CHARACTER_NOT_CACHED입니다. inSample은 그 캐릭터 값이 이 조건(직업·아이템 레벨 범위·최근 확인 기간·전투력 관측)에 맞는지이며, 실제로 집계에 들어갔는지는 뜻하지 않습니다. itemLevelMin·braceletItemLevelMin 기본값은 빌드 통계와 같습니다. 400 INVALID_REQUEST, 404 CHARACTER_NOT_CACHED, 503 CHARACTER_STORAGE_UNAVAILABLE
+         */
+        get: operations["character"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -272,6 +292,99 @@ export interface components {
             message: string;
             data: null;
         };
+        /** @description 공통 API 응답. 오류 응답의 data는 null입니다. */
+        ApiResponseClassBuildCellsResponse: {
+            /**
+             * @description 업무 결과 코드
+             * @example CHARACTER_SEARCH_SUCCESS
+             */
+            code: string;
+            /**
+             * @description 공개용 안내 메시지
+             * @example 캐릭터 조회에 성공했습니다.
+             */
+            message: string;
+            /** @description 성공 응답 데이터. 오류일 때 null */
+            data: components["schemas"]["ClassBuildCellsResponse"];
+        };
+        /** @description 캐릭터 한 명의 칸. cells의 항목 이름 = 빌드 통계 응답 항목, 값 = 그 항목 cells[] key와 같은 모양. 값이 null이면 그 항목을 못 읽어 분모에서 빠지는 캐릭터 */
+        ClassBuildCellsResponse: {
+            characterName: string;
+            serverName: string;
+            /** @description 캐릭터의 직업(공식 표기) */
+            className: string;
+            itemLevel: number;
+            observedAt: string | null;
+            /**
+             * @description LIVE_CACHE: 최근 검색 캐시, STORED_OBSERVATION: 저장된 마지막 장비 요약
+             * @enum {string}
+             */
+            source: "LIVE_CACHE" | "STORED_OBSERVATION";
+            /** @description 이 캐릭터 값이 조건(직업·아이템 레벨·최근 확인 기간·전투력 관측)에 맞는가. 실제 집계 포함 여부는 뜻하지 않음 */
+            inSample: boolean;
+            /** @description inSample=false인 까닭(여러 개 가능, 맞으면 빈 목록). OTHER_CLASS: 요청 직업과 다름, ITEM_LEVEL_OUT_OF_RANGE: 아이템 레벨 범위 밖, NOT_RECENT: activeDays 안에 확인 안 됨, NO_COMBAT_POWER: 전투력 관측 없음. 문자열이며 값이 늘 수 있음 */
+            reasons: string[];
+            conditions: components["schemas"]["ClassBuildCellsConditions"];
+            cells: components["schemas"]["ClassBuildCells"];
+            /** @example class-builds-v1 */
+            ruleVersion: string;
+        };
+        /** @description 실제로 쓴 조건(빌드 통계 meta.conditions와 같은 기본값 규칙) */
+        ClassBuildCellsConditions: {
+            itemLevelMin: number;
+            itemLevelMax: number | null;
+            /** Format: int32 */
+            activeDays: number;
+            braceletItemLevelMin: number;
+        };
+        /** @description 항목 이름은 빌드 통계 응답과 같다. 값이 null이면 그 항목을 못 읽음(분모에서 빠짐) */
+        ClassBuildCells: {
+            classEngravings: components["schemas"]["ClassBuildNameKey"] | null;
+            engravingCombos: components["schemas"]["ClassBuildComboKey"] | null;
+            engravings: components["schemas"]["ClassBuildNameKey"][] | null;
+            arkPassivePoints: components["schemas"]["ClassBuildPointKeys"];
+            gems: components["schemas"]["ClassBuildGemKeys"];
+            cardSets: components["schemas"]["ClassBuildCardKey"] | null;
+            topStats: components["schemas"]["ClassBuildTopStatKey"] | null;
+            /** @description 아이템 레벨이 braceletItemLevelMin 이상이라 팔찌 전투 특성 집계 대상인가. false면 braceletStats는 null */
+            braceletEligible: boolean;
+            braceletStats: components["schemas"]["ClassBuildNameKey"][] | null;
+        };
+        ClassBuildNameKey: {
+            name: string;
+        };
+        ClassBuildComboKey: {
+            /** @description 각인 이름(가나다순) */
+            engravings: string[];
+        };
+        ClassBuildPointKeys: {
+            evolution: components["schemas"]["ClassBuildValueKey"] | null;
+            enlightenment: components["schemas"]["ClassBuildValueKey"] | null;
+            leap: components["schemas"]["ClassBuildValueKey"] | null;
+        };
+        ClassBuildValueKey: {
+            /**
+             * Format: int32
+             * @description 포인트 값 또는 보석 레벨
+             */
+            value: number;
+        };
+        /** @description 보석 1개마다 한 칸(높은 레벨부터). 보석을 못 읽었으면 null, 그 효과 종류 4티어 보석이 없으면 빈 목록 */
+        ClassBuildGemKeys: {
+            damage: components["schemas"]["ClassBuildValueKey"][] | null;
+            cooldown: components["schemas"]["ClassBuildValueKey"][] | null;
+        };
+        ClassBuildCardKey: {
+            set: string;
+            /** Format: int32 */
+            pieces: number;
+            awakening: number | null;
+        };
+        ClassBuildTopStatKey: {
+            name: string;
+            /** @description 가장 큰 값이 둘 이상이라 고정 순서(치명→특화→신속→제압→인내→숙련)로 골랐는가 */
+            tie: boolean;
+        };
     };
     responses: never;
     parameters: never;
@@ -322,6 +435,67 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApiResponseClassBuildsResponse"];
+                };
+            };
+            /** @description INVALID_REQUEST, STATS_INVALID_RANGE 또는 STATS_TOO_MANY_BINS */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description CLIENT_RATE_LIMITED: 이 클라이언트의 분당 요청·공식 호출 한도 초과. Retry-After(초) 뒤 다시 시도 */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description STATS_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    character: {
+        parameters: {
+            query: {
+                /** @description 캐릭터 이름 */
+                characterName: string;
+                /** @description 최소 아이템 레벨(빌드 통계와 같은 기본값) */
+                itemLevelMin?: number;
+                /** @description 최대 아이템 레벨 */
+                itemLevelMax?: number;
+                /** @description 최근 확인 기간(일): 7, 30, 90 */
+                activeDays?: number;
+                /** @description 팔찌 전투 특성 기준 아이템 레벨(빌드 통계와 같은 기본값) */
+                braceletItemLevelMin?: number;
+            };
+            header?: never;
+            path: {
+                /** @description 직업 이름(공식 표기) */
+                className: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 조회 성공 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponseClassBuildCellsResponse"];
                 };
             };
             /** @description INVALID_REQUEST, STATS_INVALID_RANGE 또는 STATS_TOO_MANY_BINS */

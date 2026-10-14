@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
-import { fetchCharacter } from "@/lib/character/client";
-import { compareBuild, myBuild, type CompareSection } from "@/lib/stats/build-compare";
-import type { ClassBuilds } from "@/lib/stats/class-builds";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { compareBuild, outsideSample, type CompareSection } from "@/lib/stats/build-compare";
+import { classBuildCellsKey, type BuildDays, type ClassBuildCellsEnvelope, type ClassBuilds } from "@/lib/stats/class-builds";
+import { fetchClassBuildCells, StatsQueryError } from "@/lib/stats/client";
 import styles from "./stats.module.css";
 import own from "./class-builds.module.css";
 
@@ -12,51 +12,75 @@ const percent = (value: number | null) =>
   value == null ? "-" : `${value.toLocaleString("ko-KR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
 
 /**
- * 대세 빌드 비교 (M26 stage 1): for each item of the class statistics, its
- * first three with their shares, the rest, and in words where this
- * character's own setting stands (never by colour alone). The cards come from
- * the statistics (in the first HTML); only the verdict lines wait for the
- * character, in a room of their own, so nothing moves when it lands (A6).
+ * 대세 빌드 비교 (M26): for each item of the class statistics, its first
+ * three with their shares, the rest, and in words where this character's own
+ * setting stands (never by colour alone). "Mine" is the cells the backend
+ * counts the character in (api #498), read without an official call. The
+ * cards come from the statistics (in the first HTML); only the verdict lines
+ * wait for the cells, in a room of their own, so nothing moves when they land (A6).
  */
 export function BuildCompare({
   name,
   className,
+  activeDays,
   builds,
 }: {
   name: string;
   className: string;
+  activeDays: BuildDays;
   builds: ClassBuilds;
 }) {
-  const character = useQuery({
-    queryKey: ["character", name],
-    queryFn: ({ signal }) => fetchCharacter(name, signal),
+  const client = useQueryClient();
+  const queryKey = classBuildCellsKey({ className, characterName: name, activeDays });
+  const cells = useQuery<ClassBuildCellsEnvelope, Error, ClassBuildCellsEnvelope, typeof queryKey>({
+    queryKey,
+    queryFn: ({ signal }) => fetchClassBuildCells({ className, characterName: name, activeDays }, signal),
+    // Another day filter shows the cells already here until its own land (the
+    // cells are the same; only the sample check moves), so the lines do not
+    // blink to "loading" and back.
+    placeholderData: () =>
+      client.getQueriesData<ClassBuildCellsEnvelope>({ queryKey: queryKey.slice(0, 3) }).find(([, envelope]) => envelope)?.[1],
     retry: false,
     refetchOnWindowFocus: false,
   });
-  const data = character.data?.data;
-  const otherClass = data && data.className !== className;
-  const mine = data && !otherClass ? myBuild(data) : null;
-  const empty = { classEngraving: null, combo: null, points: null, gems: null, cardSet: null, topStat: null, braceletStats: null };
-  const sections = compareBuild(builds, mine ?? empty);
-  const waiting = character.isPending
+  const data = cells.data?.data;
+  const otherClass = data?.reasons.includes("OTHER_CLASS");
+  const mine = data && !otherClass ? data.cells : null;
+  const sections = compareBuild(builds, mine, data?.conditions.braceletItemLevelMin);
+  const notCached = cells.error instanceof StatsQueryError && cells.error.info.code === "CHARACTER_NOT_CACHED";
+  const characterPath = `/character/${encodeURIComponent(name)}`;
+  const waiting = cells.isPending
     ? "캐릭터 세팅을 불러오고 있어요…"
-    : character.isError
-      ? "캐릭터 정보를 불러오지 못해 비교하지 않았어요."
-      : otherClass
-        ? `${data.className} 캐릭터라 ${className} 대세와 비교하지 않았어요.`
-        : null;
+    : notCached
+      ? "최근 검색 기록이 없어 비교하지 못했어요."
+      : cells.isError
+        ? "캐릭터 정보를 불러오지 못해 비교하지 않았어요. 잠시 뒤 새로 고쳐 주세요."
+        : otherClass
+          ? `${data?.className} 캐릭터라 ${className} 대세와 비교하지 않았어요.`
+          : null;
   const differs = mine ? sections.filter((section) => section.differs).length : null;
+  // Another filter's sample check is not this one's: said only once this filter's cells are here.
+  const outside = data && !otherClass && !cells.isPlaceholderData ? outsideSample(data) : null;
 
   return (
     <section className={own.compare} aria-labelledby="compare-heading">
       <h2 id="compare-heading">
-        <Link href={`/character/${encodeURIComponent(name)}`}>{name}</Link>의 세팅과 대세
+        <Link href={characterPath}>{name}</Link>의 세팅과 대세
       </h2>
       <p className={own.compareLead} role="status">
         {waiting ??
-          (differs === 0
-            ? "모든 항목이 대세와 같아요."
-            : `${differs}개 항목이 대세와 달라요. 다른 항목은 '대세와 달라요'로 적어 두었어요.`)}
+          `${
+            differs === 0
+              ? "모든 항목이 대세와 같아요."
+              : `${differs}개 항목이 대세와 달라요. 다른 항목은 ‘대세와 달라요’로 적어 두었어요.`
+          }${outside ? ` ${outside}` : ""}`}
+        {/* The next step, where it is: opening the character page records it. */}
+        {notCached && (
+          <>
+            {" "}
+            <Link href={characterPath}>캐릭터 화면</Link>을 한 번 열면 비교할 수 있어요.
+          </>
+        )}
       </p>
       <ol className={own.compareGrid}>
         {sections.map((section) => (
@@ -93,8 +117,10 @@ function CompareCard({ section, pending }: { section: CompareSection; pending: s
             : `그 밖 ${section.others.cells}개`
           : " "}
       </p>
-      {/* Two one-line rows, there from the first paint: the character landing fills them in place. */}
-      <p className={own.compareVerdict}>{pending ?? section.verdict}</p>
+      {/* Two rows (one line each, two on a phone), there from the first paint: the character landing fills them in place. */}
+      <p className={own.compareVerdict} title={!pending ? section.verdict : undefined}>
+        {pending ?? section.verdict}
+      </p>
       <p className={own.compareMineLine} title={!pending && section.mine ? section.mine : undefined}>
         {(!pending && section.mine) || " "}
       </p>

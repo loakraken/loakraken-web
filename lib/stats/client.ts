@@ -12,7 +12,14 @@ import {
 import { rosterSearch, type RosterQuery, type RosterRankingEnvelope } from "./roster-ranking";
 import { guildSearch, type GuildQuery, type GuildRankingEnvelope } from "./guild-ranking";
 import { popularGuildsSearch, type PopularGuildsEnvelope, type PopularGuildsQuery } from "./popular-guilds";
-import { classBuildsSearch, type ClassBuildsEnvelope, type ClassBuildsQuery } from "./class-builds";
+import {
+  classBuildCellsSearch,
+  classBuildsSearch,
+  type ClassBuildCellsEnvelope,
+  type ClassBuildCellsQuery,
+  type ClassBuildsEnvelope,
+  type ClassBuildsQuery,
+} from "./class-builds";
 import { bestCombatPowerSearch, type BestCombatPowerEnvelope } from "./best-combat-power";
 import { guildDetailPath, type GuildDetailEnvelope, type GuildDetailQuery } from "./guild-detail";
 import { titleEquipSearch, type TitleEquipEnvelope, type TitleEquipQuery } from "./title-equip";
@@ -54,6 +61,12 @@ export const fetchPopularGuilds = (query: PopularGuildsQuery, signal: AbortSigna
 export const fetchClassBuilds = (query: ClassBuildsQuery, signal: AbortSignal) =>
   call<ClassBuildsEnvelope>(
     `/api/stats/classes/${encodeURIComponent(query.className)}/builds?${classBuildsSearch(query)}`,
+    signal,
+  );
+
+export const fetchClassBuildCells = (query: ClassBuildCellsQuery, signal: AbortSignal) =>
+  call<ClassBuildCellsEnvelope>(
+    `/api/stats/classes/${encodeURIComponent(query.className)}/builds/character?${classBuildCellsSearch(query)}`,
     signal,
   );
 
