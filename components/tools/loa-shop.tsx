@@ -21,7 +21,7 @@ import {
   type ShopPackage,
 } from "@/lib/tools/loa-shop";
 import quote from "./material-quote.module.css";
-import { goldText as count, roundGold, signedGold as signed } from "@/lib/tools/format";
+import { goldText, signedGold } from "@/lib/tools/format";
 import styles from "./loa-shop.module.css";
 
 /** The typed rate stays in this browser only (never sent anywhere). */
@@ -54,6 +54,10 @@ const subscribeRate = (listener: () => void) => {
     rateListeners.delete(listener);
   };
 };
+// The only comparison basis for this tool rounds the absolute value half away
+// from zero (−1,087.5 → −1,088; PM 총괄 2026-10-14).
+const count = (value: number) => goldText(value, "awayFromZero");
+const signed = (value: number) => signedGold(value, "awayFromZero");
 const UNKNOWN = "미확인";
 
 const unitText = (value: number) => value.toLocaleString("ko-KR", { maximumFractionDigits: value < 1 ? 4 : 2 });
@@ -88,7 +92,7 @@ function Verdict({ value, rate, priced }: { value: PackageValue; rate: number | 
         </p>
         <p>
           판매가보다{" "}
-          <b className={roundGold(value.gain) > 0 ? styles.up : roundGold(value.gain) < 0 ? styles.down : undefined}>{signed(value.gain)}</b> 로열 크리스탈
+          <b className={signed(value.gain) === "0" ? undefined : value.gain > 0 ? styles.up : styles.down}>{signed(value.gain)}</b> 로열 크리스탈
         </p>
       </div>
     );

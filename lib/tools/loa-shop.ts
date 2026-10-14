@@ -1,7 +1,9 @@
 // 로아샵 효율 (checklist L45): an in-game shop package's contents valued at
 // today's market prices, against its price in royal crystals. Formula
 // confirmed by calc verification (2026-10-12):
-//   gold value   = Σ qty × unit price (market price ÷ bundle size)
+//   gold value   = Σ ⌈qty × unit price⌉ per content line (market price ÷
+//                  bundle size; a line within float error of a whole number
+//                  is rounded instead — the comparison basis, 2026-10-14)
 //   royal value  = gold × 2,750 ÷ (gold for 100 crystals at the in-game
 //                  crystal exchange)  — 100 crystals = 2,750 royal crystals
 //                  at the official shop (크리스탈 [200개] = 5,500)
@@ -86,6 +88,17 @@ export type PackageValue = {
 };
 
 /**
+ * Gold of one content line: rounded up to whole gold, except that a total
+ * within float error of a whole number (|x − round(x)| ≤ ε|x|) is that number,
+ * so 1.1 × 100 = 110.00000000000001 stays 110 while 274.3 becomes 275.
+ * null when not finite (comparison basis, calc verification 2026-10-14).
+ */
+export function lineGold(x: number): number | null {
+  if (!Number.isFinite(x)) return null;
+  return Math.abs(x - Math.round(x)) <= Number.EPSILON * Math.abs(x) ? Math.round(x) : Math.ceil(x);
+}
+
+/**
  * Values one package. `unitPrice(name)` is the market gold per unit (null when
  * unknown); `goldPer100` is the in-game crystal exchange rate, or null when
  * the player has not entered it.
@@ -99,8 +112,10 @@ export function packageValue(
   const { purchases, sets, priceRoyal } = purchasePlan(pkg);
   const items = pkg.items.map((item): ItemValue => {
     const total = item.qty * sets;
-    const unit = item.kind === "crystal" ? (goldPer100 == null ? null : goldPer100 / 100) : unitPrice(item.name);
-    return { ...item, total, unit, gold: unit == null ? null : total * unit };
+    const price = item.kind === "crystal" ? (goldPer100 == null ? null : goldPer100 / 100) : unitPrice(item.name);
+    // A unit price of 0 or less is unknown, never counted as 0.
+    const unit = price != null && Number.isFinite(price) && price > 0 ? price : null;
+    return { ...item, total, unit, gold: unit == null ? null : lineGold(total * unit) };
   });
   const known = items.filter((i) => i.gold != null);
   const unknown = items.filter((i) => i.gold == null);
