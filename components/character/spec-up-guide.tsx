@@ -123,7 +123,7 @@ export default function SpecUpGuide({ data }: { data: Character }) {
         data-stale={query.isPlaceholderData || undefined}
       >
         <p className={styles.specUpPrices} role="status">
-          {query.isPlaceholderData ? "새 순서로 다시 불러오고 있어요" : ""}
+          {query.isPlaceholderData ? "새 순서로 다시 불러오고 있어요…" : ""}
         </p>
         {failure ? (
           <div className={styles.specUpFailure} role="alert">

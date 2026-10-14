@@ -685,7 +685,7 @@ function ResultBand({
         {changed === 0
           ? "아래에서 값을 바꾸면 바로 다시 계산해요."
           : computed && data.delta === 0 && !data.partial
-            ? "바꾼 항목은 전투력에 영향이 없어요. 이유는 아래 '바꾼 것'에 있어요."
+            ? "바꾼 항목은 전투력에 영향이 없어요. 이유는 아래 ‘바꾼 것’에 있어요."
             : computed
             ? `바꾼 ${changed}개 중 계산된 항목만 반영했어요${data.partial ? ` · 계산 준비 중 ${data.unsupportedCount}개` : ""}.`
             : `바꾼 ${changed}개 항목은 계산식을 확인하고 있어 아직 반영하지 않았어요.`}
@@ -971,7 +971,7 @@ export function CombatPowerSimulator({
         </div>
       ) : name ? (
         <p className={styles.empty} data-loading="" role="status">
-          {embedded ? "시뮬레이터를 준비하고 있어요" : "캐릭터 정보를 읽고 있어요"}
+          {embedded ? "시뮬레이터를 준비하고 있어요…" : "캐릭터 정보를 읽고 있어요…"}
         </p>
       ) : (
         <p className={styles.empty}>

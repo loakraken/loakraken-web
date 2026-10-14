@@ -393,7 +393,12 @@ function AddCondition({
             onChange={(event) => setPrice(event.target.value)}
             aria-describedby={ids.hint}
             aria-invalid={!!error || undefined}
-            placeholder={chosen?.currentMinPrice != null ? String(chosen.currentMinPrice) : ""}
+            /* An example in the form the field takes (grouped digits are read back as one number). */
+            placeholder={
+              chosen?.currentMinPrice != null
+                ? `${chosen.currentMinPrice.toLocaleString("ko-KR", { maximumFractionDigits: 2 })}…`
+                : ""
+            }
           />
           <small id={ids.hint} className={styles.fieldNote}>
             {chosen ? `지금 판매 최저가 ${gold(chosen.currentMinPrice)}` : " "}

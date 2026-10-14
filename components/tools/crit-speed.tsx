@@ -854,7 +854,7 @@ function CritSpeedContent({ initialName }: { initialName: string }) {
                     </>
                   ) : name ? (
                     <p className={styles.empty} data-loading="" role="status">
-                      캐릭터 정보를 읽고 있어요
+                      캐릭터 정보를 읽고 있어요…
                     </p>
                   ) : (
                     <p className={styles.empty}>
