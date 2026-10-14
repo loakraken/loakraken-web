@@ -151,7 +151,8 @@ export function PriceAlertsView() {
         </section>
 
         {/* There from the first paint, on or off: turning alerts on fills them in place. */}
-        <Conditions own={stage === "on" ? own : null} onExpired={expired} />
+        {/* Keyed by the subscription: removed rows belong to the one they were removed from. */}
+        <Conditions key={stage === "on" ? own?.subscriptionId : "off"} own={stage === "on" ? own : null} onExpired={expired} />
 
         <p className={styles.privacy}>
           알림을 켜면 이 브라우저의 푸시 구독 정보와 알림 조건만 보관해요. 이름·이메일·계정은 받지 않고, 접속 IP 주소도 이
@@ -185,10 +186,22 @@ function Conditions({ own, onExpired }: { own: Owned | null; onExpired: () => vo
     if (lost) onExpired();
   }, [lost, onExpired]);
   const list = own ? (conditions.data?.data ?? []) : [];
+  // A removed alert keeps its row (read as removed) until the page is opened
+  // again, so the rows under it do not move up into its place (A7).
+  const [gone, setGone] = useState<{ condition: AlertCondition; index: number }[]>([]);
   const remove = useMutation({
     mutationFn: (conditionId: string) => deleteCondition(own!, conditionId),
+    onSuccess: (_, conditionId) => {
+      const index = rows.findIndex((row) => row.condition.conditionId === conditionId);
+      const condition = rows[index]?.condition;
+      if (condition) setGone((before) => [...before, { condition, index }]);
+    },
     onSettled: () => client.invalidateQueries({ queryKey: key }),
   });
+  const live = new Set(list.map((condition) => condition.conditionId));
+  const rows: { condition: AlertCondition; gone: boolean }[] = list.map((condition) => ({ condition, gone: false }));
+  for (const ghost of [...gone].sort((a, b) => a.index - b.index))
+    if (!live.has(ghost.condition.conditionId)) rows.splice(Math.min(ghost.index, rows.length), 0, { condition: ghost.condition, gone: true });
   // The list keeps its tallest height: removing one does not pull up what is under it (A7).
   const [listRef, listHeight] = useTallest();
 
@@ -213,14 +226,15 @@ function Conditions({ own, onExpired }: { own: Owned | null; onExpired: () => vo
             <p className={styles.muted}>알림을 불러오고 있어요…</p>
           ) : conditions.isError && !lost ? (
             <p className={styles.muted}>{alertErrorText(codeOf(conditions.error))}</p>
-          ) : list.length === 0 ? (
+          ) : rows.length === 0 ? (
             <p className={styles.muted}>아직 건 알림이 없어요. 위에서 품목과 가격을 골라 추가해 주세요.</p>
           ) : (
             <ul className={styles.conditions}>
-              {list.map((condition) => (
+              {rows.map(({ condition, gone: removed }) => (
                 <ConditionRow
                   key={condition.conditionId}
                   condition={condition}
+                  removed={removed}
                   removing={remove.isPending && remove.variables === condition.conditionId}
                   onRemove={() => remove.mutate(condition.conditionId)}
                 />
@@ -242,13 +256,26 @@ function Conditions({ own, onExpired }: { own: Owned | null; onExpired: () => vo
 
 function ConditionRow({
   condition,
+  removed,
   removing,
   onRemove,
 }: {
   condition: AlertCondition;
+  removed: boolean;
   removing: boolean;
   onRemove: () => void;
 }) {
+  if (removed)
+    return (
+      <li data-removed>
+        <div className={styles.rowMain}>
+          <strong>{condition.itemName}</strong>
+          <span className={styles.line}>{conditionText(condition.comparator, condition.price)}</span>
+        </div>
+        <p className={styles.rowFacts}>지운 알림이에요. 더 보내지 않아요.</p>
+        <span className={styles.removedTag}>지움</span>
+      </li>
+    );
   return (
     <li>
       <div className={styles.rowMain}>
@@ -332,6 +359,8 @@ function AddCondition({
           {items && items.length > 0 ? (
             <Select
               id={ids.item}
+              // 44px like the price field and the stub before the list arrives.
+              size="lg"
               value={chosen?.itemId ?? items[0].itemId}
               onValueChange={(value) => setItemId(Number(value))}
               items={items.map((item) => ({ value: item.itemId, label: item.itemName }))}

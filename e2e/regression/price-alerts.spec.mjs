@@ -72,7 +72,11 @@ for (const width of [1280, 360])
       () => list.getByRole("button", { name: "아비도스 융화 재료 90G 이하 알림 지우기" }).click(),
       1500,
     );
-    await expect(list.getByRole("listitem")).toHaveCount(1);
+    // The removed alert keeps its row, read as removed: nothing under it moves up.
+    await expect(list.getByRole("listitem").first()).toContainText("지운 알림이에요");
+    await expect(list.getByRole("listitem")).toHaveCount(2);
+    await expect(list.getByRole("button", { name: /알림 지우기$/ })).toHaveCount(1);
+    await expect(list.getByRole("heading", { name: /1 \/ 10/ })).toBeVisible();
     expect(remove.all, `지우기 흔들림 (${remove.moved})`).toBe(0);
 
     const off = await shiftsDuring(page, () => page.getByRole("button", { name: "알림 끄기" }).click(), 1500);

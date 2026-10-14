@@ -201,6 +201,20 @@
 .remove:disabled {
   opacity: 0.55;
 }
+/* A removed alert keeps its row until the page is opened again (A7). */
+.conditions li[data-removed] .rowMain,
+.conditions li[data-removed] .line {
+  color: var(--muted-foreground);
+  text-decoration: line-through;
+}
+.removedTag {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  min-width: 56px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  text-align: center;
+}
 .privacy {
   margin-top: 16px;
   color: var(--muted-foreground);
