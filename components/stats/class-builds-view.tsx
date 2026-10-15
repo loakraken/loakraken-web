@@ -466,6 +466,7 @@ export function ClassBuildsView({
   const [sectionsRef, sectionsHeight] = useTallest();
   // The comparison keeps its tallest too: another filter may list fewer rows.
   const [compareRef, compareHeight] = useTallest();
+  const [noticeRef, noticeHeight] = useTallest();
 
   function apply(patch: Partial<ClassBuildsQuery>) {
     const next = { ...latest.current, ...patch };
@@ -536,16 +537,21 @@ export function ClassBuildsView({
         </form>
 
         {meta && data && (
-          // Drawn anew when what it says changes: text rewritten in place moves (A7).
-          <p
-            key={`${meta.population}-${data.classPopulation}-${meta.conditions?.itemLevelMin}-${meta.conditions?.activeDays}-${meta.aggregatedAt}`}
-            className={styles.notice}
-          >
-            표본 {whole(meta.population ?? 0)}명(장비를 확인한 캐릭터) · {query.className} 전체 {whole(data.classPopulation)}명 ·
-            아이템 레벨 {whole(Number(meta.conditions?.itemLevelMin ?? 1680))} 이상 · 최근 {meta.conditions?.activeDays ?? query.activeDays}일 ·{" "}
-            {kst.format(new Date(meta.aggregatedAt))} 기준 · 공식 통계가 아니에요
-            {collecting && <strong> · 표본 {whole(meta.minSample)}명이 모이면 보여 드려요</strong>}
-          </p>
+          // Held at its tallest: another fix's sample count (more or fewer
+          // digits) can wrap the line differently on a phone, which moved the
+          // fixed settings and the sections under it (A7, #844 CI at 360).
+          <div ref={noticeRef} style={noticeHeight ? { minHeight: noticeHeight } : undefined}>
+            {/* Drawn anew when what it says changes: text rewritten in place moves (A7). */}
+            <p
+              key={`${meta.population}-${data.classPopulation}-${meta.conditions?.itemLevelMin}-${meta.conditions?.activeDays}-${meta.aggregatedAt}`}
+              className={styles.notice}
+            >
+              표본 {whole(meta.population ?? 0)}명(장비를 확인한 캐릭터) · {query.className} 전체 {whole(data.classPopulation)}명 ·
+              아이템 레벨 {whole(Number(meta.conditions?.itemLevelMin ?? 1680))} 이상 · 최근 {meta.conditions?.activeDays ?? query.activeDays}일 ·{" "}
+              {kst.format(new Date(meta.aggregatedAt))} 기준 · 공식 통계가 아니에요
+              {collecting && <strong> · 표본 {whole(meta.minSample)}명이 모이면 보여 드려요</strong>}
+            </p>
+          </div>
         )}
 
         {/* One room for the comparison whatever the filter: a short sample
