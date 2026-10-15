@@ -66,6 +66,26 @@ test("@M26 표본이 적은 조건은 상위 목록 대신 그렇게 알린다 @
   await expect(page.getByRole("region", { name: "이 세팅을 쓰는 상위 30명" })).toContainText(/명보다 적어 목록을 보여 드리지 않아요/);
 });
 
+// A37: only a name (with its full name on hover) may end in "…"; headers, dates
+// and numbers show whole ('순…', '10. …' were cut at every width).
+for (const width of [1280, 360])
+  test(`@A37 ${width} 상위 30명 표: 이름 말고는 어떤 칸도 잘리지 않음 @regression`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await gotoReady(page, BLADE);
+    const top = page.getByRole("region", { name: "이 세팅을 쓰는 상위 30명" });
+    await expect(top.getByRole("rowheader")).toHaveCount(30);
+    const cut = await top.locator("th, td").evaluateAll((cells) =>
+      cells
+        .filter((el) => !(el.tagName === "TH" && el.getAttribute("scope") === "row"))
+        .filter((el) => el.scrollWidth > el.clientWidth + 1)
+        .map((el) => `${el.textContent.trim()} ${el.clientWidth}<${el.scrollWidth}`),
+    );
+    expect([...new Set(cut)], "잘린 칸(이름 제외)").toEqual([]);
+    // The date is the short form (10.15).
+    const dates = await top.locator("tbody tr").evaluateAll((rows) => rows.map((r) => r.lastElementChild.textContent.trim()));
+    expect(dates.filter((d) => d !== "-" && !/^\d{1,2}\.\d{1,2}$/.test(d)), "날짜 짧은 형식").toEqual([]);
+  });
+
 test.describe("휴대폰", () => {
   test.use({ viewport: { width: 360, height: 800 }, hasTouch: true, isMobile: true });
   test("@M26 고정할 수 있는 줄은 44×44 네 모서리가 그 줄 @regression @A36", async ({ page }) => {
