@@ -245,3 +245,148 @@
     -webkit-line-clamp: 2;
   }
 }
+
+/* 고정 (M26 stage 2): a row that can be fixed is one button laid out as the
+   row (same columns), so pressing it changes nothing's place; fixed rows say
+   so with a mark and a tint (and aria-pressed). */
+.bars li:has(> .fixRow) {
+  display: block;
+}
+.fixRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(48px, 30%) 4.5em 4.5em;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin: 0 -6px;
+  padding: 2px 6px;
+  box-sizing: content-box;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 120ms ease, transform 100ms ease-out;
+}
+.fixRow:active:not([aria-disabled]) {
+  transform: scale(0.99);
+}
+@media (hover: hover) and (pointer: fine) {
+  .fixRow:hover:not([aria-disabled]) {
+    background: var(--background);
+  }
+}
+.fixRow[aria-pressed="true"] {
+  background: var(--background);
+  box-shadow: inset 0 0 0 1px var(--link);
+}
+.fixRow[aria-pressed="true"] .label {
+  font-weight: 700;
+}
+.fixRow[aria-disabled] {
+  cursor: not-allowed;
+}
+.fixMark {
+  display: inline-block;
+  margin-right: 4px;
+  color: var(--link);
+  vertical-align: -2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .fixRow {
+    transition: none;
+  }
+}
+/* Phones: each fixable row is 44px to press (A36), rows that tall from the
+   first paint so pressing one moves nothing. */
+@media (max-width: 699px), (pointer: coarse) {
+  .bars[data-fixable] {
+    gap: 0;
+  }
+  .fixRow {
+    min-height: 44px;
+  }
+}
+@media (max-width: 480px) {
+  .fixRow {
+    grid-template-columns: minmax(0, 1fr) 4.5em 4em;
+  }
+}
+
+/* The fixed settings: one line high always (a hint when none), scrolled
+   sideways rather than wrapped, so fixing or freeing moves nothing (A7). */
+.fixBar {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  margin: 0 0 12px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.fixBar:focus-visible {
+  outline-offset: 2px;
+}
+.fixItems {
+  display: contents;
+}
+.fixChip,
+.fixClear {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 9999px;
+  background: var(--muted);
+  color: var(--foreground);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.fixClear {
+  background: none;
+  color: var(--link);
+}
+.fixNote,
+.fixHint {
+  flex: none;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* 이 세팅을 쓰는 상위 30명: fixed column widths so another list never moves the columns. */
+.top {
+  margin-top: 14px;
+  padding: 16px 18px;
+  border-radius: 16px;
+  background: var(--muted);
+}
+.top h2 {
+  font-size: 15px;
+  font-weight: 700;
+}
+.topTable {
+  table-layout: fixed;
+  margin-top: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.topTable th,
+.topTable td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: right;
+}
+.topTable .left {
+  text-align: left;
+}

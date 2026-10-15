@@ -13,7 +13,7 @@ export interface paths {
         };
         /**
          * 직업 상세 빌드 통계
-         * @description 그 직업 캐릭터의 마지막 장비 요약으로 센 빌드 통계입니다(class-builds-v1): 직업 각인 비율, 각인 조합, 개별 각인 채용률, 아크 패시브 포인트, 4티어 보석(겁화·작열·광휘) 효과 종류별 레벨, 카드 세트, 주력 전투 특성(top-1), 팔찌 전투 특성. 모집단은 /api/v1/stats/*와 같고(처리정지 캐릭터 없음), 표본은 그 가운데 장비 요약이 있는 캐릭터입니다. itemLevelMin 기본값은 다른 통계(1640)와 달리 1680이고(단 itemLevelMax만 1680 미만으로 주면 1640), 실제로 쓴 값은 meta.conditions.itemLevelMin에 있습니다. 표본이 30 미만이면 sampleStatus=COLLECTING이고 항목이 모두 빈 목록입니다. 인원(보석은 개수)이 5 미만인 칸은 목록에 없습니다. 못 읽은 값은 그 항목의 분모(known)에서 빠집니다. 정의는 definitions에 있습니다. 400 INVALID_REQUEST·STATS_INVALID_RANGE, 503 STATS_UNAVAILABLE
+         * @description 그 직업 캐릭터의 마지막 장비 요약으로 센 빌드 통계입니다(class-builds-v1): 직업 각인 비율, 각인 조합, 개별 각인 채용률, 아크 패시브 포인트, 4티어 보석(겁화·작열·광휘) 효과 종류별 레벨, 카드 세트, 주력 전투 특성(top-1), 팔찌 전투 특성. 모집단은 /api/v1/stats/*와 같고(처리정지 캐릭터 없음), 표본은 그 가운데 장비 요약이 있는 캐릭터입니다. itemLevelMin 기본값은 다른 통계(1640)와 달리 1680이고(단 itemLevelMax만 1680 미만으로 주면 1640), 실제로 쓴 값은 meta.conditions.itemLevelMin에 있습니다. 표본이 30 미만이면 sampleStatus=COLLECTING이고 항목이 모두 빈 목록입니다. 인원(보석은 개수)이 5 미만인 칸은 목록에 없습니다. 못 읽은 값은 그 항목의 분모(known)에서 빠집니다. 정의는 definitions에 있습니다. 고정 조건(fixEngraving·fixCardSet·fixTopStat·fixEvolution·fixEnlightenment·fixLeap·fixBracelet, 합쳐 최대 3개)을 주면 직업 각인 비율을 포함한 모든 항목을 조건에 맞는 표본으로 다시 셉니다. 고정 뒤 표본이 30 미만이면 COLLECTING입니다. 각인·카드 세트 고정은 고정 없는 같은 조건 빌드 통계의 칸(각인 목록·카드 세트)에 있는 이름만 받고, 없으면 400 STATS_UNKNOWN_FIX입니다. 400 INVALID_REQUEST·STATS_INVALID_RANGE, 503 STATS_UNAVAILABLE
          */
         get: operations["builds"];
         put?: never;
@@ -36,6 +36,26 @@ export interface paths {
          * @description 캐릭터 한 명이 직업 빌드 통계(class-builds-v1)의 어느 칸에 드는지 줍니다. 집계와 같은 규칙이며, cells의 항목 이름은 빌드 통계 응답의 항목, 값은 그 항목 cells[]의 key와 같은 모양입니다. 공식 API를 부르지 않습니다: 최근 검색 캐시 → 저장된 마지막 장비 요약 순서로 찾고, 둘 다 없으면 404 CHARACTER_NOT_CACHED입니다. inSample은 그 캐릭터 값이 이 조건(직업·아이템 레벨 범위·최근 확인 기간·전투력 관측)에 맞는지이며, 실제로 집계에 들어갔는지는 뜻하지 않습니다. itemLevelMin·braceletItemLevelMin 기본값은 빌드 통계와 같습니다. 400 INVALID_REQUEST, 404 CHARACTER_NOT_CACHED, 503 CHARACTER_STORAGE_UNAVAILABLE
          */
         get: operations["character"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/stats/classes/{className}/builds/top": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 이 세팅을 쓰는 상위 캐릭터
+         * @description 빌드 통계와 같은 표본(처리정지 캐릭터 없음) 가운데 직업 각인·고정 조건에 맞는 캐릭터를 관측 전투력 내림차순으로 최대 30명 줍니다(같으면 아이템 레벨·이름순). 조건에 맞는 캐릭터가 30명 미만이면 status=COLLECTING이고 rows는 비어 있습니다. 전투력은 관측값이며 observedAt 기준입니다. rank는 이 응답 안의 번호입니다. 고정 조건은 빌드 통계와 같은 파라미터이며 합쳐 최대 3개이고, 각인·카드 세트는 빌드 통계 칸에 있는 이름만 받습니다(없으면 400 STATS_UNKNOWN_FIX). 공식 API를 부르지 않습니다. 400 INVALID_REQUEST·STATS_INVALID_RANGE, 503 STATS_UNAVAILABLE
+         */
+        get: operations["top"];
         put?: never;
         post?: never;
         delete?: never;
@@ -385,6 +405,44 @@ export interface components {
             /** @description 가장 큰 값이 둘 이상이라 고정 순서(치명→특화→신속→제압→인내→숙련)로 골랐는가 */
             tie: boolean;
         };
+        /** @description 공통 API 응답. 오류 응답의 data는 null입니다. */
+        ApiResponseClassBuildTopResponse: {
+            /**
+             * @description 업무 결과 코드
+             * @example CHARACTER_SEARCH_SUCCESS
+             */
+            code: string;
+            /**
+             * @description 공개용 안내 메시지
+             * @example 캐릭터 조회에 성공했습니다.
+             */
+            message: string;
+            /** @description 성공 응답 데이터. 오류일 때 null */
+            data: components["schemas"]["ClassBuildTopResponse"];
+        };
+        ClassBuildTopResponse: {
+            /** @description population은 고정 조건에 맞는 표본 수 */
+            meta: components["schemas"]["StatsMetaResponse"];
+            className: string;
+            classEngraving: string | null;
+            /** @description 팔찌 고정 조건에 쓴 최소 아이템 레벨 */
+            braceletItemLevelMin: number;
+            /** @description 관측 전투력 내림차순 최대 30명. 표본 30 미만이면 빈 목록 */
+            rows: components["schemas"]["ClassBuildTopRowResponse"][];
+        };
+        ClassBuildTopRowResponse: {
+            /**
+             * Format: int32
+             * @description 이 응답 안의 순위(1부터)
+             */
+            rank: number;
+            characterName: string;
+            serverName: string;
+            itemLevel: number;
+            /** @description 관측 전투력 */
+            combatPower: number;
+            observedAt: string | null;
+        };
     };
     responses: never;
     parameters: never;
@@ -418,6 +476,20 @@ export interface operations {
                 limit?: number;
                 /** @description 팔찌 전투 특성에 넣는 최소 아이템 레벨(기본 1680). itemLevelMin보다 낮으면 itemLevelMin */
                 braceletItemLevelMin?: number;
+                /** @description 이 각인을 모두 가진 캐릭터만(반복 가능) */
+                fixEngraving?: string[];
+                /** @description 가장 큰 카드 세트 이름이 이것인 캐릭터만 */
+                fixCardSet?: string;
+                /** @description 주력 전투 특성(치명·특화·신속·제압·인내·숙련) */
+                fixTopStat?: string;
+                /** @description 진화 포인트 */
+                fixEvolution?: number;
+                /** @description 깨달음 포인트 */
+                fixEnlightenment?: number;
+                /** @description 도약 포인트 */
+                fixLeap?: number;
+                /** @description 팔찌에 이 전투 특성 줄이 모두 있는 캐릭터만(반복 가능, 팔찌 기준 레벨 이상) */
+                fixBracelet?: string[];
             };
             header?: never;
             path: {
@@ -496,6 +568,90 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApiResponseClassBuildCellsResponse"];
+                };
+            };
+            /** @description INVALID_REQUEST, STATS_INVALID_RANGE 또는 STATS_TOO_MANY_BINS */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description CLIENT_RATE_LIMITED: 이 클라이언트의 분당 요청·공식 호출 한도 초과. Retry-After(초) 뒤 다시 시도 */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description STATS_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    top: {
+        parameters: {
+            query?: {
+                /** @description 서버명. 생략하면 전체 */
+                server?: string;
+                /** @description DEALER 또는 SUPPORT. 생략하면 전체 */
+                role?: "DEALER" | "SUPPORT";
+                /** @description 직업명. 생략하면 전체 */
+                className?: string;
+                /** @description 최근 확인 기간(일): 7, 30, 90 */
+                activeDays?: number;
+                /** @description 최소 아이템 레벨 */
+                itemLevelMin?: number;
+                itemLevelMax?: number;
+                combatPowerMin?: number;
+                combatPowerMax?: number;
+                /** @description 원정대(같은 서버) 대표 캐릭터(아이템 레벨 최고)만 */
+                representativeOnly?: boolean;
+                /** @description 직업 각인(공식 ArkPassive.Title) */
+                classEngraving?: string;
+                /** @description 팔찌 고정 조건에 쓰는 최소 아이템 레벨(기본 1680) */
+                braceletItemLevelMin?: number;
+                /** @description 이 각인을 모두 가진 캐릭터만(반복 가능) */
+                fixEngraving?: string[];
+                /** @description 가장 큰 카드 세트 이름이 이것인 캐릭터만 */
+                fixCardSet?: string;
+                /** @description 주력 전투 특성(치명·특화·신속·제압·인내·숙련) */
+                fixTopStat?: string;
+                /** @description 진화 포인트 */
+                fixEvolution?: number;
+                /** @description 깨달음 포인트 */
+                fixEnlightenment?: number;
+                /** @description 도약 포인트 */
+                fixLeap?: number;
+                /** @description 팔찌에 이 전투 특성 줄이 모두 있는 캐릭터만(반복 가능, 팔찌 기준 레벨 이상) */
+                fixBracelet?: string[];
+            };
+            header?: never;
+            path: {
+                /** @description 직업 이름(공식 표기) */
+                className: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 조회 성공 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponseClassBuildTopResponse"];
                 };
             };
             /** @description INVALID_REQUEST, STATS_INVALID_RANGE 또는 STATS_TOO_MANY_BINS */

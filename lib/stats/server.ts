@@ -8,6 +8,7 @@ import { requestPopularGuilds, type PopularGuildsQuery } from "./popular-guilds"
 import {
   requestClassBuildCells,
   requestClassBuilds,
+  requestClassBuildTop,
   type ClassBuildCellsQuery,
   type ClassBuildsQuery,
 } from "./class-builds";
@@ -46,6 +47,10 @@ export function getPopularGuilds(query: PopularGuildsQuery, signal?: AbortSignal
 
 export function getClassBuilds(query: ClassBuildsQuery, signal?: AbortSignal) {
   return requestClassBuilds(query, process.env.LOAKRAKEN_API_ORIGIN, { signal });
+}
+
+export function getClassBuildTop(query: ClassBuildsQuery, signal?: AbortSignal) {
+  return requestClassBuildTop(query, process.env.LOAKRAKEN_API_ORIGIN, { signal });
 }
 
 export function getClassBuildCells(query: ClassBuildCellsQuery, signal?: AbortSignal) {

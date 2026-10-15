@@ -19,6 +19,7 @@ import {
   type ClassBuildCellsQuery,
   type ClassBuildsEnvelope,
   type ClassBuildsQuery,
+  type ClassBuildTopEnvelope,
 } from "./class-builds";
 import { bestCombatPowerSearch, type BestCombatPowerEnvelope } from "./best-combat-power";
 import { guildDetailPath, type GuildDetailEnvelope, type GuildDetailQuery } from "./guild-detail";
@@ -64,7 +65,13 @@ export const fetchClassBuilds = (query: ClassBuildsQuery, signal: AbortSignal) =
     signal,
   );
 
-export const fetchClassBuildCells = (query: ClassBuildCellsQuery, signal: AbortSignal) =>
+export const fetchClassBuildTop = (query: ClassBuildsQuery, signal: AbortSignal) =>
+  call<ClassBuildTopEnvelope>(
+    `/api/stats/classes/${encodeURIComponent(query.className)}/builds/top?${classBuildsSearch(query)}`,
+    signal,
+  );
+
+export const fetchClassBuildCells =(query: ClassBuildCellsQuery, signal: AbortSignal) =>
   call<ClassBuildCellsEnvelope>(
     `/api/stats/classes/${encodeURIComponent(query.className)}/builds/character?${classBuildCellsSearch(query)}`,
     signal,
