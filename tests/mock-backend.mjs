@@ -2042,7 +2042,7 @@ createServer(async (req, res) => {
       detail: { parserVersion: "equipment-tooltip-v3", refineLevel, quality: 90, itemLevel: 1640 + refineLevel * 5, tier: 4, arkPassivePoint: null, effects: [], stoneEngravings: [], polishEffects: [], braceletEffects: [] },
     }));
   }
-  if (name === "상세" || name === "상세서포터" || name === "대세블레이드") {
+  if (name === "상세" || name === "상세서포터" || name === "대세블레이드" || name === "가려짐긴값캐릭터") {
     // Detail-page mock: a locally supplied character file (never committed) or
     // the synthetic fixture, enriched with synthetic Tooltip detail and skills.
     if (process.env.MOCK_CHARACTER_FILE)
@@ -2280,6 +2280,17 @@ createServer(async (req, res) => {
         items: [],
         effects: [{ index: 0, cardSlots: [], items: [{ name: "세상을 구하는 빛 6세트 (30각성합계)", description: null }] }],
       };
+    }
+    // A37: the longest values the banner shows (name, title, server and class, combat power, levels).
+    if (name === "가려짐긴값캐릭터") {
+      d.characterName = name;
+      d.serverName = "아브렐슈드";
+      d.className = "데모닉";
+      d.title = "어둠 속에서 끝까지 버틴 자";
+      d.itemLevel = 1789.17;
+      d.combatPower = 12345.67;
+      d.characterLevel = 70;
+      d.expeditionLevel = 300;
     }
     if (name === "상세서포터") {
       d.className = "바드";
