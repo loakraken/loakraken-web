@@ -133,6 +133,37 @@ test.describe("재료 구매 견적 입력 중 검색 @smoke", () => {
   });
 });
 
+test.describe("재료 구매 견적 검색 결과 팝업 @smoke", () => {
+  // PM-프론트 #855 P1: 결과는 디바운스와 응답 뒤에 나오므로 아래 내용을 밀면 입력과 떨어진 흔들림이 된다.
+  // 결과는 입력칸 아래 떠 있는 목록이라 빠른 입력·느린 입력·지우기 모두 흔들림이 0이어야 한다.
+  test("빠르게·느리게 입력하고 지워도 화면이 밀리지 않는다", async ({ page }) => {
+    await page.goto("/tools/material-quote");
+    await expect(page.getByRole("tablist", { name: "카테고리" })).toBeVisible();
+    await page.evaluate(() => {
+      window.__shifts = [];
+      new PerformanceObserver((list) => {
+        // Late shifts only: a shift within 500ms of a keystroke is the typing itself.
+        for (const e of list.getEntries()) if (!e.hadRecentInput) window.__shifts.push(e.value);
+      }).observe({ type: "layout-shift" });
+    });
+    const box = page.getByRole("combobox", { name: "재료 이름" });
+    await box.pressSequentially("재련", { delay: 30 });
+    await expect(page.getByRole("option").first()).toBeVisible();
+    await page.waitForTimeout(600);
+    await box.pressSequentially(" 재료", { delay: 400 });
+    await page.waitForTimeout(600);
+    for (let i = 0; i < 5; i++) await box.press("Backspace", { delay: 250 });
+    await page.waitForTimeout(800);
+    expect(await page.evaluate(() => window.__shifts)).toEqual([]);
+    // 아래 내용 위로 떠 있고, 초점이 상자 밖으로 나가면 닫힌다.
+    await box.pressSequentially("재련", { delay: 30 });
+    await expect(page.getByRole("listbox", { name: "검색 결과" })).toBeVisible();
+    await page.getByRole("tablist", { name: "카테고리" }).getByRole("tab").first().focus();
+    await expect(page.getByRole("listbox", { name: "검색 결과" })).toHaveCount(0);
+    await expect(box).toHaveAttribute("aria-expanded", "false");
+  });
+});
+
 test.describe("치적·뭉가·음돌 @smoke", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/tools/crit-speed");

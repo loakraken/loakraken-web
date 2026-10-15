@@ -331,47 +331,139 @@ function ItemSearch({
           </p>
         )}
       </div>
-      <form
-        className={styles.searchForm}
-        onSubmit={submit}
-        noValidate
-        aria-busy={items.isFetching}
+      {/* The results float under the field like any combobox list, so
+          results arriving while typing never push the page (A7, PM-프론트
+          #855). Focus leaving the box closes them. */}
+      <div
+        className={styles.searchBox}
+        onBlur={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+            setOpen(false);
+            setActive(-1);
+          }
+        }}
       >
-        <label className={styles.field} data-grow="">
-          <span>재료 이름</span>
-          <input
-            role="combobox"
-            aria-autocomplete="list"
-            aria-expanded={shown}
-            aria-controls={listId}
-            aria-activedescendant={shown && active >= 0 ? optionId(active) : undefined}
-            value={name}
-            onChange={(event) => {
-              setName(event.target.value);
-              setError("");
-              setOpen(true);
-            }}
-            onKeyDown={onKeyDown}
-            name="itemName"
-            spellCheck={false}
-            enterKeyHint="search"
-            maxLength={65}
-            placeholder="예: 운명의 파편…"
-            aria-invalid={!!error}
-            aria-describedby={error ? `${formId}-error` : undefined}
-            autoComplete="off"
-          />
-        </label>
-        <button
-          type="submit"
-          className={styles.secondaryPill}
-          aria-disabled={items.isFetching || wait > 0 || undefined}
-          aria-busy={items.isFetching || undefined}
+        <form
+          className={styles.searchForm}
+          onSubmit={submit}
+          noValidate
+          aria-busy={items.isFetching}
         >
-          <SearchNormal size={15} aria-hidden="true" />{" "}
-          {items.isFetching ? "검색 중…" : "검색"}
-        </button>
-      </form>
+          <label className={styles.field} data-grow="">
+            <span>재료 이름</span>
+            <input
+              role="combobox"
+              aria-autocomplete="list"
+              aria-expanded={shown}
+              aria-controls={listId}
+              aria-activedescendant={shown && active >= 0 ? optionId(active) : undefined}
+              value={name}
+              onChange={(event) => {
+                setName(event.target.value);
+                setError("");
+                setOpen(true);
+              }}
+              onKeyDown={onKeyDown}
+            onFocus={() => setOpen(true)}
+              name="itemName"
+              spellCheck={false}
+              enterKeyHint="search"
+              maxLength={65}
+              placeholder="예: 운명의 파편…"
+              aria-invalid={!!error}
+              aria-describedby={error ? `${formId}-error` : undefined}
+              autoComplete="off"
+            />
+          </label>
+          <button
+            type="submit"
+            className={styles.secondaryPill}
+            aria-disabled={items.isFetching || wait > 0 || undefined}
+            aria-busy={items.isFetching || undefined}
+          >
+            <SearchNormal size={15} aria-hidden="true" />{" "}
+            {/* Both labels share one grid cell, so the button keeps the wider one's width. */}
+            <span className={styles.searchLabel}>
+              <span data-shown={!items.isFetching || undefined}>검색</span>
+              <span data-shown={items.isFetching || undefined}>검색 중…</span>
+            </span>
+          </button>
+        </form>
+        {results && open && (
+          <div className={styles.results}>
+            {/* Only the count is announced: reading the whole list on every keystroke would drown the input. */}
+            {/* Redrawn as a new line when its text changes, so the words after
+                a number never slide as the number's width changes (A6). */}
+            <p className={styles.caption} role="status">
+              <span key={`${results.items.length}-${results.totalCount}-${results.observedAt}`}>
+                1페이지 {results.items.length}개 · 전체 {count(results.totalCount)}
+                개 · {time(results.observedAt)} 기준
+              </span>
+            </p>
+            {results.items.length === 0 ? (
+              <p className={styles.empty}>
+                검색 결과가 없어요. 이름이나 카테고리를 바꿔 보세요.
+              </p>
+            ) : (
+              <ul className={styles.resultList} id={listId} role="listbox" aria-label="검색 결과" hidden={!shown}>
+                {results.items.map((item, index) => {
+                  const added = rows.some((row) => row.item.id === item.id);
+                  const full = rows.length >= MAX_QUOTE_ITEMS;
+                  return (
+                    // 모션 목록(재료 시세): a new result list enters 30ms apart (max 8
+                    // steps). Items keep their key, so a repeat search does not replay.
+                    // The whole row is the option: a click or Enter adds it.
+                    <li
+                      key={item.id}
+                      id={optionId(index)}
+                      role="option"
+                      aria-selected={active === index}
+                      aria-disabled={added || full || undefined}
+                      aria-label={added ? `${item.name} 추가됨` : `${item.name} 견적에 추가`}
+                      className="k-reveal"
+                      style={{ "--i": index } as CSSProperties}
+                      onMouseDown={(event) => event.preventDefault()}
+                      onClick={() => pick(index)}
+                    >
+                      <GameIcon
+                        key={item.icon}
+                        src={item.icon}
+                        grade={item.grade}
+                        size={40}
+                      />
+                      <div className={styles.resultText}>
+                        <strong>{item.name}</strong>
+                        <small>
+                          {item.bundleCount}개 묶음 · 최저{" "}
+                          {formatGold(item.currentMinPrice)} · 최근{" "}
+                          {formatGold(item.recentPrice)} · 전일{" "}
+                          {formatGold(item.yDayAvgPrice)}
+                        </small>
+                      </div>
+                      <span className={styles.outlinePill} aria-hidden="true" data-disabled={added || full || undefined}>
+                        {added ? (
+                          <>
+                            <TickCircle size={14} aria-hidden="true" /> 추가됨
+                          </>
+                        ) : (
+                          <>
+                            <Add size={14} aria-hidden="true" /> 추가
+                          </>
+                        )}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+            {rows.length >= MAX_QUOTE_ITEMS && (
+              <p className={styles.caption}>
+                한 번에 최대 {MAX_QUOTE_ITEMS}개까지 계산할 수 있어요.
+              </p>
+            )}
+          </div>
+        )}
+      </div>
       {pending !== null && !search && options.isFetching && (
         <p className={styles.caption} role="status">
           카테고리 목록을 받는 대로 검색할게요.
@@ -383,76 +475,6 @@ function ItemSearch({
         </p>
       )}
       {failure && <Notice failure={failure} wait={wait} />}
-      {results && (
-        <div className={styles.results}>
-          {/* Only the count is announced: reading the whole list on every keystroke would drown the input. */}
-          <p className={styles.caption} role="status">
-            1페이지 {results.items.length}개 · 전체 {count(results.totalCount)}
-            개 · {time(results.observedAt)} 기준
-          </p>
-          {results.items.length === 0 ? (
-            <p className={styles.empty}>
-              검색 결과가 없어요. 이름이나 카테고리를 바꿔 보세요.
-            </p>
-          ) : (
-            <ul className={styles.resultList} id={listId} role="listbox" aria-label="검색 결과" hidden={!shown}>
-              {results.items.map((item, index) => {
-                const added = rows.some((row) => row.item.id === item.id);
-                const full = rows.length >= MAX_QUOTE_ITEMS;
-                return (
-                  // 모션 목록(재료 시세): a new result list enters 30ms apart (max 8
-                  // steps). Items keep their key, so a repeat search does not replay.
-                  // The whole row is the option: a click or Enter adds it.
-                  <li
-                    key={item.id}
-                    id={optionId(index)}
-                    role="option"
-                    aria-selected={active === index}
-                    aria-disabled={added || full || undefined}
-                    aria-label={added ? `${item.name} 추가됨` : `${item.name} 견적에 추가`}
-                    className="k-reveal"
-                    style={{ "--i": index } as CSSProperties}
-                    onMouseDown={(event) => event.preventDefault()}
-                    onClick={() => pick(index)}
-                  >
-                    <GameIcon
-                      key={item.icon}
-                      src={item.icon}
-                      grade={item.grade}
-                      size={40}
-                    />
-                    <div className={styles.resultText}>
-                      <strong>{item.name}</strong>
-                      <small>
-                        {item.bundleCount}개 묶음 · 최저{" "}
-                        {formatGold(item.currentMinPrice)} · 최근{" "}
-                        {formatGold(item.recentPrice)} · 전일{" "}
-                        {formatGold(item.yDayAvgPrice)}
-                      </small>
-                    </div>
-                    <span className={styles.outlinePill} aria-hidden="true" data-disabled={added || full || undefined}>
-                      {added ? (
-                        <>
-                          <TickCircle size={14} aria-hidden="true" /> 추가됨
-                        </>
-                      ) : (
-                        <>
-                          <Add size={14} aria-hidden="true" /> 추가
-                        </>
-                      )}
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-          {rows.length >= MAX_QUOTE_ITEMS && (
-            <p className={styles.caption}>
-              한 번에 최대 {MAX_QUOTE_ITEMS}개까지 계산할 수 있어요.
-            </p>
-          )}
-        </div>
-      )}
     </div>
   );
 }
