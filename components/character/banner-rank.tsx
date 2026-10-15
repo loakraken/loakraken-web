@@ -26,7 +26,10 @@ export function BannerRank({ name }: { name: string }) {
         <Tooltip>
           <TooltipTrigger className={styles.bannerRankBadge} aria-label={`${rank.text}. ${rank.note}`}>
             {rank.tier && <b>{rank.tier}</b>}
-            {rank.text}
+            {/* On a phone the label is left out so the badge stays left of the
+                render (A37); the name above and the aria-label still say it. */}
+            <span className={styles.bannerRankLabel}>{rank.label}</span>
+            {rank.value}
           </TooltipTrigger>
           <TooltipContent>{rank.note}</TooltipContent>
         </Tooltip>
