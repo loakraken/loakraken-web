@@ -26,6 +26,19 @@ for (const width of [1280, 360]) {
     );
     expect(numbers.length, "숫자 칸").toBeGreaterThan(1);
     for (const line of numbers) expect(line, "고정폭 숫자").toContain("tabular-nums");
+    // Gold amounts carry the unit as on the exchange board, on one line; counts stay plain.
+    const cell = page.getByRole("button", { name: "적주피 상 · 추피 중 매물 보기" });
+    await expect(cell.locator("[class*=price]")).toHaveText(/^[\d,]+G$/);
+    await expect(cell.locator("[class*=count]")).toHaveText(/^매물 [\d,]+$/);
+    const lines = await page.locator("main li button [class*=price]").evaluateAll((els) =>
+      els.map((el) => {
+        const range = document.createRange();
+        range.selectNodeContents(el);
+        return new Set([...range.getClientRects()].filter((r) => r.width > 0).map((r) => Math.round(r.top))).size;
+      }),
+    );
+    expect(lines.length, "금액 칸").toBeGreaterThan(0);
+    expect(lines.filter((n) => n !== 1), "금액 한 줄").toEqual([]);
 
     // A7: from the first press on, shifts right after an input count too.
     const firstLoad = await page.evaluate(() => window.__shifts.reduce((a, e) => a + e.v, 0));
@@ -36,6 +49,7 @@ for (const width of [1280, 360]) {
     const listings = page.getByRole("table", { name: "장신구 매물" });
     await expect(listings.locator("tbody tr:not([aria-hidden])")).toHaveCount(10);
     await expect(listings.locator("tbody tr:not([aria-hidden])").first()).toContainText("적주피 상 · 추피 중");
+    await expect(listings.locator("tbody tr:not([aria-hidden])").first().locator("td").nth(2)).toHaveText(/^[\d,]+G$/);
     await page.getByRole("navigation", { name: "매물 쪽 이동" }).getByRole("button", { name: "2" }).click();
     await expect(listings.locator("tbody tr:not([aria-hidden])")).toHaveCount(2);
 

@@ -25,12 +25,15 @@ import {
   type AccessoryPick,
   type Level,
 } from "@/lib/market/auction-accessories";
+import { goldText } from "@/lib/market/board";
 import quote from "@/components/tools/material-quote.module.css";
 import stats from "@/components/stats/stats.module.css";
 import gems from "./gem-board.module.css";
 import styles from "./accessory-board.module.css";
 
-const gold = (n: number | null | undefined) => (n == null ? "-" : n.toLocaleString("ko-KR"));
+/** Gold amounts as the exchange board writes them (…G); counts stay plain numbers. */
+const gold = (n: number | null | undefined) => (n == null ? "-" : goldText(n));
+const count = (n: number | null | undefined) => (n == null ? "-" : n.toLocaleString("ko-KR"));
 /** Most cells a slot has: two key effects × three grades without 하하 (one effect: 3). */
 const CELL_ROOM = 8;
 const kst = new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
@@ -69,7 +72,7 @@ function Cell({ cell, picked, onPick }: { cell: AccessoryCell; picked: boolean; 
           </span>
           <b className={styles.price}>{gold(cell.minBuyPrice)}</b>
           <Change rate={cell.previousDayChangeRate} />
-          <small className={styles.count}>매물 {gold(cell.totalCount)}</small>
+          <small className={styles.count}>매물 {count(cell.totalCount)}</small>
         </Fragment>
       </button>
     </li>
@@ -218,7 +221,7 @@ export function AccessoryBoardView({ initialFilter, initialPick }: { initialFilt
         <section className={gems.listings} aria-labelledby="accessory-listings-heading" {...pendingProps(listings)}>
           <h2 id="accessory-listings-heading">
             {pickedCell ? `${pickedCell.optionLabels.join(" · ")} 매물` : "매물"}
-            {page && <small> · {gold(page.totalCount)}개 중 싼 순</small>}
+            {page && <small> · {count(page.totalCount)}개 중 싼 순</small>}
           </h2>
           {!pick ? (
             <p className={stats.muted}>위에서 조합을 누르면 즉시 구매가가 싼 매물 10개를 보여 드려요.</p>

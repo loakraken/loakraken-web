@@ -21,11 +21,14 @@ import {
   type GemKind,
   type GemPick,
 } from "@/lib/market/auction-gems";
+import { goldText } from "@/lib/market/board";
 import quote from "@/components/tools/material-quote.module.css";
 import stats from "@/components/stats/stats.module.css";
 import styles from "./gem-board.module.css";
 
-const gold = (n: number | null | undefined) => (n == null ? "-" : n.toLocaleString("ko-KR"));
+/** Gold amounts as the exchange board writes them (…G); counts stay plain numbers. */
+const gold = (n: number | null | undefined) => (n == null ? "-" : goldText(n));
+const count = (n: number | null | undefined) => (n == null ? "-" : n.toLocaleString("ko-KR"));
 const kst = new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
 const endKst = new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
 
@@ -52,7 +55,7 @@ function Cell({ cell, picked, onPick }: { cell: GemCell | undefined; picked: boo
       <button type="button" aria-pressed={picked} onClick={onPick} aria-label={`${cell.itemName} 매물 보기`}>
         <b>{gold(cell.minBuyPrice)}</b>
         <Change rate={cell.previousDayChangeRate} />
-        <small>매물 {gold(cell.totalCount)}</small>
+        <small>매물 {count(cell.totalCount)}</small>
       </button>
     </td>
   );
@@ -170,7 +173,7 @@ export function GemBoardView({ initialPick }: { initialPick: GemPick | null }) {
         <section className={styles.listings} aria-labelledby="gem-listings-heading" {...pendingProps(listings)}>
           <h2 id="gem-listings-heading">
             {pick ? `${pick.level}레벨 ${pick.kind}의 보석 매물` : "매물"}
-            {page && <small> · {gold(page.totalCount)}개 중 싼 순</small>}
+            {page && <small> · {count(page.totalCount)}개 중 싼 순</small>}
           </h2>
           {!pick ? (
             <p className={stats.muted}>위 표에서 칸을 누르면 즉시 구매가가 싼 매물 10개를 보여 드려요.</p>
