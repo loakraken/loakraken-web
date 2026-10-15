@@ -949,6 +949,17 @@
 .rewardItems [data-grade="고대"] {
   --grade: var(--grade-ancient-text);
 }
+/* Open and closed labels stacked in one cell (the button keeps one width). */
+.rewardLabels {
+  display: inline-grid;
+}
+.rewardLabels > span {
+  grid-area: 1 / 1;
+  text-align: center;
+}
+.rewardLabels > span:not([data-on]) {
+  visibility: hidden;
+}
 .rewardMore {
   padding: 2px 8px;
   border-radius: 9999px;

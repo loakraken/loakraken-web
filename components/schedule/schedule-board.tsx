@@ -139,7 +139,13 @@ function RowRewards({ name, groups }: { name: string; groups: RewardGroup[] }) {
             }
             onClick={() => setOpen((value) => !value)}
           >
-            {open ? "접기" : rest > 0 ? `+${rest}` : "자세히"}
+            {/* Both labels in one cell, one shown: the button is as wide open as
+                closed, so '접기' (wider than '+3') never wraps it to the next
+                line of the rewards — the pressed button stays put (A7). */}
+            <span className={styles.rewardLabels}>
+              <span data-on={!open || undefined}>{rest > 0 ? `+${rest}` : "자세히"}</span>
+              <span data-on={open || undefined}>접기</span>
+            </span>
           </button>
         </li>
       </ul>
