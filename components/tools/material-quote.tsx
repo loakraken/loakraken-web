@@ -8,10 +8,11 @@ import {
   useState,
   type CSSProperties,
   type FormEvent,
+  type KeyboardEvent,
 } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, m } from "motion/react";
 import { Add, ArrowLeft, Calculator, CloseCircle, SearchNormal, TickCircle } from "@/components/ui/icons";
 import { GameIcon } from "@/components/character/imagery";
@@ -36,6 +37,7 @@ import {
   quantityError,
   searchError,
   quoteStatusCopy,
+  type ItemsEnvelope,
   type MarketFailure,
   type MarketSearch,
   type MaterialQuote,
@@ -94,6 +96,11 @@ function Notice({ failure, wait }: { failure: MarketFailure; wait: number }) {
   );
 }
 
+/** Debounce for searching while typing (PM 총괄 2026-10-16). */
+const LIVE_SEARCH_MS = 200;
+/** A name ends in a lone jamo while a syllable is still being composed ("운" → "ㅇ", "우"); search what is whole. */
+const searchable = (text: string) => normalizeText(text).replace(/[\u3131-\u318E]+$/, "").trim();
+
 function ItemSearch({
   wait,
   onRateLimit,
@@ -104,7 +111,9 @@ function ItemSearch({
   initialCategory: number | null;
 }) {
   const formId = useId();
+  const listId = useId();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const chipRow = useRef<HTMLDivElement>(null);
   const { rows, add } = usePlan();
   const options = useQuery({
@@ -127,6 +136,10 @@ function ItemSearch({
   // of failing with a category error the user could not have avoided: the
   // name is kept and the search starts as soon as a category exists.
   const [pending, setPending] = useState<string | null>(null);
+  // Search while typing: 200ms after the last keystroke (Korean included —
+  // the input value already holds the syllable being composed).
+  const [open, setOpen] = useState(true);
+  const [active, setActive] = useState(-1);
   // A linked code the list does not have falls back like no choice at all.
   const known = (code: number | null) =>
     code !== null &&
@@ -166,10 +179,26 @@ function ItemSearch({
       ? { categoryCode: selectedCategory, itemName: pending, pageNo: 1 }
       : null);
   const waiting = !selectedCategory && options.isFetching;
+  // A complete earlier result (every match fit on page 1) whose name the new
+  // one contains already holds every new match: filter it here, no request.
+  // A few cached searches at most: read straight from the cache each render.
+  const local = (() => {
+    if (!search) return null;
+    for (const [key, data] of queryClient.getQueriesData<ItemsEnvelope>({ queryKey: ["market", "items"] })) {
+      const earlier = key[2] as MarketSearch | null;
+      const page = data?.data;
+      if (!earlier || !page || earlier.categoryCode !== search.categoryCode || earlier.pageNo !== 1) continue;
+      if (page.totalCount > page.items.length || !search.itemName.includes(earlier.itemName)) continue;
+      if (earlier.itemName === search.itemName) return null;
+      const items = page.items.filter((item) => item.name.includes(search.itemName));
+      return { ...page, items, totalCount: items.length };
+    }
+    return null;
+  })();
   const items = useQuery({
     queryKey: ["market", "items", search],
     queryFn: ({ signal }) => fetchMarketItems(search!, signal),
-    enabled: !!search,
+    enabled: !!search && !local,
     retry: false,
     staleTime: 30_000,
     refetchOnWindowFocus: false,
@@ -179,6 +208,34 @@ function ItemSearch({
   useEffect(() => {
     if (failure?.retryAt) onRateLimit(failure);
   }, [failure, onRateLimit]);
+
+  // Typing searches by itself after a short pause; Enter or the button still
+  // searches at once.
+  useEffect(() => {
+    const text = searchable(name);
+    const timer = setTimeout(() => {
+      setActive(-1);
+      if (!text) {
+        setSubmitted(null);
+        setPending(null);
+        return;
+      }
+      if (searchError(1, text)) return;
+      if (!selectedCategory) {
+        if (options.isFetching) setPending(text);
+        return;
+      }
+      setPending(null);
+      setSubmitted((prev) =>
+        prev?.itemName === text && prev.categoryCode === selectedCategory
+          ? prev
+          : { categoryCode: selectedCategory, itemName: text, pageNo: 1 },
+      );
+    }, LIVE_SEARCH_MS);
+    return () => clearTimeout(timer);
+    // Only typing starts a search; a category change alone never re-runs it (see choose).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [name]);
 
   function submit(event: FormEvent) {
     event.preventDefault();
@@ -201,7 +258,33 @@ function ItemSearch({
     });
   }
 
-  const results = items.data?.data;
+  const results = local ?? items.data?.data;
+  const shown = open && !!results && results.items.length > 0;
+  const optionId = (index: number) => `${listId}-option-${index}`;
+  const pick = (index: number) => {
+    const item = results?.items[index];
+    if (!item || !search || rows.length >= MAX_QUOTE_ITEMS || rows.some((row) => row.item.id === item.id)) return;
+    add(item, search);
+  };
+  // Combobox keys (WAI-ARIA): ↑/↓ move through the results, Enter adds the
+  // one in focus (or searches when none is), Esc closes the list.
+  function onKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    const count = results?.items.length ?? 0;
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      if (!count) return;
+      event.preventDefault();
+      setOpen(true);
+      const step = event.key === "ArrowDown" ? 1 : -1;
+      setActive((prev) => (prev < 0 ? (step > 0 ? 0 : count - 1) : (prev + step + count) % count));
+    } else if (event.key === "Enter" && shown && active >= 0) {
+      event.preventDefault();
+      pick(active);
+    } else if (event.key === "Escape" && shown) {
+      event.preventDefault();
+      setOpen(false);
+      setActive(-1);
+    }
+  }
   return (
     <div
       className={styles.searchArea}
@@ -254,11 +337,18 @@ function ItemSearch({
         <label className={styles.field} data-grow="">
           <span>재료 이름</span>
           <input
+            role="combobox"
+            aria-autocomplete="list"
+            aria-expanded={shown}
+            aria-controls={listId}
+            aria-activedescendant={shown && active >= 0 ? optionId(active) : undefined}
             value={name}
             onChange={(event) => {
               setName(event.target.value);
               setError("");
+              setOpen(true);
             }}
+            onKeyDown={onKeyDown}
             maxLength={65}
             placeholder="예: 운명의 파편"
             aria-invalid={!!error}
@@ -298,14 +388,26 @@ function ItemSearch({
               검색 결과가 없어요. 이름이나 카테고리를 바꿔 보세요.
             </p>
           ) : (
-            <ul className={styles.resultList}>
+            <ul className={styles.resultList} id={listId} role="listbox" aria-label="검색 결과" hidden={!shown}>
               {results.items.map((item, index) => {
                 const added = rows.some((row) => row.item.id === item.id);
                 const full = rows.length >= MAX_QUOTE_ITEMS;
                 return (
                   // 모션 목록(재료 시세): a new result list enters 30ms apart (max 8
                   // steps). Items keep their key, so a repeat search does not replay.
-                  <li key={item.id} className="k-reveal" style={{ "--i": index } as CSSProperties}>
+                  // The whole row is the option: a click or Enter adds it.
+                  <li
+                    key={item.id}
+                    id={optionId(index)}
+                    role="option"
+                    aria-selected={active === index}
+                    aria-disabled={added || full || undefined}
+                    aria-label={added ? `${item.name} 추가됨` : `${item.name} 견적에 추가`}
+                    className="k-reveal"
+                    style={{ "--i": index } as CSSProperties}
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => pick(index)}
+                  >
                     <GameIcon
                       key={item.icon}
                       src={item.icon}
@@ -321,17 +423,7 @@ function ItemSearch({
                         {formatGold(item.yDayAvgPrice)}
                       </small>
                     </div>
-                    <button
-                      type="button"
-                      className={styles.outlinePill}
-                      disabled={added || full}
-                      onClick={() => search && add(item, search)}
-                      aria-label={
-                        added
-                          ? `${item.name} 추가됨`
-                          : `${item.name} 견적에 추가`
-                      }
-                    >
+                    <span className={styles.outlinePill} aria-hidden="true" data-disabled={added || full || undefined}>
                       {added ? (
                         <>
                           <TickCircle size={14} aria-hidden="true" /> 추가됨
@@ -341,7 +433,7 @@ function ItemSearch({
                           <Add size={14} aria-hidden="true" /> 추가
                         </>
                       )}
-                    </button>
+                    </span>
                   </li>
                 );
               })}

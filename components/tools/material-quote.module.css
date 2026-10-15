@@ -702,3 +702,31 @@
   opacity: 0.55;
   transition: opacity 150ms ease;
 }
+
+/* Search results as a listbox (combobox pattern): the whole row is the
+   option. The one in focus from the keyboard is filled; a row already
+   added (or a full quote) cannot be picked again. */
+.resultList li[role="option"] {
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+.resultList li[aria-selected="true"] {
+  background: var(--hover-surface);
+  box-shadow: inset 3px 0 0 var(--action);
+}
+.resultList li[aria-disabled="true"] {
+  cursor: default;
+}
+.resultList li:not([aria-disabled="true"]):active .outlinePill {
+  transform: scale(0.97);
+}
+@media (hover: hover) and (pointer: fine) {
+  .resultList li:not([aria-disabled="true"]):hover .outlinePill {
+    background: var(--hover-surface);
+  }
+}
+.outlinePill[data-disabled] {
+  border-color: var(--control);
+  color: var(--muted-foreground);
+}
