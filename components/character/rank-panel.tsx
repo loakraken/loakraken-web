@@ -44,7 +44,9 @@ function Cells({ data, metric }: { data: CharacterRank; metric: RankMetric }) {
                   <strong>{cell.rank}</strong>
                   <small>{cell.total}</small>
                   <span className={styles.top}>
-                    {cell.top ?? "-"}
+                    {/* Its own unshrinking piece: in a narrow box the badge then
+                        goes to the next line instead of past the box (A37). */}
+                    <span className={styles.share}>{cell.top ?? "-"}</span>
                     {cell.tier && (
                       // Hover or focus explains the name (user 10-12).
                       <Tooltip>
@@ -57,8 +59,19 @@ function Cells({ data, metric }: { data: CharacterRank; metric: RankMetric }) {
                       </Tooltip>
                     )}
                   </span>
-                  {/* Every cell keeps this line, so cells with and without a next tier stand alike (A7). */}
-                  <small className={styles.next}>{cell.next ?? "\u00a0"}</small>
+                  {/* Every cell keeps these two lines, so cells with and without a
+                      next tier stand alike (A7): the words, then the number on
+                      its own line, whole, however narrow the box (A37). */}
+                  <small className={styles.next}>
+                    {cell.next ? (
+                      <>
+                        {cell.next.slice(0, cell.next.lastIndexOf(" "))}{" "}
+                        <span className={styles.nextValue}>{cell.next.slice(cell.next.lastIndexOf(" ") + 1)}</span>
+                      </>
+                    ) : (
+                      "\u00a0"
+                    )}
+                  </small>
                 </>
               ) : (
                 <strong className={styles.pending}>-</strong>
