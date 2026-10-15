@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
+import { connection } from "next/server";
 import { MultiSearchView } from "@/components/multi-search/multi-search-view";
-import { namesFromParam } from "@/lib/multi-search/model";
 
 export const metadata: Metadata = {
   title: "멀티서치",
@@ -9,12 +9,9 @@ export const metadata: Metadata = {
   alternates: { canonical: "/multi-search" },
 };
 
-export default async function MultiSearchPage({
-  searchParams,
-}: {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-}) {
-  const raw = (await searchParams).names;
-  // Invalid names in a shared link are dropped; the rest load one by one.
-  return <MultiSearchView initialNames={namesFromParam(typeof raw === "string" ? raw : null)} />;
+export default async function MultiSearchPage() {
+  // Rendered per request, so a shared link's names (?names=, read by the
+  // view itself) are in the first HTML. Invalid names in it are dropped.
+  await connection();
+  return <MultiSearchView />;
 }

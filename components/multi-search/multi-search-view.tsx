@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useId, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useQueries, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { SiteHeader } from "@/components/site/site-header";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,7 @@ import { failureCopy } from "@/lib/character/model";
 import {
   MULTI_SEARCH_LIMIT,
   bestNames,
+  namesFromParam,
   namesSearch,
   parseNames,
   summarize,
@@ -28,6 +30,7 @@ import {
   type Engraving,
   type Summary,
 } from "@/lib/multi-search/model";
+import { readLastNames, saveLastNames } from "@/lib/multi-search/last";
 import quote from "@/components/tools/material-quote.module.css";
 import styles from "./multi-search.module.css";
 
@@ -69,6 +72,10 @@ function useCharacters(names: string[]) {
       queryFn: ({ signal }: { signal: AbortSignal }) => fetchCharacter(name, signal),
       enabled: gates[i].enabled,
       staleTime: 60_000,
+      // Back from a character page, or after a while: what has already come
+      // is shown as it is, no new request (official calls stay down).
+      refetchOnMount: false,
+      gcTime: 30 * 60_000,
       retry: false,
       refetchOnWindowFocus: false,
     })),
@@ -325,17 +332,47 @@ function cardOf(entry: Entry, best: Record<SortKey, string[]>, onRemove: (name: 
   };
 }
 
-export function MultiSearchView({ initialNames }: { initialNames: string[] }) {
+/**
+ * A plain replaceState (null state): the router syncs it into useSearchParams.
+ * Passing the router's own state along makes it skip that sync.
+ */
+const writeAddress = (list: string[]) =>
+  window.history.replaceState(null, "", `${window.location.pathname}${namesSearch(list)}`);
+
+export function MultiSearchView() {
   const ids = { field: useId(), hint: useId(), error: useId() };
-  const [names, setNames] = useState(initialNames);
+  // The list lives only in the address, read from there on every render, so
+  // back, reload and a shared link all show the same list. (A copy seeded
+  // from the server's first answer came back empty on back, as the router
+  // restored the screen it had before any name, and then wiped the address.)
+  const raw = useSearchParams().get("names");
+  const fromAddress = useMemo(() => namesFromParam(raw), [raw]);
+  // The last list brought back on open. Held here too: on mount the router
+  // may not watch replaceState yet (its effect runs after ours), so the
+  // address can change without useSearchParams seeing it.
+  const [restored, setRestored] = useState<string[] | null>(null);
+  const names = !fromAddress.length && restored ? restored : fromAddress;
   const [text, setText] = useState("");
   const [error, setError] = useState("");
 
-  // The list lives in the address so a comparison can be shared or reloaded.
+  const setNames = (next: string[]) => {
+    writeAddress(next);
+    saveLastNames(next);
+    setRestored(null);
+  };
+
+  // Opened without names (menu, home): the last list of this browser comes
+  // back. Opened with names (back, reload, a link): they become the last list.
+  const opened = useRef(names);
   useEffect(() => {
-    const next = `${window.location.pathname}${namesSearch(names)}`;
-    if (next !== `${window.location.pathname}${window.location.search}`) window.history.replaceState(null, "", next);
-  }, [names]);
+    if (opened.current.length) return saveLastNames(opened.current);
+    const last = readLastNames();
+    if (!last.length) return;
+    writeAddress(last);
+    // Browser storage is read once after hydration (the server has none).
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setRestored(last);
+  }, []);
 
   const entries = useCharacters(names);
   const summaries = entries.flatMap((e) => (e.summary ? [e.summary] : []));
@@ -370,7 +407,7 @@ export function MultiSearchView({ initialNames }: { initialNames: string[] }) {
   };
 
   const remove = (name: string) => {
-    setNames((list) => list.filter((n) => n !== name));
+    setNames(names.filter((n) => n !== name));
     setError("");
     focusField();
   };
@@ -378,9 +415,9 @@ export function MultiSearchView({ initialNames }: { initialNames: string[] }) {
   const done = entries.filter((e) => e.summary || e.error).length;
   const status = !names.length
     ? ""
-    : done < names.length
-      ? `${names.length}명 중 ${done}명을 불러왔어요`
-      : `${names.length}명을 비교하고 있어요`;
+    : `${restored ? "지난번 명단 · " : ""}${
+        done < names.length ? `${names.length}명 중 ${done}명을 불러왔어요` : `${names.length}명을 비교하고 있어요`
+      }`;
 
   return (
     <div className={quote.page}>
