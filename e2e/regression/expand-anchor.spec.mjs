@@ -10,6 +10,7 @@ const top = (locator) => locator.evaluate((el) => el.getBoundingClientRect().top
 async function opensInPlace(page, control, panelOf) {
   await control.scrollIntoViewIfNeeded();
   const before = await top(control);
+  const width = (await control.boundingBox()).width;
   await control.click();
   const panel = panelOf();
   await expect(panel).toBeVisible();
@@ -17,6 +18,9 @@ async function opensInPlace(page, control, panelOf) {
   await page.waitForTimeout(300);
   const mark = await shiftMark(page);
   expect(Math.abs((await top(control)) - before), "누른 버튼 제자리(±1px)").toBeLessThanOrEqual(1);
+  // Its label changes ('+3' → '접기'); a wider label wrapped it to the next line
+  // with some fonts (CI): the width itself must not change.
+  expect(Math.abs((await control.boundingBox()).width - width), "누른 버튼 폭 그대로").toBeLessThanOrEqual(0.5);
   const [controlBox, panelBox] = await Promise.all([control.boundingBox(), panel.boundingBox()]);
   expect(panelBox.y, "펼친 내용이 버튼 아래에서 열림").toBeGreaterThanOrEqual(controlBox.y + controlBox.height - 1);
   await page.waitForTimeout(1200);

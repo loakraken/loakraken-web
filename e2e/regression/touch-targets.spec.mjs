@@ -65,6 +65,30 @@ test("캐릭터 화면 작은 버튼 누르는 영역 44 @regression @A36", asyn
   ]);
 });
 
+const kstAt = (hhmm) => Date.parse(`${new Date(Date.now() + 9 * 3_600_000).toISOString().slice(0, 10)}T${hhmm}:00+09:00`);
+
+test("23:30 홈·일정 '내일 일정 보기' 누르는 영역 44 @regression @A36", async ({ page }) => {
+  await page.clock.setFixedTime(kstAt("23:30"));
+  for (const path of ["/", "/schedule"]) {
+    await gotoReady(page, path);
+    const tomorrow = page.getByRole("button", { name: "내일 일정 보기" });
+    // The week's last day (Tuesday) has no tomorrow in range: no button to check then.
+    if (!(await tomorrow.count())) continue;
+    await expectPressable(
+      (await tomorrow.all()).map((button, i) => [`${path} 내일 일정 보기 ${i + 1}`, button]),
+    );
+  }
+});
+
+test("아크 그리드 코어 펼친 젬 상세 버튼 누르는 영역 44 @regression @A36", async ({ page }) => {
+  await gotoReady(page, characterPath("상세", "combat"));
+  const core = page.locator("summary").filter({ hasText: /^질서/ }).first();
+  await core.click();
+  const gems = page.locator("details[open]").first().getByRole("listitem").getByRole("button");
+  await expect(gems.first()).toBeVisible();
+  await expectPressable((await gems.all()).map((button, i) => [`젬 ${i + 1}`, button]));
+});
+
 test("홈 인기 검색 기간·소개 바닥글·소식 분류 누르는 영역 44 @regression @A36", async ({ page }) => {
   await gotoReady(page, "/");
   const period = page.getByRole("group", { name: "기간", exact: true });
