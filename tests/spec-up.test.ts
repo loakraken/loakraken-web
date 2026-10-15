@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import { NO_EDITS } from "../lib/combat-power/model";
-import { editsFor, koreanGold, readTry, splitCandidates, tryParam } from "../lib/spec-up/model";
+import { editsFor, keepOrder, koreanGold, readTry, splitCandidates, tryParam } from "../lib/spec-up/model";
 import { requestSpecUp } from "../lib/spec-up/upstream";
 import { isSpecUpEnvelope } from "../lib/spec-up/validate";
 
@@ -18,6 +18,16 @@ test("gold reads in Korean units with every digit kept", () => {
   assert.equal(koreanGold(2_620_000), "262만");
   assert.equal(koreanGold(123_456_789), "1억 2,345만 6,789");
   assert.equal(koreanGold(-5_000), "−5,000");
+});
+
+test("a refresh keeps listed rows in place; new ones follow, a new sort starts over", () => {
+  const rows = fixture("character-spec-up.json").data.candidates.slice(0, 3);
+  const [a, b, c] = rows;
+  // The backend now ranks c first: the rows on screen stay a, b, c.
+  assert.deepEqual(keepOrder([c, a, b], [a.id, b.id, c.id]).map((r) => r.id), [a.id, b.id, c.id]);
+  // A candidate not shown before goes after them, one gone is simply left out.
+  assert.deepEqual(keepOrder([c, a], [a.id, b.id]).map((r) => r.id), [a.id, c.id]);
+  assert.deepEqual(keepOrder([c, a, b], null).map((r) => r.id), [c.id, a.id, b.id]);
 });
 
 test("backend samples pass the contract, a changed code does not", () => {

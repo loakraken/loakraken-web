@@ -3,10 +3,11 @@
 // next, ranked by combat power per 10,000 gold (or by the gain alone). Every
 // number comes from the backend; candidates it could not compute fold into one
 // line per reason, and "적용해 보기" opens the simulator tab with the change.
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { rateLimitCopy, retryLabel } from "@/lib/api/rate-limit";
+import { ChangeMark, useChangedCells, type Pulse } from "@/components/ui/changed-cells";
+import { failureOf, rateLimitCopy, retryLabel } from "@/lib/api/rate-limit";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import type { Character } from "@/lib/character/model";
 import { NO_EDITS } from "@/lib/combat-power/model";
@@ -14,6 +15,7 @@ import { SpecUpQueryError, fetchSpecUp } from "@/lib/spec-up/client";
 import {
   SORTS,
   editsFor,
+  keepOrder,
   kindLabel,
   koreanGold,
   specUpQuery,
@@ -43,7 +45,7 @@ function failureCopy(code: string) {
   }
 }
 
-function CostCell({ candidate }: { candidate: Candidate }) {
+function CostCell({ candidate, pulse }: { candidate: Candidate; pulse?: Pulse }) {
   const cost = candidate.cost;
   if (!cost)
     return (
@@ -54,7 +56,9 @@ function CostCell({ candidate }: { candidate: Candidate }) {
   if (cost.status === "OK" && cost.amount != null)
     return (
       <td data-cell="cost" data-label="기대 비용" data-figure="" title={`${cost.amount.toLocaleString("ko-KR")}${cost.unit === "GOLD" ? "G" : ` ${cost.unit}`}`}>
-        {cost.unit === "GOLD" ? `${koreanGold(cost.amount)}G` : `${cost.amount.toLocaleString("ko-KR")} ${cost.unit}`}
+        <ChangeMark pulse={pulse}>
+          {cost.unit === "GOLD" ? `${koreanGold(cost.amount)}G` : `${cost.amount.toLocaleString("ko-KR")} ${cost.unit}`}
+        </ChangeMark>
       </td>
     );
   return (
@@ -78,11 +82,48 @@ export default function SpecUpGuide({ data }: { data: Character }) {
     retryOnMount: false,
     retry: false,
     refetchOnWindowFocus: false,
+    // Costs follow the cached prices: every minute while the tab is visible
+    // (user 10-16), after a rate limit's retryAt, and not again after another
+    // failure (e.g. the character snapshot left the cache) — the list shown stays.
+    refetchInterval: (q) => {
+      const retryAt = failureOf(q.state.error)?.retryAt;
+      if (retryAt) return Math.max(60_000, retryAt - Date.now());
+      return q.state.error ? false : 60_000;
+    },
   });
   const limit = useRateLimit(query.error);
   const guide = query.data?.data;
-  const failure = query.error instanceof SpecUpQueryError ? query.error.info.code : query.error ? "ERROR" : null;
-  const { ok, folded } = guide ? splitCandidates(guide.candidates) : { ok: [], folded: [] };
+  // A failed refresh keeps the list it had; the failure shows only without one.
+  const failure = guide
+    ? null
+    : query.error instanceof SpecUpQueryError
+      ? query.error.info.code
+      : query.error
+        ? "ERROR"
+        : null;
+  // Rows keep their place across refreshes of the same sort (see keepOrder).
+  const [order, setOrder] = useState<{ sort: string; ids: string[] } | null>(null);
+  const candidates = useMemo(
+    () => (guide ? keepOrder(guide.candidates, order?.sort === guide.sort ? order.ids : null) : []),
+    [guide, order],
+  );
+  const shownIds = candidates.map((c) => c.id).join("|");
+  if (guide && !query.isPlaceholderData && (order?.sort !== guide.sort || order.ids.join("|") !== shownIds))
+    setOrder({ sort: guide.sort, ids: candidates.map((c) => c.id) });
+  // One array per answer (the change marks compare row lists by identity).
+  const { ok, folded } = useMemo(
+    () => (guide ? splitCandidates(candidates) : { ok: [], folded: [] }),
+    [guide, candidates],
+  );
+  const changed = useChangedCells(ok, (c) => c.id, {
+    cost: (c) => c.cost?.amount,
+    eff: (c) => c.combatPowerPer10kGold,
+  });
+  // Tint only: the cells carry no arrow of their own room (no width change).
+  const pulseOf = (id: string, key: string) => {
+    const pulse = changed.pulse(id, key);
+    return pulse && { ...pulse, dir: 0 as const };
+  };
   // Each cost basis once, under the table (the same code is the same sentence).
   // In code order, so a new sort does not reorder these lines (A7).
   const bases = [...new Map(ok.flatMap((c) => (c.cost ? [[c.cost.code, c.cost.basis] as const] : []))).entries()]
@@ -118,7 +159,9 @@ export default function SpecUpGuide({ data }: { data: Character }) {
 
       <div
         aria-live="polite"
-        aria-busy={query.isFetching || undefined}
+        // Busy while a list is coming for the first time or for a new sort,
+        // not on the quiet minute refresh.
+        aria-busy={(query.isFetching && (!guide || query.isPlaceholderData)) || undefined}
         className={styles.specUpList}
         data-stale={query.isPlaceholderData || undefined}
       >
@@ -189,9 +232,11 @@ export default function SpecUpGuide({ data }: { data: Character }) {
                             {c.deltaCombatPower == null ? "—" : `+${two(c.deltaCombatPower)}`}
                             {c.deltaPercent != null && <small> ({c.deltaPercent.toFixed(3)}%)</small>}
                           </td>
-                          <CostCell candidate={c} />
+                          <CostCell candidate={c} pulse={pulseOf(c.id, "cost")} />
                           <td data-cell="eff" data-label="1만 골드당" data-figure="">
-                            {c.combatPowerPer10kGold == null ? "—" : two(c.combatPowerPer10kGold)}
+                            <ChangeMark pulse={pulseOf(c.id, "eff")}>
+                              {c.combatPowerPer10kGold == null ? "—" : two(c.combatPowerPer10kGold)}
+                            </ChangeMark>
                           </td>
                           <td data-cell="try">
                             {tryable && (

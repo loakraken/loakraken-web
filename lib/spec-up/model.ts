@@ -64,6 +64,20 @@ export function koreanGold(amount: number) {
 
 export type Folded = { code: string; reason: string; kinds: string[]; candidates: Candidate[] };
 
+/**
+ * The minute's price refresh keeps the rows where they are (A7: rows do not
+ * move without a press): candidates already listed keep their place, new ones
+ * follow in the backend's order. A new sort is a new order.
+ */
+export function keepOrder(list: Candidate[], ids: readonly string[] | null) {
+  if (!ids) return list;
+  const at = new Map(ids.map((id, i) => [id, i]));
+  return list
+    .map((candidate, i) => ({ candidate, rank: at.get(candidate.id) ?? ids.length + i }))
+    .sort((a, b) => a.rank - b.rank)
+    .map((row) => row.candidate);
+}
+
 /** OK rows in the backend's order; the rest folded into one line per reason. */
 export function splitCandidates(list: Candidate[]) {
   const ok = list.filter((c) => c.status === "OK");
