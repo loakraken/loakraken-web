@@ -12,7 +12,7 @@ import {
 } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, m } from "motion/react";
 import { Add, ArrowLeft, Calculator, CloseCircle, SearchNormal, TickCircle } from "@/components/ui/icons";
 import { GameIcon } from "@/components/character/imagery";
@@ -199,6 +199,9 @@ function ItemSearch({
     queryKey: ["market", "items", search],
     queryFn: ({ signal }) => fetchMarketItems(search!, signal),
     enabled: !!search && !local,
+    // Typing changes the key every few letters: keep the last list on screen
+    // until the new one lands, so it does not empty and refill (perf-placeholder-data).
+    placeholderData: keepPreviousData,
     retry: false,
     staleTime: 30_000,
     refetchOnWindowFocus: false,
@@ -349,8 +352,11 @@ function ItemSearch({
               setOpen(true);
             }}
             onKeyDown={onKeyDown}
+            name="itemName"
+            spellCheck={false}
+            enterKeyHint="search"
             maxLength={65}
-            placeholder="예: 운명의 파편"
+            placeholder="예: 운명의 파편…"
             aria-invalid={!!error}
             aria-describedby={error ? `${formId}-error` : undefined}
             autoComplete="off"
@@ -363,7 +369,7 @@ function ItemSearch({
           aria-busy={items.isFetching || undefined}
         >
           <SearchNormal size={15} aria-hidden="true" />{" "}
-          {items.isFetching ? "검색 중" : "검색"}
+          {items.isFetching ? "검색 중…" : "검색"}
         </button>
       </form>
       {pending !== null && !search && options.isFetching && (
@@ -378,8 +384,9 @@ function ItemSearch({
       )}
       {failure && <Notice failure={failure} wait={wait} />}
       {results && (
-        <div className={styles.results} aria-live="polite">
-          <p className={styles.caption}>
+        <div className={styles.results}>
+          {/* Only the count is announced: reading the whole list on every keystroke would drown the input. */}
+          <p className={styles.caption} role="status">
             1페이지 {results.items.length}개 · 전체 {count(results.totalCount)}
             개 · {time(results.observedAt)} 기준
           </p>
