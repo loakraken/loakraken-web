@@ -346,6 +346,11 @@ function FixBar({ fixing, onClear, population }: { fixing: Fixing; onClear: () =
 }
 
 const day = new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", month: "numeric", day: "numeric" });
+/** "10.15": the short date the 확인 column has room for whole ("10. 15." was cut, A37). */
+const shortDay = (at: string) => {
+  const parts = day.formatToParts(new Date(at));
+  return `${parts.find((p) => p.type === "month")?.value}.${parts.find((p) => p.type === "day")?.value}`;
+};
 
 /**
  * 이 세팅을 쓰는 상위 30명 (api #503): the highest observed combat power among
@@ -383,12 +388,14 @@ function TopCharacters({ query }: { query: ClassBuildsQuery }) {
         ) : (
           <DataTable label="이 세팅을 쓰는 상위 30명" className={own.topTable}>
             <colgroup>
-              <col style={{ width: "3em" }} />
+              {/* Room for each header and value whole, padding included (A37):
+                  only the name column may cut, with its full name on hover. */}
+              <col style={{ width: "4em" }} />
               <col />
               <col style={{ width: "6em" }} />
-              <col style={{ width: "6.5em" }} />
+              <col style={{ width: "7em" }} />
               <col style={{ width: "7.5em" }} />
-              <col style={{ width: "4.5em" }} />
+              <col style={{ width: "5em" }} />
             </colgroup>
             <thead>
               <tr>
@@ -417,7 +424,7 @@ function TopCharacters({ query }: { query: ClassBuildsQuery }) {
                   <td className={own.left}>{row.serverName}</td>
                   <td>{row.itemLevel.toLocaleString("ko-KR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                   <td>{row.combatPower.toLocaleString("ko-KR", { maximumFractionDigits: 2 })}</td>
-                  <td>{row.observedAt ? day.format(new Date(row.observedAt)) : "-"}</td>
+                  <td>{row.observedAt ? shortDay(row.observedAt) : "-"}</td>
                 </tr>
               ))}
             </tbody>
