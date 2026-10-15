@@ -88,4 +88,29 @@ test.describe("휴대폰", () => {
       expect(misses, `${title} ${name}: 44×44 네 모서리`).toEqual([]);
     }
   });
+
+  // A37: the fixed columns took all of a phone's width and the name column got 0 (30 names unseen).
+  test("@A37 상위 30명 표: 이름 칸은 읽을 폭을 갖고, 넘치면 말줄임 + 전체 이름 @regression", async ({ page }) => {
+    await gotoReady(page, BLADE);
+    const top = page.getByRole("region", { name: "이 세팅을 쓰는 상위 30명" });
+    const names = top.getByRole("rowheader");
+    await expect(names).toHaveCount(30);
+    const cells = await names.evaluateAll((els) =>
+      els.map((el) => {
+        const link = el.querySelector("a");
+        return {
+          name: link?.textContent ?? "",
+          width: Math.round(el.getBoundingClientRect().width),
+          title: link?.getAttribute("title") ?? "",
+          cut: el.scrollWidth > el.clientWidth,
+          ellipsis: getComputedStyle(el).textOverflow === "ellipsis",
+        };
+      }),
+    );
+    expect(cells.filter((c) => c.width < 80).map((c) => `${c.name} ${c.width}px`), "이름 칸 80px 이상").toEqual([]);
+    expect(cells.filter((c) => c.title !== c.name).map((c) => c.name), "전체 이름 툴팁").toEqual([]);
+    expect(cells.filter((c) => c.cut && !c.ellipsis).map((c) => c.name), "넘치면 말줄임").toEqual([]);
+    // The table scrolls inside its own region; the page itself does not.
+    await expectNoHorizontalOverflow(page);
+  });
 });

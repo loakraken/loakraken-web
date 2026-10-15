@@ -1188,7 +1188,7 @@ createServer(async (req, res) => {
     const who = url.searchParams.get("characterName") ?? "";
     if (who === "미관측" || who === "비공개") return send({ code: "STATS_CHARACTER_NOT_OBSERVED", message: "private" }, 404);
     const excluded = who === "조건밖";
-    const entry = (metric, scope, scopeValue, rank, total, sampleStatus = "READY") => {
+    const entry = (metric, scope, scopeValue, rank, total, sampleStatus = "READY", gapAs = null) => {
       const top = sampleStatus === "READY" ? Math.round((rank / total) * 10000) / 100 : null;
       const tier = top == null ? null : top <= 1 ? "TOP1" : top <= 5 ? "TOP5" : top <= 10 ? "TOP10" : top <= 25 ? "TOP25" : top <= 50 ? "TOP50" : "REST";
       // api #481: the next tier up, its boundary (the K-th, K = ⌊% × total / 100⌋)
@@ -1199,13 +1199,24 @@ createServer(async (req, res) => {
       const k = up ? Math.floor((pct[up] * total) / 100) : 0;
       const nextTier = up && k >= 1 ? up : null;
       const step = metric === "ITEM_LEVEL" ? 0.25 : 3.17;
-      const nextTierGap = nextTier ? Math.round((rank - k) * step * 100) / 100 : null;
+      const nextTierGap = nextTier ? (gapAs ?? Math.round((rank - k) * step * 100) / 100) : null;
       const value = metric === "ITEM_LEVEL" ? 1780.83 : 3180.29;
       const nextTierValue = nextTier ? Math.round((value + nextTierGap) * 100) / 100 : null;
       return { metric, scope, scopeValue, rank, total, topPercent: top, tier, sampleStatus, nextTier, nextTierValue, nextTierGap };
     };
     const collecting = who === "집계중" ? "COLLECTING" : "READY";
-    const entries = excluded ? [] : [
+    // Long values as real data has them (QA 10-16 02시): big ranks, 연안 tiers,
+    // four-digit gaps to the next tier, in every box of the narrow side column.
+    const long = who === "가려짐긴값캐릭터";
+    const entries = excluded ? [] : long ? [
+      entry("COMBAT_POWER", "ALL", null, 9000, 20000, "READY", 1393.54),
+      entry("COMBAT_POWER", "SERVER", "아브렐슈드", 1100, 2311, "READY", 583.67),
+      entry("COMBAT_POWER", "CLASS", "데모닉", 300, 612, "READY", 2051.19),
+      entry("ITEM_LEVEL", "ALL", null, 9100, 20000, "READY", 12.5),
+      entry("ITEM_LEVEL", "SERVER", "아브렐슈드", 1150, 2311, "READY", 7.5),
+      entry("ITEM_LEVEL", "CLASS", "데모닉", 301, 612, "READY", 5.83),
+      // No server-class box: three boxes side by side, the narrowest cells.
+    ] : [
       entry("COMBAT_POWER", "ALL", null, 4120, 18231),
       entry("COMBAT_POWER", "SERVER", "아만", 211, 2311),
       entry("COMBAT_POWER", "CLASS", "블래스터", 37, collecting === "READY" ? 612 : 21, collecting),

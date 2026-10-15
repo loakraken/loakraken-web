@@ -409,7 +409,10 @@ function TopCharacters({ query }: { query: ClassBuildsQuery }) {
                 <tr key={`${row.rank}-${row.characterName}`}>
                   <td>{row.rank}</td>
                   <th scope="row" className={own.left}>
-                    <Link href={`/character/${encodeURIComponent(row.characterName)}`}>{row.characterName}</Link>
+                    {/* A long name ends in "…" (the cell): the full one on hover. */}
+                    <Link href={`/character/${encodeURIComponent(row.characterName)}`} title={row.characterName}>
+                      {row.characterName}
+                    </Link>
                   </th>
                   <td className={own.left}>{row.serverName}</td>
                   <td>{row.itemLevel.toLocaleString("ko-KR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
