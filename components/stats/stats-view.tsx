@@ -17,6 +17,8 @@ import { TIER_LABEL } from "@/lib/character/rank";
 import { fetchBestCombatPower, fetchStats, fetchTitleEquip } from "@/lib/stats/client";
 import { equipShare, titleEquipQuery } from "@/lib/stats/title-equip";
 import {
+  DISTRIBUTION_WIDTH,
+  distributionKey,
   fixed,
   percent,
   quantileScale,
@@ -45,7 +47,6 @@ const TABS = [
   { id: "titles", label: "칭호" },
 ] as const;
 type Tab = (typeof TABS)[number]["id"];
-const WIDTH: Record<Metric, number> = { ITEM_LEVEL: 10, COMBAT_POWER: 100 };
 const kst = new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
 const quiet = { retry: false, refetchOnWindowFocus: false } as const;
 
@@ -323,9 +324,9 @@ function DistributionTab({ query }: { query: StatsQuery }) {
   const value = useDebounced(mine);
   const percentileOf = value.trim() && Number.isFinite(Number(value)) ? Number(value) : undefined;
   const dist = useQuery({
-    queryKey: ["stats", "distribution", statsKey(query), metric, percentileOf],
+    queryKey: distributionKey(query, metric, percentileOf),
     queryFn: ({ signal }) =>
-      fetchStats("distribution", { ...query, metric, width: WIDTH[metric], percentileOf }, signal),
+      fetchStats("distribution", { ...query, metric, width: DISTRIBUTION_WIDTH[metric], percentileOf }, signal),
     staleTime: 5 * 60_000,
     placeholderData: keepPreviousData,
     ...quiet,
@@ -376,7 +377,9 @@ function DistributionTab({ query }: { query: StatsQuery }) {
       {dist.isError && !data ? (
         <Problem error={dist.error} onRetry={() => dist.refetch()} />
       ) : !data ? (
-        <p className={styles.muted}>분포를 불러오고 있어요…</p>
+        <p className={styles.histogramWait} role="status">
+          분포를 불러오고 있어요…
+        </p>
       ) : asTable ? (
         <DataTable label={`${label} 구간별 인원`} className={styles.table} {...pendingProps(dist)}>
             <caption className={styles.srOnly}>{label} 구간별 인원</caption>
@@ -415,11 +418,18 @@ function DistributionTab({ query }: { query: StatsQuery }) {
           })}
         </ol>
       )}
-      {data && data.bins.length > 0 && (
+      {/* The axis line is there before the bars too (its height held), so they land without moving the note under it. */}
+      {data && data.bins.length > 0 ? (
         <p className={styles.axis} aria-hidden="true" {...pendingProps(dist)}>
           <span>{fmt(data.bins[0].from)}</span>
           <span>{fmt(data.bins.at(-1)!.to)}</span>
         </p>
+      ) : (
+        !data && !dist.isError && (
+          <p className={styles.axis} aria-hidden="true">
+            {" "}
+          </p>
+        )
       )}
     </div>
   );

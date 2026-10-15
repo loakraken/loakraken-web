@@ -1,7 +1,9 @@
 // 로아샵 효율 (checklist L45): an in-game shop package's contents valued at
 // today's market prices, against its price in royal crystals. Formula
 // confirmed by calc verification (2026-10-12):
-//   gold value   = Σ qty × unit price (market price ÷ bundle size)
+//   gold value   = Σ ⌈qty × unit price⌉ per content line (market price ÷
+//                  bundle size; a line within float error of a whole number
+//                  is rounded instead — the comparison basis, 2026-10-14)
 //   royal value  = gold × 2,750 ÷ (gold for 100 crystals at the in-game
 //                  crystal exchange)  — 100 crystals = 2,750 royal crystals
 //                  at the official shop (크리스탈 [200개] = 5,500)
@@ -9,12 +11,18 @@
 // Only the official path (royal → crystal → in-game exchange gold) is used;
 // no off-game rate exists here (PM 총괄 2026-10-13). The exchange rate is
 // typed by the player from the game and stays in this browser. Contents
-// without a market price are "미확인", never 0. Static data in
+// without a market price are "미확인", never 0, and block the gain; contents
+// that cannot be traded at all (the price API's UNTRADEABLE) are left out of
+// the gold and the gain is still computed (PM 총괄 2026-10-14, as on the
+// comparison basis). 페온 is handled the same way: it has no market and no
+// sourced gold value, so it is left out and named ("페온 n개 제외"); a package
+// with nothing but 페온 is not valued at all (PM 총괄 2026-10-14, P3). Static data in
 // data/loa-shop.json, from the official shop notices.
 import raw from "./data/loa-shop.json";
 
 export type ShopItem = {
-  kind: "market" | "crystal";
+  /** pheon: no market and no gold value; left out of the gold. */
+  kind: "market" | "crystal" | "pheon";
   /** Market item name (or "크리스탈"). */
   name: string;
   /** Units per set. */
@@ -28,8 +36,11 @@ export type ShopPackage = {
   priceRoyal: number;
   /** Sale period, the notice's words. */
   period: string;
-  /** The day whose regular maintenance ends the sale (KST date), null while "별도 안내 시". */
-  until: string | null;
+  /**
+   * When the sale ends, KST, from the notice: "N일 정기 점검 전" is that
+   * Wednesday's maintenance start, 06:00 KST. null while "별도 안내 시".
+   */
+  endsAt: string | null;
   /** Purchase limit, the notice's words. */
   limit: string;
   /** A bonus set every `every` purchases; `text` is the notice's words. */
@@ -60,7 +71,15 @@ export const marketNames = (packages: ShopPackage[]) => [
   ...new Set(packages.flatMap((p) => p.items.filter((i) => i.kind === "market").map((i) => i.name))),
 ];
 
+/** What `unitPrice` returns for a content that cannot be traded on the market. */
+export const UNTRADEABLE = "untradeable" as const;
+export type UnitPrice = number | null | typeof UNTRADEABLE;
+
 export type ItemValue = ShopItem & {
+  /** Cannot be traded: left out of the gold, does not block the gain. */
+  untradeable: boolean;
+  /** 페온: left out of the gold, does not block the gain. */
+  pheon: boolean;
   /** Units across the whole plan (sets × qty). */
   total: number;
   /** Gold per unit, or null when unknown (no market price, or no exchange rate for crystals). */
@@ -74,8 +93,14 @@ export type PackageValue = {
   items: ItemValue[];
   /** Gold of the contents whose value is known. */
   gold: number;
-  /** Contents left out of `gold` because their value is unknown. */
+  /** Contents left out of `gold` because their value is unknown (these block the gain). */
   unknown: ItemValue[];
+  /** Contents left out of `gold` because they cannot be traded. */
+  untradeable: ItemValue[];
+  /** 페온 contents, left out of `gold`. */
+  pheon: ItemValue[];
+  /** Nothing but 페온: no gold to value, so no gain either. */
+  onlyPheon: boolean;
   /** Crystals the same royal crystals would buy at the official shop. */
   crystalsForPrice: number;
   /** Crystals inside the package. */
@@ -86,27 +111,45 @@ export type PackageValue = {
 };
 
 /**
- * Values one package. `unitPrice(name)` is the market gold per unit (null when
- * unknown); `goldPer100` is the in-game crystal exchange rate, or null when
+ * Gold of one content line: rounded up to whole gold, except that a total
+ * within float error of a whole number (|x − round(x)| ≤ ε|x|) is that number,
+ * so 1.1 × 100 = 110.00000000000001 stays 110 while 274.3 becomes 275.
+ * null when not finite (comparison basis, calc verification 2026-10-14).
+ */
+export function lineGold(x: number): number | null {
+  if (!Number.isFinite(x)) return null;
+  return Math.abs(x - Math.round(x)) <= Number.EPSILON * Math.abs(x) ? Math.round(x) : Math.ceil(x);
+}
+
+/**
+ * Values one package. `unitPrice(name)` is the market gold per unit, null when
+ * unknown, or UNTRADEABLE when it cannot be traded at all; `goldPer100` is the in-game crystal exchange rate, or null when
  * the player has not entered it.
  */
 export function packageValue(
   pkg: ShopPackage,
-  unitPrice: (name: string) => number | null,
+  unitPrice: (name: string) => UnitPrice,
   goldPer100: number | null,
   royalPer100 = SHOP_DATA.crystal.royalPer100,
 ): PackageValue {
   const { purchases, sets, priceRoyal } = purchasePlan(pkg);
   const items = pkg.items.map((item): ItemValue => {
     const total = item.qty * sets;
-    const unit = item.kind === "crystal" ? (goldPer100 == null ? null : goldPer100 / 100) : unitPrice(item.name);
-    return { ...item, total, unit, gold: unit == null ? null : total * unit };
+    if (item.kind === "pheon") return { ...item, total, untradeable: false, pheon: true, unit: null, gold: null };
+    const price = item.kind === "crystal" ? (goldPer100 == null ? null : goldPer100 / 100) : unitPrice(item.name);
+    if (price === UNTRADEABLE) return { ...item, total, untradeable: true, pheon: false, unit: null, gold: null };
+    // A unit price of 0 or less is unknown, never counted as 0.
+    const unit = price != null && Number.isFinite(price) && price > 0 ? price : null;
+    return { ...item, total, untradeable: false, pheon: false, unit, gold: unit == null ? null : lineGold(total * unit) };
   });
   const known = items.filter((i) => i.gold != null);
-  const unknown = items.filter((i) => i.gold == null);
+  const unknown = items.filter((i) => i.gold == null && !i.untradeable && !i.pheon);
+  const untradeable = items.filter((i) => i.untradeable);
+  const pheon = items.filter((i) => i.pheon);
+  const onlyPheon = pheon.length > 0 && pheon.length === items.length;
   const gold = known.reduce((sum, i) => sum + (i.gold as number), 0);
   const crystals = items.filter((i) => i.kind === "crystal").reduce((sum, i) => sum + i.total, 0);
-  const royalValue = goldPer100 && goldPer100 > 0 && !unknown.length ? (gold * royalPer100) / goldPer100 : null;
+  const royalValue = goldPer100 && goldPer100 > 0 && !unknown.length && !onlyPheon ? (gold * royalPer100) / goldPer100 : null;
   return {
     purchases,
     sets,
@@ -114,6 +157,9 @@ export function packageValue(
     items,
     gold,
     unknown,
+    untradeable,
+    pheon,
+    onlyPheon,
     crystalsForPrice: Math.floor((priceRoyal * 100) / royalPer100),
     crystals,
     royalValue,
@@ -129,12 +175,16 @@ export function parseRate(value: string): number | null {
   return Number.isSafeInteger(rate) && rate > 0 ? rate : null;
 }
 
-/** Regular maintenance starts at 06:00 KST: "N일 정기 점검 전" ends then. */
-export const MAINTENANCE_START_KST = "06:00:00";
+/** Whether the package is still on sale at `now` (epoch ms). */
+export const onSale = (pkg: ShopPackage, now: number) => pkg.endsAt == null || now < Date.parse(pkg.endsAt);
 
-/** Whether the package is still on sale at `now` (epoch ms): sales end when that day's maintenance starts. */
-export const onSale = (pkg: ShopPackage, now: number) =>
-  pkg.until == null || now < Date.parse(`${pkg.until}T${MAINTENANCE_START_KST}+09:00`);
+/** Packages on sale at `now`, and those whose sale has ended (kept, folded away on screen). */
+export function splitBySale(packages: ShopPackage[], now: number) {
+  return {
+    current: packages.filter((p) => onSale(p, now)),
+    past: packages.filter((p) => !onSale(p, now)),
+  };
+}
 
 /** Consistency problems in the data; the test suite expects none. */
 export function checkShopData(data: ShopData): string[] {
@@ -150,7 +200,7 @@ export function checkShopData(data: ShopData): string[] {
     if (!Number.isInteger(p.priceRoyal) || p.priceRoyal <= 0) problems.push(`${p.id}: bad price`);
     if (!p.items.length) problems.push(`${p.id}: no items`);
     for (const i of p.items) if (!Number.isInteger(i.qty) || i.qty <= 0) problems.push(`${p.id}: bad qty ${i.name}`);
-    if (p.until !== null && !/^\d{4}-\d{2}-\d{2}$/.test(p.until)) problems.push(`${p.id}: bad until`);
+    if (p.endsAt !== null && !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\+09:00$/.test(p.endsAt)) problems.push(`${p.id}: bad endsAt`);
   }
   return problems;
 }

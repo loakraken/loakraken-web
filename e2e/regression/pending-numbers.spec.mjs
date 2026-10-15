@@ -53,8 +53,12 @@ test("통계: 최근 확인 30일→7일→30일 동안 다른 조건의 표본 
   await record(page, "최근 확인", Object.values(expected));
   const days = page.getByRole("combobox", { name: "최근 확인" });
   await chooseOption(page, days, "7일");
-  await expect(page.locator("main [aria-busy=true]").first()).toBeAttached();
+  // The new values may come with the page's own server answer (the open tab is
+  // filled there) in well under 100ms: the busy frames are read from the
+  // per-frame record below rather than polled for here.
+  await expect(page.locator("main").getByText(expected["7일"]).first()).toBeVisible();
   await expect(page.locator("main [aria-busy=true]")).toHaveCount(0, { timeout: 10_000 });
+  const switched = await page.evaluate(() => window.__frames.length);
   // 처음 본 조건(30일)으로 돌아오면 캐시 값이 바로: 흐려지는 프레임이 없다(#540 P2).
   await chooseOption(page, days, "30일");
   expect(await everBusy(page, 1500), "이미 본 30일로 돌아왔는데 흐려짐").toBe(false);
@@ -63,6 +67,11 @@ test("통계: 최근 확인 30일→7일→30일 동안 다른 조건의 표본 
     f.shown.filter((s) => expected[f.chosen] && s.value !== expected[f.chosen] && !s.busy).map((s) => `${f.chosen}에 ${s.value}`),
   );
   expect(wrong, "다른 조건의 숫자가 표시 없이 보인 프레임").toEqual([]);
+  // While 7일 loaded, the 30일 number was there marked busy (dimmed) for at least a frame.
+  expect(
+    frames.slice(0, switched).some((f) => f.shown.some((s) => s.value === expected["30일"] && s.busy)),
+    "7일을 불러오는 동안 이전 값이 흐려진 프레임",
+  ).toBe(true);
   expect(frames.length).toBeGreaterThan(30);
 });
 

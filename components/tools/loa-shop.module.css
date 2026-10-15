@@ -164,7 +164,8 @@
   font-weight: 600;
   overflow-wrap: anywhere;
 }
-.table tbody th small {
+.table tbody th small,
+.table tfoot th small {
   display: block;
   margin-top: 2px;
   color: var(--muted-foreground);
@@ -203,6 +204,14 @@
 .verdict p {
   min-height: 1lh;
 }
+/* Narrow cards: "미확인 구성품이 있어 이득을 계산하지 않았어요." and the like take
+   two lines each, while "시세를 불러오고 있어요." takes one; hold two so prices
+   arriving do not grow the card (360 load 0.018). */
+@media (max-width: 599px) {
+  .verdict p {
+    min-height: 2lh;
+  }
+}
 .verdict b {
   font-variant-numeric: tabular-nums;
 }
@@ -237,4 +246,22 @@
   .settings {
     position: static;
   }
+}
+
+/* The total row's note ("거래 불가 n개 제외"), held from the first paint. */
+.table tfoot th .footNote {
+  min-height: 1lh;
+}
+/* Ended sales, folded below the list. */
+.past {
+  margin-top: var(--space-4);
+}
+.past summary {
+  width: fit-content;
+  color: var(--link);
+  font-size: var(--text-body);
+  cursor: pointer;
+}
+.past .cards {
+  margin-top: var(--space-3);
 }

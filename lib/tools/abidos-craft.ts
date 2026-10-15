@@ -14,8 +14,12 @@
 // Yields were solved from two calculators' screens (data/abidos-craft.json
 // sourceNote); materials, gold and energy come from the crafting database.
 // The market fee is the auction tool's (marketFee: 5%, rounded up).
+// With the exchange vendor on, each material costs the cheaper of its market
+// price and an exchange chain from other materials of the same life skill
+// (life-exchange.ts, shared with 생명의 기운 효율) — e.g. 목재 → 가루 → 아비도스 목재.
 import raw from "./data/abidos-craft.json";
 import { marketFee } from "./auction";
+import { activityById, cheapestUnits, roleName, type Grade } from "./life-exchange";
 
 /** Craft gold after a fee cut given in percent with at most one decimal, rounded up. */
 export function craftGoldAfterCut(gold: number, feeCutPercent: number) {
@@ -56,13 +60,17 @@ export type CraftData = {
 // JSON gives the material pairs as arrays; the checker below validates them.
 export const CRAFT_DATA = raw as unknown as CraftData;
 
-/** Every market name the calculator prices: all materials and both results. */
+/** Every market name the calculator prices: all materials, the exchange-only rare grade, and both results. */
 export const craftMarketNames = () => [
   ...new Set([
     ...CRAFT_DATA.outputs.map((o) => o.name),
     ...CRAFT_DATA.skills.flatMap((s) => Object.values(s.materials).flatMap((list) => list.map(([name]) => name))),
+    ...CRAFT_DATA.skills.map((s) => activityById(s.id)?.items.rare).filter((n): n is string => !!n),
   ]),
 ];
+
+/** Recipe materials in order: 아비도스, uncommon, common (data/abidos-craft.json). */
+const RECIPE_GRADES: Grade[] = ["abidos", "uncommon", "common"];
 
 /** Great-success chance (0~1) for an increase given in percent (0~100). */
 export const greatSuccessChance = (increasePercent: number) =>
@@ -77,7 +85,8 @@ export function expectedYield(increasePercent: number) {
 export type CraftResult = {
   output: CraftData["outputs"][number];
   skill: CraftData["skills"][number];
-  materials: { name: string; qty: number; unit: number | null; gold: number | null }[];
+  /** via: the exchange chain (item names) when it is cheaper than buying. */
+  materials: { name: string; qty: number; unit: number | null; gold: number | null; via?: string[] }[];
   /** Craft gold after the fee cut. */
   craftGold: number;
   expected: number;
@@ -103,12 +112,20 @@ export function craftResult(
   increasePercent: number,
   feeCutPercent: number,
   energyCut: { overall: number; category: number } = { overall: 0, category: 0 },
+  exchange = false,
 ): CraftResult {
   const output = CRAFT_DATA.outputs.find((o) => o.id === outputId)!;
   const skill = CRAFT_DATA.skills.find((s) => s.id === skillId)!;
-  const materials = skill.materials[outputId].map(([name, qty]) => {
-    const unit = unitPrice(name);
-    return { name, qty, unit, gold: unit == null ? null : unit * qty };
+  const activity = activityById(skill.id);
+  const cheapest =
+    exchange && activity
+      ? cheapestUnits(activity, (role) => (role === "powder" ? Infinity : (unitPrice(roleName(activity, role)) ?? Infinity)), true)
+      : null;
+  const materials = skill.materials[outputId].map(([name, qty], i) => {
+    const best = cheapest?.[RECIPE_GRADES[i]];
+    const unit = best ? (Number.isFinite(best.unit) ? best.unit : null) : unitPrice(name);
+    const via = best && best.path.length > 1 ? best.path.map((role) => roleName(activity!, role)) : undefined;
+    return { name, qty, unit, gold: unit == null ? null : unit * qty, ...(via && { via }) };
   });
   const craftGold = craftGoldAfterCut(output.gold, feeCutPercent);
   const energy = energyAfterCut(output.energy, energyCut.overall, energyCut.category);

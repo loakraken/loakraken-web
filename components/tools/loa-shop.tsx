@@ -15,12 +15,16 @@ import {
   SHOP_DATA,
   marketNames,
   onSale,
+  splitBySale,
   packageValue,
   parseRate,
+  UNTRADEABLE,
   type PackageValue,
+  type UnitPrice,
   type ShopPackage,
 } from "@/lib/tools/loa-shop";
 import quote from "./material-quote.module.css";
+import { goldText, signedGold } from "@/lib/tools/format";
 import styles from "./loa-shop.module.css";
 
 /** The typed rate stays in this browser only (never sent anywhere). */
@@ -53,10 +57,22 @@ const subscribeRate = (listener: () => void) => {
     rateListeners.delete(listener);
   };
 };
+// The only comparison basis for this tool rounds the absolute value half away
+// from zero (−1,087.5 → −1,088; PM 총괄 2026-10-14).
+const count = (value: number) => goldText(value, "awayFromZero");
+const signed = (value: number) => signedGold(value, "awayFromZero");
 const UNKNOWN = "미확인";
+const NOT_TRADED = "거래 불가";
+const EXCLUDED = "제외";
+/** "거래 불가 2개 제외 · 페온 1개 제외" under the total: said in words, not by colour alone. 페온 is known before prices arrive. */
+const excludedNote = (value: PackageValue, priced: boolean) =>
+  [
+    priced && value.untradeable.length ? `거래 불가 ${value.untradeable.length}개 제외` : "",
+    value.pheon.length ? `페온 ${value.pheon.length}개 제외` : "",
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
-const count = (value: number) => Math.round(value).toLocaleString("ko-KR");
-const signed = (value: number) => `${value >= 0 ? "+" : "−"}${count(Math.abs(value))}`;
 const unitText = (value: number) => value.toLocaleString("ko-KR", { maximumFractionDigits: value < 1 ? 4 : 2 });
 const agoText = (now: number, iso: string) => {
   const minutes = Math.max(0, Math.floor((now - Date.parse(iso)) / MINUTE));
@@ -81,6 +97,13 @@ function Verdict({ value, rate, priced }: { value: PackageValue; rate: number | 
         <p aria-hidden="true">&nbsp;</p>
       </div>
     );
+  if (value.onlyPheon)
+    return (
+      <div className={styles.verdict}>
+        <p>페온만 들어 있어 골드로 매길 구성품이 없어요.</p>
+        <p>페온의 골드 값은 정하지 않아 이득을 계산하지 않아요.</p>
+      </div>
+    );
   if (value.gain != null)
     return (
       <div className={styles.verdict}>
@@ -89,7 +112,7 @@ function Verdict({ value, rate, priced }: { value: PackageValue; rate: number | 
         </p>
         <p>
           판매가보다{" "}
-          <b className={value.gain >= 0 ? styles.up : styles.down}>{signed(value.gain)}</b> 로열 크리스탈
+          <b className={signed(value.gain) === "0" ? undefined : value.gain > 0 ? styles.up : styles.down}>{signed(value.gain)}</b> 로열 크리스탈
         </p>
       </div>
     );
@@ -183,10 +206,10 @@ function PackageCard({
                 </th>
                 <td className={styles.num}>{count(item.total)}</td>
                 <td className={styles.num} data-empty={(priced && item.unit == null) || undefined}>
-                  <Figure text={!priced ? "—" : item.unit == null ? UNKNOWN : unitText(item.unit)} />
+                  <Figure text={item.pheon ? EXCLUDED : !priced ? "—" : item.untradeable ? NOT_TRADED : item.unit == null ? UNKNOWN : unitText(item.unit)} />
                 </td>
                 <td className={styles.num} data-empty={(priced && item.gold == null) || undefined}>
-                  <Figure text={!priced ? "—" : item.gold == null ? UNKNOWN : count(item.gold)} />
+                  <Figure text={item.pheon ? EXCLUDED : !priced ? "—" : item.untradeable ? NOT_TRADED : item.gold == null ? UNKNOWN : count(item.gold)} />
                 </td>
               </tr>
             ))}
@@ -195,7 +218,12 @@ function PackageCard({
             <tr>
               {/* Two columns each: the total is the widest figure (360: 1,664,800G). */}
               <th scope="row" colSpan={2}>
-                {value.unknown.length ? "확인된 구성품 합계" : "합계"}
+                {value.unknown.length ? "확인된 구성품 합계" : value.untradeable.length || value.pheon.length ? "거래 가능한 구성품 가치" : "합계"}
+                {/* Said in words, not by colour alone; the line is held from the first
+                    paint so prices arriving never push the card (A6). */}
+                <small className={styles.footNote}>
+                  {excludedNote(value, priced)}
+                </small>
               </th>
               <td className={styles.num} colSpan={2}>
                 <Figure text={priced ? `${count(value.gold)}G` : "—"} />
@@ -221,7 +249,8 @@ function PackageCard({
   );
 }
 
-export function LoaShopTool() {
+/** `renderedAt`: the server render time (epoch ms), the clock until the client one starts. */
+export function LoaShopTool({ renderedAt }: { renderedAt: number }) {
   const [basis, setBasis] = useState<PriceBasis>("CURRENT_MIN_PRICE");
   const rateText = useSyncExternalStore(subscribeRate, readRate, () => "");
   const rateId = useId();
@@ -240,11 +269,29 @@ export function LoaShopTool() {
     refetchOnWindowFocus: false,
   });
   const now = useClock(MINUTE);
+  // Which packages are on sale is decided from the server's render time until
+  // the client clock starts, so the first HTML already folds the ended ones
+  // away and nothing moves after it (A6).
+  const { current, past } = splitBySale(SHOP_DATA.packages, now ?? renderedAt);
+  const card = (pkg: ShopPackage) => (
+    <PackageCard
+      key={pkg.id}
+      pkg={pkg}
+      value={packageValue(pkg, (name) => market.get(name) ?? null, rate)}
+      rate={rate}
+      priced={priced}
+      now={now ?? renderedAt}
+    />
+  );
   const limit = useRateLimit(prices.error);
   const priceList: MaterialPrice[] = prices.data?.data.items ?? [];
-  const market = new Map(
-    priceList.filter((p) => p.status === "PRICED" && p.unitPriceGold != null).map((p) => [p.name, p.unitPriceGold as number]),
-  );
+  // PRICED → its price; UNTRADEABLE → left out of the gold; anything else
+  // (no listing, no price now, or a status this screen does not know yet) is 미확인.
+  const market = new Map<string, UnitPrice>();
+  for (const p of priceList) {
+    if (p.status === "PRICED" && p.unitPriceGold != null) market.set(p.name, p.unitPriceGold);
+    else if (p.status === "UNTRADEABLE") market.set(p.name, UNTRADEABLE);
+  }
   const priced = !!prices.data;
   const failure =
     prices.error instanceof MarketQueryError
@@ -342,18 +389,14 @@ export function LoaShopTool() {
                   <span className={styles.agoLine}>{observedAt && now != null ? agoText(now, observedAt) : ""}</span>
                 </p>
               </div>
-              <div className={styles.cards}>
-                {SHOP_DATA.packages.map((pkg) => (
-                  <PackageCard
-                    key={pkg.id}
-                    pkg={pkg}
-                    value={packageValue(pkg, (name) => market.get(name) ?? null, rate)}
-                    rate={rate}
-                    priced={priced}
-                    now={now}
-                  />
-                ))}
-              </div>
+              <div className={styles.cards}>{current.map(card)}</div>
+              {/* Ended sales, folded by default below the list: opening it only adds below (A7). */}
+              {past.length > 0 && (
+                <details className={styles.past}>
+                  <summary className="hit-44">지난 상품 {past.length}개</summary>
+                  <div className={styles.cards}>{past.map(card)}</div>
+                </details>
+              )}
               <p className={styles.small}>
                 구성품 가치 = 수량 × 거래소 1개 가격(묶음 가격 ÷ 묶음 수). 귀속 구성품도 같은 재료의 거래소 가격으로 매겨요.
                 로열 크리스탈 환산 가치 = 골드 가치 × {count(SHOP_DATA.crystal.royalPer100)} ÷ 교환소 시세, 이득 = 환산 가치

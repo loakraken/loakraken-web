@@ -44,4 +44,70 @@ test.describe("로아샵 효율 @smoke", () => {
     await expect(page.getByRole("textbox", { name: RATE })).toHaveValue("27300");
     expect(sent.filter((line) => line.includes("27300")), "입력한 시세를 서버로 보내지 않는다").toEqual([]);
   });
+
+  // PM 총괄 판정(비교 기준 방식): 거래 불가 품목(백엔드 UNTRADEABLE)은 골드 합계에서 빼고 이득은 계산한다.
+  // 합계 제목은 '거래 가능한 구성품 가치', 줄에 '거래 불가 n개 제외'를 글로 적는다. 시세가 없는 거래 가능
+  // 품목은 지금처럼 미확인이고 이득을 막는다(목 서버: 생명의 기운 회복물약 2종은 UNTRADEABLE).
+  test("거래 불가 구성품은 합계에서 빼고 '거래 불가 n개 제외'로 적으며, 이득은 계산한다", async ({ page }) => {
+    await gotoReady(page, "/tools/loa-shop");
+    const life = page.getByRole("region", { name: "[주간] 한가위 미니 생활 패키지" });
+    await expect(life.getByRole("row", { name: /^고급 생명의 기운 회복물약/ })).toContainText("거래 불가");
+    await expect(life.getByRole("rowheader", { name: /거래 가능한 구성품 가치/ })).toContainText("거래 불가 2개 제외");
+    await expect(life.getByText("미확인", { exact: true })).toHaveCount(0);
+    await page.getByRole("textbox", { name: RATE }).fill("27300");
+    await expect(life.getByText(/로열 크리스탈로 환산한 가치/)).toBeVisible();
+    // 시세가 없는 거래 가능 품목(용암의 숨결)은 그대로 미확인이고 이득을 계산하지 않는다.
+    const growth = page.getByRole("region", { name: "[3+1] 월간 운명의 성장 패키지+" });
+    await expect(growth.getByRole("rowheader", { name: /확인된 구성품 합계/ })).toBeVisible();
+    await expect(growth.getByText(/로열 크리스탈로 환산한 가치/)).toHaveCount(0);
+  });
+
+  // PM 총괄 판정(#831): 판매가 끝난 패키지는 목록에서 빼고 아래 '지난 상품 n개' 접기(기본 접힘)에 둔다.
+  // 종료 시각은 공지 기준 KST(정기 점검 전 = 수요일 06:00). 접기 제목은 누름 영역 44px이고, 펼쳐도
+  // 위 내용은 움직이지 않는다. 브라우저 시계만 10월 22일로 옮겨 본다.
+  test("판매가 끝난 패키지는 '지난 상품' 접기에 모이고, 펼쳐도 위가 움직이지 않는다", async ({ page }) => {
+    await page.clock.setFixedTime(new Date("2026-10-22T12:00:00+09:00"));
+    await gotoReady(page, "/tools/loa-shop");
+    const past = page.locator("details", { hasText: "지난 상품" });
+    const summary = past.locator("summary");
+    await expect(summary).toHaveText("지난 상품 4개");
+    await expect(past).not.toHaveAttribute("open", "");
+    await expect(page.getByRole("region", { name: "[3+1] 월간 운명의 성장 패키지+" })).toBeVisible();
+    await expect(page.getByRole("region", { name: "한가위 미니 전투 지원 패키지" })).toBeHidden();
+
+    // 44px on phones and touch screens (hit-44; a mouse keeps the drawn size): the four points
+    // 21px from the centre all land on the summary.
+    await summary.scrollIntoViewIfNeeded();
+    const misses = await summary.evaluate((node) => {
+      if (!matchMedia("(max-width: 699px), (pointer: coarse)").matches) return 0;
+      const b = node.getBoundingClientRect();
+      const [cx, cy] = [b.left + b.width / 2, b.top + b.height / 2];
+      return [[cx, cy - 21], [cx, cy + 21], [cx - 21, cy], [cx + 21, cy]].filter(([x, y]) => {
+        const hit = document.elementFromPoint(x, y);
+        return !(hit === node || node.contains(hit));
+      }).length;
+    });
+    expect(misses).toBe(0);
+
+    const y = async () => (await summary.boundingBox()).y;
+    const before = await y();
+    await summary.click();
+    await expect(past).toHaveAttribute("open", "");
+    await expect(page.getByRole("region", { name: "한가위 미니 전투 지원 패키지" })).toBeVisible();
+    await expect(page.getByRole("region", { name: "한가위 미니 전투 지원 패키지" })).toContainText("판매 기간이 지났어요");
+    expect(Math.abs((await y()) - before)).toBeLessThanOrEqual(1);
+  });
+
+  // PM 총괄 판정(P3): 페온은 값을 정하지 않고 거래 불가처럼 합계에서 뺀다. 페온만 든 패키지는 계산하지 않고 안내한다.
+  test("페온만 든 패키지는 '페온 1개 제외'와 안내만 보이고 미확인으로 막지 않는다", async ({ page }) => {
+    await gotoReady(page, "/tools/loa-shop");
+    const peon = page.getByRole("region", { name: "[할인] 한가위 페온 [50개]" });
+    await expect(peon.getByRole("row", { name: /^페온/ })).toContainText("제외");
+    await expect(peon.getByRole("rowheader", { name: /거래 가능한 구성품 가치/ })).toContainText("페온 1개 제외");
+    await expect(peon.getByText("페온만 들어 있어 골드로 매길 구성품이 없어요.")).toBeVisible();
+    await expect(peon.getByText("미확인", { exact: true })).toHaveCount(0);
+    await page.getByRole("textbox", { name: RATE }).fill("27300");
+    await expect(peon.getByText(/로열 크리스탈로 환산한 가치/)).toHaveCount(0);
+    await expect(peon.getByText("페온만 들어 있어 골드로 매길 구성품이 없어요.")).toBeVisible();
+  });
 });
