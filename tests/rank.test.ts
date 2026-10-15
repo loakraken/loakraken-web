@@ -90,6 +90,8 @@ test("banner line: combat power over everyone seen, only when ranked and ready",
   const data = fixture("character-rank.json").data;
   assert.deepEqual(bannerRank(data), {
     tier: "대양",
+    label: "전투력",
+    value: "5위 · 상위 12.5%",
     text: "전투력 5위 · 상위 12.5%",
     note: "LOAKraken이 최근 30일 안에 확인한 아이템 레벨 1,640 이상 캐릭터 기준 40명 중 순위예요. 공식 순위가 아니에요.",
   });

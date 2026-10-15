@@ -533,3 +533,11 @@
 .bannerRankBadge b {
   font-weight: 700;
 }
+/* Phones: the badge sits left of the render, within the identity column; the
+   metric's name (said by the number line just above) is left out so the rank,
+   share and tier fit there even when long (A37). */
+@media (max-width: 760px) {
+  .bannerRankLabel {
+    display: none;
+  }
+}
