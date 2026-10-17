@@ -107,7 +107,7 @@
   border: 2px solid var(--primary);
   border-radius: 50%;
   opacity: 0;
-  animation: contribution-ring 420ms var(--ease-out);
+  animation: contribution-ring 280ms var(--ease-out);
 }
 .marker[data-band="BELOW_LOW"] .ring {
   border-color: var(--loss);
