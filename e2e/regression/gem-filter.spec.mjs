@@ -14,8 +14,8 @@ const shiftLog = (page) =>
           v: e.value,
           src: (e.sources ?? []).map((s) => {
             const el = s.node?.nodeType === 1 ? s.node : s.node?.parentElement;
-            const r = (b) => [b.x, b.y, b.width, b.height].map(Math.round).join(",");
-            return `${el?.tagName}.${String(el?.className).split(" ")[0]} ${r(s.previousRect)}→${r(s.currentRect)}`;
+            const r = (b) => [b.x, b.y, b.width, b.height].map((n) => Math.round(n * 10) / 10).join(",");
+            return `${el?.tagName}"${(el?.textContent ?? "").slice(0, 14)}" @${Math.round(e.startTime)} ${r(s.previousRect)}→${r(s.currentRect)}`;
           }),
         });
     }).observe({ type: "layout-shift", buffered: true });
