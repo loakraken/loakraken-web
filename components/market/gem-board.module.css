@@ -121,6 +121,13 @@
   font-size: 12px;
   line-height: 18px;
 }
+/* A phone wraps the longest note (with the supporter line) onto three lines:
+   its room is held from the start, so a new sentence moves nothing below. */
+@media (max-width: 699px) {
+  .filter small {
+    min-height: 54px;
+  }
+}
 /* Listings columns by share, not by content: narrowing to a class or skill
    changes the effect text, never a column, so the header stays put (A7). */
 .listingTable {
