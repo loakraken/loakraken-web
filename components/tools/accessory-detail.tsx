@@ -89,10 +89,12 @@ export function AccessoryCard({
         <ItemStat label="즉시 구매가" value={item.buyPrice == null ? "입찰만 가능" : `${koreanGold(item.buyPrice)}G`} emphasis />
         <ItemStat label="입찰 시작가" value={item.bidStartPrice == null ? "—" : `${koreanGold(item.bidStartPrice)}G`} />
         {item.endDate && (
-          <ItemStat
-            label="남은 시간"
-            value={`${now == null ? "" : `${timeLeftText(item.endDate, now)} · `}${kstEnd.format(new Date(item.endDate))} 종료`}
-          />
+          <>
+            {/* Time left and the end time on their own lines: together they
+                squeezed the label onto two lines in the popover (capture). */}
+            {now != null && <ItemStat label="남은 시간" value={timeLeftText(item.endDate, now)} />}
+            <ItemLine tone="muted">{kstEnd.format(new Date(item.endDate))} 종료</ItemLine>
+          </>
         )}
       </ItemDetailSection>
     </ItemDetail>

@@ -73,6 +73,7 @@ test.describe("악세 경매 검색 @smoke", () => {
     await expect(card).toContainText("연마 효과");
     await expect(card).toContainText("즉시 구매가");
     await expect(card).toContainText("남은 시간");
+    await expect(card).toContainText(/ 종료$/);
     expect(calls).toBe(0);
     await page.keyboard.press("Escape");
     await expect(page.getByRole("dialog")).toHaveCount(0);
