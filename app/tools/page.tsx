@@ -12,6 +12,7 @@ export const metadata: Metadata = {
   title: "성장 도구",
   description:
     "재련 기대 비용·재료 견적·경매 입찰가·더보기 손익·레이드 보상표·숙제 체크 등 로스트아크 성장 도구 모음입니다.",
+  alternates: { canonical: "/tools" },
 };
 
 const GROUPS = [...new Set(TOOLS.map((tool) => tool.group))];

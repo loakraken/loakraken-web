@@ -1,7 +1,7 @@
 // Runtime tool flags (PM 총괄 2026-10-09 23:24). Read per request from
 // server-only env: the image is built once and promoted from staging to
 // production, so a build-time value could not tell the two apart.
-import { PRODUCTION_URL } from "@/lib/site";
+import { isIndexable, PRODUCTION_URL, siteUrl } from "@/lib/site";
 
 type Env = Record<string, string | undefined>;
 
@@ -187,10 +187,12 @@ export function isCharacterEfficiencyEnabled(env: Env = process.env) {
 /**
  * Character page indexing (api #177, API list #12; PM 총괄 10-13). Off unless
  * `CHARACTER_INDEXING=on` — every deployment, not only production — so
- * every character page stays noindex until it is turned on on purpose.
+ * every character page stays noindex until it is turned on on purpose. Only
+ * the production domain may be indexed (robots.txt says the same), so a
+ * staging copy with the switch on still answers noindex (A6).
  */
 export function isCharacterIndexingEnabled(env: Env = process.env) {
-  return env.CHARACTER_INDEXING?.trim().toLowerCase() === "on";
+  return env.CHARACTER_INDEXING?.trim().toLowerCase() === "on" && isIndexable(siteUrl(env.SITE_URL ?? ""));
 }
 
 /**
