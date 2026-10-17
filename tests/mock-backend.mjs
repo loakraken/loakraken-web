@@ -530,6 +530,8 @@ createServer(async (req, res) => {
       buyPrice: 1_200_000 + page * 100_000 + i * 50_000,
       bidStartPrice: 900_000,
       endDate: "2026-10-14T12:00:00Z",
+      icon: null,
+      baseEffects: [],
       ...extra,
     });
     const items = [
