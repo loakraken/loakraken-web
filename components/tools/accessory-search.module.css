@@ -186,3 +186,33 @@
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
+
+/* The row opens its card: a transparent button covers it (the row's text
+   stays readable content underneath). Press and hover show on the row. */
+.item {
+  position: relative;
+}
+.rowCover {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+.rowCover:focus-visible {
+  outline: 3px solid var(--ring);
+  outline-offset: 2px;
+}
+.rowCover:active {
+  background: color-mix(in oklab, var(--foreground) 6%, transparent);
+}
+@media (hover: hover) and (pointer: fine) {
+  .rowCover:hover {
+    background: color-mix(in oklab, var(--foreground) 4%, transparent);
+  }
+}
