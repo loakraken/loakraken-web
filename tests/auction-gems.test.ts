@@ -92,6 +92,9 @@ test("the skill list and a filtered listing follow the contract", () => {
   // Class only, and (until the api ships) no filter field at all.
   assert.equal(isGemListingsEnvelope({ ...filtered, data: { ...filtered.data, filter: { className: "바드", skill: null, skillName: null } } }), true);
   assert.equal(isGemListingsEnvelope({ ...filtered, data: { ...filtered.data, filter: null } }), true);
+  const older: Partial<typeof filtered.data> = { ...filtered.data };
+  delete older.filter;
+  assert.equal(isGemListingsEnvelope({ ...filtered, data: older }), true);
 });
 
 test("board cells by kind and level; a missing cell is blank", () => {

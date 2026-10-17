@@ -83,7 +83,7 @@
           "경매장 시세"
         ],
         "summary": "T4 보석 매물",
-        "description": "즉시 구매가 오름차순 10개(1분 캐시). 공식 호출 최대 1회.",
+        "description": "즉시 구매가 오름차순 10개(1분 캐시). 공식 호출 최대 1회. className(직업)·skill(스킬 코드, 직업 필요)로 거를 수 있고 값은 /gems/skills 목록을 쓴다. 목록에 없는 조건은 400 INVALID_GEM_FILTER, 필터가 꺼져 있으면 404 GEM_FILTER_DISABLED. 조건 붙은 검색은 기능 전용 분당 몫(모든 사용자 합)을 넘으면 캐시만 주고 캐시가 없으면 503 MARKET_SEARCH_BUSY + Retry-After, 같은 조건 동시 요청은 공식 검색 하나로 묶는다.",
         "operationId": "gemListings",
         "parameters": [
           {
@@ -127,7 +127,8 @@
             "required": false,
             "schema": {
               "type": "string",
-              "maxLength": 20
+              "maxLength": 20,
+              "minLength": 0
             }
           },
           {
@@ -212,13 +213,13 @@
           "경매장 시세"
         ],
         "summary": "보석 매물 직업·스킬 목록",
-        "description": "보석 매물을 거를 직업과 스킬(공식 경매장 검색 옵션 가운데 보석에 붙는 스킬). 공식 호출 없음. 기능이 꺼져 있으면 404 GEM_FILTER_DISABLED.",
+        "description": "보석 매물을 거를 직업과 스킬(공식 경매장 검색 옵션 가운데 보석에 붙는 스킬). 공식 호출 없음. 매물 조회의 className·skill에 이 값을 그대로 쓴다. 기능이 꺼져 있으면 404 GEM_FILTER_DISABLED(화면은 필터를 숨김).",
         "operationId": "gemSkills",
         "responses": {
           "200": {
-            "description": "OK",
+            "description": "조회 성공",
             "content": {
-              "*/*": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiResponseAuctionGemSkillsResponse"
                 }
@@ -485,10 +486,10 @@
             }
           },
           "filter": {
-            "description": "보석 매물을 직업·스킬로 거른 조건. 조건 없는 검색·장신구 매물은 null",
             "anyOf": [
               {
-                "$ref": "#/components/schemas/GemFilterResponse"
+                "$ref": "#/components/schemas/AuctionGemFilterResponse",
+                "description": "보석 매물을 직업·스킬로 거른 조건. 조건 없는 검색·장신구 매물은 null"
               },
               {
                 "type": "null"
@@ -497,6 +498,7 @@
           }
         },
         "required": [
+          "filter",
           "items",
           "observedAt",
           "page",
@@ -669,7 +671,7 @@
           "value"
         ]
       },
-      "GemFilterResponse": {
+      "AuctionGemFilterResponse": {
         "type": "object",
         "properties": {
           "className": {
@@ -681,95 +683,32 @@
             "anyOf": [
               {
                 "type": "integer",
-                "format": "int32"
+                "format": "int32",
+                "description": "공식 스킬 코드. 직업만 거르면 null",
+                "example": 30210
               },
               {
                 "type": "null"
               }
-            ],
-            "description": "공식 스킬 코드. 직업만 거르면 null"
+            ]
           },
           "skillName": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "description": "공식 스킬 이름. 직업만 거르면 null",
+                "example": "플라즈마 스톰"
               },
               {
                 "type": "null"
               }
-            ],
-            "description": "공식 스킬 이름. 직업만 거르면 null"
+            ]
           }
         },
         "required": [
           "className",
           "skill",
           "skillName"
-        ]
-      },
-      "GemSkillResponse": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "integer",
-            "format": "int32",
-            "description": "공식 스킬 코드(매물 조회 skill에 그대로)"
-          },
-          "name": {
-            "type": "string",
-            "description": "공식 스킬 이름"
-          },
-          "kinds": {
-            "type": "array",
-            "description": "이 스킬로 거를 수 있는 보석 종류(겁화·작열, 문자열)",
-            "items": {
-              "type": "string"
-            }
-          }
-        },
-        "required": [
-          "code",
-          "kinds",
-          "name"
-        ]
-      },
-      "GemClassResponse": {
-        "type": "object",
-        "properties": {
-          "className": {
-            "type": "string"
-          },
-          "skills": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/GemSkillResponse"
-            }
-          }
-        },
-        "required": [
-          "className",
-          "skills"
-        ]
-      },
-      "AuctionGemSkillsResponse": {
-        "type": "object",
-        "properties": {
-          "checkedOn": {
-            "type": "string",
-            "description": "목록을 공식 경매장 검색 옵션과 맞춘 날짜(KST)",
-            "example": "2026-10-18"
-          },
-          "classes": {
-            "type": "array",
-            "description": "공식 직업 순서 그대로",
-            "items": {
-              "$ref": "#/components/schemas/GemClassResponse"
-            }
-          }
-        },
-        "required": [
-          "checkedOn",
-          "classes"
         ]
       },
       "ApiResponseAuctionGemSkillsResponse": {
@@ -795,6 +734,74 @@
           "code",
           "data",
           "message"
+        ]
+      },
+      "AuctionGemSkillsResponse": {
+        "type": "object",
+        "properties": {
+          "checkedOn": {
+            "type": "string",
+            "description": "목록을 공식 경매장 검색 옵션과 맞춘 날짜(KST)",
+            "example": "2026-10-18"
+          },
+          "classes": {
+            "type": "array",
+            "description": "공식 직업 순서 그대로",
+            "items": {
+              "$ref": "#/components/schemas/AuctionGemClassResponse"
+            }
+          }
+        },
+        "required": [
+          "checkedOn",
+          "classes"
+        ]
+      },
+      "AuctionGemClassResponse": {
+        "type": "object",
+        "properties": {
+          "className": {
+            "type": "string",
+            "example": "블래스터"
+          },
+          "skills": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuctionGemSkillResponse"
+            }
+          }
+        },
+        "required": [
+          "className",
+          "skills"
+        ]
+      },
+      "AuctionGemSkillResponse": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "공식 스킬 코드(매물 조회 skill에 그대로)",
+            "example": 30210
+          },
+          "name": {
+            "type": "string",
+            "description": "공식 스킬 이름",
+            "example": "플라즈마 스톰"
+          },
+          "kinds": {
+            "type": "array",
+            "description": "이 스킬로 거를 수 있는 보석 종류(겁화·작열, 문자열)",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "code",
+          "kinds",
+          "name"
         ]
       }
     }

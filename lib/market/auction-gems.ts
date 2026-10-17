@@ -16,14 +16,25 @@ export type GemCell = Schemas["AuctionGemCellResponse"];
 export type GemListingsEnvelope = Schemas["ApiResponseAuctionListingsResponse"];
 export type GemListing = Schemas["AuctionListingResponse"];
 export type GemSkillsEnvelope = Schemas["ApiResponseAuctionGemSkillsResponse"];
-export type GemClass = Schemas["GemClassResponse"];
-export type GemSkill = Schemas["GemSkillResponse"];
+export type GemClass = Schemas["AuctionGemClassResponse"];
+export type GemSkill = Schemas["AuctionGemSkillResponse"];
 
+// `filter` (api #548) is required in the contract, but a backend from before
+// it answers without one: optional here until that backend is gone, so the
+// plain listings keep working whichever ships first. The screen never reads it.
+const schemas = (() => {
+  const all = tolerantSchemas(contract.components.schemas);
+  const listings = all.AuctionListingsResponse;
+  return {
+    ...all,
+    AuctionListingsResponse: { ...listings, required: listings.required.filter((key) => key !== "filter") },
+  };
+})();
 const compile = <T>(ref: string) =>
   lazyValidator(() =>
     new Ajv2020({ strict: false, validateFormats: false }).compile<T>({
       $ref: `#/components/schemas/${ref}`,
-      components: { ...contract.components, schemas: tolerantSchemas(contract.components.schemas) },
+      components: { ...contract.components, schemas },
     }),
   );
 const validateBoard = compile<GemBoardEnvelope>("ApiResponseAuctionGemBoardResponse");
