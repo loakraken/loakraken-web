@@ -6,6 +6,15 @@ import type {
   TabsEnvelope,
 } from "./board";
 import { boardQueryString } from "./board";
+import type { MinuteChartEnvelope } from "./minutes";
+import { gemPickSearch, type GemBoardEnvelope, type GemListingsEnvelope, type GemPick } from "./auction-gems";
+import {
+  accessorySearch,
+  type AccessoryBoardEnvelope,
+  type AccessoryFilter,
+  type AccessoryListingsEnvelope,
+  type AccessoryPick,
+} from "./auction-accessories";
 import type {
   ItemsEnvelope,
   MarketFailure,
@@ -71,7 +80,19 @@ export const postMaterialPrices = (body: PriceRequest, signal?: AbortSignal) =>
     signal,
   });
 
-export const fetchMarketTabs = (signal: AbortSignal) =>
+/** The price API takes at most this many names a request. */
+export const PRICE_NAMES_PER_REQUEST = 20;
+
+/** Material prices for any number of names: requests of up to 20 names, sent together, items joined in order. */
+export async function postMaterialPricesAll(body: PriceRequest, signal?: AbortSignal): Promise<PricesEnvelope> {
+  const chunks = Array.from({ length: Math.ceil(body.names.length / PRICE_NAMES_PER_REQUEST) }, (_, i) =>
+    body.names.slice(i * PRICE_NAMES_PER_REQUEST, (i + 1) * PRICE_NAMES_PER_REQUEST),
+  );
+  const parts = await Promise.all(chunks.map((names) => postMaterialPrices({ ...body, names }, signal)));
+  return { ...parts[0], data: { ...parts[0].data, items: parts.flatMap((p) => p.data.items) } };
+}
+
+export const fetchMarketTabs =(signal: AbortSignal) =>
   call<TabsEnvelope>("/api/markets/tabs", { signal });
 
 export const fetchMarketBoard = (query: BoardQuery, signal: AbortSignal) =>
@@ -83,3 +104,22 @@ export const fetchItemHistory = (itemId: number, signal: AbortSignal) =>
   call<ItemHistoryEnvelope>(`/api/markets/items/${itemId}/history`, {
     signal,
   });
+
+/** The last hour by minute (K35), from prices the warm-up already fetched. */
+export const fetchItemMinutes = (itemId: number, signal: AbortSignal) =>
+  call<MinuteChartEnvelope>(`/api/markets/items/${itemId}/minutes`, { signal });
+
+/** T4 gem prices on the auction house (backend cache). */
+export const fetchGemBoard = (signal: AbortSignal) => call<GemBoardEnvelope>("/api/markets/auctions/gems", { signal });
+
+/** The cheapest buy-now listings of one gem cell (at most one official call). */
+export const fetchGemListings = (pick: GemPick, signal: AbortSignal) =>
+  call<GemListingsEnvelope>(`/api/markets/auctions/gems/listings?${gemPickSearch(pick)}`, { signal });
+
+/** T4 accessory prices by key polish grades (backend cache). */
+export const fetchAccessoryBoard = (filter: AccessoryFilter, signal: AbortSignal) =>
+  call<AccessoryBoardEnvelope>(`/api/markets/auctions/accessories?${accessorySearch(filter, null)}`, { signal });
+
+/** The cheapest buy-now listings of one accessory cell (at most one official call). */
+export const fetchAccessoryListings = (filter: AccessoryFilter, pick: AccessoryPick, signal: AbortSignal) =>
+  call<AccessoryListingsEnvelope>(`/api/markets/auctions/accessories/listings?${accessorySearch(filter, pick)}`, { signal });

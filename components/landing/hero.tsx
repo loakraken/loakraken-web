@@ -7,6 +7,7 @@ import { useEffect, useRef, useState, useSyncExternalStore, type FormEvent, type
 import { useRouter } from "next/navigation";
 import { BorderBeam } from "border-beam";
 import { ArrowDown, ArrowRight, Command, ExportCircle, SearchNormal } from "@/components/ui/icons";
+import { useTheme } from "@/components/ui/theme-toggle";
 import { IntelligenceOrb, InlineOrb } from "./orb";
 import { useLandingMotion, useVisible } from "./motion-context";
 import { characterNameError, normalizeCharacterName } from "@/lib/character/model";
@@ -32,13 +33,14 @@ export function Hero({
   const input = inputRef ?? ownInput;
   const hero = useRef<HTMLElement>(null);
   const heroVisible = useVisible(hero);
-  const { enabled, looping, wake } = useLandingMotion();
+  const { enabled, looping } = useLandingMotion();
   const [query, setQuery] = useState("");
   const [error, setError] = useState("");
   const [searching, setSearching] = useState(false);
   const [focused, setFocused] = useState(false);
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
   const Title = embedded ? "h2" : "h1";
+  const theme = useTheme();
 
   useEffect(() => {
     const shortcut = (event: KeyboardEvent) => {
@@ -78,13 +80,13 @@ export function Hero({
           <IntelligenceOrb state={searching ? "searching" : focused ? "connecting" : "breathing"} />
         </div>
         <p className={styles.orbCaption}><span className={styles.statusDot} />{searching ? "캐릭터 화면으로 이동하고 있어요" : focused ? "어떤 캐릭터를 살펴볼까요?" : "당신의 다음 선택을 기다리고 있어요"}</p>
-        <div className={styles.searchArea} onPointerEnter={wake}>
-          <BorderBeam className={styles.searchBeam} theme="light" colorVariant="mono" staticColors size="line" duration={5} strength={focused ? 0.55 : 0.22} active={looping && heroVisible} borderRadius={36}>
+        <div className={styles.searchArea}>
+          <BorderBeam className={styles.searchBeam} theme={theme} colorVariant="mono" staticColors size="line" duration={5} strength={focused ? 0.55 : 0.22} active={looping && heroVisible} borderRadius={36}>
             <form className={styles.searchForm} onSubmit={search} noValidate aria-busy={searching}>
               <label htmlFor="character-search" className={styles.srOnly}>캐릭터 이름</label>
               <SearchNormal className={styles.searchIcon} size={19} aria-hidden="true" />
               <input ref={input} id="character-search" name="character" value={query} onChange={(event) => { setQuery(event.target.value); if (error) setError(""); }}
-                onFocus={() => { setFocused(true); wake(); }} onBlur={() => setFocused(false)} placeholder="캐릭터 이름을 입력하세요" maxLength={65} autoComplete="off" spellCheck={false} disabled={searching} aria-invalid={!!error} aria-describedby={error ? "search-error" : embedded ? undefined : "search-help"} />
+                onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} placeholder="캐릭터 이름을 입력하세요" maxLength={65} autoComplete="off" spellCheck={false} disabled={searching} aria-invalid={!!error} aria-describedby={error ? "search-error" : embedded ? undefined : "search-help"} />
               {shortcutKey && <kbd className={styles.shortcut} aria-hidden="true">{shortcutKey === "mac" ? <Command size={12} /> : "Ctrl"} K</kbd>}
               <button className={styles.searchSubmit} type="submit" disabled={searching} aria-label={searching ? "캐릭터 화면으로 이동 중" : undefined}>{searching ? <InlineOrb /> : <>캐릭터 검색 <ArrowRight size={16} /></>}</button>
             </form>

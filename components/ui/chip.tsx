@@ -6,8 +6,10 @@ import { cn } from "cn"
 // fills with the primary colour while pressed.
 const chipClassName = cn(
   "inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-full px-3",
+  // 44px to tap on phones; the 32px chip stays (A36).
+  "hit-44",
   "bg-muted text-(length:--text-meta) text-foreground tabular-nums whitespace-nowrap select-none",
-  "transition-[background-color,color,transform] duration-(--duration-fast) ease-(--ease-out)",
+  "transition-[background-color,color,transform,scale] duration-(--duration-fast) ease-(--ease-out)",
   "not-data-disabled:active:scale-(--press-scale)",
   "pointer-fine:not-data-disabled:not-data-pressed:hover:bg-secondary",
   // Colour only: a weight change would reflow the chip row on every toggle.

@@ -1,0 +1,772 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "LOAKraken title-equip",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/v1/titles/equipped": {
+      "get": {
+        "tags": [
+          "통계·랭킹"
+        ],
+        "summary": "칭호 장착 확인 비율",
+        "description": "activeDays 안에 프로필을 관측한 원정대(공개 캐릭터가 있는 원정대) N개(meta.population) 가운데, 그 칭호를 장착한 공개 캐릭터가 같은 기간에 확인된 원정대 수(equippedRosters)와 비율입니다. 공식 프로필에는 장착 중인 칭호만 있어 가진 칭호 전체는 알 수 없습니다(장착하지 않은 칭호는 세지 않음). title을 주면 그 칭호만, 없으면 확인된 칭호 전체(원정대 수 내림차순)입니다. 모집단이 30 미만이면 sampleStatus=COLLECTING이지만 비율은 그대로 줍니다(참고값). 400 INVALID_REQUEST·STATS_INVALID_RANGE, 503 STATS_UNAVAILABLE",
+        "operationId": "equipped",
+        "parameters": [
+          {
+            "name": "server",
+            "in": "query",
+            "description": "서버 이름. 없으면 전체",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 16,
+              "minLength": 0,
+              "pattern": "[\\p{L}\\p{N}]+"
+            }
+          },
+          {
+            "name": "activeDays",
+            "in": "query",
+            "description": "최근 며칠 안에 관측한 원정대(7·30·90, 기본 30)",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "title",
+            "in": "query",
+            "description": "공식 칭호 문자열. 없으면 전체",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 128,
+              "minLength": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "조회 성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseTitleEquipResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_REQUEST, STATS_INVALID_RANGE 또는 STATS_TOO_MANY_BINS",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "CLIENT_RATE_LIMITED: 이 클라이언트의 분당 요청·공식 호출 한도 초과. Retry-After(초) 뒤 다시 시도",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "STATS_UNAVAILABLE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ApiResponseTitleEquipResponse": {
+        "type": "object",
+        "description": "공통 API 응답. 오류 응답의 data는 null입니다.",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "업무 결과 코드",
+            "example": "CHARACTER_SEARCH_SUCCESS"
+          },
+          "message": {
+            "type": "string",
+            "description": "공개용 안내 메시지",
+            "example": "캐릭터 조회에 성공했습니다."
+          },
+          "data": {
+            "$ref": "#/components/schemas/TitleEquipResponse",
+            "description": "성공 응답 데이터. 오류일 때 null"
+          }
+        },
+        "required": [
+          "code",
+          "data",
+          "message"
+        ]
+      },
+      "TitleEquipResponse": {
+        "type": "object",
+        "properties": {
+          "meta": {
+            "$ref": "#/components/schemas/StatsMetaResponse"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "요청한 칭호(없으면 null = 전체)"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "titles": {
+            "type": "array",
+            "description": "장착이 확인된 칭호(원정대 수 내림차순, 같으면 칭호 문자열의 코드 포인트 순)",
+            "items": {
+              "$ref": "#/components/schemas/EquippedTitleResponse"
+            }
+          }
+        },
+        "required": [
+          "meta",
+          "title",
+          "titles"
+        ]
+      },
+      "StatsMetaResponse": {
+        "type": "object",
+        "description": "공통 메타. 모집단은 LOAKraken이 관측한 캐릭터 중 최근 activeDays일 안에 프로필(전투력)을 확인한 캐릭터이며 게임 전체 인구가 아닙니다.",
+        "properties": {
+          "population": {
+            "type": "integer",
+            "format": "int64",
+            "description": "조건에 맞는 캐릭터 수"
+          },
+          "conditions": {
+            "$ref": "#/components/schemas/StatsConditionsResponse"
+          },
+          "aggregatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "snapshot": {
+            "type": "string",
+            "description": "현재는 latest만 제공합니다",
+            "example": "latest"
+          },
+          "ruleVersion": {
+            "type": "string",
+            "example": "stats-v1"
+          },
+          "minSample": {
+            "type": "integer",
+            "format": "int32",
+            "example": 30
+          },
+          "sampleStatus": {
+            "type": "string",
+            "description": "COLLECTING(표본 30명 미만) 또는 READY",
+            "enum": [
+              "COLLECTING",
+              "READY"
+            ]
+          },
+          "coverage": {
+            "$ref": "#/components/schemas/StatsCoverageResponse"
+          },
+          "populationUnit": {
+            "type": "string",
+            "description": "population을 세는 단위: CHARACTER(캐릭터), ROSTER(원정대), GUILD(길드). 문자열이며 값이 늘 수 있음",
+            "example": "CHARACTER"
+          }
+        },
+        "required": [
+          "aggregatedAt",
+          "conditions",
+          "coverage",
+          "minSample",
+          "population",
+          "populationUnit",
+          "ruleVersion",
+          "sampleStatus",
+          "snapshot"
+        ]
+      },
+      "StatsConditionsResponse": {
+        "type": "object",
+        "description": "정규화한 조건(기본값 포함)",
+        "properties": {
+          "server": {
+            "anyOf": [
+              {
+                "anyOf": [
+                  {
+                    "anyOf": [
+                      {
+                        "anyOf": [
+                          {
+                            "anyOf": [
+                              {
+                                "anyOf": [
+                                  {
+                                    "anyOf": [
+                                      {
+                                        "anyOf": [
+                                          {
+                                            "anyOf": [
+                                              {
+                                                "anyOf": [
+                                                  {
+                                                    "type": "string"
+                                                  },
+                                                  {
+                                                    "type": "null"
+                                                  }
+                                                ]
+                                              },
+                                              {
+                                                "type": "null"
+                                              }
+                                            ]
+                                          },
+                                          {
+                                            "type": "null"
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "role": {
+            "anyOf": [
+              {
+                "anyOf": [
+                  {
+                    "anyOf": [
+                      {
+                        "anyOf": [
+                          {
+                            "anyOf": [
+                              {
+                                "anyOf": [
+                                  {
+                                    "anyOf": [
+                                      {
+                                        "anyOf": [
+                                          {
+                                            "anyOf": [
+                                              {
+                                                "anyOf": [
+                                                  {
+                                                    "type": "string",
+                                                    "enum": [
+                                                      "DEALER",
+                                                      "SUPPORT"
+                                                    ]
+                                                  },
+                                                  {
+                                                    "type": "null"
+                                                  }
+                                                ]
+                                              },
+                                              {
+                                                "type": "null"
+                                              }
+                                            ]
+                                          },
+                                          {
+                                            "type": "null"
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "className": {
+            "anyOf": [
+              {
+                "anyOf": [
+                  {
+                    "anyOf": [
+                      {
+                        "anyOf": [
+                          {
+                            "anyOf": [
+                              {
+                                "anyOf": [
+                                  {
+                                    "anyOf": [
+                                      {
+                                        "anyOf": [
+                                          {
+                                            "anyOf": [
+                                              {
+                                                "anyOf": [
+                                                  {
+                                                    "type": "string"
+                                                  },
+                                                  {
+                                                    "type": "null"
+                                                  }
+                                                ]
+                                              },
+                                              {
+                                                "type": "null"
+                                              }
+                                            ]
+                                          },
+                                          {
+                                            "type": "null"
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "activeDays": {
+            "type": "integer",
+            "format": "int32",
+            "description": "최근 확인 기간(일): 7, 30, 90"
+          },
+          "itemLevelMin": {
+            "type": "number"
+          },
+          "itemLevelMax": {
+            "anyOf": [
+              {
+                "anyOf": [
+                  {
+                    "anyOf": [
+                      {
+                        "anyOf": [
+                          {
+                            "anyOf": [
+                              {
+                                "anyOf": [
+                                  {
+                                    "anyOf": [
+                                      {
+                                        "anyOf": [
+                                          {
+                                            "anyOf": [
+                                              {
+                                                "anyOf": [
+                                                  {
+                                                    "type": "number"
+                                                  },
+                                                  {
+                                                    "type": "null"
+                                                  }
+                                                ]
+                                              },
+                                              {
+                                                "type": "null"
+                                              }
+                                            ]
+                                          },
+                                          {
+                                            "type": "null"
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "combatPowerMin": {
+            "anyOf": [
+              {
+                "anyOf": [
+                  {
+                    "anyOf": [
+                      {
+                        "anyOf": [
+                          {
+                            "anyOf": [
+                              {
+                                "anyOf": [
+                                  {
+                                    "anyOf": [
+                                      {
+                                        "anyOf": [
+                                          {
+                                            "anyOf": [
+                                              {
+                                                "anyOf": [
+                                                  {
+                                                    "type": "number"
+                                                  },
+                                                  {
+                                                    "type": "null"
+                                                  }
+                                                ]
+                                              },
+                                              {
+                                                "type": "null"
+                                              }
+                                            ]
+                                          },
+                                          {
+                                            "type": "null"
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "combatPowerMax": {
+            "anyOf": [
+              {
+                "anyOf": [
+                  {
+                    "anyOf": [
+                      {
+                        "anyOf": [
+                          {
+                            "anyOf": [
+                              {
+                                "anyOf": [
+                                  {
+                                    "anyOf": [
+                                      {
+                                        "anyOf": [
+                                          {
+                                            "anyOf": [
+                                              {
+                                                "anyOf": [
+                                                  {
+                                                    "type": "number"
+                                                  },
+                                                  {
+                                                    "type": "null"
+                                                  }
+                                                ]
+                                              },
+                                              {
+                                                "type": "null"
+                                              }
+                                            ]
+                                          },
+                                          {
+                                            "type": "null"
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "representativeOnly": {
+            "type": "boolean",
+            "description": "원정대(같은 서버) 대표 캐릭터(아이템 레벨 최고)만"
+          }
+        },
+        "required": [
+          "activeDays",
+          "className",
+          "combatPowerMax",
+          "combatPowerMin",
+          "itemLevelMax",
+          "itemLevelMin",
+          "representativeOnly",
+          "role",
+          "server"
+        ]
+      },
+      "StatsCoverageResponse": {
+        "type": "object",
+        "description": "수집 범위. 표본이 어디까지 모였는지 보여 줍니다.",
+        "properties": {
+          "observedCharacters": {
+            "type": "integer",
+            "format": "int64",
+            "description": "프로필(전투력)을 확인한 캐릭터 수"
+          },
+          "knownCharacters": {
+            "type": "integer",
+            "format": "int64",
+            "description": "원정대로 발견한 캐릭터 포함 전체"
+          },
+          "discoveredAccounts": {
+            "type": "integer",
+            "format": "int64",
+            "description": "원정대를 훑은 계정 수"
+          }
+        },
+        "required": [
+          "discoveredAccounts",
+          "knownCharacters",
+          "observedCharacters"
+        ]
+      },
+      "EquippedTitleResponse": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "공식 칭호 문자열",
+            "example": "빛을 꺼트리는 자"
+          },
+          "equippedRosters": {
+            "type": "integer",
+            "format": "int64",
+            "description": "그 칭호 장착이 확인된 원정대 수(n). 같은 원정대의 여러 캐릭터는 한 번만 셈"
+          },
+          "equippedPercent": {
+            "anyOf": [
+              {
+                "anyOf": [
+                  {
+                    "type": "number",
+                    "description": "equippedRosters / population × 100, 소수 둘째 자리. population이 0이면 null"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "equippedPercent",
+          "equippedRosters",
+          "title"
+        ]
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "description": "공통 오류 응답. HTTP 상태와 업무 코드를 함께 확인합니다.",
+        "properties": {
+          "code": {
+            "type": "string",
+            "example": "INVALID_REQUEST"
+          },
+          "message": {
+            "type": "string",
+            "example": "요청 값이 올바르지 않습니다."
+          },
+          "data": {
+            "type": "null"
+          }
+        },
+        "required": [
+          "code",
+          "data",
+          "message"
+        ]
+      }
+    }
+  }
+}

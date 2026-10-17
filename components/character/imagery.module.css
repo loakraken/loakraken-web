@@ -131,7 +131,7 @@
   font-size: 12px;
 }
 
-/* Character banner: a dark band in every theme, as ILOA and LOPEC show it
+/* Character banner: a dark band in every theme
    (PM decision). The band takes the render's own backdrop colour so the
    original render blends in; until that is known it is the --banner token
    (16 17 20 = #101114). */
@@ -314,11 +314,11 @@
     grid-column: 1;
     grid-row: auto;
   }
+  /* Everything on the left stays clear of the render, the level line too:
+     ran across under a bright render, its pale labels (원정대) could not be
+     read (A37, user 10-15). It wraps to two rows inside the same width. */
   .bannerIdentity > * {
     max-width: 58%;
-  }
-  .bannerIdentity > dl {
-    max-width: none;
   }
   .bannerGlow,
   .bannerFigure {

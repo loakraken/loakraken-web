@@ -87,6 +87,13 @@
   flex-wrap: wrap;
   row-gap: 8px;
 }
+/* Narrow: the date title and the tools always on two lines, so a shorter
+   date or the 오늘 mark going away never pulls the tools up (A7). */
+@media (max-width: 560px) {
+  .pageHead h2 {
+    flex-basis: 100%;
+  }
+}
 .pageHead h2,
 .pageHead span,
 .pageHead button {
@@ -103,7 +110,7 @@
   vertical-align: 2px;
 }
 
-/* Category links (ILOA category tabs), and the /news kind filters (buttons).
+/* Category links, and the /news kind filters (buttons).
    They wrap instead of scrolling. */
 .chips {
   display: flex;
@@ -113,6 +120,9 @@
 }
 .chips a,
 .chips button {
+  /* A31: one line, never split (badge/chip/unit). */
+  flex: none;
+  white-space: nowrap;
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -129,8 +139,48 @@
 }
 /* Counts stay in the chip ink: an opacity fade dropped them below 4.5:1. */
 .chips span {
+  /* A31: one line, never split (badge/chip/unit). */
+  flex: none;
+  white-space: nowrap;
   font-size: 11px;
   font-variant-numeric: tabular-nums;
+}
+.chips a,
+.chips button {
+  transition: transform 100ms ease-out;
+}
+.chips a:active,
+.chips button:active {
+  transform: scale(0.97);
+}
+@media (prefers-reduced-motion: reduce) {
+  .chips a,
+  .chips button {
+    transition: none;
+  }
+}
+/* On a phone each chip takes 44px to press (the hit-44 rule); 30px chips get
+   rows 16px apart and at least 44px wide so the areas do not overlap. */
+@media (max-width: 699px), (pointer: coarse) {
+  .chips {
+    gap: 16px 6px;
+  }
+  .chips a,
+  .chips button {
+    position: relative;
+    min-width: 44px;
+    justify-content: center;
+  }
+  .chips a::after,
+  .chips button::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+    translate: -50% -50%;
+  }
 }
 .chips a[aria-current="page"],
 .chips button[aria-pressed="true"] {
@@ -175,7 +225,7 @@
   box-shadow: inset 0 0 0 2px var(--grade-legendary-b);
 }
 .week > li[data-today] .weekDay b {
-  color: var(--primary);
+  color: var(--link);
 }
 .weekDay {
   display: grid;

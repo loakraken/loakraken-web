@@ -3,10 +3,15 @@
 .figure {
   min-width: 0;
 }
+/* Line, dots and guide take one colour from the window's direction. */
 .svg {
+  color: var(--muted-foreground);
   display: block;
   width: 100%;
-  height: auto;
+  /* H in history-chart.tsx: the height is fixed from the first frame, before
+     the width is measured (auto height grew 96 -> 180px and moved everything
+     below, user 10-11 "text jumping"). */
+  height: 180px;
   overflow: visible;
   border-radius: 12px;
   touch-action: pan-y;
@@ -24,30 +29,51 @@
   font-size: 11px;
   font-variant-numeric: tabular-nums;
 }
-.area {
-  fill: var(--ring);
-  fill-opacity: 0.1;
+.svg[data-direction="up"] {
+  color: var(--market-up);
 }
+.svg[data-direction="down"] {
+  color: var(--market-down);
+}
+/* Bencho .bal-curve: 2.1 round stroke, nothing under it. */
 .line {
   fill: none;
-  stroke: var(--ring);
-  stroke-width: 2;
+  stroke: currentColor;
+  stroke-width: 2.1;
   stroke-linejoin: round;
   stroke-linecap: round;
 }
+/* Bencho .bal-tip: a 9px ring filled with the chart's ground; it grows a
+   little while you read the line back. Position never eases. */
 .dot {
-  fill: var(--ring);
-  stroke: var(--muted);
+  fill: var(--muted);
+  stroke: currentColor;
   stroke-width: 2;
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: scale 160ms cubic-bezier(0.28, 1.4, 0.36, 1);
 }
+.svg[data-scrub] .dot {
+  scale: 1.18;
+}
+/* Bencho .bal-guide: only while reading, the line's colour at 28%. */
 .crosshair {
-  stroke: var(--faint);
+  stroke: currentColor;
+  stroke-opacity: 0.28;
   stroke-width: 1;
 }
 .readout {
   margin-top: 6px;
   color: var(--muted-foreground);
   font-size: 12px;
+}
+/* The resting line has no value now (the 현재 cell above shows it): a
+   zero-width strut at the value size keeps the line as tall as the hover
+   line and the loading hold, so records landing move nothing (A6). */
+.readout::before {
+  content: "\200b";
+  font-size: 15px;
+  font-weight: 600;
 }
 .readout strong {
   margin-right: 6px;

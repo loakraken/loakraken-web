@@ -5,6 +5,7 @@ import {
   activeSkills,
   engravingBookString,
   groupEquipment,
+  otherSkillGems,
   parsePassiveNode,
   positionOf,
   qualityTier,
@@ -107,6 +108,7 @@ test("only invested skills count for part break and counter (backend guidance)",
     rune: null,
     gemEffects: [],
     attackType: null,
+    cooldown: null,
     ...over,
   });
   const skills = [
@@ -226,4 +228,20 @@ test("stone bonus reads the 세공 bonus line and ignores stones without one", (
   );
   assert.equal(stoneBonus(stone([{ title: "무작위 각인 효과", lines: ["[원한] 활성도 +6"] }])), null);
   assert.equal(stoneBonus(null), null);
+});
+
+test("other equipped gems are the ones whose skill is not in the skill list (L34)", () => {
+  const data = base();
+  const gems = data.loadout.gems!;
+  const names = data.loadout.skills!.map((skill) => skill.name);
+  // The fixture's only gem sits on a listed skill: nothing else to show.
+  gems.effects!.skills[0].name = "테스트 스킬";
+  assert.deepEqual(otherSkillGems(gems, names), []);
+  gems.items.push({ ...gems.items[0], slot: 1, name: "10레벨 작열의 보석", level: 10, grade: "고대" });
+  gems.effects!.skills.push({ gemSlot: 1, name: "아이덴티티", description: ["재사용 대기시간 24.00% 감소"], option: null, icon: null });
+  const other = otherSkillGems(gems, names);
+  assert.equal(other.length, 1);
+  assert.equal(other[0].effect.name, "아이덴티티");
+  assert.equal(other[0].label, "10쿨");
+  assert.equal(otherSkillGems(null, names).length, 0);
 });

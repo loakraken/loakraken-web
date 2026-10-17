@@ -1,38 +1,52 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, type CSSProperties } from "react";
+import Link from "next/link";
+import { Fragment, useEffect, useId, useRef, useState, type CSSProperties } from "react";
+import { useTallest } from "@/components/ui/use-tallest";
+import { classBuildsPath } from "@/lib/stats/class-builds";
 import { useRouter } from "next/navigation";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { SiteHeader } from "@/components/site/site-header";
+import { Select } from "@/components/ui/select";
 import { DataTable } from "@/components/ui/data-table";
+import { PillTab, PillTabs, PillTabsPanel } from "@/components/ui/pill-tabs";
 import { countdownText, retryLabel } from "@/lib/api/rate-limit";
+import { pendingProps } from "@/lib/api/pending";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { TIER_LABEL } from "@/lib/character/rank";
-import { fetchStats } from "@/lib/stats/client";
+import { fetchBestCombatPower, fetchStats, fetchTitleEquip } from "@/lib/stats/client";
+import { equipShare, titleEquipQuery } from "@/lib/stats/title-equip";
 import {
+  DISTRIBUTION_WIDTH,
+  distributionKey,
   fixed,
   percent,
   quantileScale,
   share,
   sampleConditions,
+  sampleText,
+  statsKey,
   statsSearch,
   whole,
-  type ClassRow,
+  type QuantileRow,
   type Metric,
   type StatsMeta,
   type StatsQuery,
 } from "@/lib/stats/model";
 import quote from "@/components/tools/material-quote.module.css";
 import styles from "./stats.module.css";
+import { BasisNote } from "./basis-note";
+import { rankingColumns } from "./ranking-columns";
 
 const SERVERS = ["루페온", "실리안", "아만", "아브렐슈드", "카단", "카마인", "카제로스", "니나브"];
 const TABS = [
   { id: "classes", label: "직업" },
   { id: "distribution", label: "분포" },
+  { id: "best", label: "최고 전투력" },
   { id: "servers", label: "서버" },
+  { id: "titles", label: "칭호" },
 ] as const;
 type Tab = (typeof TABS)[number]["id"];
-const WIDTH: Record<Metric, number> = { ITEM_LEVEL: 10, COMBAT_POWER: 100 };
 const kst = new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
 const quiet = { retry: false, refetchOnWindowFocus: false } as const;
 
@@ -62,14 +76,15 @@ function Problem({ error, onRetry }: { error: unknown; onRetry: () => void }) {
  * Whose numbers these are, before any number (user, 23:23): LOAKraken's
  * observed characters, never the game's population. Conditions under it.
  */
-function Notice({ meta }: { meta: StatsMeta }) {
+function Notice({ meta, stale }: { meta: StatsMeta; stale: boolean }) {
   return (
-    <div className={styles.basis} role="note">
+    <div className={styles.basis} role="note" {...pendingProps({ isPlaceholderData: stale })}>
       <p>
         <strong>LOAKraken이 확인한 캐릭터 {whole(meta.population)}명 기준</strong>
         <span>(게임 전체 인구 아님)</span>
       </p>
-      <p className={styles.notice}>
+      {/* Keyed by what it says (A7): see basis-note.tsx. */}
+      <p key={`${sampleConditions(meta)}-${meta.aggregatedAt}-${meta.sampleStatus}`} className={styles.notice}>
         {sampleConditions(meta)} · {kst.format(new Date(meta.aggregatedAt))} 집계
         {meta.sampleStatus !== "READY" && ` · 표본 ${meta.minSample}명이 모이면 분포를 보여 드려요`}
       </p>
@@ -77,9 +92,24 @@ function Notice({ meta }: { meta: StatsMeta }) {
   );
 }
 
+/** "집계 기준 안내" under the tables, from the summary's meta (same query, cached). */
+function StatsBasis({ query }: { query: StatsQuery }) {
+  const summary = useQuery({
+    queryKey: ["stats", "summary", statsKey(query)],
+    queryFn: ({ signal }) => fetchStats("summary", query, signal),
+    staleTime: 5 * 60_000,
+    placeholderData: keepPreviousData,
+    ...quiet,
+  });
+  const meta = summary.data?.data.meta;
+  if (!meta) return null;
+  // Drawn anew per answer, like the cards above (A7).
+  return <BasisNote key={summary.dataUpdatedAt} basis={meta} stale={summary.isPlaceholderData} />;
+}
+
 function SummaryCards({ query }: { query: StatsQuery }) {
   const summary = useQuery({
-    queryKey: ["stats", "summary", query],
+    queryKey: ["stats", "summary", statsKey(query)],
     queryFn: ({ signal }) => fetchStats("summary", query, signal),
     staleTime: 5 * 60_000,
     placeholderData: keepPreviousData,
@@ -89,21 +119,26 @@ function SummaryCards({ query }: { query: StatsQuery }) {
   if (summary.isError && !s) return <Problem error={summary.error} onRetry={() => summary.refetch()} />;
   if (!s) return <p className={styles.muted}>통계를 불러오고 있어요…</p>;
   const roles = s.dealers + s.supports;
+  // A filter narrower than the sample minimum: the numbers still show, in gray
+  // with "참고값" (user 23:50, backend #274); the top 10% stays "-".
+  const reference = s.meta.sampleStatus !== "READY";
   return (
-    <>
-      <Notice meta={s.meta} />
-      <dl className={styles.cards}>
+    // Drawn anew per answer: numbers and the 참고값 tag rewritten in place
+    // moved the cards' text on a server change (0.001~0.0016, A7).
+    <Fragment key={summary.dataUpdatedAt}>
+      <Notice meta={s.meta} stale={summary.isPlaceholderData} />
+      <dl className={styles.cards} data-reference={reference || undefined} {...pendingProps(summary)}>
         <div>
           <dt>표본</dt>
           <dd>{whole(s.meta.population)}명</dd>
         </div>
         <div>
-          <dt>아이템 레벨</dt>
+          <dt>아이템 레벨{reference && <span className={styles.refTag}>참고값</span>}</dt>
           <dd>{fixed(s.itemLevelMean)}</dd>
           <small>중앙값 {fixed(s.itemLevelMedian)}</small>
         </div>
         <div>
-          <dt>전투력 중앙값</dt>
+          <dt>전투력 중앙값{reference && <span className={styles.refTag}>참고값</span>}</dt>
           <dd>{fixed(s.combatPowerMedian)}</dd>
           <small>상위 10% {fixed(s.combatPowerP90)}</small>
         </div>
@@ -118,12 +153,12 @@ function SummaryCards({ query }: { query: StatsQuery }) {
           </small>
         </div>
         <div>
-          <dt>보석 평균 레벨</dt>
+          <dt>보석 평균 레벨{reference && <span className={styles.refTag}>참고값</span>}</dt>
           <dd>{fixed(s.gemMeanLevel, 1)}</dd>
           <small>{whole(s.gemSample)}명 기준</small>
         </div>
       </dl>
-    </>
+    </Fragment>
   );
 }
 
@@ -154,12 +189,26 @@ function SampleProgress({ ready, total, unit, minSample }: { ready: number; tota
 }
 
 /**
- * ILOA-style quantile bar: p10–p90 thin line, p25–p75 box, median tick. It
+ * Quantile bar: p10–p90 thin line, p25–p75 box, median tick. It
  * grows from the left each time the tab is shown (motion rule 10-10: on every
  * entry, not on in-place updates), 30ms apart up to 8 rows; only the first 12
  * rows move (PM 12-item cap), the rest are simply there.
  */
-function Quantiles({ row, scale, index }: { row: ClassRow; scale: ((v: number) => number) | null; index: number }) {
+function Quantiles({
+  row,
+  scale,
+  index,
+  label = "전투력",
+  shortNote = "참고값",
+}: {
+  row: QuantileRow;
+  scale: ((v: number) => number) | null;
+  index: number;
+  /** What the spread is of, read aloud. */
+  label?: string;
+  /** After "표본 N명" under the minimum; null when no value is shown at all. */
+  shortNote?: string | null;
+}) {
   const p = row.combatPower;
   // Under the sample minimum: the median as a dot only (user, 23:50) — the
   // spread needs the full sample. "표본 N명 · 참고값" says why.
@@ -167,11 +216,13 @@ function Quantiles({ row, scale, index }: { row: ClassRow; scale: ((v: number) =
     return (
       <span className={styles.shortCell}>
         {p?.p50 != null && scale ? (
-          <span className={styles.quantile} role="img" aria-label={`전투력 중앙값 ${whole(p.p50)} (참고값)`}>
+          <span className={styles.quantile} role="img" aria-label={`${label} 중앙값 ${whole(p.p50)} (참고값)`}>
             <em style={{ left: `${scale(p.p50)}%` }} />
           </span>
         ) : null}
-        <small>표본 {whole(row.count)}명 · 참고값</small>
+        <small>
+          표본 {whole(row.count)}명{shortNote && ` · ${shortNote}`}
+        </small>
       </span>
     );
   if (!p || !scale) return <span className={styles.muted}>-</span>;
@@ -180,7 +231,7 @@ function Quantiles({ row, scale, index }: { row: ClassRow; scale: ((v: number) =
       className={index < 12 ? `${styles.quantile} k-grow-x` : styles.quantile}
       style={index < 12 ? ({ "--i": index } as CSSProperties) : undefined}
       role="img"
-      aria-label={`전투력 하위 10% ${whole(p.p10)}, 중간 50% ${whole(p.p25)}~${whole(p.p75)}, 상위 10% ${whole(p.p90)}`}
+      aria-label={`${label} 하위 10% ${whole(p.p10)}, 중간 50% ${whole(p.p25)}~${whole(p.p75)}, 상위 10% ${whole(p.p90)}`}
     >
       <i style={{ left: `${scale(p.p10)}%`, width: `${scale(p.p90) - scale(p.p10)}%` }} />
       <b style={{ left: `${scale(p.p25)}%`, width: `${Math.max(1, scale(p.p75) - scale(p.p25))}%` }} />
@@ -189,9 +240,16 @@ function Quantiles({ row, scale, index }: { row: ClassRow; scale: ((v: number) =
   );
 }
 
+// # · 직업 · 인원 · 비율 · 서포터 · 평균 레벨 · 보석 · 전투력 분포 · 중앙값
+const CLASS_COLUMNS = rankingColumns([3, 7.5, 6, 5.5, 5.5, 7, 4.5, 13, 7]);
+// 서버 · 인원 · 비율 · 아이템 레벨 중앙값 · 전투력 중앙값 · 표본
+const SERVER_COLUMNS = rankingColumns([6.5, 6.5, 5.5, 11, 8.5, 10]);
+// # · 직업 · 인원 · 평균 · 최고 전투력 분포 · 중앙값 · 최고
+const BEST_COLUMNS = rankingColumns([3, 7.5, 6, 7.5, 13, 7.5, 7.5]);
+
 function ClassesTab({ query }: { query: StatsQuery }) {
   const classes = useQuery({
-    queryKey: ["stats", "classes", query],
+    queryKey: ["stats", "classes", statsKey(query)],
     queryFn: ({ signal }) => fetchStats("classes", query, signal),
     staleTime: 5 * 60_000,
     placeholderData: keepPreviousData,
@@ -205,11 +263,16 @@ function ClassesTab({ query }: { query: StatsQuery }) {
   const scale = quantileScale(rows);
   const minSample = classes.data.data.meta.minSample;
   return (
-    <div>
+    // Fixed column widths, so another server's numbers do not size the
+    // columns again (the headings would slide even when drawn anew), and
+    // drawn anew per answer (the previous one stays, dimmed, while the next
+    // loads) so text rewritten in place does not count as moving (A7, #791).
+    <div key={classes.dataUpdatedAt} {...pendingProps(classes)}>
       <SampleProgress ready={ready} total={rows.length} unit="직업" minSample={minSample} />
       {rows.length > 0 && (
-        <DataTable label="직업별 인원과 전투력 분포" className={styles.table}>
+        <DataTable label="직업별 인원과 전투력 분포" className={styles.table} {...CLASS_COLUMNS.tableProps}>
           <caption className={styles.srOnly}>직업별 인원과 전투력 분포</caption>
+          {CLASS_COLUMNS.colgroup}
           <thead>
             <tr>
               <th scope="col">#</th>
@@ -227,7 +290,12 @@ function ClassesTab({ query }: { query: StatsQuery }) {
             {rows.map((row, i) => (
               <tr key={row.className} data-short={row.sampleStatus !== "READY" || undefined}>
                 <td>{i + 1}</td>
-                <th scope="row">{row.className}</th>
+                <th scope="row">
+                  {/* The class page (M12): its builds over the same sample. */}
+                  <Link href={classBuildsPath(row.className)} prefetch={false}>
+                    {row.className}
+                  </Link>
+                </th>
                 <td>{whole(row.count)}</td>
                 <td className={styles.share}>{share(row.share)}</td>
                 <td>{row.supports > 0 ? percent(row.supportShare) : "-"}</td>
@@ -256,9 +324,9 @@ function DistributionTab({ query }: { query: StatsQuery }) {
   const value = useDebounced(mine);
   const percentileOf = value.trim() && Number.isFinite(Number(value)) ? Number(value) : undefined;
   const dist = useQuery({
-    queryKey: ["stats", "distribution", query, metric, percentileOf],
+    queryKey: distributionKey(query, metric, percentileOf),
     queryFn: ({ signal }) =>
-      fetchStats("distribution", { ...query, metric, width: WIDTH[metric], percentileOf }, signal),
+      fetchStats("distribution", { ...query, metric, width: DISTRIBUTION_WIDTH[metric], percentileOf }, signal),
     staleTime: 5 * 60_000,
     placeholderData: keepPreviousData,
     ...quiet,
@@ -293,7 +361,7 @@ function DistributionTab({ query }: { query: StatsQuery }) {
           {asTable ? "그래프로 보기" : "표로 보기"}
         </button>
       </div>
-      <p className={styles.result} aria-live="polite">
+      <p className={styles.result} aria-live="polite" {...pendingProps(dist)}>
         {p ? (
           <>
             {label} {fmt(p.value)}은 상위 <strong>{percent(p.topPercent)}</strong>
@@ -309,9 +377,11 @@ function DistributionTab({ query }: { query: StatsQuery }) {
       {dist.isError && !data ? (
         <Problem error={dist.error} onRetry={() => dist.refetch()} />
       ) : !data ? (
-        <p className={styles.muted}>분포를 불러오고 있어요…</p>
+        <p className={styles.histogramWait} role="status">
+          분포를 불러오고 있어요…
+        </p>
       ) : asTable ? (
-        <DataTable label={`${label} 구간별 인원`} className={styles.table}>
+        <DataTable label={`${label} 구간별 인원`} className={styles.table} {...pendingProps(dist)}>
             <caption className={styles.srOnly}>{label} 구간별 인원</caption>
             <thead>
               <tr>
@@ -319,7 +389,7 @@ function DistributionTab({ query }: { query: StatsQuery }) {
                 <th scope="col">인원</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody key={dist.dataUpdatedAt}>
               {data.bins.map((bin) => (
                 <tr key={bin.from}>
                   <th scope="row">
@@ -331,7 +401,9 @@ function DistributionTab({ query }: { query: StatsQuery }) {
             </tbody>
         </DataTable>
       ) : (
-        <ol className={styles.histogram} aria-label={`${label} 구간별 인원`}>
+        // Drawn anew per answer: another server's bins are other ranges, and
+        // the same bar moved across the axis in place (A7, #791).
+        <ol key={dist.dataUpdatedAt} className={styles.histogram} aria-label={`${label} 구간별 인원`} {...pendingProps(dist)}>
           {data.bins.map((bin, i) => {
             const hit = p && p.value >= bin.from && p.value < bin.to;
             return (
@@ -346,11 +418,18 @@ function DistributionTab({ query }: { query: StatsQuery }) {
           })}
         </ol>
       )}
-      {data && data.bins.length > 0 && (
-        <p className={styles.axis} aria-hidden="true">
+      {/* The axis line is there before the bars too (its height held), so they land without moving the note under it. */}
+      {data && data.bins.length > 0 ? (
+        <p className={styles.axis} aria-hidden="true" {...pendingProps(dist)}>
           <span>{fmt(data.bins[0].from)}</span>
           <span>{fmt(data.bins.at(-1)!.to)}</span>
         </p>
+      ) : (
+        !data && !dist.isError && (
+          <p className={styles.axis} aria-hidden="true">
+            {" "}
+          </p>
+        )
       )}
     </div>
   );
@@ -358,7 +437,7 @@ function DistributionTab({ query }: { query: StatsQuery }) {
 
 function ServersTab({ query }: { query: StatsQuery }) {
   const servers = useQuery({
-    queryKey: ["stats", "servers", query],
+    queryKey: ["stats", "servers", statsKey(query)],
     queryFn: ({ signal }) => fetchStats("servers", query, signal),
     staleTime: 5 * 60_000,
     placeholderData: keepPreviousData,
@@ -370,11 +449,13 @@ function ServersTab({ query }: { query: StatsQuery }) {
   const rows = servers.data.data.rows;
   const ready = rows.filter((row) => row.sampleStatus === "READY").length;
   return (
-    <div>
+    // Fixed columns and drawn anew per answer, like the class table (A7, #791).
+    <div key={servers.dataUpdatedAt} {...pendingProps(servers)}>
       <SampleProgress ready={ready} total={rows.length} unit="서버" minSample={servers.data.data.meta.minSample} />
       {rows.length > 0 && (
-      <DataTable label="서버별 인원과 중앙값" className={styles.table}>
+      <DataTable label="서버별 인원과 중앙값" className={styles.table} {...SERVER_COLUMNS.tableProps}>
           <caption className={styles.srOnly}>서버별 인원과 중앙값</caption>
+          {SERVER_COLUMNS.colgroup}
           <thead>
             <tr>
               <th scope="col" className={styles.left}>서버</th>
@@ -382,7 +463,10 @@ function ServersTab({ query }: { query: StatsQuery }) {
               <th scope="col">비율</th>
               <th scope="col">아이템 레벨 중앙값</th>
               <th scope="col">전투력 중앙값</th>
-              <th scope="col"><span className={styles.srOnly}>표본</span></th>
+              {/* Named by aria-label, not a visually hidden span: positioned
+                  out of the flow, that span left the scrolling table box and
+                  widened the page at 360 (#811). */}
+              <th scope="col" aria-label="표본" />
             </tr>
           </thead>
           <tbody>
@@ -408,11 +492,174 @@ function ServersTab({ query }: { query: StatsQuery }) {
 }
 
 /**
- * Statistics (B-3): ILOA's summary + class quantile table + distribution and
- * server tabs, LOAWA's filter row. Filters live in the URL (shareable) and
+ * 칭호 (api #314, checklist L44): every title seen worn, by how many of the
+ * rosters LOAKraken has seen had a character wearing it. Worn only: the
+ * official profile does not list titles that are owned but not worn.
+ * Server and days apply; role, level and representative do not (said).
+ */
+// 순위 · 칭호 · 장착 원정대 · 비율
+const TITLE_COLUMNS = rankingColumns([3.5, 18, 8, 6.5]);
+
+/**
+ * 최고 전투력 (L5): each character's highest combat power over its whole
+ * history, overall and per class, over the same sample and filters. A cell
+ * under the sample minimum has its count only.
+ */
+function BestTab({ query }: { query: StatsQuery }) {
+  const best = useQuery({
+    queryKey: ["stats", "best", statsKey({ ...query, metric: undefined, width: undefined, percentileOf: undefined })],
+    queryFn: ({ signal }) => fetchBestCombatPower(query, signal),
+    staleTime: 5 * 60_000,
+    placeholderData: keepPreviousData,
+    ...quiet,
+  });
+  if (best.isError && !best.data) return <Problem error={best.error} onRetry={() => best.refetch()} />;
+  if (!best.data) return <p className={styles.muted}>최고 전투력 통계를 불러오고 있어요…</p>;
+  const { meta, overall, classes } = best.data.data;
+  const rows = classes.map((row) => ({
+    className: row.className,
+    count: row.value.count,
+    sampleStatus: row.value.sampleStatus,
+    combatPower: row.value.percentiles,
+    mean: row.value.mean,
+    max: row.value.max,
+  }));
+  const scale = quantileScale(rows);
+  const ready = rows.filter((row) => row.sampleStatus === "READY").length;
+  const short = overall.sampleStatus !== "READY";
+  return (
+    <div {...pendingProps(best)}>
+      {/* Drawn anew per answer: numbers rewritten in place move (A7). */}
+      <div key={best.dataUpdatedAt}>
+        <p className={styles.notice}>
+          조건에 맞는 캐릭터 {whole(meta.population)}명 중 최고 전투력 기록이 있는 {whole(overall.count)}명의, LOAKraken이
+          확인한 이력에서 가장 높았던 전투력이에요.
+          {(query.combatPowerMin != null || query.combatPowerMax != null) && " 전투력 범위 조건은 지금 전투력에 걸려요."}
+          {short && ` 표본이 ${meta.minSample}명 미만이라 값은 보여 드리지 않아요.`}
+        </p>
+        <dl className={styles.bestSummary}>
+          {[
+            ["평균", overall.mean],
+            ["중앙값", overall.percentiles?.p50],
+            ["상위 10%", overall.percentiles?.p90],
+            ["최고", overall.max],
+          ].map(([name, value]) => (
+            <div key={name as string}>
+              <dt>{name}</dt>
+              <dd>{value == null ? "-" : whole(value as number)}</dd>
+            </div>
+          ))}
+        </dl>
+        <SampleProgress ready={ready} total={rows.length} unit="직업" minSample={meta.minSample} />
+        {rows.length > 0 && (
+          <DataTable label="직업별 최고 전투력" className={styles.table} {...BEST_COLUMNS.tableProps}>
+            <caption className={styles.srOnly}>직업별 최고 전투력</caption>
+            {BEST_COLUMNS.colgroup}
+            <thead>
+              <tr>
+                <th scope="col">#</th>
+                <th scope="col" className={styles.left}>직업</th>
+                <th scope="col">인원</th>
+                <th scope="col">평균</th>
+                <th scope="col" className={styles.wide}>최고 전투력 분포</th>
+                <th scope="col">중앙값</th>
+                <th scope="col">최고</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row, i) => (
+                <tr key={row.className} data-short={row.sampleStatus !== "READY" || undefined}>
+                  <td>{i + 1}</td>
+                  <th scope="row">{row.className}</th>
+                  <td>{whole(row.count)}</td>
+                  <td>{whole(row.mean)}</td>
+                  <td className={styles.wide}>
+                    {/* Under the minimum the backend gives no value: the count only. */}
+                    <Quantiles row={row} scale={scale} index={i} label="최고 전투력" shortNote={null} />
+                  </td>
+                  <td>{whole(row.combatPower?.p50)}</td>
+                  <td>{whole(row.max)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </DataTable>
+        )}
+      </div>
+      <p className={styles.note}>
+        분포 막대: 옅은 선 하위 10%~상위 10%, 진한 칸 가운데 50%, 세로선 중앙값. 표본이 {meta.minSample}명 미만인 칸은
+        인원만 보여요.
+      </p>
+    </div>
+  );
+}
+
+function TitlesTab({ query }: { query: StatsQuery }) {
+  const titleQuery = titleEquipQuery(query);
+  const titles = useQuery({
+    queryKey: ["title-equip", titleQuery],
+    queryFn: ({ signal }) => fetchTitleEquip(titleQuery, signal),
+    staleTime: 5 * 60_000,
+    placeholderData: keepPreviousData,
+    ...quiet,
+  });
+  if (titles.isError && !titles.data) return <Problem error={titles.error} onRetry={() => titles.refetch()} />;
+  if (!titles.data) return <p className={styles.muted}>칭호 통계를 불러오고 있어요…</p>;
+  const { meta, titles: rows } = titles.data.data;
+  const ready = meta.sampleStatus === "READY";
+  return (
+    <div {...pendingProps(titles)}>
+      {/* Fixed columns and a note of fixed height, drawn anew per answer: a
+          server change moves nothing (A7, same as the ranking tables). */}
+      <p key={titles.dataUpdatedAt} className={`${styles.notice} ${styles.rankingNotice}`}>
+        {sampleText(meta, "roster")} 중 그 칭호를 장착한 캐릭터가 있는 원정대의 비율이에요. 장착하지 않은 칭호는 알 수
+        없어 세지 않아요{!ready && ` · 표본 ${meta.minSample}개 원정대 미만이라 참고값`}.
+        {(query.role || query.itemLevelMin != null || query.representativeOnly) && " 역할·아이템 레벨·대표 캐릭터 조건은 이 표에 쓰지 않아요."}
+      </p>
+      {rows.length === 0 ? (
+        <p className={styles.muted}>아직 확인한 칭호가 없어요.</p>
+      ) : (
+        <DataTable label="칭호 장착 원정대 비율" className={styles.table} {...TITLE_COLUMNS.tableProps}>
+          <caption className={styles.srOnly}>칭호 장착 원정대 비율</caption>
+          {TITLE_COLUMNS.colgroup}
+          <thead>
+            <tr>
+              <th scope="col">순위</th>
+              <th scope="col" className={styles.left}>칭호</th>
+              <th scope="col">장착 원정대</th>
+              <th scope="col">비율</th>
+            </tr>
+          </thead>
+          <tbody key={titles.dataUpdatedAt}>
+            {rows.map((row, i) => (
+              <tr key={row.title}>
+                <td>{whole(i + 1)}</td>
+                <th scope="row">{row.title}</th>
+                <td>{whole(row.equippedRosters)}개</td>
+                <td data-strong>{equipShare(row)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </DataTable>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Statistics (B-3): summary + class quantile table + distribution and
+ * server tabs, and a filter row. Filters live in the URL (shareable) and
  * apply at once; numbers are debounced.
  */
-export function StatsView({ initial, initialTab }: { initial: StatsQuery; initialTab: Tab }) {
+export function StatsView({
+  initial,
+  initialTab,
+  titles = true,
+}: {
+  initial: StatsQuery;
+  initialTab: Tab;
+  /** TITLE_STATS on this deployment (server flag): the '칭호' tab. */
+  titles?: boolean;
+}) {
   const router = useRouter();
   const [query, setQuery] = useState<StatsQuery>(initial);
   const [tab, setTab] = useState<Tab>(initialTab);
@@ -427,6 +674,7 @@ export function StatsView({ initial, initialTab }: { initial: StatsQuery; initia
   const latest = useRef(initial);
   const levelTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const ids = { server: useId(), role: useId(), days: useId(), level: useId() };
+  const [panelRef, tallest] = useTallest();
 
   function apply(next: StatsQuery, nextTab = tab) {
     latest.current = next;
@@ -463,40 +711,30 @@ export function StatsView({ initial, initialTab }: { initial: StatsQuery; initia
         <form className={styles.filters} onSubmit={(e) => e.preventDefault()} aria-label="통계 조건">
           <label htmlFor={ids.server}>
             서버
-            <select
+            <Select
               id={ids.server}
               value={query.server ?? ""}
-              onChange={(e) => apply({ ...query, server: e.target.value || undefined })}
-            >
-              <option value="">전체</option>
-              {SERVERS.map((s) => (
-                <option key={s}>{s}</option>
-              ))}
-            </select>
+              onValueChange={(v) => apply({ ...query, server: v || undefined })}
+              items={[{ value: "", label: "전체" }, ...SERVERS.map((s) => ({ value: s, label: s }))]}
+            />
           </label>
           <label htmlFor={ids.role}>
             역할
-            <select
+            <Select
               id={ids.role}
               value={query.role ?? ""}
-              onChange={(e) => apply({ ...query, role: (e.target.value || undefined) as StatsQuery["role"] })}
-            >
-              <option value="">전체</option>
-              <option value="DEALER">딜러</option>
-              <option value="SUPPORT">서포터</option>
-            </select>
+              onValueChange={(v) => apply({ ...query, role: (v || undefined) as StatsQuery["role"] })}
+              items={[{ value: "", label: "전체" }, { value: "DEALER", label: "딜러" }, { value: "SUPPORT", label: "서포터" }]}
+            />
           </label>
           <label htmlFor={ids.days}>
             최근 확인
-            <select
+            <Select
               id={ids.days}
               value={query.activeDays ?? 30}
-              onChange={(e) => apply({ ...query, activeDays: Number(e.target.value) as 7 | 30 | 90 })}
-            >
-              <option value={7}>7일</option>
-              <option value={30}>30일</option>
-              <option value={90}>90일</option>
-            </select>
+              onValueChange={(v) => apply({ ...query, activeDays: v as 7 | 30 | 90 })}
+              items={[{ value: 7, label: "7일" }, { value: 30, label: "30일" }, { value: 90, label: "90일" }]}
+            />
           </label>
           <label htmlFor={ids.level}>
             아이템 레벨 이상
@@ -520,31 +758,39 @@ export function StatsView({ initial, initialTab }: { initial: StatsQuery; initia
 
         <SummaryCards query={query} />
 
-        <div className={styles.tabs} role="tablist" aria-label="통계 보기">
-          {TABS.map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              role="tab"
-              aria-selected={tab === t.id}
-              onClick={() => {
-                setTab(t.id);
-                apply(query, t.id);
-              }}
-            >
+        <PillTabs
+          aria-label="통계 보기"
+          listClassName={styles.tabs}
+          value={tab}
+          onValueChange={(next) => {
+            setTab(next as Tab);
+            apply(query, next as Tab);
+          }}
+          panels={
+            <PillTabsPanel value={tab} className={styles.panel}>
+              <div ref={panelRef} style={tallest ? { minHeight: tallest } : undefined}>
+                {tab === "classes" ? (
+                  <ClassesTab query={query} />
+                ) : tab === "distribution" ? (
+                  <DistributionTab query={query} />
+                ) : tab === "best" ? (
+                  <BestTab query={query} />
+                ) : tab === "titles" ? (
+                  <TitlesTab query={query} />
+                ) : (
+                  <ServersTab query={query} />
+                )}
+              </div>
+            </PillTabsPanel>
+          }
+        >
+          {TABS.filter((t) => titles || t.id !== "titles").map((t) => (
+            <PillTab key={t.id} value={t.id}>
               {t.label}
-            </button>
+            </PillTab>
           ))}
-        </div>
-        <section role="tabpanel" aria-label={TABS.find((t) => t.id === tab)?.label} className={styles.panel}>
-          {tab === "classes" ? (
-            <ClassesTab query={query} />
-          ) : tab === "distribution" ? (
-            <DistributionTab query={query} />
-          ) : (
-            <ServersTab query={query} />
-          )}
-        </section>
+        </PillTabs>
+        <StatsBasis query={query} />
       </main>
     </div>
   );

@@ -53,12 +53,12 @@ const STRATEGY_COPY: Record<
   breakEven: {
     name: "판매 손익 분기",
     note: "팔면 파티원과 똑같이 나눠 갖게 되는 값",
-    formula: "판매가 × 0.95 × (인원 − 1) ÷ 인원",
+    formula: "판매가 × 0.95 × (인원 − 1) ÷ 인원 (10만 골드를 넘으면 분배 수수료 반영)",
   },
   useMyself: {
     name: "직접 사용",
     note: "팔지 않고 쓸 때 여기까지는 손해가 아니에요",
-    formula: "가격 × (인원 − 1) ÷ 인원 — 수수료 없음",
+    formula: "가격 × (인원 − 1) ÷ 인원 — 거래소 수수료 없음 (10만 골드를 넘으면 분배 수수료 반영)",
   },
 };
 
@@ -66,7 +66,7 @@ function FormulaTip({ label, formula }: { label: string; formula: string }) {
   return (
     <Tooltip>
       <TooltipTrigger
-        className={styles.tipButton}
+        className={`${styles.tipButton} hit-44`}
         aria-label={`${label} 계산식`}
       >
         <InfoCircle size={14} aria-hidden="true" />
@@ -121,6 +121,30 @@ function useCopy() {
 // Worked example for the empty state (same formula as the result).
 const EXAMPLE = calculateAuction(100_000, 8);
 
+/**
+ * 모션 목록(경매): when a result settles — the inputs rest for 300ms — its
+ * numbers cross-fade once (opacity only, 160ms). Typing does not replay it,
+ * and reduced motion skips it.
+ */
+function useSettleFade(key: string, root: React.RefObject<HTMLElement | null>) {
+  const [settled, setSettled] = useState(key);
+  useEffect(() => {
+    const timer = setTimeout(() => setSettled(key), 300);
+    return () => clearTimeout(timer);
+  }, [key]);
+  const first = useRef(true);
+  useEffect(() => {
+    if (first.current) {
+      first.current = false;
+      return;
+    }
+    if (!settled || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    root.current?.querySelectorAll("[data-figure]").forEach((node) =>
+      node.animate([{ opacity: 0.35 }, { opacity: 1 }], { duration: 160, easing: "cubic-bezier(0.23, 1, 0.32, 1)" }),
+    );
+  }, [settled, root]);
+}
+
 function BidPick({ result }: { result: AuctionResult | null }) {
   const { copied, copy } = useCopy();
   if (!result)
@@ -147,7 +171,7 @@ function BidPick({ result }: { result: AuctionResult | null }) {
       <p id="auction-pick" className={styles.pickLabel}>
         이 값까지 입찰하세요 <span className={styles.badge}>추천</span>
       </p>
-      <p className={styles.pickValue}>
+      <p className={styles.pickValue} data-figure="">
         <button
           type="button"
           className={styles.copy}
@@ -190,7 +214,7 @@ function Summary({ result }: { result: AuctionResult | null }) {
               formula={STRATEGY_COPY.breakEven.formula}
             />
           </p>
-          <p className={styles.headValue} data-tone="sale">
+          <p className={styles.headValue} data-tone="sale" data-figure="">
             {value((r) => r.breakEven)}
           </p>
           <p className={styles.headNote}>거래소에 팔 때 · 수수료 5% 반영</p>
@@ -203,22 +227,24 @@ function Summary({ result }: { result: AuctionResult | null }) {
               formula={STRATEGY_COPY.useMyself.formula}
             />
           </p>
-          <p className={styles.headValue}>{value((r) => r.useMyself)}</p>
+          <p className={styles.headValue} data-figure="">
+            {value((r) => r.useMyself)}
+          </p>
           <p className={styles.headNote}>내가 쓸 때 · 수수료 없음</p>
         </div>
       </div>
       <dl className={styles.facts}>
         <div>
           <dt>판매하면 받는 골드</dt>
-          <dd>{value((r) => r.saleGold)}</dd>
+          <dd data-figure="">{value((r) => r.saleGold)}</dd>
         </div>
         <div>
-          <dt>거래소 수수료 5%</dt>
-          <dd>{value((r) => r.fee)}</dd>
+          <dt>판매 수수료 5%(1골드 이하 면제)</dt>
+          <dd data-figure="">{value((r) => r.fee)}</dd>
         </div>
         <div>
           <dt>1인 분배금 (판매 손익 분기)</dt>
-          <dd>{value((r) => r.breakEvenShare)}</dd>
+          <dd data-figure="">{value((r) => r.breakEvenShare)}</dd>
         </div>
       </dl>
     </section>
@@ -280,7 +306,9 @@ function Strategies({ result }: { result: AuctionResult | null }) {
                       onClick={() => copy(id, row.bid)}
                       aria-label={`${text.name} 입찰가 ${formatGold(row.bid)} 복사`}
                     >
-                      <span className={styles.bid}>{formatGold(row.bid)}</span>
+                      <span className={styles.bid} data-figure="">
+                        {formatGold(row.bid)}
+                      </span>
                       {done && copied.ok ? (
                         <TickCircle size={14} aria-hidden="true" />
                       ) : (
@@ -320,8 +348,8 @@ function Strategies({ result }: { result: AuctionResult | null }) {
       <p className={quote.caption}>
         경매에 쓴 골드는 낙찰자 몫 없이{" "}
         {result ? `나머지 ${result.party - 1}명에게` : "나머지 인원에게"} 고르게
-        돌아가요. 표의 &lsquo;1인&rsquo;은 그 값에 낙찰됐을 때 다른 한 사람이
-        받는 골드예요.
+        돌아가요. 10만 골드를 넘는 낙찰액은 넘는 부분의 5%를 떼고 나눠요. 표의
+        &lsquo;1인&rsquo;은 그 값에 낙찰됐을 때 다른 한 사람이 받는 골드예요.
       </p>
     </section>
   );
@@ -333,12 +361,18 @@ function Basis() {
       <summary>계산 기준</summary>
       <ul>
         <li>
-          거래소 판매 수수료는 5%이고, 1골드 미만은 올려서 계산해요.
+          거래소 판매 수수료는 5%이고(1골드 이하 면제), 1골드 미만은 올려서 계산해요.
         </li>
         <li>
           낙찰 골드는 낙찰자에게 돌아가지 않고 나머지 인원이 나눠요. 손익
           분기는 낙찰자에게 남는 골드와 다른 한 사람의 몫이 같아지는
           입찰가예요.
+        </li>
+        <li>
+          낙찰액이 10만 골드를 넘으면 넘는 부분의 5%를 떼고 나눠요(게임 내
+          분배금 기준). 그래서 손익 분기가 10만 골드를 넘을 때는 ((인원 − 1) ×
+          판매가 × 0.95 − 5,000) ÷ (인원 − 0.05)로 계산해요. 직접 사용은 판매가
+          × 0.95 대신 가격을 넣어요.
         </li>
         <li>
           선점·이득 단계는 다음 입찰이 10% 이상 높아야 한다는 기준으로
@@ -384,6 +418,8 @@ function AuctionContent({
     price !== null && !pError && !cError
       ? calculateAuction(price, party)
       : null;
+  const output = useRef<HTMLDivElement>(null);
+  useSettleFade(result ? `${result.price}:${result.party}` : "", output);
 
   // Keep the URL shareable without a server round trip.
   useEffect(() => {
@@ -469,6 +505,10 @@ function AuctionContent({
                   {PARTY_PRESETS.map((preset) => (
                     <SegmentedItem
                       key={preset.size}
+                      // 12px sides: four items fit the 254px side column on one
+                      // row (263px at 16px), so the row is never re-measured
+                      // into a stack after the font loads (A6, 1280 CLS 0.0094).
+                      className="px-3"
                       value={preset.size}
                       title={"hint" in preset ? preset.hint : undefined}
                     >
@@ -522,7 +562,7 @@ function AuctionContent({
               )}
             </form>
 
-            <div className={styles.output}>
+            <div className={styles.output} ref={output}>
               <BidPick result={result} />
               <Summary result={result} />
               <Strategies result={result} />
@@ -532,7 +572,7 @@ function AuctionContent({
         </div>
       </main>
       <footer className={quote.footer}>
-        LOAKraken · 로스트아크 비공식 팬 프로젝트 · 브라우저 안에서만 계산
+        LOAKraken · 브라우저 안에서만 계산
       </footer>
     </div>
   );

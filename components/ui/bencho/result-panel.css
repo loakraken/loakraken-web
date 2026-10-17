@@ -1,0 +1,167 @@
+/* MIT © 2026 Lorenzo Cabra — https://bencho.dev/blocks/picker (see ./NOTICE).
+   The card and rows of Bencho's Assignees (.pik-card, .pik-row …), renamed
+   .rsp-*. (ours) Bencho's tokens are mapped once on the root, nothing global:
+   --card → our menu surface (--popover), --ink → its text, the 5% / 7% ink
+   washes → our one hover tint (--hover-surface). */
+.rsp {
+  --card: var(--popover);
+  --ink: var(--popover-foreground);
+  --rsp-wash: var(--hover-surface, color-mix(in oklab, var(--foreground) 5%, transparent));
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  z-index: 50;
+  display: grid;
+  box-sizing: border-box;
+  max-height: 60vh;
+  padding: 6px;
+  border-radius: 22px;
+  background: var(--card);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  /* (ours) The header floats over content, so the card needs an edge and a
+     little lift — Bencho's sat on its own grey block. */
+  box-shadow: var(--shadow-pop);
+  /* ── it unfolds from the PILL'S corner ────────────────────
+     Top left, not the middle: the pill starts at this same
+     left edge, so the card opens down and out from under it
+     rather than growing symmetrically out of its own centre,
+     which is what a box appearing does. */
+  transform-origin: 0 0;
+}
+
+/* (ours) Only the rows scroll; the key hints stay put under them. */
+.rsp-scroll {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  /* the thin site bar, kept off the rounded corners */
+  --scrollbar-inset: 16px;
+}
+
+.rsp-head {
+  padding: 10px 8px 4px;
+  color: var(--muted-foreground);
+  font-size: var(--text-caption);
+}
+
+.rsp-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 48px;
+  padding: 0 8px;
+  /* the card's corner less its 6px padding: 22 gives 16 */
+  border-radius: 16px;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 140ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .rsp-row:hover {
+    background: var(--rsp-wash);
+  }
+}
+
+/* (ours) The row the arrows point at: the same wash and a bar on its left,
+   so it is not colour alone. The input keeps focus (combobox), so this is
+   the keyboard's cursor. */
+/* (ours) Pressed: the wash shows the moment a row is pressed, on touch too
+   (apple-design: feedback on pointer-down; hover alone never reaches a finger). */
+.rsp-row:active {
+  background: var(--rsp-wash);
+}
+
+.rsp-row[data-active] {
+  background: var(--rsp-wash);
+  box-shadow: inset 2px 0 0 var(--ring);
+}
+
+.rsp-av {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--secondary);
+  color: var(--muted-foreground);
+}
+
+.rsp-av img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* (ours) official portraits are tall full-body pictures: keep the face */
+  object-position: 50% 12%;
+  display: block;
+}
+
+.rsp-who {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  flex: 1;
+}
+
+/* ── the same type as the other lists ──────────────────── */
+.rsp-name {
+  font-size: var(--text-body);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rsp-sub {
+  color: var(--muted-foreground);
+  font-size: var(--text-caption);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rsp-side {
+  flex: none;
+  color: var(--muted-foreground);
+  font-size: var(--text-caption);
+}
+
+/* (ours) The same line on top: rows that arrive later grow the card
+   downwards without moving it (A7, 10-12). The rows scroll with a stable
+   gutter, so a scrollbar appearing does not narrow and re-wrap them. */
+.rsp-top {
+  padding: 4px 8px 8px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+  color: var(--muted-foreground);
+  font-size: var(--text-caption);
+}
+.rsp-scroll {
+  scrollbar-gutter: stable;
+}
+/* (ours) The held room of a group still loading, or its one-line note. */
+.rsp-hold {
+  padding: 12px 8px 0;
+  color: var(--muted-foreground);
+  font-size: var(--text-caption);
+}
+.rsp-foot {
+  padding: 8px 8px 4px;
+  border-top: 1px solid var(--border);
+  margin-top: 4px;
+  color: var(--muted-foreground);
+  font-size: var(--text-caption);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rsp-row {
+    transition-duration: 1ms;
+  }
+}

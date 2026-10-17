@@ -49,7 +49,7 @@ test("receipt off is a 404 that is not 'character not found'", () => {
   assert.equal(isReceiptOff(null), false);
 });
 
-test("receipt requests pass assumeBook only when on and allow-list errors", async () => {
+test("receipt requests always say assumeBook (true or false) and allow-list errors", async () => {
   const urls: string[] = [];
   const fetcher = (async (input: RequestInfo | URL) => {
     urls.push(String(input));
@@ -57,7 +57,7 @@ test("receipt requests pass assumeBook only when on and allow-list errors", asyn
   }) as unknown as typeof fetch;
   assert.equal((await requestReceipt("영수증본캐", false, "http://127.0.0.1:8080", { fetcher })).ok, true);
   assert.equal((await requestReceipt("영수증본캐", true, "http://127.0.0.1:8080", { fetcher })).ok, true);
-  assert.ok(!new URL(urls[0]).searchParams.has("assumeBook"));
+  assert.equal(new URL(urls[0]).searchParams.get("assumeBook"), "false");
   assert.equal(new URL(urls[1]).searchParams.get("assumeBook"), "true");
   assert.equal((await requestReceipt("a b", false, "http://127.0.0.1:8080", { fetcher })).ok, false);
   assert.equal(urls.length, 2);

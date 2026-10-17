@@ -58,7 +58,7 @@ export interface components {
             extraAttackSpeed?: number;
             /** @description 이동 속도 가정 %(직업 각인·트라이포드·서포터 버프·만찬·음식 합). 감소는 음수 */
             extraMoveSpeed?: number;
-            /** @description 직업 상태 가정(예: 리퍼 갈증 '피냄새' 혼돈 상태 치명타 적중률). 생략하면 켬(목표 사이트와 같은 기준). false면 관측값만 */
+            /** @description 직업 상태 가정(예: 리퍼 갈증 '피냄새' 혼돈 상태 치명타 적중률). 생략하면 켬. false면 관측값만 */
             classState?: boolean;
             /** @description 효과별 켜기·끄기(응답 toggles[].key). 생략한 효과는 기본값: 직업 핵심 상태·자기 버프는 classState, 상황 조건(스킬 직후 N초 등)은 끔 */
             toggles?: {
@@ -220,14 +220,6 @@ export interface components {
             /** @description 음속 돌파 최적 신속 행 */
             optimal: boolean;
         };
-        /** @description 공통 오류 응답. HTTP 상태와 업무 코드를 함께 확인합니다. */
-        ErrorResponse: {
-            /** @example INVALID_REQUEST */
-            code: string;
-            /** @example 요청 값이 올바르지 않습니다. */
-            message: string;
-            data: null;
-        };
         CritSpeedSkillResponse: {
             name: string;
             attackType: ("BACK_ATTACK" | "HEAD_ATTACK" | "NONE") | null;
@@ -258,7 +250,7 @@ export interface components {
             text: string;
         };
         CritSpeedToggleResponse: {
-            /** @description 요청 assumptions.toggles 키(노드 이름 또는 버프 이름) */
+            /** @description 요청 assumptions.toggles 키(노드·버프·트라이포드 이름). 한 key가 축마다 여러 행(예: 광기 ATTACK_SPEED·MOVE_SPEED, 폭주 CRIT·공이속)을 가질 수 있고, 요청 key 하나로 함께 켜고 끈다 */
             key: string;
             /** @description 화면 표시 이름(예: 악마화 상태 가정) */
             label: string;
@@ -275,6 +267,14 @@ export interface components {
             value: number;
             /** @description 공식 원문 또는 근거 */
             text: string;
+        };
+        /** @description 공통 오류 응답. HTTP 상태와 업무 코드를 함께 확인합니다. */
+        ErrorResponse: {
+            /** @example INVALID_REQUEST */
+            code: string;
+            /** @example 요청 값이 올바르지 않습니다. */
+            message: string;
+            data: null;
         };
     };
     responses: never;

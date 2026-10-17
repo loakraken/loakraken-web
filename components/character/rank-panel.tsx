@@ -15,10 +15,11 @@ import {
   type CharacterRank,
   type RankMetric,
 } from "@/lib/character/rank";
-import Link from "next/link";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Panel } from "./panel";
 import styles from "./rank.module.css";
 import { useCrossfade } from "@/lib/motion";
+import { BasisInfo } from "@/components/stats/basis-note";
 
 /**
  * Ranked scopes as boxes; scopes still short of the sample minimum do not get
@@ -43,13 +44,34 @@ function Cells({ data, metric }: { data: CharacterRank; metric: RankMetric }) {
                   <strong>{cell.rank}</strong>
                   <small>{cell.total}</small>
                   <span className={styles.top}>
-                    {cell.top ?? "-"}
+                    {/* Its own unshrinking piece: in a narrow box the badge then
+                        goes to the next line instead of past the box (A37). */}
+                    <span className={styles.share}>{cell.top ?? "-"}</span>
                     {cell.tier && (
-                      <b className={styles.tier} title={cell.tierNote ?? undefined}>
-                        {cell.tier}
-                      </b>
+                      // Hover or focus explains the name (user 10-12).
+                      <Tooltip>
+                        <TooltipTrigger className={styles.tier} aria-label={`티어 ${cell.tier}: ${cell.tierNote}`}>
+                          {cell.tier}
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {cell.tier}: {cell.tierNote}
+                        </TooltipContent>
+                      </Tooltip>
                     )}
                   </span>
+                  {/* Every cell keeps these two lines, so cells with and without a
+                      next tier stand alike (A7): the words, then the number on
+                      its own line, whole, however narrow the box (A37). */}
+                  <small className={styles.next}>
+                    {cell.next ? (
+                      <>
+                        {cell.next.slice(0, cell.next.lastIndexOf(" "))}{" "}
+                        <span className={styles.nextValue}>{cell.next.slice(cell.next.lastIndexOf(" ") + 1)}</span>
+                      </>
+                    ) : (
+                      "\u00a0"
+                    )}
+                  </small>
                 </>
               ) : (
                 <strong className={styles.pending}>-</strong>
@@ -68,10 +90,10 @@ function Cells({ data, metric }: { data: CharacterRank; metric: RankMetric }) {
 }
 
 /**
- * LOAWA-style ranking boxes (F-7): combat power and item level, each over all,
+ * Ranking boxes (F-7): combat power and item level, each over all,
  * the server and the class. Ranks are over the characters LOAKraken has
- * observed (said under the boxes), never the whole game. A hidden character
- * shows only "순위 비공개"; a small sample shows its size on one line, never a 0.
+ * observed (said under the boxes), never the whole game. A small sample
+ * shows its size on one line, never a 0.
  */
 export function RankPanel({ name }: { name: string }) {
   const query = useQuery({
@@ -109,8 +131,6 @@ export function RankPanel({ name }: { name: string }) {
             </button>
           )}
         </div>
-      ) : state === "hidden" ? (
-        <p className={styles.hidden}>순위 비공개</p>
       ) : (
         <>
           {METRICS.map((metric) => (
@@ -131,14 +151,19 @@ export function RankPanel({ name }: { name: string }) {
           <p className={styles.note}>
             {state === "excluded"
               ? `순위 집계 조건에 들지 않아요(${conditionsText(data)}).`
-              : `${conditionsText(data)}이에요. 게임 전체 순위와 다를 수 있어요.`}
+              : `${conditionsText(data)}이에요.`}
+            <BasisInfo
+              basis={{
+                population: data.entries.find((e) => e.scope === "ALL")?.total ?? null,
+                conditions: data.conditions,
+                aggregatedAt: data.aggregatedAt,
+                minSample: data.minSample,
+              }}
+            />
           </p>
-          {state === "ranked" && <p className={styles.note}>티어: {TIER_LEGEND}</p>}
-          <p className={styles.note}>
-            <Link href="/contact#removal" className={styles.removal}>
-              순위 제외 요청
-            </Link>
-          </p>
+          {state === "ranked" && (
+            <p className={styles.note}>티어(그 칸 순위에서 상위 몇 %인지): {TIER_LEGEND}</p>
+          )}
         </>
       )}
     </Panel>

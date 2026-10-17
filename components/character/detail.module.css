@@ -1,5 +1,5 @@
 /* Character detail (A2): white canvas, flat #f5f5f7 28px panels, ink type,
-   blue only for links/compact actions. Structure mirrors ILOA; visuals are ours. */
+   blue only for links/compact actions. */
 .srOnly {
   position: absolute;
   width: 1px;
@@ -54,7 +54,9 @@
   color: var(--foreground);
   font-size: 14px;
   letter-spacing: -0.016em;
-  transition: background-color 160ms ease-out;
+  transition:
+    background-color 160ms ease-out,
+    transform 100ms ease-out;
 }
 .tabs a[aria-current="page"],
 .pillLayer > span {
@@ -87,7 +89,7 @@
 }
 @media (hover: hover) and (pointer: fine) {
   .tabs a:not([aria-current="page"]):hover {
-    background: var(--muted);
+    background: var(--hover-surface);
   }
 }
 .tabActions {
@@ -128,6 +130,11 @@
   white-space: nowrap;
   transition: transform 100ms ease-out;
 }
+.refreshLabel {
+  min-width: 5.5em;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
 .refresh:disabled {
   background: var(--secondary);
   color: var(--secondary-foreground);
@@ -160,10 +167,16 @@
     opacity 140ms ease-out,
     transform 140ms ease-out;
 }
-.refreshWrap:hover .tooltip,
+/* Focus (keyboard, or a tap) shows it everywhere; hover only where there is one. */
 .refreshWrap:focus-within .tooltip {
   opacity: 1;
   transform: none;
+}
+@media (hover: hover) and (pointer: fine) {
+  .refreshWrap:hover .tooltip {
+    opacity: 1;
+    transform: none;
+  }
 }
 .toast {
   position: absolute;
@@ -177,8 +190,12 @@
 }
 
 /* Layout */
+/* A screen's height at least: a short tab (아크 패시브, 내실) would otherwise
+   bring the footer into view and move it when the tab changes (A7). The
+   small viewport height stays put while a phone's address bar comes and goes. */
 .tabPanel {
-  min-height: 40vh;
+  min-height: 100vh;
+  min-height: 100svh;
 }
 .layout {
   display: grid;
@@ -395,6 +412,52 @@
   color: var(--muted-foreground);
   font-size: 12px;
 }
+/* 팔찌 효율 (backend #350): the total under the name, each line's share at
+   the end of its own effect line on demand. */
+.braceletBody {
+  min-width: 0;
+  flex: 1;
+}
+.braceletEffHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  margin: 2px 0 6px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.braceletEffTerm {
+  color: var(--muted-foreground);
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+  cursor: help;
+}
+/* The same increase colour as the spec-up tab (blue is "done", A26). */
+.braceletEffHead b,
+.braceletEffShare {
+  color: var(--gain, var(--foreground));
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.braceletEffShare,
+.braceletEffNote {
+  margin-left: auto;
+  padding-left: 12px;
+}
+.braceletEffNote {
+  color: var(--muted-foreground);
+  font-size: 12px;
+  text-align: right;
+}
+.braceletEffReason {
+  color: var(--muted-foreground);
+}
+.gradeList[data-shares] .gradeLine {
+  display: flex;
+  align-items: baseline;
+}
 .inlineList {
   list-style: none;
   padding: 0;
@@ -519,6 +582,14 @@
   align-items: center;
   gap: 8px;
 }
+/* Phones and touch: each gem's 44×44 press area (28px icon + 8px round) must
+   not reach the next row's — rows 44px apart (38 + the 6px gap), from the
+   first paint (A36, QA 10-14 23시). */
+@media (max-width: 699px), (pointer: coarse) {
+  .gemRows li {
+    min-height: 38px;
+  }
+}
 /* Inactive gems: the icon fades, the text keeps its contrast. */
 .gemRows li[data-inactive] img {
   opacity: 0.55;
@@ -550,9 +621,15 @@
   color: var(--foreground);
   font-weight: 600;
 }
+/* 질서·혼돈·의지력 sit at the right end of the head, also when they wrap
+   under the title (user 10-12). */
+.panelMeta:has(> .gridMeta) {
+  margin-left: auto;
+}
 .gridMeta {
   display: inline-flex;
   flex-wrap: wrap;
+  justify-content: flex-end;
   align-items: center;
   gap: 4px 12px;
   font-variant-numeric: tabular-nums;
@@ -820,6 +897,50 @@
 .siblingGrid li[data-current] div {
   box-shadow: inset 0 0 0 2px var(--foreground);
 }
+/* Roster tools (L17·L18): sort, compact, hide names; then the six-man line. */
+.rosterTools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 18px;
+}
+.rosterSwitch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+.rosterSwitch label {
+  cursor: pointer;
+}
+.rosterSummary {
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+.rosterSummary b {
+  font-weight: 700;
+}
+.rosterSummary small {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+/* Compact: name and item level only, more per row. */
+.siblingGrid[data-compact] {
+  grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+  gap: 6px;
+}
+.siblingGrid[data-compact] a,
+.siblingGrid[data-compact] div {
+  grid-template-areas: "name level arrow";
+  padding: 8px 12px;
+  border-radius: 12px;
+}
+.siblingGrid[data-compact] small {
+  display: none;
+}
+.siblingGrid[data-compact] strong {
+  font-size: 13px;
+}
 
 /* Evidence */
 .findings {
@@ -896,7 +1017,9 @@
 @media (max-width: 760px) {
   .tabInner {
     padding: 0 12px;
-    gap: 6px;
+    /* At least the tab row's 8px focus room, so the row never reaches under
+       the menu beside it (a press there went to the last tab). */
+    gap: 8px;
   }
   .tabs a,
   .pillLayer > span {
@@ -943,6 +1066,12 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 20px;
+}
+/* While the records load: the chart figure's height (history-chart). */
+.chartHold {
+  display: grid;
+  place-items: center;
+  height: 208px;
 }
 .problem strong {
   display: block;
@@ -1100,16 +1229,19 @@
   min-width: 0;
   overflow-wrap: anywhere;
 }
+/* Finished items in the site blue (the same as the used skill points),
+   unfinished in the plain text color (user 10-12, second pass). */
 .collectionItems small {
   flex: none;
   max-width: 50%;
   text-align: right;
-  color: var(--accent-warm);
+  color: var(--foreground);
   font-size: 12px;
   font-variant-numeric: tabular-nums;
 }
 .collectionItems li[data-done] small {
-  color: var(--muted-foreground);
+  color: var(--link);
+  font-weight: 600;
 }
 .tendencies {
   display: grid;
@@ -1158,30 +1290,133 @@
 .statDetail {
   margin-top: 14px;
 }
-.statDetail summary {
-  width: fit-content;
+.statMore {
   color: var(--link);
   font-size: 13px;
   cursor: pointer;
 }
-.statDetail dl {
-  display: grid;
-  gap: 10px;
-  margin-top: 10px;
+@media (hover: hover) and (pointer: fine) {
+  .statMore:hover {
+    text-decoration: underline;
+  }
 }
-.statDetail dt {
+/* 특성 자세히 sheet (§14.1 ④): centred, 512 wide on wide screens; a bottom
+   sheet on phones. Opacity and transform only; none with reduced motion. */
+.sheetBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgb(0 0 0 / 45%);
+  transition: opacity 200ms ease-out;
+}
+.sheetBackdrop[data-starting-style],
+.sheetBackdrop[data-ending-style] {
+  opacity: 0;
+}
+.statSheet {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  z-index: 50;
+  box-sizing: border-box;
+  width: min(512px, calc(100vw - 32px));
+  max-height: min(696px, calc(100dvh - 48px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 20px;
+  border-radius: 20px;
+  background: var(--background);
+  box-shadow: 0 0 0 1px var(--border), 0 24px 48px -16px rgb(0 0 0 / 35%);
+  outline: none;
+  transform: translate(-50%, -50%);
+  transition: opacity 200ms cubic-bezier(0.23, 1, 0.32, 1), transform 200ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.statSheet[data-starting-style],
+.statSheet[data-ending-style] {
+  opacity: 0;
+  transform: translate(-50%, -48%) scale(0.98);
+}
+.statSheet header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.statSheet h2 {
+  font-size: 17px;
+  font-weight: 700;
+}
+.statSheet h3 {
+  margin: 18px 0 8px;
+  color: var(--muted-foreground);
   font-size: 13px;
   font-weight: 600;
 }
-.statDetail dt b {
-  margin-left: 4px;
-  font-weight: 500;
+.statSheet ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.sheetClose {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  color: var(--muted-foreground);
+}
+.statTotal {
+  margin-top: 6px;
+  font-size: 14px;
   font-variant-numeric: tabular-nums;
 }
-.statDetail dd {
+.statTotal b {
+  font-size: 17px;
+  font-weight: 700;
+}
+.statCard {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--secondary);
+}
+.statCard p {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
+}
+.statCard b {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.statCard span {
   color: var(--muted-foreground);
   font-size: 12px;
   line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 640px) {
+  .statSheet {
+    top: auto;
+    bottom: 8px;
+    width: calc(100vw - 16px);
+    max-height: calc(100dvh - 56px);
+    border-radius: 24px 24px 12px 12px;
+    transform: translate(-50%, 0);
+  }
+  .statSheet[data-starting-style],
+  .statSheet[data-ending-style] {
+    transform: translate(-50%, calc(100% + 8px));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .statSheet,
+  .sheetBackdrop {
+    transition: none;
+  }
 }
 @media (prefers-reduced-motion: reduce) {
   .collectionGrid button {
@@ -1282,4 +1517,1082 @@
   display: inline-flex;
   align-items: baseline;
   gap: 6px;
+}
+/* The roster tab's view picker (same pill tabs as the stats screen). */
+.rosterViews {
+  margin-bottom: 12px;
+}
+.rosterPanel {
+  display: grid;
+  gap: 20px;
+}
+/* Avatar tab: the full-body render beside the slot list (about 55 : 45),
+   stacked on narrow screens with the render first. */
+.avatarColumns {
+  display: grid;
+  grid-template-columns: minmax(0, 11fr) minmax(0, 9fr);
+  gap: 20px;
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .avatarColumns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.avatarStage {
+  display: grid;
+  place-items: end center;
+  aspect-ratio: 612 / 708;
+  overflow: hidden;
+  border-radius: 14px;
+  background: radial-gradient(60% 50% at 50% 42%, #2a3140 0%, #12151b 70%);
+}
+.avatarStage img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+@media (max-width: 900px) {
+  .avatarStage {
+    max-height: 70vh;
+    margin-inline: auto;
+  }
+}
+.avatarStageEmpty {
+  align-self: center;
+  color: #a6a8b0;
+  font-size: 13px;
+}
+.avatarSlots {
+  display: grid;
+  gap: 6px;
+  padding: 0;
+  list-style: none;
+}
+.avatarSlots > li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+}
+.avatarSlots > li[data-empty] strong {
+  color: var(--muted-foreground);
+  font-weight: 500;
+}
+.avatarEmpty {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+}
+/* Skill chips (full skill view): type, attack direction, counter, part
+   break, then gem chips that open the gem card. */
+.skillChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 10px;
+  padding: 0;
+  list-style: none;
+  font-size: 11px;
+  font-weight: 600;
+}
+.skillChips > li {
+  /* A31: one line, never split (badge/chip/unit). */
+  flex: none;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 7px;
+  border-radius: 9999px;
+  background: var(--secondary);
+  color: var(--secondary-foreground);
+}
+.spValue {
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+.spValue b {
+  font-size: 20px;
+}
+.spBar {
+  height: 6px;
+  margin: 8px 0 6px;
+  overflow: hidden;
+  border-radius: 9999px;
+  background: var(--secondary);
+}
+.spBar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--foreground);
+}
+.counterList {
+  display: grid;
+  gap: 6px;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+}
+.counterList li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+/* "베타" next to a tab name (세팅 점검, dev and preview only). */
+.betaChip {
+  /* A31: one line, never split (badge/chip/unit). */
+  flex: none;
+  white-space: nowrap;
+  margin-left: 1px;
+  padding: 1px 5px;
+  border: 1px solid currentColor;
+  border-radius: 9999px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.3;
+  vertical-align: 1px;
+}
+/* Collectible standing (내실): rank, top percent, points; grey when the
+   sample is still small. */
+.standing {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+.standing > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+}
+.standing dt {
+  color: var(--muted-foreground);
+}
+.standing dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+.standing dd b {
+  font-size: 16px;
+}
+.standing[data-reference] dd {
+  color: var(--muted-foreground);
+}
+.ownedShare {
+  margin-left: 4px;
+  color: var(--muted-foreground);
+  font-size: 11px;
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 시뮬레이터 tab (simulator-tab.tsx) */
+.simulatorPanel {
+  /* The result band sticks under the header and the 57px tab bar. */
+  --cp-band-top: calc(var(--header-h, 73px) + 57px + 16px);
+}
+.simulatorLead {
+  margin: 0 0 16px;
+  color: var(--muted-foreground);
+  font-size: 14px;
+}
+.simulatorLoading {
+  /* Holds the simulator's space while its chunk arrives, as the tool page
+     does, so the footer does not jump when it lands. */
+  min-height: 80vh;
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 14px;
+}
+/* Ark passive: one tree's active nodes by tier, then all trees' active
+   effects in three columns (one column under 900px). */
+.passiveTier + .passiveTier {
+  margin-top: 14px;
+}
+.passiveTier h3 {
+  margin-bottom: 8px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-weight: 600;
+}
+.passiveColumns {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+@media (max-width: 900px) {
+  .passiveColumns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.passiveColumns h3 {
+  font-size: 14px;
+  font-weight: 650;
+}
+.passiveColumnMeta {
+  margin: 2px 0 8px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.passiveSummaryList {
+  display: grid;
+  gap: 6px;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+}
+.passiveSummaryList li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.passiveSummaryList span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.passiveSummaryList b {
+  flex: none;
+  padding: 0 5px;
+  border-radius: 9999px;
+  background: var(--secondary);
+  color: var(--secondary-foreground);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 18px;
+}
+.passiveSummaryList small {
+  flex: none;
+  margin-left: auto;
+  color: var(--muted-foreground);
+  font-variant-numeric: tabular-nums;
+}
+/* Skill tab head row (info · skill point ring · counts), the gem summary
+   and filter, gems at the end of a skill's head row. */
+.skillHeadRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1.2fr);
+  gap: 20px;
+}
+@media (max-width: 900px) {
+  .skillHeadRow {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.skillInfo,
+.skillCounts {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  font-size: 13px;
+}
+.skillInfo > div,
+.skillCounts > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+.skillInfo dt,
+.skillCounts dt {
+  color: var(--muted-foreground);
+}
+.skillInfo dd,
+.skillCounts dd {
+  margin: 0;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.spRing {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.spRing svg {
+  flex: none;
+  width: 64px;
+  height: 64px;
+  transform: rotate(-90deg);
+}
+/* Used points in blue, points left in amber (each 3:1+ on the panel in
+   light, dark and dim), flat ends so a small piece stays visible. */
+.spFill,
+.spLeft {
+  fill: none;
+  stroke-width: 6;
+}
+.spFill {
+  stroke: var(--link);
+}
+.spLeft {
+  stroke: var(--accent-warm);
+}
+.spRing p {
+  display: grid;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+/* The used count matches the blue piece, "남은 포인트" the amber one. */
+.spRing b {
+  color: var(--link);
+  font-size: 20px;
+}
+.spRing small {
+  color: var(--accent-warm);
+  font-size: 12px;
+  font-weight: 600;
+}
+.gemFilterRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin-bottom: 12px;
+}
+.gemCounts {
+  display: flex;
+  gap: 10px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.gemCounts [data-gem="damage"] {
+  color: var(--accent-warm);
+  font-weight: 600;
+}
+.gemCounts [data-gem="cooldown"] {
+  color: var(--link);
+  font-weight: 600;
+}
+.skillGems {
+  display: inline-flex;
+  flex: none;
+  gap: 4px;
+  margin-left: auto;
+}
+.skillGems > span {
+  display: inline-flex;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+.skillGems > span[data-gem="damage"] {
+  background: color-mix(in oklab, var(--accent-warm) 16%, var(--secondary));
+}
+.skillGems > span[data-gem="cooldown"] {
+  background: color-mix(in oklab, var(--link) 16%, var(--secondary));
+}
+.skillGems button {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 8px;
+  border-radius: 9999px;
+  cursor: pointer;
+}
+@media (pointer: coarse) {
+  .skillGems button {
+    position: relative;
+  }
+  .skillGems button::after {
+    content: "";
+    position: absolute;
+    inset: -10px -2px;
+  }
+}
+/* Official armory page details (backend flag on only): tripod level on the
+   icon, the skill code copy under the info card. */
+.tripodIcon {
+  position: relative;
+  display: inline-flex;
+}
+.tripodIcon b {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  min-width: 13px;
+  height: 13px;
+  padding: 0 2px;
+  border-radius: 9999px;
+  background: var(--foreground);
+  color: var(--background);
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 13px;
+  text-align: center;
+}
+/* In the info panel's head: no height of its own beyond the head row. */
+.skillCode {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.skillCode .textButton {
+  margin-top: 0;
+  font-size: 13px;
+}
+.skillCode [role="status"]:empty {
+  display: none;
+}
+/* Ark grid: expand/collapse every core from under the list (44px target);
+   the chevron turns over when open. */
+.gridToggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+  min-height: 44px;
+  margin-top: 8px;
+  border-radius: 12px;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  cursor: pointer;
+}
+.gridToggle svg {
+  transition: transform 200ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.gridToggle[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+@media (hover: hover) and (pointer: fine) {
+  .gridToggle:hover {
+    background: var(--hover-surface);
+    color: var(--foreground);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gridToggle svg {
+    transition: none;
+  }
+}
+/* Per-core arrow at the row end; turns over when that core is open. */
+.coreChevron {
+  flex: none;
+  color: var(--muted-foreground);
+  transition: transform 200ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.core[open] > summary .coreChevron {
+  transform: rotate(180deg);
+}
+@media (prefers-reduced-motion: reduce) {
+  .coreChevron {
+    transition: none;
+  }
+}
+
+/* 스펙업 tab (spec-up-guide.tsx) */
+.specUpNote {
+  margin: -8px 0 16px;
+  color: var(--muted-foreground);
+  font-size: 13px;
+}
+.specUpBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+}
+.specUpSorts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.specUpSorts button,
+.specUpFailure button {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--secondary);
+  border-radius: 980px;
+  background: var(--background);
+  color: var(--foreground);
+  font-size: 13px;
+  cursor: pointer;
+  transition: scale var(--duration-fast) var(--ease-out);
+}
+/* Response on press, not on release (apple-design 재검수 10-14). */
+.specUpSorts button:active,
+.specUpFailure button:not([aria-disabled="true"]):active {
+  scale: var(--press-scale);
+}
+.specUpSorts button[aria-pressed="true"] {
+  border-color: var(--foreground);
+  background: var(--foreground);
+  color: var(--background);
+}
+.specUpPrices {
+  /* A fixed line, empty or not: with line-height normal the empty line was
+     4px taller than the text and the list moved up when it arrived. */
+  height: 18px;
+  margin: 8px 0 0;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 18px;
+}
+.specUpMuted {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.specUpBody {
+  /* One height for the chunk loading, the list loading and the list, so the
+     footer does not move as each arrives (CLS 0). A longer list grows below
+     the fold. */
+  min-height: 75vh;
+}
+.specUpLoading {
+  margin: 16px 0 0;
+  color: var(--muted-foreground);
+  font-size: 14px;
+}
+.specUpFailure {
+  display: grid;
+  justify-items: start;
+  gap: 6px;
+  margin-top: 16px;
+}
+.specUpFailure p {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 13px;
+}
+.specUp .tableWrap {
+  /* Keeps the visually hidden caption and header inside the scroller: an
+     absolute element otherwise escapes overflow-x and widens the page. */
+  position: relative;
+}
+.specUpTable thead th:nth-child(2),
+.specUpTable thead th:nth-child(3),
+.specUpTable thead th:nth-child(4),
+.specUpTable [data-cell="kind"],
+.specUpTable [data-cell="target"],
+.specUpTable [data-cell="change"] {
+  text-align: left;
+}
+.specUpTable [data-cell="target"] {
+  color: var(--foreground);
+  font-weight: 500;
+  white-space: normal;
+}
+.specUpTarget {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 180px;
+}
+/* Phones: one card per candidate, the gain and the cost in view without
+   scrolling the table sideways. */
+@media (max-width: 700px) {
+  .specUpTable,
+  .specUpTable tbody {
+    display: block;
+  }
+  .specUpTable thead {
+    display: none;
+  }
+  .specUpTable tr {
+    display: grid;
+    grid-template-columns: 24px minmax(0, 1fr) auto;
+    grid-template-areas:
+      "rank target try"
+      "rank change change"
+      "rank gain cost"
+      "rank eff eff";
+    gap: 4px 10px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--secondary);
+  }
+  .specUpTable tr > * {
+    padding: 0;
+    border: 0;
+    text-align: left;
+    white-space: normal;
+  }
+  .specUpTable [data-cell="rank"] {
+    grid-area: rank;
+    color: var(--muted-foreground);
+  }
+  .specUpTable [data-cell="kind"] {
+    display: none;
+  }
+  .specUpTable [data-cell="target"] {
+    grid-area: target;
+  }
+  .specUpTarget {
+    min-width: 0;
+  }
+  .specUpTable [data-cell="change"] {
+    grid-area: change;
+    color: var(--muted-foreground);
+  }
+  .specUpTable [data-cell="gain"] {
+    grid-area: gain;
+  }
+  .specUpTable [data-cell="cost"] {
+    grid-area: cost;
+    text-align: right;
+  }
+  .specUpTable [data-cell="eff"] {
+    grid-area: eff;
+  }
+  .specUpTable [data-cell="try"] {
+    grid-area: try;
+    align-self: center;
+  }
+  .specUpTable [data-label]::before {
+    content: attr(data-label) " ";
+    color: var(--muted-foreground);
+    font-size: 11px;
+    font-weight: 400;
+  }
+}
+.specUpGain {
+  color: var(--gain, var(--foreground));
+  font-weight: 600;
+}
+.specUpGain small {
+  color: var(--muted-foreground);
+  font-weight: 400;
+}
+/* One line of 13px text: 44px to tap on phones through hit-44 (A36). */
+.specUpTable a {
+  color: var(--link);
+}
+.specUpBases {
+  display: grid;
+  gap: 4px;
+  margin: 12px 0 0;
+  padding-left: 18px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.specUpFolded {
+  margin-top: 24px;
+}
+.specUpFolded h3 {
+  margin: 0 0 8px;
+  font-size: 14px;
+  font-weight: 650;
+}
+.specUpFolded > ul {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+}
+.specUpFolded summary {
+  cursor: pointer;
+  color: var(--muted-foreground);
+  border-radius: 6px;
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+.specUpFolded summary:active {
+  background: var(--hover-surface);
+}
+.specUpFolded summary b {
+  color: var(--foreground);
+  font-weight: 600;
+}
+.specUpFolded details ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  color: var(--muted-foreground);
+}
+.sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* A new sort: the old list stays, dimmed, until the new one arrives. */
+.specUpList[data-stale] .tableWrap {
+  opacity: 0.55;
+  transition: opacity 150ms ease;
+}
+/* 아크 그리드 효율 (backend #424): cores only beside the total, the gem
+   options' share as a last line under the cores. */
+.arkEffCores {
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.arkEffGem {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 2px 8px;
+  margin-top: 8px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--background);
+  font-size: 13px;
+}
+/* In a core row the share sits under the points, right-aligned; a reason
+   wraps in a narrow column instead of squeezing the core name. */
+.coreFacts .braceletEffShare,
+.coreFacts .braceletEffNote {
+  padding-left: 0;
+}
+.coreFacts .braceletEffNote {
+  max-width: 9em;
+}
+/* 보석 반영 쿨타임 (K20): base → with gems, the reduction, basis on the term. */
+.skillCooldown {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 6px;
+  margin-top: 6px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.skillCooldown b {
+  color: var(--foreground);
+  font-weight: 700;
+  white-space: nowrap;
+}
+.skillCooldownFrom {
+  color: var(--muted-foreground);
+  white-space: nowrap;
+}
+.skillCooldown small {
+  color: var(--muted-foreground);
+  white-space: nowrap;
+}
+/* 통계 탭: 현재 · 최고 · 변화 over each history chart. */
+.historyCells {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0 0 12px;
+}
+.historyCells div {
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--background);
+}
+.historyCells dt {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.historyCells dd {
+  margin: 2px 0 0;
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.historyCells dd[data-direction="up"] {
+  color: var(--gain, var(--foreground));
+}
+/* 원정대 요약 수치와 구성 막대 (character screen checklist §14.1 ②). */
+.rosterStats {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0 0 16px;
+}
+.rosterStats div {
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--muted);
+}
+.rosterStats dt {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.rosterStats dd {
+  margin: 2px 0 0;
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+@media (max-width: 700px) {
+  .rosterStats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+.rosterMix {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+}
+.shareBars h3 {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted-foreground);
+}
+.shareBars ul {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.shareBars li {
+  display: grid;
+  grid-template-columns: 6.5em minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+.shareBars li > span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.shareTrack {
+  display: block;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--muted);
+  overflow: hidden;
+}
+.shareTrack > span {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  /* Neutral ink: blue means done/links here (A26), and a share is neither. */
+  background: color-mix(in oklab, var(--foreground) 55%, transparent);
+}
+.shareValue {
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+/* 원정대 전투력 (L19): six-man/total line, then two fixed rows — the button
+   (or a note) and the status — so loading, loaded, failed and all-recorded
+   are the same height (A6·A7). The status keeps two lines on a phone. */
+.rosterPower {
+  display: grid;
+  gap: 6px;
+}
+.rosterPower .rosterSummary {
+  min-height: 1.5em;
+  line-height: 1.5;
+}
+.rosterPowerAction {
+  display: grid;
+  grid-template-rows: 30px auto;
+  row-gap: 6px;
+  justify-items: start;
+  align-items: center;
+}
+.rosterPowerAction > :not(p) {
+  grid-row: 1;
+}
+.rosterPowerAction .muted {
+  font-size: 13px;
+}
+.rosterPowerButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 9999px;
+  background: var(--secondary);
+  color: var(--secondary-foreground);
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.rosterPowerButton[aria-disabled="true"] {
+  cursor: default;
+  opacity: 0.6;
+}
+@media (hover: hover) and (pointer: fine) {
+  .rosterPowerButton:not([aria-disabled="true"]):hover {
+    background: color-mix(in oklab, var(--secondary) 80%, var(--foreground) 6%);
+  }
+}
+.rosterPowerStatus {
+  grid-row: 2;
+  min-height: 18px;
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 18px;
+}
+@media (max-width: 420px) {
+  .rosterPower .rosterSummary {
+    min-height: 3em;
+  }
+  .rosterPowerStatus {
+    min-height: 36px;
+  }
+}
+/* Each row: its combat power under the class line, kept in the compact view. */
+.siblingGrid .siblingBest {
+  grid-area: best;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.siblingGrid .siblingPower {
+  grid-area: power;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.siblingGrid a,
+.siblingGrid div {
+  grid-template-areas: "name level arrow" "meta level arrow" "power power arrow" "best best arrow";
+}
+.siblingGrid[data-compact] a,
+.siblingGrid[data-compact] div {
+  grid-template-areas: "name level arrow" "power power arrow" "best best arrow";
+}
+.siblingGrid[data-stale] {
+  opacity: 0.55;
+  transition: opacity 150ms ease;
+}
+/* 분석 menu trigger (§14.1 ③): a text pill like the tabs, before the icons. */
+.analysisTrigger {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 4px;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 980px;
+  color: var(--foreground);
+  font-size: 14px;
+  letter-spacing: -0.016em;
+  white-space: nowrap;
+  transition: background-color 160ms ease-out;
+}
+.analysisTrigger[data-popup-open] {
+  background: var(--hover-surface);
+}
+@media (hover: hover) and (pointer: fine) {
+  .analysisTrigger:hover {
+    background: var(--hover-surface);
+  }
+}
+@media (max-width: 420px) {
+  .analysisTrigger {
+    padding: 0 8px;
+  }
+}
+/* Press feedback (apple-design re-review): scale only, nothing around moves.
+   The current tab's pill is a separate copy, so only the others scale. */
+.tabs a:not([aria-current="page"]):active,
+.rosterPowerButton:not([aria-disabled="true"]):active,
+.textButton:active {
+  transform: scale(0.97);
+}
+.rosterPowerButton,
+.textButton {
+  transition: transform 100ms ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tabs a,
+  .rosterPowerButton,
+  .textButton {
+    transition: none;
+  }
+}
+/* On a phone small controls take 44px to press, as they look (the hit-44
+   rule, which a module selector cannot take). The tab row has 8px of room
+   above and below inside its scroller. Filter and sort pills are 44px wide
+   at least, so side by side the areas do not overlap (A36). */
+@media (max-width: 699px), (pointer: coarse) {
+  .tabs a,
+  .textButton,
+  .braceletEffTerm,
+  .rosterPowerButton,
+  .filterRow button,
+  .specUpSorts button,
+  .analysisTrigger {
+    position: relative;
+  }
+  .filterRow button,
+  .specUpSorts button {
+    min-width: 44px;
+  }
+  /* The roster switches under the full-width sort: rows far enough apart
+     that their areas and the sort's do not overlap. */
+  .rosterTools {
+    row-gap: 16px;
+  }
+  .tabs a::after,
+  .textButton::after,
+  .braceletEffTerm::after,
+  .rosterPowerButton::after,
+  .filterRow button::after,
+  .specUpSorts button::after,
+  .analysisTrigger::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+    translate: -50% -50%;
+  }
+}
+/* A35: below 560px share and favorite move into the menu (더보기) so the tab
+   row keeps at least two whole tabs. After .iconAction so display wins. */
+.narrowOnly {
+  display: none;
+}
+@media (max-width: 560px) {
+  .wideOnly {
+    display: none;
+  }
+  .narrowOnly {
+    display: inline;
+  }
+}
+/* A list held at its tallest (A7): its first child's top margin would
+   otherwise pass through the holder and move it when the child changes
+   (the empty line has one, the skill grid none). The gap above stays the
+   same 12px either way. */
+.heldList > :first-child {
+  margin-top: 0;
+}
+/* Gems on skills no row shows (L34): one wrapping line under the skills. */
+.otherGems {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.otherGems h3 {
+  color: var(--muted-foreground);
+  font-size: 13px;
+  font-weight: 600;
+}
+.otherGems ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+.otherGems li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 13px;
+}
+.otherGems li .skillGems {
+  margin-left: 0;
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useEffect, useState, type FormEvent } from "react";
+import { memo, useContext, useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
@@ -19,9 +19,12 @@ import {
 import { SiteHeader } from "@/components/site/site-header";
 import { recordRecent } from "@/lib/character/recent";
 import { CharacterBanner } from "./imagery";
+import { BannerRank } from "./banner-rank";
 import { Entrance } from "./entrance";
 import { kstTime, level, number, text } from "./parts";
-import { TabBar, TabPanel, tabOf } from "./tabs";
+import { CritSpeedEnabled } from "./analysis-menu";
+import { CharacterEfficiencyEnabled, GuildTabEnabled, SettingCheckEnabled, SimulatorEnabled, SpecUpEnabled, TabBar, TabPanel, TitleStatsEnabled, tabOf, useTabTop } from "./tabs";
+import { ArmoryPageEnabled } from "./use-armory-page";
 import { ReceiptEnabled } from "./receipt-panel";
 import styles from "./character.module.css";
 import { RATE_LIMITED } from "@/lib/api/rate-limit";
@@ -128,6 +131,7 @@ const Banner = memo(function Banner({ data }: { data: Character }) {
               <dd>{level(data.expeditionLevel)}</dd>
             </div>
           </dl>
+          <BannerRank name={data.characterName} />
         </>
       }
       facts={
@@ -196,7 +200,14 @@ function CharacterContent({
   initialError?: QueryFailure;
   renderedAt: number;
 }) {
-  const tab = tabOf(useSearchParams().get("tab"));
+  const tab = tabOf(
+    useSearchParams().get("tab"),
+    useContext(SettingCheckEnabled),
+    useContext(SimulatorEnabled),
+    useContext(SpecUpEnabled),
+    useContext(GuildTabEnabled),
+  );
+  useTabTop(tab);
   const [now, setNow] = useState(renderedAt);
   const [refreshed, setRefreshed] = useState(false);
   const query = useQuery({
@@ -340,7 +351,7 @@ function CharacterContent({
         )}
       </main>
       <footer className={styles.footer}>
-        LOAKraken · 로스트아크 비공식 팬 프로젝트 · 공식 전투정보실 데이터 기반
+        공식 전투정보실 데이터 기반
       </footer>
     </div>
   );
@@ -348,6 +359,14 @@ function CharacterContent({
 
 export function CharacterView({
   receipt = true,
+  settingCheck = true,
+  simulator = true,
+  specUp = true,
+  armoryPage = true,
+  titleStats = true,
+  critSpeed = true,
+  guildTab = true,
+  characterEfficiency = true,
   ...props
 }: {
   name: string;
@@ -355,12 +374,44 @@ export function CharacterView({
   renderedAt: number;
   /** RECEIPT_TOOL on this deployment (server flag). */
   receipt?: boolean;
+  /** SETTING_CHECK_TAB on this deployment (server flag). */
+  settingCheck?: boolean;
+  /** COMBAT_POWER_SIM on this deployment (server flag). */
+  simulator?: boolean;
+  /** SPEC_UP_GUIDE on this deployment (server flag). */
+  specUp?: boolean;
+  /** ARMORY_PAGE on this deployment (server flag). */
+  armoryPage?: boolean;
+  /** TITLE_STATS on this deployment (server flag): roster title shares. */
+  titleStats?: boolean;
+  /** CRIT_SPEED_TOOL on this deployment (server flag): the 분석 menu link. */
+  critSpeed?: boolean;
+  /** GUILD_RANKING on this deployment (server flag): the guild tab. */
+  guildTab?: boolean;
+  /** CHARACTER_EFFICIENCY on this deployment (server flag): 아크 그리드·팔찌 효율 rows. */
+  characterEfficiency?: boolean;
 }) {
   return (
     <ReceiptEnabled.Provider value={receipt}>
-      <LandingMotion>
-        <CharacterContent {...props} />
-      </LandingMotion>
+      <SettingCheckEnabled.Provider value={settingCheck}>
+        <SimulatorEnabled.Provider value={simulator}>
+          <SpecUpEnabled.Provider value={specUp}>
+            <ArmoryPageEnabled.Provider value={armoryPage}>
+              <TitleStatsEnabled.Provider value={titleStats}>
+                <CritSpeedEnabled.Provider value={critSpeed}>
+                  <GuildTabEnabled.Provider value={guildTab}>
+                    <CharacterEfficiencyEnabled.Provider value={characterEfficiency}>
+                      <LandingMotion>
+                        <CharacterContent {...props} />
+                      </LandingMotion>
+                    </CharacterEfficiencyEnabled.Provider>
+                  </GuildTabEnabled.Provider>
+                </CritSpeedEnabled.Provider>
+              </TitleStatsEnabled.Provider>
+            </ArmoryPageEnabled.Provider>
+          </SpecUpEnabled.Provider>
+        </SimulatorEnabled.Provider>
+      </SettingCheckEnabled.Provider>
     </ReceiptEnabled.Provider>
   );
 }

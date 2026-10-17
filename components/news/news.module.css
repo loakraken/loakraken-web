@@ -40,3 +40,28 @@
     transition: none;
   }
 }
+/* Stacked: the notices hold their tallest height so the events under them stay put (A7). */
+@media (max-width: 900px) {
+  .held {
+    min-height: var(--held, 0);
+  }
+}
+/* Phones: the kind chips sit far enough under the notice/patch switch that
+   their 44px press areas do not overlap (A36). div: over the home module's
+   .noticeTabs margin whatever order the two sheets load in. */
+@media (max-width: 699px), (pointer: coarse) {
+  div.kindTabs {
+    margin-bottom: 12px;
+  }
+}
+/* The two tab lists share one cell; only the chosen one shows (A7). */
+.tabStack {
+  display: grid;
+}
+.tabStack > * {
+  grid-area: 1 / 1;
+  min-width: 0;
+}
+.tabStack > :not([data-shown]) {
+  visibility: hidden;
+}

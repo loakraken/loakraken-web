@@ -1,5 +1,5 @@
 // 회귀: 즐겨찾기·최근 검색은 이 브라우저에 저장된다(localStorage "loakraken:favorites"·"loakraken:recent").
-// 새로고침·재접속(새 탭) 뒤에도 남고, 홈 "최근 검색과 즐겨찾기" 카드(web #114, 로아와식)에 보인다.
+// 새로고침·재접속(새 탭) 뒤에도 남고, 홈 "최근 검색과 즐겨찾기" 카드(web #114)에 보인다.
 import { test, expect, characterPath, gotoReady } from "../support/fixtures.mjs";
 
 const star = (page) => page.getByRole("button", { name: /^즐겨찾기( 해제)?$/ });
@@ -10,7 +10,7 @@ async function visit(page, name) {
   await expect(page.getByRole("heading", { level: 1, name })).toBeVisible();
   await page.waitForLoadState("networkidle");
 }
-const tab = (page, name) => card(page).getByRole("group", { name: "목록 선택" }).getByRole("button", { name: new RegExp(`^${name}`) });
+const tab = (page, name) => card(page).getByRole("tablist", { name: "목록 선택" }).getByRole("tab", { name: new RegExp(`^${name}`) });
 
 test.describe("즐겨찾기·최근 검색 저장 @regression", () => {
   test("즐겨찾기: 추가 → 새로고침 → 새 탭 홈 카드 → 해제", async ({ page, context }) => {
@@ -26,7 +26,7 @@ test.describe("즐겨찾기·최근 검색 저장 @regression", () => {
     const again = await context.newPage();
     await gotoReady(again, "/");
     await tab(again, "즐겨찾기").click();
-    await expect(tab(again, "즐겨찾기")).toHaveAttribute("aria-pressed", "true");
+    await expect(tab(again, "즐겨찾기")).toHaveAttribute("aria-selected", "true");
     await expect(tab(again, "즐겨찾기")).toContainText("1");
     const link = card(again).getByRole("link", { name: /상세/ });
     await expect(link).toBeVisible();
@@ -48,7 +48,7 @@ test.describe("즐겨찾기·최근 검색 저장 @regression", () => {
     await visit(page, "상세서포터");
 
     await gotoReady(page, "/");
-    await expect(tab(page, "최근 검색")).toHaveAttribute("aria-pressed", "true");
+    await expect(tab(page, "최근 검색")).toHaveAttribute("aria-selected", "true");
     const rows = card(page).getByRole("listitem");
     await expect(rows).toHaveCount(2);
     await expect(rows.first()).toContainText("상세서포터"); // 최신 순

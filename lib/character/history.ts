@@ -65,3 +65,31 @@ export function niceTicks(min: number, max: number, target = 4) {
     ticks.push(Math.round(v * 1e6) / 1e6);
   return ticks;
 }
+
+const DAY = 86_400_000;
+const KST = 9 * 3_600_000;
+
+/** "23.03.14" in KST. */
+export function shortDate(t: number) {
+  const d = new Date(t + KST);
+  const two = (n: number) => String(n).padStart(2, "0");
+  return `${two(d.getUTCFullYear() % 100)}.${two(d.getUTCMonth() + 1)}.${two(d.getUTCDate())}`;
+}
+
+/**
+ * The three cells over a history chart: the value now, the highest it has
+ * been, and the change since the first record (null with one record), plus
+ * the period head "23.03.14 ~ 오늘 · 1307일" counted in KST calendar days.
+ */
+export function historySummary(steps: Step[], now: number) {
+  if (!steps.length) return null;
+  const since = steps[0].t;
+  const day = (t: number) => Math.floor((t + KST) / DAY);
+  return {
+    current: steps.at(-1)!.v,
+    best: Math.max(...steps.map((step) => step.v)),
+    delta: change(steps),
+    since,
+    days: Math.max(0, day(now) - day(since)),
+  };
+}

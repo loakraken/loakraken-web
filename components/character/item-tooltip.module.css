@@ -1,112 +1,57 @@
-/* Item tooltip (item-tooltip.tsx): the design system's dark glass tooltip
-   (iloa), wider for an item, with the grade colour on the name. */
-.positioner {
-  z-index: 60;
-}
-.popup {
-  outline: none;
-  transform-origin: var(--transform-origin);
-  transition:
-    opacity 120ms var(--ease-out),
-    scale 120ms var(--ease-out);
-}
-.popup[data-starting-style],
-.popup[data-ending-style] {
-  opacity: 0;
-  scale: 0.97;
-}
-.card {
-  display: grid;
-  gap: 8px;
-  width: min(300px, calc(100vw - 24px));
-  max-height: min(70vh, 560px);
-  overflow-y: auto;
-  padding: 14px 16px;
-  border-radius: 14px;
-  background: var(--tooltip);
-  box-shadow: var(--tooltip-shadow);
-  color: var(--tooltip-foreground);
-  font-size: 12px;
-  line-height: 1.45;
-  backdrop-filter: blur(24px) saturate(1.8);
-}
-.head {
-  display: grid;
-  gap: 2px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid rgb(255 255 255 / 10%);
-}
-.head strong {
-  color: var(--grade);
-  font-size: 14px;
-  font-weight: 700;
-}
-.head span,
-.level,
-.point {
-  color: var(--tooltip-muted);
-}
-.level,
-.point {
-  margin: 0;
-}
-.level b {
-  color: var(--tooltip-foreground);
-}
-.quality {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  align-items: center;
-  gap: 8px;
-}
-.quality i {
-  height: 6px;
-  overflow: hidden;
-  border-radius: 9999px;
-  background: rgb(255 255 255 / 12%);
-}
-.quality b {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: var(--q, var(--tooltip-foreground));
-}
-/* In-game quality colours (the same boundaries as the item badges). */
-.quality[data-tier="max"] { --q: #f39c12; }
-.quality[data-tier="high"] { --q: #c770e8; }
-.quality[data-tier="good"] { --q: #4fa3ff; }
-.quality[data-tier="normal"] { --q: #7bd36a; }
-.quality[data-tier="low"] { --q: #f2e24f; }
-.quality[data-tier="poor"] { --q: #f05a5a; }
-.group h4 {
-  margin: 0 0 2px;
-  color: var(--tooltip-muted);
-  font-size: 11px;
-  font-weight: 700;
-}
-.group ul {
-  display: grid;
-  gap: 2px;
-  margin: 0;
+/* The icon is the tooltip's trigger (a button around it). */
+.trigger {
+  display: inline-flex;
+  flex: none;
+  /* Hug the icon: a set height is never stretched by a row (stone, bracelet),
+     and centred rows stay centred. */
+  height: max-content;
   padding: 0;
-  list-style: none;
+  border: 0;
+  border-radius: 12px;
+  background: none;
+  color: inherit;
+  /* A text trigger (engraving name) keeps the row font. */
+  font: inherit;
+  text-align: inherit;
+  cursor: default;
 }
-.group li[data-grade="HIGH"] em,
-.group li[data-grade="HIGH"] { color: #ffb37a; }
-.group li[data-grade="MID"] em,
-.group li[data-grade="MID"] { color: #d3a6ff; }
-.group li[data-grade="LOW"] em,
-.group li[data-grade="LOW"] { color: #8cc4ff; }
-.group em {
-  margin-right: 4px;
-  font-style: normal;
-  font-weight: 700;
-}
-.pre {
-  white-space: pre-line;
-}
-@media (prefers-reduced-motion: reduce) {
-  .popup {
-    transition: none;
+/* Touch screens: small grid icons get a larger invisible target ("row": 28px
+   icon + 8px all round = 44; "tight": 24px icons 4px apart, taller only). */
+@media (pointer: coarse) {
+  .hitRow,
+  .hitTight {
+    position: relative;
   }
+  .hitRow::after,
+  .hitTight::after {
+    content: "";
+    position: absolute;
+  }
+  .hitRow::after {
+    inset: -8px;
+  }
+  .hitTight::after {
+    inset: -10px -2px;
+  }
+}
+.trigger:focus-visible {
+  outline: 3px solid var(--ring);
+  outline-offset: 2px;
+}
+/* A tripod in the skill card: 28px icon, then name and effect. */
+.tripod {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  gap: 8px;
+  align-items: start;
+}
+.tripod + .tripod {
+  margin-top: 6px;
+}
+.tripod img {
+  border-radius: 4px;
+}
+/* The last trade line ("거래 불가", "거래가능") is right-aligned in the game. */
+.tradeEnd {
+  text-align: right;
 }

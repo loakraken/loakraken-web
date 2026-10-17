@@ -19,11 +19,15 @@ const geistMono = Geist_Mono({
 // One preloaded file, so text re-lays out at most once (#300). No generated
 // Arial fallback: it has no Hangul, so every glyph would go through system
 // fallback lookup; the --font-ui stack names the system Hangul faces instead.
+// display "optional": if the file is not there within the short block period,
+// this visit keeps the system face and the cached file is used from the next
+// page on — never a swap mid-read (with "fallback" a late file re-laid out
+// text and tables by 26–48px, CLS 0.16 on /privacy; checklist A6).
 const kraken = localFont({
   src: "./fonts/kraken-sans.woff2",
   variable: "--font-kraken",
   weight: "400 700",
-  display: "fallback",
+  display: "optional",
   adjustFontFallback: false,
 });
 
@@ -56,11 +60,15 @@ export default function RootLayout({ children }: Readonly<{
   return (
     // The pre-paint script sets data-theme before hydration (stored dark choice).
     <html lang="ko" className={`${geistMono.variable} ${kraken.variable}`} suppressHydrationWarning>
-      <head>
+      {/* The two inline scripts open <body> instead of sitting in <head>: in
+          <head> React had to hydrate them among the tags Next streams there
+          (metadata, preloads), and when hydration started before a late
+          preload landed it lost its place at <meta charset> and rebuilt the
+          page (React #418 on /tools after another page, web #599). Here they
+          still run before any of the page is parsed or painted. */}
+      <body className="antialiased">
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
         <script dangerouslySetInnerHTML={{ __html: earlyClickScript }} />
-      </head>
-      <body className="antialiased">
         <Providers>{children}</Providers>
         <SiteLegal />
       </body>

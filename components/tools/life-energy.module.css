@@ -1,0 +1,94 @@
+/* 생명의 기운 효율 — the page shell is material-quote's and the settings,
+   table and fields are 아비도스 제작 손익's (abidos-craft.module.css); this
+   adds the answer block and the share bars. Lines waiting
+   for prices hold their space from the first paint (A6·A7). */
+.fieldLabel {
+  color: var(--slate);
+  font-size: var(--text-caption);
+}
+.answer {
+  margin-top: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+.headline {
+  min-height: 1lh;
+  font-size: var(--text-heading-sm);
+  line-height: 1.4;
+  word-break: keep-all;
+}
+.headline strong {
+  font-weight: 700;
+}
+.answer .headline + p {
+  min-height: 1lh;
+  margin-top: var(--space-1);
+}
+.daily {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-1) var(--space-3);
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border);
+  font-size: var(--text-body);
+  font-variant-numeric: tabular-nums;
+}
+.daily > span:first-child {
+  color: var(--slate);
+}
+.gold {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+/* The method line under each activity, held from the first paint (A7). */
+.method {
+  min-height: 1lh;
+}
+/* Narrow columns: "상급 아비도스 융화 재료 14번 만들어 팔기" takes two lines while
+   "캔 재료 그대로 팔기" takes one, so a new energy would change the row
+   heights (PM-프론트 360 0.0093). Two lines are held there. */
+@media (max-width: 599px) {
+  .method {
+    min-height: 2lh;
+  }
+  /* The answer above the daily line too: a 7-digit total or "상급 … 140번
+     만들어 쓰기" takes two lines there (PM-프론트 360 0.0032). */
+  .headline,
+  .answer .headline + p {
+    min-height: 2lh;
+  }
+}
+.colActivity {
+  width: 58%;
+}
+/* Share of the top result under each activity. Width via transform so a
+   price refresh never relayouts the row. */
+.bar {
+  display: block;
+  height: 4px;
+  margin-top: 6px;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--border);
+}
+.bar i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--action);
+  transform: scaleX(var(--share, 0));
+  transform-origin: left center;
+  transition: transform var(--duration-base) var(--ease-out);
+}
+@media (max-width: 480px) {
+  .colActivity {
+    width: 50%;
+  }
+  .answer {
+    padding: var(--space-3) var(--space-4);
+  }
+}

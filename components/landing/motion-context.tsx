@@ -3,17 +3,21 @@
 // Motion state shared by the landing parts, without motion/react: the home
 // hero uses it on its own (route budget), /about wraps it in LazyMotion.
 
-import { createContext, useCallback, useContext, useEffect, useState, useSyncExternalStore, type ReactNode, type RefObject } from "react";
+import { createContext, useContext, useEffect, useState, useSyncExternalStore, type ReactNode, type RefObject } from "react";
+import { MOTION_STORAGE_KEY } from "@/components/ui/theme-toggle";
 
 /**
  * enabled: one-shot motion (entrances, transitions) may play.
- * looping: repeating motion (orb, border beam, looping CSS) may play. It stops
- * on its own 5s after it starts, so no pause button is needed (WCAG 2.2.2,
- * user 10:57); wake() runs it 5s more (search focus or hover).
+ * looping: repeating motion (orb, border beam, looping CSS) may play. It keeps
+ * moving (user, 20:58 — replaces the 10:57 five-second stop); pressing the orb
+ * pauses and resumes it (WCAG 2.2.2), and that choice is remembered. It also
+ * rests while the tab is hidden, and each part pauses itself off screen.
+ * Reduced motion: never.
+ * paused / togglePaused: the remembered choice, set on <html> as
+ * data-motion-paused before the first paint (themeInitScript), so a paused
+ * page does not move for a moment before hydration.
  */
-const MotionContext = createContext({ enabled: false, looping: false, wake: () => {} });
-const LOOP_MS = 5_000;
-const noSubscribe = () => () => {};
+const MotionContext = createContext({ enabled: false, looping: false, paused: false, togglePaused: () => {} });
 const subscribe = (callback: () => void) => {
   document.addEventListener("visibilitychange", callback);
   return () => document.removeEventListener("visibilitychange", callback);
@@ -28,29 +32,46 @@ const subscribeReducedMotion = (callback: () => void) => {
 const getReducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 const getServerReducedMotion = () => true;
 
+const pauseListeners = new Set<() => void>();
+const subscribePaused = (callback: () => void) => {
+  pauseListeners.add(callback);
+  // Another tab pausing or resuming.
+  const onStorage = (event: StorageEvent) => {
+    if (event.key !== MOTION_STORAGE_KEY) return;
+    setPausedAttribute(event.newValue === "paused");
+    callback();
+  };
+  window.addEventListener("storage", onStorage);
+  return () => {
+    pauseListeners.delete(callback);
+    window.removeEventListener("storage", onStorage);
+  };
+};
+const getPaused = () => document.documentElement.hasAttribute("data-motion-paused");
+const getServerPaused = () => false;
+function setPausedAttribute(paused: boolean) {
+  document.documentElement.toggleAttribute("data-motion-paused", paused);
+}
+function togglePaused() {
+  const paused = !getPaused();
+  setPausedAttribute(paused);
+  try {
+    if (paused) localStorage.setItem(MOTION_STORAGE_KEY, "paused");
+    else localStorage.removeItem(MOTION_STORAGE_KEY);
+  } catch {
+    // Storage blocked: the choice lasts for this page only.
+  }
+  pauseListeners.forEach((listener) => listener());
+}
+
 export function MotionScope({ children }: { children: ReactNode }) {
   const reduced = useSyncExternalStore(subscribeReducedMotion, getReducedMotion, getServerReducedMotion);
   const visible = useSyncExternalStore(subscribe, getVisible, getServerVisible);
+  const paused = useSyncExternalStore(subscribePaused, getPaused, getServerPaused);
   const enabled = !reduced && visible;
-  // The CSS loops start at first paint, before hydration: on the first load
-  // count from navigation start, after a client navigation from mount.
-  const hydrating = useSyncExternalStore(noSubscribe, () => false, () => true);
-  const [startedAt] = useState(() => (hydrating ? 0 : performance.now()));
-  const [awake, setAwake] = useState(true);
-  const [wakes, setWakes] = useState(0);
-  useEffect(() => {
-    if (!enabled) return;
-    const delay = wakes ? LOOP_MS : Math.max(0, startedAt + LOOP_MS - performance.now());
-    const timer = setTimeout(() => setAwake(false), delay);
-    return () => clearTimeout(timer);
-  }, [enabled, wakes, startedAt]);
-  const wake = useCallback(() => {
-    setAwake(true);
-    setWakes((n) => n + 1);
-  }, []);
-  const looping = enabled && awake;
+  const looping = enabled && !paused;
   return (
-    <MotionContext.Provider value={{ enabled, looping, wake }}>
+    <MotionContext.Provider value={{ enabled, looping, paused, togglePaused }}>
       <div data-motion={enabled ? "on" : "off"} data-loop={looping ? "on" : "off"}>{children}</div>
     </MotionContext.Provider>
   );
@@ -58,6 +79,8 @@ export function MotionScope({ children }: { children: ReactNode }) {
 
 export const useLandingMotion = () => useContext(MotionContext);
 
+/** Whether the user asked for reduced motion (false on the server). */
+export const useReducedMotion = () => useSyncExternalStore(subscribeReducedMotion, getReducedMotion, () => false);
 
 /** Whether the element is on screen (margin in px), without motion/react. */
 export function useVisible(ref: RefObject<Element | null>, margin = 0) {

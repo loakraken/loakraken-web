@@ -3,8 +3,9 @@
 import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMutation, useQueries, useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQueries, useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Setting } from "@/components/ui/icons";
+import { Select } from "@/components/ui/select";
 import { CharacterQueryError, fetchCharacter } from "@/lib/character/client";
 import {
   characterNameError,
@@ -61,17 +62,20 @@ const initialParts = () =>
     PartId,
     PartState
   >;
+const BOOK_ASSUMPTION =
+  "책(야금술·재봉술) 효과가 매번 적용된다고 가정했어요. 게임에서 적용 확률은 공개되지 않았어요.";
+
 const OPTION_COPY: { key: keyof Options; label: string; hint: string }[] = [
   { key: "weaponBreath", label: "무기 숨결", hint: "매 시도 최대 개수" },
   { key: "armorBreath", label: "방어구 숨결", hint: "매 시도 최대 개수" },
   {
     key: "weaponBook",
-    label: "무기 책 효과 항상 적용 가정",
+    label: "무기 책 효과 적용",
     hint: "야금술 · 업화 11~20단계",
   },
   {
     key: "armorBook",
-    label: "방어구 책 효과 항상 적용 가정",
+    label: "방어구 책 효과 적용",
     hint: "재봉술 · 업화 11~20단계",
   },
 ];
@@ -196,7 +200,7 @@ function CharacterLoader({
           aria-disabled={load.isPending || loadLimit.seconds > 0 || undefined}
           aria-busy={load.isPending || undefined}
         >
-          {load.isPending ? "불러오는 중" : retryLabel(loadLimit.seconds, "장비 불러오기")}
+          {load.isPending ? "불러오는 중…" : retryLabel(loadLimit.seconds, "장비 불러오기")}
         </button>
       </form>
       {touched && error && <p className={quote.inputError}>{error}</p>}
@@ -252,53 +256,33 @@ function PartRow({
       >
         <label className={styles.mini}>
           <span>등급</span>
-          <select
+          <Select
             value={state.grade}
-            onChange={(event) =>
-              onChange({ ...state, grade: event.target.value as Grade })
-            }
-          >
-            {GRADES.map((grade) => (
-              <option key={grade.value} value={grade.value}>
-                {grade.label.replace("운명의 ", "")}
-              </option>
-            ))}
-          </select>
+            onValueChange={(grade) => onChange({ ...state, grade: grade as Grade })}
+            items={GRADES.map((grade) => ({ value: grade.value, label: grade.label.replace("운명의 ", "") }))}
+          />
         </label>
         <label className={styles.mini}>
           <span>현재</span>
-          <select
+          <Select
             value={state.current}
-            onChange={(event) => {
-              const current = Number(event.target.value);
+            onValueChange={(current) => {
               onChange({
                 ...state,
                 current,
                 target: Math.max(current, state.target),
               });
             }}
-          >
-            {range(MIN_STAGE, MAX_STAGE).map((stage) => (
-              <option key={stage} value={stage}>
-                +{stage}
-              </option>
-            ))}
-          </select>
+            items={range(MIN_STAGE, MAX_STAGE).map((stage) => ({ value: stage, label: `+${stage}` }))}
+          />
         </label>
         <label className={styles.mini}>
           <span>목표</span>
-          <select
+          <Select
             value={state.target}
-            onChange={(event) =>
-              onChange({ ...state, target: Number(event.target.value) })
-            }
-          >
-            {range(state.current, MAX_STAGE).map((stage) => (
-              <option key={stage} value={stage}>
-                +{stage}
-              </option>
-            ))}
-          </select>
+            onValueChange={(target) => onChange({ ...state, target })}
+            items={range(state.current, MAX_STAGE).map((stage) => ({ value: stage, label: `+${stage}` }))}
+          />
         </label>
       </fieldset>
     </li>
@@ -319,7 +303,7 @@ function Progress({
   );
   return (
     <details className={styles.disclosure}>
-      <summary>첫 단계 진행 상황 입력</summary>
+      <summary className="hit-44">첫 단계 진행 상황 입력</summary>
       <p className={quote.caption}>
         이미 시도 중인 단계가 있으면 현재 장인의 기운과 실패 횟수를 넣어 주세요.
         첫 단계에만 적용돼요.
@@ -354,21 +338,11 @@ function Progress({
                 </label>
                 <label className={styles.mini}>
                   <span>실패 횟수</span>
-                  <select
+                  <Select
                     value={state.failedAttempts}
-                    onChange={(event) =>
-                      setPart(part.id, {
-                        ...state,
-                        failedAttempts: Number(event.target.value),
-                      })
-                    }
-                  >
-                    {range(0, 10).map((n) => (
-                      <option key={n} value={n}>
-                        {n}회
-                      </option>
-                    ))}
-                  </select>
+                    onValueChange={(failedAttempts) => setPart(part.id, { ...state, failedAttempts })}
+                    items={range(0, 10).map((n) => ({ value: n, label: `${n}회` }))}
+                  />
                 </label>
               </li>
             );
@@ -429,6 +403,9 @@ function useRefiningCost(plans: PartPlan[], mode: Mode, basis: PriceBasis, owned
       postMaterialPrices({ priceBasis: basis, names }, signal),
     enabled: names.length > 0 && names.length <= MAX_PRICE_NAMES,
     staleTime: 5 * 60_000,
+    // Same rule as 더보기 손익 (사용자 지적 10-12 01:36): a new basis keeps
+    // the old table, dimmed, instead of emptying it and refilling it.
+    placeholderData: keepPreviousData,
     retry: false,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
@@ -464,11 +441,19 @@ function TopSummary({
         {formatCount(total)}
         <span>골드</span>
       </p>
+      {/* One line per part: in a single run, a basis or count that changed
+          width moved the text after it (A7). */}
       <p className={styles.topNote}>
-        {priceList ? "재련 골드 + 부족한 재료 구매 골드" : "재련 골드(재료 시세를 불러오는 중)"} · 총{" "}
-        {formatCount(summary.stageCount)}단계, 시도{" "}
-        {formatCount(summary.attempts, mode === "expected" ? 1 : 0)}회 ·{" "}
-        <a href="#estimate-heading">재료와 부위별 내역</a>
+        <span className={styles.topLine}>
+          {priceList ? "재련 골드 + 부족한 재료 구매 골드" : "재련 골드(재료 시세를 불러오는 중…)"}
+        </span>
+        <span className={styles.topLine}>
+          총 {formatCount(summary.stageCount)}단계, 시도{" "}
+          {formatCount(summary.attempts, mode === "expected" ? 1 : 0)}회
+        </span>
+        <a className={styles.topLine} href="#estimate-heading">
+          재료와 부위별 내역
+        </a>
       </p>
     </>
   );
@@ -503,13 +488,14 @@ function Result({
     .sort()
     .at(-1);
   const basisLabel = priceBases.find((item) => item.value === basis)?.label;
-  const source = plans[0].plan.source;
   const assumptions = [
+    // Books are in by default (PM 총괄 10-11 00:20); say so next to the result.
+    ...(plans.some(({ plan }) => plan.useBook) ? [BOOK_ASSUMPTION] : []),
     ...new Set(plans.flatMap(({ plan }) => plan.assumptions)),
   ];
   return (
     <>
-      <p className={quote.total}>
+      <p className={quote.total} data-stale={prices.isPlaceholderData || undefined}>
         {formatCount(total)}
         <span>골드</span>
       </p>
@@ -520,11 +506,10 @@ function Result({
         · 총 {formatCount(summary.stageCount)}단계, 시도{" "}
         {formatCount(summary.attempts, mode === "expected" ? 1 : 0)}회
       </p>
-      {prices.isFetching && (
-        <p className={styles.priceStatus} role="status">
-          재료 시세를 불러오고 있어요.
-        </p>
-      )}
+      {/* Always there, one line high: appearing and leaving moved the table. */}
+      <p className={styles.priceStatus} role="status">
+        {prices.isFetching ? "재료 시세를 불러오고 있어요." : ""}
+      </p>
       {priceList && unpriced.length > 0 && (
         <p className={quote.status}>
           시세가 없어 합계에서 뺀 재료: {unpriced.join(", ")}
@@ -563,7 +548,7 @@ function Result({
           </button>
         </div>
       )}
-      <div className={styles.materialWrap}>
+      <div className={styles.materialWrap} aria-busy={prices.isPlaceholderData || undefined} data-stale={prices.isPlaceholderData || undefined}>
         <table className={styles.table} data-wide="">
           <thead>
             <tr>
@@ -700,11 +685,6 @@ function Result({
       </details>
 
       <div className={quote.resultFooter}>
-        <span>
-          공식 확률표가 아니라 공개 데이터를 교차 검증한 값이에요. 출처{" "}
-          {source.name} · 교차 검증 {source.crossCheckedWith}{" "}
-          · 확인 {source.verifiedOn} · 규칙 {plans[0].plan.ruleVersion}
-        </span>
         {assumptions.map((text) => (
           <span key={text}>{text}</span>
         ))}
@@ -719,8 +699,8 @@ function RefiningContent({ initialName }: { initialName: string }) {
   const [options, setOptions] = useState<Options>({
     weaponBreath: false,
     armorBreath: false,
-    weaponBook: false,
-    armorBook: false,
+    weaponBook: true,
+    armorBook: true,
     growthSupport: true,
   });
   const [mode, setMode] = useState<Mode>("expected");
@@ -797,7 +777,8 @@ function RefiningContent({ initialName }: { initialName: string }) {
             ) : complete ? (
               <TopSummary plans={plans} mode={mode} basis={basis} owned={owned} />
             ) : (
-              <p className={styles.topNote}>
+              // A line of its own per state: rewriting one line's text moved it by a sub-pixel (A7).
+              <p className={styles.topNote} key={requests.length ? "pending" : "empty"}>
                 {requests.length ? "계산하고 있어요." : "아래에서 목표 단계를 현재보다 높게 고르면 여기에 총 비용이 나와요."}
               </p>
             )}
@@ -845,6 +826,7 @@ function RefiningContent({ initialName }: { initialName: string }) {
                   <button
                     key={stage}
                     type="button"
+                    className="hit-44"
                     onClick={() =>
                       setParts((prev) =>
                         Object.fromEntries(
@@ -909,17 +891,17 @@ function RefiningContent({ initialName }: { initialName: string }) {
               <p className={quote.hint}>
                 성장 지원(업화 1~18단계 재련 골드 20% 감소)은 기간·대상 조건이
                 없는 공식 규칙이라 자동으로 적용해요(
-                <a href={GROWTH_SUPPORT_NOTICE} target="_blank" rel="noreferrer">
+                <a href={GROWTH_SUPPORT_NOTICE} target="_blank" rel="noreferrer" className="hit-44">
                   공지
                 </a>{" "}
                 · 게임 재련 가이드). 전율 책, 실링, 상급 재련, 이벤트 확률은
                 계산하지 않아요.
               </p>
               <p className={quote.hint}>
-                책은 기본으로 빼고 계산해요. 게임에는 &ldquo;특수 재료 별 효과는
-                확률에 따라 적용되지 않을 수 있습니다&rdquo;라고 나오고, 그 확률은
-                공개되지 않았어요. 켜면 책 효과가 매번 적용된다고 보고 계산해요.
-                책은 운명의 업화에만 적용돼요.
+                책은 기본으로 넣고, 책 효과가 매번 적용된다고 보고 계산해요.
+                게임에는 &ldquo;특수 재료 별 효과는 확률에 따라 적용되지 않을 수
+                있습니다&rdquo;라고 나오고, 그 확률은 공개되지 않았어요. 끄면 책
+                없이 계산해요. 책은 운명의 업화 11~20단계에만 적용돼요.
               </p>
             </section>
           </div>
@@ -984,7 +966,7 @@ function RefiningContent({ initialName }: { initialName: string }) {
         </section>
       </main>
       <footer className={quote.footer}>
-        LOAKraken · 로스트아크 비공식 팬 프로젝트 · 공개 확률 데이터 기반 계산
+        LOAKraken · 공개 확률 데이터 기반 계산
       </footer>
     </div>
   );

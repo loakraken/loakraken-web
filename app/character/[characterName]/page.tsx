@@ -1,4 +1,15 @@
-import { isReceiptEnabled } from "@/lib/tools/flags";
+import {
+  isArmoryPageEnabled,
+  isCharacterEfficiencyEnabled,
+  isCharacterIndexingEnabled,
+  isCombatPowerEnabled,
+  isCritSpeedEnabled,
+  isReceiptEnabled,
+  isSettingCheckEnabled,
+  isSpecUpEnabled,
+  isGuildRankingEnabled,
+  isTitleStatsEnabled,
+} from "@/lib/tools/flags";
 import type { Metadata } from "next";
 import {
   dehydrate,
@@ -7,7 +18,10 @@ import {
 } from "@tanstack/react-query";
 import { CharacterView } from "@/components/character/character-view";
 import { normalizeCharacterName } from "@/lib/character/model";
-import { getCharacter, getRank, getSiblings } from "@/lib/character/server";
+import { headers } from "next/headers";
+import { getCharacter, getPublicSummary, getRank, getSiblings } from "@/lib/character/server";
+import { indexableSummary, isSearchBot, summaryLine } from "@/lib/character/public-summary";
+import { BotSummary } from "@/components/character/bot-summary";
 
 export const dynamic = "force-dynamic";
 const decodeName = (raw: string) => {
@@ -25,9 +39,14 @@ export async function generateMetadata({
   params: Promise<{ characterName: string }>;
 }): Promise<Metadata> {
   const name = decodeName((await params).characterName);
+  // Indexed only with CHARACTER_INDEXING on and a summary the backend marks
+  // indexable (cache only, no official call); otherwise noindex as before.
+  const enabled = isCharacterIndexingEnabled();
+  const summary = indexableSummary(enabled, enabled && name ? await getPublicSummary(name) : null);
   return {
     title: name ? `${name} · 캐릭터 정보` : "캐릭터 정보",
-    robots: { index: false, follow: false },
+    ...(summary && { description: `${summary.characterName} · ${summaryLine(summary)}` }),
+    robots: summary ? { index: true, follow: true } : { index: false, follow: false },
     alternates: { canonical: `/character/${encodeURIComponent(name)}` },
   };
 }
@@ -40,6 +59,10 @@ export default async function CharacterPage({
   searchParams: Promise<{ tab?: string | string[] }>;
 }) {
   const name = decodeName((await params).characterName);
+  // A search bot gets the cache page only (never an official call), and only
+  // while indexing is on; a person always gets the live page.
+  if (isCharacterIndexingEnabled() && isSearchBot((await headers()).get("user-agent")))
+    return <BotSummary name={name} summary={indexableSummary(true, await getPublicSummary(name))} />;
   const { tab } = await searchParams;
   const [result, rank, siblings] = await Promise.all([
     getCharacter(name),
@@ -74,6 +97,14 @@ export default async function CharacterPage({
         initialError={result.ok ? undefined : result.error}
         renderedAt={renderedAt}
         receipt={isReceiptEnabled()}
+        settingCheck={isSettingCheckEnabled()}
+        armoryPage={isArmoryPageEnabled()}
+        simulator={isCombatPowerEnabled()}
+        specUp={isSpecUpEnabled()}
+        titleStats={isTitleStatsEnabled()}
+        critSpeed={isCritSpeedEnabled()}
+        guildTab={isGuildRankingEnabled()}
+        characterEfficiency={isCharacterEfficiencyEnabled()}
       />
     </HydrationBoundary>
   );

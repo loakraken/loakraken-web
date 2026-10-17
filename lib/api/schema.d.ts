@@ -72,6 +72,8 @@ export interface components {
             siblings: components["schemas"]["SiblingResponse"][] | null;
             coverage: components["schemas"]["CharacterObservationCoverageResponse"];
             analysis: components["schemas"]["CharacterAnalysisResponse"];
+            braceletEfficiency: components["schemas"]["BraceletEfficiencyResponse"] | null;
+            arkGridEfficiency: components["schemas"]["ArkGridEfficiencyResponse"] | null;
             /**
              * Format: date-time
              * @description 외부 API에서 실제 수집한 UTC 시각. 캐시 조회에서도 유지됩니다.
@@ -232,6 +234,11 @@ export interface components {
             icon: string | null;
             level: number | null;
             grade: string | null;
+            titleLine: string | null;
+            itemLevel: number | null;
+            tier: number | null;
+            /** @description 공식 Tooltip 귀속·거래 줄(예: '캐릭터 귀속됨', '거래 불가') */
+            tradeLines: string[];
         };
         GemEffectsResponse: {
             description: string | null;
@@ -363,6 +370,7 @@ export interface components {
             /** @description 스킬 Tooltip의 보석 효과 줄 */
             gemEffects: components["schemas"]["SkillGemEffectResponse"][];
             attackType: ("BACK_ATTACK" | "HEAD_ATTACK" | "NONE") | null;
+            cooldown: components["schemas"]["SkillCooldownResponse"] | null;
         };
         TripodResponse: {
             tier: number | null;
@@ -381,6 +389,25 @@ export interface components {
             /** @example [블레이드] 윈드 컷 피해 28.00% 증가 */
             text: string;
             kind: ("DAMAGE" | "COOLDOWN") | null;
+        };
+        SkillCooldownResponse: {
+            /**
+             * @description 공식 Tooltip 재사용 대기시간(초, 선택한 트라이포드 반영)
+             * @example 8
+             */
+            cooldownSec: number;
+            /**
+             * @description 이 스킬 보석 효과의 재사용 대기시간 감소 % 합(없으면 0)
+             * @example 16
+             */
+            gemCooldownReductionPct: number;
+            /**
+             * @description cooldownSec × (1 − gemCooldownReductionPct/100), 소수 둘째 자리
+             * @example 6.72
+             */
+            cooldownWithGemsSec: number;
+            /** @description 계산 근거 문장 */
+            basis: string;
         };
         SiblingResponse: {
             characterName: string;
@@ -583,6 +610,56 @@ export interface components {
             observedCount: number | null;
             /** @description 표시용 설명. 클라이언트 분기는 message 대신 code를 사용합니다. */
             message: string;
+        };
+        BraceletEfficiencyResponse: {
+            percent: number | null;
+            /**
+             * @description OK 또는 UNSUPPORTED(문자열)
+             * @example OK
+             */
+            status: string;
+            reasonCode: string | null;
+            /** @description 근거 문장 또는 계산하지 않은 이유 */
+            reason: string;
+            /** @description 팔찌 효과 줄마다 그 줄만 뺐을 때의 효율(공식 순서), 팔찌 도약 포인트가 있으면 마지막에 '팔찌 도약 +N' 한 줄 */
+            lines: components["schemas"]["BraceletLineEfficiencyResponse"][];
+            /** @description 계산 규칙 버전(전투력 시뮬레이터와 같음) */
+            ruleVersion: string;
+        };
+        BraceletLineEfficiencyResponse: {
+            /** @description 공식 팔찌 효과 문구(팔찌 도약 줄은 '팔찌 도약 +N') */
+            text: string;
+            percent: number | null;
+            /** @description OK 또는 UNSUPPORTED(문자열) */
+            status: string;
+            reasonCode: string | null;
+            reason: string | null;
+        };
+        ArkGridEfficiencyResponse: {
+            percent: number | null;
+            coresPercent: number | null;
+            /**
+             * @description OK 또는 UNSUPPORTED(문자열)
+             * @example OK
+             */
+            status: string;
+            reasonCode: string | null;
+            /** @description 근거 문장 또는 계산하지 않은 이유 */
+            reason: string;
+            /** @description 코어마다 한 줄(공식 슬롯 순서), 마지막에 젬 옵션 합계 한 줄 */
+            lines: components["schemas"]["ArkGridLineEfficiencyResponse"][];
+            /** @description 계산 규칙 버전 */
+            ruleVersion: string;
+        };
+        ArkGridLineEfficiencyResponse: {
+            slotIndex: number | null;
+            /** @description 코어 이름·등급·포인트 또는 '젬 옵션(공격력 Lv.N · …)' */
+            text: string;
+            percent: number | null;
+            /** @description OK 또는 UNSUPPORTED(문자열) */
+            status: string;
+            reasonCode: string | null;
+            reason: string | null;
         };
         /** @description 공통 오류 응답. HTTP 상태와 업무 코드를 함께 확인합니다. */
         ErrorResponse: {

@@ -11,7 +11,9 @@ import {
   setRecentSaving,
   subscribeRecent,
 } from "@/lib/character/recent";
+import { PillTab, PillTabs, PillTabsPanel } from "@/components/ui/pill-tabs";
 import styles from "./home.module.css";
+import { useTallest } from "@/components/ui/use-tallest";
 
 /* Favourites written by the character page (names only, per browser). */
 const FAVORITES = "loakraken:favorites";
@@ -55,7 +57,7 @@ function removeFavorite(name: string) {
 }
 
 /**
- * LOAWA-style recent searches card: 최근 검색 / 즐겨찾기 tabs, each row with
+ * Recent searches card: 최근 검색 / 즐겨찾기 tabs, each row with
  * item level and server · class, a "검색어 저장" switch and 전체 삭제.
  */
 export function RecentCard() {
@@ -67,6 +69,9 @@ export function RecentCard() {
   );
   const favorites = useMemo(() => parseNames(favoritesRaw), [favoritesRaw]);
   const [tab, setTab] = useState<"recent" | "favorites">("recent");
+  // Both lists keep the room of the taller one, so switching does not pull
+  // up the cards below (A7).
+  const [bodyRef, bodyHeight] = useTallest();
   const known = new Map(list.map((item) => [item.name, item]));
   const rows =
     tab === "recent"
@@ -80,78 +85,90 @@ export function RecentCard() {
       <h2 id="recent-heading" className={styles.srOnly}>
         최근 검색과 즐겨찾기
       </h2>
-      <div className={styles.recentTabs} role="group" aria-label="목록 선택">
-        <button type="button" aria-pressed={tab === "recent"} onClick={() => setTab("recent")}>
-          최근 검색 <span>{list.length}</span>
-        </button>
-        <button type="button" aria-pressed={tab === "favorites"} onClick={() => setTab("favorites")}>
-          즐겨찾기 <span>{favorites.length}</span>
-        </button>
-      </div>
-      {rows.length === 0 ? (
-        <p className={styles.muted}>
-          {tab === "favorites"
-            ? "캐릭터 화면의 별을 누르면 여기에 모여요."
-            : saving
-              ? "검색한 캐릭터가 여기에 표시돼요."
-              : "검색어 저장이 꺼져 있어요."}
-        </p>
-      ) : (
-        <ul className={styles.recentList}>
-          {rows.map((item) => (
-            <li key={item.name}>
-              <Link href={`/character/${encodeURIComponent(item.name)}`}>
-                <span className={styles.recentName}>
-                  <strong>{item.name}</strong>
-                  <small>
-                    {[item.server, item.className].filter(Boolean).join(" · ") || "정보 없음"}
-                  </small>
-                </span>
-                <span className={styles.recentLevel}>
-                  <b>{level(item.itemLevel)}</b>
-                  {power(item.combatPower) && <small>전투력 {power(item.combatPower)}</small>}
-                </span>
-              </Link>
-              {tab === "recent" ? (
-                <button
-                  type="button"
-                  className={styles.remove}
-                  aria-label={`${item.name} 기록 삭제`}
-                  onClick={() => removeRecent(item.name)}
-                >
-                  <CloseCircle size={14} aria-hidden="true" />
-                </button>
+      <PillTabs
+        aria-label="목록 선택"
+        className={styles.cardTabs}
+        listClassName={styles.recentTabList}
+        value={tab}
+        onValueChange={(value) => setTab(value as "recent" | "favorites")}
+        panels={
+          <PillTabsPanel value={tab}>
+            <div ref={bodyRef} style={bodyHeight ? { minHeight: bodyHeight } : undefined}>
+              {rows.length === 0 ? (
+                <p className={styles.muted}>
+                  {tab === "favorites"
+                    ? "캐릭터 화면의 별을 누르면 여기에 모여요."
+                    : saving
+                      ? "검색한 캐릭터가 여기에 표시돼요."
+                      : "검색어 저장이 꺼져 있어요."}
+                </p>
               ) : (
-                <button
-                  type="button"
-                  className={styles.remove}
-                  aria-label={`${item.name} 즐겨찾기 해제`}
-                  onClick={() => removeFavorite(item.name)}
-                >
-                  <BookmarkBold size={14} aria-hidden="true" className={styles.starOn} />
-                </button>
+                <ul className={styles.recentList}>
+                  {rows.map((item) => (
+                    <li key={item.name}>
+                      <Link href={`/character/${encodeURIComponent(item.name)}`}>
+                        <span className={styles.recentName}>
+                          <strong>{item.name}</strong>
+                          <small>
+                            {[item.server, item.className].filter(Boolean).join(" · ") || "정보 없음"}
+                          </small>
+                        </span>
+                        <span className={styles.recentLevel}>
+                          <b>{level(item.itemLevel)}</b>
+                          {power(item.combatPower) && <small>전투력 {power(item.combatPower)}</small>}
+                        </span>
+                      </Link>
+                      {tab === "recent" ? (
+                        <button
+                          type="button"
+                          className={styles.remove}
+                          aria-label={`${item.name} 기록 삭제`}
+                          onClick={() => removeRecent(item.name)}
+                        >
+                          <CloseCircle size={14} aria-hidden="true" />
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className={styles.remove}
+                          aria-label={`${item.name} 즐겨찾기 해제`}
+                          onClick={() => removeFavorite(item.name)}
+                        >
+                          <BookmarkBold size={14} aria-hidden="true" className={styles.starOn} />
+                        </button>
+                      )}
+                    </li>
+                  ))}
+                </ul>
               )}
-            </li>
-          ))}
-        </ul>
-      )}
-      {tab === "recent" && (
-        <div className={styles.recentFoot}>
-          <label className={styles.switch}>
-            <input
-              type="checkbox"
-              checked={saving}
-              onChange={(event) => setRecentSaving(event.target.checked)}
-            />
-            검색어 저장
-          </label>
-          {list.length > 0 && (
-            <button type="button" className={styles.textButton} onClick={clearRecent}>
-              전체 삭제
-            </button>
-          )}
-        </div>
-      )}
+              {tab === "recent" && (
+                <div className={styles.recentFoot}>
+                  <label className={styles.switch}>
+                    <input
+                      type="checkbox"
+                      checked={saving}
+                      onChange={(event) => setRecentSaving(event.target.checked)}
+                    />
+                    검색어 저장
+                  </label>
+                  {list.length > 0 && (
+                    <button type="button" className={styles.textButton} onClick={clearRecent}>
+                      전체 삭제
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          </PillTabsPanel>
+        }
+      >
+        <PillTab value="recent">
+          최근 검색 <span className={styles.tabCount}>{list.length}</span>
+        </PillTab>
+        <PillTab value="favorites">
+          즐겨찾기 <span className={styles.tabCount}>{favorites.length}</span>
+        </PillTab>
+      </PillTabs>
     </section>
   );
 }

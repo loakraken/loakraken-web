@@ -66,7 +66,14 @@
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
+.share {
+  flex: none;
+  white-space: nowrap;
+}
 .tier {
+  /* A31: one line, never split (badge/chip/unit). */
+  flex: none;
+  white-space: nowrap;
   padding: 1px 6px;
   border-radius: 9999px;
   background: color-mix(in oklab, var(--primary) 12%, transparent);
@@ -74,15 +81,42 @@
   font-size: 11px;
   font-weight: 700;
 }
+/* On a phone the tier badge takes 44px to press, as it looks (hit-44 rule);
+   badges sit 100px+ apart, nothing else within reach (measured 10-14). */
+@media (max-width: 699px), (pointer: coarse) {
+  .tier {
+    position: relative;
+  }
+  .tier::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+    translate: -50% -50%;
+  }
+}
+/* 다음 티어까지 (L2): a quiet line under the share. In a narrow box it wraps
+   between words only, so "1,393.54" stays whole (A37, QA 10-16: it was one
+   line and ran out of the box). */
+.next {
+  /* Two lines held in every box (words, then the number), so the boxes of a
+     metric keep one height whether or not the words wrap (A7). */
+  min-height: 32px;
+  color: var(--muted-foreground);
+  font-size: 11px;
+  line-height: 16px;
+  font-variant-numeric: tabular-nums;
+  word-break: keep-all;
+}
+.nextValue {
+  display: block;
+  white-space: nowrap;
+}
 .cells strong.pending {
   color: var(--muted-foreground);
   font-size: 14px;
-  font-weight: 600;
-}
-.hidden {
-  margin: 0;
-  color: var(--foreground);
-  font-size: 15px;
   font-weight: 600;
 }
 .muted {
@@ -112,11 +146,6 @@
   .cells li {
     padding: 8px;
   }
-}
-.removal {
-  color: var(--link);
-  text-decoration: underline;
-  text-underline-offset: 2px;
 }
 .note + .note {
   margin-top: 2px;

@@ -4,6 +4,12 @@
 export const PRODUCTION_URL = "https://loakraken.gg";
 export const SITE_NAME = "LOAKraken";
 
+/**
+ * The community Discord invite (header and footer read it from here). A
+ * non-expiring invite to the rules channel (PM 10:21); change it here only.
+ */
+export const DISCORD_URL = "https://discord.gg/7ewP2Zq9UV";
+
 /** Origin of the running site; an unset or invalid SITE_URL means production. */
 export function siteUrl(env: string | undefined = process.env.SITE_URL) {
   if (!env) return PRODUCTION_URL;
@@ -28,11 +34,17 @@ export const SITEMAP_PATHS = [
   "/tools/refining",
   "/tools/crit-speed",
   "/tools/auction",
+  "/tools/loa-shop",
+  "/tools/abidos-craft",
+  "/tools/life-energy",
   "/tools/raid-rewards",
   "/tools/more-reward",
+  "/tools/contribution",
+  "/tools/raid-cheatsheet",
   "/tools/homework",
   "/stats",
   "/rankings",
+  "/multi-search",
   "/news",
   "/schedule",
   "/schedule/adventure-island",

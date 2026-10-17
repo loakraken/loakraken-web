@@ -260,7 +260,7 @@
           },
           "rankVisibility": {
             "type": "string",
-            "description": "순위 공개 여부. 이 값이 최우선이다. HIDDEN(운영 공개 제외 목록)이면 entries는 빈 배열이고 순위·백분위·티어는 어디에도 없다. 이때 다른 메타(included 등)로 순위 상태를 판단하지 않는다. VISIBLE이면 included와 entries의 sampleStatus로 판단한다",
+            "description": "순위 공개 여부. 지금은 늘 VISIBLE이다(HIDDEN은 더 이상 쓰지 않음). included와 entries의 sampleStatus로 판단한다",
             "enum": [
               "VISIBLE",
               "HIDDEN"
@@ -315,42 +315,7 @@
           "server": {
             "anyOf": [
               {
-                "anyOf": [
-                  {
-                    "anyOf": [
-                      {
-                        "anyOf": [
-                          {
-                            "anyOf": [
-                              {
-                                "anyOf": [
-                                  {
-                                    "type": "string"
-                                  },
-                                  {
-                                    "type": "null"
-                                  }
-                                ]
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
-                          },
-                          {
-                            "type": "null"
-                          }
-                        ]
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
+                "type": "string"
               },
               {
                 "type": "null"
@@ -360,45 +325,10 @@
           "role": {
             "anyOf": [
               {
-                "anyOf": [
-                  {
-                    "anyOf": [
-                      {
-                        "anyOf": [
-                          {
-                            "anyOf": [
-                              {
-                                "anyOf": [
-                                  {
-                                    "type": "string",
-                                    "enum": [
-                                      "DEALER",
-                                      "SUPPORT"
-                                    ]
-                                  },
-                                  {
-                                    "type": "null"
-                                  }
-                                ]
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
-                          },
-                          {
-                            "type": "null"
-                          }
-                        ]
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  {
-                    "type": "null"
-                  }
+                "type": "string",
+                "enum": [
+                  "DEALER",
+                  "SUPPORT"
                 ]
               },
               {
@@ -409,42 +339,7 @@
           "className": {
             "anyOf": [
               {
-                "anyOf": [
-                  {
-                    "anyOf": [
-                      {
-                        "anyOf": [
-                          {
-                            "anyOf": [
-                              {
-                                "anyOf": [
-                                  {
-                                    "type": "string"
-                                  },
-                                  {
-                                    "type": "null"
-                                  }
-                                ]
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
-                          },
-                          {
-                            "type": "null"
-                          }
-                        ]
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
+                "type": "string"
               },
               {
                 "type": "null"
@@ -462,42 +357,7 @@
           "itemLevelMax": {
             "anyOf": [
               {
-                "anyOf": [
-                  {
-                    "anyOf": [
-                      {
-                        "anyOf": [
-                          {
-                            "anyOf": [
-                              {
-                                "anyOf": [
-                                  {
-                                    "type": "number"
-                                  },
-                                  {
-                                    "type": "null"
-                                  }
-                                ]
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
-                          },
-                          {
-                            "type": "null"
-                          }
-                        ]
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
+                "type": "number"
               },
               {
                 "type": "null"
@@ -507,42 +367,7 @@
           "combatPowerMin": {
             "anyOf": [
               {
-                "anyOf": [
-                  {
-                    "anyOf": [
-                      {
-                        "anyOf": [
-                          {
-                            "anyOf": [
-                              {
-                                "anyOf": [
-                                  {
-                                    "type": "number"
-                                  },
-                                  {
-                                    "type": "null"
-                                  }
-                                ]
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
-                          },
-                          {
-                            "type": "null"
-                          }
-                        ]
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
+                "type": "number"
               },
               {
                 "type": "null"
@@ -552,42 +377,7 @@
           "combatPowerMax": {
             "anyOf": [
               {
-                "anyOf": [
-                  {
-                    "anyOf": [
-                      {
-                        "anyOf": [
-                          {
-                            "anyOf": [
-                              {
-                                "anyOf": [
-                                  {
-                                    "type": "number"
-                                  },
-                                  {
-                                    "type": "null"
-                                  }
-                                ]
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
-                          },
-                          {
-                            "type": "null"
-                          }
-                        ]
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
+                "type": "number"
               },
               {
                 "type": "null"
@@ -683,10 +473,53 @@
               "COLLECTING",
               "READY"
             ]
+          },
+          "nextTier": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "한 단계 높은 티어. 지금 TOP1이거나, 표본 30 미만(tier null)이거나, 인원이 적어 그 티어에 닿을 수 있는 순위가 없으면(⌊상한% × total / 100⌋ = 0) null",
+                "enum": [
+                  "TOP1",
+                  "TOP5",
+                  "TOP10",
+                  "TOP25",
+                  "TOP50"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "nextTierValue": {
+            "anyOf": [
+              {
+                "type": "number",
+                "description": "다음 티어 경계값: 나를 뺀 모집단에서 K번째(K = ⌊다음 티어 상한% × total / 100⌋)로 높은 값. 이 값과 같아지면 다음 티어가 됩니다. nextTier가 null이면 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "nextTierGap": {
+            "anyOf": [
+              {
+                "type": "number",
+                "description": "경계값 − 지금 값(0보다 큼). nextTier가 null이면 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
           "metric",
+          "nextTier",
+          "nextTierGap",
+          "nextTierValue",
           "rank",
           "sampleStatus",
           "scope",

@@ -89,8 +89,10 @@ export function forwardHeaders(context: ForwardContext): Record<string, string> 
 export async function requestBackend<T>(
   url: URL | null,
   options: {
-    method?: "GET" | "POST";
+    method?: "GET" | "POST" | "DELETE";
     body?: unknown;
+    /** Headers of the caller's own (an alert subscription's manage token); never the incoming ones. */
+    headers?: Record<string, string>;
     isValid: (body: unknown) => body is T;
     errorCodes: Record<number, readonly string[]>;
     fetcher?: typeof fetch;
@@ -115,6 +117,7 @@ export async function requestBackend<T>(
       method: options.method ?? "GET",
       headers: {
         Accept: "application/json",
+        ...options.headers,
         ...forwardHeaders(context),
         ...(options.body !== undefined && {
           "Content-Type": "application/json",
@@ -155,6 +158,11 @@ export async function requestBackend<T>(
           ...(status === 429 && {
             retryAt: retryAfterAt(response.headers.get("retry-after")),
           }),
+          // A busy 503 that says when to come back (MARKET_SEARCH_BUSY): same wait.
+          ...(status === 503 &&
+            response.headers.get("retry-after") && {
+              retryAt: retryAfterAt(response.headers.get("retry-after")),
+            }),
         },
       };
     }

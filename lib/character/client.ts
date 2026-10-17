@@ -1,10 +1,15 @@
+import type { ItemTooltipsEnvelope } from "./item-tooltips";
+import type { ArmoryPageEnvelope } from "./armory-page";
 import type { CharacterResult, QueryFailure } from "./model";
 import type { HistoryEnvelope, SiblingsEnvelope, ViewsEnvelope } from "./validate";
 import type { CardCollectionEnvelope, CardRefreshEnvelope } from "./card-collection";
 import type { PopularEnvelope, PopularPeriod } from "./popular";
+import type { SuggestEnvelope } from "./suggest";
 import type { RankEnvelope } from "./rank";
+import type { OwnershipEnvelope, StandingEnvelope } from "./collectible-standing";
 import type { TitlesEnvelope } from "./titles";
 import type { ReceiptEnvelope } from "./receipt";
+import type { RosterPowerEnvelope, RosterPowerRefreshEnvelope } from "./roster-power";
 
 export class CharacterQueryError extends Error {
   info: QueryFailure;
@@ -55,9 +60,12 @@ export const fetchSiblings = (name: string, signal: AbortSignal) =>
 export const fetchPopular = (period: PopularPeriod, signal: AbortSignal) =>
   getJson<PopularEnvelope>(`/api/characters/popular?period=${period}&limit=10`, signal);
 
+export const fetchSuggest = (q: string, signal: AbortSignal) =>
+  getJson<SuggestEnvelope>(`/api/characters/suggest?${new URLSearchParams({ q })}`, signal);
+
 export const fetchReceipt = (name: string, assumeBook: boolean, signal: AbortSignal) =>
   getJson<ReceiptEnvelope>(
-    `/api/characters/receipt?${new URLSearchParams({ characterName: name, ...(assumeBook && { assumeBook: "true" }) })}`,
+    `/api/characters/receipt?${new URLSearchParams({ characterName: name, assumeBook: String(assumeBook) })}`,
     signal,
   );
 
@@ -67,9 +75,27 @@ export const fetchCardCollection = (name: string, signal: AbortSignal) =>
     signal,
   );
 
+export const fetchCollectibleStanding = (name: string, signal: AbortSignal) =>
+  getJson<StandingEnvelope>(
+    `/api/characters/collectible-standing?${new URLSearchParams({ characterName: name })}`,
+    signal,
+  );
+
+export const fetchCollectibleOwnership = (type: string, signal: AbortSignal) =>
+  getJson<OwnershipEnvelope>(`/api/collectibles/ownership?${new URLSearchParams({ type })}`, signal);
+
 export const fetchRank = (name: string, signal: AbortSignal) =>
   getJson<RankEnvelope>(
     `/api/characters/rank?${new URLSearchParams({ characterName: name })}`,
+    signal,
+  );
+
+export const fetchArmoryPage = (name: string, signal: AbortSignal) =>
+  getJson<ArmoryPageEnvelope>(`/api/characters/armory-page?${new URLSearchParams({ characterName: name })}`, signal);
+
+export const fetchItemTooltips = (name: string, signal: AbortSignal) =>
+  getJson<ItemTooltipsEnvelope>(
+    `/api/characters/item-tooltips?${new URLSearchParams({ characterName: name })}`,
     signal,
   );
 
@@ -99,6 +125,21 @@ export const fetchHistory = (
 export const postCardRefresh = (name: string, signal: AbortSignal) =>
   getJson<CardRefreshEnvelope>(
     `/api/characters/card-collection/refresh?${new URLSearchParams({ characterName: name })}`,
+    signal,
+    "POST",
+  );
+
+/** Roster combat power records (L19): records only, no official call. */
+export const fetchRosterPower = (name: string, signal: AbortSignal) =>
+  getJson<RosterPowerEnvelope>(
+    `/api/characters/roster-combat-power?${new URLSearchParams({ characterName: name })}`,
+    signal,
+  );
+
+/** Read the missing roster combat powers (POST; up to 12 official profiles). */
+export const postRosterPowerRefresh = (name: string, signal: AbortSignal) =>
+  getJson<RosterPowerRefreshEnvelope>(
+    `/api/characters/roster-combat-power/refresh?${new URLSearchParams({ characterName: name })}`,
     signal,
     "POST",
   );

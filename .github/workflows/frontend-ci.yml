@@ -41,6 +41,14 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      # 사용자가 한 번 지적한 것이 다시 들어오면 막는다
+      # (vault 30 PM/사용자 지적 회귀 점검표 A1 A2 A9 A11 A13 B2 B3).
+      - name: Regression checklist guards
+        run: npm run check:regressions
+        env:
+          # blocked names live only in this secret (scripts/blocked-terms.mjs);
+          # unset, the names check reports 건너뜀
+          BLOCKED_TERMS: ${{ secrets.BLOCKED_TERMS }}
       - run: npm run lint
       - run: npm test
       - name: Generated API types match the checked-in contract

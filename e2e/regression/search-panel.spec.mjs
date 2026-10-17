@@ -1,0 +1,185 @@
+// 회귀: 헤더 돋보기 검색창 아래 결과 패널(PM 총괄 10-12 01:07·01:11).
+// 빈 칸: 최근 본·실시간 인기 캐릭터·기능(테마·문의·링크 복사). 입력: 메뉴 결과, "'이름' 캐릭터 정보 보기",
+// 이름 자동완성(백엔드 #372, 입력 글자 굵게). 입력칸이 포커스를 지키는 콤보박스: ↑↓·Enter·Esc.
+import { test, expect, gotoReady } from "../support/fixtures.mjs";
+import { shiftMark, shiftsSince, watchShifts } from "../support/shifts.mjs";
+
+async function openSearch(page) {
+  await gotoReady(page, "/market");
+  await page.getByRole("button", { name: "캐릭터 검색" }).click();
+  const box = page.getByRole("combobox", { name: "캐릭터 이름" });
+  await expect(box).toBeFocused();
+  return box;
+}
+
+test("빈 칸이면 인기 캐릭터와 기능이 보이고, 입력칸이 결과 목록을 가리킨다 @regression", async ({ page }) => {
+  const box = await openSearch(page);
+  const list = page.getByRole("listbox", { name: "검색 결과" });
+  await expect(list).toBeVisible();
+  await expect(box).toHaveAttribute("aria-controls", await list.getAttribute("id"));
+  await expect(list.getByRole("group", { name: "기능" })).toBeVisible();
+  for (const name of ["테마 바꾸기", "문의하기", "지금 페이지 링크 복사"])
+    await expect(list.getByRole("option", { name: new RegExp(name) })).toBeVisible();
+  await expect(list.getByRole("group", { name: "실시간 인기 캐릭터" })).toBeVisible();
+  await expect(page.getByText("↑↓ 이동, Enter 열기, Esc 닫기")).toBeVisible();
+
+  // ↓ moves the active row; the field keeps focus and points at it.
+  await page.keyboard.press("ArrowDown");
+  const active = await box.getAttribute("aria-activedescendant");
+  expect(active).toBeTruthy();
+  await expect(page.locator(`[id="${active}"]`)).toHaveAttribute("aria-selected", "true");
+  await expect(box).toBeFocused();
+
+  await page.keyboard.press("Escape");
+  await expect(list).toHaveCount(0);
+});
+
+test("테마 바꾸기 줄은 다음 테마로 바꾸고 창을 닫지 않는다 @regression", async ({ page }) => {
+  await openSearch(page);
+  const row = page.getByRole("option", { name: /테마 바꾸기/ });
+  await expect(row).toContainText("지금 라이트 · 누르면 딤");
+  await row.click();
+  await expect.poll(() => page.evaluate(() => document.documentElement.dataset.theme)).toBe("dim");
+  await expect(row).toContainText("지금 딤 · 누르면 다크");
+});
+
+test("입력하면 메뉴 결과가 나오고 누르면 그 화면으로 간다 @regression", async ({ page }) => {
+  await openSearch(page);
+  await page.keyboard.type("숙제");
+  const menu = page.getByRole("group", { name: "메뉴" });
+  await expect(menu.getByRole("option", { name: /숙제 체크/ })).toBeVisible();
+  await menu.getByRole("option", { name: /숙제 체크/ }).click();
+  await expect(page).toHaveURL(/\/tools\/homework$/);
+});
+
+test("이름을 치면 정보 보기 줄과 자동완성이 나오고, ↓ Enter로 고른 캐릭터로 간다 @regression", async ({ page }) => {
+  const box = await openSearch(page);
+  await page.keyboard.type("상");
+  const characters = page.getByRole("group", { name: "캐릭터" });
+  await expect(characters.getByRole("option", { name: /‘상’ 캐릭터 정보 보기/ })).toBeVisible();
+  // 입력 직후 Enter는 늘 하던 대로 '정보 보기'를 가리킨다.
+  const lookup = await box.getAttribute("aria-activedescendant");
+  await expect(page.locator(`[id="${lookup}"]`)).toContainText("정보 보기");
+  const support = characters.getByRole("option", { name: /상세서포터/ });
+  await expect(support).toBeVisible();
+  await expect(support.locator("b")).toHaveText("상");
+  // 정보 보기 → 상세 → 상세서포터
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("ArrowDown");
+  await expect(page.locator(`[id="${await box.getAttribute("aria-activedescendant")}"]`)).toContainText("상세서포터");
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/\/character\/%EC%83%81%EC%84%B8%EC%84%9C%ED%8F%AC%ED%84%B0$/);
+});
+
+for (const width of [1440, 360]) {
+  test(`@A7 ${width}: 자동완성이 늦게 와도 패널 안 줄과 안내가 밀리지 않는다 @regression`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 800 });
+    await watchShifts(page);
+    await page.route("**/api/characters/suggest**", async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 1200));
+      await route.continue();
+    });
+    await openSearch(page);
+    const before = await shiftMark(page);
+    await page.keyboard.type("상");
+    await expect(page.getByRole("option", { name: /상세서포터/ })).toBeVisible();
+    await page.waitForTimeout(400);
+    const moved = await shiftsSince(page, before);
+    expect(moved.all, `입력부터 자동완성이 온 뒤까지 흔들림(누른 직후 포함): ${moved.moved}`).toBe(0);
+  });
+}
+
+test("@A7 빈 칸: 순서는 최근 본 → 인기 → 기능, 인기가 늦게 와도 기능 줄이 밀리지 않는다 @regression", async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem("loakraken:recent", JSON.stringify([{ name: "상세", server: "아만", className: "블래스터", itemLevel: 1780.83, at: Date.now() }]));
+  });
+  await watchShifts(page);
+  await page.route("**/api/characters/popular**", async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 1200));
+    await route.continue();
+  });
+  await openSearch(page);
+  const list = page.getByRole("listbox", { name: "검색 결과" });
+  await expect(list.getByRole("group", { name: "기능" })).toBeVisible();
+  const before = await shiftMark(page);
+  await expect(list.getByRole("group", { name: "실시간 인기 캐릭터" }).getByRole("option").first()).toBeVisible();
+  await page.waitForTimeout(400);
+  const moved = await shiftsSince(page, before);
+  expect(moved.all, `인기가 온 뒤 흔들림(누른 직후 포함): ${moved.moved}`).toBe(0);
+  const order = await list.getByRole("group").evaluateAll((groups) => groups.map((g) => g.getAttribute("aria-labelledby") && document.getElementById(g.getAttribute("aria-labelledby"))?.textContent));
+  expect(order).toEqual(["최근 본 캐릭터", "실시간 인기 캐릭터", "기능"]);
+});
+
+for (const width of [1440, 360]) {
+  test(`@A7 ${width}: 상 → 세 이어 치면 줄이 미끄러지지 않는다(입력 직후 포함) @regression`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 800 });
+    await page.route("**/api/characters/suggest**", async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 700));
+      await route.continue();
+    });
+    await openSearch(page);
+    await page.keyboard.type("상");
+    await expect(page.getByRole("option", { name: /상세서포터/ })).toBeVisible();
+    // Watch the lookup row and the key hints every frame from the next key on.
+    await page.evaluate(() => {
+      window.__ys = [];
+      const t0 = performance.now();
+      const tick = () => {
+        const lookup = [...document.querySelectorAll("[role=option]")].find((o) => o.textContent.includes("정보 보기"));
+        const head = document.querySelector(".rsp-top");
+        window.__ys.push([lookup ? Math.round(lookup.getBoundingClientRect().top) : null, head ? Math.round(head.getBoundingClientRect().top) : null]);
+        if (performance.now() - t0 < 1800) requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    });
+    await page.keyboard.type("세");
+    await expect(page.getByRole("option", { name: /‘상세’ 캐릭터 정보 보기/ })).toBeVisible();
+    await page.waitForTimeout(1900);
+    const ys = await page.evaluate(() => window.__ys);
+    const lookupTops = new Set(ys.map(([y]) => y).filter((y) => y != null));
+    const headTops = new Set(ys.map(([, y]) => y).filter((y) => y != null));
+    expect([...lookupTops], "정보 보기 줄 위치").toHaveLength(1);
+    expect([...headTops], "키 안내 위치").toHaveLength(1);
+  });
+}
+
+test("한글 조합 중(상 → 상ㅅ → 상세)에도 '정보 보기' 줄은 떠났다 돌아오지 않는다 @regression", async ({ page }) => {
+  await openSearch(page);
+  await page.keyboard.type("상");
+  const lookup = page.getByRole("option", { name: /정보 보기/ });
+  await expect(lookup).toBeVisible();
+  await lookup.evaluate((el) => (el.dataset.kept = "1"));
+  // 조합 중간(받침 없는 자음 하나가 붙은 상태)을 그대로 넣어 본다.
+  await page.keyboard.insertText("ㅅ");
+  await expect(page.getByRole("option", { name: /‘상ㅅ’ 캐릭터 정보 보기/ })).toBeVisible();
+  await page.keyboard.press("Backspace");
+  await page.keyboard.insertText("세");
+  await expect(page.getByRole("option", { name: /‘상세’ 캐릭터 정보 보기/ })).toHaveAttribute("data-kept", "1");
+});
+
+for (const width of [1440, 360]) {
+  test(`@A33 ${width}: 결과 패널은 320px, 가운데가 연 입력칸 가운데(좁으면 왼쪽 끝), 화면 밖 0 @regression`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 800 });
+    const box = await openSearch(page);
+    await page.keyboard.type("상");
+    await expect(page.getByRole("listbox", { name: "검색 결과" })).toBeVisible();
+    // 입력칸 알약(.cmd)과 패널 바깥 상자(.rsp)를 같은 순간에 잰다. 여는 움직임과
+    // 글자를 친 뒤 알약 모양이 바뀌는 동안은 값이 흔들리므로, 맞을 때까지 다시 잰다.
+    const measure = () =>
+      box.evaluate((el) => {
+        const pill = el.closest(".cmd").getBoundingClientRect();
+        const panel = document.querySelector(".rsp").getBoundingClientRect();
+        return { pill: { x: pill.x, width: pill.width }, panel: { x: panel.x, width: panel.width } };
+      });
+    await expect
+      .poll(async () => {
+        const { pill, panel } = await measure();
+        const anchor = width >= 390 ? Math.abs(panel.x + panel.width / 2 - (pill.x + pill.width / 2)) : Math.abs(panel.x - pill.x);
+        return Math.max(Math.abs(panel.width - 320), anchor);
+      }, { timeout: 3000 })
+      .toBeLessThanOrEqual(1);
+    const { panel } = await measure();
+    expect(panel.x).toBeGreaterThanOrEqual(0);
+    expect(panel.x + panel.width).toBeLessThanOrEqual(width);
+  });
+}

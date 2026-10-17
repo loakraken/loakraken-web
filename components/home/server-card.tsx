@@ -62,8 +62,12 @@ export function ServerCard() {
                   {row.sampleStatus === "READY" ? (
                     fixed(row.itemLevelMedian)
                   ) : (
-                    // Too few to call a median (user, 11:20): the sample size, dimmed.
-                    <span className={styles.sampleSize}>표본 {whole(row.count)}명</span>
+                    // Under the sample minimum the median still shows, dimmed, as a
+                    // reference value (user 23:50; "-" when the backend has none).
+                    <span className={styles.sampleSize}>
+                      {fixed(row.itemLevelMedian)}
+                      <small>표본 {whole(row.count)}명 · 참고값</small>
+                    </span>
                   )}
                 </td>
               </tr>

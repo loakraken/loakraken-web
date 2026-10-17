@@ -1,5 +1,5 @@
 // Character ranking (F-7, backend #100/#112): rank, top percent and tier of a
-// character among the characters LOAKraken has observed, as LOAWA's ranking
+// character among the characters LOAKraken has observed, as a ranking
 // boxes (item level and combat power × all, server, class).
 import Ajv2020 from "ajv/dist/2020";
 import contract from "../../contracts/rank.openapi.json";
@@ -76,9 +76,13 @@ export function scopesOf(data: CharacterRank) {
   return SCOPES.filter((s) => s.id !== "SERVER_CLASS" || data.entries.some((e) => e.scope === s.id));
 }
 
-/** What the whole panel shows. HIDDEN wins over everything else (backend #112). */
-export function rankState(data: CharacterRank): "hidden" | "excluded" | "ranked" {
-  if (data.rankVisibility !== "VISIBLE") return "hidden";
+/**
+ * What the whole panel shows. "excluded" is the ranking conditions (item
+ * level, activity), not a request. A character on the operators' processing-
+ * stop list gets the same 404 as one with no record (backend #366), so there
+ * is no hidden state any more and the two cannot be told apart.
+ */
+export function rankState(data: CharacterRank): "excluded" | "ranked" {
   return data.included ? "ranked" : "excluded";
 }
 
@@ -92,11 +96,28 @@ export type RankCell =
       top: string | null;
       tier: string | null;
       tierNote: string | null;
+      /** "해구까지 전투력 312.45" (L2); null when there is no next tier. */
+      next: string | null;
     };
 
 const count = (n: number) => n.toLocaleString("ko-KR");
 
 /** One box: a metric within a scope. Collecting never shows 0 or a guess. */
+/**
+ * What is left to the next tier (api #481): its name and the gap in the
+ * ranking's own unit. None at the top tier, under the sample minimum, or when
+ * too few are counted for that tier to have a boundary.
+ */
+export function nextTierText(
+  entry: { nextTier?: string | null; nextTierGap?: number | null },
+  metric: RankMetric,
+) {
+  const next = entry.nextTier && Object.hasOwn(TIER_LABEL, entry.nextTier) ? TIER_LABEL[entry.nextTier] : null;
+  if (!next || entry.nextTierGap == null || !(entry.nextTierGap > 0)) return null;
+  const unit = metric === "ITEM_LEVEL" ? "아이템 레벨" : "전투력";
+  return `${next}까지 ${unit} ${entry.nextTierGap.toLocaleString("ko-KR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
 export function rankCell(data: CharacterRank, metric: RankMetric, scope: RankScope): RankCell {
   const entry = data.entries.find((e) => e.metric === metric && e.scope === scope);
   if (!entry) return { state: "none" };
@@ -111,14 +132,20 @@ export function rankCell(data: CharacterRank, metric: RankMetric, scope: RankSco
         ? null
         : `상위 ${entry.topPercent.toLocaleString("ko-KR", { maximumFractionDigits: 2 })}%`,
     tier: tier && TIER_LABEL[tier],
-    tierNote: tier && `LOAKraken이 확인한 캐릭터 중 상위 ${TIER_PERCENT[tier]}% 이내`,
+    tierNote:
+      tier &&
+      `${METRICS.find((m) => m.id === metric)?.label} 순위에서 상위 ${TIER_PERCENT[tier]}% 이내예요(LOAKraken이 확인한 캐릭터 기준).`,
+    next: nextTierText(entry, metric),
   };
 }
 
-/** Visible legend (the badge title is hover-only): 크라켄 상위 1% · 해구 5% · … */
-export const TIER_LEGEND = Object.entries(TIER_LABEL)
-  .map(([tier, label], i) => `${label} ${i === 0 ? "상위 " : ""}${TIER_PERCENT[tier]}%`)
-  .join(" · ");
+/**
+ * Visible legend: 크라켄 1% · 해구 5% · … 이내. Callers say which ranking the
+ * share is of (user 10-12 asked what "연안 크라켄" meant).
+ */
+export const TIER_LEGEND = `${Object.entries(TIER_LABEL)
+  .map(([tier, label]) => `${label} ${TIER_PERCENT[tier]}%`)
+  .join(" · ")} 이내`;
 
 /** Scope label with its value: 서버 · 루페온, 직업 · 바드, 서버 직업 · 루페온 바드. */
 export function scopeLabel(data: CharacterRank, scope: RankScope) {
@@ -132,4 +159,23 @@ export function conditionsText(data: CharacterRank) {
   const c = data.conditions;
   const level = c.itemLevelMin > 0 ? ` 아이템 레벨 ${count(c.itemLevelMin)} 이상` : "";
   return `LOAKraken이 최근 ${c.activeDays}일 안에 확인한${level} 캐릭터 기준`;
+}
+
+/**
+ * The banner line (§14.1 ⑤): combat power over everyone seen, only when that
+ * box is ready and the character is ranked; otherwise nothing (no 0, no guess).
+ */
+export function bannerRank(data: CharacterRank) {
+  if (rankState(data) !== "ranked") return null;
+  const cell = rankCell(data, "COMBAT_POWER", "ALL");
+  if (cell.state !== "ready") return null;
+  const value = `${cell.rank}${cell.top ? ` · ${cell.top}` : ""}`;
+  return {
+    tier: cell.tier,
+    /** The metric's name, shown apart so a narrow banner can leave it out (the number line above says it). */
+    label: "전투력",
+    value,
+    text: `전투력 ${value}`,
+    note: `${conditionsText(data)} ${cell.total} 순위예요. 공식 순위가 아니에요.`,
+  };
 }

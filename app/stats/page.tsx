@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import { dehydrate, HydrationBoundary, QueryClient } from "@tanstack/react-query";
 import { StatsView } from "@/components/stats/stats-view";
-import { getStats } from "@/lib/stats/server";
-import { parseStatsQuery, type StatsQuery } from "@/lib/stats/model";
+import { getBestCombatPower, getStats } from "@/lib/stats/server";
+import { isTitleStatsEnabled } from "@/lib/tools/flags";
+import { DISTRIBUTION_WIDTH, distributionKey, parseStatsQuery, statsKey, type StatsQuery } from "@/lib/stats/model";
 
 export const metadata: Metadata = {
   title: "통계",
@@ -11,7 +12,7 @@ export const metadata: Metadata = {
   alternates: { canonical: "/stats" },
 };
 
-const TABS = ["classes", "distribution", "servers"] as const;
+const TABS = ["classes", "distribution", "best", "servers", "titles"] as const;
 
 export default async function StatsPage({
   searchParams,
@@ -21,7 +22,9 @@ export default async function StatsPage({
   const raw = await searchParams;
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(raw)) if (typeof value === "string") params.set(key, value);
-  const tab = TABS.find((t) => t === params.get("tab")) ?? "classes";
+  // ?tab=titles only while the title shares are on (TITLE_STATS).
+  const titles = isTitleStatsEnabled();
+  const tab = TABS.filter((t) => titles || t !== "titles").find((t) => t === params.get("tab")) ?? "classes";
   params.delete("tab");
   // Invalid filters in a shared link fall back to the defaults.
   const query: StatsQuery = parseStatsQuery(params) ?? {};
@@ -30,23 +33,31 @@ export default async function StatsPage({
   delete query.percentileOf;
   // The summary cards sit above the tabs: arriving after hydration they pushed
   // the tabs and table down (CLS 0.12 at 390). The summary and the table of a
-  // classes/servers tab come in the first HTML; a slow backend gives up after
+  // classes/servers tab (and the distribution tab's bars) come in the first HTML; a slow backend gives up after
   // 1s and the client fetches as before.
   const deadline = AbortSignal.timeout(1_000);
-  const view = tab === "distribution" ? null : tab;
-  const [summary, table] = await Promise.all([
+  const view = tab === "classes" || tab === "servers" ? tab : null;
+  const [summary, table, best, distribution] = await Promise.all([
     getStats("summary", query, deadline),
     view ? getStats(view, query, deadline) : null,
+    tab === "best" ? getBestCombatPower(query, deadline) : null,
+    // The distribution tab opens on combat power with no value typed.
+    tab === "distribution"
+      ? getStats("distribution", { ...query, metric: "COMBAT_POWER", width: DISTRIBUTION_WIDTH.COMBAT_POWER }, deadline)
+      : null,
   ]);
   // eslint-disable-next-line react-hooks/purity
   const fetchedAt = Date.now();
   const client = new QueryClient();
-  if (summary.ok) client.setQueryData(["stats", "summary", query], summary.envelope, { updatedAt: fetchedAt });
-  if (view && table?.ok) client.setQueryData(["stats", view, query], table.envelope, { updatedAt: fetchedAt });
+  if (summary.ok) client.setQueryData(["stats", "summary", statsKey(query)], summary.envelope, { updatedAt: fetchedAt });
+  if (view && table?.ok) client.setQueryData(["stats", view, statsKey(query)], table.envelope, { updatedAt: fetchedAt });
+  if (best?.ok) client.setQueryData(["stats", "best", statsKey(query)], best.envelope, { updatedAt: fetchedAt });
+  if (distribution?.ok)
+    client.setQueryData(distributionKey(query, "COMBAT_POWER"), distribution.envelope, { updatedAt: fetchedAt });
   // StatsView follows initialTab itself, so a menu link to another tab opens it.
   return (
     <HydrationBoundary state={dehydrate(client)}>
-      <StatsView initial={query} initialTab={tab} />
+      <StatsView initial={query} initialTab={tab} titles={titles} />
     </HydrationBoundary>
   );
 }

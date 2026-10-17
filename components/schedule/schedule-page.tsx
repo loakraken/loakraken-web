@@ -1,10 +1,10 @@
 "use client";
 
-// /schedule: ILOA /calendar (weekly reset, upcoming rounds, categories, hide
-// past, this week's gold islands) with 로아랩 /calendars per-category views.
+// /schedule: weekly reset, upcoming rounds, categories, hide past, this
+// week's gold islands, and per-category views.
 
 import { SiteHeader } from "@/components/site/site-header";
-import { Countdown, MINUTE, useClock, useRemaining } from "@/components/home/clock";
+import { Countdown, useNow, useRemaining } from "@/components/home/clock";
 import home from "@/components/home/home.module.css";
 import { kstDate, kstTime, weekDays } from "@/lib/home/model";
 import { scheduleGroups, schedulePath, upcomingRounds } from "@/lib/home/schedule";
@@ -14,7 +14,7 @@ import styles from "./schedule.module.css";
 
 /** Today's next round per category; only while today's schedule is loaded. */
 function Upcoming({ renderedAt }: { renderedAt?: number }) {
-  const now = useClock(MINUTE) ?? renderedAt ?? null;
+  const now = useNow(renderedAt);
   const data = useSchedule(null).data?.data;
   const { go } = useCategoryNav();
   if (!data || now === null || data.date !== kstDate(now)) return null;
@@ -54,9 +54,9 @@ function Upcoming({ renderedAt }: { renderedAt?: number }) {
   );
 }
 
-/** The week's adventure islands by day, gold days marked (ILOA "이번 주 골드 섬"). */
+/** The week's adventure islands by day, gold days marked ("이번 주 골드 섬"). */
 function WeekIslands({ renderedAt }: { renderedAt?: number }) {
-  const now = useClock(MINUTE) ?? renderedAt ?? null;
+  const now = useNow(renderedAt);
   const data = useSchedule(null).data?.data;
   if (!data?.weekly.length) return null;
   const today = now === null ? null : kstDate(now);
@@ -107,7 +107,7 @@ function WeekIslands({ renderedAt }: { renderedAt?: number }) {
 }
 
 function ResetLine({ renderedAt }: { renderedAt?: number }) {
-  const now = useClock(MINUTE) ?? renderedAt ?? null;
+  const now = useNow(renderedAt);
   // Seconds tick only in the last hour (shared remaining-time rule).
   const left = useRemaining(now === null ? Number.NaN : nextReset(now), now);
   return (

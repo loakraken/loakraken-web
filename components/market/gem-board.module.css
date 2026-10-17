@@ -1,0 +1,106 @@
+/* 보석 시세 (API list #8·#9): level × kind board, then the listings box. */
+.board {
+  table-layout: fixed;
+}
+.board col:first-child,
+.board th[scope="row"] {
+  width: 5.5em;
+}
+.cell {
+  padding: 4px !important;
+}
+.cell button {
+  display: grid;
+  /* Price on its own line (a 360 cell has room for nothing beside it). */
+  grid-template-columns: auto 1fr;
+  grid-template-areas: "price price" "change count";
+  align-items: baseline;
+  gap: 2px 8px;
+  width: 100%;
+  min-height: 48px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  transition:
+    background-color 160ms ease-out,
+    transform 100ms ease-out;
+}
+/* Press feedback (apple-design re-review). */
+.cell button:active {
+  transform: scale(0.97);
+}
+.cell button b {
+  grid-area: price;
+  font-weight: 600;
+}
+.cell button small {
+  font-size: 11px;
+}
+.cell button > small:last-child {
+  grid-area: count;
+  color: var(--muted-foreground);
+  white-space: nowrap;
+}
+.cell button[aria-pressed="true"] {
+  background: var(--hover-surface);
+  box-shadow: inset 0 0 0 2px var(--foreground);
+}
+@media (hover: hover) and (pointer: fine) {
+  .cell button:not([aria-pressed="true"]):hover {
+    background: var(--hover-surface);
+  }
+}
+.pending {
+  display: grid;
+  place-items: center end;
+  min-height: 48px;
+  padding: 0 10px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.change {
+  grid-area: change;
+  font-variant-numeric: tabular-nums; /* on the number itself (see accessory-board) */
+  color: var(--muted-foreground);
+}
+.change[data-direction="up"] {
+  color: var(--gain);
+}
+.change[data-direction="down"] {
+  color: var(--loss);
+}
+.flat {
+  grid-area: change;
+  color: var(--muted-foreground);
+}
+/* One height for every state (before a pick, loading, failed, short list,
+   ten rows), so nothing under it moves when the listings land. */
+.listings {
+  min-height: 560px;
+  margin-top: 28px;
+}
+.listings h2 {
+  margin-bottom: 10px;
+  font-size: 17px;
+  font-weight: 700;
+}
+.listings h2 small {
+  color: var(--muted-foreground);
+  font-size: 13px;
+  font-weight: 500;
+}
+.listings[data-stale] table {
+  opacity: 0.55;
+  transition: opacity 150ms ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cell button,
+  .listings[data-stale] table {
+    transition: none;
+  }
+}
+/* Empty rows that keep a short listings page ten rows tall. */
+.filler td {
+  border-bottom-color: transparent !important;
+}

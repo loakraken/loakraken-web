@@ -1,9 +1,9 @@
 "use client";
 
-import { Fragment, useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
+import { Fragment, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import { ArrowLeft, Gift } from "@/components/ui/icons";
 import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { SiteHeader } from "@/components/site/site-header";
 import { SegmentedControl, SegmentedItem } from "@/components/ui/segmented-control";
 import { MarketQueryError, postMaterialPrices } from "@/lib/market/client";
@@ -17,7 +17,6 @@ import { retryLabel } from "@/lib/api/rate-limit";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { MINUTE, useClock } from "@/components/home/clock";
 import {
-  CHOICE_EXCHANGES,
   EXCHANGES,
   GUARANTEE_EXCHANGES,
   guaranteeRecipe,
@@ -35,70 +34,34 @@ import {
   type MoreRaid,
 } from "@/lib/tools/more-reward";
 import quote from "./material-quote.module.css";
+import { goldText as count, signedGold as signed } from "@/lib/tools/format";
 import styles from "./more-reward.module.css";
 
-type Quantities = Record<string, Partial<Record<string, number>>>;
-
-const STORE_KEY = "loakraken:more-reward:quantities";
-const count = (value: number) => Math.round(value).toLocaleString("ko-KR");
 /** "방금 기준" · "3분 전 기준" from the newest price reading. */
 const agoText = (now: number, iso: string) => {
   const minutes = Math.max(0, Math.floor((now - Date.parse(iso)) / MINUTE));
   return minutes === 0 ? "방금 기준" : `${minutes}분 전 기준`;
 };
 
-/** Decided without quantities: fixed items alone already cover the cost. */
-const certain = (r: GateResult) => !r.hasInput && r.gain >= 0;
-const decided = (r: GateResult) => r.hasInput || certain(r);
-
-const signed = (value: number) =>
-  `${value >= 0 ? "+" : "−"}${Math.abs(Math.round(value)).toLocaleString("ko-KR")}`;
 const unitText = (value: number) =>
   value.toLocaleString("ko-KR", { maximumFractionDigits: value < 1 ? 4 : 2 });
 
-// Per-viewer convenience: quantities typed from the game survive a reload.
-// Read through useSyncExternalStore so the server render (no storage) and the
-// first client render agree.
-const subscribe = () => () => {};
-function readRaw(): string | null {
-  try {
-    return window.localStorage.getItem(STORE_KEY);
-  } catch {
-    return null;
-  }
-}
-function parseStored(raw: string | null): Quantities {
-  try {
-    const value = raw ? JSON.parse(raw) : {};
-    return value && typeof value === "object" && !Array.isArray(value) ? (value as Quantities) : {};
-  } catch {
-    return {};
-  }
-}
-function writeStored(value: Quantities) {
-  try {
-    window.localStorage.setItem(STORE_KEY, JSON.stringify(value));
-  } catch {
-    // Storage may be blocked; the screen works without it.
-  }
-}
 
 function GateDetail({
   title,
   result,
-  quantities,
-  onQuantity,
   boundGold,
   excludeBound,
   note,
+  untradable,
 }: {
   title: string;
   result: GateResult;
-  quantities: Partial<Record<string, number>>;
-  onQuantity: (name: string, value: number) => void;
   boundGold: number | null;
   excludeBound: boolean;
   note: (name: string) => string | null;
+  /** Bound materials the market does not sell: listed, not valued. */
+  untradable: (name: string) => boolean;
 }) {
   return (
     <div className={styles.detail}>
@@ -132,40 +95,18 @@ function GateDetail({
           <li key={line.name}>
             <span>
               {line.name} <b>×{count(line.qty)}</b>
-              {line.entered && <small>직접 입력</small>}
               {note(line.name) && <small>{note(line.name)}</small>}
             </span>
             <span>
-              {line.unit == null ? "값 없음 · 0G" : `1개 ${unitText(line.unit)}G · ${count(line.value)}G`}
+              {line.unit != null
+                ? `1개 ${unitText(line.unit)}G · ${count(line.value)}G`
+                : untradable(line.name)
+                  ? "거래 불가 · 손익에 넣지 않음"
+                  : "값 없음 · 0G"}
             </span>
           </li>
         ))}
       </ul>
-      <fieldset className={styles.inputs}>
-        <legend>재련 재료 수량</legend>
-        <p className={styles.small}>
-          재련 재료 수량은 공식 공개 자료가 없어요. 게임 입장 화면의 &lsquo;관문 정보&rsquo;에서 보이는 더보기
-          수량을 넣어 주세요.
-        </p>
-        <div className={styles.inputGrid}>
-          {INPUT_MATERIALS.map((name) => (
-            <label key={name}>
-              <span>{name}</span>
-              <input
-                type="number"
-                inputMode="numeric"
-                min={0}
-                step={1}
-                placeholder="0"
-                value={quantities[name] ?? ""}
-                onChange={(event) =>
-                  onQuantity(name, Number(event.target.value.replace(/\D/g, "") || 0))
-                }
-              />
-            </label>
-          ))}
-        </div>
-      </fieldset>
     </div>
   );
 }
@@ -177,8 +118,14 @@ function RaidRows({
   setOpen,
   renderDetail,
   bestKey,
+  priced,
+  order,
 }: {
+  /** Raid position, for the entry stagger (capped at 8 steps by .k-reveal). */
+  order: number;
   bestKey: string | null;
+  /** Prices arrived; before that the cells show the cost only. */
+  priced: boolean;
   raid: MoreRaid;
   results: Record<string, GateResult>;
   open: string | null;
@@ -191,7 +138,9 @@ function RaidRows({
         const openGate = mode.gates.find((g) => open === gateKey(raid.id, mode.label, g.gate));
         return (
           <Fragment key={mode.label}>
-            <tr>
+            {/* 모션 목록(더보기): rows enter once on arrival, 30ms apart per raid.
+                Price refreshes keep the rows, so it does not replay. */}
+            <tr className="k-reveal" style={{ "--i": order } as CSSProperties}>
               <th scope="row" className={styles.raid}>
                 {mi === 0 ? raid.name : <span className={styles.sr}>{raid.name}</span>}
               </th>
@@ -207,30 +156,23 @@ function RaidRows({
                       type="button"
                       className={styles.cell}
                       aria-expanded={open === key}
-                      data-gain={decided(r) ? (r.gain >= 0 ? "up" : "down") : "none"}
+                      data-gain={priced ? (r.gain >= 0 ? "up" : "down") : "none"}
                       data-pick={bestKey === key || undefined}
                       onClick={() => setOpen(open === key ? null : key)}
                     >
-                      {decided(r) ? (
+                      {priced ? (
                         <>
                           {bestKey === key && <em className={styles.pick}>추천</em>}
-                          <b>
-                            {certain(r) && <span className={styles.atLeast}>최소 </span>}
-                            {signed(r.gain)}
-                          </b>
+                          <b>{signed(r.gain)}</b>
                           <small>
-                            {r.gain >= 0 ? "누르기" : "넘기기"} ·{" "}
-                            {certain(r)
-                              ? "재련 재료 빼고도 이득"
-                              : r.paid > 0
-                                ? `${(r.value / r.paid).toFixed(2)}배`
-                                : "무료"}
+                            {r.gain >= 0 ? "누르기" : "넘기기"} · {r.paid > 0 ? `${(r.value / r.paid).toFixed(2)}배` : "무료"}
                           </small>
                         </>
                       ) : (
                         <>
-                          <b>수량 확인 중</b>
-                          <small>더보기 {count(r.paid)}G · 재료 입력</small>
+                          {/* Shorter than the verdict text so no row grows when prices arrive. */}
+                          <b>{count(r.paid)}G</b>
+                          <small>더보기 골드</small>
                         </>
                       )}
                     </button>
@@ -253,10 +195,6 @@ function RaidRows({
 export function MoreRewardTool() {
   const [basis, setBasis] = useState<PriceBasis>("RECENT_PRICE");
   const [excludeBound, setExcludeBound] = useState(false);
-  const storedRaw = useSyncExternalStore(subscribe, readRaw, () => null);
-  const stored = useMemo(() => parseStored(storedRaw), [storedRaw]);
-  const [edited, setEdited] = useState<Quantities | null>(null);
-  const quantities = edited ?? stored;
   const [userUnits, setUserUnits] = useState<Record<string, string>>({});
   const [open, setOpen] = useState<string | null>(null);
 
@@ -268,9 +206,14 @@ export function MoreRewardTool() {
     queryFn: ({ signal }) => postMaterialPrices({ priceBasis: basis, names: requested }, signal),
     staleTime: MINUTE,
     refetchInterval: MINUTE,
+    // 사용자 지적 10-12 01:36: switching the basis emptied the data, every
+    // cell changed shape and the list below came and went. The old basis'
+    // table stays, dimmed and marked as loading, until the new one lands.
+    placeholderData: keepPreviousData,
     retry: false,
     refetchOnWindowFocus: false,
   });
+  const switching = prices.isPlaceholderData;
   const now = useClock(MINUTE);
   const limit = useRateLimit(prices.error);
   const priceList: MaterialPrice[] = prices.data?.data.items ?? [];
@@ -315,21 +258,21 @@ export function MoreRewardTool() {
         const key = gateKey(raid.id, mode.label, gate.gate);
         results[key] = gateResult(
           gate,
-          quantities[key] ?? {},
+          {},
           unitValue,
           boundGoldFor(raid.id, mode.label, gate.gate),
           excludeBound,
         );
       }
-  const entered = Object.values(results).filter(decided);
-  const pending = Object.values(results).length - entered.length;
+  const priced = !!prices.data;
+  const all = Object.values(results);
   const best = MORE_DATA.raids
     .flatMap((raid) =>
       raid.modes.flatMap((mode) =>
         mode.gates.map((g) => ({ key: gateKey(raid.id, mode.label, g.gate), title: `${raid.name} ${mode.label} ${g.gate}관문`, r: results[gateKey(raid.id, mode.label, g.gate)] })),
       ),
     )
-    .filter((x) => decided(x.r))
+    .filter(() => priced)
     .sort((a, b) => b.r.gain - a.r.gain)[0];
   const failure =
     prices.error instanceof MarketQueryError
@@ -352,7 +295,10 @@ export function MoreRewardTool() {
           </span>
           <p className={quote.heroKicker}>레이드 · 보상</p>
           <h1 id="more-heading">더보기 손익</h1>
-          <p className={quote.heroCopy}>관문마다 더보기를 누르면 남는지, 지금 시세로.</p>
+          {/* Short enough for one line at 360 in the fallback face too: the longer
+              line wrapped until the web font came and then pulled the page up
+              20px (점검표 A6, 360 CLS 0.0185). */}
+          <p className={quote.heroCopy}>관문마다 더보기가 남는지, 지금 시세로.</p>
           <Link href="/" className={quote.back}>
             <ArrowLeft size={14} aria-hidden="true" /> 홈으로
           </Link>
@@ -364,7 +310,7 @@ export function MoreRewardTool() {
               <h2 id="gates-heading" className={styles.sectionTitle}>
                 관문별 더보기
               </h2>
-              <div className={styles.verdict} aria-live="polite">
+              <div className={styles.verdict} aria-live="polite" aria-busy={switching || undefined} data-stale={switching || undefined}>
                 {/* The failure sits in the card itself, not far below in the side
                     panel (390: y=3210), so nobody waits on a load that ended. */}
                 {failure && (
@@ -392,17 +338,21 @@ export function MoreRewardTool() {
                   </div>
                 )}
                 {!prices.data ? (
-                  !failure && <p role="status">시세를 불러오고 있어요.</p>
-                ) : entered.length === 0 ? (
-                  <p>
-                    고정 품목만으로 이득이 확정된 관문은 없어요. 관문을 눌러 재련 재료 수량을 넣으면 그 관문을
-                    판정해요.
-                  </p>
+                  !failure && (
+                    // Same two lines as the verdict (head + pick), so the table
+                    // below does not move when prices arrive (390 CLS).
+                    <>
+                      <p className={styles.verdictHead} role="status">
+                        시세를 불러오고 있어요.
+                      </p>
+                      <p aria-hidden="true">&nbsp;</p>
+                    </>
+                  )
                 ) : (
                   <>
                     <p className={styles.verdictHead}>
-                      누를 더보기 <b>{entered.filter((r) => r.gain >= 0).length}</b>관문
-                      <span> · 결론 난 {entered.length}관문 중</span>
+                      누를 더보기 <b>{all.filter((r) => r.gain >= 0).length}</b>관문
+                      <span> · 전체 {all.length}관문 중</span>
                     </p>
                     {best && best.r.gain >= 0 ? (
                       <p>
@@ -410,25 +360,48 @@ export function MoreRewardTool() {
                       </p>
                     ) : (
                       <p>
-                        <span className={styles.down} aria-hidden="true">✕ </span>결론 난 관문은 모두 손해예요.
-                      </p>
-                    )}
-                    {pending > 0 && (
-                      <p className={styles.small}>
-                        나머지 {pending}관문은 재련 재료 수량이 확인되지 않아 판정에서 뺐어요(관문을 눌러 수량을 넣으면 판정).
+                        <span className={styles.down} aria-hidden="true">✕ </span>지금 시세로는 모든 관문이 손해예요.
                       </p>
                     )}
                   </>
                 )}
               </div>
               <p className={styles.condition}>
-                {priceBases.find((b) => b.value === basis)?.label} 기준
-                {observedAt && now != null && ` · ${agoText(now, observedAt)}`} · 귀속 골드 제외 {excludeBound ? "켬" : "끔"} ·{" "}
-                <a href="#value-heading">값 매기기 바꾸기</a>
+                {/* The time is last: it arrives after the first paint (the clock is
+                    client-only), and placed earlier it pushed the words after it
+                    onto the next line (PM-프론트 #556, 360 CLS 0.0017). */}
+                {priceBases.find((b) => b.value === basis)?.label} 기준 · 귀속 골드 제외 {excludeBound ? "켬" : "끔"} ·{" "}
+                <a href="#value-heading" className="hit-44">
+                  값 매기기 바꾸기
+                </a>
+                {observedAt && now != null && (
+                  <>
+                    {" "}
+                    <span className={styles.when}>· {agoText(now, observedAt)}</span>
+                  </>
+                )}
               </p>
-              <div className={styles.tableScroll}>
+              <div className={styles.tableArea}>
+              {/* Always laid out, shown by opacity: text arriving would change its
+                  width and slide it. The announcement is a separate line. */}
+              <p className={styles.switchBadge} aria-hidden="true" data-show={switching || undefined}>
+                이 기준으로 다시 불러오고 있어요…
+              </p>
+              <p className={styles.sr} role="status">
+                {switching ? "이 기준으로 다시 불러오고 있어요…" : ""}
+              </p>
+              <div className={styles.tableScroll} aria-busy={switching || undefined} data-stale={switching || undefined}>
                 <table className={styles.table}>
                   <caption className={styles.sr}>레이드·난이도·관문별 더보기 이득</caption>
+                  {/* Fixed columns: widths no longer follow the text, so the web
+                      font arriving late does not slide the gate columns (A6). */}
+                  <colgroup>
+                    <col className={styles.colRaid} />
+                    <col className={styles.colMode} />
+                    <col />
+                    <col />
+                    <col />
+                  </colgroup>
                   <thead>
                     <tr>
                       <th scope="col">레이드</th>
@@ -439,32 +412,26 @@ export function MoreRewardTool() {
                     </tr>
                   </thead>
                   <tbody>
-                    {MORE_DATA.raids.map((raid) => (
+                    {MORE_DATA.raids.map((raid, order) => (
                       <RaidRows
+                        order={order}
                         key={raid.id}
                         raid={raid}
                         results={results}
                         open={open}
                         setOpen={setOpen}
                         bestKey={best && best.r.gain >= 0 ? best.key : null}
+                        priced={priced}
                         renderDetail={(r, label, gate) => {
                           const key = gateKey(r.id, label, gate.gate);
                           return (
                             <GateDetail
                               title={`${r.name} ${label} ${gate.gate}관문`}
                               result={results[key]}
-                              quantities={quantities[key] ?? {}}
                               boundGold={boundGoldFor(r.id, label, gate.gate)}
                               excludeBound={excludeBound}
                               note={exchangeNote}
-                              onQuantity={(name, value) => {
-                                const next = {
-                                  ...quantities,
-                                  [key]: { ...quantities[key], [name]: value },
-                                };
-                                setEdited(next);
-                                writeStored(next);
-                              }}
+                              untradable={(name) => unpricedNames.includes(name)}
                             />
                           );
                         }}
@@ -473,10 +440,9 @@ export function MoreRewardTool() {
                   </tbody>
                 </table>
               </div>
+              </div>
               <p className={styles.small}>
-                이득 = 받는 재료 가치 − 더보기 골드. 더보기 골드는 공식 공지 또는 실측 출처 2곳이 같은 값, 고정 품목은
-                실측 출처 2곳이 같은 수량만 넣었어요(확인 {MORE_DATA.checkedAt}). &ldquo;최소&rdquo;는 재련 재료를 빼고
-                고정 품목만으로 매긴 하한이에요.
+                이득 = 받는 재료 가치 − 더보기 골드. 거래소에서 사고팔 수 없는 재료는 손익에 넣지 않아요.
               </p>
             </section>
 
@@ -485,8 +451,11 @@ export function MoreRewardTool() {
                 재료 값 매기기
               </h2>
               <p className={styles.small}>
-                거래소 {priceBases.find((b) => b.value === basis)?.label} 기준으로 자동으로 매기고 1분마다 새로 불러와요
-                {observedAt && now != null && ` · ${agoText(now, observedAt)}`}.
+                거래소 {priceBases.find((b) => b.value === basis)?.label} 기준으로 자동으로 매기고 1분마다 새로 불러와요.
+                {/* Its own line, held from the first paint: the time arrives after
+                    it (client clock) and inside the sentence it moved the full
+                    stop (PM-프론트 #556, 1280 CLS 0.0001). */}
+                <span className={styles.agoLine}>{observedAt && now != null ? agoText(now, observedAt) : ""}</span>
               </p>
               <details className={styles.advanced}>
                 <summary>고급 설정</summary>
@@ -542,42 +511,15 @@ export function MoreRewardTool() {
                   </fieldset>
                 )}
               </details>
-              {unpricedNames.length > 0 && (
-                <fieldset className={styles.inputs}>
-                  <legend>시세가 없는 재료</legend>
-                  <p className={styles.small}>거래소에 없는 재료는 1개 값을 직접 넣어 주세요. 넣지 않으면 0G예요.</p>
-                  {unpricedNames.some((n) => (CHOICE_EXCHANGES as readonly string[]).includes(n)) && (
-                    <p className={styles.small}>
-                      죽음의 손·사령의 잔영은 결과 확률이 공개되지 않은 주머니로 바뀌고, 어떤 재료가 어떤 주머니가
-                      되는지 아직 확인 중이라 자동으로 값을 매기지 않아요.
-                    </p>
-                  )}
-                  <div className={styles.inputGrid}>
-                    {unpricedNames.map((name) => (
-                      <label key={name}>
-                        <span>{name}</span>
-                        <input
-                          type="number"
-                          inputMode="decimal"
-                          min={0}
-                          placeholder="0"
-                          value={userUnits[name] ?? ""}
-                          onChange={(event) =>
-                            setUserUnits((prev) => ({ ...prev, [name]: event.target.value.replace(/[^\d.]/g, "") }))
-                          }
-                        />
-                      </label>
-                    ))}
-                  </div>
-                </fieldset>
-              )}
+              {/* 사용자 지적 10-12 01:36: no input for bound materials (a typed
+                  value only moved the result); they are marked in each gate. */}
 
             </aside>
           </div>
         </div>
       </main>
       <footer className={quote.footer}>
-        LOAKraken · 로스트아크 비공식 팬 프로젝트 · 공식 공지·거래소 시세 기반 계산
+        LOAKraken · 공식 공지·거래소 시세 기반 계산
       </footer>
     </div>
   );

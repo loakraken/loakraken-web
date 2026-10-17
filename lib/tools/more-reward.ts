@@ -1,7 +1,7 @@
 // "더보기" (bonus reward) profit per raid gate: what the bonus box is worth
 // at market prices minus the gold it costs. Data in data/more-reward.json
-// holds only sure values (official notice 13307, or two target sites with the
-// same number); refining material quantities are not public and come from
+// holds only sure values (official notice 13307, or two independent measurements
+// with the same number); refining material quantities are not public and come from
 // the user (PM 총괄 2026-10-10 결정 ②).
 import raw from "./data/more-reward.json";
 import { RAID_DATA, type Difficulty } from "./raid-rewards";
@@ -145,8 +145,6 @@ export function marketNames(data: MoreData = MORE_DATA) {
   const exchangeOnly = new Set<string>([
     ...Object.keys(EXCHANGES),
     ...Object.keys(GUARANTEE_EXCHANGES),
-    ...CHOICE_EXCHANGES,
-    "사령의 잔영",
   ]);
   return priceNames(data).filter((name) => !exchangeOnly.has(name));
 }
@@ -171,7 +169,7 @@ export function checkMoreData(data: MoreData = MORE_DATA): string[] {
  * Bound exchange materials valued through what they trade into. Only fixed
  * recipes are here: 은총의 파편 ×60 → 지평의 재련 재료 상자 with fixed
  * contents (user's 제작소 capture, 계산 검증 2026-10-10 18:12; matches
- * 일로아 497.33 at the same prices). 고통의 가시·죽음의 손·사령의 잔영 trade into
+ * 497.33 at the same prices, 계산 검증). 고통의 가시·죽음의 손·사령의 잔영 trade into
  * pouches with a choice whose odds are not published, so they stay user input.
  */
 export const EXCHANGES: Record<string, { per: number; into: string; contents: MoreItem[] }> = {
@@ -192,8 +190,10 @@ export const EXCHANGES: Record<string, { per: number; into: string; contents: Mo
  * odds. Valued at the **minimum guarantee** (사용자 23:27, 계산 검증 23:33):
  * each recipe is worth at least its cheapest result, and the user picks the
  * better recipe, so the item is worth max over recipes of that minimum ÷ per.
- * No made-up odds. 죽음의 손·사령의 잔영 wait for the workshop capture (which
- * material makes which pouch, and the box contents), so they stay user input.
+ * No made-up odds. 사령의 잔영 ×20 or 죽음의 손 ×10 make the 사령 pouch (two
+ * sources, 계산 검증 10-11 00:09); the 사령 box contents have one source only,
+ * so that recipe is left out — a single-source result could only raise the
+ * value, never prove it.
  */
 export const GUARANTEE_EXCHANGES: Record<string, { per: number; recipes: { into: string; results: MoreItem[] }[] }> = {
   "고통의 가시": {
@@ -217,10 +217,31 @@ export const GUARANTEE_EXCHANGES: Record<string, { per: number; recipes: { into:
       },
     ],
   },
+  "사령의 잔영": {
+    per: 20,
+    recipes: [
+      {
+        into: "사령의 재련 보조 재료 주머니",
+        results: [
+          { name: "용암의 숨결", qty: 5 },
+          { name: "빙하의 숨결", qty: 15 },
+        ],
+      },
+    ],
+  },
+  "죽음의 손": {
+    per: 10,
+    recipes: [
+      {
+        into: "사령의 재련 보조 재료 주머니",
+        results: [
+          { name: "용암의 숨결", qty: 5 },
+          { name: "빙하의 숨결", qty: 15 },
+        ],
+      },
+    ],
+  },
 };
-
-/** Exchange items whose recipe has a choice with unpublished odds and no value yet. */
-export const CHOICE_EXCHANGES = ["죽음의 손", "사령의 잔영"] as const;
 
 /**
  * Minimum guaranteed gold per item. A recipe with an unpriced result cannot

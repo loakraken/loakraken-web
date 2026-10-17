@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Tabs } from "@base-ui/react/tabs";
+import { PillTab, PillTabs, PillTabsPanel } from "@/components/ui/pill-tabs";
 import { AnimatePresence, m } from "motion/react";
 import { ChevronRight, Diamonds, ExportCircle, FlashCircle, MessageQuestion, TickCircle } from "@/components/ui/icons";
 import { GameIcon } from "@/components/character/imagery";
@@ -42,19 +42,16 @@ export function CharacterCockpit() {
           </div>
           <div className={styles.itemLevel}><span>아이템 레벨</span><strong>{Number(whole).toLocaleString("ko-KR")}<span>.{fraction}</span></strong></div>
         </div>
-        <Tabs.Root value={tab} onValueChange={(value) => setTab(value as string)}>
-          <Tabs.List className={styles.cockpitTabs} aria-label="캐릭터 미리보기 영역" data-keyboard={keyboard}
-            onKeyDownCapture={() => setKeyboard(true)} onPointerDownCapture={() => setKeyboard(false)}>
-            <Tabs.Tab className={styles.cockpitTab} value="overview">종합</Tabs.Tab>
-            <Tabs.Tab className={styles.cockpitTab} value="equipment">장비·보석</Tabs.Tab>
-            <Tabs.Indicator className={styles.tabIndicator} />
-          </Tabs.List>
+        <PillTabs aria-label="캐릭터 미리보기 영역" value={tab} onValueChange={(value) => setTab(value as string)}
+          listClassName={styles.cockpitTabs}
+          onKeyDownCapture={() => setKeyboard(true)} onPointerDownCapture={() => setKeyboard(false)}
+          panels={
           <div className={styles.panelSpace}>
             <AnimatePresence mode="wait" initial={false}>
               <m.div key={tab} initial={enabled && !keyboard ? { opacity: 0, transform: "translateY(6px)" } : false}
                 animate={{ opacity: 1, transform: "translateY(0px)" }} exit={{ opacity: 0 }}
                 transition={{ duration: enabled && !keyboard ? 0.18 : 0 }}>
-                <Tabs.Panel value={tab} className={styles.cockpitPanel}>
+                <PillTabsPanel value={tab} className={styles.cockpitPanel}>
                   {tab === "overview" ? <>
                     <div className={styles.equipmentOverview}>
                       <div className={styles.cardHeading}><span>성장의 기반</span><FlashCircle size={15} /></div>
@@ -103,11 +100,15 @@ export function CharacterCockpit() {
                       <p className={styles.gemNote}><span className={styles.diagnosticLabel}><span /> 예시 점검</span> 9레벨 {belowMaxGems.length}개를 10레벨로 바꾸면 보석 평균이 10.0이 됩니다.</p>
                     </div>
                   </div>}
-                </Tabs.Panel>
+                </PillTabsPanel>
               </m.div>
             </AnimatePresence>
           </div>
-        </Tabs.Root>
+          }
+        >
+          <PillTab value="overview">종합</PillTab>
+          <PillTab value="equipment">장비·보석</PillTab>
+        </PillTabs>
       </div>
       <div className={styles.cockpitFooter}><span><i /> 디자인 미리보기</span><span>실제 캐릭터 정보가 아닙니다</span></div>
     </div>

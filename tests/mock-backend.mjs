@@ -1,6 +1,7 @@
 // Local synthetic backend only. This process never accesses Lost Ark.
 import { createServer } from "node:http";
 import { readFileSync } from "node:fs";
+import { randomBytes, randomUUID } from "node:crypto";
 const failures = new Map();
 const receiptCalls = new Map();
 
@@ -12,13 +13,44 @@ const counts = {};
 
 // Synthetic accessory, bracelet and stone for the simulator screen (web #365
 // follow-up): polish/bracelet lines with tooltip grades and stone engravings.
+/** The spec-up sample's own gains, so "적용해 보기" shows the same number as its row. */
+const specUpDelta = (change) =>
+  change.kind === "GEM_LEVEL" && change.slot === 1
+    ? { 9: 24, 10: 48.07 }[change.level] ?? null
+    : change.kind === "EQUIPMENT_QUALITY" && change.index === 0 && change.quality === 100
+      ? 90.33
+      : null;
+
+/** The synthetic glove: an armour quality change the backend scores as ±0. */
+const armourQuality = (search, change) =>
+  change.kind === "EQUIPMENT_QUALITY" && search.loadout.equipment[change.index]?.type === "장갑";
+
 function withSimulatorGear(data) {
   const base = data.loadout.equipment.find((item) => item.detail);
+  // Advanced refining on the armour piece (search advancedRefineLevel, backend #234).
+  base.detail = { ...base.detail, advancedRefineLevel: 10 };
+  // Matches the backend spec-up sample (#318): a weapon at quality 90 and a
+  // second gem at level 8 in slot 1, so every sample candidate applies.
+  const weapon = data.loadout.equipment.find((item) => item.type === "무기");
+  if (weapon)
+    weapon.detail = {
+      ...base.detail,
+      advancedRefineLevel: null,
+      effects: [],
+      stoneEngravings: [],
+      polishEffects: [],
+      braceletEffects: [],
+      ...(weapon.detail ?? {}),
+      refineLevel: 20,
+      quality: 90,
+    };
+  const gems = data.loadout.gems?.items;
+  if (gems?.length === 1) gems.push({ ...gems[0], slot: 1, level: 8, name: "테스트 보석 2" });
   const make = (type, name, detail) => ({
     ...base,
     type,
     name,
-    detail: { ...base.detail, refineLevel: null, quality: null, effects: [], stoneEngravings: [], polishEffects: [], braceletEffects: [], ...detail },
+    detail: { ...base.detail, refineLevel: null, advancedRefineLevel: null, quality: null, effects: [], stoneEngravings: [], polishEffects: [], braceletEffects: [], ...detail },
   });
   data.loadout.equipment.push(
     make("목걸이", "테스트 목걸이", {
@@ -34,6 +66,12 @@ function withSimulatorGear(data) {
         { text: "치명타 피해 +6.80%", grade: "MID" },
       ],
     }),
+    // 방어구 품질은 생명 활성력만 올려 딜러 전투력이 그대로(계산 검증 10-12): ±0과 이유.
+    make("장갑", "테스트 장갑", { refineLevel: 18, quality: 95 }),
+    // 전율 armour: no advanced refining at all (backend refine model, PM-프론트 P1).
+    make("상의", "+20 전율의 상의", { refineLevel: 20, quality: 95, advancedRefineLevel: 0 }),
+    // 팔 보호구(backend #342): type "완갑", step = refineLevel, grade on the item.
+    { ...make("완갑", "+13 전율 완갑", { refineLevel: 13 }), grade: "유물" },
     make("어빌리티 스톤", "테스트 스톤", {
       stoneEngravings: [
         { name: "원한", level: 1 },
@@ -112,6 +150,43 @@ async function market(url, req, send) {
     if (sort === "fall") items.sort((a, b) => a.changeDay - b.changeDay);
     const tier = url.searchParams.get("tier") ? Number(url.searchParams.get("tier")) : def.defaultTier;
     return send({ code: "MARKET_BOARD_SUCCESS", message: "성공", data: { ruleVersion: "market-board-v1", changeBasis: "changeDay = 현재 최저가 ÷ 전일 평균가 − 1 (합성 목 데이터)", tab, tabLabel: def.label, tier, sort, page, pageSize: 10, observedAt: new Date(Date.now() - 60000).toISOString(), totalItems: items.length, scannedItems: items.length, complete: true, items: items.slice((page - 1) * 10, page * 10) } });
+  }
+  // Minute prices (api #484, K35): the two fusion materials are fetched about
+  // every 30 seconds (minutes 20~22 unseen, minute 40 without listings), the
+  // other refining materials every 10 minutes, anything else not at all.
+  const minuteMatch = /^\/api\/v1\/markets\/items\/(\d+)\/minutes$/.exec(url.pathname);
+  if (minuteMatch) {
+    const itemId = Number(minuteMatch[1]);
+    const window = Number(url.searchParams.get("minutes") ?? 60);
+    if (!(window >= 1 && window <= 120)) return send({ code: "INVALID_REQUEST" }, 400);
+    const now = Math.floor(Date.now() / 60000) * 60000;
+    const from = now - (window - 1) * 60000;
+    const fast = itemId === 6861012 || itemId === 6861013;
+    const refining = boardItems("REFINING").some((item) => item.itemId === itemId);
+    const every = fast ? 30 : refining ? 600 : null;
+    const base = 50 + (itemId % 400);
+    const points = every
+      ? Array.from({ length: window }, (_, i) => i)
+          .filter((i) => (fast ? i < 20 || i > 22 : i % 10 === 0))
+          .map((i) => ({
+            minute: new Date(from + i * 60000).toISOString(),
+            currentMinPrice: fast && i === 40 ? null : Math.round(base * (1 + Math.sin(itemId + i / 6) * 0.03) * 10) / 10,
+            recentPrice: Math.round(base * (1 + Math.cos(itemId + i / 6) * 0.03) * 10) / 10,
+          }))
+      : [];
+    return send({
+      code: "MARKET_ITEM_MINUTES_SUCCESS",
+      message: "성공",
+      data: {
+        itemId,
+        itemName: every ? (boardItems("REFINING").find((item) => item.itemId === itemId)?.name ?? null) : null,
+        intervalSeconds: 60,
+        sampleEverySeconds: every,
+        from: new Date(from).toISOString(),
+        to: new Date(now).toISOString(),
+        points,
+      },
+    });
   }
   const historyMatch = /^\/api\/v1\/markets\/items\/(\d+)\/history$/.exec(url.pathname);
   if (historyMatch) {
@@ -207,6 +282,23 @@ async function market(url, req, send) {
       "위대한 운명의 돌파석": [1, 33],
       // 고통의 가시 최소 보장 가치(재료 상자 쪽 결과 중 하나).
       "운명의 파편 주머니(대)": [1, 232],
+      // 로아샵 효율: 한 패키지(전투 지원)는 구성품 시세가 모두 있고, 성장 패키지는 용암의 숨결이 없어 미확인.
+      "상급 아비도스 융화 재료": [1, 271],
+      "빛나는 정령의 회복약": [1, 30],
+      "빛나는 암흑 수류탄": [1, 25],
+      "빛나는 성스러운 폭탄": [1, 28],
+      "아드로핀 물약": [1, 15],
+      "각성 물약": [1, 12],
+      // 아비도스 제작 손익: 벌목·채광·수렵·고고학·식물채집 재료와 결과물. 낚시의 "생선"은 없어 미확인.
+      "아비도스 융화 재료": [1, 90],
+      "아비도스 목재": [100, 1000], "부드러운 목재": [100, 400], "목재": [100, 100],
+      "아비도스 철광석": [100, 1100], "묵직한 철광석": [100, 420], "철광석": [100, 90],
+      "아비도스 두툼한 생고기": [100, 1050], "다듬은 생고기": [100, 380], "두툼한 생고기": [100, 95],
+      "아비도스 태양 잉어": [100, 980], "붉은 살 생선": [100, 390],
+      "아비도스 유물": [100, 1200], "희귀한 유물": [100, 450], "고대 유물": [100, 110],
+      "아비도스 들꽃": [100, 950], "수줍은 들꽃": [100, 360], "들꽃": [100, 80],
+      // 생명의 기운 효율: 특별 등급(낚시는 없음). 낚시의 "생선"이 없어 낚시는 미확인.
+      "튼튼한 목재": [100, 600], "단단한 철광석": [100, 650], "진귀한 가죽": [100, 20], "진귀한 유물": [100, 15], "화사한 들꽃": [100, 300],
     };
     const observedAt = nowIso();
     const items = [...new Set(request.names.map((n) => n.trim()))].map((name) => {
@@ -214,6 +306,9 @@ async function market(url, req, send) {
       if (name === "운명의 파편")
         return { ...empty, status: "PRICED", unitPriceGold: 0.077333, sourceItemName: "운명의 파편 주머니(대)", bundleCount: 1, bundlePrice: 232, contentsPerItem: 3000 };
       if (name === "용암의 숨결") return { ...empty, status: "PRICE_UNAVAILABLE", sourceItemName: name, bundleCount: 1 };
+      // 로아샵: 공식 거래소에서 사고팔 수 없는 품목(백엔드 UNTRADEABLE, 검색하지 않음).
+      if (["고급 생명의 기운 회복물약", "중급 생명의 기운 회복물약", "환희의 전설 카드 팩", "환희의 전설~영웅 카드 팩"].includes(name))
+        return { ...empty, status: "UNTRADEABLE" };
       const row = table[name];
       if (!row) return { ...empty, status: "NOT_FOUND" };
       const [bundleCount, bundlePrice] = row;
@@ -278,6 +373,83 @@ function refiningPlan(request) {
     },
   };
 }
+// Price alerts (M33, api #482): anonymous subscriptions kept in memory. An
+// endpoint outside the push services is refused like the backend does; one
+// containing "undelivered" plays a browser whose push service refuses the
+// confirmation. The key is a placeholder (e2e stubs PushManager.subscribe).
+const ALERT_PUSH_HOSTS = /^https:\/\/(fcm\.googleapis\.com|updates\.push\.services\.mozilla\.com|web\.push\.apple\.com|[a-z0-9-]+\.notify\.windows\.com)\//;
+const alertItems = () => [
+  { itemId: 6861012, itemName: "아비도스 융화 재료", currentMinPrice: 95, observedAt: new Date(Date.now() - 30_000).toISOString() },
+  { itemId: 6861013, itemName: "상급 아비도스 융화 재료", currentMinPrice: 130, observedAt: new Date(Date.now() - 30_000).toISOString() },
+  { itemId: 66102006, itemName: "운명의 파괴석", currentMinPrice: 171, observedAt: new Date(Date.now() - 600_000).toISOString() },
+];
+const alertSubscriptions = new Map();
+async function alerts(req, url, send) {
+  const ok = (data) => send({ code: "ALERT_SUCCESS", message: "시세 알림 요청에 성공했습니다.", data });
+  const fail = (code, status) => send({ code, message: "private" }, status);
+  const readBody = async () => {
+    let body = "";
+    for await (const chunk of req) body += chunk;
+    try {
+      return JSON.parse(body || "null");
+    } catch {
+      return null;
+    }
+  };
+  if (url.pathname === "/api/v1/alerts/vapid-public-key" && req.method === "GET")
+    return ok({ publicKey: Buffer.concat([Buffer.from([4]), Buffer.alloc(64, 7)]).toString("base64url") });
+  if (url.pathname === "/api/v1/alerts/items" && req.method === "GET") return ok(alertItems());
+  if (url.pathname === "/api/v1/alerts/subscriptions" && req.method === "POST") {
+    const body = await readBody();
+    if (!body?.endpoint || !ALERT_PUSH_HOSTS.test(body.endpoint) || !body.keys?.p256dh || !body.keys?.auth)
+      return fail("ALERT_INVALID_SUBSCRIPTION", 400);
+    if (body.endpoint.includes("undelivered")) return fail("ALERT_PUSH_NOT_DELIVERED", 400);
+    // Same endpoint again: same subscription, new token, old conditions gone.
+    const previous = [...alertSubscriptions.entries()].find(([, s]) => s.endpoint === body.endpoint);
+    const subscriptionId = previous?.[0] ?? randomUUID();
+    const manageToken = randomBytes(32).toString("base64url");
+    alertSubscriptions.set(subscriptionId, { endpoint: body.endpoint, token: manageToken, conditions: [] });
+    return ok({ subscriptionId, manageToken });
+  }
+  const match = /^\/api\/v1\/alerts\/subscriptions\/([^/]+)(\/conditions(?:\/([^/]+))?)?$/.exec(url.pathname);
+  if (!match) return fail("NOT_FOUND", 404);
+  const subscription = alertSubscriptions.get(match[1]);
+  if (!subscription || req.headers["x-alert-token"] !== subscription.token) return fail("ALERT_SUBSCRIPTION_NOT_FOUND", 404);
+  const view = (condition) => {
+    const item = alertItems().find((i) => i.itemId === condition.itemId);
+    const matchedNow =
+      condition.comparator === "AT_OR_BELOW" ? item.currentMinPrice <= condition.price : item.currentMinPrice >= condition.price;
+    return { ...condition, itemName: item.itemName, matchedNow, currentMinPrice: item.currentMinPrice, observedAt: item.observedAt };
+  };
+  if (!match[2] && req.method === "DELETE") {
+    alertSubscriptions.delete(match[1]);
+    return ok(null);
+  }
+  if (match[2] && !match[3] && req.method === "GET") return ok(subscription.conditions.map(view));
+  if (match[2] && !match[3] && req.method === "POST") {
+    const body = await readBody();
+    if (!body || !["AT_OR_BELOW", "AT_OR_ABOVE"].includes(body.comparator) || !(body.price >= 0.01))
+      return fail("INVALID_REQUEST", 400);
+    if (!alertItems().some((i) => i.itemId === body.itemId)) return fail("ALERT_ITEM_NOT_ALERTABLE", 400);
+    if (subscription.conditions.length >= 10) return fail("ALERT_TOO_MANY_CONDITIONS", 400);
+    const condition = {
+      conditionId: randomUUID(),
+      itemId: body.itemId,
+      comparator: body.comparator,
+      price: body.price,
+      lastSentAt: null,
+      createdAt: new Date().toISOString(),
+    };
+    subscription.conditions.push(condition);
+    return ok(view(condition));
+  }
+  if (match[3] && req.method === "DELETE") {
+    const before = subscription.conditions.length;
+    subscription.conditions = subscription.conditions.filter((c) => c.conditionId !== match[3]);
+    return subscription.conditions.length < before ? ok(null) : fail("ALERT_CONDITION_NOT_FOUND", 404);
+  }
+  return fail("INVALID_REQUEST", 405);
+}
 const port = Number(process.env.MOCK_PORT || 4180);
 createServer(async (req, res) => {
   const url = new URL(req.url, `http://127.0.0.1:${port}`);
@@ -293,6 +465,7 @@ createServer(async (req, res) => {
     res.end(JSON.stringify(body));
   };
   if (url.pathname === "/__counts") return send(counts);
+  if (url.pathname.startsWith("/api/v1/alerts/")) return alerts(req, url, send);
   // Planned failures (QA, PM-프론트 #236 follow-up): the next N backend requests
   // to a path answer with an error, whether the web server (prefetch) or the
   // browser (through the proxy) makes them. Arm:
@@ -325,6 +498,156 @@ createServer(async (req, res) => {
     const code = planned.code ?? (planned.status === 429 ? "LOST_ARK_RATE_LIMITED" : planned.status === 503 ? "CHARACTER_CACHE_UNAVAILABLE" : "LOST_ARK_API_ERROR");
     return send({ code, message: "planned failure" }, planned.status, planned.status === 429 ? { "Retry-After": "30" } : {});
   }
+  // T4 악세 경매 검색기 (N13, backend #431). Synthetic listings (not game data):
+  // page 1 of a main-stat range search is partial (complete false, nextPage 2),
+  // one listing is bid-only (buyPrice null), one cannot be traded again; minQuality
+  // 99 answers 503 MARKET_SEARCH_BUSY with Retry-After.
+  if (url.pathname === "/api/v1/markets/auctions/accessories/search" && req.method === "POST") {
+    counts.accessorySearch = (counts.accessorySearch || 0) + 1;
+    let body = "";
+    for await (const chunk of req) body += chunk;
+    const request = JSON.parse(body);
+    if (request.minQuality === 99) {
+      return send({ code: "MARKET_SEARCH_BUSY", message: "검색이 몰리고 있습니다.", data: null }, 503, { "Retry-After": "30" });
+    }
+    const page = request.page ?? 1;
+    const ranged = request.mainStatRangeMinPct != null;
+    const polishLine = (name, option, shortName, value, level) => ({ name, option, shortName, value, percentage: true, level });
+    const listing = (i, extra = {}) => ({
+      name: `테스트 장신구 ${page}-${i}`,
+      grade: "고대",
+      quality: 90 - i,
+      polish: [
+        polishLine("적에게 주는 피해 증가", "ENEMY_DAMAGE", "적주피", 2.0, "HIGH"),
+        polishLine("추가 피해", "ADDITIONAL_DAMAGE", "추피", 1.6, "MID"),
+        { name: "최대 생명력", option: null, shortName: null, value: 3250, percentage: false, level: null },
+      ],
+      polishStage: 3,
+      enlightenment: 13,
+      mainStat: 17000 - i * 100,
+      mainStatRangePct: 68.5 - i,
+      tradeAllowCount: 2,
+      buyPrice: 1_200_000 + page * 100_000 + i * 50_000,
+      bidStartPrice: 900_000,
+      endDate: "2026-10-14T12:00:00Z",
+      ...extra,
+    });
+    const items = [
+      listing(1),
+      listing(2, { buyPrice: null }),
+      listing(3, { tradeAllowCount: 0 }),
+    ];
+    return send({
+      code: "AUCTION_SEARCH_SUCCESS",
+      message: "장신구 경매 검색에 성공했습니다.",
+      data: {
+        ruleVersion: "accessory-search-v1",
+        totalCount: 245,
+        page,
+        observedAt: "2026-10-12T03:00:00Z",
+        cached: false,
+        complete: !ranged || page > 1,
+        scannedPages: ranged ? 3 : 1,
+        nextPage: ranged && page === 1 ? 4 : null,
+        items,
+      },
+    });
+  }
+  // T4 gem auction board and listings (api #139): synthetic prices; 작열 1레벨
+  // is still PENDING (blank cell), 겁화 10레벨 has listings over two pages.
+  if (url.pathname === "/api/v1/markets/auctions/gems") {
+    const observedAt = new Date(Date.now() - 4 * 60_000).toISOString();
+    const cells = ["겁화", "작열"].flatMap((kind) =>
+      [10, 9, 8, 7, 6, 5, 4, 3, 2, 1].map((level) => {
+        const pending = kind === "작열" && level === 1;
+        const price = Math.round((kind === "겁화" ? 2.4 : 1.1) * 3 ** (level - 1) * 40);
+        return {
+          kind, level, itemName: `${level}레벨 ${kind}의 보석`,
+          minBuyPrice: pending ? null : price,
+          totalCount: pending ? null : 30 + level * 7,
+          previousDayChangeRate: pending ? null : level % 3 === 0 ? -2.5 : level % 3 === 1 ? 4 : 0,
+          observedAt: pending ? null : observedAt,
+          status: pending ? "PENDING" : "READY",
+        };
+      }),
+    );
+    return send({ code: "AUCTION_GEMS_SUCCESS", message: "ok", data: { ruleVersion: "auction-board-v1", complete: false, cells } });
+  }
+  if (url.pathname === "/api/v1/markets/auctions/gems/listings") {
+    const kind = url.searchParams.get("kind");
+    const level = Number(url.searchParams.get("level"));
+    const page = Number(url.searchParams.get("page") ?? 1);
+    const total = kind === "겁화" && level === 10 ? 14 : 3;
+    const start = (page - 1) * 10;
+    const items = Array.from({ length: Math.max(0, Math.min(10, total - start)) }, (_, i) => ({
+      name: `${level}레벨 ${kind}의 보석`,
+      grade: "고대",
+      quality: null,
+      buyPrice: 1000 * (start + i + 1) + 250_000,
+      bidPrice: 0,
+      bidStartPrice: 200_000,
+      endDate: new Date(Date.now() + (start + i + 1) * 3_600_000).toISOString(),
+      tradeAllowCount: i % 4 === 3 ? 0 : 2,
+      options: [{ type: "GEM_SKILL_DAMAGE", name: "합성 스킬", value: 44, percentage: true, level: null, className: i % 2 ? "바드" : "블래스터" }],
+    }));
+    return send({ code: "AUCTION_LISTINGS_SUCCESS", message: "ok", data: { totalCount: total, page, observedAt: new Date().toISOString(), items } });
+  }
+  // T4 accessory auction board and listings (api #139): synthetic prices by
+  // key polish grade combinations; the ring's 하중 cell is still PENDING.
+  if (url.pathname === "/api/v1/markets/auctions/accessories") {
+    const role = url.searchParams.get("role") ?? "DEALER";
+    const grade = url.searchParams.get("grade") ?? "ANCIENT";
+    const minQuality = Number(url.searchParams.get("minQuality") ?? 70);
+    const opt = (key, shortName) => ({ key, officialName: `${shortName} 증가`, shortName, values: [0.55, 1.2, 2] });
+    const options = role === "SUPPORT"
+      ? { NECKLACE: [opt("BRAND", "낙인력"), opt("IDENTITY", "아덴")], EARRING: [opt("WEAPON_ATTACK_PCT", "무공%")], RING: [opt("ALLY_ATTACK", "아공강"), opt("ALLY_DAMAGE", "아피강")] }
+      : { NECKLACE: [opt("ENEMY_DAMAGE", "적주피"), opt("ADDITIONAL_DAMAGE", "추피")], EARRING: [opt("WEAPON_ATTACK_PCT", "무공%"), opt("ATTACK_PCT", "공%")], RING: [opt("CRIT_DAMAGE", "치피"), opt("CRIT_RATE", "치적")] };
+    const word = { HIGH: "상", MID: "중", LOW: "하" };
+    const pairs = [["HIGH", "HIGH"], ["HIGH", "MID"], ["MID", "HIGH"], ["MID", "MID"], ["HIGH", "LOW"], ["LOW", "HIGH"], ["MID", "LOW"], ["LOW", "MID"]];
+    const observedAt = new Date(Date.now() - 3 * 60_000).toISOString();
+    const slots = [["NECKLACE", "목걸이", 9], ["EARRING", "귀걸이", 5], ["RING", "반지", 4]].map(([slot, slotName, base]) => {
+      const opts = options[slot];
+      const combos = opts.length === 1 ? [["HIGH"], ["MID"], ["LOW"]] : pairs;
+      return {
+        slot, slotName, options: opts,
+        cells: combos.map((levels, i) => {
+          const pending = slot === "RING" && levels.join() === "LOW,MID";
+          return {
+            levels, label: levels.map((l) => word[l]).join(""),
+            optionLabels: levels.map((l, k) => `${opts[k].shortName} ${word[l]}`),
+            minBuyPrice: pending ? null : Math.round((base * 100_000 / (i + 1)) * (grade === "RELIC" ? 0.4 : 1)),
+            totalCount: pending ? null : 4 + i * 3,
+            previousDayChangeRate: pending ? null : i % 2 ? -3 : 1.5,
+            observedAt: pending ? null : observedAt,
+            status: pending ? "PENDING" : "READY",
+          };
+        }),
+      };
+    });
+    return send({ code: "AUCTION_ACCESSORIES_SUCCESS", message: "ok", data: { ruleVersion: "auction-board-v1", grade, role, minQuality: minQuality || null, complete: false, slots } });
+  }
+  if (url.pathname === "/api/v1/markets/auctions/accessories/listings") {
+    const slot = url.searchParams.get("slot");
+    const page = Number(url.searchParams.get("page") ?? 1);
+    const total = slot === "NECKLACE" ? 12 : 2;
+    const start = (page - 1) * 10;
+    const names = { NECKLACE: "합성 목걸이", EARRING: "합성 귀걸이", RING: "합성 반지" };
+    const items = Array.from({ length: Math.max(0, Math.min(10, total - start)) }, (_, i) => ({
+      name: names[slot] ?? "합성 장신구",
+      grade: "고대",
+      quality: 70 + ((start + i) % 30),
+      buyPrice: 500_000 + (start + i) * 25_000,
+      bidPrice: 0,
+      bidStartPrice: 400_000,
+      endDate: new Date(Date.now() + (start + i + 1) * 3_600_000).toISOString(),
+      tradeAllowCount: 2,
+      options: [
+        { type: "ACCESSORY_UPGRADE", name: "적주피", value: 2, percentage: true, level: "HIGH", className: null },
+        { type: "ACCESSORY_UPGRADE", name: "추피", value: 1.6, percentage: true, level: "MID", className: null },
+      ],
+    }));
+    return send({ code: "AUCTION_LISTINGS_SUCCESS", message: "ok", data: { totalCount: total, page, observedAt: new Date().toISOString(), items } });
+  }
   if (url.pathname.startsWith("/api/v1/markets/"))
     return market(url, req, send);
   if (url.pathname === "/api/v1/refining/plans" && req.method === "POST") {
@@ -347,10 +670,13 @@ createServer(async (req, res) => {
       case "GEM_LEVEL_ALL": return ["보석 전체", null];
       case "GEM_LEVEL": {
         const gem = loadout.gems.items.find((g) => g.slot === change.slot);
+        // A character without that gem (e.g. "상세" on the spec-up goal path) still answers.
+        if (!gem) return [`보석 ${change.slot}번`, null];
         return [`보석 ${gem.slot}번(${gem.name})`, String(gem.level)];
       }
-      case "EQUIPMENT_REFINE": return [item.name, String(item.detail.refineLevel)];
-      case "EQUIPMENT_QUALITY": return [item.name, String(item.detail.quality)];
+      case "EQUIPMENT_REFINE": return [item?.name ?? "장비", item?.detail ? String(item.detail.refineLevel) : null];
+      case "EQUIPMENT_QUALITY": return [item?.name ?? "장비", item?.detail ? String(item.detail.quality) : null];
+      case "EQUIPMENT_ADVANCED_REFINE": return [item?.name ?? "장비", item?.detail ? String(item.detail.advancedRefineLevel ?? "") : null];
       case "POLISH": {
         const line = item.detail.polishEffects[change.line];
         return [`${item.name} 연마 ${change.line + 1}`, `${line.name} ${line.value}`];
@@ -375,6 +701,10 @@ createServer(async (req, res) => {
         const s = loadout.arkGrid.slots.find((x) => x.index === change.slotIndex);
         return [s.name, `${s.grade} ${s.point}P`];
       }
+      case "ARM_GUARD": {
+        const g = loadout.equipment.find((x) => x.type === "완갑");
+        return [g?.name ?? "팔 보호구", g ? `+${g.detail.refineLevel} ${g.grade}` : null];
+      }
       default: return [change.kind, null];
     }
   };
@@ -382,9 +712,75 @@ createServer(async (req, res) => {
     change.kind === "POLISH" ? `${change.option} ${change.grade}`
     : change.kind === "BRACELET_EFFECT" ? `${change.name} ${change.grade}`
     : change.kind === "ARK_GRID_CORE" ? `${change.grade} ${change.point}P`
+    : change.kind === "ARM_GUARD" ? `+${change.level} ${change.grade}`
     : String(change.level ?? change.refine ?? change.quality ?? change.points ?? "");
   const powerRead = (name) =>
     JSON.parse(readFileSync(new URL(`./combat-power-fixtures/${name}`, import.meta.url), "utf8"));
+  // 스펙업 가이드(백엔드 #318 표본). '스펙업꺼짐'은 SPEC_UP_DISABLED, '스펙업시세'는
+  // 비용 PENDING, 캐시에 없는 이름은 CHARACTER_NOT_CACHED.
+  // 스펙업 목표 경로 (api #455). The backend sample (보석 8→9→10, 무기 품질) moved
+  // onto the mock character's combat power and cut where it reaches the target,
+  // as the backend stops there. '미존재' 404, '스펙업꺼짐' 404, '상세서포터' the
+  // role reason with no steps, a target over twice today 400.
+  if (url.pathname === "/api/v1/characters/spec-up/goal") {
+    const who = url.searchParams.get("characterName");
+    const target = Number(url.searchParams.get("targetCombatPower"));
+    if (who === "스펙업꺼짐") return send({ code: "SPEC_UP_DISABLED", message: "", data: null }, 404);
+    if (who === "미존재") return send({ code: "CHARACTER_NOT_CACHED", message: "", data: null }, 404);
+    const envelope = JSON.parse(readFileSync(new URL("./spec-up-fixtures/character-spec-up-goal.json", import.meta.url), "utf8"));
+    const d = envelope.data;
+    const base = read("character-full-data.json").combatPower;
+    if (target > base * 2) return send({ code: "SPEC_UP_GOAL_OUT_OF_RANGE", message: "", data: null }, 400);
+    const sampleBase = d.combatPower;
+    const shift = (v) => Math.round((v + base - sampleBase) * 100) / 100;
+    d.characterName = who;
+    d.targetCombatPower = target;
+    d.combatPower = base;
+    if (who === "상세서포터") {
+      Object.assign(d, { steps: [], finalCombatPower: null, reached: false, totalCost: null, unpricedSteps: 0, stopReasonCode: "SUPPORTER_MODEL_PENDING", stopReason: "서포터 전투력 계산식은 아직 적용하지 않았습니다." });
+      return send(envelope);
+    }
+    if (target <= base) {
+      Object.assign(d, { steps: [], finalCombatPower: base, reached: true, totalCost: 0, unpricedSteps: 0, stopReasonCode: "ALREADY_REACHED", stopReason: "이미 목표 전투력 이상입니다." });
+      return send(envelope);
+    }
+    // The gem in the sample is the mock simulator character's slot-1 gem.
+    for (const step of d.steps) {
+      step.combatPowerAfter = shift(step.combatPowerAfter);
+      if (step.change.kind === "GEM_LEVEL") step.change.slot = 1;
+    }
+    const cut = d.steps.findIndex((step) => step.combatPowerAfter >= target);
+    d.steps = cut >= 0 ? d.steps.slice(0, cut + 1) : d.steps;
+    const last = d.steps.at(-1);
+    d.finalCombatPower = last.combatPowerAfter;
+    d.reached = d.finalCombatPower >= target;
+    d.unpricedSteps = d.steps.filter((step) => step.cost.status !== "OK").length;
+    d.totalCost = d.unpricedSteps ? null : d.steps.reduce((sum, step) => sum + step.cost.amount, 0);
+    if (!d.reached) Object.assign(d, { stopReasonCode: "NO_CANDIDATE", stopReason: "더 올릴 수 있는 후보가 없습니다." });
+    return send(envelope);
+  }
+  if (url.pathname === "/api/v1/characters/spec-up") {
+    const specUp = (name) =>
+      JSON.parse(readFileSync(new URL(`./spec-up-fixtures/${name}`, import.meta.url), "utf8"));
+    const who = url.searchParams.get("characterName");
+    if (who === "스펙업꺼짐") return send(specUp("character-spec-up-disabled.json"), 404);
+    if (who === "미존재") return send(specUp("character-spec-up-not-cached.json"), 404);
+    const envelope = specUp(who === "스펙업시세" ? "character-spec-up-pending.json" : "character-spec-up.json");
+    envelope.data.characterName = who;
+    // The same combat power the mock simulator starts from (the backend's
+    // spec-up and simulator read one character), so the L31 goal path adds up.
+    envelope.data.combatPower = read("character-full-data.json").combatPower;
+    // The sample's gem is the mock simulator character's slot-1 gem (level 8).
+    for (const c of envelope.data.candidates)
+      if (c.change?.kind === "GEM_LEVEL") c.change.slot = 1;
+    if (url.searchParams.get("sort") === "DELTA") {
+      envelope.data.sort = "DELTA";
+      const ok = envelope.data.candidates.filter((c) => c.status === "OK");
+      ok.sort((a, b) => b.deltaCombatPower - a.deltaCombatPower);
+      envelope.data.candidates = [...ok, ...envelope.data.candidates.filter((c) => c.status !== "OK")];
+    }
+    return send(envelope);
+  }
   if (url.pathname === "/api/v1/characters/combat-power/options")
     return send(powerRead("combat-power-options.json"));
   if (url.pathname === "/api/v1/characters/combat-power/simulate" && req.method === "POST") {
@@ -397,6 +793,8 @@ createServer(async (req, res) => {
     const d = envelope.data;
     const search = read("character-full-data.json");
     const computed = request.characterName === "전투력계산";
+    // 서포터(backend #332): every change comes back unsupported with the role reason.
+    const supporter = request.characterName === "상세서포터";
     if (computed) withSimulatorGear(search);
     const r2 = (v) => Math.round(v * 100) / 100;
     d.characterName = request.characterName;
@@ -407,9 +805,16 @@ createServer(async (req, res) => {
       target: powerTarget(search, change)[0],
       from: powerTarget(search, change)[1],
       to: powerTo(change),
-      delta: computed ? r2(10 + i) : null,
+      delta: computed ? (armourQuality(search, change) ? 0 : (specUpDelta(change) ?? r2(10 + i))) : null,
       status: computed ? "OK" : "UNSUPPORTED",
-      basis: computed ? "합성 값(목 서버)" : d.contributions[0].basis,
+      basis: supporter
+        ? "서포터 전투력 계산식은 아직 적용하지 않았습니다."
+        : computed
+          ? armourQuality(search, change)
+            ? "방어구 품질은 체력에만 붙어 전투력이 바뀌지 않습니다."
+            : "합성 값(목 서버)"
+          : d.contributions[0].basis,
+      reasonCode: supporter ? "SUPPORTER_MODEL_PENDING" : computed ? null : "MODEL_UNCONFIRMED",
     }));
     const delta = computed ? r2(d.contributions.reduce((sum, item) => sum + item.delta, 0)) : 0;
     d.after = d.before == null ? null : r2(d.before + delta);
@@ -461,13 +866,96 @@ createServer(async (req, res) => {
     add("MOVE_SPEED", "이동 속도 가정", a.extraMoveSpeed ?? 0, "직업 각인·트라이포드·버프 합");
     return send(base);
   }
+  // Roster combat power (L19): records only; 원정대전투력 has two without a
+  // record, the refill (POST, ~1.5 s) fills them and starts the cooldown.
+  if (url.pathname.startsWith("/api/v1/characters/roster-combat-power")) {
+    const who = url.searchParams.get("characterName") ?? "";
+    const now = Date.now();
+    const at = (hours) => new Date(now - hours * 3_600_000).toISOString();
+    // best: the highest combat power seen (backend #463), at least the current one.
+    const row = (characterName, className, itemLevel, combatPower, hours, best = combatPower) => ({
+      characterName, serverName: "아만", className, itemLevel, combatPower,
+      combatPowerObservedAt: combatPower == null ? null : at(hours),
+      bestCombatPower: best,
+    });
+    const filled = req.method === "POST";
+    const roster = who === "원정대전투력" || who === "전투력쿨다운";
+    const items = roster
+      ? [
+          row(who, "블래스터", 1780.83, 3180.29, 3.5, 3401.52),
+          row("전투력둘", "바드", 1750, 2012.4, 26),
+          row("전투력셋", "버서커", 1720, filled ? 2650.1 : null, 0),
+          row("전투력넷", "소서리스", 1700, 2890.75, 50),
+          row("전투력다섯", "도화가", 1680, filled ? 1500 : null, 0),
+        ]
+      : [{ ...row("원정대캐릭터", "바드", 1650, 2345.67, 5), serverName: "카단" }];
+    const missingCount = items.filter((item) => item.combatPower == null).length;
+    if (url.pathname.endsWith("/refresh") && filled) {
+      if (who === "전투력쿨다운")
+        return send({ code: "ROSTER_REFRESH_COOLDOWN", message: "private" }, 429, { "Retry-After": "420" });
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      return send({
+        code: "CHARACTER_ROSTER_COMBAT_POWER_REFRESH_SUCCESS",
+        message: "성공",
+        data: { items, fetched: 2, remaining: 0, refreshAvailableAt: new Date(now + 600_000).toISOString() },
+      });
+    }
+    if (url.pathname.endsWith("/roster-combat-power"))
+      return send({
+        code: "CHARACTER_ROSTER_COMBAT_POWER_SUCCESS",
+        message: "성공",
+        data: { items, missingCount, refreshAvailableAt: null },
+      });
+  }
+  // Public summary (api #177, cache only): 공개요약 is indexable; 미기록요약 and
+  // 정지저장 (a processing-stop character found only in stored records) both
+  // answer 404 CHARACTER_NOT_CACHED; 발견만 (roster list only, no combat power)
+  // and 정지캐시 (processing-stop, live cache) come back not indexable.
+  if (url.pathname === "/api/v1/characters/public-summary") {
+    const who = url.searchParams.get("characterName") ?? "";
+    if (who === "미기록요약" || who === "정지저장")
+      return send({ code: "CHARACTER_NOT_CACHED", message: "private" }, 404);
+    const indexable = !/^(발견만|정지캐시)/.test(who);
+    return send({
+      code: "CHARACTER_PUBLIC_SUMMARY_SUCCESS",
+      message: "ok",
+      data: {
+        characterName: who, serverName: "아만", className: "블레이드", characterLevel: 70, itemLevel: 1770,
+        combatPower: who.startsWith("발견만") ? null : 4000, arkPassiveTitle: "버스트",
+        observedAt: "2026-10-12T03:00:00Z", dataSource: "STORED_OBSERVATION", indexable,
+      },
+    });
+  }
   if (url.pathname === "/api/v1/characters/siblings") {
     const who = url.searchParams.get("characterName");
     if (who === "원정대오류") return send({ code: "LOST_ARK_API_ERROR" }, 502);
     const now = Date.now();
     const base = JSON.parse(readFileSync(new URL("./siblings-fixtures/character-siblings.json", import.meta.url), "utf8"));
     base.data.characterName = who;
-    base.data.siblings = [
+    // L19: the same five as the roster-combat-power records.
+    if (who === "원정대전투력" || who === "전투력쿨다운")
+      base.data.siblings = [
+        [who, "블래스터", 1780.83],
+        ["전투력둘", "바드", 1750],
+        ["전투력셋", "버서커", 1720],
+        ["전투력넷", "소서리스", 1700],
+        ["전투력다섯", "도화가", 1680],
+      ].map(([characterName, className, itemLevel]) => ({ characterName, serverName: "아만", className, characterLevel: 70, itemLevel }));
+    // 주간 획득 골드 (M7): six on 아만 at the reference roster's levels, one
+    // more below them and one on another server, neither of which counts.
+    else if (who === "주간골드")
+      base.data.siblings = [
+        [who, 1770],
+        ["주간골드둘", 1725],
+        ["주간골드셋", 1705],
+        ["주간골드넷", 1585],
+        ["주간골드다섯", 1580],
+        ["주간골드여섯", 1560],
+        ["주간골드일곱", 1500],
+      ]
+        .map(([characterName, itemLevel]) => ({ characterName, serverName: "아만", className: "블레이드", characterLevel: 70, itemLevel }))
+        .concat({ characterName: "주간골드다른서버", serverName: "루페온", className: "바드", characterLevel: 70, itemLevel: 1780 });
+    else base.data.siblings = [
       { characterName: who, serverName: "아만", className: "블래스터", characterLevel: 70, itemLevel: 1780.83 },
       { characterName: "합성원정대", serverName: "아만", className: "바드", characterLevel: 70, itemLevel: 1720 },
       { characterName: "합성부캐", serverName: "루페온", className: "버서커", characterLevel: 60, itemLevel: 1640 },
@@ -488,6 +976,40 @@ createServer(async (req, res) => {
       className: "블래스터", characterLevel: 70, itemLevel, combatPower, expeditionLevel,
     }));
     return send({ code: "CHARACTER_HISTORY_SUCCESS", message: "성공", data: { characterName: who, serverName: url.searchParams.get("serverName"), points } });
+  }
+  // Name autocomplete (backend #372): names starting with q, item level order, max 8.
+  if (url.pathname === "/api/v1/characters/suggest") {
+    const q = (url.searchParams.get("q") ?? "").trim();
+    const known = [
+      { characterName: "상세", serverName: "아만", className: "블래스터", itemLevel: 1780.83, characterImage: null },
+      { characterName: "상세서포터", serverName: "루페온", className: "바드", itemLevel: 1712.5, characterImage: null },
+      { characterName: "상수", serverName: "카단", className: "버서커", itemLevel: 1690, characterImage: null },
+    ];
+    const items = q.length < 1 ? [] : known.filter((c) => c.characterName.startsWith(q)).slice(0, 8);
+    return send({ code: "CHARACTER_SUGGEST_SUCCESS", message: "ok", data: { items } });
+  }
+  // Popular guilds (api #467, M21): rank, server and guild only. 24h has 10
+  // guilds on two servers, 7d four; 니나브 is still collecting.
+  if (url.pathname === "/api/v1/guilds/popular") {
+    const period = url.searchParams.get("period") || "24h";
+    const server = url.searchParams.get("server");
+    const all = Array.from({ length: period === "7d" ? 4 : 10 }, (_, i) => ({
+      serverName: i % 2 ? "카단" : "아만",
+      guildName: `인기길드${i + 1}`,
+    }));
+    const collecting = server === "니나브";
+    const items = collecting ? [] : all.filter((g) => !server || g.serverName === server).map((g, i) => ({ rank: i + 1, ...g }));
+    return send({
+      code: "GUILD_POPULAR_SUCCESS",
+      message: "성공",
+      data: {
+        period,
+        aggregatedAt: new Date().toISOString(),
+        sampleStatus: collecting ? "COLLECTING" : "READY",
+        ruleVersion: "popular-guild-v1",
+        items,
+      },
+    });
   }
   if (url.pathname === "/api/v1/characters/popular") {
     // Backend F-10 sample; 7d shows the collecting state.
@@ -615,20 +1137,86 @@ createServer(async (req, res) => {
       },
     });
   }
-  // Ranking (F-7, backend #100/#112). 비공개 → HIDDEN, 조건밖 → not included,
-  // 집계중 → class scope still collecting, 미관측 → 404, otherwise ranked.
+  // Ranking (F-7, backend #100/#112). 조건밖 → not included, 집계중 → class
+  // scope still collecting, 미관측 and 비공개 (the processing-stop list, backend
+  // #366) → the same 404, otherwise ranked.
+  // Collectible standing and ownership (backend #304/#306): a ranked roster
+  // for 상세, the no-rank reasons for 미관측·제외, and per-item shares.
+  if (url.pathname === "/api/v1/rankings/collectibles/standing" || url.pathname === "/api/v1/collectibles/ownership") {
+    const meta = (population, sampleStatus = "READY") => ({
+      population,
+      conditions: { server: null, role: null, className: null, activeDays: 30, itemLevelMin: 1640, itemLevelMax: null, combatPowerMin: null, combatPowerMax: null, representativeOnly: false },
+      aggregatedAt: "2026-10-11T07:00:00Z",
+      snapshot: "latest",
+      ruleVersion: "stats-v1",
+      minSample: 30,
+      sampleStatus,
+      coverage: { observedCharacters: population * 4, knownCharacters: population * 5, discoveredAccounts: population },
+      populationUnit: "ROSTER",
+    });
+    if (url.pathname.endsWith("/standing")) {
+      const who = url.searchParams.get("characterName") ?? "";
+      const reason = who === "미관측" ? "NOT_OBSERVED" : who === "제외" ? "EXCLUDED" : null;
+      return send({
+        code: "COLLECTIBLE_STANDING_SUCCESS",
+        message: "ok",
+        data: {
+          meta: meta(667840),
+          unit: "ROSTER",
+          characterName: who,
+          serverName: "루페온",
+          rank: reason ? null : 213572,
+          total: 667840,
+          topPercent: reason ? null : 31.98,
+          progressPercent: reason ? null : 63.92,
+          point: reason ? null : 1210,
+          maxPoint: reason ? null : 1893,
+          reason,
+        },
+      });
+    }
+    const type = url.searchParams.get("type");
+    // Same names as the 상세 mock items ("{type} {n}"), shares spread out.
+    const items = Array.from({ length: 12 }, (_, i) => {
+      const share = Math.round((95 - ((i * 37) % 90)) * 10) / 10;
+      const rosters = Math.round(667840 * share / 100);
+      return { type, name: `${type} ${i + 1}`, sortOrder: i, maxPoint: 1, ownedRosters: rosters, completedRosters: rosters, ownedPercent: share, completedPercent: share };
+    });
+    return send({ code: "COLLECTIBLE_OWNERSHIP_SUCCESS", message: "ok", data: { meta: meta(667840), type, items } });
+  }
   if (url.pathname === "/api/v1/characters/rank") {
     const who = url.searchParams.get("characterName") ?? "";
-    if (who === "미관측") return send({ code: "STATS_CHARACTER_NOT_OBSERVED", message: "private" }, 404);
-    const hidden = who === "비공개";
+    if (who === "미관측" || who === "비공개") return send({ code: "STATS_CHARACTER_NOT_OBSERVED", message: "private" }, 404);
     const excluded = who === "조건밖";
-    const entry = (metric, scope, scopeValue, rank, total, sampleStatus = "READY") => {
+    const entry = (metric, scope, scopeValue, rank, total, sampleStatus = "READY", gapAs = null) => {
       const top = sampleStatus === "READY" ? Math.round((rank / total) * 10000) / 100 : null;
       const tier = top == null ? null : top <= 1 ? "TOP1" : top <= 5 ? "TOP5" : top <= 10 ? "TOP10" : top <= 25 ? "TOP25" : top <= 50 ? "TOP50" : "REST";
-      return { metric, scope, scopeValue, rank, total, topPercent: top, tier, sampleStatus };
+      // api #481: the next tier up, its boundary (the K-th, K = ⌊% × total / 100⌋)
+      // and the gap; none at the top, under the sample, or when K < 1.
+      const order = ["REST", "TOP50", "TOP25", "TOP10", "TOP5", "TOP1"];
+      const pct = { TOP50: 50, TOP25: 25, TOP10: 10, TOP5: 5, TOP1: 1 };
+      const up = tier && tier !== "TOP1" ? order[order.indexOf(tier) + 1] : null;
+      const k = up ? Math.floor((pct[up] * total) / 100) : 0;
+      const nextTier = up && k >= 1 ? up : null;
+      const step = metric === "ITEM_LEVEL" ? 0.25 : 3.17;
+      const nextTierGap = nextTier ? (gapAs ?? Math.round((rank - k) * step * 100) / 100) : null;
+      const value = metric === "ITEM_LEVEL" ? 1780.83 : 3180.29;
+      const nextTierValue = nextTier ? Math.round((value + nextTierGap) * 100) / 100 : null;
+      return { metric, scope, scopeValue, rank, total, topPercent: top, tier, sampleStatus, nextTier, nextTierValue, nextTierGap };
     };
     const collecting = who === "집계중" ? "COLLECTING" : "READY";
-    const entries = hidden || excluded ? [] : [
+    // Long values as real data has them (QA 10-16 02시): big ranks, 연안 tiers,
+    // four-digit gaps to the next tier, in every box of the narrow side column.
+    const long = who === "가려짐긴값캐릭터";
+    const entries = excluded ? [] : long ? [
+      entry("COMBAT_POWER", "ALL", null, 9000, 20000, "READY", 1393.54),
+      entry("COMBAT_POWER", "SERVER", "아브렐슈드", 1100, 2311, "READY", 583.67),
+      entry("COMBAT_POWER", "CLASS", "데모닉", 300, 612, "READY", 2051.19),
+      entry("ITEM_LEVEL", "ALL", null, 9100, 20000, "READY", 12.5),
+      entry("ITEM_LEVEL", "SERVER", "아브렐슈드", 1150, 2311, "READY", 7.5),
+      entry("ITEM_LEVEL", "CLASS", "데모닉", 301, 612, "READY", 5.83),
+      // No server-class box: three boxes side by side, the narrowest cells.
+    ] : [
       entry("COMBAT_POWER", "ALL", null, 4120, 18231),
       entry("COMBAT_POWER", "SERVER", "아만", 211, 2311),
       entry("COMBAT_POWER", "CLASS", "블래스터", 37, collecting === "READY" ? 612 : 21, collecting),
@@ -644,7 +1232,7 @@ createServer(async (req, res) => {
       data: {
         characterName: who, serverName: "아만", className: "블래스터", position: "DEALER", itemLevel: 1780.83, combatPower: 3180.29,
         refreshedAt: new Date(Date.now() - 3_600_000).toISOString(),
-        rankVisibility: hidden ? "HIDDEN" : "VISIBLE", included: !hidden && !excluded,
+        rankVisibility: "VISIBLE", included: !excluded,
         conditions: { server: null, role: null, className: null, activeDays: 30, itemLevelMin: 1640, itemLevelMax: null, combatPowerMin: null, combatPowerMax: null, representativeOnly: false },
         aggregatedAt: new Date(Date.now() - 600_000).toISOString(), ruleVersion: "stats-v1", minSample: 30, entries,
       },
@@ -710,11 +1298,19 @@ createServer(async (req, res) => {
       const top = Math.round((rank / population) * 10000) / 100;
       const tier = top <= 1 ? "TOP1" : top <= 5 ? "TOP5" : top <= 10 ? "TOP10" : top <= 25 ? "TOP25" : top <= 50 ? "TOP50" : "REST";
       const cls = q.get("className") || classes[rank % classes.length];
+      // 디스트로이어: values as long as real data has them (QA 10-17 20시: five-digit
+      // combat power, long ark passive, small top percent with a tier, long names).
+      const real = cls === "디스트로이어";
       rows.push({
-        rank, characterName: `랭커${rank}`, serverName: q.get("server") || servers[rank % servers.length], className: cls,
+        rank, characterName: real ? `무라타Himek0${rank}` : `랭커${rank}`, serverName: q.get("server") || servers[rank % servers.length], className: cls,
         position: cls === "바드" || cls === "홀리나이트" || cls === "도화가" ? "SUPPORT" : "DEALER",
-        itemLevel: Math.round((1790 - rank * 0.05) * 100) / 100, combatPower: Math.round((4800 - rank * 1.3) * 100) / 100,
-        topPercent: top, tier,
+        itemLevel: real ? 1805 : Math.round((1790 - rank * 0.05) * 100) / 100,
+        combatPower: Math.round(((real ? 11170.05 : 4800) - rank * 1.3) * 100) / 100,
+        topPercent: real ? Math.round(rank * 0.11 * 100) / 100 : top, tier: real ? "TOP1" : tier,
+        bestCombatPower: real ? Math.round((11170.05 - rank * 1.21) * 100) / 100 : rank % 3 === 0 ? null : Math.round((4810 - rank * 1.2) * 100) / 100,
+        arkPassivePoints: real ? { evolution: 140, enlightenment: 101, leap: 70 } : rank % 3 === 0 ? null : { evolution: 140, enlightenment: 101 - (rank % 4), leap: 70 },
+        classEngraving: real ? "분노의 망치" : rank % 3 === 0 ? null : ["광기", "버스트", "절정", "잔재된 기운"][rank % 4],
+        estherWeapon: real ? { refineLevel: 10, ellaStage: 3 } : rank % 5 === 0 ? { refineLevel: 25, ellaStage: 2 } : rank % 5 === 1 ? { refineLevel: 8, ellaStage: null } : null,
       });
     }
     return send({
@@ -730,8 +1326,229 @@ createServer(async (req, res) => {
       },
     });
   }
+  if (url.pathname === "/api/v1/rankings/bracelets" || url.pathname === "/api/v1/rankings/ark-grid-gems") {
+    const q = url.searchParams;
+    const bracelet = url.pathname.endsWith("bracelets");
+    const page = Number(q.get("page") || 1);
+    const size = Number(q.get("size") || 50);
+    const population = q.get("className") === "환수사" ? 0 : q.get("server") ? 64 : 230;
+    const servers = ["루페온", "실리안", "아만", "아브렐슈드", "카단", "카마인", "카제로스", "니나브"];
+    const classes = ["블래스터", "소울이터", "슬레이어", "기상술사", "버서커", "블레이드"];
+    const rows = [];
+    for (let rank = (page - 1) * size + 1; rank <= Math.min(population, page * size); rank++) {
+      const top = Math.round((rank / population) * 10000) / 100;
+      const tier = top <= 1 ? "TOP1" : top <= 5 ? "TOP5" : top <= 10 ? "TOP10" : top <= 25 ? "TOP25" : top <= 50 ? "TOP50" : "REST";
+      const real = q.get("className") === "디스트로이어"; // real-data lengths, as above
+      rows.push({
+        rank, characterName: real ? `무라타Himek0${rank}` : `효율${rank}`, serverName: q.get("server") || servers[rank % servers.length],
+        className: q.get("className") || classes[rank % classes.length], position: "DEALER",
+        itemLevel: real ? 1805 : Math.round((1785 - rank * 0.1) * 100) / 100,
+        combatPower: Math.round(((real ? 11170.05 : 4700) - rank * 2.1) * 100) / 100,
+        valuePercent: Math.round(((bracelet ? 16 : 6.5) - rank * 0.03) * 100) / 100,
+        observedAt: new Date(Date.now() - rank * 3_600_000).toISOString(), topPercent: top, tier,
+      });
+    }
+    return send({
+      code: "RANKING_SUCCESS",
+      message: "성공",
+      data: {
+        meta: {
+          population, conditions: { server: q.get("server"), role: "DEALER", className: q.get("className"), activeDays: Number(q.get("activeDays") || 30), itemLevelMin: Number(q.get("itemLevelMin") || 1640), itemLevelMax: null, combatPowerMin: null, combatPowerMax: null, representativeOnly: false },
+          aggregatedAt: new Date(Date.now() - 600_000).toISOString(), snapshot: "latest", ruleVersion: "stats-v1", minSample: 30,
+          sampleStatus: population >= 30 ? "READY" : "COLLECTING", coverage: { observedCharacters: population, knownCharacters: population * 3, discoveredAccounts: 100 },
+        },
+        kind: bracelet ? "BRACELET" : "ARK_GRID_GEM", ruleVersion: "efficiency-v1",
+        populationNote: "캐릭터 검색으로 장비를 관측해 효율을 계산한 캐릭터만 순위에 들어갑니다.",
+        page, size, rows,
+      },
+    });
+  }
   // Statistics (B-3, backend #100): synthetic but shaped like the real thing.
   // server=니나브 → small sample (COLLECTING everywhere).
+  // Class builds (api #468·#470, M12): 블레이드 has a sample, every other class
+  // is still collecting. Each section has a hidden part; engravings and
+  // bracelet stats count a character in several cells.
+  // One character's cells (api #498, M26): 대세블레이드 is the 블레이드 the
+  // comparison is drawn against (its cells as the backend reads the character
+  // below); 표본밖블레이드 is one under the statistics' item level (outside the
+  // sample, no bracelet compared); 상세 is another class; any other name is not cached.
+  {
+    const cellsPath = /^\/api\/v1\/stats\/classes\/([^/]+)\/builds\/character$/.exec(url.pathname);
+    if (cellsPath) {
+      const className = decodeURIComponent(cellsPath[1]);
+      const who = url.searchParams.get("characterName") ?? "";
+      const days = Number(url.searchParams.get("activeDays") || 30);
+      const own = { 대세블레이드: ["블레이드", 1700], 표본밖블레이드: ["블레이드", 1660], 상세: ["블래스터", 1780.83] }[who];
+      if (!own) return send({ code: "CHARACTER_NOT_CACHED", message: "", data: null }, 404);
+      const [characterClass, itemLevel] = own;
+      const key = (name) => ({ name });
+      const reasons = [
+        ...(characterClass !== className ? ["OTHER_CLASS"] : []),
+        ...(itemLevel < 1680 ? ["ITEM_LEVEL_OUT_OF_RANGE"] : []),
+      ];
+      const combo = ["돌격대장", "아드레날린", "원한", "잔재된 기운", "질량 증가"];
+      return send({
+        code: "STATS_CLASS_BUILDS_SUCCESS",
+        message: "ok",
+        data: {
+          characterName: who, serverName: "아만", className: characterClass, itemLevel,
+          observedAt: new Date(Date.now() - 3_600_000).toISOString(), source: "LIVE_CACHE",
+          inSample: reasons.length === 0, reasons,
+          conditions: { itemLevelMin: 1680, itemLevelMax: null, activeDays: days, braceletItemLevelMin: 1680 },
+          cells: {
+            classEngravings: key("잔재된 기운"),
+            engravingCombos: { engravings: combo },
+            engravings: combo.map(key),
+            arkPassivePoints: { evolution: { value: 140 }, enlightenment: { value: 98 }, leap: { value: 70 } },
+            gems: { damage: [{ value: 9 }], cooldown: [{ value: 10 }] },
+            cardSets: { set: "세상을 구하는 빛", pieces: 6, awakening: 30 },
+            topStats: { name: "특화", tie: false },
+            braceletEligible: itemLevel >= 1680,
+            braceletStats: itemLevel >= 1680 ? [key("특화"), key("신속")] : null,
+          },
+          ruleVersion: "class-builds-v1",
+        },
+      });
+    }
+  }
+  // 고정 (api #503, M26 stage 2) on the class builds below and their top list:
+  // each fix keeps 40% of the sample (3 fixes on 블레이드 still ≥ 30, so the
+  // sections stay), an engraving or card set the builds do not list is
+  // 400 STATS_UNKNOWN_FIX, more than three fixes 400 INVALID_REQUEST.
+  const fixesOf = (q) => {
+    const list = [
+      ...q.getAll("fixEngraving").map((v) => ["engraving", v]),
+      ...["fixCardSet", "fixTopStat", "fixEvolution", "fixEnlightenment", "fixLeap"].flatMap((k) => (q.get(k) ? [[k, q.get(k)]] : [])),
+      ...q.getAll("fixBracelet").map((v) => ["bracelet", v]),
+    ];
+    const known = ["원한", "아드레날린", "돌격대장"];
+    const unknown = list.some(([k, v]) => (k === "engraving" && !known.includes(v)) || (k === "fixCardSet" && !["세상을 구하는 빛", "카제로스의 군단장"].includes(v)));
+    return { count: list.length, unknown };
+  };
+  {
+    const top = /^\/api\/v1\/stats\/classes\/([^/]+)\/builds\/top$/.exec(url.pathname);
+    if (top) {
+      const className = decodeURIComponent(top[1]);
+      const q = url.searchParams;
+      const fixes = fixesOf(q);
+      if (fixes.count > 3) return send({ code: "INVALID_REQUEST", message: "", data: null }, 400);
+      if (fixes.unknown) return send({ code: "STATS_UNKNOWN_FIX", message: "", data: null }, 400);
+      const days = Number(q.get("activeDays") || 30);
+      const engraving = q.get("classEngraving");
+      const short = className !== "블레이드" || (engraving === "버스트" && days === 7);
+      const population = short ? 12 : Math.round(880 * 0.4 ** fixes.count);
+      return send({
+        code: "STATS_CLASS_BUILDS_SUCCESS",
+        message: "ok",
+        data: {
+          meta: {
+            population,
+            conditions: { server: null, role: null, className, activeDays: days, itemLevelMin: 1680, itemLevelMax: null, combatPowerMin: null, combatPowerMax: null, representativeOnly: false },
+            aggregatedAt: new Date(Date.now() - 600_000).toISOString(),
+            snapshot: "latest", ruleVersion: "class-builds-v1", minSample: 30, populationUnit: "CHARACTER",
+            sampleStatus: short ? "COLLECTING" : "READY",
+            coverage: { observedCharacters: 4200, knownCharacters: 5100, discoveredAccounts: 900 },
+          },
+          className,
+          classEngraving: engraving,
+          braceletItemLevelMin: 1680,
+          rows: short
+            ? []
+            : Array.from({ length: 30 }, (_, i) => ({
+                rank: i + 1,
+                characterName: `상위블레이드${String(i + 1).padStart(2, "0")}`,
+                serverName: ["아만", "루페온", "카단"][i % 3],
+                itemLevel: 1780 - i * 1.25 - fixes.count,
+                combatPower: Math.round((5200 - i * 37.5 - fixes.count * 3) * 100) / 100,
+                observedAt: new Date(Date.now() - (i + 1) * 3_600_000).toISOString(),
+              })),
+        },
+      });
+    }
+  }
+  {
+    const builds = /^\/api\/v1\/stats\/classes\/([^/]+)\/builds$/.exec(url.pathname);
+    if (builds) {
+      const className = decodeURIComponent(builds[1]);
+      const q = url.searchParams;
+      const engraving = q.get("classEngraving");
+      const days = Number(q.get("activeDays") || 30);
+      const fixes = fixesOf(q);
+      if (fixes.count > 3) return send({ code: "INVALID_REQUEST", message: "", data: null }, 400);
+      if (fixes.unknown) return send({ code: "STATS_UNKNOWN_FIX", message: "", data: null }, 400);
+      const ready = className === "블레이드";
+      // 블레이드 · 버스트 · 7일: the chosen engraving is short of 30 (every section empty),
+      // the class engravings still come from the whole class sample.
+      const small = ready && engraving === "버스트" && days === 7;
+      const full = ready && !small;
+      const sample = Math.round(
+        (small ? 20 : ready ? (engraving === "잔재된 기운" ? 640 : engraving ? 240 : 880) * (days === 7 ? 0.5 : 1) : 12) *
+          0.4 ** fixes.count,
+      );
+      const cell = (name, n, known) => ({ name, count: n, share: Math.round((n / known) * 10000) / 100 });
+      const value = (v, n, known) => ({ value: v, count: n, share: Math.round((n / known) * 10000) / 100 });
+      const hidden = (count, known) => ({ count, share: count ? Math.round((count / known) * 10000) / 100 : null });
+      const empty = { known: 0, hidden: hidden(0, 1), cells: [] };
+      const known = sample;
+      const data = {
+        meta: {
+          population: sample,
+          conditions: { server: null, role: null, className, activeDays: days, itemLevelMin: 1680, itemLevelMax: null, combatPowerMin: null, combatPowerMax: null, representativeOnly: false },
+          aggregatedAt: new Date(Date.now() - 600_000).toISOString(),
+          snapshot: "latest", ruleVersion: "class-builds-v1", minSample: 30, populationUnit: "CHARACTER",
+          sampleStatus: full ? "READY" : "COLLECTING",
+          coverage: { observedCharacters: 4200, knownCharacters: 5100, discoveredAccounts: 900 },
+        },
+        className,
+        classEngraving: engraving,
+        classPopulation: ready ? 2480 : 25,
+        minCell: 5,
+        braceletItemLevelMin: 1680,
+        classEngravingStatus: ready ? "READY" : "COLLECTING",
+        definitions: {
+          classEngravings: "직업 각인별 인원. 직업 각인 필터와 무관하게 직업 전체 표본",
+          engravingCombos: "각인 이름 집합이 같은 캐릭터 수",
+          engravings: "그 각인을 가진 캐릭터 수 / 각인을 읽은 캐릭터 수(여러 각인에 셈)",
+          arkPassivePoints: "진화·깨달음·도약 포인트 값별 인원",
+          gems: "4티어 보석(겁화·작열·광휘) 1개 단위, 효과 종류(피해·재사용 대기시간)별 레벨 분포",
+          cardSets: "가장 큰 카드 세트의 이름·단계·각성 합계",
+          topStats: "전투 특성 6종 중 가장 큰 값(주력 특성)",
+          braceletStats: "팔찌에 그 전투 특성 줄이 있는 캐릭터 수(여러 특성에 셈)",
+        },
+        classEngravings: ready
+          ? { known: 880, hidden: hidden(0, 880), cells: [cell("잔재된 기운", 640, 880), cell("버스트", 240, 880)] }
+          : empty,
+        engravingCombos: full
+          ? { known, hidden: hidden(31, known), cells: [
+              { engravings: ["돌격대장", "아드레날린", "원한", "잔재된 기운", "질량 증가"], count: Math.round(known * 0.42), share: 42 },
+              { engravings: ["기습의 대가", "아드레날린", "원한", "잔재된 기운", "타격의 대가"], count: Math.round(known * 0.21), share: 21 },
+            ] }
+          : empty,
+        engravings: full
+          ? { known, hidden: hidden(12, known), cells: [cell("원한", Math.round(known * 0.94), known), cell("아드레날린", Math.round(known * 0.9), known), cell("돌격대장", Math.round(known * 0.5), known)] }
+          : empty,
+        arkPassivePoints: full
+          ? {
+              evolution: { known, hidden: hidden(3, known), cells: [value(140, Math.round(known * 0.7), known), value(130, Math.round(known * 0.2), known)] },
+              enlightenment: { known, hidden: hidden(0, known), cells: [value(101, Math.round(known * 0.6), known), value(98, Math.round(known * 0.3), known)] },
+              leap: { known, hidden: hidden(0, known), cells: [value(70, Math.round(known * 0.8), known)] },
+            }
+          : { evolution: empty, enlightenment: empty, leap: empty },
+        gems: full
+          ? {
+              damage: { known: known * 6, hidden: hidden(4, known * 6), cells: [value(10, known * 3, known * 6), value(9, known * 2, known * 6)] },
+              cooldown: { known: known * 5, hidden: hidden(2, known * 5), cells: [value(10, known * 2, known * 5), value(8, known * 2, known * 5)] },
+            }
+          : { damage: empty, cooldown: empty },
+        cardSets: full
+          ? { known, hidden: hidden(9, known), cells: [{ set: "세상을 구하는 빛", pieces: 6, awakening: 30, count: Math.round(known * 0.55), share: 55 }, { set: "카제로스의 군단장", pieces: 6, awakening: null, count: Math.round(known * 0.2), share: 20 }] }
+          : empty,
+        topStats: full ? { known, ties: 4, hidden: hidden(6, known), cells: [cell("특화", Math.round(known * 0.62), known), cell("치명", Math.round(known * 0.37), known)] } : { known: 0, ties: 0, hidden: hidden(0, 1), cells: [] },
+        braceletStats: full ? { known, unread: 7, hidden: hidden(15, known), cells: [cell("특화", Math.round(known * 0.6), known), cell("치명", Math.round(known * 0.5), known)] } : { known: 0, unread: 0, hidden: hidden(0, 1), cells: [] },
+      };
+      return send({ code: "STATS_CLASS_BUILDS_SUCCESS", message: "ok", data });
+    }
+  }
   if (url.pathname.startsWith("/api/v1/stats/")) {
     const q = url.searchParams;
     const small = q.get("server") === "니나브";
@@ -766,7 +1583,7 @@ createServer(async (req, res) => {
     for (const c of classes) c.share = Math.round((c.count / population) * 10000) / 100;
     const meta = {
       population, conditions, aggregatedAt: new Date(Date.now() - 600_000).toISOString(), snapshot: "latest", ruleVersion: "stats-v1",
-      minSample: 30, sampleStatus: population >= 30 ? "READY" : "COLLECTING",
+      minSample: 30, sampleStatus: population >= 30 ? "READY" : "COLLECTING", populationUnit: "CHARACTER",
       coverage: { observedCharacters: population + 120, knownCharacters: population + 4000, discoveredAccounts: Math.round(population / 4) },
     };
     const view = url.pathname.slice("/api/v1/stats/".length);
@@ -781,6 +1598,27 @@ createServer(async (req, res) => {
       });
     }
     if (view === "classes") return ok("STATS_CLASSES_SUCCESS", { rows: classes });
+    // Best combat power (api #477, L5): the classes' spread lifted a little
+    // (best ≥ current), 95% of each class has a best seen; 니나브 all short.
+    if (view === "best-combat-power") {
+      const best = (count, p) => {
+        const ready = count >= 30 && p;
+        const lift = (v) => Math.round((v + 140) * 100) / 100;
+        return {
+          count,
+          mean: ready ? lift(p.p50 + 20) : null,
+          max: ready ? lift(p.p90 + 900) : null,
+          percentiles: ready ? { p10: lift(p.p10), p25: lift(p.p25), p50: lift(p.p50), p75: lift(p.p75), p90: lift(p.p90) } : null,
+          sampleStatus: ready ? "READY" : "COLLECTING",
+        };
+      };
+      const rows = classes.map((c) => ({ className: c.className, value: best(Math.round(c.count * 0.95), c.combatPower) }));
+      const counted = rows.reduce((a, r) => a + r.value.count, 0);
+      return ok("STATS_BEST_COMBAT_POWER_SUCCESS", {
+        overall: small ? best(24, null) : best(counted, { p10: 2480, p25: 2760, p50: 3058, p75: 3340, p90: 3712 }),
+        classes: rows.sort((a, b) => b.value.count - a.value.count || a.className.localeCompare(b.className, "ko")),
+      });
+    }
     if (view === "servers") {
       const names = ["루페온", "실리안", "아만", "아브렐슈드", "카단", "카마인", "카제로스", "니나브"];
       const weights = [0.24, 0.12, 0.14, 0.11, 0.1, 0.1, 0.13, 0.06];
@@ -846,6 +1684,287 @@ createServer(async (req, res) => {
       data: { characterName: who, timezone: "Asia/Seoul", from: days[0].date, to: days.at(-1).date, days, rangeTotal, total: rangeTotal + 184 },
     });
   }
+  // Remaining official tooltip lines (backend #227), keyed to the search
+  // response's equipment order. "툴팁캐시없음" has no cache (404).
+  // Official armory page details (backend draft 19:58): on for 상세 (the
+  // mock skills' tripods with levels and a skill code), off (200, all null)
+  // for everyone else, as the backend answers with its flag off.
+  if (url.pathname === "/api/v1/characters/armory-page") {
+    const who = url.searchParams.get("characterName") ?? "";
+    if (who === "툴팁캐시없음") return send({ code: "CHARACTER_NOT_CACHED", message: "no cache" }, 404);
+    const on = who === "상세";
+    return send({
+      code: "CHARACTER_ARMORY_PAGE_SUCCESS",
+      message: "성공",
+      data: on
+        ? {
+            characterName: who,
+            enabled: true,
+            source: "공식 전투정보실 페이지",
+            fetchedAt: "2026-10-11T10:00:00Z",
+            skills: [
+              { name: "합성 포격", tripods: [{ tier: 0, slot: 1, name: "기동 포격", level: 5 }, { tier: 1, slot: 2, name: "연발 포격", level: 4 }, { tier: 2, slot: 1, name: "화약 추가", level: 1 }] },
+              { name: "합성 화염", tripods: [{ tier: 0, slot: 2, name: "장전", level: 5 }] },
+            ],
+            skillCode: "MOCK-SKILL-CODE-1234",
+            lifeSkills: [{ name: "채집", level: 70, grade: null }],
+          }
+        : { characterName: who, enabled: false, source: null, fetchedAt: null, skills: null, skillCode: null, lifeSkills: null },
+    });
+  }
+  // Roster ranking (backend #298): three rosters, the last one short of six
+  // characters (usedCharacters 4 of 4), values by basis and aggregate.
+  // Guild tab (api #472, L36·K28·M10): 합성길드 has 12 members seen in 30 days
+  // (7 days 6, 90 days 14, the 상세 character among them), 작은길드 is SMALL
+  // (3), any other guild has none seen (404).
+  {
+    const guildPath = /^\/api\/v1\/guilds\/([^/]+)\/([^/]+)$/.exec(url.pathname);
+    if (guildPath && guildPath[1] !== "popular") {
+      const serverName = decodeURIComponent(guildPath[1]);
+      const guildName = decodeURIComponent(guildPath[2]);
+      const days = Number(url.searchParams.get("activeDays") || 30);
+      const size = guildName === "합성길드" ? (days === 7 ? 6 : days === 90 ? 14 : 12) : guildName === "작은길드" ? 3 : 0;
+      if (!size) return send({ code: "STATS_GUILD_NOT_OBSERVED", message: "", data: null }, 404);
+      const classes = ["바드", "블레이드", "버서커", "소서리스", "건슬링어", "홀리나이트"];
+      const grades = ["길드장", "부길드장", "길드원"];
+      const members = Array.from({ length: size }, (_, i) => ({
+        characterName: i === 0 ? "상세" : `합성길드원${i}`,
+        className: classes[i % classes.length],
+        itemLevel: Math.round((1745 - i * 7.5) * 100) / 100,
+        combatPower: i % 4 === 3 ? null : Math.round((2420 - i * 61.3) * 100) / 100,
+        guildMemberGrade: i === 0 ? "길드장" : i < 3 ? "부길드장" : i === size - 1 ? null : grades[2],
+        observedAt: new Date(Date.UTC(2026, 9, 13 - (i % 5), 3, 0)).toISOString(),
+        // api #494: one roster of three (the 상세 character's), one of two, the
+        // rest alone; the last one's roster is not known.
+        rosterGroup: i < 3 ? 1 : i < 5 ? 2 : i === size - 1 ? null : i - 2,
+      }));
+      const levels = members.map((m) => m.itemLevel).sort((a, b) => a - b);
+      const powers = members.map((m) => m.combatPower).filter((v) => v != null).sort((a, b) => a - b);
+      const avg = (list) => Math.round((list.reduce((a, b) => a + b, 0) / list.length) * 100) / 100;
+      const median = (list) => {
+        const mid = Math.floor(list.length / 2);
+        return Math.round((list.length % 2 ? list[mid] : (list[mid - 1] + list[mid]) / 2) * 100) / 100;
+      };
+      const bins = (list, width) => {
+        const out = new Map();
+        for (const v of list) {
+          const from = Math.floor(v / width) * width;
+          out.set(from, (out.get(from) ?? 0) + 1);
+        }
+        return [...out.entries()].sort((a, b) => a[0] - b[0]).map(([from, count]) => ({ from, count }));
+      };
+      const counts = new Map();
+      for (const m of members) counts.set(m.className, (counts.get(m.className) ?? 0) + 1);
+      return send({
+        code: "GUILD_DETAIL_SUCCESS",
+        message: "ok",
+        data: {
+          meta: {
+            memberCount: size, sampleStatus: size < 5 ? "SMALL" : "READY", minMembers: 5, activeDays: days,
+            aggregatedAt: new Date(Date.now() - 600_000).toISOString(), ruleVersion: "guild-detail-v1",
+          },
+          serverName,
+          guildName,
+          summary: {
+            itemLevelAvg: avg(levels), itemLevelMedian: median(levels), itemLevelMax: levels.at(-1), itemLevelMin: levels[0],
+            combatPowerAvg: powers.length ? avg(powers) : null, combatPowerMedian: powers.length ? median(powers) : null,
+            combatPowerCount: powers.length,
+          },
+          classes: [...counts.entries()]
+            .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "ko"))
+            .map(([className, count]) => ({ className, count, share: Math.round((count / size) * 10000) / 100 })),
+          itemLevelBins: bins(levels, 10),
+          combatPowerBins: bins(powers, 100),
+          members,
+        },
+      });
+    }
+  }
+  // Guild ranking (api #302): guilds of observed members; 아만 differs so a
+  // server change brings other rows (A7 table widths).
+  if (url.pathname === "/api/v1/rankings/guilds") {
+    const server = url.searchParams.get("server");
+    // Name search (api #466): matching rows keep their overall rank; "빠진" matches
+    // two guilds left out for too few members seen.
+    const guild = url.searchParams.get("guild");
+    const sort = url.searchParams.get("sort") ?? "AVG";
+    const guilds = (server === "아만"
+      ? [["합성길드아만", "아만", 9, 1702.35, 8, 3010.5], ["짧은길드", "아만", 6, 1688, 0, null]]
+      : [["합성길드", "루페온", 24, 1731.12, 20, 3180.29], ["두번째길드", "루페온", 12, 1712.5, 12, 3050.4], ["작은길드", "카단", 5, 1690.4, 2, 2890.75]]
+    ).map(([guildName, serverName, memberCount, avg, cpCount, cpAvg]) => ({
+      serverName, guildName, memberCount,
+      itemLevelAvg: avg,
+      itemLevelSum: Math.round(avg * memberCount * 100) / 100,
+      combatPowerAvg: cpAvg, combatPowerCount: cpCount,
+    }));
+    guilds.sort((a, b) => (sort === "SUM" ? b.itemLevelSum - a.itemLevelSum : b.itemLevelAvg - a.itemLevelAvg));
+    return send({
+      code: "GUILD_RANKING_SUCCESS",
+      message: "ok",
+      data: {
+        meta: {
+          population: server === "아만" ? 12 : 318,
+          conditions: { server, role: null, className: null, activeDays: 30, itemLevelMin: 1640, itemLevelMax: null, combatPowerMin: null, combatPowerMax: null, representativeOnly: false },
+          aggregatedAt: "2026-10-11T07:00:00Z",
+          snapshot: "latest",
+          ruleVersion: "stats-v1",
+          minSample: 30,
+          sampleStatus: server === "아만" ? "COLLECTING" : "READY",
+          coverage: { observedCharacters: 4200, knownCharacters: 5100, discoveredAccounts: 900 },
+          populationUnit: "GUILD",
+        },
+        sort, page: 1, size: 50, minMembers: 5, excludedGuilds: server === "아만" ? 3 : 41,
+        ...(guild
+          ? {
+              matchCount: guilds.filter((row) => row.guildName.toLowerCase().includes(guild.toLowerCase())).length,
+              excludedMatches: guild === "빠진" ? 2 : 0,
+            }
+          : { matchCount: null, excludedMatches: null }),
+        rows: guilds
+          .map((row, i) => ({ rank: i + 1, ...row }))
+          .filter((row) => !guild || row.guildName.toLowerCase().includes(guild.toLowerCase()))
+          // One page holds every guild here: a later page is empty.
+          .filter(() => Number(url.searchParams.get("page") ?? 1) <= 1),
+      },
+    });
+  }
+  // Title equip shares (api #314): the roster title names of the 상세 mock,
+  // fewer rosters on 아만 (a small sample there).
+  if (url.pathname === "/api/v1/titles/equipped") {
+    const server = url.searchParams.get("server");
+    const population = server === "아만" ? 24 : 1240;
+    const rows = [["빛을 꺼트리는 자", 400], ["에키드나를 쓰러뜨린 자", 310], ["별을 제패한 자", 12], ["합성 칭호", 0]]
+      .map(([title, n]) => ({ title, equippedRosters: server === "아만" ? Math.round(n / 50) : n }))
+      .map((row) => ({ ...row, equippedPercent: Math.round((row.equippedRosters / population) * 10000) / 100 }))
+      .filter((row) => row.equippedRosters > 0);
+    return send({
+      code: "TITLE_EQUIP_SUCCESS",
+      message: "ok",
+      data: {
+        meta: {
+          population,
+          conditions: { server, role: null, className: null, activeDays: Number(url.searchParams.get("activeDays") ?? 30), itemLevelMin: 0, itemLevelMax: null, combatPowerMin: null, combatPowerMax: null, representativeOnly: false },
+          aggregatedAt: "2026-10-11T07:00:00Z",
+          snapshot: "latest",
+          ruleVersion: "stats-v1",
+          minSample: 30,
+          sampleStatus: population < 30 ? "COLLECTING" : "READY",
+          coverage: { observedCharacters: 5200, knownCharacters: 6100, discoveredAccounts: population },
+          populationUnit: "ROSTER",
+        },
+        title: url.searchParams.get("title"),
+        titles: rows,
+      },
+    });
+  }
+  if (url.pathname === "/api/v1/rankings/rosters") {
+    const basis = url.searchParams.get("basis") ?? "ITEM_LEVEL";
+    const aggregate = url.searchParams.get("aggregate") ?? "TOP6_AVG";
+    const base = basis === "COMBAT_POWER" ? 3200 : 1720;
+    const rosters = [
+      ["합성원정대", "루페온", "바드", 8, 0],
+      ["상세", "루페온", "블래스터", 7, -40],
+      ["작은원정대", "아만", "블레이드", 4, -90],
+    ];
+    const rows = rosters.map(([name, server, cls, count, delta], i) => {
+      const members = Array.from({ length: count }, (_, k) => ({
+        characterName: k === 0 ? name : `${name}${k + 1}`,
+        className: k === 0 ? cls : "버서커",
+        value: Math.round((base + delta - k * 12) * 100) / 100,
+      }));
+      const used = aggregate === "ALL_AVG" ? count : Math.min(6, count);
+      const top = members.slice(0, used).map((m) => m.value);
+      const sum = top.reduce((a, b) => a + b, 0);
+      return {
+        rank: i + 1,
+        serverName: server,
+        characterName: name,
+        className: cls,
+        itemLevel: 1720 + delta,
+        combatPower: 3200 + delta,
+        characterCount: count,
+        usedCharacters: used,
+        value: Math.round((aggregate === "TOP6_SUM" ? sum : sum / used) * 100) / 100,
+        composition: members.slice(0, used),
+      };
+    });
+    return send({
+      code: "ROSTER_RANKING_SUCCESS",
+      message: "ok",
+      data: {
+        meta: {
+          population: 1240,
+          conditions: { server: url.searchParams.get("server"), role: null, className: null, activeDays: 30, itemLevelMin: 1640, itemLevelMax: null, combatPowerMin: null, combatPowerMax: null, representativeOnly: false },
+          aggregatedAt: "2026-10-11T07:00:00Z",
+          snapshot: "latest",
+          ruleVersion: "stats-v1",
+          minSample: 30,
+          sampleStatus: "READY",
+          coverage: { observedCharacters: 6200, knownCharacters: 7400, discoveredAccounts: 1240 },
+          populationUnit: "ROSTER",
+        },
+        basis,
+        aggregate,
+        page: 1,
+        size: 50,
+        excludedRosters: 2,
+        rows,
+      },
+    });
+  }
+  // Collectible ranking (backend #295/#304, K33): three rosters; unit=CHARACTER
+  // lists each 상세 roster character with the roster value.
+  if (url.pathname === "/api/v1/rankings/collectibles") {
+    const unit = url.searchParams.get("unit") ?? "ROSTER";
+    const kinds = (done) => [
+      { type: "모코코 씨앗", point: done ? 1569 : 1402, maxPoint: 1569 },
+      { type: "섬의 마음", point: done ? 100 : 87, maxPoint: 100 },
+      { type: "거인의 심장", point: 15, maxPoint: 15 },
+    ];
+    const roster = (rank, characterName, serverName, className, itemLevel, characterCount, done) => {
+      const types = kinds(done);
+      const point = types.reduce((a, t) => a + t.point, 0);
+      const maxPoint = types.reduce((a, t) => a + t.maxPoint, 0);
+      return { rank, serverName, characterName, className, itemLevel, characterCount, progressPercent: Math.round((point / maxPoint) * 10000) / 100, point, maxPoint, observedAt: "2026-10-11T07:00:00Z", types };
+    };
+    const rosters = [roster(1, "합성원정대", "루페온", "바드", 1740, 8, true), roster(2, "상세", "아만", "블래스터", 1780.83, 7, false), roster(3, "작은원정대", "아만", "블레이드", 1690, 4, false)];
+    const rows = unit === "CHARACTER" ? [rosters[1], { ...rosters[1], characterName: "상세서포터", className: "바드", itemLevel: 1712.5 }] : rosters;
+    return send({
+      code: "COLLECTIBLE_RANKING_SUCCESS",
+      message: "ok",
+      data: {
+        meta: {
+          population: unit === "CHARACTER" ? 4210 : 1240,
+          conditions: { server: url.searchParams.get("server"), role: null, className: null, activeDays: Number(url.searchParams.get("activeDays") ?? 30), itemLevelMin: 1640, itemLevelMax: null, combatPowerMin: null, combatPowerMax: null, representativeOnly: false },
+          aggregatedAt: "2026-10-11T07:00:00Z",
+          snapshot: "latest",
+          ruleVersion: "stats-v1",
+          minSample: 30,
+          sampleStatus: "READY",
+          coverage: { observedCharacters: 6200, knownCharacters: 7400, discoveredAccounts: 1240 },
+          populationUnit: unit,
+        },
+        unit,
+        page: 1,
+        size: 50,
+        rows,
+      },
+    });
+  }
+  if (url.pathname === "/api/v1/characters/item-tooltips") {
+    const who = url.searchParams.get("characterName") ?? "";
+    if (who === "툴팁캐시없음") return send({ code: "CHARACTER_NOT_CACHED", message: "no cache" }, 404);
+    const equipment = read("character-full-data.json").loadout.equipment.map((item, index) => ({
+      index,
+      type: item.type,
+      extraLines: ["분해불가", "[제작] 대도시", "내구도 61 / 66"],
+    }));
+    return send({
+      code: "CHARACTER_ITEM_TOOLTIPS_SUCCESS",
+      message: "성공",
+      data: { characterName: who, hidden: false, fetchedAt: new Date().toISOString(), equipment, gems: [], cards: [], skills: [] },
+    });
+  }
   if (url.pathname !== "/api/v1/characters/search") return send({}, 404);
   const name = url.searchParams.get("characterName");
   counts[name] = (counts[name] || 0) + 1;
@@ -879,7 +1998,60 @@ createServer(async (req, res) => {
   if (name === "빈목록") envelope = read("observation-gems-items-empty.json");
   if (name === "미제공") envelope = read("observation-gems-items-null.json");
   envelope.data.characterName = name;
+  // Multi-search (web #611): 비교1…비교6 differ in level, power, class and
+  // gear so the comparison has a best value and a sort to show.
+  const compare = /^비교([1-6])$/.exec(name);
+  if (compare) {
+    const n = Number(compare[1]);
+    const d = envelope.data;
+    d.itemLevel = 1680 + n * 12.5;
+    d.combatPower = n === 4 ? null : 2000 + n * 350.25;
+    d.className = ["바드", "블래스터", "버서커", "소서리스", "도화가", "슬레이어"][n - 1];
+    d.analysis.position = n === 1 || n === 5 ? "SUPPORT" : "DEALER";
+    d.analysis.equipment.minRefineLevel = 17 + n;
+    d.analysis.equipment.maxRefineLevel = 19 + n;
+    d.analysis.equipment.averageQuality = 70 + n * 4.5;
+    d.analysis.gems.averageLevel = 6 + n * 0.5;
+    d.analysis.gems.count = 11;
+    d.loadout.engravings.arkPassiveEffects = ["원한", "아드레날린", "예리한 둔기", "돌격대장", "질량 증가"]
+      .slice(0, 3 + (n % 3))
+      .map((engraving, i) => ({ name: engraving, grade: "유물", level: (n + i) % 5, abilityStoneLevel: null, description: null }));
+    d.loadout.arkPassive.points = [
+      { name: "진화", value: 100 + n * 4, description: null },
+      { name: "깨달음", value: 80 + n * 4, description: null },
+      { name: "도약", value: 50 + n * 4, description: null },
+    ];
+  }
   if (name === "전투력계산") withSimulatorGear(envelope.data);
+  // 그 외 장착 보석 (L34): a second gem set on a skill the skill list does not
+  // have (an identity skill in the official gem effects).
+  if (name === "그외보석") {
+    const { gems } = envelope.data.loadout;
+    // The fixture's own gem goes on a listed skill, so only the second one is "other".
+    gems.effects.skills[0].name = "테스트 스킬";
+    gems.items.push({ slot: 1, name: "10레벨 작열의 보석", icon: "gem.png", level: 10, grade: "고대" });
+    gems.effects.skills.push({
+      gemSlot: 1,
+      name: "테스트 아이덴티티",
+      description: ["재사용 대기시간 24.00% 감소"],
+      option: null,
+      icon: "identity.png",
+    });
+  }
+  // 특성 자세히 (§14.1 ④): stats with synthetic official-style tooltip lines.
+  if (name === "특성상세") {
+    const line = (type, effect, bonus) => [effect, `${type}은(는) 물약 및 원정대 레벨 보상으로 ${bonus}만큼 영구 증가되었습니다.`];
+    envelope.data.stats = [
+      { type: "치명", value: "646", tooltip: line("치명", "치명타 적중률이 23.12% 증가합니다.", 50) },
+      { type: "특화", value: "1832", tooltip: line("특화", "고유 능력의 효과가 65.43% 증가합니다.", 50) },
+      { type: "신속", value: "88", tooltip: line("신속", "공격 속도와 이동 속도가 1.51% 증가합니다.", 50) },
+      { type: "제압", value: "60", tooltip: [] },
+      { type: "인내", value: "61", tooltip: [] },
+      { type: "숙련", value: "62", tooltip: [] },
+      { type: "공격력", value: "142077", tooltip: ["공격력은 힘, 민첩, 지능과 무기 공격력을 기반으로 증가합니다."] },
+      { type: "최대 생명력", value: "377857", tooltip: ["최대 생명력은 체력과 생명 활성력을 기반으로 증가합니다."] },
+    ];
+  }
   if (name === "마크업") {
     // Synthetic copy of the official Tooltip markup shape seen in live responses.
     const { engravings, arkPassive } = envelope.data.loadout;
@@ -948,7 +2120,7 @@ createServer(async (req, res) => {
       detail: { parserVersion: "equipment-tooltip-v3", refineLevel, quality: 90, itemLevel: 1640 + refineLevel * 5, tier: 4, arkPassivePoint: null, effects: [], stoneEngravings: [], polishEffects: [], braceletEffects: [] },
     }));
   }
-  if (name === "상세" || name === "상세서포터") {
+  if (name === "상세" || name === "상세서포터" || name === "대세블레이드" || name === "가려짐긴값캐릭터") {
     // Detail-page mock: a locally supplied character file (never committed) or
     // the synthetic fixture, enriched with synthetic Tooltip detail and skills.
     if (process.env.MOCK_CHARACTER_FILE)
@@ -1039,6 +2211,7 @@ createServer(async (req, res) => {
     d.townName = "합성 영지";
     d.townLevel = 70;
     d.honorPoint = 183;
+    d.guildName = "합성길드";
     d.guildMemberGrade = "길드장";
     d.avatars = [
       ["무기 아바타", "합성 무기 아바타", "전설", false, ["민첩 +2.00%"]],
@@ -1059,9 +2232,9 @@ createServer(async (req, res) => {
       tripods: [], rune: null, gemEffects: [], ...extra,
     });
     d.loadout.skills = [
-      skill("합성 포격", 14, { tripods: [{ tier: 0, slot: 1, name: "기동 포격", icon: null }, { tier: 1, slot: 2, name: "연발 포격", icon: null }, { tier: 2, slot: 1, name: "화약 추가", icon: null }], rune: { name: "풍요", icon: null, grade: "전설" }, gemEffects: [{ text: "합성 포격 피해 28.00% 증가", kind: "DAMAGE" }] }),
+      skill("합성 포격", 14, { tripods: [{ tier: 0, slot: 1, name: "기동 포격", icon: null }, { tier: 1, slot: 2, name: "연발 포격", icon: null }, { tier: 2, slot: 1, name: "화약 추가", icon: null }], rune: { name: "풍요", icon: null, grade: "전설" }, gemEffects: [{ text: "합성 포격 피해 28.00% 증가", kind: "DAMAGE" }], cooldown: { cooldownSec: 18, gemCooldownReductionPct: 0, cooldownWithGemsSec: 18, basis: "공식 재사용 대기시간과 장착 보석의 재사용 대기시간 감소만 반영했습니다." } }),
       skill("합성 화염", 14, { partBreakLevel: 1, tripods: [{ tier: 0, slot: 2, name: "장전", icon: null }], rune: { name: "풍요", icon: null, grade: "전설" } }),
-      skill("합성 중력", 10, { counter: true, rune: { name: "속행", icon: null, grade: "영웅" }, gemEffects: [{ text: "합성 중력 재사용 대기시간 20.00% 감소", kind: "COOLDOWN" }] }),
+      skill("합성 중력", 10, { counter: true, rune: { name: "속행", icon: null, grade: "영웅" }, gemEffects: [{ text: "합성 중력 재사용 대기시간 20.00% 감소", kind: "COOLDOWN" }], cooldown: { cooldownSec: 24, gemCooldownReductionPct: 20, cooldownWithGemsSec: 19.2, basis: "공식 재사용 대기시간과 장착 보석의 재사용 대기시간 감소만 반영했습니다." } }),
       skill("기본 스킬", 1, { partBreakLevel: 1, counter: true }),
     ];
     d.coverage.skills = "PROVIDED";
@@ -1102,6 +2275,101 @@ createServer(async (req, res) => {
     const stone = d.loadout.equipment.find((item) => item.type === "어빌리티 스톤");
     if (stone?.detail) stone.detail.effects = [...stone.detail.effects, { title: "무작위 각인 효과", lines: ["[레벨 보너스] 기본 공격력 +1.50%"] }];
     d.analysis.arkGrid = { coreCount: 6, activeGemCount: 18, inactiveGemCount: 6, unknownGemCount: 0, orderPoints: 53, chaosPoints: 51 };
+    // A bracelet to carry the efficiency (the fixture has weapon and helmet only).
+    if (!d.loadout.equipment.some((item) => item.type === "팔찌"))
+      d.loadout.equipment.push({
+        type: "팔찌", name: "찬란한 구원자의 팔찌", icon: null, grade: "고대",
+        detail: {
+          parserVersion: "equipment-tooltip-v5", refineLevel: null, quality: null, itemLevel: null, tier: 4, arkPassivePoint: null,
+          effects: [], stoneEngravings: [], polishEffects: [],
+          braceletEffects: [
+            { text: "치명타 피해 +8.40%", grade: "HIGH" },
+            { text: "공격 및 이동 속도 +4%", grade: "MID" },
+          ],
+          titleLine: null, tradeLines: [], refineExp: null, advancedRefineLevel: 0,
+        },
+      });
+    // Bracelet efficiency (backend #350): the reference sample for 상세, the
+    // support reason for 상세서포터.
+    d.braceletEfficiency = name === "상세서포터"
+      ? { percent: null, status: "UNSUPPORTED", reasonCode: "SUPPORT_POSITION", reason: "서포터는 전투력이 딜러와 다르게 계산돼 팔찌 효율을 매기지 않아요.", lines: [], ruleVersion: "combat-power-v3" }
+      : {
+          percent: 14.42, status: "OK", reasonCode: null, reason: "팔찌를 뺀 전투력과 비교했어요.", ruleVersion: "combat-power-v3",
+          lines: [
+            { text: "치명타 피해 +8.40%", percent: 4.12, status: "OK", reasonCode: null, reason: null },
+            { text: "공격 및 이동 속도 +4%", percent: null, status: "UNSUPPORTED", reasonCode: "SPEED", reason: "속도는 전투력에 들어가지 않아요." },
+            { text: "팔찌 도약 +18", percent: 2.05, status: "OK", reasonCode: null, reason: null },
+          ],
+        };
+    // Ark grid efficiency (backend #424): one line per core by slot index, a
+    // core that moves nothing, one not worked out, and the gem options last.
+    d.arkGridEfficiency = name === "상세서포터"
+      ? { percent: null, coresPercent: null, status: "UNSUPPORTED", reasonCode: "SUPPORT_POSITION", reason: "서포터는 전투력이 딜러와 다르게 계산돼 아크 그리드 효율을 매기지 않아요.", lines: [], ruleVersion: "ark-grid-efficiency-v1" }
+      : {
+          percent: 37.36, coresPercent: 31.74, status: "OK", reasonCode: null, ruleVersion: "ark-grid-efficiency-v1",
+          reason: "아크 그리드 코어와 젬 옵션을 모두 뺀 전투력보다 지금 전투력이 몇 % 높은지입니다.",
+          lines: [
+            { slotIndex: 0, text: "질서의 해 코어 : 살상연희 유물 18P", percent: 7.67, status: "OK", reasonCode: null, reason: null },
+            { slotIndex: 1, text: "질서의 달 코어 : 쌍검난무 유물 17P", percent: 7.5, status: "OK", reasonCode: null, reason: null },
+            { slotIndex: 2, text: "질서의 별 코어 : 쾌도난마 유물 18P", percent: 4.67, status: "OK", reasonCode: null, reason: null },
+            { slotIndex: 3, text: "혼돈의 해 코어 : 현란한 공격 유물 17P", percent: 0, status: "OK", reasonCode: null, reason: null },
+            { slotIndex: 4, text: "혼돈의 달 코어 : 불타는 일격 유물 17P", percent: null, status: "UNSUPPORTED", reasonCode: "UNKNOWN_CORE", reason: "아직 계산식이 없는 코어예요." },
+            { slotIndex: 5, text: "혼돈의 별 코어 : 공격 유물 17P", percent: 2.5, status: "OK", reasonCode: null, reason: null },
+            { slotIndex: null, text: "젬 옵션(공격력 Lv.28 · 추가 피해 Lv.51 · 보스 피해 Lv.4)", percent: 4.27, status: "OK", reasonCode: null, reason: null },
+          ],
+        };
+    // 대세 빌드 비교 (M26): a 블레이드 against the mock class builds above —
+    // the most chosen engraving set, enlightenment 98 (second), 특화 on top,
+    // no 치명 on the bracelet, damage gems without the most chosen level.
+    if (name === "대세블레이드") {
+      d.className = "블레이드";
+      d.loadout.arkPassive.title = "잔재된 기운";
+      d.loadout.arkPassive.points = [
+        { name: "진화", value: 140, description: null },
+        { name: "깨달음", value: 98, description: null },
+        { name: "도약", value: 70, description: null },
+      ];
+      d.loadout.engravings.arkPassiveEffects = ["돌격대장", "아드레날린", "원한", "잔재된 기운", "질량 증가"].map((engraving) => ({
+        abilityStoneLevel: null, grade: "유물", level: 4, name: engraving, description: null,
+      }));
+      d.stats = ["치명", "특화", "신속", "제압", "인내", "숙련"].map((type, i) => ({ type, value: ["612", "1,812", "88", "71", "70", "69"][i], tooltip: [] }));
+      const braceletEffects = [{ text: "특화 +100", grade: null }, { text: "신속 +81", grade: null }];
+      const bracelet = d.loadout.equipment.find((item) => item.type === "팔찌");
+      if (bracelet) bracelet.detail = { ...bracelet.detail, braceletEffects };
+      else
+        d.loadout.equipment.push({
+          type: "팔찌", name: "찬란한 구원자의 팔찌", icon: null, grade: "고대",
+          detail: { parserVersion: "equipment-tooltip-v3", refineLevel: null, quality: null, itemLevel: null, tier: 4, arkPassivePoint: null, effects: [], stoneEngravings: [], polishEffects: [], braceletEffects, titleLine: null, tradeLines: [], refineExp: null, advancedRefineLevel: null },
+        });
+      d.loadout.gems = {
+        items: [
+          { slot: 0, name: "9레벨 겁화의 보석", icon: null, level: 9, grade: null, titleLine: null, itemLevel: null, tier: 4, tradeLines: [] },
+          { slot: 1, name: "10레벨 작열의 보석", icon: null, level: 10, grade: null, titleLine: null, itemLevel: null, tier: 4, tradeLines: [] },
+        ],
+        effects: {
+          description: null,
+          skills: [
+            { gemSlot: 0, name: "버스트", description: ["피해 36.00% 증가"], option: null, icon: null },
+            { gemSlot: 1, name: "버스트", description: ["재사용 대기시간 20.00% 감소"], option: null, icon: null },
+          ],
+        },
+      };
+      d.loadout.cards = {
+        items: [],
+        effects: [{ index: 0, cardSlots: [], items: [{ name: "세상을 구하는 빛 6세트 (30각성합계)", description: null }] }],
+      };
+    }
+    // A37: the longest values the banner shows (name, title, server and class, combat power, levels).
+    if (name === "가려짐긴값캐릭터") {
+      d.characterName = name;
+      d.serverName = "아브렐슈드";
+      d.className = "데모닉";
+      d.title = "어둠 속에서 끝까지 버틴 자";
+      d.itemLevel = 1789.17;
+      d.combatPower = 12345.67;
+      d.characterLevel = 70;
+      d.expeditionLevel = 300;
+    }
     if (name === "상세서포터") {
       d.className = "바드";
       d.loadout.arkPassive.effects = [

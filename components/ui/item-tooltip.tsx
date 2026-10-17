@@ -5,16 +5,15 @@ import { Drawer as DrawerPrimitive } from "@base-ui/react/drawer"
 import { Popover as PopoverPrimitive } from "@base-ui/react/popover"
 import { cn } from "cn"
 
-// Item detail (equipment, accessories, stone, bracelet, gems, cores), laid out
-// as iloa's card (user 10-10 23:13/23:15: same place, same look, same lines,
-// same spacing). Every number below is from the reference team's measurement
-// (40 레퍼런스/작은 동작 전수표 v2.1 §1·2·2b·2d·2e).
+// Item detail (equipment, accessories, stone, bracelet, gems, cores) as a card
+// beside the item. Every number below is a measured value (sheet v2.1
+// §1·2·2b·2d·2e).
 //
-// Pointer devices get a Base UI Popover beside the item, as iloa's is:
+// Pointer devices get a Base UI Popover beside the item:
 // hovering previews it, while a click, Enter/Space opens it with focus inside,
 // so keyboard and screen reader users can read and scroll a long card and Esc
 // returns focus to the item (#319). Touch devices (no hover, coarse pointer)
-// get the same card in a bottom sheet, as iloa does at 390px.
+// get the same card in a bottom sheet at 390px.
 //
 // <ItemTooltip>
 //   <ItemTooltipTrigger aria-label="+19 운명의 전율 머리장식 상세">…</ItemTooltipTrigger>
@@ -43,10 +42,83 @@ const subscribeTouch = (onChange: () => void) => {
 }
 const ModeContext = React.createContext<"popover" | "sheet">("popover")
 
+// --- Staying below the sticky header and tab bar ----------------------------
+
+/** Elements pinned at the top of the page (site header, a page's sticky tab
+ * bar) carry data-sticky-chrome; the card never goes over them. */
+const CHROME = "[data-sticky-chrome]"
+const EDGE = 12
+
+/** The bottom of the pinned chrome in the upper half of the viewport, or 0. */
+export function chromeBottom() {
+  let bottom = 0
+  for (const element of document.querySelectorAll<HTMLElement>(CHROME)) {
+    const rect = element.getBoundingClientRect()
+    if (rect.height > 0 && rect.bottom > bottom && rect.bottom <= window.innerHeight / 2) bottom = rect.bottom
+  }
+  return bottom
+}
+
+const AnchorContext = React.createContext<{
+  setTrigger: (element: HTMLElement | null) => void
+  top: number
+}>({ setTrigger: () => {}, top: EDGE })
+
+/**
+ * While the card is open (pointer devices): keep its top below the chrome
+ * (collision padding from the measured bottom, not a fixed number), and close
+ * it once its item has scrolled up under the chrome — the card would point at
+ * nothing (user 10-11: the open card covered the tab bar while scrolling).
+ */
+function useBelowChrome(open: boolean, close: () => void) {
+  const trigger = React.useRef<HTMLElement | null>(null)
+  const [top, setTop] = React.useState(EDGE)
+  const closeRef = React.useRef(close)
+  React.useEffect(() => {
+    closeRef.current = close
+  })
+  React.useEffect(() => {
+    if (!open) return
+    let frame = 0
+    const check = () => {
+      frame = 0
+      const bottom = chromeBottom()
+      setTop(bottom + EDGE)
+      const rect = trigger.current?.getBoundingClientRect()
+      if (rect && rect.height > 0 && rect.top + rect.height / 2 < bottom) closeRef.current()
+    }
+    const schedule = () => {
+      if (!frame) frame = requestAnimationFrame(check)
+    }
+    check()
+    window.addEventListener("scroll", schedule, { passive: true, capture: true })
+    window.addEventListener("resize", schedule, { passive: true })
+    return () => {
+      cancelAnimationFrame(frame)
+      window.removeEventListener("scroll", schedule, { capture: true })
+      window.removeEventListener("resize", schedule)
+    }
+  }, [open])
+  const setTrigger = React.useCallback((element: HTMLElement | null) => {
+    trigger.current = element
+  }, [])
+  return { setTrigger, top }
+}
+
 function ItemTooltip({ open, defaultOpen, onOpenChange, children, ...props }: PopoverPrimitive.Root.Props) {
   // The server and the first client render use the popover; a touch device
   // switches before anything can open, since nothing opens until a press.
   const touch = React.useSyncExternalStore(subscribeTouch, () => window.matchMedia(TOUCH_QUERY).matches, () => false)
+  const [innerOpen, setInnerOpen] = React.useState(defaultOpen ?? false)
+  const shown = open ?? innerOpen
+  const change: NonNullable<PopoverPrimitive.Root.Props["onOpenChange"]> = (next, details) => {
+    if (open === undefined) setInnerOpen(next)
+    onOpenChange?.(next, details)
+  }
+  const anchor = useBelowChrome(!touch && shown, () => {
+    if (open === undefined) setInnerOpen(false)
+    onOpenChange?.(false, { reason: "none" } as never)
+  })
   if (touch) {
     return (
       <ModeContext.Provider value="sheet">
@@ -63,19 +135,22 @@ function ItemTooltip({ open, defaultOpen, onOpenChange, children, ...props }: Po
   }
   return (
     <ModeContext.Provider value="popover">
-      <PopoverPrimitive.Root open={open} defaultOpen={defaultOpen} onOpenChange={onOpenChange} {...props}>
-        {children}
-      </PopoverPrimitive.Root>
+      <AnchorContext.Provider value={anchor}>
+        <PopoverPrimitive.Root open={shown} onOpenChange={change} {...props}>
+          {children}
+        </PopoverPrimitive.Root>
+      </AnchorContext.Provider>
     </ModeContext.Provider>
   )
 }
 
 /** The item itself, as a button. Hover opens 180ms after the pointer rests
- * (iloa 160–200ms) and closes 100ms after it leaves; moving onto the card
+ * and closes 100ms after it leaves; moving onto the card
  * keeps it open. The card does not follow the pointer. On touch a tap opens
  * the sheet. */
 function ItemTooltipTrigger({ className, ...props }: PopoverPrimitive.Trigger.Props) {
   const mode = React.useContext(ModeContext)
+  const { setTrigger } = React.useContext(AnchorContext)
   if (mode === "sheet") {
     return (
       <DrawerPrimitive.Trigger
@@ -88,6 +163,7 @@ function ItemTooltipTrigger({ className, ...props }: PopoverPrimitive.Trigger.Pr
   return (
     <PopoverPrimitive.Trigger
       data-slot="item-tooltip-trigger"
+      ref={setTrigger}
       openOnHover
       delay={180}
       closeDelay={100}
@@ -97,12 +173,13 @@ function ItemTooltipTrigger({ className, ...props }: PopoverPrimitive.Trigger.Pr
   )
 }
 
-// The glass face both shapes share: iloa's fill, blur and edge.
+// The glass face both shapes share: fill, blur and edge.
 const FACE = "bg-(--item-tip) text-(--item-tip-foreground) shadow-(--item-tip-shadow) backdrop-blur-[24px] backdrop-saturate-[1.8]"
 const SCROLL = "overflow-y-auto overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
 
 /** Pointer: right of the item, top edges 8px apart (card higher), 12px gap;
- * flips to the left when the right has no room. 288px wide, 16px padding, at
+ * flips to the left when the right has no room, and stays below the sticky
+ * header and tab bar (closing once its item scrolls under them). 288px wide, 16px padding, at
  * most half the viewport tall, scrolling inside with the scrollbar hidden.
  * Touch: a sheet 7px in from the sides and bottom, a 35×4 handle above it,
  * a 60% black backdrop, 500ms up; drag down, tap outside or Esc closes. */
@@ -117,6 +194,7 @@ function ItemTooltipContent({
 }: PopoverPrimitive.Popup.Props &
   Pick<PopoverPrimitive.Positioner.Props, "align" | "alignOffset" | "side" | "sideOffset">) {
   const mode = React.useContext(ModeContext)
+  const { top } = React.useContext(AnchorContext)
   if (mode === "sheet") {
     return (
       <DrawerPrimitive.Portal>
@@ -127,12 +205,14 @@ function ItemTooltipContent({
             "data-starting-style:opacity-0 data-ending-style:opacity-0 data-swiping:transition-none"
           )}
         />
-        {/* The viewport carries swipe-to-close and touch scroll locking. */}
+        {/* The viewport carries swipe-to-close and touch scroll locking. Under
+            640px the sheet spans the screen minus 7px each side; wider, it is
+            at most 512px, centred (reference re-measure, PM 09:37). */}
         <DrawerPrimitive.Viewport className="fixed inset-0 z-50">
         <DrawerPrimitive.Popup
           data-slot="item-tooltip"
           className={cn(
-            "fixed inset-x-[7px] bottom-[7px] z-50 mx-auto flex max-w-[376px] flex-col",
+            "fixed inset-x-[7px] bottom-[7px] z-50 mx-auto flex flex-col min-[640px]:max-w-[512px]",
             "rounded-t-[24.5px] rounded-b-[10.5px]",
             FACE,
             "translate-y-(--drawer-swipe-movement-y) transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]",
@@ -156,7 +236,8 @@ function ItemTooltipContent({
         sideOffset={sideOffset}
         align={align}
         alignOffset={alignOffset}
-        collisionPadding={12}
+        // Below the header and a sticky tab bar (measured while open).
+        collisionPadding={{ top, right: EDGE, bottom: EDGE, left: EDGE }}
         collisionAvoidance={{ side: "flip", align: "shift" }}
         className="isolate z-50"
       >
@@ -168,7 +249,7 @@ function ItemTooltipContent({
             "rounded-[12px]",
             FACE,
             "origin-(--transform-origin)",
-            // iloa: 150ms in, 100ms out on cubic-bezier(0.23, 1, 0.32, 1), from
+            // 150ms in, 100ms out on cubic-bezier(0.23, 1, 0.32, 1), from
             // 0.98 and 4px back towards the item. Reduced motion is instant
             // (global rule).
             "transition-[opacity,scale,translate] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)]",
@@ -242,8 +323,8 @@ function ItemDetail({
             <div
               className={cn(
                 "size-14 shrink-0 overflow-hidden rounded-[4px] [&>img]:size-full [&>img]:object-cover",
-                // iloa paints the box with the grade as a gradient (2d); the
-                // official image sits on top. Its own artwork is not copied.
+                // The box is painted with the grade as a gradient (2d); the
+                // official image sits on top.
                 !plainIcon && "bg-linear-to-br/srgb from-(--item-icon-a) to-(--item-icon-b)"
               )}
             >
@@ -251,7 +332,7 @@ function ItemDetail({
             </div>
           )}
           {/* The right column sits on the first line only; the quality bar
-              below takes the block's full width (iloa 188). */}
+              below takes the block's full width (188). */}
           <div className="grid min-w-0 flex-1 gap-1 leading-3">
             {(lines?.length ? lines : [null]).map((line, i) => (
               <div key={i} className={cn("flex min-w-0 gap-1 break-keep", i === 0 && "text-(--item-grade)")}>
@@ -374,8 +455,8 @@ function ItemProgress({ label, value, max }: { label: React.ReactNode; value: nu
       <p className="text-(--item-tip-section)">{label}</p>
       <div className="relative h-3 overflow-hidden rounded-[8px] bg-(--item-tip-track)">
         <span aria-hidden="true" className="absolute inset-y-0 left-0 rounded-[8px] bg-(--item-tip-exp)" style={{ width: `${pct}%` }} />
-        {/* Written as iloa does, without thousands separators. iloa's light
-            figures drop to 2.0 over the orange, so the part over the fill is
+        {/* Written without thousands separators. Light figures drop to
+            2.0 over the orange, so the part over the fill is
             drawn again in dark ink (7.09), the rest stays light (6.78). */}
         <span className="relative block text-center text-[12px] leading-3 font-medium tabular-nums text-(--item-tip-exp-foreground)">
           {value} / {max}

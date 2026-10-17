@@ -34,14 +34,17 @@ npx playwright show-report       # 실패 시 trace·스크린샷
 | `smoke/site-nav.spec.mjs` | 상단 메뉴 이동·호버·↓/Esc/←→, 성장 도구 메뉴(경매·도구 전체)·현재 위치, 390px 메뉴 시트·Esc 포커스 복귀 |
 | `smoke/character.spec.mjs` | 캐릭터 8개 탭, 탭 이동·새로고침 유지, 원정대 이동, 404·429·502·503·504 |
 | `smoke/market.spec.mjs` | 시세 분류·정렬·페이지·품목 추이·기간 |
+| `smoke/multi-search.spec.mjs` | 멀티서치: 여러 이름 입력·주소 유지, 한 명씩 차례로 조회, 6명 초과·이름 아닌 값 안내, 못 찾은 캐릭터·값 없는 칸 이유, 빼기·정렬 |
 | `smoke/tools.spec.mjs` | 재련 기대 비용(계산·장비 불러오기), 재료 구매 견적, 치적·뭉가·음돌 |
-| `smoke/auction.spec.mjs` | 경매 입찰가: 일로아 대조 100,000G·8인, 수수료 올림(99,999G), 프리셋 4·8·16·30, 직접 입력·범위 오류, 가격 오류, 화살표 키, 주소 유지 |
+| `smoke/auction.spec.mjs` | 경매 입찰가: 100,000G·8인, 수수료 올림(99,999G), 프리셋 4·8·16·30, 직접 입력·범위 오류, 가격 오류, 화살표 키, 주소 유지 |
 | `regression/mock-contract.spec.mjs` | 목 응답이 앱 프록시의 계약 검증을 통과하는지(캐릭터·원정대·이력·조회수·카드 기록·시세·홈) |
 | `regression/detail-mock.spec.mjs` | '상세'·'상세서포터' 전 탭에 계약 실패 화면이 없음 |
 | `regression/aria-expanded.spec.mjs` | 펼침 버튼 aria-expanded(아크 그리드·기록 표·스킬·상단 메뉴, 전 탭 검사) |
 | `regression/material-quote-options.spec.mjs` | 카테고리 목록 도착 전 검색 시 모순된 오류 |
 | `regression/focus-retention.spec.mjs` | 키보드 실행 뒤 로딩 중·완료 후 포커스가 BODY로 사라지지 않음(성장 도구 3화면·시세) |
 | `regression/dark-mode.spec.mjs` | OS 다크 모드에서 7개 화면 제목·본문 대비 4.5:1 이상 |
+| `regression/theme-rapid.spec.mjs` | 테마 4종(라이트·딤·다크·시스템): 화살표 10회 연타 뒤 상태 일치·색 전환 0, Esc 포커스 복귀, 딤 새로고침 유지, 예전 저장값, 시스템 실시간 추종, 기본 라이트 |
+| `regression/orb-pause.spec.mjs` | 홈·소개 반복 애니메이션이 6초 뒤에도 움직임, 구슬 Enter로 멈춤(aria-pressed)·새로고침 첫 화면부터 멈춤 유지·Space로 재생, 줄어든 모션이면 버튼 없이 정지 |
 | `regression/favorites.spec.mjs` | 즐겨찾기 추가 → 새로고침 → 새 탭 홈 목록 → 해제, 깨진 저장소 |
 | `regression/long-text.spec.mjs` | 긴 텍스트 넘침(렌더된 글자에 긴 글자를 넣고 boundingBox 확인): 공지·이벤트·인기·최근 검색·랭킹·배너 이름·장비·시세 품목 × 1440·768·390 |
 | `regression/mock-failures.spec.mjs` | 목 실패 장치(`POST /__fail`): 인기 검색 서버 선조회+재조회 실패, 시세 1분 갱신 503·429에도 목록 유지. **`isolated` 프로젝트**로 다른 프로젝트가 끝난 뒤 단독 실행(실패 예약은 목 전체 공유) |

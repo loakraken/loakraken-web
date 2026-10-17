@@ -8,7 +8,9 @@ import { defineConfig, devices } from "@playwright/test";
 const standalone = process.env.E2E_SERVER === "standalone";
 const WEB_PORT = Number(process.env.E2E_WEB_PORT ?? (standalone ? 3202 : 3200));
 const MOCK_PORT = Number(process.env.E2E_MOCK_PORT ?? 3201);
-const api = { LOAKRAKEN_API_ORIGIN: `http://127.0.0.1:${MOCK_PORT}` };
+// CHARACTER_INDEXING on (off by default) so the search-bot path is covered;
+// PRICE_ALERTS on (off by default) so the alerts page and routes are.
+const api = { LOAKRAKEN_API_ORIGIN: `http://127.0.0.1:${MOCK_PORT}`, CHARACTER_INDEXING: "on", PRICE_ALERTS: "on" };
 // E2E_BASE_URL points the suite at an already running preview (e.g. a PR
 // worktree on another port). The servers below are then not started.
 const external = process.env.E2E_BASE_URL;

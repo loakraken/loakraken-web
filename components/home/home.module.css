@@ -1,4 +1,4 @@
-/* Home dashboard: the /about hero (search) first, then LOAWA-style weekly schedule
+/* Home dashboard: the /about hero (search) first, then the weekly schedule
    with notices, events and a market summary beside it. */
 .page {
   min-height: 100vh;
@@ -13,8 +13,10 @@
   font: inherit;
   cursor: pointer;
 }
-.remove:hover {
-  background: var(--secondary);
+@media (hover: hover) and (pointer: fine) {
+  .remove:hover {
+    background: var(--hover-surface);
+  }
 }
 .page :focus-visible {
   outline: 3px solid var(--ring);
@@ -45,6 +47,75 @@
   max-width: 1168px;
   margin: 0 auto;
   padding: 0 24px 64px;
+}
+
+/* Quick menu (L46): one row of the most used screens under the search, two
+   rows of five below 860px. Static links, so nothing arrives late. */
+.quick {
+  margin: 0 0 16px;
+}
+.quick ul {
+  display: grid;
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.quick a {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 12px 4px 10px;
+  border-radius: 16px;
+  background: var(--muted);
+  color: var(--foreground);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.3;
+  text-align: center;
+  text-decoration: none;
+  word-break: keep-all;
+  transition:
+    box-shadow 160ms ease-out,
+    transform 100ms ease-out;
+}
+@media (hover: hover) and (pointer: fine) {
+  .quick a:hover {
+    /* the shared hover tint over the card colour */
+    box-shadow: inset 0 0 0 100vmax var(--hover-surface);
+  }
+}
+.quick a:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+.quickIcon {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  background: var(--card);
+  color: var(--link);
+}
+.quickIcon svg {
+  width: 20px;
+  height: 20px;
+}
+@media (max-width: 860px) {
+  .quick ul {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+@media (max-width: 520px) {
+  .quick ul {
+    gap: 6px;
+  }
+  .quick a {
+    padding: 10px 2px 8px;
+    font-size: 12px;
+  }
 }
 
 /* Layout */
@@ -100,6 +171,60 @@
   color: var(--link);
   font-size: 13px;
   font-weight: 600;
+}
+
+/* Press feedback (apple-design re-review): the control answers at once,
+   scale only, so nothing around it moves (.quick a has its transition above). */
+.toggle,
+.days button,
+.rewardMore,
+.remove {
+  transition: transform 100ms ease-out;
+}
+.quick a:active,
+.toggle:active,
+.days button:active,
+.rewardMore:active,
+.remove:active {
+  transform: scale(0.97);
+}
+@media (prefers-reduced-motion: reduce) {
+  .quick a,
+  .toggle,
+  .days button,
+  .rewardMore,
+  .remove {
+    transition: none;
+  }
+}
+/* On a phone the small controls take 44px to press; the pill stays as it
+   looks (the hit-44 rule, which a module selector cannot take). The period
+   and kind segments are 44px wide at least, so side by side the areas do
+   not overlap (A36). */
+@media (max-width: 699px), (pointer: coarse) {
+  .toggle,
+  .rewardMore,
+  .remove,
+  .more,
+  .noticeTabs button {
+    position: relative;
+  }
+  .noticeTabs button {
+    min-width: 44px;
+  }
+  .toggle::after,
+  .rewardMore::after,
+  .remove::after,
+  .more::after,
+  .noticeTabs button::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+    translate: -50% -50%;
+  }
 }
 
 /* Schedule */
@@ -187,6 +312,19 @@
   background: var(--primary);
   transform: translateX(-50%);
 }
+/* On a phone a day takes 44px to press (hit-44 rule on ::before — ::after is
+   the today dot); 41px days 6px apart, so neighbours never overlap. */
+@media (max-width: 699px), (pointer: coarse) {
+  .days button::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+    translate: -50% -50%;
+  }
+}
 .days button[aria-pressed="true"] {
   background: var(--foreground);
   box-shadow: none;
@@ -220,7 +358,8 @@
   font-size: 12px;
 }
 .section header .next {
-  margin-left: auto;
+  flex: 1 1 auto;
+  min-width: 0;
   text-align: right;
   color: var(--muted-foreground);
   font-variant-numeric: tabular-nums;
@@ -306,6 +445,25 @@
   color: var(--faint);
   text-decoration: line-through;
 }
+/* 지난 회차 숨김: the round keeps its place, so the ones left stay put (A7). */
+.times time[data-hidden] {
+  visibility: hidden;
+}
+.times {
+  position: relative;
+  /* Room for "오늘 종료" even over a single round, the same in both modes. */
+  min-width: 5em;
+}
+/* Over the hidden times of a row that is over: out of the layout, so the
+   row keeps its height and the column its width. Muted but readable. */
+.times .ended {
+  position: absolute;
+  top: 0;
+  right: 0;
+  color: var(--muted-foreground);
+  font-weight: 600;
+  white-space: nowrap;
+}
 .others summary {
   display: flex;
   align-items: center;
@@ -336,31 +494,20 @@
 }
 
 /* Recent searches */
-.recentTabs {
-  display: flex;
-  gap: 2px;
-  margin-bottom: 10px;
-  padding: 3px;
-  border-radius: 12px;
-  background: var(--background);
+/* 최근 검색 / 즐겨찾기 and 공지 / 패치노트: the shared PillTabs. The
+   recent card's two tabs share the card width. */
+.cardTabs {
+  margin-bottom: 8px;
 }
-.recentTabs button {
+.recentTabList {
+  width: 100%;
+}
+.recentTabList > [role="tab"] {
   flex: 1;
-  min-height: 32px;
-  border: 0;
-  border-radius: 9px;
-  background: transparent;
-  color: var(--muted-foreground);
-  font-size: 13px;
-  font-weight: 600;
+  justify-content: center;
 }
-.recentTabs button span {
-  margin-left: 2px;
+.tabCount {
   font-variant-numeric: tabular-nums;
-}
-.recentTabs button[aria-pressed="true"] {
-  background: var(--foreground);
-  color: var(--background);
 }
 .recentList {
   display: grid;
@@ -411,6 +558,7 @@
 .recentLevel {
   display: grid;
   justify-items: end;
+  font-variant-numeric: tabular-nums;
 }
 .recentLevel small {
   color: var(--muted-foreground);
@@ -801,6 +949,17 @@
 .rewardItems [data-grade="고대"] {
   --grade: var(--grade-ancient-text);
 }
+/* Open and closed labels stacked in one cell (the button keeps one width). */
+.rewardLabels {
+  display: inline-grid;
+}
+.rewardLabels > span {
+  grid-area: 1 / 1;
+  text-align: center;
+}
+.rewardLabels > span:not([data-on]) {
+  visibility: hidden;
+}
 .rewardMore {
   padding: 2px 8px;
   border-radius: 9999px;
@@ -809,9 +968,6 @@
   font-size: 12px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
-}
-.rewardMore:hover {
-  background: var(--secondary);
 }
 .rewardPanel {
   display: grid;
@@ -874,9 +1030,24 @@
   color: var(--muted-foreground);
   font-size: 12px;
 }
+.servers .sampleSize small {
+  display: block;
+  font-size: 11px;
+}
 .serverNote {
   margin-top: 8px;
   color: var(--muted-foreground);
   font-size: 12px;
   line-height: 1.5;
+}
+/* Tab lists sharing one cell; only the chosen one shows (A7). */
+.tabStack {
+  display: grid;
+}
+.tabStack > * {
+  grid-area: 1 / 1;
+  min-width: 0;
+}
+.tabStack > :not([data-shown]) {
+  visibility: hidden;
 }

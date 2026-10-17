@@ -3,7 +3,11 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 import {
   NO_EDITS,
+  hasNoAdvancedRefine,
   braceletName,
+  gradeWithValue,
+  polishValue,
+  isOpen,
   gemLevel,
   hasComputed,
   parseSimulateRequest,
@@ -101,16 +105,26 @@ test("polish, bracelet, engravings, stones, ark passive and cores become backend
   assert.equal(braceletName("특화 +100"), "특화");
 });
 
+test("advanced refining becomes EQUIPMENT_ADVANCED_REFINE (search advancedRefineLevel, web #374)", () => {
+  const gear = { ...current, gear: [{ index: 0, refine: 20, quality: 90, advanced: 10 }] };
+  assert.deepEqual(toChanges({ ...NO_EDITS, advanced: { 0: 10 } }, gear), []);
+  assert.deepEqual(toChanges({ ...NO_EDITS, advanced: { 0: 20 } }, gear), [
+    { kind: "EQUIPMENT_ADVANCED_REFINE", index: 0, level: 20 },
+  ]);
+  // No current step read from the tooltip: nothing to change from.
+  assert.deepEqual(toChanges({ ...NO_EDITS, advanced: { 0: 20 } }, current), []);
+});
+
 test("the proxy forwards only known kinds with integer or short string fields", () => {
   const ok = parseSimulateRequest({
-    characterName: " 언새늘 ",
+    characterName: " 기준캐릭터A ",
     changes: [{ kind: "GEM_LEVEL", slot: 0, level: 10, extra: "dropped" }],
   });
-  assert.deepEqual(ok, { characterName: "언새늘", changes: [{ kind: "GEM_LEVEL", slot: 0, level: 10 }] });
-  assert.equal(parseSimulateRequest({ characterName: "언새늘", changes: [{ kind: "NOPE" }] }), null);
-  assert.equal(parseSimulateRequest({ characterName: "언새늘", changes: [{ kind: "GEM_LEVEL", level: 1.5 }] }), null);
+  assert.deepEqual(ok, { characterName: "기준캐릭터A", changes: [{ kind: "GEM_LEVEL", slot: 0, level: 10 }] });
+  assert.equal(parseSimulateRequest({ characterName: "기준캐릭터A", changes: [{ kind: "NOPE" }] }), null);
+  assert.equal(parseSimulateRequest({ characterName: "기준캐릭터A", changes: [{ kind: "GEM_LEVEL", level: 1.5 }] }), null);
   assert.equal(
-    parseSimulateRequest({ characterName: "언새늘", changes: Array(65).fill({ kind: "GEM_LEVEL_ALL", level: 1 }) }),
+    parseSimulateRequest({ characterName: "기준캐릭터A", changes: Array(65).fill({ kind: "GEM_LEVEL_ALL", level: 1 }) }),
     null,
   );
   assert.equal(parseSimulateRequest({ characterName: "", changes: [] }), null);
@@ -135,9 +149,9 @@ test("simulate requests validate input and pass through allow-listed errors", as
     assert.equal(init.method, "POST");
     return Response.json(read("character-combat-power-simulate.json"));
   }) as unknown as typeof fetch;
-  const body = { characterName: "언새늘", changes: [{ kind: "GEM_LEVEL_ALL", level: 10 }] };
+  const body = { characterName: "기준캐릭터A", changes: [{ kind: "GEM_LEVEL_ALL", level: 10 }] };
   assert.equal((await requestSimulation(body, origin, { fetcher })).ok, true);
-  assert.equal((await requestSimulation({ characterName: "언새늘", changes: "x" }, origin, { fetcher })).ok, false);
+  assert.equal((await requestSimulation({ characterName: "기준캐릭터A", changes: "x" }, origin, { fetcher })).ok, false);
   assert.equal(calls, 1);
   const moved = await requestSimulation(body, origin, {
     fetcher: (async () =>
@@ -151,4 +165,47 @@ test("the simulator is hidden on the production host unless turned on", () => {
   assert.equal(isCombatPowerEnabled({ SITE_URL: "https://loakraken.gg", COMBAT_POWER_SIM: "on" }), true);
   assert.equal(isCombatPowerEnabled({ SITE_URL: "http://127.0.0.1:3402" }), true);
   assert.equal(isCombatPowerEnabled({ COMBAT_POWER_SIM: "off" }), false);
+});
+
+test("1차판 opens only the kinds that passed verification (PM 총괄 23:59)", () => {
+  assert.deepEqual(
+    // sim v8: bracelet families (#332) and 팔 보호구 (#342); polish lines (api #460).
+    ["GEM_LEVEL_ALL", "GEM_LEVEL", "EQUIPMENT_QUALITY", "ENGRAVING_LEVEL", "STONE_ENGRAVING", "BRACELET_EFFECT", "ARM_GUARD", "POLISH"].map(
+      (k) => isOpen(k as never),
+    ),
+    [true, true, true, true, true, true, true, true],
+  );
+  assert.deepEqual(
+    ["EQUIPMENT_REFINE", "EQUIPMENT_ADVANCED_REFINE", "ARK_PASSIVE_POINT", "ARK_GRID_CORE"].map((k) => isOpen(k as never)),
+    [false, false, false, false],
+  );
+});
+
+test("polish grades read with their official value (backend #254, PM-프론트 #370 P2)", () => {
+  const options = read("combat-power-options.json");
+  assert.equal(isOptionsEnvelope(options), true);
+  const values = options.data.polishValues;
+  const mid = { value: "+1.60%", grade: "MID" };
+  assert.equal(polishValue(values, "추가 피해", mid, "HIGH"), "+2.60%");
+  // Same name, % or flat: told apart by the current value.
+  assert.equal(polishValue(values, "공격력", { value: "+0.95%", grade: "MID" }, "HIGH"), "+1.55%");
+  assert.equal(polishValue(values, "공격력", { value: "+195", grade: "MID" }, "HIGH"), "+390");
+  // Another tier (1540 공격력 % 중 0.66): the 1680 table does not fit → grade only.
+  assert.equal(polishValue(values, "공격력", { value: "+0.66%", grade: "MID" }, "HIGH"), null);
+  // Grade unknown (change list "from"): fits when the value is in the row.
+  assert.equal(polishValue(values, "추가 피해", { value: "+1.60%", grade: null }, "HIGH"), "+2.60%");
+  assert.equal(polishValue(values, "추가 피해", { value: "+1.10%", grade: null }, "HIGH"), null);
+  assert.equal(polishValue(values, "없는 옵션", mid, "HIGH"), null);
+  assert.equal(polishValue(undefined, "추가 피해", mid, "HIGH"), null);
+  assert.equal(gradeWithValue("HIGH", "+2.60%"), "상(+2.60%)");
+  assert.equal(gradeWithValue("LOW", null), "하");
+  // Since sim v8 the table (and braceletOptions) is part of the contract.
+  delete options.data.polishValues;
+  assert.equal(isOptionsEnvelope(options), false);
+});
+
+test("전율 gear has no advanced refining, so it is never shown as pending (PM-프론트 P1, A21)", () => {
+  assert.equal(hasNoAdvancedRefine("+20 전율의 투구"), true);
+  assert.equal(hasNoAdvancedRefine("+19 테스트 투구"), false);
+  assert.equal(hasNoAdvancedRefine(null), false);
 });

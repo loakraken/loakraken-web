@@ -137,7 +137,7 @@ function Chip({
   return (
     <button
       type="button"
-      className={styles.chip}
+      className={`${styles.chip} hit-44`}
       aria-pressed={pressed}
       disabled={disabled}
       onClick={onClick}
@@ -285,7 +285,7 @@ function SettingsPanel({
       </div>
       <button
         type="button"
-        className={styles.reset}
+        className={`${styles.reset} hit-44`}
         onClick={onReset}
       >
         기본값으로
@@ -313,7 +313,9 @@ function Meter({
       aria-valuemax={max}
       aria-valuenow={value}
     >
-      <i style={{ width: `${ratio * 100}%` }} />
+      {/* 모션 목록(치명·속도): scale only (no layout); grows from the start
+          once on arrival (.k-grow-x), then eases to new values. */}
+      <i className="k-grow-x" style={{ scale: `${ratio} 1` }} />
     </div>
   );
 }
@@ -495,7 +497,9 @@ function Results({
         </p>
         <p className={styles.figure}>{percent(crit.effectiveRate)}</p>
         <p className={styles.figureNote}>
-          캐릭터 {percent(crit.observedRate)} + 가정 {percent(crit.assumedRate)}
+          {/* The sum written out once (PM-프론트 P2, crit-speed v7): with 뭉툭한 가시 the
+              total can pass a cap, and the reader saw only the parts. */}
+          캐릭터 {percent(crit.observedRate)} + 가정 {percent(crit.assumedRate)} = 합계 {percent(crit.totalRate)}
           {over > 0.005 && ` · 상한을 넘은 ${percent(over)}는 적용되지 않아요`}
           {` · 치명 ${crit.critStatPerPercent.toLocaleString("ko-KR", { maximumFractionDigits: 2 })} = 치적 1%`}
         </p>
@@ -812,7 +816,7 @@ function CritSpeedContent({ initialName }: { initialName: string }) {
                     }
                   />
                 )}
-                <div aria-live="polite">
+                <div className={styles.live} aria-live="polite">
                   {failure ? (
                     <div className={quote.notice}>
                       {/* The alert holds the sentence only; the retry button's countdown
@@ -849,8 +853,8 @@ function CritSpeedContent({ initialName }: { initialName: string }) {
                       />
                     </>
                   ) : name ? (
-                    <p className={styles.empty} role="status">
-                      캐릭터 정보를 읽고 있어요
+                    <p className={styles.empty} data-loading="" role="status">
+                      캐릭터 정보를 읽고 있어요…
                     </p>
                   ) : (
                     <p className={styles.empty}>
@@ -865,7 +869,7 @@ function CritSpeedContent({ initialName }: { initialName: string }) {
         </div>
       </main>
       <footer className={quote.footer}>
-        LOAKraken · 로스트아크 비공식 팬 프로젝트 · 공식 전투정보실 원문 기반 계산
+        LOAKraken · 공식 전투정보실 원문 기반 계산
       </footer>
     </div>
   );

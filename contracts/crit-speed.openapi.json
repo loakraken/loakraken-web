@@ -181,7 +181,7 @@
           },
           "classState": {
             "type": "boolean",
-            "description": "직업 상태 가정(예: 리퍼 갈증 '피냄새' 혼돈 상태 치명타 적중률). 생략하면 켬(목표 사이트와 같은 기준). false면 관측값만"
+            "description": "직업 상태 가정(예: 리퍼 갈증 '피냄새' 혼돈 상태 치명타 적중률). 생략하면 켬. false면 관측값만"
           },
           "toggles": {
             "type": "object",
@@ -727,28 +727,6 @@
           "swiftness"
         ]
       },
-      "ErrorResponse": {
-        "type": "object",
-        "description": "공통 오류 응답. HTTP 상태와 업무 코드를 함께 확인합니다.",
-        "properties": {
-          "code": {
-            "type": "string",
-            "example": "INVALID_REQUEST"
-          },
-          "message": {
-            "type": "string",
-            "example": "요청 값이 올바르지 않습니다."
-          },
-          "data": {
-            "type": "null"
-          }
-        },
-        "required": [
-          "code",
-          "data",
-          "message"
-        ]
-      },
       "CritSpeedSkillResponse": {
         "type": "object",
         "properties": {
@@ -898,7 +876,7 @@
         "properties": {
           "key": {
             "type": "string",
-            "description": "요청 assumptions.toggles 키(노드 이름 또는 버프 이름)"
+            "description": "요청 assumptions.toggles 키(노드·버프·트라이포드 이름). 한 key가 축마다 여러 행(예: 광기 ATTACK_SPEED·MOVE_SPEED, 폭주 CRIT·공이속)을 가질 수 있고, 요청 key 하나로 함께 켜고 끈다"
           },
           "label": {
             "type": "string",
@@ -939,6 +917,28 @@
           "on",
           "text",
           "value"
+        ]
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "description": "공통 오류 응답. HTTP 상태와 업무 코드를 함께 확인합니다.",
+        "properties": {
+          "code": {
+            "type": "string",
+            "example": "INVALID_REQUEST"
+          },
+          "message": {
+            "type": "string",
+            "example": "요청 값이 올바르지 않습니다."
+          },
+          "data": {
+            "type": "null"
+          }
+        },
+        "required": [
+          "code",
+          "data",
+          "message"
         ]
       }
     }

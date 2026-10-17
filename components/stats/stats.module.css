@@ -22,7 +22,7 @@
   font-size: 12px;
   font-weight: 600;
 }
-.filters select,
+.filters [data-slot="select"],
 .filters input:not([type="checkbox"]) {
   min-width: 96px;
   height: 34px;
@@ -119,11 +119,8 @@
   font-variant-numeric: tabular-nums;
 }
 .tabs {
-  display: flex;
-  gap: 4px;
   margin-bottom: 10px;
 }
-.tabs button,
 .segment button {
   padding: 7px 14px;
   border-radius: 9999px;
@@ -131,7 +128,6 @@
   font-size: 14px;
   font-weight: 600;
 }
-.tabs button[aria-selected="true"],
 .segment button[aria-pressed="true"] {
   background: var(--foreground);
   color: var(--background);
@@ -292,6 +288,9 @@
   font-size: 16px;
 }
 .tier {
+  /* A31: one line, never split (badge/chip/unit). */
+  flex: none;
+  white-space: nowrap;
   margin: 0 4px;
   padding: 1px 6px;
   border-radius: 9999px;
@@ -324,8 +323,10 @@
   border-radius: 4px 4px 0 0;
   background: color-mix(in oklab, var(--primary) 80%, transparent);
 }
-.histogram li:hover i {
-  background: var(--link);
+@media (hover: hover) and (pointer: fine) {
+  .histogram li:hover i {
+    background: var(--link);
+  }
 }
 .histogram li[data-hit] i {
   background: var(--foreground);
@@ -364,13 +365,24 @@
   .filters label {
     flex: 1 1 40%;
   }
-  .filters select,
+  .filters [data-slot="select"],
   .filters input:not([type="checkbox"]) {
     width: 100%;
   }
-  .histogram {
+  .histogram,
+  .histogramWait {
     height: 160px;
   }
+}
+/* The bars' room while they load (same height and axis line as .histogram):
+   the answer fills it in place, nothing under it moves (A6). */
+.histogramWait {
+  display: grid;
+  place-items: center;
+  height: 200px;
+  border-bottom: 1px solid var(--border);
+  color: var(--muted-foreground);
+  font-size: 13px;
 }
 .hero {
   padding: 40px 0 12px;
@@ -424,6 +436,23 @@
   border-radius: inherit;
   background: var(--primary);
 }
+/* Summary under the sample minimum: values in gray with a "참고값" tag (user 23:50). */
+.cards[data-reference] dd {
+  color: var(--muted-foreground);
+}
+/* Outline only: muted text on the card itself keeps 4.5:1 (on --secondary it was 4.15). */
+.refTag {
+  /* A31: one line, never split (badge/chip/unit). */
+  flex: none;
+  white-space: nowrap;
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: 9999px;
+  box-shadow: inset 0 0 0 1px var(--border);
+  color: var(--muted-foreground);
+  font-size: 11px;
+  font-weight: 600;
+}
 /* Rows short of the sample minimum stay in place, in gray (user, 23:23). */
 .table tr[data-short] th,
 .table tr[data-short] td {
@@ -455,8 +484,10 @@
   color: var(--link);
   text-decoration: none;
 }
-.charLink:hover {
-  text-decoration: underline;
+@media (hover: hover) and (pointer: fine) {
+  .charLink:hover {
+    text-decoration: underline;
+  }
 }
 .table td[data-strong] {
   color: var(--foreground);
@@ -486,10 +517,189 @@
 .pager button:disabled {
   color: var(--muted-foreground);
 }
+/* Segment and page buttons answer the press at once (scale, no layout), a
+   hover tint only where there is a pointer that hovers, and on a phone a
+   44px press area around the visible pill — the same rule as the hit-44
+   utility, which a module selector cannot take. */
+.segment button,
+.pager button {
+  transition:
+    transform 100ms ease-out,
+    background-color 160ms ease-out;
+}
+.segment button:active,
+.pager button:not(:disabled):active {
+  transform: scale(0.97);
+}
+@media (hover: hover) and (pointer: fine) {
+  .segment button:not([aria-pressed="true"]):hover,
+  .pager button:not([aria-current="page"]):not(:disabled):hover {
+    background: var(--hover-surface);
+  }
+}
+@media (max-width: 699px), (pointer: coarse) {
+  .segment button,
+  .pager button {
+    position: relative;
+  }
+  .segment button::after,
+  .pager button::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+    translate: -50% -50%;
+  }
+  /* 36px pills (34 tall), 44px areas: the gaps keep neighbours apart, also
+     when the row wraps. */
+  .pager {
+    gap: 10px 8px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .segment button,
+  .pager button {
+    transition: none;
+  }
+}
 .table .left {
   text-align: left;
 }
 .role {
   color: var(--muted-foreground);
   font-size: 12px;
+}
+/* Rankings while loading: most of a screen, like the table it becomes. */
+.listHold {
+  min-height: 75vh;
+}
+/* Roster ranking: the members behind a value, on demand. */
+.rosterMembers summary {
+  width: fit-content;
+  color: var(--link);
+  font-size: 12px;
+  cursor: pointer;
+}
+.rosterMembers ol {
+  display: grid;
+  gap: 2px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+}
+.rosterMembers li {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+}
+.rosterMembers b {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Values of the previous conditions while new ones load (lib/api/pending.ts):
+   dimmed in place, so they never pass for the new conditions (user 10-12). */
+.main [data-stale] {
+  opacity: 0.55;
+  transition: opacity 160ms ease-out;
+}
+
+/* Collectible ranking (K33): points under the progress; finished kinds in
+   blue, the same rule as the character collectible list (#568). */
+.points {
+  display: block;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-weight: 400;
+}
+.rosterMembers li[data-done] b {
+  color: var(--link);
+}
+/* K32 · L37 columns: short text cells that never wrap mid-word; the esther
+   weapon column has a fixed width so "+25 · 엘라 2단계" and "-" line up. */
+.table .k32 {
+  white-space: nowrap;
+}
+.table .esther {
+  width: 9.5em;
+  min-width: 9.5em;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+/* Bracelet / gem efficiency: the ranked value, the same gain colour as the
+   character screen's efficiency. */
+.table td.efficiency {
+  color: var(--gain, var(--foreground));
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+/* Fixed ranking columns (ranking-columns.tsx, A7 #673): the widths come from
+   the colgroup; a longer value ends in an ellipsis inside its cell. */
+.table[data-fixed] {
+  table-layout: fixed;
+  width: max(100%, var(--ranking-cols));
+}
+.table[data-fixed] :is(th, td) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* Numbers line up and never end in "…": their columns are sized for real
+   data's longest values (A37, QA 10-17); text columns carry a title instead. */
+.table[data-fixed] td:not(.left) {
+  font-variant-numeric: tabular-nums;
+}
+/* The note over the table keeps two lines (three on a phone): its numbers
+   change with the filters, and a line break coming or going moved the table. */
+/* ranking pages only */
+.rankingNotice {
+  line-height: 1.5;
+  min-height: 3em;
+}
+@media (max-width: 420px) {
+  .rankingNotice {
+    min-height: 4.5em;
+  }
+}
+/* 길드 찾기 (M21): a name of up to 12 letters; the hint floats in the padding under it. */
+.filters .guildSearch {
+  position: relative;
+}
+.filters .guildSearch input {
+  width: 160px;
+}
+.filters .guildSearch small {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 1px;
+  color: var(--destructive);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 12px;
+  white-space: nowrap;
+}
+
+/* 최고 전투력 (L5): four figures above the class table. */
+.bestSummary {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 10px 16px;
+  margin: 12px 0 16px;
+}
+.bestSummary div {
+  display: grid;
+  gap: 2px;
+}
+.bestSummary dt {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.bestSummary dd {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }

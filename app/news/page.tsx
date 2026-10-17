@@ -22,23 +22,23 @@ export default async function News({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const params = await searchParams;
-  const { tab, patchKind } = readNewsQuery({
+  const { patchKind } = readNewsQuery({
     get: (name) => (typeof params[name] === "string" ? (params[name] as string) : null),
   });
   // A slow backend must not hold the first HTML: one 1s deadline for both calls.
   const deadline = AbortSignal.timeout(1_000);
   const [news, patches] = await Promise.all([
     getNews(NEWS_PAGE_LIMIT, { signal: deadline }),
-    tab === "patch"
-      ? getPatchNotes({ category: patchKind, page: 1 }, { signal: deadline })
-      : null,
+    // Both tabs are drawn (one hidden, so switching moves nothing): the first
+    // patch page comes with the HTML either way.
+    getPatchNotes({ category: patchKind, page: 1 }, { signal: deadline }),
   ]);
   // Request-time snapshot in a dynamic Server Component, shared with hydration.
   // eslint-disable-next-line react-hooks/purity
   const fetchedAt = Date.now();
   const client = new QueryClient();
   if (news.ok) client.setQueryData(newsPageKey, news.envelope, { updatedAt: fetchedAt });
-  if (patches?.ok)
+  if (patches.ok)
     client.setQueryData(
       patchNotesKey(patchKind),
       { pages: [patches.envelope], pageParams: [1] },

@@ -19,6 +19,31 @@ export const MAX_CHANGES = 64;
 /** Backend #240 range for ARK_PASSIVE_POINT (options has no field for it yet). */
 export const ARK_PASSIVE_MAX = 999;
 
+/**
+ * 1차판(PM 총괄 2026-10-10 23:59): only the kinds that matched the target
+ * site's simulator can be changed — gems, quality, engravings and stones.
+ * The rest show their current value as "준비 중" until calc verification
+ * finds the cause and they join the 2차판 (no made-up values).
+ */
+export const OPEN_KINDS: ReadonlySet<string> = new Set([
+  "GEM_LEVEL_ALL",
+  "GEM_LEVEL",
+  "EQUIPMENT_QUALITY",
+  "ENGRAVING_LEVEL",
+  "STONE_ENGRAVING",
+  // backend #332 (bracelet families) and #342 (팔 보호구), sim v8
+  "BRACELET_EFFECT",
+  "ARM_GUARD",
+  // api #460: polish lines take the line's own option and value (무공 too).
+  "POLISH",
+]);
+export const isOpen = (kind: Change["kind"]) => OPEN_KINDS.has(kind);
+
+/** 전율 gear has no advanced refining (the backend's refine model reads the
+ * same name: "전율 장비에는 상급 재련이 없습니다."). */
+export const hasNoAdvancedRefine = (name: string | null | undefined) => !!name?.includes("전율");
+export const NO_ADVANCED_REFINE = "전율 장비에는 상급 재련이 없어요.";
+
 /** Weapon and armour: the slots that take refine and quality in the first cut. */
 export const GEAR_TYPES = ["무기", "투구", "상의", "하의", "장갑", "어깨"] as const;
 
@@ -35,6 +60,7 @@ export const KIND_LABEL: Record<string, string> = {
   STONE_ENGRAVING: "스톤",
   ARK_PASSIVE_POINT: "아크 패시브",
   ARK_GRID_CORE: "아크 그리드",
+  ARM_GUARD: "팔 보호구",
 };
 
 /** What the user has changed, keyed by the target the backend uses. */
@@ -43,26 +69,35 @@ export type Edits = {
   gems: Record<number, number>;
   refine: Record<number, number>;
   quality: Record<number, number>;
+  /** Advanced refining step per equipment index (search advancedRefineLevel, web #374). */
+  advanced: Record<number, number>;
   /** Polish grade per `${index}:${line}` (the option itself stays). */
   polish: Record<string, Grade>;
-  /** Bracelet grade per line (the effect itself stays). */
+  /** Bracelet grade per line. */
   bracelet: Record<number, Grade>;
+  /** Bracelet option family per line (options.braceletOptions name, "없음" removes it; backend #332). */
+  braceletName: Record<number, string>;
   engraving: Record<string, number>;
   stone: Record<string, number>;
   arkPassive: Record<string, number>;
   core: Record<number, { grade: string; point: number }>;
+  /** 팔 보호구(완갑) step and grade (backend #342). */
+  armGuard: { level?: number; grade?: string };
 };
 export const NO_EDITS: Edits = {
   gemAll: null,
   gems: {},
   refine: {},
   quality: {},
+  advanced: {},
   polish: {},
   bracelet: {},
+  braceletName: {},
   engraving: {},
   stone: {},
   arkPassive: {},
   core: {},
+  armGuard: {},
 };
 
 export const GRADES = ["LOW", "MID", "HIGH"] as const;
@@ -72,14 +107,46 @@ export const GRADE_LABEL: Record<string, string> = { LOW: "하", MID: "중", HIG
 
 export type Current = {
   gems: { slot: number; level: number }[];
-  gear: { index: number; refine: number | null; quality: number | null }[];
+  gear: { index: number; refine: number | null; quality: number | null; advanced?: number | null }[];
   polish?: { index: number; line: number; option: string; grade: Grade | null }[];
   bracelet?: { line: number; name: string; grade: Grade | null }[];
   engravings?: { name: string; level: number }[];
   stones?: { name: string; level: number }[];
   arkPassive?: { tree: string; points: number }[];
   cores?: { slotIndex: number; grade: string; point: number }[];
+  armGuard?: { level: number; grade: string } | null;
 };
+
+export type PolishValues = NonNullable<Options["polishValues"]>;
+
+/**
+ * The official tooltip value of a polish option at a grade (backend #254),
+ * e.g. 추가 피해 HIGH → "+2.60%". The table is for 고대 1680 장신구 only, so it
+ * applies only when this accessory's own line matches it: its current value
+ * equals the table at its current grade (or, grade unknown, at some grade).
+ * Another tier's accessory (other values) gets the grade alone (PM-프론트 #447
+ * P1). The same name can be a % or a flat option (공격력·무기 공격력), told
+ * apart by the current value's "%". null when it does not fit or has no cell.
+ */
+export function polishValue(
+  values: PolishValues | undefined,
+  option: string,
+  current: { value: string; grade: string | null },
+  grade: string,
+): string | null {
+  const percent = current.value.includes("%");
+  const row = values?.options.find((item) => item.option === option && item.percent === percent);
+  if (!row) return null;
+  const at = (g: string) => (g === "LOW" ? row.low : g === "MID" ? row.mid : g === "HIGH" ? row.high : null) ?? null;
+  const fits = current.grade ? at(current.grade) === current.value : [row.low, row.mid, row.high].includes(current.value);
+  return fits ? at(grade) : null;
+}
+
+/** "상(+2.60%)" when the value is known, else just "상" (PM-프론트 #370 P2). */
+export function gradeWithValue(grade: string, value: string | null) {
+  const label = GRADE_LABEL[grade] ?? grade;
+  return value ? `${label}(${value})` : label;
+}
 
 /** "치명타 피해 +8.40%" → "치명타 피해": the effect name the backend echoes back. */
 export const braceletName = (text: string) =>
@@ -108,6 +175,9 @@ export function toChanges(edits: Edits, current: Current): Change[] {
     const quality = edits.quality[item.index];
     if (quality != null && item.quality != null && quality !== item.quality)
       changes.push({ kind: "EQUIPMENT_QUALITY", index: item.index, quality });
+    const advanced = edits.advanced[item.index];
+    if (advanced != null && item.advanced != null && advanced !== item.advanced)
+      changes.push({ kind: "EQUIPMENT_ADVANCED_REFINE", index: item.index, level: advanced });
   }
   for (const line of current.polish ?? []) {
     const grade = edits.polish[`${line.index}:${line.line}`];
@@ -115,9 +185,11 @@ export function toChanges(edits: Edits, current: Current): Change[] {
       changes.push({ kind: "POLISH", index: line.index, line: line.line, option: line.option, grade });
   }
   for (const line of current.bracelet ?? []) {
-    const grade = edits.bracelet[line.line];
-    if (grade && grade !== line.grade)
-      changes.push({ kind: "BRACELET_EFFECT", line: line.line, name: line.name, grade });
+    // The family (braceletOptions name) or the grade, or both (backend #332).
+    const name = edits.braceletName[line.line] ?? line.name;
+    const grade = edits.bracelet[line.line] ?? line.grade;
+    if ((name !== line.name || grade !== line.grade) && grade)
+      changes.push({ kind: "BRACELET_EFFECT", line: line.line, name, grade });
   }
   for (const item of current.engravings ?? []) {
     const level = edits.engraving[item.name];
@@ -139,8 +211,21 @@ export function toChanges(edits: Edits, current: Current): Change[] {
     if (edit && (edit.grade !== item.grade || edit.point !== item.point))
       changes.push({ kind: "ARK_GRID_CORE", slotIndex: item.slotIndex, grade: edit.grade, point: edit.point });
   }
+  const guard = current.armGuard;
+  if (guard) {
+    const level = edits.armGuard.level ?? guard.level;
+    const grade = edits.armGuard.grade ?? guard.grade;
+    if (level !== guard.level || grade !== guard.grade) changes.push({ kind: "ARM_GUARD", level, grade });
+  }
   return changes.slice(0, MAX_CHANGES);
 }
+
+/** Supporters and unjudged roles are not computed at all (backend #332): one line, not one per row. */
+export const ROLE_REASONS: ReadonlySet<string> = new Set(["SUPPORTER_MODEL_PENDING", "ROLE_UNKNOWN"]);
+
+/** 팔 보호구 grades the simulator takes (backend #342). */
+export const ARM_GUARD_GRADES = ["영웅", "전설", "유물", "고대"] as const;
+export const ARM_GUARD_MAX = 25;
 
 /** The effective level a gem shows while editing (its own edit, then the bulk one). */
 export function gemLevel(edits: Edits, gem: { slot: number; level: number }) {

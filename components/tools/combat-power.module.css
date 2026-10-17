@@ -18,9 +18,49 @@
   display: grid;
   grid-template-columns: 340px minmax(0, 1fr);
   grid-template-rows: auto 1fr;
-  grid-template-areas: "band editors" "side editors";
+  grid-template-areas: "rail editors";
   gap: 12px 20px;
   align-items: start;
+}
+/* The sticky column (사용자 지적 10-12): lead, result, buttons and 바꾼 것
+   move together. Taller than the screen, it scrolls inside itself and the
+   result stays at its top. */
+.rail {
+  grid-area: rail;
+  position: sticky;
+  top: var(--cp-band-top, calc(var(--header-h, 73px) + 8px));
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  max-height: calc(100dvh - var(--cp-band-top, calc(var(--header-h, 73px) + 8px)) - 16px);
+}
+.railHead {
+  min-width: 0;
+}
+/* Inside the column the parts simply stack; their areas (band, side, head)
+   apply only when the column dissolves on one-column screens. */
+@media (min-width: 901px) {
+  .rail > * {
+    grid-area: auto;
+    flex: none;
+  }
+  /* The lead and the result stay put; only the buttons and 바꾼 것 below
+     them scroll when the column is taller than the screen, so nothing
+     ever slides under the result. */
+  .rail > .band {
+    position: static;
+  }
+  .rail > .side {
+    flex: 0 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+  }
+}
+.railHead > * {
+  margin: 0;
 }
 .side {
   grid-area: side;
@@ -40,8 +80,9 @@
 /* Result band */
 .band {
   grid-area: band;
+  /* Held at the top of the column while 바꾼 것 scrolls under it. */
   position: sticky;
-  top: 16px;
+  top: 0;
   z-index: 1;
   padding: 24px;
   border-radius: var(--radius-xl);
@@ -66,13 +107,47 @@
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
 }
-.bandValue span {
+.bandDelta {
+  min-height: 1lh;
+  margin-top: 2px;
   font-size: var(--text-body);
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 .bandNote {
   min-height: 2lh;
   margin-top: 8px;
+  color: var(--muted-foreground);
+  font-size: var(--text-caption);
+}
+.bandSub {
+  margin-top: 8px;
+  color: var(--muted-foreground);
+  font-size: var(--text-caption);
+  font-variant-numeric: tabular-nums;
+}
+.bandSub b {
+  color: var(--foreground);
+  font-weight: 600;
+}
+/* 이전·다음·초기화·저장 (PM-프론트 16:37 ②) */
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.toolbar [aria-disabled] {
+  opacity: 0.45;
+  cursor: default;
+}
+.redoIcon {
+  transform: scaleX(-1);
+}
+.toolbarNote {
+  /* One line held, so a notice arriving does not push the list down. */
+  min-height: 1lh;
+  margin: 0;
   color: var(--muted-foreground);
   font-size: var(--text-caption);
 }
@@ -198,8 +273,8 @@
   font-size: var(--text-caption);
   font-variant-numeric: tabular-nums;
 }
-.select select,
-.bulk select {
+.select [data-slot="select"],
+.bulk [data-slot="select"] {
   min-width: 72px;
   min-height: 40px;
   padding: 0 10px;
@@ -210,7 +285,7 @@
   font: inherit;
   font-variant-numeric: tabular-nums;
 }
-.select[data-changed] select {
+.select[data-changed] [data-slot="select"] {
   border-color: var(--primary);
   box-shadow: inset 0 0 0 1px var(--primary);
 }
@@ -228,6 +303,9 @@
   align-items: center;
   gap: 8px;
   padding: 40px 0;
+  /* The same height for one to three lines, so the web font arriving (a line
+     more or a pixel taller) does not push the footer (web #491). */
+  min-height: calc(80px + 3lh);
   color: var(--slate);
   font-size: var(--text-body);
 }
@@ -236,7 +314,15 @@
   .columns {
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: none;
-    grid-template-areas: "editors" "band" "side";
+    grid-template-areas: "head" "editors" "band" "side";
+  }
+  /* One column: the column dissolves and only the result stays pinned to
+     the bottom, as before, so nothing covers the inputs. */
+  .rail {
+    display: contents;
+  }
+  .railHead {
+    grid-area: head;
   }
   .band {
     top: auto;
@@ -263,6 +349,13 @@
   color: var(--muted-foreground);
   font-size: var(--text-caption);
 }
+/* Labels beside a select keep their width: the select fills the rest and
+   shrinks first (w-full min-w-0 trigger), so "모두"·"품질" never break. */
+.bulk > span,
+.caption {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
 .rowSub {
   display: block;
   color: var(--muted-foreground);
@@ -282,4 +375,37 @@
 .select[data-changed] .number {
   border-color: var(--primary);
   box-shadow: inset 0 0 0 1px var(--primary);
+}
+/* 1차판 밖 항목: 현재 값 + 준비 중(바꿀 수 없음). */
+.locked {
+  color: var(--muted-foreground);
+  font-size: var(--text-caption);
+  font-variant-numeric: tabular-nums;
+}
+.lockedBadge {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--muted);
+  color: var(--foreground);
+  font-size: var(--text-caption);
+  white-space: nowrap;
+}
+
+/* Why a change moved nothing (L23, 사용자 지적 10-12). */
+.why {
+  grid-column: 1 / -1;
+  color: var(--muted-foreground);
+  font-size: var(--text-caption);
+  line-height: 1.5;
+}
+
+/* 서포터·판정 불가 (backend #332): said once, above the result. */
+.roleNote {
+  margin: 0;
+  padding: 12px 16px;
+  border-radius: var(--radius-lg, 12px);
+  background: var(--background);
+  color: var(--muted-foreground);
+  font-size: var(--text-caption);
+  line-height: 1.5;
 }

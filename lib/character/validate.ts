@@ -31,6 +31,10 @@ const ROLLOUT: Record<string, Record<string, () => unknown>> = {
     guildMemberGrade: () => null,
     avatars: () => [],
     collectibles: () => [],
+    // Bracelet efficiency (backend #350): how much the bracelet adds to combat power.
+    braceletEfficiency: () => null,
+    // Ark grid efficiency (backend #424): the same shape plus cores only.
+    arkGridEfficiency: () => null,
   },
   CharacterLoadoutResponse: { skills: () => [] },
   CharacterObservationCoverageResponse: {
@@ -74,7 +78,10 @@ const ROLLOUT: Record<string, Record<string, () => unknown>> = {
     refineExp: () => null,
     advancedRefineLevel: () => null,
   },
-  SkillResponse: { attackType: () => null },
+  // Gem tooltip lines (backend #286).
+  GemResponse: { titleLine: () => null, itemLevel: () => null, tier: () => null, tradeLines: () => [] },
+  // Gem-adjusted cooldown (backend #378, K20).
+  SkillResponse: { attackType: () => null, cooldown: () => null },
   TripodResponse: { effect: () => null },
   RuneResponse: { effect: () => null },
 };
@@ -111,6 +118,7 @@ export function isCharacterEnvelope(
   for (const effect of data.loadout.arkPassive?.effects ?? [])
     fill(effect, "PassiveEffectResponse");
   for (const item of data.loadout.equipment) if (item.detail) fill(item.detail, "EquipmentDetailResponse");
+  for (const gem of data.loadout.gems?.items ?? []) fill(gem, "GemResponse");
   for (const skill of data.loadout.skills) {
     fill(skill, "SkillResponse");
     for (const tripod of skill.tripods) fill(tripod, "TripodResponse");

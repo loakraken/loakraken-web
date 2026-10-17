@@ -1,0 +1,286 @@
+/* MIT © 2026 Lorenzo Cabra — https://bencho.dev/blocks/liq-arrange (see ./NOTICE).
+   (ours) Bencho's tokens mapped once on the block root, nothing global.
+   Rows read in --foreground on the --secondary slab (16:1 light, 13:1 dark);
+   the gold dot (--ok) is our --success. */
+.arr-stage {
+  --surface-2: var(--card);
+  --fill-slab: var(--secondary);
+  --fill-on: var(--foreground);
+  --ink: var(--foreground);
+  --ink-2: var(--foreground);
+  --ink-3: var(--muted-foreground);
+  --ink-4: var(--faint);
+  --ok: var(--success);
+  --pane-edge: var(--input);
+  --arr-inset: 6px;
+}
+
+[data-stroke="on"] .arr-row {
+  box-shadow: 0 0 0 1px var(--pane-edge);
+  /* the hairline is drawn on the row and the fill on the skin
+     under it, so both have to be cut to the same corner */
+  border-radius: var(--arr-r, 999px);}
+
+/* ── 4 · arrange ─────────────────────────────────────────── */
+/* The ink rides a separate, unfiltered layer from the pills,
+   so it has to be told about the fill too — the pill going
+   black under dark type is the same class of bug as the white
+   Create menu with white words on it. Each falls back to the
+   ramp step it used before. */
+[data-fill] .arr-row { color: var(--fill-on, var(--ink-2)); }
+
+[data-fill] .arr-rank { color: color-mix(in srgb, var(--fill-on, var(--ink-4)) 55%, transparent); }
+
+[data-fill] .arr-rank[data-first="true"] { color: var(--fill-on, var(--ink)); }
+
+[data-fill] .arr-row[data-held="true"] .arr-rank {
+  color: color-mix(in srgb, var(--fill-on, var(--ink-3)) 78%, transparent);}
+
+.arr-stage {
+  position: relative;
+  /* The stage stays wider than the pills, so there is somewhere
+     to carry one sideways to. And the pills are longer than
+     the names strictly need: one sized exactly to its content
+     reads as a label, and these are objects you pick up. */
+  --pill: 196px;
+  /* the row in your hand: a step off the resting pane, not a
+     jump to ink. Mixed toward --ink rather than hardcoded, so
+     it darkens in light mode and lightens in dark — "one step
+     more present than the ground" either way. */
+  --lift: color-mix(in srgb, var(--fill-on, var(--ink)) 16%,
+    var(--fill-slab, var(--surface-2)));
+  /* ── and the row under the cursor ───────────────────────
+     A twelfth of the way to --lift's own 16%, which is about
+     as small a step as a filled pill can take and still be a
+     step. It replaced a grip: a mark that appeared under the
+     pointer and pushed the row's contents 14px sideways to
+     make room for itself. This says the same thing — that the
+     row is live — and moves nothing.
+
+     Mixed toward the ink like --lift is, so it darkens in
+     light and lightens in dark rather than being a grey that
+     only works one way round. */
+  --warm: color-mix(in srgb, var(--fill-on, var(--ink)) 1.3%,
+    var(--fill-slab, var(--surface-2)));
+  width: 262px; height: 200px;}
+
+/* The filter thresholds ALPHA, not colour — so the shapes have
+   to be opaque, but they can be any colour, and they can each
+   be a different one. That is what lets a resting row be a
+   pane and the row in your hand be ink on the same layer. */
+.arr-blobs {
+  position: absolute; inset: 0;
+  filter: url(#arr-goo);
+  pointer-events: none;}
+
+/* the outer element carries the position, which while a row
+   is held is pinned to the finger and must never ease */
+.arr-blob {
+  position: absolute;
+  left: 50%; top: 0;
+  width: var(--pill); height: 44px;
+  margin-left: calc(var(--pill) / -2);
+  /* transform is Framer's now — a CSS transition on the same
+     property re-interpolates every frame the spring writes, and
+     what you see is the easing, not the spring. */}
+
+/* Held: pinned to the finger, so no easing — and a little
+   wider than the rest. An outline would say "picked up" more
+   loudly but it would also cut a hard edge through the very
+   place the surfaces are meant to be running together; a
+   swell says it without breaking the liquid. */
+/* The held swell lives in Liquid.tsx now — width and margin
+   spring together there, and the position is pinned. */
+/* and the inner one carries the deformation, which must */
+.arr-skin {
+  display: block;
+  width: 100%; height: 100%;
+  /* Fully round by default: at 44px tall the ends are
+     half-circles, which is also the shape two of them make
+     when they fuse. The Corner knob can square it off — see
+     the note in Liquid.tsx about what that does to the
+     metaball. */
+  border-radius: var(--arr-r, 999px);
+  /* A row IS a filled pill, which is why this component gets
+     the Fill control even though it can never take the Glass
+     one — the blobs have to stay opaque for the metaball to
+     merge them, and opaque is exactly what a fill is.
+
+     The fallback is the subtle step off the ground it had
+     before, for any mount outside a stage. */
+  background: var(--fill-slab, var(--surface-2));}
+
+/* A row you have picked up is the one thing here that is
+   genuinely above the page, so it is the one thing that gets
+   lifted off the pane the others sit on. */
+/* The lift and the landing squash are Framer keyframes now —
+   they share scaleX/scaleY with the drag deformation, and a CSS
+   animation on the same properties simply wins over an inline
+   style, so the two could never have coexisted. */
+
+.arr-ink { position: absolute; inset: 0; }
+
+.arr-row {
+  position: absolute;
+  left: 50%; top: 0;
+  width: var(--pill); height: 44px;
+  margin-left: calc(var(--pill) / -2);
+  display: flex; align-items: center;
+  /* the gap between the picture and the name belongs to
+     `.arr-slide` now — they travel together, so the space
+     between them is theirs */
+  /* ── the picture is INSIDE the pill, not part of its edge ──
+     Flush to the edge and full height was the first version
+     and it had two faults: the picture touched the pill's own
+     outline, so there was nothing holding it in, and the
+     presence dot at its corner had to be clipped away. Six
+     pixels all round is enough to say the picture is a thing
+     the pill contains, and the same six is the row's left
+     padding and the picture's inset — one number, so they
+     cannot disagree.
+
+     The inset and the picture's size are the same decision
+     read two ways: 32 in a 44 row IS six all round. Change
+     one and change the other. */
+  padding: 0 16px 0 var(--arr-inset, 6px);
+  cursor: grab;
+  touch-action: none;
+  color: var(--ink-2);}
+
+/* pinned to the finger, and the one thing on the stage that
+   is fully present while it is held */
+.arr-row[data-held="true"] {
+  /* pinned to the finger in both axes, so no easing at all —
+     the tilt rides in the same transform and would drag the
+     position along with it */
+  cursor: grabbing;
+  z-index: 2;}
+
+/* A photograph if there is one for the row, the person's
+   initials on a tint if there is not. Pictures are inlined as
+   data URIs, never linked: the bundle is one file and has to
+   work with nothing around it. */
+/* ── the picture, held inside the pill ──────────────────────
+   32 in a 44 row, so six pixels of the pill show all the way
+   round it. It was 26 with a 9px inset in front of it, which
+   made it a badge beside a name; at 32 it leads the row and is
+   still comfortably held by it. 36 was a pixel shy of filling
+   the pill's own end and read as pressed against it.
+
+   ── AND IT IS ALWAYS A CIRCLE ─────────────────────────────
+   It followed the Corner knob for a while, concentric with
+   the row — the pill's radius less the gap between them — and
+   that is the right rule for a shape that is part of the
+   thing containing it. A face is not. It is a photograph of a
+   person, and a photograph of a person is round or it is
+   square for reasons that have nothing to do with how the
+   row it sits in is cut. Every avatar on this bench is a
+   circle; this one was the exception, and it was an exception
+   the Corner knob created rather than a decision anybody
+   made.
+
+   Which also means the knob does one thing again instead of
+   two: it cuts the row. */
+.arr-av {
+  position: relative;
+  flex: none;
+  width: 32px; height: 32px;
+  display: grid; place-items: center;
+  border-radius: 999px;
+  color: #fff;
+  font-family: var(--font-ui);
+  font-size: 12px; letter-spacing: 0.01em;
+  /* the inset white ring went with the selection list's — see
+     the note there. It was doing a second job, softening the
+     edge of a photograph against the tint behind it, and the
+     tint is not visible under a picture that fills the disc */}
+
+/* Here or not. Punched out of the avatar with a ring in the
+   pill's own ink rather than drawn beside it — a dot with a
+   gap around it reads as attached to the face, and one
+   without reads as a smudge on it. */
+/* ── and the dot is NOT clipped ─────────────────────────────
+   It sits on the picture's edge, which is what a presence
+   badge does — so the picture cannot be the thing that clips.
+   The `<img>` carries the corner instead (inherited, so it
+   cannot drift from its parent's) and nothing here hides its
+   overflow.
+
+   One in from the corner puts its centre just inside the
+   circle, so it reads as tucked into the edge rather than
+   stuck to the outside of it. That placement can be exact now
+   the picture is a circle at every setting; while it followed
+   the knob it had to be a compromise that was wrong at both
+   ends. Four pixels clear of the pill's own edge, because the
+   picture is. */
+.arr-here {
+  position: absolute;
+  right: 1px; bottom: 1px;
+  width: 9px; height: 9px;
+  border-radius: 999px;
+  background: var(--ok);
+  /* the ring is a hole punched in whatever the pill is, so it
+     has to be the pill's own colour, both of them */
+  box-shadow: 0 0 0 2px var(--surface-2);
+  opacity: 0;}
+
+/* cover, not contain: a portrait dropped in at any aspect has
+   to fill the circle rather than sit letterboxed inside it */
+.arr-av img {
+  display: block;
+  width: 100%; height: 100%;
+  /* `inherit`, so it is the parent's corner by construction
+     rather than a second copy of it — the parent cannot clip,
+     because the presence dot sits on its edge */
+  border-radius: inherit;
+  object-fit: cover;}
+
+/* the picture and the name in one box, so the gap between
+   them is theirs rather than the row's. It used to slide 14px
+   right to open a space for the grip; there is no grip now and
+   it does not move at all. */
+.arr-slide {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  flex: 1;
+  min-width: 0;}
+
+.arr-label {
+  flex: 1; min-width: 0;
+  font-family: var(--font-ui); font-size: 12.5px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;}
+
+/* ── the goo's defs hold nothing you can see ────────────────
+   `useGoo` renders an <svg> carrying a <defs> and nothing
+   else, and an <svg> with no dimensions is a replaced element:
+   the browser gives it the default 300x150 and puts it in the
+   flow. Every block that mounts one has been carrying an
+   invisible 300x150 box ever since — harmless in the fixed-size
+   relative stages that host most of them, and not harmless in
+   a flex column, where it over-subscribed the container and
+   shrank the palette's swatch row from 132 to 64.
+
+   Nothing inside a <defs> is rendered, so taking the element
+   out of flow entirely costs nothing and is what it always
+   wanted. */
+.liq-defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;}
+
+/* nothing inside a <defs> renders, and an <svg> with no
+   dimensions is otherwise a 300x150 box in the flow — the same
+   fault .liq-defs had */
+.cow-defs {
+  position: absolute;
+  width: 0;
+  height: 0;}
+
+/* (ours) 9. keyboard focus on a row */
+.arr-row:focus-visible {
+  outline: 2px solid var(--ring, currentColor);
+  outline-offset: 2px;
+  border-radius: 22px;
+}

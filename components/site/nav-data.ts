@@ -8,7 +8,7 @@ export type NavLink = {
   /** Shown only when this runtime flag is on (lib/tools/flags.ts, /api/flags). */
   flag?: NavFlag;
 };
-export type NavFlag = "critSpeed";
+export type NavFlag = "critSpeed" | "combatPower" | "accessorySearch" | "priceAlerts";
 export type NavFlags = Partial<Record<NavFlag, boolean>>;
 export type NavSection = {
   id: string;
@@ -37,13 +37,13 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     id: "character",
     label: "캐릭터",
-    match: ["/character", "/rankings"],
+    match: ["/character", "/multi-search", "/rankings"],
     groups: [
       {
         title: "조회",
         links: [
           { label: "캐릭터 검색", description: "장비·스킬·아크 패시브·내실", href: "/" },
-          { label: "군장검사", description: "여러 캐릭터를 한 번에 비교" },
+          { label: "멀티서치", description: "여러 캐릭터를 나란히 비교", href: "/multi-search" },
           { label: "길드", description: "길드원 세팅 한눈에" },
         ],
       },
@@ -63,11 +63,15 @@ export const NAV_SECTIONS: NavSection[] = [
         links: [
           { label: "거래소 시세", description: "분류별 최저가·등락·14일 추이", href: "/market" },
           { label: "재료 구매 견적", description: "필요한 만큼, 지금 시세로", href: "/tools/material-quote" },
+          { label: "시세 알림", description: "정한 가격이 되면 브라우저 알림", href: "/market/alerts", flag: "priceAlerts" },
         ],
       },
       {
         title: "경매장",
-        links: [{ label: "보석·장신구 시세", description: "경매장 매물 검색과 시세" }],
+        links: [
+          { label: "보석 시세", description: "겁화·작열 레벨별 최저가와 매물", href: "/market/gems" },
+          { label: "장신구 시세", description: "연마 효과 등급 조합별 최저가와 매물", href: "/market/accessories" },
+        ],
       },
     ],
   },
@@ -76,17 +80,25 @@ export const NAV_SECTIONS: NavSection[] = [
     label: "성장 도구",
     // "/tools$": the tool list itself (exact; a bare prefix would also take the
     // tools filed under other menus, such as /tools/material-quote).
-    match: ["/tools$", "/tools/refining", "/tools/crit-speed", "/tools/auction", "/tools/raid-rewards", "/tools/more-reward"],
+    match: ["/tools$", "/tools/combat-power", "/tools/refining", "/tools/crit-speed", "/tools/auction", "/tools/loa-shop", "/tools/abidos-craft", "/tools/life-energy", "/tools/raid-rewards", "/tools/more-reward", "/tools/contribution", "/tools/raid-cheatsheet", "/tools/accessory-search"],
     groups: [
       {
         title: "계산기",
         links: [
           { label: "도구 전체", description: "모든 성장 도구를 한눈에", href: "/tools" },
+          // 사용자 지적(PM-프론트 21:27): the simulator was missing from the menu.
+          { label: "전투력 시뮬레이터", description: "무엇을 바꾸면 전투력이 얼마나 오르는지", href: "/tools/combat-power", flag: "combatPower" },
           { label: "재련 기대 비용", description: "목표 단계까지 확률과 골드", href: "/tools/refining" },
           { label: "치적·뭉가·음돌", description: "치명·신속 목표까지 필요한 스탯", href: "/tools/crit-speed", flag: "critSpeed" },
           { label: "경매 입찰가", description: "파티 인원별 손익 분기와 선점가", href: "/tools/auction" },
+          { label: "로아샵 효율", description: "상점 패키지 구성품을 지금 시세로", href: "/tools/loa-shop" },
+          { label: "아비도스 제작 손익", description: "융화 재료 1회 제작 비용과 손익", href: "/tools/abidos-craft" },
+          { label: "생명의 기운 효율", description: "생활 스킬마다 생명의 기운으로 버는 골드", href: "/tools/life-energy" },
+          { label: "악세 경매 검색", description: "연마 효과·깨달음·힘민지 범위로 매물 찾기", href: "/tools/accessory-search", flag: "accessorySearch" },
           { label: "레이드 보상표", description: "관문별 골드·더보기 비용", href: "/tools/raid-rewards" },
           { label: "더보기 손익", description: "관문마다 더보기가 남는지 지금 시세로", href: "/tools/more-reward" },
+          { label: "기여도 계산기", description: "내 피해량이 관문 기준에서 어디쯤인지", href: "/tools/contribution" },
+          { label: "레이드 컨닝페이퍼", description: "관문마다 주요 패턴과 대응", href: "/tools/raid-cheatsheet" },
         ],
       },
       {

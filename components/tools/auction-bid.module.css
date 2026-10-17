@@ -41,8 +41,11 @@
      until the page ends. */
   max-height: calc(100dvh - 72px - 16px);
   overflow-y: auto;
+  /* the bar stays inside the rounded card, and appearing does not move the
+     content */
+  --scrollbar-inset: var(--radius-xl);
+  scrollbar-gutter: stable;
   overscroll-behavior: contain;
-  scrollbar-width: thin;
   display: grid;
   gap: var(--space-5);
 }
@@ -159,6 +162,11 @@
   border-radius: 50%;
   background: transparent;
   color: var(--faint);
+  /* 24px drawn, 44px to touch on phones: the hit-44 utility (A36). */
+  transition: scale var(--duration-fast) var(--ease-out);
+}
+.tipButton:active {
+  scale: var(--press-scale);
 }
 .tipButton:hover {
   color: var(--foreground);
@@ -256,6 +264,13 @@
 .table td[data-sign] {
   font-weight: 600;
   font-variant-numeric: tabular-nums;
+  /* 손익 색 전환 160ms(모션 목록 경매). */
+  transition: color var(--duration-fast) var(--ease-out);
+}
+@media (prefers-reduced-motion: reduce) {
+  .table td[data-sign] {
+    transition: none;
+  }
 }
 .table td[data-sign="1"] {
   color: var(--gain);
@@ -279,9 +294,17 @@
   padding: 18px clamp(20px, 3vw, 28px);
 }
 .basis summary {
+  /* 44px to touch, the card's spacing unchanged (padding taken back by margin). */
+  margin: -12px 0;
+  padding: 12px 0;
   font-size: var(--text-body);
   font-weight: 600;
   cursor: pointer;
+  border-radius: 8px;
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+.basis summary:active {
+  background: var(--hover-surface);
 }
 .basis ul {
   display: grid;
@@ -293,13 +316,16 @@
   list-style: disc;
 }
 .basis strong {
-  color: var(--accent-warm);
+  /* "추정" reads like the sentence it is in (user 10-12: no emphasis on
+     sources and grounds). */
+  color: inherit;
+  font-weight: inherit;
 }
 
 @media (hover: hover) and (pointer: fine) {
   .copy:hover {
     border-color: var(--primary);
-    background: var(--muted);
+    background: var(--hover-surface);
   }
 }
 
@@ -391,6 +417,9 @@
   font-variant-numeric: tabular-nums;
 }
 .badge {
+  /* A31: one line, never split (badge/chip/unit). */
+  flex: none;
+  white-space: nowrap;
   display: inline-flex;
   align-items: center;
   padding: 1px 8px;

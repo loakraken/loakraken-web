@@ -1,4 +1,4 @@
-// Statistics (B-3, backend #100): LOAWA's /stat and ILOA's /statistics over the
+// Statistics (B-3, backend #100): class and server statistics over the
 // characters LOAKraken has observed — never the whole game population.
 import Ajv2020 from "ajv/dist/2020";
 import contract from "../../contracts/stats.openapi.json";
@@ -123,6 +123,26 @@ export function statsSearch(query: StatsQuery) {
   return out;
 }
 
+/**
+ * Cache key for a set of conditions: the same conditions are one entry
+ * however they were reached. Leaving 30 days (the backend default) out makes
+ * the first screen (no activeDays) and "30일" picked again the same entry, so
+ * going back shows the cached numbers at once (PM-프론트 #540 P2).
+ */
+export function conditionsKey(params: URLSearchParams) {
+  const out = new URLSearchParams(params);
+  if (out.get("activeDays") === "30") out.delete("activeDays");
+  out.sort();
+  return out.toString();
+}
+export const statsKey = (query: StatsQuery) => conditionsKey(statsSearch(query));
+
+/** Bin width per metric on the distribution tab. */
+export const DISTRIBUTION_WIDTH: Record<Metric, number> = { ITEM_LEVEL: 10, COMBAT_POWER: 100 };
+/** The distribution tab's query key (the page fills the default one in the first HTML). */
+export const distributionKey = (query: StatsQuery, metric: Metric, percentileOf?: number) =>
+  ["stats", "distribution", statsKey(query), metric, percentileOf] as const;
+
 const count = (n: number) => n.toLocaleString("ko-KR");
 export const fixed = (n: number | null | undefined, digits = 2) =>
   n == null ? "-" : n.toLocaleString("ko-KR", { minimumFractionDigits: digits, maximumFractionDigits: digits });
@@ -143,11 +163,15 @@ export function share(n: number | null | undefined) {
 
 /** The filters alone ("최근 30일 안에 확인 · 아이템 레벨 1,640 이상"), for under the basis line. */
 export function sampleConditions(meta: StatsMeta) {
-  return conditionParts(meta, "확인").join(" · ");
+  return conditionsText(meta.conditions);
 }
 
-function conditionParts(meta: StatsMeta, seen: string) {
-  const c = meta.conditions;
+/** The filters in words, from any stats or rank response conditions. */
+export function conditionsText(c: StatsMeta["conditions"]) {
+  return conditionParts(c, "확인").join(" · ");
+}
+
+function conditionParts(c: StatsMeta["conditions"], seen: string) {
   const parts = [`최근 ${c.activeDays}일 안에 ${seen}`];
   if (c.itemLevelMin > 0) parts.push(`아이템 레벨 ${count(c.itemLevelMin)} 이상`);
   if (c.itemLevelMax != null) parts.push(`${count(c.itemLevelMax)} 이하`);
@@ -158,12 +182,17 @@ function conditionParts(meta: StatsMeta, seen: string) {
 }
 
 /** The sample in words: who is counted, and that it is not the whole game. */
-export function sampleText(meta: StatsMeta) {
-  return `${conditionParts(meta, "LOAKraken이 확인한 캐릭터").join(" · ")} ${count(meta.population)}명 기준`;
+export function sampleText(meta: StatsMeta, unit: "character" | "roster" | "guild" = "character") {
+  const seen = { character: "LOAKraken이 확인한 캐릭터", roster: "LOAKraken이 확인한 원정대", guild: "LOAKraken이 확인한 캐릭터로 묶은 길드" }[unit];
+  const counted = { character: "명", roster: "개 원정대", guild: "개 길드" }[unit];
+  return `${conditionParts(meta.conditions, seen).join(" · ")} ${count(meta.population)}${counted} 기준`;
 }
 
 /** Shared scale for the class quantile bars: the widest p10…p90 span. */
-export function quantileScale(rows: ClassRow[]) {
+/** A row with a combat power spread: a class row, or a best combat power row (L5). */
+export type QuantileRow = { combatPower: ClassRow["combatPower"]; sampleStatus: ClassRow["sampleStatus"]; count: number };
+
+export function quantileScale(rows: QuantileRow[]) {
   // Only full samples set the scale; a short row (median dot only) cannot stretch it.
   const ready = rows.flatMap((row) => (row.combatPower && row.sampleStatus === "READY" ? [row.combatPower] : []));
   if (!ready.length) return null;

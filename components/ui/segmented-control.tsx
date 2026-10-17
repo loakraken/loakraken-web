@@ -97,6 +97,8 @@ function SegmentedControl({
         "data-[orientation=horizontal]:auto-cols-fr data-[orientation=horizontal]:grid-flow-col data-[orientation=horizontal]:rounded-full",
         // Stacked: full-width rows in a rounded box.
         "data-[orientation=vertical]:w-full data-[orientation=vertical]:grid-flow-row data-[orientation=vertical]:rounded-[20px]",
+        // Phones: stacked rows 44px apart so each 44px tap area (hit-44) is its own (A36).
+        "max-[699px]:data-[orientation=vertical]:gap-3 pointer-coarse:data-[orientation=vertical]:gap-3",
         fill ? "w-full" : "w-max",
         // Keep the track at its own height inside grid/flex columns (a stretched
         // track left the pills hugging its top edge).
@@ -114,13 +116,18 @@ function SegmentedItem({ className, ...props }: Radio.Root.Props) {
       data-slot="segmented-item"
       className={cn(
         "inline-flex h-8 min-w-0 items-center justify-center rounded-full px-4 whitespace-nowrap select-none",
+        // 44px to tap on phones; the 32px face stays (A36).
+        "hit-44",
         "text-(length:--text-body) leading-none text-foreground",
-        "transition-[background-color,box-shadow,color] duration-(--duration-fast) ease-(--ease-out)",
+        "transition-[background-color,box-shadow,color,scale] duration-(--duration-fast) ease-(--ease-out)",
+        // Answers the press at once (apple-design: feedback on pointer-down);
+        // the face settles when the choice lands.
+        "not-data-disabled:active:scale-(--press-scale)",
         "pointer-fine:not-data-checked:not-data-disabled:hover:bg-secondary",
         // Selected: a raised face outlined in --input (3:1 against the track, WCAG
         // 1.4.11); no weight change, so the row does not reflow.
         "data-checked:bg-background data-checked:shadow-[0_0_0_1px_var(--input)]",
-        // In dark the face must sit lighter than the track, as iloa's tabs do.
+        // In dark the face must sit lighter than the track.
         "dark:data-checked:bg-secondary",
         "data-disabled:cursor-not-allowed data-disabled:text-faint",
         className

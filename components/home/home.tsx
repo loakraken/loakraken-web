@@ -18,10 +18,12 @@ import { fetchMarketBoard } from "@/lib/market/client";
 import { changeLabel, goldText } from "@/lib/market/board";
 import { ScheduleBoard } from "@/components/schedule/schedule-board";
 import { EventItems, NoticeItem } from "@/components/news/news-parts";
-import { MINUTE, useClock } from "./clock";
+import { useNow } from "./clock";
 import { RecentCard } from "./recent-card";
 import { PopularCard } from "./popular-card";
 import { ServerCard } from "./server-card";
+import { PillTab, PillTabs, PillTabsPanel } from "@/components/ui/pill-tabs";
+import { QuickMenu } from "./quick-menu";
 import styles from "./home.module.css";
 import { countdownText } from "@/lib/api/rate-limit";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
@@ -40,7 +42,7 @@ const useNews = () =>
  * pushes the page down after hydration (CLS, QA #181).
  */
 function MaintenanceBanner({ renderedAt }: { renderedAt?: number }) {
-  const now = useClock(MINUTE) ?? renderedAt ?? null;
+  const now = useNow(renderedAt);
   const data = useNews().data?.data;
   const upcoming =
     data && now !== null ? upcomingMaintenance(data.notices, now) : null;
@@ -63,14 +65,13 @@ function MaintenanceBanner({ renderedAt }: { renderedAt?: number }) {
 }
 
 function NewsPanels({ renderedAt }: { renderedAt?: number }) {
-  const now = useClock(MINUTE) ?? renderedAt ?? null;
+  const now = useNow(renderedAt);
   const query = useNews();
   const limit = useRateLimit(query.error);
   const data = query.data?.data;
   const [noticeTab, setNoticeTab] = useState<"notice" | "patch">("notice");
-  const shownNotices = (data?.notices ?? [])
-    .filter((notice) => isPatchNote(notice) === (noticeTab === "patch"))
-    .slice(0, 6);
+  const noticesOf = (tab: "notice" | "patch") =>
+    (data?.notices ?? []).filter((notice) => isPatchNote(notice) === (tab === "patch")).slice(0, 6);
   return (
     <>
       <section
@@ -80,44 +81,63 @@ function NewsPanels({ renderedAt }: { renderedAt?: number }) {
       >
         <div className={styles.panelHead}>
           <h2 id="notice-heading">공지사항</h2>
-          <Link href="/news" className={styles.more}>
+          <Link href={noticeTab === "patch" ? "/news?tab=patch" : "/news"} className={styles.more}>
             전체 보기 <ChevronRight size={14} aria-hidden="true" />
           </Link>
         </div>
-        <div className={styles.noticeTabs} role="group" aria-label="공지 종류">
-          <button type="button" aria-pressed={noticeTab === "notice"} onClick={() => setNoticeTab("notice")}>
-            공지
-          </button>
-          <button type="button" aria-pressed={noticeTab === "patch"} onClick={() => setNoticeTab("patch")}>
-            패치노트
-          </button>
-        </div>
-        {!data ? (
-          <p className={styles.muted}>
-            {query.isPending
-              ? "공지를 불러오고 있어요…"
-              : limit.limited
-                ? countdownText(limit.seconds)
-                : "공지를 불러오지 못했어요."}
-          </p>
-        ) : shownNotices.length === 0 ? (
-          <p className={styles.muted}>
-            {noticeTab === "patch" ? "최근 패치노트가 없어요." : "최근 공지가 없어요."}
-          </p>
-        ) : (
-          <ul className={styles.notices}>
-            {shownNotices.map((notice) => (
-              <NoticeItem
-                key={`${notice.publishedAt}${notice.title}`}
-                title={notice.title}
-                url={notice.url}
-                publishedAt={notice.publishedAt}
-                tag={noticeTab === "patch" ? "패치" : noticeLabel(notice.category)}
-                category={notice.category ?? undefined}
-              />
-            ))}
-          </ul>
-        )}
+        <PillTabs
+          aria-label="공지 종류"
+          className={styles.cardTabs}
+          value={noticeTab}
+          onValueChange={(value) => setNoticeTab(value as "notice" | "patch")}
+          panels={
+            <PillTabsPanel value={noticeTab}>
+              {!data ? (
+                <p className={styles.muted}>
+                  {query.isPending
+                    ? "공지를 불러오고 있어요…"
+                    : limit.limited
+                      ? countdownText(limit.seconds)
+                      : "공지를 불러오지 못했어요."}
+                </p>
+              ) : (
+                // Both lists in one cell, the other one hidden (not shown, focused or
+                // read): the card is always the longer list's height, so switching
+                // never moves the cards under it (A7).
+                <div className={styles.tabStack}>
+                  {(["notice", "patch"] as const).map((tab) => {
+                    const list = noticesOf(tab);
+                    return (
+                      <div key={tab} data-shown={noticeTab === tab || undefined} inert={noticeTab !== tab}>
+                        {list.length === 0 ? (
+                          <p className={styles.muted}>
+                            {tab === "patch" ? "최근 패치노트가 없어요." : "최근 공지가 없어요."}
+                          </p>
+                        ) : (
+                          <ul className={styles.notices}>
+                            {list.map((notice) => (
+                              <NoticeItem
+                                key={`${notice.publishedAt}${notice.title}`}
+                                title={notice.title}
+                                url={notice.url}
+                                publishedAt={notice.publishedAt}
+                                tag={tab === "patch" ? "패치" : noticeLabel(notice.category)}
+                                category={notice.category ?? undefined}
+                              />
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </PillTabsPanel>
+          }
+        >
+          <PillTab value="notice">공지</PillTab>
+          <PillTab value="patch">패치노트</PillTab>
+        </PillTabs>
       </section>
       <section className={styles.panel} aria-labelledby="event-heading">
         <div className={styles.panelHead}>
@@ -219,6 +239,7 @@ export function HomeDashboard({ renderedAt }: { renderedAt?: number }) {
             <Hero embedded />
           </div>
         </MotionScope>
+        <QuickMenu />
         <MaintenanceBanner renderedAt={renderedAt} />
         <div className={styles.grid}>
           <div className={styles.column}>
@@ -234,7 +255,6 @@ export function HomeDashboard({ renderedAt }: { renderedAt?: number }) {
         </div>
       </main>
       <footer className={styles.footer}>
-        <p>로스트아크 비공식 팬 프로젝트 · 공식 OPEN API 데이터 사용</p>
         <Link href="/about">LOAKraken 소개</Link>
       </footer>
     </div>

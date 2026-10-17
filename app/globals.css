@@ -97,6 +97,29 @@
   }
 }
 
+/* Touch target 44px on phones (checklist A36, apple-design): the visible
+   control keeps its size; an invisible ::after centred on it takes taps over
+   at least 44 × 44. Phone widths or a coarse pointer only, so a mouse on
+   desktop is unchanged. The element must not clip it (no overflow:hidden on
+   itself); a scrolling parent needs room for it (PillTabs: its 4px padding). */
+@utility hit-44 {
+  @media (max-width: 699px), (pointer: coarse) {
+    position: relative;
+
+    &::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      /* 100% is the padding box: + 4px reaches over a border of up to 2px,
+         so the tap area covers the whole drawn control (A36, QA 10-14). */
+      width: max(calc(100% + 4px), 44px);
+      height: max(calc(100% + 4px), 44px);
+      translate: -50% -50%;
+    }
+  }
+}
+
 /* scroll-fade */
 @property --scroll-fade-t {
   syntax: "<length-percentage>";
@@ -639,9 +662,10 @@
   }
 }
 
-/* Dark theme is opt-in via data-theme="dark" on <html> (light is the default
-   and the system setting is not followed: user decision D3). */
-@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+/* Themes are set as data-theme on <html> (theme-toggle.tsx): none = light,
+   "dim" or "dark"; "system" resolves to light or dark. Dim is a dark theme on
+   lighter surfaces, so dark: utilities cover both. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *, [data-theme="dim"], [data-theme="dim"] *));
 
 @theme inline {
   --color-background: var(--background);
@@ -657,6 +681,7 @@
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
   --color-muted: var(--muted);
+  --color-hover-surface: var(--hover-surface);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-secondary: var(--secondary);
   --color-primary-foreground: var(--primary-foreground);
@@ -683,7 +708,7 @@
   --secondary: #e8e8ed; /* control fill: level badge, switch track */
   --secondary-foreground: #424245;
   --muted: #f5f5f7; /* bands and panels */
-  --muted-foreground: #6e6e73; /* 5.07, 4.66 on --muted */
+  --muted-foreground: #6c6c71; /* 5.21, 4.80 on --muted; 4.53 on --muted under the hover tint */
   --accent: #f5f5f7; /* hover fill */
   --accent-foreground: #1d1d1f;
   --destructive: #a32323; /* the one error colour: 7.44, 6.83 on --muted */
@@ -708,6 +733,13 @@
   }
   body {
     @apply bg-background text-foreground;
+    /* Korean wraps between words, never inside one (PM-프론트 #591 별건 P1:
+       "아비도스 융 / 화" at 360). A string with no space that is wider than
+       its box (a long English name, a number run) still breaks, so nothing
+       overflows; break-word, not anywhere, so table and flex columns keep
+       their width instead of shrinking to one letter. */
+    word-break: keep-all;
+    overflow-wrap: break-word;
   }
   html {
     @apply font-sans;
@@ -717,11 +749,79 @@
     outline: 3px solid var(--ring);
     outline-offset: 2px;
   }
+
+  /* Scrollbars (user 10-11 P1: "기본 스크롤바"): one thin style for the page
+     and every scroll area, in the theme's ink — a rounded thumb that darkens
+     under the pointer, on a clear track, no arrow buttons. Chromium and
+     Safari draw it from the WebKit parts (setting the standard properties
+     there would bring Windows' arrow buttons back); Firefox, which has no
+     WebKit parts, takes the standard pair. In the base layer on purpose: a
+     row that hides its bar ([scrollbar-width:none], .no-scrollbar, a module's
+     own rule) still wins, so chip and tab rows stay bar-free. */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track,
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+  /* A rounded scroll area sets --scrollbar-inset to its corner radius, so the
+     track (and the thumb on it) stops short of the corners instead of running
+     out through the curve. */
+  ::-webkit-scrollbar-track {
+    margin-block: var(--scrollbar-inset, 0px);
+  }
+  ::-webkit-scrollbar-button {
+    display: none;
+  }
+  ::-webkit-scrollbar-thumb {
+    border: 3px solid transparent;
+    border-radius: 9999px;
+    background: var(--scrollbar-thumb) padding-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: var(--scrollbar-thumb-hover);
+  }
+  @supports (-moz-appearance: none) {
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: var(--scrollbar-thumb) transparent;
+    }
+    *:not(html):hover {
+      scrollbar-color: var(--scrollbar-thumb-hover) transparent;
+    }
+  }
+}
+
+/* Select lists (select-full.tsx): Base UI hides the list bar with its own
+   unlayered .base-ui-disable-scrollbar rule; long lists show the thin site
+   bar instead, so it is clear there is more (#514 review P2). */
+[data-slot="select-popup"].base-ui-disable-scrollbar::-webkit-scrollbar {
+  display: block;
+}
+
+/* Scrollbar ink, from the theme's own foreground so light and dark need no
+   second set. */
+:root {
+  --scrollbar-thumb: color-mix(in oklab, var(--foreground) 22%, transparent);
+  --scrollbar-thumb-hover: color-mix(in oklab, var(--foreground) 45%, transparent);
+}
+
+/* The one hover tint (user 10-12: "색 넣는 건 좋은데 글씨가 안 보이게 된다").
+   Rows, cards, chips and icon buttons take this faint wash of the theme ink
+   on hover and keep their text colour, so text stays at 4.5:1 (body) / 3:1
+   (large, icons) in every theme; strong fills (--primary, --accent) are for
+   buttons only. Measured in e2e/regression/hover-contrast.spec.mjs. */
+:root {
+  --hover-surface: color-mix(in oklab, var(--foreground) 3%, transparent);
+}
+:root:is([data-theme="dark"], [data-theme="dim"]) {
+  --hover-surface: color-mix(in oklab, var(--foreground) 6%, transparent);
 }
 
 /* One UI font for every screen: Kraken Sans (Pretendard Variable subset, OFL,
-   renamed per its Reserved Font Name) on every platform, as the target sites
-   do. The subset holds KS X 1001 Hangul + ASCII at wght 400–700; anything else
+   renamed per its Reserved Font Name) on every platform. The subset holds KS X 1001 Hangul + ASCII at wght 400–700; anything else
    (rare Hanja, old Hangul, emoji) falls through to the system faces below.
    next/font sets --font-kraken on <html>, so :root resolves it. */
 :root {
@@ -731,8 +831,8 @@
 }
 
 /* LOAKraken design values. One source for every screen; spec lives in the
-   vault (60 디자인 시스템/디자인 값 명세). Target sites (iloa first) set the
-   conventions: grade/quality colours, type range; the rest is our light finish.
+   vault (60 디자인 시스템/디자인 값 명세). Grade/quality colours and the type
+   range follow measured conventions; the rest is our light finish.
    Screens adopt these by swapping literals in their own modules. */
 :root {
   /* Text and accents */
@@ -772,13 +872,13 @@
   --grade-ancient-text: #836b40; /* 4.66 */
   --grade-esther-text: #227c71; /* 4.60 */
 
-  /* Polishing grade (상·중·하), same hues as the target sites */
+  /* Polishing grade (상·중·하) */
   --polish-high: #b64400;
   --polish-mid: #7b3fbf;
   --polish-low: #0066cc;
 
-  /* Type scale: sizes fall inside the measured target-site ranges
-     (iloa combat tab, loalab calculators). Mobile steps below 700px. */
+  /* Type scale: sizes fall inside measured ranges for combat tabs and
+     calculators. Mobile steps below 700px. */
   --text-badge: 11px;
   --text-caption: 12px;
   --text-meta: 13px;
@@ -837,6 +937,12 @@
   --duration-draw: 600ms; /* chart lines and bars: explanatory, capped at 600ms */
   --duration-count: 400ms;
   --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  /* Apple's default UI spring (damping 1.0, response 0.35s: critically
+     damped, no overshoot) sampled into linear(); it settles in ~515ms. A CSS
+     transition re-targets from the current value, so a second press mid-way
+     carries on from where the pill is. */
+  --ease-spring: linear(0, 0.058 4%, 0.181 8%, 0.321 13%, 0.456 17%, 0.574 21%, 0.672 25%, 0.751 29%, 0.813 33%, 0.861 38%, 0.897 42%, 0.924 46%, 0.945 50%, 0.96 54%, 0.971 58%, 0.979 63%, 0.985 67%, 0.989 71%, 0.992 75%, 0.994 79%, 0.996 83%, 0.997 88%, 0.998 92%, 0.999 96%, 1);
+  --duration-spring: 515ms;
 }
 
 @media (max-width: 700px) {
@@ -884,10 +990,10 @@
   --loss: var(--destructive);
   --switch-on: #2aa048; /* track vs page 3.38, 3.10 on #f5f5f7 (was #34c759, 2.22) */
 
-  /* Quality badge, iloa's six bands (PM decision D1), measured on its page:
-     an 80% fill over its dark surface. Bands that already pass 4.5:1 with
-     white numerals use that colour as is (100, 90~99, 70~89, 0~9); 30~69 and
-     10~29 are iloa's hue darkened only as far as 4.6, so all six bands read
+  /* Quality badge, six bands (PM decision D1), measured as an 80% fill over
+     a dark surface. Bands that already pass 4.5:1 with white numerals use
+     that colour as is (100, 90~99, 70~89, 0~9); 30~69 and 10~29 are the
+     measured hue darkened only as far as 4.6, so all six bands read
      white-on-colour. Numerals stay at weight 600 or more. */
   --quality-max: #be5712;
   --quality-max-foreground: #fff; /* 4.60 */
@@ -896,22 +1002,21 @@
   --quality-good: #1352c2;
   --quality-good-foreground: #fff; /* 6.97 */
   --quality-normal: #0a880a;
-  --quality-normal-foreground: #fff; /* 4.63 (iloa #0a8f0b is 4.25) */
+  --quality-normal-foreground: #fff; /* 4.63 (measured #0a8f0b is 4.25) */
   --quality-low: #857504;
-  --quality-low-foreground: #fff; /* 4.62 (iloa #897904 is 4.37) */
+  --quality-low-foreground: #fff; /* 4.62 (measured #897904 is 4.37) */
   --quality-poor: #cf0304;
   --quality-poor-foreground: #fff; /* 5.73 */
   --quality-none: #747479;
   --quality-none-foreground: #fff; /* 4.65 */
 
-  /* Character banner: a dark band in both themes, as on iloa and lopec
-     (user decision). Image-derived --backdrop tints may replace --banner. */
+  /* Character banner: a dark band in both themes (user decision). Image-derived --backdrop tints may replace --banner. */
   --banner: #101114;
   --banner-foreground: #f5f5f7; /* 17.34 */
   --banner-muted: #a1a1a6; /* 7.34 */
   --banner-border: rgb(255 255 255 / 10%);
 
-  /* Tooltip: iloa's dark glass in both themes. Its 80% fill drops the
+  /* Tooltip: dark glass in both themes. An 80% fill drops the
      second line to 3.73 on our white page, so 88% is used: text 9.75,
      muted 4.93 on white; 14.26 / 7.22 on the dark page. */
   --tooltip: rgb(27 29 34 / 88%);
@@ -920,7 +1025,7 @@
   --tooltip-shadow: inset 0 0 0 1px rgb(255 255 255 / 8%), inset 0 1px 0 rgb(255 255 255 / 7%),
     0 16px 40px -16px rgb(0 0 0 / 80%), 0 4px 14px -6px rgb(0 0 0 / 45%);
 
-  /* Item detail tooltip: iloa's card, measured 10-10 (작은 동작 전수표 v2
+  /* Item detail tooltip card, measured 10-10 (작은 동작 전수표 v2
      §2·2b), the same in both themes. Contrast is on the fill over the white
      page / the dark page. */
   --item-tip: rgb(27 29 34 / 97%);
@@ -930,8 +1035,8 @@
   --item-tip-section: #a9d0f5; /* section heads, 9.66 / 10.50 */
   --item-tip-equipped: #ffd200; /* "장착중", 10.73 / 11.67 */
   --item-tip-craft: #5fd3f1; /* "[제작] …", 8.95 / 9.73 */
-  /* "거래 불가"·"분해불가": iloa's red (#c24b46, 3.25) lifted in lightness only to
-     pass 4.5 for 12px text (PM-프론트 #393: the site's contrast rule wins). */
+  /* "거래 불가"·"분해불가": the measured red (#c24b46, 3.25) lifted in lightness only to
+     pass 4.5 for 12px text (PM-프론트 #393: our contrast rule wins). */
   --item-tip-warn: #e4665f; /* 4.72 / 5.13 */
   --item-tip-track: #49505a; /* quality and refine bars */
   --item-tip-exp: oklch(0.75 0.183 55.9); /* refine experience fill */
@@ -943,14 +1048,14 @@
   --item-tip-grade-normal: #c4c4cc; /* 9.30 */
   --item-tip-grade-uncommon: #8bd45c; /* 8.96 */
   --item-tip-grade-rare: #5fa8ff; /* 6.55 */
-  --item-tip-grade-epic: #d35cfc; /* iloa #ce43fc (4.32) lifted, 4.97 / 5.41 */
-  --item-tip-grade-legendary: #f99200; /* iloa, 6.78 / 7.37 */
-  --item-tip-grade-relic: #fa5d00; /* iloa, 4.92 / 5.35 */
-  --item-tip-grade-ancient: #e3c7a1; /* iloa, 9.60 */
-  --item-tip-grade-esther: #3cf2e6; /* iloa, 11.15 / 12.12 */
+  --item-tip-grade-epic: #d35cfc; /* measured #ce43fc (4.32) lifted, 4.97 / 5.41 */
+  --item-tip-grade-legendary: #f99200; /* measured, 6.78 / 7.37 */
+  --item-tip-grade-relic: #fa5d00; /* measured, 4.92 / 5.35 */
+  --item-tip-grade-ancient: #e3c7a1; /* measured, 9.60 */
+  --item-tip-grade-esther: #3cf2e6; /* measured, 11.15 / 12.12 */
   /* Icon box gradient, top-left → bottom-right (v2.1 §2d). Ancient, relic,
-     legendary, epic and esther are iloa's; the others were not on the reference
-     character and are derived from the grade colour the same way. */
+     legendary, epic and esther are measured; the others were not available
+     and are derived from the grade colour the same way. */
   --item-tip-icon-ancient-a: rgb(61 51 37);
   --item-tip-icon-ancient-b: rgb(220 201 153);
   --item-tip-icon-relic-a: rgb(52 26 9);
@@ -967,9 +1072,9 @@
   --item-tip-icon-uncommon-b: color-mix(in srgb, var(--item-tip-grade-uncommon) 70%, #000);
   --item-tip-icon-normal-a: color-mix(in srgb, var(--item-tip-grade-normal) 25%, #000);
   --item-tip-icon-normal-b: color-mix(in srgb, var(--item-tip-grade-normal) 70%, #000);
-  /* Quality number and bar fill. 90–99 is iloa's #df18e3 (3.99) lifted in
-     lightness to pass 4.5 (5.09 / 5.53); the other tiers were not measured on
-     iloa's card and keep the in-game colours the character tab used. */
+  /* Quality number and bar fill. 90–99 is the measured #df18e3 (3.99) lifted in
+     lightness to pass 4.5 (5.09 / 5.53); the other tiers were not measured
+     and keep the in-game colours the character tab used. */
   --item-tip-quality-max: #f39c12;
   --item-tip-quality-high: #ec4cf0;
   --item-tip-quality-good: #4fa3ff;
@@ -1005,12 +1110,12 @@
   }
 }
 
-/* Dark theme (data-theme="dark" on <html>). Surfaces and text follow iloa's
+/* Dark theme (data-theme="dark" on <html>). Surfaces and text follow a
    measured dark page: 15,17,20 page / 22,24,29 header row / 27,29,34 row;
    text 234 / labels 179 / secondary 166. Ratios are against --background,
    then --muted (the band); every text colour also passes on --card. Quality badges, grade tiles and the character banner keep the
-   same colours in both themes, as on the target sites. */
-:root[data-theme="dark"] {
+   same colours in both themes. */
+:root:is([data-theme="dark"], [data-theme="dim"]) {
   color-scheme: dark;
   --background: #0f1114;
   --foreground: #eaeaec; /* 15.74, 14.78 */
@@ -1039,7 +1144,7 @@
   --market-up: #ff5c52; /* 6.22, 5.84 */
   --market-down: #4da3ff;
   --switch-on: #30b955; /* 7.38, 6.93 */
-  /* Polishing grade: iloa's dark-theme hues */
+  /* Polishing grade: dark-theme hues */
   --polish-high: #ff8903; /* 7.95 */
   --polish-mid: #ed6bff; /* 7.34 */
   --polish-low: #00bcff; /* 8.68 */
@@ -1059,6 +1164,50 @@
   --surface-panel: #1b1d22;
   --surface-inset: #23262c;
   --shadow-card: 0 0 0 1px rgb(255 255 255 / 6%), 0 12px 28px -18px rgb(0 0 0 / 70%);
+}
+
+/* Dim: the dark theme on grey-blue surfaces, for long sessions in a lit room.
+   Same layer order as dark (page < band < card < menu < inset < control); only
+   what the lighter surfaces need is replaced. Every text colour is measured
+   against all six surfaces, the control fill (#383d47) being the worst case:
+   body text 4.5, icons and field edges 3. */
+:root[data-theme="dim"] {
+  --background: #22252b;
+  --foreground: #d5d8de; /* 10.75 … 7.63 */
+  --card: #2c3038;
+  --card-foreground: #d5d8de;
+  --popover: #31353e;
+  --popover-foreground: #d5d8de;
+  --primary: #2c77c9; /* white text 4.58 */
+  --primary-hover: #286cb6; /* white text 5.37 */
+  --secondary: #383d47;
+  --secondary-foreground: #b3b5bc; /* 5.32 on --secondary */
+  --muted: #272a31;
+  --muted-foreground: #a4aab3; /* 6.52 … 4.66; 4.53 on the menu under the hover tint */
+  --accent: #2c3038;
+  --accent-foreground: #d5d8de;
+  --destructive: #ff8181; /* 6.37 … 4.52 */
+  --border: rgb(255 255 255 / 9%);
+  --input: #85878f; /* 4.28 … 3.04 */
+  --ring: #5cabff; /* 6.38 … 4.53 */
+  --ring-halo: 0 0 0 3px rgb(92 171 255 / 30%);
+  --link: #5cabff;
+  --faint: #84878e; /* 4.27 … 3.03 */
+  --market-up: #f28a83; /* 6.39 … 4.54 */
+  --market-down: #5cabff;
+  --polish-mid: #ee77ff; /* 6.38 … 4.53 */
+  --grade-uncommon-text: #85b46c; /* 6.39 … 4.54 */
+  --grade-rare-text: #80abda; /* 6.40 … 4.54 */
+  --grade-epic-text: #b59bdf; /* 6.38 … 4.53 */
+  --grade-legendary-text: #cda14d; /* 6.44 … 4.57 */
+  --grade-relic-text: #df966d; /* 6.38 … 4.53 */
+  --grade-ancient-text: #bca478; /* 6.38 … 4.53 */
+  --grade-esther-text: #62b6ab; /* 6.43 … 4.57 */
+  --shadow-pop: 0 18px 40px -16px rgb(0 0 0 / 55%), 0 0 0 1px rgb(255 255 255 / 9%);
+  --surface-page: #22252b;
+  --surface-panel: #2c3038;
+  --surface-inset: #343943;
+  --shadow-card: 0 0 0 1px rgb(255 255 255 / 7%), 0 12px 28px -18px rgb(0 0 0 / 50%);
 }
 
 /* Entrance utilities. @starting-style runs the transition only when the
@@ -1114,4 +1263,12 @@
   .k-grow-x {
     scale: 0 1;
   }
+}
+
+/* Theme switch (theme-toggle.tsx): no transitions for the frame the colour
+   tokens flip, so nothing fades between light and dark. */
+:root[data-theme-switching] *,
+:root[data-theme-switching] *::before,
+:root[data-theme-switching] *::after {
+  transition: none !important;
 }

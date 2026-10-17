@@ -6,14 +6,19 @@ import { useRouter } from "next/navigation";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { SiteHeader } from "@/components/site/site-header";
 import { DataTable } from "@/components/ui/data-table";
+import { Select } from "@/components/ui/select";
 import { countdownText, retryLabel } from "@/lib/api/rate-limit";
+import { pendingProps } from "@/lib/api/pending";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
-import { TIER_LABEL } from "@/lib/character/rank";
+import { TIER_LABEL, TIER_LEGEND } from "@/lib/character/rank";
 import { fetchRankings } from "@/lib/stats/client";
-import { fixed, percent, sampleText, whole } from "@/lib/stats/model";
-import { MAX_PAGE, PAGE_SIZE, rankingSearch, type RankingQuery } from "@/lib/stats/rankings";
+import { conditionsKey, fixed, percent, sampleText, whole } from "@/lib/stats/model";
+import { MAX_PAGE, PAGE_SIZE, arkPassiveText, estherText, rankingSearch, type RankingQuery } from "@/lib/stats/rankings";
 import quote from "@/components/tools/material-quote.module.css";
 import styles from "./stats.module.css";
+import { rankingColumns } from "./ranking-columns";
+import { BasisNote } from "./basis-note";
+import { RankingTypeTabs, type RankingType } from "./ranking-type-tabs";
 
 const SERVERS = ["루페온", "실리안", "아만", "아브렐슈드", "카단", "카마인", "카제로스", "니나브"];
 const CLASSES = [
@@ -22,12 +27,16 @@ const CLASSES = [
   "서머너", "아르카나", "소서리스", "블레이드", "데모닉", "리퍼", "소울이터", "도화가", "기상술사", "환수사",
 ];
 
+// Numbers get room for real data's longest (A37, QA 10-17: "11,170.05" in bold,
+// "0.11% 크라켄"); text columns may end in "…" with the whole text on hover.
+const COLUMNS = rankingColumns([3.5, 14, 6, 8.5, 7, 8.5, 8, 16, 7, 9.5, 9.5]);
+
 /**
- * LOAWA-style ranking (backend #100): combat power or item level, filtered
+ * Ranking (backend #100): combat power or item level, filtered
  * like the statistics page, 50 per page. The list is LOAKraken's sample, not
  * the official ranking, and hidden characters never appear.
  */
-export function RankingsView({ initial }: { initial: RankingQuery }) {
+export function RankingsView({ initial, types }: { initial: RankingQuery; types: readonly RankingType[] }) {
   const router = useRouter();
   const [query, setQuery] = useState<RankingQuery>(initial);
   const [levelText, setLevelText] = useState(initial.itemLevelMin != null ? String(initial.itemLevelMin) : "");
@@ -35,7 +44,7 @@ export function RankingsView({ initial }: { initial: RankingQuery }) {
   const levelTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const ids = { server: useId(), role: useId(), cls: useId(), days: useId(), level: useId() };
   const list = useQuery({
-    queryKey: ["rankings", query],
+    queryKey: ["rankings", conditionsKey(rankingSearch(query))],
     queryFn: ({ signal }) => fetchRankings(query, signal),
     staleTime: 5 * 60_000,
     placeholderData: keepPreviousData,
@@ -81,6 +90,7 @@ export function RankingsView({ initial }: { initial: RankingQuery }) {
           <h1 id="rankings-heading">랭킹</h1>
           <p>LOAKraken이 확인한 캐릭터를 {metricLabel} 순으로 보여줘요.</p>
         </section>
+        {types.length > 1 && <RankingTypeTabs value="character" types={types} />}
 
         <form className={styles.filters} onSubmit={(e) => e.preventDefault()} aria-label="랭킹 조건">
           <span className={styles.segment} role="group" aria-label="기준">
@@ -92,45 +102,47 @@ export function RankingsView({ initial }: { initial: RankingQuery }) {
           </span>
           <label htmlFor={ids.server}>
             서버
-            <select id={ids.server} value={query.server ?? ""} onChange={(e) => filter({ server: e.target.value || undefined })}>
-              <option value="">전체</option>
-              {SERVERS.map((s) => (
-                <option key={s}>{s}</option>
-              ))}
-            </select>
+            <Select
+              id={ids.server}
+              value={query.server ?? ""}
+              onValueChange={(v) => filter({ server: v || undefined })}
+              items={[{ value: "", label: "전체" }, ...SERVERS.map((s) => ({ value: s, label: s }))]}
+            />
           </label>
           <label htmlFor={ids.cls}>
             직업
-            <select id={ids.cls} value={query.className ?? ""} onChange={(e) => filter({ className: e.target.value || undefined })}>
-              <option value="">전체</option>
-              {CLASSES.map((c) => (
-                <option key={c}>{c}</option>
-              ))}
-            </select>
+            <Select
+              id={ids.cls}
+              value={query.className ?? ""}
+              onValueChange={(v) => filter({ className: v || undefined })}
+              items={[{ value: "", label: "전체" }, ...CLASSES.map((c) => ({ value: c, label: c }))]}
+            />
           </label>
           <label htmlFor={ids.role}>
             역할
-            <select
+            <Select
               id={ids.role}
               value={query.role ?? ""}
-              onChange={(e) => filter({ role: (e.target.value || undefined) as RankingQuery["role"] })}
-            >
-              <option value="">전체</option>
-              <option value="DEALER">딜러</option>
-              <option value="SUPPORT">서포터</option>
-            </select>
+              onValueChange={(v) => filter({ role: (v || undefined) as RankingQuery["role"] })}
+              items={[
+                { value: "", label: "전체" },
+                { value: "DEALER", label: "딜러" },
+                { value: "SUPPORT", label: "서포터" },
+              ]}
+            />
           </label>
           <label htmlFor={ids.days}>
             최근 확인
-            <select
+            <Select
               id={ids.days}
               value={query.activeDays ?? 30}
-              onChange={(e) => filter({ activeDays: Number(e.target.value) as 7 | 30 | 90 })}
-            >
-              <option value={7}>7일</option>
-              <option value={30}>30일</option>
-              <option value={90}>90일</option>
-            </select>
+              onValueChange={(v) => filter({ activeDays: v as 7 | 30 | 90 })}
+              items={[
+                { value: 7, label: "7일" },
+                { value: 30, label: "30일" },
+                { value: 90, label: "90일" },
+              ]}
+            />
           </label>
           <label htmlFor={ids.level}>
             아이템 레벨 이상
@@ -145,8 +157,10 @@ export function RankingsView({ initial }: { initial: RankingQuery }) {
         </form>
 
         {data && (
-          <p className={styles.notice}>
-            {sampleText(data.meta)} · 공식 랭킹이 아니에요
+          <p key={list.dataUpdatedAt} className={`${styles.notice} ${styles.rankingNotice}`} {...pendingProps(list)}>
+            {/* The fixed words first: the count changes with the filters, and
+                text after it slid sideways (A7, #594). */}
+            공식 랭킹이 아니에요 · {sampleText(data.meta)}
             {data.meta.sampleStatus !== "READY" && <strong> · 표본 {data.meta.minSample}명이 모이면 순위를 보여 드려요</strong>}
           </p>
         )}
@@ -159,14 +173,24 @@ export function RankingsView({ initial }: { initial: RankingQuery }) {
             </button>
           </div>
         ) : !data ? (
-          <p className={styles.muted}>랭킹을 불러오고 있어요…</p>
+          // Holds most of the screen so the note below starts out of view and
+          // the 50-row table arriving moves nothing visible (user 10-11).
+          <p className={`${styles.muted} ${styles.listHold}`} role="status">
+            랭킹을 불러오고 있어요…
+          </p>
         ) : data.rows.length === 0 ? (
           <p className={styles.muted}>조건에 맞는 캐릭터가 없어요.</p>
         ) : (
-          <DataTable label={`${metricLabel} 랭킹 ${query.page}쪽`} className={styles.table}>
+          <DataTable
+            label={`${metricLabel} 랭킹 ${query.page}쪽`}
+            className={styles.table}
+            {...COLUMNS.tableProps}
+            {...pendingProps(list)}
+          >
             <caption className={styles.srOnly}>
               {metricLabel} 랭킹 {query.page}쪽
             </caption>
+            {COLUMNS.colgroup}
             <thead>
               <tr>
                 <th scope="col">순위</th>
@@ -175,25 +199,41 @@ export function RankingsView({ initial }: { initial: RankingQuery }) {
                 <th scope="col" className={styles.left}>직업</th>
                 <th scope="col">아이템 레벨</th>
                 <th scope="col">전투력</th>
+                <th scope="col">최고 전투력</th>
+                <th scope="col" className={styles.left}>아크 패시브</th>
+                <th scope="col" className={styles.left}>직업 각인</th>
+                <th scope="col" className={styles.left}>에스더 무기</th>
                 <th scope="col">상위</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody key={list.dataUpdatedAt}>
               {data.rows.map((row) => (
                 <tr key={`${row.serverName}-${row.characterName}`}>
                   <td>{whole(row.rank)}</td>
-                  <th scope="row">
+                  <th scope="row" title={row.characterName}>
                     <Link href={`/character/${encodeURIComponent(row.characterName)}`} className={styles.charLink}>
                       {row.characterName}
                     </Link>
                   </th>
-                  <td className={styles.left}>{row.serverName}</td>
-                  <td className={styles.left}>
+                  <td className={styles.left} title={row.serverName}>{row.serverName}</td>
+                  <td className={styles.left} title={`${row.className}${row.position === "SUPPORT" ? " · 서포터" : ""}`}>
                     {row.className}
                     {row.position === "SUPPORT" && <span className={styles.role}> · 서포터</span>}
                   </td>
                   <td data-strong={query.metric === "ITEM_LEVEL" || undefined}>{fixed(row.itemLevel)}</td>
                   <td data-strong={query.metric === "COMBAT_POWER" || undefined}>{fixed(row.combatPower)}</td>
+                  {/* K32 · L37 (api #446·#449): '-' when not observed; the
+                      columns stay so every row lines up. */}
+                  <td>{row.bestCombatPower != null ? fixed(row.bestCombatPower) : "-"}</td>
+                  <td className={`${styles.left} ${styles.k32}`} title={arkPassiveText(row.arkPassivePoints) ?? undefined}>
+                    {arkPassiveText(row.arkPassivePoints) ?? "-"}
+                  </td>
+                  <td className={`${styles.left} ${styles.k32}`} title={row.classEngraving?.trim() || undefined}>
+                    {row.classEngraving?.trim() || "-"}
+                  </td>
+                  <td className={`${styles.left} ${styles.esther}`} title={estherText(row.estherWeapon) ?? undefined}>
+                    {estherText(row.estherWeapon) ?? "-"}
+                  </td>
                   <td>
                     {percent(row.topPercent)}
                     {row.tier && TIER_LABEL[row.tier] && <> <b className={styles.tier}>{TIER_LABEL[row.tier]}</b></>}
@@ -225,11 +265,9 @@ export function RankingsView({ initial }: { initial: RankingQuery }) {
           </nav>
         )}
         <p className={styles.note}>
-          순위는 LOAKraken이 조회·갱신한 캐릭터 기준이며, 순위 비공개로 설정된 캐릭터는 나오지 않아요. 티어: 크라켄 상위 1% · 해구 5% · 심해 10% · 대양 25% · 연안 50%
+          순위는 LOAKraken이 조회·갱신한 캐릭터 기준이에요. 티어(이 순위에서 상위 몇 %인지): {TIER_LEGEND}
         </p>
-        <p className={styles.note}>
-          내 캐릭터를 순위에서 빼고 싶다면 <Link href="/contact#removal">순위 제외 요청</Link>을 보내 주세요.
-        </p>
+        {data && <BasisNote basis={data.meta} />}
       </main>
     </div>
   );

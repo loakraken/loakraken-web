@@ -1,11 +1,51 @@
 .legal {
-  display: flex;
-  justify-content: center;
-  gap: 8px;
+  display: grid;
+  justify-items: center;
+  gap: 6px;
   padding: 14px 16px 28px;
   background: var(--background);
   color: var(--muted-foreground);
   font-size: 12px;
+  line-height: 1.5;
+  text-align: center;
+}
+/* The trademark notice: 12px gray (5.07:1 light, 7.97:1 dark), wraps to at
+   most two lines at 390. */
+.notice {
+  max-width: 640px;
+  margin: 0;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+.community {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.community svg {
+  width: 14px;
+  height: 14px;
+  flex: none;
+}
+.hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.links {
+  display: flex;
+  gap: 8px;
+}
+/* Phones: the links take 44px to tap (hit-44, A36), so the policy row sits far
+   enough under the community link that their tap areas do not overlap
+   (18px rows, centres 44px apart). */
+@media (max-width: 699px), (pointer: coarse) {
+  .links {
+    margin-top: 20px;
+  }
 }
 .legal a {
   color: var(--muted-foreground);

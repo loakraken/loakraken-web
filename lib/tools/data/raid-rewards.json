@@ -1,6 +1,6 @@
 {
   "version": "2026-10-09",
-  "checkedAt": "2026-10-09",
+  "checkedAt": "2026-10-13",
   "rules": {
     "goldCharactersPerRoster": 6,
     "endContentGoldClearsPerCharacter": 3,
@@ -57,6 +57,21 @@
       "title": "실측 — 서로 다른 출처 2곳 이상에서 같은 값",
       "url": null,
       "date": "2026-10-10"
+    },
+    "notice-13148": {
+      "title": "6월 25일(수) 업데이트 내역 안내 — 클리어 골드·더보기 조정",
+      "url": "https://lostark.game.onstove.com/News/Notice/Views/13148",
+      "date": "2025-06-25"
+    },
+    "inven-110400": {
+      "title": "인벤 팁 — 레이드 클리어 골드 정리(벨가르딘 포함), 합계 대조",
+      "url": "https://www.inven.co.kr/board/lostark/4821/110400",
+      "date": "2026-10-12"
+    },
+    "sites-20261013-gates": {
+      "title": "실측 — 숙제 화면 관문별 골드·더보기·귀속(발탄·비아키스·쿠크세이튼·아브렐슈드 노말/하드, 카제로스 2막~종막 싱글)",
+      "url": null,
+      "date": "2026-10-13"
     }
   },
   "raids": [
@@ -191,11 +206,11 @@
         {
           "difficulty": "SINGLE",
           "minItemLevel": 1670,
-          "status": "UNVERIFIED",
-          "source": null,
+          "status": "SITES",
+          "source": "sites-20261013-gates",
           "gates": [
-            { "gate": 1, "gold": null, "boundGold": null, "moreCost": null },
-            { "gate": 2, "gold": null, "boundGold": null, "moreCost": null }
+            { "gate": 1, "gold": 5500, "boundGold": 2750, "moreCost": 1820 },
+            { "gate": 2, "gold": 11000, "boundGold": 5500, "moreCost": 3720 }
           ]
         }
       ]
@@ -233,12 +248,12 @@
         {
           "difficulty": "SINGLE",
           "minItemLevel": 1680,
-          "status": "UNVERIFIED",
-          "source": null,
+          "status": "SITES",
+          "source": "sites-20261013-gates",
           "gates": [
-            { "gate": 1, "gold": null, "boundGold": null, "moreCost": null },
-            { "gate": 2, "gold": null, "boundGold": null, "moreCost": null },
-            { "gate": 3, "gold": null, "boundGold": null, "moreCost": null }
+            { "gate": 1, "gold": 4000, "boundGold": 2000, "moreCost": 1300 },
+            { "gate": 2, "gold": 7000, "boundGold": 3500, "moreCost": 2350 },
+            { "gate": 3, "gold": 10000, "boundGold": 5000, "moreCost": 3360 }
           ]
         }
       ]
@@ -274,11 +289,11 @@
         {
           "difficulty": "SINGLE",
           "minItemLevel": 1700,
-          "status": "UNVERIFIED",
-          "source": null,
+          "status": "SITES",
+          "source": "sites-20261013-gates",
           "gates": [
-            { "gate": 1, "gold": null, "boundGold": null, "moreCost": null },
-            { "gate": 2, "gold": null, "boundGold": null, "moreCost": null }
+            { "gate": 1, "gold": 10000, "boundGold": 5000, "moreCost": 3200 },
+            { "gate": 2, "gold": 17000, "boundGold": 8500, "moreCost": 5440 }
           ]
         }
       ]
@@ -314,11 +329,11 @@
         {
           "difficulty": "SINGLE",
           "minItemLevel": 1710,
-          "status": "UNVERIFIED",
-          "source": null,
+          "status": "SITES",
+          "source": "sites-20261013-gates",
           "gates": [
-            { "gate": 1, "gold": null, "boundGold": null, "moreCost": null },
-            { "gate": 2, "gold": null, "boundGold": null, "moreCost": null }
+            { "gate": 1, "gold": 11000, "boundGold": 5500, "moreCost": 3520 },
+            { "gate": 2, "gold": 21000, "boundGold": 10500, "moreCost": 6720 }
           ]
         }
       ]
@@ -344,21 +359,21 @@
         {
           "difficulty": "HARD",
           "minItemLevel": 1730,
-          "status": "UNVERIFIED",
-          "source": null,
+          "status": "SITES",
+          "source": "inven-110400",
           "gates": [
-            { "gate": 1, "gold": null, "boundGold": null, "moreCost": null },
-            { "gate": 2, "gold": null, "boundGold": null, "moreCost": null }
+            { "gate": 1, "gold": 17500, "boundGold": 0, "moreCost": 5600 },
+            { "gate": 2, "gold": 26500, "boundGold": 0, "moreCost": 8480 }
           ]
         },
         {
           "difficulty": "NIGHTMARE",
           "minItemLevel": 1740,
           "status": "SITES",
-          "source": "sites-20261010",
+          "source": "inven-110400",
           "gates": [
-            { "gate": 1, "gold": 21000, "boundGold": 0, "moreCost": null },
-            { "gate": 2, "gold": 33000, "boundGold": 0, "moreCost": null }
+            { "gate": 1, "gold": 21000, "boundGold": 0, "moreCost": 6720 },
+            { "gate": 2, "gold": 33000, "boundGold": 0, "moreCost": 10560 }
           ]
         }
       ]
@@ -374,31 +389,31 @@
         {
           "difficulty": "NORMAL",
           "minItemLevel": 1750,
-          "status": "UNVERIFIED",
-          "source": null,
+          "status": "SITES",
+          "source": "inven-110400",
           "gates": [
-            { "gate": 1, "gold": null, "boundGold": null, "moreCost": null },
-            { "gate": 2, "gold": null, "boundGold": null, "moreCost": null }
+            { "gate": 1, "gold": 20000, "boundGold": 10000, "moreCost": 6400 },
+            { "gate": 2, "gold": 30000, "boundGold": 15000, "moreCost": 9600 }
           ]
         },
         {
           "difficulty": "HARD",
           "minItemLevel": 1770,
           "status": "SITES",
-          "source": "sites-20261010",
+          "source": "inven-110400",
           "gates": [
-            { "gate": 1, "gold": 25000, "boundGold": 0, "moreCost": null },
-            { "gate": 2, "gold": 37000, "boundGold": 0, "moreCost": null }
+            { "gate": 1, "gold": 25000, "boundGold": 0, "moreCost": 8000 },
+            { "gate": 2, "gold": 37000, "boundGold": 0, "moreCost": 11840 }
           ]
         },
         {
           "difficulty": "NIGHTMARE",
           "minItemLevel": 1780,
-          "status": "UNVERIFIED",
-          "source": null,
+          "status": "SITES",
+          "source": "inven-110400",
           "gates": [
-            { "gate": 1, "gold": null, "boundGold": null, "moreCost": null },
-            { "gate": 2, "gold": null, "boundGold": null, "moreCost": null }
+            { "gate": 1, "gold": 30000, "boundGold": 0, "moreCost": 9600 },
+            { "gate": 2, "gold": 45000, "boundGold": 0, "moreCost": 14400 }
           ]
         }
       ]
@@ -449,8 +464,8 @@
           "status": "SITES",
           "source": "sites-20261010",
           "gates": [
-            { "gate": 1, "gold": 13500, "boundGold": 13500, "moreCost": null },
-            { "gate": 2, "gold": 16500, "boundGold": 16500, "moreCost": null }
+            { "gate": 1, "gold": 13500, "boundGold": 13500, "moreCost": 4320 },
+            { "gate": 2, "gold": 16500, "boundGold": 16500, "moreCost": 5280 }
           ]
         },
         {
@@ -459,8 +474,8 @@
           "status": "SITES",
           "source": "sites-20261010",
           "gates": [
-            { "gate": 1, "gold": 16000, "boundGold": 16000, "moreCost": null },
-            { "gate": 2, "gold": 24000, "boundGold": 24000, "moreCost": null }
+            { "gate": 1, "gold": 16000, "boundGold": 16000, "moreCost": 5120 },
+            { "gate": 2, "gold": 24000, "boundGold": 24000, "moreCost": 7680 }
           ]
         },
         {
@@ -469,8 +484,8 @@
           "status": "SITES",
           "source": "sites-20261010",
           "gates": [
-            { "gate": 1, "gold": 20000, "boundGold": 20000, "moreCost": null },
-            { "gate": 2, "gold": 30000, "boundGold": 30000, "moreCost": null }
+            { "gate": 1, "gold": 20000, "boundGold": 20000, "moreCost": 6400 },
+            { "gate": 2, "gold": 30000, "boundGold": 30000, "moreCost": 9600 }
           ]
         }
       ]
@@ -486,24 +501,24 @@
         {
           "difficulty": "NORMAL",
           "minItemLevel": 1610,
-          "status": "UNVERIFIED",
-          "source": null,
+          "status": "OFFICIAL",
+          "source": "notice-13148",
           "gates": [
-            { "gate": 1, "gold": null, "boundGold": null, "moreCost": null },
-            { "gate": 2, "gold": null, "boundGold": null, "moreCost": null },
-            { "gate": 3, "gold": null, "boundGold": null, "moreCost": null }
+            { "gate": 1, "gold": 1600, "boundGold": 1600, "moreCost": 360 },
+            { "gate": 2, "gold": 2000, "boundGold": 2000, "moreCost": 440 },
+            { "gate": 3, "gold": 2800, "boundGold": 2800, "moreCost": 640 }
           ]
         },
         {
           "difficulty": "HARD",
           "minItemLevel": 1630,
-          "status": "UNVERIFIED",
-          "source": null,
+          "status": "OFFICIAL",
+          "source": "notice-13148",
           "gates": [
-            { "gate": 1, "gold": null, "boundGold": null, "moreCost": null },
-            { "gate": 2, "gold": null, "boundGold": null, "moreCost": null },
-            { "gate": 3, "gold": null, "boundGold": null, "moreCost": null },
-            { "gate": 4, "gold": null, "boundGold": null, "moreCost": null }
+            { "gate": 1, "gold": 2000, "boundGold": 2000, "moreCost": 500 },
+            { "gate": 2, "gold": 2400, "boundGold": 2400, "moreCost": 600 },
+            { "gate": 3, "gold": 3600, "boundGold": 3600, "moreCost": 900 },
+            { "gate": 4, "gold": 5000, "boundGold": 5000, "moreCost": 1250 }
           ]
         }
       ]
@@ -519,23 +534,23 @@
         {
           "difficulty": "NORMAL",
           "minItemLevel": 1600,
-          "status": "UNVERIFIED",
-          "source": null,
+          "status": "OFFICIAL",
+          "source": "notice-13148",
           "gates": [
-            { "gate": 1, "gold": null, "boundGold": null, "moreCost": null },
-            { "gate": 2, "gold": null, "boundGold": null, "moreCost": null },
-            { "gate": 3, "gold": null, "boundGold": null, "moreCost": null }
+            { "gate": 1, "gold": 1200, "boundGold": 1200, "moreCost": 180 },
+            { "gate": 2, "gold": 1600, "boundGold": 1600, "moreCost": 220 },
+            { "gate": 3, "gold": 2400, "boundGold": 2400, "moreCost": 300 }
           ]
         },
         {
           "difficulty": "HARD",
           "minItemLevel": 1620,
-          "status": "UNVERIFIED",
-          "source": null,
+          "status": "OFFICIAL",
+          "source": "notice-13148",
           "gates": [
-            { "gate": 1, "gold": null, "boundGold": null, "moreCost": null },
-            { "gate": 2, "gold": null, "boundGold": null, "moreCost": null },
-            { "gate": 3, "gold": null, "boundGold": null, "moreCost": null }
+            { "gate": 1, "gold": 1400, "boundGold": 1400, "moreCost": 350 },
+            { "gate": 2, "gold": 2000, "boundGold": 2000, "moreCost": 500 },
+            { "gate": 3, "gold": 3800, "boundGold": 3800, "moreCost": 950 }
           ]
         }
       ]
@@ -551,23 +566,23 @@
         {
           "difficulty": "NORMAL",
           "minItemLevel": 1580,
-          "status": "SITES",
-          "source": "sites-20261010",
+          "status": "OFFICIAL",
+          "source": "notice-13148",
           "gates": [
-            { "gate": 1, "gold": 850, "boundGold": 850, "moreCost": null },
-            { "gate": 2, "gold": 1550, "boundGold": 1550, "moreCost": null },
-            { "gate": 3, "gold": 2300, "boundGold": 2300, "moreCost": null }
+            { "gate": 1, "gold": 850, "boundGold": 850, "moreCost": 190 },
+            { "gate": 2, "gold": 1550, "boundGold": 1550, "moreCost": 230 },
+            { "gate": 3, "gold": 2300, "boundGold": 2300, "moreCost": 330 }
           ]
         },
         {
           "difficulty": "HARD",
           "minItemLevel": 1600,
-          "status": "UNVERIFIED",
-          "source": null,
+          "status": "OFFICIAL",
+          "source": "notice-13148",
           "gates": [
-            { "gate": 1, "gold": null, "boundGold": null, "moreCost": null },
-            { "gate": 2, "gold": null, "boundGold": null, "moreCost": null },
-            { "gate": 3, "gold": null, "boundGold": null, "moreCost": null }
+            { "gate": 1, "gold": 1200, "boundGold": 1200, "moreCost": 300 },
+            { "gate": 2, "gold": 2000, "boundGold": 2000, "moreCost": 500 },
+            { "gate": 3, "gold": 2800, "boundGold": 2800, "moreCost": 700 }
           ]
         }
       ]
@@ -583,23 +598,23 @@
         {
           "difficulty": "NORMAL",
           "minItemLevel": 1540,
-          "status": "SITES",
-          "source": "sites-20261010",
+          "status": "OFFICIAL",
+          "source": "notice-13148",
           "gates": [
-            { "gate": 1, "gold": 750, "boundGold": 750, "moreCost": null },
-            { "gate": 2, "gold": 1100, "boundGold": 1100, "moreCost": null },
-            { "gate": 3, "gold": 1450, "boundGold": 1450, "moreCost": null }
+            { "gate": 1, "gold": 750, "boundGold": 750, "moreCost": 180 },
+            { "gate": 2, "gold": 1100, "boundGold": 1100, "moreCost": 200 },
+            { "gate": 3, "gold": 1450, "boundGold": 1450, "moreCost": 270 }
           ]
         },
         {
           "difficulty": "HARD",
           "minItemLevel": 1580,
-          "status": "SITES",
-          "source": "sites-20261010",
+          "status": "OFFICIAL",
+          "source": "notice-13148",
           "gates": [
-            { "gate": 1, "gold": 900, "boundGold": 900, "moreCost": null },
-            { "gate": 2, "gold": 1400, "boundGold": 1400, "moreCost": null },
-            { "gate": 3, "gold": 2000, "boundGold": 2000, "moreCost": null }
+            { "gate": 1, "gold": 900, "boundGold": 900, "moreCost": 225 },
+            { "gate": 2, "gold": 1400, "boundGold": 1400, "moreCost": 350 },
+            { "gate": 3, "gold": 2000, "boundGold": 2000, "moreCost": 500 }
           ]
         }
       ]
@@ -616,24 +631,24 @@
           "difficulty": "NORMAL",
           "minItemLevel": 1490,
           "status": "SITES",
-          "source": "sites-20261010",
+          "source": "sites-20261013-gates",
           "gates": [
-            { "gate": 1, "gold": 1000, "boundGold": 1000, "moreCost": null },
-            { "gate": 2, "gold": 1000, "boundGold": 1000, "moreCost": null },
-            { "gate": 3, "gold": 1000, "boundGold": 1000, "moreCost": null },
-            { "gate": 4, "gold": 1600, "boundGold": 1600, "moreCost": null }
+            { "gate": 1, "gold": 1000, "boundGold": 1000, "moreCost": 250 },
+            { "gate": 2, "gold": 1000, "boundGold": 1000, "moreCost": 300 },
+            { "gate": 3, "gold": 1000, "boundGold": 1000, "moreCost": 400 },
+            { "gate": 4, "gold": 1600, "boundGold": 1600, "moreCost": 600 }
           ]
         },
         {
           "difficulty": "HARD",
           "minItemLevel": 1540,
           "status": "SITES",
-          "source": "sites-20261010",
+          "source": "sites-20261013-gates",
           "gates": [
-            { "gate": 1, "gold": 1200, "boundGold": 1200, "moreCost": null },
-            { "gate": 2, "gold": 1200, "boundGold": 1200, "moreCost": null },
-            { "gate": 3, "gold": 1200, "boundGold": 1200, "moreCost": null },
-            { "gate": 4, "gold": 2000, "boundGold": 2000, "moreCost": null }
+            { "gate": 1, "gold": 1200, "boundGold": 1200, "moreCost": 400 },
+            { "gate": 2, "gold": 1200, "boundGold": 1200, "moreCost": 400 },
+            { "gate": 3, "gold": 1200, "boundGold": 1200, "moreCost": 500 },
+            { "gate": 4, "gold": 2000, "boundGold": 2000, "moreCost": 800 }
           ]
         }
       ]
@@ -650,11 +665,11 @@
           "difficulty": "NORMAL",
           "minItemLevel": 1475,
           "status": "SITES",
-          "source": "sites-20261010",
+          "source": "sites-20261013-gates",
           "gates": [
-            { "gate": 1, "gold": 600, "boundGold": 600, "moreCost": null },
-            { "gate": 2, "gold": 900, "boundGold": 900, "moreCost": null },
-            { "gate": 3, "gold": 1500, "boundGold": 1500, "moreCost": null }
+            { "gate": 1, "gold": 600, "boundGold": 600, "moreCost": 300 },
+            { "gate": 2, "gold": 900, "boundGold": 900, "moreCost": 500 },
+            { "gate": 3, "gold": 1500, "boundGold": 1500, "moreCost": 700 }
           ]
         }
       ]
@@ -670,21 +685,21 @@
         {
           "difficulty": "NORMAL",
           "minItemLevel": 1430,
-          "status": "UNVERIFIED",
-          "source": null,
+          "status": "SITES",
+          "source": "sites-20261013-gates",
           "gates": [
-            { "gate": 1, "gold": null, "boundGold": null, "moreCost": null },
-            { "gate": 2, "gold": null, "boundGold": null, "moreCost": null }
+            { "gate": 1, "gold": 600, "boundGold": 600, "moreCost": 300 },
+            { "gate": 2, "gold": 1000, "boundGold": 1000, "moreCost": 450 }
           ]
         },
         {
           "difficulty": "HARD",
           "minItemLevel": 1460,
-          "status": "UNVERIFIED",
-          "source": null,
+          "status": "SITES",
+          "source": "sites-20261013-gates",
           "gates": [
-            { "gate": 1, "gold": null, "boundGold": null, "moreCost": null },
-            { "gate": 2, "gold": null, "boundGold": null, "moreCost": null }
+            { "gate": 1, "gold": 900, "boundGold": 900, "moreCost": 500 },
+            { "gate": 2, "gold": 1500, "boundGold": 1500, "moreCost": 650 }
           ]
         }
       ]
@@ -700,21 +715,21 @@
         {
           "difficulty": "NORMAL",
           "minItemLevel": 1415,
-          "status": "UNVERIFIED",
-          "source": null,
+          "status": "SITES",
+          "source": "sites-20261013-gates",
           "gates": [
-            { "gate": 1, "gold": null, "boundGold": null, "moreCost": null },
-            { "gate": 2, "gold": null, "boundGold": null, "moreCost": null }
+            { "gate": 1, "gold": 500, "boundGold": 500, "moreCost": 300 },
+            { "gate": 2, "gold": 700, "boundGold": 700, "moreCost": 400 }
           ]
         },
         {
           "difficulty": "HARD",
           "minItemLevel": 1445,
-          "status": "UNVERIFIED",
-          "source": null,
+          "status": "SITES",
+          "source": "sites-20261013-gates",
           "gates": [
-            { "gate": 1, "gold": null, "boundGold": null, "moreCost": null },
-            { "gate": 2, "gold": null, "boundGold": null, "moreCost": null }
+            { "gate": 1, "gold": 700, "boundGold": 700, "moreCost": 450 },
+            { "gate": 2, "gold": 1100, "boundGold": 1100, "moreCost": 600 }
           ]
         }
       ]

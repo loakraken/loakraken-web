@@ -1,4 +1,4 @@
-// Pure helpers for the character detail page (ILOA-equivalent behaviour).
+// Pure helpers for the character detail page.
 import type { Character } from "./model";
 import { sourcePlainText } from "./source-text";
 import { remainingText } from "../time/remaining";
@@ -169,6 +169,58 @@ export function skillSummary(skills: Skill[] | undefined) {
       : null,
     counterCount: active.filter((skill) => skill.counter === true).length,
   };
+}
+
+/**
+ * The gems set on the skill named `name` as chips
+ * ("6뎀", "6쿨"): level plus kind, with the gem and its effect for the card.
+ * A radiance gem (both kinds) reads its kind from the effect text.
+ */
+export function skillGems(gems: Character["loadout"]["gems"], name: string | null | undefined) {
+  if (!gems || !name) return [];
+  return (gems.effects?.skills ?? [])
+    .filter((effect) => effect.name === name)
+    .flatMap((effect) => {
+      const gem = gems.items.find((item) => item.slot === effect.gemSlot);
+      if (!gem) return [];
+      const kind = gemKind(gem.name);
+      const label =
+        kind === "뎀" || kind === "쿨" ? kind : /재사용/.test(effect.description.join(" ")) ? "쿨" : "뎀";
+      return [{ gem, effect, label: `${gem.level ?? ""}${label}` }];
+    });
+}
+
+/**
+ * Gems set on skills that are not in the skill list (an identity skill, a
+ * skill outside the skill window): the official gem effects name the skill,
+ * but no skill row can show them (checklist L34, "그 외 장착 보석").
+ */
+export function otherSkillGems(gems: Character["loadout"]["gems"], skillNames: (string | null | undefined)[]) {
+  const listed = new Set(skillNames.filter((name): name is string => !!name));
+  const names = [...new Set((gems?.effects?.skills ?? []).map((effect) => effect.name))];
+  return names.filter((name) => name && !listed.has(name)).flatMap((name) => skillGems(gems, name));
+}
+
+/** Gem slots a character can fill (the game's gem window). */
+export const GEM_SLOTS = 11;
+
+/**
+ * Gems by kind for the skill tab summary: damage (겁화·멸화, or a radiance
+ * gem whose effect raises damage), cooldown (작열·홍염, or a radiance gem
+ * that cuts cooldown), and empty slots.
+ */
+export function gemCounts(gems: Character["loadout"]["gems"]) {
+  const items = gems?.items ?? [];
+  let damage = 0;
+  let cooldown = 0;
+  for (const gem of items) {
+    const kind = gemKind(gem.name);
+    const effect = gems?.effects?.skills.find((skill) => skill.gemSlot === gem.slot);
+    const cool = kind === "쿨" || (kind !== "뎀" && /재사용/.test(effect?.description.join(" ") ?? ""));
+    if (cool) cooldown += 1;
+    else damage += 1;
+  }
+  return { damage, cooldown, empty: Math.max(0, GEM_SLOTS - items.length) };
 }
 
 /* Stats -------------------------------------------------------------------- */

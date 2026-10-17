@@ -1,9 +1,21 @@
 "use client";
 
-import { useMemo, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { Bookmark, BookmarkBold, TrendUp } from "@/components/ui/icons";
+import {
+  AddSquare,
+  Bookmark,
+  BookmarkBold,
+  BookSquare,
+  Box,
+  Coffee,
+  Flash,
+  HierarchySquare,
+  MagicStar,
+  Tree,
+  TrendUp,
+} from "@/components/ui/icons";
 import { GameIcon } from "@/components/character/imagery";
 import { LandingMotion } from "@/components/landing/motion";
 import { InlineOrb } from "@/components/landing/orb";
@@ -17,7 +29,6 @@ import {
   TAB_FALLBACK,
   isTabId,
   unitPrice,
-  updatedAgo,
   type BoardItem,
   type BoardQuery,
   type ItemHistory,
@@ -26,6 +37,7 @@ import {
 import {
   MarketQueryError,
   fetchItemHistory,
+  fetchItemMinutes,
   fetchMarketBoard,
   fetchMarketTabs,
 } from "@/lib/market/client";
@@ -38,14 +50,30 @@ import {
   type FavoriteItem,
 } from "@/lib/market/favorites";
 import quote from "../tools/material-quote.module.css";
-import { MarketChart } from "./market-chart";
+import { ChartPlaceholder, MarketChart, dayPoints, minutePoints } from "./market-chart";
+import { sampleText } from "@/lib/market/minutes";
 import { SiteHeader } from "@/components/site/site-header";
+import { PillTab, PillTabs } from "@/components/ui/pill-tabs";
+
+// One Iconsax mark per category (decorative; the label names the tab).
+const TAB_ICON: Record<string, ReactNode> = {
+  REFINING: <MagicStar />,
+  REFINING_EXTRA: <AddSquare />,
+  ARK_GRID: <HierarchySquare />,
+  WEAPON_EVOLUTION: <Flash />,
+  ENGRAVING_BOOK: <BookSquare />,
+  LIFE: <Tree />,
+  BATTLE_ITEM: <Box />,
+  FOOD: <Coffee />,
+};
 import styles from "./market.module.css";
 import { rateLimitCopy, retryLabel } from "@/lib/api/rate-limit";
 import { RateLimitNote } from "@/components/site/rate-limit-note";
+import { pendingProps } from "@/lib/api/pending";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { useCrossfade } from "@/lib/motion";
-import { PriceFlash } from "./price-flash";
+import { ChangeMark, UpdateAnnouncer, useChangedCells, type Pulse } from "@/components/ui/changed-cells";
+import { DataRefreshState } from "@/components/ui/data-refresh-state";
 
 const TIERS = [4, 3] as const;
 
@@ -77,12 +105,6 @@ const kst = new Intl.DateTimeFormat("ko-KR", {
   hour12: false,
 });
 const at = (iso: string) => kst.format(new Date(iso));
-const subscribeMinute = (callback: () => void) => {
-  const id = setInterval(callback, 60_000);
-  return () => clearInterval(id);
-};
-const useMinute = () =>
-  useSyncExternalStore(subscribeMinute, () => Math.floor(Date.now() / 60_000) * 60_000, () => null);
 function useFavorites() {
   const raw = useSyncExternalStore(subscribeFavorites, favoritesSnapshot, () => "[]");
   return useMemo(() => parseFavorites(raw), [raw]);
@@ -105,6 +127,28 @@ function Change({
     <b className={styles.change} data-direction={label.direction}>
       {label.text}
     </b>
+  );
+}
+
+/**
+ * The day change in the detail facts: the amount on the big line and the
+ * rate on a small line under it that is always there (a blank one when there
+ * is no rate). The cell is narrower than "▲4.7 (4.8%)" at 18px, so the one
+ * line used to fold into two on some refreshes and push the chart down
+ * (A7, PM-프론트 #617); now it is two lines every time, neither wraps.
+ */
+function FactChange({ item }: { item: Pick<BoardItem, "currentMinPrice" | "yesterdayAvgPrice" | "changeDay"> }) {
+  const label = changeWithAmount(item);
+  const cut = label.text.indexOf(" (");
+  const main = cut < 0 ? label.text : label.text.slice(0, cut);
+  const rate = cut < 0 ? "" : label.text.slice(cut + 2, -1);
+  return (
+    <>
+      <b className={styles.change} data-direction={label.direction}>
+        {main}
+      </b>
+      <small className={styles.unit}>{rate || "\u00a0"}</small>
+    </>
   );
 }
 
@@ -150,7 +194,8 @@ function Detail({
   const favorites = useFavorites();
   const starred = favorites.some((f) => f.itemId === item.itemId);
   const unit = unitPrice(item.currentMinPrice, item.bundleCount);
-  const [range, setRange] = useState<7 | 14>(14);
+  // 1시간 (K35): the last hour by minute, from prices the warm-up already fetched.
+  const [range, setRange] = useState<"hour" | 7 | 14>(14);
   const [variantIndex, setVariantIndex] = useState(0);
   const history = useQuery({
     queryKey: ["market", "history", item.itemId],
@@ -160,8 +205,38 @@ function Detail({
   });
   const data: ItemHistory | undefined = history.data?.data;
   const variant = data?.variants[Math.min(variantIndex, (data?.variants.length ?? 1) - 1)];
-  const days = completedDays(variant, range);
+  // The 14-day table stays as it was while the hour is shown.
+  const tableDays = range === "hour" ? 14 : range;
+  const days = completedDays(variant, tableDays);
+  const minutes = useQuery({
+    queryKey: ["market", "minutes", item.itemId],
+    queryFn: ({ signal }) => fetchItemMinutes(item.itemId, signal),
+    enabled: range === "hour",
+    staleTime: 30_000,
+    refetchInterval: range === "hour" ? 60_000 : false,
+    ...quiet,
+  });
+  const minute = minutes.data?.data;
+  const minuteFailure = failureOf(minutes.error);
   const fade = useCrossfade(history.isPending);
+  // The browser tab carries the chosen item's price (checklist K36), so a
+  // background tab still shows it. The page's own title can land after this
+  // (streamed metadata), so it is set again whenever the head changes while
+  // the item is shown; leaving the item puts the page title back.
+  useEffect(() => {
+    const previous = document.title;
+    const wanted = `${goldText(item.currentMinPrice)} · ${item.name} | LOAKraken`;
+    const apply = () => {
+      if (document.title !== wanted) document.title = wanted;
+    };
+    apply();
+    const observer = new MutationObserver(apply);
+    observer.observe(document.head, { subtree: true, childList: true, characterData: true });
+    return () => {
+      observer.disconnect();
+      document.title = previous;
+    };
+  }, [item.name, item.currentMinPrice]);
   const failure = failureOf(history.error);
   return (
     <section className={styles.detail} aria-label={`${item.name} 시세`}>
@@ -200,7 +275,7 @@ function Detail({
         <div>
           <dt>전일 평균 대비</dt>
           <dd>
-            <Change item={item} />
+            <FactChange item={item} />
           </dd>
         </div>
         <div>
@@ -216,14 +291,18 @@ function Detail({
       <div className={styles.trendHead}>
         <h3>시세 추이</h3>
         <div className={styles.ranges} role="group" aria-label="기간">
-          {([7, 14] as const).map((value) => (
+          {([
+            ["hour", "1시간"],
+            [7, "7일"],
+            [14, "14일"],
+          ] as const).map(([value, label]) => (
             <button
               key={value}
               type="button"
               aria-pressed={range === value}
               onClick={() => setRange(value)}
             >
-              {value}일
+              {label}
             </button>
           ))}
         </div>
@@ -244,24 +323,46 @@ function Detail({
           ))}
         </div>
       )}
-      {failure ? (
+      {range === "hour" ? (
+        minuteFailure ? (
+          <Problem failure={minuteFailure} onRetry={() => minutes.refetch()} />
+        ) : !minute ? (
+          <ChartPlaceholder busy>
+            <InlineOrb /> 최근 1시간을 불러오고 있어요
+          </ChartPlaceholder>
+        ) : minutePoints(minute.points).length ? (
+          <MarketChart
+            key="hour"
+            points={minutePoints(minute.points)}
+            span={[Date.parse(minute.from), Date.parse(minute.to)]}
+            label="최근 1시간 판매 최저가. 화살표 키로 분을 이동할 수 있어요."
+          />
+        ) : (
+          <ChartPlaceholder>이 품목은 분 단위로 확인하지 않아요. 7일·14일 추이를 봐 주세요.</ChartPlaceholder>
+        )
+      ) : failure ? (
         <Problem failure={failure} onRetry={() => history.refetch()} />
       ) : history.isPending ? (
-        <>
-          <p className={styles.chartPending} role="status">
-            <InlineOrb /> 추이를 불러오고 있어요
-          </p>
-          {/* The 14-day table below the chart arrives with the history: hold its place. */}
-          <div className={styles.dailyPending} aria-hidden="true" />
-        </>
+        <ChartPlaceholder busy>
+          <InlineOrb /> 추이를 불러오고 있어요
+        </ChartPlaceholder>
       ) : days.length ? (
         <div ref={fade}>
-          <MarketChart days={days} />
+          <MarketChart points={dayPoints(days)} />
         </div>
       ) : (
         <p className={styles.muted}>아직 수집된 시세가 없어요.</p>
       )}
 
+      {/* One line in both ranges, so switching keeps the table in place (A7). */}
+      <p className={styles.chartCaption}>
+        {range === "hour"
+          ? [`판매 최저가`, sampleText(minute?.sampleEverySeconds), "확인하지 않은 분은 비어 있어요"].filter(Boolean).join(" · ")
+          : "하루 평균 거래가와 거래량"}
+      </p>
+      {/* The 14-day table under the caption arrives with the history: hold its
+          place, so the caption stays put when it lands (A7). */}
+      {history.isPending && <div className={styles.dailyPending} aria-hidden="true" />}
       {variant && variant.days.length > 0 && (
         <table className={styles.daily}>
           <thead>
@@ -272,7 +373,7 @@ function Detail({
             </tr>
           </thead>
           <tbody>
-            {variant.days.slice(0, range).map((day) => (
+            {variant.days.slice(0, tableDays).map((day) => (
               <tr key={day.date} data-partial={day.partial || undefined}>
                 <th scope="row">
                   {day.date.slice(5).replace("-", "/")}
@@ -294,6 +395,69 @@ function Detail({
   );
 }
 
+/**
+ * The board's rows. Each minute's refresh compares the prices with the last
+ * ones: a changed current price or day change gets the shared changed-cell
+ * mark (a wash that fades once, plus ▲/▼ on the price; the number is final
+ * at once, no counting), and a screen reader hears one short summary.
+ */
+const washOnly = (pulse: Pulse | undefined): Pulse | undefined => pulse && { ...pulse, dir: 0 };
+
+function BoardRows({
+  items,
+  tier,
+  activeId,
+  onChoose,
+  listRef,
+  pending,
+}: {
+  items: BoardItem[];
+  tier: number | null;
+  activeId: number | undefined;
+  onChoose: (item: BoardItem) => void;
+  listRef: ReturnType<typeof useCrossfade>;
+  pending: ReturnType<typeof pendingProps>;
+}) {
+  const { pulse, summary } = useChangedCells(items, (item) => String(item.itemId), {
+    price: (item) => item.currentMinPrice,
+    change: (item) => item.changeDay,
+  });
+  return (
+    <>
+      <ul ref={listRef} className={styles.rows} {...pending}>
+        {items.map((item) => (
+          <li key={item.itemId}>
+            <button type="button" aria-pressed={activeId === item.itemId} onClick={() => onChoose(item)}>
+              <GameIcon src={item.icon} grade={item.grade} size={36} />
+              <span className={styles.rowName}>
+                <strong data-grade={item.grade ?? undefined}>
+                  {item.name}
+                  {tier != null && <i>T{tier}</i>}
+                </strong>
+                <small>
+                  {item.bundleCount > 1 &&
+                    `${item.bundleCount}개 · 개당 ${goldText(unitPrice(item.currentMinPrice, item.bundleCount))} · `}
+                  최근 거래 {goldText(item.recentPrice).replace("G", "")}
+                </small>
+              </span>
+              <span className={styles.rowPrice}>
+                <ChangeMark pulse={pulse(String(item.itemId), "price")}>
+                  <b>{goldText(item.currentMinPrice)}</b>
+                </ChangeMark>
+                {/* The day change carries its own ▲/▼: mark it with the wash only. */}
+                <ChangeMark pulse={washOnly(pulse(String(item.itemId), "change"))}>
+                  <Change item={item} />
+                </ChangeMark>
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
+      <UpdateAnnouncer text={summary ? `시세 ${summary}` : ""} />
+    </>
+  );
+}
+
 function MarketContent({
   initial,
   initialItem,
@@ -305,7 +469,6 @@ function MarketContent({
   const [query, setQuery] = useState(initial);
   const [selected, setSelected] = useState<number | null>(initialItem);
   const favorites = useFavorites();
-  const now = useMinute();
   const tabs = useQuery({
     queryKey: ["market", "tabs"],
     queryFn: ({ signal }) => fetchMarketTabs(signal),
@@ -389,26 +552,26 @@ function MarketContent({
         </section>
 
         <div className={styles.band}>
-          <nav className={styles.categories} aria-label="시세 분류">
-            {(tabList.length ? tabList : []).map((t) => (
-              <button
-                key={t.tab}
-                type="button"
-                aria-pressed={t.tab === query.tab}
-                onClick={() => update({ tab: t.tab, tier: null, page: 1 })}
-              >
-                {t.label}
-              </button>
-            ))}
-            {!tabList.length &&
-              tabs.isPending &&
-              // Same names and sizes as the live list: nothing moves when it arrives.
-              TAB_FALLBACK.map((t) => (
-                <button key={t.tab} type="button" aria-pressed={t.tab === query.tab} disabled>
-                  {t.label}
-                </button>
-              ))}
-          </nav>
+          {(tabList.length > 0 || tabs.isPending) && (
+            <PillTabs
+              aria-label="시세 분류"
+              value={query.tab}
+              onValueChange={(tab) => update({ tab: tab as MarketTab["tab"], tier: null, page: 1 })}
+            >
+              {tabList.length
+                ? tabList.map((t) => (
+                    <PillTab key={t.tab} value={t.tab} icon={TAB_ICON[t.tab]}>
+                      {t.label}
+                    </PillTab>
+                  ))
+                : // Same names and sizes as the live list: nothing moves when it arrives.
+                  TAB_FALLBACK.map((t) => (
+                    <PillTab key={t.tab} value={t.tab} icon={TAB_ICON[t.tab]} disabled>
+                      {t.label}
+                    </PillTab>
+                  ))}
+            </PillTabs>
+          )}
           {favorites.length === 0 ? (
             <p className={styles.favoritesHint}>
               <Bookmark size={12} aria-hidden="true" /> 품목의 즐겨찾기 표시를 누르면 여기에 모아 볼 수 있어요.
@@ -433,7 +596,9 @@ function MarketContent({
           <div className={styles.columns}>
             <section className={styles.board} aria-labelledby="board-heading">
               <div className={styles.boardHead}>
-                <h2 id="board-heading">
+                {/* Drawn anew per kind: its text changes in place otherwise and
+                    counts as moving (A7). */}
+                <h2 id="board-heading" key={`${data?.tabLabel ?? currentTab?.label}-${data?.totalItems}`}>
                   {data?.tabLabel ?? currentTab?.label ?? "시세"} 시세{" "}
                   {data && <small>{data.totalItems}종</small>}
                 </h2>
@@ -497,38 +662,17 @@ function MarketContent({
               ) : !items.length ? (
                 <p className={styles.muted}>표시할 품목이 없어요.</p>
               ) : (
-                <ul
-                  ref={fade}
-                  className={styles.rows}
-                  data-stale={board.isPlaceholderData || undefined}
-                >
-                  {items.map((item) => (
-                    <li key={item.itemId}>
-                      <button
-                        type="button"
-                        aria-pressed={active?.itemId === item.itemId}
-                        onClick={() => choose(item)}
-                      >
-                        <GameIcon src={item.icon} grade={item.grade} size={36} />
-                        <span className={styles.rowName}>
-                          <strong data-grade={item.grade ?? undefined}>
-                            {item.name}
-                            {tier != null && <i>T{tier}</i>}
-                          </strong>
-                          <small>
-                            {item.bundleCount > 1 &&
-                              `${item.bundleCount}개 · 개당 ${goldText(unitPrice(item.currentMinPrice, item.bundleCount))} · `}
-                            최근 거래 {goldText(item.recentPrice).replace("G", "")}
-                          </small>
-                        </span>
-                        <span className={styles.rowPrice}>
-                          <PriceFlash value={item.currentMinPrice}>{goldText(item.currentMinPrice)}</PriceFlash>
-                          <Change item={item} />
-                        </span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
+                // A new board (tab, tier, sort, page) is not a "change": the
+                // rows are compared again from the first real answer for it.
+                <BoardRows
+                  key={`${JSON.stringify(query)}${board.isPlaceholderData ? ":previous" : ""}`}
+                  listRef={fade}
+                  items={items}
+                  tier={tier}
+                  activeId={active?.itemId}
+                  onChoose={choose}
+                  pending={pendingProps(board)}
+                />
               )}
               {pages > 1 && (
                 <nav className={styles.pages} aria-label="페이지">
@@ -545,10 +689,20 @@ function MarketContent({
                 </nav>
               )}
               {data && (
-                <p className={styles.note}>
-                  {now !== null && `${updatedAgo(data.observedAt, now)} · `}
-                  {at(data.observedAt)} 기준 · 등락: 전일 평균가 대비
-                </p>
+                <div className={styles.freshness}>
+                  <p className={styles.note}>{at(data.observedAt)} 기준 · 등락: 전일 평균가 대비</p>
+                  {/* The board refreshes every minute on its own; this says how
+                      old the shown prices are and asks again on demand, resting
+                      30s after data arrives (the backend cache) so a press never
+                      spends the official quota for the same numbers. */}
+                  <DataRefreshState
+                    label="시세 갱신"
+                    updatedAt={board.dataUpdatedAt}
+                    fetching={board.isFetching}
+                    failed={board.isError}
+                    onRefresh={() => void board.refetch()}
+                  />
+                </div>
               )}
             </section>
 
@@ -573,7 +727,7 @@ function MarketContent({
         </div>
       </main>
       <footer className={quote.footer}>
-        LOAKraken · 로스트아크 비공식 팬 프로젝트 · 공식 거래소 시세 기반
+        공식 거래소 시세 기반
       </footer>
     </div>
   );

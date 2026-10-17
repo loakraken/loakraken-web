@@ -35,6 +35,16 @@ test.describe("상단 메뉴 데스크톱 @smoke", () => {
     await expect(trigger).toHaveAttribute("data-current", "true");
   });
 
+  test("성장 도구 메뉴에서 전투력 시뮬레이터로 간다(사용자 지적 10-11)", async ({ page }) => {
+    const trigger = page.getByRole("navigation", { name: "주요 메뉴" }).getByRole("button", { name: "성장 도구" });
+    await trigger.click();
+    const panel = page.locator(`#${await trigger.getAttribute("aria-controls")}`);
+    await panel.getByRole("link", { name: /전투력 시뮬레이터/ }).click();
+    await expect(page).toHaveURL(/\/tools\/combat-power$/);
+    await expect(page.getByRole("heading", { level: 1, name: "전투력 시뮬레이터" })).toBeVisible();
+    await expect(trigger).toHaveAttribute("data-current", "true");
+  });
+
   test("호버하면 플라이아웃이 열린다", async ({ page }) => {
     const trigger = page.getByRole("navigation", { name: "주요 메뉴" }).getByRole("button", { name: "성장 도구" });
     await trigger.hover();
@@ -74,8 +84,11 @@ test.describe("상단 메뉴 시트(900px 이하) @smoke", () => {
     const open = page.getByRole("button", { name: "메뉴 열기" });
     await expect(open).toHaveAttribute("aria-expanded", "false");
     await open.click();
-    await expect(page.getByRole("button", { name: "메뉴 닫기" })).toHaveAttribute("aria-expanded", "true");
-    await page.getByRole("link", { name: /거래소 시세/ }).click();
+    const close = page.getByRole("button", { name: "메뉴 닫기" });
+    await expect(close).toHaveAttribute("aria-expanded", "true");
+    // 홈 바로 가기에도 같은 이름 링크가 있어 메뉴 시트 안에서 찾는다
+    const sheet = page.locator(`[id="${await close.getAttribute("aria-controls")}"]`);
+    await sheet.getByRole("link", { name: /거래소 시세/ }).click();
     await expect(page).toHaveURL(/\/market$/);
   });
 

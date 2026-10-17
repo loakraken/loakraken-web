@@ -1,0 +1,88 @@
+/* 원정대 탭 주간 획득 골드 (M7): the totals in the roster stats' cells, one line per gold character. */
+.totals {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0 0 12px;
+}
+.totals div {
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--muted);
+}
+.totals dt {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.totals dd {
+  margin: 2px 0 0;
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.rows {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.rows li {
+  display: grid;
+  grid-template-columns: minmax(8em, 12em) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px 12px;
+  padding: 8px 0;
+  border-top: 1px solid var(--border);
+  font-size: 13px;
+}
+.rows li:first-child {
+  border-top: 0;
+}
+.who {
+  display: grid;
+  min-width: 0;
+}
+.who strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.who small,
+.raids {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.who small {
+  font-variant-numeric: tabular-nums;
+}
+.rows b {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+.note {
+  margin: 12px 0 0;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.note a {
+  color: var(--link);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .note a:hover {
+    text-decoration-thickness: 2px;
+  }
+}
+@media (max-width: 600px) {
+  .rows li {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .raids {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+}

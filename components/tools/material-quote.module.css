@@ -21,7 +21,7 @@
   letter-spacing: -0.01em;
 }
 .page button,
-.page select {
+.page [data-slot="select"] {
   font: inherit;
   cursor: pointer;
 }
@@ -262,7 +262,7 @@
   font-size: var(--text-caption);
   letter-spacing: -0.01em;
 }
-.field select,
+.field [data-slot="select"],
 .field input,
 .quantity input {
   height: 44px;
@@ -274,7 +274,7 @@
   font-size: var(--text-heading-sm);
   transition: border-color var(--duration-fast) var(--ease-out);
 }
-.field select:focus-visible,
+.field [data-slot="select"]:focus-visible,
 .field input:focus-visible,
 .quantity input:focus-visible {
   outline: none;
@@ -346,7 +346,7 @@
     background: var(--primary-hover);
   }
   .outlinePill:not(:disabled):hover {
-    background: var(--mist);
+    background: var(--hover-surface);
   }
 }
 
@@ -431,7 +431,7 @@
 }
 @media (hover: hover) and (pointer: fine) {
   .iconButton:hover {
-    background: var(--mist);
+    background: var(--hover-surface);
   }
 }
 
@@ -619,4 +619,86 @@
 /* Spacing for the shared SegmentedControl (components/ui) on tool screens. */
 .basis {
   margin-top: 24px;
+}
+
+/* Category: group pill tabs (#417) and the group's kinds as chips. Height is
+   reserved while the list loads so the form below does not move. */
+.categoryPicker {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  /* Tab row (44) + gap + chip row (36): the loaded picker's height. */
+  min-height: 90px;
+  margin-bottom: 16px;
+}
+.categoryLoading {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--slate);
+  font-size: var(--text-caption);
+}
+.chips {
+  position: relative;
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  /* Room for the edge fade, so a row that fits never dims its last chip. */
+  padding-right: 24px;
+  /* A scrolling row clips: 4px above and below for the chips' 44px tap
+     areas (hit-44, A36), the spacing given back by margin. */
+  padding-block: 4px;
+  margin-block: -4px;
+  /* Scroll edge: fade the right end on narrow screens where chips continue. */
+  mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent);
+}
+.chips::-webkit-scrollbar {
+  display: none;
+}
+.chip {
+  flex: none;
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--steel);
+  border-radius: var(--radius-pill);
+  background: var(--background);
+  color: var(--slate);
+  font: inherit;
+  font-size: var(--text-caption);
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out),
+    scale var(--duration-fast) var(--ease-out);
+}
+.chip:active {
+  scale: var(--press-scale);
+}
+.chip[aria-pressed="true"] {
+  border-color: var(--ink);
+  color: var(--ink);
+  font-weight: 600;
+}
+.chip:focus-visible {
+  outline: 2px solid var(--action);
+  outline-offset: 2px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .chip:not([aria-pressed="true"]):hover {
+    color: var(--ink);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .chip {
+    transition: none;
+  }
+}
+
+/* Totals on a price basis still loading (refining plan): dimmed, not emptied. */
+.total[data-stale] {
+  opacity: 0.55;
+  transition: opacity 150ms ease;
 }

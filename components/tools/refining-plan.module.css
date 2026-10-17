@@ -17,7 +17,17 @@
   gap: 6px;
   margin-top: 24px;
 }
+/* Where hit-44 is on (phones, touch), the 36px buttons take 44px to tap:
+   rows 8px apart so two rows' tap areas never overlap (A36). */
+@media (max-width: 699px), (pointer: coarse) {
+  .chips {
+    row-gap: 8px;
+  }
+}
 .chips button {
+  /* A31: one line, never split (badge/chip/unit). */
+  flex: none;
+  white-space: nowrap;
   min-width: 52px;
   height: 36px;
   padding: 0 12px;
@@ -35,7 +45,7 @@
 }
 @media (hover: hover) and (pointer: fine) {
   .chips button:hover {
-    background: var(--control);
+    background: var(--hover-surface);
   }
 }
 .parts {
@@ -63,6 +73,8 @@
 }
 .include {
   display: inline-flex;
+  /* Centred on the header line: the 44px input would otherwise set its baseline. */
+  align-self: center;
   align-items: center;
   gap: 6px;
   margin-left: auto;
@@ -70,10 +82,75 @@
   font-size: var(--text-caption);
   cursor: pointer;
 }
+/* 계산에 포함: the drawn box stays 16px, the input itself is 44 × 44 (the
+   negative margins keep the layout), so a tap on or around the box is the
+   input (A36). Drawn here because a native box cannot grow its tap area. */
 .include input {
-  width: 16px;
-  height: 16px;
-  accent-color: var(--action);
+  appearance: none;
+  position: relative;
+  z-index: 1;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  margin: -14px;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+.include input::before {
+  content: "";
+  position: absolute;
+  inset: 14px;
+  border: 1.5px solid var(--steel);
+  border-radius: 4px;
+  background: var(--background);
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out);
+}
+.include input:checked::before {
+  border-color: var(--action);
+  background: var(--action);
+}
+/* The check mark: a rotated corner. */
+.include input:checked::after {
+  content: "";
+  position: absolute;
+  left: 19.5px;
+  top: 16.5px;
+  width: 5px;
+  height: 9px;
+  border: solid var(--background);
+  border-width: 0 2px 2px 0;
+  rotate: 45deg;
+}
+.include input:focus-visible {
+  outline: none;
+}
+.include input:focus-visible::before {
+  outline: 3px solid var(--action);
+  outline-offset: 2px;
+}
+/* Forced colours: the same 44px input, drawn in system colours (the browser
+   would otherwise drop the fill and the mark). */
+@media (forced-colors: active) {
+  .include input {
+    forced-color-adjust: none;
+  }
+  .include input::before {
+    border-color: ButtonText;
+    background: Canvas;
+  }
+  .include input:checked::before {
+    border-color: Highlight;
+    background: Highlight;
+  }
+  .include input:checked::after {
+    border-color: HighlightText;
+  }
+  .include input:focus-visible::before {
+    outline-color: Highlight;
+  }
 }
 .part[data-off] .partFields {
   opacity: 0.4;
@@ -109,7 +186,7 @@
   color: var(--slate);
   font-size: var(--text-caption);
 }
-.mini select,
+.mini [data-slot="select"],
 .mini input {
   width: 100%;
   height: 38px;
@@ -121,7 +198,7 @@
   font-size: var(--text-body);
   font-variant-numeric: tabular-nums;
 }
-.mini select:focus-visible,
+.mini [data-slot="select"]:focus-visible,
 .mini input:focus-visible {
   outline: none;
   border-color: var(--action);
@@ -201,10 +278,17 @@
   color: var(--slate);
   font-size: var(--text-caption);
 }
+/* The whole row is the switch: the invisible input covers it, so a tap
+   anywhere on the row is a tap on the input (A36). */
 .switchRow input {
   position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  margin: 0;
   opacity: 0;
-  pointer-events: none;
+  cursor: pointer;
 }
 /* Track + knob; the input stays the accessible control. */
 .switchRow i {
@@ -379,6 +463,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  min-height: 1lh;
   margin-top: 12px;
   color: var(--slate);
   font-size: var(--text-body);
@@ -404,11 +489,12 @@
 }
 
 /* Conclusion card above the inputs (피아식별 심각 2). Height reserved for the
-   total + note so arriving numbers do not push the inputs down. */
+   total + its three note lines from the start, so arriving numbers or a
+   target change never push the inputs down (A7). */
 .top {
   box-sizing: border-box;
   max-width: 1024px;
-  min-height: 132px;
+  min-height: 168px;
   margin: 0 auto 20px;
   padding: 20px 24px;
   border: 1px solid var(--primary);
@@ -442,4 +528,22 @@
 }
 .topNote a {
   color: var(--link);
+}
+.topLine {
+  display: block;
+  width: fit-content;
+}
+
+/* A new price basis: the totals and the table stay, dimmed, until it lands. */
+.materialWrap[data-stale] {
+  opacity: 0.55;
+  transition: opacity 150ms ease;
+}
+
+/* Phones: part selects and inputs 44px tall (A36: 업화 and target stage). */
+@media (max-width: 699px), (pointer: coarse) {
+  .mini [data-slot="select"],
+  .mini input {
+    height: 44px;
+  }
 }

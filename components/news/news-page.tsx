@@ -4,11 +4,13 @@
 // (backend patch-notice-v1, paged) and the running events. Titles open the
 // official page; nothing of the notice body is copied.
 
+import type { CSSProperties } from "react";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
 import { ExportCircle } from "@/components/ui/icons";
+import { useTallest } from "@/components/ui/use-tallest";
 import { SiteHeader } from "@/components/site/site-header";
-import { MINUTE, useClock } from "@/components/home/clock";
+import { useNow } from "@/components/home/clock";
 import home from "@/components/home/home.module.css";
 import schedule from "@/components/schedule/schedule.module.css";
 import { countdownText, retryLabel } from "@/lib/api/rate-limit";
@@ -180,7 +182,7 @@ function PatchNotes({ kind }: { kind: PatchCategory | null }) {
 }
 
 function Events({ renderedAt }: { renderedAt?: number }) {
-  const now = useClock(MINUTE) ?? renderedAt ?? null;
+  const now = useNow(renderedAt);
   const query = useNewsPage();
   const events = query.data?.data.events;
   return (
@@ -204,6 +206,10 @@ function Events({ renderedAt }: { renderedAt?: number }) {
 
 export function NewsPage({ renderedAt }: { renderedAt?: number }) {
   const { tab, noticeKind, patchKind } = readNewsQuery(useSearchParams());
+  // Stacked (900 and below) the events sit under the notices: the notices keep
+  // the tallest they have been, so a shorter kind or the patch tab's loading
+  // line does not pull the events up (A7).
+  const [noticesRef, tallest] = useTallest<HTMLElement>();
   return (
     <div className={home.page}>
       <a className={home.skip} href="#news-main">
@@ -218,14 +224,20 @@ export function NewsPage({ renderedAt }: { renderedAt?: number }) {
           </p>
         </header>
         <div className={home.grid}>
-          <section id="notices" className={`${home.panel} ${styles.anchor}`} aria-labelledby="notices-heading">
+          <section
+            ref={noticesRef}
+            id="notices"
+            className={`${home.panel} ${styles.anchor} ${styles.held}`}
+            style={tallest ? ({ "--held": `${tallest}px` } as CSSProperties) : undefined}
+            aria-labelledby="notices-heading"
+          >
             <div className={home.panelHead}>
               <h2 id="notices-heading">{tab === "patch" ? "패치 이력" : "공지사항"}</h2>
               <a href={OFFICIAL_NOTICES} target="_blank" rel="noreferrer" className={home.more}>
                 공식 공지 <ExportCircle size={14} aria-hidden="true" />
               </a>
             </div>
-            <div className={home.noticeTabs} role="group" aria-label="공지 종류">
+            <div className={`${home.noticeTabs} ${styles.kindTabs}`} role="group" aria-label="공지 종류">
               <button type="button" aria-pressed={tab === "notice"} onClick={() => push("notice", null)}>
                 공지사항
               </button>
@@ -233,7 +245,17 @@ export function NewsPage({ renderedAt }: { renderedAt?: number }) {
                 패치 이력
               </button>
             </div>
-            {tab === "patch" ? <PatchNotes kind={patchKind} /> : <Notices kind={noticeKind} />}
+            {/* Both lists in one cell, the other one hidden (not shown, focused or
+                read): the panel is always the taller one's height, so switching
+                the tab never moves the events under it (A7). */}
+            <div className={styles.tabStack}>
+              <div data-shown={tab !== "patch" || undefined} inert={tab === "patch"}>
+                <Notices kind={noticeKind} />
+              </div>
+              <div data-shown={tab === "patch" || undefined} inert={tab !== "patch"}>
+                <PatchNotes kind={patchKind} />
+              </div>
+            </div>
           </section>
           <aside className={home.column} aria-label="진행 중인 이벤트">
             <Events renderedAt={renderedAt} />

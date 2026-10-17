@@ -1,10 +1,20 @@
 "use client";
 
-import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useReducer,
+  useState,
+  useSyncExternalStore,
+  type FormEvent,
+  type ReactNode,
+} from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { ArrowLeft, FlashCircle, RotateLeft } from "@/components/ui/icons";
+import { ArrowLeft, FlashCircle, RotateLeft, UndoArrow } from "@/components/ui/icons";
+import { Select as ChoiceSelect } from "@/components/ui/select";
 import {
   characterNameError,
   normalizeCharacterName,
@@ -18,11 +28,19 @@ import {
 } from "@/lib/combat-power/client";
 import {
   ARK_PASSIVE_MAX,
+  ARM_GUARD_GRADES,
+  ARM_GUARD_MAX,
+  ROLE_REASONS,
   GEAR_TYPES,
+  NO_ADVANCED_REFINE,
+  hasNoAdvancedRefine,
   GRADES,
   GRADE_LABEL,
   KIND_LABEL,
   braceletName,
+  gradeWithValue,
+  isOpen,
+  polishValue,
   type Grade,
   NO_EDITS,
   combatPowerFailureCopy,
@@ -32,8 +50,19 @@ import {
   type Current,
   type Edits,
   type Options,
+  type PolishValues,
   type Simulation,
 } from "@/lib/combat-power/model";
+import {
+  historyReducer,
+  isEmpty,
+  applySaved,
+  parseSaved,
+  savedKey,
+  serializeSaved,
+  startHistory,
+} from "@/lib/combat-power/history";
+import { editsFor, type SpecUpChange } from "@/lib/spec-up/model";
 import { retryLabel } from "@/lib/api/rate-limit";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { SiteHeader } from "@/components/site/site-header";
@@ -86,6 +115,9 @@ function currentOf(data: Character) {
             name: item.name ?? item.type ?? "",
             refine: item.detail?.refineLevel ?? null,
             quality: item.detail?.quality ?? null,
+            // No advanced step on 전율 gear: nothing to show or edit.
+            advanced: hasNoAdvancedRefine(item.name) ? null : (item.detail?.advancedRefineLevel ?? null),
+            noAdvanced: hasNoAdvancedRefine(item.name),
           },
         ]
       : [],
@@ -121,7 +153,12 @@ function currentOf(data: Character) {
       ? [{ slotIndex: slot.index, name: slot.name ?? `코어 ${slot.index + 1}`, grade: slot.grade, point: slot.point }]
       : [],
   );
-  return { gems, gear, polish, bracelet, engravings, stones, arkPassive, cores };
+  const guardItem = data.loadout.equipment.find((item) => item.type === "완갑");
+  const armGuard =
+    guardItem && guardItem.detail?.refineLevel != null && guardItem.grade
+      ? { level: guardItem.detail.refineLevel, grade: guardItem.grade, name: guardItem.name ?? "팔 보호구" }
+      : null;
+  return { gems, gear, polish, bracelet, engravings, stones, arkPassive, cores, armGuard };
 }
 
 function Choice({
@@ -143,26 +180,47 @@ function Choice({
     <label className={styles.select} data-changed={(original != null && value !== original) || undefined}>
       {caption && <span className={styles.caption} aria-hidden="true">{caption}</span>}
       <span className={styles.sr}>{label}</span>
-      <select value={value} onChange={(event) => onChange(event.target.value)}>
-        {original == null && <option value="">—</option>}
-        {values.map((item) => (
-          <option key={item.value} value={item.value}>
-            {item.label}
-          </option>
-        ))}
-      </select>
+      <ChoiceSelect
+        value={value}
+        onValueChange={onChange}
+        items={[...(original == null ? [{ value: "", label: "—" }] : []), ...values]}
+      />
     </label>
   );
 }
 
-function Card({ id, title, children }: { id: string; title: string; children: ReactNode }) {
+function Card({
+  id,
+  title,
+  locked,
+  children,
+}: {
+  id: string;
+  title: string;
+  /** 1차판 밖: current values only, with the reason once under the title. */
+  locked?: boolean;
+  children: ReactNode;
+}) {
   return (
     <section className={styles.card} aria-labelledby={id}>
       <header className={styles.cardHead}>
         <h2 id={id}>{title}</h2>
+        {locked && <span className={styles.lockedBadge}>준비 중</span>}
       </header>
+      {locked && <p className={styles.none}>{LOCKED_NOTE}</p>}
       <ul className={styles.rows}>{children}</ul>
     </section>
+  );
+}
+
+const LOCKED_NOTE = "계산식을 확인하고 있어 아직 바꿀 수 없어요. 확인되는 대로 열어요.";
+
+/** A control the 1차판 keeps closed: the current value and "준비 중". */
+function Locked({ caption, value }: { caption: string; value: ReactNode }) {
+  return (
+    <span className={styles.locked} title={LOCKED_NOTE}>
+      {caption} {value} · 준비 중
+    </span>
   );
 }
 
@@ -189,13 +247,11 @@ function Select({
     <label className={styles.select} data-changed={value !== original || undefined}>
       {caption && <span className={styles.caption} aria-hidden="true">{caption}</span>}
       <span className={styles.sr}>{label}</span>
-      <select value={value} onChange={(event) => onChange(Number(event.target.value))}>
-        {values.map((level) => (
-          <option key={level} value={level}>
-            {format(level)}
-          </option>
-        ))}
-      </select>
+      <ChoiceSelect
+        value={value}
+        onValueChange={onChange}
+        items={values.map((level) => ({ value: level, label: format(level) }))}
+      />
     </label>
   );
 }
@@ -214,6 +270,7 @@ function Editors({
   const gemValues = options.gemLevels;
   const refineValues = range(options.refineMin, options.refineMax);
   const qualityValues = range(0, options.qualityMax);
+  const braceletFamilies = (options.braceletOptions ?? []).map((option) => ({ value: option.name, label: option.name }));
   const gradeValues = options.polishGrades.map((grade) => ({
     value: grade,
     label: GRADE_LABEL[grade] ?? grade,
@@ -226,24 +283,21 @@ function Editors({
           {current.gems.length > 0 && (
             <label className={styles.bulk}>
               <span>모두</span>
-              <select
-                value={edits.gemAll ?? ""}
-                onChange={(event) =>
+              <ChoiceSelect
+                value={edits.gemAll == null ? "" : String(edits.gemAll)}
+                onValueChange={(v) =>
                   setEdits((prev) => ({
                     ...prev,
-                    gemAll: event.target.value ? Number(event.target.value) : null,
+                    gemAll: v ? Number(v) : null,
                     gems: {},
                   }))
                 }
                 aria-label="보석 모두 같은 레벨로"
-              >
-                <option value="">그대로</option>
-                {gemValues.map((level) => (
-                  <option key={level} value={level}>
-                    {level === 0 ? "모두 빼기" : `${level}레벨`}
-                  </option>
-                ))}
-              </select>
+                items={[
+                  { value: "", label: "그대로" },
+                  ...gemValues.map((level) => ({ value: String(level), label: level === 0 ? "모두 빼기" : `${level}레벨` })),
+                ]}
+              />
             </label>
           )}
         </header>
@@ -275,6 +329,12 @@ function Editors({
         <header className={styles.cardHead}>
           <h2 id="cp-gear">장비 재련·품질</h2>
         </header>
+        {/* 계산 검증 10-12 00:46: armour quality only raises 생명 활성력. */}
+        {current.gear.some((item) => item.type !== "무기" && item.quality != null) && (
+          <p className={styles.none}>
+            방어구 품질은 생명 활성력(체력)만 올려 딜러 전투력은 그대로예요. 전투력에는 무기 품질이 들어가요.
+          </p>
+        )}
         {current.gear.length === 0 ? (
           <p className={styles.none}>재련 단계나 품질을 읽은 장비가 없어요.</p>
         ) : (
@@ -282,7 +342,9 @@ function Editors({
             {current.gear.map((item) => (
               <li key={item.index}>
                 <span className={styles.rowName}>{item.name}</span>
-                {item.refine != null ? (
+                {item.refine != null && !isOpen("EQUIPMENT_REFINE") ? (
+                  <Locked caption="재련" value={`+${item.refine}`} />
+                ) : item.refine != null ? (
                   <Select
                     label={`${item.type} 재련 단계`}
                     caption="재련"
@@ -295,6 +357,26 @@ function Editors({
                   />
                 ) : (
                   <span className={styles.rowFrom}>재련 —</span>
+                )}
+                {item.noAdvanced && (
+                  <span className={styles.rowFrom} title={NO_ADVANCED_REFINE}>
+                    상급 재련 없음
+                  </span>
+                )}
+                {item.advanced != null && !isOpen("EQUIPMENT_ADVANCED_REFINE") && (
+                  <Locked caption="상급" value={item.advanced} />
+                )}
+                {item.advanced != null && isOpen("EQUIPMENT_ADVANCED_REFINE") && (
+                  <Select
+                    label={`${item.type} 상급 재련 단계`}
+                    caption="상급"
+                    value={edits.advanced[item.index] ?? item.advanced}
+                    original={item.advanced}
+                    values={range(0, options.advancedRefineMax)}
+                    onChange={(level) =>
+                      setEdits((prev) => ({ ...prev, advanced: { ...prev.advanced, [item.index]: level } }))
+                    }
+                  />
                 )}
                 {item.quality != null ? (
                   <Select
@@ -316,8 +398,38 @@ function Editors({
         )}
       </section>
 
+      {current.armGuard && (
+        <Card id="cp-arm-guard" title="팔 보호구" locked={!isOpen("ARM_GUARD")}>
+          <li>
+            <span className={styles.rowName}>{current.armGuard.name}</span>
+            {!isOpen("ARM_GUARD") ? (
+              <Locked caption="단계" value={`+${current.armGuard.level} · ${current.armGuard.grade}`} />
+            ) : (
+              <>
+                <Select
+                  label="팔 보호구 단계"
+                  caption="단계"
+                  value={edits.armGuard.level ?? current.armGuard.level}
+                  original={current.armGuard.level}
+                  values={range(0, ARM_GUARD_MAX)}
+                  onChange={(level) => setEdits((prev) => ({ ...prev, armGuard: { ...prev.armGuard, level } }))}
+                />
+                <Choice
+                  label="팔 보호구 등급"
+                  caption="등급"
+                  value={edits.armGuard.grade ?? current.armGuard.grade}
+                  original={current.armGuard.grade}
+                  values={ARM_GUARD_GRADES.map((grade) => ({ value: grade, label: grade }))}
+                  onChange={(grade) => setEdits((prev) => ({ ...prev, armGuard: { ...prev.armGuard, grade } }))}
+                />
+              </>
+            )}
+          </li>
+        </Card>
+      )}
+
       {current.polish.length > 0 && (
-        <Card id="cp-polish" title="연마">
+        <Card id="cp-polish" title="연마" locked={!isOpen("POLISH")}>
           {current.polish.map((line) => {
             const key = `${line.index}:${line.line}`;
             return (
@@ -328,15 +440,25 @@ function Editors({
                     {line.item} · {line.value}
                   </small>
                 </span>
-                <Choice
-                  label={`${line.item} ${line.option} 등급`}
-                  value={edits.polish[key] ?? line.grade ?? ""}
-                  original={line.grade}
-                  values={gradeValues}
-                  onChange={(grade) =>
-                    setEdits((prev) => ({ ...prev, polish: { ...prev.polish, [key]: grade as Grade } }))
-                  }
-                />
+                {!isOpen("POLISH") ? (
+                  <Locked caption="등급" value={line.grade ? gradeWithValue(line.grade, line.value) : "—"} />
+                ) : (
+                  <Choice
+                    label={`${line.item} ${line.option} 등급`}
+                    value={edits.polish[key] ?? line.grade ?? ""}
+                    original={line.grade}
+                    values={options.polishGrades.map((grade) => ({
+                      value: grade,
+                      label: gradeWithValue(
+                        grade,
+                        polishValue(options.polishValues, line.option, { value: line.value, grade: line.grade }, grade),
+                      ),
+                    }))}
+                    onChange={(grade) =>
+                      setEdits((prev) => ({ ...prev, polish: { ...prev.polish, [key]: grade as Grade } }))
+                    }
+                  />
+                )}
               </li>
             );
           })}
@@ -344,19 +466,42 @@ function Editors({
       )}
 
       {current.bracelet.length > 0 && (
-        <Card id="cp-bracelet" title="팔찌">
+        <Card id="cp-bracelet" title="팔찌" locked={!isOpen("BRACELET_EFFECT")}>
           {current.bracelet.map((line) => (
             <li key={line.line}>
               <span className={styles.rowName}>{line.text}</span>
-              <Choice
-                label={`팔찌 ${line.name} 등급`}
-                value={edits.bracelet[line.line] ?? line.grade ?? ""}
-                original={line.grade}
-                values={gradeValues}
-                onChange={(grade) =>
-                  setEdits((prev) => ({ ...prev, bracelet: { ...prev.bracelet, [line.line]: grade as Grade } }))
-                }
-              />
+              {!isOpen("BRACELET_EFFECT") ? (
+                <Locked caption="등급" value={line.grade ? (GRADE_LABEL[line.grade] ?? line.grade) : "—"} />
+              ) : (
+                <>
+                  {/* The family comes from the backend's list (#332); a line
+                      whose text is not a listed family keeps its own name. */}
+                  <Choice
+                    label={`팔찌 ${line.line + 1}번째 효과 계열`}
+                    caption="계열"
+                    value={edits.braceletName[line.line] ?? line.name}
+                    original={line.name}
+                    values={[
+                      ...(braceletFamilies.some((f) => f.value === line.name) ? [] : [{ value: line.name, label: line.name }]),
+                      ...braceletFamilies,
+                      { value: "없음", label: "빼기" },
+                    ]}
+                    onChange={(name) =>
+                      setEdits((prev) => ({ ...prev, braceletName: { ...prev.braceletName, [line.line]: name } }))
+                    }
+                  />
+                  <Choice
+                    label={`팔찌 ${line.name} 등급`}
+                    caption="등급"
+                    value={edits.bracelet[line.line] ?? line.grade ?? ""}
+                    original={line.grade}
+                    values={gradeValues}
+                    onChange={(grade) =>
+                      setEdits((prev) => ({ ...prev, bracelet: { ...prev.bracelet, [line.line]: grade as Grade } }))
+                    }
+                  />
+                </>
+              )}
             </li>
           ))}
         </Card>
@@ -401,27 +546,29 @@ function Editors({
       )}
 
       {current.arkPassive.length > 0 && (
-        <Card id="cp-ark-passive" title="아크 패시브">
+        <Card id="cp-ark-passive" title="아크 패시브" locked={!isOpen("ARK_PASSIVE_POINT")}>
           {current.arkPassive.map((item) => (
             <li key={item.tree}>
               <span className={styles.rowName}>{item.tree}</span>
               <span className={styles.rowFrom}>{item.points}P</span>
-              <PointField
-                label={`아크 패시브 ${item.tree} 포인트`}
-                value={edits.arkPassive[item.tree] ?? item.points}
-                original={item.points}
-                max={ARK_PASSIVE_MAX}
-                onChange={(points) =>
-                  setEdits((prev) => ({ ...prev, arkPassive: { ...prev.arkPassive, [item.tree]: points } }))
-                }
-              />
+              {isOpen("ARK_PASSIVE_POINT") && (
+                <PointField
+                  label={`아크 패시브 ${item.tree} 포인트`}
+                  value={edits.arkPassive[item.tree] ?? item.points}
+                  original={item.points}
+                  max={ARK_PASSIVE_MAX}
+                  onChange={(points) =>
+                    setEdits((prev) => ({ ...prev, arkPassive: { ...prev.arkPassive, [item.tree]: points } }))
+                  }
+                />
+              )}
             </li>
           ))}
         </Card>
       )}
 
       {current.cores.length > 0 && (
-        <Card id="cp-cores" title="아크 그리드 코어">
+        <Card id="cp-cores" title="아크 그리드 코어" locked={!isOpen("ARK_GRID_CORE")}>
           {current.cores.map((item) => {
             const edit = edits.core[item.slotIndex] ?? { grade: item.grade, point: item.point };
             const set = (next: Partial<typeof edit>) =>
@@ -429,29 +576,36 @@ function Editors({
             return (
               <li key={item.slotIndex}>
                 <span className={styles.rowName}>{item.name}</span>
-                <Choice
-                  label={`${item.name} 등급`}
-                  caption="등급"
-                  value={edit.grade}
-                  original={item.grade}
-                  values={options.coreGrades.map((grade) => ({ value: grade, label: grade }))}
-                  onChange={(grade) => set({ grade })}
-                />
-                <Select
-                  label={`${item.name} 포인트`}
-                  caption="포인트"
-                  value={edit.point}
-                  original={item.point}
-                  values={range(0, options.corePointMax)}
-                  onChange={(point) => set({ point })}
-                />
+                {!isOpen("ARK_GRID_CORE") ? (
+                  <Locked caption={item.grade} value={`${item.point}P`} />
+                ) : (
+                  <>
+                    <Choice
+                      label={`${item.name} 등급`}
+                      caption="등급"
+                      value={edit.grade}
+                      original={item.grade}
+                      values={options.coreGrades.map((grade) => ({ value: grade, label: grade }))}
+                      onChange={(grade) => set({ grade })}
+                    />
+                    <Select
+                      label={`${item.name} 포인트`}
+                      caption="포인트"
+                      value={edit.point}
+                      original={item.point}
+                      values={range(0, options.corePointMax)}
+                      onChange={(point) => set({ point })}
+                    />
+                  </>
+                )}
               </li>
             );
           })}
         </Card>
       )}
       <p className={styles.later}>
-        연마 옵션·팔찌 효과 종류 바꾸기와 상급 재련은 공식 표가 들어오는 대로 이어서 열어요.
+        지금은 보석·품질·각인·스톤·연마·팔찌·팔 보호구를 바꿀 수 있어요. 재련·아크 패시브·아크 그리드는 계산식을 확인하는
+        대로 열어요.
       </p>
     </div>
   );
@@ -494,11 +648,13 @@ function PointField({
 
 function ResultBand({
   base,
+  itemLevel,
   data,
   changed,
   stale,
 }: {
   base: number | null;
+  itemLevel: number | null;
   data: Simulation | null;
   changed: number;
   stale: boolean;
@@ -508,12 +664,17 @@ function ResultBand({
   return (
     <section className={styles.band} aria-labelledby="cp-result" data-stale={stale || undefined}>
       <p id="cp-result" className={styles.bandLabel}>
-        전투력
+        {changed > 0 ? "예상 전투력" : "전투력"}
       </p>
       <p className={styles.bandValue}>
         {before == null ? "—" : power(computed && data.after != null ? data.after : before)}
+      </p>
+      {/* Its own line, held from the start: beside the value it wrapped under
+          it on the first change and pushed everything below 24px (A7). */}
+      <p className={styles.bandDelta}>
         {computed && data.delta != null && (
           <span className={data.delta >= 0 ? styles.gain : styles.loss}>
+            <span aria-hidden="true">{data.delta > 0 ? "▲ " : data.delta < 0 ? "▼ " : ""}</span>
             {signed(data.delta)}
             {data.deltaPercent != null &&
               ` (${data.deltaPercent < 0 ? "−" : "+"}${Math.abs(data.deltaPercent).toFixed(3)}%)`}
@@ -523,16 +684,38 @@ function ResultBand({
       <p className={styles.bandNote}>
         {changed === 0
           ? "아래에서 값을 바꾸면 바로 다시 계산해요."
-          : computed
+          : computed && data.delta === 0 && !data.partial
+            ? "바꾼 항목은 전투력에 영향이 없어요. 이유는 아래 ‘바꾼 것’에 있어요."
+            : computed
             ? `바꾼 ${changed}개 중 계산된 항목만 반영했어요${data.partial ? ` · 계산 준비 중 ${data.unsupportedCount}개` : ""}.`
             : `바꾼 ${changed}개 항목은 계산식을 확인하고 있어 아직 반영하지 않았어요.`}
       </p>
+      {/* Item level moves only with refining, which is still 준비 중: the
+          current value, no made-up change (PM-프론트 16:37 ②). */}
+      {itemLevel != null && (
+        <p className={styles.bandSub}>
+          아이템 레벨 <b>{itemLevel.toLocaleString("ko-KR", { maximumFractionDigits: 2 })}</b>
+        </p>
+      )}
     </section>
   );
 }
 
-function ChangeList({ data }: { data: Simulation }) {
+/** POLISH from/to read "옵션 +1.60%" → "옵션 HIGH": show the grade with its value. */
+function polishText(text: string | null, from: string | null, values: PolishValues | undefined) {
+  const match = text?.match(/^(.*) (LOW|MID|HIGH)$/);
+  if (!match) return gradeText(text);
+  const [, option, grade] = match;
+  // from is "옵션 +1.60%": the accessory's current value decides if the table fits.
+  const current = from?.startsWith(`${option} `) ? from.slice(option.length + 1) : null;
+  const value = current ? polishValue(values, option, { value: current, grade: null }, grade) : null;
+  return `${option} ${gradeWithValue(grade, value)}`;
+}
+
+function ChangeList({ data, values }: { data: Simulation; values?: PolishValues }) {
   if (data.contributions.length === 0) return null;
+  // Rows held back by the role are said once, above the result.
+  const role = (item: Simulation["contributions"][number]) => !!item.reasonCode && ROLE_REASONS.has(item.reasonCode);
   return (
     <section className={styles.changes} aria-labelledby="cp-changes">
       <h2 id="cp-changes">바꾼 것</h2>
@@ -544,42 +727,69 @@ function ChangeList({ data }: { data: Simulation }) {
               {item.target}
               {(item.from != null || item.to != null) && (
                 <small>
-                  {changeText(item.kind, item.from) ?? "—"} → {changeText(item.kind, item.to) ?? "—"}
+                  {changeText(item.kind, item.from) ?? "—"} →{" "}
+                  {(item.kind === "POLISH" ? polishText(item.to, item.from, values) : changeText(item.kind, item.to)) ?? "—"}
                 </small>
               )}
             </span>
             {item.status === "OK" && item.delta != null ? (
               <b className={item.delta >= 0 ? styles.gain : styles.loss}>{signed(item.delta)}</b>
             ) : (
-              <span className={styles.pending} title={item.basis}>
-                계산 준비 중
-              </span>
+              <span className={styles.pending}>계산 준비 중</span>
+            )}
+            {/* 사용자 지적 10-12 (L23): a change that moved nothing, or was
+                not computed, says why right under it — the backend's
+                sentence as it is. A bare ±0.00 read as broken. */}
+            {(item.status !== "OK" || item.delta === 0) && item.basis && !role(item) && (
+              <small className={styles.why}>{item.basis}</small>
             )}
           </li>
         ))}
       </ul>
-      {data.contributions.some((item) => item.status !== "OK") && (
-        <p className={styles.basis}>
-          {data.contributions.find((item) => item.status !== "OK")?.basis}
-        </p>
-      )}
     </section>
   );
 }
 
-function CombatPowerContent({ initialName }: { initialName: string }) {
-  const router = useRouter();
-  const [input, setInput] = useState(initialName);
-  const [touched, setTouched] = useState(false);
-  const [name, setName] = useState(
-    initialName && !characterNameError(initialName) ? normalizeCharacterName(initialName) : "",
+/**
+ * The simulator itself — result, changes and editors for one character. The
+ * tool page puts its own search above it; the character page shows it as the
+ * 시뮬레이터 tab (PM-프론트 16:37 ①), where the character is already loaded.
+ */
+export function CombatPowerSimulator({
+  name,
+  initial,
+  start,
+  head,
+}: {
+  name: string;
+  initial?: Character;
+  /** Changes to begin with (스펙업 "적용해 보기" or a 목표 path), as one step 이전 can undo. */
+  start?: SpecUpChange[];
+  /** Shown at the top of the sticky column (the character tab's lead line). */
+  head?: ReactNode;
+}) {
+  const embedded = !!initial;
+  // 이전·다음·초기화 (PM-프론트 16:37 ②): every edit is a step.
+  const [history, dispatch] = useReducer(historyReducer, undefined, () => {
+    const empty = startHistory();
+    // In order: a later step on the same slot (8→9→10) leaves the last level.
+    const first = (start ?? []).reduce<Edits | null>((edits, change) => editsFor(change, edits ?? NO_EDITS) ?? edits, null);
+    return first ? historyReducer(empty, { type: "load", edits: first }) : empty;
+  });
+  const edits = history.present;
+  const setEdits = useCallback(
+    (update: (prev: Edits) => Edits) => dispatch({ type: "set", next: update }),
+    [],
   );
-  const [edits, setEdits] = useState<Edits>(NO_EDITS);
+  const saved = useSavedEdits(name);
+  const [notice, setNotice] = useState("");
 
   const character = useQuery({
     queryKey: ["character", name],
     queryFn: ({ signal }) => fetchCharacter(name, signal),
-    enabled: !!name,
+    // On the character page the page owns this query (and its refresh
+    // cooldown); the tab only reads it.
+    enabled: !!name && !embedded,
     retry: false,
     refetchOnWindowFocus: false,
   });
@@ -589,7 +799,7 @@ function CombatPowerContent({ initialName }: { initialName: string }) {
     staleTime: Infinity,
     retry: false,
   });
-  const data = character.data?.data ?? null;
+  const data = character.data?.data ?? initial ?? null;
   const current = useMemo(() => (data ? currentOf(data) : null), [data]);
   const changes = useMemo(
     () => (current ? toChanges(edits, current as Current) : []),
@@ -607,10 +817,12 @@ function CombatPowerContent({ initialName }: { initialName: string }) {
     refetchOnWindowFocus: false,
   });
   const result = changes.length > 0 ? (simulation.data?.data ?? null) : null;
+  // 서포터·판정 불가(backend #332): every change comes back with this reason.
+  const roleReason =
+    result?.contributions.find((item) => item.reasonCode && ROLE_REASONS.has(item.reasonCode))?.basis ?? null;
   // The backend read a newer cache than the screen: reload the character first.
   const outdated = !!result && !!data && result.fetchedAt !== data.fetchedAt;
 
-  const error = characterNameError(input);
   const failure =
     character.error instanceof CharacterQueryError
       ? character.error.info
@@ -623,7 +835,209 @@ function CombatPowerContent({ initialName }: { initialName: string }) {
             : null;
   const limit = useRateLimit(character.error ?? simulation.error);
   const waiting = limit.seconds > 0;
-  const busy = character.isFetching && !data;
+
+  function reload() {
+    dispatch({ type: "reset" });
+    void character.refetch();
+  }
+
+  function save() {
+    const at = new Date();
+    try {
+      if (!current) return;
+      localStorage.setItem(savedKey(name), serializeSaved(edits, at, current));
+      window.dispatchEvent(new Event(SAVED_EVENT));
+      setNotice(`입력을 저장했어요(${savedTime(at.toISOString())}).`);
+    } catch {
+      setNotice("이 브라우저에서는 저장할 수 없어요.");
+    }
+  }
+
+  function load() {
+    if (!saved || !current) return;
+    // Only what still points at the same gear (PM 총괄 10-12 01:54).
+    const applied = applySaved(saved, current);
+    if ("legacy" in applied) {
+      setNotice("예전 방식으로 저장한 입력이라 장비를 확인할 수 없어 불러오지 않았어요. 다시 저장해 주세요.");
+      return;
+    }
+    dispatch({ type: "load", edits: applied.edits });
+    setNotice(
+      `${savedTime(saved.savedAt)}에 저장한 입력을 불러왔어요.` +
+        (applied.skipped > 0 ? ` 장비가 바뀌어 ${applied.skipped}개는 불러오지 않았어요.` : ""),
+    );
+  }
+
+  return (
+    <div aria-live="polite">
+      {failure ? (
+        <div className={quote.notice}>
+          <div role="alert">
+            <strong>{combatPowerFailureCopy(failure).title}</strong>
+            <p>{combatPowerFailureCopy(failure).text}</p>
+          </div>
+          <button
+            type="button"
+            className={quote.outlinePill}
+            aria-disabled={character.isFetching || waiting || undefined}
+            onClick={() => !character.isFetching && !waiting && reload()}
+          >
+            다시 불러오기
+          </button>
+        </div>
+      ) : data && current && options.data ? (
+        <div className={styles.columns}>
+          {/* Desktop: result on the left, sticky at the top. Phones: inputs
+              first and the result pinned to the bottom, so nothing above
+              the inputs grows when an answer arrives. */}
+          {/* 사용자 지적 10-12: on wide screens the whole column — lead,
+              result, buttons and 바꾼 것 — follows the scroll, not the
+              result alone; a column taller than the screen scrolls inside
+              itself with the result held at its top. */}
+          <div className={styles.rail}>
+          {head && <div className={styles.railHead}>{head}</div>}
+          {roleReason && (
+            <p className={styles.roleNote} role="status">
+              {roleReason}
+            </p>
+          )}
+          <ResultBand
+            base={data.combatPower}
+            itemLevel={data.itemLevel ?? null}
+            data={result}
+            changed={changes.length}
+            stale={simulation.isFetching || changes !== debounced}
+          />
+          <div className={styles.side}>
+            <div className={styles.toolbar} role="toolbar" aria-label="입력 기록">
+              <button
+                type="button"
+                className={quote.outlinePill}
+                aria-disabled={history.past.length === 0 || undefined}
+                onClick={() => dispatch({ type: "undo" })}
+              >
+                <UndoArrow size={14} aria-hidden="true" /> 이전
+              </button>
+              <button
+                type="button"
+                className={quote.outlinePill}
+                aria-disabled={history.future.length === 0 || undefined}
+                onClick={() => dispatch({ type: "redo" })}
+              >
+                <UndoArrow size={14} aria-hidden="true" className={styles.redoIcon} /> 다음
+              </button>
+              <button
+                type="button"
+                className={quote.outlinePill}
+                aria-disabled={isEmpty(edits) || undefined}
+                onClick={() => dispatch({ type: "reset" })}
+              >
+                <RotateLeft size={14} aria-hidden="true" /> 초기화
+              </button>
+              <button
+                type="button"
+                className={quote.outlinePill}
+                aria-disabled={isEmpty(edits) || undefined}
+                onClick={() => !isEmpty(edits) && save()}
+              >
+                입력 저장
+              </button>
+              {saved && (
+                <button type="button" className={quote.outlinePill} onClick={load}>
+                  저장한 입력 불러오기
+                </button>
+              )}
+            </div>
+            <p className={styles.toolbarNote} role="status">
+              {notice}
+            </p>
+            {outdated && (
+              <p className={styles.outdated} role="status">
+                캐릭터 정보가 새로 갱신됐어요.{" "}
+                <button type="button" className={styles.link} onClick={reload}>
+                  다시 불러오기
+                </button>
+              </p>
+            )}
+            {result && <ChangeList data={result} values={options.data.data.polishValues} />}
+          </div>
+          </div>
+          <Editors
+            options={options.data.data}
+            current={current}
+            edits={edits}
+            setEdits={setEdits}
+          />
+        </div>
+      ) : name ? (
+        <p className={styles.empty} data-loading="" role="status">
+          {embedded ? "시뮬레이터를 준비하고 있어요…" : "캐릭터 정보를 읽고 있어요…"}
+        </p>
+      ) : (
+        <p className={styles.empty}>
+          캐릭터를 불러오면 보석·재련·품질을 바꿨을 때 전투력이 얼마나 오르는지 보여 드려요.
+        </p>
+      )}
+    </div>
+  );
+}
+
+/* Saved inputs: per browser, per character (L6). Read through the store
+   so a save in another tab shows the load button here too. */
+const SAVED_EVENT = "loakraken:combat-power:saved";
+const subscribeSaved = (callback: () => void) => {
+  window.addEventListener(SAVED_EVENT, callback);
+  window.addEventListener("storage", callback);
+  return () => {
+    window.removeEventListener(SAVED_EVENT, callback);
+    window.removeEventListener("storage", callback);
+  };
+};
+function useSavedEdits(name: string) {
+  const text = useSyncExternalStore(
+    subscribeSaved,
+    () => {
+      try {
+        return name ? localStorage.getItem(savedKey(name)) : null;
+      } catch {
+        return null;
+      }
+    },
+    () => null,
+  );
+  return useMemo(() => parseSaved(text), [text]);
+}
+const savedTime = (iso: string) =>
+  new Date(iso).toLocaleString("ko-KR", {
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+    timeZone: "Asia/Seoul",
+  });
+
+function CombatPowerContent({ initialName }: { initialName: string }) {
+  const router = useRouter();
+  const [input, setInput] = useState(initialName);
+  const [touched, setTouched] = useState(false);
+  const [name, setName] = useState(
+    initialName && !characterNameError(initialName) ? normalizeCharacterName(initialName) : "",
+  );
+
+  // The same query the simulator reads (one request): the search button
+  // waits on it and on its rate limit.
+  const character = useQuery({
+    queryKey: ["character", name],
+    queryFn: ({ signal }) => fetchCharacter(name, signal),
+    enabled: !!name,
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+  const error = characterNameError(input);
+  const limit = useRateLimit(character.error);
+  const waiting = limit.seconds > 0;
+  const busy = character.isFetching && !character.data;
 
   function submit(event: FormEvent) {
     event.preventDefault();
@@ -632,13 +1046,7 @@ function CombatPowerContent({ initialName }: { initialName: string }) {
     if (error) return;
     const target = normalizeCharacterName(input);
     router.replace(`?${new URLSearchParams({ character: target })}`, { scroll: false });
-    if (target !== name) setEdits(NO_EDITS);
     setName(target);
-  }
-
-  function reload() {
-    setEdits(NO_EDITS);
-    void character.refetch();
   }
 
   return (
@@ -685,75 +1093,13 @@ function CombatPowerContent({ initialName }: { initialName: string }) {
               {touched && error && <p className={quote.inputError}>{error}</p>}
             </form>
 
-            <div aria-live="polite">
-              {failure ? (
-                <div className={quote.notice}>
-                  <div role="alert">
-                    <strong>{combatPowerFailureCopy(failure).title}</strong>
-                    <p>{combatPowerFailureCopy(failure).text}</p>
-                  </div>
-                  <button
-                    type="button"
-                    className={quote.outlinePill}
-                    aria-disabled={character.isFetching || waiting || undefined}
-                    onClick={() => !character.isFetching && !waiting && reload()}
-                  >
-                    다시 불러오기
-                  </button>
-                </div>
-              ) : data && current && options.data ? (
-                <div className={styles.columns}>
-                  {/* Desktop: result on the left, sticky at the top. Phones: inputs
-                      first and the result pinned to the bottom, so nothing above
-                      the inputs grows when an answer arrives. */}
-                  <ResultBand
-                    base={data.combatPower}
-                    data={result}
-                    changed={changes.length}
-                    stale={simulation.isFetching || changes !== debounced}
-                  />
-                  <div className={styles.side}>
-                    {changes.length > 0 && (
-                      <button
-                        type="button"
-                        className={quote.outlinePill}
-                        onClick={() => setEdits(NO_EDITS)}
-                      >
-                        <RotateLeft size={14} aria-hidden="true" /> 처음 값으로
-                      </button>
-                    )}
-                    {outdated && (
-                      <p className={styles.outdated} role="status">
-                        캐릭터 정보가 새로 갱신됐어요.{" "}
-                        <button type="button" className={styles.link} onClick={reload}>
-                          다시 불러오기
-                        </button>
-                      </p>
-                    )}
-                    {result && <ChangeList data={result} />}
-                  </div>
-                  <Editors
-                    options={options.data.data}
-                    current={current}
-                    edits={edits}
-                    setEdits={setEdits}
-                  />
-                </div>
-              ) : name ? (
-                <p className={styles.empty} data-loading="" role="status">
-                  캐릭터 정보를 읽고 있어요
-                </p>
-              ) : (
-                <p className={styles.empty}>
-                  캐릭터를 불러오면 보석·재련·품질을 바꿨을 때 전투력이 얼마나 오르는지 보여 드려요.
-                </p>
-              )}
-            </div>
+            {/* A new character starts from its own values (keyed). */}
+            <CombatPowerSimulator key={name} name={name} />
           </div>
         </div>
       </main>
       <footer className={quote.footer}>
-        LOAKraken · 로스트아크 비공식 팬 프로젝트 · 공식 전투정보실 원문 기반 계산
+        LOAKraken · 공식 전투정보실 원문 기반 계산
       </footer>
     </div>
   );

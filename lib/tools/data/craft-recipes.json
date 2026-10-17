@@ -1,0 +1,7783 @@
+{
+  "version": "2026-10-13",
+  "checkedAt": "2026-10-13",
+  "sources": {
+    "inven-craft-db": {
+      "title": "인벤 제작 DB — 영지 제작 레시피(재료·수량·골드·시간·조건·활동력)",
+      "url": "https://lostark.inven.co.kr/dataninfo/craft/",
+      "date": "2026-10-13"
+    },
+    "official-probability-craft": {
+      "title": "확률 정보 공개 — 영지 제작(성공·대성공 확률)",
+      "url": "https://lostark.game.onstove.com/Probability",
+      "date": "2026-06-24"
+    }
+  },
+  "unknown": [
+    "outputQty",
+    "greatSuccessBonus",
+    "successPercent"
+  ],
+  "categories": {
+    "생활도구": [
+      {
+        "name": "초보자용 식물채집 도구",
+        "materials": [
+          {
+            "name": "초보자용 제작 키트",
+            "qty": 1
+          },
+          {
+            "name": "희귀한 유물",
+            "qty": 16
+          }
+        ],
+        "gold": 5,
+        "energy": null,
+        "time": null,
+        "condition": null,
+        "outputQty": null
+      },
+      {
+        "name": "견습생용 식물채집 도구",
+        "materials": [
+          {
+            "name": "견습생용 제작 키트",
+            "qty": 1
+          },
+          {
+            "name": "도구 제작 부품",
+            "qty": 3
+          },
+          {
+            "name": "고대 유물",
+            "qty": 35
+          }
+        ],
+        "gold": 30,
+        "energy": 288,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성",
+        "outputQty": null
+      },
+      {
+        "name": "숙련가용 식물채집 도구",
+        "materials": [
+          {
+            "name": "숙련가용 제작 키트",
+            "qty": 1
+          },
+          {
+            "name": "도구 제작 부품",
+            "qty": 8
+          },
+          {
+            "name": "희귀한 유물",
+            "qty": 20
+          },
+          {
+            "name": "고대 유물",
+            "qty": 26
+          }
+        ],
+        "gold": 100,
+        "energy": 864,
+        "time": "03:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 숙련가용 채집 도구 사용",
+        "outputQty": null
+      },
+      {
+        "name": "전문가용 식물채집 도구",
+        "materials": [
+          {
+            "name": "전문가용 제작 키트",
+            "qty": 1
+          },
+          {
+            "name": "도구 제작 부품",
+            "qty": 28
+          },
+          {
+            "name": "희귀한 유물",
+            "qty": 26
+          },
+          {
+            "name": "고대 유물",
+            "qty": 34
+          }
+        ],
+        "gold": 250,
+        "energy": 1728,
+        "time": "06:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 전문가용 채집 도구 사용",
+        "outputQty": null
+      },
+      {
+        "name": "달인용 식물채집 도구",
+        "materials": [
+          {
+            "name": "달인용 제작 키트",
+            "qty": 1
+          },
+          {
+            "name": "도구 제작 부품",
+            "qty": 82
+          },
+          {
+            "name": "희귀한 유물",
+            "qty": 92
+          },
+          {
+            "name": "고대 유물",
+            "qty": 122
+          }
+        ],
+        "gold": 500,
+        "energy": 2592,
+        "time": "09:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 달인용 채집 도구 사용",
+        "outputQty": null
+      },
+      {
+        "name": "초보자용 벌목 도구",
+        "materials": [
+          {
+            "name": "초보자용 제작 키트",
+            "qty": 1
+          },
+          {
+            "name": "희귀한 유물",
+            "qty": 16
+          }
+        ],
+        "gold": 5,
+        "energy": null,
+        "time": null,
+        "condition": null,
+        "outputQty": null
+      },
+      {
+        "name": "견습생용 벌목 도구",
+        "materials": [
+          {
+            "name": "견습생용 제작 키트",
+            "qty": 1
+          },
+          {
+            "name": "도구 제작 부품",
+            "qty": 3
+          },
+          {
+            "name": "고대 유물",
+            "qty": 35
+          }
+        ],
+        "gold": 30,
+        "energy": 288,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성",
+        "outputQty": null
+      },
+      {
+        "name": "숙련가용 벌목 도구",
+        "materials": [
+          {
+            "name": "숙련가용 제작 키트",
+            "qty": 1
+          },
+          {
+            "name": "도구 제작 부품",
+            "qty": 8
+          },
+          {
+            "name": "희귀한 유물",
+            "qty": 20
+          },
+          {
+            "name": "고대 유물",
+            "qty": 26
+          }
+        ],
+        "gold": 100,
+        "energy": 864,
+        "time": "03:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 숙련가용 벌목 도구 사용",
+        "outputQty": null
+      },
+      {
+        "name": "전문가용 벌목 도구",
+        "materials": [
+          {
+            "name": "전문가용 제작 키트",
+            "qty": 1
+          },
+          {
+            "name": "도구 제작 부품",
+            "qty": 28
+          },
+          {
+            "name": "희귀한 유물",
+            "qty": 26
+          },
+          {
+            "name": "고대 유물",
+            "qty": 34
+          }
+        ],
+        "gold": 250,
+        "energy": 1728,
+        "time": "06:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 전문가용 벌목 도구 사용",
+        "outputQty": null
+      },
+      {
+        "name": "달인용 벌목 도구",
+        "materials": [
+          {
+            "name": "달인용 제작 키트",
+            "qty": 1
+          },
+          {
+            "name": "도구 제작 부품",
+            "qty": 82
+          },
+          {
+            "name": "희귀한 유물",
+            "qty": 92
+          },
+          {
+            "name": "고대 유물",
+            "qty": 122
+          }
+        ],
+        "gold": 500,
+        "energy": 2592,
+        "time": "09:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 달인용 벌목 도구 사용",
+        "outputQty": null
+      },
+      {
+        "name": "초보자용 채광 도구",
+        "materials": [
+          {
+            "name": "초보자용 제작 키트",
+            "qty": 1
+          },
+          {
+            "name": "희귀한 유물",
+            "qty": 16
+          }
+        ],
+        "gold": 5,
+        "energy": null,
+        "time": null,
+        "condition": null,
+        "outputQty": null
+      },
+      {
+        "name": "견습생용 채광 도구",
+        "materials": [
+          {
+            "name": "견습생용 제작 키트",
+            "qty": 1
+          },
+          {
+            "name": "도구 제작 부품",
+            "qty": 3
+          },
+          {
+            "name": "고대 유물",
+            "qty": 35
+          }
+        ],
+        "gold": 30,
+        "energy": 288,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성",
+        "outputQty": null
+      },
+      {
+        "name": "숙련가용 채광 도구",
+        "materials": [
+          {
+            "name": "숙련가용 제작 키트",
+            "qty": 1
+          },
+          {
+            "name": "도구 제작 부품",
+            "qty": 8
+          },
+          {
+            "name": "희귀한 유물",
+            "qty": 20
+          },
+          {
+            "name": "고대 유물",
+            "qty": 26
+          }
+        ],
+        "gold": 100,
+        "energy": 864,
+        "time": "03:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 숙련가용 채광 도구 사용",
+        "outputQty": null
+      },
+      {
+        "name": "전문가용 채광 도구",
+        "materials": [
+          {
+            "name": "전문가용 제작 키트",
+            "qty": 1
+          },
+          {
+            "name": "도구 제작 부품",
+            "qty": 28
+          },
+          {
+            "name": "희귀한 유물",
+            "qty": 26
+          },
+          {
+            "name": "고대 유물",
+            "qty": 34
+          }
+        ],
+        "gold": 250,
+        "energy": 1728,
+        "time": "06:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 전문가용 채광 도구 사용",
+        "outputQty": null
+      },
+      {
+        "name": "달인용 채광 도구",
+        "materials": [
+          {
+            "name": "달인용 제작 키트",
+            "qty": 1
+          },
+          {
+            "name": "도구 제작 부품",
+            "qty": 82
+          },
+          {
+            "name": "희귀한 유물",
+            "qty": 92
+          },
+          {
+            "name": "고대 유물",
+            "qty": 122
+          }
+        ],
+        "gold": 500,
+        "energy": 2592,
+        "time": "09:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 달인용 채광 도구 사용",
+        "outputQty": null
+      },
+      {
+        "name": "초보자용 수렵 도구",
+        "materials": [
+          {
+            "name": "초보자용 제작 키트",
+            "qty": 1
+          },
+          {
+            "name": "희귀한 유물",
+            "qty": 16
+          }
+        ],
+        "gold": 5,
+        "energy": null,
+        "time": null,
+        "condition": null,
+        "outputQty": null
+      },
+      {
+        "name": "견습생용 수렵 도구",
+        "materials": [
+          {
+            "name": "견습생용 제작 키트",
+            "qty": 1
+          },
+          {
+            "name": "도구 제작 부품",
+            "qty": 3
+          },
+          {
+            "name": "고대 유물",
+            "qty": 35
+          }
+        ],
+        "gold": 30,
+        "energy": 288,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성",
+        "outputQty": null
+      },
+      {
+        "name": "숙련가용 수렵 도구",
+        "materials": [
+          {
+            "name": "숙련가용 제작 키트",
+            "qty": 1
+          },
+          {
+            "name": "도구 제작 부품",
+            "qty": 8
+          },
+          {
+            "name": "희귀한 유물",
+            "qty": 20
+          },
+          {
+            "name": "고대 유물",
+            "qty": 26
+          }
+        ],
+        "gold": 100,
+        "energy": 864,
+        "time": "03:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 숙련가용 수렵 도구 사용",
+        "outputQty": null
+      },
+      {
+        "name": "전문가용 수렵 도구",
+        "materials": [
+          {
+            "name": "전문가용 제작 키트",
+            "qty": 1
+          },
+          {
+            "name": "도구 제작 부품",
+            "qty": 28
+          },
+          {
+            "name": "희귀한 유물",
+            "qty": 26
+          },
+          {
+            "name": "고대 유물",
+            "qty": 34
+          }
+        ],
+        "gold": 250,
+        "energy": 1728,
+        "time": "06:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 전문가용 수렵 도구 사용",
+        "outputQty": null
+      },
+      {
+        "name": "달인용 수렵 도구",
+        "materials": [
+          {
+            "name": "달인용 제작 키트",
+            "qty": 1
+          },
+          {
+            "name": "도구 제작 부품",
+            "qty": 82
+          },
+          {
+            "name": "희귀한 유물",
+            "qty": 92
+          },
+          {
+            "name": "고대 유물",
+            "qty": 122
+          }
+        ],
+        "gold": 500,
+        "energy": 2592,
+        "time": "09:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 달인용 수렵 도구 사용",
+        "outputQty": null
+      },
+      {
+        "name": "초보자용 낚시 도구",
+        "materials": [
+          {
+            "name": "초보자용 제작 키트",
+            "qty": 1
+          },
+          {
+            "name": "희귀한 유물",
+            "qty": 16
+          }
+        ],
+        "gold": 5,
+        "energy": null,
+        "time": null,
+        "condition": null,
+        "outputQty": null
+      },
+      {
+        "name": "견습생용 낚시 도구",
+        "materials": [
+          {
+            "name": "견습생용 제작 키트",
+            "qty": 1
+          },
+          {
+            "name": "도구 제작 부품",
+            "qty": 3
+          },
+          {
+            "name": "고대 유물",
+            "qty": 35
+          }
+        ],
+        "gold": 30,
+        "energy": 288,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성",
+        "outputQty": null
+      },
+      {
+        "name": "숙련가용 낚시 도구",
+        "materials": [
+          {
+            "name": "숙련가용 제작 키트",
+            "qty": 1
+          },
+          {
+            "name": "도구 제작 부품",
+            "qty": 8
+          },
+          {
+            "name": "희귀한 유물",
+            "qty": 20
+          },
+          {
+            "name": "고대 유물",
+            "qty": 26
+          }
+        ],
+        "gold": 100,
+        "energy": 864,
+        "time": "03:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 숙련가용 낚시 도구 사용",
+        "outputQty": null
+      },
+      {
+        "name": "전문가용 낚시 도구",
+        "materials": [
+          {
+            "name": "전문가용 제작 키트",
+            "qty": 1
+          },
+          {
+            "name": "도구 제작 부품",
+            "qty": 28
+          },
+          {
+            "name": "희귀한 유물",
+            "qty": 26
+          },
+          {
+            "name": "고대 유물",
+            "qty": 34
+          }
+        ],
+        "gold": 250,
+        "energy": 1728,
+        "time": "06:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 전문가용 낚시 도구 사용",
+        "outputQty": null
+      },
+      {
+        "name": "달인용 낚시 도구",
+        "materials": [
+          {
+            "name": "달인용 제작 키트",
+            "qty": 1
+          },
+          {
+            "name": "도구 제작 부품",
+            "qty": 82
+          },
+          {
+            "name": "희귀한 유물",
+            "qty": 92
+          },
+          {
+            "name": "고대 유물",
+            "qty": 122
+          }
+        ],
+        "gold": 500,
+        "energy": 2592,
+        "time": "09:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 달인용 낚시 도구 사용",
+        "outputQty": null
+      },
+      {
+        "name": "초보자용 고고학 도구",
+        "materials": [
+          {
+            "name": "초보자용 제작 키트",
+            "qty": 1
+          },
+          {
+            "name": "희귀한 유물",
+            "qty": 16
+          }
+        ],
+        "gold": 5,
+        "energy": null,
+        "time": null,
+        "condition": null,
+        "outputQty": null
+      },
+      {
+        "name": "견습생용 고고학 도구",
+        "materials": [
+          {
+            "name": "견습생용 제작 키트",
+            "qty": 1
+          },
+          {
+            "name": "도구 제작 부품",
+            "qty": 3
+          },
+          {
+            "name": "고대 유물",
+            "qty": 35
+          }
+        ],
+        "gold": 30,
+        "energy": 288,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성",
+        "outputQty": null
+      },
+      {
+        "name": "숙련가용 고고학 도구",
+        "materials": [
+          {
+            "name": "숙련가용 제작 키트",
+            "qty": 1
+          },
+          {
+            "name": "도구 제작 부품",
+            "qty": 8
+          },
+          {
+            "name": "희귀한 유물",
+            "qty": 20
+          },
+          {
+            "name": "고대 유물",
+            "qty": 26
+          }
+        ],
+        "gold": 100,
+        "energy": 864,
+        "time": "03:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 숙련가용 고고학 도구 사용",
+        "outputQty": null
+      },
+      {
+        "name": "전문가용 고고학 도구",
+        "materials": [
+          {
+            "name": "전문가용 제작 키트",
+            "qty": 1
+          },
+          {
+            "name": "도구 제작 부품",
+            "qty": 28
+          },
+          {
+            "name": "희귀한 유물",
+            "qty": 26
+          },
+          {
+            "name": "고대 유물",
+            "qty": 34
+          }
+        ],
+        "gold": 250,
+        "energy": 1728,
+        "time": "06:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 전문가용 고고학 도구 사용",
+        "outputQty": null
+      },
+      {
+        "name": "달인용 고고학 도구",
+        "materials": [
+          {
+            "name": "달인용 제작 키트",
+            "qty": 1
+          },
+          {
+            "name": "도구 제작 부품",
+            "qty": 82
+          },
+          {
+            "name": "희귀한 유물",
+            "qty": 92
+          },
+          {
+            "name": "고대 유물",
+            "qty": 122
+          }
+        ],
+        "gold": 500,
+        "energy": 2592,
+        "time": "09:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 달인용 고고학 도구 사용",
+        "outputQty": null
+      },
+      {
+        "name": "도구 제작 부품",
+        "materials": [
+          {
+            "name": "단단한 철광석",
+            "qty": 22
+          },
+          {
+            "name": "튼튼한 목재",
+            "qty": 22
+          },
+          {
+            "name": "묵직한 철광석",
+            "qty": 88
+          },
+          {
+            "name": "부드러운 목재",
+            "qty": 88
+          }
+        ],
+        "gold": 20,
+        "energy": 288,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 도구 제작 부품 사용",
+        "outputQty": null
+      },
+      {
+        "name": "생활 도구 복원 키트",
+        "materials": [
+          {
+            "name": "도구 제작 부품",
+            "qty": 40
+          },
+          {
+            "name": "튼튼한 목재",
+            "qty": 26
+          },
+          {
+            "name": "희귀한 유물",
+            "qty": 80
+          },
+          {
+            "name": "고대 유물",
+            "qty": 128
+          }
+        ],
+        "gold": 40,
+        "energy": 864,
+        "time": "03:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 생활 도구 복원 키트 사용",
+        "outputQty": null
+      }
+    ],
+    "요리": [
+      {
+        "name": "[일품] 거장의 수제 꼬치구이",
+        "materials": [
+          {
+            "name": "아비도스 두툼한 생고기",
+            "qty": 24
+          },
+          {
+            "name": "아비도스 태양 잉어",
+            "qty": 27
+          },
+          {
+            "name": "다듬은 생고기",
+            "qty": 71
+          },
+          {
+            "name": "붉은 살 생선",
+            "qty": 81
+          },
+          {
+            "name": "두툼한 생고기",
+            "qty": 94
+          },
+          {
+            "name": "생선",
+            "qty": 107
+          }
+        ],
+        "gold": 65,
+        "energy": 216,
+        "time": "00:45:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : [일품] 거장의 수제 꼬치구이 사용",
+        "outputQty": null
+      },
+      {
+        "name": "[일품] 거장의 특제 스튜",
+        "materials": [
+          {
+            "name": "아비도스 두툼한 생고기",
+            "qty": 24
+          },
+          {
+            "name": "아비도스 태양 잉어",
+            "qty": 27
+          },
+          {
+            "name": "다듬은 생고기",
+            "qty": 71
+          },
+          {
+            "name": "붉은 살 생선",
+            "qty": 81
+          },
+          {
+            "name": "두툼한 생고기",
+            "qty": 94
+          },
+          {
+            "name": "생선",
+            "qty": 107
+          }
+        ],
+        "gold": 65,
+        "energy": 216,
+        "time": "00:45:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : [일품] 거장의 특제 스튜 사용",
+        "outputQty": null
+      },
+      {
+        "name": "[일품] 거장의 비프 오믈렛",
+        "materials": [
+          {
+            "name": "아비도스 두툼한 생고기",
+            "qty": 24
+          },
+          {
+            "name": "아비도스 태양 잉어",
+            "qty": 27
+          },
+          {
+            "name": "다듬은 생고기",
+            "qty": 71
+          },
+          {
+            "name": "붉은 살 생선",
+            "qty": 81
+          },
+          {
+            "name": "두툼한 생고기",
+            "qty": 94
+          },
+          {
+            "name": "생선",
+            "qty": 107
+          }
+        ],
+        "gold": 65,
+        "energy": 216,
+        "time": "00:45:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : [일품] 거장의 비프 오믈렛 사용",
+        "outputQty": null
+      },
+      {
+        "name": "[일품] 거장의 채끝 스테이크 정식",
+        "materials": [
+          {
+            "name": "아비도스 두툼한 생고기",
+            "qty": 65
+          },
+          {
+            "name": "아비도스 태양 잉어",
+            "qty": 75
+          },
+          {
+            "name": "다듬은 생고기",
+            "qty": 84
+          },
+          {
+            "name": "붉은 살 생선",
+            "qty": 97
+          },
+          {
+            "name": "두툼한 생고기",
+            "qty": 112
+          },
+          {
+            "name": "생선",
+            "qty": 129
+          }
+        ],
+        "gold": 80,
+        "energy": 288,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : [일품] 거장의 채끝 스테이크 정식 사용",
+        "outputQty": null
+      },
+      {
+        "name": "[일품] 장인의 노릇한 꼬치구이",
+        "materials": [
+          {
+            "name": "다듬은 생고기",
+            "qty": 21
+          },
+          {
+            "name": "붉은 살 생선",
+            "qty": 21
+          },
+          {
+            "name": "두툼한 생고기",
+            "qty": 42
+          },
+          {
+            "name": "생선",
+            "qty": 43
+          }
+        ],
+        "gold": null,
+        "energy": 216,
+        "time": "00:45:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : [일품] 장인의 노릇한 꼬치구이 사용",
+        "outputQty": null
+      },
+      {
+        "name": "[일품] 장인의 매콤한 스튜",
+        "materials": [
+          {
+            "name": "다듬은 생고기",
+            "qty": 21
+          },
+          {
+            "name": "붉은 살 생선",
+            "qty": 21
+          },
+          {
+            "name": "두툼한 생고기",
+            "qty": 42
+          },
+          {
+            "name": "생선",
+            "qty": 43
+          }
+        ],
+        "gold": null,
+        "energy": 216,
+        "time": "00:45:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : [일품] 장인의 매콤한 스튜 사용",
+        "outputQty": null
+      },
+      {
+        "name": "[일품] 장인의 폭신한 오믈렛",
+        "materials": [
+          {
+            "name": "다듬은 생고기",
+            "qty": 21
+          },
+          {
+            "name": "붉은 살 생선",
+            "qty": 21
+          },
+          {
+            "name": "두툼한 생고기",
+            "qty": 42
+          },
+          {
+            "name": "생선",
+            "qty": 43
+          }
+        ],
+        "gold": null,
+        "energy": 216,
+        "time": "00:45:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : [일품] 장인의 폭신한 오믈렛 사용",
+        "outputQty": null
+      },
+      {
+        "name": "[일품] 장인의 마늘 스테이크 정식",
+        "materials": [
+          {
+            "name": "다듬은 생고기",
+            "qty": 39
+          },
+          {
+            "name": "붉은 살 생선",
+            "qty": 40
+          },
+          {
+            "name": "두툼한 생고기",
+            "qty": 78
+          },
+          {
+            "name": "생선",
+            "qty": 80
+          }
+        ],
+        "gold": null,
+        "energy": 288,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : [일품] 장인의 마늘 스테이크 정식 사용",
+        "outputQty": null
+      },
+      {
+        "name": "[일품] 달인의 바삭한 꼬치구이",
+        "materials": [
+          {
+            "name": "다듬은 생고기",
+            "qty": 47
+          },
+          {
+            "name": "붉은 살 생선",
+            "qty": 48
+          },
+          {
+            "name": "두툼한 생고기",
+            "qty": 94
+          },
+          {
+            "name": "생선",
+            "qty": 96
+          }
+        ],
+        "gold": 20,
+        "energy": 216,
+        "time": "00:45:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : [일품] 달인의 바삭한 꼬치구이 사용",
+        "outputQty": null
+      },
+      {
+        "name": "[일품] 달인의 달콤한 스튜",
+        "materials": [
+          {
+            "name": "다듬은 생고기",
+            "qty": 47
+          },
+          {
+            "name": "붉은 살 생선",
+            "qty": 48
+          },
+          {
+            "name": "두툼한 생고기",
+            "qty": 94
+          },
+          {
+            "name": "생선",
+            "qty": 96
+          }
+        ],
+        "gold": 20,
+        "energy": 216,
+        "time": "00:45:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : [일품] 달인의 달콤한 스튜 사용",
+        "outputQty": null
+      },
+      {
+        "name": "[일품] 달인의 부드러운 오믈렛",
+        "materials": [
+          {
+            "name": "다듬은 생고기",
+            "qty": 47
+          },
+          {
+            "name": "붉은 살 생선",
+            "qty": 48
+          },
+          {
+            "name": "두툼한 생고기",
+            "qty": 94
+          },
+          {
+            "name": "생선",
+            "qty": 96
+          }
+        ],
+        "gold": 20,
+        "energy": 216,
+        "time": "00:45:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : [일품] 달인의 부드러운 오믈렛 사용",
+        "outputQty": null
+      },
+      {
+        "name": "[일품] 달인의 버터 스테이크 정식",
+        "materials": [
+          {
+            "name": "다듬은 생고기",
+            "qty": 104
+          },
+          {
+            "name": "붉은 살 생선",
+            "qty": 107
+          },
+          {
+            "name": "두툼한 생고기",
+            "qty": 208
+          },
+          {
+            "name": "생선",
+            "qty": 213
+          }
+        ],
+        "gold": 25,
+        "energy": 288,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : [일품] 달인의 버터 스테이크 정식 사용",
+        "outputQty": null
+      },
+      {
+        "name": "[일품] 명인의 쫄깃한 꼬치구이",
+        "materials": [
+          {
+            "name": "오레하 두툼한 생고기",
+            "qty": 6
+          },
+          {
+            "name": "오레하 태양 잉어",
+            "qty": 7
+          },
+          {
+            "name": "다듬은 생고기",
+            "qty": 22
+          },
+          {
+            "name": "붉은 살 생선",
+            "qty": 26
+          },
+          {
+            "name": "두툼한 생고기",
+            "qty": 45
+          },
+          {
+            "name": "생선",
+            "qty": 53
+          }
+        ],
+        "gold": 35,
+        "energy": 216,
+        "time": "00:45:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : [일품] 명인의 쫄깃한 꼬치구이 사용",
+        "outputQty": null
+      },
+      {
+        "name": "[일품] 명인의 짭짤한 스튜",
+        "materials": [
+          {
+            "name": "오레하 두툼한 생고기",
+            "qty": 6
+          },
+          {
+            "name": "오레하 태양 잉어",
+            "qty": 7
+          },
+          {
+            "name": "다듬은 생고기",
+            "qty": 22
+          },
+          {
+            "name": "붉은 살 생선",
+            "qty": 26
+          },
+          {
+            "name": "두툼한 생고기",
+            "qty": 45
+          },
+          {
+            "name": "생선",
+            "qty": 53
+          }
+        ],
+        "gold": 35,
+        "energy": 216,
+        "time": "00:45:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : [일품] 명인의 짭짤한 스튜 사용",
+        "outputQty": null
+      },
+      {
+        "name": "[일품] 명인의 촉촉한 오믈렛",
+        "materials": [
+          {
+            "name": "오레하 두툼한 생고기",
+            "qty": 6
+          },
+          {
+            "name": "오레하 태양 잉어",
+            "qty": 7
+          },
+          {
+            "name": "다듬은 생고기",
+            "qty": 22
+          },
+          {
+            "name": "붉은 살 생선",
+            "qty": 26
+          },
+          {
+            "name": "두툼한 생고기",
+            "qty": 45
+          },
+          {
+            "name": "생선",
+            "qty": 53
+          }
+        ],
+        "gold": 35,
+        "energy": 216,
+        "time": "00:45:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : [일품] 명인의 촉촉한 오믈렛 사용",
+        "outputQty": null
+      },
+      {
+        "name": "[일품] 명인의 허브 스테이크 정식",
+        "materials": [
+          {
+            "name": "오레하 두툼한 생고기",
+            "qty": 12
+          },
+          {
+            "name": "오레하 태양 잉어",
+            "qty": 13
+          },
+          {
+            "name": "다듬은 생고기",
+            "qty": 44
+          },
+          {
+            "name": "붉은 살 생선",
+            "qty": 50
+          },
+          {
+            "name": "두툼한 생고기",
+            "qty": 88
+          },
+          {
+            "name": "생선",
+            "qty": 100
+          }
+        ],
+        "gold": 50,
+        "energy": 288,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : [일품] 명인의 허브 스테이크 정식 사용",
+        "outputQty": null
+      },
+      {
+        "name": "[일품] 대가의 양념 꼬치구이",
+        "materials": [
+          {
+            "name": "오레하 두툼한 생고기",
+            "qty": 19
+          },
+          {
+            "name": "오레하 태양 잉어",
+            "qty": 22
+          },
+          {
+            "name": "다듬은 생고기",
+            "qty": 56
+          },
+          {
+            "name": "붉은 살 생선",
+            "qty": 65
+          },
+          {
+            "name": "두툼한 생고기",
+            "qty": 74
+          },
+          {
+            "name": "생선",
+            "qty": 86
+          }
+        ],
+        "gold": 50,
+        "energy": 216,
+        "time": "00:45:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : [일품] 대가의 양념 꼬치구이 사용",
+        "outputQty": null
+      },
+      {
+        "name": "[일품] 대가의 모둠 스튜",
+        "materials": [
+          {
+            "name": "오레하 두툼한 생고기",
+            "qty": 19
+          },
+          {
+            "name": "오레하 태양 잉어",
+            "qty": 22
+          },
+          {
+            "name": "다듬은 생고기",
+            "qty": 56
+          },
+          {
+            "name": "붉은 살 생선",
+            "qty": 65
+          },
+          {
+            "name": "두툼한 생고기",
+            "qty": 74
+          },
+          {
+            "name": "생선",
+            "qty": 86
+          }
+        ],
+        "gold": 50,
+        "energy": 216,
+        "time": "00:45:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : [일품] 대가의 모둠 스튜 사용",
+        "outputQty": null
+      },
+      {
+        "name": "[일품] 대가의 전통 오믈렛",
+        "materials": [
+          {
+            "name": "오레하 두툼한 생고기",
+            "qty": 19
+          },
+          {
+            "name": "오레하 태양 잉어",
+            "qty": 22
+          },
+          {
+            "name": "다듬은 생고기",
+            "qty": 56
+          },
+          {
+            "name": "붉은 살 생선",
+            "qty": 65
+          },
+          {
+            "name": "두툼한 생고기",
+            "qty": 74
+          },
+          {
+            "name": "생선",
+            "qty": 86
+          }
+        ],
+        "gold": 50,
+        "energy": 216,
+        "time": "00:45:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : [일품] 대가의 전통 오믈렛 사용",
+        "outputQty": null
+      },
+      {
+        "name": "[일품] 대가의 안심 스테이크 정식",
+        "materials": [
+          {
+            "name": "오레하 두툼한 생고기",
+            "qty": 53
+          },
+          {
+            "name": "오레하 태양 잉어",
+            "qty": 60
+          },
+          {
+            "name": "다듬은 생고기",
+            "qty": 68
+          },
+          {
+            "name": "붉은 살 생선",
+            "qty": 77
+          },
+          {
+            "name": "두툼한 생고기",
+            "qty": 90
+          },
+          {
+            "name": "생선",
+            "qty": 103
+          }
+        ],
+        "gold": 65,
+        "energy": 288,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : [일품] 대가의 안심 스테이크 정식 사용",
+        "outputQty": null
+      },
+      {
+        "name": "노릇한 꼬치구이",
+        "materials": [
+          {
+            "name": "다듬은 생고기",
+            "qty": 10
+          },
+          {
+            "name": "붉은 살 생선",
+            "qty": 10
+          },
+          {
+            "name": "두툼한 생고기",
+            "qty": 16
+          },
+          {
+            "name": "생선",
+            "qty": 16
+          }
+        ],
+        "gold": null,
+        "energy": null,
+        "time": null,
+        "condition": null,
+        "outputQty": null
+      },
+      {
+        "name": "매콤한 스튜",
+        "materials": [
+          {
+            "name": "다듬은 생고기",
+            "qty": 10
+          },
+          {
+            "name": "붉은 살 생선",
+            "qty": 10
+          },
+          {
+            "name": "두툼한 생고기",
+            "qty": 16
+          },
+          {
+            "name": "생선",
+            "qty": 16
+          }
+        ],
+        "gold": null,
+        "energy": null,
+        "time": null,
+        "condition": null,
+        "outputQty": null
+      },
+      {
+        "name": "폭신한 오믈렛",
+        "materials": [
+          {
+            "name": "다듬은 생고기",
+            "qty": 10
+          },
+          {
+            "name": "붉은 살 생선",
+            "qty": 10
+          },
+          {
+            "name": "두툼한 생고기",
+            "qty": 16
+          },
+          {
+            "name": "생선",
+            "qty": 16
+          }
+        ],
+        "gold": null,
+        "energy": null,
+        "time": null,
+        "condition": null,
+        "outputQty": null
+      },
+      {
+        "name": "마늘 스테이크 정식",
+        "materials": [
+          {
+            "name": "다듬은 생고기",
+            "qty": 19
+          },
+          {
+            "name": "붉은 살 생선",
+            "qty": 19
+          },
+          {
+            "name": "두툼한 생고기",
+            "qty": 30
+          },
+          {
+            "name": "생선",
+            "qty": 30
+          }
+        ],
+        "gold": null,
+        "energy": null,
+        "time": null,
+        "condition": null,
+        "outputQty": null
+      },
+      {
+        "name": "바삭한 꼬치구이",
+        "materials": [
+          {
+            "name": "다듬은 생고기",
+            "qty": 24
+          },
+          {
+            "name": "붉은 살 생선",
+            "qty": 24
+          },
+          {
+            "name": "두툼한 생고기",
+            "qty": 37
+          },
+          {
+            "name": "생선",
+            "qty": 37
+          }
+        ],
+        "gold": 20,
+        "energy": null,
+        "time": null,
+        "condition": null,
+        "outputQty": null
+      },
+      {
+        "name": "달콤한 스튜",
+        "materials": [
+          {
+            "name": "다듬은 생고기",
+            "qty": 24
+          },
+          {
+            "name": "붉은 살 생선",
+            "qty": 24
+          },
+          {
+            "name": "두툼한 생고기",
+            "qty": 37
+          },
+          {
+            "name": "생선",
+            "qty": 37
+          }
+        ],
+        "gold": 20,
+        "energy": null,
+        "time": null,
+        "condition": null,
+        "outputQty": null
+      },
+      {
+        "name": "부드러운 오믈렛",
+        "materials": [
+          {
+            "name": "다듬은 생고기",
+            "qty": 24
+          },
+          {
+            "name": "붉은 살 생선",
+            "qty": 24
+          },
+          {
+            "name": "두툼한 생고기",
+            "qty": 37
+          },
+          {
+            "name": "생선",
+            "qty": 37
+          }
+        ],
+        "gold": 20,
+        "energy": null,
+        "time": null,
+        "condition": null,
+        "outputQty": null
+      },
+      {
+        "name": "버터 스테이크 정식",
+        "materials": [
+          {
+            "name": "다듬은 생고기",
+            "qty": 52
+          },
+          {
+            "name": "붉은 살 생선",
+            "qty": 52
+          },
+          {
+            "name": "두툼한 생고기",
+            "qty": 78
+          },
+          {
+            "name": "생선",
+            "qty": 78
+          }
+        ],
+        "gold": 25,
+        "energy": null,
+        "time": null,
+        "condition": null,
+        "outputQty": null
+      },
+      {
+        "name": "쫄깃한 꼬치구이",
+        "materials": [
+          {
+            "name": "오레하 두툼한 생고기",
+            "qty": 3
+          },
+          {
+            "name": "오레하 태양 잉어",
+            "qty": 3
+          },
+          {
+            "name": "다듬은 생고기",
+            "qty": 12
+          },
+          {
+            "name": "붉은 살 생선",
+            "qty": 10
+          },
+          {
+            "name": "두툼한 생고기",
+            "qty": 24
+          },
+          {
+            "name": "생선",
+            "qty": 20
+          }
+        ],
+        "gold": 35,
+        "energy": null,
+        "time": null,
+        "condition": null,
+        "outputQty": null
+      },
+      {
+        "name": "짭짤한 스튜",
+        "materials": [
+          {
+            "name": "오레하 두툼한 생고기",
+            "qty": 3
+          },
+          {
+            "name": "오레하 태양 잉어",
+            "qty": 3
+          },
+          {
+            "name": "다듬은 생고기",
+            "qty": 12
+          },
+          {
+            "name": "붉은 살 생선",
+            "qty": 10
+          },
+          {
+            "name": "두툼한 생고기",
+            "qty": 24
+          },
+          {
+            "name": "생선",
+            "qty": 20
+          }
+        ],
+        "gold": 35,
+        "energy": null,
+        "time": null,
+        "condition": null,
+        "outputQty": null
+      },
+      {
+        "name": "촉촉한 오믈렛",
+        "materials": [
+          {
+            "name": "오레하 두툼한 생고기",
+            "qty": 3
+          },
+          {
+            "name": "오레하 태양 잉어",
+            "qty": 3
+          },
+          {
+            "name": "다듬은 생고기",
+            "qty": 12
+          },
+          {
+            "name": "붉은 살 생선",
+            "qty": 10
+          },
+          {
+            "name": "두툼한 생고기",
+            "qty": 24
+          },
+          {
+            "name": "생선",
+            "qty": 20
+          }
+        ],
+        "gold": 35,
+        "energy": null,
+        "time": null,
+        "condition": null,
+        "outputQty": null
+      },
+      {
+        "name": "허브 스테이크 정식",
+        "materials": [
+          {
+            "name": "오레하 두툼한 생고기",
+            "qty": 6
+          },
+          {
+            "name": "오레하 태양 잉어",
+            "qty": 5
+          },
+          {
+            "name": "다듬은 생고기",
+            "qty": 24
+          },
+          {
+            "name": "붉은 살 생선",
+            "qty": 20
+          },
+          {
+            "name": "두툼한 생고기",
+            "qty": 48
+          },
+          {
+            "name": "생선",
+            "qty": 40
+          }
+        ],
+        "gold": 50,
+        "energy": null,
+        "time": null,
+        "condition": null,
+        "outputQty": null
+      },
+      {
+        "name": "[일품] 명인의 쫄깃한 꼬치구이",
+        "materials": [
+          {
+            "name": "아비도스 두툼한 생고기",
+            "qty": 4
+          },
+          {
+            "name": "아비도스 태양 잉어",
+            "qty": 5
+          },
+          {
+            "name": "다듬은 생고기",
+            "qty": 22
+          },
+          {
+            "name": "붉은 살 생선",
+            "qty": 26
+          },
+          {
+            "name": "두툼한 생고기",
+            "qty": 45
+          },
+          {
+            "name": "생선",
+            "qty": 53
+          }
+        ],
+        "gold": 35,
+        "energy": 216,
+        "time": "00:45:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : [일품] 명인의 쫄깃한 꼬치구이 (아비도스) 사용",
+        "outputQty": null
+      },
+      {
+        "name": "[일품] 명인의 짭짤한 스튜",
+        "materials": [
+          {
+            "name": "아비도스 두툼한 생고기",
+            "qty": 4
+          },
+          {
+            "name": "아비도스 태양 잉어",
+            "qty": 5
+          },
+          {
+            "name": "다듬은 생고기",
+            "qty": 22
+          },
+          {
+            "name": "붉은 살 생선",
+            "qty": 26
+          },
+          {
+            "name": "두툼한 생고기",
+            "qty": 45
+          },
+          {
+            "name": "생선",
+            "qty": 53
+          }
+        ],
+        "gold": 35,
+        "energy": 216,
+        "time": "00:45:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : [일품] 명인의 짭짤한 스튜 (아비도스) 사용",
+        "outputQty": null
+      },
+      {
+        "name": "[일품] 명인의 촉촉한 오믈렛",
+        "materials": [
+          {
+            "name": "아비도스 두툼한 생고기",
+            "qty": 4
+          },
+          {
+            "name": "아비도스 태양 잉어",
+            "qty": 5
+          },
+          {
+            "name": "다듬은 생고기",
+            "qty": 22
+          },
+          {
+            "name": "붉은 살 생선",
+            "qty": 26
+          },
+          {
+            "name": "두툼한 생고기",
+            "qty": 45
+          },
+          {
+            "name": "생선",
+            "qty": 53
+          }
+        ],
+        "gold": 35,
+        "energy": 216,
+        "time": "00:45:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : [일품] 명인의 촉촉한 오믈렛 (아비도스) 사용",
+        "outputQty": null
+      },
+      {
+        "name": "[일품] 명인의 허브 스테이크 정식",
+        "materials": [
+          {
+            "name": "아비도스 두툼한 생고기",
+            "qty": 9
+          },
+          {
+            "name": "아비도스 태양 잉어",
+            "qty": 10
+          },
+          {
+            "name": "다듬은 생고기",
+            "qty": 44
+          },
+          {
+            "name": "붉은 살 생선",
+            "qty": 50
+          },
+          {
+            "name": "두툼한 생고기",
+            "qty": 88
+          },
+          {
+            "name": "생선",
+            "qty": 100
+          }
+        ],
+        "gold": 50,
+        "energy": 288,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : [일품] 명인의 허브 스테이크 정식 (아비도스) 사용",
+        "outputQty": null
+      },
+      {
+        "name": "[일품] 대가의 양념 꼬치구이",
+        "materials": [
+          {
+            "name": "아비도스 두툼한 생고기",
+            "qty": 15
+          },
+          {
+            "name": "아비도스 태양 잉어",
+            "qty": 16
+          },
+          {
+            "name": "다듬은 생고기",
+            "qty": 56
+          },
+          {
+            "name": "붉은 살 생선",
+            "qty": 65
+          },
+          {
+            "name": "두툼한 생고기",
+            "qty": 74
+          },
+          {
+            "name": "생선",
+            "qty": 86
+          }
+        ],
+        "gold": 50,
+        "energy": 216,
+        "time": "00:45:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : [일품] 대가의 양념 꼬치구이 (아비도스) 사용",
+        "outputQty": null
+      },
+      {
+        "name": "[일품] 대가의 모둠 스튜",
+        "materials": [
+          {
+            "name": "아비도스 두툼한 생고기",
+            "qty": 15
+          },
+          {
+            "name": "아비도스 태양 잉어",
+            "qty": 16
+          },
+          {
+            "name": "다듬은 생고기",
+            "qty": 56
+          },
+          {
+            "name": "붉은 살 생선",
+            "qty": 65
+          },
+          {
+            "name": "두툼한 생고기",
+            "qty": 74
+          },
+          {
+            "name": "생선",
+            "qty": 86
+          }
+        ],
+        "gold": 50,
+        "energy": 216,
+        "time": "00:45:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : [일품] 대가의 모둠 스튜 (아비도스) 사용",
+        "outputQty": null
+      },
+      {
+        "name": "[일품] 대가의 전통 오믈렛",
+        "materials": [
+          {
+            "name": "아비도스 두툼한 생고기",
+            "qty": 15
+          },
+          {
+            "name": "아비도스 태양 잉어",
+            "qty": 16
+          },
+          {
+            "name": "다듬은 생고기",
+            "qty": 56
+          },
+          {
+            "name": "붉은 살 생선",
+            "qty": 65
+          },
+          {
+            "name": "두툼한 생고기",
+            "qty": 74
+          },
+          {
+            "name": "생선",
+            "qty": 86
+          }
+        ],
+        "gold": 50,
+        "energy": 216,
+        "time": "00:45:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : [일품] 대가의 전통 오믈렛 (아비도스) 사용",
+        "outputQty": null
+      },
+      {
+        "name": "[일품] 대가의 안심 스테이크 정식",
+        "materials": [
+          {
+            "name": "아비도스 두툼한 생고기",
+            "qty": 42
+          },
+          {
+            "name": "아비도스 태양 잉어",
+            "qty": 45
+          },
+          {
+            "name": "다듬은 생고기",
+            "qty": 68
+          },
+          {
+            "name": "붉은 살 생선",
+            "qty": 77
+          },
+          {
+            "name": "두툼한 생고기",
+            "qty": 90
+          },
+          {
+            "name": "생선",
+            "qty": 103
+          }
+        ],
+        "gold": 65,
+        "energy": 288,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : [일품] 대가의 안심 스테이크 정식 (아비도스) 사용",
+        "outputQty": null
+      },
+      {
+        "name": "달팽이 변신 물약",
+        "materials": [
+          {
+            "name": "마법 달팽이",
+            "qty": 15
+          }
+        ],
+        "gold": null,
+        "energy": null,
+        "time": null,
+        "condition": null,
+        "outputQty": null
+      }
+    ],
+    "특수": [
+      {
+        "name": "상급 아비도스 융화 재료",
+        "materials": [
+          {
+            "name": "아비도스 목재",
+            "qty": 43
+          },
+          {
+            "name": "부드러운 목재",
+            "qty": 59
+          },
+          {
+            "name": "목재",
+            "qty": 112
+          }
+        ],
+        "gold": 520,
+        "energy": 360,
+        "time": "01:15:00",
+        "condition": "제작 공방 Lv.2 달성, 연구소에서 제작법 : 상급 아비도스 융화 재료 (벌목) 연구 완료",
+        "outputQty": null
+      },
+      {
+        "name": "아비도스 융화 재료",
+        "materials": [
+          {
+            "name": "아비도스 철광석",
+            "qty": 33
+          },
+          {
+            "name": "묵직한 철광석",
+            "qty": 45
+          },
+          {
+            "name": "철광석",
+            "qty": 86
+          }
+        ],
+        "gold": 400,
+        "energy": 288,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성, 연구소에서 제작법 : 아비도스 융화 재료 (채광) 연구 완료",
+        "outputQty": null
+      },
+      {
+        "name": "상급 아비도스 융화 재료",
+        "materials": [
+          {
+            "name": "아비도스 철광석",
+            "qty": 43
+          },
+          {
+            "name": "묵직한 철광석",
+            "qty": 59
+          },
+          {
+            "name": "철광석",
+            "qty": 112
+          }
+        ],
+        "gold": 520,
+        "energy": 360,
+        "time": "01:15:00",
+        "condition": "제작 공방 Lv.2 달성, 연구소에서 제작법 : 상급 아비도스 융화 재료 (채광) 연구 완료",
+        "outputQty": null
+      },
+      {
+        "name": "아비도스 융화 재료",
+        "materials": [
+          {
+            "name": "아비도스 두툼한 생고기",
+            "qty": 33
+          },
+          {
+            "name": "다듬은 생고기",
+            "qty": 45
+          },
+          {
+            "name": "두툼한 생고기",
+            "qty": 86
+          }
+        ],
+        "gold": 400,
+        "energy": 288,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성, 연구소에서 제작법 : 아비도스 융화 재료 (수렵) 연구 완료",
+        "outputQty": null
+      },
+      {
+        "name": "상급 아비도스 융화 재료",
+        "materials": [
+          {
+            "name": "아비도스 두툼한 생고기",
+            "qty": 43
+          },
+          {
+            "name": "다듬은 생고기",
+            "qty": 59
+          },
+          {
+            "name": "두툼한 생고기",
+            "qty": 112
+          }
+        ],
+        "gold": 520,
+        "energy": 360,
+        "time": "01:15:00",
+        "condition": "제작 공방 Lv.2 달성, 연구소에서 제작법 : 상급 아비도스 융화 재료 (수렵) 연구 완료",
+        "outputQty": null
+      },
+      {
+        "name": "아비도스 융화 재료",
+        "materials": [
+          {
+            "name": "아비도스 태양 잉어",
+            "qty": 33
+          },
+          {
+            "name": "붉은 살 생선",
+            "qty": 45
+          },
+          {
+            "name": "생선",
+            "qty": 86
+          }
+        ],
+        "gold": 400,
+        "energy": 288,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성, 연구소에서 제작법 : 아비도스 융화 재료 (낚시) 연구 완료",
+        "outputQty": null
+      },
+      {
+        "name": "상급 아비도스 융화 재료",
+        "materials": [
+          {
+            "name": "아비도스 태양 잉어",
+            "qty": 43
+          },
+          {
+            "name": "붉은 살 생선",
+            "qty": 59
+          },
+          {
+            "name": "생선",
+            "qty": 112
+          }
+        ],
+        "gold": 520,
+        "energy": 360,
+        "time": "01:15:00",
+        "condition": "제작 공방 Lv.2 달성, 연구소에서 제작법 : 상급 아비도스 융화 재료 (낚시) 연구 완료",
+        "outputQty": null
+      },
+      {
+        "name": "아비도스 융화 재료",
+        "materials": [
+          {
+            "name": "아비도스 유물",
+            "qty": 33
+          },
+          {
+            "name": "희귀한 유물",
+            "qty": 45
+          },
+          {
+            "name": "고대 유물",
+            "qty": 86
+          }
+        ],
+        "gold": 400,
+        "energy": 288,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성, 연구소에서 제작법 : 아비도스 융화 재료 (고고학) 연구 완료",
+        "outputQty": null
+      },
+      {
+        "name": "상급 아비도스 융화 재료",
+        "materials": [
+          {
+            "name": "아비도스 유물",
+            "qty": 43
+          },
+          {
+            "name": "희귀한 유물",
+            "qty": 59
+          },
+          {
+            "name": "고대 유물",
+            "qty": 112
+          }
+        ],
+        "gold": 520,
+        "energy": 360,
+        "time": "01:15:00",
+        "condition": "제작 공방 Lv.2 달성, 연구소에서 제작법 : 상급 아비도스 융화 재료 (고고학) 연구 완료",
+        "outputQty": null
+      },
+      {
+        "name": "로맨틱 재료 키트",
+        "materials": [
+          {
+            "name": "화사한 들꽃",
+            "qty": 13
+          },
+          {
+            "name": "단단한 철광석",
+            "qty": 13
+          },
+          {
+            "name": "오레하 태양 잉어",
+            "qty": 13
+          },
+          {
+            "name": "오레하 두툼한 생고기",
+            "qty": 13
+          },
+          {
+            "name": "오레하 유물",
+            "qty": 13
+          }
+        ],
+        "gold": 100,
+        "energy": null,
+        "time": null,
+        "condition": null,
+        "outputQty": null
+      },
+      {
+        "name": "로맨틱 재료 키트",
+        "materials": [
+          {
+            "name": "아비도스 들꽃",
+            "qty": 11
+          },
+          {
+            "name": "아비도스 목재",
+            "qty": 11
+          },
+          {
+            "name": "아비도스 철광석",
+            "qty": 11
+          },
+          {
+            "name": "아비도스 태양 잉어",
+            "qty": 11
+          },
+          {
+            "name": "아비도스 두툼한 생고기",
+            "qty": 11
+          },
+          {
+            "name": "아비도스 유물",
+            "qty": 11
+          }
+        ],
+        "gold": 100,
+        "energy": null,
+        "time": null,
+        "condition": null,
+        "outputQty": null
+      },
+      {
+        "name": "쿠르잔 남부 고고학 유적 지도",
+        "materials": [
+          {
+            "name": "오레하 유물",
+            "qty": 55
+          },
+          {
+            "name": "희귀한 유물",
+            "qty": 278
+          }
+        ],
+        "gold": 80,
+        "energy": 1152,
+        "time": "04:00:00",
+        "condition": "제작 공방 Lv.2 달성",
+        "outputQty": null
+      },
+      {
+        "name": "오레하 융화 재료",
+        "materials": [
+          {
+            "name": "오레하 두툼한 생고기",
+            "qty": 10
+          },
+          {
+            "name": "다듬은 생고기",
+            "qty": 40
+          },
+          {
+            "name": "두툼한 생고기",
+            "qty": 80
+          }
+        ],
+        "gold": 205,
+        "energy": 216,
+        "time": "00:45:00",
+        "condition": "제작 공방 Lv.2 달성",
+        "outputQty": null
+      },
+      {
+        "name": "상급 오레하 융화 재료",
+        "materials": [
+          {
+            "name": "오레하 두툼한 생고기",
+            "qty": 16
+          },
+          {
+            "name": "다듬은 생고기",
+            "qty": 64
+          },
+          {
+            "name": "두툼한 생고기",
+            "qty": 128
+          }
+        ],
+        "gold": 250,
+        "energy": 288,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성",
+        "outputQty": null
+      },
+      {
+        "name": "오레하 융화 재료",
+        "materials": [
+          {
+            "name": "오레하 태양 잉어",
+            "qty": 10
+          },
+          {
+            "name": "붉은 살 생선",
+            "qty": 40
+          },
+          {
+            "name": "생선",
+            "qty": 80
+          }
+        ],
+        "gold": 205,
+        "energy": 216,
+        "time": "00:45:00",
+        "condition": "제작 공방 Lv.2 달성",
+        "outputQty": null
+      },
+      {
+        "name": "상급 오레하 융화 재료",
+        "materials": [
+          {
+            "name": "오레하 태양 잉어",
+            "qty": 16
+          },
+          {
+            "name": "붉은 살 생선",
+            "qty": 64
+          },
+          {
+            "name": "생선",
+            "qty": 128
+          }
+        ],
+        "gold": 250,
+        "energy": 288,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성",
+        "outputQty": null
+      },
+      {
+        "name": "오레하 융화 재료",
+        "materials": [
+          {
+            "name": "오레하 유물",
+            "qty": 8
+          },
+          {
+            "name": "희귀한 유물",
+            "qty": 26
+          },
+          {
+            "name": "고대 유물",
+            "qty": 64
+          }
+        ],
+        "gold": 205,
+        "energy": 216,
+        "time": "00:45:00",
+        "condition": "제작 공방 Lv.2 달성",
+        "outputQty": null
+      },
+      {
+        "name": "상급 오레하 융화 재료",
+        "materials": [
+          {
+            "name": "오레하 유물",
+            "qty": 16
+          },
+          {
+            "name": "희귀한 유물",
+            "qty": 29
+          },
+          {
+            "name": "고대 유물",
+            "qty": 94
+          }
+        ],
+        "gold": 250,
+        "energy": 288,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성",
+        "outputQty": null
+      },
+      {
+        "name": "최상급 오레하 융화 재료",
+        "materials": [
+          {
+            "name": "오레하 두툼한 생고기",
+            "qty": 52
+          },
+          {
+            "name": "다듬은 생고기",
+            "qty": 69
+          },
+          {
+            "name": "두툼한 생고기",
+            "qty": 142
+          }
+        ],
+        "gold": 300,
+        "energy": 360,
+        "time": "00:45:00",
+        "condition": "제작 공방 Lv.2 달성",
+        "outputQty": null
+      },
+      {
+        "name": "최상급 오레하 융화 재료",
+        "materials": [
+          {
+            "name": "오레하 태양 잉어",
+            "qty": 52
+          },
+          {
+            "name": "붉은 살 생선",
+            "qty": 69
+          },
+          {
+            "name": "생선",
+            "qty": 142
+          }
+        ],
+        "gold": 300,
+        "energy": 360,
+        "time": "00:45:00",
+        "condition": "제작 공방 Lv.2 달성",
+        "outputQty": null
+      },
+      {
+        "name": "최상급 오레하 융화 재료",
+        "materials": [
+          {
+            "name": "오레하 유물",
+            "qty": 52
+          },
+          {
+            "name": "희귀한 유물",
+            "qty": 51
+          },
+          {
+            "name": "고대 유물",
+            "qty": 107
+          }
+        ],
+        "gold": 300,
+        "energy": 360,
+        "time": "00:45:00",
+        "condition": "제작 공방 Lv.2 달성",
+        "outputQty": null
+      },
+      {
+        "name": "지평의 야금술 선택 상자",
+        "materials": [
+          {
+            "name": "은총의 파편",
+            "qty": 10
+          }
+        ],
+        "gold": null,
+        "energy": null,
+        "time": null,
+        "condition": null,
+        "outputQty": null
+      },
+      {
+        "name": "지평의 재봉술 선택 상자",
+        "materials": [
+          {
+            "name": "은총의 파편",
+            "qty": 10
+          }
+        ],
+        "gold": null,
+        "energy": null,
+        "time": null,
+        "condition": null,
+        "outputQty": null
+      },
+      {
+        "name": "지평의 재련 재료 상자",
+        "materials": [
+          {
+            "name": "은총의 파편",
+            "qty": 60
+          }
+        ],
+        "gold": null,
+        "energy": null,
+        "time": null,
+        "condition": null,
+        "outputQty": null
+      },
+      {
+        "name": "야금술 : 업화 [19-20]",
+        "materials": [
+          {
+            "name": "고통의 가시",
+            "qty": 20
+          }
+        ],
+        "gold": 3000,
+        "energy": null,
+        "time": null,
+        "condition": null,
+        "outputQty": null
+      },
+      {
+        "name": "재봉술 : 업화 [19-20]",
+        "materials": [
+          {
+            "name": "고통의 가시",
+            "qty": 10
+          }
+        ],
+        "gold": 1500,
+        "energy": null,
+        "time": null,
+        "condition": null,
+        "outputQty": null
+      },
+      {
+        "name": "야금술 : 업화 [19-20] 상자",
+        "materials": [
+          {
+            "name": "고통의 가시",
+            "qty": 20
+          }
+        ],
+        "gold": null,
+        "energy": null,
+        "time": null,
+        "condition": null,
+        "outputQty": null
+      },
+      {
+        "name": "재봉술 : 업화 [19-20] 상자",
+        "materials": [
+          {
+            "name": "고통의 가시",
+            "qty": 10
+          }
+        ],
+        "gold": null,
+        "energy": null,
+        "time": null,
+        "condition": null,
+        "outputQty": null
+      },
+      {
+        "name": "고통의 재련 재료 상자",
+        "materials": [
+          {
+            "name": "고통의 가시",
+            "qty": 5
+          }
+        ],
+        "gold": null,
+        "energy": null,
+        "time": null,
+        "condition": null,
+        "outputQty": null
+      },
+      {
+        "name": "고통의 재련 보조 재료 주머니",
+        "materials": [
+          {
+            "name": "고통의 가시",
+            "qty": 5
+          }
+        ],
+        "gold": null,
+        "energy": null,
+        "time": null,
+        "condition": null,
+        "outputQty": null
+      },
+      {
+        "name": "비상의 돌 각인 지정 키트",
+        "materials": [
+          {
+            "name": "사령의 잔영",
+            "qty": 10
+          }
+        ],
+        "gold": null,
+        "energy": null,
+        "time": null,
+        "condition": null,
+        "outputQty": null
+      },
+      {
+        "name": "비상의 돌 각인 지정 키트",
+        "materials": [
+          {
+            "name": "죽음의 손",
+            "qty": 5
+          }
+        ],
+        "gold": null,
+        "energy": null,
+        "time": null,
+        "condition": null,
+        "outputQty": null
+      },
+      {
+        "name": "엘라 부여 : 신비한 돌",
+        "materials": [
+          {
+            "name": "로맨틱 재료 키트",
+            "qty": 8500
+          },
+          {
+            "name": "에스더의 기운",
+            "qty": 20
+          }
+        ],
+        "gold": null,
+        "energy": null,
+        "time": null,
+        "condition": null,
+        "outputQty": null
+      },
+      {
+        "name": "엘라 부여 : 영롱한 돌",
+        "materials": [
+          {
+            "name": "로맨틱 재료 키트",
+            "qty": 8500
+          },
+          {
+            "name": "에스더의 기운",
+            "qty": 20
+          },
+          {
+            "name": "첫 번째 날숨",
+            "qty": 1
+          }
+        ],
+        "gold": null,
+        "energy": null,
+        "time": null,
+        "condition": null,
+        "outputQty": null
+      },
+      {
+        "name": "아비도스 융화 재료",
+        "materials": [
+          {
+            "name": "아비도스 들꽃",
+            "qty": 33
+          },
+          {
+            "name": "수줍은 들꽃",
+            "qty": 45
+          },
+          {
+            "name": "들꽃",
+            "qty": 86
+          }
+        ],
+        "gold": 400,
+        "energy": 288,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성, 연구소에서 제작법 : 아비도스 융화 재료 (식물채집) 연구 완료",
+        "outputQty": null
+      },
+      {
+        "name": "상급 아비도스 융화 재료",
+        "materials": [
+          {
+            "name": "아비도스 들꽃",
+            "qty": 43
+          },
+          {
+            "name": "수줍은 들꽃",
+            "qty": 59
+          },
+          {
+            "name": "들꽃",
+            "qty": 112
+          }
+        ],
+        "gold": 520,
+        "energy": 360,
+        "time": "01:15:00",
+        "condition": "제작 공방 Lv.2 달성, 연구소에서 제작법 : 상급 아비도스 융화 재료 (식물채집) 연구 완료",
+        "outputQty": null
+      },
+      {
+        "name": "아비도스 융화 재료",
+        "materials": [
+          {
+            "name": "아비도스 목재",
+            "qty": 33
+          },
+          {
+            "name": "부드러운 목재",
+            "qty": 45
+          },
+          {
+            "name": "목재",
+            "qty": 86
+          }
+        ],
+        "gold": 400,
+        "energy": 288,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성, 연구소에서 제작법 : 아비도스 융화 재료 (벌목) 연구 완료",
+        "outputQty": null
+      }
+    ],
+    "농장생산": [
+      {
+        "name": "기능성 선택 배틀 아이템 상자",
+        "materials": [
+          {
+            "name": "붉은 용암 덩어리",
+            "qty": 5
+          },
+          {
+            "name": "성스러운 부적",
+            "qty": 3
+          }
+        ],
+        "gold": 150,
+        "energy": 216,
+        "time": "00:45:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 불꽃 마법 스크롤 사용",
+        "outputQty": null
+      },
+      {
+        "name": "융화재료 : 최상급 오레하 융화제 상자",
+        "materials": [
+          {
+            "name": "오레하 농장 생고기",
+            "qty": 52
+          },
+          {
+            "name": "고급 생고기",
+            "qty": 69
+          },
+          {
+            "name": "생고기",
+            "qty": 142
+          }
+        ],
+        "gold": 300,
+        "energy": 360,
+        "time": "00:45:00",
+        "condition": "제작 공방 Lv.2 달성",
+        "outputQty": null
+      },
+      {
+        "name": "융화재료 : 최상급 오레하 융화제 상자",
+        "materials": [
+          {
+            "name": "오레하 금빛 잉어",
+            "qty": 52
+          },
+          {
+            "name": "튼튼한 붕어",
+            "qty": 69
+          },
+          {
+            "name": "싱싱한 피라미",
+            "qty": 142
+          }
+        ],
+        "gold": 300,
+        "energy": 360,
+        "time": "00:45:00",
+        "condition": "제작 공방 Lv.2 달성",
+        "outputQty": null
+      },
+      {
+        "name": "융화재료 : 최상급 오레하 융화제 상자",
+        "materials": [
+          {
+            "name": "오레하 고대 유물",
+            "qty": 52
+          },
+          {
+            "name": "은은한 고대 유물",
+            "qty": 51
+          },
+          {
+            "name": "오래된 고대 유물",
+            "qty": 107
+          }
+        ],
+        "gold": 300,
+        "energy": 360,
+        "time": "00:45:00",
+        "condition": "제작 공방 Lv.2 달성",
+        "outputQty": null
+      },
+      {
+        "name": "요리 : 대가의 요리 선택 상자",
+        "materials": [
+          {
+            "name": "오레하 농장 생고기",
+            "qty": 19
+          },
+          {
+            "name": "오레하 금빛 잉어",
+            "qty": 22
+          },
+          {
+            "name": "고급 생고기",
+            "qty": 56
+          },
+          {
+            "name": "튼튼한 붕어",
+            "qty": 65
+          },
+          {
+            "name": "생고기",
+            "qty": 74
+          },
+          {
+            "name": "싱싱한 피라미",
+            "qty": 86
+          }
+        ],
+        "gold": 50,
+        "energy": 216,
+        "time": "00:45:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 대가의 요리 선택 상자 사용",
+        "outputQty": null
+      },
+      {
+        "name": "요리 : 대가의 안심 스테이크 정식 상자",
+        "materials": [
+          {
+            "name": "오레하 농장 생고기",
+            "qty": 53
+          },
+          {
+            "name": "오레하 금빛 잉어",
+            "qty": 60
+          },
+          {
+            "name": "고급 생고기",
+            "qty": 68
+          },
+          {
+            "name": "튼튼한 붕어",
+            "qty": 77
+          },
+          {
+            "name": "생고기",
+            "qty": 90
+          },
+          {
+            "name": "싱싱한 피라미",
+            "qty": 103
+          }
+        ],
+        "gold": 65,
+        "energy": 288,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 대가의 안심 스테이크 정식 상자 사용",
+        "outputQty": null
+      },
+      {
+        "name": "요리 : 거장의 요리 선택 상자",
+        "materials": [
+          {
+            "name": "아비도스 농장 생고기",
+            "qty": 24
+          },
+          {
+            "name": "아비도스 금빛 잉어",
+            "qty": 27
+          },
+          {
+            "name": "고급 생고기",
+            "qty": 71
+          },
+          {
+            "name": "튼튼한 붕어",
+            "qty": 81
+          },
+          {
+            "name": "생고기",
+            "qty": 94
+          },
+          {
+            "name": "싱싱한 피라미",
+            "qty": 107
+          }
+        ],
+        "gold": 65,
+        "energy": 216,
+        "time": "00:45:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 거장의 요리 선택 상자 사용",
+        "outputQty": null
+      },
+      {
+        "name": "요리 : 거장의 채끝 스테이크 정식 상자",
+        "materials": [
+          {
+            "name": "아비도스 농장 생고기",
+            "qty": 65
+          },
+          {
+            "name": "아비도스 금빛 잉어",
+            "qty": 75
+          },
+          {
+            "name": "고급 생고기",
+            "qty": 84
+          },
+          {
+            "name": "튼튼한 붕어",
+            "qty": 97
+          },
+          {
+            "name": "생고기",
+            "qty": 112
+          },
+          {
+            "name": "싱싱한 피라미",
+            "qty": 129
+          }
+        ],
+        "gold": 80,
+        "energy": 288,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 거장의 채끝 스테이크 정식 상자 사용",
+        "outputQty": null
+      },
+      {
+        "name": "융화재료 : 오레하 융화제 상자",
+        "materials": [
+          {
+            "name": "오레하 농장 생고기",
+            "qty": 10
+          },
+          {
+            "name": "고급 생고기",
+            "qty": 40
+          },
+          {
+            "name": "생고기",
+            "qty": 80
+          }
+        ],
+        "gold": 205,
+        "energy": 216,
+        "time": "00:45:00",
+        "condition": "제작 공방 Lv.2 달성",
+        "outputQty": null
+      },
+      {
+        "name": "융화재료 : 상급 오레하 융화제 상자",
+        "materials": [
+          {
+            "name": "오레하 농장 생고기",
+            "qty": 16
+          },
+          {
+            "name": "고급 생고기",
+            "qty": 64
+          },
+          {
+            "name": "생고기",
+            "qty": 128
+          }
+        ],
+        "gold": 250,
+        "energy": 288,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성",
+        "outputQty": null
+      },
+      {
+        "name": "융화재료 : 오레하 융화제 상자",
+        "materials": [
+          {
+            "name": "오레하 금빛 잉어",
+            "qty": 10
+          },
+          {
+            "name": "튼튼한 붕어",
+            "qty": 40
+          },
+          {
+            "name": "싱싱한 피라미",
+            "qty": 80
+          }
+        ],
+        "gold": 205,
+        "energy": 216,
+        "time": "00:45:00",
+        "condition": "제작 공방 Lv.2 달성",
+        "outputQty": null
+      },
+      {
+        "name": "융화재료 : 상급 오레하 융화제 상자",
+        "materials": [
+          {
+            "name": "오레하 금빛 잉어",
+            "qty": 16
+          },
+          {
+            "name": "튼튼한 붕어",
+            "qty": 64
+          },
+          {
+            "name": "싱싱한 피라미",
+            "qty": 128
+          }
+        ],
+        "gold": 250,
+        "energy": 288,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성",
+        "outputQty": null
+      },
+      {
+        "name": "융화재료 : 오레하 융화제 상자",
+        "materials": [
+          {
+            "name": "오레하 고대 유물",
+            "qty": 8
+          },
+          {
+            "name": "은은한 고대 유물",
+            "qty": 26
+          },
+          {
+            "name": "오래된 고대 유물",
+            "qty": 64
+          }
+        ],
+        "gold": 205,
+        "energy": 216,
+        "time": "00:45:00",
+        "condition": "제작 공방 Lv.2 달성",
+        "outputQty": null
+      },
+      {
+        "name": "융화재료 : 상급 오레하 융화제 상자",
+        "materials": [
+          {
+            "name": "오레하 고대 유물",
+            "qty": 16
+          },
+          {
+            "name": "은은한 고대 유물",
+            "qty": 29
+          },
+          {
+            "name": "오래된 고대 유물",
+            "qty": 94
+          }
+        ],
+        "gold": 250,
+        "energy": 288,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성",
+        "outputQty": null
+      },
+      {
+        "name": "요리 : 장인의 요리 선택 상자",
+        "materials": [
+          {
+            "name": "고급 생고기",
+            "qty": 21
+          },
+          {
+            "name": "튼튼한 붕어",
+            "qty": 21
+          },
+          {
+            "name": "생고기",
+            "qty": 42
+          },
+          {
+            "name": "싱싱한 피라미",
+            "qty": 43
+          }
+        ],
+        "gold": null,
+        "energy": 216,
+        "time": "00:45:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 장인의 요리 선택 상자 사용",
+        "outputQty": null
+      },
+      {
+        "name": "요리 : 장인의 마늘 스테이크 정식 상자",
+        "materials": [
+          {
+            "name": "고급 생고기",
+            "qty": 39
+          },
+          {
+            "name": "튼튼한 붕어",
+            "qty": 40
+          },
+          {
+            "name": "생고기",
+            "qty": 78
+          },
+          {
+            "name": "싱싱한 피라미",
+            "qty": 80
+          }
+        ],
+        "gold": null,
+        "energy": 288,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 장인의 마늘 스테이크 정식 상자 사용",
+        "outputQty": null
+      },
+      {
+        "name": "요리 : 달인의 요리 선택 상자",
+        "materials": [
+          {
+            "name": "고급 생고기",
+            "qty": 47
+          },
+          {
+            "name": "튼튼한 붕어",
+            "qty": 48
+          },
+          {
+            "name": "생고기",
+            "qty": 94
+          },
+          {
+            "name": "싱싱한 피라미",
+            "qty": 96
+          }
+        ],
+        "gold": 20,
+        "energy": 216,
+        "time": "00:45:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 달인의 요리 선택 상자 사용",
+        "outputQty": null
+      },
+      {
+        "name": "요리 : 달인의 버터 스테이크 정식 상자",
+        "materials": [
+          {
+            "name": "고급 생고기",
+            "qty": 104
+          },
+          {
+            "name": "튼튼한 붕어",
+            "qty": 107
+          },
+          {
+            "name": "생고기",
+            "qty": 208
+          },
+          {
+            "name": "싱싱한 피라미",
+            "qty": 213
+          }
+        ],
+        "gold": 25,
+        "energy": 288,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 달인의 버터 스테이크 정식 상자 사용",
+        "outputQty": null
+      },
+      {
+        "name": "요리 : 명인의 요리 선택 상자",
+        "materials": [
+          {
+            "name": "오레하 농장 생고기",
+            "qty": 6
+          },
+          {
+            "name": "오레하 금빛 잉어",
+            "qty": 7
+          },
+          {
+            "name": "고급 생고기",
+            "qty": 22
+          },
+          {
+            "name": "튼튼한 붕어",
+            "qty": 26
+          },
+          {
+            "name": "생고기",
+            "qty": 45
+          },
+          {
+            "name": "싱싱한 피라미",
+            "qty": 53
+          }
+        ],
+        "gold": 35,
+        "energy": 216,
+        "time": "00:45:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 명인의 요리 선택 상자 사용",
+        "outputQty": null
+      },
+      {
+        "name": "요리 : 명인의 허브 스테이크 정식 상자",
+        "materials": [
+          {
+            "name": "오레하 농장 생고기",
+            "qty": 12
+          },
+          {
+            "name": "오레하 금빛 잉어",
+            "qty": 13
+          },
+          {
+            "name": "고급 생고기",
+            "qty": 44
+          },
+          {
+            "name": "튼튼한 붕어",
+            "qty": 50
+          },
+          {
+            "name": "생고기",
+            "qty": 88
+          },
+          {
+            "name": "싱싱한 피라미",
+            "qty": 100
+          }
+        ],
+        "gold": 50,
+        "energy": 288,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 명인의 허브 스테이크 정식 상자 사용",
+        "outputQty": null
+      },
+      {
+        "name": "도구 : 도구 제작 부품 상자",
+        "materials": [
+          {
+            "name": "단단한 원석",
+            "qty": 22
+          },
+          {
+            "name": "단단한 원목",
+            "qty": 22
+          },
+          {
+            "name": "천연 보석",
+            "qty": 88
+          },
+          {
+            "name": "부드러운 목재",
+            "qty": 88
+          }
+        ],
+        "gold": 20,
+        "energy": 288,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 도구 제작 부품 상자 사용",
+        "outputQty": null
+      },
+      {
+        "name": "도구 : 생활 도구 복원 키트 상자",
+        "materials": [
+          {
+            "name": "도구 제작 부품 (귀속)",
+            "qty": 40
+          },
+          {
+            "name": "단단한 원목",
+            "qty": 26
+          },
+          {
+            "name": "은은한 고대 유물",
+            "qty": 80
+          },
+          {
+            "name": "오래된 고대 유물",
+            "qty": 128
+          }
+        ],
+        "gold": 40,
+        "energy": 864,
+        "time": "03:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 생활 도구 복원 키트 상자 사용",
+        "outputQty": null
+      },
+      {
+        "name": "요리 : 명인의 요리 선택 상자",
+        "materials": [
+          {
+            "name": "아비도스 농장 생고기",
+            "qty": 4
+          },
+          {
+            "name": "아비도스 금빛 잉어",
+            "qty": 5
+          },
+          {
+            "name": "고급 생고기",
+            "qty": 22
+          },
+          {
+            "name": "튼튼한 붕어",
+            "qty": 26
+          },
+          {
+            "name": "생고기",
+            "qty": 45
+          },
+          {
+            "name": "싱싱한 피라미",
+            "qty": 53
+          }
+        ],
+        "gold": 35,
+        "energy": 216,
+        "time": "00:45:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 명인의 요리 선택 상자 (아비도스) 사용",
+        "outputQty": null
+      },
+      {
+        "name": "요리 : 명인의 허브 스테이크 정식 상자",
+        "materials": [
+          {
+            "name": "아비도스 농장 생고기",
+            "qty": 9
+          },
+          {
+            "name": "아비도스 금빛 잉어",
+            "qty": 10
+          },
+          {
+            "name": "고급 생고기",
+            "qty": 44
+          },
+          {
+            "name": "튼튼한 붕어",
+            "qty": 50
+          },
+          {
+            "name": "생고기",
+            "qty": 88
+          },
+          {
+            "name": "싱싱한 피라미",
+            "qty": 100
+          }
+        ],
+        "gold": 50,
+        "energy": 288,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 명인의 허브 스테이크 정식 상자 (아비도스) 사용",
+        "outputQty": null
+      },
+      {
+        "name": "요리 : 대가의 요리 선택 상자",
+        "materials": [
+          {
+            "name": "아비도스 농장 생고기",
+            "qty": 15
+          },
+          {
+            "name": "아비도스 금빛 잉어",
+            "qty": 16
+          },
+          {
+            "name": "고급 생고기",
+            "qty": 56
+          },
+          {
+            "name": "튼튼한 붕어",
+            "qty": 65
+          },
+          {
+            "name": "생고기",
+            "qty": 74
+          },
+          {
+            "name": "싱싱한 피라미",
+            "qty": 86
+          }
+        ],
+        "gold": 50,
+        "energy": 216,
+        "time": "00:45:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 대가의 요리 선택 상자 (아비도스) 사용",
+        "outputQty": null
+      },
+      {
+        "name": "요리 : 대가의 안심 스테이크 정식 상자",
+        "materials": [
+          {
+            "name": "아비도스 농장 생고기",
+            "qty": 42
+          },
+          {
+            "name": "아비도스 금빛 잉어",
+            "qty": 45
+          },
+          {
+            "name": "고급 생고기",
+            "qty": 68
+          },
+          {
+            "name": "튼튼한 붕어",
+            "qty": 77
+          },
+          {
+            "name": "생고기",
+            "qty": 90
+          },
+          {
+            "name": "싱싱한 피라미",
+            "qty": 103
+          }
+        ],
+        "gold": 65,
+        "energy": 288,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 대가의 안심 스테이크 정식 상자 (아비도스) 사용",
+        "outputQty": null
+      },
+      {
+        "name": "사령의 재련 재료 상자",
+        "materials": [
+          {
+            "name": "사령의 잔영",
+            "qty": 20
+          }
+        ],
+        "gold": null,
+        "energy": null,
+        "time": null,
+        "condition": null,
+        "outputQty": null
+      },
+      {
+        "name": "사령의 재련 보조 재료 주머니",
+        "materials": [
+          {
+            "name": "사령의 잔영",
+            "qty": 20
+          }
+        ],
+        "gold": null,
+        "energy": null,
+        "time": null,
+        "condition": null,
+        "outputQty": null
+      },
+      {
+        "name": "사령의 재련 재료 상자",
+        "materials": [
+          {
+            "name": "죽음의 손",
+            "qty": 10
+          }
+        ],
+        "gold": null,
+        "energy": null,
+        "time": null,
+        "condition": null,
+        "outputQty": null
+      },
+      {
+        "name": "사령의 재련 보조 재료 주머니",
+        "materials": [
+          {
+            "name": "죽음의 손",
+            "qty": 10
+          }
+        ],
+        "gold": null,
+        "energy": null,
+        "time": null,
+        "condition": null,
+        "outputQty": null
+      },
+      {
+        "name": "융화재료 : 아비도스 융화제 상자",
+        "materials": [
+          {
+            "name": "아비도스 꽃잎",
+            "qty": 33
+          },
+          {
+            "name": "귀여운 꽃잎",
+            "qty": 45
+          },
+          {
+            "name": "소박한 꽃잎",
+            "qty": 86
+          }
+        ],
+        "gold": 400,
+        "energy": 288,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성, 연구소에서 제작법 : 아비도스 융화제 상자 (식물채집) 연구 완료",
+        "outputQty": null
+      },
+      {
+        "name": "융화재료 : 상급 아비도스 융화제 상자",
+        "materials": [
+          {
+            "name": "아비도스 꽃잎",
+            "qty": 43
+          },
+          {
+            "name": "귀여운 꽃잎",
+            "qty": 59
+          },
+          {
+            "name": "소박한 꽃잎",
+            "qty": 112
+          }
+        ],
+        "gold": 520,
+        "energy": 360,
+        "time": "01:15:00",
+        "condition": "제작 공방 Lv.2 달성, 연구소에서 제작법 : 상급 아비도스 융화제 상자 (식물채집) 연구 완료",
+        "outputQty": null
+      },
+      {
+        "name": "융화재료 : 아비도스 융화제 상자",
+        "materials": [
+          {
+            "name": "아비도스 원목",
+            "qty": 33
+          },
+          {
+            "name": "부드러운 목재",
+            "qty": 45
+          },
+          {
+            "name": "원목",
+            "qty": 86
+          }
+        ],
+        "gold": 400,
+        "energy": 288,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성, 연구소에서 제작법 : 아비도스 융화제 상자 (벌목) 연구 완료",
+        "outputQty": null
+      },
+      {
+        "name": "융화재료 : 상급 아비도스 융화제 상자",
+        "materials": [
+          {
+            "name": "아비도스 원목",
+            "qty": 43
+          },
+          {
+            "name": "부드러운 목재",
+            "qty": 59
+          },
+          {
+            "name": "원목",
+            "qty": 112
+          }
+        ],
+        "gold": 520,
+        "energy": 360,
+        "time": "01:15:00",
+        "condition": "제작 공방 Lv.2 달성, 연구소에서 제작법 : 상급 아비도스 융화제 상자 (벌목) 연구 완료",
+        "outputQty": null
+      },
+      {
+        "name": "융화재료 : 아비도스 융화제 상자",
+        "materials": [
+          {
+            "name": "아비도스 원석",
+            "qty": 33
+          },
+          {
+            "name": "천연 보석",
+            "qty": 45
+          },
+          {
+            "name": "투박한 철광석",
+            "qty": 86
+          }
+        ],
+        "gold": 400,
+        "energy": 288,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성, 연구소에서 제작법 : 아비도스 융화제 상자 (채광) 연구 완료",
+        "outputQty": null
+      },
+      {
+        "name": "융화재료 : 상급 아비도스 융화제 상자",
+        "materials": [
+          {
+            "name": "아비도스 원석",
+            "qty": 43
+          },
+          {
+            "name": "천연 보석",
+            "qty": 59
+          },
+          {
+            "name": "투박한 철광석",
+            "qty": 112
+          }
+        ],
+        "gold": 520,
+        "energy": 360,
+        "time": "01:15:00",
+        "condition": "제작 공방 Lv.2 달성, 연구소에서 제작법 : 상급 아비도스 융화제 상자 (채광) 연구 완료",
+        "outputQty": null
+      },
+      {
+        "name": "융화재료 : 아비도스 융화제 상자",
+        "materials": [
+          {
+            "name": "아비도스 농장 생고기",
+            "qty": 33
+          },
+          {
+            "name": "고급 생고기",
+            "qty": 45
+          },
+          {
+            "name": "생고기",
+            "qty": 86
+          }
+        ],
+        "gold": 400,
+        "energy": 288,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성, 연구소에서 제작법 : 아비도스 융화제 상자 (수렵) 연구 완료",
+        "outputQty": null
+      },
+      {
+        "name": "융화재료 : 상급 아비도스 융화제 상자",
+        "materials": [
+          {
+            "name": "아비도스 농장 생고기",
+            "qty": 43
+          },
+          {
+            "name": "고급 생고기",
+            "qty": 59
+          },
+          {
+            "name": "생고기",
+            "qty": 112
+          }
+        ],
+        "gold": 520,
+        "energy": 360,
+        "time": "01:15:00",
+        "condition": "제작 공방 Lv.2 달성, 연구소에서 제작법 : 상급 아비도스 융화제 상자 (수렵) 연구 완료",
+        "outputQty": null
+      },
+      {
+        "name": "기능성 선택 배틀 아이템 상자",
+        "materials": [
+          {
+            "name": "부드러운 목재",
+            "qty": 20
+          },
+          {
+            "name": "철광석",
+            "qty": 36
+          }
+        ],
+        "gold": null,
+        "energy": 2,
+        "time": "00:00:10",
+        "condition": "제작 공방 Lv.2 달성",
+        "outputQty": null
+      },
+      {
+        "name": "융화재료 : 아비도스 융화제 상자",
+        "materials": [
+          {
+            "name": "아비도스 금빛 잉어",
+            "qty": 33
+          },
+          {
+            "name": "튼튼한 붕어",
+            "qty": 45
+          },
+          {
+            "name": "싱싱한 피라미",
+            "qty": 86
+          }
+        ],
+        "gold": 400,
+        "energy": 288,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성, 연구소에서 제작법 : 아비도스 융화제 상자 (낚시) 연구 완료",
+        "outputQty": null
+      },
+      {
+        "name": "융화재료 : 상급 아비도스 융화제 상자",
+        "materials": [
+          {
+            "name": "아비도스 금빛 잉어",
+            "qty": 43
+          },
+          {
+            "name": "튼튼한 붕어",
+            "qty": 59
+          },
+          {
+            "name": "싱싱한 피라미",
+            "qty": 112
+          }
+        ],
+        "gold": 520,
+        "energy": 360,
+        "time": "01:15:00",
+        "condition": "제작 공방 Lv.2 달성, 연구소에서 제작법 : 상급 아비도스 융화제 상자 (낚시) 연구 완료",
+        "outputQty": null
+      },
+      {
+        "name": "융화재료 : 아비도스 융화제 상자",
+        "materials": [
+          {
+            "name": "아비도스 고대 유물",
+            "qty": 33
+          },
+          {
+            "name": "은은한 고대 유물",
+            "qty": 45
+          },
+          {
+            "name": "오래된 고대 유물",
+            "qty": 86
+          }
+        ],
+        "gold": 400,
+        "energy": 288,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성, 연구소에서 제작법 : 아비도스 융화제 상자 (고고학) 연구 완료",
+        "outputQty": null
+      },
+      {
+        "name": "융화재료 : 상급 아비도스 융화제 상자",
+        "materials": [
+          {
+            "name": "아비도스 고대 유물",
+            "qty": 43
+          },
+          {
+            "name": "은은한 고대 유물",
+            "qty": 59
+          },
+          {
+            "name": "오래된 고대 유물",
+            "qty": 112
+          }
+        ],
+        "gold": 520,
+        "energy": 360,
+        "time": "01:15:00",
+        "condition": "제작 공방 Lv.2 달성, 연구소에서 제작법 : 상급 아비도스 융화제 상자 (고고학) 연구 완료",
+        "outputQty": null
+      },
+      {
+        "name": "배틀 아이템 : 회복약 선택 상자",
+        "materials": [
+          {
+            "name": "화려한 꽃잎",
+            "qty": 8
+          },
+          {
+            "name": "귀여운 꽃잎",
+            "qty": 25
+          },
+          {
+            "name": "소박한 꽃잎",
+            "qty": 33
+          }
+        ],
+        "gold": 30,
+        "energy": 288,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성",
+        "outputQty": null
+      },
+      {
+        "name": "배틀 아이템 : 폭탄 선택 상자",
+        "materials": [
+          {
+            "name": "단단한 원석",
+            "qty": 4
+          },
+          {
+            "name": "천연 보석",
+            "qty": 15
+          },
+          {
+            "name": "투박한 철광석",
+            "qty": 30
+          }
+        ],
+        "gold": 15,
+        "energy": 144,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.2 달성",
+        "outputQty": null
+      },
+      {
+        "name": "배틀 아이템 : 수류탄 선택 상자",
+        "materials": [
+          {
+            "name": "단단한 원목",
+            "qty": 4
+          },
+          {
+            "name": "부드러운 목재",
+            "qty": 12
+          },
+          {
+            "name": "원목",
+            "qty": 17
+          }
+        ],
+        "gold": 15,
+        "energy": 144,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.2 달성",
+        "outputQty": null
+      },
+      {
+        "name": "배틀 아이템 : 물약 선택 상자",
+        "materials": [
+          {
+            "name": "진귀한 고대 유물",
+            "qty": 6
+          },
+          {
+            "name": "은은한 고대 유물",
+            "qty": 17
+          },
+          {
+            "name": "귀여운 꽃잎",
+            "qty": 8
+          },
+          {
+            "name": "오래된 고대 유물",
+            "qty": 75
+          }
+        ],
+        "gold": 30,
+        "energy": 288,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성",
+        "outputQty": null
+      },
+      {
+        "name": "배틀 아이템 : 로브 선택 상자",
+        "materials": [
+          {
+            "name": "두툼한 가죽",
+            "qty": 4
+          },
+          {
+            "name": "고급 생고기",
+            "qty": 15
+          },
+          {
+            "name": "생고기",
+            "qty": 30
+          }
+        ],
+        "gold": 30,
+        "energy": 288,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성",
+        "outputQty": null
+      },
+      {
+        "name": "배틀 아이템 : 지원 선택 상자",
+        "materials": [
+          {
+            "name": "단단한 원석",
+            "qty": 16
+          },
+          {
+            "name": "부드러운 목재",
+            "qty": 27
+          },
+          {
+            "name": "투박한 철광석",
+            "qty": 143
+          }
+        ],
+        "gold": 15,
+        "energy": 144,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.2 달성",
+        "outputQty": null
+      },
+      {
+        "name": "선박재료 : 일반 선박 부품 상자",
+        "materials": [
+          {
+            "name": "투박한 철광석",
+            "qty": 16
+          },
+          {
+            "name": "원목",
+            "qty": 16
+          }
+        ],
+        "gold": 10,
+        "energy": 72,
+        "time": "00:15:00",
+        "condition": "제작 공방 Lv.2 달성",
+        "outputQty": null
+      },
+      {
+        "name": "선박재료 : 고급 선박 부품 상자",
+        "materials": [
+          {
+            "name": "단단한 원석",
+            "qty": 3
+          },
+          {
+            "name": "단단한 원목",
+            "qty": 3
+          },
+          {
+            "name": "천연 보석",
+            "qty": 9
+          },
+          {
+            "name": "부드러운 목재",
+            "qty": 9
+          }
+        ],
+        "gold": 20,
+        "energy": 144,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.2 달성, 연구소에서 제작법 : 고급 선박 부품 상자 연구 완료",
+        "outputQty": null
+      },
+      {
+        "name": "선박재료 : 희귀 선박 부품 상자",
+        "materials": [
+          {
+            "name": "단단한 원석",
+            "qty": 3
+          },
+          {
+            "name": "단단한 원목",
+            "qty": 3
+          },
+          {
+            "name": "천연 보석",
+            "qty": 12
+          },
+          {
+            "name": "부드러운 목재",
+            "qty": 12
+          }
+        ],
+        "gold": 40,
+        "energy": 288,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.5 달성, 연구소에서 제작법 : 희귀 선박 부품 상자 연구 완료",
+        "outputQty": null
+      },
+      {
+        "name": "선박재료 : 영웅 선박 부품 상자",
+        "materials": [
+          {
+            "name": "단단한 원석",
+            "qty": 4
+          },
+          {
+            "name": "단단한 원목",
+            "qty": 4
+          },
+          {
+            "name": "천연 보석",
+            "qty": 14
+          },
+          {
+            "name": "부드러운 목재",
+            "qty": 14
+          }
+        ],
+        "gold": 100,
+        "energy": 360,
+        "time": "01:15:00",
+        "condition": "제작 공방 Lv.7 달성, 연구소에서 제작법 : 영웅 선박 부품 상자 연구 완료",
+        "outputQty": null
+      },
+      {
+        "name": "도구 : 견습생용 생활 도구 선택 상자",
+        "materials": [
+          {
+            "name": "견습생용 도구 제작 키트 (귀속)",
+            "qty": 1
+          },
+          {
+            "name": "도구 제작 부품 (귀속)",
+            "qty": 3
+          },
+          {
+            "name": "오래된 고대 유물",
+            "qty": 35
+          }
+        ],
+        "gold": 30,
+        "energy": 288,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성",
+        "outputQty": null
+      },
+      {
+        "name": "도구 : 숙련가용 생활 도구 선택 상자",
+        "materials": [
+          {
+            "name": "숙련가용 도구 제작 키트 (귀속)",
+            "qty": 1
+          },
+          {
+            "name": "도구 제작 부품 (귀속)",
+            "qty": 8
+          },
+          {
+            "name": "은은한 고대 유물",
+            "qty": 20
+          },
+          {
+            "name": "오래된 고대 유물",
+            "qty": 26
+          }
+        ],
+        "gold": 100,
+        "energy": 864,
+        "time": "03:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 숙련가용 생활 도구 선택 상자 사용",
+        "outputQty": null
+      },
+      {
+        "name": "도구 : 전문가용 생활 도구 선택 상자",
+        "materials": [
+          {
+            "name": "전문가용 도구 제작 키트 (귀속)",
+            "qty": 1
+          },
+          {
+            "name": "도구 제작 부품 (귀속)",
+            "qty": 28
+          },
+          {
+            "name": "은은한 고대 유물",
+            "qty": 26
+          },
+          {
+            "name": "오래된 고대 유물",
+            "qty": 34
+          }
+        ],
+        "gold": 250,
+        "energy": 1728,
+        "time": "06:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 전문가용 생활 도구 선택 상자 사용",
+        "outputQty": null
+      },
+      {
+        "name": "도구 : 달인용 생활 도구 선택 상자",
+        "materials": [
+          {
+            "name": "달인용 도구 제작 키트 (귀속)",
+            "qty": 1
+          },
+          {
+            "name": "도구 제작 부품 (귀속)",
+            "qty": 82
+          },
+          {
+            "name": "은은한 고대 유물",
+            "qty": 92
+          },
+          {
+            "name": "오래된 고대 유물",
+            "qty": 122
+          }
+        ],
+        "gold": 500,
+        "energy": 2592,
+        "time": "09:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 달인용 생활 도구 선택 상자 사용",
+        "outputQty": null
+      },
+      {
+        "name": "유용한 선물 상자",
+        "materials": [
+          {
+            "name": "붉은 결정",
+            "qty": 10
+          },
+          {
+            "name": "단단한 철광석",
+            "qty": 90
+          }
+        ],
+        "gold": 30,
+        "energy": 144,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 유용한 선물 상자 사용",
+        "outputQty": null
+      },
+      {
+        "name": "기능성 선택 배틀 아이템 상자",
+        "materials": [
+          {
+            "name": "정제된 우르살리 가루",
+            "qty": 5
+          },
+          {
+            "name": "성스러운 부적",
+            "qty": 3
+          }
+        ],
+        "gold": 150,
+        "energy": 216,
+        "time": "00:45:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 특제 부패 중화제 사용",
+        "outputQty": null
+      },
+      {
+        "name": "생명의 힘을 담은 플라스크",
+        "materials": [
+          {
+            "name": "작은 생명의 구슬",
+            "qty": 1
+          },
+          {
+            "name": "철광석",
+            "qty": 100
+          }
+        ],
+        "gold": 400,
+        "energy": 1728,
+        "time": "06:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 생명의 힘을 담은 플라스크 사용",
+        "outputQty": null
+      },
+      {
+        "name": "기능성 선택 배틀 아이템 상자",
+        "materials": [
+          {
+            "name": "단단한 철광석",
+            "qty": 16
+          },
+          {
+            "name": "부드러운 목재",
+            "qty": 27
+          },
+          {
+            "name": "철광석",
+            "qty": 143
+          }
+        ],
+        "gold": 15,
+        "energy": 216,
+        "time": "00:45:00",
+        "condition": "제작 공방 Lv.2 달성",
+        "outputQty": null
+      },
+      {
+        "name": "기능성 선택 배틀 아이템 상자",
+        "materials": [
+          {
+            "name": "진귀한 가죽",
+            "qty": 4
+          },
+          {
+            "name": "다듬은 생고기",
+            "qty": 15
+          },
+          {
+            "name": "고대 유물",
+            "qty": 30
+          }
+        ],
+        "gold": 15,
+        "energy": 144,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.2 달성",
+        "outputQty": null
+      }
+    ],
+    "설치물": [
+      {
+        "name": "설치물 : 아르테미스식 중형 분수",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 48
+          },
+          {
+            "name": "묵직한 철광석",
+            "qty": 1
+          },
+          {
+            "name": "일반 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 40,
+        "energy": 288,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.5 달성",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 아르테미스식 소형 분수",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 12
+          },
+          {
+            "name": "목재",
+            "qty": 12
+          },
+          {
+            "name": "기초 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": null,
+        "energy": 288,
+        "time": "00:30:00",
+        "condition": null,
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 아르테미스식 대형 분수",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 96
+          },
+          {
+            "name": "묵직한 철광석",
+            "qty": 1
+          },
+          {
+            "name": "기초 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 80,
+        "energy": 288,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.4 달성, 제작법 : 아르테미스식 대형 분수 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 루테란식 대형 분수",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 96
+          },
+          {
+            "name": "묵직한 철광석",
+            "qty": 1
+          },
+          {
+            "name": "기초 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 80,
+        "energy": 288,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.3 달성, 제작법 : 루테란식 대형 분수 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 대형 풍차",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 18
+          },
+          {
+            "name": "목재",
+            "qty": 54
+          },
+          {
+            "name": "희귀한 유물",
+            "qty": 1
+          },
+          {
+            "name": "기초 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 60,
+        "energy": 288,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.4 달성, 제작법 : 대형 풍차 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 베른식 대형 분수",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 24
+          },
+          {
+            "name": "목재",
+            "qty": 72
+          },
+          {
+            "name": "기초 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 80,
+        "energy": 288,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.3 달성",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 거대 어항",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 72
+          },
+          {
+            "name": "목재",
+            "qty": 24
+          },
+          {
+            "name": "묵직한 철광석",
+            "qty": 1
+          },
+          {
+            "name": "고급 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 80,
+        "energy": 288,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.7 달성, 제작법 : 거대 어항 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 거대 아리안 나무",
+        "materials": [
+          {
+            "name": "목재",
+            "qty": 48
+          }
+        ],
+        "gold": 40,
+        "energy": 288,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.7 달성",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 타르타 나무",
+        "materials": [
+          {
+            "name": "목재",
+            "qty": 48
+          }
+        ],
+        "gold": 40,
+        "energy": 288,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.5 달성",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 지브롤 나무",
+        "materials": [
+          {
+            "name": "목재",
+            "qty": 48
+          }
+        ],
+        "gold": 40,
+        "energy": 288,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.4 달성",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 눈 쌓인 피루체 트리",
+        "materials": [
+          {
+            "name": "깜짝 목공 상자",
+            "qty": 4
+          }
+        ],
+        "gold": 8,
+        "energy": 2,
+        "time": "00:00:10",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 눈 쌓인 피루체 트리 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 화려한 꽃밭",
+        "materials": [
+          {
+            "name": "목재",
+            "qty": 48
+          }
+        ],
+        "gold": 40,
+        "energy": 2,
+        "time": "00:00:10",
+        "condition": "제작 공방 Lv.6 달성, 제작법 : 화려한 꽃밭 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 반짝이는 피루체 트리",
+        "materials": [
+          {
+            "name": "깜짝 목공 상자",
+            "qty": 6
+          }
+        ],
+        "gold": 12,
+        "energy": 2,
+        "time": "00:00:10",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 반짝이는 피루체 트리 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 귀여운 꽃밭",
+        "materials": [
+          {
+            "name": "목재",
+            "qty": 48
+          }
+        ],
+        "gold": 40,
+        "energy": 2,
+        "time": "00:00:10",
+        "condition": "제작 공방 Lv.4 달성",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 메리 크리스마스 피루체 트리",
+        "materials": [
+          {
+            "name": "깜짝 목공 상자",
+            "qty": 6
+          }
+        ],
+        "gold": 12,
+        "energy": 2,
+        "time": "00:00:10",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 메리 크리스마스 피루체 트리 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 사랑스러운 꽃밭",
+        "materials": [
+          {
+            "name": "목재",
+            "qty": 48
+          }
+        ],
+        "gold": 40,
+        "energy": 2,
+        "time": "00:00:10",
+        "condition": "제작 공방 Lv.4 달성",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 무궁화 나무",
+        "materials": [
+          {
+            "name": "깜짝 목공 상자",
+            "qty": 3
+          }
+        ],
+        "gold": 4,
+        "energy": 2,
+        "time": "00:00:10",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 무궁화 나무 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 해바라기 꽃밭",
+        "materials": [
+          {
+            "name": "목재",
+            "qty": 48
+          }
+        ],
+        "gold": 40,
+        "energy": 2,
+        "time": "00:00:10",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 해바라기 꽃밭 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : OX 게임 - 튜브 입구",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 108
+          },
+          {
+            "name": "목재",
+            "qty": 69
+          },
+          {
+            "name": "일반 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 45,
+        "energy": 2,
+        "time": "00:00:10",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : OX 게임 - 튜브 입구 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 갈대 밭",
+        "materials": [
+          {
+            "name": "목재",
+            "qty": 48
+          }
+        ],
+        "gold": 40,
+        "energy": 2,
+        "time": "00:00:10",
+        "condition": "제작 공방 Lv.5 달성, 제작법 : 갈대 밭 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : OX 게임 - 정원 (직선)",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 67
+          },
+          {
+            "name": "목재",
+            "qty": 53
+          },
+          {
+            "name": "기초 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 30,
+        "energy": 2,
+        "time": "00:00:10",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : OX 게임 - 정원 (직선) 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 정열의 화단",
+        "materials": [
+          {
+            "name": "목재",
+            "qty": 48
+          }
+        ],
+        "gold": 40,
+        "energy": 2,
+        "time": "00:00:10",
+        "condition": "제작 공방 Lv.3 달성",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : OX 게임 - 정원 (곡선)",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 67
+          },
+          {
+            "name": "목재",
+            "qty": 53
+          },
+          {
+            "name": "기초 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 30,
+        "energy": 2,
+        "time": "00:00:10",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : OX 게임 - 정원 (곡선) 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 순수의 화단",
+        "materials": [
+          {
+            "name": "목재",
+            "qty": 48
+          }
+        ],
+        "gold": 40,
+        "energy": 2,
+        "time": "00:00:10",
+        "condition": "제작 공방 Lv.2 달성",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 풍성한 조명 울타리",
+        "materials": [
+          {
+            "name": "깜짝 목공 상자",
+            "qty": 6
+          }
+        ],
+        "gold": 12,
+        "energy": 2,
+        "time": "00:00:10",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 풍성한 조명 울타리 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 담쟁이넝쿨 담장 (소형)",
+        "materials": [
+          {
+            "name": "목재",
+            "qty": 12
+          }
+        ],
+        "gold": null,
+        "energy": 2,
+        "time": "00:00:10",
+        "condition": null,
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 가지런한 조명 울타리",
+        "materials": [
+          {
+            "name": "깜짝 목공 상자",
+            "qty": 6
+          }
+        ],
+        "gold": 12,
+        "energy": 2,
+        "time": "00:00:10",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 가지런한 조명 울타리 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 담쟁이넝쿨 담장 (중형)",
+        "materials": [
+          {
+            "name": "목재",
+            "qty": 24
+          }
+        ],
+        "gold": null,
+        "energy": 2,
+        "time": "00:00:10",
+        "condition": null,
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 반짝이는 조명 기둥",
+        "materials": [
+          {
+            "name": "깜짝 목공 상자",
+            "qty": 4
+          }
+        ],
+        "gold": 8,
+        "energy": 2,
+        "time": "00:00:10",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 반짝이는 조명 기둥 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 담쟁이넝쿨 담장 (대형)",
+        "materials": [
+          {
+            "name": "목재",
+            "qty": 36
+          }
+        ],
+        "gold": null,
+        "energy": 2,
+        "time": "00:00:10",
+        "condition": null,
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 장엄한 금속 기둥",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 67
+          },
+          {
+            "name": "목재",
+            "qty": 53
+          },
+          {
+            "name": "기초 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 50,
+        "energy": 288,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 장엄한 금속 기둥 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 담쟁이넝쿨 담장 (특대형)",
+        "materials": [
+          {
+            "name": "목재",
+            "qty": 48
+          }
+        ],
+        "gold": null,
+        "energy": 2,
+        "time": "00:00:10",
+        "condition": null,
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 거룩한 석재 기둥",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 67
+          },
+          {
+            "name": "목재",
+            "qty": 53
+          },
+          {
+            "name": "기초 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 50,
+        "energy": 288,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 거룩한 석재 기둥 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 담쟁이넝쿨 기둥",
+        "materials": [
+          {
+            "name": "목재",
+            "qty": 24
+          }
+        ],
+        "gold": null,
+        "energy": 2,
+        "time": "00:00:10",
+        "condition": null,
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 회색 방석 의자",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 108
+          },
+          {
+            "name": "목재",
+            "qty": 69
+          },
+          {
+            "name": "일반 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 75,
+        "energy": 576,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 회색 방석 의자 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 담쟁이넝쿨 문",
+        "materials": [
+          {
+            "name": "목재",
+            "qty": 24
+          }
+        ],
+        "gold": null,
+        "energy": 2,
+        "time": "00:00:10",
+        "condition": null,
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 분홍 체크 방석 의자",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 108
+          },
+          {
+            "name": "목재",
+            "qty": 69
+          },
+          {
+            "name": "일반 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 75,
+        "energy": 576,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 분홍 체크 방석 의자 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 호박 허수아비",
+        "materials": [
+          {
+            "name": "목재",
+            "qty": 48
+          },
+          {
+            "name": "일반 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 40,
+        "energy": 288,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.5 달성, 제작법 : 호박 허수아비 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 주황 체크 방석 의자",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 108
+          },
+          {
+            "name": "목재",
+            "qty": 69
+          },
+          {
+            "name": "일반 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 75,
+        "energy": 576,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 주황 체크 방석 의자 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 나무 침대",
+        "materials": [
+          {
+            "name": "목재",
+            "qty": 96
+          },
+          {
+            "name": "기초 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 80,
+        "energy": 288,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.4 달성",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 편안한 모코코 카페 소파",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 108
+          },
+          {
+            "name": "목재",
+            "qty": 69
+          },
+          {
+            "name": "일반 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 75,
+        "energy": 576,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 편안한 모코코 카페 소파 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 갈색 선베드",
+        "materials": [
+          {
+            "name": "목재",
+            "qty": 72
+          },
+          {
+            "name": "기초 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 60,
+        "energy": 288,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.4 달성, 제작법 : 갈색 선베드 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 설레는 모코코 카페 소파",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 108
+          },
+          {
+            "name": "목재",
+            "qty": 69
+          },
+          {
+            "name": "일반 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 75,
+        "energy": 576,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 설레는 모코코 카페 소파 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 고급 의자",
+        "materials": [
+          {
+            "name": "목재",
+            "qty": 36
+          },
+          {
+            "name": "기초 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 30,
+        "energy": 288,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.4 달성",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 기품있는 모코코 카페 소파",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 108
+          },
+          {
+            "name": "목재",
+            "qty": 69
+          },
+          {
+            "name": "일반 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 75,
+        "energy": 576,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 기품있는 모코코 카페 소파 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 영주 의자",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 5
+          },
+          {
+            "name": "목재",
+            "qty": 44
+          },
+          {
+            "name": "일반 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 40,
+        "energy": 288,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.5 달성",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 모래 놀이 - 테이블 세트",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 108
+          },
+          {
+            "name": "목재",
+            "qty": 69
+          },
+          {
+            "name": "일반 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 75,
+        "energy": 576,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 모래 놀이 - 테이블 세트 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 대리석 벤치",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 48
+          },
+          {
+            "name": "기초 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 40,
+        "energy": 288,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.6 달성",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 모래 놀이 - 나무 의자",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 108
+          },
+          {
+            "name": "목재",
+            "qty": 69
+          },
+          {
+            "name": "일반 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 75,
+        "energy": 576,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 모래 놀이 - 나무 의자 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 꺾인 대리석 벤치",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 48
+          },
+          {
+            "name": "기초 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 40,
+        "energy": 288,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.6 달성",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 가벼운 원형 카페 테이블",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 108
+          },
+          {
+            "name": "목재",
+            "qty": 69
+          },
+          {
+            "name": "일반 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 75,
+        "energy": 576,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 가벼운 원형 카페 테이블 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 예배용 벤치",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 12
+          },
+          {
+            "name": "목재",
+            "qty": 36
+          },
+          {
+            "name": "기초 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 40,
+        "energy": 288,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 예배용 벤치 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 단단한 원형 카페 테이블",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 108
+          },
+          {
+            "name": "목재",
+            "qty": 69
+          },
+          {
+            "name": "일반 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 75,
+        "energy": 576,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 단단한 원형 카페 테이블 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 반숙 의자",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 18
+          },
+          {
+            "name": "목재",
+            "qty": 18
+          },
+          {
+            "name": "기초 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 30,
+        "energy": 288,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.3 달성, 제작법 : 반숙 의자 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 부드러운 원형 카페 테이블",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 108
+          },
+          {
+            "name": "목재",
+            "qty": 69
+          },
+          {
+            "name": "일반 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 75,
+        "energy": 576,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 부드러운 원형 카페 테이블 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 베른식 벤치",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 12
+          },
+          {
+            "name": "목재",
+            "qty": 36
+          },
+          {
+            "name": "기초 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 40,
+        "energy": 288,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.3 달성",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 가벼운 사각 카페 테이블",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 108
+          },
+          {
+            "name": "목재",
+            "qty": 69
+          },
+          {
+            "name": "일반 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 75,
+        "energy": 576,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 가벼운 사각 카페 테이블 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 로헨델식 벤치",
+        "materials": [
+          {
+            "name": "목재",
+            "qty": 48
+          },
+          {
+            "name": "기초 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 40,
+        "energy": 288,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.4 달성",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 단단한 사각 카페 테이블",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 108
+          },
+          {
+            "name": "목재",
+            "qty": 69
+          },
+          {
+            "name": "일반 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 75,
+        "energy": 576,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 단단한 사각 카페 테이블 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 푹신한 소파",
+        "materials": [
+          {
+            "name": "목재",
+            "qty": 48
+          },
+          {
+            "name": "일반 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 40,
+        "energy": 288,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.5 달성",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 부드러운 사각 카페 테이블",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 108
+          },
+          {
+            "name": "목재",
+            "qty": 69
+          },
+          {
+            "name": "일반 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 75,
+        "energy": 576,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 부드러운 사각 카페 테이블 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 베른식 대형 벤치",
+        "materials": [
+          {
+            "name": "목재",
+            "qty": 96
+          },
+          {
+            "name": "기초 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 80,
+        "energy": 288,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.3 달성",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 단정한 카페 주문 테이블",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 108
+          },
+          {
+            "name": "목재",
+            "qty": 69
+          },
+          {
+            "name": "일반 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 75,
+        "energy": 576,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 단정한 카페 주문 테이블 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 로헨델식 대형 벤치",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 24
+          },
+          {
+            "name": "목재",
+            "qty": 72
+          },
+          {
+            "name": "기초 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 80,
+        "energy": 288,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.7 달성",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 편리한 카페 주문 테이블",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 108
+          },
+          {
+            "name": "목재",
+            "qty": 69
+          },
+          {
+            "name": "일반 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 75,
+        "energy": 576,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 편리한 카페 주문 테이블 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 원형 식탁",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 12
+          },
+          {
+            "name": "목재",
+            "qty": 36
+          },
+          {
+            "name": "희귀한 유물",
+            "qty": 1
+          },
+          {
+            "name": "기초 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 40,
+        "energy": 288,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.3 달성",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 거대한 도서관 책장",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 67
+          },
+          {
+            "name": "목재",
+            "qty": 53
+          },
+          {
+            "name": "기초 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 50,
+        "energy": 288,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 거대한 도서관 책장 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 대리석 탁자",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 48
+          },
+          {
+            "name": "묵직한 철광석",
+            "qty": 1
+          },
+          {
+            "name": "기초 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 40,
+        "energy": 288,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.6 달성",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 콴다 원목 책장",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 67
+          },
+          {
+            "name": "목재",
+            "qty": 53
+          },
+          {
+            "name": "기초 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 50,
+        "energy": 288,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 콴다 원목 책장 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 게임 테이블",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 24
+          },
+          {
+            "name": "목재",
+            "qty": 72
+          },
+          {
+            "name": "희귀한 유물",
+            "qty": 1
+          },
+          {
+            "name": "기초 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 80,
+        "energy": 288,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.3 달성, 제작법 : 게임 테이블 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 고즈넉한 목재 칸막이",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 67
+          },
+          {
+            "name": "목재",
+            "qty": 53
+          },
+          {
+            "name": "기초 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 50,
+        "energy": 288,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 고즈넉한 목재 칸막이 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 집무용 책상",
+        "materials": [
+          {
+            "name": "목재",
+            "qty": 96
+          },
+          {
+            "name": "부드러운 목재",
+            "qty": 1
+          },
+          {
+            "name": "일반 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 80,
+        "energy": 288,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.6 달성, 제작법 : 집무용 책상 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : OX 게임 - 차단벽",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 56
+          },
+          {
+            "name": "목재",
+            "qty": 36
+          },
+          {
+            "name": "일반 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 15,
+        "energy": 2,
+        "time": "00:00:10",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : OX 게임 - 차단벽 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 낚시 테이블",
+        "materials": [
+          {
+            "name": "목재",
+            "qty": 96
+          },
+          {
+            "name": "부드러운 목재",
+            "qty": 1
+          },
+          {
+            "name": "기초 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 80,
+        "energy": 288,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 낚시 테이블 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 모래 놀이 - 안내판",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 26
+          },
+          {
+            "name": "목재",
+            "qty": 21
+          },
+          {
+            "name": "기초 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 10,
+        "energy": 576,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 모래 놀이 - 안내판 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 나무 식탁",
+        "materials": [
+          {
+            "name": "목재",
+            "qty": 96
+          },
+          {
+            "name": "부드러운 목재",
+            "qty": 1
+          },
+          {
+            "name": "일반 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 80,
+        "energy": 288,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.5 달성, 제작법 : 나무 식탁 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 모래 놀이 - 모래 더미",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 90
+          },
+          {
+            "name": "목재",
+            "qty": 46
+          },
+          {
+            "name": "고급 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 20,
+        "energy": 576,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 모래 놀이 - 모래 더미 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 바 테이블",
+        "materials": [
+          {
+            "name": "목재",
+            "qty": 96
+          },
+          {
+            "name": "기초 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 80,
+        "energy": 288,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.4 달성, 제작법 : 바 테이블 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 모래 놀이 - 삽 거치대",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 90
+          },
+          {
+            "name": "목재",
+            "qty": 46
+          },
+          {
+            "name": "고급 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 20,
+        "energy": 576,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 모래 놀이 - 삽 거치대 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 강화된 보관함",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 6
+          },
+          {
+            "name": "목재",
+            "qty": 18
+          },
+          {
+            "name": "부드러운 목재",
+            "qty": 1
+          }
+        ],
+        "gold": 20,
+        "energy": 288,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.3 달성, 제작법 : 강화된 보관함 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 라피스 나무 화분",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 26
+          },
+          {
+            "name": "목재",
+            "qty": 21
+          },
+          {
+            "name": "기초 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 10,
+        "energy": 2,
+        "time": "00:00:10",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 라피스 나무 화분 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 쌍안경",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 12
+          },
+          {
+            "name": "목재",
+            "qty": 12
+          },
+          {
+            "name": "고급 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 20,
+        "energy": 288,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 쌍안경 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 예술가의 클래식 카펫",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 26
+          },
+          {
+            "name": "목재",
+            "qty": 21
+          },
+          {
+            "name": "기초 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 10,
+        "energy": 288,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 예술가의 클래식 카펫 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 망원경",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 12
+          },
+          {
+            "name": "목재",
+            "qty": 12
+          },
+          {
+            "name": "고급 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 20,
+        "energy": 288,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 망원경 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 유랑민의 대형 카펫",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 26
+          },
+          {
+            "name": "목재",
+            "qty": 21
+          },
+          {
+            "name": "기초 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 10,
+        "energy": 288,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 유랑민의 대형 카펫 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 사진기",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 12
+          },
+          {
+            "name": "목재",
+            "qty": 12
+          },
+          {
+            "name": "고급 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 20,
+        "energy": 288,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 사진기 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : OX 게임 - 정원 (O)",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 56
+          },
+          {
+            "name": "목재",
+            "qty": 36
+          },
+          {
+            "name": "일반 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 15,
+        "energy": 2,
+        "time": "00:00:10",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : OX 게임 - 정원 (O) 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 전서구함",
+        "materials": [
+          {
+            "name": "목재",
+            "qty": 24
+          },
+          {
+            "name": "기초 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 20,
+        "energy": 288,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.3 달성, 제작법 : 전서구함 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : OX 게임 - 정원 (X)",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 56
+          },
+          {
+            "name": "목재",
+            "qty": 36
+          },
+          {
+            "name": "일반 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 15,
+        "energy": 2,
+        "time": "00:00:10",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : OX 게임 - 정원 (X) 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 축제용 솥단지",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 18
+          },
+          {
+            "name": "목재",
+            "qty": 6
+          },
+          {
+            "name": "기초 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 20,
+        "energy": 288,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 축제용 솥단지 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : OX 게임 - 돗자리",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 56
+          },
+          {
+            "name": "목재",
+            "qty": 36
+          },
+          {
+            "name": "일반 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 15,
+        "energy": 576,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : OX 게임 - 돗자리 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 불꽃놀이 장치",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 12
+          },
+          {
+            "name": "목재",
+            "qty": 12
+          },
+          {
+            "name": "고급 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 20,
+        "energy": 288,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.7 달성, 제작법 : 불꽃놀이 장치 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : OX 게임 - 셰브런 러그",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 56
+          },
+          {
+            "name": "목재",
+            "qty": 36
+          },
+          {
+            "name": "일반 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 15,
+        "energy": 576,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : OX 게임 - 셰브런 러그 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 무기 진열대",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 24
+          },
+          {
+            "name": "목재",
+            "qty": 24
+          },
+          {
+            "name": "묵직한 철광석",
+            "qty": 1
+          },
+          {
+            "name": "기초 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 40,
+        "energy": 288,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 무기 진열대 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 모래 놀이 - 장엄한 모래성",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 56
+          },
+          {
+            "name": "목재",
+            "qty": 36
+          },
+          {
+            "name": "일반 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 15,
+        "energy": 576,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 모래 놀이 - 장엄한 모래성 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 갑옷 진열대",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 24
+          },
+          {
+            "name": "목재",
+            "qty": 24
+          },
+          {
+            "name": "묵직한 철광석",
+            "qty": 1
+          },
+          {
+            "name": "기초 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 40,
+        "energy": 288,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.3 달성, 제작법 : 갑옷 진열대 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 모래 놀이 - 웅장한 모래성",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 56
+          },
+          {
+            "name": "목재",
+            "qty": 36
+          },
+          {
+            "name": "일반 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 15,
+        "energy": 576,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 모래 놀이 - 웅장한 모래성 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 차양막",
+        "materials": [
+          {
+            "name": "목재",
+            "qty": 15
+          }
+        ],
+        "gold": null,
+        "energy": 288,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 차양막 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 모래 놀이 - 서핑 보드",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 26
+          },
+          {
+            "name": "목재",
+            "qty": 21
+          },
+          {
+            "name": "기초 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 10,
+        "energy": 576,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 모래 놀이 - 서핑 보드 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 디오리카 물레방아",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 10
+          },
+          {
+            "name": "목재",
+            "qty": 10
+          }
+        ],
+        "gold": null,
+        "energy": 288,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 디오리카 물레방아 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 모래 놀이 - 불가사리",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 26
+          },
+          {
+            "name": "목재",
+            "qty": 21
+          },
+          {
+            "name": "기초 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 10,
+        "energy": 576,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 모래 놀이 - 불가사리 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 우르르의 나무 벤치",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 5
+          },
+          {
+            "name": "목재",
+            "qty": 5
+          }
+        ],
+        "gold": null,
+        "energy": 288,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 우르르의 나무 벤치 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 모래 놀이 - 홍학 솟대",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 26
+          },
+          {
+            "name": "목재",
+            "qty": 21
+          },
+          {
+            "name": "기초 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 10,
+        "energy": 576,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 모래 놀이 - 홍학 솟대 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : NACT-1 계산대",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 5
+          },
+          {
+            "name": "목재",
+            "qty": 5
+          }
+        ],
+        "gold": null,
+        "energy": 288,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : NACT-1 계산대 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 모래 놀이 - 조개더미",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 26
+          },
+          {
+            "name": "목재",
+            "qty": 21
+          },
+          {
+            "name": "기초 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 10,
+        "energy": 576,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 모래 놀이 - 조개더미 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 네리아의 주점 메뉴 게시판",
+        "materials": [
+          {
+            "name": "목재",
+            "qty": 5
+          }
+        ],
+        "gold": null,
+        "energy": 288,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 네리아의 주점 게시판 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 꾸러기 해적단 막내",
+        "materials": [
+          {
+            "name": "깜짝 목공 상자",
+            "qty": 3
+          }
+        ],
+        "gold": 4,
+        "energy": 2,
+        "time": "00:00:10",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 꾸러기 해적단 막내 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 빨리빨리 발판",
+        "materials": [
+          {
+            "name": "깜짝 목공 상자",
+            "qty": 4
+          }
+        ],
+        "gold": 8,
+        "energy": 2,
+        "time": "00:00:10",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 빨리빨리 발판 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 바닷속 친구들",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 167
+          },
+          {
+            "name": "목재",
+            "qty": 106
+          },
+          {
+            "name": "생선",
+            "qty": 92
+          },
+          {
+            "name": "일반 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 150,
+        "energy": 2,
+        "time": "00:00:10",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 바닷속 친구들 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 카페 모코코 바닥재",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 166
+          },
+          {
+            "name": "목재",
+            "qty": 106
+          },
+          {
+            "name": "일반 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 150,
+        "energy": 2,
+        "time": "00:00:10",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 카페 모코코 바닥 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 카페 모코코 벽지",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 166
+          },
+          {
+            "name": "목재",
+            "qty": 106
+          },
+          {
+            "name": "일반 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 150,
+        "energy": 2,
+        "time": "00:00:10",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 카페 모코코 벽지 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 미려한 황동 창문",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 102
+          },
+          {
+            "name": "목재",
+            "qty": 81
+          },
+          {
+            "name": "기초 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 100,
+        "energy": 288,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 미려한 황동 창문 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 밤의 아치형 창문",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 102
+          },
+          {
+            "name": "목재",
+            "qty": 81
+          },
+          {
+            "name": "기초 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 100,
+        "energy": 288,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 밤의 아치형 창문 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 아침의 아치형 창문",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 102
+          },
+          {
+            "name": "목재",
+            "qty": 81
+          },
+          {
+            "name": "기초 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 100,
+        "energy": 288,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 아침의 아치형 창문 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 이슬이 내려앉은 도시",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 102
+          },
+          {
+            "name": "목재",
+            "qty": 81
+          },
+          {
+            "name": "기초 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 100,
+        "energy": 288,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 이슬이 내려앉은 도시 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 고요한 숲 동산에 앉아",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 102
+          },
+          {
+            "name": "목재",
+            "qty": 81
+          },
+          {
+            "name": "기초 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 100,
+        "energy": 288,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 고요한 숲 동산에 앉아 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 거대한 도끼와 방패",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 102
+          },
+          {
+            "name": "목재",
+            "qty": 81
+          },
+          {
+            "name": "기초 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 100,
+        "energy": 288,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 거대한 도끼와 방패 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 수련자의 녹색 깃발",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 102
+          },
+          {
+            "name": "목재",
+            "qty": 81
+          },
+          {
+            "name": "기초 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 100,
+        "energy": 288,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 수련자의 녹색 깃발 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 풍요의 과실",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 102
+          },
+          {
+            "name": "목재",
+            "qty": 81
+          },
+          {
+            "name": "기초 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 100,
+        "energy": 288,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 풍요의 과실 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 거대한 사슴 머리 장식",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 102
+          },
+          {
+            "name": "목재",
+            "qty": 81
+          },
+          {
+            "name": "기초 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 100,
+        "energy": 288,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 거대한 사슴 머리 장식 사용",
+        "outputQty": null
+      },
+      {
+        "name": "설치물 : 카페 모코코 메뉴판",
+        "materials": [
+          {
+            "name": "철광석",
+            "qty": 166
+          },
+          {
+            "name": "목재",
+            "qty": 106
+          },
+          {
+            "name": "일반 공구 상자",
+            "qty": 1
+          }
+        ],
+        "gold": 150,
+        "energy": 576,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 카페 모코코 메뉴판 사용",
+        "outputQty": null
+      }
+    ],
+    "배틀 아이템": [
+      {
+        "name": "빛나는 정령의 회복약",
+        "materials": [
+          {
+            "name": "정령의 회복약",
+            "qty": 3
+          },
+          {
+            "name": "화사한 들꽃",
+            "qty": 8
+          }
+        ],
+        "gold": 30,
+        "energy": 360,
+        "time": "01:15:00",
+        "condition": "제작 공방 Lv.5 달성, 제작법 : 빛나는 정령의 회복약 사용",
+        "outputQty": null
+      },
+      {
+        "name": "빛나는 섬광 수류탄",
+        "materials": [
+          {
+            "name": "섬광 수류탄",
+            "qty": 3
+          },
+          {
+            "name": "튼튼한 목재",
+            "qty": 4
+          }
+        ],
+        "gold": 15,
+        "energy": 216,
+        "time": "00:45:00",
+        "condition": "제작 공방 Lv.7 달성, 제작법 : 빛나는 섬광 수류탄 사용",
+        "outputQty": null
+      },
+      {
+        "name": "빛나는 화염 수류탄",
+        "materials": [
+          {
+            "name": "화염 수류탄",
+            "qty": 3
+          },
+          {
+            "name": "튼튼한 목재",
+            "qty": 4
+          }
+        ],
+        "gold": 15,
+        "energy": 216,
+        "time": "00:45:00",
+        "condition": "제작 공방 Lv.7 달성, 제작법 : 빛나는 화염 수류탄 사용",
+        "outputQty": null
+      },
+      {
+        "name": "빛나는 냉기 수류탄",
+        "materials": [
+          {
+            "name": "냉기 수류탄",
+            "qty": 3
+          },
+          {
+            "name": "튼튼한 목재",
+            "qty": 4
+          }
+        ],
+        "gold": 15,
+        "energy": 216,
+        "time": "00:45:00",
+        "condition": "제작 공방 Lv.7 달성, 제작법 : 빛나는 냉기 수류탄 사용",
+        "outputQty": null
+      },
+      {
+        "name": "빛나는 전기 수류탄",
+        "materials": [
+          {
+            "name": "전기 수류탄",
+            "qty": 3
+          },
+          {
+            "name": "튼튼한 목재",
+            "qty": 4
+          }
+        ],
+        "gold": 15,
+        "energy": 216,
+        "time": "00:45:00",
+        "condition": "제작 공방 Lv.7 달성, 제작법 : 빛나는 전기 수류탄 사용",
+        "outputQty": null
+      },
+      {
+        "name": "빛나는 점토 수류탄",
+        "materials": [
+          {
+            "name": "점토 수류탄",
+            "qty": 3
+          },
+          {
+            "name": "튼튼한 목재",
+            "qty": 4
+          }
+        ],
+        "gold": 15,
+        "energy": 216,
+        "time": "00:45:00",
+        "condition": "제작 공방 Lv.7 달성, 제작법 : 빛나는 점토 수류탄 사용",
+        "outputQty": null
+      },
+      {
+        "name": "빛나는 회오리 수류탄",
+        "materials": [
+          {
+            "name": "회오리 수류탄",
+            "qty": 3
+          },
+          {
+            "name": "튼튼한 목재",
+            "qty": 4
+          }
+        ],
+        "gold": 15,
+        "energy": 216,
+        "time": "00:45:00",
+        "condition": "제작 공방 Lv.7 달성, 제작법 : 빛나는 회오리 수류탄 사용",
+        "outputQty": null
+      },
+      {
+        "name": "빛나는 암흑 수류탄",
+        "materials": [
+          {
+            "name": "암흑 수류탄",
+            "qty": 3
+          },
+          {
+            "name": "튼튼한 목재",
+            "qty": 4
+          }
+        ],
+        "gold": 15,
+        "energy": 216,
+        "time": "00:45:00",
+        "condition": "제작 공방 Lv.7 달성, 제작법 : 빛나는 암흑 수류탄 사용",
+        "outputQty": null
+      },
+      {
+        "name": "빛나는 수면 폭탄",
+        "materials": [
+          {
+            "name": "수면 폭탄",
+            "qty": 3
+          },
+          {
+            "name": "단단한 철광석",
+            "qty": 3
+          }
+        ],
+        "gold": 15,
+        "energy": 216,
+        "time": "00:45:00",
+        "condition": "제작 공방 Lv.5 달성, 제작법 : 빛나는 수면 폭탄 사용",
+        "outputQty": null
+      },
+      {
+        "name": "빛나는 파괴 폭탄",
+        "materials": [
+          {
+            "name": "파괴 폭탄",
+            "qty": 3
+          },
+          {
+            "name": "단단한 철광석",
+            "qty": 3
+          }
+        ],
+        "gold": 15,
+        "energy": 216,
+        "time": "00:45:00",
+        "condition": "제작 공방 Lv.5 달성, 제작법 : 빛나는 파괴 폭탄 사용",
+        "outputQty": null
+      },
+      {
+        "name": "빛나는 부식 폭탄",
+        "materials": [
+          {
+            "name": "부식 폭탄",
+            "qty": 3
+          },
+          {
+            "name": "단단한 철광석",
+            "qty": 3
+          }
+        ],
+        "gold": 15,
+        "energy": 216,
+        "time": "00:45:00",
+        "condition": "제작 공방 Lv.3 달성, 제작법 : 빛나는 부식 폭탄 사용",
+        "outputQty": null
+      },
+      {
+        "name": "빛나는 성스러운 폭탄",
+        "materials": [
+          {
+            "name": "성스러운 폭탄",
+            "qty": 3
+          },
+          {
+            "name": "단단한 철광석",
+            "qty": 4
+          }
+        ],
+        "gold": 15,
+        "energy": 216,
+        "time": "00:45:00",
+        "condition": "제작 공방 Lv.5 달성, 제작법 : 빛나는 성스러운 폭탄 사용",
+        "outputQty": null
+      },
+      {
+        "name": "빛나는 만능 물약",
+        "materials": [
+          {
+            "name": "만능 물약",
+            "qty": 3
+          },
+          {
+            "name": "진귀한 유물",
+            "qty": 10
+          }
+        ],
+        "gold": 15,
+        "energy": 216,
+        "time": "00:45:00",
+        "condition": "제작 공방 Lv.5 달성, 제작법 : 빛나는 만능 물약 사용",
+        "outputQty": null
+      },
+      {
+        "name": "빛나는 보호 물약",
+        "materials": [
+          {
+            "name": "보호 물약",
+            "qty": 3
+          },
+          {
+            "name": "진귀한 유물",
+            "qty": 10
+          }
+        ],
+        "gold": 15,
+        "energy": 216,
+        "time": "00:45:00",
+        "condition": "제작 공방 Lv.3 달성, 제작법 : 빛나는 보호 물약 사용",
+        "outputQty": null
+      },
+      {
+        "name": "빛나는 천둥 물약",
+        "materials": [
+          {
+            "name": "천둥 물약",
+            "qty": 3
+          },
+          {
+            "name": "진귀한 유물",
+            "qty": 10
+          }
+        ],
+        "gold": 15,
+        "energy": 216,
+        "time": "00:45:00",
+        "condition": "제작 공방 Lv.7 달성, 제작법 : 빛나는 천둥 물약 사용",
+        "outputQty": null
+      },
+      {
+        "name": "빛나는 위장 로브",
+        "materials": [
+          {
+            "name": "위장 로브",
+            "qty": 3
+          },
+          {
+            "name": "진귀한 가죽",
+            "qty": 9
+          }
+        ],
+        "gold": 15,
+        "energy": 216,
+        "time": "00:45:00",
+        "condition": "제작 공방 Lv.3 달성, 제작법 : 빛나는 위장 로브 사용",
+        "outputQty": null
+      },
+      {
+        "name": "빛나는 은신 로브",
+        "materials": [
+          {
+            "name": "은신 로브",
+            "qty": 3
+          },
+          {
+            "name": "진귀한 가죽",
+            "qty": 9
+          }
+        ],
+        "gold": 30,
+        "energy": 360,
+        "time": "01:15:00",
+        "condition": "제작 공방 Lv.3 달성, 제작법 : 빛나는 은신 로브 사용",
+        "outputQty": null
+      },
+      {
+        "name": "빛나는 신속 로브",
+        "materials": [
+          {
+            "name": "신속 로브",
+            "qty": 3
+          },
+          {
+            "name": "진귀한 가죽",
+            "qty": 3
+          }
+        ],
+        "gold": 15,
+        "energy": 216,
+        "time": "00:45:00",
+        "condition": "제작 공방 Lv.5 달성, 제작법 : 빛나는 신속 로브 사용",
+        "outputQty": null
+      },
+      {
+        "name": "빛나는 모닥불",
+        "materials": [
+          {
+            "name": "모닥불",
+            "qty": 3
+          },
+          {
+            "name": "튼튼한 목재",
+            "qty": 6
+          }
+        ],
+        "gold": 15,
+        "energy": 216,
+        "time": "00:45:00",
+        "condition": "제작 공방 Lv.5 달성, 제작법 : 빛나는 모닥불 사용",
+        "outputQty": null
+      },
+      {
+        "name": "빛나는 도발 허수아비",
+        "materials": [
+          {
+            "name": "도발 허수아비",
+            "qty": 3
+          },
+          {
+            "name": "진귀한 가죽",
+            "qty": 7
+          }
+        ],
+        "gold": 15,
+        "energy": 216,
+        "time": "00:45:00",
+        "condition": "제작 공방 Lv.5 달성, 제작법 : 빛나는 도발 허수아비 사용",
+        "outputQty": null
+      },
+      {
+        "name": "빛나는 성스러운 부적",
+        "materials": [
+          {
+            "name": "성스러운 부적",
+            "qty": 3
+          },
+          {
+            "name": "단단한 철광석",
+            "qty": 4
+          }
+        ],
+        "gold": 15,
+        "energy": 216,
+        "time": "00:45:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 빛나는 성스러운 부적 사용",
+        "outputQty": null
+      },
+      {
+        "name": "빛나는 진군의 깃발",
+        "materials": [
+          {
+            "name": "진군의 깃발",
+            "qty": 3
+          },
+          {
+            "name": "단단한 철광석",
+            "qty": 4
+          }
+        ],
+        "gold": 15,
+        "energy": 216,
+        "time": "00:45:00",
+        "condition": "제작 공방 Lv.3 달성, 제작법 : 빛나는 진군의 깃발 사용",
+        "outputQty": null
+      },
+      {
+        "name": "코르부스 툴 라크의 그림자",
+        "materials": [
+          {
+            "name": "회오리 수류탄",
+            "qty": 3
+          },
+          {
+            "name": "튼튼한 목재",
+            "qty": 8
+          }
+        ],
+        "gold": 200,
+        "energy": 216,
+        "time": "00:05:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 코르부스 툴 라크의 그림자 사용",
+        "outputQty": null
+      },
+      {
+        "name": "페투스 안 크라그마의 그림자",
+        "materials": [
+          {
+            "name": "화염 수류탄",
+            "qty": 3
+          },
+          {
+            "name": "튼튼한 목재",
+            "qty": 8
+          }
+        ],
+        "gold": 200,
+        "energy": 216,
+        "time": "00:05:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 페투스 안 크라그마의 그림자 사용",
+        "outputQty": null
+      },
+      {
+        "name": "배틀 아이템 : 코르부스 툴 라크의 그림자 상자",
+        "materials": [
+          {
+            "name": "회오리 수류탄 (귀속)",
+            "qty": 3
+          },
+          {
+            "name": "단단한 원목",
+            "qty": 8
+          }
+        ],
+        "gold": 200,
+        "energy": 216,
+        "time": "00:05:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 코르부스 툴 라크의 그림자 상자 사용",
+        "outputQty": null
+      },
+      {
+        "name": "배틀 아이템 : 페투스 안 크라그마의 그림자 상자",
+        "materials": [
+          {
+            "name": "화염 수류탄 (귀속)",
+            "qty": 3
+          },
+          {
+            "name": "단단한 원목",
+            "qty": 8
+          }
+        ],
+        "gold": 200,
+        "energy": 216,
+        "time": "00:05:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 페투스 안 크라그마의 그림자 상자 사용",
+        "outputQty": null
+      },
+      {
+        "name": "섬광 수류탄",
+        "materials": [
+          {
+            "name": "튼튼한 목재",
+            "qty": 4
+          },
+          {
+            "name": "부드러운 목재",
+            "qty": 12
+          },
+          {
+            "name": "목재",
+            "qty": 17
+          }
+        ],
+        "gold": 15,
+        "energy": 144,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.2 달성",
+        "outputQty": null
+      },
+      {
+        "name": "화염 수류탄",
+        "materials": [
+          {
+            "name": "튼튼한 목재",
+            "qty": 4
+          },
+          {
+            "name": "부드러운 목재",
+            "qty": 12
+          },
+          {
+            "name": "목재",
+            "qty": 17
+          }
+        ],
+        "gold": 15,
+        "energy": 144,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.2 달성",
+        "outputQty": null
+      },
+      {
+        "name": "만능 물약",
+        "materials": [
+          {
+            "name": "진귀한 유물",
+            "qty": 5
+          },
+          {
+            "name": "희귀한 유물",
+            "qty": 19
+          },
+          {
+            "name": "고대 유물",
+            "qty": 38
+          }
+        ],
+        "gold": 15,
+        "energy": 144,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.2 달성",
+        "outputQty": null
+      },
+      {
+        "name": "냉기 수류탄",
+        "materials": [
+          {
+            "name": "튼튼한 목재",
+            "qty": 4
+          },
+          {
+            "name": "부드러운 목재",
+            "qty": 12
+          },
+          {
+            "name": "목재",
+            "qty": 17
+          }
+        ],
+        "gold": 15,
+        "energy": 144,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.2 달성",
+        "outputQty": null
+      },
+      {
+        "name": "전기 수류탄",
+        "materials": [
+          {
+            "name": "튼튼한 목재",
+            "qty": 4
+          },
+          {
+            "name": "부드러운 목재",
+            "qty": 12
+          },
+          {
+            "name": "목재",
+            "qty": 17
+          }
+        ],
+        "gold": 15,
+        "energy": 144,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.2 달성",
+        "outputQty": null
+      },
+      {
+        "name": "도발 허수아비",
+        "materials": [
+          {
+            "name": "진귀한 가죽",
+            "qty": 4
+          },
+          {
+            "name": "부드러운 목재",
+            "qty": 12
+          },
+          {
+            "name": "두툼한 생고기",
+            "qty": 17
+          }
+        ],
+        "gold": 15,
+        "energy": 144,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.2 달성",
+        "outputQty": null
+      },
+      {
+        "name": "회복약",
+        "materials": [
+          {
+            "name": "수줍은 들꽃",
+            "qty": 5
+          },
+          {
+            "name": "들꽃",
+            "qty": 10
+          }
+        ],
+        "gold": null,
+        "energy": 2,
+        "time": "00:00:10",
+        "condition": null,
+        "outputQty": null
+      },
+      {
+        "name": "고급 회복약",
+        "materials": [
+          {
+            "name": "수줍은 들꽃",
+            "qty": 9
+          },
+          {
+            "name": "들꽃",
+            "qty": 19
+          }
+        ],
+        "gold": 15,
+        "energy": 144,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.2 달성",
+        "outputQty": null
+      },
+      {
+        "name": "정령의 회복약",
+        "materials": [
+          {
+            "name": "화사한 들꽃",
+            "qty": 8
+          },
+          {
+            "name": "수줍은 들꽃",
+            "qty": 25
+          },
+          {
+            "name": "들꽃",
+            "qty": 33
+          }
+        ],
+        "gold": 30,
+        "energy": 288,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 정령의 회복약 사용",
+        "outputQty": null
+      },
+      {
+        "name": "회복약",
+        "materials": [
+          {
+            "name": "수줍은 들꽃",
+            "qty": 5
+          },
+          {
+            "name": "들꽃",
+            "qty": 10
+          }
+        ],
+        "gold": null,
+        "energy": null,
+        "time": null,
+        "condition": null,
+        "outputQty": null
+      },
+      {
+        "name": "각성 물약",
+        "materials": [
+          {
+            "name": "진귀한 유물",
+            "qty": 8
+          },
+          {
+            "name": "희귀한 유물",
+            "qty": 24
+          },
+          {
+            "name": "고대 유물",
+            "qty": 32
+          }
+        ],
+        "gold": 30,
+        "energy": 288,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 각성 물약 사용",
+        "outputQty": null
+      },
+      {
+        "name": "모닥불",
+        "materials": [
+          {
+            "name": "튼튼한 목재",
+            "qty": 3
+          },
+          {
+            "name": "부드러운 목재",
+            "qty": 12
+          },
+          {
+            "name": "목재",
+            "qty": 25
+          }
+        ],
+        "gold": 15,
+        "energy": 144,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.2 달성",
+        "outputQty": null
+      },
+      {
+        "name": "진군의 깃발",
+        "materials": [
+          {
+            "name": "단단한 철광석",
+            "qty": 3
+          },
+          {
+            "name": "부드러운 목재",
+            "qty": 12
+          },
+          {
+            "name": "철광석",
+            "qty": 25
+          }
+        ],
+        "gold": 15,
+        "energy": 144,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.2 달성",
+        "outputQty": null
+      },
+      {
+        "name": "위장 로브",
+        "materials": [
+          {
+            "name": "진귀한 가죽",
+            "qty": 4
+          },
+          {
+            "name": "다듬은 생고기",
+            "qty": 15
+          },
+          {
+            "name": "두툼한 생고기",
+            "qty": 30
+          }
+        ],
+        "gold": 15,
+        "energy": 144,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.2 달성",
+        "outputQty": null
+      },
+      {
+        "name": "은신 로브",
+        "materials": [
+          {
+            "name": "진귀한 가죽",
+            "qty": 4
+          },
+          {
+            "name": "다듬은 생고기",
+            "qty": 15
+          },
+          {
+            "name": "두툼한 생고기",
+            "qty": 30
+          }
+        ],
+        "gold": 30,
+        "energy": 288,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 은신 로브 사용",
+        "outputQty": null
+      },
+      {
+        "name": "암흑 수류탄",
+        "materials": [
+          {
+            "name": "튼튼한 목재",
+            "qty": 4
+          },
+          {
+            "name": "부드러운 목재",
+            "qty": 12
+          },
+          {
+            "name": "목재",
+            "qty": 17
+          }
+        ],
+        "gold": 15,
+        "energy": 144,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.2 달성",
+        "outputQty": null
+      },
+      {
+        "name": "부식 폭탄",
+        "materials": [
+          {
+            "name": "단단한 철광석",
+            "qty": 4
+          },
+          {
+            "name": "묵직한 철광석",
+            "qty": 15
+          },
+          {
+            "name": "철광석",
+            "qty": 30
+          }
+        ],
+        "gold": 15,
+        "energy": 144,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.2 달성",
+        "outputQty": null
+      },
+      {
+        "name": "보호 물약",
+        "materials": [
+          {
+            "name": "진귀한 유물",
+            "qty": 4
+          },
+          {
+            "name": "희귀한 유물",
+            "qty": 16
+          },
+          {
+            "name": "고대 유물",
+            "qty": 31
+          }
+        ],
+        "gold": 15,
+        "energy": 144,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.2 달성",
+        "outputQty": null
+      },
+      {
+        "name": "성스러운 부적",
+        "materials": [
+          {
+            "name": "단단한 철광석",
+            "qty": 4
+          },
+          {
+            "name": "묵직한 철광석",
+            "qty": 14
+          },
+          {
+            "name": "철광석",
+            "qty": 28
+          }
+        ],
+        "gold": 15,
+        "energy": 144,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.2 달성",
+        "outputQty": null
+      },
+      {
+        "name": "천둥 물약",
+        "materials": [
+          {
+            "name": "진귀한 유물",
+            "qty": 4
+          },
+          {
+            "name": "희귀한 유물",
+            "qty": 16
+          },
+          {
+            "name": "고대 유물",
+            "qty": 31
+          }
+        ],
+        "gold": 15,
+        "energy": 144,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.2 달성",
+        "outputQty": null
+      },
+      {
+        "name": "신속 로브",
+        "materials": [
+          {
+            "name": "진귀한 가죽",
+            "qty": 4
+          },
+          {
+            "name": "다듬은 생고기",
+            "qty": 15
+          },
+          {
+            "name": "두툼한 생고기",
+            "qty": 30
+          }
+        ],
+        "gold": 15,
+        "energy": 144,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 신속 로브 사용",
+        "outputQty": null
+      },
+      {
+        "name": "회오리 수류탄",
+        "materials": [
+          {
+            "name": "튼튼한 목재",
+            "qty": 4
+          },
+          {
+            "name": "부드러운 목재",
+            "qty": 12
+          },
+          {
+            "name": "목재",
+            "qty": 17
+          }
+        ],
+        "gold": 15,
+        "energy": 144,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.2 달성",
+        "outputQty": null
+      },
+      {
+        "name": "점토 수류탄",
+        "materials": [
+          {
+            "name": "튼튼한 목재",
+            "qty": 4
+          },
+          {
+            "name": "부드러운 목재",
+            "qty": 12
+          },
+          {
+            "name": "목재",
+            "qty": 17
+          }
+        ],
+        "gold": 15,
+        "energy": 144,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.2 달성",
+        "outputQty": null
+      },
+      {
+        "name": "수면 폭탄",
+        "materials": [
+          {
+            "name": "단단한 철광석",
+            "qty": 4
+          },
+          {
+            "name": "묵직한 철광석",
+            "qty": 15
+          },
+          {
+            "name": "철광석",
+            "qty": 30
+          }
+        ],
+        "gold": 15,
+        "energy": 144,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.2 달성",
+        "outputQty": null
+      },
+      {
+        "name": "성스러운 폭탄",
+        "materials": [
+          {
+            "name": "단단한 철광석",
+            "qty": 4
+          },
+          {
+            "name": "묵직한 철광석",
+            "qty": 15
+          },
+          {
+            "name": "철광석",
+            "qty": 30
+          }
+        ],
+        "gold": 15,
+        "energy": 144,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.2 달성",
+        "outputQty": null
+      },
+      {
+        "name": "아드로핀 물약",
+        "materials": [
+          {
+            "name": "진귀한 유물",
+            "qty": 6
+          },
+          {
+            "name": "희귀한 유물",
+            "qty": 17
+          },
+          {
+            "name": "수줍은 들꽃",
+            "qty": 8
+          },
+          {
+            "name": "고대 유물",
+            "qty": 75
+          }
+        ],
+        "gold": 30,
+        "energy": 288,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 아드로핀 물약 사용",
+        "outputQty": null
+      },
+      {
+        "name": "루테란의 나팔",
+        "materials": [
+          {
+            "name": "단단한 철광석",
+            "qty": 4
+          },
+          {
+            "name": "튼튼한 목재",
+            "qty": 2
+          },
+          {
+            "name": "묵직한 철광석",
+            "qty": 10
+          },
+          {
+            "name": "철광석",
+            "qty": 42
+          }
+        ],
+        "gold": 30,
+        "energy": 288,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 루테란의 나팔 사용",
+        "outputQty": null
+      },
+      {
+        "name": "파괴 폭탄",
+        "materials": [
+          {
+            "name": "단단한 철광석",
+            "qty": 4
+          },
+          {
+            "name": "묵직한 철광석",
+            "qty": 15
+          },
+          {
+            "name": "철광석",
+            "qty": 30
+          }
+        ],
+        "gold": 15,
+        "energy": 144,
+        "time": "00:30:00",
+        "condition": "제작 공방 Lv.2 달성",
+        "outputQty": null
+      },
+      {
+        "name": "시간 정지 물약",
+        "materials": [
+          {
+            "name": "진귀한 유물",
+            "qty": 5
+          },
+          {
+            "name": "희귀한 유물",
+            "qty": 19
+          },
+          {
+            "name": "부드러운 목재",
+            "qty": 19
+          },
+          {
+            "name": "고대 유물",
+            "qty": 38
+          }
+        ],
+        "gold": 30,
+        "energy": 288,
+        "time": "01:00:00",
+        "condition": "제작 공방 Lv.2 달성, 제작법 : 시간 정지 물약 사용",
+        "outputQty": null
+      }
+    ]
+  }
+}

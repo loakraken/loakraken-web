@@ -9,7 +9,7 @@ import { cn } from "cn"
 const buttonVariants = cva(
   [
     "relative inline-flex shrink-0 items-center justify-center gap-2 rounded-full font-semibold whitespace-nowrap select-none",
-    "transition-[background-color,border-color,color,transform] duration-(--duration-fast) ease-(--ease-out)",
+    "transition-[background-color,border-color,color,transform,scale] duration-(--duration-fast) ease-(--ease-out)",
     "not-data-disabled:active:scale-(--press-scale)",
     "[&[data-disabled]:not([aria-busy=true])]:cursor-not-allowed [&[data-disabled]:not([aria-busy=true])]:opacity-40",
     "aria-busy:cursor-progress",
@@ -23,7 +23,7 @@ const buttonVariants = cva(
         secondary:
           "bg-foreground text-background pointer-fine:not-data-disabled:hover:bg-secondary-foreground",
         outline:
-          "border border-faint text-foreground pointer-fine:not-data-disabled:hover:bg-muted",
+          "border border-faint text-foreground pointer-fine:not-data-disabled:hover:bg-hover-surface",
       },
       size: {
         md: "h-11 px-[22px] text-(length:--text-body) [&_svg]:size-[18px]",

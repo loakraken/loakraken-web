@@ -25,3 +25,57 @@ test("receipt: hidden only on production unless RECEIPT_TOOL says otherwise", as
   assert.equal(isReceiptEnabled({ SITE_URL: "https://loakraken.gg", RECEIPT_TOOL: "on" }), true);
   assert.equal(isReceiptEnabled({ RECEIPT_TOOL: " OFF " }), false);
 });
+
+test("세팅 점검 tab is hidden on production unless SETTING_CHECK_TAB says otherwise", async () => {
+  const { isSettingCheckEnabled } = await import("../lib/tools/flags");
+  assert.equal(isSettingCheckEnabled({}), true, "local and e2e (no SITE_URL)");
+  assert.equal(isSettingCheckEnabled({ SITE_URL: "https://staging.loakraken.gg" }), true);
+  assert.equal(isSettingCheckEnabled({ SITE_URL: "https://loakraken.gg" }), false);
+  assert.equal(isSettingCheckEnabled({ SITE_URL: "https://www.loakraken.gg/" }), false);
+  assert.equal(isSettingCheckEnabled({ SITE_URL: "https://loakraken.gg", SETTING_CHECK_TAB: "on" }), true);
+  assert.equal(isSettingCheckEnabled({ SETTING_CHECK_TAB: " OFF " }), false);
+});
+
+
+test("아크 그리드·팔찌 효율 rows are hidden on production unless CHARACTER_EFFICIENCY says otherwise", async () => {
+  const { isCharacterEfficiencyEnabled } = await import("../lib/tools/flags");
+  assert.equal(isCharacterEfficiencyEnabled({}), true, "local and e2e (no SITE_URL)");
+  assert.equal(isCharacterEfficiencyEnabled({ SITE_URL: "https://staging.loakraken.gg" }), true);
+  assert.equal(isCharacterEfficiencyEnabled({ SITE_URL: "https://loakraken.gg" }), false);
+  assert.equal(isCharacterEfficiencyEnabled({ SITE_URL: "https://www.loakraken.gg/" }), false);
+  assert.equal(isCharacterEfficiencyEnabled({ SITE_URL: "https://loakraken.gg", CHARACTER_EFFICIENCY: "on" }), true);
+  assert.equal(isCharacterEfficiencyEnabled({ CHARACTER_EFFICIENCY: " OFF " }), false);
+  assert.equal(isCharacterEfficiencyEnabled({ SITE_URL: "https://loakraken.gg", CHARACTER_EFFICIENCY: "yes" }), false, "unknown values keep the default");
+});
+
+test("armory page details are never requested on production unless ARMORY_PAGE says so", async () => {
+  const { isArmoryPageEnabled } = await import("../lib/tools/flags");
+  assert.equal(isArmoryPageEnabled({}), true, "local and e2e (no SITE_URL)");
+  assert.equal(isArmoryPageEnabled({ SITE_URL: "https://loakraken.gg" }), false);
+  assert.equal(isArmoryPageEnabled({ SITE_URL: "https://loakraken.gg", ARMORY_PAGE: "on" }), true);
+  assert.equal(isArmoryPageEnabled({ ARMORY_PAGE: "off" }), false);
+});
+
+test("roster ranking tab is hidden on production unless ROSTER_RANKING says otherwise", async () => {
+  const { isRosterRankingEnabled } = await import("../lib/tools/flags");
+  assert.equal(isRosterRankingEnabled({}), true, "local and e2e (no SITE_URL)");
+  assert.equal(isRosterRankingEnabled({ SITE_URL: "https://loakraken.gg" }), false);
+  assert.equal(isRosterRankingEnabled({ SITE_URL: "https://loakraken.gg", ROSTER_RANKING: "on" }), true);
+  assert.equal(isRosterRankingEnabled({ ROSTER_RANKING: "off" }), false);
+});
+
+test("collectible ranking tab is hidden on production unless COLLECTIBLE_RANKING says otherwise", async () => {
+  const { isCollectibleRankingEnabled } = await import("../lib/tools/flags");
+  assert.equal(isCollectibleRankingEnabled({}), true, "local and e2e (no SITE_URL)");
+  assert.equal(isCollectibleRankingEnabled({ SITE_URL: "https://loakraken.gg" }), false);
+  assert.equal(isCollectibleRankingEnabled({ SITE_URL: "https://loakraken.gg", COLLECTIBLE_RANKING: "on" }), true);
+  assert.equal(isCollectibleRankingEnabled({ COLLECTIBLE_RANKING: "off" }), false);
+});
+
+test("efficiency ranking tabs are hidden on production unless EFFICIENCY_RANKING says otherwise", async () => {
+  const { isEfficiencyRankingEnabled } = await import("../lib/tools/flags");
+  assert.equal(isEfficiencyRankingEnabled({}), true, "local and e2e (no SITE_URL)");
+  assert.equal(isEfficiencyRankingEnabled({ SITE_URL: "https://loakraken.gg" }), false);
+  assert.equal(isEfficiencyRankingEnabled({ SITE_URL: "https://loakraken.gg", EFFICIENCY_RANKING: "on" }), true);
+  assert.equal(isEfficiencyRankingEnabled({ EFFICIENCY_RANKING: "off" }), false);
+});

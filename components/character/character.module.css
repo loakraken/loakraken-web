@@ -61,6 +61,13 @@
   margin-left: auto;
   width: min(450px, 60%);
 }
+/* Where the site header folds (900px and under) its search button is the
+   only character search: two controls doing one thing side by side (A19). */
+@media (max-width: 900px) {
+  .searchWrap {
+    display: none;
+  }
+}
 .search {
   display: flex;
   align-items: center;
@@ -414,6 +421,7 @@
 }
 .bannerFacts dd {
   overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
 }
 /* Position (dealer/support) — shown only on the banner, which is dark in
    every theme, so the light tints are used. */
@@ -479,4 +487,57 @@
   margin-left: 6px;
   color: var(--band-muted);
   font-size: 12px;
+}
+/* 배너 순위 (§14.1 ⑤): one line under the numbers, there from the first HTML
+   (empty until the rank arrives), so the banner keeps its size (A6). */
+.bannerRank {
+  min-height: 26px;
+  margin-top: 12px;
+  line-height: 26px;
+}
+/* On a phone the rank badge takes 44px to press, as it looks (hit-44 rule). */
+@media (max-width: 699px), (pointer: coarse) {
+  .bannerRankBadge {
+    position: relative;
+  }
+  .bannerRankBadge::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+    translate: -50% -50%;
+  }
+}
+.bannerRankBadge:active {
+  transform: scale(0.97);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .bannerRankBadge {
+    transition: transform 100ms ease-out;
+  }
+}
+.bannerRankBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 9999px;
+  background: color-mix(in oklab, var(--band-muted) 18%, transparent);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.bannerRankBadge b {
+  font-weight: 700;
+}
+/* Phones: the badge sits left of the render, within the identity column; the
+   metric's name (said by the number line just above) is left out so the rank,
+   share and tier fit there even when long (A37). */
+@media (max-width: 760px) {
+  .bannerRankLabel {
+    display: none;
+  }
 }

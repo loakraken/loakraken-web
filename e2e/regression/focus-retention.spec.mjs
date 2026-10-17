@@ -47,7 +47,7 @@ const FLOWS = [
     path: "/tools/material-quote",
     api: "**/api/markets/items**",
     start: async (page) => {
-      await expect(page.getByRole("combobox", { name: "카테고리" })).toBeEnabled();
+      await expect(page.getByRole("tablist", { name: "카테고리" })).toBeVisible();
       await page.getByRole("textbox", { name: "재료 이름" }).fill("합성");
       await page.getByRole("button", { name: "검색", exact: true }).focus();
     },
@@ -59,7 +59,7 @@ const FLOWS = [
     api: "**/api/markets/board**",
     start: async (page) => {
       await expect(page.getByRole("region", { name: /재련 재료 시세/ }).getByRole("listitem").first()).toBeVisible();
-      await page.getByRole("navigation", { name: "시세 분류" }).getByRole("button", { name: "각인서" }).focus();
+      await page.getByRole("tablist", { name: "시세 분류" }).getByRole("tab", { name: "각인서" }).focus();
     },
     done: (page) => page.getByRole("heading", { name: /각인서 시세/ }),
   },

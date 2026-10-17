@@ -3,13 +3,21 @@
 import { useEffect, useId, useState, type FormEvent } from "react";
 import { useRemaining } from "@/components/home/clock";
 import { useMutation } from "@tanstack/react-query";
-import { Add, ArrowLeft, TaskSquare, TrashSquare } from "@/components/ui/icons";
+import { Add, ArrowDown, ArrowLeft, CloseCircle, TaskSquare } from "@/components/ui/icons";
+import { Select } from "@/components/ui/select";
 import Link from "next/link";
 import { SiteHeader } from "@/components/site/site-header";
+import dynamic from "next/dynamic";
 import { CharacterQueryError, fetchSiblings } from "@/lib/character/client";
 import { rateLimitCopy, retryLabel } from "@/lib/api/rate-limit";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import {
+  characterCheckState,
+  moveRaid,
+  nextCleared,
+  raidCheckState,
+  setCharacterCleared,
+  setRaidCleared,
   GOLD_CHARACTERS,
   GOLD_RAIDS_PER_CHARACTER,
   STORAGE_KEY,
@@ -72,11 +80,10 @@ function Summary({ state, now }: { state: HomeworkState; now: number }) {
         </p>
         {unsettled.length > 0 && (
           <p className={styles.note}>
-            합계에서 뺀 미확정 항목:{" "}
+            합계에서 뺀 항목(클리어 골드 데이터 없음):{" "}
             {unsettled
               .map(({ raid, mode }) => `${raid.shortName} ${DIFFICULTY_LABEL[mode.difficulty]}`)
-              .join(", ")}{" "}
-            클리어 골드(공식 값과 두 사이트가 일치하는 값이 아직 없어요)
+              .join(", ")}
           </p>
         )}
       </div>
@@ -98,6 +105,10 @@ function Summary({ state, now }: { state: HomeworkState; now: number }) {
           <dd>
             {s.gatesDone}/{s.gates}
           </dd>
+          {/* Progress at a glance; grows on each check (모션 목록 숙제 진행률). */}
+          <span className={styles.progress} aria-hidden="true">
+            <i style={{ transform: `scaleX(${s.gates ? s.gatesDone / s.gates : 0})` }} />
+          </span>
         </div>
         <div>
           <dt>주간 초기화까지</dt>
@@ -158,7 +169,7 @@ function AddRoster({ onAdd }: { onAdd: (picked: Sibling[]) => void }) {
           aria-disabled={siblings.isPending || limit.seconds > 0 || undefined}
           aria-busy={siblings.isPending || undefined}
         >
-          {siblings.isPending ? "불러오는 중" : retryLabel(limit.seconds, "불러오기")}
+          {siblings.isPending ? "불러오는 중…" : retryLabel(limit.seconds, "불러오기")}
         </button>
       </form>
       {failure && (
@@ -212,16 +223,36 @@ function AddRoster({ onAdd }: { onAdd: (picked: Sibling[]) => void }) {
   );
 }
 
+/**
+ * Bencho "Reorder list", loaded when "순서 바꾸기" first opens — it is not
+ * needed for the page to work (the arrow buttons do the same moves).
+ */
+const Arrange = dynamic(() => import("./homework-arrange"), {
+  ssr: false,
+  loading: () => <p className={styles.note}>순서 목록을 불러오고 있어요.</p>,
+});
+
+/** Bencho "Checklist", loaded with the first character card (same height held). */
+const Checklist = dynamic(() => import("./homework-checklist"), { ssr: false });
+
 function RaidRow({
   plan,
   itemLevel,
+  index,
+  count,
   onChange,
   onRemove,
+  onMove,
 }: {
   plan: RaidPlan;
   itemLevel: number;
+  /** Position in the character's list (gold goes to the first three). */
+  index: number;
+  count: number;
   onChange: (plan: RaidPlan) => void;
   onRemove: () => void;
+  /** Move to a new position; the parent saves and announces it. */
+  onMove: (to: number) => void;
 }) {
   const mode = modeOf(plan);
   if (!mode) return null;
@@ -237,13 +268,35 @@ function RaidRow({
   const title = `${raidName(plan.raidId)} ${DIFFICULTY_LABEL[plan.difficulty]}`;
   const toggle = (key: "cleared" | "more", i: number) =>
     onChange({ ...plan, [key]: plan[key].map((v, j) => (j === i ? !v : v)) });
+  // Order moves only by the arrow buttons and the order list: no select
+  // button and no keyboard shortcut on the row (user 10-12).
   return (
     <li className={styles.raid}>
       <div className={styles.raidHead}>
-        <strong>{title}</strong>
-        <button type="button" className={styles.iconButton} onClick={onRemove} aria-label={`${title} 빼기`}>
-          <TrashSquare size={14} aria-hidden="true" />
-        </button>
+        <strong className={styles.raidTitle}>{title}</strong>
+        <span className={styles.raidTools}>
+          <button
+            type="button"
+            className={styles.iconButton}
+            onClick={() => onMove(index - 1)}
+            disabled={index === 0}
+            aria-label={`${title} 위로`}
+          >
+            <ArrowDown size={14} aria-hidden="true" style={{ rotate: "180deg" }} />
+          </button>
+          <button
+            type="button"
+            className={styles.iconButton}
+            onClick={() => onMove(index + 1)}
+            disabled={index === count - 1}
+            aria-label={`${title} 아래로`}
+          >
+            <ArrowDown size={14} aria-hidden="true" />
+          </button>
+          <button type="button" className={styles.removeButton} onClick={onRemove} aria-label={`${title} 빼기`}>
+            <CloseCircle size={18} aria-hidden="true" />
+          </button>
+        </span>
       </div>
       {higherOpen && (
         <p className={styles.note}>
@@ -290,7 +343,18 @@ function CharacterCard({
 }) {
   const selectId = useId();
   const gold = characterGold(character);
+  // Announces a move once (PM-프론트 기준 ③); the moved row keeps focus.
+  const [moved, setMoved] = useState("");
+  const [arranging, setArranging] = useState(false);
   const used = new Set(character.raids.map((r) => r.raidId));
+  // One move for the arrow buttons and the order list's rows:
+  // saved, then announced once ("…를 N번째로 옮겼어요").
+  const move = (from: number, to: number) => {
+    if (from < 0 || to < 0 || to >= character.raids.length || from === to) return;
+    const plan = character.raids[from];
+    onChange(moveRaid(character, from, to));
+    setMoved(`${raidName(plan.raidId)} ${DIFFICULTY_LABEL[plan.difficulty]}: ${to + 1}번째로 옮겼어요.`);
+  };
   const options = eligibleModes(character.itemLevel).filter(({ raid }) => !used.has(raid.id));
   return (
     <section className={styles.card} aria-label={`${character.name} 숙제`}>
@@ -304,11 +368,11 @@ function CharacterCard({
         </div>
         <button
           type="button"
-          className={styles.iconButton}
+          className={styles.removeButton}
           onClick={onRemove}
           aria-label={`${character.name} 빼기`}
         >
-          <TrashSquare size={16} aria-hidden="true" />
+          <CloseCircle size={18} aria-hidden="true" />
         </button>
       </div>
       <label className={styles.goldToggle}>
@@ -330,12 +394,112 @@ function CharacterCard({
           </small>
         </span>
       </label>
+      {character.raids.length > 0 && (
+        // 전체 체크(사용자 14:44): Bencho "Checklist" — the first row is the
+        // whole character, the rest one per raid; some gates done shows as
+        // mixed. The wall demo's fall-and-reset and typed tasks are off.
+        // Held at the block's own height (6 + 40 per row) until its chunk
+        // arrives, so the raids below do not move.
+        <div className={styles.checklist} style={{ minHeight: 6 + 40 * (character.raids.length + 1) }}>
+          <Checklist
+            items={[
+              {
+                key: "all",
+                label: "전체 완료",
+                done: characterCheckState(character) === "all",
+                mixed: characterCheckState(character) === "some",
+              },
+              ...character.raids.map((plan) => ({
+                key: plan.raidId,
+                label: `${raidName(plan.raidId)} ${DIFFICULTY_LABEL[plan.difficulty]}`,
+                done: raidCheckState(plan) === "all",
+                mixed: raidCheckState(plan) === "some",
+              })),
+            ]}
+            onToggle={(i) => {
+              if (i === 0) {
+                onChange(setCharacterCleared(character, nextCleared(characterCheckState(character))));
+                return;
+              }
+              const plan = character.raids[i - 1];
+              onChange({
+                ...character,
+                raids: character.raids.map((r, j) =>
+                  j === i - 1 ? setRaidCleared(plan, nextCleared(raidCheckState(plan))) : r,
+                ),
+              });
+            }}
+          />
+        </div>
+      )}
+      {character.raids.length > 1 && (
+        <div className={styles.reorder}>
+          {/* 사용자 지적 10-11 21:00: one word at a time, 순서 바꾸기 ↔ 완료,
+              and the button keeps the wider word's width (both are laid out
+              in one grid cell, the other one hidden). */}
+          <button
+            type="button"
+            className={styles.reorderToggle}
+            aria-expanded={arranging}
+            onClick={() => setArranging((v) => !v)}
+          >
+            <span className={styles.swap}>
+              <span aria-hidden={arranging || undefined} data-off={arranging || undefined}>
+                순서 바꾸기
+              </span>
+              <span aria-hidden={!arranging || undefined} data-off={!arranging || undefined}>
+                완료
+              </span>
+            </span>
+          </button>
+          {arranging && (
+            <>
+              <p className={styles.note}>끌거나, 줄에서 ↑↓로 옮겨요.</p>
+              {character.gold && (
+                <p className={styles.legend}>
+                  <span className={styles.legendDot} aria-hidden="true" />
+                  주간 골드를 받는 레이드 — 위에서부터 캐릭터당 {GOLD_RAIDS_PER_CHARACTER}개
+                </p>
+              )}
+              <div className={styles.arrange}>
+                <Arrange
+                  label={`${character.name} 레이드 순서`}
+                  describe={(name, position, gold) =>
+                    `${name}, ${position}번째${gold ? ", 골드 받음" : ""}`
+                  }
+                  items={character.raids.map((plan, index) => ({
+                    id: plan.raidId,
+                    name: `${raidName(plan.raidId)} ${DIFFICULTY_LABEL[plan.difficulty]}`,
+                    mark: character.gold && index < GOLD_RAIDS_PER_CHARACTER,
+                    tint: "var(--primary)",
+                  }))}
+                  onMove={(id, delta) => {
+                    const from = character.raids.findIndex((r) => r.raidId === id);
+                    move(from, from + delta);
+                  }}
+                  onReorder={(ids) => {
+                    const raids = ids
+                      .map((id) => character.raids.find((r) => r.raidId === id))
+                      .filter((r): r is RaidPlan => !!r);
+                    if (raids.length !== character.raids.length) return;
+                    onChange({ ...character, raids });
+                    setMoved("순서를 바꿨어요.");
+                  }}
+                />
+              </div>
+            </>
+          )}
+        </div>
+      )}
       <ul className={styles.raids}>
         {character.raids.map((plan, index) => (
           <RaidRow
             key={plan.raidId}
             plan={plan}
             itemLevel={character.itemLevel}
+            index={index}
+            count={character.raids.length}
+            onMove={(to) => move(index, to)}
             onChange={(next) =>
               onChange({ ...character, raids: character.raids.map((r, j) => (j === index ? next : r)) })
             }
@@ -345,20 +509,24 @@ function CharacterCard({
       </ul>
       {character.raids.length > GOLD_RAIDS_PER_CHARACTER && (
         <p className={styles.note}>
-          골드는 위에서부터 {GOLD_RAIDS_PER_CHARACTER}개 레이드만 받아요.
+          골드는 위에서부터 {GOLD_RAIDS_PER_CHARACTER}개 레이드만 받아요. 순서는 화살표, 또는 &lsquo;선택&rsquo;을 누른 뒤
+          ↑↓로 바꿔요(Esc로 끝).
         </p>
       )}
+      <p className={styles.sr} role="status" aria-live="polite">
+        {moved}
+      </p>
       {options.length > 0 && (
         <div className={styles.addRaid}>
           <label htmlFor={selectId} className={styles.sr}>
             레이드 추가
           </label>
-          <select
+          <Select
             id={selectId}
             className={styles.select}
             value=""
-            onChange={(e) => {
-              const [raidId, difficulty] = e.target.value.split("|");
+            onValueChange={(picked) => {
+              const [raidId, difficulty] = picked.split("|");
               const found = options.find((o) => o.raid.id === raidId && o.mode.difficulty === difficulty);
               if (!found) return;
               const plan: RaidPlan = {
@@ -369,15 +537,14 @@ function CharacterCard({
               };
               onChange({ ...character, raids: [...character.raids, plan] });
             }}
-          >
-            <option value="">레이드 추가…</option>
-            {options.map(({ raid, mode }) => (
-              <option key={`${raid.id}|${mode.difficulty}`} value={`${raid.id}|${mode.difficulty}`}>
-                {raid.shortName} {DIFFICULTY_LABEL[mode.difficulty]}
-                {mode.status === "UNVERIFIED" ? " (골드 미확인)" : ""}
-              </option>
-            ))}
-          </select>
+            items={[
+              { value: "", label: "레이드 추가…", disabled: true },
+              ...options.map(({ raid, mode }) => ({
+                value: `${raid.id}|${mode.difficulty}`,
+                label: `${raid.shortName} ${DIFFICULTY_LABEL[mode.difficulty]}${mode.status === "UNVERIFIED" ? " (골드 미확인)" : ""}`,
+              })),
+            ]}
+          />
         </div>
       )}
     </section>
@@ -416,7 +583,9 @@ export default function HomeworkTool() {
         본문으로 건너뛰기
       </a>
       <SiteHeader />
-      <main id="hw-main">
+      {/* At least a screen tall, like the loading shell: the footer starts below
+          the fold either way, so stored rosters arriving do not push it (390 CLS). */}
+      <main id="hw-main" className={styles.main}>
         <section className={quote.hero} aria-labelledby="hw-heading">
           <span className={quote.heroIcon} aria-hidden="true">
             <TaskSquare size={18} />
@@ -476,7 +645,7 @@ export default function HomeworkTool() {
         </div>
       </main>
       <footer className={quote.footer}>
-        LOAKraken · 로스트아크 비공식 팬 프로젝트 · 브라우저 저장
+        LOAKraken · 브라우저 저장
       </footer>
     </div>
   );

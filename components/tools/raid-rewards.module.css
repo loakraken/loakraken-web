@@ -34,16 +34,12 @@
   list-style: disc;
 }
 .note {
+  /* Held for every difficulty: the split-gold sentence takes two lines on a
+     phone, so the line is held at that from the start (A7). */
+  min-height: 1lh;
   margin-top: var(--space-2);
   color: var(--muted-foreground);
   font-size: var(--text-caption);
-}
-.source {
-  color: var(--link);
-  text-decoration: underline;
-}
-.sourceNone {
-  color: var(--muted-foreground);
 }
 
 .filters {
@@ -52,6 +48,9 @@
   gap: var(--space-2);
 }
 .chip {
+  /* A31: one line, never split (badge/chip/unit). */
+  flex: none;
+  white-space: nowrap;
   min-height: 36px;
   padding: 0 var(--space-4);
   border: 1px solid var(--border);
@@ -62,7 +61,11 @@
   font-weight: 600;
   transition:
     background-color var(--duration-fast) var(--ease-out),
-    border-color var(--duration-fast) var(--ease-out);
+    border-color var(--duration-fast) var(--ease-out),
+    scale var(--duration-fast) var(--ease-out);
+}
+.chip:active {
+  scale: var(--press-scale);
 }
 .chip[aria-pressed="true"] {
   border-color: var(--primary);
@@ -72,6 +75,9 @@
 
 .grid {
   display: grid;
+  /* svh: dvh changes as a phone address bar hides and shows (PM-프론트 #776). */
+  min-height: 100svh;
+  align-content: start;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-5);
   align-items: start;
@@ -130,6 +136,8 @@
   width: 100%;
   margin-top: var(--space-2);
   border-collapse: collapse;
+  /* Fixed columns: a value of another width never moves the other cells (A7). */
+  table-layout: fixed;
   font-size: var(--text-body);
   font-variant-numeric: tabular-nums;
 }
@@ -154,6 +162,15 @@
   border-bottom: 0;
   font-weight: 700;
 }
+.colGate {
+  width: 22%;
+}
+/* Rows held for the difficulty with more gates: same height, nothing drawn. */
+.holdRow th,
+.holdRow td {
+  visibility: hidden;
+  border-bottom-color: transparent;
+}
 .num {
   padding-left: var(--space-3) !important;
   text-align: right !important;
@@ -169,7 +186,7 @@
 
 @media (hover: hover) and (pointer: fine) {
   .chip:not([aria-pressed="true"]):hover {
-    background: var(--muted);
+    background: var(--hover-surface);
   }
 }
 @media (max-width: 760px) {
@@ -185,4 +202,15 @@
 
 .segment {
   margin-top: var(--space-3);
+}
+
+/* After the entry (see the tool): later cards appear without the reveal. */
+.grid[data-settled] > :global(.k-reveal) {
+  transition: none;
+}
+
+@media (max-width: 640px) {
+  .note {
+    min-height: 2lh;
+  }
 }

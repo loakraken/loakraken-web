@@ -1,4 +1,4 @@
-// 캐릭터 화면: 8개 탭, 탭 이동·새로고침 유지, 오류 응답(404·429·502·503·504).
+// 캐릭터 화면: 10개 탭, 탭 이동·새로고침 유지, 오류 응답(404·429·502·503·504).
 // 목 캐릭터 '상세'는 장비 Tooltip·스킬·내실·아바타·아크 그리드까지 채운 합성 데이터다.
 import {
   test,
@@ -10,13 +10,17 @@ import {
 
 const TABS = [
   { id: "combat", label: "전투", headings: ["장비", "보석", "아크 그리드", "카드", "아크 패시브", "특성", "각인", "스킬"] },
+  // 개발·미리보기에서 보이는 전투력 시뮬레이터 탭(COMBAT_POWER_SIM, PM-프론트 10-11 ①).
+  { id: "simulator", label: "시뮬레이터", headings: ["전투력 시뮬레이터", "각인·스톤"] },
+  { id: "specup", label: "스펙업", headings: ["스펙업 가이드", "아직 계산하지 않은 후보"] },
   { id: "skills", label: "스킬", headings: ["스킬"] },
   { id: "arkpassive", label: "아크 패시브", headings: ["진화", "깨달음", "도약"] },
   { id: "collectibles", label: "내실", headings: ["수집품", "성향"] },
-  { id: "avatars", label: "아바타", headings: ["아바타", "아바타 효과"] },
+  { id: "avatars", label: "아바타", headings: ["아바타 미리보기", "아바타 목록", "아바타 효과"] },
   { id: "stats", label: "통계", headings: ["아이템 레벨", "전투력", "원정대 레벨"] },
   { id: "siblings", label: "원정대", headings: ["아만", "루페온"] },
-  { id: "evidence", label: "세팅 점검", headings: ["세팅 점검 결과", "원천 제공 상태"] },
+  // 개발·미리보기에서는 탭 이름 옆에 "베타" 칩이 읽힘(web #489).
+  { id: "evidence", label: "세팅 점검 베타", headings: ["세팅 점검 결과", "원천 제공 상태"] },
 ];
 
 test.describe("캐릭터 탭 @smoke", () => {

@@ -1,1 +1,277 @@
-{"code":"CHARACTER_COMBAT_POWER_OPTIONS_SUCCESS","message":"전투력 시뮬레이터 입력 범위 조회에 성공했습니다.","data":{"ruleVersion":"combat-power-sim-v0","verified":false,"gemLevels":[0,1,2,3,4,5,6,7,8,9,10],"refineMin":10,"refineMax":25,"advancedRefineMax":40,"qualityMax":100,"engravingLevels":[0,1,2,3,4],"stoneLevels":[0,1,2,3,4],"arkPassiveTrees":["진화","깨달음","도약"],"coreGrades":["영웅","전설","유물","고대"],"corePointMax":20,"polishGrades":["LOW","MID","HIGH"],"notes":["숫자 범위는 B단계에서 공식 근거로 확정합니다(verified=false).","연마 옵션별 상중하 수치와 팔찌 부여 효과 목록은 공식 확률표로 B단계에서 추가합니다."]}}
+{
+  "code": "CHARACTER_COMBAT_POWER_OPTIONS_SUCCESS",
+  "message": "전투력 시뮬레이터 입력 범위 조회에 성공했습니다.",
+  "data": {
+    "ruleVersion": "combat-power-sim-v0",
+    "verified": false,
+    "gemLevels": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10
+    ],
+    "refineMin": 10,
+    "refineMax": 25,
+    "advancedRefineMax": 40,
+    "qualityMax": 100,
+    "engravingLevels": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "stoneLevels": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "arkPassiveTrees": [
+      "진화",
+      "깨달음",
+      "도약"
+    ],
+    "coreGrades": [
+      "영웅",
+      "전설",
+      "유물",
+      "고대"
+    ],
+    "corePointMax": 20,
+    "polishGrades": [
+      "LOW",
+      "MID",
+      "HIGH"
+    ],
+    "notes": [
+      "숫자 범위는 B단계에서 공식 근거로 확정합니다(verified=false).",
+      "연마 옵션별 상중하 수치와 팔찌 부여 효과 목록은 공식 확률표로 B단계에서 추가합니다."
+    ],
+    "polishValues": {
+      "version": "polish-values-v2",
+      "accessoryGrade": "고대",
+      "itemLevel": 1680,
+      "options": [
+        {
+          "option": "추가 피해",
+          "percent": true,
+          "parts": [
+            "목걸이"
+          ],
+          "low": "+0.70%",
+          "mid": "+1.60%",
+          "high": "+2.60%"
+        },
+        {
+          "option": "적에게 주는 피해",
+          "percent": true,
+          "parts": [
+            "목걸이"
+          ],
+          "low": "+0.55%",
+          "mid": "+1.20%",
+          "high": "+2.00%"
+        },
+        {
+          "option": "낙인력",
+          "percent": true,
+          "parts": [
+            "목걸이"
+          ],
+          "low": "+2.15%",
+          "mid": "+4.80%",
+          "high": "+8.00%"
+        },
+        {
+          "option": "세레나데, 신앙, 조화 게이지 획득량",
+          "percent": true,
+          "parts": [
+            "목걸이"
+          ],
+          "low": "+1.60%",
+          "mid": "+3.60%",
+          "high": "+6.00%"
+        },
+        {
+          "option": "공격력",
+          "percent": true,
+          "parts": [
+            "귀걸이"
+          ],
+          "low": "+0.40%",
+          "mid": "+0.95%",
+          "high": "+1.55%"
+        },
+        {
+          "option": "무기 공격력",
+          "percent": true,
+          "parts": [
+            "귀걸이"
+          ],
+          "low": "+0.80%",
+          "mid": "+1.80%",
+          "high": "+3.00%"
+        },
+        {
+          "option": "파티원 회복 효과",
+          "percent": true,
+          "parts": [
+            "귀걸이"
+          ],
+          "low": "+0.95%",
+          "mid": "+2.10%",
+          "high": "+3.50%"
+        },
+        {
+          "option": "파티원 보호막 효과",
+          "percent": true,
+          "parts": [
+            "귀걸이"
+          ],
+          "low": "+0.95%",
+          "mid": "+2.10%",
+          "high": "+3.50%"
+        },
+        {
+          "option": "치명타 적중률",
+          "percent": true,
+          "parts": [
+            "반지"
+          ],
+          "low": "+0.40%",
+          "mid": "+0.95%",
+          "high": "+1.55%"
+        },
+        {
+          "option": "치명타 피해",
+          "percent": true,
+          "parts": [
+            "반지"
+          ],
+          "low": "+1.10%",
+          "mid": "+2.40%",
+          "high": "+4.00%"
+        },
+        {
+          "option": "아군 공격력 강화 효과",
+          "percent": true,
+          "parts": [
+            "반지"
+          ],
+          "low": "+1.35%",
+          "mid": "+3.00%",
+          "high": "+5.00%"
+        },
+        {
+          "option": "아군 피해량 강화 효과",
+          "percent": true,
+          "parts": [
+            "반지"
+          ],
+          "low": "+2.00%",
+          "mid": "+4.50%",
+          "high": "+7.50%"
+        },
+        {
+          "option": "공격력",
+          "percent": false,
+          "parts": [
+            "목걸이",
+            "귀걸이",
+            "반지"
+          ],
+          "low": "+80",
+          "mid": "+195",
+          "high": "+390"
+        },
+        {
+          "option": "무기 공격력",
+          "percent": false,
+          "parts": [
+            "목걸이",
+            "귀걸이",
+            "반지"
+          ],
+          "low": "+195",
+          "mid": "+480",
+          "high": "+960"
+        },
+        {
+          "option": "최대 생명력",
+          "percent": false,
+          "parts": [
+            "목걸이",
+            "귀걸이",
+            "반지"
+          ],
+          "low": "+1300",
+          "mid": "+3250",
+          "high": "+6500"
+        },
+        {
+          "option": "최대 마나",
+          "percent": false,
+          "parts": [
+            "목걸이",
+            "귀걸이",
+            "반지"
+          ],
+          "low": "+6",
+          "mid": "+15",
+          "high": "+30"
+        },
+        {
+          "option": "상태이상 공격 지속시간",
+          "percent": true,
+          "parts": [
+            "목걸이",
+            "귀걸이",
+            "반지"
+          ],
+          "low": "+0.20%",
+          "mid": "+0.50%",
+          "high": "+1.00%"
+        },
+        {
+          "option": "전투 중 생명력 회복량",
+          "percent": false,
+          "parts": [
+            "목걸이",
+            "귀걸이",
+            "반지"
+          ],
+          "low": "+10",
+          "mid": "+25",
+          "high": "+50"
+        }
+      ]
+    },
+    "braceletOptions": [
+      {
+        "name": "치명타 피해",
+        "grades": {
+          "LOW": "치명타 피해 +6.80%",
+          "MID": "치명타 피해 +8.40%",
+          "HIGH": "치명타 피해 +10.00%"
+        }
+      },
+      {
+        "name": "추가 피해",
+        "grades": {
+          "LOW": "추가 피해 +2.50%",
+          "MID": "추가 피해 +3.00%",
+          "HIGH": "추가 피해 +3.50%"
+        }
+      }
+    ]
+  }
+}

@@ -51,11 +51,11 @@ test("views requests validate input and pass through allow-listed errors", async
     assert.equal(url.searchParams.get("days"), "112");
     return Response.json(fixture());
   }) as unknown as typeof fetch;
-  assert.equal((await requestViews("언새늘", origin, { fetcher })).ok, true);
-  assert.equal((await requestViews("언새늘", origin, { fetcher, days: 400 })).ok, false);
+  assert.equal((await requestViews("목캐릭터A", origin, { fetcher })).ok, true);
+  assert.equal((await requestViews("목캐릭터A", origin, { fetcher, days: 400 })).ok, false);
   assert.equal((await requestViews("", origin, { fetcher })).ok, false);
   assert.equal(calls, 1);
-  const disabled = await requestViews("언새늘", origin, {
+  const disabled = await requestViews("목캐릭터A", origin, {
     fetcher: (async () =>
       Response.json({ code: "CHARACTER_VIEWS_DISABLED" }, { status: 503 })) as typeof fetch,
   });

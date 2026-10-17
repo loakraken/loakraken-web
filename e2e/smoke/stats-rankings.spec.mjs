@@ -1,6 +1,6 @@
 // 통계(/stats, web #174)와 랭킹(/rankings, web #189).
 // 수치는 목 서버 합성 값이라 값 자체가 아니라 탭·조건·주소·요청 흐름을 본다.
-import { test, expect, gotoReady, expectNoHorizontalOverflow } from "../support/fixtures.mjs";
+import { test, expect, gotoReady, expectNoHorizontalOverflow, chooseOption } from "../support/fixtures.mjs";
 
 test.describe("통계 @smoke", () => {
   test("요약과 직업 표를 보여 주고 가로 스크롤이 없다", async ({ page }) => {
@@ -26,7 +26,7 @@ test.describe("통계 @smoke", () => {
   test("조건을 바꾸면 그 조건으로 다시 조회한다", async ({ page }) => {
     await gotoReady(page, "/stats");
     const request = page.waitForRequest(/\/api\/stats\/summary\?.*role=SUPPORT/);
-    await page.getByRole("form", { name: "통계 조건" }).getByRole("combobox", { name: "역할" }).selectOption({ label: "서포터" });
+    await chooseOption(page, page.getByRole("form", { name: "통계 조건" }).getByRole("combobox", { name: "역할" }), "서포터");
     await request;
     await expect(page).toHaveURL(/role=SUPPORT/);
   });

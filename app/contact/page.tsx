@@ -2,11 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteHeader } from "@/components/site/site-header";
 import styles from "@/components/legal/legal.module.css";
-import { CONTACT_EMAIL, OFFICIAL_API_URL, PRIVACY_EMAIL, REQUEST_DAYS } from "@/lib/legal";
+import { CONTACT_EMAIL, OFFICIAL_API_URL, PRIVACY_EMAIL } from "@/lib/legal";
 
 export const metadata: Metadata = {
-  title: "문의·순위 제외 요청",
-  description: "LOAKraken 문의 메일과 캐릭터 순위 제외·기록 삭제 요청 방법.",
+  title: "문의",
+  description: "LOAKraken 문의 메일과 개인정보 요청 창구.",
   alternates: { canonical: "/contact" },
 };
 
@@ -19,7 +19,7 @@ export default function ContactPage() {
     <div className={styles.page}>
       <SiteHeader />
       <main className={styles.main}>
-        <h1>문의·순위 제외 요청</h1>
+        <h1>문의</h1>
         <p className={styles.lead}>
           LOAKraken은 로스트아크 비공식 팬 프로젝트이며, 스마일게이트와 관계가 없습니다. 문의와 요청은 메일로 받습니다.
         </p>
@@ -29,22 +29,6 @@ export default function ContactPage() {
           <p className={styles.mail}>{mail(CONTACT_EMAIL)}</p>
           <p>오류 제보, 제안, 그 밖의 문의를 보내 주세요.</p>
         </div>
-
-        <h2 id="removal">순위 제외·기록 삭제 요청</h2>
-        <p>
-          캐릭터 주인은 순위에서 빼거나 LOAKraken이 기록한 캐릭터 이력을 지워 달라고 요청할 수 있습니다.
-        </p>
-        <ul>
-          <li>
-            보낼 곳: {mail(CONTACT_EMAIL, "순위 제외 요청")} (개인정보 관련은 {mail(PRIVACY_EMAIL)})
-          </li>
-          <li>보낼 내용: 캐릭터명과 서버, 원하는 처리(순위 제외 / 기록 삭제)</li>
-          <li>
-            처리: 접수 확인 메일을 보낸 뒤 <strong>{REQUEST_DAYS}일 안에</strong> 처리합니다. 데이터베이스 백업에는 최대 30일 동안
-            남을 수 있습니다.
-          </li>
-          <li>순위 제외는 해제를 요청할 때까지 유지됩니다.</li>
-        </ul>
 
         <h2>개인정보</h2>
         <p>

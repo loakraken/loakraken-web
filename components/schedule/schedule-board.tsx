@@ -35,11 +35,12 @@ import {
   schedulePath,
   type ScheduleCategory,
 } from "@/lib/home/schedule";
-import { Countdown, MINUTE, useClock } from "@/components/home/clock";
+import { Countdown, useNow } from "@/components/home/clock";
 import styles from "@/components/home/home.module.css";
 import expand from "@/components/site/expand.module.css";
 import own from "./schedule.module.css";
 import { countdownText, retryLabel } from "@/lib/api/rate-limit";
+import { pendingProps } from "@/lib/api/pending";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 
 /** One schedule day; null is "today" (the key the server prefetch fills). */
@@ -112,7 +113,7 @@ function RewardList({ title, rewards }: { title: string | null; rewards: Reward[
 }
 
 /**
- * LOAWA-style rewards on a schedule row: the top three inline, "+N" opens the
+ * Rewards on a schedule row: the top three inline, "+N" opens the
  * full list by item-level group (chaos gates differ by level), with rewards
  * tied to that day's rounds apart from the common ones.
  */
@@ -138,7 +139,13 @@ function RowRewards({ name, groups }: { name: string; groups: RewardGroup[] }) {
             }
             onClick={() => setOpen((value) => !value)}
           >
-            {open ? "접기" : rest > 0 ? `+${rest}` : "자세히"}
+            {/* Both labels in one cell, one shown: the button is as wide open as
+                closed, so '접기' (wider than '+3') never wraps it to the next
+                line of the rewards — the pressed button stays put (A7). */}
+            <span className={styles.rewardLabels}>
+              <span data-on={!open || undefined}>{rest > 0 ? `+${rest}` : "자세히"}</span>
+              <span data-on={open || undefined}>접기</span>
+            </span>
           </button>
         </li>
       </ul>
@@ -173,19 +180,28 @@ function Times({
 }) {
   if (!times.length)
     return <span className={styles.times}>오늘 회차 없음</span>;
-  const shown =
-    hidePast && now !== null ? times.filter((at) => Date.parse(at) >= now) : times;
+  // Hidden past rounds keep their place: the rounds left never move when
+  // the toggle flips or a round passes (A7), they are only not shown or read.
+  // A row whose rounds are all over says so over its hidden times, so it
+  // does not read as a future one and keeps its height (PM-프론트 10-13).
+  const over = hidePast && now !== null && times.every((at) => Date.parse(at) < now);
   return (
     <span className={styles.times}>
-      {shown.map((at) => (
-        <time
-          key={at}
-          dateTime={at}
-          data-past={(now !== null && Date.parse(at) < now) || undefined}
-        >
-          {kstTime(at)}
-        </time>
-      ))}
+      {over && <span className={styles.ended}>오늘 종료</span>}
+      {times.map((at) => {
+        const past = now !== null && Date.parse(at) < now;
+        return (
+          <time
+            key={at}
+            dateTime={at}
+            data-past={past || undefined}
+            data-hidden={(hidePast && past) || undefined}
+            aria-hidden={(hidePast && past) || undefined}
+          >
+            {kstTime(at)}
+          </time>
+        );
+      })}
     </span>
   );
 }
@@ -210,22 +226,25 @@ function Section({
   const now = live ? clock : null;
   if (!items.length) return null;
   const status = now !== null ? sectionStatus(items, now) : null;
-  // Rounds today all over: hide the row (it would read as a future island).
-  const visible =
-    hidePast && now !== null
+  // Every row stays, the toggle or the clock never adds or drops one (A7);
+  // a row whose rounds are all over reads "오늘 종료" (Times).
+  const left =
+    now !== null
       ? items.filter(
           (item) =>
             !item.startTimes.length ||
             item.startTimes.some((at) => Date.parse(at) >= now),
-        )
-      : items;
+        ).length
+      : items.length;
   return (
     <section className={styles.section} aria-label={title}>
       <header>
         <h3>{title}</h3>
-        <span>
-          {visible.length > 0 && visible.length < items.length
-            ? `${items.length}개 중 ${visible.length}개 남음`
+        {/* Drawn anew when it changes: a different count rewritten in place
+            moves what follows it in the head (A7). */}
+        <span key={left}>
+          {left > 0 && left < items.length
+            ? `${items.length}개 중 ${left}개 남음`
             : `${items.length}개`}
         </span>
         {status && now !== null && (status.next || status.state === "done") && (
@@ -242,13 +261,14 @@ function Section({
           </span>
         )}
         {status?.state === "done" && onShowTomorrow && (
-          <button type="button" className={styles.textButton} onClick={onShowTomorrow}>
+          // A text button 17px high: its press area is 44 on phones and touch (A36, QA 10-14 23시).
+          <button type="button" className={`${styles.textButton} hit-44`} onClick={onShowTomorrow}>
             내일 일정 보기
           </button>
         )}
       </header>
       <ul className={styles.rows}>
-        {visible.map((item) => (
+        {items.map((item) => (
           <li key={`${"category" in item ? item.category : ""}${item.name}`}>
             {item.icon ? (
               // eslint-disable-next-line @next/next/no-img-element -- official CDN icon at a fixed size
@@ -301,7 +321,7 @@ export function ScheduleBoard({
   variant?: "home" | "page";
 }) {
   const page = variant === "page";
-  const now = useClock(MINUTE) ?? renderedAt ?? null;
+  const now = useNow(renderedAt);
   const today = now === null ? null : kstDate(now);
   const [picked, setPicked] = useState<string | null>(null);
   const [hidePast, setHidePast] = useState(true);
@@ -400,7 +420,7 @@ export function ScheduleBoard({
           <p>{limit.limited ? countdownText(limit.seconds) : "일정을 불러오지 못했어요."}</p>
           <button
             type="button"
-            className={styles.textButton}
+            className={`${styles.textButton} hit-44`}
             onClick={() => query.refetch()}
             disabled={limit.seconds > 0}
           >
@@ -409,8 +429,11 @@ export function ScheduleBoard({
         </div>
       ) : page ? (
         <div
+          // Drawn anew for another day: rows rewritten in place count as
+          // moving when their text starts elsewhere, new rows do not (A7).
+          key={data.date}
           className={styles.sections}
-          data-stale={query.isPlaceholderData || undefined}
+          {...pendingProps(query)}
         >
           {shownGroups.map((group) => (
             <Section
@@ -433,8 +456,11 @@ export function ScheduleBoard({
         </div>
       ) : (
         <div
+          // Drawn anew for another day: rows rewritten in place count as
+          // moving when their text starts elsewhere, new rows do not (A7).
+          key={data.date}
           className={styles.sections}
-          data-stale={query.isPlaceholderData || undefined}
+          {...pendingProps(query)}
         >
           <Section
             title="모험 섬"
