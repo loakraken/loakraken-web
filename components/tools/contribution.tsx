@@ -91,7 +91,10 @@ function useCountTo(target: number | null, kind: string | null) {
  * re-renders this <b> only, not the whole calculator.
  */
 function CountedFigure({ value, kind, band }: { value: number; kind: "gap" | "pct"; band: Band }) {
-  const shown = useCountTo(value, kind) ?? value;
+  // The 억 gap sits inside a sentence with no held width: it shows its final
+  // value at once, so "낮아요" after it never slides (PM-프론트 #888).
+  const counted = useCountTo(kind === "pct" ? value : null, kind) ?? value;
+  const shown = kind === "pct" ? counted : value;
   return (
     <b className={styles.pct} data-band={band} data-kind={kind}>
       {figureText({ kind }, shown)}
