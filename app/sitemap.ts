@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 import { SITEMAP_PATHS, siteUrl } from "@/lib/site";
 import { isCritSpeedEnabled } from "@/lib/tools/flags";
-import { getDevNoteList } from "@/lib/dev-notes/server";
+import { devNoteList } from "@/lib/dev-notes/files";
 
 // Per request, like robots.txt; character pages are unbounded and not listed.
 export const dynamic = "force-dynamic";
@@ -16,7 +16,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: path === "/" ? 1 : 0.7,
   }));
   // Each LOAKraken 개발자 노트 is a page of its own (written once, rarely changed).
-  const notes: MetadataRoute.Sitemap = getDevNoteList().map((note) => ({
+  const notes: MetadataRoute.Sitemap = devNoteList().map((note) => ({
     url: `${url}/news/dev-notes/${note.slug}`,
     lastModified: note.date,
     changeFrequency: "monthly",
