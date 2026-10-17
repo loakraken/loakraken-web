@@ -34,3 +34,16 @@ export const countdownText = (seconds: number) =>
 
 export const retryLabel = (seconds: number, label = "다시 시도") =>
   seconds > 0 ? `${remainingText(seconds * 1000)} 뒤 ${label}` : label;
+
+/**
+ * refetchInterval for screens that read cached market prices: every
+ * `everyMs` while the page is visible (react-query never refetches in a
+ * background tab by default); after a 429 the next try waits for its retry
+ * time (사용자 10-16: every screen with market prices refreshes each minute).
+ */
+export const refreshEvery =
+  (everyMs: number) =>
+  (query: { state: { error: unknown } }): number => {
+    const retryAt = failureOf(query.state.error)?.retryAt;
+    return retryAt ? Math.max(everyMs, retryAt - Date.now()) : everyMs;
+  };

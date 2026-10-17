@@ -11,8 +11,10 @@ import {
   type KeyboardEvent,
 } from "react";
 import Link from "next/link";
+import { refreshEvery } from "@/lib/api/rate-limit";
 import { useRouter } from "next/navigation";
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ChangeMark, UpdateAnnouncer, useChangedCells, type Pulse } from "@/components/ui/changed-cells";
 import { AnimatePresence, m } from "motion/react";
 import { Add, ArrowLeft, Calculator, CloseCircle, SearchNormal, TickCircle } from "@/components/ui/icons";
 import { GameIcon } from "@/components/character/imagery";
@@ -578,19 +580,32 @@ function Plan() {
   );
 }
 
-function Result({ quote }: { quote: MaterialQuote }) {
+// Totals and line costs only wash: a ▲/▼ inside the number's line took width
+// and nudged the "골드" after it on each refresh (PM-프론트 #863 P2).
+const washOnly = (pulse: Pulse | undefined): Pulse | undefined => pulse && { ...pulse, dir: 0 };
+
+function Result({ quote, stale }: { quote: MaterialQuote; stale: boolean }) {
   const basis = priceBases.find((item) => item.value === quote.priceBasis);
+  // The quote is fetched again every minute with the same inputs: a cost
+  // that changed is marked for a moment (a wash that fades once).
+  const { pulse, summary: changes } = useChangedCells(quote.items, (line) => String(line.itemId), {
+    cost: (line) => line.purchase?.costGold ?? null,
+  });
+  const asRows = useMemo(() => [quote], [quote]);
+  const totals = useChangedCells(asRows, () => "quote", {
+    total: (q) => (q.complete ? q.totalCostGold : q.knownCostGold),
+  }, { announce: false });
   const unpriced = quote.items.filter(
     (line) => line.purchase === null && line.status !== "COVERED_BY_INVENTORY",
   ).length;
   return (
     <Reveal className={styles.result}>
-      <section aria-labelledby="quote-total">
-        <p className={styles.kicker}>{basis?.label} 기준 견적</p>
+      <section aria-labelledby="quote-total" aria-busy={stale || undefined} data-stale={stale || undefined}>
+        <p className={styles.kicker}>{basis?.label} 기준 견적 · 1분마다 시세를 새로 받아 다시 계산해요</p>
         {quote.complete ? (
           <>
             <h2 id="quote-total" className={styles.total}>
-              {formatGold(quote.totalCostGold)}
+              <ChangeMark pulse={washOnly(totals.pulse("quote", "total"))}>{formatGold(quote.totalCostGold)}</ChangeMark>
               <span>골드</span>
             </h2>
             <p className={styles.totalNote}>
@@ -600,7 +615,7 @@ function Result({ quote }: { quote: MaterialQuote }) {
         ) : (
           <>
             <h2 id="quote-total" className={styles.total} data-partial="">
-              {formatGold(quote.knownCostGold)}
+              <ChangeMark pulse={washOnly(totals.pulse("quote", "total"))}>{formatGold(quote.knownCostGold)}</ChangeMark>
               <span>골드 · 계산된 항목만</span>
             </h2>
             <p className={styles.status}>
@@ -656,7 +671,9 @@ function Result({ quote }: { quote: MaterialQuote }) {
                     <div>
                       <dt>비용</dt>
                       <dd className={styles.cost}>
-                        {formatGold(line.purchase.costGold)} 골드
+                        <ChangeMark pulse={washOnly(pulse(String(line.itemId), "cost"))}>
+                          {formatGold(line.purchase.costGold)} 골드
+                        </ChangeMark>
                       </dd>
                     </div>
                   </>
@@ -676,6 +693,7 @@ function Result({ quote }: { quote: MaterialQuote }) {
           );
         })}
       </ul>
+      <UpdateAnnouncer text={changes ? `견적 비용 ${changes}` : ""} />
       <footer className={styles.resultFooter}>
         <p>
           {time(quote.calculatedAt)} 계산 · 규칙 {quote.ruleVersion}. 시세
@@ -690,14 +708,33 @@ function Result({ quote }: { quote: MaterialQuote }) {
   );
 }
 
+/** The quote is fetched again every minute (사용자 10-16: every screen with market prices). */
+const QUOTE_REFRESH_MS = 60_000;
+
 function MaterialQuoteContent({ initialCategory }: { initialCategory: number | null }) {
   const { enabled } = useLandingMotion();
   const { basis, setBasis, rows } = usePlan();
-  const quote = useMutation({
-    mutationFn: (request: NonNullable<ReturnType<typeof toQuoteRequest>>) =>
-      postMaterialQuote(request),
+  // The inputs last asked for: the quote is a query on them, fetched again
+  // every minute while the page is visible (after a 429, at its retry time).
+  // Editing the inputs does not change it until "견적 계산" is pressed.
+  const [asked, setAsked] = useState<NonNullable<ReturnType<typeof toQuoteRequest>> | null>(null);
+  const quote = useQuery({
+    queryKey: ["market", "quote", asked],
+    queryFn: ({ signal }) => postMaterialQuote(asked!, signal),
+    enabled: !!asked,
+    staleTime: QUOTE_REFRESH_MS,
+    refetchInterval: refreshEvery(QUOTE_REFRESH_MS),
+    placeholderData: keepPreviousData,
     retry: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
+  // "계산 중" only for a quote the user asked for, not the minute refresh.
+  const calculating = quote.isFetching && (quote.isPlaceholderData || !quote.data);
+  const ask = (request: NonNullable<ReturnType<typeof toQuoteRequest>>) => {
+    if (JSON.stringify(request) === JSON.stringify(asked)) void quote.refetch();
+    else setAsked(request);
+  };
   const quoteFailure = failureOf(quote.error);
   const [searchFailure, setSearchFailure] = useState<MarketFailure | null>(
     null,
@@ -707,13 +744,18 @@ function MaterialQuoteContent({ initialCategory }: { initialCategory: number | n
   const resultRef = useRef<HTMLDivElement>(null);
   const basisHint = priceBases.find((item) => item.value === basis)?.hint;
 
+  // Scroll to a quote the user asked for once it lands; the minute refresh
+  // updates it in place and never scrolls.
+  const scrolled = useRef<unknown>(null);
+  const landed = !!quote.data && !quote.isPlaceholderData;
   useEffect(() => {
-    if (quote.data)
-      resultRef.current?.scrollIntoView({
-        behavior: enabled ? "smooth" : "instant",
-        block: "start",
-      });
-  }, [quote.data, enabled]);
+    if (!landed || scrolled.current === asked) return;
+    scrolled.current = asked;
+    resultRef.current?.scrollIntoView({
+      behavior: enabled ? "smooth" : "instant",
+      block: "start",
+    });
+  }, [landed, asked, enabled]);
 
   return (
     <div className={styles.page}>
@@ -779,13 +821,11 @@ function MaterialQuoteContent({ initialCategory }: { initialCategory: number | n
                 type="button"
                 className={styles.primaryPill}
                 disabled={!request}
-                aria-disabled={quote.isPending || wait > 0 || undefined}
-                aria-busy={quote.isPending || undefined}
-                onClick={() =>
-                  request && !quote.isPending && wait === 0 && quote.mutate(request)
-                }
+                aria-disabled={calculating || wait > 0 || undefined}
+                aria-busy={calculating || undefined}
+                onClick={() => request && !calculating && wait === 0 && ask(request)}
               >
-                {quote.isPending ? (
+                {calculating ? (
                   "계산 중"
                 ) : wait > 0 ? (
                   `${wait}초 후 계산`
@@ -803,10 +843,13 @@ function MaterialQuoteContent({ initialCategory }: { initialCategory: number | n
         </div>
 
         <div ref={resultRef} className={styles.resultWrap}>
+          {/* Keyed by the inputs asked for: the minute refresh updates the
+              same result in place instead of replaying its entrance. */}
           {quote.data && (
             <Result
-              key={quote.data.data.calculatedAt}
+              key={JSON.stringify(asked)}
               quote={quote.data.data}
+              stale={quote.isPlaceholderData}
             />
           )}
         </div>

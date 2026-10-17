@@ -767,7 +767,9 @@
 }
 /* The previous results while a new search loads (A8): dimmed, still in place. */
 .results[data-stale] .resultList,
-.results[data-stale] > .caption {
+.results[data-stale] > .caption,
+/* …and a new quote loading in place of the last one (A8): the old total. */
+.result section[data-stale] .total {
   opacity: 0.55;
   transition: opacity 150ms ease;
 }

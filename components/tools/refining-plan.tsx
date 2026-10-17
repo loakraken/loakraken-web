@@ -19,10 +19,12 @@ import {
   formatGold,
   marketFailureCopy,
   priceBases,
+  type MaterialPrice,
   type PriceBasis,
 } from "@/lib/market/model";
 import { RefiningQueryError, postRefiningPlan } from "@/lib/refining/client";
-import { retryLabel } from "@/lib/api/rate-limit";
+import { refreshEvery, retryLabel } from "@/lib/api/rate-limit";
+import { ChangeMark, UpdateAnnouncer, useChangedCells } from "@/components/ui/changed-cells";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import {
   GRADES,
@@ -355,6 +357,17 @@ function Progress({
   );
 }
 
+/** "18:32" in KST, for the "시세 HH:mm 기준" line. */
+const hhmm = new Intl.DateTimeFormat("ko-KR", {
+  timeZone: "Asia/Seoul",
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+});
+const NO_PRICES: MaterialPrice[] = [];
+/** Prices refresh every minute (사용자 10-16: every screen with market prices). */
+const PRICE_REFRESH_MS = 60_000;
+
 const kst = new Intl.DateTimeFormat("ko-KR", {
   timeZone: "Asia/Seoul",
   month: "numeric",
@@ -402,7 +415,11 @@ function useRefiningCost(plans: PartPlan[], mode: Mode, basis: PriceBasis, owned
     queryFn: ({ signal }) =>
       postMaterialPrices({ priceBasis: basis, names }, signal),
     enabled: names.length > 0 && names.length <= MAX_PRICE_NAMES,
-    staleTime: 5 * 60_000,
+    staleTime: PRICE_REFRESH_MS,
+    // Every minute while the page is visible (never in a background tab);
+    // after a 429 the next try waits for its retry time. The inputs stay as
+    // they are; only the prices are fetched again and the cost recomputed.
+    refetchInterval: refreshEvery(PRICE_REFRESH_MS),
     // Same rule as 더보기 손익 (사용자 지적 10-12 01:36): a new basis keeps
     // the old table, dimmed, instead of emptying it and refilling it.
     placeholderData: keepPreviousData,
@@ -477,6 +494,11 @@ function Result({
   const { summary, prices, priceList, total, lines, buyGold, valueRaw, unpriced } =
     useRefiningCost(plans, mode, basis, owned);
   const priceLimit = useRateLimit(prices.error);
+  // A refreshed unit price is marked for a moment (▲/▼, wash once). Watched
+  // on the response's own list, which keeps its identity between renders.
+  const { pulse, summary: changes } = useChangedCells(priceList ?? NO_PRICES, (item) => item.name, {
+    unit: (item) => (item.status === "PRICED" ? item.unitPriceGold : null),
+  });
   const priceFailure =
     prices.error instanceof MarketQueryError
       ? prices.error.info
@@ -506,9 +528,17 @@ function Result({
         · 총 {formatCount(summary.stageCount)}단계, 시도{" "}
         {formatCount(summary.attempts, mode === "expected" ? 1 : 0)}회
       </p>
-      {/* Always there, one line high: appearing and leaving moved the table. */}
+      {/* Always there, one line high: appearing and leaving moved the table.
+          A refresh in the background keeps the time line (no flicker); the
+          line is redrawn when its text changes. */}
       <p className={styles.priceStatus} role="status">
-        {prices.isFetching ? "재료 시세를 불러오고 있어요." : ""}
+        <span key={observedAt ?? (prices.isFetching ? "loading" : "none")}>
+          {observedAt
+            ? `시세 ${hhmm.format(new Date(observedAt))} 기준 · 1분마다 새로 불러와요`
+            : prices.isFetching
+              ? "재료 시세를 불러오고 있어요."
+              : ""}
+        </span>
       </p>
       {priceList && unpriced.length > 0 && (
         <p className={quote.status}>
@@ -591,10 +621,12 @@ function Result({
                   {line.missing === 0 ? "충분" : formatCount(line.missing)}
                 </td>
                 <td data-label="단가">
-                  {line.price?.status === "PRICED" &&
-                  line.price.unitPriceGold != null
-                    ? unitGold(line.price.unitPriceGold)
-                    : "—"}
+                  <ChangeMark pulse={pulse(line.name, "unit")}>
+                    {line.price?.status === "PRICED" &&
+                    line.price.unitPriceGold != null
+                      ? unitGold(line.price.unitPriceGold)
+                      : "—"}
+                  </ChangeMark>
                 </td>
                 <td className={styles.cost} data-label="구매 골드">
                   {line.purchase == null ? "—" : formatCount(line.purchase.gold)}
@@ -619,6 +651,7 @@ function Result({
           </tbody>
         </table>
       </div>
+      <UpdateAnnouncer text={changes ? `재료 단가 ${changes}` : ""} />
       <p className={quote.caption}>
         필요 수량은 소수를 올림했어요. 구매 골드는 부족 수량을 거래소 묶음
         단위로 올려 산 금액이고, 소모 가치는 기대 소모량 × 1개당 시세예요(보유
