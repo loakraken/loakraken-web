@@ -3,7 +3,14 @@
 // where it sits between that gate's lower and upper bounds. All numbers are
 // the verified sample's (lib/tools/contribution.ts); each gate shows its
 // basis date and no source (사용자 결정 10-12).
-import { useId, useState } from "react";
+//
+// Motion (사용자 10-16): the % counts from the shown value to the new one in
+// ~0.3s, the bar's fill scales and its marker slides (transform only, no
+// layout), a band change rings the marker once, and typing again mid-way
+// carries on from where it is. Reduced motion shows the new value at once.
+// Screen readers hear the final value only.
+import { useEffect, useId, useRef, useState } from "react";
+import { useReducedMotion } from "@/components/landing/motion-context";
 import Link from "next/link";
 import { ArrowLeft, Flash } from "@/components/ui/icons";
 import { SiteHeader } from "@/components/site/site-header";
@@ -26,6 +33,38 @@ const BAND_TEXT: Record<Band, string> = {
   ABOVE_HIGH: "상한 위예요",
 };
 
+const COUNT_MS = 300;
+const easeOut = (t: number) => 1 - (1 - t) ** 3;
+const pctText = (value: number) => `${(Math.round(value * 10) / 10).toLocaleString("ko-KR")}%`;
+
+/** The shown number runs to `target` from wherever it is now (interruptible). */
+function useCountTo(target: number | null) {
+  const reduce = useReducedMotion();
+  const [shown, setShown] = useState(target);
+  const now = useRef(target);
+  useEffect(() => {
+    if (target == null || reduce) {
+      now.current = target;
+      return;
+    }
+    // From nothing (first damage typed) it counts up from 0, as the fill grows from the left end.
+    const from = now.current ?? 0;
+    if (from === target) {
+      const frame = requestAnimationFrame(() => setShown(target));
+      return () => cancelAnimationFrame(frame);
+    }
+    const start = performance.now();
+    let frame = requestAnimationFrame(function step(time) {
+      const t = Math.min(1, (time - start) / COUNT_MS);
+      now.current = from + (target - from) * easeOut(t);
+      setShown(now.current);
+      if (t < 1) frame = requestAnimationFrame(step);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [target, reduce]);
+  return target == null || reduce ? target : shown;
+}
+
 export function ContributionTool() {
   const damageId = useId();
   const [raid, setRaid] = useState(RAIDS[RAIDS.length - 1]);
@@ -44,6 +83,12 @@ export function ContributionTool() {
   const marker = result ? Math.min(100, Math.max(0, result.pct)) : null;
   const refAt =
     range && gate.reference != null ? ((gate.reference - range.low) / (range.high - range.low)) * 100 : null;
+  const shownPct = useCountTo(result ? result.pct : null);
+  // A band change (e.g. into 범위 안) rings the marker once; the count is the ring's key.
+  const [ring, setRing] = useState({ band: result?.band ?? null, count: 0 });
+  if (result && result.band !== ring.band) {
+    setRing({ band: result.band, count: ring.band ? ring.count + 1 : ring.count });
+  }
 
   return (
     <div className={quote.page}>
@@ -151,19 +196,34 @@ export function ContributionTool() {
               {/* Height held whether or not a damage is typed (CLS 0). */}
               <div className={styles.bar} aria-hidden="true">
                 <span className={styles.track} />
+                {/* Fill and marker move by transform from where they are; with no
+                    damage the fill is empty and the marker waits at the left end. */}
+                <span className={styles.fill} style={{ transform: `scaleX(${(marker ?? 0) / 100})` }} />
                 {refAt != null && <span className={styles.ref} style={{ left: `${refAt}%` }} />}
-                {marker != null && <span className={styles.marker} style={{ left: `${marker}%` }} data-band={result?.band} />}
+                <span className={styles.rail} style={{ transform: `translateX(${marker ?? 0}%)` }}>
+                  <span className={styles.marker} data-band={result?.band} data-hidden={marker == null || undefined}>
+                    {ring.count > 0 && <span key={ring.count} className={styles.ring} />}
+                  </span>
+                </span>
               </div>
-              <p className={styles.verdict} role="status" aria-live="polite">
+              {/* The moving number is for the eye; the status line under it reads the final value once. */}
+              <p className={styles.verdict} aria-hidden="true">
                 {!range ? (
                   "이 관문은 기준값을 확인하고 있어 아직 계산하지 않아요."
-                ) : result ? (
+                ) : result && shownPct != null ? (
                   <>
-                    내 위치 <b data-band={result.band}>{result.pct.toLocaleString("ko-KR")}%</b> · {BAND_TEXT[result.band]}
+                    내 위치 <b className={styles.pct} data-band={result.band}>{pctText(shownPct)}</b> · {BAND_TEXT[result.band]}
                   </>
                 ) : (
                   "피해량을 넣으면 위치를 보여 드려요."
                 )}
+              </p>
+              <p className="sr-only" role="status" aria-live="polite">
+                {!range
+                  ? "이 관문은 기준값을 확인하고 있어 아직 계산하지 않아요."
+                  : result
+                    ? `내 위치 ${pctText(result.pct)} · ${BAND_TEXT[result.band]}`
+                    : "피해량을 넣으면 위치를 보여 드려요."}
               </p>
               <p className={quote.caption}>기준 시점 {gate.basisDate}</p>
               <ul className={styles.notes}>
