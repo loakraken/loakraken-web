@@ -25,7 +25,7 @@ export type DetailMarket = {
   listedCount: number | null;
   observedAt: string | null;
 };
-export type DetailRefine = { equipmentType: string; grade: string; fromStage: number; toStage: number };
+export type DetailRefine = { fromStage: number; toStage: number };
 export type SpecUpDetail = {
   candidate: Candidate;
   pricesAt: string | null;
