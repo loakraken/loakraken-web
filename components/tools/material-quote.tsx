@@ -390,7 +390,13 @@ function ItemSearch({
           </button>
         </form>
         {results && open && (
-          <div className={styles.results}>
+          // While the previous list stands in for a new search it is dimmed and
+          // marked busy (A8), so it is never read as the new result.
+          <div
+            className={styles.results}
+            data-stale={(!local && items.isPlaceholderData) || undefined}
+            aria-busy={(!local && items.isPlaceholderData) || undefined}
+          >
             {/* Only the count is announced: reading the whole list on every keystroke would drown the input. */}
             {/* Redrawn as a new line when its text changes, so the words after
                 a number never slide as the number's width changes (A6). */}
