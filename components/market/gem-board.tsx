@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { useRouter } from "next/navigation";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { SiteHeader } from "@/components/site/site-header";
@@ -59,12 +59,16 @@ function Cell({ cell, picked, onPick, pulse }: { cell: GemCell | undefined; pick
     <td className={styles.cell}>
       <button type="button" aria-pressed={picked} onClick={onPick} aria-label={`${cell.itemName} 매물 보기`}>
         {/* A price that changed on the minute's refresh tints once (the cell's
-            own ▲/▼ is the day change, so no second arrow and no width change). */}
-        <b>
-          <ChangeMark pulse={pulse}>{gold(cell.minBuyPrice)}</ChangeMark>
-        </b>
-        <Change rate={cell.previousDayChangeRate} />
-        <small>매물 {count(cell.totalCount)}</small>
+            own ▲/▼ is the day change, so no second arrow and no width change).
+            Right-aligned text rewritten in place starts elsewhere and counts as
+            moving (A7): new values draw new text, as on the accessory board. */}
+        <Fragment key={`${cell.minBuyPrice}|${cell.previousDayChangeRate}|${cell.totalCount}`}>
+          <b>
+            <ChangeMark pulse={pulse}>{gold(cell.minBuyPrice)}</ChangeMark>
+          </b>
+          <Change rate={cell.previousDayChangeRate} />
+          <small>매물 {count(cell.totalCount)}</small>
+        </Fragment>
       </button>
     </td>
   );

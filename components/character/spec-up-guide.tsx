@@ -115,6 +115,9 @@ export default function SpecUpGuide({ data }: { data: Character }) {
     () => (guide ? splitCandidates(candidates) : { ok: [], folded: [] }),
     [guide, candidates],
   );
+  // The backend's own order differs from the rows on screen (prices moved).
+  const reordered =
+    !!guide && guide.candidates.map((c) => c.id).join("|") !== shownIds && order?.sort === guide.sort;
   const changed = useChangedCells(ok, (c) => c.id, {
     cost: (c) => c.cost?.amount,
     eff: (c) => c.combatPowerPer10kGold,
@@ -166,7 +169,26 @@ export default function SpecUpGuide({ data }: { data: Character }) {
         data-stale={query.isPlaceholderData || undefined}
       >
         <p className={styles.specUpPrices} role="status">
-          {query.isPlaceholderData ? "새 순서로 다시 불러오고 있어요…" : ""}
+          {query.isPlaceholderData ? (
+            "새 순서로 다시 불러오고 있어요…"
+          ) : reordered && guide ? (
+            // The rows stayed put on the refresh; the new order is one press away
+            // (PM 총괄 판정 b). Pressed, the rows take the new order at once.
+            // Short, so it stays one line at 360 in the line's fixed height (A37):
+            // the rows are the order from before the prices moved.
+            <>
+              시세 갱신 전 순서예요 ·{" "}
+              <button
+                type="button"
+                className={`${styles.specUpReorder} hit-44`}
+                onClick={() => setOrder({ sort: guide.sort, ids: guide.candidates.map((c) => c.id) })}
+              >
+                새 순서로 보기
+              </button>
+            </>
+          ) : (
+            ""
+          )}
         </p>
         {failure ? (
           <div className={styles.specUpFailure} role="alert">
@@ -194,7 +216,7 @@ export default function SpecUpGuide({ data }: { data: Character }) {
               <div className={styles.tableWrap}>
                 <table className={`${styles.table} ${styles.specUpTable}`}>
                   <caption className={styles.sr}>
-                    스펙업 후보, {SORTS.find((s) => s.id === sort)?.label} 순
+                    스펙업 후보, {SORTS.find((s) => s.id === sort)?.label} 순{reordered ? "(시세 갱신 전 순서)" : ""}
                   </caption>
                   <thead>
                     <tr>

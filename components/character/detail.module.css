@@ -2163,6 +2163,19 @@
 .specUpTable a {
   color: var(--link);
 }
+/* The minute's price refresh can lengthen a cost ("62만G" → "84만 9,400G"):
+   its column holds the room of a long one from the start, so the table's
+   columns (and the phone card's cost column) keep their width (A7). */
+.specUpTable thead th:nth-child(6),
+.specUpTable [data-cell="cost"] {
+  min-width: 7.5em;
+  white-space: nowrap;
+}
+/* 순서가 바뀌었다는 줄의 '새 순서로 보기' (PM 총괄 판정 b). */
+.specUpReorder {
+  color: var(--link);
+  font-weight: 600;
+}
 .specUpBases {
   display: grid;
   gap: 4px;
