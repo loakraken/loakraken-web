@@ -44,6 +44,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/markets/auctions/gems/skills": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 보석 매물 직업·스킬 목록
+         * @description 보석 매물을 거를 직업과 스킬(공식 경매장 검색 옵션 가운데 보석에 붙는 스킬). 공식 호출 없음. 기능이 꺼져 있으면 404 GEM_FILTER_DISABLED.
+         */
+        get: operations["gemSkills"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -120,6 +140,8 @@ export interface components {
             observedAt: string;
             /** @description 즉시 구매가 오름차순, 페이지당 10개 */
             items: components["schemas"]["AuctionListingResponse"][];
+            /** @description 보석 매물을 직업·스킬로 거른 조건. 조건 없는 검색·장신구 매물은 null */
+            filter?: components["schemas"]["GemFilterResponse"] | null;
         };
         AuctionListingResponse: {
             name: string;
@@ -140,6 +162,56 @@ export interface components {
             percentage: boolean;
             level: ("LOW" | "MID" | "HIGH") | null;
             className: string | null;
+        };
+        GemFilterResponse: {
+            /**
+             * @description 공식 직업 이름
+             * @example 블래스터
+             */
+            className: string;
+            /** @description 공식 스킬 코드. 직업만 거르면 null */
+            skill: number | null;
+            /** @description 공식 스킬 이름. 직업만 거르면 null */
+            skillName: string | null;
+        };
+        GemSkillResponse: {
+            /**
+             * Format: int32
+             * @description 공식 스킬 코드(매물 조회 skill에 그대로)
+             */
+            code: number;
+            /** @description 공식 스킬 이름 */
+            name: string;
+            /** @description 이 스킬로 거를 수 있는 보석 종류(겁화·작열, 문자열) */
+            kinds: string[];
+        };
+        GemClassResponse: {
+            className: string;
+            skills: components["schemas"]["GemSkillResponse"][];
+        };
+        AuctionGemSkillsResponse: {
+            /**
+             * @description 목록을 공식 경매장 검색 옵션과 맞춘 날짜(KST)
+             * @example 2026-10-18
+             */
+            checkedOn: string;
+            /** @description 공식 직업 순서 그대로 */
+            classes: components["schemas"]["GemClassResponse"][];
+        };
+        /** @description 공통 API 응답. 오류 응답의 data는 null입니다. */
+        ApiResponseAuctionGemSkillsResponse: {
+            /**
+             * @description 업무 결과 코드
+             * @example CHARACTER_SEARCH_SUCCESS
+             */
+            code: string;
+            /**
+             * @description 공개용 안내 메시지
+             * @example 캐릭터 조회에 성공했습니다.
+             */
+            message: string;
+            /** @description 성공 응답 데이터. 오류일 때 null */
+            data: components["schemas"]["AuctionGemSkillsResponse"];
         };
     };
     responses: never;
@@ -224,6 +296,10 @@ export interface operations {
                 level: number;
                 /** @description 페이지(1~10) */
                 page?: number;
+                /** @description 공식 직업 이름(/gems/skills의 className) */
+                className?: string;
+                /** @description 공식 스킬 코드(/gems/skills의 code). className이 필요하다 */
+                skill?: number;
             };
             header?: never;
             path?: never;
@@ -238,6 +314,71 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApiResponseAuctionListingsResponse"];
+                };
+            };
+            /** @description INVALID_REQUEST 또는 INVALID_AUCTION_LEVELS */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description LOST_ARK_RATE_LIMITED(매물 조회) / CLIENT_RATE_LIMITED: 이 클라이언트의 분당 요청·공식 호출 한도 초과. Retry-After(초) 뒤 다시 시도 */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description LOST_ARK_API_ERROR(매물 조회) */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description LOST_ARK_NOT_CONFIGURED */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description LOST_ARK_API_TIMEOUT(매물 조회) */
+            504: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    gemSkills: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseAuctionGemSkillsResponse"];
                 };
             };
             /** @description INVALID_REQUEST 또는 INVALID_AUCTION_LEVELS */

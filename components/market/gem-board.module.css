@@ -80,6 +80,31 @@
   min-height: 560px;
   margin-top: 28px;
 }
+/* With the class/skill row the box keeps one height still (the row's room added). */
+.listings:has(.filter) {
+  min-height: 624px;
+}
+/* Class and skill for the listings (api #542): label + select pairs on one
+   line where they fit, then the note; a phone stacks the pairs. */
+.filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+  margin-bottom: 12px;
+}
+.filter label {
+  color: var(--muted-foreground);
+  font-size: 13px;
+  font-weight: 600;
+}
+.filter small {
+  flex-basis: 100%;
+  min-height: 18px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 18px;
+}
 .listings h2 {
   margin-bottom: 10px;
   font-size: 17px;

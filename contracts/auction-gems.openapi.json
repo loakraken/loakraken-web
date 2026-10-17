@@ -119,6 +119,27 @@
               "maximum": 10,
               "minimum": 1
             }
+          },
+          {
+            "name": "className",
+            "in": "query",
+            "description": "공식 직업 이름(/gems/skills의 className)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 20
+            }
+          },
+          {
+            "name": "skill",
+            "in": "query",
+            "description": "공식 스킬 코드(/gems/skills의 code). className이 필요하다",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 1
+            }
           }
         ],
         "responses": {
@@ -128,6 +149,78 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiResponseAuctionListingsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_REQUEST 또는 INVALID_AUCTION_LEVELS",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "LOST_ARK_RATE_LIMITED(매물 조회) / CLIENT_RATE_LIMITED: 이 클라이언트의 분당 요청·공식 호출 한도 초과. Retry-After(초) 뒤 다시 시도",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "LOST_ARK_API_ERROR(매물 조회)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "LOST_ARK_NOT_CONFIGURED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "LOST_ARK_API_TIMEOUT(매물 조회)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/markets/auctions/gems/skills": {
+      "get": {
+        "tags": [
+          "경매장 시세"
+        ],
+        "summary": "보석 매물 직업·스킬 목록",
+        "description": "보석 매물을 거를 직업과 스킬(공식 경매장 검색 옵션 가운데 보석에 붙는 스킬). 공식 호출 없음. 기능이 꺼져 있으면 404 GEM_FILTER_DISABLED.",
+        "operationId": "gemSkills",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseAuctionGemSkillsResponse"
                 }
               }
             }
@@ -390,6 +483,17 @@
             "items": {
               "$ref": "#/components/schemas/AuctionListingResponse"
             }
+          },
+          "filter": {
+            "description": "보석 매물을 직업·스킬로 거른 조건. 조건 없는 검색·장신구 매물은 null",
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GemFilterResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -563,6 +667,134 @@
           "percentage",
           "type",
           "value"
+        ]
+      },
+      "GemFilterResponse": {
+        "type": "object",
+        "properties": {
+          "className": {
+            "type": "string",
+            "description": "공식 직업 이름",
+            "example": "블래스터"
+          },
+          "skill": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "공식 스킬 코드. 직업만 거르면 null"
+          },
+          "skillName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "공식 스킬 이름. 직업만 거르면 null"
+          }
+        },
+        "required": [
+          "className",
+          "skill",
+          "skillName"
+        ]
+      },
+      "GemSkillResponse": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "공식 스킬 코드(매물 조회 skill에 그대로)"
+          },
+          "name": {
+            "type": "string",
+            "description": "공식 스킬 이름"
+          },
+          "kinds": {
+            "type": "array",
+            "description": "이 스킬로 거를 수 있는 보석 종류(겁화·작열, 문자열)",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "code",
+          "kinds",
+          "name"
+        ]
+      },
+      "GemClassResponse": {
+        "type": "object",
+        "properties": {
+          "className": {
+            "type": "string"
+          },
+          "skills": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GemSkillResponse"
+            }
+          }
+        },
+        "required": [
+          "className",
+          "skills"
+        ]
+      },
+      "AuctionGemSkillsResponse": {
+        "type": "object",
+        "properties": {
+          "checkedOn": {
+            "type": "string",
+            "description": "목록을 공식 경매장 검색 옵션과 맞춘 날짜(KST)",
+            "example": "2026-10-18"
+          },
+          "classes": {
+            "type": "array",
+            "description": "공식 직업 순서 그대로",
+            "items": {
+              "$ref": "#/components/schemas/GemClassResponse"
+            }
+          }
+        },
+        "required": [
+          "checkedOn",
+          "classes"
+        ]
+      },
+      "ApiResponseAuctionGemSkillsResponse": {
+        "type": "object",
+        "description": "공통 API 응답. 오류 응답의 data는 null입니다.",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "업무 결과 코드",
+            "example": "CHARACTER_SEARCH_SUCCESS"
+          },
+          "message": {
+            "type": "string",
+            "description": "공개용 안내 메시지",
+            "example": "캐릭터 조회에 성공했습니다."
+          },
+          "data": {
+            "$ref": "#/components/schemas/AuctionGemSkillsResponse",
+            "description": "성공 응답 데이터. 오류일 때 null"
+          }
+        },
+        "required": [
+          "code",
+          "data",
+          "message"
         ]
       }
     }
