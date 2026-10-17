@@ -1,26 +1,32 @@
-// 회귀(사용자 확정 10-16, '집계 중' 동적 표시): 아직 못 읽은 칸의 '집계 중…'은 글자 위 빛 띠(1.5초).
-// 칸이 몇 개든 같은 박자, 저절로 움직이는 것은 5초 안에 멈춤(3번 뒤 정지, 사이트 규칙), 글자 상자는
-// 그대로(A7 흔들림 0, '…'는 처음부터), 동작 줄이기면 처음부터 정지, 칸마다 따로 읽지 않는다.
+// 회귀(사용자 결정 10-16·10-18, '집계 중' 동적 표시): 아직 못 읽은 칸의 '집계 중…'은 글자 위 빛 띠(1.5초)가
+// 값이 올 때까지 계속 돈다(로딩 표시라 5초 규칙 예외). transform만 움직이고(칠하기 없음), 칸이 몇 개든 같은
+// 박자, 화면 밖이면 멈췄다가 돌아오면 같은 박자로, 글자 상자는 그대로(A7, '…'는 처음부터), 동작 줄이기면
+// 정지, 칸마다 따로 읽지 않는다.
 import { test, expect, gotoReady } from "../support/fixtures.mjs";
 
 const read = (label) =>
   label.evaluate((el) => {
     const r = el.getBoundingClientRect();
     return {
-      animations: el.getAnimations().map((a) => ({
-        started: typeof a.startTime === "number",
+      animations: el.getAnimations({ subtree: true }).map((a) => ({
+        start: a.startTime,
+        state: a.playState,
         duration: a.effect.getTiming().duration,
         iterations: a.effect.getComputedTiming().iterations,
+        // Only transforms move (no repaint per frame).
+        props: [...new Set(a.effect.getKeyframes().flatMap((k) => Object.keys(k)))].filter((p) => !["offset", "easing", "composite", "computedOffset"].includes(p)),
       })),
       box: [r.x, r.y, r.width, r.height].map((n) => Math.round(n * 10) / 10),
       after: getComputedStyle(el, "::after").content,
+      paused: el.hasAttribute("data-paused"),
       role: el.getAttribute("role"),
       live: el.closest("[aria-live]") === el,
     };
   });
+const RUNNING = { start: 0, state: "running", duration: 1500, iterations: Infinity, props: ["transform"] };
 
 for (const width of [1280, 360])
-  test(`@집계중 ${width} 빛 띠 1.5초 3번 뒤 정지·상자 그대로, 칸마다 읽지 않음 @regression`, async ({ page }) => {
+  test(`@집계중 ${width} 빛 띠 1.5초 계속·transform만·같은 박자·상자 그대로, 칸마다 읽지 않음 @regression`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await page.addInitScript(() => {
       window.__shifts = [];
@@ -32,24 +38,35 @@ for (const width of [1280, 360])
     const board = page.getByRole("table", { name: "4티어 보석 레벨별 즉시 구매 최저가" });
     const label = board.locator('[data-slot="pending-text"]');
     await expect(label).toHaveText("집계 중");
-    // 1.5 s passes, three of them, on the page's shared beat (a set start time).
-    await expect.poll(async () => (await read(label)).animations).toEqual([{ started: true, duration: 1500, iterations: 3 }]);
+    // The window and its brighter copy: 1.5 s, on and on, on the shared beat (start 0).
+    await expect.poll(async () => (await read(label)).animations).toEqual([RUNNING, RUNNING]);
     const first = await read(label);
     expect(first.after, "'…'는 처음부터").toMatch(/^"…"/);
     expect(first.role, "자기 역할 없음").toBeNull();
     expect(first.live, "자기 알림 없음").toBe(false);
-    // Only the paint moves: the box is the same half a loop later, and nothing shifts.
     const before = await page.evaluate(() => window.__shifts.reduce((a, v) => a + v, 0));
     await page.waitForTimeout(800);
     expect((await read(label)).box, "글자 상자 그대로").toEqual(first.box);
-    // Within 5 s it stands still, the same box and text.
-    await expect.poll(async () => (await read(label)).animations, { timeout: 6_000 }).toEqual([]);
-    const still = await read(label);
-    expect(still.box, "멈춘 뒤에도 상자 그대로").toEqual(first.box);
-    expect(still.after).toMatch(/^"…"/);
+    // Past 5 s it still runs: a loading sign until the value comes.
+    await page.waitForTimeout(4_500);
+    expect((await read(label)).animations.map((a) => a.state)).toEqual(["running", "running"]);
     expect(await page.evaluate(() => window.__shifts.reduce((a, v) => a + v, 0)), "흔들림").toBe(before);
   });
 
+test("@집계중 화면 밖이면 멈추고, 돌아오면 같은 박자로 @regression", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 500 });
+  await gotoReady(page, "/market/gems");
+  const label = page.getByRole("table", { name: "4티어 보석 레벨별 즉시 구매 최저가" }).locator('[data-slot="pending-text"]');
+  await label.scrollIntoViewIfNeeded();
+  await expect.poll(async () => (await read(label)).paused).toBe(false);
+  // Out of view: paused.
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await expect.poll(async () => (await read(label)).paused).toBe(true);
+  expect((await read(label)).animations.map((a) => a.state)).toEqual(["paused", "paused"]);
+  // Back: running again, on the beat.
+  await label.scrollIntoViewIfNeeded();
+  await expect.poll(async () => (await read(label)).animations).toEqual([RUNNING, RUNNING]);
+});
 test("@집계중 동작 줄이기면 정지 글자 '집계 중…' @regression", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await gotoReady(page, "/market/gems");
@@ -71,8 +88,8 @@ test("@집계중 강제 색상(고대비)에서는 빛 띠 없이 보이는 글�
 });
 
 test("@집계중 칸 40개가 같이 빛나도 긴 작업 0, CPU 4배 감속 @regression", async ({ page }, testInfo) => {
-  // The paint is the cost (background-position each frame): 40 labels on
-  // screen at once, the CPU slowed down 4×, 3 s of frames and long tasks.
+  // 40 labels on screen at once (transform only, still a layer each), the CPU
+  // slowed down 4×, 3 s of frames and long tasks.
   const cdp = await page.context().newCDPSession(page);
   await gotoReady(page, "/market/gems");
   const board = page.getByRole("table", { name: "4티어 보석 레벨별 즉시 구매 최저가" });
