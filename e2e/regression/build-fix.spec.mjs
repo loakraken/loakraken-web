@@ -53,6 +53,31 @@ for (const width of [1280, 360])
     await expectNoHorizontalOverflow(page);
   });
 
+// A7 (CI 10-16·17): freeing a fix brought the sample note back to its tallest
+// wrap (3 → 2 → 3 lines as the digits change) and its bottom margin escaped the
+// held box: the fix bar and the sections dropped 10px. Where that wrap changes
+// depends on the fonts (CI: 360, here: 368), so sweep the widths around 360.
+test("@M26 풀기: 안내문 줄 수가 오가는 폭에서도 고정 막대·섹션 흔들림 0 @regression", async ({ browser }) => {
+  test.setTimeout(300_000);
+  const moved = [];
+  for (let width = 352; width <= 384; width += 4) {
+    const page = await browser.newPage({ viewport: { width, height: 900 } });
+    await watchShifts(page);
+    await gotoReady(page, BLADE);
+    const bar = page.getByRole("group", { name: "고정한 세팅" });
+    await expect(bar).toContainText("세팅을 누르면");
+    for (const [title, name] of [["각인 채용률", "원한"], ["주력 전투 특성", "특화"], ["팔찌 전투 특성", "치명"]]) {
+      await row(page, title, name).click();
+      await expect(bar).toContainText(/이 세팅을 쓰는 [\d,]+명으로 다시 셌어요/);
+      await page.waitForTimeout(400);
+    }
+    const free = await shiftsDuring(page, () => bar.getByRole("button", { name: "주력 특화 고정 풀기" }).click(), 1500);
+    if (free.all) moved.push(`${width}: ${free.all} (${free.moved})`);
+    await page.close();
+  }
+  expect(moved, "풀기 흔들림(폭별)").toEqual([]);
+});
+
 test("@M26 주소의 고정이 통계에 없으면 안내하고 모두 풀 수 있다 @regression", async ({ page }) => {
   await gotoReady(page, `${BLADE}?fixEngraving=${encodeURIComponent("없는각인")}`);
   await expect(page.getByText("고정한 세팅 가운데 지금 이 조건의 통계에 없는 것이 있어요.")).toBeVisible();
