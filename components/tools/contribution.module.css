@@ -99,24 +99,27 @@
 .marker[data-hidden] {
   opacity: 0;
 }
-/* Crossing into another band: one short ring, then gone. */
+/* Crossing into another band: one short ring that spreads and fades
+   (transform + opacity only), then gone. */
 .ring {
   position: absolute;
   inset: -3px;
+  border: 2px solid var(--primary);
   border-radius: 50%;
-  box-shadow: 0 0 0 0 color-mix(in oklab, currentColor 55%, transparent);
-  color: var(--primary);
-  animation: contribution-ring 420ms var(--ease-out) forwards;
+  opacity: 0;
+  animation: contribution-ring 420ms var(--ease-out);
 }
 .marker[data-band="BELOW_LOW"] .ring {
-  color: var(--loss);
+  border-color: var(--loss);
 }
 @keyframes contribution-ring {
   from {
-    box-shadow: 0 0 0 0 color-mix(in oklab, currentColor 55%, transparent);
+    opacity: 0.7;
+    transform: scale(1);
   }
   to {
-    box-shadow: 0 0 0 10px color-mix(in oklab, currentColor 0%, transparent);
+    opacity: 0;
+    transform: scale(1.9);
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -124,16 +127,16 @@
   .rail {
     transition: none;
   }
-  /* No spreading ring: a brief tint that fades in place. */
+  /* No spreading: the ring shows in place and fades. */
   .ring {
     animation-name: contribution-ring-still;
   }
   @keyframes contribution-ring-still {
     from {
-      box-shadow: 0 0 0 3px color-mix(in oklab, currentColor 45%, transparent);
+      opacity: 0.7;
     }
     to {
-      box-shadow: 0 0 0 3px color-mix(in oklab, currentColor 0%, transparent);
+      opacity: 0;
     }
   }
 }
