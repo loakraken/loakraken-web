@@ -114,6 +114,27 @@
   font-size: 12px;
   line-height: 18px;
 }
+/* Listings columns by share, not by content: narrowing to a class or skill
+   changes the effect text, never a column, so the header stays put (A7). */
+.listingTable {
+  table-layout: fixed;
+  width: 100%;
+  /* Narrower screens scroll the table in its own box (DataTable). */
+  min-width: 37em;
+}
+/* Fixed room for the longest figures (12,345,678G; 10. 19. 23:59; 불가);
+   the effect takes the rest and wraps. */
+.listingTable thead th:nth-child(2),
+.listingTable thead th:nth-child(3),
+.listingTable thead th:nth-child(4) {
+  width: 8.5em;
+}
+.listingTable thead th:nth-child(5) {
+  width: 5em;
+}
+.listingTable tbody th {
+  overflow-wrap: anywhere;
+}
 .listings h2 {
   margin-bottom: 10px;
   font-size: 17px;

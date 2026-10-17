@@ -288,7 +288,7 @@ export function GemBoardView({
             </p>
           ) : (
             <>
-              <DataTable label="보석 매물" className={stats.table}>
+              <DataTable label="보석 매물" className={`${stats.table} ${styles.listingTable}`}>
                 <caption className={stats.srOnly}>
                   {pick.level}레벨 {pick.kind}의 보석 매물 {pick.page}쪽
                 </caption>
