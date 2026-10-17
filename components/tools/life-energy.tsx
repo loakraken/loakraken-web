@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useMemo, useState, type CSSProperties } from "react";
+import { useId, useMemo, type CSSProperties } from "react";
 import Link from "next/link";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Tree } from "@/components/ui/icons";
@@ -9,6 +9,7 @@ import { SegmentedControl, SegmentedItem } from "@/components/ui/segmented-contr
 import { MarketQueryError, postMaterialPricesAll } from "@/lib/market/client";
 import { marketFailureCopy, priceBases, type MaterialPrice, type PriceBasis } from "@/lib/market/model";
 import { retryLabel } from "@/lib/api/rate-limit";
+import { boolCodec, oneOfCodec, textCodec, useUrlState } from "@/lib/tools/url-state";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { MINUTE, useClock } from "@/components/home/clock";
 import { CRAFT_DATA, craftGoldAfterCut, parsePercent, type OutputId } from "@/lib/tools/abidos-craft";
@@ -78,13 +79,14 @@ function ActivityRow({ result, scale, purpose, priced }: { result: ActivityResul
 }
 
 export function LifeEnergyTool() {
-  const [basis, setBasis] = useState<PriceBasis>("CURRENT_MIN_PRICE");
-  const [energyText, setEnergyText] = useState("");
-  const [blessed, setBlessed] = useState(false);
-  const [feeCutText, setFeeCutText] = useState("");
-  const [increaseText, setIncreaseText] = useState("");
-  const [exchange, setExchange] = useState(true);
-  const [purpose, setPurpose] = useState<Purpose>("sell");
+  // Every input lives in the address: back and reload keep it (#889).
+  const [basis, setBasis] = useUrlState<PriceBasis>("price", "CURRENT_MIN_PRICE", oneOfCodec(priceBases.map((b) => b.value)));
+  const [energyText, setEnergyText] = useUrlState("energy", "", textCodec(8));
+  const [blessed, setBlessed] = useUrlState("blessed", false, boolCodec);
+  const [feeCutText, setFeeCutText] = useUrlState("fee", "", textCodec(8));
+  const [increaseText, setIncreaseText] = useUrlState("great", "", textCodec(8));
+  const [exchange, setExchange] = useUrlState("exchange", true, boolCodec);
+  const [purpose, setPurpose] = useUrlState<Purpose>("purpose", "sell", oneOfCodec<Purpose>(["sell", "use"]));
   const energyId = useId();
   const energyHintId = useId();
   const typed = energyText === "" ? null : Number(energyText);
