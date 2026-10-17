@@ -118,7 +118,15 @@
 }
 /* Materials the exchange vendor supplies, held from the first paint (A7). */
 .via {
+  display: grid;
   min-height: 1lh;
+}
+/* The unseen longest text and the shown one share one cell: the taller decides. */
+.via > span {
+  grid-area: 1 / 1;
+}
+.via > [data-reserve] {
+  visibility: hidden;
 }
 .basis {
   margin-top: var(--space-3);

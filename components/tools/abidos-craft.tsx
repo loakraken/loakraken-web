@@ -74,7 +74,7 @@ function ProfitCell({ value, per100, priced }: { value: number | null; per100: n
   );
 }
 
-function OutputTable({ results, priced }: { results: CraftResult[]; priced: boolean }) {
+function OutputTable({ results, priced, exchange }: { results: CraftResult[]; priced: boolean; exchange: boolean }) {
   const output = results[0].output;
   return (
     <section className={styles.card} aria-labelledby={`craft-${output.id}`}>
@@ -115,6 +115,15 @@ function OutputTable({ results, priced }: { results: CraftResult[]; priced: bool
                   <small>{r.materials.map((m) => `${m.name} ${m.qty}`).join(" · ")}</small>
                   {/* Held from the first paint: what the exchange vendor supplies more cheaply. */}
                   <small className={styles.via}>
+                    {/* The longest it can say (every material of the recipe), unseen:
+                        prices arriving fill the line without the row growing. On a
+                        phone the results are first on screen, so a growing row
+                        moved everything under it (PM-프론트 #886 P1). */}
+                    {exchange && (
+                      <span aria-hidden="true" data-reserve="">
+                        교환으로 마련: {r.materials.map((m) => m.name).join(", ")}
+                      </span>
+                    )}
                     <span key={viaText(r)}>{viaText(r)}</span>
                   </small>
                   {/* Held from the first paint: names a price the market did not give. */}
@@ -296,6 +305,7 @@ export function AbidosCraftTool() {
                     key={output.id}
                     priced={priced}
                     results={CRAFT_DATA.skills.map((skill) => craftResult(output.id, skill.id, unit, increase, feeCut, energyCut, exchange))}
+                    exchange={exchange}
                   />
                 ))}
               </div>
