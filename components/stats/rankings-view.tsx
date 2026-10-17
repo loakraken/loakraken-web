@@ -27,7 +27,9 @@ const CLASSES = [
   "서머너", "아르카나", "소서리스", "블레이드", "데모닉", "리퍼", "소울이터", "도화가", "기상술사", "환수사",
 ];
 
-const COLUMNS = rankingColumns([3.5, 14, 6, 8.5, 6, 6.5, 6.5, 14, 7, 9.5, 7.5]);
+// Numbers get room for real data's longest (A37, QA 10-17: "11,170.05" in bold,
+// "0.11% 크라켄"); text columns may end in "…" with the whole text on hover.
+const COLUMNS = rankingColumns([3.5, 14, 6, 8.5, 7, 8.5, 8, 16, 7, 9.5, 9.5]);
 
 /**
  * Ranking (backend #100): combat power or item level, filtered
@@ -208,13 +210,13 @@ export function RankingsView({ initial, types }: { initial: RankingQuery; types:
               {data.rows.map((row) => (
                 <tr key={`${row.serverName}-${row.characterName}`}>
                   <td>{whole(row.rank)}</td>
-                  <th scope="row">
+                  <th scope="row" title={row.characterName}>
                     <Link href={`/character/${encodeURIComponent(row.characterName)}`} className={styles.charLink}>
                       {row.characterName}
                     </Link>
                   </th>
-                  <td className={styles.left}>{row.serverName}</td>
-                  <td className={styles.left}>
+                  <td className={styles.left} title={row.serverName}>{row.serverName}</td>
+                  <td className={styles.left} title={`${row.className}${row.position === "SUPPORT" ? " · 서포터" : ""}`}>
                     {row.className}
                     {row.position === "SUPPORT" && <span className={styles.role}> · 서포터</span>}
                   </td>
@@ -223,9 +225,15 @@ export function RankingsView({ initial, types }: { initial: RankingQuery; types:
                   {/* K32 · L37 (api #446·#449): '-' when not observed; the
                       columns stay so every row lines up. */}
                   <td>{row.bestCombatPower != null ? fixed(row.bestCombatPower) : "-"}</td>
-                  <td className={`${styles.left} ${styles.k32}`}>{arkPassiveText(row.arkPassivePoints) ?? "-"}</td>
-                  <td className={`${styles.left} ${styles.k32}`}>{row.classEngraving?.trim() || "-"}</td>
-                  <td className={`${styles.left} ${styles.esther}`}>{estherText(row.estherWeapon) ?? "-"}</td>
+                  <td className={`${styles.left} ${styles.k32}`} title={arkPassiveText(row.arkPassivePoints) ?? undefined}>
+                    {arkPassiveText(row.arkPassivePoints) ?? "-"}
+                  </td>
+                  <td className={`${styles.left} ${styles.k32}`} title={row.classEngraving?.trim() || undefined}>
+                    {row.classEngraving?.trim() || "-"}
+                  </td>
+                  <td className={`${styles.left} ${styles.esther}`} title={estherText(row.estherWeapon) ?? undefined}>
+                    {estherText(row.estherWeapon) ?? "-"}
+                  </td>
                   <td>
                     {percent(row.topPercent)}
                     {row.tier && TIER_LABEL[row.tier] && <> <b className={styles.tier}>{TIER_LABEL[row.tier]}</b></>}

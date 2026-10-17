@@ -646,6 +646,11 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+/* Numbers line up and never end in "…": their columns are sized for real
+   data's longest values (A37, QA 10-17); text columns carry a title instead. */
+.table[data-fixed] td:not(.left) {
+  font-variant-numeric: tabular-nums;
+}
 /* The note over the table keeps two lines (three on a phone): its numbers
    change with the filters, and a line break coming or going moved the table. */
 /* ranking pages only */
