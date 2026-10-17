@@ -2596,3 +2596,53 @@
 .otherGems li .skillGems {
   margin-left: 0;
 }
+
+/* 스펙업 줄 상세 (#887): the target cell is the button that opens it. It
+   keeps the cell's look; hover and press show it can be opened. */
+.specUpTargetButton {
+  display: block;
+  width: 100%;
+  margin: -4px -6px;
+  padding: 4px 6px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+.specUpTargetButton:active {
+  background: color-mix(in oklab, var(--foreground) 8%, transparent);
+}
+@media (hover: hover) and (pointer: fine) {
+  .specUpTargetButton:hover {
+    background: color-mix(in oklab, var(--foreground) 5%, transparent);
+  }
+  .specUpTargetButton:hover .specUpTarget > span:last-child {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+}
+/* One market line or material: its icon, then the name and the gold. */
+.specUpDetailItem {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+}
+.specUpDetailSub {
+  color: var(--item-tip-muted);
+  font-size: 0.92em;
+  font-weight: 400;
+}
+.specUpDetailLink {
+  justify-self: start;
+  color: var(--item-tip-link, var(--link));
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
