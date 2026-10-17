@@ -481,6 +481,18 @@
   font-size: 15px;
   font-weight: 700;
 }
+/* "시세 추이" with the period change under it (one line each, the change line
+   held from the first paint so nothing moves when the data lands). */
+.trendTitle {
+  display: grid;
+  gap: 1px;
+}
+.periodChange {
+  display: block;
+  min-height: 16px;
+  line-height: 16px;
+  white-space: nowrap;
+}
 .detail > .ranges {
   margin-top: 8px;
 }
