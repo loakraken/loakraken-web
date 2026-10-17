@@ -543,10 +543,11 @@ function Plan({ restore }: { restore: { loading: boolean; missing: number } }) {
         담아 둔 재료 {restore.missing}개를 다시 찾지 못했어요. 위에서 다시 검색해 담아 주세요.
       </p>
     ) : null;
+  // Nothing came back: the one notice says what happened and what to do.
+  if (!rows.length && missing) return missing;
   if (!rows.length)
     return (
       <>
-        {missing}
         <p className={styles.empty} role={restore.loading ? "status" : undefined}>
           {restore.loading ? "담아 둔 재료를 불러오는 중…" : "아직 추가한 재료가 없어요. 위에서 검색해 견적에 추가하세요."}
         </p>
