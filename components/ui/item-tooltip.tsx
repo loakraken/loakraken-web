@@ -148,7 +148,8 @@ function ItemTooltip({ open, defaultOpen, onOpenChange, children, ...props }: Po
  * and closes 100ms after it leaves; moving onto the card
  * keeps it open. The card does not follow the pointer. On touch a tap opens
  * the sheet. */
-function ItemTooltipTrigger({ className, ...props }: PopoverPrimitive.Trigger.Props) {
+/** `openOnHover={false}` for a trigger that should open on a press only (a list row). */
+function ItemTooltipTrigger({ className, openOnHover = true, ...props }: PopoverPrimitive.Trigger.Props) {
   const mode = React.useContext(ModeContext)
   const { setTrigger } = React.useContext(AnchorContext)
   if (mode === "sheet") {
@@ -164,7 +165,7 @@ function ItemTooltipTrigger({ className, ...props }: PopoverPrimitive.Trigger.Pr
     <PopoverPrimitive.Trigger
       data-slot="item-tooltip-trigger"
       ref={setTrigger}
-      openOnHover
+      openOnHover={openOnHover}
       delay={180}
       closeDelay={100}
       className={cn("cursor-default", className)}
