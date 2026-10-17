@@ -116,4 +116,21 @@ test.describe("성장 도구 입력 유지", () => {
       await tool.check(page);
     });
   }
+
+  // #897(PM-프론트 #896 판단): 견적에 담은 줄은 품목 id·필요·보유만 주소에 두고, 새로고침·공유 주소에서 품목을 다시 불러온다.
+  test("재료 구매 견적: 담은 줄과 필요·보유 수가 새로고침에도 남는다", async ({ page }) => {
+    await gotoReady(page, "/tools/material-quote");
+    await expect(page.getByRole("tablist", { name: "카테고리" })).toBeVisible();
+    await page.getByRole("combobox", { name: "재료 이름" }).fill("합성");
+    await page.getByRole("option", { name: "합성 재련 재료 견적에 추가" }).click();
+    await page.getByRole("textbox", { name: "필요", exact: true }).fill("250");
+    await page.getByRole("textbox", { name: "보유", exact: true }).fill("30");
+    await page.waitForTimeout(300);
+    await page.reload();
+    await expect(page.getByRole("heading", { name: "재료 1/10" })).toBeVisible();
+    await expect(page.getByRole("textbox", { name: "필요", exact: true })).toHaveValue("250");
+    await expect(page.getByRole("textbox", { name: "보유", exact: true })).toHaveValue("30");
+    // 다시 찾지 못한 줄이 없으니 안내도 없다.
+    await expect(page.getByText(/다시 찾지 못했어요/)).toHaveCount(0);
+  });
 });
