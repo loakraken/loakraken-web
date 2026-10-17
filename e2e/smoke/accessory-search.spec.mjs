@@ -51,4 +51,31 @@ test.describe("악세 경매 검색 @smoke", () => {
     await expect(alert.getByRole("button")).toHaveAttribute("aria-disabled", "true");
     await expect(alert.getByRole("button")).toContainText(/뒤 다시 검색/);
   });
+
+  // 사용자 10-16: 결과 줄을 누르면 그 매물을 게임 툴팁처럼(등급·품질·기본 효과·연마 효과·경매) 보여 준다.
+  // 검색 응답의 값만 쓰고 요청을 더 보내지 않는다. Esc로 닫으면 초점이 그 줄로 돌아온다.
+  test("결과 줄을 누르면 매물 상세 카드가 열리고, 요청을 더 보내지 않으며, Esc로 닫힌다", async ({ page }) => {
+    await gotoReady(page, "/tools/accessory-search");
+    await chooseOption(page, page.getByRole("combobox", { name: "적에게 주는 피해 증가" }), "상 이상");
+    await page.getByRole("button", { name: "검색", exact: true }).click();
+    const results = page.getByRole("region", { name: "매물" });
+    await expect(results.getByRole("button", { name: /상세 보기$/ })).toHaveCount(3);
+    let calls = 0;
+    page.on("request", (r) => r.url().includes("/accessories") && calls++);
+    const open = results.getByRole("button", { name: /상세 보기$/ }).first();
+    // 줄 위에 마우스만 올려서는 열리지 않는다(목록을 훑을 때 카드가 튀어나오지 않음).
+    await open.hover();
+    await page.waitForTimeout(400);
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await open.click();
+    const card = page.getByRole("dialog");
+    await expect(card).toBeVisible();
+    await expect(card).toContainText("연마 효과");
+    await expect(card).toContainText("즉시 구매가");
+    await expect(card).toContainText("남은 시간");
+    expect(calls).toBe(0);
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(open).toBeFocused();
+  });
 });
