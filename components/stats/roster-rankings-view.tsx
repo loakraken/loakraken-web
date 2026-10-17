@@ -293,9 +293,10 @@ export function RosterRankingsView({ initial, types }: { initial: RosterQuery; t
           </nav>
         )}
         <p className={styles.note}>
-          식스맨은 원정대 대표 캐릭터의 서버(서버를 고르면 그 서버)에서 아이템
-          레벨이 높은 6명이에요. 식스맨 평균은 이 6명의 {basisLabel} 합을 6으로
-          나눠요. 6명보다 적어도 6으로 나눠요(인원 칸에 표시).
+          원정대는 서버를 고르면 그 서버, 고르지 않으면 대표 캐릭터의 서버
+          캐릭터만 세요(인원·전체 평균도 그 서버 기준이에요). 식스맨은 그중 아이템
+          레벨이 높은 6명이고, 식스맨 평균은 이 6명의 {basisLabel} 합을 6으로
+          나눠요. 6명보다 적어도 6으로 나눠요.
         </p>
         {data?.meta && <BasisNote basis={{ ...data.meta, unit: "개 원정대" }} />}
       </main>
