@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useId, useState } from "react";
+import { Fragment, useId, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { SiteHeader } from "@/components/site/site-header";
@@ -20,12 +20,16 @@ import {
   accessorySearch,
   isPicked,
   polishText,
+  type AccessoryBoard,
   type AccessoryCell,
   type AccessoryFilter,
   type AccessoryPick,
   type Level,
+  type Slot,
 } from "@/lib/market/auction-accessories";
 import { goldText } from "@/lib/market/board";
+import { boardRefresh } from "@/lib/market/refresh";
+import { ChangeMark, UpdateAnnouncer, useChangedCells, type Pulse } from "@/components/ui/changed-cells";
 import quote from "@/components/tools/material-quote.module.css";
 import stats from "@/components/stats/stats.module.css";
 import gems from "./gem-board.module.css";
@@ -49,7 +53,59 @@ function Change({ rate }: { rate: number | null | undefined }) {
   );
 }
 
-function Cell({ cell, picked, onPick }: { cell: AccessoryCell; picked: boolean; onPick: () => void }) {
+function Slots({
+  data,
+  pending,
+  pickedAt,
+  onPick,
+}: {
+  data: AccessoryBoard;
+  pending: ReturnType<typeof pendingProps>;
+  pickedAt: (slot: Slot, cell: AccessoryCell) => boolean;
+  onPick: (slot: Slot, cell: AccessoryCell) => void;
+}) {
+  const cells = useMemo(
+    () => data.slots.flatMap((slot) => slot.cells.map((cell) => ({ id: `${slot.slot}|${cell.levels.join(",")}`, cell }))),
+    [data],
+  );
+  const changed = useChangedCells(cells, (row) => row.id, { price: (row) => row.cell.minBuyPrice });
+  // The cell's own ▲/▼ is the day change: the refresh mark is the tint only.
+  const pulseOf = (id: string) => {
+    const pulse = changed.pulse(id, "price");
+    return pulse && { ...pulse, dir: 0 as const };
+  };
+  return (
+    <div className={styles.slots} {...pending}>
+      {data.slots.map((slot) => (
+        <section key={slot.slot} className={styles.slot} aria-labelledby={`slot-${slot.slot}`}>
+          <h2 id={`slot-${slot.slot}`}>
+            {slot.slotName}
+            <small> · {slot.options.map((o) => o.shortName).join(" · ")}</small>
+          </h2>
+          <ul className={styles.cells}>
+            {slot.cells.map((cell) => (
+              <Cell
+                key={cell.levels.join(",")}
+                cell={cell}
+                pulse={pulseOf(`${slot.slot}|${cell.levels.join(",")}`)}
+                picked={pickedAt(slot.slot, cell)}
+                onPick={() => onPick(slot.slot, cell)}
+              />
+            ))}
+            {/* A slot with one key effect has 3 cells: the rest keep their room so
+                a role change does not move what is below (A7). */}
+            {Array.from({ length: Math.max(0, CELL_ROOM - slot.cells.length) }, (_, i) => (
+              <li key={`room-${i}`} className={styles.room} aria-hidden="true" />
+            ))}
+          </ul>
+        </section>
+      ))}
+      <UpdateAnnouncer text={changed.summary ? `장신구 시세 ${changed.summary}` : ""} />
+    </div>
+  );
+}
+
+function Cell({ cell, picked, onPick, pulse }: { cell: AccessoryCell; picked: boolean; onPick: () => void; pulse?: Pulse }) {
   const name = `${cell.optionLabels.join(" · ")}`;
   if (cell.status !== "READY")
     return (
@@ -70,7 +126,9 @@ function Cell({ cell, picked, onPick }: { cell: AccessoryCell; picked: boolean; 
             <b>{cell.label}</b>
             <small>{name}</small>
           </span>
-          <b className={styles.price}>{gold(cell.minBuyPrice)}</b>
+          <b className={styles.price}>
+            <ChangeMark pulse={pulse}>{gold(cell.minBuyPrice)}</ChangeMark>
+          </b>
           <Change rate={cell.previousDayChangeRate} />
           <small className={styles.count}>매물 {count(cell.totalCount)}</small>
         </Fragment>
@@ -96,8 +154,7 @@ export function AccessoryBoardView({ initialFilter, initialPick }: { initialFilt
     staleTime: 60_000,
     placeholderData: keepPreviousData,
     retry: false,
-    refetchInterval: (query) =>
-      query.state.data && !query.state.data.data.complete && query.state.dataUpdateCount < 7 ? 5_000 : false,
+    refetchInterval: boardRefresh,
   });
   const listings = useQuery({
     queryKey: ["accessory-listings", filter, pick],
@@ -190,31 +247,16 @@ export function AccessoryBoardView({ initialFilter, initialPick }: { initialFilt
               장신구 시세를 불러오고 있어요…
             </p>
           ) : (
-            <div className={styles.slots} {...pendingProps(board)}>
-              {data.slots.map((slot) => (
-                <section key={slot.slot} className={styles.slot} aria-labelledby={`slot-${slot.slot}`}>
-                  <h2 id={`slot-${slot.slot}`}>
-                    {slot.slotName}
-                    <small> · {slot.options.map((o) => o.shortName).join(" · ")}</small>
-                  </h2>
-                  <ul className={styles.cells}>
-                    {slot.cells.map((cell) => (
-                      <Cell
-                        key={cell.levels.join(",")}
-                        cell={cell}
-                        picked={isPicked(pick, slot.slot, cell)}
-                        onPick={() => go(filter, { slot: slot.slot, levels: cell.levels as Level[], page: 1 })}
-                      />
-                    ))}
-                    {/* A slot with one key effect has 3 cells: the rest keep their room so
-                        a role change does not move what is below (A7). */}
-                    {Array.from({ length: Math.max(0, CELL_ROOM - slot.cells.length) }, (_, i) => (
-                      <li key={`room-${i}`} className={styles.room} aria-hidden="true" />
-                    ))}
-                  </ul>
-                </section>
-              ))}
-            </div>
+            // Keyed by the conditions the shown prices are for: a new grade or
+            // role starts the comparison afresh (not "every price changed"),
+            // the minute's refresh of the same conditions marks what moved.
+            <Slots
+              key={`${data.grade}|${data.role}|${data.minQuality}`}
+              data={data}
+              pending={pendingProps(board)}
+              pickedAt={(slot, cell) => isPicked(pick, slot, cell)}
+              onPick={(slot, cell) => go(filter, { slot, levels: cell.levels as Level[], page: 1 })}
+            />
           )}
         </div>
 
