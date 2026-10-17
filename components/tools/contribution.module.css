@@ -164,6 +164,10 @@
   min-width: 6.5ch;
   text-align: end;
 }
+/* The 억 gap sits inside a sentence ("하한보다 1,728억 낮아요"): no held width there. */
+.pct[data-kind="gap"] {
+  min-width: 0;
+}
 .notes {
   display: grid;
   gap: 4px;

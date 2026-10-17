@@ -92,7 +92,7 @@ function useCountTo(target: number | null, kind: string | null) {
 function CountedFigure({ value, kind, band }: { value: number; kind: "gap" | "pct"; band: Band }) {
   const shown = useCountTo(value, kind) ?? value;
   return (
-    <b className={styles.pct} data-band={band}>
+    <b className={styles.pct} data-band={band} data-kind={kind}>
       {figureText({ kind }, shown)}
     </b>
   );
