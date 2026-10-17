@@ -89,7 +89,7 @@ test.describe("기여도 계산기 @smoke", () => {
     // 막대 표시점은 left가 아니라 transform으로 오른쪽 끝(100%)까지 간다.
     const rail = page.locator("[class*='rail']");
     await expect.poll(() => rail.evaluate((el) => getComputedStyle(el).transform)).not.toBe("none");
-    expect(await rail.evaluate((el) => el.style.transform)).toBe("translateX(100%)");
+    expect(await rail.evaluate((el) => el.style.transform)).toBe("translateX(0%)");
   });
 
   test("동작 줄이기 설정이면 %가 바로 새 값이다", async ({ page }) => {

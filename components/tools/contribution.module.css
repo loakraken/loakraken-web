@@ -76,7 +76,9 @@
   transform-origin: left center;
   transition: transform 300ms var(--ease-out);
 }
-/* Full-width rail so translateX(%) is a share of the bar; the marker rides it. */
+/* Full-width rail so translateX(%) is a share of the bar. The marker sits at
+   its right end and the rail is pulled left by what is missing (0% = -100%),
+   so nothing ever reaches past the bar on the right (no sideways scroll). */
 .rail {
   position: absolute;
   inset: 0;
@@ -86,7 +88,7 @@
 .marker {
   position: absolute;
   top: 2px;
-  left: 0;
+  left: 100%;
   width: 20px;
   height: 20px;
   margin-left: -10px;

@@ -200,7 +200,7 @@ export function ContributionTool() {
                     damage the fill is empty and the marker waits at the left end. */}
                 <span className={styles.fill} style={{ transform: `scaleX(${(marker ?? 0) / 100})` }} />
                 {refAt != null && <span className={styles.ref} style={{ left: `${refAt}%` }} />}
-                <span className={styles.rail} style={{ transform: `translateX(${marker ?? 0}%)` }}>
+                <span className={styles.rail} style={{ transform: `translateX(${(marker ?? 0) - 100}%)` }}>
                   <span className={styles.marker} data-band={result?.band} data-hidden={marker == null || undefined}>
                     {ring.count > 0 && <span key={ring.count} className={styles.ring} />}
                   </span>
