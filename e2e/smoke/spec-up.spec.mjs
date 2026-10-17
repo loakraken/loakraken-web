@@ -164,6 +164,9 @@ test.describe("스펙업 가이드 @smoke", () => {
     await expect(card).toContainText("−38만G");
     await expect(card).toContainText("기대 비용62만G");
     await expect(card).toContainText("매물 5개");
+    // 이미지가 없는 줄도 이름이 한 줄로 읽힌다(글자 단위로 세로로 깨지지 않음, A37).
+    const buyLine = card.getByText("구매 · 9레벨 겁화의 보석");
+    expect((await buyLine.boundingBox()).height).toBeLessThanOrEqual(48);
     await expect(card).toContainText("0.8% → 1%");
     await expect(card).toContainText("+24.00");
     expect(calls).toBe(1);
