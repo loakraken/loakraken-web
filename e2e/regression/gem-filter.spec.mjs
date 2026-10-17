@@ -48,6 +48,8 @@ for (const width of [1280, 360])
     await pickOption(page, "직업", "바드");
     await expect(page).toHaveURL(/class=%EB%B0%94%EB%93%9C/);
     await expect(page).not.toHaveURL(/skill=/);
+    // 바드 is a supporter: some of its skills are not offered yet, and the note says so.
+    await expect(filter(page)).toContainText("일부 서포터 스킬은 아직 고를 수 없어요.");
     await expect(page.locator("section[aria-labelledby=gem-listings-heading] tbody tr:not([aria-hidden])")).toHaveCount(2);
     // 겁화: only the skill that works on 겁화 is offered.
     await filter(page).getByLabel("스킬").click();

@@ -25,6 +25,7 @@ import {
   type GemPick,
 } from "@/lib/market/auction-gems";
 import { goldText } from "@/lib/market/board";
+import { SUPPORT_CLASSES } from "@/lib/character/detail";
 import quote from "@/components/tools/material-quote.module.css";
 import stats from "@/components/stats/stats.module.css";
 import styles from "./gem-board.module.css";
@@ -86,7 +87,14 @@ function GemFilter({
   const hintId = useId();
   const ready = !!classes && !!pick && !note;
   const skills = classes && pick ? skillsFor(classes, pick.className, pick.kind) : [];
-  const hint = note ?? (pick ? "직업·스킬은 아래 매물만 걸러요. 표의 최저가는 모든 보석 기준이에요." : "위 표에서 칸을 고르면 직업·스킬로 거를 수 있어요.");
+  // Skills with only a support effect are not in the backend's list yet (no
+  // official option to search by): say so for a supporter class.
+  const supportNote = pick?.className && SUPPORT_CLASSES.includes(pick.className) ? " 일부 서포터 스킬은 아직 고를 수 없어요." : "";
+  const hint =
+    note ??
+    (pick
+      ? `직업·스킬은 아래 매물만 걸러요. 표의 최저가는 모든 보석 기준이에요.${supportNote}`
+      : "위 표에서 칸을 고르면 직업·스킬로 거를 수 있어요.");
   return (
     <form className={styles.filter} aria-label="매물 직업·스킬" onSubmit={(e) => e.preventDefault()}>
       <label htmlFor={classId}>직업</label>
