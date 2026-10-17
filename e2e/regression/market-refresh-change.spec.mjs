@@ -70,9 +70,24 @@ for (const width of [1280, 360]) {
     // (nothing spills over the table, A37), and in the table's name.
     const reorder = page.getByRole("button", { name: "새 순서로 보기" });
     await expect(reorder).toBeVisible();
+    // Measured on the text itself (the button's unseen 44px press area on a
+    // phone is not text): one line, inside the line's box.
     const line = await reorder.evaluate((el) => {
       const p = el.closest("p");
-      return { text: p.textContent, fits: p.scrollHeight <= p.clientHeight + 1 && p.scrollWidth <= p.clientWidth + 1 };
+      const box = p.getBoundingClientRect();
+      const tops = new Set();
+      let right = 0;
+      const walker = document.createTreeWalker(p, NodeFilter.SHOW_TEXT);
+      for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+        const range = document.createRange();
+        range.selectNodeContents(node);
+        for (const r of range.getClientRects())
+          if (r.width > 0) {
+            tops.add(Math.round(r.top));
+            right = Math.max(right, r.right);
+          }
+      }
+      return { text: p.textContent, fits: tops.size === 1 && right <= box.right + 1 };
     });
     expect(line.text).toContain("시세 갱신 전 순서예요");
     expect(line.fits, `한 줄에 들어감: ${line.text}`).toBe(true);
