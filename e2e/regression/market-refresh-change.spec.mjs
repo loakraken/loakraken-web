@@ -7,10 +7,21 @@ const watch = (page) =>
   page.addInitScript(() => {
     window.__shifts = [];
     new PerformanceObserver((list) => {
-      for (const e of list.getEntries()) if (!e.hadRecentInput) window.__shifts.push(e.value);
+      for (const e of list.getEntries())
+        if (!e.hadRecentInput)
+          window.__shifts.push({
+            v: e.value,
+            src: (e.sources ?? []).map((s) => {
+              const el = s.node?.nodeType === 1 ? s.node : s.node?.parentElement;
+              const r = (b) => [b.x, b.y, b.width, b.height].map(Math.round).join(",");
+              return `${el?.tagName}${el?.dataset?.cell ? `[${el.dataset.cell}]` : ""} ${r(s.previousRect)}→${r(s.currentRect)}`;
+            }),
+          });
     }).observe({ type: "layout-shift", buffered: true });
   });
-const shifts = (page) => page.evaluate(() => window.__shifts.reduce((a, v) => a + v, 0));
+const shifts = (page) => page.evaluate(() => window.__shifts.reduce((a, e) => a + e.v, 0));
+/** What moved, for the failure message. */
+const movedOf = (page) => page.evaluate(() => [...new Set(window.__shifts.flatMap((e) => e.src))].slice(0, 8).join(" | "));
 const resetShifts = (page) => page.evaluate(() => (window.__shifts = []));
 
 /** Serves the real mock answer the first time, a changed one after (×1.37 and `edit`). */
@@ -53,7 +64,7 @@ for (const width of [1280, 360]) {
     await expect(table).toContainText("85만 8,800G"); // 62만 × 1.37 + 9,400: longer text
     // The changed costs tint once (the wash is cleared only after 1.4 s of page time).
     await expect.poll(() => table.locator(".chg-wash").count(), { message: "바뀐 칸 물들기" }).toBeGreaterThan(0);
-    expect(await shifts(page), "갱신 뒤 흔들림(누르지 않음)").toBe(0);
+    expect(await shifts(page), `갱신 뒤 흔들림(누르지 않음): ${await movedOf(page)}`).toBe(0);
     expect(await table.locator('[data-cell="target"]').allTextContents(), "줄 순서 그대로").toEqual(before);
     // Said that the rows are the old order — one line in its fixed-height line
     // (nothing spills over the table, A37), and in the table's name.
@@ -88,7 +99,7 @@ for (const width of [1280, 360]) {
     await page.clock.runFor(6_000);
     await expect.poll(served).toBeGreaterThan(1);
     await expect.poll(() => board.locator(".chg-wash").count(), { message: "바뀐 칸 물들기" }).toBeGreaterThan(0);
-    expect(await shifts(page), "갱신 뒤 흔들림(누르지 않음)").toBe(0);
+    expect(await shifts(page), `갱신 뒤 흔들림(누르지 않음): ${await movedOf(page)}`).toBe(0);
     // One polite summary (at most every 1.6 s).
     await page.clock.runFor(1_700);
     await expect(page.getByRole("status").filter({ hasText: /^보석 시세 \d+개 바뀜\.$/ })).toHaveCount(1);
