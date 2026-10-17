@@ -293,8 +293,9 @@ export function RosterRankingsView({ initial, types }: { initial: RosterQuery; t
           </nav>
         )}
         <p className={styles.note}>
-          식스맨 평균은 원정대에서 {basisLabel}이 높은 6명의 평균이고, 6명보다
-          적으면 있는 인원으로 계산해요(인원 칸에 표시).
+          식스맨은 원정대 대표 캐릭터의 서버(서버를 고르면 그 서버)에서 아이템
+          레벨이 높은 6명이에요. 식스맨 평균은 이 6명의 {basisLabel} 합을 6으로
+          나눠요. 6명보다 적어도 6으로 나눠요(인원 칸에 표시).
         </p>
         {data?.meta && <BasisNote basis={{ ...data.meta, unit: "개 원정대" }} />}
       </main>
