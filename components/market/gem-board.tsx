@@ -83,6 +83,7 @@ function GemFilter({
 }) {
   const classId = useId();
   const skillId = useId();
+  const hintId = useId();
   const ready = !!classes && !!pick && !note;
   const skills = classes && pick ? skillsFor(classes, pick.className, pick.kind) : [];
   const hint = note ?? (pick ? "직업·스킬은 아래 매물만 걸러요. 표의 최저가는 모든 보석 기준이에요." : "위 표에서 칸을 고르면 직업·스킬로 거를 수 있어요.");
@@ -92,6 +93,7 @@ function GemFilter({
       <Select
         id={classId}
         className={styles.classSelect}
+        aria-describedby={hintId}
         value={pick?.className ?? ""}
         disabled={!ready}
         onValueChange={(v) => onChange(v || null, null)}
@@ -101,13 +103,16 @@ function GemFilter({
       <Select
         id={skillId}
         className={styles.skillSelect}
+        aria-describedby={hintId}
         value={pick?.skill ? String(pick.skill) : ""}
         disabled={!ready || !pick?.className}
         onValueChange={(v) => onChange(pick?.className ?? null, v ? Number(v) : null)}
         items={[{ value: "", label: "모든 스킬" }, ...skills.map((s) => ({ value: String(s.code), label: s.name }))]}
       />
       {/* A new sentence is drawn anew: text rewritten in place counts as moving (A7). */}
-      <small key={hint}>{hint}</small>
+      <small key={hint} id={hintId}>
+        {hint}
+      </small>
     </form>
   );
 }
@@ -122,11 +127,11 @@ function GemFilter({
  */
 export function GemBoardView({
   initialPick,
-  filter = "unknown",
+  filter = "off",
 }: {
   initialPick: GemPick | null;
-  /** The class/skill filter as the server found it: there, switched off, or not known yet. */
-  filter?: "on" | "off" | "unknown";
+  /** The class/skill filter as the server found it: its list came with the page, or not (no row). */
+  filter?: "on" | "off";
 }) {
   const router = useRouter();
   const [pick, setPick] = useState<GemPick | null>(initialPick);

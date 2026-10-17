@@ -31,7 +31,8 @@ export default async function GemsPage({
   const client = new QueryClient();
   if (board.ok) client.setQueryData(["gem-board"], board.envelope, { updatedAt: fetchedAt });
   if (skills.ok) client.setQueryData(["gem-skills"], skills.envelope, { updatedAt: fetchedAt });
-  const filter = skills.ok ? "on" : skills.error.code === "GEM_FILTER_DISABLED" ? "off" : "unknown";
+  // No list (switched off, not deployed yet, slow): no filter row at all on this load.
+  const filter = skills.ok ? "on" : "off";
   return (
     <HydrationBoundary state={dehydrate(client)}>
       <GemBoardView initialPick={parseGemPick(params)} filter={filter} />
