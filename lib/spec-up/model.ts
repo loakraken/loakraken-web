@@ -44,6 +44,26 @@ export const kindLabel = (kind: string) => SPEC_UP_KIND_LABEL[kind] ?? kind;
  * Gold in Korean units, every digit kept (no rounding): 12,340 → "1만 2,340",
  * 123,456,789 → "1억 2,345만 6,789". The caller adds "G".
  */
+/**
+ * The room a cost cell holds from the start (A7): the widest text of the same
+ * size with one more leading digit, all eights ("62만" → "888만 8,888G"). The
+ * minute's price refresh (a few tens of percent) then never widens its column.
+ */
+export function costRoom(amount: number) {
+  const a = Math.abs(Math.trunc(amount));
+  const units = [
+    ["조", 1_000_000_000_000],
+    ["억", 100_000_000],
+    ["만", 10_000],
+  ] as const;
+  const eights = (n: number) => Number("8".repeat(n)).toLocaleString("ko-KR");
+  const top = units.findIndex(([, size]) => a >= size);
+  if (top < 0) return "8만 8,888G";
+  const [unit, size] = units[top];
+  const head = `${eights(String(Math.floor(a / size)).length + 1)}${unit}`;
+  return [head, ...units.slice(top + 1).map(([u]) => `8,888${u}`), "8,888"].join(" ") + "G";
+}
+
 export function koreanGold(amount: number) {
   if (!Number.isFinite(amount)) return "—";
   const sign = amount < 0 ? "−" : "";

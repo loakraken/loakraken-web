@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import { NO_EDITS } from "../lib/combat-power/model";
-import { editsFor, keepOrder, koreanGold, readTry, splitCandidates, tryParam } from "../lib/spec-up/model";
+import { costRoom, editsFor, keepOrder, koreanGold, readTry, splitCandidates, tryParam } from "../lib/spec-up/model";
 import { requestSpecUp } from "../lib/spec-up/upstream";
 import { isSpecUpEnvelope } from "../lib/spec-up/validate";
 
@@ -18,6 +18,17 @@ test("gold reads in Korean units with every digit kept", () => {
   assert.equal(koreanGold(2_620_000), "262만");
   assert.equal(koreanGold(123_456_789), "1억 2,345만 6,789");
   assert.equal(koreanGold(-5_000), "−5,000");
+});
+
+test("a cost cell holds the room of a longer cost of the same size", () => {
+  assert.equal(costRoom(620_000), "888만 8,888G");
+  assert.equal(costRoom(2_620_000), "8,888만 8,888G");
+  assert.equal(costRoom(12_340_000), "88,888만 8,888G");
+  assert.equal(costRoom(5_000), "8만 8,888G");
+  assert.equal(costRoom(123_456_789), "88억 8,888만 8,888G");
+  // ×1.37 of the original stays within the room (as wide or narrower).
+  for (const a of [620_000, 2_620_000, 9_000, 75_000_000])
+    assert.ok(`${koreanGold(Math.round(a * 1.37) + 9_400)}G`.length <= costRoom(a).length, String(a));
 });
 
 test("a refresh keeps listed rows in place; new ones follow, a new sort starts over", () => {

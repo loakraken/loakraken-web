@@ -17,6 +17,7 @@ import {
   editsFor,
   keepOrder,
   kindLabel,
+  costRoom,
   koreanGold,
   specUpQuery,
   splitCandidates,
@@ -55,7 +56,15 @@ function CostCell({ candidate, pulse }: { candidate: Candidate; pulse?: Pulse })
     );
   if (cost.status === "OK" && cost.amount != null)
     return (
-      <td data-cell="cost" data-label="기대 비용" data-figure="" title={`${cost.amount.toLocaleString("ko-KR")}${cost.unit === "GOLD" ? "G" : ` ${cost.unit}`}`}>
+      <td
+        data-cell="cost"
+        data-label="기대 비용"
+        data-figure=""
+        // Holds the width of a longer cost of this size (see costRoom): the
+        // minute's refresh does not widen the column or the phone card (A7).
+        data-room={cost.unit === "GOLD" ? costRoom(cost.amount) : undefined}
+        title={`${cost.amount.toLocaleString("ko-KR")}${cost.unit === "GOLD" ? "G" : ` ${cost.unit}`}`}
+      >
         <ChangeMark pulse={pulse}>
           {cost.unit === "GOLD" ? `${koreanGold(cost.amount)}G` : `${cost.amount.toLocaleString("ko-KR")} ${cost.unit}`}
         </ChangeMark>
