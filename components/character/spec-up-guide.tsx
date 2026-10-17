@@ -3,7 +3,7 @@
 // next, ranked by combat power per 10,000 gold (or by the gain alone). Every
 // number comes from the backend; candidates it could not compute fold into one
 // line per reason, and "적용해 보기" opens the simulator tab with the change.
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { ChangeMark, useChangedCells, type Pulse } from "@/components/ui/changed-cells";
@@ -114,6 +114,19 @@ export default function SpecUpGuide({ data }: { data: Character }) {
         : null;
   // Rows keep their place across refreshes of the same sort (see keepOrder).
   const [order, setOrder] = useState<{ sort: string; ids: string[] } | null>(null);
+  // Bumped by '새 순서로 보기': the rows are drawn anew in the new order rather
+  // than the old ones sliding into place, which counts as moving (A7, #857).
+  const [generation, setGeneration] = useState(0);
+  // "새 순서로 정렬했어요" for a moment in the same fixed line, and focus kept
+  // there, since the pressed button goes away.
+  const [sorted, setSorted] = useState(false);
+  const statusRef = useRef<HTMLParagraphElement>(null);
+  useEffect(() => {
+    if (!sorted) return;
+    statusRef.current?.focus();
+    const timer = window.setTimeout(() => setSorted(false), 3_000);
+    return () => window.clearTimeout(timer);
+  }, [sorted, generation]);
   const candidates = useMemo(
     () => (guide ? keepOrder(guide.candidates, order?.sort === guide.sort ? order.ids : null) : []),
     [guide, order],
@@ -179,7 +192,7 @@ export default function SpecUpGuide({ data }: { data: Character }) {
         className={styles.specUpList}
         data-stale={query.isPlaceholderData || undefined}
       >
-        <p className={styles.specUpPrices} role="status">
+        <p className={styles.specUpPrices} role="status" ref={statusRef} tabIndex={-1}>
           {query.isPlaceholderData ? (
             "새 순서로 다시 불러오고 있어요…"
           ) : reordered && guide ? (
@@ -192,11 +205,17 @@ export default function SpecUpGuide({ data }: { data: Character }) {
               <button
                 type="button"
                 className={`${styles.specUpReorder} hit-44`}
-                onClick={() => setOrder({ sort: guide.sort, ids: guide.candidates.map((c) => c.id) })}
+                onClick={() => {
+                  setOrder({ sort: guide.sort, ids: guide.candidates.map((c) => c.id) });
+                  setGeneration((g) => g + 1);
+                  setSorted(true);
+                }}
               >
                 새 순서로 보기
               </button>
             </>
+          ) : sorted ? (
+            "새 순서로 정렬했어요"
           ) : (
             ""
           )}
@@ -247,9 +266,10 @@ export default function SpecUpGuide({ data }: { data: Character }) {
                     {ok.map((c, i) => {
                       const tryable = editsFor(c.change, NO_EDITS) != null && c.change;
                       return (
-                        // Keyed by the order of the list on screen: a new
-                        // order draws new rows instead of sliding the old ones (A7).
-                        <tr key={`${guide.sort}:${c.id}`}>
+                        // Keyed by the order of the list on screen: a new sort
+                        // or '새 순서로 보기' draws new rows instead of sliding
+                        // the old ones (A7).
+                        <tr key={`${guide.sort}:${generation}:${c.id}`}>
                           <td data-cell="rank">{i + 1}</td>
                           <td data-cell="kind">{kindLabel(c.kind)}</td>
                           <th scope="row" data-cell="target">
