@@ -104,3 +104,27 @@ test("the proxy validates the answer against the contract and passes a busy 503 
   });
   assert.ok(!invalid.ok && invalid.error.code === "INVALID_API_RESPONSE");
 });
+
+test("items without the image and base-effect fields still pass the contract (older backend), and items with them pass too", async () => {
+  const { icon: _icon, baseEffects: _base, ...older } = result.items[0];
+  const withoutFields = await requestAccessorySearch({ slot: "NECKLACE", grade: "ANCIENT" }, origin, {
+    fetcher: async () => ok({ ...result, items: [older] }),
+  });
+  assert.equal(withoutFields.ok, true);
+
+  const withFields = await requestAccessorySearch({ slot: "NECKLACE", grade: "ANCIENT" }, origin, {
+    fetcher: async () =>
+      ok({
+        ...result,
+        items: [
+          { ...older, icon: "https://cdn.example/acc.png", baseEffects: [{ name: "민첩", value: 15000 }, { name: "체력", value: 4200 }] },
+        ],
+      }),
+  });
+  assert.ok(withFields.ok && withFields.envelope.data.items[0].baseEffects?.[1].value === 4200);
+
+  const badEffect = await requestAccessorySearch({ slot: "NECKLACE", grade: "ANCIENT" }, origin, {
+    fetcher: async () => ok({ ...result, items: [{ ...older, baseEffects: [{ name: "민첩", value: "많음" }] }] }),
+  });
+  assert.ok(!badEffect.ok && badEffect.error.code === "INVALID_API_RESPONSE");
+});

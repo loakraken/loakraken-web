@@ -146,9 +146,9 @@ export interface components {
             buyPrice: number | null;
             bidStartPrice: number | null;
             endDate: string | null;
-            icon: string | null;
-            /** @description 기본 효과(공식 옵션 중 STAT 줄: 힘·민첩·지능·체력 등) 공식 순서. 없으면 빈 배열 */
-            baseEffects: components["schemas"]["AccessorySearchBaseEffectResponse"][];
+            icon?: string | null;
+            /** @description 기본 효과(공식 옵션 중 STAT 줄: 힘·민첩·지능·체력 등) 공식 순서. 없으면 빈 배열. 백엔드가 아직 주지 않는 응답에서는 필드가 없을 수 있음(그때는 숨김) */
+            baseEffects?: components["schemas"]["AccessorySearchBaseEffectResponse"][];
         };
         AccessorySearchPolishResponse: {
             /** @description 공식 연마 효과 이름 */
