@@ -170,6 +170,11 @@ export const TitleStatsEnabled = createContext(true);
 export const SpecUpEnabled = createContext(true);
 /** GUILD_RANKING (server flag): the guild tab uses the guild ranking's data; off hides it. */
 export const GuildTabEnabled = createContext(true);
+/**
+ * CHARACTER_EFFICIENCY (server flag): off leaves out the 아크 그리드 효율 and
+ * 팔찌 효율 rows whole (no line, no 줄별 보기, no shares, no empty room).
+ */
+export const CharacterEfficiencyEnabled = createContext(true);
 const visibleTabs = (settingCheck: boolean, simulator = true, specUp = true, guild = true) =>
   TABS.filter(
     (tab) =>
@@ -657,12 +662,14 @@ const spaced = (value: string) => value.replace(/\s+/g, " ").trim();
 function BraceletBody({
   name,
   effects,
-  efficiency,
+  efficiency: given,
 }: {
   name: string;
   effects: { text: string; grade: unknown }[];
   efficiency: Character["braceletEfficiency"];
 }) {
+  // Off on this deployment: as if there were no efficiency (nothing drawn).
+  const efficiency = useContext(CharacterEfficiencyEnabled) ? given : null;
   const [open, setOpen] = useState(false);
   const listId = useId();
   const ok = efficiency?.status === "OK" && efficiency.percent != null;
@@ -837,7 +844,8 @@ function ArkGridPanel({ data }: { data: Character }) {
   const [shares, setShares] = useState(false);
   const listId = useId();
   const extra = useItemTooltips(data.characterName);
-  const efficiency = data.arkGridEfficiency;
+  // Off on this deployment: as if there were no efficiency (nothing drawn).
+  const efficiency = useContext(CharacterEfficiencyEnabled) ? data.arkGridEfficiency : null;
   const effOk = efficiency?.status === "OK" && efficiency.percent != null;
   const coreLine = (index: number) =>
     shares ? efficiency?.lines.find((line) => line.slotIndex === index) : undefined;

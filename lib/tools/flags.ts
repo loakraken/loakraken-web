@@ -171,6 +171,20 @@ export function isTitleStatsEnabled(env: Env = process.env) {
 }
 
 /**
+ * The character screen's 아크 그리드 효율 and 팔찌 효율 rows (backend #424·#350).
+ * Not shown on production yet: their values are the combat-power share, and
+ * the efficiency the user chose (10-15) comes with the score engine (PM 총괄
+ * 10-17). Same rule: `CHARACTER_EFFICIENCY=on|off` overrides, otherwise hidden
+ * only on the production host.
+ */
+export function isCharacterEfficiencyEnabled(env: Env = process.env) {
+  const flag = env.CHARACTER_EFFICIENCY?.trim().toLowerCase();
+  if (flag === "on") return true;
+  if (flag === "off") return false;
+  return !isProductionHost(env.SITE_URL);
+}
+
+/**
  * Character page indexing (api #177, API list #12; PM 총괄 10-13). Off unless
  * `CHARACTER_INDEXING=on` — every deployment, not only production — so
  * every character page stays noindex until it is turned on on purpose.
