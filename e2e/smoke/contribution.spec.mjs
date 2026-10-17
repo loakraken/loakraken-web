@@ -99,7 +99,7 @@ test.describe("기여도 계산기 @smoke", () => {
     await chooseOption(page, page.getByRole("combobox", { name: "레이드" }), "세르카");
     await chooseOption(page, page.getByRole("combobox", { name: "난이도" }), "하드");
     await page.getByRole("textbox", { name: "내 피해량(억)" }).fill("2200");
-    const shown = page.locator("p[aria-hidden='true']").filter({ hasText: "내 위치" });
+    const shown = page.locator("p[aria-hidden='true']").filter({ hasText: "하한보다" });
     // 세는 중간 값 없이 첫 그림부터 최종 값이다.
     expect(await shown.textContent({ timeout: 1000 })).toBe("하한보다 100억 낮아요");
   });
