@@ -7,6 +7,7 @@ import { SiteHeader } from "@/components/site/site-header";
 import { DataTable } from "@/components/ui/data-table";
 import { Select } from "@/components/ui/select";
 import { Diamonds } from "@/components/ui/icons";
+import { PendingText } from "@/components/ui/pending-text";
 import { useTallest } from "@/components/ui/use-tallest";
 import { countdownText, retryLabel } from "@/lib/api/rate-limit";
 import { pendingProps } from "@/lib/api/pending";
@@ -56,7 +57,9 @@ function Cell({ cell, picked, onPick }: { cell: AccessoryCell; picked: boolean; 
       <li className={styles.cell}>
         <span key={cell.label} className={styles.pending}>
           <b>{cell.label}</b>
-          <small>집계 중</small>
+          <small>
+            <PendingText />
+          </small>
         </span>
       </li>
     );
