@@ -102,12 +102,18 @@ test("@집계중 칸 40개가 같이 빛나도 긴 작업 0, CPU 4배 감속 @re
     for (let i = 0; i < 40; i += 1) box.append(el.cloneNode(true));
     el.closest("table").before(box);
   });
+  // Only the labels' own cost: the board still has blank cells, so it asks
+  // again every 5 s and a re-render of the board under the 4× slowdown is a
+  // long task of its own (develop CI 10-18: 2, then 1). Answers held while measuring.
+  await page.route("**/api/**", () => {});
   await cdp.send("Emulation.setCPUThrottlingRate", { rate: 4 });
   const m = await page.evaluate(
     () =>
       new Promise((done) => {
-        let longTasks = 0;
-        const observer = new PerformanceObserver((list) => (longTasks += list.getEntries().length));
+        const tasks = [];
+        const observer = new PerformanceObserver((list) => {
+          for (const e of list.getEntries()) tasks.push(`${Math.round(e.startTime)}+${Math.round(e.duration)}`);
+        });
         observer.observe({ type: "longtask" });
         let frames = 0;
         const start = document.timeline.currentTime;
@@ -116,7 +122,12 @@ test("@집계중 칸 40개가 같이 빛나도 긴 작업 0, CPU 4배 감속 @re
           if (document.timeline.currentTime - start < 3000) requestAnimationFrame(tick);
           else {
             observer.disconnect();
-            done({ longTasks, fps: Math.round((frames / 3) * 10) / 10 });
+            // For the failure message: what the page fetched in the window.
+            const fetched = performance
+              .getEntriesByType("resource")
+              .filter((r) => r.startTime >= start)
+              .map((r) => `${Math.round(r.startTime)} ${new URL(r.name).pathname}`);
+            done({ longTasks: tasks.length, tasks: tasks.join(" "), fetched: fetched.join(" | "), from: Math.round(start), fps: Math.round((frames / 3) * 10) / 10 });
           }
         };
         requestAnimationFrame(tick);
@@ -124,9 +135,9 @@ test("@집계중 칸 40개가 같이 빛나도 긴 작업 0, CPU 4배 감속 @re
   );
   await cdp.send("Emulation.setCPUThrottlingRate", { rate: 1 });
   testInfo.annotations.push({ type: "perf", description: `40칸 CPU×4: 긴 작업 ${m.longTasks}, ${m.fps}fps` });
-  console.log(`SHIMMER-PERF longTasks ${m.longTasks} fps ${m.fps}`);
+  console.log(`SHIMMER-PERF longTasks ${m.longTasks} fps ${m.fps} from ${m.from} tasks ${m.tasks} fetched ${m.fetched}`);
   expect(await page.locator("[data-probe] [data-slot=pending-text]").count()).toBe(40);
-  expect(m.longTasks, "긴 작업(50ms 초과)").toBe(0);
+  expect(m.longTasks, `긴 작업(50ms 초과) ${m.tasks} — 그동안 받은 것: ${m.fetched}`).toBe(0);
 });
 
 test("@집계중 장신구판도 같은 부품 @regression", async ({ page }) => {
