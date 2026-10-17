@@ -8,7 +8,7 @@ import {
   requestPrices,
   requestQuote,
 } from "./upstream";
-import { requestGemBoard, requestGemListings, type GemPick } from "./auction-gems";
+import { requestGemBoard, requestGemListings, requestGemSkills, type GemPick } from "./auction-gems";
 import { requestItemMinutes } from "./minutes";
 import {
   requestAccessoryBoard,
@@ -44,6 +44,7 @@ export const getGemBoard = (signal?: AbortSignal, timeoutMs?: number) =>
   requestGemBoard(origin(), { signal, timeoutMs });
 export const getGemListings = (pick: GemPick, signal?: AbortSignal) =>
   requestGemListings(pick, origin(), { signal });
+export const getGemSkills = (signal?: AbortSignal) => requestGemSkills(origin(), { signal });
 
 export const getAccessoryBoard = (filter: AccessoryFilter, signal?: AbortSignal, timeoutMs?: number) =>
   requestAccessoryBoard(filter, origin(), { signal, timeoutMs });

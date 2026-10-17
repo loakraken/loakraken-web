@@ -575,6 +575,47 @@ createServer(async (req, res) => {
     );
     return send({ code: "AUCTION_GEMS_SUCCESS", message: "ok", data: { ruleVersion: "auction-board-v1", complete: false, cells } });
   }
+  // Gem listings by class and skill (api #542): two classes; 바드's 윈드 오브
+  // 뮤직 works on 작열 only, so it is not offered for a 겁화 cell.
+  if (url.pathname === "/api/v1/markets/auctions/gems/skills") {
+    return send({
+      code: "AUCTION_GEM_SKILLS_SUCCESS",
+      message: "ok",
+      data: {
+        checkedOn: "2026-10-18",
+        classes: [
+          { className: "바드", skills: [{ code: 21170, name: "사운드 쇼크", kinds: ["겁화", "작열"] }, { code: 21140, name: "윈드 오브 뮤직", kinds: ["작열"] }] },
+          { className: "블래스터", skills: [{ code: 30210, name: "플라즈마 스톰", kinds: ["겁화", "작열"] }] },
+        ],
+      },
+    });
+  }
+  if (url.pathname === "/api/v1/markets/auctions/gems/listings" && url.searchParams.get("className")) {
+    const kind = url.searchParams.get("kind");
+    const level = Number(url.searchParams.get("level"));
+    const className = url.searchParams.get("className");
+    const skill = url.searchParams.get("skill") ? Number(url.searchParams.get("skill")) : null;
+    const skills = { 바드: { 21170: "사운드 쇼크", 21140: "윈드 오브 뮤직" }, 블래스터: { 30210: "플라즈마 스톰" } }[className];
+    if (!skills || (skill && !skills[skill]) || (skill === 21140 && kind !== "작열"))
+      return send({ code: "INVALID_GEM_FILTER", message: "보석 매물 직업·스킬 조건이 올바르지 않습니다.", data: null }, 400);
+    const name = skill ? skills[skill] : Object.values(skills)[0];
+    const items = [0, 1].map((i) => ({
+      name: `${level}레벨 ${kind}의 보석`,
+      grade: "고대",
+      quality: null,
+      buyPrice: 1000 * (i + 1) + 300_000,
+      bidPrice: 0,
+      bidStartPrice: 200_000,
+      endDate: new Date(Date.now() + (i + 1) * 3_600_000).toISOString(),
+      tradeAllowCount: 2,
+      options: [{ type: "GEM_SKILL_DAMAGE", name, value: 44, percentage: true, level: null, className }],
+    }));
+    return send({
+      code: "AUCTION_LISTINGS_SUCCESS",
+      message: "ok",
+      data: { totalCount: 2, page: 1, observedAt: new Date().toISOString(), items, filter: { className, skill, skillName: skill ? name : null } },
+    });
+  }
   if (url.pathname === "/api/v1/markets/auctions/gems/listings") {
     const kind = url.searchParams.get("kind");
     const level = Number(url.searchParams.get("level"));
