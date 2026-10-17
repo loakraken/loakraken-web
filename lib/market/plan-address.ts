@@ -54,64 +54,99 @@ export const formatSavedRows = (rows: PlanRow[]) =>
       )
     : null;
 
+/** Runs the jobs with at most `limit` in flight (PM-프론트 #899: a reload must not spend the minute's share at once). */
+async function inTurns<T, R>(jobs: T[], limit: number, run: (job: T) => Promise<R>): Promise<R[]> {
+  const out: R[] = new Array(jobs.length);
+  let next = 0;
+  const worker = async () => {
+    while (next < jobs.length) {
+      const i = next++;
+      out[i] = await run(jobs[i]);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(limit, jobs.length) }, worker));
+  return out;
+}
+
+/** Searches asked at the same time while lines come back. */
+export const RESTORE_AT_ONCE = 2;
+
+const searchKey = (s: Saved) => `${s.c}|${s.n}|${s.p}`;
+
 /**
  * Brings the address's lines back into the plan once (when the plan is empty:
  * coming back inside the app keeps the store as it was), then keeps the
  * address in step with the plan. While the lines load, nothing is written,
- * so the address is not emptied before they arrive.
+ * so the address is not emptied before they arrive. A line whose search
+ * failed (e.g. 429) is not dropped: it stays in the address and waits for
+ * "다시 불러오기"; a line whose item is no longer listed is counted as missing.
  */
 export function usePlanInAddress() {
   const params = useSearchParams();
   const queryClient = useQueryClient();
-  const [saved] = useState(() => parseSavedRows(params.get(KEY)));
+  const [wanted, setWanted] = useState(() => parseSavedRows(params.get(KEY)));
   const rows = usePlan((state) => state.rows);
-  const [loading, setLoading] = useState(() => saved.length > 0 && usePlan.getState().rows.length === 0);
+  const [loading, setLoading] = useState(() => wanted.length > 0 && usePlan.getState().rows.length === 0);
   const [missing, setMissing] = useState(0);
+  const [failed, setFailed] = useState<Saved[]>([]);
 
   useEffect(() => {
     if (!loading) return;
     let stale = false;
-    const wanted = saved;
     // One request per search the lines were found with (several lines often share one).
-    const searches = new Map<string, Saved>();
-    for (const s of wanted) searches.set(`${s.c}|${s.n}|${s.p}`, s);
-    Promise.all(
-      [...searches.values()].map((s) =>
-        // The same key and freshness as the search box's own query, so a
-        // search typed again right after reuses this answer (pf-ensure-query-data).
-        queryClient
-          .fetchQuery({
-            queryKey: ["market", "items", { categoryCode: s.c, itemName: s.n, pageNo: s.p }],
-            queryFn: ({ signal }) => fetchMarketItems({ categoryCode: s.c, itemName: s.n, pageNo: s.p }, signal),
-            staleTime: 30_000,
-          })
-          .then((envelope) => envelope.data.items)
-          .catch(() => []),
-      ),
-    ).then((lists) => {
+    const searches = [...new Map(wanted.map((s) => [searchKey(s), s])).values()];
+    void inTurns(searches, RESTORE_AT_ONCE, (s) =>
+      // The same key and freshness as the search box's own query, so a
+      // search typed again right after reuses this answer (pf-ensure-query-data).
+      queryClient
+        .fetchQuery({
+          queryKey: ["market", "items", { categoryCode: s.c, itemName: s.n, pageNo: s.p }],
+          queryFn: ({ signal }) => fetchMarketItems({ categoryCode: s.c, itemName: s.n, pageNo: s.p }, signal),
+          staleTime: 30_000,
+        })
+        .then((envelope) => ({ key: searchKey(s), items: envelope.data.items }))
+        .catch(() => ({ key: searchKey(s), items: null })),
+    ).then((answers) => {
       if (stale) return;
-      const items = new Map(lists.flat().map((item) => [item.id, item]));
+      const down = new Set(answers.filter((a) => a.items === null).map((a) => a.key));
+      const items = new Map(answers.flatMap((a) => a.items ?? []).map((item) => [item.id, item]));
       const back: PlanRow[] = [];
+      const retry: Saved[] = [];
+      let lost = 0;
       for (const s of wanted) {
         const item = items.get(s.id);
         if (item)
           back.push({ item, search: { categoryCode: s.c, itemName: s.n, pageNo: s.p }, required: s.r, owned: s.o });
+        else if (down.has(searchKey(s))) retry.push(s);
+        else lost += 1;
       }
       // Lines the user added meanwhile stay; the brought-back ones go first.
       const added = usePlan.getState().rows.filter((row) => !back.some((b) => b.item.id === row.item.id));
       usePlan.setState({ rows: [...back, ...added].slice(0, MAX_QUOTE_ITEMS) });
-      setMissing(wanted.length - back.length);
+      setMissing((m) => m + lost);
+      setFailed(retry);
       setLoading(false);
     });
     return () => {
       stale = true;
     };
-  }, [loading, saved, queryClient]);
+  }, [loading, wanted, queryClient]);
 
   useEffect(() => {
     if (loading) return;
-    writeUrlParam(KEY, formatSavedRows(rows));
-  }, [rows, loading]);
+    // Lines waiting for a retry keep their place in the address.
+    const kept = failed.filter((s) => !rows.some((row) => row.item.id === s.id));
+    const now = formatSavedRows(rows);
+    const all = [...(now ? (JSON.parse(now) as Saved[]) : []), ...kept].slice(0, MAX_QUOTE_ITEMS);
+    writeUrlParam(KEY, all.length ? JSON.stringify(all) : null);
+  }, [rows, loading, failed]);
 
-  return { loading, missing };
+  const retry = () => {
+    if (!failed.length || loading) return;
+    setWanted(failed);
+    setFailed([]);
+    setLoading(true);
+  };
+
+  return { loading, missing, failed: failed.length, retry };
 }

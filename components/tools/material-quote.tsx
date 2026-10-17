@@ -533,15 +533,27 @@ function QuantityField({
   );
 }
 
-function Plan({ restore }: { restore: { loading: boolean; missing: number } }) {
+function Plan({ restore }: { restore: { loading: boolean; missing: number; failed: number; retry: () => void } }) {
   const { enabled } = useLandingMotion();
   const { rows, remove } = usePlan();
   // Lines kept in the address (#897) come back after a reload or from a link.
   const missing =
-    restore.missing > 0 ? (
-      <p className={styles.empty} role="status">
-        담아 둔 재료 {restore.missing}개를 다시 찾지 못했어요. 위에서 다시 검색해 담아 주세요.
-      </p>
+    restore.missing > 0 || restore.failed > 0 ? (
+      <div role="status">
+        {restore.missing > 0 && (
+          <p className={styles.empty}>
+            담아 둔 재료 {restore.missing}개를 다시 찾지 못했어요. 위에서 다시 검색해 담아 주세요.
+          </p>
+        )}
+        {restore.failed > 0 && (
+          <p className={styles.empty}>
+            담아 둔 재료 {restore.failed}개를 지금 불러오지 못했어요.{" "}
+            <button type="button" className={styles.textButton} onClick={restore.retry}>
+              다시 불러오기
+            </button>
+          </p>
+        )}
+      </div>
     ) : null;
   // Nothing came back: the one notice says what happened and what to do.
   if (!rows.length && missing) return missing;

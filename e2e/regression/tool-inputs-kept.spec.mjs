@@ -133,4 +133,33 @@ test.describe("성장 도구 입력 유지", () => {
     // 다시 찾지 못한 줄이 없으니 안내도 없다.
     await expect(page.getByText(/다시 찾지 못했어요/)).toHaveCount(0);
   });
+
+  // PM-프론트 #899 P2: 새로고침 때 검색이 막히면(429) 그 줄은 버리지 않고 '다시 불러오기'로 남는다.
+  test("재료 구매 견적: 다시 불러오기가 막히면 그 줄은 남고, 다시 불러오기로 돌아온다", async ({ page }) => {
+    await gotoReady(page, "/tools/material-quote");
+    await expect(page.getByRole("tablist", { name: "카테고리" })).toBeVisible();
+    await page.getByRole("combobox", { name: "재료 이름" }).fill("합성");
+    await page.getByRole("option", { name: "합성 재련 재료 견적에 추가" }).click();
+    await page.getByRole("textbox", { name: "필요", exact: true }).fill("250");
+    await page.waitForTimeout(300);
+    let blocked = true;
+    await page.route("**/api/markets/items**", (route) =>
+      blocked
+        ? route.fulfill({
+            status: 429,
+            contentType: "application/json",
+            headers: { "Retry-After": "1" },
+            body: JSON.stringify({ ok: false, error: { code: "CLIENT_RATE_LIMITED", status: 429 } }),
+          })
+        : route.fallback(),
+    );
+    await page.reload();
+    await expect(page.getByText("담아 둔 재료 1개를 지금 불러오지 못했어요.")).toBeVisible();
+    // 그 줄은 주소에 남아 있어 다시 새로고침해도 잃지 않는다.
+    expect(new URL(page.url()).searchParams.get("items")).toContain('"r":"250"');
+    blocked = false;
+    await page.getByRole("button", { name: "다시 불러오기" }).click();
+    await expect(page.getByRole("textbox", { name: "필요", exact: true })).toHaveValue("250");
+    await expect(page.getByText(/지금 불러오지 못했어요/)).toHaveCount(0);
+  });
 });
