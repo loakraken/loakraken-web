@@ -2,6 +2,16 @@
 // 아직 못 읽은 칸은 '집계 중'. 매물이 와도 화면이 흔들리지 않는다(A7). 메뉴에서 들어올 수 있다.
 import { test, expect, gotoReady } from "../support/fixtures.mjs";
 
+/** Line boxes each element's text takes (1 = no wrap). */
+const lineCounts = (locator) =>
+  locator.evaluateAll((els) =>
+    els.map((el) => {
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      return new Set([...range.getClientRects()].filter((r) => r.width > 0).map((r) => Math.round(r.top))).size;
+    }),
+  );
+
 for (const width of [1280, 360]) {
   test(`@보석 ${width} 보석 시세 표와 매물 @regression`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
@@ -17,6 +27,11 @@ for (const width of [1280, 360]) {
     await expect(board.getByRole("rowheader")).toHaveText(["10레벨", "9레벨", "8레벨", "7레벨", "6레벨", "5레벨", "4레벨", "3레벨", "2레벨", "1레벨"]);
     await expect(board.getByRole("button", { name: /매물 보기$/ })).toHaveCount(19);
     await expect(board.getByText("집계 중")).toHaveCount(1);
+    // Gold amounts carry the unit as on the exchange board, on one line; counts stay plain.
+    const cell = board.getByRole("button", { name: "10레벨 겁화의 보석 매물 보기" });
+    await expect(cell.locator("b")).toHaveText(/^[\d,]+G$/);
+    await expect(cell.locator("small").last()).toHaveText(/^매물 [\d,]+$/);
+    expect(await lineCounts(board.getByRole("button", { name: /매물 보기$/ }).locator("b")), "금액 한 줄").toEqual(Array(19).fill(1));
 
     // A7: from the first press on, shifts right after an input count too.
     const firstLoad = await page.evaluate(() => window.__shifts.reduce((a, e) => a + e.v, 0));
@@ -27,6 +42,9 @@ for (const width of [1280, 360]) {
     const listings = page.getByRole("table", { name: "보석 매물" });
     await expect(listings.locator("tbody tr:not([aria-hidden])")).toHaveCount(10);
     await expect(page.getByRole("heading", { name: /10레벨 겁화의 보석 매물 · 14개 중 싼 순/ })).toBeVisible();
+    const first = listings.locator("tbody tr:not([aria-hidden])").first().locator("td");
+    await expect(first.nth(0)).toHaveText(/^[\d,]+G$/);
+    await expect(first.nth(1)).toHaveText(/^([\d,]+G|-)$/);
     await page.getByRole("navigation", { name: "매물 쪽 이동" }).getByRole("button", { name: "2" }).click();
     await expect(listings.locator("tbody tr:not([aria-hidden])")).toHaveCount(4);
 

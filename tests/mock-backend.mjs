@@ -1188,7 +1188,7 @@ createServer(async (req, res) => {
     const who = url.searchParams.get("characterName") ?? "";
     if (who === "미관측" || who === "비공개") return send({ code: "STATS_CHARACTER_NOT_OBSERVED", message: "private" }, 404);
     const excluded = who === "조건밖";
-    const entry = (metric, scope, scopeValue, rank, total, sampleStatus = "READY") => {
+    const entry = (metric, scope, scopeValue, rank, total, sampleStatus = "READY", gapAs = null) => {
       const top = sampleStatus === "READY" ? Math.round((rank / total) * 10000) / 100 : null;
       const tier = top == null ? null : top <= 1 ? "TOP1" : top <= 5 ? "TOP5" : top <= 10 ? "TOP10" : top <= 25 ? "TOP25" : top <= 50 ? "TOP50" : "REST";
       // api #481: the next tier up, its boundary (the K-th, K = ⌊% × total / 100⌋)
@@ -1199,13 +1199,24 @@ createServer(async (req, res) => {
       const k = up ? Math.floor((pct[up] * total) / 100) : 0;
       const nextTier = up && k >= 1 ? up : null;
       const step = metric === "ITEM_LEVEL" ? 0.25 : 3.17;
-      const nextTierGap = nextTier ? Math.round((rank - k) * step * 100) / 100 : null;
+      const nextTierGap = nextTier ? (gapAs ?? Math.round((rank - k) * step * 100) / 100) : null;
       const value = metric === "ITEM_LEVEL" ? 1780.83 : 3180.29;
       const nextTierValue = nextTier ? Math.round((value + nextTierGap) * 100) / 100 : null;
       return { metric, scope, scopeValue, rank, total, topPercent: top, tier, sampleStatus, nextTier, nextTierValue, nextTierGap };
     };
     const collecting = who === "집계중" ? "COLLECTING" : "READY";
-    const entries = excluded ? [] : [
+    // Long values as real data has them (QA 10-16 02시): big ranks, 연안 tiers,
+    // four-digit gaps to the next tier, in every box of the narrow side column.
+    const long = who === "가려짐긴값캐릭터";
+    const entries = excluded ? [] : long ? [
+      entry("COMBAT_POWER", "ALL", null, 9000, 20000, "READY", 1393.54),
+      entry("COMBAT_POWER", "SERVER", "아브렐슈드", 1100, 2311, "READY", 583.67),
+      entry("COMBAT_POWER", "CLASS", "데모닉", 300, 612, "READY", 2051.19),
+      entry("ITEM_LEVEL", "ALL", null, 9100, 20000, "READY", 12.5),
+      entry("ITEM_LEVEL", "SERVER", "아브렐슈드", 1150, 2311, "READY", 7.5),
+      entry("ITEM_LEVEL", "CLASS", "데모닉", 301, 612, "READY", 5.83),
+      // No server-class box: three boxes side by side, the narrowest cells.
+    ] : [
       entry("COMBAT_POWER", "ALL", null, 4120, 18231),
       entry("COMBAT_POWER", "SERVER", "아만", 211, 2311),
       entry("COMBAT_POWER", "CLASS", "블래스터", 37, collecting === "READY" ? 612 : 21, collecting),
@@ -1287,15 +1298,19 @@ createServer(async (req, res) => {
       const top = Math.round((rank / population) * 10000) / 100;
       const tier = top <= 1 ? "TOP1" : top <= 5 ? "TOP5" : top <= 10 ? "TOP10" : top <= 25 ? "TOP25" : top <= 50 ? "TOP50" : "REST";
       const cls = q.get("className") || classes[rank % classes.length];
+      // 디스트로이어: values as long as real data has them (QA 10-17 20시: five-digit
+      // combat power, long ark passive, small top percent with a tier, long names).
+      const real = cls === "디스트로이어";
       rows.push({
-        rank, characterName: `랭커${rank}`, serverName: q.get("server") || servers[rank % servers.length], className: cls,
+        rank, characterName: real ? `무라타Himek0${rank}` : `랭커${rank}`, serverName: q.get("server") || servers[rank % servers.length], className: cls,
         position: cls === "바드" || cls === "홀리나이트" || cls === "도화가" ? "SUPPORT" : "DEALER",
-        itemLevel: Math.round((1790 - rank * 0.05) * 100) / 100, combatPower: Math.round((4800 - rank * 1.3) * 100) / 100,
-        topPercent: top, tier,
-        bestCombatPower: rank % 3 === 0 ? null : Math.round((4810 - rank * 1.2) * 100) / 100,
-        arkPassivePoints: rank % 3 === 0 ? null : { evolution: 140, enlightenment: 101 - (rank % 4), leap: 70 },
-        classEngraving: rank % 3 === 0 ? null : ["광기", "버스트", "절정", "잔재된 기운"][rank % 4],
-        estherWeapon: rank % 5 === 0 ? { refineLevel: 25, ellaStage: 2 } : rank % 5 === 1 ? { refineLevel: 8, ellaStage: null } : null,
+        itemLevel: real ? 1805 : Math.round((1790 - rank * 0.05) * 100) / 100,
+        combatPower: Math.round(((real ? 11170.05 : 4800) - rank * 1.3) * 100) / 100,
+        topPercent: real ? Math.round(rank * 0.11 * 100) / 100 : top, tier: real ? "TOP1" : tier,
+        bestCombatPower: real ? Math.round((11170.05 - rank * 1.21) * 100) / 100 : rank % 3 === 0 ? null : Math.round((4810 - rank * 1.2) * 100) / 100,
+        arkPassivePoints: real ? { evolution: 140, enlightenment: 101, leap: 70 } : rank % 3 === 0 ? null : { evolution: 140, enlightenment: 101 - (rank % 4), leap: 70 },
+        classEngraving: real ? "분노의 망치" : rank % 3 === 0 ? null : ["광기", "버스트", "절정", "잔재된 기운"][rank % 4],
+        estherWeapon: real ? { refineLevel: 10, ellaStage: 3 } : rank % 5 === 0 ? { refineLevel: 25, ellaStage: 2 } : rank % 5 === 1 ? { refineLevel: 8, ellaStage: null } : null,
       });
     }
     return send({
@@ -1323,10 +1338,12 @@ createServer(async (req, res) => {
     for (let rank = (page - 1) * size + 1; rank <= Math.min(population, page * size); rank++) {
       const top = Math.round((rank / population) * 10000) / 100;
       const tier = top <= 1 ? "TOP1" : top <= 5 ? "TOP5" : top <= 10 ? "TOP10" : top <= 25 ? "TOP25" : top <= 50 ? "TOP50" : "REST";
+      const real = q.get("className") === "디스트로이어"; // real-data lengths, as above
       rows.push({
-        rank, characterName: `효율${rank}`, serverName: q.get("server") || servers[rank % servers.length],
+        rank, characterName: real ? `무라타Himek0${rank}` : `효율${rank}`, serverName: q.get("server") || servers[rank % servers.length],
         className: q.get("className") || classes[rank % classes.length], position: "DEALER",
-        itemLevel: Math.round((1785 - rank * 0.1) * 100) / 100, combatPower: Math.round((4700 - rank * 2.1) * 100) / 100,
+        itemLevel: real ? 1805 : Math.round((1785 - rank * 0.1) * 100) / 100,
+        combatPower: Math.round(((real ? 11170.05 : 4700) - rank * 2.1) * 100) / 100,
         valuePercent: Math.round(((bracelet ? 16 : 6.5) - rank * 0.03) * 100) / 100,
         observedAt: new Date(Date.now() - rank * 3_600_000).toISOString(), topPercent: top, tier,
       });
@@ -2103,7 +2120,7 @@ createServer(async (req, res) => {
       detail: { parserVersion: "equipment-tooltip-v3", refineLevel, quality: 90, itemLevel: 1640 + refineLevel * 5, tier: 4, arkPassivePoint: null, effects: [], stoneEngravings: [], polishEffects: [], braceletEffects: [] },
     }));
   }
-  if (name === "상세" || name === "상세서포터" || name === "대세블레이드") {
+  if (name === "상세" || name === "상세서포터" || name === "대세블레이드" || name === "가려짐긴값캐릭터") {
     // Detail-page mock: a locally supplied character file (never committed) or
     // the synthetic fixture, enriched with synthetic Tooltip detail and skills.
     if (process.env.MOCK_CHARACTER_FILE)
@@ -2341,6 +2358,17 @@ createServer(async (req, res) => {
         items: [],
         effects: [{ index: 0, cardSlots: [], items: [{ name: "세상을 구하는 빛 6세트 (30각성합계)", description: null }] }],
       };
+    }
+    // A37: the longest values the banner shows (name, title, server and class, combat power, levels).
+    if (name === "가려짐긴값캐릭터") {
+      d.characterName = name;
+      d.serverName = "아브렐슈드";
+      d.className = "데모닉";
+      d.title = "어둠 속에서 끝까지 버틴 자";
+      d.itemLevel = 1789.17;
+      d.combatPower = 12345.67;
+      d.characterLevel = 70;
+      d.expeditionLevel = 300;
     }
     if (name === "상세서포터") {
       d.className = "바드";

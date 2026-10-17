@@ -23,7 +23,7 @@ import { BannerRank } from "./banner-rank";
 import { Entrance } from "./entrance";
 import { kstTime, level, number, text } from "./parts";
 import { CritSpeedEnabled } from "./analysis-menu";
-import { GuildTabEnabled, SettingCheckEnabled, SimulatorEnabled, SpecUpEnabled, TabBar, TabPanel, TitleStatsEnabled, tabOf, useTabTop } from "./tabs";
+import { CharacterEfficiencyEnabled, GuildTabEnabled, SettingCheckEnabled, SimulatorEnabled, SpecUpEnabled, TabBar, TabPanel, TitleStatsEnabled, tabOf, useTabTop } from "./tabs";
 import { ArmoryPageEnabled } from "./use-armory-page";
 import { ReceiptEnabled } from "./receipt-panel";
 import styles from "./character.module.css";
@@ -366,6 +366,7 @@ export function CharacterView({
   titleStats = true,
   critSpeed = true,
   guildTab = true,
+  characterEfficiency = true,
   ...props
 }: {
   name: string;
@@ -387,6 +388,8 @@ export function CharacterView({
   critSpeed?: boolean;
   /** GUILD_RANKING on this deployment (server flag): the guild tab. */
   guildTab?: boolean;
+  /** CHARACTER_EFFICIENCY on this deployment (server flag): 아크 그리드·팔찌 효율 rows. */
+  characterEfficiency?: boolean;
 }) {
   return (
     <ReceiptEnabled.Provider value={receipt}>
@@ -397,9 +400,11 @@ export function CharacterView({
               <TitleStatsEnabled.Provider value={titleStats}>
                 <CritSpeedEnabled.Provider value={critSpeed}>
                   <GuildTabEnabled.Provider value={guildTab}>
-                    <LandingMotion>
-                      <CharacterContent {...props} />
-                    </LandingMotion>
+                    <CharacterEfficiencyEnabled.Provider value={characterEfficiency}>
+                      <LandingMotion>
+                        <CharacterContent {...props} />
+                      </LandingMotion>
+                    </CharacterEfficiencyEnabled.Provider>
                   </GuildTabEnabled.Provider>
                 </CritSpeedEnabled.Provider>
               </TitleStatsEnabled.Provider>

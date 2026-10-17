@@ -377,6 +377,10 @@
 }
 .topTable {
   table-layout: fixed;
+  /* The other columns take 29.5em: the name column keeps at least 8.5em. On a
+     phone the table scrolls inside its region instead of the name getting 0
+     width (A37, QA 10-16 02시). */
+  min-width: 38em;
   margin-top: 12px;
   font-variant-numeric: tabular-nums;
 }

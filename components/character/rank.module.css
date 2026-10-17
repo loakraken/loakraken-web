@@ -66,6 +66,10 @@
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
+.share {
+  flex: none;
+  white-space: nowrap;
+}
 .tier {
   /* A31: one line, never split (badge/chip/unit). */
   flex: none;
@@ -93,11 +97,21 @@
     translate: -50% -50%;
   }
 }
-/* 다음 티어까지 (L2): one quiet line under the share. */
+/* 다음 티어까지 (L2): a quiet line under the share. In a narrow box it wraps
+   between words only, so "1,393.54" stays whole (A37, QA 10-16: it was one
+   line and ran out of the box). */
 .next {
+  /* Two lines held in every box (words, then the number), so the boxes of a
+     metric keep one height whether or not the words wrap (A7). */
+  min-height: 32px;
   color: var(--muted-foreground);
   font-size: 11px;
+  line-height: 16px;
   font-variant-numeric: tabular-nums;
+  word-break: keep-all;
+}
+.nextValue {
+  display: block;
   white-space: nowrap;
 }
 .cells strong.pending {

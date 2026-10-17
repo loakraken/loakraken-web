@@ -346,6 +346,11 @@ function FixBar({ fixing, onClear, population }: { fixing: Fixing; onClear: () =
 }
 
 const day = new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", month: "numeric", day: "numeric" });
+/** "10.15": the short date the 확인 column has room for whole ("10. 15." was cut, A37). */
+const shortDay = (at: string) => {
+  const parts = day.formatToParts(new Date(at));
+  return `${parts.find((p) => p.type === "month")?.value}.${parts.find((p) => p.type === "day")?.value}`;
+};
 
 /**
  * 이 세팅을 쓰는 상위 30명 (api #503): the highest observed combat power among
@@ -383,12 +388,14 @@ function TopCharacters({ query }: { query: ClassBuildsQuery }) {
         ) : (
           <DataTable label="이 세팅을 쓰는 상위 30명" className={own.topTable}>
             <colgroup>
-              <col style={{ width: "3em" }} />
+              {/* Room for each header and value whole, padding included (A37):
+                  only the name column may cut, with its full name on hover. */}
+              <col style={{ width: "4em" }} />
               <col />
               <col style={{ width: "6em" }} />
-              <col style={{ width: "6.5em" }} />
+              <col style={{ width: "7em" }} />
               <col style={{ width: "7.5em" }} />
-              <col style={{ width: "4.5em" }} />
+              <col style={{ width: "5em" }} />
             </colgroup>
             <thead>
               <tr>
@@ -409,12 +416,15 @@ function TopCharacters({ query }: { query: ClassBuildsQuery }) {
                 <tr key={`${row.rank}-${row.characterName}`}>
                   <td>{row.rank}</td>
                   <th scope="row" className={own.left}>
-                    <Link href={`/character/${encodeURIComponent(row.characterName)}`}>{row.characterName}</Link>
+                    {/* A long name ends in "…" (the cell): the full one on hover. */}
+                    <Link href={`/character/${encodeURIComponent(row.characterName)}`} title={row.characterName}>
+                      {row.characterName}
+                    </Link>
                   </th>
                   <td className={own.left}>{row.serverName}</td>
                   <td>{row.itemLevel.toLocaleString("ko-KR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                   <td>{row.combatPower.toLocaleString("ko-KR", { maximumFractionDigits: 2 })}</td>
-                  <td>{row.observedAt ? day.format(new Date(row.observedAt)) : "-"}</td>
+                  <td>{row.observedAt ? shortDay(row.observedAt) : "-"}</td>
                 </tr>
               ))}
             </tbody>
@@ -540,7 +550,12 @@ export function ClassBuildsView({
           // Held at its tallest: another fix's sample count (more or fewer
           // digits) can wrap the line differently on a phone, which moved the
           // fixed settings and the sections under it (A7, #844 CI at 360).
-          <div ref={noticeRef} style={noticeHeight ? { minHeight: noticeHeight } : undefined}>
+          // flow-root: the note's bottom margin stays inside this box, so the
+          // height it holds counts the margin too. Without it the margin
+          // escaped the box whenever the note grew back to its tallest
+          // (3 → 2 → 3 lines as the sample's digits change), and the fix bar
+          // and the sections dropped 10px (A7, build-fix @M26 360 in CI).
+          <div ref={noticeRef} style={{ display: "flow-root", ...(noticeHeight ? { minHeight: noticeHeight } : {}) }}>
             {/* Drawn anew when what it says changes: text rewritten in place moves (A7). */}
             <p
               key={`${meta.population}-${data.classPopulation}-${meta.conditions?.itemLevelMin}-${meta.conditions?.activeDays}-${meta.aggregatedAt}`}
@@ -558,7 +573,12 @@ export function ClassBuildsView({
             says so inside it, held at the comparison's height, so the
             sections under it do not jump up and back (A7). */}
         {compare && data && (
-          <div ref={compareRef} style={compareHeight ? { minHeight: compareHeight } : undefined} {...pendingProps(builds)}>
+          // flow-root for the same reason as the note above: margins stay inside the held box.
+          <div
+            ref={compareRef}
+            style={{ display: "flow-root", ...(compareHeight ? { minHeight: compareHeight } : {}) }}
+            {...pendingProps(builds)}
+          >
             {collecting ? (
               <p key={builds.dataUpdatedAt} className={styles.muted}>
                 표본이 {whole(meta?.minSample ?? 30)}명보다 적어 대세와 비교하지 않아요.

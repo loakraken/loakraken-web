@@ -169,9 +169,13 @@ export function bannerRank(data: CharacterRank) {
   if (rankState(data) !== "ranked") return null;
   const cell = rankCell(data, "COMBAT_POWER", "ALL");
   if (cell.state !== "ready") return null;
+  const value = `${cell.rank}${cell.top ? ` · ${cell.top}` : ""}`;
   return {
     tier: cell.tier,
-    text: `전투력 ${cell.rank}${cell.top ? ` · ${cell.top}` : ""}`,
+    /** The metric's name, shown apart so a narrow banner can leave it out (the number line above says it). */
+    label: "전투력",
+    value,
+    text: `전투력 ${value}`,
     note: `${conditionsText(data)} ${cell.total} 순위예요. 공식 순위가 아니에요.`,
   };
 }
