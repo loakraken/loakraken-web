@@ -95,6 +95,50 @@ test.describe("재료 구매 견적 @smoke", () => {
   });
 });
 
+test.describe("시세 1분 자동 갱신 @smoke", () => {
+  // 사용자 10-16: 시세가 들어가는 화면은 1분마다 시세를 새로 받는다(보이는 탭에서만, 입력값은 그대로).
+  // 브라우저 시계를 앞으로 돌려 1분 뒤 요청이 한 번 더 가는지, 화면이 그대로인지 본다.
+  test("재련 계획: 1분 뒤 재료 시세를 다시 받고 '시세 HH:mm 기준'을 보인다", async ({ page }) => {
+    await page.clock.install();
+    let calls = 0;
+    page.on("request", (r) => r.url().includes("/api/markets/material-prices") && calls++);
+    await page.goto("/tools/refining");
+    await page.getByRole("group", { name: "모든 부위 목표 단계" }).getByRole("button", { name: "+20" }).click();
+    await expect(page.getByText(/^시세 \d{2}:\d{2} 기준 · 1분마다 새로 불러와요$/)).toBeVisible();
+    const first = calls;
+    expect(first).toBeGreaterThan(0);
+    await page.clock.runFor(61_000);
+    await expect.poll(() => calls).toBe(first + 1);
+    await expect(page.getByRole("region", { name: "예상 소모" }).getByText(/총 12단계/)).toBeVisible();
+  });
+
+  test("재료 견적: 계산한 뒤 1분마다 같은 입력으로 다시 계산하고, 화면은 제자리다", async ({ page }) => {
+    await page.clock.install();
+    let calls = 0;
+    page.on("request", (r) => r.url().includes("/api/markets/material-quotes") && calls++);
+    await page.goto("/tools/material-quote");
+    await expect(page.getByRole("tablist", { name: "카테고리" })).toBeVisible();
+    await page.getByRole("textbox", { name: "재료 이름" }).fill("합성");
+    await page.getByRole("button", { name: "검색", exact: true }).click();
+    await page.getByRole("button", { name: "합성 재련 재료 견적에 추가" }).click();
+    await page.getByRole("textbox", { name: "필요", exact: true }).fill("250");
+    await page.getByRole("button", { name: "견적 계산" }).click();
+    await expect(page.getByText(/1분마다 시세를 새로 받아 다시 계산해요/)).toBeVisible();
+    expect(calls).toBe(1);
+    // Position in the document (the scroll to the result may still be running).
+    const docY = () => page.locator("#quote-total").evaluate((el) => el.getBoundingClientRect().top + window.scrollY);
+    // Let the result finish its entrance (the clock is paused) before measuring.
+    await page.clock.runFor(2_000);
+    await page.waitForTimeout(800);
+    const y = await docY();
+    await page.clock.runFor(59_000);
+    await expect.poll(() => calls).toBe(2);
+    // The button keeps its label (the refresh is not "계산 중") and the result stays put.
+    await expect(page.getByRole("button", { name: "견적 계산" })).toBeVisible();
+    expect(await docY()).toBeCloseTo(y, 0);
+  });
+});
+
 test.describe("치적·뭉가·음돌 @smoke", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/tools/crit-speed");

@@ -702,3 +702,8 @@
   opacity: 0.55;
   transition: opacity 150ms ease;
 }
+/* A new quote loading in place of the last one (A8): the old total is dimmed. */
+.result section[data-stale] .total {
+  opacity: 0.55;
+  transition: opacity 150ms ease;
+}
