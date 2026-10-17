@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { connection } from "next/server";
 import { AbidosCraftTool } from "@/components/tools/abidos-craft";
 
 export const metadata: Metadata = {
@@ -8,6 +9,8 @@ export const metadata: Metadata = {
   alternates: { canonical: "/tools/abidos-craft" },
 };
 
-export default function AbidosCraftPage() {
+export default async function AbidosCraftPage() {
+  // Rendered per request: the inputs kept in the address (#889) are in the first HTML.
+  await connection();
   return <AbidosCraftTool />;
 }
