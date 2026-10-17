@@ -71,16 +71,32 @@ for (const width of [1280, 360]) {
     await expect(table.locator("tbody tr")).toHaveCount(3);
     const before = await table.locator('[data-cell="target"]').allTextContents();
     await resetShifts(page);
+    // The changed costs tint once, cleared after 1.4 s; still there 700 ms after
+    // the new value lands (#857 review measured 600–800 ms), cost and 1만 골드당
+    // both. Counted in the page, 700 ms of real time after the change itself
+    // (scheduler.postTask is not on the fake clock; a test-side wait came late).
+    await table.evaluate((el) => {
+      const seen = new MutationObserver(() => {
+        if (!el.textContent.includes("85만 8,800G")) return;
+        seen.disconnect();
+        scheduler.postTask(
+          () =>
+            (window.__washAt700 = {
+              cost: el.querySelectorAll('[data-cell="cost"] .chg-wash').length,
+              eff: el.querySelectorAll('[data-cell="eff"] .chg-wash').length,
+            }),
+          { delay: 700 },
+        );
+      });
+      seen.observe(el, { childList: true, subtree: true, characterData: true });
+    });
     await page.clock.runFor(61_000);
     await expect.poll(served, { message: "1분 뒤 다시 받음" }).toBeGreaterThan(1);
     await expect(table).toContainText("85만 8,800G"); // 62만 × 1.37 + 9,400: longer text
-    const changedAt = Date.now();
-    // The changed costs tint once, cleared after 1.4 s. Still there 700 ms on
-    // from the new value (#857 review measured 600–800 ms), cost and 1만 골드당
-    // both. Real time: the installed page clock runs on its own as well.
-    await page.waitForTimeout(Math.max(0, 700 - (Date.now() - changedAt)));
-    expect(await table.locator('[data-cell="cost"] .chg-wash').count(), "비용 칸 물들기(700ms)").toBeGreaterThan(0);
-    expect(await table.locator('[data-cell="eff"] .chg-wash').count(), "효율 칸 물들기(700ms)").toBeGreaterThan(0);
+    await expect.poll(() => page.evaluate(() => window.__washAt700 ?? null)).not.toBeNull();
+    const wash = await page.evaluate(() => window.__washAt700);
+    expect(wash.cost, "비용 칸 물들기(700ms)").toBeGreaterThan(0);
+    expect(wash.eff, "효율 칸 물들기(700ms)").toBeGreaterThan(0);
     expect(await shifts(page), `갱신 뒤 흔들림(누르지 않음): ${await movedOf(page)}`).toBe(0);
     expect(await table.locator('[data-cell="target"]').allTextContents(), "줄 순서 그대로").toEqual(before);
     // Said that the rows are the old order — one line in its fixed-height line
