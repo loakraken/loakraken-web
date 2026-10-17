@@ -65,7 +65,9 @@ function CostCell({ candidate, pulse }: { candidate: Candidate; pulse?: Pulse })
         data-room={cost.unit === "GOLD" ? costRoom(cost.amount) : undefined}
         title={`${cost.amount.toLocaleString("ko-KR")}${cost.unit === "GOLD" ? "G" : ` ${cost.unit}`}`}
       >
-        <ChangeMark pulse={pulse}>
+        {/* Right-aligned text rewritten in place starts elsewhere and counts as
+            moving (A7): a new amount draws new text. */}
+        <ChangeMark key={cost.amount} pulse={pulse}>
           {cost.unit === "GOLD" ? `${koreanGold(cost.amount)}G` : `${cost.amount.toLocaleString("ko-KR")} ${cost.unit}`}
         </ChangeMark>
       </td>
@@ -265,7 +267,7 @@ export default function SpecUpGuide({ data }: { data: Character }) {
                           </td>
                           <CostCell candidate={c} pulse={pulseOf(c.id, "cost")} />
                           <td data-cell="eff" data-label="1만 골드당" data-figure="">
-                            <ChangeMark pulse={pulseOf(c.id, "eff")}>
+                            <ChangeMark key={c.combatPowerPer10kGold ?? "none"} pulse={pulseOf(c.id, "eff")}>
                               {c.combatPowerPer10kGold == null ? "—" : two(c.combatPowerPer10kGold)}
                             </ChangeMark>
                           </td>
