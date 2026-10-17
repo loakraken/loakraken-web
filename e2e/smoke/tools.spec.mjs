@@ -79,9 +79,9 @@ test.describe("재료 구매 견적 @smoke", () => {
     // 카테고리 목록이 도착하면 묶음 탭이 나온다(도착 전 검색은 regression/material-quote-options).
     await expect(page.getByRole("tablist", { name: "카테고리" })).toBeVisible();
 
-    await page.getByRole("textbox", { name: "재료 이름" }).fill("합성");
+    await page.getByRole("combobox", { name: "재료 이름" }).fill("합성");
     await page.getByRole("button", { name: "검색", exact: true }).click();
-    await page.getByRole("button", { name: "합성 재련 재료 견적에 추가" }).click();
+    await page.getByRole("option", { name: "합성 재련 재료 견적에 추가" }).click();
     await expect(page.getByRole("heading", { name: "재료 1/10" })).toBeVisible();
 
     await page.getByRole("textbox", { name: "필요", exact: true }).fill("250");
@@ -92,6 +92,75 @@ test.describe("재료 구매 견적 @smoke", () => {
     await expect(page.getByText(/36/).first()).toBeVisible();
     await expect(page.getByText(/합성 재련 재료/).first()).toBeVisible();
     await expectNoHorizontalOverflow(page);
+  });
+});
+
+test.describe("재료 구매 견적 입력 중 검색 @smoke", () => {
+  // 사용자 요청(10-16): Enter 없이 글자를 넣기만 해도 200ms 뒤 결과가 나온다. 앞 검색에 모든 결과가 다 왔으면
+  // 글자를 더 넣을 때는 받은 목록을 화면에서 거르고 다시 요청하지 않는다. 키보드: ↑↓ 고르기, Enter 추가, Esc 닫기.
+  test("글자만 넣어도 결과가 나오고, 좁혀 갈 때는 다시 요청하지 않으며, 키보드로 고른다", async ({ page }) => {
+    const requests = [];
+    page.on("request", (request) => {
+      if (request.url().includes("/api/markets/items")) requests.push(new URL(request.url()).searchParams.get("itemName"));
+    });
+    await page.goto("/tools/material-quote");
+    await expect(page.getByRole("tablist", { name: "카테고리" })).toBeVisible();
+    const box = page.getByRole("combobox", { name: "재료 이름" });
+    await box.pressSequentially("재련", { delay: 50 });
+    const option = page.getByRole("option", { name: "합성 재련 재료 견적에 추가" });
+    await expect(option).toBeVisible();
+    await expect(box).toHaveAttribute("aria-expanded", "true");
+    expect(requests).toEqual(["재련"]);
+
+    // "재련 재료"는 "재련"의 결과(모두 받음) 안에서 거른다: 요청 없음.
+    await box.pressSequentially(" 재료", { delay: 50 });
+    await page.waitForTimeout(400);
+    await expect(option).toBeVisible();
+    expect(requests).toEqual(["재련"]);
+
+    await box.press("ArrowDown");
+    await expect(option).toHaveAttribute("aria-selected", "true");
+    await expect(box).toHaveAttribute("aria-activedescendant", await option.getAttribute("id"));
+    await box.press("Enter");
+    await expect(page.getByRole("heading", { name: "재료 1/10" })).toBeVisible();
+    await expect(page.getByRole("option", { name: "합성 재련 재료 추가됨" })).toHaveAttribute("aria-disabled", "true");
+
+    await box.press("Escape");
+    await expect(box).toHaveAttribute("aria-expanded", "false");
+    await expect(page.getByRole("listbox", { name: "검색 결과" })).toBeHidden();
+    await box.press("ArrowDown");
+    await expect(page.getByRole("listbox", { name: "검색 결과" })).toBeVisible();
+  });
+});
+
+test.describe("재료 구매 견적 검색 결과 팝업 @smoke", () => {
+  // PM-프론트 #855 P1: 결과는 디바운스와 응답 뒤에 나오므로 아래 내용을 밀면 입력과 떨어진 흔들림이 된다.
+  // 결과는 입력칸 아래 떠 있는 목록이라 빠른 입력·느린 입력·지우기 모두 흔들림이 0이어야 한다.
+  test("빠르게·느리게 입력하고 지워도 화면이 밀리지 않는다", async ({ page }) => {
+    await page.goto("/tools/material-quote");
+    await expect(page.getByRole("tablist", { name: "카테고리" })).toBeVisible();
+    await page.evaluate(() => {
+      window.__shifts = [];
+      new PerformanceObserver((list) => {
+        // Late shifts only: a shift within 500ms of a keystroke is the typing itself.
+        for (const e of list.getEntries()) if (!e.hadRecentInput) window.__shifts.push(e.value);
+      }).observe({ type: "layout-shift" });
+    });
+    const box = page.getByRole("combobox", { name: "재료 이름" });
+    await box.pressSequentially("재련", { delay: 30 });
+    await expect(page.getByRole("option").first()).toBeVisible();
+    await page.waitForTimeout(600);
+    await box.pressSequentially(" 재료", { delay: 400 });
+    await page.waitForTimeout(600);
+    for (let i = 0; i < 5; i++) await box.press("Backspace", { delay: 250 });
+    await page.waitForTimeout(800);
+    expect(await page.evaluate(() => window.__shifts)).toEqual([]);
+    // 아래 내용 위로 떠 있고, 초점이 상자 밖으로 나가면 닫힌다.
+    await box.pressSequentially("재련", { delay: 30 });
+    await expect(page.getByRole("listbox", { name: "검색 결과" })).toBeVisible();
+    await page.getByRole("tablist", { name: "카테고리" }).getByRole("tab").first().focus();
+    await expect(page.getByRole("listbox", { name: "검색 결과" })).toHaveCount(0);
+    await expect(box).toHaveAttribute("aria-expanded", "false");
   });
 });
 
@@ -118,9 +187,9 @@ test.describe("시세 1분 자동 갱신 @smoke", () => {
     page.on("request", (r) => r.url().includes("/api/markets/material-quotes") && calls++);
     await page.goto("/tools/material-quote");
     await expect(page.getByRole("tablist", { name: "카테고리" })).toBeVisible();
-    await page.getByRole("textbox", { name: "재료 이름" }).fill("합성");
-    await page.getByRole("button", { name: "검색", exact: true }).click();
-    await page.getByRole("button", { name: "합성 재련 재료 견적에 추가" }).click();
+    // #855: the name box is a combobox and each result row is an option.
+    await page.getByRole("combobox", { name: "재료 이름" }).fill("합성");
+    await page.getByRole("option", { name: "합성 재련 재료 견적에 추가" }).click();
     await page.getByRole("textbox", { name: "필요", exact: true }).fill("250");
     await page.getByRole("button", { name: "견적 계산" }).click();
     await expect(page.getByText(/1분마다 시세를 새로 받아 다시 계산해요/)).toBeVisible();

@@ -366,8 +366,26 @@
   font-size: var(--text-body);
 }
 
+/* The search field and its results: the results float under the field (a
+   combobox list), so results arriving while typing never push the page. */
+.searchBox {
+  position: relative;
+}
 .results {
-  margin-top: 18px;
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  z-index: 30;
+  max-height: min(440px, 60vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 4px 16px 8px;
+  border: 1px solid var(--control);
+  border-radius: var(--radius-lg);
+  background: var(--popover);
+  color: var(--popover-foreground);
+  box-shadow: var(--shadow-pop);
 }
 .resultList,
 .planList {
@@ -702,7 +720,55 @@
   opacity: 0.55;
   transition: opacity 150ms ease;
 }
-/* A new quote loading in place of the last one (A8): the old total is dimmed. */
+
+/* Search results as a listbox (combobox pattern): the whole row is the
+   option. The one in focus from the keyboard is filled; a row already
+   added (or a full quote) cannot be picked again. */
+.resultList li[role="option"] {
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+.resultList li[aria-selected="true"] {
+  background: var(--hover-surface);
+  box-shadow: inset 3px 0 0 var(--action);
+}
+.resultList li[aria-disabled="true"] {
+  cursor: default;
+}
+.resultList li:not([aria-disabled="true"]):active .outlinePill {
+  transform: scale(0.97);
+}
+@media (hover: hover) and (pointer: fine) {
+  .resultList li:not([aria-disabled="true"]):hover .outlinePill {
+    background: var(--hover-surface);
+  }
+}
+.outlinePill[data-disabled] {
+  border-color: var(--control);
+  color: var(--muted-foreground);
+}
+
+/* "추가" ↔ "추가됨" keep one width (PM-프론트 #855 P3). */
+.resultList .outlinePill {
+  min-width: 84px;
+}
+/* "검색" ↔ "검색 중…" keep one width, so a search starting while typing does
+   not move the button or its icon (PM-프론트 #855, late shift 0.00007). */
+.searchLabel {
+  display: inline-grid;
+}
+.searchLabel > span {
+  grid-area: 1 / 1;
+  visibility: hidden;
+}
+.searchLabel > span[data-shown] {
+  visibility: visible;
+}
+/* The previous results while a new search loads (A8): dimmed, still in place. */
+.results[data-stale] .resultList,
+.results[data-stale] > .caption,
+/* …and a new quote loading in place of the last one (A8): the old total. */
 .result section[data-stale] .total {
   opacity: 0.55;
   transition: opacity 150ms ease;

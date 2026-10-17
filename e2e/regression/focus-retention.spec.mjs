@@ -48,10 +48,10 @@ const FLOWS = [
     api: "**/api/markets/items**",
     start: async (page) => {
       await expect(page.getByRole("tablist", { name: "카테고리" })).toBeVisible();
-      await page.getByRole("textbox", { name: "재료 이름" }).fill("합성");
+      await page.getByRole("combobox", { name: "재료 이름" }).fill("합성");
       await page.getByRole("button", { name: "검색", exact: true }).focus();
     },
-    done: (page) => page.getByRole("button", { name: "합성 재련 재료 견적에 추가" }),
+    done: (page) => page.getByRole("option", { name: "합성 재련 재료 견적에 추가" }),
   },
   {
     name: "시세 분류 전환",
