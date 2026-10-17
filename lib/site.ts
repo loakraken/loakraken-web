@@ -29,6 +29,8 @@ export const SITEMAP_PATHS = [
   "/",
   "/about",
   "/market",
+  "/market/accessories",
+  "/market/gems",
   "/tools",
   "/tools/material-quote",
   "/tools/refining",

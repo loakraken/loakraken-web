@@ -6,6 +6,7 @@ export const metadata: Metadata = {
   title: "경매 입찰가 계산",
   description:
     "레이드 경매에서 아이템 가격과 파티 인원으로 판매·직접 사용 손익 분기와 선점 입찰가, 1인 분배금을 계산합니다.",
+  alternates: { canonical: "/tools/auction" },
 };
 
 export default async function AuctionPage({
