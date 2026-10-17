@@ -1695,6 +1695,13 @@ createServer(async (req, res) => {
     const who = url.searchParams.get("characterName") ?? "";
     if (who === "툴팁캐시없음") return send({ code: "CHARACTER_NOT_CACHED", message: "no cache" }, 404);
     const on = who === "상세";
+    // api #545's shape: no skills and no skillCode (the skill code has its own route).
+    if (who === "상세서포터")
+      return send({
+        code: "CHARACTER_ARMORY_PAGE_SUCCESS",
+        message: "성공",
+        data: { characterName: who, enabled: true, source: "공식 전투정보실 페이지", fetchedAt: "2026-10-18T03:00:00Z", lifeSkills: [{ name: "채집", level: 70 }] },
+      });
     return send({
       code: "CHARACTER_ARMORY_PAGE_SUCCESS",
       message: "성공",
