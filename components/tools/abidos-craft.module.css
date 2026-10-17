@@ -245,3 +245,60 @@
     position: static;
   }
 }
+
+/* Conditions fold (phones): results first, conditions under them behind a
+   one-line summary; opening it only adds below (A7). Desktop keeps the
+   panel beside the results, always open. */
+.foldToggle {
+  display: none;
+}
+.foldBody {
+  display: contents;
+}
+@media (max-width: 900px) {
+  .list {
+    order: -1;
+  }
+  .conditionsTitle {
+    display: none;
+  }
+  .foldToggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    width: 100%;
+    min-height: 44px;
+    text-align: left;
+  }
+  .foldToggle > span {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+  }
+  .foldToggle strong {
+    font-size: var(--text-heading-sm);
+    font-weight: 700;
+  }
+  .foldToggle small {
+    color: var(--slate);
+    font-size: var(--text-caption);
+  }
+  .foldToggle svg {
+    flex: none;
+    transition: rotate var(--duration-fast) var(--ease-out);
+  }
+  .foldToggle[aria-expanded="true"] svg {
+    rotate: 180deg;
+  }
+  .foldToggle:active {
+    scale: var(--press-scale);
+  }
+  .foldBody {
+    display: grid;
+    gap: var(--space-4);
+  }
+  .foldBody:not([data-open]) {
+    display: none;
+  }
+}
