@@ -123,7 +123,8 @@ export default function SpecUpGuide({ data }: { data: Character }) {
   const statusRef = useRef<HTMLParagraphElement>(null);
   useEffect(() => {
     if (!sorted) return;
-    statusRef.current?.focus();
+    // Without scrolling: on a phone the line may sit above the screen.
+    statusRef.current?.focus({ preventScroll: true });
     const timer = window.setTimeout(() => setSorted(false), 3_000);
     return () => window.clearTimeout(timer);
   }, [sorted, generation]);

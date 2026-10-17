@@ -6,8 +6,13 @@ import { test, expect, gotoReady, characterPath } from "../support/fixtures.mjs"
 const watch = (page) =>
   page.addInitScript(() => {
     window.__shifts = [];
+    window.__from = 0;
     new PerformanceObserver((list) => {
       for (const e of list.getEntries())
+        // Entries can arrive late (one from the page load turned up after a
+        // reset): only shifts from the reset on count. The page clock is fake,
+        // so the mark is document.timeline's, the entries' own time base.
+        if (e.startTime >= window.__from)
         // Right after a press too (A7 counts those): kept apart as `input`.
         window.__shifts.push({
           input: e.hadRecentInput,
@@ -25,7 +30,11 @@ const shifts = (page, all = false) =>
   page.evaluate((all) => window.__shifts.filter((e) => all || !e.input).reduce((a, e) => a + e.v, 0), all);
 /** What moved, for the failure message. */
 const movedOf = (page) => page.evaluate(() => [...new Set(window.__shifts.flatMap((e) => e.src))].slice(0, 8).join(" | "));
-const resetShifts = (page) => page.evaluate(() => (window.__shifts = []));
+const resetShifts = (page) =>
+  page.evaluate(() => {
+    window.__shifts = [];
+    window.__from = document.timeline.currentTime;
+  });
 
 /** Serves the real mock answer the first time, a changed one after (×1.37 and `edit`). */
 async function changing(page, url, edit) {
@@ -65,10 +74,11 @@ for (const width of [1280, 360]) {
     await page.clock.runFor(61_000);
     await expect.poll(served, { message: "1분 뒤 다시 받음" }).toBeGreaterThan(1);
     await expect(table).toContainText("85만 8,800G"); // 62만 × 1.37 + 9,400: longer text
-    // The changed costs tint once (the wash is cleared only after 1.4 s of page time).
-    await expect.poll(() => table.locator(".chg-wash").count(), { message: "바뀐 칸 물들기" }).toBeGreaterThan(0);
-    // Still there 700 ms on (#857 review measured 600–800 ms): cost and 1만 골드당 both.
-    await page.clock.runFor(700);
+    const changedAt = Date.now();
+    // The changed costs tint once, cleared after 1.4 s. Still there 700 ms on
+    // from the new value (#857 review measured 600–800 ms), cost and 1만 골드당
+    // both. Real time: the installed page clock runs on its own as well.
+    await page.waitForTimeout(Math.max(0, 700 - (Date.now() - changedAt)));
     expect(await table.locator('[data-cell="cost"] .chg-wash').count(), "비용 칸 물들기(700ms)").toBeGreaterThan(0);
     expect(await table.locator('[data-cell="eff"] .chg-wash').count(), "효율 칸 물들기(700ms)").toBeGreaterThan(0);
     expect(await shifts(page), `갱신 뒤 흔들림(누르지 않음): ${await movedOf(page)}`).toBe(0);
