@@ -90,6 +90,13 @@
 .body > * + * {
   margin-top: 14px;
 }
+/* Reading measure: running text about 40 Korean characters a line; tables keep the full column. */
+.body > p,
+.body > ul,
+.body > ol,
+.body > blockquote {
+  max-width: 42em;
+}
 .body h2 {
   margin-top: 32px;
   font-size: 19px;

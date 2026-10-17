@@ -37,7 +37,17 @@ test("inline: bold, code, safe links; anything else stays text", () => {
     { t: "link", href: "/rankings", c: [{ t: "text", v: "링크" }] },
   ]);
   assert.deepEqual(parseInline("[밖](https://example.com/a)"), [{ t: "link", href: "https://example.com/a", c: [{ t: "text", v: "밖" }] }]);
-  for (const unsafe of ["[x](javascript:alert(1))", "[x](//evil.example)", "[x](http://plain.example)", "<script>alert(1)</script>", "**닫히지 않음"])
+  for (const unsafe of [
+    "[x](javascript:alert(1))",
+    "[x](//evil.example)",
+    // Browsers read "/\" (and "\" anywhere in a path) as another site.
+    "[x](/\\evil.example)",
+    "[x](/a\\b)",
+    "[x](https://ok.example\\@evil.example)",
+    "[x](http://plain.example)",
+    "<script>alert(1)</script>",
+    "**닫히지 않음",
+  ])
     assert.ok(parseInline(unsafe).every((part) => part.t === "text"), unsafe);
 });
 

@@ -59,8 +59,12 @@ export function readNote(fileName: string, source: string): DevNote | null {
 export const byNewest = (a: DevNoteMeta, b: DevNoteMeta) =>
   b.date.localeCompare(a.date) || b.slug.localeCompare(a.slug);
 
-/** Only web addresses and paths on this site become links; anything else stays text. */
-const safeHref = (href: string) => /^https:\/\/[^\s]+$/.test(href) || /^\/(?!\/)[^\s]*$/.test(href);
+/**
+ * Only web addresses and paths on this site become links; anything else stays
+ * text. A path never starts "//" or "/\" and holds no "\": browsers read those
+ * as another site.
+ */
+const safeHref = (href: string) => /^https:\/\/[^\s\\]+$/.test(href) || /^\/(?![/\\])[^\s\\]*$/.test(href);
 
 export function parseInline(source: string): Inline[] {
   const out: Inline[] = [];

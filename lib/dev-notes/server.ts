@@ -1,6 +1,7 @@
-// LOAKraken 개발자 노트 files on the server. Read per request (a handful of
-// small files): the image ships them beside the server (next.config
-// outputFileTracingIncludes), and tests point DEV_NOTES_DIR at their own.
+// LOAKraken 개발자 노트 files on the server, read once per process (a handful
+// of small files that change only with a deploy): the image ships them beside
+// the server (next.config outputFileTracingIncludes), and tests point
+// DEV_NOTES_DIR at their own.
 import "server-only";
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
@@ -10,9 +11,7 @@ import { byNewest, NOTE_FILE, readNote, type DevNote, type DevNoteMeta } from ".
 export const devNotesDir = (env: Record<string, string | undefined> = process.env) =>
   env.DEV_NOTES_DIR?.trim() || path.join(process.cwd(), "content", "dev-notes");
 
-/** Every note, newest first; a missing folder is no notes. */
-export const getDevNotes = cache((): DevNote[] => {
-  const dir = devNotesDir();
+function readAll(dir: string): DevNote[] {
   let files: string[];
   try {
     files = readdirSync(dir);
@@ -24,6 +23,18 @@ export const getDevNotes = cache((): DevNote[] => {
     .map((file) => readNote(file, readFileSync(path.join(dir, file), "utf8")))
     .filter((note): note is DevNote => note != null)
     .sort(byNewest);
+}
+
+// The files change only with a deploy (a new process): read once per folder,
+// not on every request.
+const read = new Map<string, DevNote[]>();
+
+/** Every note, newest first; a missing folder is no notes. */
+export const getDevNotes = cache((): DevNote[] => {
+  const dir = devNotesDir();
+  let notes = read.get(dir);
+  if (!notes) read.set(dir, (notes = readAll(dir)));
+  return notes;
 });
 
 /** The list without bodies (what the /news tab needs). */
