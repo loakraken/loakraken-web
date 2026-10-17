@@ -14,7 +14,7 @@ const files = readdirSync(dir).filter((file) => NOTE_FILE.test(file));
 const links = (parts: Inline[]): string[] =>
   parts.flatMap((part) => (part.t === "link" ? [part.href, ...links(part.c)] : part.t === "strong" ? links(part.c) : []));
 const blockLinks = (block: Block): string[] => {
-  if (block.t === "ul" || block.t === "ol") return block.items.flatMap((item) => [...links(item.c), ...(item.sub ?? []).flatMap(links)]);
+  if ("items" in block) return block.items.flatMap((item) => [...links(item.c), ...(item.sub ?? []).flatMap(links)]);
   if (block.t === "table") return [...block.head, ...block.rows.flat()].flatMap(links);
   if (block.t === "hr") return [];
   return links(block.c);
