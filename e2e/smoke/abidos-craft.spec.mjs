@@ -92,4 +92,24 @@ test.describe("아비도스 제작 손익 @smoke", () => {
     await page.getByRole("textbox", { name: "제작 수수료 감소" }).fill("17");
     await expect(toggle).toContainText("수수료 −17%");
   });
+
+  // PM-프론트 #886 P1: 좁은 화면은 결과가 첫 화면이라, 시세가 늦게 와도 표 줄 높이가 바뀌지 않아야 한다(흔들림 0).
+  test("좁은 화면 첫 로드: 시세가 늦게 와도 결과 표가 흔들리지 않는다", async ({ page }) => {
+    await page.setViewportSize({ width: 360, height: 800 });
+    await page.route("**/api/markets/**", async (route) => {
+      await new Promise((r) => setTimeout(r, 800));
+      await route.fallback();
+    });
+    await page.addInitScript(() => {
+      window.__shifts = [];
+      new PerformanceObserver((list) => {
+        for (const e of list.getEntries()) if (!e.hadRecentInput) window.__shifts.push(e.value);
+      }).observe({ type: "layout-shift", buffered: true });
+    });
+    await gotoReady(page, "/tools/abidos-craft");
+    const logging = page.getByRole("region", { name: "아비도스 융화 재료", exact: true }).getByRole("row", { name: /^벌목/ });
+    await expect(logging).toContainText("교환으로 마련: 아비도스 목재, 부드러운 목재, 목재");
+    await page.waitForTimeout(500);
+    expect(await page.evaluate(() => window.__shifts)).toEqual([]);
+  });
 });
