@@ -788,7 +788,14 @@ function RefiningContent({ initialName }: { initialName: string }) {
   const [basis, setBasis] = useUrlState<PriceBasis>("price", "CURRENT_MIN_PRICE", oneOfCodec(priceBases.map((b) => b.value)));
   // Targets brought back from the address win over a reload's fresh load
   // once: the character's current stages come from the load, the plan stays.
-  const restored = useRef<Record<PartId, PartState> | null>(parts === INITIAL_PARTS ? null : parts);
+  // Only for the character the address opened with (click-path audit #889):
+  // loading someone else afterwards starts from that character's own stages.
+  const openedCharacter = useSearchParams().get("character");
+  const restored = useRef<{ name: string; parts: Record<PartId, PartState> } | null>(
+    parts !== INITIAL_PARTS && openedCharacter && !characterNameError(openedCharacter)
+      ? { name: normalizeCharacterName(openedCharacter), parts }
+      : null,
+  );
   const setPart = (id: PartId, next: PartState) =>
     setParts((prev) => ({ ...prev, [id]: next }));
 
@@ -875,7 +882,7 @@ function RefiningContent({ initialName }: { initialName: string }) {
                   initialName={initialName}
                   onLoaded={(next, nextParts) => {
                     setLoaded(next);
-                    const saved = restored.current;
+                    const saved = restored.current?.name === next.name ? restored.current.parts : null;
                     restored.current = null;
                     setParts(
                       saved
