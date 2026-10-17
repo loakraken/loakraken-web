@@ -138,7 +138,7 @@ function Verdict({
             <p>
               게임 안 크리스탈 교환소 시세가 <b className={styles.nowrap}>{count(breakEven.rate)}골드</b> 이하면 이득이에요.
             </p>
-            <p>블루 크리스탈 100개당 시세예요. 위에 넣으면 이득을 계산해요.</p>
+            <p>블루 크리스탈 100개당 시세예요. 교환소 시세를 넣으면 이득을 계산해요.</p>
           </>
         ) : breakEven.kind === "always" ? (
           <>

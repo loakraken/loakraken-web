@@ -260,7 +260,12 @@
     order: -1;
   }
   .conditionsTitle {
-    display: none;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
   .foldToggle {
     display: flex;
@@ -293,6 +298,16 @@
   }
   .foldToggle:active {
     scale: var(--press-scale);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .foldToggle:hover strong {
+      color: var(--primary);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .foldToggle svg {
+      transition: none;
+    }
   }
   .foldBody {
     display: grid;

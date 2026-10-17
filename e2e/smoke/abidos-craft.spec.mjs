@@ -83,11 +83,12 @@ test.describe("아비도스 제작 손익 @smoke", () => {
     await expect(toggle).toContainText("대성공 +0% · 수수료 −0% · 활동력 −0% · 교환 상인 켬");
     await expect(page.getByRole("textbox", { name: "대성공 확률 증가" })).toBeHidden();
     expect((await results.boundingBox()).y).toBeLessThan((await toggle.boundingBox()).y);
-    const before = (await results.boundingBox()).y;
+    const docY = () => results.evaluate((el) => el.getBoundingClientRect().top + window.scrollY);
+    const before = await docY();
     await toggle.click();
     await expect(toggle).toHaveAttribute("aria-expanded", "true");
     await expect(page.getByRole("textbox", { name: "대성공 확률 증가" })).toBeVisible();
-    expect((await results.boundingBox()).y).toBeCloseTo(before, 0);
+    expect(await docY()).toBeCloseTo(before, 0);
     await page.getByRole("textbox", { name: "제작 수수료 감소" }).fill("17");
     await expect(toggle).toContainText("수수료 −17%");
   });
