@@ -25,6 +25,13 @@ test("indexing is off unless CHARACTER_INDEXING=on, on every deployment", () => 
   assert.equal(isCharacterIndexingEnabled({ CHARACTER_INDEXING: "yes" }), false);
 });
 
+test("indexing stays off on any other domain even with the switch on (A6)", () => {
+  assert.equal(isCharacterIndexingEnabled({ CHARACTER_INDEXING: "on", SITE_URL: PRODUCTION_URL }), true);
+  assert.equal(isCharacterIndexingEnabled({ CHARACTER_INDEXING: "on", SITE_URL: "https://staging.example.com" }), false);
+  assert.equal(isCharacterIndexingEnabled({ CHARACTER_INDEXING: "on", SITE_URL: "http://127.0.0.1:8081" }), false);
+  assert.equal(isCharacterIndexingEnabled({ CHARACTER_INDEXING: "on", SITE_URL: "https://www.loakraken.gg" }), false);
+});
+
 test("only an indexable summary with indexing on is indexed; everything else reads the same (B5)", () => {
   assert.deepEqual(indexableSummary(true, ok(summary)), summary);
   assert.equal(indexableSummary(false, ok(summary)), null);
