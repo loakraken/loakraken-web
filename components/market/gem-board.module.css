@@ -93,6 +93,13 @@
   gap: 8px 10px;
   margin-bottom: 12px;
 }
+/* Every item of the row exactly 36px (the select's light button and the full
+   one it turns into may wrap differently): the note under them never moves. */
+.filter > :not(small) {
+  display: inline-flex;
+  align-items: center;
+  height: 36px;
+}
 .filter label {
   color: var(--muted-foreground);
   font-size: 13px;
