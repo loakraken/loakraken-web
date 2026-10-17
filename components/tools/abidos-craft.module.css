@@ -118,10 +118,14 @@
 }
 /* Materials the exchange vendor supplies, held from the first paint (A7). */
 .via {
-  display: grid;
   min-height: 1lh;
 }
-/* The unseen longest text and the shown one share one cell: the taller decides. */
+/* The unseen longest text and the shown one share one cell: the taller
+   decides. As specific as ".table tbody th small" (display: block), which
+   otherwise wins and lays the two out one after the other. */
+.table tbody th .via {
+  display: grid;
+}
 .via > span {
   grid-area: 1 / 1;
 }
