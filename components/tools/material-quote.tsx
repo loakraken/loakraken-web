@@ -13,7 +13,7 @@ import Link from "next/link";
 import { refreshEvery } from "@/lib/api/rate-limit";
 import { useRouter } from "next/navigation";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { ChangeMark, UpdateAnnouncer, useChangedCells } from "@/components/ui/changed-cells";
+import { ChangeMark, UpdateAnnouncer, useChangedCells, type Pulse } from "@/components/ui/changed-cells";
 import { AnimatePresence, m } from "motion/react";
 import { Add, ArrowLeft, Calculator, CloseCircle, SearchNormal, TickCircle } from "@/components/ui/icons";
 import { GameIcon } from "@/components/character/imagery";
@@ -453,10 +453,14 @@ function Plan() {
   );
 }
 
+// Totals and line costs only wash: a ▲/▼ inside the number's line took width
+// and nudged the "골드" after it on each refresh (PM-프론트 #863 P2).
+const washOnly = (pulse: Pulse | undefined): Pulse | undefined => pulse && { ...pulse, dir: 0 };
+
 function Result({ quote, stale }: { quote: MaterialQuote; stale: boolean }) {
   const basis = priceBases.find((item) => item.value === quote.priceBasis);
   // The quote is fetched again every minute with the same inputs: a cost
-  // that changed is marked for a moment (▲/▼, wash once).
+  // that changed is marked for a moment (a wash that fades once).
   const { pulse, summary: changes } = useChangedCells(quote.items, (line) => String(line.itemId), {
     cost: (line) => line.purchase?.costGold ?? null,
   });
@@ -474,7 +478,7 @@ function Result({ quote, stale }: { quote: MaterialQuote; stale: boolean }) {
         {quote.complete ? (
           <>
             <h2 id="quote-total" className={styles.total}>
-              <ChangeMark pulse={totals.pulse("quote", "total")}>{formatGold(quote.totalCostGold)}</ChangeMark>
+              <ChangeMark pulse={washOnly(totals.pulse("quote", "total"))}>{formatGold(quote.totalCostGold)}</ChangeMark>
               <span>골드</span>
             </h2>
             <p className={styles.totalNote}>
@@ -484,7 +488,7 @@ function Result({ quote, stale }: { quote: MaterialQuote; stale: boolean }) {
         ) : (
           <>
             <h2 id="quote-total" className={styles.total} data-partial="">
-              <ChangeMark pulse={totals.pulse("quote", "total")}>{formatGold(quote.knownCostGold)}</ChangeMark>
+              <ChangeMark pulse={washOnly(totals.pulse("quote", "total"))}>{formatGold(quote.knownCostGold)}</ChangeMark>
               <span>골드 · 계산된 항목만</span>
             </h2>
             <p className={styles.status}>
@@ -540,7 +544,7 @@ function Result({ quote, stale }: { quote: MaterialQuote; stale: boolean }) {
                     <div>
                       <dt>비용</dt>
                       <dd className={styles.cost}>
-                        <ChangeMark pulse={pulse(String(line.itemId), "cost")}>
+                        <ChangeMark pulse={washOnly(pulse(String(line.itemId), "cost"))}>
                           {formatGold(line.purchase.costGold)} 골드
                         </ChangeMark>
                       </dd>
