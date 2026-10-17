@@ -6,6 +6,7 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { SiteHeader } from "@/components/site/site-header";
 import { DataTable } from "@/components/ui/data-table";
 import { Diamonds } from "@/components/ui/icons";
+import { PendingText } from "@/components/ui/pending-text";
 import { countdownText, retryLabel } from "@/lib/api/rate-limit";
 import { pendingProps } from "@/lib/api/pending";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
@@ -47,7 +48,9 @@ function Cell({ cell, picked, onPick }: { cell: GemCell | undefined; picked: boo
   if (!cell || cell.status !== "READY")
     return (
       <td className={styles.cell}>
-        <span className={styles.pending}>집계 중</span>
+        <span className={styles.pending}>
+          <PendingText />
+        </span>
       </td>
     );
   return (

@@ -74,6 +74,7 @@ import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { useCrossfade } from "@/lib/motion";
 import { ChangeMark, UpdateAnnouncer, useChangedCells, type Pulse } from "@/components/ui/changed-cells";
 import { DataRefreshState } from "@/components/ui/data-refresh-state";
+import { PendingText } from "@/components/ui/pending-text";
 
 const TIERS = [4, 3] as const;
 
@@ -377,7 +378,12 @@ function Detail({
               <tr key={day.date} data-partial={day.partial || undefined}>
                 <th scope="row">
                   {day.date.slice(5).replace("-", "/")}
-                  {day.partial && <small> 집계 중</small>}
+                  {day.partial && (
+                    <small>
+                      {" "}
+                      <PendingText />
+                    </small>
+                  )}
                 </th>
                 <td>{goldText(day.averagePrice)}</td>
                 <td>{day.tradeCount.toLocaleString("ko-KR")}</td>
