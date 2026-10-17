@@ -406,14 +406,34 @@
                 "type": "null"
               }
             ]
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "공식 경매장 아이템 이미지 URL"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "baseEffects": {
+            "type": "array",
+            "description": "기본 효과(공식 옵션 중 STAT 줄: 힘·민첩·지능·체력 등) 공식 순서. 없으면 빈 배열",
+            "items": {
+              "$ref": "#/components/schemas/AccessorySearchBaseEffectResponse"
+            }
           }
         },
         "required": [
+          "baseEffects",
           "bidStartPrice",
           "buyPrice",
           "endDate",
           "enlightenment",
           "grade",
+          "icon",
           "mainStat",
           "mainStatRangePct",
           "name",
@@ -511,6 +531,23 @@
           "code",
           "data",
           "message"
+        ]
+      },
+      "AccessorySearchBaseEffectResponse": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "공식 옵션 이름(예: 힘)"
+          },
+          "value": {
+            "type": "number",
+            "description": "공식 값(숫자인 줄만 담음)"
+          }
+        },
+        "required": [
+          "name",
+          "value"
         ]
       }
     }

@@ -32,6 +32,8 @@ const result = {
       buyPrice: null,
       bidStartPrice: 900000,
       endDate: "2026-10-14T12:00:00Z",
+      icon: null,
+      baseEffects: [],
     },
   ],
 };

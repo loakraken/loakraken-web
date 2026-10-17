@@ -146,6 +146,9 @@ export interface components {
             buyPrice: number | null;
             bidStartPrice: number | null;
             endDate: string | null;
+            icon: string | null;
+            /** @description 기본 효과(공식 옵션 중 STAT 줄: 힘·민첩·지능·체력 등) 공식 순서. 없으면 빈 배열 */
+            baseEffects: components["schemas"]["AccessorySearchBaseEffectResponse"][];
         };
         AccessorySearchPolishResponse: {
             /** @description 공식 연마 효과 이름 */
@@ -163,6 +166,12 @@ export interface components {
             /** @example 요청 값이 올바르지 않습니다. */
             message: string;
             data: null;
+        };
+        AccessorySearchBaseEffectResponse: {
+            /** @description 공식 옵션 이름(예: 힘) */
+            name: string;
+            /** @description 공식 값(숫자인 줄만 담음) */
+            value: number;
         };
     };
     responses: never;
