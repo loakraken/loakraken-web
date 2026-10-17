@@ -11,6 +11,7 @@
 // Screen readers hear the final value only.
 import { useEffect, useId, useRef, useState } from "react";
 import { useReducedMotion } from "@/components/landing/motion-context";
+import { intCodec, oneOfCodec, textCodec, useUrlState } from "@/lib/tools/url-state";
 import Link from "next/link";
 import { ArrowLeft, Flash } from "@/components/ui/icons";
 import { SiteHeader } from "@/components/site/site-header";
@@ -104,10 +105,13 @@ function CountedFigure({ value, kind, band }: { value: number; kind: "gap" | "pc
 
 export function ContributionTool() {
   const damageId = useId();
-  const [raid, setRaid] = useState(RAIDS[RAIDS.length - 1]);
-  const [difficulty, setDifficulty] = useState(() => difficultiesOf(RAIDS[RAIDS.length - 1])[0]);
-  const [gateNo, setGateNo] = useState(1);
-  const [text, setText] = useState("");
+  // Every input lives in the address: back and reload keep it (#889).
+  const [raid, setRaid] = useUrlState("raid", RAIDS[RAIDS.length - 1], oneOfCodec(RAIDS));
+  const [difficultyPicked, setDifficulty] = useUrlState("difficulty", "", textCodec(20));
+  const [gateNo, setGateNo] = useUrlState("gate", 1, intCodec(1, 9));
+  const [text, setText] = useUrlState("damage", "", textCodec(12));
+  // A difficulty the raid does not have (an old or edited address) falls back to its first.
+  const difficulty = difficultiesOf(raid).includes(difficultyPicked) ? difficultyPicked : difficultiesOf(raid)[0];
 
   const difficulties = difficultiesOf(raid);
   const gates = gatesOf(raid, difficulty);
