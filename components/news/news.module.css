@@ -54,7 +54,18 @@
     margin-bottom: 12px;
   }
 }
-/* The two tab lists share one cell; only the chosen one shows (A7). */
+/* Three kinds in a pill as wide as the panel at most: on a phone the long
+   "LOAKraken 개발자 노트" folds onto two lines instead of spilling out or
+   being cut (A37). The buttons share the row's height. */
+div.kindTabs {
+  max-width: 100%;
+}
+div.kindTabs button {
+  min-width: 0;
+  line-height: 1.25;
+  text-wrap: balance;
+}
+/* The tab lists share one cell; only the chosen one shows (A7). */
 .tabStack {
   display: grid;
 }
