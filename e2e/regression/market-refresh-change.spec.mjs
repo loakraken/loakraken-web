@@ -8,18 +8,21 @@ const watch = (page) =>
     window.__shifts = [];
     new PerformanceObserver((list) => {
       for (const e of list.getEntries())
-        if (!e.hadRecentInput)
-          window.__shifts.push({
-            v: e.value,
-            src: (e.sources ?? []).map((s) => {
-              const el = s.node?.nodeType === 1 ? s.node : s.node?.parentElement;
-              const r = (b) => [b.x, b.y, b.width, b.height].map(Math.round).join(",");
-              return `${el?.tagName}${el?.dataset?.cell ? `[${el.dataset.cell}]` : ""} ${r(s.previousRect)}→${r(s.currentRect)}`;
-            }),
-          });
+        // Right after a press too (A7 counts those): kept apart as `input`.
+        window.__shifts.push({
+          input: e.hadRecentInput,
+          v: e.value,
+          src: (e.sources ?? []).map((s) => {
+            const el = s.node?.nodeType === 1 ? s.node : s.node?.parentElement;
+            const r = (b) => [b.x, b.y, b.width, b.height].map(Math.round).join(",");
+            return `${el?.tagName}${el?.dataset?.cell ? `[${el.dataset.cell}]` : ""} ${r(s.previousRect)}→${r(s.currentRect)}`;
+          }),
+        });
     }).observe({ type: "layout-shift", buffered: true });
   });
-const shifts = (page) => page.evaluate(() => window.__shifts.reduce((a, e) => a + e.v, 0));
+/** Shifts with no press before them; `all` adds the ones right after a press. */
+const shifts = (page, all = false) =>
+  page.evaluate((all) => window.__shifts.filter((e) => all || !e.input).reduce((a, e) => a + e.v, 0), all);
 /** What moved, for the failure message. */
 const movedOf = (page) => page.evaluate(() => [...new Set(window.__shifts.flatMap((e) => e.src))].slice(0, 8).join(" | "));
 const resetShifts = (page) => page.evaluate(() => (window.__shifts = []));
@@ -64,6 +67,10 @@ for (const width of [1280, 360]) {
     await expect(table).toContainText("85만 8,800G"); // 62만 × 1.37 + 9,400: longer text
     // The changed costs tint once (the wash is cleared only after 1.4 s of page time).
     await expect.poll(() => table.locator(".chg-wash").count(), { message: "바뀐 칸 물들기" }).toBeGreaterThan(0);
+    // Still there 700 ms on (#857 review measured 600–800 ms): cost and 1만 골드당 both.
+    await page.clock.runFor(700);
+    expect(await table.locator('[data-cell="cost"] .chg-wash').count(), "비용 칸 물들기(700ms)").toBeGreaterThan(0);
+    expect(await table.locator('[data-cell="eff"] .chg-wash').count(), "효율 칸 물들기(700ms)").toBeGreaterThan(0);
     expect(await shifts(page), `갱신 뒤 흔들림(누르지 않음): ${await movedOf(page)}`).toBe(0);
     expect(await table.locator('[data-cell="target"]').allTextContents(), "줄 순서 그대로").toEqual(before);
     // Said that the rows are the old order — one line in its fixed-height line
@@ -92,11 +99,25 @@ for (const width of [1280, 360]) {
     expect(line.text).toContain("시세 갱신 전 순서예요");
     expect(line.fits, `한 줄에 들어감: ${line.text}`).toBe(true);
     await expect(table.locator("caption")).toContainText("(시세 갱신 전 순서)");
-    // The new order is one press away.
+    // The new order is one press away. Pressed, the line keeps its place with
+    // "새 순서로 정렬했어요", and the table head and first row stay where they
+    // were: new rows are drawn, nothing slides (A7 counts right after a press too).
+    const tops = () =>
+      table.evaluate((el) => [el.querySelector("thead"), el.querySelector("tbody tr")].map((n) => Math.round(n.getBoundingClientRect().top)));
+    const placed = await tops();
+    await resetShifts(page);
     await reorder.click();
     await expect.poll(() => table.locator('[data-cell="target"]').allTextContents()).toEqual([...before].reverse());
     await expect(page.getByRole("button", { name: "새 순서로 보기" })).toHaveCount(0);
+    await expect(page.getByRole("status").filter({ hasText: "새 순서로 정렬했어요" })).toBeVisible();
     await expect(table.locator("caption")).not.toContainText("갱신 전");
+    await page.clock.runFor(1_000);
+    expect(await tops(), "표 머리·첫 행 제자리").toEqual(placed);
+    expect(await shifts(page, true), `누른 뒤 흔들림: ${await movedOf(page)}`).toBe(0);
+    // The note goes after a moment; the line keeps its height.
+    await page.clock.runFor(3_000);
+    await expect(page.getByRole("status").filter({ hasText: "새 순서로 정렬했어요" })).toHaveCount(0);
+    expect(await tops(), "안내가 사라져도 제자리").toEqual(placed);
   });
 
   test(`@A7 ${width} 보석판: 금액이 길어져도 안 움직이고, 물들고, "N개 바뀜" 알림 @regression`, async ({ page }) => {
