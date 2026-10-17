@@ -301,7 +301,7 @@
   }
   @media (hover: hover) and (pointer: fine) {
     .foldToggle:hover strong {
-      color: var(--primary);
+      color: var(--link);
     }
   }
   @media (prefers-reduced-motion: reduce) {
