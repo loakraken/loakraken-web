@@ -133,5 +133,5 @@ test("@집계중 장신구판도 같은 부품 @regression", async ({ page }) =>
   await gotoReady(page, "/market/accessories");
   const label = page.getByRole("region", { name: /^반지/ }).locator('[data-slot="pending-text"]');
   await expect(label).toHaveText("집계 중");
-  await expect.poll(async () => (await read(label)).animations).toEqual([{ started: true, duration: 1500, iterations: 3 }]);
+  await expect.poll(async () => (await read(label)).animations).toEqual([RUNNING, RUNNING]);
 });
