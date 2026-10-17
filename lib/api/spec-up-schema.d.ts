@@ -44,6 +44,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/characters/spec-up/candidates/{candidateId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 스펙업 후보 줄 상세(공식 호출 없음)
+         * @description 스펙업 가이드 목록의 후보 하나를 자세히 줍니다. 목록과 같은 캐릭터 캐시·시세 캐시로 목록을 다시 만들어 찾으므로 candidate는 목록의 같은 id 줄과 같습니다. 보석·각인서 후보는 market(사는 품목 BUY, 지금 보석 판매 기대가를 비용에서 뺐으면 SELL 줄도), 일반 재련 후보는 refine·materials·goldFee를 줍니다. 재련 비용(cost.amount)은 materials의 반올림 전 금액 합 + goldFee를 올림한 값입니다. 표시 값(소수 둘째 자리)의 합을 올림한 값과 cost.amount의 차이는 1골드 이하입니다. stats는 근거가 확인된 스탯만 담고(지금은 보석 기본 공격력 %), 없으면 빈 목록입니다. 해당 없는 칸은 null입니다. 요청이 많으면 429 CLIENT_RATE_LIMITED와 Retry-After(초)를 줍니다. role·priceStatus·priceBasis·breath는 문자열이며 값이 늘 수 있습니다.
+         */
+        get: operations["detail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -112,34 +132,40 @@ export interface components {
              * @example 블레이드 버스트 · 7레벨 겁화
              */
             target: string;
-            from: (string | null) | null;
-            to: (string | null) | null;
-            icon: (string | null) | null;
-            grade: (string | null) | null;
-            skillName: (string | null) | null;
-            suggestedTo: (string | null) | null;
-            change: (components["schemas"]["ChangeResponse"] | null) | null;
+            from: string | null;
+            to: string | null;
+            icon: string | null;
+            grade: string | null;
+            skillName: string | null;
+            suggestedTo: string | null;
+            change: components["schemas"]["ChangeResponse"] | null;
             /**
              * @description OK 또는 UNSUPPORTED(문자열, 값이 늘 수 있음)
              * @example OK
              */
             status: string;
-            deltaCombatPower: (number | null) | null;
-            deltaPercent: (number | null) | null;
-            cost: (components["schemas"]["CostResponse"] | null) | null;
-            combatPowerPer10kGold: (number | null) | null;
-            reasonCode: (string | null) | null;
-            reason: (string | null) | null;
-            reasonDetail: (string | null) | null;
+            deltaCombatPower: number | null;
+            deltaPercent: number | null;
+            cost: components["schemas"]["CostResponse"] | null;
+            combatPowerPer10kGold: number | null;
+            reasonCode: string | null;
+            reason: string | null;
+            reasonDetail: string | null;
+            /** @description 백엔드가 아직 주지 않는 응답(api 배포 전)에서는 필드가 없을 수 있음. */
+            emptySlot?: boolean | null;
+            /** @description 백엔드가 아직 주지 않는 응답(api 배포 전)에서는 필드가 없을 수 있음. */
+            baseAttackPctFrom?: number | null;
+            /** @description 백엔드가 아직 주지 않는 응답(api 배포 전)에서는 필드가 없을 수 있음. */
+            baseAttackPctTo?: number | null;
         };
         ChangeResponse: {
             kind: string;
-            slot: ((((number | null) | null) | null) | null) | null;
-            index: ((((number | null) | null) | null) | null) | null;
-            level: ((((number | null) | null) | null) | null) | null;
-            refine: ((((number | null) | null) | null) | null) | null;
-            quality: ((((number | null) | null) | null) | null) | null;
-            name: ((((string | null) | null) | null) | null) | null;
+            slot: number | null;
+            index: number | null;
+            level: number | null;
+            refine: number | null;
+            quality: number | null;
+            name: string | null;
         };
         CostResponse: {
             /**
@@ -147,7 +173,7 @@ export interface components {
              * @example GOLD
              */
             unit: string;
-            amount: ((((number | null) | null) | null) | null) | null;
+            amount: number | null;
             /**
              * @description OK·PENDING·UNKNOWN(문자열, 모르는 값은 UNKNOWN으로)
              * @example OK
@@ -251,9 +277,9 @@ export interface components {
              * @example 8레벨
              */
             to: string;
-            icon: (string | null) | null;
-            grade: (string | null) | null;
-            skillName: (string | null) | null;
+            icon: string | null;
+            grade: string | null;
+            skillName: string | null;
             /** @description 전투력 시뮬레이터 요청의 changes[] 하나와 같은 모양 */
             change: components["schemas"]["ChangeResponse"];
             /** @description 이 단계로 늘어난 전투력(소수 둘째 자리) */
@@ -262,8 +288,123 @@ export interface components {
             combatPowerAfter: number;
             /** @description 이 단계 비용(골드) */
             cost: components["schemas"]["CostResponse"];
-            cumulativeCost: (number | null) | null;
-            combatPowerPer10kGold: (number | null) | null;
+            cumulativeCost: number | null;
+            combatPowerPer10kGold: number | null;
+        };
+        /** @description 공통 API 응답. 오류 응답의 data는 null입니다. */
+        ApiResponseSpecUpDetailResponse: {
+            /**
+             * @description 업무 결과 코드
+             * @example CHARACTER_SEARCH_SUCCESS
+             */
+            code: string;
+            /**
+             * @description 공개용 안내 메시지
+             * @example 캐릭터 조회에 성공했습니다.
+             */
+            message: string;
+            /** @description 성공 응답 데이터. 오류일 때 null */
+            data: components["schemas"]["SpecUpDetailResponse"];
+        };
+        SpecUpDetailResponse: {
+            characterName: string;
+            /**
+             * Format: date-time
+             * @description 캐릭터 캐시 수집 시각
+             */
+            fetchedAt: string;
+            pricesAt: string | null;
+            /** @description 목록의 같은 id 후보 줄 */
+            candidate: components["schemas"]["CandidateResponse"];
+            combatPowerBefore: number | null;
+            combatPowerAfter: number | null;
+            /** @description 바뀌는 스탯 가운데 근거가 확인된 것(없으면 빈 목록) */
+            stats: components["schemas"]["SpecUpStatResponse"][];
+            materials: components["schemas"]["SpecUpMaterialResponse"][] | null;
+            goldFee: number | null;
+            market: components["schemas"]["SpecUpMarketResponse"][] | null;
+            refine: components["schemas"]["SpecUpRefineResponse"] | null;
+        };
+        SpecUpStatResponse: {
+            /**
+             * @description 스탯 이름(화면 문자열)
+             * @example 기본 공격력
+             */
+            name: string;
+            /** @example 0.6 */
+            before: number;
+            /** @example 0.8 */
+            after: number;
+            unit: string | null;
+        };
+        SpecUpMaterialResponse: {
+            /**
+             * @description 공식 거래소 품목 이름
+             * @example 운명의 파괴석
+             */
+            itemName: string;
+            icon: string | null;
+            /**
+             * @description 기대 개수(소수 둘째 자리)
+             * @example 1250.4
+             */
+            quantity: number;
+            unitPrice: number | null;
+            gold: number | null;
+            /**
+             * @description OK 또는 PENDING(문자열, 값이 늘 수 있음)
+             * @example OK
+             */
+            priceStatus: string;
+            priceBasis: string | null;
+        };
+        SpecUpMarketResponse: {
+            /**
+             * @description BUY(사는 품목) 또는 SELL(지금 보석, 판매 기대가를 비용에서 뺌). 문자열, 값이 늘 수 있음
+             * @example BUY
+             */
+            role: string;
+            /**
+             * @description 공식 경매장·거래소 품목 이름
+             * @example 8레벨 겁화의 보석
+             */
+            itemName: string;
+            icon: string | null;
+            grade: string | null;
+            /**
+             * Format: int64
+             * @description 1개 즉시 구매 최저가(골드)
+             * @example 412000
+             */
+            price: number;
+            /**
+             * Format: int32
+             * @description 필요한 개수(보석 1, 유물 각인서 5)
+             * @example 1
+             */
+            quantity: number;
+            expectedSalePrice: number | null;
+            listedCount: number | null;
+            /**
+             * Format: date-time
+             * @description 시세 관측 시각
+             */
+            observedAt: string;
+        };
+        SpecUpRefineResponse: {
+            /**
+             * Format: int32
+             * @example 19
+             */
+            fromStage: number;
+            /**
+             * Format: int32
+             * @example 20
+             */
+            toStage: number;
+            breath: string | null;
+            expectedAttempts: number | null;
+            firstAttemptSuccessRateBp: number | null;
         };
     };
     responses: never;
@@ -379,6 +520,71 @@ export interface operations {
                 };
             };
             /** @description CLIENT_RATE_LIMITED: 이 클라이언트의 분당 요청·공식 호출 한도 초과. Retry-After(초) 뒤 다시 시도 */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description CHARACTER_STORAGE_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    detail: {
+        parameters: {
+            query: {
+                /** @description 캐릭터명 */
+                characterName: string;
+            };
+            header?: never;
+            path: {
+                /**
+                 * @description 스펙업 가이드 후보 id
+                 * @example GEM_LEVEL:3:8
+                 */
+                candidateId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description SPEC_UP_DETAIL_SUCCESS */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponseSpecUpDetailResponse"];
+                };
+            };
+            /** @description INVALID_REQUEST: 캐릭터명·후보 id 형식 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description SPEC_UP_CANDIDATE_NOT_FOUND: 지금 목록에 그 후보가 없음(세팅이 바뀜, 목록을 다시 부름) · SPEC_UP_DISABLED: 기능이 꺼져 있음 · CHARACTER_NOT_CACHED: 캐릭터를 먼저 검색해야 함 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description CLIENT_RATE_LIMITED: 요청이 많음(Retry-After 초) */
             429: {
                 headers: {
                     [name: string]: unknown;

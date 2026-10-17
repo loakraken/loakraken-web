@@ -22,6 +22,7 @@ import { itemGrade } from "@/components/character/item-tooltip";
 import { rateLimitCopy } from "@/lib/api/rate-limit";
 import { SpecUpQueryError, fetchSpecUpDetail } from "@/lib/spec-up/client";
 import {
+  breathLabel,
   materialsTotal,
   refiningLink,
   specUpDetailQuery,
@@ -79,20 +80,46 @@ function DetailBody({ detail, characterName }: { detail: SpecUpDetail; character
       )}
       {detail.market && detail.market.length > 0 && (
         <ItemDetailSection label="시세">
-          {detail.market.map((m) => (
-            <div key={m.itemName} className={styles.specUpDetailItem}>
-              <GameIcon src={m.icon} grade={m.grade} size={28} />
-              <ItemStat
-                label={m.itemName}
-                value={
-                  <>
-                    {gold(m.price)}
-                    {m.listedCount != null && <small className={styles.specUpDetailSub}> · 매물 {m.listedCount.toLocaleString("ko-KR")}개</small>}
-                  </>
-                }
-              />
-            </div>
-          ))}
+          {detail.market.map((m) => {
+            // SELL: the gem in the slot now, its expected sale taken off the cost.
+            const sell = m.role === "SELL";
+            return (
+              <div key={`${m.role}:${m.itemName}`} className={styles.specUpDetailItem}>
+                <GameIcon src={m.icon} grade={m.grade} size={28} />
+                <ItemStat
+                  label={
+                    <>
+                      {sell ? "판매 기대" : "구매"} · {m.itemName}
+                      {m.quantity > 1 && <span className={styles.specUpDetailSub}> ×{m.quantity}</span>}
+                    </>
+                  }
+                  value={
+                    <>
+                      {sell ? `−${gold(m.expectedSalePrice)}` : gold(m.price == null ? null : m.price * m.quantity)}
+                      {m.listedCount != null && (
+                        <small className={styles.specUpDetailSub}> · 매물 {m.listedCount.toLocaleString("ko-KR")}개</small>
+                      )}
+                    </>
+                  }
+                />
+              </div>
+            );
+          })}
+          {c.cost?.status === "OK" && c.cost.amount != null && <ItemStat label="비용" value={gold(c.cost.amount)} emphasis />}
+          {detail.market.some((m) => m.role === "SELL") && (
+            <ItemLine tone="muted">판매 기대는 최저가에서 거래소 수수료 5%를 뺀 값이에요.</ItemLine>
+          )}
+        </ItemDetailSection>
+      )}
+      {detail.refine && (
+        <ItemDetailSection label={`재련 +${detail.refine.fromStage} → +${detail.refine.toStage}`}>
+          {detail.refine.expectedAttempts != null && (
+            <ItemStat label="기대 시도" value={`${qty(detail.refine.expectedAttempts)}회`} />
+          )}
+          {detail.refine.firstAttemptSuccessRateBp != null && (
+            <ItemStat label="첫 시도 성공 확률" value={`${qty(detail.refine.firstAttemptSuccessRateBp / 100)}%`} />
+          )}
+          {breathLabel(detail.refine.breath) && <ItemStat label="숨결" value={breathLabel(detail.refine.breath)} />}
         </ItemDetailSection>
       )}
       {detail.materials && detail.materials.length > 0 && (
@@ -106,7 +133,7 @@ function DetailBody({ detail, characterName }: { detail: SpecUpDetail; character
                     {m.itemName} <span className={styles.specUpDetailSub}>×{qty(m.quantity)}</span>
                   </>
                 }
-                value={m.priceStatus === "OK" ? gold(m.gold) : "시세 확인 중"}
+                value={m.priceStatus === "OK" && m.gold != null ? gold(m.gold) : "시세 확인 중"}
               />
             </div>
           ))}

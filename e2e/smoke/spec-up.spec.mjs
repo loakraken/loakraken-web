@@ -157,17 +157,21 @@ test.describe("스펙업 가이드 @smoke", () => {
     expect(calls).toBe(0);
     await open.click();
     const card = page.getByRole("dialog");
-    await expect(card).toContainText("9레벨 겁화의 보석");
+    // api #550 예시: 9레벨 구매 100만G − 8레벨 판매 기대 38만G = 비용 62만G(목록과 같음).
+    await expect(card).toContainText("구매 · 9레벨 겁화의 보석");
+    await expect(card).toContainText("100만G");
+    await expect(card).toContainText("판매 기대 · 8레벨 겁화의 보석");
+    await expect(card).toContainText("−38만G");
     await expect(card).toContainText("62만G");
-    await expect(card).toContainText("매물 37개");
-    await expect(card).toContainText("8.8% → 10.4%");
+    await expect(card).toContainText("매물 5개");
+    await expect(card).toContainText("0.8% → 1%");
     await expect(card).toContainText("+24.00");
     expect(calls).toBe(1);
     await page.keyboard.press("Escape");
     await expect(page.getByRole("dialog")).toHaveCount(0);
     await expect(open).toBeFocused();
     await open.click();
-    await expect(page.getByRole("dialog")).toContainText("9레벨 겁화의 보석");
+    await expect(page.getByRole("dialog")).toContainText("구매 · 9레벨 겁화의 보석");
     expect(calls).toBe(1);
   });
 

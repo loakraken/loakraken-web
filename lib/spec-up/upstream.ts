@@ -1,9 +1,9 @@
 import { backendUrl, requestBackend, type BackendResult } from "../api/backend";
 import { characterNameError, normalizeCharacterName } from "../character/model";
 import { isSort, type SpecUpEnvelope } from "./model";
-import { isGoalEnvelope, isSpecUpEnvelope } from "./validate";
+import { isDetailEnvelope, isGoalEnvelope, isSpecUpEnvelope } from "./validate";
 import type { GoalEnvelope } from "./goal";
-import { isDetailEnvelope, type DetailEnvelope } from "./detail";
+import type { DetailEnvelope } from "./detail";
 
 // Backend #318 SpecUpController error table.
 const errorCodes: Record<number, readonly string[]> = {

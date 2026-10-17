@@ -761,37 +761,23 @@ createServer(async (req, res) => {
     if (!d.reached) Object.assign(d, { stopReasonCode: "NO_CANDIDATE", stopReason: "더 올릴 수 있는 후보가 없습니다." });
     return send(envelope);
   }
-  // 스펙업 줄 상세 (#887, 백엔드 2 설계): gems carry the market lines and the
-  // slot's base attack %; an id not in the list is the 404 of a changed list.
+  // 스펙업 줄 상세 (#887, api #550): the backend's contract examples. The
+  // gem example is the list's first gem (8→9); the other OK rows get the same
+  // shape with their own candidate; an id not in the list is the 404.
   const detailPath = url.pathname.match(/^\/api\/v1\/characters\/spec-up\/candidates\/([^/]+)$/);
   if (detailPath) {
     counts.specUpDetail = (counts.specUpDetail || 0) + 1;
     const id = decodeURIComponent(detailPath[1]);
-    const list = JSON.parse(readFileSync(new URL("./spec-up-fixtures/character-spec-up.json", import.meta.url), "utf8"));
+    const fixture = (name) => JSON.parse(readFileSync(new URL(`./spec-up-fixtures/${name}`, import.meta.url), "utf8"));
+    const list = fixture("character-spec-up.json");
     const candidate = list.data.candidates.find((c) => c.id === id && c.status === "OK");
-    if (!candidate)
-      return send({ code: "SPEC_UP_CANDIDATE_NOT_FOUND", message: "스펙업 후보를 찾을 수 없습니다.", data: null }, 404);
-    const power = read("character-full-data.json").combatPower;
-    const gem = candidate.kind === "GEM_LEVEL";
-    const level = Number(String(candidate.to ?? "").replace(/\D/g, "")) || null;
-    return send({
-      code: "SPEC_UP_DETAIL_SUCCESS",
-      message: "스펙업 후보 상세를 조회했습니다.",
-      data: {
-        candidate,
-        pricesAt: list.data.pricesAt,
-        combatPowerBefore: power,
-        combatPowerAfter: candidate.deltaCombatPower == null ? null : power + candidate.deltaCombatPower,
-        stats: gem ? [{ name: "기본 공격력", before: 8.8, after: level === 10 ? 12 : 10.4, unit: "%" }] : [],
-        materials: null,
-        goldFee: null,
-        market: gem
-          ? [
-              { itemName: `${level}레벨 겁화의 보석`, icon: null, grade: "고대", price: candidate.cost?.amount ?? null, listedCount: 37, observedAt: list.data.pricesAt },
-            ]
-          : null,
-      },
-    });
+    if (!candidate) return send(fixture("character-spec-up-detail-not-found.json"), 404);
+    const envelope = fixture("character-spec-up-detail-gem.json");
+    const who = url.searchParams.get("characterName");
+    Object.assign(envelope.data, { characterName: who, candidate: { ...envelope.data.candidate, ...candidate } });
+    if (candidate.kind !== "GEM_LEVEL") Object.assign(envelope.data, { stats: [], market: null });
+    else if (id !== "GEM_LEVEL:0:9") envelope.data.market[0].itemName = `${String(candidate.to).replace(/\D/g, "")}레벨 겁화의 보석`;
+    return send(envelope);
   }
   if (url.pathname === "/api/v1/characters/spec-up") {
     const specUp = (name) =>
