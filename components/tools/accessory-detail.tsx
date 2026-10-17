@@ -25,11 +25,8 @@ import { timeLeftText } from "@/lib/accessory-search/time-left";
 import { koreanGold } from "@/lib/spec-up/model";
 import styles from "./accessory-search.module.css";
 
-/** Fields the backend adds from the same official response (no extra call); absent until then. */
-type Listing = SearchItem & {
-  icon?: string | null;
-  baseEffects?: { name: string; value: number }[] | null;
-};
+/** icon and baseEffects come from the same official response (no extra call); an older response without them still draws. */
+type Listing = SearchItem;
 
 const kstEnd = new Intl.DateTimeFormat("ko-KR", {
   timeZone: "Asia/Seoul",
