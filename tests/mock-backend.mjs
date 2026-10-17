@@ -1298,15 +1298,19 @@ createServer(async (req, res) => {
       const top = Math.round((rank / population) * 10000) / 100;
       const tier = top <= 1 ? "TOP1" : top <= 5 ? "TOP5" : top <= 10 ? "TOP10" : top <= 25 ? "TOP25" : top <= 50 ? "TOP50" : "REST";
       const cls = q.get("className") || classes[rank % classes.length];
+      // 디스트로이어: values as long as real data has them (QA 10-17 20시: five-digit
+      // combat power, long ark passive, small top percent with a tier, long names).
+      const real = cls === "디스트로이어";
       rows.push({
-        rank, characterName: `랭커${rank}`, serverName: q.get("server") || servers[rank % servers.length], className: cls,
+        rank, characterName: real ? `무라타Himek0${rank}` : `랭커${rank}`, serverName: q.get("server") || servers[rank % servers.length], className: cls,
         position: cls === "바드" || cls === "홀리나이트" || cls === "도화가" ? "SUPPORT" : "DEALER",
-        itemLevel: Math.round((1790 - rank * 0.05) * 100) / 100, combatPower: Math.round((4800 - rank * 1.3) * 100) / 100,
-        topPercent: top, tier,
-        bestCombatPower: rank % 3 === 0 ? null : Math.round((4810 - rank * 1.2) * 100) / 100,
-        arkPassivePoints: rank % 3 === 0 ? null : { evolution: 140, enlightenment: 101 - (rank % 4), leap: 70 },
-        classEngraving: rank % 3 === 0 ? null : ["광기", "버스트", "절정", "잔재된 기운"][rank % 4],
-        estherWeapon: rank % 5 === 0 ? { refineLevel: 25, ellaStage: 2 } : rank % 5 === 1 ? { refineLevel: 8, ellaStage: null } : null,
+        itemLevel: real ? 1805 : Math.round((1790 - rank * 0.05) * 100) / 100,
+        combatPower: Math.round(((real ? 11170.05 : 4800) - rank * 1.3) * 100) / 100,
+        topPercent: real ? Math.round(rank * 0.11 * 100) / 100 : top, tier: real ? "TOP1" : tier,
+        bestCombatPower: real ? Math.round((11170.05 - rank * 1.21) * 100) / 100 : rank % 3 === 0 ? null : Math.round((4810 - rank * 1.2) * 100) / 100,
+        arkPassivePoints: real ? { evolution: 140, enlightenment: 101, leap: 70 } : rank % 3 === 0 ? null : { evolution: 140, enlightenment: 101 - (rank % 4), leap: 70 },
+        classEngraving: real ? "분노의 망치" : rank % 3 === 0 ? null : ["광기", "버스트", "절정", "잔재된 기운"][rank % 4],
+        estherWeapon: real ? { refineLevel: 10, ellaStage: 3 } : rank % 5 === 0 ? { refineLevel: 25, ellaStage: 2 } : rank % 5 === 1 ? { refineLevel: 8, ellaStage: null } : null,
       });
     }
     return send({
@@ -1334,10 +1338,12 @@ createServer(async (req, res) => {
     for (let rank = (page - 1) * size + 1; rank <= Math.min(population, page * size); rank++) {
       const top = Math.round((rank / population) * 10000) / 100;
       const tier = top <= 1 ? "TOP1" : top <= 5 ? "TOP5" : top <= 10 ? "TOP10" : top <= 25 ? "TOP25" : top <= 50 ? "TOP50" : "REST";
+      const real = q.get("className") === "디스트로이어"; // real-data lengths, as above
       rows.push({
-        rank, characterName: `효율${rank}`, serverName: q.get("server") || servers[rank % servers.length],
+        rank, characterName: real ? `무라타Himek0${rank}` : `효율${rank}`, serverName: q.get("server") || servers[rank % servers.length],
         className: q.get("className") || classes[rank % classes.length], position: "DEALER",
-        itemLevel: Math.round((1785 - rank * 0.1) * 100) / 100, combatPower: Math.round((4700 - rank * 2.1) * 100) / 100,
+        itemLevel: real ? 1805 : Math.round((1785 - rank * 0.1) * 100) / 100,
+        combatPower: Math.round(((real ? 11170.05 : 4700) - rank * 2.1) * 100) / 100,
         valuePercent: Math.round(((bracelet ? 16 : 6.5) - rank * 0.03) * 100) / 100,
         observedAt: new Date(Date.now() - rank * 3_600_000).toISOString(), topPercent: top, tier,
       });
