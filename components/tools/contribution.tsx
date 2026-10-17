@@ -57,8 +57,9 @@ const figureText = (figure: { kind: "gap" | "pct" }, value: number) =>
  */
 function useCountTo(target: number | null, kind: string | null) {
   const reduce = useReducedMotion();
-  const [shown, setShown] = useState(target);
-  const now = useRef(target);
+  // First shown at 0 and counted up (PM-프론트 #888): the first result counts in too.
+  const [shown, setShown] = useState<number | null>(target == null ? null : 0);
+  const now = useRef<number | null>(null);
   const lastKind = useRef(kind);
   useEffect(() => {
     const switched = lastKind.current !== kind;
