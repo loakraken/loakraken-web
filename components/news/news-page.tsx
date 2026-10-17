@@ -1,7 +1,8 @@
 "use client";
 
 // /news: every recent official notice by kind, the stored patch history
-// (backend patch-notice-v1, paged) and the running events. Titles open the
+// (backend patch-notice-v1, paged), LOAKraken 개발자 노트 (our own notes,
+// from the repository) and the running events. Notice titles open the
 // official page; nothing of the notice body is copied.
 
 import type { CSSProperties } from "react";
@@ -30,6 +31,8 @@ import {
   type PatchCategory,
 } from "@/lib/home/model";
 import { NOTICE_KINDS, newsPath, readNewsQuery, type NewsTab } from "@/lib/home/news";
+import type { DevNoteMeta } from "@/lib/dev-notes/model";
+import { DevNotes } from "./dev-notes";
 import { EventItems, NoticeItem, shortDate } from "./news-parts";
 import styles from "./news.module.css";
 
@@ -204,7 +207,13 @@ function Events({ renderedAt }: { renderedAt?: number }) {
   );
 }
 
-export function NewsPage({ renderedAt }: { renderedAt?: number }) {
+const HEADINGS: Record<NewsTab, string> = {
+  notice: "공지사항",
+  patch: "패치 이력",
+  dev: "LOAKraken 개발자 노트",
+};
+
+export function NewsPage({ renderedAt, devNotes }: { renderedAt?: number; devNotes: readonly DevNoteMeta[] }) {
   const { tab, noticeKind, patchKind } = readNewsQuery(useSearchParams());
   // Stacked (900 and below) the events sit under the notices: the notices keep
   // the tallest they have been, so a shorter kind or the patch tab's loading
@@ -220,7 +229,8 @@ export function NewsPage({ renderedAt }: { renderedAt?: number }) {
         <header className={schedule.head}>
           <h1>공지·이벤트</h1>
           <p className={schedule.reset}>
-            로스트아크 공식 공지와 패치 이력, 진행 중인 이벤트예요. 제목을 누르면 공식 홈페이지 원문이 열려요.
+            로스트아크 공식 공지와 패치 이력, 진행 중인 이벤트, LOAKraken 개발자 노트예요. 공지 제목을 누르면 공식
+            홈페이지 원문이 열려요.
           </p>
         </header>
         <div className={home.grid}>
@@ -232,7 +242,7 @@ export function NewsPage({ renderedAt }: { renderedAt?: number }) {
             aria-labelledby="notices-heading"
           >
             <div className={home.panelHead}>
-              <h2 id="notices-heading">{tab === "patch" ? "패치 이력" : "공지사항"}</h2>
+              <h2 id="notices-heading">{HEADINGS[tab]}</h2>
               <a href={OFFICIAL_NOTICES} target="_blank" rel="noreferrer" className={home.more}>
                 공식 공지 <ExportCircle size={14} aria-hidden="true" />
               </a>
@@ -244,16 +254,23 @@ export function NewsPage({ renderedAt }: { renderedAt?: number }) {
               <button type="button" aria-pressed={tab === "patch"} onClick={() => push("patch", null)}>
                 패치 이력
               </button>
+              {/* The name as decided (user 10-18); on a phone it folds onto two lines. */}
+              <button type="button" aria-pressed={tab === "dev"} onClick={() => push("dev", null)}>
+                LOAKraken 개발자 노트
+              </button>
             </div>
-            {/* Both lists in one cell, the other one hidden (not shown, focused or
-                read): the panel is always the taller one's height, so switching
+            {/* Every list in one cell, the others hidden (not shown, focused or
+                read): the panel is always the tallest one's height, so switching
                 the tab never moves the events under it (A7). */}
             <div className={styles.tabStack}>
-              <div data-shown={tab !== "patch" || undefined} inert={tab === "patch"}>
+              <div data-shown={tab === "notice" || undefined} inert={tab !== "notice"}>
                 <Notices kind={noticeKind} />
               </div>
               <div data-shown={tab === "patch" || undefined} inert={tab !== "patch"}>
                 <PatchNotes kind={patchKind} />
+              </div>
+              <div data-shown={tab === "dev" || undefined} inert={tab !== "dev"}>
+                <DevNotes notes={devNotes} />
               </div>
             </div>
           </section>
