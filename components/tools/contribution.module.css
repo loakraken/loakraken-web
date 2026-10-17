@@ -67,9 +67,28 @@
   margin-left: -1px;
   background: var(--slate);
 }
+/* Filled up to my position; scaled, never resized (no layout). */
+.fill {
+  position: absolute;
+  inset: 9px 0;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--primary) 35%, transparent);
+  transform-origin: left center;
+  transition: transform 300ms var(--ease-out);
+}
+/* Full-width rail so translateX(%) is a share of the bar. The marker sits at
+   its right end and the rail is pulled left by what is missing (0% = -100%),
+   so nothing ever reaches past the bar on the right (no sideways scroll). */
+.rail {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  transition: transform 300ms var(--ease-out);
+}
 .marker {
   position: absolute;
   top: 2px;
+  left: 100%;
   width: 20px;
   height: 20px;
   margin-left: -10px;
@@ -77,6 +96,51 @@
   border-radius: 50%;
   background: var(--primary);
   box-shadow: 0 0 0 1px var(--steel);
+  transition: opacity var(--duration-fast) var(--ease-out), background-color var(--duration-fast) var(--ease-out);
+}
+.marker[data-hidden] {
+  opacity: 0;
+}
+/* Crossing into another band: one short ring that spreads and fades
+   (transform + opacity only), then gone. */
+.ring {
+  position: absolute;
+  inset: -3px;
+  border: 2px solid var(--primary);
+  border-radius: 50%;
+  opacity: 0;
+  animation: contribution-ring 280ms var(--ease-out);
+}
+.marker[data-band="BELOW_LOW"] .ring {
+  border-color: var(--loss);
+}
+@keyframes contribution-ring {
+  from {
+    opacity: 0.7;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.9);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fill,
+  .rail {
+    transition: none;
+  }
+  /* No spreading: the ring shows in place and fades. */
+  .ring {
+    animation-name: contribution-ring-still;
+  }
+  @keyframes contribution-ring-still {
+    from {
+      opacity: 0.7;
+    }
+    to {
+      opacity: 0;
+    }
+  }
 }
 .marker[data-band="BELOW_LOW"],
 .verdict b[data-band="BELOW_LOW"] {
@@ -93,6 +157,16 @@
 }
 .verdict b {
   font-variant-numeric: tabular-nums;
+}
+/* Fixed width while it counts, so "· 범위 안이에요" after it holds still. */
+.pct {
+  display: inline-block;
+  min-width: 6.5ch;
+  text-align: end;
+}
+/* The 억 gap sits inside a sentence ("하한보다 1,728억 낮아요"): no held width there. */
+.pct[data-kind="gap"] {
+  min-width: 0;
 }
 .notes {
   display: grid;
