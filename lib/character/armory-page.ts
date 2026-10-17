@@ -4,6 +4,8 @@
 // answers 200 with every field null (enabled: false) and the screen leaves no
 // trace of them. The contract is a draft: the validator checks the shape the
 // screen uses and is re-captured from the backend's OpenAPI when it ships.
+// api #545 answers without skills and skillCode (the skill code moves to its
+// own route): both may be missing; when present they are checked as before.
 import { backendUrl, requestBackend, type BackendResult } from "../api/backend";
 import { characterNameError, normalizeCharacterName } from "./model";
 
@@ -13,8 +15,8 @@ export type ArmoryPage = {
   enabled: boolean;
   source: string | null;
   fetchedAt: string | null;
-  skills: { name: string | null; tripods: ArmoryPageTripod[] }[] | null;
-  skillCode: string | null;
+  skills?: { name: string | null; tripods: ArmoryPageTripod[] }[] | null;
+  skillCode?: string | null;
   lifeSkills: { name: string | null; level?: number | null; grade?: string | null }[] | null;
 };
 export type ArmoryPageEnvelope = { code: string; message: string; data: ArmoryPage };
@@ -27,8 +29,9 @@ export function isArmoryPageEnvelope(value: unknown): value is ArmoryPageEnvelop
   if (!isObject(value) || value.code !== "CHARACTER_ARMORY_PAGE_SUCCESS" || !isObject(value.data)) return false;
   const data = value.data;
   if (typeof data.characterName !== "string" || typeof data.enabled !== "boolean") return false;
-  if (!nullableString(data.source) || !nullableString(data.fetchedAt) || !nullableString(data.skillCode)) return false;
-  if (data.skills !== null) {
+  if (!nullableString(data.source) || !nullableString(data.fetchedAt)) return false;
+  if (data.skillCode !== undefined && !nullableString(data.skillCode)) return false;
+  if (data.skills !== null && data.skills !== undefined) {
     if (!Array.isArray(data.skills)) return false;
     for (const skill of data.skills) {
       if (!isObject(skill) || !nullableString(skill.name) || !Array.isArray(skill.tripods)) return false;
