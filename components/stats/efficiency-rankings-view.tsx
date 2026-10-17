@@ -34,7 +34,8 @@ const CLASSES = [
   "서머너", "아르카나", "소서리스", "블레이드", "데모닉", "리퍼", "소울이터", "도화가", "기상술사", "환수사",
 ];
 
-const COLUMNS = rankingColumns([3.5, 14, 7, 6, 7, 6.5, 7, 7.5]);
+// Numbers sized for real data's longest (A37, QA 10-17), text with a title.
+const COLUMNS = rankingColumns([3.5, 14, 7, 6, 7, 7.5, 8.5, 9.5]);
 
 /** "+14.42%" — the efficiency the backend computed, two decimals. */
 const efficiencyText = (value: number) =>
@@ -209,7 +210,7 @@ export function EfficiencyRankingsView({
               {data.rows.map((row) => (
                 <tr key={`${row.serverName}-${row.characterName}`}>
                   <td>{whole(row.rank)}</td>
-                  <th scope="row">
+                  <th scope="row" title={row.characterName}>
                     <Link href={`/character/${encodeURIComponent(row.characterName)}`} className={styles.charLink}>
                       {row.characterName}
                     </Link>

@@ -1,5 +1,6 @@
 import {
   isArmoryPageEnabled,
+  isCharacterEfficiencyEnabled,
   isCharacterIndexingEnabled,
   isCombatPowerEnabled,
   isCritSpeedEnabled,
@@ -103,6 +104,7 @@ export default async function CharacterPage({
         titleStats={isTitleStatsEnabled()}
         critSpeed={isCritSpeedEnabled()}
         guildTab={isGuildRankingEnabled()}
+        characterEfficiency={isCharacterEfficiencyEnabled()}
       />
     </HydrationBoundary>
   );

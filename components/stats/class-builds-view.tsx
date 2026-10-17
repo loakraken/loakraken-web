@@ -550,7 +550,12 @@ export function ClassBuildsView({
           // Held at its tallest: another fix's sample count (more or fewer
           // digits) can wrap the line differently on a phone, which moved the
           // fixed settings and the sections under it (A7, #844 CI at 360).
-          <div ref={noticeRef} style={noticeHeight ? { minHeight: noticeHeight } : undefined}>
+          // flow-root: the note's bottom margin stays inside this box, so the
+          // height it holds counts the margin too. Without it the margin
+          // escaped the box whenever the note grew back to its tallest
+          // (3 → 2 → 3 lines as the sample's digits change), and the fix bar
+          // and the sections dropped 10px (A7, build-fix @M26 360 in CI).
+          <div ref={noticeRef} style={{ display: "flow-root", ...(noticeHeight ? { minHeight: noticeHeight } : {}) }}>
             {/* Drawn anew when what it says changes: text rewritten in place moves (A7). */}
             <p
               key={`${meta.population}-${data.classPopulation}-${meta.conditions?.itemLevelMin}-${meta.conditions?.activeDays}-${meta.aggregatedAt}`}
@@ -568,7 +573,12 @@ export function ClassBuildsView({
             says so inside it, held at the comparison's height, so the
             sections under it do not jump up and back (A7). */}
         {compare && data && (
-          <div ref={compareRef} style={compareHeight ? { minHeight: compareHeight } : undefined} {...pendingProps(builds)}>
+          // flow-root for the same reason as the note above: margins stay inside the held box.
+          <div
+            ref={compareRef}
+            style={{ display: "flow-root", ...(compareHeight ? { minHeight: compareHeight } : {}) }}
+            {...pendingProps(builds)}
+          >
             {collecting ? (
               <p key={builds.dataUpdatedAt} className={styles.muted}>
                 표본이 {whole(meta?.minSample ?? 30)}명보다 적어 대세와 비교하지 않아요.
