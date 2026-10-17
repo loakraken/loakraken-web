@@ -86,3 +86,15 @@ test("blocks: headings, joined paragraph lines, lists, table, quote, rule", () =
   // A "|" line without a rule under it is a paragraph, not a table.
   assert.equal(parseMarkdown("| 표 아님 |")[0].t, "p");
 });
+
+test("rows indented under a list row are its own list, one level deep", () => {
+  const [list] = parseMarkdown(["- 위", "  - 아래 하나", "  1. 아래 둘", "- 다음"].join("\n"));
+  assert.ok(list.t === "ul");
+  assert.deepEqual(
+    list.items.map((item) => [item.c, item.sub]),
+    [
+      [[{ t: "text", v: "위" }], [[{ t: "text", v: "아래 하나" }], [{ t: "text", v: "아래 둘" }]]],
+      [[{ t: "text", v: "다음" }], undefined],
+    ],
+  );
+});

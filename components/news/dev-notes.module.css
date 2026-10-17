@@ -126,6 +126,10 @@
 .body li::marker {
   color: var(--muted-foreground);
 }
+.body li > ul {
+  margin-top: 6px;
+  list-style: circle;
+}
 .body strong {
   font-weight: 700;
 }

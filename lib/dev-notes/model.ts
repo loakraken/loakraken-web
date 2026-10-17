@@ -13,10 +13,13 @@ export type Inline =
 export type Block =
   | { t: "h2" | "h3"; c: Inline[] }
   | { t: "p"; c: Inline[] }
-  | { t: "ul" | "ol"; items: Inline[][] }
+  | { t: "ul" | "ol"; items: ListItem[] }
   | { t: "table"; head: Inline[][]; rows: Inline[][][] }
   | { t: "quote"; c: Inline[] }
   | { t: "hr" };
+
+/** A list row; rows indented under it (two spaces or more) are its own list, one level deep. */
+export type ListItem = { c: Inline[]; sub?: Inline[][] };
 
 export type DevNoteMeta = { slug: string; title: string; date: string; summary: string };
 export type DevNote = DevNoteMeta & { body: string };
@@ -170,9 +173,17 @@ export function parseMarkdown(source: string): Block[] {
       [NUMBERED, "ol"],
     ] as const) {
       if (!pattern.test(line)) continue;
-      const items: Inline[][] = [];
-      while (i < lines.length && pattern.test(lines[i].trim())) {
-        items.push(parseInline(pattern.exec(lines[i].trim())![1]));
+      const items: ListItem[] = [];
+      while (i < lines.length) {
+        const raw = lines[i];
+        const row = raw.trim();
+        const nested = /^\s{2,}/.test(raw) && items.length > 0;
+        const sub = nested ? (BULLET.exec(row) ?? NUMBERED.exec(row)) : null;
+        if (sub) {
+          (items[items.length - 1].sub ??= []).push(parseInline(sub[1]));
+        } else if (pattern.test(row)) {
+          items.push({ c: parseInline(pattern.exec(row)![1]) });
+        } else break;
         i += 1;
       }
       blocks.push({ t, items });

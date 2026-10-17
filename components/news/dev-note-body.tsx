@@ -63,7 +63,16 @@ function BlockView({ block }: { block: Block }) {
         <List>
           {block.items.map((item, i) => (
             <li key={i}>
-              <Inlines parts={item} />
+              <Inlines parts={item.c} />
+              {item.sub && (
+                <ul>
+                  {item.sub.map((child, n) => (
+                    <li key={n}>
+                      <Inlines parts={child} />
+                    </li>
+                  ))}
+                </ul>
+              )}
             </li>
           ))}
         </List>
