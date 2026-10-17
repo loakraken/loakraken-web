@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { keepPreviousData, useMutation, useQueries, useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Setting } from "@/components/ui/icons";
 import { Select } from "@/components/ui/select";
@@ -24,6 +24,7 @@ import {
 } from "@/lib/market/model";
 import { RefiningQueryError, postRefiningPlan } from "@/lib/refining/client";
 import { refreshEvery, retryLabel } from "@/lib/api/rate-limit";
+import { oneOfCodec, useUrlState, writeUrlParam, type UrlCodec } from "@/lib/tools/url-state";
 import { ChangeMark, UpdateAnnouncer, useChangedCells } from "@/components/ui/changed-cells";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import {
@@ -64,6 +65,8 @@ const initialParts = () =>
     PartId,
     PartState
   >;
+/** One default, so "unchanged" is the same object and stays out of the address. */
+const INITIAL_PARTS = initialParts();
 const BOOK_ASSUMPTION =
   "책(야금술·재봉술) 효과가 매번 적용된다고 가정했어요. 게임에서 적용 확률은 공개되지 않았어요.";
 
@@ -129,8 +132,10 @@ function CharacterLoader({
   initialName: string;
   onLoaded: (loaded: Loaded, parts: Record<PartId, PartState>) => void;
 }) {
-  const router = useRouter();
-  const [name, setName] = useState(initialName);
+  // The name comes back from the address on back and reload (#889); the
+  // server's first props would be the empty page the router cached.
+  const fromAddress = useSearchParams().get("character")?.slice(0, 64) ?? initialName;
+  const [name, setName] = useState(fromAddress);
   const [touched, setTouched] = useState(false);
   const error = characterNameError(name);
   const load = useMutation({
@@ -153,12 +158,13 @@ function CharacterLoader({
     },
   });
   const started = useRef(false);
+  const opened = useRef(fromAddress);
   useEffect(() => {
-    if (started.current || !initialName || characterNameError(initialName))
-      return;
+    const first = opened.current;
+    if (started.current || !first || characterNameError(first)) return;
     started.current = true;
-    load.mutate(normalizeCharacterName(initialName));
-  }, [initialName, load]);
+    load.mutate(normalizeCharacterName(first));
+  }, [load]);
 
   const loadLimit = useRateLimit(load.error);
 
@@ -170,9 +176,8 @@ function CharacterLoader({
     setTouched(true);
     if (error) return;
     const target = normalizeCharacterName(name);
-    router.replace(`?${new URLSearchParams({ character: target })}`, {
-      scroll: false,
-    });
+    // Keeps the plan's keys in the address (a whole new query dropped them).
+    writeUrlParam("character", target);
     load.mutate(target);
   }
   const failure: QueryFailure | null =
@@ -726,19 +731,64 @@ function Result({
   );
 }
 
+const isRecord = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v);
+const json = <T,>(read: (v: unknown) => T | null): UrlCodec<T> => ({
+  parse: (raw) => {
+    try {
+      return read(JSON.parse(raw));
+    } catch {
+      return null;
+    }
+  },
+  format: (value) => JSON.stringify(value),
+});
+const int = (v: unknown, min: number, max: number) =>
+  typeof v === "number" && Number.isInteger(v) && v >= min && v <= max ? v : null;
+
+/** Each part as typed; a part with a wrong field keeps its default (#889). */
+const partsCodec = json<Record<PartId, PartState>>((v) => {
+  if (!isRecord(v)) return null;
+  const out = initialParts();
+  for (const part of PARTS) {
+    const p = v[part.id];
+    if (!isRecord(p)) continue;
+    const grade = GRADES.some((g) => g.value === p.grade) ? (p.grade as Grade) : null;
+    const current = int(p.current, MIN_STAGE, 25);
+    const target = int(p.target, MIN_STAGE, 25);
+    const energy = typeof p.artisanEnergy === "number" && p.artisanEnergy >= 0 && p.artisanEnergy <= 100 ? p.artisanEnergy : null;
+    const failed = int(p.failedAttempts, 0, 999);
+    if (typeof p.enabled !== "boolean" || !grade || current == null || target == null || energy == null || failed == null) continue;
+    out[part.id] = { enabled: p.enabled, grade, current, target, artisanEnergy: energy, failedAttempts: failed };
+  }
+  return out;
+});
+const OPTION_KEYS = ["weaponBreath", "armorBreath", "weaponBook", "armorBook", "growthSupport"] as const;
+const DEFAULT_OPTIONS: Options = { weaponBreath: false, armorBreath: false, weaponBook: true, armorBook: true, growthSupport: true };
+const optionsCodec = json<Options>((v) => {
+  if (!isRecord(v)) return null;
+  const out = { ...DEFAULT_OPTIONS };
+  for (const key of OPTION_KEYS) if (typeof v[key] === "boolean") out[key] = v[key];
+  return out;
+});
+const ownedCodec = json<Owned>((v) => {
+  if (!isRecord(v)) return null;
+  const out: Owned = {};
+  for (const [k, n] of Object.entries(v)) if (typeof n === "string" && n.length <= 12 && k.length <= 40) out[k] = n;
+  return out;
+});
+const NO_OWNED: Owned = {};
+
 function RefiningContent({ initialName }: { initialName: string }) {
-  const [parts, setParts] = useState(initialParts);
+  // Every input lives in the address: back and reload keep it (#889).
+  const [parts, setParts] = useUrlState("parts", INITIAL_PARTS, partsCodec);
   const [loaded, setLoaded] = useState<Loaded | null>(null);
-  const [options, setOptions] = useState<Options>({
-    weaponBreath: false,
-    armorBreath: false,
-    weaponBook: true,
-    armorBook: true,
-    growthSupport: true,
-  });
-  const [mode, setMode] = useState<Mode>("expected");
-  const [owned, setOwned] = useState<Owned>({});
-  const [basis, setBasis] = useState<PriceBasis>("CURRENT_MIN_PRICE");
+  const [options, setOptions] = useUrlState("options", DEFAULT_OPTIONS, optionsCodec);
+  const [mode, setMode] = useUrlState<Mode>("mode", "expected", oneOfCodec(MODES.map((m) => m.id)));
+  const [owned, setOwned] = useUrlState<Owned>("owned", NO_OWNED, ownedCodec);
+  const [basis, setBasis] = useUrlState<PriceBasis>("price", "CURRENT_MIN_PRICE", oneOfCodec(priceBases.map((b) => b.value)));
+  // Targets brought back from the address win over a reload's fresh load
+  // once: the character's current stages come from the load, the plan stays.
+  const restored = useRef<Record<PartId, PartState> | null>(parts === INITIAL_PARTS ? null : parts);
   const setPart = (id: PartId, next: PartState) =>
     setParts((prev) => ({ ...prev, [id]: next }));
 
@@ -825,7 +875,22 @@ function RefiningContent({ initialName }: { initialName: string }) {
                   initialName={initialName}
                   onLoaded={(next, nextParts) => {
                     setLoaded(next);
-                    setParts(nextParts);
+                    const saved = restored.current;
+                    restored.current = null;
+                    setParts(
+                      saved
+                        ? (Object.fromEntries(
+                            PARTS.map((part) => {
+                              const fresh = nextParts[part.id];
+                              const kept = saved[part.id];
+                              return [
+                                part.id,
+                                kept.target > fresh.current ? { ...fresh, enabled: kept.enabled, target: kept.target } : fresh,
+                              ];
+                            }),
+                          ) as Record<PartId, PartState>)
+                        : nextParts,
+                    );
                   }}
                 />
               </div>
