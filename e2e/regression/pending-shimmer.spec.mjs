@@ -51,6 +51,48 @@ test("@집계중 동작 줄이기면 정지 글자 '집계 중…' @regression",
   expect(still.after, "말줄임표로 진행 중임을 알림").toBe('"…"');
 });
 
+test("@집계중 칸 40개가 같이 빛나도 긴 작업 0, CPU 4배 감속 @regression", async ({ page }, testInfo) => {
+  // The paint is the cost (background-position each frame): 40 labels on
+  // screen at once, the CPU slowed down 4×, 3 s of frames and long tasks.
+  const cdp = await page.context().newCDPSession(page);
+  await gotoReady(page, "/market/gems");
+  const board = page.getByRole("table", { name: "4티어 보석 레벨별 즉시 구매 최저가" });
+  const label = board.locator('[data-slot="pending-text"]');
+  await expect(label).toHaveText("집계 중");
+  await label.evaluate((el) => {
+    const box = document.createElement("div");
+    box.setAttribute("data-probe", "");
+    box.style.cssText = "display:grid;grid-template-columns:repeat(8,auto);gap:8px;padding:8px";
+    for (let i = 0; i < 40; i += 1) box.append(el.cloneNode(true));
+    el.closest("table").before(box);
+  });
+  await cdp.send("Emulation.setCPUThrottlingRate", { rate: 4 });
+  const m = await page.evaluate(
+    () =>
+      new Promise((done) => {
+        let longTasks = 0;
+        const observer = new PerformanceObserver((list) => (longTasks += list.getEntries().length));
+        observer.observe({ type: "longtask" });
+        let frames = 0;
+        const start = document.timeline.currentTime;
+        const tick = () => {
+          frames += 1;
+          if (document.timeline.currentTime - start < 3000) requestAnimationFrame(tick);
+          else {
+            observer.disconnect();
+            done({ longTasks, fps: Math.round((frames / 3) * 10) / 10 });
+          }
+        };
+        requestAnimationFrame(tick);
+      }),
+  );
+  await cdp.send("Emulation.setCPUThrottlingRate", { rate: 1 });
+  testInfo.annotations.push({ type: "perf", description: `40칸 CPU×4: 긴 작업 ${m.longTasks}, ${m.fps}fps` });
+  console.log(`SHIMMER-PERF longTasks ${m.longTasks} fps ${m.fps}`);
+  expect(await page.locator("[data-probe] [data-slot=pending-text]").count()).toBe(40);
+  expect(m.longTasks, "긴 작업(50ms 초과)").toBe(0);
+});
+
 test("@집계중 장신구판도 같은 부품 @regression", async ({ page }) => {
   await gotoReady(page, "/market/accessories");
   const label = page.getByRole("region", { name: /^반지/ }).locator('[data-slot="pending-text"]');
