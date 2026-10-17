@@ -29,6 +29,10 @@ test("news page state: tab and kind from the URL, unknown values fall back", () 
   assert.equal(newsPath("notice", null), "/news");
   assert.equal(newsPath("notice", "EVENT"), "/news?kind=EVENT");
   assert.equal(newsPath("patch", "UPDATE"), "/news?tab=patch&kind=UPDATE");
+  // LOAKraken 개발자 노트: its own tab, no kinds.
+  assert.deepEqual(readNewsQuery(params("tab=dev")), { tab: "dev", noticeKind: null, patchKind: null });
+  assert.deepEqual(readNewsQuery(params("tab=dev&kind=BALANCE")), { tab: "dev", noticeKind: null, patchKind: null });
+  assert.equal(newsPath("dev", null), "/news?tab=dev");
 });
 
 test("patch history request: checks the query before calling the backend", async () => {

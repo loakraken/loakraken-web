@@ -109,5 +109,6 @@ test("홈 인기 검색 기간·소개 바닥글·소식 분류 누르는 영역
   await expectPressable([
     ["공지사항", kinds.getByRole("button", { name: "공지사항" })],
     ["패치 이력", kinds.getByRole("button", { name: "패치 이력" })],
+    ["LOAKraken 개발자 노트", kinds.getByRole("button", { name: "LOAKraken 개발자 노트" })],
   ]);
 });

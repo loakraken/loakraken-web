@@ -22,6 +22,16 @@ test("armory page envelope: flag off (all null) and on both pass; broken shapes 
   assert.equal(isArmoryPageEnvelope(envelope({ ...on, enabled: "yes" })), false);
 });
 
+test("api #545's answer without skills and skillCode is accepted; present ones are still checked", () => {
+  const lean = { characterName: "상세", enabled: true, source: "공식 전투정보실 페이지", fetchedAt: "2026-10-18T03:00:00Z", lifeSkills: [{ name: "채집", level: 70 }] };
+  assert.equal(isArmoryPageEnvelope(envelope(lean)), true);
+  assert.equal(isArmoryPageEnvelope(envelope({ ...lean, skillCode: 123 })), false);
+  assert.equal(isArmoryPageEnvelope(envelope({ ...lean, skills: "x" })), false);
+  assert.equal(isArmoryPageEnvelope(envelope({ ...lean, skills: [{ name: "x", tripods: [{ tier: "0" }] }] })), false);
+  // Nothing to look up a tripod level in.
+  assert.equal(tripodLevel(lean, "합성 포격", 0, 1), null);
+});
+
 test("tripod level joins by skill name, tier and slot; off or missing is null", () => {
   assert.equal(tripodLevel(on, "합성 포격", 0, 1), 5);
   assert.equal(tripodLevel(on, "합성 포격", 1, 2), null);

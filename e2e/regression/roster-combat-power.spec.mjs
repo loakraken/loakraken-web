@@ -1,4 +1,5 @@
-// 회귀(L19): 원정대 캐릭터별 전투력 — 기본 정렬은 전투력(기록 없음은 맨 아래), 식스맨·총합은
+// 회귀(L19): 원정대 캐릭터별 전투력 — 기본 정렬은 전투력(기록 없음은 맨 아래), 식스맨은 랭킹과 같은
+// 규칙(대표 서버 아이템 레벨 상위 6명 ÷ 6, 1640 이상 기록 없음이 끼면 미확인 — api #530), 총합은
 // 기록 있는 캐릭터 기준('n명 기준'), '전투력 불러오기'는 기록 없는 캐릭터가 있을 때만.
 // 불러오는 동안 목록은 흐리게(A8), 기록이 오고 불러오기가 끝나도 화면이 흔들리지 않는다(A6·A7).
 import { test, expect, characterPath, gotoReady, expectNoHorizontalOverflow } from "../support/fixtures.mjs";
@@ -21,7 +22,11 @@ for (const width of [1280, 360]) {
     await trackShifts(page);
     await gotoReady(page, characterPath("원정대전투력", "siblings"));
     const power = page.getByRole("region", { name: "원정대 전투력" });
-    await expect(power).toContainText("전투력 식스맨 평균 2,694.48");
+    // The ranking's 식스맨 (api #530): the item level six on the representative's
+    // server, ÷ 6 even with five — (1780.83 + 1750 + 1720 + 1700 + 1680) ÷ 6.
+    await expect(page.getByText(/^식스맨 평균 1,438\.47/)).toContainText("(아이템 레벨 상위 5명 합 ÷ 6)");
+    // Two of the six at 1,680+ have no record: unknown, not a lower mean.
+    await expect(power).toContainText("전투력 식스맨 평균 미확인 (상위 5명 중 2명 기록 없음)");
     await expect(power).toContainText("총합 8,083.44");
     await expect(power).toContainText("(3명 기준)");
 
@@ -61,6 +66,8 @@ for (const width of [1280, 360]) {
     await expect(page.getByText("최고 전투력 기록 없음")).toHaveCount(0);
     await expect(rows(page).nth(2)).toContainText("최고 전투력 2,650.1");
     await expect(power).toContainText("(5명)");
+    // All recorded: (3180.29 + 2012.4 + 2650.1 + 2890.75 + 1500) ÷ 6.
+    await expect(power).toContainText("전투력 식스맨 평균 2,038.92 (아이템 레벨 상위 5명 합 ÷ 6)");
 
     await expectNoHorizontalOverflow(page);
     await page.waitForTimeout(500);

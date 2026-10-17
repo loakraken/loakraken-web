@@ -64,11 +64,13 @@
   font-variant-numeric: tabular-nums; /* on the number itself (see accessory-board) */
   color: var(--muted-foreground);
 }
+/* Up and down in the market colours, as on the price board and charts (not the
+   tools' gain/loss colours, which mean profit and loss). */
 .change[data-direction="up"] {
-  color: var(--gain);
+  color: var(--market-up);
 }
 .change[data-direction="down"] {
-  color: var(--loss);
+  color: var(--market-down);
 }
 .flat {
   grid-area: change;

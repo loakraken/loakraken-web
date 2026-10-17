@@ -4,11 +4,12 @@ import { NewsPage } from "@/components/news/news-page";
 import { readNewsQuery } from "@/lib/home/news";
 import { NEWS_PAGE_LIMIT, newsPageKey, patchNotesKey } from "@/lib/home/client";
 import { getNews, getPatchNotes } from "@/lib/home/server";
+import { getDevNoteList } from "@/lib/dev-notes/server";
 
 export const metadata: Metadata = {
   title: "공지·이벤트",
   description:
-    "로스트아크 공식 공지사항(점검·이벤트·상점), 업데이트·밸런스·클라이언트 패치 이력, 진행 중인 이벤트와 남은 기간을 한곳에서 확인하세요.",
+    "로스트아크 공식 공지사항(점검·이벤트·상점), 업데이트·밸런스·클라이언트 패치 이력, 진행 중인 이벤트와 남은 기간, LOAKraken 개발자 노트를 한곳에서 확인하세요.",
   alternates: { canonical: "/news" },
 };
 
@@ -46,7 +47,7 @@ export default async function News({
     );
   return (
     <HydrationBoundary state={dehydrate(client)}>
-      <NewsPage renderedAt={fetchedAt} />
+      <NewsPage renderedAt={fetchedAt} devNotes={getDevNoteList()} />
     </HydrationBoundary>
   );
 }

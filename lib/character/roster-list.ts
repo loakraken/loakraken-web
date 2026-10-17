@@ -12,7 +12,7 @@ export const ROSTER_SORTS = [
 ] as const;
 export type RosterSort = (typeof ROSTER_SORTS)[number]["id"];
 
-type Sibling = { characterName: string; characterLevel?: number | null; itemLevel?: number | null };
+type Sibling = { characterName: string; serverName?: string; characterLevel?: number | null; itemLevel?: number | null };
 
 /** Highest first; ties keep the official order. Names in Korean order. */
 export function sortSiblings<T extends Sibling>(
@@ -40,17 +40,38 @@ export const maskName = (name: string) => {
 export const ROSTER_TOTAL_MIN = 1680;
 
 /**
- * 식스맨 평균: the mean item level of the roster's six highest characters
- * (fewer if the roster has fewer, said by `count`). 1,680+: how many
- * characters are at or above it and their item levels added up.
+ * 식스맨, the roster ranking's rule (api #530): the six highest item levels
+ * on one server — the server of the roster's highest character, its
+ * representative — ties by name. Fewer if that server has fewer.
+ */
+export function sixMen<T extends Sibling>(siblings: readonly T[]): T[] {
+  const ranked = siblings
+    .filter((s) => s.itemLevel != null)
+    .sort((a, b) => b.itemLevel! - a.itemLevel! || a.characterName.localeCompare(b.characterName, "ko"));
+  const server = ranked[0]?.serverName;
+  return ranked.filter((s) => s.serverName === server).slice(0, 6);
+}
+
+/**
+ * "아이템 레벨 상위 6명 평균", or with fewer "아이템 레벨 상위 3명 합 ÷ 6" (still
+ * ÷ 6; a no-break space keeps "÷ 6" on one line).
+ */
+export const sixBasis = (count: number, word: "평균" | "기준") =>
+  count >= 6 ? `아이템 레벨 상위 6명 ${word}` : `아이템 레벨 상위 ${count}명 합 ÷ 6`;
+
+/**
+ * 식스맨 평균: the six's item levels added up and always ÷ 6, as the ranking
+ * does (fewer than six still ÷ 6; `sixCount` says how many). 1,680+: how many
+ * characters of the whole roster are at or above it and their item levels
+ * added up.
  */
 export function rosterSummary(siblings: readonly Sibling[]) {
-  const levels = siblings.map((s) => s.itemLevel).filter((v): v is number => v != null).sort((a, b) => b - a);
-  const top = levels.slice(0, 6);
-  const high = levels.filter((v) => v >= ROSTER_TOTAL_MIN);
+  const six = sixMen(siblings);
+  const high = siblings.map((s) => s.itemLevel).filter((v): v is number => v != null && v >= ROSTER_TOTAL_MIN);
   return {
-    sixAverage: top.length ? Math.round((top.reduce((a, b) => a + b, 0) / top.length) * 100) / 100 : null,
-    sixCount: top.length,
+    sixAverage: six.length ? Math.round((six.reduce((a, s) => a + s.itemLevel!, 0) / 6) * 100) / 100 : null,
+    sixCount: six.length,
+    sixServer: six[0]?.serverName ?? null,
     highCount: high.length,
     highSum: Math.round(high.reduce((a, b) => a + b, 0) * 100) / 100,
   };
@@ -172,25 +193,28 @@ export function sortByPower<T extends { characterName: string; itemLevel?: numbe
   });
 }
 
+/** Item level from which a 식스맨 without a combat power record leaves the mean unknown (as the ranking leaves the roster out). */
+export const SIX_POWER_MIN = 1640;
+
 /**
- * 식스맨 and total by combat power: the six highest recorded values' mean and
- * every recorded value added up. `recorded` of `count` says how many it is
- * based on when some have no record; no estimate stands in for them.
+ * 식스맨 by combat power, the ranking's rule (api #530): the same six as the
+ * item level 식스맨 (sixMen), their recorded values added up and always ÷ 6.
+ * One of them at 1,640+ without a record leaves it unknown (`sixMissing` of
+ * them) — the ranking leaves such a roster out — rather than a lower guess.
+ * The total adds up every recorded value; `recorded` of `count` says how many.
  */
-export function powerSummary(
-  siblings: readonly { characterName: string }[],
-  records: ReadonlyMap<string, PowerRecord>,
-) {
-  const values = siblings
-    .map((s) => records.get(s.characterName)?.combatPower)
-    .filter((v): v is number => v != null)
-    .sort((a, b) => b - a);
-  const top = values.slice(0, 6);
+export function powerSummary(siblings: readonly Sibling[], records: ReadonlyMap<string, PowerRecord>) {
+  const valueOf = (s: Sibling) => records.get(s.characterName)?.combatPower ?? null;
+  const values = siblings.map(valueOf).filter((v): v is number => v != null);
+  const six = sixMen(siblings);
+  const sixValues = six.map(valueOf).filter((v): v is number => v != null);
+  const sixMissing = six.filter((s) => valueOf(s) == null && s.itemLevel! >= SIX_POWER_MIN).length;
   return {
     count: siblings.length,
     recorded: values.length,
-    sixAverage: top.length ? round2(top.reduce((a, b) => a + b, 0) / top.length) : null,
-    sixCount: top.length,
+    sixAverage: sixValues.length && !sixMissing ? round2(sixValues.reduce((a, b) => a + b, 0) / 6) : null,
+    sixCount: six.length,
+    sixMissing,
     total: values.length ? round2(values.reduce((a, b) => a + b, 0)) : null,
   };
 }

@@ -9,6 +9,8 @@ import {
   rosterStats,
   rosterSummary,
   shares,
+  sixBasis,
+  sixMen,
   sortSiblings,
   viewOfRefresh,
 } from "../lib/character/roster-list";
@@ -34,9 +36,34 @@ test("roster sorts: item level, character level (ties keep the list order), Kore
 
 test("six-man average of the six highest item levels; 1,680+ count and sum", () => {
   // 1750.5 + 1720 + 1690 + 1680 + 1640 + 1600 = 10080.5 → ÷6 = 1680.08
-  assert.deepEqual(rosterSummary(roster), { sixAverage: 1680.08, sixCount: 6, highCount: 4, highSum: 6840.5 });
-  assert.deepEqual(rosterSummary(roster.slice(0, 2)), { sixAverage: 1720.25, sixCount: 2, highCount: 2, highSum: 3440.5 });
-  assert.deepEqual(rosterSummary([]), { sixAverage: null, sixCount: 0, highCount: 0, highSum: 0 });
+  assert.deepEqual(rosterSummary(roster), { sixAverage: 1680.08, sixCount: 6, sixServer: null, highCount: 4, highSum: 6840.5 });
+  // Fewer than six still ÷ 6, as the ranking (api #530): (1690 + 1750.5) ÷ 6 = 573.42.
+  assert.deepEqual(rosterSummary(roster.slice(0, 2)), { sixAverage: 573.42, sixCount: 2, sixServer: null, highCount: 2, highSum: 3440.5 });
+  assert.deepEqual(rosterSummary([]), { sixAverage: null, sixCount: 0, sixServer: null, highCount: 0, highSum: 0 });
+});
+
+test("식스맨 is on the representative's server only, ties by name (api #530)", () => {
+  const spread = [
+    { characterName: "카1", serverName: "카단", itemLevel: 1700 },
+    { characterName: "루1", serverName: "루페온", itemLevel: 1950 },
+    { characterName: "루2", serverName: "루페온", itemLevel: 1940 },
+    { characterName: "카2", serverName: "카단", itemLevel: 1690 },
+    { characterName: "루3", serverName: "루페온", itemLevel: 1930 },
+  ];
+  // The highest is on 루페온: its three only, (1950 + 1940 + 1930) ÷ 6 = 970.
+  assert.deepEqual(sixMen(spread).map((s) => s.characterName), ["루1", "루2", "루3"]);
+  assert.equal(rosterSummary(spread).sixAverage, 970);
+  assert.equal(rosterSummary(spread).sixServer, "루페온");
+  // The 1,680+ count stays the whole roster's.
+  assert.equal(rosterSummary(spread).highCount, 5);
+  const tied = [7, 6, 5, 4, 3, 2, 1].map((n) => ({ characterName: `이름${n}`, serverName: "아만", itemLevel: 1700 }));
+  assert.deepEqual(sixMen(tied).map((s) => s.characterName), ["이름1", "이름2", "이름3", "이름4", "이름5", "이름6"]);
+});
+
+test("six basis wording: 6 by its mean, fewer by the sum ÷ 6", () => {
+  assert.equal(sixBasis(6, "평균"), "아이템 레벨 상위 6명 평균");
+  assert.equal(sixBasis(6, "기준"), "아이템 레벨 상위 6명 기준");
+  assert.equal(sixBasis(3, "평균"), "아이템 레벨 상위 3명 합 ÷ 6");
 });
 
 test("hidden names keep the first letter and a fixed two stars", () => {
@@ -102,10 +129,24 @@ test("combat power sort: highest first, no record at the bottom in item level or
   );
 });
 
-test("combat power six-man and total count only recorded values", () => {
+test("combat power six-man: the item level six ÷ 6, unknown while one at 1,640+ has no record (api #530)", () => {
+  // 라온 1680 and 바다 1640 are in the six without a record: unknown, not a lower mean.
   const summary = powerSummary(roster.slice(0, 5), powerByName(power));
-  assert.deepEqual(summary, { count: 5, recorded: 3, sixAverage: 2683.58, sixCount: 3, total: 8050.75 });
+  assert.deepEqual(summary, { count: 5, recorded: 3, sixAverage: null, sixCount: 5, sixMissing: 2, total: 8050.75 });
   assert.equal(powerSummary(roster, new Map()).sixAverage, null);
+  // All five recorded: (3000 + 2950.25 + 2100.5 + 1500 + 1200) ÷ 6 = 1791.79.
+  const filled = powerByName({
+    ...power,
+    items: power.items.map((i) => (i.combatPower == null ? { ...i, combatPower: i.itemLevel === 1680 ? 1500 : 1200 } : i)),
+  });
+  assert.equal(powerSummary(roster.slice(0, 5), filled).sixAverage, 1791.79);
+  // A higher combat power outside the item level six does not count.
+  const strong = new Map(filled);
+  strong.set("사과", { combatPower: 9999, observedAt: null, bestCombatPower: null });
+  assert.equal(powerSummary(roster.slice(0, 7), strong).sixAverage, powerSummary(roster.slice(0, 6), strong).sixAverage);
+  // One below 1,640 without a record counts as nothing, the mean still ÷ 6.
+  const low = [{ characterName: "가나", itemLevel: 1750.5 }, { characterName: "마루", itemLevel: 1600 }];
+  assert.equal(powerSummary(low, powerByName(power)).sixAverage, 500);
 });
 
 test("refill result becomes the view with the missing count from its items", () => {
