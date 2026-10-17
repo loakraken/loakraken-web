@@ -50,7 +50,7 @@ import {
   type FavoriteItem,
 } from "@/lib/market/favorites";
 import quote from "../tools/material-quote.module.css";
-import { ChartPlaceholder, MarketChart, dayPoints, minutePoints } from "./market-chart";
+import { ChartPlaceholder, MarketChart, dayPoints, minutePoints, periodChange } from "./market-chart";
 import { sampleText } from "@/lib/market/minutes";
 import { SiteHeader } from "@/components/site/site-header";
 import { PillTab, PillTabs } from "@/components/ui/pill-tabs";
@@ -149,6 +149,38 @@ function FactChange({ item }: { item: Pick<BoardItem, "currentMinPrice" | "yeste
       </b>
       <small className={styles.unit}>{rate || "\u00a0"}</small>
     </>
+  );
+}
+
+/**
+ * 기간 등락 under "시세 추이": the change over the chart's own period, by the
+ * same rule as the line's colour (periodChange), with ▲/▼ and a sign so the
+ * colour is never the only cue. The day change stays apart in the facts
+ * above. The line is there from the first paint (a blank before the data), so
+ * nothing moves when it arrives (A7).
+ */
+function PeriodChange({ range, points }: { range: "hour" | 7 | 14; points: { value: number }[] | null }) {
+  const label = range === "hour" ? "1시간" : `${range}일`;
+  const { direction, percent } = periodChange(points ?? []);
+  if (!points || percent == null)
+    return (
+      <small className={`${styles.change} ${styles.periodChange}`} data-direction="none">
+        {" "}
+      </small>
+    );
+  const amount = Math.abs(percent).toLocaleString("ko-KR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  const arrow = direction === "up" ? "▲" : direction === "down" ? "▼" : "";
+  const said = direction === "up" ? "올랐어요" : direction === "down" ? "내렸어요" : "그대로예요";
+  return (
+    <small className={`${styles.change} ${styles.periodChange}`} data-direction={direction}>
+      <span className="sr-only">
+        {label} 동안 {amount}% {said}
+      </span>
+      <span aria-hidden="true">
+        {label} {arrow}
+        {amount}%
+      </span>
+    </small>
   );
 }
 
@@ -289,7 +321,13 @@ function Detail({
       </dl>
 
       <div className={styles.trendHead}>
-        <h3>시세 추이</h3>
+        <div className={styles.trendTitle}>
+          <h3>시세 추이</h3>
+          <PeriodChange
+            range={range}
+            points={range === "hour" ? (minute ? minutePoints(minute.points) : null) : days.length ? dayPoints(days) : null}
+          />
+        </div>
         <div className={styles.ranges} role="group" aria-label="기간">
           {([
             ["hour", "1시간"],
