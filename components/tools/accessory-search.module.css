@@ -202,6 +202,8 @@
   border-radius: var(--radius-md);
   background: transparent;
   cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent; /* our own :active tint shows the press */
   transition: background-color var(--duration-fast) var(--ease-out);
 }
 .rowCover:focus-visible {
