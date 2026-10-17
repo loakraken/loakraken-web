@@ -65,6 +65,9 @@ test("OK rows keep the backend order; the rest fold one line per reason", () => 
     candidates.length,
     "no candidate is lost",
   );
+  // The unranked part is in a fixed order whatever order the list came in
+  // (a new order moved its rows on screen, #857 review).
+  assert.deepEqual(splitCandidates([...candidates].reverse()).folded, folded);
 });
 
 test("적용해 보기 turns a change into simulator inputs, through the URL", () => {

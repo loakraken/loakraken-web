@@ -116,7 +116,18 @@ export function splitCandidates(list: Candidate[]) {
     if (!entry.kinds.includes(label)) entry.kinds.push(label);
     folded.set(code, entry);
   }
-  return { ok, folded: [...folded.values()] };
+  // Not ranked, so in a fixed order (reason code, then id) whatever order the
+  // list came in: a new order of the ranked rows moves nothing under them (A7, #857).
+  const byId = (a: { id: string }, b: { id: string }) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+  return {
+    ok,
+    folded: [...folded.values()]
+      .sort((a, b) => (a.code < b.code ? -1 : a.code > b.code ? 1 : 0))
+      .map((entry) => {
+        const candidates = [...entry.candidates].sort(byId);
+        return { ...entry, candidates, kinds: [...new Set(candidates.map((c) => kindLabel(c.kind)))] };
+      }),
+  };
 }
 
 /**
