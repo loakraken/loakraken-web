@@ -255,7 +255,8 @@ export function GemBoardView({
         <section className={styles.listings} aria-labelledby="gem-listings-heading" {...pendingProps(listings)}>
           <h2 id="gem-listings-heading">
             {pick ? `${pick.level}레벨 ${pick.kind}의 보석 매물` : "매물"}
-            {page && <small key={page.totalCount}> · {count(page.totalCount)}개 중 싼 순</small>}
+            {/* Drawn anew for each cell, filter and count: rewritten in place it counts as moving (A7). */}
+            {page && pick && <small key={`${gemPickSearch(pick)}:${page.totalCount}`}> · {count(page.totalCount)}개 중 싼 순</small>}
           </h2>
           {filter !== "off" && (
             <GemFilter
