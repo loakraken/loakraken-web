@@ -9,10 +9,19 @@ const shiftLog = (page) =>
   page.addInitScript(() => {
     window.__shifts = [];
     new PerformanceObserver((list) => {
-      for (const e of list.getEntries()) window.__shifts.push(e.value);
+      for (const e of list.getEntries())
+        window.__shifts.push({
+          v: e.value,
+          src: (e.sources ?? []).map((s) => {
+            const el = s.node?.nodeType === 1 ? s.node : s.node?.parentElement;
+            const r = (b) => [b.x, b.y, b.width, b.height].map(Math.round).join(",");
+            return `${el?.tagName}.${String(el?.className).split(" ")[0]} ${r(s.previousRect)}→${r(s.currentRect)}`;
+          }),
+        });
     }).observe({ type: "layout-shift", buffered: true });
   });
-const shifts = (page) => page.evaluate(() => window.__shifts.reduce((a, v) => a + v, 0));
+const shifts = (page) => page.evaluate(() => window.__shifts.reduce((a, e) => a + e.v, 0));
+const moved = (page) => page.evaluate(() => [...new Set(window.__shifts.flatMap((e) => e.src))].slice(0, 6).join(" | "));
 
 async function pickOption(page, label, option) {
   await filter(page).getByLabel(label).click();
@@ -61,7 +70,7 @@ for (const width of [1280, 360])
     // The board prices are not filtered; nothing moved; the box kept its height.
     await expect(board(page).getByRole("button", { name: /매물 보기$/ })).toHaveCount(19);
     expect(await height(), "매물 칸 높이 그대로").toBe(before);
-    expect(await shifts(page), "흔들림").toBe(0);
+    expect(await shifts(page), `흔들림: ${await moved(page)}`).toBe(0);
     await expect(section).toBeVisible();
   });
 

@@ -90,6 +90,7 @@ function GemFilter({
       <label htmlFor={classId}>직업</label>
       <Select
         id={classId}
+        className={styles.classSelect}
         value={pick?.className ?? ""}
         disabled={!ready}
         onValueChange={(v) => onChange(v || null, null)}
@@ -98,6 +99,7 @@ function GemFilter({
       <label htmlFor={skillId}>스킬</label>
       <Select
         id={skillId}
+        className={styles.skillSelect}
         value={pick?.skill ? String(pick.skill) : ""}
         disabled={!ready || !pick?.className}
         onValueChange={(v) => onChange(pick?.className ?? null, v ? Number(v) : null)}

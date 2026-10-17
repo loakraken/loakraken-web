@@ -98,6 +98,15 @@
   font-size: 13px;
   font-weight: 600;
 }
+/* Fixed widths, the longest names inside (classes up to 6 letters such as
+   디스트로이어; skills up to 댄싱 오브 스파인플라워): a new choice changes
+   no width, so nothing beside it moves, and no name is cut. */
+.classSelect {
+  width: 9em;
+}
+.skillSelect {
+  width: 15em;
+}
 .filter small {
   flex-basis: 100%;
   min-height: 18px;
