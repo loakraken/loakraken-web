@@ -28,7 +28,7 @@ test.describe("재료 구매 견적 카테고리 로딩 @regression", () => {
     const category = page.getByRole("tablist", { name: "카테고리" });
     await expect(category).toHaveCount(0);
 
-    await page.getByRole("textbox", { name: "재료 이름" }).fill("합성");
+    await page.getByRole("combobox", { name: "재료 이름" }).fill("합성");
     await page.getByRole("button", { name: "검색", exact: true }).click();
     await expect(page.getByRole("status").filter({ hasText: "카테고리 목록을 받는 대로 검색할게요." })).toBeVisible();
 
@@ -37,14 +37,14 @@ test.describe("재료 구매 견적 카테고리 로딩 @regression", () => {
     await expect(category.getByRole("tab", { selected: true })).toHaveCount(1);
     await expect(page.getByRole("alert").filter({ hasText: "카테고리를 선택해 주세요." })).toHaveCount(0);
     // 기억해 둔 검색어로 이어서 검색한다(web #95).
-    await expect(page.getByRole("button", { name: "합성 재련 재료 견적에 추가" })).toBeVisible();
+    await expect(page.getByRole("option", { name: "합성 재련 재료 견적에 추가" })).toBeVisible();
     await expect(page.getByText("카테고리 목록을 받는 대로 검색할게요.")).toHaveCount(0);
   });
 
   test("목록 요청이 실패하면 '받는 대로 검색' 대기 안내를 지운다", async ({ page }) => {
     const release = await holdOptions(page, { fail: true });
     await page.goto("/tools/material-quote");
-    await page.getByRole("textbox", { name: "재료 이름" }).fill("합성");
+    await page.getByRole("combobox", { name: "재료 이름" }).fill("합성");
     await page.getByRole("button", { name: "검색", exact: true }).click();
     await expect(page.getByText("카테고리 목록을 받는 대로 검색할게요.")).toBeVisible();
 
