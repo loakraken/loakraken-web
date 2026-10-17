@@ -37,6 +37,17 @@ test("세팅 점검 tab is hidden on production unless SETTING_CHECK_TAB says ot
 });
 
 
+test("아크 그리드·팔찌 효율 rows are hidden on production unless CHARACTER_EFFICIENCY says otherwise", async () => {
+  const { isCharacterEfficiencyEnabled } = await import("../lib/tools/flags");
+  assert.equal(isCharacterEfficiencyEnabled({}), true, "local and e2e (no SITE_URL)");
+  assert.equal(isCharacterEfficiencyEnabled({ SITE_URL: "https://staging.loakraken.gg" }), true);
+  assert.equal(isCharacterEfficiencyEnabled({ SITE_URL: "https://loakraken.gg" }), false);
+  assert.equal(isCharacterEfficiencyEnabled({ SITE_URL: "https://www.loakraken.gg/" }), false);
+  assert.equal(isCharacterEfficiencyEnabled({ SITE_URL: "https://loakraken.gg", CHARACTER_EFFICIENCY: "on" }), true);
+  assert.equal(isCharacterEfficiencyEnabled({ CHARACTER_EFFICIENCY: " OFF " }), false);
+  assert.equal(isCharacterEfficiencyEnabled({ SITE_URL: "https://loakraken.gg", CHARACTER_EFFICIENCY: "yes" }), false, "unknown values keep the default");
+});
+
 test("armory page details are never requested on production unless ARMORY_PAGE says so", async () => {
   const { isArmoryPageEnabled } = await import("../lib/tools/flags");
   assert.equal(isArmoryPageEnabled({}), true, "local and e2e (no SITE_URL)");
