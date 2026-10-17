@@ -85,6 +85,7 @@ function GemFilter({
   const skillId = useId();
   const ready = !!classes && !!pick && !note;
   const skills = classes && pick ? skillsFor(classes, pick.className, pick.kind) : [];
+  const hint = note ?? (pick ? "직업·스킬은 아래 매물만 걸러요. 표의 최저가는 모든 보석 기준이에요." : "위 표에서 칸을 고르면 직업·스킬로 거를 수 있어요.");
   return (
     <form className={styles.filter} aria-label="매물 직업·스킬" onSubmit={(e) => e.preventDefault()}>
       <label htmlFor={classId}>직업</label>
@@ -105,7 +106,8 @@ function GemFilter({
         onValueChange={(v) => onChange(pick?.className ?? null, v ? Number(v) : null)}
         items={[{ value: "", label: "모든 스킬" }, ...skills.map((s) => ({ value: String(s.code), label: s.name }))]}
       />
-      <small>{note ?? (pick ? "직업·스킬은 아래 매물만 걸러요. 표의 최저가는 모든 보석 기준이에요." : "위 표에서 칸을 고르면 직업·스킬로 거를 수 있어요.")}</small>
+      {/* A new sentence is drawn anew: text rewritten in place counts as moving (A7). */}
+      <small key={hint}>{hint}</small>
     </form>
   );
 }
@@ -253,7 +255,7 @@ export function GemBoardView({
         <section className={styles.listings} aria-labelledby="gem-listings-heading" {...pendingProps(listings)}>
           <h2 id="gem-listings-heading">
             {pick ? `${pick.level}레벨 ${pick.kind}의 보석 매물` : "매물"}
-            {page && <small> · {count(page.totalCount)}개 중 싼 순</small>}
+            {page && <small key={page.totalCount}> · {count(page.totalCount)}개 중 싼 순</small>}
           </h2>
           {filter !== "off" && (
             <GemFilter
