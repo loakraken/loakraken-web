@@ -110,6 +110,7 @@ import {
   ROSTER_TOTAL_MIN,
   rosterStats,
   rosterSummary,
+  sixBasis,
   sortSiblings,
   type PowerRecord,
   type RosterSort,
@@ -1996,7 +1997,8 @@ function SiblingList({
       {summary.sixAverage != null && (
         <p className={styles.rosterSummary}>
           식스맨 평균 <b>{number(summary.sixAverage)}</b>
-          <small> (아이템 레벨 상위 {summary.sixCount}명)</small>
+          {/* The ranking's rule (api #530); the server named when the roster spans several. */}
+          <small>{` (${servers.length > 1 ? `${summary.sixServer} ` : ""}${sixBasis(summary.sixCount, "평균")})`}</small>
           {" · "}
           {number(ROSTER_TOTAL_MIN)} 이상 <b>{summary.highCount}명</b>
           {summary.highCount > 0 && (
