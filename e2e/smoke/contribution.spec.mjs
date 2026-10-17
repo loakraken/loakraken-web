@@ -23,7 +23,8 @@ test.describe("기여도 계산기 @smoke", () => {
     await damage.fill("2,555.6");
     await expect(page.getByRole("status")).toContainText("내 위치 33.2% · 범위 안이에요");
     await damage.fill("2200");
-    await expect(page.getByRole("status")).toContainText("-13% · 하한 아래예요");
+    // 하한 아래는 음수 %가 아니라 하한과의 차이(코덱스 QA 10-18 P2): 2,300 − 2,200 = 100억.
+    await expect(page.getByRole("status")).toHaveText("하한보다 100억 낮아요");
     await damage.fill("3200");
     await expect(page.getByRole("status")).toContainText("116.9% · 상한 위예요");
     await damage.fill("abc");
@@ -100,6 +101,6 @@ test.describe("기여도 계산기 @smoke", () => {
     await page.getByRole("textbox", { name: "내 피해량(억)" }).fill("2200");
     const shown = page.locator("p[aria-hidden='true']").filter({ hasText: "내 위치" });
     // 세는 중간 값 없이 첫 그림부터 최종 값이다.
-    expect(await shown.textContent({ timeout: 1000 })).toBe("내 위치 -13% · 하한 아래예요");
+    expect(await shown.textContent({ timeout: 1000 })).toBe("하한보다 100억 낮아요");
   });
 });

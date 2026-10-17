@@ -36,19 +36,39 @@ const BAND_TEXT: Record<Band, string> = {
 const COUNT_MS = 300;
 const easeOut = (t: number) => 1 - (1 - t) ** 3;
 const pctText = (value: number) => `${(Math.round(value * 10) / 10).toLocaleString("ko-KR")}%`;
+const eokText = (value: number) => `${(Math.round(value * 10) / 10).toLocaleString("ko-KR")}억`;
 
-/** The shown number runs to `target` from wherever it is now (interruptible). */
-function useCountTo(target: number | null) {
+/**
+ * Below the lower bound a negative % read as nonsense (코덱스 QA 10-18 P2,
+ * "-146.9%"): it says how far below in 억 instead. In range and above, the %.
+ */
+function shownFigure(result: { pct: number; band: Band } | null, damage: number | null, low: number | null) {
+  if (!result) return null;
+  if (result.band === "BELOW_LOW" && damage != null && low != null)
+    return { kind: "gap" as const, value: Math.max(0, low - damage) };
+  return { kind: "pct" as const, value: result.pct };
+}
+const figureText = (figure: { kind: "gap" | "pct" }, value: number) =>
+  figure.kind === "gap" ? eokText(value) : pctText(value);
+
+/**
+ * The shown number runs to `target` from wherever it is now (interruptible).
+ * A different kind of number (% ↔ 억 gap) starts at its own value: no count across units.
+ */
+function useCountTo(target: number | null, kind: string | null) {
   const reduce = useReducedMotion();
   const [shown, setShown] = useState(target);
   const now = useRef(target);
+  const lastKind = useRef(kind);
   useEffect(() => {
+    const switched = lastKind.current !== kind;
+    lastKind.current = kind;
     if (target == null || reduce) {
       now.current = target;
       return;
     }
     // From nothing (first damage typed) it counts up from 0, as the fill grows from the left end.
-    const from = now.current ?? 0;
+    const from = switched && now.current != null ? target : (now.current ?? 0);
     if (from === target) {
       const frame = requestAnimationFrame(() => setShown(target));
       return () => cancelAnimationFrame(frame);
@@ -61,8 +81,21 @@ function useCountTo(target: number | null) {
       if (t < 1) frame = requestAnimationFrame(step);
     });
     return () => cancelAnimationFrame(frame);
-  }, [target, reduce]);
+  }, [target, kind, reduce]);
   return target == null || reduce ? target : shown;
+}
+
+/**
+ * The counting number on its own (PM-프론트 #888): each frame of the count
+ * re-renders this <b> only, not the whole calculator.
+ */
+function CountedFigure({ value, kind, band }: { value: number; kind: "gap" | "pct"; band: Band }) {
+  const shown = useCountTo(value, kind) ?? value;
+  return (
+    <b className={styles.pct} data-band={band}>
+      {figureText({ kind }, shown)}
+    </b>
+  );
 }
 
 export function ContributionTool() {
@@ -83,7 +116,7 @@ export function ContributionTool() {
   const marker = result ? Math.min(100, Math.max(0, result.pct)) : null;
   const refAt =
     range && gate.reference != null ? ((gate.reference - range.low) / (range.high - range.low)) * 100 : null;
-  const shownPct = useCountTo(result ? result.pct : null);
+  const figure = shownFigure(result, damage, range?.low ?? null);
   // A band change (e.g. into 범위 안) rings the marker once; the count is the ring's key.
   const [ring, setRing] = useState({ band: result?.band ?? null, count: 0 });
   if (result && result.band !== ring.band) {
@@ -210,10 +243,16 @@ export function ContributionTool() {
               <p className={styles.verdict} aria-hidden="true">
                 {!range ? (
                   "이 관문은 기준값을 확인하고 있어 아직 계산하지 않아요."
-                ) : result && shownPct != null ? (
-                  <>
-                    내 위치 <b className={styles.pct} data-band={result.band}>{pctText(shownPct)}</b> · {BAND_TEXT[result.band]}
-                  </>
+                ) : result && figure ? (
+                  figure.kind === "gap" ? (
+                    <>
+                      하한보다 <CountedFigure value={figure.value} kind="gap" band={result.band} /> 낮아요
+                    </>
+                  ) : (
+                    <>
+                      내 위치 <CountedFigure value={figure.value} kind="pct" band={result.band} /> · {BAND_TEXT[result.band]}
+                    </>
+                  )
                 ) : (
                   "피해량을 넣으면 위치를 보여 드려요."
                 )}
@@ -221,8 +260,10 @@ export function ContributionTool() {
               <p className="sr-only" role="status" aria-live="polite">
                 {!range
                   ? "이 관문은 기준값을 확인하고 있어 아직 계산하지 않아요."
-                  : result
-                    ? `내 위치 ${pctText(result.pct)} · ${BAND_TEXT[result.band]}`
+                  : result && figure
+                    ? figure.kind === "gap"
+                      ? `하한보다 ${eokText(figure.value)} 낮아요`
+                      : `내 위치 ${pctText(result.pct)} · ${BAND_TEXT[result.band]}`
                     : "피해량을 넣으면 위치를 보여 드려요."}
               </p>
               <p className={quote.caption}>기준 시점 {gate.basisDate}</p>
