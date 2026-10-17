@@ -105,7 +105,7 @@ function DetailBody({ detail, characterName }: { detail: SpecUpDetail; character
               </div>
             );
           })}
-          {c.cost?.status === "OK" && c.cost.amount != null && <ItemStat label="비용" value={gold(c.cost.amount)} emphasis />}
+          {c.cost?.status === "OK" && c.cost.amount != null && <ItemStat label="기대 비용" value={gold(c.cost.amount)} emphasis />}
           {detail.market.some((m) => m.role === "SELL") && (
             <ItemLine tone="muted">판매 기대는 최저가에서 거래소 수수료 5%를 뺀 값이에요.</ItemLine>
           )}
@@ -138,7 +138,7 @@ function DetailBody({ detail, characterName }: { detail: SpecUpDetail; character
             </div>
           ))}
           {detail.goldFee != null && detail.goldFee > 0 && <ItemStat label="재련 골드" value={gold(detail.goldFee)} />}
-          {total != null && <ItemStat label="합계" value={gold(total)} emphasis />}
+          {total != null && <ItemStat label="기대 비용" value={gold(total)} emphasis />}
         </ItemDetailSection>
       )}
       {(detail.pricesAt || link) && (
@@ -202,10 +202,15 @@ export function SpecUpRowDetail({
         >
           {data ? (
             <DetailBody detail={data} characterName={characterName} />
-          ) : detail.isError ? (
-            <ItemLine tone="warn">{failureText(detail.error)}</ItemLine>
           ) : (
-            <ItemLine tone="muted">상세를 불러오는 중…</ItemLine>
+            // Loading and failure are announced; the loaded card is read on its own.
+            <div role="status">
+              {detail.isError ? (
+                <ItemLine tone="warn">{failureText(detail.error)}</ItemLine>
+              ) : (
+                <ItemLine tone="muted">상세를 불러오는 중…</ItemLine>
+              )}
+            </div>
           )}
         </ItemDetail>
       </ItemTooltipContent>

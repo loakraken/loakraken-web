@@ -162,7 +162,7 @@ test.describe("스펙업 가이드 @smoke", () => {
     await expect(card).toContainText("100만G");
     await expect(card).toContainText("판매 기대 · 8레벨 겁화의 보석");
     await expect(card).toContainText("−38만G");
-    await expect(card).toContainText("62만G");
+    await expect(card).toContainText("기대 비용62만G");
     await expect(card).toContainText("매물 5개");
     await expect(card).toContainText("0.8% → 1%");
     await expect(card).toContainText("+24.00");
