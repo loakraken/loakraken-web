@@ -139,4 +139,44 @@ test.describe("스펙업 가이드 @smoke", () => {
     await goal.getByRole("button", { name: "경로 찾기" }).click();
     await expect(goal.getByRole("alert")).toContainText("캐릭터 정보를 먼저 불러와 주세요.");
   });
+
+  // 사용자 결정 10-18(#887): 후보 이름을 누르면 줄 상세(시세·전후 능력치·전투력)를 연다.
+  // 열 때만 요청하고, 1분 안에 다시 열면 요청하지 않는다. Esc로 닫으면 초점이 그 이름으로 돌아온다.
+  test("후보 이름을 누르면 줄 상세가 열리고, 1분 안에 다시 열 때는 요청하지 않는다", async ({ page }) => {
+    let calls = 0;
+    page.on("request", (r) => r.url().includes("/api/characters/spec-up/candidates/") && calls++);
+    await page.goto(characterPath(NAME, "specup"));
+    const table = page.getByRole("table", { name: /스펙업 후보/ });
+    await expect(table.locator("tbody tr")).toHaveCount(3);
+    expect(calls).toBe(0);
+    const open = table.getByRole("button", { name: "테스트 스킬 · 8레벨 겁화" }).first();
+    // 마우스만 올려서는 열리지 않는다(표를 훑을 때 요청·카드가 생기지 않음).
+    await open.hover();
+    await page.waitForTimeout(400);
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    expect(calls).toBe(0);
+    await open.click();
+    const card = page.getByRole("dialog");
+    await expect(card).toContainText("9레벨 겁화의 보석");
+    await expect(card).toContainText("62만G");
+    await expect(card).toContainText("매물 37개");
+    await expect(card).toContainText("8.8% → 10.4%");
+    await expect(card).toContainText("+24.00");
+    expect(calls).toBe(1);
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(open).toBeFocused();
+    await open.click();
+    await expect(page.getByRole("dialog")).toContainText("9레벨 겁화의 보석");
+    expect(calls).toBe(1);
+  });
+
+  test("목록이 바뀌어 없는 후보면 다시 불러오라고 안내한다", async ({ page }) => {
+    await page.route("**/api/characters/spec-up/candidates/**", (route) =>
+      route.fulfill({ status: 404, contentType: "application/json", body: JSON.stringify({ ok: false, error: { code: "SPEC_UP_CANDIDATE_NOT_FOUND", status: 404 } }) }),
+    );
+    await page.goto(characterPath(NAME, "specup"));
+    await page.getByRole("table", { name: /스펙업 후보/ }).getByRole("button", { name: "+20 테스트 무기" }).click();
+    await expect(page.getByRole("dialog")).toContainText("이 후보가 바뀌었어요. 목록을 새로 불러온 뒤 다시 열어 주세요.");
+  });
 });

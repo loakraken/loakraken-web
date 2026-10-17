@@ -761,6 +761,38 @@ createServer(async (req, res) => {
     if (!d.reached) Object.assign(d, { stopReasonCode: "NO_CANDIDATE", stopReason: "더 올릴 수 있는 후보가 없습니다." });
     return send(envelope);
   }
+  // 스펙업 줄 상세 (#887, 백엔드 2 설계): gems carry the market lines and the
+  // slot's base attack %; an id not in the list is the 404 of a changed list.
+  const detailPath = url.pathname.match(/^\/api\/v1\/characters\/spec-up\/candidates\/([^/]+)$/);
+  if (detailPath) {
+    counts.specUpDetail = (counts.specUpDetail || 0) + 1;
+    const id = decodeURIComponent(detailPath[1]);
+    const list = JSON.parse(readFileSync(new URL("./spec-up-fixtures/character-spec-up.json", import.meta.url), "utf8"));
+    const candidate = list.data.candidates.find((c) => c.id === id && c.status === "OK");
+    if (!candidate)
+      return send({ code: "SPEC_UP_CANDIDATE_NOT_FOUND", message: "스펙업 후보를 찾을 수 없습니다.", data: null }, 404);
+    const power = read("character-full-data.json").combatPower;
+    const gem = candidate.kind === "GEM_LEVEL";
+    const level = Number(String(candidate.to ?? "").replace(/\D/g, "")) || null;
+    return send({
+      code: "SPEC_UP_DETAIL_SUCCESS",
+      message: "스펙업 후보 상세를 조회했습니다.",
+      data: {
+        candidate,
+        pricesAt: list.data.pricesAt,
+        combatPowerBefore: power,
+        combatPowerAfter: candidate.deltaCombatPower == null ? null : power + candidate.deltaCombatPower,
+        stats: gem ? [{ name: "기본 공격력", before: 8.8, after: level === 10 ? 12 : 10.4, unit: "%" }] : [],
+        materials: null,
+        goldFee: null,
+        market: gem
+          ? [
+              { itemName: `${level}레벨 겁화의 보석`, icon: null, grade: "고대", price: candidate.cost?.amount ?? null, listedCount: 37, observedAt: list.data.pricesAt },
+            ]
+          : null,
+      },
+    });
+  }
   if (url.pathname === "/api/v1/characters/spec-up") {
     const specUp = (name) =>
       JSON.parse(readFileSync(new URL(`./spec-up-fixtures/${name}`, import.meta.url), "utf8"));
