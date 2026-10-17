@@ -7,6 +7,7 @@
 
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { writeUrlParam } from "../tools/url-state";
 import { fetchMarketItems } from "./client";
 import { MAX_QUOTE_ITEMS } from "./model";
@@ -61,6 +62,7 @@ export const formatSavedRows = (rows: PlanRow[]) =>
  */
 export function usePlanInAddress() {
   const params = useSearchParams();
+  const queryClient = useQueryClient();
   const [saved] = useState(() => parseSavedRows(params.get(KEY)));
   const rows = usePlan((state) => state.rows);
   const [loading, setLoading] = useState(() => saved.length > 0 && usePlan.getState().rows.length === 0);
@@ -68,19 +70,26 @@ export function usePlanInAddress() {
 
   useEffect(() => {
     if (!loading) return;
-    const controller = new AbortController();
+    let stale = false;
     const wanted = saved;
     // One request per search the lines were found with (several lines often share one).
     const searches = new Map<string, Saved>();
     for (const s of wanted) searches.set(`${s.c}|${s.n}|${s.p}`, s);
     Promise.all(
       [...searches.values()].map((s) =>
-        fetchMarketItems({ categoryCode: s.c, itemName: s.n, pageNo: s.p }, controller.signal)
+        // The same key and freshness as the search box's own query, so a
+        // search typed again right after reuses this answer (pf-ensure-query-data).
+        queryClient
+          .fetchQuery({
+            queryKey: ["market", "items", { categoryCode: s.c, itemName: s.n, pageNo: s.p }],
+            queryFn: ({ signal }) => fetchMarketItems({ categoryCode: s.c, itemName: s.n, pageNo: s.p }, signal),
+            staleTime: 30_000,
+          })
           .then((envelope) => envelope.data.items)
           .catch(() => []),
       ),
     ).then((lists) => {
-      if (controller.signal.aborted) return;
+      if (stale) return;
       const items = new Map(lists.flat().map((item) => [item.id, item]));
       const back: PlanRow[] = [];
       for (const s of wanted) {
@@ -94,8 +103,10 @@ export function usePlanInAddress() {
       setMissing(wanted.length - back.length);
       setLoading(false);
     });
-    return () => controller.abort();
-  }, [loading, saved]);
+    return () => {
+      stale = true;
+    };
+  }, [loading, saved, queryClient]);
 
   useEffect(() => {
     if (loading) return;
