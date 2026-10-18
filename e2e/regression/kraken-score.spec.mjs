@@ -20,7 +20,7 @@ for (const width of [1280, 360]) {
     await expect(box).toBeVisible();
     await expect(box.locator("dd")).toContainText("5,658.62");
     await expect(box.locator("dd")).toContainText("다이아");
-    await expect(box.locator("dd")).toContainText("마스터 티어까지 1,042점");
+    await expect(box.locator("dd")).toContainText("마스터 티어까지 1,041점");
     expect(await barWidth(page), "티어 안 38%").toBe(38);
     // Read as one sentence with its progress, the bar itself hidden.
     await expect(box.locator("dd")).toContainText("다이아 티어 38% 진행");

@@ -29,7 +29,7 @@ test("크라켄 점수: score, tier, way into the tier, whole points to the next
     tier: "다이아",
     tierCode: "DIAMOND",
     progress: 38,
-    next: "마스터 티어까지 1,042점",
+    next: "마스터 티어까지 1,041점",
   });
   // Whole points rounded, as comparison B (recorded samples g03, g06), x.50 up.
   const left = (remaining: number) => {
