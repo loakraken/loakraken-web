@@ -125,9 +125,17 @@ test.describe("사용자 지적 회귀 점검표 @regression", () => {
         await watchShifts(page);
         await gotoReady(page, path);
         await page.waitForTimeout(800);
-        expect((await shiftsSince(page)).all, `${path} 첫 로드 layout-shift`).toBe(
-          0,
-        );
+        const shifts = await shiftsSince(page);
+        // A failure says what moved and when (ms after navigation start), so a
+        // shift that only happens now and then on CI can be traced (#909).
+        const detail = shifts.all
+          ? await page.evaluate(() =>
+              window.__shiftLog
+                .map((e) => `${Math.round(e.t)}ms ${e.v.toFixed(4)}${e.input ? " (input)" : ""} ${e.sources.join("+")}`)
+                .join(" | "),
+            )
+          : "";
+        expect(shifts.all, `${path} 첫 로드 layout-shift — ${detail}`).toBe(0);
       });
     }
 
