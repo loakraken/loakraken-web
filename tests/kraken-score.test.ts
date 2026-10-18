@@ -53,7 +53,7 @@ test("크라켄 점수: the top tier is a full bar with no next line", () => {
   assert.equal(top.state === "ready" && top.tier, "에스더");
   assert.equal(top.state === "ready" && top.progress, 100);
   assert.equal(top.state === "ready" && top.next, null);
-  assert.equal(top.state === "ready" && top.bounds, "에스더 티어는 9,500점부터로, 가장 높은 티어예요.");
+  assert.equal(top.state === "ready" && top.bounds, "에스더 티어는 9,500점부터예요. 가장 높은 티어예요.");
 });
 
 test("크라켄 점수: not public or not sent is hidden; not computed or odd is '준비 중'", () => {

@@ -104,7 +104,7 @@ export function krakenScoreView(value: KrakenScore | null | undefined): KrakenSc
     next: nextName && left != null ? `${nextName} 티어까지 ${left.toLocaleString("ko-KR")}점` : null,
     bounds: !nextName
       ? from
-        ? `${from}로, 가장 높은 티어예요.`
+        ? `${from}예요. 가장 높은 티어예요.`
         : `${tierName}는 가장 높은 티어예요.`
       : from || nextFrom
         ? `${[from, nextFrom].filter(Boolean).join(", ")}예요.`
