@@ -8,6 +8,7 @@ import {
   namesFromParam,
   namesSearch,
   parseNames,
+  sortFromParam,
   summarize,
   valueOf,
   type Summary,
@@ -36,6 +37,16 @@ test("the address round-trips and ignores what is not a name", () => {
   assert.deepEqual(namesFromParam(new URLSearchParams(namesSearch(["가", "나"]).slice(1)).get("names")), ["가", "나"]);
 });
 
+test("the table order rides in the address too, only next to names", () => {
+  assert.deepEqual(sortFromParam("gems-desc"), { key: "gems", dir: "desc" });
+  assert.deepEqual(sortFromParam("itemLevel-asc"), { key: "itemLevel", dir: "asc" });
+  for (const bad of [null, "", "gems", "gems-up", "name-asc", "gems-desc-x"]) assert.equal(sortFromParam(bad), null, String(bad));
+  const search = new URLSearchParams(namesSearch(["가", "나"], { key: "quality", dir: "asc" }).slice(1));
+  assert.deepEqual(namesFromParam(search.get("names")), ["가", "나"]);
+  assert.deepEqual(sortFromParam(search.get("sort")), { key: "quality", dir: "asc" });
+  assert.equal(namesSearch([], { key: "gems", dir: "desc" }), "");
+  assert.equal(new URLSearchParams(namesSearch(["가"]).slice(1)).has("sort"), false);
+});
 test("a character summary carries the compared values", () => {
   const s = summarize(fixture());
   assert.equal(s.name, "모험가");
