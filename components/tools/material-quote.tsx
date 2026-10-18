@@ -51,6 +51,7 @@ import { textCodec, useUrlState, writeUrlParam } from "@/lib/tools/url-state";
 import { SiteHeader } from "@/components/site/site-header";
 import { SegmentedControl, SegmentedItem } from "@/components/ui/segmented-control";
 import styles from "./material-quote.module.css";
+import restoreStyles from "./material-quote-restore.module.css";
 
 const kst = new Intl.DateTimeFormat("ko-KR", {
   timeZone: "Asia/Seoul",
@@ -541,8 +542,8 @@ function QuantityField({
  */
 function PendingLine({ saved }: { saved: Saved }) {
   return (
-    <li aria-hidden="true" data-pending="">
-      <span className={styles.pendingIcon} />
+    <li aria-hidden="true" data-pending="" className={restoreStyles.pendingLine}>
+      <span className={restoreStyles.pendingIcon} />
       <div className={styles.planText}>
         <strong>불러오는 중…</strong>
         <small>
@@ -559,7 +560,7 @@ function PendingLine({ saved }: { saved: Saved }) {
           <input value={saved.o} placeholder="0" readOnly disabled tabIndex={-1} />
         </label>
       </div>
-      <span className={styles.pendingButton} />
+      <span className={restoreStyles.pendingButton} />
     </li>
   );
 }
@@ -583,7 +584,7 @@ function Plan({
         {restore.failed > 0 && (
           <p className={styles.empty}>
             담아 둔 재료 {restore.failed}개를 지금 불러오지 못했어요.{" "}
-            <button type="button" className={styles.textButton} onClick={restore.retry}>
+            <button type="button" className={restoreStyles.textButton} onClick={restore.retry}>
               다시 불러오기
             </button>
           </p>

@@ -1,0 +1,38 @@
+/* Address-restore lines of the material quote (#899), apart from the shared
+   material-quote styles the market boards also load. */
+/* "다시 불러오기" inside a notice line (#899): text-sized, underlined, 44px tall hit area. */
+.textButton {
+  position: relative;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--link);
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.textButton::after {
+  content: "";
+  position: absolute;
+  inset: 50% -6px auto;
+  height: 44px;
+  translate: 0 -50%;
+}
+
+/* Lines coming back from the address (#899): the real line's room, quiet. */
+.pendingLine {
+  opacity: 0.6;
+}
+.pendingIcon {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  background: var(--hover-surface);
+}
+.pendingButton {
+  flex: none;
+  width: 36px;
+  height: 36px;
+}
