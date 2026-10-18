@@ -149,6 +149,18 @@
      report v0.3.2): the character page's own search is hidden from 900px
      down, where the shared search button does the same search. */
 }
+/* Phones (QA P1 v0.3.1.3): the mark and name, the page slot, search, theme
+   and menu do not fit with the Discord button too — at 320 the bar ran 17px
+   off the screen, and on the about page its button slid under the name.
+   The Discord link stays at the foot of every page; the gaps close a little. */
+@media (max-width: 420px) {
+  .header {
+    gap: 8px;
+  }
+  .header .discord {
+    display: none;
+  }
+}
 @media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
   .header {
     background: var(--background);

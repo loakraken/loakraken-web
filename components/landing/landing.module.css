@@ -406,3 +406,13 @@ button.orbStage:focus-visible { outline: 3px solid var(--ring); outline-offset: 
 @media (max-width: 600px) {
   .hero.heroEmbedded { padding: 20px 0 4px; }
 }
+
+/* QA P1 v0.3.1.3: beside the logo's name on a phone the button is "검색" only,
+   44px wide; under 360 it leaves the bar to the name and the shared search. */
+@media (max-width: 420px) {
+  .navCta { min-width: 44px; padding: 0 10px; }
+  .navCtaWord { display: none; }
+}
+@media (max-width: 359px) {
+  .navCta { display: none; }
+}
