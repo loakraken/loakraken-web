@@ -75,19 +75,27 @@ function resolve(value: ThemeChoice): AppliedTheme {
 // off everywhere (data-theme-switching, globals.css); the attribute comes off
 // two frames later, and a newer press restarts that wait.
 let settle = 0
-function setThemeAttribute(theme: AppliedTheme) {
+function holdTransitions() {
   const root = document.documentElement
-  if ((root.dataset.theme ?? "light") === theme) return
   root.setAttribute("data-theme-switching", "")
-  if (theme === "light") delete root.dataset.theme
-  else root.dataset.theme = theme
   cancelAnimationFrame(settle)
   settle = requestAnimationFrame(() => {
     settle = requestAnimationFrame(() => root.removeAttribute("data-theme-switching"))
   })
 }
+function setThemeAttribute(theme: AppliedTheme) {
+  const root = document.documentElement
+  if ((root.dataset.theme ?? "light") === theme) return
+  holdTransitions()
+  if (theme === "light") delete root.dataset.theme
+  else root.dataset.theme = theme
+}
 
 function applyChoice(value: ThemeChoice) {
+  // A new choice that applies the same theme (system → light under a light
+  // OS, the first press now that system is the default) still changes the
+  // checked option and the header icon: no fades for that frame either.
+  holdTransitions()
   choice = value
   document.documentElement.dataset.themeChoice = value
   setThemeAttribute(resolve(value))
