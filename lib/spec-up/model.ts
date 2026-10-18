@@ -27,6 +27,16 @@ export const sortCaption = (sort: string) => {
 };
 
 /**
+ * Told on the status line when another list has come (#921): the sort, or for
+ * the same sort the cooldown-gem choice. Keys are "SORT:cooldown" (see the guide).
+ */
+export function listChangeCopy(fromKey: string, sort: string, cooldownGemsIncluded: boolean | null | undefined): string {
+  if (fromKey.split(":")[0] === sort)
+    return cooldownGemsIncluded ? "작열 보석을 넣어 다시 정렬했어요" : "작열 보석을 빼고 다시 정렬했어요";
+  return `${sortCaption(sort)}으로 정렬했어요`;
+}
+
+/**
  * One cache entry per character snapshot, sort and cooldown-gem choice (the
  * tab and the guide share it). The choice is left out (null) for the
  * backend's default.

@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { isDetailEnvelope, isSpecUpEnvelope } from "../lib/spec-up/validate";
 import { breathLabel, materialsTotal, refiningLink } from "../lib/spec-up/detail";
 import { requestSpecUpDetail } from "../lib/spec-up/upstream";
-import { KRAKEN_NOTE_ALL, krakenUnavailableCopy, krakenUnavailableNote, splitKrakenCandidates } from "../lib/spec-up/model";
+import { KRAKEN_NOTE_ALL, krakenUnavailableCopy, krakenUnavailableNote, listChangeCopy, splitKrakenCandidates } from "../lib/spec-up/model";
 
 const fixture = (name: string) =>
   JSON.parse(readFileSync(new URL(`./spec-up-fixtures/${name}`, import.meta.url), "utf8"));
@@ -70,6 +70,11 @@ test("크라켄 점수 순: 점수 변화가 있는 후보는 상태와 상관�
   assert.equal(krakenUnavailableCopy(null), null);
   assert.equal(krakenUnavailableCopy("DISABLED"), "크라켄 점수 순은 아직 준비 중이에요. 1만 골드당 효율 순으로 보여 드려요.");
   assert.match(krakenUnavailableCopy("NEW_REASON") ?? "", /정렬할 수 없어요/);
+  // #921: one sentence for another list (sort, or the same sort's cooldown choice).
+  assert.equal(listChangeCopy("EFFICIENCY:", "KRAKEN", false), "크라켄 점수 순으로 정렬했어요");
+  assert.equal(listChangeCopy("KRAKEN:false", "EFFICIENCY", true), "1만 골드당 효율 순으로 정렬했어요");
+  assert.equal(listChangeCopy("KRAKEN:false", "KRAKEN", true), "작열 보석을 넣어 다시 정렬했어요");
+  assert.equal(listChangeCopy("KRAKEN:true", "KRAKEN", false), "작열 보석을 빼고 다시 정렬했어요");
   // The short note in the bar; its slot holds the room of every note.
   assert.equal(krakenUnavailableNote(null), null);
   assert.equal(krakenUnavailableNote("DISABLED"), "점수 정렬 준비 중 · 효율 순");

@@ -20,6 +20,7 @@ import {
   KRAKEN_NOTE_ALL,
   krakenUnavailableCopy,
   krakenUnavailableNote,
+  listChangeCopy,
   sortCaption,
   splitKrakenCandidates,
   costRoom,
@@ -147,10 +148,23 @@ export default function SpecUpGuide({ data }: { data: Character }) {
     const timer = window.setTimeout(() => setSorted(false), 3_000);
     return () => window.clearTimeout(timer);
   }, [sorted, generation]);
+  // Another list came (sort or cooldown choice, #921): one sentence on the status
+  // line for a moment, focus left on the pressed button. Not on the first list.
+  const [told, setTold] = useState<string | null>(null);
+  const [toldKey, setToldKey] = useState<string | null>(null);
+  useEffect(() => {
+    if (!told) return;
+    const timer = window.setTimeout(() => setTold(null), 3_000);
+    return () => window.clearTimeout(timer);
+  }, [told]);
   // One list = its sort and, for 크라켄 점수 순, whether 작열 gems are in (#908):
   // a different cooldown choice is a different list, not a reordered refresh.
   const listKey = guide ? `${guide.sort}:${guide.sort === "KRAKEN" ? String(guide.cooldownGemsIncluded) : ""}` : null;
   const krakenShown = guide?.sort === "KRAKEN";
+  if (guide && listKey && !query.isPlaceholderData && toldKey !== listKey) {
+    setToldKey(listKey);
+    if (toldKey !== null) setTold(listChangeCopy(toldKey, guide.sort, guide.cooldownGemsIncluded));
+  }
   // Known before the press: the efficiency list already says why (the reason
   // does not depend on the sort), so the bar changes in the same frame.
   const offReason =
@@ -245,7 +259,8 @@ export default function SpecUpGuide({ data }: { data: Character }) {
       </p>
 
       <div
-        aria-live="polite"
+        // Not a live region (#921): a new list would be read out whole. The
+        // status line below tells what happened in one sentence.
         // Busy while a list is coming for the first time or for a new sort,
         // not on the quiet minute refresh.
         aria-busy={(query.isFetching && (!guide || query.isPlaceholderData)) || undefined}
@@ -277,7 +292,7 @@ export default function SpecUpGuide({ data }: { data: Character }) {
           ) : sorted ? (
             "새 순서로 정렬했어요"
           ) : (
-            ""
+            (told ?? "")
           )}
         </p>
         {failure ? (
