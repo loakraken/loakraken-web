@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { isDetailEnvelope, isSpecUpEnvelope } from "../lib/spec-up/validate";
 import { breathLabel, materialsTotal, refiningLink } from "../lib/spec-up/detail";
 import { requestSpecUpDetail } from "../lib/spec-up/upstream";
-import { KRAKEN_NOTE_ALL, krakenUnavailableCopy, krakenUnavailableNote, listChangeCopy, splitKrakenCandidates } from "../lib/spec-up/model";
+import { KRAKEN_NOTE_ALL, krakenUnavailableCopy, krakenUnavailableNote, listChangeCopy, splitCandidates, splitKrakenCandidates } from "../lib/spec-up/model";
 
 const fixture = (name: string) =>
   JSON.parse(readFileSync(new URL(`./spec-up-fixtures/${name}`, import.meta.url), "utf8"));
@@ -96,4 +96,15 @@ test("크라켄 점수 순: 점수 변화가 있는 후보는 상태와 상관�
   assert.equal(krakenUnavailableNote("NEW_REASON"), "지금은 점수 정렬 불가 · 효율 순");
   for (const r of ["DISABLED", "INPUT_PENDING", "ROLE_UNKNOWN", "SUPPORTER_PENDING", "SCORE_UNAVAILABLE", "NEW_REASON"])
     assert.ok(KRAKEN_NOTE_ALL.includes(krakenUnavailableNote(r) ?? ""), r);
+});
+
+test("비용 0 후보는 1만 골드당이 null(화면 '—')이고 응답 순서대로 맨 뒤에 남는다(PM 총괄 판정 10-18)", () => {
+  const list = fixture("character-spec-up.json").data.candidates;
+  const ok = list.filter((c: { status: string }) => c.status === "OK");
+  // The backend gives no efficiency for a cost of 0 or less and puts it last.
+  const free = { ...ok[0], id: "GEM_LEVEL:9:9", cost: { ...ok[0].cost, amount: 0 }, combatPowerPer10kGold: null };
+  const { ok: ranked } = splitCandidates([...ok, free]);
+  assert.equal(ranked.at(-1)?.id, "GEM_LEVEL:9:9");
+  assert.equal(ranked.at(-1)?.combatPowerPer10kGold, null);
+  assert.deepEqual(ranked.slice(0, -1).map((c) => c.id), ok.map((c: { id: string }) => c.id));
 });

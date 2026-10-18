@@ -773,8 +773,12 @@ createServer(async (req, res) => {
     if (id.startsWith("ENGRAVING_LEVEL:")) return send(fixture("character-spec-up-detail-engraving.json"));
     const candidate = list.data.candidates.find((c) => c.id === id && c.status === "OK");
     if (!candidate) return send(fixture("character-spec-up-detail-not-found.json"), 404);
-    const envelope = fixture("character-spec-up-detail-gem.json");
     const who = url.searchParams.get("characterName");
+    // api #592: the gem cost takes off the current gem's lowest price, the sale
+    // fee apart (sellFeeGold). The backend's own answer, as it is.
+    if (who === "스펙업수수료" && id === "GEM_LEVEL:0:9")
+      return send({ ...fixture("character-spec-up-detail-gem-fee.json"), data: { ...fixture("character-spec-up-detail-gem-fee.json").data, characterName: who } });
+    const envelope = fixture("character-spec-up-detail-gem.json");
     Object.assign(envelope.data, { characterName: who, candidate: { ...envelope.data.candidate, ...candidate } });
     if (candidate.kind !== "GEM_LEVEL") Object.assign(envelope.data, { stats: [], market: null });
     else if (id !== "GEM_LEVEL:0:9") envelope.data.market[0].itemName = `${String(candidate.to).replace(/\D/g, "")}레벨 겁화의 보석`;

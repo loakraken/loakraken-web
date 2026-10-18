@@ -283,5 +283,21 @@ test.describe("스펙업 가이드 @smoke", () => {
     await expect(page.getByRole("dialog")).toContainText("구매");
     expect(ids.at(-1)).toContain("%20");
     expect(ids.at(-1)).not.toContain("+");
+    // api #588: the list left 작열 gems out, so the detail asks the same way.
+    expect(new URL(ids.at(-1)).searchParams.get("includeCooldownGems")).toBe("false");
+  });
+
+  // api #592: 보석 비용 = 9레벨 구매 최저가 − 지금 8레벨 최저가, 판매 수수료는 따로.
+  test("판매 수수료를 따로 주는 응답이면 판매 최저가로 빼고 수수료는 비용에 넣지 않았다고 알린다", async ({ page }) => {
+    await page.goto(characterPath("스펙업수수료", "specup"));
+    const table = page.getByRole("table", { name: /스펙업 후보/ });
+    await table.getByRole("button", { name: "테스트 스킬 · 8레벨 겁화" }).first().click();
+    const card = page.getByRole("dialog");
+    await expect(card).toContainText("구매 · 9레벨 겁화의 보석");
+    await expect(card).toContainText("판매 최저가 · 8레벨 겁화의 보석");
+    await expect(card).toContainText("−40만G");
+    await expect(card).toContainText("기대 비용60만G");
+    await expect(card).toContainText("팔 때 거래소 수수료 2만G는 기대 비용에 넣지 않았어요.");
+    await expect(card).not.toContainText("판매 기대");
   });
 });
