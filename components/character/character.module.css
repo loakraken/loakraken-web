@@ -70,6 +70,8 @@
 }
 .search {
   display: flex;
+  box-sizing: border-box;
+  height: 44px;
   align-items: center;
   gap: 10px;
   padding-left: 18px;
@@ -83,7 +85,7 @@
 .search input {
   min-width: 0;
   flex: 1;
-  padding: 10px 0;
+  padding: 0;
   outline: none;
   background: transparent;
   color: var(--foreground);
@@ -105,7 +107,10 @@
   display: grid;
   place-items: center;
   min-width: 44px;
-  height: 44px;
+  /* 42 + the pill's 1px border = the 44px of the header's other buttons, so
+     the character page's header is as tall as every other page's (shown from
+     901px up only, on a fine pointer). */
+  height: 42px;
   border-radius: 50%;
   color: var(--link);
 }

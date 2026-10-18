@@ -64,9 +64,11 @@ test("the awakening total leads; the applied stage shows only when lower", () =>
 test("refill: summary in words, POST, cooldown 429 keeps its code, other 429 is the rate limit", async () => {
   const sample = fixture("refresh");
   assert.equal(isCardRefreshEnvelope(sample), true);
+  // Pressed ten minutes before the next fill opens (the cooldown).
+  const pressedAt = Date.parse(sample.data.nextAvailableAt) - 10 * 60_000;
   assert.equal(
-    refreshSummary(sample.data),
-    "원정대 14명 중 11명을 새로 기록했어요. 1명은 최근 7일 안에 기록이 있어 그대로 두었어요. 1명은 불러오지 못했어요. 1명은 다음에 이어서 채울 수 있어요.",
+    refreshSummary(sample.data, pressedAt),
+    "원정대 14명 중 11명을 새로 기록했어요. 1명은 최근 7일 안에 기록이 있어 그대로 두었어요. 1명은 불러오지 못했어요. 1명 남음 · 10분 뒤 이어서 채울 수 있어요.",
   );
   assert.doesNotMatch(refreshSummary(sample.data), /skipped|failed|remaining/);
   const calls: RequestInit[] = [];

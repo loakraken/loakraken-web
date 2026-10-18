@@ -145,11 +145,9 @@
   .slot > * {
     min-width: 0;
   }
-  /* With anything in the page slot (a search field, the about page's CTA),
-     the mark alone carries the brand so the slot keeps its width. */
-  .header:has(.slot) .brand span {
-    display: none;
-  }
+  /* The mark and the name stay together on every page and width (user
+     report v0.3.2): the character page's own search is hidden from 900px
+     down, where the shared search button does the same search. */
 }
 @media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
   .header {

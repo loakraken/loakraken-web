@@ -8,7 +8,9 @@ export type Inline =
   | { t: "text"; v: string }
   | { t: "strong"; c: Inline[] }
   | { t: "code"; v: string }
-  | { t: "link"; href: string; c: Inline[] };
+  | { t: "link"; href: string; c: Inline[] }
+  /** A plain address in the text, drawn as a mailto link the edge leaves alone. */
+  | { t: "email"; v: string };
 
 export type Block =
   | { t: "h2" | "h3"; c: Inline[] }
@@ -92,6 +94,16 @@ export function parseInline(source: string): Inline[] {
         flush();
         out.push({ t: "code", v: source.slice(i + 1, end) });
         i = end + 1;
+        continue;
+      }
+    }
+    // An address standing on its own (not the middle of a longer word).
+    if (!/[A-Za-z0-9._%+-]/.test(source[i - 1] ?? "")) {
+      const email = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}/.exec(source.slice(i));
+      if (email) {
+        flush();
+        out.push({ t: "email", v: email[0] });
+        i += email[0].length;
         continue;
       }
     }

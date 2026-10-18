@@ -297,7 +297,7 @@ function CharacterContent({
                   <strong>{copy.title}</strong>
                   <p>{copy.text} 마지막으로 조회한 정보를 표시하고 있어요.</p>
                 </div>
-                {limited && <RateLimitNote seconds={rateLimitSeconds} />}
+                {limited && <RateLimitNote seconds={rateLimitSeconds} buttonCounts />}
               </div>
             )}
             <Entrance tab={tab}>
@@ -340,7 +340,7 @@ function CharacterContent({
                   <h2>{copy.title}</h2>
                   <p>{copy.text}</p>
                 </div>
-                {limited && <RateLimitNote seconds={rateLimitSeconds} />}
+                {limited && <RateLimitNote seconds={rateLimitSeconds} buttonCounts />}
               </div>
             )}
             <div className={styles.noData}>

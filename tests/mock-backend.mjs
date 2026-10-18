@@ -2282,7 +2282,12 @@ createServer(async (req, res) => {
       })),
     }));
     d.tendencies = [["지성", 590], ["담력", 593], ["매력", 478], ["친절", 508]].map(([type, point]) => ({ type, point, maxPoint: 1000 }));
-    d.decorations = { symbol: null, emblems: [] };
+    // Official answers send image addresses for both (the 문장 row draws them).
+    const deco = "https://cdn-lostark.game.onstove.com/efui_iconatlas";
+    d.decorations = {
+      symbol: `${deco}/playerinfodecoclassdeco_default/playerinfodecoclassdeco_default_3.png`,
+      emblems: [`${deco}/playerinfodecobrooch/playerinfodecobrooch_97.png`, `${deco}/playerinfodecobrooch/playerinfodecobrooch_98.png`],
+    };
     d.townName = "합성 영지";
     d.townLevel = 70;
     d.honorPoint = 183;
