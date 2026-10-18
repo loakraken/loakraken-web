@@ -1616,11 +1616,14 @@ export function CombatTab({ data }: { data: Character }) {
           <ArkGridPanel data={data} />
           <CardsPanel data={data} />
         </div>
+        {/* 특성 → 각인 → 아크 패시브 → 순위 → 조회수 (v0.3.2): the official
+            order first, the rank under it — the banner already says the rank
+            at the top. The rank block holds its height while it loads. */}
         <aside className={styles.stack} aria-label="요약">
-          <RankPanel name={data.characterName} />
-          <ArkPassiveSummary data={data} />
           <StatsPanel data={data} />
           <EngravingsPanel data={data} />
+          <ArkPassiveSummary data={data} />
+          <RankPanel name={data.characterName} />
           <ViewsPanel name={data.characterName} />
         </aside>
       </div>
