@@ -59,7 +59,10 @@
 }
 .searchWrap {
   margin-left: auto;
-  width: min(450px, 60%);
+  /* Up to 450px, narrower when the header is full (the slot shrinks). */
+  width: 450px;
+  max-width: 100%;
+  min-width: 0;
 }
 /* Where the site header folds (900px and under) its search button is the
    only character search: two controls doing one thing side by side (A19). */
@@ -308,6 +311,9 @@
   overflow: hidden;
   clip: rect(0, 0, 0, 0);
   border: 0;
+  /* Read, never pressed: the 1px box sat under the header search's middle
+     and took the press there (QA v0.3.1.3 header check). */
+  pointer-events: none;
 }
 .skip {
   position: fixed;
