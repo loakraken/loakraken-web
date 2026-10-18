@@ -14,8 +14,9 @@ import { MAX_QUOTE_ITEMS } from "./model";
 import { usePlan, type PlanRow } from "./store";
 
 const KEY = "items";
+const NO_SAVED: Saved[] = [];
 
-type Saved = { id: number; c: number; n: string; p: number; r: string; o: string };
+export type Saved = { id: number; c: number; n: string; p: number; r: string; o: string };
 
 const short = (v: unknown, max: number) => typeof v === "string" && v.length <= max;
 const whole = (v: unknown) => typeof v === "number" && Number.isInteger(v) && v > 0;
@@ -148,5 +149,6 @@ export function usePlanInAddress() {
     setLoading(true);
   };
 
-  return { loading, missing, failed: failed.length, retry };
+  // The lines being brought back, for placeholders of the same shape (A6).
+  return { loading, pending: loading ? wanted : NO_SAVED, missing, failed: failed.length, retry };
 }

@@ -793,3 +793,20 @@
   height: 44px;
   translate: 0 -50%;
 }
+
+/* Lines coming back from the address (#899): the real line's room, quiet. */
+.planList li[data-pending] {
+  opacity: 0.6;
+}
+.pendingIcon {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  background: var(--hover-surface);
+}
+.pendingButton {
+  flex: none;
+  width: 36px;
+  height: 36px;
+}
