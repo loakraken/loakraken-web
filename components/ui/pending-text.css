@@ -17,15 +17,19 @@
   animation: pending-text-window 1.5s linear infinite;
   will-change: transform;
 }
-/* The brighter copy is drawn, not text in the page: the label still reads "집계 중". */
-.pending-text__window::before {
-  content: attr(data-glow) / "";
+/* The brighter copy: its element moves (not a pseudo-element, cheaper to
+   re-style), and the text is drawn, not text in the page: the label still
+   reads "집계 중". */
+.pending-text__glow {
   position: absolute;
   inset: 0 auto 0 0;
   white-space: nowrap;
   color: var(--foreground);
   animation: pending-text-glow 1.5s linear infinite;
   will-change: transform;
+}
+.pending-text__glow::before {
+  content: attr(data-glow) / "";
 }
 /* From just before the text to just after it: --pending-run is the text's
    width plus the window's, set once from the measured box. */
@@ -53,6 +57,6 @@
 }
 /* Off screen or in a hidden tab: paused (the next play rejoins the beat). */
 .pending-text[data-paused] .pending-text__window,
-.pending-text[data-paused] .pending-text__window::before {
+.pending-text[data-paused] .pending-text__glow {
   animation-play-state: paused;
 }
