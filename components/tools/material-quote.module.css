@@ -181,6 +181,10 @@
 }
 .workspace {
   display: grid;
+  /* One column that never grows past the band: an auto column took the
+     widest card's content, and the field's 300px default width ran the
+     cards 26px off a 320 screen (v0.3.2). */
+  grid-template-columns: minmax(0, 1fr);
   gap: 20px;
   max-width: 1024px;
   margin: 0 auto;
@@ -273,6 +277,11 @@
   color: var(--ink);
   font-size: var(--text-heading-sm);
   transition: border-color var(--duration-fast) var(--ease-out);
+}
+.field input {
+  /* The field's width, not the browser's 20-character default (300px). */
+  min-width: 0;
+  width: 100%;
 }
 .field [data-slot="select"]:focus-visible,
 .field input:focus-visible,
