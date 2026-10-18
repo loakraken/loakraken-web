@@ -21,6 +21,7 @@ import { EventItems, NoticeItem } from "@/components/news/news-parts";
 import { useNow } from "./clock";
 import { RecentCard } from "./recent-card";
 import { PopularCard } from "./popular-card";
+import { PopularGuilds } from "@/components/stats/popular-guilds";
 import { ServerCard } from "./server-card";
 import { PillTab, PillTabs, PillTabsPanel } from "@/components/ui/pill-tabs";
 import { QuickMenu } from "./quick-menu";
@@ -224,7 +225,14 @@ function MarketSummary() {
   );
 }
 
-export function HomeDashboard({ renderedAt }: { renderedAt?: number }) {
+export function HomeDashboard({
+  renderedAt,
+  popularGuilds = false,
+}: {
+  renderedAt?: number;
+  /** POPULAR_GUILDS on this deployment: the 인기 길드 card under the popular characters. */
+  popularGuilds?: boolean;
+}) {
   return (
     <div className={styles.page}>
       <a className={styles.skip} href="#home-main">
@@ -249,6 +257,8 @@ export function HomeDashboard({ renderedAt }: { renderedAt?: number }) {
           <aside className={styles.column} aria-label="공지와 이벤트">
             <RecentCard />
             <PopularCard />
+            {/* Outside the guild ranking too, on its own switch (api #582). */}
+            {popularGuilds && <PopularGuilds />}
             <NewsPanels renderedAt={renderedAt} />
             <ServerCard />
           </aside>

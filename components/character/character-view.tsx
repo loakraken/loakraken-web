@@ -388,7 +388,7 @@ export function CharacterView({
   titleStats?: boolean;
   /** CRIT_SPEED_TOOL on this deployment (server flag): the 분석 menu link. */
   critSpeed?: boolean;
-  /** GUILD_RANKING on this deployment (server flag): the guild tab. */
+  /** GUILD_TAB on this deployment (server flag): the guild tab. */
   guildTab?: boolean;
   /** CHARACTER_EFFICIENCY on this deployment (server flag): 아크 그리드·팔찌 효율 rows. */
   characterEfficiency?: boolean;

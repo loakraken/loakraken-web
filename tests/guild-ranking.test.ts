@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { guildSearch, isGuildName, isGuildRankingEnvelope, parseGuildQuery } from "../lib/stats/guild-ranking";
 import { sampleText } from "../lib/stats/model";
-import { isGuildRankingEnabled } from "../lib/tools/flags";
+import { isGuildRankingEnabled, isGuildTabEnabled } from "../lib/tools/flags";
 import { PRODUCTION_URL } from "../lib/site";
 
 const meta = {
@@ -43,6 +43,16 @@ test("guild ranking tab: on unless turned off, hidden on the production host", (
   assert.equal(isGuildRankingEnabled({ GUILD_RANKING: "off" }), false);
   assert.equal(isGuildRankingEnabled({ SITE_URL: PRODUCTION_URL }), false);
   assert.equal(isGuildRankingEnabled({ SITE_URL: PRODUCTION_URL, GUILD_RANKING: "on" }), true);
+});
+
+test("guild tab: its own switch, apart from the guild ranking (api #582)", () => {
+  assert.equal(isGuildTabEnabled({}), true);
+  assert.equal(isGuildTabEnabled({ GUILD_TAB: "off" }), false);
+  assert.equal(isGuildTabEnabled({ SITE_URL: PRODUCTION_URL }), false);
+  assert.equal(isGuildTabEnabled({ SITE_URL: PRODUCTION_URL, GUILD_TAB: "on" }), true);
+  // The ranking switch does not move the tab, nor the tab the ranking.
+  assert.equal(isGuildTabEnabled({ SITE_URL: PRODUCTION_URL, GUILD_RANKING: "on" }), false);
+  assert.equal(isGuildRankingEnabled({ SITE_URL: PRODUCTION_URL, GUILD_TAB: "on" }), false);
 });
 
 test("guild query: a name part of 1~12 letters or digits, kept in the link and sent on", () => {
