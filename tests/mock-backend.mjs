@@ -2404,6 +2404,8 @@ createServer(async (req, res) => {
     상세: kraken("OK", 5658.62, krakenTier("DIAMOND", 5000, "MASTER", 6700, 1041.38, 38)),
     상세서포터: kraken("OK", 2761.59, krakenTier("SILVER", 2000, "GOLD", 3800, 1038.41, 42), { role: "SUPPORT" }),
     크라켄에스더: kraken("OK", 10183.94, krakenTier("ESTHER", 9500, null, null, null, 100)),
+    // The longest line: 그랜드마스터 as the next tier, five-digit points left.
+    크라켄긴줄: kraken("OK", 8654.33, krakenTier("MASTER", 6700, "GRANDMASTER", 21000, 12345.67, 13)),
     크라켄준비중: kraken("UNSUPPORTED", null, null, { reasonCode: "INPUT_PENDING", reason: "이전 조회 결과", role: null }),
     크라켄꺼짐: kraken("DISABLED", null, null, { role: null, ruleVersion: null }),
   };

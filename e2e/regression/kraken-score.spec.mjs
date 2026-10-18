@@ -26,11 +26,23 @@ for (const width of [1280, 360]) {
     await expect(box.locator("dd")).toContainText("다이아 티어 38% 진행");
     await page.waitForTimeout(800);
     expect((await shiftsSince(page)).all, "첫 로드 흔들림").toBe(0);
-    // One line each, nothing cut (A37), inside the banner.
-    const fits = await box.evaluate((el) =>
-      [...el.querySelectorAll("dd > span, dd > small")].every((n) => n.scrollWidth <= n.clientWidth + 1 && n.getClientRects().length === 1),
-    );
-    expect(fits, "한 줄, 잘림 없음").toBe(true);
+  });
+
+  test(`@크라켄점수 ${width} 가장 긴 줄도 배너 안에서 잘리지 않음 @regression`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await gotoReady(page, characterPath("크라켄긴줄"));
+    const box = item(page);
+    await expect(box.locator("dd")).toContainText("그랜드마스터 티어까지 12,346점");
+    // Every line inside the banner's list and the screen, nothing cut (A37).
+    const out = await box.evaluate((el) => {
+      const list = el.closest("dl").getBoundingClientRect();
+      return [...el.querySelectorAll("dd > span, dd > small")]
+        .map((n) => ({ text: n.textContent, r: n.getBoundingClientRect() }))
+        .filter(({ r }) => r.right > Math.min(list.right, document.documentElement.clientWidth) + 1)
+        .map(({ text, r }) => `${text} right ${Math.round(r.right)} > ${Math.round(list.right)}`);
+    });
+    expect(out, "배너 밖으로 나간 줄").toEqual([]);
+    await expect(box.locator("dd")).not.toContainText("…");
   });
 
   test(`@크라켄점수 ${width} '준비 중'은 같은 크기, 최고 티어는 막대 꽉 참 @regression`, async ({ page }) => {
