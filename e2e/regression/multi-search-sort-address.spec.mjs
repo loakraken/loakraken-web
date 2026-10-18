@@ -21,7 +21,10 @@ test("멀티서치: 정렬은 캐릭터 화면에서 뒤로 와도, 새로고침
   const sorted = await order(page);
 
   await table(page).getByRole("link", { name: sorted[0] }).click();
-  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  // The character page itself: the multi-search page has an h1 too, and going
+  // back before the move landed went to about:blank (CI flake).
+  await expect(page).toHaveURL(new RegExp(`/character/${encodeURIComponent(sorted[0])}$`));
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(sorted[0]);
   await page.goBack();
   await expect(page).toHaveURL(/[?&]sort=gems-asc(&|$)/);
   await expect(gemsHeader(page)).toHaveAttribute("aria-sort", "ascending");
