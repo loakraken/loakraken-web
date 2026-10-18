@@ -89,8 +89,8 @@ export function Evidence({
   }
   return (
     <details className={`${styles.evidence} ${expand.expand}`}>
-      <summary>원본 데이터 보기</summary>
-      <code>{path}</code>
+      {/* The JSON path is for developers only: on hover, not in the text (P1). */}
+      <summary title={path}>원본 데이터 보기</summary>
       <pre>
         {evidence.found
           ? JSON.stringify(evidence.value, null, 2)
