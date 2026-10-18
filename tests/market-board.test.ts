@@ -98,7 +98,7 @@ test("unit price, gold change with rate, and honest update age", () => {
   assert.equal(unitPrice(195, 1), null);
   assert.equal(unitPrice(null, 10), null);
   assert.deepEqual(changeWithAmount({ currentMinPrice: 195, yesterdayAvgPrice: 186.2, changeDay: 4.73 }), {
-    text: "▲8.8 (4.7%)",
+    text: "▲8.8G (4.7%)",
     direction: "up",
   });
   assert.deepEqual(changeWithAmount({ currentMinPrice: 171, yesterdayAvgPrice: null, changeDay: -2.4 }), {

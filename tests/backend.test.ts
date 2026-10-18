@@ -73,4 +73,16 @@ test("only same-site requests may start a refill", () => {
   assert.equal(isSameSite(req({ origin: "https://loakraken.gg" })), true);
   assert.equal(isSameSite(req({ origin: "https://evil.example" })), false);
   assert.equal(isSameSite(req({})), false);
+  // No Sec-Fetch-Site (Safari before 16.4): Origin against the host the browser
+  // asked for. Inside the Next server request.url may name the server itself.
+  const inside = (headers: Record<string, string>) =>
+    new Request("http://localhost:3000/api/x", { method: "POST", headers });
+  assert.equal(isSameSite(inside({ origin: "https://loakraken.gg", host: "loakraken.gg" })), true);
+  assert.equal(isSameSite(inside({ origin: "https://loakraken.gg", "x-forwarded-host": "loakraken.gg", host: "localhost:3000" })), true);
+  assert.equal(isSameSite(inside({ origin: "http://127.0.0.1:3202", host: "127.0.0.1:3202" })), true);
+  assert.equal(isSameSite(inside({ origin: "https://evil.example", host: "loakraken.gg" })), false);
+  assert.equal(isSameSite(inside({ origin: "https://evil.example", "x-forwarded-host": "loakraken.gg" })), false);
+  assert.equal(isSameSite(inside({ origin: "null", host: "loakraken.gg" })), false);
+  // Sec-Fetch-Site, when sent, decides alone.
+  assert.equal(isSameSite(inside({ "sec-fetch-site": "cross-site", origin: "https://loakraken.gg", host: "loakraken.gg" })), false);
 });

@@ -42,8 +42,25 @@ export function parseNames(input: string): ParsedNames {
 /** ?names=a,b,c — anything that is not a valid name is ignored. */
 export const namesFromParam = (value: string | null | undefined) => parseNames(value ?? "").names;
 
-export const namesSearch = (names: string[]) =>
-  names.length ? `?${new URLSearchParams({ names: names.join(",") })}` : "";
+/** The table columns that sort (number columns). */
+export const COMPARE_SORT_KEYS = ["itemLevel", "combatPower", "quality", "gems"] as const;
+export type CompareSortKey = (typeof COMPARE_SORT_KEYS)[number];
+export type CompareSort = { key: CompareSortKey; dir: "asc" | "desc" } | null;
+
+/** ?sort=gems-desc — anything else is no sort. */
+export function sortFromParam(value: string | null | undefined): CompareSort {
+  const match = /^(\w+)-(asc|desc)$/.exec(value ?? "");
+  const key = match?.[1] as CompareSortKey | undefined;
+  return match && key && COMPARE_SORT_KEYS.includes(key) ? { key, dir: match[2] as "asc" | "desc" } : null;
+}
+
+/** ?names=a,b,c&sort=gems-desc; a sort means nothing without names. */
+export function namesSearch(names: string[], sort: CompareSort = null) {
+  if (!names.length) return "";
+  const search = new URLSearchParams({ names: names.join(",") });
+  if (sort) search.set("sort", `${sort.key}-${sort.dir}`);
+  return `?${search}`;
+}
 
 /** What a cell shows: a value, or one short reason why there is none. */
 export type Cell<T> = { value: T } | { reason: string };
