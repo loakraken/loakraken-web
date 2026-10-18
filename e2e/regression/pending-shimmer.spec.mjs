@@ -44,6 +44,10 @@ for (const width of [1280, 360])
     expect(first.after, "'…'는 처음부터").toMatch(/^"…"/);
     expect(first.role, "자기 역할 없음").toBeNull();
     expect(first.live, "자기 알림 없음").toBe(false);
+    // The brighter copy is drawn for the eye only: the cell is named "집계 중"
+    // once in the accessibility tree, not twice (#900 review).
+    const cell = await label.locator("xpath=ancestor::td[1]").ariaSnapshot();
+    expect(cell.match(/집계 중/g) ?? [], `접근성 트리에 한 번: ${cell}`).toHaveLength(1);
     const before = await page.evaluate(() => window.__shifts.reduce((a, v) => a + v, 0));
     await page.waitForTimeout(800);
     expect((await read(label)).box, "글자 상자 그대로").toEqual(first.box);
