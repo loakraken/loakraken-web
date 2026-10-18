@@ -19,6 +19,8 @@ import {
   packageValue,
   parseRate,
   UNTRADEABLE,
+  breakEvenRate,
+  type BreakEven,
   type PackageValue,
   type UnitPrice,
   type ShopPackage,
@@ -88,7 +90,17 @@ function Figure({ text }: { text: string }) {
   return <span key={text}>{text}</span>;
 }
 
-function Verdict({ value, rate, priced }: { value: PackageValue; rate: number | null; priced: boolean }) {
+function Verdict({
+  value,
+  rate,
+  priced,
+  breakEven,
+}: {
+  value: PackageValue;
+  rate: number | null;
+  priced: boolean;
+  breakEven: BreakEven | null;
+}) {
   // Always two lines, so prices or the rate arriving only change text (A6·A7).
   if (!priced)
     return (
@@ -116,6 +128,31 @@ function Verdict({ value, rate, priced }: { value: PackageValue; rate: number | 
         </p>
       </div>
     );
+  // No rate typed: the break-even rate instead of nothing (A23). The number
+  // and its unit stay on one line (A37).
+  if (rate == null && breakEven)
+    return (
+      <div className={styles.verdict}>
+        {breakEven.kind === "rate" ? (
+          <>
+            <p>
+              게임 안 크리스탈 교환소 시세가 <b className={styles.nowrap}>{count(breakEven.rate)}골드</b> 이하면 이득이에요.
+            </p>
+            <p>블루 크리스탈 100개당 시세예요. 교환소 시세를 넣으면 이득을 계산해요.</p>
+          </>
+        ) : breakEven.kind === "always" ? (
+          <>
+            <p>교환소 시세와 상관없이 이득이에요.</p>
+            <p>들어 있는 크리스탈만으로 판매가를 넘어요.</p>
+          </>
+        ) : (
+          <>
+            <p>교환소 시세와 상관없이 판매가보다 적어요.</p>
+            <p>골드로 매길 수 있는 구성품이 없어요.</p>
+          </>
+        )}
+      </div>
+    );
   return (
     <div className={styles.verdict}>
       <p>{value.unknown.length ? `${UNKNOWN} 구성품이 있어 이득을 계산하지 않았어요.` : "교환소 시세를 넣으면 이득을 계산해요."}</p>
@@ -130,12 +167,14 @@ function PackageCard({
   rate,
   priced,
   now,
+  breakEven,
 }: {
   pkg: ShopPackage;
   value: PackageValue;
   rate: number | null;
   priced: boolean;
   now: number | null;
+  breakEven: BreakEven | null;
 }) {
   const source = SHOP_DATA.sources[pkg.source];
   const ended = now != null && !onSale(pkg, now);
@@ -238,7 +277,7 @@ function PackageCard({
           {count(value.crystals)}개예요.
         </p>
       )}
-      <Verdict value={value} rate={rate} priced={priced} />
+      <Verdict value={value} rate={rate} priced={priced} breakEven={breakEven} />
       <p className={styles.source}>
         공식 상점 공지 「{source.title}」 기준 ·{" "}
         <a href={source.url} target="_blank" rel="noreferrer">
@@ -278,6 +317,7 @@ export function LoaShopTool({ renderedAt }: { renderedAt: number }) {
       key={pkg.id}
       pkg={pkg}
       value={packageValue(pkg, (name) => market.get(name) ?? null, rate)}
+      breakEven={breakEvenRate(pkg, (name) => market.get(name) ?? null)}
       rate={rate}
       priced={priced}
       now={now ?? renderedAt}

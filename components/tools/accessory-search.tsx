@@ -33,6 +33,7 @@ import {
   type Slot,
 } from "@/lib/accessory-search/model";
 import { koreanGold } from "@/lib/spec-up/model";
+import { ListingDetail } from "./accessory-detail";
 import quote from "./material-quote.module.css";
 import styles from "./accessory-search.module.css";
 
@@ -271,7 +272,11 @@ export function AccessorySearchTool() {
                 ) : (
                   <ol className={styles.list}>
                     {items.map((item, i) => (
-                      <Listing key={`${item.name}-${i}`} item={item} />
+                      <Listing
+                        key={`${item.name}-${i}`}
+                        item={item}
+                        slotLabel={SLOTS.find((s) => s.id === request?.slot)?.label ?? ""}
+                      />
                     ))}
                   </ol>
                 )}
@@ -332,9 +337,11 @@ function Segment({
   );
 }
 
-function Listing({ item }: { item: SearchItem }) {
+function Listing({ item, slotLabel }: { item: SearchItem; slotLabel: string }) {
   return (
     <li className={styles.item}>
+      {/* The whole row opens the listing's card (사용자 10-16). */}
+      <ListingDetail item={item} slotLabel={slotLabel} polishValue={polishValue} />
       <div className={styles.itemHead}>
         <strong>{item.name}</strong>
         <span className={styles.price}>

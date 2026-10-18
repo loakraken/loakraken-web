@@ -1,8 +1,9 @@
 import { backendUrl, requestBackend, type BackendResult } from "../api/backend";
 import { characterNameError, normalizeCharacterName } from "../character/model";
 import { isSort, type SpecUpEnvelope } from "./model";
-import { isGoalEnvelope, isSpecUpEnvelope } from "./validate";
+import { isDetailEnvelope, isGoalEnvelope, isSpecUpEnvelope } from "./validate";
 import type { GoalEnvelope } from "./goal";
+import type { DetailEnvelope } from "./detail";
 
 // Backend #318 SpecUpController error table.
 const errorCodes: Record<number, readonly string[]> = {
@@ -39,6 +40,31 @@ export async function requestSpecUpGoal(
   }
   // The path search has its own time cap on the backend.
   return requestBackend(url, { timeoutMs: 30_000, ...options, isValid: isGoalEnvelope, errorCodes: goalErrorCodes });
+}
+
+// 줄 상세 (백엔드 2): same switch and cache as the guide; an id that is no
+// longer a candidate (the list changed) is a 404 of its own.
+const detailErrorCodes: Record<number, readonly string[]> = {
+  400: ["INVALID_REQUEST"],
+  404: ["SPEC_UP_DISABLED", "CHARACTER_NOT_CACHED", "SPEC_UP_CANDIDATE_NOT_FOUND"],
+  429: ["CLIENT_RATE_LIMITED"],
+  503: ["CHARACTER_STORAGE_UNAVAILABLE"],
+};
+
+/** Candidate ids look like GEM_LEVEL:3:8 (kind and slot numbers). */
+const CANDIDATE_ID = /^[A-Z_]{2,40}(:[0-9A-Za-z_-]{1,20}){0,4}$/;
+
+export async function requestSpecUpDetail(
+  characterName: string,
+  candidateId: string,
+  origin: string | undefined,
+  options: Options = {},
+): Promise<BackendResult<DetailEnvelope>> {
+  if (characterNameError(characterName) || !CANDIDATE_ID.test(candidateId))
+    return { ok: false, error: { code: "INVALID_REQUEST", status: 400 } };
+  const url = backendUrl(origin, `/api/v1/characters/spec-up/candidates/${encodeURIComponent(candidateId)}`);
+  if (url) url.searchParams.set("characterName", normalizeCharacterName(characterName));
+  return requestBackend(url, { ...options, isValid: isDetailEnvelope, errorCodes: detailErrorCodes });
 }
 
 export async function requestSpecUp(

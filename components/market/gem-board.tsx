@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { Fragment, useId, useState } from "react";
 import { useRouter } from "next/navigation";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { SiteHeader } from "@/components/site/site-header";
@@ -27,6 +27,8 @@ import {
 } from "@/lib/market/auction-gems";
 import { goldText } from "@/lib/market/board";
 import { SUPPORT_CLASSES } from "@/lib/character/detail";
+import { boardRefresh } from "@/lib/market/refresh";
+import { ChangeMark, UpdateAnnouncer, useChangedCells, type Pulse } from "@/components/ui/changed-cells";
 import quote from "@/components/tools/material-quote.module.css";
 import stats from "@/components/stats/stats.module.css";
 import styles from "./gem-board.module.css";
@@ -48,7 +50,10 @@ function Change({ rate }: { rate: number | null | undefined }) {
   );
 }
 
-function Cell({ cell, picked, onPick }: { cell: GemCell | undefined; picked: boolean; onPick: () => void }) {
+const NO_CELLS: GemCell[] = [];
+const cellId = (cell: GemCell) => `${cell.kind}-${cell.level}`;
+
+function Cell({ cell, picked, onPick, pulse }: { cell: GemCell | undefined; picked: boolean; onPick: () => void; pulse?: Pulse }) {
   if (!cell || cell.status !== "READY")
     return (
       <td className={styles.cell}>
@@ -60,9 +65,17 @@ function Cell({ cell, picked, onPick }: { cell: GemCell | undefined; picked: boo
   return (
     <td className={styles.cell}>
       <button type="button" aria-pressed={picked} onClick={onPick} aria-label={`${cell.itemName} 매물 보기`}>
-        <b>{gold(cell.minBuyPrice)}</b>
-        <Change rate={cell.previousDayChangeRate} />
-        <small>매물 {count(cell.totalCount)}</small>
+        {/* A price that changed on the minute's refresh tints once (the cell's
+            own ▲/▼ is the day change, so no second arrow and no width change).
+            Right-aligned text rewritten in place starts elsewhere and counts as
+            moving (A7): new values draw new text, as on the accessory board. */}
+        <Fragment key={`${cell.minBuyPrice}|${cell.previousDayChangeRate}|${cell.totalCount}`}>
+          <b>
+            <ChangeMark pulse={pulse}>{gold(cell.minBuyPrice)}</ChangeMark>
+          </b>
+          <Change rate={cell.previousDayChangeRate} />
+          <small>매물 {count(cell.totalCount)}</small>
+        </Fragment>
       </button>
     </td>
   );
@@ -159,10 +172,7 @@ export function GemBoardView({
     queryFn: ({ signal }) => fetchGemBoard(signal),
     staleTime: 60_000,
     retry: false,
-    // Blank cells fill once the backend has read them: look again shortly,
-    // six times at most (30 s), then the cell stays "집계 중" until a reload.
-    refetchInterval: (query) =>
-      query.state.data && !query.state.data.data.complete && query.state.dataUpdateCount < 7 ? 5_000 : false,
+    refetchInterval: boardRefresh,
   });
   const listings = useQuery({
     queryKey: ["gem-listings", pick],
@@ -179,6 +189,11 @@ export function GemBoardView({
   const skillFailure = failureOf(skillList.error)?.code;
   const data = board.data?.data;
   const cellOf = data ? gemGrid(data) : () => undefined;
+  const changed = useChangedCells(data?.cells ?? NO_CELLS, cellId, { price: (cell) => cell.minBuyPrice });
+  const pulseOf = (cell: GemCell | undefined) => {
+    const pulse = cell && changed.pulse(cellId(cell), "price");
+    return pulse && { ...pulse, dir: 0 as const };
+  };
   const latest = data?.cells.reduce<string | null>(
     (at, cell) => (cell.observedAt && (!at || cell.observedAt > at) ? cell.observedAt : at),
     null,
@@ -253,6 +268,7 @@ export function GemBoardView({
                       <Cell
                         key={kind}
                         cell={cellOf(kind, level)}
+                        pulse={pulseOf(cellOf(kind, level))}
                         picked={pick?.kind === kind && pick.level === level}
                         onPick={() => chooseCell(kind, level)}
                       />
@@ -358,6 +374,7 @@ export function GemBoardView({
             </>
           )}
         </section>
+        <UpdateAnnouncer text={changed.summary ? `보석 시세 ${changed.summary}` : ""} />
       </main>
     </div>
   );

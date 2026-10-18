@@ -12,7 +12,7 @@ import {
 } from "react";
 import Link from "next/link";
 import { refreshEvery } from "@/lib/api/rate-limit";
-import { useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChangeMark, UpdateAnnouncer, useChangedCells, type Pulse } from "@/components/ui/changed-cells";
 import { AnimatePresence, m } from "motion/react";
@@ -46,6 +46,7 @@ import {
   type PriceBasis,
 } from "@/lib/market/model";
 import { toQuoteRequest, usePlan, type PlanRow } from "@/lib/market/store";
+import { textCodec, useUrlState, writeUrlParam } from "@/lib/tools/url-state";
 import { SiteHeader } from "@/components/site/site-header";
 import { SegmentedControl, SegmentedItem } from "@/components/ui/segmented-control";
 import styles from "./material-quote.module.css";
@@ -114,8 +115,9 @@ function ItemSearch({
 }) {
   const formId = useId();
   const listId = useId();
-  const router = useRouter();
   const queryClient = useQueryClient();
+  // The category picked comes back from the address on back and reload (#889).
+  const categoryInAddress = Number(useSearchParams().get("category"));
   const chipRow = useRef<HTMLDivElement>(null);
   const { rows, add } = usePlan();
   const options = useQuery({
@@ -130,8 +132,11 @@ function ItemSearch({
     () => options.data?.data.categories ?? [],
     [options.data],
   );
-  const [category, setCategory] = useState<number | null>(initialCategory);
-  const [name, setName] = useState("");
+  const [category, setCategory] = useState<number | null>(
+    Number.isInteger(categoryInAddress) && categoryInAddress > 0 ? categoryInAddress : initialCategory,
+  );
+  // The name typed lives in the address: back and reload keep it (#889).
+  const [name, setName] = useUrlState("q", "", textCodec(40));
   const [error, setError] = useState("");
   const [submitted, setSubmitted] = useState<MarketSearch | null>(null);
   // A search pressed before the category list arrives waits for it instead
@@ -140,7 +145,9 @@ function ItemSearch({
   const [pending, setPending] = useState<string | null>(null);
   // Search while typing: 200ms after the last keystroke (Korean included —
   // the input value already holds the syllable being composed).
-  const [open, setOpen] = useState(true);
+  // A name brought back from the address searches again but keeps the list
+  // closed until the field is used, so it does not cover the page on return.
+  const [open, setOpen] = useState(() => name === "");
   const [active, setActive] = useState(-1);
   // A linked code the list does not have falls back like no choice at all.
   const known = (code: number | null) =>
@@ -173,7 +180,8 @@ function ItemSearch({
     setPending(null);
     setCategory(code);
     setError("");
-    router.replace(`?${new URLSearchParams({ category: String(code) })}`, { scroll: false });
+    // A plain replaceState keeps the name's key (a whole new query dropped it).
+    writeUrlParam("category", String(code));
   }
   const search: MarketSearch | null =
     submitted ??

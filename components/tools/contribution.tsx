@@ -3,7 +3,15 @@
 // where it sits between that gate's lower and upper bounds. All numbers are
 // the verified sample's (lib/tools/contribution.ts); each gate shows its
 // basis date and no source (사용자 결정 10-12).
-import { useId, useState } from "react";
+//
+// Motion (사용자 10-16): the % counts from the shown value to the new one in
+// ~0.3s, the bar's fill scales and its marker slides (transform only, no
+// layout), a band change rings the marker once, and typing again mid-way
+// carries on from where it is. Reduced motion shows the new value at once.
+// Screen readers hear the final value only.
+import { useEffect, useId, useRef, useState } from "react";
+import { useReducedMotion } from "@/components/landing/motion-context";
+import { intCodec, oneOfCodec, textCodec, useUrlState } from "@/lib/tools/url-state";
 import Link from "next/link";
 import { ArrowLeft, Flash } from "@/components/ui/icons";
 import { SiteHeader } from "@/components/site/site-header";
@@ -26,12 +34,84 @@ const BAND_TEXT: Record<Band, string> = {
   ABOVE_HIGH: "상한 위예요",
 };
 
+const COUNT_MS = 300;
+const easeOut = (t: number) => 1 - (1 - t) ** 3;
+const pctText = (value: number) => `${(Math.round(value * 10) / 10).toLocaleString("ko-KR")}%`;
+const eokText = (value: number) => `${(Math.round(value * 10) / 10).toLocaleString("ko-KR")}억`;
+
+/**
+ * Below the lower bound a negative % read as nonsense (코덱스 QA 10-18 P2,
+ * "-146.9%"): it says how far below in 억 instead. In range and above, the %.
+ */
+function shownFigure(result: { pct: number; band: Band } | null, damage: number | null, low: number | null) {
+  if (!result) return null;
+  if (result.band === "BELOW_LOW" && damage != null && low != null)
+    return { kind: "gap" as const, value: Math.max(0, low - damage) };
+  return { kind: "pct" as const, value: result.pct };
+}
+const figureText = (figure: { kind: "gap" | "pct" }, value: number) =>
+  figure.kind === "gap" ? eokText(value) : pctText(value);
+
+/**
+ * The shown number runs to `target` from wherever it is now (interruptible).
+ * A different kind of number (% ↔ 억 gap) starts at its own value: no count across units.
+ */
+function useCountTo(target: number | null, kind: string | null) {
+  const reduce = useReducedMotion();
+  // First shown at 0 and counted up (PM-프론트 #888): the first result counts in too.
+  const [shown, setShown] = useState<number | null>(target == null ? null : 0);
+  const now = useRef<number | null>(null);
+  const lastKind = useRef(kind);
+  useEffect(() => {
+    const switched = lastKind.current !== kind;
+    lastKind.current = kind;
+    if (target == null || reduce) {
+      now.current = target;
+      return;
+    }
+    // From nothing (first damage typed) it counts up from 0, as the fill grows from the left end.
+    const from = switched && now.current != null ? target : (now.current ?? 0);
+    if (from === target) {
+      const frame = requestAnimationFrame(() => setShown(target));
+      return () => cancelAnimationFrame(frame);
+    }
+    const start = performance.now();
+    let frame = requestAnimationFrame(function step(time) {
+      const t = Math.min(1, (time - start) / COUNT_MS);
+      now.current = from + (target - from) * easeOut(t);
+      setShown(now.current);
+      if (t < 1) frame = requestAnimationFrame(step);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [target, kind, reduce]);
+  return target == null || reduce ? target : shown;
+}
+
+/**
+ * The counting number on its own (PM-프론트 #888): each frame of the count
+ * re-renders this <b> only, not the whole calculator.
+ */
+function CountedFigure({ value, kind, band }: { value: number; kind: "gap" | "pct"; band: Band }) {
+  // The 억 gap sits inside a sentence with no held width: it shows its final
+  // value at once, so "낮아요" after it never slides (PM-프론트 #888).
+  const counted = useCountTo(kind === "pct" ? value : null, kind) ?? value;
+  const shown = kind === "pct" ? counted : value;
+  return (
+    <b className={styles.pct} data-band={band} data-kind={kind}>
+      {figureText({ kind }, shown)}
+    </b>
+  );
+}
+
 export function ContributionTool() {
   const damageId = useId();
-  const [raid, setRaid] = useState(RAIDS[RAIDS.length - 1]);
-  const [difficulty, setDifficulty] = useState(() => difficultiesOf(RAIDS[RAIDS.length - 1])[0]);
-  const [gateNo, setGateNo] = useState(1);
-  const [text, setText] = useState("");
+  // Every input lives in the address: back and reload keep it (#889).
+  const [raid, setRaid] = useUrlState("raid", RAIDS[RAIDS.length - 1], oneOfCodec(RAIDS));
+  const [difficultyPicked, setDifficulty] = useUrlState("difficulty", "", textCodec(20));
+  const [gateNo, setGateNo] = useUrlState("gate", 1, intCodec(1, 9));
+  const [text, setText] = useUrlState("damage", "", textCodec(12));
+  // A difficulty the raid does not have (an old or edited address) falls back to its first.
+  const difficulty = difficultiesOf(raid).includes(difficultyPicked) ? difficultyPicked : difficultiesOf(raid)[0];
 
   const difficulties = difficultiesOf(raid);
   const gates = gatesOf(raid, difficulty);
@@ -44,6 +124,12 @@ export function ContributionTool() {
   const marker = result ? Math.min(100, Math.max(0, result.pct)) : null;
   const refAt =
     range && gate.reference != null ? ((gate.reference - range.low) / (range.high - range.low)) * 100 : null;
+  const figure = shownFigure(result, damage, range?.low ?? null);
+  // A band change (e.g. into 범위 안) rings the marker once; the count is the ring's key.
+  const [ring, setRing] = useState({ band: result?.band ?? null, count: 0 });
+  if (result && result.band !== ring.band) {
+    setRing({ band: result.band, count: ring.band ? ring.count + 1 : ring.count });
+  }
 
   return (
     <div className={quote.page}>
@@ -151,19 +237,42 @@ export function ContributionTool() {
               {/* Height held whether or not a damage is typed (CLS 0). */}
               <div className={styles.bar} aria-hidden="true">
                 <span className={styles.track} />
+                {/* Fill and marker move by transform from where they are; with no
+                    damage the fill is empty and the marker waits at the left end. */}
+                <span className={styles.fill} style={{ transform: `scaleX(${(marker ?? 0) / 100})` }} />
                 {refAt != null && <span className={styles.ref} style={{ left: `${refAt}%` }} />}
-                {marker != null && <span className={styles.marker} style={{ left: `${marker}%` }} data-band={result?.band} />}
+                <span className={styles.rail} style={{ transform: `translateX(${(marker ?? 0) - 100}%)` }}>
+                  <span className={styles.marker} data-band={result?.band} data-hidden={marker == null || undefined}>
+                    {ring.count > 0 && <span key={ring.count} className={styles.ring} />}
+                  </span>
+                </span>
               </div>
-              <p className={styles.verdict} role="status" aria-live="polite">
+              {/* The moving number is for the eye; the status line under it reads the final value once. */}
+              <p className={styles.verdict} aria-hidden="true">
                 {!range ? (
                   "이 관문은 기준값을 확인하고 있어 아직 계산하지 않아요."
-                ) : result ? (
-                  <>
-                    내 위치 <b data-band={result.band}>{result.pct.toLocaleString("ko-KR")}%</b> · {BAND_TEXT[result.band]}
-                  </>
+                ) : result && figure ? (
+                  figure.kind === "gap" ? (
+                    <>
+                      하한보다 <CountedFigure value={figure.value} kind="gap" band={result.band} /> 낮아요
+                    </>
+                  ) : (
+                    <>
+                      내 위치 <CountedFigure value={figure.value} kind="pct" band={result.band} /> · {BAND_TEXT[result.band]}
+                    </>
+                  )
                 ) : (
                   "피해량을 넣으면 위치를 보여 드려요."
                 )}
+              </p>
+              <p className="sr-only" role="status" aria-live="polite">
+                {!range
+                  ? "이 관문은 기준값을 확인하고 있어 아직 계산하지 않아요."
+                  : result && figure
+                    ? figure.kind === "gap"
+                      ? `하한보다 ${eokText(figure.value)} 낮아요`
+                      : `내 위치 ${pctText(result.pct)} · ${BAND_TEXT[result.band]}`
+                    : "피해량을 넣으면 위치를 보여 드려요."}
               </p>
               <p className={quote.caption}>기준 시점 {gate.basisDate}</p>
               <ul className={styles.notes}>
