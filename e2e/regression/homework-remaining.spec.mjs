@@ -16,9 +16,12 @@ test("1시간 미만이면 초까지 1초마다 움직인다 @regression", async
   await expect(left).toHaveText(/^25분 0\d초$/);
 });
 
+// The time left at the real now, minutes floored (#902): 2:04:30 left reads
+// "2시간 4분". The minute clock alone read the minute's start and said "2시간 5분",
+// a minute more than the server render of that moment.
 test("1시간 이상이면 시간과 분, '0시간'은 없다 @regression", async ({ page }) => {
-  await page.clock.install({ time: RESET - (2 * 3600 + 5 * 60) * 1000 });
+  await page.clock.install({ time: RESET - (2 * 3600 + 4 * 60 + 30) * 1000 });
   await gotoReady(page, "/tools/homework");
   const left = page.locator("dt", { hasText: "주간 초기화까지" }).locator("xpath=following-sibling::dd[1]");
-  await expect(left).toHaveText("2시간 5분");
+  await expect(left).toHaveText("2시간 4분");
 });

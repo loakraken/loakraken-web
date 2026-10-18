@@ -35,12 +35,16 @@ export const useNow = (renderedAt: number | null | undefined) => clampNow(useClo
  * Time left until `to` in the shared format (lib/time/remaining): a minute
  * clock while an hour or more is left, a second clock under that. Until the
  * client clock starts it uses `fallback` (server render time), so the text is
- * already in the first HTML (CLS). undefined without any clock, null once passed.
+ * already in the first HTML (CLS). The client clock never goes back before it
+ * (clampNow): the minute clock reads 05:38:40 as 05:38:00, which turned the
+ * server's "3시간 21분" into "3시간 22분" right after hydration and moved the
+ * row when the digits' widths differed (A6 on /schedule, #902). undefined
+ * without any clock, null once passed.
  */
 export function useRemaining(to: number | string, fallback: number | null) {
   const target = typeof to === "number" ? to : Date.parse(to);
-  const minute = useClock(MINUTE) ?? fallback;
-  const now = useClock(minute === null ? MINUTE : remainingStep(target - minute)) ?? fallback;
+  const minute = clampNow(useClock(MINUTE), fallback);
+  const now = clampNow(useClock(minute === null ? MINUTE : remainingStep(target - minute)), fallback);
   return now === null ? undefined : remainingText(target - now);
 }
 
