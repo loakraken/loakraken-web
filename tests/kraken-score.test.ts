@@ -30,6 +30,7 @@ test("크라켄 점수: score, tier, way into the tier, whole points to the next
     tierCode: "DIAMOND",
     progress: 38,
     next: "마스터 티어까지 1,041점",
+    bounds: "다이아 티어는 5,000점부터, 마스터 티어는 6,700점부터예요.",
   });
   // Whole points rounded, as comparison B (recorded samples g03, g06), x.50 up.
   const left = (remaining: number) => {
@@ -52,18 +53,28 @@ test("크라켄 점수: the top tier is a full bar with no next line", () => {
   assert.equal(top.state === "ready" && top.tier, "에스더");
   assert.equal(top.state === "ready" && top.progress, 100);
   assert.equal(top.state === "ready" && top.next, null);
+  assert.equal(top.state === "ready" && top.bounds, "에스더 티어는 9,500점부터로, 가장 높은 티어예요.");
 });
 
 test("크라켄 점수: not public or not sent is hidden; not computed or odd is '준비 중'", () => {
   assert.deepEqual(krakenScoreView(null), { state: "hidden" });
   assert.deepEqual(krakenScoreView(disabled), { state: "hidden" });
-  for (const code of ["INPUT_PENDING", "ROLE_UNKNOWN", "SCORE_UNAVAILABLE", "A_CODE_FROM_LATER"])
-    assert.deepEqual(krakenScoreView(unsupported(code)), { state: "pending" }, code);
-  assert.deepEqual(krakenScoreView({ ...ok, score: -1 }), { state: "pending" });
-  assert.deepEqual(krakenScoreView({ ...ok, score: Number.NaN }), { state: "pending" });
-  assert.deepEqual(krakenScoreView({ ...ok, tier: null }), { state: "pending" });
+  // '준비 중' with why, per reason code (a later code reads as "can't show now").
+  const why = (value: KrakenScore) => {
+    const view = krakenScoreView(value);
+    return view.state === "pending" ? view.reason.short : view.state;
+  };
+  assert.equal(why(unsupported("INPUT_PENDING")), "갱신하면 계산돼요");
+  assert.equal(why(unsupported("ROLE_UNKNOWN")), "아크 패시브 정보가 없어요");
+  assert.equal(why(unsupported("SCORE_UNAVAILABLE")), "무기·아크 패시브 정보가 부족해요");
+  assert.equal(why(unsupported("CALC_FAILED")), "계산하지 못했어요");
+  assert.equal(why(unsupported("A_CODE_FROM_LATER")), "지금은 보여 드릴 수 없어요");
+  const failed = krakenScoreView(unsupported("CALC_FAILED"));
+  assert.equal(failed.state === "pending" && failed.reason.long, "점수를 계산하지 못했어요. 잠시 뒤 갱신해 주세요.");
+  for (const odd of [{ ...ok, score: -1 }, { ...ok, score: Number.NaN }, { ...ok, tier: null }])
+    assert.equal(why(odd), "지금은 보여 드릴 수 없어요");
   // A status added later is not OK: '준비 중', not a number.
-  assert.deepEqual(krakenScoreView({ ...ok, status: "LATER" as KrakenScore["status"] }), { state: "pending" });
+  assert.equal(why({ ...ok, status: "LATER" as KrakenScore["status"] }), "지금은 보여 드릴 수 없어요");
   // A tier added later still shows the score, its name as unknown.
   const later = krakenScoreView({ ...ok, tier: { ...ok.tier!, code: "LATER" as "DIAMOND" } });
   assert.equal(later.state === "ready" && later.tier, "알 수 없음");
