@@ -39,6 +39,7 @@ import {
   quantityError,
   searchError,
   quoteStatusCopy,
+  quoteCategories,
   type ItemsEnvelope,
   type MarketFailure,
   type MarketSearch,
@@ -131,7 +132,7 @@ function ItemSearch({
     refetchOnReconnect: false,
   });
   const categories = useMemo(
-    () => options.data?.data.categories ?? [],
+    () => quoteCategories(options.data?.data.categories ?? []),
     [options.data],
   );
   const [category, setCategory] = useState<number | null>(
@@ -174,6 +175,16 @@ function ItemSearch({
     if (chip.offsetLeft < row.scrollLeft) row.scrollLeft = chip.offsetLeft;
     else if (right > row.scrollLeft) row.scrollLeft = right;
   }, [selectedCategory]);
+
+  // A shared address with a category the list does not have (one left out
+  // above, or gone): the address follows the default it falls back to.
+  useEffect(() => {
+    if (!categories.length || !categoryInAddress || selectedCategory === null || categoryInAddress === selectedCategory) return;
+    const listed = categories.some(
+      (group) => group.code === categoryInAddress || group.subs?.some((sub) => sub.code === categoryInAddress),
+    );
+    if (!listed) writeUrlParam("category", String(selectedCategory));
+  }, [categories, categoryInAddress, selectedCategory]);
 
   function choose(code: number) {
     // A waiting search that already ran keeps its category, like any other
