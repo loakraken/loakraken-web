@@ -265,3 +265,7 @@
 .past .cards {
   margin-top: var(--space-3);
 }
+/* A number and its unit never break apart (A37). */
+.nowrap {
+  white-space: nowrap;
+}

@@ -9,12 +9,14 @@ type Finding = Omit<GeneratedDiagnostics["findings"][number], "code"> & {
   code: string;
 };
 // Rule codes can grow independently; unknown codes still have displayable evidence.
-export type Character = Omit<GeneratedCharacter, "analysis"> & {
+// krakenScore is null when a backend from before it sent none (validate.ts).
+export type Character = Omit<GeneratedCharacter, "analysis" | "krakenScore"> & {
   analysis: Omit<GeneratedAnalysis, "diagnostics"> & {
     diagnostics: Omit<GeneratedDiagnostics, "findings"> & {
       findings: Finding[];
     };
   };
+  krakenScore: GeneratedCharacter["krakenScore"] | null;
 };
 export type CharacterEnvelope = Omit<
   components["schemas"]["ApiResponseCharacterResponse"],

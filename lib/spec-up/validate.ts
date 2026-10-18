@@ -4,6 +4,7 @@ import { lazyValidator } from "../api/lazy-validator";
 import { tolerantSchemas } from "../tools/contract";
 import type { SpecUpEnvelope } from "./model";
 import type { GoalEnvelope } from "./goal";
+import type { DetailEnvelope } from "./detail";
 
 // Backend #318's response shape, tolerant of new kinds and statuses.
 const guide = lazyValidator<SpecUpEnvelope>(() => {
@@ -25,4 +26,15 @@ export function isGoalEnvelope(value: unknown): value is GoalEnvelope {
 
 export function isSpecUpEnvelope(value: unknown): value is SpecUpEnvelope {
   return guide(value) && value.code === "SPEC_UP_SUCCESS" && Number.isFinite(Date.parse(value.data.fetchedAt));
+}
+
+// api #550 줄 상세, same tolerance.
+const detail = lazyValidator<DetailEnvelope>(() => {
+  const ajv = new Ajv2020({ strict: false, validateFormats: false });
+  ajv.addSchema({ $id: "spec-up-detail", components: { schemas: tolerantSchemas(contract.components.schemas) } });
+  return ajv.compile<DetailEnvelope>({ $ref: "spec-up-detail#/components/schemas/ApiResponseSpecUpDetailResponse" });
+});
+
+export function isDetailEnvelope(value: unknown): value is DetailEnvelope {
+  return detail(value) && value.code === "SPEC_UP_DETAIL_SUCCESS" && Number.isFinite(Date.parse(value.data.fetchedAt));
 }

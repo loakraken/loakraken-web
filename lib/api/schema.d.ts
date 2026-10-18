@@ -15,7 +15,7 @@ export interface paths {
          * 캐릭터 검색
          * @description 프로필, 장비·보석·각인·카드·아크패시브·아크그리드와 원정대를 제공합니다. 기본 캐시는 5분이며 fetchedAt은 실제 외부 수집 완료 시각입니다. null 섹션은 공식 API에서 데이터가 제공되지 않은 경우입니다.
          */
-        get: operations["search"];
+        get: operations["search_1"];
         put?: never;
         post?: never;
         delete?: never;
@@ -74,6 +74,8 @@ export interface components {
             analysis: components["schemas"]["CharacterAnalysisResponse"];
             braceletEfficiency: components["schemas"]["BraceletEfficiencyResponse"] | null;
             arkGridEfficiency: components["schemas"]["ArkGridEfficiencyResponse"] | null;
+            /** @description 크라켄 점수와 크라켄 점수 티어(공식 전투력과 별개의 점수). 늘 들어 있고, 아직 공개 전이면 status DISABLED(값 null) */
+            krakenScore: components["schemas"]["KrakenScoreResponse"];
             /**
              * Format: date-time
              * @description 외부 API에서 실제 수집한 UTC 시각. 캐시 조회에서도 유지됩니다.
@@ -239,6 +241,8 @@ export interface components {
             tier: number | null;
             /** @description 공식 Tooltip 귀속·거래 줄(예: '캐릭터 귀속됨', '거래 불가') */
             tradeLines: string[];
+            baseAttackPct: number | null;
+            baseAttackPctSource: string | null;
         };
         GemEffectsResponse: {
             description: string | null;
@@ -413,7 +417,7 @@ export interface components {
             characterName: string;
             serverName: string;
             className: string;
-            characterLevel: (number | null) | null;
+            characterLevel: number | null;
             itemLevel: number;
         };
         /** @description 정규화 전 원천 제공 상태. 빈 목록은 미착용을 뜻하지 않습니다. 누락 필드와 명시적 null은 NOT_PROVIDED입니다. */
@@ -661,6 +665,59 @@ export interface components {
             reasonCode: string | null;
             reason: string | null;
         };
+        /** @description 크라켄 점수. status: OK(값 있음)·UNSUPPORTED(계산 못 함, reasonCode)·DISABLED(아직 공개 전, 값 null·factors 빈 배열). 점수는 딜러 점수 또는 서포터 점수(서포터 각인 직업), 이번 단계에서 factors는 빈 배열 */
+        KrakenScoreResponse: {
+            /**
+             * @description OK·UNSUPPORTED·DISABLED
+             * @example OK
+             * @enum {string}
+             */
+            status: "OK" | "UNSUPPORTED" | "DISABLED";
+            reasonCode: string | null;
+            reason: string | null;
+            role: ("DEALER" | "SUPPORT") | null;
+            score: number | null;
+            tier: components["schemas"]["KrakenScoreTierResponse"] | null;
+            /** @description 점수 요소(공격력·진화·깨달음·도약·적에게 주는 피해·추가 피해·보주·보석·특성·에스더·팔찌 등). DISABLED면 빈 배열 */
+            factors: components["schemas"]["KrakenScoreFactorResponse"][];
+            ruleVersion: string | null;
+        };
+        KrakenScoreTierResponse: {
+            /**
+             * @description 티어 코드
+             * @example DIAMOND
+             * @enum {string}
+             */
+            code: "BRONZE" | "SILVER" | "GOLD" | "DIAMOND" | "MASTER" | "GRANDMASTER" | "ESTHER";
+            /**
+             * @description 이 티어의 최소 점수
+             * @example 5000
+             */
+            min: number;
+            nextCode: string | null;
+            nextMin: number | null;
+            remaining: number | null;
+            /**
+             * Format: int32
+             * @description 이 티어 안 진행률(정수, 내림). 최상위면 100
+             * @example 38
+             */
+            progressPercent: number;
+        };
+        KrakenScoreFactorResponse: {
+            /**
+             * @description 요소 코드(열린 값 — 단계마다 늘어남, 모르는 코드는 그 줄만 따로 표시)
+             * @example ATTACK
+             */
+            code: string;
+            value: number | null;
+            /**
+             * @description OK·UNSUPPORTED
+             * @example OK
+             */
+            status: string;
+            reasonCode: string | null;
+        };
         /** @description 공통 오류 응답. HTTP 상태와 업무 코드를 함께 확인합니다. */
         ErrorResponse: {
             /** @example INVALID_REQUEST */
@@ -678,7 +735,7 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    search: {
+    search_1: {
         parameters: {
             query: {
                 /**

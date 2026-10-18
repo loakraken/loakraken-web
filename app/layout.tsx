@@ -5,6 +5,7 @@ import localFont from "next/font/local";
 import "./globals.css";
 import Providers from "./providers";
 import { SITE_NAME, siteUrl } from "@/lib/site";
+import { siteVerification } from "@/lib/site-verification";
 import { themeInitScript } from "@/components/ui/theme-toggle";
 import { earlyClickScript } from "@/lib/early-clicks";
 import { SiteLegal } from "@/components/site/site-legal";
@@ -51,6 +52,8 @@ export function generateMetadata(): Metadata {
       description: DESCRIPTION,
     },
     twitter: { card: "summary", title: TITLE, description: DESCRIPTION },
+    // Ownership tags from the server env, production only (none when unset).
+    verification: siteVerification(),
   };
 }
 

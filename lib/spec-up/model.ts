@@ -44,6 +44,26 @@ export const kindLabel = (kind: string) => SPEC_UP_KIND_LABEL[kind] ?? kind;
  * Gold in Korean units, every digit kept (no rounding): 12,340 → "1만 2,340",
  * 123,456,789 → "1억 2,345만 6,789". The caller adds "G".
  */
+/**
+ * The room a cost cell holds from the start (A7): the widest text of the same
+ * size with one more leading digit, all eights ("62만" → "888만 8,888G"). The
+ * minute's price refresh (a few tens of percent) then never widens its column.
+ */
+export function costRoom(amount: number) {
+  const a = Math.abs(Math.trunc(amount));
+  const units = [
+    ["조", 1_000_000_000_000],
+    ["억", 100_000_000],
+    ["만", 10_000],
+  ] as const;
+  const eights = (n: number) => Number("8".repeat(n)).toLocaleString("ko-KR");
+  const top = units.findIndex(([, size]) => a >= size);
+  if (top < 0) return "8만 8,888G";
+  const [unit, size] = units[top];
+  const head = `${eights(String(Math.floor(a / size)).length + 1)}${unit}`;
+  return [head, ...units.slice(top + 1).map(([u]) => `8,888${u}`), "8,888"].join(" ") + "G";
+}
+
 export function koreanGold(amount: number) {
   if (!Number.isFinite(amount)) return "—";
   const sign = amount < 0 ? "−" : "";
@@ -64,6 +84,20 @@ export function koreanGold(amount: number) {
 
 export type Folded = { code: string; reason: string; kinds: string[]; candidates: Candidate[] };
 
+/**
+ * The minute's price refresh keeps the rows where they are (A7: rows do not
+ * move without a press): candidates already listed keep their place, new ones
+ * follow in the backend's order. A new sort is a new order.
+ */
+export function keepOrder(list: Candidate[], ids: readonly string[] | null) {
+  if (!ids) return list;
+  const at = new Map(ids.map((id, i) => [id, i]));
+  return list
+    .map((candidate, i) => ({ candidate, rank: at.get(candidate.id) ?? ids.length + i }))
+    .sort((a, b) => a.rank - b.rank)
+    .map((row) => row.candidate);
+}
+
 /** OK rows in the backend's order; the rest folded into one line per reason. */
 export function splitCandidates(list: Candidate[]) {
   const ok = list.filter((c) => c.status === "OK");
@@ -82,7 +116,18 @@ export function splitCandidates(list: Candidate[]) {
     if (!entry.kinds.includes(label)) entry.kinds.push(label);
     folded.set(code, entry);
   }
-  return { ok, folded: [...folded.values()] };
+  // Not ranked, so in a fixed order (reason code, then id) whatever order the
+  // list came in: a new order of the ranked rows moves nothing under them (A7, #857).
+  const byId = (a: { id: string }, b: { id: string }) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+  return {
+    ok,
+    folded: [...folded.values()]
+      .sort((a, b) => (a.code < b.code ? -1 : a.code > b.code ? 1 : 0))
+      .map((entry) => {
+        const candidates = [...entry.candidates].sort(byId);
+        return { ...entry, candidates, kinds: [...new Set(candidates.map((c) => kindLabel(c.kind)))] };
+      }),
+  };
 }
 
 /**

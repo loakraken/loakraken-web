@@ -575,6 +575,47 @@ createServer(async (req, res) => {
     );
     return send({ code: "AUCTION_GEMS_SUCCESS", message: "ok", data: { ruleVersion: "auction-board-v1", complete: false, cells } });
   }
+  // Gem listings by class and skill (api #542): two classes; 바드's 윈드 오브
+  // 뮤직 works on 작열 only, so it is not offered for a 겁화 cell.
+  if (url.pathname === "/api/v1/markets/auctions/gems/skills") {
+    return send({
+      code: "AUCTION_GEM_SKILLS_SUCCESS",
+      message: "ok",
+      data: {
+        checkedOn: "2026-10-18",
+        classes: [
+          { className: "바드", skills: [{ code: 21170, name: "사운드 쇼크", kinds: ["겁화", "작열"] }, { code: 21140, name: "윈드 오브 뮤직", kinds: ["작열"] }] },
+          { className: "블래스터", skills: [{ code: 30210, name: "플라즈마 스톰", kinds: ["겁화", "작열"] }] },
+        ],
+      },
+    });
+  }
+  if (url.pathname === "/api/v1/markets/auctions/gems/listings" && url.searchParams.get("className")) {
+    const kind = url.searchParams.get("kind");
+    const level = Number(url.searchParams.get("level"));
+    const className = url.searchParams.get("className");
+    const skill = url.searchParams.get("skill") ? Number(url.searchParams.get("skill")) : null;
+    const skills = { 바드: { 21170: "사운드 쇼크", 21140: "윈드 오브 뮤직" }, 블래스터: { 30210: "플라즈마 스톰" } }[className];
+    if (!skills || (skill && !skills[skill]) || (skill === 21140 && kind !== "작열"))
+      return send({ code: "INVALID_GEM_FILTER", message: "보석 매물 직업·스킬 조건이 올바르지 않습니다.", data: null }, 400);
+    const name = skill ? skills[skill] : Object.values(skills)[0];
+    const items = [0, 1].map((i) => ({
+      name: `${level}레벨 ${kind}의 보석`,
+      grade: "고대",
+      quality: null,
+      buyPrice: 1000 * (i + 1) + 300_000,
+      bidPrice: 0,
+      bidStartPrice: 200_000,
+      endDate: new Date(Date.now() + (i + 1) * 3_600_000).toISOString(),
+      tradeAllowCount: 2,
+      options: [{ type: "GEM_SKILL_DAMAGE", name, value: 44, percentage: true, level: null, className }],
+    }));
+    return send({
+      code: "AUCTION_LISTINGS_SUCCESS",
+      message: "ok",
+      data: { totalCount: 2, page: 1, observedAt: new Date().toISOString(), items, filter: { className, skill, skillName: skill ? name : null } },
+    });
+  }
   if (url.pathname === "/api/v1/markets/auctions/gems/listings") {
     const kind = url.searchParams.get("kind");
     const level = Number(url.searchParams.get("level"));
@@ -759,6 +800,24 @@ createServer(async (req, res) => {
     d.unpricedSteps = d.steps.filter((step) => step.cost.status !== "OK").length;
     d.totalCost = d.unpricedSteps ? null : d.steps.reduce((sum, step) => sum + step.cost.amount, 0);
     if (!d.reached) Object.assign(d, { stopReasonCode: "NO_CANDIDATE", stopReason: "더 올릴 수 있는 후보가 없습니다." });
+    return send(envelope);
+  }
+  // 스펙업 줄 상세 (#887, api #550): the backend's contract examples. The
+  // gem example is the list's first gem (8→9); the other OK rows get the same
+  // shape with their own candidate; an id not in the list is the 404.
+  const detailPath = url.pathname.match(/^\/api\/v1\/characters\/spec-up\/candidates\/([^/]+)$/);
+  if (detailPath) {
+    counts.specUpDetail = (counts.specUpDetail || 0) + 1;
+    const id = decodeURIComponent(detailPath[1]);
+    const fixture = (name) => JSON.parse(readFileSync(new URL(`./spec-up-fixtures/${name}`, import.meta.url), "utf8"));
+    const list = fixture("character-spec-up.json");
+    const candidate = list.data.candidates.find((c) => c.id === id && c.status === "OK");
+    if (!candidate) return send(fixture("character-spec-up-detail-not-found.json"), 404);
+    const envelope = fixture("character-spec-up-detail-gem.json");
+    const who = url.searchParams.get("characterName");
+    Object.assign(envelope.data, { characterName: who, candidate: { ...envelope.data.candidate, ...candidate } });
+    if (candidate.kind !== "GEM_LEVEL") Object.assign(envelope.data, { stats: [], market: null });
+    else if (id !== "GEM_LEVEL:0:9") envelope.data.market[0].itemName = `${String(candidate.to).replace(/\D/g, "")}레벨 겁화의 보석`;
     return send(envelope);
   }
   if (url.pathname === "/api/v1/characters/spec-up") {
@@ -2394,6 +2453,22 @@ createServer(async (req, res) => {
   }
   if (name === "문자열")
     envelope.data.guildName = '<img src=x onerror="window.injected=true">';
+  // 크라켄 점수 (backend #561): the contract's example for 상세, the other
+  // states by name. Everyone else gets none (a backend before it: no item).
+  const krakenTier = (code, min, nextCode, nextMin, remaining, progressPercent) => ({ code, min, nextCode, nextMin, remaining, progressPercent });
+  const kraken = (status, score, tier, extra = {}) => ({
+    status, reasonCode: null, reason: null, role: "DEALER", score, tier, factors: [], ruleVersion: "kraken-score-v1", ...extra,
+  });
+  const KRAKEN = {
+    상세: kraken("OK", 5658.62, krakenTier("DIAMOND", 5000, "MASTER", 6700, 1041.38, 38)),
+    상세서포터: kraken("OK", 2761.59, krakenTier("SILVER", 2000, "GOLD", 3800, 1038.41, 42), { role: "SUPPORT" }),
+    크라켄에스더: kraken("OK", 10183.94, krakenTier("ESTHER", 9500, null, null, null, 100)),
+    // The longest line: 그랜드마스터 as the next tier, five-digit points left.
+    크라켄긴줄: kraken("OK", 8654.33, krakenTier("MASTER", 6700, "GRANDMASTER", 21000, 12345.67, 13)),
+    크라켄준비중: kraken("UNSUPPORTED", null, null, { reasonCode: "INPUT_PENDING", reason: "이전 조회 결과", role: null }),
+    크라켄꺼짐: kraken("DISABLED", null, null, { role: null, ruleVersion: null }),
+  };
+  if (envelope.data && Object.hasOwn(KRAKEN, name)) envelope.data.krakenScore = KRAKEN[name];
   send(envelope);
 }).listen(port, "127.0.0.1", () =>
   console.log(`Synthetic backend: http://127.0.0.1:${port}`),

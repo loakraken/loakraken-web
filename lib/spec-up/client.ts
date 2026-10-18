@@ -1,6 +1,7 @@
 import type { BackendFailure, BackendResult } from "../api/backend";
 import type { Sort, SpecUpEnvelope } from "./model";
 import type { GoalEnvelope } from "./goal";
+import type { DetailEnvelope } from "./detail";
 
 export class SpecUpQueryError extends Error {
   info: BackendFailure;
@@ -16,6 +17,24 @@ export async function fetchSpecUpGoal(characterName: string, target: number, sig
   try {
     const response = await fetch(`/api/characters/spec-up/goal?${params}`, { cache: "no-store", signal });
     const result: BackendResult<GoalEnvelope> = await response.json();
+    if (!result.ok) throw new SpecUpQueryError(result.error);
+    if (!response.ok || !result.envelope) throw new Error("Invalid result");
+    return result.envelope;
+  } catch (error) {
+    if (error instanceof SpecUpQueryError || signal?.aborted) throw error;
+    throw new SpecUpQueryError({ code: "LOST_ARK_API_ERROR", status: 502 });
+  }
+}
+
+/** One candidate's detail (opened row only). */
+export async function fetchSpecUpDetail(characterName: string, candidateId: string, signal?: AbortSignal) {
+  const params = new URLSearchParams({ characterName });
+  try {
+    const response = await fetch(`/api/characters/spec-up/candidates/${encodeURIComponent(candidateId)}?${params}`, {
+      cache: "no-store",
+      signal,
+    });
+    const result: BackendResult<DetailEnvelope> = await response.json();
     if (!result.ok) throw new SpecUpQueryError(result.error);
     if (!response.ok || !result.envelope) throw new Error("Invalid result");
     return result.envelope;
