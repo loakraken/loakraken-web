@@ -2,7 +2,6 @@
 
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Speedometer } from "@/components/ui/icons";
 import {
@@ -29,9 +28,11 @@ import {
   type CritToggle,
   groupToggles,
   type Settings,
+  type SpeedBuff,
 } from "@/lib/crit-speed/model";
 import { UNKNOWN_LABEL } from "@/lib/tools/contract";
 import { retryLabel } from "@/lib/api/rate-limit";
+import { useUrlState, writeUrlParam, type UrlCodec } from "@/lib/tools/url-state";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import quote from "./material-quote.module.css";
 import { SiteHeader } from "@/components/site/site-header";
@@ -685,8 +686,38 @@ function Results({
   );
 }
 
+const isStrings = (v: unknown): v is string[] => Array.isArray(v) && v.every((x) => typeof x === "string");
+
+/**
+ * The assumptions as one JSON value in the address (#889): each known key is
+ * taken only with the right type, the rest falls back to the default.
+ */
+const settingsCodec: UrlCodec<Settings> = {
+  parse: (raw) => {
+    let value: unknown;
+    try {
+      value = JSON.parse(raw);
+    } catch {
+      return null;
+    }
+    if (!value || typeof value !== "object") return null;
+    const v = value as Record<string, unknown>;
+    const out: Settings = { ...DEFAULT_SETTINGS, toggles: {} };
+    for (const key of ["backAttack", "critPet", "classState"] as const) if (typeof v[key] === "boolean") out[key] = v[key];
+    for (const key of ["supportCritRate", "tripodCritRate", "extraCritRate", "attackSpeed", "moveSpeed"] as const) {
+      const n = v[key];
+      if (typeof n === "number" && Number.isFinite(n)) out[key] = n;
+    }
+    if (isStrings(v.synergy)) out.synergy = v.synergy;
+    if (isStrings(v.buffs)) out.buffs = v.buffs.filter((b): b is SpeedBuff => SPEED_BUFFS.some((x) => x.id === b));
+    if (v.toggles && typeof v.toggles === "object")
+      for (const [k, on] of Object.entries(v.toggles as Record<string, unknown>)) if (typeof on === "boolean") out.toggles[k] = on;
+    return out;
+  },
+  format: (value) => JSON.stringify(value),
+};
+
 function CritSpeedContent({ initialName }: { initialName: string }) {
-  const router = useRouter();
   const [input, setInput] = useState(initialName);
   const [touched, setTouched] = useState(false);
   const [name, setName] = useState(
@@ -694,7 +725,8 @@ function CritSpeedContent({ initialName }: { initialName: string }) {
       ? normalizeCharacterName(initialName)
       : "",
   );
-  const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
+  // The assumptions live in the address: back and reload keep them (#889).
+  const [settings, setSettings] = useUrlState<Settings>("assume", DEFAULT_SETTINGS, settingsCodec);
   // Number fields keep their own text, so a reset remounts the panel.
   const [resetKey, setResetKey] = useState(0);
   const debounced = useDebounced(settings);
@@ -738,9 +770,8 @@ function CritSpeedContent({ initialName }: { initialName: string }) {
     setTouched(true);
     if (error) return;
     const target = normalizeCharacterName(input);
-    router.replace(`?${new URLSearchParams({ character: target })}`, {
-      scroll: false,
-    });
+    // Keeps the assumptions' key in the address (a whole new query dropped them).
+    writeUrlParam("character", target);
     // Effect keys belong to one character's class and nodes.
     if (target !== name) setSettings((prev) => ({ ...prev, toggles: {} }));
     setName(target);

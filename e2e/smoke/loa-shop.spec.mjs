@@ -16,7 +16,8 @@ test.describe("로아샵 효율 @smoke", () => {
     await expect(growth.getByText("2026년 8월 19일(수) 정기 점검 후 ~ 별도 안내 시")).toBeVisible();
     await expect(page.getByRole("textbox", { name: RATE })).toHaveValue("");
     await expect(page.getByText(/로열 크리스탈로 환산한 가치/)).toHaveCount(0);
-    await expect(page.getByText("교환소 시세를 넣으면 이득을 계산해요.").first()).toBeVisible();
+    // A23(#864): with no rate each card shows its break-even rate and how to get the gain.
+    await expect(page.getByText(/교환소 시세를 넣으면 이득을 계산해요\.$/).first()).toBeVisible();
     await expectNoHorizontalOverflow(page);
   });
 
@@ -109,5 +110,18 @@ test.describe("로아샵 효율 @smoke", () => {
     await page.getByRole("textbox", { name: RATE }).fill("27300");
     await expect(peon.getByText(/로열 크리스탈로 환산한 가치/)).toHaveCount(0);
     await expect(peon.getByText("페온만 들어 있어 골드로 매길 구성품이 없어요.")).toBeVisible();
+  });
+
+  // PM 총괄 10-17(A23): 교환소 시세를 넣지 않아도 '시세가 N골드 이하면 이득'을 보여 준다(기본값은 넣지 않음).
+  test("교환소 시세가 없으면 손익 분기 시세를 보여 주고, 넣으면 이득을 계산한다", async ({ page }) => {
+    await gotoReady(page, "/tools/loa-shop");
+    const battle = page.getByRole("region", { name: "한가위 미니 전투 지원 패키지" });
+    await expect(battle.getByText(/^게임 안 크리스탈 교환소 시세가 [\d,]+골드 이하면 이득이에요\.$/)).toBeVisible();
+    await expect(battle.getByText("블루 크리스탈 100개당 시세예요. 교환소 시세를 넣으면 이득을 계산해요.")).toBeVisible();
+    // 크리스탈만으로 판매가를 넘는 패키지
+    const level = page.getByRole("region", { name: "[한정] 아이템 레벨 1,700 달성" });
+    await expect(level.getByText("교환소 시세와 상관없이 이득이에요.")).toBeVisible();
+    await page.getByRole("textbox", { name: RATE }).fill("27300");
+    await expect(battle.getByText(/로열 크리스탈로 환산한 가치/)).toBeVisible();
   });
 });

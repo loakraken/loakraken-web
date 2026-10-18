@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { keepPreviousData, useMutation, useQueries, useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Setting } from "@/components/ui/icons";
 import { Select } from "@/components/ui/select";
@@ -19,10 +19,13 @@ import {
   formatGold,
   marketFailureCopy,
   priceBases,
+  type MaterialPrice,
   type PriceBasis,
 } from "@/lib/market/model";
 import { RefiningQueryError, postRefiningPlan } from "@/lib/refining/client";
-import { retryLabel } from "@/lib/api/rate-limit";
+import { refreshEvery, retryLabel } from "@/lib/api/rate-limit";
+import { oneOfCodec, useUrlState, writeUrlParam, type UrlCodec } from "@/lib/tools/url-state";
+import { ChangeMark, UpdateAnnouncer, useChangedCells } from "@/components/ui/changed-cells";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import {
   GRADES,
@@ -62,6 +65,8 @@ const initialParts = () =>
     PartId,
     PartState
   >;
+/** One default, so "unchanged" is the same object and stays out of the address. */
+const INITIAL_PARTS = initialParts();
 const BOOK_ASSUMPTION =
   "책(야금술·재봉술) 효과가 매번 적용된다고 가정했어요. 게임에서 적용 확률은 공개되지 않았어요.";
 
@@ -127,8 +132,10 @@ function CharacterLoader({
   initialName: string;
   onLoaded: (loaded: Loaded, parts: Record<PartId, PartState>) => void;
 }) {
-  const router = useRouter();
-  const [name, setName] = useState(initialName);
+  // The name comes back from the address on back and reload (#889); the
+  // server's first props would be the empty page the router cached.
+  const fromAddress = useSearchParams().get("character")?.slice(0, 64) ?? initialName;
+  const [name, setName] = useState(fromAddress);
   const [touched, setTouched] = useState(false);
   const error = characterNameError(name);
   const load = useMutation({
@@ -151,12 +158,13 @@ function CharacterLoader({
     },
   });
   const started = useRef(false);
+  const opened = useRef(fromAddress);
   useEffect(() => {
-    if (started.current || !initialName || characterNameError(initialName))
-      return;
+    const first = opened.current;
+    if (started.current || !first || characterNameError(first)) return;
     started.current = true;
-    load.mutate(normalizeCharacterName(initialName));
-  }, [initialName, load]);
+    load.mutate(normalizeCharacterName(first));
+  }, [load]);
 
   const loadLimit = useRateLimit(load.error);
 
@@ -168,9 +176,8 @@ function CharacterLoader({
     setTouched(true);
     if (error) return;
     const target = normalizeCharacterName(name);
-    router.replace(`?${new URLSearchParams({ character: target })}`, {
-      scroll: false,
-    });
+    // Keeps the plan's keys in the address (a whole new query dropped them).
+    writeUrlParam("character", target);
     load.mutate(target);
   }
   const failure: QueryFailure | null =
@@ -355,6 +362,17 @@ function Progress({
   );
 }
 
+/** "18:32" in KST, for the "시세 HH:mm 기준" line. */
+const hhmm = new Intl.DateTimeFormat("ko-KR", {
+  timeZone: "Asia/Seoul",
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+});
+const NO_PRICES: MaterialPrice[] = [];
+/** Prices refresh every minute (사용자 10-16: every screen with market prices). */
+const PRICE_REFRESH_MS = 60_000;
+
 const kst = new Intl.DateTimeFormat("ko-KR", {
   timeZone: "Asia/Seoul",
   month: "numeric",
@@ -402,7 +420,11 @@ function useRefiningCost(plans: PartPlan[], mode: Mode, basis: PriceBasis, owned
     queryFn: ({ signal }) =>
       postMaterialPrices({ priceBasis: basis, names }, signal),
     enabled: names.length > 0 && names.length <= MAX_PRICE_NAMES,
-    staleTime: 5 * 60_000,
+    staleTime: PRICE_REFRESH_MS,
+    // Every minute while the page is visible (never in a background tab);
+    // after a 429 the next try waits for its retry time. The inputs stay as
+    // they are; only the prices are fetched again and the cost recomputed.
+    refetchInterval: refreshEvery(PRICE_REFRESH_MS),
     // Same rule as 더보기 손익 (사용자 지적 10-12 01:36): a new basis keeps
     // the old table, dimmed, instead of emptying it and refilling it.
     placeholderData: keepPreviousData,
@@ -477,6 +499,11 @@ function Result({
   const { summary, prices, priceList, total, lines, buyGold, valueRaw, unpriced } =
     useRefiningCost(plans, mode, basis, owned);
   const priceLimit = useRateLimit(prices.error);
+  // A refreshed unit price is marked for a moment (▲/▼, wash once). Watched
+  // on the response's own list, which keeps its identity between renders.
+  const { pulse, summary: changes } = useChangedCells(priceList ?? NO_PRICES, (item) => item.name, {
+    unit: (item) => (item.status === "PRICED" ? item.unitPriceGold : null),
+  });
   const priceFailure =
     prices.error instanceof MarketQueryError
       ? prices.error.info
@@ -506,9 +533,17 @@ function Result({
         · 총 {formatCount(summary.stageCount)}단계, 시도{" "}
         {formatCount(summary.attempts, mode === "expected" ? 1 : 0)}회
       </p>
-      {/* Always there, one line high: appearing and leaving moved the table. */}
+      {/* Always there, one line high: appearing and leaving moved the table.
+          A refresh in the background keeps the time line (no flicker); the
+          line is redrawn when its text changes. */}
       <p className={styles.priceStatus} role="status">
-        {prices.isFetching ? "재료 시세를 불러오고 있어요." : ""}
+        <span key={observedAt ?? (prices.isFetching ? "loading" : "none")}>
+          {observedAt
+            ? `시세 ${hhmm.format(new Date(observedAt))} 기준 · 1분마다 새로 불러와요`
+            : prices.isFetching
+              ? "재료 시세를 불러오고 있어요."
+              : ""}
+        </span>
       </p>
       {priceList && unpriced.length > 0 && (
         <p className={quote.status}>
@@ -591,10 +626,12 @@ function Result({
                   {line.missing === 0 ? "충분" : formatCount(line.missing)}
                 </td>
                 <td data-label="단가">
-                  {line.price?.status === "PRICED" &&
-                  line.price.unitPriceGold != null
-                    ? unitGold(line.price.unitPriceGold)
-                    : "—"}
+                  <ChangeMark pulse={pulse(line.name, "unit")}>
+                    {line.price?.status === "PRICED" &&
+                    line.price.unitPriceGold != null
+                      ? unitGold(line.price.unitPriceGold)
+                      : "—"}
+                  </ChangeMark>
                 </td>
                 <td className={styles.cost} data-label="구매 골드">
                   {line.purchase == null ? "—" : formatCount(line.purchase.gold)}
@@ -619,6 +656,7 @@ function Result({
           </tbody>
         </table>
       </div>
+      <UpdateAnnouncer text={changes ? `재료 단가 ${changes}` : ""} />
       <p className={quote.caption}>
         필요 수량은 소수를 올림했어요. 구매 골드는 부족 수량을 거래소 묶음
         단위로 올려 산 금액이고, 소모 가치는 기대 소모량 × 1개당 시세예요(보유
@@ -693,19 +731,71 @@ function Result({
   );
 }
 
+const isRecord = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v);
+const json = <T,>(read: (v: unknown) => T | null): UrlCodec<T> => ({
+  parse: (raw) => {
+    try {
+      return read(JSON.parse(raw));
+    } catch {
+      return null;
+    }
+  },
+  format: (value) => JSON.stringify(value),
+});
+const int = (v: unknown, min: number, max: number) =>
+  typeof v === "number" && Number.isInteger(v) && v >= min && v <= max ? v : null;
+
+/** Each part as typed; a part with a wrong field keeps its default (#889). */
+const partsCodec = json<Record<PartId, PartState>>((v) => {
+  if (!isRecord(v)) return null;
+  const out = initialParts();
+  for (const part of PARTS) {
+    const p = v[part.id];
+    if (!isRecord(p)) continue;
+    const grade = GRADES.some((g) => g.value === p.grade) ? (p.grade as Grade) : null;
+    const current = int(p.current, MIN_STAGE, 25);
+    const target = int(p.target, MIN_STAGE, 25);
+    const energy = typeof p.artisanEnergy === "number" && p.artisanEnergy >= 0 && p.artisanEnergy <= 100 ? p.artisanEnergy : null;
+    const failed = int(p.failedAttempts, 0, 999);
+    if (typeof p.enabled !== "boolean" || !grade || current == null || target == null || energy == null || failed == null) continue;
+    out[part.id] = { enabled: p.enabled, grade, current, target, artisanEnergy: energy, failedAttempts: failed };
+  }
+  return out;
+});
+const OPTION_KEYS = ["weaponBreath", "armorBreath", "weaponBook", "armorBook", "growthSupport"] as const;
+const DEFAULT_OPTIONS: Options = { weaponBreath: false, armorBreath: false, weaponBook: true, armorBook: true, growthSupport: true };
+const optionsCodec = json<Options>((v) => {
+  if (!isRecord(v)) return null;
+  const out = { ...DEFAULT_OPTIONS };
+  for (const key of OPTION_KEYS) if (typeof v[key] === "boolean") out[key] = v[key];
+  return out;
+});
+const ownedCodec = json<Owned>((v) => {
+  if (!isRecord(v)) return null;
+  const out: Owned = {};
+  for (const [k, n] of Object.entries(v)) if (typeof n === "string" && n.length <= 12 && k.length <= 40) out[k] = n;
+  return out;
+});
+const NO_OWNED: Owned = {};
+
 function RefiningContent({ initialName }: { initialName: string }) {
-  const [parts, setParts] = useState(initialParts);
+  // Every input lives in the address: back and reload keep it (#889).
+  const [parts, setParts] = useUrlState("parts", INITIAL_PARTS, partsCodec);
   const [loaded, setLoaded] = useState<Loaded | null>(null);
-  const [options, setOptions] = useState<Options>({
-    weaponBreath: false,
-    armorBreath: false,
-    weaponBook: true,
-    armorBook: true,
-    growthSupport: true,
-  });
-  const [mode, setMode] = useState<Mode>("expected");
-  const [owned, setOwned] = useState<Owned>({});
-  const [basis, setBasis] = useState<PriceBasis>("CURRENT_MIN_PRICE");
+  const [options, setOptions] = useUrlState("options", DEFAULT_OPTIONS, optionsCodec);
+  const [mode, setMode] = useUrlState<Mode>("mode", "expected", oneOfCodec(MODES.map((m) => m.id)));
+  const [owned, setOwned] = useUrlState<Owned>("owned", NO_OWNED, ownedCodec);
+  const [basis, setBasis] = useUrlState<PriceBasis>("price", "CURRENT_MIN_PRICE", oneOfCodec(priceBases.map((b) => b.value)));
+  // Targets brought back from the address win over a reload's fresh load
+  // once: the character's current stages come from the load, the plan stays.
+  // Only for the character the address opened with (click-path audit #889):
+  // loading someone else afterwards starts from that character's own stages.
+  const openedCharacter = useSearchParams().get("character");
+  const restored = useRef<{ name: string; parts: Record<PartId, PartState> } | null>(
+    parts !== INITIAL_PARTS && openedCharacter && !characterNameError(openedCharacter)
+      ? { name: normalizeCharacterName(openedCharacter), parts }
+      : null,
+  );
   const setPart = (id: PartId, next: PartState) =>
     setParts((prev) => ({ ...prev, [id]: next }));
 
@@ -792,7 +882,22 @@ function RefiningContent({ initialName }: { initialName: string }) {
                   initialName={initialName}
                   onLoaded={(next, nextParts) => {
                     setLoaded(next);
-                    setParts(nextParts);
+                    const saved = restored.current?.name === next.name ? restored.current.parts : null;
+                    restored.current = null;
+                    setParts(
+                      saved
+                        ? (Object.fromEntries(
+                            PARTS.map((part) => {
+                              const fresh = nextParts[part.id];
+                              const kept = saved[part.id];
+                              return [
+                                part.id,
+                                kept.target > fresh.current ? { ...fresh, enabled: kept.enabled, target: kept.target } : fresh,
+                              ];
+                            }),
+                          ) as Record<PartId, PartState>)
+                        : nextParts,
+                    );
                   }}
                 />
               </div>

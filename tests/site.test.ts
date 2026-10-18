@@ -17,3 +17,8 @@ test("only the production domain is indexable; sitemap lists fixed pages only", 
   assert.equal(isIndexable("https://www.loakraken.gg"), false);
   assert.ok(SITEMAP_PATHS.every((path) => !path.startsWith("/character")));
 });
+
+test("the market detail pages are in the sitemap (A6)", () => {
+  for (const path of ["/market/accessories", "/market/gems"])
+    assert.ok((SITEMAP_PATHS as readonly string[]).includes(path), path);
+});

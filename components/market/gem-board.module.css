@@ -64,11 +64,13 @@
   font-variant-numeric: tabular-nums; /* on the number itself (see accessory-board) */
   color: var(--muted-foreground);
 }
+/* Up and down in the market colours, as on the price board and charts (not the
+   tools' gain/loss colours, which mean profit and loss). */
 .change[data-direction="up"] {
-  color: var(--gain);
+  color: var(--market-up);
 }
 .change[data-direction="down"] {
-  color: var(--loss);
+  color: var(--market-down);
 }
 .flat {
   grid-area: change;
@@ -79,6 +81,75 @@
 .listings {
   min-height: 560px;
   margin-top: 28px;
+}
+/* With the class/skill row the box keeps one height still (the row's room added). */
+.listings:has(.filter) {
+  min-height: 624px;
+}
+/* Class and skill for the listings (api #542): label + select pairs on one
+   line where they fit, then the note; a phone stacks the pairs. */
+.filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+  margin-bottom: 12px;
+}
+/* Every item of the row exactly 36px (the select's light button and the full
+   one it turns into may wrap differently): the note under them never moves. */
+.filter > :not(small) {
+  display: inline-flex;
+  align-items: center;
+  height: 36px;
+}
+.filter label {
+  color: var(--muted-foreground);
+  font-size: 13px;
+  font-weight: 600;
+}
+/* Fixed widths, the longest names inside (classes up to 6 letters such as
+   디스트로이어; skills up to 댄싱 오브 스파인플라워): a new choice changes
+   no width, so nothing beside it moves, and no name is cut. */
+.classSelect {
+  width: 9em;
+}
+.skillSelect {
+  width: 15em;
+}
+.filter small {
+  flex-basis: 100%;
+  min-height: 18px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 18px;
+}
+/* A phone wraps the longest note (with the supporter line) onto three lines:
+   its room is held from the start, so a new sentence moves nothing below. */
+@media (max-width: 699px) {
+  .filter small {
+    min-height: 54px;
+  }
+}
+/* Listings columns by share, not by content: narrowing to a class or skill
+   changes the effect text, never a column, so the header stays put (A7). */
+.listingTable {
+  table-layout: fixed;
+  width: 100%;
+  /* Narrower screens scroll the table in its own box (DataTable). */
+  min-width: 37em;
+}
+/* Fixed room for the longest figures (12,345,678G; 10. 19. 23:59; 불가);
+   the effect takes the rest and wraps. */
+.listingTable thead th:nth-child(2),
+.listingTable thead th:nth-child(3),
+.listingTable thead th:nth-child(4) {
+  width: 8.5em;
+}
+.listingTable thead th:nth-child(5) {
+  width: 5em;
+}
+.listingTable tbody th {
+  overflow-wrap: anywhere;
 }
 .listings h2 {
   margin-bottom: 10px;

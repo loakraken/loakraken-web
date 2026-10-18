@@ -1,15 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useId, useState } from "react";
 import { useRouter } from "next/navigation";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { SiteHeader } from "@/components/site/site-header";
 import { DataTable } from "@/components/ui/data-table";
 import { Diamonds } from "@/components/ui/icons";
-import { countdownText, retryLabel } from "@/lib/api/rate-limit";
+import { PendingText } from "@/components/ui/pending-text";
+import { Select } from "@/components/ui/select";
+import { countdownText, failureOf, retryLabel } from "@/lib/api/rate-limit";
 import { pendingProps } from "@/lib/api/pending";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
-import { fetchGemBoard, fetchGemListings } from "@/lib/market/client";
+import { fetchGemBoard, fetchGemListings, fetchGemSkills } from "@/lib/market/client";
 import {
   GEM_KINDS,
   GEM_LEVELS,
@@ -17,11 +19,16 @@ import {
   gemGrid,
   gemPickSearch,
   gemTarget,
+  skillsFor,
   type GemCell,
+  type GemClass,
   type GemKind,
   type GemPick,
 } from "@/lib/market/auction-gems";
 import { goldText } from "@/lib/market/board";
+import { SUPPORT_CLASSES } from "@/lib/character/detail";
+import { boardRefresh } from "@/lib/market/refresh";
+import { ChangeMark, UpdateAnnouncer, useChangedCells, type Pulse } from "@/components/ui/changed-cells";
 import quote from "@/components/tools/material-quote.module.css";
 import stats from "@/components/stats/stats.module.css";
 import styles from "./gem-board.module.css";
@@ -43,43 +50,129 @@ function Change({ rate }: { rate: number | null | undefined }) {
   );
 }
 
-function Cell({ cell, picked, onPick }: { cell: GemCell | undefined; picked: boolean; onPick: () => void }) {
+const NO_CELLS: GemCell[] = [];
+const cellId = (cell: GemCell) => `${cell.kind}-${cell.level}`;
+
+function Cell({ cell, picked, onPick, pulse }: { cell: GemCell | undefined; picked: boolean; onPick: () => void; pulse?: Pulse }) {
   if (!cell || cell.status !== "READY")
     return (
       <td className={styles.cell}>
-        <span className={styles.pending}>집계 중</span>
+        <span className={styles.pending}>
+          <PendingText />
+        </span>
       </td>
     );
   return (
     <td className={styles.cell}>
       <button type="button" aria-pressed={picked} onClick={onPick} aria-label={`${cell.itemName} 매물 보기`}>
-        <b>{gold(cell.minBuyPrice)}</b>
-        <Change rate={cell.previousDayChangeRate} />
-        <small>매물 {count(cell.totalCount)}</small>
+        {/* A price that changed on the minute's refresh tints once (the cell's
+            own ▲/▼ is the day change, so no second arrow and no width change).
+            Right-aligned text rewritten in place starts elsewhere and counts as
+            moving (A7): new values draw new text, as on the accessory board. */}
+        <Fragment key={`${cell.minBuyPrice}|${cell.previousDayChangeRate}|${cell.totalCount}`}>
+          <b>
+            <ChangeMark pulse={pulse}>{gold(cell.minBuyPrice)}</ChangeMark>
+          </b>
+          <Change rate={cell.previousDayChangeRate} />
+          <small>매물 {count(cell.totalCount)}</small>
+        </Fragment>
       </button>
     </td>
   );
 }
 
 /**
+ * The listings' class and skill (api #542): a class, then one of its skills
+ * that works on the picked kind. Only the listings narrow; the board prices
+ * stay those of every gem. One row from the first HTML whatever the list is
+ * doing (loading, failed, switched off after the page came), so nothing moves.
+ */
+function GemFilter({
+  pick,
+  classes,
+  note,
+  onChange,
+}: {
+  pick: GemPick | null;
+  classes: readonly GemClass[] | null;
+  note: string | null;
+  onChange: (className: string | null, skill: number | null) => void;
+}) {
+  const classId = useId();
+  const skillId = useId();
+  const hintId = useId();
+  const ready = !!classes && !!pick && !note;
+  const skills = classes && pick ? skillsFor(classes, pick.className, pick.kind) : [];
+  // Skills with only a support effect are not in the backend's list yet (no
+  // official option to search by): say so for a supporter class.
+  const supportNote = pick?.className && SUPPORT_CLASSES.includes(pick.className) ? " 일부 서포터 스킬은 아직 고를 수 없어요." : "";
+  const hint =
+    note ??
+    (pick
+      ? `직업·스킬은 아래 매물만 걸러요. 표의 최저가는 모든 보석 기준이에요.${supportNote}`
+      : "위 표에서 칸을 고르면 직업·스킬로 거를 수 있어요.");
+  return (
+    <form className={styles.filter} aria-label="매물 직업·스킬" onSubmit={(e) => e.preventDefault()}>
+      <label htmlFor={classId}>직업</label>
+      <Select
+        id={classId}
+        className={styles.classSelect}
+        aria-describedby={hintId}
+        value={pick?.className ?? ""}
+        disabled={!ready}
+        onValueChange={(v) => onChange(v || null, null)}
+        items={[{ value: "", label: "모든 직업" }, ...(classes ?? []).map((c) => ({ value: c.className, label: c.className }))]}
+      />
+      <label htmlFor={skillId}>스킬</label>
+      <Select
+        id={skillId}
+        className={styles.skillSelect}
+        aria-describedby={hintId}
+        value={pick?.skill ? String(pick.skill) : ""}
+        disabled={!ready || !pick?.className}
+        onValueChange={(v) => onChange(pick?.className ?? null, v ? Number(v) : null)}
+        items={[{ value: "", label: "모든 스킬" }, ...skills.map((s) => ({ value: String(s.code), label: s.name }))]}
+      />
+      {/* A new sentence is drawn anew: text rewritten in place counts as moving (A7). */}
+      <small key={hint} id={hintId}>
+        {hint}
+      </small>
+    </form>
+  );
+}
+
+/**
  * 보석 시세 (API list #8·#9): the lowest buy-now price of each T4 gem, its
  * change from yesterday's last observed price (ours) and the listing count;
- * pressing a cell lists the cheapest ten listings of that gem below. The
- * listings box keeps one height from the first HTML (before a pick, while
- * loading, failed, short), so nothing under it moves (A6·A7).
+ * pressing a cell lists the cheapest ten listings of that gem below, which
+ * can be narrowed to a class and skill. The listings box keeps one height
+ * from the first HTML (before a pick, while loading, failed, short), so
+ * nothing under it moves (A6·A7).
  */
-export function GemBoardView({ initialPick }: { initialPick: GemPick | null }) {
+export function GemBoardView({
+  initialPick,
+  filter = "off",
+}: {
+  initialPick: GemPick | null;
+  /** The class/skill filter as the server found it: its list came with the page, or not (no row). */
+  filter?: "on" | "off";
+}) {
   const router = useRouter();
   const [pick, setPick] = useState<GemPick | null>(initialPick);
+  const skillList = useQuery({
+    queryKey: ["gem-skills"],
+    queryFn: ({ signal }) => fetchGemSkills(signal),
+    enabled: filter !== "off",
+    staleTime: Infinity,
+    retry: false,
+  });
+  const classes = skillList.data?.data.classes ?? null;
   const board = useQuery({
     queryKey: ["gem-board"],
     queryFn: ({ signal }) => fetchGemBoard(signal),
     staleTime: 60_000,
     retry: false,
-    // Blank cells fill once the backend has read them: look again shortly,
-    // six times at most (30 s), then the cell stays "집계 중" until a reload.
-    refetchInterval: (query) =>
-      query.state.data && !query.state.data.data.complete && query.state.dataUpdateCount < 7 ? 5_000 : false,
+    refetchInterval: boardRefresh,
   });
   const listings = useQuery({
     queryKey: ["gem-listings", pick],
@@ -90,9 +183,17 @@ export function GemBoardView({ initialPick }: { initialPick: GemPick | null }) {
     retry: false,
   });
   const boardLimit = useRateLimit(board.error);
-  const listingLimit = useRateLimit(listings.error);
+  // A busy filtered search (its share used up) waits like the rate limit.
+  const listingLimit = useRateLimit(listings.error, ["MARKET_SEARCH_BUSY"]);
+  const listingFailure = failureOf(listings.error)?.code;
+  const skillFailure = failureOf(skillList.error)?.code;
   const data = board.data?.data;
   const cellOf = data ? gemGrid(data) : () => undefined;
+  const changed = useChangedCells(data?.cells ?? NO_CELLS, cellId, { price: (cell) => cell.minBuyPrice });
+  const pulseOf = (cell: GemCell | undefined) => {
+    const pulse = cell && changed.pulse(cellId(cell), "price");
+    return pulse && { ...pulse, dir: 0 as const };
+  };
   const latest = data?.cells.reduce<string | null>(
     (at, cell) => (cell.observedAt && (!at || cell.observedAt > at) ? cell.observedAt : at),
     null,
@@ -102,6 +203,18 @@ export function GemBoardView({ initialPick }: { initialPick: GemPick | null }) {
     setPick(next);
     router.replace(`?${gemPickSearch(next)}`, { scroll: false });
   }
+  // Another cell keeps the class, and the skill only if it works on that kind.
+  function chooseCell(kind: GemKind, level: number) {
+    const className = pick?.className ?? null;
+    const keeps = classes && pick?.skill ? skillsFor(classes, className, kind).some((s) => s.code === pick.skill) : false;
+    choose({ kind, level, page: 1, className, skill: keeps ? pick!.skill : null });
+  }
+  const filterNote =
+    skillFailure === "GEM_FILTER_DISABLED" || listingFailure === "GEM_FILTER_DISABLED"
+      ? "지금은 직업·스킬로 거를 수 없어요."
+      : skillList.isError
+        ? "직업·스킬 목록을 불러오지 못했어요."
+        : null;
   const pickedCell = pick ? cellOf(pick.kind, pick.level) : undefined;
   const page = listings.data?.data;
   const pages = page ? Math.max(1, Math.min(GEM_LISTING_MAX_PAGE, Math.ceil(page.totalCount / 10))) : 1;
@@ -155,8 +268,9 @@ export function GemBoardView({ initialPick }: { initialPick: GemPick | null }) {
                       <Cell
                         key={kind}
                         cell={cellOf(kind, level)}
+                        pulse={pulseOf(cellOf(kind, level))}
                         picked={pick?.kind === kind && pick.level === level}
-                        onPick={() => choose({ kind, level, page: 1 })}
+                        onPick={() => chooseCell(kind, level)}
                       />
                     ) : (
                       <td key={kind} className={styles.cell}>
@@ -173,13 +287,28 @@ export function GemBoardView({ initialPick }: { initialPick: GemPick | null }) {
         <section className={styles.listings} aria-labelledby="gem-listings-heading" {...pendingProps(listings)}>
           <h2 id="gem-listings-heading">
             {pick ? `${pick.level}레벨 ${pick.kind}의 보석 매물` : "매물"}
-            {page && <small> · {count(page.totalCount)}개 중 싼 순</small>}
+            {/* Drawn anew for each cell, filter and count: rewritten in place it counts as moving (A7). */}
+            {page && pick && <small key={`${gemPickSearch(pick)}:${page.totalCount}`}> · {count(page.totalCount)}개 중 싼 순</small>}
           </h2>
+          {filter !== "off" && (
+            <GemFilter
+              pick={pick}
+              classes={classes}
+              note={filterNote}
+              onChange={(className, skill) => pick && choose({ ...pick, page: 1, className, skill })}
+            />
+          )}
           {!pick ? (
             <p className={stats.muted}>위 표에서 칸을 누르면 즉시 구매가가 싼 매물 10개를 보여 드려요.</p>
           ) : listings.isError && !page ? (
             <div className={stats.problem}>
-              <p>{listingLimit.limited ? countdownText(listingLimit.seconds) : "매물을 불러오지 못했어요."}</p>
+              <p>
+                {listingLimit.limited
+                  ? countdownText(listingLimit.seconds)
+                  : listingFailure === "INVALID_GEM_FILTER"
+                    ? "이 직업·스킬로는 이 보석을 찾을 수 없어요. 조건을 바꿔 주세요."
+                    : "매물을 불러오지 못했어요."}
+              </p>
               <button type="button" onClick={() => listings.refetch()} disabled={listingLimit.seconds > 0}>
                 {retryLabel(listingLimit.seconds)}
               </button>
@@ -194,7 +323,7 @@ export function GemBoardView({ initialPick }: { initialPick: GemPick | null }) {
             </p>
           ) : (
             <>
-              <DataTable label="보석 매물" className={stats.table}>
+              <DataTable label="보석 매물" className={`${stats.table} ${styles.listingTable}`}>
                 <caption className={stats.srOnly}>
                   {pick.level}레벨 {pick.kind}의 보석 매물 {pick.page}쪽
                 </caption>
@@ -245,6 +374,7 @@ export function GemBoardView({ initialPick }: { initialPick: GemPick | null }) {
             </>
           )}
         </section>
+        <UpdateAnnouncer text={changed.summary ? `보석 시세 ${changed.summary}` : ""} />
       </main>
     </div>
   );

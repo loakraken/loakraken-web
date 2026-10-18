@@ -8,10 +8,13 @@ import {
   useState,
   type CSSProperties,
   type FormEvent,
+  type KeyboardEvent,
 } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { refreshEvery } from "@/lib/api/rate-limit";
+import { useSearchParams } from "next/navigation";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ChangeMark, UpdateAnnouncer, useChangedCells, type Pulse } from "@/components/ui/changed-cells";
 import { AnimatePresence, m } from "motion/react";
 import { Add, ArrowLeft, Calculator, CloseCircle, SearchNormal, TickCircle } from "@/components/ui/icons";
 import { GameIcon } from "@/components/character/imagery";
@@ -36,15 +39,19 @@ import {
   quantityError,
   searchError,
   quoteStatusCopy,
+  type ItemsEnvelope,
   type MarketFailure,
   type MarketSearch,
   type MaterialQuote,
   type PriceBasis,
 } from "@/lib/market/model";
 import { toQuoteRequest, usePlan, type PlanRow } from "@/lib/market/store";
+import { usePlanInAddress, type Saved } from "@/lib/market/plan-address";
+import { textCodec, useUrlState, writeUrlParam } from "@/lib/tools/url-state";
 import { SiteHeader } from "@/components/site/site-header";
 import { SegmentedControl, SegmentedItem } from "@/components/ui/segmented-control";
 import styles from "./material-quote.module.css";
+import restoreStyles from "./material-quote-restore.module.css";
 
 const kst = new Intl.DateTimeFormat("ko-KR", {
   timeZone: "Asia/Seoul",
@@ -94,6 +101,11 @@ function Notice({ failure, wait }: { failure: MarketFailure; wait: number }) {
   );
 }
 
+/** Debounce for searching while typing (PM 총괄 2026-10-16). */
+const LIVE_SEARCH_MS = 200;
+/** A name ends in a lone jamo while a syllable is still being composed ("운" → "ㅇ", "우"); search what is whole. */
+const searchable = (text: string) => normalizeText(text).replace(/[\u3131-\u318E]+$/, "").trim();
+
 function ItemSearch({
   wait,
   onRateLimit,
@@ -104,7 +116,10 @@ function ItemSearch({
   initialCategory: number | null;
 }) {
   const formId = useId();
-  const router = useRouter();
+  const listId = useId();
+  const queryClient = useQueryClient();
+  // The category picked comes back from the address on back and reload (#889).
+  const categoryInAddress = Number(useSearchParams().get("category"));
   const chipRow = useRef<HTMLDivElement>(null);
   const { rows, add } = usePlan();
   const options = useQuery({
@@ -119,14 +134,23 @@ function ItemSearch({
     () => options.data?.data.categories ?? [],
     [options.data],
   );
-  const [category, setCategory] = useState<number | null>(initialCategory);
-  const [name, setName] = useState("");
+  const [category, setCategory] = useState<number | null>(
+    Number.isInteger(categoryInAddress) && categoryInAddress > 0 ? categoryInAddress : initialCategory,
+  );
+  // The name typed lives in the address: back and reload keep it (#889).
+  const [name, setName] = useUrlState("q", "", textCodec(40));
   const [error, setError] = useState("");
   const [submitted, setSubmitted] = useState<MarketSearch | null>(null);
   // A search pressed before the category list arrives waits for it instead
   // of failing with a category error the user could not have avoided: the
   // name is kept and the search starts as soon as a category exists.
   const [pending, setPending] = useState<string | null>(null);
+  // Search while typing: 200ms after the last keystroke (Korean included —
+  // the input value already holds the syllable being composed).
+  // A name brought back from the address searches again but keeps the list
+  // closed until the field is used, so it does not cover the page on return.
+  const [open, setOpen] = useState(() => name === "");
+  const [active, setActive] = useState(-1);
   // A linked code the list does not have falls back like no choice at all.
   const known = (code: number | null) =>
     code !== null &&
@@ -158,7 +182,8 @@ function ItemSearch({
     setPending(null);
     setCategory(code);
     setError("");
-    router.replace(`?${new URLSearchParams({ category: String(code) })}`, { scroll: false });
+    // A plain replaceState keeps the name's key (a whole new query dropped it).
+    writeUrlParam("category", String(code));
   }
   const search: MarketSearch | null =
     submitted ??
@@ -166,10 +191,29 @@ function ItemSearch({
       ? { categoryCode: selectedCategory, itemName: pending, pageNo: 1 }
       : null);
   const waiting = !selectedCategory && options.isFetching;
+  // A complete earlier result (every match fit on page 1) whose name the new
+  // one contains already holds every new match: filter it here, no request.
+  // A few cached searches at most: read straight from the cache each render.
+  const local = (() => {
+    if (!search) return null;
+    for (const [key, data] of queryClient.getQueriesData<ItemsEnvelope>({ queryKey: ["market", "items"] })) {
+      const earlier = key[2] as MarketSearch | null;
+      const page = data?.data;
+      if (!earlier || !page || earlier.categoryCode !== search.categoryCode || earlier.pageNo !== 1) continue;
+      if (page.totalCount > page.items.length || !search.itemName.includes(earlier.itemName)) continue;
+      if (earlier.itemName === search.itemName) return null;
+      const items = page.items.filter((item) => item.name.includes(search.itemName));
+      return { ...page, items, totalCount: items.length };
+    }
+    return null;
+  })();
   const items = useQuery({
     queryKey: ["market", "items", search],
     queryFn: ({ signal }) => fetchMarketItems(search!, signal),
-    enabled: !!search,
+    enabled: !!search && !local,
+    // Typing changes the key every few letters: keep the last list on screen
+    // until the new one lands, so it does not empty and refill (perf-placeholder-data).
+    placeholderData: keepPreviousData,
     retry: false,
     staleTime: 30_000,
     refetchOnWindowFocus: false,
@@ -179,6 +223,34 @@ function ItemSearch({
   useEffect(() => {
     if (failure?.retryAt) onRateLimit(failure);
   }, [failure, onRateLimit]);
+
+  // Typing searches by itself after a short pause; Enter or the button still
+  // searches at once.
+  useEffect(() => {
+    const text = searchable(name);
+    const timer = setTimeout(() => {
+      setActive(-1);
+      if (!text) {
+        setSubmitted(null);
+        setPending(null);
+        return;
+      }
+      if (searchError(1, text)) return;
+      if (!selectedCategory) {
+        if (options.isFetching) setPending(text);
+        return;
+      }
+      setPending(null);
+      setSubmitted((prev) =>
+        prev?.itemName === text && prev.categoryCode === selectedCategory
+          ? prev
+          : { categoryCode: selectedCategory, itemName: text, pageNo: 1 },
+      );
+    }, LIVE_SEARCH_MS);
+    return () => clearTimeout(timer);
+    // Only typing starts a search; a category change alone never re-runs it (see choose).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [name]);
 
   function submit(event: FormEvent) {
     event.preventDefault();
@@ -201,7 +273,33 @@ function ItemSearch({
     });
   }
 
-  const results = items.data?.data;
+  const results = local ?? items.data?.data;
+  const shown = open && !!results && results.items.length > 0;
+  const optionId = (index: number) => `${listId}-option-${index}`;
+  const pick = (index: number) => {
+    const item = results?.items[index];
+    if (!item || !search || rows.length >= MAX_QUOTE_ITEMS || rows.some((row) => row.item.id === item.id)) return;
+    add(item, search);
+  };
+  // Combobox keys (WAI-ARIA): ↑/↓ move through the results, Enter adds the
+  // one in focus (or searches when none is), Esc closes the list.
+  function onKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    const count = results?.items.length ?? 0;
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      if (!count) return;
+      event.preventDefault();
+      setOpen(true);
+      const step = event.key === "ArrowDown" ? 1 : -1;
+      setActive((prev) => (prev < 0 ? (step > 0 ? 0 : count - 1) : (prev + step + count) % count));
+    } else if (event.key === "Enter" && shown && active >= 0) {
+      event.preventDefault();
+      pick(active);
+    } else if (event.key === "Escape" && shown) {
+      event.preventDefault();
+      setOpen(false);
+      setActive(-1);
+    }
+  }
   return (
     <div
       className={styles.searchArea}
@@ -245,37 +343,145 @@ function ItemSearch({
           </p>
         )}
       </div>
-      <form
-        className={styles.searchForm}
-        onSubmit={submit}
-        noValidate
-        aria-busy={items.isFetching}
+      {/* The results float under the field like any combobox list, so
+          results arriving while typing never push the page (A7, PM-프론트
+          #855). Focus leaving the box closes them. */}
+      <div
+        className={styles.searchBox}
+        onBlur={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+            setOpen(false);
+            setActive(-1);
+          }
+        }}
       >
-        <label className={styles.field} data-grow="">
-          <span>재료 이름</span>
-          <input
-            value={name}
-            onChange={(event) => {
-              setName(event.target.value);
-              setError("");
-            }}
-            maxLength={65}
-            placeholder="예: 운명의 파편"
-            aria-invalid={!!error}
-            aria-describedby={error ? `${formId}-error` : undefined}
-            autoComplete="off"
-          />
-        </label>
-        <button
-          type="submit"
-          className={styles.secondaryPill}
-          aria-disabled={items.isFetching || wait > 0 || undefined}
-          aria-busy={items.isFetching || undefined}
+        <form
+          className={styles.searchForm}
+          onSubmit={submit}
+          noValidate
+          aria-busy={items.isFetching}
         >
-          <SearchNormal size={15} aria-hidden="true" />{" "}
-          {items.isFetching ? "검색 중" : "검색"}
-        </button>
-      </form>
+          <label className={styles.field} data-grow="">
+            <span>재료 이름</span>
+            <input
+              role="combobox"
+              aria-autocomplete="list"
+              aria-expanded={shown}
+              aria-controls={listId}
+              aria-activedescendant={shown && active >= 0 ? optionId(active) : undefined}
+              value={name}
+              onChange={(event) => {
+                setName(event.target.value);
+                setError("");
+                setOpen(true);
+              }}
+              onKeyDown={onKeyDown}
+            onFocus={() => setOpen(true)}
+              name="itemName"
+              spellCheck={false}
+              enterKeyHint="search"
+              maxLength={65}
+              placeholder="예: 운명의 파편…"
+              aria-invalid={!!error}
+              aria-describedby={error ? `${formId}-error` : undefined}
+              autoComplete="off"
+            />
+          </label>
+          <button
+            type="submit"
+            className={styles.secondaryPill}
+            aria-disabled={items.isFetching || wait > 0 || undefined}
+            aria-busy={items.isFetching || undefined}
+          >
+            <SearchNormal size={15} aria-hidden="true" />{" "}
+            {/* Both labels share one grid cell, so the button keeps the wider one's width. */}
+            <span className={styles.searchLabel}>
+              <span data-shown={!items.isFetching || undefined}>검색</span>
+              <span data-shown={items.isFetching || undefined}>검색 중…</span>
+            </span>
+          </button>
+        </form>
+        {results && open && (
+          // While the previous list stands in for a new search it is dimmed and
+          // marked busy (A8), so it is never read as the new result.
+          <div
+            className={styles.results}
+            data-stale={(!local && items.isPlaceholderData) || undefined}
+            aria-busy={(!local && items.isPlaceholderData) || undefined}
+          >
+            {/* Only the count is announced: reading the whole list on every keystroke would drown the input. */}
+            {/* Redrawn as a new line when its text changes, so the words after
+                a number never slide as the number's width changes (A6). */}
+            <p className={styles.caption} role="status">
+              <span key={`${results.items.length}-${results.totalCount}-${results.observedAt}`}>
+                1페이지 {results.items.length}개 · 전체 {count(results.totalCount)}
+                개 · {time(results.observedAt)} 기준
+              </span>
+            </p>
+            {results.items.length === 0 ? (
+              <p className={styles.empty}>
+                검색 결과가 없어요. 이름이나 카테고리를 바꿔 보세요.
+              </p>
+            ) : (
+              <ul className={styles.resultList} id={listId} role="listbox" aria-label="검색 결과" hidden={!shown}>
+                {results.items.map((item, index) => {
+                  const added = rows.some((row) => row.item.id === item.id);
+                  const full = rows.length >= MAX_QUOTE_ITEMS;
+                  return (
+                    // 모션 목록(재료 시세): a new result list enters 30ms apart (max 8
+                    // steps). Items keep their key, so a repeat search does not replay.
+                    // The whole row is the option: a click or Enter adds it.
+                    <li
+                      key={item.id}
+                      id={optionId(index)}
+                      role="option"
+                      aria-selected={active === index}
+                      aria-disabled={added || full || undefined}
+                      aria-label={added ? `${item.name} 추가됨` : `${item.name} 견적에 추가`}
+                      className="k-reveal"
+                      style={{ "--i": index } as CSSProperties}
+                      onMouseDown={(event) => event.preventDefault()}
+                      onClick={() => pick(index)}
+                    >
+                      <GameIcon
+                        key={item.icon}
+                        src={item.icon}
+                        grade={item.grade}
+                        size={40}
+                      />
+                      <div className={styles.resultText}>
+                        <strong>{item.name}</strong>
+                        <small>
+                          {item.bundleCount}개 묶음 · 최저{" "}
+                          {formatGold(item.currentMinPrice)} · 최근{" "}
+                          {formatGold(item.recentPrice)} · 전일{" "}
+                          {formatGold(item.yDayAvgPrice)}
+                        </small>
+                      </div>
+                      <span className={styles.outlinePill} aria-hidden="true" data-disabled={added || full || undefined}>
+                        {added ? (
+                          <>
+                            <TickCircle size={14} aria-hidden="true" /> 추가됨
+                          </>
+                        ) : (
+                          <>
+                            <Add size={14} aria-hidden="true" /> 추가
+                          </>
+                        )}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+            {rows.length >= MAX_QUOTE_ITEMS && (
+              <p className={styles.caption}>
+                한 번에 최대 {MAX_QUOTE_ITEMS}개까지 계산할 수 있어요.
+              </p>
+            )}
+          </div>
+        )}
+      </div>
       {pending !== null && !search && options.isFetching && (
         <p className={styles.caption} role="status">
           카테고리 목록을 받는 대로 검색할게요.
@@ -287,73 +493,6 @@ function ItemSearch({
         </p>
       )}
       {failure && <Notice failure={failure} wait={wait} />}
-      {results && (
-        <div className={styles.results} aria-live="polite">
-          <p className={styles.caption}>
-            1페이지 {results.items.length}개 · 전체 {count(results.totalCount)}
-            개 · {time(results.observedAt)} 기준
-          </p>
-          {results.items.length === 0 ? (
-            <p className={styles.empty}>
-              검색 결과가 없어요. 이름이나 카테고리를 바꿔 보세요.
-            </p>
-          ) : (
-            <ul className={styles.resultList}>
-              {results.items.map((item, index) => {
-                const added = rows.some((row) => row.item.id === item.id);
-                const full = rows.length >= MAX_QUOTE_ITEMS;
-                return (
-                  // 모션 목록(재료 시세): a new result list enters 30ms apart (max 8
-                  // steps). Items keep their key, so a repeat search does not replay.
-                  <li key={item.id} className="k-reveal" style={{ "--i": index } as CSSProperties}>
-                    <GameIcon
-                      key={item.icon}
-                      src={item.icon}
-                      grade={item.grade}
-                      size={40}
-                    />
-                    <div className={styles.resultText}>
-                      <strong>{item.name}</strong>
-                      <small>
-                        {item.bundleCount}개 묶음 · 최저{" "}
-                        {formatGold(item.currentMinPrice)} · 최근{" "}
-                        {formatGold(item.recentPrice)} · 전일{" "}
-                        {formatGold(item.yDayAvgPrice)}
-                      </small>
-                    </div>
-                    <button
-                      type="button"
-                      className={styles.outlinePill}
-                      disabled={added || full}
-                      onClick={() => search && add(item, search)}
-                      aria-label={
-                        added
-                          ? `${item.name} 추가됨`
-                          : `${item.name} 견적에 추가`
-                      }
-                    >
-                      {added ? (
-                        <>
-                          <TickCircle size={14} aria-hidden="true" /> 추가됨
-                        </>
-                      ) : (
-                        <>
-                          <Add size={14} aria-hidden="true" /> 추가
-                        </>
-                      )}
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-          {rows.length >= MAX_QUOTE_ITEMS && (
-            <p className={styles.caption}>
-              한 번에 최대 {MAX_QUOTE_ITEMS}개까지 계산할 수 있어요.
-            </p>
-          )}
-        </div>
-      )}
     </div>
   );
 }
@@ -395,9 +534,78 @@ function QuantityField({
   );
 }
 
-function Plan() {
+/**
+ * A line coming back from the address, drawn in the real line's shape (icon,
+ * name and note, both quantity fields with the saved numbers, the remove
+ * button's room) from the first HTML: the real line takes its place without
+ * moving anything below (PM-프론트 #899, A6).
+ */
+function PendingLine({ saved }: { saved: Saved }) {
+  return (
+    <li aria-hidden="true" data-pending="" className={restoreStyles.pendingLine}>
+      <span className={restoreStyles.pendingIcon} />
+      <div className={styles.planText}>
+        <strong>불러오는 중…</strong>
+        <small>
+          “{saved.n}” 검색 {saved.p}페이지
+        </small>
+      </div>
+      <div className={styles.quantities}>
+        <label className={styles.quantity}>
+          <span>필요</span>
+          <input value={saved.r} placeholder="0" readOnly disabled tabIndex={-1} />
+        </label>
+        <label className={styles.quantity}>
+          <span>보유</span>
+          <input value={saved.o} placeholder="0" readOnly disabled tabIndex={-1} />
+        </label>
+      </div>
+      <span className={restoreStyles.pendingButton} />
+    </li>
+  );
+}
+
+function Plan({
+  restore,
+}: {
+  restore: { loading: boolean; pending: Saved[]; missing: number; failed: number; retry: () => void };
+}) {
   const { enabled } = useLandingMotion();
   const { rows, remove } = usePlan();
+  // Lines kept in the address (#897) come back after a reload or from a link.
+  const missing =
+    restore.missing > 0 || restore.failed > 0 ? (
+      <div role="status">
+        {restore.missing > 0 && (
+          <p className={styles.empty}>
+            담아 둔 재료 {restore.missing}개를 다시 찾지 못했어요. 위에서 다시 검색해 담아 주세요.
+          </p>
+        )}
+        {restore.failed > 0 && (
+          <p className={styles.empty}>
+            담아 둔 재료 {restore.failed}개를 지금 불러오지 못했어요.{" "}
+            <button type="button" className={restoreStyles.textButton} onClick={restore.retry}>
+              다시 불러오기
+            </button>
+          </p>
+        )}
+      </div>
+    ) : null;
+  // Nothing came back: the one notice says what happened and what to do.
+  if (!rows.length && missing) return missing;
+  if (!rows.length && restore.pending.length)
+    return (
+      <>
+        <p className="sr-only" role="status">
+          담아 둔 재료를 불러오는 중…
+        </p>
+        <ul className={styles.planList} aria-busy="true">
+          {restore.pending.map((saved) => (
+            <PendingLine key={saved.id} saved={saved} />
+          ))}
+        </ul>
+      </>
+    );
   if (!rows.length)
     return (
       <p className={styles.empty}>
@@ -405,6 +613,8 @@ function Plan() {
       </p>
     );
   return (
+    <>
+    {missing}
     <ul className={styles.planList}>
       <AnimatePresence initial={false}>
         {rows.map((row) => (
@@ -448,22 +658,36 @@ function Plan() {
         ))}
       </AnimatePresence>
     </ul>
+    </>
   );
 }
 
-function Result({ quote }: { quote: MaterialQuote }) {
+// Totals and line costs only wash: a ▲/▼ inside the number's line took width
+// and nudged the "골드" after it on each refresh (PM-프론트 #863 P2).
+const washOnly = (pulse: Pulse | undefined): Pulse | undefined => pulse && { ...pulse, dir: 0 };
+
+function Result({ quote, stale }: { quote: MaterialQuote; stale: boolean }) {
   const basis = priceBases.find((item) => item.value === quote.priceBasis);
+  // The quote is fetched again every minute with the same inputs: a cost
+  // that changed is marked for a moment (a wash that fades once).
+  const { pulse, summary: changes } = useChangedCells(quote.items, (line) => String(line.itemId), {
+    cost: (line) => line.purchase?.costGold ?? null,
+  });
+  const asRows = useMemo(() => [quote], [quote]);
+  const totals = useChangedCells(asRows, () => "quote", {
+    total: (q) => (q.complete ? q.totalCostGold : q.knownCostGold),
+  }, { announce: false });
   const unpriced = quote.items.filter(
     (line) => line.purchase === null && line.status !== "COVERED_BY_INVENTORY",
   ).length;
   return (
     <Reveal className={styles.result}>
-      <section aria-labelledby="quote-total">
-        <p className={styles.kicker}>{basis?.label} 기준 견적</p>
+      <section aria-labelledby="quote-total" aria-busy={stale || undefined} data-stale={stale || undefined}>
+        <p className={styles.kicker}>{basis?.label} 기준 견적 · 1분마다 시세를 새로 받아 다시 계산해요</p>
         {quote.complete ? (
           <>
             <h2 id="quote-total" className={styles.total}>
-              {formatGold(quote.totalCostGold)}
+              <ChangeMark pulse={washOnly(totals.pulse("quote", "total"))}>{formatGold(quote.totalCostGold)}</ChangeMark>
               <span>골드</span>
             </h2>
             <p className={styles.totalNote}>
@@ -473,7 +697,7 @@ function Result({ quote }: { quote: MaterialQuote }) {
         ) : (
           <>
             <h2 id="quote-total" className={styles.total} data-partial="">
-              {formatGold(quote.knownCostGold)}
+              <ChangeMark pulse={washOnly(totals.pulse("quote", "total"))}>{formatGold(quote.knownCostGold)}</ChangeMark>
               <span>골드 · 계산된 항목만</span>
             </h2>
             <p className={styles.status}>
@@ -529,7 +753,9 @@ function Result({ quote }: { quote: MaterialQuote }) {
                     <div>
                       <dt>비용</dt>
                       <dd className={styles.cost}>
-                        {formatGold(line.purchase.costGold)} 골드
+                        <ChangeMark pulse={washOnly(pulse(String(line.itemId), "cost"))}>
+                          {formatGold(line.purchase.costGold)} 골드
+                        </ChangeMark>
                       </dd>
                     </div>
                   </>
@@ -549,6 +775,7 @@ function Result({ quote }: { quote: MaterialQuote }) {
           );
         })}
       </ul>
+      <UpdateAnnouncer text={changes ? `견적 비용 ${changes}` : ""} />
       <footer className={styles.resultFooter}>
         <p>
           {time(quote.calculatedAt)} 계산 · 규칙 {quote.ruleVersion}. 시세
@@ -563,14 +790,34 @@ function Result({ quote }: { quote: MaterialQuote }) {
   );
 }
 
+/** The quote is fetched again every minute (사용자 10-16: every screen with market prices). */
+const QUOTE_REFRESH_MS = 60_000;
+
 function MaterialQuoteContent({ initialCategory }: { initialCategory: number | null }) {
   const { enabled } = useLandingMotion();
+  const restore = usePlanInAddress();
   const { basis, setBasis, rows } = usePlan();
-  const quote = useMutation({
-    mutationFn: (request: NonNullable<ReturnType<typeof toQuoteRequest>>) =>
-      postMaterialQuote(request),
+  // The inputs last asked for: the quote is a query on them, fetched again
+  // every minute while the page is visible (after a 429, at its retry time).
+  // Editing the inputs does not change it until "견적 계산" is pressed.
+  const [asked, setAsked] = useState<NonNullable<ReturnType<typeof toQuoteRequest>> | null>(null);
+  const quote = useQuery({
+    queryKey: ["market", "quote", asked],
+    queryFn: ({ signal }) => postMaterialQuote(asked!, signal),
+    enabled: !!asked,
+    staleTime: QUOTE_REFRESH_MS,
+    refetchInterval: refreshEvery(QUOTE_REFRESH_MS),
+    placeholderData: keepPreviousData,
     retry: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
+  // "계산 중" only for a quote the user asked for, not the minute refresh.
+  const calculating = quote.isFetching && (quote.isPlaceholderData || !quote.data);
+  const ask = (request: NonNullable<ReturnType<typeof toQuoteRequest>>) => {
+    if (JSON.stringify(request) === JSON.stringify(asked)) void quote.refetch();
+    else setAsked(request);
+  };
   const quoteFailure = failureOf(quote.error);
   const [searchFailure, setSearchFailure] = useState<MarketFailure | null>(
     null,
@@ -580,13 +827,18 @@ function MaterialQuoteContent({ initialCategory }: { initialCategory: number | n
   const resultRef = useRef<HTMLDivElement>(null);
   const basisHint = priceBases.find((item) => item.value === basis)?.hint;
 
+  // Scroll to a quote the user asked for once it lands; the minute refresh
+  // updates it in place and never scrolls.
+  const scrolled = useRef<unknown>(null);
+  const landed = !!quote.data && !quote.isPlaceholderData;
   useEffect(() => {
-    if (quote.data)
-      resultRef.current?.scrollIntoView({
-        behavior: enabled ? "smooth" : "instant",
-        block: "start",
-      });
-  }, [quote.data, enabled]);
+    if (!landed || scrolled.current === asked) return;
+    scrolled.current = asked;
+    resultRef.current?.scrollIntoView({
+      behavior: enabled ? "smooth" : "instant",
+      block: "start",
+    });
+  }, [landed, asked, enabled]);
 
   return (
     <div className={styles.page}>
@@ -637,7 +889,7 @@ function MaterialQuoteContent({ initialCategory }: { initialCategory: number | n
               </h2>
               <ItemSearch wait={wait} onRateLimit={setSearchFailure} initialCategory={initialCategory} />
               <h3 className={styles.subheading}>견적에 넣은 재료</h3>
-              <Plan />
+              <Plan restore={restore} />
             </section>
 
             <section className={styles.card} aria-labelledby="calc-heading">
@@ -652,13 +904,11 @@ function MaterialQuoteContent({ initialCategory }: { initialCategory: number | n
                 type="button"
                 className={styles.primaryPill}
                 disabled={!request}
-                aria-disabled={quote.isPending || wait > 0 || undefined}
-                aria-busy={quote.isPending || undefined}
-                onClick={() =>
-                  request && !quote.isPending && wait === 0 && quote.mutate(request)
-                }
+                aria-disabled={calculating || wait > 0 || undefined}
+                aria-busy={calculating || undefined}
+                onClick={() => request && !calculating && wait === 0 && ask(request)}
               >
-                {quote.isPending ? (
+                {calculating ? (
                   "계산 중"
                 ) : wait > 0 ? (
                   `${wait}초 후 계산`
@@ -676,10 +926,13 @@ function MaterialQuoteContent({ initialCategory }: { initialCategory: number | n
         </div>
 
         <div ref={resultRef} className={styles.resultWrap}>
+          {/* Keyed by the inputs asked for: the minute refresh updates the
+              same result in place instead of replaying its entrance. */}
           {quote.data && (
             <Result
-              key={quote.data.data.calculatedAt}
+              key={JSON.stringify(asked)}
               quote={quote.data.data}
+              stale={quote.isPlaceholderData}
             />
           )}
         </div>

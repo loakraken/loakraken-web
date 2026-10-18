@@ -1,0 +1,62 @@
+/* "집계 중…" (PendingText): a band of light across the letters, transform only
+   (no repaint per frame). A narrow window slides over the text; inside it a
+   brighter copy of the text slides back by the same amount, so the copy stays
+   on the letters and only the window moves. */
+.pending-text {
+  position: relative;
+  display: inline-block;
+}
+.pending-text__window {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 2.4em;
+  overflow: hidden;
+  pointer-events: none;
+  /* Soft edges, fixed to the window: it moves with it, nothing is repainted. */
+  mask-image: linear-gradient(90deg, transparent, #000 40%, #000 60%, transparent);
+  animation: pending-text-window 1.5s linear infinite;
+  will-change: transform;
+}
+/* The brighter copy: its element moves (not a pseudo-element, cheaper to
+   re-style), and the text is drawn, not text in the page: the label still
+   reads "집계 중". */
+.pending-text__glow {
+  position: absolute;
+  inset: 0 auto 0 0;
+  white-space: nowrap;
+  color: var(--foreground);
+  animation: pending-text-glow 1.5s linear infinite;
+  will-change: transform;
+}
+.pending-text__glow::before {
+  content: attr(data-glow) / "";
+}
+/* From just before the text to just after it: --pending-run is the text's
+   width plus the window's, set once from the measured box. */
+@keyframes pending-text-window {
+  from {
+    transform: translateX(-2.4em);
+  }
+  to {
+    transform: translateX(var(--pending-run, 6em));
+  }
+}
+@keyframes pending-text-glow {
+  from {
+    transform: translateX(2.4em);
+  }
+  to {
+    transform: translateX(calc(-1 * var(--pending-run, 6em)));
+  }
+}
+/* Still where motion is unwanted, and plain text where colours are forced. */
+@media (prefers-reduced-motion: reduce), (forced-colors: active) {
+  .pending-text__window {
+    display: none;
+  }
+}
+/* Off screen or in a hidden tab: paused (the next play rejoins the beat). */
+.pending-text[data-paused] .pending-text__window,
+.pending-text[data-paused] .pending-text__glow {
+  animation-play-state: paused;
+}

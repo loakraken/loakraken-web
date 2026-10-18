@@ -23,7 +23,8 @@ test.describe("기여도 계산기 @smoke", () => {
     await damage.fill("2,555.6");
     await expect(page.getByRole("status")).toContainText("내 위치 33.2% · 범위 안이에요");
     await damage.fill("2200");
-    await expect(page.getByRole("status")).toContainText("-13% · 하한 아래예요");
+    // 하한 아래는 음수 %가 아니라 하한과의 차이(코덱스 QA 10-18 P2): 2,300 − 2,200 = 100억.
+    await expect(page.getByRole("status")).toHaveText("하한보다 100억 낮아요");
     await damage.fill("3200");
     await expect(page.getByRole("status")).toContainText("116.9% · 상한 위예요");
     await damage.fill("abc");
@@ -62,5 +63,44 @@ test.describe("기여도 계산기 @smoke", () => {
       await chooseOption(page, page.getByRole("combobox", { name: "레이드" }), raid);
       expect((await input.boundingBox()).x, raid).toBe(x0);
     }
+  });
+
+  // 사용자 10-16: 결과 %는 약 0.3초 세고, 막대는 transform으로만 움직이며(레이아웃 변화 0), 화면 읽기에는 최종 값만.
+  test("피해량을 넣으면 %를 짧게 세어 새 값에 멈추고, 막대는 transform으로만 움직이며 글자 줄은 제자리다", async ({ page }) => {
+    await gotoReady(page, "/tools/contribution");
+    await chooseOption(page, page.getByRole("combobox", { name: "레이드" }), "세르카");
+    await chooseOption(page, page.getByRole("combobox", { name: "난이도" }), "하드");
+    const damage = page.getByRole("textbox", { name: "내 피해량(억)" });
+    const shown = page.locator("p[aria-hidden='true']").filter({ hasText: "내 위치" });
+    await damage.fill("2,555.6");
+    await expect(page.getByRole("status")).toHaveText("내 위치 33.2% · 범위 안이에요");
+    await expect(shown).toHaveText("내 위치 33.2% · 범위 안이에요");
+    const pct = shown.locator("b");
+    const box0 = await pct.boundingBox();
+    // 상한 위로: 세는 동안 숫자 칸의 폭과 뒤 글자 위치가 변하지 않는다.
+    const widths = [];
+    await damage.fill("3200");
+    for (let i = 0; i < 8; i++) {
+      widths.push((await pct.boundingBox()).width);
+      await page.waitForTimeout(40);
+    }
+    await expect(shown).toHaveText("내 위치 116.9% · 상한 위예요");
+    expect(new Set(widths.map((w) => w.toFixed(1))).size).toBe(1);
+    expect((await pct.boundingBox()).x).toBeCloseTo(box0.x, 0);
+    // 막대 표시점은 left가 아니라 transform으로 오른쪽 끝(100%)까지 간다.
+    const rail = page.locator("[class*='rail']");
+    await expect.poll(() => rail.evaluate((el) => getComputedStyle(el).transform)).not.toBe("none");
+    expect(await rail.evaluate((el) => el.style.transform)).toBe("translateX(0%)");
+  });
+
+  test("동작 줄이기 설정이면 %가 바로 새 값이다", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await gotoReady(page, "/tools/contribution");
+    await chooseOption(page, page.getByRole("combobox", { name: "레이드" }), "세르카");
+    await chooseOption(page, page.getByRole("combobox", { name: "난이도" }), "하드");
+    await page.getByRole("textbox", { name: "내 피해량(억)" }).fill("2200");
+    const shown = page.locator("p[aria-hidden='true']").filter({ hasText: "하한보다" });
+    // 세는 중간 값 없이 첫 그림부터 최종 값이다.
+    expect(await shown.textContent({ timeout: 1000 })).toBe("하한보다 100억 낮아요");
   });
 });

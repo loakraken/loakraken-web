@@ -72,6 +72,11 @@ function TradeLines({ lines }: { lines: string[] }) {
 type Detail = NonNullable<Equipment["detail"]>;
 
 /** Polish and bracelet lines in the official tooltip's grade colour (상·중·하). */
+/** One graded line (polish / bracelet effects) in its tier colour; also used by the 악세 경매 card. */
+export function GradedLine({ text, grade }: { text: string; grade: string | null }) {
+  return <Graded text={text} grade={grade} />;
+}
+
 function Graded({ text, grade }: { text: string; grade: string | null }) {
   return (
     <ItemLine>

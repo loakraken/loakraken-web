@@ -7,7 +7,7 @@ import { InlineOrb } from "@/components/landing/orb";
 import { failureOf } from "@/lib/api/rate-limit";
 import { remainingText } from "@/lib/time/remaining";
 import { postRosterPowerRefresh } from "@/lib/character/client";
-import { powerSummary, viewOfRefresh, type PowerRecord } from "@/lib/character/roster-list";
+import { powerSummary, sixBasis, viewOfRefresh, type PowerRecord } from "@/lib/character/roster-list";
 import type { RosterPowerEnvelope } from "@/lib/character/roster-power";
 import { useSecondsUntil } from "./card-refresh";
 import { number } from "./parts";
@@ -36,7 +36,7 @@ export function RosterPower({
   query,
 }: {
   name: string;
-  siblings: readonly { characterName: string }[];
+  siblings: readonly { characterName: string; serverName?: string; itemLevel?: number | null }[];
   records: ReadonlyMap<string, PowerRecord>;
   query: UseQueryResult<RosterPowerEnvelope>;
 }) {
@@ -107,12 +107,27 @@ export function RosterPower({
           " "
         ) : query.isError ? (
           <span className={styles.muted}>전투력 기록을 불러오지 못했어요.</span>
-        ) : summary.sixAverage == null ? (
+        ) : summary.total == null ? (
           <span className={styles.muted}>아직 전투력 기록이 없어요.</span>
         ) : (
           <>
-            전투력 식스맨 평균 <b>{number(summary.sixAverage)}</b>
-            <small> (상위 {summary.sixCount}명)</small>
+            {/* The ranking's 식스맨 (api #530): the item level six, ÷ 6. */}
+            전투력 식스맨 평균{" "}
+            {summary.sixAverage == null ? (
+              <>
+                <b>미확인</b>
+                <small>
+                  {summary.sixMissing
+                    ? ` (상위 ${summary.sixCount}명 중 ${summary.sixMissing}명 기록 없음)`
+                    : ` (상위 ${summary.sixCount}명 기록 없음)`}
+                </small>
+              </>
+            ) : (
+              <>
+                <b>{number(summary.sixAverage)}</b>
+                <small>{` (${sixBasis(summary.sixCount, "기준")})`}</small>
+              </>
+            )}
             {" · "}총합 <b>{number(summary.total)}</b>
             <small>
               {summary.recorded < summary.count ? ` (${summary.recorded}명 기준)` : ` (${summary.count}명)`}

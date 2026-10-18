@@ -82,6 +82,21 @@ export const minutePoints = (points: MinutePoint[]): ChartPoint[] =>
   );
 
 /**
+ * The change over the chart's own period, first reading to last: what the
+ * line's colour says (up red, down blue). The period label beside the chart
+ * uses the same numbers, so the colour and the words never disagree (user
+ * 10-16: a red line on a day that fell, because the number beside it was the
+ * day change).
+ */
+export function periodChange(points: readonly { value: number }[]) {
+  if (points.length < 2) return { direction: "flat" as const, percent: null };
+  const first = points[0].value;
+  const last = points[points.length - 1].value;
+  const direction = last > first ? ("up" as const) : last < first ? ("down" as const) : ("flat" as const);
+  return { direction, percent: first > 0 ? ((last - first) / first) * 100 : null };
+}
+
+/**
  * Average price by day (2px line, end dot) with trade volume as separate bars
  * below — two charts on one time axis, never two y-scales on one plot — or the
  * sell price by minute (K35), placed by time so unseen minutes stay empty, in
@@ -153,12 +168,7 @@ export function MarketChart({
   const last = days.length - 1;
   const shown = active ?? last;
   const priceWidth = Math.max(...days.map((d) => fmt(d.value).length + 1));
-  const direction =
-    days[last].value > days[0].value
-      ? "up"
-      : days[last].value < days[0].value
-        ? "down"
-        : "flat";
+  const { direction } = periodChange(days);
 
   return (
     <figure className={styles.chart} ref={measure}>

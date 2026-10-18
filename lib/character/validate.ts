@@ -35,7 +35,12 @@ const ROLLOUT: Record<string, Record<string, () => unknown>> = {
     braceletEfficiency: () => null,
     // Ark grid efficiency (backend #424): the same shape plus cores only.
     arkGridEfficiency: () => null,
+    // Kraken score (backend #561). Not sent at all while its switch is off.
+    krakenScore: () => null,
   },
+  // Real efficiency (backend #570·#571): the comparison sites' own share.
+  ArkGridEfficiencyResponse: { real: () => null },
+  BraceletEfficiencyResponse: { real: () => null },
   CharacterLoadoutResponse: { skills: () => [] },
   CharacterObservationCoverageResponse: {
     skills: () => "NOT_PROVIDED",
@@ -79,7 +84,15 @@ const ROLLOUT: Record<string, Record<string, () => unknown>> = {
     advancedRefineLevel: () => null,
   },
   // Gem tooltip lines (backend #286).
-  GemResponse: { titleLine: () => null, itemLevel: () => null, tier: () => null, tradeLines: () => [] },
+  // Gem base attack % (backend, with the kraken score inputs).
+  GemResponse: {
+    titleLine: () => null,
+    itemLevel: () => null,
+    tier: () => null,
+    tradeLines: () => [],
+    baseAttackPct: () => null,
+    baseAttackPctSource: () => null,
+  },
   // Gem-adjusted cooldown (backend #378, K20).
   SkillResponse: { attackType: () => null, cooldown: () => null },
   TripodResponse: { effect: () => null },
@@ -111,6 +124,8 @@ export function isCharacterEnvelope(
     return false;
   const data = value.data;
   fill(data, "CharacterResponse");
+  fill(data.arkGridEfficiency, "ArkGridEfficiencyResponse");
+  fill(data.braceletEfficiency, "BraceletEfficiencyResponse");
   fill(data.loadout, "CharacterLoadoutResponse");
   fill(data.coverage, "CharacterObservationCoverageResponse");
   fill(data.analysis, "CharacterAnalysisResponse");

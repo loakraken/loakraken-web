@@ -15,7 +15,7 @@ export interface paths {
          * 캐릭터 검색
          * @description 프로필, 장비·보석·각인·카드·아크패시브·아크그리드와 원정대를 제공합니다. 기본 캐시는 5분이며 fetchedAt은 실제 외부 수집 완료 시각입니다. null 섹션은 공식 API에서 데이터가 제공되지 않은 경우입니다.
          */
-        get: operations["search"];
+        get: operations["search_1"];
         put?: never;
         post?: never;
         delete?: never;
@@ -74,6 +74,8 @@ export interface components {
             analysis: components["schemas"]["CharacterAnalysisResponse"];
             braceletEfficiency: components["schemas"]["BraceletEfficiencyResponse"] | null;
             arkGridEfficiency: components["schemas"]["ArkGridEfficiencyResponse"] | null;
+            /** @description 크라켄 점수와 크라켄 점수 티어(공식 전투력과 별개의 점수). 늘 들어 있고, 아직 공개 전이면 status DISABLED(값 null) */
+            krakenScore: components["schemas"]["KrakenScoreResponse"];
             /**
              * Format: date-time
              * @description 외부 API에서 실제 수집한 UTC 시각. 캐시 조회에서도 유지됩니다.
@@ -239,6 +241,8 @@ export interface components {
             tier: number | null;
             /** @description 공식 Tooltip 귀속·거래 줄(예: '캐릭터 귀속됨', '거래 불가') */
             tradeLines: string[];
+            baseAttackPct: number | null;
+            baseAttackPctSource: string | null;
         };
         GemEffectsResponse: {
             description: string | null;
@@ -413,7 +417,7 @@ export interface components {
             characterName: string;
             serverName: string;
             className: string;
-            characterLevel: (number | null) | null;
+            characterLevel: number | null;
             itemLevel: number;
         };
         /** @description 정규화 전 원천 제공 상태. 빈 목록은 미착용을 뜻하지 않습니다. 누락 필드와 명시적 null은 NOT_PROVIDED입니다. */
@@ -625,6 +629,8 @@ export interface components {
             lines: components["schemas"]["BraceletLineEfficiencyResponse"][];
             /** @description 계산 규칙 버전(전투력 시뮬레이터와 같음) */
             ruleVersion: string;
+            /** @description 팔찌 실 효율. 위 percent·lines는 '전투력 기여'(공식 전투력 계수)이고, 이것은 원본 점수식의 팔찌 %라 정의가 다르다. 늘 들어 있다. */
+            real: components["schemas"]["BraceletRealResponse"];
         };
         BraceletLineEfficiencyResponse: {
             /** @description 공식 팔찌 효과 문구(팔찌 도약 줄은 '팔찌 도약 +N') */
@@ -634,6 +640,25 @@ export interface components {
             status: string;
             reasonCode: string | null;
             reason: string | null;
+        };
+        /** @description 팔찌 실 효율. status: OK·UNSUPPORTED. OK면 percent가 있고, UNSUPPORTED면 percent는 null(reasonCode에 이유). percent 자리수: 딜러는 원본이 이미 % 소수 둘째 자리 내림한 값, 서포터는 원본 값 그대로(반올림 안 함 — 예 13.47857142857143). 화면은 둘 다 소수 둘째 자리 반올림(toFixed(2))으로 그린다(딜러는 값 그대로, 서포터 13.48) */
+        BraceletRealResponse: {
+            /**
+             * @description OK·UNSUPPORTED
+             * @example OK
+             * @enum {string}
+             */
+            status: "OK" | "UNSUPPORTED";
+            reasonCode: string | null;
+            reason: string | null;
+            role: ("DEALER" | "SUPPORT") | null;
+            percent: number | null;
+            devilDamagePercent: number | null;
+            /**
+             * @description 계산 규칙 버전
+             * @example bracelet-real-v1
+             */
+            ruleVersion: string;
         };
         ArkGridEfficiencyResponse: {
             percent: number | null;
@@ -650,6 +675,8 @@ export interface components {
             lines: components["schemas"]["ArkGridLineEfficiencyResponse"][];
             /** @description 계산 규칙 버전 */
             ruleVersion: string;
+            /** @description 젬 실 효율(#520). 위 percent·coresPercent·lines는 '전투력 기여'(공식 전투력 계수)이고, 이것은 원본 점수식의 젬 실 효율(지금 점수가 그 젬 옵션·포인트를 뺀 점수보다 몇 % 높은지)이라 정의가 다르다. 늘 들어 있다. */
+            real: components["schemas"]["ArkGridRealResponse"];
         };
         ArkGridLineEfficiencyResponse: {
             slotIndex: number | null;
@@ -660,6 +687,113 @@ export interface components {
             status: string;
             reasonCode: string | null;
             reason: string | null;
+        };
+        /** @description 아크 그리드 젬 실 효율. status: OK·UNSUPPORTED. UNSUPPORTED면 percent·optionsPercent·pointsPercent는 null, options·series는 빈 배열. 값은 % 소수 둘째 자리 내림 */
+        ArkGridRealResponse: {
+            /**
+             * @description OK·UNSUPPORTED
+             * @example OK
+             * @enum {string}
+             */
+            status: "OK" | "UNSUPPORTED";
+            reasonCode: string | null;
+            reason: string | null;
+            percent: number | null;
+            optionsPercent: number | null;
+            pointsPercent: number | null;
+            /** @description 젬 옵션 한 줄씩(공식 표기 순서). UNSUPPORTED면 빈 배열 */
+            options: components["schemas"]["ArkGridRealOptionResponse"][];
+            /** @description 질서·혼돈 계열별(그 계열 젬만 뺀 비). 그 계열 젬이 없거나 젬 구성을 확인할 수 없으면 그 계열은 없음 */
+            series: components["schemas"]["ArkGridRealSeriesResponse"][];
+            /**
+             * @description 계산 규칙 버전
+             * @example ark-grid-real-v1
+             */
+            ruleVersion: string;
+        };
+        ArkGridRealOptionResponse: {
+            /**
+             * @description 젬 옵션 이름(공식 표기)
+             * @example 공격력
+             */
+            name: string;
+            level: number | null;
+            inGamePercent: number | null;
+            percent: number | null;
+        };
+        ArkGridRealSeriesResponse: {
+            /**
+             * @description 질서 또는 혼돈
+             * @example 질서
+             */
+            series: string;
+            percent: number | null;
+            optionsPercent: number | null;
+            pointsPercent: number | null;
+            /** @description 그 계열 젬이 준 옵션 줄 */
+            options: components["schemas"]["ArkGridRealSeriesOptionResponse"][];
+        };
+        ArkGridRealSeriesOptionResponse: {
+            /**
+             * @description 젬 옵션 이름
+             * @example 공격력
+             */
+            name: string;
+            level: number | null;
+            percent: number | null;
+        };
+        /** @description 크라켄 점수. status: OK(값 있음)·UNSUPPORTED(계산 못 함, reasonCode)·DISABLED(아직 공개 전, 값 null·factors 빈 배열). 점수는 딜러 점수 또는 서포터 점수(서포터 각인 직업), 이번 단계에서 factors는 빈 배열 */
+        KrakenScoreResponse: {
+            /**
+             * @description OK·UNSUPPORTED·DISABLED
+             * @example OK
+             * @enum {string}
+             */
+            status: "OK" | "UNSUPPORTED" | "DISABLED";
+            reasonCode: string | null;
+            reason: string | null;
+            role: ("DEALER" | "SUPPORT") | null;
+            score: number | null;
+            tier: components["schemas"]["KrakenScoreTierResponse"] | null;
+            /** @description 점수 요소(공격력·진화·깨달음·도약·적에게 주는 피해·추가 피해·보주·보석·특성·에스더·팔찌 등). DISABLED면 빈 배열 */
+            factors: components["schemas"]["KrakenScoreFactorResponse"][];
+            ruleVersion: string | null;
+        };
+        KrakenScoreTierResponse: {
+            /**
+             * @description 티어 코드
+             * @example DIAMOND
+             * @enum {string}
+             */
+            code: "BRONZE" | "SILVER" | "GOLD" | "DIAMOND" | "MASTER" | "GRANDMASTER" | "ESTHER";
+            /**
+             * @description 이 티어의 최소 점수
+             * @example 5000
+             */
+            min: number;
+            nextCode: string | null;
+            nextMin: number | null;
+            remaining: number | null;
+            /**
+             * Format: int32
+             * @description 이 티어 안 진행률(정수, 내림). 최상위면 100
+             * @example 38
+             */
+            progressPercent: number;
+        };
+        KrakenScoreFactorResponse: {
+            /**
+             * @description 요소 코드(열린 값 — 단계마다 늘어남, 모르는 코드는 그 줄만 따로 표시)
+             * @example ATTACK
+             */
+            code: string;
+            value: number | null;
+            /**
+             * @description OK·UNSUPPORTED
+             * @example OK
+             */
+            status: string;
+            reasonCode: string | null;
         };
         /** @description 공통 오류 응답. HTTP 상태와 업무 코드를 함께 확인합니다. */
         ErrorResponse: {
@@ -678,7 +812,7 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    search: {
+    search_1: {
         parameters: {
             query: {
                 /**
