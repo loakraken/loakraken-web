@@ -29,3 +29,19 @@ for (const theme of ["light", "dim", "dark"])
       await expect(page, path).toHaveTitle(/페이지를 찾을 수 없어요/);
     }
   });
+
+// System theme (the default since 10-18, or stored "system") under a dark OS:
+// the 404 follows the OS too, even after <html> is redrawn.
+for (const stored of [null, "system"])
+  test(`@A5 404는 ${stored ?? "저장값 없음"} + OS 다크에서 다크 @regression`, async ({ page }) => {
+    await page.emulateMedia({ colorScheme: "dark" });
+    if (stored) await page.addInitScript((t) => localStorage.setItem("loakraken-theme", t), stored);
+    for (const path of ["/없는-주소", "/news/dev-notes/없는-글"]) {
+      const response = await page.goto(path);
+      expect(response?.status(), path).toBe(404);
+      await page.waitForLoadState("networkidle");
+      await page.waitForTimeout(300);
+      expect(await page.evaluate(() => document.documentElement.dataset.theme), path).toBe("dark");
+      expect(await page.evaluate(() => document.documentElement.dataset.themeChoice), path).toBe("system");
+    }
+  });
