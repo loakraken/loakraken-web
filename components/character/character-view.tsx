@@ -20,7 +20,7 @@ import { SiteHeader } from "@/components/site/site-header";
 import { recordRecent } from "@/lib/character/recent";
 import { CharacterBanner } from "./imagery";
 import { BannerRank } from "./banner-rank";
-import { KrakenScoreFact } from "./kraken-score-metric";
+import { KrakenScoreStrip } from "./kraken-score-metric";
 import { Entrance } from "./entrance";
 import { kstTime, level, number, text } from "./parts";
 import { CritSpeedEnabled } from "./analysis-menu";
@@ -150,7 +150,6 @@ const Banner = memo(function Banner({ data }: { data: Character }) {
               </dd>
             </>
           )}
-          <KrakenScoreFact score={data.krakenScore} />
           <dt>길드</dt>
           <dd>
             {text(data.guildName)}
@@ -275,6 +274,7 @@ function CharacterContent({
         {data && envelope ? (
           <>
             <Banner data={data} />
+            <KrakenScoreStrip score={data.krakenScore} />
             <TabBar
               name={name}
               tab={tab}
