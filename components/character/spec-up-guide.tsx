@@ -3,10 +3,11 @@
 // next, ranked by combat power per 10,000 gold (or by the gain alone). Every
 // number comes from the backend; candidates it could not compute fold into one
 // line per reason, and "적용해 보기" opens the simulator tab with the change.
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { rateLimitCopy, retryLabel } from "@/lib/api/rate-limit";
+import { ChangeMark, useChangedCells, type Pulse } from "@/components/ui/changed-cells";
+import { failureOf, rateLimitCopy, retryLabel } from "@/lib/api/rate-limit";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import type { Character } from "@/lib/character/model";
 import { NO_EDITS } from "@/lib/combat-power/model";
@@ -14,7 +15,9 @@ import { SpecUpQueryError, fetchSpecUp } from "@/lib/spec-up/client";
 import {
   SORTS,
   editsFor,
+  keepOrder,
   kindLabel,
+  costRoom,
   koreanGold,
   specUpQuery,
   splitCandidates,
@@ -43,7 +46,7 @@ function failureCopy(code: string) {
   }
 }
 
-function CostCell({ candidate }: { candidate: Candidate }) {
+function CostCell({ candidate, pulse }: { candidate: Candidate; pulse?: Pulse }) {
   const cost = candidate.cost;
   if (!cost)
     return (
@@ -53,8 +56,20 @@ function CostCell({ candidate }: { candidate: Candidate }) {
     );
   if (cost.status === "OK" && cost.amount != null)
     return (
-      <td data-cell="cost" data-label="기대 비용" data-figure="" title={`${cost.amount.toLocaleString("ko-KR")}${cost.unit === "GOLD" ? "G" : ` ${cost.unit}`}`}>
-        {cost.unit === "GOLD" ? `${koreanGold(cost.amount)}G` : `${cost.amount.toLocaleString("ko-KR")} ${cost.unit}`}
+      <td
+        data-cell="cost"
+        data-label="기대 비용"
+        data-figure=""
+        // Holds the width of a longer cost of this size (see costRoom): the
+        // minute's refresh does not widen the column or the phone card (A7).
+        data-room={cost.unit === "GOLD" ? costRoom(cost.amount) : undefined}
+        title={`${cost.amount.toLocaleString("ko-KR")}${cost.unit === "GOLD" ? "G" : ` ${cost.unit}`}`}
+      >
+        {/* Right-aligned text rewritten in place starts elsewhere and counts as
+            moving (A7): a new amount draws new text. */}
+        <ChangeMark key={cost.amount} pulse={pulse}>
+          {cost.unit === "GOLD" ? `${koreanGold(cost.amount)}G` : `${cost.amount.toLocaleString("ko-KR")} ${cost.unit}`}
+        </ChangeMark>
       </td>
     );
   return (
@@ -78,11 +93,65 @@ export default function SpecUpGuide({ data }: { data: Character }) {
     retryOnMount: false,
     retry: false,
     refetchOnWindowFocus: false,
+    // Costs follow the cached prices: every minute while the tab is visible
+    // (user 10-16), after a rate limit's retryAt, and not again after another
+    // failure (e.g. the character snapshot left the cache) — the list shown stays.
+    refetchInterval: (q) => {
+      const retryAt = failureOf(q.state.error)?.retryAt;
+      if (retryAt) return Math.max(60_000, retryAt - Date.now());
+      return q.state.error ? false : 60_000;
+    },
   });
   const limit = useRateLimit(query.error);
   const guide = query.data?.data;
-  const failure = query.error instanceof SpecUpQueryError ? query.error.info.code : query.error ? "ERROR" : null;
-  const { ok, folded } = guide ? splitCandidates(guide.candidates) : { ok: [], folded: [] };
+  // A failed refresh keeps the list it had; the failure shows only without one.
+  const failure = guide
+    ? null
+    : query.error instanceof SpecUpQueryError
+      ? query.error.info.code
+      : query.error
+        ? "ERROR"
+        : null;
+  // Rows keep their place across refreshes of the same sort (see keepOrder).
+  const [order, setOrder] = useState<{ sort: string; ids: string[] } | null>(null);
+  // Bumped by '새 순서로 보기': the rows are drawn anew in the new order rather
+  // than the old ones sliding into place, which counts as moving (A7, #857).
+  const [generation, setGeneration] = useState(0);
+  // "새 순서로 정렬했어요" for a moment in the same fixed line, and focus kept
+  // there, since the pressed button goes away.
+  const [sorted, setSorted] = useState(false);
+  const statusRef = useRef<HTMLParagraphElement>(null);
+  useEffect(() => {
+    if (!sorted) return;
+    // Without scrolling: on a phone the line may sit above the screen.
+    statusRef.current?.focus({ preventScroll: true });
+    const timer = window.setTimeout(() => setSorted(false), 3_000);
+    return () => window.clearTimeout(timer);
+  }, [sorted, generation]);
+  const candidates = useMemo(
+    () => (guide ? keepOrder(guide.candidates, order?.sort === guide.sort ? order.ids : null) : []),
+    [guide, order],
+  );
+  const shownIds = candidates.map((c) => c.id).join("|");
+  if (guide && !query.isPlaceholderData && (order?.sort !== guide.sort || order.ids.join("|") !== shownIds))
+    setOrder({ sort: guide.sort, ids: candidates.map((c) => c.id) });
+  // One array per answer (the change marks compare row lists by identity).
+  const { ok, folded } = useMemo(
+    () => (guide ? splitCandidates(candidates) : { ok: [], folded: [] }),
+    [guide, candidates],
+  );
+  // The backend's own order differs from the rows on screen (prices moved).
+  const reordered =
+    !!guide && guide.candidates.map((c) => c.id).join("|") !== shownIds && order?.sort === guide.sort;
+  const changed = useChangedCells(ok, (c) => c.id, {
+    cost: (c) => c.cost?.amount,
+    eff: (c) => c.combatPowerPer10kGold,
+  });
+  // Tint only: the cells carry no arrow of their own room (no width change).
+  const pulseOf = (id: string, key: string) => {
+    const pulse = changed.pulse(id, key);
+    return pulse && { ...pulse, dir: 0 as const };
+  };
   // Each cost basis once, under the table (the same code is the same sentence).
   // In code order, so a new sort does not reorder these lines (A7).
   const bases = [...new Map(ok.flatMap((c) => (c.cost ? [[c.cost.code, c.cost.basis] as const] : []))).entries()]
@@ -118,12 +187,39 @@ export default function SpecUpGuide({ data }: { data: Character }) {
 
       <div
         aria-live="polite"
-        aria-busy={query.isFetching || undefined}
+        // Busy while a list is coming for the first time or for a new sort,
+        // not on the quiet minute refresh.
+        aria-busy={(query.isFetching && (!guide || query.isPlaceholderData)) || undefined}
         className={styles.specUpList}
         data-stale={query.isPlaceholderData || undefined}
       >
-        <p className={styles.specUpPrices} role="status">
-          {query.isPlaceholderData ? "새 순서로 다시 불러오고 있어요…" : ""}
+        <p className={styles.specUpPrices} role="status" ref={statusRef} tabIndex={-1}>
+          {query.isPlaceholderData ? (
+            "새 순서로 다시 불러오고 있어요…"
+          ) : reordered && guide ? (
+            // The rows stayed put on the refresh; the new order is one press away
+            // (PM 총괄 판정 b). Pressed, the rows take the new order at once.
+            // Short, so it stays one line at 360 in the line's fixed height (A37):
+            // the rows are the order from before the prices moved.
+            <>
+              시세 갱신 전 순서예요 ·{" "}
+              <button
+                type="button"
+                className={`${styles.specUpReorder} hit-44`}
+                onClick={() => {
+                  setOrder({ sort: guide.sort, ids: guide.candidates.map((c) => c.id) });
+                  setGeneration((g) => g + 1);
+                  setSorted(true);
+                }}
+              >
+                새 순서로 보기
+              </button>
+            </>
+          ) : sorted ? (
+            "새 순서로 정렬했어요"
+          ) : (
+            ""
+          )}
         </p>
         {failure ? (
           <div className={styles.specUpFailure} role="alert">
@@ -151,7 +247,7 @@ export default function SpecUpGuide({ data }: { data: Character }) {
               <div className={styles.tableWrap}>
                 <table className={`${styles.table} ${styles.specUpTable}`}>
                   <caption className={styles.sr}>
-                    스펙업 후보, {SORTS.find((s) => s.id === sort)?.label} 순
+                    스펙업 후보, {SORTS.find((s) => s.id === sort)?.label} 순{reordered ? "(시세 갱신 전 순서)" : ""}
                   </caption>
                   <thead>
                     <tr>
@@ -171,9 +267,10 @@ export default function SpecUpGuide({ data }: { data: Character }) {
                     {ok.map((c, i) => {
                       const tryable = editsFor(c.change, NO_EDITS) != null && c.change;
                       return (
-                        // Keyed by the order of the list on screen: a new
-                        // order draws new rows instead of sliding the old ones (A7).
-                        <tr key={`${guide.sort}:${c.id}`}>
+                        // Keyed by the order of the list on screen: a new sort
+                        // or '새 순서로 보기' draws new rows instead of sliding
+                        // the old ones (A7).
+                        <tr key={`${guide.sort}:${generation}:${c.id}`}>
                           <td data-cell="rank">{i + 1}</td>
                           <td data-cell="kind">{kindLabel(c.kind)}</td>
                           <th scope="row" data-cell="target">
@@ -189,9 +286,11 @@ export default function SpecUpGuide({ data }: { data: Character }) {
                             {c.deltaCombatPower == null ? "—" : `+${two(c.deltaCombatPower)}`}
                             {c.deltaPercent != null && <small> ({c.deltaPercent.toFixed(3)}%)</small>}
                           </td>
-                          <CostCell candidate={c} />
+                          <CostCell candidate={c} pulse={pulseOf(c.id, "cost")} />
                           <td data-cell="eff" data-label="1만 골드당" data-figure="">
-                            {c.combatPowerPer10kGold == null ? "—" : two(c.combatPowerPer10kGold)}
+                            <ChangeMark key={c.combatPowerPer10kGold ?? "none"} pulse={pulseOf(c.id, "eff")}>
+                              {c.combatPowerPer10kGold == null ? "—" : two(c.combatPowerPer10kGold)}
+                            </ChangeMark>
                           </td>
                           <td data-cell="try">
                             {tryable && (
