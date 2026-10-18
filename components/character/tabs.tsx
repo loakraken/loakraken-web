@@ -1985,55 +1985,8 @@ function SiblingList({
           <label htmlFor={ids.masked}>닉네임 가리기</label>
         </span>
       </div>
-      {summary.sixAverage != null && (
-        <p className={styles.rosterSummary}>
-          식스맨 평균 <b>{number(summary.sixAverage)}</b>
-          {/* The ranking's rule (api #530); the server named when the roster spans several. */}
-          <small>{` (${servers.length > 1 ? `${summary.sixServer} ` : ""}${sixBasis(summary.sixCount, "평균")})`}</small>
-          {" · "}
-          {number(ROSTER_TOTAL_MIN)} 이상 <b>{summary.highCount}명</b>
-          {summary.highCount > 0 && (
-            <small>
-              {" "}
-              (합 {number(summary.highSum)})
-            </small>
-          )}
-        </p>
-      )}
-      <RosterPower name={current} siblings={siblings} records={records} query={power} />
-      {stats.average != null && (
-        <>
-          <dl className={styles.rosterStats} aria-label="원정대 아이템 레벨">
-            <div>
-              <dt>캐릭터</dt>
-              <dd>{number(stats.count)}개</dd>
-            </div>
-            <div>
-              <dt>평균</dt>
-              <dd>{number(stats.average)}</dd>
-            </div>
-            <div>
-              <dt>중앙값</dt>
-              <dd>{number(stats.median)}</dd>
-            </div>
-            <div>
-              <dt>최고</dt>
-              <dd>{number(stats.max)}</dd>
-            </div>
-            <div>
-              <dt>최저</dt>
-              <dd>{number(stats.min)}</dd>
-            </div>
-          </dl>
-          <Panel title="구성" wide>
-            <div className={styles.rosterMix}>
-              <ShareBars title="아이템 레벨 구간" rows={bands} />
-              <ShareBars title={`직업 ${mix.length}개`} rows={mix} />
-            </div>
-          </Panel>
-        </>
-      )}
-      <WeeklyGoldPanel siblings={siblings} current={current} shown={shown} />
+      {/* The characters first (v0.3.2 feedback): the summaries, combat power,
+          make-up and weekly gold follow under the lists. */}
       {servers.map((server) => (
         <Panel
           key={server}
@@ -2093,6 +2046,55 @@ function SiblingList({
           </ul>
         </Panel>
       ))}
+      {summary.sixAverage != null && (
+        <p className={styles.rosterSummary}>
+          식스맨 평균 <b>{number(summary.sixAverage)}</b>
+          {/* The ranking's rule (api #530); the server named when the roster spans several. */}
+          <small>{` (${servers.length > 1 ? `${summary.sixServer} ` : ""}${sixBasis(summary.sixCount, "평균")})`}</small>
+          {" · "}
+          {number(ROSTER_TOTAL_MIN)} 이상 <b>{summary.highCount}명</b>
+          {summary.highCount > 0 && (
+            <small>
+              {" "}
+              (합 {number(summary.highSum)})
+            </small>
+          )}
+        </p>
+      )}
+      <RosterPower name={current} siblings={siblings} records={records} query={power} />
+      {stats.average != null && (
+        <>
+          <dl className={styles.rosterStats} aria-label="원정대 아이템 레벨">
+            <div>
+              <dt>캐릭터</dt>
+              <dd>{number(stats.count)}개</dd>
+            </div>
+            <div>
+              <dt>평균</dt>
+              <dd>{number(stats.average)}</dd>
+            </div>
+            <div>
+              <dt>중앙값</dt>
+              <dd>{number(stats.median)}</dd>
+            </div>
+            <div>
+              <dt>최고</dt>
+              <dd>{number(stats.max)}</dd>
+            </div>
+            <div>
+              <dt>최저</dt>
+              <dd>{number(stats.min)}</dd>
+            </div>
+          </dl>
+          <Panel title="구성" wide>
+            <div className={styles.rosterMix}>
+              <ShareBars title="아이템 레벨 구간" rows={bands} />
+              <ShareBars title={`직업 ${mix.length}개`} rows={mix} />
+            </div>
+          </Panel>
+        </>
+      )}
+      <WeeklyGoldPanel siblings={siblings} current={current} shown={shown} />
     </>
   );
 }
