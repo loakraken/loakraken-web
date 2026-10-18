@@ -496,7 +496,12 @@
   padding: 0 20px;
   font-variant-numeric: tabular-nums;
 }
+/* The ⓘ (28px to press) sits in the label's 26px row without making it taller. */
 .krakenLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 26px;
   color: var(--muted-foreground);
   font-size: 13px;
   font-weight: 500;
