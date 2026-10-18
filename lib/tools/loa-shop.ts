@@ -167,6 +167,31 @@ export function packageValue(
   };
 }
 
+/**
+ * Without a typed exchange rate (A23: never ask for a value the player may
+ * not have; PM 총괄 2026-10-17): the in-game crystal exchange rate (gold per
+ * 100 blue crystals) at or below which the package gains.
+ *   value(rate) = (M + C × rate/100) × R/rate = M × R/rate + C × R/100
+ *   gain ≥ 0 ⇔ rate ≤ M × R / (P − C × R/100)
+ * M = gold of the market contents, C = crystals inside, P = price in royal
+ * crystals, R = royal crystals per 100 crystals. "always" when the crystals
+ * alone are worth the price, "never" with nothing tradeable to value; null
+ * while a market content has no price, or for 페온 only.
+ */
+export type BreakEven = { kind: "rate"; rate: number } | { kind: "always" } | { kind: "never" };
+export function breakEvenRate(
+  pkg: ShopPackage,
+  unitPrice: (name: string) => UnitPrice,
+  royalPer100 = SHOP_DATA.crystal.royalPer100,
+): BreakEven | null {
+  const value = packageValue(pkg, unitPrice, null, royalPer100);
+  if (value.onlyPheon || value.unknown.some((item) => item.kind !== "crystal")) return null;
+  const rest = value.priceRoyal - (value.crystals * royalPer100) / 100;
+  if (rest <= 0) return { kind: "always" };
+  if (value.gold <= 0) return { kind: "never" };
+  return { kind: "rate", rate: Math.floor((value.gold * royalPer100) / rest) };
+}
+
 /** The typed exchange rate: a positive whole number of gold, or null. */
 export function parseRate(value: string): number | null {
   const digits = value.replace(/[^\d]/g, "");
