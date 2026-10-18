@@ -54,6 +54,7 @@ import { ChartPlaceholder, MarketChart, dayPoints, minutePoints, periodChange } 
 import { sampleText } from "@/lib/market/minutes";
 import { SiteHeader } from "@/components/site/site-header";
 import { PillTab, PillTabs } from "@/components/ui/pill-tabs";
+import { BoardSearch, WiderSearch, type OutsideItem } from "./board-search";
 
 // One Iconsax mark per category (decorative; the label names the tab).
 const TAB_ICON: Record<string, ReactNode> = {
@@ -512,6 +513,8 @@ function MarketContent({
   const router = useRouter();
   const [query, setQuery] = useState(initial);
   const [selected, setSelected] = useState<number | null>(initialItem);
+  // An item found outside the tab (the wider search), shown like a starred one.
+  const [outside, setOutside] = useState<OutsideItem | null>(null);
   const favorites = useFavorites();
   const tabs = useQuery({
     queryKey: ["market", "tabs"],
@@ -540,16 +543,17 @@ function MarketContent({
   const items = data?.items ?? [];
   const listed = items.find((item) => item.itemId === selected);
   const favorite = !listed ? favorites.find((f) => f.itemId === selected) : undefined;
+  const found = !listed && !favorite && outside?.itemId === selected ? outside : undefined;
   // A starred item outside the current page still opens its history.
   const active: BoardItem | undefined =
     listed ??
-    (favorite
+    (favorite ?? found
       ? ({
           ...items[0],
-          itemId: favorite.itemId,
-          name: favorite.name,
-          icon: favorite.icon,
-          grade: favorite.grade,
+          itemId: (favorite ?? found)!.itemId,
+          name: (favorite ?? found)!.name,
+          icon: (favorite ?? found)!.icon,
+          grade: (favorite ?? found)!.grade,
           bundleCount: 1,
           currentMinPrice: null,
           recentPrice: null,
@@ -616,6 +620,8 @@ function MarketContent({
                   ))}
             </PillTabs>
           )}
+          {/* 품목 이름 검색 (api #624): kept across tabs, in the address. */}
+          <BoardSearch value={query.q} onSearch={(q) => update({ q, page: 1 })} />
           {favorites.length === 0 ? (
             <p className={styles.favoritesHint}>
               <Bookmark size={12} aria-hidden="true" /> 품목의 즐겨찾기 표시를 누르면 여기에 모아 볼 수 있어요.
@@ -675,51 +681,74 @@ function MarketContent({
                   ))}
                 </div>
               )}
-              {(query.sort === "rise" || query.sort === "fall") && data && (
+              {/* One line from the moment a search starts (empty until it has
+                  something to say), so the answer arriving moves nothing. */}
+              {query.q && <p className={styles.note}>{data && !data.complete ? "일부 품목만 찾았어요" : " "}</p>}
+              {!query.q && (query.sort === "rise" || query.sort === "fall") && data && (
                 <p className={styles.note}>
                   분류 전체를 스캔해 정렬해요(최대 3분 지연)
                   {!data.complete && " · 품목이 많아 일부 품목만 정렬했어요"}
                 </p>
               )}
               {data && failure && <StaleNote failure={failure} />}
-              {failure && !data ? (
-                <Problem
-                  failure={failure}
-                  onRetry={() => {
-                    void tabs.refetch();
-                    void board.refetch();
-                  }}
-                />
-              ) : !data ? (
-                // One page of empty rows: the list keeps its height while loading.
-                <ul className={styles.rows} aria-busy="true">
-                  <li className={styles.srOnly} role="status">
-                    시세를 불러오고 있어요
-                  </li>
-                  {Array.from({ length: 10 }, (_, i) => (
-                    <li key={i} className={styles.skeletonRow} aria-hidden="true">
-                      <i />
-                      <span />
+              {/* Ten rows of room while searching: fewer matches, or none, do not
+                  pull the page buttons and the rest up when they arrive. */}
+              <div className={styles.results} data-search={query.q ? "" : undefined}>
+                {failure && !data ? (
+                  <Problem
+                    failure={failure}
+                    onRetry={() => {
+                      void tabs.refetch();
+                      void board.refetch();
+                    }}
+                  />
+                ) : !data ? (
+                  // One page of empty rows: the list keeps its height while loading.
+                  <ul className={styles.rows} aria-busy="true">
+                    <li className={styles.srOnly} role="status">
+                      시세를 불러오고 있어요
                     </li>
-                  ))}
-                </ul>
-              ) : !items.length ? (
-                <p className={styles.muted}>표시할 품목이 없어요.</p>
-              ) : (
-                // A new board (tab, tier, sort, page) is not a "change": the
-                // rows are compared again from the first real answer for it.
-                <BoardRows
-                  key={`${JSON.stringify(query)}${board.isPlaceholderData ? ":previous" : ""}`}
-                  listRef={fade}
-                  items={items}
-                  tier={tier}
-                  activeId={active?.itemId}
-                  onChoose={choose}
-                  pending={pendingProps(board)}
-                />
-              )}
+                    {Array.from({ length: 10 }, (_, i) => (
+                      <li key={i} className={styles.skeletonRow} aria-hidden="true">
+                        <i />
+                        <span />
+                      </li>
+                    ))}
+                  </ul>
+                ) : !items.length && query.q ? (
+                  <WiderSearch
+                    q={query.q}
+                    categoryCode={currentTab?.categoryCode}
+                    onPick={(item) => {
+                      setOutside(item);
+                      setSelected(item.itemId);
+                      const params = new URLSearchParams(boardQueryString(query));
+                      params.set("item", String(item.itemId));
+                      router.replace(`?${params}`, { scroll: false });
+                    }}
+                  />
+                ) : !items.length ? (
+                  <p className={styles.muted}>표시할 품목이 없어요.</p>
+                ) : (
+                  // A new board (tab, tier, sort, page) is not a "change": the
+                  // rows are compared again from the first real answer for it.
+                  <BoardRows
+                    key={`${JSON.stringify(query)}${board.isPlaceholderData ? ":previous" : ""}`}
+                    listRef={fade}
+                    items={items}
+                    tier={tier}
+                    activeId={active?.itemId}
+                    onChoose={choose}
+                    pending={pendingProps(board)}
+                  />
+                )}
+              </div>
+              {/* While searching, the page buttons' row keeps its room even on one
+                  page: the results come back after typing rests and must not move the
+                  rest of the board. */}
+              {pages <= 1 && query.q && <div className={styles.pagesSlot} aria-hidden="true" />}
               {pages > 1 && (
-                <nav className={styles.pages} aria-label="페이지">
+                <nav className={styles.pages} aria-label="페이지" data-search={query.q ? "" : undefined}>
                   {Array.from({ length: pages }, (_, i) => i + 1).map((p) => (
                     <button
                       key={p}
@@ -757,7 +786,7 @@ function MarketContent({
                   item={active}
                   tier={favorite ? favorite.tier : tier}
                   tab={favorite ? favorite.tab : query.tab}
-                  outside={!!favorite}
+                  outside={!!favorite || !!found}
                 />
               ) : !data && !failure ? (
                 // Board still loading: hold the detail panel height (it sits above

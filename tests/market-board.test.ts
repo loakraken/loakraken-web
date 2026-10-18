@@ -11,6 +11,7 @@ import {
   unitPrice,
   updatedAgo,
   parseItemId,
+  normalizeSearch,
   readBoardQuery,
 } from "../lib/market/board";
 import {
@@ -43,14 +44,32 @@ test("board query is allow-listed and the page URL falls back to defaults", () =
   );
   for (const bad of ["", "tab=GEM", "tab=LIFE&tier=5", "tab=LIFE&sort=up", "tab=LIFE&page=11", "tab=LIFE&page=1.5"])
     assert.equal(boardSearchParams(new URLSearchParams(bad)), null, bad);
-  assert.deepEqual(readBoardQuery({}), { tab: "REFINING", tier: null, sort: "default", page: 1 });
+  assert.deepEqual(readBoardQuery({}), { tab: "REFINING", tier: null, sort: "default", page: 1, q: null });
   assert.deepEqual(readBoardQuery({ tab: "FOOD", sort: "fall", page: "3", tier: "9" }), {
     tab: "FOOD",
     tier: null,
     sort: "fall",
     page: 3,
+    q: null,
   });
-  assert.equal(boardQueryString({ tab: "LIFE", tier: null, sort: "default", page: 1 }), "tab=LIFE");
+  assert.equal(boardQueryString({ tab: "LIFE", tier: null, sort: "default", page: 1, q: null }), "tab=LIFE");
+});
+
+test("name search (api #624): trimmed, 1~20 allowed characters, kept in the address and passed on", () => {
+  assert.equal(normalizeSearch("  운명의   파괴석 "), "운명의 파괴석");
+  assert.equal(normalizeSearch("ㅇㅂㄷ"), "ㅇㅂㄷ");
+  assert.equal(normalizeSearch("정제된 파괴강석(귀속)"), "정제된 파괴강석(귀속)");
+  for (const bad of ["", "   ", "가".repeat(21), "<script>", "파괴석;", "a/b"]) assert.equal(normalizeSearch(bad), null, bad);
+  assert.equal(
+    boardSearchParams(new URLSearchParams("tab=REFINING&q=%20%ED%8C%8C%EA%B4%B4%EC%84%9D%20"))?.get("q"),
+    "파괴석",
+  );
+  // Blank is no search; a disallowed one is refused before any backend call.
+  assert.equal(boardSearchParams(new URLSearchParams("tab=REFINING&q=%20"))?.has("q"), false);
+  assert.equal(boardSearchParams(new URLSearchParams("tab=REFINING&q=%3Cx%3E")), null);
+  assert.equal(readBoardQuery({ tab: "LIFE", q: " ㅇㅂㄷ " }).q, "ㅇㅂㄷ");
+  assert.equal(readBoardQuery({ tab: "LIFE", q: "<x>" }).q, null);
+  assert.equal(boardQueryString({ tab: "LIFE", tier: null, sort: "default", page: 1, q: "파괴석" }), "tab=LIFE&q=%ED%8C%8C%EA%B4%B4%EC%84%9D");
   assert.equal(parseItemId("66102006"), 66102006);
   assert.equal(parseItemId("0"), null);
   assert.equal(parseItemId("12a"), null);

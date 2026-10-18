@@ -113,7 +113,7 @@ export interface paths {
         };
         /**
          * 시세 보드
-         * @description 탭별 현재 판매 품목과 전일 대비 등락률입니다. default·high·low는 공식 정렬 한 페이지(검색 캐시 30초)를 씁니다. rise·fall은 공식 정렬에 없어 탭 전체(최대 10페이지)를 순차 스캔하고 3분 캐시합니다. 동시 요청은 합칩니다. changeWeek·spark7은 상품 이력 캐시가 있을 때만 채웁니다(추가 외부 호출 없음).
+         * @description 탭별 현재 판매 품목과 전일 대비 등락률입니다. default·high·low는 공식 정렬 한 페이지(검색 캐시 30초)를 씁니다. rise·fall은 공식 정렬에 없어 탭 전체(최대 10페이지)를 순차 스캔하고 3분 캐시합니다. 동시 요청은 합칩니다. changeWeek·spark7은 상품 이력 캐시가 있을 때만 채웁니다(추가 외부 호출 없음). q(이름 검색)를 주면 rise·fall과 같은 탭 전체 스캔(같은 캐시·합치기)에서 이름 또는 초성 포함으로 거른 뒤 정렬·페이지를 적용합니다. 이때 totalItems는 찾은 품목 수이고, 10페이지를 넘는 탭이면 complete=false(일부 품목에서만 찾음)입니다. q가 규칙 밖이면 400 INVALID_REQUEST.
          */
         get: operations["board"];
         put?: never;
@@ -419,7 +419,7 @@ export interface components {
             /** @description 성공 응답 데이터. 오류일 때 null */
             data: components["schemas"]["MaterialPriceResponse"];
         };
-        /** @description 재료 이름별 1개당 골드. 거래소 현재 판매 목록 첫 페이지에서 이름이 정확히 같은 상품만 사용합니다. */
+        /** @description 재료 이름별 1개당 골드. 거래소 현재 판매 목록(예열 시세 또는 검색)에서 이름이 정확히 같은 상품만 사용합니다. */
         MaterialPriceResponse: {
             /** @enum {string} */
             priceBasis: "CURRENT_MIN_PRICE" | "RECENT_PRICE" | "YDAY_AVG_PRICE";
@@ -511,15 +511,15 @@ export interface components {
             observedAt: string;
             /**
              * Format: int32
-             * @description 공식 검색의 탭 전체 품목 수
+             * @description 공식 검색의 탭 전체 품목 수. q(이름 검색)가 있으면 찾은 품목 수
              */
             totalItems: number;
             /**
              * Format: int32
-             * @description 정렬에 사용한 품목 수. rise/fall은 스캔 품목 수, 그 외는 이 페이지 품목 수
+             * @description 정렬에 사용한 품목 수. rise/fall과 q 검색은 스캔 품목 수, 그 외는 이 페이지 품목 수
              */
             scannedItems: number;
-            /** @description rise/fall이 탭 전체를 스캔했는지. 스캔 상한(10페이지)을 넘으면 false */
+            /** @description rise/fall·q 검색이 탭 전체를 스캔했는지. 스캔 상한(10페이지)을 넘으면 false */
             complete: boolean;
             items: components["schemas"]["MarketBoardItemResponse"][];
         };
@@ -660,7 +660,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description LOST_ARK_RATE_LIMITED: 캐릭터와 공유하는 호출 한도 초과 */
+            /** @description LOST_ARK_RATE_LIMITED: 캐릭터와 공유하는 호출 한도 초과 / CLIENT_RATE_LIMITED: 이 클라이언트의 분당 요청·공식 호출 한도 초과. Retry-After(초) 뒤 다시 시도 */
             429: {
                 headers: {
                     [name: string]: unknown;
@@ -757,7 +757,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description LOST_ARK_RATE_LIMITED: 캐릭터와 공유하는 호출 한도 초과 */
+            /** @description LOST_ARK_RATE_LIMITED: 캐릭터와 공유하는 호출 한도 초과 / CLIENT_RATE_LIMITED: 이 클라이언트의 분당 요청·공식 호출 한도 초과. Retry-After(초) 뒤 다시 시도 */
             429: {
                 headers: {
                     [name: string]: unknown;
@@ -853,7 +853,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description LOST_ARK_RATE_LIMITED: 캐릭터와 공유하는 호출 한도 초과 */
+            /** @description LOST_ARK_RATE_LIMITED: 캐릭터와 공유하는 호출 한도 초과 / CLIENT_RATE_LIMITED: 이 클라이언트의 분당 요청·공식 호출 한도 초과. Retry-After(초) 뒤 다시 시도 */
             429: {
                 headers: {
                     [name: string]: unknown;
@@ -949,7 +949,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description LOST_ARK_RATE_LIMITED: 캐릭터와 공유하는 호출 한도 초과 */
+            /** @description LOST_ARK_RATE_LIMITED: 캐릭터와 공유하는 호출 한도 초과 / CLIENT_RATE_LIMITED: 이 클라이언트의 분당 요청·공식 호출 한도 초과. Retry-After(초) 뒤 다시 시도 */
             429: {
                 headers: {
                     [name: string]: unknown;
@@ -1032,7 +1032,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description LOST_ARK_RATE_LIMITED: 캐릭터와 공유하는 호출 한도 초과 */
+            /** @description LOST_ARK_RATE_LIMITED: 캐릭터와 공유하는 호출 한도 초과 / CLIENT_RATE_LIMITED: 이 클라이언트의 분당 요청·공식 호출 한도 초과. Retry-After(초) 뒤 다시 시도 */
             429: {
                 headers: {
                     [name: string]: unknown;
@@ -1093,6 +1093,11 @@ export interface operations {
                 sort?: string;
                 /** @description 10개 단위 페이지 */
                 page?: number;
+                /**
+                 * @description 품목 이름 검색(앞뒤 공백 정리 뒤 1~20자, 한글·자모·영숫자·공백·'·()+-:'). 이름 포함 또는 초성(예: ㅇㅂㄷ) 포함으로 탭 전체 스캔 결과를 거른 뒤 정렬·페이지를 적용합니다. 생략하거나 공백뿐이면 검색하지 않습니다
+                 * @example 파괴석
+                 */
+                q?: string;
             };
             header?: never;
             path?: never;
@@ -1127,7 +1132,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description LOST_ARK_RATE_LIMITED: 캐릭터와 공유하는 호출 한도 초과 */
+            /** @description LOST_ARK_RATE_LIMITED: 캐릭터와 공유하는 호출 한도 초과 / CLIENT_RATE_LIMITED: 이 클라이언트의 분당 요청·공식 호출 한도 초과. Retry-After(초) 뒤 다시 시도 */
             429: {
                 headers: {
                     [name: string]: unknown;
@@ -1221,7 +1226,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description LOST_ARK_RATE_LIMITED: 캐릭터와 공유하는 호출 한도 초과 */
+            /** @description LOST_ARK_RATE_LIMITED: 캐릭터와 공유하는 호출 한도 초과 / CLIENT_RATE_LIMITED: 이 클라이언트의 분당 요청·공식 호출 한도 초과. Retry-After(초) 뒤 다시 시도 */
             429: {
                 headers: {
                     [name: string]: unknown;

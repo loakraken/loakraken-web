@@ -59,7 +59,18 @@ export type BoardQuery = {
   tier: number | null;
   sort: SortId;
   page: number;
+  /** Item name search (api #624): a part of the name or its initials (ㅇㅂㄷ); null for none. */
+  q: string | null;
 };
+
+/** The characters the backend takes in a search (api #624), max 20 after trimming. */
+const SEARCH = /^[가-힣ㄱ-ㅎㅏ-ㅣA-Za-z0-9 ·()+\-:]{1,20}$/;
+
+/** The search as sent: trimmed, one space between words; null when empty or not allowed. */
+export function normalizeSearch(text: string | null | undefined): string | null {
+  const value = (text ?? "").trim().replace(/\s+/g, " ");
+  return value && SEARCH.test(value) ? value : null;
+}
 
 const isInt = (text: string, min: number, max: number) =>
   /^\d{1,2}$/.test(text) && Number(text) >= min && Number(text) <= max;
@@ -85,6 +96,12 @@ export function boardSearchParams(input: URLSearchParams): URLSearchParams | nul
     if (!isInt(page, 1, 10)) return null;
     out.set("page", String(Number(page)));
   }
+  const q = input.get("q");
+  if (q !== null && q.trim() !== "") {
+    const search = normalizeSearch(q);
+    if (!search) return null;
+    out.set("q", search);
+  }
   return out;
 }
 
@@ -101,6 +118,7 @@ export function readBoardQuery(params: {
   tier?: string | string[];
   sort?: string | string[];
   page?: string | string[];
+  q?: string | string[];
 }): BoardQuery {
   const one = (value: string | string[] | undefined) =>
     typeof value === "string" ? value : "";
@@ -112,7 +130,7 @@ export function readBoardQuery(params: {
     ? (one(params.sort) as SortId)
     : "default";
   const page = isInt(one(params.page), 1, 10) ? Number(one(params.page)) : 1;
-  return { tab, tier, sort, page };
+  return { tab, tier, sort, page, q: normalizeSearch(one(params.q)) };
 }
 
 export function boardQueryString(query: BoardQuery) {
@@ -120,6 +138,7 @@ export function boardQueryString(query: BoardQuery) {
   if (query.tier != null) out.set("tier", String(query.tier));
   if (query.sort !== "default") out.set("sort", query.sort);
   if (query.page > 1) out.set("page", String(query.page));
+  if (query.q) out.set("q", query.q);
   return out.toString();
 }
 
