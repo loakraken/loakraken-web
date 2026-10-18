@@ -287,6 +287,20 @@
   color: var(--muted-foreground);
   font-size: 12px;
 }
+/* 문장·심볼 pictures, a fixed 24px each, then any name as text. */
+.itemText small.decorations {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+}
+.decorations img {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-sm);
+}
 /* Quality: in-game tier colour badge with the number (the convention users
    know from the other armory sites), plus a neutral level badge beside it. */
 .badges {
