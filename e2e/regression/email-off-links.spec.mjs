@@ -13,8 +13,34 @@ for (const [name, path, address] of PAGES)
     // The first HTML, as the edge sees it.
     const html = await (await request.get(path)).text();
     expect(html).toContain(`<!--email_off--><a href="mailto:${address}">${address}</a><!--/email_off-->`);
-    // Not a bare address outside the marker in the page's own markup.
-    expect(html.replace(/<!--email_off-->.*?<!--\/email_off-->/g, "").replace(/<script[\s\S]*?<\/script>/g, "")).not.toContain(address);
+    // Not a bare address outside the marker in the page's own markup. Parsed as a
+    // document (not filtered with patterns): the data scripts are dropped, then
+    // every text or attribute holding the address must be the marked link's.
+    const outside = await page.evaluate(
+      ({ source, mail }) => {
+        const doc = new DOMParser().parseFromString(source, "text/html");
+        for (const script of doc.querySelectorAll("script")) script.remove();
+        const marked = (el) => {
+          const link = el.closest("a");
+          let before = link?.previousSibling;
+          while (before && before.nodeType === Node.TEXT_NODE && !before.textContent.trim()) before = before.previousSibling;
+          return !!link && before?.nodeType === Node.COMMENT_NODE && before.textContent.trim() === "email_off";
+        };
+        const found = [];
+        const walker = doc.createTreeWalker(doc.documentElement, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT);
+        for (let node = walker.currentNode; node; node = walker.nextNode()) {
+          if (node.nodeType === Node.TEXT_NODE) {
+            if (node.textContent.includes(mail) && !marked(node.parentElement)) found.push(`text in <${node.parentElement.tagName.toLowerCase()}>`);
+          } else {
+            for (const attr of node.attributes)
+              if (attr.value.includes(mail) && !marked(node)) found.push(`${node.tagName.toLowerCase()}[${attr.name}]`);
+          }
+        }
+        return found;
+      },
+      { source: html, mail: address },
+    );
+    expect(outside, "email_off 밖의 맨 주소").toEqual([]);
 
     const errors = [];
     page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
