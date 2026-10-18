@@ -1,6 +1,7 @@
 // Notice rows and the running-event list, shared by the home cards and /news.
 
 import { dDay, kstDate, periodText, type HomeEvent } from "@/lib/home/model";
+import { safeGameImage } from "@/lib/character/model";
 import styles from "@/components/home/home.module.css";
 
 /** "10.9" in KST. */
@@ -40,13 +41,14 @@ export function EventItems({ events, now }: { events: HomeEvent[]; now: number |
     <ul className={styles.events}>
       {events.map((event) => {
         const left = now !== null ? dDay(event.endAt, now) : null;
+        const thumbnail = safeGameImage(event.thumbnail);
         return (
           <li key={`${event.startAt}${event.title}`}>
             <a href={event.url ?? undefined} target="_blank" rel="noreferrer">
-              {event.thumbnail ? (
+              {thumbnail ? (
                 // eslint-disable-next-line @next/next/no-img-element -- official event banner
                 <img
-                  src={event.thumbnail}
+                  src={thumbnail}
                   alt=""
                   width={64}
                   height={36}
