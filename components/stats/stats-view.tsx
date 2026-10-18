@@ -780,6 +780,12 @@ export function StatsView({
                 ) : (
                   <ServersTab query={query} />
                 )}
+                {/* Right under every tab's content, inside the room the tallest
+                    tab keeps (A7): the room left after a shorter tab is past the
+                    note, at the end of the page, not between the table and it.
+                    Drawn anew per tab: one note sliding up or down with the
+                    content would count as moving. */}
+                <StatsBasis key={tab} query={query} />
               </div>
             </PillTabsPanel>
           }
@@ -790,7 +796,6 @@ export function StatsView({
             </PillTab>
           ))}
         </PillTabs>
-        <StatsBasis query={query} />
       </main>
     </div>
   );
