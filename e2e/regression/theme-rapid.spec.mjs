@@ -38,12 +38,13 @@ test.describe("테마 연타 @regression", () => {
         };
       });
 
-      // From light, 10 steps round four choices land on the third: dark.
-      expect(ORDER[10 % 4]).toBe("dark");
-      expect(result.theme).toBe("dark");
-      expect(result.stored).toBe("dark");
-      expect(result.checked).toBe("다크");
-      expect(result.focused).toBe("다크");
+      // From the default, system (the fourth), 10 steps round four choices
+      // land on the second: dim (user decision 10-18: system by default).
+      expect(ORDER[(3 + 10) % 4]).toBe("dim");
+      expect(result.theme).toBe("dim");
+      expect(result.stored).toBe("dim");
+      expect(result.checked).toBe("딤");
+      expect(result.focused).toBe("딤");
       expect(result.switching).toBe(false);
       expect(result.colourTransitions).toBe(0);
 
@@ -93,9 +94,28 @@ test.describe("테마 4종 @regression", () => {
     await expect(page.locator("html")).not.toHaveAttribute("data-theme");
   });
 
-  test("저장값이 없으면 OS가 다크여도 라이트(D3)", async ({ page }) => {
+  // 사용자 결정 10-18: 저장값이 없으면 시스템(전에는 라이트, D3). 저장된 선택은 그대로.
+  for (const os of ["light", "dark"])
+    test(`저장값이 없으면 시스템을 따른다: OS ${os}`, async ({ page }) => {
+      await page.emulateMedia({ colorScheme: os });
+      await gotoReady(page, "/");
+      const html = page.locator("html");
+      await expect(html).toHaveAttribute("data-theme-choice", "system");
+      if (os === "dark") await expect(html).toHaveAttribute("data-theme", "dark");
+      else await expect(html).not.toHaveAttribute("data-theme");
+      // The header button shows the system icon, and the choice is not written down.
+      expect(await page.evaluate(() => localStorage.getItem("loakraken-theme"))).toBeNull();
+      // Following the OS while nothing is stored.
+      await page.emulateMedia({ colorScheme: os === "dark" ? "light" : "dark" });
+      if (os === "dark") await expect(html).not.toHaveAttribute("data-theme");
+      else await expect(html).toHaveAttribute("data-theme", "dark");
+    });
+
+  test("저장된 라이트는 OS가 다크여도 라이트", async ({ page }) => {
     await page.emulateMedia({ colorScheme: "dark" });
+    await page.addInitScript(() => localStorage.setItem("loakraken-theme", "light"));
     await gotoReady(page, "/");
     await expect(page.locator("html")).not.toHaveAttribute("data-theme");
+    await expect(page.locator("html")).toHaveAttribute("data-theme-choice", "light");
   });
 });
