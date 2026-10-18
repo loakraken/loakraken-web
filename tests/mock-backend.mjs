@@ -761,6 +761,24 @@ createServer(async (req, res) => {
     if (!d.reached) Object.assign(d, { stopReasonCode: "NO_CANDIDATE", stopReason: "더 올릴 수 있는 후보가 없습니다." });
     return send(envelope);
   }
+  // 스펙업 줄 상세 (#887, api #550): the backend's contract examples. The
+  // gem example is the list's first gem (8→9); the other OK rows get the same
+  // shape with their own candidate; an id not in the list is the 404.
+  const detailPath = url.pathname.match(/^\/api\/v1\/characters\/spec-up\/candidates\/([^/]+)$/);
+  if (detailPath) {
+    counts.specUpDetail = (counts.specUpDetail || 0) + 1;
+    const id = decodeURIComponent(detailPath[1]);
+    const fixture = (name) => JSON.parse(readFileSync(new URL(`./spec-up-fixtures/${name}`, import.meta.url), "utf8"));
+    const list = fixture("character-spec-up.json");
+    const candidate = list.data.candidates.find((c) => c.id === id && c.status === "OK");
+    if (!candidate) return send(fixture("character-spec-up-detail-not-found.json"), 404);
+    const envelope = fixture("character-spec-up-detail-gem.json");
+    const who = url.searchParams.get("characterName");
+    Object.assign(envelope.data, { characterName: who, candidate: { ...envelope.data.candidate, ...candidate } });
+    if (candidate.kind !== "GEM_LEVEL") Object.assign(envelope.data, { stats: [], market: null });
+    else if (id !== "GEM_LEVEL:0:9") envelope.data.market[0].itemName = `${String(candidate.to).replace(/\D/g, "")}레벨 겁화의 보석`;
+    return send(envelope);
+  }
   if (url.pathname === "/api/v1/characters/spec-up") {
     const specUp = (name) =>
       JSON.parse(readFileSync(new URL(`./spec-up-fixtures/${name}`, import.meta.url), "utf8"));

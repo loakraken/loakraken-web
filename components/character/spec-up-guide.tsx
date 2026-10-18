@@ -25,8 +25,8 @@ import {
   type Candidate,
   type Sort,
 } from "@/lib/spec-up/model";
-import { GameIcon } from "./imagery";
 import { SpecUpGoal } from "./spec-up-goal";
+import { SpecUpRowDetail } from "./spec-up-detail";
 import { kstTime } from "./parts";
 import styles from "./detail.module.css";
 
@@ -274,10 +274,8 @@ export default function SpecUpGuide({ data }: { data: Character }) {
                           <td data-cell="rank">{i + 1}</td>
                           <td data-cell="kind">{kindLabel(c.kind)}</td>
                           <th scope="row" data-cell="target">
-                            <span className={styles.specUpTarget}>
-                              <GameIcon src={c.icon} grade={c.grade} size={28} />
-                              <span>{c.target}</span>
-                            </span>
+                            {/* The target opens the row's detail (시세·재련 재료·전후 능력치, #887). */}
+                            <SpecUpRowDetail characterName={name} fetchedAt={data.fetchedAt} candidate={c} />
                           </th>
                           <td data-cell="change">
                             {c.from ?? "—"} → {c.to ?? "—"}
