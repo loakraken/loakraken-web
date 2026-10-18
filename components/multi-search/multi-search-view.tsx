@@ -402,7 +402,15 @@ export function MultiSearchView() {
   // may not watch replaceState yet (its effect runs after ours), so the
   // address can change without useSearchParams seeing it.
   const [restored, setRestored] = useState<string[] | null>(null);
-  const names = !fromAddress.length && restored ? restored : fromAddress;
+  // Back to a list made here: the router hands back its screen from before the
+  // names (they went in by replaceState), so the first frame had no cards and
+  // the cards moved the footer when the address caught up (360, 0.17~0.19).
+  // The address the browser shows is read once on open and stands in until
+  // useSearchParams has the names. Same as the server's on a first load.
+  const [atOpen, setAtOpen] = useState<string[]>(() =>
+    typeof window === "undefined" ? [] : namesFromParam(new URLSearchParams(window.location.search).get("names")),
+  );
+  const names = fromAddress.length ? fromAddress : (restored ?? (atOpen.length ? atOpen : fromAddress));
   const [text, setText] = useState("");
   const [error, setError] = useState("");
 
@@ -411,6 +419,7 @@ export function MultiSearchView() {
     writeAddress(next, sort);
     saveLastNames(next);
     setRestored(null);
+    setAtOpen([]);
   };
 
   // Opened without names (menu, home): the last list of this browser comes
