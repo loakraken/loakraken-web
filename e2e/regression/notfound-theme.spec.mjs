@@ -5,6 +5,9 @@
 // back. A plain unknown address was fine. Every theme, both kinds.
 import { test, expect } from "../support/fixtures.mjs";
 
+// A 404 page answers 404 by design; its resource error in the console is expected.
+test.use({ allowConsoleErrors: true });
+
 for (const theme of ["light", "dim", "dark"])
   test(`@A5 404는 ${theme} 테마를 따른다: 없는 주소와 요청을 읽은 뒤의 404 @regression`, async ({ page }) => {
     await page.addInitScript((t) => localStorage.setItem("loakraken-theme", t), theme);
