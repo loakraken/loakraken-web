@@ -21,7 +21,8 @@ test("the backend sample passes the contract and reaches the target in three sim
   const goal = result.envelope.data;
   assert.equal(goal.reached, true);
   assert.equal(goal.steps.length, 3);
-  // Same gem slot twice (8→9→10): the second step is priced as the step up.
+  // v1 answer (before api #592): same gem slot twice (8→9→10), the second step
+  // priced as the step up. The v2 answer is checked below.
   assert.deepEqual(
     goal.steps.map((s) => [s.kind, s.from, s.to, s.cost.code]),
     [
@@ -90,4 +91,16 @@ test("시뮬레이터에서 열기 carries only the changes the simulator takes,
   assert.deepEqual(readTryPath(JSON.stringify(path.changes[0])), [path.changes[0]]);
   assert.equal(readTry(JSON.stringify(path.changes[0]))?.level, 9);
   assert.deepEqual(readTryPath("{"), []);
+});
+
+test("목표 경로 v2 응답(api #592): 보석 단계 비용은 지금부터 그 레벨까지, GEM_STEP 없음, 합계는 단계를 더한 값이 아님", () => {
+  const goal = JSON.parse(readFileSync(new URL("./spec-up-fixtures/character-spec-up-goal-v2.json", import.meta.url), "utf8")).data;
+  assert.equal(goal.ruleVersion, "spec-up-goal-v2");
+  assert.ok(goal.steps.every((s: GoalStep) => s.cost.code !== "GEM_STEP"));
+  assert.deepEqual(
+    goal.steps.map((s: GoalStep) => stepCost(s, koreanGold, goal.ruleVersion)),
+    ["지금부터 60만G", "지금부터 260만G", "비용 미확인"],
+  );
+  // 260만 is the 8→10 cost from now, not 60만 + 200만 added up by the screen.
+  assert.equal(goal.steps[1].cumulativeCost, 2_600_000);
 });

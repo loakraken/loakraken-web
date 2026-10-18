@@ -71,6 +71,22 @@ test.describe("스펙업 가이드 @smoke", () => {
     expect(requests).toBeLessThanOrEqual(2);
   });
 
+  // api #592(spec-up-goal-v2): 보석 단계 비용은 단계마다 따로 계산한 '지금부터 그 레벨까지',
+  // 합계는 응답 그대로(웹에서 더하지 않음). 백엔드 CI의 실제 응답.
+  test("목표 경로 v2: 보석 단계는 '지금부터' 비용, 합계는 응답 그대로", async ({ page }) => {
+    await page.goto(characterPath("스펙목표v2", "specup"));
+    const goal = page.getByRole("region", { name: "목표 전투력" });
+    await goal.getByRole("textbox", { name: "목표 전투력" }).fill("12450");
+    await goal.getByRole("button", { name: "경로 찾기" }).click();
+    const steps = goal.getByRole("list", { name: "효율 순으로 고른 경로" }).getByRole("listitem");
+    await expect(steps).toHaveCount(3);
+    await expect(steps.nth(0)).toContainText("지금부터 60만G");
+    // 9→10: 지금(8레벨)에서 10레벨까지 260만G — 앞 단계 60만G와 더하지 않는다.
+    await expect(steps.nth(1)).toContainText("지금부터 260만G");
+    await expect(steps.nth(2)).toContainText("비용 미확인");
+    await expect(goal).toContainText("기대 비용 미정(비용을 모르는 단계 1개)");
+  });
+
   test("목표 전투력을 넣으면 백엔드가 고른 경로를 보여 준다 — 같은 칸 여러 단계, 비용 미정 단계 포함(L31, api #455)", async ({ page }) => {
     await page.goto(characterPath(NAME, "specup"));
     const goal = page.getByRole("region", { name: "목표 전투력" });

@@ -729,6 +729,13 @@ createServer(async (req, res) => {
     const target = Number(url.searchParams.get("targetCombatPower"));
     if (who === "스펙업꺼짐") return send({ code: "SPEC_UP_DISABLED", message: "", data: null }, 404);
     if (who === "미존재") return send({ code: "CHARACTER_NOT_CACHED", message: "", data: null }, 404);
+    // api #592 (spec-up-goal-v2): the backend's own answer as it is — gem steps cost
+    // from now to that level, and the totals are its own (never summed here).
+    if (who === "스펙목표v2") {
+      const v2 = JSON.parse(readFileSync(new URL("./spec-up-fixtures/character-spec-up-goal-v2.json", import.meta.url), "utf8"));
+      v2.data.characterName = who;
+      return send(v2);
+    }
     const envelope = JSON.parse(readFileSync(new URL("./spec-up-fixtures/character-spec-up-goal.json", import.meta.url), "utf8"));
     const d = envelope.data;
     const base = read("character-full-data.json").combatPower;
