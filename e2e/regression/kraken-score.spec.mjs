@@ -4,10 +4,11 @@
 import { test, expect, gotoReady, characterPath } from "../support/fixtures.mjs";
 import { shiftsSince, watchShifts } from "../support/shifts.mjs";
 
-const item = (page) => page.locator("dl > div").filter({ has: page.locator("dt", { hasText: "크라켄 점수" }) });
+// The facts row: its dd, right after the "크라켄 점수" dt.
+const item = (page) => page.locator("dt", { hasText: "크라켄 점수" }).locator("xpath=following-sibling::dd[1]");
 const barWidth = (page) =>
   item(page).evaluate((el) => {
-    const track = el.querySelector("dd > span[aria-hidden]");
+    const track = el.querySelector("span[aria-hidden]");
     return Math.round((track.firstElementChild.getBoundingClientRect().width / track.getBoundingClientRect().width) * 100);
   });
 
@@ -18,12 +19,12 @@ for (const width of [1280, 360]) {
     await gotoReady(page, characterPath("상세"));
     const box = item(page);
     await expect(box).toBeVisible();
-    await expect(box.locator("dd")).toContainText("5,658.62");
-    await expect(box.locator("dd")).toContainText("다이아");
-    await expect(box.locator("dd")).toContainText("마스터 티어까지 1,041점");
+    await expect(box).toContainText("5,658.62");
+    await expect(box).toContainText("다이아");
+    await expect(box).toContainText("마스터 티어까지 1,041점");
     expect(await barWidth(page), "티어 안 38%").toBe(38);
     // Read as one sentence with its progress, the bar itself hidden.
-    await expect(box.locator("dd")).toContainText("다이아 티어 38% 진행");
+    await expect(box).toContainText("다이아 티어 38% 진행");
     await page.waitForTimeout(800);
     expect((await shiftsSince(page)).all, "첫 로드 흔들림").toBe(0);
   });
@@ -32,17 +33,17 @@ for (const width of [1280, 360]) {
     await page.setViewportSize({ width, height: 900 });
     await gotoReady(page, characterPath("크라켄긴줄"));
     const box = item(page);
-    await expect(box.locator("dd")).toContainText("그랜드마스터 티어까지 12,346점");
+    await expect(box).toContainText("그랜드마스터 티어까지 12,346점");
     // Every line inside the banner's list and the screen, nothing cut (A37).
     const out = await box.evaluate((el) => {
       const list = el.closest("dl").getBoundingClientRect();
-      return [...el.querySelectorAll("dd > span, dd > small")]
+      return [...el.querySelectorAll(":scope > span, :scope small")]
         .map((n) => ({ text: n.textContent, r: n.getBoundingClientRect() }))
         .filter(({ r }) => r.right > Math.min(list.right, document.documentElement.clientWidth) + 1)
         .map(({ text, r }) => `${text} right ${Math.round(r.right)} > ${Math.round(list.right)}`);
     });
     expect(out, "배너 밖으로 나간 줄").toEqual([]);
-    await expect(box.locator("dd")).not.toContainText("…");
+    await expect(box).not.toContainText("…");
   });
 
   test(`@크라켄점수 ${width} '준비 중'은 같은 크기, 최고 티어는 막대 꽉 참 @regression`, async ({ page }) => {
@@ -50,14 +51,14 @@ for (const width of [1280, 360]) {
     await gotoReady(page, characterPath("상세"));
     const ready = await item(page).boundingBox();
     await gotoReady(page, characterPath("크라켄준비중"));
-    await expect(item(page).locator("dd")).toContainText("준비 중");
-    await expect(item(page).locator("dd")).not.toContainText("점");
+    await expect(item(page)).toContainText("준비 중");
+    await expect(item(page)).not.toContainText("점");
     const pending = await item(page).boundingBox();
     expect(Math.round(pending.height), "'준비 중' 높이 = 점수 있을 때").toBe(Math.round(ready.height));
     await gotoReady(page, characterPath("크라켄에스더"));
-    await expect(item(page).locator("dd")).toContainText("10,183.94");
-    await expect(item(page).locator("dd")).toContainText("에스더");
-    await expect(item(page).locator("dd")).toContainText("최고 티어");
+    await expect(item(page)).toContainText("10,183.94");
+    await expect(item(page)).toContainText("에스더");
+    await expect(item(page)).toContainText("최고 티어");
     expect(await barWidth(page), "최고 티어 막대").toBe(100);
   });
 }

@@ -20,7 +20,7 @@ import { SiteHeader } from "@/components/site/site-header";
 import { recordRecent } from "@/lib/character/recent";
 import { CharacterBanner } from "./imagery";
 import { BannerRank } from "./banner-rank";
-import { KrakenScoreMetric } from "./kraken-score-metric";
+import { KrakenScoreFact } from "./kraken-score-metric";
 import { Entrance } from "./entrance";
 import { kstTime, level, number, text } from "./parts";
 import { CritSpeedEnabled } from "./analysis-menu";
@@ -131,7 +131,6 @@ const Banner = memo(function Banner({ data }: { data: Character }) {
               <dt>원정대</dt>
               <dd>{level(data.expeditionLevel)}</dd>
             </div>
-            <KrakenScoreMetric score={data.krakenScore} />
           </dl>
           <BannerRank name={data.characterName} />
         </>
@@ -151,6 +150,7 @@ const Banner = memo(function Banner({ data }: { data: Character }) {
               </dd>
             </>
           )}
+          <KrakenScoreFact score={data.krakenScore} />
           <dt>길드</dt>
           <dd>
             {text(data.guildName)}

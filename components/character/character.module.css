@@ -483,20 +483,21 @@
   }
 }
 
-/* 크라켄 점수 (backend #561): a banner figure with its tier, a thin bar for the
-   way into the tier and the points to the next. '준비 중' keeps the bar and
-   the line, so both states are one size (A7). */
-.krakenScore dd {
+/* 크라켄 점수 (backend #561), a banner facts row: the score with its tier,
+   then a thin bar for the way into the tier and the points to the next.
+   '준비 중' keeps both lines, so the two states are one size (A7). */
+.krakenScore {
   display: grid;
   gap: 4px;
-  min-width: 9.5em;
 }
-/* One height with or without the tier chip (the chip would add a pixel). */
+/* One height with or without the tier chip. */
 .krakenValue {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  height: 1.5em;
+  height: 22px;
+  font-size: 15px;
+  font-weight: 600;
   white-space: nowrap;
 }
 .krakenScore[data-pending] .krakenValue {
@@ -506,7 +507,7 @@
 .krakenTier {
   display: inline-flex;
   align-items: center;
-  height: 22px;
+  height: 20px;
   padding: 0 8px;
   border-radius: 9999px;
   /* The banner is dark in every theme: light tints, as for the position. */
@@ -514,7 +515,7 @@
   background: color-mix(in oklab, var(--tier, #e6e6e6) 16%, transparent);
   font-size: 12px;
   font-weight: 700;
-  /* Small text reads better a touch open (the figures above are tightened). */
+  /* Small text reads better a touch open. */
   letter-spacing: 0.01em;
 }
 .krakenScore[data-tier="BRONZE"] {
@@ -538,8 +539,16 @@
 .krakenScore[data-tier="ESTHER"] {
   --tier: #7fe3c4;
 }
+/* The bar and the next-tier line side by side, one fixed line. */
+.krakenProgress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 18px;
+}
 .krakenTrack {
   display: block;
+  flex: 0 0 72px;
   height: 4px;
   overflow: hidden;
   border-radius: 9999px;
@@ -549,16 +558,14 @@
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: currentColor;
+  background: var(--tier, currentColor);
 }
-/* A fixed line, text or not ('준비 중' keeps it empty), so both states match. */
 .krakenNext {
-  height: 1.5em;
-  line-height: 1.5em;
   color: var(--band-muted);
   font-size: 12px;
   font-weight: 500;
   letter-spacing: 0.01em;
+  line-height: 18px;
   white-space: nowrap;
 }
 
