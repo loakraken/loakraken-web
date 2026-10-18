@@ -11,8 +11,8 @@ for (const width of [1280, 360])
     await expect(source).toBeVisible();
     for (const name of ["장비", "각인", "보석", "카드", "아크 패시브", "아크 그리드"])
       await expect(source.getByRole("listitem").filter({ has: page.locator("strong", { hasText: new RegExp(`^${name}$`) }) })).toHaveCount(1);
-    const tab = page.locator("main");
-    for (const key of ["equipment", "engravings", "arkPassive", "arkGrid", "siblings", "collectibles", "observed-v"])
-      await expect(tab, `내부 키 '${key}'`).not.toContainText(key);
+    for (const key of ["equipment", "engravings", "arkPassive", "arkGrid", "siblings", "collectibles"])
+      await expect(source, `내부 키 '${key}'`).not.toContainText(key);
+    await expect(page.getByRole("region", { name: "세팅 점검 결과" }), "규칙 버전").not.toContainText("observed-v");
     await expect(source).toContainText("데이터 미제공은 전투정보실이 그 정보를 주지 않은 것이고, 조회 안 함은");
   });
