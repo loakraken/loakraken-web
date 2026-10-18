@@ -402,6 +402,9 @@ function DistributionTab({ query }: { query: StatsQuery }) {
           분포를 불러오고 있어요…
         </p>
       ) : asTable ? (
+        // The table scrolls inside the bars' own height, so switching graph <-> table
+        // moves nothing under it (A7, #957); focusable so the keyboard can scroll it.
+        <div className={styles.tableBox} tabIndex={0} role="group" aria-label={`${label} 구간별 인원 표, 스크롤`}>
         <DataTable label={`${label} 구간별 인원`} className={styles.table} {...pendingProps(dist)}>
             <caption className={styles.srOnly}>{label} 구간별 인원</caption>
             <thead>
@@ -421,6 +424,7 @@ function DistributionTab({ query }: { query: StatsQuery }) {
               ))}
             </tbody>
         </DataTable>
+        </div>
       ) : (
         // Drawn anew per answer: another server's bins are other ranges, and
         // the same bar moved across the axis in place (A7, #791).

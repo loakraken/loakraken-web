@@ -370,9 +370,23 @@
     width: 100%;
   }
   .histogram,
-  .histogramWait {
+  .histogramWait,
+  .tableBox {
     height: 160px;
   }
+}
+/* The table view in the bars' room (same height and bottom line as .histogram),
+   scrolling inside it: switching graph <-> table moves nothing (A7, #957). */
+.tableBox {
+  height: 200px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-bottom: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.tableBox:focus-visible {
+  outline: 3px solid var(--ring);
+  outline-offset: 2px;
 }
 /* The bars' room while they load (same height and axis line as .histogram):
    the answer fills it in place, nothing under it moves (A6). */
