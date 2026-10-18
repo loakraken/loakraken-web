@@ -2684,3 +2684,42 @@
   cursor: progress;
   opacity: 0.6;
 }
+
+/* 크라켄 점수 순 (#908): the cooldown-gem choice and why the sort is not in use. */
+.specUpCooldown {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px dashed var(--secondary);
+  border-radius: 980px;
+  background: var(--background);
+  color: var(--foreground);
+  font-size: 13px;
+  touch-action: manipulation;
+}
+.specUpCooldown[aria-pressed="true"] {
+  border-style: solid;
+  border-color: var(--foreground);
+}
+.specUpCooldown:active {
+  scale: var(--press-scale);
+}
+.specUpReason {
+  margin: 8px 0 0;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.specUpReason[data-held] {
+  min-height: 2lh;
+}
+
+/* Off (other sorts, or 크라켄 점수 순 not available): its room stays so the bar never re-flows;
+   visibility also takes it out of the reading order and the tab order. */
+.specUpCooldown[data-off] {
+  visibility: hidden;
+}
+@media (hover: hover) and (pointer: fine) {
+  .specUpCooldown:hover {
+    border-color: var(--foreground);
+  }
+}

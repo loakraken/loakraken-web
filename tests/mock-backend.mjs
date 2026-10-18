@@ -770,6 +770,7 @@ createServer(async (req, res) => {
     const id = decodeURIComponent(detailPath[1]);
     const fixture = (name) => JSON.parse(readFileSync(new URL(`./spec-up-fixtures/${name}`, import.meta.url), "utf8"));
     const list = fixture("character-spec-up.json");
+    if (id.startsWith("ENGRAVING_LEVEL:")) return send(fixture("character-spec-up-detail-engraving.json"));
     const candidate = list.data.candidates.find((c) => c.id === id && c.status === "OK");
     if (!candidate) return send(fixture("character-spec-up-detail-not-found.json"), 404);
     const envelope = fixture("character-spec-up-detail-gem.json");
@@ -785,7 +786,23 @@ createServer(async (req, res) => {
     const who = url.searchParams.get("characterName");
     if (who === "스펙업꺼짐") return send(specUp("character-spec-up-disabled.json"), 404);
     if (who === "미존재") return send(specUp("character-spec-up-not-cached.json"), 404);
+    // 크라켄 점수 순 (api #573): the backend's own answers. "스펙업점수꺼짐" has the
+    // score switched off (the answer comes as EFFICIENCY with a reason), and
+    // "스펙업옛응답" is a backend from before #573 (no score fields at all).
+    if (url.searchParams.get("sort") === "KRAKEN") {
+      const kraken = specUp(who === "스펙업점수꺼짐" ? "character-spec-up-kraken-unavailable.json" : "character-spec-up-kraken.json");
+      kraken.data.characterName = who;
+      kraken.data.cooldownGemsIncluded = url.searchParams.get("includeCooldownGems") === "true";
+      return send(kraken);
+    }
     const envelope = specUp(who === "스펙업시세" ? "character-spec-up-pending.json" : "character-spec-up.json");
+    if (who !== "스펙업옛응답")
+      Object.assign(envelope.data, {
+        krakenScore: who === "스펙업점수꺼짐" ? null : 3977.02,
+        krakenRuleVersion: who === "스펙업점수꺼짐" ? null : "spec-up-kraken-v1",
+        cooldownGemsIncluded: true,
+        krakenSortUnavailableReason: who === "스펙업점수꺼짐" ? "DISABLED" : null,
+      });
     envelope.data.characterName = who;
     // The same combat power the mock simulator starts from (the backend's
     // spec-up and simulator read one character), so the L31 goal path adds up.

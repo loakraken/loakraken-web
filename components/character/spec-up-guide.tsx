@@ -5,7 +5,7 @@
 // line per reason, and "적용해 보기" opens the simulator tab with the change.
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChangeMark, useChangedCells, type Pulse } from "@/components/ui/changed-cells";
 import { failureOf, rateLimitCopy, retryLabel } from "@/lib/api/rate-limit";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
@@ -17,6 +17,9 @@ import {
   editsFor,
   keepOrder,
   kindLabel,
+  krakenUnavailableCopy,
+  sortCaption,
+  splitKrakenCandidates,
   costRoom,
   koreanGold,
   specUpQuery,
@@ -82,9 +85,23 @@ function CostCell({ candidate, pulse }: { candidate: Candidate; pulse?: Pulse })
 export default function SpecUpGuide({ data }: { data: Character }) {
   const name = data.characterName;
   const [sort, setSort] = useState<Sort>("EFFICIENCY");
+  // 크라켄 점수 순 (api #573) leaves 작열 (cooldown) gems out by default; the user can add them.
+  const [cooldown, setCooldown] = useState(false);
+  // The efficiency list (the tab's first answer) tells whether the backend
+  // knows 크라켄 점수 (api #573 fields present). If not, 크라켄 점수 순 is not
+  // sent — an older backend refuses the value — and the list stays as it is.
+  const queryClient = useQueryClient();
+  const efficiency = queryClient.getQueryData<{ data: { krakenRuleVersion?: unknown; krakenSortUnavailableReason?: unknown } }>(
+    specUpQuery(name, data.fetchedAt, "EFFICIENCY"),
+  )?.data;
+  const krakenKnown = efficiency
+    ? efficiency.krakenRuleVersion !== undefined || efficiency.krakenSortUnavailableReason !== undefined
+    : null;
+  const requestSort: Sort = sort === "KRAKEN" && krakenKnown === false ? "EFFICIENCY" : sort;
+  const includeCooldownGems = requestSort === "KRAKEN" ? cooldown : null;
   const query = useQuery({
-    queryKey: specUpQuery(name, data.fetchedAt, sort),
-    queryFn: ({ signal }) => fetchSpecUp(name, sort, signal),
+    queryKey: specUpQuery(name, data.fetchedAt, requestSort, includeCooldownGems),
+    queryFn: ({ signal }) => fetchSpecUp(name, requestSort, signal, includeCooldownGems),
     staleTime: 60_000,
     // A new sort keeps the old list on screen until the new one arrives.
     placeholderData: keepPreviousData,
@@ -128,24 +145,37 @@ export default function SpecUpGuide({ data }: { data: Character }) {
     const timer = window.setTimeout(() => setSorted(false), 3_000);
     return () => window.clearTimeout(timer);
   }, [sorted, generation]);
+  // One list = its sort and, for 크라켄 점수 순, whether 작열 gems are in (#908):
+  // a different cooldown choice is a different list, not a reordered refresh.
+  const listKey = guide ? `${guide.sort}:${guide.sort === "KRAKEN" ? String(guide.cooldownGemsIncluded) : ""}` : null;
+  const krakenShown = guide?.sort === "KRAKEN";
+  const notice =
+    sort === "KRAKEN"
+      ? krakenKnown === false
+        ? krakenUnavailableCopy("DISABLED")
+        : krakenUnavailableCopy(guide?.krakenSortUnavailableReason)
+      : null;
   const candidates = useMemo(
-    () => (guide ? keepOrder(guide.candidates, order?.sort === guide.sort ? order.ids : null) : []),
-    [guide, order],
+    () => (guide ? keepOrder(guide.candidates, order?.sort === listKey ? order.ids : null) : []),
+    [guide, order, listKey],
   );
   const shownIds = candidates.map((c) => c.id).join("|");
-  if (guide && !query.isPlaceholderData && (order?.sort !== guide.sort || order.ids.join("|") !== shownIds))
-    setOrder({ sort: guide.sort, ids: candidates.map((c) => c.id) });
+  if (guide && listKey && !query.isPlaceholderData && (order?.sort !== listKey || order.ids.join("|") !== shownIds))
+    setOrder({ sort: listKey, ids: candidates.map((c) => c.id) });
   // One array per answer (the change marks compare row lists by identity).
+  // 크라켄 점수 순 ranks every candidate with a score change, in the answer's
+  // order (an UNSUPPORTED engraving line can still raise the score); only when
+  // the answer itself is KRAKEN — a fallback to EFFICIENCY keeps that order.
   const { ok, folded } = useMemo(
-    () => (guide ? splitCandidates(candidates) : { ok: [], folded: [] }),
-    [guide, candidates],
+    () => (guide ? (krakenShown ? splitKrakenCandidates(candidates) : splitCandidates(candidates)) : { ok: [], folded: [] }),
+    [guide, candidates, krakenShown],
   );
   // The backend's own order differs from the rows on screen (prices moved).
   const reordered =
-    !!guide && guide.candidates.map((c) => c.id).join("|") !== shownIds && order?.sort === guide.sort;
+    !!guide && guide.candidates.map((c) => c.id).join("|") !== shownIds && order?.sort === listKey;
   const changed = useChangedCells(ok, (c) => c.id, {
     cost: (c) => c.cost?.amount,
-    eff: (c) => c.combatPowerPer10kGold,
+    eff: (c) => (krakenShown ? c.krakenScorePer100kGold : c.combatPowerPer10kGold),
   });
   // Tint only: the cells carry no arrow of their own room (no width change).
   const pulseOf = (id: string, key: string) => {
@@ -179,7 +209,21 @@ export default function SpecUpGuide({ data }: { data: Character }) {
             </button>
           ))}
         </div>
+        {/* Held in the bar for every sort (no late layout change); only 크라켄 점수 순 uses it. */}
+        <button
+          type="button"
+          className={styles.specUpCooldown}
+          aria-pressed={cooldown}
+          data-off={sort !== "KRAKEN" || !!notice || undefined}
+          onClick={() => setCooldown((on) => !on)}
+        >
+          작열 보석 포함
+        </button>
       </div>
+      {/* Why 크라켄 점수 순 is not in use: two lines held whenever that sort is picked. */}
+      <p className={styles.specUpReason} role="status" data-held={sort === "KRAKEN" || undefined}>
+        {notice ?? ""}
+      </p>
       {/* Its own line, held before the answer arrives (CLS 0). */}
       <p className={styles.specUpPrices}>
         {guide?.pricesAt ? `시세 ${kstTime(guide.pricesAt)} 기준` : ""}
@@ -207,7 +251,7 @@ export default function SpecUpGuide({ data }: { data: Character }) {
                 type="button"
                 className={`${styles.specUpReorder} hit-44`}
                 onClick={() => {
-                  setOrder({ sort: guide.sort, ids: guide.candidates.map((c) => c.id) });
+                  if (listKey) setOrder({ sort: listKey, ids: guide.candidates.map((c) => c.id) });
                   setGeneration((g) => g + 1);
                   setSorted(true);
                 }}
@@ -247,7 +291,7 @@ export default function SpecUpGuide({ data }: { data: Character }) {
               <div className={styles.tableWrap}>
                 <table className={`${styles.table} ${styles.specUpTable}`}>
                   <caption className={styles.sr}>
-                    스펙업 후보, {SORTS.find((s) => s.id === sort)?.label} 순{reordered ? "(시세 갱신 전 순서)" : ""}
+                    스펙업 후보, {sortCaption(guide.sort)}{reordered ? "(시세 갱신 전 순서)" : ""}
                   </caption>
                   <thead>
                     <tr>
@@ -255,9 +299,9 @@ export default function SpecUpGuide({ data }: { data: Character }) {
                       <th scope="col">종류</th>
                       <th scope="col">대상</th>
                       <th scope="col">전 → 후</th>
-                      <th scope="col">전투력 증가</th>
+                      <th scope="col">{krakenShown ? "크라켄 점수" : "전투력 증가"}</th>
                       <th scope="col">기대 비용</th>
-                      <th scope="col">1만 골드당 전투력</th>
+                      <th scope="col">{krakenShown ? "10만 골드당 점수" : "1만 골드당 전투력"}</th>
                       <th scope="col">
                         <span className={styles.sr}>시뮬레이터</span>
                       </th>
@@ -270,7 +314,7 @@ export default function SpecUpGuide({ data }: { data: Character }) {
                         // Keyed by the order of the list on screen: a new sort
                         // or '새 순서로 보기' draws new rows instead of sliding
                         // the old ones (A7).
-                        <tr key={`${guide.sort}:${generation}:${c.id}`}>
+                        <tr key={`${listKey}:${generation}:${c.id}`}>
                           <td data-cell="rank">{i + 1}</td>
                           <td data-cell="kind">{kindLabel(c.kind)}</td>
                           <th scope="row" data-cell="target">
@@ -280,16 +324,30 @@ export default function SpecUpGuide({ data }: { data: Character }) {
                           <td data-cell="change">
                             {c.from ?? "—"} → {c.to ?? "—"}
                           </td>
-                          <td data-cell="gain" data-label="전투력" className={styles.specUpGain} data-figure="">
-                            {c.deltaCombatPower == null ? "—" : `+${two(c.deltaCombatPower)}`}
-                            {c.deltaPercent != null && <small> ({c.deltaPercent.toFixed(3)}%)</small>}
-                          </td>
+                          {krakenShown ? (
+                            <td data-cell="gain" data-label="크라켄 점수" className={styles.specUpGain} data-figure="">
+                              {c.deltaKrakenScore == null ? "—" : `+${two(c.deltaKrakenScore)}`}
+                            </td>
+                          ) : (
+                            <td data-cell="gain" data-label="전투력" className={styles.specUpGain} data-figure="">
+                              {c.deltaCombatPower == null ? "—" : `+${two(c.deltaCombatPower)}`}
+                              {c.deltaPercent != null && <small> ({c.deltaPercent.toFixed(3)}%)</small>}
+                            </td>
+                          )}
                           <CostCell candidate={c} pulse={pulseOf(c.id, "cost")} />
-                          <td data-cell="eff" data-label="1만 골드당" data-figure="">
-                            <ChangeMark key={c.combatPowerPer10kGold ?? "none"} pulse={pulseOf(c.id, "eff")}>
-                              {c.combatPowerPer10kGold == null ? "—" : two(c.combatPowerPer10kGold)}
-                            </ChangeMark>
-                          </td>
+                          {krakenShown ? (
+                            <td data-cell="eff" data-label="10만 골드당" data-figure="">
+                              <ChangeMark key={c.krakenScorePer100kGold ?? "none"} pulse={pulseOf(c.id, "eff")}>
+                                {c.krakenScorePer100kGold == null ? "—" : two(c.krakenScorePer100kGold)}
+                              </ChangeMark>
+                            </td>
+                          ) : (
+                            <td data-cell="eff" data-label="1만 골드당" data-figure="">
+                              <ChangeMark key={c.combatPowerPer10kGold ?? "none"} pulse={pulseOf(c.id, "eff")}>
+                                {c.combatPowerPer10kGold == null ? "—" : two(c.combatPowerPer10kGold)}
+                              </ChangeMark>
+                            </td>
+                          )}
                           <td data-cell="try">
                             {tryable && (
                               <Link

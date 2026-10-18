@@ -14,13 +14,29 @@ export type SpecUpEnvelope = { code: string; message: string; data: SpecUp };
 export const SORTS = [
   { id: "EFFICIENCY", label: "1만 골드당 효율" },
   { id: "DELTA", label: "전투력 증가" },
+  // api #573: by the Kraken score gained per gold. Sent only now that the
+  // screen knows it; the answer may come back as EFFICIENCY with a reason.
+  { id: "KRAKEN", label: "크라켄 점수 순" },
 ] as const;
 export type Sort = (typeof SORTS)[number]["id"];
 export const isSort = (value: unknown): value is Sort => SORTS.some((s) => s.id === value);
+/** "1만 골드당 효율 순", "크라켄 점수 순" (a label already ending in 순 keeps it once). */
+export const sortCaption = (sort: string) => {
+  const label = SORTS.find((s) => s.id === sort)?.label ?? SORTS[0].label;
+  return label.endsWith(" 순") ? label : `${label} 순`;
+};
 
-/** One cache entry per character snapshot and sort (the tab and the guide share it). */
-export const specUpQuery = (name: string, fetchedAt: string | null | undefined, sort: Sort) =>
-  ["spec-up", name, fetchedAt ?? null, sort] as const;
+/**
+ * One cache entry per character snapshot, sort and cooldown-gem choice (the
+ * tab and the guide share it). The choice is left out (null) for the
+ * backend's default.
+ */
+export const specUpQuery = (
+  name: string,
+  fetchedAt: string | null | undefined,
+  sort: Sort,
+  includeCooldownGems: boolean | null = null,
+) => ["spec-up", name, fetchedAt ?? null, sort, includeCooldownGems] as const;
 
 /** Kinds the screen names; a newer kind shows its own code. */
 export const SPEC_UP_KIND_LABEL: Record<string, string> = {
@@ -204,4 +220,34 @@ function changeOf(value: unknown): SpecUpChange | null {
     quality: int("quality"),
     name: typeof v.name === "string" ? v.name : null,
   };
+}
+
+/**
+ * 크라켄 점수 순 (api #573): the ranked rows are every candidate with a score
+ * change, in the answer's order — a candidate the combat power simulator
+ * cannot price can still raise the score (its cost then comes too). The rest
+ * fold by reason as before.
+ */
+export function splitKrakenCandidates(list: Candidate[]) {
+  const scored = list.filter((c) => c.deltaKrakenScore != null);
+  const { folded } = splitCandidates(list.filter((c) => c.deltaKrakenScore == null));
+  return { ok: scored, folded };
+}
+
+/** Why 크라켄 점수 순 could not be used; the list then comes in 1만 골드당 효율 order. */
+export function krakenUnavailableCopy(reason: string | null | undefined): string | null {
+  if (!reason) return null;
+  const why =
+    reason === "DISABLED"
+      ? "크라켄 점수 순은 아직 준비 중이에요."
+      : reason === "INPUT_PENDING"
+        ? "점수 계산에 필요한 정보를 아직 모으고 있어요."
+        : reason === "ROLE_UNKNOWN"
+          ? "이 캐릭터의 역할(딜러·서포터)을 확인하지 못했어요."
+          : reason === "SUPPORTER_PENDING"
+            ? "서포터의 크라켄 점수 순은 준비 중이에요."
+            : reason === "SCORE_UNAVAILABLE"
+              ? "이 캐릭터의 크라켄 점수를 계산하지 못했어요."
+              : "지금은 크라켄 점수 순으로 정렬할 수 없어요.";
+  return `${why} 1만 골드당 효율 순으로 보여 드려요.`;
 }

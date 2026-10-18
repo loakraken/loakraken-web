@@ -215,4 +215,63 @@ test.describe("스펙업 가이드 @smoke", () => {
     await page.waitForTimeout(1500);
     expect(await page.evaluate(() => window.__shifts)).toEqual([]);
   });
+
+  // 크라켄 점수 순(#908, api #573): 점수 변화가 있는 후보를 응답 순서대로, 열 이름은 점수로 바뀐다.
+  test("크라켄 점수 순: 점수 열로 바뀌고, 전투력을 못 구한 각인 줄도 점수로 순위에 들고, 작열 보석을 포함할 수 있다", async ({ page }) => {
+    const asked = [];
+    page.on("request", (r) => r.url().includes("/api/characters/spec-up?") && asked.push(new URL(r.url()).searchParams));
+    await page.goto(characterPath(NAME, "specup"));
+    const table = page.getByRole("table", { name: /스펙업 후보/ });
+    await expect(table.locator("tbody tr")).toHaveCount(3);
+    await page.getByRole("button", { name: "크라켄 점수 순" }).click();
+    await expect(page.getByRole("table", { name: /크라켄 점수 순/ })).toBeVisible();
+    expect(asked.at(-1).get("sort")).toBe("KRAKEN");
+    expect(asked.at(-1).get("includeCooldownGems")).toBe("false");
+    const kraken = page.getByRole("table", { name: /크라켄 점수 순/ });
+    // 휴대폰 표는 카드라 머리줄이 숨는다: 머리가 바뀐 것만 본다(칸 이름표는 data-label).
+    await expect(kraken.locator("thead th").filter({ hasText: /^크라켄 점수$/ })).toHaveCount(1);
+    await expect(kraken.locator("thead th").filter({ hasText: /^10만 골드당 점수$/ })).toHaveCount(1);
+    const first = kraken.locator("tbody tr").first();
+    await expect(first).toContainText("+98.81");
+    await expect(first).toContainText("88.22");
+    // 전투력은 못 구했지만(UNSUPPORTED) 점수가 오르는 각인 줄도 순위에 있고 비용이 보인다.
+    await expect(kraken.locator("tbody tr").filter({ hasText: "기습의 대가 각인" }).first()).toContainText("96만G");
+    const cooldown = page.getByRole("button", { name: "작열 보석 포함" });
+    await expect(cooldown).toHaveAttribute("aria-pressed", "false");
+    await cooldown.click();
+    await expect(cooldown).toHaveAttribute("aria-pressed", "true");
+    await expect.poll(() => asked.at(-1).get("includeCooldownGems")).toBe("true");
+  });
+
+  test("크라켄 점수 순을 쓸 수 없으면 이유와 함께 효율 순으로 보인다", async ({ page }) => {
+    await page.goto(characterPath("스펙업점수꺼짐", "specup"));
+    await expect(page.getByRole("table", { name: /스펙업 후보/ }).locator("tbody tr")).toHaveCount(3);
+    await page.getByRole("button", { name: "크라켄 점수 순" }).click();
+    await expect(page.getByText("크라켄 점수 순은 아직 준비 중이에요. 1만 골드당 효율 순으로 보여 드려요.")).toBeVisible();
+    await expect(page.getByRole("table", { name: /1만 골드당 효율 순/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: /작열 보석/ })).toBeHidden(); // visibility: hidden, room kept
+  });
+
+  test("점수를 모르는 이전 백엔드에는 크라켄 점수 순을 보내지 않는다", async ({ page }) => {
+    const sorts = [];
+    page.on("request", (r) => r.url().includes("/api/characters/spec-up?") && sorts.push(new URL(r.url()).searchParams.get("sort")));
+    await page.goto(characterPath("스펙업옛응답", "specup"));
+    await expect(page.getByRole("table", { name: /스펙업 후보/ }).locator("tbody tr")).toHaveCount(3);
+    await page.getByRole("button", { name: "크라켄 점수 순" }).click();
+    await expect(page.getByText("크라켄 점수 순은 아직 준비 중이에요. 1만 골드당 효율 순으로 보여 드려요.")).toBeVisible();
+    expect(sorts).not.toContain("KRAKEN");
+  });
+
+  // api #573: 각인 줄 id에는 한글·공백이 있다(줄 상세는 %20으로 보냄).
+  test("크라켄 점수 순의 각인 줄을 누르면 각인서 줄 상세가 열린다", async ({ page }) => {
+    const ids = [];
+    page.on("request", (r) => r.url().includes("/api/characters/spec-up/candidates/") && ids.push(r.url()));
+    await page.goto(characterPath(NAME, "specup"));
+    await page.getByRole("button", { name: "크라켄 점수 순" }).click();
+    const kraken = page.getByRole("table", { name: /크라켄 점수 순/ });
+    await kraken.locator("tbody tr").filter({ hasText: "기습의 대가 각인" }).first().getByRole("button").first().click();
+    await expect(page.getByRole("dialog")).toContainText("구매");
+    expect(ids.at(-1)).toContain("%20");
+    expect(ids.at(-1)).not.toContain("+");
+  });
 });
