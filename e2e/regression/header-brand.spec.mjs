@@ -21,7 +21,8 @@ for (const width of [360, 390, 1280])
       await expect(brand.getByText("LOAKraken", { exact: true }), `${name}: 로고 이름`).toBeVisible();
       const cut = await brand.getByText("LOAKraken", { exact: true }).evaluate((el) => el.scrollWidth > el.clientWidth + 1);
       expect(cut, `${name}: 로고 이름 잘림`).toBe(false);
-      await expect(header.getByRole("button", { name: "캐릭터 검색" }), `${name}: 공용 검색 버튼`).toBeVisible();
+      // The shared search button (the character page at 1280 also has its own search field's button).
+      await expect(header.locator("[data-slot=command-search-trigger]"), `${name}: 공용 검색 버튼`).toBeVisible();
       const overflow = await page.evaluate(() => {
         const head = document.querySelector("header");
         return {
