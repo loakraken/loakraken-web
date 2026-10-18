@@ -97,7 +97,8 @@ function Notice({ meta, stale }: { meta: StatsMeta; stale: boolean }) {
  * How the numbers are made, right under each tab's own content (QA P2-5): a
  * tab draws it with its answer, so it never sits under the room a taller tab
  * left (the panel keeps the tallest height, A7) and never moves when that
- * answer lands.
+ * answer lands. A tab whose root is not drawn anew per answer keys the note by
+ * its answer, so a new server's shorter or longer table does not slide it.
  */
 function StatsBasis({ query }: { query: StatsQuery }) {
   const summary = useQuery({
@@ -438,7 +439,7 @@ function DistributionTab({ query }: { query: StatsQuery }) {
           </p>
         )
       )}
-      {data && <StatsBasis query={query} />}
+      {data && <StatsBasis key={dist.dataUpdatedAt} query={query} />}
     </div>
   );
 }
@@ -598,7 +599,7 @@ function BestTab({ query }: { query: StatsQuery }) {
         분포 막대: 옅은 선 하위 10%~상위 10%, 진한 칸 가운데 50%, 세로선 중앙값. 표본이 {meta.minSample}명 미만인 칸은
         인원만 보여요.
       </p>
-      <StatsBasis query={query} />
+      <StatsBasis key={best.dataUpdatedAt} query={query} />
     </div>
   );
 }
@@ -651,7 +652,7 @@ function TitlesTab({ query }: { query: StatsQuery }) {
           </tbody>
         </DataTable>
       )}
-      <StatsBasis query={query} />
+      <StatsBasis key={titles.dataUpdatedAt} query={query} />
     </div>
   );
 }
