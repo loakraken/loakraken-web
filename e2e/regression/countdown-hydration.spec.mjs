@@ -5,6 +5,8 @@
 import { test, expect, gotoReady } from "../support/fixtures.mjs";
 
 const MINUTE_TEXT = /^(\d+일 \d+시간|\d+시간 \d+분)$/;
+// Under an hour (lib/time/remaining.ts): "25분 03초", "45초".
+const SECOND_TEXT = /^(\d+분 \d{2}초|\d+초)$/;
 const minuteOf = (ms) => Math.floor(ms / 60_000);
 
 for (const path of ["/", "/schedule"])
@@ -28,11 +30,22 @@ for (const path of ["/", "/schedule"])
       }));
       // Crossed a minute between the server render and now: the change is real, open again.
       if (!servedAt || minuteOf(servedAt) !== minuteOf(read.now)) continue;
-      const first = [...html.matchAll(/<b(?:\s[^>]*)?>([^<]*)<\/b>/g)].map((m) => m[1].trim()).filter((t) => MINUTE_TEXT.test(t));
+      const bold = [...html.matchAll(/<b(?:\s[^>]*)?>([^<]*)<\/b>/g)].map((m) => m[1].trim());
+      const first = bold.filter((t) => MINUTE_TEXT.test(t));
       const after = read.texts.filter((t) => MINUTE_TEXT.test(t));
-      seen = { first, after };
+      seen = { first, after, seconds: bold.filter((t) => SECOND_TEXT.test(t)) };
     }
     expect(seen, "분 경계를 세 번 다 넘김").not.toBeNull();
+    // The home shows only the next rounds. When every one of them is within the
+    // hour, they all read in seconds ("53분 11초", by design) and there is no
+    // minute text to compare (CI at 20:06 KST: 21:00 and 20:50 left). The server
+    // clock cannot be fixed per test (one shared server; page.clock moves the
+    // browser only), so that run notes why (the rounds it saw) and leaves the comparison to
+    // /schedule, which always lists rounds hours or days away.
+    if (path === "/" && seen.first.length === 0) {
+      test.info().annotations.push({ type: "skip", description: `홈 다음 회차가 모두 1시간 안(또는 오늘 끝남): ${seen.seconds.join(", ") || "남은 시간 없음"}` });
+      return;
+    }
     expect(seen.first.length, "첫 HTML에 분 단위 남은 시간이 있음").toBeGreaterThan(0);
     expect(seen.after, "하이드레이션 직후 남은 시간 = 첫 HTML").toEqual(seen.first);
   });
