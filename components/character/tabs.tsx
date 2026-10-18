@@ -653,7 +653,7 @@ function EquipmentPanel({ data }: { data: Character }) {
  * comparison sites' damage share, not the combat-power contribution shown
  * before): how much this bracelet adds to damage. A dealer gets the value and,
  * when sent, the '악마 피해' setting (off by default) for the value with it; a
- * supporter sees the grades only; not worked out reads '확인 중'. The term
+ * supporter sees the grades only; not worked out reads '준비 중'. The term
  * carries its definition (A22).
  */
 function BraceletBody({
@@ -684,8 +684,8 @@ function BraceletBody({
           ) : (
             // A bracelet is there (this row only shows with one), its value not
             // worked out: never a number (PM 총괄 14:04 — the comparison site
-            // shows a meaningless constant here).
-            <span className={styles.braceletEffReason}>확인 중</span>
+            // shows a meaningless constant here); '준비 중' as everywhere else.
+            <span className={styles.braceletEffReason}>준비 중</span>
           )}
           {real.state === "ready" && real.devil && (
             <button
