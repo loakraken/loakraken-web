@@ -6,12 +6,15 @@ import { test, expect, gotoReady } from "../support/fixtures.mjs";
 import { shiftsDuring, watchShifts } from "../support/shifts.mjs";
 
 const note = (page) => page.getByRole("region", { name: "집계 기준 안내" });
-/** From the bottom of what comes before the note to the note's top. */
-const gap = (page) =>
-  note(page).evaluate((el) => {
-    const before = el.previousElementSibling;
-    return before ? Math.round(el.getBoundingClientRect().top - before.getBoundingClientRect().bottom) : null;
+/** From the bottom of the tab's own content (inside the panel's room) to the note's top. */
+const gap = async (page) => {
+  const content = await page.getByRole("tabpanel").evaluate((panel) => {
+    const parts = [...(panel.firstElementChild?.children ?? [])].filter((el) => el.getAttribute("aria-label") !== "집계 기준 안내");
+    return parts.length ? Math.max(...parts.map((el) => el.getBoundingClientRect().bottom)) : null;
   });
+  const top = await note(page).evaluate((el) => el.getBoundingClientRect().top);
+  return content == null ? null : Math.round(top - content);
+};
 const settle = async (page) => {
   await expect(page.locator("main [aria-busy=true], main [data-stale]")).toHaveCount(0);
   await expect(note(page)).toBeVisible();
