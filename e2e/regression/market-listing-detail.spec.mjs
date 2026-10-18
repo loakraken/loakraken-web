@@ -57,3 +57,22 @@ for (const width of [1280, 360])
       expect(closing.all, `닫는 흔들림 (${closing.moved})`).toBe(0);
       await expect(open).toBeFocused();
     });
+
+// Touch: the card is a bottom sheet, which hands focus back only after its
+// 500ms closing slide. The name takes it at once instead.
+test.describe("터치 시트", () => {
+  test.use({ viewport: { width: 360, height: 800 }, hasTouch: true, isMobile: true });
+  for (const board of BOARDS)
+    test(`@시세판상세 터치 ${board.name}: 시트를 Esc로 닫으면 바로 이름에 초점 @regression`, async ({ page }) => {
+      await gotoReady(page, board.path);
+      const open = page.getByRole("region", { name: board.table }).getByRole("rowheader").first().getByRole("button");
+      await open.tap();
+      await expect(page.getByRole("dialog")).toBeVisible();
+      await page.waitForTimeout(700);
+      await page.keyboard.press("Escape");
+      const focused = await page.evaluate(() => document.activeElement?.closest("th[scope=row] button")?.textContent ?? null);
+      expect(focused, "Esc 직후 초점이 이름 버튼").toBe(await open.textContent());
+      await expect(page.getByRole("dialog")).toHaveCount(0);
+      await expect(open).toBeFocused();
+    });
+});
