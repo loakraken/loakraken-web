@@ -128,7 +128,8 @@ function ListingCard({
  * The listing's name, as the button that opens its card (a press, never a
  * hover: moving down a long list must not pop cards up). On a pointer the card
  * sits beside the row; on touch it is a bottom sheet. Esc closes it and puts
- * focus back on the name.
+ * focus back on the name. Its name is the row's own text, so the row header
+ * reads the same; the trigger says it opens a dialog (aria-haspopup).
  */
 export function ListingName({
   item,
@@ -148,7 +149,7 @@ export function ListingName({
 }) {
   return (
     <ItemTooltip onOpenChange={(open) => onOpenChange(open)}>
-      <ItemTooltipTrigger className={styles.name} openOnHover={false} aria-label={`${label} 상세 보기`}>
+      <ItemTooltipTrigger className={styles.name} openOnHover={false}>
         {label}
       </ItemTooltipTrigger>
       <ItemTooltipContent aria-label={`${item.name} 상세`}>

@@ -20,7 +20,9 @@ for (const width of [1280, 360])
       await watchShifts(page);
       await gotoReady(page, board.path);
       const table = page.getByRole("region", { name: board.table });
-      const open = table.getByRole("button", { name: /상세 보기$/ }).first();
+      // The name itself is the button (the row header reads the same name).
+      const open = table.getByRole("rowheader").first().getByRole("button");
+      await expect(open).toHaveAttribute("aria-haspopup", "dialog");
       await expect(open).toBeVisible();
       await page.waitForTimeout(600);
 

@@ -25,3 +25,16 @@
   outline: 3px solid var(--ring);
   outline-offset: 2px;
 }
+
+/* Touch: the press area grows to the row's height around the name (hit-44),
+   drawn by a pseudo-element so nothing moves. */
+@media (pointer: coarse) {
+  .name {
+    position: relative;
+  }
+  .name::after {
+    position: absolute;
+    inset: -12px -8px;
+    content: "";
+  }
+}
