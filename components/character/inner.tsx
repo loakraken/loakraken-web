@@ -370,7 +370,7 @@ function Decoration({ part }: { part: DecorationPart }) {
   const src = safeGameImage(part.url);
   if (!src) return null;
   // eslint-disable-next-line @next/next/no-img-element -- official CDN icon at a fixed size
-  return <img src={src} alt={part.alt} title={part.alt} width={24} height={24} decoding="async" referrerPolicy="no-referrer" />;
+  return <img src={src} alt={part.alt} width={24} height={24} decoding="async" referrerPolicy="no-referrer" />;
 }
 
 /**
