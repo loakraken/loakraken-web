@@ -352,7 +352,12 @@ export default function SpecUpGuide({ data }: { data: Character }) {
                           <td data-cell="kind">{kindLabel(c.kind)}</td>
                           <th scope="row" data-cell="target">
                             {/* The target opens the row's detail (시세·재련 재료·전후 능력치, #887). */}
-                            <SpecUpRowDetail characterName={name} fetchedAt={data.fetchedAt} candidate={c} />
+                            <SpecUpRowDetail
+                              characterName={name}
+                              fetchedAt={data.fetchedAt}
+                              candidate={c}
+                              cooldownGemsIncluded={guide.cooldownGemsIncluded ?? null}
+                            />
                           </th>
                           <td data-cell="change">
                             {c.from ?? "—"} → {c.to ?? "—"}

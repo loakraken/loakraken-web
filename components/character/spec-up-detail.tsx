@@ -163,10 +163,13 @@ export function SpecUpRowDetail({
   characterName,
   fetchedAt,
   candidate,
+  cooldownGemsIncluded = null,
 }: {
   characterName: string;
   fetchedAt: string | null | undefined;
   candidate: Candidate;
+  /** The list's applied cooldown-gem choice, sent with the detail (api #588). */
+  cooldownGemsIncluded?: boolean | null;
 }) {
   // Asked to open; the card itself opens once its detail (or an error) is in,
   // so it opens at its final size. Opening first with a one-line "loading"
@@ -174,8 +177,8 @@ export function SpecUpRowDetail({
   const [wanted, setWanted] = useState(false);
   const queryClient = useQueryClient();
   const detail = useQuery({
-    queryKey: specUpDetailQuery(characterName, fetchedAt, candidate.id),
-    queryFn: ({ signal }) => fetchSpecUpDetail(characterName, candidate.id, signal),
+    queryKey: specUpDetailQuery(characterName, fetchedAt, candidate.id, cooldownGemsIncluded),
+    queryFn: ({ signal }) => fetchSpecUpDetail(characterName, candidate.id, signal, cooldownGemsIncluded),
     enabled: wanted,
     staleTime: DETAIL_STALE_MS,
     retry: false,

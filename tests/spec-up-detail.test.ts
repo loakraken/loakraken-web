@@ -60,6 +60,21 @@ test("각인 줄 id(한글·공백)는 받아서 %20으로 보내고, 형식이 
   assert.equal(seen.length, 1);
 });
 
+test("줄 상세는 목록의 작열 보석 선택을 true·false일 때만 넘긴다(api #588)", async () => {
+  const seen: string[] = [];
+  const fetcher = (async (input: RequestInfo | URL) => {
+    seen.push(String(input));
+    return new Response(JSON.stringify(fixture("character-spec-up-detail-gem.json")), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    });
+  }) as typeof fetch;
+  for (const value of ["false", "true", null, "yes"])
+    await requestSpecUpDetail("스펙캐시", "GEM_LEVEL:3:8", "http://api.test", { fetcher }, value);
+  const sent = seen.map((url) => new URL(url).searchParams.get("includeCooldownGems"));
+  assert.deepEqual(sent, ["false", "true", null, null]);
+});
+
 test("크라켄 점수 순: 점수 변화가 있는 후보는 상태와 상관없이 응답 순서대로 순위에, 나머지는 이유별로 접힌다", () => {
   const { data } = fixture("character-spec-up-kraken.json");
   const { ok, folded } = splitKrakenCandidates(data.candidates);

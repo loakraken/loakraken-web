@@ -27,8 +27,15 @@ export async function fetchSpecUpGoal(characterName: string, target: number, sig
 }
 
 /** One candidate's detail (opened row only). */
-export async function fetchSpecUpDetail(characterName: string, candidateId: string, signal?: AbortSignal) {
+export async function fetchSpecUpDetail(
+  characterName: string,
+  candidateId: string,
+  signal?: AbortSignal,
+  includeCooldownGems: boolean | null = null,
+) {
   const params = new URLSearchParams({ characterName });
+  // api #588: the list's own cooldown-gem choice (a gem the list left out is not found).
+  if (includeCooldownGems != null) params.set("includeCooldownGems", String(includeCooldownGems));
   try {
     const response = await fetch(`/api/characters/spec-up/candidates/${encodeURIComponent(candidateId)}?${params}`, {
       cache: "no-store",
