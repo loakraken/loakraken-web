@@ -9,14 +9,19 @@ type Finding = Omit<GeneratedDiagnostics["findings"][number], "code"> & {
   code: string;
 };
 // Rule codes can grow independently; unknown codes still have displayable evidence.
-// krakenScore is null when a backend from before it sent none (validate.ts).
-export type Character = Omit<GeneratedCharacter, "analysis" | "krakenScore"> & {
+// krakenScore and the efficiencies' real are null when a backend from before
+// them sent none (validate.ts).
+type GeneratedArkGridEfficiency = NonNullable<GeneratedCharacter["arkGridEfficiency"]>;
+type GeneratedBraceletEfficiency = NonNullable<GeneratedCharacter["braceletEfficiency"]>;
+export type Character = Omit<GeneratedCharacter, "analysis" | "krakenScore" | "arkGridEfficiency" | "braceletEfficiency"> & {
   analysis: Omit<GeneratedAnalysis, "diagnostics"> & {
     diagnostics: Omit<GeneratedDiagnostics, "findings"> & {
       findings: Finding[];
     };
   };
   krakenScore: GeneratedCharacter["krakenScore"] | null;
+  arkGridEfficiency: (Omit<GeneratedArkGridEfficiency, "real"> & { real: GeneratedArkGridEfficiency["real"] | null }) | null;
+  braceletEfficiency: (Omit<GeneratedBraceletEfficiency, "real"> & { real: GeneratedBraceletEfficiency["real"] | null }) | null;
 };
 export type CharacterEnvelope = Omit<
   components["schemas"]["ApiResponseCharacterResponse"],
