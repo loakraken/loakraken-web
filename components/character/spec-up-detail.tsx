@@ -30,6 +30,7 @@ import {
   type SpecUpDetail,
 } from "@/lib/spec-up/detail";
 import { kindLabel, koreanGold, type Candidate } from "@/lib/spec-up/model";
+import { safeGameImage } from "@/lib/character/model";
 import { GameIcon } from "./imagery";
 import { kstTime } from "./parts";
 import styles from "./detail.module.css";
@@ -189,6 +190,7 @@ export function SpecUpRowDetail({
   useEffect(() => {
     if (gone) void queryClient.invalidateQueries({ queryKey: ["spec-up", characterName] });
   }, [gone, queryClient, characterName]);
+  const icon = safeGameImage(candidate.icon);
   return (
     <ItemTooltip open={open} onOpenChange={(next) => setWanted(next)}>
       <ItemTooltipTrigger
@@ -207,9 +209,9 @@ export function SpecUpRowDetail({
           grade={itemGrade(candidate.grade)}
           title={candidate.target}
           icon={
-            candidate.icon ? (
+            icon ? (
               // eslint-disable-next-line @next/next/no-img-element -- official CDN icon at a fixed size
-              <img src={candidate.icon} alt="" width={56} height={56} referrerPolicy="no-referrer" />
+              <img src={icon} alt="" width={56} height={56} referrerPolicy="no-referrer" />
             ) : undefined
           }
           lines={[`${kindLabel(candidate.kind)} · ${candidate.from ?? "—"} → ${candidate.to ?? "—"}`]}
