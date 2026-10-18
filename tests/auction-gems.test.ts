@@ -57,6 +57,10 @@ test("class and skill ride along in the link; a skill needs its class (api #542)
   // A skill without a class, a bad code or an overlong class name is dropped.
   assert.deepEqual(parseGemPick(new URLSearchParams("kind=겁화&level=10&skill=21170")), { kind: "겁화", level: 10, page: 1, ...plain });
   assert.equal(parseGemPick(new URLSearchParams("kind=겁화&level=10&class=바드&skill=-3"))?.skill, null);
+  // Skill codes are int32 on the backend: a larger number never reaches it.
+  assert.equal(parseGemPick(new URLSearchParams("kind=겁화&level=10&class=바드&skill=2147483647"))?.skill, 2147483647);
+  assert.equal(parseGemPick(new URLSearchParams("kind=겁화&level=10&class=바드&skill=2147483648"))?.skill, null);
+  assert.equal(parseGemPick(new URLSearchParams("kind=겁화&level=10&class=바드&skill=1e20"))?.skill, null);
   assert.equal(parseGemPick(new URLSearchParams(`kind=겁화&level=10&class=${"가".repeat(21)}`))?.className, null);
   assert.equal(
     gemPickSearch({ kind: "겁화", level: 10, page: 2, className: "바드", skill: 21170 }).toString(),

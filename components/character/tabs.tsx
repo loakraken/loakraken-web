@@ -170,7 +170,7 @@ export const SimulatorEnabled = createContext(true);
 export const TitleStatsEnabled = createContext(true);
 /** SPEC_UP_GUIDE (server flag): off hides the 스펙업 tab the same way. */
 export const SpecUpEnabled = createContext(true);
-/** GUILD_RANKING (server flag): the guild tab uses the guild ranking's data; off hides it. */
+/** GUILD_TAB (server flag, apart from the guild ranking since api #582): off hides the guild tab. */
 export const GuildTabEnabled = createContext(true);
 /**
  * CHARACTER_EFFICIENCY (server flag): off leaves out the 아크 그리드 효율 and

@@ -19,6 +19,11 @@ export const POPULAR_GUILD_PERIODS: readonly { id: PopularGuildsPeriod; label: s
   { id: "24h", label: "24시간" },
   { id: "7d", label: "7일" },
 ];
+/** The card's period in the address (home and the guild ranking); 24h is left out. */
+export const GUILD_PERIOD_PARAM = "guildPeriod";
+/** Anything but a known period is the default. */
+export const popularGuildsPeriodOf = (value: string | null | undefined): PopularGuildsPeriod =>
+  POPULAR_GUILD_PERIODS.some((p) => p.id === value) ? (value as PopularGuildsPeriod) : "24h";
 /** Rows the card shows (and keeps room for). */
 export const POPULAR_GUILD_LIMIT = 10;
 export type PopularGuildsQuery = { period: PopularGuildsPeriod; server?: string };

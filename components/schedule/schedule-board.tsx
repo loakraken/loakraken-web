@@ -270,17 +270,7 @@ function Section({
       <ul className={styles.rows}>
         {items.map((item) => (
           <li key={`${"category" in item ? item.category : ""}${item.name}`}>
-            {item.icon ? (
-              // eslint-disable-next-line @next/next/no-img-element -- official CDN icon at a fixed size
-              <img
-                src={item.icon}
-                alt=""
-                width={36}
-                height={36}
-                loading="lazy"
-                referrerPolicy="no-referrer"
-              />
-            ) : null}
+            <RowIcon src={item.icon} />
             <span className={styles.rowName}>
               <strong>{item.name}</strong>
               <small>
@@ -305,6 +295,13 @@ function dateTitle(date: string) {
   const [, m, d] = date.split("-").map(Number);
   const weekday = weekDays(date, date)[0]?.weekday;
   return `${m}월 ${d}일${weekday ? ` ${weekday}요일` : ""}`;
+}
+
+/** A row icon, official CDN only (safeGameImage); anything else shows none. */
+function RowIcon({ src }: { src: string | null | undefined }) {
+  const safe = safeGameImage(src);
+  // eslint-disable-next-line @next/next/no-img-element -- official CDN icon at a fixed size
+  return safe ? <img src={safe} alt="" width={36} height={36} loading="lazy" referrerPolicy="no-referrer" /> : null;
 }
 
 /**

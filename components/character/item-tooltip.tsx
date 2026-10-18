@@ -12,7 +12,7 @@ import {
   ItemTooltipTrigger,
   type ItemGrade,
 } from "@/components/ui/item-tooltip";
-import { gradeKey } from "@/lib/character/model";
+import { gradeKey, safeGameImage } from "@/lib/character/model";
 import type { Character } from "@/lib/character/model";
 import {
   type SkillLines,
@@ -209,8 +209,7 @@ export function EquipmentCard({ item, slot, extra }: { item: Equipment; slot?: s
     <ItemDetail
       grade={itemGrade(item.grade)}
       title={item.name ?? slot ?? "-"}
-      // eslint-disable-next-line @next/next/no-img-element -- official CDN icon at a fixed size
-      icon={item.icon ? <img src={item.icon} alt="" width={56} height={56} referrerPolicy="no-referrer" /> : undefined}
+      icon={img56(item.icon)}
       lines={info}
       aside="장착중"
     >
@@ -321,8 +320,7 @@ export function GemCard({
     <ItemDetail
       grade={itemGrade(gem.grade)}
       title={gem.name ?? "보석"}
-      // eslint-disable-next-line @next/next/no-img-element -- official CDN icon at a fixed size
-      icon={gem.icon ? <img src={gem.icon} alt="" width={56} height={56} referrerPolicy="no-referrer" /> : undefined}
+      icon={img56(gem.icon)}
       lines={[gem.titleLine ?? [gem.grade, "보석"].filter(Boolean).join(" "), levelLine(gem.itemLevel, gem.tier)].filter(
         (line): line is string => line != null,
       )}
@@ -365,9 +363,13 @@ export function EngravingCard({ description }: { description: string }) {
 type GridSlot = NonNullable<Character["loadout"]["arkGrid"]>["slots"][number];
 type GridGem = GridSlot["gems"][number];
 
-const img56 = (src: string | null | undefined) =>
+// Official CDN icons only (safeGameImage); anything else shows no icon.
+const img = (value: string | null | undefined, size: number) => {
+  const src = safeGameImage(value);
   // eslint-disable-next-line @next/next/no-img-element -- official CDN icon at a fixed size
-  src ? <img src={src} alt="" width={56} height={56} referrerPolicy="no-referrer" /> : undefined;
+  return src ? <img src={src} alt="" width={size} height={size} referrerPolicy="no-referrer" /> : undefined;
+};
+const img56 = (value: string | null | undefined) => img(value, 56);
 
 /**
  * The ark grid core card (sheet v2.1 §2c): name, icon row (grade 아크 그리드
@@ -547,8 +549,7 @@ export function SkillDetailCard({ skill, lines }: { skill: Skill; lines?: SkillL
         <ItemDetailSection label="트라이포드">
           {skill.tripods.map((tripod, i) => (
             <div key={i} className={styles.tripod}>
-              {/* eslint-disable-next-line @next/next/no-img-element -- official CDN icon at a fixed size */}
-              {tripod.icon ? <img src={tripod.icon} alt="" width={28} height={28} referrerPolicy="no-referrer" /> : <span />}
+              {img(tripod.icon, 28) ?? <span />}
               <div>
                 <ItemLine>{tripod.name ?? "-"}</ItemLine>
                 {tripod.effect && <ItemLine tone="muted">{tripod.effect}</ItemLine>}
