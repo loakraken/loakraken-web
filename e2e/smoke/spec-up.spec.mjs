@@ -223,8 +223,13 @@ test.describe("스펙업 가이드 @smoke", () => {
     await page.goto(characterPath(NAME, "specup"));
     const table = page.getByRole("table", { name: /스펙업 후보/ });
     await expect(table.locator("tbody tr")).toHaveCount(3);
-    await page.getByRole("button", { name: "크라켄 점수 순" }).click();
+    const krakenSort = page.getByRole("button", { name: "크라켄 점수 순" });
+    await krakenSort.click();
     await expect(page.getByRole("table", { name: /크라켄 점수 순/ })).toBeVisible();
+    // The list area is drawn anew for another list; the press stays where it was,
+    // and there is one table, named once for the new list.
+    await expect(krakenSort).toBeFocused();
+    await expect(page.getByRole("table", { name: /스펙업 후보/ })).toHaveCount(1);
     expect(asked.at(-1).get("sort")).toBe("KRAKEN");
     expect(asked.at(-1).get("includeCooldownGems")).toBe("false");
     const kraken = page.getByRole("table", { name: /크라켄 점수 순/ });
