@@ -13,8 +13,21 @@ for (const c of cases)
     await page.clock.install();
     await page.addInitScript(() => {
       window.__shifts = [];
+      window.__from = 0;
       new PerformanceObserver((list) => {
-        for (const entry of list.getEntries()) window.__shifts.push(entry.value);
+        for (const e of list.getEntries())
+          // With what moved, for the failure message (two decimals: a sub-pixel
+          // move rounds to no move).
+          window.__shifts.push({
+            v: e.value,
+            src: (e.sources ?? []).map((s) => {
+              const el = s.node?.nodeType === 1 ? s.node : s.node?.parentElement;
+              const r = (b) => [b.x, b.y, b.width, b.height].map((n) => n.toFixed(2)).join(",");
+              const cls = typeof el?.className === "string" ? el.className.split(" ")[0] : "";
+              const text = (el?.textContent ?? "").trim().slice(0, 20);
+              return `+${Math.round(e.startTime - window.__from)}ms ${e.value.toFixed(5)} ${el?.tagName}${cls ? `.${cls}` : ""} "${text}" ${r(s.previousRect)}→${r(s.currentRect)}`;
+            }),
+          });
       }).observe({ type: "layout-shift", buffered: true });
     });
     const asked = [];
@@ -33,10 +46,17 @@ for (const c of cases)
     }
     expect(settled, "채우기 요청이 멈춤").toBe(3);
     const first = asked.length;
-    await page.evaluate(() => (window.__shifts = []));
+    await page.evaluate(() => {
+      window.__shifts = [];
+      window.__from = document.timeline.currentTime;
+    });
     await page.clock.runFor(61_000);
     await expect.poll(() => asked.length, { message: "1분 뒤 다시 받음" }).toBeGreaterThan(first);
     await expect(c.ready(page)).toBeVisible();
     await page.clock.runFor(2_000);
-    expect(await page.evaluate(() => window.__shifts.reduce((a, v) => a + v, 0)), "다시 받은 뒤 layout-shift").toBe(0);
+    const after = await page.evaluate(() => window.__shifts);
+    expect(
+      after.reduce((a, e) => a + e.v, 0),
+      `다시 받은 뒤 layout-shift: ${[...new Set(after.flatMap((e) => e.src))].slice(0, 8).join(" | ")}`,
+    ).toBe(0);
   });
