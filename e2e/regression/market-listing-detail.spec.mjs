@@ -45,7 +45,14 @@ for (const width of [1280, 360])
       await page.waitForTimeout(500);
       await expect(card).toBeVisible();
 
-      const closing = await shiftsDuring(page, () => page.keyboard.press("Escape"));
+      // Focus is back on a name at once (not after the sheet's slide), also when
+      // closing drew the rows again for the refreshed page.
+      let focusedRightAway = null;
+      const closing = await shiftsDuring(page, async () => {
+        await page.keyboard.press("Escape");
+        focusedRightAway = await page.evaluate(() => document.activeElement?.closest("th[scope=row] button")?.textContent ?? null);
+      });
+      expect(focusedRightAway, "Esc 직후 초점이 이름 버튼").not.toBeNull();
       await expect(page.getByRole("dialog")).toHaveCount(0);
       expect(closing.all, `닫는 흔들림 (${closing.moved})`).toBe(0);
       await expect(open).toBeFocused();
