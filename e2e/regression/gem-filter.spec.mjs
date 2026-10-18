@@ -99,3 +99,14 @@ test("@보석필터 검색 몫을 넘기면(503 MARKET_SEARCH_BUSY) 남은 시�
   await expect(page.getByText(/초 뒤 다시 시도해 주세요\.$/)).toBeVisible();
   await expect(page.getByRole("button", { name: /초 뒤 다시 시도$/ })).toBeDisabled();
 });
+
+// v0.3.2 P2 (#894 후속): 백엔드 필터가 꺼졌는데(404 GEM_FILTER_DISABLED) 공유 주소에 직업이 남아 있으면
+// 같은 칸을 조건 없이 다시 불러 매물을 보이고, 주소에서도 직업·스킬을 뗀다(다시 시도만 남는 막다른 길 없음).
+test("@보석필터 필터가 꺼졌으면 공유 주소의 직업·스킬을 떼고 같은 칸 매물 @regression", async ({ page }) => {
+  await gotoReady(page, "/market/gems?kind=%EA%B2%81%ED%99%94&level=10&class=%ED%95%84%ED%84%B0%EA%BA%BC%EC%A7%90&skill=21170");
+  const section = page.locator("section[aria-labelledby=gem-listings-heading]");
+  await expect(section.locator("tbody tr").first()).toBeVisible();
+  await expect(page.getByText("매물을 불러오지 못했어요.")).toHaveCount(0);
+  await expect(page).toHaveURL(/kind=%EA%B2%81%ED%99%94&level=10$/);
+  await expect(page).not.toHaveURL(/class=|skill=/);
+});
