@@ -11,7 +11,7 @@ import styles from "./site-header.module.css";
  * One header for every page: brand, the site-wide menu, then a page slot on
  * the right (search, motion toggle, call to action). `fixed` keeps the home
  * hero layout, every other page uses a sticky bar. The Discord link and the
- * theme toggle sit at the far right (light stays the default, D3).
+ * theme toggle sit at the far right (the system theme is the default, user decision 10-18).
  */
 export function SiteHeader({
   children,
