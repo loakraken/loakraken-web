@@ -10,8 +10,16 @@ test("길드 랭킹: 탭·열·기준 전환·서버·안내 @regression", async
   await expect(table.getByRole("columnheader")).toHaveText(["순위", "길드", "서버", "아이템 레벨 평균", "확인한 길드원", "전투력 평균"]);
   await expect(table.getByRole("rowheader")).toHaveText(["합성길드", "두번째길드", "작은길드"]);
   await expect(table.locator("tbody tr").first()).toContainText("24명");
-  // Members with a combat power record fewer than the members seen: "n명 기준".
-  await expect(table.locator("tbody tr").nth(2)).toContainText("2명 기준");
+  // The default is the item level 1750+ members' combat power average (api #589):
+  // the count under it, and a guild with none of them says so, with no rank.
+  await expect(page).not.toHaveURL(/sort=/);
+  await expect(page.getByRole("group", { name: "기준" }).getByRole("button", { name: "전투력 평균" })).toHaveAttribute("aria-pressed", "true");
+  await expect(table.locator("tbody tr").first()).toContainText("3,402.18");
+  await expect(table.locator("tbody tr").first()).toContainText("1750 이상 15명");
+  await expect(table.locator("tbody tr").nth(2)).toContainText("1750 이상 없음");
+  await expect(table.locator("tbody tr").nth(2).locator("td").first()).toHaveText("-");
+  await expect(table.locator("tbody tr").nth(1).locator("td").first()).toHaveText("2");
+  await expect(page.getByText(/아이템 레벨 1750 이상 길드원만 세요/)).toBeVisible();
   await expect(page.getByText(/318개 길드 기준 · 공식 랭킹이 아니에요/)).toBeVisible();
   await expect(page.getByText(/실제 길드 인원이 아니에요/)).toBeVisible();
   await expect(page.getByText(/41개\)/)).toBeVisible();
@@ -20,6 +28,14 @@ test("길드 랭킹: 탭·열·기준 전환·서버·안내 @regression", async
   await expect(page).toHaveURL(/sort=SUM/);
   await expect(table.getByRole("columnheader").nth(3)).toHaveText("아이템 레벨 합");
   await expect(table.getByRole("rowheader")).toHaveText(["합성길드", "두번째길드", "작은길드"]);
+  // Ranked by item level, every guild has its rank again.
+  await expect(table.locator("tbody tr").nth(2).locator("td").first()).toHaveText("3");
+
+  // 전투력 합: every member with a combat power record; fewer than the members seen says so.
+  await page.getByRole("group", { name: "기준" }).getByRole("button", { name: "전투력 합" }).click();
+  await expect(page).toHaveURL(/sort=CP_SUM/);
+  await expect(table.getByRole("columnheader").nth(5)).toHaveText("전투력 합");
+  await expect(table.locator("tbody tr").nth(2)).toContainText("2명 합");
 
   // A small sample: values shown as reference, no ranks yet.
   await chooseOption(page, page.getByRole("combobox", { name: "서버" }), "아만");

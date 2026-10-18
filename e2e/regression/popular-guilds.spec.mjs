@@ -37,3 +37,23 @@ test("@M21 인기 길드는 랭킹의 서버를 따르고, 집계 중이면 안�
   await chooseOption(page, page.getByRole("combobox", { name: "서버" }), "니나브");
   await expect(card).toContainText("아직 순위를 집계하고 있어요.");
 });
+
+// QA v0.3.1 P1-4: the period went back to 24시간 on a reload. It rides in the
+// address (?guildPeriod=7d) next to the ranking's own parameters.
+test("@M21 인기 길드 기간은 주소에 남아 새로고침에도 그대로다 @regression", async ({ page }) => {
+  await gotoReady(page, "/rankings?type=guilds&sort=SUM");
+  const card = page.getByRole("region", { name: /인기 길드/ });
+  const period = card.getByRole("group", { name: "인기 길드 기간" });
+  const rows = card.getByRole("list", { name: "인기 길드 순위" }).getByRole("listitem");
+  await period.getByRole("button", { name: "7일" }).click();
+  await expect(rows).toHaveCount(4);
+  await expect(page).toHaveURL(/[?&]guildPeriod=7d(&|$)/);
+  await expect(page).toHaveURL(/[?&]sort=SUM(&|$)/);
+  await page.reload();
+  await expect(period.getByRole("button", { name: "7일" })).toHaveAttribute("aria-pressed", "true");
+  await expect(rows).toHaveCount(4);
+  await period.getByRole("button", { name: "24시간" }).click();
+  await expect(rows).toHaveCount(10);
+  await expect(page).not.toHaveURL(/guildPeriod=/);
+  await expect(page).toHaveURL(/[?&]sort=SUM(&|$)/);
+});
