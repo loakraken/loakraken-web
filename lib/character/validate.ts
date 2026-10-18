@@ -38,6 +38,9 @@ const ROLLOUT: Record<string, Record<string, () => unknown>> = {
     // Kraken score (backend #561). Not sent at all while its switch is off.
     krakenScore: () => null,
   },
+  // Real efficiency (backend #570·#571): the comparison sites' own share.
+  ArkGridEfficiencyResponse: { real: () => null },
+  BraceletEfficiencyResponse: { real: () => null },
   CharacterLoadoutResponse: { skills: () => [] },
   CharacterObservationCoverageResponse: {
     skills: () => "NOT_PROVIDED",
@@ -121,6 +124,8 @@ export function isCharacterEnvelope(
     return false;
   const data = value.data;
   fill(data, "CharacterResponse");
+  fill(data.arkGridEfficiency, "ArkGridEfficiencyResponse");
+  fill(data.braceletEfficiency, "BraceletEfficiencyResponse");
   fill(data.loadout, "CharacterLoadoutResponse");
   fill(data.coverage, "CharacterObservationCoverageResponse");
   fill(data.analysis, "CharacterAnalysisResponse");
