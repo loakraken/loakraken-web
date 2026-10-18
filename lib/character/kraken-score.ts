@@ -46,8 +46,10 @@ export function krakenScoreView(value: KrakenScore | null | undefined): KrakenSc
   if (value.status !== "OK" || score == null || !Number.isFinite(score) || score < 0 || !tier) return { state: "pending" };
   const progress = Number.isFinite(tier.progressPercent) ? Math.min(100, Math.max(0, Math.floor(tier.progressPercent))) : 0;
   const nextName = tier.nextCode ? labelOf(KRAKEN_TIER_LABEL, tier.nextCode) : null;
-  // Whole points, rounded up: 0.4 left is still a point to go, never "0점".
-  const left = tier.remaining != null && Number.isFinite(tier.remaining) && tier.remaining > 0 ? Math.ceil(tier.remaining) : null;
+  // Whole points, rounded as comparison B does (every recorded sample matches
+  // only that; PM-프론트 #907). The backend's value is already rounded to two
+  // decimals, so a whole-number field from it will replace this when it comes.
+  const left = tier.remaining != null && Number.isFinite(tier.remaining) && tier.remaining >= 0 ? Math.round(tier.remaining) : null;
   return {
     state: "ready",
     score: two(score),

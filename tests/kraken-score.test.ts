@@ -31,9 +31,15 @@ test("크라켄 점수: score, tier, way into the tier, whole points to the next
     progress: 38,
     next: "마스터 티어까지 1,042점",
   });
-  // 0.4 left is still a point to go, never "0점".
-  const almost = krakenScoreView({ ...ok, tier: { ...ok.tier!, remaining: 0.4 } });
-  assert.equal(almost.state === "ready" && almost.next, "마스터 티어까지 1점");
+  // Whole points rounded, as comparison B (recorded samples g03, g06), x.50 up.
+  const left = (remaining: number) => {
+    const view = krakenScoreView({ ...ok, tier: { ...ok.tier!, remaining } });
+    return view.state === "ready" ? view.next : null;
+  };
+  assert.equal(left(1143.15), "마스터 티어까지 1,143점");
+  assert.equal(left(293.04), "마스터 티어까지 293점");
+  assert.equal(left(1041.5), "마스터 티어까지 1,042점");
+  assert.equal(left(0.4), "마스터 티어까지 0점");
 });
 
 test("크라켄 점수: the top tier is a full bar with no next line", () => {
