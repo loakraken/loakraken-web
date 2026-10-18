@@ -4,11 +4,13 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { continueText, minutesUntil } from "../lib/character/continue-later";
 
-test("minutes until the button opens: whole, at least one, one without a time", () => {
+test("minutes until the button opens: rounded, at least one, one without a time", () => {
   const from = Date.parse("2026-10-19T03:00:00Z");
   assert.equal(minutesUntil("2026-10-19T03:01:00Z", from), 1);
   assert.equal(minutesUntil("2026-10-19T03:00:20Z", from), 1);
   assert.equal(minutesUntil("2026-10-19T03:09:31Z", from), 10);
+  // Pressed, then the answer took a second and a half: still one minute.
+  assert.equal(minutesUntil("2026-10-19T03:01:01.500Z", from), 1);
   assert.equal(minutesUntil("2026-10-19T02:59:00Z", from), 1);
   assert.equal(minutesUntil(null, from), 1);
   assert.equal(minutesUntil("not a time", from), 1);

@@ -3,10 +3,10 @@
 // many and when the button opens again, in whole minutes counted once from
 // the answer, so it never ticks inside a live region (PM-프론트 10-18 (d)).
 
-/** Whole minutes from the press until the button opens again, at least 1. */
+/** Minutes from the press until the button opens again, rounded (the answer itself takes a few seconds), at least 1. */
 export function minutesUntil(availableAt: string | null | undefined, from: number) {
   const at = availableAt ? Date.parse(availableAt) : NaN;
-  return Number.isFinite(at) ? Math.max(1, Math.ceil((at - from) / 60_000)) : 1;
+  return Number.isFinite(at) ? Math.max(1, Math.round((at - from) / 60_000)) : 1;
 }
 
 /**
