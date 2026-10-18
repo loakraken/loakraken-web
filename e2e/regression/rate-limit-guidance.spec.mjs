@@ -52,10 +52,11 @@ test("@429 원정대 전투력: 다 못 불렀으면 남은 인원과 이어서 
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.route("**/api/characters/roster-combat-power/refresh?*", async (route) => {
     const response = await route.fetch();
+    // The web route's answer: { ok, envelope: { code, message, data } }.
     const body = await response.json();
-    body.data.fetched = 8;
-    body.data.remaining = 4;
-    body.data.refreshAvailableAt = new Date(Date.now() + 60_000).toISOString();
+    body.envelope.data.fetched = 8;
+    body.envelope.data.remaining = 4;
+    body.envelope.data.refreshAvailableAt = new Date(Date.now() + 60_000).toISOString();
     return route.fulfill({ response, json: body });
   });
   await gotoReady(page, characterPath("원정대전투력", "siblings"));

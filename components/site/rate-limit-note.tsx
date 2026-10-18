@@ -27,9 +27,11 @@ export function RateLimitNote({
 }) {
   return (
     <>
-      <span aria-hidden="true" className={className} hidden={buttonCounts}>
-        {seconds > 0 ? `남은 시간 ${seconds}초` : countdownText(0)}
-      </span>
+      {!buttonCounts && (
+        <span aria-hidden="true" className={className}>
+          {seconds > 0 ? `남은 시간 ${seconds}초` : countdownText(0)}
+        </span>
+      )}
       <span style={hidden} aria-live="polite">
         {seconds > 0 ? "" : countdownText(0)}
       </span>
