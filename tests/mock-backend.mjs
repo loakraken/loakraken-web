@@ -2327,6 +2327,24 @@ createServer(async (req, res) => {
             { slotIndex: null, text: "젬 옵션(공격력 Lv.28 · 추가 피해 Lv.51 · 보스 피해 Lv.4)", percent: 4.27, status: "OK", reasonCode: null, reason: null },
           ],
         };
+    // Real efficiency (backend #570·#571): the contract's example values for
+    // 상세; 상세서포터's bracelet as a supporter (grades only on screen).
+    const realSupport = name === "상세서포터";
+    d.braceletEfficiency.real = realSupport
+      ? { status: "OK", reasonCode: null, reason: null, role: "SUPPORT", percent: 13.47857142857143, devilDamagePercent: null, ruleVersion: "bracelet-real-v1" }
+      : { status: "OK", reasonCode: null, reason: null, role: "DEALER", percent: 11.3, devilDamagePercent: 14.08, ruleVersion: "bracelet-real-v1" };
+    d.arkGridEfficiency.real = {
+      status: "OK", reasonCode: null, reason: null, percent: 4.67, optionsPercent: 3.21, pointsPercent: 1.41, ruleVersion: "ark-grid-real-v1",
+      options: [
+        { name: "공격력", level: 28, inGamePercent: 1.02, percent: 0.99 },
+        { name: "추가 피해", level: 51, inGamePercent: 2.2, percent: 2.1 },
+        { name: "보스 피해", level: 4, inGamePercent: null, percent: null },
+      ],
+      series: [
+        { series: "질서", percent: 2.66, optionsPercent: 1.8, pointsPercent: 0.85, options: [] },
+        { series: "혼돈", percent: 1.97, optionsPercent: 1.39, pointsPercent: 0.56, options: [] },
+      ],
+    };
     // 대세 빌드 비교 (M26): a 블레이드 against the mock class builds above —
     // the most chosen engraving set, enlightenment 98 (second), 특화 on top,
     // no 치명 on the bracelet, damage gems without the most chosen level.
@@ -2410,6 +2428,20 @@ createServer(async (req, res) => {
     크라켄꺼짐: kraken("DISABLED", null, null, { role: null, ruleVersion: null }),
   };
   if (envelope.data && Object.hasOwn(KRAKEN, name)) envelope.data.krakenScore = KRAKEN[name];
+  // Real efficiency states (backend #570·#571): no ark grid at all, and a
+  // grid not worked out yet (an older search, worked out on the next).
+  const unsupportedReal = (reasonCode) => ({ status: "UNSUPPORTED", reasonCode, reason: "로그용 문장", percent: null, optionsPercent: null, pointsPercent: null, options: [], series: [], ruleVersion: "ark-grid-real-v1" });
+  if (name === "아크없음" || name === "효율준비중") {
+    const efficiency = (real) => ({ percent: null, coresPercent: null, status: "UNSUPPORTED", reasonCode: "UNAVAILABLE", reason: null, lines: [], ruleVersion: "ark-grid-efficiency-v1", real });
+    if (name === "아크없음") {
+      envelope.data.loadout.arkGrid = null;
+      envelope.data.arkGridEfficiency = efficiency(unsupportedReal("UNAVAILABLE"));
+    } else envelope.data.arkGridEfficiency = efficiency(unsupportedReal("INPUT_PENDING"));
+    envelope.data.braceletEfficiency = {
+      percent: null, status: "UNSUPPORTED", reasonCode: "UNAVAILABLE", reason: null, lines: [], ruleVersion: "combat-power-v3",
+      real: { status: "UNSUPPORTED", reasonCode: "INPUT_PENDING", reason: "로그용 문장", role: null, percent: null, devilDamagePercent: null, ruleVersion: "bracelet-real-v1" },
+    };
+  }
   send(envelope);
 }).listen(port, "127.0.0.1", () =>
   console.log(`Synthetic backend: http://127.0.0.1:${port}`),

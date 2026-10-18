@@ -2221,11 +2221,51 @@
 }
 /* 아크 그리드 효율 (backend #424): cores only beside the total, the gem
    options' share as a last line under the cores. */
+/* 아크 그리드 효율 parts: may wrap on a phone, each part whole. */
 .arkEffCores {
   color: var(--muted-foreground);
   font-size: 12px;
   font-variant-numeric: tabular-nums;
+  word-break: keep-all;
+}
+/* 질서·혼돈 apart (backend #570), one line under the total. */
+.arkRealSeries {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 14px;
+  margin-top: 4px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.arkRealSeries b {
+  color: var(--foreground);
+  font-weight: 600;
+}
+/* "줄별 보기": each gem option and its share. */
+.arkRealLines {
+  display: grid;
+  gap: 4px;
+  margin: 8px 0 4px;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+}
+.arkRealLines li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.arkRealLines b {
+  color: var(--gain, var(--foreground));
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
+}
+.arkRealLines small {
+  color: var(--muted-foreground);
+  font-size: 12px;
 }
 .arkEffGem {
   display: flex;

@@ -1,42 +1,45 @@
-// 회귀: 아크 그리드 효율(백엔드 #424) — 전투 탭 아크 그리드 패널 머리에 '아크 그리드 효율 +37.36%'와
-// 코어만의 합, 뜻 풀이. 줄별 보기를 펼치면 코어 줄마다 몫이 붙고 끝에 젬 옵션 줄이 붙는다.
-// 전투력이 바뀌지 않는 코어·계산하지 않는 코어·서포터는 이유 문장을 화면에 보인다(회귀 점검표 A21·A22).
+// 회귀: 아크 그리드 효율(백엔드 #570, 사용자 결정 — 효율 = 비교 사이트의 딜 지분) — 전투 탭 아크 그리드
+// 패널 머리에 젬 옵션 + 코어 포인트 실 효율 합계와 나눔, 질서·혼돈 따로, 줄별 보기에 젬 옵션 줄마다 몫.
+// 예전 전투력 기여(코어 줄 몫)는 없다. 아크 그리드가 없으면 '0% · 아크 그리드 없음', 있는데 계산 못 하면
+// '준비 중'(PM-프론트 P3). 뜻 풀이(A22).
 import { test, expect, characterPath, gotoReady } from "../support/fixtures.mjs";
 
-test("딜러: 전체·코어 합계, 코어 줄별 몫과 젬 옵션 줄, 이유 문장 @regression", async ({ page }) => {
+const head = (page) => page.getByRole("button", { name: /^아크 그리드 효율/ }).locator("xpath=ancestor::p[1]");
+
+test("딜러: 합계·젬 옵션·코어 포인트, 질서·혼돈, 줄별 보기에 옵션 줄 @regression", async ({ page }) => {
   await gotoReady(page, characterPath("상세"));
   const term = page.getByRole("button", { name: /^아크 그리드 효율/ });
   await expect(term).toBeVisible();
-  const head = term.locator("xpath=ancestor::p[1]");
-  await expect(head).toContainText("+37.36%");
-  await expect(head).toContainText("코어 +31.74%");
+  await expect(head(page)).toContainText("+4.67%");
+  await expect(head(page)).toContainText("젬 옵션 +3.21% · 코어 포인트 +1.41%");
   await term.focus();
-  await expect(page.locator("[data-slot=tooltip-content]")).toHaveText("코어와 젬 옵션이 전투력을 몇 % 올려 주는지예요.");
+  await expect(page.locator("[data-slot=tooltip-content]")).toHaveText("아크 그리드 젬(옵션·코어 포인트)이 딜을 몇 % 올려 주는지예요.");
+  const series = head(page).locator("xpath=following-sibling::p[1]");
+  await expect(series).toContainText("질서 +2.66%");
+  await expect(series).toContainText("혼돈 +1.97%");
+  // The combat-power contribution per core is gone.
+  await expect(page.getByText("+7.67%")).toHaveCount(0);
+  await expect(page.getByText("코어 +31.74%")).toHaveCount(0);
 
-  const toggle = head.getByRole("button", { name: "줄별 보기" });
+  const toggle = head(page).getByRole("button", { name: "아크 그리드 효율 줄별 보기" });
   await expect(toggle).toHaveAttribute("aria-expanded", "false");
-  // 펼치기 전에는 몫이 없다
-  await expect(page.getByText("+7.67%")).toHaveCount(0);
+  await expect(page.getByText("+0.99%")).toHaveCount(0);
   await toggle.click();
-  const close = head.getByRole("button", { name: "줄별 접기" });
-  await expect(close).toHaveAttribute("aria-expanded", "true");
-  const cores = page.locator(`[id="${await close.getAttribute("aria-controls")}"] > li`);
-  await expect(cores).toHaveCount(6);
-  await expect(cores.nth(0)).toContainText("+7.67%");
-  await expect(cores.nth(3)).toContainText("전투력이 바뀌지 않는 코어예요.");
-  await expect(cores.nth(4)).toContainText("아직 계산식이 없는 코어예요.");
-  await expect(cores.nth(5)).toContainText("+2.50%");
-  await expect(page.getByText("젬 옵션(공격력 Lv.28 · 추가 피해 Lv.51 · 보스 피해 Lv.4)")).toBeVisible();
-  await expect(page.getByText("+4.27%")).toBeVisible();
-
+  const close = head(page).getByRole("button", { name: "아크 그리드 효율 줄별 접기" });
+  const lines = page.locator(`[id="${await close.getAttribute("aria-controls")}"] > li`);
+  await expect(lines).toHaveCount(3);
+  await expect(lines.nth(0)).toContainText("공격력 Lv.28");
+  await expect(lines.nth(0)).toContainText("+0.99%");
+  await expect(lines.nth(1)).toContainText("+2.10%");
+  await expect(lines.nth(2)).toContainText("계산하지 않는 줄이에요.");
   await close.click();
-  await expect(page.getByText("+7.67%")).toHaveCount(0);
-  await expect(page.getByText("+4.27%")).toHaveCount(0);
+  await expect(page.getByText("+0.99%")).toHaveCount(0);
 });
 
-test("서포터: 값 대신 계산하지 않는 이유 한 줄, 줄별 보기 없음 @regression", async ({ page }) => {
-  await gotoReady(page, characterPath("상세서포터"));
-  await expect(page.getByText("서포터는 전투력이 딜러와 다르게 계산돼 아크 그리드 효율을 매기지 않아요.")).toBeVisible();
-  const head = page.getByRole("button", { name: /^아크 그리드 효율/ }).locator("xpath=ancestor::p[1]");
-  await expect(head.getByRole("button", { name: "줄별 보기" })).toHaveCount(0);
+test("아크 그리드가 없으면 0%, 있는데 계산 못 하면 '준비 중' @regression", async ({ page }) => {
+  await gotoReady(page, characterPath("아크없음"));
+  await expect(head(page)).toContainText("0% · 아크 그리드 없음");
+  await gotoReady(page, characterPath("효율준비중"));
+  await expect(head(page)).toContainText("준비 중");
+  await expect(head(page).getByRole("button", { name: /줄별 보기$/ })).toHaveCount(0);
 });
