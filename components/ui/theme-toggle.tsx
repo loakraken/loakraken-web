@@ -5,10 +5,10 @@ import { CloudSunny, Monitor, Moon, Sun } from "@/components/ui/icons"
 import { useEffect, useId, useRef, useState, useSyncExternalStore, type KeyboardEvent } from "react"
 import { IconButton, type IconButtonProps } from "@/components/ui/icon-button"
 
-// Four choices (PM, 10-11): light, dim, dark, or follow the system. Light is
-// still the default when nothing is stored (user decision D3); "system" is
-// only followed when chosen. The applied theme is data-theme on <html>:
-// none = light, "dim" or "dark".
+// Four choices (PM, 10-11): light, dim, dark, or follow the system. With
+// nothing stored the page follows the system (user decision 10-18: system by
+// default, was light); a stored choice stays as it is. The applied theme is
+// data-theme on <html>: none = light, "dim" or "dark".
 const THEME_STORAGE_KEY = "loakraken-theme"
 // The remembered "pause the repeating motion" choice (components/landing/
 // motion-context.tsx). Read by the same pre-paint script, so a paused page
@@ -35,19 +35,20 @@ const DARK_QUERY = "(prefers-color-scheme: dark)"
 // Old stored values ("light"/"dark") read the same as before. The choice
 // itself goes on <html> as data-theme-choice, so the header button shows the
 // chosen mode's icon from the first paint (CSS below), before hydration.
-const themeInitScript = `(function(){try{var k="${THEME_STORAGE_KEY}",d=document.documentElement,m=matchMedia("${DARK_QUERY}");function a(){var s=localStorage.getItem(k),t=s==="system"?(m.matches?"dark":"light"):s;if(t==="dark"||t==="dim")d.dataset.theme=t;else delete d.dataset.theme;d.dataset.themeChoice=s==="dim"||s==="dark"||s==="system"?s:"light"}a();if(localStorage.getItem("${MOTION_STORAGE_KEY}")==="paused")d.setAttribute("data-motion-paused","");m.addEventListener("change",function(){try{if(localStorage.getItem(k)==="system")a()}catch(e){}})}catch(e){}})()`
+const themeInitScript = `(function(){try{var k="${THEME_STORAGE_KEY}",d=document.documentElement,m=matchMedia("${DARK_QUERY}");function c(){var s=null;try{s=localStorage.getItem(k)}catch(e){}return s==="light"||s==="dim"||s==="dark"?s:"system"}function a(){var v=c(),t=v==="system"?(m.matches?"dark":"light"):v;if(t==="dark"||t==="dim")d.dataset.theme=t;else delete d.dataset.theme;d.dataset.themeChoice=v}a();try{if(localStorage.getItem("${MOTION_STORAGE_KEY}")==="paused")d.setAttribute("data-motion-paused","")}catch(e){}m.addEventListener("change",function(){if(c()==="system")a()})}catch(e){}})()`
 
 const listeners = new Set<() => void>()
 
+/** Nothing stored (or an unknown value): follow the system. */
 function toChoice(value: string | null): ThemeChoice {
-  return value === "dim" || value === "dark" || value === "system" ? value : "light"
+  return value === "light" || value === "dim" || value === "dark" ? value : "system"
 }
 
 function storedChoice(): ThemeChoice {
   try {
     return toChoice(localStorage.getItem(THEME_STORAGE_KEY))
   } catch {
-    return "light"
+    return "system"
   }
 }
 
@@ -141,9 +142,9 @@ function useTheme() {
   return useSyncExternalStore(subscribe, readTheme, () => "light" as const)
 }
 
-/** The stored choice of the four; the server always renders light. */
+/** The stored choice of the four; the server renders the default, system. */
 function useThemeChoice() {
-  return useSyncExternalStore(subscribe, readChoice, () => "light" as const)
+  return useSyncExternalStore(subscribe, readChoice, () => "system" as const)
 }
 
 // Each mode's Iconsax icon (Linear): sun, a cloud over the sun for dim, moon,
