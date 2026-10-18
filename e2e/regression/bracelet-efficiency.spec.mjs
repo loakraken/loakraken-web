@@ -25,11 +25,12 @@ test("딜러: 실 효율, '악마 피해'를 켜면 그 값, 줄별 기여 없�
   await expect(term(page).locator("xpath=ancestor::div[1]")).not.toContainText("+4.12%");
 });
 
-test("서포터는 등급만(% 없음), 계산 못 하면 '준비 중' @regression", async ({ page }) => {
+test("서포터는 등급만(% 없음), 계산 못 하면 '확인 중'(숫자 없음) @regression", async ({ page }) => {
   await gotoReady(page, characterPath("상세서포터"));
   await expect(page.getByText("팔찌", { exact: true }).first()).toBeVisible();
   await expect(term(page)).toHaveCount(0);
   await expect(page.getByText("+13.48%")).toHaveCount(0);
   await gotoReady(page, characterPath("효율준비중"));
-  await expect(term(page).locator("xpath=ancestor::p[1]")).toContainText("준비 중");
+  await expect(term(page).locator("xpath=ancestor::p[1]")).toContainText("확인 중");
+  await expect(term(page).locator("xpath=ancestor::p[1]")).not.toContainText("%");
 });
