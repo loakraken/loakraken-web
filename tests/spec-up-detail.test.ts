@@ -106,13 +106,18 @@ test("비용 0 후보는 효율 칸이 null('—')이고, 웹은 다시 정렬�
   const { ok: ranked } = splitCandidates([...ok, free]);
   assert.deepEqual(ranked.map((c) => c.id), [...ok, free].map((c: { id: string }) => c.id));
   assert.equal(ranked.at(-1)?.combatPowerPer10kGold, null);
-  // 크라켄 점수 순(api #596): 10만 골드당 → 0골드(Δ 순) → 비용 모름. A 0-gold row sits
-  // before the cost-unknown rows, as the answer has it.
-  const base = { ...ok[0], deltaKrakenScore: 5, krakenScorePer100kGold: null };
+  // 크라켄 점수 순(api #596): ① 10만 골드당 → ② Δ > 0이면서 10만 골드당 없음(0골드와
+  // 비용 모름을 함께, Δ 큰 순) → ③ 나머지. Laid out by that rule here; the screen
+  // keeps the answer's order as it is (the web does not sort).
+  const base = { ...ok[0], krakenScorePer100kGold: null };
   const answer = [
-    { ...base, id: "A", krakenScorePer100kGold: 12.5 },
-    { ...base, id: "ZERO", cost: { ...ok[0].cost, amount: 0 } },
-    { ...base, id: "UNKNOWN", status: "UNSUPPORTED", cost: { ...ok[0].cost, status: "UNKNOWN", amount: null } },
+    { ...base, id: "PER100K", deltaKrakenScore: 3, krakenScorePer100kGold: 12.5 },
+    { ...base, id: "UNKNOWN_9", deltaKrakenScore: 9, status: "UNSUPPORTED", cost: { ...ok[0].cost, status: "UNKNOWN", amount: null } },
+    { ...base, id: "ZERO_5", deltaKrakenScore: 5, cost: { ...ok[0].cost, amount: 0 } },
+    { ...base, id: "UNKNOWN_2", deltaKrakenScore: 2, status: "UNSUPPORTED", cost: { ...ok[0].cost, status: "UNKNOWN", amount: null } },
   ];
-  assert.deepEqual(splitKrakenCandidates(answer).ok.map((c) => c.id), ["A", "ZERO", "UNKNOWN"]);
+  assert.deepEqual(
+    splitKrakenCandidates(answer).ok.map((c) => c.id),
+    answer.map((c) => c.id),
+  );
 });
