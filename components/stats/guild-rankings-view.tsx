@@ -15,7 +15,9 @@ import {
   GUILD_MAX_PAGE,
   GUILD_PAGE_SIZE,
   GUILD_SORTS,
+  GUILD_TOP_LEVEL,
   guildSearch,
+  guildValue,
   isGuildName,
   type GuildQuery,
 } from "@/lib/stats/guild-ranking";
@@ -27,7 +29,7 @@ import { rankingColumns } from "./ranking-columns";
 import { RankingTypeTabs, type RankingType } from "./ranking-type-tabs";
 
 const SERVERS = ["루페온", "실리안", "아만", "아브렐슈드", "카단", "카마인", "카제로스", "니나브"];
-// 순위 · 길드 · 서버 · 아이템 레벨(평균 또는 합) · 확인한 길드원 · 전투력 평균
+// 순위 · 길드 · 서버 · 아이템 레벨(평균 또는 합) · 확인한 길드원 · 전투력(1750 이상 평균 또는 합)
 const COLUMNS = rankingColumns([3.5, 14, 6, 8.5, 7, 9]);
 
 /**
@@ -99,7 +101,7 @@ export function GuildRankingsView({
     if (pastLast) apply({ ...latest.current, page: 1 });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only when the page turns out empty
   }, [pastLast]);
-  const sortLabel = GUILD_SORTS.find((item) => item.id === query.sort)?.label ?? "아이템 레벨 평균";
+  const sortLabel = GUILD_SORTS.find((item) => item.id === query.sort)?.label ?? "전투력 평균";
   const pageWindow = Array.from({ length: Math.min(pages, 7) }, (_, i) => {
     const start = Math.min(Math.max(1, query.page - 3), Math.max(1, pages - 6));
     return start + i;
@@ -221,35 +223,56 @@ export function GuildRankingsView({
                   <th scope="col" className={styles.left}>
                     서버
                   </th>
-                  <th scope="col">{sortLabel}</th>
+                  <th scope="col">{query.sort === "SUM" ? "아이템 레벨 합" : "아이템 레벨 평균"}</th>
                   <th scope="col">확인한 길드원</th>
-                  <th scope="col">전투력 평균</th>
+                  <th scope="col">{query.sort === "CP_SUM" ? "전투력 합" : "전투력 평균"}</th>
                 </tr>
               </thead>
               <tbody key={list.dataUpdatedAt}>
-                {data.rows.map((row) => (
-                  <tr key={`${row.serverName}-${row.guildName}`} data-reference={!ready || undefined}>
-                    <td>{ready ? whole(row.rank) : "-"}</td>
-                    <th scope="row" className={styles.left}>
-                      {row.guildName}
-                    </th>
-                    <td className={styles.left}>{row.serverName}</td>
-                    <td data-strong>{fixed(query.sort === "SUM" ? row.itemLevelSum : row.itemLevelAvg)}</td>
-                    <td>{whole(row.memberCount)}명</td>
-                    <td>
-                      {row.combatPowerAvg == null ? (
-                        "-"
-                      ) : (
-                        <>
-                          {fixed(row.combatPowerAvg)}
-                          {row.combatPowerCount < row.memberCount && (
-                            <small>{whole(row.combatPowerCount)}명 기준</small>
-                          )}
-                        </>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                {data.rows.map((row) => {
+                  // A guild without the value it is ranked by is last and
+                  // shares the last rank (api #589): no number for it.
+                  const ranked = ready && guildValue(row, query.sort) != null;
+                  const byLevel = query.sort === "AVG" || query.sort === "SUM";
+                  return (
+                    <tr key={`${row.serverName}-${row.guildName}`} data-reference={!ready || undefined}>
+                      <td>{ranked ? whole(row.rank) : "-"}</td>
+                      <th scope="row" className={styles.left}>
+                        {row.guildName}
+                      </th>
+                      <td className={styles.left}>{row.serverName}</td>
+                      <td data-strong={byLevel || undefined}>
+                        {fixed(query.sort === "SUM" ? row.itemLevelSum : row.itemLevelAvg)}
+                      </td>
+                      <td>{whole(row.memberCount)}명</td>
+                      <td data-strong={!byLevel || undefined}>
+                        {query.sort === "CP_SUM" ? (
+                          row.combatPowerTotal == null ? (
+                            "-"
+                          ) : (
+                            <>
+                              {fixed(row.combatPowerTotal)}
+                              {row.combatPowerCount < row.memberCount && (
+                                <small>{whole(row.combatPowerCount)}명 합</small>
+                              )}
+                            </>
+                          )
+                        ) : row.combatPowerAvgTop === undefined ? (
+                          "-"
+                        ) : row.combatPowerAvgTop === null ? (
+                          <small>{GUILD_TOP_LEVEL} 이상 없음</small>
+                        ) : (
+                          <>
+                            {fixed(row.combatPowerAvgTop)}
+                            <small>
+                              {GUILD_TOP_LEVEL} 이상 {whole(row.combatPowerTopCount ?? 0)}명
+                            </small>
+                          </>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </DataTable>
           )}
@@ -280,7 +303,8 @@ export function GuildRankingsView({
           </nav>
         )}
         <p className={styles.note}>
-          확인한 길드원은 LOAKraken이 최근 확인한 공개 캐릭터 수로, 실제 길드 인원이 아니에요.
+          확인한 길드원은 LOAKraken이 최근 확인한 공개 캐릭터 수로, 실제 길드 인원이 아니에요. 전투력 평균은 그중
+          아이템 레벨 {GUILD_TOP_LEVEL} 이상 길드원만 세요.
           {data && ` 확인한 길드원이 ${whole(data.minMembers)}명보다 적은 길드는 순위에 넣지 않아요`}
           {data && (data.excludedGuilds ?? 0) > 0 && `(이번 조건에서 ${whole(data.excludedGuilds)}개)`}
           {data && "."}
