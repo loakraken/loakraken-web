@@ -98,13 +98,21 @@ test("크라켄 점수 순: 점수 변화가 있는 후보는 상태와 상관�
     assert.ok(KRAKEN_NOTE_ALL.includes(krakenUnavailableNote(r) ?? ""), r);
 });
 
-test("비용 0 후보는 1만 골드당이 null(화면 '—')이고 응답 순서대로 맨 뒤에 남는다(PM 총괄 판정 10-18)", () => {
+test("비용 0 후보는 효율 칸이 null('—')이고, 웹은 다시 정렬하지 않고 API 순서 그대로 둔다(PM 총괄 판정 10-18)", () => {
   const list = fixture("character-spec-up.json").data.candidates;
   const ok = list.filter((c: { status: string }) => c.status === "OK");
-  // The backend gives no efficiency for a cost of 0 or less and puts it last.
+  // 효율 순: the backend gives no efficiency for a cost of 0 or less and puts it after the rest.
   const free = { ...ok[0], id: "GEM_LEVEL:9:9", cost: { ...ok[0].cost, amount: 0 }, combatPowerPer10kGold: null };
   const { ok: ranked } = splitCandidates([...ok, free]);
-  assert.equal(ranked.at(-1)?.id, "GEM_LEVEL:9:9");
+  assert.deepEqual(ranked.map((c) => c.id), [...ok, free].map((c: { id: string }) => c.id));
   assert.equal(ranked.at(-1)?.combatPowerPer10kGold, null);
-  assert.deepEqual(ranked.slice(0, -1).map((c) => c.id), ok.map((c: { id: string }) => c.id));
+  // 크라켄 점수 순(api #596): 10만 골드당 → 0골드(Δ 순) → 비용 모름. A 0-gold row sits
+  // before the cost-unknown rows, as the answer has it.
+  const base = { ...ok[0], deltaKrakenScore: 5, krakenScorePer100kGold: null };
+  const answer = [
+    { ...base, id: "A", krakenScorePer100kGold: 12.5 },
+    { ...base, id: "ZERO", cost: { ...ok[0].cost, amount: 0 } },
+    { ...base, id: "UNKNOWN", status: "UNSUPPORTED", cost: { ...ok[0].cost, status: "UNKNOWN", amount: null } },
+  ];
+  assert.deepEqual(splitKrakenCandidates(answer).ok.map((c) => c.id), ["A", "ZERO", "UNKNOWN"]);
 });
