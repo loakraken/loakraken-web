@@ -73,6 +73,27 @@ test.describe("스펙업 가이드 @smoke", () => {
 
   // api #592(spec-up-goal-v2): 보석 단계 비용은 단계마다 따로 계산한 '지금부터 그 레벨까지',
   // 합계는 응답 그대로(웹에서 더하지 않음). 백엔드 CI의 실제 응답.
+  // PM-프론트 판정 10-18: 비용 0(OK) 단계·줄은 '추가 비용 없음', 효율 칸은 '—'(읽기: 비용이 없어 계산하지 않아요).
+  test("비용이 0인 단계와 후보는 '추가 비용 없음', 효율 칸은 '—'", async ({ page }) => {
+    await page.goto(characterPath("스펙목표0골드", "specup"));
+    const goal = page.getByRole("region", { name: "목표 전투력" });
+    await goal.getByRole("textbox", { name: "목표 전투력" }).fill("12450");
+    await goal.getByRole("button", { name: "경로 찾기" }).click();
+    const steps = goal.getByRole("list", { name: "효율 순으로 고른 경로" }).getByRole("listitem");
+    await expect(steps).toHaveCount(3);
+    await expect(steps.nth(0)).toContainText("추가 비용 없음");
+    await expect(steps.nth(0)).not.toContainText("0G");
+
+    await page.goto(characterPath("스펙업0골드", "specup"));
+    const table = page.getByRole("table", { name: /스펙업 후보/ });
+    const free = table.locator("tbody tr").filter({ hasText: "무료 보석 칸" });
+    await expect(free.locator('[data-cell="cost"]')).toHaveText("추가 비용 없음");
+    await expect(free.locator('[data-cell="eff"]')).toContainText("—");
+    await expect(free.locator('[data-cell="eff"]')).toContainText("비용이 없어 계산하지 않아요");
+    // The API order: after the rows with a figure.
+    await expect(table.locator("tbody tr").last()).toContainText("무료 보석 칸");
+  });
+
   test("목표 경로 v2: 보석 단계는 '지금부터' 비용, 합계는 응답 그대로", async ({ page }) => {
     await page.goto(characterPath("스펙목표v2", "specup"));
     const goal = page.getByRole("region", { name: "목표 전투력" });

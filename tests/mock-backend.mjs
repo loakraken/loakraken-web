@@ -731,9 +731,11 @@ createServer(async (req, res) => {
     if (who === "미존재") return send({ code: "CHARACTER_NOT_CACHED", message: "", data: null }, 404);
     // api #592 (spec-up-goal-v2): the backend's own answer as it is — gem steps cost
     // from now to that level, and the totals are its own (never summed here).
-    if (who === "스펙목표v2") {
+    if (who === "스펙목표v2" || who === "스펙목표0골드") {
       const v2 = JSON.parse(readFileSync(new URL("./spec-up-fixtures/character-spec-up-goal-v2.json", import.meta.url), "utf8"));
       v2.data.characterName = who;
+      // A step costing 0 that stays in the path (OK, 0, no per-gold figure).
+      if (who === "스펙목표0골드") Object.assign(v2.data.steps[0], { cost: { ...v2.data.steps[0].cost, amount: 0 }, cumulativeCost: 0, combatPowerPer10kGold: null });
       return send(v2);
     }
     const envelope = JSON.parse(readFileSync(new URL("./spec-up-fixtures/character-spec-up-goal.json", import.meta.url), "utf8"));
@@ -821,6 +823,13 @@ createServer(async (req, res) => {
     // The sample's gem is the mock simulator character's slot-1 gem (level 8).
     for (const c of envelope.data.candidates)
       if (c.change?.kind === "GEM_LEVEL") c.change.slot = 1;
+    // An OK candidate costing 0 (a bound gem kept, say): no per-gold figure, after
+    // the rest (the backend's order, api #596).
+    if (who === "스펙업0골드") {
+      const ok = envelope.data.candidates.filter((c) => c.status === "OK");
+      const free = { ...ok[0], id: "GEM_LEVEL:9:9", target: "무료 보석 칸", cost: { ...ok[0].cost, amount: 0 }, combatPowerPer10kGold: null };
+      envelope.data.candidates = [...ok, free, ...envelope.data.candidates.filter((c) => c.status !== "OK")];
+    }
     if (url.searchParams.get("sort") === "DELTA") {
       envelope.data.sort = "DELTA";
       const ok = envelope.data.candidates.filter((c) => c.status === "OK");

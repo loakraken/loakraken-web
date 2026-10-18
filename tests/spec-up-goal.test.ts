@@ -78,6 +78,10 @@ test("costs: gold when known, 시세 준비 중 when pending, 비용 미확인 o
   assert.equal(stepCost(gem, koreanGold, "spec-up-goal-v2"), "지금부터 62만G");
   assert.equal(stepCost(gem, koreanGold, "spec-up-goal-v1"), "62만G");
   assert.equal(stepCost(quality, koreanGold, "spec-up-goal-v2"), "비용 미확인");
+  // PM-프론트 10-18: an OK cost of 0 is "추가 비용 없음", in either rule version.
+  const free = { ...gem, cost: { ...gem.cost, amount: 0 } };
+  assert.equal(stepCost(free, koreanGold, "spec-up-goal-v2"), "추가 비용 없음");
+  assert.equal(stepCost(free, koreanGold), "추가 비용 없음");
 });
 
 test("시뮬레이터에서 열기 carries only the changes the simulator takes, and counts the rest", () => {
