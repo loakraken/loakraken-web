@@ -56,6 +56,8 @@ test("@429 원정대 전투력: 다 못 불렀으면 남은 인원과 이어서 
     const body = await response.json();
     body.envelope.data.fetched = 8;
     body.envelope.data.remaining = 4;
+    // As a short answer is: the ones left still have no record (so the button stays).
+    for (const item of body.envelope.data.items.slice(-2)) item.combatPower = null;
     body.envelope.data.refreshAvailableAt = new Date(Date.now() + 60_000).toISOString();
     return route.fulfill({ response, json: body });
   });
