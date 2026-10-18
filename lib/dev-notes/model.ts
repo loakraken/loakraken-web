@@ -23,7 +23,8 @@ export type Block =
 /** A list row; rows indented under it (two spaces or more) are its own list, one level deep. */
 export type ListItem = { c: Inline[]; sub?: Inline[][] };
 
-export type DevNoteMeta = { slug: string; title: string; date: string; summary: string };
+/** `pinned`: frontmatter `pinned: true` — kept at the top of the list, marked 고정. */
+export type DevNoteMeta = { slug: string; title: string; date: string; summary: string; pinned: boolean };
 export type DevNote = DevNoteMeta & { body: string };
 
 /** "2026-10-19-v0-3-0.md": the date and the address part. Other files (README) are not notes. */
@@ -56,13 +57,14 @@ export function readNote(fileName: string, source: string): DevNote | null {
     title,
     date: data.date && DATE.test(data.date) ? data.date : file[1],
     summary: data.summary?.trim() ?? "",
+    pinned: data.pinned?.trim().toLowerCase() === "true",
     body,
   };
 }
 
-/** Newest first; the same day by address. */
+/** Pinned notes first, then newest first (pinned ones too, by date); the same day by address. */
 export const byNewest = (a: DevNoteMeta, b: DevNoteMeta) =>
-  b.date.localeCompare(a.date) || b.slug.localeCompare(a.slug);
+  Number(b.pinned) - Number(a.pinned) || b.date.localeCompare(a.date) || b.slug.localeCompare(a.slug);
 
 /**
  * Only web addresses and paths on this site become links; anything else stays

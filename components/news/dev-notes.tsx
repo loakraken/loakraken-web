@@ -1,4 +1,5 @@
-// LOAKraken 개발자 노트 list for the /news tab: newest first, title · summary ·
+// LOAKraken 개발자 노트 list for the /news tab: pinned notes first (marked 고정),
+// then newest first; title · summary ·
 // date, each opening the note on this site. The list comes from the
 // server with the page (lib/dev-notes/server), so it is there in the first HTML.
 import Link from "next/link";
@@ -18,7 +19,11 @@ export function DevNotes({ notes }: { notes: readonly DevNoteMeta[] }) {
         <li key={note.slug}>
           {/* The title leads; the date closes the block as plain metadata. */}
           <Link href={`/news/dev-notes/${note.slug}`}>
-            <strong>{note.title}</strong>
+            <strong>
+              {/* Pinned notes lead the list (frontmatter pinned: true). */}
+              {note.pinned && <em className={styles.pin}>고정</em>}
+              {note.title}
+            </strong>
             {note.summary && <span>{note.summary}</span>}
             <time dateTime={note.date}>{noteDate(note.date)}</time>
           </Link>
