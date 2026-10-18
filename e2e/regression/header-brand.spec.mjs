@@ -50,7 +50,13 @@ for (const width of [320, 360, 390, 1280])
         const out = [];
         for (const el of controls) {
           const r = el.getBoundingClientRect();
-          const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+          // The topmost box a finger could see there (a 1px screen-reader-only box is not one).
+          const hit = document
+            .elementsFromPoint(r.left + r.width / 2, r.top + r.height / 2)
+            .find((e) => {
+              const b = e.getBoundingClientRect();
+              return b.width > 1 && b.height > 1 && getComputedStyle(e).pointerEvents !== "none";
+            });
           if (!hit || !el.contains(hit)) out.push(`${label(el)} 가운데를 누르면 ${hit ? label(hit.closest("a, button") ?? hit) : "없음"}`);
         }
         const logoName = [...head.querySelectorAll("a span")].find((s) => s.textContent.trim() === "LOAKraken");
