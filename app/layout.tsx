@@ -7,6 +7,7 @@ import Providers from "./providers";
 import { SITE_NAME, siteUrl } from "@/lib/site";
 import { siteVerification } from "@/lib/site-verification";
 import { themeInitScript } from "@/components/ui/theme-toggle";
+import { ThemeKeeper } from "@/components/ui/theme-keeper";
 import { earlyClickScript } from "@/lib/early-clicks";
 import { SiteLegal } from "@/components/site/site-legal";
 
@@ -72,6 +73,7 @@ export default function RootLayout({ children }: Readonly<{
       <body className="antialiased">
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
         <script dangerouslySetInnerHTML={{ __html: earlyClickScript }} />
+        <ThemeKeeper />
         <Providers>{children}</Providers>
         <SiteLegal />
       </body>
