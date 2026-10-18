@@ -9,6 +9,7 @@ import { SegmentedControl, SegmentedItem } from "@/components/ui/segmented-contr
 import { MarketQueryError, postMaterialPricesAll } from "@/lib/market/client";
 import { marketFailureCopy, priceBases, type MaterialPrice, type PriceBasis } from "@/lib/market/model";
 import { retryLabel } from "@/lib/api/rate-limit";
+import { boolCodec, oneOfCodec, textCodec, useUrlState } from "@/lib/tools/url-state";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { MINUTE, useClock } from "@/components/home/clock";
 import {
@@ -134,16 +135,17 @@ function OutputTable({ results, priced }: { results: CraftResult[]; priced: bool
 }
 
 export function AbidosCraftTool() {
-  const [basis, setBasis] = useState<PriceBasis>("CURRENT_MIN_PRICE");
-  const [increaseText, setIncreaseText] = useState("");
-  const [feeCutText, setFeeCutText] = useState("");
+  // Every input lives in the address: back and reload keep it (#889).
+  const [basis, setBasis] = useUrlState<PriceBasis>("price", "CURRENT_MIN_PRICE", oneOfCodec(priceBases.map((b) => b.value)));
+  const [increaseText, setIncreaseText] = useUrlState("great", "", textCodec(8));
+  const [feeCutText, setFeeCutText] = useUrlState("fee", "", textCodec(8));
   const increase = parsePercent(increaseText) ?? 0;
   const feeCut = parsePercent(feeCutText) ?? 0;
-  const [energyAllText, setEnergyAllText] = useState("");
-  const [energyCategoryText, setEnergyCategoryText] = useState("");
+  const [energyAllText, setEnergyAllText] = useUrlState("energy", "", textCodec(8));
+  const [energyCategoryText, setEnergyCategoryText] = useUrlState("energySpecial", "", textCodec(8));
   const energyCut = { overall: parsePercent(energyAllText) ?? 0, category: parsePercent(energyCategoryText) ?? 0 };
   // On by default, as on comparison basis C's screen.
-  const [exchange, setExchange] = useState(true);
+  const [exchange, setExchange] = useUrlState("exchange", true, boolCodec);
 
   const requested = useMemo(() => craftMarketNames(), []);
   const prices = useQuery({

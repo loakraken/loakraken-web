@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { connection } from "next/server";
 import { ContributionTool } from "@/components/tools/contribution";
 
 export const metadata: Metadata = {
@@ -7,6 +8,8 @@ export const metadata: Metadata = {
   alternates: { canonical: "/tools/contribution" },
 };
 
-export default function ContributionPage() {
+export default async function ContributionPage() {
+  // Rendered per request: the inputs kept in the address (#889) are in the first HTML.
+  await connection();
   return <ContributionTool />;
 }
