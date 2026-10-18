@@ -6,9 +6,9 @@
 // when a row is opened; every number is the backend's, and the material total
 // matches the row's cost (the server keeps them equal).
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ItemDetail,
   ItemDetailSection,
@@ -50,7 +50,7 @@ function statValue(value: DetailStat["before"], unit: string | null) {
 
 function failureText(error: unknown) {
   const code = error instanceof SpecUpQueryError ? error.info.code : "";
-  if (code === "SPEC_UP_CANDIDATE_NOT_FOUND") return "이 후보가 바뀌었어요. 목록을 새로 불러온 뒤 다시 열어 주세요.";
+  if (code === "SPEC_UP_CANDIDATE_NOT_FOUND") return "이 후보가 바뀌었어요. 목록을 새로 불러오고 있어요.";
   if (code === "CLIENT_RATE_LIMITED") return rateLimitCopy().text;
   if (code === "CHARACTER_NOT_CACHED") return "캐릭터 정보를 먼저 불러와 주세요.";
   return "상세를 불러오지 못했어요. 잠시 뒤 다시 열어 주세요.";
@@ -168,20 +168,34 @@ export function SpecUpRowDetail({
   fetchedAt: string | null | undefined;
   candidate: Candidate;
 }) {
-  const [open, setOpen] = useState(false);
+  // Asked to open; the card itself opens once its detail (or an error) is in,
+  // so it opens at its final size. Opening first with a one-line "loading"
+  // card and growing it moved the phone popover's top edge (PM-프론트 #901 P1).
+  const [wanted, setWanted] = useState(false);
+  const queryClient = useQueryClient();
   const detail = useQuery({
     queryKey: specUpDetailQuery(characterName, fetchedAt, candidate.id),
     queryFn: ({ signal }) => fetchSpecUpDetail(characterName, candidate.id, signal),
-    enabled: open,
+    enabled: wanted,
     staleTime: DETAIL_STALE_MS,
     retry: false,
   });
   const data = detail.data?.data;
+  const ready = !!data || detail.isError;
+  const open = wanted && ready;
+  // A candidate no longer in the list: the list is read again by itself
+  // (PM-프론트 #901 P2), the card says so meanwhile.
+  const gone = detail.error instanceof SpecUpQueryError && detail.error.info.code === "SPEC_UP_CANDIDATE_NOT_FOUND";
+  useEffect(() => {
+    if (gone) void queryClient.invalidateQueries({ queryKey: ["spec-up", characterName] });
+  }, [gone, queryClient, characterName]);
   return (
-    <ItemTooltip open={open} onOpenChange={(next) => setOpen(next)}>
+    <ItemTooltip open={open} onOpenChange={(next) => setWanted(next)}>
       <ItemTooltipTrigger
         openOnHover={false}
         className={styles.specUpTargetButton}
+        aria-busy={(wanted && !ready) || undefined}
+        data-loading={(wanted && !ready) || undefined}
       >
         <span className={styles.specUpTarget}>
           <GameIcon src={candidate.icon} grade={candidate.grade} size={28} />

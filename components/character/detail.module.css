@@ -2650,3 +2650,9 @@
   text-decoration: underline;
   text-underline-offset: 3px;
 }
+
+/* Detail on its way (#901): the pressed target says so until the card opens. */
+.specUpTargetButton[data-loading] {
+  cursor: progress;
+  opacity: 0.6;
+}

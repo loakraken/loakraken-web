@@ -178,12 +178,41 @@ test.describe("스펙업 가이드 @smoke", () => {
     expect(calls).toBe(1);
   });
 
-  test("목록이 바뀌어 없는 후보면 다시 불러오라고 안내한다", async ({ page }) => {
+  // PM-프론트 #901 P2: 목록이 바뀌어 없는 후보면 안내하고, 목록을 스스로 다시 불러온다.
+  test("목록이 바뀌어 없는 후보면 안내하고 목록을 다시 불러온다", async ({ page }) => {
     await page.route("**/api/characters/spec-up/candidates/**", (route) =>
       route.fulfill({ status: 404, contentType: "application/json", body: JSON.stringify({ ok: false, error: { code: "SPEC_UP_CANDIDATE_NOT_FOUND", status: 404 } }) }),
     );
+    let lists = 0;
+    page.on("request", (r) => /\/api\/characters\/spec-up\?/.test(r.url()) && lists++);
     await page.goto(characterPath(NAME, "specup"));
+    await expect(page.getByRole("table", { name: /스펙업 후보/ }).locator("tbody tr")).toHaveCount(3);
+    const before = lists;
     await page.getByRole("table", { name: /스펙업 후보/ }).getByRole("button", { name: "+20 테스트 무기" }).click();
-    await expect(page.getByRole("dialog")).toContainText("이 후보가 바뀌었어요. 목록을 새로 불러온 뒤 다시 열어 주세요.");
+    await expect(page.getByRole("dialog")).toContainText("이 후보가 바뀌었어요. 목록을 새로 불러오고 있어요.");
+    await expect.poll(() => lists).toBeGreaterThan(before);
+  });
+
+  // PM-프론트 #901 P1(A7): 휴대폰에서 줄을 누르면 상세가 다 온 뒤 최종 크기로 열린다 — 연 직후 1.5초 흔들림 0.
+  test("좁은 화면: 줄을 눌러 상세를 열어도 창이 커지며 움직이지 않는다", async ({ page }) => {
+    await page.setViewportSize({ width: 360, height: 800 });
+    await page.route("**/api/characters/spec-up/candidates/**", async (route) => {
+      await new Promise((r) => setTimeout(r, 400));
+      await route.fallback();
+    });
+    await page.goto(characterPath(NAME, "specup"));
+    const table = page.getByRole("table", { name: /스펙업 후보/ });
+    await expect(table.locator("tbody tr")).toHaveCount(3);
+    await page.evaluate(() => {
+      window.__shifts = [];
+      new PerformanceObserver((list) => {
+        // Every shift, with or without recent input: the press itself must not move the card.
+        for (const e of list.getEntries()) window.__shifts.push(e.value);
+      }).observe({ type: "layout-shift" });
+    });
+    await table.getByRole("button", { name: "테스트 스킬 · 8레벨 겁화" }).first().click();
+    await expect(page.getByRole("dialog")).toContainText("구매 · 9레벨 겁화의 보석");
+    await page.waitForTimeout(1500);
+    expect(await page.evaluate(() => window.__shifts)).toEqual([]);
   });
 });
