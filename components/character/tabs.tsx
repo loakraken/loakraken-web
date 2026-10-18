@@ -2172,7 +2172,7 @@ function QueryProblem({
         <strong>{copy.title}</strong>
         <p>{copy.text}</p>
       </div>
-      {limit.limited && <RateLimitNote seconds={limit.seconds} />}
+      {limit.limited && <RateLimitNote seconds={limit.seconds} buttonCounts />}
       <button
         type="button"
         className={styles.textButton}

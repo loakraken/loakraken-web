@@ -14,10 +14,20 @@ const hidden = {
  * ticking number stays out of every live region (a screen reader would read
  * it again each second); reaching zero is announced once, politely.
  */
-export function RateLimitNote({ seconds, className }: { seconds: number; className?: string }) {
+export function RateLimitNote({
+  seconds,
+  className,
+  buttonCounts = false,
+}: {
+  seconds: number;
+  className?: string;
+  /** A button next to it already says the seconds ('N초 뒤 다시 조회'): one
+      count on screen, not two (PM-프론트 10-18 (c)); zero is still announced. */
+  buttonCounts?: boolean;
+}) {
   return (
     <>
-      <span aria-hidden="true" className={className}>
+      <span aria-hidden="true" className={className} hidden={buttonCounts}>
         {seconds > 0 ? `남은 시간 ${seconds}초` : countdownText(0)}
       </span>
       <span style={hidden} aria-live="polite">

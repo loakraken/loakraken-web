@@ -6,6 +6,7 @@ import { RefreshArrow } from "@/components/ui/icons";
 import { InlineOrb } from "@/components/landing/orb";
 import { failureOf } from "@/lib/api/rate-limit";
 import { remainingText } from "@/lib/time/remaining";
+import { continueText, minutesUntil } from "@/lib/character/continue-later";
 import { postRosterPowerRefresh } from "@/lib/character/client";
 import { powerSummary, sixBasis, viewOfRefresh, type PowerRecord } from "@/lib/character/roster-list";
 import type { RosterPowerEnvelope } from "@/lib/character/roster-power";
@@ -83,9 +84,11 @@ export function RosterPower({
   const status = busy
     ? "기록이 없는 캐릭터를 차례로 불러오고 있어요. 몇 초 걸릴 수 있어요."
     : refresh.data
-      ? refresh.data.data.remaining > 0
-        ? "전투력을 불러왔어요. 남은 캐릭터는 다시 눌러 이어서 불러올 수 있어요."
-        : "전투력을 불러왔어요."
+      ? (continueText(
+          refresh.data.data.remaining,
+          refresh.data.data.fetched,
+          minutesUntil(refresh.data.data.refreshAvailableAt, refresh.submittedAt),
+        ) ?? "전투력을 불러왔어요.")
       : cooling
         ? "얼마 전에 불러왔어요. 잠시 뒤 다시 불러올 수 있어요."
         : limited
