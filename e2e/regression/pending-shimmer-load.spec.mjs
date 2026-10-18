@@ -4,7 +4,10 @@
 // 끝난 뒤 혼자 돈다(playwright.config.mjs). 기준 50ms는 그대로다.
 import { test, expect, gotoReady } from "../support/fixtures.mjs";
 
-test("@집계중 칸 40개가 같이 빛나도 긴 작업 0, CPU 4배 감속 @regression", async ({ page }, testInfo) => {
+// DIAGNOSTIC (to be reverted): 8 runs in one CI job, no retry (#941).
+test.describe.configure({ retries: 0 });
+for (let run = 1; run <= 8; run += 1)
+test(`@집계중 칸 40개가 같이 빛나도 긴 작업 0, CPU 4배 감속 #${run} @regression`, async ({ page }, testInfo) => {
   // 40 labels on screen at once (transform only, still a layer each), the CPU
   // slowed down 4×, 3 s of frames and long tasks.
   const cdp = await page.context().newCDPSession(page);
