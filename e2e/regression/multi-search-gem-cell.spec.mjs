@@ -10,11 +10,13 @@ const GEMS = {
 };
 
 async function withGems(page) {
-  await page.route("**/api/characters?*", async (route) => {
+  await page.route((url) => url.pathname === "/api/characters", async (route) => {
     const name = new URL(route.request().url()).searchParams.get("characterName");
     const response = await route.fetch();
     const body = await response.json();
-    if (GEMS[name] && body?.data?.analysis?.gems) Object.assign(body.data.analysis.gems, GEMS[name]);
+    // The web api answers { ok, envelope: { data } }.
+    const gems = body?.envelope?.data?.analysis?.gems;
+    if (GEMS[name] && gems) Object.assign(gems, GEMS[name]);
     await route.fulfill({ response, json: body });
   });
 }
