@@ -1,5 +1,5 @@
 // 회귀: OS가 다크 모드여도 주요 화면의 글자가 배경과 충분히 대비된다(WCAG AA 4.5:1).
-// 앱은 라이트 테마가 기준이고 캐릭터 배너 일부만 prefers-color-scheme: dark에 반응한다.
+// 저장값이 없으면 앱이 시스템 테마를 따르므로(사용자 결정 10-18) OS 다크면 다크 테마로 그린다.
 // 일부만 다크로 바뀌어 흰 바탕에 흰 글자가 되는 사고를 막는다.
 import { test, expect, characterPath } from "../support/fixtures.mjs";
 
