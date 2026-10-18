@@ -2394,6 +2394,20 @@ createServer(async (req, res) => {
   }
   if (name === "문자열")
     envelope.data.guildName = '<img src=x onerror="window.injected=true">';
+  // 크라켄 점수 (backend #561): the contract's example for 상세, the other
+  // states by name. Everyone else gets none (a backend before it: no item).
+  const krakenTier = (code, min, nextCode, nextMin, remaining, progressPercent) => ({ code, min, nextCode, nextMin, remaining, progressPercent });
+  const kraken = (status, score, tier, extra = {}) => ({
+    status, reasonCode: null, reason: null, role: "DEALER", score, tier, factors: [], ruleVersion: "kraken-score-v1", ...extra,
+  });
+  const KRAKEN = {
+    상세: kraken("OK", 5658.62, krakenTier("DIAMOND", 5000, "MASTER", 6700, 1041.38, 38)),
+    상세서포터: kraken("OK", 2761.59, krakenTier("SILVER", 2000, "GOLD", 3800, 1038.41, 42), { role: "SUPPORT" }),
+    크라켄에스더: kraken("OK", 10183.94, krakenTier("ESTHER", 9500, null, null, null, 100)),
+    크라켄준비중: kraken("UNSUPPORTED", null, null, { reasonCode: "INPUT_PENDING", reason: "이전 조회 결과", role: null }),
+    크라켄꺼짐: kraken("DISABLED", null, null, { role: null, ruleVersion: null }),
+  };
+  if (envelope.data && Object.hasOwn(KRAKEN, name)) envelope.data.krakenScore = KRAKEN[name];
   send(envelope);
 }).listen(port, "127.0.0.1", () =>
   console.log(`Synthetic backend: http://127.0.0.1:${port}`),

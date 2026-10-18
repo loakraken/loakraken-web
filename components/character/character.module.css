@@ -483,6 +483,80 @@
   }
 }
 
+/* 크라켄 점수 (backend #561): a banner figure with its tier, a thin bar for the
+   way into the tier and the points to the next. '준비 중' keeps the bar and
+   the line, so both states are one size (A7). */
+.krakenScore dd {
+  display: grid;
+  gap: 4px;
+  min-width: 9.5em;
+}
+.krakenValue {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+.krakenScore[data-pending] .krakenValue {
+  color: var(--band-muted);
+  font-weight: 500;
+}
+.krakenTier {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 9999px;
+  /* The banner is dark in every theme: light tints, as for the position. */
+  color: var(--tier, #e6e6e6);
+  background: color-mix(in oklab, var(--tier, #e6e6e6) 16%, transparent);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+.krakenScore[data-tier="BRONZE"] {
+  --tier: #e3a77a;
+}
+.krakenScore[data-tier="SILVER"] {
+  --tier: #d4dbe3;
+}
+.krakenScore[data-tier="GOLD"] {
+  --tier: #f2cf6b;
+}
+.krakenScore[data-tier="DIAMOND"] {
+  --tier: #8fd3ff;
+}
+.krakenScore[data-tier="MASTER"] {
+  --tier: #c9a6ff;
+}
+.krakenScore[data-tier="GRANDMASTER"] {
+  --tier: #ff9d9d;
+}
+.krakenScore[data-tier="ESTHER"] {
+  --tier: #7fe3c4;
+}
+.krakenTrack {
+  display: block;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 9999px;
+  background: color-mix(in oklab, var(--band-muted) 26%, transparent);
+}
+.krakenTrack span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: currentColor;
+}
+.krakenNext {
+  min-height: 1.4em;
+  color: var(--band-muted);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+
 .evidenceNote {
   margin-left: 6px;
   color: var(--band-muted);
