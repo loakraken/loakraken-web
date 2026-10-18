@@ -99,7 +99,7 @@ function Notice({ meta, stale }: { meta: StatsMeta; stale: boolean }) {
  * left (the panel keeps the tallest height, A7) and never moves when that
  * answer lands.
  */
-function StatsBasis({ query }: { query: StatsQuery }) {
+function StatsBasis({ query, above }: { query: StatsQuery; above?: number }) {
   const summary = useQuery({
     queryKey: ["stats", "summary", statsKey(query)],
     queryFn: ({ signal }) => fetchStats("summary", query, signal),
@@ -109,8 +109,11 @@ function StatsBasis({ query }: { query: StatsQuery }) {
   });
   const meta = summary.data?.data.meta;
   if (!meta) return null;
-  // Drawn anew per answer, like the cards above (A7).
-  return <BasisNote key={summary.dataUpdatedAt} basis={meta} stale={summary.isPlaceholderData} />;
+  // Drawn anew per answer, like the cards above (A7) — and per answer of the
+  // table above it (`above`), when that one is not redrawn as a whole: its new
+  // rows landing before this answer moved the old note with them (titles tab,
+  // server change, 0.0033).
+  return <BasisNote key={`${summary.dataUpdatedAt}-${above ?? 0}`} basis={meta} stale={summary.isPlaceholderData} />;
 }
 
 function SummaryCards({ query }: { query: StatsQuery }) {
@@ -651,7 +654,7 @@ function TitlesTab({ query }: { query: StatsQuery }) {
           </tbody>
         </DataTable>
       )}
-      <StatsBasis query={query} />
+      <StatsBasis query={query} above={titles.dataUpdatedAt} />
     </div>
   );
 }
