@@ -9,42 +9,54 @@ const MINUTE_TEXT = /^(\d+일 \d+시간|\d+시간 \d+분)$/;
 const SECOND_TEXT = /^(\d+분 \d{2}초|\d+초)$/;
 const minuteOf = (ms) => Math.floor(ms / 60_000);
 
+/** The first HTML's and the hydrated page's countdown texts, from one opening within one minute. */
+async function countdowns(page, path) {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    let html = "";
+    let servedAt = 0;
+    const onResponse = async (r) => {
+      if (r.request().resourceType() !== "document") return;
+      servedAt = Date.parse(r.headers().date ?? "");
+      html = await r.text().catch(() => "");
+    };
+    page.on("response", onResponse);
+    await gotoReady(page, path);
+    await page.waitForTimeout(600);
+    page.off("response", onResponse);
+    const read = await page.evaluate(() => ({
+      now: Date.now(),
+      texts: [...document.querySelectorAll("main b")].map((n) => n.textContent.trim()),
+    }));
+    // Crossed a minute between the server render and now: the change is real, open again.
+    if (!servedAt || minuteOf(servedAt) !== minuteOf(read.now)) continue;
+    const bold = [...html.matchAll(/<b(?:\s[^>]*)?>([^<]*)<\/b>/g)].map((m) => m[1].trim());
+    return {
+      first: bold.filter((t) => MINUTE_TEXT.test(t)),
+      after: read.texts.filter((t) => MINUTE_TEXT.test(t)),
+      seconds: bold.filter((t) => SECOND_TEXT.test(t)),
+    };
+  }
+  return null;
+}
+
 for (const path of ["/", "/schedule"])
   test(`@A6 ${path} 남은 시간 글자가 첫 HTML과 하이드레이션 직후 같다 @regression`, async ({ page }) => {
-    let seen = null;
-    for (let attempt = 0; attempt < 3 && !seen; attempt += 1) {
-      let html = "";
-      let servedAt = 0;
-      const onResponse = async (r) => {
-        if (r.request().resourceType() !== "document") return;
-        servedAt = Date.parse(r.headers().date ?? "");
-        html = await r.text().catch(() => "");
-      };
-      page.on("response", onResponse);
-      await gotoReady(page, path);
-      await page.waitForTimeout(600);
-      page.off("response", onResponse);
-      const read = await page.evaluate(() => ({
-        now: Date.now(),
-        texts: [...document.querySelectorAll("main b")].map((n) => n.textContent.trim()),
-      }));
-      // Crossed a minute between the server render and now: the change is real, open again.
-      if (!servedAt || minuteOf(servedAt) !== minuteOf(read.now)) continue;
-      const bold = [...html.matchAll(/<b(?:\s[^>]*)?>([^<]*)<\/b>/g)].map((m) => m[1].trim());
-      const first = bold.filter((t) => MINUTE_TEXT.test(t));
-      const after = read.texts.filter((t) => MINUTE_TEXT.test(t));
-      seen = { first, after, seconds: bold.filter((t) => SECOND_TEXT.test(t)) };
-    }
+    let seen = await countdowns(page, path);
     expect(seen, "분 경계를 세 번 다 넘김").not.toBeNull();
     // The home shows only the next rounds. When every one of them is within the
-    // hour, they all read in seconds ("53분 11초", by design) and there is no
-    // minute text to compare (CI at 20:06 KST: 21:00 and 20:50 left). The server
-    // clock cannot be fixed per test (one shared server; page.clock moves the
-    // browser only), so that run notes why (the rounds it saw) and leaves the comparison to
-    // /schedule, which always lists rounds hours or days away.
+    // hour they all read in seconds ("53분 11초", by design; CI at 20:06 KST had
+    // only 21:00 and 20:50 left) and there is no minute text to compare. The
+    // server clock cannot be fixed per test (one shared server; page.clock moves
+    // the browser only), so this run notes what it saw and compares /schedule
+    // instead, which lists rounds hours or days away. A run with no minute text
+    // on either page fails: the check never passes without comparing.
     if (path === "/" && seen.first.length === 0) {
-      test.info().annotations.push({ type: "skip", description: `홈 다음 회차가 모두 1시간 안(또는 오늘 끝남): ${seen.seconds.join(", ") || "남은 시간 없음"}` });
-      return;
+      test.info().annotations.push({
+        type: "홈: 분 단위 없음",
+        description: `본 글자 ${seen.seconds.join(", ") || "남은 시간 없음"} → /schedule로 비교`,
+      });
+      seen = await countdowns(page, "/schedule");
+      expect(seen, "분 경계를 세 번 다 넘김(/schedule)").not.toBeNull();
     }
     expect(seen.first.length, "첫 HTML에 분 단위 남은 시간이 있음").toBeGreaterThan(0);
     expect(seen.after, "하이드레이션 직후 남은 시간 = 첫 HTML").toEqual(seen.first);
