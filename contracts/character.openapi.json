@@ -3468,11 +3468,16 @@
           "ruleVersion": {
             "type": "string",
             "description": "계산 규칙 버전(전투력 시뮬레이터와 같음)"
+          },
+          "real": {
+            "$ref": "#/components/schemas/BraceletRealResponse",
+            "description": "팔찌 실 효율. 위 percent·lines는 '전투력 기여'(공식 전투력 계수)이고, 이것은 원본 점수식의 팔찌 %라 정의가 다르다. 늘 들어 있다."
           }
         },
         "required": [
           "lines",
           "percent",
+          "real",
           "reason",
           "reasonCode",
           "ruleVersion",
@@ -3529,6 +3534,98 @@
           "reasonCode",
           "status",
           "text"
+        ]
+      },
+      "BraceletRealResponse": {
+        "type": "object",
+        "description": "팔찌 실 효율. status: OK·UNSUPPORTED. OK면 percent가 있고, UNSUPPORTED면 percent는 null(reasonCode에 이유). percent 자리수: 딜러는 원본이 이미 % 소수 둘째 자리 내림한 값, 서포터는 원본 값 그대로(반올림 안 함 — 예 13.47857142857143). 화면은 둘 다 소수 둘째 자리 반올림(toFixed(2))으로 그린다(딜러는 값 그대로, 서포터 13.48)",
+        "properties": {
+          "status": {
+            "type": "string",
+            "description": "OK·UNSUPPORTED",
+            "enum": [
+              "OK",
+              "UNSUPPORTED"
+            ],
+            "example": "OK"
+          },
+          "reasonCode": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "UNSUPPORTED 이유 코드(열린 값, 모르는 코드는 '준비 중'으로 그림). 지금 값: INPUT_PENDING(점수 입력이 없는 이전 조회 결과 — 다시 조회하면 계산)·ROLE_UNKNOWN(딜러·서포터 판정 못 함)·UNAVAILABLE(팔찌 옵션·무기·아크 패시브가 없거나 계산 못 함). OK면 null",
+                "example": "INPUT_PENDING"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "이유 문장(로그·디버그용, 화면 문구로 쓰지 않음). OK면 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "role": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "계산 기준 역할(응답의 다른 position과 같은 값). INPUT_PENDING·ROLE_UNKNOWN이면 null",
+                "enum": [
+                  "DEALER",
+                  "SUPPORT"
+                ],
+                "example": "DEALER"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "percent": {
+            "anyOf": [
+              {
+                "type": "number",
+                "description": "팔찌 실 효율 %. UNSUPPORTED면 null",
+                "example": 11.3
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "devilDamagePercent": {
+            "anyOf": [
+              {
+                "type": "number",
+                "description": "화면 설정 '악마 피해'(기본 꺼짐)를 켰을 때의 팔찌 실 효율 %(자리수는 딜러 percent와 같음). 딜러 OK일 때만 있고, 서포터·UNSUPPORTED면 null",
+                "example": 14.08
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "ruleVersion": {
+            "type": "string",
+            "description": "계산 규칙 버전",
+            "example": "bracelet-real-v1"
+          }
+        },
+        "required": [
+          "devilDamagePercent",
+          "percent",
+          "reason",
+          "reasonCode",
+          "role",
+          "ruleVersion",
+          "status"
         ]
       },
       "ArkGridEfficiencyResponse": {
@@ -3588,12 +3685,17 @@
           "ruleVersion": {
             "type": "string",
             "description": "계산 규칙 버전"
+          },
+          "real": {
+            "$ref": "#/components/schemas/ArkGridRealResponse",
+            "description": "젬 실 효율(#520). 위 percent·coresPercent·lines는 '전투력 기여'(공식 전투력 계수)이고, 이것은 원본 점수식의 젬 실 효율(지금 점수가 그 젬 옵션·포인트를 뺀 점수보다 몇 % 높은지)이라 정의가 다르다. 늘 들어 있다."
           }
         },
         "required": [
           "coresPercent",
           "lines",
           "percent",
+          "real",
           "reason",
           "reasonCode",
           "ruleVersion",
@@ -3664,6 +3766,260 @@
           "slotIndex",
           "status",
           "text"
+        ]
+      },
+      "ArkGridRealResponse": {
+        "type": "object",
+        "description": "아크 그리드 젬 실 효율. status: OK·UNSUPPORTED. UNSUPPORTED면 percent·optionsPercent·pointsPercent는 null, options·series는 빈 배열. 값은 % 소수 둘째 자리 내림",
+        "properties": {
+          "status": {
+            "type": "string",
+            "description": "OK·UNSUPPORTED",
+            "enum": [
+              "OK",
+              "UNSUPPORTED"
+            ],
+            "example": "OK"
+          },
+          "reasonCode": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "UNSUPPORTED 이유 코드(열린 값, 모르는 코드는 '준비 중'으로 그림). 지금 값: INPUT_PENDING(점수 입력이 없는 이전 조회 결과 — 다시 조회하면 계산)·ROLE_UNKNOWN(딜러·서포터 판정 못 함)·UNAVAILABLE(아크 그리드·무기·아크 패시브가 없거나 계산 못 함). OK면 null",
+                "example": "INPUT_PENDING"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "이유 문장(로그·디버그용, 화면 문구로 쓰지 않음). OK면 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "percent": {
+            "anyOf": [
+              {
+                "type": "number",
+                "description": "젬 옵션 + 코어 포인트 합 실 효율 %. UNSUPPORTED면 null",
+                "example": 4.67
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "optionsPercent": {
+            "anyOf": [
+              {
+                "type": "number",
+                "description": "젬 옵션만의 실 효율 %. UNSUPPORTED면 null",
+                "example": 3.21
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "pointsPercent": {
+            "anyOf": [
+              {
+                "type": "number",
+                "description": "젬이 준 코어 포인트(17P 초과분)만의 실 효율 %. UNSUPPORTED면 null",
+                "example": 1.41
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "options": {
+            "type": "array",
+            "description": "젬 옵션 한 줄씩(공식 표기 순서). UNSUPPORTED면 빈 배열",
+            "items": {
+              "$ref": "#/components/schemas/ArkGridRealOptionResponse"
+            }
+          },
+          "series": {
+            "type": "array",
+            "description": "질서·혼돈 계열별(그 계열 젬만 뺀 비). 그 계열 젬이 없거나 젬 구성을 확인할 수 없으면 그 계열은 없음",
+            "items": {
+              "$ref": "#/components/schemas/ArkGridRealSeriesResponse"
+            }
+          },
+          "ruleVersion": {
+            "type": "string",
+            "description": "계산 규칙 버전",
+            "example": "ark-grid-real-v1"
+          }
+        },
+        "required": [
+          "options",
+          "optionsPercent",
+          "percent",
+          "pointsPercent",
+          "reason",
+          "reasonCode",
+          "ruleVersion",
+          "series",
+          "status"
+        ]
+      },
+      "ArkGridRealOptionResponse": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "젬 옵션 이름(공식 표기)",
+            "example": "공격력"
+          },
+          "level": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32",
+                "description": "옵션 레벨 합",
+                "example": 28
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "inGamePercent": {
+            "anyOf": [
+              {
+                "type": "number",
+                "description": "공식 표기 %(아크 그리드 효과 툴팁). 읽지 못하면 null",
+                "example": 1.02
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "percent": {
+            "anyOf": [
+              {
+                "type": "number",
+                "description": "그 옵션 줄만의 실 효율 %. 계산하지 못한 줄은 null",
+                "example": 0.99
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "inGamePercent",
+          "level",
+          "name",
+          "percent"
+        ]
+      },
+      "ArkGridRealSeriesResponse": {
+        "type": "object",
+        "properties": {
+          "series": {
+            "type": "string",
+            "description": "질서 또는 혼돈",
+            "example": "질서"
+          },
+          "percent": {
+            "anyOf": [
+              {
+                "type": "number",
+                "description": "그 계열 젬의 옵션 + 포인트 실 효율 %. 계산하지 못하면 null",
+                "example": 2.66
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "optionsPercent": {
+            "anyOf": [
+              {
+                "type": "number",
+                "description": "그 계열 젬 옵션만 %. 계산하지 못하면 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "pointsPercent": {
+            "anyOf": [
+              {
+                "type": "number",
+                "description": "그 계열 젬 포인트만 %. 계산하지 못하면 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "options": {
+            "type": "array",
+            "description": "그 계열 젬이 준 옵션 줄",
+            "items": {
+              "$ref": "#/components/schemas/ArkGridRealSeriesOptionResponse"
+            }
+          }
+        },
+        "required": [
+          "options",
+          "optionsPercent",
+          "percent",
+          "pointsPercent",
+          "series"
+        ]
+      },
+      "ArkGridRealSeriesOptionResponse": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "젬 옵션 이름",
+            "example": "공격력"
+          },
+          "level": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32",
+                "description": "그 계열 젬이 준 옵션 레벨 합",
+                "example": 12
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "percent": {
+            "anyOf": [
+              {
+                "type": "number",
+                "description": "그 계열 젬의 그 옵션만 뺀 실 효율 %. 계산하지 못한 줄은 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "level",
+          "name",
+          "percent"
         ]
       },
       "KrakenScoreResponse": {

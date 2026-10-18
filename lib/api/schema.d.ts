@@ -629,6 +629,8 @@ export interface components {
             lines: components["schemas"]["BraceletLineEfficiencyResponse"][];
             /** @description 계산 규칙 버전(전투력 시뮬레이터와 같음) */
             ruleVersion: string;
+            /** @description 팔찌 실 효율. 위 percent·lines는 '전투력 기여'(공식 전투력 계수)이고, 이것은 원본 점수식의 팔찌 %라 정의가 다르다. 늘 들어 있다. */
+            real: components["schemas"]["BraceletRealResponse"];
         };
         BraceletLineEfficiencyResponse: {
             /** @description 공식 팔찌 효과 문구(팔찌 도약 줄은 '팔찌 도약 +N') */
@@ -638,6 +640,25 @@ export interface components {
             status: string;
             reasonCode: string | null;
             reason: string | null;
+        };
+        /** @description 팔찌 실 효율. status: OK·UNSUPPORTED. OK면 percent가 있고, UNSUPPORTED면 percent는 null(reasonCode에 이유). percent 자리수: 딜러는 원본이 이미 % 소수 둘째 자리 내림한 값, 서포터는 원본 값 그대로(반올림 안 함 — 예 13.47857142857143). 화면은 둘 다 소수 둘째 자리 반올림(toFixed(2))으로 그린다(딜러는 값 그대로, 서포터 13.48) */
+        BraceletRealResponse: {
+            /**
+             * @description OK·UNSUPPORTED
+             * @example OK
+             * @enum {string}
+             */
+            status: "OK" | "UNSUPPORTED";
+            reasonCode: string | null;
+            reason: string | null;
+            role: ("DEALER" | "SUPPORT") | null;
+            percent: number | null;
+            devilDamagePercent: number | null;
+            /**
+             * @description 계산 규칙 버전
+             * @example bracelet-real-v1
+             */
+            ruleVersion: string;
         };
         ArkGridEfficiencyResponse: {
             percent: number | null;
@@ -654,6 +675,8 @@ export interface components {
             lines: components["schemas"]["ArkGridLineEfficiencyResponse"][];
             /** @description 계산 규칙 버전 */
             ruleVersion: string;
+            /** @description 젬 실 효율(#520). 위 percent·coresPercent·lines는 '전투력 기여'(공식 전투력 계수)이고, 이것은 원본 점수식의 젬 실 효율(지금 점수가 그 젬 옵션·포인트를 뺀 점수보다 몇 % 높은지)이라 정의가 다르다. 늘 들어 있다. */
+            real: components["schemas"]["ArkGridRealResponse"];
         };
         ArkGridLineEfficiencyResponse: {
             slotIndex: number | null;
@@ -664,6 +687,60 @@ export interface components {
             status: string;
             reasonCode: string | null;
             reason: string | null;
+        };
+        /** @description 아크 그리드 젬 실 효율. status: OK·UNSUPPORTED. UNSUPPORTED면 percent·optionsPercent·pointsPercent는 null, options·series는 빈 배열. 값은 % 소수 둘째 자리 내림 */
+        ArkGridRealResponse: {
+            /**
+             * @description OK·UNSUPPORTED
+             * @example OK
+             * @enum {string}
+             */
+            status: "OK" | "UNSUPPORTED";
+            reasonCode: string | null;
+            reason: string | null;
+            percent: number | null;
+            optionsPercent: number | null;
+            pointsPercent: number | null;
+            /** @description 젬 옵션 한 줄씩(공식 표기 순서). UNSUPPORTED면 빈 배열 */
+            options: components["schemas"]["ArkGridRealOptionResponse"][];
+            /** @description 질서·혼돈 계열별(그 계열 젬만 뺀 비). 그 계열 젬이 없거나 젬 구성을 확인할 수 없으면 그 계열은 없음 */
+            series: components["schemas"]["ArkGridRealSeriesResponse"][];
+            /**
+             * @description 계산 규칙 버전
+             * @example ark-grid-real-v1
+             */
+            ruleVersion: string;
+        };
+        ArkGridRealOptionResponse: {
+            /**
+             * @description 젬 옵션 이름(공식 표기)
+             * @example 공격력
+             */
+            name: string;
+            level: number | null;
+            inGamePercent: number | null;
+            percent: number | null;
+        };
+        ArkGridRealSeriesResponse: {
+            /**
+             * @description 질서 또는 혼돈
+             * @example 질서
+             */
+            series: string;
+            percent: number | null;
+            optionsPercent: number | null;
+            pointsPercent: number | null;
+            /** @description 그 계열 젬이 준 옵션 줄 */
+            options: components["schemas"]["ArkGridRealSeriesOptionResponse"][];
+        };
+        ArkGridRealSeriesOptionResponse: {
+            /**
+             * @description 젬 옵션 이름
+             * @example 공격력
+             */
+            name: string;
+            level: number | null;
+            percent: number | null;
         };
         /** @description 크라켄 점수. status: OK(값 있음)·UNSUPPORTED(계산 못 함, reasonCode)·DISABLED(아직 공개 전, 값 null·factors 빈 배열). 점수는 딜러 점수 또는 서포터 점수(서포터 각인 직업), 이번 단계에서 factors는 빈 배열 */
         KrakenScoreResponse: {
