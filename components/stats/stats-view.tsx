@@ -334,6 +334,7 @@ function DistributionTab({ query }: { query: StatsQuery }) {
   const [metric, setMetric] = useState<Metric>(opened.metric);
   const [mine, setMine] = useState(opened.percentileOf != null ? String(opened.percentileOf) : "");
   const [asTable, setAsTable] = useState(opened.asTable);
+  const view = asTable ? "table" : "graph";
   const value = useDebounced(mine);
   const percentileOf = value.trim() && Number.isFinite(Number(value)) ? Number(value) : undefined;
   // The address follows the choices (a plain replaceState: no server round
@@ -439,9 +440,11 @@ function DistributionTab({ query }: { query: StatsQuery }) {
           })}
         </ol>
       )}
-      {/* The axis line is there before the bars too (its height held), so they land without moving the note under it. */}
+      {/* The axis line is there before the bars too (its height held), so they land without moving the note under it.
+          It and the note are drawn anew when the view switches: the graph and the table differ in height, and the
+          same nodes sliding to their new place counted as moving (A7, #957). */}
       {data && data.bins.length > 0 ? (
-        <p className={styles.axis} aria-hidden="true" {...pendingProps(dist)}>
+        <p key={view} className={styles.axis} aria-hidden="true" {...pendingProps(dist)}>
           <span>{fmt(data.bins[0].from)}</span>
           <span>{fmt(data.bins.at(-1)!.to)}</span>
         </p>
@@ -452,7 +455,7 @@ function DistributionTab({ query }: { query: StatsQuery }) {
           </p>
         )
       )}
-      {data && <StatsBasis query={query} />}
+      {data && <StatsBasis key={view} query={query} />}
     </div>
   );
 }
