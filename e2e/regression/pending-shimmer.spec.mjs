@@ -102,10 +102,9 @@ test("@집계중 칸 40개가 같이 빛나도 긴 작업 0, CPU 4배 감속 @re
     for (let i = 0; i < 40; i += 1) box.append(el.cloneNode(true));
     el.closest("table").before(box);
   });
-  // Only the labels' own cost: the board still has blank cells, so it asks
-  // again every 5 s and a re-render of the board under the 4× slowdown is a
-  // long task of its own (develop CI 10-18: 2, then 1). Answers held while measuring.
-  await page.route("**/api/**", () => {});
+  // Chrome re-styles every running animation on each main frame (this rAF loop
+  // makes one per frame): two animations a label on a pseudo-element gave long
+  // tasks of 50–100 ms here on CI (#900). A failure says when, and what was fetched.
   await cdp.send("Emulation.setCPUThrottlingRate", { rate: 4 });
   const m = await page.evaluate(
     () =>

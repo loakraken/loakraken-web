@@ -59,7 +59,12 @@ function PendingText({ className }: { className?: string }) {
   return (
     <span ref={ref} data-slot="pending-text" className={cn("pending-text after:[content:'…'_/_'']", className)}>
       집계 중
-      <span className="pending-text__window" aria-hidden="true" data-glow="집계 중…" />
+      <span className="pending-text__window" aria-hidden="true">
+        {/* The copy moves on an element of its own: Chrome re-styles every
+            running animation on each main frame, and a pseudo-element's costs
+            more (40 labels under a 4× slowdown: long tasks, #900). */}
+        <span className="pending-text__glow" data-glow="집계 중…" />
+      </span>
     </span>
   )
 }
