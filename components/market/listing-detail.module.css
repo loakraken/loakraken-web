@@ -1,0 +1,27 @@
+/* The listing's name as the button that opens its card: the row's own text,
+   wrapping as before, with a dotted underline that says it opens something. */
+.name {
+  display: inline;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: inherit;
+  text-decoration: underline dotted;
+  text-decoration-color: color-mix(in oklab, currentColor 45%, transparent);
+  text-underline-offset: 3px;
+  cursor: pointer !important;
+  touch-action: manipulation;
+}
+@media (hover: hover) and (pointer: fine) {
+  .name:hover {
+    text-decoration-style: solid;
+    text-decoration-color: currentColor;
+  }
+}
+.name:focus-visible {
+  border-radius: 4px;
+  outline: 3px solid var(--ring);
+  outline-offset: 2px;
+}
