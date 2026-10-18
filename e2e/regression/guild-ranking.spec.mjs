@@ -1,7 +1,7 @@
 // 회귀(L36·K28, API 목록 #4): 랭킹 '길드' 탭 — 확인한 길드원으로 묶은 길드의 아이템 레벨 평균·합 순위.
 // 길드원 수는 '확인한' 수라고 적고, 기준(평균↔합)·서버를 바꾸면 순위가 바뀐다. 집계 기준은 길드 단위로.
 import { test, expect, gotoReady, chooseOption } from "../support/fixtures.mjs";
-import { shiftsSince, watchShifts } from "../support/shifts.mjs";
+import { shiftsDuring, shiftsSince, watchShifts } from "../support/shifts.mjs";
 
 test("길드 랭킹: 탭·열·기준 전환·서버·안내 @regression", async ({ page }) => {
   await gotoReady(page, "/rankings?type=guilds");
@@ -88,4 +88,20 @@ for (const width of [1280, 360])
     await page.waitForTimeout(500);
     const load = await shiftsSince(page);
     expect(load.all, `첫 로드 흔들림 (${load.moved})`).toBe(0);
+  });
+
+// Pressing a 기준 rewrote the sentence above and the headings in place, and
+// their words slid (0.0002~0.0011). Both are drawn anew per 기준 now.
+for (const width of [1280, 360])
+  test(`@A7 ${width} 길드 랭킹: 기준 네 개를 눌러도 흔들림 0(누른 직후 포함) @regression`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await watchShifts(page);
+    await gotoReady(page, "/rankings?type=guilds");
+    await expect(page.getByRole("table").first()).toBeVisible();
+    await page.waitForTimeout(600);
+    const group = page.getByRole("group", { name: "기준" });
+    for (const label of ["전투력 합", "아이템 레벨 평균", "아이템 레벨 합", "전투력 평균"]) {
+      const moved = await shiftsDuring(page, () => group.getByRole("button", { name: label, exact: true }).click(), 800);
+      expect(moved.all, `${label} (${moved.moved})`).toBe(0);
+    }
   });
