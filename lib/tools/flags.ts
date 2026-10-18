@@ -133,9 +133,9 @@ export function isEfficiencyRankingEnabled(env: Env = process.env) {
 }
 
 /**
- * The guild ranking tab (api #302, checklist L36·K28; off on the backend
- * until it ships). Same rule: `GUILD_RANKING=on|off` overrides, otherwise
- * hidden only on the production host.
+ * The guild ranking tab on /rankings only (api #302, checklist L36·K28; the
+ * backend's ranking.guilds.list.enabled since api #582). Same rule:
+ * `GUILD_RANKING=on|off` overrides, otherwise hidden only on the production host.
  */
 export function isGuildRankingEnabled(env: Env = process.env) {
   const flag = env.GUILD_RANKING?.trim().toLowerCase();
@@ -145,10 +145,24 @@ export function isGuildRankingEnabled(env: Env = process.env) {
 }
 
 /**
- * Popular guilds on the guild ranking (api #467, checklist M21). The backend
- * opens the route only with both RANKING_GUILDS_ENABLED and the popular
- * characters flag on. Same rule: `POPULAR_GUILDS=on|off` overrides,
- * otherwise hidden only on the production host.
+ * The character screen's guild tab and its /api/guilds/{server}/{guild} proxy
+ * (api #582: the backend's ranking.guilds.enabled, apart from the ranking
+ * list). Same rule: `GUILD_TAB=on|off` overrides, otherwise hidden only on the
+ * production host.
+ */
+export function isGuildTabEnabled(env: Env = process.env) {
+  const flag = env.GUILD_TAB?.trim().toLowerCase();
+  if (flag === "on") return true;
+  if (flag === "off") return false;
+  return !isProductionHost(env.SITE_URL);
+}
+
+/**
+ * Popular guilds (api #467, checklist M21): the card on the home page and
+ * under the guild ranking. It follows this switch alone, not the ranking's
+ * (the backend serves it with ranking.guilds.enabled since api #582). Same
+ * rule: `POPULAR_GUILDS=on|off` overrides, otherwise hidden only on the
+ * production host.
  */
 export function isPopularGuildsEnabled(env: Env = process.env) {
   const flag = env.POPULAR_GUILDS?.trim().toLowerCase();
