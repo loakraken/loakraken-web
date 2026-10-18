@@ -13,7 +13,7 @@ import { IconButton } from "@/components/ui/icon-button";
 import { CloseCircle } from "@/components/ui/icons";
 import { Input } from "@/components/ui/input";
 import { SkeletonValue } from "@/components/ui/skeleton";
-import { RATE_LIMITED, failureOf, retryLabel } from "@/lib/api/rate-limit";
+import { RATE_LIMITED, failureOf, rateLimitCopy, retryLabel } from "@/lib/api/rate-limit";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { fetchCharacter } from "@/lib/character/client";
 import { GEM_SLOTS } from "@/lib/character/detail";
@@ -151,7 +151,12 @@ function Failure({ entry, compact = false }: { entry: Entry; compact?: boolean }
   if (entry.waiting === "limit") return <Reason text="요청이 많아 앞 캐릭터 다시 시도 뒤에 불러와요" />;
   const failure = failureOf(entry.error);
   const code = failure?.code ?? "";
-  const text = limit.limited ? "요청이 많아 잠시 멈췄어요" : failureCopy({ code, status: 0 }).title;
+  // This visitor's own share reads as a short pause (PM 총괄 10-18); the site-wide limit keeps its words.
+  const text = !limit.limited
+    ? failureCopy({ code, status: 0 }).title
+    : failure?.limit === "client"
+      ? rateLimitCopy(failure).title
+      : "요청이 많아 잠시 멈췄어요";
   const retryable = code !== "CHARACTER_NOT_FOUND" && code !== "INVALID_REQUEST";
   return (
     <span className={styles.failed} role="status">
