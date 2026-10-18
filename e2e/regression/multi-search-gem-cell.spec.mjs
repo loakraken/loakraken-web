@@ -40,6 +40,12 @@ for (const theme of ["light", "dim", "dark"])
       expect(await cells.evaluateAll(cut)).toEqual([]);
       const best = view.locator("tbody td").filter({ hasText: "Lv.9.5 (10개)" });
       await expect(best).toContainText("최고");
+      // The table fits its box on a desktop: no scroll bar, no hidden last column.
+      for (const width of [1280, 1440]) {
+        await page.setViewportSize({ width, height: 900 });
+        const fit = await view.evaluate((el) => ({ scroll: el.scrollWidth, box: el.clientWidth }));
+        expect(fit.scroll, `${width}: 표 ${fit.scroll}px > 상자 ${fit.box}px`).toBeLessThanOrEqual(fit.box);
+      }
     } else {
       expect(await view.locator('[class*="cardValue"]').evaluateAll(cut)).toEqual([]);
     }

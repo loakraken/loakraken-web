@@ -129,7 +129,7 @@
 /* Two lines per row whatever arrives (name over server; engravings clamp to
    two), so a loaded row is as tall as its placeholder. */
 .table {
-  min-width: 1120px;
+  min-width: 1110px;
   table-layout: fixed;
 }
 .table td,
