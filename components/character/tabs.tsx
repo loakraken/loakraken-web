@@ -1924,9 +1924,12 @@ type Sibling = NonNullable<Character["siblings"]>[number];
 function SiblingList({
   siblings,
   current,
+  caption,
 }: {
   siblings: Sibling[];
   current: string;
+  /** When the roster was read, right under the lists. */
+  caption?: ReactNode;
 }) {
   // Combat power records (L19), records only: no official call until the
   // button. Sorted by combat power by default; until they arrive (or if they
@@ -2046,6 +2049,7 @@ function SiblingList({
           </ul>
         </Panel>
       ))}
+      {caption}
       {summary.sixAverage != null && (
         <p className={styles.rosterSummary}>
           식스맨 평균 <b>{number(summary.sixAverage)}</b>
@@ -2388,14 +2392,18 @@ function RosterCharacters({ data }: { data: Character }) {
         </Panel>
       ) : result && result.siblings.length ? (
         <>
-          <p className={styles.caption}>
-            원정대 갱신 {kstTime(result.fetchedAt)}
-            {result.refreshAvailableAt &&
-              ` · ${kstTime(result.refreshAvailableAt)} 이후 다시 갱신`}
-          </p>
           <SiblingList
             siblings={result.siblings}
             current={data.characterName}
+            // Under the lists, not over them: the first card sits higher at
+            // 360 (v0.3.2), the time still right by the characters it is of.
+            caption={
+              <p className={styles.caption}>
+                원정대 갱신 {kstTime(result.fetchedAt)}
+                {result.refreshAvailableAt &&
+                  ` · ${kstTime(result.refreshAvailableAt)} 이후 다시 갱신`}
+              </p>
+            }
           />
         </>
       ) : (
