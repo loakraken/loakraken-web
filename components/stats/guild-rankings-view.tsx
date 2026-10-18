@@ -117,7 +117,8 @@ export function GuildRankingsView({
         <section className={styles.hero} aria-labelledby="rankings-heading">
           <p className={styles.kicker}>길드</p>
           <h1 id="rankings-heading">랭킹</h1>
-          <p>LOAKraken이 확인한 길드원으로 길드를 묶어 {sortLabel} 순으로 보여줘요.</p>
+          {/* Drawn anew per 기준: its words rewritten in place counted as moving (A7). */}
+          <p key={query.sort}>LOAKraken이 확인한 길드원으로 길드를 묶어 {sortLabel} 순으로 보여줘요.</p>
         </section>
         <RankingTypeTabs value="guilds" types={types} />
 
@@ -215,7 +216,8 @@ export function GuildRankingsView({
               </caption>
               {COLUMNS.colgroup}
               <thead>
-                <tr>
+                {/* The headings name the 기준: a new row per 기준, like the body. */}
+                <tr key={query.sort}>
                   <th scope="col">순위</th>
                   <th scope="col" className={styles.left}>
                     길드
