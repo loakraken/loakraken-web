@@ -94,12 +94,7 @@ test.describe("더보기 손익 @smoke", () => {
 
   test("시세가 모두 거의 0G면 모든 관문이 손해라고 말한다", async ({ page }) => {
     await page.route("**/api/markets/material-prices", async (route) => {
-      // route.fetch() sends again from the test runner with request.headers(),
-      // which leave out the browser's Origin and Sec-Fetch-*: say it comes from
-      // this site's own page, as the browser's request did (web api POSTs
-      // refuse other sites).
-      const request = route.request();
-      const response = await route.fetch({ headers: { ...request.headers(), origin: new URL(request.url()).origin } });
+      const response = await route.fetch();
       const body = await response.json();
       for (const item of body.envelope.data.items) if (item.unitPriceGold != null) item.unitPriceGold = 0.0001;
       await route.fulfill({ response, json: body });
