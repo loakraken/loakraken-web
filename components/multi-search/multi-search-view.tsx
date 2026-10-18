@@ -13,7 +13,7 @@ import { IconButton } from "@/components/ui/icon-button";
 import { CloseCircle } from "@/components/ui/icons";
 import { Input } from "@/components/ui/input";
 import { SkeletonValue } from "@/components/ui/skeleton";
-import { RATE_LIMITED, failureOf, retryLabel } from "@/lib/api/rate-limit";
+import { RATE_LIMITED, failureOf, rateLimitCopy, retryLabel } from "@/lib/api/rate-limit";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { fetchCharacter } from "@/lib/character/client";
 import { GEM_SLOTS } from "@/lib/character/detail";
@@ -68,7 +68,8 @@ function gatesFor(names: string[], client: QueryClient) {
 }
 
 function useCharacters(names: string[]) {
-  const gates = gatesFor(names, useQueryClient());
+  const client = useQueryClient();
+  const gates = gatesFor(names, client);
   const results = useQueries({
     queries: names.map((name, i) => ({
       queryKey: ["character", name],
@@ -83,7 +84,23 @@ function useCharacters(names: string[]) {
       refetchOnWindowFocus: false,
     })),
   });
-  return names.map<Entry>((name, i) => {
+  // The character a rate limit stopped is asked again by itself once its wait
+  // is over (PM-프론트 10-18 (a)), once: a new limit brings a new wait and so
+  // a new turn. The ones after it follow in order as before.
+  const stopped = names.findIndex((_, i) => !results[i].data && failureOf(results[i].error)?.code === RATE_LIMITED);
+  const stoppedName = stopped >= 0 ? names[stopped] : null;
+  const retryAt = stopped >= 0 ? failureOf(results[stopped].error)?.retryAt : undefined;
+  const [resuming, setResuming] = useState<string | null>(null);
+  useEffect(() => {
+    if (!stoppedName || !retryAt) return;
+    const timer = setTimeout(() => {
+      setResuming(stoppedName);
+      void client.refetchQueries({ queryKey: ["character", stoppedName], exact: true });
+    }, Math.max(0, retryAt - Date.now()));
+    return () => clearTimeout(timer);
+  }, [client, stoppedName, retryAt]);
+  const resumingIndex = resuming ? names.indexOf(resuming) : -1;
+  const entries = names.map<Entry>((name, i) => {
     const result = results[i];
     return {
       name,
@@ -93,6 +110,8 @@ function useCharacters(names: string[]) {
       retry: () => void result.refetch(),
     };
   });
+  // Said once in the status line while that character is being asked again.
+  return { entries, resuming: resumingIndex >= 0 && results[resumingIndex].isFetching ? resuming : null };
 }
 
 function Best({ on, children }: { on: boolean; children: ReactNode }) {
@@ -151,7 +170,12 @@ function Failure({ entry, compact = false }: { entry: Entry; compact?: boolean }
   if (entry.waiting === "limit") return <Reason text="요청이 많아 앞 캐릭터 다시 시도 뒤에 불러와요" />;
   const failure = failureOf(entry.error);
   const code = failure?.code ?? "";
-  const text = limit.limited ? "요청이 많아 잠시 멈췄어요" : failureCopy({ code, status: 0 }).title;
+  // This visitor's own share reads as a short pause (PM 총괄 10-18); the site-wide limit keeps its words.
+  const text = !limit.limited
+    ? failureCopy({ code, status: 0 }).title
+    : failure?.limit === "client"
+      ? rateLimitCopy(failure).title
+      : "요청이 많아 잠시 멈췄어요";
   const retryable = code !== "CHARACTER_NOT_FOUND" && code !== "INVALID_REQUEST";
   return (
     <span className={styles.failed} role="status">
@@ -402,7 +426,7 @@ export function MultiSearchView() {
     setRestored(last);
   }, []);
 
-  const entries = useCharacters(names);
+  const { entries, resuming } = useCharacters(names);
   const summaries = entries.flatMap((e) => (e.summary ? [e.summary] : []));
   const best: Record<SortKey, string[]> = {
     itemLevel: bestNames(summaries, (s) => s.itemLevel),
@@ -443,9 +467,11 @@ export function MultiSearchView() {
   const done = entries.filter((e) => e.summary || e.error).length;
   const status = !names.length
     ? ""
-    : `${restored ? "지난번 명단 · " : ""}${
-        done < names.length ? `${names.length}명 중 ${done}명을 불러왔어요` : `${names.length}명을 비교하고 있어요`
-      }`;
+    : resuming
+      ? `기다린 뒤 ${resuming}부터 이어서 불러오고 있어요`
+      : `${restored ? "지난번 명단 · " : ""}${
+          done < names.length ? `${names.length}명 중 ${done}명을 불러왔어요` : `${names.length}명을 비교하고 있어요`
+        }`;
 
   return (
     <div className={quote.page}>

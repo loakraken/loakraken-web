@@ -2,7 +2,12 @@
 // request with a timeout, no retries, and error bodies that never leak upstream
 // detail beyond an allow-listed code.
 
-export type BackendFailure = { code: string; status: number; retryAt?: number };
+/**
+ * `limit: "client"`: the 429 was this visitor's own per-minute share
+ * (CLIENT_RATE_LIMITED), not the site-wide official limit. The code stays the
+ * shared one so every screen waits the same way; only the words differ.
+ */
+export type BackendFailure = { code: string; status: number; retryAt?: number; limit?: "client" };
 export type BackendResult<T> =
   { ok: true; envelope: T } | { ok: false; error: BackendFailure };
 
@@ -131,16 +136,14 @@ export async function requestBackend<T>(
     });
     if (!response.ok) {
       let code = "LOST_ARK_API_ERROR";
+      let client = false;
       try {
         const body: unknown = await response.json();
-        if (
-          body &&
-          typeof body === "object" &&
-          "code" in body &&
-          typeof body.code === "string" &&
-          options.errorCodes[response.status]?.includes(body.code)
-        )
-          code = body.code;
+        if (body && typeof body === "object" && "code" in body && typeof body.code === "string") {
+          // Only compared, never passed on unless allow-listed below.
+          client = response.status === 429 && body.code === "CLIENT_RATE_LIMITED";
+          if (options.errorCodes[response.status]?.includes(body.code)) code = body.code;
+        }
       } catch {
         /* Never expose upstream error bodies or HTML. */
       }
@@ -158,6 +161,7 @@ export async function requestBackend<T>(
           ...(status === 429 && {
             retryAt: retryAfterAt(response.headers.get("retry-after")),
           }),
+          ...(status === 429 && client && { limit: "client" as const }),
           // A busy 503 that says when to come back (MARKET_SEARCH_BUSY): same wait.
           ...(status === 503 &&
             response.headers.get("retry-after") && {

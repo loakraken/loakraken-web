@@ -2157,7 +2157,7 @@ function QueryProblem({
             text: "저장소에 문제가 생겼어요. 잠시 후 다시 시도해 주세요.",
           }
         : info.code === "LOST_ARK_RATE_LIMITED"
-          ? rateLimitCopy()
+          ? rateLimitCopy(info)
           : info.code === "LOST_ARK_NOT_CONFIGURED" ||
             info.code === "FRONTEND_API_NOT_CONFIGURED"
           ? failureCopy(info)
@@ -2172,7 +2172,7 @@ function QueryProblem({
         <strong>{copy.title}</strong>
         <p>{copy.text}</p>
       </div>
-      {limit.limited && <RateLimitNote seconds={limit.seconds} />}
+      {limit.limited && <RateLimitNote seconds={limit.seconds} buttonCounts />}
       <button
         type="button"
         className={styles.textButton}
