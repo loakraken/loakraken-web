@@ -2584,6 +2584,20 @@ const collectionLabels: Record<string, string> = {
   points: "포인트",
 };
 
+/** Source sections in players' words; a key this build does not know is left out (open strings). */
+const sectionLabels: Record<string, string> = {
+  equipment: "장비",
+  engravings: "각인",
+  gems: "보석",
+  cards: "카드",
+  arkPassive: "아크 패시브",
+  arkGrid: "아크 그리드",
+  siblings: "원정대",
+  skills: "스킬",
+  avatars: "아바타",
+  collectibles: "내실",
+};
+
 export function EvidenceTab({
   data,
   envelope,
@@ -2592,17 +2606,14 @@ export function EvidenceTab({
   envelope: CharacterEnvelope;
 }) {
   const findings = data.analysis.diagnostics.findings;
-  const sections = Object.entries(data.coverage).map(([key, value]) => ({
-    key,
-    value,
-  }));
+  // Only the sections with a name (P1: raw keys showed on screen).
+  const sections = Object.entries(data.coverage)
+    .filter(([key]) => Object.hasOwn(sectionLabels, key))
+    .map(([key, value]) => ({ key, label: sectionLabels[key], value }));
   return (
     <div className={styles.layout}>
-      <Panel
-        title="세팅 점검 결과"
-        meta={data.analysis.diagnostics.ruleVersion}
-        wide
-      >
+      {/* The rule version is for the record, not the reader (P1). */}
+      <Panel title="세팅 점검 결과" wide>
         <p className={styles.muted}>
           점검 규칙을 늘려 가는 중인 베타 기능이에요. 정보 부족은 세팅 오류를
           뜻하지 않고, 확인 항목도 의도한 세팅일 수 있어요.
@@ -2636,21 +2647,22 @@ export function EvidenceTab({
       </Panel>
       <Panel title="원천 제공 상태" wide>
         <ul className={styles.coverageList}>
-          {sections.map(({ key, value }) => {
+          {sections.map(({ key, label, value }) => {
             const state =
               typeof value === "string" || value === null ? value : value.state;
             return (
               <li key={key}>
-                <strong>{key}</strong>
+                <strong>{label}</strong>
                 <span data-state={state ?? undefined}>
                   {state ? coverageLabel(state) : "조회 안 함"}
                 </span>
                 {value && typeof value === "object" && (
                   <small>
                     {Object.entries(value.collections)
+                      .filter(([name]) => Object.hasOwn(collectionLabels, name))
                       .map(
                         ([name, item]) =>
-                          `${collectionLabels[name] ?? name} ${item ? coverageLabel(item) : "-"}`,
+                          `${collectionLabels[name]} ${item ? coverageLabel(item) : "-"}`,
                       )
                       .join(" · ")}
                   </small>
@@ -2659,6 +2671,11 @@ export function EvidenceTab({
             );
           })}
         </ul>
+        {/* What the two "not shown" states mean (P1). */}
+        <p className={styles.muted}>
+          데이터 미제공은 전투정보실이 그 정보를 주지 않은 것이고, 조회 안 함은 이번 조회에서 따로 불러오지 않은
+          항목이에요.
+        </p>
       </Panel>
     </div>
   );
