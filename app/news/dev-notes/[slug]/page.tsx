@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { NOT_FOUND_METADATA } from "@/lib/not-found-metadata";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SiteHeader } from "@/components/site/site-header";
@@ -16,7 +17,7 @@ type Params = Promise<{ slug: string }>;
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const note = getDevNote((await params).slug);
-  if (!note) return { title: "LOAKraken 개발자 노트" };
+  if (!note) return NOT_FOUND_METADATA;
   const path = `/news/dev-notes/${note.slug}`;
   return {
     // "%s | LOAKraken" from the root layout completes it.
