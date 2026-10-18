@@ -12,7 +12,7 @@
         ],
         "summary": "캐릭터 검색",
         "description": "프로필, 장비·보석·각인·카드·아크패시브·아크그리드와 원정대를 제공합니다. 기본 캐시는 5분이며 fetchedAt은 실제 외부 수집 완료 시각입니다. null 섹션은 공식 API에서 데이터가 제공되지 않은 경우입니다.",
-        "operationId": "search",
+        "operationId": "search_1",
         "parameters": [
           {
             "name": "characterName",
@@ -378,6 +378,10 @@
               }
             ]
           },
+          "krakenScore": {
+            "$ref": "#/components/schemas/KrakenScoreResponse",
+            "description": "크라켄 점수와 크라켄 점수 티어(공식 전투력과 별개의 점수). 늘 들어 있고, 아직 공개 전이면 status DISABLED(값 null)"
+          },
           "fetchedAt": {
             "type": "string",
             "format": "date-time",
@@ -415,6 +419,7 @@
           "honorPoint",
           "imageUrl",
           "itemLevel",
+          "krakenScore",
           "loadout",
           "refreshAvailableAt",
           "serverName",
@@ -1473,9 +1478,35 @@
             "items": {
               "type": "string"
             }
+          },
+          "baseAttackPct": {
+            "anyOf": [
+              {
+                "type": "number",
+                "description": "보석 하나의 기본 공격력 %(4티어 보석 추가 효과). 공식 보석 효과 문구를 먼저 읽고, 없으면 레벨 표(6~10레벨 0.45·0.60·0.80·1.00·1.20). 근거가 없으면(1~5레벨·3티어) null",
+                "example": 1.2
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "baseAttackPctSource": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "baseAttackPct 근거(문자열, 값이 늘 수 있음): TOOLTIP(공식 문구) 또는 LEVEL_TABLE(레벨 표). 값이 없으면 null",
+                "example": "TOOLTIP"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
+          "baseAttackPct",
+          "baseAttackPctSource",
           "grade",
           "icon",
           "itemLevel",
@@ -2643,15 +2674,8 @@
           "characterLevel": {
             "anyOf": [
               {
-                "anyOf": [
-                  {
-                    "type": "integer",
-                    "format": "int32"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
+                "type": "integer",
+                "format": "int32"
               },
               {
                 "type": "null"
@@ -3640,6 +3664,231 @@
           "slotIndex",
           "status",
           "text"
+        ]
+      },
+      "KrakenScoreResponse": {
+        "type": "object",
+        "description": "크라켄 점수. status: OK(값 있음)·UNSUPPORTED(계산 못 함, reasonCode)·DISABLED(아직 공개 전, 값 null·factors 빈 배열). 점수는 딜러 점수 또는 서포터 점수(서포터 각인 직업), 이번 단계에서 factors는 빈 배열",
+        "properties": {
+          "status": {
+            "type": "string",
+            "description": "OK·UNSUPPORTED·DISABLED",
+            "enum": [
+              "OK",
+              "UNSUPPORTED",
+              "DISABLED"
+            ],
+            "example": "OK"
+          },
+          "reasonCode": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "UNSUPPORTED 이유 코드(화면은 이 코드로 그림). 그 밖에는 null. 지금 값: INPUT_PENDING(점수 입력이 없는 이전 조회 결과 — 다시 조회하면 계산)·ROLE_UNKNOWN(딜러·서포터 판정 못 함)·SCORE_UNAVAILABLE(점수가 음수·수 아님). 열린 값이라 단계마다 늘 수 있음 — 모르는 코드는 '-'로 그림",
+                "example": "INPUT_PENDING"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "이유 문장(로그·디버그용, 화면 문구로 쓰지 않음). OK·DISABLED면 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "role": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "DEALER·SUPPORT. 판정하지 못했거나 DISABLED면 null",
+                "enum": [
+                  "DEALER",
+                  "SUPPORT"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "number",
+                "description": "크라켄 점수(소수 둘째 자리). OK가 아니면 null",
+                "example": 5658.62
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "tier": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/KrakenScoreTierResponse",
+                "description": "크라켄 점수 티어. OK가 아니면 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "factors": {
+            "type": "array",
+            "description": "점수 요소(공격력·진화·깨달음·도약·적에게 주는 피해·추가 피해·보주·보석·특성·에스더·팔찌 등). DISABLED면 빈 배열",
+            "items": {
+              "$ref": "#/components/schemas/KrakenScoreFactorResponse"
+            }
+          },
+          "ruleVersion": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "계산 규칙 버전(표 갱신 때 올라감)",
+                "example": "kraken-score-v1"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "factors",
+          "reason",
+          "reasonCode",
+          "role",
+          "ruleVersion",
+          "score",
+          "status",
+          "tier"
+        ]
+      },
+      "KrakenScoreTierResponse": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "티어 코드",
+            "enum": [
+              "BRONZE",
+              "SILVER",
+              "GOLD",
+              "DIAMOND",
+              "MASTER",
+              "GRANDMASTER",
+              "ESTHER"
+            ],
+            "example": "DIAMOND"
+          },
+          "min": {
+            "type": "number",
+            "description": "이 티어의 최소 점수",
+            "example": 5000
+          },
+          "nextCode": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "다음 티어 코드. 최상위면 null",
+                "example": "MASTER"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "nextMin": {
+            "anyOf": [
+              {
+                "type": "number",
+                "description": "다음 티어 최소 점수. 최상위면 null",
+                "example": 6700
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "remaining": {
+            "anyOf": [
+              {
+                "type": "number",
+                "description": "다음 티어까지 남은 점수(소수 둘째 자리). 최상위면 null",
+                "example": 1041.38
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "progressPercent": {
+            "type": "integer",
+            "format": "int32",
+            "description": "이 티어 안 진행률(정수, 내림). 최상위면 100",
+            "example": 38
+          }
+        },
+        "required": [
+          "code",
+          "min",
+          "nextCode",
+          "nextMin",
+          "progressPercent",
+          "remaining"
+        ]
+      },
+      "KrakenScoreFactorResponse": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "요소 코드(열린 값 — 단계마다 늘어남, 모르는 코드는 그 줄만 따로 표시)",
+            "example": "ATTACK"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "number",
+                "description": "요소 배수. 계산 못 했으면 null",
+                "example": 1.0523
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "type": "string",
+            "description": "OK·UNSUPPORTED",
+            "example": "OK"
+          },
+          "reasonCode": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "UNSUPPORTED 이유 코드",
+                "example": "FACTOR_PENDING"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "code",
+          "reasonCode",
+          "status",
+          "value"
         ]
       },
       "ErrorResponse": {
