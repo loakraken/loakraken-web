@@ -2163,6 +2163,34 @@
 .specUpTable a {
   color: var(--link);
 }
+/* The minute's price refresh can lengthen a cost ("62만G" → "84만 9,400G"):
+   its column holds the room of a long one from the start, so the table's
+   columns (and the phone card's cost column) keep their width (A7). */
+.specUpTable thead th:nth-child(6),
+.specUpTable [data-cell="cost"] {
+  min-width: 7.5em;
+  white-space: nowrap;
+}
+/* The longer cost of the same size, unseen and unread (data-room, costRoom):
+   it sets the cell's width, no height. */
+.specUpTable [data-cell="cost"][data-room]::after {
+  content: attr(data-room) / "";
+  display: block;
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
+}
+/* On the phone card the cell starts with its label ("기대 비용 "): hold that too. */
+@media (max-width: 700px) {
+  .specUpTable [data-cell="cost"][data-room]::after {
+    content: attr(data-label) " " attr(data-room) / "";
+  }
+}
+/* 순서가 바뀌었다는 줄의 '새 순서로 보기' (PM 총괄 판정 b). */
+.specUpReorder {
+  color: var(--link);
+  font-weight: 600;
+}
 .specUpBases {
   display: grid;
   gap: 4px;
@@ -2635,4 +2663,64 @@
 }
 .otherGems li .skillGems {
   margin-left: 0;
+}
+
+/* 스펙업 줄 상세 (#887): the target cell is the button that opens it. It
+   keeps the cell's look; hover and press show it can be opened. */
+.specUpTargetButton {
+  display: block;
+  width: 100%;
+  margin: -4px -6px;
+  padding: 4px 6px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+.specUpTargetButton:active {
+  background: color-mix(in oklab, var(--foreground) 8%, transparent);
+}
+@media (hover: hover) and (pointer: fine) {
+  .specUpTargetButton:hover {
+    background: color-mix(in oklab, var(--foreground) 5%, transparent);
+  }
+  .specUpTargetButton:hover .specUpTarget > span:last-child {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+}
+/* One market line or material: its icon (when there is one), then the name and the gold. */
+/* No image (the API often has none): the name and gold take the whole line. */
+.specUpDetailItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+}
+.specUpDetailItem > :last-child {
+  flex: 1;
+  min-width: 0;
+}
+.specUpDetailSub {
+  color: var(--item-tip-muted);
+  font-size: 0.92em;
+  font-weight: 400;
+}
+.specUpDetailLink {
+  justify-self: start;
+  color: var(--item-tip-link, var(--link));
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* Detail on its way (#901): the pressed target says so until the card opens. */
+.specUpTargetButton[data-loading] {
+  cursor: progress;
+  opacity: 0.6;
 }

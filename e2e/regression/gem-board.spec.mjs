@@ -2,13 +2,18 @@
 // 아직 못 읽은 칸은 '집계 중'. 매물이 와도 화면이 흔들리지 않는다(A7). 메뉴에서 들어올 수 있다.
 import { test, expect, gotoReady } from "../support/fixtures.mjs";
 
-/** Line boxes each element's text takes (1 = no wrap). */
+/** Line boxes each element's text takes (1 = no wrap), from its text nodes only. */
 const lineCounts = (locator) =>
   locator.evaluateAll((els) =>
     els.map((el) => {
-      const range = document.createRange();
-      range.selectNodeContents(el);
-      return new Set([...range.getClientRects()].filter((r) => r.width > 0).map((r) => Math.round(r.top))).size;
+      const tops = new Set();
+      const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+      for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+        const range = document.createRange();
+        range.selectNodeContents(node);
+        for (const r of range.getClientRects()) if (r.width > 0) tops.add(Math.round(r.top));
+      }
+      return tops.size;
     }),
   );
 

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { SHOP_DATA, UNTRADEABLE, checkShopData, lineGold, marketNames, onSale, packageValue, parseRate, purchasePlan, splitBySale, type ShopData } from "../lib/tools/loa-shop";
+import { breakEvenRate, SHOP_DATA, UNTRADEABLE, checkShopData, lineGold, marketNames, onSale, packageValue, parseRate, purchasePlan, splitBySale, type ShopData } from "../lib/tools/loa-shop";
 import { goldText, signedGold } from "../lib/tools/format";
 
 const pkg = (id: string) => SHOP_DATA.packages.find((p) => p.id === id)!;
@@ -195,4 +195,30 @@ test("페온 is left out of the gold like an untradeable content; a package of n
   p.items.push({ kind: "market", name: "없음", qty: 1, detail: null });
   const blocked = packageValue(p, (n) => (n === "없음" ? null : 27.5), 27500);
   assert.deepEqual([blocked.pheon.length, blocked.unknown.length, blocked.gain], [1, 1, null]);
+});
+
+test("without a typed rate, the break-even exchange rate: a gain at it, a loss one gold above (A23, PM 총괄 2026-10-17)", () => {
+  const prices: Record<string, number> = {
+    "운명의 파괴석 결정": 8.8,
+    "운명의 수호석 결정": 1.97,
+    "상급 아비도스 융화 재료": 271,
+    "용암의 숨결": 508,
+    "빙하의 숨결": 455,
+  };
+  const unit = (n: string) => prices[n] ?? null;
+  const growth = pkg("monthly-growth-plus");
+  const be = breakEvenRate(growth, unit);
+  assert.equal(be?.kind, "rate");
+  const rate = (be as { rate: number }).rate;
+  // gold × 2,750 ÷ 99,000, rounded down to whole gold.
+  const gold = packageValue(growth, unit, 1).gold;
+  assert.equal(rate, Math.floor((gold * 2750) / 99000));
+  assert.ok(packageValue(growth, unit, rate).gain! >= 0);
+  assert.ok(packageValue(growth, unit, rate + 1).gain! < 0);
+  // Crystals alone worth more than the price: a gain at any rate.
+  assert.deepEqual(breakEvenRate(pkg("item-level-1700"), () => null), { kind: "always" });
+  // A market content without a price: not known yet.
+  assert.equal(breakEvenRate(growth, (n) => (n === "용암의 숨결" ? null : unit(n))), null);
+  // 페온 only: nothing to value.
+  assert.equal(breakEvenRate(pkg("hangawi-peon"), () => 1), null);
 });

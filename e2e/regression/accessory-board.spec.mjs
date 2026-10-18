@@ -32,9 +32,15 @@ for (const width of [1280, 360]) {
     await expect(cell.locator("[class*=count]")).toHaveText(/^매물 [\d,]+$/);
     const lines = await page.locator("main li button [class*=price]").evaluateAll((els) =>
       els.map((el) => {
-        const range = document.createRange();
-        range.selectNodeContents(el);
-        return new Set([...range.getClientRects()].filter((r) => r.width > 0).map((r) => Math.round(r.top))).size;
+        // Text nodes only (a wrapper's own box is not a line).
+        const tops = new Set();
+        const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+        for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+          const range = document.createRange();
+          range.selectNodeContents(node);
+          for (const r of range.getClientRects()) if (r.width > 0) tops.add(Math.round(r.top));
+        }
+        return tops.size;
       }),
     );
     expect(lines.length, "금액 칸").toBeGreaterThan(0);

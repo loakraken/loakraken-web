@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import { NO_EDITS } from "../lib/combat-power/model";
-import { editsFor, koreanGold, readTry, splitCandidates, tryParam } from "../lib/spec-up/model";
+import { costRoom, editsFor, keepOrder, koreanGold, readTry, splitCandidates, tryParam } from "../lib/spec-up/model";
 import { requestSpecUp } from "../lib/spec-up/upstream";
 import { isSpecUpEnvelope } from "../lib/spec-up/validate";
 
@@ -18,6 +18,27 @@ test("gold reads in Korean units with every digit kept", () => {
   assert.equal(koreanGold(2_620_000), "262만");
   assert.equal(koreanGold(123_456_789), "1억 2,345만 6,789");
   assert.equal(koreanGold(-5_000), "−5,000");
+});
+
+test("a cost cell holds the room of a longer cost of the same size", () => {
+  assert.equal(costRoom(620_000), "888만 8,888G");
+  assert.equal(costRoom(2_620_000), "8,888만 8,888G");
+  assert.equal(costRoom(12_340_000), "88,888만 8,888G");
+  assert.equal(costRoom(5_000), "8만 8,888G");
+  assert.equal(costRoom(123_456_789), "88억 8,888만 8,888G");
+  // ×1.37 of the original stays within the room (as wide or narrower).
+  for (const a of [620_000, 2_620_000, 9_000, 75_000_000])
+    assert.ok(`${koreanGold(Math.round(a * 1.37) + 9_400)}G`.length <= costRoom(a).length, String(a));
+});
+
+test("a refresh keeps listed rows in place; new ones follow, a new sort starts over", () => {
+  const rows = fixture("character-spec-up.json").data.candidates.slice(0, 3);
+  const [a, b, c] = rows;
+  // The backend now ranks c first: the rows on screen stay a, b, c.
+  assert.deepEqual(keepOrder([c, a, b], [a.id, b.id, c.id]).map((r) => r.id), [a.id, b.id, c.id]);
+  // A candidate not shown before goes after them, one gone is simply left out.
+  assert.deepEqual(keepOrder([c, a], [a.id, b.id]).map((r) => r.id), [a.id, c.id]);
+  assert.deepEqual(keepOrder([c, a, b], null).map((r) => r.id), [c.id, a.id, b.id]);
 });
 
 test("backend samples pass the contract, a changed code does not", () => {
@@ -44,6 +65,9 @@ test("OK rows keep the backend order; the rest fold one line per reason", () => 
     candidates.length,
     "no candidate is lost",
   );
+  // The unranked part is in a fixed order whatever order the list came in
+  // (a new order moved its rows on screen, #857 review).
+  assert.deepEqual(splitCandidates([...candidates].reverse()).folded, folded);
 });
 
 test("적용해 보기 turns a change into simulator inputs, through the URL", () => {

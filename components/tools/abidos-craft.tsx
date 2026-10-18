@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import Link from "next/link";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Box } from "@/components/ui/icons";
+import { ChevronDown, ArrowLeft, Box } from "@/components/ui/icons";
 import { SiteHeader } from "@/components/site/site-header";
 import { SegmentedControl, SegmentedItem } from "@/components/ui/segmented-control";
 import { MarketQueryError, postMaterialPricesAll } from "@/lib/market/client";
@@ -74,7 +74,7 @@ function ProfitCell({ value, per100, priced }: { value: number | null; per100: n
   );
 }
 
-function OutputTable({ results, priced }: { results: CraftResult[]; priced: boolean }) {
+function OutputTable({ results, priced, exchange }: { results: CraftResult[]; priced: boolean; exchange: boolean }) {
   const output = results[0].output;
   return (
     <section className={styles.card} aria-labelledby={`craft-${output.id}`}>
@@ -115,6 +115,15 @@ function OutputTable({ results, priced }: { results: CraftResult[]; priced: bool
                   <small>{r.materials.map((m) => `${m.name} ${m.qty}`).join(" · ")}</small>
                   {/* Held from the first paint: what the exchange vendor supplies more cheaply. */}
                   <small className={styles.via}>
+                    {/* The longest it can say (every material of the recipe), unseen:
+                        prices arriving fill the line without the row growing. On a
+                        phone the results are first on screen, so a growing row
+                        moved everything under it (PM-프론트 #886 P1). */}
+                    {exchange && (
+                      <span aria-hidden="true" data-reserve="">
+                        교환으로 마련: {r.materials.map((m) => m.name).join(", ")}
+                      </span>
+                    )}
                     <span key={viaText(r)}>{viaText(r)}</span>
                   </small>
                   {/* Held from the first paint: names a price the market did not give. */}
@@ -173,6 +182,17 @@ export function AbidosCraftTool() {
         : null;
   const observedAt = priceList.map((p) => p.observedAt).sort().at(-1);
   const unit = (name: string) => market.get(name) ?? null;
+  // Phones (≤900): the results come first and the conditions fold under them
+  // behind a one-line summary of the current values (QA 10-16, PM 총괄
+  // 10-17 A23): every field has a default, so the first screen is a result.
+  const [conditionsOpen, setConditionsOpen] = useState(false);
+  const foldId = useId();
+  const conditionsSummary = [
+    `대성공 +${percentText(increase)}%`,
+    `수수료 −${percentText(feeCut)}%`,
+    `활동력 −${percentText(energyCut.overall + energyCut.category)}%`,
+    `교환 상인 ${exchange ? "켬" : "끔"}`,
+  ].join(" · ");
 
   return (
     <div className={quote.page}>
@@ -196,9 +216,23 @@ export function AbidosCraftTool() {
         <div className={quote.band}>
           <div className={styles.workspace}>
             <section className={styles.settings} aria-labelledby="craft-settings">
-              <h2 id="craft-settings" className={styles.sectionTitle}>
+              <h2 id="craft-settings" className={`${styles.sectionTitle} ${styles.conditionsTitle}`}>
                 계산 조건
               </h2>
+              <button
+                type="button"
+                className={styles.foldToggle}
+                aria-expanded={conditionsOpen}
+                aria-controls={foldId}
+                onClick={() => setConditionsOpen((open) => !open)}
+              >
+                <span>
+                  <strong>계산 조건</strong>
+                  <small>{conditionsSummary}</small>
+                </span>
+                <ChevronDown size={16} aria-hidden="true" />
+              </button>
+              <div id={foldId} className={styles.foldBody} data-open={conditionsOpen || undefined}>
               <PercentField
                 label="대성공 확률 증가"
                 hint={`대성공 확률 ${percentText(greatSuccessChance(increase) * 100)}% · 1회 평균 ${percentText(expectedYield(increase))}개`}
@@ -229,6 +263,7 @@ export function AbidosCraftTool() {
                 checked={exchange}
                 onChange={setExchange}
               />
+              </div>
               {failure && (
                 <div className={quote.notice}>
                   <div role="alert">
@@ -270,6 +305,7 @@ export function AbidosCraftTool() {
                     key={output.id}
                     priced={priced}
                     results={CRAFT_DATA.skills.map((skill) => craftResult(output.id, skill.id, unit, increase, feeCut, energyCut, exchange))}
+                    exchange={exchange}
                   />
                 ))}
               </div>
