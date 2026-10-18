@@ -13,6 +13,9 @@ for (const width of [1280, 360])
       await expect(source.getByRole("listitem").filter({ has: page.locator("strong", { hasText: new RegExp(`^${name}$`) }) })).toHaveCount(1);
     for (const key of ["equipment", "engravings", "arkPassive", "arkGrid", "siblings", "collectibles"])
       await expect(source, `내부 키 '${key}'`).not.toContainText(key);
-    await expect(page.getByRole("region", { name: "세팅 점검 결과" }), "규칙 버전").not.toContainText("observed-v");
+    const results = page.getByRole("region", { name: "세팅 점검 결과" });
+    await expect(results, "규칙 버전").not.toContainText("observed-v");
+    // The evidence's JSON path is a developer detail: on hover only, not in the text.
+    await expect(results, "근거 경로").not.toContainText("/data/");
     await expect(source).toContainText("데이터 미제공은 전투정보실이 그 정보를 주지 않은 것이고, 조회 안 함은");
   });
