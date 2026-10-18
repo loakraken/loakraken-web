@@ -251,3 +251,22 @@ export function krakenUnavailableCopy(reason: string | null | undefined): string
               : "지금은 크라켄 점수 순으로 정렬할 수 없어요.";
   return `${why} 1만 골드당 효율 순으로 보여 드려요.`;
 }
+
+// The same, short enough for the sort bar (the sentence above is read out).
+const KRAKEN_NOTES: Record<string, string> = {
+  DISABLED: "점수 정렬 준비 중",
+  INPUT_PENDING: "점수 정보 모으는 중",
+  ROLE_UNKNOWN: "역할 확인 못 함",
+  SUPPORTER_PENDING: "서포터 점수 준비 중",
+  SCORE_UNAVAILABLE: "점수 계산 못 함",
+};
+const KRAKEN_NOTE_OTHER = "지금은 점수 정렬 불가";
+
+/** "점수 정렬 준비 중 · 효율 순": what the bar shows in place of the cooldown toggle. */
+export function krakenUnavailableNote(reason: string | null | undefined): string | null {
+  if (!reason) return null;
+  return `${KRAKEN_NOTES[reason] ?? KRAKEN_NOTE_OTHER} · 효율 순`;
+}
+
+/** Every note the bar can show, for holding the room of the longest one. */
+export const KRAKEN_NOTE_ALL = [...Object.values(KRAKEN_NOTES), KRAKEN_NOTE_OTHER].map((why) => `${why} · 효율 순`);

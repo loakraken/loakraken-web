@@ -2703,14 +2703,25 @@
 .specUpCooldown:active {
   scale: var(--press-scale);
 }
-.specUpReason {
-  margin: 8px 0 0;
+/* The toggle and the notes share one grid cell; the cell is as wide as the widest. */
+.specUpKrakenSlot {
+  display: inline-grid;
+  align-items: center;
+  justify-items: end;
+}
+.specUpKrakenSlot > *,
+.specUpKrakenRoom > * {
+  grid-area: 1 / 1;
+}
+.specUpKrakenRoom {
+  display: grid;
+  visibility: hidden;
+}
+.specUpKrakenRoom,
+.specUpKrakenNote {
   color: var(--muted-foreground);
   font-size: 12px;
-  line-height: 1.5;
-}
-.specUpReason[data-held] {
-  min-height: 2lh;
+  white-space: nowrap;
 }
 
 /* Off (other sorts, or 크라켄 점수 순 not available): its room stays so the bar never re-flows;

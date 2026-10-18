@@ -247,7 +247,9 @@ test.describe("스펙업 가이드 @smoke", () => {
     await page.goto(characterPath("스펙업점수꺼짐", "specup"));
     await expect(page.getByRole("table", { name: /스펙업 후보/ }).locator("tbody tr")).toHaveCount(3);
     await page.getByRole("button", { name: "크라켄 점수 순" }).click();
-    await expect(page.getByText("크라켄 점수 순은 아직 준비 중이에요. 1만 골드당 효율 순으로 보여 드려요.")).toBeVisible();
+    // Short in the bar, the whole sentence for a screen reader (the same status).
+    await expect(page.getByRole("status").getByText("점수 정렬 준비 중 · 효율 순", { exact: true })).toBeVisible();
+    await expect(page.getByRole("status").filter({ hasText: "크라켄 점수 순은 아직 준비 중이에요. 1만 골드당 효율 순으로 보여 드려요." })).toHaveCount(1);
     await expect(page.getByRole("table", { name: /1만 골드당 효율 순/ })).toBeVisible();
     await expect(page.getByRole("button", { name: /작열 보석/ })).toBeHidden(); // visibility: hidden, room kept
   });
@@ -258,7 +260,7 @@ test.describe("스펙업 가이드 @smoke", () => {
     await page.goto(characterPath("스펙업옛응답", "specup"));
     await expect(page.getByRole("table", { name: /스펙업 후보/ }).locator("tbody tr")).toHaveCount(3);
     await page.getByRole("button", { name: "크라켄 점수 순" }).click();
-    await expect(page.getByText("크라켄 점수 순은 아직 준비 중이에요. 1만 골드당 효율 순으로 보여 드려요.")).toBeVisible();
+    await expect(page.getByRole("status").getByText("점수 정렬 준비 중 · 효율 순", { exact: true })).toBeVisible();
     expect(sorts).not.toContain("KRAKEN");
   });
 

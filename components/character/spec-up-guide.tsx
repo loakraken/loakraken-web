@@ -3,7 +3,7 @@
 // next, ranked by combat power per 10,000 gold (or by the gain alone). Every
 // number comes from the backend; candidates it could not compute fold into one
 // line per reason, and "적용해 보기" opens the simulator tab with the change.
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChangeMark, useChangedCells, type Pulse } from "@/components/ui/changed-cells";
@@ -17,7 +17,9 @@ import {
   editsFor,
   keepOrder,
   kindLabel,
+  KRAKEN_NOTE_ALL,
   krakenUnavailableCopy,
+  krakenUnavailableNote,
   sortCaption,
   splitKrakenCandidates,
   costRoom,
@@ -149,12 +151,12 @@ export default function SpecUpGuide({ data }: { data: Character }) {
   // a different cooldown choice is a different list, not a reordered refresh.
   const listKey = guide ? `${guide.sort}:${guide.sort === "KRAKEN" ? String(guide.cooldownGemsIncluded) : ""}` : null;
   const krakenShown = guide?.sort === "KRAKEN";
-  const notice =
-    sort === "KRAKEN"
-      ? krakenKnown === false
-        ? krakenUnavailableCopy("DISABLED")
-        : krakenUnavailableCopy(guide?.krakenSortUnavailableReason)
-      : null;
+  // Known before the press: the efficiency list already says why (the reason
+  // does not depend on the sort), so the bar changes in the same frame.
+  const offReason =
+    sort === "KRAKEN" ? (krakenKnown === false ? "DISABLED" : (guide?.krakenSortUnavailableReason ?? null)) : null;
+  const notice = krakenUnavailableCopy(offReason);
+  const note = krakenUnavailableNote(offReason);
   const candidates = useMemo(
     () => (guide ? keepOrder(guide.candidates, order?.sort === listKey ? order.ids : null) : []),
     [guide, order, listKey],
@@ -209,21 +211,34 @@ export default function SpecUpGuide({ data }: { data: Character }) {
             </button>
           ))}
         </div>
-        {/* Held in the bar for every sort (no late layout change); only 크라켄 점수 순 uses it. */}
-        <button
-          type="button"
-          className={styles.specUpCooldown}
-          aria-pressed={cooldown}
-          data-off={sort !== "KRAKEN" || !!notice || undefined}
-          onClick={() => setCooldown((on) => !on)}
-        >
-          작열 보석 포함
-        </button>
+        {/* One slot held in the bar for every sort (A7: nothing below moves on a
+            press or a late answer): the cooldown toggle, or why 크라켄 점수 순 is
+            off. Its room is the widest of the toggle and every note. */}
+        <span className={styles.specUpKrakenSlot}>
+          <button
+            type="button"
+            className={styles.specUpCooldown}
+            aria-pressed={cooldown}
+            data-off={sort !== "KRAKEN" || !!note || undefined}
+            onClick={() => setCooldown((on) => !on)}
+          >
+            작열 보석 포함
+          </button>
+          <span className={styles.specUpKrakenRoom} aria-hidden="true">
+            {KRAKEN_NOTE_ALL.map((text) => (
+              <span key={text}>{text}</span>
+            ))}
+          </span>
+          <span className={styles.specUpKrakenNote} role="status">
+            {note && (
+              <>
+                <span aria-hidden="true">{note}</span>
+                <span className={styles.sr}>{notice}</span>
+              </>
+            )}
+          </span>
+        </span>
       </div>
-      {/* Why 크라켄 점수 순 is not in use: two lines held whenever that sort is picked. */}
-      <p className={styles.specUpReason} role="status" data-held={sort === "KRAKEN" || undefined}>
-        {notice ?? ""}
-      </p>
       {/* Its own line, held before the answer arrives (CLS 0). */}
       <p className={styles.specUpPrices}>
         {guide?.pricesAt ? `시세 ${kstTime(guide.pricesAt)} 기준` : ""}
@@ -284,7 +299,10 @@ export default function SpecUpGuide({ data }: { data: Character }) {
             후보를 계산하고 있어요
           </p>
         ) : (
-          <>
+          // Keyed by the list (sort and cooldown choice): another list is drawn
+          // anew, so the lines under the table are not slid down as it grows (A7).
+          // The minute refresh keeps the key, and its change marks (#857).
+          <Fragment key={listKey}>
             {ok.length === 0 ? (
               <p className={styles.muted}>지금 계산할 수 있는 후보가 없어요.</p>
             ) : (
@@ -404,7 +422,7 @@ export default function SpecUpGuide({ data }: { data: Character }) {
                 </ul>
               </section>
             )}
-          </>
+          </Fragment>
         )}
       </div>
       <SpecUpGoal data={data} />
