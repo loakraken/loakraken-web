@@ -198,8 +198,8 @@ test.describe("시세 1분 자동 갱신 @smoke", () => {
       });
       await page.reload();
       await page.getByRole("group", { name: "모든 부위 목표 단계" }).getByRole("button", { name: "+20" }).click();
-      const row = page.getByRole("row").filter({ has: page.getByRole("rowheader", { name: /용암의 숨결/ }) });
-      await expect(row.getByRole("rowheader")).toContainText(text);
+      // Structural, not by role: on a phone the table is laid out as cards.
+      await expect(page.locator("th[scope=row]").filter({ hasText: "용암의 숨결" })).toContainText(text);
     });
 
   test("재료 견적: 계산한 뒤 1분마다 같은 입력으로 다시 계산하고, 화면은 제자리다", async ({ page }) => {
