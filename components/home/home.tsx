@@ -28,6 +28,7 @@ import { QuickMenu } from "./quick-menu";
 import styles from "./home.module.css";
 import { countdownText } from "@/lib/api/rate-limit";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
+import { safeGameImage } from "@/lib/character/model";
 
 const useNews = () =>
   useQuery({
@@ -198,13 +199,14 @@ function MarketSummary() {
         <ul className={styles.market}>
           {items.map((item) => {
             const change = changeLabel(item.changeDay);
+            const icon = safeGameImage(item.icon);
             return (
               <li key={item.itemId}>
                 <Link href="/market?tab=REFINING">
-                  {item.icon && (
+                  {icon && (
                     // eslint-disable-next-line @next/next/no-img-element -- official CDN icon at a fixed size
                     <img
-                      src={item.icon}
+                      src={icon}
                       alt=""
                       width={28}
                       height={28}
