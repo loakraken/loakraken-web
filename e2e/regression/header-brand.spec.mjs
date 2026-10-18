@@ -1,6 +1,8 @@
 // 회귀(사용자 제보 v0.3.2): 휴대폰에서 캐릭터 화면만 로고가 아이콘뿐이었다(다른 화면은 아이콘 +
 // 'LOAKraken'). 모든 화면·너비에서 아이콘과 이름이 함께 보이고, 헤더 높이가 같고, 가로로 넘치지 않는다.
 // 캐릭터 화면도 공용 검색 버튼이 있다(헤더 안 검색칸은 900px 이하에서 숨김).
+// QA P1(v0.3.1.3): 소개(/about) 360에서 로고 이름과 '캐릭터 검색' 버튼이 겹쳐 글자가 가려지고 버튼이
+// 눌리지 않았다. 헤더의 모든 버튼·링크는 가운데를 누르면 자기가 눌리고, 로고 이름 위에 다른 버튼이 없다.
 import { test, expect, characterPath, gotoReady } from "../support/fixtures.mjs";
 
 const PAGES = [
@@ -8,10 +10,13 @@ const PAGES = [
   ["캐릭터", characterPath("상세")],
   ["시세", "/market"],
   ["통계", "/stats"],
+  ["소개", "/about"],
 ];
+// The about page's header is the landing's own (fixed): the same height is asked of the others.
+const SAME_HEIGHT = new Set(["홈", "캐릭터", "시세", "통계"]);
 
-for (const width of [360, 390, 1280])
-  test(`@로고 ${width}: 모든 화면에서 아이콘 + LOAKraken, 헤더 높이 같음, 가로 넘침 없음 @regression`, async ({ page }) => {
+for (const width of [320, 360, 390, 1280])
+  test(`@로고 ${width}: 모든 화면에서 아이콘 + LOAKraken, 겹침 없음, 헤더 높이 같음, 가로 넘침 없음 @regression`, async ({ page }) => {
     await page.setViewportSize({ width, height: 800 });
     const heights = [];
     for (const [name, path] of PAGES) {
@@ -37,7 +42,31 @@ for (const width of [360, 390, 1280])
         };
       });
       expect(overflow, `${name}: 가로 넘침`).toEqual({ page: 0, header: 0, outside: [] });
-      heights.push([name, Math.round((await header.boundingBox()).height)]);
+      // Every control takes its own press at its middle, and none sits on the logo's name.
+      const clash = await header.evaluate((head) => {
+        const shown = (el) => el.getClientRects().length > 0 && getComputedStyle(el).visibility !== "hidden";
+        const controls = [...head.querySelectorAll("a, button")].filter(shown);
+        const label = (el) => el.getAttribute("aria-label") || el.textContent.trim().slice(0, 16);
+        const out = [];
+        for (const el of controls) {
+          const r = el.getBoundingClientRect();
+          const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+          if (!hit || !el.contains(hit)) out.push(`${label(el)} 가운데를 누르면 ${hit ? label(hit.closest("a, button") ?? hit) : "없음"}`);
+        }
+        const logoName = [...head.querySelectorAll("a span")].find((s) => s.textContent.trim() === "LOAKraken");
+        if (logoName) {
+          const n = logoName.getBoundingClientRect();
+          for (const el of controls) {
+            if (el.contains(logoName)) continue;
+            const r = el.getBoundingClientRect();
+            if (r.left < n.right - 0.5 && r.right > n.left + 0.5 && r.top < n.bottom - 0.5 && r.bottom > n.top + 0.5)
+              out.push(`로고 이름 위에 ${label(el)}`);
+          }
+        }
+        return out;
+      });
+      expect(clash, `${name}: 헤더 겹침`).toEqual([]);
+      if (SAME_HEIGHT.has(name)) heights.push([name, Math.round((await header.boundingBox()).height)]);
     }
     test.info().annotations.push({ type: "헤더 높이", description: JSON.stringify(heights) });
     expect(new Set(heights.map(([, h]) => h)).size, `헤더 높이 ${JSON.stringify(heights)}`).toBe(1);
