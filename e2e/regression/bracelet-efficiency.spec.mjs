@@ -21,7 +21,8 @@ test("딜러: 실 효율, '악마 피해'를 켜면 그 값, 줄별 기여 없�
   await devil.click();
   await expect(head).toContainText("+11.30%");
   await expect(head.getByRole("button", { name: /줄별 보기$/ })).toHaveCount(0);
-  await expect(page.getByText("+4.12%")).toHaveCount(0);
+  // The old per-line contribution (+4.12% on 치명타 피해) is gone from the bracelet.
+  await expect(term(page).locator("xpath=ancestor::div[1]")).not.toContainText("+4.12%");
 });
 
 test("서포터는 등급만(% 없음), 계산 못 하면 '준비 중' @regression", async ({ page }) => {

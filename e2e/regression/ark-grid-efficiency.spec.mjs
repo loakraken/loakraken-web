@@ -21,11 +21,11 @@ test("딜러: 합계·젬 옵션·코어 포인트, 질서·혼돈, 줄별 보�
   await expect(page.getByText("+7.67%")).toHaveCount(0);
   await expect(page.getByText("코어 +31.74%")).toHaveCount(0);
 
-  const toggle = head(page).getByRole("button", { name: "아크 그리드 효율 줄별 보기" });
+  const toggle = head(page).getByRole("button", { name: "아크 그리드 젬 옵션 줄별 보기" });
   await expect(toggle).toHaveAttribute("aria-expanded", "false");
   await expect(page.getByText("+0.99%")).toHaveCount(0);
   await toggle.click();
-  const close = head(page).getByRole("button", { name: "아크 그리드 효율 줄별 접기" });
+  const close = head(page).getByRole("button", { name: "아크 그리드 젬 옵션 줄별 접기" });
   const lines = page.locator(`[id="${await close.getAttribute("aria-controls")}"] > li`);
   await expect(lines).toHaveCount(3);
   await expect(lines.nth(0)).toContainText("공격력 Lv.28");

@@ -751,7 +751,7 @@ function ArkRealHead({ view }: { view: ArkGridRealView }) {
             className={styles.textButton}
             aria-expanded={open}
             aria-controls={listId}
-            aria-label={open ? "아크 그리드 효율 줄별 접기" : "아크 그리드 효율 줄별 보기"}
+            aria-label={open ? "아크 그리드 젬 옵션 줄별 접기" : "아크 그리드 젬 옵션 줄별 보기"}
             onClick={() => setOpen(!open)}
           >
             {open ? "줄별 접기" : "줄별 보기"}

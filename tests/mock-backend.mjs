@@ -2129,7 +2129,7 @@ createServer(async (req, res) => {
       detail: { parserVersion: "equipment-tooltip-v3", refineLevel, quality: 90, itemLevel: 1640 + refineLevel * 5, tier: 4, arkPassivePoint: null, effects: [], stoneEngravings: [], polishEffects: [], braceletEffects: [] },
     }));
   }
-  if (name === "상세" || name === "상세서포터" || name === "대세블레이드" || name === "가려짐긴값캐릭터") {
+  if (name === "상세" || name === "상세서포터" || name === "대세블레이드" || name === "가려짐긴값캐릭터" || name === "아크없음" || name === "효율준비중") {
     // Detail-page mock: a locally supplied character file (never committed) or
     // the synthetic fixture, enriched with synthetic Tooltip detail and skills.
     if (process.env.MOCK_CHARACTER_FILE)
@@ -2432,13 +2432,13 @@ createServer(async (req, res) => {
   // grid not worked out yet (an older search, worked out on the next).
   const unsupportedReal = (reasonCode) => ({ status: "UNSUPPORTED", reasonCode, reason: "로그용 문장", percent: null, optionsPercent: null, pointsPercent: null, options: [], series: [], ruleVersion: "ark-grid-real-v1" });
   if (name === "아크없음" || name === "효율준비중") {
-    const efficiency = (real) => ({ percent: null, coresPercent: null, status: "UNSUPPORTED", reasonCode: "UNAVAILABLE", reason: null, lines: [], ruleVersion: "ark-grid-efficiency-v1", real });
+    const efficiency = (real) => ({ percent: null, coresPercent: null, status: "UNSUPPORTED", reasonCode: "UNAVAILABLE", reason: "계산하지 않았어요.", lines: [], ruleVersion: "ark-grid-efficiency-v1", real });
     if (name === "아크없음") {
       envelope.data.loadout.arkGrid = null;
       envelope.data.arkGridEfficiency = efficiency(unsupportedReal("UNAVAILABLE"));
     } else envelope.data.arkGridEfficiency = efficiency(unsupportedReal("INPUT_PENDING"));
     envelope.data.braceletEfficiency = {
-      percent: null, status: "UNSUPPORTED", reasonCode: "UNAVAILABLE", reason: null, lines: [], ruleVersion: "combat-power-v3",
+      percent: null, status: "UNSUPPORTED", reasonCode: "UNAVAILABLE", reason: "계산하지 않았어요.", lines: [], ruleVersion: "combat-power-v3",
       real: { status: "UNSUPPORTED", reasonCode: "INPUT_PENDING", reason: "로그용 문장", role: null, percent: null, devilDamagePercent: null, ruleVersion: "bracelet-real-v1" },
     };
   }
