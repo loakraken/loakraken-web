@@ -9,7 +9,11 @@ const note = (page) => page.getByRole("region", { name: "집계 기준 안내" }
 /** From the bottom of the tab's own content (inside the panel's room) to the note's top. */
 const gap = async (page) => {
   const content = await page.getByRole("tabpanel").evaluate((panel) => {
-    const parts = [...(panel.firstElementChild?.children ?? [])].filter((el) => el.getAttribute("aria-label") !== "집계 기준 안내");
+    const note = document.querySelector('[aria-label="집계 기준 안내"]');
+    // Inside the tab: what comes right before it. Outside (under the panel):
+    // the tab's own content, not the room the panel keeps.
+    if (panel.contains(note)) return note.previousElementSibling?.getBoundingClientRect().bottom ?? null;
+    const parts = [...(panel.firstElementChild?.children ?? [])];
     return parts.length ? Math.max(...parts.map((el) => el.getBoundingClientRect().bottom)) : null;
   });
   const top = await note(page).evaluate((el) => el.getBoundingClientRect().top);
