@@ -37,6 +37,9 @@ test("빈 칸이면 인기 캐릭터와 기능이 보이고, 입력칸이 결과
 test("테마 바꾸기 줄은 다음 테마로 바꾸고 창을 닫지 않는다 @regression", async ({ page }) => {
   await openSearch(page);
   const row = page.getByRole("option", { name: /테마 바꾸기/ });
+  // Nothing stored: the system theme (user decision 10-18), light under a light OS.
+  await expect(row).toContainText("지금 시스템 · 누르면 라이트");
+  await row.click();
   await expect(row).toContainText("지금 라이트 · 누르면 딤");
   await row.click();
   await expect.poll(() => page.evaluate(() => document.documentElement.dataset.theme)).toBe("dim");

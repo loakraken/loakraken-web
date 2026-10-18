@@ -1,5 +1,5 @@
 // Pure helpers for the 내실·아바타 tabs (#74).
-import type { Character } from "./model";
+import { safeGameImage, type Character } from "./model";
 
 type Avatar = Character["avatars"][number];
 
@@ -74,4 +74,29 @@ export function rarestOwned(items: readonly CollectibleItem[], shareOf: (name: s
     if (!best || share < best.share) best = { name: item.name, share };
   }
   return best;
+}
+
+type Decorations = NonNullable<Character["decorations"]>;
+export type DecorationPart = { kind: "image"; url: string; alt: string } | { kind: "text"; text: string };
+
+/** A value with a scheme (or protocol-relative), or an image file name, is an address, not a name to show. */
+const isAddress = (value: string) => /^([a-z][a-z\d+.-]*:|\/\/)/i.test(value) || /\.(png|jpe?g|gif|webp|svg)(\?.*)?$/i.test(value);
+
+/**
+ * 문장·심볼: the official answer sends image addresses, so they are drawn as
+ * pictures ('문장 1'·'문장 2'·'심볼'); a plain name stays text. An address from
+ * anywhere but the official image hosts is dropped, never shown as text.
+ */
+export function decorationParts(decorations: Decorations) {
+  const part = (value: string, alt: string): DecorationPart | null => {
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    if (!isAddress(trimmed)) return { kind: "text", text: trimmed };
+    const url = safeGameImage(trimmed);
+    return url ? { kind: "image", url, alt } : null;
+  };
+  return {
+    emblems: decorations.emblems.map((value, i) => part(value, `문장 ${i + 1}`)).filter((p) => p !== null),
+    symbol: decorations.symbol ? part(decorations.symbol, "심볼") : null,
+  };
 }

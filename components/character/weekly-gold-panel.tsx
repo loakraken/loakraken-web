@@ -56,7 +56,7 @@ export function WeeklyGoldPanel({
       </ol>
       <p className={styles.note}>
         아이템 레벨이 높은 순으로 {gold.rows.length}캐릭터가 골드를 받고, 캐릭터마다 골드가 가장 많은 레이드
-        3개를 깬다고 보고 셌어요(더보기 제외).
+        3개를 깬다고 보고 계산했어요(더보기 제외).
         {gold.unknownGates > 0 && ` 골드 미확인 관문 ${gold.unknownGates}개는 빠져 있어요.`}
         {gold.unsettled.length > 0 && ` 합계에서 뺀 항목(클리어 골드 데이터 없음): ${gold.unsettled.join(", ")}.`}{" "}
         <Link href="/tools/homework" prefetch={false}>
