@@ -70,3 +70,37 @@ test("@크라켄점수 공개 전(DISABLED)이나 점수가 없는 응답은 항
     await expect(item(page)).toHaveCount(0);
   }
 });
+
+// QA v0.3.1 P2-6·7: what the score is (not the official combat power) and
+// where the tiers start behind ⓘ; '준비 중' says why, with no empty bar that
+// reads as 0 points (backend 1팀's reason sentences, the page's '갱신').
+for (const width of [1280, 360])
+  test(`@크라켄점수 ${width} ⓘ 안내와 '준비 중' 이유, 빈 막대 없음, 잘림 없음 @regression`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await gotoReady(page, characterPath("상세"));
+    await item(page).getByRole("button", { name: "크라켄 점수 안내" }).click();
+    const help = page.getByRole("dialog");
+    await expect(help).toContainText("공식 전투력과는 다른 값");
+    await expect(help).toContainText("다이아 티어는 5,000점부터, 마스터 티어는 6,700점부터예요.");
+    await page.keyboard.press("Escape");
+    await expect(help).toHaveCount(0);
+
+    for (const [name, short, long] of [
+      ["크라켄준비중", "갱신하면 계산돼요", "이전에 조회한 기록이라 점수를 아직 계산하지 않았어요."],
+      ["크라켄실패", "계산하지 못했어요", "점수를 계산하지 못했어요. 잠시 뒤 갱신해 주세요."],
+    ]) {
+      await gotoReady(page, characterPath(name));
+      const box = item(page);
+      await expect(box).toContainText("준비 중");
+      await expect(box).toContainText(short);
+      // No bar at all: an empty one read as 0 points.
+      await expect(box.locator("span[aria-hidden]")).toHaveCount(0);
+      const cut = await box.evaluate((el) =>
+        [...el.querySelectorAll("small, :scope > span")].filter((n) => n.scrollWidth > n.clientWidth + 1).map((n) => n.textContent),
+      );
+      expect(cut, "잘린 줄").toEqual([]);
+      await box.getByRole("button", { name: "크라켄 점수 안내" }).click();
+      await expect(page.getByRole("dialog")).toContainText(long);
+      await page.keyboard.press("Escape");
+    }
+  });
