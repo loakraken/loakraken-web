@@ -19,6 +19,7 @@ import {
   formatGold,
   marketFailureCopy,
   priceBases,
+  priceUnavailableCopy,
   type MaterialPrice,
   type PriceBasis,
 } from "@/lib/market/model";
@@ -390,7 +391,7 @@ function PriceSource({ line }: { line: CostLine }) {
   if (price.status === "NOT_FOUND")
     return <small>거래소에 없어요 · 귀속 재료는 합계에서 빼요</small>;
   if (price.status === "PRICE_UNAVAILABLE")
-    return <small>선택한 기준의 가격이 없어요</small>;
+    return <small>{priceUnavailableCopy(price.unavailableReason)}</small>;
   if (price.contentsPerItem != null)
     return (
       <small>
