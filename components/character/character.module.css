@@ -59,7 +59,10 @@
 }
 .searchWrap {
   margin-left: auto;
-  width: min(450px, 60%);
+  /* Up to 450px, narrower when the header is full (the slot shrinks). */
+  width: 450px;
+  max-width: 100%;
+  min-width: 0;
 }
 /* Where the site header folds (900px and under) its search button is the
    only character search: two controls doing one thing side by side (A19). */

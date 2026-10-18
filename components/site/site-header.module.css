@@ -36,7 +36,10 @@
 }
 .nav {
   display: flex;
-  flex: 1;
+  /* Never narrower than its links: with wider fallback fonts (Linux,
+     Android) the shrinking nav let its links run under the page slot
+     (the character page's search covered 통계 at 1280). The slot gives way. */
+  flex: 1 0 auto;
   align-items: center;
   min-width: 0;
 }
@@ -92,7 +95,7 @@
 }
 .slot {
   display: flex;
-  flex: none;
+  flex: 0 1 auto;
   align-items: center;
   gap: 8px;
   min-width: 0;
