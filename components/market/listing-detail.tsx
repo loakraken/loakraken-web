@@ -7,7 +7,7 @@
 // keeps the list it was opened from (the 1-minute refresh does not redraw the
 // rows under it), and says so on the card when that listing has since gone.
 
-import type { ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import {
   ItemDetail,
   ItemDetailSection,
@@ -43,12 +43,6 @@ export function listingKey(item: Listing) {
   return JSON.stringify([item.name, item.grade, item.quality, item.buyPrice, item.bidStartPrice, item.endDate, item.tradeAllowCount, item.options]);
 }
 
-/** The icon only when the answer carries one (an older backend dropped it) and it is an official address. */
-function iconOf(item: Listing) {
-  const value = (item as { icon?: unknown }).icon;
-  return typeof value === "string" ? safeGameImage(value) : null;
-}
-
 const amount = (option: Option) =>
   option.value == null ? "" : ` +${option.value.toLocaleString("ko-KR", { maximumFractionDigits: 2 })}${option.percentage ? "%" : ""}`;
 
@@ -67,7 +61,8 @@ function ListingCard({
   const now = useClock(MINUTE);
   const info: ReactNode[] = [[item.grade, kind].filter(Boolean).join(" ")];
   if (item.quality != null && item.quality >= 0) info.push(<ItemQuality value={item.quality} />);
-  const icon = iconOf(item);
+  // Only an official address; none when the backend sends no icon (one from before it).
+  const icon = safeGameImage(item.icon);
   // Gem effects name their class; polish lines carry a tier; the rest are plain effects.
   const gem = item.options.filter((o) => o.className);
   const polish = item.options.filter((o) => !o.className && o.level);
@@ -124,6 +119,34 @@ function ListingCard({
   );
 }
 
+const KEEP_FOCUS = new Set<string>(["escape-key", "close-press", "trigger-press"]);
+
+/**
+ * Puts focus back on a listing's name after its card closes (`keepFocus`),
+ * also when closing draws the rows again because a newer page came while it
+ * was open, so the name it opened from is gone; then the same listing's new
+ * name takes it, or the first name when that listing is no longer listed.
+ */
+export function useListingRefocus(items: Listing[] | undefined) {
+  const pending = useRef<string | null>(null);
+  const body = useRef<HTMLTableSectionElement>(null);
+  // After every commit: the one following a close finds the rows as drawn now.
+  useEffect(() => {
+    const key = pending.current;
+    if (!key) return;
+    pending.current = null;
+    const names = body.current?.querySelectorAll<HTMLElement>("th button");
+    const at = items?.findIndex((item) => listingKey(item) === key) ?? -1;
+    (names?.[at] ?? names?.[0])?.focus({ preventScroll: true });
+  });
+  return {
+    body,
+    refocus: (key: string | null) => {
+      pending.current = key;
+    },
+  };
+}
+
 /**
  * The listing's name, as the button that opens its card (a press, never a
  * hover: moving down a long list must not pop cards up). On a pointer the card
@@ -145,11 +168,20 @@ export function ListingName({
   kind: string;
   observedAt: string | null;
   gone: boolean;
-  onOpenChange: (open: boolean) => void;
+  /** `keepFocus`: closed from the keyboard, its close button or the name itself. */
+  onOpenChange: (open: boolean, keepFocus: boolean) => void;
 }) {
+  const trigger = useRef<HTMLButtonElement>(null);
   return (
-    <ItemTooltip onOpenChange={(open) => onOpenChange(open)}>
-      <ItemTooltipTrigger className={styles.name} openOnHover={false}>
+    <ItemTooltip
+      onOpenChange={(open, details) => {
+        const keepFocus = !open && KEEP_FOCUS.has(details.reason);
+        // Right away, not after the sheet's closing slide.
+        if (keepFocus) trigger.current?.focus({ preventScroll: true });
+        onOpenChange(open, keepFocus);
+      }}
+    >
+      <ItemTooltipTrigger ref={trigger} className={styles.name} openOnHover={false}>
         {label}
       </ItemTooltipTrigger>
       <ItemTooltipContent aria-label={`${item.name} 상세`}>

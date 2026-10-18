@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useId, useMemo, useState } from "react";
-import { ListingName, listingKey } from "./listing-detail";
+import { ListingName, listingKey, useListingRefocus } from "./listing-detail";
 import { useRouter } from "next/navigation";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { SiteHeader } from "@/components/site/site-header";
@@ -180,8 +180,11 @@ export function AccessoryBoardView({ initialFilter, initialPick }: { initialFilt
   const [opened, setOpened] = useState<{ key: string; page: NonNullable<typeof page>; version: number } | null>(null);
   const shown = opened?.page ?? page;
   const latestKeys = new Set((page?.items ?? []).map(listingKey));
-  const openFor = (key: string) => (open: boolean) =>
+  const { body, refocus } = useListingRefocus((shown ?? page)?.items);
+  const openFor = (key: string) => (open: boolean, keepFocus: boolean) => {
     setOpened(open && shown ? { key, page: shown, version: opened?.version ?? listings.dataUpdatedAt } : null);
+    refocus(!open && keepFocus ? key : null);
+  };
   const slotName = (pick && data?.slots.find((s) => s.slot === pick.slot)?.slotName) || "장신구";
   const latest = data?.slots
     .flatMap((slot) => slot.cells)
@@ -311,7 +314,7 @@ export function AccessoryBoardView({ initialFilter, initialPick }: { initialFilt
                     <th scope="col">거래 가능</th>
                   </tr>
                 </thead>
-                <tbody key={opened?.version ?? listings.dataUpdatedAt}>
+                <tbody ref={body} key={opened?.version ?? listings.dataUpdatedAt}>
                   {(shown ?? page).items.map((item, i) => (
                     <tr key={`${item.name}-${i}`}>
                       <th scope="row">

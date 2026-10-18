@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   accessorySearch,
   isAccessoryBoardEnvelope,
+  isAccessoryListingsEnvelope,
   isPicked,
   parseAccessoryFilter,
   parseAccessoryPick,
@@ -47,6 +48,7 @@ test("picked cell, polish words and the board contract", () => {
       { type: "STAT", name: "힘", value: 12000, percentage: false, level: null, className: null },
       { type: "ACCESSORY_UPGRADE", name: "추피", value: 1.6, percentage: true, level: "MID" as const, className: null },
     ],
+    icon: null,
   };
   assert.equal(polishText(listing), "적주피 상 · 추피 중");
   const board = {
@@ -59,4 +61,15 @@ test("picked cell, polish words and the board contract", () => {
   };
   assert.equal(isAccessoryBoardEnvelope(board), true);
   assert.equal(isAccessoryBoardEnvelope({ ...board, code: "AUCTION_GEMS_SUCCESS" }), false);
+  // Listings: filter is always null here; a backend before api #548·#613 sends neither it nor icons.
+  const listings = {
+    code: "AUCTION_LISTINGS_SUCCESS",
+    message: "ok",
+    data: { totalCount: 1, page: 1, observedAt: "2026-10-18T12:00:00Z", filter: null, items: [{ ...listing, icon: "https://cdn-lostark.game.onstove.com/a.png" }] },
+  };
+  assert.equal(isAccessoryListingsEnvelope(listings), true);
+  const older: Partial<typeof listing> = { ...listing };
+  delete older.icon;
+  assert.equal(isAccessoryListingsEnvelope({ ...listings, data: { totalCount: 1, page: 1, observedAt: "2026-10-18T12:00:00Z", items: [older] } }), true);
+  assert.equal(isAccessoryListingsEnvelope({ ...listings, data: { ...listings.data, items: [{ ...listing, icon: 3 }] } }), false);
 });

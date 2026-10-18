@@ -31,6 +31,7 @@ const listing = {
   endDate: "2026-10-14T03:00:00Z",
   tradeAllowCount: 2,
   options: [{ type: "GEM_SKILL_DAMAGE", name: "합성 스킬", value: 44, percentage: true, level: null, className: "바드" }],
+  icon: "https://cdn-lostark.game.onstove.com/efui_iconatlas/use/use_12_105.png",
 };
 
 const plain = { className: null, skill: null };
@@ -115,6 +116,12 @@ test("gem board and listings envelopes follow the contract", () => {
   const listings = { code: "AUCTION_LISTINGS_SUCCESS", message: "ok", data: { totalCount: 14, page: 1, observedAt: "2026-10-13T03:00:00Z", items: [listing] } };
   assert.equal(isGemListingsEnvelope(listings), true);
   assert.equal(isGemListingsEnvelope({ ...listings, code: "AUCTION_GEMS_SUCCESS" }), false);
+  // No icon from an official answer, and none at all from a backend before api #613.
+  assert.equal(isGemListingsEnvelope({ ...listings, data: { ...listings.data, items: [{ ...listing, icon: null }] } }), true);
+  const older: Partial<typeof listing> = { ...listing };
+  delete older.icon;
+  assert.equal(isGemListingsEnvelope({ ...listings, data: { ...listings.data, items: [older] } }), true);
+  assert.equal(isGemListingsEnvelope({ ...listings, data: { ...listings.data, items: [{ ...listing, icon: 3 }] } }), false);
 });
 
 test("a gem's target is its class and skill from the options", () => {
