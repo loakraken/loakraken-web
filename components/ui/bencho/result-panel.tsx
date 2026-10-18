@@ -21,7 +21,7 @@
 //  6. Reduced motion: the card and rows appear at once.
 // The springs and their reasons are Bencho's and are kept as published.
 import "./result-panel.css";
-import type { ReactNode } from "react";
+import { useLayoutEffect, useRef, type ReactNode } from "react";
 import { AnimatePresence, LazyMotion, m as motion, useReducedMotion } from "motion/react";
 
 const loadFeatures = () => import("@/lib/motion-dom-animation").then((mod) => mod.default);
@@ -68,17 +68,51 @@ type ResultPanelProps = {
   className?: string;
 };
 
+/**
+ * (ours) The room under the panel's top on the screen the user can see, as
+ * --rsp-room: the visual viewport ends above an on-screen keyboard, where
+ * 60vh still reached under it. The panel hangs 8px under its box (the CSS
+ * top), so it is measured from there, not from its own animated box.
+ */
+function useRoomOnScreen(open: boolean) {
+  const panel = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    if (!open) return;
+    const view = window.visualViewport;
+    const fit = () => {
+      const el = panel.current;
+      const box = el?.parentElement;
+      if (!el || !box) return;
+      const bottom = view ? view.offsetTop + view.height : window.innerHeight;
+      const top = box.getBoundingClientRect().bottom + 8;
+      el.style.setProperty("--rsp-room", `${Math.max(120, Math.floor(bottom - top - 12))}px`);
+    };
+    fit();
+    view?.addEventListener("resize", fit);
+    view?.addEventListener("scroll", fit);
+    window.addEventListener("resize", fit);
+    return () => {
+      view?.removeEventListener("resize", fit);
+      view?.removeEventListener("scroll", fit);
+      window.removeEventListener("resize", fit);
+    };
+  }, [open]);
+  return panel;
+}
+
 /** The option element's id for a row, for the input's aria-activedescendant. */
 const optionId = (panelId: string, rowId: string) => `${panelId}-opt-${rowId}`;
 
 function ResultPanel({ open, id, label, groups, activeId, onPick, onActive, header, footer, className }: ResultPanelProps) {
   const reduce = useReducedMotion();
+  const panel = useRoomOnScreen(open);
   let order = 0;
   return (
     <LazyMotion features={loadFeatures}>
       <AnimatePresence>
         {open && (
           <motion.div
+            ref={panel}
             className={className ? `rsp ${className}` : "rsp"}
             /* ── it unfolds OUT OF the pill ──────────────────
                The origin is the card's top-left, which is the
