@@ -3,7 +3,15 @@ import { dehydrate, HydrationBoundary, QueryClient } from "@tanstack/react-query
 import { StatsView } from "@/components/stats/stats-view";
 import { getBestCombatPower, getStats } from "@/lib/stats/server";
 import { isTitleStatsEnabled } from "@/lib/tools/flags";
-import { DISTRIBUTION_WIDTH, distributionKey, parseStatsQuery, statsKey, type StatsQuery } from "@/lib/stats/model";
+import {
+  DISTRIBUTION_WIDTH,
+  distributionKey,
+  parseDistributionView,
+  parseStatsQuery,
+  statsKey,
+  withoutDistributionView,
+  type StatsQuery,
+} from "@/lib/stats/model";
 
 export const metadata: Metadata = {
   title: "통계",
@@ -26,11 +34,11 @@ export default async function StatsPage({
   const titles = isTitleStatsEnabled();
   const tab = TABS.filter((t) => titles || t !== "titles").find((t) => t === params.get("tab")) ?? "classes";
   params.delete("tab");
+  // The distribution tab's own choices (metric, typed value, table view) are
+  // read apart, so a bad one never resets the filters.
+  const dist = parseDistributionView(params);
   // Invalid filters in a shared link fall back to the defaults.
-  const query: StatsQuery = parseStatsQuery(params) ?? {};
-  delete query.metric;
-  delete query.width;
-  delete query.percentileOf;
+  const query: StatsQuery = parseStatsQuery(withoutDistributionView(params)) ?? {};
   // The summary cards sit above the tabs: arriving after hydration they pushed
   // the tabs and table down (CLS 0.12 at 390). The summary and the table of a
   // classes/servers tab (and the distribution tab's bars) come in the first HTML; a slow backend gives up after
@@ -41,9 +49,13 @@ export default async function StatsPage({
     getStats("summary", query, deadline),
     view ? getStats(view, query, deadline) : null,
     tab === "best" ? getBestCombatPower(query, deadline) : null,
-    // The distribution tab opens on combat power with no value typed.
+    // The distribution tab opens with the address's metric and typed value.
     tab === "distribution"
-      ? getStats("distribution", { ...query, metric: "COMBAT_POWER", width: DISTRIBUTION_WIDTH.COMBAT_POWER }, deadline)
+      ? getStats(
+          "distribution",
+          { ...query, metric: dist.metric, width: DISTRIBUTION_WIDTH[dist.metric], percentileOf: dist.percentileOf },
+          deadline,
+        )
       : null,
   ]);
   // eslint-disable-next-line react-hooks/purity
@@ -53,7 +65,7 @@ export default async function StatsPage({
   if (view && table?.ok) client.setQueryData(["stats", view, statsKey(query)], table.envelope, { updatedAt: fetchedAt });
   if (best?.ok) client.setQueryData(["stats", "best", statsKey(query)], best.envelope, { updatedAt: fetchedAt });
   if (distribution?.ok)
-    client.setQueryData(distributionKey(query, "COMBAT_POWER"), distribution.envelope, { updatedAt: fetchedAt });
+    client.setQueryData(distributionKey(query, dist.metric, dist.percentileOf), distribution.envelope, { updatedAt: fetchedAt });
   // StatsView follows initialTab itself, so a menu link to another tab opens it.
   return (
     <HydrationBoundary state={dehydrate(client)}>
