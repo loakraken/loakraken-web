@@ -2485,6 +2485,8 @@ createServer(async (req, res) => {
     크라켄긴줄: kraken("OK", 8654.33, krakenTier("MASTER", 6700, "GRANDMASTER", 21000, 12345.67, 13)),
     크라켄준비중: kraken("UNSUPPORTED", null, null, { reasonCode: "INPUT_PENDING", reason: "이전 조회 결과", role: null }),
     크라켄꺼짐: kraken("DISABLED", null, null, { role: null, ruleVersion: null }),
+    // api #604: on, but the calculation failed.
+    크라켄실패: kraken("UNSUPPORTED", null, null, { reasonCode: "CALC_FAILED", reason: "로그용 문장", role: null }),
   };
   if (envelope.data && Object.hasOwn(KRAKEN, name)) envelope.data.krakenScore = KRAKEN[name];
   // Real efficiency states (backend #570·#571): no ark grid at all, and a
