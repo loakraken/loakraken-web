@@ -200,7 +200,7 @@ function CompareTable({
     <DataTable label="캐릭터 비교 표" stickyFirst className={styles.table}>
       {/* Fixed widths: a column does not widen when a later character arrives. */}
       <colgroup>
-        {[136, 108, 124, 272, 150, 84, 84, 96, 56].map((w, i) => (
+        {[136, 108, 124, 244, 150, 84, 84, 124, 56].map((w, i) => (
           <col key={i} style={{ width: w }} />
         ))}
       </colgroup>

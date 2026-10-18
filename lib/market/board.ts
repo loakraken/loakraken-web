@@ -155,7 +155,7 @@ export function unitPrice(price: number | null | undefined, bundleCount: number)
   return price / bundleCount;
 }
 
-/** "▲8.5 (4.7%)": absolute gold change against yesterday's average, then the rate. */
+/** "▲8.5G (4.7%)": absolute gold change against yesterday's average (with its unit), then the rate. */
 export function changeWithAmount(item: {
   currentMinPrice: number | null;
   yesterdayAvgPrice: number | null;
@@ -168,7 +168,7 @@ export function changeWithAmount(item: {
   const amount = Math.abs(diff).toLocaleString("ko-KR", { maximumFractionDigits: 2 });
   const sign = rate.direction === "up" ? "▲" : rate.direction === "down" ? "▼" : "";
   const pct = rate.text.replace(/^[▲▼]/, "");
-  return { text: `${sign}${amount} (${pct})`, direction: rate.direction };
+  return { text: `${sign}${amount}G (${pct})`, direction: rate.direction };
 }
 
 /** "방금 갱신" / "3분 전 갱신" / "2시간 전 갱신" — never "실시간". */
