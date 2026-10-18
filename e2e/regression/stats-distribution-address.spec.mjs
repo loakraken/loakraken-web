@@ -20,7 +20,8 @@ test("통계 분포: 내 전투력·결과·표 보기가 새로고침에도 남
   await page.reload();
   await expect(panel(page).getByRole("textbox", { name: "내 전투력" })).toHaveValue("3000");
   await expect(panel(page)).toContainText(RESULT);
-  await expect(panel(page).getByRole("button", { name: "그래프로 보기" })).toHaveAttribute("aria-pressed", "true");
+  await expect(panel(page).getByRole("button", { name: "그래프로 보기" })).toBeVisible();
+  await expect(panel(page).getByRole("button", { name: "그래프로 보기" })).not.toHaveAttribute("aria-pressed");
   await expect(panel(page).getByRole("table", { name: "전투력 구간별 인원" })).toBeVisible();
   // The result and the table are in the first HTML: nothing moves after load.
   await page.waitForTimeout(800);

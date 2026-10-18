@@ -377,7 +377,8 @@ function DistributionTab({ query }: { query: StatsQuery }) {
             placeholder={metric === "ITEM_LEVEL" ? "1720" : "3200"}
           />
         </label>
-        <button type="button" className={styles.textButton} aria-pressed={asTable} onClick={() => setAsTable((v) => !v)}>
+        {/* An action named for what it does next (no aria-pressed: "그래프로 보기, 눌림" read the opposite). */}
+        <button type="button" className={styles.textButton} onClick={() => setAsTable((v) => !v)}>
           {asTable ? "그래프로 보기" : "표로 보기"}
         </button>
       </div>
