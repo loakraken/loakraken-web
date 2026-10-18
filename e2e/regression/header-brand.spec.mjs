@@ -95,7 +95,7 @@ for (const width of [320, 360, 390, 1280])
 test("@로고 1280 넓은 글꼴: 캐릭터 화면 헤더 검색칸이 메뉴를 덮지 않음 @regression", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
   await gotoReady(page, characterPath("상세"));
-  await page.addStyleTag({ content: "header nav a, header nav button { letter-spacing: 0.12em; }" });
+  await page.addStyleTag({ content: "header nav a, header nav button { letter-spacing: 0.3em !important; }" });
   await page.waitForTimeout(200);
   expect(await headerClashes(page.locator("header").first()), "넓은 글꼴 헤더 겹침").toEqual([]);
   await expect(page.locator("header").first().getByRole("textbox")).toBeVisible();
