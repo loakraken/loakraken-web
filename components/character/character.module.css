@@ -551,8 +551,10 @@
   border-radius: inherit;
   background: currentColor;
 }
+/* A fixed line, text or not ('준비 중' keeps it empty), so both states match. */
 .krakenNext {
-  min-height: 1.4em;
+  height: 1.5em;
+  line-height: 1.5em;
   color: var(--band-muted);
   font-size: 12px;
   font-weight: 500;
