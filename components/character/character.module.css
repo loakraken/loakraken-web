@@ -105,7 +105,10 @@
   display: grid;
   place-items: center;
   min-width: 44px;
-  height: 44px;
+  /* 42 + the pill's 1px border = the 44px of the header's other buttons, so
+     the character page's header is as tall as every other page's (shown from
+     901px up only, on a fine pointer). */
+  height: 42px;
   border-radius: 50%;
   color: var(--link);
 }
