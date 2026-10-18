@@ -51,6 +51,7 @@ export const GEM_KINDS = ["겁화", "작열"] as const;
 export type GemKind = (typeof GEM_KINDS)[number];
 export const GEM_LEVELS = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1] as const;
 export const GEM_LISTING_MAX_PAGE = 10;
+const MAX_INT32 = 2_147_483_647;
 
 /**
  * A board cell, and optionally the class and skill its listings are narrowed
@@ -72,8 +73,8 @@ export function parseGemPick(input: URLSearchParams): GemPick | null {
     level,
     page: Number.isInteger(page) && page >= 1 && page <= GEM_LISTING_MAX_PAGE ? page : 1,
     className: narrowed,
-    // A skill means nothing without its class.
-    skill: narrowed && Number.isInteger(skill) && skill >= 1 ? skill : null,
+    // A skill means nothing without its class; codes are int32 on the backend.
+    skill: narrowed && Number.isInteger(skill) && skill >= 1 && skill <= MAX_INT32 ? skill : null,
   };
 }
 

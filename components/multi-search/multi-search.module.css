@@ -188,11 +188,14 @@
   color: var(--muted-foreground);
   font-size: 13px;
 }
+/* The mark sits over the value (the row is 64px either way), so a best
+   value needs no wider column than a plain one (QA A37: '최고 Lv.9 (1개)'
+   was cut). Right-aligned like the number columns it is used in. */
 .best {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+  display: inline-grid;
+  justify-items: end;
   font-weight: 600;
+  line-height: 20px;
   white-space: nowrap;
 }
 .mark {

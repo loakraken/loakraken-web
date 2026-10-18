@@ -95,6 +95,12 @@ function Notice({ meta, stale }: { meta: StatsMeta; stale: boolean }) {
 }
 
 /** "집계 기준 안내" under the tables, from the summary's meta (same query, cached). */
+/**
+ * How the numbers are made, right under each tab's own content (QA P2-5): a
+ * tab draws it with its answer, so it never sits under the room a taller tab
+ * left (the panel keeps the tallest height, A7) and never moves when that
+ * answer lands.
+ */
 function StatsBasis({ query }: { query: StatsQuery }) {
   const summary = useQuery({
     queryKey: ["stats", "summary", statsKey(query)],
@@ -315,6 +321,7 @@ function ClassesTab({ query }: { query: StatsQuery }) {
       <p className={styles.note}>
         분포 막대: 옅은 선 하위 10%~상위 10%, 진한 칸 가운데 50%, 세로선 중앙값. 표본이 {minSample}명 미만인 직업은 분포 대신 중앙값 점만 찍고, 다른 값은 참고값(회색)으로 보여요.
       </p>
+      <StatsBasis query={query} />
     </div>
   );
 }
@@ -444,6 +451,7 @@ function DistributionTab({ query }: { query: StatsQuery }) {
           </p>
         )
       )}
+      {data && <StatsBasis query={query} />}
     </div>
   );
 }
@@ -500,6 +508,7 @@ function ServersTab({ query }: { query: StatsQuery }) {
           </tbody>
       </DataTable>
     )}
+      <StatsBasis query={query} />
     </div>
   );
 }
@@ -602,6 +611,7 @@ function BestTab({ query }: { query: StatsQuery }) {
         분포 막대: 옅은 선 하위 10%~상위 10%, 진한 칸 가운데 50%, 세로선 중앙값. 표본이 {meta.minSample}명 미만인 칸은
         인원만 보여요.
       </p>
+      <StatsBasis query={query} />
     </div>
   );
 }
@@ -654,6 +664,7 @@ function TitlesTab({ query }: { query: StatsQuery }) {
           </tbody>
         </DataTable>
       )}
+      <StatsBasis query={query} />
     </div>
   );
 }
@@ -806,7 +817,6 @@ export function StatsView({
             </PillTab>
           ))}
         </PillTabs>
-        <StatsBasis query={query} />
       </main>
     </div>
   );

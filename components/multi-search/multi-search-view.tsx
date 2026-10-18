@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useQueries, useQueryClient, type QueryClient } from "@tanstack/react-query";
@@ -24,9 +24,12 @@ import {
   namesFromParam,
   namesSearch,
   parseNames,
+  sortFromParam,
   summarize,
   valueOf,
   type Cell,
+  type CompareSort,
+  type CompareSortKey,
   type Engraving,
   type Summary,
 } from "@/lib/multi-search/model";
@@ -162,21 +165,42 @@ function Failure({ entry, compact = false }: { entry: Entry; compact?: boolean }
   );
 }
 
-type SortKey = "itemLevel" | "combatPower" | "quality" | "gems";
+type SortKey = CompareSortKey;
 
-function CompareTable({ entries, best, onRemove }: { entries: Entry[]; best: Record<SortKey, string[]>; onRemove: (name: string) => void }) {
-  const { sorted, sort, toggle } = useTableSort<Entry, SortKey>(entries, {
-    itemLevel: (e) => e.summary?.itemLevel,
-    combatPower: (e) => (e.summary ? valueOf(e.summary.combatPower) : null),
-    quality: (e) => (e.summary ? valueOf(e.summary.quality) : null),
-    gems: (e) => (e.summary ? valueOf(e.summary.gems)?.average : null),
-  });
+function CompareTable({
+  entries,
+  best,
+  onRemove,
+  addressSort,
+  onSort,
+}: {
+  entries: Entry[];
+  best: Record<SortKey, string[]>;
+  onRemove: (name: string) => void;
+  /** The order in the address (?sort=), so back and reload keep it. */
+  addressSort: CompareSort;
+  onSort: (sort: CompareSort) => void;
+}) {
+  const { sorted, sort, toggle } = useTableSort<Entry, SortKey>(
+    entries,
+    {
+      itemLevel: (e) => e.summary?.itemLevel,
+      combatPower: (e) => (e.summary ? valueOf(e.summary.combatPower) : null),
+      quality: (e) => (e.summary ? valueOf(e.summary.quality) : null),
+      gems: (e) => (e.summary ? valueOf(e.summary.gems)?.average : null),
+    },
+    addressSort,
+  );
+  // A header press changes the order here; the address follows it.
+  useEffect(() => {
+    if (sort?.key !== addressSort?.key || sort?.dir !== addressSort?.dir) onSort(sort);
+  }, [sort, addressSort, onSort]);
   const isBest = (key: SortKey, name: string) => best[key].includes(name);
   return (
     <DataTable label="캐릭터 비교 표" stickyFirst className={styles.table}>
       {/* Fixed widths: a column does not widen when a later character arrives. */}
       <colgroup>
-        {[136, 108, 124, 272, 150, 84, 84, 96, 56].map((w, i) => (
+        {[136, 108, 124, 244, 150, 84, 84, 124, 56].map((w, i) => (
           <col key={i} style={{ width: w }} />
         ))}
       </colgroup>
@@ -336,8 +360,8 @@ function cardOf(entry: Entry, best: Record<SortKey, string[]>, onRemove: (name: 
  * A plain replaceState (null state): the router syncs it into useSearchParams.
  * Passing the router's own state along makes it skip that sync.
  */
-const writeAddress = (list: string[]) =>
-  window.history.replaceState(null, "", `${window.location.pathname}${namesSearch(list)}`);
+const writeAddress = (list: string[], sort: CompareSort = null) =>
+  window.history.replaceState(null, "", `${window.location.pathname}${namesSearch(list, sort)}`);
 
 export function MultiSearchView() {
   const ids = { field: useId(), hint: useId(), error: useId() };
@@ -345,8 +369,11 @@ export function MultiSearchView() {
   // back, reload and a shared link all show the same list. (A copy seeded
   // from the server's first answer came back empty on back, as the router
   // restored the screen it had before any name, and then wiped the address.)
-  const raw = useSearchParams().get("names");
+  const params = useSearchParams();
+  const raw = params.get("names");
   const fromAddress = useMemo(() => namesFromParam(raw), [raw]);
+  const rawSort = params.get("sort");
+  const sort = useMemo(() => sortFromParam(rawSort), [rawSort]);
   // The last list brought back on open. Held here too: on mount the router
   // may not watch replaceState yet (its effect runs after ours), so the
   // address can change without useSearchParams seeing it.
@@ -355,8 +382,9 @@ export function MultiSearchView() {
   const [text, setText] = useState("");
   const [error, setError] = useState("");
 
+  const writeSort = useCallback((next: CompareSort) => writeAddress(names, next), [names]);
   const setNames = (next: string[]) => {
-    writeAddress(next);
+    writeAddress(next, sort);
     saveLastNames(next);
     setRestored(null);
   };
@@ -483,7 +511,7 @@ export function MultiSearchView() {
               </button>
             </div>
             <div className={styles.panel}>
-              <CompareTable entries={entries} best={best} onRemove={remove} />
+              <CompareTable entries={entries} best={best} onRemove={remove} addressSort={sort} onSort={writeSort} />
             </div>
             <div className={styles.cards}>
               <CompareCards label="캐릭터 비교 카드" rows={CARD_ROWS} cards={entries.map((e) => cardOf(e, best, remove))} />

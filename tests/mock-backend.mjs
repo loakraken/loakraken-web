@@ -1855,17 +1855,24 @@ createServer(async (req, res) => {
     // Name search (api #466): matching rows keep their overall rank; "빠진" matches
     // two guilds left out for too few members seen.
     const guild = url.searchParams.get("guild");
+    // CP_AVG (api #589): the item level 1750+ members' combat power average; a
+    // guild with none of them (작은길드, 짧은길드) is null, last, sharing the last rank.
     const sort = url.searchParams.get("sort") ?? "AVG";
     const guilds = (server === "아만"
-      ? [["합성길드아만", "아만", 9, 1702.35, 8, 3010.5], ["짧은길드", "아만", 6, 1688, 0, null]]
-      : [["합성길드", "루페온", 24, 1731.12, 20, 3180.29], ["두번째길드", "루페온", 12, 1712.5, 12, 3050.4], ["작은길드", "카단", 5, 1690.4, 2, 2890.75]]
-    ).map(([guildName, serverName, memberCount, avg, cpCount, cpAvg]) => ({
+      ? [["합성길드아만", "아만", 9, 1702.35, 8, 3010.5, 4, 3105.2], ["짧은길드", "아만", 6, 1688, 0, null, 0, null]]
+      : [["합성길드", "루페온", 24, 1731.12, 20, 3180.29, 15, 3402.18], ["두번째길드", "루페온", 12, 1712.5, 12, 3050.4, 8, 3221.6], ["작은길드", "카단", 5, 1690.4, 2, 2890.75, 0, null]]
+    ).map(([guildName, serverName, memberCount, avg, cpCount, cpAvg, topCount, topAvg]) => ({
       serverName, guildName, memberCount,
       itemLevelAvg: avg,
       itemLevelSum: Math.round(avg * memberCount * 100) / 100,
       combatPowerAvg: cpAvg, combatPowerCount: cpCount,
+      combatPowerAvgTop: topAvg, combatPowerTopCount: topCount,
+      combatPowerTotal: cpAvg == null ? null : Math.round(cpAvg * cpCount * 100) / 100,
     }));
-    guilds.sort((a, b) => (sort === "SUM" ? b.itemLevelSum - a.itemLevelSum : b.itemLevelAvg - a.itemLevelAvg));
+    const value = (row) =>
+      ({ AVG: row.itemLevelAvg, SUM: row.itemLevelSum, CP_AVG: row.combatPowerAvgTop, CP_SUM: row.combatPowerTotal })[sort] ?? null;
+    guilds.sort((a, b) => (value(b) ?? -Infinity) - (value(a) ?? -Infinity));
+    const valued = guilds.filter((row) => value(row) != null).length;
     return send({
       code: "GUILD_RANKING_SUCCESS",
       message: "ok",
@@ -1889,7 +1896,7 @@ createServer(async (req, res) => {
             }
           : { matchCount: null, excludedMatches: null }),
         rows: guilds
-          .map((row, i) => ({ rank: i + 1, ...row }))
+          .map((row, i) => ({ rank: value(row) == null ? valued + 1 : i + 1, ...row }))
           .filter((row) => !guild || row.guildName.toLowerCase().includes(guild.toLowerCase()))
           // One page holds every guild here: a later page is empty.
           .filter(() => Number(url.searchParams.get("page") ?? 1) <= 1),
@@ -2485,6 +2492,8 @@ createServer(async (req, res) => {
     크라켄긴줄: kraken("OK", 8654.33, krakenTier("MASTER", 6700, "GRANDMASTER", 21000, 12345.67, 13)),
     크라켄준비중: kraken("UNSUPPORTED", null, null, { reasonCode: "INPUT_PENDING", reason: "이전 조회 결과", role: null }),
     크라켄꺼짐: kraken("DISABLED", null, null, { role: null, ruleVersion: null }),
+    // api #604: on, but the calculation failed.
+    크라켄실패: kraken("UNSUPPORTED", null, null, { reasonCode: "CALC_FAILED", reason: "로그용 문장", role: null }),
   };
   if (envelope.data && Object.hasOwn(KRAKEN, name)) envelope.data.krakenScore = KRAKEN[name];
   // Real efficiency states (backend #570·#571): no ark grid at all, and a
