@@ -11,6 +11,17 @@ export type MaterialQuote = Schemas["MaterialQuoteResponse"];
 export type MaterialQuoteLine = Schemas["MaterialQuoteLineResponse"];
 export type QuoteStatus = MaterialQuoteLine["status"];
 export type PriceBasis = MaterialQuote["priceBasis"];
+
+/**
+ * The official market's categories that never hold a listing (a search in
+ * them finds nothing and they have no sub-category, checked 10-18): 장비 상자
+ * and 보석 상자. Left out of the material quote's list by their official
+ * codes, not their names (user decision v0.3.2); every other one stays.
+ */
+export const EMPTY_MARKET_CATEGORIES: ReadonlySet<number> = new Set([10100, 220000]);
+
+export const quoteCategories = (categories: readonly MarketCategory[]) =>
+  categories.filter((category) => !EMPTY_MARKET_CATEGORIES.has(category.code));
 type Envelope<T> = { code: string; message: string; data: T };
 export type OptionsEnvelope = Envelope<MarketOptions>;
 export type ItemsEnvelope = Envelope<MarketPriceResult>;
