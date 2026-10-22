@@ -29,12 +29,12 @@ for (const width of [1280, 360])
     // The pinned note first (marked 고정, older than the rest), then newest first;
     // the README in the folder is not a note.
     await expect(items).toHaveCount(3);
-    await expect(items.nth(0)).toContainText("고정");
+    // The tag itself (the test title has the word 고정 in it too).
     await expect(items.nth(0)).toContainText("테스트 고정 글: 준비 중인 기능");
     await expect(items.nth(0)).toContainText("2026.10.05");
     await expect(items.nth(1)).toContainText("2026.10.19");
     await expect(items.nth(1)).toContainText(NEWEST);
-    await expect(items.nth(1)).not.toContainText("고정");
+    await expect(items.nth(1).locator("strong > em")).toHaveCount(0);
     await expect(items.nth(1)).toContainText("원정대 랭킹 식스맨 규칙을 바꾸고 시세 차트에 기간 등락을 더했어요.");
     await expect(items.nth(2)).toContainText("2026.10.12"); // from the file name
     await expect(items.nth(2)).toContainText("테스트 지난 노트");
