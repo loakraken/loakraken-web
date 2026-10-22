@@ -173,7 +173,7 @@ export function skillSummary(skills: Skill[] | undefined) {
 
 /**
  * The gems set on the skill named `name` as chips
- * ("6뎀", "6쿨"): level plus kind, with the gem and its effect for the card.
+ * ("10겁", "8작"): level plus kind, with the gem and its effect for the card.
  * A radiance gem (both kinds) reads its kind from the effect text.
  */
 export function skillGems(gems: Character["loadout"]["gems"], name: string | null | undefined) {
@@ -183,11 +183,14 @@ export function skillGems(gems: Character["loadout"]["gems"], name: string | nul
     .flatMap((effect) => {
       const gem = gems.items.find((item) => item.slot === effect.gemSlot);
       if (!gem) return [];
-      const kind = gemKind(gem.name);
-      const label =
-        kind === "뎀" || kind === "쿨" ? kind : /재사용/.test(effect.description.join(" ")) ? "쿨" : "뎀";
-      return [{ gem, effect, label: `${gem.level ?? ""}${label}` }];
+      const kind = gemKindOf(gem.name, effect.description);
+      return [{ gem, effect, label: `${gem.level ?? ""}${kind}`, cooldown: isCooldownGem(kind) }];
     });
+}
+
+/** gemKind, with an unnamed or unknown gem read from its effect like a radiance gem. */
+function gemKindOf(name: string | null | undefined, effect: readonly string[] | null | undefined): GemKind {
+  return gemKind(name, effect) ?? gemKind("광휘", effect)!;
 }
 
 /**
@@ -214,10 +217,8 @@ export function gemCounts(gems: Character["loadout"]["gems"]) {
   let damage = 0;
   let cooldown = 0;
   for (const gem of items) {
-    const kind = gemKind(gem.name);
     const effect = gems?.effects?.skills.find((skill) => skill.gemSlot === gem.slot);
-    const cool = kind === "쿨" || (kind !== "뎀" && /재사용/.test(effect?.description.join(" ") ?? ""));
-    if (cool) cooldown += 1;
+    if (isCooldownGem(gemKindOf(gem.name, effect?.description))) cooldown += 1;
     else damage += 1;
   }
   return { damage, cooldown, empty: Math.max(0, GEM_SLOTS - items.length) };
@@ -234,14 +235,25 @@ export function statNumber(stats: Character["stats"], type: string) {
 
 /* Gems --------------------------------------------------------------------- */
 
-/** Short kind label used by armory sites: damage, cooldown or radiance gems. */
-export function gemKind(name: string | null | undefined) {
+export type GemKind = "겁" | "작" | "멸" | "홍";
+
+/**
+ * The short kind players read ("10겁 8작"): 겁화 → 겁 and 작열 → 작 (T4),
+ * 멸화 → 멸 and 홍염 → 홍 (T3). A radiance gem (광휘) does either, so it reads
+ * its official skill effect: a cooldown cut is 작, anything else 겁.
+ */
+export function gemKind(name: string | null | undefined, effect?: readonly string[] | null): GemKind | null {
   if (!name) return null;
-  if (/겁화|멸화/.test(name)) return "뎀";
-  if (/작열|홍염/.test(name)) return "쿨";
-  if (/광휘/.test(name)) return "광휘";
+  if (/겁화/.test(name)) return "겁";
+  if (/작열/.test(name)) return "작";
+  if (/멸화/.test(name)) return "멸";
+  if (/홍염/.test(name)) return "홍";
+  if (/광휘/.test(name)) return /재사용/.test((effect ?? []).join(" ")) ? "작" : "겁";
   return null;
 }
+
+/** 작·홍 cut cooldowns; 겁·멸 raise damage. */
+export const isCooldownGem = (kind: GemKind) => kind === "작" || kind === "홍";
 
 /** "기본 공격력 +4.95%" style line from the gem set description, if present. */
 export function gemBaseAttack(description: string | null | undefined) {
