@@ -11,7 +11,8 @@ for (const scheme of ["light", "dark"])
       await watchShifts(page);
       await gotoReady(page, characterPath("광휘보석"));
       const panel = page.getByRole("region", { name: "보석", exact: true });
-      await expect(panel.locator("header")).toContainText("평균 7.75 · 겁 2 · 작 2");
+      // Four of eleven slots filled: the empty ones are counted.
+      await expect(panel.locator("header")).toContainText("평균 7.75 · 겁 2 · 작 2 · 미장착 7");
       const chips = panel.locator("li > span[data-gem]");
       await expect(chips).toHaveText(["10겁", "8작", "6겁", "7작"]);
       await expect(chips.nth(2)).toHaveAttribute("data-gem", "damage");
