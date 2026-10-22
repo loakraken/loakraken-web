@@ -269,7 +269,7 @@ test.describe("스펙업 가이드 @smoke", () => {
     await expect(page.getByRole("table", { name: /스펙업 후보/ })).toHaveCount(1);
     // Told in one sentence on the status line; the table is in no live region (#921).
     await expect(page.getByRole("status").filter({ hasText: "크라켄 점수 순으로 정렬했어요" })).toBeVisible();
-    expect(await page.locator('[aria-live] table, [role="status"] table').count()).toBe(0);
+    await expect(page.locator('[aria-live] table, [role="status"] table')).toHaveCount(0);
     expect(asked.at(-1).get("sort")).toBe("KRAKEN");
     expect(asked.at(-1).get("includeCooldownGems")).toBe("false");
     const kraken = page.getByRole("table", { name: /크라켄 점수 순/ });
