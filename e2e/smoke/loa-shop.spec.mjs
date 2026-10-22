@@ -6,6 +6,12 @@ import { test, expect, gotoReady, expectNoHorizontalOverflow } from "../support/
 const RATE = /게임 안 크리스탈 교환소 시세\(블루 크리스탈 100개당 골드\)/;
 
 test.describe("로아샵 효율 @smoke", () => {
+  // The packages are the checked notice's (2026-10-13); some end 2026-10-21 06:00 KST. The browser
+  // clock stays inside that sale week, so the tests do not start failing (and timing out) once the
+  // real date passes it. The ended-sale test moves the clock past the end itself.
+  test.beforeEach(async ({ page }) => {
+    await page.clock.setFixedTime(new Date("2026-10-15T12:00:00+09:00"));
+  });
   test("교환소 시세가 없으면 골드 가치와 판매가만, 기준일·판매 기간·구매 보너스 문구는 공지 그대로", async ({ page }) => {
     await gotoReady(page, "/tools/loa-shop");
     await expect(page.getByRole("heading", { level: 1, name: "로아샵 효율" })).toBeVisible();
