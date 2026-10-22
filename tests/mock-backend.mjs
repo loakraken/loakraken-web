@@ -2113,6 +2113,30 @@ createServer(async (req, res) => {
       icon: "identity.png",
     });
   }
+  // 겁/작 labels: radiance (광휘) gems take 겁 or 작 from their official effect.
+  if (name === "광휘보석") {
+    const { gems } = envelope.data.loadout;
+    const gem = (slot, level, kind) => ({ ...gems.items[0], slot, name: `${level}레벨 ${kind}의 보석`, level, grade: "고대" });
+    const effect = (gemSlot, line) => ({ ...gems.effects.skills[0], gemSlot, name: "테스트 스킬", description: [line] });
+    gems.items = [gem(0, 10, "겁화"), gem(1, 8, "작열"), gem(2, 6, "광휘"), gem(3, 7, "광휘")];
+    gems.effects.skills = [
+      effect(0, "피해 40.00% 증가"),
+      effect(1, "재사용 대기시간 20.00% 감소"),
+      effect(2, "피해 28.00% 증가"),
+      effect(3, "재사용 대기시간 18.00% 감소"),
+    ];
+    envelope.data.analysis.gems = {
+      ...envelope.data.analysis.gems,
+      count: 4,
+      minLevel: 6,
+      maxLevel: 10,
+      averageLevel: 7.75,
+      levelDistribution: [6, 7, 8, 10].map((level) => ({ level, count: 1 })),
+      damageEffectCount: 2,
+      cooldownEffectCount: 2,
+      unknownEffectCount: 0,
+    };
+  }
   // 특성 자세히 (§14.1 ④): stats with synthetic official-style tooltip lines.
   if (name === "특성상세") {
     const line = (type, effect, bonus) => [effect, `${type}은(는) 물약 및 원정대 레벨 보상으로 ${bonus}만큼 영구 증가되었습니다.`];
