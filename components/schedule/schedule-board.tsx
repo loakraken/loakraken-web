@@ -362,13 +362,12 @@ function Section({
 function DayKinds({ kinds, today }: { kinds: ReturnType<typeof dayKinds>; today: boolean }) {
   return (
     <>
-      {/* Each piece is its own 20px box (flex items): bold and regular
-          Korean glyphs from different fallback fonts never change the line's
-          height when another day is picked (A7, Linux fonts in CI). */}
+      {/* Each piece is its own 20px box (flex items): the line keeps its
+          height whatever fonts draw bold and regular glyphs. */}
       <span>{today ? "오늘" : "이 날"}: </span>
       {kinds.map((kind, i) => (
         <span key={kind.key} data-kind={kind.key} data-on={kind.on || undefined}>
-          {i > 0 && <span aria-hidden="true">· </span>}
+          {i > 0 && <span aria-hidden="true"> · </span>}
           <i aria-hidden="true" />
           {kind.on ? <b>{kind.label}</b> : `${kind.label} 없음`}
         </span>
@@ -470,7 +469,9 @@ export function ScheduleBoard({
         // One line, there from the first HTML, so the answer or another day
         // never moves the day buttons below it (A7).
         <p className={own.dayKinds}>
-          {data && <DayKinds kinds={dayKinds(data)} today={live} />}
+          {/* Drawn anew per day: words rewritten in place slide the rest of
+              the line sideways, which counts as moving (A7); new nodes do not. */}
+          {data && <DayKinds key={`${data.date}-${live}`} kinds={dayKinds(data)} today={live} />}
         </p>
       )}
       {data && (
