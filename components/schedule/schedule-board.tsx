@@ -362,10 +362,13 @@ function Section({
 function DayKinds({ kinds, today }: { kinds: ReturnType<typeof dayKinds>; today: boolean }) {
   return (
     <>
-      {today ? "오늘" : "이 날"}:{" "}
+      {/* Each piece is its own 20px box (flex items): bold and regular
+          Korean glyphs from different fallback fonts never change the line's
+          height when another day is picked (A7, Linux fonts in CI). */}
+      <span>{today ? "오늘" : "이 날"}: </span>
       {kinds.map((kind, i) => (
         <span key={kind.key} data-kind={kind.key} data-on={kind.on || undefined}>
-          {i > 0 && " · "}
+          {i > 0 && <span aria-hidden="true">· </span>}
           <i aria-hidden="true" />
           {kind.on ? <b>{kind.label}</b> : `${kind.label} 없음`}
         </span>

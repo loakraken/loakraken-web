@@ -297,11 +297,24 @@
 }
 /* The day type under the date title: one line, its height kept while loading (A7). */
 .dayKinds {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 6px;
   min-height: 20px;
   margin: -4px 0 10px;
   color: var(--muted-foreground);
   font-size: 13px;
   line-height: 20px;
+}
+/* A fixed box per piece: the row is 20px whatever font draws the glyphs. */
+.dayKinds > span {
+  height: 20px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.dayKinds > span > span {
+  margin-right: 6px;
 }
 .dayKinds b {
   color: var(--foreground);
