@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   categoryOfPath,
+  dayKinds,
   isScheduleCategory,
+  mergeSameRounds,
   resetLeft,
   scheduleGroups,
   schedulePath,
@@ -74,6 +76,35 @@ test("upcoming: next round today per group with the names starting then", () => 
       ["새 분류", at("20:00"), ["새 일정"]],
     ],
   );
+});
+
+test("chaos gates with the same rounds and rewards are one row naming the category, places kept", () => {
+  const gate = (name: string, minItemLevel: number, times = ["18:50", "19:50"]) => ({ ...timed(name, times), minItemLevel });
+  const gates = [gate("일렁이는 악마군단", 1580), gate("쿠르잔 북부", 1600), gate("베른 남부", 1580)];
+  const merged = mergeSameRounds(gates, "카오스게이트");
+  assert.equal(merged.length, 1);
+  assert.equal(merged[0].name, "카오스게이트");
+  assert.equal(merged[0].minItemLevel, 1580);
+  assert.deepEqual(merged[0].places?.map((place) => [place.name, place.minItemLevel]), [
+    ["일렁이는 악마군단", 1580],
+    ["쿠르잔 북부", 1600],
+    ["베른 남부", 1580],
+  ]);
+  // One unlike the rest stays as it is.
+  const mixed = mergeSameRounds([...gates, gate("다른 회차", 1640, ["20:50"])], "카오스게이트");
+  assert.deepEqual(mixed.map((row) => [row.name, row.places?.length ?? 0]), [["카오스게이트", 3], ["다른 회차", 0]]);
+  // A single gate is not renamed.
+  assert.deepEqual(mergeSameRounds([gates[0]], "카오스게이트").map((row) => row.name), ["일렁이는 악마군단"]);
+  // The upcoming strip names the merged row once, not each place.
+  const now = Date.parse(at("19:05"));
+  const rounds = upcomingRounds(scheduleGroups({ ...day, chaosGates: gates } as Schedule), now);
+  assert.deepEqual(rounds.find((round) => round.key === "chaos-gate")?.names, ["카오스게이트"]);
+});
+
+test("day kinds for the date line", () => {
+  assert.deepEqual(dayKinds(day), ["카오스게이트"]);
+  assert.deepEqual(dayKinds({ ...day, chaosGates: [], fieldBosses: day.chaosGates } as Schedule), ["필드 보스"]);
+  assert.deepEqual(dayKinds({ ...day, chaosGates: [] } as Schedule), []);
 });
 
 test("weekly reset: Wednesday 06:00 KST", () => {
