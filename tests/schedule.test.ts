@@ -102,9 +102,10 @@ test("chaos gates with the same rounds and rewards are one row naming the catego
 });
 
 test("day kinds for the date line", () => {
-  assert.deepEqual(dayKinds(day), ["카오스게이트"]);
-  assert.deepEqual(dayKinds({ ...day, chaosGates: [], fieldBosses: day.chaosGates } as Schedule), ["필드 보스"]);
-  assert.deepEqual(dayKinds({ ...day, chaosGates: [] } as Schedule), []);
+  const on = (data: Schedule) => dayKinds(data).map((kind) => [kind.label, kind.on]);
+  assert.deepEqual(on(day), [["카오스게이트", true], ["필드 보스", false]]);
+  assert.deepEqual(on({ ...day, chaosGates: [], fieldBosses: day.chaosGates } as Schedule), [["카오스게이트", false], ["필드 보스", true]]);
+  assert.deepEqual(on({ ...day, chaosGates: [] } as Schedule), [["카오스게이트", false], ["필드 보스", false]]);
 });
 
 test("weekly reset: Wednesday 06:00 KST", () => {
