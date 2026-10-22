@@ -36,4 +36,4 @@ export function readDevNotes(): DevNote[] {
 
 /** The list without bodies (the /news tab and the sitemap). */
 export const devNoteList = (): DevNoteMeta[] =>
-  readDevNotes().map(({ slug, title, date, summary }) => ({ slug, title, date, summary }));
+  readDevNotes().map(({ slug, title, date, summary, pinned }) => ({ slug, title, date, summary, pinned }));
