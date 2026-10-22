@@ -19,9 +19,10 @@ test("skill gem chips: level plus kind, radiance gems read the effect text", () 
       ],
     },
   } as unknown as Gems;
-  assert.deepEqual(skillGems(gems, "블레이드 버스트").map((g) => g.label), ["10뎀", "8쿨"]);
-  assert.deepEqual(skillGems(gems, "서프라이즈 어택").map((g) => g.label), ["6쿨"]);
-  assert.deepEqual(skillGems(gems, "터닝 슬래쉬").map((g) => g.label), ["6뎀"]);
+  assert.deepEqual(skillGems(gems, "블레이드 버스트").map((g) => g.label), ["10겁", "8작"]);
+  assert.deepEqual(skillGems(gems, "블레이드 버스트").map((g) => g.cooldown), [false, true]);
+  assert.deepEqual(skillGems(gems, "서프라이즈 어택").map((g) => g.label), ["6작"]);
+  assert.deepEqual(skillGems(gems, "터닝 슬래쉬").map((g) => g.label), ["6겁"]);
   assert.deepEqual(skillGems(gems, "없는 스킬"), []);
   assert.deepEqual(skillGems(null, "블레이드 버스트"), []);
 });

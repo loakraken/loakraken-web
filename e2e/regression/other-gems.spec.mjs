@@ -12,7 +12,7 @@ for (const width of [1280, 360]) {
     const other = page.getByRole("list", { name: "그 외 장착 보석" });
     await expect(other).toBeVisible();
     await expect(other.getByRole("listitem")).toHaveCount(1);
-    await expect(other.getByRole("listitem")).toContainText("10쿨");
+    await expect(other.getByRole("listitem")).toContainText("10작");
     await expect(other.getByRole("listitem")).toContainText("테스트 아이덴티티");
     // The listed skill keeps its own gem on its row, not in this line.
     await expect(other).not.toContainText("스킬명");
