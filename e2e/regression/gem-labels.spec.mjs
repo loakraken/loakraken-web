@@ -25,7 +25,8 @@ for (const scheme of ["light", "dark"])
       await expectNoHorizontalOverflow(page);
 
       await gotoReady(page, characterPath("광휘보석", "skills"));
-      const row = page.locator('[aria-label="보석"]').first();
+      // The fixture's listed skill (테스트 스킬) carries all four gems.
+      const row = page.getByRole("listitem").filter({ hasText: "테스트 스킬" }).getByLabel("보석", { exact: true }).first();
       await expect(row.locator("> span")).toHaveText(["10겁", "8작", "6겁", "7작"]);
       await expect(page.getByRole("group", { name: "보석으로 거르기" })).toContainText("겁화만");
       await expectNoHorizontalOverflow(page);

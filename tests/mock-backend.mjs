@@ -2117,7 +2117,7 @@ createServer(async (req, res) => {
   if (name === "광휘보석") {
     const { gems } = envelope.data.loadout;
     const gem = (slot, level, kind) => ({ ...gems.items[0], slot, name: `${level}레벨 ${kind}의 보석`, level, grade: "고대" });
-    const effect = (gemSlot, line) => ({ ...gems.effects.skills[0], gemSlot, description: [line] });
+    const effect = (gemSlot, line) => ({ ...gems.effects.skills[0], gemSlot, name: "테스트 스킬", description: [line] });
     gems.items = [gem(0, 10, "겁화"), gem(1, 8, "작열"), gem(2, 6, "광휘"), gem(3, 7, "광휘")];
     gems.effects.skills = [
       effect(0, "피해 40.00% 증가"),
