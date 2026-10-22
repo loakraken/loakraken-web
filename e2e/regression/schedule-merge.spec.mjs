@@ -73,3 +73,29 @@ for (const scheme of ["light", "dark"])
       await expect(bosses.getByRole("region", { name: "입장" })).toHaveText("입장 1,460 이상");
       await expectNoHorizontalOverflow(page);
     });
+
+test("@일정카게 주간 점은 다른 요일마다 우리 일정 API 한 번씩(오늘은 서버 렌더), 실패한 날은 점 없이 @regression", async ({ page }) => {
+  const asked = [];
+  page.on("request", (r) => {
+    const url = new URL(r.url());
+    if (url.pathname === "/api/home/schedule") asked.push(url.searchParams.get("date") ?? "today");
+  });
+  // One day keeps failing: that day just has no dot, nothing else changes.
+  let failed = null;
+  await page.route("**/api/home/schedule?date=*", (route) => {
+    const date = new URL(route.request().url()).searchParams.get("date");
+    failed ??= date;
+    if (date === failed) return route.fulfill({ status: 503, json: { code: "LOST_ARK_UNAVAILABLE", message: "x", data: null } });
+    return route.continue();
+  });
+  await gotoReady(page, "/schedule");
+  await expect(page.getByRole("group", { name: "요일 선택" }).getByRole("button")).toHaveCount(7);
+  await expect(page.locator("[class*=kindDots] [data-kind]")).toHaveCount(6);
+  await page.waitForTimeout(500);
+  // Today came with the page; each other day asked once (the failing one retried once).
+  expect(asked.includes("today"), asked.join(",")).toBe(false);
+  expect(new Set(asked).size, asked.join(",")).toBe(6);
+  expect(asked.filter((date) => date === failed).length).toBe(2);
+  expect(asked.length).toBe(7);
+  await expect(page.getByRole("alert")).toHaveCount(0);
+});
