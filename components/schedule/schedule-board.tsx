@@ -6,7 +6,7 @@
 import { useEffect, useId, useState, type MouseEvent } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQueries, useQuery } from "@tanstack/react-query";
 import { ArrowRight, ChevronRight } from "@/components/ui/icons";
 import { safeGameImage } from "@/lib/character/model";
 import { fetchSchedule, homeScheduleKey } from "@/lib/home/client";
@@ -53,6 +53,30 @@ export const useSchedule = (date: string | null) =>
     staleTime: 5 * 60_000,
     placeholderData: keepPreviousData,
   });
+
+/**
+ * Chaos gate / field boss days for the week strip dots. The week data has no
+ * per-day kinds, so each day's own answer is asked — the same query and cache
+ * as picking that day, so a later pick shows at once. Unknown days stay null.
+ */
+function useWeekKinds(days: string[], today: string | null) {
+  const results = useQueries({
+    queries: days.map((day) => {
+      const date = day === today ? null : day;
+      return {
+        queryKey: homeScheduleKey(date),
+        queryFn: ({ signal }: { signal: AbortSignal }) => fetchSchedule(date, signal),
+        staleTime: 5 * 60_000,
+      };
+    }),
+  });
+  return new Map(
+    days.map((day, i) => {
+      const data = results[i]?.data?.data;
+      return [day, data && data.date === day ? dayKinds(data) : null] as const;
+    }),
+  );
+}
 
 /**
  * Category links on the schedule page: real URLs (shareable, server-rendered),
@@ -330,20 +354,32 @@ function Section({
   );
 }
 
-/** "오늘: 카오스게이트 · 필드 보스" (or "이 날:" for another day), so the day type shows at a glance. */
-function DayKinds({ kinds, today }: { kinds: string[]; today: boolean }) {
-  const when = today ? "오늘" : "이 날";
-  if (!kinds.length) return <>{when}: 카오스게이트·필드 보스 없음</>;
+/**
+ * "오늘: 카오스게이트 · 필드 보스 없음" (or "이 날:" for another day): both
+ * kinds always, the one not running said plainly. Each name carries its week
+ * strip dot colour, so the line is also the dots' legend.
+ */
+function DayKinds({ kinds, today }: { kinds: ReturnType<typeof dayKinds>; today: boolean }) {
   return (
     <>
-      {when}:{" "}
+      {today ? "오늘" : "이 날"}:{" "}
       {kinds.map((kind, i) => (
-        <span key={kind}>
+        <span key={kind.key} data-kind={kind.key} data-on={kind.on || undefined}>
           {i > 0 && " · "}
-          <b>{kind}</b>
+          <i aria-hidden="true" />
+          {kind.on ? <b>{kind.label}</b> : `${kind.label} 없음`}
         </span>
       ))}
     </>
+  );
+}
+
+/** The chaos gate and field boss dots on a week strip day; empty slots until that day is known. */
+function KindDots({ kinds }: { kinds: ReturnType<typeof dayKinds> | null }) {
+  return (
+    <span className={own.kindDots} aria-hidden="true">
+      {kinds?.map((kind) => kind.on && <i key={kind.key} data-kind={kind.key} />)}
+    </span>
   );
 }
 
@@ -395,6 +431,8 @@ export function ScheduleBoard({
   const live = !!data && data.date === today;
   const tomorrow = live && now !== null ? tomorrowInWeek(data.coveredTo, now) : null;
   const showTomorrow = tomorrow ? () => setPicked(tomorrow) : undefined;
+  const week = data ? weekDays(data.coveredFrom, data.coveredTo) : [];
+  const weekKinds = useWeekKinds(page ? week.map((day) => day.date) : [], today);
   const groups = page && data ? scheduleGroups(data) : [];
   const shownGroups = shownCategory
     ? groups.filter((group) => group.slug === shownCategory)
@@ -434,23 +472,29 @@ export function ScheduleBoard({
       )}
       {data && (
         <div className={styles.days} role="group" aria-label="요일 선택">
-          {weekDays(data.coveredFrom, data.coveredTo).map((day) => (
-            <button
-              key={day.date}
-              type="button"
-              aria-pressed={day.date === data.date}
-              aria-label={`${day.day}일 ${day.weekday}요일${gold.has(day.date) ? ", 골드 섬" : ""}${day.date === today ? ", 오늘" : ""}`}
-              data-today={day.date === today || undefined}
-              data-gold={gold.has(day.date) || undefined}
-              data-weekend={
-                day.weekday === "토" || day.weekday === "일" || undefined
-              }
-              onClick={() => setPicked(day.date)}
-            >
-              <b>{day.day}</b>
-              <span>{day.weekday}</span>
-            </button>
-          ))}
+          {week.map((day) => {
+            const kinds = weekKinds.get(day.date) ?? null;
+            const running = kinds?.filter((kind) => kind.on).map((kind) => `, ${kind.label}`).join("") ?? "";
+            return (
+              <button
+                key={day.date}
+                type="button"
+                aria-pressed={day.date === data.date}
+                aria-label={`${day.day}일 ${day.weekday}요일${gold.has(day.date) ? ", 골드 섬" : ""}${running}${day.date === today ? ", 오늘" : ""}`}
+                title={running ? running.slice(2).replaceAll(", ", "·") : undefined}
+                data-today={day.date === today || undefined}
+                data-gold={gold.has(day.date) || undefined}
+                data-weekend={
+                  day.weekday === "토" || day.weekday === "일" || undefined
+                }
+                onClick={() => setPicked(day.date)}
+              >
+                <b>{day.day}</b>
+                <span>{day.weekday}</span>
+                {page && <KindDots kinds={kinds} />}
+              </button>
+            );
+          })}
         </div>
       )}
       {page && (

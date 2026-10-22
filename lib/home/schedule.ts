@@ -79,11 +79,11 @@ export function mergeSameRounds(items: Timed[], label: string): Row[] {
   });
 }
 
-/** Today's kinds for the date line ("오늘: 카오스게이트 · 필드 보스"); empty when neither runs. */
-export const dayKinds = (data: Schedule) =>
-  [data.chaosGates.length > 0 && "카오스게이트", data.fieldBosses.length > 0 && "필드 보스"].filter(
-    (kind): kind is string => !!kind,
-  );
+/** Chaos gate and field boss days (the date line and the week strip dots); `on` when it runs that day. */
+export const dayKinds = (data: Pick<Schedule, "chaosGates" | "fieldBosses">) => [
+  { key: "chaos-gate", label: "카오스게이트", on: data.chaosGates.length > 0 },
+  { key: "field-boss", label: "필드 보스", on: data.fieldBosses.length > 0 },
+];
 
 /**
  * The day's schedule as page sections: the three fixed lists, then `others`
