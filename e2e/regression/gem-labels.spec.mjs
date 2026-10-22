@@ -17,7 +17,8 @@ for (const scheme of ["light", "dark"])
       await expect(chips.nth(2)).toHaveAttribute("data-gem", "damage");
       await expect(chips.nth(3)).toHaveAttribute("data-gem", "cooldown");
       // The official name is not on screen (screen readers still get it).
-      await expect(panel.getByText("6레벨 광휘의 보석")).not.toBeVisible();
+      const fullName = await panel.getByText("6레벨 광휘의 보석").boundingBox();
+      expect(fullName.width <= 1 && fullName.height <= 1, "공식 이름은 화면 밖(읽기용)").toBe(true);
       await expect(panel).not.toContainText(/뎀|쿨 \d|\d광휘/);
       await page.waitForTimeout(600);
       expect((await shiftsSince(page)).all, "첫 로드 흔들림").toBe(0);
