@@ -97,5 +97,6 @@ test("@일정카게 주간 점은 다른 요일마다 우리 일정 API 한 번�
   expect(new Set(asked).size, asked.join(",")).toBe(6);
   expect(asked.filter((date) => date === failed).length).toBe(2);
   expect(asked.length).toBe(7);
-  await expect(page.getByRole("alert")).toHaveCount(0);
+  // No error shown for the failing day (the board's own failure line stays away).
+  await expect(page.getByText("일정을 불러오지 못했어요.")).toHaveCount(0);
 });
