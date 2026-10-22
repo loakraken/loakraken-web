@@ -821,6 +821,7 @@ function GemsPanel({ data }: { data: Character }) {
   const extra = useItemTooltips(data.characterName);
   const summary = data.analysis.gems;
   const baseAttack = gemBaseAttack(data.loadout.gems?.effects?.description);
+  const emptySlots = gemCounts(data.loadout.gems).empty;
   return (
     <Panel
       title="보석"
@@ -830,6 +831,8 @@ function GemsPanel({ data }: { data: Character }) {
               `평균 ${number(summary.averageLevel)}`,
               `겁 ${summary.damageEffectCount}`,
               `작 ${summary.cooldownEffectCount}`,
+              // Empty slots only when there are some (players read '미장착 1').
+              emptySlots > 0 && `미장착 ${emptySlots}`,
               baseAttack != null && `기본 공격력 +${baseAttack}%`,
             ]
               .filter(Boolean)
