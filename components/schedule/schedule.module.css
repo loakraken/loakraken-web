@@ -295,3 +295,36 @@
     transition: none;
   }
 }
+/* The day type under the date title: one line, its height kept while loading (A7). */
+.dayKinds {
+  min-height: 20px;
+  margin: -4px 0 10px;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  line-height: 20px;
+  white-space: nowrap;
+}
+.dayKinds b {
+  color: var(--foreground);
+  font-weight: 600;
+}
+/* The places of a merged chaos gate or field boss row (its 자세히 panel). */
+.places {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 4px 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+}
+.places li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+.places small {
+  color: var(--muted-foreground);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
