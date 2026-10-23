@@ -374,7 +374,9 @@ function DistributionTab({ query }: { query: StatsQuery }) {
           내 {label}
           <input
             id={inputId}
+            name="percentileOf"
             inputMode="decimal"
+            autoComplete="off"
             value={mine}
             onChange={(e) => setMine(e.target.value.replace(/[^\d.]/g, ""))}
             placeholder={metric === "ITEM_LEVEL" ? "1720" : "3200"}
