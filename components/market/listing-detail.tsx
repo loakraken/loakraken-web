@@ -75,7 +75,17 @@ function ListingCard({
       icon={icon ? <img src={icon} alt="" width={56} height={56} referrerPolicy="no-referrer" /> : undefined}
       lines={info}
     >
-      {gone && <ItemLine tone="warn">이 매물은 더 이상 없어요.</ItemLine>}
+      {/* The listing can go while the card is open (the 1-minute refresh):
+          said once through a status that is always there (out of the card's
+          flex flow, so no gap); the visible line is not read twice. */}
+      {gone && (
+        <div aria-hidden="true">
+          <ItemLine tone="warn">이 매물은 더 이상 없어요.</ItemLine>
+        </div>
+      )}
+      <p role="status" className="sr-only">
+        {gone ? "이 매물은 더 이상 없어요." : ""}
+      </p>
       <ItemLine>{item.tradeAllowCount == null ? "거래 횟수 정보 없음" : item.tradeAllowCount === 0 ? "거래 불가" : `거래 ${item.tradeAllowCount}회 가능`}</ItemLine>
       {gem.length > 0 && (
         <ItemDetailSection label="보석 효과">
