@@ -52,7 +52,7 @@ function statValue(value: DetailStat["before"], unit: string | null) {
 function failureText(error: unknown) {
   const code = error instanceof SpecUpQueryError ? error.info.code : "";
   if (code === "SPEC_UP_CANDIDATE_NOT_FOUND") return "이 후보가 바뀌었어요. 목록을 새로 불러오고 있어요.";
-  if (code === "CLIENT_RATE_LIMITED") return rateLimitCopy().text;
+  if (code === "CLIENT_RATE_LIMITED") return rateLimitCopy({ code }).text;
   if (code === "CHARACTER_NOT_CACHED") return "캐릭터 정보를 먼저 불러와 주세요.";
   return "상세를 불러오지 못했어요. 잠시 뒤 다시 열어 주세요.";
 }

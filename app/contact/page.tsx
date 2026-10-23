@@ -3,6 +3,7 @@ import Link from "next/link";
 import { SiteHeader } from "@/components/site/site-header";
 import styles from "@/components/legal/legal.module.css";
 import { CONTACT_EMAIL, OFFICIAL_API_URL, PRIVACY_EMAIL } from "@/lib/legal";
+import { EmailLink } from "@/components/ui/email-link";
 
 export const metadata: Metadata = {
   title: "문의",
@@ -10,9 +11,8 @@ export const metadata: Metadata = {
   alternates: { canonical: "/contact" },
 };
 
-const mail = (address: string, subject?: string) => (
-  <a href={`mailto:${address}${subject ? `?subject=${encodeURIComponent(subject)}` : ""}`}>{address}</a>
-);
+// Kept out of the edge's address rewriting (components/ui/email-link.tsx).
+const mail = (address: string, subject?: string) => <EmailLink address={address} subject={subject} />;
 
 export default function ContactPage() {
   return (

@@ -310,7 +310,7 @@ export function refiningFailureCopy(error: { code: string }) {
         text: "서비스 연결 설정이 완료되면 재련 비용을 계산할 수 있어요.",
       };
     case "LOST_ARK_RATE_LIMITED":
-      return rateLimitCopy();
+      return rateLimitCopy(error);
     case "LOST_ARK_API_TIMEOUT":
       return {
         title: "응답이 늦어지고 있어요",

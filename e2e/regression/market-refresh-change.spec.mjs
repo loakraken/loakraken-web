@@ -17,10 +17,15 @@ const watch = (page) =>
         window.__shifts.push({
           input: e.hadRecentInput,
           v: e.value,
+          // For the failure message: when (ms from the reset), how much, and
+          // which node moved by how much — to two decimals, since a sub-pixel
+          // move (a line height or a glyph width rounding) rounds to no move.
           src: (e.sources ?? []).map((s) => {
             const el = s.node?.nodeType === 1 ? s.node : s.node?.parentElement;
-            const r = (b) => [b.x, b.y, b.width, b.height].map(Math.round).join(",");
-            return `${el?.tagName}${el?.dataset?.cell ? `[${el.dataset.cell}]` : ""} ${r(s.previousRect)}→${r(s.currentRect)}`;
+            const r = (b) => [b.x, b.y, b.width, b.height].map((n) => n.toFixed(2)).join(",");
+            const cls = typeof el?.className === "string" ? el.className.split(" ")[0] : "";
+            const text = (el?.textContent ?? "").trim().slice(0, 20);
+            return `+${Math.round(e.startTime - window.__from)}ms ${e.value.toFixed(5)} ${el?.tagName}${cls ? `.${cls}` : ""}${el?.dataset?.cell ? `[${el.dataset.cell}]` : ""} "${text}" ${r(s.previousRect)}→${r(s.currentRect)}`;
           }),
         });
     }).observe({ type: "layout-shift", buffered: true });

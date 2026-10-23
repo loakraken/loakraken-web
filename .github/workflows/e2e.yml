@@ -53,7 +53,9 @@ jobs:
     # 초안 PR은 건너뛴다. develop push와 수동 실행은 항상.
     if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    # The suite alone runs close to 25 minutes; with several PRs on shared
+    # runners it was cancelled by the limit, not by a failure.
+    timeout-minutes: 40
     env:
       CI: "true"
       NEXT_TELEMETRY_DISABLED: 1
