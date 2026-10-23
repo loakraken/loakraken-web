@@ -295,3 +295,85 @@
     transition: none;
   }
 }
+/* The day type under the date title: one line, its height kept while loading (A7). */
+.dayKinds {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 6px;
+  min-height: 20px;
+  margin: -4px 0 10px;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  line-height: 20px;
+}
+/* A fixed box per piece: the row is 20px whatever font draws the glyphs. */
+.dayKinds > span {
+  height: 20px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.dayKinds > span > span {
+  margin-right: 6px;
+}
+.dayKinds b {
+  color: var(--foreground);
+  font-weight: 600;
+}
+/* The places of a merged chaos gate or field boss row (its 자세히 panel). */
+.places {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 4px 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+}
+.places li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+.places small {
+  color: var(--muted-foreground);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+/* Chaos gate / field boss colours: the week strip dots and the date line names. */
+.dayKinds [data-kind="chaos-gate"],
+.kindDots [data-kind="chaos-gate"] {
+  --kind: var(--grade-epic-b);
+}
+.dayKinds [data-kind="field-boss"],
+.kindDots [data-kind="field-boss"] {
+  --kind: var(--grade-relic-b);
+}
+.dayKinds i {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 4px;
+  border-radius: 50%;
+  background: var(--kind);
+  vertical-align: 2px;
+}
+.dayKinds span:not([data-on]) i {
+  background: none;
+  box-shadow: inset 0 0 0 1px var(--kind);
+}
+/* Dots in the day's top corner, outside the flow: a day whose answer comes
+   later gets its dots without moving anything (A7). */
+.kindDots {
+  position: absolute;
+  top: 5px;
+  right: 6px;
+  display: flex;
+  gap: 2px;
+}
+.kindDots i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--kind);
+}
