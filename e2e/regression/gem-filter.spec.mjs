@@ -107,7 +107,7 @@ test("@보석필터 필터가 꺼졌으면 공유 주소의 직업·스킬을 �
   const asked = [];
   page.on("request", (r) => {
     const url = new URL(r.url());
-    if (url.pathname.endsWith("/gems/listings")) asked.push(url.searchParams.get("className") ?? "");
+    if (url.pathname.endsWith("/gems/listings")) asked.push(url.searchParams.get("class") ?? "");
   });
   await gotoReady(page, "/market/gems?kind=%EA%B2%81%ED%99%94&level=10&class=%ED%95%84%ED%84%B0%EA%BA%BC%EC%A7%90&skill=21170");
   const listings = page.getByRole("region", { name: /^10레벨 겁화의 보석 매물/ });
