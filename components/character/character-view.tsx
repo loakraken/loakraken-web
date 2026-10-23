@@ -20,6 +20,7 @@ import { SiteHeader } from "@/components/site/site-header";
 import { recordRecent } from "@/lib/character/recent";
 import { CharacterBanner } from "./imagery";
 import { BannerRank } from "./banner-rank";
+import { KrakenScoreStrip } from "./kraken-score-metric";
 import { Entrance } from "./entrance";
 import { kstTime, level, number, text } from "./parts";
 import { CritSpeedEnabled } from "./analysis-menu";
@@ -273,6 +274,7 @@ function CharacterContent({
         {data && envelope ? (
           <>
             <Banner data={data} />
+            <KrakenScoreStrip score={data.krakenScore} />
             <TabBar
               name={name}
               tab={tab}
@@ -295,7 +297,7 @@ function CharacterContent({
                   <strong>{copy.title}</strong>
                   <p>{copy.text} 마지막으로 조회한 정보를 표시하고 있어요.</p>
                 </div>
-                {limited && <RateLimitNote seconds={rateLimitSeconds} />}
+                {limited && <RateLimitNote seconds={rateLimitSeconds} buttonCounts />}
               </div>
             )}
             <Entrance tab={tab}>
@@ -338,7 +340,7 @@ function CharacterContent({
                   <h2>{copy.title}</h2>
                   <p>{copy.text}</p>
                 </div>
-                {limited && <RateLimitNote seconds={rateLimitSeconds} />}
+                {limited && <RateLimitNote seconds={rateLimitSeconds} buttonCounts />}
               </div>
             )}
             <div className={styles.noData}>
@@ -386,7 +388,7 @@ export function CharacterView({
   titleStats?: boolean;
   /** CRIT_SPEED_TOOL on this deployment (server flag): the 분석 menu link. */
   critSpeed?: boolean;
-  /** GUILD_RANKING on this deployment (server flag): the guild tab. */
+  /** GUILD_TAB on this deployment (server flag): the guild tab. */
   guildTab?: boolean;
   /** CHARACTER_EFFICIENCY on this deployment (server flag): 아크 그리드·팔찌 효율 rows. */
   characterEfficiency?: boolean;

@@ -36,7 +36,10 @@
 }
 .nav {
   display: flex;
-  flex: 1;
+  /* Never narrower than its links: with wider fallback fonts (Linux,
+     Android) the shrinking nav let its links run under the page slot
+     (the character page's search covered 통계 at 1280). The slot gives way. */
+  flex: 1 0 auto;
   align-items: center;
   min-width: 0;
 }
@@ -92,7 +95,7 @@
 }
 .slot {
   display: flex;
-  flex: none;
+  flex: 0 1 auto;
   align-items: center;
   gap: 8px;
   min-width: 0;
@@ -145,9 +148,19 @@
   .slot > * {
     min-width: 0;
   }
-  /* With anything in the page slot (a search field, the about page's CTA),
-     the mark alone carries the brand so the slot keeps its width. */
-  .header:has(.slot) .brand span {
+  /* The mark and the name stay together on every page and width (user
+     report v0.3.2): the character page's own search is hidden from 900px
+     down, where the shared search button does the same search. */
+}
+/* Phones (QA P1 v0.3.1.3): the mark and name, the page slot, search, theme
+   and menu do not fit with the Discord button too — at 320 the bar ran 17px
+   off the screen, and on the about page its button slid under the name.
+   The Discord link stays at the foot of every page; the gaps close a little. */
+@media (max-width: 420px) {
+  .header {
+    gap: 8px;
+  }
+  .header .discord {
     display: none;
   }
 }

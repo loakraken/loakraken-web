@@ -1,12 +1,13 @@
 // 429 from the backend (official-call limit or the per-client limit,
 // CLIENT_RATE_LIMITED): every proxy route reports it as LOST_ARK_RATE_LIMITED
-// with a retry time, and every screen shows the same notice with the seconds
-// left. The retry button stays disabled until then; nothing retries by itself.
+// with a retry time (the per-client one also carries limit: "client"), and
+// every screen shows the notice with the seconds left. The retry button stays disabled until then; nothing retries by itself.
 import { remainingText } from "../time/remaining";
 
 export const RATE_LIMITED = "LOST_ARK_RATE_LIMITED";
 
-type Failure = { code: string; retryAt?: number };
+type Failure = { code: string; retryAt?: number; limit?: "client" };
+
 
 /** The `{ code, retryAt }` a client query error carries, if any. */
 export function failureOf(error: unknown): Failure | null {
@@ -24,7 +25,11 @@ export const secondsUntil = (retryAt: number | undefined, now = Date.now()) =>
  * The alert sentence: fixed, so a live region reads it once. The seconds
  * left go next to it (RateLimitNote) or on the retry button.
  */
-export function rateLimitCopy() {
+export function rateLimitCopy(failure?: { code?: string; limit?: string } | null) {
+  // This visitor's own share (CLIENT_RATE_LIMITED) reads as a short pause, not
+  // as their fault (PM 총괄 10-18); the site-wide limit keeps its words.
+  if (failure?.limit === "client" || failure?.code === "CLIENT_RATE_LIMITED")
+    return { title: "짧은 시간에 검색이 많아 잠깐 쉬어 가요", text: "잠시 뒤 다시 시도해 주세요." };
   return { title: "요청이 많아 잠시 쉬어 가요", text: "잠시 뒤 다시 시도해 주세요." };
 }
 

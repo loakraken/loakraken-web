@@ -79,16 +79,14 @@ export async function requestCharacter(
     });
     if (!response.ok) {
       let code = "LOST_ARK_API_ERROR";
+      let client = false;
       try {
         const body: unknown = await response.json();
-        if (
-          body &&
-          typeof body === "object" &&
-          "code" in body &&
-          typeof body.code === "string" &&
-          errorCodes[response.status]?.includes(body.code)
-        )
-          code = body.code;
+        if (body && typeof body === "object" && "code" in body && typeof body.code === "string") {
+          // The visitor's own share (CLIENT_RATE_LIMITED): same wait, other words (lib/api/backend.ts).
+          client = response.status === 429 && body.code === "CLIENT_RATE_LIMITED";
+          if (errorCodes[response.status]?.includes(body.code)) code = body.code;
+        }
       } catch {
         /* Never expose upstream error bodies or HTML. */
       }
@@ -100,7 +98,7 @@ export async function requestCharacter(
           code,
           status,
           ...(status === 429
-            ? { retryAt: retryAt(response.headers.get("retry-after")) }
+            ? { retryAt: retryAt(response.headers.get("retry-after")), ...(client && { limit: "client" as const }) }
             : {}),
         },
       };

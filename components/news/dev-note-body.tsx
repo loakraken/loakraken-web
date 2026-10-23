@@ -2,12 +2,14 @@
 // React elements only, so nothing in a note is ever HTML.
 import Link from "next/link";
 import { parseMarkdown, type Block, type Inline } from "@/lib/dev-notes/model";
+import { EmailLink } from "@/components/ui/email-link";
 import styles from "./dev-notes.module.css";
 
 function Inlines({ parts }: { parts: Inline[] }) {
   return parts.map((part, i) => {
     if (part.t === "text") return part.v;
     if (part.t === "code") return <code key={i}>{part.v}</code>;
+    if (part.t === "email") return <EmailLink key={i} address={part.v} />;
     if (part.t === "strong")
       return (
         <strong key={i}>

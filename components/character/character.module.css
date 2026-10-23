@@ -59,7 +59,10 @@
 }
 .searchWrap {
   margin-left: auto;
-  width: min(450px, 60%);
+  /* Up to 450px, narrower when the header is full (the slot shrinks). */
+  width: 450px;
+  max-width: 100%;
+  min-width: 0;
 }
 /* Where the site header folds (900px and under) its search button is the
    only character search: two controls doing one thing side by side (A19). */
@@ -70,6 +73,8 @@
 }
 .search {
   display: flex;
+  box-sizing: border-box;
+  height: 44px;
   align-items: center;
   gap: 10px;
   padding-left: 18px;
@@ -83,7 +88,7 @@
 .search input {
   min-width: 0;
   flex: 1;
-  padding: 10px 0;
+  padding: 0;
   outline: none;
   background: transparent;
   color: var(--foreground);
@@ -105,7 +110,10 @@
   display: grid;
   place-items: center;
   min-width: 44px;
-  height: 44px;
+  /* 42 + the pill's 1px border = the 44px of the header's other buttons, so
+     the character page's header is as tall as every other page's (shown from
+     901px up only, on a fine pointer). */
+  height: 42px;
   border-radius: 50%;
   color: var(--link);
 }
@@ -303,6 +311,9 @@
   overflow: hidden;
   clip: rect(0, 0, 0, 0);
   border: 0;
+  /* Read, never pressed: the 1px box sat under the header search's middle
+     and took the press there (QA v0.3.1.3 header check). */
+  pointer-events: none;
 }
 .skip {
   position: fixed;
@@ -480,6 +491,128 @@
   }
   .bandNotice {
     margin: 12px 12px 0;
+  }
+}
+
+/* 크라켄 점수 (backend #561): a strip right under the banner, on the page
+   surface (the band has a fixed height). One line wide; on a phone two fixed
+   rows. '준비 중' keeps the bar and its line, so both states are one size (A7). */
+.krakenScore {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 16px;
+  max-width: 1124px;
+  margin: 14px auto 0;
+  padding: 0 20px;
+  font-variant-numeric: tabular-nums;
+}
+/* The ⓘ (28px to press) sits in the label's 26px row without making it taller. */
+.krakenLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 26px;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  font-weight: 500;
+}
+/* One height with or without the tier chip. */
+.krakenValue {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 26px;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+.krakenScore[data-pending] .krakenValue {
+  color: var(--muted-foreground);
+  font-weight: 500;
+}
+/* The tier: its name on a neutral chip, the tier colour in a dot and the bar
+   (mid tones that read on light and dark alike; the name says it in words). */
+.krakenTier {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  padding: 0 9px 0 8px;
+  border-radius: 9999px;
+  background: var(--muted);
+  color: var(--foreground);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+.krakenTier::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 9999px;
+  background: var(--tier, var(--muted-foreground));
+}
+.krakenScore[data-tier="BRONZE"] {
+  --tier: #c67b4a;
+}
+.krakenScore[data-tier="SILVER"] {
+  --tier: #8a97a6;
+}
+.krakenScore[data-tier="GOLD"] {
+  --tier: #c9a227;
+}
+.krakenScore[data-tier="DIAMOND"] {
+  --tier: #3a9be0;
+}
+.krakenScore[data-tier="MASTER"] {
+  --tier: #8b5cf6;
+}
+.krakenScore[data-tier="GRANDMASTER"] {
+  --tier: #e05252;
+}
+.krakenScore[data-tier="ESTHER"] {
+  --tier: #19a77a;
+}
+.krakenProgress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 20px;
+}
+.krakenTrack {
+  display: block;
+  flex: 0 0 96px;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 9999px;
+  background: var(--muted);
+}
+.krakenTrack span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--tier, var(--muted-foreground));
+}
+.krakenNext {
+  color: var(--muted-foreground);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 20px;
+  white-space: nowrap;
+}
+/* Phones: the label and value on one row, the bar and its line on the next,
+   always both rows (the same box for '준비 중'). */
+@media (max-width: 699px) {
+  .krakenScore {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    margin-top: 12px;
+    padding: 0 16px;
+  }
+  .krakenProgress {
+    grid-column: 1 / -1;
   }
 }
 

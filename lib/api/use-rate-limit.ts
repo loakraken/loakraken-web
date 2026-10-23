@@ -3,12 +3,13 @@ import { useEffect, useState } from "react";
 import { RATE_LIMITED, failureOf, secondsUntil } from "./rate-limit";
 
 /**
- * For a query error: whether it is a 429 and the seconds left, ticking every
- * second while positive.
+ * For a query error: whether it is a 429 (or another "come back later" code
+ * the caller names, e.g. MARKET_SEARCH_BUSY) and the seconds left, ticking
+ * every second while positive.
  */
-export function useRateLimit(error: unknown) {
+export function useRateLimit(error: unknown, also: readonly string[] = []) {
   const failure = failureOf(error);
-  const limited = failure?.code === RATE_LIMITED;
+  const limited = failure?.code === RATE_LIMITED || (!!failure && also.includes(failure.code));
   const retryAt = limited ? failure.retryAt : undefined;
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {

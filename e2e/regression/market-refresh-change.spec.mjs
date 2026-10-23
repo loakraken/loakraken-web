@@ -17,10 +17,15 @@ const watch = (page) =>
         window.__shifts.push({
           input: e.hadRecentInput,
           v: e.value,
+          // For the failure message: when (ms from the reset), how much, and
+          // which node moved by how much — to two decimals, since a sub-pixel
+          // move (a line height or a glyph width rounding) rounds to no move.
           src: (e.sources ?? []).map((s) => {
             const el = s.node?.nodeType === 1 ? s.node : s.node?.parentElement;
-            const r = (b) => [b.x, b.y, b.width, b.height].map(Math.round).join(",");
-            return `${el?.tagName}${el?.dataset?.cell ? `[${el.dataset.cell}]` : ""} ${r(s.previousRect)}→${r(s.currentRect)}`;
+            const r = (b) => [b.x, b.y, b.width, b.height].map((n) => n.toFixed(2)).join(",");
+            const cls = typeof el?.className === "string" ? el.className.split(" ")[0] : "";
+            const text = (el?.textContent ?? "").trim().slice(0, 20);
+            return `+${Math.round(e.startTime - window.__from)}ms ${e.value.toFixed(5)} ${el?.tagName}${cls ? `.${cls}` : ""}${el?.dataset?.cell ? `[${el.dataset.cell}]` : ""} "${text}" ${r(s.previousRect)}→${r(s.currentRect)}`;
           }),
         });
     }).observe({ type: "layout-shift", buffered: true });
@@ -91,7 +96,12 @@ for (const width of [1280, 360]) {
       });
       seen.observe(el, { childList: true, subtree: true, characterData: true });
     });
-    await page.clock.runFor(61_000);
+    // Fake time only up to the refresh, then in short steps until the new answer
+    // is served: one 61 s jump ran on past it and, when the refresh came a
+    // little early, through the tint's own 1.4 s timer before the 700 ms count
+    // (CI: 0–600 ms 2/2, 700 ms 0/0; #912).
+    await page.clock.runFor(59_000);
+    for (let step = 0; step < 50 && served() < 2; step += 1) await page.clock.runFor(200);
     await expect.poll(served, { message: "1분 뒤 다시 받음" }).toBeGreaterThan(1);
     await expect(table).toContainText("85만 8,800G"); // 62만 × 1.37 + 9,400: longer text
     await expect.poll(() => page.evaluate(() => window.__washAt700 ?? null)).not.toBeNull();

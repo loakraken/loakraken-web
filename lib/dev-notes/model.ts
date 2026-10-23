@@ -8,7 +8,9 @@ export type Inline =
   | { t: "text"; v: string }
   | { t: "strong"; c: Inline[] }
   | { t: "code"; v: string }
-  | { t: "link"; href: string; c: Inline[] };
+  | { t: "link"; href: string; c: Inline[] }
+  /** A plain address in the text, drawn as a mailto link the edge leaves alone. */
+  | { t: "email"; v: string };
 
 export type Block =
   | { t: "h2" | "h3"; c: Inline[] }
@@ -21,7 +23,8 @@ export type Block =
 /** A list row; rows indented under it (two spaces or more) are its own list, one level deep. */
 export type ListItem = { c: Inline[]; sub?: Inline[][] };
 
-export type DevNoteMeta = { slug: string; title: string; date: string; summary: string };
+/** `pinned`: frontmatter `pinned: true` — kept at the top of the list, marked 고정. */
+export type DevNoteMeta = { slug: string; title: string; date: string; summary: string; pinned: boolean };
 export type DevNote = DevNoteMeta & { body: string };
 
 /** "2026-10-19-v0-3-0.md": the date and the address part. Other files (README) are not notes. */
@@ -54,13 +57,14 @@ export function readNote(fileName: string, source: string): DevNote | null {
     title,
     date: data.date && DATE.test(data.date) ? data.date : file[1],
     summary: data.summary?.trim() ?? "",
+    pinned: data.pinned?.trim().toLowerCase() === "true",
     body,
   };
 }
 
-/** Newest first; the same day by address. */
+/** Pinned notes first, then newest first (pinned ones too, by date); the same day by address. */
 export const byNewest = (a: DevNoteMeta, b: DevNoteMeta) =>
-  b.date.localeCompare(a.date) || b.slug.localeCompare(a.slug);
+  Number(b.pinned) - Number(a.pinned) || b.date.localeCompare(a.date) || b.slug.localeCompare(a.slug);
 
 /**
  * Only web addresses and paths on this site become links; anything else stays
@@ -92,6 +96,16 @@ export function parseInline(source: string): Inline[] {
         flush();
         out.push({ t: "code", v: source.slice(i + 1, end) });
         i = end + 1;
+        continue;
+      }
+    }
+    // An address standing on its own (not the middle of a longer word).
+    if (!/[A-Za-z0-9._%+-]/.test(source[i - 1] ?? "")) {
+      const email = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}/.exec(source.slice(i));
+      if (email) {
+        flush();
+        out.push({ t: "email", v: email[0] });
+        i += email[0].length;
         continue;
       }
     }

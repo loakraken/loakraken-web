@@ -575,6 +575,47 @@ createServer(async (req, res) => {
     );
     return send({ code: "AUCTION_GEMS_SUCCESS", message: "ok", data: { ruleVersion: "auction-board-v1", complete: false, cells } });
   }
+  // Gem listings by class and skill (api #542): two classes; 바드's 윈드 오브
+  // 뮤직 works on 작열 only, so it is not offered for a 겁화 cell.
+  if (url.pathname === "/api/v1/markets/auctions/gems/skills") {
+    return send({
+      code: "AUCTION_GEM_SKILLS_SUCCESS",
+      message: "ok",
+      data: {
+        checkedOn: "2026-10-18",
+        classes: [
+          { className: "바드", skills: [{ code: 21170, name: "사운드 쇼크", kinds: ["겁화", "작열"] }, { code: 21140, name: "윈드 오브 뮤직", kinds: ["작열"] }] },
+          { className: "블래스터", skills: [{ code: 30210, name: "플라즈마 스톰", kinds: ["겁화", "작열"] }] },
+        ],
+      },
+    });
+  }
+  if (url.pathname === "/api/v1/markets/auctions/gems/listings" && url.searchParams.get("className")) {
+    const kind = url.searchParams.get("kind");
+    const level = Number(url.searchParams.get("level"));
+    const className = url.searchParams.get("className");
+    const skill = url.searchParams.get("skill") ? Number(url.searchParams.get("skill")) : null;
+    const skills = { 바드: { 21170: "사운드 쇼크", 21140: "윈드 오브 뮤직" }, 블래스터: { 30210: "플라즈마 스톰" } }[className];
+    if (!skills || (skill && !skills[skill]) || (skill === 21140 && kind !== "작열"))
+      return send({ code: "INVALID_GEM_FILTER", message: "보석 매물 직업·스킬 조건이 올바르지 않습니다.", data: null }, 400);
+    const name = skill ? skills[skill] : Object.values(skills)[0];
+    const items = [0, 1].map((i) => ({
+      name: `${level}레벨 ${kind}의 보석`,
+      grade: "고대",
+      quality: null,
+      buyPrice: 1000 * (i + 1) + 300_000,
+      bidPrice: 0,
+      bidStartPrice: 200_000,
+      endDate: new Date(Date.now() + (i + 1) * 3_600_000).toISOString(),
+      tradeAllowCount: 2,
+      options: [{ type: "GEM_SKILL_DAMAGE", name, value: 44, percentage: true, level: null, className }],
+    }));
+    return send({
+      code: "AUCTION_LISTINGS_SUCCESS",
+      message: "ok",
+      data: { totalCount: 2, page: 1, observedAt: new Date().toISOString(), items, filter: { className, skill, skillName: skill ? name : null } },
+    });
+  }
   if (url.pathname === "/api/v1/markets/auctions/gems/listings") {
     const kind = url.searchParams.get("kind");
     const level = Number(url.searchParams.get("level"));
@@ -1121,11 +1162,12 @@ createServer(async (req, res) => {
           { ...timed("볼라르 섬", `${cdn}/island_icon/island_icon_53.png`, 1100, islandTimes), rewardKinds: ["SILLING"] },
         ],
         fieldBosses: day % 2 ? [timed("세베크 아툰", null, 1460, times(11, 13, 15, 17, 19, 21, 23), [{ minItemLevel: null, rewards: [rw("영웅 카드 팩", "영웅"), rw("실링", "일반")] }])] : [],
-        chaosGates: day % 2 ? [] : [timed("일렁이는 악마군단", null, 1580, timesAt(50, 10, 12, 14, 16, 18, 20, 22, 23), [
+        // The official calendar lists one chaos gate per place (13, same rounds and rewards).
+        chaosGates: day % 2 ? [] : ["일렁이는 악마군단", ...Array.from({ length: 12 }, (_, i) => `합성 지역 ${i + 2}`)].map((place) => timed(place, null, 1580, timesAt(50, 10, 12, 14, 16, 18, 20, 22, 23), [
           { minItemLevel: 1580, rewards: [rw("운명의 파편 주머니(소)", "희귀"), rw("1레벨 겁화의 보석", "고급"), rw("카드 경험치 카드", "일반")] },
           { minItemLevel: 1640, rewards: [rw("운명의 파편 주머니(중)", "영웅"), rw("2레벨 겁화의 보석", "희귀"), rw("카드 경험치 카드", "일반")] },
           { minItemLevel: 1680, rewards: [rw("운명의 파편 주머니(대)", "전설"), rw("3레벨 겁화의 보석", "희귀"), rw("카드 경험치 카드", "일반")] },
-        ])],
+        ])),
         others: [
           { category: "항해", ...timed("항해 협동 : 베른", null, 1, timesAt(30, 20, 22)) },
           { category: "로웬", ...timed("늑대들의 축제", null, 1, timesAt(20, 21)) },
@@ -1851,17 +1893,24 @@ createServer(async (req, res) => {
     // Name search (api #466): matching rows keep their overall rank; "빠진" matches
     // two guilds left out for too few members seen.
     const guild = url.searchParams.get("guild");
+    // CP_AVG (api #589): the item level 1750+ members' combat power average; a
+    // guild with none of them (작은길드, 짧은길드) is null, last, sharing the last rank.
     const sort = url.searchParams.get("sort") ?? "AVG";
     const guilds = (server === "아만"
-      ? [["합성길드아만", "아만", 9, 1702.35, 8, 3010.5], ["짧은길드", "아만", 6, 1688, 0, null]]
-      : [["합성길드", "루페온", 24, 1731.12, 20, 3180.29], ["두번째길드", "루페온", 12, 1712.5, 12, 3050.4], ["작은길드", "카단", 5, 1690.4, 2, 2890.75]]
-    ).map(([guildName, serverName, memberCount, avg, cpCount, cpAvg]) => ({
+      ? [["합성길드아만", "아만", 9, 1702.35, 8, 3010.5, 4, 3105.2], ["짧은길드", "아만", 6, 1688, 0, null, 0, null]]
+      : [["합성길드", "루페온", 24, 1731.12, 20, 3180.29, 15, 3402.18], ["두번째길드", "루페온", 12, 1712.5, 12, 3050.4, 8, 3221.6], ["작은길드", "카단", 5, 1690.4, 2, 2890.75, 0, null]]
+    ).map(([guildName, serverName, memberCount, avg, cpCount, cpAvg, topCount, topAvg]) => ({
       serverName, guildName, memberCount,
       itemLevelAvg: avg,
       itemLevelSum: Math.round(avg * memberCount * 100) / 100,
       combatPowerAvg: cpAvg, combatPowerCount: cpCount,
+      combatPowerAvgTop: topAvg, combatPowerTopCount: topCount,
+      combatPowerTotal: cpAvg == null ? null : Math.round(cpAvg * cpCount * 100) / 100,
     }));
-    guilds.sort((a, b) => (sort === "SUM" ? b.itemLevelSum - a.itemLevelSum : b.itemLevelAvg - a.itemLevelAvg));
+    const value = (row) =>
+      ({ AVG: row.itemLevelAvg, SUM: row.itemLevelSum, CP_AVG: row.combatPowerAvgTop, CP_SUM: row.combatPowerTotal })[sort] ?? null;
+    guilds.sort((a, b) => (value(b) ?? -Infinity) - (value(a) ?? -Infinity));
+    const valued = guilds.filter((row) => value(row) != null).length;
     return send({
       code: "GUILD_RANKING_SUCCESS",
       message: "ok",
@@ -1885,7 +1934,7 @@ createServer(async (req, res) => {
             }
           : { matchCount: null, excludedMatches: null }),
         rows: guilds
-          .map((row, i) => ({ rank: i + 1, ...row }))
+          .map((row, i) => ({ rank: value(row) == null ? valued + 1 : i + 1, ...row }))
           .filter((row) => !guild || row.guildName.toLowerCase().includes(guild.toLowerCase()))
           // One page holds every guild here: a later page is empty.
           .filter(() => Number(url.searchParams.get("page") ?? 1) <= 1),
@@ -2102,6 +2151,30 @@ createServer(async (req, res) => {
       icon: "identity.png",
     });
   }
+  // 겁/작 labels: radiance (광휘) gems take 겁 or 작 from their official effect.
+  if (name === "광휘보석") {
+    const { gems } = envelope.data.loadout;
+    const gem = (slot, level, kind) => ({ ...gems.items[0], slot, name: `${level}레벨 ${kind}의 보석`, level, grade: "고대" });
+    const effect = (gemSlot, line) => ({ ...gems.effects.skills[0], gemSlot, name: "테스트 스킬", description: [line] });
+    gems.items = [gem(0, 10, "겁화"), gem(1, 8, "작열"), gem(2, 6, "광휘"), gem(3, 7, "광휘")];
+    gems.effects.skills = [
+      effect(0, "피해 40.00% 증가"),
+      effect(1, "재사용 대기시간 20.00% 감소"),
+      effect(2, "피해 28.00% 증가"),
+      effect(3, "재사용 대기시간 18.00% 감소"),
+    ];
+    envelope.data.analysis.gems = {
+      ...envelope.data.analysis.gems,
+      count: 4,
+      minLevel: 6,
+      maxLevel: 10,
+      averageLevel: 7.75,
+      levelDistribution: [6, 7, 8, 10].map((level) => ({ level, count: 1 })),
+      damageEffectCount: 2,
+      cooldownEffectCount: 2,
+      unknownEffectCount: 0,
+    };
+  }
   // 특성 자세히 (§14.1 ④): stats with synthetic official-style tooltip lines.
   if (name === "특성상세") {
     const line = (type, effect, bonus) => [effect, `${type}은(는) 물약 및 원정대 레벨 보상으로 ${bonus}만큼 영구 증가되었습니다.`];
@@ -2184,7 +2257,7 @@ createServer(async (req, res) => {
       detail: { parserVersion: "equipment-tooltip-v3", refineLevel, quality: 90, itemLevel: 1640 + refineLevel * 5, tier: 4, arkPassivePoint: null, effects: [], stoneEngravings: [], polishEffects: [], braceletEffects: [] },
     }));
   }
-  if (name === "상세" || name === "상세서포터" || name === "대세블레이드" || name === "가려짐긴값캐릭터") {
+  if (name === "상세" || name === "상세서포터" || name === "대세블레이드" || name === "가려짐긴값캐릭터" || name === "아크없음" || name === "효율준비중") {
     // Detail-page mock: a locally supplied character file (never committed) or
     // the synthetic fixture, enriched with synthetic Tooltip detail and skills.
     if (process.env.MOCK_CHARACTER_FILE)
@@ -2271,7 +2344,12 @@ createServer(async (req, res) => {
       })),
     }));
     d.tendencies = [["지성", 590], ["담력", 593], ["매력", 478], ["친절", 508]].map(([type, point]) => ({ type, point, maxPoint: 1000 }));
-    d.decorations = { symbol: null, emblems: [] };
+    // Official answers send image addresses for both (the 문장 row draws them).
+    const deco = "https://cdn-lostark.game.onstove.com/efui_iconatlas";
+    d.decorations = {
+      symbol: `${deco}/playerinfodecoclassdeco_default/playerinfodecoclassdeco_default_3.png`,
+      emblems: [`${deco}/playerinfodecobrooch/playerinfodecobrooch_97.png`, `${deco}/playerinfodecobrooch/playerinfodecobrooch_98.png`],
+    };
     d.townName = "합성 영지";
     d.townLevel = 70;
     d.honorPoint = 183;
@@ -2382,6 +2460,24 @@ createServer(async (req, res) => {
             { slotIndex: null, text: "젬 옵션(공격력 Lv.28 · 추가 피해 Lv.51 · 보스 피해 Lv.4)", percent: 4.27, status: "OK", reasonCode: null, reason: null },
           ],
         };
+    // Real efficiency (backend #570·#571): the contract's example values for
+    // 상세; 상세서포터's bracelet as a supporter (grades only on screen).
+    const realSupport = name === "상세서포터";
+    d.braceletEfficiency.real = realSupport
+      ? { status: "OK", reasonCode: null, reason: null, role: "SUPPORT", percent: 13.47857142857143, devilDamagePercent: null, ruleVersion: "bracelet-real-v1" }
+      : { status: "OK", reasonCode: null, reason: null, role: "DEALER", percent: 11.3, devilDamagePercent: 14.08, ruleVersion: "bracelet-real-v1" };
+    d.arkGridEfficiency.real = {
+      status: "OK", reasonCode: null, reason: null, percent: 4.67, optionsPercent: 3.21, pointsPercent: 1.41, ruleVersion: "ark-grid-real-v1",
+      options: [
+        { name: "공격력", level: 28, inGamePercent: 1.02, percent: 0.99 },
+        { name: "추가 피해", level: 51, inGamePercent: 2.2, percent: 2.1 },
+        { name: "보스 피해", level: 4, inGamePercent: null, percent: null },
+      ],
+      series: [
+        { series: "질서", percent: 2.66, optionsPercent: 1.8, pointsPercent: 0.85, options: [] },
+        { series: "혼돈", percent: 1.97, optionsPercent: 1.39, pointsPercent: 0.56, options: [] },
+      ],
+    };
     // 대세 빌드 비교 (M26): a 블레이드 against the mock class builds above —
     // the most chosen engraving set, enlightenment 98 (second), 특화 on top,
     // no 치명 on the bracelet, damage gems without the most chosen level.
@@ -2449,6 +2545,38 @@ createServer(async (req, res) => {
   }
   if (name === "문자열")
     envelope.data.guildName = '<img src=x onerror="window.injected=true">';
+  // 크라켄 점수 (backend #561): the contract's example for 상세, the other
+  // states by name. Everyone else gets none (a backend before it: no item).
+  const krakenTier = (code, min, nextCode, nextMin, remaining, progressPercent) => ({ code, min, nextCode, nextMin, remaining, progressPercent });
+  const kraken = (status, score, tier, extra = {}) => ({
+    status, reasonCode: null, reason: null, role: "DEALER", score, tier, factors: [], ruleVersion: "kraken-score-v1", ...extra,
+  });
+  const KRAKEN = {
+    상세: kraken("OK", 5658.62, krakenTier("DIAMOND", 5000, "MASTER", 6700, 1041.38, 38)),
+    상세서포터: kraken("OK", 2761.59, krakenTier("SILVER", 2000, "GOLD", 3800, 1038.41, 42), { role: "SUPPORT" }),
+    크라켄에스더: kraken("OK", 10183.94, krakenTier("ESTHER", 9500, null, null, null, 100)),
+    // The longest line: 그랜드마스터 as the next tier, five-digit points left.
+    크라켄긴줄: kraken("OK", 8654.33, krakenTier("MASTER", 6700, "GRANDMASTER", 21000, 12345.67, 13)),
+    크라켄준비중: kraken("UNSUPPORTED", null, null, { reasonCode: "INPUT_PENDING", reason: "이전 조회 결과", role: null }),
+    크라켄꺼짐: kraken("DISABLED", null, null, { role: null, ruleVersion: null }),
+    // api #604: on, but the calculation failed.
+    크라켄실패: kraken("UNSUPPORTED", null, null, { reasonCode: "CALC_FAILED", reason: "로그용 문장", role: null }),
+  };
+  if (envelope.data && Object.hasOwn(KRAKEN, name)) envelope.data.krakenScore = KRAKEN[name];
+  // Real efficiency states (backend #570·#571): no ark grid at all, and a
+  // grid not worked out yet (an older search, worked out on the next).
+  const unsupportedReal = (reasonCode) => ({ status: "UNSUPPORTED", reasonCode, reason: "로그용 문장", percent: null, optionsPercent: null, pointsPercent: null, options: [], series: [], ruleVersion: "ark-grid-real-v1" });
+  if (name === "아크없음" || name === "효율준비중") {
+    const efficiency = (real) => ({ percent: null, coresPercent: null, status: "UNSUPPORTED", reasonCode: "UNAVAILABLE", reason: "계산하지 않았어요.", lines: [], ruleVersion: "ark-grid-efficiency-v1", real });
+    if (name === "아크없음") {
+      envelope.data.loadout.arkGrid = null;
+      envelope.data.arkGridEfficiency = efficiency(unsupportedReal("UNAVAILABLE"));
+    } else envelope.data.arkGridEfficiency = efficiency(unsupportedReal("INPUT_PENDING"));
+    envelope.data.braceletEfficiency = {
+      percent: null, status: "UNSUPPORTED", reasonCode: "UNAVAILABLE", reason: "계산하지 않았어요.", lines: [], ruleVersion: "combat-power-v3",
+      real: { status: "UNSUPPORTED", reasonCode: "INPUT_PENDING", reason: "로그용 문장", role: null, percent: null, devilDamagePercent: null, ruleVersion: "bracelet-real-v1" },
+    };
+  }
   send(envelope);
 }).listen(port, "127.0.0.1", () =>
   console.log(`Synthetic backend: http://127.0.0.1:${port}`),

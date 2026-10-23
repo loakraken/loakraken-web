@@ -243,7 +243,7 @@ function ReceiptPanelBody({ name }: { name: string }) {
         <div className={styles.problem}>
           <p role="alert">
             {limit.limited
-              ? `${rateLimitCopy().title}. ${rateLimitCopy().text}`
+              ? `${rateLimitCopy(info).title}. ${rateLimitCopy(info).text}`
               : info?.code === "CHARACTER_NOT_FOUND"
                 ? "원정대를 찾지 못했어요."
                 : "원정대 영수증을 계산하지 못했어요. 잠시 뒤 다시 시도해 주세요."}
