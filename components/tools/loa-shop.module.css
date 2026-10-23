@@ -78,6 +78,18 @@
 .basis {
   margin-top: var(--space-3);
 }
+/* Below 360 the three price bases do not fit on one row; the control finds that
+   only after the fonts are ready and stacks itself then, pushing the cards down
+   at first load (320: 0.05). Stacked from the first paint here, as it would end. */
+@media (max-width: 359px) {
+  .basis [data-slot="segmented-control"][data-orientation] {
+    width: 100%;
+    grid-auto-flow: row;
+    grid-auto-columns: auto;
+    row-gap: 12px;
+    border-radius: 20px;
+  }
+}
 .cards {
   display: grid;
   gap: var(--space-4);
