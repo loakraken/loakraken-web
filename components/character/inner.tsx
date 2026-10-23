@@ -9,7 +9,7 @@ import { useItemTooltips } from "./use-item-tooltips";
 import { equipmentExtra } from "@/lib/character/item-tooltips";
 import type { Character } from "@/lib/character/model";
 import { groupEquipment } from "@/lib/character/detail";
-import { avatarEffectTotals, avatarSlots, rarestOwned } from "@/lib/character/inner";
+import { avatarEffectTotals, avatarSlots, decorationParts, rarestOwned, type DecorationPart } from "@/lib/character/inner";
 import { safeGameImage } from "@/lib/character/model";
 import { GameIcon } from "./imagery";
 import { Panel } from "./panel";
@@ -246,13 +246,7 @@ export function CollectiblesTab({ data }: { data: Character }) {
                   <li className={styles.item}>
                     <div className={styles.itemText}>
                       <strong>문장</strong>
-                      <small>
-                        {data.decorations.emblems.length
-                          ? data.decorations.emblems.join(", ")
-                          : "없음"}
-                        {data.decorations.symbol &&
-                          ` · 심볼 ${data.decorations.symbol}`}
-                      </small>
+                      <Decorations decorations={data.decorations} />
                     </div>
                   </li>
                 )}
@@ -353,6 +347,30 @@ export function AvatarsTab({ data }: { data: Character }) {
       </div>
     </div>
   );
+}
+
+/** 문장 pictures (and the 심볼 after them) at a fixed size; names as text. */
+function Decorations({ decorations }: { decorations: NonNullable<Character["decorations"]> }) {
+  const { emblems, symbol } = decorationParts(decorations);
+  return (
+    <small className={styles.decorations}>
+      {emblems.length ? emblems.map((part, i) => <Decoration key={i} part={part} />) : "없음"}
+      {symbol && (
+        <>
+          <span aria-hidden="true">·</span>
+          {symbol.kind === "text" ? `심볼 ${symbol.text}` : <Decoration part={symbol} />}
+        </>
+      )}
+    </small>
+  );
+}
+
+function Decoration({ part }: { part: DecorationPart }) {
+  if (part.kind === "text") return <span>{part.text}</span>;
+  const src = safeGameImage(part.url);
+  if (!src) return null;
+  // eslint-disable-next-line @next/next/no-img-element -- official CDN icon at a fixed size
+  return <img src={src} alt={part.alt} width={24} height={24} decoding="async" referrerPolicy="no-referrer" />;
 }
 
 /**

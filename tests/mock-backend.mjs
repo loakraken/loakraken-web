@@ -1125,11 +1125,12 @@ createServer(async (req, res) => {
           { ...timed("볼라르 섬", `${cdn}/island_icon/island_icon_53.png`, 1100, islandTimes), rewardKinds: ["SILLING"] },
         ],
         fieldBosses: day % 2 ? [timed("세베크 아툰", null, 1460, times(11, 13, 15, 17, 19, 21, 23), [{ minItemLevel: null, rewards: [rw("영웅 카드 팩", "영웅"), rw("실링", "일반")] }])] : [],
-        chaosGates: day % 2 ? [] : [timed("일렁이는 악마군단", null, 1580, timesAt(50, 10, 12, 14, 16, 18, 20, 22, 23), [
+        // The official calendar lists one chaos gate per place (13, same rounds and rewards).
+        chaosGates: day % 2 ? [] : ["일렁이는 악마군단", ...Array.from({ length: 12 }, (_, i) => `합성 지역 ${i + 2}`)].map((place) => timed(place, null, 1580, timesAt(50, 10, 12, 14, 16, 18, 20, 22, 23), [
           { minItemLevel: 1580, rewards: [rw("운명의 파편 주머니(소)", "희귀"), rw("1레벨 겁화의 보석", "고급"), rw("카드 경험치 카드", "일반")] },
           { minItemLevel: 1640, rewards: [rw("운명의 파편 주머니(중)", "영웅"), rw("2레벨 겁화의 보석", "희귀"), rw("카드 경험치 카드", "일반")] },
           { minItemLevel: 1680, rewards: [rw("운명의 파편 주머니(대)", "전설"), rw("3레벨 겁화의 보석", "희귀"), rw("카드 경험치 카드", "일반")] },
-        ])],
+        ])),
         others: [
           { category: "항해", ...timed("항해 협동 : 베른", null, 1, timesAt(30, 20, 22)) },
           { category: "로웬", ...timed("늑대들의 축제", null, 1, timesAt(20, 21)) },
@@ -2113,6 +2114,30 @@ createServer(async (req, res) => {
       icon: "identity.png",
     });
   }
+  // 겁/작 labels: radiance (광휘) gems take 겁 or 작 from their official effect.
+  if (name === "광휘보석") {
+    const { gems } = envelope.data.loadout;
+    const gem = (slot, level, kind) => ({ ...gems.items[0], slot, name: `${level}레벨 ${kind}의 보석`, level, grade: "고대" });
+    const effect = (gemSlot, line) => ({ ...gems.effects.skills[0], gemSlot, name: "테스트 스킬", description: [line] });
+    gems.items = [gem(0, 10, "겁화"), gem(1, 8, "작열"), gem(2, 6, "광휘"), gem(3, 7, "광휘")];
+    gems.effects.skills = [
+      effect(0, "피해 40.00% 증가"),
+      effect(1, "재사용 대기시간 20.00% 감소"),
+      effect(2, "피해 28.00% 증가"),
+      effect(3, "재사용 대기시간 18.00% 감소"),
+    ];
+    envelope.data.analysis.gems = {
+      ...envelope.data.analysis.gems,
+      count: 4,
+      minLevel: 6,
+      maxLevel: 10,
+      averageLevel: 7.75,
+      levelDistribution: [6, 7, 8, 10].map((level) => ({ level, count: 1 })),
+      damageEffectCount: 2,
+      cooldownEffectCount: 2,
+      unknownEffectCount: 0,
+    };
+  }
   // 특성 자세히 (§14.1 ④): stats with synthetic official-style tooltip lines.
   if (name === "특성상세") {
     const line = (type, effect, bonus) => [effect, `${type}은(는) 물약 및 원정대 레벨 보상으로 ${bonus}만큼 영구 증가되었습니다.`];
@@ -2282,7 +2307,12 @@ createServer(async (req, res) => {
       })),
     }));
     d.tendencies = [["지성", 590], ["담력", 593], ["매력", 478], ["친절", 508]].map(([type, point]) => ({ type, point, maxPoint: 1000 }));
-    d.decorations = { symbol: null, emblems: [] };
+    // Official answers send image addresses for both (the 문장 row draws them).
+    const deco = "https://cdn-lostark.game.onstove.com/efui_iconatlas";
+    d.decorations = {
+      symbol: `${deco}/playerinfodecoclassdeco_default/playerinfodecoclassdeco_default_3.png`,
+      emblems: [`${deco}/playerinfodecobrooch/playerinfodecobrooch_97.png`, `${deco}/playerinfodecobrooch/playerinfodecobrooch_98.png`],
+    };
     d.townName = "합성 영지";
     d.townLevel = 70;
     d.honorPoint = 183;

@@ -175,7 +175,7 @@ function AddRoster({ onAdd }: { onAdd: (picked: Sibling[]) => void }) {
       {failure && (
         <p className={styles.error} role="alert">
           {limit.limited
-            ? `${rateLimitCopy().title}. ${rateLimitCopy().text}`
+            ? `${rateLimitCopy(failure).title}. ${rateLimitCopy(failure).text}`
             : failure.code === "CHARACTER_NOT_FOUND"
               ? "그 이름의 캐릭터를 찾지 못했어요."
               : "원정대를 불러오지 못했어요. 잠시 뒤 다시 시도해 주세요."}

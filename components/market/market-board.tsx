@@ -193,7 +193,7 @@ function Problem({
   onRetry: () => void;
 }) {
   const limit = useRateLimit({ info: failure });
-  const copy = limit.limited ? rateLimitCopy() : marketFailureCopy(failure);
+  const copy = limit.limited ? rateLimitCopy(failure) : marketFailureCopy(failure);
   return (
     <div className={quote.notice}>
       <div role="alert">

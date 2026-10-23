@@ -204,11 +204,13 @@ test("avatars group by slot (overlay shares the base slot) and effect lines sum 
 
 test("gem kind follows the gem name and the base attack bonus is read from the set text", async () => {
   const { gemBaseAttack, gemKind } = await import("../lib/character/detail");
-  assert.equal(gemKind("10레벨 겁화의 보석"), "뎀");
-  assert.equal(gemKind("8레벨 작열의 보석"), "쿨");
-  assert.equal(gemKind("7레벨 멸화의 보석"), "뎀");
-  assert.equal(gemKind("5레벨 홍염의 보석"), "쿨");
-  assert.equal(gemKind("광휘의 보석"), "광휘");
+  assert.equal(gemKind("10레벨 겁화의 보석"), "겁");
+  assert.equal(gemKind("8레벨 작열의 보석"), "작");
+  assert.equal(gemKind("7레벨 멸화의 보석"), "멸");
+  assert.equal(gemKind("5레벨 홍염의 보석"), "홍");
+  assert.equal(gemKind("6레벨 광휘의 보석"), "겁");
+  assert.equal(gemKind("6레벨 광휘의 보석", ["피해 28.00% 증가"]), "겁");
+  assert.equal(gemKind("6레벨 광휘의 보석", ["재사용 대기시간 16.00% 감소"]), "작");
   assert.equal(gemKind(null), null);
   assert.equal(gemBaseAttack("<FONT COLOR='#FFD200'>기본 공격력</FONT> +4.95%"), 4.95);
   assert.equal(gemBaseAttack("효과 없음"), null);
@@ -242,6 +244,6 @@ test("other equipped gems are the ones whose skill is not in the skill list (L34
   const other = otherSkillGems(gems, names);
   assert.equal(other.length, 1);
   assert.equal(other[0].effect.name, "아이덴티티");
-  assert.equal(other[0].label, "10쿨");
+  assert.equal(other[0].label, "10작");
   assert.equal(otherSkillGems(null, names).length, 0);
 });

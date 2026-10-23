@@ -12,6 +12,7 @@ import {
   RATE_LIMIT_IP_RETENTION,
   REQUEST_DAYS,
 } from "@/lib/legal";
+import { EmailLink } from "@/components/ui/email-link";
 
 export const metadata: Metadata = {
   title: "개인정보 처리방침",
@@ -47,7 +48,7 @@ function Table({ head, rows }: { head: string[]; rows: ReactNode[][] }) {
   );
 }
 
-const mail = (address: string) => <a href={`mailto:${address}`}>{address}</a>;
+const mail = (address: string) => <EmailLink address={address} />;
 
 /** The policy as drafted by PM 총괄 (vault "개인정보 처리방침 초안", 본문). */
 export default function PrivacyPage() {
