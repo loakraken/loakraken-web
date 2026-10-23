@@ -26,6 +26,20 @@
   line-height: 1.4;
   text-wrap: pretty;
 }
+/* 고정: a small tag before a pinned note's title, on the title's line. */
+.pin {
+  display: inline-block;
+  margin-right: 6px;
+  padding: 0 6px;
+  border-radius: 6px;
+  background: var(--hover-surface);
+  color: var(--link);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: 20px;
+  vertical-align: 1px;
+}
 .list span {
   color: var(--muted-foreground);
   font-size: 13px;

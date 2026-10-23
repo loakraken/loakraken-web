@@ -46,7 +46,7 @@ function failureCopy(code: string) {
     case "CHARACTER_NOT_CACHED":
       return { title: "캐릭터 정보를 먼저 불러와 주세요", text: "위의 갱신 버튼으로 정보를 받은 뒤 다시 열어 주세요." };
     case "CLIENT_RATE_LIMITED":
-      return rateLimitCopy();
+      return rateLimitCopy({ code });
     default:
       return { title: "스펙업 가이드를 불러오지 못했어요", text: "잠시 뒤 다시 시도해 주세요." };
   }

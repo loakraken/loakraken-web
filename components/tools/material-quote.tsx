@@ -39,6 +39,7 @@ import {
   quantityError,
   searchError,
   quoteStatusCopy,
+  quoteCategories,
   type ItemsEnvelope,
   type MarketFailure,
   type MarketSearch,
@@ -46,10 +47,12 @@ import {
   type PriceBasis,
 } from "@/lib/market/model";
 import { toQuoteRequest, usePlan, type PlanRow } from "@/lib/market/store";
+import { usePlanInAddress, type Saved } from "@/lib/market/plan-address";
 import { textCodec, useUrlState, writeUrlParam } from "@/lib/tools/url-state";
 import { SiteHeader } from "@/components/site/site-header";
 import { SegmentedControl, SegmentedItem } from "@/components/ui/segmented-control";
 import styles from "./material-quote.module.css";
+import restoreStyles from "./material-quote-restore.module.css";
 
 const kst = new Intl.DateTimeFormat("ko-KR", {
   timeZone: "Asia/Seoul",
@@ -129,7 +132,7 @@ function ItemSearch({
     refetchOnReconnect: false,
   });
   const categories = useMemo(
-    () => options.data?.data.categories ?? [],
+    () => quoteCategories(options.data?.data.categories ?? []),
     [options.data],
   );
   const [category, setCategory] = useState<number | null>(
@@ -172,6 +175,16 @@ function ItemSearch({
     if (chip.offsetLeft < row.scrollLeft) row.scrollLeft = chip.offsetLeft;
     else if (right > row.scrollLeft) row.scrollLeft = right;
   }, [selectedCategory]);
+
+  // A shared address with a category the list does not have (one left out
+  // above, or gone): the address follows the default it falls back to.
+  useEffect(() => {
+    if (!categories.length || !categoryInAddress || selectedCategory === null || categoryInAddress === selectedCategory) return;
+    const listed = categories.some(
+      (group) => group.code === categoryInAddress || group.subs?.some((sub) => sub.code === categoryInAddress),
+    );
+    if (!listed) writeUrlParam("category", String(selectedCategory));
+  }, [categories, categoryInAddress, selectedCategory]);
 
   function choose(code: number) {
     // A waiting search that already ran keeps its category, like any other
@@ -532,9 +545,78 @@ function QuantityField({
   );
 }
 
-function Plan() {
+/**
+ * A line coming back from the address, drawn in the real line's shape (icon,
+ * name and note, both quantity fields with the saved numbers, the remove
+ * button's room) from the first HTML: the real line takes its place without
+ * moving anything below (PM-프론트 #899, A6).
+ */
+function PendingLine({ saved }: { saved: Saved }) {
+  return (
+    <li aria-hidden="true" data-pending="" className={restoreStyles.pendingLine}>
+      <span className={restoreStyles.pendingIcon} />
+      <div className={styles.planText}>
+        <strong>불러오는 중…</strong>
+        <small>
+          “{saved.n}” 검색 {saved.p}페이지
+        </small>
+      </div>
+      <div className={styles.quantities}>
+        <label className={styles.quantity}>
+          <span>필요</span>
+          <input value={saved.r} placeholder="0" readOnly disabled tabIndex={-1} />
+        </label>
+        <label className={styles.quantity}>
+          <span>보유</span>
+          <input value={saved.o} placeholder="0" readOnly disabled tabIndex={-1} />
+        </label>
+      </div>
+      <span className={restoreStyles.pendingButton} />
+    </li>
+  );
+}
+
+function Plan({
+  restore,
+}: {
+  restore: { loading: boolean; pending: Saved[]; missing: number; failed: number; retry: () => void };
+}) {
   const { enabled } = useLandingMotion();
   const { rows, remove } = usePlan();
+  // Lines kept in the address (#897) come back after a reload or from a link.
+  const missing =
+    restore.missing > 0 || restore.failed > 0 ? (
+      <div role="status">
+        {restore.missing > 0 && (
+          <p className={styles.empty}>
+            담아 둔 재료 {restore.missing}개를 다시 찾지 못했어요. 위에서 다시 검색해 담아 주세요.
+          </p>
+        )}
+        {restore.failed > 0 && (
+          <p className={styles.empty}>
+            담아 둔 재료 {restore.failed}개를 지금 불러오지 못했어요.{" "}
+            <button type="button" className={restoreStyles.textButton} onClick={restore.retry}>
+              다시 불러오기
+            </button>
+          </p>
+        )}
+      </div>
+    ) : null;
+  // Nothing came back: the one notice says what happened and what to do.
+  if (!rows.length && missing) return missing;
+  if (!rows.length && restore.pending.length)
+    return (
+      <>
+        <p className="sr-only" role="status">
+          담아 둔 재료를 불러오는 중…
+        </p>
+        <ul className={styles.planList} aria-busy="true">
+          {restore.pending.map((saved) => (
+            <PendingLine key={saved.id} saved={saved} />
+          ))}
+        </ul>
+      </>
+    );
   if (!rows.length)
     return (
       <p className={styles.empty}>
@@ -542,6 +624,8 @@ function Plan() {
       </p>
     );
   return (
+    <>
+    {missing}
     <ul className={styles.planList}>
       <AnimatePresence initial={false}>
         {rows.map((row) => (
@@ -585,6 +669,7 @@ function Plan() {
         ))}
       </AnimatePresence>
     </ul>
+    </>
   );
 }
 
@@ -721,6 +806,7 @@ const QUOTE_REFRESH_MS = 60_000;
 
 function MaterialQuoteContent({ initialCategory }: { initialCategory: number | null }) {
   const { enabled } = useLandingMotion();
+  const restore = usePlanInAddress();
   const { basis, setBasis, rows } = usePlan();
   // The inputs last asked for: the quote is a query on them, fetched again
   // every minute while the page is visible (after a 429, at its retry time).
@@ -814,7 +900,7 @@ function MaterialQuoteContent({ initialCategory }: { initialCategory: number | n
               </h2>
               <ItemSearch wait={wait} onRateLimit={setSearchFailure} initialCategory={initialCategory} />
               <h3 className={styles.subheading}>견적에 넣은 재료</h3>
-              <Plan />
+              <Plan restore={restore} />
             </section>
 
             <section className={styles.card} aria-labelledby="calc-heading">

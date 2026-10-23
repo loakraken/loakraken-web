@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useQueries, useQueryClient, type QueryClient } from "@tanstack/react-query";
@@ -13,7 +13,7 @@ import { IconButton } from "@/components/ui/icon-button";
 import { CloseCircle } from "@/components/ui/icons";
 import { Input } from "@/components/ui/input";
 import { SkeletonValue } from "@/components/ui/skeleton";
-import { RATE_LIMITED, failureOf, retryLabel } from "@/lib/api/rate-limit";
+import { RATE_LIMITED, failureOf, rateLimitCopy, retryLabel } from "@/lib/api/rate-limit";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { fetchCharacter } from "@/lib/character/client";
 import { GEM_SLOTS } from "@/lib/character/detail";
@@ -24,9 +24,12 @@ import {
   namesFromParam,
   namesSearch,
   parseNames,
+  sortFromParam,
   summarize,
   valueOf,
   type Cell,
+  type CompareSort,
+  type CompareSortKey,
   type Engraving,
   type Summary,
 } from "@/lib/multi-search/model";
@@ -65,7 +68,8 @@ function gatesFor(names: string[], client: QueryClient) {
 }
 
 function useCharacters(names: string[]) {
-  const gates = gatesFor(names, useQueryClient());
+  const client = useQueryClient();
+  const gates = gatesFor(names, client);
   const results = useQueries({
     queries: names.map((name, i) => ({
       queryKey: ["character", name],
@@ -80,7 +84,23 @@ function useCharacters(names: string[]) {
       refetchOnWindowFocus: false,
     })),
   });
-  return names.map<Entry>((name, i) => {
+  // The character a rate limit stopped is asked again by itself once its wait
+  // is over (PM-프론트 10-18 (a)), once: a new limit brings a new wait and so
+  // a new turn. The ones after it follow in order as before.
+  const stopped = names.findIndex((_, i) => !results[i].data && failureOf(results[i].error)?.code === RATE_LIMITED);
+  const stoppedName = stopped >= 0 ? names[stopped] : null;
+  const retryAt = stopped >= 0 ? failureOf(results[stopped].error)?.retryAt : undefined;
+  const [resuming, setResuming] = useState<string | null>(null);
+  useEffect(() => {
+    if (!stoppedName || !retryAt) return;
+    const timer = setTimeout(() => {
+      setResuming(stoppedName);
+      void client.refetchQueries({ queryKey: ["character", stoppedName], exact: true });
+    }, Math.max(0, retryAt - Date.now()));
+    return () => clearTimeout(timer);
+  }, [client, stoppedName, retryAt]);
+  const resumingIndex = resuming ? names.indexOf(resuming) : -1;
+  const entries = names.map<Entry>((name, i) => {
     const result = results[i];
     return {
       name,
@@ -90,6 +110,8 @@ function useCharacters(names: string[]) {
       retry: () => void result.refetch(),
     };
   });
+  // Said once in the status line while that character is being asked again.
+  return { entries, resuming: resumingIndex >= 0 && results[resumingIndex].isFetching ? resuming : null };
 }
 
 function Best({ on, children }: { on: boolean; children: ReactNode }) {
@@ -148,7 +170,12 @@ function Failure({ entry, compact = false }: { entry: Entry; compact?: boolean }
   if (entry.waiting === "limit") return <Reason text="요청이 많아 앞 캐릭터 다시 시도 뒤에 불러와요" />;
   const failure = failureOf(entry.error);
   const code = failure?.code ?? "";
-  const text = limit.limited ? "요청이 많아 잠시 멈췄어요" : failureCopy({ code, status: 0 }).title;
+  // This visitor's own share reads as a short pause (PM 총괄 10-18); the site-wide limit keeps its words.
+  const text = !limit.limited
+    ? failureCopy({ code, status: 0 }).title
+    : failure?.limit === "client"
+      ? rateLimitCopy(failure).title
+      : "요청이 많아 잠시 멈췄어요";
   const retryable = code !== "CHARACTER_NOT_FOUND" && code !== "INVALID_REQUEST";
   return (
     <span className={styles.failed} role="status">
@@ -162,21 +189,42 @@ function Failure({ entry, compact = false }: { entry: Entry; compact?: boolean }
   );
 }
 
-type SortKey = "itemLevel" | "combatPower" | "quality" | "gems";
+type SortKey = CompareSortKey;
 
-function CompareTable({ entries, best, onRemove }: { entries: Entry[]; best: Record<SortKey, string[]>; onRemove: (name: string) => void }) {
-  const { sorted, sort, toggle } = useTableSort<Entry, SortKey>(entries, {
-    itemLevel: (e) => e.summary?.itemLevel,
-    combatPower: (e) => (e.summary ? valueOf(e.summary.combatPower) : null),
-    quality: (e) => (e.summary ? valueOf(e.summary.quality) : null),
-    gems: (e) => (e.summary ? valueOf(e.summary.gems)?.average : null),
-  });
+function CompareTable({
+  entries,
+  best,
+  onRemove,
+  addressSort,
+  onSort,
+}: {
+  entries: Entry[];
+  best: Record<SortKey, string[]>;
+  onRemove: (name: string) => void;
+  /** The order in the address (?sort=), so back and reload keep it. */
+  addressSort: CompareSort;
+  onSort: (sort: CompareSort) => void;
+}) {
+  const { sorted, sort, toggle } = useTableSort<Entry, SortKey>(
+    entries,
+    {
+      itemLevel: (e) => e.summary?.itemLevel,
+      combatPower: (e) => (e.summary ? valueOf(e.summary.combatPower) : null),
+      quality: (e) => (e.summary ? valueOf(e.summary.quality) : null),
+      gems: (e) => (e.summary ? valueOf(e.summary.gems)?.average : null),
+    },
+    addressSort,
+  );
+  // A header press changes the order here; the address follows it.
+  useEffect(() => {
+    if (sort?.key !== addressSort?.key || sort?.dir !== addressSort?.dir) onSort(sort);
+  }, [sort, addressSort, onSort]);
   const isBest = (key: SortKey, name: string) => best[key].includes(name);
   return (
     <DataTable label="캐릭터 비교 표" stickyFirst className={styles.table}>
       {/* Fixed widths: a column does not widen when a later character arrives. */}
       <colgroup>
-        {[136, 108, 124, 272, 150, 84, 84, 96, 56].map((w, i) => (
+        {[136, 108, 124, 244, 150, 84, 84, 124, 56].map((w, i) => (
           <col key={i} style={{ width: w }} />
         ))}
       </colgroup>
@@ -336,8 +384,8 @@ function cardOf(entry: Entry, best: Record<SortKey, string[]>, onRemove: (name: 
  * A plain replaceState (null state): the router syncs it into useSearchParams.
  * Passing the router's own state along makes it skip that sync.
  */
-const writeAddress = (list: string[]) =>
-  window.history.replaceState(null, "", `${window.location.pathname}${namesSearch(list)}`);
+const writeAddress = (list: string[], sort: CompareSort = null) =>
+  window.history.replaceState(null, "", `${window.location.pathname}${namesSearch(list, sort)}`);
 
 export function MultiSearchView() {
   const ids = { field: useId(), hint: useId(), error: useId() };
@@ -345,8 +393,11 @@ export function MultiSearchView() {
   // back, reload and a shared link all show the same list. (A copy seeded
   // from the server's first answer came back empty on back, as the router
   // restored the screen it had before any name, and then wiped the address.)
-  const raw = useSearchParams().get("names");
+  const params = useSearchParams();
+  const raw = params.get("names");
   const fromAddress = useMemo(() => namesFromParam(raw), [raw]);
+  const rawSort = params.get("sort");
+  const sort = useMemo(() => sortFromParam(rawSort), [rawSort]);
   // The last list brought back on open. Held here too: on mount the router
   // may not watch replaceState yet (its effect runs after ours), so the
   // address can change without useSearchParams seeing it.
@@ -355,8 +406,9 @@ export function MultiSearchView() {
   const [text, setText] = useState("");
   const [error, setError] = useState("");
 
+  const writeSort = useCallback((next: CompareSort) => writeAddress(names, next), [names]);
   const setNames = (next: string[]) => {
-    writeAddress(next);
+    writeAddress(next, sort);
     saveLastNames(next);
     setRestored(null);
   };
@@ -374,7 +426,7 @@ export function MultiSearchView() {
     setRestored(last);
   }, []);
 
-  const entries = useCharacters(names);
+  const { entries, resuming } = useCharacters(names);
   const summaries = entries.flatMap((e) => (e.summary ? [e.summary] : []));
   const best: Record<SortKey, string[]> = {
     itemLevel: bestNames(summaries, (s) => s.itemLevel),
@@ -415,9 +467,11 @@ export function MultiSearchView() {
   const done = entries.filter((e) => e.summary || e.error).length;
   const status = !names.length
     ? ""
-    : `${restored ? "지난번 명단 · " : ""}${
-        done < names.length ? `${names.length}명 중 ${done}명을 불러왔어요` : `${names.length}명을 비교하고 있어요`
-      }`;
+    : resuming
+      ? `기다린 뒤 ${resuming}부터 이어서 불러오고 있어요`
+      : `${restored ? "지난번 명단 · " : ""}${
+          done < names.length ? `${names.length}명 중 ${done}명을 불러왔어요` : `${names.length}명을 비교하고 있어요`
+        }`;
 
   return (
     <div className={quote.page}>
@@ -483,7 +537,7 @@ export function MultiSearchView() {
               </button>
             </div>
             <div className={styles.panel}>
-              <CompareTable entries={entries} best={best} onRemove={remove} />
+              <CompareTable entries={entries} best={best} onRemove={remove} addressSort={sort} onSort={writeSort} />
             </div>
             <div className={styles.cards}>
               <CompareCards label="캐릭터 비교 카드" rows={CARD_ROWS} cards={entries.map((e) => cardOf(e, best, remove))} />

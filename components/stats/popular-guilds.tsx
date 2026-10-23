@@ -1,11 +1,17 @@
 "use client";
 
 import { useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { countdownText } from "@/lib/api/rate-limit";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { fetchPopularGuilds } from "@/lib/stats/client";
-import { POPULAR_GUILD_PERIODS, type PopularGuildsPeriod } from "@/lib/stats/popular-guilds";
+import {
+  GUILD_PERIOD_PARAM,
+  POPULAR_GUILD_PERIODS,
+  popularGuildsPeriodOf,
+  type PopularGuildsPeriod,
+} from "@/lib/stats/popular-guilds";
 import { useTallest } from "@/components/ui/use-tallest";
 import home from "@/components/home/home.module.css";
 import styles from "./popular-guilds.module.css";
@@ -17,7 +23,19 @@ import styles from "./popular-guilds.module.css";
  * the list says what is counted.
  */
 export function PopularGuilds({ server }: { server?: string }) {
-  const [period, setPeriod] = useState<PopularGuildsPeriod>("24h");
+  // The period rides in the address (?guildPeriod=7d), so a reload keeps it;
+  // the page fetched that period for the first HTML.
+  const params = useSearchParams();
+  const [period, setPeriod] = useState<PopularGuildsPeriod>(() => popularGuildsPeriodOf(params.get(GUILD_PERIOD_PARAM)));
+  const choose = (next: PopularGuildsPeriod) => {
+    setPeriod(next);
+    const search = new URLSearchParams(window.location.search);
+    if (next === "24h") search.delete(GUILD_PERIOD_PARAM);
+    else search.set(GUILD_PERIOD_PARAM, next);
+    const query = search.size ? `?${search}` : "";
+    // A plain replaceState: no server round trip, the other parameters stay.
+    window.history.replaceState(null, "", `${window.location.pathname}${query}${window.location.hash}`);
+  };
   const query = useQuery({
     queryKey: ["popular-guilds", period, server ?? null],
     queryFn: ({ signal }) => fetchPopularGuilds({ period, server }, signal),
@@ -34,7 +52,7 @@ export function PopularGuilds({ server }: { server?: string }) {
         <h2 id="popular-guilds-heading">인기 길드{server ? ` · ${server}` : ""}</h2>
         <span className={home.noticeTabs} role="group" aria-label="인기 길드 기간">
           {POPULAR_GUILD_PERIODS.map((p) => (
-            <button key={p.id} type="button" aria-pressed={period === p.id} onClick={() => setPeriod(p.id)}>
+            <button key={p.id} type="button" aria-pressed={period === p.id} onClick={() => choose(p.id)}>
               {p.label}
             </button>
           ))}

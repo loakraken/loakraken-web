@@ -125,9 +125,28 @@ test.describe("사용자 지적 회귀 점검표 @regression", () => {
         await watchShifts(page);
         await gotoReady(page, path);
         await page.waitForTimeout(800);
-        expect((await shiftsSince(page)).all, `${path} 첫 로드 layout-shift`).toBe(
-          0,
-        );
+        const shifts = await shiftsSince(page);
+        // A failure says what moved and when (ms after navigation start), so a
+        // shift that only happens now and then on CI can be traced (#909).
+        // With the page's own timing: when the document came, and the API calls
+        // the browser made (start+duration), so "filled late after a slow
+        // answer" shows or is ruled out.
+        const detail = shifts.all
+          ? await page.evaluate(() => {
+              const moved = window.__shiftLog
+                .map((e) => `${Math.round(e.t)}ms ${e.v.toFixed(4)}${e.input ? " (input)" : ""} ${e.sources.join("+")}`)
+                .join(" | ");
+              const nav = performance.getEntriesByType("navigation")[0];
+              const doc = nav ? `문서 ${Math.round(nav.responseStart)}~${Math.round(nav.responseEnd)}ms` : "";
+              const api = performance
+                .getEntriesByType("resource")
+                .filter((r) => new URL(r.name).pathname.startsWith("/api/"))
+                .map((r) => `${new URL(r.name).pathname} ${Math.round(r.startTime)}+${Math.round(r.duration)}ms`)
+                .join(", ");
+              return `${moved} · ${doc} · API: ${api || "없음"}`;
+            })
+          : "";
+        expect(shifts.all, `${path} 첫 로드 layout-shift — ${detail}`).toBe(0);
       });
     }
 

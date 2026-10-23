@@ -25,7 +25,7 @@ import styles from "./spec-up-goal.module.css";
 const two = (value: number) =>
   value.toLocaleString("ko-KR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-function failureText(code: string | null) {
+function failureText(code: string | null, limit?: "client") {
   switch (code) {
     case "CHARACTER_NOT_CACHED":
       return "캐릭터 정보를 먼저 불러와 주세요. 위의 갱신 버튼으로 정보를 받은 뒤 다시 찾아 주세요.";
@@ -34,7 +34,7 @@ function failureText(code: string | null) {
     case "SPEC_UP_DISABLED":
       return "스펙업 목표는 아직 열리지 않았어요.";
     case RATE_LIMITED:
-      return `${rateLimitCopy().title}. ${rateLimitCopy().text}`;
+      return `${rateLimitCopy({ limit }).title}. ${rateLimitCopy({ limit }).text}`;
     default:
       return "경로를 계산하지 못했어요. 잠시 뒤 다시 시도해 주세요.";
   }
@@ -110,7 +110,7 @@ export function SpecUpGoal({ data }: { data: Character }) {
       <div className={styles.result} aria-live="polite" aria-busy={goal.isFetching || undefined}>
         {failure && !goal.isFetching ? (
           <p className={styles.muted} role="alert">
-            {failureText(failure)}
+            {failureText(failure, goal.error instanceof SpecUpQueryError ? goal.error.info.limit : undefined)}
           </p>
         ) : goal.data ? (
           <GoalAnswer name={name} goal={goal.data.data} />

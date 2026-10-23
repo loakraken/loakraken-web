@@ -50,6 +50,30 @@ test("the per-client 429 (CLIENT_RATE_LIMITED) is reported like any 429", async 
   if (result.ok) return;
   assert.equal(result.error.code, RATE_LIMITED);
   assert.ok((result.error.retryAt ?? 0) >= before + 30_000);
+  // Marked as this visitor's own share, for the other words below.
+  assert.equal(result.error.limit, "client");
+});
+
+test("the visitor's own share reads as a short pause; the site-wide limit keeps its words", async () => {
+  const site = (async () =>
+    Response.json({ code: "LOST_ARK_RATE_LIMITED" }, { status: 429, headers: { "Retry-After": "30" } })) as unknown as typeof fetch;
+  const result = await requestBackend(new URL("http://127.0.0.1:8080/x"), {
+    isValid: (body): body is unknown => body !== undefined,
+    errorCodes: { 429: ["LOST_ARK_RATE_LIMITED"] },
+    fetcher: site,
+  });
+  assert.equal(result.ok, false);
+  if (result.ok) return;
+  assert.equal(result.error.limit, undefined);
+
+  const pause = { title: "짧은 시간에 검색이 많아 잠깐 쉬어 가요", text: "잠시 뒤 다시 시도해 주세요." };
+  const client = { code: RATE_LIMITED, status: 429, retryAt: Date.now() + 10_000, limit: "client" as const };
+  assert.deepEqual(rateLimitCopy({ limit: "client" }), pause);
+  assert.deepEqual(rateLimitCopy({ code: "CLIENT_RATE_LIMITED" }), pause);
+  assert.deepEqual(failureCopy(client), pause);
+  assert.deepEqual(marketFailureCopy(client), pause);
+  assert.deepEqual(rateLimitCopy(result.error), rateLimitCopy());
+  assert.notDeepEqual(rateLimitCopy(), pause);
 });
 
 test("failureOf reads the info a client query error carries", () => {

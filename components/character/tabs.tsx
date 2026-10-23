@@ -26,6 +26,7 @@ import {
   averageQuality,
   gemBaseAttack,
   gemKind,
+  isCooldownGem,
   engravingBookString,
   groupEquipment,
   isGrade,
@@ -65,6 +66,7 @@ import {
 } from "@/lib/character/history";
 import { MINUTE, useClock } from "@/components/home/clock";
 import { failureCopy } from "@/lib/character/model";
+import { arkGridRealView, braceletRealView, type ArkGridRealView } from "@/lib/character/efficiency-real";
 import { HistoryChart } from "./history-chart";
 import { AvatarsTab, CollectiblesTab } from "./inner";
 import { Panel } from "./panel";
@@ -169,7 +171,7 @@ export const SimulatorEnabled = createContext(true);
 export const TitleStatsEnabled = createContext(true);
 /** SPEC_UP_GUIDE (server flag): off hides the 스펙업 tab the same way. */
 export const SpecUpEnabled = createContext(true);
-/** GUILD_RANKING (server flag): the guild tab uses the guild ranking's data; off hides it. */
+/** GUILD_TAB (server flag, apart from the guild ranking since api #582): off hides the guild tab. */
 export const GuildTabEnabled = createContext(true);
 /**
  * CHARACTER_EFFICIENCY (server flag): off leaves out the 아크 그리드 효율 and
@@ -647,18 +649,13 @@ function EquipmentPanel({ data }: { data: Character }) {
   );
 }
 
-const percentText = (value: number) =>
-  `+${value.toLocaleString("ko-KR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
-
-const spaced = (value: string) => value.replace(/\s+/g, " ").trim();
-
 /**
- * The bracelet's effects with 팔찌 효율 (backend #350, PM 총괄 21:21·21:46):
- * how much this bracelet adds to combat power, current ÷ without it − 1. The
- * total sits under the name; "줄별 보기" puts each line's share at the end of
- * its own effect line (no second copy of the list) and adds 팔찌 도약 as a
- * last line. A value not worked out, or a line that moves nothing, says why
- * on screen (회귀 점검표 A21); the term carries its definition (A22).
+ * The bracelet's effects with 팔찌 효율 (backend #571, user decision: the
+ * comparison sites' damage share, not the combat-power contribution shown
+ * before): how much this bracelet adds to damage. A dealer gets the value and,
+ * when sent, the '악마 피해' setting (off by default) for the value with it; a
+ * supporter sees the grades only; not worked out reads '준비 중'. The term
+ * carries its definition (A22).
  */
 function BraceletBody({
   name,
@@ -670,62 +667,46 @@ function BraceletBody({
   efficiency: Character["braceletEfficiency"];
 }) {
   // Off on this deployment: as if there were no efficiency (nothing drawn).
-  const efficiency = useContext(CharacterEfficiencyEnabled) ? given : null;
-  const [open, setOpen] = useState(false);
-  const listId = useId();
-  const ok = efficiency?.status === "OK" && efficiency.percent != null;
-  const byText = new Map((efficiency?.lines ?? []).map((line) => [spaced(line.text), line]));
-  // Lines with no effect of that text (팔찌 도약 +N) go after the effects.
-  const extra = (efficiency?.lines ?? []).filter((line) => !effects.some((e) => spaced(e.text) === spaced(line.text)));
-  const share = (line: { percent: number | null; status: string; reason: string | null } | undefined) =>
-    !open || !line ? null : line.status === "OK" && line.percent === 0 ? (
-      <small className={styles.braceletEffNote}>전투력이 바뀌지 않는 효과예요.</small>
-    ) : line.status === "OK" && line.percent != null ? (
-      <b className={styles.braceletEffShare}>{percentText(line.percent)}</b>
-    ) : (
-      <small className={styles.braceletEffNote}>{line.reason ?? "계산하지 않는 줄이에요."}</small>
-    );
+  const real = braceletRealView(useContext(CharacterEfficiencyEnabled) ? given?.real : null);
+  const [devil, setDevil] = useState(false);
   return (
     <div className={styles.braceletBody}>
       <strong>팔찌</strong>
-      {efficiency && (
+      {(real.state === "ready" || real.state === "pending") && (
         <p className={styles.braceletEffHead}>
           <Tooltip>
-            <TooltipTrigger className={styles.braceletEffTerm} aria-label="팔찌 효율: 이 팔찌가 전투력을 몇 % 올려 주는지예요.">
+            <TooltipTrigger className={styles.braceletEffTerm} aria-label="팔찌 효율: 이 팔찌가 딜을 몇 % 올려 주는지예요.">
               팔찌 효율
             </TooltipTrigger>
-            <TooltipContent>이 팔찌가 전투력을 몇 % 올려 주는지예요.</TooltipContent>
+            <TooltipContent>이 팔찌가 딜을 몇 % 올려 주는지예요.</TooltipContent>
           </Tooltip>
-          {ok ? <b>{percentText(efficiency.percent!)}</b> : <span className={styles.braceletEffReason}>{efficiency.reason}</span>}
-          {ok && efficiency.lines.length > 0 && effects.length > 0 && (
+          {real.state === "ready" ? (
+            <b>{devil && real.devil ? real.devil : real.percent}</b>
+          ) : (
+            // A bracelet is there (this row only shows with one), its value not
+            // worked out: never a number (PM 총괄 14:04 — the comparison site
+            // shows a meaningless constant here); '준비 중' as everywhere else.
+            <span className={styles.braceletEffReason}>준비 중</span>
+          )}
+          {real.state === "ready" && real.devil && (
             <button
               type="button"
               className={styles.textButton}
-              aria-expanded={open}
-              aria-controls={listId}
-              aria-label={open ? "팔찌 줄별 접기" : "팔찌 줄별 보기"}
-              onClick={() => setOpen(!open)}
+              aria-pressed={devil}
+              onClick={() => setDevil(!devil)}
             >
-              {open ? "줄별 접기" : "줄별 보기"}
+              악마 피해
             </button>
           )}
         </p>
       )}
       {effects.length ? (
-        <ul id={listId} className={styles.gradeList} data-flow="" data-shares={open || undefined}>
+        <ul className={styles.gradeList} data-flow="">
           {effects.map((effect, i) => (
             <GradeLine key={i} grade={effect.grade}>
               <span className={styles.preLine}>{effect.text}</span>
-              {share(byText.get(spaced(effect.text)))}
             </GradeLine>
           ))}
-          {open &&
-            extra.map((line) => (
-              <GradeLine key={line.text} grade={null}>
-                <span className={styles.preLine}>{line.text}</span>
-                {share(line)}
-              </GradeLine>
-            ))}
         </ul>
       ) : (
         <small>{name}</small>
@@ -735,22 +716,76 @@ function BraceletBody({
 }
 
 /**
- * One line's share of 아크 그리드 효율 (backend #424): how much higher combat
- * power is than without that core (or without the gem options). A line that
- * moves nothing or is not worked out says so (회귀 점검표 A21).
+ * 아크 그리드 효율 (backend #570, user decision: the comparison sites' damage
+ * share, not the combat-power contribution shown before): how much the ark
+ * grid gems add — their options and the core points above 17 — with 질서·혼돈
+ * apart and each option line behind "줄별 보기". No grid: 0% (its gems add
+ * nothing, PM-프론트 P3); a grid not worked out: '준비 중'. The term carries
+ * its definition (A22).
  */
-function ArkShare({
-  line,
-  zero,
-}: {
-  line: { percent: number | null; status: string; reason: string | null } | undefined;
-  zero: string;
-}) {
-  if (!line) return null;
-  if (line.status === "OK" && line.percent === 0) return <small className={styles.braceletEffNote}>{zero}</small>;
-  if (line.status === "OK" && line.percent != null)
-    return <b className={styles.braceletEffShare}>{percentText(line.percent)}</b>;
-  return <small className={styles.braceletEffNote}>{line.reason ?? "계산하지 않는 줄이에요."}</small>;
+function ArkRealHead({ view }: { view: ArkGridRealView }) {
+  const [open, setOpen] = useState(false);
+  const listId = useId();
+  if (view.state === "hidden") return null;
+  return (
+    <>
+      <p className={styles.braceletEffHead}>
+        <Tooltip>
+          <TooltipTrigger
+            className={styles.braceletEffTerm}
+            aria-label="아크 그리드 효율: 아크 그리드 젬(옵션·코어 포인트)이 딜을 몇 % 올려 주는지예요."
+          >
+            아크 그리드 효율
+          </TooltipTrigger>
+          <TooltipContent>아크 그리드 젬(옵션·코어 포인트)이 딜을 몇 % 올려 주는지예요.</TooltipContent>
+        </Tooltip>
+        {view.state === "ready" ? (
+          <>
+            <b>{view.total}</b>
+            {view.parts && <small className={styles.arkEffCores}>{view.parts}</small>}
+          </>
+        ) : view.state === "none" ? (
+          <span className={styles.braceletEffReason}>0% · 아크 그리드 없음</span>
+        ) : (
+          <span className={styles.braceletEffReason}>준비 중</span>
+        )}
+        {view.state === "ready" && view.lines.length > 0 && (
+          <button
+            type="button"
+            className={styles.textButton}
+            aria-expanded={open}
+            aria-controls={listId}
+            aria-label={open ? "아크 그리드 젬 옵션 줄별 접기" : "아크 그리드 젬 옵션 줄별 보기"}
+            onClick={() => setOpen(!open)}
+          >
+            {open ? "줄별 접기" : "줄별 보기"}
+          </button>
+        )}
+      </p>
+      {view.state === "ready" && view.series.length > 0 && (
+        <p className={styles.arkRealSeries}>
+          {view.series.map((s) => (
+            <span key={s.label}>
+              {s.label} <b>{s.percent}</b>
+            </span>
+          ))}
+        </p>
+      )}
+      {view.state === "ready" && open && (
+        <ul id={listId} className={styles.arkRealLines}>
+          {view.lines.map((line) => (
+            <li key={line.name}>
+              <span>
+                {line.name}
+                {line.level != null && <small> Lv.{line.level}</small>}
+              </span>
+              {line.percent ? <b>{line.percent}</b> : <small>계산하지 않는 줄이에요.</small>}
+            </li>
+          ))}
+        </ul>
+      )}
+    </>
+  );
 }
 
 /**
@@ -786,6 +821,7 @@ function GemsPanel({ data }: { data: Character }) {
   const extra = useItemTooltips(data.characterName);
   const summary = data.analysis.gems;
   const baseAttack = gemBaseAttack(data.loadout.gems?.effects?.description);
+  const emptySlots = gemCounts(data.loadout.gems).empty;
   return (
     <Panel
       title="보석"
@@ -793,8 +829,10 @@ function GemsPanel({ data }: { data: Character }) {
         summary && gems.length
           ? [
               `평균 ${number(summary.averageLevel)}`,
-              `뎀 ${summary.damageEffectCount}`,
-              `쿨 ${summary.cooldownEffectCount}`,
+              `겁 ${summary.damageEffectCount}`,
+              `작 ${summary.cooldownEffectCount}`,
+              // Empty slots only when there are some (players read '미장착 1').
+              emptySlots > 0 && `미장착 ${emptySlots}`,
               baseAttack != null && `기본 공격력 +${baseAttack}%`,
             ]
               .filter(Boolean)
@@ -804,28 +842,33 @@ function GemsPanel({ data }: { data: Character }) {
     >
       {gems.length ? (
         <ul className={styles.gemGrid}>
-          {gems.map((gem, i) => (
-            <li key={i} {...stagger(i)}>
-              <DetailTooltip
-                name={gem.name ?? "보석"}
-                card={
-                  <GemCard
-                    gem={gem}
-                    skill={skills.find((skill) => skill.gemSlot === gem.slot)}
-                    className={data.className}
-                    lines={gemLines(extra, gem.slot)}
-                  />
-                }
-              >
-                <GameIcon src={gem.icon} grade={gem.grade} size={44} />
-              </DetailTooltip>
-              <span data-kind={gemKind(gem.name) ?? undefined}>
-                {gem.level != null && gem.level > 0 ? gem.level : "?"}
-                {gemKind(gem.name) ?? ""}
-              </span>
-              <small>{text(gem.name)}</small>
-            </li>
-          ))}
+          {gems.map((gem, i) => {
+            const skill = skills.find((effect) => effect.gemSlot === gem.slot);
+            // Players read gems as "10겁 8작"; the official name stays in the card.
+            const kind = gemKind(gem.name, skill?.description);
+            return (
+              <li key={i} {...stagger(i)}>
+                <DetailTooltip
+                  name={gem.name ?? "보석"}
+                  card={
+                    <GemCard
+                      gem={gem}
+                      skill={skill}
+                      className={data.className}
+                      lines={gemLines(extra, gem.slot)}
+                    />
+                  }
+                >
+                  <GameIcon src={gem.icon} grade={gem.grade} size={44} />
+                </DetailTooltip>
+                <span data-gem={kind ? (isCooldownGem(kind) ? "cooldown" : "damage") : undefined}>
+                  {gem.level != null && gem.level > 0 ? gem.level : "?"}
+                  {kind ?? ""}
+                </span>
+                <small className={styles.srOnly}>{text(gem.name)}</small>
+              </li>
+            );
+          })}
         </ul>
       ) : (
         <Empty
@@ -842,18 +885,16 @@ function ArkGridPanel({ data }: { data: Character }) {
   const grid = data.loadout.arkGrid;
   const summary = data.analysis.arkGrid;
   const [expanded, setExpanded] = useState(false);
-  const [shares, setShares] = useState(false);
-  const listId = useId();
   const extra = useItemTooltips(data.characterName);
   // Off on this deployment: as if there were no efficiency (nothing drawn).
-  const efficiency = useContext(CharacterEfficiencyEnabled) ? data.arkGridEfficiency : null;
-  const effOk = efficiency?.status === "OK" && efficiency.percent != null;
-  const coreLine = (index: number) =>
-    shares ? efficiency?.lines.find((line) => line.slotIndex === index) : undefined;
-  const gemLine = shares ? efficiency?.lines.find((line) => line.slotIndex == null) : undefined;
+  const real = arkGridRealView(
+    useContext(CharacterEfficiencyEnabled) ? data.arkGridEfficiency?.real : null,
+    !!grid && grid.slots.length > 0,
+  );
   if (!grid)
     return (
       <Panel title="아크 그리드">
+        <ArkRealHead view={real} />
         <Empty state={data.coverage.arkGrid.state} />
       </Panel>
     );
@@ -875,41 +916,7 @@ function ArkGridPanel({ data }: { data: Character }) {
         </span>
       }
     >
-      {efficiency && (
-        <p className={styles.braceletEffHead}>
-          <Tooltip>
-            <TooltipTrigger
-              className={styles.braceletEffTerm}
-              aria-label="아크 그리드 효율: 코어와 젬 옵션이 전투력을 몇 % 올려 주는지예요."
-            >
-              아크 그리드 효율
-            </TooltipTrigger>
-            <TooltipContent>코어와 젬 옵션이 전투력을 몇 % 올려 주는지예요.</TooltipContent>
-          </Tooltip>
-          {effOk ? (
-            <>
-              <b>{percentText(efficiency.percent!)}</b>
-              {efficiency.coresPercent != null && (
-                <small className={styles.arkEffCores}>코어 {percentText(efficiency.coresPercent)}</small>
-              )}
-            </>
-          ) : (
-            <span className={styles.braceletEffReason}>{efficiency.reason}</span>
-          )}
-          {effOk && efficiency.lines.length > 0 && grid.slots.length > 0 && (
-            <button
-              type="button"
-              className={styles.textButton}
-              aria-expanded={shares}
-              aria-controls={listId}
-              aria-label={shares ? "아크 그리드 줄별 접기" : "아크 그리드 줄별 보기"}
-              onClick={() => setShares(!shares)}
-            >
-              {shares ? "줄별 접기" : "줄별 보기"}
-            </button>
-          )}
-        </p>
-      )}
+      <ArkRealHead view={real} />
       {grid.effects.length > 0 && (
         <ul className={styles.effectGrid}>
           {grid.effects.map((effect, i) => (
@@ -926,7 +933,7 @@ function ArkGridPanel({ data }: { data: Character }) {
         </ul>
       )}
       {grid.slots.length ? (
-        <ul id={listId} className={styles.coreList}>
+        <ul className={styles.coreList}>
           {grid.slots.map((slot, i) => {
             const lines = gridLines(extra, i);
             const detail = slot.options.length > 0 || slot.gems.some((gem) => gem.name);
@@ -952,7 +959,6 @@ function ArkGridPanel({ data }: { data: Character }) {
                           옵션 {slot.activeOptionCount}/{slot.optionCount}
                         </small>
                       )}
-                      <ArkShare line={coreLine(slot.index ?? i)} zero="전투력이 바뀌지 않는 코어예요." />
                     </span>
                     <span className={styles.coreGems}>
                       {slot.gems.map((gem, j) => (
@@ -1025,12 +1031,6 @@ function ArkGridPanel({ data }: { data: Character }) {
         </ul>
       ) : (
         <Empty state={data.coverage.arkGrid.collections.slots} />
-      )}
-      {gemLine && (
-        <p className={styles.arkEffGem}>
-          <span>{gemLine.text}</span>
-          <ArkShare line={gemLine} zero="전투력이 바뀌지 않는 옵션이에요." />
-        </p>
       )}
       {/* Every core at once, under the list (user 10-11); the head button
           went away because it did the same (user 10-12). */}
@@ -1384,8 +1384,8 @@ function SkillCard({
         </div>
         {gems.length > 0 && (
           <span className={styles.skillGems} aria-label="보석">
-            {gems.map(({ gem, effect, label }) => (
-              <span key={`gem-${gem.slot}`} data-gem={label.endsWith("쿨") ? "cooldown" : "damage"}>
+            {gems.map(({ gem, effect, label, cooldown }) => (
+              <span key={`gem-${gem.slot}`} data-gem={cooldown ? "cooldown" : "damage"}>
                 <DetailTooltip
                   name={gem.name ?? "보석"}
                   card={
@@ -1495,17 +1495,17 @@ function SkillOverview({
   // One group per skill, so the groups never overlap (PM #507 P1): both kinds,
   // damage only, cooldown only, none. The head counts the same chips.
   const groupOf = (skill: Skill): GemFilter => {
-    const labels = gemsOf(skill).map((gem) => gem.label);
-    const damage = labels.some((label) => label.endsWith("뎀"));
-    const cooldown = labels.some((label) => label.endsWith("쿨"));
+    const chips = gemsOf(skill);
+    const damage = chips.some((gem) => !gem.cooldown);
+    const cooldown = chips.some((gem) => gem.cooldown);
     return damage && cooldown ? "both" : damage ? "damage" : cooldown ? "cooldown" : "none";
   };
   const groupCount = (id: GemFilter) => (id === "all" ? sorted.length : sorted.filter((skill) => groupOf(skill) === id).length);
   const list = !full || gemFilter === "all" ? sorted : sorted.filter((skill) => groupOf(skill) === gemFilter);
-  const chips = sorted.flatMap((skill) => gemsOf(skill).map((gem) => gem.label));
+  const chips = sorted.flatMap((skill) => gemsOf(skill));
   const counts = {
-    damage: chips.filter((label) => label.endsWith("뎀")).length,
-    cooldown: chips.filter((label) => label.endsWith("쿨")).length,
+    damage: chips.filter((gem) => !gem.cooldown).length,
+    cooldown: chips.filter((gem) => gem.cooldown).length,
     empty: gemCounts(data.loadout.gems).empty,
   };
   return (
@@ -1576,10 +1576,10 @@ function SkillOverview({
         <div className={styles.otherGems}>
           <h3 id={otherId}>그 외 장착 보석</h3>
           <ul aria-labelledby={otherId}>
-            {others.map(({ gem, effect, label }) => (
+            {others.map(({ gem, effect, label, cooldown }) => (
               <li key={`other-${gem.slot}`}>
                 <span className={styles.skillGems}>
-                  <span data-gem={label.endsWith("쿨") ? "cooldown" : "damage"}>
+                  <span data-gem={cooldown ? "cooldown" : "damage"}>
                     <DetailTooltip
                       name={gem.name ?? "보석"}
                       card={
@@ -1933,9 +1933,12 @@ type Sibling = NonNullable<Character["siblings"]>[number];
 function SiblingList({
   siblings,
   current,
+  caption,
 }: {
   siblings: Sibling[];
   current: string;
+  /** When the roster was read, right under the lists. */
+  caption?: ReactNode;
 }) {
   // Combat power records (L19), records only: no official call until the
   // button. Sorted by combat power by default; until they arrive (or if they
@@ -1994,55 +1997,8 @@ function SiblingList({
           <label htmlFor={ids.masked}>닉네임 가리기</label>
         </span>
       </div>
-      {summary.sixAverage != null && (
-        <p className={styles.rosterSummary}>
-          식스맨 평균 <b>{number(summary.sixAverage)}</b>
-          {/* The ranking's rule (api #530); the server named when the roster spans several. */}
-          <small>{` (${servers.length > 1 ? `${summary.sixServer} ` : ""}${sixBasis(summary.sixCount, "평균")})`}</small>
-          {" · "}
-          {number(ROSTER_TOTAL_MIN)} 이상 <b>{summary.highCount}명</b>
-          {summary.highCount > 0 && (
-            <small>
-              {" "}
-              (합 {number(summary.highSum)})
-            </small>
-          )}
-        </p>
-      )}
-      <RosterPower name={current} siblings={siblings} records={records} query={power} />
-      {stats.average != null && (
-        <>
-          <dl className={styles.rosterStats} aria-label="원정대 아이템 레벨">
-            <div>
-              <dt>캐릭터</dt>
-              <dd>{number(stats.count)}개</dd>
-            </div>
-            <div>
-              <dt>평균</dt>
-              <dd>{number(stats.average)}</dd>
-            </div>
-            <div>
-              <dt>중앙값</dt>
-              <dd>{number(stats.median)}</dd>
-            </div>
-            <div>
-              <dt>최고</dt>
-              <dd>{number(stats.max)}</dd>
-            </div>
-            <div>
-              <dt>최저</dt>
-              <dd>{number(stats.min)}</dd>
-            </div>
-          </dl>
-          <Panel title="구성" wide>
-            <div className={styles.rosterMix}>
-              <ShareBars title="아이템 레벨 구간" rows={bands} />
-              <ShareBars title={`직업 ${mix.length}개`} rows={mix} />
-            </div>
-          </Panel>
-        </>
-      )}
-      <WeeklyGoldPanel siblings={siblings} current={current} shown={shown} />
+      {/* The characters first (v0.3.2 feedback): the summaries, combat power,
+          make-up and weekly gold follow under the lists. */}
       {servers.map((server) => (
         <Panel
           key={server}
@@ -2102,6 +2058,56 @@ function SiblingList({
           </ul>
         </Panel>
       ))}
+      {caption}
+      {summary.sixAverage != null && (
+        <p className={styles.rosterSummary}>
+          식스맨 평균 <b>{number(summary.sixAverage)}</b>
+          {/* The ranking's rule (api #530); the server named when the roster spans several. */}
+          <small>{` (${servers.length > 1 ? `${summary.sixServer} ` : ""}${sixBasis(summary.sixCount, "평균")})`}</small>
+          {" · "}
+          {number(ROSTER_TOTAL_MIN)} 이상 <b>{summary.highCount}명</b>
+          {summary.highCount > 0 && (
+            <small>
+              {" "}
+              (합 {number(summary.highSum)})
+            </small>
+          )}
+        </p>
+      )}
+      <RosterPower name={current} siblings={siblings} records={records} query={power} />
+      {stats.average != null && (
+        <>
+          <dl className={styles.rosterStats} aria-label="원정대 아이템 레벨">
+            <div>
+              <dt>캐릭터</dt>
+              <dd>{number(stats.count)}개</dd>
+            </div>
+            <div>
+              <dt>평균</dt>
+              <dd>{number(stats.average)}</dd>
+            </div>
+            <div>
+              <dt>중앙값</dt>
+              <dd>{number(stats.median)}</dd>
+            </div>
+            <div>
+              <dt>최고</dt>
+              <dd>{number(stats.max)}</dd>
+            </div>
+            <div>
+              <dt>최저</dt>
+              <dd>{number(stats.min)}</dd>
+            </div>
+          </dl>
+          <Panel title="구성" wide>
+            <div className={styles.rosterMix}>
+              <ShareBars title="아이템 레벨 구간" rows={bands} />
+              <ShareBars title={`직업 ${mix.length}개`} rows={mix} />
+            </div>
+          </Panel>
+        </>
+      )}
+      <WeeklyGoldPanel siblings={siblings} current={current} shown={shown} />
     </>
   );
 }
@@ -2166,7 +2172,7 @@ function QueryProblem({
             text: "저장소에 문제가 생겼어요. 잠시 후 다시 시도해 주세요.",
           }
         : info.code === "LOST_ARK_RATE_LIMITED"
-          ? rateLimitCopy()
+          ? rateLimitCopy(info)
           : info.code === "LOST_ARK_NOT_CONFIGURED" ||
             info.code === "FRONTEND_API_NOT_CONFIGURED"
           ? failureCopy(info)
@@ -2181,7 +2187,7 @@ function QueryProblem({
         <strong>{copy.title}</strong>
         <p>{copy.text}</p>
       </div>
-      {limit.limited && <RateLimitNote seconds={limit.seconds} />}
+      {limit.limited && <RateLimitNote seconds={limit.seconds} buttonCounts />}
       <button
         type="button"
         className={styles.textButton}
@@ -2395,14 +2401,18 @@ function RosterCharacters({ data }: { data: Character }) {
         </Panel>
       ) : result && result.siblings.length ? (
         <>
-          <p className={styles.caption}>
-            원정대 갱신 {kstTime(result.fetchedAt)}
-            {result.refreshAvailableAt &&
-              ` · ${kstTime(result.refreshAvailableAt)} 이후 다시 갱신`}
-          </p>
           <SiblingList
             siblings={result.siblings}
             current={data.characterName}
+            // Under the lists, not over them: the first card sits higher at
+            // 360 (v0.3.2), the time still right by the characters it is of.
+            caption={
+              <p className={styles.caption}>
+                원정대 갱신 {kstTime(result.fetchedAt)}
+                {result.refreshAvailableAt &&
+                  ` · ${kstTime(result.refreshAvailableAt)} 이후 다시 갱신`}
+              </p>
+            }
           />
         </>
       ) : (
@@ -2593,6 +2603,20 @@ const collectionLabels: Record<string, string> = {
   points: "포인트",
 };
 
+/** Source sections in players' words; a key this build does not know is left out (open strings). */
+const sectionLabels: Record<string, string> = {
+  equipment: "장비",
+  engravings: "각인",
+  gems: "보석",
+  cards: "카드",
+  arkPassive: "아크 패시브",
+  arkGrid: "아크 그리드",
+  siblings: "원정대",
+  skills: "스킬",
+  avatars: "아바타",
+  collectibles: "내실",
+};
+
 export function EvidenceTab({
   data,
   envelope,
@@ -2601,17 +2625,14 @@ export function EvidenceTab({
   envelope: CharacterEnvelope;
 }) {
   const findings = data.analysis.diagnostics.findings;
-  const sections = Object.entries(data.coverage).map(([key, value]) => ({
-    key,
-    value,
-  }));
+  // Only the sections with a name (P1: raw keys showed on screen).
+  const sections = Object.entries(data.coverage)
+    .filter(([key]) => Object.hasOwn(sectionLabels, key))
+    .map(([key, value]) => ({ key, label: sectionLabels[key], value }));
   return (
     <div className={styles.layout}>
-      <Panel
-        title="세팅 점검 결과"
-        meta={data.analysis.diagnostics.ruleVersion}
-        wide
-      >
+      {/* The rule version is for the record, not the reader (P1). */}
+      <Panel title="세팅 점검 결과" wide>
         <p className={styles.muted}>
           점검 규칙을 늘려 가는 중인 베타 기능이에요. 정보 부족은 세팅 오류를
           뜻하지 않고, 확인 항목도 의도한 세팅일 수 있어요.
@@ -2645,21 +2666,22 @@ export function EvidenceTab({
       </Panel>
       <Panel title="원천 제공 상태" wide>
         <ul className={styles.coverageList}>
-          {sections.map(({ key, value }) => {
+          {sections.map(({ key, label, value }) => {
             const state =
               typeof value === "string" || value === null ? value : value.state;
             return (
               <li key={key}>
-                <strong>{key}</strong>
+                <strong>{label}</strong>
                 <span data-state={state ?? undefined}>
                   {state ? coverageLabel(state) : "조회 안 함"}
                 </span>
                 {value && typeof value === "object" && (
                   <small>
                     {Object.entries(value.collections)
+                      .filter(([name]) => Object.hasOwn(collectionLabels, name))
                       .map(
                         ([name, item]) =>
-                          `${collectionLabels[name] ?? name} ${item ? coverageLabel(item) : "-"}`,
+                          `${collectionLabels[name]} ${item ? coverageLabel(item) : "-"}`,
                       )
                       .join(" · ")}
                   </small>
@@ -2668,6 +2690,11 @@ export function EvidenceTab({
             );
           })}
         </ul>
+        {/* What the two "not shown" states mean (P1). */}
+        <p className={styles.muted}>
+          데이터 미제공은 전투정보실이 그 정보를 주지 않은 것이고, 조회 안 함은 이번 조회에서 따로 불러오지 않은
+          항목이에요.
+        </p>
       </Panel>
     </div>
   );

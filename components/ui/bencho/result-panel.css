@@ -12,9 +12,15 @@
   left: 0;
   right: 0;
   z-index: 50;
-  display: grid;
+  /* (ours) A column, not a grid: a grid's auto row grew to all its rows
+     past max-height, so on a phone the list ran off the screen with
+     nothing to scroll. Here the rows shrink and scroll inside. The cap is
+     also the room left on the visible screen (--rsp-room, set while open
+     from visualViewport: the on-screen keyboard shrinks it). */
+  display: flex;
+  flex-direction: column;
   box-sizing: border-box;
-  max-height: 60vh;
+  max-height: min(60vh, calc(var(--rsp-room, 60dvh) - env(safe-area-inset-bottom, 0px)));
   padding: 6px;
   border-radius: 22px;
   background: var(--card);
@@ -33,6 +39,7 @@
 
 /* (ours) Only the rows scroll; the key hints stay put under them. */
 .rsp-scroll {
+  flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -137,6 +144,7 @@
    downwards without moving it (A7, 10-12). The rows scroll with a stable
    gutter, so a scrollbar appearing does not narrow and re-wrap them. */
 .rsp-top {
+  flex: none;
   padding: 4px 8px 8px;
   border-bottom: 1px solid var(--border);
   margin-bottom: 4px;
@@ -153,6 +161,7 @@
   font-size: var(--text-caption);
 }
 .rsp-foot {
+  flex: none;
   padding: 8px 8px 4px;
   border-top: 1px solid var(--border);
   margin-top: 4px;

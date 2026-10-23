@@ -30,6 +30,9 @@ const browser = channel === "chromium" ? {} : { channel };
 
 // Specs that arm the shared mock failure queue (POST /__fail).
 const ISOLATED = ["regression/mock-failures.spec.mjs"];
+// Measurements of main-thread time under a CPU slowdown: run alone, after
+// every other project, so another worker's page never takes the CPU (#941).
+const SOLO = ["regression/pending-shimmer-load.spec.mjs"];
 
 export default defineConfig({
   testDir: ".",
@@ -55,19 +58,19 @@ export default defineConfig({
   projects: [
     {
       name: "desktop-1440",
-      testIgnore: ISOLATED,
+      testIgnore: [...ISOLATED, ...SOLO],
       use: { ...devices["Desktop Chrome"], ...browser, viewport: { width: 1440, height: 900 } },
     },
     {
       name: "tablet-768",
       grep: /@smoke/,
-      testIgnore: ISOLATED,
+      testIgnore: [...ISOLATED, ...SOLO],
       use: { ...devices["Desktop Chrome"], ...browser, viewport: { width: 768, height: 1024 }, hasTouch: true, isMobile: false },
     },
     {
       name: "mobile-390",
       grep: /@smoke/,
-      testIgnore: ISOLATED,
+      testIgnore: [...ISOLATED, ...SOLO],
       use: { ...devices["Desktop Chrome"], ...browser, viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: false },
     },
     // 목 실패 장치(/__fail)는 목 전체가 공유한다. 다른 테스트와 동시에 돌면 서로의 실패 예약을
@@ -76,6 +79,14 @@ export default defineConfig({
       name: "isolated",
       testMatch: ISOLATED,
       dependencies: ["desktop-1440", "tablet-768", "mobile-390"],
+      fullyParallel: false,
+      use: { ...devices["Desktop Chrome"], ...browser, viewport: { width: 1440, height: 900 } },
+    },
+    // One file, its tests one after another, after "isolated" (itself after the rest).
+    {
+      name: "solo",
+      testMatch: SOLO,
+      dependencies: ["isolated"],
       fullyParallel: false,
       use: { ...devices["Desktop Chrome"], ...browser, viewport: { width: 1440, height: 900 } },
     },

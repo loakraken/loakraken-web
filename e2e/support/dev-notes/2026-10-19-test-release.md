@@ -30,3 +30,4 @@ summary: 원정대 랭킹 식스맨 규칙을 바꾸고 시세 차트에 기간 
 
 자세한 내용은 [원정대 랭킹](/rankings?type=roster)과 [공식 홈페이지](https://lostark.game.onstove.com)에서 볼 수 있어요.
 위험한 주소는 [링크가 아니에요](javascript:alert(1)), 글자 그대로인 <script>alert(1)</script> 도 그대로 보여요.
+의견은 contact@loakraken.gg 로 보내 주세요.

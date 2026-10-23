@@ -9,12 +9,19 @@ type Finding = Omit<GeneratedDiagnostics["findings"][number], "code"> & {
   code: string;
 };
 // Rule codes can grow independently; unknown codes still have displayable evidence.
-export type Character = Omit<GeneratedCharacter, "analysis"> & {
+// krakenScore and the efficiencies' real are null when a backend from before
+// them sent none (validate.ts).
+type GeneratedArkGridEfficiency = NonNullable<GeneratedCharacter["arkGridEfficiency"]>;
+type GeneratedBraceletEfficiency = NonNullable<GeneratedCharacter["braceletEfficiency"]>;
+export type Character = Omit<GeneratedCharacter, "analysis" | "krakenScore" | "arkGridEfficiency" | "braceletEfficiency"> & {
   analysis: Omit<GeneratedAnalysis, "diagnostics"> & {
     diagnostics: Omit<GeneratedDiagnostics, "findings"> & {
       findings: Finding[];
     };
   };
+  krakenScore: GeneratedCharacter["krakenScore"] | null;
+  arkGridEfficiency: (Omit<GeneratedArkGridEfficiency, "real"> & { real: GeneratedArkGridEfficiency["real"] | null }) | null;
+  braceletEfficiency: (Omit<GeneratedBraceletEfficiency, "real"> & { real: GeneratedBraceletEfficiency["real"] | null }) | null;
 };
 export type CharacterEnvelope = Omit<
   components["schemas"]["ApiResponseCharacterResponse"],
@@ -22,7 +29,7 @@ export type CharacterEnvelope = Omit<
 > & { data: Character };
 export type CoverageState = Character["coverage"]["equipment"];
 export type CoverageSection = Character["coverage"]["gems"];
-export type QueryFailure = { code: string; status: number; retryAt?: number };
+export type QueryFailure = { code: string; status: number; retryAt?: number; limit?: "client" };
 export type CharacterResult =
   | { ok: true; envelope: CharacterEnvelope }
   | { ok: false; error: QueryFailure };
@@ -88,7 +95,7 @@ export function failureCopy(error: QueryFailure) {
         text: "이름이 정확한지 확인한 뒤 다시 검색해 주세요.",
       };
     case "LOST_ARK_RATE_LIMITED":
-      return rateLimitCopy();
+      return rateLimitCopy(error);
     case "LOST_ARK_API_TIMEOUT":
       return {
         title: "응답이 늦어지고 있어요",

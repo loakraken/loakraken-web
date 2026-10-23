@@ -6,7 +6,7 @@
 import { useEffect, useId, useState, type MouseEvent } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQueries, useQuery } from "@tanstack/react-query";
 import { ArrowRight, ChevronRight } from "@/components/ui/icons";
 import { safeGameImage } from "@/lib/character/model";
 import { fetchSchedule, homeScheduleKey } from "@/lib/home/client";
@@ -21,18 +21,20 @@ import {
   tomorrowInWeek,
   weekDays,
   type Island,
-  type Other,
   type Reward,
   type RewardGroup,
   type Schedule,
-  type Timed,
 } from "@/lib/home/model";
 import {
   SCHEDULE_CATEGORIES,
   categoryLabel,
   categoryOfPath,
+  dayKinds,
+  mergeSameRounds,
   scheduleGroups,
   schedulePath,
+  type Place,
+  type Row,
   type ScheduleCategory,
 } from "@/lib/home/schedule";
 import { Countdown, useNow } from "@/components/home/clock";
@@ -51,6 +53,30 @@ export const useSchedule = (date: string | null) =>
     staleTime: 5 * 60_000,
     placeholderData: keepPreviousData,
   });
+
+/**
+ * Chaos gate / field boss days for the week strip dots. The week data has no
+ * per-day kinds, so each day's own answer is asked — the same query and cache
+ * as picking that day, so a later pick shows at once. Unknown days stay null.
+ */
+function useWeekKinds(days: string[], today: string | null) {
+  const results = useQueries({
+    queries: days.map((day) => {
+      const date = day === today ? null : day;
+      return {
+        queryKey: homeScheduleKey(date),
+        queryFn: ({ signal }: { signal: AbortSignal }) => fetchSchedule(date, signal),
+        staleTime: 5 * 60_000,
+      };
+    }),
+  });
+  return new Map(
+    days.map((day, i) => {
+      const data = results[i]?.data?.data;
+      return [day, data && data.date === day ? dayKinds(data) : null] as const;
+    }),
+  );
+}
 
 /**
  * Category links on the schedule page: real URLs (shareable, server-rendered),
@@ -117,11 +143,11 @@ function RewardList({ title, rewards }: { title: string | null; rewards: Reward[
  * full list by item-level group (chaos gates differ by level), with rewards
  * tied to that day's rounds apart from the common ones.
  */
-function RowRewards({ name, groups }: { name: string; groups: RewardGroup[] }) {
+function RowRewards({ name, groups, entry }: { name: string; groups: RewardGroup[]; entry?: Entry }) {
   const [open, setOpen] = useState(false);
   const id = useId();
   const { top, rest } = rewardSummary(groups);
-  if (!top.length) return null;
+  if (!top.length && !entry) return null;
   return (
     <>
       <ul className={styles.rewardItems} aria-label={`${name} 보상`}>
@@ -151,6 +177,7 @@ function RowRewards({ name, groups }: { name: string; groups: RewardGroup[] }) {
       </ul>
       {open && (
         <div id={id} className={styles.rewardPanel}>
+          {entry && <EntryInfo entry={entry} />}
           {groups.map((group, i) => {
             const label = rewardGroupLabel(group);
             const timed = group.rewards.filter((reward) => reward.timed);
@@ -166,6 +193,34 @@ function RowRewards({ name, groups }: { name: string; groups: RewardGroup[] }) {
         </div>
       )}
     </>
+  );
+}
+
+/** Where and from which level a chaos gate or field boss row runs (its 자세히 panel). */
+type Entry = { places: Place[] } | { minItemLevel: number | null };
+
+const levelText = (level: number | null | undefined) =>
+  level && level > 1 ? `${level.toLocaleString("ko-KR")} 이상` : "레벨 제한 없음";
+
+function EntryInfo({ entry }: { entry: Entry }) {
+  if (!("places" in entry))
+    return (
+      <section aria-label="입장">
+        <h3>입장 {levelText(entry.minItemLevel)}</h3>
+      </section>
+    );
+  return (
+    <section aria-label="지역">
+      <h3>지역 {entry.places.length}곳</h3>
+      <ul className={own.places}>
+        {entry.places.map((place) => (
+          <li key={place.name}>
+            <span>{place.name}</span>
+            <small>{levelText(place.minItemLevel)}</small>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 
@@ -213,9 +268,12 @@ function Section({
   clock,
   hidePast,
   onShowTomorrow,
+  levelInDetail = false,
 }: {
   title: string;
-  items: (Island | Timed | Other)[];
+  items: Row[];
+  /** Chaos gates and field bosses: no level line on the row, it is in 자세히. */
+  levelInDetail?: boolean;
   live: boolean;
   /** The board clock (server render time until the client clock starts), so
    *  past rounds are already hidden in the first HTML (CLS, QA #181). */
@@ -270,33 +328,60 @@ function Section({
       <ul className={styles.rows}>
         {items.map((item) => (
           <li key={`${"category" in item ? item.category : ""}${item.name}`}>
-            {item.icon ? (
-              // eslint-disable-next-line @next/next/no-img-element -- official CDN icon at a fixed size
-              <img
-                src={item.icon}
-                alt=""
-                width={36}
-                height={36}
-                loading="lazy"
-                referrerPolicy="no-referrer"
-              />
-            ) : null}
+            <RowIcon src={item.icon} />
             <span className={styles.rowName}>
               <strong>{item.name}</strong>
-              <small>
-                {"category" in item && `${item.category} · `}
-                {item.minItemLevel && item.minItemLevel > 1
-                  ? `${item.minItemLevel.toLocaleString("ko-KR")} 이상`
-                  : "레벨 제한 없음"}
-              </small>
+              {levelInDetail ? (
+                item.places && <small>{item.places.length}곳</small>
+              ) : (
+                <small>
+                  {"category" in item && `${item.category} · `}
+                  {levelText(item.minItemLevel)}
+                </small>
+              )}
             </span>
             {"rewardKinds" in item && <Rewards kinds={item.rewardKinds} />}
             <Times times={item.startTimes} now={now} hidePast={hidePast} />
-            <RowRewards name={item.name} groups={item.rewardGroups} />
+            <RowRewards
+              name={item.name}
+              groups={item.rewardGroups}
+              entry={levelInDetail ? (item.places ? { places: item.places } : { minItemLevel: item.minItemLevel }) : undefined}
+            />
           </li>
         ))}
       </ul>
     </section>
+  );
+}
+
+/**
+ * "오늘: 카오스게이트 · 필드 보스 없음" (or "이 날:" for another day): both
+ * kinds always, the one not running said plainly. Each name carries its week
+ * strip dot colour, so the line is also the dots' legend.
+ */
+function DayKinds({ kinds, today }: { kinds: ReturnType<typeof dayKinds>; today: boolean }) {
+  return (
+    <>
+      {/* Each piece is its own 20px box (flex items): the line keeps its
+          height whatever fonts draw bold and regular glyphs. */}
+      <span>{today ? "오늘" : "이 날"}: </span>
+      {kinds.map((kind, i) => (
+        <span key={kind.key} data-kind={kind.key} data-on={kind.on || undefined}>
+          {i > 0 && <span aria-hidden="true"> · </span>}
+          <i aria-hidden="true" />
+          {kind.on ? <b>{kind.label}</b> : `${kind.label} 없음`}
+        </span>
+      ))}
+    </>
+  );
+}
+
+/** The chaos gate and field boss dots on a week strip day; empty slots until that day is known. */
+function KindDots({ kinds }: { kinds: ReturnType<typeof dayKinds> | null }) {
+  return (
+    <span className={own.kindDots} aria-hidden="true">
+      {kinds?.map((kind) => kind.on && <i key={kind.key} data-kind={kind.key} />)}
+    </span>
   );
 }
 
@@ -305,6 +390,13 @@ function dateTitle(date: string) {
   const [, m, d] = date.split("-").map(Number);
   const weekday = weekDays(date, date)[0]?.weekday;
   return `${m}월 ${d}일${weekday ? ` ${weekday}요일` : ""}`;
+}
+
+/** A row icon, official CDN only (safeGameImage); anything else shows none. */
+function RowIcon({ src }: { src: string | null | undefined }) {
+  const safe = safeGameImage(src);
+  // eslint-disable-next-line @next/next/no-img-element -- official CDN icon at a fixed size
+  return safe ? <img src={safe} alt="" width={36} height={36} loading="lazy" referrerPolicy="no-referrer" /> : null;
 }
 
 /**
@@ -341,6 +433,8 @@ export function ScheduleBoard({
   const live = !!data && data.date === today;
   const tomorrow = live && now !== null ? tomorrowInWeek(data.coveredTo, now) : null;
   const showTomorrow = tomorrow ? () => setPicked(tomorrow) : undefined;
+  const week = data ? weekDays(data.coveredFrom, data.coveredTo) : [];
+  const weekKinds = useWeekKinds(page ? week.map((day) => day.date) : [], today);
   const groups = page && data ? scheduleGroups(data) : [];
   const shownGroups = shownCategory
     ? groups.filter((group) => group.slug === shownCategory)
@@ -371,25 +465,40 @@ export function ScheduleBoard({
           </button>
         </span>
       </div>
+      {page && (
+        // One line, there from the first HTML, so the answer or another day
+        // never moves the day buttons below it (A7).
+        <p className={own.dayKinds}>
+          {/* Drawn anew per day: words rewritten in place slide the rest of
+              the line sideways, which counts as moving (A7); new nodes do not. */}
+          {data && <DayKinds key={`${data.date}-${live}`} kinds={dayKinds(data)} today={live} />}
+        </p>
+      )}
       {data && (
         <div className={styles.days} role="group" aria-label="요일 선택">
-          {weekDays(data.coveredFrom, data.coveredTo).map((day) => (
-            <button
-              key={day.date}
-              type="button"
-              aria-pressed={day.date === data.date}
-              aria-label={`${day.day}일 ${day.weekday}요일${gold.has(day.date) ? ", 골드 섬" : ""}${day.date === today ? ", 오늘" : ""}`}
-              data-today={day.date === today || undefined}
-              data-gold={gold.has(day.date) || undefined}
-              data-weekend={
-                day.weekday === "토" || day.weekday === "일" || undefined
-              }
-              onClick={() => setPicked(day.date)}
-            >
-              <b>{day.day}</b>
-              <span>{day.weekday}</span>
-            </button>
-          ))}
+          {week.map((day) => {
+            const kinds = weekKinds.get(day.date) ?? null;
+            const running = kinds?.filter((kind) => kind.on).map((kind) => `, ${kind.label}`).join("") ?? "";
+            return (
+              <button
+                key={day.date}
+                type="button"
+                aria-pressed={day.date === data.date}
+                aria-label={`${day.day}일 ${day.weekday}요일${gold.has(day.date) ? ", 골드 섬" : ""}${running}${day.date === today ? ", 오늘" : ""}`}
+                title={running ? running.slice(2).replaceAll(", ", "·") : undefined}
+                data-today={day.date === today || undefined}
+                data-gold={gold.has(day.date) || undefined}
+                data-weekend={
+                  day.weekday === "토" || day.weekday === "일" || undefined
+                }
+                onClick={() => setPicked(day.date)}
+              >
+                <b>{day.day}</b>
+                <span>{day.weekday}</span>
+                {page && <KindDots kinds={kinds} />}
+              </button>
+            );
+          })}
         </div>
       )}
       {page && (
@@ -441,6 +550,7 @@ export function ScheduleBoard({
               title={group.label}
               hidePast={hidePast}
               onShowTomorrow={showTomorrow}
+              levelInDetail={group.key === "chaos-gate" || group.key === "field-boss"}
               items={group.items}
               live={live}
               clock={now}
@@ -474,7 +584,8 @@ export function ScheduleBoard({
             title="카오스게이트"
             hidePast={hidePast}
             onShowTomorrow={showTomorrow}
-            items={data.chaosGates}
+            levelInDetail
+            items={mergeSameRounds(data.chaosGates, "카오스게이트")}
             live={live}
             clock={now}
           />
@@ -482,7 +593,8 @@ export function ScheduleBoard({
             title="필드 보스"
             hidePast={hidePast}
             onShowTomorrow={showTomorrow}
-            items={data.fieldBosses}
+            levelInDetail
+            items={mergeSameRounds(data.fieldBosses, "필드 보스")}
             live={live}
             clock={now}
           />

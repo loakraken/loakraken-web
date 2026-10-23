@@ -23,6 +23,7 @@ import { MINUTE, useClock } from "@/components/home/clock";
 import type { SearchItem, SearchPolish } from "@/lib/accessory-search/model";
 import { timeLeftText } from "@/lib/accessory-search/time-left";
 import { koreanGold } from "@/lib/spec-up/model";
+import { safeGameImage } from "@/lib/character/model";
 import styles from "./accessory-search.module.css";
 
 /** icon and baseEffects come from the same official response (no extra call); an older response without them still draws. */
@@ -52,12 +53,13 @@ export function AccessoryCard({
   const info: ReactNode[] = [[item.grade, slotLabel].filter(Boolean).join(" ")];
   if (item.quality != null && item.quality >= 0) info.push(<ItemQuality value={item.quality} />);
   const base = item.baseEffects ?? [];
+  const icon = safeGameImage(item.icon);
   return (
     <ItemDetail
       grade={itemGrade(item.grade)}
       title={item.name}
       // eslint-disable-next-line @next/next/no-img-element -- official CDN icon at a fixed size
-      icon={item.icon ? <img src={item.icon} alt="" width={56} height={56} referrerPolicy="no-referrer" /> : undefined}
+      icon={icon ? <img src={icon} alt="" width={56} height={56} referrerPolicy="no-referrer" /> : undefined}
       lines={info}
     >
       <ItemLine>{item.tradeAllowCount == null ? "거래 횟수 정보 없음" : item.tradeAllowCount === 0 ? "거래 불가" : `거래 ${item.tradeAllowCount}회 가능`}</ItemLine>

@@ -95,7 +95,7 @@ export function CharacterCockpit() {
                       <div className={styles.cardHeading}><span>보석 · 평균 {gemAverage.toFixed(1)}</span><Diamonds size={16} /></div>
                       <ul className={styles.gemGrid}>{gems.map((g, i) => <li key={i} className={styles.gemSlot} data-below={g.level < 10 || undefined} title={`${g.level}레벨 ${g.kind}의 보석 · ${g.skill}`}>
                         <GameIcon src={g.icon} grade={g.level === 10 ? "고대" : "유물"} size={34} />
-                        <b>{g.level}{g.kind === "겁화" ? "뎀" : "쿨"}</b>
+                        <b>{g.level}{g.kind === "겁화" ? "겁" : "작"}</b>
                       </li>)}</ul>
                       <p className={styles.gemNote}><span className={styles.diagnosticLabel}><span /> 예시 점검</span> 9레벨 {belowMaxGems.length}개를 10레벨로 바꾸면 보석 평균이 10.0이 됩니다.</p>
                     </div>

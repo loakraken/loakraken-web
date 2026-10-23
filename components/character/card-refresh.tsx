@@ -67,7 +67,7 @@ export function CardRefresh({ name }: { name: string }) {
   const status = busy
     ? "원정대 카드 기록을 불러오는 중이에요. 몇 초 걸릴 수 있어요."
     : refill.data
-      ? refreshSummary(refill.data.data)
+      ? refreshSummary(refill.data.data, refill.submittedAt)
       : cooling
         ? "얼마 전에 채웠어요."
         : limited
