@@ -4,6 +4,7 @@
 import { test, expect, gotoReady } from "../support/fixtures.mjs";
 
 const CASES = [
+  { width: 320, height: 720, touch: true, open: (page) => page.getByRole("article", { name: "비교2" }).getByRole("link", { name: "캐릭터 보기" }) },
   { width: 360, height: 800, touch: true, open: (page) => page.getByRole("article", { name: "비교2" }).getByRole("link", { name: "캐릭터 보기" }) },
   { width: 390, height: 844, touch: true, open: (page) => page.getByRole("article", { name: "비교2" }).getByRole("link", { name: "캐릭터 보기" }) },
   { width: 1280, height: 900, touch: false, open: (page) => page.getByRole("region", { name: "캐릭터 비교 표" }).getByRole("link", { name: "비교2" }) },
