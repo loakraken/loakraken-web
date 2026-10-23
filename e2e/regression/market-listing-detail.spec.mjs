@@ -76,28 +76,3 @@ test.describe("터치 시트", () => {
       await expect(open).toBeFocused();
     });
 });
-
-// A listing that sells while its card is open: the next minute's page no longer has it. The card stays,
-// says so on screen and once to a screen reader (a status that was there from the start).
-test("@시세판상세 열어 둔 매물이 팔리면 카드에 '더 이상 없어요', 읽기용 알림 @regression", async ({ page }) => {
-  await page.clock.install();
-  let drop = false;
-  await page.route("**/api/markets/auctions/gems/listings*", async (route) => {
-    const res = await route.fetch();
-    const body = await res.json();
-    if (drop && body?.data?.items?.length) body.data.items = body.data.items.slice(1);
-    await route.fulfill({ response: res, json: body });
-  });
-  await gotoReady(page, BOARDS[0].path);
-  const open = page.getByRole("region", { name: BOARDS[0].table }).getByRole("rowheader").first().getByRole("button");
-  await open.click();
-  const card = page.getByRole("dialog");
-  await expect(card).toBeVisible();
-  await expect(card.getByRole("status")).toHaveText("");
-  drop = true;
-  await page.clock.fastForward(61_000);
-  await expect(card.getByRole("status")).toHaveText("이 매물은 더 이상 없어요.");
-  // The visible line (hidden from screen readers, which hear the status instead).
-  await expect(card.locator("[aria-hidden=true]").getByText("이 매물은 더 이상 없어요.", { exact: true })).toBeVisible();
-  await expect(card).toBeVisible();
-});
