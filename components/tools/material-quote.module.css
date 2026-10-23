@@ -647,6 +647,19 @@
 .basis {
   margin-top: 24px;
 }
+/* The three price bases need 302px on one row; the card offers the viewport
+   minus 56px. Narrower than that the row is stacked from the first HTML, not
+   after the fonts load and the control measures (0.12 shift at 320). Same
+   look as the control's own vertical state; it agrees once it measures. */
+@media (max-width: 357.98px) {
+  .basis {
+    grid-auto-flow: row;
+    grid-auto-columns: auto;
+    width: 100%;
+    row-gap: 12px;
+    border-radius: 20px;
+  }
+}
 
 /* Category: group pill tabs (#417) and the group's kinds as chips. Height is
    reserved while the list loads so the form below does not move. */
