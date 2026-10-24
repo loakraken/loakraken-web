@@ -51,19 +51,29 @@ const detailErrorCodes: Record<number, readonly string[]> = {
   503: ["CHARACTER_STORAGE_UNAVAILABLE"],
 };
 
-/** Candidate ids look like GEM_LEVEL:3:8 (kind and slot numbers). */
-const CANDIDATE_ID = /^[A-Z_]{2,40}(:[0-9A-Za-z_-]{1,20}){0,4}$/;
+/**
+ * Candidate ids: a kind and up to four parts — GEM_LEVEL:3:8, and engraving
+ * lines carry the name with its spaces, ENGRAVING_LEVEL:기습의 대가:4 (api #573).
+ * The id is sent percent-encoded (a space as %20, never "+").
+ */
+const CANDIDATE_ID = /^[A-Z_]{2,40}(:[^:/?#\\\u0000-\u001f]{1,40}){0,4}$/u;
 
 export async function requestSpecUpDetail(
   characterName: string,
   candidateId: string,
   origin: string | undefined,
   options: Options = {},
+  includeCooldownGems: string | null = null,
 ): Promise<BackendResult<DetailEnvelope>> {
   if (characterNameError(characterName) || !CANDIDATE_ID.test(candidateId))
     return { ok: false, error: { code: "INVALID_REQUEST", status: 400 } };
   const url = backendUrl(origin, `/api/v1/characters/spec-up/candidates/${encodeURIComponent(candidateId)}`);
-  if (url) url.searchParams.set("characterName", normalizeCharacterName(characterName));
+  if (url) {
+    url.searchParams.set("characterName", normalizeCharacterName(characterName));
+    // api #588: only "true"/"false" pass; without it the backend looks among all candidates.
+    if (includeCooldownGems === "true" || includeCooldownGems === "false")
+      url.searchParams.set("includeCooldownGems", includeCooldownGems);
+  }
   return requestBackend(url, { ...options, isValid: isDetailEnvelope, errorCodes: detailErrorCodes });
 }
 
@@ -72,6 +82,7 @@ export async function requestSpecUp(
   sort: string | null,
   origin: string | undefined,
   options: Options = {},
+  includeCooldownGems: string | null = null,
 ): Promise<BackendResult<SpecUpEnvelope>> {
   if (characterNameError(characterName))
     return { ok: false, error: { code: "INVALID_REQUEST", status: 400 } };
@@ -79,6 +90,9 @@ export async function requestSpecUp(
   if (url) {
     url.searchParams.set("characterName", normalizeCharacterName(characterName));
     if (isSort(sort)) url.searchParams.set("sort", sort);
+    // api #573: only "true"/"false" pass; anything else is left to the backend's default.
+    if (includeCooldownGems === "true" || includeCooldownGems === "false")
+      url.searchParams.set("includeCooldownGems", includeCooldownGems);
     url.searchParams.set("limit", "50");
   }
   return requestBackend(url, { ...options, isValid: isSpecUpEnvelope, errorCodes });

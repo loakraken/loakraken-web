@@ -13,7 +13,7 @@ export interface paths {
         };
         /**
          * 스펙업 가이드(공식 호출 없음)
-         * @description 캐릭터 캐시의 현재 세팅에서 후보 업그레이드마다 전투력 시뮬레이터를 변화 하나로 돌린 Δ전투력, 시세 캐시로 구한 비용, 1만 골드당 전투력을 줍니다. 후보끼리 Δ를 더하지 않습니다. 계산식이 확정되지 않은 후보도 status=UNSUPPORTED와 reasonCode·reason(같은 코드는 같은 문장)으로 남깁니다. limit은 OK 후보에만 적용하고(total = 자르기 전 OK 후보 수), UNSUPPORTED는 모두 뒤에 붙습니다. cost.status: OK(금액 있음)·PENDING(시세 칸을 아직 받지 못함)·UNKNOWN(비용 근거 없음). 보석 비용은 목표 레벨 즉시 구매 최저가 − 지금 보석 판매 기대가(거래소 수수료 5% 올림, 귀속이면 빼지 않음)입니다. kind·status·cost.status·reasonCode는 문자열이며 값이 늘 수 있습니다.
+         * @description 캐릭터 캐시의 현재 세팅에서 후보 업그레이드마다 전투력 시뮬레이터를 변화 하나로 돌린 Δ전투력, 시세 캐시로 구한 비용, 1만 골드당 전투력을 줍니다. 후보끼리 Δ를 더하지 않습니다. 계산식이 확정되지 않은 후보도 status=UNSUPPORTED와 reasonCode·reason(같은 코드는 같은 문장)으로 남깁니다. limit은 OK 후보에만 적용하고(total = 자르기 전 OK 후보 수), UNSUPPORTED는 모두 뒤에 붙습니다. cost.status: OK(금액 있음)·PENDING(시세 칸을 아직 받지 못함)·UNKNOWN(비용 근거 없음). 보석 비용은 목표 레벨 즉시 구매 최저가 − 지금 보석 즉시 구매 최저가(판매 수수료는 빼지 않음, 귀속이면 빼지 않음)입니다. sort=KRAKEN이면 후보마다 크라켄 점수 엔진으로 Δ크라켄 점수(적용 뒤 점수 − 지금 점수, 반올림 전 값의 차를 소수 둘째 자리로)를 내고 10만 골드당 점수 내림차순으로 정렬합니다(비용 모름은 Δ 순, 그 밖은 효율 순). 점수를 낼 수 없으면(서포터·점수 꺼짐·입력 없음) 효율 순으로 정렬하고 krakenSortUnavailableReason에 이유를 줍니다. includeCooldownGems를 주지 않으면 KRAKEN은 작열(쿨) 보석 후보를 빼고 다른 정렬은 넣으며, 실제로 적용한 값은 cooldownGemsIncluded입니다. kind·status·cost.status·reasonCode·sort·gemType·krakenSortUnavailableReason은 문자열이며 값이 늘 수 있습니다.
          */
         get: operations["guide"];
         put?: never;
@@ -33,7 +33,7 @@ export interface paths {
         };
         /**
          * 스펙업 목표 경로(공식 호출 없음)
-         * @description 목표 전투력에 닿을 때까지 지금 상태에서 항목마다 다음 한 단계를 만들고, 효율 순(1만 골드당 전투력, 비용을 모르는 단계는 그 뒤에 Δ전투력 순)으로 가장 앞의 단계를 적용하기를 되풀이한 경로를 줍니다. 같은 항목을 여러 단계 올릴 수 있습니다. 모든 전투력은 전투력 시뮬레이터 결과입니다(steps[].change를 차례로 시뮬레이터에 넣은 값과 같음). 금액(cost.amount·cumulativeCost·totalCost)은 모두 골드입니다. 시세가 없는 단계가 있으면 그 단계부터 cumulativeCost와 totalCost는 null입니다(0으로 더하지 않음). 같은 보석 칸을 이어서 올리면 둘째 단계부터 비용은 이번 레벨 매입가 − 직전 레벨 매입가(GEM_STEP)라 단계 비용의 합은 마지막 레벨 매입가 − 처음 보석 판매 기대가입니다. 딜러가 아니거나 공식 전투력이 없으면 200, 빈 steps, stopReasonCode에 스펙업 가이드와 같은 이유 코드를 줍니다. 최대 30단계, 계산 시간 상한이 있습니다. 같은 캐릭터 수집 시각·시세 시각·목표는 10분 동안 캐시합니다(시간 상한으로 멈춘 결과는 캐시하지 않음). 요청이 많으면 429 CLIENT_RATE_LIMITED와 Retry-After(초)를 줍니다. 503은 저장소 장애이고 Retry-After가 없으니 잠시 뒤 다시 요청합니다. stopReasonCode·kind·cost.code는 문자열이며 값이 늘 수 있습니다.
+         * @description 목표 전투력에 닿을 때까지 지금 상태에서 항목마다 다음 한 단계를 만들고, 효율 순(1만 골드당 전투력, 비용을 모르는 단계는 그 뒤에 Δ전투력 순)으로 가장 앞의 단계를 적용하기를 되풀이한 경로를 줍니다. 같은 항목을 여러 단계 올릴 수 있습니다. 모든 전투력은 전투력 시뮬레이터 결과입니다(steps[].change를 차례로 시뮬레이터에 넣은 값과 같음). 금액(cost.amount·cumulativeCost·totalCost)은 모두 골드입니다. 합계에 들어가는 값 가운데 모르는 것이 있으면 cumulativeCost와 totalCost는 null입니다(0으로 더하지 않음 — 같은 보석 칸의 다음 단계 비용을 알면 그 칸 값은 다음 단계 것으로 바뀌어 다시 값이 생길 수 있음). 보석 단계의 cost는 지금에서 그 레벨까지의 누적 비용(스펙업 목록의 같은 목표 후보 비용과 같은 식, 음수 없음)이고, 같은 칸을 이어서 올리면 cumulativeCost·totalCost에는 그 칸의 마지막 단계 누적만 들어갑니다(단계 비용을 더하지 않음). 단계마다 따로 구해 그 레벨 시세가 없으면 그 단계만 비용을 모릅니다. 딜러가 아니거나 공식 전투력이 없으면 200, 빈 steps, stopReasonCode에 스펙업 가이드와 같은 이유 코드를 줍니다. 최대 30단계, 계산 시간 상한이 있습니다. 같은 캐릭터 수집 시각·시세 시각·목표는 10분 동안 캐시합니다(시간 상한으로 멈춘 결과는 캐시하지 않음). 요청이 많으면 429 CLIENT_RATE_LIMITED와 Retry-After(초)를 줍니다. 503은 저장소 장애이고 Retry-After가 없으니 잠시 뒤 다시 요청합니다. stopReasonCode·kind·cost.code는 문자열이며 값이 늘 수 있습니다.
          */
         get: operations["goal"];
         put?: never;
@@ -53,7 +53,7 @@ export interface paths {
         };
         /**
          * 스펙업 후보 줄 상세(공식 호출 없음)
-         * @description 스펙업 가이드 목록의 후보 하나를 자세히 줍니다. 목록과 같은 캐릭터 캐시·시세 캐시로 목록을 다시 만들어 찾으므로 candidate는 목록의 같은 id 줄과 같습니다. 보석·각인서 후보는 market(사는 품목 BUY, 지금 보석 판매 기대가를 비용에서 뺐으면 SELL 줄도), 일반 재련 후보는 refine·materials·goldFee를 줍니다. 재련 비용(cost.amount)은 materials의 반올림 전 금액 합 + goldFee를 올림한 값입니다. 표시 값(소수 둘째 자리)의 합을 올림한 값과 cost.amount의 차이는 1골드 이하입니다. stats는 근거가 확인된 스탯만 담고(지금은 보석 기본 공격력 %), 없으면 빈 목록입니다. 해당 없는 칸은 null입니다. 요청이 많으면 429 CLIENT_RATE_LIMITED와 Retry-After(초)를 줍니다. role·priceStatus·priceBasis·breath는 문자열이며 값이 늘 수 있습니다.
+         * @description 스펙업 가이드 목록의 후보 하나를 자세히 줍니다. 목록과 같은 캐릭터 캐시·시세 캐시로 목록을 다시 만들어 찾으므로 candidate는 목록의 같은 id 줄과 같습니다. 보석·각인서 후보는 market(사는 품목 BUY, 지금 보석 최저가를 비용에서 뺐으면 SELL 줄도 — 보석 비용(cost.amount) = BUY price − SELL price이고 sellFeeGold는 이 합계에 넣지 않습니다. 판매 수수료를 넣은 실제 부담 = cost.amount + SELL sellFeeGold), 일반 재련 후보는 refine·materials·goldFee를 줍니다. 재련 비용(cost.amount)은 materials의 반올림 전 금액 합 + goldFee를 올림한 값입니다. 표시 값(소수 둘째 자리)의 합을 올림한 값과 cost.amount의 차이는 1골드 이하입니다. stats는 근거가 확인된 스탯만 담고(지금은 보석 기본 공격력 %), 없으면 빈 목록입니다. 해당 없는 칸은 null입니다. 요청이 많으면 429 CLIENT_RATE_LIMITED와 Retry-After(초)를 줍니다. role·priceStatus·priceBasis·breath는 문자열이며 값이 늘 수 있습니다.
          */
         get: operations["detail"];
         put?: never;
@@ -102,7 +102,7 @@ export interface components {
             fetchedAt: string;
             pricesAt: string | null;
             /**
-             * @description EFFICIENCY 또는 DELTA(문자열)
+             * @description 실제로 쓴 정렬(문자열, 값이 늘 수 있음): EFFICIENCY·DELTA·KRAKEN. KRAKEN을 요청해도 점수를 낼 수 없으면 EFFICIENCY
              * @example EFFICIENCY
              */
             sort: string;
@@ -110,11 +110,19 @@ export interface components {
             limit: number;
             /**
              * Format: int32
-             * @description limit으로 자르기 전 OK 후보 수
+             * @description limit으로 자르기 전 순위 후보 수(KRAKEN은 Δ크라켄 점수가 있는 후보 포함)
              */
             total: number;
-            /** @description OK 후보(정렬·limit) 뒤에 UNSUPPORTED 후보 전체 */
+            /** @description 순위 후보(정렬·limit) 뒤에 나머지 후보 전체 */
             candidates: components["schemas"]["CandidateResponse"][];
+            /** @description 백엔드가 아직 주지 않는 응답(api 배포 전)에서는 필드가 없을 수 있음. */
+            krakenScore?: number | null;
+            /** @description 백엔드가 아직 주지 않는 응답(api 배포 전)에서는 필드가 없을 수 있음. */
+            krakenRuleVersion?: string | null;
+            /** @description 작열(쿨) 보석 후보를 넣었는지(요청 includeCooldownGems 또는 정렬 기본값) 백엔드가 아직 주지 않는 응답(api 배포 전)에서는 필드가 없을 수 있음. */
+            cooldownGemsIncluded?: boolean;
+            /** @description 백엔드가 아직 주지 않는 응답(api 배포 전)에서는 필드가 없을 수 있음. */
+            krakenSortUnavailableReason?: string | null;
         };
         CandidateResponse: {
             /**
@@ -123,7 +131,7 @@ export interface components {
              */
             id: string;
             /**
-             * @description 후보 종류(문자열, 값이 늘 수 있음). 시뮬레이터 kind와 같고, 아직 계산하지 않는 종류(KARMA_LEVEL·ABILITY_STONE 등)는 한 줄 UNSUPPORTED로
+             * @description 후보 종류(문자열, 값이 늘 수 있음). 시뮬레이터 kind와 같다. POLISH(장신구 연마 교체)·ABILITY_STONE(어빌리티 스톤)·KARMA_LEVEL(깨달음 카르마)은 크라켄 점수를 낼 수 있으면 후보마다 한 줄(change null·전투력 UNSUPPORTED·deltaKrakenScore 있음)이고, 그럴 수 없으면 종류마다 한 줄 UNSUPPORTED 알림
              * @example GEM_LEVEL
              */
             kind: string;
@@ -157,6 +165,12 @@ export interface components {
             baseAttackPctFrom?: number | null;
             /** @description 백엔드가 아직 주지 않는 응답(api 배포 전)에서는 필드가 없을 수 있음. */
             baseAttackPctTo?: number | null;
+            /** @description 백엔드가 아직 주지 않는 응답(api 배포 전)에서는 필드가 없을 수 있음. */
+            deltaKrakenScore?: number | null;
+            /** @description 백엔드가 아직 주지 않는 응답(api 배포 전)에서는 필드가 없을 수 있음. */
+            krakenScorePer100kGold?: number | null;
+            /** @description 백엔드가 아직 주지 않는 응답(api 배포 전)에서는 필드가 없을 수 있음. */
+            gemType?: string | null;
         };
         ChangeResponse: {
             kind: string;
@@ -166,6 +180,8 @@ export interface components {
             refine: number | null;
             quality: number | null;
             name: string | null;
+            /** @description 백엔드가 아직 주지 않는 응답(api 배포 전)에서는 필드가 없을 수 있음. */
+            grade?: string | null;
         };
         CostResponse: {
             /**
@@ -286,7 +302,7 @@ export interface components {
             deltaCombatPower: number;
             /** @description 이 단계까지 적용한 전투력(시뮬레이터) */
             combatPowerAfter: number;
-            /** @description 이 단계 비용(골드) */
+            /** @description 이 단계 비용(골드). 보석 단계는 지금에서 그 레벨까지의 누적 비용(음수 없음) */
             cost: components["schemas"]["CostResponse"];
             cumulativeCost: number | null;
             combatPowerPer10kGold: number | null;
@@ -360,7 +376,7 @@ export interface components {
         };
         SpecUpMarketResponse: {
             /**
-             * @description BUY(사는 품목) 또는 SELL(지금 보석, 판매 기대가를 비용에서 뺌). 문자열, 값이 늘 수 있음
+             * @description BUY(사는 품목) 또는 SELL(지금 보석, 최저가를 비용에서 뺌). 문자열, 값이 늘 수 있음
              * @example BUY
              */
             role: string;
@@ -379,11 +395,13 @@ export interface components {
             price: number;
             /**
              * Format: int32
-             * @description 필요한 개수(보석 1, 유물 각인서 5)
+             * @description 필요한 개수(보석 1, 유물 각인서 5 × 올리는 레벨 수)
              * @example 1
              */
             quantity: number;
             expectedSalePrice: number | null;
+            /** @description 백엔드가 아직 주지 않는 응답(api 배포 전)에서는 필드가 없을 수 있음. */
+            sellFeeGold?: number | null;
             listedCount: number | null;
             /**
              * Format: date-time
@@ -420,10 +438,12 @@ export interface operations {
             query: {
                 /** @description 캐릭터명 */
                 characterName: string;
-                /** @description EFFICIENCY(기본, 1만 골드당 전투력) 또는 DELTA(Δ전투력) */
+                /** @description EFFICIENCY(기본, 1만 골드당 전투력), DELTA(Δ전투력) 또는 KRAKEN(10만 골드당 Δ크라켄 점수) */
                 sort?: string;
-                /** @description OK 후보 최대 개수(기본 20, 최대 50) */
+                /** @description 순위 후보 최대 개수(기본 20, 최대 200 — 연마·스톤·카르마 줄까지 모두 보려면 크게) */
                 limit?: number;
+                /** @description 작열(쿨) 보석 후보를 넣을지. 주지 않으면 KRAKEN은 빼고 다른 정렬은 넣음 */
+                includeCooldownGems?: boolean;
             };
             header?: never;
             path?: never;
@@ -544,6 +564,8 @@ export interface operations {
             query: {
                 /** @description 캐릭터명 */
                 characterName: string;
+                /** @description 목록과 같은 작열(쿨) 보석 포함 여부. false면 작열 후보는 404(목록 cooldownGemsIncluded가 false였다면 false로). 주지 않으면 모든 후보에서 찾음 */
+                includeCooldownGems?: boolean;
             };
             header?: never;
             path: {
@@ -575,7 +597,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description SPEC_UP_CANDIDATE_NOT_FOUND: 지금 목록에 그 후보가 없음(세팅이 바뀜, 목록을 다시 부름) · SPEC_UP_DISABLED: 기능이 꺼져 있음 · CHARACTER_NOT_CACHED: 캐릭터를 먼저 검색해야 함 */
+            /** @description SPEC_UP_CANDIDATE_NOT_FOUND: 지금 목록에 그 후보가 없거나, 시세가 연달아 바뀌어 목록 비용과 내역 금액을 맞추지 못함(목록을 다시 부름) · SPEC_UP_DISABLED: 기능이 꺼져 있음 · CHARACTER_NOT_CACHED: 캐릭터를 먼저 검색해야 함 */
             404: {
                 headers: {
                     [name: string]: unknown;
