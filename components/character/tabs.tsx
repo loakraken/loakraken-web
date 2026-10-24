@@ -67,8 +67,7 @@ import {
 import { MINUTE, useClock } from "@/components/home/clock";
 import { failureCopy } from "@/lib/character/model";
 import { arkGridRealView, braceletRealView, type ArkGridRealView } from "@/lib/character/efficiency-real";
-import { HistoryChart } from "./history-chart";
-import { AvatarsTab, CollectiblesTab } from "./inner";
+import dynamic from "next/dynamic";
 import { Panel } from "./panel";
 import { ViewsPanel } from "./views-panel";
 import { WeeklyGoldPanel } from "./weekly-gold-panel";
@@ -124,9 +123,6 @@ import { RosterPower, rosterPowerKey, useRosterPowerRefreshing } from "./roster-
 import { StatSheet } from "./stat-sheet";
 import { AnalysisMenu } from "./analysis-menu";
 import { RankPanel } from "./rank-panel";
-import { GuildTab } from "./guild-tab";
-import { SimulatorTab } from "./simulator-tab";
-import { SpecUpTab } from "./spec-up-tab";
 import { byObservedOrder, groupByDay } from "@/lib/character/titles";
 import { CardCollection } from "./card-collection-panel";
 import { CardArt, GameIcon } from "./imagery";
@@ -189,6 +185,37 @@ const visibleTabs = (settingCheck: boolean, simulator = true, specUp = true, gui
 
 /** The visually hidden heading each tab panel starts with (focus target). */
 const TAB_HEADING = "character-tab-heading";
+
+/*
+ * Tabs other than 전투 load their code when first needed, so the first visit
+ * (전투 tab) does not download and parse them. A tab opened by its address is
+ * still rendered on the server; the browser fetches its part before it
+ * hydrates. Hovering or focusing a tab starts the download, so switching
+ * stays instant; until it arrives the panel keeps its height (.tabPanel), so
+ * nothing below moves.
+ */
+const loadSimulator = () => import("./simulator-tab").then((m) => m.SimulatorTab);
+const loadSpecUp = () => import("./spec-up-tab").then((m) => m.SpecUpTab);
+const loadGuild = () => import("./guild-tab").then((m) => m.GuildTab);
+const loadInner = () => import("./inner");
+const loadHistoryChart = () => import("./history-chart").then((m) => m.HistoryChart);
+const SimulatorTab = dynamic(loadSimulator);
+const SpecUpTab = dynamic(loadSpecUp);
+const GuildTab = dynamic(loadGuild);
+const CollectiblesTab = dynamic(() => loadInner().then((m) => m.CollectiblesTab));
+const AvatarsTab = dynamic(() => loadInner().then((m) => m.AvatarsTab));
+const HistoryChart = dynamic(loadHistoryChart);
+
+const PRELOAD: Partial<Record<TabId, () => Promise<unknown>>> = {
+  simulator: loadSimulator,
+  specup: loadSpecUp,
+  guild: loadGuild,
+  collectibles: loadInner,
+  avatars: loadInner,
+  stats: loadHistoryChart,
+};
+/** Start a tab's download on intent (hover, focus, touch); a failure retries on click. */
+const preloadTab = (id: TabId) => void PRELOAD[id]?.().catch(() => {});
 
 /**
  * Going to another tab (the tab bar or a "자세히" link) starts at the top of
@@ -338,6 +365,9 @@ export function TabBar({
               href={item.id === "combat" ? "?" : `?tab=${item.id}`}
               replace
               aria-current={tab === item.id ? "page" : undefined}
+              onPointerEnter={() => preloadTab(item.id)}
+              onFocus={() => preloadTab(item.id)}
+              onTouchStart={() => preloadTab(item.id)}
             >
               <TabLabel id={item.id} label={item.label} />
             </Link>
