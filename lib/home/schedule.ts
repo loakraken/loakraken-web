@@ -79,10 +79,18 @@ export function mergeSameRounds(items: Timed[], label: string): Row[] {
   });
 }
 
-/** Chaos gate and field boss days (the date line and the week strip dots); `on` when it runs that day. */
+/**
+ * The entries that run on the day asked for. The official week lists every
+ * chaos gate and field boss of the week, with no rounds (`startTimes: []`) on
+ * the days it is not open, so "listed" is not "open today".
+ */
+export const running = <T extends { startTimes: readonly string[] }>(items: readonly T[]) =>
+  items.filter((item) => item.startTimes.length > 0);
+
+/** Chaos gate and field boss days (the date line and the week strip dots); `on` when it has a round that day. */
 export const dayKinds = (data: Pick<Schedule, "chaosGates" | "fieldBosses">) => [
-  { key: "chaos-gate", label: "카오스게이트", on: data.chaosGates.length > 0 },
-  { key: "field-boss", label: "필드 보스", on: data.fieldBosses.length > 0 },
+  { key: "chaos-gate", label: "카오스게이트", on: running(data.chaosGates).length > 0 },
+  { key: "field-boss", label: "필드 보스", on: running(data.fieldBosses).length > 0 },
 ];
 
 /**
@@ -93,8 +101,9 @@ export const dayKinds = (data: Pick<Schedule, "chaosGates" | "fieldBosses">) => 
 export function scheduleGroups(data: Schedule): ScheduleGroup[] {
   const groups: ScheduleGroup[] = [
     { key: "adventure-island", label: "모험 섬", slug: "adventure-island", items: data.adventureIslands },
-    { key: "chaos-gate", label: "카오스게이트", slug: "chaos-gate", items: mergeSameRounds(data.chaosGates, "카오스게이트") },
-    { key: "field-boss", label: "필드 보스", slug: "field-boss", items: mergeSameRounds(data.fieldBosses, "필드 보스") },
+    // Only what runs that day: a day off has no row (the date line says so).
+    { key: "chaos-gate", label: "카오스게이트", slug: "chaos-gate", items: mergeSameRounds(running(data.chaosGates), "카오스게이트") },
+    { key: "field-boss", label: "필드 보스", slug: "field-boss", items: mergeSameRounds(running(data.fieldBosses), "필드 보스") },
   ];
   const byCategory = new Map<string, Other[]>();
   for (const item of data.others) {
