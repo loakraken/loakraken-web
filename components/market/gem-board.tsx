@@ -20,8 +20,10 @@ import {
   gemGrid,
   gemPickSearch,
   gemTarget,
+  isStale,
   pickAfterFailure,
   skillsFor,
+  staleWhen,
   type GemCell,
   type GemClass,
   type GemKind,
@@ -55,13 +57,46 @@ function Change({ rate }: { rate: number | null | undefined }) {
 const NO_CELLS: GemCell[] = [];
 const cellId = (cell: GemCell) => `${cell.kind}-${cell.level}`;
 
-function Cell({ cell, picked, onPick, pulse }: { cell: GemCell | undefined; picked: boolean; onPick: () => void; pulse?: Pulse }) {
+function Cell({
+  cell,
+  picked,
+  onPick,
+  pulse,
+  staleAt,
+}: {
+  cell: GemCell | undefined;
+  picked: boolean;
+  onPick: () => void;
+  pulse?: Pulse;
+  /** When the last value was seen, if the fresh one ran out (api #690). */
+  staleAt?: string | null;
+}) {
   if (!cell || cell.status !== "READY")
     return (
       <td className={styles.cell}>
         <span className={styles.pending}>
           <PendingText />
         </span>
+      </td>
+    );
+  // The last value seen, never shown as current: muted, its own time where the
+  // day change goes (that change would be a day old too), and said in its name.
+  if (staleAt)
+    return (
+      <td className={styles.cell}>
+        <button
+          type="button"
+          aria-pressed={picked}
+          onClick={onPick}
+          aria-label={`${cell.itemName} 매물 보기, ${staleAt}에 본 값`}
+          data-stale=""
+        >
+          <b>{gold(cell.minBuyPrice)}</b>
+          <small className={styles.staleAt} title={`${staleAt}에 본 값이에요. 지금 값은 아직 읽지 못했어요.`}>
+            {staleAt} 값
+          </small>
+          <small>매물 {count(cell.totalCount)}</small>
+        </button>
       </td>
     );
   return (
@@ -191,6 +226,7 @@ export function GemBoardView({
   const skillFailure = failureOf(skillList.error)?.code;
   const data = board.data?.data;
   const cellOf = data ? gemGrid(data) : () => undefined;
+  const staleAtOf = (cell: GemCell | undefined) => (data && cell && isStale(cell) ? staleWhen(cell, data) : null);
   const changed = useChangedCells(data?.cells ?? NO_CELLS, cellId, { price: (cell) => cell.minBuyPrice });
   const pulseOf = (cell: GemCell | undefined) => {
     const pulse = cell && changed.pulse(cellId(cell), "price");
@@ -288,6 +324,7 @@ export function GemBoardView({
                         key={kind}
                         cell={cellOf(kind, level)}
                         pulse={pulseOf(cellOf(kind, level))}
+                        staleAt={staleAtOf(cellOf(kind, level))}
                         picked={pick?.kind === kind && pick.level === level}
                         onPick={() => chooseCell(kind, level)}
                       />

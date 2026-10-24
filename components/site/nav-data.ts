@@ -94,7 +94,7 @@ export const NAV_SECTIONS: NavSection[] = [
           { label: "로아샵 효율", description: "상점 패키지 구성품을 지금 시세로", href: "/tools/loa-shop" },
           { label: "아비도스 제작 손익", description: "융화 재료 1회 제작 비용과 손익", href: "/tools/abidos-craft" },
           { label: "생명의 기운 효율", description: "생활 스킬마다 생명의 기운으로 버는 골드", href: "/tools/life-energy" },
-         { label: "레이드 보상표", description: "관문별 골드·더보기 비용", href: "/tools/raid-rewards" },
+          { label: "레이드 보상표", description: "관문별 골드·더보기 비용", href: "/tools/raid-rewards" },
           { label: "더보기 손익", description: "관문마다 더보기가 남는지 지금 시세로", href: "/tools/more-reward" },
           { label: "기여도 계산기", description: "내 피해량이 관문 기준에서 어디쯤인지", href: "/tools/contribution" },
           { label: "레이드 컨닝페이퍼", description: "관문마다 주요 패턴과 대응", href: "/tools/raid-cheatsheet" },

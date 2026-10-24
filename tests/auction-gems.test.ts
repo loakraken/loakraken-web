@@ -7,9 +7,11 @@ import {
   isGemBoardEnvelope,
   isGemListingsEnvelope,
   isGemSkillsEnvelope,
+  isStale,
   parseGemPick,
   pickAfterFailure,
   skillsFor,
+  staleWhen,
 } from "../lib/market/auction-gems";
 
 const cell = (kind: "겁화" | "작열", level: number, pending = false) => ({
@@ -137,4 +139,19 @@ test("filter switched off: a shared address with a class asks again for the same
   assert.equal(pickAfterFailure({ kind: "겁화", level: 10, page: 1 }, "GEM_FILTER_DISABLED"), null);
   assert.equal(pickAfterFailure(shared, "MARKET_SEARCH_BUSY"), null);
   assert.equal(pickAfterFailure(shared, undefined), null);
+});
+
+test("stale cells (api #690): only READY + stale + observedAt; time on the board's day, else date", () => {
+  const fresh = cell("겁화", 10); // 2026-10-13T03:00Z = 12:00 KST
+  assert.equal(isStale(fresh), false);
+  const stale = { ...cell("작열", 2), stale: true, observedAt: "2026-10-13T01:05:00Z" }; // 10:05 KST, same day
+  assert.equal(isStale(stale), true);
+  assert.equal(isStale({ ...stale, observedAt: null }), false);
+  const board = { ruleVersion: "auction-board-v1", complete: true, cells: [fresh, stale] };
+  assert.equal(staleWhen(stale, board), "10:05");
+  // Seen the day before (KST 10. 12. 23:30): the date, not a time that reads as today's.
+  const older = { ...stale, observedAt: "2026-10-12T14:30:00Z" };
+  assert.equal(staleWhen(older, { ...board, cells: [fresh, older] }), "10. 12.");
+  // No current cell: its own day, so its time.
+  assert.equal(staleWhen(older, { ...board, cells: [older] }), "23:30");
 });
