@@ -179,7 +179,7 @@
 /* Only partly counted: tinted so it reads apart from rule exclusions. */
 .partialTag {
   background: color-mix(in oklab, var(--primary) 14%, transparent);
-  color: var(--primary);
+  color: var(--link);
 }
 .parts {
   padding: 0 4px 8px 16px;
