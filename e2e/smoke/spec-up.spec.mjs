@@ -115,16 +115,19 @@ test.describe("스펙업 가이드 @smoke", () => {
     await expect(changes).toContainText("90 → 100");
   });
 
-  test("서포터는 경로 대신 이유 한 줄, 캐시에 없거나 꺼져 있으면 안내한다(api #455)", async ({ page }) => {
+  test("서포터는 탭 전체가 '준비 중' 한 줄, 캐시에 없거나 꺼져 있으면 안내한다(api #455)", async ({ page }) => {
+    // 서포터 후보가 아직 없어 '계산하지 않은 후보'만 늘어놓지 않고, 요청도 보내지 않는다.
+    let specUpCalls = 0;
+    page.on("request", (r) => r.url().includes("/api/characters/spec-up") && specUpCalls++);
     await page.goto(characterPath("상세서포터", "specup"));
-    let goal = page.getByRole("region", { name: "목표 전투력" });
-    await goal.getByRole("textbox", { name: "목표 전투력" }).fill("12400");
-    await goal.getByRole("button", { name: "경로 찾기" }).click();
-    await expect(goal).toContainText("서포터 전투력 계산식은 아직 적용하지 않았습니다.");
-    await expect(goal.getByRole("list")).toHaveCount(0);
+    await expect(page.getByText("서포터 스펙업은 준비 중이에요.")).toBeVisible();
+    await expect(page.getByText("서포터 전투력 계산이 들어오면 후보를 보여 드릴게요.")).toBeVisible();
+    await expect(page.getByRole("region", { name: "목표 전투력" })).toHaveCount(0);
+    await expect(page.getByRole("table", { name: /스펙업 후보/ })).toHaveCount(0);
+    expect(specUpCalls).toBe(0);
 
     await page.goto(characterPath("스펙업꺼짐", "specup"));
-    goal = page.getByRole("region", { name: "목표 전투력" });
+    let goal = page.getByRole("region", { name: "목표 전투력" });
     await goal.getByRole("textbox", { name: "목표 전투력" }).fill("12400");
     await goal.getByRole("button", { name: "경로 찾기" }).click();
     await expect(goal.getByRole("alert")).toContainText("스펙업 목표는 아직 열리지 않았어요.");
