@@ -65,11 +65,12 @@ test("@시세판상세 보석: 다른 쪽으로 가면 펼친 줄이 접힘 @reg
   const first = table.getByRole("rowheader").first().getByRole("button");
   await first.click();
   await expect(first).toHaveAttribute("aria-expanded", "true");
-  await page.getByRole("button", { name: "2", exact: true }).click();
-  await expect(page.getByRole("button", { name: "2", exact: true })).toHaveAttribute("aria-current", "page");
+  const pager = page.getByRole("navigation", { name: "매물 쪽 이동" });
+  await pager.getByRole("button", { name: "2", exact: true }).click();
+  await expect(pager.getByRole("button", { name: "2", exact: true })).toHaveAttribute("aria-current", "page");
   await expect(table.getByRole("button", { expanded: true })).toHaveCount(0);
-  await page.getByRole("button", { name: "1", exact: true }).click();
-  await expect(page.getByRole("button", { name: "1", exact: true })).toHaveAttribute("aria-current", "page");
+  await pager.getByRole("button", { name: "1", exact: true }).click();
+  await expect(pager.getByRole("button", { name: "1", exact: true })).toHaveAttribute("aria-current", "page");
   await expect(table.getByRole("button", { expanded: true })).toHaveCount(0);
 });
 
