@@ -345,6 +345,14 @@
 .verdict .pick {
   line-height: 18px;
 }
+/* Narrow screens: "추천 지평의 성당 3단계 2관문 +30,766G" takes two lines at 320
+   while the loading line held one, so the table slid down when prices came
+   (320 CLS 0.016). Two lines held from the first paint. */
+@media (max-width: 400px) {
+  .verdict p + p {
+    min-height: 48px;
+  }
+}
 .verdictHead {
   font-weight: 600;
 }
@@ -441,6 +449,96 @@
 .atLeast {
   font-size: var(--text-caption);
   font-weight: 500;
+}
+
+/* Phones (QA 10-24 P2): the 656px table in a ~310px box showed only "누르"/"넘기"
+   at the right edge. Each row becomes a card: raid and difficulty on top, the
+   three gates side by side below, each with its own name. CSS only, so the
+   first paint is already in this shape (A6); the verdict line holds two lines
+   so prices arriving do not grow a row (A7). */
+@media (max-width: 600px) {
+  .table,
+  .table tbody {
+    display: block;
+    min-width: 0;
+  }
+  .table colgroup {
+    display: none;
+  }
+  .table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .table tbody tr {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    column-gap: 6px;
+    row-gap: 4px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--hairline);
+  }
+  .table tbody th,
+  .table tbody td {
+    padding: 0;
+    border-bottom: 0;
+  }
+  .table tbody .raid {
+    grid-column: 1 / 3;
+    grid-row: 1;
+    align-self: center;
+    white-space: normal;
+  }
+  .table tbody .mode {
+    grid-column: 3;
+    grid-row: 1;
+    align-self: center;
+    text-align: right;
+  }
+  .table tbody td[data-label],
+  .table tbody td[data-empty] {
+    grid-row: 2;
+  }
+  .table tbody td[data-label]::before {
+    /* Seen, not read: the column header already names the gate for a screen
+       reader (the table keeps its roles), so the label has empty alt text. */
+    content: attr(data-label);
+    content: attr(data-label) / "";
+    display: block;
+    margin-bottom: 2px;
+    color: var(--slate);
+    font-size: var(--text-caption);
+  }
+  .cell {
+    min-width: 0;
+  }
+  .cell small {
+    white-space: normal;
+    min-height: 2lh;
+  }
+  .table tbody tr.detailRow {
+    display: block;
+    padding-top: 0;
+  }
+  .detailRow > td {
+    display: block;
+  }
+}
+
+/* Below 360 the three price bases do not fit on one row; the control finds that
+   only after the fonts are ready and stacks itself then, pushing the table down
+   at first load (320: 0.016). Stacked from the first paint here, as it would end. */
+@media (max-width: 359px) {
+  .advanced [data-slot="segmented-control"][data-orientation] {
+    width: 100%;
+    grid-auto-flow: row;
+    grid-auto-columns: auto;
+    row-gap: 12px;
+    border-radius: 20px;
+  }
 }
 
 /* A new price basis: the table keeps its shape, dimmed, until it arrives. */
