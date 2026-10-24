@@ -110,15 +110,21 @@ function RankPlaceholder() {
                 <span className={styles.scope}>{scope.label}</span>
                 <strong>{" "}</strong>
                 <small>{" "}</small>
-                <span className={styles.top}>{" "}</span>
+                {/* The tier badge's height is held (unseen) so a filled row is no taller. */}
+                <span className={styles.top}>
+                  <span className={`${styles.tier} ${styles.unseen}`}>-</span>
+                </span>
                 <small className={styles.next}>{" "}</small>
               </li>
             ))}
           </ul>
         </section>
       ))}
+      {/* The conditions line takes the basis button on a line of its own: its
+          room is held under the words. */}
       <p className={styles.note} role="status">
         순위를 불러오고 있어요…
+        <span className={styles.holdButton} aria-hidden="true" />
       </p>
       <p className={styles.note} aria-hidden="true">
         티어(그 칸 순위에서 상위 몇 %인지): {TIER_LEGEND}

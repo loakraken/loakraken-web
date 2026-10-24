@@ -150,6 +150,14 @@
 .note + .note {
   margin-top: 2px;
 }
+/* While the rank loads: parts that only hold the filled boxes' room. */
+.unseen {
+  visibility: hidden;
+}
+.holdButton {
+  display: block;
+  height: 28px;
+}
 /* Scopes short of the sample minimum: one line instead of a box each. */
 .waiting {
   margin: 6px 0 0;

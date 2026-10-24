@@ -30,10 +30,12 @@ for (const width of [320, 360, 390, 1280])
     const aside = page.getByRole("complementary", { name: "요약", exact: true });
     const rank = aside.locator(":scope > *").first();
     await expect(rank.getByRole("status")).toHaveText("순위를 불러오고 있어요…");
-    const before = await aside.locator(":scope > *").nth(1).boundingBox();
+    // The 특성 panel's place within the column (whatever the page above it does).
+    const offset = () => aside.evaluate((el) => Math.round(el.children[1].getBoundingClientRect().top - el.getBoundingClientRect().top));
+    const before = await offset();
     await expect(rank.getByRole("region", { name: "전투력 순위" })).toBeVisible({ timeout: 10_000 });
     await page.waitForTimeout(600);
-    expect(Math.round((await aside.locator(":scope > *").nth(1).boundingBox()).y), "특성 패널 제자리").toBe(Math.round(before.y));
+    expect(await offset(), "특성 패널 제자리").toBe(before);
     const loaded = await shiftsSince(page);
     expect(loaded.all, `순위가 채워질 때 흔들림 (${loaded.moved})`).toBe(0);
   });
