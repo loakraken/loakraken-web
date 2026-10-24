@@ -112,6 +112,22 @@ export const EFFICIENCY_KINDS = {
   gems: { path: "/api/v1/rankings/ark-grid-gems", label: "젬", value: "젬 효율" },
 } as const;
 export type EfficiencyKind = keyof typeof EFFICIENCY_KINDS;
+
+/**
+ * What the ranked value means, by the answer's ruleVersion (api #647): the
+ * real definition (bracelet-real-* / ark-grid-real-*) is the character
+ * screen's own efficiency; any other version is the combat power one.
+ */
+export function efficiencyDefinition(kind: EfficiencyKind, ruleVersion: string) {
+  const real = /^(bracelet|ark-grid)-real-/.test(ruleVersion);
+  if (kind === "bracelets")
+    return real
+      ? "팔찌 효율은 팔찌가 딜을 몇 % 올려 주는지예요. 캐릭터 화면의 팔찌 효율과 같은 값이에요."
+      : "팔찌 효율은 팔찌가 전투력을 몇 % 올려 주는지예요. 팔찌를 뺀 전투력과 비교했어요.";
+  return real
+    ? "젬 효율은 아크 그리드 젬(옵션·코어 포인트)이 딜을 몇 % 올려 주는지예요. 캐릭터 화면의 아크 그리드 효율과 같은 값이에요."
+    : "젬 효율은 아크 그리드 젬 옵션이 전투력을 몇 % 올려 주는지예요(코어 제외). 젬 옵션을 뺀 전투력과 비교했어요.";
+}
 /** The character ranking's filters without its metric (efficiency is the order). */
 export type EfficiencyQuery = Omit<RankingQuery, "metric">;
 
