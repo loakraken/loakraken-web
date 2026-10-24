@@ -193,13 +193,22 @@ test.describe("시세 1분 자동 갱신 @smoke", () => {
         const response = await route.fetch();
         const body = await response.json();
         const envelope = body.envelope ?? body;
-        for (const item of envelope.data.items) if (item.status === "PRICE_UNAVAILABLE") item.unavailableReason = reason;
+        // The plan's first material has no price now, for this reason (whatever the plan holds).
+        Object.assign(envelope.data.items[0], {
+          status: "PRICE_UNAVAILABLE",
+          unitPriceGold: null,
+          bundleCount: null,
+          bundlePrice: null,
+          contentsPerItem: null,
+          unavailableReason: reason,
+        });
         await route.fulfill({ response, json: body });
       });
-      await page.reload();
+      // This describe opens no page of its own: go to the plan after the route is set.
+      await page.goto("/tools/refining");
       await page.getByRole("group", { name: "모든 부위 목표 단계" }).getByRole("button", { name: "+20" }).click();
       // Structural, not by role: on a phone the table is laid out as cards.
-      await expect(page.locator("th[scope=row]").filter({ hasText: "용암의 숨결" })).toContainText(text);
+      await expect(page.locator("th[scope=row]").filter({ hasText: text })).toHaveCount(1);
     });
 
   test("재료 견적: 계산한 뒤 1분마다 같은 입력으로 다시 계산하고, 화면은 제자리다", async ({ page }) => {
