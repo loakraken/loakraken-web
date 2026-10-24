@@ -115,7 +115,10 @@ function RankPlaceholder() {
                 <small className={styles.unseen}>/ 1명</small>
                 <span className={`${styles.top} ${styles.unseen}`}>
                   <span className={styles.share}>상위 1%</span>
-                  <span className={styles.tier}>연안</span>
+                  {/* A button as in a filled box (the tooltip trigger sets its line). */}
+                  <button type="button" className={styles.tier} tabIndex={-1} disabled>
+                    연안
+                  </button>
                 </span>
                 <small className={`${styles.next} ${styles.unseen}`}>연안까지 1</small>
               </li>
