@@ -100,7 +100,7 @@ export const LIBRARIES: readonly Credit[] = [
   { name: "tw-animate-css", use: "애니메이션 유틸리티", licence: "MIT", href: "https://github.com/Wombosvideo/tw-animate-css" },
   { name: "Libraries.dev (border-beam, liquid-gooey, thinking-orbs)", use: "빛 테두리·불러오는 표시", licence: "MIT", href: "https://libraries.dev" },
   { name: "cn", use: "스타일 이름 합치기", licence: "MIT", href: "https://github.com/shadcn-ui/cn" },
-  { name: "server-only", use: "서버 전용 코드 표시", licence: "MIT", href: "https://www.npmjs.com/package/server-only" },
+  { name: "server-only", use: "서버에서만 쓰는 코드 구분", licence: "MIT", href: "https://www.npmjs.com/package/server-only" },
 ];
 
 /** package.json runtime dependencies each entry above stands for (checked by a unit test). */

@@ -69,7 +69,7 @@ export default function CreditsPage() {
       <main className={styles.main}>
         <h1>오픈 소스·출처</h1>
         <p className={styles.lead}>
-          LOAKraken은 아래 오픈 소스와 공개된 작업물로 만들었습니다. 각 라이선스의 고지 전문은 사이트 저장소의 NOTICE 파일에
+          LOAKraken은 아래 오픈 소스와 공개된 작업물로 만들었습니다. 라이선스 고지문 전문은 사이트 소스 코드에 함께 들어
           있습니다.
         </p>
 
