@@ -10,7 +10,7 @@ for (const width of [320, 1280])
     await expect(page).toHaveURL(/\/credits$/);
     await expect(page.getByRole("heading", { level: 1, name: "오픈 소스·출처" })).toBeVisible();
     const adapted = page.getByRole("table", { name: "가져와 고친 화면 부품" });
-    const originals = adapted.getByRole("link", { name: /21st\.dev 원본 컴포넌트/ });
+    const originals = adapted.getByRole("link", { name: /^21st\.dev 원본: / });
     await expect(originals).toHaveCount(2);
     for (const link of await originals.all()) {
       await expect(link).toBeVisible();

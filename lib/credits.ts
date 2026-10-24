@@ -27,7 +27,7 @@ export const ADAPTED: readonly Credit[] = [
     licence: "MIT",
     holder: "© 2026 Mahammad Rustamov",
     href: "https://motiq.dev",
-    source: { label: "21st.dev 원본 컴포넌트", href: "https://21st.dev/@rmahammad/components/data-refresh-state" },
+    source: { label: "21st.dev 원본: Data Refresh State", href: "https://21st.dev/@rmahammad/components/data-refresh-state" },
   },
   {
     name: "Motiq — Streaming Data Rows",
@@ -35,7 +35,7 @@ export const ADAPTED: readonly Credit[] = [
     licence: "MIT",
     holder: "© 2026 Mahammad Rustamov",
     href: "https://motiq.dev",
-    source: { label: "21st.dev 원본 컴포넌트", href: "https://21st.dev/@rmahammad/components/streaming-data-rows" },
+    source: { label: "21st.dev 원본: Streaming Data Rows", href: "https://21st.dev/@rmahammad/components/streaming-data-rows" },
   },
   {
     name: "Bencho blocks",
