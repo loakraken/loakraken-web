@@ -24,3 +24,20 @@ for (const width of [320, 360, 390, 1280])
     await page.waitForTimeout(6000);
     expect(await traitTop(page), "특성 제목 위치").toBe(early);
   });
+
+// The records answering after the page's 1s wait (목 '카드늦음' 1.5s): the section
+// holds the filled shape while it loads, so 특성 stays where it is.
+for (const width of [320, 360, 390, 1280])
+  test(`@카드기록 ${width}: 늦게 와도 특성 위치가 그대로 @regression`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto(characterPath("카드늦음"), { waitUntil: "domcontentloaded" });
+    await expect(page.getByRole("status").filter({ hasText: "카드 기록을 불러오고 있어요" })).toHaveCount(1);
+    const early = await traitTop(page);
+    const record = page.getByRole("region", { name: "원정대 카드 기록" });
+    const heightOf = () => record.evaluate((el) => Math.round(el.getBoundingClientRect().height));
+    const holding = await heightOf();
+    await expect(page.getByRole("status").filter({ hasText: "카드 기록을 불러오고 있어요" })).toHaveCount(0, { timeout: 10_000 });
+    await page.waitForTimeout(600);
+    expect(await heightOf(), "자리 = 채워진 높이").toBe(holding);
+    expect(await traitTop(page), "특성 제목 위치").toBe(early);
+  });

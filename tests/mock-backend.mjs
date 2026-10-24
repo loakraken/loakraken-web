@@ -1127,6 +1127,8 @@ createServer(async (req, res) => {
   if (url.pathname === "/api/v1/characters/card-collection") {
     // Backend F-6 samples; card art swapped for official legend card icons.
     const who = url.searchParams.get("characterName");
+    // 카드늦음: slower than the page's 1s wait, so the records arrive after the first paint.
+    if (who === "카드늦음") await new Promise((resolve) => setTimeout(resolve, 1500));
     const kind = who === "기록없음" ? "empty" : who === "상세서포터" ? "supporter" : "dealer";
     const body = JSON.parse(readFileSync(new URL(`./card-fixtures/card-collection-${kind}.json`, import.meta.url), "utf8"));
     body.data.characterName = who;

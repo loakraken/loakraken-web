@@ -228,6 +228,18 @@
   color: var(--muted-foreground);
   font-size: 13px;
 }
+/* While the records load (#1043): the slots' and folds' boxes, nothing in them. */
+.holding li > *,
+.holding summary > * {
+  visibility: hidden;
+}
+.holding summary {
+  color: transparent;
+  list-style: none;
+}
+.holding summary::-webkit-details-marker {
+  display: none;
+}
 .retry {
   min-height: 32px;
   padding: 0 12px;

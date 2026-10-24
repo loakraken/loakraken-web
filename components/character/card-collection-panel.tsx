@@ -15,6 +15,46 @@ import { HelpInfo } from "@/components/stats/basis-note";
 import { useTallest } from "@/components/ui/use-tallest";
 
 /**
+ * While the records load (only when the page's own 1s wait ran out, #1043):
+ * the usual filled shape — six recorded element slots and the two folded
+ * lists — with nothing to read in it, so the panels under the cards do not
+ * move when the records land. The words are for screen readers only.
+ */
+function CardRecordPlaceholder() {
+  return (
+    <>
+      <p className="sr-only" role="status">
+        카드 기록을 불러오고 있어요…
+      </p>
+      <div inert aria-hidden="true" className={styles.holding}>
+        <ul className={styles.elements}>
+          {Array.from({ length: 6 }, (_, i) => (
+            <li key={i} data-recorded="">
+              <span className={styles.slotHead}>
+                <i>불</i>
+                <span className={styles.setName}>세트</span>
+              </span>
+              <span className={styles.value}>
+                <b>0각성</b>
+                <small>0각 효과 적용</small>
+                <small className={styles.by}>기록</small>
+              </span>
+            </li>
+          ))}
+        </ul>
+        {["도감", "구성 가능한 세트"].map((label) => (
+          <details key={label} className={`${styles.fold} ${expand.expand}`}>
+            <summary>
+              {label} <span>0</span>
+            </summary>
+          </details>
+        ))}
+      </div>
+    </>
+  );
+}
+
+/**
  * Roster card records (F-6), inside the cards panel right under the equipped
  * set: six element slots for the character's role, then the 도감 and
  * buildable set effects, folded.
@@ -70,7 +110,7 @@ export function CardCollection({ name }: { name: string }) {
       </header>
       <CardRefresh name={name} />
       {query.isPending ? (
-        <p className={styles.muted}>카드 기록을 불러오고 있어요…</p>
+        <CardRecordPlaceholder />
       ) : !data ? (
         <div className={styles.muted}>
           <p>
