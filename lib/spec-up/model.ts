@@ -20,6 +20,10 @@ export const SORTS = [
 ] as const;
 export type Sort = (typeof SORTS)[number]["id"];
 export const isSort = (value: unknown): value is Sort => SORTS.some((s) => s.id === value);
+/** An OK cost of 0: shown "추가 비용 없음", its per-gold figure not worked out (PM-프론트 10-18). */
+export const isFreeCost = (cost: { status: string; amount?: number | null } | null | undefined) =>
+  cost?.status === "OK" && cost.amount === 0;
+
 /** "1만 골드당 효율 순", "크라켄 점수 순" (a label already ending in 순 keeps it once). */
 export const sortCaption = (sort: string) => {
   const label = SORTS.find((s) => s.id === sort)?.label ?? SORTS[0].label;

@@ -776,6 +776,15 @@ createServer(async (req, res) => {
     const target = Number(url.searchParams.get("targetCombatPower"));
     if (who === "스펙업꺼짐") return send({ code: "SPEC_UP_DISABLED", message: "", data: null }, 404);
     if (who === "미존재") return send({ code: "CHARACTER_NOT_CACHED", message: "", data: null }, 404);
+    // api #592 (spec-up-goal-v2): the backend's own answer as it is — gem steps cost
+    // from now to that level, and the totals are its own (never summed here).
+    if (who === "스펙목표v2" || who === "스펙목표0골드") {
+      const v2 = JSON.parse(readFileSync(new URL("./spec-up-fixtures/character-spec-up-goal-v2.json", import.meta.url), "utf8"));
+      v2.data.characterName = who;
+      // A step costing 0 that stays in the path (OK, 0, no per-gold figure).
+      if (who === "스펙목표0골드") Object.assign(v2.data.steps[0], { cost: { ...v2.data.steps[0].cost, amount: 0 }, cumulativeCost: 0, combatPowerPer10kGold: null });
+      return send(v2);
+    }
     const envelope = JSON.parse(readFileSync(new URL("./spec-up-fixtures/character-spec-up-goal.json", import.meta.url), "utf8"));
     const d = envelope.data;
     const base = read("character-full-data.json").combatPower;
@@ -820,8 +829,12 @@ createServer(async (req, res) => {
     if (id.startsWith("ENGRAVING_LEVEL:")) return send(fixture("character-spec-up-detail-engraving.json"));
     const candidate = list.data.candidates.find((c) => c.id === id && c.status === "OK");
     if (!candidate) return send(fixture("character-spec-up-detail-not-found.json"), 404);
-    const envelope = fixture("character-spec-up-detail-gem.json");
     const who = url.searchParams.get("characterName");
+    // api #592: the gem cost takes off the current gem's lowest price, the sale
+    // fee apart (sellFeeGold). The backend's own answer, as it is.
+    if (who === "스펙업수수료" && id === "GEM_LEVEL:0:9")
+      return send({ ...fixture("character-spec-up-detail-gem-fee.json"), data: { ...fixture("character-spec-up-detail-gem-fee.json").data, characterName: who } });
+    const envelope = fixture("character-spec-up-detail-gem.json");
     Object.assign(envelope.data, { characterName: who, candidate: { ...envelope.data.candidate, ...candidate } });
     if (candidate.kind !== "GEM_LEVEL") Object.assign(envelope.data, { stats: [], market: null });
     else if (id !== "GEM_LEVEL:0:9") envelope.data.market[0].itemName = `${String(candidate.to).replace(/\D/g, "")}레벨 겁화의 보석`;
@@ -857,6 +870,13 @@ createServer(async (req, res) => {
     // The sample's gem is the mock simulator character's slot-1 gem (level 8).
     for (const c of envelope.data.candidates)
       if (c.change?.kind === "GEM_LEVEL") c.change.slot = 1;
+    // An OK candidate costing 0 (a bound gem kept, say): no per-gold figure, after
+    // the rest (the backend's order, api #596).
+    if (who === "스펙업0골드") {
+      const ok = envelope.data.candidates.filter((c) => c.status === "OK");
+      const free = { ...ok[0], id: "GEM_LEVEL:9:9", target: "무료 보석 칸", cost: { ...ok[0].cost, amount: 0 }, combatPowerPer10kGold: null };
+      envelope.data.candidates = [...ok, free, ...envelope.data.candidates.filter((c) => c.status !== "OK")];
+    }
     if (url.searchParams.get("sort") === "DELTA") {
       envelope.data.sort = "DELTA";
       const ok = envelope.data.candidates.filter((c) => c.status === "OK");
@@ -1431,7 +1451,9 @@ createServer(async (req, res) => {
     const bracelet = url.pathname.endsWith("bracelets");
     const page = Number(q.get("page") || 1);
     const size = Number(q.get("size") || 50);
-    const population = q.get("className") === "환수사" ? 0 : q.get("server") ? 64 : 230;
+    // 환수사: none yet; 리퍼: a fresh ranking on the real definition (api #647), 3 rows still collecting.
+    const fresh = q.get("className") === "리퍼";
+    const population = q.get("className") === "환수사" ? 0 : fresh ? 3 : q.get("server") ? 64 : 230;
     const servers = ["루페온", "실리안", "아만", "아브렐슈드", "카단", "카마인", "카제로스", "니나브"];
     const classes = ["블래스터", "소울이터", "슬레이어", "기상술사", "버서커", "블레이드"];
     const rows = [];
@@ -1457,7 +1479,7 @@ createServer(async (req, res) => {
           aggregatedAt: new Date(Date.now() - 600_000).toISOString(), snapshot: "latest", ruleVersion: "stats-v1", minSample: 30,
           sampleStatus: population >= 30 ? "READY" : "COLLECTING", coverage: { observedCharacters: population, knownCharacters: population * 3, discoveredAccounts: 100 },
         },
-        kind: bracelet ? "BRACELET" : "ARK_GRID_GEM", ruleVersion: "efficiency-v1",
+        kind: bracelet ? "BRACELET" : "ARK_GRID_GEM", ruleVersion: fresh ? (bracelet ? "bracelet-real-v1" : "ark-grid-real-v1") : "efficiency-v1",
         populationNote: "캐릭터 검색으로 장비를 관측해 효율을 계산한 캐릭터만 순위에 들어갑니다.",
         page, size, rows,
       },

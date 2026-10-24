@@ -20,6 +20,7 @@ import {
   KRAKEN_NOTE_ALL,
   krakenUnavailableCopy,
   krakenUnavailableNote,
+  isFreeCost,
   listChangeCopy,
   sortCaption,
   splitKrakenCandidates,
@@ -52,12 +53,29 @@ function failureCopy(code: string) {
   }
 }
 
+/** "—" for a per-gold figure; a cost of 0 says why it was not worked out (read out only). */
+function NoFigure({ candidate }: { candidate: Candidate }) {
+  if (!isFreeCost(candidate.cost)) return <>—</>;
+  return (
+    <>
+      <span aria-hidden="true">—</span>
+      <span className={styles.sr}>비용이 없어 계산하지 않아요</span>
+    </>
+  );
+}
+
 function CostCell({ candidate, pulse }: { candidate: Candidate; pulse?: Pulse }) {
   const cost = candidate.cost;
   if (!cost)
     return (
       <td data-cell="cost" data-label="기대 비용">
         —
+      </td>
+    );
+  if (isFreeCost(cost))
+    return (
+      <td data-cell="cost" data-label="기대 비용" className={styles.specUpMuted}>
+        추가 비용 없음
       </td>
     );
   if (cost.status === "OK" && cost.amount != null)
@@ -352,7 +370,12 @@ export default function SpecUpGuide({ data }: { data: Character }) {
                           <td data-cell="kind">{kindLabel(c.kind)}</td>
                           <th scope="row" data-cell="target">
                             {/* The target opens the row's detail (시세·재련 재료·전후 능력치, #887). */}
-                            <SpecUpRowDetail characterName={name} fetchedAt={data.fetchedAt} candidate={c} />
+                            <SpecUpRowDetail
+                              characterName={name}
+                              fetchedAt={data.fetchedAt}
+                              candidate={c}
+                              cooldownGemsIncluded={guide.cooldownGemsIncluded ?? null}
+                            />
                           </th>
                           <td data-cell="change">
                             {c.from ?? "—"} → {c.to ?? "—"}
@@ -371,13 +394,13 @@ export default function SpecUpGuide({ data }: { data: Character }) {
                           {krakenShown ? (
                             <td data-cell="eff" data-label="10만 골드당" data-figure="">
                               <ChangeMark key={c.krakenScorePer100kGold ?? "none"} pulse={pulseOf(c.id, "eff")}>
-                                {c.krakenScorePer100kGold == null ? "—" : two(c.krakenScorePer100kGold)}
+                                {c.krakenScorePer100kGold == null ? <NoFigure candidate={c} /> : two(c.krakenScorePer100kGold)}
                               </ChangeMark>
                             </td>
                           ) : (
                             <td data-cell="eff" data-label="1만 골드당" data-figure="">
                               <ChangeMark key={c.combatPowerPer10kGold ?? "none"} pulse={pulseOf(c.id, "eff")}>
-                                {c.combatPowerPer10kGold == null ? "—" : two(c.combatPowerPer10kGold)}
+                                {c.combatPowerPer10kGold == null ? <NoFigure candidate={c} /> : two(c.combatPowerPer10kGold)}
                               </ChangeMark>
                             </td>
                           )}
