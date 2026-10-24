@@ -3,7 +3,8 @@
 import { Popover } from "@base-ui/react/popover";
 import { InfoCircle } from "@/components/ui/icons";
 import { pendingProps } from "@/lib/api/pending";
-import { conditionsText, whole, type StatsMeta } from "@/lib/stats/model";
+import { conditionsText, whole } from "@/lib/stats/format";
+import type { StatsMeta } from "@/lib/stats/model";
 import styles from "./basis-note.module.css";
 
 const kst = new Intl.DateTimeFormat("ko-KR", {

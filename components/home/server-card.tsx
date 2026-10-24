@@ -6,7 +6,7 @@ import { ChevronRight } from "@/components/ui/icons";
 import { countdownText } from "@/lib/api/rate-limit";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { fetchStats } from "@/lib/stats/client";
-import { fixed, share, whole } from "@/lib/stats/model";
+import { fixed, share, whole } from "@/lib/stats/format";
 import styles from "./home.module.css";
 
 /**
