@@ -36,7 +36,11 @@ test("재련 예시: 재료 합 + 재련 골드는 목록 비용과 1골드 안�
   assert.equal(refiningLink("재련", data.refine), "/tools/refining?character=%EC%9E%AC%EB%A0%A8");
   assert.equal(refiningLink("재련", null), null);
   assert.equal(breathLabel("NONE"), "숨결 안 씀");
-  assert.equal(breathLabel("NEW_VALUE"), "NEW_VALUE");
+  assert.equal(breathLabel("OPTIMAL"), "숨결 회차마다 최적");
+  assert.equal(breathLabel("MAX"), "숨결 최대");
+  // No words yet: no line (not a raw code), and no Object.prototype member.
+  assert.equal(breathLabel("constructor"), null);
+  assert.equal(breathLabel("NEW_VALUE"), null);
   assert.equal(breathLabel(null), null);
 });
 

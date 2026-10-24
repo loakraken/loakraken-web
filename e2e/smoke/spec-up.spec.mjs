@@ -1,6 +1,12 @@
 // 스펙업 가이드 탭(백엔드 #318, PM-프론트 10-11 16:37 ⑤). 목 서버는 백엔드 표본을 그대로 준다:
 // OK 3개(보석 8→9 62만G·8→10 262만G, 무기 품질 비용 미확인) + 계산 못 한 후보는 이유별 한 줄.
+import { readFileSync } from "node:fs";
 import { test, expect, characterPath, expectNoHorizontalOverflow } from "../support/fixtures.mjs";
+
+/** The refine step of the saved api sample (breath NONE there). */
+const REFINE = JSON.parse(
+  readFileSync(new URL("../../tests/spec-up-fixtures/character-spec-up-detail-refine.json", import.meta.url), "utf8"),
+).data.refine;
 
 const NAME = "전투력계산";
 
@@ -231,6 +237,22 @@ test.describe("스펙업 가이드 @smoke", () => {
     await page.getByRole("table", { name: /스펙업 후보/ }).getByRole("button", { name: "+20 테스트 무기" }).click();
     await expect(page.getByRole("dialog")).toContainText("이 후보가 바뀌었어요. 목록을 새로 불러오고 있어요.");
     await expect.poll(() => lists).toBeGreaterThan(before);
+  });
+
+  // api #642: 재련 상세의 숨결은 NONE 또는 OPTIMAL(회차마다 기대 비용이 가장 적은 개수). 영어 값을 그대로 보이지 않는다.
+  test("재련 상세의 숨결 OPTIMAL은 '숨결 회차마다 최적'으로 보인다", async ({ page }) => {
+    await page.route("**/api/characters/spec-up/candidates/**", async (route) => {
+      const res = await route.fetch();
+      const body = await res.json();
+      // The mock's details have no refine step: the saved api sample's, with api #642's value.
+      body.envelope.data.refine = { ...REFINE, breath: "OPTIMAL" };
+      await route.fulfill({ response: res, json: body });
+    });
+    await page.goto(characterPath(NAME, "specup"));
+    await page.getByRole("table", { name: /스펙업 후보/ }).getByRole("button", { name: "+20 테스트 무기" }).click();
+    const card = page.getByRole("dialog");
+    await expect(card).toContainText("숨결 회차마다 최적");
+    await expect(card).not.toContainText("OPTIMAL");
   });
 
   // PM-프론트 #901 P1(A7): 휴대폰에서 줄을 누르면 상세가 다 온 뒤 최종 크기로 열린다 — 연 직후 1.5초 흔들림 0.
