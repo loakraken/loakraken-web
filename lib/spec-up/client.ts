@@ -44,8 +44,14 @@ export async function fetchSpecUpDetail(characterName: string, candidateId: stri
   }
 }
 
-export async function fetchSpecUp(characterName: string, sort: Sort, signal?: AbortSignal) {
+export async function fetchSpecUp(
+  characterName: string,
+  sort: Sort,
+  signal?: AbortSignal,
+  includeCooldownGems: boolean | null = null,
+) {
   const params = new URLSearchParams({ characterName, sort });
+  if (includeCooldownGems != null) params.set("includeCooldownGems", String(includeCooldownGems));
   try {
     const response = await fetch(`/api/characters/spec-up?${params}`, { cache: "no-store", signal });
     const result: BackendResult<SpecUpEnvelope> = await response.json();
