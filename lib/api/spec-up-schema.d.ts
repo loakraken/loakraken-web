@@ -13,7 +13,7 @@ export interface paths {
         };
         /**
          * 스펙업 가이드(공식 호출 없음)
-         * @description 캐릭터 캐시의 현재 세팅에서 후보 업그레이드마다 전투력 시뮬레이터를 변화 하나로 돌린 Δ전투력, 시세 캐시로 구한 비용, 1만 골드당 전투력을 줍니다. 후보끼리 Δ를 더하지 않습니다. 계산식이 확정되지 않은 후보도 status=UNSUPPORTED와 reasonCode·reason(같은 코드는 같은 문장)으로 남깁니다. limit은 OK 후보에만 적용하고(total = 자르기 전 OK 후보 수), UNSUPPORTED는 모두 뒤에 붙습니다. cost.status: OK(금액 있음)·PENDING(시세 칸을 아직 받지 못함)·UNKNOWN(비용 근거 없음). 보석 비용은 목표 레벨 즉시 구매 최저가 − 지금 보석 판매 기대가(거래소 수수료 5% 올림, 귀속이면 빼지 않음)입니다. kind·status·cost.status·reasonCode는 문자열이며 값이 늘 수 있습니다.
+         * @description 캐릭터 캐시의 현재 세팅에서 후보 업그레이드마다 전투력 시뮬레이터를 변화 하나로 돌린 Δ전투력, 시세 캐시로 구한 비용, 1만 골드당 전투력을 줍니다. 후보끼리 Δ를 더하지 않습니다. 계산식이 확정되지 않은 후보도 status=UNSUPPORTED와 reasonCode·reason(같은 코드는 같은 문장)으로 남깁니다. limit은 OK 후보에만 적용하고(total = 자르기 전 OK 후보 수), UNSUPPORTED는 모두 뒤에 붙습니다. cost.status: OK(금액 있음)·PENDING(시세 칸을 아직 받지 못함)·UNKNOWN(비용 근거 없음). 보석 비용은 목표 레벨 즉시 구매 최저가 − 지금 보석 판매 기대가(거래소 수수료 5% 올림, 귀속이면 빼지 않음)입니다. sort=KRAKEN이면 후보마다 크라켄 점수 엔진으로 Δ크라켄 점수(적용 뒤 점수 − 지금 점수, 반올림 전 값의 차를 소수 둘째 자리로)를 내고 10만 골드당 점수 내림차순으로 정렬합니다(비용 모름은 Δ 순, 그 밖은 효율 순). 점수를 낼 수 없으면(서포터·점수 꺼짐·입력 없음) 효율 순으로 정렬하고 krakenSortUnavailableReason에 이유를 줍니다. includeCooldownGems를 주지 않으면 KRAKEN은 작열(쿨) 보석 후보를 빼고 다른 정렬은 넣으며, 실제로 적용한 값은 cooldownGemsIncluded입니다. kind·status·cost.status·reasonCode·sort·gemType·krakenSortUnavailableReason은 문자열이며 값이 늘 수 있습니다.
          */
         get: operations["guide"];
         put?: never;
@@ -102,7 +102,7 @@ export interface components {
             fetchedAt: string;
             pricesAt: string | null;
             /**
-             * @description EFFICIENCY 또는 DELTA(문자열)
+             * @description 실제로 쓴 정렬(문자열, 값이 늘 수 있음): EFFICIENCY·DELTA·KRAKEN. KRAKEN을 요청해도 점수를 낼 수 없으면 EFFICIENCY
              * @example EFFICIENCY
              */
             sort: string;
@@ -110,11 +110,19 @@ export interface components {
             limit: number;
             /**
              * Format: int32
-             * @description limit으로 자르기 전 OK 후보 수
+             * @description limit으로 자르기 전 순위 후보 수(KRAKEN은 Δ크라켄 점수가 있는 후보 포함)
              */
             total: number;
-            /** @description OK 후보(정렬·limit) 뒤에 UNSUPPORTED 후보 전체 */
+            /** @description 순위 후보(정렬·limit) 뒤에 나머지 후보 전체 */
             candidates: components["schemas"]["CandidateResponse"][];
+            /** @description 백엔드가 아직 주지 않는 응답(api 배포 전)에서는 필드가 없을 수 있음. */
+            krakenScore?: number | null;
+            /** @description 백엔드가 아직 주지 않는 응답(api 배포 전)에서는 필드가 없을 수 있음. */
+            krakenRuleVersion?: string | null;
+            /** @description 작열(쿨) 보석 후보를 넣었는지(요청 includeCooldownGems 또는 정렬 기본값) 백엔드가 아직 주지 않는 응답(api 배포 전)에서는 필드가 없을 수 있음. */
+            cooldownGemsIncluded?: boolean;
+            /** @description 백엔드가 아직 주지 않는 응답(api 배포 전)에서는 필드가 없을 수 있음. */
+            krakenSortUnavailableReason?: string | null;
         };
         CandidateResponse: {
             /**
@@ -157,6 +165,12 @@ export interface components {
             baseAttackPctFrom?: number | null;
             /** @description 백엔드가 아직 주지 않는 응답(api 배포 전)에서는 필드가 없을 수 있음. */
             baseAttackPctTo?: number | null;
+            /** @description 백엔드가 아직 주지 않는 응답(api 배포 전)에서는 필드가 없을 수 있음. */
+            deltaKrakenScore?: number | null;
+            /** @description 백엔드가 아직 주지 않는 응답(api 배포 전)에서는 필드가 없을 수 있음. */
+            krakenScorePer100kGold?: number | null;
+            /** @description 백엔드가 아직 주지 않는 응답(api 배포 전)에서는 필드가 없을 수 있음. */
+            gemType?: string | null;
         };
         ChangeResponse: {
             kind: string;
@@ -379,7 +393,7 @@ export interface components {
             price: number;
             /**
              * Format: int32
-             * @description 필요한 개수(보석 1, 유물 각인서 5)
+             * @description 필요한 개수(보석 1, 유물 각인서 5 × 올리는 레벨 수)
              * @example 1
              */
             quantity: number;
@@ -420,10 +434,12 @@ export interface operations {
             query: {
                 /** @description 캐릭터명 */
                 characterName: string;
-                /** @description EFFICIENCY(기본, 1만 골드당 전투력) 또는 DELTA(Δ전투력) */
+                /** @description EFFICIENCY(기본, 1만 골드당 전투력), DELTA(Δ전투력) 또는 KRAKEN(10만 골드당 Δ크라켄 점수) */
                 sort?: string;
                 /** @description OK 후보 최대 개수(기본 20, 최대 50) */
                 limit?: number;
+                /** @description 작열(쿨) 보석 후보를 넣을지. 주지 않으면 KRAKEN은 빼고 다른 정렬은 넣음 */
+                includeCooldownGems?: boolean;
             };
             header?: never;
             path?: never;
@@ -575,7 +591,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description SPEC_UP_CANDIDATE_NOT_FOUND: 지금 목록에 그 후보가 없음(세팅이 바뀜, 목록을 다시 부름) · SPEC_UP_DISABLED: 기능이 꺼져 있음 · CHARACTER_NOT_CACHED: 캐릭터를 먼저 검색해야 함 */
+            /** @description SPEC_UP_CANDIDATE_NOT_FOUND: 지금 목록에 그 후보가 없거나, 시세가 연달아 바뀌어 목록 비용과 내역 금액을 맞추지 못함(목록을 다시 부름) · SPEC_UP_DISABLED: 기능이 꺼져 있음 · CHARACTER_NOT_CACHED: 캐릭터를 먼저 검색해야 함 */
             404: {
                 headers: {
                     [name: string]: unknown;
