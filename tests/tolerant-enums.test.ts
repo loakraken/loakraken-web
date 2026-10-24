@@ -4,12 +4,8 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import { labelOf, UNKNOWN_LABEL } from "../lib/api/tolerant";
-import {
-  elementLabel,
-  isCardCollectionEnvelope,
-  orderedSlots,
-  slotsFor,
-} from "../lib/character/card-collection";
+import { elementLabel, orderedSlots, slotsFor } from "../lib/character/card-collection";
+import { isCardCollectionEnvelope } from "../lib/character/card-collection.backend";
 import { coverageLabel } from "../lib/character/model";
 import { isPopularEnvelope } from "../lib/character/popular";
 import { isCharacterEnvelope } from "../lib/character/validate";

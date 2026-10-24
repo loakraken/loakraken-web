@@ -1,19 +1,8 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import {
-  TIER_LABEL,
-  TIER_LEGEND,
-  bannerRank,
-  conditionsText,
-  isRankEnvelope,
-  nextTierText,
-  rankCell,
-  rankState,
-  requestRank,
-  scopeLabel,
-  scopesOf,
-} from "../lib/character/rank";
+import { TIER_LABEL, TIER_LEGEND, bannerRank, conditionsText, nextTierText, rankCell, rankState, scopeLabel, scopesOf } from "../lib/character/rank";
+import { isRankEnvelope, requestRank } from "../lib/character/rank.backend";
 
 const fixture = (name: string) =>
   JSON.parse(readFileSync(new URL(`./rank-fixtures/${name}`, import.meta.url), "utf8"));

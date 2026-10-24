@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { equipShare, isTitleEquipEnvelope, titleEquipQuery, titleEquipSearch } from "../lib/stats/title-equip";
+import { equipShare, titleEquipQuery, titleEquipSearch } from "../lib/stats/title-equip";
+import { isTitleEquipEnvelope } from "../lib/stats/title-equip.backend";
 import { isTitleStatsEnabled } from "../lib/tools/flags";
 import { PRODUCTION_URL } from "../lib/site";
 

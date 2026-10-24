@@ -1,5 +1,6 @@
 import { toResponse } from "@/lib/api/respond";
-import { isAlertId, requestDeleteCondition } from "@/lib/alerts/model";
+import { isAlertId } from "@/lib/alerts/model";
+import { requestDeleteCondition } from "@/lib/alerts/model.backend";
 import { credentials, guard, invalid, origin } from "@/lib/alerts/server";
 
 export async function DELETE(
