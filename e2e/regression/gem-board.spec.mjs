@@ -59,6 +59,32 @@ for (const width of [1280, 360]) {
   });
 }
 
+// User report 10-25: while a cell was '집계 중', its moving light ran past the
+// table's scroll box now and then, so a scrollbar came and went under the table
+// and everything below jumped. Sampled over the light's run, every 50ms.
+for (const width of [1280, 1180, 360])
+  test(`@보석 ${width} 집계 중 칸이 있어도 표 상자가 옆으로 넘치지 않음 @regression`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await gotoReady(page, "/market/gems");
+    const board = page.getByRole("table", { name: "4티어 보석 레벨별 즉시 구매 최저가" });
+    await expect(board.getByText("집계 중")).toHaveCount(1);
+    const sample = () =>
+      board.evaluate(async (table) => {
+        const box = table.closest('[data-slot="data-table"]');
+        let worst = 0;
+        for (const end = performance.now() + 3000; performance.now() < end; ) {
+          worst = Math.max(worst, box.scrollWidth - box.clientWidth, box.scrollHeight - box.clientHeight);
+          await new Promise((ok) => setTimeout(ok, 50));
+        }
+        return worst;
+      });
+    expect(await sample(), "집계 중일 때 표 상자 넘침(px)").toBe(0);
+    // With the last row's cell picked as well (the reported screen).
+    await board.getByRole("button", { name: "1레벨 겁화의 보석 매물 보기" }).click();
+    await expect(board.getByRole("button", { name: "1레벨 겁화의 보석 매물 보기" })).toHaveAttribute("aria-pressed", "true");
+    expect(await sample(), "칸을 고른 뒤 표 상자 넘침(px)").toBe(0);
+  });
+
 test("보석 시세: 공유 주소로 바로 매물 @regression", async ({ page }) => {
   await gotoReady(page, "/market/gems?kind=%EC%9E%91%EC%97%B4&level=3");
   await expect(page.getByRole("heading", { name: /3레벨 작열의 보석 매물/ })).toBeVisible();
