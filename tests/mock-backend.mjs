@@ -565,14 +565,17 @@ createServer(async (req, res) => {
     const cells = ["겁화", "작열"].flatMap((kind) =>
       [10, 9, 8, 7, 6, 5, 4, 3, 2, 1].map((level) => {
         const pending = kind === "작열" && level === 1;
+        // api #690: 작열 2레벨's fresh value ran out; the last one, seen 2 hours before.
+        const stale = kind === "작열" && level === 2;
         const price = Math.round((kind === "겁화" ? 2.4 : 1.1) * 3 ** (level - 1) * 40);
         return {
           kind, level, itemName: `${level}레벨 ${kind}의 보석`,
           minBuyPrice: pending ? null : price,
           totalCount: pending ? null : 30 + level * 7,
           previousDayChangeRate: pending ? null : level % 3 === 0 ? -2.5 : level % 3 === 1 ? 4 : 0,
-          observedAt: pending ? null : observedAt,
+          observedAt: pending ? null : stale ? new Date(Date.now() - 2 * 3_600_000).toISOString() : observedAt,
           status: pending ? "PENDING" : "READY",
+          ...(stale ? { stale: true } : {}),
         };
       }),
     );
