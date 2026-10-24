@@ -1,6 +1,12 @@
 // 스펙업 가이드 탭(백엔드 #318, PM-프론트 10-11 16:37 ⑤). 목 서버는 백엔드 표본을 그대로 준다:
 // OK 3개(보석 8→9 62만G·8→10 262만G, 무기 품질 비용 미확인) + 계산 못 한 후보는 이유별 한 줄.
+import { readFileSync } from "node:fs";
 import { test, expect, characterPath, expectNoHorizontalOverflow } from "../support/fixtures.mjs";
+
+/** The refine step of the saved api sample (breath NONE there). */
+const REFINE = JSON.parse(
+  readFileSync(new URL("../../tests/spec-up-fixtures/character-spec-up-detail-refine.json", import.meta.url), "utf8"),
+).data.refine;
 
 const NAME = "전투력계산";
 
@@ -71,6 +77,43 @@ test.describe("스펙업 가이드 @smoke", () => {
     expect(requests).toBeLessThanOrEqual(2);
   });
 
+  // api #592(spec-up-goal-v2): 보석 단계 비용은 단계마다 따로 계산한 '지금부터 그 레벨까지',
+  // 합계는 응답 그대로(웹에서 더하지 않음). 백엔드 CI의 실제 응답.
+  // PM-프론트 판정 10-18: 비용 0(OK) 단계·줄은 '추가 비용 없음', 효율 칸은 '—'(읽기: 비용이 없어 계산하지 않아요).
+  test("비용이 0인 단계와 후보는 '추가 비용 없음', 효율 칸은 '—'", async ({ page }) => {
+    await page.goto(characterPath("스펙목표0골드", "specup"));
+    const goal = page.getByRole("region", { name: "목표 전투력" });
+    await goal.getByRole("textbox", { name: "목표 전투력" }).fill("12450");
+    await goal.getByRole("button", { name: "경로 찾기" }).click();
+    const steps = goal.getByRole("list", { name: "효율 순으로 고른 경로" }).getByRole("listitem");
+    await expect(steps).toHaveCount(3);
+    await expect(steps.nth(0)).toContainText("추가 비용 없음");
+    await expect(steps.nth(0)).not.toContainText("0G");
+
+    await page.goto(characterPath("스펙업0골드", "specup"));
+    const table = page.getByRole("table", { name: /스펙업 후보/ });
+    const free = table.locator("tbody tr").filter({ hasText: "무료 보석 칸" });
+    await expect(free.locator('[data-cell="cost"]')).toHaveText("추가 비용 없음");
+    await expect(free.locator('[data-cell="eff"]')).toContainText("—");
+    await expect(free.locator('[data-cell="eff"]')).toContainText("비용이 없어 계산하지 않아요");
+    // The API order: after the rows with a figure.
+    await expect(table.locator("tbody tr").last()).toContainText("무료 보석 칸");
+  });
+
+  test("목표 경로 v2: 보석 단계는 '지금부터' 비용, 합계는 응답 그대로", async ({ page }) => {
+    await page.goto(characterPath("스펙목표v2", "specup"));
+    const goal = page.getByRole("region", { name: "목표 전투력" });
+    await goal.getByRole("textbox", { name: "목표 전투력" }).fill("12450");
+    await goal.getByRole("button", { name: "경로 찾기" }).click();
+    const steps = goal.getByRole("list", { name: "효율 순으로 고른 경로" }).getByRole("listitem");
+    await expect(steps).toHaveCount(3);
+    await expect(steps.nth(0)).toContainText("지금부터 60만G");
+    // 9→10: 지금(8레벨)에서 10레벨까지 260만G — 앞 단계 60만G와 더하지 않는다.
+    await expect(steps.nth(1)).toContainText("지금부터 260만G");
+    await expect(steps.nth(2)).toContainText("비용 미확인");
+    await expect(goal).toContainText("기대 비용 미정(비용을 모르는 단계 1개)");
+  });
+
   test("목표 전투력을 넣으면 백엔드가 고른 경로를 보여 준다 — 같은 칸 여러 단계, 비용 미정 단계 포함(L31, api #455)", async ({ page }) => {
     await page.goto(characterPath(NAME, "specup"));
     const goal = page.getByRole("region", { name: "목표 전투력" });
@@ -115,16 +158,19 @@ test.describe("스펙업 가이드 @smoke", () => {
     await expect(changes).toContainText("90 → 100");
   });
 
-  test("서포터는 경로 대신 이유 한 줄, 캐시에 없거나 꺼져 있으면 안내한다(api #455)", async ({ page }) => {
+  test("서포터는 탭 전체가 '준비 중' 한 줄, 캐시에 없거나 꺼져 있으면 안내한다(api #455)", async ({ page }) => {
+    // 서포터 후보가 아직 없어 '계산하지 않은 후보'만 늘어놓지 않고, 요청도 보내지 않는다.
+    let specUpCalls = 0;
+    page.on("request", (r) => r.url().includes("/api/characters/spec-up") && specUpCalls++);
     await page.goto(characterPath("상세서포터", "specup"));
-    let goal = page.getByRole("region", { name: "목표 전투력" });
-    await goal.getByRole("textbox", { name: "목표 전투력" }).fill("12400");
-    await goal.getByRole("button", { name: "경로 찾기" }).click();
-    await expect(goal).toContainText("서포터 전투력 계산식은 아직 적용하지 않았습니다.");
-    await expect(goal.getByRole("list")).toHaveCount(0);
+    await expect(page.getByText("서포터 스펙업은 준비 중이에요.")).toBeVisible();
+    await expect(page.getByText("서포터 전투력 계산이 들어오면 후보를 보여 드릴게요.")).toBeVisible();
+    await expect(page.getByRole("region", { name: "목표 전투력" })).toHaveCount(0);
+    await expect(page.getByRole("table", { name: /스펙업 후보/ })).toHaveCount(0);
+    expect(specUpCalls).toBe(0);
 
     await page.goto(characterPath("스펙업꺼짐", "specup"));
-    goal = page.getByRole("region", { name: "목표 전투력" });
+    let goal = page.getByRole("region", { name: "목표 전투력" });
     await goal.getByRole("textbox", { name: "목표 전투력" }).fill("12400");
     await goal.getByRole("button", { name: "경로 찾기" }).click();
     await expect(goal.getByRole("alert")).toContainText("스펙업 목표는 아직 열리지 않았어요.");
@@ -191,6 +237,22 @@ test.describe("스펙업 가이드 @smoke", () => {
     await page.getByRole("table", { name: /스펙업 후보/ }).getByRole("button", { name: "+20 테스트 무기" }).click();
     await expect(page.getByRole("dialog")).toContainText("이 후보가 바뀌었어요. 목록을 새로 불러오고 있어요.");
     await expect.poll(() => lists).toBeGreaterThan(before);
+  });
+
+  // api #642: 재련 상세의 숨결은 NONE 또는 OPTIMAL(회차마다 기대 비용이 가장 적은 개수). 영어 값을 그대로 보이지 않는다.
+  test("재련 상세의 숨결 OPTIMAL은 '숨결 회차마다 최적'으로 보인다", async ({ page }) => {
+    await page.route("**/api/characters/spec-up/candidates/**", async (route) => {
+      const res = await route.fetch();
+      const body = await res.json();
+      // The mock's details have no refine step: the saved api sample's, with api #642's value.
+      body.envelope.data.refine = { ...REFINE, breath: "OPTIMAL" };
+      await route.fulfill({ response: res, json: body });
+    });
+    await page.goto(characterPath(NAME, "specup"));
+    await page.getByRole("table", { name: /스펙업 후보/ }).getByRole("button", { name: "+20 테스트 무기" }).click();
+    const card = page.getByRole("dialog");
+    await expect(card).toContainText("숨결 회차마다 최적");
+    await expect(card).not.toContainText("OPTIMAL");
   });
 
   // PM-프론트 #901 P1(A7): 휴대폰에서 줄을 누르면 상세가 다 온 뒤 최종 크기로 열린다 — 연 직후 1.5초 흔들림 0.
@@ -283,5 +345,21 @@ test.describe("스펙업 가이드 @smoke", () => {
     await expect(page.getByRole("dialog")).toContainText("구매");
     expect(ids.at(-1)).toContain("%20");
     expect(ids.at(-1)).not.toContain("+");
+    // api #588: the list left 작열 gems out, so the detail asks the same way.
+    expect(new URL(ids.at(-1)).searchParams.get("includeCooldownGems")).toBe("false");
+  });
+
+  // api #592: 보석 비용 = 9레벨 구매 최저가 − 지금 8레벨 최저가, 판매 수수료는 따로.
+  test("판매 수수료를 따로 주는 응답이면 판매 최저가로 빼고 수수료는 비용에 넣지 않았다고 알린다", async ({ page }) => {
+    await page.goto(characterPath("스펙업수수료", "specup"));
+    const table = page.getByRole("table", { name: /스펙업 후보/ });
+    await table.getByRole("button", { name: "테스트 스킬 · 8레벨 겁화" }).first().click();
+    const card = page.getByRole("dialog");
+    await expect(card).toContainText("구매 · 9레벨 겁화의 보석");
+    await expect(card).toContainText("판매 최저가 · 8레벨 겁화의 보석");
+    await expect(card).toContainText("−40만G");
+    await expect(card).toContainText("기대 비용60만G");
+    await expect(card).toContainText("팔 때 거래소 수수료 2만G는 기대 비용에 넣지 않았어요.");
+    await expect(card).not.toContainText("판매 기대");
   });
 });

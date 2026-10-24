@@ -66,10 +66,15 @@ export interface components {
             assumptions: string[];
         };
         ReceiptTotalResponse: {
-            /** @description 포함 분류 합계(골드) */
+            /** @description 포함 분류 합계(골드). status가 COMPLETE가 아니면 센 것만의 합이라 실제보다 작고, UNAVAILABLE이면 값이 아니다 */
             gold: number;
             /** @description 금액에 넣은 분류 */
             includedKinds: string[];
+            /**
+             * @description 합계 상태. COMPLETE: 원정대 전원을 받았고 산정 대상을 모두 셈. PARTIAL: 일부만 셈(대기 캐릭터, 시세 없는 부위·보석, 읽지 못한 재련 단계). UNAVAILABLE: 빠진 것이 있는데 센 금액이 없음(합계 0을 금액으로 보이지 말 것)
+             * @enum {string}
+             */
+            status?: "COMPLETE" | "PARTIAL" | "UNAVAILABLE";
         };
         ReceiptEquipmentResponse: {
             gold: number;
@@ -87,6 +92,7 @@ export interface components {
             gold: number | null;
             parts: components["schemas"]["ReceiptPartResponse"][];
             excluded: components["schemas"]["ReceiptExcludedResponse"][];
+            complete?: boolean | null;
         };
         ReceiptPartResponse: {
             slot: string;

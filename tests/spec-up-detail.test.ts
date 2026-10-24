@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { isDetailEnvelope, isSpecUpEnvelope } from "../lib/spec-up/validate";
 import { breathLabel, materialsTotal, refiningLink } from "../lib/spec-up/detail";
 import { requestSpecUpDetail } from "../lib/spec-up/upstream";
-import { KRAKEN_NOTE_ALL, krakenUnavailableCopy, krakenUnavailableNote, listChangeCopy, splitKrakenCandidates } from "../lib/spec-up/model";
+import { KRAKEN_NOTE_ALL, krakenUnavailableCopy, krakenUnavailableNote, listChangeCopy, splitCandidates, splitKrakenCandidates } from "../lib/spec-up/model";
 
 const fixture = (name: string) =>
   JSON.parse(readFileSync(new URL(`./spec-up-fixtures/${name}`, import.meta.url), "utf8"));
@@ -36,7 +36,11 @@ test("재련 예시: 재료 합 + 재련 골드는 목록 비용과 1골드 안�
   assert.equal(refiningLink("재련", data.refine), "/tools/refining?character=%EC%9E%AC%EB%A0%A8");
   assert.equal(refiningLink("재련", null), null);
   assert.equal(breathLabel("NONE"), "숨결 안 씀");
-  assert.equal(breathLabel("NEW_VALUE"), "NEW_VALUE");
+  assert.equal(breathLabel("OPTIMAL"), "숨결 회차마다 최적");
+  assert.equal(breathLabel("MAX"), "숨결 최대");
+  // No words yet: no line (not a raw code), and no Object.prototype member.
+  assert.equal(breathLabel("constructor"), null);
+  assert.equal(breathLabel("NEW_VALUE"), null);
   assert.equal(breathLabel(null), null);
 });
 
@@ -60,6 +64,21 @@ test("각인 줄 id(한글·공백)는 받아서 %20으로 보내고, 형식이 
   assert.equal(seen.length, 1);
 });
 
+test("줄 상세는 목록의 작열 보석 선택을 true·false일 때만 넘긴다(api #588)", async () => {
+  const seen: string[] = [];
+  const fetcher = (async (input: RequestInfo | URL) => {
+    seen.push(String(input));
+    return new Response(JSON.stringify(fixture("character-spec-up-detail-gem.json")), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    });
+  }) as typeof fetch;
+  for (const value of ["false", "true", null, "yes"])
+    await requestSpecUpDetail("스펙캐시", "GEM_LEVEL:3:8", "http://api.test", { fetcher }, value);
+  const sent = seen.map((url) => new URL(url).searchParams.get("includeCooldownGems"));
+  assert.deepEqual(sent, ["false", "true", null, null]);
+});
+
 test("크라켄 점수 순: 점수 변화가 있는 후보는 상태와 상관없이 응답 순서대로 순위에, 나머지는 이유별로 접힌다", () => {
   const { data } = fixture("character-spec-up-kraken.json");
   const { ok, folded } = splitKrakenCandidates(data.candidates);
@@ -81,4 +100,28 @@ test("크라켄 점수 순: 점수 변화가 있는 후보는 상태와 상관�
   assert.equal(krakenUnavailableNote("NEW_REASON"), "지금은 점수 정렬 불가 · 효율 순");
   for (const r of ["DISABLED", "INPUT_PENDING", "ROLE_UNKNOWN", "SUPPORTER_PENDING", "SCORE_UNAVAILABLE", "NEW_REASON"])
     assert.ok(KRAKEN_NOTE_ALL.includes(krakenUnavailableNote(r) ?? ""), r);
+});
+
+test("비용 0 후보는 효율 칸이 null('—')이고, 웹은 다시 정렬하지 않고 API 순서 그대로 둔다(PM 총괄 판정 10-18)", () => {
+  const list = fixture("character-spec-up.json").data.candidates;
+  const ok = list.filter((c: { status: string }) => c.status === "OK");
+  // 효율 순: the backend gives no efficiency for a cost of 0 or less and puts it after the rest.
+  const free = { ...ok[0], id: "GEM_LEVEL:9:9", cost: { ...ok[0].cost, amount: 0 }, combatPowerPer10kGold: null };
+  const { ok: ranked } = splitCandidates([...ok, free]);
+  assert.deepEqual(ranked.map((c) => c.id), [...ok, free].map((c: { id: string }) => c.id));
+  assert.equal(ranked.at(-1)?.combatPowerPer10kGold, null);
+  // 크라켄 점수 순(api #596): ① 10만 골드당 → ② Δ > 0이면서 10만 골드당 없음(0골드와
+  // 비용 모름을 함께, Δ 큰 순) → ③ 나머지. Laid out by that rule here; the screen
+  // keeps the answer's order as it is (the web does not sort).
+  const base = { ...ok[0], krakenScorePer100kGold: null };
+  const answer = [
+    { ...base, id: "PER100K", deltaKrakenScore: 3, krakenScorePer100kGold: 12.5 },
+    { ...base, id: "UNKNOWN_9", deltaKrakenScore: 9, status: "UNSUPPORTED", cost: { ...ok[0].cost, status: "UNKNOWN", amount: null } },
+    { ...base, id: "ZERO_5", deltaKrakenScore: 5, cost: { ...ok[0].cost, amount: 0 } },
+    { ...base, id: "UNKNOWN_2", deltaKrakenScore: 2, status: "UNSUPPORTED", cost: { ...ok[0].cost, status: "UNKNOWN", amount: null } },
+  ];
+  assert.deepEqual(
+    splitKrakenCandidates(answer).ok.map((c) => c.id),
+    answer.map((c) => c.id),
+  );
 });

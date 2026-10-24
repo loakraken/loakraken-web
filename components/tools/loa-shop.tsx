@@ -15,6 +15,7 @@ import {
   SHOP_DATA,
   marketNames,
   onSale,
+  shopEmptyCopy,
   splitBySale,
   packageValue,
   parseRate,
@@ -429,7 +430,12 @@ export function LoaShopTool({ renderedAt }: { renderedAt: number }) {
                   <span className={styles.agoLine}>{observedAt && now != null ? agoText(now, observedAt) : ""}</span>
                 </p>
               </div>
-              <div className={styles.cards}>{current.map(card)}</div>
+              {current.length ? (
+                <div className={styles.cards}>{current.map(card)}</div>
+              ) : (
+                // Nothing on sale by the official notices: said plainly, the ended ones stay folded below.
+                <p className={styles.empty}>{shopEmptyCopy(past.length)}</p>
+              )}
               {/* Ended sales, folded by default below the list: opening it only adds below (A7). */}
               {past.length > 0 && (
                 <details className={styles.past}>

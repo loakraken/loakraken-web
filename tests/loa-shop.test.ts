@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { breakEvenRate, SHOP_DATA, UNTRADEABLE, checkShopData, lineGold, marketNames, onSale, packageValue, parseRate, purchasePlan, splitBySale, type ShopData } from "../lib/tools/loa-shop";
+import { breakEvenRate, SHOP_DATA, UNTRADEABLE, checkShopData, lineGold, marketNames, onSale, packageValue, parseRate, purchasePlan, shopEmptyCopy, splitBySale, staleShopData, type ShopData } from "../lib/tools/loa-shop";
 import { goldText, signedGold } from "../lib/tools/format";
 
 const pkg = (id: string) => SHOP_DATA.packages.find((p) => p.id === id)!;
@@ -130,6 +130,24 @@ test("ended sales are split off from those on sale (folded on screen), by the KS
   const broken = structuredClone(SHOP_DATA) as ShopData;
   broken.packages[3].endsAt = "2026-10-21";
   assert.ok(checkShopData(broken).some((p) => p.includes("bad endsAt")));
+});
+
+test("stale-data guard: the file is stale once every package has ended and nobody re-checked the notices since", () => {
+  // The real file, on the real clock: fails when a weekly update was forgotten.
+  assert.equal(staleShopData(SHOP_DATA, Date.now()), null);
+  const kst = (iso: string) => Date.parse(`${iso}+09:00`);
+  const allEnded = structuredClone(SHOP_DATA) as ShopData;
+  for (const p of allEnded.packages) p.endsAt ??= "2026-11-04T06:00:00+09:00";
+  // Not yet ended, or re-checked on/after the last end: fine.
+  assert.equal(staleShopData(allEnded, kst("2026-11-04T05:59:59")), null);
+  allEnded.checkedAt = "2026-11-04";
+  assert.equal(staleShopData(allEnded, kst("2026-11-10T00:00:00")), null);
+  // Every package ended and the last check is before the last end: stale.
+  allEnded.checkedAt = "2026-10-22";
+  assert.match(staleShopData(allEnded, kst("2026-11-04T06:00:00")) ?? "", /re-check the official shop notices/);
+  // Nothing on sale: said plainly, pointing to the folded past items only when there are some.
+  assert.equal(shopEmptyCopy(4), "지금 판매 중인 패키지가 없어요. 지난 상품은 아래에서 볼 수 있어요.");
+  assert.equal(shopEmptyCopy(0), "지금 판매 중인 패키지가 없어요.");
 });
 
 test("untradeable contents are left out of the gold and the gain is still computed; a tradeable one without a price blocks it (PM 총괄 2026-10-14)", () => {

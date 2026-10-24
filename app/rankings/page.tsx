@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { dehydrate, HydrationBoundary, QueryClient } from "@tanstack/react-query";
 import { RankingsView } from "@/components/stats/rankings-view";
 import { RosterRankingsView } from "@/components/stats/roster-rankings-view";
 import { GuildRankingsView } from "@/components/stats/guild-rankings-view";
@@ -15,7 +16,8 @@ import {
   isPopularGuildsEnabled,
   isRosterRankingEnabled,
 } from "@/lib/tools/flags";
-import { parseEfficiencyQuery, parseRankingQuery } from "@/lib/stats/rankings";
+import { efficiencyKey, parseEfficiencyQuery, parseRankingQuery } from "@/lib/stats/rankings";
+import { getEfficiencyRanking } from "@/lib/stats/server";
 
 export const metadata: Metadata = {
   title: "랭킹",
@@ -48,10 +50,24 @@ export default async function RankingsPage({
   if (type === "roster") return <RosterRankingsView initial={parseRosterQuery(params)} types={types} />;
   if (type === "guilds") return <GuildRankingsView initial={parseGuildQuery(params)} types={types} popular={isPopularGuildsEnabled()} />;
   if (type === "collectibles") return <CollectibleRankingsView initial={parseCollectibleQuery(params)} types={types} />;
-  if (type === "bracelets" || type === "gems")
+  if (type === "bracelets" || type === "gems") {
+    const initial = parseEfficiencyQuery(params);
+    // The first HTML carries the rows: a short list (a fresh ranking still
+    // collecting, a narrow filter) no longer replaces a screen-tall loading
+    // box and pulls the notes up (A7). A slow backend gives up after 1s and
+    // the client fetches as before.
+    const ranking = await getEfficiencyRanking(type, initial, AbortSignal.timeout(1_000));
+    const client = new QueryClient();
+    // eslint-disable-next-line react-hooks/purity
+    if (ranking.ok) client.setQueryData(efficiencyKey(type, initial), ranking.envelope, { updatedAt: Date.now() });
     // Keyed by kind: 팔찌 and 젬 share the view, and text rewritten in place
     // (the heading, the column heads) counts as moving (A7).
-    return <EfficiencyRankingsView key={type} kind={type} initial={parseEfficiencyQuery(params)} types={types} />;
+    return (
+      <HydrationBoundary state={dehydrate(client)}>
+        <EfficiencyRankingsView key={type} kind={type} initial={initial} types={types} />
+      </HydrationBoundary>
+    );
+  }
   // Invalid values in a shared link fall back to the defaults.
   const query = parseRankingQuery(params) ?? { metric: "COMBAT_POWER" as const, page: 1 };
   return <RankingsView initial={query} types={types} />;
