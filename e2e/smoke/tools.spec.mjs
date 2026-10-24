@@ -181,6 +181,36 @@ test.describe("시세 1분 자동 갱신 @smoke", () => {
     await expect(page.getByRole("region", { name: "예상 소모" }).getByText(/총 12단계/)).toBeVisible();
   });
 
+  // api #600: 시세 없는 줄의 이유가 한도(RATE_LIMITED·SEARCH_LIMIT)면 '잠시 뒤 다시', 그 밖은 '가격 없음'.
+  for (const [reason, text] of [
+    ["RATE_LIMITED", "지금은 못 불러왔어요 · 잠시 뒤 다시 불러와요"],
+    ["SEARCH_LIMIT", "지금은 못 불러왔어요 · 잠시 뒤 다시 불러와요"],
+    ["OFFICIAL_UNAVAILABLE", "선택한 기준의 가격이 없어요"],
+    [null, "선택한 기준의 가격이 없어요"],
+  ])
+    test(`재련 계획: 시세 없는 재료 줄은 이유(${reason ?? "없음"})에 맞게 안내한다`, async ({ page }) => {
+      await page.route("**/api/markets/material-prices", async (route) => {
+        const response = await route.fetch();
+        const body = await response.json();
+        const envelope = body.envelope ?? body;
+        // The plan's first material has no price now, for this reason (whatever the plan holds).
+        Object.assign(envelope.data.items[0], {
+          status: "PRICE_UNAVAILABLE",
+          unitPriceGold: null,
+          bundleCount: null,
+          bundlePrice: null,
+          contentsPerItem: null,
+          unavailableReason: reason,
+        });
+        await route.fulfill({ response, json: body });
+      });
+      // This describe opens no page of its own: go to the plan after the route is set.
+      await page.goto("/tools/refining");
+      await page.getByRole("group", { name: "모든 부위 목표 단계" }).getByRole("button", { name: "+20" }).click();
+      // Structural, not by role: on a phone the table is laid out as cards.
+      await expect(page.locator("th[scope=row]").filter({ hasText: text })).toHaveCount(1);
+    });
+
   test("재료 견적: 계산한 뒤 1분마다 같은 입력으로 다시 계산하고, 화면은 제자리다", async ({ page }) => {
     await page.clock.install();
     let calls = 0;

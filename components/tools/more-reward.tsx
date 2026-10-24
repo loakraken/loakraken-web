@@ -140,18 +140,19 @@ function RaidRows({
           <Fragment key={mode.label}>
             {/* 모션 목록(더보기): rows enter once on arrival, 30ms apart per raid.
                 Price refreshes keep the rows, so it does not replay. */}
-            <tr className="k-reveal" style={{ "--i": order } as CSSProperties}>
-              <th scope="row" className={styles.raid}>
+            <tr role="row" className="k-reveal" style={{ "--i": order } as CSSProperties}>
+              <th scope="row" role="rowheader" className={styles.raid}>
                 {mi === 0 ? raid.name : <span className={styles.sr}>{raid.name}</span>}
               </th>
-              <td className={styles.mode}>{mode.label}</td>
+              <td role="cell" className={styles.mode}>{mode.label}</td>
               {[1, 2, 3].map((n) => {
                 const gate = mode.gates.find((g) => g.gate === n);
-                if (!gate) return <td key={n} aria-hidden="true" />;
+                // data-label: the gate's name on a phone, where the header row is hidden.
+                if (!gate) return <td key={n} role="cell" aria-hidden="true" data-empty="" />;
                 const key = gateKey(raid.id, mode.label, n);
                 const r = results[key];
                 return (
-                  <td key={n}>
+                  <td key={n} role="cell" data-label={`${n}관문`}>
                     <button
                       type="button"
                       className={styles.cell}
@@ -181,8 +182,8 @@ function RaidRows({
               })}
             </tr>
             {openGate && (
-              <tr className={styles.detailRow}>
-                <td colSpan={5}>{renderDetail(raid, mode.label, openGate)}</td>
+              <tr role="row" className={styles.detailRow}>
+                <td role="cell" colSpan={5}>{renderDetail(raid, mode.label, openGate)}</td>
               </tr>
             )}
           </Fragment>
@@ -391,9 +392,11 @@ export function MoreRewardTool() {
                 {switching ? "이 기준으로 다시 불러오고 있어요…" : ""}
               </p>
               <div className={styles.tableScroll} aria-busy={switching || undefined} data-stale={switching || undefined}>
-                <table className={styles.table}>
+                <table role="table" className={styles.table}>
                   <caption className={styles.sr}>레이드·난이도·관문별 더보기 이득</caption>
-                  {/* Fixed columns: widths no longer follow the text, so the web
+                  {/* Explicit roles: on a phone the table is laid out as cards (display:
+                  block), which can drop table semantics; the roles keep them. */}
+              {/* Fixed columns: widths no longer follow the text, so the web
                       font arriving late does not slide the gate columns (A6). */}
                   <colgroup>
                     <col className={styles.colRaid} />
@@ -402,16 +405,16 @@ export function MoreRewardTool() {
                     <col />
                     <col />
                   </colgroup>
-                  <thead>
-                    <tr>
-                      <th scope="col">레이드</th>
-                      <th scope="col">난이도</th>
-                      <th scope="col">1관문</th>
-                      <th scope="col">2관문</th>
-                      <th scope="col">3관문</th>
+                  <thead role="rowgroup">
+                    <tr role="row">
+                      <th scope="col" role="columnheader">레이드</th>
+                      <th scope="col" role="columnheader">난이도</th>
+                      <th scope="col" role="columnheader">1관문</th>
+                      <th scope="col" role="columnheader">2관문</th>
+                      <th scope="col" role="columnheader">3관문</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody role="rowgroup">
                     {MORE_DATA.raids.map((raid, order) => (
                       <RaidRows
                         order={order}

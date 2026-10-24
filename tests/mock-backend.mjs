@@ -305,7 +305,9 @@ async function market(url, req, send) {
       const empty = { name, unitPriceGold: null, sourceItemName: null, bundleCount: null, bundlePrice: null, contentsPerItem: null, observedAt };
       if (name === "운명의 파편")
         return { ...empty, status: "PRICED", unitPriceGold: 0.077333, sourceItemName: "운명의 파편 주머니(대)", bundleCount: 1, bundlePrice: 232, contentsPerItem: 3000 };
-      if (name === "용암의 숨결") return { ...empty, status: "PRICE_UNAVAILABLE", sourceItemName: name, bundleCount: 1 };
+      // MOCK_PRICE_UNAVAILABLE_REASON (api #600): why it has no price, e.g. RATE_LIMITED; unset = null.
+      if (name === "용암의 숨결")
+        return { ...empty, status: "PRICE_UNAVAILABLE", sourceItemName: name, bundleCount: 1, unavailableReason: process.env.MOCK_PRICE_UNAVAILABLE_REASON || null };
       // 로아샵: 공식 거래소에서 사고팔 수 없는 품목(백엔드 UNTRADEABLE, 검색하지 않음).
       if (["고급 생명의 기운 회복물약", "중급 생명의 기운 회복물약", "환희의 전설 카드 팩", "환희의 전설~영웅 카드 팩"].includes(name))
         return { ...empty, status: "UNTRADEABLE" };
@@ -590,6 +592,10 @@ createServer(async (req, res) => {
       },
     });
   }
+  // The filter switched off on the backend (MARKET_GEM_FILTER_ENABLED=false)
+  // while a shared address still names a class: '필터꺼짐' answers as it would.
+  if (url.pathname === "/api/v1/markets/auctions/gems/listings" && url.searchParams.get("className") === "필터꺼짐")
+    return send({ code: "GEM_FILTER_DISABLED", message: "직업·스킬 필터가 꺼져 있습니다." }, 404);
   if (url.pathname === "/api/v1/markets/auctions/gems/listings" && url.searchParams.get("className")) {
     const kind = url.searchParams.get("kind");
     const level = Number(url.searchParams.get("level"));
@@ -1161,9 +1167,11 @@ createServer(async (req, res) => {
           { ...timed("라일라이 아일랜드", `${cdn}/island_icon/island_icon_43.png`, 635, islandTimes, island(rw("해적 주화", "일반", true))), rewardKinds: ["PIRATE_COIN"] },
           { ...timed("볼라르 섬", `${cdn}/island_icon/island_icon_53.png`, 1100, islandTimes), rewardKinds: ["SILLING"] },
         ],
-        fieldBosses: day % 2 ? [timed("세베크 아툰", null, 1460, times(11, 13, 15, 17, 19, 21, 23), [{ minItemLevel: null, rewards: [rw("영웅 카드 팩", "영웅"), rw("실링", "일반")] }])] : [],
+        // Like the official week: every entry of the category is listed every day, with no rounds
+        // (startTimes []) on the days it is not open — field bosses on odd dates, chaos gates on even.
+        fieldBosses: [timed("세베크 아툰", null, 1460, day % 2 ? times(11, 13, 15, 17, 19, 21, 23) : [], [{ minItemLevel: null, rewards: [rw("영웅 카드 팩", "영웅"), rw("실링", "일반")] }])],
         // The official calendar lists one chaos gate per place (13, same rounds and rewards).
-        chaosGates: day % 2 ? [] : ["일렁이는 악마군단", ...Array.from({ length: 12 }, (_, i) => `합성 지역 ${i + 2}`)].map((place) => timed(place, null, 1580, timesAt(50, 10, 12, 14, 16, 18, 20, 22, 23), [
+        chaosGates: ["일렁이는 악마군단", ...Array.from({ length: 12 }, (_, i) => `합성 지역 ${i + 2}`)].map((place) => timed(place, null, 1580, day % 2 ? [] : timesAt(50, 10, 12, 14, 16, 18, 20, 22, 23), [
           { minItemLevel: 1580, rewards: [rw("운명의 파편 주머니(소)", "희귀"), rw("1레벨 겁화의 보석", "고급"), rw("카드 경험치 카드", "일반")] },
           { minItemLevel: 1640, rewards: [rw("운명의 파편 주머니(중)", "영웅"), rw("2레벨 겁화의 보석", "희귀"), rw("카드 경험치 카드", "일반")] },
           { minItemLevel: 1680, rewards: [rw("운명의 파편 주머니(대)", "전설"), rw("3레벨 겁화의 보석", "희귀"), rw("카드 경험치 카드", "일반")] },
