@@ -246,6 +246,18 @@ export const statusCopy: Record<QuoteStatus, { label: string; text: string }> =
     },
   };
 
+/**
+ * A material price with no value (PRICE_UNAVAILABLE) and why (api #600). A
+ * search or call limit clears by itself, and the plan fetches prices again every
+ * minute, so it says so; an outage, no reason or a reason this build does not
+ * know keeps the plain "no price".
+ */
+export function priceUnavailableCopy(reason: string | null | undefined): string {
+  return reason === "RATE_LIMITED" || reason === "SEARCH_LIMIT"
+    ? "지금은 못 불러왔어요 · 잠시 뒤 다시 불러와요"
+    : "선택한 기준의 가격이 없어요";
+}
+
 /** Status copy; a status this build does not know yet is shown as unknown. */
 export function quoteStatusCopy(status: string): { label: string; text: string } {
   return Object.hasOwn(statusCopy, status)

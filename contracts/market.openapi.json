@@ -45,7 +45,7 @@
             }
           },
           "429": {
-            "description": "LOST_ARK_RATE_LIMITED: 캐릭터와 공유하는 호출 한도 초과",
+            "description": "LOST_ARK_RATE_LIMITED: 캐릭터와 공유하는 호출 한도 초과 / CLIENT_RATE_LIMITED: 이 클라이언트의 분당 요청·공식 호출 한도 초과. Retry-After(초) 뒤 다시 시도",
             "content": {
               "application/json": {
                 "schema": {
@@ -235,7 +235,7 @@
             }
           },
           "429": {
-            "description": "LOST_ARK_RATE_LIMITED: 캐릭터와 공유하는 호출 한도 초과",
+            "description": "LOST_ARK_RATE_LIMITED: 캐릭터와 공유하는 호출 한도 초과 / CLIENT_RATE_LIMITED: 이 클라이언트의 분당 요청·공식 호출 한도 초과. Retry-After(초) 뒤 다시 시도",
             "content": {
               "application/json": {
                 "schema": {
@@ -347,7 +347,7 @@
             }
           },
           "429": {
-            "description": "LOST_ARK_RATE_LIMITED: 캐릭터와 공유하는 호출 한도 초과",
+            "description": "LOST_ARK_RATE_LIMITED: 캐릭터와 공유하는 호출 한도 초과 / CLIENT_RATE_LIMITED: 이 클라이언트의 분당 요청·공식 호출 한도 초과. Retry-After(초) 뒤 다시 시도",
             "content": {
               "application/json": {
                 "schema": {
@@ -459,7 +459,7 @@
             }
           },
           "429": {
-            "description": "LOST_ARK_RATE_LIMITED: 캐릭터와 공유하는 호출 한도 초과",
+            "description": "LOST_ARK_RATE_LIMITED: 캐릭터와 공유하는 호출 한도 초과 / CLIENT_RATE_LIMITED: 이 클라이언트의 분당 요청·공식 호출 한도 초과. Retry-After(초) 뒤 다시 시도",
             "content": {
               "application/json": {
                 "schema": {
@@ -551,7 +551,7 @@
             }
           },
           "429": {
-            "description": "LOST_ARK_RATE_LIMITED: 캐릭터와 공유하는 호출 한도 초과",
+            "description": "LOST_ARK_RATE_LIMITED: 캐릭터와 공유하는 호출 한도 초과 / CLIENT_RATE_LIMITED: 이 클라이언트의 분당 요청·공식 호출 한도 초과. Retry-After(초) 뒤 다시 시도",
             "content": {
               "application/json": {
                 "schema": {
@@ -706,7 +706,7 @@
             }
           },
           "429": {
-            "description": "LOST_ARK_RATE_LIMITED: 캐릭터와 공유하는 호출 한도 초과",
+            "description": "LOST_ARK_RATE_LIMITED: 캐릭터와 공유하는 호출 한도 초과 / CLIENT_RATE_LIMITED: 이 클라이언트의 분당 요청·공식 호출 한도 초과. Retry-After(초) 뒤 다시 시도",
             "content": {
               "application/json": {
                 "schema": {
@@ -821,7 +821,7 @@
             }
           },
           "429": {
-            "description": "LOST_ARK_RATE_LIMITED: 캐릭터와 공유하는 호출 한도 초과",
+            "description": "LOST_ARK_RATE_LIMITED: 캐릭터와 공유하는 호출 한도 초과 / CLIENT_RATE_LIMITED: 이 클라이언트의 분당 요청·공식 호출 한도 초과. Retry-After(초) 뒤 다시 시도",
             "content": {
               "application/json": {
                 "schema": {
@@ -1720,7 +1720,7 @@
       },
       "MaterialPriceResponse": {
         "type": "object",
-        "description": "재료 이름별 1개당 골드. 거래소 현재 판매 목록 첫 페이지에서 이름이 정확히 같은 상품만 사용합니다.",
+        "description": "재료 이름별 1개당 골드. 거래소 현재 판매 목록(예열 시세 또는 검색)에서 이름이 정확히 같은 상품만 사용합니다.",
         "properties": {
           "priceBasis": {
             "type": "string",
@@ -1818,7 +1818,20 @@
           "observedAt": {
             "type": "string",
             "format": "date-time",
-            "description": "거래소 페이지를 읽은 UTC 시각. 캐시 적중에도 유지"
+            "description": "거래소 페이지를 읽은 UTC 시각(예열 시세면 그 스캔 시각). 캐시 적중에도 유지. 조회하지 못한 PRICE_UNAVAILABLE이면 응답 시각"
+          },
+          "unavailableReason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "PRICE_UNAVAILABLE 가운데 지금 조회하지 못한 이유(문자열, 값이 늘 수 있음). RATE_LIMITED: 재료 검색 한도(클라이언트·전체)나 공유 호출 예산에 걸림 — 시세가 없는 것이 아니라 잠시 뒤 다시 보면 채워짐, SEARCH_LIMIT: 요청당 검색 상한, OFFICIAL_UNAVAILABLE: 공식 서버 장애. 시세를 읽었는데 가격이 없거나 0이면, 또는 다른 상태면 null",
+                "example": "RATE_LIMITED"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "백엔드가 아직 주지 않는 응답(api 배포 전)에서는 필드가 없을 수 있음."
           }
         },
         "required": [
