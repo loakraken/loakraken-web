@@ -1,81 +1,72 @@
-// v0.3.2(사용자 요청): 보석·장신구 시세판의 매물 이름을 누르면 상세 카드가 뜬다(악세 경매 검색 줄 상세와
-// 같은 부품). 카드는 이미 받은 매물 값만 쓰고 요청을 더 보내지 않는다. 열고 닫을 때(누른 직후 포함) 흔들림 0,
-// 카드 안 가격·효과 줄은 잘리지 않고(A37), Esc로 닫히면 초점이 이름으로 돌아온다. 1분 갱신이 와도 열린
-// 카드는 닫히지 않는다.
+// 사용자 10-24: 보석·장신구 시세판의 매물 이름 끝 화살표로 그 줄 바로 아래에 상세(아이템 그림·등급·효과·경매)를
+// 펼친다(아크 그리드 펼침과 같은 방식, 떠 있는 카드 없음). 이미 받은 매물 값만 쓰고 요청을 더 보내지 않는다.
+// 누른 줄은 제자리이고, 아래 내용은 누른 직후에만 밀린다(입력 없는 흔들림 0). 여러 줄을 함께 펼칠 수 있고,
+// 같은 화살표로 접힌다. 320·360·390·1280에서 가로 넘침 없음.
 import { test, expect, gotoReady, expectNoHorizontalOverflow } from "../support/fixtures.mjs";
 import { shiftsDuring, watchShifts } from "../support/shifts.mjs";
 
 const BOARDS = [
-  { name: "보석", path: "/market/gems?kind=겁화&level=10", table: "보석 매물", kind: "보석", effect: null },
+  { name: "보석", path: "/market/gems?kind=겁화&level=10", table: "보석 매물", kind: "보석", effect: "보석 효과" },
   { name: "장신구", path: "/market/accessories?slot=NECKLACE&levels=HIGH", table: "장신구 매물", kind: "목걸이", effect: "연마 효과" },
 ];
-const cut = (els) =>
-  els.filter((el) => el.scrollWidth > el.clientWidth + 1).map((el) => `${el.textContent.trim()} ${el.clientWidth}<${el.scrollWidth}`);
 
 for (const width of [320, 360, 390, 1280])
   for (const board of BOARDS)
-    test(`@시세판상세 ${width} ${board.name}: 이름을 누르면 상세 카드, 흔들림 0·잘림 없음·Esc 초점·요청 없음 @regression`, async ({ page }) => {
+    test(`@시세판상세 ${width} ${board.name}: 화살표로 줄 아래 펼침·접힘, 요청 없음, 넘침 없음 @regression`, async ({ page }) => {
       await page.setViewportSize({ width, height: 900 });
-      await page.clock.install();
       await watchShifts(page);
       await gotoReady(page, board.path);
       const table = page.getByRole("region", { name: board.table });
-      // The name itself is the button (the row header reads the same name).
-      const open = table.getByRole("rowheader").first().getByRole("button");
-      await expect(open).toHaveAttribute("aria-haspopup", "dialog");
-      await expect(open).toBeVisible();
+      const first = table.getByRole("rowheader").first().getByRole("button");
+      await expect(first).toHaveAttribute("aria-expanded", "false");
       await expectNoHorizontalOverflow(page);
       await page.waitForTimeout(600);
 
       const asked = [];
       page.on("request", (r) => new URL(r.url()).pathname.startsWith("/api/") && asked.push(new URL(r.url()).pathname));
-      const opening = await shiftsDuring(page, () => open.click());
-      expect(opening.all, `여는 흔들림 (${opening.moved})`).toBe(0);
-      const card = page.getByRole("dialog");
-      await expect(card).toBeVisible();
-      await expect(card).toContainText(board.kind);
-      await expect(card).toContainText("즉시 구매가");
-      await expect(card).toContainText(/거래 \d+회 가능|거래 불가|거래 횟수 정보 없음/);
-      await expect(card).toContainText("기준 매물");
-      if (board.effect) await expect(card).toContainText(board.effect);
-      expect(await card.locator("*").evaluateAll(cut), "카드 안 잘린 줄").toEqual([]);
-      expect(asked, "카드를 열어도 요청 없음").toEqual([]);
-      // No sideways scroll with the card open either (320 included).
+      const before = await first.boundingBox();
+      const opening = await shiftsDuring(page, () => first.click());
+      expect(opening.quiet, `펼친 뒤 늦은 흔들림 (${opening.moved})`).toBe(0);
+      expect(Math.round((await first.boundingBox()).y), "누른 줄은 제자리").toBe(Math.round(before.y));
+      await expect(first).toHaveAttribute("aria-expanded", "true");
+      const id = await first.getAttribute("aria-controls");
+      const detail = page.locator(`#${id}`);
+      // The details row comes right after the listing's own row.
+      expect(await detail.evaluate((row, header) => row.previousElementSibling?.contains(header), await first.elementHandle())).toBe(true);
+      await expect(detail).toContainText(board.kind);
+      await expect(detail).toContainText(board.effect);
+      await expect(detail).toContainText("즉시 구매가");
+      await expect(detail).toContainText(/거래 \d+회 가능|거래 불가|거래 횟수 정보 없음/);
+      await expect(detail).toContainText("기준 매물");
+      await expect(detail.locator("img")).toHaveAttribute("src", /^https:\/\/cdn-lostark\.game\.onstove\.com\//);
+      await expect(page.getByRole("dialog")).toHaveCount(0);
+      expect(asked, "펼쳐도 요청 없음").toEqual([]);
       await expectNoHorizontalOverflow(page);
 
-      // The minute's refresh of the board does not close it.
-      await page.clock.fastForward(61_000);
-      await page.waitForTimeout(500);
-      await expect(card).toBeVisible();
+      // A second row opens too; the first stays open.
+      const second = table.getByRole("rowheader").nth(1).getByRole("button");
+      await second.click();
+      await expect(second).toHaveAttribute("aria-expanded", "true");
+      await expect(first).toHaveAttribute("aria-expanded", "true");
 
-      // Focus is back on a name at once (not after the sheet's slide), also when
-      // closing drew the rows again for the refreshed page.
-      let focusedRightAway = null;
-      const closing = await shiftsDuring(page, async () => {
-        await page.keyboard.press("Escape");
-        focusedRightAway = await page.evaluate(() => document.activeElement?.closest("th[scope=row] button")?.textContent ?? null);
-      });
-      expect(focusedRightAway, "Esc 직후 초점이 이름 버튼").not.toBeNull();
-      await expect(page.getByRole("dialog")).toHaveCount(0);
-      expect(closing.all, `닫는 흔들림 (${closing.moved})`).toBe(0);
-      await expect(open).toBeFocused();
+      // The same arrow folds it (keyboard too), and focus stays on it.
+      await first.press("Enter");
+      await expect(first).toHaveAttribute("aria-expanded", "false");
+      await expect(detail).toHaveCount(0);
+      await expect(first).toBeFocused();
     });
 
-// Touch: the card is a bottom sheet, which hands focus back only after its
-// 500ms closing slide. The name takes it at once instead.
-test.describe("터치 시트", () => {
+// Touch: the same arrow, a 44px press area, no sheet.
+test.describe("터치", () => {
   test.use({ viewport: { width: 360, height: 800 }, hasTouch: true, isMobile: true });
   for (const board of BOARDS)
-    test(`@시세판상세 터치 ${board.name}: 시트를 Esc로 닫으면 바로 이름에 초점 @regression`, async ({ page }) => {
+    test(`@시세판상세 터치 ${board.name}: 탭하면 줄 아래 펼침, 시트 없음 @regression`, async ({ page }) => {
       await gotoReady(page, board.path);
       const open = page.getByRole("region", { name: board.table }).getByRole("rowheader").first().getByRole("button");
       await open.tap();
-      await expect(page.getByRole("dialog")).toBeVisible();
-      await page.waitForTimeout(700);
-      await page.keyboard.press("Escape");
-      const focused = await page.evaluate(() => document.activeElement?.closest("th[scope=row] button")?.textContent ?? null);
-      expect(focused, "Esc 직후 초점이 이름 버튼").toBe(await open.textContent());
+      await expect(open).toHaveAttribute("aria-expanded", "true");
+      await expect(page.locator(`#${await open.getAttribute("aria-controls")}`)).toBeVisible();
       await expect(page.getByRole("dialog")).toHaveCount(0);
-      await expect(open).toBeFocused();
+      await expectNoHorizontalOverflow(page);
     });
 });

@@ -530,7 +530,8 @@ createServer(async (req, res) => {
       buyPrice: 1_200_000 + page * 100_000 + i * 50_000,
       bidStartPrice: 900_000,
       endDate: "2026-10-14T12:00:00Z",
-      icon: null,
+      // An official CDN icon, as the search answer carries (the card shows it).
+      icon: "https://cdn-lostark.game.onstove.com/efui_iconatlas/acc/acc_215.png",
       baseEffects: [],
       ...extra,
     });
@@ -635,6 +636,7 @@ createServer(async (req, res) => {
       bidStartPrice: 200_000,
       endDate: new Date(Date.now() + (start + i + 1) * 3_600_000).toISOString(),
       tradeAllowCount: i % 4 === 3 ? 0 : 2,
+      icon: "https://cdn-lostark.game.onstove.com/efui_iconatlas/use/use_12_105.png",
       options: [{ type: "GEM_SKILL_DAMAGE", name: "합성 스킬", value: 44, percentage: true, level: null, className: i % 2 ? "바드" : "블래스터" }],
     }));
     return send({ code: "AUCTION_LISTINGS_SUCCESS", message: "ok", data: { totalCount: total, page, observedAt: new Date().toISOString(), items } });
@@ -688,6 +690,7 @@ createServer(async (req, res) => {
       bidStartPrice: 400_000,
       endDate: new Date(Date.now() + (start + i + 1) * 3_600_000).toISOString(),
       tradeAllowCount: 2,
+      icon: "https://cdn-lostark.game.onstove.com/efui_iconatlas/acc/acc_215.png",
       options: [
         { type: "ACCESSORY_UPGRADE", name: "적주피", value: 2, percentage: true, level: "HIGH", className: null },
         { type: "ACCESSORY_UPGRADE", name: "추피", value: 1.6, percentage: true, level: "MID", className: null },
