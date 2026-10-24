@@ -2,7 +2,7 @@
 // 같은 부품). 카드는 이미 받은 매물 값만 쓰고 요청을 더 보내지 않는다. 열고 닫을 때(누른 직후 포함) 흔들림 0,
 // 카드 안 가격·효과 줄은 잘리지 않고(A37), Esc로 닫히면 초점이 이름으로 돌아온다. 1분 갱신이 와도 열린
 // 카드는 닫히지 않는다.
-import { test, expect, gotoReady } from "../support/fixtures.mjs";
+import { test, expect, gotoReady, expectNoHorizontalOverflow } from "../support/fixtures.mjs";
 import { shiftsDuring, watchShifts } from "../support/shifts.mjs";
 
 const BOARDS = [
@@ -24,6 +24,7 @@ for (const width of [320, 360, 390, 1280])
       const open = table.getByRole("rowheader").first().getByRole("button");
       await expect(open).toHaveAttribute("aria-haspopup", "dialog");
       await expect(open).toBeVisible();
+      await expectNoHorizontalOverflow(page);
       await page.waitForTimeout(600);
 
       const asked = [];
@@ -39,6 +40,8 @@ for (const width of [320, 360, 390, 1280])
       if (board.effect) await expect(card).toContainText(board.effect);
       expect(await card.locator("*").evaluateAll(cut), "카드 안 잘린 줄").toEqual([]);
       expect(asked, "카드를 열어도 요청 없음").toEqual([]);
+      // No sideways scroll with the card open either (320 included).
+      await expectNoHorizontalOverflow(page);
 
       // The minute's refresh of the board does not close it.
       await page.clock.fastForward(61_000);
