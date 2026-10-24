@@ -28,7 +28,7 @@ test.describe("상단 메뉴 데스크톱 @smoke", () => {
     const panel = page.locator(`#${await trigger.getAttribute("aria-controls")}`);
     await expect(panel.getByRole("link", { name: /경매 입찰가/ })).toHaveAttribute("href", "/tools/auction");
     await expect(panel.getByRole("link", { name: /돌파고/ })).toHaveCount(0);
-    await panel.getByRole("link", { name: /도구 전체/ }).click();
+    await panel.getByRole("link", { name: "도구 전체 보기" }).click();
     await expect(page).toHaveURL(/\/tools$/);
     await expect(trigger).toHaveAttribute("data-current", "true");
     await page.goto("/tools/auction");
@@ -43,6 +43,20 @@ test.describe("상단 메뉴 데스크톱 @smoke", () => {
     await expect(page).toHaveURL(/\/tools\/combat-power$/);
     await expect(page.getByRole("heading", { level: 1, name: "전투력 시뮬레이터" })).toBeVisible();
     await expect(trigger).toHaveAttribute("data-current", "true");
+  });
+
+  test("성장 도구는 캐릭터 성장·레이드·골드 효율 세 칸이 나란히, 한 줄에 놓인다(사용자 10-25)", async ({ page }) => {
+    const trigger = page.getByRole("navigation", { name: "주요 메뉴" }).getByRole("button", { name: "성장 도구" });
+    await trigger.click();
+    const panel = page.locator(`#${await trigger.getAttribute("aria-controls")}`);
+    const titles = panel.getByText(/^(캐릭터 성장|레이드|골드 효율)$/);
+    await expect(titles).toHaveCount(3);
+    const boxes = await titles.evaluateAll((els) => els.map((el) => el.getBoundingClientRect()).map((r) => ({ x: r.x, y: r.y })));
+    // Same row, left to right in that order.
+    expect(new Set(boxes.map((b) => Math.round(b.y))).size).toBe(1);
+    expect(boxes[0].x).toBeLessThan(boxes[1].x);
+    expect(boxes[1].x).toBeLessThan(boxes[2].x);
+    await expect(panel.getByRole("link", { name: /악세 경매 검색/ })).toHaveCount(0);
   });
 
   test("호버하면 플라이아웃이 열린다", async ({ page }) => {
@@ -91,6 +105,33 @@ test.describe("상단 메뉴 시트(900px 이하) @smoke", () => {
     await sheet.getByRole("link", { name: /거래소 시세/ }).click();
     await expect(page).toHaveURL(/\/market$/);
   });
+
+  for (const width of [320, 360, 390]) {
+    test(`${width}px 시트: 성장 도구 묶음 제목과 '도구 전체 보기'가 잘리지 않고 보인다`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 800 });
+      await gotoReady(page, "/");
+      await page.getByRole("button", { name: "메뉴 열기" }).click();
+      const close = page.getByRole("button", { name: "메뉴 닫기" });
+      const sheet = page.locator(`[id="${await close.getAttribute("aria-controls")}"]`);
+      const section = sheet.locator("section").filter({ has: page.getByRole("heading", { name: "성장 도구" }) });
+      const all = section.getByRole("link", { name: /도구 전체 보기/ });
+      await all.scrollIntoViewIfNeeded();
+      await expect(all).toBeVisible();
+      for (const title of ["캐릭터 성장", "레이드", "골드 효율"]) await expect(section.getByText(title, { exact: true })).toBeVisible();
+      // Nothing in the section sticks out of the sheet (A37).
+      const out = await section.evaluate((el) => {
+        const right = el.getBoundingClientRect().right;
+        return [...el.querySelectorAll("a, p, span")]
+          .filter(
+            (node) =>
+              node.getBoundingClientRect().right > right + 0.5 ||
+              (getComputedStyle(node).display !== "inline" && node.scrollWidth > node.clientWidth + 1),
+          )
+          .map((node) => node.textContent);
+      });
+      expect(out).toEqual([]);
+    });
+  }
 
   test("Esc로 시트를 닫으면 메뉴 버튼에 포커스가 돌아온다", async ({ page }) => {
     await gotoReady(page, "/");

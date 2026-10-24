@@ -15,6 +15,14 @@ export type NavSection = {
   label: string;
   /** Pathname prefixes that mark this section as the current one. */
   match?: string[];
+  /**
+   * The section's own overview page: a link under the panel title on
+   * desktop and the first entry of the section in the mobile sheet, so the
+   * group columns hold only the tools themselves.
+   */
+  all?: { label: string; description: string; href: string };
+  /** Mobile sheet shows the group titles too (a long section split into groups). */
+  sheetGroups?: boolean;
   groups: { title: string; links: NavLink[] }[];
 };
 
@@ -56,7 +64,7 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     id: "market",
     label: "시세",
-    match: ["/market", "/tools/material-quote"],
+    match: ["/market", "/tools/material-quote", "/tools/accessory-search"],
     groups: [
       {
         title: "거래소",
@@ -71,6 +79,7 @@ export const NAV_SECTIONS: NavSection[] = [
         links: [
           { label: "보석 시세", description: "겁화·작열 레벨별 최저가와 매물", href: "/market/gems" },
           { label: "장신구 시세", description: "연마 효과 등급 조합별 최저가와 매물", href: "/market/accessories" },
+          { label: "악세 경매 검색", description: "연마 효과·깨달음·힘민지 범위로 매물 찾기", href: "/tools/accessory-search", flag: "accessorySearch" },
         ],
       },
     ],
@@ -80,25 +89,38 @@ export const NAV_SECTIONS: NavSection[] = [
     label: "성장 도구",
     // "/tools$": the tool list itself (exact; a bare prefix would also take the
     // tools filed under other menus, such as /tools/material-quote).
-    match: ["/tools$", "/tools/combat-power", "/tools/refining", "/tools/crit-speed", "/tools/auction", "/tools/loa-shop", "/tools/abidos-craft", "/tools/life-energy", "/tools/raid-rewards", "/tools/more-reward", "/tools/contribution", "/tools/raid-cheatsheet", "/tools/accessory-search"],
+    match: ["/tools$", "/tools/combat-power", "/tools/refining", "/tools/crit-speed", "/tools/auction", "/tools/loa-shop", "/tools/abidos-craft", "/tools/life-energy", "/tools/raid-rewards", "/tools/more-reward", "/tools/contribution", "/tools/raid-cheatsheet"],
+    all: { label: "도구 전체 보기", description: "모든 성장 도구를 한눈에", href: "/tools" },
+    sheetGroups: true,
+    // Grouped by the job the user comes with (user 10-25): grow the
+    // character, prepare the week's raids, earn or save gold. 악세 경매 검색
+    // lives under 시세 now.
     groups: [
       {
-        title: "계산기",
+        title: "캐릭터 성장",
         links: [
-          { label: "도구 전체", description: "모든 성장 도구를 한눈에", href: "/tools" },
           // 사용자 지적(PM-프론트 21:27): the simulator was missing from the menu.
           { label: "전투력 시뮬레이터", description: "무엇을 바꾸면 전투력이 얼마나 오르는지", href: "/tools/combat-power", flag: "combatPower" },
           { label: "재련 기대 비용", description: "목표 단계까지 확률과 골드", href: "/tools/refining" },
           { label: "치적·뭉가·음돌", description: "치명·신속 목표까지 필요한 스탯", href: "/tools/crit-speed", flag: "critSpeed" },
+        ],
+      },
+      {
+        title: "레이드",
+        links: [
+          { label: "레이드 보상표", description: "관문별 골드·더보기 비용", href: "/tools/raid-rewards" },
+          { label: "더보기 손익", description: "관문마다 더보기가 남는지 지금 시세로", href: "/tools/more-reward" },
           { label: "경매 입찰가", description: "파티 인원별 손익 분기와 선점가", href: "/tools/auction" },
+          { label: "기여도 계산기", description: "내 피해량이 관문 기준에서 어디쯤인지", href: "/tools/contribution" },
+          { label: "레이드 컨닝페이퍼", description: "관문마다 주요 패턴과 대응", href: "/tools/raid-cheatsheet" },
+        ],
+      },
+      {
+        title: "골드 효율",
+        links: [
           { label: "로아샵 효율", description: "상점 패키지 구성품을 지금 시세로", href: "/tools/loa-shop" },
           { label: "아비도스 제작 손익", description: "융화 재료 1회 제작 비용과 손익", href: "/tools/abidos-craft" },
           { label: "생명의 기운 효율", description: "생활 스킬마다 생명의 기운으로 버는 골드", href: "/tools/life-energy" },
-          { label: "악세 경매 검색", description: "연마 효과·깨달음·힘민지 범위로 매물 찾기", href: "/tools/accessory-search", flag: "accessorySearch" },
-          { label: "레이드 보상표", description: "관문별 골드·더보기 비용", href: "/tools/raid-rewards" },
-          { label: "더보기 손익", description: "관문마다 더보기가 남는지 지금 시세로", href: "/tools/more-reward" },
-          { label: "기여도 계산기", description: "내 피해량이 관문 기준에서 어디쯤인지", href: "/tools/contribution" },
-          { label: "레이드 컨닝페이퍼", description: "관문마다 주요 패턴과 대응", href: "/tools/raid-cheatsheet" },
         ],
       },
       {
