@@ -145,7 +145,8 @@ export function RowExpander({
   onToggle: () => void;
 }) {
   return (
-    <button type="button" className={styles.name} aria-expanded={open} aria-controls={controls} onClick={onToggle}>
+    // aria-controls only while the details exist (a closed row has none to point at).
+    <button type="button" className={styles.name} aria-expanded={open} aria-controls={open ? controls : undefined} onClick={onToggle}>
       <span>{label}</span>
       <ChevronDown size={16} aria-hidden="true" className={styles.chevron} />
     </button>

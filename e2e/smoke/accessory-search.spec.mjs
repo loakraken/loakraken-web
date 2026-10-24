@@ -63,8 +63,11 @@ test.describe("악세 경매 검색 @smoke", () => {
     await expect(rows).toHaveCount(3);
     let calls = 0;
     page.on("request", (r) => r.url().includes("/accessor") && calls++);
-    const open = rows.first().getByRole("button", { expanded: false });
-    await expect(open).toHaveAttribute("aria-controls", /.+/);
+    // The name's own button (held by place: its expanded state changes below).
+    const open = rows.first().locator("strong").getByRole("button");
+    await expect(open).toHaveAttribute("aria-expanded", "false");
+    // Points at its details only while they exist.
+    await expect(open).not.toHaveAttribute("aria-controls", /.*/);
     // Hovering opens nothing (no pop-up cards while skimming the list).
     await open.hover();
     await page.waitForTimeout(400);
@@ -84,6 +87,7 @@ test.describe("악세 경매 검색 @smoke", () => {
     expect(calls).toBe(0);
     await open.press("Enter");
     await expect(open).toHaveAttribute("aria-expanded", "false");
+    await expect(open).not.toHaveAttribute("aria-controls", /.*/);
     await expect(detail).toHaveCount(0);
     await expect(open).toBeFocused();
     await expectNoHorizontalOverflow(page);

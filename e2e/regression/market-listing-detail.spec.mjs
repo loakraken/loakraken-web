@@ -57,6 +57,7 @@ for (const width of [320, 360, 390, 1280])
       // The same arrow folds it (keyboard too), and focus stays on it.
       await first.press("Enter");
       await expect(first).toHaveAttribute("aria-expanded", "false");
+      await expect(first).not.toHaveAttribute("aria-controls", /.*/);
       await expect(detail).toHaveCount(0);
       await expect(first).toBeFocused();
     });
