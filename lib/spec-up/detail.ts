@@ -11,9 +11,16 @@ export type DetailMarket = Schemas["SpecUpMarketResponse"];
 export type DetailRefine = Schemas["SpecUpRefineResponse"];
 export type DetailEnvelope = { code: string; message: string; data: SpecUpDetail };
 
-/** One cache entry per character snapshot and candidate; prices refresh by the minute. */
-export const specUpDetailQuery = (name: string, fetchedAt: string | null | undefined, candidateId: string) =>
-  ["spec-up", "detail", name, fetchedAt ?? null, candidateId] as const;
+/**
+ * One cache entry per character snapshot, candidate and the list's cooldown-gem
+ * choice (api #588; null when the list did not say); prices refresh by the minute.
+ */
+export const specUpDetailQuery = (
+  name: string,
+  fetchedAt: string | null | undefined,
+  candidateId: string,
+  includeCooldownGems: boolean | null = null,
+) => ["spec-up", "detail", name, fetchedAt ?? null, candidateId, includeCooldownGems] as const;
 
 /**
  * Materials plus the refining gold, null while any price is pending. The

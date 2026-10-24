@@ -419,7 +419,7 @@ export interface components {
             /** @description 성공 응답 데이터. 오류일 때 null */
             data: components["schemas"]["MaterialPriceResponse"];
         };
-        /** @description 재료 이름별 1개당 골드. 거래소 현재 판매 목록 첫 페이지에서 이름이 정확히 같은 상품만 사용합니다. */
+        /** @description 재료 이름별 1개당 골드. 거래소 현재 판매 목록(예열 시세 또는 검색)에서 이름이 정확히 같은 상품만 사용합니다. */
         MaterialPriceResponse: {
             /** @enum {string} */
             priceBasis: "CURRENT_MIN_PRICE" | "RECENT_PRICE" | "YDAY_AVG_PRICE";
@@ -440,9 +440,11 @@ export interface components {
             contentsPerItem: number | null;
             /**
              * Format: date-time
-             * @description 거래소 페이지를 읽은 UTC 시각. 캐시 적중에도 유지
+             * @description 거래소 페이지를 읽은 UTC 시각(예열 시세면 그 스캔 시각). 캐시 적중에도 유지. 조회하지 못한 PRICE_UNAVAILABLE이면 응답 시각
              */
             observedAt: string;
+            /** @description 백엔드가 아직 주지 않는 응답(api 배포 전)에서는 필드가 없을 수 있음. */
+            unavailableReason?: string | null;
         };
         /** @description 공통 API 응답. 오류 응답의 data는 null입니다. */
         ApiResponseMarketTabsResponse: {
@@ -660,7 +662,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description LOST_ARK_RATE_LIMITED: 캐릭터와 공유하는 호출 한도 초과 */
+            /** @description LOST_ARK_RATE_LIMITED: 캐릭터와 공유하는 호출 한도 초과 / CLIENT_RATE_LIMITED: 이 클라이언트의 분당 요청·공식 호출 한도 초과. Retry-After(초) 뒤 다시 시도 */
             429: {
                 headers: {
                     [name: string]: unknown;
@@ -757,7 +759,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description LOST_ARK_RATE_LIMITED: 캐릭터와 공유하는 호출 한도 초과 */
+            /** @description LOST_ARK_RATE_LIMITED: 캐릭터와 공유하는 호출 한도 초과 / CLIENT_RATE_LIMITED: 이 클라이언트의 분당 요청·공식 호출 한도 초과. Retry-After(초) 뒤 다시 시도 */
             429: {
                 headers: {
                     [name: string]: unknown;
@@ -853,7 +855,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description LOST_ARK_RATE_LIMITED: 캐릭터와 공유하는 호출 한도 초과 */
+            /** @description LOST_ARK_RATE_LIMITED: 캐릭터와 공유하는 호출 한도 초과 / CLIENT_RATE_LIMITED: 이 클라이언트의 분당 요청·공식 호출 한도 초과. Retry-After(초) 뒤 다시 시도 */
             429: {
                 headers: {
                     [name: string]: unknown;
@@ -949,7 +951,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description LOST_ARK_RATE_LIMITED: 캐릭터와 공유하는 호출 한도 초과 */
+            /** @description LOST_ARK_RATE_LIMITED: 캐릭터와 공유하는 호출 한도 초과 / CLIENT_RATE_LIMITED: 이 클라이언트의 분당 요청·공식 호출 한도 초과. Retry-After(초) 뒤 다시 시도 */
             429: {
                 headers: {
                     [name: string]: unknown;
@@ -1032,7 +1034,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description LOST_ARK_RATE_LIMITED: 캐릭터와 공유하는 호출 한도 초과 */
+            /** @description LOST_ARK_RATE_LIMITED: 캐릭터와 공유하는 호출 한도 초과 / CLIENT_RATE_LIMITED: 이 클라이언트의 분당 요청·공식 호출 한도 초과. Retry-After(초) 뒤 다시 시도 */
             429: {
                 headers: {
                     [name: string]: unknown;
@@ -1127,7 +1129,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description LOST_ARK_RATE_LIMITED: 캐릭터와 공유하는 호출 한도 초과 */
+            /** @description LOST_ARK_RATE_LIMITED: 캐릭터와 공유하는 호출 한도 초과 / CLIENT_RATE_LIMITED: 이 클라이언트의 분당 요청·공식 호출 한도 초과. Retry-After(초) 뒤 다시 시도 */
             429: {
                 headers: {
                     [name: string]: unknown;
@@ -1221,7 +1223,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description LOST_ARK_RATE_LIMITED: 캐릭터와 공유하는 호출 한도 초과 */
+            /** @description LOST_ARK_RATE_LIMITED: 캐릭터와 공유하는 호출 한도 초과 / CLIENT_RATE_LIMITED: 이 클라이언트의 분당 요청·공식 호출 한도 초과. Retry-After(초) 뒤 다시 시도 */
             429: {
                 headers: {
                     [name: string]: unknown;

@@ -78,6 +78,18 @@
 .basis {
   margin-top: var(--space-3);
 }
+/* Below 360 the three price bases do not fit on one row; the control finds that
+   only after the fonts are ready and stacks itself then, pushing the cards down
+   at first load (320: 0.05). Stacked from the first paint here, as it would end. */
+@media (max-width: 359px) {
+  .basis [data-slot="segmented-control"][data-orientation] {
+    width: 100%;
+    grid-auto-flow: row;
+    grid-auto-columns: auto;
+    row-gap: 12px;
+    border-radius: 20px;
+  }
+}
 .cards {
   display: grid;
   gap: var(--space-4);
@@ -253,6 +265,19 @@
   min-height: 1lh;
 }
 /* Ended sales, folded below the list. */
+/* Nothing on sale: one plain line in the list's place. */
+.empty {
+  margin: 0;
+  padding: 24px 16px;
+  border: 1px dashed var(--secondary);
+  border-radius: var(--radius-md);
+  color: var(--muted-foreground);
+  font-size: 14px;
+  text-align: center;
+  /* Two lines at 360: break between words, evenly. */
+  word-break: keep-all;
+  text-wrap: pretty;
+}
 .past {
   margin-top: var(--space-4);
 }
