@@ -1340,9 +1340,22 @@ createServer(async (req, res) => {
     data.computedAt = new Date().toISOString();
     receiptCalls.set(who, (receiptCalls.get(who) ?? 0) + 1);
     if (receiptCalls.get(who) > 1) {
-      for (const c of data.equipment.characters) if (c.status === "PENDING") Object.assign(c, { status: "READY", gold: 2887361 });
+      for (const c of data.equipment.characters)
+        if (c.status === "PENDING") Object.assign(c, { status: "READY", gold: 2887361, complete: true });
       data.coverage = { ...data.coverage, ready: data.coverage.rosterCharacters, pending: 0, nextAvailableAt: null };
+      data.total.status = "COMPLETE";
     } else data.coverage.nextAvailableAt = new Date(Date.now() + 20_000).toISOString();
+    // 영수증시세없음 (backend #665): every price missing, nothing counted → UNAVAILABLE, no amount.
+    if (who === "영수증시세없음") {
+      for (const c of data.equipment.characters) {
+        if (c.status !== "READY") continue;
+        Object.assign(c, { gold: 0, parts: [], complete: false });
+        c.excluded.push({ slot: "무기", name: null, reason: "PRICE_UNAVAILABLE", message: "「무기」: 재료 시세가 없어 산정하지 못했습니다." });
+      }
+      data.equipment.gold = 0;
+      data.gems = { ...data.gems, gold: 0, priced: 0, unpriced: data.gems.tradable, items: data.gems.items.map((g) => ({ ...g, gold: null, unitPrice: null, status: "NO_PRICE" })) };
+      data.total = { ...data.total, gold: 0, status: "UNAVAILABLE" };
+    }
     if (url.searchParams.get("assumeBook") === "true") {
       data.assumptions[0] = "책(재봉술·야금술) 효과가 항상 적용된다고 가정합니다(확률 미공개).";
       data.equipment.gold = Math.round(data.equipment.gold * 0.8);
