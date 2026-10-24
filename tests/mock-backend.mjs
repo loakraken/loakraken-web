@@ -1438,7 +1438,9 @@ createServer(async (req, res) => {
     const bracelet = url.pathname.endsWith("bracelets");
     const page = Number(q.get("page") || 1);
     const size = Number(q.get("size") || 50);
-    const population = q.get("className") === "환수사" ? 0 : q.get("server") ? 64 : 230;
+    // 환수사: none yet; 리퍼: a fresh ranking on the real definition (api #647), 3 rows still collecting.
+    const fresh = q.get("className") === "리퍼";
+    const population = q.get("className") === "환수사" ? 0 : fresh ? 3 : q.get("server") ? 64 : 230;
     const servers = ["루페온", "실리안", "아만", "아브렐슈드", "카단", "카마인", "카제로스", "니나브"];
     const classes = ["블래스터", "소울이터", "슬레이어", "기상술사", "버서커", "블레이드"];
     const rows = [];
@@ -1464,7 +1466,7 @@ createServer(async (req, res) => {
           aggregatedAt: new Date(Date.now() - 600_000).toISOString(), snapshot: "latest", ruleVersion: "stats-v1", minSample: 30,
           sampleStatus: population >= 30 ? "READY" : "COLLECTING", coverage: { observedCharacters: population, knownCharacters: population * 3, discoveredAccounts: 100 },
         },
-        kind: bracelet ? "BRACELET" : "ARK_GRID_GEM", ruleVersion: "efficiency-v1",
+        kind: bracelet ? "BRACELET" : "ARK_GRID_GEM", ruleVersion: fresh ? (bracelet ? "bracelet-real-v1" : "ark-grid-real-v1") : "efficiency-v1",
         populationNote: "캐릭터 검색으로 장비를 관측해 효율을 계산한 캐릭터만 순위에 들어갑니다.",
         page, size, rows,
       },

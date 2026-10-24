@@ -12,11 +12,13 @@ import { pendingProps } from "@/lib/api/pending";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { TIER_LABEL, TIER_LEGEND } from "@/lib/character/rank";
 import { fetchEfficiencyRanking } from "@/lib/stats/client";
-import { conditionsKey, fixed, percent, sampleText, whole } from "@/lib/stats/model";
+import { fixed, percent, sampleText, whole } from "@/lib/stats/model";
 import {
   EFFICIENCY_KINDS,
   MAX_PAGE,
   PAGE_SIZE,
+  efficiencyDefinition,
+  efficiencyKey,
   efficiencySearch,
   type EfficiencyKind,
   type EfficiencyQuery,
@@ -65,7 +67,8 @@ export function EfficiencyRankingsView({
   const levelTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const ids = { server: useId(), cls: useId(), days: useId(), level: useId() };
   const list = useQuery({
-    queryKey: ["efficiency-ranking", kind, conditionsKey(efficiencySearch(kind, query))],
+    // Filled on the server for the address's own query (rankings page).
+    queryKey: efficiencyKey(kind, query),
     queryFn: ({ signal }) => fetchEfficiencyRanking(kind, query, signal),
     staleTime: 5 * 60_000,
     placeholderData: keepPreviousData,
@@ -107,11 +110,8 @@ export function EfficiencyRankingsView({
         <section className={styles.hero} aria-labelledby="rankings-heading">
           <p className={styles.kicker}>캐릭터</p>
           <h1 id="rankings-heading">{meta.value} 랭킹</h1>
-          <p>
-            {kind === "bracelets"
-              ? "팔찌가 전투력을 몇 % 올려 주는지 높은 순으로 보여줘요."
-              : "아크 그리드 젬 옵션이 전투력을 몇 % 올려 주는지 높은 순으로 보여줘요(코어 제외)."}
-          </p>
+          {/* What the value means follows the answer's ruleVersion, under the table. */}
+          <p>{kind === "bracelets" ? "팔찌 효율이 높은 순으로 보여줘요." : "아크 그리드 젬 효율이 높은 순으로 보여줘요."}</p>
         </section>
         {types.length > 1 && <RankingTypeTabs value={kind} types={types} />}
 
@@ -161,12 +161,20 @@ export function EfficiencyRankingsView({
           </label>
         </form>
 
-        {data && (
-          <p key={list.dataUpdatedAt} className={`${styles.notice} ${styles.rankingNotice}`} {...pendingProps(list)}>
-            {/* Fixed words first, as on the character ranking (A7, #594). */}
-            공식 랭킹이 아니에요 · {sampleText(data.meta)}
-          </p>
-        )}
+        {/* Held from the first paint (empty until the answer), so the list never moves down. */}
+        <p
+          key={list.dataUpdatedAt}
+          className={`${styles.notice} ${styles.rankingNotice}`}
+          {...(data ? pendingProps(list) : { "aria-hidden": true })}
+        >
+          {/* Fixed words first, as on the character ranking (A7, #594). */}
+          {data && (
+            <>
+              공식 랭킹이 아니에요 · {sampleText(data.meta)}
+              {data.meta.sampleStatus !== "READY" && <strong> · 아직 표본을 모으고 있어요</strong>}
+            </>
+          )}
+        </p>
 
         {list.isError && !data ? (
           <div className={styles.problem}>
@@ -252,10 +260,9 @@ export function EfficiencyRankingsView({
             </button>
           </nav>
         )}
+        {data && <p className={styles.note}>{efficiencyDefinition(kind, data.ruleVersion)}</p>}
         {data && <p className={styles.note}>{data.populationNote}</p>}
-        <p className={styles.note}>
-          효율은 그 항목을 뺀 전투력과 비교한 값이에요. 티어(이 순위에서 상위 몇 %인지): {TIER_LEGEND}
-        </p>
+        <p className={styles.note}>티어(이 순위에서 상위 몇 %인지): {TIER_LEGEND}</p>
         {data && <BasisNote basis={data.meta} />}
       </main>
     </div>
