@@ -207,8 +207,9 @@ const AvatarsTab = dynamic(() => loadInner().then((m) => m.AvatarsTab));
 const HistoryChart = dynamic(loadHistoryChart);
 
 const PRELOAD: Partial<Record<TabId, () => Promise<unknown>>> = {
-  simulator: loadSimulator,
-  specup: loadSpecUp,
+  // These two load their main part lazily themselves; warm that part as well.
+  simulator: () => import("./simulator-tab").then((m) => m.preloadSimulator()),
+  specup: () => import("./spec-up-tab").then((m) => m.preloadSpecUpGuide()),
   guild: loadGuild,
   collectibles: loadInner,
   avatars: loadInner,
@@ -216,6 +217,26 @@ const PRELOAD: Partial<Record<TabId, () => Promise<unknown>>> = {
 };
 /** Start a tab's download on intent (hover, focus, touch); a failure retries on click. */
 const preloadTab = (id: TabId) => void PRELOAD[id]?.().catch(() => {});
+
+/**
+ * Once the first view is idle, fetch every other tab's code in the background,
+ * so a quick tap that beats the hover/touch preload still finds it in place
+ * (no empty panel on switch). It stays off the first-load critical path.
+ */
+function usePreloadTabsWhenIdle() {
+  useEffect(() => {
+    // Not on metered or very slow connections: those keep the on-intent preload only.
+    const connection = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
+    if (connection?.saveData || /(^|-)2g$/.test(connection?.effectiveType ?? "")) return;
+    const run =() => Object.values(PRELOAD).forEach((load) => void load?.().catch(() => {}));
+    if ("requestIdleCallback" in window) {
+      const handle = window.requestIdleCallback(run, { timeout: 4000 });
+      return () => window.cancelIdleCallback(handle);
+    }
+    const timer = setTimeout(run, 2000);
+    return () => clearTimeout(timer);
+  }, []);
+}
 
 /**
  * Going to another tab (the tab bar or a "자세히" link) starts at the top of
@@ -313,6 +334,7 @@ export function TabBar({
 }) {
   const [favorite, toggleFavorite] = useFavorite(name);
   const [shareStatus, setShareStatus] = useState("");
+  usePreloadTabsWhenIdle();
   const { nav: pillNav, layer: pillLayer, onKeyDown: pillKey, onPointerDown: pillPointer } = useTabPill(tab);
   // The guild tab only for a character in a guild.
   const tabs = visibleTabs(
