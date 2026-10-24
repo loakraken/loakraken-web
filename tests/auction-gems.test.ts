@@ -7,9 +7,11 @@ import {
   isGemBoardEnvelope,
   isGemListingsEnvelope,
   isGemSkillsEnvelope,
+  isStale,
   parseGemPick,
   pickAfterFailure,
   skillsFor,
+  staleWhen,
 } from "../lib/market/auction-gems";
 
 const cell = (kind: "겁화" | "작열", level: number, pending = false) => ({
@@ -32,6 +34,7 @@ const listing = {
   endDate: "2026-10-14T03:00:00Z",
   tradeAllowCount: 2,
   options: [{ type: "GEM_SKILL_DAMAGE", name: "합성 스킬", value: 44, percentage: true, level: null, className: "바드" }],
+  icon: "https://cdn-lostark.game.onstove.com/efui_iconatlas/use/use_12_105.png",
 };
 
 const plain = { className: null, skill: null };
@@ -116,6 +119,12 @@ test("gem board and listings envelopes follow the contract", () => {
   const listings = { code: "AUCTION_LISTINGS_SUCCESS", message: "ok", data: { totalCount: 14, page: 1, observedAt: "2026-10-13T03:00:00Z", items: [listing] } };
   assert.equal(isGemListingsEnvelope(listings), true);
   assert.equal(isGemListingsEnvelope({ ...listings, code: "AUCTION_GEMS_SUCCESS" }), false);
+  // No icon from an official answer, and none at all from a backend before api #613.
+  assert.equal(isGemListingsEnvelope({ ...listings, data: { ...listings.data, items: [{ ...listing, icon: null }] } }), true);
+  const older: Partial<typeof listing> = { ...listing };
+  delete older.icon;
+  assert.equal(isGemListingsEnvelope({ ...listings, data: { ...listings.data, items: [older] } }), true);
+  assert.equal(isGemListingsEnvelope({ ...listings, data: { ...listings.data, items: [{ ...listing, icon: 3 }] } }), false);
 });
 
 test("a gem's target is its class and skill from the options", () => {
@@ -130,4 +139,19 @@ test("filter switched off: a shared address with a class asks again for the same
   assert.equal(pickAfterFailure({ kind: "겁화", level: 10, page: 1 }, "GEM_FILTER_DISABLED"), null);
   assert.equal(pickAfterFailure(shared, "MARKET_SEARCH_BUSY"), null);
   assert.equal(pickAfterFailure(shared, undefined), null);
+});
+
+test("stale cells (api #690): only READY + stale + observedAt; time on the board's day, else date", () => {
+  const fresh = cell("겁화", 10); // 2026-10-13T03:00Z = 12:00 KST
+  assert.equal(isStale(fresh), false);
+  const stale = { ...cell("작열", 2), stale: true, observedAt: "2026-10-13T01:05:00Z" }; // 10:05 KST, same day
+  assert.equal(isStale(stale), true);
+  assert.equal(isStale({ ...stale, observedAt: null }), false);
+  const board = { ruleVersion: "auction-board-v1", complete: true, cells: [fresh, stale] };
+  assert.equal(staleWhen(stale, board), "10:05");
+  // Seen the day before (KST 10. 12. 23:30): the date, not a time that reads as today's.
+  const older = { ...stale, observedAt: "2026-10-12T14:30:00Z" };
+  assert.equal(staleWhen(older, { ...board, cells: [fresh, older] }), "10. 12.");
+  // No current cell: its own day, so its time.
+  assert.equal(staleWhen(older, { ...board, cells: [older] }), "23:30");
 });

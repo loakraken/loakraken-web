@@ -76,6 +76,17 @@
   grid-area: change;
   color: var(--muted-foreground);
 }
+/* The last value seen (api #690): never read as current. The price goes quiet
+   and its time takes the day change's place, on one line like the change. */
+.cell button[data-stale] b {
+  color: var(--muted-foreground);
+}
+.staleAt {
+  grid-area: change;
+  color: var(--muted-foreground);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
 /* One height for every state (before a pick, loading, failed, short list,
    ten rows), so nothing under it moves when the listings land. */
 .listings {
