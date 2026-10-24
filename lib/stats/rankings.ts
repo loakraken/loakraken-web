@@ -1,12 +1,9 @@
 // Character ranking list (backend #100 /rankings): 랭킹 over the
 // characters LOAKraken has observed. Hidden characters are never listed.
-import Ajv2020 from "ajv/dist/2020";
-import contract from "../../contracts/rankings.openapi.json";
+
 import type { components } from "../api/rankings-schema";
-import { backendUrl, requestBackend, type BackendResult } from "../api/backend";
-import { tolerantSchemas } from "../api/tolerant";
+
 import { parseStatsQuery, statsSearch, type Metric, type StatsQuery } from "./model";
-import { lazyValidator } from "@/lib/api/lazy-validator";
 
 type Schemas = components["schemas"];
 export type RankingEnvelope = Schemas["ApiResponseStatsRankingResponse"];
@@ -15,43 +12,6 @@ export type RankedCharacter = Schemas["StatsRankedCharacterResponse"];
 export type EfficiencyEnvelope = Schemas["ApiResponseStatsEfficiencyRankingResponse"];
 export type EfficiencyRanking = Schemas["StatsEfficiencyRankingResponse"];
 export type EfficiencyRow = Schemas["StatsEfficiencyRankedCharacterResponse"];
-
-/**
- * Fields added after the first ranking release (api #446·#449, K32/L37, and
- * meta.populationUnit):
- * a backend that does not send them yet still passes, and the screen shows
- * '-' for them (no placeholder column is dropped).
- */
-const ROLLOUT_ROW_FIELDS = ["bestCombatPower", "arkPassivePoints", "classEngraving", "estherWeapon"];
-
-function rankingSchemas() {
-  const schemas = tolerantSchemas(contract.components.schemas) as Record<string, { required?: string[] }>;
-  const row = schemas.StatsRankedCharacterResponse;
-  if (row?.required) row.required = row.required.filter((name) => !ROLLOUT_ROW_FIELDS.includes(name));
-  // meta.populationUnit came with the same backend release.
-  const meta = schemas.StatsMetaResponse;
-  if (meta?.required) meta.required = meta.required.filter((name) => name !== "populationUnit");
-  return schemas;
-}
-
-const validate = lazyValidator(() => new Ajv2020({ strict: false, validateFormats: false }).compile<RankingEnvelope>({
-  $ref: "#/components/schemas/ApiResponseStatsRankingResponse",
-  components: { ...contract.components, schemas: rankingSchemas() },
-}));
-const validateEfficiency = lazyValidator(() =>
-  new Ajv2020({ strict: false, validateFormats: false }).compile<EfficiencyEnvelope>({
-    $ref: "#/components/schemas/ApiResponseStatsEfficiencyRankingResponse",
-    components: { ...contract.components, schemas: rankingSchemas() },
-  }),
-);
-
-export function isRankingEnvelope(value: unknown): value is RankingEnvelope {
-  return (
-    validate(value) &&
-    value.code === "RANKING_SUCCESS" &&
-    Number.isFinite(Date.parse(value.data.meta.aggregatedAt))
-  );
-}
 
 export const PAGE_SIZE = 50;
 export const MAX_PAGE = 200;
@@ -84,28 +44,6 @@ export function rankingSearch(query: RankingQuery) {
   return out;
 }
 
-const errorCodes: Record<number, readonly string[]> = {
-  400: ["INVALID_REQUEST", "STATS_INVALID_RANGE"],
-  429: ["LOST_ARK_RATE_LIMITED"],
-  503: ["STATS_UNAVAILABLE"],
-};
-
-export function requestRankings(
-  query: RankingQuery,
-  origin: string | undefined,
-  options: { fetcher?: typeof fetch; signal?: AbortSignal; timeoutMs?: number } = {},
-): Promise<BackendResult<RankingEnvelope>> {
-  const url = backendUrl(origin, "/api/v1/rankings");
-  if (url) {
-    const params = rankingSearch(query);
-    params.set("metric", query.metric);
-    params.set("page", String(query.page));
-    params.set("size", String(PAGE_SIZE));
-    url.search = params.toString();
-  }
-  return requestBackend(url, { ...options, isValid: isRankingEnvelope, errorCodes });
-}
-
 /** 팔찌 효율 · 젬 효율 랭킹 (api #444, checklist L38·L39). */
 export const EFFICIENCY_KINDS = {
   bracelets: { path: "/api/v1/rankings/bracelets", label: "팔찌", value: "팔찌 효율" },
@@ -114,14 +52,6 @@ export const EFFICIENCY_KINDS = {
 export type EfficiencyKind = keyof typeof EFFICIENCY_KINDS;
 /** The character ranking's filters without its metric (efficiency is the order). */
 export type EfficiencyQuery = Omit<RankingQuery, "metric">;
-
-export function isEfficiencyEnvelope(value: unknown): value is EfficiencyEnvelope {
-  return (
-    validateEfficiency(value) &&
-    value.code === "RANKING_SUCCESS" &&
-    Number.isFinite(Date.parse(value.data.meta.aggregatedAt))
-  );
-}
 
 /** From a shared link; invalid values fall back to the defaults. */
 export function parseEfficiencyQuery(input: URLSearchParams): EfficiencyQuery {
@@ -140,23 +70,6 @@ export function efficiencySearch(kind: EfficiencyKind, query: EfficiencyQuery) {
   const out = rankingSearch({ ...query, metric: "COMBAT_POWER" });
   out.set("type", kind);
   return out;
-}
-
-export function requestEfficiencyRanking(
-  kind: EfficiencyKind,
-  query: EfficiencyQuery,
-  origin: string | undefined,
-  options: { fetcher?: typeof fetch; signal?: AbortSignal; timeoutMs?: number } = {},
-): Promise<BackendResult<EfficiencyEnvelope>> {
-  const url = backendUrl(origin, EFFICIENCY_KINDS[kind].path);
-  if (url) {
-    const params = rankingSearch({ ...query, metric: "COMBAT_POWER" });
-    params.delete("metric");
-    params.set("page", String(query.page));
-    params.set("size", String(PAGE_SIZE));
-    url.search = params.toString();
-  }
-  return requestBackend(url, { ...options, isValid: isEfficiencyEnvelope, errorCodes });
 }
 
 /** "+25 · 엘라 2단계", "+25", "엘라 2단계" or null (shown as '-'). */

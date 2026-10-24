@@ -1,11 +1,6 @@
 import { backendUrl, requestBackend, type BackendResult } from "../api/backend";
-import {
-  isStatsEnvelope,
-  statsSearch,
-  type StatsEnvelopes,
-  type StatsQuery,
-  type StatsView,
-} from "./model";
+import { statsSearch, type StatsEnvelopes, type StatsQuery, type StatsView } from "./model";
+import { isStatsEnvelope } from "./model.backend";
 
 const errorCodes: Record<number, readonly string[]> = {
   400: ["INVALID_REQUEST", "STATS_INVALID_RANGE", "STATS_TOO_MANY_BINS"],

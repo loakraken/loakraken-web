@@ -1,18 +1,8 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import {
-  arkPassiveText,
-  efficiencySearch,
-  estherText,
-  isEfficiencyEnvelope,
-  isRankingEnvelope,
-  parseEfficiencyQuery,
-  parseRankingQuery,
-  rankingSearch,
-  requestEfficiencyRanking,
-  requestRankings,
-} from "../lib/stats/rankings";
+import { arkPassiveText, efficiencySearch, estherText, parseEfficiencyQuery, parseRankingQuery, rankingSearch } from "../lib/stats/rankings";
+import { isEfficiencyEnvelope, isRankingEnvelope, requestEfficiencyRanking, requestRankings } from "../lib/stats/rankings.backend";
 
 const fixture = () =>
   JSON.parse(readFileSync(new URL("./stats-fixtures/rankings.json", import.meta.url), "utf8"));

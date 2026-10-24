@@ -2,26 +2,13 @@
 // the top six characters' average or sum (or every character's average) of
 // combat power or item level. Off on the backend until the screen ships; the
 // screen follows ROSTER_RANKING (lib/tools/flags.ts) the same way.
-import Ajv2020 from "ajv/dist/2020";
-import contract from "../../contracts/roster-ranking.openapi.json";
+
 import type { components } from "../api/roster-ranking-schema";
-import { backendUrl, requestBackend, type BackendResult } from "../api/backend";
-import { tolerantSchemas } from "../api/tolerant";
-import { lazyValidator } from "@/lib/api/lazy-validator";
 
 type Schemas = components["schemas"];
 export type RosterRankingEnvelope = Schemas["ApiResponseRosterRankingResponse"];
 export type RosterRanking = Schemas["RosterRankingResponse"];
 export type RosterRow = Schemas["RosterRankingRowResponse"];
-
-const validate = lazyValidator(() =>
-  new Ajv2020({ strict: false, validateFormats: false }).compile<RosterRankingEnvelope>({
-    $ref: "#/components/schemas/ApiResponseRosterRankingResponse",
-    components: { ...contract.components, schemas: tolerantSchemas(contract.components.schemas) },
-  }),
-);
-export const isRosterRankingEnvelope = (value: unknown): value is RosterRankingEnvelope =>
-  validate(value) && value.code === "ROSTER_RANKING_SUCCESS";
 
 export const ROSTER_BASES = [
   { id: "COMBAT_POWER", label: "전투력" },
@@ -63,25 +50,4 @@ export function rosterSearch(query: RosterQuery) {
   if (query.server) out.set("server", query.server);
   if (query.page > 1) out.set("page", String(query.page));
   return out;
-}
-
-const errorCodes: Record<number, readonly string[]> = {
-  400: ["INVALID_REQUEST", "STATS_INVALID_RANGE"],
-  503: ["STATS_UNAVAILABLE"],
-};
-
-export function requestRosterRanking(
-  query: RosterQuery,
-  origin: string | undefined,
-  options: { fetcher?: typeof fetch; signal?: AbortSignal; timeoutMs?: number } = {},
-): Promise<BackendResult<RosterRankingEnvelope>> {
-  const url = backendUrl(origin, "/api/v1/rankings/rosters");
-  if (url) {
-    url.searchParams.set("basis", query.basis);
-    url.searchParams.set("aggregate", query.aggregate);
-    if (query.server) url.searchParams.set("server", query.server);
-    url.searchParams.set("page", String(query.page));
-    url.searchParams.set("size", String(ROSTER_PAGE_SIZE));
-  }
-  return requestBackend(url, { ...options, isValid: isRosterRankingEnvelope, errorCodes });
 }

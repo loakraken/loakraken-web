@@ -1,13 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import {
-  accessorySearch,
-  isAccessoryBoardEnvelope,
-  isPicked,
-  parseAccessoryFilter,
-  parseAccessoryPick,
-  polishText,
-} from "../lib/market/auction-accessories";
+import { accessorySearch, isPicked, parseAccessoryFilter, parseAccessoryPick, polishText } from "../lib/market/auction-accessories";
+import { isAccessoryBoardEnvelope } from "../lib/market/auction-accessories.backend";
 
 const cell = {
   levels: ["HIGH", "MID"],

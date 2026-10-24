@@ -1,15 +1,8 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import {
-  coverageText,
-  excludedLabel,
-  includedText,
-  isReceiptEnvelope,
-  isReceiptOff,
-  notIncludedText,
-  requestReceipt,
-} from "../lib/character/receipt";
+import { coverageText, excludedLabel, includedText, isReceiptOff, notIncludedText } from "../lib/character/receipt";
+import { isReceiptEnvelope, requestReceipt } from "../lib/character/receipt.backend";
 
 const fixture = () =>
   JSON.parse(readFileSync(new URL("./receipt-fixtures/character-receipt.json", import.meta.url), "utf8"));

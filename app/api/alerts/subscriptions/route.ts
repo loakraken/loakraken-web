@@ -1,5 +1,6 @@
 import { toResponse } from "@/lib/api/respond";
-import { parseSubscribeBody, requestSubscribe } from "@/lib/alerts/model";
+import { parseSubscribeBody } from "@/lib/alerts/model";
+import { requestSubscribe } from "@/lib/alerts/model.backend";
 import { guard, invalid, jsonBody, origin } from "@/lib/alerts/server";
 
 // POST only, from this site's own page: the browser's push subscription in,

@@ -1,18 +1,8 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import {
-  equipmentExtra,
-  equipmentLines,
-  gridGemLines,
-  gridLines,
-  isItemTooltipsEnvelope,
-  lineTone,
-  placeExtraLines,
-  requestItemTooltips,
-  runeLines,
-  splitLeadingTrade,
-} from "../lib/character/item-tooltips";
+import { equipmentExtra, equipmentLines, gridGemLines, gridLines, lineTone, placeExtraLines, runeLines, splitLeadingTrade } from "../lib/character/item-tooltips";
+import { isItemTooltipsEnvelope, requestItemTooltips } from "../lib/character/item-tooltips.backend";
 
 const sample = () =>
   JSON.parse(readFileSync(new URL("./item-tooltips-fixtures/character-item-tooltips.json", import.meta.url), "utf8"));

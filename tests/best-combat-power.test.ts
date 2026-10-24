@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { bestCombatPowerSearch, requestBestCombatPower } from "../lib/stats/best-combat-power";
+import { bestCombatPowerSearch } from "../lib/stats/best-combat-power";
+import { requestBestCombatPower } from "../lib/stats/best-combat-power.backend";
 
 test("best combat power: the stats filters go on, the distribution's own do not", () => {
   const search = bestCombatPowerSearch({ server: "루페온", role: "SUPPORT", activeDays: 7, combatPowerMin: 2000, metric: "ITEM_LEVEL", width: 5, percentileOf: 1700 });
