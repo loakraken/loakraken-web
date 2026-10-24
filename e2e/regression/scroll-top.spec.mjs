@@ -7,7 +7,10 @@ const scrollY = (page) => page.evaluate(() => Math.round(window.scrollY));
 test("스크롤을 내린 뒤 '자세히'로 다른 탭에 가면 맨 위에서 시작한다 @regression", async ({ page }) => {
   await gotoReady(page, characterPath("상세"));
   const more = page.getByRole("region", { name: "아크 패시브" }).getByRole("link", { name: "자세히" });
-  await more.scrollIntoViewIfNeeded();
+  // Scrolled on purpose, the link near the top: the panel may already be on
+  // screen (the right column's order puts it high), and scrollIntoViewIfNeeded
+  // then leaves the page at the top.
+  await more.evaluate((el) => window.scrollTo(0, el.getBoundingClientRect().top + window.scrollY - 120));
   expect(await scrollY(page)).toBeGreaterThan(200);
   await more.click();
   await expect(page).toHaveURL(/tab=arkpassive/);
