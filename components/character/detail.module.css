@@ -2064,6 +2064,18 @@
   color: var(--muted-foreground);
   font-size: 14px;
 }
+/* Supporter: one line where the guide would be (no candidates yet). */
+.specUpSupporter {
+  margin: 16px 0 0;
+  color: var(--muted-foreground);
+  font-size: 14px;
+  line-height: 1.6;
+  word-break: keep-all;
+}
+.specUpSupporter strong {
+  color: var(--foreground);
+  font-weight: 600;
+}
 .specUpFailure {
   display: grid;
   justify-items: start;
@@ -2737,6 +2749,56 @@
 .specUpTargetButton[data-loading] {
   cursor: progress;
   opacity: 0.6;
+}
+
+/* 크라켄 점수 순 (#908): the cooldown-gem choice and why the sort is not in use. */
+.specUpCooldown {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px dashed var(--secondary);
+  border-radius: 980px;
+  background: var(--background);
+  color: var(--foreground);
+  font-size: 13px;
+  touch-action: manipulation;
+}
+.specUpCooldown[aria-pressed="true"] {
+  border-style: solid;
+  border-color: var(--foreground);
+}
+.specUpCooldown:active {
+  scale: var(--press-scale);
+}
+/* The toggle and the notes share one grid cell; the cell is as wide as the widest. */
+.specUpKrakenSlot {
+  display: inline-grid;
+  align-items: center;
+  justify-items: end;
+}
+.specUpKrakenSlot > *,
+.specUpKrakenRoom > * {
+  grid-area: 1 / 1;
+}
+.specUpKrakenRoom {
+  display: grid;
+  visibility: hidden;
+}
+.specUpKrakenRoom,
+.specUpKrakenNote {
+  color: var(--muted-foreground);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* Off (other sorts, or 크라켄 점수 순 not available): its room stays so the bar never re-flows;
+   visibility also takes it out of the reading order and the tab order. */
+.specUpCooldown[data-off] {
+  visibility: hidden;
+}
+@media (hover: hover) and (pointer: fine) {
+  .specUpCooldown:hover {
+    border-color: var(--foreground);
+  }
 }
 
 /* The roster tab at 360 (v0.3.2 (b)): the lists are the tab's first block;
