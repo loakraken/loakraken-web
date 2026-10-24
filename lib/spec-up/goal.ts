@@ -43,10 +43,20 @@ export function targetError(target: number | null, current: number | null): stri
   return null;
 }
 
-/** "62만G", "시세 준비 중" or "비용 미확인" for one step. */
-export function stepCost(step: GoalStep, gold: (amount: number) => string): string {
+/**
+ * The goal answer whose gem steps cost from now to that level (api #592): each
+ * is max(that level's lowest price − the current gem's, 0), worked out on its
+ * own, so an unknown step leaves the others as they are.
+ */
+export const GOAL_FROM_NOW = "spec-up-goal-v2";
+
+/** "62만G", "지금부터 260만G" (a gem step of a v2 answer), "추가 비용 없음" (0), "시세 준비 중" or "비용 미확인" for one step. */
+export function stepCost(step: GoalStep, gold: (amount: number) => string, ruleVersion?: string | null): string {
   const cost = step.cost;
-  if (cost.status === "OK" && cost.amount != null) return cost.unit === "GOLD" ? `${gold(cost.amount)}G` : `${cost.amount} ${cost.unit}`;
+  const fromNow = ruleVersion === GOAL_FROM_NOW && step.kind === "GEM_LEVEL" ? "지금부터 " : "";
+  if (cost.status === "OK" && cost.amount === 0) return "추가 비용 없음";
+  if (cost.status === "OK" && cost.amount != null)
+    return cost.unit === "GOLD" ? `${fromNow}${gold(cost.amount)}G` : `${cost.amount} ${cost.unit}`;
   return cost.status === "PENDING" ? "시세 준비 중" : "비용 미확인";
 }
 

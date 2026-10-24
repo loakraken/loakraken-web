@@ -16,9 +16,12 @@ import {
   GRADE_LABEL,
   coverageText,
   excludedLabel,
+  excludedSummary,
   includedText,
   isReceiptOff,
   notIncludedText,
+  rowMarker,
+  totalStatus,
   type Receipt,
   type ReceiptCharacter,
 } from "@/lib/character/receipt";
@@ -33,6 +36,7 @@ const gold = (value: number | null | undefined) =>
 
 function CharacterRow({ row }: { row: ReceiptCharacter }) {
   const pending = row.status === "PENDING";
+  const marker = rowMarker(row);
   return (
     <li>
       <details className={`${styles.row} ${expand.expand}`}>
@@ -43,7 +47,17 @@ function CharacterRow({ row }: { row: ReceiptCharacter }) {
               {row.className ?? "-"} · {level(row.itemLevel)}
             </small>
           </span>
-          <b className={pending ? styles.pending : undefined}>{pending ? "계산 대기" : gold(row.gold)}</b>
+          <span className={styles.amount}>
+            {marker && (
+              <>
+                <span className={`${styles.tag} ${marker.partial ? styles.partialTag : ""}`} aria-hidden="true">
+                  {marker.text}
+                </span>
+                <span className="sr-only">{marker.partial ? "일부만 계산" : `산정 제외 ${row.excluded.length}건`}</span>
+              </>
+            )}
+            <b className={pending ? styles.pending : undefined}>{pending ? "계산 대기" : gold(row.gold)}</b>
+          </span>
         </summary>
         {row.parts.length > 0 && (
           <ul className={styles.parts}>
@@ -88,12 +102,31 @@ function Body({
   const until = data.coverage.nextAvailableAt ? Date.parse(data.coverage.nextAvailableAt) : undefined;
   const seconds = useSecondsUntil(until);
   const notIncluded = notIncludedText(data);
+  const status = totalStatus(data);
+  const left = excludedSummary(data);
   const [first, ...rest] = data.assumptions;
   return (
     <>
-      <div className={styles.total}>
-        <strong>{gold(data.total.gold)}</strong>
-        <p>{includedText(data)} 합계</p>
+      <div className={styles.total} data-status={status}>
+        {status === "UNAVAILABLE" ? (
+          <>
+            <strong>합계 없음</strong>
+            <p>아직 계산한 금액이 없어요.</p>
+          </>
+        ) : (
+          <>
+            <strong>
+              {gold(data.total.gold)}
+              {status === "PARTIAL" && <span className={`${styles.tag} ${styles.partialTag}`}>일부 합계</span>}
+            </strong>
+            <p>
+              {status === "PARTIAL"
+                ? `${includedText(data)} 중 계산한 것만 더했어요. 실제 합계는 더 커요.`
+                : `${includedText(data)} 합계`}
+            </p>
+          </>
+        )}
+        {left && <p className={styles.muted}>빠진 것: {left}</p>}
         {notIncluded && <p className={styles.muted}>미포함: {notIncluded}</p>}
       </div>
 

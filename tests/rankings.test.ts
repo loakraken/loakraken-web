@@ -1,7 +1,15 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import { arkPassiveText, efficiencySearch, estherText, parseEfficiencyQuery, parseRankingQuery, rankingSearch } from "../lib/stats/rankings";
+import {
+  arkPassiveText,
+  efficiencyDefinition,
+  efficiencySearch,
+  estherText,
+  parseEfficiencyQuery,
+  parseRankingQuery,
+  rankingSearch,
+} from "../lib/stats/rankings";
 import { isEfficiencyEnvelope, isRankingEnvelope, requestEfficiencyRanking, requestRankings } from "../lib/stats/rankings.backend";
 
 const fixture = () =>
@@ -105,4 +113,12 @@ test("efficiency ranking: contract, shareable query and the backend path per kin
   await requestEfficiencyRanking("gems", { page: 1, server: "아만" }, "http://127.0.0.1:8080", { fetcher });
   assert.equal(seen[0], "/api/v1/rankings/bracelets?page=2&size=50");
   assert.match(seen[1], /^\/api\/v1\/rankings\/ark-grid-gems\?server=.+&page=1&size=50$/);
+});
+
+test("efficiency definition follows ruleVersion (api #647)", () => {
+  assert.match(efficiencyDefinition("bracelets", "bracelet-real-v1"), /캐릭터 화면의 팔찌 효율과 같은 값/);
+  assert.match(efficiencyDefinition("gems", "ark-grid-real-v2"), /캐릭터 화면의 아크 그리드 효율과 같은 값/);
+  // Any other version (the first, or one we do not know) keeps the combat power wording.
+  assert.match(efficiencyDefinition("bracelets", "efficiency-v1"), /팔찌를 뺀 전투력과 비교/);
+  assert.match(efficiencyDefinition("gems", ""), /젬 옵션을 뺀 전투력과 비교/);
 });

@@ -2064,6 +2064,18 @@
   color: var(--muted-foreground);
   font-size: 14px;
 }
+/* Supporter: one line where the guide would be (no candidates yet). */
+.specUpSupporter {
+  margin: 16px 0 0;
+  color: var(--muted-foreground);
+  font-size: 14px;
+  line-height: 1.6;
+  word-break: keep-all;
+}
+.specUpSupporter strong {
+  color: var(--foreground);
+  font-weight: 600;
+}
 .specUpFailure {
   display: grid;
   justify-items: start;

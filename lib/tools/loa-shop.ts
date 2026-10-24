@@ -211,6 +211,24 @@ export function splitBySale(packages: ShopPackage[], now: number) {
   };
 }
 
+/** The list's place when nothing is on sale; points to the folded past items when there are any. */
+export const shopEmptyCopy = (pastCount: number) =>
+  pastCount > 0 ? "지금 판매 중인 패키지가 없어요. 지난 상품은 아래에서 볼 수 있어요." : "지금 판매 중인 패키지가 없어요.";
+
+/**
+ * Stale data: every package's sale has ended and nobody re-checked the official
+ * shop notices since the last one ended (checkedAt is a KST date). The test suite
+ * runs this against the real clock, so a forgotten weekly update fails it.
+ */
+export function staleShopData(data: ShopData, now: number): string | null {
+  if (!data.packages.length || splitBySale(data.packages, now).current.length) return null;
+  const lastEnd = Math.max(...data.packages.map((p) => Date.parse(p.endsAt as string)));
+  const checked = Date.parse(`${data.checkedAt}T23:59:59+09:00`);
+  return checked < lastEnd
+    ? `every package ended (last ${new Date(lastEnd).toISOString()}) but checkedAt ${data.checkedAt} is before it: re-check the official shop notices and update lib/tools/data/loa-shop.json`
+    : null;
+}
+
 /** Consistency problems in the data; the test suite expects none. */
 export function checkShopData(data: ShopData): string[] {
   const problems: string[] = [];

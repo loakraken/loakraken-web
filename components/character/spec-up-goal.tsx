@@ -169,7 +169,7 @@ function GoalAnswer({ name, goal }: { name: string; goal: Goal }) {
               <span className={styles.change}>
                 {step.from} → {step.to}
               </span>
-              <span className={styles.cost}>{stepCost(step, koreanGold)}</span>
+              <span className={styles.cost}>{stepCost(step, koreanGold, goal.ruleVersion)}</span>
             </li>
           ))}
         </ol>

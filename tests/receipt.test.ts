@@ -1,7 +1,16 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import { coverageText, excludedLabel, includedText, isReceiptOff, notIncludedText } from "../lib/character/receipt";
+import {
+  coverageText,
+  excludedLabel,
+  excludedSummary,
+  includedText,
+  isReceiptOff,
+  notIncludedText,
+  rowMarker,
+  totalStatus,
+} from "../lib/character/receipt";
 import { isReceiptEnvelope, requestReceipt } from "../lib/character/receipt.backend";
 
 const fixture = () =>
@@ -33,6 +42,70 @@ test("labels and sentences never show codes", () => {
   const done = structuredClone(data);
   done.coverage = { ...done.coverage, ready: 10, pending: 0 };
   assert.equal(coverageText(done), "원정대 10명 중 10명 계산");
+});
+
+test("the total follows total.status (backend #665): partial and unavailable are never shown as a full sum", () => {
+  const data = fixture().data;
+  assert.equal(totalStatus(data), "PARTIAL");
+  const complete = structuredClone(data);
+  complete.total.status = "COMPLETE";
+  assert.equal(totalStatus(complete), "COMPLETE");
+  const none = structuredClone(data);
+  none.total = { ...none.total, gold: 0, status: "UNAVAILABLE" };
+  assert.equal(totalStatus(none), "UNAVAILABLE");
+  // The backend's word wins over the facts in either direction.
+  const said = structuredClone(data);
+  said.total.status = "UNAVAILABLE";
+  assert.equal(totalStatus(said), "UNAVAILABLE");
+  // A value this screen does not know: never read as complete.
+  const unknown = structuredClone(data);
+  unknown.total.status = "SOMETHING_NEW";
+  unknown.coverage.pending = 0;
+  assert.equal(isReceiptEnvelope({ ...fixture(), data: unknown }), true);
+  assert.equal(totalStatus(unknown), "PARTIAL");
+  unknown.total.gold = 0;
+  assert.equal(totalStatus(unknown), "UNAVAILABLE");
+});
+
+test("without total.status (a backend before #665) the status comes from coverage, rows and gems", () => {
+  const old = fixture().data;
+  delete old.total.status;
+  for (const row of old.equipment.characters) delete row.complete;
+  assert.equal(isReceiptEnvelope({ ...fixture(), data: old }), true);
+  // Two characters pending.
+  assert.equal(totalStatus(old), "PARTIAL");
+  const all = structuredClone(old);
+  all.coverage = { ...all.coverage, ready: 10, pending: 0 };
+  assert.equal(totalStatus(all), "COMPLETE");
+  const unpriced = structuredClone(all);
+  unpriced.gems.unpriced = 1;
+  assert.equal(totalStatus(unpriced), "PARTIAL");
+  const part = structuredClone(all);
+  part.equipment.characters[0].complete = false;
+  assert.equal(totalStatus(part), "PARTIAL");
+  part.total.gold = 0;
+  assert.equal(totalStatus(part), "UNAVAILABLE");
+});
+
+test("what the total leaves out is summed per reason; rows carry a marker", () => {
+  const data = fixture().data;
+  // 8 ready characters, each without the arm guard and advanced refining; 2 pending.
+  assert.equal(excludedSummary(data), "계산 대기 2명 · 완갑 제외 8 · 상급 재련 미산정 8");
+  const more = structuredClone(data);
+  more.coverage.pending = 0;
+  more.equipment.characters[0].excluded.push({ slot: "투구", name: null, reason: "PRICE_UNAVAILABLE", message: "x" });
+  more.gems.unpriced = 3;
+  assert.equal(excludedSummary(more), "완갑 제외 8 · 상급 재련 미산정 8 · 시세 없음 1 · 보석 환산 못 함 3개");
+  const clean = structuredClone(more);
+  clean.gems.unpriced = 0;
+  for (const row of clean.equipment.characters) row.excluded = [];
+  assert.equal(excludedSummary(clean), "");
+
+  const [ready] = data.equipment.characters;
+  assert.deepEqual(rowMarker(ready), { partial: false, text: "제외 2" });
+  assert.deepEqual(rowMarker({ ...ready, complete: false }), { partial: true, text: "일부" });
+  assert.equal(rowMarker({ ...ready, excluded: [] }), null);
+  assert.equal(rowMarker(data.equipment.characters[9]), null);
 });
 
 test("receipt off is a 404 that is not 'character not found'", () => {
