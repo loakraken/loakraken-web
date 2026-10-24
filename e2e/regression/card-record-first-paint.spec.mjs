@@ -9,6 +9,14 @@ const traitTop = (page) =>
     return h ? Math.round(h.getBoundingClientRect().top + scrollY) : null;
   });
 
+// The combat tab mounts on the client: read 특성 from the frame it first shows
+// (not a fixed delay, which can land mid-mount on a busy machine).
+const firstTraitTop = async (page) => {
+  await expect(page.getByRole("heading", { name: /^특성/ }).first()).toBeVisible();
+  await page.evaluate(() => new Promise((ok) => requestAnimationFrame(() => requestAnimationFrame(ok))));
+  return traitTop(page);
+};
+
 for (const width of [320, 360, 390, 1280])
   test(`@카드기록 ${width}: 첫 HTML에 있고 특성 위치가 그대로 @regression`, async ({ page, request }) => {
     // In the server's HTML, before any script runs.
@@ -18,8 +26,7 @@ for (const width of [320, 360, 390, 1280])
 
     await page.setViewportSize({ width, height: 900 });
     await page.goto(characterPath("상세"), { waitUntil: "domcontentloaded" });
-    await page.waitForTimeout(400);
-    const early = await traitTop(page);
+    const early = await firstTraitTop(page);
     expect(early, "특성 제목").not.toBeNull();
     await page.waitForTimeout(6000);
     // Within a pixel: a sub-pixel position can round either way (nothing above it changes height).
@@ -33,7 +40,7 @@ for (const width of [320, 360, 390, 1280])
     await page.setViewportSize({ width, height: 900 });
     await page.goto(characterPath("카드늦음"), { waitUntil: "domcontentloaded" });
     await expect(page.getByRole("status").filter({ hasText: "카드 기록을 불러오고 있어요" })).toHaveCount(1);
-    const early = await traitTop(page);
+    const early = await firstTraitTop(page);
     const record = page.getByRole("region", { name: "원정대 카드 기록" });
     const heightOf = () => record.evaluate((el) => Math.round(el.getBoundingClientRect().height));
     const holding = await heightOf();
