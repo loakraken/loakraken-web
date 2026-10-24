@@ -108,14 +108,16 @@ function RankPlaceholder() {
             {SCOPES.map((scope) => (
               <li key={scope.id}>
                 <span className={styles.scope}>{scope.label}</span>
-                <strong>{" "}</strong>
-                <small>{" "}</small>
-                {/* The share and tier badge line is held (unseen) so a filled row is no taller. */}
+                {/* A filled box's lines with its own kind of text, unseen: Korean
+                    words set a taller line than spaces would, so the row is held
+                    to the height it will have. */}
+                <strong className={styles.unseen}>1위</strong>
+                <small className={styles.unseen}>/ 1명</small>
                 <span className={`${styles.top} ${styles.unseen}`}>
-                  <span className={styles.share}>-</span>
-                  <span className={styles.tier}>-</span>
+                  <span className={styles.share}>상위 1%</span>
+                  <span className={styles.tier}>연안</span>
                 </span>
-                <small className={styles.next}>{" "}</small>
+                <small className={`${styles.next} ${styles.unseen}`}>연안까지 1</small>
               </li>
             ))}
           </ul>
