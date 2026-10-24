@@ -102,8 +102,10 @@ function RankPlaceholder() {
       {METRICS.map((metric) => (
         <section key={metric.id} className={styles.metric} aria-hidden="true">
           <h3>{metric.label}</h3>
-          <ul className={styles.cells} data-count={3}>
-            {SCOPES.slice(0, 3).map((scope) => (
+          {/* Four boxes (two rows of two): the backend sends the server-class
+              scope for ranked characters, so this is the usual filled shape. */}
+          <ul className={styles.cells} data-count={SCOPES.length}>
+            {SCOPES.map((scope) => (
               <li key={scope.id}>
                 <span className={styles.scope}>{scope.label}</span>
                 <strong>{" "}</strong>
