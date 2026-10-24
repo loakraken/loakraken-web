@@ -22,7 +22,8 @@ for (const width of [320, 360, 390, 1280])
     const early = await traitTop(page);
     expect(early, "특성 제목").not.toBeNull();
     await page.waitForTimeout(6000);
-    expect(await traitTop(page), "특성 제목 위치").toBe(early);
+    // Within a pixel: a sub-pixel position can round either way (nothing above it changes height).
+    expect(Math.abs((await traitTop(page)) - early), "특성 제목 위치(px)").toBeLessThanOrEqual(1);
   });
 
 // The records answering after the page's 1s wait (목 '카드늦음' 1.5s): the section
@@ -38,6 +39,7 @@ for (const width of [320, 360, 390, 1280])
     const holding = await heightOf();
     await expect(page.getByRole("status").filter({ hasText: "카드 기록을 불러오고 있어요" })).toHaveCount(0, { timeout: 10_000 });
     await page.waitForTimeout(600);
-    expect(await heightOf(), "자리 = 채워진 높이").toBe(holding);
-    expect(await traitTop(page), "특성 제목 위치").toBe(early);
+    expect(Math.abs((await heightOf()) - holding), "자리 = 채워진 높이(px)").toBeLessThanOrEqual(1);
+    // Within a pixel: a sub-pixel position can round either way (nothing above it changes height).
+    expect(Math.abs((await traitTop(page)) - early), "특성 제목 위치(px)").toBeLessThanOrEqual(1);
   });

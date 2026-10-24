@@ -14,6 +14,9 @@ import { useCrossfade } from "@/lib/motion";
 import { HelpInfo } from "@/components/stats/basis-note";
 import { useTallest } from "@/components/ui/use-tallest";
 
+const NOTE =
+  "LOAKraken에서 검색된 원정대 캐릭터의 장착 카드를 기록해요. 이후 각성을 올렸다면 그 캐릭터를 다시 검색하면 갱신돼요.";
+
 /**
  * While the records load (only when the page's own 1s wait ran out, #1043):
  * the usual filled shape — six recorded element slots and the two folded
@@ -49,6 +52,7 @@ function CardRecordPlaceholder() {
             </summary>
           </details>
         ))}
+        <p className={styles.note}>{NOTE}</p>
       </div>
     </>
   );
@@ -222,10 +226,7 @@ export function CardCollection({ name }: { name: string }) {
               </ul>
             </details>
           )}
-          <p className={styles.note}>
-            LOAKraken에서 검색된 원정대 캐릭터의 장착 카드를 기록해요. 이후 각성을
-            올렸다면 그 캐릭터를 다시 검색하면 갱신돼요.
-          </p>
+          <p className={styles.note}>{NOTE}</p>
         </>
       )}
     </section>
