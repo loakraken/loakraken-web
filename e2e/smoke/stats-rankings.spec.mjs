@@ -31,6 +31,29 @@ test.describe("통계 @smoke", () => {
     await expect(page).toHaveURL(/role=SUPPORT/);
   });
 
+  test("아이템 레벨은 1,640(기본)·1,700 중에서 바로 고르고, 다른 값은 직접 넣는다", async ({ page }) => {
+    await gotoReady(page, "/stats");
+    const form = page.getByRole("form", { name: "통계 조건" });
+    const presets = form.getByRole("group", { name: "아이템 레벨 바로 고르기" });
+    const field = form.getByRole("textbox", { name: "아이템 레벨 이상" });
+    // 1,640 is the backend default: pressed, and nothing is sent for it.
+    await expect(presets.getByRole("button", { name: "1,640" })).toHaveAttribute("aria-pressed", "true");
+    const request = page.waitForRequest(/\/api\/stats\/summary\?.*itemLevelMin=1700/);
+    await presets.getByRole("button", { name: "1,700" }).click();
+    await request;
+    await expect(page).toHaveURL(/itemLevelMin=1700/);
+    await expect(field).toHaveValue("1700");
+    await expect(presets.getByRole("button", { name: "1,700" })).toHaveAttribute("aria-pressed", "true");
+    await presets.getByRole("button", { name: "1,640" }).click();
+    await expect(page).not.toHaveURL(/itemLevelMin/);
+    await expect(field).toHaveValue("");
+    // A typed level leaves both presets up.
+    await field.fill("1680");
+    await expect(page).toHaveURL(/itemLevelMin=1680/);
+    await expect(presets.getByRole("button", { pressed: true })).toHaveCount(0);
+    await expectNoHorizontalOverflow(page);
+  });
+
   test("분포 탭에서 내 전투력의 위치를 알려 준다", async ({ page }) => {
     await gotoReady(page, "/stats?tab=distribution");
     const panel = page.getByRole("tabpanel", { name: "분포" });
