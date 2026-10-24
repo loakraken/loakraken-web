@@ -5,6 +5,10 @@
 import { test, expect, gotoReady, expectNoHorizontalOverflow } from "../support/fixtures.mjs";
 import { shiftsDuring, watchShifts } from "../support/shifts.mjs";
 
+// The listings box scrolls sideways on a phone by design, never up and down: a
+// press area or ring past the last row would add a vertical scrollbar.
+const extraHeight = (table) => table.evaluate((t) => { const box = t.closest('[data-slot="data-table"]'); return box.scrollHeight - box.clientHeight; });
+
 const BOARDS = [
   { name: "보석", path: "/market/gems?kind=겁화&level=10", table: "보석 매물", kind: "보석", effect: "보석 효과" },
   { name: "장신구", path: "/market/accessories?slot=NECKLACE&levels=HIGH", table: "장신구 매물", kind: "목걸이", effect: "연마 효과" },
@@ -42,6 +46,7 @@ for (const width of [320, 360, 390, 1280])
       await expect(page.getByRole("dialog")).toHaveCount(0);
       expect(asked, "펼쳐도 요청 없음").toEqual([]);
       await expectNoHorizontalOverflow(page);
+      expect(await extraHeight(table), "매물 상자 세로 넘침(px)").toBe(0);
 
       // A second row opens too; the first stays open.
       const second = table.getByRole("rowheader").nth(1).getByRole("button");
@@ -86,5 +91,6 @@ test.describe("터치", () => {
       await expect(page.locator(`#${await open.getAttribute("aria-controls")}`)).toBeVisible();
       await expect(page.getByRole("dialog")).toHaveCount(0);
       await expectNoHorizontalOverflow(page);
+      expect(await extraHeight(page.getByRole("region", { name: board.table })), "매물 상자 세로 넘침(px)").toBe(0);
     });
 });
