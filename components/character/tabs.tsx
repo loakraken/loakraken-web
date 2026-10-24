@@ -1625,14 +1625,15 @@ export function CombatTab({ data }: { data: Character }) {
           <ArkGridPanel data={data} />
           <CardsPanel data={data} />
         </div>
-        {/* 특성 → 각인 → 아크 패시브 → 순위 → 조회수 (v0.3.2): the official
-            order first, the rank under it — the banner already says the rank
-            at the top. The rank block holds its height while it loads. */}
+        {/* 순위 → 특성 → 각인 → 아크 패시브 → 조회수 (v0.3.2): the rank stays
+            on top where it has always been (user 10-25), then the official
+            order. The rank block holds its height while it loads, so nothing
+            under it moves. */}
         <aside className={styles.stack} aria-label="요약">
+          <RankPanel name={data.characterName} />
           <StatsPanel data={data} />
           <EngravingsPanel data={data} />
           <ArkPassiveSummary data={data} />
-          <RankPanel name={data.characterName} />
           <ViewsPanel name={data.characterName} />
         </aside>
       </div>
