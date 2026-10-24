@@ -2,8 +2,11 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   categoryOfPath,
+  dayKinds,
   isScheduleCategory,
+  mergeSameRounds,
   resetLeft,
+  running,
   scheduleGroups,
   schedulePath,
   upcomingRounds,
@@ -74,6 +77,46 @@ test("upcoming: next round today per group with the names starting then", () => 
       ["새 분류", at("20:00"), ["새 일정"]],
     ],
   );
+});
+
+test("chaos gates with the same rounds and rewards are one row naming the category, places kept", () => {
+  const gate = (name: string, minItemLevel: number, times = ["18:50", "19:50"]) => ({ ...timed(name, times), minItemLevel });
+  const gates = [gate("일렁이는 악마군단", 1580), gate("쿠르잔 북부", 1600), gate("베른 남부", 1580)];
+  const merged = mergeSameRounds(gates, "카오스게이트");
+  assert.equal(merged.length, 1);
+  assert.equal(merged[0].name, "카오스게이트");
+  assert.equal(merged[0].minItemLevel, 1580);
+  assert.deepEqual(merged[0].places?.map((place) => [place.name, place.minItemLevel]), [
+    ["일렁이는 악마군단", 1580],
+    ["쿠르잔 북부", 1600],
+    ["베른 남부", 1580],
+  ]);
+  // One unlike the rest stays as it is.
+  const mixed = mergeSameRounds([...gates, gate("다른 회차", 1640, ["20:50"])], "카오스게이트");
+  assert.deepEqual(mixed.map((row) => [row.name, row.places?.length ?? 0]), [["카오스게이트", 3], ["다른 회차", 0]]);
+  // A single gate is not renamed.
+  assert.deepEqual(mergeSameRounds([gates[0]], "카오스게이트").map((row) => row.name), ["일렁이는 악마군단"]);
+  // The upcoming strip names the merged row once, not each place.
+  const now = Date.parse(at("19:05"));
+  const rounds = upcomingRounds(scheduleGroups({ ...day, chaosGates: gates } as Schedule), now);
+  assert.deepEqual(rounds.find((round) => round.key === "chaos-gate")?.names, ["카오스게이트"]);
+});
+
+test("day kinds for the date line", () => {
+  const on = (data: Schedule) => dayKinds(data).map((kind) => [kind.label, kind.on]);
+  assert.deepEqual(on(day), [["카오스게이트", true], ["필드 보스", false]]);
+  assert.deepEqual(on({ ...day, chaosGates: [], fieldBosses: day.chaosGates } as Schedule), [["카오스게이트", false], ["필드 보스", true]]);
+  assert.deepEqual(on({ ...day, chaosGates: [] } as Schedule), [["카오스게이트", false], ["필드 보스", false]]);
+});
+
+test("a listed entry with no round that day is not open: no dot, no row", () => {
+  // The official week lists every entry of the category; days off have startTimes [].
+  const off = { ...day, fieldBosses: [timed("세베크 아툰", [])], chaosGates: [timed("일렁이는 악마군단", [])] } as Schedule;
+  assert.deepEqual(dayKinds(off).map((kind) => kind.on), [false, false]);
+  const groups = scheduleGroups(off);
+  assert.equal(groups.find((group) => group.key === "chaos-gate")?.items.length, 0);
+  assert.equal(groups.find((group) => group.key === "field-boss")?.items.length, 0);
+  assert.equal(running([timed("a", []), timed("b", ["19:00"])]).length, 1);
 });
 
 test("weekly reset: Wednesday 06:00 KST", () => {

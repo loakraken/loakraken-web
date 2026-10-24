@@ -11,7 +11,7 @@ test("frontmatter: key: value lines, quotes dropped, CRLF and BOM tolerated", ()
 
 test("a note needs the file name shape and a title; the date falls back to the file name", () => {
   const note = readNote("2026-10-12-older-note.md", "---\ntitle: 지난 노트\nsummary: 요약\n---\n본문");
-  assert.deepEqual(note, { slug: "2026-10-12-older-note", title: "지난 노트", date: "2026-10-12", summary: "요약", body: "본문" });
+  assert.deepEqual(note, { slug: "2026-10-12-older-note", title: "지난 노트", date: "2026-10-12", summary: "요약", pinned: false, body: "본문" });
   assert.equal(readNote("2026-10-12-x.md", "---\ndate: 2026-10-13\n---\n제목 없음"), null);
   assert.equal(readNote("README.md", "---\ntitle: 안내\n---\n"), null);
   assert.equal(readNote("2026-10-12-Upper.md", "---\ntitle: 대문자 주소\n---\n"), null);
@@ -20,11 +20,30 @@ test("a note needs the file name shape and a title; the date falls back to the f
 
 test("newest first, the same day by address", () => {
   const notes = [
-    { slug: "2026-10-12-a", title: "", date: "2026-10-12", summary: "" },
-    { slug: "2026-10-19-a", title: "", date: "2026-10-19", summary: "" },
-    { slug: "2026-10-19-b", title: "", date: "2026-10-19", summary: "" },
+    { slug: "2026-10-12-a", title: "", date: "2026-10-12", summary: "", pinned: false },
+    { slug: "2026-10-19-a", title: "", date: "2026-10-19", summary: "", pinned: false },
+    { slug: "2026-10-19-b", title: "", date: "2026-10-19", summary: "", pinned: false },
   ];
   assert.deepEqual([...notes].sort(byNewest).map((n) => n.slug), ["2026-10-19-b", "2026-10-19-a", "2026-10-12-a"]);
+});
+
+test("pinned: true keeps a note on top, several by date; anything else is not pinned", () => {
+  const pinned = (value: string) => readNote("2026-10-12-x.md", `---\ntitle: t\npinned: ${value}\n---\n`)?.pinned;
+  assert.equal(pinned("true"), true);
+  assert.equal(pinned("\"true\""), true);
+  assert.equal(pinned("TRUE"), true);
+  for (const value of ["false", "yes", "1", ""]) assert.equal(pinned(value), false, value);
+  assert.equal(readNote("2026-10-12-x.md", "---\ntitle: t\n---\n")?.pinned, false);
+  const notes = [
+    { slug: "2026-10-19-new", title: "", date: "2026-10-19", summary: "", pinned: false },
+    { slug: "2026-10-01-old-pin", title: "", date: "2026-10-01", summary: "", pinned: true },
+    { slug: "2026-10-12-mid", title: "", date: "2026-10-12", summary: "", pinned: false },
+    { slug: "2026-10-15-new-pin", title: "", date: "2026-10-15", summary: "", pinned: true },
+  ];
+  assert.deepEqual(
+    [...notes].sort(byNewest).map((n) => n.slug),
+    ["2026-10-15-new-pin", "2026-10-01-old-pin", "2026-10-19-new", "2026-10-12-mid"],
+  );
 });
 
 test("inline: bold, code, safe links; anything else stays text", () => {

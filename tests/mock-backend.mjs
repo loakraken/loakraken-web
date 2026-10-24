@@ -590,6 +590,10 @@ createServer(async (req, res) => {
       },
     });
   }
+  // The filter switched off on the backend (MARKET_GEM_FILTER_ENABLED=false)
+  // while a shared address still names a class: '필터꺼짐' answers as it would.
+  if (url.pathname === "/api/v1/markets/auctions/gems/listings" && url.searchParams.get("className") === "필터꺼짐")
+    return send({ code: "GEM_FILTER_DISABLED", message: "직업·스킬 필터가 꺼져 있습니다." }, 404);
   if (url.pathname === "/api/v1/markets/auctions/gems/listings" && url.searchParams.get("className")) {
     const kind = url.searchParams.get("kind");
     const level = Number(url.searchParams.get("level"));
@@ -1124,12 +1128,15 @@ createServer(async (req, res) => {
           { ...timed("라일라이 아일랜드", `${cdn}/island_icon/island_icon_43.png`, 635, islandTimes, island(rw("해적 주화", "일반", true))), rewardKinds: ["PIRATE_COIN"] },
           { ...timed("볼라르 섬", `${cdn}/island_icon/island_icon_53.png`, 1100, islandTimes), rewardKinds: ["SILLING"] },
         ],
-        fieldBosses: day % 2 ? [timed("세베크 아툰", null, 1460, times(11, 13, 15, 17, 19, 21, 23), [{ minItemLevel: null, rewards: [rw("영웅 카드 팩", "영웅"), rw("실링", "일반")] }])] : [],
-        chaosGates: day % 2 ? [] : [timed("일렁이는 악마군단", null, 1580, timesAt(50, 10, 12, 14, 16, 18, 20, 22, 23), [
+        // Like the official week: every entry of the category is listed every day, with no rounds
+        // (startTimes []) on the days it is not open — field bosses on odd dates, chaos gates on even.
+        fieldBosses: [timed("세베크 아툰", null, 1460, day % 2 ? times(11, 13, 15, 17, 19, 21, 23) : [], [{ minItemLevel: null, rewards: [rw("영웅 카드 팩", "영웅"), rw("실링", "일반")] }])],
+        // The official calendar lists one chaos gate per place (13, same rounds and rewards).
+        chaosGates: ["일렁이는 악마군단", ...Array.from({ length: 12 }, (_, i) => `합성 지역 ${i + 2}`)].map((place) => timed(place, null, 1580, day % 2 ? [] : timesAt(50, 10, 12, 14, 16, 18, 20, 22, 23), [
           { minItemLevel: 1580, rewards: [rw("운명의 파편 주머니(소)", "희귀"), rw("1레벨 겁화의 보석", "고급"), rw("카드 경험치 카드", "일반")] },
           { minItemLevel: 1640, rewards: [rw("운명의 파편 주머니(중)", "영웅"), rw("2레벨 겁화의 보석", "희귀"), rw("카드 경험치 카드", "일반")] },
           { minItemLevel: 1680, rewards: [rw("운명의 파편 주머니(대)", "전설"), rw("3레벨 겁화의 보석", "희귀"), rw("카드 경험치 카드", "일반")] },
-        ])],
+        ])),
         others: [
           { category: "항해", ...timed("항해 협동 : 베른", null, 1, timesAt(30, 20, 22)) },
           { category: "로웬", ...timed("늑대들의 축제", null, 1, timesAt(20, 21)) },
@@ -2112,6 +2119,30 @@ createServer(async (req, res) => {
       option: null,
       icon: "identity.png",
     });
+  }
+  // 겁/작 labels: radiance (광휘) gems take 겁 or 작 from their official effect.
+  if (name === "광휘보석") {
+    const { gems } = envelope.data.loadout;
+    const gem = (slot, level, kind) => ({ ...gems.items[0], slot, name: `${level}레벨 ${kind}의 보석`, level, grade: "고대" });
+    const effect = (gemSlot, line) => ({ ...gems.effects.skills[0], gemSlot, name: "테스트 스킬", description: [line] });
+    gems.items = [gem(0, 10, "겁화"), gem(1, 8, "작열"), gem(2, 6, "광휘"), gem(3, 7, "광휘")];
+    gems.effects.skills = [
+      effect(0, "피해 40.00% 증가"),
+      effect(1, "재사용 대기시간 20.00% 감소"),
+      effect(2, "피해 28.00% 증가"),
+      effect(3, "재사용 대기시간 18.00% 감소"),
+    ];
+    envelope.data.analysis.gems = {
+      ...envelope.data.analysis.gems,
+      count: 4,
+      minLevel: 6,
+      maxLevel: 10,
+      averageLevel: 7.75,
+      levelDistribution: [6, 7, 8, 10].map((level) => ({ level, count: 1 })),
+      damageEffectCount: 2,
+      cooldownEffectCount: 2,
+      unknownEffectCount: 0,
+    };
   }
   // 특성 자세히 (§14.1 ④): stats with synthetic official-style tooltip lines.
   if (name === "특성상세") {

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Fragment, useEffect, useId, useRef, useState, type CSSProperties } from "react";
 import { useTallest } from "@/components/ui/use-tallest";
 import { classBuildsPath } from "@/lib/stats/class-builds";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { SiteHeader } from "@/components/site/site-header";
 import { Select } from "@/components/ui/select";
@@ -20,6 +20,7 @@ import {
   DISTRIBUTION_WIDTH,
   distributionKey,
   fixed,
+  parseDistributionView,
   percent,
   quantileScale,
   share,
@@ -28,6 +29,7 @@ import {
   statsKey,
   statsSearch,
   whole,
+  writeDistributionView,
   type QuantileRow,
   type Metric,
   type StatsMeta,
@@ -328,11 +330,22 @@ function ClassesTab({ query }: { query: StatsQuery }) {
 }
 
 function DistributionTab({ query }: { query: StatsQuery }) {
-  const [metric, setMetric] = useState<Metric>("COMBAT_POWER");
-  const [mine, setMine] = useState("");
-  const [asTable, setAsTable] = useState(false);
+  // Opened from the address (reload, back, a shared link); the page fetched
+  // this same view for the first HTML.
+  const params = useSearchParams();
+  const [opened] = useState(() => parseDistributionView(params));
+  const [metric, setMetric] = useState<Metric>(opened.metric);
+  const [mine, setMine] = useState(opened.percentileOf != null ? String(opened.percentileOf) : "");
+  const [asTable, setAsTable] = useState(opened.asTable);
   const value = useDebounced(mine);
   const percentileOf = value.trim() && Number.isFinite(Number(value)) ? Number(value) : undefined;
+  // The address follows the choices (a plain replaceState: no server round
+  // trip; the filters around it stay).
+  useEffect(() => {
+    const next = writeDistributionView({ metric, percentileOf, asTable }, new URLSearchParams(window.location.search));
+    const search = next.size ? `?${next}` : "";
+    if (search !== window.location.search) window.history.replaceState(null, "", `${window.location.pathname}${search}`);
+  }, [metric, percentileOf, asTable]);
   const dist = useQuery({
     queryKey: distributionKey(query, metric, percentileOf),
     queryFn: ({ signal }) =>
@@ -361,13 +374,16 @@ function DistributionTab({ query }: { query: StatsQuery }) {
           내 {label}
           <input
             id={inputId}
+            name="percentileOf"
             inputMode="decimal"
+            autoComplete="off"
             value={mine}
             onChange={(e) => setMine(e.target.value.replace(/[^\d.]/g, ""))}
             placeholder={metric === "ITEM_LEVEL" ? "1720" : "3200"}
           />
         </label>
-        <button type="button" className={styles.textButton} aria-pressed={asTable} onClick={() => setAsTable((v) => !v)}>
+        {/* An action named for what it does next (no aria-pressed: "그래프로 보기, 눌림" read the opposite). */}
+        <button type="button" className={styles.textButton} onClick={() => setAsTable((v) => !v)}>
           {asTable ? "그래프로 보기" : "표로 보기"}
         </button>
       </div>
@@ -695,6 +711,9 @@ export function StatsView({
     setQuery(next);
     const params = statsSearch(next);
     if (nextTab !== "classes") params.set("tab", nextTab);
+    // A filter changed on the distribution tab keeps its metric, value and view.
+    if (nextTab === "distribution")
+      writeDistributionView(parseDistributionView(new URLSearchParams(window.location.search)), params);
     router.replace(params.size ? `?${params}` : "?", { scroll: false });
   }
   /** Typed levels apply 300 ms after the last keystroke, with the filters current then. */
