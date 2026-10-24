@@ -193,6 +193,21 @@ test.describe("스펙업 가이드 @smoke", () => {
     await expect.poll(() => lists).toBeGreaterThan(before);
   });
 
+  // api #642: 재련 상세의 숨결은 NONE 또는 OPTIMAL(회차마다 기대 비용이 가장 적은 개수). 영어 값을 그대로 보이지 않는다.
+  test("재련 상세의 숨결 OPTIMAL은 '숨결 회차마다 최적'으로 보인다", async ({ page }) => {
+    await page.route("**/api/characters/spec-up/candidates/**", async (route) => {
+      const res = await route.fetch();
+      const body = await res.json();
+      body.envelope.data.refine.breath = "OPTIMAL";
+      await route.fulfill({ response: res, json: body });
+    });
+    await page.goto(characterPath(NAME, "specup"));
+    await page.getByRole("table", { name: /스펙업 후보/ }).getByRole("button", { name: "+20 테스트 무기" }).click();
+    const card = page.getByRole("dialog");
+    await expect(card).toContainText("숨결 회차마다 최적");
+    await expect(card).not.toContainText("OPTIMAL");
+  });
+
   // PM-프론트 #901 P1(A7): 휴대폰에서 줄을 누르면 상세가 다 온 뒤 최종 크기로 열린다 — 연 직후 1.5초 흔들림 0.
   test("좁은 화면: 줄을 눌러 상세를 열어도 창이 커지며 움직이지 않는다", async ({ page }) => {
     await page.setViewportSize({ width: 360, height: 800 });
