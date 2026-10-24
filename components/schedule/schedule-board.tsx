@@ -31,6 +31,7 @@ import {
   categoryOfPath,
   dayKinds,
   mergeSameRounds,
+  running,
   scheduleGroups,
   schedulePath,
   type Place,
@@ -585,7 +586,7 @@ export function ScheduleBoard({
             hidePast={hidePast}
             onShowTomorrow={showTomorrow}
             levelInDetail
-            items={mergeSameRounds(data.chaosGates, "카오스게이트")}
+            items={mergeSameRounds(running(data.chaosGates), "카오스게이트")}
             live={live}
             clock={now}
           />
@@ -594,7 +595,7 @@ export function ScheduleBoard({
             hidePast={hidePast}
             onShowTomorrow={showTomorrow}
             levelInDetail
-            items={mergeSameRounds(data.fieldBosses, "필드 보스")}
+            items={mergeSameRounds(running(data.fieldBosses), "필드 보스")}
             live={live}
             clock={now}
           />
@@ -614,8 +615,8 @@ export function ScheduleBoard({
             </details>
           )}
           {!data.adventureIslands.length &&
-            !data.chaosGates.length &&
-            !data.fieldBosses.length && (
+            !running(data.chaosGates).length &&
+            !running(data.fieldBosses).length && (
               <p className={styles.muted}>
                 이 날은 모험 섬·카오스게이트·필드 보스 일정이 없어요.
               </p>

@@ -66,6 +66,8 @@ for (const scheme of ["light", "dark"])
       // A field boss day: the boss keeps its name, its level only in 자세히.
       const bossDay = await pickDay(page, false);
       await expect(line).toHaveText(`${bossDay.today ? "오늘" : "이 날"}: 카오스게이트 없음 · 필드 보스`);
+      // The week lists every chaos gate with no rounds today: no row for them, only the line above.
+      await expect(page.getByRole("region", { name: "카오스게이트", exact: true })).toHaveCount(0);
       const bosses = page.getByRole("region", { name: "필드 보스", exact: true });
       await expect(bosses.locator("strong").first()).toHaveText("세베크 아툰");
       await expect(bosses).not.toContainText("1,460 이상");

@@ -1128,9 +1128,11 @@ createServer(async (req, res) => {
           { ...timed("라일라이 아일랜드", `${cdn}/island_icon/island_icon_43.png`, 635, islandTimes, island(rw("해적 주화", "일반", true))), rewardKinds: ["PIRATE_COIN"] },
           { ...timed("볼라르 섬", `${cdn}/island_icon/island_icon_53.png`, 1100, islandTimes), rewardKinds: ["SILLING"] },
         ],
-        fieldBosses: day % 2 ? [timed("세베크 아툰", null, 1460, times(11, 13, 15, 17, 19, 21, 23), [{ minItemLevel: null, rewards: [rw("영웅 카드 팩", "영웅"), rw("실링", "일반")] }])] : [],
+        // Like the official week: every entry of the category is listed every day, with no rounds
+        // (startTimes []) on the days it is not open — field bosses on odd dates, chaos gates on even.
+        fieldBosses: [timed("세베크 아툰", null, 1460, day % 2 ? times(11, 13, 15, 17, 19, 21, 23) : [], [{ minItemLevel: null, rewards: [rw("영웅 카드 팩", "영웅"), rw("실링", "일반")] }])],
         // The official calendar lists one chaos gate per place (13, same rounds and rewards).
-        chaosGates: day % 2 ? [] : ["일렁이는 악마군단", ...Array.from({ length: 12 }, (_, i) => `합성 지역 ${i + 2}`)].map((place) => timed(place, null, 1580, timesAt(50, 10, 12, 14, 16, 18, 20, 22, 23), [
+        chaosGates: ["일렁이는 악마군단", ...Array.from({ length: 12 }, (_, i) => `합성 지역 ${i + 2}`)].map((place) => timed(place, null, 1580, day % 2 ? [] : timesAt(50, 10, 12, 14, 16, 18, 20, 22, 23), [
           { minItemLevel: 1580, rewards: [rw("운명의 파편 주머니(소)", "희귀"), rw("1레벨 겁화의 보석", "고급"), rw("카드 경험치 카드", "일반")] },
           { minItemLevel: 1640, rewards: [rw("운명의 파편 주머니(중)", "영웅"), rw("2레벨 겁화의 보석", "희귀"), rw("카드 경험치 카드", "일반")] },
           { minItemLevel: 1680, rewards: [rw("운명의 파편 주머니(대)", "전설"), rw("3레벨 겁화의 보석", "희귀"), rw("카드 경험치 카드", "일반")] },
