@@ -110,9 +110,10 @@ function RankPlaceholder() {
                 <span className={styles.scope}>{scope.label}</span>
                 <strong>{" "}</strong>
                 <small>{" "}</small>
-                {/* The tier badge's height is held (unseen) so a filled row is no taller. */}
-                <span className={styles.top}>
-                  <span className={`${styles.tier} ${styles.unseen}`}>-</span>
+                {/* The share and tier badge line is held (unseen) so a filled row is no taller. */}
+                <span className={`${styles.top} ${styles.unseen}`}>
+                  <span className={styles.share}>-</span>
+                  <span className={styles.tier}>-</span>
                 </span>
                 <small className={styles.next}>{" "}</small>
               </li>
