@@ -109,8 +109,15 @@ export function ListingCard({
 }
 
 /** Which rows are open (by listingKey); several at once, like the ark grid's cores. */
-export function useOpenRows() {
+export function useOpenRows(scope: string) {
   const [open, setOpen] = useState<ReadonlySet<string>>(() => new Set());
+  // A new list (another cell, page or filter) starts folded: the same listing
+  // may be on it too, and it would open by itself and push the rows down.
+  const [shown, setShown] = useState(scope);
+  if (shown !== scope) {
+    setShown(scope);
+    setOpen(new Set());
+  }
   const toggle = (key: string) =>
     setOpen((now) => {
       const next = new Set(now);

@@ -235,7 +235,7 @@ export function GemBoardView({
   const pages = page ? Math.max(1, Math.min(GEM_LISTING_MAX_PAGE, Math.ceil(page.totalCount / 10))) : 1;
 
   // A listing's details open below its row (its arrow); several may be open.
-  const rows = useOpenRows();
+  const rows = useOpenRows(JSON.stringify(pick));
   const detailId = useId();
 
   return (

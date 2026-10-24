@@ -175,7 +175,7 @@ export function AccessoryBoardView({ initialFilter, initialPick }: { initialFilt
   const pages = page ? Math.max(1, Math.min(ACCESSORY_LISTING_MAX_PAGE, Math.ceil(page.totalCount / 10))) : 1;
 
   // A listing's details open below its row (its arrow); several may be open.
-  const rows = useOpenRows();
+  const rows = useOpenRows(JSON.stringify([filter, pick]));
   const detailId = useId();
   const slotName = (pick && data?.slots.find((s) => s.slot === pick.slot)?.slotName) || "장신구";
   const latest = data?.slots

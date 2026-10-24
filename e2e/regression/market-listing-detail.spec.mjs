@@ -56,6 +56,23 @@ for (const width of [320, 360, 390, 1280])
       await expect(first).toBeFocused();
     });
 
+// Another page starts folded, and so does the first page on the way back
+// (the same listing would otherwise open by itself and push the rows down).
+test("@시세판상세 보석: 다른 쪽으로 가면 펼친 줄이 접힘 @regression", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await gotoReady(page, "/market/gems?kind=겁화&level=10");
+  const table = page.getByRole("region", { name: "보석 매물" });
+  const first = table.getByRole("rowheader").first().getByRole("button");
+  await first.click();
+  await expect(first).toHaveAttribute("aria-expanded", "true");
+  await page.getByRole("button", { name: "2", exact: true }).click();
+  await expect(page.getByRole("button", { name: "2", exact: true })).toHaveAttribute("aria-current", "page");
+  await expect(table.getByRole("button", { expanded: true })).toHaveCount(0);
+  await page.getByRole("button", { name: "1", exact: true }).click();
+  await expect(page.getByRole("button", { name: "1", exact: true })).toHaveAttribute("aria-current", "page");
+  await expect(table.getByRole("button", { expanded: true })).toHaveCount(0);
+});
+
 // Touch: the same arrow, a 44px press area, no sheet.
 test.describe("터치", () => {
   test.use({ viewport: { width: 360, height: 800 }, hasTouch: true, isMobile: true });
