@@ -592,6 +592,10 @@ createServer(async (req, res) => {
       },
     });
   }
+  // The filter switched off on the backend (MARKET_GEM_FILTER_ENABLED=false)
+  // while a shared address still names a class: '필터꺼짐' answers as it would.
+  if (url.pathname === "/api/v1/markets/auctions/gems/listings" && url.searchParams.get("className") === "필터꺼짐")
+    return send({ code: "GEM_FILTER_DISABLED", message: "직업·스킬 필터가 꺼져 있습니다." }, 404);
   if (url.pathname === "/api/v1/markets/auctions/gems/listings" && url.searchParams.get("className")) {
     const kind = url.searchParams.get("kind");
     const level = Number(url.searchParams.get("level"));

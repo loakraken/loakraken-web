@@ -10,6 +10,7 @@ import { themeInitScript } from "@/components/ui/theme-toggle";
 import { ThemeKeeper } from "@/components/ui/theme-keeper";
 import { earlyClickScript } from "@/lib/early-clicks";
 import { SiteLegal } from "@/components/site/site-legal";
+import { PerRoute } from "@/components/site/per-route";
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
@@ -75,7 +76,9 @@ export default function RootLayout({ children }: Readonly<{
         <script dangerouslySetInnerHTML={{ __html: earlyClickScript }} />
         <ThemeKeeper />
         <Providers>{children}</Providers>
-        <SiteLegal />
+        <PerRoute>
+          <SiteLegal />
+        </PerRoute>
       </body>
     </html>
   );
