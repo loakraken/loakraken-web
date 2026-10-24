@@ -1,6 +1,12 @@
 // 스펙업 가이드 탭(백엔드 #318, PM-프론트 10-11 16:37 ⑤). 목 서버는 백엔드 표본을 그대로 준다:
 // OK 3개(보석 8→9 62만G·8→10 262만G, 무기 품질 비용 미확인) + 계산 못 한 후보는 이유별 한 줄.
+import { readFileSync } from "node:fs";
 import { test, expect, characterPath, expectNoHorizontalOverflow } from "../support/fixtures.mjs";
+
+/** The refine step of the saved api sample (breath NONE there). */
+const REFINE = JSON.parse(
+  readFileSync(new URL("../../tests/spec-up-fixtures/character-spec-up-detail-refine.json", import.meta.url), "utf8"),
+).data.refine;
 
 const NAME = "전투력계산";
 
@@ -198,8 +204,8 @@ test.describe("스펙업 가이드 @smoke", () => {
     await page.route("**/api/characters/spec-up/candidates/**", async (route) => {
       const res = await route.fetch();
       const body = await res.json();
-      // A detail without a refine step stays as it is (the text check then fails, not the request).
-      if (body.envelope?.data?.refine) body.envelope.data.refine.breath = "OPTIMAL";
+      // The mock's details have no refine step: the saved api sample's, with api #642's value.
+      body.envelope.data.refine = { ...REFINE, breath: "OPTIMAL" };
       await route.fulfill({ response: res, json: body });
     });
     await page.goto(characterPath(NAME, "specup"));
