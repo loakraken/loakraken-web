@@ -81,6 +81,20 @@ test.describe("랭킹 @smoke", () => {
     await expect(page.getByRole("table", { name: "아이템 레벨 랭킹 1쪽" })).toBeVisible();
   });
 
+  for (const path of ["/rankings", "/rankings?type=bracelets"])
+    test(`${path}: 아이템 레벨 1,640(기본)·1,700을 통계와 같이 바로 고른다`, async ({ page }) => {
+      await gotoReady(page, path);
+      const form = page.getByRole("form", { name: "랭킹 조건" });
+      const presets = form.getByRole("group", { name: "아이템 레벨 바로 고르기" });
+      await expect(presets.getByRole("button", { name: "1,640" })).toHaveAttribute("aria-pressed", "true");
+      await presets.getByRole("button", { name: "1,700" }).click();
+      await expect(page).toHaveURL(/itemLevelMin=1700/);
+      await expect(form.getByRole("textbox", { name: "아이템 레벨 이상" })).toHaveValue("1700");
+      await presets.getByRole("button", { name: "1,640" }).click();
+      await expect(page).not.toHaveURL(/itemLevelMin/);
+      await expectNoHorizontalOverflow(page);
+    });
+
   test("다음 쪽으로 넘긴다", async ({ page }) => {
     await gotoReady(page, "/rankings");
     await page.getByRole("link", { name: "다음" }).or(page.getByRole("button", { name: "다음" })).first().click();

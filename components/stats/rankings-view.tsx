@@ -16,6 +16,7 @@ import { conditionsKey, fixed, percent, sampleText, whole } from "@/lib/stats/mo
 import { MAX_PAGE, PAGE_SIZE, arkPassiveText, estherText, rankingSearch, type RankingQuery } from "@/lib/stats/rankings";
 import quote from "@/components/tools/material-quote.module.css";
 import styles from "./stats.module.css";
+import { LevelPresets } from "./level-presets";
 import { rankingColumns } from "./ranking-columns";
 import { BasisNote } from "./basis-note";
 import { RankingTypeTabs, type RankingType } from "./ranking-type-tabs";
@@ -71,6 +72,12 @@ export function RankingsView({ initial, types }: { initial: RankingQuery; types:
     }, 300);
   }
   useEffect(() => () => clearTimeout(levelTimer.current), []);
+  /** A preset replaces whatever was typed and applies at once. */
+  function pickLevel(value: number | undefined) {
+    clearTimeout(levelTimer.current);
+    setLevelText(value != null ? String(value) : "");
+    if (value !== latest.current.itemLevelMin) filter({ itemLevelMin: value });
+  }
 
   const metricLabel = query.metric === "ITEM_LEVEL" ? "아이템 레벨" : "전투력";
   const pageWindow = Array.from({ length: Math.min(pages, 7) }, (_, i) => {
@@ -154,6 +161,7 @@ export function RankingsView({ initial, types }: { initial: RankingQuery; types:
               onChange={(e) => typeLevel(e.target.value.replace(/[^\d.]/g, ""))}
             />
           </label>
+          <LevelPresets level={query.itemLevelMin} onPick={pickLevel} />
         </form>
 
         {data && (
