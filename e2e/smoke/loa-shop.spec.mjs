@@ -2,20 +2,22 @@
 // 블루 크리스탈 100개 = 로열 크리스탈 2,750은 공식 상점. 재료 시세는 목 서버 합성 시세라
 // 값 자체가 아니라 계산 관계와 표시 규칙(미확인, 교환소 시세가 없으면 이득 없음)을 본다.
 import { test, expect, gotoReady, expectNoHorizontalOverflow } from "../support/fixtures.mjs";
+import { shiftsSince, watchShifts } from "../support/shifts.mjs";
 
 const RATE = /게임 안 크리스탈 교환소 시세\(블루 크리스탈 100개당 골드\)/;
 
 test.describe("로아샵 효율 @smoke", () => {
-  // The packages are the checked notice's (2026-10-13); some end 2026-10-21 06:00 KST. The browser
+  // The packages are the official notices' (last checked 2026-10-22); some end 2026-10-21 06:00 KST. The browser
   // clock stays inside that sale week, so the tests do not start failing (and timing out) once the
   // real date passes it. The ended-sale test moves the clock past the end itself.
   test.beforeEach(async ({ page }) => {
     await page.clock.setFixedTime(new Date("2026-10-15T12:00:00+09:00"));
   });
+
   test("교환소 시세가 없으면 골드 가치와 판매가만, 기준일·판매 기간·구매 보너스 문구는 공지 그대로", async ({ page }) => {
     await gotoReady(page, "/tools/loa-shop");
     await expect(page.getByRole("heading", { level: 1, name: "로아샵 효율" })).toBeVisible();
-    await expect(page.getByText(/공식 상점 공지 기준 · 확인 2026-10-13/)).toBeVisible();
+    await expect(page.getByText(/공식 상점 공지 기준 · 확인 2026-10-22/)).toBeVisible();
     const growth = page.getByRole("region", { name: "[3+1] 월간 운명의 성장 패키지+" });
     await expect(growth.getByText("3회 구매 + 보너스 = 4세트 기준 (1회 33,000)")).toBeVisible();
     await expect(growth.getByText("본 상품 3회 구매 시, 동일한 구성품의 보너스 상품을 추가 지급합니다.")).toBeVisible();
@@ -72,6 +74,18 @@ test.describe("로아샵 효율 @smoke", () => {
   // PM 총괄 판정(#831): 판매가 끝난 패키지는 목록에서 빼고 아래 '지난 상품 n개' 접기(기본 접힘)에 둔다.
   // 종료 시각은 공지 기준 KST(정기 점검 전 = 수요일 06:00). 접기 제목은 누름 영역 44px이고, 펼쳐도
   // 위 내용은 움직이지 않는다. 브라우저 시계만 10월 22일로 옮겨 본다.
+  // 320: 시세 기준 세 개가 한 줄에 안 들어가 글꼴이 온 뒤 세로로 바뀌며 카드가 밀렸다(0.05).
+  // 좁은 화면에서는 처음 그릴 때부터 세로로 둔다.
+  test("320에서 처음 불러올 때 시세 기준이 처음부터 세로라 아래가 밀리지 않는다", async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 800 });
+    await watchShifts(page);
+    await gotoReady(page, "/tools/loa-shop");
+    await expect(page.getByRole("radiogroup", { name: "시세 기준" })).toHaveAttribute("data-orientation", "vertical");
+    await page.waitForTimeout(1500);
+    const shifts = await shiftsSince(page);
+    expect(shifts.all, `처음 불러올 때 밀린 요소: ${shifts.moved}`).toBe(0);
+  });
+
   test("판매가 끝난 패키지는 '지난 상품' 접기에 모이고, 펼쳐도 위가 움직이지 않는다", async ({ page }) => {
     await page.clock.setFixedTime(new Date("2026-10-22T12:00:00+09:00"));
     await gotoReady(page, "/tools/loa-shop");
