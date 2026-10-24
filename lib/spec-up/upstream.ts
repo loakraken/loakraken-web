@@ -63,11 +63,17 @@ export async function requestSpecUpDetail(
   candidateId: string,
   origin: string | undefined,
   options: Options = {},
+  includeCooldownGems: string | null = null,
 ): Promise<BackendResult<DetailEnvelope>> {
   if (characterNameError(characterName) || !CANDIDATE_ID.test(candidateId))
     return { ok: false, error: { code: "INVALID_REQUEST", status: 400 } };
   const url = backendUrl(origin, `/api/v1/characters/spec-up/candidates/${encodeURIComponent(candidateId)}`);
-  if (url) url.searchParams.set("characterName", normalizeCharacterName(characterName));
+  if (url) {
+    url.searchParams.set("characterName", normalizeCharacterName(characterName));
+    // api #588: only "true"/"false" pass; without it the backend looks among all candidates.
+    if (includeCooldownGems === "true" || includeCooldownGems === "false")
+      url.searchParams.set("includeCooldownGems", includeCooldownGems);
+  }
   return requestBackend(url, { ...options, isValid: isDetailEnvelope, errorCodes: detailErrorCodes });
 }
 
