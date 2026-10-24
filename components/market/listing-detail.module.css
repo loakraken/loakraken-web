@@ -47,15 +47,16 @@
   }
 }
 
-/* Touch: the press area grows to the row's height around the name (hit-44),
-   drawn by a pseudo-element so nothing moves. */
+/* Touch: the press area grows to the row's height around the name, drawn by a
+   pseudo-element so nothing moves. 8px = the cell's own padding: any more and
+   the last row's area ran past the table's scroll box, adding a scrollbar. */
 @media (pointer: coarse) {
   .name {
     position: relative;
   }
   .name::after {
     position: absolute;
-    inset: -12px -8px;
+    inset: -8px;
     content: "";
   }
 }
