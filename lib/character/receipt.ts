@@ -97,6 +97,56 @@ export function notIncludedText(data: Receipt) {
   return `${kinds} (${reasons})`;
 }
 
+export type TotalStatus = "COMPLETE" | "PARTIAL" | "UNAVAILABLE";
+
+/**
+ * How far the total can be trusted (backend #665 total.status): COMPLETE =
+ * everything counted; PARTIAL = only what could be counted, so the real sum
+ * is larger; UNAVAILABLE = something is missing and nothing was counted, so
+ * there is no amount to show (never "0G"). Without the field (a backend from
+ * before #665) or with a value this screen does not know, it is worked out
+ * from the same facts the backend uses, erring on the side of "partial".
+ */
+export function totalStatus(data: Receipt): TotalStatus {
+  const status = data.total.status;
+  if (status === "COMPLETE" || status === "PARTIAL" || status === "UNAVAILABLE") return status;
+  const missing =
+    status != null ||
+    data.coverage.pending > 0 ||
+    data.gems.unpriced > 0 ||
+    data.equipment.characters.some((c) => c.complete === false);
+  if (!missing) return "COMPLETE";
+  return data.total.gold > 0 ? "PARTIAL" : "UNAVAILABLE";
+}
+
+/**
+ * "계산 대기 2명 · 시세 없음 3 · 완갑 제외 8 · 보석 환산 못 함 1개": what the
+ * total leaves out and why, summed over the roster (counts per reason, in
+ * the order the reasons first appear). Empty when nothing is left out.
+ */
+export function excludedSummary(data: Receipt) {
+  const parts: string[] = [];
+  if (data.coverage.pending > 0) parts.push(`계산 대기 ${data.coverage.pending}명`);
+  const counts = new Map<string, number>();
+  for (const row of data.equipment.characters)
+    for (const item of row.excluded) counts.set(item.reason, (counts.get(item.reason) ?? 0) + 1);
+  for (const [reason, n] of counts) parts.push(`${excludedLabel(reason)} ${n.toLocaleString("ko-KR")}`);
+  if (data.gems.unpriced > 0) parts.push(`보석 환산 못 함 ${data.gems.unpriced}개`);
+  return parts.join(" · ");
+}
+
+/**
+ * Row marker: "일부" when the backend says this character was only partly
+ * counted (complete = false), "제외 N" when it counted everything it prices
+ * but left parts out by rule; null otherwise (and while pending).
+ */
+export function rowMarker(row: ReceiptCharacter): { partial: boolean; text: string } | null {
+  if (row.status === "PENDING") return null;
+  if (row.complete === false) return { partial: true, text: "일부" };
+  if (row.excluded.length > 0) return { partial: false, text: `제외 ${row.excluded.length}` };
+  return null;
+}
+
 /** "원정대 14명 중 6명 계산 · 8명 대기" while some characters are still pending. */
 export function coverageText(data: Receipt) {
   const c = data.coverage;
