@@ -198,7 +198,8 @@ test.describe("스펙업 가이드 @smoke", () => {
     await page.route("**/api/characters/spec-up/candidates/**", async (route) => {
       const res = await route.fetch();
       const body = await res.json();
-      body.envelope.data.refine.breath = "OPTIMAL";
+      // A detail without a refine step stays as it is (the text check then fails, not the request).
+      if (body.envelope?.data?.refine) body.envelope.data.refine.breath = "OPTIMAL";
       await route.fulfill({ response: res, json: body });
     });
     await page.goto(characterPath(NAME, "specup"));
