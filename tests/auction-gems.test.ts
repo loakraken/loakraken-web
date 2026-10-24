@@ -8,6 +8,7 @@ import {
   isGemListingsEnvelope,
   isGemSkillsEnvelope,
   parseGemPick,
+  pickAfterFailure,
   skillsFor,
 } from "../lib/market/auction-gems";
 
@@ -127,4 +128,13 @@ test("gem board and listings envelopes follow the contract", () => {
 test("a gem's target is its class and skill from the options", () => {
   assert.equal(gemTarget(listing), "바드 · 합성 스킬");
   assert.equal(gemTarget({ ...listing, options: [] }), null);
+});
+
+test("filter switched off: a shared address with a class asks again for the same cell without it", () => {
+  const shared = { kind: "겁화" as const, level: 10, page: 3, className: "바드", skill: 21170 };
+  assert.deepEqual(pickAfterFailure(shared, "GEM_FILTER_DISABLED"), { kind: "겁화", level: 10, page: 1, className: null, skill: null });
+  // Nothing to drop, or another failure: no second request.
+  assert.equal(pickAfterFailure({ kind: "겁화", level: 10, page: 1 }, "GEM_FILTER_DISABLED"), null);
+  assert.equal(pickAfterFailure(shared, "MARKET_SEARCH_BUSY"), null);
+  assert.equal(pickAfterFailure(shared, undefined), null);
 });

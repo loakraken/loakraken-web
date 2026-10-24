@@ -91,6 +91,17 @@ export function gemPickSearch(pick: GemPick) {
   return out;
 }
 
+/**
+ * The pick to ask for instead after a failed listings request: with the class
+ * filter switched off (404 GEM_FILTER_DISABLED), a shared address that still
+ * names a class or skill asks again for the same cell without them. null when
+ * there is nothing to drop or the failure is another one.
+ */
+export function pickAfterFailure(pick: GemPick, code: string | undefined): GemPick | null {
+  if (code !== "GEM_FILTER_DISABLED" || (!pick.className && !pick.skill)) return null;
+  return { kind: pick.kind, level: pick.level, page: 1, className: null, skill: null };
+}
+
 /** The skills of a class that can narrow listings of this kind (some only 겁화 or only 작열). */
 export const skillsFor = (classes: readonly GemClass[], className: string | null | undefined, kind: GemKind) =>
   (classes.find((c) => c.className === className)?.skills ?? []).filter((s) => s.kinds.includes(kind));

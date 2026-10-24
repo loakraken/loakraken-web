@@ -5,7 +5,10 @@ import {
   share,
   STATS_VIEWS,
   isStatsEnvelope,
+  parseDistributionView,
   parseStatsQuery,
+  withoutDistributionView,
+  writeDistributionView,
   quantileScale,
   sampleText,
   statsKey,
@@ -39,6 +42,19 @@ test("filters are allow-listed; any invalid value rejects the query", () => {
   assert.equal(statsSearch({ server: "아만", activeDays: 30 }).toString(), "server=%EC%95%84%EB%A7%8C&activeDays=30");
 });
 
+test("the distribution tab's choices ride in the address apart from the filters", () => {
+  const parse = (s: string) => parseDistributionView(new URLSearchParams(s));
+  assert.deepEqual(parse(""), { metric: "COMBAT_POWER", asTable: false });
+  assert.deepEqual(parse("metric=ITEM_LEVEL&percentileOf=1720.5&view=table"), { metric: "ITEM_LEVEL", percentileOf: 1720.5, asTable: true });
+  // A bad value drops only itself.
+  assert.deepEqual(parse("metric=GOLD&percentileOf=-1&view=grid"), { metric: "COMBAT_POWER", asTable: false });
+  const params = new URLSearchParams("tab=distribution&role=DEALER&view=table&metric=ITEM_LEVEL");
+  writeDistributionView({ metric: "COMBAT_POWER", percentileOf: 3000, asTable: false }, params);
+  assert.equal(params.toString(), "tab=distribution&role=DEALER&percentileOf=3000");
+  // The filters parse without them, so a bad typed value never resets a filter.
+  const filters = withoutDistributionView(new URLSearchParams("role=SUPPORT&percentileOf=-5&metric=GOLD&width=7&view=x"));
+  assert.deepEqual(parseStatsQuery(filters), { role: "SUPPORT" });
+});
 test("one cache entry per set of conditions: 30 days is the default, order does not matter (#540 P2)", () => {
   assert.equal(statsKey({}), statsKey({ activeDays: 30 }));
   assert.equal(statsKey({ server: "아만", role: "DEALER" }), statsKey({ role: "DEALER", server: "아만", activeDays: 30 }));

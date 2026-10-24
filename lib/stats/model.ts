@@ -137,6 +137,40 @@ export function conditionsKey(params: URLSearchParams) {
 }
 export const statsKey = (query: StatsQuery) => conditionsKey(statsSearch(query));
 
+/**
+ * The distribution tab's own choices, kept in the address so a reload or a
+ * shared link shows the same screen: ?metric=ITEM_LEVEL (combat power is the
+ * default), ?percentileOf=3200 (the typed value), ?view=table.
+ */
+export type DistributionView = { metric: Metric; percentileOf?: number; asTable: boolean };
+const DISTRIBUTION_KEYS = ["metric", "percentileOf", "view"] as const;
+
+/** Anything invalid falls back to the default for that choice only. */
+export function parseDistributionView(input: URLSearchParams): DistributionView {
+  const percentileOf = number(input.get("percentileOf"), 0, 100000);
+  return {
+    metric: input.get("metric") === "ITEM_LEVEL" ? "ITEM_LEVEL" : "COMBAT_POWER",
+    ...(percentileOf != null ? { percentileOf } : {}),
+    asTable: input.get("view") === "table",
+  };
+}
+
+/** Writes the choices into `params` (defaults left out); other keys stay. */
+export function writeDistributionView(view: DistributionView, params: URLSearchParams) {
+  for (const key of DISTRIBUTION_KEYS) params.delete(key);
+  if (view.metric !== "COMBAT_POWER") params.set("metric", view.metric);
+  if (view.percentileOf != null) params.set("percentileOf", String(view.percentileOf));
+  if (view.asTable) params.set("view", "table");
+  return params;
+}
+
+/** The filter part of an address: the distribution tab's choices taken out. */
+export function withoutDistributionView(params: URLSearchParams) {
+  const out = new URLSearchParams(params);
+  for (const key of [...DISTRIBUTION_KEYS, "width"]) out.delete(key);
+  return out;
+}
+
 /** Bin width per metric on the distribution tab. */
 export const DISTRIBUTION_WIDTH: Record<Metric, number> = { ITEM_LEVEL: 10, COMBAT_POWER: 100 };
 /** The distribution tab's query key (the page fills the default one in the first HTML). */

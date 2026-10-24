@@ -26,6 +26,7 @@ import {
   averageQuality,
   gemBaseAttack,
   gemKind,
+  isCooldownGem,
   engravingBookString,
   groupEquipment,
   isGrade,
@@ -820,6 +821,7 @@ function GemsPanel({ data }: { data: Character }) {
   const extra = useItemTooltips(data.characterName);
   const summary = data.analysis.gems;
   const baseAttack = gemBaseAttack(data.loadout.gems?.effects?.description);
+  const emptySlots = gemCounts(data.loadout.gems).empty;
   return (
     <Panel
       title="보석"
@@ -827,8 +829,10 @@ function GemsPanel({ data }: { data: Character }) {
         summary && gems.length
           ? [
               `평균 ${number(summary.averageLevel)}`,
-              `뎀 ${summary.damageEffectCount}`,
-              `쿨 ${summary.cooldownEffectCount}`,
+              `겁 ${summary.damageEffectCount}`,
+              `작 ${summary.cooldownEffectCount}`,
+              // Empty slots only when there are some (players read '미장착 1').
+              emptySlots > 0 && `미장착 ${emptySlots}`,
               baseAttack != null && `기본 공격력 +${baseAttack}%`,
             ]
               .filter(Boolean)
@@ -838,28 +842,33 @@ function GemsPanel({ data }: { data: Character }) {
     >
       {gems.length ? (
         <ul className={styles.gemGrid}>
-          {gems.map((gem, i) => (
-            <li key={i} {...stagger(i)}>
-              <DetailTooltip
-                name={gem.name ?? "보석"}
-                card={
-                  <GemCard
-                    gem={gem}
-                    skill={skills.find((skill) => skill.gemSlot === gem.slot)}
-                    className={data.className}
-                    lines={gemLines(extra, gem.slot)}
-                  />
-                }
-              >
-                <GameIcon src={gem.icon} grade={gem.grade} size={44} />
-              </DetailTooltip>
-              <span data-kind={gemKind(gem.name) ?? undefined}>
-                {gem.level != null && gem.level > 0 ? gem.level : "?"}
-                {gemKind(gem.name) ?? ""}
-              </span>
-              <small>{text(gem.name)}</small>
-            </li>
-          ))}
+          {gems.map((gem, i) => {
+            const skill = skills.find((effect) => effect.gemSlot === gem.slot);
+            // Players read gems as "10겁 8작"; the official name stays in the card.
+            const kind = gemKind(gem.name, skill?.description);
+            return (
+              <li key={i} {...stagger(i)}>
+                <DetailTooltip
+                  name={gem.name ?? "보석"}
+                  card={
+                    <GemCard
+                      gem={gem}
+                      skill={skill}
+                      className={data.className}
+                      lines={gemLines(extra, gem.slot)}
+                    />
+                  }
+                >
+                  <GameIcon src={gem.icon} grade={gem.grade} size={44} />
+                </DetailTooltip>
+                <span data-gem={kind ? (isCooldownGem(kind) ? "cooldown" : "damage") : undefined}>
+                  {gem.level != null && gem.level > 0 ? gem.level : "?"}
+                  {kind ?? ""}
+                </span>
+                <small className={styles.srOnly}>{text(gem.name)}</small>
+              </li>
+            );
+          })}
         </ul>
       ) : (
         <Empty
@@ -1375,8 +1384,8 @@ function SkillCard({
         </div>
         {gems.length > 0 && (
           <span className={styles.skillGems} aria-label="보석">
-            {gems.map(({ gem, effect, label }) => (
-              <span key={`gem-${gem.slot}`} data-gem={label.endsWith("쿨") ? "cooldown" : "damage"}>
+            {gems.map(({ gem, effect, label, cooldown }) => (
+              <span key={`gem-${gem.slot}`} data-gem={cooldown ? "cooldown" : "damage"}>
                 <DetailTooltip
                   name={gem.name ?? "보석"}
                   card={
@@ -1486,17 +1495,17 @@ function SkillOverview({
   // One group per skill, so the groups never overlap (PM #507 P1): both kinds,
   // damage only, cooldown only, none. The head counts the same chips.
   const groupOf = (skill: Skill): GemFilter => {
-    const labels = gemsOf(skill).map((gem) => gem.label);
-    const damage = labels.some((label) => label.endsWith("뎀"));
-    const cooldown = labels.some((label) => label.endsWith("쿨"));
+    const chips = gemsOf(skill);
+    const damage = chips.some((gem) => !gem.cooldown);
+    const cooldown = chips.some((gem) => gem.cooldown);
     return damage && cooldown ? "both" : damage ? "damage" : cooldown ? "cooldown" : "none";
   };
   const groupCount = (id: GemFilter) => (id === "all" ? sorted.length : sorted.filter((skill) => groupOf(skill) === id).length);
   const list = !full || gemFilter === "all" ? sorted : sorted.filter((skill) => groupOf(skill) === gemFilter);
-  const chips = sorted.flatMap((skill) => gemsOf(skill).map((gem) => gem.label));
+  const chips = sorted.flatMap((skill) => gemsOf(skill));
   const counts = {
-    damage: chips.filter((label) => label.endsWith("뎀")).length,
-    cooldown: chips.filter((label) => label.endsWith("쿨")).length,
+    damage: chips.filter((gem) => !gem.cooldown).length,
+    cooldown: chips.filter((gem) => gem.cooldown).length,
     empty: gemCounts(data.loadout.gems).empty,
   };
   return (
@@ -1567,10 +1576,10 @@ function SkillOverview({
         <div className={styles.otherGems}>
           <h3 id={otherId}>그 외 장착 보석</h3>
           <ul aria-labelledby={otherId}>
-            {others.map(({ gem, effect, label }) => (
+            {others.map(({ gem, effect, label, cooldown }) => (
               <li key={`other-${gem.slot}`}>
                 <span className={styles.skillGems}>
-                  <span data-gem={label.endsWith("쿨") ? "cooldown" : "damage"}>
+                  <span data-gem={cooldown ? "cooldown" : "damage"}>
                     <DetailTooltip
                       name={gem.name ?? "보석"}
                       card={
@@ -1616,11 +1625,14 @@ export function CombatTab({ data }: { data: Character }) {
           <ArkGridPanel data={data} />
           <CardsPanel data={data} />
         </div>
+        {/* 특성 → 각인 → 아크 패시브 → 순위 → 조회수 (v0.3.2): the official
+            order first, the rank under it — the banner already says the rank
+            at the top. The rank block holds its height while it loads. */}
         <aside className={styles.stack} aria-label="요약">
-          <RankPanel name={data.characterName} />
-          <ArkPassiveSummary data={data} />
           <StatsPanel data={data} />
           <EngravingsPanel data={data} />
+          <ArkPassiveSummary data={data} />
+          <RankPanel name={data.characterName} />
           <ViewsPanel name={data.characterName} />
         </aside>
       </div>
@@ -1924,9 +1936,12 @@ type Sibling = NonNullable<Character["siblings"]>[number];
 function SiblingList({
   siblings,
   current,
+  caption,
 }: {
   siblings: Sibling[];
   current: string;
+  /** When the roster was read, right under the lists. */
+  caption?: ReactNode;
 }) {
   // Combat power records (L19), records only: no official call until the
   // button. Sorted by combat power by default; until they arrive (or if they
@@ -1985,55 +2000,8 @@ function SiblingList({
           <label htmlFor={ids.masked}>닉네임 가리기</label>
         </span>
       </div>
-      {summary.sixAverage != null && (
-        <p className={styles.rosterSummary}>
-          식스맨 평균 <b>{number(summary.sixAverage)}</b>
-          {/* The ranking's rule (api #530); the server named when the roster spans several. */}
-          <small>{` (${servers.length > 1 ? `${summary.sixServer} ` : ""}${sixBasis(summary.sixCount, "평균")})`}</small>
-          {" · "}
-          {number(ROSTER_TOTAL_MIN)} 이상 <b>{summary.highCount}명</b>
-          {summary.highCount > 0 && (
-            <small>
-              {" "}
-              (합 {number(summary.highSum)})
-            </small>
-          )}
-        </p>
-      )}
-      <RosterPower name={current} siblings={siblings} records={records} query={power} />
-      {stats.average != null && (
-        <>
-          <dl className={styles.rosterStats} aria-label="원정대 아이템 레벨">
-            <div>
-              <dt>캐릭터</dt>
-              <dd>{number(stats.count)}개</dd>
-            </div>
-            <div>
-              <dt>평균</dt>
-              <dd>{number(stats.average)}</dd>
-            </div>
-            <div>
-              <dt>중앙값</dt>
-              <dd>{number(stats.median)}</dd>
-            </div>
-            <div>
-              <dt>최고</dt>
-              <dd>{number(stats.max)}</dd>
-            </div>
-            <div>
-              <dt>최저</dt>
-              <dd>{number(stats.min)}</dd>
-            </div>
-          </dl>
-          <Panel title="구성" wide>
-            <div className={styles.rosterMix}>
-              <ShareBars title="아이템 레벨 구간" rows={bands} />
-              <ShareBars title={`직업 ${mix.length}개`} rows={mix} />
-            </div>
-          </Panel>
-        </>
-      )}
-      <WeeklyGoldPanel siblings={siblings} current={current} shown={shown} />
+      {/* The characters first (v0.3.2 feedback): the summaries, combat power,
+          make-up and weekly gold follow under the lists. */}
       {servers.map((server) => (
         <Panel
           key={server}
@@ -2093,6 +2061,56 @@ function SiblingList({
           </ul>
         </Panel>
       ))}
+      {caption}
+      {summary.sixAverage != null && (
+        <p className={styles.rosterSummary}>
+          식스맨 평균 <b>{number(summary.sixAverage)}</b>
+          {/* The ranking's rule (api #530); the server named when the roster spans several. */}
+          <small>{` (${servers.length > 1 ? `${summary.sixServer} ` : ""}${sixBasis(summary.sixCount, "평균")})`}</small>
+          {" · "}
+          {number(ROSTER_TOTAL_MIN)} 이상 <b>{summary.highCount}명</b>
+          {summary.highCount > 0 && (
+            <small>
+              {" "}
+              (합 {number(summary.highSum)})
+            </small>
+          )}
+        </p>
+      )}
+      <RosterPower name={current} siblings={siblings} records={records} query={power} />
+      {stats.average != null && (
+        <>
+          <dl className={styles.rosterStats} aria-label="원정대 아이템 레벨">
+            <div>
+              <dt>캐릭터</dt>
+              <dd>{number(stats.count)}개</dd>
+            </div>
+            <div>
+              <dt>평균</dt>
+              <dd>{number(stats.average)}</dd>
+            </div>
+            <div>
+              <dt>중앙값</dt>
+              <dd>{number(stats.median)}</dd>
+            </div>
+            <div>
+              <dt>최고</dt>
+              <dd>{number(stats.max)}</dd>
+            </div>
+            <div>
+              <dt>최저</dt>
+              <dd>{number(stats.min)}</dd>
+            </div>
+          </dl>
+          <Panel title="구성" wide>
+            <div className={styles.rosterMix}>
+              <ShareBars title="아이템 레벨 구간" rows={bands} />
+              <ShareBars title={`직업 ${mix.length}개`} rows={mix} />
+            </div>
+          </Panel>
+        </>
+      )}
+      <WeeklyGoldPanel siblings={siblings} current={current} shown={shown} />
     </>
   );
 }
@@ -2386,14 +2404,18 @@ function RosterCharacters({ data }: { data: Character }) {
         </Panel>
       ) : result && result.siblings.length ? (
         <>
-          <p className={styles.caption}>
-            원정대 갱신 {kstTime(result.fetchedAt)}
-            {result.refreshAvailableAt &&
-              ` · ${kstTime(result.refreshAvailableAt)} 이후 다시 갱신`}
-          </p>
           <SiblingList
             siblings={result.siblings}
             current={data.characterName}
+            // Under the lists, not over them: the first card sits higher at
+            // 360 (v0.3.2), the time still right by the characters it is of.
+            caption={
+              <p className={styles.caption}>
+                원정대 갱신 {kstTime(result.fetchedAt)}
+                {result.refreshAvailableAt &&
+                  ` · ${kstTime(result.refreshAvailableAt)} 이후 다시 갱신`}
+              </p>
+            }
           />
         </>
       ) : (
