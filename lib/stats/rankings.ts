@@ -5,7 +5,7 @@ import contract from "../../contracts/rankings.openapi.json";
 import type { components } from "../api/rankings-schema";
 import { backendUrl, requestBackend, type BackendResult } from "../api/backend";
 import { tolerantSchemas } from "../api/tolerant";
-import { parseStatsQuery, statsSearch, type Metric, type StatsQuery } from "./model";
+import { conditionsKey, parseStatsQuery, statsSearch, type Metric, type StatsQuery } from "./model";
 import { lazyValidator } from "@/lib/api/lazy-validator";
 
 type Schemas = components["schemas"];
@@ -112,6 +112,10 @@ export const EFFICIENCY_KINDS = {
   gems: { path: "/api/v1/rankings/ark-grid-gems", label: "젬", value: "젬 효율" },
 } as const;
 export type EfficiencyKind = keyof typeof EFFICIENCY_KINDS;
+
+/** The efficiency ranking's query key: the page fills it on the server, the view reads it. */
+export const efficiencyKey = (kind: EfficiencyKind, query: EfficiencyQuery) =>
+  ["efficiency-ranking", kind, conditionsKey(efficiencySearch(kind, query))] as const;
 
 /**
  * What the ranked value means, by the answer's ruleVersion (api #647): the

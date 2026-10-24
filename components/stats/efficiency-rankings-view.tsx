@@ -12,12 +12,13 @@ import { pendingProps } from "@/lib/api/pending";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { TIER_LABEL, TIER_LEGEND } from "@/lib/character/rank";
 import { fetchEfficiencyRanking } from "@/lib/stats/client";
-import { conditionsKey, fixed, percent, sampleText, whole } from "@/lib/stats/model";
+import { fixed, percent, sampleText, whole } from "@/lib/stats/model";
 import {
   EFFICIENCY_KINDS,
   MAX_PAGE,
   PAGE_SIZE,
   efficiencyDefinition,
+  efficiencyKey,
   efficiencySearch,
   type EfficiencyKind,
   type EfficiencyQuery,
@@ -66,7 +67,8 @@ export function EfficiencyRankingsView({
   const levelTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const ids = { server: useId(), cls: useId(), days: useId(), level: useId() };
   const list = useQuery({
-    queryKey: ["efficiency-ranking", kind, conditionsKey(efficiencySearch(kind, query))],
+    // Filled on the server for the address's own query (rankings page).
+    queryKey: efficiencyKey(kind, query),
     queryFn: ({ signal }) => fetchEfficiencyRanking(kind, query, signal),
     staleTime: 5 * 60_000,
     placeholderData: keepPreviousData,
@@ -174,9 +176,6 @@ export function EfficiencyRankingsView({
           )}
         </p>
 
-        {/* The list keeps the loading room however short it turns out (3 rows,
-            none), so the notes under it never move up on an answer or a filter. */}
-        <div className={styles.listHold}>
         {list.isError && !data ? (
           <div className={styles.problem}>
             <p>{limit.limited ? countdownText(limit.seconds) : "랭킹을 불러오지 못했어요."}</p>
@@ -185,7 +184,7 @@ export function EfficiencyRankingsView({
             </button>
           </div>
         ) : !data ? (
-          <p className={styles.muted} role="status">
+          <p className={`${styles.muted} ${styles.listHold}`} role="status">
             랭킹을 불러오고 있어요…
           </p>
         ) : data.rows.length === 0 ? (
@@ -240,7 +239,6 @@ export function EfficiencyRankingsView({
             </tbody>
           </DataTable>
         )}
-        </div>
 
         {data && pages > 1 && (
           <nav className={styles.pager} aria-label="쪽 이동">
