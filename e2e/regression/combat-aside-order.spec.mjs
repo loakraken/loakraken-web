@@ -19,3 +19,21 @@ for (const width of [320, 360, 390, 1280])
     const loaded = await shiftsSince(page);
     expect(loaded.all, `첫 로드 흔들림 (${loaded.moved})`).toBe(0);
   });
+
+// The rank answering after the page's 1s wait (목 '순위늦음' 1.5s): the top block
+// keeps the boxes' room while it loads, so the panels under it stay put.
+for (const width of [320, 360, 390, 1280])
+  test(`@전투탭순서 ${width}: 순위가 늦게 와도 아래 패널이 움직이지 않음 @regression`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await watchShifts(page);
+    await page.goto(characterPath("순위늦음"));
+    const aside = page.getByRole("complementary", { name: "요약", exact: true });
+    const rank = aside.locator(":scope > *").first();
+    await expect(rank.getByRole("status")).toHaveText("순위를 불러오고 있어요…");
+    const before = await aside.locator(":scope > *").nth(1).boundingBox();
+    await expect(rank.getByRole("region", { name: "전투력 순위" })).toBeVisible({ timeout: 10_000 });
+    await page.waitForTimeout(600);
+    expect(Math.round((await aside.locator(":scope > *").nth(1).boundingBox()).y), "특성 패널 제자리").toBe(Math.round(before.y));
+    const loaded = await shiftsSince(page);
+    expect(loaded.all, `순위가 채워질 때 흔들림 (${loaded.moved})`).toBe(0);
+  });

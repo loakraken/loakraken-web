@@ -10,6 +10,7 @@ import {
   TIER_LEGEND,
   rankCell,
   rankState,
+  SCOPES,
   scopeLabel,
   scopesOf,
   type CharacterRank,
@@ -90,6 +91,41 @@ function Cells({ data, metric }: { data: CharacterRank; metric: RankMetric }) {
 }
 
 /**
+ * While the rank loads (only when the page's own 1s wait ran out): the boxes'
+ * usual shape, empty, and the notes' lines. The block sits on top of the
+ * summary column, so it keeps the room it will take and nothing under it
+ * moves when the rank fills in (A7).
+ */
+function RankPlaceholder() {
+  return (
+    <>
+      {METRICS.map((metric) => (
+        <section key={metric.id} className={styles.metric} aria-hidden="true">
+          <h3>{metric.label}</h3>
+          <ul className={styles.cells} data-count={3}>
+            {SCOPES.slice(0, 3).map((scope) => (
+              <li key={scope.id}>
+                <span className={styles.scope}>{scope.label}</span>
+                <strong>{" "}</strong>
+                <small>{" "}</small>
+                <span className={styles.top}>{" "}</span>
+                <small className={styles.next}>{" "}</small>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))}
+      <p className={styles.note} role="status">
+        순위를 불러오고 있어요…
+      </p>
+      <p className={styles.note} aria-hidden="true">
+        티어(그 칸 순위에서 상위 몇 %인지): {TIER_LEGEND}
+      </p>
+    </>
+  );
+}
+
+/**
  * Ranking boxes (F-7): combat power and item level, each over all,
  * the server and the class. Ranks are over the characters LOAKraken has
  * observed (said under the boxes), never the whole game. A small sample
@@ -110,7 +146,7 @@ export function RankPanel({ name }: { name: string }) {
   return (
     <Panel title="순위" meta={state === "ranked" ? "LOAKraken 수집 기준" : undefined}>
       {query.isPending ? (
-        <p className={styles.muted}>순위를 불러오고 있어요…</p>
+        <RankPlaceholder />
       ) : !data ? (
         <div className={styles.muted}>
           <p>
