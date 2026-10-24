@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useEffect, useId, useState } from "react";
-import { ListingName, listingKey, useListingRefocus } from "./listing-detail";
+import { DetailRow, ListingCard, RowExpander, listingKey, useOpenRows } from "./listing-detail";
 import { useRouter } from "next/navigation";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { SiteHeader } from "@/components/site/site-header";
@@ -234,17 +234,9 @@ export function GemBoardView({
   const page = listings.data?.data;
   const pages = page ? Math.max(1, Math.min(GEM_LISTING_MAX_PAGE, Math.ceil(page.totalCount / 10))) : 1;
 
-  // While a listing's card is open the table keeps the page it was opened
-  // from: the minute's refresh does not redraw the rows (and the card) under
-  // it. The card says so if that listing is no longer in the latest page.
-  const [opened, setOpened] = useState<{ key: string; page: NonNullable<typeof page>; version: number } | null>(null);
-  const shown = opened?.page ?? page;
-  const latestKeys = new Set((page?.items ?? []).map(listingKey));
-  const { body, refocus } = useListingRefocus((shown ?? page)?.items);
-  const openFor = (key: string) => (open: boolean, keepFocus: boolean) => {
-    setOpened(open && shown ? { key, page: shown, version: opened?.version ?? listings.dataUpdatedAt } : null);
-    refocus(!open && keepFocus ? key : null);
-  };
+  // A listing's details open below its row (its arrow); several may be open.
+  const rows = useOpenRows();
+  const detailId = useId();
 
   return (
     <div className={quote.page}>
@@ -365,28 +357,38 @@ export function GemBoardView({
                     <th scope="col">거래 가능</th>
                   </tr>
                 </thead>
-                <tbody ref={body} key={opened?.version ?? listings.dataUpdatedAt}>
-                  {(shown ?? page).items.map((item, i) => (
-                    <tr key={`${item.name}-${i}`}>
-                      <th scope="row">
-                        <ListingName
-                          item={item}
-                          label={gemTarget(item) ?? item.name}
-                          kind="보석"
-                          observedAt={(shown ?? page).observedAt}
-                          gone={opened?.key === listingKey(item) && !latestKeys.has(listingKey(item))}
-                          onOpenChange={openFor(listingKey(item))}
-                        />
-                      </th>
-                      <td data-strong>{gold(item.buyPrice || null)}</td>
-                      <td>{gold(item.bidPrice || item.bidStartPrice)}</td>
-                      <td>{item.endDate ? endKst.format(new Date(item.endDate)) : "-"}</td>
-                      <td>{item.tradeAllowCount == null ? "-" : item.tradeAllowCount === 0 ? "불가" : `${item.tradeAllowCount}회`}</td>
-                    </tr>
-                  ))}
+                <tbody key={listings.dataUpdatedAt}>
+                  {page.items.map((item, i) => {
+                    const key = listingKey(item);
+                    const open = rows.isOpen(key);
+                    const id = `${detailId}-${i}`;
+                    return (
+                      <Fragment key={`${item.name}-${i}`}>
+                        <tr>
+                          <th scope="row">
+                            <RowExpander
+                              label={gemTarget(item) ?? item.name}
+                              open={open}
+                              controls={id}
+                              onToggle={() => rows.toggle(key)}
+                            />
+                          </th>
+                          <td data-strong>{gold(item.buyPrice || null)}</td>
+                          <td>{gold(item.bidPrice || item.bidStartPrice)}</td>
+                          <td>{item.endDate ? endKst.format(new Date(item.endDate)) : "-"}</td>
+                          <td>{item.tradeAllowCount == null ? "-" : item.tradeAllowCount === 0 ? "불가" : `${item.tradeAllowCount}회`}</td>
+                        </tr>
+                        {open && (
+                          <DetailRow id={id} columns={5}>
+                            <ListingCard item={item} kind="보석" observedAt={page.observedAt} />
+                          </DetailRow>
+                        )}
+                      </Fragment>
+                    );
+                  })}
                   {/* A short page keeps ten rows of room, so the box and the
                       page buttons stay put from page to page (A7). */}
-                  {Array.from({ length: Math.max(0, 10 - (shown ?? page).items.length) }, (_, i) => (
+                  {Array.from({ length: Math.max(0, 10 - page.items.length) }, (_, i) => (
                     <tr key={`filler-${i}`} aria-hidden="true" className={styles.filler}>
                       <td colSpan={5}>{" "}</td>
                     </tr>

@@ -1,23 +1,14 @@
 "use client";
 
-// 보석·장신구 시세판 — one auction listing as a game-style item card (v0.3.2,
-// user request): the same card parts as 악세 경매 검색's rows (web #903),
-// opened from the listing's name. Everything shown is already in the listings
-// answer; opening a card asks for nothing. While a card is open the board
-// keeps the list it was opened from (the 1-minute refresh does not redraw the
-// rows under it), and says so on the card when that listing has since gone.
+// 보석·장신구 시세판 — one auction listing's details, opened by the arrow on
+// its row and shown right below that row (the ark grid's expand pattern, user
+// 10-24): icon with its grade frame, grade and kind, quality, trade count,
+// effects and the auction. Everything shown is already in the listings
+// answer; opening a row asks for nothing. Several rows may be open at once.
 
-import { useEffect, useRef, type ReactNode } from "react";
-import {
-  ItemDetail,
-  ItemDetailSection,
-  ItemLine,
-  ItemQuality,
-  ItemStat,
-  ItemTooltip,
-  ItemTooltipContent,
-  ItemTooltipTrigger,
-} from "@/components/ui/item-tooltip";
+import { useState, type ReactNode } from "react";
+import { ChevronDown } from "@/components/ui/icons";
+import { ItemDetail, ItemDetailSection, ItemLine, ItemQuality, ItemStat } from "@/components/ui/item-tooltip";
 import { GradedLine, itemGrade } from "@/components/character/item-tooltip";
 import { MINUTE, useClock } from "@/components/home/clock";
 import { timeLeftText } from "@/lib/accessory-search/time-left";
@@ -46,17 +37,16 @@ export function listingKey(item: Listing) {
 const amount = (option: Option) =>
   option.value == null ? "" : ` +${option.value.toLocaleString("ko-KR", { maximumFractionDigits: 2 })}${option.percentage ? "%" : ""}`;
 
-function ListingCard({
+/** The listing as a game-style item card (the same parts as the item tooltips). */
+export function ListingCard({
   item,
   kind,
   observedAt,
-  gone,
 }: {
   item: Listing;
   /** "보석", or the accessory's slot name ("목걸이"). */
   kind: string;
   observedAt: string | null;
-  gone: boolean;
 }) {
   const now = useClock(MINUTE);
   const info: ReactNode[] = [[item.grade, kind].filter(Boolean).join(" ")];
@@ -75,17 +65,6 @@ function ListingCard({
       icon={icon ? <img src={icon} alt="" width={56} height={56} referrerPolicy="no-referrer" /> : undefined}
       lines={info}
     >
-      {/* The listing can go while the card is open (the 1-minute refresh):
-          said once through a status that is always there (out of the card's
-          flex flow, so no gap); the visible line is not read twice. */}
-      {gone && (
-        <div aria-hidden="true">
-          <ItemLine tone="warn">이 매물은 더 이상 없어요.</ItemLine>
-        </div>
-      )}
-      <p role="status" className="sr-only">
-        {gone ? "이 매물은 더 이상 없어요." : ""}
-      </p>
       <ItemLine>{item.tradeAllowCount == null ? "거래 횟수 정보 없음" : item.tradeAllowCount === 0 ? "거래 불가" : `거래 ${item.tradeAllowCount}회 가능`}</ItemLine>
       {gem.length > 0 && (
         <ItemDetailSection label="보석 효과">
@@ -129,74 +108,59 @@ function ListingCard({
   );
 }
 
-const KEEP_FOCUS = new Set<string>(["escape-key", "close-press", "trigger-press"]);
-
-/**
- * Puts focus back on a listing's name after its card closes (`keepFocus`),
- * also when closing draws the rows again because a newer page came while it
- * was open, so the name it opened from is gone; then the same listing's new
- * name takes it, or the first name when that listing is no longer listed.
- */
-export function useListingRefocus(items: Listing[] | undefined) {
-  const pending = useRef<string | null>(null);
-  const body = useRef<HTMLTableSectionElement>(null);
-  // After every commit: the one following a close finds the rows as drawn now.
-  useEffect(() => {
-    const key = pending.current;
-    if (!key) return;
-    pending.current = null;
-    const names = body.current?.querySelectorAll<HTMLElement>("th button");
-    const at = items?.findIndex((item) => listingKey(item) === key) ?? -1;
-    (names?.[at] ?? names?.[0])?.focus({ preventScroll: true });
-  });
-  return {
-    body,
-    refocus: (key: string | null) => {
-      pending.current = key;
-    },
-  };
+/** Which rows are open (by listingKey); several at once, like the ark grid's cores. */
+export function useOpenRows() {
+  const [open, setOpen] = useState<ReadonlySet<string>>(() => new Set());
+  const toggle = (key: string) =>
+    setOpen((now) => {
+      const next = new Set(now);
+      if (!next.delete(key)) next.add(key);
+      return next;
+    });
+  return { isOpen: (key: string) => open.has(key), toggle };
 }
 
 /**
- * The listing's name, as the button that opens its card (a press, never a
- * hover: moving down a long list must not pop cards up). On a pointer the card
- * sits beside the row; on touch it is a bottom sheet. Esc closes it and puts
- * focus back on the name. Its name is the row's own text, so the row header
- * reads the same; the trigger says it opens a dialog (aria-haspopup).
+ * The listing's name as the button that opens its details below the row: the
+ * row's own text with an arrow at its end that turns over when open. The row
+ * header reads the same name; the button says whether it is open.
  */
-export function ListingName({
-  item,
+export function RowExpander({
   label,
-  kind,
-  observedAt,
-  gone,
-  onOpenChange,
+  open,
+  controls,
+  onToggle,
 }: {
-  item: Listing;
-  /** What the row shows for it (a gem's target skill, an accessory's name). */
   label: string;
-  kind: string;
-  observedAt: string | null;
-  gone: boolean;
-  /** `keepFocus`: closed from the keyboard, its close button or the name itself. */
-  onOpenChange: (open: boolean, keepFocus: boolean) => void;
+  open: boolean;
+  /** The id of the details row it opens. */
+  controls: string;
+  onToggle: () => void;
 }) {
-  const trigger = useRef<HTMLButtonElement>(null);
   return (
-    <ItemTooltip
-      onOpenChange={(open, details) => {
-        const keepFocus = !open && KEEP_FOCUS.has(details.reason);
-        // Right away, not after the sheet's closing slide.
-        if (keepFocus) trigger.current?.focus({ preventScroll: true });
-        onOpenChange(open, keepFocus);
-      }}
-    >
-      <ItemTooltipTrigger ref={trigger} className={styles.name} openOnHover={false}>
-        {label}
-      </ItemTooltipTrigger>
-      <ItemTooltipContent aria-label={`${item.name} 상세`}>
-        <ListingCard item={item} kind={kind} observedAt={observedAt} gone={gone} />
-      </ItemTooltipContent>
-    </ItemTooltip>
+    <button type="button" className={styles.name} aria-expanded={open} aria-controls={controls} onClick={onToggle}>
+      <span>{label}</span>
+      <ChevronDown size={16} aria-hidden="true" className={styles.chevron} />
+    </button>
+  );
+}
+
+/** The details right below a list row (the accessory search's cards). */
+export function DetailPanel({ id, children }: { id: string; children: ReactNode }) {
+  return (
+    <div id={id} className={`${styles.detail} ${styles.panel}`}>
+      {children}
+    </div>
+  );
+}
+
+/** The details row right below its listing's row, across every column. */
+export function DetailRow({ id, columns, children }: { id: string; columns: number; children: ReactNode }) {
+  return (
+    <tr id={id} className={styles.detailRow}>
+      <td colSpan={columns}>
+        <div className={styles.detail}>{children}</div>
+      </td>
+    </tr>
   );
 }

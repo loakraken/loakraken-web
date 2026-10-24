@@ -1,21 +1,27 @@
-/* The listing's name as the button that opens its card: the row's own text,
-   wrapping as before, with a dotted underline that says it opens something. */
+/* The listing's name as the button that opens its details below the row: the
+   row's own text (wrapping as before) with an arrow at its end. */
 .name {
-  display: inline;
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 4px;
+  max-width: 100%;
   padding: 0;
   border: 0;
   background: none;
   color: inherit;
   font: inherit;
   text-align: inherit;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.name > span {
+  min-width: 0;
   text-decoration: underline dotted;
   text-decoration-color: color-mix(in oklab, currentColor 45%, transparent);
   text-underline-offset: 3px;
-  cursor: pointer !important;
-  touch-action: manipulation;
 }
 @media (hover: hover) and (pointer: fine) {
-  .name:hover {
+  .name:hover > span {
     text-decoration-style: solid;
     text-decoration-color: currentColor;
   }
@@ -24,6 +30,21 @@
   border-radius: 4px;
   outline: 3px solid var(--ring);
   outline-offset: 2px;
+}
+/* The arrow turns over when the row is open (the ark grid's core arrow). */
+.chevron {
+  flex: none;
+  margin-top: 2px;
+  color: var(--muted-foreground);
+  transition: transform 200ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.name[aria-expanded="true"] .chevron {
+  transform: rotate(180deg);
+}
+@media (prefers-reduced-motion: reduce) {
+  .chevron {
+    transition: none;
+  }
 }
 
 /* Touch: the press area grows to the row's height around the name (hit-44),
@@ -37,4 +58,26 @@
     inset: -12px -8px;
     content: "";
   }
+}
+
+/* The details row: the item card on the board's own surface, left-aligned,
+   never wider than the table (long effect lines wrap). */
+.detailRow > td {
+  padding: 0 8px 12px;
+  text-align: left;
+  white-space: normal;
+}
+/* The game-style card keeps its own dark face in every theme: the item colours
+   (grade, quality, sections) are tuned for it, as in the item tooltips. */
+.detail {
+  max-width: 420px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: var(--item-tip);
+  color: var(--item-tip-foreground);
+  box-shadow: var(--item-tip-shadow);
+}
+/* Under a list row (accessory search): the card starts a little below the row's facts. */
+.panel {
+  margin-top: 10px;
 }
