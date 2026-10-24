@@ -40,13 +40,14 @@ export function refiningLink(characterName: string, refine: DetailRefine | null 
 }
 
 /**
- * Breath used for the cost (a newer value shows as it comes). OPTIMAL (api
- * #642): each attempt uses the breath count that makes the expected cost
- * least; MAX is what the backend sent before it.
+ * Breath used for the cost. OPTIMAL (api #642): each attempt uses the breath
+ * count that makes the expected cost least; MAX is what the backend sent
+ * before it. A value we have no words for yet leaves the line out (never a
+ * raw code on screen).
  */
 const BREATH = new Map([
   ["NONE", "숨결 안 씀"],
   ["OPTIMAL", "숨결 회차마다 최적"],
   ["MAX", "숨결 최대"],
 ]);
-export const breathLabel = (breath: string | null | undefined) => (breath ? (BREATH.get(breath) ?? breath) : null);
+export const breathLabel = (breath: string | null | undefined) => (breath ? (BREATH.get(breath) ?? null) : null);
