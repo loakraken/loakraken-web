@@ -103,6 +103,17 @@ for (const width of [320, 1280])
     // A current cell keeps its day change.
     await expect(board.getByRole("button", { name: "3레벨 작열의 보석 매물 보기" })).toContainText(/▼/);
     expect(await lineCounts(stale.locator("small").first()), "시각 한 줄").toEqual([1]);
+    // The time and the listing count stay inside the cell's padding (2px over at 320 before).
+    const spill = await stale.evaluate((button) => {
+      const cs = getComputedStyle(button);
+      const box = button.getBoundingClientRect();
+      const inner = { left: box.left + parseFloat(cs.paddingLeft), right: box.right - parseFloat(cs.paddingRight) };
+      return [...button.querySelectorAll("small")].map((s) => {
+        const r = s.getBoundingClientRect();
+        return Math.max(0, Math.round(inner.left - r.left), Math.round(r.right - inner.right));
+      });
+    });
+    expect(Math.max(...spill), "여백 안").toBeLessThanOrEqual(0);
     await stale.click();
     await expect(stale).toHaveAttribute("aria-pressed", "true");
     await page.waitForTimeout(600);

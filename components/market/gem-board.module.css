@@ -87,6 +87,14 @@
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
+/* A 320 cell holds '18:34 값' and '매물 44' side by side only with a little
+   less padding and gap: the line ran 2px into the padding (PM-프론트 10-25). */
+@media (max-width: 400px) {
+  .cell button {
+    column-gap: 4px;
+    padding-inline: 8px;
+  }
+}
 /* One height for every state (before a pick, loading, failed, short list,
    ten rows), so nothing under it moves when the listings land. */
 .listings {
