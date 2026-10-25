@@ -11,12 +11,12 @@ const REFINE = JSON.parse(
 const NAME = "전투력계산";
 
 test.describe("스펙업 가이드 @smoke", () => {
-  test("같은 스킬의 광휘 보석 두 줄은 겁화·작열로 읽혀 겹쳐 보이지 않고, 좁은 화면에서도 잘리지 않는다", async ({ page }) => {
+  test("같은 스킬의 광휘 보석 두 줄은 광휘(겁화)·광휘(작열)로 읽혀 겹쳐 보이지 않고, 좁은 화면에서도 잘리지 않는다", async ({ page }) => {
     await page.goto(characterPath("스펙업광휘", "specup"));
     const table = page.getByRole("table", { name: /스펙업 후보/ });
-    await expect(table.getByText("터닝 슬래쉬 · 6레벨 겁화")).toBeVisible();
-    await expect(table.getByText("터닝 슬래쉬 · 6레벨 작열")).toBeVisible();
-    await expect(table.getByText(/6레벨 광휘/)).toHaveCount(0);
+    await expect(table.getByText("터닝 슬래쉬 · 6레벨 광휘(겁화)")).toBeVisible();
+    await expect(table.getByText("터닝 슬래쉬 · 6레벨 광휘(작열)")).toBeVisible();
+    await expect(table.getByText("터닝 슬래쉬 · 6레벨 광휘", { exact: true })).toHaveCount(0);
     for (const width of [320, 360, 390]) {
       await page.setViewportSize({ width, height: 800 });
       await expectNoHorizontalOverflow(page);

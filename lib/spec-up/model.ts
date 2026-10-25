@@ -76,14 +76,15 @@ const GEM_ROLE: Record<string, string> = { DAMAGE: "겁화", COOLDOWN: "작열" 
 /**
  * A gem row's target as the site writes gems: a 광휘 gem does either role, so
  * two rows of one skill read "터닝 슬래쉬 · 6레벨 광휘" twice although one is
- * the damage gem and one the cooldown gem. With gemType the 광휘 takes the
- * role word ("… 6레벨 겁화" / "… 6레벨 작열"), like the gem chips on the
- * character page; other targets (and an unknown gemType) stay as they come.
+ * the damage gem and one the cooldown gem. With gemType the 광휘 keeps its
+ * own name (the gem the player owns and finds in the inventory) and adds the
+ * role its price follows: "… 6레벨 광휘(겁화)" / "… 6레벨 광휘(작열)".
+ * Other targets (and an unknown gemType) stay as they come.
  */
 export function gemTarget(target: string, gemType: string | null | undefined) {
   const role = gemType ? GEM_ROLE[gemType] : undefined;
   if (!role) return target;
-  return target.replace(/(\d+레벨 )광휘$/, `$1${role}`);
+  return target.replace(/(\d+레벨 광휘)$/, `$1(${role})`);
 }
 
 /**
