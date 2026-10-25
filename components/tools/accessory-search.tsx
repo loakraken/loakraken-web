@@ -74,10 +74,10 @@ function useWait(error: unknown) {
   return { code: failure?.code ?? null, seconds: secondsUntil(retryAt, now) };
 }
 
-function failureCopy(code: string | null) {
+function failureCopy(code: string | null, limit?: "client") {
   switch (code) {
     case RATE_LIMITED:
-      return rateLimitCopy();
+      return rateLimitCopy({ limit });
     case "MARKET_SEARCH_BUSY":
       return { title: "검색이 몰리고 있어요", text: "잠시 뒤 다시 검색해 주세요." };
     case "NOT_FOUND":
@@ -119,6 +119,7 @@ export function AccessorySearchTool() {
   const last = pages.at(-1)?.data;
   const pagesRead = pages.reduce((sum, page) => sum + page.data.scannedPages, 0);
   const failure = search.error instanceof AccessorySearchError ? search.error.info.code : search.error ? "ERROR" : null;
+  const limitKind = search.error instanceof AccessorySearchError ? search.error.info.limit : undefined;
   const busy = search.isFetching || wait.seconds > 0;
 
   const submit = () => {
@@ -251,8 +252,8 @@ export function AccessorySearchTool() {
               <div aria-busy={search.isFetching || undefined} data-stale={(search.isFetching && !search.isFetchingNextPage) || undefined} className={styles.results}>
                 {failure && !search.isFetchingNextPage ? (
                   <div className={styles.failure} role="alert">
-                    <strong>{failureCopy(failure).title}</strong>
-                    <p>{failureCopy(failure).text}</p>
+                    <strong>{failureCopy(failure, limitKind).title}</strong>
+                    <p>{failureCopy(failure, limitKind).text}</p>
                     {failure !== "NOT_FOUND" && (
                       <button type="button" aria-disabled={busy || undefined} onClick={() => !busy && void search.refetch()}>
                         {retryLabel(wait.seconds, "다시 검색")}

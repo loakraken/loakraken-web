@@ -21,6 +21,27 @@ test.describe("더보기 손익 @smoke", () => {
     await expectNoHorizontalOverflow(page);
   });
 
+  // QA 10-24 P2: 360에서 표가 옆으로만 넘쳐 '누르'·'넘기' 조각만 보였다. 휴대폰에서는 줄마다 카드로
+  // 레이드·난이도 아래 세 관문이 나란히, 관문 이름과 함께 보이고 옆으로 넘치지 않는다.
+  test("360에서 관문 값이 잘리지 않고 관문 이름과 함께 보인다", async ({ page }) => {
+    await page.setViewportSize({ width: 360, height: 800 });
+    await gotoReady(page, "/tools/more-reward");
+    // Structural: laid out as cards (display: block), the table may not keep its table role.
+    const table = page.locator("table").filter({ has: page.locator("caption", { hasText: "레이드·난이도·관문별 더보기 이득" }) });
+    const gate = table.getByRole("button", { name: /^(추천 )?[+−][\d,]+ (누르기|넘기기) · / }).first();
+    await expect(gate).toBeVisible();
+    // The value sits inside the viewport, not cut at the right edge.
+    const box = await gate.boundingBox();
+    expect(box.x + box.width).toBeLessThanOrEqual(360);
+    const scroll = await table.evaluate((el) => {
+      const wrap = el.parentElement;
+      return { scroll: wrap.scrollWidth, client: wrap.clientWidth };
+    });
+    expect(scroll.scroll).toBeLessThanOrEqual(scroll.client);
+    await expect(table.locator("td[data-label='1관문']").first()).toBeVisible();
+    await expectNoHorizontalOverflow(page);
+  });
+
   test("관문을 열면 자료의 재료와 이득 = 재료 가치 − 더보기 골드를 보여 준다", async ({ page }) => {
     await gotoReady(page, "/tools/more-reward");
     const row = page.getByRole("row", { name: /^세르카 하드/ });

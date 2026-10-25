@@ -171,7 +171,7 @@ export const SimulatorEnabled = createContext(true);
 export const TitleStatsEnabled = createContext(true);
 /** SPEC_UP_GUIDE (server flag): off hides the 스펙업 tab the same way. */
 export const SpecUpEnabled = createContext(true);
-/** GUILD_RANKING (server flag): the guild tab uses the guild ranking's data; off hides it. */
+/** GUILD_TAB (server flag, apart from the guild ranking since api #582): off hides the guild tab. */
 export const GuildTabEnabled = createContext(true);
 /**
  * CHARACTER_EFFICIENCY (server flag): off leaves out the 아크 그리드 효율 and
@@ -672,7 +672,7 @@ function BraceletBody({
   return (
     <div className={styles.braceletBody}>
       <strong>팔찌</strong>
-      {(real.state === "ready" || real.state === "pending") && (
+      {(real.state === "ready" || real.state === "pending" || real.state === "unavailable") && (
         <p className={styles.braceletEffHead}>
           <Tooltip>
             <TooltipTrigger className={styles.braceletEffTerm} aria-label="팔찌 효율: 이 팔찌가 딜을 몇 % 올려 주는지예요.">
@@ -682,6 +682,10 @@ function BraceletBody({
           </Tooltip>
           {real.state === "ready" ? (
             <b>{devil && real.devil ? real.devil : real.percent}</b>
+          ) : real.state === "unavailable" ? (
+            // Read but not worked out (an option the engine does not know):
+            // why, in a fixed sentence — not '준비 중', which reads as 'soon'.
+            <span className={styles.braceletEffReason}>읽지 못한 팔찌 옵션이 있어 계산하지 않았어요</span>
           ) : (
             // A bracelet is there (this row only shows with one), its value not
             // worked out: never a number (PM 총괄 14:04 — the comparison site
@@ -1625,11 +1629,15 @@ export function CombatTab({ data }: { data: Character }) {
           <ArkGridPanel data={data} />
           <CardsPanel data={data} />
         </div>
+        {/* 순위 → 특성 → 각인 → 아크 패시브 → 조회수 (v0.3.2): the rank stays
+            on top where it has always been (user 10-25), then the official
+            order. The rank block holds its height while it loads, so nothing
+            under it moves. */}
         <aside className={styles.stack} aria-label="요약">
           <RankPanel name={data.characterName} />
-          <ArkPassiveSummary data={data} />
           <StatsPanel data={data} />
           <EngravingsPanel data={data} />
+          <ArkPassiveSummary data={data} />
           <ViewsPanel name={data.characterName} />
         </aside>
       </div>
@@ -1933,9 +1941,12 @@ type Sibling = NonNullable<Character["siblings"]>[number];
 function SiblingList({
   siblings,
   current,
+  caption,
 }: {
   siblings: Sibling[];
   current: string;
+  /** When the roster was read, right under the lists. */
+  caption?: ReactNode;
 }) {
   // Combat power records (L19), records only: no official call until the
   // button. Sorted by combat power by default; until they arrive (or if they
@@ -1994,55 +2005,8 @@ function SiblingList({
           <label htmlFor={ids.masked}>닉네임 가리기</label>
         </span>
       </div>
-      {summary.sixAverage != null && (
-        <p className={styles.rosterSummary}>
-          식스맨 평균 <b>{number(summary.sixAverage)}</b>
-          {/* The ranking's rule (api #530); the server named when the roster spans several. */}
-          <small>{` (${servers.length > 1 ? `${summary.sixServer} ` : ""}${sixBasis(summary.sixCount, "평균")})`}</small>
-          {" · "}
-          {number(ROSTER_TOTAL_MIN)} 이상 <b>{summary.highCount}명</b>
-          {summary.highCount > 0 && (
-            <small>
-              {" "}
-              (합 {number(summary.highSum)})
-            </small>
-          )}
-        </p>
-      )}
-      <RosterPower name={current} siblings={siblings} records={records} query={power} />
-      {stats.average != null && (
-        <>
-          <dl className={styles.rosterStats} aria-label="원정대 아이템 레벨">
-            <div>
-              <dt>캐릭터</dt>
-              <dd>{number(stats.count)}개</dd>
-            </div>
-            <div>
-              <dt>평균</dt>
-              <dd>{number(stats.average)}</dd>
-            </div>
-            <div>
-              <dt>중앙값</dt>
-              <dd>{number(stats.median)}</dd>
-            </div>
-            <div>
-              <dt>최고</dt>
-              <dd>{number(stats.max)}</dd>
-            </div>
-            <div>
-              <dt>최저</dt>
-              <dd>{number(stats.min)}</dd>
-            </div>
-          </dl>
-          <Panel title="구성" wide>
-            <div className={styles.rosterMix}>
-              <ShareBars title="아이템 레벨 구간" rows={bands} />
-              <ShareBars title={`직업 ${mix.length}개`} rows={mix} />
-            </div>
-          </Panel>
-        </>
-      )}
-      <WeeklyGoldPanel siblings={siblings} current={current} shown={shown} />
+      {/* The characters first (v0.3.2 feedback): the summaries, combat power,
+          make-up and weekly gold follow under the lists. */}
       {servers.map((server) => (
         <Panel
           key={server}
@@ -2102,6 +2066,56 @@ function SiblingList({
           </ul>
         </Panel>
       ))}
+      {caption}
+      {summary.sixAverage != null && (
+        <p className={styles.rosterSummary}>
+          식스맨 평균 <b>{number(summary.sixAverage)}</b>
+          {/* The ranking's rule (api #530); the server named when the roster spans several. */}
+          <small>{` (${servers.length > 1 ? `${summary.sixServer} ` : ""}${sixBasis(summary.sixCount, "평균")})`}</small>
+          {" · "}
+          {number(ROSTER_TOTAL_MIN)} 이상 <b>{summary.highCount}명</b>
+          {summary.highCount > 0 && (
+            <small>
+              {" "}
+              (합 {number(summary.highSum)})
+            </small>
+          )}
+        </p>
+      )}
+      <RosterPower name={current} siblings={siblings} records={records} query={power} />
+      {stats.average != null && (
+        <>
+          <dl className={styles.rosterStats} aria-label="원정대 아이템 레벨">
+            <div>
+              <dt>캐릭터</dt>
+              <dd>{number(stats.count)}개</dd>
+            </div>
+            <div>
+              <dt>평균</dt>
+              <dd>{number(stats.average)}</dd>
+            </div>
+            <div>
+              <dt>중앙값</dt>
+              <dd>{number(stats.median)}</dd>
+            </div>
+            <div>
+              <dt>최고</dt>
+              <dd>{number(stats.max)}</dd>
+            </div>
+            <div>
+              <dt>최저</dt>
+              <dd>{number(stats.min)}</dd>
+            </div>
+          </dl>
+          <Panel title="구성" wide>
+            <div className={styles.rosterMix}>
+              <ShareBars title="아이템 레벨 구간" rows={bands} />
+              <ShareBars title={`직업 ${mix.length}개`} rows={mix} />
+            </div>
+          </Panel>
+        </>
+      )}
+      <WeeklyGoldPanel siblings={siblings} current={current} shown={shown} />
     </>
   );
 }
@@ -2166,7 +2180,7 @@ function QueryProblem({
             text: "저장소에 문제가 생겼어요. 잠시 후 다시 시도해 주세요.",
           }
         : info.code === "LOST_ARK_RATE_LIMITED"
-          ? rateLimitCopy()
+          ? rateLimitCopy(info)
           : info.code === "LOST_ARK_NOT_CONFIGURED" ||
             info.code === "FRONTEND_API_NOT_CONFIGURED"
           ? failureCopy(info)
@@ -2181,7 +2195,7 @@ function QueryProblem({
         <strong>{copy.title}</strong>
         <p>{copy.text}</p>
       </div>
-      {limit.limited && <RateLimitNote seconds={limit.seconds} />}
+      {limit.limited && <RateLimitNote seconds={limit.seconds} buttonCounts />}
       <button
         type="button"
         className={styles.textButton}
@@ -2395,14 +2409,18 @@ function RosterCharacters({ data }: { data: Character }) {
         </Panel>
       ) : result && result.siblings.length ? (
         <>
-          <p className={styles.caption}>
-            원정대 갱신 {kstTime(result.fetchedAt)}
-            {result.refreshAvailableAt &&
-              ` · ${kstTime(result.refreshAvailableAt)} 이후 다시 갱신`}
-          </p>
           <SiblingList
             siblings={result.siblings}
             current={data.characterName}
+            // Under the lists, not over them: the first card sits higher at
+            // 360 (v0.3.2), the time still right by the characters it is of.
+            caption={
+              <p className={styles.caption}>
+                원정대 갱신 {kstTime(result.fetchedAt)}
+                {result.refreshAvailableAt &&
+                  ` · ${kstTime(result.refreshAvailableAt)} 이후 다시 갱신`}
+              </p>
+            }
           />
         </>
       ) : (

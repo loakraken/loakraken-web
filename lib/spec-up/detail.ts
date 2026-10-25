@@ -11,9 +11,16 @@ export type DetailMarket = Schemas["SpecUpMarketResponse"];
 export type DetailRefine = Schemas["SpecUpRefineResponse"];
 export type DetailEnvelope = { code: string; message: string; data: SpecUpDetail };
 
-/** One cache entry per character snapshot and candidate; prices refresh by the minute. */
-export const specUpDetailQuery = (name: string, fetchedAt: string | null | undefined, candidateId: string) =>
-  ["spec-up", "detail", name, fetchedAt ?? null, candidateId] as const;
+/**
+ * One cache entry per character snapshot, candidate and the list's cooldown-gem
+ * choice (api #588; null when the list did not say); prices refresh by the minute.
+ */
+export const specUpDetailQuery = (
+  name: string,
+  fetchedAt: string | null | undefined,
+  candidateId: string,
+  includeCooldownGems: boolean | null = null,
+) => ["spec-up", "detail", name, fetchedAt ?? null, candidateId, includeCooldownGems] as const;
 
 /**
  * Materials plus the refining gold, null while any price is pending. The
@@ -39,6 +46,15 @@ export function refiningLink(characterName: string, refine: DetailRefine | null 
   return `/tools/refining?${new URLSearchParams({ character: characterName })}`;
 }
 
-/** Breath used for the cost (a newer value shows as it comes). */
-export const breathLabel = (breath: string | null | undefined) =>
-  breath === "NONE" ? "숨결 안 씀" : breath === "MAX" ? "숨결 최대" : (breath ?? null);
+/**
+ * Breath used for the cost. OPTIMAL (api #642): each attempt uses the breath
+ * count that makes the expected cost least; MAX is what the backend sent
+ * before it. A value we have no words for yet leaves the line out (never a
+ * raw code on screen).
+ */
+const BREATH = new Map([
+  ["NONE", "숨결 안 씀"],
+  ["OPTIMAL", "숨결 회차마다 최적"],
+  ["MAX", "숨결 최대"],
+]);
+export const breathLabel = (breath: string | null | undefined) => (breath ? (BREATH.get(breath) ?? null) : null);

@@ -7,7 +7,7 @@ import {
   isReceiptEnabled,
   isSettingCheckEnabled,
   isSpecUpEnabled,
-  isGuildRankingEnabled,
+  isGuildTabEnabled,
   isTitleStatsEnabled,
 } from "@/lib/tools/flags";
 import type { Metadata } from "next";
@@ -19,7 +19,7 @@ import {
 import { CharacterView } from "@/components/character/character-view";
 import { normalizeCharacterName } from "@/lib/character/model";
 import { headers } from "next/headers";
-import { getCharacter, getPublicSummary, getRank, getSiblings } from "@/lib/character/server";
+import { getCardCollection, getCharacter, getPublicSummary, getRank, getSiblings } from "@/lib/character/server";
 import { indexableSummary, isSearchBot, summaryLine } from "@/lib/character/public-summary";
 import { BotSummary } from "@/components/character/bot-summary";
 
@@ -64,7 +64,7 @@ export default async function CharacterPage({
   if (isCharacterIndexingEnabled() && isSearchBot((await headers()).get("user-agent")))
     return <BotSummary name={name} summary={indexableSummary(true, await getPublicSummary(name))} />;
   const { tab } = await searchParams;
-  const [result, rank, siblings] = await Promise.all([
+  const [result, rank, siblings, cards] = await Promise.all([
     getCharacter(name),
     // The rank panel sits in the first screen on wide layouts; painting it
     // after a client fetch made it the late LCP element (web #246). A slow
@@ -73,6 +73,11 @@ export default async function CharacterPage({
     // Opened on the 원정대 tab: the roster list comes in the first HTML, so it
     // does not push the titles and receipt panels down when it arrives (CLS).
     tab === "siblings" ? getSiblings(name, AbortSignal.timeout(1_000)) : null,
+    // The combat tab's 원정대 카드 기록 (in the cards panel): drawn after a
+    // client fetch it grew by ~360px and, on one-column screens, moved every
+    // panel under it (#1043). In the first HTML it is there from the start;
+    // a slow answer gives up after 1s and the panel fetches as before.
+    !tab || tab === "combat" ? getCardCollection(name, AbortSignal.timeout(1_000)) : null,
   ]);
   // Request-time snapshot in a dynamic Server Component, shared with hydration.
   // eslint-disable-next-line react-hooks/purity
@@ -84,6 +89,8 @@ export default async function CharacterPage({
     });
   if (result.ok && rank.ok)
     client.setQueryData(["character-rank", name], rank.envelope, { updatedAt: renderedAt });
+  if (result.ok && cards?.ok)
+    client.setQueryData(["card-collection", name], cards.envelope, { updatedAt: renderedAt });
   // The tab keys the roster by the character's own name from the response.
   if (result.ok && siblings?.ok)
     client.setQueryData(["siblings", result.envelope.data.characterName], siblings.envelope, {
@@ -103,7 +110,7 @@ export default async function CharacterPage({
         specUp={isSpecUpEnabled()}
         titleStats={isTitleStatsEnabled()}
         critSpeed={isCritSpeedEnabled()}
-        guildTab={isGuildRankingEnabled()}
+        guildTab={isGuildTabEnabled()}
         characterEfficiency={isCharacterEfficiencyEnabled()}
       />
     </HydrationBoundary>

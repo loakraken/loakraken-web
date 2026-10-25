@@ -288,7 +288,7 @@ export function combatPowerFailureCopy(error: { code: string }) {
       };
     case "LOST_ARK_RATE_LIMITED":
     case "CLIENT_RATE_LIMITED":
-      return rateLimitCopy();
+      return rateLimitCopy(error);
     case "FRONTEND_API_NOT_CONFIGURED":
     case "NOT_FOUND":
       return {

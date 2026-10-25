@@ -305,7 +305,9 @@ async function market(url, req, send) {
       const empty = { name, unitPriceGold: null, sourceItemName: null, bundleCount: null, bundlePrice: null, contentsPerItem: null, observedAt };
       if (name === "운명의 파편")
         return { ...empty, status: "PRICED", unitPriceGold: 0.077333, sourceItemName: "운명의 파편 주머니(대)", bundleCount: 1, bundlePrice: 232, contentsPerItem: 3000 };
-      if (name === "용암의 숨결") return { ...empty, status: "PRICE_UNAVAILABLE", sourceItemName: name, bundleCount: 1 };
+      // MOCK_PRICE_UNAVAILABLE_REASON (api #600): why it has no price, e.g. RATE_LIMITED; unset = null.
+      if (name === "용암의 숨결")
+        return { ...empty, status: "PRICE_UNAVAILABLE", sourceItemName: name, bundleCount: 1, unavailableReason: process.env.MOCK_PRICE_UNAVAILABLE_REASON || null };
       // 로아샵: 공식 거래소에서 사고팔 수 없는 품목(백엔드 UNTRADEABLE, 검색하지 않음).
       if (["고급 생명의 기운 회복물약", "중급 생명의 기운 회복물약", "환희의 전설 카드 팩", "환희의 전설~영웅 카드 팩"].includes(name))
         return { ...empty, status: "UNTRADEABLE" };
@@ -590,6 +592,10 @@ createServer(async (req, res) => {
       },
     });
   }
+  // The filter switched off on the backend (MARKET_GEM_FILTER_ENABLED=false)
+  // while a shared address still names a class: '필터꺼짐' answers as it would.
+  if (url.pathname === "/api/v1/markets/auctions/gems/listings" && url.searchParams.get("className") === "필터꺼짐")
+    return send({ code: "GEM_FILTER_DISABLED", message: "직업·스킬 필터가 꺼져 있습니다." }, 404);
   if (url.pathname === "/api/v1/markets/auctions/gems/listings" && url.searchParams.get("className")) {
     const kind = url.searchParams.get("kind");
     const level = Number(url.searchParams.get("level"));
@@ -770,6 +776,15 @@ createServer(async (req, res) => {
     const target = Number(url.searchParams.get("targetCombatPower"));
     if (who === "스펙업꺼짐") return send({ code: "SPEC_UP_DISABLED", message: "", data: null }, 404);
     if (who === "미존재") return send({ code: "CHARACTER_NOT_CACHED", message: "", data: null }, 404);
+    // api #592 (spec-up-goal-v2): the backend's own answer as it is — gem steps cost
+    // from now to that level, and the totals are its own (never summed here).
+    if (who === "스펙목표v2" || who === "스펙목표0골드") {
+      const v2 = JSON.parse(readFileSync(new URL("./spec-up-fixtures/character-spec-up-goal-v2.json", import.meta.url), "utf8"));
+      v2.data.characterName = who;
+      // A step costing 0 that stays in the path (OK, 0, no per-gold figure).
+      if (who === "스펙목표0골드") Object.assign(v2.data.steps[0], { cost: { ...v2.data.steps[0].cost, amount: 0 }, cumulativeCost: 0, combatPowerPer10kGold: null });
+      return send(v2);
+    }
     const envelope = JSON.parse(readFileSync(new URL("./spec-up-fixtures/character-spec-up-goal.json", import.meta.url), "utf8"));
     const d = envelope.data;
     const base = read("character-full-data.json").combatPower;
@@ -811,10 +826,15 @@ createServer(async (req, res) => {
     const id = decodeURIComponent(detailPath[1]);
     const fixture = (name) => JSON.parse(readFileSync(new URL(`./spec-up-fixtures/${name}`, import.meta.url), "utf8"));
     const list = fixture("character-spec-up.json");
+    if (id.startsWith("ENGRAVING_LEVEL:")) return send(fixture("character-spec-up-detail-engraving.json"));
     const candidate = list.data.candidates.find((c) => c.id === id && c.status === "OK");
     if (!candidate) return send(fixture("character-spec-up-detail-not-found.json"), 404);
-    const envelope = fixture("character-spec-up-detail-gem.json");
     const who = url.searchParams.get("characterName");
+    // api #592: the gem cost takes off the current gem's lowest price, the sale
+    // fee apart (sellFeeGold). The backend's own answer, as it is.
+    if (who === "스펙업수수료" && id === "GEM_LEVEL:0:9")
+      return send({ ...fixture("character-spec-up-detail-gem-fee.json"), data: { ...fixture("character-spec-up-detail-gem-fee.json").data, characterName: who } });
+    const envelope = fixture("character-spec-up-detail-gem.json");
     Object.assign(envelope.data, { characterName: who, candidate: { ...envelope.data.candidate, ...candidate } });
     if (candidate.kind !== "GEM_LEVEL") Object.assign(envelope.data, { stats: [], market: null });
     else if (id !== "GEM_LEVEL:0:9") envelope.data.market[0].itemName = `${String(candidate.to).replace(/\D/g, "")}레벨 겁화의 보석`;
@@ -826,7 +846,23 @@ createServer(async (req, res) => {
     const who = url.searchParams.get("characterName");
     if (who === "스펙업꺼짐") return send(specUp("character-spec-up-disabled.json"), 404);
     if (who === "미존재") return send(specUp("character-spec-up-not-cached.json"), 404);
+    // 크라켄 점수 순 (api #573): the backend's own answers. "스펙업점수꺼짐" has the
+    // score switched off (the answer comes as EFFICIENCY with a reason), and
+    // "스펙업옛응답" is a backend from before #573 (no score fields at all).
+    if (url.searchParams.get("sort") === "KRAKEN") {
+      const kraken = specUp(who === "스펙업점수꺼짐" ? "character-spec-up-kraken-unavailable.json" : "character-spec-up-kraken.json");
+      kraken.data.characterName = who;
+      kraken.data.cooldownGemsIncluded = url.searchParams.get("includeCooldownGems") === "true";
+      return send(kraken);
+    }
     const envelope = specUp(who === "스펙업시세" ? "character-spec-up-pending.json" : "character-spec-up.json");
+    if (who !== "스펙업옛응답")
+      Object.assign(envelope.data, {
+        krakenScore: who === "스펙업점수꺼짐" ? null : 3977.02,
+        krakenRuleVersion: who === "스펙업점수꺼짐" ? null : "spec-up-kraken-v1",
+        cooldownGemsIncluded: true,
+        krakenSortUnavailableReason: who === "스펙업점수꺼짐" ? "DISABLED" : null,
+      });
     envelope.data.characterName = who;
     // The same combat power the mock simulator starts from (the backend's
     // spec-up and simulator read one character), so the L31 goal path adds up.
@@ -834,6 +870,13 @@ createServer(async (req, res) => {
     // The sample's gem is the mock simulator character's slot-1 gem (level 8).
     for (const c of envelope.data.candidates)
       if (c.change?.kind === "GEM_LEVEL") c.change.slot = 1;
+    // An OK candidate costing 0 (a bound gem kept, say): no per-gold figure, after
+    // the rest (the backend's order, api #596).
+    if (who === "스펙업0골드") {
+      const ok = envelope.data.candidates.filter((c) => c.status === "OK");
+      const free = { ...ok[0], id: "GEM_LEVEL:9:9", target: "무료 보석 칸", cost: { ...ok[0].cost, amount: 0 }, combatPowerPer10kGold: null };
+      envelope.data.candidates = [...ok, free, ...envelope.data.candidates.filter((c) => c.status !== "OK")];
+    }
     if (url.searchParams.get("sort") === "DELTA") {
       envelope.data.sort = "DELTA";
       const ok = envelope.data.candidates.filter((c) => c.status === "OK");
@@ -1084,6 +1127,8 @@ createServer(async (req, res) => {
   if (url.pathname === "/api/v1/characters/card-collection") {
     // Backend F-6 samples; card art swapped for official legend card icons.
     const who = url.searchParams.get("characterName");
+    // 카드늦음: slower than the page's 1s wait, so the records arrive after the first paint.
+    if (who === "카드늦음") await new Promise((resolve) => setTimeout(resolve, 1500));
     const kind = who === "기록없음" ? "empty" : who === "상세서포터" ? "supporter" : "dealer";
     const body = JSON.parse(readFileSync(new URL(`./card-fixtures/card-collection-${kind}.json`, import.meta.url), "utf8"));
     body.data.characterName = who;
@@ -1250,6 +1295,8 @@ createServer(async (req, res) => {
   }
   if (url.pathname === "/api/v1/characters/rank") {
     const who = url.searchParams.get("characterName") ?? "";
+    // 순위늦음: slower than the page's 1s wait, so the rank arrives after the first paint.
+    if (who === "순위늦음") await new Promise((resolve) => setTimeout(resolve, 1500));
     if (who === "미관측" || who === "비공개") return send({ code: "STATS_CHARACTER_NOT_OBSERVED", message: "private" }, 404);
     const excluded = who === "조건밖";
     const entry = (metric, scope, scopeValue, rank, total, sampleStatus = "READY", gapAs = null) => {
@@ -1317,9 +1364,22 @@ createServer(async (req, res) => {
     data.computedAt = new Date().toISOString();
     receiptCalls.set(who, (receiptCalls.get(who) ?? 0) + 1);
     if (receiptCalls.get(who) > 1) {
-      for (const c of data.equipment.characters) if (c.status === "PENDING") Object.assign(c, { status: "READY", gold: 2887361 });
+      for (const c of data.equipment.characters)
+        if (c.status === "PENDING") Object.assign(c, { status: "READY", gold: 2887361, complete: true });
       data.coverage = { ...data.coverage, ready: data.coverage.rosterCharacters, pending: 0, nextAvailableAt: null };
+      data.total.status = "COMPLETE";
     } else data.coverage.nextAvailableAt = new Date(Date.now() + 20_000).toISOString();
+    // 영수증시세없음 (backend #665): every price missing, nothing counted → UNAVAILABLE, no amount.
+    if (who === "영수증시세없음") {
+      for (const c of data.equipment.characters) {
+        if (c.status !== "READY") continue;
+        Object.assign(c, { gold: 0, parts: [], complete: false });
+        c.excluded.push({ slot: "무기", name: null, reason: "PRICE_UNAVAILABLE", message: "「무기」: 재료 시세가 없어 산정하지 못했습니다." });
+      }
+      data.equipment.gold = 0;
+      data.gems = { ...data.gems, gold: 0, priced: 0, unpriced: data.gems.tradable, items: data.gems.items.map((g) => ({ ...g, gold: null, unitPrice: null, status: "NO_PRICE" })) };
+      data.total = { ...data.total, gold: 0, status: "UNAVAILABLE" };
+    }
     if (url.searchParams.get("assumeBook") === "true") {
       data.assumptions[0] = "책(재봉술·야금술) 효과가 항상 적용된다고 가정합니다(확률 미공개).";
       data.equipment.gold = Math.round(data.equipment.gold * 0.8);
@@ -1395,7 +1455,9 @@ createServer(async (req, res) => {
     const bracelet = url.pathname.endsWith("bracelets");
     const page = Number(q.get("page") || 1);
     const size = Number(q.get("size") || 50);
-    const population = q.get("className") === "환수사" ? 0 : q.get("server") ? 64 : 230;
+    // 환수사: none yet; 리퍼: a fresh ranking on the real definition (api #647), 3 rows still collecting.
+    const fresh = q.get("className") === "리퍼";
+    const population = q.get("className") === "환수사" ? 0 : fresh ? 3 : q.get("server") ? 64 : 230;
     const servers = ["루페온", "실리안", "아만", "아브렐슈드", "카단", "카마인", "카제로스", "니나브"];
     const classes = ["블래스터", "소울이터", "슬레이어", "기상술사", "버서커", "블레이드"];
     const rows = [];
@@ -1421,7 +1483,7 @@ createServer(async (req, res) => {
           aggregatedAt: new Date(Date.now() - 600_000).toISOString(), snapshot: "latest", ruleVersion: "stats-v1", minSample: 30,
           sampleStatus: population >= 30 ? "READY" : "COLLECTING", coverage: { observedCharacters: population, knownCharacters: population * 3, discoveredAccounts: 100 },
         },
-        kind: bracelet ? "BRACELET" : "ARK_GRID_GEM", ruleVersion: "efficiency-v1",
+        kind: bracelet ? "BRACELET" : "ARK_GRID_GEM", ruleVersion: fresh ? (bracelet ? "bracelet-real-v1" : "ark-grid-real-v1") : "efficiency-v1",
         populationNote: "캐릭터 검색으로 장비를 관측해 효율을 계산한 캐릭터만 순위에 들어갑니다.",
         page, size, rows,
       },
@@ -1858,17 +1920,24 @@ createServer(async (req, res) => {
     // Name search (api #466): matching rows keep their overall rank; "빠진" matches
     // two guilds left out for too few members seen.
     const guild = url.searchParams.get("guild");
+    // CP_AVG (api #589): the item level 1750+ members' combat power average; a
+    // guild with none of them (작은길드, 짧은길드) is null, last, sharing the last rank.
     const sort = url.searchParams.get("sort") ?? "AVG";
     const guilds = (server === "아만"
-      ? [["합성길드아만", "아만", 9, 1702.35, 8, 3010.5], ["짧은길드", "아만", 6, 1688, 0, null]]
-      : [["합성길드", "루페온", 24, 1731.12, 20, 3180.29], ["두번째길드", "루페온", 12, 1712.5, 12, 3050.4], ["작은길드", "카단", 5, 1690.4, 2, 2890.75]]
-    ).map(([guildName, serverName, memberCount, avg, cpCount, cpAvg]) => ({
+      ? [["합성길드아만", "아만", 9, 1702.35, 8, 3010.5, 4, 3105.2], ["짧은길드", "아만", 6, 1688, 0, null, 0, null]]
+      : [["합성길드", "루페온", 24, 1731.12, 20, 3180.29, 15, 3402.18], ["두번째길드", "루페온", 12, 1712.5, 12, 3050.4, 8, 3221.6], ["작은길드", "카단", 5, 1690.4, 2, 2890.75, 0, null]]
+    ).map(([guildName, serverName, memberCount, avg, cpCount, cpAvg, topCount, topAvg]) => ({
       serverName, guildName, memberCount,
       itemLevelAvg: avg,
       itemLevelSum: Math.round(avg * memberCount * 100) / 100,
       combatPowerAvg: cpAvg, combatPowerCount: cpCount,
+      combatPowerAvgTop: topAvg, combatPowerTopCount: topCount,
+      combatPowerTotal: cpAvg == null ? null : Math.round(cpAvg * cpCount * 100) / 100,
     }));
-    guilds.sort((a, b) => (sort === "SUM" ? b.itemLevelSum - a.itemLevelSum : b.itemLevelAvg - a.itemLevelAvg));
+    const value = (row) =>
+      ({ AVG: row.itemLevelAvg, SUM: row.itemLevelSum, CP_AVG: row.combatPowerAvgTop, CP_SUM: row.combatPowerTotal })[sort] ?? null;
+    guilds.sort((a, b) => (value(b) ?? -Infinity) - (value(a) ?? -Infinity));
+    const valued = guilds.filter((row) => value(row) != null).length;
     return send({
       code: "GUILD_RANKING_SUCCESS",
       message: "ok",
@@ -1892,7 +1961,7 @@ createServer(async (req, res) => {
             }
           : { matchCount: null, excludedMatches: null }),
         rows: guilds
-          .map((row, i) => ({ rank: i + 1, ...row }))
+          .map((row, i) => ({ rank: value(row) == null ? valued + 1 : i + 1, ...row }))
           .filter((row) => !guild || row.guildName.toLowerCase().includes(guild.toLowerCase()))
           // One page holds every guild here: a later page is empty.
           .filter(() => Number(url.searchParams.get("page") ?? 1) <= 1),
@@ -2215,7 +2284,7 @@ createServer(async (req, res) => {
       detail: { parserVersion: "equipment-tooltip-v3", refineLevel, quality: 90, itemLevel: 1640 + refineLevel * 5, tier: 4, arkPassivePoint: null, effects: [], stoneEngravings: [], polishEffects: [], braceletEffects: [] },
     }));
   }
-  if (name === "상세" || name === "상세서포터" || name === "대세블레이드" || name === "가려짐긴값캐릭터" || name === "아크없음" || name === "효율준비중") {
+  if (name === "상세" || name === "상세서포터" || name === "대세블레이드" || name === "가려짐긴값캐릭터" || name === "아크없음" || name === "효율준비중" || name === "팔찌못읽음") {
     // Detail-page mock: a locally supplied character file (never committed) or
     // the synthetic fixture, enriched with synthetic Tooltip detail and skills.
     if (process.env.MOCK_CHARACTER_FILE)
@@ -2423,7 +2492,10 @@ createServer(async (req, res) => {
     const realSupport = name === "상세서포터";
     d.braceletEfficiency.real = realSupport
       ? { status: "OK", reasonCode: null, reason: null, role: "SUPPORT", percent: 13.47857142857143, devilDamagePercent: null, ruleVersion: "bracelet-real-v1" }
-      : { status: "OK", reasonCode: null, reason: null, role: "DEALER", percent: 11.3, devilDamagePercent: 14.08, ruleVersion: "bracelet-real-v1" };
+      : name === "팔찌못읽음"
+        ? // api #706: an option the engine cannot read.
+          { status: "UNAVAILABLE", reasonCode: "UNKNOWN_OPTION", reason: "로그용 문장", role: "DEALER", percent: null, devilDamagePercent: null, ruleVersion: "bracelet-real-v1" }
+        : { status: "OK", reasonCode: null, reason: null, role: "DEALER", percent: 11.3, devilDamagePercent: 14.08, ruleVersion: "bracelet-real-v1" };
     d.arkGridEfficiency.real = {
       status: "OK", reasonCode: null, reason: null, percent: 4.67, optionsPercent: 3.21, pointsPercent: 1.41, ruleVersion: "ark-grid-real-v1",
       options: [

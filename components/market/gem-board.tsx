@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useId, useState } from "react";
+import { Fragment, useEffect, useId, useState } from "react";
 import { useRouter } from "next/navigation";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { SiteHeader } from "@/components/site/site-header";
@@ -19,6 +19,7 @@ import {
   gemGrid,
   gemPickSearch,
   gemTarget,
+  pickAfterFailure,
   skillsFor,
   type GemCell,
   type GemClass,
@@ -203,6 +204,19 @@ export function GemBoardView({
     setPick(next);
     router.replace(`?${gemPickSearch(next)}`, { scroll: false });
   }
+  // The filter switched off while a shared address still names a class: the
+  // same cell again without it, and the address cleaned (no dead retry).
+  // The pick changes during render (React's "storing information from previous
+  // renders"); only the address waits for the effect.
+  const fallback = pick ? pickAfterFailure(pick, listingFailure) : null;
+  const [dropped, setDropped] = useState<GemPick | null>(null);
+  if (fallback) {
+    setPick(fallback);
+    setDropped(fallback);
+  }
+  useEffect(() => {
+    if (dropped) router.replace(`?${gemPickSearch(dropped)}`, { scroll: false });
+  }, [dropped, router]);
   // Another cell keeps the class, and the skill only if it works on that kind.
   function chooseCell(kind: GemKind, level: number) {
     const className = pick?.className ?? null;

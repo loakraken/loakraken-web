@@ -52,7 +52,7 @@ function statValue(value: DetailStat["before"], unit: string | null) {
 function failureText(error: unknown) {
   const code = error instanceof SpecUpQueryError ? error.info.code : "";
   if (code === "SPEC_UP_CANDIDATE_NOT_FOUND") return "이 후보가 바뀌었어요. 목록을 새로 불러오고 있어요.";
-  if (code === "CLIENT_RATE_LIMITED") return rateLimitCopy().text;
+  if (code === "CLIENT_RATE_LIMITED") return rateLimitCopy({ code }).text;
   if (code === "CHARACTER_NOT_CACHED") return "캐릭터 정보를 먼저 불러와 주세요.";
   return "상세를 불러오지 못했어요. 잠시 뒤 다시 열어 주세요.";
 }
@@ -82,21 +82,28 @@ function DetailBody({ detail, characterName }: { detail: SpecUpDetail; character
       {detail.market && detail.market.length > 0 && (
         <ItemDetailSection label="시세">
           {detail.market.map((m) => {
-            // SELL: the gem in the slot now, its expected sale taken off the cost.
+            // SELL: the gem in the slot now, taken off the cost. An answer with
+            // sellFeeGold (api #592) takes off its lowest price (the fee is not
+            // in the cost); an older one took off the expected sale after the fee.
             const sell = m.role === "SELL";
+            const byLowest = sell && m.sellFeeGold !== undefined;
             return (
               <div key={`${m.role}:${m.itemName}`} className={styles.specUpDetailItem}>
                 <GameIcon src={m.icon} grade={m.grade} size={28} />
                 <ItemStat
                   label={
                     <>
-                      {sell ? "판매 기대" : "구매"} · {m.itemName}
+                      {byLowest ? "판매 최저가" : sell ? "판매 기대" : "구매"} · {m.itemName}
                       {m.quantity > 1 && <span className={styles.specUpDetailSub}> ×{m.quantity}</span>}
                     </>
                   }
                   value={
                     <>
-                      {sell ? `−${gold(m.expectedSalePrice)}` : gold(m.price == null ? null : m.price * m.quantity)}
+                      {byLowest
+                        ? `−${gold(m.price)}`
+                        : sell
+                          ? `−${gold(m.expectedSalePrice)}`
+                          : gold(m.price == null ? null : m.price * m.quantity)}
                       {m.listedCount != null && (
                         <small className={styles.specUpDetailSub}> · 매물 {m.listedCount.toLocaleString("ko-KR")}개</small>
                       )}
@@ -107,9 +114,15 @@ function DetailBody({ detail, characterName }: { detail: SpecUpDetail; character
             );
           })}
           {c.cost?.status === "OK" && c.cost.amount != null && <ItemStat label="기대 비용" value={gold(c.cost.amount)} emphasis />}
-          {detail.market.some((m) => m.role === "SELL") && (
-            <ItemLine tone="muted">판매 기대는 최저가에서 거래소 수수료 5%를 뺀 값이에요.</ItemLine>
-          )}
+          {(() => {
+            const sold = detail.market.find((m) => m.role === "SELL");
+            if (!sold) return null;
+            if (sold.sellFeeGold === undefined)
+              return <ItemLine tone="muted">판매 기대는 최저가에서 거래소 수수료 5%를 뺀 값이에요.</ItemLine>;
+            return sold.sellFeeGold != null && sold.sellFeeGold > 0 ? (
+              <ItemLine tone="muted">팔 때 거래소 수수료 {gold(sold.sellFeeGold)}는 기대 비용에 넣지 않았어요.</ItemLine>
+            ) : null;
+          })()}
         </ItemDetailSection>
       )}
       {detail.refine && (
@@ -164,10 +177,13 @@ export function SpecUpRowDetail({
   characterName,
   fetchedAt,
   candidate,
+  cooldownGemsIncluded = null,
 }: {
   characterName: string;
   fetchedAt: string | null | undefined;
   candidate: Candidate;
+  /** The list's applied cooldown-gem choice, sent with the detail (api #588). */
+  cooldownGemsIncluded?: boolean | null;
 }) {
   // Asked to open; the card itself opens once its detail (or an error) is in,
   // so it opens at its final size. Opening first with a one-line "loading"
@@ -175,8 +191,8 @@ export function SpecUpRowDetail({
   const [wanted, setWanted] = useState(false);
   const queryClient = useQueryClient();
   const detail = useQuery({
-    queryKey: specUpDetailQuery(characterName, fetchedAt, candidate.id),
-    queryFn: ({ signal }) => fetchSpecUpDetail(characterName, candidate.id, signal),
+    queryKey: specUpDetailQuery(characterName, fetchedAt, candidate.id, cooldownGemsIncluded),
+    queryFn: ({ signal }) => fetchSpecUpDetail(characterName, candidate.id, signal, cooldownGemsIncluded),
     enabled: wanted,
     staleTime: DETAIL_STALE_MS,
     retry: false,
