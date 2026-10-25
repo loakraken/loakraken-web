@@ -75,11 +75,46 @@
   gap: 8px 12px;
   margin-top: 14px;
 }
+/* The count line has a row of its own and, where it can wrap, room for two
+   lines: it changes as members fill in, and nothing under it may move (A7). */
 .coverage p {
+  flex: 1 1 100%;
   margin: 0;
   color: var(--foreground);
   font-size: 13px;
+  line-height: 1.5;
   font-variant-numeric: tabular-nums;
+  word-break: keep-all;
+}
+/* Kept (empty) once shown, so the fill completing does not pull the page up. */
+.total > p.leftLine {
+  min-height: 1.5em;
+  line-height: 1.5;
+}
+@media (max-width: 480px) {
+  .coverage p {
+    min-height: 3em;
+  }
+  /* The total's sentence: two lines while partial, one once complete. Hold
+     two, so the receipt filling in does not pull the page up. */
+  .total > p:first-of-type {
+    min-height: 3em;
+  }
+  /* '빠진 것' loses '계산 대기 N명' when the fill completes: hold two lines. */
+  .total > p.leftLine {
+    min-height: 3em;
+  }
+}
+/* The '다시 계산' slot is always there (button hidden while the panel fills
+   members in by itself), so the row keeps one height. */
+.againSlot {
+  display: flex;
+  flex: none;
+  min-height: 32px;
+  align-items: center;
+}
+.againSlot[data-idle] .again {
+  visibility: hidden;
 }
 .bar {
   flex: 1 1 120px;
