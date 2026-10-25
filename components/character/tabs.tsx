@@ -672,7 +672,7 @@ function BraceletBody({
   return (
     <div className={styles.braceletBody}>
       <strong>팔찌</strong>
-      {(real.state === "ready" || real.state === "pending") && (
+      {(real.state === "ready" || real.state === "pending" || real.state === "unavailable") && (
         <p className={styles.braceletEffHead}>
           <Tooltip>
             <TooltipTrigger className={styles.braceletEffTerm} aria-label="팔찌 효율: 이 팔찌가 딜을 몇 % 올려 주는지예요.">
@@ -682,6 +682,10 @@ function BraceletBody({
           </Tooltip>
           {real.state === "ready" ? (
             <b>{devil && real.devil ? real.devil : real.percent}</b>
+          ) : real.state === "unavailable" ? (
+            // Read but not worked out (an option the engine does not know):
+            // why, in a fixed sentence — not '준비 중', which reads as 'soon'.
+            <span className={styles.braceletEffReason}>읽지 못한 팔찌 옵션이 있어 계산하지 않았어요</span>
           ) : (
             // A bracelet is there (this row only shows with one), its value not
             // worked out: never a number (PM 총괄 14:04 — the comparison site

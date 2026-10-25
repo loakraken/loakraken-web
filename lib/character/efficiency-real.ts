@@ -48,6 +48,11 @@ export type BraceletRealView =
   /** A supporter: the bracelet shows its grades only, no % (PM-프론트). */
   | { state: "grades" }
   | { state: "pending" }
+  /**
+   * The bracelet could not be read (api #706: an option the engine does not
+   * know). Not 'coming soon' but 'not worked out, and why' (PM-프론트 P3).
+   */
+  | { state: "unavailable" }
   | { state: "ready"; percent: string; devil: string | null };
 
 /**
@@ -58,6 +63,7 @@ export type BraceletRealView =
 export function braceletRealView(real: BraceletReal | null | undefined): BraceletRealView {
   if (!real) return { state: "hidden" };
   if (real.role === "SUPPORT") return { state: "grades" };
+  if (real.status === "UNAVAILABLE") return { state: "unavailable" };
   if (real.status !== "OK" || !finite(real.percent)) return { state: "pending" };
   return {
     state: "ready",
