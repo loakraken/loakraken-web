@@ -715,3 +715,11 @@
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
+
+/* A class row's name with its official icon (stats gap A1): the icon's box is
+   fixed, so the row does not move when it loads. */
+.classCell {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
