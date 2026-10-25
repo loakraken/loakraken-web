@@ -63,7 +63,8 @@ export type BraceletRealView =
 export function braceletRealView(real: BraceletReal | null | undefined): BraceletRealView {
   if (!real) return { state: "hidden" };
   if (real.role === "SUPPORT") return { state: "grades" };
-  if (real.status === "UNAVAILABLE") return { state: "unavailable" };
+  // UNAVAILABLE comes with api #706, before the contract lists it: read as a string.
+  if ((real.status as string) === "UNAVAILABLE") return { state: "unavailable" };
   if (real.status !== "OK" || !finite(real.percent)) return { state: "pending" };
   return {
     state: "ready",

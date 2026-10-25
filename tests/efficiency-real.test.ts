@@ -71,7 +71,8 @@ test("팔찌 실 효율: two decimals, the 악마 피해 value for a dealer, gra
   assert.deepEqual(braceletRealView(null), { state: "hidden" });
   // api #706: an option the engine cannot read — why, not 'coming soon'.
   assert.deepEqual(
-    braceletRealView({ ...braceletOk, status: "UNAVAILABLE", reasonCode: "UNKNOWN_OPTION", reason: "알 수 없는 옵션", percent: null, devilDamagePercent: null }),
+    // Not in the contract until api #706 ships, hence the cast.
+    braceletRealView({ ...braceletOk, status: "UNAVAILABLE" as unknown as "OK", reasonCode: "UNKNOWN_OPTION", reason: "알 수 없는 옵션", percent: null, devilDamagePercent: null }),
     { state: "unavailable" },
   );
 });
