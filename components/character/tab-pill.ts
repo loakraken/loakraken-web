@@ -11,6 +11,23 @@ function place(nav: HTMLElement | null, copy: HTMLElement | null, slide: boolean
   copy.toggleAttribute("data-instant", !slide);
   copy.style.clipPath = `inset(0 ${right}px 0 ${left}px round 980px)`;
   nav.dataset.pill = "on";
+  reveal(nav, active);
+}
+
+/**
+ * Scroll the tab row (never the page) so the current tab sits clear of the
+ * edge fades. On a phone the row scrolls, and a tab past its end was left
+ * cut in the fade: 스펙업 showed as '스펙ㅇ', which read like a stray 0 before
+ * 더보기 (live, 390).
+ */
+function reveal(nav: HTMLElement, active: HTMLElement) {
+  if (nav.scrollWidth <= nav.clientWidth) return;
+  // The fade at each end (scroll-fade-x): min(12%, 40px) of the row.
+  const fade = Math.min(nav.clientWidth * 0.12, 40);
+  const start = active.offsetLeft - fade;
+  const end = active.offsetLeft + active.offsetWidth + fade - nav.clientWidth;
+  if (nav.scrollLeft > start) nav.scrollLeft = Math.max(0, start);
+  else if (nav.scrollLeft < end) nav.scrollLeft = end;
 }
 
 /**

@@ -1,0 +1,30 @@
+// 회귀(마케팅 실서비스 390): 캐릭터 탭 줄이 휴대폰에서 옆으로 스크롤될 때, 고른 탭이 줄 끝 흐림에 잘려
+// '스펙ㅇ'처럼 보였다('더보기' 앞의 0처럼 읽힘). 고른 탭은 늘 흐림 밖에 다 보인다.
+import { test, expect, characterPath } from "../support/fixtures.mjs";
+
+for (const width of [320, 360, 390])
+  for (const tab of ["specup", "siblings", "evidence"])
+    test(`고른 탭이 탭 줄 안에 다 보인다 ${tab} @${width} @regression`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 844 });
+      await page.goto(characterPath("상세", tab));
+      const nav = page.getByRole("navigation", { name: "캐릭터 정보 탭" });
+      const current = nav.locator('a[aria-current="page"]');
+      await expect(current).toBeVisible();
+      await expect
+        .poll(() =>
+          current.evaluate((a) => {
+            const row = a.closest("nav");
+            const box = row.getBoundingClientRect();
+            const r = a.getBoundingClientRect();
+            const fade = Math.min(row.clientWidth * 0.12, 40);
+            // No fade at an end the row is scrolled all the way to.
+            const startFade = row.scrollLeft > 0 ? fade : 0;
+            const endFade = row.scrollLeft + row.clientWidth < row.scrollWidth - 1 ? fade : 0;
+            return {
+              cutStart: Math.max(0, Math.round(box.left + startFade - r.left)),
+              cutEnd: Math.max(0, Math.round(r.right - (box.right - endFade))),
+            };
+          }),
+        )
+        .toEqual({ cutStart: 0, cutEnd: 0 });
+    });
