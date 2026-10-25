@@ -24,6 +24,7 @@ import {
   listChangeCopy,
   sortCaption,
   splitKrakenCandidates,
+  costPriceNote,
   costRoom,
   gemTarget,
   koreanGold,
@@ -33,6 +34,7 @@ import {
   type Candidate,
   type Sort,
 } from "@/lib/spec-up/model";
+import { MINUTE, useClock } from "@/components/home/clock";
 import { SpecUpGoal } from "./spec-up-goal";
 import { SpecUpRowDetail } from "./spec-up-detail";
 import { kstTime } from "./parts";
@@ -65,8 +67,11 @@ function NoFigure({ candidate }: { candidate: Candidate }) {
   );
 }
 
-function CostCell({ candidate, pulse }: { candidate: Candidate; pulse?: Pulse }) {
+function CostCell({ candidate, pulse, now }: { candidate: Candidate; pulse?: Pulse; now: number | null }) {
   const cost = candidate.cost;
+  // Gem costs carry their price time (api #759): a second line on every gem
+  // row, fresh or not, so a refresh that turns one stale keeps the row's height.
+  const note = now == null ? null : costPriceNote(cost, now);
   if (!cost)
     return (
       <td data-cell="cost" data-label="기대 비용">
@@ -88,13 +93,15 @@ function CostCell({ candidate, pulse }: { candidate: Candidate; pulse?: Pulse })
         // Holds the width of a longer cost of this size (see costRoom): the
         // minute's refresh does not widen the column or the phone card (A7).
         data-room={cost.unit === "GOLD" ? costRoom(cost.amount) : undefined}
-        title={`${cost.amount.toLocaleString("ko-KR")}${cost.unit === "GOLD" ? "G" : ` ${cost.unit}`}`}
+        data-stale={note?.stale || undefined}
+        title={`${cost.amount.toLocaleString("ko-KR")}${cost.unit === "GOLD" ? "G" : ` ${cost.unit}`}${note ? ` · ${note.text}` : ""}`}
       >
         {/* Right-aligned text rewritten in place starts elsewhere and counts as
             moving (A7): a new amount draws new text. */}
         <ChangeMark key={cost.amount} pulse={pulse}>
           {cost.unit === "GOLD" ? `${koreanGold(cost.amount)}G` : `${cost.amount.toLocaleString("ko-KR")} ${cost.unit}`}
         </ChangeMark>
+        {note && <small className={styles.specUpCostTime}>{note.text}</small>}
       </td>
     );
   return (
@@ -106,6 +113,8 @@ function CostCell({ candidate, pulse }: { candidate: Candidate; pulse?: Pulse })
 
 export default function SpecUpGuide({ data }: { data: Character }) {
   const name = data.characterName;
+  // For gem price times ("21:05 시세" / a date when not today).
+  const now = useClock(MINUTE);
   const [sort, setSort] = useState<Sort>("EFFICIENCY");
   // 크라켄 점수 순 (api #573) leaves 작열 (cooldown) gems out by default; the user can add them.
   const [cooldown, setCooldown] = useState(false);
@@ -230,8 +239,6 @@ export default function SpecUpGuide({ data }: { data: Character }) {
       </p>
       {/* 사용자 결정(PM 총괄 19:48): 해설은 아직 없다는 한 줄. */}
       <p className={styles.specUpNote}>세팅 해설 기능은 준비 중이에요.</p>
-      {/* PM 총괄 10-25: scope line until the api lists arm-guard (완갑) refining rows; remove it then. */}
-      <p className={styles.specUpNote}>완갑 재련은 아직 후보에 넣지 않았습니다.</p>
 
       <div className={styles.specUpBar}>
         <div role="group" aria-label="정렬" className={styles.specUpSorts}>
@@ -393,7 +400,7 @@ export default function SpecUpGuide({ data }: { data: Character }) {
                               {c.deltaPercent != null && <small> ({c.deltaPercent.toFixed(3)}%)</small>}
                             </td>
                           )}
-                          <CostCell candidate={c} pulse={pulseOf(c.id, "cost")} />
+                          <CostCell candidate={c} pulse={pulseOf(c.id, "cost")} now={now} />
                           {krakenShown ? (
                             <td data-cell="eff" data-label="10만 골드당" data-figure="">
                               <ChangeMark key={c.krakenScorePer100kGold ?? "none"} pulse={pulseOf(c.id, "eff")}>
