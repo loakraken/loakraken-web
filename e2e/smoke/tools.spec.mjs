@@ -262,7 +262,7 @@ test.describe("치적·뭉가·음돌 @smoke", () => {
     await expect(crit).toContainText("치명 스탯을 읽지 못해 치명타 적중률을 계산하지 않았어요.");
     await expect(crit.getByText(/= 합계/)).toHaveCount(0);
     await expect(crit.getByText("뭉툭한 가시")).toHaveCount(0);
-    await expect(page.getByRole("region", { name: "공격·이동 속도" }).getByText("음속 돌파", { exact: true })).toBeVisible();
+    await expect(page.getByRole("region", { name: "공격·이동 속도" }).getByText("음속 돌파", { exact: true }).first()).toBeVisible();
 
     await page.getByRole("textbox", { name: "캐릭터 이름" }).fill("신속못읽음");
     await page.getByRole("button", { name: "계산하기" }).click();
