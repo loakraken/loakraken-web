@@ -46,7 +46,8 @@ const PAGES = [
       await page.getByRole("button", { name: "이 브라우저에서 알림 켜기" }).click();
       await expect(page.getByText("이 브라우저로 알림을 받고 있어요.")).toBeVisible();
     },
-    lead: "가격이 기준을 넘는 순간 한 번 알려요.",
+    // Alerts fire at or below and at or above: 'reaches', not 'goes over'.
+    lead: "가격이 정한 기준에 닿는 순간 한 번 알려요.",
     folded: /6시간 안에 다시 보내지 않아요/,
   },
 ];

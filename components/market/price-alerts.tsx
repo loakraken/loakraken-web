@@ -247,7 +247,7 @@ function Conditions({ own, onExpired }: { own: Owned | null; onExpired: () => vo
           {remove.isError ? alertErrorText(codeOf(remove.error)) : " "}
         </p>
         {/* One line on the page, the rest folded (#1112): nothing removed. */}
-        <p className={styles.note}>가격이 기준을 넘는 순간 한 번 알려요.</p>
+        <p className={styles.note}>가격이 정한 기준에 닿는 순간 한 번 알려요.</p>
         <MoreDetail className={styles.note}>
           걸 때 이미 맞는 알림(지금 맞음)은 벗어났다가 다시 맞을 때 보내고, 같은 알림은 6시간 안에 다시 보내지 않아요.
         </MoreDetail>
