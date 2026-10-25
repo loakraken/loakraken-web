@@ -565,16 +565,10 @@ function EquipmentPanel({ data }: { data: Character }) {
                       </span>
                     )}
                   </strong>
+                  {/* No ark passive point badge here (user 10-26): it reads as an
+                      accessory effect; the point stays in the item tooltip. */}
                   <span className={styles.badges}>
                     <Quality value={item.detail?.quality} />
-                    {item.detail?.arkPassivePoint && (
-                      <span
-                        className={styles.levelBadge}
-                        aria-label={`${item.detail.arkPassivePoint.name} ${item.detail.arkPassivePoint.value}`}
-                      >
-                        +{item.detail.arkPassivePoint.value}
-                      </span>
-                    )}
                   </span>
                 </div>
                 {item.detail?.polishEffects.length ? (

@@ -55,6 +55,8 @@ function withSimulatorGear(data) {
   data.loadout.equipment.push(
     make("목걸이", "테스트 목걸이", {
       quality: 90,
+      // Shown in the item tooltip only, never as a badge on the row (user 10-26).
+      arkPassivePoint: { name: "깨달음", value: 13 },
       polishEffects: [
         { name: "추가 피해", value: "+1.60%", grade: "MID" },
         { name: "적에게 주는 피해", value: "+0.55%", grade: "LOW" },
