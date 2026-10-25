@@ -663,6 +663,18 @@
     min-height: 4.5em;
   }
 }
+/* The guild notice holds one more line: who its combat power counts. */
+.guildNotice {
+  min-height: 4.5em;
+}
+.noticeLine {
+  display: block;
+}
+@media (max-width: 420px) {
+  .guildNotice {
+    min-height: 6em;
+  }
+}
 /* 길드 찾기 (M21): a name of up to 12 letters; the hint floats in the padding under it. */
 .filters .guildSearch {
   position: relative;
