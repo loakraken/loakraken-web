@@ -33,7 +33,8 @@ import {
   type Slot,
 } from "@/lib/accessory-search/model";
 import { koreanGold } from "@/lib/spec-up/model";
-import { ListingDetail } from "./accessory-detail";
+import { AccessoryCard } from "./accessory-detail";
+import { DetailPanel, RowExpander } from "@/components/market/listing-detail";
 import quote from "./material-quote.module.css";
 import styles from "./accessory-search.module.css";
 
@@ -339,12 +340,16 @@ function Segment({
 }
 
 function Listing({ item, slotLabel }: { item: SearchItem; slotLabel: string }) {
+  // The listing's card opens below its row from the arrow on its name (user
+  // 10-24, the ark grid's expand pattern); several rows may be open.
+  const [open, setOpen] = useState(false);
+  const detailId = useId();
   return (
     <li className={styles.item}>
-      {/* The whole row opens the listing's card (사용자 10-16). */}
-      <ListingDetail item={item} slotLabel={slotLabel} polishValue={polishValue} />
       <div className={styles.itemHead}>
-        <strong>{item.name}</strong>
+        <strong>
+          <RowExpander label={item.name} open={open} controls={detailId} onToggle={() => setOpen((v) => !v)} />
+        </strong>
         <span className={styles.price}>
           {item.buyPrice == null ? <span className={styles.muted}>입찰만 가능</span> : `${koreanGold(item.buyPrice)}G`}
         </span>
@@ -383,6 +388,11 @@ function Listing({ item, slotLabel }: { item: SearchItem; slotLabel: string }) {
           <dd>{item.endDate ? kst.format(new Date(item.endDate)) : "—"}</dd>
         </div>
       </dl>
+      {open && (
+        <DetailPanel id={detailId}>
+          <AccessoryCard item={item} slotLabel={slotLabel} polishValue={polishValue} />
+        </DetailPanel>
+      )}
     </li>
   );
 }
