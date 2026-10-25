@@ -864,6 +864,17 @@ createServer(async (req, res) => {
         krakenSortUnavailableReason: who === "스펙업점수꺼짐" ? "DISABLED" : null,
       });
     envelope.data.characterName = who;
+    // 스펙업이전시세 (api #759): gem costs carry their price time; the first
+    // gem row's price is a last-known one (stale), the second is fresh.
+    if (who === "스펙업이전시세") {
+      const gems = envelope.data.candidates.filter((c) => c.change?.kind === "GEM_LEVEL" && c.cost?.status === "OK");
+      gems.forEach((c, i) =>
+        Object.assign(c.cost, {
+          priceObservedAt: new Date(Date.now() - (i === 0 ? 3 * 3_600_000 : 60_000)).toISOString(),
+          stale: i === 0,
+        }),
+      );
+    }
     // The same combat power the mock simulator starts from (the backend's
     // spec-up and simulator read one character), so the L31 goal path adds up.
     envelope.data.combatPower = read("character-full-data.json").combatPower;

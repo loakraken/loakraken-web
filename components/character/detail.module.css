@@ -2201,6 +2201,18 @@
   min-width: 7.5em;
   white-space: nowrap;
 }
+/* A gem cost's price time on its own line (api #759); the same line whether
+   fresh or last-known, so a refresh never changes the row's height. */
+.specUpCostTime {
+  display: block;
+  color: var(--muted-foreground);
+  font-size: 11px;
+  font-weight: 400;
+}
+/* A last-known price (stale) is not today's: the amount is muted too. */
+.specUpTable [data-cell="cost"][data-stale] {
+  color: var(--muted-foreground);
+}
 /* The longer cost of the same size, unseen and unread (data-room, costRoom):
    it sets the cell's width, no height. */
 .specUpTable [data-cell="cost"][data-room]::after {
