@@ -1,5 +1,5 @@
 // 회귀(마케팅 실서비스 390): 캐릭터 탭 줄이 휴대폰에서 옆으로 스크롤될 때, 고른 탭이 줄 끝 흐림에 잘려
-// '스펙ㅇ'처럼 보였다('더보기' 앞의 0처럼 읽힘). 고른 탭은 늘 흐림 밖에 다 보인다.
+// '스펙ㅇ'처럼 보였다('더보기' 앞의 0처럼 읽힘). 고른 탭의 글자는 늘 흐림 밖에 다 보인다.
 import { test, expect, characterPath } from "../support/fixtures.mjs";
 
 for (const width of [320, 360, 390])
@@ -15,7 +15,11 @@ for (const width of [320, 360, 390])
           current.evaluate((a) => {
             const row = a.closest("nav");
             const box = row.getBoundingClientRect();
-            const r = a.getBoundingClientRect();
+            // The label itself (text and 베타 chip), not the pill's padding: the
+            // padding may sit under a fade on the narrowest row, the words never.
+            const range = document.createRange();
+            range.selectNodeContents(a);
+            const r = range.getBoundingClientRect();
             const fade = Math.min(row.clientWidth * 0.12, 40);
             // No fade at an end the row is scrolled all the way to.
             const startFade = row.scrollLeft > 0 ? fade : 0;
