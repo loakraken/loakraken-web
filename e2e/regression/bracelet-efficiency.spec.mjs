@@ -34,3 +34,17 @@ test("서포터는 등급만(% 없음), 계산 못 하면 '준비 중'(숫자 �
   await expect(term(page).locator("xpath=ancestor::p[1]")).toContainText("준비 중");
   await expect(term(page).locator("xpath=ancestor::p[1]")).not.toContainText("%");
 });
+
+// api #706: an option the engine cannot read gives UNAVAILABLE. The row says why
+// in a fixed sentence, not '준비 중' (which reads as 'coming soon'), and no number
+// or backend log text (PM-프론트 P3). 320·1280.
+for (const width of [320, 1280])
+  test(`읽지 못한 팔찌 옵션이면 이유 한 줄(준비 중 아님) ${width} @regression`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await gotoReady(page, characterPath("팔찌못읽음"));
+    const head = term(page).locator("xpath=ancestor::p[1]");
+    await expect(head).toContainText("읽지 못한 팔찌 옵션이 있어 계산하지 않았어요");
+    await expect(head).not.toContainText("준비 중");
+    await expect(head).not.toContainText("%");
+    await expect(head).not.toContainText("로그용 문장");
+  });

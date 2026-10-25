@@ -482,6 +482,10 @@ function Results({
   const thorn = crit.bluntThorn;
   const sonic = speed.supersonic;
   const over = crit.totalRate - crit.effectiveRate;
+  // A stat that could not be read (backend #711; missing before it): its reason
+  // stands where the numbers built on it would be — they would lack the stat.
+  const critReason = crit.unavailableReason ?? null;
+  const speedReason = speed.unavailableReason ?? null;
   return (
     <div className={styles.results} data-stale={stale || undefined}>
       <p className={styles.who}>
@@ -496,15 +500,21 @@ function Results({
         <p className={styles.kicker} id="crit-heading">
           치명타 적중률
         </p>
-        <p className={styles.figure}>{percent(crit.effectiveRate)}</p>
-        <p className={styles.figureNote}>
-          {/* The sum written out once (PM-프론트 P2, crit-speed v7): with 뭉툭한 가시 the
-              total can pass a cap, and the reader saw only the parts. */}
-          캐릭터 {percent(crit.observedRate)} + 가정 {percent(crit.assumedRate)} = 합계 {percent(crit.totalRate)}
-          {over > 0.005 && ` · 상한을 넘은 ${percent(over)}는 적용되지 않아요`}
-          {` · 치명 ${crit.critStatPerPercent.toLocaleString("ko-KR", { maximumFractionDigits: 2 })} = 치적 1%`}
-        </p>
-        {toggles.length > 0 ? null : classState ? (
+        {critReason ? (
+          <p className={styles.unavailable}>{critReason}</p>
+        ) : (
+          <>
+            <p className={styles.figure}>{percent(crit.effectiveRate)}</p>
+            <p className={styles.figureNote}>
+              {/* The sum written out once (PM-프론트 P2, crit-speed v7): with 뭉툭한 가시 the
+                  total can pass a cap, and the reader saw only the parts. */}
+              캐릭터 {percent(crit.observedRate)} + 가정 {percent(crit.assumedRate)} = 합계 {percent(crit.totalRate)}
+              {over > 0.005 && ` · 상한을 넘은 ${percent(over)}는 적용되지 않아요`}
+              {` · 치명 ${crit.critStatPerPercent.toLocaleString("ko-KR", { maximumFractionDigits: 2 })} = 치적 1%`}
+            </p>
+          </>
+        )}
+        {critReason || toggles.length > 0 ? null : classState ? (
           states.map((s, i) => (
             <p key={`${s.name}-${i}`} className={styles.figureNote}>
               가정한 직업 상태 · {s.name} +{percent(s.value)}: {s.text}
@@ -523,123 +533,133 @@ function Results({
             </small>
           </p>
         )}
-        <ul className={styles.targets}>
-          {crit.targets.map((target) => {
-            const copy = TARGET_LABEL[target.key] ?? {
-              title: `치명타 적중률 ${percent(target.targetRate)}`,
-              hint: "",
-            };
-            return (
-              <li key={target.key} data-reached={target.reached || undefined}>
-                <div>
-                  <strong>{copy.title}</strong>
-                  <small>
-                    목표 {percent(target.targetRate)}
-                    {target.requiredCritStat != null &&
-                      ` · 치명 ${count(target.requiredCritStat)} 필요`}
-                  </small>
-                </div>
-                <b>
-                  {target.reached
-                    ? "달성"
-                    : `치명 +${count(target.requiredAdditionalCritStat)}`}
-                </b>
-              </li>
-            );
-          })}
-        </ul>
-        <div className={styles.node}>
-          <div className={styles.nodeHead}>
-            <strong>뭉툭한 가시</strong>
-            <span>
-              {thorn.source === "EQUIPPED_NODE"
-                ? `장착 Lv.${thorn.level ?? "-"}`
-                : "미장착 · Lv.2 기준"}
-            </span>
-          </div>
-          <Meter
-            value={thorn.evolutionDamage}
-            max={thorn.maxEvolutionDamage}
-            label="뭉툭한 가시 진화형 피해"
-          />
-          <p>
-            진화형 피해 {percent(thorn.evolutionDamage)} / 최대{" "}
-            {percent(thorn.maxEvolutionDamage)} · 치적 상한{" "}
-            {percent(thorn.critCap)}, 넘는 치적의 {percent(thorn.conversionPercent)}
-            를 진화형 피해로 전환 · 최적 치적 {percent(thorn.optimalCritRate)}
-          </p>
-        </div>
+        {!critReason && (
+          <>
+            <ul className={styles.targets}>
+              {crit.targets.map((target) => {
+                const copy = TARGET_LABEL[target.key] ?? {
+                  title: `치명타 적중률 ${percent(target.targetRate)}`,
+                  hint: "",
+                };
+                return (
+                  <li key={target.key} data-reached={target.reached || undefined}>
+                    <div>
+                      <strong>{copy.title}</strong>
+                      <small>
+                        목표 {percent(target.targetRate)}
+                        {target.requiredCritStat != null &&
+                          ` · 치명 ${count(target.requiredCritStat)} 필요`}
+                      </small>
+                    </div>
+                    <b>
+                      {target.reached
+                        ? "달성"
+                        : `치명 +${count(target.requiredAdditionalCritStat)}`}
+                    </b>
+                  </li>
+                );
+              })}
+            </ul>
+            <div className={styles.node}>
+              <div className={styles.nodeHead}>
+                <strong>뭉툭한 가시</strong>
+                <span>
+                  {thorn.source === "EQUIPPED_NODE"
+                    ? `장착 Lv.${thorn.level ?? "-"}`
+                    : "미장착 · Lv.2 기준"}
+                </span>
+              </div>
+              <Meter
+                value={thorn.evolutionDamage}
+                max={thorn.maxEvolutionDamage}
+                label="뭉툭한 가시 진화형 피해"
+              />
+              <p>
+                진화형 피해 {percent(thorn.evolutionDamage)} / 최대{" "}
+                {percent(thorn.maxEvolutionDamage)} · 치적 상한{" "}
+                {percent(thorn.critCap)}, 넘는 치적의 {percent(thorn.conversionPercent)}
+                를 진화형 피해로 전환 · 최적 치적 {percent(thorn.optimalCritRate)}
+              </p>
+            </div>
+          </>
+        )}
       </section>
 
       <section className={styles.block} aria-labelledby="speed-heading">
         <p className={styles.kicker} id="speed-heading">
           공격·이동 속도
         </p>
-        <div className={styles.speeds}>
-          {(["attack", "move"] as const).map((axis) => {
-            const value = speed[axis];
-            const name = axis === "attack" ? "공격 속도" : "이동 속도";
-            return (
-              <div key={axis}>
-                <div className={styles.nodeHead}>
-                  <strong>{name}</strong>
-                  <span>
-                    {percent(value.effective)} / 상한 {percent(speed.cap)}
-                  </span>
-                </div>
-                <Meter value={value.effective} max={speed.cap} label={name} />
-                <p>
-                  캐릭터 {percent(value.observed)} + 가정 {percent(value.assumed)}
-                </p>
+        {speedReason ? (
+          <p className={styles.unavailable}>{speedReason}</p>
+        ) : (
+          <>
+            <div className={styles.speeds}>
+              {(["attack", "move"] as const).map((axis) => {
+                const value = speed[axis];
+                const name = axis === "attack" ? "공격 속도" : "이동 속도";
+                return (
+                  <div key={axis}>
+                    <div className={styles.nodeHead}>
+                      <strong>{name}</strong>
+                      <span>
+                        {percent(value.effective)} / 상한 {percent(speed.cap)}
+                      </span>
+                    </div>
+                    <Meter value={value.effective} max={speed.cap} label={name} />
+                    <p>
+                      캐릭터 {percent(value.observed)} + 가정 {percent(value.assumed)}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+            <div className={styles.node}>
+              <div className={styles.nodeHead}>
+                <strong>음속 돌파</strong>
+                <span>
+                  {sonic.source === "EQUIPPED_NODE"
+                    ? `장착 Lv.${sonic.level ?? "-"}`
+                    : "미장착 · Lv.2 기준"}
+                </span>
               </div>
-            );
-          })}
-        </div>
-        <div className={styles.node}>
-          <div className={styles.nodeHead}>
-            <strong>음속 돌파</strong>
-            <span>
-              {sonic.source === "EQUIPPED_NODE"
-                ? `장착 Lv.${sonic.level ?? "-"}`
-                : "미장착 · Lv.2 기준"}
-            </span>
-          </div>
-          <dl className={styles.facts}>
-            <div>
-              <dt>적정 신속</dt>
-              <dd>
-                {sonic.requiredSwiftness != null
-                  ? count(sonic.requiredSwiftness)
-                  : "—"}
-              </dd>
+              <dl className={styles.facts}>
+                <div>
+                  <dt>적정 신속</dt>
+                  <dd>
+                    {sonic.requiredSwiftness != null
+                      ? count(sonic.requiredSwiftness)
+                      : "—"}
+                  </dd>
+                </div>
+                <div>
+                  <dt>추가 필요</dt>
+                  <dd>
+                    {sonic.requiredAdditionalSwiftness > 0
+                      ? `+${count(sonic.requiredAdditionalSwiftness)}`
+                      : "달성"}
+                  </dd>
+                </div>
+                <div>
+                  <dt>적정 속도</dt>
+                  <dd>{percent(sonic.optimalSpeed)}</dd>
+                </div>
+              </dl>
+              <Meter
+                value={sonic.evolutionDamage}
+                max={sonic.maxEvolutionDamage}
+                label="음속 돌파 진화형 피해"
+              />
+              <p>
+                진화형 피해 {percent(sonic.evolutionDamage)} / 최대{" "}
+                {percent(sonic.maxEvolutionDamage)} · 상한 이내 속도의{" "}
+                {percent(sonic.conversionPercent)} 전환, 둘 다 상한을 넘으면 +
+                {percent(sonic.overCapBonus)}와 초과분의{" "}
+                {percent(sonic.overCapConversionPercent)}
+              </p>
             </div>
-            <div>
-              <dt>추가 필요</dt>
-              <dd>
-                {sonic.requiredAdditionalSwiftness > 0
-                  ? `+${count(sonic.requiredAdditionalSwiftness)}`
-                  : "달성"}
-              </dd>
-            </div>
-            <div>
-              <dt>적정 속도</dt>
-              <dd>{percent(sonic.optimalSpeed)}</dd>
-            </div>
-          </dl>
-          <Meter
-            value={sonic.evolutionDamage}
-            max={sonic.maxEvolutionDamage}
-            label="음속 돌파 진화형 피해"
-          />
-          <p>
-            진화형 피해 {percent(sonic.evolutionDamage)} / 최대{" "}
-            {percent(sonic.maxEvolutionDamage)} · 상한 이내 속도의{" "}
-            {percent(sonic.conversionPercent)} 전환, 둘 다 상한을 넘으면 +
-            {percent(sonic.overCapBonus)}와 초과분의{" "}
-            {percent(sonic.overCapConversionPercent)}
-          </p>
-        </div>
-        <SwiftnessTable speed={speed} />
+            <SwiftnessTable speed={speed} />
+          </>
+        )}
       </section>
 
       <section className={styles.block} aria-labelledby="source-heading">
