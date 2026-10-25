@@ -15,8 +15,9 @@ test.describe("스펙업 가이드 @smoke", () => {
     await page.goto(characterPath("스펙업이전시세", "specup"));
     const table = page.getByRole("table", { name: /스펙업 후보/ });
     const costs = table.locator("td[data-cell='cost'] small");
-    await expect(costs.filter({ hasText: /^이전 시세 \d\d:\d\d$/ })).toHaveCount(1);
-    await expect(costs.filter({ hasText: /^\d\d:\d\d 시세$/ })).toHaveCount(1);
+    // A date shows when the time is not today (KST), e.g. just after midnight.
+    await expect(costs.filter({ hasText: /^이전 시세 (\d\d\.\d\d )?\d\d:\d\d$/ })).toHaveCount(1);
+    await expect(costs.filter({ hasText: /^(\d\d\.\d\d )?\d\d:\d\d 시세$/ })).toHaveCount(1);
     await expect(table.locator("td[data-cell='cost'][data-stale]")).toHaveCount(1);
     for (const width of [320, 360, 390]) {
       await page.setViewportSize({ width, height: 800 });
