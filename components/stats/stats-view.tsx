@@ -37,6 +37,7 @@ import {
 } from "@/lib/stats/model";
 import quote from "@/components/tools/material-quote.module.css";
 import styles from "./stats.module.css";
+import { ClassIcon } from "./class-icon";
 import { BasisNote } from "./basis-note";
 import { rankingColumns } from "./ranking-columns";
 
@@ -303,9 +304,12 @@ function ClassesTab({ query }: { query: StatsQuery }) {
                 <td>{i + 1}</td>
                 <th scope="row">
                   {/* The class page (M12): its builds over the same sample. */}
-                  <Link href={classBuildsPath(row.className)} prefetch={false}>
-                    {row.className}
-                  </Link>
+                  <span className={styles.classCell}>
+                    <ClassIcon name={row.className} size={20} />
+                    <Link href={classBuildsPath(row.className)} prefetch={false}>
+                      {row.className}
+                    </Link>
+                  </span>
                 </th>
                 <td>{whole(row.count)}</td>
                 <td className={styles.share}>{share(row.share)}</td>
@@ -598,7 +602,12 @@ function BestTab({ query }: { query: StatsQuery }) {
               {rows.map((row, i) => (
                 <tr key={row.className} data-short={row.sampleStatus !== "READY" || undefined}>
                   <td>{i + 1}</td>
-                  <th scope="row">{row.className}</th>
+                  <th scope="row">
+                    <span className={styles.classCell}>
+                      <ClassIcon name={row.className} size={20} />
+                      {row.className}
+                    </span>
+                  </th>
                   <td>{whole(row.count)}</td>
                   <td>{whole(row.mean)}</td>
                   <td className={styles.wide}>
