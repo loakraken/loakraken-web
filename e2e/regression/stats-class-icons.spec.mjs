@@ -33,24 +33,28 @@ for (const width of [320, 1280])
       await gotoReady(page, path);
       const rows = page.getByRole("table", { name: table }).getByRole("rowheader");
       await expect(rows.first()).toBeVisible();
-      await expect(rows.first().locator("img")).toHaveAttribute("src", ICON);
-      const cells = await read(rows);
-      expect(cells.length).toBeGreaterThan(0);
-      for (const cell of cells) {
-        // Every row holds its 20×20 box from the first frame, icon or not.
-        expect(cell.size, cell.name).toEqual([20, 20]);
-        // On screen: the official icon, decorative. Well below the screen: not asked for yet.
-        if (cell.top < 900 - 40) {
-          expect(cell.src, cell.name).toMatch(ICON);
-          expect(cell.alt, cell.name).toBe("");
-        } else if (cell.top > 900 + 300) expect(cell.src, cell.name).toBeNull();
-      }
-      // The icon adds nothing to what a screen reader reads for the row.
-      await expect(rows.first()).toHaveAccessibleName(cells[0].name);
       await page.waitForTimeout(600);
+      // Every row holds its 20×20 box from the first frame, icon or not; rows
+      // well below the screen (on a phone the whole table can be) are not asked for yet.
+      const first = await read(rows);
+      expect(first.length).toBeGreaterThan(0);
+      for (const cell of first) {
+        expect(cell.size, cell.name).toEqual([20, 20]);
+        if (cell.top > 900 + 300) expect(cell.src, cell.name).toBeNull();
+      }
       const { all, moved } = await shiftsSince(page);
       expect(all, `흔들림 (${moved})`).toBe(0);
       await expectNoHorizontalOverflow(page);
+      // The table on screen: its rows show the official icon, decorative.
+      await rows.first().scrollIntoViewIfNeeded();
+      await expect(rows.first().locator("img")).toHaveAttribute("src", ICON);
+      const onScreen = async () => (await read(rows)).filter((cell) => cell.top >= 0 && cell.top <= 900 - 40);
+      await expect
+        .poll(async () => (await onScreen()).filter((cell) => !ICON.test(cell.src ?? "") || cell.alt !== "").map((cell) => cell.name))
+        .toEqual([]);
+      expect((await onScreen()).length).toBeGreaterThan(0);
+      // The icon adds nothing to what a screen reader reads for the row.
+      await expect(rows.first()).toHaveAccessibleName(first[0].name);
       // Scrolled to, the last row gets its icon.
       await rows.last().scrollIntoViewIfNeeded();
       await expect(rows.last().locator("img")).toHaveAttribute("src", ICON);
