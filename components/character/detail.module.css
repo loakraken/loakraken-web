@@ -2006,6 +2006,10 @@
   color: var(--muted-foreground);
   font-size: 13px;
 }
+/* A second note reads as part of the same block. */
+.specUpNote + .specUpNote {
+  margin-top: -12px;
+}
 .specUpBar {
   display: flex;
   flex-wrap: wrap;
