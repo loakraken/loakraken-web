@@ -10,6 +10,11 @@ const REFINE = JSON.parse(
 
 const NAME = "전투력계산";
 
+// The 8→9레벨 gem row (two rows share the name "테스트 스킬 · 8레벨 겁화"; its
+// place depends on the sort, 전투력 증가 first since 10-26).
+const nineRow = (table) =>
+  table.locator("tbody tr").filter({ hasText: "9레벨" }).getByRole("button", { name: "테스트 스킬 · 8레벨 겁화" });
+
 test.describe("스펙업 가이드 @smoke", () => {
   test("보석 비용은 시세 시각을 보이고, 마지막으로 알던 시세는 '이전 시세'로 지금 시세처럼 보이지 않는다", async ({ page }) => {
     await page.goto(characterPath("스펙업이전시세", "specup"));
@@ -239,7 +244,7 @@ test.describe("스펙업 가이드 @smoke", () => {
     const table = page.getByRole("table", { name: /스펙업 후보/ });
     await expect(table.locator("tbody tr")).toHaveCount(3);
     expect(calls).toBe(0);
-    const open = table.getByRole("button", { name: "테스트 스킬 · 8레벨 겁화" }).first();
+    const open = nineRow(table);
     // 마우스만 올려서는 열리지 않는다(표를 훑을 때 요청·카드가 생기지 않음).
     await open.hover();
     await page.waitForTimeout(400);
@@ -316,7 +321,7 @@ test.describe("스펙업 가이드 @smoke", () => {
         for (const e of list.getEntries()) window.__shifts.push(e.value);
       }).observe({ type: "layout-shift" });
     });
-    await table.getByRole("button", { name: "테스트 스킬 · 8레벨 겁화" }).first().click();
+    await nineRow(table).click();
     await expect(page.getByRole("dialog")).toContainText("구매 · 9레벨 겁화의 보석");
     await page.waitForTimeout(1500);
     expect(await page.evaluate(() => window.__shifts)).toEqual([]);
@@ -397,7 +402,7 @@ test.describe("스펙업 가이드 @smoke", () => {
   test("판매 수수료를 따로 주는 응답이면 판매 최저가로 빼고 수수료는 비용에 넣지 않았다고 알린다", async ({ page }) => {
     await page.goto(characterPath("스펙업수수료", "specup"));
     const table = page.getByRole("table", { name: /스펙업 후보/ });
-    await table.getByRole("button", { name: "테스트 스킬 · 8레벨 겁화" }).first().click();
+    await nineRow(table).click();
     const card = page.getByRole("dialog");
     await expect(card).toContainText("구매 · 9레벨 겁화의 보석");
     await expect(card).toContainText("판매 최저가 · 8레벨 겁화의 보석");
