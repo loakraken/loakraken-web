@@ -1,7 +1,7 @@
 import "server-only";
 import { cache } from "react";
 import { requestPublicSummary } from "./public-summary";
-import { requestItemTooltips } from "./item-tooltips";
+import { requestItemTooltips } from "./item-tooltips.backend";
 import {
   requestCardCollection,
   requestCardRefresh,
@@ -14,11 +14,11 @@ import {
 import { requestCharacter } from "./upstream";
 import { requestPopular } from "./popular";
 import { requestSuggest } from "./suggest";
-import { requestRank } from "./rank";
+import { requestRank } from "./rank.backend";
 import { requestArmoryPage } from "./armory-page";
-import { requestCollectibleOwnership, requestCollectibleStanding } from "./collectible-standing";
-import { requestReceipt } from "./receipt";
-import { requestTitles } from "./titles";
+import { requestCollectibleOwnership, requestCollectibleStanding } from "./collectible-standing.backend";
+import { requestReceipt } from "./receipt.backend";
+import { requestTitles } from "./titles.backend";
 
 export function getCharacter(name: string, signal?: AbortSignal) {
   return requestCharacter(name, process.env.LOAKRAKEN_API_ORIGIN, { signal });

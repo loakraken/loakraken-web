@@ -1,19 +1,8 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import {
-  share,
-  STATS_VIEWS,
-  isStatsEnvelope,
-  parseDistributionView,
-  parseStatsQuery,
-  withoutDistributionView,
-  writeDistributionView,
-  quantileScale,
-  sampleText,
-  statsKey,
-  statsSearch,
-} from "../lib/stats/model";
+import { share, STATS_VIEWS, parseDistributionView, parseStatsQuery, withoutDistributionView, writeDistributionView, quantileScale, sampleText, statsKey, statsSearch } from "../lib/stats/model";
+import { isStatsEnvelope } from "../lib/stats/model.backend";
 import { requestStats } from "../lib/stats/upstream";
 
 const fixture = (view: string) =>

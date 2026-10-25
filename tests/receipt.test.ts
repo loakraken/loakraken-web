@@ -6,13 +6,12 @@ import {
   excludedLabel,
   excludedSummary,
   includedText,
-  isReceiptEnvelope,
   isReceiptOff,
   notIncludedText,
-  requestReceipt,
   rowMarker,
   totalStatus,
 } from "../lib/character/receipt";
+import { isReceiptEnvelope, requestReceipt } from "../lib/character/receipt.backend";
 
 const fixture = () =>
   JSON.parse(readFileSync(new URL("./receipt-fixtures/character-receipt.json", import.meta.url), "utf8"));

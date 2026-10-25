@@ -3,12 +3,9 @@
 // the browser keeps it and sends it as X-Alert-Token (never in an address).
 // Alerts fire when an item's lowest listing price crosses the line, only for
 // the items the market warmup already refreshes (no extra official calls).
-import Ajv2020 from "ajv/dist/2020";
-import contract from "../../contracts/alerts.openapi.json";
+
 import type { components } from "../api/alerts-schema";
-import { backendUrl, requestBackend, type BackendResult, type ForwardContext } from "../api/backend";
-import { tolerantSchemas } from "../api/tolerant";
-import { lazyValidator } from "@/lib/api/lazy-validator";
+import { type ForwardContext } from "../api/backend";
 
 type Schemas = components["schemas"];
 export type VapidKeyEnvelope = Schemas["ApiResponseVapidKeyResponse"];
@@ -27,29 +24,6 @@ export const COMPARATORS = ["AT_OR_BELOW", "AT_OR_ABOVE"] as const;
 export type Comparator = (typeof COMPARATORS)[number];
 /** The manage token travels in this header only. */
 export const TOKEN_HEADER = "X-Alert-Token";
-
-function validator<T>(schema: string) {
-  const validate = lazyValidator(() =>
-    new Ajv2020({ strict: false, validateFormats: false }).compile<T>({
-      $ref: `#/components/schemas/${schema}`,
-      components: { ...contract.components, schemas: tolerantSchemas(contract.components.schemas) },
-    }),
-  );
-  return (value: unknown): value is T =>
-    validate(value) && (value as { code?: unknown }).code === ALERT_SUCCESS;
-}
-
-export const isVapidKeyEnvelope = validator<VapidKeyEnvelope>("ApiResponseVapidKeyResponse");
-export const isAlertItemsEnvelope = validator<AlertItemsEnvelope>("ApiResponseListAlertItemResponse");
-export const isSubscriptionEnvelope = validator<SubscriptionEnvelope>("ApiResponseSubscriptionResponse");
-export const isConditionsEnvelope = validator<ConditionsEnvelope>("ApiResponseListConditionResponse");
-export const isConditionEnvelope = validator<ConditionEnvelope>("ApiResponseConditionResponse");
-/** Unsubscribe and delete answer with no data. */
-export const isDoneEnvelope = (value: unknown): value is DoneEnvelope =>
-  !!value &&
-  typeof value === "object" &&
-  (value as { code?: unknown }).code === ALERT_SUCCESS &&
-  (value as { data?: unknown }).data == null;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 /** Ids the routes pass on: a UUID, nothing else reaches the backend path. */
@@ -80,113 +54,7 @@ export function parseConditionBody(value: unknown): ConditionBody | null {
   if (Math.round(price * 100) !== Number((price * 100).toFixed(6))) return null;
   return { itemId, comparator: comparator as Comparator, price };
 }
-
-const ERRORS: Record<number, readonly string[]> = {
-  400: [
-    "INVALID_REQUEST",
-    "ALERT_INVALID_SUBSCRIPTION",
-    "ALERT_PUSH_NOT_DELIVERED",
-    "ALERT_ITEM_NOT_ALERTABLE",
-    "ALERT_TOO_MANY_CONDITIONS",
-  ],
-  404: ["ALERT_SUBSCRIPTION_NOT_FOUND", "ALERT_CONDITION_NOT_FOUND"],
-  429: ["CLIENT_RATE_LIMITED"],
-  503: ["ALERTS_FULL", "ALERT_PUSH_UNAVAILABLE"],
-};
-
-type Options = { fetcher?: typeof fetch; signal?: AbortSignal; timeoutMs?: number; context?: ForwardContext };
-const tokenHeader = (token: string) => ({ [TOKEN_HEADER]: token });
-
-export function requestVapidKey(origin: string | undefined, options: Options = {}): Promise<BackendResult<VapidKeyEnvelope>> {
-  return requestBackend(backendUrl(origin, "/api/v1/alerts/vapid-public-key"), {
-    ...options,
-    isValid: isVapidKeyEnvelope,
-    errorCodes: ERRORS,
-  });
-}
-
-export function requestAlertItems(origin: string | undefined, options: Options = {}): Promise<BackendResult<AlertItemsEnvelope>> {
-  return requestBackend(backendUrl(origin, "/api/v1/alerts/items"), {
-    ...options,
-    isValid: isAlertItemsEnvelope,
-    errorCodes: ERRORS,
-  });
-}
-
-export function requestSubscribe(
-  body: SubscribeBody,
-  origin: string | undefined,
-  options: Options = {},
-): Promise<BackendResult<SubscriptionEnvelope>> {
-  // Confirming with the push service takes a moment: a little longer than reads.
-  return requestBackend(backendUrl(origin, "/api/v1/alerts/subscriptions"), {
-    timeoutMs: 20_000,
-    ...options,
-    method: "POST",
-    body,
-    isValid: isSubscriptionEnvelope,
-    errorCodes: ERRORS,
-  });
-}
-
-export function requestUnsubscribe(
-  subscriptionId: string,
-  token: string,
-  origin: string | undefined,
-  options: Options = {},
-): Promise<BackendResult<DoneEnvelope>> {
-  return requestBackend(backendUrl(origin, `/api/v1/alerts/subscriptions/${subscriptionId}`), {
-    ...options,
-    method: "DELETE",
-    headers: tokenHeader(token),
-    isValid: isDoneEnvelope,
-    errorCodes: ERRORS,
-  });
-}
-
-export function requestConditions(
-  subscriptionId: string,
-  token: string,
-  origin: string | undefined,
-  options: Options = {},
-): Promise<BackendResult<ConditionsEnvelope>> {
-  return requestBackend(backendUrl(origin, `/api/v1/alerts/subscriptions/${subscriptionId}/conditions`), {
-    ...options,
-    headers: tokenHeader(token),
-    isValid: isConditionsEnvelope,
-    errorCodes: ERRORS,
-  });
-}
-
-export function requestAddCondition(
-  subscriptionId: string,
-  token: string,
-  body: ConditionBody,
-  origin: string | undefined,
-  options: Options = {},
-): Promise<BackendResult<ConditionEnvelope>> {
-  return requestBackend(backendUrl(origin, `/api/v1/alerts/subscriptions/${subscriptionId}/conditions`), {
-    ...options,
-    method: "POST",
-    body,
-    headers: tokenHeader(token),
-    isValid: isConditionEnvelope,
-    errorCodes: ERRORS,
-  });
-}
-
-export function requestDeleteCondition(
-  subscriptionId: string,
-  token: string,
-  conditionId: string,
-  origin: string | undefined,
-  options: Options = {},
-): Promise<BackendResult<DoneEnvelope>> {
-  return requestBackend(
-    backendUrl(origin, `/api/v1/alerts/subscriptions/${subscriptionId}/conditions/${conditionId}`),
-    { ...options, method: "DELETE", headers: tokenHeader(token), isValid: isDoneEnvelope, errorCodes: ERRORS },
-  );
-}
+export type Options = { fetcher?: typeof fetch; signal?: AbortSignal; timeoutMs?: number; context?: ForwardContext };
 
 /** "1,234G 이하" — the condition in words. */
 export function conditionText(comparator: string, price: number) {

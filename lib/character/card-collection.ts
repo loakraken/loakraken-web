@@ -1,11 +1,10 @@
 // Roster card records (F-6): the best card set each element slot has reached
 // on any character of the same-server roster ("원정대 카드 기록"), plus the
 // 도감 (best awakening per card) and 장착 효과 (buildable sets).
-import Ajv2020 from "ajv/dist/2020";
-import contract from "../../contracts/card-collection.openapi.json";
+
 import type { components } from "../api/card-collection-schema";
-import { labelOf, tolerantSchemas } from "../api/tolerant";
-import { lazyValidator } from "@/lib/api/lazy-validator";
+import { labelOf } from "../api/tolerant";
+
 import { continueText, minutesUntil } from "./continue-later";
 
 type Schemas = components["schemas"];
@@ -25,26 +24,6 @@ export const ELEMENT_LABEL: Record<Element, string> = {
   WATER: "수",
   FIRE: "화",
 };
-
-// The backend's generated OpenAPI (#102) is also the runtime shape contract,
-// with response enums loosened (#125): an unknown element shows as unknown.
-const validate = lazyValidator(() => new Ajv2020({ strict: false, validateFormats: false }).compile<CardCollectionEnvelope>({
-  $ref: "#/components/schemas/ApiResponseCardCollectionResponse",
-  components: { ...contract.components, schemas: tolerantSchemas(contract.components.schemas) },
-}));
-const isTime = (value: string) => Number.isFinite(Date.parse(value));
-
-export function isCardCollectionEnvelope(value: unknown): value is CardCollectionEnvelope {
-  if (!validate(value) || value.code !== "CHARACTER_CARD_COLLECTION_SUCCESS") return false;
-  const d = value.data;
-  return (
-    [...d.elementRecords.dealer, ...d.elementRecords.supporter].every(
-      (slot) => !slot.record || isTime(slot.record.observedAt),
-    ) &&
-    d.cards.every((card) => isTime(card.observedAt)) &&
-    d.sets.every((set) => isTime(set.observedAt))
-  );
-}
 
 /** Effect stage shown under the awakening total, only when it is lower. */
 export function appliedStage(record: { awakening: number; activeAwakening: number | null }) {
@@ -88,17 +67,6 @@ export function sortCards(cards: RecordedCard[]) {
 // order (several seconds), then a 10-minute cooldown.
 export type CardRefreshEnvelope = Schemas["ApiResponseCardCollectionRefreshResponse"];
 export type CardRefresh = Schemas["CardCollectionRefreshResponse"];
-const validateRefresh = lazyValidator(() => new Ajv2020({ strict: false, validateFormats: false }).compile<CardRefreshEnvelope>({
-  $ref: "#/components/schemas/ApiResponseCardCollectionRefreshResponse",
-  components: { ...contract.components, schemas: tolerantSchemas(contract.components.schemas) },
-}));
-export function isCardRefreshEnvelope(value: unknown): value is CardRefreshEnvelope {
-  return (
-    validateRefresh(value) &&
-    value.code === "CHARACTER_CARD_COLLECTION_REFRESH_SUCCESS" &&
-    isTime(value.data.nextAvailableAt)
-  );
-}
 
 /** Result in words; never the backend field names (skipped/failed). */
 export function refreshSummary(r: CardRefresh, pressedAt = Date.now()) {
