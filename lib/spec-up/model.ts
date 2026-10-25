@@ -11,14 +11,17 @@ export type Cost = Schemas["CostResponse"];
 export type SpecUpChange = Schemas["ChangeResponse"];
 export type SpecUpEnvelope = { code: string; message: string; data: SpecUp };
 
+// 사용자 결정(PM 총괄 10-26): 전투력 증가 first and the default, then 효율, then 크라켄.
 export const SORTS = [
-  { id: "EFFICIENCY", label: "1만 골드당 효율" },
   { id: "DELTA", label: "전투력 증가" },
+  { id: "EFFICIENCY", label: "1만 골드당 효율" },
   // api #573: by the Kraken score gained per gold. Sent only now that the
   // screen knows it; the answer may come back as EFFICIENCY with a reason.
   { id: "KRAKEN", label: "크라켄 점수 순" },
 ] as const;
 export type Sort = (typeof SORTS)[number]["id"];
+/** The list a dealer sees first (the tab's first request); sent explicitly, not the api's own default. */
+export const DEFAULT_SORT: Sort = "DELTA";
 export const isSort = (value: unknown): value is Sort => SORTS.some((s) => s.id === value);
 /** An OK cost of 0: shown "추가 비용 없음", its per-gold figure not worked out (PM-프론트 10-18). */
 export const isFreeCost = (cost: { status: string; amount?: number | null } | null | undefined) =>
