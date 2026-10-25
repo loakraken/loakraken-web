@@ -117,6 +117,7 @@ function Body({
   const notIncluded = notIncludedText(data);
   const status = totalStatus(data);
   const left = excludedSummary(data);
+  const idle = data.coverage.pending === 0 || auto;
   const [first, ...rest] = data.assumptions;
   return (
     <>
@@ -158,8 +159,9 @@ function Body({
           <i style={{ width: `${(data.coverage.ready / Math.max(1, data.coverage.rosterCharacters)) * 100}%` }} />
         </span>
         {/* By hand only once the panel stopped filling members in by itself;
-            the slot stays so the row does not change height. */}
-        <span className={styles.againSlot} data-idle={data.coverage.pending === 0 || auto || undefined}>
+            the slot stays so the row does not change height. While hidden it
+            keeps one label: a changing one would resize it and move the bar. */}
+        <span className={styles.againSlot} data-idle={idle || undefined}>
           <button
             type="button"
             className={styles.again}
@@ -168,8 +170,14 @@ function Body({
             // Spends official API calls: never pressed again after hydration.
             data-no-replay
           >
-            {refreshing ? <InlineOrb /> : <RefreshArrow size={14} aria-hidden="true" />}
-            {refreshing ? "계산하는 중" : seconds > 0 ? `${remainingText(seconds * 1000)} 뒤 다시 계산` : "다시 계산(2명씩)"}
+            {refreshing && !idle ? <InlineOrb /> : <RefreshArrow size={14} aria-hidden="true" />}
+            {idle
+              ? "다시 계산(2명씩)"
+              : refreshing
+                ? "계산하는 중"
+                : seconds > 0
+                  ? `${remainingText(seconds * 1000)} 뒤 다시 계산`
+                  : "다시 계산(2명씩)"}
           </button>
         </span>
       </div>
