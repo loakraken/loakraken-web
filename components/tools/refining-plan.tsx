@@ -658,13 +658,29 @@ function Result({
         </table>
       </div>
       <UpdateAnnouncer text={changes ? `재료 단가 ${changes}` : ""} />
-      <p className={quote.caption}>
-        필요 수량은 소수를 올림했어요. 구매 골드는 부족 수량을 거래소 묶음
-        단위로 올려 산 금액이고, 소모 가치는 기대 소모량 × 1개당 시세예요(보유
-        수량과 무관). 운명의 파편은 가장 싼 주머니 기준이에요.
-        {observedAt &&
-          ` 거래소 첫 페이지에서 이름이 같은 상품의 ${basisLabel}를 ${kst.format(new Date(observedAt))}에 읽었어요.`}
-      </p>
+      {/* The two totals in one line each (#1118); how they are rounded and
+          read sits under 자세히. Wording only: costLines is unchanged. */}
+      <dl className={styles.definitions}>
+        <div>
+          <dt>구매 골드</dt>
+          <dd>보유를 뺀 부족한 재료를 거래소에서 새로 살 때 내는 골드</dd>
+        </div>
+        <div>
+          <dt>소모 가치</dt>
+          <dd>보유와 상관없이 쓰게 될 재료 전부를 1개당 시세로 친 골드</dd>
+        </div>
+      </dl>
+      <details className={styles.moreDetail}>
+        <summary>자세히</summary>
+        <p className={quote.caption}>
+          필요 수량은 소수를 올림했어요. 구매 골드는 부족 수량을 거래소 묶음(주머니)
+          단위로 올려 산 금액이라 조금 남을 수 있어요. 소모 가치는 올림하기 전 기대
+          소모량 × 1개당 시세예요. 시세가 없는 재료는 두 합계에서 뺐어요. 운명의 파편은
+          가장 싼 주머니 기준이에요.
+          {observedAt &&
+            ` 거래소 첫 페이지에서 이름이 같은 상품의 ${basisLabel}를 ${kst.format(new Date(observedAt))}에 읽었어요.`}
+        </p>
+      </details>
 
       <details className={styles.disclosure}>
         <summary>부위·단계별 시도 횟수</summary>
@@ -876,7 +892,6 @@ function RefiningContent({ initialName }: { initialName: string }) {
           </section>
           <div className={quote.workspace}>
             <section className={quote.card} aria-labelledby="load-heading">
-              <p className={quote.step}>1</p>
               <h2 id="load-heading">캐릭터 장비</h2>
               <div className={quote.searchArea}>
                 <CharacterLoader
@@ -921,7 +936,6 @@ function RefiningContent({ initialName }: { initialName: string }) {
             </section>
 
             <section className={quote.card} aria-labelledby="target-heading">
-              <p className={quote.step}>2</p>
               <h2 id="target-heading">목표 단계</h2>
               <div
                 className={styles.chips}
@@ -979,7 +993,6 @@ function RefiningContent({ initialName }: { initialName: string }) {
             </section>
 
             <section className={quote.card} aria-labelledby="option-heading">
-              <p className={quote.step}>3</p>
               <h2 id="option-heading">재련 옵션</h2>
               <div className={styles.switches}>
                 {OPTION_COPY.map((item) => (

@@ -479,6 +479,89 @@
 .materialWrap {
   margin-top: 16px;
 }
+/* A new price basis changes only digits: each number column is fixed at the
+   longest realistic value (amounts 1,234,567; unit 1,234.56; gold
+   123,456,789) and the name takes the rest, so the table never resizes when
+   the basis tab changes (#1117). Phones show labelled rows instead. */
+@media (min-width: 701px) {
+  .table[data-wide] {
+    table-layout: fixed;
+  }
+  .table[data-wide] thead th:nth-child(2),
+  .table[data-wide] thead th:nth-child(4) {
+    width: calc(9ch + 16px);
+  }
+  .table[data-wide] thead th:nth-child(3) {
+    width: 126px; /* the 110px owned input */
+  }
+  .table[data-wide] thead th:nth-child(5) {
+    width: calc(8ch + 16px);
+  }
+  .table[data-wide] thead th:nth-child(6),
+  .table[data-wide] thead th:nth-child(7) {
+    width: calc(11ch + 16px);
+  }
+  /* The bundle count under 구매 골드 wraps inside its fixed column. */
+  .table[data-wide] td small {
+    white-space: normal;
+  }
+}
+/* Narrower tables: tighter cells and input so the name keeps room. */
+@media (min-width: 701px) and (max-width: 900px) {
+  .table[data-wide] th,
+  .table[data-wide] td {
+    padding-inline: 4px;
+  }
+  .table[data-wide] th:first-child {
+    padding-left: 0;
+  }
+  .table[data-wide] thead th:nth-child(2),
+  .table[data-wide] thead th:nth-child(4) {
+    width: calc(9ch + 8px);
+  }
+  .table[data-wide] thead th:nth-child(3) {
+    width: 92px;
+  }
+  .table[data-wide] thead th:nth-child(5) {
+    width: calc(8ch + 8px);
+  }
+  .table[data-wide] thead th:nth-child(6),
+  .table[data-wide] thead th:nth-child(7) {
+    width: calc(11ch + 8px);
+  }
+  .table[data-wide] .ownedInput {
+    width: 84px;
+  }
+}
+/* 구매 골드 / 소모 가치 in one line each (#1118). */
+.definitions {
+  display: grid;
+  gap: 4px;
+  margin-top: 16px;
+  font-size: var(--text-body);
+}
+.definitions div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 8px;
+}
+.definitions dt {
+  flex: none;
+  font-weight: 600;
+}
+.definitions dd {
+  min-width: 0;
+  color: var(--slate);
+}
+.moreDetail {
+  margin-top: 8px;
+}
+.moreDetail summary {
+  width: fit-content;
+  color: var(--link);
+  font-size: var(--text-body);
+  cursor: pointer;
+}
 .cost {
   font-weight: 600;
 }
