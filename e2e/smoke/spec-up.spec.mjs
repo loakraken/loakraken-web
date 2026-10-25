@@ -174,7 +174,7 @@ test.describe("스펙업 가이드 @smoke", () => {
     await expect(table.locator("tbody tr").first()).toContainText("+98.81");
     await expect(table.getByRole("link", { name: /시뮬레이터에서 적용해 보기/ })).toHaveCount(0);
     await expect(page.getByRole("group", { name: "정렬" }).getByRole("button")).toHaveText(["서포터 점수 기준"]);
-    await expect(page.getByText("서포터는 전투력 계산이 없어 전투력 열 없이 보여 드려요.")).toBeVisible();
+    await expect(page.getByText("서포터는 전투력을 계산하지 않아 서포터 점수로만 보여 드려요.")).toBeVisible();
     await expect(page.getByRole("region", { name: "목표 전투력" })).toHaveCount(0);
     expect(lists).toEqual(["KRAKEN"]);
 
