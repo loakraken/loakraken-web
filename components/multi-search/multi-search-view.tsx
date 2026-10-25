@@ -240,8 +240,9 @@ function CompareTable({
           <th scope="col">각인</th>
           <th scope="col">아크 패시브</th>
           <th scope="col">재련</th>
-          <SortHeader sortKey="quality" sort={sort} onSort={toggle} numeric>
-            품질
+          {/* Says whose quality: every item that has one, averaged. */}
+          <SortHeader sortKey="quality" sort={sort} onSort={toggle} numeric title={QUALITY_NOTE}>
+            장비 품질
           </SortHeader>
           <SortHeader sortKey="gems" sort={sort} onSort={toggle} numeric>
             보석
@@ -316,13 +317,16 @@ function CompareTable({
   );
 }
 
+/** What the quality column averages (the backend's equipment average quality). */
+const QUALITY_NOTE = "무기·방어구·장신구 중 품질이 있는 장비의 평균 품질";
+
 const CARD_ROWS = [
   { id: "itemLevel", label: "아이템 레벨" },
   { id: "combatPower", label: "전투력" },
   { id: "engravings", label: "각인" },
   { id: "arkPassive", label: "아크 패시브" },
   { id: "refine", label: "재련" },
-  { id: "quality", label: "품질" },
+  { id: "quality", label: "장비 품질", note: QUALITY_NOTE },
   { id: "gems", label: "보석" },
 ];
 
