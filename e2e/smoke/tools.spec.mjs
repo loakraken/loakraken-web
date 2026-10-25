@@ -253,6 +253,26 @@ test.describe("치적·뭉가·음돌 @smoke", () => {
     await expectNoHorizontalOverflow(page);
   });
 
+  // api #711: a stat that could not be read gives its reason, shown in place of
+  // the numbers built on it (they would lack the stat); the other axis stays.
+  test("읽지 못한 스탯은 이유를 보이고 그 축의 숫자는 숨긴다", async ({ page }) => {
+    await page.getByRole("textbox", { name: "캐릭터 이름" }).fill("치명못읽음");
+    await page.getByRole("button", { name: "계산하기" }).click();
+    const crit = page.getByRole("region", { name: "치명타 적중률" });
+    await expect(crit).toContainText("치명 스탯을 읽지 못해 치명타 적중률을 계산하지 않았어요.");
+    await expect(crit.getByText(/= 합계/)).toHaveCount(0);
+    await expect(crit.getByText("뭉툭한 가시")).toHaveCount(0);
+    await expect(page.getByRole("region", { name: "공격·이동 속도" }).getByText("음속 돌파")).toBeVisible();
+
+    await page.getByRole("textbox", { name: "캐릭터 이름" }).fill("신속못읽음");
+    await page.getByRole("button", { name: "계산하기" }).click();
+    const speed = page.getByRole("region", { name: "공격·이동 속도" });
+    await expect(speed).toContainText("신속 스탯을 읽지 못해 공격·이동 속도를 계산하지 않았어요.");
+    await expect(speed.getByText("음속 돌파")).toHaveCount(0);
+    await expect(page.getByRole("region", { name: "치명타 적중률" }).getByText(/= 합계/)).toBeVisible();
+    await expectNoHorizontalOverflow(page);
+  });
+
   test("없는 캐릭터는 안내한다", async ({ page }) => {
     await page.getByRole("textbox", { name: "캐릭터 이름" }).fill("미존재");
     await page.getByRole("button", { name: "계산하기" }).click();
