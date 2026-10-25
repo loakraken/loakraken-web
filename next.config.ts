@@ -5,13 +5,15 @@ const dev = process.env.NODE_ENV !== "production";
 // Every source the pages load from (security check after v0.3.2): this site,
 // and the official game image hosts (portraits, icons, class icons). Fonts are
 // self-hosted (next/font). The two pre-paint scripts in the root layout are
-// inline, so scripts allow 'unsafe-inline' until they move to hashes. Report-only
-// for now: a missed source shows as a console report, never a broken page; the
-// policy is enforced in a later release.
+// inline, so scripts allow 'unsafe-inline' until they move to hashes. The
+// response validator (ajv) still compiles its schemas in the browser with
+// new Function, so 'unsafe-eval' stays until it moves to the server (#1027).
+// Report-only for now: a missed source shows as a console report, never a
+// broken page; the policy is enforced in a later release, without those two.
 const IMAGES = "https://cdn-lostark.game.onstove.com https://lostark.game.onstove.com";
 const CSP = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${dev ? " 'unsafe-eval'" : ""}`,
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
   "style-src 'self' 'unsafe-inline'",
   `img-src 'self' data: blob: ${IMAGES}`,
   "font-src 'self' data:",
