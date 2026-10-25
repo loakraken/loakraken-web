@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { test, expect, characterPath, expectNoHorizontalOverflow } from "../support/fixtures.mjs";
+import { shiftMark, shiftsSince, watchShifts } from "../support/shifts.mjs";
 
 // Roster receipt total follows the backend's total.status (#665): a partial
 // sum says so, and "nothing counted" shows no amount at all. The mock's own
@@ -79,12 +80,16 @@ test.describe("원정대 영수증 합계 @smoke", () => {
           if (c.status === "PENDING") Object.assign(c, { status: "READY", gold: 1000, complete: true });
       }
     });
+    await watchShifts(page);
     await page.goto(receiptPath("영수증본캐"));
     await expect(page.getByText("원정대 10명 중 8명 계산 · 2명 갱신 중")).toBeVisible();
     await expect(page.getByRole("button", { name: /다시 계산/ })).toHaveCount(0);
-    // At least 3 s later, filled in without a press.
+    const mark = await shiftMark(page);
+    // At least 3 s later, filled in without a press, and nothing on the page moved (A7).
     await expect(total(page)).toHaveAttribute("data-status", "COMPLETE", { timeout: 15_000 });
     await expect(page.getByText("원정대 10명 중 10명 계산")).toBeVisible();
+    await page.waitForTimeout(500);
+    expect((await shiftsSince(page, mark)).all, "채워지는 동안 흔들림").toBe(0);
   });
 
   test("채워지지 않으면 두 번 뒤 스스로 멈추고 '다시 계산(2명씩)'을 보인다; 찾지 못한 캐릭터는 '확인 못 함'", async ({ page }) => {

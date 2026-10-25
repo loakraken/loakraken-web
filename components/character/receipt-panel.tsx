@@ -157,8 +157,9 @@ function Body({
         <span className={styles.bar} aria-hidden="true">
           <i style={{ width: `${(data.coverage.ready / Math.max(1, data.coverage.rosterCharacters)) * 100}%` }} />
         </span>
-        {/* By hand only once the panel stopped filling members in by itself. */}
-        {data.coverage.pending > 0 && !auto && (
+        {/* By hand only once the panel stopped filling members in by itself;
+            the slot stays so the row does not change height. */}
+        <span className={styles.againSlot} data-idle={data.coverage.pending === 0 || auto || undefined}>
           <button
             type="button"
             className={styles.again}
@@ -170,7 +171,7 @@ function Body({
             {refreshing ? <InlineOrb /> : <RefreshArrow size={14} aria-hidden="true" />}
             {refreshing ? "계산하는 중" : seconds > 0 ? `${remainingText(seconds * 1000)} 뒤 다시 계산` : "다시 계산(2명씩)"}
           </button>
-        )}
+        </span>
       </div>
 
       <section className={styles.block} aria-label="장비 재련">
@@ -314,7 +315,9 @@ function ReceiptPanelBody({ name }: { name: string }) {
         </div>
       ) : query.isPending ? (
         <p className={styles.muted} role="status">
-          <InlineOrb /> 원정대 영수증을 계산하고 있어요. 몇 초 걸릴 수 있어요.
+          {/* No time promise: members come in two at a time (api receipt fan-out);
+              from the first answer the count line shows how far it got. */}
+          <InlineOrb /> 원정대 캐릭터 정보를 받고 있어요. 받은 만큼 먼저 보여 드려요.
         </p>
       ) : (
         <div className={styles.problem}>
