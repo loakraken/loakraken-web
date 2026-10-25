@@ -678,6 +678,30 @@
   grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 10px;
 }
+.cardGrid[hidden] {
+  display: none;
+}
+/* 카드 접기 / 펴기 at the panel head's end (#1101). */
+.foldButton {
+  margin-left: auto;
+  padding: 2px 10px;
+  border-radius: 9999px;
+  background: var(--secondary);
+  color: var(--link);
+  font-size: 12px;
+  font-weight: 600;
+}
+.foldLabels {
+  display: inline-grid;
+}
+.foldLabels > span {
+  grid-area: 1 / 1;
+  text-align: center;
+  white-space: nowrap;
+}
+.foldLabels > span:not([data-on]) {
+  visibility: hidden;
+}
 .setList {
   list-style: none;
   padding: 0;
