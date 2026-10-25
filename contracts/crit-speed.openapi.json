@@ -402,6 +402,17 @@
           "damage": {
             "$ref": "#/components/schemas/CritSpeedCritDamageResponse",
             "description": "치명타 피해(%). 기본 200 + 관측 출처(axis=CRIT_DAMAGE) 합. 스킬 한정 문구 제외"
+          },
+          "unavailableReason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "치명 스탯(수치·Tooltip)을 읽지 못해 치명타 적중률을 계산하지 않았을 때 이유. 있으면 적중률·목표·스킬별 치명타 적중률은 스탯이 빠진 값이라 표시하지 않는다. 계산했으면 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -413,7 +424,8 @@
           "effectiveRate",
           "observedRate",
           "targets",
-          "totalRate"
+          "totalRate",
+          "unavailableReason"
         ]
       },
       "CritSpeedBluntThornResponse": {
@@ -526,10 +538,15 @@
           },
           "total": {
             "type": "number",
-            "description": "base + observed"
+            "description": "base + observed + assumed(켠 토글 등 가정 출처)"
+          },
+          "assumed": {
+            "type": "number",
+            "description": "가정 출처 합(켠 치명타 피해 토글 등, 없으면 0)"
           }
         },
         "required": [
+          "assumed",
           "base",
           "observed",
           "total"
@@ -572,6 +589,17 @@
             "items": {
               "$ref": "#/components/schemas/CritSpeedSwiftnessRowResponse"
             }
+          },
+          "unavailableReason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "신속 스탯(수치·Tooltip)을 읽지 못해 공격·이동 속도를 계산하지 않았을 때 이유. 있으면 속도·음속 돌파 값은 스탯이 빠진 값이라 표시하지 않는다. 계산했으면 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -581,7 +609,8 @@
           "supersonic",
           "swiftnessPerPercent",
           "swiftnessStat",
-          "swiftnessTable"
+          "swiftnessTable",
+          "unavailableReason"
         ]
       },
       "CritSpeedAxisResponse": {

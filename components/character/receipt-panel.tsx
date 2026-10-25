@@ -255,8 +255,9 @@ function Body({
  * Roster receipt (원정대 영수증), counting only verified items:
  * equipment refining and tradable gems at current prices. What it leaves out
  * and why sits right under the total; the backend's assumption sentences are
- * shown as they come. Hidden where the receipt is off (the backend route is
- * absent) and never requested for crawlers (the proxy refuses them).
+ * shown as they come. Where the backend has it off (its route is absent) the
+ * panel says it is not open yet; never requested for crawlers (the proxy
+ * refuses them).
  */
 /**
  * Whether this deployment shows the receipt (RECEIPT_TOOL, decided by the
@@ -313,7 +314,17 @@ function ReceiptPanelBody({ name }: { name: string }) {
   // A double click fires twice before React re-renders; each request spends up to 8 calls.
   const lock = useRef(false);
   const data = query.data?.data;
-  if (!data && isReceiptOff(info)) return null;
+  // The web shows the receipt but the backend has it off: say so in the
+  // panel instead of leaving the chosen view empty (QA v0.3.2 RC).
+  if (!data && isReceiptOff(info))
+    return (
+      <Panel title="원정대 영수증" wide>
+        <div className={styles.problem}>
+          <p role="status">원정대 영수증은 아직 열리지 않았어요.</p>
+          <p className={styles.muted}>준비가 끝나면 여기서 바로 보여 드려요.</p>
+        </div>
+      </Panel>
+    );
 
   function recalculate() {
     if (lock.current || query.isFetching) return;

@@ -292,6 +292,13 @@
   color: var(--slate);
   font-size: var(--text-body);
 }
+/* A stat that could not be read (backend #711): its reason in place of the
+   numbers built on it. */
+.unavailable {
+  margin-top: 6px;
+  color: var(--slate);
+  font-size: var(--text-body);
+}
 /* Crit damage: a secondary figure under the crit rate. */
 .damage {
   display: flex;

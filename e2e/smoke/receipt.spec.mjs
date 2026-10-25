@@ -165,6 +165,13 @@ test.describe("원정대 영수증 합계 @smoke", () => {
     expect(answers.length).toBe(10);
   });
 
+  test("백엔드가 영수증을 꺼 두면 빈 칸 대신 '아직 열리지 않았어요'를 보인다", async ({ page }) => {
+    await page.goto(receiptPath("영수증꺼짐"));
+    const panel = page.getByRole("region", { name: "원정대 영수증" });
+    await expect(panel.getByRole("status")).toHaveText("원정대 영수증은 아직 열리지 않았어요.");
+    await expect(panel.getByRole("button", { name: "다시 시도" })).toHaveCount(0);
+  });
+
   for (const width of [320, 360, 390]) {
     test(`${width}px: 합계·표시가 잘리지 않고 옆으로 넘치지 않는다`, async ({ page }) => {
       await page.setViewportSize({ width, height: 800 });

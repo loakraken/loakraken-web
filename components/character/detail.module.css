@@ -1076,9 +1076,22 @@
   color: var(--muted-foreground);
   font-size: 13px;
 }
+/* The ownership caption's held room (inner.tsx): one line beside the side
+   column, two when stacked (the rarest-item version wraps there). */
+.captionSlot {
+  min-height: 20px;
+  line-height: 20px;
+}
+@media (max-width: 900px) {
+  .captionSlot {
+    min-height: 40px;
+  }
+}
 .chartGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  /* A 320px column, or the whole row when the screen is narrower: a fixed
+     320px minimum widened the page on a 320 screen (+12px, QA 10-25). */
+  grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
   gap: 20px;
 }
 /* While the records load: the chart figure's height (history-chart). */
@@ -1538,6 +1551,9 @@
 }
 .rosterPanel {
   display: grid;
+  /* One column exactly as wide as the tab: an implicit auto column grew to a
+     child's min-content and widened a 320 page by 8px (QA 10-25). */
+  grid-template-columns: minmax(0, 1fr);
   gap: 20px;
 }
 /* Avatar tab: the full-body render beside the slot list (about 55 : 45),
@@ -2006,10 +2022,6 @@
   color: var(--muted-foreground);
   font-size: 13px;
 }
-/* A second note reads as part of the same block. */
-.specUpNote + .specUpNote {
-  margin-top: -12px;
-}
 .specUpBar {
   display: flex;
   flex-wrap: wrap;
@@ -2200,6 +2212,18 @@
 .specUpTable [data-cell="cost"] {
   min-width: 7.5em;
   white-space: nowrap;
+}
+/* A gem cost's price time on its own line (api #759); the same line whether
+   fresh or last-known, so a refresh never changes the row's height. */
+.specUpCostTime {
+  display: block;
+  color: var(--muted-foreground);
+  font-size: 11px;
+  font-weight: 400;
+}
+/* A last-known price (stale) is not today's: the amount is muted too. */
+.specUpTable [data-cell="cost"][data-stale] {
+  color: var(--muted-foreground);
 }
 /* The longer cost of the same size, unseen and unread (data-room, costRoom):
    it sets the cell's width, no height. */
@@ -2421,6 +2445,13 @@
 @media (max-width: 700px) {
   .rosterStats {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+/* Equal columns are as wide as their widest whole number (nowrap): three of
+   them (about 100px each) widened a 320 page by 8px (QA 10-25). Two fit. */
+@media (max-width: 400px) {
+  .rosterStats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 .rosterMix {

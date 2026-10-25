@@ -1,11 +1,11 @@
-// T4 악세 경매 검색기(/tools/accessory-search, 체크리스트 N13, 백엔드 #431).
+// T4 악세 경매 검색기(/market/accessory-search, 체크리스트 N13, 백엔드 #431). 사용자 10-24에 성장 도구에서 시세로 옮김.
 // 목 서버: 힘민지 범위 조건이면 1쪽은 일부(complete false, nextPage 4), 매물 중
 // 하나는 입찰만, 하나는 거래 불가. 품질 99는 503 MARKET_SEARCH_BUSY(Retry-After 30).
 import { test, expect, gotoReady, expectNoHorizontalOverflow, chooseOption } from "../support/fixtures.mjs";
 
 test.describe("악세 경매 검색 @smoke", () => {
   test("조건으로 검색하면 즉시 구매가 순 매물과 연마 효과·거래 상태를 보여 준다", async ({ page }) => {
-    await gotoReady(page, "/tools/accessory-search");
+    await gotoReady(page, "/market/accessory-search");
     await expect(page.getByRole("heading", { level: 1, name: "악세 경매 검색" })).toBeVisible();
     await chooseOption(page, page.getByRole("combobox", { name: "적에게 주는 피해 증가" }), "상 이상");
     await page.getByRole("button", { name: "검색", exact: true }).click();
@@ -24,7 +24,7 @@ test.describe("악세 경매 검색 @smoke", () => {
   });
 
   test("힘민지 범위 조건은 읽은 페이지 범위를 밝히고, 더 보기는 목록을 지운 채 기다리지 않는다", async ({ page }) => {
-    await gotoReady(page, "/tools/accessory-search");
+    await gotoReady(page, "/market/accessory-search");
     await chooseOption(page, page.getByRole("combobox", { name: "힘민지 범위 최소" }), "70% 이상");
     await page.getByRole("button", { name: "검색", exact: true }).click();
     const results = page.getByRole("region", { name: "매물" });
@@ -37,7 +37,7 @@ test.describe("악세 경매 검색 @smoke", () => {
   });
 
   test("검색이 몰리면 남은 시간을 알리고 그동안 다시 검색을 막는다", async ({ page }) => {
-    await gotoReady(page, "/tools/accessory-search");
+    await gotoReady(page, "/market/accessory-search");
     await chooseOption(page, page.getByRole("combobox", { name: "품질 최소" }), "90 이상");
     // The mock answers 503 for quality 99; the form only offers 50·70·90, so the
     // request is changed on its way out.
@@ -52,31 +52,50 @@ test.describe("악세 경매 검색 @smoke", () => {
     await expect(alert.getByRole("button")).toContainText(/뒤 다시 검색/);
   });
 
-  // 사용자 10-16: 결과 줄을 누르면 그 매물을 게임 툴팁처럼(등급·품질·기본 효과·연마 효과·경매) 보여 준다.
-  // 검색 응답의 값만 쓰고 요청을 더 보내지 않는다. Esc로 닫으면 초점이 그 줄로 돌아온다.
-  test("결과 줄을 누르면 매물 상세 카드가 열리고, 요청을 더 보내지 않으며, Esc로 닫힌다", async ({ page }) => {
-    await gotoReady(page, "/tools/accessory-search");
+  // 사용자 10-24: 매물 이름 끝의 화살표로 그 줄 바로 아래에 상세(아이템 그림·등급·품질·기본 효과·연마 효과·경매)를
+  // 펼친다(아크 그리드 펼침과 같은 방식, 떠 있는 카드 없음). 검색 응답 값만 쓰고 요청을 더 보내지 않는다.
+  test("매물 이름의 화살표로 줄 아래에 상세를 펼치고 접으며, 요청을 더 보내지 않는다", async ({ page }) => {
+    await gotoReady(page, "/market/accessory-search");
     await chooseOption(page, page.getByRole("combobox", { name: "적에게 주는 피해 증가" }), "상 이상");
     await page.getByRole("button", { name: "검색", exact: true }).click();
     const results = page.getByRole("region", { name: "매물" });
-    await expect(results.getByRole("button", { name: /상세 보기$/ })).toHaveCount(3);
+    const rows = results.getByRole("listitem").filter({ hasText: "테스트 장신구" });
+    await expect(rows).toHaveCount(3);
     let calls = 0;
-    page.on("request", (r) => r.url().includes("/accessories") && calls++);
-    const open = results.getByRole("button", { name: /상세 보기$/ }).first();
-    // 줄 위에 마우스만 올려서는 열리지 않는다(목록을 훑을 때 카드가 튀어나오지 않음).
+    page.on("request", (r) => r.url().includes("/accessor") && calls++);
+    // The name's own button (held by place: its expanded state changes below).
+    const open = rows.first().locator("strong").getByRole("button");
+    await expect(open).toHaveAttribute("aria-expanded", "false");
+    // Points at its details only while they exist.
+    await expect(open).not.toHaveAttribute("aria-controls", /.*/);
+    // Hovering opens nothing (no pop-up cards while skimming the list).
     await open.hover();
     await page.waitForTimeout(400);
     await expect(page.getByRole("dialog")).toHaveCount(0);
     await open.click();
-    const card = page.getByRole("dialog");
-    await expect(card).toBeVisible();
-    await expect(card).toContainText("연마 효과");
-    await expect(card).toContainText("즉시 구매가");
-    await expect(card).toContainText("남은 시간");
-    await expect(card).toContainText(/ 종료$/);
-    expect(calls).toBe(0);
-    await page.keyboard.press("Escape");
+    await expect(open).toHaveAttribute("aria-expanded", "true");
+    const detail = page.locator(`#${await open.getAttribute("aria-controls")}`);
+    await expect(detail).toBeVisible();
+    // Right below its own row's facts, inside that row.
+    await expect(rows.first().locator(`#${await open.getAttribute("aria-controls")}`)).toHaveCount(1);
+    await expect(detail).toContainText("연마 효과");
+    await expect(detail).toContainText("즉시 구매가");
+    await expect(detail).toContainText(/ 종료$/);
+    // The item image (official CDN only).
+    await expect(detail.locator("img")).toHaveAttribute("src", /^https:\/\/cdn-lostark\.game\.onstove\.com\//);
     await expect(page.getByRole("dialog")).toHaveCount(0);
+    expect(calls).toBe(0);
+    await open.press("Enter");
+    await expect(open).toHaveAttribute("aria-expanded", "false");
+    await expect(open).not.toHaveAttribute("aria-controls", /.*/);
+    await expect(detail).toHaveCount(0);
     await expect(open).toBeFocused();
+    await expectNoHorizontalOverflow(page);
+  });
+
+  test("예전 주소(/tools/accessory-search)는 조건을 그대로 새 주소로 영구 이동(308)", async ({ request }) => {
+    const response = await request.get("/tools/accessory-search?slot=NECKLACE&q=1", { maxRedirects: 0 });
+    expect(response.status()).toBe(308);
+    expect(response.headers()["location"]).toMatch(/\/market\/accessory-search\?slot=NECKLACE&q=1$/);
   });
 });
