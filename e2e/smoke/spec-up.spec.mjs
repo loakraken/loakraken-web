@@ -174,16 +174,32 @@ test.describe("스펙업 가이드 @smoke", () => {
     await expect(changes).toContainText("90 → 100");
   });
 
-  test("서포터는 탭 전체가 '준비 중' 한 줄, 캐시에 없거나 꺼져 있으면 안내한다(api #455)", async ({ page }) => {
-    // 서포터 후보가 아직 없어 '계산하지 않은 후보'만 늘어놓지 않고, 요청도 보내지 않는다.
-    let specUpCalls = 0;
-    page.on("request", (r) => r.url().includes("/api/characters/spec-up") && specUpCalls++);
+  test("서포터는 서포터 점수 기준 목록(api #722), 점수가 없는 응답이면 '준비 중' 한 줄, 캐시에 없거나 꺼져 있으면 안내한다", async ({ page }) => {
+    // Ranked by the supporter score per 100,000 gold; no combat-power column,
+    // no simulator link and no combat-power goal path; one list request.
+    const lists = [];
+    page.on("request", (r) => r.url().includes("/api/characters/spec-up?") && lists.push(new URL(r.url()).searchParams.get("sort")));
     await page.goto(characterPath("상세서포터", "specup"));
-    await expect(page.getByText("서포터 스펙업은 준비 중이에요.")).toBeVisible();
-    await expect(page.getByText("서포터 전투력 계산이 들어오면 후보를 보여 드릴게요.")).toBeVisible();
+    const table = page.getByRole("table", { name: "스펙업 후보, 서포터 점수 순" });
+    await expect(table).toBeVisible();
+    // Phones (≤700px) show one card per candidate without the header row.
+    if ((page.viewportSize()?.width ?? 0) > 700) {
+      await expect(table.getByRole("columnheader", { name: "서포터 점수" })).toBeVisible();
+      await expect(table.getByRole("columnheader", { name: "10만 골드당 점수" })).toBeVisible();
+    }
+    await expect(table.getByRole("columnheader", { name: /전투력/, includeHidden: true })).toHaveCount(0);
+    await expect(table.locator("tbody tr").first()).toContainText("+98.81");
+    await expect(table.getByRole("link", { name: /시뮬레이터에서 적용해 보기/ })).toHaveCount(0);
+    await expect(page.getByRole("group", { name: "정렬" }).getByRole("button")).toHaveText(["서포터 점수 기준"]);
+    await expect(page.getByText("서포터는 전투력을 계산하지 않아 서포터 점수로만 보여 드려요.")).toBeVisible();
     await expect(page.getByRole("region", { name: "목표 전투력" })).toHaveCount(0);
+    expect(lists).toEqual(["KRAKEN"]);
+
+    // A backend from before #722 answers without a supporter score: the one line.
+    await page.goto(characterPath("서포터옛응답", "specup"));
+    await expect(page.getByText("서포터 스펙업은 준비 중이에요.")).toBeVisible();
+    await expect(page.getByText("서포터 점수 계산이 들어오면 후보를 보여 드릴게요.")).toBeVisible();
     await expect(page.getByRole("table", { name: /스펙업 후보/ })).toHaveCount(0);
-    expect(specUpCalls).toBe(0);
 
     await page.goto(characterPath("스펙업꺼짐", "specup"));
     let goal = page.getByRole("region", { name: "목표 전투력" });
