@@ -71,6 +71,9 @@
   color: var(--link);
   font-size: 12px;
   font-weight: 700;
+  /* Never split mid-countdown ('1시간 / 56분'): a wrap that came and went as
+     the text changed length moved the cards below (CLS, 320, 10-25). */
+  white-space: nowrap;
 }
 .roundNames {
   display: -webkit-box;
@@ -288,6 +291,13 @@
   }
   .upcoming ul {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  /* Two cards a row leave the countdown no room beside the time: it gets its
+     own line, so a card is one height whatever the countdown reads. */
+  .roundTime {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0;
   }
 }
 @media (prefers-reduced-motion: reduce) {
