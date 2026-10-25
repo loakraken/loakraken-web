@@ -86,6 +86,11 @@
   font-variant-numeric: tabular-nums;
   word-break: keep-all;
 }
+/* Kept (empty) once shown, so the fill completing does not pull the page up. */
+.total > p.leftLine {
+  min-height: 1.5em;
+  line-height: 1.5;
+}
 @media (max-width: 480px) {
   .coverage p {
     min-height: 3em;
@@ -93,6 +98,11 @@
   /* The total's sentence: two lines while partial, one once complete. Hold
      two, so the receipt filling in does not pull the page up. */
   .total > p:first-of-type {
+    min-height: 3em;
+  }
+  /* '빠진 것' loses '계산 대기 N명' and '골드 외 비용' gains items as the
+     fill completes: hold two lines. */
+  .total > p.leftLine {
     min-height: 3em;
   }
 }

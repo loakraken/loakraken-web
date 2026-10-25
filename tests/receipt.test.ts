@@ -8,6 +8,7 @@ import {
   includedText,
   isReceiptEnvelope,
   isReceiptOff,
+  memberState,
   nextRefreshDelay,
   nonGoldText,
   notIncludedText,
@@ -184,6 +185,24 @@ test("receipt fan-out: unavailable members are named, never pending, and the pan
   assert.equal(observedText(new Date(now - 5 * 60_000).toISOString(), now), "5분 전 기준");
   assert.equal(observedText(new Date(now - 3 * 3_600_000).toISOString(), now), "3시간 전 기준");
   assert.equal(observedText(new Date(now - 2 * 86_400_000).toISOString(), now), "2일 전 기준");
+});
+
+test("a member status this screen does not know reads as '확인 못 함': not pending, counted, no marker, the receipt still passes", () => {
+  const data = fixture().data;
+  const row = data.equipment.characters.find((c: { status: string }) => c.status === "READY");
+  row.status = "SOMETHING_NEW";
+  assert.equal(isReceiptEnvelope({ ...fixture(), data }), true);
+  assert.equal(memberState(row), "UNAVAILABLE");
+  assert.equal(rowMarker(row), null);
+  assert.equal(unavailableCount(data), 1);
+  assert.match(coverageText(data), /1명 확인 못 함$/);
+  assert.match(excludedSummary(data), /확인 못 함 1명/);
+  // The backend's own count of UNAVAILABLE rows never hides an unknown one.
+  data.coverage.unavailable = 0;
+  assert.equal(unavailableCount(data), 1);
+  data.coverage.unavailable = 3;
+  assert.equal(unavailableCount(data), 3);
+  for (const status of ["READY", "PENDING", "UNAVAILABLE"]) assert.equal(memberState({ ...row, status }), status);
 });
 
 test("non-gold costs (api #761) read as quantities, never gold; none or an older backend shows nothing", () => {

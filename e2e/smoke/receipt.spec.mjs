@@ -26,6 +26,21 @@ async function pin(page, change) {
 
 const total = (page) => page.locator("[data-status]").first();
 
+/** "top/height" of each line of the total box and each block after it, for a shift message. */
+const blocks = (page) =>
+  page.evaluate(() => {
+    const box = document.querySelector("[data-status]");
+    if (!box) return {};
+    const after = [...box.parentElement.children].filter((el) => el !== box);
+    return Object.fromEntries(
+      [...box.children, ...after].map((el, i) => {
+        const r = el.getBoundingClientRect();
+        const name = String(el.className).split(" ")[0].replace(/^.*?__/, "").replace(/__.*$/, "");
+        return [`${i}:${el.tagName.toLowerCase()}.${name}`, `${Math.round(r.top)}/${Math.round(r.height)}`];
+      }),
+    );
+  });
+
 test.describe("원정대 영수증 합계 @smoke", () => {
   test("일부만 센 합계는 금액 옆에 '일부 합계'를 붙이고, 빠진 것을 바로 아래에 모아 보인다", async ({ page }) => {
     await pin(page, (data) => {
@@ -56,6 +71,18 @@ test.describe("원정대 영수증 합계 @smoke", () => {
     await expect(total(page).getByText("일부 합계")).toHaveCount(0);
   });
 
+  test("모르는 상태 값(새 api)은 캐릭터를 '확인 못 함'으로, 합계는 일부 합계로 보이고 패널이 깨지지 않는다", async ({ page }) => {
+    const errors = [];
+    page.on("pageerror", (error) => errors.push(error.message));
+    await page.goto(receiptPath("영수증새상태"));
+    await expect(total(page)).toHaveAttribute("data-status", "PARTIAL");
+    await expect(total(page).getByText("일부 합계")).toBeVisible();
+    await expect(page.locator("details summary").filter({ hasText: "확인 못 함" })).toHaveCount(1);
+    await expect(page.getByText(/1명 확인 못 함/)).toBeVisible();
+    await expect(page.getByText("SOMETHING_NEW")).toHaveCount(0);
+    expect(errors).toEqual([]);
+  });
+
   test("센 금액이 없으면 0G 대신 '합계 없음'과 빠진 이유를 보이고, 일부만 센 캐릭터에 표시가 붙는다", async ({ page }) => {
     await page.goto(receiptPath("영수증시세없음"));
     await expect(total(page)).toHaveAttribute("data-status", "UNAVAILABLE");
@@ -66,7 +93,9 @@ test.describe("원정대 영수증 합계 @smoke", () => {
     await expect(page.locator("details summary").filter({ hasText: /일부\s*일부만 계산/ }).first()).toBeVisible();
   });
 
-  test("대기 중인 캐릭터는 패널이 스스로 채우고, 그동안은 '갱신 중'이며 다시 계산 단추가 없다", async ({ page }) => {
+  for (const width of [null, 320]) {
+  test(`${width ? `${width}px: ` : ""}대기 중인 캐릭터는 패널이 스스로 채우고, 그동안은 '갱신 중'이며 다시 계산 단추가 없다`, async ({ page }) => {
+    if (width) await page.setViewportSize({ width, height: 900 });
     // First answer: 2 members still pending, the backend says ask again now (cap stop).
     // Second answer: everyone in.
     await pin(page, (data, call) => {
@@ -87,6 +116,7 @@ test.describe("원정대 영수증 합계 @smoke", () => {
     await page.goto(receiptPath("영수증본캐"));
     await expect(page.getByText("원정대 10명 중 8명 계산 · 2명 갱신 중")).toBeVisible();
     await expect(page.getByRole("button", { name: /다시 계산/ })).toHaveCount(0);
+    const before = await blocks(page);
     const mark = await shiftMark(page);
     // At least 6 s later, filled in without a press, and nothing on the page moved (A7).
     await expect(total(page)).toHaveAttribute("data-status", "COMPLETE", { timeout: 15_000 });
@@ -94,8 +124,13 @@ test.describe("원정대 영수증 합계 @smoke", () => {
     await expect(total(page)).toContainText("골드 외 비용: 실링 1,960,000 · 고통의 가시 15");
     await page.waitForTimeout(500);
     const shifts = await shiftsSince(page, mark);
-    expect(shifts.all, `채워지는 동안 흔들림: ${shifts.moved}`).toBe(0);
+    const after = await blocks(page);
+    const changed = Object.keys(after)
+      .filter((key) => after[key] !== before[key])
+      .map((key) => `${key} ${before[key]}→${after[key]}`);
+    expect(shifts.all, `채워지는 동안 흔들림: ${shifts.moved} | ${changed.join(", ")}`).toBe(0);
   });
+  }
 
   test("채워지지 않으면 두 번 뒤 스스로 멈추고 '다시 계산(2명씩)'을 보인다; 찾지 못한 캐릭터는 '확인 못 함'", async ({ page }) => {
     await pin(page, (data) => {

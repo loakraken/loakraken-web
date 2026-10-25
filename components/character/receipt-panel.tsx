@@ -19,6 +19,7 @@ import {
   excludedSummary,
   includedText,
   isReceiptOff,
+  memberState,
   nextRefreshDelay,
   nonGoldText,
   notIncludedText,
@@ -39,9 +40,11 @@ const gold = (value: number | null | undefined) =>
   value == null ? "-" : `${Math.round(value).toLocaleString("ko-KR")}G`;
 
 function CharacterRow({ row, now }: { row: ReceiptCharacter; now: number | null }) {
-  const pending = row.status === "PENDING";
-  // Not found this time (api receipt fan-out): not counted, not asked for again.
-  const unavailable = row.status === "UNAVAILABLE";
+  const state = memberState(row);
+  const pending = state === "PENDING";
+  // Not found this time (api receipt fan-out), or a status this screen does
+  // not know: not counted, not asked for again.
+  const unavailable = state === "UNAVAILABLE";
   const marker = rowMarker(row);
   const observed = now == null ? null : observedText(row.observedAt, now);
   return (
@@ -118,8 +121,12 @@ function Body({
   const notIncluded = notIncludedText(data);
   const status = totalStatus(data);
   const left = excludedSummary(data);
+  const [leftShown, setLeftShown] = useState(false);
+  if (left && !leftShown) setLeftShown(true);
   const idle = data.coverage.pending === 0 || auto;
   const nonGold = nonGoldText(data);
+  const [nonGoldShown, setNonGoldShown] = useState(false);
+  if (nonGold && !nonGoldShown) setNonGoldShown(true);
   const [first, ...rest] = data.assumptions;
   return (
     <>
@@ -142,8 +149,18 @@ function Body({
             </p>
           </>
         )}
-        {nonGold && <p className={styles.muted}>골드 외 비용: {nonGold}</p>}
-        {left && <p className={styles.muted}>빠진 것: {left}</p>}
+        {/* Once shown, these lines keep their place: they change length or
+            empty as pending members fill in, and nothing under them may move (A7). */}
+        {(nonGold || nonGoldShown) && (
+          <p className={`${styles.muted} ${styles.leftLine}`} aria-hidden={nonGold ? undefined : true}>
+            {nonGold && `골드 외 비용: ${nonGold}`}
+          </p>
+        )}
+        {(left || leftShown) && (
+          <p className={`${styles.muted} ${styles.leftLine}`} aria-hidden={left ? undefined : true}>
+            {left && `빠진 것: ${left}`}
+          </p>
+        )}
         {notIncluded && <p className={styles.muted}>미포함: {notIncluded}</p>}
       </div>
 

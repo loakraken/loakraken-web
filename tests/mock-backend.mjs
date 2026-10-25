@@ -1415,6 +1415,13 @@ createServer(async (req, res) => {
       data.coverage.nextAvailableAt = new Date(Date.now() + 20_000).toISOString();
       data.total.nonGold = [{ name: "실링", amount: 1_240_000 }];
     }
+    // 영수증새상태: a member and the total carry status values this web build
+    // does not know (a newer api); the member reads as '확인 못 함'.
+    if (who === "영수증새상태") {
+      const row = data.equipment.characters.find((c) => c.status === "READY");
+      Object.assign(row, { status: "SOMETHING_NEW", gold: null, parts: [], excluded: [], complete: null });
+      data.total.status = "SOMETHING_NEW";
+    }
     // 영수증시세없음 (backend #665): every price missing, nothing counted → UNAVAILABLE, no amount.
     if (who === "영수증시세없음") {
       for (const c of data.equipment.characters) {
