@@ -147,6 +147,7 @@ export interface components {
             observedAt: string;
             /** @description 즉시 구매가 오름차순, 페이지당 10개 */
             items: components["schemas"]["AuctionListingResponse"][];
+            filter: components["schemas"]["AuctionGemFilterResponse"] | null;
         };
         AuctionListingResponse: {
             name: string;
@@ -158,6 +159,7 @@ export interface components {
             endDate: string | null;
             tradeAllowCount: number | null;
             options: components["schemas"]["AuctionListingOptionResponse"][];
+            icon: string | null;
         };
         AuctionListingOptionResponse: {
             /** @description 공식 Type(ACCESSORY_UPGRADE, STAT, GEM_SKILL_DAMAGE 등) */
@@ -167,6 +169,15 @@ export interface components {
             percentage: boolean;
             level: ("LOW" | "MID" | "HIGH") | null;
             className: string | null;
+        };
+        AuctionGemFilterResponse: {
+            /**
+             * @description 공식 직업 이름
+             * @example 블래스터
+             */
+            className: string;
+            skill: number | null;
+            skillName: string | null;
         };
     };
     responses: never;

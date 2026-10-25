@@ -139,13 +139,14 @@ test("equipment groups follow the in-game slot order", () => {
     detail: null,
   });
   const groups = groupEquipment(
-    ["무기", "반지", "투구", "팔찌", "어빌리티 스톤", "목걸이", "나침반"].map(
+    ["완갑", "무기", "반지", "투구", "팔찌", "어빌리티 스톤", "목걸이", "나침반"].map(
       item,
     ),
   );
+  // 완갑 is equipment, right under the weapon (user 10-26), not a leftover.
   assert.deepEqual(
     groups.armor.map((e) => e.type),
-    ["투구", "무기"],
+    ["투구", "무기", "완갑"],
   );
   assert.deepEqual(
     groups.accessories.map((e) => e.type),
