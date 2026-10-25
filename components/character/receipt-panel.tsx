@@ -117,6 +117,8 @@ function Body({
   const notIncluded = notIncludedText(data);
   const status = totalStatus(data);
   const left = excludedSummary(data);
+  const [leftShown, setLeftShown] = useState(false);
+  if (left && !leftShown) setLeftShown(true);
   const idle = data.coverage.pending === 0 || auto;
   const [first, ...rest] = data.assumptions;
   return (
@@ -140,7 +142,13 @@ function Body({
             </p>
           </>
         )}
-        {left && <p className={styles.muted}>빠진 것: {left}</p>}
+        {/* Once shown, the line keeps its place: it shortens or empties as
+            pending members fill in, and nothing under it may move (A7). */}
+        {(left || leftShown) && (
+          <p className={`${styles.muted} ${styles.leftLine}`} aria-hidden={left ? undefined : true}>
+            {left && `빠진 것: ${left}`}
+          </p>
+        )}
         {notIncluded && <p className={styles.muted}>미포함: {notIncluded}</p>}
       </div>
 
