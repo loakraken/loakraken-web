@@ -32,3 +32,23 @@ for (const width of [320, 360, 390])
         )
         .toEqual({ cutStart: 0, cutEnd: 0 });
     });
+
+// The refresh countdown beside the row changes its width every second; the row
+// must not jump back to the current tab after a hand scroll (a click on 스킬
+// missed on a phone, #1077).
+test("손으로 넘긴 탭 줄은 갱신 카운트다운이 돌아도 되돌아가지 않고, 넘긴 탭을 누를 수 있다 @390 @regression", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(characterPath("상세"));
+  const nav = page.getByRole("navigation", { name: "캐릭터 정보 탭" });
+  await expect(nav.locator('a[aria-current="page"]')).toBeVisible();
+  const end = await nav.evaluate((row) => {
+    row.scrollLeft = row.scrollWidth;
+    return row.scrollLeft;
+  });
+  expect(end).toBeGreaterThan(0);
+  // Two countdown ticks.
+  await page.waitForTimeout(2500);
+  expect(await nav.evaluate((row) => row.scrollLeft)).toBe(end);
+  await nav.getByRole("link", { name: "스킬", exact: true }).click();
+  await expect(page).toHaveURL(/\?tab=skills$/);
+});
