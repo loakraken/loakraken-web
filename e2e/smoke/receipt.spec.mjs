@@ -71,6 +71,18 @@ test.describe("원정대 영수증 합계 @smoke", () => {
     await expect(total(page).getByText("일부 합계")).toHaveCount(0);
   });
 
+  test("모르는 상태 값(새 api)은 캐릭터를 '확인 못 함'으로, 합계는 일부 합계로 보이고 패널이 깨지지 않는다", async ({ page }) => {
+    const errors = [];
+    page.on("pageerror", (error) => errors.push(error.message));
+    await page.goto(receiptPath("영수증새상태"));
+    await expect(total(page)).toHaveAttribute("data-status", "PARTIAL");
+    await expect(total(page).getByText("일부 합계")).toBeVisible();
+    await expect(page.locator("details summary").filter({ hasText: "확인 못 함" })).toHaveCount(1);
+    await expect(page.getByText(/1명 확인 못 함/)).toBeVisible();
+    await expect(page.getByText("SOMETHING_NEW")).toHaveCount(0);
+    expect(errors).toEqual([]);
+  });
+
   test("센 금액이 없으면 0G 대신 '합계 없음'과 빠진 이유를 보이고, 일부만 센 캐릭터에 표시가 붙는다", async ({ page }) => {
     await page.goto(receiptPath("영수증시세없음"));
     await expect(total(page)).toHaveAttribute("data-status", "UNAVAILABLE");

@@ -156,7 +156,17 @@ export function rowMarker(row: ReceiptCharacter): { partial: boolean; text: stri
  * coverage.unavailable when the backend sends it, else counted from the rows.
  */
 export function unavailableCount(data: Receipt) {
-  return data.coverage.unavailable ?? data.equipment.characters.filter((c) => c.status === "UNAVAILABLE").length;
+  const rows = data.equipment.characters.filter((c) => memberState(c) === "UNAVAILABLE").length;
+  // A status this screen does not know is never in coverage.unavailable.
+  return Math.max(data.coverage.unavailable ?? 0, rows);
+}
+
+/**
+ * READY or PENDING as sent; UNAVAILABLE and any status this screen does not
+ * know read as "확인 못 함" (not counted, not asked for again), never a crash.
+ */
+export function memberState(row: ReceiptCharacter): "READY" | "PENDING" | "UNAVAILABLE" {
+  return row.status === "READY" || row.status === "PENDING" ? row.status : "UNAVAILABLE";
 }
 
 /**

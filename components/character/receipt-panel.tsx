@@ -19,6 +19,7 @@ import {
   excludedSummary,
   includedText,
   isReceiptOff,
+  memberState,
   nextRefreshDelay,
   notIncludedText,
   observedText,
@@ -38,9 +39,11 @@ const gold = (value: number | null | undefined) =>
   value == null ? "-" : `${Math.round(value).toLocaleString("ko-KR")}G`;
 
 function CharacterRow({ row, now }: { row: ReceiptCharacter; now: number | null }) {
-  const pending = row.status === "PENDING";
-  // Not found this time (api receipt fan-out): not counted, not asked for again.
-  const unavailable = row.status === "UNAVAILABLE";
+  const state = memberState(row);
+  const pending = state === "PENDING";
+  // Not found this time (api receipt fan-out), or a status this screen does
+  // not know: not counted, not asked for again.
+  const unavailable = state === "UNAVAILABLE";
   const marker = rowMarker(row);
   const observed = now == null ? null : observedText(row.observedAt, now);
   return (
