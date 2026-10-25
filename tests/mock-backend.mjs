@@ -968,6 +968,9 @@ createServer(async (req, res) => {
     add("CRIT", "기타", a.extraCritRate ?? 0, "아크 그리드 코어 등");
     add("ATTACK_SPEED", "공격 속도 가정", a.extraAttackSpeed ?? 0, "직업 각인·트라이포드·버프 합");
     add("MOVE_SPEED", "이동 속도 가정", a.extraMoveSpeed ?? 0, "직업 각인·트라이포드·버프 합");
+    // backend #711: a stat that could not be read gives its reason (null otherwise).
+    d.crit.unavailableReason = request.characterName === "치명못읽음" ? "치명 스탯을 읽지 못해 치명타 적중률을 계산하지 않았어요." : null;
+    d.speed.unavailableReason = request.characterName === "신속못읽음" ? "신속 스탯을 읽지 못해 공격·이동 속도를 계산하지 않았어요." : null;
     return send(base);
   }
   // Roster combat power (L19): records only; 원정대전투력 has two without a
