@@ -1366,8 +1366,9 @@ createServer(async (req, res) => {
     // roster filled 2 per request, at most 2 official calls per 6 s for the
     // visitor (20 per minute). nextAvailableAt says when the next 2 are
     // allowed; asking sooner gets a 429, so a too-fast client fails visibly.
-    // A fresh fill starts after a minute without requests.
-    if (who === "영수증대원정대") {
+    // A fresh fill starts after a minute without requests. Any name starting
+    // with it is its own visitor (parallel test projects each use their own).
+    if (who.startsWith("영수증대원정대")) {
       const now = Date.now();
       let fill = receiptFill.get(who);
       if (!fill || now - fill.lastAt > 60_000) fill = { ready: 0, allowedAt: 0, lastAt: now };

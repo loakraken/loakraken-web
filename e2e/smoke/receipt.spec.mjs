@@ -116,7 +116,8 @@ test.describe("원정대 영수증 합계 @smoke", () => {
     test.slow();
     const answers = [];
     page.on("response", (r) => r.url().includes("/api/characters/receipt?") && answers.push(r.status()));
-    await page.goto(receiptPath("영수증대원정대"));
+    // Its own roster per run: the mock keeps one fill per name.
+    await page.goto(receiptPath(`영수증대원정대${Math.floor(Math.random() * 90) + 10}`));
     await expect(total(page)).toHaveAttribute("data-status", "COMPLETE", { timeout: 120_000 });
     await expect(page.getByText("원정대 20명 중 20명 계산")).toBeVisible();
     // 10 answers of 2 members each, and none of them a rate limit.
