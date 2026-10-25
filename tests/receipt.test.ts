@@ -163,15 +163,16 @@ test("receipt fan-out: unavailable members are named, never pending, and the pan
   old.coverage.pending = 0;
   assert.equal(totalStatus(old), "PARTIAL");
 
-  // When to ask again: not sooner than 3 s, not before nextAvailableAt, never once stopped or done.
+  // When to ask again: the backend's time first, never sooner than 6 s (2 official
+  // calls per 6 s = the 20 per minute a visitor may make), never once stopped or done.
   const now = Date.parse("2026-10-25T10:00:00Z");
   const waiting = structuredClone(data);
   waiting.coverage.nextAvailableAt = new Date(now).toISOString();
-  assert.equal(nextRefreshDelay(waiting, now, false), 3_000);
+  assert.equal(nextRefreshDelay(waiting, now, false), 6_000);
   waiting.coverage.nextAvailableAt = new Date(now + 60_000).toISOString();
   assert.equal(nextRefreshDelay(waiting, now, false), 60_000);
   waiting.coverage.nextAvailableAt = null;
-  assert.equal(nextRefreshDelay(waiting, now, false), 3_000);
+  assert.equal(nextRefreshDelay(waiting, now, false), 6_000);
   assert.equal(nextRefreshDelay(waiting, now, true), null);
   waiting.coverage.pending = 0;
   assert.equal(nextRefreshDelay(waiting, now, false), null);

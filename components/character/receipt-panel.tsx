@@ -247,8 +247,8 @@ function ReceiptPanelBody({ name }: { name: string }) {
   const [assumeBook, setAssumeBook] = useState(true);
   // Pending members are filled in by itself, two per request (api receipt
   // fan-out): while this panel is open and the tab is visible (React Query
-  // pauses intervals in a hidden tab), never sooner than 3 s or the backend's
-  // nextAvailableAt. It stops after two answers in a row that filled nobody
+  // pauses intervals in a hidden tab), at the backend's nextAvailableAt and
+  // never sooner than 6 s (the visitor's official-call limit). It stops after two answers in a row that filled nobody
   // or on a failure (a rate limit shows its countdown); then "다시 계산" is by hand.
   const [fill, setFill] = useState({
     book: assumeBook,

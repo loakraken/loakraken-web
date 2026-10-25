@@ -85,7 +85,7 @@ test.describe("원정대 영수증 합계 @smoke", () => {
     await expect(page.getByText("원정대 10명 중 8명 계산 · 2명 갱신 중")).toBeVisible();
     await expect(page.getByRole("button", { name: /다시 계산/ })).toHaveCount(0);
     const mark = await shiftMark(page);
-    // At least 3 s later, filled in without a press, and nothing on the page moved (A7).
+    // At least 6 s later, filled in without a press, and nothing on the page moved (A7).
     await expect(total(page)).toHaveAttribute("data-status", "COMPLETE", { timeout: 15_000 });
     await expect(page.getByText("원정대 10명 중 10명 계산")).toBeVisible();
     await page.waitForTimeout(500);
@@ -104,7 +104,7 @@ test.describe("원정대 영수증 합계 @smoke", () => {
     await expect(page.getByText("1명 확인 못 함").first()).toBeVisible();
     await expect(page.locator("details summary").filter({ hasText: "확인 못 함" }).first()).toBeVisible();
     // Pending never drops: it stops by itself and hands over to the button.
-    await expect(page.getByRole("button", { name: "다시 계산(2명씩)" })).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByRole("button", { name: "다시 계산(2명씩)" })).toBeVisible({ timeout: 30_000 });
     await expect(page.getByText("원정대 10명 중 8명 계산 · 1명 대기 · 1명 확인 못 함")).toBeVisible();
     const after = requests;
     await page.waitForTimeout(4_000);

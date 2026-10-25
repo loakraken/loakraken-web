@@ -185,13 +185,22 @@ export function observedText(observedAt: string | null | undefined, now: number)
 }
 
 /**
+ * Never sooner than this between two refills: each spends up to 2 official
+ * calls and a visitor may make 20 per minute (CLIENT_LIMIT_OFFICIAL), so
+ * 2 per 6 s keeps the refill alone inside the limit even when the backend
+ * says "now".
+ */
+export const REFILL_FLOOR_MS = 6_000;
+
+/**
  * When to ask again by itself (receipt fan-out contract): only while members
- * are pending and it has not stopped; never sooner than 3 s, and not before
- * the backend's nextAvailableAt (now at the per-open cap, +60 s after a rate
- * limit or outage). null = do not ask again by itself.
+ * are pending and it has not stopped; the backend's nextAvailableAt first
+ * (now at the per-open cap, later when the visitor's budget or the official
+ * limit needs it), and never sooner than REFILL_FLOOR_MS. null = do not ask
+ * again by itself.
  */
 export function nextRefreshDelay(data: Receipt, now: number, stopped: boolean): number | null {
   if (stopped || data.coverage.pending <= 0) return null;
   const at = data.coverage.nextAvailableAt ? Date.parse(data.coverage.nextAvailableAt) : now;
-  return Math.max(3_000, (Number.isFinite(at) ? at : now) - now);
+  return Math.max(REFILL_FLOOR_MS, (Number.isFinite(at) ? at : now) - now);
 }
