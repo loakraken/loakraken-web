@@ -42,7 +42,7 @@ for (const width of [320, 1280])
 test("장신구 줄에 아크 패시브 포인트 배지 없음, 툴팁에는 그대로 @1280 @regression", async ({ page }) => {
   await gotoReady(page, characterPath("전투력계산"));
   const panel = page.getByRole("region", { name: "장비", exact: true });
-  const necklace = panel.getByRole("listitem").filter({ has: page.getByText("목걸이", { exact: true }) }).first();
+  const necklace = panel.getByRole("listitem").filter({ has: page.locator("strong", { hasText: /^목걸이/ }) }).first();
   await expect(necklace).toBeVisible();
   await expect(necklace.getByLabel("깨달음 13")).toHaveCount(0);
   await expect(necklace).not.toContainText("+13");
