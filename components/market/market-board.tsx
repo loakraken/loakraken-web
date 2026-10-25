@@ -54,6 +54,7 @@ import { ChartPlaceholder, MarketChart, dayPoints, minutePoints, periodChange } 
 import { sampleText } from "@/lib/market/minutes";
 import { SiteHeader } from "@/components/site/site-header";
 import { PillTab, PillTabs } from "@/components/ui/pill-tabs";
+import { BoardSearch } from "./board-search";
 
 // One Iconsax mark per category (decorative; the label names the tab).
 const TAB_ICON: Record<string, ReactNode> = {
@@ -659,6 +660,17 @@ function MarketContent({
                   ))}
                 </div>
               </div>
+              {/* Searches the open tab; tab, tier and sort stay and apply to
+                  the results, a new search starts at page 1 (#1115). */}
+              <BoardSearch
+                value={query.q}
+                onSearch={(q) => update({ q, page: 1 })}
+                notice={
+                  query.q && data && !board.isPlaceholderData && !data.complete
+                    ? "품목이 많아 일부 품목만 찾았어요."
+                    : null
+                }
+              />
               {(currentTab
                 ? currentTab.defaultTier != null
                 : TAB_FALLBACK.some((t) => t.tab === query.tab && t.tiered)) && (
@@ -704,7 +716,9 @@ function MarketContent({
                   ))}
                 </ul>
               ) : !items.length ? (
-                <p className={styles.muted}>표시할 품목이 없어요.</p>
+                <p className={styles.muted} role="status">
+                  {query.q ? `‘${query.q}’에 맞는 품목이 이 분류에 없어요.` : "표시할 품목이 없어요."}
+                </p>
               ) : (
                 // A new board (tab, tier, sort, page) is not a "change": the
                 // rows are compared again from the first real answer for it.

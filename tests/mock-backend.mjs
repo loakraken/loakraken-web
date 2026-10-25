@@ -148,6 +148,18 @@ async function market(url, req, send) {
     const sort = url.searchParams.get("sort") ?? "default";
     const page = Number(url.searchParams.get("page") ?? 1);
     let items = boardItems(tab);
+    // Name search (api #624): trimmed, 1~20 allowed letters, a part of the name
+    // or of its initials (ㅇㅂㄷ); blank is no search. Then sort and page as usual.
+    const q = (url.searchParams.get("q") ?? "").trim();
+    if (q) {
+      if (q.length > 20 || !/^[가-힣ㄱ-ㅎㅏ-ㅣA-Za-z0-9 ·()+\-:]+$/.test(q)) return send({ code: "INVALID_REQUEST", message: "q" }, 400);
+      const initials = (name) =>
+        [...name].map((ch) => {
+          const code = ch.charCodeAt(0) - 0xac00;
+          return code >= 0 && code < 11172 ? "ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ"[Math.floor(code / 588)] : ch;
+        }).join("");
+      items = items.filter((item) => item.name.includes(q) || initials(item.name).includes(q));
+    }
     if (sort === "high") items.sort((a, b) => b.currentMinPrice - a.currentMinPrice);
     if (sort === "low") items.sort((a, b) => a.currentMinPrice - b.currentMinPrice);
     if (sort === "rise") items.sort((a, b) => b.changeDay - a.changeDay);
