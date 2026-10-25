@@ -14,6 +14,7 @@ import { countdownText, retryLabel } from "@/lib/api/rate-limit";
 import { pendingProps } from "@/lib/api/pending";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { TIER_LABEL } from "@/lib/character/rank";
+import { coarsen } from "@/lib/stats/bins";
 import { fetchBestCombatPower, fetchStats, fetchTitleEquip } from "@/lib/stats/client";
 import { equipShare, titleEquipQuery } from "@/lib/stats/title-equip";
 import {
@@ -361,7 +362,9 @@ function DistributionTab({ query }: { query: StatsQuery }) {
   });
   const inputId = useId();
   const data = dist.data?.data;
-  const max = Math.max(1, ...(data?.bins.map((b) => b.count) ?? [1]));
+  // A wide sample joins into round widths: at most about 40 bars on a phone (A5).
+  const bins = coarsen(data?.bins ?? []);
+  const max = Math.max(1, ...bins.map((b) => b.count));
   const label = metric === "ITEM_LEVEL" ? "아이템 레벨" : "전투력";
   const fmt = metric === "ITEM_LEVEL" ? (n: number) => whole(n) : (n: number) => whole(n);
   const p = data?.percentileOf;
@@ -421,7 +424,7 @@ function DistributionTab({ query }: { query: StatsQuery }) {
               </tr>
             </thead>
             <tbody key={dist.dataUpdatedAt}>
-              {data.bins.map((bin) => (
+              {bins.map((bin) => (
                 <tr key={bin.from}>
                   <th scope="row">
                     {fmt(bin.from)} ~ {fmt(bin.to)}
@@ -435,7 +438,7 @@ function DistributionTab({ query }: { query: StatsQuery }) {
         // Drawn anew per answer: another server's bins are other ranges, and
         // the same bar moved across the axis in place (A7, #791).
         <ol key={dist.dataUpdatedAt} className={styles.histogram} aria-label={`${label} 구간별 인원`} {...pendingProps(dist)}>
-          {data.bins.map((bin, i) => {
+          {bins.map((bin, i) => {
             const hit = p && p.value >= bin.from && p.value < bin.to;
             return (
               <li key={bin.from} title={`${fmt(bin.from)} ~ ${fmt(bin.to)} · ${whole(bin.count)}명`} data-hit={hit || undefined}>
@@ -450,10 +453,10 @@ function DistributionTab({ query }: { query: StatsQuery }) {
         </ol>
       )}
       {/* The axis line is there before the bars too (its height held), so they land without moving the note under it. */}
-      {data && data.bins.length > 0 ? (
+      {data && bins.length > 0 ? (
         <p className={styles.axis} aria-hidden="true" {...pendingProps(dist)}>
-          <span>{fmt(data.bins[0].from)}</span>
-          <span>{fmt(data.bins.at(-1)!.to)}</span>
+          <span>{fmt(bins[0].from)}</span>
+          <span>{fmt(bins.at(-1)!.to)}</span>
         </p>
       ) : (
         !data && !dist.isError && (
