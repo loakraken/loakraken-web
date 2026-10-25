@@ -2594,7 +2594,7 @@ createServer(async (req, res) => {
   // Real efficiency states (backend #570·#571): no ark grid at all, and a
   // grid not worked out yet (an older search, worked out on the next).
   const unsupportedReal = (reasonCode) => ({ status: "UNSUPPORTED", reasonCode, reason: "로그용 문장", percent: null, optionsPercent: null, pointsPercent: null, options: [], series: [], ruleVersion: "ark-grid-real-v1" });
-  if (name === "아크없음" || name === "효율준비중" || name === "팔찌못읽음") {
+  if (name === "아크없음" || name === "효율준비중") {
     const efficiency = (real) => ({ percent: null, coresPercent: null, status: "UNSUPPORTED", reasonCode: "UNAVAILABLE", reason: "계산하지 않았어요.", lines: [], ruleVersion: "ark-grid-efficiency-v1", real });
     if (name === "아크없음") {
       envelope.data.loadout.arkGrid = null;
