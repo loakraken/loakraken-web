@@ -55,7 +55,7 @@ export function requestReceipt(
 
 /**
  * The receipt is off on this deployment (the backend route is not there): a
- * 404 that is not "character not found". The panel then stays out of the page.
+ * 404 that is not "character not found". The panel then says it is not open yet.
  */
 export const isReceiptOff = (error: { code: string; status: number } | null | undefined) =>
   error?.status === 404 && error.code !== "CHARACTER_NOT_FOUND";

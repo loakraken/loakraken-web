@@ -172,7 +172,7 @@ export function withoutDistributionView(params: URLSearchParams) {
 }
 
 /** Bin width per metric on the distribution tab. */
-export const DISTRIBUTION_WIDTH: Record<Metric, number> = { ITEM_LEVEL: 10, COMBAT_POWER: 100 };
+export const DISTRIBUTION_WIDTH: Record<Metric, number> = { ITEM_LEVEL: 5, COMBAT_POWER: 100 };
 /** The distribution tab's query key (the page fills the default one in the first HTML). */
 export const distributionKey = (query: StatsQuery, metric: Metric, percentileOf?: number) =>
   ["stats", "distribution", statsKey(query), metric, percentileOf] as const;

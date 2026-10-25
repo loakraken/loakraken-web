@@ -202,6 +202,8 @@ export interface components {
             code: string;
             /** @description 화면용 비용 근거 문장(같은 코드는 같은 문장) */
             basis: string;
+            priceObservedAt?: string | null;
+            stale?: boolean | null;
         };
         /** @description 공통 오류 응답. HTTP 상태와 업무 코드를 함께 확인합니다. */
         ErrorResponse: {
