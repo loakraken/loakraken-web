@@ -87,12 +87,13 @@
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
-/* A 320 cell holds '18:34 값' and '매물 44' side by side only with a little
-   less padding and gap: the line ran 2px into the padding (PM-프론트 10-25). */
+/* A 320 cell has no room for '18:34 값' beside '매물 44' (it ran into the
+   padding, PM-프론트 10-25): a stale cell gives each its own line. Which cells
+   are stale is known when the board is drawn, so nothing moves later. */
 @media (max-width: 400px) {
-  .cell button {
-    column-gap: 4px;
-    padding-inline: 8px;
+  .cell button[data-stale] {
+    grid-template-columns: 1fr;
+    grid-template-areas: "price" "change" "count";
   }
 }
 /* One height for every state (before a pick, loading, failed, short list,
