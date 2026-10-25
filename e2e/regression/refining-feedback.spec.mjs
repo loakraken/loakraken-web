@@ -62,8 +62,16 @@ test.describe("재련 기대 비용 사용자 제보 @regression", () => {
         await pickBasis(page, label);
         expect(await widths(page), `${label}: 표·열 폭`).toEqual(before);
       }
-      const shifts = await shiftsSince(page, mark);
-      expect(shifts.all, `가격 기준 전환 흔들림: ${shifts.moved}`).toBe(0);
+      // Boxes only: a longer number (×731 here) moves its own right-aligned text
+      // inside a cell of the same width; a moved row, cell or line is a shift.
+      const boxes = await page.evaluate(
+        (from) =>
+          window.__shiftLog
+            .filter((entry) => entry.t >= from && entry.sources.some((source) => !source.endsWith("#text")))
+            .flatMap((entry) => entry.sources),
+        mark,
+      );
+      expect(boxes, `가격 기준 전환 흔들림(${(await shiftsSince(page, mark)).moved})`).toEqual([]);
       await expectNoHorizontalOverflow(page);
     });
 
