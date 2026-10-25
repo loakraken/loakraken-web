@@ -41,9 +41,11 @@ import {
   skillSummary,
   statNumber,
   stoneBonus,
+  positionOf,
   type Equipment,
   type Skill,
 } from "@/lib/character/detail";
+import { accessoryLineCounts, gridOptionCounts } from "@/lib/character/role-lines";
 import {
   characterNameError,
   coverageLabel,
@@ -457,15 +459,19 @@ function Quality({ value }: { value: number | null | undefined }) {
 
 function GradeLine({
   grade,
+  counts,
   children,
 }: {
   grade: unknown;
+  /** Whether the line counts for this character's role (null: not decided, left as is). */
+  counts?: boolean | null;
   children: ReactNode;
 }) {
   return (
     <li
       className={styles.gradeLine}
       data-grade={isGrade(grade) ? grade : undefined}
+      data-other-role={counts === false || undefined}
     >
       <span>{isGrade(grade) ? GRADE_LABEL[grade] : "·"}</span>
       {children}
@@ -489,6 +495,8 @@ function EquipmentPanel({ data }: { data: Character }) {
   const extra = useItemTooltips(data.characterName);
   const extraOf = (item: Equipment) =>
     equipmentExtra(extra, data.loadout.equipment.indexOf(item), item.type);
+  // Accessory lines that do not count for this role go grey (user 10-26).
+  const role = positionOf(data);
   const qualityGroups = data.analysis.equipment?.qualityGroups;
   const armorQ = averageQuality(qualityGroups, "WEAPON_ARMOR");
   const accQ = averageQuality(qualityGroups, "ACCESSORY");
@@ -574,7 +582,7 @@ function EquipmentPanel({ data }: { data: Character }) {
                 {item.detail?.polishEffects.length ? (
                   <ul className={styles.gradeList}>
                     {item.detail.polishEffects.map((effect, j) => (
-                      <GradeLine key={j} grade={effect.grade}>
+                      <GradeLine key={j} grade={effect.grade} counts={accessoryLineCounts(effect.name, effect.value, role)}>
                         {effect.name} {effect.value}
                       </GradeLine>
                     ))}
