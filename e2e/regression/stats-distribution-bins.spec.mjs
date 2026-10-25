@@ -1,7 +1,7 @@
 // Stats gap A5: item level comes in steps of 5 levels, and a wide 전투력
 // sample joins into a round width so a phone shows at most about 40 bars.
 // The mock's 카제로스 sample spreads 전투력 over 1,200 ~ 10,700 in 100s.
-import { test, expect, gotoReady } from "../support/fixtures.mjs";
+import { test, expect, gotoReady, expectNoHorizontalOverflow } from "../support/fixtures.mjs";
 import { watchShifts, shiftsSince } from "../support/shifts.mjs";
 
 const panel = (page) => page.getByRole("tabpanel", { name: "분포" });
@@ -13,9 +13,9 @@ for (const width of [360, 390]) {
     await gotoReady(page, "/stats?tab=distribution&server=카제로스");
     const bars = panel(page).getByRole("list", { name: "전투력 구간별 인원" }).getByRole("listitem");
     await expect(bars.first()).toBeVisible();
-    const count = await bars.count();
-    expect(count).toBeGreaterThan(20);
-    expect(count).toBeLessThanOrEqual(40);
+    // count() does not wait: poll so a redrawn list is read once it settles.
+    await expect.poll(() => bars.count()).toBeGreaterThan(20);
+    await expect.poll(() => bars.count()).toBeLessThanOrEqual(40);
     // Joined into 250s: every bar starts on a round number.
     const ranges = await bars.evaluateAll((items) => items.map((li) => li.getAttribute("title") ?? ""));
     for (const range of ranges) {
@@ -23,8 +23,7 @@ for (const width of [360, 390]) {
       expect(to - from, range).toBe(250);
       expect(from % 250, range).toBe(0);
     }
-    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
-    expect(overflow).toBe(0);
+    await expectNoHorizontalOverflow(page);
     await page.waitForTimeout(800);
     const shifts = await shiftsSince(page);
     expect(shifts.all, shifts.moved).toBe(0);
