@@ -29,7 +29,7 @@ import {
   type DetailStat,
   type SpecUpDetail,
 } from "@/lib/spec-up/detail";
-import { kindLabel, koreanGold, type Candidate } from "@/lib/spec-up/model";
+import { gemTarget, kindLabel, koreanGold, type Candidate } from "@/lib/spec-up/model";
 import { safeGameImage } from "@/lib/character/model";
 import { GameIcon } from "./imagery";
 import { kstTime } from "./parts";
@@ -207,6 +207,8 @@ export function SpecUpRowDetail({
     if (gone) void queryClient.invalidateQueries({ queryKey: ["spec-up", characterName] });
   }, [gone, queryClient, characterName]);
   const icon = safeGameImage(candidate.icon);
+  // A 광휘 gem row names its role (겁화·작열), like the rest of the site.
+  const target = gemTarget(candidate.target, candidate.gemType);
   return (
     <ItemTooltip open={open} onOpenChange={(next) => setWanted(next)}>
       <ItemTooltipTrigger
@@ -217,13 +219,13 @@ export function SpecUpRowDetail({
       >
         <span className={styles.specUpTarget}>
           <GameIcon src={candidate.icon} grade={candidate.grade} size={28} />
-          <span>{candidate.target}</span>
+          <span>{target}</span>
         </span>
       </ItemTooltipTrigger>
-      <ItemTooltipContent aria-label={`${candidate.target} 상세`}>
+      <ItemTooltipContent aria-label={`${target} 상세`}>
         <ItemDetail
           grade={itemGrade(candidate.grade)}
-          title={candidate.target}
+          title={target}
           icon={
             icon ? (
               // eslint-disable-next-line @next/next/no-img-element -- official CDN icon at a fixed size

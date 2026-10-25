@@ -70,6 +70,22 @@ export const SPEC_UP_KIND_LABEL: Record<string, string> = {
 };
 export const kindLabel = (kind: string) => SPEC_UP_KIND_LABEL[kind] ?? kind;
 
+/** The site reads a gem by its role (보석은 '10겁 8작', user 10-22): gemType → word. */
+const GEM_ROLE: Record<string, string> = { DAMAGE: "겁화", COOLDOWN: "작열" };
+
+/**
+ * A gem row's target as the site writes gems: a 광휘 gem does either role, so
+ * two rows of one skill read "터닝 슬래쉬 · 6레벨 광휘" twice although one is
+ * the damage gem and one the cooldown gem. With gemType the 광휘 takes the
+ * role word ("… 6레벨 겁화" / "… 6레벨 작열"), like the gem chips on the
+ * character page; other targets (and an unknown gemType) stay as they come.
+ */
+export function gemTarget(target: string, gemType: string | null | undefined) {
+  const role = gemType ? GEM_ROLE[gemType] : undefined;
+  if (!role) return target;
+  return target.replace(/(\d+레벨 )광휘$/, `$1${role}`);
+}
+
 /**
  * Gold in Korean units, every digit kept (no rounding): 12,340 → "1만 2,340",
  * 123,456,789 → "1억 2,345만 6,789". The caller adds "G".

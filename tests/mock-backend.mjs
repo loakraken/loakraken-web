@@ -864,6 +864,23 @@ createServer(async (req, res) => {
         krakenSortUnavailableReason: who === "스펙업점수꺼짐" ? "DISABLED" : null,
       });
     envelope.data.characterName = who;
+    // 스펙업광휘: one skill with two 6레벨 광휘 gems, one in the damage role and
+    // one in the cooldown role (gemType), as on a real character; the rows
+    // otherwise read the same.
+    if (who === "스펙업광휘") {
+      const gem = envelope.data.candidates.find((c) => c.change?.kind === "GEM_LEVEL");
+      envelope.data.candidates.unshift(
+        ...["DAMAGE", "COOLDOWN"].map((gemType, i) => ({
+          ...gem,
+          id: `GEM_LEVEL:${7 + i}:7`,
+          target: "터닝 슬래쉬 · 6레벨 광휘",
+          from: "6레벨",
+          to: "7레벨",
+          gemType,
+          change: { ...gem.change, slot: 7 + i, level: 7 },
+        })),
+      );
+    }
     // The same combat power the mock simulator starts from (the backend's
     // spec-up and simulator read one character), so the L31 goal path adds up.
     envelope.data.combatPower = read("character-full-data.json").combatPower;

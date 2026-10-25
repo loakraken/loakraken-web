@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import { NO_EDITS } from "../lib/combat-power/model";
-import { costRoom, editsFor, keepOrder, koreanGold, readTry, splitCandidates, tryParam } from "../lib/spec-up/model";
+import { costRoom, editsFor, gemTarget, keepOrder, koreanGold, readTry, splitCandidates, tryParam } from "../lib/spec-up/model";
 import { requestSpecUp } from "../lib/spec-up/upstream";
 import { isSpecUpEnvelope } from "../lib/spec-up/validate";
 
@@ -121,4 +121,14 @@ test("disabled and not-cached answers keep their codes", async () => {
     const result = await requestSpecUp("스펙캐시", null, "http://backend.test", { fetcher });
     assert.deepEqual(result.ok ? null : result.error.code, code);
   }
+});
+
+test("a 광휘 gem row names its role (겁화·작열) like the rest of the site; other targets stay", () => {
+  assert.equal(gemTarget("터닝 슬래쉬 · 6레벨 광휘", "DAMAGE"), "터닝 슬래쉬 · 6레벨 겁화");
+  assert.equal(gemTarget("터닝 슬래쉬 · 6레벨 광휘", "COOLDOWN"), "터닝 슬래쉬 · 6레벨 작열");
+  // Already a 겁화/작열 gem, no role, or a role this screen does not know: as it comes.
+  assert.equal(gemTarget("테스트 스킬 · 8레벨 겁화", "DAMAGE"), "테스트 스킬 · 8레벨 겁화");
+  assert.equal(gemTarget("터닝 슬래쉬 · 6레벨 광휘", null), "터닝 슬래쉬 · 6레벨 광휘");
+  assert.equal(gemTarget("터닝 슬래쉬 · 6레벨 광휘", "SOMETHING_NEW"), "터닝 슬래쉬 · 6레벨 광휘");
+  assert.equal(gemTarget("운명의 업화 무기", "DAMAGE"), "운명의 업화 무기");
 });

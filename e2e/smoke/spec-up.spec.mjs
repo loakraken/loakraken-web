@@ -11,6 +11,25 @@ const REFINE = JSON.parse(
 const NAME = "전투력계산";
 
 test.describe("스펙업 가이드 @smoke", () => {
+  test("같은 스킬의 광휘 보석 두 줄은 겁화·작열로 읽혀 겹쳐 보이지 않고, 좁은 화면에서도 잘리지 않는다", async ({ page }) => {
+    await page.goto(characterPath("스펙업광휘", "specup"));
+    const table = page.getByRole("table", { name: /스펙업 후보/ });
+    await expect(table.getByText("터닝 슬래쉬 · 6레벨 겁화")).toBeVisible();
+    await expect(table.getByText("터닝 슬래쉬 · 6레벨 작열")).toBeVisible();
+    await expect(table.getByText(/6레벨 광휘/)).toHaveCount(0);
+    for (const width of [320, 360, 390]) {
+      await page.setViewportSize({ width, height: 800 });
+      await expectNoHorizontalOverflow(page);
+      // The longer target wraps; it is never cut with an ellipsis (A37).
+      const cut = await table.evaluate((el) =>
+        [...el.querySelectorAll("th[data-cell='target'] span")]
+          .filter((s) => getComputedStyle(s).display !== "inline" && s.scrollWidth > s.clientWidth + 1)
+          .map((s) => s.textContent),
+      );
+      expect(cut, `${width}px`).toEqual([]);
+    }
+  });
+
   test("후보를 효율 순으로 보여 주고, 비용·근거·계산 못 한 후보를 나눠 보여 준다", async ({ page }) => {
     await page.goto(characterPath(NAME, "specup"));
     const tabs = page.getByRole("navigation", { name: "캐릭터 정보 탭" });

@@ -25,6 +25,7 @@ import {
   sortCaption,
   splitKrakenCandidates,
   costRoom,
+  gemTarget,
   koreanGold,
   specUpQuery,
   splitCandidates,
@@ -413,7 +414,7 @@ export default function SpecUpGuide({ data }: { data: Character }) {
                                 replace
                                 scroll={false}
                                 className="hit-44"
-                                aria-label={`${c.target} ${c.to ?? ""} 시뮬레이터에서 적용해 보기`}
+                                aria-label={`${gemTarget(c.target, c.gemType)} ${c.to ?? ""} 시뮬레이터에서 적용해 보기`}
                               >
                                 적용해 보기
                               </Link>
@@ -451,7 +452,7 @@ export default function SpecUpGuide({ data }: { data: Character }) {
                         <ul>
                           {group.candidates.map((c) => (
                             <li key={c.id}>
-                              {c.target}
+                              {gemTarget(c.target, c.gemType)}
                               {(c.from || c.to) && ` (${c.from ?? "—"} → ${c.to ?? "—"})`}
                             </li>
                           ))}
