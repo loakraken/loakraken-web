@@ -1760,7 +1760,9 @@ createServer(async (req, res) => {
       const metric = q.get("metric");
       if (metric !== "ITEM_LEVEL" && metric !== "COMBAT_POWER") return send({ code: "INVALID_REQUEST", message: "x" }, 400);
       const width = Number(q.get("width") || (metric === "ITEM_LEVEL" ? 10 : 100));
-      const [lo, hi, mid, sd] = metric === "ITEM_LEVEL" ? [minLevel, 1780, 1712, 25] : [2000, 4600, 3060, 420];
+      // 카제로스 is a wide sample (A5): 전투력 1,200 ~ 10,700 in 100s, past 40 bars.
+      const wide = metric === "COMBAT_POWER" && q.get("server") === "카제로스";
+      const [lo, hi, mid, sd] = metric === "ITEM_LEVEL" ? [minLevel, 1780, 1712, 25] : wide ? [1200, 10700, 5000, 1800] : [2000, 4600, 3060, 420];
       const bins = [];
       for (let from = Math.floor(lo / width) * width; from < hi; from += width) {
         const x = from + width / 2;
