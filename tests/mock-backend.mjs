@@ -873,6 +873,17 @@ createServer(async (req, res) => {
         krakenSortUnavailableReason: who === "스펙업점수꺼짐" ? "DISABLED" : null,
       });
     envelope.data.characterName = who;
+    // 스펙업이전시세 (api #759): gem costs carry their price time; the first
+    // gem row's price is a last-known one (stale), the second is fresh.
+    if (who === "스펙업이전시세") {
+      const gems = envelope.data.candidates.filter((c) => c.change?.kind === "GEM_LEVEL" && c.cost?.status === "OK");
+      gems.forEach((c, i) =>
+        Object.assign(c.cost, {
+          priceObservedAt: new Date(Date.now() - (i === 0 ? 3 * 3_600_000 : 60_000)).toISOString(),
+          stale: i === 0,
+        }),
+      );
+    }
     // The same combat power the mock simulator starts from (the backend's
     // spec-up and simulator read one character), so the L31 goal path adds up.
     envelope.data.combatPower = read("character-full-data.json").combatPower;
@@ -977,6 +988,9 @@ createServer(async (req, res) => {
     add("CRIT", "기타", a.extraCritRate ?? 0, "아크 그리드 코어 등");
     add("ATTACK_SPEED", "공격 속도 가정", a.extraAttackSpeed ?? 0, "직업 각인·트라이포드·버프 합");
     add("MOVE_SPEED", "이동 속도 가정", a.extraMoveSpeed ?? 0, "직업 각인·트라이포드·버프 합");
+    // backend #711: a stat that could not be read gives its reason (null otherwise).
+    d.crit.unavailableReason = request.characterName === "치명못읽음" ? "치명 스탯을 읽지 못해 치명타 적중률을 계산하지 않았어요." : null;
+    d.speed.unavailableReason = request.characterName === "신속못읽음" ? "신속 스탯을 읽지 못해 공격·이동 속도를 계산하지 않았어요." : null;
     return send(base);
   }
   // Roster combat power (L19): records only; 원정대전투력 has two without a
@@ -1769,7 +1783,9 @@ createServer(async (req, res) => {
       const metric = q.get("metric");
       if (metric !== "ITEM_LEVEL" && metric !== "COMBAT_POWER") return send({ code: "INVALID_REQUEST", message: "x" }, 400);
       const width = Number(q.get("width") || (metric === "ITEM_LEVEL" ? 10 : 100));
-      const [lo, hi, mid, sd] = metric === "ITEM_LEVEL" ? [minLevel, 1780, 1712, 25] : [2000, 4600, 3060, 420];
+      // 카제로스 is a wide sample (A5): 전투력 1,200 ~ 10,700 in 100s, past 40 bars.
+      const wide = metric === "COMBAT_POWER" && q.get("server") === "카제로스";
+      const [lo, hi, mid, sd] = metric === "ITEM_LEVEL" ? [minLevel, 1780, 1712, 25] : wide ? [1200, 10700, 5000, 1800] : [2000, 4600, 3060, 420];
       const bins = [];
       for (let from = Math.floor(lo / width) * width; from < hi; from += width) {
         const x = from + width / 2;
@@ -2236,6 +2252,12 @@ createServer(async (req, res) => {
       { type: "치명", value: "646" },
       { type: "최대 생명력", value: "377857" },
     ];
+  }
+  if (name === "긴카드") {
+    // The longest card names in the game (A37: the whole name shows, wrapped).
+    envelope.data.loadout.cards.items = [
+      "라제니스를 이끄는 니나브", "악몽의 아브렐슈드", "춤추는 쿠크세이튼", "부활하는 카제로스", "광기를 떨쳐낸 쿠크세이튼", "세상을 구하는 빛",
+    ].map((cardName, slot) => ({ slot, name: cardName, icon: null, awakeCount: 5, awakeTotal: 5, grade: "전설" }));
   }
   if (name === "이미지" || name === "이미지실패") {
     // Generic official icon-atlas assets (not character data). The portrait is
