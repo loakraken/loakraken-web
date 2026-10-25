@@ -40,10 +40,11 @@ const widths = (page) =>
   );
 
 async function pickBasis(page, label) {
-  const answered = page.waitForResponse((r) => r.url().includes("/api/markets/material-prices"));
+  // A basis seen before comes from the cache (no request): wait for the table, not the network.
   await page.getByRole("radiogroup", { name: "재료 가격 기준" }).getByRole("radio", { name: label }).click();
-  await answered;
-  await expect(materials(page)).not.toHaveAttribute("aria-busy", "true");
+  await expect(page.getByRole("radio", { name: label })).toBeChecked();
+  await page.waitForTimeout(300);
+  await expect(page.locator('[aria-busy="true"]').filter({ has: materials(page) })).toHaveCount(0);
   // Let the new numbers land and the change marks run.
   await page.waitForTimeout(800);
 }
@@ -75,7 +76,8 @@ test.describe("재련 기대 비용 사용자 제보 @regression", () => {
       await expectNoHorizontalOverflow(page);
       const cut = await materials(page).evaluate((table) =>
         [...table.querySelectorAll("tbody th, tbody td")]
-          .filter((el) => el.scrollWidth > el.clientWidth + 1)
+          // Cut = clipped: the ▲/▼ change mark may stick out of a cell that shows it whole.
+          .filter((el) => el.scrollWidth > el.clientWidth + 1 && getComputedStyle(el).overflow !== "visible")
           .map((el) => el.textContent.trim().slice(0, 20)),
       );
       expect(cut, `${label}: 잘린 칸`).toEqual([]);
