@@ -8,10 +8,13 @@ import {
   includedText,
   isReceiptEnvelope,
   isReceiptOff,
+  nextRefreshDelay,
   notIncludedText,
+  observedText,
   requestReceipt,
   rowMarker,
   totalStatus,
+  unavailableCount,
 } from "../lib/character/receipt";
 
 const fixture = () =>
@@ -136,4 +139,47 @@ test("receipt requests always say assumeBook (true or false) and allow-list erro
     assert.equal(result.error.code, "LOST_ARK_RATE_LIMITED");
     assert.ok(result.error.retryAt);
   }
+});
+
+test("receipt fan-out: unavailable members are named, never pending, and the panel fills the rest by itself", () => {
+  const data = fixture().data;
+  // A member the backend could not find (status UNAVAILABLE, coverage.unavailable).
+  const some = structuredClone(data);
+  some.equipment.characters[9].status = "UNAVAILABLE";
+  some.coverage = { ...some.coverage, pending: 1, unavailable: 1 };
+  assert.equal(isReceiptEnvelope({ ...fixture(), data: some }), true);
+  assert.equal(unavailableCount(some), 1);
+  assert.equal(coverageText(some), "원정대 10명 중 8명 계산 · 1명 대기 · 1명 확인 못 함");
+  assert.equal(coverageText(some, true), "원정대 10명 중 8명 계산 · 1명 갱신 중 · 1명 확인 못 함");
+  assert.match(excludedSummary(some), /^계산 대기 1명 · 확인 못 함 1명/);
+  assert.equal(rowMarker(some.equipment.characters[9]), null);
+  // Without coverage.unavailable (older answer shape) the rows are counted.
+  const rows = structuredClone(some);
+  delete rows.coverage.unavailable;
+  assert.equal(unavailableCount(rows), 1);
+  // Nobody left out and nothing pending: the total is complete; one unavailable member makes it partial.
+  const old = structuredClone(some);
+  delete old.total.status;
+  old.coverage.pending = 0;
+  assert.equal(totalStatus(old), "PARTIAL");
+
+  // When to ask again: not sooner than 3 s, not before nextAvailableAt, never once stopped or done.
+  const now = Date.parse("2026-10-25T10:00:00Z");
+  const waiting = structuredClone(data);
+  waiting.coverage.nextAvailableAt = new Date(now).toISOString();
+  assert.equal(nextRefreshDelay(waiting, now, false), 3_000);
+  waiting.coverage.nextAvailableAt = new Date(now + 60_000).toISOString();
+  assert.equal(nextRefreshDelay(waiting, now, false), 60_000);
+  waiting.coverage.nextAvailableAt = null;
+  assert.equal(nextRefreshDelay(waiting, now, false), 3_000);
+  assert.equal(nextRefreshDelay(waiting, now, true), null);
+  waiting.coverage.pending = 0;
+  assert.equal(nextRefreshDelay(waiting, now, false), null);
+
+  // How old a member's equipment is.
+  assert.equal(observedText(null, now), null);
+  assert.equal(observedText(new Date(now - 20_000).toISOString(), now), "방금 기준");
+  assert.equal(observedText(new Date(now - 5 * 60_000).toISOString(), now), "5분 전 기준");
+  assert.equal(observedText(new Date(now - 3 * 3_600_000).toISOString(), now), "3시간 전 기준");
+  assert.equal(observedText(new Date(now - 2 * 86_400_000).toISOString(), now), "2일 전 기준");
 });
