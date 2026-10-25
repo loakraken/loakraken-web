@@ -32,3 +32,26 @@ for (const width of [320, 360, 390])
         )
         .toEqual({ cutStart: 0, cutEnd: 0 });
     });
+
+// Anything that resizes the tab row after load (a late font, the refresh label
+// turning into a countdown, a narrower window) must not pull a hand-scrolled
+// row back to the current tab: on a phone the click on 스킬 landed after the
+// row jumped and missed (CI mobile-390, #1077).
+test("손으로 넘긴 탭 줄은 탭 줄 크기가 바뀌어도 되돌아가지 않고, 넘긴 탭을 누를 수 있다 @390 @regression", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(characterPath("상세"));
+  const nav = page.getByRole("navigation", { name: "캐릭터 정보 탭" });
+  await expect(nav.locator('a[aria-current="page"]')).toBeVisible();
+  await page.waitForTimeout(800);
+  const end = await nav.evaluate((row) => {
+    row.scrollLeft = row.scrollWidth;
+    return row.scrollLeft;
+  });
+  expect(end).toBeGreaterThan(0);
+  // The row resizes (as after a late font or label change).
+  await page.setViewportSize({ width: 386, height: 844 });
+  await page.waitForTimeout(400);
+  expect(await nav.evaluate((row) => row.scrollLeft)).toBeGreaterThan(end / 2);
+  await nav.getByRole("link", { name: "스킬", exact: true }).click();
+  await expect(page).toHaveURL(/\?tab=skills$/);
+});
