@@ -76,12 +76,13 @@ export function BoardSearch({
             }
           }}
         />
-        {/* Always there (hidden while empty): typing never moves the field's contents. */}
+        {/* Always in the layout (out of sight, out of the tab order and the
+            accessibility tree while empty): typing never resizes the input. */}
         <button
           type="button"
           className={styles.searchClear}
           aria-label="검색어 지우기"
-          hidden={!text}
+          data-empty={!text || undefined}
           onClick={clear}
         >
           <CloseCircle size={16} aria-hidden="true" />

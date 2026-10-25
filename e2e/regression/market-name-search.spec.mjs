@@ -105,15 +105,20 @@ test("@시세검색 받지 않는 글자는 묻지 않고 안내, 지우기·1�
 });
 
 test("@시세검색 일부 품목만 찾았으면 안내 @regression", async ({ page }) => {
-  await page.route("**/api/markets/board?*", async (route) => {
+  const seen = [];
+  await page.route(/\/api\/markets\/board\?/, async (route) => {
     const response = await route.fetch();
     const body = await response.json();
     const envelope = body.envelope ?? body;
-    if (new URL(route.request().url()).searchParams.get("q")) envelope.data.complete = false;
+    const q = new URL(route.request().url()).searchParams.get("q");
+    if (q && envelope?.data) envelope.data.complete = false;
+    seen.push(`${q}:${Object.keys(body).join(",")}:${envelope?.data?.complete}`);
     await route.fulfill({ response, json: body });
   });
   await gotoReady(page, "/market");
   await field(page).pressSequentially("재료", { delay: 40 });
+  await expect(page).toHaveURL(/[?&]q=/);
+  await expect.poll(() => seen.some((s) => s.startsWith("재료:")), { message: `board answers: ${seen.join(" | ")}` }).toBe(true);
   await expect(page.locator("[role=search] p")).toHaveText("품목이 많아 일부 품목만 찾았어요.");
   await page.getByRole("button", { name: "검색어 지우기" }).click();
   await expect(page.locator("[role=search] p")).toHaveText("");

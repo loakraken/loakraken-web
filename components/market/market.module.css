@@ -324,9 +324,9 @@
   border-radius: 50%;
   color: var(--slate);
 }
-/* Out of sight but still taking its room: the input keeps one width. */
-.searchClear[hidden] {
-  display: inline-grid;
+/* Out of sight but still taking its room: the input keeps one width
+   (visibility, not [hidden], which the base styles turn into display: none). */
+.searchClear[data-empty] {
   visibility: hidden;
 }
 .searchNote {
