@@ -4,6 +4,7 @@
 // - 서버가 받지 않는 글자는 묻지 않고 한 줄 안내. 주소에 q가 남고, 검색어를 바꾸면 1쪽, 탭·정렬은 유지.
 // - 일부만 찾았으면(complete=false) 안내, 없으면 빈 상태 문구. 검색칸·정렬은 제자리, 잘림·가로 넘침 0.
 import { test, expect, gotoReady, expectNoHorizontalOverflow } from "../support/fixtures.mjs";
+import { shiftMark, shiftsSince, watchShifts } from "../support/shifts.mjs";
 
 /** Every board request's q (null when none), in order. */
 const boardAsks = (page) => {
@@ -50,6 +51,34 @@ for (const scheme of ["light", "dark"])
       expect(cut, "잘림").toEqual([]);
       await expectNoHorizontalOverflow(page);
     });
+
+// A slow answer lands well after the last key (outside the 0.5s input window):
+// a shorter list or the pager going away must not pull up what is under them.
+for (const width of [320, 360, 390, 1280])
+  test(`@시세검색 ${width}: 늦게 온 검색 결과에도 흔들림 0 @regression`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.route(/\/api\/markets\/board\?/, async (route) => {
+      if (new URL(route.request().url()).searchParams.get("q")) await new Promise((r) => setTimeout(r, 800));
+      await route.fallback();
+    });
+    await watchShifts(page);
+    await gotoReady(page, "/market");
+    await page.waitForTimeout(500);
+    const mark = await shiftMark(page);
+    // 11 items on two pages → 2 items, no pager.
+    await field(page).pressSequentially("ㅇㅂㄷ", { delay: 60 });
+    await expect(rows(page)).toHaveCount(2);
+    await page.waitForTimeout(600);
+    const searched = await shiftsSince(page, mark);
+    expect(searched.quiet, `검색 결과가 온 뒤 흔들림 (${searched.moved})`).toBe(0);
+    // Back to the whole tab.
+    const again = await shiftMark(page);
+    await page.getByRole("button", { name: "검색어 지우기" }).click();
+    await expect(rows(page)).toHaveCount(10);
+    await page.waitForTimeout(600);
+    const cleared = await shiftsSince(page, again);
+    expect(cleared.quiet, `검색을 지운 뒤 흔들림 (${cleared.moved})`).toBe(0);
+  });
 
 test("@시세검색 한글을 조합하는 중에도 찾는다 @regression", async ({ page }) => {
   const asked = boardAsks(page);
