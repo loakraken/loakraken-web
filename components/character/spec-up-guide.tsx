@@ -229,6 +229,8 @@ export default function SpecUpGuide({ data }: { data: Character }) {
       </p>
       {/* 사용자 결정(PM 총괄 19:48): 해설은 아직 없다는 한 줄. */}
       <p className={styles.specUpNote}>세팅 해설 기능은 준비 중이에요.</p>
+      {/* PM 총괄 10-25: scope line until the api lists arm-guard (완갑) refining rows; remove it then. */}
+      <p className={styles.specUpNote}>완갑 재련은 아직 후보에 넣지 않았습니다.</p>
 
       <div className={styles.specUpBar}>
         <div role="group" aria-label="정렬" className={styles.specUpSorts}>
