@@ -89,7 +89,8 @@ test.describe("원정대 영수증 합계 @smoke", () => {
     await expect(total(page)).toHaveAttribute("data-status", "COMPLETE", { timeout: 15_000 });
     await expect(page.getByText("원정대 10명 중 10명 계산")).toBeVisible();
     await page.waitForTimeout(500);
-    expect((await shiftsSince(page, mark)).all, "채워지는 동안 흔들림").toBe(0);
+    const shifts = await shiftsSince(page, mark);
+    expect(shifts.all, `채워지는 동안 흔들림: ${shifts.moved}`).toBe(0);
   });
 
   test("채워지지 않으면 두 번 뒤 스스로 멈추고 '다시 계산(2명씩)'을 보인다; 찾지 못한 캐릭터는 '확인 못 함'", async ({ page }) => {
