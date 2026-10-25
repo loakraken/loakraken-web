@@ -1540,6 +1540,9 @@
 }
 .rosterPanel {
   display: grid;
+  /* One column exactly as wide as the tab: an implicit auto column grew to a
+     child's min-content and widened a 320 page by 8px (QA 10-25). */
+  grid-template-columns: minmax(0, 1fr);
   gap: 20px;
 }
 /* Avatar tab: the full-body render beside the slot list (about 55 : 45),
