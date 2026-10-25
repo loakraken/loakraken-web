@@ -20,12 +20,12 @@ const envelope = lazyValidator<CritSpeedEnvelope>(() => {
     schemas.CritSpeedResponse.required.filter(
       (key) => key !== "skills" && key !== "toggles",
     );
-  // Added by backend #711 (a stat not read → its reason) and the assumed-source
-  // sums with it: optional until that backend is live.
+  // Added by backend #711 (a stat not read → its reason) with crit damage's
+  // assumed-source sum: optional until that backend is live. (The speed axes'
+  // assumed was required before and stays so.)
   for (const name of ["CritSpeedCritResponse", "CritSpeedSpeedResponse"] as const)
     schemas[name].required = schemas[name].required.filter((key) => key !== "unavailableReason");
-  for (const name of ["CritSpeedCritDamageResponse", "CritSpeedAxisResponse"] as const)
-    schemas[name].required = schemas[name].required.filter((key) => key !== "assumed");
+  schemas.CritSpeedCritDamageResponse.required = schemas.CritSpeedCritDamageResponse.required.filter((key) => key !== "assumed");
   // Skill rows grow per backend release (#169 → #193 node·damage) and the screen
   // does not read them yet, so a row only needs its name.
   schemas.CritSpeedSkillResponse.required = ["name"];
