@@ -94,6 +94,28 @@ export function costRoom(amount: number) {
   return [head, ...units.slice(top + 1).map(([u]) => `8,888${u}`), "8,888"].join(" ") + "G";
 }
 
+/**
+ * The price time of a gem cost (api #759): "21:05 시세" when fresh, "이전 시세
+ * 21:05" when the backend used the last-known price (stale) — never shown as
+ * current. A date is added when it is not today (KST). null for a cost without
+ * a price time (not a gem cost, or a backend from before #759).
+ */
+export function costPriceNote(
+  cost: { priceObservedAt?: string | null; stale?: boolean | null } | null | undefined,
+  now: number,
+): { stale: boolean; text: string } | null {
+  if (!cost?.priceObservedAt) return null;
+  const at = Date.parse(cost.priceObservedAt);
+  if (!Number.isFinite(at)) return null;
+  const kst = (ms: number) => new Date(ms + 9 * 3_600_000);
+  const d = kst(at);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const time = `${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`;
+  const today = kst(now).toISOString().slice(0, 10) === d.toISOString().slice(0, 10);
+  const when = today ? time : `${pad(d.getUTCMonth() + 1)}.${pad(d.getUTCDate())} ${time}`;
+  return cost.stale ? { stale: true, text: `이전 시세 ${when}` } : { stale: false, text: `${when} 시세` };
+}
+
 export function koreanGold(amount: number) {
   if (!Number.isFinite(amount)) return "—";
   const sign = amount < 0 ? "−" : "";
