@@ -16,6 +16,8 @@ test.describe("스펙업 가이드 @smoke", () => {
     const tabs = page.getByRole("navigation", { name: "캐릭터 정보 탭" });
     await expect(tabs.getByRole("link", { name: "스펙업", exact: true })).toHaveAttribute("aria-current", "page");
     await expect(page.getByText("세팅 해설 기능은 준비 중이에요.")).toBeVisible();
+    // Scope line until arm-guard refining rows are listed (PM 총괄 10-25).
+    await expect(page.getByText("완갑 재련은 아직 후보에 넣지 않았습니다.", { exact: true })).toBeVisible();
     const table = page.getByRole("table", { name: /스펙업 후보/ });
     const rows = table.locator("tbody tr");
     await expect(rows).toHaveCount(3);
