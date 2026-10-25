@@ -178,7 +178,11 @@ export function GuildRankingsView({
         <div className={styles.listHold} {...pendingProps({ isPlaceholderData: list.isPlaceholderData || guildInvalid })}>
           {data?.meta && (
             <p key={list.dataUpdatedAt} className={`${styles.notice} ${styles.rankingNotice}`}>
-              {sampleText(data.meta, "guild")} · 공식 랭킹이 아니에요
+              {sampleText(data.meta, "guild")}
+              {/* The 전투력 평균 column (every 기준 but 전투력 합) counts only the
+                  1750+ members, inside the 1,640+ range above (api #589). */}
+              {query.sort !== "CP_SUM" && ` · 전투력 평균은 아이템 레벨 ${whole(GUILD_TOP_LEVEL)} 이상 길드원만`} · 공식 랭킹이
+              아니에요
               {!ready && (
                 <strong> · 표본 {data.meta.minSample}개 길드가 모이면 순위를 보여 드려요</strong>
               )}
@@ -306,7 +310,7 @@ export function GuildRankingsView({
         )}
         <p className={styles.note}>
           확인한 길드원은 LOAKraken이 최근 확인한 공개 캐릭터 수로, 실제 길드 인원이 아니에요. 전투력 평균은 그중
-          아이템 레벨 {GUILD_TOP_LEVEL} 이상 길드원만 세요.
+          아이템 레벨 {whole(GUILD_TOP_LEVEL)} 이상 길드원만 세요.
           {data && ` 확인한 길드원이 ${whole(data.minMembers)}명보다 적은 길드는 순위에 넣지 않아요`}
           {data && (data.excludedGuilds ?? 0) > 0 && `(이번 조건에서 ${whole(data.excludedGuilds)}개)`}
           {data && "."}
