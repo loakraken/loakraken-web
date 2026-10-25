@@ -66,6 +66,8 @@ test("@직업아이콘 데이터 절약 모드에서는 아이콘을 받지 않�
   page.on("request", (r) => r.url().includes("/common/class/") && asked.push(r.url()));
   await gotoReady(page, "/stats");
   const rows = page.getByRole("table", { name: "직업별 인원과 전투력 분포" }).getByRole("rowheader");
+  // The letters come when the row is near, as an icon would: bring it on screen first.
+  await rows.first().scrollIntoViewIfNeeded();
   await expect(rows.first().locator("[data-chip]")).toBeVisible();
   await expect(rows.locator("img")).toHaveCount(0);
   await page.waitForTimeout(400);
