@@ -56,7 +56,8 @@ test("일정: 섬 자세히는 다 못 보인 보상이 있을 때만, 같은 �
   // Same rounds for all three in the mock: 볼라르 1,100 → 라일라이 635 → 메데이아 250.
   await expect(rows.locator("strong")).toHaveText(["볼라르 섬", "라일라이 아일랜드", "메데이아"]);
   // 메데이아 has five rewards: three shown, '+2' opens the rest.
-  await expect(islands.getByRole("button", { name: "메데이아 보상 2개 더 보기" })).toHaveText("+2");
+  // Both labels sit in the button (one hidden, so it keeps one width): read the shown one.
+  await expect(islands.getByRole("button", { name: "메데이아 보상 2개 더 보기" }).locator("[data-on]")).toHaveText("+2");
   // 볼라르 has none: no reward list and no button.
   await expect(islands.getByRole("button", { name: /^볼라르 섬 보상/ })).toHaveCount(0);
   // A field boss with two rewards shows them all: no 자세히 either (the mock's boss days are odd dates).
