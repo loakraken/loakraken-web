@@ -168,9 +168,12 @@ test.describe("스펙업 가이드 @smoke", () => {
     await page.goto(characterPath("상세서포터", "specup"));
     const table = page.getByRole("table", { name: "스펙업 후보, 서포터 점수 순" });
     await expect(table).toBeVisible();
-    await expect(table.getByRole("columnheader", { name: "서포터 점수" })).toBeVisible();
-    await expect(table.getByRole("columnheader", { name: "10만 골드당 점수" })).toBeVisible();
-    await expect(table.getByRole("columnheader", { name: /전투력/ })).toHaveCount(0);
+    // Phones (≤700px) show one card per candidate without the header row.
+    if ((page.viewportSize()?.width ?? 0) > 700) {
+      await expect(table.getByRole("columnheader", { name: "서포터 점수" })).toBeVisible();
+      await expect(table.getByRole("columnheader", { name: "10만 골드당 점수" })).toBeVisible();
+    }
+    await expect(table.getByRole("columnheader", { name: /전투력/, includeHidden: true })).toHaveCount(0);
     await expect(table.locator("tbody tr").first()).toContainText("+98.81");
     await expect(table.getByRole("link", { name: /시뮬레이터에서 적용해 보기/ })).toHaveCount(0);
     await expect(page.getByRole("group", { name: "정렬" }).getByRole("button")).toHaveText(["서포터 점수 기준"]);
