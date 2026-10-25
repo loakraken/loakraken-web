@@ -1,0 +1,46 @@
+/* '자세히' under a one-line screen note (#1112). */
+.more {
+  color: var(--muted-foreground);
+  font-size: 13px;
+}
+/* 44px to press (hit-44 rule), the word itself small and in the link colour. */
+.more > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+  color: var(--link);
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+}
+.more > summary::-webkit-details-marker {
+  display: none;
+}
+.more > summary::after {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: translateY(-2px) rotate(45deg);
+  transition: transform 160ms ease-out;
+}
+.more[open] > summary::after {
+  transform: translateY(1px) rotate(225deg);
+}
+.more > summary:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+.body {
+  padding-bottom: 4px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+@media (prefers-reduced-motion: reduce) {
+  .more > summary::after {
+    transition: none;
+  }
+}

@@ -26,7 +26,8 @@ import quote from "@/components/tools/material-quote.module.css";
 import styles from "./stats.module.css";
 import { rankingColumns } from "./ranking-columns";
 import { BasisNote } from "./basis-note";
-import { RankingTypeTabs, type RankingType } from "./ranking-type-tabs";
+import { RankingTypeTabs, type RankingType } from "./ranking-type-tabs";
+import { MoreDetail } from "@/components/ui/more-detail";
 
 const SERVERS = ["루페온", "실리안", "아만", "아브렐슈드", "카단", "카마인", "카제로스", "니나브"];
 const ROSTER_COLUMNS = rankingColumns([3.5, 14, 6, 6.5, 8, 4.5, 9]);
@@ -240,10 +241,12 @@ export function CollectibleRankingsView({
             </button>
           </nav>
         )}
-        <p className={styles.note}>
-          진행도는 공식 수집품의 모은 점수 합 ÷ 최대 점수 합이에요. 수집품은 원정대가 함께 모으므로 같은 원정대 캐릭터는 같은
-          값이고, 대표 캐릭터는 원정대에서 아이템 레벨이 가장 높은 캐릭터예요.
-        </p>
+        {/* One line on the page, the rest folded (#1112): nothing removed. */}
+        <p className={styles.note}>진행도는 공식 수집품의 모은 점수 합 ÷ 최대 점수 합이에요.</p>
+        <MoreDetail className={styles.note}>
+          수집품은 원정대가 함께 모으므로 같은 원정대 캐릭터는 같은 값이고, 대표 캐릭터는 원정대에서 아이템 레벨이 가장
+          높은 캐릭터예요.
+        </MoreDetail>
         {data?.meta && <BasisNote basis={{ ...data.meta, unit: roster ? "개 원정대" : undefined }} />}
       </main>
     </div>

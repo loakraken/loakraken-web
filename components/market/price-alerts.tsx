@@ -24,7 +24,8 @@ import {
 import { MAX_CONDITIONS, alertErrorText, conditionText, type AlertCondition, type Comparator } from "@/lib/alerts/model";
 import quote from "@/components/tools/material-quote.module.css";
 import stats from "@/components/stats/stats.module.css";
-import styles from "./price-alerts.module.css";
+import styles from "./price-alerts.module.css";
+import { MoreDetail } from "@/components/ui/more-detail";
 
 const gold = (value: number | null | undefined) =>
   value == null ? "매물 없음" : `${value.toLocaleString("ko-KR", { maximumFractionDigits: 2 })}G`;
@@ -245,10 +246,11 @@ function Conditions({ own, onExpired }: { own: Owned | null; onExpired: () => vo
         <p className={styles.message} role="status">
           {remove.isError ? alertErrorText(codeOf(remove.error)) : " "}
         </p>
-        <p className={styles.note}>
-          가격이 기준을 넘는 순간 한 번 알려요. 걸 때 이미 맞는 알림(지금 맞음)은 벗어났다가 다시 맞을 때 보내고, 같은 알림은
-          6시간 안에 다시 보내지 않아요.
-        </p>
+        {/* One line on the page, the rest folded (#1112): nothing removed. */}
+        <p className={styles.note}>가격이 기준을 넘는 순간 한 번 알려요.</p>
+        <MoreDetail className={styles.note}>
+          걸 때 이미 맞는 알림(지금 맞음)은 벗어났다가 다시 맞을 때 보내고, 같은 알림은 6시간 안에 다시 보내지 않아요.
+        </MoreDetail>
       </section>
     </>
   );
