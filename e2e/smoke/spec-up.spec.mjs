@@ -11,6 +11,20 @@ const REFINE = JSON.parse(
 const NAME = "전투력계산";
 
 test.describe("스펙업 가이드 @smoke", () => {
+  test("보석 비용은 시세 시각을 보이고, 마지막으로 알던 시세는 '이전 시세'로 지금 시세처럼 보이지 않는다", async ({ page }) => {
+    await page.goto(characterPath("스펙업이전시세", "specup"));
+    const table = page.getByRole("table", { name: /스펙업 후보/ });
+    const costs = table.locator("td[data-cell='cost'] small");
+    // A date shows when the time is not today (KST), e.g. just after midnight.
+    await expect(costs.filter({ hasText: /^이전 시세 (\d\d\.\d\d )?\d\d:\d\d$/ })).toHaveCount(1);
+    await expect(costs.filter({ hasText: /^(\d\d\.\d\d )?\d\d:\d\d 시세$/ })).toHaveCount(1);
+    await expect(table.locator("td[data-cell='cost'][data-stale]")).toHaveCount(1);
+    for (const width of [320, 360, 390]) {
+      await page.setViewportSize({ width, height: 800 });
+      await expectNoHorizontalOverflow(page);
+    }
+  });
+
   test("후보를 효율 순으로 보여 주고, 비용·근거·계산 못 한 후보를 나눠 보여 준다", async ({ page }) => {
     await page.goto(characterPath(NAME, "specup"));
     const tabs = page.getByRole("navigation", { name: "캐릭터 정보 탭" });
