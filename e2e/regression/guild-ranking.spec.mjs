@@ -20,10 +20,9 @@ test("길드 랭킹: 탭·열·기준 전환·서버·안내 @regression", async
   await expect(table.locator("tbody tr").nth(2).locator("td").first()).toHaveText("-");
   await expect(table.locator("tbody tr").nth(1).locator("td").first()).toHaveText("2");
   await expect(page.getByText(/아이템 레벨 1,750 이상 길드원만 세요/)).toBeVisible();
-  // The basis line names both: the 1,640+ range of the guilds and the 1,750+ members the average counts.
-  await expect(
-    page.getByText(/아이템 레벨 1,640 이상 318개 길드 기준 · 전투력 평균은 아이템 레벨 1,750 이상 길드원만 · 공식 랭킹이 아니에요/),
-  ).toBeVisible();
+  // The basis names both: the 1,640+ range of the guilds, and on its own line the 1,750+ members the average counts.
+  await expect(page.getByText(/아이템 레벨 1,640 이상 318개 길드 기준 · 공식 랭킹이 아니에요/)).toBeVisible();
+  await expect(page.getByText("전투력 평균은 1,750 이상 길드원만", { exact: true })).toBeVisible();
   await expect(page.getByText(/실제 길드 인원이 아니에요/)).toBeVisible();
   await expect(page.getByText(/41개\)/)).toBeVisible();
 
@@ -39,8 +38,9 @@ test("길드 랭킹: 탭·열·기준 전환·서버·안내 @regression", async
   await expect(page).toHaveURL(/sort=CP_SUM/);
   await expect(table.getByRole("columnheader").nth(5)).toHaveText("전투력 합");
   await expect(table.locator("tbody tr").nth(2)).toContainText("2명 합");
-  // The total counts every member: the basis line drops the 1,750+ clause.
-  await expect(page.getByText(/318개 길드 기준 · 공식 랭킹이 아니에요/)).toBeVisible();
+  // The total counts every member with a combat power record: the second line says so.
+  await expect(page.getByText("전투력 합은 확인한 길드원 전원", { exact: true })).toBeVisible();
+  await expect(page.getByText("전투력 평균은 1,750 이상 길드원만", { exact: true })).toHaveCount(0);
 
   // A small sample: values shown as reference, no ranks yet.
   await chooseOption(page, page.getByRole("combobox", { name: "서버" }), "아만");

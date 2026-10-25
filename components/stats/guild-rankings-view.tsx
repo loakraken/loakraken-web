@@ -177,15 +177,20 @@ export function GuildRankingsView({
             are still the last search's (same look as new conditions loading). */}
         <div className={styles.listHold} {...pendingProps({ isPlaceholderData: list.isPlaceholderData || guildInvalid })}>
           {data?.meta && (
-            <p key={list.dataUpdatedAt} className={`${styles.notice} ${styles.rankingNotice}`}>
-              {sampleText(data.meta, "guild")}
-              {/* The 전투력 평균 column (every 기준 but 전투력 합) counts only the
-                  1750+ members, inside the 1,640+ range above (api #589). */}
-              {query.sort !== "CP_SUM" && ` · 전투력 평균은 아이템 레벨 ${whole(GUILD_TOP_LEVEL)} 이상 길드원만`} · 공식 랭킹이
-              아니에요
+            <p key={list.dataUpdatedAt} className={`${styles.notice} ${styles.rankingNotice} ${styles.guildNotice}`}>
+              {sampleText(data.meta, "guild")} · 공식 랭킹이 아니에요
               {!ready && (
                 <strong> · 표본 {data.meta.minSample}개 길드가 모이면 순위를 보여 드려요</strong>
               )}
+              {/* Who the combat power column counts, on a line of its own that
+                  always holds one short line: the 전투력 평균 (every 기준 but 전투력
+                  합) only the 1750+ members inside the range above (api #589). A
+                  server name added to the line above never pushes it down further. */}
+              <span className={styles.noticeLine}>
+                {query.sort === "CP_SUM"
+                  ? "전투력 합은 확인한 길드원 전원"
+                  : `전투력 평균은 ${whole(GUILD_TOP_LEVEL)} 이상 길드원만`}
+              </span>
             </p>
           )}
           {list.isError && !data ? (
