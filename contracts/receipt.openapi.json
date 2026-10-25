@@ -269,10 +269,11 @@
           },
           "status": {
             "type": "string",
-            "description": "READY 또는 PENDING(이번 요청에서 전투정보를 아직 받지 못함)",
+            "description": "READY, PENDING(이번 요청에서 전투정보를 아직 받지 못함) 또는 UNAVAILABLE(공식 전투정보를 찾지 못해 이번에는 셀 수 없음, pending에 넣지 않음)",
             "enum": [
               "READY",
-              "PENDING"
+              "PENDING",
+              "UNAVAILABLE"
             ]
           },
           "gold": {
@@ -303,6 +304,18 @@
               {
                 "type": "boolean",
                 "description": "산정 대상 부위를 모두 셌는가. false면 gold는 센 부위만의 합(시세 없음·재련 단계를 읽지 못함·장비 정보 없음). PENDING이면 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "observedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "description": "이 캐릭터 장비를 관측한 시각(영수증에 쓴 값). 없으면 null"
               },
               {
                 "type": "null"
@@ -579,7 +592,7 @@
           "pending": {
             "type": "integer",
             "format": "int32",
-            "description": "아직 전투정보를 받지 못한 캐릭터 수(다시 요청하면 최대 8명씩 채움)"
+            "description": "아직 전투정보를 받지 못한 캐릭터 수(다시 요청하면 최대 2명씩 채움). UNAVAILABLE은 세지 않음"
           },
           "nextAvailableAt": {
             "anyOf": [
@@ -592,6 +605,11 @@
                 "type": "null"
               }
             ]
+          },
+          "unavailable": {
+            "type": "integer",
+            "format": "int32",
+            "description": "공식 전투정보를 찾지 못해 이번에 셀 수 없는 캐릭터 수"
           }
         },
         "required": [

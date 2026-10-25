@@ -173,7 +173,7 @@ for (const width of [1280, 360]) {
     });
     await gotoReady(page, "/market/gems");
     const board = page.getByRole("table", { name: "4티어 보석 레벨별 즉시 구매 최저가" });
-    await expect(board.getByRole("button", { name: /매물 보기$/ })).toHaveCount(19);
+    await expect(board.getByRole("button", { name: /매물 보기/ })).toHaveCount(19);
     await resetShifts(page);
     // The next look (the blank-cell fill, 5 s) brings the changed prices.
     await page.clock.runFor(6_000);

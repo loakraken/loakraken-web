@@ -152,6 +152,7 @@ export interface components {
             endDate: string | null;
             tradeAllowCount: number | null;
             options: components["schemas"]["AuctionListingOptionResponse"][];
+            icon: string | null;
         };
         AuctionListingOptionResponse: {
             /** @description 공식 Type(ACCESSORY_UPGRADE, STAT, GEM_SKILL_DAMAGE 등) */
