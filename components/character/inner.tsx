@@ -132,16 +132,22 @@ function CollectionList({
           </ol>
         )}
       </div>
-      {/* Below the list: it arrives after the list and must not push it. */}
-      {owned.size > 0 && sample && (
-        <p className={styles.caption}>
-          {rarestItem && (
+      {/* Below the list: it arrives after the list and must not push it. Its
+          room is held from the first paint, loading or failed alike: stacked,
+          the panels below would move when it lands (A7). */}
+      {collectible.items.length > 0 && (
+        <p className={`${styles.caption} ${styles.captionSlot}`}>
+          {owned.size > 0 && sample && (
             <>
-              가장 희귀한 보유 <b>{rarestItem.name}</b> (보유율 {rarestItem.share.toFixed(1)}%) ·{" "}
+              {rarestItem && (
+                <>
+                  가장 희귀한 보유 <b>{rarestItem.name}</b> (보유율 {rarestItem.share.toFixed(1)}%) ·{" "}
+                </>
+              )}
+              보유율: 크라켄 표본 원정대 {number(sample.population)}개 기준
+              {sample.sampleStatus !== "READY" && ` · 표본 ${number(sample.minSample)}개 미만이라 참고값`}
             </>
           )}
-          보유율: 크라켄 표본 원정대 {number(sample.population)}개 기준
-          {sample.sampleStatus !== "READY" && ` · 표본 ${number(sample.minSample)}개 미만이라 참고값`}
         </p>
       )}
     </>
