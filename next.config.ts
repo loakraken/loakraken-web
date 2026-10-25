@@ -4,8 +4,9 @@ const dev = process.env.NODE_ENV !== "production";
 
 // Every source the pages load from (security check after v0.3.2): this site,
 // and the official game image hosts (portraits, icons, class icons). Fonts are
-// self-hosted (next/font). The two pre-paint scripts in the root layout are
-// inline, so scripts allow 'unsafe-inline' until they move to hashes. The
+// self-hosted (next/font). Scripts allow 'unsafe-inline': the two pre-paint
+// scripts in the root layout and the page data scripts the App Router writes
+// into every page are inline; enforcing needs a per-request nonce instead. The
 // response validator (ajv) still compiles its schemas in the browser with
 // new Function, so 'unsafe-eval' stays until it moves to the server (#1027).
 // Report-only for now: a missed source shows as a console report, never a
