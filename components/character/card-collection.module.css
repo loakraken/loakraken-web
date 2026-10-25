@@ -36,6 +36,10 @@
   align-content: start;
   gap: 6px;
   min-width: 0;
+  /* Every slot as tall as the tallest kind (a two-line set name, the most it
+     shows, over three record lines; 105px measured): the grid is one height
+     whether slots are recorded or not, so its loading room matches (#1043). */
+  min-height: 105px;
   padding: 9px 9px 10px;
   border-radius: 12px;
   background: var(--background);
@@ -227,6 +231,19 @@
   gap: 6px;
   color: var(--muted-foreground);
   font-size: 13px;
+}
+/* While the records load (#1043): the slots' and folds' boxes, nothing in them. */
+.holding li > *,
+.holding summary > *,
+.holding > p {
+  visibility: hidden;
+}
+.holding summary {
+  color: transparent;
+  list-style: none;
+}
+.holding summary::-webkit-details-marker {
+  display: none;
 }
 .retry {
   min-height: 32px;
