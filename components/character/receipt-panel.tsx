@@ -20,6 +20,7 @@ import {
   includedText,
   isReceiptOff,
   nextRefreshDelay,
+  nonGoldText,
   notIncludedText,
   observedText,
   rowMarker,
@@ -118,6 +119,7 @@ function Body({
   const status = totalStatus(data);
   const left = excludedSummary(data);
   const idle = data.coverage.pending === 0 || auto;
+  const nonGold = nonGoldText(data);
   const [first, ...rest] = data.assumptions;
   return (
     <>
@@ -140,6 +142,7 @@ function Body({
             </p>
           </>
         )}
+        {nonGold && <p className={styles.muted}>골드 외 비용: {nonGold}</p>}
         {left && <p className={styles.muted}>빠진 것: {left}</p>}
         {notIncluded && <p className={styles.muted}>미포함: {notIncluded}</p>}
       </div>

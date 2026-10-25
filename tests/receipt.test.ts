@@ -9,6 +9,7 @@ import {
   isReceiptEnvelope,
   isReceiptOff,
   nextRefreshDelay,
+  nonGoldText,
   notIncludedText,
   observedText,
   requestReceipt,
@@ -183,4 +184,15 @@ test("receipt fan-out: unavailable members are named, never pending, and the pan
   assert.equal(observedText(new Date(now - 5 * 60_000).toISOString(), now), "5분 전 기준");
   assert.equal(observedText(new Date(now - 3 * 3_600_000).toISOString(), now), "3시간 전 기준");
   assert.equal(observedText(new Date(now - 2 * 86_400_000).toISOString(), now), "2일 전 기준");
+});
+
+test("non-gold costs (api #761) read as quantities, never gold; none or an older backend shows nothing", () => {
+  const data = fixture().data;
+  assert.equal(nonGoldText(data), "", "a backend before #761 has no nonGold");
+  data.total.nonGold = [];
+  assert.equal(nonGoldText(data), "");
+  data.total.nonGold = [{ name: "실링", amount: 1_960_000 }, { name: "고통의 가시", amount: 15 }, { name: "빈 재료", amount: 0 }];
+  assert.equal(nonGoldText(data), "실링 1,960,000 · 고통의 가시 15");
+  assert.doesNotMatch(nonGoldText(data), /G\b/);
+  assert.equal(isReceiptEnvelope({ ...fixture(), data }), true);
 });
