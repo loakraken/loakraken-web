@@ -3,10 +3,16 @@
 // '특성' 제목의 위치가 같다.
 import { test, expect, characterPath } from "../support/fixtures.mjs";
 
+// Its place in the layout (offsetTop down the chain), not on screen: panels
+// fade in with a small slide (.k-reveal), which moves the drawn box for a
+// moment without moving anything in the layout.
 const traitTop = (page) =>
   page.evaluate(() => {
     const h = [...document.querySelectorAll("main h2, main h3")].find((e) => /^특성/.test(e.textContent.trim()));
-    return h ? Math.round(h.getBoundingClientRect().top + scrollY) : null;
+    if (!h) return null;
+    let y = 0;
+    for (let e = h; e; e = e.offsetParent) y += e.offsetTop;
+    return Math.round(y);
   });
 
 // The combat tab mounts on the client: read 특성 from the frame it first shows
