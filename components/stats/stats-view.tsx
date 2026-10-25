@@ -38,6 +38,7 @@ import {
 } from "@/lib/stats/model";
 import quote from "@/components/tools/material-quote.module.css";
 import styles from "./stats.module.css";
+import { ClassIcon } from "./class-icon";
 import { BasisNote } from "./basis-note";
 import { rankingColumns } from "./ranking-columns";
 
@@ -253,11 +254,12 @@ function Quantiles({
 }
 
 // # · 직업 · 인원 · 비율 · 서포터 · 평균 레벨 · 보석 · 전투력 분포 · 중앙값
-const CLASS_COLUMNS = rankingColumns([3, 7.5, 6, 5.5, 5.5, 7, 4.5, 13, 7]);
+// 직업 is 10em: the 20px icon + 6px gap and the longest name (디스트로이어) whole.
+const CLASS_COLUMNS = rankingColumns([3, 10, 6, 5.5, 5.5, 7, 4.5, 13, 7]);
 // 서버 · 인원 · 비율 · 아이템 레벨 중앙값 · 전투력 중앙값 · 표본
 const SERVER_COLUMNS = rankingColumns([6.5, 6.5, 5.5, 11, 8.5, 10]);
 // # · 직업 · 인원 · 평균 · 최고 전투력 분포 · 중앙값 · 최고
-const BEST_COLUMNS = rankingColumns([3, 7.5, 6, 7.5, 13, 7.5, 7.5]);
+const BEST_COLUMNS = rankingColumns([3, 10, 6, 7.5, 13, 7.5, 7.5]);
 
 function ClassesTab({ query }: { query: StatsQuery }) {
   const classes = useQuery({
@@ -304,9 +306,12 @@ function ClassesTab({ query }: { query: StatsQuery }) {
                 <td>{i + 1}</td>
                 <th scope="row">
                   {/* The class page (M12): its builds over the same sample. */}
-                  <Link href={classBuildsPath(row.className)} prefetch={false}>
-                    {row.className}
-                  </Link>
+                  <span className={styles.classCell}>
+                    <ClassIcon name={row.className} size={20} />
+                    <Link href={classBuildsPath(row.className)} prefetch={false}>
+                      {row.className}
+                    </Link>
+                  </span>
                 </th>
                 <td>{whole(row.count)}</td>
                 <td className={styles.share}>{share(row.share)}</td>
@@ -601,7 +606,12 @@ function BestTab({ query }: { query: StatsQuery }) {
               {rows.map((row, i) => (
                 <tr key={row.className} data-short={row.sampleStatus !== "READY" || undefined}>
                   <td>{i + 1}</td>
-                  <th scope="row">{row.className}</th>
+                  <th scope="row">
+                    <span className={styles.classCell}>
+                      <ClassIcon name={row.className} size={20} />
+                      {row.className}
+                    </span>
+                  </th>
                   <td>{whole(row.count)}</td>
                   <td>{whole(row.mean)}</td>
                   <td className={styles.wide}>
