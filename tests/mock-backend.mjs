@@ -2231,6 +2231,12 @@ createServer(async (req, res) => {
       { type: "최대 생명력", value: "377857" },
     ];
   }
+  if (name === "긴카드") {
+    // The longest card names in the game (A37: the whole name shows, wrapped).
+    envelope.data.loadout.cards.items = [
+      "라제니스를 이끄는 니나브", "악몽의 아브렐슈드", "춤추는 쿠크세이튼", "부활하는 카제로스", "광기를 떨쳐낸 쿠크세이튼", "세상을 구하는 빛",
+    ].map((cardName, slot) => ({ slot, name: cardName, icon: null, awakeCount: 5, awakeTotal: 5, grade: "전설" }));
+  }
   if (name === "이미지" || name === "이미지실패") {
     // Generic official icon-atlas assets (not character data). The portrait is
     // per character, so it is only used when supplied locally via MOCK_PORTRAIT_URL.
