@@ -672,7 +672,7 @@ function BraceletBody({
   return (
     <div className={styles.braceletBody}>
       <strong>팔찌</strong>
-      {(real.state === "ready" || real.state === "pending") && (
+      {(real.state === "ready" || real.state === "pending" || real.state === "unavailable") && (
         <p className={styles.braceletEffHead}>
           <Tooltip>
             <TooltipTrigger className={styles.braceletEffTerm} aria-label="팔찌 효율: 이 팔찌가 딜을 몇 % 올려 주는지예요.">
@@ -682,6 +682,10 @@ function BraceletBody({
           </Tooltip>
           {real.state === "ready" ? (
             <b>{devil && real.devil ? real.devil : real.percent}</b>
+          ) : real.state === "unavailable" ? (
+            // Read but not worked out (an option the engine does not know):
+            // why, in a fixed sentence — not '준비 중', which reads as 'soon'.
+            <span className={styles.braceletEffReason}>읽지 못한 팔찌 옵션이 있어 계산하지 않았어요</span>
           ) : (
             // A bracelet is there (this row only shows with one), its value not
             // worked out: never a number (PM 총괄 14:04 — the comparison site
@@ -1625,14 +1629,15 @@ export function CombatTab({ data }: { data: Character }) {
           <ArkGridPanel data={data} />
           <CardsPanel data={data} />
         </div>
-        {/* 특성 → 각인 → 아크 패시브 → 순위 → 조회수 (v0.3.2): the official
-            order first, the rank under it — the banner already says the rank
-            at the top. The rank block holds its height while it loads. */}
+        {/* 순위 → 특성 → 각인 → 아크 패시브 → 조회수 (v0.3.2): the rank stays
+            on top where it has always been (user 10-25), then the official
+            order. The rank block holds its height while it loads, so nothing
+            under it moves. */}
         <aside className={styles.stack} aria-label="요약">
+          <RankPanel name={data.characterName} />
           <StatsPanel data={data} />
           <EngravingsPanel data={data} />
           <ArkPassiveSummary data={data} />
-          <RankPanel name={data.characterName} />
           <ViewsPanel name={data.characterName} />
         </aside>
       </div>

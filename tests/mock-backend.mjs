@@ -870,6 +870,17 @@ createServer(async (req, res) => {
         krakenSortUnavailableReason: who === "스펙업점수꺼짐" ? "DISABLED" : null,
       });
     envelope.data.characterName = who;
+    // 스펙업이전시세 (api #759): gem costs carry their price time; the first
+    // gem row's price is a last-known one (stale), the second is fresh.
+    if (who === "스펙업이전시세") {
+      const gems = envelope.data.candidates.filter((c) => c.change?.kind === "GEM_LEVEL" && c.cost?.status === "OK");
+      gems.forEach((c, i) =>
+        Object.assign(c.cost, {
+          priceObservedAt: new Date(Date.now() - (i === 0 ? 3 * 3_600_000 : 60_000)).toISOString(),
+          stale: i === 0,
+        }),
+      );
+    }
     // The same combat power the mock simulator starts from (the backend's
     // spec-up and simulator read one character), so the L31 goal path adds up.
     envelope.data.combatPower = read("character-full-data.json").combatPower;
@@ -974,6 +985,9 @@ createServer(async (req, res) => {
     add("CRIT", "기타", a.extraCritRate ?? 0, "아크 그리드 코어 등");
     add("ATTACK_SPEED", "공격 속도 가정", a.extraAttackSpeed ?? 0, "직업 각인·트라이포드·버프 합");
     add("MOVE_SPEED", "이동 속도 가정", a.extraMoveSpeed ?? 0, "직업 각인·트라이포드·버프 합");
+    // backend #711: a stat that could not be read gives its reason (null otherwise).
+    d.crit.unavailableReason = request.characterName === "치명못읽음" ? "치명 스탯을 읽지 못해 치명타 적중률을 계산하지 않았어요." : null;
+    d.speed.unavailableReason = request.characterName === "신속못읽음" ? "신속 스탯을 읽지 못해 공격·이동 속도를 계산하지 않았어요." : null;
     return send(base);
   }
   // Roster combat power (L19): records only; 원정대전투력 has two without a
@@ -1133,6 +1147,8 @@ createServer(async (req, res) => {
   if (url.pathname === "/api/v1/characters/card-collection") {
     // Backend F-6 samples; card art swapped for official legend card icons.
     const who = url.searchParams.get("characterName");
+    // 카드늦음: slower than the page's 1s wait, so the records arrive after the first paint.
+    if (who === "카드늦음") await new Promise((resolve) => setTimeout(resolve, 1500));
     const kind = who === "기록없음" ? "empty" : who === "상세서포터" ? "supporter" : "dealer";
     const body = JSON.parse(readFileSync(new URL(`./card-fixtures/card-collection-${kind}.json`, import.meta.url), "utf8"));
     body.data.characterName = who;
@@ -1299,6 +1315,8 @@ createServer(async (req, res) => {
   }
   if (url.pathname === "/api/v1/characters/rank") {
     const who = url.searchParams.get("characterName") ?? "";
+    // 순위늦음: slower than the page's 1s wait, so the rank arrives after the first paint.
+    if (who === "순위늦음") await new Promise((resolve) => setTimeout(resolve, 1500));
     if (who === "미관측" || who === "비공개") return send({ code: "STATS_CHARACTER_NOT_OBSERVED", message: "private" }, 404);
     const excluded = who === "조건밖";
     const entry = (metric, scope, scopeValue, rank, total, sampleStatus = "READY", gapAs = null) => {
@@ -1366,9 +1384,22 @@ createServer(async (req, res) => {
     data.computedAt = new Date().toISOString();
     receiptCalls.set(who, (receiptCalls.get(who) ?? 0) + 1);
     if (receiptCalls.get(who) > 1) {
-      for (const c of data.equipment.characters) if (c.status === "PENDING") Object.assign(c, { status: "READY", gold: 2887361 });
+      for (const c of data.equipment.characters)
+        if (c.status === "PENDING") Object.assign(c, { status: "READY", gold: 2887361, complete: true });
       data.coverage = { ...data.coverage, ready: data.coverage.rosterCharacters, pending: 0, nextAvailableAt: null };
+      data.total.status = "COMPLETE";
     } else data.coverage.nextAvailableAt = new Date(Date.now() + 20_000).toISOString();
+    // 영수증시세없음 (backend #665): every price missing, nothing counted → UNAVAILABLE, no amount.
+    if (who === "영수증시세없음") {
+      for (const c of data.equipment.characters) {
+        if (c.status !== "READY") continue;
+        Object.assign(c, { gold: 0, parts: [], complete: false });
+        c.excluded.push({ slot: "무기", name: null, reason: "PRICE_UNAVAILABLE", message: "「무기」: 재료 시세가 없어 산정하지 못했습니다." });
+      }
+      data.equipment.gold = 0;
+      data.gems = { ...data.gems, gold: 0, priced: 0, unpriced: data.gems.tradable, items: data.gems.items.map((g) => ({ ...g, gold: null, unitPrice: null, status: "NO_PRICE" })) };
+      data.total = { ...data.total, gold: 0, status: "UNAVAILABLE" };
+    }
     if (url.searchParams.get("assumeBook") === "true") {
       data.assumptions[0] = "책(재봉술·야금술) 효과가 항상 적용된다고 가정합니다(확률 미공개).";
       data.equipment.gold = Math.round(data.equipment.gold * 0.8);
@@ -1749,7 +1780,9 @@ createServer(async (req, res) => {
       const metric = q.get("metric");
       if (metric !== "ITEM_LEVEL" && metric !== "COMBAT_POWER") return send({ code: "INVALID_REQUEST", message: "x" }, 400);
       const width = Number(q.get("width") || (metric === "ITEM_LEVEL" ? 10 : 100));
-      const [lo, hi, mid, sd] = metric === "ITEM_LEVEL" ? [minLevel, 1780, 1712, 25] : [2000, 4600, 3060, 420];
+      // 카제로스 is a wide sample (A5): 전투력 1,200 ~ 10,700 in 100s, past 40 bars.
+      const wide = metric === "COMBAT_POWER" && q.get("server") === "카제로스";
+      const [lo, hi, mid, sd] = metric === "ITEM_LEVEL" ? [minLevel, 1780, 1712, 25] : wide ? [1200, 10700, 5000, 1800] : [2000, 4600, 3060, 420];
       const bins = [];
       for (let from = Math.floor(lo / width) * width; from < hi; from += width) {
         const x = from + width / 2;
@@ -2217,6 +2250,12 @@ createServer(async (req, res) => {
       { type: "최대 생명력", value: "377857" },
     ];
   }
+  if (name === "긴카드") {
+    // The longest card names in the game (A37: the whole name shows, wrapped).
+    envelope.data.loadout.cards.items = [
+      "라제니스를 이끄는 니나브", "악몽의 아브렐슈드", "춤추는 쿠크세이튼", "부활하는 카제로스", "광기를 떨쳐낸 쿠크세이튼", "세상을 구하는 빛",
+    ].map((cardName, slot) => ({ slot, name: cardName, icon: null, awakeCount: 5, awakeTotal: 5, grade: "전설" }));
+  }
   if (name === "이미지" || name === "이미지실패") {
     // Generic official icon-atlas assets (not character data). The portrait is
     // per character, so it is only used when supplied locally via MOCK_PORTRAIT_URL.
@@ -2273,7 +2312,7 @@ createServer(async (req, res) => {
       detail: { parserVersion: "equipment-tooltip-v3", refineLevel, quality: 90, itemLevel: 1640 + refineLevel * 5, tier: 4, arkPassivePoint: null, effects: [], stoneEngravings: [], polishEffects: [], braceletEffects: [] },
     }));
   }
-  if (name === "상세" || name === "상세서포터" || name === "대세블레이드" || name === "가려짐긴값캐릭터" || name === "아크없음" || name === "효율준비중") {
+  if (name === "상세" || name === "상세서포터" || name === "대세블레이드" || name === "가려짐긴값캐릭터" || name === "아크없음" || name === "효율준비중" || name === "팔찌못읽음") {
     // Detail-page mock: a locally supplied character file (never committed) or
     // the synthetic fixture, enriched with synthetic Tooltip detail and skills.
     if (process.env.MOCK_CHARACTER_FILE)
@@ -2481,7 +2520,10 @@ createServer(async (req, res) => {
     const realSupport = name === "상세서포터";
     d.braceletEfficiency.real = realSupport
       ? { status: "OK", reasonCode: null, reason: null, role: "SUPPORT", percent: 13.47857142857143, devilDamagePercent: null, ruleVersion: "bracelet-real-v1" }
-      : { status: "OK", reasonCode: null, reason: null, role: "DEALER", percent: 11.3, devilDamagePercent: 14.08, ruleVersion: "bracelet-real-v1" };
+      : name === "팔찌못읽음"
+        ? // api #706: an option the engine cannot read.
+          { status: "UNAVAILABLE", reasonCode: "UNKNOWN_OPTION", reason: "로그용 문장", role: "DEALER", percent: null, devilDamagePercent: null, ruleVersion: "bracelet-real-v1" }
+        : { status: "OK", reasonCode: null, reason: null, role: "DEALER", percent: 11.3, devilDamagePercent: 14.08, ruleVersion: "bracelet-real-v1" };
     d.arkGridEfficiency.real = {
       status: "OK", reasonCode: null, reason: null, percent: 4.67, optionsPercent: 3.21, pointsPercent: 1.41, ruleVersion: "ark-grid-real-v1",
       options: [

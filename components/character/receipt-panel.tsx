@@ -16,9 +16,12 @@ import {
   GRADE_LABEL,
   coverageText,
   excludedLabel,
+  excludedSummary,
   includedText,
   isReceiptOff,
   notIncludedText,
+  rowMarker,
+  totalStatus,
   type Receipt,
   type ReceiptCharacter,
 } from "@/lib/character/receipt";
@@ -33,6 +36,7 @@ const gold = (value: number | null | undefined) =>
 
 function CharacterRow({ row }: { row: ReceiptCharacter }) {
   const pending = row.status === "PENDING";
+  const marker = rowMarker(row);
   return (
     <li>
       <details className={`${styles.row} ${expand.expand}`}>
@@ -43,7 +47,17 @@ function CharacterRow({ row }: { row: ReceiptCharacter }) {
               {row.className ?? "-"} · {level(row.itemLevel)}
             </small>
           </span>
-          <b className={pending ? styles.pending : undefined}>{pending ? "계산 대기" : gold(row.gold)}</b>
+          <span className={styles.amount}>
+            {marker && (
+              <>
+                <span className={`${styles.tag} ${marker.partial ? styles.partialTag : ""}`} aria-hidden="true">
+                  {marker.text}
+                </span>
+                <span className="sr-only">{marker.partial ? "일부만 계산" : `산정 제외 ${row.excluded.length}건`}</span>
+              </>
+            )}
+            <b className={pending ? styles.pending : undefined}>{pending ? "계산 대기" : gold(row.gold)}</b>
+          </span>
         </summary>
         {row.parts.length > 0 && (
           <ul className={styles.parts}>
@@ -88,12 +102,31 @@ function Body({
   const until = data.coverage.nextAvailableAt ? Date.parse(data.coverage.nextAvailableAt) : undefined;
   const seconds = useSecondsUntil(until);
   const notIncluded = notIncludedText(data);
+  const status = totalStatus(data);
+  const left = excludedSummary(data);
   const [first, ...rest] = data.assumptions;
   return (
     <>
-      <div className={styles.total}>
-        <strong>{gold(data.total.gold)}</strong>
-        <p>{includedText(data)} 합계</p>
+      <div className={styles.total} data-status={status}>
+        {status === "UNAVAILABLE" ? (
+          <>
+            <strong>합계 없음</strong>
+            <p>아직 계산한 금액이 없어요.</p>
+          </>
+        ) : (
+          <>
+            <strong>
+              {gold(data.total.gold)}
+              {status === "PARTIAL" && <span className={`${styles.tag} ${styles.partialTag}`}>일부 합계</span>}
+            </strong>
+            <p>
+              {status === "PARTIAL"
+                ? `${includedText(data)} 중 계산한 것만 더했어요. 실제 합계는 더 커요.`
+                : `${includedText(data)} 합계`}
+            </p>
+          </>
+        )}
+        {left && <p className={styles.muted}>빠진 것: {left}</p>}
         {notIncluded && <p className={styles.muted}>미포함: {notIncluded}</p>}
       </div>
 
@@ -179,8 +212,9 @@ function Body({
  * Roster receipt (원정대 영수증), counting only verified items:
  * equipment refining and tradable gems at current prices. What it leaves out
  * and why sits right under the total; the backend's assumption sentences are
- * shown as they come. Hidden where the receipt is off (the backend route is
- * absent) and never requested for crawlers (the proxy refuses them).
+ * shown as they come. Where the backend has it off (its route is absent) the
+ * panel says it is not open yet; never requested for crawlers (the proxy
+ * refuses them).
  */
 /**
  * Whether this deployment shows the receipt (RECEIPT_TOOL, decided by the
@@ -210,7 +244,17 @@ function ReceiptPanelBody({ name }: { name: string }) {
   // A double click fires twice before React re-renders; each request spends up to 8 calls.
   const lock = useRef(false);
   const data = query.data?.data;
-  if (!data && isReceiptOff(info)) return null;
+  // The web shows the receipt but the backend has it off: say so in the
+  // panel instead of leaving the chosen view empty (QA v0.3.2 RC).
+  if (!data && isReceiptOff(info))
+    return (
+      <Panel title="원정대 영수증" wide>
+        <div className={styles.problem}>
+          <p role="status">원정대 영수증은 아직 열리지 않았어요.</p>
+          <p className={styles.muted}>준비가 끝나면 여기서 바로 보여 드려요.</p>
+        </div>
+      </Panel>
+    );
 
   function recalculate() {
     if (lock.current || query.isFetching) return;
