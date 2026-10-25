@@ -28,7 +28,8 @@ for (const width of [701, 840, 1280])
       const factor = FACTOR[route.request().postDataJSON().priceBasis] ?? 1;
       const response = await route.fetch();
       const json = await response.json();
-      for (const item of json.data.items) {
+      // The app's own route answers { ok, envelope } (lib/api/respond.ts).
+      for (const item of json.envelope.data.items) {
         if (item.unitPriceGold != null) item.unitPriceGold *= factor;
         if (item.bundlePrice != null) item.bundlePrice = Math.round(item.bundlePrice * factor * 100) / 100;
       }
