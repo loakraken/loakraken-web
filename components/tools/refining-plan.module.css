@@ -479,8 +479,74 @@
 .materialWrap {
   margin-top: 16px;
 }
+/* Wide screens: fixed column widths sized for the largest amounts (운명의
+   파편 in the millions, bundle counts under the purchase), so switching the
+   price basis never resizes the table. Phones show cards (data-wide). */
+@media (min-width: 701px) {
+  .materialWrap {
+    overflow-x: auto;
+  }
+  .materialTable {
+    min-width: 840px;
+    table-layout: fixed;
+  }
+  .colCount {
+    width: 104px;
+  }
+  .colOwned {
+    width: 134px;
+  }
+  .colUnit {
+    width: 96px;
+  }
+  .colGold {
+    width: 140px;
+  }
+  .colValue {
+    width: 116px;
+  }
+  .materialTable td small {
+    white-space: normal;
+  }
+}
 .cost {
   font-weight: 600;
+}
+/* One line per gold column under the materials table (사용자 제보 10-26). */
+.terms {
+  display: grid;
+  gap: 4px;
+  margin: 12px 0 0;
+  font-size: var(--text-caption);
+  line-height: 1.5;
+}
+.terms div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 8px;
+}
+.terms dt {
+  color: var(--ink);
+  font-weight: 600;
+}
+.terms dd {
+  margin: 0;
+  color: var(--slate);
+  word-break: keep-all;
+}
+/* '자세히': the longer notes, closed at first. */
+.more {
+  margin-top: 6px;
+}
+.more summary {
+  width: fit-content;
+  min-height: 24px;
+  color: var(--link);
+  font-size: var(--text-caption);
+  cursor: pointer;
+}
+.more[open] summary {
+  margin-bottom: 4px;
 }
 
 /* Spacing for the shared SegmentedControl (components/ui). */

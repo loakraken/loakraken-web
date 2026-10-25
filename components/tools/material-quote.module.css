@@ -195,13 +195,6 @@
   background: var(--background);
   padding: 24px clamp(20px, 3vw, 32px);
 }
-.step {
-  /* Step and count numbers are text: --faint (icons, rules) is 3.6:1. */
-  color: var(--slate);
-  font-size: var(--text-caption);
-  font-weight: 600;
-  letter-spacing: 0.02em;
-}
 .card h2 {
   margin-top: 6px;
   font-size: var(--text-heading);
