@@ -36,7 +36,7 @@ import {
 } from "@/lib/tools/homework";
 import { DIFFICULTY_LABEL, RAID_DATA, formatGold } from "@/lib/tools/raid-rewards";
 import quote from "./material-quote.module.css";
-import styles from "./homework.module.css";
+import styles from "./homework.module.css";
 import { MoreDetail } from "@/components/ui/more-detail";
 
 type Sibling = { characterName: string; serverName: string; className: string; itemLevel: number };

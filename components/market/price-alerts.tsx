@@ -24,7 +24,7 @@ import {
 import { MAX_CONDITIONS, alertErrorText, conditionText, type AlertCondition, type Comparator } from "@/lib/alerts/model";
 import quote from "@/components/tools/material-quote.module.css";
 import stats from "@/components/stats/stats.module.css";
-import styles from "./price-alerts.module.css";
+import styles from "./price-alerts.module.css";
 import { MoreDetail } from "@/components/ui/more-detail";
 
 const gold = (value: number | null | undefined) =>
