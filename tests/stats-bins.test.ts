@@ -21,6 +21,14 @@ test("bins: a wide combat power range joins into round widths, at most 40 bars, 
   for (let i = 1; i < out.length; i++) assert.equal(out[i].from, out[i - 1].to);
 });
 
+test("bins: item level steps skip the half-level width (5 × 2.5) for whole-number edges", () => {
+  const out = coarsen(run(1500, 60, 5)); // 1,500 ~ 1,800 in 5s: × 2 is 30 bars
+  assert.equal(out[0].to - out[0].from, 10);
+  const wide = coarsen(run(1400, 90, 5)); // 1,400 ~ 1,850: × 2 is 45, × 2.5 would be 12.5, so × 5
+  assert.equal(wide[0].to - wide[0].from, 25);
+  for (const bin of wide) assert.ok(Number.isInteger(bin.from) && Number.isInteger(bin.to));
+});
+
 test("bins: sparse input (empty bins left out) still lands in the right joined bin", () => {
   const out = coarsen([...run(1000, 41, 100), { from: 9000, to: 9100, count: 7 }]);
   const last = out.at(-1)!;

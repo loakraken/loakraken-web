@@ -21,6 +21,8 @@ export function coarsen(bins: readonly Bin[], maxBars = 40): Bin[] {
   const last = bins.at(-1)!.to;
   for (const factor of STEPS.filter((f) => f > 1)) {
     const width = step * factor;
+    // Whole-number edges only (item level × 2.5 = 12.5 would label 1,637.5).
+    if (!Number.isInteger(width)) continue;
     const start = Math.floor(first / width) * width;
     if (Math.ceil((last - start) / width) <= maxBars) return join(bins, width, start);
   }
