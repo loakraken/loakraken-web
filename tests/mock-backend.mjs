@@ -4,6 +4,8 @@ import { readFileSync } from "node:fs";
 import { randomBytes, randomUUID } from "node:crypto";
 const failures = new Map();
 const receiptCalls = new Map();
+/** 영수증대원정대: how far the 20-member fill got and when the next request is allowed. */
+const receiptFill = new Map();
 
 const read = (name) =>
   JSON.parse(
@@ -1360,6 +1362,42 @@ createServer(async (req, res) => {
       return send({ code: "CLIENT_RATE_LIMITED", message: "rate limited" }, 429, { "Retry-After": "30" });
     const body = JSON.parse(readFileSync(new URL("./receipt-fixtures/character-receipt.json", import.meta.url), "utf8"));
     const data = body.data;
+    // 영수증대원정대 (api receipt fan-out, PM-프론트's measure): a 20-member
+    // roster filled 2 per request, at most 2 official calls per 6 s for the
+    // visitor (20 per minute). nextAvailableAt says when the next 2 are
+    // allowed; asking sooner gets a 429, so a too-fast client fails visibly.
+    // A fresh fill starts after a minute without requests.
+    if (who === "영수증대원정대") {
+      const now = Date.now();
+      let fill = receiptFill.get(who);
+      if (!fill || now - fill.lastAt > 60_000) fill = { ready: 0, allowedAt: 0, lastAt: now };
+      fill.lastAt = now;
+      if (now < fill.allowedAt) {
+        receiptFill.set(who, fill);
+        return send({ code: "CLIENT_RATE_LIMITED", message: "rate limited" }, 429, { "Retry-After": String(Math.ceil((fill.allowedAt - now) / 1000)) });
+      }
+      fill.ready = Math.min(20, fill.ready + 2);
+      fill.allowedAt = now + 6_000;
+      receiptFill.set(who, fill);
+      const template = data.equipment.characters[0];
+      data.characterName = who;
+      data.computedAt = new Date().toISOString();
+      data.equipment.characters = Array.from({ length: 20 }, (_, i) =>
+        i < fill.ready
+          ? { ...template, characterName: `대원정대${i + 1}`, complete: true, observedAt: new Date(now - i * 60_000).toISOString() }
+          : { ...template, characterName: `대원정대${i + 1}`, status: "PENDING", gold: null, parts: [], excluded: [], complete: null, observedAt: null },
+      );
+      const pending = 20 - fill.ready;
+      data.coverage = {
+        rosterCharacters: 20,
+        ready: fill.ready,
+        pending,
+        unavailable: 0,
+        nextAvailableAt: pending > 0 ? new Date(fill.allowedAt).toISOString() : null,
+      };
+      data.total = { ...data.total, status: pending > 0 ? "PARTIAL" : "COMPLETE" };
+      return send(body);
+    }
     data.characterName = who;
     data.computedAt = new Date().toISOString();
     receiptCalls.set(who, (receiptCalls.get(who) ?? 0) + 1);

@@ -111,6 +111,19 @@ test.describe("원정대 영수증 합계 @smoke", () => {
     expect(requests, "멈춘 뒤에는 스스로 다시 묻지 않는다").toBe(after);
   });
 
+  test("20명 원정대(2명씩·방문자 공식 한도)는 서버가 허락한 때에만 다시 물어 429 없이 끝까지 채운다", async ({ page }) => {
+    // The mock answers 429 to any request before its nextAvailableAt (6 s apart).
+    test.slow();
+    const answers = [];
+    page.on("response", (r) => r.url().includes("/api/characters/receipt?") && answers.push(r.status()));
+    await page.goto(receiptPath("영수증대원정대"));
+    await expect(total(page)).toHaveAttribute("data-status", "COMPLETE", { timeout: 120_000 });
+    await expect(page.getByText("원정대 20명 중 20명 계산")).toBeVisible();
+    // 10 answers of 2 members each, and none of them a rate limit.
+    expect(answers.filter((s) => s === 429)).toEqual([]);
+    expect(answers.length).toBe(10);
+  });
+
   for (const width of [320, 360, 390]) {
     test(`${width}px: 합계·표시가 잘리지 않고 옆으로 넘치지 않는다`, async ({ page }) => {
       await page.setViewportSize({ width, height: 800 });
