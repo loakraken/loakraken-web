@@ -1076,6 +1076,17 @@
   color: var(--muted-foreground);
   font-size: 13px;
 }
+/* The ownership caption's held room (inner.tsx): one line beside the side
+   column, two when stacked (the rarest-item version wraps there). */
+.captionSlot {
+  min-height: 20px;
+  line-height: 20px;
+}
+@media (max-width: 900px) {
+  .captionSlot {
+    min-height: 40px;
+  }
+}
 .chartGrid {
   display: grid;
   /* A 320px column, or the whole row when the screen is narrower: a fixed

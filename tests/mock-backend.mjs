@@ -55,6 +55,8 @@ function withSimulatorGear(data) {
   data.loadout.equipment.push(
     make("목걸이", "테스트 목걸이", {
       quality: 90,
+      // Shown in the item tooltip only, never as a badge on the row (user 10-26).
+      arkPassivePoint: { name: "깨달음", value: 13 },
       polishEffects: [
         { name: "추가 피해", value: "+1.60%", grade: "MID" },
         { name: "적에게 주는 피해", value: "+0.55%", grade: "LOW" },
@@ -72,6 +74,8 @@ function withSimulatorGear(data) {
     make("상의", "+20 전율의 상의", { refineLevel: 20, quality: 95, advancedRefineLevel: 0 }),
     // 팔 보호구(backend #342): type "완갑", step = refineLevel, grade on the item.
     { ...make("완갑", "+13 전율 완갑", { refineLevel: 13 }), grade: "유물" },
+    // 보주: shown on the 전투 tab foot, never in the 내실 special list (user 10-26).
+    make("보주", "테스트 보주", {}),
     make("어빌리티 스톤", "테스트 스톤", {
       stoneEngravings: [
         { name: "원한", level: 1 },

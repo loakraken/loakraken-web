@@ -72,7 +72,11 @@ export function remainingLabel(ms: number) {
 
 /* Equipment ---------------------------------------------------------------- */
 
-const ARMOR_ORDER = ["투구", "어깨", "상의", "하의", "장갑", "무기"];
+// 완갑 (팔 보호구) is equipment, right under the weapon (user 10-26): before,
+// it fell into the leftovers and read as a special item.
+const ARMOR_ORDER = ["투구", "어깨", "상의", "하의", "장갑", "무기", "완갑"];
+/** Shown in their own place (the equipment foot), never as 내실 special equipment. */
+export const NOT_SPECIAL = ["보주"];
 const ACCESSORY_ORDER = ["목걸이", "귀걸이", "반지"];
 export const SLOT_LABEL: Record<string, string> = { 투구: "머리" };
 
