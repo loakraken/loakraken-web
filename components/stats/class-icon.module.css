@@ -1,17 +1,17 @@
-/* Official class icon (a black-filled SVG) as a mask over the text colour. */
+/* Official class icon: a black SVG in a fixed box; dark themes turn it light. */
 .icon {
   display: inline-block;
   flex: none;
-  width: var(--size);
-  height: var(--size);
   vertical-align: middle;
-  background-color: currentColor;
-  -webkit-mask: var(--icon) center / contain no-repeat;
-  mask: var(--icon) center / contain no-repeat;
+  opacity: 0.85;
 }
-/* A class without a known icon: its first two letters in the same box. */
+:global(:root:is([data-theme="dark"], [data-theme="dim"])) .icon {
+  filter: invert(1);
+}
+/* A class without a known icon (or one that failed): its first two letters. */
 .chip {
   display: inline-grid;
+  flex: none;
   place-items: center;
   border-radius: 6px;
   background-color: var(--secondary);
@@ -19,6 +19,4 @@
   font-size: 10px;
   font-weight: 700;
   line-height: 1;
-  -webkit-mask: none;
-  mask: none;
 }
