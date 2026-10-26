@@ -330,6 +330,17 @@
   color: var(--foreground);
   font-weight: 600;
 }
+/* A merged chaos gate or field boss row's place count: its own last line
+   under the rewards, lined up with them (#1096). */
+.placeLine {
+  flex-basis: 100%;
+  margin-top: -4px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+li:has(> img) > .placeLine {
+  padding-left: 46px;
+}
 /* The places of a merged chaos gate or field boss row (its 자세히 panel). */
 .places {
   display: grid;
