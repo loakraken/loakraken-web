@@ -21,7 +21,7 @@ test("빈 칸이면 인기 캐릭터와 기능이 보이고, 입력칸이 결과
   for (const name of ["테마 바꾸기", "문의하기", "지금 페이지 링크 복사"])
     await expect(list.getByRole("option", { name: new RegExp(name) })).toBeVisible();
   await expect(list.getByRole("group", { name: "실시간 인기 캐릭터" })).toBeVisible();
-  await expect(page.getByText("↑↓ 이동, Enter 열기, Esc 닫기")).toBeVisible();
+  await expect(page.getByText("↑↓ 이동, Enter 열기, Shift+Enter 즐겨찾기, Esc 닫기")).toBeVisible();
 
   // ↓ moves the active row; the field keeps focus and points at it.
   await page.keyboard.press("ArrowDown");
@@ -110,7 +110,9 @@ test("@A7 빈 칸: 순서는 최근 본 → 인기 → 기능, 인기가 늦게 
   const moved = await shiftsSince(page, before);
   expect(moved.all, `인기가 온 뒤 흔들림(누른 직후 포함): ${moved.moved}`).toBe(0);
   const order = await list.getByRole("group").evaluateAll((groups) => groups.map((g) => g.getAttribute("aria-labelledby") && document.getElementById(g.getAttribute("aria-labelledby"))?.textContent));
-  expect(order).toEqual(["최근 본 캐릭터", "실시간 인기 캐릭터", "기능"]);
+  // The tab list (최근 본 캐릭터 / 즐겨찾기, #1119) is named by its tabs, not a group title.
+  expect(order).toEqual([null, "실시간 인기 캐릭터", "기능"]);
+  await expect(page.getByRole("tab", { name: "최근 본 캐릭터" })).toHaveAttribute("aria-selected", "true");
 });
 
 for (const width of [1440, 360]) {
@@ -160,14 +162,14 @@ test("한글 조합 중(상 → 상ㅅ → 상세)에도 '정보 보기' 줄은 
   await expect(page.getByRole("option", { name: /‘상세’ 캐릭터 정보 보기/ })).toHaveAttribute("data-kept", "1");
 });
 
-for (const width of [1440, 360]) {
-  test(`@A33 ${width}: 결과 패널은 320px, 가운데가 연 입력칸 가운데(좁으면 왼쪽 끝), 화면 밖 0 @regression`, async ({ page }) => {
+for (const width of [1440, 360, 320]) {
+  test(`@A33 ${width}: 결과 패널은 검색 막대와 같은 폭·같은 왼쪽 끝(최대 400px), 화면 밖 0 @regression`, async ({ page }) => {
     await page.setViewportSize({ width, height: 800 });
     const box = await openSearch(page);
     await page.keyboard.type("상");
     await expect(page.getByRole("listbox", { name: "검색 결과" })).toBeVisible();
-    // 입력칸 알약(.cmd)과 패널 바깥 상자(.rsp)를 같은 순간에 잰다. 여는 움직임과
-    // 글자를 친 뒤 알약 모양이 바뀌는 동안은 값이 흔들리므로, 맞을 때까지 다시 잰다.
+    // No send button any more (#1113): the panel hangs under the whole bar.
+    await expect(page.locator("[data-slot=command-search] button[aria-label='검색']")).toHaveCount(0);
     const measure = () =>
       box.evaluate((el) => {
         const pill = el.closest(".cmd").getBoundingClientRect();
@@ -177,11 +179,12 @@ for (const width of [1440, 360]) {
     await expect
       .poll(async () => {
         const { pill, panel } = await measure();
-        const anchor = width >= 390 ? Math.abs(panel.x + panel.width / 2 - (pill.x + pill.width / 2)) : Math.abs(panel.x - pill.x);
-        return Math.max(Math.abs(panel.width - 320), anchor);
+        return Math.max(Math.abs(panel.width - pill.width), Math.abs(panel.x - pill.x));
       }, { timeout: 3000 })
       .toBeLessThanOrEqual(1);
     const { panel } = await measure();
+    expect(panel.width, "패널 폭(최대 400)").toBeLessThanOrEqual(400.5);
+    if (width >= 440) expect(panel.width, "넓은 화면은 400").toBeGreaterThan(399);
     expect(panel.x).toBeGreaterThanOrEqual(0);
     expect(panel.x + panel.width).toBeLessThanOrEqual(width);
   });

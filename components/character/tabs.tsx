@@ -46,6 +46,7 @@ import {
   type Skill,
 } from "@/lib/character/detail";
 import { accessoryLineCounts, gridOptionCounts } from "@/lib/character/role-lines";
+import { favoritesSnapshot, parseFavorites, subscribeFavorites, toggleStoredFavorite } from "@/lib/character/favorites";
 import {
   characterNameError,
   coverageLabel,
@@ -226,44 +227,14 @@ function TabLabel({ id, label }: { id: TabId; label: string }) {
 
 /* Favourites (per browser) -------------------------------------------------- */
 
-const FAVORITES = "loakraken:favorites";
-const favoriteEvent = "loakraken:favorites";
-function readFavorites(): string[] {
-  try {
-    const value = JSON.parse(localStorage.getItem(FAVORITES) ?? "[]");
-    return Array.isArray(value)
-      ? value.filter((item) => typeof item === "string")
-      : [];
-  } catch {
-    return [];
-  }
-}
-const subscribeFavorites = (callback: () => void) => {
-  window.addEventListener(favoriteEvent, callback);
-  window.addEventListener("storage", callback);
-  return () => {
-    window.removeEventListener(favoriteEvent, callback);
-    window.removeEventListener("storage", callback);
-  };
-};
+// One list with the search dropdown's 즐겨찾기 tab and the home card (#1119).
 function useFavorite(name: string) {
   const favorite = useSyncExternalStore(
     subscribeFavorites,
-    () => readFavorites().includes(name),
+    () => parseFavorites(favoritesSnapshot()).includes(name),
     () => false,
   );
-  const toggle = () => {
-    try {
-      const list = readFavorites().filter((item) => item !== name);
-      localStorage.setItem(
-        FAVORITES,
-        JSON.stringify(favorite ? list : [name, ...list].slice(0, 30)),
-      );
-      window.dispatchEvent(new Event(favoriteEvent));
-    } catch {
-      /* Storage blocked: the toggle simply does not persist. */
-    }
-  };
+  const toggle = () => void toggleStoredFavorite(name);
   return [favorite, toggle] as const;
 }
 

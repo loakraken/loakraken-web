@@ -58,6 +58,8 @@
   letter-spacing: -0.6px;
 }
 .searchWrap {
+  /* The result panel (#1113) hangs from here. */
+  position: relative;
   margin-left: auto;
   /* Up to 450px, narrower when the header is full (the slot shrinks). */
   width: 450px;
