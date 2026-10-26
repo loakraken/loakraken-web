@@ -1,4 +1,4 @@
-// 오픈 소스·출처 (/credits): what the site is built with and whose work it
+// 오픈 소스 라이선스 (/credits): what the site is built with and whose work it
 // adapts, with each licence and a link. Keep in step with package.json
 // (runtime dependencies), app/fonts, NOTICE, components/ui/NOTICE-motiq and
 // components/ui/bencho/NOTICE; a unit test checks the dependency list.

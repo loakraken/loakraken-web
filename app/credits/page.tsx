@@ -5,7 +5,7 @@ import { ADAPTED, ASSETS, LIBRARIES, type Credit } from "@/lib/credits";
 import { OFFICIAL_API_URL } from "@/lib/legal";
 
 export const metadata: Metadata = {
-  title: "오픈 소스·출처",
+  title: "오픈 소스 라이선스",
   description: "LOAKraken이 쓰는 오픈 소스 라이브러리·글꼴·아이콘과 가져와 고친 화면 부품, 각 라이선스와 원본 링크.",
   alternates: { canonical: "/credits" },
 };
@@ -67,7 +67,7 @@ export default function CreditsPage() {
     <div className={styles.page}>
       <SiteHeader />
       <main className={styles.main}>
-        <h1>오픈 소스·출처</h1>
+        <h1>오픈 소스 라이선스</h1>
         <p className={styles.lead}>
           LOAKraken은 아래 오픈 소스와 공개된 작업물로 만들었습니다. 라이선스 고지문 전문은 사이트 소스 코드에 함께 들어
           있습니다.

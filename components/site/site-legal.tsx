@@ -24,7 +24,7 @@ export function SiteLegal() {
         <span aria-hidden="true">·</span>
         <Link href="/contact" className="hit-44">문의</Link>
         <span aria-hidden="true">·</span>
-        <Link href="/credits" className="hit-44">오픈 소스·출처</Link>
+        <Link href="/credits" className="hit-44">오픈 소스 라이선스</Link>
       </nav>
     </div>
   );
