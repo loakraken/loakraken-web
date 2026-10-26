@@ -86,6 +86,9 @@
 }
 .field {
   display: grid;
+  /* minmax(0, …): the input's own default width set the column's minimum and
+     pushed the price field 14px past a 320 screen. */
+  grid-template-columns: minmax(0, 1fr);
   gap: 6px;
   min-width: 0;
 }
@@ -96,6 +99,8 @@
   font-weight: 600;
 }
 .field input {
+  width: 100%;
+  min-width: 0;
   height: 44px;
   padding: 0 12px;
   border: 1px solid var(--input);
