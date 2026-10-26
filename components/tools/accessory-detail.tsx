@@ -4,27 +4,17 @@
 // with its grade frame, grade and slot, quality, base effect, polish effects
 // (coloured by tier), the ark passive point, trade count and the auction
 // (buy-now, starting bid, time left). Only values the search response already
-// carries; nothing is fetched. The card parts are the shared item tooltip's
-// (popover beside the row on a pointer, bottom sheet on touch).
+// carries; nothing is fetched. The card parts are the shared item tooltip's;
+// the card opens below its row (user 10-24).
 
 import type { ReactNode } from "react";
-import {
-  ItemDetail,
-  ItemDetailSection,
-  ItemLine,
-  ItemQuality,
-  ItemStat,
-  ItemTooltip,
-  ItemTooltipContent,
-  ItemTooltipTrigger,
-} from "@/components/ui/item-tooltip";
+import { ItemDetail, ItemDetailSection, ItemLine, ItemQuality, ItemStat } from "@/components/ui/item-tooltip";
 import { GradedLine, itemGrade } from "@/components/character/item-tooltip";
 import { MINUTE, useClock } from "@/components/home/clock";
 import type { SearchItem, SearchPolish } from "@/lib/accessory-search/model";
 import { timeLeftText } from "@/lib/accessory-search/time-left";
 import { koreanGold } from "@/lib/spec-up/model";
 import { safeGameImage } from "@/lib/character/model";
-import styles from "./accessory-search.module.css";
 
 /** icon and baseEffects come from the same official response (no extra call); an older response without them still draws. */
 type Listing = SearchItem;
@@ -100,35 +90,5 @@ export function AccessoryCard({
         )}
       </ItemDetailSection>
     </ItemDetail>
-  );
-}
-
-/**
- * A row that opens its card: a transparent trigger covers the whole row
- * (click, Enter/Space; tap on touch), so the row's own text stays plain,
- * readable content and the card opens beside it (or as a bottom sheet).
- */
-export function ListingDetail({
-  item,
-  slotLabel,
-  polishValue,
-}: {
-  item: Listing;
-  slotLabel: string;
-  polishValue: (line: SearchPolish) => string;
-}) {
-  return (
-    <ItemTooltip>
-      {/* Opens on a press, not on hover: moving across a long list must not pop cards up. */}
-      <ItemTooltipTrigger
-        className={styles.rowCover}
-        style={{ cursor: "pointer" }}
-        openOnHover={false}
-        aria-label={`${item.name} 상세 보기`}
-      />
-      <ItemTooltipContent aria-label={item.name}>
-        <AccessoryCard item={item} slotLabel={slotLabel} polishValue={polishValue} />
-      </ItemTooltipContent>
-    </ItemTooltip>
   );
 }
