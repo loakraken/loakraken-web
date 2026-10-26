@@ -87,6 +87,12 @@
   justify-content: space-between;
   gap: var(--space-3);
 }
+/* At 320 a long raid name or fact line widened the card by a few px (A6):
+   the text block may shrink and break inside a long run. */
+.cardHead > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
 .category {
   color: var(--muted-foreground);
   font-size: var(--text-caption);
@@ -191,7 +197,8 @@
 }
 @media (max-width: 760px) {
   .grid {
-    grid-template-columns: 1fr;
+    /* minmax(0, …): a card never grows past a 320 screen (A6). */
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 @media (prefers-reduced-motion: reduce) {
