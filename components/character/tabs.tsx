@@ -9,7 +9,6 @@ import {
   useMemo,
   useRef,
   useState,
-  useSyncExternalStore,
   type ReactNode,
 } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -46,7 +45,7 @@ import {
   type Skill,
 } from "@/lib/character/detail";
 import { accessoryLineCounts, gridOptionCounts } from "@/lib/character/role-lines";
-import { favoritesSnapshot, parseFavorites, subscribeFavorites, toggleStoredFavorite } from "@/lib/character/favorites";
+import { useFavorite } from "./favorite";
 import {
   characterNameError,
   coverageLabel,
@@ -225,18 +224,6 @@ function TabLabel({ id, label }: { id: TabId; label: string }) {
   );
 }
 
-/* Favourites (per browser) -------------------------------------------------- */
-
-// One list with the search dropdown's 즐겨찾기 tab and the home card (#1119).
-function useFavorite(name: string) {
-  const favorite = useSyncExternalStore(
-    subscribeFavorites,
-    () => parseFavorites(favoritesSnapshot()).includes(name),
-    () => false,
-  );
-  const toggle = () => void toggleStoredFavorite(name);
-  return [favorite, toggle] as const;
-}
 
 /* Tab bar ------------------------------------------------------------------- */
 
@@ -332,9 +319,7 @@ export function TabBar({
             classEngraving={data.loadout.arkPassive?.title}
             specUp={useContext(SpecUpEnabled)}
             simulator={useContext(SimulatorEnabled)}
-            favorite={favorite}
             onShare={share}
-            onFavorite={toggleFavorite}
           />
           {/* On a narrow screen these two are in the menu above (A35). */}
           <button

@@ -406,6 +406,56 @@
   color: var(--band-muted);
   font-size: 15px;
 }
+/* The name and, on a narrow screen, its favourite toggle (#1148). */
+.bannerNameRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.bannerNameRow .bannerName {
+  min-width: 0;
+}
+.bannerFavorite {
+  display: none;
+  position: relative;
+  flex: none;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  /* Negative margins: the row keeps the name's own height (no taller banner). */
+  margin-block: -3px;
+  border-radius: 50%;
+  color: inherit;
+  transition: transform 100ms ease-out;
+}
+.bannerFavorite[aria-pressed="true"] {
+  color: var(--accent-warm);
+}
+.bannerFavorite:active {
+  transform: scale(0.94);
+}
+/* 44px to press (A36), centred on the 32px mark. */
+.bannerFavorite::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 44px;
+  height: 44px;
+  translate: -50% -50%;
+}
+@media (prefers-reduced-motion: reduce) {
+  .bannerFavorite {
+    transition: none;
+  }
+}
+/* Where the tab row's own toggle is hidden (detail.module.css, A35). */
+@media (max-width: 560px) {
+  .bannerFavorite {
+    display: grid;
+  }
+}
 .bannerMetrics {
   display: flex;
   flex-wrap: wrap;
