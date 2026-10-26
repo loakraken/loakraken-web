@@ -50,7 +50,7 @@ test.describe("재련 기대 비용 @smoke", () => {
 test.describe("재료 구매 견적 @smoke", () => {
   test("카테고리는 묶음 알약 탭과 분류 칩이고, 고른 분류는 주소로 남는다", async ({ page }) => {
     // 사용자 10-11 00:04: 기본 드롭다운 대신 공통 알약 탭(web #417).
-    await page.goto("/tools/material-quote");
+    await page.goto("/market/quote");
     const tabs = page.getByRole("tablist", { name: "카테고리" });
     await expect(tabs).toBeVisible();
     const selected = tabs.getByRole("tab", { selected: true });
@@ -73,7 +73,7 @@ test.describe("재료 구매 견적 @smoke", () => {
   });
 
   test("검색한 재료를 넣고 견적을 계산한다", async ({ page }) => {
-    await page.goto("/tools/material-quote");
+    await page.goto("/market/quote");
     const compute = page.getByRole("button", { name: "견적 계산" });
     await expect(compute).toBeDisabled();
     // 카테고리 목록이 도착하면 묶음 탭이 나온다(도착 전 검색은 regression/material-quote-options).
@@ -103,7 +103,7 @@ test.describe("재료 구매 견적 입력 중 검색 @smoke", () => {
     page.on("request", (request) => {
       if (request.url().includes("/api/markets/items")) requests.push(new URL(request.url()).searchParams.get("itemName"));
     });
-    await page.goto("/tools/material-quote");
+    await page.goto("/market/quote");
     await expect(page.getByRole("tablist", { name: "카테고리" })).toBeVisible();
     const box = page.getByRole("combobox", { name: "재료 이름" });
     await box.pressSequentially("재련", { delay: 50 });
@@ -137,7 +137,7 @@ test.describe("재료 구매 견적 검색 결과 팝업 @smoke", () => {
   // PM-프론트 #855 P1: 결과는 디바운스와 응답 뒤에 나오므로 아래 내용을 밀면 입력과 떨어진 흔들림이 된다.
   // 결과는 입력칸 아래 떠 있는 목록이라 빠른 입력·느린 입력·지우기 모두 흔들림이 0이어야 한다.
   test("빠르게·느리게 입력하고 지워도 화면이 밀리지 않는다", async ({ page }) => {
-    await page.goto("/tools/material-quote");
+    await page.goto("/market/quote");
     await expect(page.getByRole("tablist", { name: "카테고리" })).toBeVisible();
     await page.evaluate(() => {
       window.__shifts = [];
@@ -215,7 +215,7 @@ test.describe("시세 1분 자동 갱신 @smoke", () => {
     await page.clock.install();
     let calls = 0;
     page.on("request", (r) => r.url().includes("/api/markets/material-quotes") && calls++);
-    await page.goto("/tools/material-quote");
+    await page.goto("/market/quote");
     await expect(page.getByRole("tablist", { name: "카테고리" })).toBeVisible();
     // #855: the name box is a combobox and each result row is an option.
     await page.getByRole("combobox", { name: "재료 이름" }).fill("합성");

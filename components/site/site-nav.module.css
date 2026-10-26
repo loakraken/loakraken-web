@@ -162,6 +162,24 @@
   font-size: 12px;
   font-weight: 500;
 }
+/* A hub's title (메뉴 합치기): the same small heading, a link to the hub page. */
+a.groupLink {
+  display: block;
+  width: fit-content;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in oklab, currentColor 40%, transparent);
+  text-underline-offset: 3px;
+}
+a.groupLink:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+@media (hover: hover) and (pointer: fine) {
+  a.groupLink:hover {
+    color: var(--foreground);
+  }
+}
 .entry {
   display: grid;
   gap: 1px;

@@ -33,7 +33,7 @@ export const SITEMAP_PATHS = [
   "/market/gems",
   "/market/accessory-search",
   "/tools",
-  "/tools/material-quote",
+  "/market/quote",
   "/tools/refining",
   "/tools/crit-speed",
   "/tools/auction",

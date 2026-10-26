@@ -1,5 +1,7 @@
 "use client";
 
+import { HubTabs } from "@/components/site/hub-tabs";
+
 import { useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import {
@@ -599,6 +601,7 @@ function MarketContent({
           <p className={quote.heroCopy}>
             공식 거래소 시세를 분류별로 모아 보여줘요.
           </p>
+          <HubTabs hub="market" />
         </section>
 
         <div className={styles.band}>

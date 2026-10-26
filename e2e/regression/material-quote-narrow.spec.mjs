@@ -10,7 +10,7 @@ for (const width of [320, 360, 390, 1280])
   test(`@견적좁은폭 ${width}: 재료 견적 가로 넘침 0, 카드는 화면 안, 첫 로드 흔들림 0 @regression`, async ({ page }) => {
     await page.setViewportSize({ width, height: 800 });
     await watchShifts(page);
-    await gotoReady(page, "/tools/material-quote");
+    await gotoReady(page, "/market/quote");
     await expect(page.getByRole("tablist", { name: "카테고리" })).toBeVisible();
     const outside = await page.evaluate(() =>
       [...document.querySelectorAll("main section")]

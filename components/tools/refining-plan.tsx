@@ -1,5 +1,7 @@
 "use client";
 
+import { HubTabs } from "@/components/site/hub-tabs";
+
 import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -878,6 +880,7 @@ function RefiningContent({ initialName }: { initialName: string }) {
           <Link href="/" className={quote.back}>
             <ArrowLeft size={14} aria-hidden="true" /> 캐릭터 검색으로
           </Link>
+          <HubTabs hub="growth" />
         </section>
 
         <div className={quote.band}>

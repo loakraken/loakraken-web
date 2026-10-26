@@ -1,5 +1,7 @@
 "use client";
 
+import { HubTabs } from "@/components/site/hub-tabs";
+
 import {
   useCallback,
   useEffect,
@@ -1066,6 +1068,7 @@ function CombatPowerContent({ initialName }: { initialName: string }) {
           <Link href="/tools" className={quote.back}>
             <ArrowLeft size={14} aria-hidden="true" /> 도구 전체
           </Link>
+          <HubTabs hub="growth" />
         </section>
 
         <div className={quote.band}>

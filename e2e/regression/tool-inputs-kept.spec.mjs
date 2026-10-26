@@ -92,7 +92,7 @@ const TOOLS = [
   },
   {
     name: "재료 구매 견적",
-    path: "/tools/material-quote",
+    path: "/market/quote",
     fill: async (page) => {
       await expect(page.getByRole("tablist", { name: "카테고리" })).toBeVisible();
       await page.getByRole("combobox", { name: "재료 이름" }).fill("합성");
@@ -119,7 +119,7 @@ test.describe("성장 도구 입력 유지", () => {
 
   // #897(PM-프론트 #896 판단): 견적에 담은 줄은 품목 id·필요·보유만 주소에 두고, 새로고침·공유 주소에서 품목을 다시 불러온다.
   test("재료 구매 견적: 담은 줄과 필요·보유 수가 새로고침에도 남는다", async ({ page }) => {
-    await gotoReady(page, "/tools/material-quote");
+    await gotoReady(page, "/market/quote");
     await expect(page.getByRole("tablist", { name: "카테고리" })).toBeVisible();
     await page.getByRole("combobox", { name: "재료 이름" }).fill("합성");
     await page.getByRole("option", { name: "합성 재련 재료 견적에 추가" }).click();
@@ -136,7 +136,7 @@ test.describe("성장 도구 입력 유지", () => {
 
   // PM-프론트 #899 P2: 새로고침 때 검색이 막히면(429) 그 줄은 버리지 않고 '다시 불러오기'로 남는다.
   test("재료 구매 견적: 다시 불러오기가 막히면 그 줄은 남고, 다시 불러오기로 돌아온다", async ({ page }) => {
-    await gotoReady(page, "/tools/material-quote");
+    await gotoReady(page, "/market/quote");
     await expect(page.getByRole("tablist", { name: "카테고리" })).toBeVisible();
     await page.getByRole("combobox", { name: "재료 이름" }).fill("합성");
     await page.getByRole("option", { name: "합성 재련 재료 견적에 추가" }).click();

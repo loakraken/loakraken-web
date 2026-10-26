@@ -1,0 +1,47 @@
+/* Hub tab row (메뉴 합치기): the character page's tab look — plain links, the
+   current one a filled pill — so it reads apart from a page's own filter
+   chips below it (시세 분류 칩 are outlined). */
+.tabs {
+  /* Across the whole hero (a grid on tool pages). */
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 4px;
+  min-width: 0;
+  max-width: 100%;
+  /* Room for the focus ring, which the horizontal scroll would otherwise
+     clip; the negative margin keeps the row in line with the title. */
+  margin: 4px -8px -8px;
+  padding: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.tab {
+  flex: 0 0 auto;
+  padding: 8px 15px;
+  border-radius: 980px;
+  color: var(--foreground);
+  font-size: 14px;
+  letter-spacing: -0.016em;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background-color 160ms ease-out;
+}
+.tab[aria-current="page"] {
+  background: var(--foreground);
+  color: var(--background);
+  font-weight: 600;
+}
+.tab:focus-visible {
+  outline: 3px solid var(--ring);
+  outline-offset: 4px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .tab:not([aria-current="page"]):hover {
+    background: var(--hover-surface);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tab {
+    transition: none;
+  }
+}

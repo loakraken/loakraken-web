@@ -1,5 +1,7 @@
 "use client";
 
+import { HubTabs } from "@/components/site/hub-tabs";
+
 import {
   useEffect,
   useId,
@@ -868,6 +870,7 @@ function MaterialQuoteContent({ initialCategory }: { initialCategory: number | n
           <Link href="/" className={styles.back}>
             <ArrowLeft size={14} aria-hidden="true" /> 캐릭터 검색으로
           </Link>
+          <HubTabs hub="market" />
         </section>
 
         <div className={styles.band}>

@@ -44,7 +44,7 @@ const ROUTES = [
   "/tools/combat-power",
   "/tools/crit-speed",
   "/tools/homework",
-  "/tools/material-quote",
+  "/market/quote",
   "/tools/more-reward",
   "/tools/raid-rewards",
   "/tools/refining",

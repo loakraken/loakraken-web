@@ -1,5 +1,7 @@
 "use client";
 
+import { HubTabs } from "@/components/site/hub-tabs";
+
 import { useEffect, useState, type CSSProperties } from "react";
 import { ArrowLeft, Coin } from "@/components/ui/icons";
 import Link from "next/link";
@@ -218,6 +220,7 @@ export function RaidRewardsTable() {
           <Link href="/" className={quote.back}>
             <ArrowLeft size={14} aria-hidden="true" /> 홈으로
           </Link>
+          <HubTabs hub="raid" />
         </section>
 
         <div className={quote.band}>

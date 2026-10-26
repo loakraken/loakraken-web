@@ -1,4 +1,6 @@
 "use client";
+
+import { HubTabs } from "@/components/site/hub-tabs";
 // 레이드 컨닝페이퍼 (checklist N20): per gate, the main boss patterns with
 // what happens and how to answer it. Static data (lib/tools/raid-cheatsheet.ts);
 // sources stay in the data file and are never shown (사용자 결정 10-12).
@@ -49,6 +51,7 @@ export function RaidCheatSheet() {
           <Link href="/" className={quote.back}>
             <ArrowLeft size={14} aria-hidden="true" /> 홈으로
           </Link>
+          <HubTabs hub="raid" />
         </section>
 
         <div className={quote.band}>

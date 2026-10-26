@@ -65,7 +65,7 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     id: "market",
     label: "시세",
-    match: ["/market", "/tools/material-quote", "/tools/accessory-search"],
+    match: ["/market", "/tools/accessory-search"],
     groups: [
       {
         title: "거래소",
@@ -89,7 +89,7 @@ export const NAV_SECTIONS: NavSection[] = [
     id: "tools",
     label: "성장 도구",
     // "/tools$": the tool list itself (exact; a bare prefix would also take the
-    // tools filed under other menus, such as /tools/material-quote).
+    // tools filed under other menus, such as /tools/accessory-search).
     match: ["/tools$", "/tools/combat-power", "/tools/refining", "/tools/crit-speed", "/tools/auction", "/tools/loa-shop", "/tools/abidos-craft", "/tools/life-energy", "/tools/raid-rewards", "/tools/more-reward", "/tools/contribution", "/tools/raid-cheatsheet"],
     all: { label: "도구 전체 보기", description: "모든 성장 도구를 한눈에", href: "/tools" },
     sheetGroups: true,

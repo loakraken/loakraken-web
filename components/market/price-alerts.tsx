@@ -1,5 +1,7 @@
 "use client";
 
+import { HubTabs } from "@/components/site/hub-tabs";
+
 import { useEffect, useId, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -117,6 +119,7 @@ export function PriceAlertsView() {
           <p className={quote.heroCopy}>
             품목의 판매 최저가가 정한 가격 이하나 이상이 되면 이 브라우저로 알림을 보내요. 로그인은 필요 없어요.
           </p>
+          <HubTabs hub="market" />
         </section>
 
         <section className={styles.status} aria-labelledby="alerts-status" aria-busy={stage === "checking" || undefined}>
