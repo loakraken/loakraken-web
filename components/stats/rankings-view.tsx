@@ -84,7 +84,7 @@ export function RankingsView({ initial, types }: { initial: RankingQuery; types:
         본문으로 건너뛰기
       </a>
       <SiteHeader />
-      <main id="rankings-main" className={styles.main}>
+      <main id="rankings-main" className={`${styles.main} ${styles.mainWide}`}>
         <section className={styles.hero} aria-labelledby="rankings-heading">
           <p className={styles.kicker}>캐릭터</p>
           <h1 id="rankings-heading">랭킹</h1>
