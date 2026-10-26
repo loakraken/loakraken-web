@@ -370,6 +370,10 @@
 }
 .gradeList {
   list-style: none;
+  /* A long line wraps inside the row instead of widening it (long-text guard;
+     the mock detail character has accessories since #1108). */
+  min-width: 0;
+  overflow-wrap: anywhere;
   padding: 0;
   margin-left: auto;
   text-align: right;
