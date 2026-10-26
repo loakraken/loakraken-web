@@ -59,4 +59,5 @@ export const SITEMAP_PATHS = [
   "/schedule/rowen",
   "/privacy",
   "/contact",
+  "/credits",
 ] as const;
