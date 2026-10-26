@@ -19,13 +19,17 @@ import {
   excludedSummary,
   includedText,
   isReceiptOff,
+  memberState,
+  nextRefreshDelay,
   notIncludedText,
+  observedText,
   rowMarker,
   totalStatus,
   type Receipt,
   type ReceiptCharacter,
 } from "@/lib/character/receipt";
 import { useCrossfade } from "@/lib/motion";
+import { MINUTE, useClock } from "@/components/home/clock";
 import { useSecondsUntil } from "./card-refresh";
 import { Panel } from "./panel";
 import { kstTime, level } from "./parts";
@@ -34,9 +38,14 @@ import styles from "./receipt.module.css";
 const gold = (value: number | null | undefined) =>
   value == null ? "-" : `${Math.round(value).toLocaleString("ko-KR")}G`;
 
-function CharacterRow({ row }: { row: ReceiptCharacter }) {
-  const pending = row.status === "PENDING";
+function CharacterRow({ row, now }: { row: ReceiptCharacter; now: number | null }) {
+  const state = memberState(row);
+  const pending = state === "PENDING";
+  // Not found this time (api receipt fan-out), or a status this screen does
+  // not know: not counted, not asked for again.
+  const unavailable = state === "UNAVAILABLE";
   const marker = rowMarker(row);
+  const observed = now == null ? null : observedText(row.observedAt, now);
   return (
     <li>
       <details className={`${styles.row} ${expand.expand}`}>
@@ -45,6 +54,7 @@ function CharacterRow({ row }: { row: ReceiptCharacter }) {
             <strong>{row.characterName}</strong>
             <small>
               {row.className ?? "-"} · {level(row.itemLevel)}
+              {observed && ` · ${observed}`}
             </small>
           </span>
           <span className={styles.amount}>
@@ -56,7 +66,9 @@ function CharacterRow({ row }: { row: ReceiptCharacter }) {
                 <span className="sr-only">{marker.partial ? "일부만 계산" : `산정 제외 ${row.excluded.length}건`}</span>
               </>
             )}
-            <b className={pending ? styles.pending : undefined}>{pending ? "계산 대기" : gold(row.gold)}</b>
+            <b className={pending || unavailable ? styles.pending : undefined}>
+              {pending ? "계산 대기" : unavailable ? "확인 못 함" : gold(row.gold)}
+            </b>
           </span>
         </summary>
         {row.parts.length > 0 && (
@@ -89,21 +101,28 @@ function CharacterRow({ row }: { row: ReceiptCharacter }) {
 function Body({
   data,
   refreshing,
+  auto,
   onRecalculate,
   assumeBook,
   onAssumeBook,
 }: {
   data: Receipt;
   refreshing: boolean;
+  /** The panel is still filling pending members in by itself. */
+  auto: boolean;
   onRecalculate: () => void;
   assumeBook: boolean;
   onAssumeBook: (next: boolean) => void;
 }) {
   const until = data.coverage.nextAvailableAt ? Date.parse(data.coverage.nextAvailableAt) : undefined;
   const seconds = useSecondsUntil(until);
+  const now = useClock(MINUTE);
   const notIncluded = notIncludedText(data);
   const status = totalStatus(data);
   const left = excludedSummary(data);
+  const [leftShown, setLeftShown] = useState(false);
+  if (left && !leftShown) setLeftShown(true);
+  const idle = data.coverage.pending === 0 || auto;
   const [first, ...rest] = data.assumptions;
   return (
     <>
@@ -126,7 +145,13 @@ function Body({
             </p>
           </>
         )}
-        {left && <p className={styles.muted}>빠진 것: {left}</p>}
+        {/* Once shown, the line keeps its place: it shortens or empties as
+            pending members fill in, and nothing under it may move (A7). */}
+        {(left || leftShown) && (
+          <p className={`${styles.muted} ${styles.leftLine}`} aria-hidden={left ? undefined : true}>
+            {left && `빠진 것: ${left}`}
+          </p>
+        )}
         {notIncluded && <p className={styles.muted}>미포함: {notIncluded}</p>}
       </div>
 
@@ -140,11 +165,14 @@ function Body({
       </div>
 
       <div className={styles.coverage}>
-        <p role="status">{coverageText(data)}</p>
+        <p role="status">{coverageText(data, auto)}</p>
         <span className={styles.bar} aria-hidden="true">
           <i style={{ width: `${(data.coverage.ready / Math.max(1, data.coverage.rosterCharacters)) * 100}%` }} />
         </span>
-        {data.coverage.pending > 0 && (
+        {/* By hand only once the panel stopped filling members in by itself;
+            the slot stays so the row does not change height. While hidden it
+            keeps one label: a changing one would resize it and move the bar. */}
+        <span className={styles.againSlot} data-idle={idle || undefined}>
           <button
             type="button"
             className={styles.again}
@@ -153,10 +181,16 @@ function Body({
             // Spends official API calls: never pressed again after hydration.
             data-no-replay
           >
-            {refreshing ? <InlineOrb /> : <RefreshArrow size={14} aria-hidden="true" />}
-            {refreshing ? "계산하는 중" : seconds > 0 ? `${remainingText(seconds * 1000)} 뒤 다시 계산` : "다시 계산(8명씩)"}
+            {refreshing && !idle ? <InlineOrb /> : <RefreshArrow size={14} aria-hidden="true" />}
+            {idle
+              ? "다시 계산(2명씩)"
+              : refreshing
+                ? "계산하는 중"
+                : seconds > 0
+                  ? `${remainingText(seconds * 1000)} 뒤 다시 계산`
+                  : "다시 계산(2명씩)"}
           </button>
-        )}
+        </span>
       </div>
 
       <section className={styles.block} aria-label="장비 재련">
@@ -165,7 +199,7 @@ function Body({
         </h3>
         <ul className={styles.characters}>
           {data.equipment.characters.map((row) => (
-            <CharacterRow key={row.characterName} row={row} />
+            <CharacterRow key={row.characterName} row={row} now={now} />
           ))}
         </ul>
       </section>
@@ -212,8 +246,9 @@ function Body({
  * Roster receipt (원정대 영수증), counting only verified items:
  * equipment refining and tradable gems at current prices. What it leaves out
  * and why sits right under the total; the backend's assumption sentences are
- * shown as they come. Hidden where the receipt is off (the backend route is
- * absent) and never requested for crawlers (the proxy refuses them).
+ * shown as they come. Where the backend has it off (its route is absent) the
+ * panel says it is not open yet; never requested for crawlers (the proxy
+ * refuses them).
  */
 /**
  * Whether this deployment shows the receipt (RECEIPT_TOOL, decided by the
@@ -230,24 +265,63 @@ export function ReceiptPanel({ name }: { name: string }) {
 function ReceiptPanelBody({ name }: { name: string }) {
   // Books on by default (PM 총괄 10-11 00:20): the receipt assumes them unless turned off.
   const [assumeBook, setAssumeBook] = useState(true);
+  // Pending members are filled in by itself, two per request (api receipt
+  // fan-out): while this panel is open and the tab is visible (React Query
+  // pauses intervals in a hidden tab), at the backend's nextAvailableAt and
+  // never sooner than 6 s (the visitor's official-call limit). It stops after two answers in a row that filled nobody
+  // or on a failure (a rate limit shows its countdown); then "다시 계산" is by hand.
+  const [fill, setFill] = useState({
+    book: assumeBook,
+    at: 0,
+    pending: null as number | null,
+    idle: 0,
+    stopped: false,
+  });
+  const stopped = fill.stopped;
   const query = useQuery({
     queryKey: ["receipt", name, assumeBook],
     queryFn: ({ signal }) => fetchReceipt(name, assumeBook, signal),
     staleTime: 60_000,
     retry: false,
     refetchOnWindowFocus: false,
+    refetchInterval: (q) => {
+      const answer = q.state.data?.data;
+      if (!answer || q.state.error) return false;
+      return nextRefreshDelay(answer, Date.now(), stopped) ?? false;
+    },
   });
+  const pendingNow = query.data?.data.coverage.pending;
+  // Each new answer: did it fill anyone in? Another book choice is another
+  // receipt, which fills in by itself again.
+  if (fill.book !== assumeBook) setFill({ book: assumeBook, at: 0, pending: null, idle: 0, stopped: false });
+  else if (pendingNow != null && query.dataUpdatedAt !== fill.at) {
+    const idle = fill.pending != null && pendingNow >= fill.pending ? fill.idle + 1 : 0;
+    setFill({ ...fill, at: query.dataUpdatedAt, pending: pendingNow, idle, stopped: fill.stopped || idle >= 2 });
+  }
+  const auto = !stopped && !query.error && (pendingNow ?? 0) > 0;
   const fade = useCrossfade(query.isPending);
   const limit = useRateLimit(query.error);
   const info = query.error instanceof CharacterQueryError ? query.error.info : null;
   // A double click fires twice before React re-renders; each request spends up to 8 calls.
   const lock = useRef(false);
   const data = query.data?.data;
-  if (!data && isReceiptOff(info)) return null;
+  // The web shows the receipt but the backend has it off: say so in the
+  // panel instead of leaving the chosen view empty (QA v0.3.2 RC).
+  if (!data && isReceiptOff(info))
+    return (
+      <Panel title="원정대 영수증" wide>
+        <div className={styles.problem}>
+          <p role="status">원정대 영수증은 아직 열리지 않았어요.</p>
+          <p className={styles.muted}>준비가 끝나면 여기서 바로 보여 드려요.</p>
+        </div>
+      </Panel>
+    );
 
   function recalculate() {
     if (lock.current || query.isFetching) return;
     lock.current = true;
+    // By hand restarts filling in by itself.
+    setFill((f) => ({ ...f, pending: null, idle: 0, stopped: false }));
     void query.refetch().finally(() => (lock.current = false));
   }
 
@@ -263,6 +337,7 @@ function ReceiptPanelBody({ name }: { name: string }) {
           <Body
             data={data}
             refreshing={query.isFetching}
+            auto={auto}
             onRecalculate={recalculate}
             assumeBook={assumeBook}
             onAssumeBook={setAssumeBook}
@@ -270,7 +345,9 @@ function ReceiptPanelBody({ name }: { name: string }) {
         </div>
       ) : query.isPending ? (
         <p className={styles.muted} role="status">
-          <InlineOrb /> 원정대 영수증을 계산하고 있어요. 몇 초 걸릴 수 있어요.
+          {/* No time promise: members come in two at a time (api receipt fan-out);
+              from the first answer the count line shows how far it got. */}
+          <InlineOrb /> 원정대 캐릭터 정보를 받고 있어요. 받은 만큼 먼저 보여 드려요.
         </p>
       ) : (
         <div className={styles.problem}>

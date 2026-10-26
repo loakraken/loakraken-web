@@ -128,6 +128,7 @@ export interface components {
             critStatPerPercent: number;
             /** @description 치명타 피해(%). 기본 200 + 관측 출처(axis=CRIT_DAMAGE) 합. 스킬 한정 문구 제외 */
             damage: components["schemas"]["CritSpeedCritDamageResponse"];
+            unavailableReason: string | null;
         };
         CritSpeedBluntThornResponse: {
             /**
@@ -163,8 +164,10 @@ export interface components {
             base: number;
             /** @description 관측 출처 합 */
             observed: number;
-            /** @description base + observed */
+            /** @description base + observed + assumed(켠 토글 등 가정 출처) */
             total: number;
+            /** @description 가정 출처 합(켠 치명타 피해 토글 등, 없으면 0) */
+            assumed: number;
         };
         CritSpeedSpeedResponse: {
             swiftnessStat: number | null;
@@ -177,6 +180,7 @@ export interface components {
             swiftnessPerPercent: number;
             /** @description 신속 스탯별 공이속 표. 0부터 200 간격, 현재값·최적값 행 포함(최대 4000) */
             swiftnessTable: components["schemas"]["CritSpeedSwiftnessRowResponse"][];
+            unavailableReason: string | null;
         };
         CritSpeedAxisResponse: {
             observed: number;

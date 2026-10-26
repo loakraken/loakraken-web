@@ -4,6 +4,8 @@ import { readFileSync } from "node:fs";
 import { randomBytes, randomUUID } from "node:crypto";
 const failures = new Map();
 const receiptCalls = new Map();
+/** 영수증대원정대: how far the 20-member fill got and when the next request is allowed. */
+const receiptFill = new Map();
 
 const read = (name) =>
   JSON.parse(
@@ -55,6 +57,8 @@ function withSimulatorGear(data) {
   data.loadout.equipment.push(
     make("목걸이", "테스트 목걸이", {
       quality: 90,
+      // Shown in the item tooltip only, never as a badge on the row (user 10-26).
+      arkPassivePoint: { name: "깨달음", value: 13 },
       polishEffects: [
         { name: "추가 피해", value: "+1.60%", grade: "MID" },
         { name: "적에게 주는 피해", value: "+0.55%", grade: "LOW" },
@@ -72,6 +76,8 @@ function withSimulatorGear(data) {
     make("상의", "+20 전율의 상의", { refineLevel: 20, quality: 95, advancedRefineLevel: 0 }),
     // 팔 보호구(backend #342): type "완갑", step = refineLevel, grade on the item.
     { ...make("완갑", "+13 전율 완갑", { refineLevel: 13 }), grade: "유물" },
+    // 보주: shown on the 전투 tab foot, never in the 내실 special list (user 10-26).
+    make("보주", "테스트 보주", {}),
     make("어빌리티 스톤", "테스트 스톤", {
       stoneEngravings: [
         { name: "원한", level: 1 },
@@ -532,7 +538,8 @@ createServer(async (req, res) => {
       buyPrice: 1_200_000 + page * 100_000 + i * 50_000,
       bidStartPrice: 900_000,
       endDate: "2026-10-14T12:00:00Z",
-      icon: null,
+      // An official CDN icon, as the search answer carries (the card shows it).
+      icon: "https://cdn-lostark.game.onstove.com/efui_iconatlas/acc/acc_215.png",
       baseEffects: [],
       ...extra,
     });
@@ -564,14 +571,17 @@ createServer(async (req, res) => {
     const cells = ["겁화", "작열"].flatMap((kind) =>
       [10, 9, 8, 7, 6, 5, 4, 3, 2, 1].map((level) => {
         const pending = kind === "작열" && level === 1;
+        // api #690: 작열 2레벨's fresh value ran out; the last one, seen 2 hours before.
+        const stale = kind === "작열" && level === 2;
         const price = Math.round((kind === "겁화" ? 2.4 : 1.1) * 3 ** (level - 1) * 40);
         return {
           kind, level, itemName: `${level}레벨 ${kind}의 보석`,
           minBuyPrice: pending ? null : price,
           totalCount: pending ? null : 30 + level * 7,
           previousDayChangeRate: pending ? null : level % 3 === 0 ? -2.5 : level % 3 === 1 ? 4 : 0,
-          observedAt: pending ? null : observedAt,
+          observedAt: pending ? null : stale ? new Date(Date.now() - 2 * 3_600_000).toISOString() : observedAt,
           status: pending ? "PENDING" : "READY",
+          ...(stale ? { stale: true } : {}),
         };
       }),
     );
@@ -637,6 +647,7 @@ createServer(async (req, res) => {
       bidStartPrice: 200_000,
       endDate: new Date(Date.now() + (start + i + 1) * 3_600_000).toISOString(),
       tradeAllowCount: i % 4 === 3 ? 0 : 2,
+      icon: "https://cdn-lostark.game.onstove.com/efui_iconatlas/use/use_12_105.png",
       options: [{ type: "GEM_SKILL_DAMAGE", name: "합성 스킬", value: 44, percentage: true, level: null, className: i % 2 ? "바드" : "블래스터" }],
     }));
     return send({ code: "AUCTION_LISTINGS_SUCCESS", message: "ok", data: { totalCount: total, page, observedAt: new Date().toISOString(), items } });
@@ -690,6 +701,7 @@ createServer(async (req, res) => {
       bidStartPrice: 400_000,
       endDate: new Date(Date.now() + (start + i + 1) * 3_600_000).toISOString(),
       tradeAllowCount: 2,
+      icon: "https://cdn-lostark.game.onstove.com/efui_iconatlas/acc/acc_215.png",
       options: [
         { type: "ACCESSORY_UPGRADE", name: "적주피", value: 2, percentage: true, level: "HIGH", className: null },
         { type: "ACCESSORY_UPGRADE", name: "추피", value: 1.6, percentage: true, level: "MID", className: null },
@@ -849,10 +861,19 @@ createServer(async (req, res) => {
     // 크라켄 점수 순 (api #573): the backend's own answers. "스펙업점수꺼짐" has the
     // score switched off (the answer comes as EFFICIENCY with a reason), and
     // "스펙업옛응답" is a backend from before #573 (no score fields at all).
+    // A supporter (api #722): the same scored list, ranked by the supporter
+    // score; combat power is UNSUPPORTED (role reason) on every row.
+    // "서포터옛응답" is a backend from before #722: the supporter's 크라켄 answer
+    // comes back as EFFICIENCY with SUPPORTER_PENDING.
     if (url.searchParams.get("sort") === "KRAKEN") {
-      const kraken = specUp(who === "스펙업점수꺼짐" ? "character-spec-up-kraken-unavailable.json" : "character-spec-up-kraken.json");
+      const off = who === "스펙업점수꺼짐" || who === "서포터옛응답";
+      const kraken = specUp(off ? "character-spec-up-kraken-unavailable.json" : "character-spec-up-kraken.json");
       kraken.data.characterName = who;
       kraken.data.cooldownGemsIncluded = url.searchParams.get("includeCooldownGems") === "true";
+      if (who === "서포터옛응답") kraken.data.krakenSortUnavailableReason = "SUPPORTER_PENDING";
+      if (who === "상세서포터")
+        for (const c of kraken.data.candidates)
+          Object.assign(c, { deltaCombatPower: null, combatPowerPer10kGold: null, deltaPercent: null });
       return send(kraken);
     }
     const envelope = specUp(who === "스펙업시세" ? "character-spec-up-pending.json" : "character-spec-up.json");
@@ -864,6 +885,17 @@ createServer(async (req, res) => {
         krakenSortUnavailableReason: who === "스펙업점수꺼짐" ? "DISABLED" : null,
       });
     envelope.data.characterName = who;
+    // 스펙업이전시세 (api #759): gem costs carry their price time; the first
+    // gem row's price is a last-known one (stale), the second is fresh.
+    if (who === "스펙업이전시세") {
+      const gems = envelope.data.candidates.filter((c) => c.change?.kind === "GEM_LEVEL" && c.cost?.status === "OK");
+      gems.forEach((c, i) =>
+        Object.assign(c.cost, {
+          priceObservedAt: new Date(Date.now() - (i === 0 ? 3 * 3_600_000 : 60_000)).toISOString(),
+          stale: i === 0,
+        }),
+      );
+    }
     // The same combat power the mock simulator starts from (the backend's
     // spec-up and simulator read one character), so the L31 goal path adds up.
     envelope.data.combatPower = read("character-full-data.json").combatPower;
@@ -968,6 +1000,9 @@ createServer(async (req, res) => {
     add("CRIT", "기타", a.extraCritRate ?? 0, "아크 그리드 코어 등");
     add("ATTACK_SPEED", "공격 속도 가정", a.extraAttackSpeed ?? 0, "직업 각인·트라이포드·버프 합");
     add("MOVE_SPEED", "이동 속도 가정", a.extraMoveSpeed ?? 0, "직업 각인·트라이포드·버프 합");
+    // backend #711: a stat that could not be read gives its reason (null otherwise).
+    d.crit.unavailableReason = request.characterName === "치명못읽음" ? "치명 스탯을 읽지 못해 치명타 적중률을 계산하지 않았어요." : null;
+    d.speed.unavailableReason = request.characterName === "신속못읽음" ? "신속 스탯을 읽지 못해 공격·이동 속도를 계산하지 않았어요." : null;
     return send(base);
   }
   // Roster combat power (L19): records only; 원정대전투력 has two without a
@@ -1127,6 +1162,8 @@ createServer(async (req, res) => {
   if (url.pathname === "/api/v1/characters/card-collection") {
     // Backend F-6 samples; card art swapped for official legend card icons.
     const who = url.searchParams.get("characterName");
+    // 카드늦음: slower than the page's 1s wait, so the records arrive after the first paint.
+    if (who === "카드늦음") await new Promise((resolve) => setTimeout(resolve, 1500));
     const kind = who === "기록없음" ? "empty" : who === "상세서포터" ? "supporter" : "dealer";
     const body = JSON.parse(readFileSync(new URL(`./card-fixtures/card-collection-${kind}.json`, import.meta.url), "utf8"));
     body.data.characterName = who;
@@ -1293,6 +1330,8 @@ createServer(async (req, res) => {
   }
   if (url.pathname === "/api/v1/characters/rank") {
     const who = url.searchParams.get("characterName") ?? "";
+    // 순위늦음: slower than the page's 1s wait, so the rank arrives after the first paint.
+    if (who === "순위늦음") await new Promise((resolve) => setTimeout(resolve, 1500));
     if (who === "미관측" || who === "비공개") return send({ code: "STATS_CHARACTER_NOT_OBSERVED", message: "private" }, 404);
     const excluded = who === "조건밖";
     const entry = (metric, scope, scopeValue, rank, total, sampleStatus = "READY", gapAs = null) => {
@@ -1356,6 +1395,43 @@ createServer(async (req, res) => {
       return send({ code: "CLIENT_RATE_LIMITED", message: "rate limited" }, 429, { "Retry-After": "30" });
     const body = JSON.parse(readFileSync(new URL("./receipt-fixtures/character-receipt.json", import.meta.url), "utf8"));
     const data = body.data;
+    // 영수증대원정대 (api receipt fan-out, PM-프론트's measure): a 20-member
+    // roster filled 2 per request, at most 2 official calls per 6 s for the
+    // visitor (20 per minute). nextAvailableAt says when the next 2 are
+    // allowed; asking sooner gets a 429, so a too-fast client fails visibly.
+    // A fresh fill starts after a minute without requests. Any name starting
+    // with it is its own visitor (parallel test projects each use their own).
+    if (who.startsWith("영수증대원정대")) {
+      const now = Date.now();
+      let fill = receiptFill.get(who);
+      if (!fill || now - fill.lastAt > 60_000) fill = { ready: 0, allowedAt: 0, lastAt: now };
+      fill.lastAt = now;
+      if (now < fill.allowedAt) {
+        receiptFill.set(who, fill);
+        return send({ code: "CLIENT_RATE_LIMITED", message: "rate limited" }, 429, { "Retry-After": String(Math.ceil((fill.allowedAt - now) / 1000)) });
+      }
+      fill.ready = Math.min(20, fill.ready + 2);
+      fill.allowedAt = now + 6_000;
+      receiptFill.set(who, fill);
+      const template = data.equipment.characters[0];
+      data.characterName = who;
+      data.computedAt = new Date().toISOString();
+      data.equipment.characters = Array.from({ length: 20 }, (_, i) =>
+        i < fill.ready
+          ? { ...template, characterName: `대원정대${i + 1}`, complete: true, observedAt: new Date(now - i * 60_000).toISOString() }
+          : { ...template, characterName: `대원정대${i + 1}`, status: "PENDING", gold: null, parts: [], excluded: [], complete: null, observedAt: null },
+      );
+      const pending = 20 - fill.ready;
+      data.coverage = {
+        rosterCharacters: 20,
+        ready: fill.ready,
+        pending,
+        unavailable: 0,
+        nextAvailableAt: pending > 0 ? new Date(fill.allowedAt).toISOString() : null,
+      };
+      data.total = { ...data.total, status: pending > 0 ? "PARTIAL" : "COMPLETE" };
+      return send(body);
+    }
     data.characterName = who;
     data.computedAt = new Date().toISOString();
     receiptCalls.set(who, (receiptCalls.get(who) ?? 0) + 1);
@@ -1365,6 +1441,13 @@ createServer(async (req, res) => {
       data.coverage = { ...data.coverage, ready: data.coverage.rosterCharacters, pending: 0, nextAvailableAt: null };
       data.total.status = "COMPLETE";
     } else data.coverage.nextAvailableAt = new Date(Date.now() + 20_000).toISOString();
+    // 영수증새상태: a member and the total carry status values this web build
+    // does not know (a newer api); the member reads as '확인 못 함'.
+    if (who === "영수증새상태") {
+      const row = data.equipment.characters.find((c) => c.status === "READY");
+      Object.assign(row, { status: "SOMETHING_NEW", gold: null, parts: [], excluded: [], complete: null });
+      data.total.status = "SOMETHING_NEW";
+    }
     // 영수증시세없음 (backend #665): every price missing, nothing counted → UNAVAILABLE, no amount.
     if (who === "영수증시세없음") {
       for (const c of data.equipment.characters) {
@@ -1756,7 +1839,9 @@ createServer(async (req, res) => {
       const metric = q.get("metric");
       if (metric !== "ITEM_LEVEL" && metric !== "COMBAT_POWER") return send({ code: "INVALID_REQUEST", message: "x" }, 400);
       const width = Number(q.get("width") || (metric === "ITEM_LEVEL" ? 10 : 100));
-      const [lo, hi, mid, sd] = metric === "ITEM_LEVEL" ? [minLevel, 1780, 1712, 25] : [2000, 4600, 3060, 420];
+      // 카제로스 is a wide sample (A5): 전투력 1,200 ~ 10,700 in 100s, past 40 bars.
+      const wide = metric === "COMBAT_POWER" && q.get("server") === "카제로스";
+      const [lo, hi, mid, sd] = metric === "ITEM_LEVEL" ? [minLevel, 1780, 1712, 25] : wide ? [1200, 10700, 5000, 1800] : [2000, 4600, 3060, 420];
       const bins = [];
       for (let from = Math.floor(lo / width) * width; from < hi; from += width) {
         const x = from + width / 2;
@@ -2224,6 +2309,12 @@ createServer(async (req, res) => {
       { type: "최대 생명력", value: "377857" },
     ];
   }
+  if (name === "긴카드") {
+    // The longest card names in the game (A37: the whole name shows, wrapped).
+    envelope.data.loadout.cards.items = [
+      "라제니스를 이끄는 니나브", "악몽의 아브렐슈드", "춤추는 쿠크세이튼", "부활하는 카제로스", "광기를 떨쳐낸 쿠크세이튼", "세상을 구하는 빛",
+    ].map((cardName, slot) => ({ slot, name: cardName, icon: null, awakeCount: 5, awakeTotal: 5, grade: "전설" }));
+  }
   if (name === "이미지" || name === "이미지실패") {
     // Generic official icon-atlas assets (not character data). The portrait is
     // per character, so it is only used when supplied locally via MOCK_PORTRAIT_URL.
@@ -2280,7 +2371,7 @@ createServer(async (req, res) => {
       detail: { parserVersion: "equipment-tooltip-v3", refineLevel, quality: 90, itemLevel: 1640 + refineLevel * 5, tier: 4, arkPassivePoint: null, effects: [], stoneEngravings: [], polishEffects: [], braceletEffects: [] },
     }));
   }
-  if (name === "상세" || name === "상세서포터" || name === "대세블레이드" || name === "가려짐긴값캐릭터" || name === "아크없음" || name === "효율준비중") {
+  if (name === "상세" || name === "상세서포터" || name === "서포터옛응답" || name === "대세블레이드" || name === "가려짐긴값캐릭터" || name === "아크없음" || name === "효율준비중" || name === "팔찌못읽음") {
     // Detail-page mock: a locally supplied character file (never committed) or
     // the synthetic fixture, enriched with synthetic Tooltip detail and skills.
     if (process.env.MOCK_CHARACTER_FILE)
@@ -2403,8 +2494,10 @@ createServer(async (req, res) => {
       skill("기본 스킬", 1, { partBreakLevel: 1, counter: true }),
     ];
     d.coverage.skills = "PROVIDED";
-    d.analysis.position = name === "상세서포터" ? "SUPPORT" : "DEALER";
-    d.analysis.positionEvidence = name === "상세서포터" ? "절실한 구원" : d.className;
+    // 서포터옛응답: the same supporter against a backend from before api #722.
+    const supportRole = name === "상세서포터" || name === "서포터옛응답";
+    d.analysis.position = supportRole ? "SUPPORT" : "DEALER";
+    d.analysis.positionEvidence = supportRole ? "절실한 구원" : d.className;
     d.analysis.positionRuleVersion = "position-v1";
     // Ark grid detail (F-4): six cores with options, gems and willpower.
     const icon = (path) => `https://cdn-lostark.game.onstove.com/efui_iconatlas/${path}`;
@@ -2488,7 +2581,10 @@ createServer(async (req, res) => {
     const realSupport = name === "상세서포터";
     d.braceletEfficiency.real = realSupport
       ? { status: "OK", reasonCode: null, reason: null, role: "SUPPORT", percent: 13.47857142857143, devilDamagePercent: null, ruleVersion: "bracelet-real-v1" }
-      : { status: "OK", reasonCode: null, reason: null, role: "DEALER", percent: 11.3, devilDamagePercent: 14.08, ruleVersion: "bracelet-real-v1" };
+      : name === "팔찌못읽음"
+        ? // api #706: an option the engine cannot read.
+          { status: "UNAVAILABLE", reasonCode: "UNKNOWN_OPTION", reason: "로그용 문장", role: "DEALER", percent: null, devilDamagePercent: null, ruleVersion: "bracelet-real-v1" }
+        : { status: "OK", reasonCode: null, reason: null, role: "DEALER", percent: 11.3, devilDamagePercent: 14.08, ruleVersion: "bracelet-real-v1" };
     d.arkGridEfficiency.real = {
       status: "OK", reasonCode: null, reason: null, percent: 4.67, optionsPercent: 3.21, pointsPercent: 1.41, ruleVersion: "ark-grid-real-v1",
       options: [

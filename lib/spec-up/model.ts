@@ -11,14 +11,17 @@ export type Cost = Schemas["CostResponse"];
 export type SpecUpChange = Schemas["ChangeResponse"];
 export type SpecUpEnvelope = { code: string; message: string; data: SpecUp };
 
+// 사용자 결정(PM 총괄 10-26): 전투력 증가 first and the default, then 효율, then 크라켄.
 export const SORTS = [
-  { id: "EFFICIENCY", label: "1만 골드당 효율" },
   { id: "DELTA", label: "전투력 증가" },
+  { id: "EFFICIENCY", label: "1만 골드당 효율" },
   // api #573: by the Kraken score gained per gold. Sent only now that the
   // screen knows it; the answer may come back as EFFICIENCY with a reason.
   { id: "KRAKEN", label: "크라켄 점수 순" },
 ] as const;
 export type Sort = (typeof SORTS)[number]["id"];
+/** The list a dealer sees first (the tab's first request); sent explicitly, not the api's own default. */
+export const DEFAULT_SORT: Sort = "DELTA";
 export const isSort = (value: unknown): value is Sort => SORTS.some((s) => s.id === value);
 /** An OK cost of 0: shown "추가 비용 없음", its per-gold figure not worked out (PM-프론트 10-18). */
 export const isFreeCost = (cost: { status: string; amount?: number | null } | null | undefined) =>
@@ -92,6 +95,28 @@ export function costRoom(amount: number) {
   const [unit, size] = units[top];
   const head = `${eights(String(Math.floor(a / size)).length + 1)}${unit}`;
   return [head, ...units.slice(top + 1).map(([u]) => `8,888${u}`), "8,888"].join(" ") + "G";
+}
+
+/**
+ * The price time of a gem cost (api #759): "21:05 시세" when fresh, "이전 시세
+ * 21:05" when the backend used the last-known price (stale) — never shown as
+ * current. A date is added when it is not today (KST). null for a cost without
+ * a price time (not a gem cost, or a backend from before #759).
+ */
+export function costPriceNote(
+  cost: { priceObservedAt?: string | null; stale?: boolean | null } | null | undefined,
+  now: number,
+): { stale: boolean; text: string } | null {
+  if (!cost?.priceObservedAt) return null;
+  const at = Date.parse(cost.priceObservedAt);
+  if (!Number.isFinite(at)) return null;
+  const kst = (ms: number) => new Date(ms + 9 * 3_600_000);
+  const d = kst(at);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const time = `${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`;
+  const today = kst(now).toISOString().slice(0, 10) === d.toISOString().slice(0, 10);
+  const when = today ? time : `${pad(d.getUTCMonth() + 1)}.${pad(d.getUTCDate())} ${time}`;
+  return cost.stale ? { stale: true, text: `이전 시세 ${when}` } : { stale: false, text: `${when} 시세` };
 }
 
 export function koreanGold(amount: number) {

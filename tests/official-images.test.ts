@@ -10,6 +10,8 @@ import test from "node:test";
 const FIXED: Record<string, string> = {
   // The landing preview's sample character: a constant official emblem.
   "components/landing/cockpit.tsx": "hero.emblem",
+  // Official class icons from a fixed table of file names (lib/stats/class-icons), not API data.
+  "components/stats/class-icon.tsx": "url",
   // Empty since the template's own pictures were dropped.
   "components/ui/bencho/reorder-list.tsx": "AVATARS[p.id]",
   // Callers pass safeGameImage results (command search).

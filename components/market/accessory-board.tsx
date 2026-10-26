@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, useId, useMemo, useState } from "react";
+import { DetailRow, ListingCard, RowExpander, listingKey, useOpenRows } from "./listing-detail";
 import { useRouter } from "next/navigation";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { SiteHeader } from "@/components/site/site-header";
@@ -172,6 +173,11 @@ export function AccessoryBoardView({ initialFilter, initialPick }: { initialFilt
   const data = board.data?.data;
   const page = listings.data?.data;
   const pages = page ? Math.max(1, Math.min(ACCESSORY_LISTING_MAX_PAGE, Math.ceil(page.totalCount / 10))) : 1;
+
+  // A listing's details open below its row (its arrow); several may be open.
+  const rows = useOpenRows(JSON.stringify([filter, pick]));
+  const detailId = useId();
+  const slotName = (pick && data?.slots.find((s) => s.slot === pick.slot)?.slotName) || "장신구";
   const latest = data?.slots
     .flatMap((slot) => slot.cells)
     .reduce<string | null>((at, cell) => (cell.observedAt && (!at || cell.observedAt > at) ? cell.observedAt : at), null);
@@ -301,15 +307,29 @@ export function AccessoryBoardView({ initialFilter, initialPick }: { initialFilt
                   </tr>
                 </thead>
                 <tbody key={listings.dataUpdatedAt}>
-                  {page.items.map((item, i) => (
-                    <tr key={`${item.name}-${i}`}>
-                      <th scope="row">{item.name}</th>
-                      <td>{item.quality ?? "-"}</td>
-                      <td className={stats.left}>{polishText(item) || "-"}</td>
-                      <td data-strong>{gold(item.buyPrice || null)}</td>
-                      <td>{item.tradeAllowCount == null ? "-" : item.tradeAllowCount === 0 ? "불가" : `${item.tradeAllowCount}회`}</td>
-                    </tr>
-                  ))}
+                  {page.items.map((item, i) => {
+                    const key = listingKey(item);
+                    const open = rows.isOpen(key);
+                    const id = `${detailId}-${i}`;
+                    return (
+                      <Fragment key={`${item.name}-${i}`}>
+                        <tr>
+                          <th scope="row">
+                            <RowExpander label={item.name} open={open} controls={id} onToggle={() => rows.toggle(key)} />
+                          </th>
+                          <td>{item.quality ?? "-"}</td>
+                          <td className={stats.left}>{polishText(item) || "-"}</td>
+                          <td data-strong>{gold(item.buyPrice || null)}</td>
+                          <td>{item.tradeAllowCount == null ? "-" : item.tradeAllowCount === 0 ? "불가" : `${item.tradeAllowCount}회`}</td>
+                        </tr>
+                        {open && (
+                          <DetailRow id={id} columns={5}>
+                            <ListingCard item={item} kind={slotName} observedAt={page.observedAt} />
+                          </DetailRow>
+                        )}
+                      </Fragment>
+                    );
+                  })}
                   {/* A short page keeps ten rows of room (box and page buttons stay put, A7). */}
                   {Array.from({ length: Math.max(0, 10 - page.items.length) }, (_, i) => (
                     <tr key={`filler-${i}`} aria-hidden="true" className={gems.filler}>

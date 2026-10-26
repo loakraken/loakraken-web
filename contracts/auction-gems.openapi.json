@@ -597,6 +597,17 @@
             "items": {
               "$ref": "#/components/schemas/AuctionListingOptionResponse"
             }
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "아이템 이미지 URL(공식 Icon 그대로). 공식 응답에 없으면 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -605,6 +616,7 @@
           "buyPrice",
           "endDate",
           "grade",
+          "icon",
           "name",
           "options",
           "quality",
