@@ -637,6 +637,19 @@
   color: var(--muted-foreground);
   font-size: 12px;
 }
+/* Role colours (#1108): a gem's points, willpower and the options of this
+   character's role in the text colour, the other role's options grey
+   (--muted-foreground, AA on the panel). No role known: all in the text colour. */
+.gemRows small {
+  color: var(--foreground);
+}
+.gemRows small span {
+  display: inline;
+}
+.gemRows small [data-other-role],
+.gradeLine[data-other-role] {
+  color: var(--muted-foreground);
+}
 .stoneBonus {
   margin-top: 12px;
   padding-top: 10px;

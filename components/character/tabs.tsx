@@ -909,6 +909,8 @@ function GemsPanel({ data }: { data: Character }) {
 function ArkGridPanel({ data }: { data: Character }) {
   const grid = data.loadout.arkGrid;
   const summary = data.analysis.arkGrid;
+  // Gem options of the other role's family go grey (#1108); no role, none do.
+  const role = positionOf(data);
   const [expanded, setExpanded] = useState(false);
   const extra = useItemTooltips(data.characterName);
   // Off on this deployment: as if there were no efficiency (nothing drawn).
@@ -1026,15 +1028,25 @@ function ArkGridPanel({ data }: { data: Character }) {
                               <span>
                                 <strong>{text(gem.name)}</strong>
                                 <small>
+                                  {/* One piece per fact; a gem option that does not count
+                                      for this character's role goes grey (#1108). */}
                                   {[
-                                    gem.corePoint != null && `포인트 ${gem.corePoint}`,
-                                    gem.requiredWillpower != null && `의지력 ${gem.requiredWillpower}`,
-                                    ...gem.options.map(
-                                      (o) => `${o.name}${o.level != null ? ` Lv.${o.level}` : ""}`,
-                                    ),
+                                    gem.corePoint != null ? { text: `포인트 ${gem.corePoint}`, counts: null } : null,
+                                    gem.requiredWillpower != null
+                                      ? { text: `의지력 ${gem.requiredWillpower}`, counts: null }
+                                      : null,
+                                    ...gem.options.map((o) => ({
+                                      text: `${o.name}${o.level != null ? ` Lv.${o.level}` : ""}`,
+                                      counts: gridOptionCounts(o.name ?? "", role),
+                                    })),
                                   ]
-                                    .filter(Boolean)
-                                    .join(" · ")}
+                                    .filter((piece) => piece != null)
+                                    .map((piece, k) => (
+                                      <span key={k} data-other-role={piece.counts === false || undefined}>
+                                        {k > 0 && " · "}
+                                        {piece.text}
+                                      </span>
+                                    ))}
                                 </small>
                               </span>
                             </li>
