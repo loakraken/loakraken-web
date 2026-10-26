@@ -14,8 +14,9 @@ for (const scheme of ["light", "dark"])
       // Four of eleven slots filled: the empty ones are counted.
       await expect(panel.locator("header")).toContainText("평균 7.75 · 겁 2 · 작 2 · 미장착 7");
       const chips = panel.locator("li > span[data-gem]");
-      await expect(chips).toHaveText(["10겁", "8작", "6겁", "7작"]);
-      await expect(chips.nth(2)).toHaveAttribute("data-gem", "damage");
+      // Damage gems first, then cooldown gems (#1100); 광휘 by its effect.
+      await expect(chips).toHaveText(["10겁", "6겁", "8작", "7작"]);
+      await expect(chips.nth(1)).toHaveAttribute("data-gem", "damage");
       await expect(chips.nth(3)).toHaveAttribute("data-gem", "cooldown");
       // The official name is not on screen (screen readers still get it).
       const fullName = await panel.getByText("6레벨 광휘의 보석").boundingBox();
