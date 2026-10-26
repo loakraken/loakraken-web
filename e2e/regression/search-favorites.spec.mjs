@@ -33,9 +33,11 @@ test("탭: 최근 본 / 즐겨찾기, ←/→로 바꾸고 빈 즐겨찾기는 �
   await fav.click();
   await expect(fav).toHaveAttribute("aria-selected", "true");
   await expect(page.getByText("캐릭터의 즐겨찾기 표시를 누르면 여기에 모아 둘 수 있어요.")).toBeVisible();
-  // Keyboard on the tabs: ← back to 최근 본, focus stays on a tab.
+  // Keyboard on the tabs (manual activation): ← moves to 최근 본, Enter picks it; focus stays on the tab.
   await fav.focus();
   await page.keyboard.press("ArrowLeft");
+  await expect(recent).toBeFocused();
+  await page.keyboard.press("Enter");
   await expect(recent).toHaveAttribute("aria-selected", "true");
   await expect(recent).toBeFocused();
   await page.keyboard.press("Escape");
@@ -72,7 +74,8 @@ test("Shift+Enter로 즐겨찾기에 넣고(읽히는 이름·상태 줄), 새�
 test("캐릭터 화면: 즐겨찾기 단추(눌림 상태)와 같은 드롭다운의 검색 칸 @regression", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await gotoReady(page, characterPath("상세"));
-  const toggle = page.getByRole("button", { name: "즐겨찾기", exact: true });
+  // The page's own 즐겨찾기 button (tab bar, wide screens), the same list as the dropdown.
+  const toggle = page.getByRole("button", { name: /^즐겨찾기( 해제)?$/ }).and(page.locator("[aria-pressed]")).last();
   await expect(toggle).toHaveAttribute("aria-pressed", "false");
   await toggle.click();
   await expect(toggle).toHaveAttribute("aria-pressed", "true");
@@ -135,8 +138,17 @@ for (const scheme of ["light", "dark"])
       const panel = await page.locator(".rsp").boundingBox();
       expect(panel.x).toBeGreaterThanOrEqual(0);
       expect(panel.x + panel.width).toBeLessThanOrEqual(width);
-      const cut = await page.locator(".rsp-top [role=tab], .rsp-top span").evaluateAll((els) =>
-        els.filter((el) => el.scrollWidth > el.clientWidth + 1).map((el) => el.textContent),
+      // Each tab's label text inside its tab (the pill layer's clipped copies are by design).
+      const cut = await page.locator(".rsp-top [role=tab]").evaluateAll((els) =>
+        els
+          .filter((el) => {
+            const box = el.getBoundingClientRect();
+            const range = document.createRange();
+            range.selectNodeContents(el);
+            const text = range.getBoundingClientRect();
+            return text.left < box.left - 1 || text.right > box.right + 1;
+          })
+          .map((el) => el.textContent),
       );
       expect(cut, "탭·안내 잘림").toEqual([]);
       await expectNoHorizontalOverflow(page);

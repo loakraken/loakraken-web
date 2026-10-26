@@ -10,14 +10,13 @@ import {
   useId,
   useRef,
   useState,
-  useSyncExternalStore,
   type FormEvent,
   type KeyboardEvent,
 } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, ArrowRight, Bookmark, BookmarkBold, RefreshArrow, SearchNormal } from "@/components/ui/icons";
+import { ArrowLeft, ArrowRight, RefreshArrow, SearchNormal } from "@/components/ui/icons";
 import { LandingMotion } from "@/components/landing/motion";
 import { InlineOrb } from "@/components/landing/orb";
 import { CharacterQueryError, fetchCharacter } from "@/lib/character/client";
@@ -31,7 +30,6 @@ import {
 } from "@/lib/character/model";
 import { SiteHeader } from "@/components/site/site-header";
 import { recordRecent } from "@/lib/character/recent";
-import { favoritesSnapshot, parseFavorites, subscribeFavorites, toggleStoredFavorite } from "@/lib/character/favorites";
 import { CharacterBanner } from "./imagery";
 import { BannerRank } from "./banner-rank";
 import { KrakenScoreStrip } from "./kraken-score-metric";
@@ -170,34 +168,6 @@ function SearchBox({ name }: { name: string }) {
   );
 }
 
-/**
- * 즐겨찾기 on the character page (#1119): a real toggle (aria-pressed), kept
- * in this browser only; the search dropdown's 즐겨찾기 tab lists them.
- */
-function FavoriteToggle({ data }: { data: Character }) {
-  const list = parseFavorites(useSyncExternalStore(subscribeFavorites, favoritesSnapshot, () => "[]"));
-  const on = list.some((item) => item.name === data.characterName);
-  return (
-    <button
-      type="button"
-      className={`${styles.favorite} hit-44`}
-      aria-pressed={on}
-      aria-label="즐겨찾기"
-      data-on={on || undefined}
-      onClick={() =>
-        toggleStoredFavorite({
-          name: data.characterName,
-          server: data.serverName,
-          className: data.className,
-          itemLevel: data.itemLevel,
-        })
-      }
-    >
-      {on ? <BookmarkBold size={18} aria-hidden="true" /> : <Bookmark size={18} aria-hidden="true" />}
-    </button>
-  );
-}
-
 /** Banner and facts: re-rendered only when the character data changes (not on clock ticks). */
 const Banner = memo(function Banner({ data }: { data: Character }) {
   const position = positionOf(data);
@@ -210,10 +180,7 @@ const Banner = memo(function Banner({ data }: { data: Character }) {
           <p className={styles.bannerKicker}>
             {data.serverName} · {data.className}
           </p>
-          <div className={styles.bannerNameRow}>
-            <h1 className={styles.bannerName}>{data.characterName}</h1>
-            <FavoriteToggle data={data} />
-          </div>
+          <h1 className={styles.bannerName}>{data.characterName}</h1>
           {data.title && (
             <p className={styles.bannerTitle}>{data.title}</p>
           )}

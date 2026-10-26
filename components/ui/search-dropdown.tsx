@@ -49,7 +49,7 @@ export default function SearchDropdown({
         onPick={(item) => rows.find((r) => r.id === item.id)?.run()}
         header={
           <div className="grid gap-1.5">
-            {results.showTabs && <SearchTabs tab={results.tab} onTab={results.setTab} onEscape={onEscape} />}
+            <SearchTabs tab={results.tab} onTab={results.setTab} onEscape={onEscape} hidden={!results.showTabs} />
             <span>{SEARCH_HINT}</span>
           </div>
         }

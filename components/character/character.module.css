@@ -393,32 +393,6 @@
 /* Type sizes sit inside the range Korean Lost Ark info sites share (name
    20-24, key figures 20-26, labels 11-14) using Apple scale steps, so the
    portrait stays the visual anchor and the name reads as a label. */
-/* The name and its 즐겨찾기 toggle (#1119): the toggle never pushes the name
-   onto two lines by itself (it sits at the end, the name wraps first). */
-.bannerNameRow {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-}
-.favorite {
-  position: relative;
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  margin-top: 4px;
-  border-radius: 50%;
-  color: var(--band-muted, var(--muted-foreground));
-}
-.favorite[data-on] {
-  color: var(--accent-warm);
-}
-.favorite:focus-visible {
-  outline: 2px solid var(--ring);
-  outline-offset: 2px;
-}
 .bannerName {
   margin-top: 4px;
   font-size: 24px;

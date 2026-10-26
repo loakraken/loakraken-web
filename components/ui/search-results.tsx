@@ -103,7 +103,7 @@ export function useSearchResults({ open, text, onLeave }: { open: boolean; text:
   const flags = useNavFlags(open)
   const recent = readSnapshot(React.useSyncExternalStore(subscribeRecent, recentSnapshot, () => "|[]")).list
   const favorites = parseFavorites(React.useSyncExternalStore(subscribeFavorites, favoritesSnapshot, () => "[]"))
-  const starred = new Set(favorites.map((c) => c.name))
+  const starred = new Set(favorites)
   const [writable] = React.useState(favoritesWritable)
   const choice = useThemeChoice()
   const popular = useQuery({
@@ -143,7 +143,7 @@ export function useSearchResults({ open, text, onLeave }: { open: boolean; text:
     goCharacter(name)
   }
   const toggle = (character: Character) => {
-    const now = toggleStoredFavorite(character)
+    const now = toggleStoredFavorite(character.name)
     setStatus(
       !writable
         ? "이 브라우저는 저장소를 쓸 수 없어 즐겨찾기를 저장하지 못해요."
@@ -195,7 +195,12 @@ export function useSearchResults({ open, text, onLeave }: { open: boolean; text:
 
   const groups: (Omit<ResultGroup, "items"> & { items: SearchRow[] })[] = []
   if (!query) {
-    const list = tab === "recent" ? recent.slice(0, 10) : favorites
+    // Favourites are names; what the recent list knows about them fills the row.
+    const known = new Map(recent.map((c) => [c.name, c]))
+    const list =
+      tab === "recent"
+        ? recent.slice(0, 10)
+        : favorites.map((name) => known.get(name) ?? { name, server: null, className: null, itemLevel: null })
     groups.push({
       id: "tab",
       reserve: TAB_ROWS,
@@ -380,15 +385,21 @@ export function SearchTabs({
   tab,
   onTab,
   onEscape,
+  hidden = false,
 }: {
   tab: SearchTab
   onTab: (tab: SearchTab) => void
   /** Escape from a tab closes the panel the same way as from the field (#1119 c). */
   onEscape?: () => void
+  /** While a name is typed: out of sight and out of reach, but its room kept,
+      so the first letter moves nothing in the panel (A7). */
+  hidden?: boolean
 }) {
   return (
     <div
       data-slot="search-tabs"
+      className={hidden ? "invisible" : undefined}
+      inert={hidden || undefined}
       onKeyDown={(event) => {
         if (event.key === "Escape" && onEscape) {
           event.preventDefault()
