@@ -5,6 +5,13 @@
   margin: 0 auto;
   padding: 0 24px 64px;
 }
+/* The character ranking's 11 columns are 98em (about 1268px, sized for real
+   data's longest values): a wide screen gives the page that room, so the
+   table shows whole instead of scrolling inside 1120px (#1114). Narrower
+   screens keep scrolling the table in its own box. */
+.mainWide {
+  max-width: 1340px;
+}
 .filters {
   display: flex;
   flex-wrap: wrap;
