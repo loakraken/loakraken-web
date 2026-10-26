@@ -268,7 +268,8 @@
 }
 .days {
   display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
+  /* --days from the board (8 days a week strip): every day on one line. */
+  grid-template-columns: repeat(var(--days, 7), minmax(0, 1fr));
   gap: 6px;
   margin-bottom: 14px;
 }
@@ -313,14 +314,19 @@
   transform: translateX(-50%);
 }
 /* On a phone a day takes 44px to press (hit-44 rule on ::before — ::after is
-   the today dot); 41px days 6px apart, so neighbours never overlap. */
+   the today dot). Eight days on a 320 screen are about 30px apart, so the
+   area spans the day and half the gap each side: 44px tall, as wide as the
+   step, and neighbours never overlap (a press always picks the day seen). */
 @media (max-width: 699px), (pointer: coarse) {
+  .days {
+    gap: 4px;
+  }
   .days button::before {
     content: "";
     position: absolute;
     left: 50%;
     top: 50%;
-    width: max(100%, 44px);
+    width: calc(100% + 4px);
     height: max(100%, 44px);
     translate: -50% -50%;
   }
