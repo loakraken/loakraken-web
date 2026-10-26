@@ -364,9 +364,11 @@
   font-size: 12px;
   font-weight: 500;
 }
+/* One line each while there is room; on a narrow row a long line (the longest
+   real one is a supporter's 세레나데·신앙·조화 게이지 line) wraps inside the
+   row instead of running past the panel (long-text guard, #1108). */
 .item .gradeList {
-  flex: 0 0 auto;
-  white-space: nowrap;
+  flex: 0 1 auto;
 }
 .gradeList {
   list-style: none;
