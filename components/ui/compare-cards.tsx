@@ -14,7 +14,8 @@ import { cn } from "cn"
 // The strip is a named region and a tab stop only while it overflows, like
 // DataTable, so a keyboard can scroll it.
 
-type CompareRow = { id: string; label: string }
+/** `note`: what the row means, as the name's tooltip (e.g. what is averaged). */
+type CompareRow = { id: string; label: string; note?: string }
 
 type CompareCard = {
   id: string
@@ -94,7 +95,7 @@ function CompareCards({ label, rows, cards, className }: CompareCardsProps) {
                   data-best={best || undefined}
                   className="flex min-h-9 items-center justify-between gap-3 border-t border-border py-1.5"
                 >
-                  <dt className="truncate text-(length:--text-caption) text-muted-foreground">{row.label}</dt>
+                  <dt className="truncate text-(length:--text-caption) text-muted-foreground" title={row.note}>{row.label}</dt>
                   <dd className={cn("flex shrink-0 items-center gap-1.5 tabular-nums whitespace-nowrap", best && "font-semibold")}>
                     {best && (
                       <span className="rounded-full bg-secondary px-1.5 text-[11px] leading-[18px] font-medium text-foreground">

@@ -504,6 +504,19 @@
   font-size: 11px;
   overflow-wrap: anywhere;
 }
+/* Damage gems, then cooldown gems, each under a small title (#1100). */
+.gemGroup + .gemGroup {
+  margin-top: 16px;
+}
+.gemGroup h3 {
+  margin-bottom: 8px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-weight: 600;
+}
+.gemGroup h3 span {
+  font-variant-numeric: tabular-nums;
+}
 
 /* Ark grid */
 .effectGrid {
