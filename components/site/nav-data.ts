@@ -99,6 +99,7 @@ export const NAV_SECTIONS: NavSection[] = [
     groups: [
       {
         title: "캐릭터 성장",
+        href: "/tools/refining",
         links: [
           // 사용자 지적(PM-프론트 21:27): the simulator was missing from the menu.
           { label: "전투력 시뮬레이터", description: "무엇을 바꾸면 전투력이 얼마나 오르는지", href: "/tools/combat-power", flag: "combatPower" },
@@ -108,6 +109,7 @@ export const NAV_SECTIONS: NavSection[] = [
       },
       {
         title: "레이드",
+        href: "/tools/raid-rewards",
         links: [
           { label: "레이드 보상표", description: "관문별 골드·더보기 비용", href: "/tools/raid-rewards" },
           { label: "더보기 손익", description: "관문마다 더보기가 남는지 지금 시세로", href: "/tools/more-reward" },
@@ -118,6 +120,7 @@ export const NAV_SECTIONS: NavSection[] = [
       },
       {
         title: "골드 효율",
+        href: "/tools/loa-shop",
         links: [
           { label: "로아샵 효율", description: "상점 패키지 구성품을 지금 시세로", href: "/tools/loa-shop" },
           { label: "아비도스 제작 손익", description: "융화 재료 1회 제작 비용과 손익", href: "/tools/abidos-craft" },

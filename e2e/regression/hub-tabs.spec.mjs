@@ -36,7 +36,8 @@ test.describe("묶음 화면 탭 @regression", () => {
     await expect(tabRow(page, "레이드").getByRole("link", { name: "더보기 손익", exact: true })).toHaveAttribute("aria-current", "page");
     await tabRow(page, "레이드").getByRole("link", { name: "경매 입찰가", exact: true }).focus();
     await page.keyboard.press("Enter");
-    await expect(page).toHaveURL(/\/tools\/auction$/);
+    // The tool may add its own default inputs to the query (?party=8).
+    await expect(page).toHaveURL(/\/tools\/auction(\?|$)/);
   });
 
   test("예전 재료 구매 견적 주소는 쿼리를 지닌 채 /market/quote로 308, sitemap은 새 주소만", async ({ page }) => {
@@ -73,8 +74,18 @@ test.describe("묶음 화면 탭 @regression", () => {
         await page.goto(path);
         const row = page.locator('nav[aria-label$=" 화면"]');
         await expect(row).toBeVisible();
+        // Cut = clipped text: hit-44's larger tap area sticks out of each tab on
+        // phones (scrollWidth) without hiding any of its label.
         const cut = await row.evaluate((nav) =>
-          [...nav.querySelectorAll("a")].filter((a) => a.scrollWidth > a.clientWidth + 1).map((a) => a.textContent),
+          [...nav.querySelectorAll("a")]
+            .filter((a) => {
+              const text = document.createRange();
+              text.selectNodeContents(a);
+              const style = getComputedStyle(a);
+              const room = a.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+              return text.getBoundingClientRect().width > room + 1;
+            })
+            .map((a) => a.textContent),
         );
         expect(cut, `${path}: 잘린 탭`).toEqual([]);
         await expectNoHorizontalOverflow(page);
