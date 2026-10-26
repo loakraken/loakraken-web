@@ -1,5 +1,7 @@
 "use client";
 
+import { HubTabs } from "@/components/site/hub-tabs";
+
 import { Fragment, useEffect, useId, useState } from "react";
 import { DetailRow, ListingCard, RowExpander, listingKey, useOpenRows } from "./listing-detail";
 import { useRouter } from "next/navigation";
@@ -288,6 +290,7 @@ export function GemBoardView({
           <p className={quote.heroKicker}>경매장</p>
           <h1 id="gems-heading">보석 시세</h1>
           <p className={quote.heroCopy}>4티어 겁화·작열 보석의 레벨별 즉시 구매 최저가예요. 칸을 누르면 싼 매물부터 보여 드려요.</p>
+          <HubTabs hub="market" />
         </section>
 
         <p className={stats.notice}>

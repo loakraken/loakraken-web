@@ -95,5 +95,7 @@ test("@집계중 장신구판도 같은 부품 @regression", async ({ page }) =>
   await gotoReady(page, "/market/accessories");
   const label = page.getByRole("region", { name: /^반지/ }).locator('[data-slot="pending-text"]');
   await expect(label).toHaveText("집계 중");
+  // The shimmer pauses off screen; the 시세 tab row (#1142) puts 반지 just below the fold.
+  await label.scrollIntoViewIfNeeded();
   await expect.poll(async () => (await read(label)).animations).toEqual([RUNNING, RUNNING]);
 });

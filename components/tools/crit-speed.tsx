@@ -1,5 +1,7 @@
 "use client";
 
+import { HubTabs } from "@/components/site/hub-tabs";
+
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import Link from "next/link";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
@@ -814,6 +816,7 @@ function CritSpeedContent({ initialName }: { initialName: string }) {
           <Link href="/" className={quote.back}>
             <ArrowLeft size={14} aria-hidden="true" /> 캐릭터 검색으로
           </Link>
+          <HubTabs hub="growth" />
         </section>
 
         <div className={quote.band}>

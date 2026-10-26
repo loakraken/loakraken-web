@@ -44,7 +44,7 @@ const FLOWS = [
   },
   {
     name: "재료 견적 검색",
-    path: "/tools/material-quote",
+    path: "/market/quote",
     api: "**/api/markets/items**",
     start: async (page) => {
       await expect(page.getByRole("tablist", { name: "카테고리" })).toBeVisible();

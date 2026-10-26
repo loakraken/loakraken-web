@@ -1,5 +1,7 @@
 "use client";
 
+import { HubTabs } from "@/components/site/hub-tabs";
+
 import { Fragment, useId, useMemo, useState } from "react";
 import { DetailRow, ListingCard, RowExpander, listingKey, useOpenRows } from "./listing-detail";
 import { useRouter } from "next/navigation";
@@ -211,6 +213,7 @@ export function AccessoryBoardView({ initialFilter, initialPick }: { initialFilt
           <p className={quote.heroKicker}>경매장</p>
           <h1 id="accessories-heading">장신구 시세</h1>
           <p className={quote.heroCopy}>4티어 장신구를 부위별 핵심 연마 효과의 등급 조합으로 나눠 즉시 구매 최저가를 보여줘요.</p>
+          <HubTabs hub="market" />
         </section>
 
         <form className={stats.filters} onSubmit={(e) => e.preventDefault()} aria-label="장신구 시세 조건">

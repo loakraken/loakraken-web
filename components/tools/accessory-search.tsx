@@ -1,4 +1,6 @@
 "use client";
+
+import { HubTabs } from "@/components/site/hub-tabs";
 // T4 악세 경매 검색기 (checklist N13, backend #431). Conditions go to the
 // backend, which reads the official auction house; the list shows each
 // listing as the official answer has it. The official count is not shown as
@@ -159,6 +161,7 @@ export function AccessorySearchTool() {
           <Link href="/tools" className={quote.back}>
             <ArrowLeft size={14} aria-hidden="true" /> 도구 전체
           </Link>
+          <HubTabs hub="market" />
         </section>
 
         <div className={quote.band}>

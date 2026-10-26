@@ -114,7 +114,7 @@ test.describe("재련 기대 비용 사용자 제보 @regression", () => {
   });
 
   test("재료 구매 견적에도 1·2·3 번호가 없다", async ({ page }) => {
-    await page.goto("/tools/material-quote");
+    await page.goto("/market/quote");
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     await expect(page.locator("main section > p").filter({ hasText: /^\s*[1-3]\s*$/ })).toHaveCount(0);
   });
