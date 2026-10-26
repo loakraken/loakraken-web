@@ -27,6 +27,7 @@ import {
   costPriceNote,
   costRoom,
   koreanGold,
+  DEFAULT_SORT,
   specUpQuery,
   splitCandidates,
   tryParam,
@@ -123,21 +124,21 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
   const name = data.characterName;
   // For gem price times ("21:05 시세" / a date when not today).
   const now = useClock(MINUTE);
-  const [sort, setSort] = useState<Sort>(supporter ? "KRAKEN" : "EFFICIENCY");
+  const [sort, setSort] = useState<Sort>(supporter ? "KRAKEN" : DEFAULT_SORT);
   // 크라켄 점수 순 (api #573) leaves 작열 (cooldown) gems out by default; the user can add them.
   const [cooldown, setCooldown] = useState(false);
-  // The efficiency list (the tab's first answer) tells whether the backend
-  // knows 크라켄 점수 (api #573 fields present). If not, 크라켄 점수 순 is not
+  // The first list (the tab's first answer) tells whether the backend knows
+  // 크라켄 점수 (api #573 fields present). If not, 크라켄 점수 순 is not
   // sent — an older backend refuses the value — and the list stays as it is.
   const queryClient = useQueryClient();
-  const efficiency = queryClient.getQueryData<{ data: { krakenRuleVersion?: unknown; krakenSortUnavailableReason?: unknown } }>(
-    specUpQuery(name, data.fetchedAt, "EFFICIENCY"),
+  const first = queryClient.getQueryData<{ data: { krakenRuleVersion?: unknown; krakenSortUnavailableReason?: unknown } }>(
+    specUpQuery(name, data.fetchedAt, DEFAULT_SORT),
   )?.data;
   // A supporter's first answer was already a scored 크라켄 list (the tab checked).
   const krakenKnown = supporter
     ? true
-    : efficiency
-      ? efficiency.krakenRuleVersion !== undefined || efficiency.krakenSortUnavailableReason !== undefined
+    : first
+      ? first.krakenRuleVersion !== undefined || first.krakenSortUnavailableReason !== undefined
       : null;
   const requestSort: Sort = sort === "KRAKEN" && krakenKnown === false ? "EFFICIENCY" : sort;
   const includeCooldownGems = requestSort === "KRAKEN" ? cooldown : null;

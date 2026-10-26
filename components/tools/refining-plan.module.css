@@ -198,6 +198,13 @@
   font-size: var(--text-body);
   font-variant-numeric: tabular-nums;
 }
+/* #1128: at 320 the three selects of a part get ~58px; 12px sides left 16px
+   for "+18" (22px). Narrower sides on small phones keep the stage whole. */
+@media (max-width: 380px) {
+  .mini [data-slot="select"] {
+    padding: 0 6px 0 8px;
+  }
+}
 .mini [data-slot="select"]:focus-visible,
 .mini input:focus-visible {
   outline: none;

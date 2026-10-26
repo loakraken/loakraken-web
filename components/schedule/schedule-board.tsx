@@ -3,7 +3,7 @@
 // The weekly schedule board: the home card and the dedicated /schedule page
 // share it (the page adds category routes and shows every official category).
 
-import { useEffect, useId, useState, type MouseEvent } from "react";
+import { useEffect, useId, useState, type CSSProperties, type MouseEvent } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { keepPreviousData, useQueries, useQuery } from "@tanstack/react-query";
@@ -148,14 +148,17 @@ function RowRewards({ name, groups, entry }: { name: string; groups: RewardGroup
   const [open, setOpen] = useState(false);
   const id = useId();
   const { top, rest } = rewardSummary(groups);
-  if (!top.length && !entry) return null;
+  // 자세히 only when it shows more than the row (#1096): rewards cut off at
+  // three, or a merged row's places. Otherwise it repeated the same icons.
+  const more = rest > 0 || (!!entry && "places" in entry && entry.places.length > 0);
+  if (!top.length && !more) return null;
   return (
     <>
       <ul className={styles.rewardItems} aria-label={`${name} 보상`}>
         {top.map((reward) => (
           <RewardItem key={reward.name} reward={reward} />
         ))}
-        <li>
+        {more && <li>
           <button
             type="button"
             className={styles.rewardMore}
@@ -174,9 +177,9 @@ function RowRewards({ name, groups, entry }: { name: string; groups: RewardGroup
               <span data-on={open || undefined}>접기</span>
             </span>
           </button>
-        </li>
+        </li>}
       </ul>
-      {open && (
+      {open && more && (
         <div id={id} className={styles.rewardPanel}>
           {entry && <EntryInfo entry={entry} />}
           {groups.map((group, i) => {
@@ -197,19 +200,23 @@ function RowRewards({ name, groups, entry }: { name: string; groups: RewardGroup
   );
 }
 
-/** Where and from which level a chaos gate or field boss row runs (its 자세히 panel). */
-type Entry = { places: Place[] } | { minItemLevel: number | null };
+/** Where a merged chaos gate or field boss row runs (its 자세히 panel). */
+type Entry = { places: Place[] };
 
 const levelText = (level: number | null | undefined) =>
   level && level > 1 ? `${level.toLocaleString("ko-KR")} 이상` : "레벨 제한 없음";
 
+/**
+ * Rows by their first round, then the higher entry level first within the
+ * same time (#1096). Fixed by the data, not the clock: rows never reorder as
+ * rounds pass (A7). Rows with no round today go last.
+ */
+function byTimeThenLevel(items: Row[]) {
+  const first = (item: Row) => (item.startTimes.length ? Date.parse(item.startTimes[0]) : Infinity);
+  return [...items].sort((a, b) => first(a) - first(b) || (b.minItemLevel ?? 0) - (a.minItemLevel ?? 0));
+}
+
 function EntryInfo({ entry }: { entry: Entry }) {
-  if (!("places" in entry))
-    return (
-      <section aria-label="입장">
-        <h3>입장 {levelText(entry.minItemLevel)}</h3>
-      </section>
-    );
   return (
     <section aria-label="지역">
       <h3>지역 {entry.places.length}곳</h3>
@@ -269,12 +276,12 @@ function Section({
   clock,
   hidePast,
   onShowTomorrow,
-  levelInDetail = false,
+  withPlaces = false,
 }: {
   title: string;
   items: Row[];
-  /** Chaos gates and field bosses: no level line on the row, it is in 자세히. */
-  levelInDetail?: boolean;
+  /** Chaos gates and field bosses: a merged row lists its places (last line, 자세히). */
+  withPlaces?: boolean;
   live: boolean;
   /** The board clock (server render time until the client clock starts), so
    *  past rounds are already hidden in the first HTML (CLS, QA #181). */
@@ -327,27 +334,25 @@ function Section({
         )}
       </header>
       <ul className={styles.rows}>
-        {items.map((item) => (
+        {byTimeThenLevel(items).map((item) => (
           <li key={`${"category" in item ? item.category : ""}${item.name}`}>
             <RowIcon src={item.icon} />
             <span className={styles.rowName}>
               <strong>{item.name}</strong>
-              {levelInDetail ? (
-                item.places && <small>{item.places.length}곳</small>
-              ) : (
-                <small>
-                  {"category" in item && `${item.category} · `}
-                  {levelText(item.minItemLevel)}
-                </small>
-              )}
+              {/* The level stays on the row; a merged row's places go last (#1096). */}
+              <small>
+                {"category" in item && `${item.category} · `}
+                {levelText(item.minItemLevel)}
+              </small>
             </span>
             {"rewardKinds" in item && <Rewards kinds={item.rewardKinds} />}
             <Times times={item.startTimes} now={now} hidePast={hidePast} />
             <RowRewards
               name={item.name}
               groups={item.rewardGroups}
-              entry={levelInDetail ? (item.places ? { places: item.places } : { minItemLevel: item.minItemLevel }) : undefined}
+              entry={withPlaces && item.places ? { places: item.places } : undefined}
             />
+            {withPlaces && item.places && <small className={own.placeLine}>지역 {item.places.length}곳</small>}
           </li>
         ))}
       </ul>
@@ -476,7 +481,9 @@ export function ScheduleBoard({
         </p>
       )}
       {data && (
-        <div className={styles.days} role="group" aria-label="요일 선택">
+        // As many columns as days (8 for a week that ends on its reset day):
+        // a fixed 7 put the last day alone on a second line (#1096).
+        <div className={styles.days} role="group" aria-label="요일 선택" style={{ "--days": week.length } as CSSProperties}>
           {week.map((day) => {
             const kinds = weekKinds.get(day.date) ?? null;
             const running = kinds?.filter((kind) => kind.on).map((kind) => `, ${kind.label}`).join("") ?? "";
@@ -551,7 +558,7 @@ export function ScheduleBoard({
               title={group.label}
               hidePast={hidePast}
               onShowTomorrow={showTomorrow}
-              levelInDetail={group.key === "chaos-gate" || group.key === "field-boss"}
+              withPlaces={group.key === "chaos-gate" || group.key === "field-boss"}
               items={group.items}
               live={live}
               clock={now}
@@ -585,7 +592,7 @@ export function ScheduleBoard({
             title="카오스게이트"
             hidePast={hidePast}
             onShowTomorrow={showTomorrow}
-            levelInDetail
+            withPlaces
             items={mergeSameRounds(running(data.chaosGates), "카오스게이트")}
             live={live}
             clock={now}
@@ -594,7 +601,7 @@ export function ScheduleBoard({
             title="필드 보스"
             hidePast={hidePast}
             onShowTomorrow={showTomorrow}
-            levelInDetail
+            withPlaces
             items={mergeSameRounds(running(data.fieldBosses), "필드 보스")}
             live={live}
             clock={now}
