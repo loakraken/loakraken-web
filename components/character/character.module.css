@@ -407,26 +407,22 @@
   font-size: 15px;
 }
 /* The name and, on a narrow screen, its favourite toggle (#1148). */
+/* The name stays a full-width block: its box is the left column's edge (A37,
+   banner-text e2e). On a narrow screen it keeps room on its right for the
+   toggle, which sits there on the name's first line. */
 .bannerNameRow {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-}
-.bannerNameRow .bannerName {
-  min-width: 0;
+  position: relative;
 }
 .bannerFavorite {
   display: none;
-  position: relative;
-  flex: none;
+  position: absolute;
+  /* Centred on the name's first line (21px × 1.25 under its 4px margin), even
+     when a long name wraps; out of flow, so the row keeps the name's height. */
+  top: 1px;
+  right: 0;
   place-items: center;
   width: 32px;
   height: 32px;
-  /* Centred on the name's first line (21px × 1.25 under its 4px margin), even
-     when a long name wraps; the negative bottom keeps the row the name's height. */
-  align-self: flex-start;
-  margin-block: 1px -4px;
   border-radius: 50%;
   color: inherit;
   touch-action: manipulation;
@@ -462,6 +458,9 @@
 @media (max-width: 560px) {
   .bannerFavorite {
     display: grid;
+  }
+  .bannerNameRow .bannerName {
+    padding-right: 38px;
   }
 }
 .bannerMetrics {
