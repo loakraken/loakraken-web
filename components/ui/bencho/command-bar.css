@@ -37,7 +37,7 @@
    correction exists for `move`, which measures screen pixels —
    applying it to morph shrinks the silhouette below the
    element it belongs to. */
-.cmd-slot { display: block; }
+.cmd-slot { display: block; flex: 1; min-width: 0; }
 
 .cmd {
   position: relative;
@@ -54,7 +54,8 @@
      out — both boxes keep the open sizes (266 + 8 + 46) from the
      first frame and only the button's scale changes, so nothing
      re-lays out when the first character goes in. */
-  width: 266px;
+  /* Ours (#1113): no send button, so the field is the whole bar. */
+  width: 100%;
   /* smaller: 54 was a bar you could have put two lines in */
   height: 56px;
   /* the right side is padded for the mic rather than for text */
