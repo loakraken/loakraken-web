@@ -406,6 +406,66 @@
   color: var(--band-muted);
   font-size: 15px;
 }
+/* The name and, on a narrow screen, its favourite toggle (#1148). */
+/* The name stays a full-width block: its box is the left column's edge (A37,
+   banner-text e2e). On a narrow screen it keeps room on its right for the
+   toggle, which sits there on the name's first line. */
+.bannerNameRow {
+  /* flow-root: the name's top margin stays inside, so the toggle's offset
+     below is measured from the same place. */
+  display: flow-root;
+  position: relative;
+}
+.bannerFavorite {
+  display: none;
+  position: absolute;
+  /* Centred on the name's first line (21px × 1.25 under its 4px margin), even
+     when a long name wraps; out of flow, so the row keeps the name's height. */
+  top: 1px;
+  right: 0;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  color: inherit;
+  touch-action: manipulation;
+  transition: transform 100ms ease-out;
+}
+@media (hover: hover) {
+  .bannerFavorite:hover {
+    background: color-mix(in oklab, currentColor 12%, transparent);
+  }
+}
+.bannerFavorite[aria-pressed="true"] {
+  color: var(--accent-warm);
+}
+.bannerFavorite:active {
+  transform: scale(0.94);
+}
+/* 44px to press (A36), centred on the 32px mark. */
+.bannerFavorite::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 44px;
+  height: 44px;
+  translate: -50% -50%;
+}
+@media (prefers-reduced-motion: reduce) {
+  .bannerFavorite {
+    transition: none;
+  }
+}
+/* Where the tab row's own toggle is hidden (detail.module.css, A35). */
+@media (max-width: 560px) {
+  .bannerFavorite {
+    display: grid;
+  }
+  .bannerNameRow .bannerName {
+    padding-right: 38px;
+  }
+}
 .bannerMetrics {
   display: flex;
   flex-wrap: wrap;

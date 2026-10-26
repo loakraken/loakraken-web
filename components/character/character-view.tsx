@@ -32,6 +32,7 @@ import { SiteHeader } from "@/components/site/site-header";
 import { recordRecent } from "@/lib/character/recent";
 import { CharacterBanner } from "./imagery";
 import { BannerRank } from "./banner-rank";
+import { BannerFavorite } from "./favorite";
 import { KrakenScoreStrip } from "./kraken-score-metric";
 import { Entrance } from "./entrance";
 import { kstTime, level, number, text } from "./parts";
@@ -180,7 +181,10 @@ const Banner = memo(function Banner({ data }: { data: Character }) {
           <p className={styles.bannerKicker}>
             {data.serverName} · {data.className}
           </p>
-          <h1 className={styles.bannerName}>{data.characterName}</h1>
+          <div className={styles.bannerNameRow}>
+            <h1 className={styles.bannerName}>{data.characterName}</h1>
+            <BannerFavorite name={data.characterName} />
+          </div>
           {data.title && (
             <p className={styles.bannerTitle}>{data.title}</p>
           )}
