@@ -21,6 +21,7 @@ import {
   isReceiptOff,
   memberState,
   nextRefreshDelay,
+  nonGoldText,
   notIncludedText,
   observedText,
   rowMarker,
@@ -123,6 +124,9 @@ function Body({
   const [leftShown, setLeftShown] = useState(false);
   if (left && !leftShown) setLeftShown(true);
   const idle = data.coverage.pending === 0 || auto;
+  const nonGold = nonGoldText(data);
+  const [nonGoldShown, setNonGoldShown] = useState(false);
+  if (nonGold && !nonGoldShown) setNonGoldShown(true);
   const [first, ...rest] = data.assumptions;
   return (
     <>
@@ -145,8 +149,13 @@ function Body({
             </p>
           </>
         )}
-        {/* Once shown, the line keeps its place: it shortens or empties as
-            pending members fill in, and nothing under it may move (A7). */}
+        {/* Once shown, these lines keep their place: they change length or
+            empty as pending members fill in, and nothing under them may move (A7). */}
+        {(nonGold || nonGoldShown) && (
+          <p className={`${styles.muted} ${styles.leftLine}`} aria-hidden={nonGold ? undefined : true}>
+            {nonGold && `골드 외 비용: ${nonGold}`}
+          </p>
+        )}
         {(left || leftShown) && (
           <p className={`${styles.muted} ${styles.leftLine}`} aria-hidden={left ? undefined : true}>
             {left && `빠진 것: ${left}`}

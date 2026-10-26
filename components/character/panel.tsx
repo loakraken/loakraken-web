@@ -8,12 +8,15 @@ export function Panel({
   children,
   id,
   wide,
+  action,
 }: {
   title: string;
   meta?: ReactNode;
   children: ReactNode;
   id?: string;
   wide?: boolean;
+  /** A control at the head's end, after the meta (e.g. fold the panel). */
+  action?: ReactNode;
 }) {
   return (
     <section
@@ -25,6 +28,7 @@ export function Panel({
       <header className={styles.panelHead}>
         <h2>{title}</h2>
         {meta && <span className={styles.panelMeta}>{meta}</span>}
+        {action}
       </header>
       {children}
     </section>

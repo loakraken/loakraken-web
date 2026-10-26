@@ -102,9 +102,12 @@ test.describe("원정대 영수증 합계 @smoke", () => {
       if (call === 1) {
         data.total.status = "PARTIAL";
         data.coverage = { ...data.coverage, ready: 8, pending: 2, nextAvailableAt: new Date().toISOString() };
+        data.total.nonGold = [{ name: "실링", amount: 1_240_000 }];
       } else {
         data.total.status = "COMPLETE";
         data.coverage = { ...data.coverage, ready: 10, pending: 0, nextAvailableAt: null };
+        // api #761: a filled member brings a 전율 armor 21 limit break (가시 never in gold).
+        data.total.nonGold = [{ name: "실링", amount: 1_960_000 }, { name: "고통의 가시", amount: 15 }];
         for (const c of data.equipment.characters)
           if (c.status === "PENDING") Object.assign(c, { status: "READY", gold: 1000, complete: true });
       }
@@ -118,6 +121,7 @@ test.describe("원정대 영수증 합계 @smoke", () => {
     // At least 6 s later, filled in without a press, and nothing on the page moved (A7).
     await expect(total(page)).toHaveAttribute("data-status", "COMPLETE", { timeout: 15_000 });
     await expect(page.getByText("원정대 10명 중 10명 계산")).toBeVisible();
+    await expect(total(page)).toContainText("골드 외 비용: 실링 1,960,000 · 고통의 가시 15");
     await page.waitForTimeout(500);
     const shifts = await shiftsSince(page, mark);
     const after = await blocks(page);
@@ -174,13 +178,15 @@ test.describe("원정대 영수증 합계 @smoke", () => {
       await pin(page, (data) => {
         data.total.status = "PARTIAL";
         data.equipment.characters[0].complete = false;
+        data.total.nonGold = [{ name: "실링", amount: 12_345_000 }, { name: "고통의 가시", amount: 150 }];
       });
       await page.goto(receiptPath("영수증본캐"));
       await expect(total(page).getByText("일부 합계")).toBeVisible();
+      await expect(total(page)).toContainText("골드 외 비용: 실링 12,345,000 · 고통의 가시 150");
       await expectNoHorizontalOverflow(page);
       // Tags and the amount sit fully inside the panel (no ellipsis cut, A37).
       const cut = await page.evaluate(() =>
-        [...document.querySelectorAll("[data-status] strong, [data-status] span, details summary b, details summary span")]
+        [...document.querySelectorAll("[data-status] strong, [data-status] span, [data-status] p, details summary b, details summary span")]
           // Screen-reader-only text is clipped to 1px on purpose.
           .filter((el) => !el.classList.contains("sr-only"))
           .filter((el) => el.scrollWidth > el.clientWidth + 1 && getComputedStyle(el).overflow !== "visible")
