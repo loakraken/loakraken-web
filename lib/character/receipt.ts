@@ -113,6 +113,7 @@ export function totalStatus(data: Receipt): TotalStatus {
   const missing =
     status != null ||
     data.coverage.pending > 0 ||
+    unavailableCount(data) > 0 ||
     data.gems.unpriced > 0 ||
     data.equipment.characters.some((c) => c.complete === false);
   if (!missing) return "COMPLETE";
@@ -127,6 +128,8 @@ export function totalStatus(data: Receipt): TotalStatus {
 export function excludedSummary(data: Receipt) {
   const parts: string[] = [];
   if (data.coverage.pending > 0) parts.push(`계산 대기 ${data.coverage.pending}명`);
+  const unavailable = unavailableCount(data);
+  if (unavailable > 0) parts.push(`확인 못 함 ${unavailable}명`);
   const counts = new Map<string, number>();
   for (const row of data.equipment.characters)
     for (const item of row.excluded) counts.set(item.reason, (counts.get(item.reason) ?? 0) + 1);
@@ -141,15 +144,73 @@ export function excludedSummary(data: Receipt) {
  * but left parts out by rule; null otherwise (and while pending).
  */
 export function rowMarker(row: ReceiptCharacter): { partial: boolean; text: string } | null {
-  if (row.status === "PENDING") return null;
+  if (row.status !== "READY") return null;
   if (row.complete === false) return { partial: true, text: "일부" };
   if (row.excluded.length > 0) return { partial: false, text: `제외 ${row.excluded.length}` };
   return null;
 }
 
-/** "원정대 14명 중 6명 계산 · 8명 대기" while some characters are still pending. */
-export function coverageText(data: Receipt) {
+/**
+ * Members the backend could not find this time (status UNAVAILABLE, api
+ * receipt fan-out): left out of pending, so they are not asked for again.
+ * coverage.unavailable when the backend sends it, else counted from the rows.
+ */
+export function unavailableCount(data: Receipt) {
+  const rows = data.equipment.characters.filter((c) => memberState(c) === "UNAVAILABLE").length;
+  // A status this screen does not know is never in coverage.unavailable.
+  return Math.max(data.coverage.unavailable ?? 0, rows);
+}
+
+/**
+ * READY or PENDING as sent; UNAVAILABLE and any status this screen does not
+ * know read as "확인 못 함" (not counted, not asked for again), never a crash.
+ */
+export function memberState(row: ReceiptCharacter): "READY" | "PENDING" | "UNAVAILABLE" {
+  return row.status === "READY" || row.status === "PENDING" ? row.status : "UNAVAILABLE";
+}
+
+/**
+ * "원정대 14명 중 6명 계산 · 8명 갱신 중 · 1명 확인 못 함": "갱신 중" while
+ * the panel is still filling members in by itself, "대기" once it stopped.
+ */
+export function coverageText(data: Receipt, refreshing = false) {
   const c = data.coverage;
-  const head = `원정대 ${c.rosterCharacters}명 중 ${c.ready}명 계산`;
-  return c.pending > 0 ? `${head} · ${c.pending}명 대기` : head;
+  const parts = [`원정대 ${c.rosterCharacters}명 중 ${c.ready}명 계산`];
+  if (c.pending > 0) parts.push(`${c.pending}명 ${refreshing ? "갱신 중" : "대기"}`);
+  const unavailable = unavailableCount(data);
+  if (unavailable > 0) parts.push(`${unavailable}명 확인 못 함`);
+  return parts.join(" · ");
+}
+
+/** "5분 전 기준": how old the equipment used for a member is; null without a time. */
+export function observedText(observedAt: string | null | undefined, now: number) {
+  if (!observedAt) return null;
+  const at = Date.parse(observedAt);
+  if (!Number.isFinite(at)) return null;
+  const minutes = Math.max(0, Math.floor((now - at) / 60_000));
+  if (minutes < 1) return "방금 기준";
+  if (minutes < 60) return `${minutes}분 전 기준`;
+  const hours = Math.floor(minutes / 60);
+  return hours < 24 ? `${hours}시간 전 기준` : `${Math.floor(hours / 24)}일 전 기준`;
+}
+
+/**
+ * Never sooner than this between two refills: each spends up to 2 official
+ * calls and a visitor may make 20 per minute (CLIENT_LIMIT_OFFICIAL), so
+ * 2 per 6 s keeps the refill alone inside the limit even when the backend
+ * says "now".
+ */
+export const REFILL_FLOOR_MS = 6_000;
+
+/**
+ * When to ask again by itself (receipt fan-out contract): only while members
+ * are pending and it has not stopped; the backend's nextAvailableAt first
+ * (now at the per-open cap, later when the visitor's budget or the official
+ * limit needs it), and never sooner than REFILL_FLOOR_MS. null = do not ask
+ * again by itself.
+ */
+export function nextRefreshDelay(data: Receipt, now: number, stopped: boolean): number | null {
+  if (stopped || data.coverage.pending <= 0) return null;
+  const at = data.coverage.nextAvailableAt ? Date.parse(data.coverage.nextAvailableAt) : now;
+  return Math.max(REFILL_FLOOR_MS, (Number.isFinite(at) ? at : now) - now);
 }

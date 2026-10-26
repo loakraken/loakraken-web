@@ -1,5 +1,5 @@
 // 회귀(사용자 의견 10-22): /schedule 카오스게이트는 지역 13곳이 회차·보상이 같으면 한 줄('카오스게이트 · 13곳'),
-// 지역과 입장 레벨은 자세히에만. 카게·필보 줄에는 'N 이상'이 없다. 날짜 아래 '오늘: 카오스게이트'처럼 그날 종류.
+// 줄에는 입장 레벨('N 이상')과 맨 아래 '지역 13곳'(#1096), 지역 목록은 자세히. 날짜 아래 '오늘: 카오스게이트'처럼 그날 종류.
 // 첫 로드·지난 회차 숨김 흔들림 0, 넘침 없음 (320·360·390·1280, 밝게·어둡게).
 import { test, expect, gotoReady, expectNoHorizontalOverflow } from "../support/fixtures.mjs";
 import { shiftMark, shiftsSince, watchShifts } from "../support/shifts.mjs";
@@ -22,7 +22,7 @@ async function pickDay(page, even) {
 
 for (const scheme of ["light", "dark"])
   for (const width of [320, 360, 390, 1280])
-    test(`@일정카게 ${scheme} ${width} 카오스게이트 한 줄·자세히에 지역, 필보 레벨 줄 없음 @regression`, async ({ page }) => {
+    test(`@일정카게 ${scheme} ${width} 카오스게이트 한 줄·줄 끝에 지역, 레벨은 줄 안에 @regression`, async ({ page }) => {
       await page.emulateMedia({ colorScheme: scheme });
       await page.setViewportSize({ width, height: 900 });
       await watchShifts(page);
@@ -40,14 +40,14 @@ for (const scheme of ["light", "dark"])
       const loaded = await shiftsSince(page);
       expect(loaded.all, `첫 로드 흔들림 (${loaded.moved})`).toBe(0);
 
-      // A chaos gate day: one row for 13 places, no level line.
+      // A chaos gate day: one row for 13 places, its level on the row, the places last.
       const gateDay = await pickDay(page, true);
       await expect(line).toHaveText(`${gateDay.today ? "오늘" : "이 날"}: 카오스게이트 · 필드 보스 없음`);
       const gates = page.getByRole("region", { name: "카오스게이트", exact: true });
       await expect(gates.getByRole("listitem").filter({ has: page.locator("strong") })).toHaveCount(1);
       await expect(gates.locator("strong").first()).toHaveText("카오스게이트");
-      await expect(gates.getByText("13곳", { exact: true })).toBeVisible();
-      await expect(gates).not.toContainText("1,580 이상");
+      await expect(gates.getByText("지역 13곳", { exact: true })).toBeVisible();
+      await expect(gates.locator("strong + small").first()).toHaveText("1,580 이상");
       await expect(gates).not.toContainText("일렁이는 악마군단");
       await gates.getByRole("button", { name: /^카오스게이트 보상/ }).click();
       const places = gates.getByRole("region", { name: "지역" });
@@ -63,16 +63,16 @@ for (const scheme of ["light", "dark"])
       const toggled = await shiftsSince(page, mark);
       expect(toggled.all, `지난 회차 숨김 흔들림 (${toggled.moved})`).toBe(0);
 
-      // A field boss day: the boss keeps its name, its level only in 자세히.
+      // A field boss day: the boss keeps its name and shows its level; two rewards fit, so no 자세히.
       const bossDay = await pickDay(page, false);
       await expect(line).toHaveText(`${bossDay.today ? "오늘" : "이 날"}: 카오스게이트 없음 · 필드 보스`);
       // The week lists every chaos gate with no rounds today: no row for them, only the line above.
       await expect(page.getByRole("region", { name: "카오스게이트", exact: true })).toHaveCount(0);
       const bosses = page.getByRole("region", { name: "필드 보스", exact: true });
       await expect(bosses.locator("strong").first()).toHaveText("세베크 아툰");
-      await expect(bosses).not.toContainText("1,460 이상");
-      await bosses.getByRole("button", { name: /^세베크 아툰 보상/ }).click();
-      await expect(bosses.getByRole("region", { name: "입장" })).toHaveText("입장 1,460 이상");
+      await expect(bosses.locator("strong + small").first()).toHaveText("1,460 이상");
+      await expect(bosses.getByRole("button", { name: /^세베크 아툰 보상/ })).toHaveCount(0);
+      await expect(bosses.getByText(/^지역 \d+곳$/)).toHaveCount(0);
       await expectNoHorizontalOverflow(page);
     });
 

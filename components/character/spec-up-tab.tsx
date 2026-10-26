@@ -7,7 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { Character } from "@/lib/character/model";
 import { positionOf } from "@/lib/character/detail";
 import { fetchSpecUp } from "@/lib/spec-up/client";
-import { specUpQuery } from "@/lib/spec-up/model";
+import { DEFAULT_SORT, specUpQuery } from "@/lib/spec-up/model";
 import { Panel } from "./panel";
 import styles from "./detail.module.css";
 
@@ -35,7 +35,7 @@ export function SpecUpTab({ data }: { data: Character }) {
   // plain line instead of a list of "not calculated" rows.
   // The same position the header shows (the api's, else read from the build).
   const supporter = positionOf(data) === "SUPPORT";
-  const firstSort = supporter ? "KRAKEN" : "EFFICIENCY";
+  const firstSort = supporter ? "KRAKEN" : DEFAULT_SORT;
   // The guide's own first query for this list (KRAKEN carries the cooldown-gem
   // choice, off at first), so the two share one cache entry and one request.
   const cooldown = supporter ? false : null;
