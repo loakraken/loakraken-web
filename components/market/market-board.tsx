@@ -702,8 +702,11 @@ function MarketContent({
               {/* The list and its pager held at their tallest on this visit: a
                   shorter answer (a search, a last page) or a pager going away
                   never pulls up the price note and the footer when it lands,
-                  well after the key press (A7, #1115 measure). */}
-              <div ref={heldRef} style={held ? { minHeight: held } : undefined}>
+                  well after the key press (A7, #1115 measure). Drawn anew per
+                  board, as the rows are: a note or the tier row coming and
+                  going above it then adds a new box instead of moving this one
+                  (a7-controls, 정렬/상승 and tab presses). */}
+              <div key={JSON.stringify(query)} ref={heldRef} style={held ? { minHeight: held } : undefined}>
               {failure && !data ? (
                 <Problem
                   failure={failure}
