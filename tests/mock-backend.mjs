@@ -2435,6 +2435,13 @@ createServer(async (req, res) => {
       [["적에게 주는 피해 증가", "+2.00%", "HIGH"], ["추가 피해", "+1.60%", "MID"], ["전투 중 생명력 회복량", "+50", "HIGH"]],
       [["공격력", "+1.55%", "HIGH"], ["무기 공격력", "+0.80%", "LOW"], ["상태이상 공격 지속시간", "+0.20%", "LOW"]],
     ];
+    // The synthetic fixture has no accessories: one of each, so the polish
+    // lines below (and their role colours) show on the detail page.
+    const accessoryTypes = ["목걸이", "귀걸이", "반지"];
+    if (!d.loadout.equipment.some((item) => accessoryTypes.includes(item.type))) {
+      const base = d.loadout.equipment[d.loadout.equipment.length - 1];
+      for (const type of accessoryTypes) d.loadout.equipment.push({ ...base, type, name: `합성 ${type}`, grade: "고대" });
+    }
     let acc = 0;
     for (const item of d.loadout.equipment) {
       const refine = /^\+(\d+)/.exec(item.name ?? "")?.[1];
