@@ -1069,16 +1069,38 @@ function ArkGridPanel({ data }: { data: Character }) {
 
 function CardsPanel({ data }: { data: Character }) {
   const stagger = useStagger();
+  const [folded, setFolded] = useState(false);
+  const gridId = useId();
   const cards = data.loadout.cards;
   const summary = data.analysis.cards;
   return (
     <Panel
       title="카드"
       meta={summary ? `각성 합 ${summary.knownAwakeningTotal}` : undefined}
+      // Folds the card pictures only (#1101): set effects and the collection
+      // stay. Open by default, as before.
+      action={
+        cards?.items.length ? (
+          <button
+            type="button"
+            className={`${styles.foldButton} hit-44`}
+            aria-expanded={!folded}
+            aria-controls={gridId}
+            onClick={() => setFolded((value) => !value)}
+          >
+            {/* Both labels in one cell, one shown: the same width either way,
+                so the head never reflows when it is pressed (A7). */}
+            <span className={styles.foldLabels}>
+              <span data-on={!folded || undefined}>카드 접기</span>
+              <span data-on={folded || undefined}>카드 펴기</span>
+            </span>
+          </button>
+        ) : undefined
+      }
     >
       {cards?.items.length ? (
         <>
-          <ul className={styles.cardGrid}>
+          <ul id={gridId} className={styles.cardGrid} hidden={folded}>
             {cards.items.map((card, i) => (
               <li key={i} {...stagger(i)}>
                 <CardArt

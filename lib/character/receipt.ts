@@ -97,6 +97,14 @@ export function notIncludedText(data: Receipt) {
   return `${kinds} (${reasons})`;
 }
 
+/** "실링 720,000 · 고통의 가시 15" — costs kept as quantities, never turned into gold (api #761); "" when none. */
+export function nonGoldText(data: Receipt) {
+  return (data.total.nonGold ?? [])
+    .filter((q) => q.amount > 0)
+    .map((q) => `${q.name} ${q.amount.toLocaleString("ko-KR")}`)
+    .join(" · ");
+}
+
 export type TotalStatus = "COMPLETE" | "PARTIAL" | "UNAVAILABLE";
 
 /**

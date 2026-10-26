@@ -100,7 +100,8 @@
   .total > p:first-of-type {
     min-height: 3em;
   }
-  /* '빠진 것' loses '계산 대기 N명' when the fill completes: hold two lines. */
+  /* '빠진 것' loses '계산 대기 N명' and '골드 외 비용' gains items as the
+     fill completes: hold two lines. */
   .total > p.leftLine {
     min-height: 3em;
   }
