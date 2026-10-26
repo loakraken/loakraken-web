@@ -69,9 +69,9 @@ for (const scheme of ["light", "dark"])
           nameCut: cut(el),
           starOnFirstLine: Math.abs(s.top + s.height / 2 - (n.top + line / 2)) <= 2,
           starInside: s.right <= window.innerWidth,
-          // By the text's own range: a badge's invisible 44px press area
-          // reaches past its line without cutting anything.
-          linesCut: [...banner.querySelectorAll(":scope > p")]
+          // The server line and the title, by the text's own range (the rank
+          // line's badge is a control with its own press area, measured elsewhere).
+          linesCut: [...banner.querySelectorAll(":scope > p:not(:has(button))")]
             .map((p) => {
               const range = document.createRange();
               range.selectNodeContents(p);
