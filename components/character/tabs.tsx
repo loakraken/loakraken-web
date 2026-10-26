@@ -812,6 +812,11 @@ function ShareBars({ title, rows }: { title: string; rows: { label: string; coun
   );
 }
 
+const GEM_GROUPS = [
+  { id: "damage", label: "피해 증가" },
+  { id: "cooldown", label: "재사용 대기시간 감소" },
+] as const;
+
 function GemsPanel({ data }: { data: Character }) {
   const stagger = useStagger();
   const gems = data.loadout.gems?.items ?? [];
@@ -820,6 +825,12 @@ function GemsPanel({ data }: { data: Character }) {
   const summary = data.analysis.gems;
   const baseAttack = gemBaseAttack(data.loadout.gems?.effects?.description);
   const emptySlots = gemCounts(data.loadout.gems).empty;
+  // Players read gems as "10겁 8작"; the official name stays in the card.
+  const placed = gems.map((gem, index) => {
+    const skill = skills.find((effect) => effect.gemSlot === gem.slot);
+    const kind = gemKind(gem.name, skill?.description);
+    return { gem, skill, kind, index, group: kind && isCooldownGem(kind) ? "cooldown" : "damage" };
+  });
   return (
     <Panel
       title="보석"
@@ -839,35 +850,43 @@ function GemsPanel({ data }: { data: Character }) {
       }
     >
       {gems.length ? (
-        <ul className={styles.gemGrid}>
-          {gems.map((gem, i) => {
-            const skill = skills.find((effect) => effect.gemSlot === gem.slot);
-            // Players read gems as "10겁 8작"; the official name stays in the card.
-            const kind = gemKind(gem.name, skill?.description);
-            return (
-              <li key={i} {...stagger(i)}>
-                <DetailTooltip
-                  name={gem.name ?? "보석"}
-                  card={
-                    <GemCard
-                      gem={gem}
-                      skill={skill}
-                      className={data.className}
-                      lines={gemLines(extra, gem.slot)}
-                    />
-                  }
-                >
-                  <GameIcon src={gem.icon} grade={gem.grade} size={44} />
-                </DetailTooltip>
-                <span data-gem={kind ? (isCooldownGem(kind) ? "cooldown" : "damage") : undefined}>
-                  {gem.level != null && gem.level > 0 ? gem.level : "?"}
-                  {kind ?? ""}
-                </span>
-                <small className={styles.srOnly}>{text(gem.name)}</small>
-              </li>
-            );
-          })}
-        </ul>
+        // Two groups (#1100): damage on top, cooldown below. 광휘 goes by its
+        // effect, as on the spec-up list (gemKind); an unread kind stays on top.
+        GEM_GROUPS.map((group) => {
+          const items = placed.filter((item) => item.group === group.id);
+          if (!items.length) return null;
+          return (
+            <section key={group.id} className={styles.gemGroup} aria-label={group.label}>
+              <h3>
+                {group.label} <span>{items.length}</span>
+              </h3>
+              <ul className={styles.gemGrid}>
+                {items.map(({ gem, skill, kind, index }) => (
+                  <li key={index} {...stagger(index)}>
+                    <DetailTooltip
+                      name={gem.name ?? "보석"}
+                      card={
+                        <GemCard
+                          gem={gem}
+                          skill={skill}
+                          className={data.className}
+                          lines={gemLines(extra, gem.slot)}
+                        />
+                      }
+                    >
+                      <GameIcon src={gem.icon} grade={gem.grade} size={44} />
+                    </DetailTooltip>
+                    <span data-gem={kind ? group.id : undefined}>
+                      {gem.level != null && gem.level > 0 ? gem.level : "?"}
+                      {kind ?? ""}
+                    </span>
+                    <small className={styles.srOnly}>{text(gem.name)}</small>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          );
+        })
       ) : (
         <Empty
           state={
