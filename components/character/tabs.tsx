@@ -475,8 +475,18 @@ function GradeLine({
     >
       <span>{isGrade(grade) ? GRADE_LABEL[grade] : "·"}</span>
       {children}
+      {counts === false && <OtherRole />}
     </li>
   );
+}
+
+/**
+ * Said with a grey line (#1108): grey alone would carry the meaning by colour
+ * only (WCAG 1.4.1), so a screen reader hears it too. One wording everywhere.
+ */
+const OTHER_ROLE = " (이 역할에는 해당 없음)";
+function OtherRole() {
+  return <span className={styles.srOnly}>{OTHER_ROLE}</span>;
 }
 
 function refineOf(item: Equipment) {
@@ -1045,6 +1055,7 @@ function ArkGridPanel({ data }: { data: Character }) {
                                       <span key={k} data-other-role={piece.counts === false || undefined}>
                                         {k > 0 && " · "}
                                         {piece.text}
+                                        {piece.counts === false && <OtherRole />}
                                       </span>
                                     ))}
                                 </small>

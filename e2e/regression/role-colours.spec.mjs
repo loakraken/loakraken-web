@@ -44,15 +44,23 @@ for (const scheme of ["light", "dark"])
       // Utility lines count for neither.
       await expect(regen).toHaveAttribute("data-other-role", "true");
       expect(await contrast(regen), "회색 줄 글자 대비").toBeGreaterThanOrEqual(4.5);
+      // Not by colour alone (WCAG 1.4.1): a grey line says so in words, a counted one does not.
+      await expect(regen).toContainText("(이 역할에는 해당 없음)");
+      await expect(weaponPct).not.toContainText("이 역할에는 해당 없음");
+      if (dealer) await expect(damage).not.toContainText("이 역할에는 해당 없음");
+      else await expect(damage).toContainText("(이 역할에는 해당 없음)");
 
       // Ark grid gem options on the same tab (공격력·보스 피해: the dealer family).
       const core = page.locator("details").filter({ has: page.locator("summary", { hasText: "살상연희" }) }).first();
       await core.locator("summary").click();
-      const option = core.locator("small span", { hasText: /^ · 공격력 Lv\.3$|^공격력 Lv\.3$/ }).first();
+      const option = core.locator("small > span", { hasText: /공격력 Lv\.3/ }).first();
       await expect(option).toBeVisible();
-      if (dealer) await expect(option).not.toHaveAttribute("data-other-role");
-      else {
+      if (dealer) {
+        await expect(option).not.toHaveAttribute("data-other-role");
+        await expect(option).not.toContainText("이 역할에는 해당 없음");
+      } else {
         await expect(option).toHaveAttribute("data-other-role", "true");
+        await expect(option).toContainText("(이 역할에는 해당 없음)");
         expect(await contrast(option), "회색 젬 옵션 대비").toBeGreaterThanOrEqual(4.5);
       }
       // Points and willpower have no role: never grey.
