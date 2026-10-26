@@ -72,12 +72,12 @@ for (const scheme of ["light", "dark"])
           // By the text's own range: a badge's invisible 44px press area
           // reaches past its line without cutting anything.
           linesCut: [...banner.querySelectorAll(":scope > p")]
-            .filter((p) => {
+            .map((p) => {
               const range = document.createRange();
               range.selectNodeContents(p);
-              return range.getBoundingClientRect().right > p.getBoundingClientRect().right + 1;
+              return { text: p.textContent, ends: Math.round(range.getBoundingClientRect().right), room: Math.round(p.getBoundingClientRect().right) };
             })
-            .map((p) => p.textContent),
+            .filter((line) => line.ends > line.room + 1),
         };
       }, LONGEST);
       expect(found).toEqual({ nameCut: false, starOnFirstLine: true, starInside: true, linesCut: [] });
