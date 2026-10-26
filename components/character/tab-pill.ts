@@ -54,15 +54,18 @@ export function useTabPill(tab: string) {
   const ours = useRef(false);
 
   useLayoutEffect(() => {
-    touched.current = false;
-    ours.current = place(nav.current, layer.current, placed.current && !keyboard.current, true);
+    // A row already scrolled before the page woke up (a quick hand or a test)
+    // keeps its place: only a chosen tab, or an untouched row, is revealed.
+    const early = !placed.current && (nav.current?.scrollLeft ?? 0) > 0;
+    touched.current = early;
+    ours.current = place(nav.current, layer.current, placed.current && !keyboard.current, !early);
     placed.current = true;
   }, [tab]);
 
-  // Widths change with fonts, the viewport and the refresh countdown beside
-  // the row (every second while it counts): follow them without sliding, and
-  // keep the tab in view only until the row is scrolled by hand. Pulling it
-  // back each second undid a hand scroll, and a tab click then missed (#1077).
+  // Widths change with fonts, the viewport and the refresh label beside the
+  // row: follow them without sliding, and keep the tab in view only until the
+  // row is scrolled or pressed by hand. A reveal between a press and its
+  // release moved the tab out from under it, and the click missed (#1077).
   // The observer's first report is the size it starts with, so it is skipped.
   useLayoutEffect(() => {
     const row = nav.current;
@@ -93,6 +96,8 @@ export function useTabPill(tab: string) {
     },
     onPointerDown: () => {
       keyboard.current = false;
+      // The row stays still under a press until a tab is chosen.
+      touched.current = true;
     },
   };
 }

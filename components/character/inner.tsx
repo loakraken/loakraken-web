@@ -8,7 +8,7 @@ import { AvatarCard, DetailTooltip, ItemTooltip } from "./item-tooltip";
 import { useItemTooltips } from "./use-item-tooltips";
 import { equipmentExtra } from "@/lib/character/item-tooltips";
 import type { Character } from "@/lib/character/model";
-import { groupEquipment } from "@/lib/character/detail";
+import { groupEquipment, NOT_SPECIAL } from "@/lib/character/detail";
 import { avatarEffectTotals, avatarSlots, decorationParts, rarestOwned, type DecorationPart } from "@/lib/character/inner";
 import { safeGameImage } from "@/lib/character/model";
 import { GameIcon } from "./imagery";
@@ -132,16 +132,22 @@ function CollectionList({
           </ol>
         )}
       </div>
-      {/* Below the list: it arrives after the list and must not push it. */}
-      {owned.size > 0 && sample && (
-        <p className={styles.caption}>
-          {rarestItem && (
+      {/* Below the list: it arrives after the list and must not push it. Its
+          room is held from the first paint, loading or failed alike: stacked,
+          the panels below would move when it lands (A7). */}
+      {collectible.items.length > 0 && (
+        <p className={`${styles.caption} ${styles.captionSlot}`}>
+          {owned.size > 0 && sample && (
             <>
-              가장 희귀한 보유 <b>{rarestItem.name}</b> (보유율 {rarestItem.share.toFixed(1)}%) ·{" "}
+              {rarestItem && (
+                <>
+                  가장 희귀한 보유 <b>{rarestItem.name}</b> (보유율 {rarestItem.share.toFixed(1)}%) ·{" "}
+                </>
+              )}
+              보유율: 크라켄 표본 원정대 {number(sample.population)}개 기준
+              {sample.sampleStatus !== "READY" && ` · 표본 ${number(sample.minSample)}개 미만이라 참고값`}
             </>
           )}
-          보유율: 크라켄 표본 원정대 {number(sample.population)}개 기준
-          {sample.sampleStatus !== "READY" && ` · 표본 ${number(sample.minSample)}개 미만이라 참고값`}
         </p>
       )}
     </>
@@ -153,7 +159,8 @@ export function CollectiblesTab({ data }: { data: Character }) {
   const [selected, setSelected] = useState(0);
   const current = collectibles[Math.min(selected, collectibles.length - 1)];
   const [listRef, listHeight] = useTallest();
-  const special = groupEquipment(data.loadout.equipment).others;
+  // 보주 keeps its own place on the 전투 tab; 완갑 is equipment there too (user 10-26).
+  const special = groupEquipment(data.loadout.equipment).others.filter((item) => !NOT_SPECIAL.includes(item.type ?? ""));
   const extra = useItemTooltips(data.characterName);
   // The reference also shows each kind's average, not only the overall share.
   const shares = collectibles

@@ -18,11 +18,24 @@ export type AccessoryCell = Schemas["AuctionAccessoryCellResponse"];
 export type AccessoryListingsEnvelope = Schemas["ApiResponseAuctionListingsResponse"];
 export type AccessoryListing = Schemas["AuctionListingResponse"];
 
+// `filter` (api #548, always null here) and a listing's `icon` (api #613) are
+// required in the contract, but a backend from before them answers without:
+// optional until that backend is gone. Without an icon the card shows no picture.
+const schemas = (() => {
+  const all = tolerantSchemas(contract.components.schemas);
+  const listings = all.AuctionListingsResponse;
+  const listing = all.AuctionListingResponse;
+  return {
+    ...all,
+    AuctionListingsResponse: { ...listings, required: listings.required.filter((key) => key !== "filter") },
+    AuctionListingResponse: { ...listing, required: listing.required.filter((key) => key !== "icon") },
+  };
+})();
 const compile = <T>(ref: string) =>
   lazyValidator(() =>
     new Ajv2020({ strict: false, validateFormats: false }).compile<T>({
       $ref: `#/components/schemas/${ref}`,
-      components: { ...contract.components, schemas: tolerantSchemas(contract.components.schemas) },
+      components: { ...contract.components, schemas },
     }),
   );
 const validateBoard = compile<AccessoryBoardEnvelope>("ApiResponseAuctionAccessoryBoardResponse");

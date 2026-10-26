@@ -8,10 +8,15 @@ import {
   includedText,
   isReceiptEnvelope,
   isReceiptOff,
+  memberState,
+  nextRefreshDelay,
+  nonGoldText,
   notIncludedText,
+  observedText,
   requestReceipt,
   rowMarker,
   totalStatus,
+  unavailableCount,
 } from "../lib/character/receipt";
 
 const fixture = () =>
@@ -136,4 +141,77 @@ test("receipt requests always say assumeBook (true or false) and allow-list erro
     assert.equal(result.error.code, "LOST_ARK_RATE_LIMITED");
     assert.ok(result.error.retryAt);
   }
+});
+
+test("receipt fan-out: unavailable members are named, never pending, and the panel fills the rest by itself", () => {
+  const data = fixture().data;
+  // A member the backend could not find (status UNAVAILABLE, coverage.unavailable).
+  const some = structuredClone(data);
+  some.equipment.characters[9].status = "UNAVAILABLE";
+  some.coverage = { ...some.coverage, pending: 1, unavailable: 1 };
+  assert.equal(isReceiptEnvelope({ ...fixture(), data: some }), true);
+  assert.equal(unavailableCount(some), 1);
+  assert.equal(coverageText(some), "원정대 10명 중 8명 계산 · 1명 대기 · 1명 확인 못 함");
+  assert.equal(coverageText(some, true), "원정대 10명 중 8명 계산 · 1명 갱신 중 · 1명 확인 못 함");
+  assert.match(excludedSummary(some), /^계산 대기 1명 · 확인 못 함 1명/);
+  assert.equal(rowMarker(some.equipment.characters[9]), null);
+  // Without coverage.unavailable (older answer shape) the rows are counted.
+  const rows = structuredClone(some);
+  delete rows.coverage.unavailable;
+  assert.equal(unavailableCount(rows), 1);
+  // Nobody left out and nothing pending: the total is complete; one unavailable member makes it partial.
+  const old = structuredClone(some);
+  delete old.total.status;
+  old.coverage.pending = 0;
+  assert.equal(totalStatus(old), "PARTIAL");
+
+  // When to ask again: the backend's time first, never sooner than 6 s (2 official
+  // calls per 6 s = the 20 per minute a visitor may make), never once stopped or done.
+  const now = Date.parse("2026-10-25T10:00:00Z");
+  const waiting = structuredClone(data);
+  waiting.coverage.nextAvailableAt = new Date(now).toISOString();
+  assert.equal(nextRefreshDelay(waiting, now, false), 6_000);
+  waiting.coverage.nextAvailableAt = new Date(now + 60_000).toISOString();
+  assert.equal(nextRefreshDelay(waiting, now, false), 60_000);
+  waiting.coverage.nextAvailableAt = null;
+  assert.equal(nextRefreshDelay(waiting, now, false), 6_000);
+  assert.equal(nextRefreshDelay(waiting, now, true), null);
+  waiting.coverage.pending = 0;
+  assert.equal(nextRefreshDelay(waiting, now, false), null);
+
+  // How old a member's equipment is.
+  assert.equal(observedText(null, now), null);
+  assert.equal(observedText(new Date(now - 20_000).toISOString(), now), "방금 기준");
+  assert.equal(observedText(new Date(now - 5 * 60_000).toISOString(), now), "5분 전 기준");
+  assert.equal(observedText(new Date(now - 3 * 3_600_000).toISOString(), now), "3시간 전 기준");
+  assert.equal(observedText(new Date(now - 2 * 86_400_000).toISOString(), now), "2일 전 기준");
+});
+
+test("a member status this screen does not know reads as '확인 못 함': not pending, counted, no marker, the receipt still passes", () => {
+  const data = fixture().data;
+  const row = data.equipment.characters.find((c: { status: string }) => c.status === "READY");
+  row.status = "SOMETHING_NEW";
+  assert.equal(isReceiptEnvelope({ ...fixture(), data }), true);
+  assert.equal(memberState(row), "UNAVAILABLE");
+  assert.equal(rowMarker(row), null);
+  assert.equal(unavailableCount(data), 1);
+  assert.match(coverageText(data), /1명 확인 못 함$/);
+  assert.match(excludedSummary(data), /확인 못 함 1명/);
+  // The backend's own count of UNAVAILABLE rows never hides an unknown one.
+  data.coverage.unavailable = 0;
+  assert.equal(unavailableCount(data), 1);
+  data.coverage.unavailable = 3;
+  assert.equal(unavailableCount(data), 3);
+  for (const status of ["READY", "PENDING", "UNAVAILABLE"]) assert.equal(memberState({ ...row, status }), status);
+});
+
+test("non-gold costs (api #761) read as quantities, never gold; none or an older backend shows nothing", () => {
+  const data = fixture().data;
+  assert.equal(nonGoldText(data), "", "a backend before #761 has no nonGold");
+  data.total.nonGold = [];
+  assert.equal(nonGoldText(data), "");
+  data.total.nonGold = [{ name: "실링", amount: 1_960_000 }, { name: "고통의 가시", amount: 15 }, { name: "빈 재료", amount: 0 }];
+  assert.equal(nonGoldText(data), "실링 1,960,000 · 고통의 가시 15");
+  assert.doesNotMatch(nonGoldText(data), /G\b/);
+  assert.equal(isReceiptEnvelope({ ...fixture(), data }), true);
 });
