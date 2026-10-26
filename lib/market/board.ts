@@ -59,7 +59,23 @@ export type BoardQuery = {
   tier: number | null;
   sort: SortId;
   page: number;
+  /** Item name search (api #624): a part of the name or its initials (ㅇㅂㄷ); null for none. */
+  q: string | null;
 };
+
+/** What the backend takes in a search (api #624): after trimming, 1~20 of these. */
+const SEARCH = /^[가-힣ㄱ-ㅎㅏ-ㅣA-Za-z0-9 ·()+\-:]{1,20}$/;
+
+/**
+ * The search box text as the backend reads it: trimmed only (as the server
+ * does). `q` null with `invalid` false is "no search"; `invalid` is text the
+ * server would refuse, so nothing is sent and a short note says why.
+ */
+export function readSearch(text: string | null | undefined): { q: string | null; invalid: boolean } {
+  const value = (text ?? "").trim();
+  if (!value) return { q: null, invalid: false };
+  return SEARCH.test(value) ? { q: value, invalid: false } : { q: null, invalid: true };
+}
 
 const isInt = (text: string, min: number, max: number) =>
   /^\d{1,2}$/.test(text) && Number(text) >= min && Number(text) <= max;
@@ -85,6 +101,12 @@ export function boardSearchParams(input: URLSearchParams): URLSearchParams | nul
     if (!isInt(page, 1, 10)) return null;
     out.set("page", String(Number(page)));
   }
+  const q = input.get("q");
+  if (q !== null) {
+    const search = readSearch(q);
+    if (search.invalid) return null;
+    if (search.q) out.set("q", search.q);
+  }
   return out;
 }
 
@@ -101,6 +123,7 @@ export function readBoardQuery(params: {
   tier?: string | string[];
   sort?: string | string[];
   page?: string | string[];
+  q?: string | string[];
 }): BoardQuery {
   const one = (value: string | string[] | undefined) =>
     typeof value === "string" ? value : "";
@@ -112,7 +135,7 @@ export function readBoardQuery(params: {
     ? (one(params.sort) as SortId)
     : "default";
   const page = isInt(one(params.page), 1, 10) ? Number(one(params.page)) : 1;
-  return { tab, tier, sort, page };
+  return { tab, tier, sort, page, q: readSearch(one(params.q)).q };
 }
 
 export function boardQueryString(query: BoardQuery) {
@@ -120,6 +143,7 @@ export function boardQueryString(query: BoardQuery) {
   if (query.tier != null) out.set("tier", String(query.tier));
   if (query.sort !== "default") out.set("sort", query.sort);
   if (query.page > 1) out.set("page", String(query.page));
+  if (query.q) out.set("q", query.q);
   return out.toString();
 }
 

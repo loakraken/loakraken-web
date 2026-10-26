@@ -37,6 +37,7 @@ import {
 import { DIFFICULTY_LABEL, RAID_DATA, formatGold } from "@/lib/tools/raid-rewards";
 import quote from "./material-quote.module.css";
 import styles from "./homework.module.css";
+import { MoreDetail } from "@/components/ui/more-detail";
 
 type Sibling = { characterName: string; serverName: string; className: string; itemLevel: number };
 
@@ -633,14 +634,17 @@ export default function HomeworkTool() {
                 ))}
               </div>
             )}
+            {/* One line on the page, the calc basis folded (#1112): nothing removed. */}
             <p className={styles.footnote}>
-              진행 상황은 이 브라우저에만 저장돼요. 매주 수요일 06:00에 체크가 풀려요. 골드는
-              레이드 보상표의 공식 값으로 계산하고, 확인되지 않은 레이드는 &lsquo;데이터
+              진행 상황은 이 브라우저에만 저장되고, 매주 수요일 06:00에 체크가 풀려요.
+            </p>
+            <MoreDetail className={styles.footnote}>
+              골드는 레이드 보상표의 공식 값으로 계산하고, 확인되지 않은 레이드는 &lsquo;데이터
               없음&rsquo;으로 둬요. 더보기 비용은 귀속 골드에서 먼저 빠지고, 골드를 받지 않는
               캐릭터의 더보기도 원정대 합계에서 빼요. 무료 더보기를 쓴 관문은 더보기 체크를
               하지 않으면 비용 없이 계산돼요. 자동 구성(레벨 높은 순 6명·레이드별 최대 골드
               난이도)은 추정이에요. <Link href="/tools/raid-rewards">레이드 보상표</Link>
-            </p>
+            </MoreDetail>
           </div>
         </div>
       </main>

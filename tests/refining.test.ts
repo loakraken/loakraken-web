@@ -272,3 +272,13 @@ test("소모 가치 total adds raw refining gold and material value, then rounds
   assert.equal(Math.round(rawGold + value), Math.round(5682.4 + 13935.306));
   assert.ok(Math.round(rawGold + value) < Math.ceil(rawGold) + Math.ceil(value));
 });
+
+test("a total of nothing to buy reads 0, never -0 (계산 검증 #1127 P2)", () => {
+  // Everything owned: nothing missing, 사야 할 골드 0.
+  const owned = costLines([{ name: "운명의 수호석", amount: 600 }], { "운명의 수호석": 600 }, []);
+  assert.ok(Object.is(owned.buyGold, 0), `owned: ${owned.buyGold}`);
+  // No prices loaded yet.
+  const none = costLines([{ name: "운명의 수호석", amount: 600 }], {}, null);
+  assert.ok(Object.is(none.buyGold, 0), `no prices: ${none.buyGold}`);
+  assert.equal(`${none.buyGold.toLocaleString("ko-KR")}`, "0");
+});
