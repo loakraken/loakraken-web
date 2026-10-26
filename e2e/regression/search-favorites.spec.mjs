@@ -161,6 +161,9 @@ for (const scheme of ["light", "dark"])
       await seedRecent(page);
       await openSearch(page);
       await expect(page.getByRole("tab", { name: "즐겨찾기" })).toBeVisible();
+      // Measured once the opening scale has settled: as wide as the search bar.
+      const full = (await page.locator(".cmd").boundingBox()).width;
+      await expect.poll(async () => (await page.locator(".rsp").boundingBox()).width, { timeout: 3000 }).toBeGreaterThan(full - 1);
       const panel = await page.locator(".rsp").boundingBox();
       expect(panel.x).toBeGreaterThanOrEqual(0);
       expect(panel.x + panel.width).toBeLessThanOrEqual(width);
