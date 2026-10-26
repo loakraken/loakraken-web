@@ -69,7 +69,15 @@ for (const scheme of ["light", "dark"])
           nameCut: cut(el),
           starOnFirstLine: Math.abs(s.top + s.height / 2 - (n.top + line / 2)) <= 2,
           starInside: s.right <= window.innerWidth,
-          linesCut: [...banner.querySelectorAll(":scope > p")].filter(cut).map((p) => p.textContent),
+          // By the text's own range: a badge's invisible 44px press area
+          // reaches past its line without cutting anything.
+          linesCut: [...banner.querySelectorAll(":scope > p")]
+            .filter((p) => {
+              const range = document.createRange();
+              range.selectNodeContents(p);
+              return range.getBoundingClientRect().right > p.getBoundingClientRect().right + 1;
+            })
+            .map((p) => p.textContent),
         };
       }, LONGEST);
       expect(found).toEqual({ nameCut: false, starOnFirstLine: true, starInside: true, linesCut: [] });
