@@ -135,6 +135,19 @@
 .basis {
   margin-top: var(--space-3);
 }
+/* Below 360 the three price bases do not fit on one row; the control finds that
+   only after the fonts are ready and stacks itself then, pushing the cards down
+   88px at first load (#1145). Stacked from the first paint here, as it would end
+   (same rule as 더보기 손익). 아비도스 제작 and 생명의 기운 both use .basis. */
+@media (max-width: 359px) {
+  .basis [data-slot="segmented-control"][data-orientation] {
+    width: 100%;
+    grid-auto-flow: row;
+    grid-auto-columns: auto;
+    row-gap: 12px;
+    border-radius: 20px;
+  }
+}
 .cards {
   display: grid;
   gap: var(--space-4);
