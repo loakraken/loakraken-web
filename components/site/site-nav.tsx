@@ -253,7 +253,7 @@ export function SiteNav() {
                     {group.href ? (
                       <Link
                         href={group.href}
-                        className={`${styles.sheetGroup} ${styles.groupLink} hit-44`}
+                        className={`${styles.sheetGroup} ${styles.groupLink}`}
                         onClick={() => setSheet(false)}
                       >
                         {group.title}

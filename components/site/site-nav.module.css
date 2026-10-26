@@ -170,6 +170,14 @@ a.groupLink {
   text-decoration-color: color-mix(in oklab, currentColor 40%, transparent);
   text-underline-offset: 3px;
 }
+/* In the mobile sheet the title is a 44px row of its own to tap (A36), not
+   a hit area sticking out past the sheet's edge. */
+a.sheetGroup.groupLink {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  margin: 2px 0 0;
+}
 a.groupLink:focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: 2px;

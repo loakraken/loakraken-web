@@ -11,6 +11,9 @@
 }
 .workspace {
   display: grid;
+  /* minmax(0, …): one wide child (a card's table or chip row) scrolls in its
+     own box instead of widening the column past a 320 screen (A6). */
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-5);
   max-width: 1024px;
   margin: 0 auto;
