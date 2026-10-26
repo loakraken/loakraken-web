@@ -411,6 +411,9 @@
    banner-text e2e). On a narrow screen it keeps room on its right for the
    toggle, which sits there on the name's first line. */
 .bannerNameRow {
+  /* flow-root: the name's top margin stays inside, so the toggle's offset
+     below is measured from the same place. */
+  display: flow-root;
   position: relative;
 }
 .bannerFavorite {
