@@ -150,6 +150,18 @@ async function market(url, req, send) {
     const sort = url.searchParams.get("sort") ?? "default";
     const page = Number(url.searchParams.get("page") ?? 1);
     let items = boardItems(tab);
+    // Name search (api #624): trimmed, 1~20 allowed letters, a part of the name
+    // or of its initials (ㅇㅂㄷ); blank is no search. Then sort and page as usual.
+    const q = (url.searchParams.get("q") ?? "").trim();
+    if (q) {
+      if (q.length > 20 || !/^[가-힣ㄱ-ㅎㅏ-ㅣA-Za-z0-9 ·()+\-:]+$/.test(q)) return send({ code: "INVALID_REQUEST", message: "q" }, 400);
+      const initials = (name) =>
+        [...name].map((ch) => {
+          const code = ch.charCodeAt(0) - 0xac00;
+          return code >= 0 && code < 11172 ? "ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ"[Math.floor(code / 588)] : ch;
+        }).join("");
+      items = items.filter((item) => item.name.includes(q) || initials(item.name).includes(q));
+    }
     if (sort === "high") items.sort((a, b) => b.currentMinPrice - a.currentMinPrice);
     if (sort === "low") items.sort((a, b) => a.currentMinPrice - b.currentMinPrice);
     if (sort === "rise") items.sort((a, b) => b.changeDay - a.changeDay);
@@ -885,6 +897,23 @@ createServer(async (req, res) => {
         krakenSortUnavailableReason: who === "스펙업점수꺼짐" ? "DISABLED" : null,
       });
     envelope.data.characterName = who;
+    // 스펙업광휘: one skill with two 6레벨 광휘 gems, one in the damage role and
+    // one in the cooldown role (gemType), as on a real character; the rows
+    // otherwise read the same.
+    if (who === "스펙업광휘") {
+      const gem = envelope.data.candidates.find((c) => c.change?.kind === "GEM_LEVEL");
+      envelope.data.candidates.unshift(
+        ...["DAMAGE", "COOLDOWN"].map((gemType, i) => ({
+          ...gem,
+          id: `GEM_LEVEL:${7 + i}:7`,
+          target: "터닝 슬래쉬 · 6레벨 광휘",
+          from: "6레벨",
+          to: "7레벨",
+          gemType,
+          change: { ...gem.change, slot: 7 + i, level: 7 },
+        })),
+      );
+    }
     // 스펙업이전시세 (api #759): gem costs carry their price time; the first
     // gem row's price is a last-known one (stale), the second is fresh.
     if (who === "스펙업이전시세") {

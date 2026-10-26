@@ -873,7 +873,6 @@ function MaterialQuoteContent({ initialCategory }: { initialCategory: number | n
         <div className={styles.band}>
           <div className={styles.workspace}>
             <section className={styles.card} aria-labelledby="basis-heading">
-              <p className={styles.step}>1</p>
               <h2 id="basis-heading">가격 기준</h2>
               <SegmentedControl
                 className={styles.basis}
@@ -891,7 +890,6 @@ function MaterialQuoteContent({ initialCategory }: { initialCategory: number | n
             </section>
 
             <section className={styles.card} aria-labelledby="items-heading">
-              <p className={styles.step}>2</p>
               <h2 id="items-heading">
                 재료{" "}
                 <span className={styles.countLabel}>
@@ -904,7 +902,6 @@ function MaterialQuoteContent({ initialCategory }: { initialCategory: number | n
             </section>
 
             <section className={styles.card} aria-labelledby="calc-heading">
-              <p className={styles.step}>3</p>
               <h2 id="calc-heading">계산</h2>
               <p className={styles.hint}>
                 부족 수량 = 필요 − 보유. 묶음 단위로 올림해 구매하고, 남는

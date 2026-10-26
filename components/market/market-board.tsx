@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
-import { useRouter } from "next/navigation";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import {
   AddSquare,
@@ -54,6 +53,8 @@ import { ChartPlaceholder, MarketChart, dayPoints, minutePoints, periodChange } 
 import { sampleText } from "@/lib/market/minutes";
 import { SiteHeader } from "@/components/site/site-header";
 import { PillTab, PillTabs } from "@/components/ui/pill-tabs";
+import { BoardSearch } from "./board-search";
+import { useTallest } from "@/components/ui/use-tallest";
 
 // One Iconsax mark per category (decorative; the label names the tab).
 const TAB_ICON: Record<string, ReactNode> = {
@@ -509,9 +510,9 @@ function MarketContent({
   initial: BoardQuery;
   initialItem: number | null;
 }) {
-  const router = useRouter();
   const [query, setQuery] = useState(initial);
   const [selected, setSelected] = useState<number | null>(initialItem);
+  const [heldRef, held] = useTallest();
   const favorites = useFavorites();
   const tabs = useQuery({
     queryKey: ["market", "tabs"],
@@ -561,19 +562,24 @@ function MarketContent({
   const pages = data ? Math.min(10, Math.ceil(data.totalItems / data.pageSize)) : 1;
   const failure = failureOf(board.error) ?? failureOf(tabs.error);
 
+  // The address follows the board with a plain replaceState: router.replace
+  // asked this dynamic page again and re-mounted it, so the pager and footer
+  // vanished and came back when a search answer landed (#1115 measure, CLS).
+  const follow = (params: URLSearchParams) =>
+    window.history.replaceState(null, "", `${window.location.pathname}?${params}`);
   function update(next: Partial<BoardQuery>, item: number | null = null) {
     const merged = { ...query, ...next };
     setQuery(merged);
     setSelected(item);
     const params = new URLSearchParams(boardQueryString(merged));
     if (item != null) params.set("item", String(item));
-    router.replace(`?${params}`, { scroll: false });
+    follow(params);
   }
   function choose(item: BoardItem) {
     setSelected(item.itemId);
     const params = new URLSearchParams(boardQueryString(query));
     params.set("item", String(item.itemId));
-    router.replace(`?${params}`, { scroll: false });
+    follow(params);
   }
 
   return (
@@ -659,6 +665,17 @@ function MarketContent({
                   ))}
                 </div>
               </div>
+              {/* Searches the open tab; tab, tier and sort stay and apply to
+                  the results, a new search starts at page 1 (#1115). */}
+              <BoardSearch
+                value={query.q}
+                onSearch={(q) => update({ q, page: 1 })}
+                notice={
+                  query.q && data && !board.isPlaceholderData && !data.complete
+                    ? "품목이 많아 일부 품목만 찾았어요."
+                    : null
+                }
+              />
               {(currentTab
                 ? currentTab.defaultTier != null
                 : TAB_FALLBACK.some((t) => t.tab === query.tab && t.tiered)) && (
@@ -682,6 +699,14 @@ function MarketContent({
                 </p>
               )}
               {data && failure && <StaleNote failure={failure} />}
+              {/* The list and its pager held at their tallest on this visit: a
+                  shorter answer (a search, a last page) or a pager going away
+                  never pulls up the price note and the footer when it lands,
+                  well after the key press (A7, #1115 measure). Drawn anew per
+                  board, as the rows are: a note or the tier row coming and
+                  going above it then adds a new box instead of moving this one
+                  (a7-controls, 정렬/상승 and tab presses). */}
+              <div key={JSON.stringify(query)} ref={heldRef} style={held ? { minHeight: held } : undefined}>
               {failure && !data ? (
                 <Problem
                   failure={failure}
@@ -704,7 +729,9 @@ function MarketContent({
                   ))}
                 </ul>
               ) : !items.length ? (
-                <p className={styles.muted}>표시할 품목이 없어요.</p>
+                <p className={styles.muted} role="status">
+                  {query.q ? `‘${query.q}’에 맞는 품목이 이 분류에 없어요.` : "표시할 품목이 없어요."}
+                </p>
               ) : (
                 // A new board (tab, tier, sort, page) is not a "change": the
                 // rows are compared again from the first real answer for it.
@@ -732,6 +759,7 @@ function MarketContent({
                   ))}
                 </nav>
               )}
+              </div>
               {data && (
                 <div className={styles.freshness}>
                   <p className={styles.note}>{at(data.observedAt)} 기준 · 등락: 전일 평균가 대비</p>

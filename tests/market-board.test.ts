@@ -12,6 +12,7 @@ import {
   updatedAgo,
   parseItemId,
   readBoardQuery,
+  readSearch,
 } from "../lib/market/board";
 import {
   isBoardEnvelope,
@@ -43,19 +44,36 @@ test("board query is allow-listed and the page URL falls back to defaults", () =
   );
   for (const bad of ["", "tab=GEM", "tab=LIFE&tier=5", "tab=LIFE&sort=up", "tab=LIFE&page=11", "tab=LIFE&page=1.5"])
     assert.equal(boardSearchParams(new URLSearchParams(bad)), null, bad);
-  assert.deepEqual(readBoardQuery({}), { tab: "REFINING", tier: null, sort: "default", page: 1 });
+  assert.deepEqual(readBoardQuery({}), { tab: "REFINING", tier: null, sort: "default", page: 1, q: null });
   assert.deepEqual(readBoardQuery({ tab: "FOOD", sort: "fall", page: "3", tier: "9" }), {
     tab: "FOOD",
     tier: null,
     sort: "fall",
     page: 3,
+    q: null,
   });
-  assert.equal(boardQueryString({ tab: "LIFE", tier: null, sort: "default", page: 1 }), "tab=LIFE");
+  assert.equal(boardQueryString({ tab: "LIFE", tier: null, sort: "default", page: 1, q: null }), "tab=LIFE");
   assert.equal(parseItemId("66102006"), 66102006);
   assert.equal(parseItemId("0"), null);
   assert.equal(parseItemId("12a"), null);
 });
 
+test("name search (api #624): trimmed like the server, 1~20 allowed letters, kept in the URL", () => {
+  assert.deepEqual(readSearch("  파괴석 "), { q: "파괴석", invalid: false });
+  assert.deepEqual(readSearch("ㅇㅂㄷ"), { q: "ㅇㅂㄷ", invalid: false });
+  assert.deepEqual(readSearch("오레하 융화 (상급)+1:A-b·c"), { q: "오레하 융화 (상급)+1:A-b·c", invalid: false });
+  assert.deepEqual(readSearch("   "), { q: null, invalid: false });
+  assert.deepEqual(readSearch(null), { q: null, invalid: false });
+  for (const bad of ["파괴석!", "<script>", "a".repeat(21), "가/나", "🙂"]) assert.deepEqual(readSearch(bad), { q: null, invalid: true }, bad);
+  // Inner spaces stay as typed (the server trims only the ends).
+  assert.equal(readSearch(" 운명의  파편 ").q, "운명의  파편");
+  assert.equal(boardSearchParams(new URLSearchParams("tab=LIFE&q=%20%ED%8C%8C%EA%B4%B4%20"))?.toString(), "tab=LIFE&q=%ED%8C%8C%EA%B4%B4");
+  assert.equal(boardSearchParams(new URLSearchParams("tab=LIFE&q=%20"))?.toString(), "tab=LIFE");
+  assert.equal(boardSearchParams(new URLSearchParams("tab=LIFE&q=%3Cx%3E")), null);
+  assert.deepEqual(readBoardQuery({ tab: "LIFE", q: " ㅇㅂㄷ " }).q, "ㅇㅂㄷ");
+  assert.equal(readBoardQuery({ tab: "LIFE", q: "<x>" }).q, null);
+  assert.equal(boardQueryString({ tab: "LIFE", tier: null, sort: "high", page: 2, q: "파괴석" }), "tab=LIFE&sort=high&page=2&q=%ED%8C%8C%EA%B4%B4%EC%84%9D");
+});
 test("change labels and gold text follow the board's units", () => {
   assert.deepEqual(changeLabel(1.14), { text: "▲1.1%", direction: "up" });
   assert.deepEqual(changeLabel(-0.7), { text: "▼0.7%", direction: "down" });
