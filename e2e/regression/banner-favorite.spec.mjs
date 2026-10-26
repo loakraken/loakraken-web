@@ -55,8 +55,9 @@ for (const scheme of ["light", "dark"])
       await page.setViewportSize({ width, height: 800 });
       await gotoReady(page, characterPath("상세"));
       const name = page.getByRole("heading", { level: 1, name: "상세" });
-      await name.evaluate((el, text) => (el.textContent = text), LONGEST);
-      const found = await name.evaluate((el) => {
+      // Renamed and measured in one step (the locator finds it by the old name).
+      const found = await name.evaluate((el, text) => {
+        el.textContent = text;
         const row = el.parentElement;
         const star = row.querySelector("button");
         const n = el.getBoundingClientRect();
@@ -70,7 +71,7 @@ for (const scheme of ["light", "dark"])
           starInside: s.right <= window.innerWidth,
           linesCut: [...banner.querySelectorAll(":scope > p")].filter(cut).map((p) => p.textContent),
         };
-      });
+      }, LONGEST);
       expect(found).toEqual({ nameCut: false, starOnFirstLine: true, starInside: true, linesCut: [] });
       await expectNoHorizontalOverflow(page);
     });
