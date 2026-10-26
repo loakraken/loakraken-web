@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 import { SITEMAP_PATHS, siteUrl } from "@/lib/site";
-import { isCritSpeedEnabled } from "@/lib/tools/flags";
+import { isAccessorySearchEnabled, isCritSpeedEnabled } from "@/lib/tools/flags";
 import { devNoteList } from "@/lib/dev-notes/files";
 
 // Per request, like robots.txt; character pages are unbounded and not listed.
@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 export default function sitemap(): MetadataRoute.Sitemap {
   const url = siteUrl();
   // A tool hidden on this deployment is not listed either (web #233).
-  const hidden = isCritSpeedEnabled() ? [] : ["/tools/crit-speed"];
+  const hidden = [!isCritSpeedEnabled() && "/tools/crit-speed", !isAccessorySearchEnabled() && "/market/accessory-search"].filter(Boolean);
   const pages: MetadataRoute.Sitemap = SITEMAP_PATHS.filter((path) => !hidden.includes(path)).map((path) => ({
     url: `${url}${path === "/" ? "" : path}`,
     changeFrequency: path === "/" || path === "/market" ? "hourly" : "weekly",

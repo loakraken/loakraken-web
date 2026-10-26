@@ -116,16 +116,18 @@ export function CardArt({
             {name.slice(0, 1)}
           </span>
         )}
-        <span
-          className={styles.awake}
-          role="img"
-          aria-label={known ? `${awakeCount}각성` : "각성 미확인"}
-        >
-          {Array.from({ length: total }, (_, i) => (
-            <i key={i} data-on={known && i < (awakeCount ?? 0)} />
-          ))}
-        </span>
       </div>
+      {/* Under the picture, not over it: the art's own bottom (name plate,
+          awakening frame) stays whole (#1101). */}
+      <span
+        className={styles.awake}
+        role="img"
+        aria-label={known ? `${awakeCount}각성` : "각성 미확인"}
+      >
+        {Array.from({ length: total }, (_, i) => (
+          <i key={i} data-on={known && i < (awakeCount ?? 0)} />
+        ))}
+      </span>
       <figcaption>
         <strong>{name}</strong>
         <small>{known ? `${awakeCount}각성` : "각성 미확인"}</small>

@@ -31,6 +31,7 @@ export const SITEMAP_PATHS = [
   "/market",
   "/market/accessories",
   "/market/gems",
+  "/market/accessory-search",
   "/tools",
   "/tools/material-quote",
   "/tools/refining",

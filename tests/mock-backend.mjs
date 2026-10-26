@@ -4,6 +4,8 @@ import { readFileSync } from "node:fs";
 import { randomBytes, randomUUID } from "node:crypto";
 const failures = new Map();
 const receiptCalls = new Map();
+/** 영수증대원정대: how far the 20-member fill got and when the next request is allowed. */
+const receiptFill = new Map();
 
 const read = (name) =>
   JSON.parse(
@@ -536,7 +538,8 @@ createServer(async (req, res) => {
       buyPrice: 1_200_000 + page * 100_000 + i * 50_000,
       bidStartPrice: 900_000,
       endDate: "2026-10-14T12:00:00Z",
-      icon: null,
+      // An official CDN icon, as the search answer carries (the card shows it).
+      icon: "https://cdn-lostark.game.onstove.com/efui_iconatlas/acc/acc_215.png",
       baseEffects: [],
       ...extra,
     });
@@ -568,14 +571,17 @@ createServer(async (req, res) => {
     const cells = ["겁화", "작열"].flatMap((kind) =>
       [10, 9, 8, 7, 6, 5, 4, 3, 2, 1].map((level) => {
         const pending = kind === "작열" && level === 1;
+        // api #690: 작열 2레벨's fresh value ran out; the last one, seen 2 hours before.
+        const stale = kind === "작열" && level === 2;
         const price = Math.round((kind === "겁화" ? 2.4 : 1.1) * 3 ** (level - 1) * 40);
         return {
           kind, level, itemName: `${level}레벨 ${kind}의 보석`,
           minBuyPrice: pending ? null : price,
           totalCount: pending ? null : 30 + level * 7,
           previousDayChangeRate: pending ? null : level % 3 === 0 ? -2.5 : level % 3 === 1 ? 4 : 0,
-          observedAt: pending ? null : observedAt,
+          observedAt: pending ? null : stale ? new Date(Date.now() - 2 * 3_600_000).toISOString() : observedAt,
           status: pending ? "PENDING" : "READY",
+          ...(stale ? { stale: true } : {}),
         };
       }),
     );
@@ -641,6 +647,7 @@ createServer(async (req, res) => {
       bidStartPrice: 200_000,
       endDate: new Date(Date.now() + (start + i + 1) * 3_600_000).toISOString(),
       tradeAllowCount: i % 4 === 3 ? 0 : 2,
+      icon: "https://cdn-lostark.game.onstove.com/efui_iconatlas/use/use_12_105.png",
       options: [{ type: "GEM_SKILL_DAMAGE", name: "합성 스킬", value: 44, percentage: true, level: null, className: i % 2 ? "바드" : "블래스터" }],
     }));
     return send({ code: "AUCTION_LISTINGS_SUCCESS", message: "ok", data: { totalCount: total, page, observedAt: new Date().toISOString(), items } });
@@ -694,6 +701,7 @@ createServer(async (req, res) => {
       bidStartPrice: 400_000,
       endDate: new Date(Date.now() + (start + i + 1) * 3_600_000).toISOString(),
       tradeAllowCount: 2,
+      icon: "https://cdn-lostark.game.onstove.com/efui_iconatlas/acc/acc_215.png",
       options: [
         { type: "ACCESSORY_UPGRADE", name: "적주피", value: 2, percentage: true, level: "HIGH", className: null },
         { type: "ACCESSORY_UPGRADE", name: "추피", value: 1.6, percentage: true, level: "MID", className: null },
@@ -1387,6 +1395,43 @@ createServer(async (req, res) => {
       return send({ code: "CLIENT_RATE_LIMITED", message: "rate limited" }, 429, { "Retry-After": "30" });
     const body = JSON.parse(readFileSync(new URL("./receipt-fixtures/character-receipt.json", import.meta.url), "utf8"));
     const data = body.data;
+    // 영수증대원정대 (api receipt fan-out, PM-프론트's measure): a 20-member
+    // roster filled 2 per request, at most 2 official calls per 6 s for the
+    // visitor (20 per minute). nextAvailableAt says when the next 2 are
+    // allowed; asking sooner gets a 429, so a too-fast client fails visibly.
+    // A fresh fill starts after a minute without requests. Any name starting
+    // with it is its own visitor (parallel test projects each use their own).
+    if (who.startsWith("영수증대원정대")) {
+      const now = Date.now();
+      let fill = receiptFill.get(who);
+      if (!fill || now - fill.lastAt > 60_000) fill = { ready: 0, allowedAt: 0, lastAt: now };
+      fill.lastAt = now;
+      if (now < fill.allowedAt) {
+        receiptFill.set(who, fill);
+        return send({ code: "CLIENT_RATE_LIMITED", message: "rate limited" }, 429, { "Retry-After": String(Math.ceil((fill.allowedAt - now) / 1000)) });
+      }
+      fill.ready = Math.min(20, fill.ready + 2);
+      fill.allowedAt = now + 6_000;
+      receiptFill.set(who, fill);
+      const template = data.equipment.characters[0];
+      data.characterName = who;
+      data.computedAt = new Date().toISOString();
+      data.equipment.characters = Array.from({ length: 20 }, (_, i) =>
+        i < fill.ready
+          ? { ...template, characterName: `대원정대${i + 1}`, complete: true, observedAt: new Date(now - i * 60_000).toISOString() }
+          : { ...template, characterName: `대원정대${i + 1}`, status: "PENDING", gold: null, parts: [], excluded: [], complete: null, observedAt: null },
+      );
+      const pending = 20 - fill.ready;
+      data.coverage = {
+        rosterCharacters: 20,
+        ready: fill.ready,
+        pending,
+        unavailable: 0,
+        nextAvailableAt: pending > 0 ? new Date(fill.allowedAt).toISOString() : null,
+      };
+      data.total = { ...data.total, status: pending > 0 ? "PARTIAL" : "COMPLETE" };
+      return send(body);
+    }
     data.characterName = who;
     data.computedAt = new Date().toISOString();
     receiptCalls.set(who, (receiptCalls.get(who) ?? 0) + 1);
@@ -1396,6 +1441,13 @@ createServer(async (req, res) => {
       data.coverage = { ...data.coverage, ready: data.coverage.rosterCharacters, pending: 0, nextAvailableAt: null };
       data.total.status = "COMPLETE";
     } else data.coverage.nextAvailableAt = new Date(Date.now() + 20_000).toISOString();
+    // 영수증새상태: a member and the total carry status values this web build
+    // does not know (a newer api); the member reads as '확인 못 함'.
+    if (who === "영수증새상태") {
+      const row = data.equipment.characters.find((c) => c.status === "READY");
+      Object.assign(row, { status: "SOMETHING_NEW", gold: null, parts: [], excluded: [], complete: null });
+      data.total.status = "SOMETHING_NEW";
+    }
     // 영수증시세없음 (backend #665): every price missing, nothing counted → UNAVAILABLE, no amount.
     if (who === "영수증시세없음") {
       for (const c of data.equipment.characters) {
