@@ -423,8 +423,10 @@
   place-items: center;
   width: 32px;
   height: 32px;
-  /* Negative margins: the row keeps the name's own height (no taller banner). */
-  margin-block: -3px;
+  /* Centred on the name's first line (21px × 1.25 under its 4px margin), even
+     when a long name wraps; the negative bottom keeps the row the name's height. */
+  align-self: flex-start;
+  margin-block: 1px -4px;
   border-radius: 50%;
   color: inherit;
   transition: transform 100ms ease-out;

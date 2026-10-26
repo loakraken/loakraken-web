@@ -44,6 +44,37 @@ for (const scheme of ["light", "dark"])
       await expectNoHorizontalOverflow(page);
     });
 
+// A37: the longest name the game allows (12 Korean letters) beside the star at
+// the narrowest widths: no letter cut, the star stays on the name's first line
+// and inside the screen, the server line and the title are not cut either.
+const LONGEST = "가나다라마바사아자차카타";
+for (const scheme of ["light", "dark"])
+  for (const width of [320, 360])
+    test(`${scheme} ${width}: 12글자 이름도 잘림 없이 단추가 이름 첫 줄에 @regression`, async ({ page }) => {
+      await page.emulateMedia({ colorScheme: scheme });
+      await page.setViewportSize({ width, height: 800 });
+      await gotoReady(page, characterPath("상세"));
+      const name = page.getByRole("heading", { level: 1, name: "상세" });
+      await name.evaluate((el, text) => (el.textContent = text), LONGEST);
+      const found = await name.evaluate((el) => {
+        const row = el.parentElement;
+        const star = row.querySelector("button");
+        const n = el.getBoundingClientRect();
+        const s = star.getBoundingClientRect();
+        const line = parseFloat(getComputedStyle(el).lineHeight);
+        const cut = (node) => !!node && node.scrollWidth > node.clientWidth + 1;
+        const banner = row.parentElement;
+        return {
+          nameCut: cut(el),
+          starOnFirstLine: Math.abs(s.top + s.height / 2 - (n.top + line / 2)) <= 2,
+          starInside: s.right <= window.innerWidth,
+          linesCut: [...banner.querySelectorAll(":scope > p")].filter(cut).map((p) => p.textContent),
+        };
+      });
+      expect(found).toEqual({ nameCut: false, starOnFirstLine: true, starInside: true, linesCut: [] });
+      await expectNoHorizontalOverflow(page);
+    });
+
 test("1280: 이름 옆 단추는 숨고 탭 줄 단추 하나 @regression", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await gotoReady(page, characterPath("상세"));
