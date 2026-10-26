@@ -429,7 +429,13 @@
   margin-block: 1px -4px;
   border-radius: 50%;
   color: inherit;
+  touch-action: manipulation;
   transition: transform 100ms ease-out;
+}
+@media (hover: hover) {
+  .bannerFavorite:hover {
+    background: color-mix(in oklab, currentColor 12%, transparent);
+  }
 }
 .bannerFavorite[aria-pressed="true"] {
   color: var(--accent-warm);
