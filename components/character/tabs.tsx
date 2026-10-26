@@ -41,9 +41,11 @@ import {
   skillSummary,
   statNumber,
   stoneBonus,
+  positionOf,
   type Equipment,
   type Skill,
 } from "@/lib/character/detail";
+import { accessoryLineCounts, gridOptionCounts } from "@/lib/character/role-lines";
 import {
   characterNameError,
   coverageLabel,
@@ -457,20 +459,34 @@ function Quality({ value }: { value: number | null | undefined }) {
 
 function GradeLine({
   grade,
+  counts,
   children,
 }: {
   grade: unknown;
+  /** Whether the line counts for this character's role (null: not decided, left as is). */
+  counts?: boolean | null;
   children: ReactNode;
 }) {
   return (
     <li
       className={styles.gradeLine}
       data-grade={isGrade(grade) ? grade : undefined}
+      data-other-role={counts === false || undefined}
     >
       <span>{isGrade(grade) ? GRADE_LABEL[grade] : "·"}</span>
       {children}
+      {counts === false && <OtherRole />}
     </li>
   );
+}
+
+/**
+ * Said with a grey line (#1108): grey alone would carry the meaning by colour
+ * only (WCAG 1.4.1), so a screen reader hears it too. One wording everywhere.
+ */
+const OTHER_ROLE = " (이 역할에는 해당 없음)";
+function OtherRole() {
+  return <span className={styles.srOnly}>{OTHER_ROLE}</span>;
 }
 
 function refineOf(item: Equipment) {
@@ -489,6 +505,8 @@ function EquipmentPanel({ data }: { data: Character }) {
   const extra = useItemTooltips(data.characterName);
   const extraOf = (item: Equipment) =>
     equipmentExtra(extra, data.loadout.equipment.indexOf(item), item.type);
+  // Accessory lines that do not count for this role go grey (user 10-26).
+  const role = positionOf(data);
   const qualityGroups = data.analysis.equipment?.qualityGroups;
   const armorQ = averageQuality(qualityGroups, "WEAPON_ARMOR");
   const accQ = averageQuality(qualityGroups, "ACCESSORY");
@@ -574,7 +592,7 @@ function EquipmentPanel({ data }: { data: Character }) {
                 {item.detail?.polishEffects.length ? (
                   <ul className={styles.gradeList}>
                     {item.detail.polishEffects.map((effect, j) => (
-                      <GradeLine key={j} grade={effect.grade}>
+                      <GradeLine key={j} grade={effect.grade} counts={accessoryLineCounts(effect.name, effect.value, role)}>
                         {effect.name} {effect.value}
                       </GradeLine>
                     ))}
@@ -901,6 +919,8 @@ function GemsPanel({ data }: { data: Character }) {
 function ArkGridPanel({ data }: { data: Character }) {
   const grid = data.loadout.arkGrid;
   const summary = data.analysis.arkGrid;
+  // Gem options of the other role's family go grey (#1108); no role, none do.
+  const role = positionOf(data);
   const [expanded, setExpanded] = useState(false);
   const extra = useItemTooltips(data.characterName);
   // Off on this deployment: as if there were no efficiency (nothing drawn).
@@ -1018,15 +1038,26 @@ function ArkGridPanel({ data }: { data: Character }) {
                               <span>
                                 <strong>{text(gem.name)}</strong>
                                 <small>
+                                  {/* One piece per fact; a gem option that does not count
+                                      for this character's role goes grey (#1108). */}
                                   {[
-                                    gem.corePoint != null && `포인트 ${gem.corePoint}`,
-                                    gem.requiredWillpower != null && `의지력 ${gem.requiredWillpower}`,
-                                    ...gem.options.map(
-                                      (o) => `${o.name}${o.level != null ? ` Lv.${o.level}` : ""}`,
-                                    ),
+                                    gem.corePoint != null ? { text: `포인트 ${gem.corePoint}`, counts: null } : null,
+                                    gem.requiredWillpower != null
+                                      ? { text: `의지력 ${gem.requiredWillpower}`, counts: null }
+                                      : null,
+                                    ...gem.options.map((o) => ({
+                                      text: `${o.name}${o.level != null ? ` Lv.${o.level}` : ""}`,
+                                      counts: gridOptionCounts(o.name ?? "", role),
+                                    })),
                                   ]
-                                    .filter(Boolean)
-                                    .join(" · ")}
+                                    .filter((piece) => piece != null)
+                                    .map((piece, k) => (
+                                      <span key={k} data-other-role={piece.counts === false || undefined}>
+                                        {k > 0 && " · "}
+                                        {piece.text}
+                                        {piece.counts === false && <OtherRole />}
+                                      </span>
+                                    ))}
                                 </small>
                               </span>
                             </li>
