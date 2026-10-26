@@ -50,7 +50,7 @@ export default function SearchDropdown({
         header={
           <div className="grid gap-1.5">
             <SearchTabs tab={results.tab} onTab={results.setTab} onEscape={onEscape} hidden={!results.showTabs} />
-            <span>{SEARCH_HINT}</span>
+            <span id={`${panelId}-hint`}>{SEARCH_HINT}</span>
           </div>
         }
         className="left-0! right-auto! w-[min(400px,calc(100vw-32px))]!"

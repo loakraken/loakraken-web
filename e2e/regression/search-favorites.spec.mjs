@@ -47,6 +47,8 @@ test("탭: 최근 본 / 즐겨찾기, ←/→로 바꾸고 빈 즐겨찾기는 �
 test("Shift+Enter로 즐겨찾기에 넣고(읽히는 이름·상태 줄), 새로 고침에도 남고, 줄의 표시를 눌러 빼도 이동하지 않는다 @regression", async ({ page }) => {
   await seedRecent(page);
   const box = await openSearch(page);
+  // The keys line is the field's description (Shift+Enter is told nowhere else).
+  await expect(box).toHaveAccessibleDescription(/Shift\+Enter 즐겨찾기/);
   await page.keyboard.press("ArrowDown");
   await expect(page.locator(`[id="${await box.getAttribute("aria-activedescendant")}"]`)).toContainText("상세");
   await page.keyboard.press("Shift+Enter");
@@ -108,6 +110,7 @@ test("캐릭터 화면: 즐겨찾기 단추(눌림 상태)와 같은 드롭다�
   await field.focus();
   await expect(list(page)).toBeVisible();
   await expect(field).toHaveAttribute("aria-expanded", "true");
+  await expect(field).toHaveAccessibleDescription(/Shift\+Enter 즐겨찾기/);
   await page.getByRole("tab", { name: "즐겨찾기" }).click();
   await expect(list(page).getByRole("option", { name: /상세 · 즐겨찾기됨/ })).toBeVisible();
   // Typing: the same character rows and keys as the header search.

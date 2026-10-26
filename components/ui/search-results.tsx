@@ -175,7 +175,7 @@ export function useSearchResults({ open, text, onLeave }: { open: boolean; text:
             aria-hidden="true"
             data-slot="row-star"
             data-on={isFav || undefined}
-            className="grid size-8 place-items-center rounded-full text-muted-foreground data-on:text-(--accent-warm)"
+            className="grid size-8 place-items-center rounded-full text-muted-foreground transition-transform duration-100 active:scale-90 motion-reduce:transition-none not-data-on:hover:text-foreground data-on:text-(--accent-warm)"
             onMouseDown={(event) => event.preventDefault()}
             onClick={(event) => {
               event.preventDefault()

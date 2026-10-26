@@ -93,7 +93,8 @@ function CommandSearchDialog({
                   // The list, not the dialog: shown only when there are rows (frontend-a11y).
                   "aria-expanded": open && groups.length > 0,
                   "aria-invalid": results.error ? true : undefined,
-                  "aria-describedby": results.error ? errorId : undefined,
+                  // The keys line too (Shift+Enter is only told there).
+                  "aria-describedby": results.error ? `${errorId} ${panelId}-hint` : `${panelId}-hint`,
                   "aria-controls": panelId,
                   "aria-autocomplete": "list",
                   "aria-activedescendant": current ? optionId(panelId, current) : undefined,
@@ -111,7 +112,7 @@ function CommandSearchDialog({
               header={
                 <div className="grid gap-1.5">
                   <SearchTabs tab={results.tab} onTab={results.setTab} onEscape={close} hidden={!results.showTabs} />
-                  <span>{SEARCH_HINT}</span>
+                  <span id={`${panelId}-hint`}>{SEARCH_HINT}</span>
                 </div>
               }
               // result-panel.css is unlayered (left 0, right 0, origin 0 0), so

@@ -131,7 +131,7 @@ function SearchBox({ name }: { name: string }) {
           aria-autocomplete="list"
           aria-activedescendant={open ? activeId : undefined}
           aria-invalid={!!error}
-          aria-describedby={error ? "detail-search-error" : undefined}
+          aria-describedby={[error && "detail-search-error", open && `${panelId}-hint`].filter(Boolean).join(" ") || undefined}
         />
         <button type="submit" disabled={moving} aria-label="캐릭터 검색">
           {moving ? <InlineOrb /> : <ArrowRight size={18} />}
