@@ -1442,6 +1442,8 @@ createServer(async (req, res) => {
         nextAvailableAt: pending > 0 ? new Date(fill.allowedAt).toISOString() : null,
       };
       data.total = { ...data.total, status: pending > 0 ? "PARTIAL" : "COMPLETE" };
+      // api #761: silver of the counted parts as a quantity, never gold.
+      data.total.nonGold = [{ name: "실링", amount: 98_000 * fill.ready }];
       return send(body);
     }
     data.characterName = who;
@@ -1452,7 +1454,12 @@ createServer(async (req, res) => {
         if (c.status === "PENDING") Object.assign(c, { status: "READY", gold: 2887361, complete: true });
       data.coverage = { ...data.coverage, ready: data.coverage.rosterCharacters, pending: 0, nextAvailableAt: null };
       data.total.status = "COMPLETE";
-    } else data.coverage.nextAvailableAt = new Date(Date.now() + 20_000).toISOString();
+      // api #761: the filled members add silver and one 전율 armor 21 limit break.
+      data.total.nonGold = [{ name: "실링", amount: 1_960_000 }, { name: "고통의 가시", amount: 15 }];
+    } else {
+      data.coverage.nextAvailableAt = new Date(Date.now() + 20_000).toISOString();
+      data.total.nonGold = [{ name: "실링", amount: 1_240_000 }];
+    }
     // 영수증새상태: a member and the total carry status values this web build
     // does not know (a newer api); the member reads as '확인 못 함'.
     if (who === "영수증새상태") {
@@ -1469,7 +1476,7 @@ createServer(async (req, res) => {
       }
       data.equipment.gold = 0;
       data.gems = { ...data.gems, gold: 0, priced: 0, unpriced: data.gems.tradable, items: data.gems.items.map((g) => ({ ...g, gold: null, unitPrice: null, status: "NO_PRICE" })) };
-      data.total = { ...data.total, gold: 0, status: "UNAVAILABLE" };
+      data.total = { ...data.total, gold: 0, status: "UNAVAILABLE", nonGold: [] };
     }
     if (url.searchParams.get("assumeBook") === "true") {
       data.assumptions[0] = "책(재봉술·야금술) 효과가 항상 적용된다고 가정합니다(확률 미공개).";
