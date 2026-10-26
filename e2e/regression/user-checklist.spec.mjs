@@ -347,18 +347,22 @@ test.describe("사용자 지적 회귀 점검표 @regression", () => {
     const panel = await button.getAttribute("aria-controls");
     await button.click();
     await expect(page.locator(`[id="${panel}"]`)).toBeVisible();
+    // Since the menu regroup (사용자 승인 10-25, #1142): 성장 도구 is three equal
+    // columns (캐릭터 성장 / 레이드 / 골드 효율), each group one column, so the
+    // panel's entries spread over at least two columns instead of one long list.
     const columns = await page.evaluate((id) => {
       const lists = [
         ...document.getElementById(id).querySelectorAll("ul"),
-      ].filter((ul) => ul.children.length >= 5);
-      return lists.map(
-        (ul) =>
-          new Set(
+      ];
+      return [
+        new Set(
+          lists.flatMap((ul) =>
             [...ul.children].map((li) =>
               Math.round(li.getBoundingClientRect().left),
             ),
-          ).size,
-      );
+          ),
+        ).size,
+      ];
     }, panel);
     expect(columns.length).toBeGreaterThan(0);
     expect(Math.min(...columns)).toBeGreaterThanOrEqual(2);
