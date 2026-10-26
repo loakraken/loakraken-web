@@ -71,6 +71,29 @@ test("Shift+Enter로 즐겨찾기에 넣고(읽히는 이름·상태 줄), 새�
   await expect(page.getByText("캐릭터의 즐겨찾기 표시를 누르면 여기에 모아 둘 수 있어요.")).toBeVisible();
 });
 
+test("최근 목록에 없는 즐겨찾기는 이름만(빈 서버·직업 자리 없음, 잘림 없음), 입력 중 숨은 탭은 읽히지 않는다 @regression", async ({ page }) => {
+  await page.addInitScript(() => {
+    try {
+      localStorage.setItem("loakraken:favorites", JSON.stringify(["상세서포터"]));
+      localStorage.setItem("loakraken:search-tab", "favorites");
+    } catch {}
+  });
+  const box = await openSearch(page);
+  const row = list(page).getByRole("option", { name: /상세서포터/ });
+  await expect(row).toBeVisible();
+  await expect(row.locator(".rsp-sub")).toHaveCount(0);
+  // The side holds the star alone: no empty server text before it.
+  expect((await row.locator(".rsp-side").innerText()).trim()).toBe("");
+  const cut = await row.locator(".rsp-name").evaluate((el) => el.scrollWidth > el.clientWidth + 1);
+  expect(cut, "이름 잘림").toBe(false);
+  // Typing hides the tab row in place: inert, so out of the tree and the Tab order.
+  await box.fill("상");
+  await expect(page.locator("[data-slot=search-tabs]")).toHaveAttribute("inert", "");
+  await expect(page.getByRole("tab")).toHaveCount(0);
+  await page.keyboard.press("Shift+Tab");
+  await expect(page.getByRole("tab", { includeHidden: true }).first()).not.toBeFocused();
+});
+
 test("캐릭터 화면: 즐겨찾기 단추(눌림 상태)와 같은 드롭다운의 검색 칸 @regression", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await gotoReady(page, characterPath("상세"));
