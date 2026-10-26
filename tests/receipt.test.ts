@@ -10,6 +10,7 @@ import {
   isReceiptOff,
   memberState,
   nextRefreshDelay,
+  nonGoldText,
   notIncludedText,
   observedText,
   requestReceipt,
@@ -202,4 +203,15 @@ test("a member status this screen does not know reads as '확인 못 함': not p
   data.coverage.unavailable = 3;
   assert.equal(unavailableCount(data), 3);
   for (const status of ["READY", "PENDING", "UNAVAILABLE"]) assert.equal(memberState({ ...row, status }), status);
+});
+
+test("non-gold costs (api #761) read as quantities, never gold; none or an older backend shows nothing", () => {
+  const data = fixture().data;
+  assert.equal(nonGoldText(data), "", "a backend before #761 has no nonGold");
+  data.total.nonGold = [];
+  assert.equal(nonGoldText(data), "");
+  data.total.nonGold = [{ name: "실링", amount: 1_960_000 }, { name: "고통의 가시", amount: 15 }, { name: "빈 재료", amount: 0 }];
+  assert.equal(nonGoldText(data), "실링 1,960,000 · 고통의 가시 15");
+  assert.doesNotMatch(nonGoldText(data), /G\b/);
+  assert.equal(isReceiptEnvelope({ ...fixture(), data }), true);
 });

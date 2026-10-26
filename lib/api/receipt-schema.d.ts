@@ -75,6 +75,14 @@ export interface components {
              * @enum {string}
              */
             status?: "COMPLETE" | "PARTIAL" | "UNAVAILABLE";
+            /** @description 골드로 바꾸지 않아 gold에 넣지 않은 비용(산정한 부위의 성장 실링, 전율 방어구 21단계 한계 해방의 고통의 가시 등). 이름과 수량, 없으면 빈 목록 */
+            nonGold?: components["schemas"]["ReceiptQuantityResponse"][];
+        };
+        ReceiptQuantityResponse: {
+            /** @description 이름(예: 실링, 고통의 가시) */
+            name: string;
+            /** @description 수량 */
+            amount: number;
         };
         ReceiptEquipmentResponse: {
             gold: number;
