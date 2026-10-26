@@ -1,7 +1,7 @@
 // 회귀(메뉴 합치기, 사용자 승인 10-26): 비슷한 페이지를 탭이 있는 묶음 화면 4개로.
 // 탭 하나 = 지금 페이지 하나(주소 그대로), 제목 아래 탭 줄, 서버에서 그린 링크.
 // 재료 구매 견적만 /market/quote로 옮기고 예전 주소는 308(쿼리 유지).
-import { test, expect, expectNoHorizontalOverflow } from "../support/fixtures.mjs";
+import { test, expect, expectNoHorizontalOverflow, gotoReady } from "../support/fixtures.mjs";
 
 // Tabs that are always on (flagged ones may be off on a deployment).
 const HUBS = [
@@ -71,7 +71,7 @@ test.describe("묶음 화면 탭 @regression", () => {
     test(`${width}: 묶음 탭 줄이 잘리지 않고 페이지가 옆으로 넘치지 않는다`, async ({ page }) => {
       await page.setViewportSize({ width, height: 800 });
       for (const path of ["/market", "/tools/raid-rewards", "/tools/loa-shop", "/tools/refining"]) {
-        await page.goto(path);
+        await gotoReady(page, path); // charts fit their box once the page settles
         const row = page.locator('nav[aria-label$=" 화면"]');
         await expect(row).toBeVisible();
         // Cut = clipped text: hit-44's larger tap area sticks out of each tab on
