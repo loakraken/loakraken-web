@@ -48,6 +48,7 @@
 }
 .tab:focus-visible,
 .entry:focus-visible,
+.panelAll:focus-visible,
 .menuButton:focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
@@ -98,12 +99,41 @@
     opacity: 0;
   }
 }
+.panelHead {
+  display: grid;
+  align-content: start;
+  justify-items: start;
+  gap: 10px;
+}
 .panelTitle {
   margin: 4px 0 0;
   color: var(--foreground);
   font-size: 24px;
   font-weight: 700;
   letter-spacing: -0.03em;
+}
+.panelAll {
+  color: var(--muted-foreground);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+/* Three or more groups (성장 도구): equal columns, so no group takes two. */
+.groups[data-columns] {
+  grid-template-columns: repeat(var(--columns), minmax(0, 1fr));
+}
+.groups[data-columns] .group {
+  grid-column: auto;
+}
+.groups[data-columns] .group ul {
+  grid-template-columns: minmax(0, 1fr);
+}
+.sheetGroup {
+  margin: 10px 0 2px;
+  color: var(--muted-foreground);
+  font-size: 11px;
+  font-weight: 600;
 }
 .groups {
   display: grid;
@@ -131,6 +161,32 @@
   color: var(--muted-foreground);
   font-size: 12px;
   font-weight: 500;
+}
+/* A hub's title (메뉴 합치기): the same small heading, a link to the hub page. */
+a.groupLink {
+  display: block;
+  width: fit-content;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in oklab, currentColor 40%, transparent);
+  text-underline-offset: 3px;
+}
+/* In the mobile sheet the title is a 44px row of its own to tap (A36), not
+   a hit area sticking out past the sheet's edge. */
+a.sheetGroup.groupLink {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  margin: 2px 0 0;
+}
+a.groupLink:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+@media (hover: hover) and (pointer: fine) {
+  a.groupLink:hover {
+    color: var(--foreground);
+  }
 }
 .entry {
   display: grid;
@@ -176,6 +232,9 @@
   }
   a.entry:hover {
     background: var(--hover-surface);
+  }
+  .panelAll:hover {
+    color: var(--foreground);
   }
   a.entry:hover .entryLabel {
     color: var(--link);

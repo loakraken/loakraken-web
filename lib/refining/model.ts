@@ -259,7 +259,7 @@ export function summarize(plans: PartPlan[], mode: Mode) {
     expected: item.amount,
   }));
   const rawGold = stages.reduce((sum, stage) => sum + stageGold(stage, mode), 0);
-  const gold = Math.ceil(rawGold - 1e-9);
+  const gold = Math.max(0, Math.ceil(rawGold - 1e-9));
   const attempts = stages.reduce(
     (sum, stage) => sum + attemptsAt(stage, mode),
     0,
@@ -393,7 +393,8 @@ export function costLines(
     };
   });
   const sum = (pick: (line: CostLine) => number | null) =>
-    Math.ceil(lines.reduce((total, line) => total + (pick(line) ?? 0), 0) - 1e-9);
+    // Clamped: ceil(0 − 1e-9) is −0, shown as "-0" (계산 검증 #1127 P2).
+    Math.max(0, Math.ceil(lines.reduce((total, line) => total + (pick(line) ?? 0), 0) - 1e-9));
   return {
     lines,
     buyGold: sum((line) => line.purchase?.gold ?? null),

@@ -29,7 +29,8 @@ import {
   type DetailStat,
   type SpecUpDetail,
 } from "@/lib/spec-up/detail";
-import { kindLabel, koreanGold, type Candidate } from "@/lib/spec-up/model";
+import { costPriceNote, gemTarget, kindLabel, koreanGold, type Candidate } from "@/lib/spec-up/model";
+import { MINUTE, useClock } from "@/components/home/clock";
 import { safeGameImage } from "@/lib/character/model";
 import { GameIcon } from "./imagery";
 import { kstTime } from "./parts";
@@ -63,6 +64,9 @@ function DetailBody({ detail, characterName }: { detail: SpecUpDetail; character
   const link = refiningLink(characterName, detail.refine);
   const before = detail.combatPowerBefore;
   const after = detail.combatPowerAfter;
+  // A gem cost's price time (api #759); a last-known price says so.
+  const now = useClock(MINUTE);
+  const priceNote = now == null ? null : costPriceNote(c.cost, now);
   return (
     <>
       <ItemDetailSection label="전투력">
@@ -114,6 +118,13 @@ function DetailBody({ detail, characterName }: { detail: SpecUpDetail; character
             );
           })}
           {c.cost?.status === "OK" && c.cost.amount != null && <ItemStat label="기대 비용" value={gold(c.cost.amount)} emphasis />}
+          {priceNote && (
+            <ItemLine tone="muted">
+              {priceNote.stale
+                ? `${priceNote.text}로 계산했어요. 새 시세를 받지 못해 마지막으로 알던 값이에요.`
+                : `${priceNote.text}로 계산했어요.`}
+            </ItemLine>
+          )}
           {(() => {
             const sold = detail.market.find((m) => m.role === "SELL");
             if (!sold) return null;
@@ -207,6 +218,8 @@ export function SpecUpRowDetail({
     if (gone) void queryClient.invalidateQueries({ queryKey: ["spec-up", characterName] });
   }, [gone, queryClient, characterName]);
   const icon = safeGameImage(candidate.icon);
+  // A 광휘 gem row names its role (겁화·작열), like the rest of the site.
+  const target = gemTarget(candidate.target, candidate.gemType);
   return (
     <ItemTooltip open={open} onOpenChange={(next) => setWanted(next)}>
       <ItemTooltipTrigger
@@ -217,13 +230,13 @@ export function SpecUpRowDetail({
       >
         <span className={styles.specUpTarget}>
           <GameIcon src={candidate.icon} grade={candidate.grade} size={28} />
-          <span>{candidate.target}</span>
+          <span>{target}</span>
         </span>
       </ItemTooltipTrigger>
-      <ItemTooltipContent aria-label={`${candidate.target} 상세`}>
+      <ItemTooltipContent aria-label={`${target} 상세`}>
         <ItemDetail
           grade={itemGrade(candidate.grade)}
-          title={candidate.target}
+          title={target}
           icon={
             icon ? (
               // eslint-disable-next-line @next/next/no-img-element -- official CDN icon at a fixed size

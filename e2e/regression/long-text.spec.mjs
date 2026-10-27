@@ -12,7 +12,11 @@ const CASES = [
   { name: "홈 최근 검색 캐릭터 이름", path: "/", scope: '[aria-labelledby="recent-heading"]', cell: "li", pick: "strong", text: LONG_NAME, recent: true },
   { name: "랭킹 표 캐릭터 이름", path: "/rankings", scope: "main table", cell: "tr", pick: "a", text: LONG_NAME },
   { name: "캐릭터 배너 이름", path: characterPath("상세"), scope: '[aria-label$="캐릭터 요약"]', cell: "h1, h1 + *", text: LONG_NAME },
-  { name: "캐릭터 장비 이름", path: characterPath("상세"), scope: 'section[aria-label="장비"]', cell: "li", text: LONG_TITLE },
+  // The item name itself (the longest leaf also hit one-letter grade marks and
+  // badges once the mock character got accessories, #1108); the polish lines
+  // have their own case below.
+  { name: "캐릭터 장비 이름", path: characterPath("상세"), scope: 'section[aria-label="장비"]', cell: "li", pick: "strong", text: LONG_TITLE },
+  { name: "캐릭터 장신구 연마 줄", path: characterPath("상세"), scope: 'section[aria-label="장비"]', cell: 'ul[class*="gradeList"]', pick: "li", text: LONG_TITLE },
   { name: "시세 품목 이름", path: "/market", scope: 'section[aria-labelledby="board-heading"]', cell: "li", pick: "strong", text: LONG_TITLE },
   { name: "캐릭터 수집품 이름", path: characterPath("상세", "collectibles"), scope: 'section[aria-label$=" 목록"]', cell: "li", pick: ":scope > :not(small)", text: LONG_TITLE },
   { name: "캐릭터 수집품 목록", path: characterPath("상세", "collectibles"), scope: 'section[aria-label$=" 목록"]', cell: "li", pick: "small", text: LONG_TITLE },

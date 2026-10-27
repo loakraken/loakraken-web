@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { test, expect, characterPath, expectNoHorizontalOverflow } from "../support/fixtures.mjs";
+import { shiftMark, shiftsSince, watchShifts } from "../support/shifts.mjs";
 
 // Roster receipt total follows the backend's total.status (#665): a partial
 // sum says so, and "nothing counted" shows no amount at all. The mock's own
@@ -10,17 +11,35 @@ const receiptPath = (name) => `${characterPath(name, "siblings")}&view=receipt`;
 const SAMPLE = new URL("../../tests/receipt-fixtures/character-receipt.json", import.meta.url);
 
 async function pin(page, change) {
+  let call = 0;
   await page.route(/\/api\/characters\/receipt\?/, async (route) => {
+    call += 1;
     const body = JSON.parse(readFileSync(SAMPLE, "utf8"));
     body.data.characterName = new URL(route.request().url()).searchParams.get("characterName");
     body.data.computedAt = new Date().toISOString();
-    change(body.data);
+    // The call number lets a test answer a later request differently.
+    change(body.data, call);
     // The app's own route answers { ok, envelope } (lib/api/respond.ts).
     await route.fulfill({ json: { ok: true, envelope: body } });
   });
 }
 
 const total = (page) => page.locator("[data-status]").first();
+
+/** "top/height" of each line of the total box and each block after it, for a shift message. */
+const blocks = (page) =>
+  page.evaluate(() => {
+    const box = document.querySelector("[data-status]");
+    if (!box) return {};
+    const after = [...box.parentElement.children].filter((el) => el !== box);
+    return Object.fromEntries(
+      [...box.children, ...after].map((el, i) => {
+        const r = el.getBoundingClientRect();
+        const name = String(el.className).split(" ")[0].replace(/^.*?__/, "").replace(/__.*$/, "");
+        return [`${i}:${el.tagName.toLowerCase()}.${name}`, `${Math.round(r.top)}/${Math.round(r.height)}`];
+      }),
+    );
+  });
 
 test.describe("원정대 영수증 합계 @smoke", () => {
   test("일부만 센 합계는 금액 옆에 '일부 합계'를 붙이고, 빠진 것을 바로 아래에 모아 보인다", async ({ page }) => {
@@ -52,6 +71,18 @@ test.describe("원정대 영수증 합계 @smoke", () => {
     await expect(total(page).getByText("일부 합계")).toHaveCount(0);
   });
 
+  test("모르는 상태 값(새 api)은 캐릭터를 '확인 못 함'으로, 합계는 일부 합계로 보이고 패널이 깨지지 않는다", async ({ page }) => {
+    const errors = [];
+    page.on("pageerror", (error) => errors.push(error.message));
+    await page.goto(receiptPath("영수증새상태"));
+    await expect(total(page)).toHaveAttribute("data-status", "PARTIAL");
+    await expect(total(page).getByText("일부 합계")).toBeVisible();
+    await expect(page.locator("details summary").filter({ hasText: "확인 못 함" })).toHaveCount(1);
+    await expect(page.getByText(/1명 확인 못 함/)).toBeVisible();
+    await expect(page.getByText("SOMETHING_NEW")).toHaveCount(0);
+    expect(errors).toEqual([]);
+  });
+
   test("센 금액이 없으면 0G 대신 '합계 없음'과 빠진 이유를 보이고, 일부만 센 캐릭터에 표시가 붙는다", async ({ page }) => {
     await page.goto(receiptPath("영수증시세없음"));
     await expect(total(page)).toHaveAttribute("data-status", "UNAVAILABLE");
@@ -62,19 +93,100 @@ test.describe("원정대 영수증 합계 @smoke", () => {
     await expect(page.locator("details summary").filter({ hasText: /일부\s*일부만 계산/ }).first()).toBeVisible();
   });
 
+  for (const width of [null, 320]) {
+  test(`${width ? `${width}px: ` : ""}대기 중인 캐릭터는 패널이 스스로 채우고, 그동안은 '갱신 중'이며 다시 계산 단추가 없다`, async ({ page }) => {
+    if (width) await page.setViewportSize({ width, height: 900 });
+    // First answer: 2 members still pending, the backend says ask again now (cap stop).
+    // Second answer: everyone in.
+    await pin(page, (data, call) => {
+      if (call === 1) {
+        data.total.status = "PARTIAL";
+        data.coverage = { ...data.coverage, ready: 8, pending: 2, nextAvailableAt: new Date().toISOString() };
+        data.total.nonGold = [{ name: "실링", amount: 1_240_000 }];
+      } else {
+        data.total.status = "COMPLETE";
+        data.coverage = { ...data.coverage, ready: 10, pending: 0, nextAvailableAt: null };
+        // api #761: a filled member brings a 전율 armor 21 limit break (가시 never in gold).
+        data.total.nonGold = [{ name: "실링", amount: 1_960_000 }, { name: "고통의 가시", amount: 15 }];
+        for (const c of data.equipment.characters)
+          if (c.status === "PENDING") Object.assign(c, { status: "READY", gold: 1000, complete: true });
+      }
+    });
+    await watchShifts(page);
+    await page.goto(receiptPath("영수증본캐"));
+    await expect(page.getByText("원정대 10명 중 8명 계산 · 2명 갱신 중")).toBeVisible();
+    await expect(page.getByRole("button", { name: /다시 계산/ })).toHaveCount(0);
+    const before = await blocks(page);
+    const mark = await shiftMark(page);
+    // At least 6 s later, filled in without a press, and nothing on the page moved (A7).
+    await expect(total(page)).toHaveAttribute("data-status", "COMPLETE", { timeout: 15_000 });
+    await expect(page.getByText("원정대 10명 중 10명 계산")).toBeVisible();
+    await expect(total(page)).toContainText("골드 외 비용: 실링 1,960,000 · 고통의 가시 15");
+    await page.waitForTimeout(500);
+    const shifts = await shiftsSince(page, mark);
+    const after = await blocks(page);
+    const changed = Object.keys(after)
+      .filter((key) => after[key] !== before[key])
+      .map((key) => `${key} ${before[key]}→${after[key]}`);
+    expect(shifts.all, `채워지는 동안 흔들림: ${shifts.moved} | ${changed.join(", ")}`).toBe(0);
+  });
+  }
+
+  test("채워지지 않으면 두 번 뒤 스스로 멈추고 '다시 계산(2명씩)'을 보인다; 찾지 못한 캐릭터는 '확인 못 함'", async ({ page }) => {
+    await pin(page, (data) => {
+      data.total.status = "PARTIAL";
+      data.equipment.characters[9].status = "UNAVAILABLE";
+      data.coverage = { ...data.coverage, ready: 8, pending: 1, unavailable: 1, nextAvailableAt: new Date().toISOString() };
+    });
+    let requests = 0;
+    page.on("request", (r) => r.url().includes("/api/characters/receipt?") && requests++);
+    await page.goto(receiptPath("영수증본캐"));
+    await expect(page.getByText("1명 확인 못 함").first()).toBeVisible();
+    await expect(page.locator("details summary").filter({ hasText: "확인 못 함" }).first()).toBeVisible();
+    // Pending never drops: it stops by itself and hands over to the button.
+    await expect(page.getByRole("button", { name: "다시 계산(2명씩)" })).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText("원정대 10명 중 8명 계산 · 1명 대기 · 1명 확인 못 함")).toBeVisible();
+    const after = requests;
+    await page.waitForTimeout(4_000);
+    expect(requests, "멈춘 뒤에는 스스로 다시 묻지 않는다").toBe(after);
+  });
+
+  test("20명 원정대(2명씩·방문자 공식 한도)는 서버가 허락한 때에만 다시 물어 429 없이 끝까지 채운다", async ({ page }) => {
+    // The mock answers 429 to any request before its nextAvailableAt (6 s apart).
+    test.slow();
+    const answers = [];
+    page.on("response", (r) => r.url().includes("/api/characters/receipt?") && answers.push(r.status()));
+    // Its own roster per run: the mock keeps one fill per name.
+    await page.goto(receiptPath(`영수증대원정대${Math.floor(Math.random() * 90) + 10}`));
+    await expect(total(page)).toHaveAttribute("data-status", "COMPLETE", { timeout: 120_000 });
+    await expect(page.getByText("원정대 20명 중 20명 계산")).toBeVisible();
+    // 10 answers of 2 members each, and none of them a rate limit.
+    expect(answers.filter((s) => s === 429)).toEqual([]);
+    expect(answers.length).toBe(10);
+  });
+
+  test("백엔드가 영수증을 꺼 두면 빈 칸 대신 '아직 열리지 않았어요'를 보인다", async ({ page }) => {
+    await page.goto(receiptPath("영수증꺼짐"));
+    const panel = page.getByRole("region", { name: "원정대 영수증" });
+    await expect(panel.getByRole("status")).toHaveText("원정대 영수증은 아직 열리지 않았어요.");
+    await expect(panel.getByRole("button", { name: "다시 시도" })).toHaveCount(0);
+  });
+
   for (const width of [320, 360, 390]) {
     test(`${width}px: 합계·표시가 잘리지 않고 옆으로 넘치지 않는다`, async ({ page }) => {
       await page.setViewportSize({ width, height: 800 });
       await pin(page, (data) => {
         data.total.status = "PARTIAL";
         data.equipment.characters[0].complete = false;
+        data.total.nonGold = [{ name: "실링", amount: 12_345_000 }, { name: "고통의 가시", amount: 150 }];
       });
       await page.goto(receiptPath("영수증본캐"));
       await expect(total(page).getByText("일부 합계")).toBeVisible();
+      await expect(total(page)).toContainText("골드 외 비용: 실링 12,345,000 · 고통의 가시 150");
       await expectNoHorizontalOverflow(page);
       // Tags and the amount sit fully inside the panel (no ellipsis cut, A37).
       const cut = await page.evaluate(() =>
-        [...document.querySelectorAll("[data-status] strong, [data-status] span, details summary b, details summary span")]
+        [...document.querySelectorAll("[data-status] strong, [data-status] span, [data-status] p, details summary b, details summary span")]
           // Screen-reader-only text is clipped to 1px on purpose.
           .filter((el) => !el.classList.contains("sr-only"))
           .filter((el) => el.scrollWidth > el.clientWidth + 1 && getComputedStyle(el).overflow !== "visible")

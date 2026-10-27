@@ -29,7 +29,7 @@ for (const width of [1280, 360])
       }).observe({ type: "layout-shift", buffered: true });
     });
     await withBoxes(page);
-    await gotoReady(page, "/tools/material-quote");
+    await gotoReady(page, "/market/quote");
     const tabs = page.getByRole("tablist", { name: "카테고리" });
     await expect(tabs.getByRole("tab", { name: "아바타" })).toBeVisible();
     await expect(tabs.getByRole("tab", { name: "재료" })).toBeVisible();
@@ -41,7 +41,7 @@ for (const width of [1280, 360])
 
 test("@견적분류 공유 주소로 빠진 분류가 오면 기본 분류로 열리고 주소도 그 분류 @regression", async ({ page }) => {
   await withBoxes(page);
-  await gotoReady(page, "/tools/material-quote?category=10100");
+  await gotoReady(page, "/market/quote?category=10100");
   await expect(page.getByRole("tab", { name: "재료", selected: true })).toBeVisible();
   await expect(page).toHaveURL(/[?&]category=50000(&|$)/);
 });

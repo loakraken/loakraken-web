@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import { NO_EDITS } from "../lib/combat-power/model";
-import { costRoom, editsFor, keepOrder, koreanGold, readTry, splitCandidates, tryParam } from "../lib/spec-up/model";
+import { costPriceNote, costRoom, editsFor, gemTarget, keepOrder, koreanGold, readTry, splitCandidates, tryParam } from "../lib/spec-up/model";
 import { requestSpecUp } from "../lib/spec-up/upstream";
 import { isSpecUpEnvelope } from "../lib/spec-up/validate";
 
@@ -121,4 +121,26 @@ test("disabled and not-cached answers keep their codes", async () => {
     const result = await requestSpecUp("스펙캐시", null, "http://backend.test", { fetcher });
     assert.deepEqual(result.ok ? null : result.error.code, code);
   }
+});
+
+test("a 광휘 gem row keeps its name and adds its role (겁화·작열); other targets stay", () => {
+  assert.equal(gemTarget("터닝 슬래쉬 · 6레벨 광휘", "DAMAGE"), "터닝 슬래쉬 · 6레벨 광휘(겁화)");
+  assert.equal(gemTarget("터닝 슬래쉬 · 6레벨 광휘", "COOLDOWN"), "터닝 슬래쉬 · 6레벨 광휘(작열)");
+  // Already a 겁화/작열 gem, no role, or a role this screen does not know: as it comes.
+  assert.equal(gemTarget("테스트 스킬 · 8레벨 겁화", "DAMAGE"), "테스트 스킬 · 8레벨 겁화");
+  assert.equal(gemTarget("터닝 슬래쉬 · 6레벨 광휘", null), "터닝 슬래쉬 · 6레벨 광휘");
+  assert.equal(gemTarget("터닝 슬래쉬 · 6레벨 광휘", "SOMETHING_NEW"), "터닝 슬래쉬 · 6레벨 광휘");
+  assert.equal(gemTarget("운명의 업화 무기", "DAMAGE"), "운명의 업화 무기");
+});
+
+test("a gem cost shows its price time; a last-known (stale) price never reads as current", () => {
+  const now = Date.parse("2026-10-25T12:00:00Z"); // 21:00 KST
+  assert.deepEqual(costPriceNote({ priceObservedAt: "2026-10-25T11:55:00Z", stale: false }, now), { stale: false, text: "20:55 시세" });
+  assert.deepEqual(costPriceNote({ priceObservedAt: "2026-10-25T00:30:00Z", stale: true }, now), { stale: true, text: "이전 시세 09:30" });
+  // Not today (KST): the date too.
+  assert.deepEqual(costPriceNote({ priceObservedAt: "2026-10-24T12:05:00Z", stale: true }, now), { stale: true, text: "이전 시세 10.24 21:05" });
+  // No price time (not a gem cost, or an older backend): nothing.
+  assert.equal(costPriceNote({ priceObservedAt: null, stale: null }, now), null);
+  assert.equal(costPriceNote({}, now), null);
+  assert.equal(costPriceNote(null, now), null);
 });

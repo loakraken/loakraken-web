@@ -1,5 +1,7 @@
 "use client";
 
+import { HubTabs } from "@/components/site/hub-tabs";
+
 import { useEffect, useId, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -25,6 +27,7 @@ import { MAX_CONDITIONS, alertErrorText, conditionText, type AlertCondition, typ
 import quote from "@/components/tools/material-quote.module.css";
 import stats from "@/components/stats/stats.module.css";
 import styles from "./price-alerts.module.css";
+import { MoreDetail } from "@/components/ui/more-detail";
 
 const gold = (value: number | null | undefined) =>
   value == null ? "매물 없음" : `${value.toLocaleString("ko-KR", { maximumFractionDigits: 2 })}G`;
@@ -116,6 +119,7 @@ export function PriceAlertsView() {
           <p className={quote.heroCopy}>
             품목의 판매 최저가가 정한 가격 이하나 이상이 되면 이 브라우저로 알림을 보내요. 로그인은 필요 없어요.
           </p>
+          <HubTabs hub="market" />
         </section>
 
         <section className={styles.status} aria-labelledby="alerts-status" aria-busy={stage === "checking" || undefined}>
@@ -245,10 +249,11 @@ function Conditions({ own, onExpired }: { own: Owned | null; onExpired: () => vo
         <p className={styles.message} role="status">
           {remove.isError ? alertErrorText(codeOf(remove.error)) : " "}
         </p>
-        <p className={styles.note}>
-          가격이 기준을 넘는 순간 한 번 알려요. 걸 때 이미 맞는 알림(지금 맞음)은 벗어났다가 다시 맞을 때 보내고, 같은 알림은
-          6시간 안에 다시 보내지 않아요.
-        </p>
+        {/* One line on the page, the rest folded (#1112): nothing removed. */}
+        <p className={styles.note}>가격이 정한 기준에 닿는 순간 한 번 알려요.</p>
+        <MoreDetail className={styles.note}>
+          걸 때 이미 맞는 알림(지금 맞음)은 벗어났다가 다시 맞을 때 보내고, 같은 알림은 6시간 안에 다시 보내지 않아요.
+        </MoreDetail>
       </section>
     </>
   );

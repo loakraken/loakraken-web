@@ -6,7 +6,7 @@ import styles from "./site-legal.module.css";
 /**
  * Under every page (one place in the layout): the trademark and unofficial
  * notice — once per page, so the pages themselves no longer repeat it — the
- * Discord line, then the privacy policy and contact links.
+ * Discord line, then the privacy policy, contact and credits links.
  */
 export function SiteLegal() {
   return (
@@ -23,6 +23,8 @@ export function SiteLegal() {
         <Link href="/privacy" className="hit-44">개인정보 처리방침</Link>
         <span aria-hidden="true">·</span>
         <Link href="/contact" className="hit-44">문의</Link>
+        <span aria-hidden="true">·</span>
+        <Link href="/credits" className="hit-44">오픈 소스 라이선스</Link>
       </nav>
     </div>
   );

@@ -1,5 +1,7 @@
 "use client";
 
+import { HubTabs } from "@/components/site/hub-tabs";
+
 import { useEffect, useId, useRef, useState } from "react";
 import { ArrowLeft, Copy, InfoCircle, Judge, TickCircle } from "@/components/ui/icons";
 import Link from "next/link";
@@ -450,6 +452,7 @@ function AuctionContent({
           <Link href="/" className={quote.back}>
             <ArrowLeft size={14} aria-hidden="true" /> 홈으로
           </Link>
+          <HubTabs hub="raid" />
         </section>
 
         <div className={quote.band}>

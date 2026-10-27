@@ -75,6 +75,14 @@ export interface components {
              * @enum {string}
              */
             status?: "COMPLETE" | "PARTIAL" | "UNAVAILABLE";
+            /** @description 골드로 바꾸지 않아 gold에 넣지 않은 비용(산정한 부위의 성장 실링, 전율 방어구 21단계 한계 해방의 고통의 가시 등). 이름과 수량, 없으면 빈 목록 */
+            nonGold?: components["schemas"]["ReceiptQuantityResponse"][];
+        };
+        ReceiptQuantityResponse: {
+            /** @description 이름(예: 실링, 고통의 가시) */
+            name: string;
+            /** @description 수량 */
+            amount: number;
         };
         ReceiptEquipmentResponse: {
             gold: number;
@@ -85,14 +93,15 @@ export interface components {
             className: string | null;
             itemLevel: number | null;
             /**
-             * @description READY 또는 PENDING(이번 요청에서 전투정보를 아직 받지 못함)
+             * @description READY, PENDING(이번 요청에서 전투정보를 아직 받지 못함) 또는 UNAVAILABLE(공식 전투정보를 찾지 못해 이번에는 셀 수 없음, pending에 넣지 않음)
              * @enum {string}
              */
-            status: "READY" | "PENDING";
+            status: "READY" | "PENDING" | "UNAVAILABLE";
             gold: number | null;
             parts: components["schemas"]["ReceiptPartResponse"][];
             excluded: components["schemas"]["ReceiptExcludedResponse"][];
             complete?: boolean | null;
+            observedAt?: string | null;
         };
         ReceiptPartResponse: {
             slot: string;
@@ -191,10 +200,15 @@ export interface components {
             ready: number;
             /**
              * Format: int32
-             * @description 아직 전투정보를 받지 못한 캐릭터 수(다시 요청하면 최대 8명씩 채움)
+             * @description 아직 전투정보를 받지 못한 캐릭터 수(다시 요청하면 최대 2명씩 채움). UNAVAILABLE은 세지 않음
              */
             pending: number;
             nextAvailableAt: string | null;
+            /**
+             * Format: int32
+             * @description 공식 전투정보를 찾지 못해 이번에 셀 수 없는 캐릭터 수
+             */
+            unavailable?: number;
         };
         /** @description 공통 오류 응답. HTTP 상태와 업무 코드를 함께 확인합니다. */
         ErrorResponse: {

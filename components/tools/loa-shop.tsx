@@ -1,5 +1,7 @@
 "use client";
 
+import { HubTabs } from "@/components/site/hub-tabs";
+
 import { useId, useMemo, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
@@ -359,6 +361,7 @@ export function LoaShopTool({ renderedAt }: { renderedAt: number }) {
           <Link href="/" className={quote.back}>
             <ArrowLeft size={14} aria-hidden="true" /> 홈으로
           </Link>
+          <HubTabs hub="gold" />
         </section>
 
         <div className={quote.band}>

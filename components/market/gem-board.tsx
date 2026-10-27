@@ -1,6 +1,9 @@
 "use client";
 
+import { HubTabs } from "@/components/site/hub-tabs";
+
 import { Fragment, useEffect, useId, useState } from "react";
+import { DetailRow, ListingCard, RowExpander, listingKey, useOpenRows } from "./listing-detail";
 import { useRouter } from "next/navigation";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { SiteHeader } from "@/components/site/site-header";
@@ -19,8 +22,10 @@ import {
   gemGrid,
   gemPickSearch,
   gemTarget,
+  isStale,
   pickAfterFailure,
   skillsFor,
+  staleWhen,
   type GemCell,
   type GemClass,
   type GemKind,
@@ -54,13 +59,46 @@ function Change({ rate }: { rate: number | null | undefined }) {
 const NO_CELLS: GemCell[] = [];
 const cellId = (cell: GemCell) => `${cell.kind}-${cell.level}`;
 
-function Cell({ cell, picked, onPick, pulse }: { cell: GemCell | undefined; picked: boolean; onPick: () => void; pulse?: Pulse }) {
+function Cell({
+  cell,
+  picked,
+  onPick,
+  pulse,
+  staleAt,
+}: {
+  cell: GemCell | undefined;
+  picked: boolean;
+  onPick: () => void;
+  pulse?: Pulse;
+  /** When the last value was seen, if the fresh one ran out (api #690). */
+  staleAt?: string | null;
+}) {
   if (!cell || cell.status !== "READY")
     return (
       <td className={styles.cell}>
         <span className={styles.pending}>
           <PendingText />
         </span>
+      </td>
+    );
+  // The last value seen, never shown as current: muted, its own time where the
+  // day change goes (that change would be a day old too), and said in its name.
+  if (staleAt)
+    return (
+      <td className={styles.cell}>
+        <button
+          type="button"
+          aria-pressed={picked}
+          onClick={onPick}
+          aria-label={`${cell.itemName} 매물 보기, ${staleAt}에 본 값`}
+          data-stale=""
+        >
+          <b>{gold(cell.minBuyPrice)}</b>
+          <small className={styles.staleAt} title={`${staleAt}에 본 값이에요. 지금 값은 아직 읽지 못했어요.`}>
+            {staleAt} 값
+          </small>
+          <small>매물 {count(cell.totalCount)}</small>
+        </button>
       </td>
     );
   return (
@@ -190,6 +228,7 @@ export function GemBoardView({
   const skillFailure = failureOf(skillList.error)?.code;
   const data = board.data?.data;
   const cellOf = data ? gemGrid(data) : () => undefined;
+  const staleAtOf = (cell: GemCell | undefined) => (data && cell && isStale(cell) ? staleWhen(cell, data) : null);
   const changed = useChangedCells(data?.cells ?? NO_CELLS, cellId, { price: (cell) => cell.minBuyPrice });
   const pulseOf = (cell: GemCell | undefined) => {
     const pulse = cell && changed.pulse(cellId(cell), "price");
@@ -233,6 +272,10 @@ export function GemBoardView({
   const page = listings.data?.data;
   const pages = page ? Math.max(1, Math.min(GEM_LISTING_MAX_PAGE, Math.ceil(page.totalCount / 10))) : 1;
 
+  // A listing's details open below its row (its arrow); several may be open.
+  const rows = useOpenRows(JSON.stringify(pick));
+  const detailId = useId();
+
   return (
     <div className={quote.page}>
       <a className={quote.skip} href="#gems-main">
@@ -247,6 +290,7 @@ export function GemBoardView({
           <p className={quote.heroKicker}>경매장</p>
           <h1 id="gems-heading">보석 시세</h1>
           <p className={quote.heroCopy}>4티어 겁화·작열 보석의 레벨별 즉시 구매 최저가예요. 칸을 누르면 싼 매물부터 보여 드려요.</p>
+          <HubTabs hub="market" />
         </section>
 
         <p className={stats.notice}>
@@ -283,6 +327,7 @@ export function GemBoardView({
                         key={kind}
                         cell={cellOf(kind, level)}
                         pulse={pulseOf(cellOf(kind, level))}
+                        staleAt={staleAtOf(cellOf(kind, level))}
                         picked={pick?.kind === kind && pick.level === level}
                         onPick={() => chooseCell(kind, level)}
                       />
@@ -353,15 +398,34 @@ export function GemBoardView({
                   </tr>
                 </thead>
                 <tbody key={listings.dataUpdatedAt}>
-                  {page.items.map((item, i) => (
-                    <tr key={`${item.name}-${i}`}>
-                      <th scope="row">{gemTarget(item) ?? item.name}</th>
-                      <td data-strong>{gold(item.buyPrice || null)}</td>
-                      <td>{gold(item.bidPrice || item.bidStartPrice)}</td>
-                      <td>{item.endDate ? endKst.format(new Date(item.endDate)) : "-"}</td>
-                      <td>{item.tradeAllowCount == null ? "-" : item.tradeAllowCount === 0 ? "불가" : `${item.tradeAllowCount}회`}</td>
-                    </tr>
-                  ))}
+                  {page.items.map((item, i) => {
+                    const key = listingKey(item);
+                    const open = rows.isOpen(key);
+                    const id = `${detailId}-${i}`;
+                    return (
+                      <Fragment key={`${item.name}-${i}`}>
+                        <tr>
+                          <th scope="row">
+                            <RowExpander
+                              label={gemTarget(item) ?? item.name}
+                              open={open}
+                              controls={id}
+                              onToggle={() => rows.toggle(key)}
+                            />
+                          </th>
+                          <td data-strong>{gold(item.buyPrice || null)}</td>
+                          <td>{gold(item.bidPrice || item.bidStartPrice)}</td>
+                          <td>{item.endDate ? endKst.format(new Date(item.endDate)) : "-"}</td>
+                          <td>{item.tradeAllowCount == null ? "-" : item.tradeAllowCount === 0 ? "불가" : `${item.tradeAllowCount}회`}</td>
+                        </tr>
+                        {open && (
+                          <DetailRow id={id} columns={5}>
+                            <ListingCard item={item} kind="보석" observedAt={page.observedAt} />
+                          </DetailRow>
+                        )}
+                      </Fragment>
+                    );
+                  })}
                   {/* A short page keeps ten rows of room, so the box and the
                       page buttons stay put from page to page (A7). */}
                   {Array.from({ length: Math.max(0, 10 - page.items.length) }, (_, i) => (

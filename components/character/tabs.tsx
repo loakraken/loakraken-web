@@ -9,7 +9,6 @@ import {
   useMemo,
   useRef,
   useState,
-  useSyncExternalStore,
   type ReactNode,
 } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -41,9 +40,12 @@ import {
   skillSummary,
   statNumber,
   stoneBonus,
+  positionOf,
   type Equipment,
   type Skill,
 } from "@/lib/character/detail";
+import { accessoryLineCounts, gridOptionCounts } from "@/lib/character/role-lines";
+import { useFavorite } from "./favorite";
 import {
   characterNameError,
   coverageLabel,
@@ -222,48 +224,6 @@ function TabLabel({ id, label }: { id: TabId; label: string }) {
   );
 }
 
-/* Favourites (per browser) -------------------------------------------------- */
-
-const FAVORITES = "loakraken:favorites";
-const favoriteEvent = "loakraken:favorites";
-function readFavorites(): string[] {
-  try {
-    const value = JSON.parse(localStorage.getItem(FAVORITES) ?? "[]");
-    return Array.isArray(value)
-      ? value.filter((item) => typeof item === "string")
-      : [];
-  } catch {
-    return [];
-  }
-}
-const subscribeFavorites = (callback: () => void) => {
-  window.addEventListener(favoriteEvent, callback);
-  window.addEventListener("storage", callback);
-  return () => {
-    window.removeEventListener(favoriteEvent, callback);
-    window.removeEventListener("storage", callback);
-  };
-};
-function useFavorite(name: string) {
-  const favorite = useSyncExternalStore(
-    subscribeFavorites,
-    () => readFavorites().includes(name),
-    () => false,
-  );
-  const toggle = () => {
-    try {
-      const list = readFavorites().filter((item) => item !== name);
-      localStorage.setItem(
-        FAVORITES,
-        JSON.stringify(favorite ? list : [name, ...list].slice(0, 30)),
-      );
-      window.dispatchEvent(new Event(favoriteEvent));
-    } catch {
-      /* Storage blocked: the toggle simply does not persist. */
-    }
-  };
-  return [favorite, toggle] as const;
-}
 
 /* Tab bar ------------------------------------------------------------------- */
 
@@ -359,9 +319,7 @@ export function TabBar({
             classEngraving={data.loadout.arkPassive?.title}
             specUp={useContext(SpecUpEnabled)}
             simulator={useContext(SimulatorEnabled)}
-            favorite={favorite}
             onShare={share}
-            onFavorite={toggleFavorite}
           />
           {/* On a narrow screen these two are in the menu above (A35). */}
           <button
@@ -457,20 +415,34 @@ function Quality({ value }: { value: number | null | undefined }) {
 
 function GradeLine({
   grade,
+  counts,
   children,
 }: {
   grade: unknown;
+  /** Whether the line counts for this character's role (null: not decided, left as is). */
+  counts?: boolean | null;
   children: ReactNode;
 }) {
   return (
     <li
       className={styles.gradeLine}
       data-grade={isGrade(grade) ? grade : undefined}
+      data-other-role={counts === false || undefined}
     >
       <span>{isGrade(grade) ? GRADE_LABEL[grade] : "·"}</span>
       {children}
+      {counts === false && <OtherRole />}
     </li>
   );
+}
+
+/**
+ * Said with a grey line (#1108): grey alone would carry the meaning by colour
+ * only (WCAG 1.4.1), so a screen reader hears it too. One wording everywhere.
+ */
+const OTHER_ROLE = " (이 역할에는 해당 없음)";
+function OtherRole() {
+  return <span className={styles.srOnly}>{OTHER_ROLE}</span>;
 }
 
 function refineOf(item: Equipment) {
@@ -489,6 +461,8 @@ function EquipmentPanel({ data }: { data: Character }) {
   const extra = useItemTooltips(data.characterName);
   const extraOf = (item: Equipment) =>
     equipmentExtra(extra, data.loadout.equipment.indexOf(item), item.type);
+  // Accessory lines that do not count for this role go grey (user 10-26).
+  const role = positionOf(data);
   const qualityGroups = data.analysis.equipment?.qualityGroups;
   const armorQ = averageQuality(qualityGroups, "WEAPON_ARMOR");
   const accQ = averageQuality(qualityGroups, "ACCESSORY");
@@ -565,22 +539,16 @@ function EquipmentPanel({ data }: { data: Character }) {
                       </span>
                     )}
                   </strong>
+                  {/* No ark passive point badge here (user 10-26): it reads as an
+                      accessory effect; the point stays in the item tooltip. */}
                   <span className={styles.badges}>
                     <Quality value={item.detail?.quality} />
-                    {item.detail?.arkPassivePoint && (
-                      <span
-                        className={styles.levelBadge}
-                        aria-label={`${item.detail.arkPassivePoint.name} ${item.detail.arkPassivePoint.value}`}
-                      >
-                        +{item.detail.arkPassivePoint.value}
-                      </span>
-                    )}
                   </span>
                 </div>
                 {item.detail?.polishEffects.length ? (
                   <ul className={styles.gradeList}>
                     {item.detail.polishEffects.map((effect, j) => (
-                      <GradeLine key={j} grade={effect.grade}>
+                      <GradeLine key={j} grade={effect.grade} counts={accessoryLineCounts(effect.name, effect.value, role)}>
                         {effect.name} {effect.value}
                       </GradeLine>
                     ))}
@@ -818,6 +786,11 @@ function ShareBars({ title, rows }: { title: string; rows: { label: string; coun
   );
 }
 
+const GEM_GROUPS = [
+  { id: "damage", label: "피해 증가" },
+  { id: "cooldown", label: "재사용 대기시간 감소" },
+] as const;
+
 function GemsPanel({ data }: { data: Character }) {
   const stagger = useStagger();
   const gems = data.loadout.gems?.items ?? [];
@@ -826,6 +799,12 @@ function GemsPanel({ data }: { data: Character }) {
   const summary = data.analysis.gems;
   const baseAttack = gemBaseAttack(data.loadout.gems?.effects?.description);
   const emptySlots = gemCounts(data.loadout.gems).empty;
+  // Players read gems as "10겁 8작"; the official name stays in the card.
+  const placed = gems.map((gem, index) => {
+    const skill = skills.find((effect) => effect.gemSlot === gem.slot);
+    const kind = gemKind(gem.name, skill?.description);
+    return { gem, skill, kind, index, group: kind && isCooldownGem(kind) ? "cooldown" : "damage" };
+  });
   return (
     <Panel
       title="보석"
@@ -845,35 +824,43 @@ function GemsPanel({ data }: { data: Character }) {
       }
     >
       {gems.length ? (
-        <ul className={styles.gemGrid}>
-          {gems.map((gem, i) => {
-            const skill = skills.find((effect) => effect.gemSlot === gem.slot);
-            // Players read gems as "10겁 8작"; the official name stays in the card.
-            const kind = gemKind(gem.name, skill?.description);
-            return (
-              <li key={i} {...stagger(i)}>
-                <DetailTooltip
-                  name={gem.name ?? "보석"}
-                  card={
-                    <GemCard
-                      gem={gem}
-                      skill={skill}
-                      className={data.className}
-                      lines={gemLines(extra, gem.slot)}
-                    />
-                  }
-                >
-                  <GameIcon src={gem.icon} grade={gem.grade} size={44} />
-                </DetailTooltip>
-                <span data-gem={kind ? (isCooldownGem(kind) ? "cooldown" : "damage") : undefined}>
-                  {gem.level != null && gem.level > 0 ? gem.level : "?"}
-                  {kind ?? ""}
-                </span>
-                <small className={styles.srOnly}>{text(gem.name)}</small>
-              </li>
-            );
-          })}
-        </ul>
+        // Two groups (#1100): damage on top, cooldown below. 광휘 goes by its
+        // effect, as on the spec-up list (gemKind); an unread kind stays on top.
+        GEM_GROUPS.map((group) => {
+          const items = placed.filter((item) => item.group === group.id);
+          if (!items.length) return null;
+          return (
+            <section key={group.id} className={styles.gemGroup} aria-label={group.label}>
+              <h3>
+                {group.label} <span>{items.length}</span>
+              </h3>
+              <ul className={styles.gemGrid}>
+                {items.map(({ gem, skill, kind, index }) => (
+                  <li key={index} {...stagger(index)}>
+                    <DetailTooltip
+                      name={gem.name ?? "보석"}
+                      card={
+                        <GemCard
+                          gem={gem}
+                          skill={skill}
+                          className={data.className}
+                          lines={gemLines(extra, gem.slot)}
+                        />
+                      }
+                    >
+                      <GameIcon src={gem.icon} grade={gem.grade} size={44} />
+                    </DetailTooltip>
+                    <span data-gem={kind ? group.id : undefined}>
+                      {gem.level != null && gem.level > 0 ? gem.level : "?"}
+                      {kind ?? ""}
+                    </span>
+                    <small className={styles.srOnly}>{text(gem.name)}</small>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          );
+        })
       ) : (
         <Empty
           state={
@@ -888,6 +875,8 @@ function GemsPanel({ data }: { data: Character }) {
 function ArkGridPanel({ data }: { data: Character }) {
   const grid = data.loadout.arkGrid;
   const summary = data.analysis.arkGrid;
+  // Gem options of the other role's family go grey (#1108); no role, none do.
+  const role = positionOf(data);
   const [expanded, setExpanded] = useState(false);
   const extra = useItemTooltips(data.characterName);
   // Off on this deployment: as if there were no efficiency (nothing drawn).
@@ -1005,15 +994,26 @@ function ArkGridPanel({ data }: { data: Character }) {
                               <span>
                                 <strong>{text(gem.name)}</strong>
                                 <small>
+                                  {/* One piece per fact; a gem option that does not count
+                                      for this character's role goes grey (#1108). */}
                                   {[
-                                    gem.corePoint != null && `포인트 ${gem.corePoint}`,
-                                    gem.requiredWillpower != null && `의지력 ${gem.requiredWillpower}`,
-                                    ...gem.options.map(
-                                      (o) => `${o.name}${o.level != null ? ` Lv.${o.level}` : ""}`,
-                                    ),
+                                    gem.corePoint != null ? { text: `포인트 ${gem.corePoint}`, counts: null } : null,
+                                    gem.requiredWillpower != null
+                                      ? { text: `의지력 ${gem.requiredWillpower}`, counts: null }
+                                      : null,
+                                    ...gem.options.map((o) => ({
+                                      text: `${o.name}${o.level != null ? ` Lv.${o.level}` : ""}`,
+                                      counts: gridOptionCounts(o.name ?? "", role),
+                                    })),
                                   ]
-                                    .filter(Boolean)
-                                    .join(" · ")}
+                                    .filter((piece) => piece != null)
+                                    .map((piece, k) => (
+                                      <span key={k} data-other-role={piece.counts === false || undefined}>
+                                        {k > 0 && " · "}
+                                        {piece.text}
+                                        {piece.counts === false && <OtherRole />}
+                                      </span>
+                                    ))}
                                 </small>
                               </span>
                             </li>
@@ -1056,16 +1056,38 @@ function ArkGridPanel({ data }: { data: Character }) {
 
 function CardsPanel({ data }: { data: Character }) {
   const stagger = useStagger();
+  const [folded, setFolded] = useState(false);
+  const gridId = useId();
   const cards = data.loadout.cards;
   const summary = data.analysis.cards;
   return (
     <Panel
       title="카드"
       meta={summary ? `각성 합 ${summary.knownAwakeningTotal}` : undefined}
+      // Folds the card pictures only (#1101): set effects and the collection
+      // stay. Open by default, as before.
+      action={
+        cards?.items.length ? (
+          <button
+            type="button"
+            className={`${styles.foldButton} hit-44`}
+            aria-expanded={!folded}
+            aria-controls={gridId}
+            onClick={() => setFolded((value) => !value)}
+          >
+            {/* Both labels in one cell, one shown: the same width either way,
+                so the head never reflows when it is pressed (A7). */}
+            <span className={styles.foldLabels}>
+              <span data-on={!folded || undefined}>카드 접기</span>
+              <span data-on={folded || undefined}>카드 펴기</span>
+            </span>
+          </button>
+        ) : undefined
+      }
     >
       {cards?.items.length ? (
         <>
-          <ul className={styles.cardGrid}>
+          <ul id={gridId} className={styles.cardGrid} hidden={folded}>
             {cards.items.map((card, i) => (
               <li key={i} {...stagger(i)}>
                 <CardArt

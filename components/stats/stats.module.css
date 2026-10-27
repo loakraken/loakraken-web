@@ -5,6 +5,13 @@
   margin: 0 auto;
   padding: 0 24px 64px;
 }
+/* The character ranking's 11 columns are 98em (about 1268px, sized for real
+   data's longest values): a wide screen gives the page that room, so the
+   table shows whole instead of scrolling inside 1120px (#1114). Narrower
+   screens keep scrolling the table in its own box. */
+.mainWide {
+  max-width: 1340px;
+}
 .filters {
   display: flex;
   flex-wrap: wrap;
@@ -663,6 +670,18 @@
     min-height: 4.5em;
   }
 }
+/* The guild notice holds one more line: who its combat power counts. */
+.guildNotice {
+  min-height: 4.5em;
+}
+.noticeLine {
+  display: block;
+}
+@media (max-width: 420px) {
+  .guildNotice {
+    min-height: 6em;
+  }
+}
 /* 길드 찾기 (M21): a name of up to 12 letters; the hint floats in the padding under it. */
 .filters .guildSearch {
   position: relative;
@@ -702,4 +721,12 @@
   font-size: 18px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+}
+
+/* A class row's name with its official icon (stats gap A1): the icon's box is
+   fixed, so the row does not move when it loads. */
+.classCell {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }

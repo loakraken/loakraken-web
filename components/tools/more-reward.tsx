@@ -1,5 +1,7 @@
 "use client";
 
+import { HubTabs } from "@/components/site/hub-tabs";
+
 import { Fragment, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import { ArrowLeft, Gift } from "@/components/ui/icons";
 import Link from "next/link";
@@ -303,6 +305,7 @@ export function MoreRewardTool() {
           <Link href="/" className={quote.back}>
             <ArrowLeft size={14} aria-hidden="true" /> 홈으로
           </Link>
+          <HubTabs hub="raid" />
         </section>
 
         <div className={quote.band}>

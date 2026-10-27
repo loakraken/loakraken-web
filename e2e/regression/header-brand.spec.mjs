@@ -98,5 +98,6 @@ test("@로고 1280 넓은 글꼴: 캐릭터 화면 헤더 검색칸이 메뉴를
   await page.addStyleTag({ content: "header nav a, header nav button { letter-spacing: 0.3em !important; }" });
   await page.waitForTimeout(200);
   expect(await headerClashes(page.locator("header").first()), "넓은 글꼴 헤더 겹침").toEqual([]);
-  await expect(page.locator("header").first().getByRole("textbox")).toBeVisible();
+  // The field opens the search panel since #1113, so it is a combobox.
+  await expect(page.locator("header").first().getByRole("combobox", { name: "다른 캐릭터 이름" })).toBeVisible();
 });

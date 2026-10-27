@@ -5,6 +5,10 @@
 .pending-text {
   position: relative;
   display: inline-block;
+  /* The window runs past the text's right edge (2.4em); clipped here so a
+     label near the screen's edge never widens the page (320: a sideways
+     scroll). clip, not hidden: no scroll container, the baseline stays. */
+  overflow: clip;
 }
 .pending-text__window {
   position: absolute;

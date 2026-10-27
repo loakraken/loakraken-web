@@ -871,6 +871,29 @@
           "basis": {
             "type": "string",
             "description": "화면용 비용 근거 문장(같은 코드는 같은 문장)"
+          },
+          "priceObservedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "description": "보석 비용에 쓴 시세 관측 시각(목표·지금 중 이른 쪽). 보석 비용이 아니면 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "stale": {
+            "anyOf": [
+              {
+                "type": "boolean",
+                "description": "true면 새 시세 칸이 없어 마지막으로 알던 값을 썼음(지금 시세로 보이지 말 것). 보석 비용이 아니면 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [

@@ -21,7 +21,7 @@ const ROUTES = [
   "/schedule",
   "/tools/auction",
   "/tools/crit-speed",
-  "/tools/material-quote",
+  "/market/quote",
   "/tools/more-reward",
   "/tools/raid-rewards",
   "/tools/refining",

@@ -1,4 +1,6 @@
 "use client";
+
+import { HubTabs } from "@/components/site/hub-tabs";
 // 기여도 계산기 (checklist L41): pick a gate, type the damage you dealt, see
 // where it sits between that gate's lower and upper bounds. All numbers are
 // the verified sample's (lib/tools/contribution.ts); each gate shows its
@@ -148,6 +150,7 @@ export function ContributionTool() {
           <Link href="/" className={quote.back}>
             <ArrowLeft size={14} aria-hidden="true" /> 홈으로
           </Link>
+          <HubTabs hub="raid" />
         </section>
 
         <div className={quote.band}>

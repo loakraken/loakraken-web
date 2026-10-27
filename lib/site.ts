@@ -31,8 +31,9 @@ export const SITEMAP_PATHS = [
   "/market",
   "/market/accessories",
   "/market/gems",
+  "/market/accessory-search",
   "/tools",
-  "/tools/material-quote",
+  "/market/quote",
   "/tools/refining",
   "/tools/crit-speed",
   "/tools/auction",
@@ -58,4 +59,5 @@ export const SITEMAP_PATHS = [
   "/schedule/rowen",
   "/privacy",
   "/contact",
+  "/credits",
 ] as const;

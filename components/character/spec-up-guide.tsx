@@ -24,14 +24,18 @@ import {
   listChangeCopy,
   sortCaption,
   splitKrakenCandidates,
+  costPriceNote,
   costRoom,
+  gemTarget,
   koreanGold,
+  DEFAULT_SORT,
   specUpQuery,
   splitCandidates,
   tryParam,
   type Candidate,
   type Sort,
 } from "@/lib/spec-up/model";
+import { MINUTE, useClock } from "@/components/home/clock";
 import { SpecUpGoal } from "./spec-up-goal";
 import { SpecUpRowDetail } from "./spec-up-detail";
 import { kstTime } from "./parts";
@@ -64,8 +68,11 @@ function NoFigure({ candidate }: { candidate: Candidate }) {
   );
 }
 
-function CostCell({ candidate, pulse }: { candidate: Candidate; pulse?: Pulse }) {
+function CostCell({ candidate, pulse, now }: { candidate: Candidate; pulse?: Pulse; now: number | null }) {
   const cost = candidate.cost;
+  // Gem costs carry their price time (api #759): a second line on every gem
+  // row, fresh or not, so a refresh that turns one stale keeps the row's height.
+  const note = now == null ? null : costPriceNote(cost, now);
   if (!cost)
     return (
       <td data-cell="cost" data-label="기대 비용">
@@ -87,13 +94,15 @@ function CostCell({ candidate, pulse }: { candidate: Candidate; pulse?: Pulse })
         // Holds the width of a longer cost of this size (see costRoom): the
         // minute's refresh does not widen the column or the phone card (A7).
         data-room={cost.unit === "GOLD" ? costRoom(cost.amount) : undefined}
-        title={`${cost.amount.toLocaleString("ko-KR")}${cost.unit === "GOLD" ? "G" : ` ${cost.unit}`}`}
+        data-stale={note?.stale || undefined}
+        title={`${cost.amount.toLocaleString("ko-KR")}${cost.unit === "GOLD" ? "G" : ` ${cost.unit}`}${note ? ` · ${note.text}` : ""}`}
       >
         {/* Right-aligned text rewritten in place starts elsewhere and counts as
             moving (A7): a new amount draws new text. */}
         <ChangeMark key={cost.amount} pulse={pulse}>
           {cost.unit === "GOLD" ? `${koreanGold(cost.amount)}G` : `${cost.amount.toLocaleString("ko-KR")} ${cost.unit}`}
         </ChangeMark>
+        {note && <small className={styles.specUpCostTime}>{note.text}</small>}
       </td>
     );
   return (
@@ -103,21 +112,35 @@ function CostCell({ candidate, pulse }: { candidate: Candidate; pulse?: Pulse })
   );
 }
 
-export default function SpecUpGuide({ data }: { data: Character }) {
+/**
+ * A supporter's list (api #722): ranked by the supporter score per 100,000
+ * gold, the only order there is for them (no combat-power model), so the bar
+ * shows that one basis, the score columns say 서포터 점수, and there is no
+ * simulator link (the simulator is combat power). The tab shows this only for
+ * a scored answer.
+ */
+const SUPPORTER_SORTS = [{ id: "KRAKEN", label: "서포터 점수 기준" }] as const;
+
+export default function SpecUpGuide({ data, supporter = false }: { data: Character; supporter?: boolean }) {
   const name = data.characterName;
-  const [sort, setSort] = useState<Sort>("EFFICIENCY");
+  // For gem price times ("21:05 시세" / a date when not today).
+  const now = useClock(MINUTE);
+  const [sort, setSort] = useState<Sort>(supporter ? "KRAKEN" : DEFAULT_SORT);
   // 크라켄 점수 순 (api #573) leaves 작열 (cooldown) gems out by default; the user can add them.
   const [cooldown, setCooldown] = useState(false);
-  // The efficiency list (the tab's first answer) tells whether the backend
-  // knows 크라켄 점수 (api #573 fields present). If not, 크라켄 점수 순 is not
+  // The first list (the tab's first answer) tells whether the backend knows
+  // 크라켄 점수 (api #573 fields present). If not, 크라켄 점수 순 is not
   // sent — an older backend refuses the value — and the list stays as it is.
   const queryClient = useQueryClient();
-  const efficiency = queryClient.getQueryData<{ data: { krakenRuleVersion?: unknown; krakenSortUnavailableReason?: unknown } }>(
-    specUpQuery(name, data.fetchedAt, "EFFICIENCY"),
+  const first = queryClient.getQueryData<{ data: { krakenRuleVersion?: unknown; krakenSortUnavailableReason?: unknown } }>(
+    specUpQuery(name, data.fetchedAt, DEFAULT_SORT),
   )?.data;
-  const krakenKnown = efficiency
-    ? efficiency.krakenRuleVersion !== undefined || efficiency.krakenSortUnavailableReason !== undefined
-    : null;
+  // A supporter's first answer was already a scored 크라켄 list (the tab checked).
+  const krakenKnown = supporter
+    ? true
+    : first
+      ? first.krakenRuleVersion !== undefined || first.krakenSortUnavailableReason !== undefined
+      : null;
   const requestSort: Sort = sort === "KRAKEN" && krakenKnown === false ? "EFFICIENCY" : sort;
   const includeCooldownGems = requestSort === "KRAKEN" ? cooldown : null;
   const query = useQuery({
@@ -225,16 +248,18 @@ export default function SpecUpGuide({ data }: { data: Character }) {
   return (
     <div className={styles.specUp}>
       <p className={styles.simulatorLead}>
-        바꿨을 때 오르는 전투력과 드는 골드를 함께 보고, 골드 대비 효율이 높은 순서로 보여 드려요.
+        {supporter
+          ? "바꿨을 때 오르는 서포터 점수와 드는 골드를 함께 보고, 10만 골드당 점수가 높은 순서로 보여 드려요."
+          : "바꿨을 때 오르는 전투력과 드는 골드를 함께 보고, 골드 대비 효율이 높은 순서로 보여 드려요."}
       </p>
       {/* 사용자 결정(PM 총괄 19:48): 해설은 아직 없다는 한 줄. */}
       <p className={styles.specUpNote}>세팅 해설 기능은 준비 중이에요.</p>
-      {/* PM 총괄 10-25: scope line until the api lists arm-guard (완갑) refining rows; remove it then. */}
-      <p className={styles.specUpNote}>완갑 재련은 아직 후보에 넣지 않았습니다.</p>
+      {/* PM 총괄 10-25: why a supporter's list has no combat-power column. */}
+      {supporter && <p className={styles.specUpNote}>서포터는 전투력을 계산하지 않아 서포터 점수로만 보여 드려요.</p>}
 
       <div className={styles.specUpBar}>
         <div role="group" aria-label="정렬" className={styles.specUpSorts}>
-          {SORTS.map((item) => (
+          {(supporter ? SUPPORTER_SORTS : SORTS).map((item) => (
             <button
               key={item.id}
               type="button"
@@ -344,7 +369,7 @@ export default function SpecUpGuide({ data }: { data: Character }) {
               <div className={styles.tableWrap}>
                 <table className={`${styles.table} ${styles.specUpTable}`}>
                   <caption className={styles.sr}>
-                    스펙업 후보, {sortCaption(guide.sort)}{reordered ? "(시세 갱신 전 순서)" : ""}
+                    스펙업 후보, {supporter ? "서포터 점수 순" : sortCaption(guide.sort)}{reordered ? "(시세 갱신 전 순서)" : ""}
                   </caption>
                   <thead>
                     <tr>
@@ -352,7 +377,7 @@ export default function SpecUpGuide({ data }: { data: Character }) {
                       <th scope="col">종류</th>
                       <th scope="col">대상</th>
                       <th scope="col">전 → 후</th>
-                      <th scope="col">{krakenShown ? "크라켄 점수" : "전투력 증가"}</th>
+                      <th scope="col">{supporter ? "서포터 점수" : krakenShown ? "크라켄 점수" : "전투력 증가"}</th>
                       <th scope="col">기대 비용</th>
                       <th scope="col">{krakenShown ? "10만 골드당 점수" : "1만 골드당 전투력"}</th>
                       <th scope="col">
@@ -362,7 +387,8 @@ export default function SpecUpGuide({ data }: { data: Character }) {
                   </thead>
                   <tbody>
                     {ok.map((c, i) => {
-                      const tryable = editsFor(c.change, NO_EDITS) != null && c.change;
+                      // The simulator is combat power: no link for a supporter.
+                      const tryable = !supporter && editsFor(c.change, NO_EDITS) != null && c.change;
                       return (
                         // Keyed by the order of the list on screen: a new sort
                         // or '새 순서로 보기' draws new rows instead of sliding
@@ -383,7 +409,12 @@ export default function SpecUpGuide({ data }: { data: Character }) {
                             {c.from ?? "—"} → {c.to ?? "—"}
                           </td>
                           {krakenShown ? (
-                            <td data-cell="gain" data-label="크라켄 점수" className={styles.specUpGain} data-figure="">
+                            <td
+                              data-cell="gain"
+                              data-label={supporter ? "서포터 점수" : "크라켄 점수"}
+                              className={styles.specUpGain}
+                              data-figure=""
+                            >
                               {c.deltaKrakenScore == null ? "—" : `+${two(c.deltaKrakenScore)}`}
                             </td>
                           ) : (
@@ -392,7 +423,7 @@ export default function SpecUpGuide({ data }: { data: Character }) {
                               {c.deltaPercent != null && <small> ({c.deltaPercent.toFixed(3)}%)</small>}
                             </td>
                           )}
-                          <CostCell candidate={c} pulse={pulseOf(c.id, "cost")} />
+                          <CostCell candidate={c} pulse={pulseOf(c.id, "cost")} now={now} />
                           {krakenShown ? (
                             <td data-cell="eff" data-label="10만 골드당" data-figure="">
                               <ChangeMark key={c.krakenScorePer100kGold ?? "none"} pulse={pulseOf(c.id, "eff")}>
@@ -413,7 +444,7 @@ export default function SpecUpGuide({ data }: { data: Character }) {
                                 replace
                                 scroll={false}
                                 className="hit-44"
-                                aria-label={`${c.target} ${c.to ?? ""} 시뮬레이터에서 적용해 보기`}
+                                aria-label={`${gemTarget(c.target, c.gemType)} ${c.to ?? ""} 시뮬레이터에서 적용해 보기`}
                               >
                                 적용해 보기
                               </Link>
@@ -451,7 +482,7 @@ export default function SpecUpGuide({ data }: { data: Character }) {
                         <ul>
                           {group.candidates.map((c) => (
                             <li key={c.id}>
-                              {c.target}
+                              {gemTarget(c.target, c.gemType)}
                               {(c.from || c.to) && ` (${c.from ?? "—"} → ${c.to ?? "—"})`}
                             </li>
                           ))}
@@ -465,7 +496,8 @@ export default function SpecUpGuide({ data }: { data: Character }) {
           </Fragment>
         )}
       </div>
-      <SpecUpGoal data={data} />
+      {/* The goal path is a combat-power target: not for a supporter. */}
+      {!supporter && <SpecUpGoal data={data} />}
     </div>
   );
 }

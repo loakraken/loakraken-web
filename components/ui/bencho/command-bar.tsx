@@ -10,12 +10,14 @@
 // something for it to do (onDictate) — Bencho's mic is a demo with no action.
 // For the header search's result panel (10-12): onValueChange, onInputKeyDown
 // (runs first; preventDefault stops the bar's own Enter) and inputProps (the
-// combobox's role and aria-*) pass through to the field.
+// combobox's role and aria-*) pass through to the field. No send button any
+// more (#1113): it did only what Enter does; Enter and the result rows still
+// search, and the field takes the bar's whole width.
 // Tokens are mapped on the block root in command-bar.css.
 import "./command-bar.css";
 import { useEffect, useRef, useState } from "react";
 import { Liquid } from "liquid-gooey";
-import { ArrowUp, Microphone } from "@/components/ui/icons";
+import { Microphone } from "@/components/ui/icons";
 
 /* the one helper this file wants from the shared kit */
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
@@ -57,12 +59,6 @@ const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v
    rightwards into the space the button will occupy, which is
    48px of slack on the right while nothing is typed. That is a
    fair trade for a field whose contents hold still. */
-const CMD_BTN = 40;
-const CMD_GAP = 8;
-/* how far the button has to travel to be fused into the bar:
-   its whole width plus the gap it would otherwise sit across,
-   which lands its right edge exactly on the bar's */
-const CMD_TUCK = CMD_BTN + CMD_GAP;
 /* the reference's curve — a little past its target and back,
    so the neck snaps rather than easing apart */
 const CMD_MORPH = { duration: 520, ease: "cubic-bezier(0.22, 1.3, 0.71, 1)" } as const;
@@ -164,7 +160,7 @@ export function CommandBar({
 
   return (
     <div
-      style={{ width: 320, "--cmd-r": `${clamp(corner, 0, CMD_CORNER)}px` } as React.CSSProperties}
+      style={{ width: "100%", "--cmd-r": `${clamp(corner, 0, CMD_CORNER)}px` } as React.CSSProperties}
     >
       {/* OPAQUE FILL. --pane is rgba glass, and the goo's alpha
           contrast erases anything under about 0.39 — a
@@ -236,37 +232,6 @@ export function CommandBar({
           </div>
         </Liquid.Item>
 
-        {/* One slot, two faces. Both are always mounted and
-            crossfade in place — swapping the element would
-            snap, and the swap is the whole point.
-
-            At rest it is tucked inside the bar's right end and
-            reads as a control within it; the first character
-            typed pushes it out and the goo necks and breaks. */}
-        <Liquid.Item
-          className="cmd-slot"
-          x={has ? 0 : -CMD_TUCK}
-          transition={CMD_MORPH}
-        >
-          {/* only ever Send. At rest it is tucked inside the
-              bar with nothing drawn in it — a body for the goo
-              to split from, and nothing else. */}
-          <button
-            type="button"
-            className="cmd-go"
-            /* shown on focus, filled once there is something
-               to send — see .cmd-go */
-            data-on={has}
-            data-armed={!!q.trim() || undefined}
-            tabIndex={has ? 0 : -1}
-            aria-hidden={!has}
-            onClick={run}
-            onPointerDown={(e) => e.stopPropagation()}
-            aria-label="검색"
-          >
-            <ArrowUp size={20} aria-hidden />
-          </button>
-        </Liquid.Item>
       </Liquid>
 
     </div>
