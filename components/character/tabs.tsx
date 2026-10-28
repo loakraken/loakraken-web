@@ -1057,37 +1057,17 @@ function ArkGridPanel({ data }: { data: Character }) {
 function CardsPanel({ data }: { data: Character }) {
   const stagger = useStagger();
   const [folded, setFolded] = useState(false);
-  const gridId = useId();
+  const setsId = useId();
   const cards = data.loadout.cards;
   const summary = data.analysis.cards;
   return (
     <Panel
       title="카드"
       meta={summary ? `각성 합 ${summary.knownAwakeningTotal}` : undefined}
-      // Folds the card pictures only (#1101): set effects and the collection
-      // stay. Open by default, as before.
-      action={
-        cards?.items.length ? (
-          <button
-            type="button"
-            className={`${styles.foldButton} hit-44`}
-            aria-expanded={!folded}
-            aria-controls={gridId}
-            onClick={() => setFolded((value) => !value)}
-          >
-            {/* Both labels in one cell, one shown: the same width either way,
-                so the head never reflows when it is pressed (A7). */}
-            <span className={styles.foldLabels}>
-              <span data-on={!folded || undefined}>카드 접기</span>
-              <span data-on={folded || undefined}>카드 펴기</span>
-            </span>
-          </button>
-        ) : undefined
-      }
     >
       {cards?.items.length ? (
         <>
-          <ul id={gridId} className={styles.cardGrid} hidden={folded}>
+          <ul className={styles.cardGrid}>
             {cards.items.map((card, i) => (
               <li key={i} {...stagger(i)}>
                 <CardArt
@@ -1100,19 +1080,34 @@ function CardsPanel({ data }: { data: Character }) {
               </li>
             ))}
           </ul>
+          {/* The pictures always show; the set effects under them fold,
+              with the ark grid's toggle (user 10-28). Open by default. */}
           {cards.effects.length > 0 && (
-            <ul className={styles.setList}>
-              {cards.effects
-                .flatMap((set) => set.items)
-                .map((effect, i) => (
-                  <li key={i}>
-                    <strong>{text(effect.name)}</strong>
-                    <span>
-                      <SourceText value={effect.description} />
-                    </span>
-                  </li>
-                ))}
-            </ul>
+            <>
+              <ul id={setsId} className={styles.setList} hidden={folded}>
+                {cards.effects
+                  .flatMap((set) => set.items)
+                  .map((effect, i) => (
+                    <li key={i}>
+                      <strong>{text(effect.name)}</strong>
+                      <span>
+                        <SourceText value={effect.description} />
+                      </span>
+                    </li>
+                  ))}
+              </ul>
+              <button
+                type="button"
+                className={styles.gridToggle}
+                aria-expanded={!folded}
+                aria-controls={setsId}
+                aria-label={folded ? "카드 세트 효과 펼치기" : "카드 세트 효과 접기"}
+                onClick={() => setFolded((value) => !value)}
+              >
+                <ChevronDown size={18} aria-hidden="true" />
+                <span aria-hidden="true">{folded ? "펼치기" : "접기"}</span>
+              </button>
+            </>
           )}
         </>
       ) : (
