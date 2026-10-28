@@ -1,6 +1,6 @@
 // 회귀(#1101): 전투 탭 카드.
 // - 각성 점은 카드 그림 아래에 있어 그림 아래 부분(이름판·각성 틀)을 가리지 않는다.
-// - '카드 접기'로 카드 그림 목록을 접고 펴며(키보드로도), 단추는 제자리. 기본은 펼침.
+// - 카드 그림은 늘 보이고, 그 아래 세트 효과 목록을 아크 그리드와 같은 화살표 단추로 접고 편다(키보드로도). 기본은 펼침.
 // - 첫 로드·입력 없는 흔들림 0, 잘림 0, 가로 넘침 0.
 import { test, expect, characterPath, gotoReady, expectNoHorizontalOverflow } from "../support/fixtures.mjs";
 import { shiftMark, shiftsSince, watchShifts } from "../support/shifts.mjs";
@@ -37,25 +37,25 @@ for (const scheme of ["light", "dark"])
       const loaded = await shiftsSince(page);
       expect(loaded.quiet, `첫 로드 흔들림 (${loaded.moved})`).toBe(0);
 
-      // Fold and unfold: open by default, the button stays where it is.
-      const fold = panel.getByRole("button", { name: "카드 접기" });
+      // The pictures always show (no fold on them); the set effects under
+      // them fold with the ark grid's toggle (user 10-28). Open by default.
+      const sets = panel.locator(":scope > ul").nth(1);
+      await expect(sets).toBeVisible();
+      const fold = panel.getByRole("button", { name: "카드 세트 효과 접기" });
       await expect(fold).toHaveAttribute("aria-expanded", "true");
-      // Page coordinates: a shorter page may scroll, which is not the button moving.
-      const at = (button) => button.evaluate((el) => { const r = el.getBoundingClientRect(); return [Math.round(r.left), Math.round(r.top + window.scrollY), Math.round(r.width)]; });
-      const before = await at(fold);
       const mark = await shiftMark(page);
       await fold.click();
-      await expect(grid).toBeHidden();
-      const unfold = panel.getByRole("button", { name: "카드 펴기" });
+      await expect(sets).toBeHidden();
+      await expect(grid).toBeVisible();
+      const unfold = panel.getByRole("button", { name: "카드 세트 효과 펼치기" });
       await expect(unfold).toHaveAttribute("aria-expanded", "false");
-      expect(await at(unfold), "접은 뒤 단추 위치").toEqual(before);
-      // The set effects and the roster record stay.
+      // The roster record stays.
       await expect(panel.getByRole("region", { name: "원정대 카드 기록" })).toBeVisible();
       // Keyboard: Enter on the focused button opens it again.
       await unfold.focus();
       await page.keyboard.press("Enter");
-      await expect(grid).toBeVisible();
-      await expect(panel.getByRole("button", { name: "카드 접기" })).toHaveAttribute("aria-expanded", "true");
+      await expect(sets).toBeVisible();
+      await expect(panel.getByRole("button", { name: "카드 세트 효과 접기" })).toHaveAttribute("aria-expanded", "true");
       await page.waitForTimeout(500);
       const toggled = await shiftsSince(page, mark);
       // Only what is under the pressed button may move, and only right after the press.
