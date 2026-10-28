@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { appliedStage, elementLabel, orderedSlots, sortCards } from "@/lib/character/card-collection";
 import { CharacterQueryError, fetchCardCollection } from "@/lib/character/client";
+import { ChevronDown } from "@/components/ui/icons";
 import { CardArt } from "./imagery";
 import { CardRefresh } from "./card-refresh";
 import styles from "./card-collection.module.css";
@@ -49,6 +50,7 @@ function CardRecordPlaceholder() {
           <details key={label} className={`${styles.fold} ${expand.expand}`}>
             <summary>
               {label} <span>0</span>
+              <ChevronDown size={16} className={styles.foldChevron} aria-hidden="true" />
             </summary>
           </details>
         ))}
@@ -173,6 +175,7 @@ export function CardCollection({ name }: { name: string }) {
             <details className={`${styles.fold} ${expand.expand}`}>
               <summary>
                 도감 <span>{data.cards.length}장</span>
+                <ChevronDown size={16} className={styles.foldChevron} aria-hidden="true" />
               </summary>
               <ul className={styles.cards}>
                 {sortCards(data.cards).map((card) => (
@@ -193,6 +196,7 @@ export function CardCollection({ name }: { name: string }) {
             <details className={`${styles.fold} ${expand.expand}`}>
               <summary>
                 구성 가능한 세트 <span>{data.sets.length}개</span>
+                <ChevronDown size={16} className={styles.foldChevron} aria-hidden="true" />
               </summary>
               <ul className={styles.sets}>
                 {data.sets.map((set) => {
