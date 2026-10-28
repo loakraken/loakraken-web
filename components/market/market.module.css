@@ -296,8 +296,15 @@
   background: var(--background);
   color: var(--slate);
 }
+/* The box is the focus target, as in the character search: the inner input
+   draws no second ring (the page's :focus-visible rule outranks the plain
+   input rule below), and the box shows a halo so keyboard focus stays clear. */
+.searchField input:focus-visible {
+  outline: none;
+}
 .searchField:focus-within {
   border-color: var(--ring);
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--ring) 18%, transparent);
 }
 .searchField[data-invalid] {
   border-color: var(--destructive);
