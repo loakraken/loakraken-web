@@ -1,7 +1,9 @@
 // Official class icons (stats gap A1): the game site's own class SVGs, read
 // from its stylesheet's .icon--<class> rules (checked 2026-10-25). Hotlinked
-// from the official CDN, never copied: each is a black-filled mask, tinted by
-// our theme. A class missing here (a new one) gets a text chip instead.
+// from the official CDN, never copied. Fills differ (black, #222, white), so
+// the theme flattens each to one colour. A class missing here (a new one) gets
+// a text chip instead. 차원술사: dimension_master.svg in the same official
+// folder (checked 2026-10-28, HTTP 200).
 const BASE = "https://cdn-lostark.game.onstove.com/2018/obt/assets/images/common/class/";
 
 const FILES: Record<string, string> = {
@@ -34,6 +36,7 @@ const FILES: Record<string, string> = {
   기상술사: "aeromancer",
   환수사: "wildsoul",
   가디언나이트: "dragon_knight",
+  차원술사: "dimension_master",
 };
 
 /** The class's official icon address, or null for a class this build does not know. */
