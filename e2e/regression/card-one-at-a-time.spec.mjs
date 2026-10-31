@@ -7,31 +7,52 @@ const triggers = (page) => page.locator("[data-slot=item-tooltip-trigger]:visibl
 const cardName = async (trigger) => (await trigger.getAttribute("aria-label")).replace(/ 상세 보기$/, "");
 // Open cards only: a closing card stays in the page for its 100ms fade.
 const cards = (page) => page.locator("[data-slot=item-tooltip][data-open]");
+/** The one open card, named `name`, with its 150ms open transition finished (hover-stable). */
+async function settledCard(page, name) {
+  await expect(cards(page)).toHaveCount(1);
+  await expect(cards(page)).toHaveAttribute("aria-label", name);
+  // Out of its starting style. (Its transitions keep reporting as running in
+  // the test browser, so the pointer moves by coordinates below instead of
+  // hover(), which waits for the target to stand still.)
+  await expect(cards(page)).not.toHaveAttribute("data-starting-style", /.*/);
+}
+/**
+ * Puts the pointer on the middle of `locator` without waiting for it to be
+ * still — after checking that nothing (the sticky tab bar) covers that point,
+ * so an interception fails here instead of being skipped silently.
+ */
+async function pointAt(page, locator) {
+  const box = await locator.boundingBox();
+  const [x, y] = [box.x + box.width / 2, box.y + box.height / 2];
+  expect(await locator.evaluate((el, [px, py]) => el.contains(document.elementFromPoint(px, py)), [x, y]), "포인터 자리를 다른 요소가 가림").toBe(true);
+  await page.mouse.move(x, y);
+}
 
 test("1280: 고정한 카드는 다른 아이템에 올리면 닫히고 그 카드가 열린다, 초점도 같다 @regression", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await gotoReady(page, characterPath("상세", "combat"));
   const [a, b] = [triggers(page).nth(0), triggers(page).nth(1)];
   const [nameA, nameB] = [await cardName(a), await cardName(b)];
+  // Both items in the middle of the screen, clear of the sticky header and tab
+  // bar (the bar's links took the pointer when an item sat under it).
+  await a.evaluate((el) => el.scrollIntoView({ block: "center" }));
 
   // A click pins A: it stays when the pointer goes onto its own card.
   await a.click();
-  await expect(cards(page)).toHaveCount(1);
-  await expect(cards(page)).toHaveAttribute("aria-label", nameA);
-  await cards(page).hover();
+  await settledCard(page, nameA);
+  await pointAt(page, cards(page));
   await page.waitForTimeout(300);
   await expect(cards(page)).toHaveAttribute("aria-label", nameA);
 
   // Hovering B: A closes, B's card opens as a hover preview would.
-  await b.hover();
-  await expect(cards(page)).toHaveCount(1);
-  await expect(cards(page)).toHaveAttribute("aria-label", nameB);
+  await pointAt(page, b);
+  await settledCard(page, nameB);
 
   // Keyboard: pin A again, then focus B; A's card closes.
   await page.mouse.move(0, 0);
   await expect(cards(page)).toHaveCount(0);
   await a.click();
-  await expect(cards(page)).toHaveAttribute("aria-label", nameA);
+  await settledCard(page, nameA);
   await b.focus();
   await expect(page.locator(`[data-slot=item-tooltip][data-open][aria-label="${nameA}"]`)).toHaveCount(0);
   // The closing card does not pull focus back to its own item (frontend-a11y).
