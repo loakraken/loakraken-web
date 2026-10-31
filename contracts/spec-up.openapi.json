@@ -295,6 +295,104 @@
           }
         }
       }
+    },
+    "/api/v1/characters/spec-up/path": {
+      "get": {
+        "tags": [
+          "캐릭터"
+        ],
+        "summary": "스펙업 추천 순서(이어 고르기, 공식 호출 없음)",
+        "description": "목표 없이, 지금 상태에서 항목마다 다음 한 단계를 만들고 sort 기준으로 가장 앞의 단계를 적용한 뒤 다시 재기를 limit 단계까지 되풀이한 순서입니다. sort=EFFICIENCY(기본): 이 단계에 더 드는 비용 1만 골드당 전투력이 큰 순(더 드는 비용이 0 이하인 단계가 먼저, 같으면 Δ·id). sort=DELTA: 전투력 증가가 큰 순(같으면 효율·id). 시세(더 드는 비용)를 모르는 단계는 순서에 넣지 않고 unpriced에 지금 상태 기준으로 따로 줍니다(비용을 추측하지 않음). 단계·비용·전투력은 목표 경로(/spec-up/goal)와 같은 규칙입니다(steps[].change를 차례로 시뮬레이터에 넣은 값과 같음, 보석 칸은 누적 비용, cumulativeCost는 그 단계까지 합계). 딜러가 아니거나 공식 전투력이 없으면 200, 빈 steps, stopReasonCode에 스펙업 가이드와 같은 이유 코드를 줍니다. 계산 시간 상한이 있고, 같은 캐릭터 수집 시각·시세·sort·limit은 10분 캐시합니다. 계산이 몰리면 기다리지 않고 429 SPEC_UP_BUSY와 Retry-After(초)를 줍니다. stopReasonCode·kind·cost.code는 문자열이며 값이 늘 수 있습니다.",
+        "operationId": "path",
+        "parameters": [
+          {
+            "name": "characterName",
+            "in": "query",
+            "description": "캐릭터명",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 16,
+              "minLength": 1,
+              "pattern": "\\s*[\\p{L}\\p{N}]+\\s*"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "고르는 기준: EFFICIENCY(기본) 또는 DELTA",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "EFFICIENCY|DELTA"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "단계 수(1~30, 기본 30)",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 1,
+              "maximum": 30
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "SPEC_UP_PATH_SUCCESS",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseSpecUpPathResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_REQUEST: 캐릭터명·sort·limit 형식",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "SPEC_UP_DISABLED: 기능이 꺼져 있음 · CHARACTER_NOT_CACHED: 캐릭터를 먼저 검색해야 함",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "SPEC_UP_BUSY: 추천 순서 계산 자리가 모두 차 있음(기다리지 않음, Retry-After 초 뒤 다시)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "CHARACTER_STORAGE_UNAVAILABLE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1189,6 +1287,18 @@
                 "type": "null"
               }
             ]
+          },
+          "extraCost": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int64",
+                "description": "이 단계에 더 드는 비용(골드) = 이 단계를 넣어 늘어난 경로 합계. 보석은 같은 칸에서 이미 낸 누적을 뺀 값(거꾸로 시세면 0 이하일 수 있음), 그 밖은 cost.amount와 같음. 1만 골드당 전투력의 분모이고, 단계마다 더하면 cumulativeCost와 같다. 모르면 null. api #794 전 응답에는 없음(선택)"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -1628,6 +1738,255 @@
           "firstAttemptSuccessRateBp",
           "fromStage",
           "toStage"
+        ]
+      },
+      "ApiResponseSpecUpPathResponse": {
+        "type": "object",
+        "description": "공통 API 응답. 오류 응답의 data는 null입니다.",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "업무 결과 코드",
+            "example": "CHARACTER_SEARCH_SUCCESS"
+          },
+          "message": {
+            "type": "string",
+            "description": "공개용 안내 메시지",
+            "example": "캐릭터 조회에 성공했습니다."
+          },
+          "data": {
+            "$ref": "#/components/schemas/SpecUpPathResponse",
+            "description": "성공 응답 데이터. 오류일 때 null"
+          }
+        },
+        "required": [
+          "code",
+          "data",
+          "message"
+        ]
+      },
+      "SpecUpPathResponse": {
+        "type": "object",
+        "properties": {
+          "characterName": {
+            "type": "string"
+          },
+          "serverName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "className": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "combatPower": {
+            "anyOf": [
+              {
+                "type": "number",
+                "description": "지금 공식 전투력(소수 둘째 자리). 없으면 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "finalCombatPower": {
+            "anyOf": [
+              {
+                "type": "number",
+                "description": "마지막 단계까지 적용한 전투력(단계가 없으면 지금 전투력)"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sort": {
+            "type": "string",
+            "description": "쓴 기준(EFFICIENCY·DELTA)",
+            "example": "EFFICIENCY"
+          },
+          "limit": {
+            "type": "integer",
+            "format": "int32",
+            "description": "요청한 단계 수"
+          },
+          "stopReasonCode": {
+            "type": "string",
+            "description": "멈춘 이유 코드(문자열, 값이 늘 수 있음): STEP_LIMIT(limit까지)·NO_CANDIDATE(시세가 있고 전투력이 오르는 단계를 모두 고름)·TIME_LIMIT, 또는 스펙업 가이드의 이유 코드(ROLE_UNKNOWN 등)",
+            "example": "STEP_LIMIT"
+          },
+          "stopReason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "멈춘 이유(화면 문구)"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "totalCost": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int64",
+                "description": "전체 합계(골드) = 마지막 단계의 cumulativeCost. 모르면 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "ruleVersion": {
+            "type": "string",
+            "example": "spec-up-path-v1"
+          },
+          "simulatorRuleVersion": {
+            "type": "string",
+            "description": "전투력을 낸 시뮬레이터 규칙"
+          },
+          "fetchedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "description": "캐릭터 캐시 수집 시각"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "pricesAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "description": "비용에 쓴 시세 칸 가운데 가장 오래된 관측 시각"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "steps": {
+            "type": "array",
+            "description": "고른 순서(시세가 있는 단계만)",
+            "items": {
+              "$ref": "#/components/schemas/SpecUpGoalStepResponse"
+            }
+          },
+          "unpriced": {
+            "type": "array",
+            "description": "시세를 몰라 순서에서 뺀 항목(지금 상태 기준, 전투력이 오르는 것만, Δ 큰 순). 비용을 추측하지 않음",
+            "items": {
+              "$ref": "#/components/schemas/SpecUpPathExcludedResponse"
+            }
+          }
+        },
+        "required": [
+          "characterName",
+          "className",
+          "combatPower",
+          "fetchedAt",
+          "finalCombatPower",
+          "limit",
+          "pricesAt",
+          "ruleVersion",
+          "serverName",
+          "simulatorRuleVersion",
+          "sort",
+          "steps",
+          "stopReason",
+          "stopReasonCode",
+          "totalCost",
+          "unpriced"
+        ]
+      },
+      "SpecUpPathExcludedResponse": {
+        "type": "object",
+        "properties": {
+          "candidateId": {
+            "type": "string",
+            "description": "스펙업 가이드 후보 id와 같은 형식"
+          },
+          "kind": {
+            "type": "string",
+            "description": "단계 종류(문자열, 값이 늘 수 있음)"
+          },
+          "target": {
+            "type": "string"
+          },
+          "from": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "grade": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "skillName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "deltaCombatPower": {
+            "type": "number",
+            "description": "지금 상태에서 이 단계만 적용했을 때 늘어나는 전투력"
+          },
+          "cost": {
+            "$ref": "#/components/schemas/CostResponse",
+            "description": "비용(시세를 모름 — cost.code에 이유)"
+          }
+        },
+        "required": [
+          "candidateId",
+          "cost",
+          "deltaCombatPower",
+          "from",
+          "grade",
+          "icon",
+          "kind",
+          "skillName",
+          "target",
+          "to"
         ]
       }
     }

@@ -3,7 +3,7 @@
 // next, ranked by combat power per 10,000 gold (or by the gain alone). Every
 // number comes from the backend; candidates it could not compute fold into one
 // line per reason, and "적용해 보기" opens the simulator tab with the change.
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useContext, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChangeMark, useChangedCells, type Pulse } from "@/components/ui/changed-cells";
@@ -38,6 +38,8 @@ import {
 } from "@/lib/spec-up/model";
 import { MINUTE, useClock } from "@/components/home/clock";
 import { SpecUpGoal } from "./spec-up-goal";
+import { SpecUpPath } from "./spec-up-path";
+import { SpecUpPathEnabled } from "./tabs";
 import { SpecUpRowDetail } from "./spec-up-detail";
 import { kstTime } from "./parts";
 import styles from "./detail.module.css";
@@ -127,6 +129,7 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
   // For gem price times ("21:05 시세" / a date when not today).
   const now = useClock(MINUTE);
   const [sort, setSort] = useState<Sort>(supporter ? "KRAKEN" : DEFAULT_SORT);
+  const pathEnabled = useContext(SpecUpPathEnabled);
   // 크라켄 점수 순 (api #573) leaves 작열 (cooldown) gems out by default; the user can add them.
   const [cooldown, setCooldown] = useState(false);
   // The first list (the tab's first answer) tells whether the backend knows
@@ -530,7 +533,8 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
           </Fragment>
         )}
       </div>
-      {/* The goal path is a combat-power target: not for a supporter. */}
+      {/* The chained order and the goal path are combat-power paths: not for a supporter. */}
+      {!supporter && pathEnabled && <SpecUpPath data={data} />}
       {!supporter && <SpecUpGoal data={data} />}
     </div>
   );
