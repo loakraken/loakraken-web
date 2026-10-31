@@ -110,14 +110,16 @@ jobs:
 
   shard:
     needs: build
-    name: e2e shard ${{ matrix.shard }}/4
+    name: e2e shard ${{ matrix.shard }}/${{ strategy.job-total }}
     runs-on: ubuntu-latest
     timeout-minutes: 25
     strategy:
       # 한 shard가 실패해도 나머지는 끝까지 돌아 실패 목록이 한 번에 다 나온다.
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4]
+        # shard 수는 이 목록 하나로 정한다(전체 수는 strategy.job-total). 계정의 동시 job 한도(20)를
+        # api CI·다른 PR과 나눠 쓰므로 4개로 둔다(4·6개 비교 결과는 #1180).
+        shard: [1, 2, 3, 4, 5, 6]
     env:
       # build job의 standalone 빌드를 쓴다(e2e/support/standalone-server.mjs가 다시 빌드하지 않음).
       E2E_SKIP_BUILD: "1"
@@ -157,7 +159,7 @@ jobs:
         run: tar -xzf e2e-build.tgz && rm e2e-build.tgz
       - name: Run E2E shard
         working-directory: e2e
-        run: npx playwright test --project=desktop-1440 --project=tablet-768 --project=mobile-390 --shard=${{ matrix.shard }}/4 --reporter=list,blob
+        run: npx playwright test --project=desktop-1440 --project=tablet-768 --project=mobile-390 --shard=${{ matrix.shard }}/${{ strategy.job-total }} --reporter=list,blob
       - name: Upload blob report
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
