@@ -1278,7 +1278,9 @@ function EngravingsPanel({ data }: { data: Character }) {
   const iconList = useQuery({
     queryKey: ["engraving-icons"],
     queryFn: ({ signal }) => fetchEngravingIcons(signal),
-    staleTime: Infinity,
+    // A filled list holds for the visit; an empty one (before the backend's
+    // warmup, or a failed read) is asked again after 5 minutes, not never.
+    staleTime: (query) => (query.state.data?.length ? Infinity : 5 * 60_000),
     retry: false,
     enabled: effects.length > 0,
   });
