@@ -821,7 +821,8 @@ createServer(async (req, res) => {
     const envelope = JSON.parse(readFileSync(new URL("./spec-up-fixtures/character-spec-up-path.json", import.meta.url), "utf8"));
     const d = envelope.data;
     const base = read("character-full-data.json").combatPower;
-    const shift = (v) => Math.round((v + base - d.combatPower) * 100) / 100;
+    const sampleBase = d.combatPower;
+    const shift = (v) => Math.round((v + base - sampleBase) * 100) / 100;
     Object.assign(d, { characterName: who, sort, combatPower: base, finalCombatPower: shift(d.finalCombatPower) });
     if (who === "상세서포터") {
       Object.assign(d, { steps: [], unpriced: [], finalCombatPower: base, totalCost: null, stopReasonCode: "SUPPORTER_MODEL_PENDING", stopReason: "서포터 전투력 계산식은 아직 적용하지 않았습니다." });
