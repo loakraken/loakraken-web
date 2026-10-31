@@ -1495,8 +1495,8 @@ function SkillCard({
             if (compact) return <li key={i}>{icon}</li>;
             const place = tripodPlace(tripod);
             const name = tripod.name ?? "트라이포드";
-            // Which of the tier's 1·2·3 was picked (user 10-31): three dots,
-            // the chosen one filled; the card says it in words with the effect.
+            // Which of the tier's 1·2·3 was picked: the number itself (user
+            // 11-01; it was three dots); the card says it in words with the effect.
             // The button's label replaces its text for screen readers, so the
             // level and the place go into it too.
             const label = [name + (tripodLv != null ? ` 레벨 ${tripodLv}` : ""), place].filter(Boolean).join(", ");
@@ -1511,9 +1511,7 @@ function SkillCard({
                     </span>
                     {tripod.slot != null && tripod.slot >= 1 && tripod.slot <= 3 && (
                       <span className={styles.tripodSlot} aria-hidden="true">
-                        {[1, 2, 3].map((n) => (
-                          <i key={n} data-on={n === tripod.slot || undefined} />
-                        ))}
+                        {tripod.slot}
                       </span>
                     )}
                   </span>
