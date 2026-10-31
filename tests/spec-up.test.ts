@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import { NO_EDITS } from "../lib/combat-power/model";
-import { costPriceNote, costRoom, editsFor, gemTarget, keepOrder, koreanGold, readTry, splitCandidates, tryParam } from "../lib/spec-up/model";
+import { costPriceNote, costRoom, editsFor, groupStages, gemTarget, keepOrder, koreanGold, readTry, splitCandidates, tryParam } from "../lib/spec-up/model";
 import { requestSpecUp } from "../lib/spec-up/upstream";
 import { isSpecUpEnvelope } from "../lib/spec-up/validate";
 
@@ -143,4 +143,17 @@ test("a gem cost shows its price time; a last-known (stale) price never reads as
   assert.equal(costPriceNote({ priceObservedAt: null, stale: null }, now), null);
   assert.equal(costPriceNote({}, now), null);
   assert.equal(costPriceNote(null, now), null);
+});
+
+test("stages of one target group under their best stage, in the list's order (#26)", () => {
+  const row = (id: string, change: Record<string, unknown> | null) => ({ id, change }) as unknown as Parameters<typeof groupStages>[0][number];
+  const eng = (level: number) => ({ kind: "ENGRAVING_LEVEL", slot: null, index: null, level, refine: null, quality: null, name: "원한", grade: null });
+  const gem = (slot: number, level: number) => ({ kind: "GEM_LEVEL", slot, index: null, level, refine: null, quality: null, name: null, grade: null });
+  const list = [row("e2", eng(2)), row("g0-9", gem(0, 9)), row("e4", eng(4)), row("g1-9", gem(1, 9)), row("g0-10", gem(0, 10)), row("x", null), row("e3", eng(3))];
+  const groups = groupStages(list);
+  assert.deepEqual(groups.map((g) => g.head.id), ["e2", "g0-9", "g1-9", "x"]);
+  assert.deepEqual(groups[0].more.map((c) => c.id), ["e4", "e3"]);
+  assert.deepEqual(groups[1].more.map((c) => c.id), ["g0-10"]);
+  assert.deepEqual(groups[2].more, []);
+  assert.deepEqual(groups[3].more, []);
 });

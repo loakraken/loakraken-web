@@ -2194,6 +2194,39 @@
   gap: 8px;
   min-width: 180px;
 }
+/* One row per target (#26): '자세히' under the name opens its other stages. */
+.specUpMore {
+  display: block;
+  width: fit-content;
+  margin-top: 4px;
+  color: var(--link);
+  font-size: 12px;
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  max-width: 100%;
+  text-align: left;
+}
+/* No border to reach over: the phone tap area (hit-44) is the link's own
+   width, so a link as wide as the name cell does not stick out of it (A37 at
+   320, #1167). Still 44px tall, and at least 44px wide. */
+.specUpMore::after {
+  width: max(100%, 44px);
+}
+.specUpMore:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+/* The other stages of the target above: tinted, no rank of their own. */
+.specUpTable tr[data-sub] {
+  background: color-mix(in oklab, var(--muted) 55%, transparent);
+}
+/* A closed group's other stages: no height and out of reach (focus, screen
+   readers), yet still sizing the columns so a new head never moves them. */
+.specUpTable tr[data-collapsed] {
+  visibility: collapse;
+}
 /* Phones: one card per candidate, the gain and the cost in view without
    scrolling the table sideways. */
 @media (max-width: 700px) {
@@ -2215,6 +2248,10 @@
     gap: 4px 10px;
     padding: 12px 0;
     border-bottom: 1px solid var(--secondary);
+  }
+  /* Cards have no shared columns to keep: a closed stage takes no room. */
+  .specUpTable tr[data-collapsed] {
+    display: none;
   }
   .specUpTable tr > * {
     padding: 0;

@@ -12,6 +12,16 @@ const NAME = "전투력계산";
 
 // The 8→9레벨 gem row (two rows share the name "테스트 스킬 · 8레벨 겁화"; its
 // place depends on the sort, 전투력 증가 first since 10-26).
+// One row per target (#26): opens every group, so each stage has its own row
+// again (head first, then its other stages, in the list's order).
+async function expandAll(page) {
+  const table = page.getByRole("table", { name: /스펙업 후보/ });
+  await table.locator("tbody tr").first().waitFor();
+  const more = table.getByRole("button", { name: /^자세히 · 다른 단계/ });
+  for (let i = 0; i < 20 && (await more.count()) > 0; i += 1) await more.first().click();
+  await expect(more).toHaveCount(0);
+}
+
 const nineRow = (table) =>
   table.locator("tbody tr").filter({ hasText: "9레벨" }).getByRole("button", { name: "테스트 스킬 · 8레벨 겁화" });
 
@@ -40,6 +50,7 @@ test.describe("스펙업 가이드 @smoke", () => {
     const table = page.getByRole("table", { name: /스펙업 후보/ });
     const costs = table.locator("td[data-cell='cost'] small");
     // A date shows when the time is not today (KST), e.g. just after midnight.
+    await expandAll(page);
     await expect(costs.filter({ hasText: /^이전 시세 (\d\d\.\d\d )?\d\d:\d\d$/ })).toHaveCount(1);
     await expect(costs.filter({ hasText: /^(\d\d\.\d\d )?\d\d:\d\d 시세$/ })).toHaveCount(1);
     await expect(table.locator("td[data-cell='cost'][data-stale]")).toHaveCount(1);
@@ -50,6 +61,51 @@ test.describe("스펙업 가이드 @smoke", () => {
   });
 
   // 사용자 결정(PM 총괄 10-26): 전투력 증가 is the first button and the first list.
+  // 사용자 제보 #26: 같은 대상의 여러 단계(보석 한 칸의 9·10레벨)는 한 줄, 나머지 단계는 '자세히'.
+  test("같은 대상의 여러 단계는 가장 앞 단계 한 줄로 묶이고, '자세히'로 나머지 단계를 펼치고 접는다", async ({ page }) => {
+    await page.goto(characterPath(NAME, "specup"));
+    const table = page.getByRole("table", { name: /스펙업 후보, 전투력 증가 순/ });
+    // Shown rows: a closed stage stays in the table, collapsed (keeps the columns).
+    const rows = table.locator("tbody tr:not([data-collapsed])");
+    // 품질 + 보석 0번 칸(10레벨이 앞, 9레벨은 그 아래에 접힘).
+    await expect(rows).toHaveCount(2);
+    await expect(rows.nth(1)).toContainText("+48.07");
+    await expect(table.getByText("+24.00")).toBeHidden();
+    const more = rows.nth(1).getByRole("button", { name: "자세히 · 다른 단계 1개" });
+    await expect(more).toHaveAttribute("aria-expanded", "false");
+    await more.click();
+    await expect(rows).toHaveCount(3);
+    await expect(rows.nth(2)).toHaveAttribute("data-sub", "true");
+    await expect(rows.nth(2)).toContainText("+24.00");
+    // The opened row has no rank of its own; the next target keeps its number.
+    await expect(rows.nth(2).locator('[data-cell="rank"]')).toHaveText("같은 대상");
+    const less = rows.nth(1).getByRole("button", { name: "다른 단계 접기" });
+    await expect(less).toHaveAttribute("aria-expanded", "true");
+    await less.click();
+    await expect(rows).toHaveCount(2);
+    await expectNoHorizontalOverflow(page);
+  });
+
+  // A37 (PM-프론트 #1167 at 320): '자세히' under the name, its 44px tap area
+  // included, stays inside the name cell — closed and opened, on a phone.
+  for (const width of [320, 360])
+    test(`스펙업 표 칸 잘림 없음(자세히 포함) @${width}`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto(characterPath("전투력계산", "specup"));
+      const table = page.getByRole("table", { name: /스펙업 후보, 전투력 증가 순/ });
+      await expect(table.getByRole("button", { name: /^자세히 · 다른 단계/ }).first()).toBeVisible();
+      const cut = () =>
+        table.evaluate((el) =>
+          [...el.querySelectorAll("tbody tr:not([data-collapsed]) > *")]
+            .filter((cell) => cell.scrollWidth > cell.clientWidth + 1)
+            .map((cell) => cell.textContent.trim().slice(0, 30)),
+        );
+      expect(await cut(), "닫힌 상태 잘린 칸").toEqual([]);
+      await expandAll(page);
+      expect(await cut(), "펼친 상태 잘린 칸").toEqual([]);
+      await expectNoHorizontalOverflow(page);
+    });
+
   test("처음 목록은 전투력 증가 순이고, 비용·근거·계산 못 한 후보를 나눠 보여 준다", async ({ page }) => {
     const sorts = [];
     page.on("request", (r) => r.url().includes("/api/characters/spec-up?") && sorts.push(new URL(r.url()).searchParams.get("sort")));
@@ -64,6 +120,7 @@ test.describe("스펙업 가이드 @smoke", () => {
     await expect(page.getByText("완갑 재련은 아직 후보에 넣지 않았습니다.")).toHaveCount(0);
     const table = page.getByRole("table", { name: /스펙업 후보, 전투력 증가 순/ });
     const rows = table.locator("tbody tr");
+    await expandAll(page);
     await expect(rows).toHaveCount(3);
     // 표본 Δ: 품질 90.33 > 보석 10레벨 48.07 > 9레벨 24
     await expect(rows.nth(0)).toContainText("+90.33");
@@ -84,6 +141,9 @@ test.describe("스펙업 가이드 @smoke", () => {
     await page.getByRole("button", { name: "1만 골드당 효율" }).click();
     await expect(page.getByRole("button", { name: "1만 골드당 효율" })).toHaveAttribute("aria-pressed", "true");
     const rows = page.getByRole("table", { name: /1만 골드당 효율 순/ }).locator("tbody tr");
+    // The new list's groups (another stage heads each one) open on their own press.
+    await expect(rows.first()).toBeVisible();
+    await expandAll(page);
     await expect(rows.nth(0)).toContainText("62만G");
     await expect(rows.nth(0)).toContainText("+24.00");
     await expect(rows.nth(0)).toContainText("0.39");
@@ -100,6 +160,7 @@ test.describe("스펙업 가이드 @smoke", () => {
   ]) {
     test(`적용해 보기(${combo} → ${value})는 시뮬레이터 탭에서 계산하고, 이전으로 되돌린다`, async ({ page }) => {
       await page.goto(characterPath(NAME, "specup"));
+      await expandAll(page);
       let simulations = 0;
       page.on("request", (r) => {
         if (r.url().includes("/api/combat-power/simulate")) simulations++;
@@ -261,6 +322,7 @@ test.describe("스펙업 가이드 @smoke", () => {
     page.on("request", (r) => r.url().includes("/api/characters/spec-up/candidates/") && calls++);
     await page.goto(characterPath(NAME, "specup"));
     const table = page.getByRole("table", { name: /스펙업 후보/ });
+    await expandAll(page);
     await expect(table.locator("tbody tr")).toHaveCount(3);
     expect(calls).toBe(0);
     const open = nineRow(table);
@@ -300,6 +362,7 @@ test.describe("스펙업 가이드 @smoke", () => {
     let lists = 0;
     page.on("request", (r) => /\/api\/characters\/spec-up\?/.test(r.url()) && lists++);
     await page.goto(characterPath(NAME, "specup"));
+    await expandAll(page);
     await expect(page.getByRole("table", { name: /스펙업 후보/ }).locator("tbody tr")).toHaveCount(3);
     const before = lists;
     await page.getByRole("table", { name: /스펙업 후보/ }).getByRole("button", { name: "+20 테스트 무기" }).click();
@@ -332,6 +395,7 @@ test.describe("스펙업 가이드 @smoke", () => {
     });
     await page.goto(characterPath(NAME, "specup"));
     const table = page.getByRole("table", { name: /스펙업 후보/ });
+    await expandAll(page);
     await expect(table.locator("tbody tr")).toHaveCount(3);
     await page.evaluate(() => {
       window.__shifts = [];
@@ -340,6 +404,7 @@ test.describe("스펙업 가이드 @smoke", () => {
         for (const e of list.getEntries()) window.__shifts.push(e.value);
       }).observe({ type: "layout-shift" });
     });
+    await expandAll(page);
     await nineRow(table).click();
     await expect(page.getByRole("dialog")).toContainText("구매 · 9레벨 겁화의 보석");
     await page.waitForTimeout(1500);
@@ -352,6 +417,7 @@ test.describe("스펙업 가이드 @smoke", () => {
     page.on("request", (r) => r.url().includes("/api/characters/spec-up?") && asked.push(new URL(r.url()).searchParams));
     await page.goto(characterPath(NAME, "specup"));
     const table = page.getByRole("table", { name: /스펙업 후보/ });
+    await expandAll(page);
     await expect(table.locator("tbody tr")).toHaveCount(3);
     const krakenSort = page.getByRole("button", { name: "크라켄 점수 순" });
     await krakenSort.click();
@@ -383,6 +449,7 @@ test.describe("스펙업 가이드 @smoke", () => {
 
   test("크라켄 점수 순을 쓸 수 없으면 이유와 함께 효율 순으로 보인다", async ({ page }) => {
     await page.goto(characterPath("스펙업점수꺼짐", "specup"));
+    await expandAll(page);
     await expect(page.getByRole("table", { name: /스펙업 후보/ }).locator("tbody tr")).toHaveCount(3);
     await page.getByRole("button", { name: "크라켄 점수 순" }).click();
     // Short in the bar, the whole sentence for a screen reader (the same status).
@@ -396,6 +463,7 @@ test.describe("스펙업 가이드 @smoke", () => {
     const sorts = [];
     page.on("request", (r) => r.url().includes("/api/characters/spec-up?") && sorts.push(new URL(r.url()).searchParams.get("sort")));
     await page.goto(characterPath("스펙업옛응답", "specup"));
+    await expandAll(page);
     await expect(page.getByRole("table", { name: /스펙업 후보/ }).locator("tbody tr")).toHaveCount(3);
     await page.getByRole("button", { name: "크라켄 점수 순" }).click();
     await expect(page.getByRole("status").getByText("점수 정렬 준비 중 · 효율 순", { exact: true })).toBeVisible();
@@ -421,6 +489,7 @@ test.describe("스펙업 가이드 @smoke", () => {
   test("판매 수수료를 따로 주는 응답이면 판매 최저가로 빼고 수수료는 비용에 넣지 않았다고 알린다", async ({ page }) => {
     await page.goto(characterPath("스펙업수수료", "specup"));
     const table = page.getByRole("table", { name: /스펙업 후보/ });
+    await expandAll(page);
     await nineRow(table).click();
     const card = page.getByRole("dialog");
     await expect(card).toContainText("구매 · 9레벨 겁화의 보석");
