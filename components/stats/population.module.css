@@ -1,0 +1,69 @@
+/* 전체 인구 (B5): caption and view switch on one row (stacked on a phone),
+   then a list of name · count · share · bar, the chosen server marked. */
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin: 0 0 12px;
+}
+.caption {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  margin: 0;
+  font-size: 13px;
+}
+.caption span {
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+  gap: 10px 24px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.list li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 8px;
+  align-items: center;
+  font-size: 13px;
+}
+.list li[data-current] .name {
+  font-weight: 700;
+}
+.name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.value {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.value small {
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-weight: 400;
+}
+.bar {
+  position: relative;
+  grid-column: 1 / -1;
+  height: 6px;
+  border-radius: 3px;
+  background: color-mix(in oklab, var(--foreground) 8%, transparent);
+  overflow: hidden;
+}
+.bar i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: color-mix(in oklab, var(--primary) 80%, transparent);
+}

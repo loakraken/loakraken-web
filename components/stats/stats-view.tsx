@@ -36,6 +36,7 @@ import {
   type StatsMeta,
   type StatsQuery,
 } from "@/lib/stats/model";
+import { PopulationTab } from "./population-tab";
 import quote from "@/components/tools/material-quote.module.css";
 import styles from "./stats.module.css";
 import { ClassIcon } from "./class-icon";
@@ -50,6 +51,7 @@ const TABS = [
   { id: "best", label: "최고 전투력" },
   { id: "servers", label: "서버" },
   { id: "titles", label: "칭호" },
+  { id: "population", label: "전체 인구" },
 ] as const;
 type Tab = (typeof TABS)[number]["id"];
 const kst = new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
@@ -698,11 +700,14 @@ export function StatsView({
   initial,
   initialTab,
   titles = true,
+  population = false,
 }: {
   initial: StatsQuery;
   initialTab: Tab;
   /** TITLE_STATS on this deployment (server flag): the '칭호' tab. */
   titles?: boolean;
+  /** POPULATION_STATS on this deployment (server flag): the '전체 인구' tab. */
+  population?: boolean;
 }) {
   const router = useRouter();
   const [query, setQuery] = useState<StatsQuery>(initial);
@@ -831,6 +836,8 @@ export function StatsView({
                   <BestTab query={query} />
                 ) : tab === "titles" ? (
                   <TitlesTab query={query} />
+                ) : tab === "population" ? (
+                  <PopulationTab server={query.server} problem={(error, retry) => <Problem error={error} onRetry={retry} />} />
                 ) : (
                   <ServersTab query={query} />
                 )}
@@ -838,7 +845,7 @@ export function StatsView({
             </PillTabsPanel>
           }
         >
-          {TABS.filter((t) => titles || t.id !== "titles").map((t) => (
+          {TABS.filter((t) => (titles || t.id !== "titles") && (population || t.id !== "population")).map((t) => (
             <PillTab key={t.id} value={t.id}>
               {t.label}
             </PillTab>

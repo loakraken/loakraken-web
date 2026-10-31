@@ -25,6 +25,7 @@ import { bestCombatPowerSearch, type BestCombatPowerEnvelope } from "./best-comb
 import { guildDetailPath, type GuildDetailEnvelope, type GuildDetailQuery } from "./guild-detail";
 import { titleEquipSearch, type TitleEquipEnvelope, type TitleEquipQuery } from "./title-equip";
 import { collectibleSearch, type CollectibleQuery, type CollectibleRankingEnvelope } from "./collectible-ranking";
+import { populationSearch, type PopulationEnvelope } from "./population";
 
 export class StatsQueryError extends Error {
   info: BackendFailure;
@@ -107,3 +108,6 @@ export const fetchBestCombatPower = (query: StatsQuery, signal: AbortSignal) =>
   call<BestCombatPowerEnvelope>(`/api/stats/best-combat-power?${bestCombatPowerSearch(query)}`, signal);
 export const fetchGuildDetail = (query: GuildDetailQuery, signal: AbortSignal) =>
   call<GuildDetailEnvelope>(guildDetailPath(query), signal);
+
+export const fetchPopulation = (server: string | undefined, signal: AbortSignal) =>
+  call<PopulationEnvelope>(`/api/stats/population?${populationSearch(server)}`, signal);

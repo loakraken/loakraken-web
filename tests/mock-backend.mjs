@@ -1790,6 +1790,24 @@ createServer(async (req, res) => {
       return send({ code: "STATS_CLASS_BUILDS_SUCCESS", message: "ok", data });
     }
   }
+  // 전체 인구 (api #788): the weekly snapshot; ?server= scopes classes and levels.
+  if (url.pathname === "/api/v1/stats/population") {
+    const server = url.searchParams.get("server");
+    const servers = [["루페온", 41230], ["카마인", 30210], ["아브렐슈드", 28870], ["카제로스", 26140], ["실리안", 24980], ["카단", 22310], ["아만", 21460], ["니나브", 9820]]
+      .map(([name, count]) => ({ name, count }));
+    const scale = server ? (servers.find((s) => s.name === server)?.count ?? 0) / servers.reduce((a, s) => a + s.count, 0) : 1;
+    const classes = [["바드", 21300], ["버서커", 15200], ["블래스터", 14800], ["홀리나이트", 13900], ["도화가", 12800], ["소울이터", 12100], ["슬레이어", 11600], ["기상술사", 9900], ["아르카나", 9100], ["리퍼", 8800], ["발키리", 8400], ["창술사", 7600], ["가디언나이트", 6100], ["차원술사", 3300]]
+      .map(([name, count]) => ({ name, count: Math.round(count * scale) }));
+    // 10-level buckets from 1100 (roster-only characters) to 1780, a gap at 1300~1400.
+    const levels = [];
+    for (let from = 1100; from < 1780; from += 10) {
+      if (from >= 1300 && from < 1400) continue;
+      const peak = from >= 1640 ? 2600 - Math.abs(from - 1710) * 30 : 120;
+      levels.push({ from, to: from + 10, count: Math.max(1, Math.round(peak * scale)) });
+    }
+    const total = levels.reduce((a, l) => a + l.count, 0);
+    return send({ code: "STATS_POPULATION_SUCCESS", message: "성공", data: { snapshotDate: "2026-10-31", server, total, servers, classes, levels } });
+  }
   if (url.pathname.startsWith("/api/v1/stats/")) {
     const q = url.searchParams;
     const small = q.get("server") === "니나브";
