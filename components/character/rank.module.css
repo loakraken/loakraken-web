@@ -119,6 +119,13 @@
   display: block;
   white-space: nowrap;
 }
+/* Below 360 a box has about 111px for text: the longest words ("크라켄까지
+   아이템 레벨", ~122px) take two lines before the number, so three are held. */
+@media (max-width: 359px) {
+  .next {
+    min-height: 48px;
+  }
+}
 .cells strong.pending {
   color: var(--muted-foreground);
   font-size: 14px;
