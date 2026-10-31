@@ -34,6 +34,8 @@ test("1280: 고정한 카드는 다른 아이템에 올리면 닫히고 그 카�
   await expect(cards(page)).toHaveAttribute("aria-label", nameA);
   await b.focus();
   await expect(page.locator(`[data-slot=item-tooltip][data-open][aria-label="${nameA}"]`)).toHaveCount(0);
+  // The closing card does not pull focus back to its own item (frontend-a11y).
+  await expect(b).toBeFocused();
 });
 
 test.describe("휴대폰", () => {
