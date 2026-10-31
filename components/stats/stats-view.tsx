@@ -18,6 +18,7 @@ import { coarsen } from "@/lib/stats/bins";
 import { fetchBestCombatPower, fetchGemLevels, fetchStats, fetchTitleEquip } from "@/lib/stats/client";
 import { gemBinLabel } from "@/lib/stats/gem-levels";
 import gemStyles from "./gem-levels.module.css";
+import { LevelCombatPowerChart } from "./level-combat-power-chart";
 import { equipShare, titleEquipQuery } from "@/lib/stats/title-equip";
 import {
   DISTRIBUTION_WIDTH,
@@ -468,6 +469,11 @@ function DistributionTab({ query }: { query: StatsQuery }) {
         )
       )}
       <GemLevelsChart query={query} asTable={asTable} />
+      <LevelCombatPowerChart
+        query={query}
+        asTable={asTable}
+        problem={(error, retry) => <Problem error={error} onRetry={retry} />}
+      />
       {data && <StatsBasis query={query} />}
     </div>
   );

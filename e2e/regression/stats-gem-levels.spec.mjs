@@ -1,4 +1,4 @@
-// 통계 B2 보석 레벨 분포: 분포 탭 아래 12구간('5 미만' ~ '10') 막대, 보석이 확인된 인원 기준 안내,
+// 통계 B2 보석 레벨 분포: 분포 탭 아래 12구간('5 미만' ~ '10.0') 막대, 보석이 확인된 인원 기준 안내,
 // 표로 보기에서는 같은 12줄. 320·360·1280에서 옆 넘침·흔들림이 없고, 응답이 오기 전에도 자리를 잡아 둔다.
 import { test, expect, gotoReady, expectNoHorizontalOverflow } from "../support/fixtures.mjs";
 import { shiftsSince, watchShifts } from "../support/shifts.mjs";
@@ -18,7 +18,7 @@ for (const width of [1280, 360, 320])
     const bars = chart(page).getByRole("list", { name: "보석 평균 레벨 구간별 인원" }).getByRole("listitem");
     await expect(bars).toHaveCount(12);
     await expect(bars.first()).toContainText("5 미만:");
-    await expect(bars.last()).toContainText("10:");
+    await expect(bars.last()).toContainText("10.0:");
     // Caption: the gem sample, which is the summary card's 보석 count, out of the whole sample.
     const gemCard = await page.locator("dl > div").filter({ hasText: "보석 평균 레벨" }).locator("small").textContent();
     const gemSample = gemCard.replace(/[^\d]/g, "");

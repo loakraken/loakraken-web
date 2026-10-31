@@ -23,6 +23,7 @@ import {
 } from "./class-builds";
 import { bestCombatPowerSearch, type BestCombatPowerEnvelope } from "./best-combat-power";
 import { gemLevelsSearch, type GemLevelsEnvelope } from "./gem-levels";
+import { levelCombatPowerSearch, type LevelCombatPowerEnvelope } from "./level-combat-power";
 import { guildDetailPath, type GuildDetailEnvelope, type GuildDetailQuery } from "./guild-detail";
 import { titleEquipSearch, type TitleEquipEnvelope, type TitleEquipQuery } from "./title-equip";
 import { collectibleSearch, type CollectibleQuery, type CollectibleRankingEnvelope } from "./collectible-ranking";
@@ -106,6 +107,9 @@ export const fetchEfficiencyRanking = (kind: EfficiencyKind, query: EfficiencyQu
 
 export const fetchGemLevels = (query: StatsQuery, signal: AbortSignal) =>
   call<GemLevelsEnvelope>(`/api/stats/gem-levels?${gemLevelsSearch(query)}`, signal);
+
+export const fetchLevelCombatPower = (query: StatsQuery, signal: AbortSignal) =>
+  call<LevelCombatPowerEnvelope>(`/api/stats/level-combat-power?${levelCombatPowerSearch(query)}`, signal);
 
 export const fetchBestCombatPower = (query: StatsQuery, signal: AbortSignal) =>
   call<BestCombatPowerEnvelope>(`/api/stats/best-combat-power?${bestCombatPowerSearch(query)}`, signal);

@@ -28,10 +28,10 @@ export const isGemLevelsEnvelope = (value: unknown): value is GemLevelsEnvelope 
 /** The stats screen's filters, as for best combat power (no distribution options). */
 export const gemLevelsSearch = bestCombatPowerSearch;
 
-/** A bin's name: '5 미만', '5.0', … '10'. */
+/** A bin's name: '5 미만', '5.0', … '10.0'. */
 export function gemBinLabel(bin: Pick<GemLevelBin, "from" | "to">) {
   if (bin.from == null) return `${bin.to ?? 5} 미만`;
-  if (bin.to == null) return `${bin.from}`;
+  if (bin.to == null) return bin.from.toFixed(1);
   return bin.from.toFixed(1);
 }
 
