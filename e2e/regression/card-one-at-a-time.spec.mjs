@@ -5,7 +5,8 @@ import { test, expect, characterPath, gotoReady } from "../support/fixtures.mjs"
 
 const triggers = (page) => page.locator("[data-slot=item-tooltip-trigger]:visible");
 const cardName = async (trigger) => (await trigger.getAttribute("aria-label")).replace(/ 상세 보기$/, "");
-const cards = (page) => page.locator("[data-slot=item-tooltip]");
+// Open cards only: a closing card stays in the page for its 100ms fade.
+const cards = (page) => page.locator("[data-slot=item-tooltip][data-open]");
 
 test("1280: 고정한 카드는 다른 아이템에 올리면 닫히고 그 카드가 열린다, 초점도 같다 @regression", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
@@ -32,7 +33,7 @@ test("1280: 고정한 카드는 다른 아이템에 올리면 닫히고 그 카�
   await a.click();
   await expect(cards(page)).toHaveAttribute("aria-label", nameA);
   await b.focus();
-  await expect(page.locator(`[data-slot=item-tooltip][aria-label="${nameA}"]`)).toHaveCount(0);
+  await expect(page.locator(`[data-slot=item-tooltip][data-open][aria-label="${nameA}"]`)).toHaveCount(0);
 });
 
 test.describe("휴대폰", () => {
