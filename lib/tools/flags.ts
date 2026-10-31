@@ -185,6 +185,19 @@ export function isTitleStatsEnabled(env: Env = process.env) {
 }
 
 /**
+ * 전체 인구 (api #788, stats B5): the 통계 '전체 인구' tab. The backend's weekly
+ * snapshot switch is off until ops turns it on with this tab. Same rule:
+ * `POPULATION_STATS=on|off` overrides, otherwise hidden only on the
+ * production host.
+ */
+export function isPopulationStatsEnabled(env: Env = process.env) {
+  const flag = env.POPULATION_STATS?.trim().toLowerCase();
+  if (flag === "on") return true;
+  if (flag === "off") return false;
+  return !isProductionHost(env.SITE_URL);
+}
+
+/**
  * The character screen's 아크 그리드 효율 and 팔찌 효율 rows (backend #424·#350).
  * Not shown on production yet: their values are the combat-power share, and
  * the efficiency the user chose (10-15) comes with the score engine (PM 총괄

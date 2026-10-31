@@ -1805,6 +1805,29 @@ createServer(async (req, res) => {
       return send({ code: "STATS_CLASS_BUILDS_SUCCESS", message: "ok", data });
     }
   }
+  // 전체 인구 (api #788): the weekly snapshot; ?server= scopes classes and levels.
+  if (url.pathname === "/api/v1/stats/population") {
+    const server = url.searchParams.get("server");
+    const servers = [["루페온", 41230], ["카마인", 30210], ["아브렐슈드", 28870], ["카제로스", 26140], ["실리안", 24980], ["카단", 22310], ["아만", 21460], ["니나브", 9820]]
+      .map(([name, count]) => ({ name, count }));
+    // The scope's people, split over classes and over levels so both sum to it (as the api does).
+    const total = server ? (servers.find((s) => s.name === server)?.count ?? 0) : servers.reduce((a, s) => a + s.count, 0);
+    const spread = (weights) => {
+      const sum = weights.reduce((a, w) => a + w, 0);
+      const counts = weights.map((w) => Math.floor((total * w) / sum));
+      counts[0] += total - counts.reduce((a, c) => a + c, 0);
+      return counts;
+    };
+    const classNames = ["바드", "버서커", "블래스터", "홀리나이트", "도화가", "소울이터", "슬레이어", "기상술사", "아르카나", "리퍼", "발키리", "창술사", "가디언나이트", "차원술사"];
+    const classCounts = spread([213, 152, 148, 139, 128, 121, 116, 99, 91, 88, 84, 76, 61, 33]);
+    const classes = classNames.map((name, i) => ({ name, count: classCounts[i] }));
+    // 10-level buckets from 1100 (roster-only characters) to 1780, a gap at 1300~1400.
+    const froms = [];
+    for (let from = 1100; from < 1780; from += 10) if (from < 1300 || from >= 1400) froms.push(from);
+    const levelCounts = spread(froms.map((from) => (from >= 1640 ? 2600 - Math.abs(from - 1710) * 30 : 120)));
+    const levels = froms.map((from, i) => ({ from, to: from + 10, count: levelCounts[i] }));
+    return send({ code: "STATS_POPULATION_SUCCESS", message: "성공", data: { snapshotDate: "2026-10-31", server, total, servers, classes, levels } });
+  }
   if (url.pathname.startsWith("/api/v1/stats/")) {
     const q = url.searchParams;
     const small = q.get("server") === "니나브";
@@ -1844,6 +1867,31 @@ createServer(async (req, res) => {
     };
     const view = url.pathname.slice("/api/v1/stats/".length);
     const ok = (code, data) => send({ code, message: "성공", data: { meta, ...data } });
+    // 보석 레벨 분포 (api #782): 12 fixed bins summing to gemSample (93% of the sample, as the summary says).
+    if (view === "gem-levels") {
+      const gemSample = Math.round(population * 0.93);
+      const weights = [1, 1, 1, 2, 3, 5, 8, 12, 16, 20, 18, 13];
+      const sum = weights.reduce((a, w) => a + w, 0);
+      const counts = weights.map((w) => Math.floor((gemSample * w) / sum));
+      counts[9] += gemSample - counts.reduce((a, c) => a + c, 0);
+      const bins = counts.map((count, i) => ({ from: i === 0 ? null : 4.5 + i * 0.5, to: i === 11 ? null : 5 + i * 0.5, count }));
+      return ok("STATS_GEM_LEVELS_SUCCESS", { gemSample, bins });
+    }
+    // 레벨별 전투력 (api #784): 5-level buckets with people, ascending; under 30 → no median. Counts sum to population.
+    if (view === "level-combat-power") {
+      // The ends are a handful of people (no median there), the rest share the sample.
+      const weights = [0, 3, 8, 14, 20, 24, 22, 17, 11, 6, 3, 0];
+      const sum = weights.reduce((a, w) => a + w, 0);
+      const ends = Math.min(17, population);
+      const counts = weights.map((w) => Math.floor(((population - ends) * w) / sum));
+      counts[0] = Math.min(12, ends);
+      counts[11] = ends - counts[0];
+      counts[5] += population - counts.reduce((a, c) => a + c, 0);
+      const buckets = counts
+        .map((count, i) => ({ from: 1660 + i * 5, to: 1665 + i * 5, count, median: count >= 30 ? 2400 + i * 95 : null }))
+        .filter((b) => b.count > 0);
+      return send({ code: "STATS_LEVEL_COMBAT_POWER_SUCCESS", message: "성공", data: { meta: { ...meta, population }, buckets } });
+    }
     if (view === "summary") {
       const supports = classes.reduce((a, c) => a + c.supports, 0);
       const dealers = population - supports;
@@ -2520,13 +2568,15 @@ createServer(async (req, res) => {
     };
     d.coverage.gems = { state: "PROVIDED", collections: { items: "PROVIDED" } };
     d.analysis.gems = { count: 11, unknownLevelCount: 0, minLevel: 6, maxLevel: 6, averageLevel: 6, levelDistribution: [{ level: 6, count: 11 }], damageEffectCount: 4, cooldownEffectCount: 7, unknownEffectCount: 0 };
-    // Synthetic 내실·아바타 data (names and counts are invented).
+    // Synthetic 내실·아바타 data (counts are invented). Five official type
+    // names draw the armory sprite icons (#17); "합성 잎" is not an official
+    // type, so it keeps the API badge (none here).
     const kinds = [
-      ["합성 심장", 15, 15],
-      ["합성 섬의 마음", 69, 104],
-      ["합성 씨앗", 976, 1480],
-      ["합성 미술품", 57, 60],
-      ["합성 항해물", 41, 50],
+      ["거인의 심장", 15, 15],
+      ["섬의 마음", 69, 104],
+      ["모코코 씨앗", 976, 1480],
+      ["위대한 미술품", 57, 60],
+      ["항해 모험물", 41, 50],
       ["합성 잎", 37, 120],
     ];
     d.collectibles = kinds.map(([type, point, maxPoint], k) => ({

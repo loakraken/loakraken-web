@@ -5,7 +5,7 @@ import { Fragment, useEffect, useId, useRef, useState, type CSSProperties } from
 import { useTallest } from "@/components/ui/use-tallest";
 import { classBuildsPath } from "@/lib/stats/class-builds";
 import { useRouter, useSearchParams } from "next/navigation";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery, type UseQueryResult } from "@tanstack/react-query";
 import { SiteHeader } from "@/components/site/site-header";
 import { Select } from "@/components/ui/select";
 import { DataTable } from "@/components/ui/data-table";
@@ -15,7 +15,17 @@ import { pendingProps } from "@/lib/api/pending";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { TIER_LABEL } from "@/lib/character/rank";
 import { coarsen } from "@/lib/stats/bins";
-import { fetchBestCombatPower, fetchStats, fetchTitleEquip } from "@/lib/stats/client";
+import {
+  fetchBestCombatPower,
+  fetchGemLevels,
+  fetchLevelCombatPower,
+  fetchStats,
+  fetchTitleEquip,
+  isAbsent,
+} from "@/lib/stats/client";
+import { gemBinLabel, type GemLevelsEnvelope } from "@/lib/stats/gem-levels";
+import gemStyles from "./gem-levels.module.css";
+import { LevelCombatPowerChart } from "./level-combat-power-chart";
 import { equipShare, titleEquipQuery } from "@/lib/stats/title-equip";
 import {
   DISTRIBUTION_WIDTH,
@@ -36,6 +46,7 @@ import {
   type StatsMeta,
   type StatsQuery,
 } from "@/lib/stats/model";
+import { PopulationTab } from "./population-tab";
 import quote from "@/components/tools/material-quote.module.css";
 import styles from "./stats.module.css";
 import { ClassIcon } from "./class-icon";
@@ -51,6 +62,7 @@ const TABS = [
   { id: "best", label: "최고 전투력" },
   { id: "servers", label: "서버" },
   { id: "titles", label: "칭호" },
+  { id: "population", label: "전체 인구" },
 ] as const;
 type Tab = (typeof TABS)[number]["id"];
 const kst = new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
@@ -469,7 +481,110 @@ function DistributionTab({ query }: { query: StatsQuery }) {
         )
       )}
       {data && <StatsBasis query={query} />}
+      {/* After the main answer (and its basis note above): landing first, they were pushed down by it. */}
+      {data && <ExtraCharts query={query} asTable={asTable} />}
     </div>
+  );
+}
+
+/**
+ * The gem and level charts (B2·B3) at the end of the tab, below the basis
+ * note, so nothing is under them to push. They wait for both answers and then
+ * show at once (one landing after the other would move it). An api without
+ * the endpoint (404, before it ships) leaves that chart out with no trace; a
+ * real failure shows the retry box in its place (PM-프론트 10-31).
+ */
+function ExtraCharts({ query, asTable }: { query: StatsQuery; asTable: boolean }) {
+  const gems = useQuery({
+    queryKey: ["stats", "gem-levels", statsKey(query)],
+    queryFn: ({ signal }) => fetchGemLevels(query, signal),
+    staleTime: 5 * 60_000,
+    placeholderData: keepPreviousData,
+    ...quiet,
+  });
+  const levels = useQuery({
+    queryKey: ["stats", "level-combat-power", statsKey(query)],
+    queryFn: ({ signal }) => fetchLevelCombatPower(query, signal),
+    staleTime: 5 * 60_000,
+    placeholderData: keepPreviousData,
+    ...quiet,
+  });
+  if (gems.isPending || levels.isPending) return null;
+  return (
+    <>
+      {!isAbsent(gems.error) && <GemLevelsChart gems={gems} asTable={asTable} />}
+      {!isAbsent(levels.error) && (
+        <LevelCombatPowerChart
+          levels={levels}
+          asTable={asTable}
+          problem={(error, retry) => <Problem error={error} onRetry={retry} />}
+        />
+      )}
+    </>
+  );
+}
+
+/**
+ * 보석 레벨 분포 (B2): 12 fixed bins of the gem average, as bars or as a
+ * table (the same 표로 보기 switch). Only characters whose gems were seen are
+ * in it, so the caption names that count.
+ */
+function GemLevelsChart({ gems, asTable }: { gems: UseQueryResult<GemLevelsEnvelope>; asTable: boolean }) {
+  const data = gems.data?.data;
+  const label = "보석 평균 레벨 구간별 인원";
+  const max = Math.max(1, ...(data?.bins ?? []).map((b) => b.count));
+  return (
+    // The whole block dims while another filter loads: its caption carries the sample count too.
+    <section className={gemStyles.block} aria-labelledby="stats-gem-levels" {...pendingProps(gems)}>
+      <h2 id="stats-gem-levels" className={gemStyles.title}>
+        보석 레벨 분포
+      </h2>
+      {!data ? (
+        // A real failure (not a missing endpoint): the retry box in the bars' place.
+        <div className={styles.histogramWait}>
+          <Problem error={gems.error} onRetry={() => gems.refetch()} />
+        </div>
+      ) : asTable ? (
+        <DataTable label={label} className={styles.table} {...pendingProps(gems)}>
+          <caption className={styles.srOnly}>{label}</caption>
+          <thead>
+            <tr>
+              <th scope="col" className={styles.left}>보석 평균 레벨</th>
+              <th scope="col">인원</th>
+            </tr>
+          </thead>
+          <tbody key={gems.dataUpdatedAt}>
+            {data.bins.map((bin) => (
+              <tr key={gemBinLabel(bin)}>
+                <th scope="row">{gemBinLabel(bin)}</th>
+                <td>{whole(bin.count)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </DataTable>
+      ) : (
+        <ol key={gems.dataUpdatedAt} className={styles.histogram} aria-label={label} {...pendingProps(gems)}>
+          {data.bins.map((bin, i) => (
+            <li key={gemBinLabel(bin)} title={`${gemBinLabel(bin)} · ${whole(bin.count)}명`}>
+              <i className="k-grow" style={{ height: `${(bin.count / max) * 100}%`, "--i": i } as CSSProperties} />
+              <span className={styles.srOnly}>
+                {gemBinLabel(bin)}: {whole(bin.count)}명
+              </span>
+            </li>
+          ))}
+        </ol>
+      )}
+      {/* Kept on a failure too, so the retry box sits where the bars and axis would. */}
+      <p className={styles.axis} aria-hidden="true" {...pendingProps(gems)}>
+        <span>{data && !asTable ? gemBinLabel(data.bins[0]) : " "}</span>
+        <span>{data && !asTable ? gemBinLabel(data.bins.at(-1)!) : ""}</span>
+      </p>
+      <p className={styles.note}>
+        {data
+          ? `보석이 확인된 ${whole(data.gemSample)}명 기준이에요(표본 ${whole(data.meta.population)}명). 4티어 보석 평균 레벨을 0.5 단위로 묶었어요.`
+          : " "}
+      </p>
+    </section>
   );
 }
 
@@ -700,11 +815,14 @@ export function StatsView({
   initial,
   initialTab,
   titles = true,
+  population = false,
 }: {
   initial: StatsQuery;
   initialTab: Tab;
   /** TITLE_STATS on this deployment (server flag): the '칭호' tab. */
   titles?: boolean;
+  /** POPULATION_STATS on this deployment (server flag): the '전체 인구' tab. */
+  population?: boolean;
 }) {
   const router = useRouter();
   const [query, setQuery] = useState<StatsQuery>(initial);
@@ -846,6 +964,8 @@ export function StatsView({
                   <BestTab query={query} />
                 ) : tab === "titles" ? (
                   <TitlesTab query={query} />
+                ) : tab === "population" ? (
+                  <PopulationTab server={query.server} problem={(error, retry) => <Problem error={error} onRetry={retry} />} />
                 ) : (
                   <ServersTab query={query} />
                 )}
@@ -853,7 +973,7 @@ export function StatsView({
             </PillTabsPanel>
           }
         >
-          {TABS.filter((t) => titles || t.id !== "titles").map((t) => (
+          {TABS.filter((t) => (titles || t.id !== "titles") && (population || t.id !== "population")).map((t) => (
             <PillTab key={t.id} value={t.id}>
               {t.label}
             </PillTab>

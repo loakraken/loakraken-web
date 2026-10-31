@@ -1,0 +1,455 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "LOAKraken stats-gem-levels",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/v1/stats/gem-levels": {
+      "get": {
+        "tags": [
+          "통계·랭킹"
+        ],
+        "summary": "보석 레벨 분포",
+        "description": "캐릭터마다 보석 평균 레벨(4티어)을 0.5 단위 구간 12개('5 미만', 5.0~9.5, 10.0)로 센 분포입니다. 필터는 다른 통계와 같습니다. 빈 구간은 0입니다. 구간 합은 gemSample(보석이 확인된 캐릭터)이고 meta.population보다 작을 수 있습니다. 400 INVALID_REQUEST·STATS_INVALID_RANGE, 503 STATS_UNAVAILABLE",
+        "operationId": "gemLevels",
+        "parameters": [
+          {
+            "name": "server",
+            "in": "query",
+            "description": "서버명. 생략하면 전체",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "description": "서버명. 생략하면 전체",
+              "maxLength": 32,
+              "minLength": 0,
+              "pattern": "[\\p{L}\\p{N}]+"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "description": "DEALER 또는 SUPPORT. 생략하면 전체",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "description": "DEALER 또는 SUPPORT. 생략하면 전체",
+              "enum": [
+                "DEALER",
+                "SUPPORT"
+              ]
+            }
+          },
+          {
+            "name": "className",
+            "in": "query",
+            "description": "직업명. 생략하면 전체",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "description": "직업명. 생략하면 전체",
+              "maxLength": 32,
+              "minLength": 0,
+              "pattern": "[\\p{L}\\p{N}]+"
+            }
+          },
+          {
+            "name": "activeDays",
+            "in": "query",
+            "description": "최근 확인 기간(일): 7, 30, 90",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 30,
+              "description": "최근 확인 기간(일): 7, 30, 90"
+            }
+          },
+          {
+            "name": "itemLevelMin",
+            "in": "query",
+            "description": "최소 아이템 레벨",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "default": 1640,
+              "description": "최소 아이템 레벨",
+              "maximum": 2000,
+              "minimum": 0
+            }
+          },
+          {
+            "name": "itemLevelMax",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "maximum": 2000,
+              "minimum": 0
+            }
+          },
+          {
+            "name": "combatPowerMin",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "maximum": 100000,
+              "minimum": 0
+            }
+          },
+          {
+            "name": "combatPowerMax",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "maximum": 100000,
+              "minimum": 0
+            }
+          },
+          {
+            "name": "representativeOnly",
+            "in": "query",
+            "description": "원정대(같은 서버) 대표 캐릭터(아이템 레벨 최고)만",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "description": "원정대(같은 서버) 대표 캐릭터(아이템 레벨 최고)만"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "조회 성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseStatsGemLevelsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_REQUEST 또는 STATS_INVALID_RANGE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "CLIENT_RATE_LIMITED: 이 클라이언트의 분당 요청·공식 호출 한도 초과. Retry-After(초) 뒤 다시 시도",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "STATS_UNAVAILABLE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ApiResponseStatsGemLevelsResponse": {
+        "type": "object",
+        "description": "공통 API 응답. 오류 응답의 data는 null입니다.",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "업무 결과 코드",
+            "example": "STATS_GEM_LEVELS_SUCCESS"
+          },
+          "message": {
+            "type": "string",
+            "description": "공개용 안내 메시지",
+            "example": "캐릭터 조회에 성공했습니다."
+          },
+          "data": {
+            "$ref": "#/components/schemas/StatsGemLevelsResponse",
+            "description": "성공 응답 데이터. 오류일 때 null"
+          }
+        },
+        "required": [
+          "code",
+          "data",
+          "message"
+        ]
+      },
+      "StatsGemLevelsResponse": {
+        "type": "object",
+        "properties": {
+          "meta": {
+            "$ref": "#/components/schemas/StatsMetaResponse"
+          },
+          "gemSample": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "description": "보석 평균 레벨이 확인된 캐릭터 수(구간 합)"
+          },
+          "bins": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StatsGemLevelBinResponse"
+            }
+          }
+        },
+        "required": [
+          "meta",
+          "gemSample",
+          "bins"
+        ]
+      },
+      "StatsGemLevelBinResponse": {
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double",
+            "description": "구간 시작(포함). '5 미만'은 null"
+          },
+          "to": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double",
+            "description": "구간 끝(제외). 10.0 구간은 null"
+          },
+          "count": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "description": "이 구간의 캐릭터 수"
+          }
+        },
+        "required": [
+          "from",
+          "to",
+          "count"
+        ]
+      },
+      "StatsMetaResponse": {
+        "type": "object",
+        "description": "공통 메타. 모집단은 LOAKraken이 관측한 캐릭터 중 최근 activeDays일 안에 프로필(전투력)을 확인한 캐릭터이며 게임 전체 인구가 아닙니다.",
+        "properties": {
+          "population": {
+            "type": "integer",
+            "format": "int64",
+            "description": "조건에 맞는 캐릭터 수"
+          },
+          "conditions": {
+            "$ref": "#/components/schemas/StatsConditionsResponse"
+          },
+          "aggregatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "snapshot": {
+            "type": "string",
+            "description": "현재는 latest만 제공합니다",
+            "example": "latest"
+          },
+          "ruleVersion": {
+            "type": "string",
+            "example": "stats-v1"
+          },
+          "minSample": {
+            "type": "integer",
+            "format": "int32",
+            "example": 30
+          },
+          "sampleStatus": {
+            "type": "string",
+            "description": "COLLECTING(표본 30명 미만) 또는 READY",
+            "enum": [
+              "COLLECTING",
+              "READY"
+            ]
+          },
+          "coverage": {
+            "$ref": "#/components/schemas/StatsCoverageResponse"
+          },
+          "populationUnit": {
+            "type": "string",
+            "description": "population을 세는 단위: CHARACTER(캐릭터), ROSTER(원정대), GUILD(길드). 문자열이며 값이 늘 수 있음",
+            "example": "CHARACTER"
+          }
+        },
+        "required": [
+          "aggregatedAt",
+          "conditions",
+          "coverage",
+          "minSample",
+          "population",
+          "populationUnit",
+          "ruleVersion",
+          "sampleStatus",
+          "snapshot"
+        ]
+      },
+      "StatsConditionsResponse": {
+        "type": "object",
+        "description": "정규화한 조건(기본값 포함)",
+        "properties": {
+          "server": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "role": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "DEALER",
+                  "SUPPORT"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "className": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "activeDays": {
+            "type": "integer",
+            "format": "int32",
+            "description": "최근 확인 기간(일): 7, 30, 90"
+          },
+          "itemLevelMin": {
+            "type": "number"
+          },
+          "itemLevelMax": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "combatPowerMin": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "combatPowerMax": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "representativeOnly": {
+            "type": "boolean",
+            "description": "원정대(같은 서버) 대표 캐릭터(아이템 레벨 최고)만"
+          }
+        },
+        "required": [
+          "activeDays",
+          "className",
+          "combatPowerMax",
+          "combatPowerMin",
+          "itemLevelMax",
+          "itemLevelMin",
+          "representativeOnly",
+          "role",
+          "server"
+        ]
+      },
+      "StatsCoverageResponse": {
+        "type": "object",
+        "description": "수집 범위. 표본이 어디까지 모였는지 보여 줍니다.",
+        "properties": {
+          "observedCharacters": {
+            "type": "integer",
+            "format": "int64",
+            "description": "프로필(전투력)을 확인한 캐릭터 수"
+          },
+          "knownCharacters": {
+            "type": "integer",
+            "format": "int64",
+            "description": "원정대로 발견한 캐릭터 포함 전체"
+          },
+          "discoveredAccounts": {
+            "type": "integer",
+            "format": "int64",
+            "description": "원정대를 훑은 계정 수"
+          }
+        },
+        "required": [
+          "discoveredAccounts",
+          "knownCharacters",
+          "observedCharacters"
+        ]
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "description": "공통 오류 응답. HTTP 상태와 업무 코드를 함께 확인합니다.",
+        "properties": {
+          "code": {
+            "type": "string",
+            "example": "INVALID_REQUEST"
+          },
+          "message": {
+            "type": "string",
+            "example": "요청 값이 올바르지 않습니다."
+          },
+          "data": {
+            "type": "null"
+          }
+        },
+        "required": [
+          "code",
+          "data",
+          "message"
+        ]
+      }
+    }
+  }
+}
