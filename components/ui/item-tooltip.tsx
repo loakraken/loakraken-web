@@ -64,7 +64,9 @@ const AnchorContext = React.createContext<{
   top: number
   /** This item asks to be the one card shown (its card opening, or focus on it). */
   claim: (source: Element | null) => void
-}>({ setTrigger: () => {}, top: EDGE, claim: () => {} })
+  /** Whether closing returns focus to the item (not when another card took over). */
+  returnFocus: () => boolean
+}>({ setTrigger: () => {}, top: EDGE, claim: () => {}, returnFocus: () => true })
 
 // --- One card at a time -----------------------------------------------------
 
@@ -159,7 +161,13 @@ function ItemTooltip({ open, defaultOpen, onOpenChange, children, ...props }: Po
   const [innerOpen, setInnerOpen] = React.useState(defaultOpen ?? false)
   const shown = open ?? innerOpen
   const id = React.useId()
+  // Closed because another item's card took over: focus must not go back to
+  // this item, or that focus claims again and closes the card the pointer is
+  // on (user 11-01: a pinned card, then hovering another item, showed the
+  // new card for a moment and then lost it).
+  const takenOver = React.useRef(false)
   const change: NonNullable<PopoverPrimitive.Root.Props["onOpenChange"]> = (next, details) => {
+    if (next) takenOver.current = false
     if (open === undefined) setInnerOpen(next)
     onOpenChange?.(next, details)
     if (next) claimCard({ id, source: (details as { event?: Event } | undefined)?.event?.target as Element | null })
@@ -169,9 +177,13 @@ function ItemTooltip({ open, defaultOpen, onOpenChange, children, ...props }: Po
     onOpenChange?.(false, { reason: "none" } as never)
   }
   const below = useBelowChrome(!touch && shown, close)
-  useOneCard(id, !touch && shown, close)
+  useOneCard(id, !touch && shown, () => {
+    takenOver.current = true
+    close()
+  })
   const claim = React.useCallback((source: Element | null) => claimCard({ id, source }), [id])
-  const anchor = React.useMemo(() => ({ ...below, claim }), [below, claim])
+  const returnFocus = React.useCallback(() => !takenOver.current, [])
+  const anchor = React.useMemo(() => ({ ...below, claim, returnFocus }), [below, claim, returnFocus])
   if (touch) {
     return (
       <ModeContext.Provider value="sheet">
@@ -253,7 +265,7 @@ function ItemTooltipContent({
 }: PopoverPrimitive.Popup.Props &
   Pick<PopoverPrimitive.Positioner.Props, "align" | "alignOffset" | "side" | "sideOffset">) {
   const mode = React.useContext(ModeContext)
-  const { top } = React.useContext(AnchorContext)
+  const { top, returnFocus } = React.useContext(AnchorContext)
   if (mode === "sheet") {
     return (
       <DrawerPrimitive.Portal>
@@ -302,6 +314,9 @@ function ItemTooltipContent({
       >
         <PopoverPrimitive.Popup
           data-slot="item-tooltip"
+          // Esc or a click outside: focus back on the item. Another card took
+          // over: focus stays where it is (see takenOver).
+          finalFocus={returnFocus}
           className={cn(
             "w-[min(288px,calc(100vw-24px))] max-h-[50vh] p-4",
             SCROLL,
