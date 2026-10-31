@@ -13,6 +13,8 @@ import {
   type ClassBuildsQuery,
 } from "./class-builds";
 import { requestBestCombatPower } from "./best-combat-power";
+import { requestGemLevels } from "./gem-levels";
+import { requestLevelCombatPower } from "./level-combat-power";
 import { requestGuildDetail, type GuildDetailQuery } from "./guild-detail";
 import { requestTitleEquip, type TitleEquipQuery } from "./title-equip";
 import { requestCollectibleRanking, type CollectibleQuery } from "./collectible-ranking";
@@ -63,6 +65,14 @@ export function getTitleEquip(query: TitleEquipQuery, signal?: AbortSignal) {
 
 export function getBestCombatPower(query: StatsQuery, signal?: AbortSignal) {
   return requestBestCombatPower(query, process.env.LOAKRAKEN_API_ORIGIN, { signal });
+}
+
+export function getGemLevels(query: StatsQuery, signal?: AbortSignal) {
+  return requestGemLevels(query, process.env.LOAKRAKEN_API_ORIGIN, { signal });
+}
+
+export function getLevelCombatPower(query: StatsQuery, signal?: AbortSignal) {
+  return requestLevelCombatPower(query, process.env.LOAKRAKEN_API_ORIGIN, { signal });
 }
 
 export function getGuildDetail(query: GuildDetailQuery, signal?: AbortSignal) {
