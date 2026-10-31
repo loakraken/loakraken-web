@@ -34,7 +34,10 @@ export default function SearchDropdown({
     bindKeys(results.onKey)
     return () => bindKeys(null)
   })
-  React.useEffect(() => {
+  // Before paint: from an effect, the field's aria-activedescendant came one
+  // render after the highlighted row, so for a moment a screen reader (and a
+  // check right after the key) still pointed at the row before.
+  React.useLayoutEffect(() => {
     onActiveId(open && current ? optionId(panelId, current) : undefined)
   }, [open, current, panelId, onActiveId])
   return (

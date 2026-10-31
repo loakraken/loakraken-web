@@ -256,6 +256,26 @@ test("캐릭터 화면: 즐겨찾기 단추(눌림 상태)와 같은 드롭다�
   await expect(page).toHaveURL(/\/character\/%EC%83%81%EC%84%B8%EC%84%9C%ED%8F%AC%ED%84%B0$/);
 });
 
+// The field's aria-activedescendant names the highlighted row in the same turn
+// as the key, not one render later (a read right after ↓ got the row before).
+test("캐릭터 화면 검색 칸: ↓ 바로 뒤 읽히는 줄 = 강조된 줄 @regression", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await gotoReady(page, characterPath("상세"));
+  const field = page.locator("#detail-search");
+  await field.focus();
+  await field.fill("상");
+  await expect(list(page).getByRole("option", { name: /상세서포터/ })).toBeVisible();
+  for (let step = 1; step <= 3; step++) {
+    const [described, selected] = await field.evaluate(async (input) => {
+      input.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true, cancelable: true }));
+      // React's own work for a key runs in microtasks; no frame or task in between.
+      for (let i = 0; i < 5; i++) await Promise.resolve();
+      return [input.getAttribute("aria-activedescendant"), document.querySelector('[role="option"][aria-selected="true"]')?.id];
+    });
+    expect(described, `↓ ${step}번째: 읽히는 줄`).toBe(selected);
+  }
+});
+
 test("저장소가 막혀도 오류 없이: 즐겨찾기 탭과 Shift+Enter가 안내만 한다 @regression", async ({ page }) => {
   await page.addInitScript(() => {
     const blocked = () => {
