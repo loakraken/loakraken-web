@@ -152,7 +152,7 @@ export function useSearchResults({ open, text, onLeave }: { open: boolean; text:
     setError("")
     goCharacter(name)
   }
-  const toggle = (character: Character) => {
+  const toggle = (character: Pick<Character, "name" | "image">) => {
     const now = toggleStoredFavorite(character.name, character.image)
     setStatus(
       !writable
@@ -289,7 +289,8 @@ export function useSearchResults({ open, text, onLeave }: { open: boolean; text:
     // The row stays while anything is typed, also through Hangul composition
     // (상 → 상ㅅ → 상세: the middle step is not a valid name), so it never
     // leaves and comes back with its entrance (PM-프론트 #593 4차). Enter checks
-    // the name and says what is wrong.
+    // the name and says what is wrong; Shift+Enter validates it too, then
+    // toggles its favourite without opening it or moving focus.
     groups.push({
       id: "character",
       title: "캐릭터",
@@ -349,16 +350,25 @@ export function useSearchResults({ open, text, onLeave }: { open: boolean; text:
   // Typing points at "정보 보기" so Enter does what it always did.
   const current = active && ids.includes(active) ? active : query && ids.includes("lookup") ? "lookup" : null
 
-  /** The field's keys: ↑↓ move, Enter opens the active row, Shift+Enter stars it. */
+  /** ↑↓ move, Enter opens; Shift+Enter toggles the active character or typed name. */
   const onKey = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === "ArrowDown" || event.key === "ArrowUp") {
       event.preventDefault()
       setActive(stepActive(ids, current, event.key === "ArrowDown" ? 1 : -1))
     } else if (event.key === "Enter" && event.shiftKey) {
-      const character = rows.find((r) => r.id === current)?.character
-      if (character) {
+      if (current === "lookup") {
+        // Stop the field's own Enter even when the typed name is invalid.
         event.preventDefault()
-        toggle(character)
+        const name = normalizeCharacterName(query)
+        const issue = characterNameError(name)
+        setError(issue)
+        if (!issue) toggle({ name })
+      } else {
+        const character = rows.find((r) => r.id === current)?.character
+        if (character) {
+          event.preventDefault()
+          toggle(character)
+        }
       }
     } else if (event.key === "Enter" && current && current !== "lookup") {
       event.preventDefault()

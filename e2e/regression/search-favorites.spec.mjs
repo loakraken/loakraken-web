@@ -23,6 +23,89 @@ async function openSearch(page, path = "/market") {
 }
 const list = (page) => page.getByRole("listbox", { name: "검색 결과" });
 
+for (const width of [1280, 360])
+  test.describe(`${width}: 정보 보기 줄의 즐겨찾기`, () => {
+    test.use({ viewport: { width, height: 800 } });
+
+    // @smoke also includes this regression in the mobile-390 project (at 360px).
+    test("입력한 이름을 Shift+Enter로 추가·해제하고 Enter로 조회한다 @smoke @regression", async ({ page }) => {
+      const box = await openSearch(page);
+      // Whitespace is trimmed and decomposed Hangul is normalized before saving.
+      await box.fill(`  ${"상세".normalize("NFD")}  `);
+      const lookup = list(page).getByRole("option", { name: /^‘상세’ 캐릭터 정보 보기/ });
+      await expect(lookup).toBeVisible();
+      await expect(box).toHaveAttribute("aria-activedescendant", await lookup.getAttribute("id"));
+      const layout = () => lookup.evaluate((el) => [el.offsetTop, el.offsetWidth, el.offsetHeight]);
+      const before = await layout();
+      const status = page.locator("[data-slot=command-search]").getByRole("status");
+
+      await box.press("Shift+Enter");
+      await expect(status).toHaveText("‘상세’ 즐겨찾기 추가");
+      await expect(box).toBeFocused();
+      await expect(box).toHaveValue(`  ${"상세".normalize("NFD")}  `);
+      await expect(page).toHaveURL(/\/market$/);
+      expect(await layout(), "즐겨찾기 알림 뒤에도 정보 보기 줄의 자리가 같다").toEqual(before);
+
+      await box.fill("");
+      await page.getByRole("tab", { name: "즐겨찾기", exact: true }).click();
+      const favorite = list(page).getByRole("group").first().getByRole("option", { name: /^상세 · 즐겨찾기됨/ });
+      await expect(favorite).toBeVisible();
+
+      // Re-typing selects the lookup row again, rather than the saved character row.
+      await box.fill("상세");
+      await expect(box).toHaveAttribute("aria-activedescendant", await lookup.getAttribute("id"));
+      await box.press("Shift+Enter");
+      await expect(status).toHaveText("‘상세’ 즐겨찾기 해제");
+      await expect(box).toBeFocused();
+      await expect(box).toHaveValue("상세");
+      await expect(page).toHaveURL(/\/market$/);
+      await box.fill("");
+      await expect(page.getByRole("tab", { name: "즐겨찾기", exact: true })).toHaveAttribute("aria-selected", "true");
+      await expect(favorite).toHaveCount(0);
+      await expect(page.getByText("캐릭터의 즐겨찾기 표시를 누르면 여기에 모아 둘 수 있어요.")).toBeVisible();
+
+      // An invalid name uses the existing validation and is never saved or submitted.
+      await box.fill("상세!");
+      await box.press("Shift+Enter");
+      await expect(box).toBeFocused();
+      await expect(box).toHaveAttribute("aria-invalid", "true");
+      await expect(page.locator("[data-slot=command-search]").getByRole("alert")).toHaveText("캐릭터 이름에는 문자와 숫자만 사용할 수 있어요.");
+      await expect(page).toHaveURL(/\/market$/);
+      await box.fill("");
+      await expect(list(page).getByRole("option", { name: /상세!/ })).toHaveCount(0);
+
+      await box.fill("상세");
+      await box.press("Enter");
+      await expect(page).toHaveURL(new RegExp(`${characterPath("상세")}$`));
+      await expect(page.locator("[data-slot=command-search]")).toHaveCount(0);
+    });
+
+    test("저장소가 막히면 입력한 이름의 Shift+Enter도 안내하고 포커스를 지킨다 @smoke @regression", async ({ page }) => {
+      await page.addInitScript(() => {
+        const blocked = () => {
+          throw new DOMException("blocked", "SecurityError");
+        };
+        Storage.prototype.setItem = blocked;
+        Storage.prototype.getItem = blocked;
+        Storage.prototype.removeItem = blocked;
+      });
+      const box = await openSearch(page);
+      await box.fill("상세");
+      const lookup = list(page).getByRole("option", { name: /^‘상세’ 캐릭터 정보 보기/ });
+      await expect(box).toHaveAttribute("aria-activedescendant", await lookup.getAttribute("id"));
+      await box.press("Shift+Enter");
+      await expect(page.locator("[data-slot=command-search]").getByRole("status")).toHaveText(
+        "이 브라우저는 저장소를 쓸 수 없어 즐겨찾기를 저장하지 못해요.",
+      );
+      await expect(box).toBeFocused();
+      await expect(box).toHaveValue("상세");
+      await expect(page).toHaveURL(/\/market$/);
+      await box.fill("");
+      await page.getByRole("tab", { name: "즐겨찾기", exact: true }).click();
+      await expect(list(page).getByRole("group").first().getByRole("option", { name: /^상세 · 즐겨찾기됨/ })).toHaveCount(0);
+    });
+  });
+
 test("탭: 최근 본 / 즐겨찾기, ←/→로 바꾸고 빈 즐겨찾기는 한 줄 안내, 탭에서 Esc도 닫힌다 @regression", async ({ page }) => {
   await seedRecent(page);
   await openSearch(page);

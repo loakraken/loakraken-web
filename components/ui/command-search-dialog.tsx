@@ -12,7 +12,8 @@ import { SEARCH_HINT, SearchTabs, useSearchResults } from "@/components/ui/searc
 // 10-12 01:07·01:11); its rows, keys and messages come from
 // useSearchResults, shared with the character page's search box (#1113).
 // The field keeps focus as a combobox; ↑↓ move, Enter opens, Shift+Enter
-// stars a character, Esc closes (the dialog's own).
+// toggles a character's favourite (including the typed name on the lookup
+// row), Esc closes (the dialog's own).
 const CommandBar = React.lazy(() =>
   import("@/components/ui/bencho/command-bar").then((m) => ({ default: m.CommandBar }))
 )
