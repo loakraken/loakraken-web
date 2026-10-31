@@ -739,12 +739,12 @@
   }
 }
 /* At 320px the identity column cannot hold the usual badge padding (A37).
-   Keep the same reserved row and complete numbers; only the narrowest phones
-   use tighter spacing and the next caption size down. */
+   Keep the same reserved row, type and complete numbers; only the narrowest
+   phones use tighter spacing. (The badge's type comes from `.page button`'s
+   `font: inherit`, which outranks this class, so size is not changed here.) */
 @media (max-width: 359px) {
   .bannerRankBadge {
     gap: 4px;
     padding: 0 4px;
-    font-size: 11px;
   }
 }

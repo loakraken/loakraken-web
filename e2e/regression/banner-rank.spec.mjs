@@ -82,8 +82,10 @@ test.describe("배너 순위: 좁은 화면의 숫자와 고정 자리 @A37 @smo
           await expect(badge).toBeVisible();
           await expect(badge).toContainText("대양");
           await expect(badge).toContainText("4,120위 · 상위 22.6%");
-          // The existing type and pill spacing at 360+ stay unchanged.
-          await expect(badge).toHaveCSS("font-size", width < 360 ? "11px" : "12px");
+          // The badge keeps the row's type at every width (the button inherits
+          // it); only its spacing tightens below 360px.
+          const rowFont = await row.evaluate((el) => getComputedStyle(el).fontSize);
+          await expect(badge).toHaveCSS("font-size", rowFont);
           await expect(badge).toHaveCSS("padding-left", width < 360 ? "4px" : "10px");
           await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
 
