@@ -7,7 +7,7 @@ name: E2E
 #
 # 나눠 돌리기(사용자 요청 2026-10-31, 한 번에 약 33분 → 목표 약 10분, 테스트는 하나도 빼지 않는다):
 # 1) build: 운영 빌드(next build → standalone)를 한 번만 만들어 산출물로 넘긴다(4번 빌드하지 않음).
-# 2) shard 1~4: 화면 크기 세 프로젝트(desktop-1440·tablet-768·mobile-390)를 4개 러너가 나눠 돈다(--shard).
+# 2) shard 1~6: 화면 크기 세 프로젝트(desktop-1440·tablet-768·mobile-390)를 6개 러너가 나눠 돈다(--shard).
 # 3) serial: 혼자 돌아야 하는 isolated(목 실패 장치)·solo(CPU 측정)와 성능 점검을 자기 러너에서 차례로 돈다.
 #    러너마다 목 백엔드가 따로 떠서 다른 shard와 실패 예약을 나누지 않는다.
 # 4) e2e: 위 결과를 하나로 합쳐 요약·통계를 남기고, 하나라도 실패하면 실패한다. 검사 이름 'e2e'는 그대로라
@@ -117,8 +117,9 @@ jobs:
       # 한 shard가 실패해도 나머지는 끝까지 돌아 실패 목록이 한 번에 다 나온다.
       fail-fast: false
       matrix:
-        # shard 수는 이 목록 하나로 정한다(전체 수는 strategy.job-total). 계정의 동시 job 한도(20)를
-        # api CI·다른 PR과 나눠 쓰므로 4개로 둔다(4·6개 비교 결과는 #1180).
+        # shard 수는 이 목록 하나로 정한다(전체 수는 strategy.job-total). 같은 PR에서 4개 12분 12초, 6개 8분 43초였고
+        # 3분 넘게 줄어 6개로 둔다(#1180). 한 번에 job 8개(build·shard 6·serial)를 쓰므로 계정의 동시 job 한도(20)를
+        # api CI·다른 PR과 나눠 쓴다는 점을 염두에 둔다.
         shard: [1, 2, 3, 4, 5, 6]
     env:
       # build job의 standalone 빌드를 쓴다(e2e/support/standalone-server.mjs가 다시 빌드하지 않음).
@@ -343,7 +344,7 @@ jobs:
               minutes: Math.round((s.duration ?? 0) / 600) / 100,
             };
             fs.writeFileSync("e2e-stats.json", JSON.stringify(row) + "\n");
-            const md = `### E2E 결과(shard 4개 + isolated·solo 합계)\n\n| 통과 | 실패 | 재시도 후 통과(flaky) | 건너뜀 | 테스트 시간(분) |\n|---|---|---|---|---|\n| ${row.expected} | ${row.unexpected} | ${row.flaky} | ${row.skipped} | ${row.minutes} |\n`;
+            const md = `### E2E 결과(shard 전체 + isolated·solo 합계)\n\n| 통과 | 실패 | 재시도 후 통과(flaky) | 건너뜀 | 테스트 시간(분) |\n|---|---|---|---|---|\n| ${row.expected} | ${row.unexpected} | ${row.flaky} | ${row.skipped} | ${row.minutes} |\n`;
             fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, md);
             console.log(md);
           JS
