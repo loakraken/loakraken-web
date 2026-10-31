@@ -24,10 +24,11 @@ const gemSlot = (step: Pick<GoalStep, "kind" | "candidateId">) =>
   step.kind === "GEM_LEVEL" ? step.candidateId.split(":").slice(0, 2).join(":") : null;
 
 /**
- * The gold each step adds to the total. The backend's extraCost when it sends
- * one (백엔드 2 10-31: their sum is cumulativeCost); before that, the same rule
- * from the step costs: a gem step's cost runs from today's gem, so it adds its
- * cost minus the same slot's last earlier step. null = not known (never 0).
+ * The gold each step adds to the total: the backend's extraCost (api #794
+ * @bde1ae4; their sum is cumulativeCost). A goal answer from an api before it
+ * gets the same rule from the step costs: a gem step's cost runs from today's
+ * gem, so it adds its cost minus the same slot's last earlier step (0 or less
+ * when prices run backwards). null = not known (never 0).
  */
 export function extraCosts(steps: readonly GoalStep[]): (number | null)[] {
   const lastBySlot = new Map<string, number | null>();
@@ -39,6 +40,6 @@ export function extraCosts(steps: readonly GoalStep[]): (number | null)[] {
     if (step.extraCost !== undefined) return step.extraCost;
     if (own === null) return null;
     if (before === undefined) return own;
-    return before === null ? null : Math.max(own - before, 0);
+    return before === null ? null : own - before;
   });
 }

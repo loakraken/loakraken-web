@@ -808,9 +808,9 @@ createServer(async (req, res) => {
   // as the backend stops there. '미존재' 404, '스펙업꺼짐' 404, '상세서포터' the
   // role reason with no steps, a target over twice today 400.
   // 스펙업 추천 순서 (api #794): the backend's sample (보석 8→9→10, 품질 unpriced)
-  // moved onto the mock character's power, gem on slot 1. '스펙순서긴' repeats it
-  // to 14 steps (more than the first 10 rows), '스펙순서추가' carries extraCost,
-  // '스펙순서몰림' is SPEC_UP_BUSY, '상세서포터' the role reason with no steps.
+  // moved onto the mock character's power, gem on slot 1 (extraCost as #794
+  // @8bb6ee1 sends it). '스펙순서긴' repeats it to 14 steps (more than the first
+  // 10 rows), '스펙순서몰림' is SPEC_UP_BUSY, '상세서포터' the role reason with no steps.
   if (url.pathname === "/api/v1/characters/spec-up/path") {
     counts.specUpPath = (counts.specUpPath || 0) + 1;
     const who = url.searchParams.get("characterName");
@@ -846,11 +846,11 @@ createServer(async (req, res) => {
         combatPowerAfter: Math.round((d.finalCombatPower + 5 * (i + 1)) * 100) / 100,
         cost: { ...d.steps[0].cost, amount: 10000, code: "ENGRAVING_BOOK" },
         cumulativeCost: d.totalCost + 10000 * (i + 1),
+        extraCost: 10000,
       }));
       d.steps.push(...more);
       Object.assign(d, { finalCombatPower: more.at(-1).combatPowerAfter, totalCost: more.at(-1).cumulativeCost, stopReasonCode: "STEP_LIMIT", limit: 14 });
     }
-    if (who === "스펙순서추가") d.steps.forEach((step, i) => (step.extraCost = i === 0 ? step.cost.amount : step.cost.amount - d.steps[i - 1].cost.amount));
     return send(envelope);
   }
   if (url.pathname === "/api/v1/characters/spec-up/goal") {

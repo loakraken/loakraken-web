@@ -62,21 +62,25 @@ test("SPEC_UP_BUSY keeps its code and Retry-After; another 429 is the rate limit
   assert.ok(!notCached.ok && notCached.error.code === "CHARACTER_NOT_CACHED");
 });
 
-test("an answer with extraCost on its steps (coming, optional) and a new stop code still passes", async () => {
+test("per-step cost is the api's extraCost (#794 @bde1ae4), which sums to the total; a new stop code still passes", async () => {
   const next = structuredClone(sample);
-  next.data.steps[0].extraCost = 600_000;
-  next.data.steps[1].extraCost = 2_000_000;
   next.data.stopReasonCode = "SOMETHING_NEW";
   const result = await requestSpecUpPath("스펙순서", "EFFICIENCY", origin, { fetcher: async () => json(next) });
   assert.ok(result.ok);
-  assert.deepEqual(extraCosts(result.envelope.data.steps), [600_000, 2_000_000]);
-});
-
-test("per-step cost: a gem step adds its cost minus the same slot's earlier step; the sum is the total", () => {
-  const steps = sample.data.steps as GoalStep[];
-  const extras = extraCosts(steps);
+  const extras = extraCosts(result.envelope.data.steps);
   assert.deepEqual(extras, [600_000, 2_000_000]);
   assert.equal(extras.reduce((sum, v) => sum! + v!, 0), sample.data.totalCost);
+  // A step without the field (an api before it) still passes the contract.
+  delete next.data.steps[0].extraCost;
+  assert.ok((await requestSpecUpPath("스펙순서", "EFFICIENCY", origin, { fetcher: async () => json(next) })).ok);
+});
+
+test("without extraCost (an older answer): a gem step adds its cost minus the same slot's earlier step", () => {
+  const steps = (sample.data.steps as GoalStep[]).map((step) => ({ ...step, extraCost: undefined }));
+  assert.deepEqual(extraCosts(steps), [600_000, 2_000_000]);
+  // Prices running backwards: the next level adds 0 or less, as the api's own figure would.
+  const cheaper = { ...steps[1], cost: { ...steps[1].cost, amount: 500_000 } };
+  assert.deepEqual(extraCosts([steps[0], cheaper]), [600_000, -100_000]);
   // Another slot's gem and a refine step are their own cost.
   const other = { ...steps[0], candidateId: "GEM_LEVEL:3:9" };
   const refine = { ...steps[0], kind: "EQUIPMENT_REFINE", candidateId: "EQUIPMENT_REFINE:0:21" };

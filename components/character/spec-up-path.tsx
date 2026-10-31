@@ -27,7 +27,9 @@ const BUSY = "SPEC_UP_BUSY";
 const two = (value: number) =>
   value.toLocaleString("ko-KR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-const gold = (amount: number | null) => (amount === null ? "비용 미확인" : amount === 0 ? "추가 비용 없음" : `${koreanGold(amount)}G`);
+/** One step's extra gold: 0 or less (a gem whose next level sells for less) adds nothing. */
+const stepGold = (amount: number | null) =>
+  amount === null ? "비용 미확인" : amount <= 0 ? "추가 비용 없음" : `+${koreanGold(amount)}G`;
 
 function failureText(code: string, limit?: "client") {
   switch (code) {
@@ -164,7 +166,7 @@ function PathAnswer({ name, path, stale }: { name: string; path: Path; stale: bo
               <span className={styles.sub}>→ {two(step.combatPowerAfter)}</span>
             </span>
             <span className={styles.cost}>
-              {extras[i] !== null && extras[i] > 0 ? `+${gold(extras[i])}` : gold(extras[i])}
+              {stepGold(extras[i])}
               {step.cumulativeCost != null && <span className={styles.sub}>누적 {koreanGold(step.cumulativeCost)}G</span>}
             </span>
           </li>
