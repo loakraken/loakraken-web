@@ -11,10 +11,15 @@ const cards = (page) => page.locator("[data-slot=item-tooltip][data-open]");
 async function settledCard(page, name) {
   await expect(cards(page)).toHaveCount(1);
   await expect(cards(page)).toHaveAttribute("aria-label", name);
-  // Out of its starting style and fully shown (the card always lists some
-  // animations, so counting them never reaches zero).
+  // Out of its starting style. (Its transitions keep reporting as running in
+  // the test browser, so the pointer moves by coordinates below instead of
+  // hover(), which waits for the target to stand still.)
   await expect(cards(page)).not.toHaveAttribute("data-starting-style", /.*/);
-  await expect.poll(() => cards(page).evaluate((el) => getComputedStyle(el).opacity)).toBe("1");
+}
+/** Puts the pointer on the middle of `locator` without waiting for it to be still. */
+async function pointAt(page, locator) {
+  const box = await locator.boundingBox();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
 }
 
 test("1280: 고정한 카드는 다른 아이템에 올리면 닫히고 그 카드가 열린다, 초점도 같다 @regression", async ({ page }) => {
@@ -29,12 +34,12 @@ test("1280: 고정한 카드는 다른 아이템에 올리면 닫히고 그 카�
   // A click pins A: it stays when the pointer goes onto its own card.
   await a.click();
   await settledCard(page, nameA);
-  await cards(page).hover();
+  await pointAt(page, cards(page));
   await page.waitForTimeout(300);
   await expect(cards(page)).toHaveAttribute("aria-label", nameA);
 
   // Hovering B: A closes, B's card opens as a hover preview would.
-  await b.hover();
+  await pointAt(page, b);
   await settledCard(page, nameB);
 
   // Keyboard: pin A again, then focus B; A's card closes.
