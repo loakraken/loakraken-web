@@ -86,6 +86,26 @@ test.describe("스펙업 가이드 @smoke", () => {
     await expectNoHorizontalOverflow(page);
   });
 
+  // A37 (PM-프론트 #1167 at 320): '자세히' under the name, its 44px tap area
+  // included, stays inside the name cell — closed and opened, on a phone.
+  for (const width of [320, 360])
+    test(`스펙업 표 칸 잘림 없음(자세히 포함) @${width}`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto(characterPath("전투력계산", "specup"));
+      const table = page.getByRole("table", { name: /스펙업 후보, 전투력 증가 순/ });
+      await expect(table.getByRole("button", { name: /^자세히 · 다른 단계/ }).first()).toBeVisible();
+      const cut = () =>
+        table.evaluate((el) =>
+          [...el.querySelectorAll("tbody tr:not([data-collapsed]) > *")]
+            .filter((cell) => cell.scrollWidth > cell.clientWidth + 1)
+            .map((cell) => cell.textContent.trim().slice(0, 30)),
+        );
+      expect(await cut(), "닫힌 상태 잘린 칸").toEqual([]);
+      await expandAll(page);
+      expect(await cut(), "펼친 상태 잘린 칸").toEqual([]);
+      await expectNoHorizontalOverflow(page);
+    });
+
   test("처음 목록은 전투력 증가 순이고, 비용·근거·계산 못 한 후보를 나눠 보여 준다", async ({ page }) => {
     const sorts = [];
     page.on("request", (r) => r.url().includes("/api/characters/spec-up?") && sorts.push(new URL(r.url()).searchParams.get("sort")));
