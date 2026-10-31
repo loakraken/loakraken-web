@@ -75,6 +75,8 @@ export function SpecUpPath({ data }: { data: Character }) {
         가장 좋은 한 단계를 올리고, 올린 상태에서 다시 재어 다음 단계를 고른 순서예요. 같은 항목이 뒤에서 다음 단계로
         다시 나올 수 있어요.
       </p>
+      {/* Same scope as the patch note (PM 총괄 11-01): kinds the path cannot take yet. */}
+      <p className={styles.lead}>지금은 보석·재련·각인·품질 단계를 다뤄요. 연마·스톤·카르마·완갑은 이후에 더해요.</p>
       <div className={styles.bar}>
         <div role="group" aria-label="고르는 기준" className={styles.sorts}>
           {PATH_SORTS.map((item) => (
