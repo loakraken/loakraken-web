@@ -1,14 +1,8 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import {
-  appliedStage,
-  isCardCollectionEnvelope,
-  isCardRefreshEnvelope,
-  refreshSummary,
-  slotsFor,
-  sortCards,
-} from "../lib/character/card-collection";
+import { appliedStage, refreshSummary, slotsFor, sortCards } from "../lib/character/card-collection";
+import { isCardCollectionEnvelope, isCardRefreshEnvelope } from "../lib/character/card-collection.backend";
 import { requestCardCollection, requestCardRefresh } from "../lib/character/related";
 
 const fixture = (name: string) =>

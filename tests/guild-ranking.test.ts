@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { guildSearch, guildValue, isGuildName, isGuildRankingEnvelope, parseGuildQuery } from "../lib/stats/guild-ranking";
+import { guildSearch, guildValue, isGuildName, parseGuildQuery } from "../lib/stats/guild-ranking";
+import { isGuildRankingEnvelope } from "../lib/stats/guild-ranking.backend";
 import { sampleText } from "../lib/stats/model";
 import { isGuildRankingEnabled, isGuildTabEnabled } from "../lib/tools/flags";
 import { PRODUCTION_URL } from "../lib/site";

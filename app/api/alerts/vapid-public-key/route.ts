@@ -1,5 +1,5 @@
 import { toResponse } from "@/lib/api/respond";
-import { requestVapidKey } from "@/lib/alerts/model";
+import { requestVapidKey } from "@/lib/alerts/model.backend";
 import { guard, origin } from "@/lib/alerts/server";
 
 export async function GET(request: Request) {

@@ -4,26 +4,13 @@
 // character); CHARACTER gives each observed character its roster's value.
 // Off on the backend until the screen ships; the screen follows
 // COLLECTIBLE_RANKING (lib/tools/flags.ts) the same way as the roster ranking.
-import Ajv2020 from "ajv/dist/2020";
-import contract from "../../contracts/collectible-ranking.openapi.json";
+
 import type { components } from "../api/collectible-ranking-schema";
-import { backendUrl, requestBackend, type BackendResult } from "../api/backend";
-import { tolerantSchemas } from "../api/tolerant";
-import { lazyValidator } from "@/lib/api/lazy-validator";
 
 type Schemas = components["schemas"];
 export type CollectibleRankingEnvelope = Schemas["ApiResponseCollectibleRankingResponse"];
 export type CollectibleRanking = Schemas["CollectibleRankingResponse"];
 export type CollectibleRow = Schemas["CollectibleRankingRowResponse"];
-
-const validate = lazyValidator(() =>
-  new Ajv2020({ strict: false, validateFormats: false }).compile<CollectibleRankingEnvelope>({
-    $ref: "#/components/schemas/ApiResponseCollectibleRankingResponse",
-    components: { ...contract.components, schemas: tolerantSchemas(contract.components.schemas) },
-  }),
-);
-export const isCollectibleRankingEnvelope = (value: unknown): value is CollectibleRankingEnvelope =>
-  validate(value) && value.code === "COLLECTIBLE_RANKING_SUCCESS";
 
 export const COLLECTIBLE_UNITS = [
   { id: "ROSTER", label: "원정대" },
@@ -59,27 +46,6 @@ export function collectibleSearch(query: CollectibleQuery) {
   if (query.activeDays !== 30) out.set("activeDays", String(query.activeDays));
   if (query.page > 1) out.set("page", String(query.page));
   return out;
-}
-
-const errorCodes: Record<number, readonly string[]> = {
-  400: ["INVALID_REQUEST", "STATS_INVALID_RANGE"],
-  503: ["STATS_UNAVAILABLE"],
-};
-
-export function requestCollectibleRanking(
-  query: CollectibleQuery,
-  origin: string | undefined,
-  options: { fetcher?: typeof fetch; signal?: AbortSignal; timeoutMs?: number } = {},
-): Promise<BackendResult<CollectibleRankingEnvelope>> {
-  const url = backendUrl(origin, "/api/v1/rankings/collectibles");
-  if (url) {
-    url.searchParams.set("unit", query.unit);
-    if (query.server) url.searchParams.set("server", query.server);
-    url.searchParams.set("activeDays", String(query.activeDays));
-    url.searchParams.set("page", String(query.page));
-    url.searchParams.set("size", String(COLLECTIBLE_PAGE_SIZE));
-  }
-  return requestBackend(url, { ...options, isValid: isCollectibleRankingEnvelope, errorCodes });
 }
 
 /** 73.85% style, two decimals as the backend sends them. */

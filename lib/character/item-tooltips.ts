@@ -2,58 +2,12 @@
 // descriptions, where to get it — lines the search response leaves out. Read
 // from the backend's character cache only (no official call); keyed to the
 // search response by equipment index + type, gem/card slot and skill name.
-import Ajv2020 from "ajv/dist/2020";
-import contract from "../../contracts/item-tooltips.openapi.json";
+
 import type { components } from "../api/item-tooltips-schema";
-import { backendUrl, requestBackend, type BackendResult } from "../api/backend";
-import { tolerantSchemas } from "../api/tolerant";
-import { characterNameError, normalizeCharacterName } from "./model";
-import { lazyValidator } from "@/lib/api/lazy-validator";
 
 type Schemas = components["schemas"];
 export type ItemTooltipsEnvelope = Schemas["ApiResponseCharacterItemTooltipsResponse"];
 export type ItemTooltips = Schemas["CharacterItemTooltipsResponse"];
-
-// A backend before #286 has no extraLineSections (the lines then stay at the
-// end); one before #289 has no ark grid lines (the cards keep the search data).
-const ROLLOUT: Record<string, string[]> = {
-  EquipmentLinesResponse: ["extraLineSections"],
-  CharacterItemTooltipsResponse: ["arkGrid"],
-  // Before #300/#310: no official skill lines or tripod options.
-  SkillLinesResponse: ["titleLines", "infoLines", "tripodOptions"],
-};
-const validate = lazyValidator(() => {
-  const schemas = tolerantSchemas(contract.components.schemas) as Record<string, { required?: string[] }>;
-  for (const [name, fields] of Object.entries(ROLLOUT))
-    schemas[name] = { ...schemas[name], required: schemas[name].required?.filter((field) => !fields.includes(field)) };
-  return new Ajv2020({ strict: false, validateFormats: false }).compile<ItemTooltipsEnvelope>({
-    $ref: "#/components/schemas/ApiResponseCharacterItemTooltipsResponse",
-    components: { ...contract.components, schemas },
-  });
-});
-
-export function isItemTooltipsEnvelope(value: unknown): value is ItemTooltipsEnvelope {
-  return validate(value) && value.code === "CHARACTER_ITEM_TOOLTIPS_SUCCESS";
-}
-
-const errorCodes: Record<number, readonly string[]> = {
-  400: ["INVALID_REQUEST"],
-  404: ["CHARACTER_NOT_FOUND", "CHARACTER_NOT_CACHED"],
-  429: ["LOST_ARK_RATE_LIMITED"],
-  503: ["CHARACTER_CACHE_UNAVAILABLE"],
-};
-const invalid = { ok: false as const, error: { code: "INVALID_REQUEST", status: 400 } };
-
-export function requestItemTooltips(
-  name: string,
-  origin: string | undefined,
-  options: { fetcher?: typeof fetch; signal?: AbortSignal; timeoutMs?: number } = {},
-): Promise<BackendResult<ItemTooltipsEnvelope>> {
-  if (characterNameError(name)) return Promise.resolve(invalid);
-  const url = backendUrl(origin, "/api/v1/characters/item-tooltips");
-  url?.searchParams.set("characterName", normalizeCharacterName(name));
-  return requestBackend(url, { ...options, isValid: isItemTooltipsEnvelope, errorCodes });
-}
 
 /** An equipment card's remaining lines with the section each one followed. */
 export type ExtraLines = { lines: string[]; sections: string[] };

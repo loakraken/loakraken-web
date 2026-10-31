@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import sample from "./stats-fixtures/stats-gem-levels.json";
-import { gemBinLabel, isGemLevelsEnvelope, requestGemLevels } from "../lib/stats/gem-levels";
+import { gemBinLabel } from "../lib/stats/gem-levels";
+import { isGemLevelsEnvelope, requestGemLevels } from "../lib/stats/gem-levels.backend";
 
 // The backend's own answer (api #782 @a1debc3): 12 bins summing to gemSample.
 test("gem levels: the backend sample fits the contract, bins sum to gemSample", () => {
