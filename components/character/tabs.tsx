@@ -1293,14 +1293,17 @@ function EngravingsPanel({ data }: { data: Character }) {
     >
       {effects.length ? (
         <ul className={styles.engravings}>
-          {effects.map((effect, i) => (
+          {effects.map((effect, i) => {
+            // Official image addresses only (the same check as every API image).
+            const icon = safeGameImage(icons.get(engravingKey(effect.name)));
+            return (
             <li key={i} {...stagger(i)}>
               <div className={styles.engravingName}>
                 <div className={styles.engravingIcon} aria-hidden="true">
-                  {safeGameImage(icons.get(engravingKey(effect.name))) && (
+                  {icon && (
                     // eslint-disable-next-line @next/next/no-img-element -- official CDN icon at a fixed size
                     <img
-                      src={safeGameImage(icons.get(engravingKey(effect.name)))!}
+                      src={icon}
                       alt=""
                       width={24}
                       height={24}
@@ -1324,7 +1327,8 @@ function EngravingsPanel({ data }: { data: Character }) {
                   ` · 스톤 Lv.${effect.abilityStoneLevel}`}
               </span>
             </li>
-          ))}
+            );
+          })}
         </ul>
       ) : (
         <Empty
