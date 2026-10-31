@@ -16,17 +16,19 @@ test.describe("상단 메뉴 데스크톱 @smoke", () => {
     await page.getByRole("link", { name: /거래소 시세/ }).click();
     await expect(page).toHaveURL(/\/market$/);
     await nav.getByRole("button", { name: "성장 도구" }).click();
-    await page.getByRole("link", { name: /재련 기대 비용/ }).click();
+    // Hubs only (user 11-01): 캐릭터 성장 opens its first tab, 재련.
+    await page.getByRole("link", { name: /^캐릭터 성장/ }).click();
     await expect(page).toHaveURL(/\/tools\/refining$/);
     await expect(page.getByRole("heading", { level: 1, name: "재련 기대 비용" })).toBeVisible();
   });
 
-  test("성장 도구 메뉴에 경매 입찰가·도구 전체가 있고, 그 화면에서 현재 위치로 표시된다", async ({ page }) => {
-    // web #90: 경매 입찰가 연결. 방향 전환(2026-10-10 §6): 돌파고 삭제, 도구 전체(/tools) 추가.
+  test("성장 도구 메뉴에 레이드 묶음·도구 전체가 있고, 경매 입찰가 화면에서 현재 위치로 표시된다", async ({ page }) => {
+    // web #90: 경매 입찰가 연결, 11-01부터 레이드 묶음의 탭. 방향 전환(2026-10-10 §6): 돌파고 삭제, 도구 전체(/tools) 추가.
     const trigger = page.getByRole("navigation", { name: "주요 메뉴" }).getByRole("button", { name: "성장 도구" });
     await trigger.click();
     const panel = page.locator(`#${await trigger.getAttribute("aria-controls")}`);
-    await expect(panel.getByRole("link", { name: /경매 입찰가/ })).toHaveAttribute("href", "/tools/auction");
+    await expect(panel.getByRole("link", { name: /^레이드/ })).toHaveAttribute("href", "/tools/raid-rewards");
+    await expect(panel.getByRole("link", { name: /^경매 입찰가/ })).toHaveCount(0);
     await expect(panel.getByRole("link", { name: /돌파고/ })).toHaveCount(0);
     await panel.getByRole("link", { name: "도구 전체 보기" }).click();
     await expect(page).toHaveURL(/\/tools$/);
@@ -35,28 +37,67 @@ test.describe("상단 메뉴 데스크톱 @smoke", () => {
     await expect(trigger).toHaveAttribute("data-current", "true");
   });
 
-  test("성장 도구 메뉴에서 전투력 시뮬레이터로 간다(사용자 지적 10-11)", async ({ page }) => {
+  test("성장 도구 메뉴의 캐릭터 성장 묶음 탭으로 전투력 시뮬레이터에 간다(사용자 지적 10-11)", async ({ page }) => {
     const trigger = page.getByRole("navigation", { name: "주요 메뉴" }).getByRole("button", { name: "성장 도구" });
     await trigger.click();
     const panel = page.locator(`#${await trigger.getAttribute("aria-controls")}`);
-    await panel.getByRole("link", { name: /전투력 시뮬레이터/ }).click();
+    await panel.getByRole("link", { name: /^캐릭터 성장/ }).click();
+    await expect(page).toHaveURL(/\/tools\/refining$/);
+    await page.locator('nav[aria-label$=" 화면"]').getByRole("link", { name: "전투력 시뮬레이터", exact: true }).click();
     await expect(page).toHaveURL(/\/tools\/combat-power$/);
     await expect(page.getByRole("heading", { level: 1, name: "전투력 시뮬레이터" })).toBeVisible();
     await expect(trigger).toHaveAttribute("data-current", "true");
   });
 
-  test("성장 도구는 캐릭터 성장·레이드·골드 효율 세 칸이 나란히, 한 줄에 놓인다(사용자 10-25)", async ({ page }) => {
-    const trigger = page.getByRole("navigation", { name: "주요 메뉴" }).getByRole("button", { name: "성장 도구" });
+  test("메뉴는 묶음만: 성장 도구는 캐릭터 성장·레이드·골드 효율, 시세·통계는 한 줄씩(사용자 11-01)", async ({ page }) => {
+    const nav = page.getByRole("navigation", { name: "주요 메뉴" });
+    const rows = async (name) => {
+      const trigger = nav.getByRole("button", { name, exact: true });
+      await trigger.click();
+      const panel = page.locator(`#${await trigger.getAttribute("aria-controls")}`);
+      await expect(panel).toBeVisible();
+      // Group entries only (the overview link sits in the panel head).
+      const labels = await panel.locator("ul a > span:first-child").allTextContents();
+      await page.keyboard.press("Escape");
+      return labels;
+    };
+    expect(await rows("성장 도구")).toEqual(["캐릭터 성장", "레이드", "골드 효율"]);
+    expect(await rows("시세")).toEqual(["거래소 시세"]);
+    expect(await rows("통계")).toEqual(["전체 통계"]);
+  });
+
+  test("누르면 플라이아웃이 고정되고, 호버만 하면 미리 보기라 벗어나면 닫힌다(사용자 11-01)", async ({ page }) => {
+    const nav = page.getByRole("navigation", { name: "주요 메뉴" });
+    const trigger = nav.getByRole("button", { name: "성장 도구" });
+    const away = async () => {
+      await page.mouse.move(5, 700);
+      await page.waitForTimeout(500); // past the close delay (160 ms)
+    };
+    // Hover only: a preview that closes when the pointer leaves.
+    await trigger.hover();
+    await expect(trigger).toHaveAttribute("aria-expanded", "true");
+    await away();
+    await expect(trigger).toHaveAttribute("aria-expanded", "false");
+    // Click: pinned, stays open with the pointer away.
     await trigger.click();
-    const panel = page.locator(`#${await trigger.getAttribute("aria-controls")}`);
-    const titles = panel.getByText(/^(캐릭터 성장|레이드|골드 효율)$/);
-    await expect(titles).toHaveCount(3);
-    const boxes = await titles.evaluateAll((els) => els.map((el) => el.getBoundingClientRect()).map((r) => ({ x: r.x, y: r.y })));
-    // Same row, left to right in that order.
-    expect(new Set(boxes.map((b) => Math.round(b.y))).size).toBe(1);
-    expect(boxes[0].x).toBeLessThan(boxes[1].x);
-    expect(boxes[1].x).toBeLessThan(boxes[2].x);
-    await expect(panel.getByRole("link", { name: /악세 경매 검색/ })).toHaveCount(0);
+    await away();
+    await expect(trigger).toHaveAttribute("aria-expanded", "true");
+    // Another top item while pinned switches the panel and stays pinned.
+    await nav.getByRole("button", { name: "시세" }).hover();
+    await expect(nav.getByRole("button", { name: "시세" })).toHaveAttribute("aria-expanded", "true");
+    await away();
+    await expect(nav.getByRole("button", { name: "시세" })).toHaveAttribute("aria-expanded", "true");
+    // A click on the open item closes it, and the next hover is a preview again.
+    await nav.getByRole("button", { name: "시세" }).click();
+    await expect(nav.getByRole("button", { name: "시세" })).toHaveAttribute("aria-expanded", "false");
+    await trigger.hover();
+    await expect(trigger).toHaveAttribute("aria-expanded", "true");
+    await away();
+    await expect(trigger).toHaveAttribute("aria-expanded", "false");
+    // Pinned, then an outside click closes it.
+    await trigger.click();
+    await page.mouse.click(5, 700);
+    await expect(trigger).toHaveAttribute("aria-expanded", "false");
   });
 
   test("호버하면 플라이아웃이 열린다", async ({ page }) => {

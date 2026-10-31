@@ -25,6 +25,11 @@ export type NavSection = {
   sheetGroups?: boolean;
   /** A group whose title links to its hub page (the hub's first tab). */
   groups: { title: string; href?: string; links: NavLink[] }[];
+  /**
+   * Pages reached by a hub's tabs: not rows in the menu (user 11-01, one
+   * entry per hub), but still found by the header search.
+   */
+  search?: NavLink[];
 };
 
 export const NAV_SECTIONS: NavSection[] = [
@@ -66,23 +71,20 @@ export const NAV_SECTIONS: NavSection[] = [
     id: "market",
     label: "시세",
     match: ["/market", "/tools/accessory-search"],
+    // One hub (user 11-01: the menu listed every tab again); its pages are the
+    // tabs of HUBS.market.
     groups: [
       {
-        title: "거래소",
-        links: [
-          { label: "거래소 시세", description: "분류별 최저가·등락·14일 추이", href: "/market" },
-          { label: "재료 구매 견적", description: "필요한 만큼, 지금 시세로", href: "/market/quote" },
-          { label: "시세 알림", description: "정한 가격이 되면 브라우저 알림", href: "/market/alerts", flag: "priceAlerts" },
-        ],
+        title: "거래소·경매장",
+        links: [{ label: "거래소 시세", description: "거래소·보석·장신구 시세와 재료 견적", href: "/market" }],
       },
-      {
-        title: "경매장",
-        links: [
-          { label: "보석 시세", description: "겁화·작열 레벨별 최저가와 매물", href: "/market/gems" },
-          { label: "장신구 시세", description: "연마 효과 등급 조합별 최저가와 매물", href: "/market/accessories" },
-          { label: "악세 경매 검색", description: "연마 효과·깨달음·힘민지 범위로 매물 찾기", href: "/market/accessory-search", flag: "accessorySearch" },
-        ],
-      },
+    ],
+    search: [
+      { label: "재료 구매 견적", description: "필요한 만큼, 지금 시세로", href: "/market/quote" },
+      { label: "시세 알림", description: "정한 가격이 되면 브라우저 알림", href: "/market/alerts", flag: "priceAlerts" },
+      { label: "보석 시세", description: "겁화·작열 레벨별 최저가와 매물", href: "/market/gems" },
+      { label: "장신구 시세", description: "연마 효과 등급 조합별 최저가와 매물", href: "/market/accessories" },
+      { label: "악세 경매 검색", description: "연마 효과·깨달음·힘민지 범위로 매물 찾기", href: "/market/accessory-search", flag: "accessorySearch" },
     ],
   },
   {
@@ -92,48 +94,37 @@ export const NAV_SECTIONS: NavSection[] = [
     // tools filed under other menus, such as /tools/accessory-search).
     match: ["/tools$", "/tools/combat-power", "/tools/refining", "/tools/crit-speed", "/tools/auction", "/tools/loa-shop", "/tools/abidos-craft", "/tools/life-energy", "/tools/raid-rewards", "/tools/more-reward", "/tools/contribution", "/tools/raid-cheatsheet"],
     all: { label: "도구 전체 보기", description: "모든 성장 도구를 한눈에", href: "/tools" },
-    sheetGroups: true,
-    // Grouped by the job the user comes with (user 10-25): grow the
-    // character, prepare the week's raids, earn or save gold. 악세 경매 검색
-    // lives under 시세 now.
+    // The three hubs by the job the user comes with (user 10-25: grow the
+    // character, prepare the week's raids, earn or save gold); each tool is a
+    // tab inside its hub (user 11-01: no per-tool rows in the menu).
+    // Descriptions name only tabs that are never behind a flag.
     groups: [
       {
-        title: "캐릭터 성장",
-        href: "/tools/refining",
+        title: "도구 묶음",
         links: [
-          // 사용자 지적(PM-프론트 21:27): the simulator was missing from the menu.
-          { label: "전투력 시뮬레이터", description: "무엇을 바꾸면 전투력이 얼마나 오르는지", href: "/tools/combat-power", flag: "combatPower" },
-          { label: "재련 기대 비용", description: "목표 단계까지 확률과 골드", href: "/tools/refining" },
-          { label: "치적·뭉가·음돌", description: "치명·신속 목표까지 필요한 스탯", href: "/tools/crit-speed", flag: "critSpeed" },
-        ],
-      },
-      {
-        title: "레이드",
-        href: "/tools/raid-rewards",
-        links: [
-          { label: "레이드 보상표", description: "관문별 골드·더보기 비용", href: "/tools/raid-rewards" },
-          { label: "더보기 손익", description: "관문마다 더보기가 남는지 지금 시세로", href: "/tools/more-reward" },
-          { label: "경매 입찰가", description: "파티 인원별 손익 분기와 선점가", href: "/tools/auction" },
-          { label: "기여도 계산기", description: "내 피해량이 관문 기준에서 어디쯤인지", href: "/tools/contribution" },
-          { label: "레이드 컨닝페이퍼", description: "관문마다 주요 패턴과 대응", href: "/tools/raid-cheatsheet" },
-        ],
-      },
-      {
-        title: "골드 효율",
-        href: "/tools/loa-shop",
-        links: [
-          { label: "로아샵 효율", description: "상점 패키지 구성품을 지금 시세로", href: "/tools/loa-shop" },
-          { label: "아비도스 제작 손익", description: "융화 재료 1회 제작 비용과 손익", href: "/tools/abidos-craft" },
-          { label: "생명의 기운 효율", description: "생활 스킬마다 생명의 기운으로 버는 골드", href: "/tools/life-energy" },
+          { label: "캐릭터 성장", description: "재련 기대 비용과 성장 계산", href: "/tools/refining" },
+          { label: "레이드", description: "보상표·더보기 손익·경매 입찰가·기여도·컨닝페이퍼", href: "/tools/raid-rewards" },
+          { label: "골드 효율", description: "로아샵·아비도스 제작·생명의 기운", href: "/tools/loa-shop" },
         ],
       },
       {
         title: "추천",
-        links: [
-          { label: "스펙업 가이드", description: "1%당 골드로 정렬한 다음 성장" },
-          { label: "젬 가공", description: "화면 인식으로 가공 선택 추천" },
-        ],
+        links: [{ label: "젬 가공", description: "화면 인식으로 가공 선택 추천" }],
       },
+    ],
+    search: [
+      // 사용자 지적(PM-프론트 21:27): the simulator must be findable.
+      { label: "전투력 시뮬레이터", description: "무엇을 바꾸면 전투력이 얼마나 오르는지", href: "/tools/combat-power", flag: "combatPower" },
+      { label: "재련 기대 비용", description: "목표 단계까지 확률과 골드", href: "/tools/refining" },
+      { label: "치적·뭉가·음돌", description: "치명·신속 목표까지 필요한 스탯", href: "/tools/crit-speed", flag: "critSpeed" },
+      { label: "레이드 보상표", description: "관문별 골드·더보기 비용", href: "/tools/raid-rewards" },
+      { label: "더보기 손익", description: "관문마다 더보기가 남는지 지금 시세로", href: "/tools/more-reward" },
+      { label: "경매 입찰가", description: "파티 인원별 손익 분기와 선점가", href: "/tools/auction" },
+      { label: "기여도 계산기", description: "내 피해량이 관문 기준에서 어디쯤인지", href: "/tools/contribution" },
+      { label: "레이드 컨닝페이퍼", description: "관문마다 주요 패턴과 대응", href: "/tools/raid-cheatsheet" },
+      { label: "로아샵 효율", description: "상점 패키지 구성품을 지금 시세로", href: "/tools/loa-shop" },
+      { label: "아비도스 제작 손익", description: "융화 재료 1회 제작 비용과 손익", href: "/tools/abidos-craft" },
+      { label: "생명의 기운 효율", description: "생활 스킬마다 생명의 기운으로 버는 골드", href: "/tools/life-energy" },
     ],
   },
   {
@@ -161,13 +152,14 @@ export const NAV_SECTIONS: NavSection[] = [
     groups: [
       {
         title: "분포",
-        links: [
-          { label: "직업 통계", description: "직업별 인원과 전투력 분위", href: "/stats" },
-          { label: "전투력·레벨 분포", description: "내 값은 상위 몇 %인지", href: "/stats?tab=distribution" },
-          { label: "서버 통계", description: "서버별 인원과 중앙값", href: "/stats?tab=servers" },
-          { label: "채택률", description: "각인·아크 패시브·코어 선택" },
-        ],
+        // ONE entry (user 11-01, asked twice): the tabs live on /stats.
+        links: [{ label: "전체 통계", description: "직업·전투력 분포·최고 전투력·서버를 탭으로", href: "/stats" }],
       },
+    ],
+    search: [
+      { label: "직업 통계", description: "직업별 인원과 전투력 분위", href: "/stats" },
+      { label: "전투력·레벨 분포", description: "내 값은 상위 몇 %인지", href: "/stats?tab=distribution" },
+      { label: "서버 통계", description: "서버별 인원과 중앙값", href: "/stats?tab=servers" },
     ],
   },
 ];
