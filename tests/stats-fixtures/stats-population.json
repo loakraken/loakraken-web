@@ -1,0 +1,1 @@
+{"code":"STATS_POPULATION_SUCCESS","message":"전체 인구 조회에 성공했습니다.","data":{"snapshotDate":"2026-10-31","server":"인구테스트가","total":3,"servers":[{"name":"인구테스트가","count":3},{"name":"인구테스트나","count":2}],"classes":[{"name":"버서커","count":2},{"name":"바드","count":1}],"levels":[{"from":1500,"to":1510,"count":1},{"from":1700,"to":1710,"count":2}]}}

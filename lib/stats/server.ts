@@ -18,6 +18,7 @@ import { requestLevelCombatPower } from "./level-combat-power";
 import { requestGuildDetail, type GuildDetailQuery } from "./guild-detail";
 import { requestTitleEquip, type TitleEquipQuery } from "./title-equip";
 import { requestCollectibleRanking, type CollectibleQuery } from "./collectible-ranking";
+import { requestPopulation } from "./population";
 
 export function getStats<V extends StatsView>(view: V, query: StatsQuery, signal?: AbortSignal) {
   return requestStats(view, query, process.env.LOAKRAKEN_API_ORIGIN, { signal });
@@ -77,4 +78,8 @@ export function getLevelCombatPower(query: StatsQuery, signal?: AbortSignal) {
 
 export function getGuildDetail(query: GuildDetailQuery, signal?: AbortSignal) {
   return requestGuildDetail(query, process.env.LOAKRAKEN_API_ORIGIN, { signal });
+}
+
+export function getPopulation(server: string | undefined, signal?: AbortSignal) {
+  return requestPopulation(server, process.env.LOAKRAKEN_API_ORIGIN, { signal });
 }

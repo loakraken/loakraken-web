@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { dehydrate, HydrationBoundary, QueryClient } from "@tanstack/react-query";
 import { StatsView } from "@/components/stats/stats-view";
 import { getBestCombatPower, getStats } from "@/lib/stats/server";
-import { isTitleStatsEnabled } from "@/lib/tools/flags";
+import { isPopulationStatsEnabled, isTitleStatsEnabled } from "@/lib/tools/flags";
 import {
   DISTRIBUTION_WIDTH,
   distributionKey,
@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   alternates: { canonical: "/stats" },
 };
 
-const TABS = ["classes", "distribution", "best", "servers", "titles"] as const;
+const TABS = ["classes", "distribution", "best", "servers", "titles", "population"] as const;
 
 export default async function StatsPage({
   searchParams,
@@ -32,7 +32,11 @@ export default async function StatsPage({
   for (const [key, value] of Object.entries(raw)) if (typeof value === "string") params.set(key, value);
   // ?tab=titles only while the title shares are on (TITLE_STATS).
   const titles = isTitleStatsEnabled();
-  const tab = TABS.filter((t) => titles || t !== "titles").find((t) => t === params.get("tab")) ?? "classes";
+  // ?tab=population only while 전체 인구 is on (POPULATION_STATS).
+  const population = isPopulationStatsEnabled();
+  const tab =
+    TABS.filter((t) => (titles || t !== "titles") && (population || t !== "population")).find((t) => t === params.get("tab")) ??
+    "classes";
   params.delete("tab");
   // The distribution tab's own choices (metric, typed value, table view) are
   // read apart, so a bad one never resets the filters.
@@ -69,7 +73,7 @@ export default async function StatsPage({
   // StatsView follows initialTab itself, so a menu link to another tab opens it.
   return (
     <HydrationBoundary state={dehydrate(client)}>
-      <StatsView initial={query} initialTab={tab} titles={titles} />
+      <StatsView initial={query} initialTab={tab} titles={titles} population={population} />
     </HydrationBoundary>
   );
 }
