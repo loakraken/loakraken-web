@@ -4,6 +4,14 @@
   --grade-a: #f0f0f3;
   --grade-b: #dedee3;
 }
+/* No grade (내실 수집품, skills, tripods): the skeleton colour of the theme,
+   not a light tile, so a dark page shows no white box while the icon loads
+   (feedback #17 follow-up). Same box, so nothing moves when it lands. */
+.icon[data-grade="unknown"],
+.card[data-grade="unknown"] {
+  --grade-a: var(--secondary);
+  --grade-b: var(--secondary);
+}
 .icon[data-grade="normal"],
 .card[data-grade="normal"] {
   --grade-a: #ececf0;
