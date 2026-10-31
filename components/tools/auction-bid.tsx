@@ -27,6 +27,7 @@ import {
 } from "@/lib/tools/auction";
 import quote from "./material-quote.module.css";
 import styles from "./auction-bid.module.css";
+import { MoreDetail } from "@/components/ui/more-detail";
 
 const STRATEGY_COPY: Record<
   StrategyId,
@@ -347,12 +348,16 @@ function Strategies({ result }: { result: AuctionResult | null }) {
             : "복사하지 못했어요. 값을 직접 선택해 복사해 주세요."
           : ""}
       </p>
+      {/* One line on the page, the rest folded (#1112): nothing removed. */}
       <p className={quote.caption}>
         경매에 쓴 골드는 낙찰자 몫 없이{" "}
         {result ? `나머지 ${result.party - 1}명에게` : "나머지 인원에게"} 고르게
-        돌아가요. 10만 골드를 넘는 낙찰액은 넘는 부분의 5%를 떼고 나눠요. 표의
-        &lsquo;1인&rsquo;은 그 값에 낙찰됐을 때 다른 한 사람이 받는 골드예요.
+        돌아가요.
       </p>
+      <MoreDetail className={quote.caption}>
+        10만 골드를 넘는 낙찰액은 넘는 부분의 5%를 떼고 나눠요. 표의
+        &lsquo;1인&rsquo;은 그 값에 낙찰됐을 때 다른 한 사람이 받는 골드예요.
+      </MoreDetail>
     </section>
   );
 }
