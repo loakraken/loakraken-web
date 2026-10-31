@@ -2650,6 +2650,8 @@ function TitleRecordPanel({ name }: { name: string }) {
   const rows = titleRecordRows(titles.data?.data.titles ?? [], rates.data?.data.titles ?? []);
   const summary = titleRecordSummary(rows);
   const population = rates.data?.data.meta?.population;
+  // A failed rate read is not "collecting": the cells say "-" and a line says why.
+  const ratesFailed = ratesOn && rates.isError;
   return (
     <Panel title="칭호 기록" wide meta={titles.data ? `${summary.count}개` : undefined}>
       <p className={`${styles.titleNote} ${styles.titleRecordNote}`} id={noteId}>
@@ -2671,6 +2673,7 @@ function TitleRecordPanel({ name }: { name: string }) {
         </p>
       ) : (
         <div ref={fade}>
+          {ratesFailed && <p className={styles.muted}>장착 기록 비율을 불러오지 못했어요. 칭호와 첫 기록만 보여요.</p>}
           <dl className={styles.titleSummary}>
             <div>
               <dt>칭호 수</dt>
@@ -2683,6 +2686,8 @@ function TitleRecordPanel({ name }: { name: string }) {
                   <>
                     {summary.rarest.title} <b>{titlePercent(summary.rarest.percent!)}</b>
                   </>
+                ) : ratesFailed ? (
+                  "-"
                 ) : (
                   "모으는 중"
                 )}
@@ -2709,9 +2714,11 @@ function TitleRecordPanel({ name }: { name: string }) {
                     <td data-collecting={row.percent == null || undefined}>
                       {row.percent != null
                         ? titlePercent(row.percent)
-                        : row.sample != null
-                          ? `표본 ${row.sample}명 — 모으는 중`
-                          : "모으는 중"}
+                        : ratesFailed
+                          ? "-"
+                          : row.sample != null
+                            ? `표본 ${row.sample}명 — 모으는 중`
+                            : "모으는 중"}
                     </td>
                     <td>{row.firstObservedDate}</td>
                   </tr>
