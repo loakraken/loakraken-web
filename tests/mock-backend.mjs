@@ -1795,17 +1795,22 @@ createServer(async (req, res) => {
     const server = url.searchParams.get("server");
     const servers = [["루페온", 41230], ["카마인", 30210], ["아브렐슈드", 28870], ["카제로스", 26140], ["실리안", 24980], ["카단", 22310], ["아만", 21460], ["니나브", 9820]]
       .map(([name, count]) => ({ name, count }));
-    const scale = server ? (servers.find((s) => s.name === server)?.count ?? 0) / servers.reduce((a, s) => a + s.count, 0) : 1;
-    const classes = [["바드", 21300], ["버서커", 15200], ["블래스터", 14800], ["홀리나이트", 13900], ["도화가", 12800], ["소울이터", 12100], ["슬레이어", 11600], ["기상술사", 9900], ["아르카나", 9100], ["리퍼", 8800], ["발키리", 8400], ["창술사", 7600], ["가디언나이트", 6100], ["차원술사", 3300]]
-      .map(([name, count]) => ({ name, count: Math.round(count * scale) }));
+    // The scope's people, split over classes and over levels so both sum to it (as the api does).
+    const total = server ? (servers.find((s) => s.name === server)?.count ?? 0) : servers.reduce((a, s) => a + s.count, 0);
+    const spread = (weights) => {
+      const sum = weights.reduce((a, w) => a + w, 0);
+      const counts = weights.map((w) => Math.floor((total * w) / sum));
+      counts[0] += total - counts.reduce((a, c) => a + c, 0);
+      return counts;
+    };
+    const classNames = ["바드", "버서커", "블래스터", "홀리나이트", "도화가", "소울이터", "슬레이어", "기상술사", "아르카나", "리퍼", "발키리", "창술사", "가디언나이트", "차원술사"];
+    const classCounts = spread([213, 152, 148, 139, 128, 121, 116, 99, 91, 88, 84, 76, 61, 33]);
+    const classes = classNames.map((name, i) => ({ name, count: classCounts[i] }));
     // 10-level buckets from 1100 (roster-only characters) to 1780, a gap at 1300~1400.
-    const levels = [];
-    for (let from = 1100; from < 1780; from += 10) {
-      if (from >= 1300 && from < 1400) continue;
-      const peak = from >= 1640 ? 2600 - Math.abs(from - 1710) * 30 : 120;
-      levels.push({ from, to: from + 10, count: Math.max(1, Math.round(peak * scale)) });
-    }
-    const total = levels.reduce((a, l) => a + l.count, 0);
+    const froms = [];
+    for (let from = 1100; from < 1780; from += 10) if (from < 1300 || from >= 1400) froms.push(from);
+    const levelCounts = spread(froms.map((from) => (from >= 1640 ? 2600 - Math.abs(from - 1710) * 30 : 120)));
+    const levels = froms.map((from, i) => ({ from, to: from + 10, count: levelCounts[i] }));
     return send({ code: "STATS_POPULATION_SUCCESS", message: "성공", data: { snapshotDate: "2026-10-31", server, total, servers, classes, levels } });
   }
   if (url.pathname.startsWith("/api/v1/stats/")) {
