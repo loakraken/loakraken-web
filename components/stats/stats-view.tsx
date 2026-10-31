@@ -5,7 +5,7 @@ import { Fragment, useEffect, useId, useRef, useState, type CSSProperties } from
 import { useTallest } from "@/components/ui/use-tallest";
 import { classBuildsPath } from "@/lib/stats/class-builds";
 import { useRouter, useSearchParams } from "next/navigation";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery, type UseQueryResult } from "@tanstack/react-query";
 import { SiteHeader } from "@/components/site/site-header";
 import { Select } from "@/components/ui/select";
 import { DataTable } from "@/components/ui/data-table";
@@ -15,8 +15,15 @@ import { pendingProps } from "@/lib/api/pending";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { TIER_LABEL } from "@/lib/character/rank";
 import { coarsen } from "@/lib/stats/bins";
-import { fetchBestCombatPower, fetchGemLevels, fetchStats, fetchTitleEquip } from "@/lib/stats/client";
-import { gemBinLabel } from "@/lib/stats/gem-levels";
+import {
+  fetchBestCombatPower,
+  fetchGemLevels,
+  fetchLevelCombatPower,
+  fetchStats,
+  fetchTitleEquip,
+  isAbsent,
+} from "@/lib/stats/client";
+import { gemBinLabel, type GemLevelsEnvelope } from "@/lib/stats/gem-levels";
 import gemStyles from "./gem-levels.module.css";
 import { LevelCombatPowerChart } from "./level-combat-power-chart";
 import { equipShare, titleEquipQuery } from "@/lib/stats/title-equip";
@@ -468,23 +475,20 @@ function DistributionTab({ query }: { query: StatsQuery }) {
           </p>
         )
       )}
-      <GemLevelsChart query={query} asTable={asTable} />
-      <LevelCombatPowerChart
-        query={query}
-        asTable={asTable}
-        problem={(error, retry) => <Problem error={error} onRetry={retry} />}
-      />
       {data && <StatsBasis query={query} />}
+      <ExtraCharts query={query} asTable={asTable} />
     </div>
   );
 }
 
 /**
- * 보석 레벨 분포 (B2) under the main distribution: 12 fixed bins of the gem
- * average, as bars or as a table (the same 표로 보기 switch). Only characters
- * whose gems were seen are in it, so the caption names that count.
+ * The gem and level charts (B2·B3) at the end of the tab, below the basis
+ * note, so nothing is under them to push. They wait for both answers and then
+ * show at once (one landing after the other would move it). An api without
+ * the endpoint (404, before it ships) leaves that chart out with no trace; a
+ * real failure shows the retry box in its place (PM-프론트 10-31).
  */
-function GemLevelsChart({ query, asTable }: { query: StatsQuery; asTable: boolean }) {
+function ExtraCharts({ query, asTable }: { query: StatsQuery; asTable: boolean }) {
   const gems = useQuery({
     queryKey: ["stats", "gem-levels", statsKey(query)],
     queryFn: ({ signal }) => fetchGemLevels(query, signal),
@@ -492,6 +496,34 @@ function GemLevelsChart({ query, asTable }: { query: StatsQuery; asTable: boolea
     placeholderData: keepPreviousData,
     ...quiet,
   });
+  const levels = useQuery({
+    queryKey: ["stats", "level-combat-power", statsKey(query)],
+    queryFn: ({ signal }) => fetchLevelCombatPower(query, signal),
+    staleTime: 5 * 60_000,
+    placeholderData: keepPreviousData,
+    ...quiet,
+  });
+  if (gems.isPending || levels.isPending) return null;
+  return (
+    <>
+      {!isAbsent(gems.error) && <GemLevelsChart gems={gems} asTable={asTable} />}
+      {!isAbsent(levels.error) && (
+        <LevelCombatPowerChart
+          levels={levels}
+          asTable={asTable}
+          problem={(error, retry) => <Problem error={error} onRetry={retry} />}
+        />
+      )}
+    </>
+  );
+}
+
+/**
+ * 보석 레벨 분포 (B2): 12 fixed bins of the gem average, as bars or as a
+ * table (the same 표로 보기 switch). Only characters whose gems were seen are
+ * in it, so the caption names that count.
+ */
+function GemLevelsChart({ gems, asTable }: { gems: UseQueryResult<GemLevelsEnvelope>; asTable: boolean }) {
   const data = gems.data?.data;
   const label = "보석 평균 레벨 구간별 인원";
   const max = Math.max(1, ...(data?.bins ?? []).map((b) => b.count));
@@ -500,15 +532,11 @@ function GemLevelsChart({ query, asTable }: { query: StatsQuery; asTable: boolea
       <h2 id="stats-gem-levels" className={gemStyles.title}>
         보석 레벨 분포
       </h2>
-      {gems.isError && !data ? (
-        // In the bars' place, so nothing below moves.
+      {!data ? (
+        // A real failure (not a missing endpoint): the retry box in the bars' place.
         <div className={styles.histogramWait}>
           <Problem error={gems.error} onRetry={() => gems.refetch()} />
         </div>
-      ) : !data ? (
-        <p className={styles.histogramWait} role="status">
-          보석 분포를 불러오고 있어요…
-        </p>
       ) : asTable ? (
         <DataTable label={label} className={styles.table} {...pendingProps(gems)}>
           <caption className={styles.srOnly}>{label}</caption>
@@ -539,7 +567,7 @@ function GemLevelsChart({ query, asTable }: { query: StatsQuery; asTable: boolea
           ))}
         </ol>
       )}
-      {/* Held before the answer too, so the bars land without moving the caption. */}
+      {/* Kept on a failure too, so the retry box sits where the bars and axis would. */}
       <p className={styles.axis} aria-hidden="true" {...pendingProps(gems)}>
         <span>{data && !asTable ? gemBinLabel(data.bins[0]) : " "}</span>
         <span>{data && !asTable ? gemBinLabel(data.bins.at(-1)!) : ""}</span>

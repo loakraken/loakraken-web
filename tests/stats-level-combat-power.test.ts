@@ -49,3 +49,11 @@ test("level combat power request: backend path and the stats filters only", asyn
   assert.equal(url.searchParams.has("percentileOf"), false);
   assert.equal(result.ok, true);
 });
+
+test("level combat power request: 404 stays 404, other failures are not", async () => {
+  const answer = (status: number) => (async () => new Response("<html>", { status })) as typeof fetch;
+  const absent = await requestLevelCombatPower({}, "http://backend.test", { fetcher: answer(404) });
+  assert.equal(absent.ok === false && absent.error.status, 404);
+  const broken = await requestLevelCombatPower({}, "http://backend.test", { fetcher: answer(500) });
+  assert.equal(broken.ok === false && broken.error.status, 502);
+});

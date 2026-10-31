@@ -61,6 +61,8 @@ export function linePoints(buckets: readonly LevelBucket[], width: number, heigh
 }
 
 const errorCodes: Record<number, readonly string[]> = {
+  // 404: the api has no such endpoint yet (before it ships) - the screen leaves the chart out.
+  404: ["NOT_FOUND"],
   400: ["INVALID_REQUEST", "STATS_INVALID_RANGE"],
   503: ["STATS_UNAVAILABLE"],
 };

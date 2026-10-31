@@ -34,3 +34,9 @@ test("gem levels request: backend path and the stats filters only", async () => 
   assert.equal(url.searchParams.has("metric"), false);
   assert.equal(result.ok, true);
 });
+
+test("gem levels request: an api without the endpoint answers 404, kept as 404 (the chart is left out)", async () => {
+  const fetcher = (async () => new Response(JSON.stringify({ code: "NOT_FOUND" }), { status: 404, headers: { "content-type": "application/json" } })) as typeof fetch;
+  const result = await requestGemLevels({}, "http://backend.test", { fetcher });
+  assert.deepEqual(result, { ok: false, error: { code: "NOT_FOUND", status: 404 } });
+});

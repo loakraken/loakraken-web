@@ -4,12 +4,11 @@
 // bucket as one line, under the gem chart on the distribution tab. A bucket
 // under 30 people has no median: no point on the line (it breaks there), only
 // a faint mark on the axis whose hover says how many people it has.
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import type { UseQueryResult } from "@tanstack/react-query";
 import { DataTable } from "@/components/ui/data-table";
 import { pendingProps } from "@/lib/api/pending";
-import { fetchLevelCombatPower } from "@/lib/stats/client";
-import { linePoints, type LevelBucket } from "@/lib/stats/level-combat-power";
-import { statsKey, whole, type StatsQuery } from "@/lib/stats/model";
+import { linePoints, type LevelBucket, type LevelCombatPowerEnvelope } from "@/lib/stats/level-combat-power";
+import { whole } from "@/lib/stats/model";
 import gemStyles from "./gem-levels.module.css";
 import styles from "./stats.module.css";
 
@@ -21,24 +20,17 @@ const describe = (b: LevelBucket, minSample: number) =>
     ? `아이템 레벨 ${range(b)} · ${whole(b.count)}명(${minSample}명 미만이라 중앙값 없음)`
     : `아이템 레벨 ${range(b)} · 전투력 중앙값 ${whole(b.median)} · ${whole(b.count)}명`;
 
+/** Drawn once its answer has come (the tab's ExtraCharts waits and fetches). */
 export function LevelCombatPowerChart({
-  query,
+  levels,
   asTable,
   problem,
 }: {
-  query: StatsQuery;
+  levels: UseQueryResult<LevelCombatPowerEnvelope>;
   asTable: boolean;
   /** The tab's own retry box, for a failed answer in the chart's place. */
   problem: (error: unknown, retry: () => void) => React.ReactNode;
 }) {
-  const levels = useQuery({
-    queryKey: ["stats", "level-combat-power", statsKey(query)],
-    queryFn: ({ signal }) => fetchLevelCombatPower(query, signal),
-    staleTime: 5 * 60_000,
-    placeholderData: keepPreviousData,
-    retry: false,
-    refetchOnWindowFocus: false,
-  });
   const data = levels.data?.data;
   const label = "아이템 레벨 구간별 전투력 중앙값";
   const minSample = data?.meta.minSample ?? 30;
@@ -48,12 +40,9 @@ export function LevelCombatPowerChart({
       <h2 id="stats-level-combat-power" className={gemStyles.title}>
         아이템 레벨별 전투력
       </h2>
-      {levels.isError && !data ? (
+      {!data ? (
+        // A real failure (not a missing endpoint): the retry box in the line's place.
         <div className={gemStyles.lineBox}>{problem(levels.error, () => levels.refetch())}</div>
-      ) : !data ? (
-        <p className={`${gemStyles.lineBox} ${styles.muted}`} role="status">
-          레벨별 전투력을 불러오고 있어요…
-        </p>
       ) : asTable ? (
         <DataTable label={label} className={styles.table} {...pendingProps(levels)}>
           <caption className={styles.srOnly}>{label}</caption>

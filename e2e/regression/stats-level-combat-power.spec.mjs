@@ -10,7 +10,7 @@ for (const width of [1280, 360, 320])
     await page.setViewportSize({ width, height: 900 });
     await watchShifts(page);
     let answer;
-    // A slow answer: the 180px box is held while it waits.
+    // A slow answer: the charts wait for it and land at once, at the tab's end (nothing under them).
     await page.route("**/api/stats/level-combat-power?*", async (route) => {
       await new Promise((r) => setTimeout(r, 800));
       const response = await route.fetch();

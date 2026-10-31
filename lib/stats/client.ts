@@ -36,6 +36,9 @@ export class StatsQueryError extends Error {
   }
 }
 
+/** The api has no such endpoint (yet): a new chart is left out, not shown as an error. */
+export const isAbsent = (error: unknown) => error instanceof StatsQueryError && error.info.status === 404;
+
 async function call<T>(path: string, signal: AbortSignal): Promise<T> {
   try {
     const response = await fetch(path, { signal, cache: "no-store" });
