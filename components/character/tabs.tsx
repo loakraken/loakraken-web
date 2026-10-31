@@ -2911,39 +2911,44 @@ function TabPanelView({
   tab,
   data,
   envelope,
+  drawn = false,
 }: {
   tab: TabId;
   data: Character;
   envelope: CharacterEnvelope;
+  /** Shown before on this visit: its charts stand drawn (globals.css [data-drawn]). */
+  drawn?: boolean;
 }) {
   return (
     <Reveal key={tab} className={styles.tabPanel}>
       <h2 id={TAB_HEADING} className={styles.srOnly} tabIndex={-1}>
         {TABS.find((item) => item.id === tab)?.label} 탭
       </h2>
-      {tab === "simulator" ? (
-        <SimulatorTab data={data} />
-      ) : tab === "specup" ? (
-        <SpecUpTab data={data} />
-      ) : tab === "skills" ? (
-        <SkillsTab data={data} />
-      ) : tab === "arkpassive" ? (
-        <ArkPassiveTab data={data} />
-      ) : tab === "collectibles" ? (
-        <CollectiblesTab data={data} />
-      ) : tab === "avatars" ? (
-        <AvatarsTab data={data} />
-      ) : tab === "stats" ? (
-        <StatsTab data={data} />
-      ) : tab === "siblings" ? (
-        <SiblingsTab data={data} />
-      ) : tab === "guild" ? (
-        <GuildTab data={data} />
-      ) : tab === "evidence" ? (
-        <EvidenceTab data={data} envelope={envelope} />
-      ) : (
-        <CombatTab data={data} />
-      )}
+      <div data-drawn={drawn || undefined}>
+        {tab === "simulator" ? (
+          <SimulatorTab data={data} />
+        ) : tab === "specup" ? (
+          <SpecUpTab data={data} />
+        ) : tab === "skills" ? (
+          <SkillsTab data={data} />
+        ) : tab === "arkpassive" ? (
+          <ArkPassiveTab data={data} />
+        ) : tab === "collectibles" ? (
+          <CollectiblesTab data={data} />
+        ) : tab === "avatars" ? (
+          <AvatarsTab data={data} />
+        ) : tab === "stats" ? (
+          <StatsTab data={data} />
+        ) : tab === "siblings" ? (
+          <SiblingsTab data={data} />
+        ) : tab === "guild" ? (
+          <GuildTab data={data} />
+        ) : tab === "evidence" ? (
+          <EvidenceTab data={data} envelope={envelope} />
+        ) : (
+          <CombatTab data={data} />
+        )}
+      </div>
     </Reveal>
   );
 }

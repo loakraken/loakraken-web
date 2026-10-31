@@ -38,7 +38,7 @@ import { KrakenScoreStrip } from "./kraken-score-metric";
 import { Entrance } from "./entrance";
 import { kstTime, level, number, text } from "./parts";
 import { CritSpeedEnabled } from "./analysis-menu";
-import { CharacterEfficiencyEnabled, GuildTabEnabled, SettingCheckEnabled, SimulatorEnabled, SpecUpEnabled, TabBar, TabPanel, TitleStatsEnabled, tabOf, useTabTop } from "./tabs";
+import { CharacterEfficiencyEnabled, GuildTabEnabled, SettingCheckEnabled, SimulatorEnabled, SpecUpEnabled, TabBar, TabPanel, TitleStatsEnabled, tabOf, useTabTop, type TabId } from "./tabs";
 import { ArmoryPageEnabled } from "./use-armory-page";
 import { ReceiptEnabled } from "./receipt-panel";
 import styles from "./character.module.css";
@@ -287,6 +287,16 @@ function CharacterContent({
     useContext(GuildTabEnabled),
   );
   useTabTop(tab);
+  // Tabs already shown on this character's visit: their charts come back
+  // drawn, not drawn again (motion rule 10-31, as on /stats). Marked when
+  // left, so the first draw is never cut short.
+  const [shown, setShown] = useState<{ name: string; tab: TabId; left: ReadonlySet<TabId> }>(() => ({
+    name,
+    tab,
+    left: new Set(),
+  }));
+  if (shown.name !== name) setShown({ name, tab, left: new Set() });
+  else if (shown.tab !== tab) setShown({ name, tab, left: new Set(shown.left).add(shown.tab) });
   const [now, setNow] = useState(renderedAt);
   const [refreshed, setRefreshed] = useState(false);
   const query = useQuery({
@@ -383,7 +393,7 @@ function CharacterContent({
               </div>
             )}
             <Entrance tab={tab}>
-              <TabPanel tab={tab} data={data} envelope={envelope} />
+              <TabPanel tab={tab} data={data} envelope={envelope} drawn={shown.left.has(tab)} />
             </Entrance>
           </>
         ) : (
