@@ -167,6 +167,7 @@ export interface components {
             tradeLines: string[];
             refineExp: components["schemas"]["RefineExpResponse"] | null;
             advancedRefineLevel: number | null;
+            paradisePower: number | null;
         };
         PointBonusResponse: {
             name: string;

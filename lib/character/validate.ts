@@ -82,6 +82,8 @@ const ROLLOUT: Record<string, Record<string, () => unknown>> = {
     tradeLines: () => [],
     refineExp: () => null,
     advancedRefineLevel: () => null,
+    // The orb's 달성 최대 낙원력 (backend #776).
+    paradisePower: () => null,
   },
   // Gem tooltip lines (backend #286).
   // Gem base attack % (backend, with the kraken score inputs).
