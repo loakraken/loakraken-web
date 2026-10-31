@@ -11,7 +11,7 @@ import type { Character } from "@/lib/character/model";
 import { groupEquipment, NOT_SPECIAL } from "@/lib/character/detail";
 import { avatarEffectTotals, avatarSlots, decorationParts, rarestOwned, type DecorationPart } from "@/lib/character/inner";
 import { safeGameImage } from "@/lib/character/model";
-import { GameIcon } from "./imagery";
+import { CollectibleIcon, GameIcon } from "./imagery";
 import { Panel } from "./panel";
 import { Empty, number, text } from "./parts";
 import styles from "./detail.module.css";
@@ -197,7 +197,7 @@ export function CollectiblesTab({ data }: { data: Character }) {
                         onClick={() => setSelected(i)}
                       >
                         <span className={styles.collectionName}>
-                          <GameIcon src={item.icon} size={32} />
+                          <CollectibleIcon type={item.type} badge={item.icon} />
                           <span>
                             <strong>{text(item.type)}</strong>
                             <small>

@@ -2568,13 +2568,15 @@ createServer(async (req, res) => {
     };
     d.coverage.gems = { state: "PROVIDED", collections: { items: "PROVIDED" } };
     d.analysis.gems = { count: 11, unknownLevelCount: 0, minLevel: 6, maxLevel: 6, averageLevel: 6, levelDistribution: [{ level: 6, count: 11 }], damageEffectCount: 4, cooldownEffectCount: 7, unknownEffectCount: 0 };
-    // Synthetic 내실·아바타 data (names and counts are invented).
+    // Synthetic 내실·아바타 data (counts are invented). Five official type
+    // names draw the armory sprite icons (#17); "합성 잎" is not an official
+    // type, so it keeps the API badge (none here).
     const kinds = [
-      ["합성 심장", 15, 15],
-      ["합성 섬의 마음", 69, 104],
-      ["합성 씨앗", 976, 1480],
-      ["합성 미술품", 57, 60],
-      ["합성 항해물", 41, 50],
+      ["거인의 심장", 15, 15],
+      ["섬의 마음", 69, 104],
+      ["모코코 씨앗", 976, 1480],
+      ["위대한 미술품", 57, 60],
+      ["항해 모험물", 41, 50],
       ["합성 잎", 37, 120],
     ];
     d.collectibles = kinds.map(([type, point, maxPoint], k) => ({
