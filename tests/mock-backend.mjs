@@ -76,8 +76,9 @@ function withSimulatorGear(data) {
     make("상의", "+20 전율의 상의", { refineLevel: 20, quality: 95, advancedRefineLevel: 0 }),
     // 팔 보호구(backend #342): type "완갑", step = refineLevel, grade on the item.
     { ...make("완갑", "+13 전율 완갑", { refineLevel: 13 }), grade: "유물" },
-    // 보주: shown on the 전투 tab foot, never in the 내실 special list (user 10-26).
-    make("보주", "테스트 보주", {}),
+    // 보주: under the stone in the accessory column (user 10-31), never in the
+    // 내실 special list (user 10-26), with its 달성 최대 낙원력 (backend #776).
+    make("보주", "테스트 보주", { paradisePower: 35647915 }),
     make("어빌리티 스톤", "테스트 스톤", {
       stoneEngravings: [
         { name: "원한", level: 1 },

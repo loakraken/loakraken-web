@@ -588,6 +588,13 @@ function EquipmentPanel({ data }: { data: Character }) {
                   <strong>{text(item.type)}</strong>
                   <small>{text(item.name)}</small>
                 </div>
+                {/* The orb's 달성 최대 낙원력 on its right (backend #776); none, nothing. */}
+                {item.detail?.paradisePower != null && (
+                  <span className={styles.paradise}>
+                    <small>달성 최대 낙원력</small>
+                    <b>{item.detail.paradisePower.toLocaleString("ko-KR")}</b>
+                  </span>
+                )}
               </li>
             ))}
           </ul>

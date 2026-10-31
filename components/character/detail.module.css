@@ -272,6 +272,23 @@
   min-width: 0;
   flex: 1;
 }
+/* The orb's 달성 최대 낙원력: label over a gold number, at the row's end. */
+.paradise {
+  display: grid;
+  flex: none;
+  justify-items: end;
+  text-align: right;
+}
+.paradise small {
+  color: var(--muted-foreground);
+  font-size: 11px;
+}
+.paradise b {
+  color: var(--grade-legendary-text);
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
 .itemText strong {
   display: block;
   font-size: 14px;

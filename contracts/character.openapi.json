@@ -1026,6 +1026,18 @@
                 "type": "null"
               }
             ]
+          },
+          "paradisePower": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int64",
+                "description": "보주의 공식 달성 최대 낙원력. 보주가 아니면 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -1034,6 +1046,7 @@
           "braceletEffects",
           "effects",
           "itemLevel",
+          "paradisePower",
           "parserVersion",
           "polishEffects",
           "quality",

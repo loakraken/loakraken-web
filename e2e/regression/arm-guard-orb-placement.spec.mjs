@@ -36,6 +36,10 @@ for (const width of [320, 360, 390, 1280])
       };
     });
     expect(layout).toEqual({ tail: ["어빌리티 스톤", "보주"], foot: ["팔찌"], footFull: true, footAfterGrid: true });
+    // The orb's 달성 최대 낙원력 (backend #776) on its row, with thousands commas.
+    const orb = panel.locator("li").filter({ has: page.getByText("보주", { exact: true }) }).first();
+    await expect(orb).toContainText("달성 최대 낙원력");
+    await expect(orb).toContainText("35,647,915");
     await page.waitForTimeout(600);
     const { all, moved } = await shiftsSince(page);
     expect(all, `흔들림 (${moved})`).toBe(0);
