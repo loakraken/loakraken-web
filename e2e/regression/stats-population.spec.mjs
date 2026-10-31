@@ -1,5 +1,5 @@
 // 통계 B5 전체 인구: '전체 인구' 탭(서버별 · 직업별 · 레벨별), 'LOAKraken이 확인한 모든 캐릭터 기준'과
-// 집계 기준일. 첫 집계 전에는 안내만. 320·360·1280에서 옆 넘침이 없다.
+// 집계 기준일. 첫 집계 전에는 '준비 중' 안내만(오류 아님). 320·360·1280에서 옆 넘침이 없다.
 import { test, expect, gotoReady, expectNoHorizontalOverflow } from "../support/fixtures.mjs";
 
 const panel = (page) => page.getByRole("tabpanel");
@@ -35,7 +35,7 @@ for (const width of [1280, 360, 320])
     await expectNoHorizontalOverflow(page);
   });
 
-test("통계 전체 인구: 첫 집계 전에는 안내만 @regression", async ({ page }) => {
+test("통계 전체 인구: 첫 집계 전에는 준비 중 안내만 @regression", async ({ page }) => {
   await page.route("**/api/stats/population*", (route) =>
     route.fulfill({
       json: {
@@ -45,6 +45,6 @@ test("통계 전체 인구: 첫 집계 전에는 안내만 @regression", async (
     }),
   );
   await gotoReady(page, "/stats?tab=population");
-  await expect(panel(page)).toContainText("아직 첫 집계 전이에요");
+  await expect(panel(page)).toContainText("첫 집계를 준비 중이에요 · 매주 새벽에 집계해요");
   await expect(panel(page).getByRole("group", { name: "전체 인구 보기" })).toHaveCount(0);
 });

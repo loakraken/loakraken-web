@@ -66,10 +66,23 @@ export function PopulationTab({ server, problem }: { server?: string; problem: (
     refetchOnWindowFocus: false,
   });
   const data = population.data?.data;
-  if (population.isError && !data) return <>{problem(population.error, () => population.refetch())}</>;
-  if (!data) return <p className={styles.muted}>전체 인구를 불러오고 있어요…</p>;
+  // Loading, error and the time before the first snapshot share one held box,
+  // so the answer lands without moving the note under it.
+  if (population.isError && !data)
+    return <div className={own.hold}>{problem(population.error, () => population.refetch())}</div>;
+  if (!data)
+    return (
+      <p className={`${own.hold} ${styles.muted}`} role="status">
+        전체 인구를 불러오고 있어요…
+      </p>
+    );
+  // Right after a deploy the weekly job may not have run yet (PM 총괄 10-31): a calm note, not an error.
   if (!data.snapshotDate)
-    return <p className={styles.muted}>아직 첫 집계 전이에요. 전체 인구는 일주일에 한 번 집계해요.</p>;
+    return (
+      <p className={`${own.hold} ${styles.muted}`} role="status">
+        첫 집계를 준비 중이에요 · 매주 새벽에 집계해요
+      </p>
+    );
   const serverTotal = data.servers.reduce((sum, s) => sum + s.count, 0);
   const bars = levelBars(data.levels);
   const barMax = Math.max(1, ...bars.map((b) => b.count));
