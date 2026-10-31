@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { Geist_Mono } from "next/font/google";
 import localFont from "next/font/local";
 
@@ -62,9 +63,12 @@ export function generateMetadata(): Metadata {
   };
 }
 
-export default function RootLayout({ children }: Readonly<{
+export default async function RootLayout({ children }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // This request's CSP nonce (proxy.ts): without it the browser blocks the two
+  // inline scripts below. Reading it renders every page per request.
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
   return (
     // The pre-paint script sets data-theme before hydration (stored dark choice).
     <html lang="ko" className={`${geistMono.variable} ${kraken.variable}`} suppressHydrationWarning>
@@ -75,8 +79,8 @@ export default function RootLayout({ children }: Readonly<{
           page (React #418 on /tools after another page, web #599). Here they
           still run before any of the page is parsed or painted. */}
       <body className="antialiased">
-        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
-        <script dangerouslySetInnerHTML={{ __html: earlyClickScript }} />
+        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: earlyClickScript }} />
         <ThemeKeeper />
         <Providers>{children}</Providers>
         <PerRoute>
