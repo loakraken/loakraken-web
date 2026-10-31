@@ -27,6 +27,7 @@ import {
   gemKind,
   isCooldownGem,
   engravingBookString,
+  sortEngravings,
   groupEquipment,
   isGrade,
   parsePassiveNode,
@@ -49,6 +50,7 @@ import { useFavorite } from "./favorite";
 import {
   characterNameError,
   coverageLabel,
+  gradeKey,
   normalizeCharacterName,
   type Character,
   type CharacterEnvelope,
@@ -1056,7 +1058,7 @@ function ArkGridPanel({ data }: { data: Character }) {
 
 function CardsPanel({ data }: { data: Character }) {
   const stagger = useStagger();
-  const [folded, setFolded] = useState(false);
+  const [folded, setFolded] = useState(true);
   const setsId = useId();
   const cards = data.loadout.cards;
   const summary = data.analysis.cards;
@@ -1081,7 +1083,8 @@ function CardsPanel({ data }: { data: Character }) {
             ))}
           </ul>
           {/* The pictures always show; the set effects under them fold,
-              with the ark grid's toggle (user 10-28). Open by default. */}
+              with the ark grid's toggle (user 10-28). Folded by default
+              (user 10-31), from the first paint, so nothing moves. */}
           {cards.effects.length > 0 && (
             <>
               <ul id={setsId} className={styles.setList} hidden={folded}>
@@ -1266,7 +1269,7 @@ function StatsPanel({ data }: { data: Character }) {
 
 function EngravingsPanel({ data }: { data: Character }) {
   const stagger = useStagger();
-  const effects = data.loadout.engravings?.arkPassiveEffects ?? [];
+  const effects = sortEngravings(data.loadout.engravings?.arkPassiveEffects ?? []);
   const book = engravingBookString(effects);
   const bonus = stoneBonus(groupEquipment(data.loadout.equipment).stone);
   return (
@@ -1397,7 +1400,8 @@ function SkillCard({
           <strong>{text(skill.name)}</strong>
           <small>
             {level(skill.level)}
-            {skill.rune && ` · ${text(skill.rune.name)}`}
+            {/* Full view: the rune's name sits by its icon instead (user 10-31). */}
+            {compact && skill.rune && ` · ${text(skill.rune.name)}`}
             {compact && skill.partBreakLevel != null &&
               ` · 부위 파괴 Lv.${skill.partBreakLevel}`}
             {compact && skill.counter && " · 카운터"}
@@ -1417,6 +1421,13 @@ function SkillCard({
                 </DetailTooltip>
               </span>
             ))}
+          </span>
+        )}
+        {/* The rune's name between the gem chips and its icon, in its grade
+            colour (user 10-31); at 360 and below the icon and its card only. */}
+        {!compact && skill.rune?.name && (
+          <span className={styles.runeName} data-grade={gradeKey(skill.rune.grade)}>
+            {skill.rune.name}
           </span>
         )}
         {skill.rune && (

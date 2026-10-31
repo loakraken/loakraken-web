@@ -38,24 +38,25 @@ for (const scheme of ["light", "dark"])
       expect(loaded.quiet, `첫 로드 흔들림 (${loaded.moved})`).toBe(0);
 
       // The pictures always show (no fold on them); the set effects under
-      // them fold with the ark grid's toggle (user 10-28). Open by default.
+      // them fold with the ark grid's toggle (user 10-28), folded by default
+      // (user 10-31).
       const sets = panel.locator(":scope > ul").nth(1);
-      await expect(sets).toBeVisible();
-      const fold = panel.getByRole("button", { name: "카드 세트 효과 접기" });
-      await expect(fold).toHaveAttribute("aria-expanded", "true");
-      const mark = await shiftMark(page);
-      await fold.click();
       await expect(sets).toBeHidden();
       await expect(grid).toBeVisible();
       const unfold = panel.getByRole("button", { name: "카드 세트 효과 펼치기" });
       await expect(unfold).toHaveAttribute("aria-expanded", "false");
+      const mark = await shiftMark(page);
+      await unfold.click();
+      await expect(sets).toBeVisible();
+      const fold = panel.getByRole("button", { name: "카드 세트 효과 접기" });
+      await expect(fold).toHaveAttribute("aria-expanded", "true");
       // The roster record stays.
       await expect(panel.getByRole("region", { name: "원정대 카드 기록" })).toBeVisible();
-      // Keyboard: Enter on the focused button opens it again.
-      await unfold.focus();
+      // Keyboard: Enter on the focused button folds it again.
+      await fold.focus();
       await page.keyboard.press("Enter");
-      await expect(sets).toBeVisible();
-      await expect(panel.getByRole("button", { name: "카드 세트 효과 접기" })).toHaveAttribute("aria-expanded", "true");
+      await expect(sets).toBeHidden();
+      await expect(panel.getByRole("button", { name: "카드 세트 효과 펼치기" })).toHaveAttribute("aria-expanded", "false");
       await page.waitForTimeout(500);
       const toggled = await shiftsSince(page, mark);
       // Only what is under the pressed button may move, and only right after the press.
