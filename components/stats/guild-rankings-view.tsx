@@ -27,6 +27,7 @@ import { BasisNote } from "./basis-note";
 import { PopularGuilds } from "./popular-guilds";
 import { rankingColumns } from "./ranking-columns";
 import { RankingTypeTabs, type RankingType } from "./ranking-type-tabs";
+import { MoreDetail } from "@/components/ui/more-detail";
 
 const SERVERS = ["루페온", "실리안", "아만", "아브렐슈드", "카단", "카마인", "카제로스", "니나브"];
 // 순위 · 길드 · 서버 · 아이템 레벨(평균 또는 합) · 확인한 길드원 · 전투력(1750 이상 평균 또는 합)
@@ -177,11 +178,20 @@ export function GuildRankingsView({
             are still the last search's (same look as new conditions loading). */}
         <div className={styles.listHold} {...pendingProps({ isPlaceholderData: list.isPlaceholderData || guildInvalid })}>
           {data?.meta && (
-            <p key={list.dataUpdatedAt} className={`${styles.notice} ${styles.rankingNotice}`}>
+            <p key={list.dataUpdatedAt} className={`${styles.notice} ${styles.rankingNotice} ${styles.guildNotice}`}>
               {sampleText(data.meta, "guild")} · 공식 랭킹이 아니에요
               {!ready && (
                 <strong> · 표본 {data.meta.minSample}개 길드가 모이면 순위를 보여 드려요</strong>
               )}
+              {/* Who the combat power column counts, on a line of its own that
+                  always holds one short line: the 전투력 평균 (every 기준 but 전투력
+                  합) only the 1750+ members inside the range above (api #589). A
+                  server name added to the line above never pushes it down further. */}
+              <span className={styles.noticeLine}>
+                {query.sort === "CP_SUM"
+                  ? "전투력 합은 확인한 길드원 전원"
+                  : `전투력 평균은 ${whole(GUILD_TOP_LEVEL)} 이상 길드원만`}
+              </span>
             </p>
           )}
           {list.isError && !data ? (
@@ -304,13 +314,16 @@ export function GuildRankingsView({
             </button>
           </nav>
         )}
+        {/* One line on the page, the counting rules folded (#1112): nothing removed. */}
         <p className={styles.note}>
-          확인한 길드원은 LOAKraken이 최근 확인한 공개 캐릭터 수로, 실제 길드 인원이 아니에요. 전투력 평균은 그중
-          아이템 레벨 {GUILD_TOP_LEVEL} 이상 길드원만 세요.
+          확인한 길드원은 LOAKraken이 최근 확인한 공개 캐릭터 수로, 실제 길드 인원이 아니에요.
+        </p>
+        <MoreDetail className={styles.note}>
+          전투력 평균은 그중 아이템 레벨 {whole(GUILD_TOP_LEVEL)} 이상 길드원만 세요.
           {data && ` 확인한 길드원이 ${whole(data.minMembers)}명보다 적은 길드는 순위에 넣지 않아요`}
           {data && (data.excludedGuilds ?? 0) > 0 && `(이번 조건에서 ${whole(data.excludedGuilds)}개)`}
           {data && "."}
-        </p>
+        </MoreDetail>
         {data?.meta && <BasisNote basis={{ ...data.meta, unit: "개 길드" }} />}
         {/* Last on the page: arriving later, it pushes nothing above it (A6). */}
         {popular && <PopularGuilds server={query.server} />}

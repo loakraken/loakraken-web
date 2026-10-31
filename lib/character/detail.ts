@@ -72,7 +72,11 @@ export function remainingLabel(ms: number) {
 
 /* Equipment ---------------------------------------------------------------- */
 
-const ARMOR_ORDER = ["투구", "어깨", "상의", "하의", "장갑", "무기"];
+// 완갑 (팔 보호구) is equipment, right under the weapon (user 10-26): before,
+// it fell into the leftovers and read as a special item.
+const ARMOR_ORDER = ["투구", "어깨", "상의", "하의", "장갑", "무기", "완갑"];
+/** Shown in their own place (the equipment foot), never as 내실 special equipment. */
+export const NOT_SPECIAL = ["보주"];
 const ACCESSORY_ORDER = ["목걸이", "귀걸이", "반지"];
 export const SLOT_LABEL: Record<string, string> = { 투구: "머리" };
 
@@ -83,12 +87,15 @@ export function groupEquipment(equipment: Equipment[]) {
     ...ARMOR_ORDER,
     ...ACCESSORY_ORDER,
     "어빌리티 스톤",
+    "보주",
     "팔찌",
   ]);
   return {
     armor: byOrder(ARMOR_ORDER),
     accessories: byOrder(ACCESSORY_ORDER),
     stone: equipment.find((item) => item.type === "어빌리티 스톤") ?? null,
+    // Under the stone in the accessory column (user 10-31 layout).
+    orb: equipment.find((item) => item.type === "보주") ?? null,
     bracelet: equipment.find((item) => item.type === "팔찌") ?? null,
     others: equipment.filter((item) => !known.has(item.type ?? "")),
   };
@@ -137,6 +144,23 @@ export function parsePassiveNode(description: string | null | undefined) {
 }
 
 /** e.g. "44444" — relic/legendary engraving book levels in display order. */
+/**
+ * Engravings by relic count, highest first (user 10-31), so the code players
+ * read off the list ("유물 43000") runs high to low; a tie goes to the higher
+ * stone level, then keeps the official order.
+ */
+export function sortEngravings<T extends { level: number | null; abilityStoneLevel?: number | null }>(effects: T[]) {
+  return effects
+    .map((effect, index) => ({ effect, index }))
+    .sort(
+      (a, b) =>
+        (b.effect.level ?? -1) - (a.effect.level ?? -1) ||
+        (b.effect.abilityStoneLevel ?? -1) - (a.effect.abilityStoneLevel ?? -1) ||
+        a.index - b.index,
+    )
+    .map(({ effect }) => effect);
+}
+
 export function engravingBookString(
   effects: { level: number | null }[] | undefined,
 ) {

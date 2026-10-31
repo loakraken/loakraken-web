@@ -23,7 +23,7 @@ async function holdOptions(page, { fail = false } = {}) {
 test.describe("재료 구매 견적 카테고리 로딩 @regression", () => {
   test("목록 도착 전 검색하면, 도착 뒤 이어서 검색하고 모순된 오류가 없다", async ({ page }) => {
     const release = await holdOptions(page);
-    await page.goto("/tools/material-quote");
+    await page.goto("/market/quote");
     // 카테고리는 묶음 알약 탭 + 분류 칩이다(web #417 PillTabs). 목록 전에는 탭이 없다.
     const category = page.getByRole("tablist", { name: "카테고리" });
     await expect(category).toHaveCount(0);
@@ -43,7 +43,7 @@ test.describe("재료 구매 견적 카테고리 로딩 @regression", () => {
 
   test("목록 요청이 실패하면 '받는 대로 검색' 대기 안내를 지운다", async ({ page }) => {
     const release = await holdOptions(page, { fail: true });
-    await page.goto("/tools/material-quote");
+    await page.goto("/market/quote");
     await page.getByRole("combobox", { name: "재료 이름" }).fill("합성");
     await page.getByRole("button", { name: "검색", exact: true }).click();
     await expect(page.getByText("카테고리 목록을 받는 대로 검색할게요.")).toBeVisible();

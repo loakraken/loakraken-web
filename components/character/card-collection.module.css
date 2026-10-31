@@ -36,6 +36,10 @@
   align-content: start;
   gap: 6px;
   min-width: 0;
+  /* Every slot as tall as the tallest kind (a two-line set name, the most it
+     shows, over three record lines; 105px measured): the grid is one height
+     whether slots are recorded or not, so its loading room matches (#1043). */
+  min-height: 105px;
   padding: 9px 9px 10px;
   border-radius: 12px;
   background: var(--background);
@@ -164,6 +168,23 @@
   font-size: 12px;
   font-weight: 500;
 }
+/* The ark grid's row arrow (detail.module.css .coreChevron): at the row end,
+   turns over when open. */
+.foldChevron {
+  flex: none;
+  align-self: center;
+  margin-left: auto;
+  color: var(--muted-foreground);
+  transition: transform 200ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.fold[open] > summary .foldChevron {
+  transform: rotate(180deg);
+}
+@media (prefers-reduced-motion: reduce) {
+  .foldChevron {
+    transition: none;
+  }
+}
 .cards {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
@@ -227,6 +248,19 @@
   gap: 6px;
   color: var(--muted-foreground);
   font-size: 13px;
+}
+/* While the records load (#1043): the slots' and folds' boxes, nothing in them. */
+.holding li > *,
+.holding summary > *,
+.holding > p {
+  visibility: hidden;
+}
+.holding summary {
+  color: transparent;
+  list-style: none;
+}
+.holding summary::-webkit-details-marker {
+  display: none;
 }
 .retry {
   min-height: 32px;

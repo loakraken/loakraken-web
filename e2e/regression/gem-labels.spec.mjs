@@ -14,8 +14,9 @@ for (const scheme of ["light", "dark"])
       // Four of eleven slots filled: the empty ones are counted.
       await expect(panel.locator("header")).toContainText("평균 7.75 · 겁 2 · 작 2 · 미장착 7");
       const chips = panel.locator("li > span[data-gem]");
-      await expect(chips).toHaveText(["10겁", "8작", "6겁", "7작"]);
-      await expect(chips.nth(2)).toHaveAttribute("data-gem", "damage");
+      // Damage gems first, then cooldown gems (#1100); 광휘 by its effect.
+      await expect(chips).toHaveText(["10겁", "6겁", "8작", "7작"]);
+      await expect(chips.nth(1)).toHaveAttribute("data-gem", "damage");
       await expect(chips.nth(3)).toHaveAttribute("data-gem", "cooldown");
       // The official name is not on screen (screen readers still get it).
       const fullName = await panel.getByText("6레벨 광휘의 보석").boundingBox();
@@ -30,5 +31,8 @@ for (const scheme of ["light", "dark"])
       const row = page.getByRole("listitem").filter({ hasText: "테스트 스킬" }).getByLabel("보석", { exact: true }).first();
       await expect(row.locator("> span")).toHaveText(["10겁", "8작", "6겁", "7작"]);
       await expect(page.getByRole("group", { name: "보석으로 거르기" })).toContainText("겁화만");
+      // The 요약 panel at the top counts every equipped gem, the same numbers as the 전투 tab (v0.3.3).
+      const head = page.getByRole("region", { name: "요약", exact: true });
+      await expect(head.getByRole("definition").last()).toHaveText("겁화 2 · 작열 2 · 미장착 7");
       await expectNoHorizontalOverflow(page);
     });

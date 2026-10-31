@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { appliedStage, elementLabel, orderedSlots, sortCards } from "@/lib/character/card-collection";
 import { CharacterQueryError, fetchCardCollection } from "@/lib/character/client";
+import { ChevronDown } from "@/components/ui/icons";
 import { CardArt } from "./imagery";
 import { CardRefresh } from "./card-refresh";
 import styles from "./card-collection.module.css";
@@ -13,6 +14,51 @@ import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { useCrossfade } from "@/lib/motion";
 import { HelpInfo } from "@/components/stats/basis-note";
 import { useTallest } from "@/components/ui/use-tallest";
+
+const NOTE =
+  "LOAKraken에서 검색된 원정대 캐릭터의 장착 카드를 기록해요. 이후 각성을 올렸다면 그 캐릭터를 다시 검색하면 갱신돼요.";
+
+/**
+ * While the records load (only when the page's own 1s wait ran out, #1043):
+ * the usual filled shape — six recorded element slots and the two folded
+ * lists — with nothing to read in it, so the panels under the cards do not
+ * move when the records land. The words are for screen readers only.
+ */
+function CardRecordPlaceholder() {
+  return (
+    <>
+      <p className="sr-only" role="status">
+        카드 기록을 불러오고 있어요…
+      </p>
+      <div inert aria-hidden="true" className={styles.holding}>
+        <ul className={styles.elements}>
+          {Array.from({ length: 6 }, (_, i) => (
+            <li key={i} data-recorded="">
+              <span className={styles.slotHead}>
+                <i>불</i>
+                <span className={styles.setName}>세트</span>
+              </span>
+              <span className={styles.value}>
+                <b>0각성</b>
+                <small>0각 효과 적용</small>
+                <small className={styles.by}>기록</small>
+              </span>
+            </li>
+          ))}
+        </ul>
+        {["도감", "구성 가능한 세트"].map((label) => (
+          <details key={label} className={`${styles.fold} ${expand.expand}`}>
+            <summary>
+              {label} <span>0</span>
+              <ChevronDown size={16} className={styles.foldChevron} aria-hidden="true" />
+            </summary>
+          </details>
+        ))}
+        <p className={styles.note}>{NOTE}</p>
+      </div>
+    </>
+  );
+}
 
 /**
  * Roster card records (F-6), inside the cards panel right under the equipped
@@ -70,7 +116,7 @@ export function CardCollection({ name }: { name: string }) {
       </header>
       <CardRefresh name={name} />
       {query.isPending ? (
-        <p className={styles.muted}>카드 기록을 불러오고 있어요…</p>
+        <CardRecordPlaceholder />
       ) : !data ? (
         <div className={styles.muted}>
           <p>
@@ -129,6 +175,7 @@ export function CardCollection({ name }: { name: string }) {
             <details className={`${styles.fold} ${expand.expand}`}>
               <summary>
                 도감 <span>{data.cards.length}장</span>
+                <ChevronDown size={16} className={styles.foldChevron} aria-hidden="true" />
               </summary>
               <ul className={styles.cards}>
                 {sortCards(data.cards).map((card) => (
@@ -149,6 +196,7 @@ export function CardCollection({ name }: { name: string }) {
             <details className={`${styles.fold} ${expand.expand}`}>
               <summary>
                 구성 가능한 세트 <span>{data.sets.length}개</span>
+                <ChevronDown size={16} className={styles.foldChevron} aria-hidden="true" />
               </summary>
               <ul className={styles.sets}>
                 {data.sets.map((set) => {
@@ -182,10 +230,7 @@ export function CardCollection({ name }: { name: string }) {
               </ul>
             </details>
           )}
-          <p className={styles.note}>
-            LOAKraken에서 검색된 원정대 캐릭터의 장착 카드를 기록해요. 이후 각성을
-            올렸다면 그 캐릭터를 다시 검색하면 갱신돼요.
-          </p>
+          <p className={styles.note}>{NOTE}</p>
         </>
       )}
     </section>

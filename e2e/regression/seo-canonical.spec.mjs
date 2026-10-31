@@ -25,7 +25,7 @@ test("@A6 사이트맵 주소는 모두 200·자기 canonical·noindex 아님 @r
 });
 
 test("@A6 쿼리가 붙은 도구 주소도 canonical은 쿼리 없는 자기 주소 @regression", async ({ request }) => {
-  for (const path of ["/tools/refining", "/tools/material-quote", "/tools/auction"]) {
+  for (const path of ["/tools/refining", "/market/quote", "/tools/auction"]) {
     const html = await (await request.get(`${path}?share=1`)).text();
     const canonical = canonicalOf(html);
     expect(canonical, path).not.toBeNull();

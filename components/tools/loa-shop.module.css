@@ -54,6 +54,8 @@
   font-size: var(--text-caption);
 }
 .field input {
+  width: 100%;
+  min-width: 0;
   height: 44px;
   padding: 0 18px;
   border: 1px solid var(--steel);
@@ -253,7 +255,9 @@
 }
 @media (max-width: 900px) {
   .workspace {
-    grid-template-columns: 1fr;
+    /* minmax(0, …): the rate input's own width (wider in a fallback font) never
+       widens the column past a 320 screen (A6, #1144 CI). */
+    grid-template-columns: minmax(0, 1fr);
   }
   .settings {
     position: static;

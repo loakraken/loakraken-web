@@ -76,7 +76,35 @@ export function gemGrid(board: GemBoard) {
   const grid = new Map<string, GemCell>();
   for (const cell of board.cells) grid.set(`${cell.kind}-${cell.level}`, cell);
   return (kind: GemKind, level: number) => grid.get(`${kind}-${level}`);
-}export type Options = { fetcher?: typeof fetch; signal?: AbortSignal; timeoutMs?: number };
+}
+
+/**
+ * A cell whose fresh value ran out shows the last one seen (api #690:
+ * READY with `stale` and its own observedAt). Optional until that api ships:
+ * a cell without it is current.
+ */
+export const isStale = (cell: GemCell) =>
+  (cell as GemCell & { stale?: boolean | null }).stale === true && cell.observedAt != null;
+
+const kstDay = new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", year: "numeric", month: "numeric", day: "numeric" });
+const kstTime = new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
+const kstDate = new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", month: "numeric", day: "numeric" });
+
+/**
+ * When a stale value was seen: its time on the board's own day ("23:59"),
+ * else its date ("10. 24."). The board's day is its newest current cell's,
+ * so the words never depend on the viewer's clock (same on server and client).
+ */
+export function staleWhen(cell: GemCell, board: GemBoard) {
+  const seen = new Date(cell.observedAt!);
+  const current = board.cells
+    .filter((c) => c.status === "READY" && !isStale(c) && c.observedAt)
+    .map((c) => Date.parse(c.observedAt!));
+  const latest = current.length ? new Date(Math.max(...current)) : seen;
+  return kstDay.format(seen) === kstDay.format(latest) ? kstTime.format(seen) : kstDate.format(seen);
+}
+
+export type Options = { fetcher?: typeof fetch; signal?: AbortSignal; timeoutMs?: number };
 
 /** The skill a gem works on, from its options ("[바드] …" class + effect name). */
 export function gemTarget(listing: GemListing) {

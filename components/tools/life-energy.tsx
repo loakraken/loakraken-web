@@ -1,5 +1,7 @@
 "use client";
 
+import { HubTabs } from "@/components/site/hub-tabs";
+
 import { useId, useMemo, type CSSProperties } from "react";
 import Link from "next/link";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
@@ -28,6 +30,7 @@ import { goldText as count } from "@/lib/tools/format";
 import quote from "./material-quote.module.css";
 import craft from "./abidos-craft.module.css";
 import styles from "./life-energy.module.css";
+import { MoreDetail } from "@/components/ui/more-detail";
 
 const UNKNOWN = "미확인";
 const DEFAULT_ENERGY = 10000;
@@ -147,6 +150,7 @@ export function LifeEnergyTool() {
           <Link href="/" className={quote.back}>
             <ArrowLeft size={14} aria-hidden="true" /> 홈으로
           </Link>
+          <HubTabs hub="gold" />
         </section>
 
         <div className={quote.band}>
@@ -294,15 +298,19 @@ export function LifeEnergyTool() {
                   </tbody>
                 </table>
               </div>
+              {/* One line on the page, the calc basis folded (#1112): nothing removed. */}
               <p className={craft.small}>
                 생활 스킬마다 생명의 기운 1만당 캐는 평균 수량으로 재료를 정하고(등급마다 내림), 재료를 그대로 팔 때와 캔 재료만으로
-                아비도스·상급 아비도스 융화 재료를 최대한 만들 때 중 더 많이 버는 쪽을 보여 줘요. 만들 때는 모자란 재료를 교환
+                아비도스·상급 아비도스 융화 재료를 최대한 만들 때 중 더 많이 버는 쪽을 보여 줘요.
+              </p>
+              <MoreDetail className={craft.small}>
+                만들 때는 모자란 재료를 교환
                 상인으로만 채우고(재료를 사지 않음), 쓴 재료의 판매 가치와 제작 골드를 빼고 남은 교환 결과물의 판매 가치를 더해요. 판매
                 가치는 묶음 가격에서 판매 수수료 5%(1골드 미만 올림)를 뗀 값이에요. 융화 재료를 직접 쓰면 거래소 1개 가격으로 매겨요.
                 하루 회복은 10분마다 {LIFE_DATA.recovery.perTick}(베아트리스의 축복 {LIFE_DATA.recovery.blessedPerTick})로 계산해요.
                 생활 도구·부적·생활 스킬 레벨 효과와 채집 1회 소모량은 확인된 수치가 없어 넣지 않았어요. 시세가 없는 재료는 0이
                 아니라 {UNKNOWN}으로 둬요. 확인 {LIFE_DATA.checkedAt}.
-              </p>
+              </MoreDetail>
             </section>
           </div>
         </div>

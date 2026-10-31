@@ -1,6 +1,18 @@
 "use client";
 
-import { memo, useContext, useEffect, useState, type FormEvent } from "react";
+import {
+  Suspense,
+  lazy,
+  memo,
+  useCallback,
+  useContext,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type FormEvent,
+  type KeyboardEvent,
+} from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
@@ -18,8 +30,10 @@ import {
 } from "@/lib/character/model";
 import { SiteHeader } from "@/components/site/site-header";
 import { recordRecent } from "@/lib/character/recent";
+import { refreshFavoriteImage } from "@/lib/character/favorites";
 import { CharacterBanner } from "./imagery";
 import { BannerRank } from "./banner-rank";
+import { BannerFavorite } from "./favorite";
 import { KrakenScoreStrip } from "./kraken-score-metric";
 import { Entrance } from "./entrance";
 import { kstTime, level, number, text } from "./parts";
@@ -31,12 +45,26 @@ import styles from "./character.module.css";
 import { RATE_LIMITED } from "@/lib/api/rate-limit";
 import { RateLimitNote } from "@/components/site/rate-limit-note";
 
+// The header search's result panel under this box (#1113), loaded on the
+// first focus so the page's first JS does not grow.
+const SearchDropdown = lazy(() => import("@/components/ui/search-dropdown"));
+
 function SearchBox({ name }: { name: string }) {
   const router = useRouter();
   const [value, setValue] = useState(name);
   const [error, setError] = useState("");
   const [moving, setMoving] = useState(false);
   const [notice, setNotice] = useState("");
+  const [open, setOpen] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const [activeId, setActiveId] = useState<string | undefined>();
+  const keys = useRef<((event: KeyboardEvent<HTMLInputElement>) => void) | null>(null);
+  const wrap = useRef<HTMLDivElement>(null);
+  const input = useRef<HTMLInputElement>(null);
+  const panelId = useId();
+  const bindKeys = useCallback((handler: typeof keys.current) => {
+    keys.current = handler;
+  }, []);
   function submit(event: FormEvent) {
     event.preventDefault();
     const issue = characterNameError(value);
@@ -54,7 +82,14 @@ function SearchBox({ name }: { name: string }) {
     router.push(`/character/${encodeURIComponent(normalized)}`);
   }
   return (
-    <div className={styles.searchWrap}>
+    <div
+      ref={wrap}
+      className={styles.searchWrap}
+      // Leaving the box and its panel (tabs included) closes the panel (#1119 c).
+      onBlur={(event) => {
+        if (!wrap.current?.contains(event.relatedTarget as Node | null)) setOpen(false);
+      }}
+    >
       <form
         onSubmit={submit}
         noValidate
@@ -66,23 +101,63 @@ function SearchBox({ name }: { name: string }) {
           다른 캐릭터 이름
         </label>
         <input
+          ref={input}
           id="detail-search"
           value={value}
           onChange={(e) => {
             setValue(e.target.value);
             setError("");
             setNotice("");
+            setOpen(true);
+          }}
+          onFocus={() => {
+            setLoaded(true);
+            setOpen(true);
+          }}
+          onKeyDown={(event) => {
+            if (event.key === "Escape" && open) {
+              event.preventDefault();
+              setOpen(false);
+              return;
+            }
+            if (open) keys.current?.(event);
           }}
           maxLength={65}
           placeholder="캐릭터 검색"
           disabled={moving}
+          enterKeyHint="search"
+          role="combobox"
+          autoComplete="off"
+          aria-expanded={open}
+          aria-controls={panelId}
+          aria-autocomplete="list"
+          aria-activedescendant={open ? activeId : undefined}
           aria-invalid={!!error}
-          aria-describedby={error ? "detail-search-error" : undefined}
+          aria-describedby={[error && "detail-search-error", open && `${panelId}-hint`].filter(Boolean).join(" ") || undefined}
         />
         <button type="submit" disabled={moving} aria-label="캐릭터 검색">
           {moving ? <InlineOrb /> : <ArrowRight size={18} />}
         </button>
       </form>
+      {loaded && (
+        <Suspense fallback={null}>
+          <SearchDropdown
+            open={open && !moving}
+            text={value === name ? "" : value}
+            panelId={panelId}
+            onLeave={() => {
+              setOpen(false);
+              setMoving(true);
+            }}
+            onEscape={() => {
+              setOpen(false);
+              input.current?.focus();
+            }}
+            bindKeys={bindKeys}
+            onActiveId={setActiveId}
+          />
+        </Suspense>
+      )}
       {error && (
         <p className={styles.inputError} id="detail-search-error" role="alert">
           {error}
@@ -107,7 +182,10 @@ const Banner = memo(function Banner({ data }: { data: Character }) {
           <p className={styles.bannerKicker}>
             {data.serverName} · {data.className}
           </p>
-          <h1 className={styles.bannerName}>{data.characterName}</h1>
+          <div className={styles.bannerNameRow}>
+            <h1 className={styles.bannerName}>{data.characterName}</h1>
+            <BannerFavorite name={data.characterName} image={data.imageUrl} />
+          </div>
           {data.title && (
             <p className={styles.bannerTitle}>{data.title}</p>
           )}
@@ -254,13 +332,17 @@ function CharacterContent({
         className: data.className,
         itemLevel: data.itemLevel,
         combatPower: data.combatPower,
+        image: data.imageUrl,
       }
     : null;
   useEffect(() => {
-    if (seen) recordRecent(seen);
+    if (!seen) return;
+    recordRecent(seen);
+    // A favourite's dropdown row takes the image seen here too.
+    refreshFavoriteImage(seen.name, seen.image);
     // Record once per character and refresh, not on every re-render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [seen?.name, seen?.itemLevel, seen?.combatPower]);
+  }, [seen?.name, seen?.itemLevel, seen?.combatPower, seen?.image]);
 
   return (
     <div className={styles.page}>

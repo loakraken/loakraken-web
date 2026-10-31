@@ -180,7 +180,7 @@ function ResultPanel({ open, id, label, groups, activeId, onPick, onActive, head
                             <span className="rsp-av" aria-hidden="true">
                               {item.avatar.src ? (
                                 // eslint-disable-next-line @next/next/no-img-element -- official CDN portrait, 32px
-                                <img src={item.avatar.src} alt="" draggable={false} loading="lazy" decoding="async" />
+                                <img src={item.avatar.src} alt="" width={32} height={32} draggable={false} loading="lazy" decoding="async" />
                               ) : (
                                 item.avatar.fallback
                               )}

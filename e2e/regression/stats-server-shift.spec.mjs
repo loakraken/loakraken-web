@@ -3,7 +3,7 @@
 import { test, expect, gotoReady, chooseOption, expectNoHorizontalOverflow } from "../support/fixtures.mjs";
 import { shiftsDuring, watchShifts } from "../support/shifts.mjs";
 
-for (const tab of ["classes", "distribution", "best", "servers", "titles"])
+for (const tab of ["classes", "distribution", "best", "servers", "titles", "population"])
   for (const width of [1280, 360])
     test(`@A7 통계 ${tab} 탭 서버 전환 흔들림 0 @${width} @regression`, async ({ page }) => {
       await page.setViewportSize({ width, height: 900 });

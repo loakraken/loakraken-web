@@ -168,12 +168,45 @@ const SHOWN_WHEN: Record<ThemeChoice, string> = {
   system: "hidden [:root[data-theme-choice=system]_&]:block",
 }
 
-// Each option previews its page colour (a small dot after the name); system is half light, half dark.
-const SWATCH: Record<ThemeChoice, string> = {
-  light: "bg-white",
-  dim: "bg-[#22252b]",
-  dark: "bg-[#0f1114]",
-  system: "bg-[linear-gradient(135deg,#fff_50%,#0f1114_50%)]",
+// Each option previews its theme after the name: the page, a card block and a
+// line of text in that theme's own colours. A plain dot could not tell 딤 from
+// 다크 (their pages are 1.2:1 apart); the card and text steps differ more (PM
+// 10-31, option A). The colours are globals.css's --preview-<theme>-* (each
+// theme's --background, --secondary and --foreground, readable in any theme).
+// System is half light, half dark.
+const preview = (theme: AppliedTheme) => ({
+  page: `var(--preview-${theme}-page)`,
+  card: `var(--preview-${theme}-card)`,
+  text: `var(--preview-${theme}-text)`,
+})
+
+function PreviewFace({ theme, clip }: { theme: AppliedTheme; clip?: boolean }) {
+  const { page, card, text } = preview(theme)
+  return (
+    <span
+      className="absolute inset-0"
+      style={{ background: page, clipPath: clip ? "polygon(100% 0, 100% 100%, 0 100%)" : undefined }}
+    >
+      <span className="absolute top-[3px] left-[3px] h-[6px] w-[12px] rounded-[1.5px]" style={{ background: card }} />
+      <span className="absolute bottom-[3px] left-[3px] h-[2px] w-[14px] rounded-full" style={{ background: text }} />
+    </span>
+  )
+}
+
+/** 24×16, with a 1px edge so the white one holds on the light menu. */
+function ThemePreview({ value }: { value: ThemeChoice }) {
+  return (
+    <span aria-hidden className="relative h-4 w-6 shrink-0 overflow-hidden rounded-[4px] shadow-[0_0_0_1px_var(--input)]">
+      {value === "system" ? (
+        <>
+          <PreviewFace theme="light" />
+          <PreviewFace theme="dark" clip />
+        </>
+      ) : (
+        <PreviewFace theme={value} />
+      )}
+    </span>
+  )
 }
 
 type ThemeToggleProps = Omit<IconButtonProps, "aria-label" | "aria-pressed" | "onClick" | "children">
@@ -293,13 +326,7 @@ function ThemeToggle({ className, ...props }: ThemeToggleProps) {
               >
                 <Icon size={20} aria-hidden className="shrink-0" />
                 <span className="flex-1">{label}</span>
-                {/* The same ring outside every dot (field-edge colour, 3:1 on
-                    the panel), so the white and the near-black dots read as
-                    the same size on any theme. */}
-                <span
-                  aria-hidden
-                  className={cn("size-3.5 shrink-0 rounded-full shadow-[0_0_0_1.5px_var(--input)]", SWATCH[value])}
-                />
+                <ThemePreview value={value} />
               </button>
             )
           })}

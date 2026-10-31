@@ -4,6 +4,14 @@ name: E2E
 # 비필수(정보용) 검사로 시작한다(PM-프론트 결정 2026-10-09). 10-23쯤 실행 통계를 보고 필수 전환을 판단한다.
 # 앱 코드·e2e 경로가 바뀔 때만 돈다. 초안 PR은 건너뛰고(준비 완료로 바꾸면 돎), 같은 PR의 이전 실행은 취소한다.
 # develop push(병합 뒤)에도 돌아 병합마다 통계 표본(e2e-stats)을 남긴다(10-10, 저장소 공개로 Actions 시간 제한 없음).
+#
+# 나눠 돌리기(사용자 요청 2026-10-31, 한 번에 약 33분 → 목표 약 10분, 테스트는 하나도 빼지 않는다):
+# 1) build: 운영 빌드(next build → standalone)를 한 번만 만들어 산출물로 넘긴다(4번 빌드하지 않음).
+# 2) shard 1~6: 화면 크기 세 프로젝트(desktop-1440·tablet-768·mobile-390)를 6개 러너가 나눠 돈다(--shard).
+# 3) serial: 혼자 돌아야 하는 isolated(목 실패 장치)·solo(CPU 측정)와 성능 점검을 자기 러너에서 차례로 돈다.
+#    러너마다 목 백엔드가 따로 떠서 다른 shard와 실패 예약을 나누지 않는다.
+# 4) e2e: 위 결과를 하나로 합쳐 요약·통계를 남기고, 하나라도 실패하면 실패한다. 검사 이름 'e2e'는 그대로라
+#    PR 화면과 검토 도구가 보는 이름이 바뀌지 않는다.
 on:
   pull_request:
     branches: [develop, master]
@@ -48,31 +56,81 @@ concurrency:
   # PR은 이전 실행을 취소한다. develop push는 취소하지 않아 병합마다 통계 표본(e2e-stats)이 남는다(대기 중인 실행은 GitHub가 가장 최근 하나만 둔다).
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
+env:
+  CI: "true"
+  NEXT_TELEMETRY_DISABLED: 1
+  E2E_CHANNEL: chromium
+  # 운영 빌드(next build → standalone server.js)로 띄운다(QA #133). dev 서버는 CI에서 홈 화면 수화 지연으로 flaky가 났다(10-09 비교).
+  E2E_SERVER: standalone
+
 jobs:
-  e2e:
+  build:
     # 초안 PR은 건너뛴다. develop push와 수동 실행은 항상.
     if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     runs-on: ubuntu-latest
-    # The suite alone runs close to 25 minutes; with several PRs on shared
-    # runners it was cancelled by the limit, not by a failure.
-    timeout-minutes: 40
+    timeout-minutes: 15
     env:
-      CI: "true"
-      NEXT_TELEMETRY_DISABLED: 1
-      E2E_CHANNEL: chromium
-      # 운영 빌드(next build → standalone server.js)로 띄운다(QA #133). dev 서버는 CI에서 홈 화면 수화 지연으로 flaky가 났다(10-09 비교).
-      E2E_SERVER: standalone
+      # 예전처럼 e2e 설정(playwright.config.mjs의 api 값)과 같은 환경으로 빌드한다. 빌드 때 읽는 값(시험용 개발자 노트 등)이 같아야 한다.
+      LOAKRAKEN_API_ORIGIN: http://127.0.0.1:3201
+      CHARACTER_INDEXING: "on"
+      PRICE_ALERTS: "on"
+      DEV_NOTES_DIR: ${{ github.workspace }}/e2e/support/dev-notes
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           cache: npm
-          cache-dependency-path: |
-            package-lock.json
-            e2e/package-lock.json
+          cache-dependency-path: package-lock.json
       - name: Install app dependencies
         run: npm ci --no-audit --no-fund
+      - name: Cache Next.js build cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .next/cache
+          key: nextjs-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-${{ hashFiles('app/**', 'components/**', 'lib/**', 'next.config.ts') }}
+          restore-keys: |
+            nextjs-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-
+      # 예전에는 목 백엔드가 떠 있는 동안 빌드했다(webServer 순서). 빌드 중 요청이 있어도 같게 목을 먼저 띄운다.
+      - name: Start mock backend
+        run: |
+          MOCK_PORT=3201 node tests/mock-backend.mjs > /tmp/mock.log 2>&1 &
+          for i in $(seq 1 30); do curl -sf -o /dev/null http://127.0.0.1:3201/__counts && exit 0; sleep 1; done
+          cat /tmp/mock.log; exit 1
+      - name: Build standalone app
+        run: npx next build
+      - name: Pack build
+        run: tar -czf e2e-build.tgz .next/standalone .next/static
+      - name: Upload build
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: e2e-build
+          path: e2e-build.tgz
+          retention-days: 1
+
+  shard:
+    needs: build
+    name: e2e shard ${{ matrix.shard }}/${{ strategy.job-total }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      # 한 shard가 실패해도 나머지는 끝까지 돌아 실패 목록이 한 번에 다 나온다.
+      fail-fast: false
+      matrix:
+        # shard 수는 이 목록 하나로 정한다(전체 수는 strategy.job-total). 같은 PR에서 4개 12분 12초, 6개 8분 43초였고
+        # 3분 넘게 줄어 6개로 둔다(#1180). 한 번에 job 8개(build·shard 6·serial)를 쓰므로 계정의 동시 job 한도(20)를
+        # api CI·다른 PR과 나눠 쓴다는 점을 염두에 둔다.
+        shard: [1, 2, 3, 4, 5, 6]
+    env:
+      # build job의 standalone 빌드를 쓴다(e2e/support/standalone-server.mjs가 다시 빌드하지 않음).
+      E2E_SKIP_BUILD: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: e2e/package-lock.json
       - name: Install e2e dependencies
         working-directory: e2e
         run: npm ci --no-audit --no-fund
@@ -94,33 +152,96 @@ jobs:
         if: steps.pw-cache.outputs.cache-hit == 'true'
         working-directory: e2e
         run: npx playwright install-deps chromium
-      - name: Run E2E
+      - name: Download build
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: e2e-build
+      - name: Unpack build
+        run: tar -xzf e2e-build.tgz && rm e2e-build.tgz
+      - name: Run E2E shard
         working-directory: e2e
-        env:
-          PLAYWRIGHT_JSON_OUTPUT_NAME: results.json
-        run: npx playwright test --reporter=list,html,json
-      - name: Summarize run
+        run: npx playwright test --project=desktop-1440 --project=tablet-768 --project=mobile-390 --shard=${{ matrix.shard }}/${{ strategy.job-total }} --reporter=list,blob
+      - name: Upload blob report
         if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: blob-shard-${{ matrix.shard }}
+          path: e2e/blob-report
+          if-no-files-found: ignore
+          retention-days: 1
+      - name: Upload traces
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: e2e-traces-shard-${{ matrix.shard }}
+          path: e2e/test-results
+          if-no-files-found: ignore
+          retention-days: 7
+
+  serial:
+    needs: build
+    name: e2e isolated·solo·perf
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      E2E_SKIP_BUILD: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: e2e/package-lock.json
+      - name: Install e2e dependencies
         working-directory: e2e
-        run: |
-          node --input-type=commonjs <<'JS'
-            const fs = require("fs");
-            if (!fs.existsSync("results.json")) { console.log("results.json 없음(실행 전 실패)"); process.exit(0); }
-            const s = JSON.parse(fs.readFileSync("results.json", "utf8")).stats ?? {};
-            const row = {
-              run: process.env.GITHUB_RUN_ID, pr: process.env.PR, sha: process.env.GITHUB_SHA, server: process.env.E2E_SERVER ?? "dev",
-              expected: s.expected ?? 0, unexpected: s.unexpected ?? 0, flaky: s.flaky ?? 0, skipped: s.skipped ?? 0,
-              minutes: Math.round((s.duration ?? 0) / 600) / 100,
-            };
-            fs.writeFileSync("e2e-stats.json", JSON.stringify(row) + "\n");
-            const md = `### E2E 결과\n\n| 통과 | 실패 | 재시도 후 통과(flaky) | 건너뜀 | 테스트 시간(분) |\n|---|---|---|---|---|\n| ${row.expected} | ${row.unexpected} | ${row.flaky} | ${row.skipped} | ${row.minutes} |\n`;
-            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, md);
-            console.log(md);
-          JS
-        env:
-          PR: ${{ github.event.pull_request.number }}
+        run: npm ci --no-audit --no-fund
+      - name: Read Playwright version
+        id: pw
+        working-directory: e2e
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+      - name: Cache Playwright browsers
+        id: pw-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}-chromium
+      - name: Install Chromium with system dependencies
+        if: steps.pw-cache.outputs.cache-hit != 'true'
+        working-directory: e2e
+        run: npx playwright install --with-deps chromium
+      - name: Install Chromium system dependencies only
+        if: steps.pw-cache.outputs.cache-hit == 'true'
+        working-directory: e2e
+        run: npx playwright install-deps chromium
+      - name: Download build
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: e2e-build
+      - name: Unpack build
+        run: tar -xzf e2e-build.tgz && rm e2e-build.tgz
+      # isolated(목 실패 장치)와 solo(CPU 측정)는 다른 테스트와 함께 돌면 안 된다. 이 러너는 다른 테스트를 돌리지 않으므로
+      # 앞선 프로젝트를 기다리지 않고(--no-deps) 한 작업자(--workers=1)로 isolated → solo 차례로 돈다.
+      - name: Run isolated and solo
+        working-directory: e2e
+        run: npx playwright test --project=isolated --project=solo --no-deps --workers=1 --reporter=list,blob
+      - name: Upload blob report
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: blob-serial
+          path: e2e/blob-report
+          if-no-files-found: ignore
+          retention-days: 1
+      - name: Upload traces
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: e2e-traces-serial
+          path: e2e/test-results
+          if-no-files-found: ignore
+          retention-days: 7
       # 성능 점검(비필수·정보용, PM 총괄 결정 2026-10-09). 390px·CPU 4배로 LCP·CLS·INP를 잰다.
-      # 위 기능 검사의 standalone 빌드를 다시 쓴다(E2E_SKIP_BUILD). 비공개 저장소라 별도 job으로 다시 빌드하지 않는다.
+      # 위 build job의 standalone 빌드를 다시 쓴다(E2E_SKIP_BUILD). 이 러너에는 다른 테스트가 없어 CPU를 다투지 않는다.
       # 흔들림을 보려고 같은 커밋에서 3회 반복한다. perf 테스트는 순서대로(serial) 돌아 E2E_PERF_ENFORCE를 켜면
       # 첫 기준 초과 뒤 나머지가 건너뛰어져 기록이 빠진다(10-09 확인). 그래서 여기서는 모두 재고, 기준 판정은 아래 요약 단계가 한다.
       # 측정 자체가 실패해도 job·PR은 막지 않는다(continue-on-error).
@@ -130,7 +251,6 @@ jobs:
         continue-on-error: true
         working-directory: e2e
         env:
-          E2E_SKIP_BUILD: "1"
           E2E_PERF: "1"
           PLAYWRIGHT_JSON_OUTPUT_NAME: perf-results.json
         run: npx playwright test --project=perf --repeat-each=3 --retries=0 --reporter=list,json
@@ -168,6 +288,95 @@ jobs:
           JS
         env:
           PR: ${{ github.event.pull_request.number }}
+      - name: Upload performance rows
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: e2e-perf
+          path: e2e/e2e-perf.jsonl
+          if-no-files-found: ignore
+          retention-days: 1
+
+  e2e:
+    # 검사 이름 'e2e'를 지키는 묶음 job: 모든 shard·serial 결과를 합쳐 요약하고, 하나라도 실패하면 실패한다.
+    needs: [build, shard, serial]
+    if: always() && (github.event_name != 'pull_request' || !github.event.pull_request.draft)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: e2e/package-lock.json
+      - name: Install e2e dependencies
+        working-directory: e2e
+        run: npm ci --no-audit --no-fund
+      - name: Download blob reports
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: blob-*
+          path: e2e/all-blob-reports
+          merge-multiple: true
+      - name: Merge reports
+        if: always()
+        working-directory: e2e
+        env:
+          PLAYWRIGHT_JSON_OUTPUT_NAME: results.json
+        run: |
+          if [ -d all-blob-reports ] && [ -n "$(ls -A all-blob-reports)" ]; then
+            npx playwright merge-reports --reporter=json,html ./all-blob-reports
+          else
+            echo "blob 보고서 없음(테스트 실행 전 실패)"
+          fi
+      - name: Summarize run
+        if: always()
+        working-directory: e2e
+        run: |
+          node --input-type=commonjs <<'JS'
+            const fs = require("fs");
+            if (!fs.existsSync("results.json")) { console.log("results.json 없음(실행 전 실패)"); process.exit(0); }
+            const s = JSON.parse(fs.readFileSync("results.json", "utf8")).stats ?? {};
+            const row = {
+              run: process.env.GITHUB_RUN_ID, pr: process.env.PR, sha: process.env.GITHUB_SHA, server: process.env.E2E_SERVER ?? "dev",
+              expected: s.expected ?? 0, unexpected: s.unexpected ?? 0, flaky: s.flaky ?? 0, skipped: s.skipped ?? 0,
+              minutes: Math.round((s.duration ?? 0) / 600) / 100,
+            };
+            fs.writeFileSync("e2e-stats.json", JSON.stringify(row) + "\n");
+            const md = `### E2E 결과(shard 전체 + isolated·solo 합계)\n\n| 통과 | 실패 | 재시도 후 통과(flaky) | 건너뜀 | 테스트 시간(분) |\n|---|---|---|---|---|\n| ${row.expected} | ${row.unexpected} | ${row.flaky} | ${row.skipped} | ${row.minutes} |\n`;
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, md);
+            console.log(md);
+          JS
+        env:
+          PR: ${{ github.event.pull_request.number }}
+      # shard 보고서 하나가 올라가지 않아도 위 합계는 조용히 줄어든다. 같은 프로젝트의 테스트 목록(--list, 서버를 띄우지 않음)과
+      # 합친 결과의 테스트 수를 맞춰 보고, 다르면 실패한다(#1180 리뷰).
+      - name: Check every test was reported
+        if: always()
+        working-directory: e2e
+        run: |
+          [ -f results.json ] || { echo "results.json 없음: 위 단계에서 이미 실패"; exit 1; }
+          npx playwright test --project=desktop-1440 --project=tablet-768 --project=mobile-390 --project=isolated --project=solo --list --reporter=json > list.json
+          node --input-type=commonjs <<'JS'
+            const fs = require("fs");
+            const count = (suite) => (suite.specs ?? []).reduce((n, s) => n + (s.tests ?? []).length, 0) + (suite.suites ?? []).reduce((n, s) => n + count(s), 0);
+            const listed = JSON.parse(fs.readFileSync("list.json", "utf8")).suites.reduce((n, s) => n + count(s), 0);
+            const s = JSON.parse(fs.readFileSync("results.json", "utf8")).stats ?? {};
+            const reported = (s.expected ?? 0) + (s.unexpected ?? 0) + (s.flaky ?? 0) + (s.skipped ?? 0);
+            console.log(`목록 ${listed}개, 보고 ${reported}개`);
+            if (!listed || listed !== reported) {
+              console.log(`::error title=E2E 테스트 수 불일치::목록 ${listed}개와 합친 보고 ${reported}개가 다릅니다. shard 보고서가 빠졌는지 보세요.`);
+              process.exit(1);
+            }
+          JS
+      - name: Download performance rows
+        if: always()
+        continue-on-error: true
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: e2e-perf
+          path: e2e
       - name: Upload stats
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -178,13 +387,16 @@ jobs:
             e2e/e2e-perf.jsonl
           if-no-files-found: ignore
           retention-days: 30
-      - name: Upload report and traces
-        if: failure()
+      - name: Upload report
+        if: always() && (needs.shard.result != 'success' || needs.serial.result != 'success')
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: e2e-report
-          path: |
-            e2e/playwright-report
-            e2e/test-results
+          path: e2e/playwright-report
           if-no-files-found: ignore
           retention-days: 7
+      - name: Fail when any part failed
+        if: always()
+        run: |
+          echo "build=${{ needs.build.result }} shard=${{ needs.shard.result }} serial=${{ needs.serial.result }}"
+          [ "${{ needs.build.result }}" = success ] && [ "${{ needs.shard.result }}" = success ] && [ "${{ needs.serial.result }}" = success ]

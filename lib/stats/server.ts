@@ -18,6 +18,9 @@ import { type TitleEquipQuery } from "./title-equip";
 import { requestTitleEquip } from "./title-equip.backend";
 import { type CollectibleQuery } from "./collectible-ranking";
 import { requestCollectibleRanking } from "./collectible-ranking.backend";
+import { requestGemLevels } from "./gem-levels";
+import { requestLevelCombatPower } from "./level-combat-power";
+import { requestPopulation } from "./population";
 
 export function getStats<V extends StatsView>(view: V, query: StatsQuery, signal?: AbortSignal) {
   return requestStats(view, query, process.env.LOAKRAKEN_API_ORIGIN, { signal });
@@ -67,6 +70,18 @@ export function getBestCombatPower(query: StatsQuery, signal?: AbortSignal) {
   return requestBestCombatPower(query, process.env.LOAKRAKEN_API_ORIGIN, { signal });
 }
 
+export function getGemLevels(query: StatsQuery, signal?: AbortSignal) {
+  return requestGemLevels(query, process.env.LOAKRAKEN_API_ORIGIN, { signal });
+}
+
+export function getLevelCombatPower(query: StatsQuery, signal?: AbortSignal) {
+  return requestLevelCombatPower(query, process.env.LOAKRAKEN_API_ORIGIN, { signal });
+}
+
 export function getGuildDetail(query: GuildDetailQuery, signal?: AbortSignal) {
   return requestGuildDetail(query, process.env.LOAKRAKEN_API_ORIGIN, { signal });
+}
+
+export function getPopulation(server: string | undefined, signal?: AbortSignal) {
+  return requestPopulation(server, process.env.LOAKRAKEN_API_ORIGIN, { signal });
 }

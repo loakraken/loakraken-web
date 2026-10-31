@@ -10,6 +10,7 @@ import {
   TIER_LEGEND,
   rankCell,
   rankState,
+  SCOPES,
   scopeLabel,
   scopesOf,
   type CharacterRank,
@@ -90,6 +91,55 @@ function Cells({ data, metric }: { data: CharacterRank; metric: RankMetric }) {
 }
 
 /**
+ * While the rank loads (only when the page's own 1s wait ran out): the boxes'
+ * usual shape, empty, and the notes' lines. The block sits on top of the
+ * summary column, so it keeps the room it will take and nothing under it
+ * moves when the rank fills in (A7).
+ */
+function RankPlaceholder() {
+  return (
+    <>
+      {METRICS.map((metric) => (
+        <section key={metric.id} className={styles.metric} aria-hidden="true">
+          <h3>{metric.label}</h3>
+          {/* Four boxes (two rows of two): the backend sends the server-class
+              scope for ranked characters, so this is the usual filled shape. */}
+          <ul className={styles.cells} data-count={SCOPES.length}>
+            {SCOPES.map((scope) => (
+              <li key={scope.id}>
+                <span className={styles.scope}>{scope.label}</span>
+                {/* A filled box's lines with its own kind of text, unseen: Korean
+                    words set a taller line than spaces would, so the row is held
+                    to the height it will have. */}
+                <strong className={styles.unseen}>1위</strong>
+                <small className={styles.unseen}>/ 1명</small>
+                <span className={`${styles.top} ${styles.unseen}`}>
+                  <span className={styles.share}>상위 1%</span>
+                  {/* A button as in a filled box (the tooltip trigger sets its line). */}
+                  <button type="button" className={styles.tier} tabIndex={-1} disabled>
+                    연안
+                  </button>
+                </span>
+                <small className={`${styles.next} ${styles.unseen}`}>연안까지 1</small>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))}
+      {/* The conditions line takes the basis button on a line of its own: its
+          room is held under the words. */}
+      <p className={styles.note} role="status">
+        순위를 불러오고 있어요…
+        <span className={styles.holdButton} aria-hidden="true" />
+      </p>
+      <p className={styles.note} aria-hidden="true">
+        티어(그 칸 순위에서 상위 몇 %인지): {TIER_LEGEND}
+      </p>
+    </>
+  );
+}
+
+/**
  * Ranking boxes (F-7): combat power and item level, each over all,
  * the server and the class. Ranks are over the characters LOAKraken has
  * observed (said under the boxes), never the whole game. A small sample
@@ -110,7 +160,7 @@ export function RankPanel({ name }: { name: string }) {
   return (
     <Panel title="순위" meta={state === "ranked" ? "LOAKraken 수집 기준" : undefined}>
       {query.isPending ? (
-        <p className={styles.muted}>순위를 불러오고 있어요…</p>
+        <RankPlaceholder />
       ) : !data ? (
         <div className={styles.muted}>
           <p>

@@ -19,3 +19,9 @@ test("stored data is parsed defensively and the saving flag rides in the snapsho
   assert.equal(readSnapshot(`|${JSON.stringify([entry("a")])}`).saving, true);
   assert.deepEqual(readSnapshot("1|[]"), { saving: false, list: [] });
 });
+
+test("the character image rides with an entry; older rows without one still parse", () => {
+  const withImage = { ...entry("a"), image: "https://cdn-lostark.game.onstove.com/a.png" };
+  const list = parseRecent(JSON.stringify([withImage, entry("old"), { ...entry("bad"), image: 3 }]));
+  assert.deepEqual(list.map((i) => [i.name, i.image ?? null]), [["a", withImage.image], ["old", null]]);
+});

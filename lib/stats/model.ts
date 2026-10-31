@@ -11,6 +11,8 @@ export type ServersEnvelope = Schemas["ApiResponseStatsServersResponse"];
 export type DistributionEnvelope = Schemas["ApiResponseStatsDistributionResponse"];
 export type Summary = Schemas["StatsSummaryResponse"];
 export type ClassRow = Schemas["StatsClassRowResponse"];
+/** Role split of the class sample (api #779; optional until that api ships). */
+export type Composition = Schemas["StatsCompositionResponse"];
 export type ServerRow = Schemas["StatsServerRowResponse"];
 export type Distribution = Schemas["StatsDistributionResponse"];
 export type Metric = Distribution["metric"];
@@ -148,7 +150,7 @@ export function withoutDistributionView(params: URLSearchParams) {
 }
 
 /** Bin width per metric on the distribution tab. */
-export const DISTRIBUTION_WIDTH: Record<Metric, number> = { ITEM_LEVEL: 10, COMBAT_POWER: 100 };
+export const DISTRIBUTION_WIDTH: Record<Metric, number> = { ITEM_LEVEL: 5, COMBAT_POWER: 100 };
 /** The distribution tab's query key (the page fills the default one in the first HTML). */
 export const distributionKey = (query: StatsQuery, metric: Metric, percentileOf?: number) =>
   ["stats", "distribution", statsKey(query), metric, percentileOf] as const;

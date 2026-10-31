@@ -216,6 +216,7 @@ export interface components {
         StatsClassesResponse: {
             meta: components["schemas"]["StatsMetaResponse"];
             rows: components["schemas"]["StatsClassRowResponse"][];
+            composition?: components["schemas"]["StatsCompositionResponse"];
         };
         StatsClassRowResponse: {
             className: string;
@@ -323,6 +324,29 @@ export interface components {
             total: number;
             topPercent: number | null;
             tier: ("TOP1" | "TOP5" | "TOP10" | "TOP25" | "TOP50" | "REST") | null;
+        };
+        /** @description Role split of the sample; the four counts sum to meta.population. */
+        StatsCompositionResponse: {
+            /**
+             * Format: int64
+             * @description Dealer classes
+             */
+            dealer: number;
+            /**
+             * Format: int64
+             * @description Support classes played as dealer
+             */
+            supportClassDealer: number;
+            /**
+             * Format: int64
+             * @description Support classes played as support
+             */
+            support: number;
+            /**
+             * Format: int64
+             * @description Role not observed
+             */
+            unknownRole: number;
         };
     };
     responses: never;

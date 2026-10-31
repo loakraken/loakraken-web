@@ -9,7 +9,6 @@ import {
   useMemo,
   useRef,
   useState,
-  useSyncExternalStore,
   type ReactNode,
 } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -28,6 +27,7 @@ import {
   gemKind,
   isCooldownGem,
   engravingBookString,
+  sortEngravings,
   groupEquipment,
   isGrade,
   parsePassiveNode,
@@ -41,13 +41,17 @@ import {
   skillSummary,
   statNumber,
   stoneBonus,
+  positionOf,
   type Equipment,
   type Skill,
 } from "@/lib/character/detail";
+import { accessoryLineCounts, gridOptionCounts } from "@/lib/character/role-lines";
+import { useFavorite } from "./favorite";
 import {
   characterNameError,
   coverageLabel,
   normalizeCharacterName,
+  safeGameImage,
   type Character,
   type CharacterEnvelope,
 } from "@/lib/character/model";
@@ -83,8 +87,12 @@ import {
   PassiveNodeCard,
   RuneCard,
   SkillDetailCard,
+  TripodCard,
+  tripodPlace,
 } from "./item-tooltip";
+import { awakeningLabel } from "@/lib/character/skill-type";
 import { sourcePlainText } from "@/lib/character/source-text";
+import { engravingIconMap, engravingKey, fetchEngravingIcons } from "@/lib/character/engraving-icons";
 import { useItemTooltips } from "./use-item-tooltips";
 import { useArmoryPage } from "./use-armory-page";
 import { tripodLevel, type ArmoryPage } from "@/lib/character/armory-page";
@@ -120,6 +128,7 @@ import {
 import { useStagger } from "./entrance";
 import { fetchTitleEquip } from "@/lib/stats/client";
 import { equipShare, titleEquipQuery, type EquippedTitle } from "@/lib/stats/title-equip";
+import { titlePercent, titleRecordRows, titleRecordSummary } from "@/lib/character/title-record";
 import { RosterPower, rosterPowerKey, useRosterPowerRefreshing } from "./roster-power";
 import { StatSheet } from "./stat-sheet";
 import { AnalysisMenu } from "./analysis-menu";
@@ -222,48 +231,6 @@ function TabLabel({ id, label }: { id: TabId; label: string }) {
   );
 }
 
-/* Favourites (per browser) -------------------------------------------------- */
-
-const FAVORITES = "loakraken:favorites";
-const favoriteEvent = "loakraken:favorites";
-function readFavorites(): string[] {
-  try {
-    const value = JSON.parse(localStorage.getItem(FAVORITES) ?? "[]");
-    return Array.isArray(value)
-      ? value.filter((item) => typeof item === "string")
-      : [];
-  } catch {
-    return [];
-  }
-}
-const subscribeFavorites = (callback: () => void) => {
-  window.addEventListener(favoriteEvent, callback);
-  window.addEventListener("storage", callback);
-  return () => {
-    window.removeEventListener(favoriteEvent, callback);
-    window.removeEventListener("storage", callback);
-  };
-};
-function useFavorite(name: string) {
-  const favorite = useSyncExternalStore(
-    subscribeFavorites,
-    () => readFavorites().includes(name),
-    () => false,
-  );
-  const toggle = () => {
-    try {
-      const list = readFavorites().filter((item) => item !== name);
-      localStorage.setItem(
-        FAVORITES,
-        JSON.stringify(favorite ? list : [name, ...list].slice(0, 30)),
-      );
-      window.dispatchEvent(new Event(favoriteEvent));
-    } catch {
-      /* Storage blocked: the toggle simply does not persist. */
-    }
-  };
-  return [favorite, toggle] as const;
-}
 
 /* Tab bar ------------------------------------------------------------------- */
 
@@ -284,7 +251,7 @@ export function TabBar({
   rateLimitSeconds: number;
   onRefresh: () => void;
 }) {
-  const [favorite, toggleFavorite] = useFavorite(name);
+  const [favorite, toggleFavorite] = useFavorite(name, data.imageUrl);
   const [shareStatus, setShareStatus] = useState("");
   const { nav: pillNav, layer: pillLayer, onKeyDown: pillKey, onPointerDown: pillPointer } = useTabPill(tab);
   // The guild tab only for a character in a guild.
@@ -359,9 +326,7 @@ export function TabBar({
             classEngraving={data.loadout.arkPassive?.title}
             specUp={useContext(SpecUpEnabled)}
             simulator={useContext(SimulatorEnabled)}
-            favorite={favorite}
             onShare={share}
-            onFavorite={toggleFavorite}
           />
           {/* On a narrow screen these two are in the menu above (A35). */}
           <button
@@ -457,20 +422,34 @@ function Quality({ value }: { value: number | null | undefined }) {
 
 function GradeLine({
   grade,
+  counts,
   children,
 }: {
   grade: unknown;
+  /** Whether the line counts for this character's role (null: not decided, left as is). */
+  counts?: boolean | null;
   children: ReactNode;
 }) {
   return (
     <li
       className={styles.gradeLine}
       data-grade={isGrade(grade) ? grade : undefined}
+      data-other-role={counts === false || undefined}
     >
       <span>{isGrade(grade) ? GRADE_LABEL[grade] : "·"}</span>
       {children}
+      {counts === false && <OtherRole />}
     </li>
   );
+}
+
+/**
+ * Said with a grey line (#1108): grey alone would carry the meaning by colour
+ * only (WCAG 1.4.1), so a screen reader hears it too. One wording everywhere.
+ */
+const OTHER_ROLE = " (이 역할에는 해당 없음)";
+function OtherRole() {
+  return <span className={styles.srOnly}>{OTHER_ROLE}</span>;
 }
 
 function refineOf(item: Equipment) {
@@ -489,6 +468,8 @@ function EquipmentPanel({ data }: { data: Character }) {
   const extra = useItemTooltips(data.characterName);
   const extraOf = (item: Equipment) =>
     equipmentExtra(extra, data.loadout.equipment.indexOf(item), item.type);
+  // Accessory lines that do not count for this role go grey (user 10-26).
+  const role = positionOf(data);
   const qualityGroups = data.analysis.equipment?.qualityGroups;
   const armorQ = averageQuality(qualityGroups, "WEAPON_ARMOR");
   const accQ = averageQuality(qualityGroups, "ACCESSORY");
@@ -565,22 +546,16 @@ function EquipmentPanel({ data }: { data: Character }) {
                       </span>
                     )}
                   </strong>
+                  {/* No ark passive point badge here (user 10-26): it reads as an
+                      accessory effect; the point stays in the item tooltip. */}
                   <span className={styles.badges}>
                     <Quality value={item.detail?.quality} />
-                    {item.detail?.arkPassivePoint && (
-                      <span
-                        className={styles.levelBadge}
-                        aria-label={`${item.detail.arkPassivePoint.name} ${item.detail.arkPassivePoint.value}`}
-                      >
-                        +{item.detail.arkPassivePoint.value}
-                      </span>
-                    )}
                   </span>
                 </div>
                 {item.detail?.polishEffects.length ? (
                   <ul className={styles.gradeList}>
                     {item.detail.polishEffects.map((effect, j) => (
-                      <GradeLine key={j} grade={effect.grade}>
+                      <GradeLine key={j} grade={effect.grade} counts={accessoryLineCounts(effect.name, effect.value, role)}>
                         {effect.name} {effect.value}
                       </GradeLine>
                     ))}
@@ -588,36 +563,53 @@ function EquipmentPanel({ data }: { data: Character }) {
                 ) : null}
               </li>
             ))}
+            {/* Under the accessories (user 10-31 layout): the stone, the orb,
+                then anything else; the bracelet takes the row below. */}
+            {groups.stone && (
+              <li {...stagger(groups.accessories.length, styles.item)}>
+                <ItemTooltip item={groups.stone} slot="어빌리티 스톤" extra={extraOf(groups.stone)}>
+                  <GameIcon src={groups.stone.icon} grade={groups.stone.grade} />
+                </ItemTooltip>
+                <div className={styles.itemText}>
+                  <strong>어빌리티 스톤</strong>
+                  {groups.stone.detail?.stoneEngravings.length ? (
+                    <ul className={styles.inlineList}>
+                      {groups.stone.detail.stoneEngravings.map((engraving, i) => (
+                        <li key={i}>
+                          {engraving.name} <b>Lv.{engraving.level}</b>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <small>{text(groups.stone.name)}</small>
+                  )}
+                </div>
+              </li>
+            )}
+            {[groups.orb, ...groups.others].filter((item): item is Equipment => item != null).map((item, i) => (
+              <li key={`other-${i}`} {...stagger(groups.accessories.length + 1 + i, styles.item)}>
+                <ItemTooltip item={item} slot={item.type ?? undefined} extra={extraOf(item)}>
+                  <GameIcon src={item.icon} grade={item.grade} />
+                </ItemTooltip>
+                <div className={styles.itemText}>
+                  <strong>{text(item.type)}</strong>
+                  <small>{text(item.name)}</small>
+                </div>
+                {/* The orb's 달성 최대 낙원력 on its right (backend #776); none, nothing. */}
+                {item.detail?.paradisePower != null && (
+                  <span className={styles.paradise}>
+                    <small>달성 최대 낙원력</small>
+                    <b>{item.detail.paradisePower.toLocaleString("ko-KR")}</b>
+                  </span>
+                )}
+              </li>
+            ))}
           </ul>
         </div>
       </div>
-      <div className={styles.equipFoot}>
-        {groups.stone && (
-          <div className={styles.footItem}>
-            <ItemTooltip item={groups.stone} slot="어빌리티 스톤" extra={extraOf(groups.stone)}>
-              <GameIcon
-                src={groups.stone.icon}
-                grade={groups.stone.grade}
-                size={40}
-              />
-            </ItemTooltip>
-            <div>
-              <strong>어빌리티 스톤</strong>
-              {groups.stone.detail?.stoneEngravings.length ? (
-                <ul className={styles.inlineList}>
-                  {groups.stone.detail.stoneEngravings.map((engraving, i) => (
-                    <li key={i}>
-                      {engraving.name} <b>Lv.{engraving.level}</b>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <small>{text(groups.stone.name)}</small>
-              )}
-            </div>
-          </div>
-        )}
-        {groups.bracelet && (
+      {/* The bracelet alone, across the whole width under both columns. */}
+      {groups.bracelet && (
+        <div className={styles.equipFoot}>
           <div className={styles.footItem} data-wide="">
             <ItemTooltip item={groups.bracelet} slot="팔찌" extra={extraOf(groups.bracelet)}>
               <GameIcon
@@ -632,19 +624,8 @@ function EquipmentPanel({ data }: { data: Character }) {
               efficiency={data.braceletEfficiency}
             />
           </div>
-        )}
-        {groups.others.map((item, i) => (
-          <div key={i} className={styles.footItem}>
-            <ItemTooltip item={item} slot={item.type ?? undefined} extra={extraOf(item)}>
-              <GameIcon src={item.icon} grade={item.grade} size={40} />
-            </ItemTooltip>
-            <div>
-              <strong>{text(item.type)}</strong>
-              <small>{text(item.name)}</small>
-            </div>
-          </div>
-        ))}
-      </div>
+        </div>
+      )}
     </Panel>
   );
 }
@@ -672,7 +653,7 @@ function BraceletBody({
   return (
     <div className={styles.braceletBody}>
       <strong>팔찌</strong>
-      {(real.state === "ready" || real.state === "pending") && (
+      {(real.state === "ready" || real.state === "pending" || real.state === "unavailable") && (
         <p className={styles.braceletEffHead}>
           <Tooltip>
             <TooltipTrigger className={styles.braceletEffTerm} aria-label="팔찌 효율: 이 팔찌가 딜을 몇 % 올려 주는지예요.">
@@ -682,6 +663,10 @@ function BraceletBody({
           </Tooltip>
           {real.state === "ready" ? (
             <b>{devil && real.devil ? real.devil : real.percent}</b>
+          ) : real.state === "unavailable" ? (
+            // Read but not worked out (an option the engine does not know):
+            // why, in a fixed sentence — not '준비 중', which reads as 'soon'.
+            <span className={styles.braceletEffReason}>읽지 못한 팔찌 옵션이 있어 계산하지 않았어요</span>
           ) : (
             // A bracelet is there (this row only shows with one), its value not
             // worked out: never a number (PM 총괄 14:04 — the comparison site
@@ -814,6 +799,11 @@ function ShareBars({ title, rows }: { title: string; rows: { label: string; coun
   );
 }
 
+const GEM_GROUPS = [
+  { id: "damage", label: "피해 증가" },
+  { id: "cooldown", label: "재사용 대기시간 감소" },
+] as const;
+
 function GemsPanel({ data }: { data: Character }) {
   const stagger = useStagger();
   const gems = data.loadout.gems?.items ?? [];
@@ -822,6 +812,12 @@ function GemsPanel({ data }: { data: Character }) {
   const summary = data.analysis.gems;
   const baseAttack = gemBaseAttack(data.loadout.gems?.effects?.description);
   const emptySlots = gemCounts(data.loadout.gems).empty;
+  // Players read gems as "10겁 8작"; the official name stays in the card.
+  const placed = gems.map((gem, index) => {
+    const skill = skills.find((effect) => effect.gemSlot === gem.slot);
+    const kind = gemKind(gem.name, skill?.description);
+    return { gem, skill, kind, index, group: kind && isCooldownGem(kind) ? "cooldown" : "damage" };
+  });
   return (
     <Panel
       title="보석"
@@ -841,35 +837,43 @@ function GemsPanel({ data }: { data: Character }) {
       }
     >
       {gems.length ? (
-        <ul className={styles.gemGrid}>
-          {gems.map((gem, i) => {
-            const skill = skills.find((effect) => effect.gemSlot === gem.slot);
-            // Players read gems as "10겁 8작"; the official name stays in the card.
-            const kind = gemKind(gem.name, skill?.description);
-            return (
-              <li key={i} {...stagger(i)}>
-                <DetailTooltip
-                  name={gem.name ?? "보석"}
-                  card={
-                    <GemCard
-                      gem={gem}
-                      skill={skill}
-                      className={data.className}
-                      lines={gemLines(extra, gem.slot)}
-                    />
-                  }
-                >
-                  <GameIcon src={gem.icon} grade={gem.grade} size={44} />
-                </DetailTooltip>
-                <span data-gem={kind ? (isCooldownGem(kind) ? "cooldown" : "damage") : undefined}>
-                  {gem.level != null && gem.level > 0 ? gem.level : "?"}
-                  {kind ?? ""}
-                </span>
-                <small className={styles.srOnly}>{text(gem.name)}</small>
-              </li>
-            );
-          })}
-        </ul>
+        // Two groups (#1100): damage on top, cooldown below. 광휘 goes by its
+        // effect, as on the spec-up list (gemKind); an unread kind stays on top.
+        GEM_GROUPS.map((group) => {
+          const items = placed.filter((item) => item.group === group.id);
+          if (!items.length) return null;
+          return (
+            <section key={group.id} className={styles.gemGroup} aria-label={group.label}>
+              <h3>
+                {group.label} <span>{items.length}</span>
+              </h3>
+              <ul className={styles.gemGrid}>
+                {items.map(({ gem, skill, kind, index }) => (
+                  <li key={index} {...stagger(index)}>
+                    <DetailTooltip
+                      name={gem.name ?? "보석"}
+                      card={
+                        <GemCard
+                          gem={gem}
+                          skill={skill}
+                          className={data.className}
+                          lines={gemLines(extra, gem.slot)}
+                        />
+                      }
+                    >
+                      <GameIcon src={gem.icon} grade={gem.grade} size={44} />
+                    </DetailTooltip>
+                    <span data-gem={kind ? group.id : undefined}>
+                      {gem.level != null && gem.level > 0 ? gem.level : "?"}
+                      {kind ?? ""}
+                    </span>
+                    <small className={styles.srOnly}>{text(gem.name)}</small>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          );
+        })
       ) : (
         <Empty
           state={
@@ -884,6 +888,8 @@ function GemsPanel({ data }: { data: Character }) {
 function ArkGridPanel({ data }: { data: Character }) {
   const grid = data.loadout.arkGrid;
   const summary = data.analysis.arkGrid;
+  // Gem options of the other role's family go grey (#1108); no role, none do.
+  const role = positionOf(data);
   const [expanded, setExpanded] = useState(false);
   const extra = useItemTooltips(data.characterName);
   // Off on this deployment: as if there were no efficiency (nothing drawn).
@@ -1001,15 +1007,26 @@ function ArkGridPanel({ data }: { data: Character }) {
                               <span>
                                 <strong>{text(gem.name)}</strong>
                                 <small>
+                                  {/* One piece per fact; a gem option that does not count
+                                      for this character's role goes grey (#1108). */}
                                   {[
-                                    gem.corePoint != null && `포인트 ${gem.corePoint}`,
-                                    gem.requiredWillpower != null && `의지력 ${gem.requiredWillpower}`,
-                                    ...gem.options.map(
-                                      (o) => `${o.name}${o.level != null ? ` Lv.${o.level}` : ""}`,
-                                    ),
+                                    gem.corePoint != null ? { text: `포인트 ${gem.corePoint}`, counts: null } : null,
+                                    gem.requiredWillpower != null
+                                      ? { text: `의지력 ${gem.requiredWillpower}`, counts: null }
+                                      : null,
+                                    ...gem.options.map((o) => ({
+                                      text: `${o.name}${o.level != null ? ` Lv.${o.level}` : ""}`,
+                                      counts: gridOptionCounts(o.name ?? "", role),
+                                    })),
                                   ]
-                                    .filter(Boolean)
-                                    .join(" · ")}
+                                    .filter((piece) => piece != null)
+                                    .map((piece, k) => (
+                                      <span key={k} data-other-role={piece.counts === false || undefined}>
+                                        {k > 0 && " · "}
+                                        {piece.text}
+                                        {piece.counts === false && <OtherRole />}
+                                      </span>
+                                    ))}
                                 </small>
                               </span>
                             </li>
@@ -1052,6 +1069,8 @@ function ArkGridPanel({ data }: { data: Character }) {
 
 function CardsPanel({ data }: { data: Character }) {
   const stagger = useStagger();
+  const [folded, setFolded] = useState(true);
+  const setsId = useId();
   const cards = data.loadout.cards;
   const summary = data.analysis.cards;
   return (
@@ -1074,19 +1093,35 @@ function CardsPanel({ data }: { data: Character }) {
               </li>
             ))}
           </ul>
+          {/* The pictures always show; the set effects under them fold,
+              with the ark grid's toggle (user 10-28). Folded by default
+              (user 10-31), from the first paint, so nothing moves. */}
           {cards.effects.length > 0 && (
-            <ul className={styles.setList}>
-              {cards.effects
-                .flatMap((set) => set.items)
-                .map((effect, i) => (
-                  <li key={i}>
-                    <strong>{text(effect.name)}</strong>
-                    <span>
-                      <SourceText value={effect.description} />
-                    </span>
-                  </li>
-                ))}
-            </ul>
+            <>
+              <ul id={setsId} className={styles.setList} hidden={folded}>
+                {cards.effects
+                  .flatMap((set) => set.items)
+                  .map((effect, i) => (
+                    <li key={i}>
+                      <strong>{text(effect.name)}</strong>
+                      <span>
+                        <SourceText value={effect.description} />
+                      </span>
+                    </li>
+                  ))}
+              </ul>
+              <button
+                type="button"
+                className={styles.gridToggle}
+                aria-expanded={!folded}
+                aria-controls={setsId}
+                aria-label={folded ? "카드 세트 효과 펼치기" : "카드 세트 효과 접기"}
+                onClick={() => setFolded((value) => !value)}
+              >
+                <ChevronDown size={18} aria-hidden="true" />
+                <span aria-hidden="true">{folded ? "펼치기" : "접기"}</span>
+              </button>
+            </>
           )}
         </>
       ) : (
@@ -1245,8 +1280,21 @@ function StatsPanel({ data }: { data: Character }) {
 
 function EngravingsPanel({ data }: { data: Character }) {
   const stagger = useStagger();
-  const effects = data.loadout.engravings?.arkPassiveEffects ?? [];
+  const effects = sortEngravings(data.loadout.engravings?.arkPassiveEffects ?? []);
   const book = engravingBookString(effects);
+  // Icons left of the names (user 10-31, backend #780): one small list per page
+  // load. Each row holds the icon's place from the first paint, so the names
+  // never move when the icons land; a name without a match leaves it blank.
+  const iconList = useQuery({
+    queryKey: ["engraving-icons"],
+    queryFn: ({ signal }) => fetchEngravingIcons(signal),
+    // A filled list holds for the visit; an empty one (before the backend's
+    // warmup, or a failed read) is asked again after 5 minutes, not never.
+    staleTime: (query) => (query.state.data?.length ? Infinity : 5 * 60_000),
+    retry: false,
+    enabled: effects.length > 0,
+  });
+  const icons = engravingIconMap(iconList.data);
   const bonus = stoneBonus(groupEquipment(data.loadout.equipment).stone);
   return (
     <Panel
@@ -1255,15 +1303,33 @@ function EngravingsPanel({ data }: { data: Character }) {
     >
       {effects.length ? (
         <ul className={styles.engravings}>
-          {effects.map((effect, i) => (
+          {effects.map((effect, i) => {
+            // Official image addresses only (the same check as every API image).
+            const icon = safeGameImage(icons.get(engravingKey(effect.name)));
+            return (
             <li key={i} {...stagger(i)}>
-              {effect.description ? (
-                <DetailTooltip name={effect.name ?? "각인"} card={<EngravingCard description={effect.description} />}>
+              <div className={styles.engravingName}>
+                <div className={styles.engravingIcon} aria-hidden="true">
+                  {icon && (
+                    // eslint-disable-next-line @next/next/no-img-element -- official CDN icon at a fixed size
+                    <img
+                      src={icon}
+                      alt=""
+                      width={24}
+                      height={24}
+                      decoding="async"
+                      referrerPolicy="no-referrer"
+                    />
+                  )}
+                </div>
+                {effect.description ? (
+                  <DetailTooltip name={effect.name ?? "각인"} card={<EngravingCard description={effect.description} />}>
+                    <strong>{text(effect.name)}</strong>
+                  </DetailTooltip>
+                ) : (
                   <strong>{text(effect.name)}</strong>
-                </DetailTooltip>
-              ) : (
-                <strong>{text(effect.name)}</strong>
-              )}
+                )}
+              </div>
               <span>
                 {text(effect.grade)} ×{number(effect.level)}
                 {effect.abilityStoneLevel != null &&
@@ -1271,7 +1337,8 @@ function EngravingsPanel({ data }: { data: Character }) {
                   ` · 스톤 Lv.${effect.abilityStoneLevel}`}
               </span>
             </li>
-          ))}
+            );
+          })}
         </ul>
       ) : (
         <Empty
@@ -1361,6 +1428,7 @@ function SkillCard({
     ? []
     : [
         skill.type,
+        awakeningLabel(skill.skillType),
         skill.attackType ? ATTACK_LABEL[skill.attackType] : null,
         skill.counter ? "카운터" : null,
         skill.partBreakLevel != null ? `파괴 ${skill.partBreakLevel}` : null,
@@ -1416,18 +1484,38 @@ function SkillCard({
         <ul className={styles.tripods}>
           {skill.tripods.map((tripod, i) => {
             const tripodLv = compact ? null : levelOf?.(tripod.tier, tripod.slot) ?? null;
+            const icon = (
+              <span className={styles.tripodIcon}>
+                <GameIcon src={tripod.icon} size={20} />
+                {tripodLv != null && <b aria-hidden="true">{tripodLv}</b>}
+              </span>
+            );
+            if (compact) return <li key={i}>{icon}</li>;
+            const place = tripodPlace(tripod);
+            const name = tripod.name ?? "트라이포드";
+            // Which of the tier's 1·2·3 was picked (user 10-31): three dots,
+            // the chosen one filled; the card says it in words with the effect.
+            // The button's label replaces its text for screen readers, so the
+            // level and the place go into it too.
+            const label = [name + (tripodLv != null ? ` 레벨 ${tripodLv}` : ""), place].filter(Boolean).join(", ");
             return (
               <li key={i}>
-                <span className={styles.tripodIcon}>
-                  <GameIcon src={tripod.icon} size={20} />
-                  {tripodLv != null && <b aria-hidden="true">{tripodLv}</b>}
-                </span>
-                {compact ? null : (
-                  <span>
-                    {text(tripod.name)}
-                    {tripodLv != null && <span className={styles.srOnly}> 레벨 {tripodLv}</span>}
+                <DetailTooltip name={name} label={label} card={<TripodCard tripod={tripod} />} hit="tight">
+                  <span className={styles.tripodRow}>
+                    {icon}
+                    <span>
+                      {text(tripod.name)}
+                      {tripodLv != null && <span className={styles.srOnly}> 레벨 {tripodLv}</span>}
+                    </span>
+                    {tripod.slot != null && tripod.slot >= 1 && tripod.slot <= 3 && (
+                      <span className={styles.tripodSlot} aria-hidden="true">
+                        {[1, 2, 3].map((n) => (
+                          <i key={n} data-on={n === tripod.slot || undefined} />
+                        ))}
+                      </span>
+                    )}
                   </span>
-                )}
+                </DetailTooltip>
               </li>
             );
           })}
@@ -1493,7 +1581,7 @@ function SkillOverview({
   // ones in use, so a gem on an unused listed skill stays on its row.
   const others = full ? otherSkillGems(data.loadout.gems, skills.map((skill) => skill.name)) : [];
   // One group per skill, so the groups never overlap (PM #507 P1): both kinds,
-  // damage only, cooldown only, none. The head counts the same chips.
+  // damage only, cooldown only, none. The 요약 panel counts every equipped gem instead.
   const groupOf = (skill: Skill): GemFilter => {
     const chips = gemsOf(skill);
     const damage = chips.some((gem) => !gem.cooldown);
@@ -1502,12 +1590,6 @@ function SkillOverview({
   };
   const groupCount = (id: GemFilter) => (id === "all" ? sorted.length : sorted.filter((skill) => groupOf(skill) === id).length);
   const list = !full || gemFilter === "all" ? sorted : sorted.filter((skill) => groupOf(skill) === gemFilter);
-  const chips = sorted.flatMap((skill) => gemsOf(skill));
-  const counts = {
-    damage: chips.filter((gem) => !gem.cooldown).length,
-    cooldown: chips.filter((gem) => gem.cooldown).length,
-    empty: gemCounts(data.loadout.gems).empty,
-  };
   return (
     <Panel
       title="스킬"
@@ -1532,11 +1614,6 @@ function SkillOverview({
     >
       {full && (
         <div className={styles.gemFilterRow}>
-          <p className={styles.gemCounts}>
-            <span data-gem="damage">겁화 {counts.damage}</span>
-            <span data-gem="cooldown">작열 {counts.cooldown}</span>
-            <span>빈 칸 {counts.empty}</span>
-          </p>
           <div className={styles.filterRow} role="group" aria-label="보석으로 거르기">
             {GEM_FILTERS.map((item) => (
               <button
@@ -1625,14 +1702,15 @@ export function CombatTab({ data }: { data: Character }) {
           <ArkGridPanel data={data} />
           <CardsPanel data={data} />
         </div>
-        {/* 특성 → 각인 → 아크 패시브 → 순위 → 조회수 (v0.3.2): the official
-            order first, the rank under it — the banner already says the rank
-            at the top. The rank block holds its height while it loads. */}
+        {/* 순위 → 특성 → 각인 → 아크 패시브 → 조회수 (v0.3.2): the rank stays
+            on top where it has always been (user 10-25), then the official
+            order. The rank block holds its height while it loads, so nothing
+            under it moves. */}
         <aside className={styles.stack} aria-label="요약">
+          <RankPanel name={data.characterName} />
           <StatsPanel data={data} />
           <EngravingsPanel data={data} />
           <ArkPassiveSummary data={data} />
-          <RankPanel name={data.characterName} />
           <ViewsPanel name={data.characterName} />
         </aside>
       </div>
@@ -1648,6 +1726,13 @@ export function SkillsTab({ data }: { data: Character }) {
   const armory = useArmoryPage(data.characterName);
   const counters = summary.active.filter((skill) => skill.counter === true);
   const staggers = summary.active.filter((skill) => staggerOf(skillLines(extra, skill.name)?.infoLines)).length;
+  // Every equipped gem, the same numbers as the 전투 tab's 보석 line (the
+  // backend's analysis, else counted here) — gems on skills outside the list
+  // included.
+  const gemTotals = gemCounts(data.loadout.gems);
+  const gemsHere = (data.loadout.gems?.items ?? []).length > 0;
+  const damageGems = data.analysis.gems?.damageEffectCount ?? gemTotals.damage;
+  const cooldownGems = data.analysis.gems?.cooldownEffectCount ?? gemTotals.cooldown;
   const points = data.skillPoints;
   const left = points?.used != null && points.total != null ? points.total - points.used : null;
   // The two highest combat stats ("특화 1816 · 치명 576"), the engravings by
@@ -1741,6 +1826,14 @@ export function SkillsTab({ data }: { data: Character }) {
             <div>
               <dt>부위 파괴</dt>
               <dd>{summary.partBreakCount}개</dd>
+            </div>
+            <div>
+              <dt>보석</dt>
+              <dd>
+                {gemsHere
+                  ? `겁화 ${damageGems} · 작열 ${cooldownGems} · 미장착 ${gemTotals.empty}`
+                  : `미장착 ${gemTotals.empty}`}
+              </dd>
             </div>
           </dl>
         </Panel>
@@ -2594,7 +2687,118 @@ export function StatsTab({ data }: { data: Character }) {
           </Panel>
         </>
       )}
+      {/* Last on the tab: its loading never moves the charts above (A7). */}
+      <TitleRecordPanel name={data.characterName} />
     </div>
+  );
+}
+
+/**
+ * 칭호 기록 (user 10-31, api #697): this roster's titles, rarest first by our
+ * equip-record rate, with the date we first saw each. The rate is a lower
+ * bound (the official profile shows only the worn title), so it is called
+ * 장착 기록 비율 and the note says so; a title whose sample is not ready reads
+ * "표본 N명 — 모으는 중" and sits last. No 획득 조건: the official data has none.
+ */
+function TitleRecordPanel({ name }: { name: string }) {
+  const noteId = useId();
+  const titles = useQuery({
+    queryKey: ["roster-titles", name],
+    queryFn: ({ signal }) => fetchTitles(name, signal),
+    staleTime: 5 * 60_000,
+  });
+  const ratesOn = useContext(TitleStatsEnabled);
+  const rates = useQuery({
+    queryKey: ["title-equip", titleEquipQuery({})],
+    queryFn: ({ signal }) => fetchTitleEquip(titleEquipQuery({}), signal),
+    enabled: ratesOn,
+    staleTime: 5 * 60_000,
+    retry: false,
+  });
+  const waiting = titles.isPending || (ratesOn && rates.isPending);
+  const fade = useCrossfade(waiting);
+  const rows = titleRecordRows(titles.data?.data.titles ?? [], rates.data?.data.titles ?? []);
+  const summary = titleRecordSummary(rows);
+  const population = rates.data?.data.meta?.population;
+  // A failed rate read is not "collecting": the cells say "-" and a line says why.
+  const ratesFailed = ratesOn && rates.isError;
+  return (
+    <Panel title="칭호 기록" wide meta={titles.data ? `${summary.count}개` : undefined}>
+      <p className={`${styles.titleNote} ${styles.titleRecordNote}`} id={noteId}>
+        <span className={styles.titleInfo}>
+          <InfoCircle size={13} aria-hidden="true" />
+          공식 정보는 장착 중인 칭호만 보여 줘서, 장착 기록 비율은 실제 보유율보다 낮을 수 있어요
+          {population != null && ` · 표본 원정대 ${population.toLocaleString("ko-KR")}개`}
+        </span>
+      </p>
+      {waiting ? (
+        <p className={styles.muted} role="status">
+          <InlineOrb /> 칭호 기록을 불러오고 있어요.
+        </p>
+      ) : titles.isError ? (
+        <QueryProblem error={titles.error} onRetry={() => titles.refetch()} subject="칭호 기록을" />
+      ) : rows.length === 0 ? (
+        <p className={styles.muted}>
+          아직 확인한 칭호가 없어요. 원정대 캐릭터를 조회하면 그때 장착한 칭호가 기록돼요.
+        </p>
+      ) : (
+        <div ref={fade}>
+          {ratesFailed && <p className={styles.muted}>장착 기록 비율을 불러오지 못했어요. 칭호와 첫 기록만 보여요.</p>}
+          <dl className={styles.titleSummary}>
+            <div>
+              <dt>칭호 수</dt>
+              <dd>{summary.count}개</dd>
+            </div>
+            <div>
+              <dt>가장 희귀</dt>
+              <dd>
+                {summary.rarest ? (
+                  <>
+                    {summary.rarest.title} <b>{titlePercent(summary.rarest.percent!)}</b>
+                  </>
+                ) : ratesFailed ? (
+                  "-"
+                ) : (
+                  "모으는 중"
+                )}
+              </dd>
+            </div>
+            <div>
+              <dt>첫 기록</dt>
+              <dd>{summary.first ?? "-"}</dd>
+            </div>
+          </dl>
+          <div className={styles.tableWrap}>
+            <table className={`${styles.table} ${styles.titleTable}`} aria-label="칭호 기록 표" aria-describedby={noteId}>
+              <thead>
+                <tr>
+                  <th scope="col">칭호</th>
+                  <th scope="col">장착 기록 비율</th>
+                  <th scope="col">첫 기록</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row) => (
+                  <tr key={row.title}>
+                    <th scope="row">{row.title}</th>
+                    <td data-collecting={row.percent == null || undefined}>
+                      {row.percent != null
+                        ? titlePercent(row.percent)
+                        : ratesFailed
+                          ? "-"
+                          : row.sample != null
+                            ? `표본 ${row.sample}명 — 모으는 중`
+                            : "모으는 중"}
+                    </td>
+                    <td>{row.firstObservedDate}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </Panel>
   );
 }
 

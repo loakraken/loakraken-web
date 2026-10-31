@@ -174,12 +174,16 @@
 /* Each cell (shared ChangeMark) spans the column and sets its text to the
    right: a new number of another width (20G → 30G, not every face has even
    digits) changes the text, never the cell's box (A7, CI #617). The ▲/▼ of a
-   refresh goes before the number inside the cell, so it moves nothing. */
+   refresh goes back in the flow, before the number: the cell is wider than
+   its number here, so the shared out-of-flow arrow (changed-cells.css) would
+   sit at the column's left edge; in the flow it moves nothing either. */
 .rowPrice > [data-slot="change-mark"] {
   justify-content: flex-end;
 }
 .rowPrice [data-slot="change-mark"] :global(.chg-dir) {
+  position: static;
   order: -1;
+  translate: none;
 }
 /* Item grade colours on a light surface (game rarity hues). */
 .board [data-grade="일반"],
@@ -279,6 +283,75 @@
   margin-top: 10px;
   color: var(--slate);
   font-size: 12px;
+}
+/* Name search (#1115): the field, then one held note line (refused text or
+   "only part of the tab"), so a note coming or going moves nothing below. */
+.search {
+  margin-top: 10px;
+}
+.searchField {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 6px 0 12px;
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+  background: var(--background);
+  color: var(--slate);
+}
+/* The box is the focus target, as in the character search: the inner input
+   draws no second ring (the page's :focus-visible rule outranks the plain
+   input rule below), and the box shows a halo so keyboard focus stays clear. */
+.searchField input:focus-visible {
+  outline: none;
+}
+.searchField:focus-within {
+  border-color: var(--ring);
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--ring) 18%, transparent);
+}
+.searchField[data-invalid] {
+  border-color: var(--destructive);
+}
+.searchField input {
+  flex: 1;
+  min-width: 0;
+  min-height: 38px;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--ink);
+  /* 16px: phones do not zoom in on focus. */
+  font-size: 16px;
+}
+.searchField input::-webkit-search-cancel-button {
+  display: none;
+}
+.searchClear {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  color: var(--slate);
+}
+/* Out of sight but still taking its room: the input keeps one width
+   (visibility, not [hidden], which the base styles turn into display: none). */
+.searchClear[data-empty] {
+  visibility: hidden;
+}
+.searchNote {
+  min-height: 18px;
+  margin-top: 4px;
+  overflow: hidden;
+  color: var(--slate);
+  font-size: 12px;
+  line-height: 18px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.searchNote[data-invalid] {
+  color: var(--destructive);
 }
 .muted {
   display: flex;

@@ -1,11 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
+import { useCallback, useEffect, useId, useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
 import { ChevronDown, CloseCircle, Menu } from "@/components/ui/icons";
 import { NAV_SECTIONS, sectionOf, type NavFlags, type NavLink } from "./nav-data";
+import { useNavFlags, visible } from "./nav-flags";
 import styles from "./site-nav.module.css";
 
 const OPEN_DELAY = 120;
@@ -20,29 +20,13 @@ function Entry({ link, onNavigate }: { link: NavLink & { href: string }; onNavig
   );
 }
 
-/**
- * Runtime flags for menu entries. They are read per request on the server (the
- * image is promoted from staging to production, and some pages are static
- * HTML), so the menu asks once; a flagged entry stays out until the answer
- * says it is on. The flyout is closed while this loads, so nothing shifts.
- */
-function useNavFlags(): NavFlags {
-  const query = useQuery({
-    queryKey: ["nav-flags"],
-    queryFn: async ({ signal }) => {
-      const response = await fetch("/api/flags", { signal });
-      if (!response.ok) throw new Error(String(response.status));
-      return (await response.json()) as NavFlags;
-    },
-    staleTime: Infinity,
-  });
-  return query.data ?? {};
-}
-
-const visible = (link: NavLink, flags: NavFlags) => !link.flag || flags[link.flag] === true;
+// The flyout is closed while the flags load (nav-flags.ts), so nothing shifts.
 const live = (links: NavLink[], flags: NavFlags) =>
   links.filter((link): link is NavLink & { href: string } => !!link.href && visible(link, flags));
 const planned = (links: NavLink[]) => links.filter((link) => !link.href).map((link) => link.label);
+
+const columns = (count: number) =>
+  count >= 3 ? { "data-columns": true, style: { "--columns": count } as CSSProperties } : {};
 
 /** Planned features folded into one quiet line instead of a list of dead entries. */
 function Soon({ labels }: { labels: string[] }) {
@@ -197,13 +181,32 @@ export function SiteNav() {
             data-panel={section.id}
             hidden={shown !== section.id}
           >
-            <p className={styles.panelTitle}>{section.label}</p>
-            <div className={styles.groups}>
+            <div className={styles.panelHead}>
+              <p className={styles.panelTitle}>{section.label}</p>
+              {section.all && (
+                <Link href={section.all.href} className={styles.panelAll} onClick={close}>
+                  {section.all.label}
+                </Link>
+              )}
+            </div>
+            <div
+              className={styles.groups}
+              // Three or more groups: one equal column each across the panel,
+              // none spanning two (user 10-25: use the empty right side).
+              {...columns(section.groups.filter((group) => live(group.links, flags).length).length)}
+            >
               {section.groups
                 .filter((group) => live(group.links, flags).length)
                 .map((group) => (
                   <div key={group.title} className={styles.group}>
-                    <p className={styles.groupTitle}>{group.title}</p>
+                    {/* A hub's title opens the hub page (its first tab). */}
+                    {group.href ? (
+                      <Link href={group.href} className={`${styles.groupTitle} ${styles.groupLink}`} onClick={close}>
+                        {group.title}
+                      </Link>
+                    ) : (
+                      <p className={styles.groupTitle}>{group.title}</p>
+                    )}
                     <ul>
                       {live(group.links, flags).map((link) => (
                         <li key={link.label}>
@@ -235,13 +238,47 @@ export function SiteNav() {
         {NAV_SECTIONS.map((section) => (
           <section key={section.id} className={styles.sheetSection}>
             <h2>{section.label}</h2>
-            <ul>
-              {live(section.groups.flatMap((group) => group.links), flags).map((link) => (
-                <li key={link.label}>
-                  <Entry link={link} onNavigate={() => setSheet(false)} />
+            {section.all && (
+              <ul>
+                <li>
+                  <Entry link={section.all} onNavigate={() => setSheet(false)} />
                 </li>
-              ))}
-            </ul>
+              </ul>
+            )}
+            {section.sheetGroups ? (
+              section.groups
+                .filter((group) => live(group.links, flags).length)
+                .map((group) => (
+                  <div key={group.title}>
+                    {group.href ? (
+                      <Link
+                        href={group.href}
+                        className={`${styles.sheetGroup} ${styles.groupLink}`}
+                        onClick={() => setSheet(false)}
+                      >
+                        {group.title}
+                      </Link>
+                    ) : (
+                      <p className={styles.sheetGroup}>{group.title}</p>
+                    )}
+                    <ul>
+                      {live(group.links, flags).map((link) => (
+                        <li key={link.label}>
+                          <Entry link={link} onNavigate={() => setSheet(false)} />
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))
+            ) : (
+              <ul>
+                {live(section.groups.flatMap((group) => group.links), flags).map((link) => (
+                  <li key={link.label}>
+                    <Entry link={link} onNavigate={() => setSheet(false)} />
+                  </li>
+                ))}
+              </ul>
+            )}
             <Soon labels={planned(section.groups.flatMap((group) => group.links))} />
           </section>
         ))}

@@ -70,7 +70,7 @@ for (const width of [1280, 360])
     await expect(filter(page).getByLabel("스킬")).toHaveText("모든 스킬");
 
     // The board prices are not filtered; nothing moved; the box kept its height.
-    await expect(board(page).getByRole("button", { name: /매물 보기$/ })).toHaveCount(19);
+    await expect(board(page).getByRole("button", { name: /매물 보기/ })).toHaveCount(19);
     expect(await height(), "매물 칸 높이 그대로").toBe(before);
     expect(await shifts(page), `흔들림: ${await moved(page)}`).toBe(0);
     await expect(section).toBeVisible();

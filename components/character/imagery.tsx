@@ -4,10 +4,12 @@ import {
   useCallback,
   useEffect,
   useState,
+  useSyncExternalStore,
   type CSSProperties,
   type ReactNode,
 } from "react";
 import { ThinkingOrb } from "thinking-orbs";
+import { COLLECTIBLE_SPRITE, COLLECTIBLE_SPRITE_SIZE, collectibleSpriteIcon } from "@/lib/character/collectible-sprite";
 import { useLandingMotion } from "@/components/landing/motion";
 import { gradeKey, safeGameImage } from "@/lib/character/model";
 import { bannerBackdrop, cutoutPortrait, glowTint } from "@/lib/character/portrait-cutout";
@@ -78,6 +80,57 @@ export function GameIcon({
   );
 }
 
+// The official sprite is checked once per page: until it has failed, rows
+// draw from it; if it cannot load, every row falls back to the API badge.
+let spriteState: "loading" | "ok" | "failed" = "loading";
+const spriteListeners = new Set<() => void>();
+function subscribeSprite(listener: () => void) {
+  spriteListeners.add(listener);
+  if (spriteState === "loading" && spriteListeners.size === 1 && COLLECTIBLE_SPRITE) {
+    const probe = new Image();
+    probe.decoding = "async";
+    probe.referrerPolicy = "no-referrer";
+    const settle = (state: "ok" | "failed") => {
+      spriteState = state;
+      spriteListeners.forEach((call) => call());
+    };
+    probe.onload = () => settle("ok");
+    probe.onerror = () => settle("failed");
+    probe.src = COLLECTIBLE_SPRITE;
+  }
+  return () => spriteListeners.delete(listener);
+}
+
+/**
+ * A 수집품 type's icon (feedback #17): the official armory's own small icon
+ * from its sprite, at its native size (as the official page draws it, so it
+ * stays crisp), centred in the same 32px box as before; the API badge when
+ * the type is not mapped or the sprite cannot load. Decorative.
+ */
+export function CollectibleIcon({ type, badge, size = 32 }: { type: string | null; badge: string | null; size?: number }) {
+  const state = useSyncExternalStore(subscribeSprite, () => spriteState, () => "loading" as const);
+  const icon = collectibleSpriteIcon(type);
+  if (!icon || !COLLECTIBLE_SPRITE || state === "failed") return <GameIcon src={badge} size={size} />;
+  return (
+    <span
+      className={styles.collectibleIcon}
+      style={{ "--icon-size": `${size}px` } as CSSProperties}
+      data-sprite-type={type ?? undefined}
+      aria-hidden="true"
+    >
+      <span
+        style={{
+          width: icon.width,
+          height: icon.height,
+          backgroundImage: `url(${COLLECTIBLE_SPRITE})`,
+          backgroundSize: `${COLLECTIBLE_SPRITE_SIZE.width}px ${COLLECTIBLE_SPRITE_SIZE.height}px`,
+          backgroundPosition: `${icon.x}px ${icon.y}px`,
+        }}
+      />
+    </span>
+  );
+}
+
 export function CardArt({
   src,
   name,
@@ -116,16 +169,18 @@ export function CardArt({
             {name.slice(0, 1)}
           </span>
         )}
-        <span
-          className={styles.awake}
-          role="img"
-          aria-label={known ? `${awakeCount}각성` : "각성 미확인"}
-        >
-          {Array.from({ length: total }, (_, i) => (
-            <i key={i} data-on={known && i < (awakeCount ?? 0)} />
-          ))}
-        </span>
       </div>
+      {/* Under the picture, not over it: the art's own bottom (name plate,
+          awakening frame) stays whole (#1101). */}
+      <span
+        className={styles.awake}
+        role="img"
+        aria-label={known ? `${awakeCount}각성` : "각성 미확인"}
+      >
+        {Array.from({ length: total }, (_, i) => (
+          <i key={i} data-on={known && i < (awakeCount ?? 0)} />
+        ))}
+      </span>
       <figcaption>
         <strong>{name}</strong>
         <small>{known ? `${awakeCount}각성` : "각성 미확인"}</small>

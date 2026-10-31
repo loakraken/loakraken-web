@@ -3,7 +3,7 @@
 import { createContext, useContext, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { Menu } from "@base-ui/react/menu";
-import { Bookmark, BookmarkBold, ChevronDown, Share } from "@/components/ui/icons";
+import { ChevronDown, Share } from "@/components/ui/icons";
 import { chromeBottom } from "@/components/ui/item-tooltip";
 import { analysisLinks } from "@/lib/character/analysis";
 import { cn } from "cn";
@@ -12,7 +12,7 @@ import styles from "./detail.module.css";
 /** CRIT_SPEED_TOOL (server flag): off leaves the calculator out of the menu. */
 export const CritSpeedEnabled = createContext(true);
 
-/** Below this width share and favorite live in the menu (A35): the tabs keep two whole items. */
+/** Below this width share lives in the menu (A35): the tabs keep two whole items. Favourite is beside the name (#1148). */
 const NARROW = "(max-width: 560px)";
 /** Room kept between the menu and the screen edges or the pinned chrome. */
 const EDGE = 12;
@@ -26,7 +26,7 @@ const watchNarrow = (change: () => void) => {
  * 분석 (character screen checklist §14.1 ③): the tools that take this
  * character, beside the tabs. A tab of this page replaces the history entry
  * like the tab links; a tool opens with the character filled in. On a narrow
- * screen it reads 더보기 and also holds share and favorite (A35).
+ * screen it reads 더보기 and also holds share (A35).
  */
 export function AnalysisMenu({
   name,
@@ -35,9 +35,7 @@ export function AnalysisMenu({
   simulator,
   className,
   classEngraving,
-  favorite,
   onShare,
-  onFavorite,
 }: {
   name: string;
   server: string | null | undefined;
@@ -45,9 +43,7 @@ export function AnalysisMenu({
   simulator: boolean;
   className?: string | null;
   classEngraving?: string | null;
-  favorite: boolean;
   onShare: () => void;
-  onFavorite: () => void;
 }) {
   const links = analysisLinks(name, server, { specUp, simulator, critSpeed: useContext(CritSpeedEnabled) }, { className, classEngraving });
   // Read when the menu opens (the popup is never in the first HTML).
@@ -105,27 +101,17 @@ export function AnalysisMenu({
             {narrow && (
               <>
                 <Menu.Separator className="mx-2 my-1 h-px bg-(--border)" />
-                {[
-                  { key: "share", label: "공유하기", icon: <Share size={16} aria-hidden="true" />, act: onShare },
-                  {
-                    key: "favorite",
-                    label: favorite ? "즐겨찾기 해제" : "즐겨찾기",
-                    icon: favorite ? <BookmarkBold size={16} aria-hidden="true" /> : <Bookmark size={16} aria-hidden="true" />,
-                    act: onFavorite,
-                  },
-                ].map((item) => (
-                  <Menu.Item
-                    key={item.key}
-                    onClick={item.act}
-                    className={cn(
-                      "flex items-center gap-2 rounded-(--radius-sm) px-3 py-2.5 outline-none select-none",
-                      "text-(length:--text-body) font-semibold data-highlighted:bg-muted",
-                    )}
-                  >
-                    {item.icon}
-                    {item.label}
-                  </Menu.Item>
-                ))}
+                {/* Favourite is beside the name on a narrow screen (#1148). */}
+                <Menu.Item
+                  onClick={onShare}
+                  className={cn(
+                    "flex items-center gap-2 rounded-(--radius-sm) px-3 py-2.5 outline-none select-none",
+                    "text-(length:--text-body) font-semibold data-highlighted:bg-muted",
+                  )}
+                >
+                  <Share size={16} aria-hidden="true" />
+                  공유하기
+                </Menu.Item>
               </>
             )}
           </Menu.Popup>

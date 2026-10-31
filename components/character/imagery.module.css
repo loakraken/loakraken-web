@@ -4,6 +4,14 @@
   --grade-a: #f0f0f3;
   --grade-b: #dedee3;
 }
+/* No grade (내실 수집품, skills, tripods): the skeleton colour of the theme,
+   not a light tile, so a dark page shows no white box while the icon loads
+   (feedback #17 follow-up). Same box, so nothing moves when it lands. */
+.icon[data-grade="unknown"],
+.card[data-grade="unknown"] {
+  --grade-a: var(--secondary);
+  --grade-b: var(--secondary);
+}
 .icon[data-grade="normal"],
 .card[data-grade="normal"] {
   --grade-a: #ececf0;
@@ -56,6 +64,20 @@
   box-shadow: inset 0 0 0 1px rgb(0 0 0 / 8%);
   overflow: hidden;
 }
+/* 수집품 sprite icon: the same box as .icon, the icon at native size centred. */
+.collectibleIcon {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 var(--icon-size);
+  width: var(--icon-size);
+  height: var(--icon-size);
+  border-radius: calc(var(--icon-size) * 0.24);
+  background: var(--secondary);
+}
+.collectibleIcon > span {
+  display: block;
+  background-repeat: no-repeat;
+}
 .icon img {
   width: 100%;
   height: 100%;
@@ -93,22 +115,21 @@
   font-size: 28px;
   font-weight: 600;
 }
+/* Pips under the picture (#1101): the art is shown whole. Ten pips fit a
+   narrow card (they wrap rather than spill). */
 .awake {
-  position: absolute;
-  left: 50%;
-  bottom: 8px;
-  transform: translateX(-50%);
   display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 3px;
-  padding: 4px 6px;
-  border-radius: 999px;
-  background: rgb(10 10 12 / 62%);
+  margin-top: 6px;
 }
 .awake i {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: rgb(255 255 255 / 28%);
+  background: var(--secondary);
+  box-shadow: inset 0 0 0 1px var(--border);
 }
 .awake i[data-on="true"] {
   background: #ffd36b;
@@ -118,13 +139,15 @@
   margin-top: 8px;
   min-width: 0;
 }
+/* The whole name, wrapped at word breaks: long names ('라제니스를 이끄는
+   니나브') were cut to a few letters in a narrow card (A37). */
 .card figcaption strong {
   display: block;
   font-size: 13px;
   font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  line-height: 1.3;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
 }
 .card figcaption small {
   color: var(--muted-foreground);

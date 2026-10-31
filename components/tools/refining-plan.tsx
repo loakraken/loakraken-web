@@ -1,5 +1,7 @@
 "use client";
 
+import { HubTabs } from "@/components/site/hub-tabs";
+
 import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -58,6 +60,7 @@ import quote from "./material-quote.module.css";
 import { SiteHeader } from "@/components/site/site-header";
 import { SegmentedControl, SegmentedItem } from "@/components/ui/segmented-control";
 import styles from "./refining-plan.module.css";
+import { MoreDetail } from "@/components/ui/more-detail";
 
 const range = (from: number, to: number) =>
   Array.from({ length: to - from + 1 }, (_, i) => from + i);
@@ -468,7 +471,7 @@ function TopSummary({
           width moved the text after it (A7). */}
       <p className={styles.topNote}>
         <span className={styles.topLine}>
-          {priceList ? "재련 골드 + 부족한 재료 구매 골드" : "재련 골드(재료 시세를 불러오는 중…)"}
+          {priceList ? "재련 골드 + 사야 할 골드" : "재련 골드(재료 시세를 불러오는 중…)"}
         </span>
         <span className={styles.topLine}>
           총 {formatCount(summary.stageCount)}단계, 시도{" "}
@@ -529,7 +532,7 @@ function Result({
       </p>
       <p className={quote.totalNote}>
         {priceList
-          ? `재련 골드 ${formatCount(summary.gold)} + 구매 골드 ${formatCount(buyGold)} (소모 가치 기준 ${formatCount(Math.round(summary.rawGold + valueRaw))})`
+          ? `재련 골드 ${formatCount(summary.gold)} + 사야 할 골드 ${formatCount(buyGold)} (가진 재료까지 시세로 치면 ${formatCount(Math.round(summary.rawGold + valueRaw))})`
           : `재련 골드 ${formatCount(summary.gold)}`}{" "}
         · 총 {formatCount(summary.stageCount)}단계, 시도{" "}
         {formatCount(summary.attempts, mode === "expected" ? 1 : 0)}회
@@ -585,7 +588,18 @@ function Result({
         </div>
       )}
       <div className={styles.materialWrap} aria-busy={prices.isPlaceholderData || undefined} data-stale={prices.isPlaceholderData || undefined}>
-        <table className={styles.table} data-wide="">
+        <table className={`${styles.table} ${styles.materialTable}`} data-wide="">
+          {/* Fixed widths for the largest amounts: switching the price basis
+              changes the numbers, never the columns (사용자 제보 10-26). */}
+          <colgroup>
+            <col />
+            <col className={styles.colCount} />
+            <col className={styles.colOwned} />
+            <col className={styles.colCount} />
+            <col className={styles.colUnit} />
+            <col className={styles.colGold} />
+            <col className={styles.colValue} />
+          </colgroup>
           <thead>
             <tr>
               <th scope="col">재료</th>
@@ -593,8 +607,8 @@ function Result({
               <th scope="col">보유</th>
               <th scope="col">부족</th>
               <th scope="col">단가</th>
-              <th scope="col">구매 골드</th>
-              <th scope="col">소모 가치</th>
+              <th scope="col">사야 할 골드</th>
+              <th scope="col">쓰는 재료 시세</th>
             </tr>
           </thead>
           <tbody>
@@ -634,7 +648,7 @@ function Result({
                       : "—"}
                   </ChangeMark>
                 </td>
-                <td className={styles.cost} data-label="구매 골드">
+                <td className={styles.cost} data-label="사야 할 골드">
                   {line.purchase == null ? "—" : formatCount(line.purchase.gold)}
                   {line.purchase != null && line.purchase.perUnit > 1 && line.purchase.units > 0 && (
                     <small>
@@ -647,7 +661,7 @@ function Result({
                     </small>
                   )}
                 </td>
-                <td data-label="소모 가치">
+                <td data-label="쓰는 재료 시세">
                   {line.value == null
                     ? "—"
                     : formatCount(Math.round(line.value))}
@@ -658,13 +672,28 @@ function Result({
         </table>
       </div>
       <UpdateAnnouncer text={changes ? `재료 단가 ${changes}` : ""} />
-      <p className={quote.caption}>
-        필요 수량은 소수를 올림했어요. 구매 골드는 부족 수량을 거래소 묶음
-        단위로 올려 산 금액이고, 소모 가치는 기대 소모량 × 1개당 시세예요(보유
-        수량과 무관). 운명의 파편은 가장 싼 주머니 기준이에요.
-        {observedAt &&
-          ` 거래소 첫 페이지에서 이름이 같은 상품의 ${basisLabel}를 ${kst.format(new Date(observedAt))}에 읽었어요.`}
-      </p>
+      {/* 사용자 제보 10-26: the two gold columns, one line each; the rest folded. */}
+      <dl className={styles.terms}>
+        <div>
+          <dt>사야 할 골드</dt>
+          <dd>가진 수량을 빼고 부족한 만큼만 지금 살 때 드는 골드예요.</dd>
+        </div>
+        <div>
+          <dt>쓰는 재료 시세</dt>
+          <dd>가진 재료까지 포함해 재련에 쓰일 재료 전체를 시세로 친 값이에요.</dd>
+        </div>
+      </dl>
+      <details className={styles.more}>
+        <summary className="hit-44">자세히</summary>
+        <p className={quote.caption}>
+          필요 수량은 기대 소모량을 올림한 값이에요. 사야 할 골드는 부족 수량을
+          거래소 묶음 단위로 올려 산 금액이라 남는 수량이 생길 수 있고, 쓰는 재료
+          시세는 기대 소모량 × 1개당 시세라 가진 수량과 상관없어요. 운명의 파편은
+          가장 싼 주머니 기준이에요.
+          {observedAt &&
+            ` 거래소 첫 페이지에서 이름이 같은 상품의 ${basisLabel}를 ${kst.format(new Date(observedAt))}에 읽었어요.`}
+        </p>
+      </details>
 
       <details className={styles.disclosure}>
         <summary>부위·단계별 시도 횟수</summary>
@@ -852,6 +881,7 @@ function RefiningContent({ initialName }: { initialName: string }) {
           <Link href="/" className={quote.back}>
             <ArrowLeft size={14} aria-hidden="true" /> 캐릭터 검색으로
           </Link>
+          <HubTabs hub="growth" />
         </section>
 
         <div className={quote.band}>
@@ -876,7 +906,6 @@ function RefiningContent({ initialName }: { initialName: string }) {
           </section>
           <div className={quote.workspace}>
             <section className={quote.card} aria-labelledby="load-heading">
-              <p className={quote.step}>1</p>
               <h2 id="load-heading">캐릭터 장비</h2>
               <div className={quote.searchArea}>
                 <CharacterLoader
@@ -921,7 +950,6 @@ function RefiningContent({ initialName }: { initialName: string }) {
             </section>
 
             <section className={quote.card} aria-labelledby="target-heading">
-              <p className={quote.step}>2</p>
               <h2 id="target-heading">목표 단계</h2>
               <div
                 className={styles.chips}
@@ -979,7 +1007,6 @@ function RefiningContent({ initialName }: { initialName: string }) {
             </section>
 
             <section className={quote.card} aria-labelledby="option-heading">
-              <p className={quote.step}>3</p>
               <h2 id="option-heading">재련 옵션</h2>
               <div className={styles.switches}>
                 {OPTION_COPY.map((item) => (
@@ -1003,12 +1030,13 @@ function RefiningContent({ initialName }: { initialName: string }) {
                 · 게임 재련 가이드). 전율 책, 실링, 상급 재련, 이벤트 확률은
                 계산하지 않아요.
               </p>
-              <p className={quote.hint}>
-                책은 기본으로 넣고, 책 효과가 매번 적용된다고 보고 계산해요.
+              {/* One line on the page, the rest folded (#1112): nothing removed. */}
+              <p className={quote.hint}>책은 기본으로 넣고, 책 효과가 매번 적용된다고 보고 계산해요.</p>
+              <MoreDetail className={quote.hint}>
                 게임에는 &ldquo;특수 재료 별 효과는 확률에 따라 적용되지 않을 수
                 있습니다&rdquo;라고 나오고, 그 확률은 공개되지 않았어요. 끄면 책
                 없이 계산해요. 책은 운명의 업화 11~20단계에만 적용돼요.
-              </p>
+              </MoreDetail>
             </section>
           </div>
         </div>

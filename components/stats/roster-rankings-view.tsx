@@ -26,6 +26,7 @@ import styles from "./stats.module.css";
 import { rankingColumns } from "./ranking-columns";
 import { BasisNote } from "./basis-note";
 import { RankingTypeTabs, type RankingType } from "./ranking-type-tabs";
+import { MoreDetail } from "@/components/ui/more-detail";
 
 const ROSTER_COLUMNS = rankingColumns([3.5, 14, 6, 7.5, 4.5, 16]);
 
@@ -292,12 +293,15 @@ export function RosterRankingsView({ initial, types }: { initial: RosterQuery; t
             </button>
           </nav>
         )}
+        {/* One line on the page, the counting rules folded (#1112): nothing removed. */}
         <p className={styles.note}>
           원정대는 서버를 고르면 그 서버, 고르지 않으면 대표 캐릭터의 서버
-          캐릭터만 세요(인원·전체 평균도 그 서버 기준이에요). 식스맨은 그중 아이템
-          레벨이 높은 6명이고, 식스맨 평균은 이 6명의 {basisLabel} 합을 6으로
-          나눠요. 6명보다 적어도 6으로 나눠요.
+          캐릭터만 세요(인원·전체 평균도 그 서버 기준이에요).
         </p>
+        <MoreDetail className={styles.note}>
+          식스맨은 그중 아이템 레벨이 높은 6명이고, 식스맨 평균은 이 6명의 {basisLabel} 합을 6으로
+          나눠요. 6명보다 적어도 6으로 나눠요.
+        </MoreDetail>
         {data?.meta && <BasisNote basis={{ ...data.meta, unit: "개 원정대" }} />}
       </main>
     </div>

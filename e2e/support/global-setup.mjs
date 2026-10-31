@@ -4,7 +4,7 @@ const ROUTES = [
   "/",
   "/market",
   "/tools/refining",
-  "/tools/material-quote",
+  "/market/quote",
   "/tools/crit-speed",
   "/tools/auction",
   "/tools/combat-power",

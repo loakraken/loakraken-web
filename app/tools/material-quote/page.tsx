@@ -1,20 +1,14 @@
-import type { Metadata } from "next";
-import { MaterialQuoteTool } from "@/components/tools/material-quote";
+import { permanentRedirect } from "next/navigation";
 
-export const metadata: Metadata = {
-  title: "재료 구매 견적",
-  description:
-    "필요한 재료와 보유 수량을 입력하면 공식 거래소 묶음 시세로 추가 구매 골드를 계산합니다.",
-  alternates: { canonical: "/tools/material-quote" },
-};
-
-export default async function MaterialQuotePage({
+// 재료 구매 견적 moved to the 시세 hub (메뉴 합치기, 사용자 승인 10-26): old and
+// shared links (with their category in the query) go there for good (308).
+export default async function OldMaterialQuotePage({
   searchParams,
 }: {
-  searchParams: Promise<{ category?: string | string[] }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  // A shared link keeps its category (PM-프론트 09:25 딥링크 선택 유지).
-  const { category } = await searchParams;
-  const code = typeof category === "string" ? Number(category) : NaN;
-  return <MaterialQuoteTool initialCategory={Number.isInteger(code) && code > 0 ? code : null} />;
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(await searchParams))
+    for (const one of Array.isArray(value) ? value : value == null ? [] : [value]) params.append(key, one);
+  permanentRedirect(params.size ? `/market/quote?${params}` : "/market/quote");
 }

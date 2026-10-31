@@ -82,6 +82,8 @@ const ROLLOUT: Record<string, Record<string, () => unknown>> = {
     tradeLines: () => [],
     refineExp: () => null,
     advancedRefineLevel: () => null,
+    // The orb's 달성 최대 낙원력 (backend #776).
+    paradisePower: () => null,
   },
   // Gem tooltip lines (backend #286).
   // Gem base attack % (backend, with the kraken score inputs).
@@ -94,7 +96,8 @@ const ROLLOUT: Record<string, Record<string, () => unknown>> = {
     baseAttackPctSource: () => null,
   },
   // Gem-adjusted cooldown (backend #378, K20).
-  SkillResponse: { attackType: () => null, cooldown: () => null },
+  // Skill type (backend #773): 각성기 / 초각성 marks.
+  SkillResponse: { attackType: () => null, cooldown: () => null, skillType: () => null },
   TripodResponse: { effect: () => null },
   RuneResponse: { effect: () => null },
 };

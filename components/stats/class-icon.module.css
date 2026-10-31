@@ -1,0 +1,29 @@
+/* The icon's fixed box: there from the first frame, so a row never moves
+   when its icon (or the letters instead) arrives. */
+.box {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  vertical-align: middle;
+}
+/* Official class icon: the SVGs come in black, #222 or white, so each is
+   flattened to black first; dark themes then turn it white. */
+.icon {
+  display: block;
+  width: 100%;
+  height: 100%;
+  opacity: 0.85;
+  filter: brightness(0);
+}
+:global(:root:is([data-theme="dark"], [data-theme="dim"])) .icon {
+  filter: brightness(0) invert(1);
+}
+/* A class without a known icon, one that failed, or Data Saver: its first two letters. */
+.box[data-chip] {
+  border-radius: 6px;
+  background-color: var(--secondary);
+  color: var(--secondary-foreground);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+}

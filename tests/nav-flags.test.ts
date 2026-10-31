@@ -37,6 +37,26 @@ test("the combat-power simulator is in the menu behind its own flag (사용자 �
   const tools = NAV_SECTIONS.find((section) => section.id === "tools");
   const link = tools?.groups[0].links.find((item) => item.href === "/tools/combat-power");
   assert.equal(link?.flag, "combatPower");
-  assert.equal(tools?.groups[0].links[1], link, "first calculator after 도구 전체");
+  assert.equal(tools?.groups[0].links[0], link, "first in 캐릭터 성장");
   assert.ok(tools?.match?.includes("/tools/combat-power"));
+});
+
+test("성장 도구 is three task groups; the overview is the section link; every tool is listed once (user 10-25)", () => {
+  const tools = NAV_SECTIONS.find((section) => section.id === "tools")!;
+  assert.deepEqual(
+    tools.groups.map((group) => group.title),
+    ["캐릭터 성장", "레이드", "골드 효율", "추천"],
+  );
+  assert.equal(tools.all?.href, "/tools");
+  const hrefs = NAV_SECTIONS.flatMap((section) => section.groups.flatMap((group) => group.links))
+    .map((link) => link.href)
+    .filter(Boolean);
+  assert.equal(new Set(hrefs).size, hrefs.length, "no tool listed twice");
+  assert.ok(!hrefs.includes("/tools"), "the overview is not a group entry");
+  // 악세 경매 검색 sits under 시세 (경매장) and marks 시세 as current.
+  const market = NAV_SECTIONS.find((section) => section.id === "market")!;
+  assert.ok(market.groups.some((group) => group.links.some((item) => item.label === "악세 경매 검색")));
+  assert.ok(!tools.groups.some((group) => group.links.some((item) => item.label === "악세 경매 검색")));
+  // Every group column stays short enough to scan (at most five).
+  for (const group of tools.groups) assert.ok(group.links.length <= 5, group.title);
 });

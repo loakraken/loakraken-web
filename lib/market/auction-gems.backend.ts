@@ -11,12 +11,15 @@ import { type GemSkillsEnvelope, type GemBoardEnvelope, type GemListingsEnvelope
 // `filter` (api #548) is required in the contract, but a backend from before
 // it answers without one: optional here until that backend is gone, so the
 // plain listings keep working whichever ships first. The screen never reads it.
+// A listing's `icon` (api #613) likewise: without it the card shows no picture.
 const schemas = (() => {
   const all = tolerantSchemas(contract.components.schemas);
   const listings = all.AuctionListingsResponse;
+  const listing = all.AuctionListingResponse;
   return {
     ...all,
     AuctionListingsResponse: { ...listings, required: listings.required.filter((key) => key !== "filter") },
+    AuctionListingResponse: { ...listing, required: listing.required.filter((key) => key !== "icon") },
   };
 })();
 

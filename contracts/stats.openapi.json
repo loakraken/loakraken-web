@@ -1250,6 +1250,9 @@
             "items": {
               "$ref": "#/components/schemas/StatsClassRowResponse"
             }
+          },
+          "composition": {
+            "$ref": "#/components/schemas/StatsCompositionResponse"
           }
         },
         "required": [
@@ -1633,6 +1636,42 @@
           "topPercent",
           "total",
           "value"
+        ]
+      },
+      "StatsCompositionResponse": {
+        "type": "object",
+        "description": "Role split of the sample; the four counts sum to meta.population.",
+        "properties": {
+          "dealer": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "description": "Dealer classes"
+          },
+          "supportClassDealer": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "description": "Support classes played as dealer"
+          },
+          "support": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "description": "Support classes played as support"
+          },
+          "unknownRole": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "description": "Role not observed"
+          }
+        },
+        "required": [
+          "dealer",
+          "supportClassDealer",
+          "support",
+          "unknownRole"
         ]
       }
     }
