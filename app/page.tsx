@@ -7,6 +7,8 @@ import { getMarketBoard } from "@/lib/market/server";
 import { getPopularGuilds, getStats } from "@/lib/stats/server";
 import { GUILD_PERIOD_PARAM, popularGuildsPeriodOf } from "@/lib/stats/popular-guilds";
 import { isPopularGuildsEnabled } from "@/lib/tools/flags";
+import { siteUrl } from "@/lib/site";
+import { jsonLdText, siteJsonLd } from "@/lib/site-jsonld";
 
 // Schedule and notices change through the day; render per request so the
 // first HTML already carries them (the backend caches 30 / 10 minutes).
@@ -52,6 +54,8 @@ export default async function Home({
   if (guilds?.ok) client.setQueryData(["popular-guilds", guildPeriod, null], guilds.envelope, { updatedAt: fetchedAt });
   return (
     <HydrationBoundary state={dehydrate(client)}>
+      {/* The site and its Korean name for search engines, in the first HTML (home only). */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdText(siteJsonLd(siteUrl())) }} />
       <HomeDashboard renderedAt={fetchedAt} popularGuilds={popularGuilds} />
     </HydrationBoundary>
   );
