@@ -62,7 +62,54 @@ export function chromeBottom() {
 const AnchorContext = React.createContext<{
   setTrigger: (element: HTMLElement | null) => void
   top: number
-}>({ setTrigger: () => {}, top: EDGE })
+  /** This item asks to be the one card shown (its card opening, or focus on it). */
+  claim: (source: Element | null) => void
+}>({ setTrigger: () => {}, top: EDGE, claim: () => {} })
+
+// --- One card at a time -----------------------------------------------------
+
+// A click pins a card (it stays when the pointer leaves). Hovering or focusing
+// another item, or any other card opening, closes it, so two cards never stand
+// side by side (user 10-31). An item inside an open card (a gem chip in a
+// core card) does not close the card it sits in.
+const CLAIM_EVENT = "loakraken:item-tooltip-claim"
+type Claim = { id: string; source: Element | null }
+const claimCard = (claim: Claim) => window.dispatchEvent(new CustomEvent<Claim>(CLAIM_EVENT, { detail: claim }))
+
+function useOneCard(id: string, shown: boolean, close: () => void) {
+  const closeRef = React.useRef(close)
+  React.useEffect(() => {
+    closeRef.current = close
+  })
+  React.useEffect(() => {
+    if (!shown) return
+    const onClaim = (event: Event) => {
+      const { id: other, source } = (event as CustomEvent<Claim>).detail
+      if (other === id || source?.closest('[data-slot="item-tooltip"]')) return
+      closeRef.current()
+    }
+    window.addEventListener(CLAIM_EVENT, onClaim)
+    return () => window.removeEventListener(CLAIM_EVENT, onClaim)
+  }, [id, shown])
+}
+
+/** Phones: a tap on another item behind the sheet's backdrop opens that item
+ * (the sheet closes on the same tap), instead of needing a second tap. */
+function openItemUnder(event: React.PointerEvent<HTMLElement>) {
+  if (event.target !== event.currentTarget) return
+  const item = document
+    .elementsFromPoint(event.clientX, event.clientY)
+    .map((element) => element.closest<HTMLElement>('[data-slot="item-tooltip-trigger"]'))
+    .find((element): element is HTMLElement => element != null)
+  if (!item) return
+  // After this sheet has closed and the page is no longer inert.
+  const open = (tries: number) =>
+    requestAnimationFrame(() => {
+      if (item.closest("[inert]") && tries > 0) open(tries - 1)
+      else item.click()
+    })
+  open(30)
+}
 
 /**
  * While the card is open (pointer devices): keep its top below the chrome
@@ -111,14 +158,20 @@ function ItemTooltip({ open, defaultOpen, onOpenChange, children, ...props }: Po
   const touch = React.useSyncExternalStore(subscribeTouch, () => window.matchMedia(TOUCH_QUERY).matches, () => false)
   const [innerOpen, setInnerOpen] = React.useState(defaultOpen ?? false)
   const shown = open ?? innerOpen
+  const id = React.useId()
   const change: NonNullable<PopoverPrimitive.Root.Props["onOpenChange"]> = (next, details) => {
     if (open === undefined) setInnerOpen(next)
     onOpenChange?.(next, details)
+    if (next) claimCard({ id, source: (details as { event?: Event } | undefined)?.event?.target as Element | null })
   }
-  const anchor = useBelowChrome(!touch && shown, () => {
+  const close = () => {
     if (open === undefined) setInnerOpen(false)
     onOpenChange?.(false, { reason: "none" } as never)
-  })
+  }
+  const below = useBelowChrome(!touch && shown, close)
+  useOneCard(id, !touch && shown, close)
+  const claim = React.useCallback((source: Element | null) => claimCard({ id, source }), [id])
+  const anchor = React.useMemo(() => ({ ...below, claim }), [below, claim])
   if (touch) {
     return (
       <ModeContext.Provider value="sheet">
@@ -151,7 +204,7 @@ function ItemTooltip({ open, defaultOpen, onOpenChange, children, ...props }: Po
 /** `openOnHover={false}` for a trigger that should open on a press only (a list row). */
 function ItemTooltipTrigger({ className, openOnHover = true, ...props }: PopoverPrimitive.Trigger.Props) {
   const mode = React.useContext(ModeContext)
-  const { setTrigger } = React.useContext(AnchorContext)
+  const { setTrigger, claim } = React.useContext(AnchorContext)
   if (mode === "sheet") {
     return (
       <DrawerPrimitive.Trigger
@@ -170,6 +223,11 @@ function ItemTooltipTrigger({ className, openOnHover = true, ...props }: Popover
       closeDelay={100}
       className={cn("cursor-default", className)}
       {...props}
+      // Keyboard focus on an item is the same as hovering it: a pinned card elsewhere closes.
+      onFocus={(event) => {
+        claim(event.currentTarget)
+        props.onFocus?.(event)
+      }}
     />
   )
 }
@@ -209,7 +267,7 @@ function ItemTooltipContent({
         {/* The viewport carries swipe-to-close and touch scroll locking. Under
             640px the sheet spans the screen minus 7px each side; wider, it is
             at most 512px, centred (reference re-measure, PM 09:37). */}
-        <DrawerPrimitive.Viewport className="fixed inset-0 z-50">
+        <DrawerPrimitive.Viewport className="fixed inset-0 z-50" onPointerDown={openItemUnder}>
         <DrawerPrimitive.Popup
           data-slot="item-tooltip"
           className={cn(
