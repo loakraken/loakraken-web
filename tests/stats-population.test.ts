@@ -37,7 +37,8 @@ test("population request: backend path", async () => {
 });
 
 test("POPULATION_STATS: on/off override, hidden on production by default", () => {
-  assert.equal(isPopulationStatsEnabled({ POPULATION_STATS: "on", SITE_URL: "https://loakraken.com" }), true);
+  assert.equal(isPopulationStatsEnabled({ POPULATION_STATS: "on", SITE_URL: "https://loakraken.gg" }), true);
   assert.equal(isPopulationStatsEnabled({ POPULATION_STATS: "off" }), false);
+  assert.equal(isPopulationStatsEnabled({ SITE_URL: "https://loakraken.gg" }), false);
   assert.equal(isPopulationStatsEnabled({ SITE_URL: "http://localhost:3000" }), true);
 });
