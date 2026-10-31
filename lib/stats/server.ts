@@ -18,9 +18,9 @@ import { type TitleEquipQuery } from "./title-equip";
 import { requestTitleEquip } from "./title-equip.backend";
 import { type CollectibleQuery } from "./collectible-ranking";
 import { requestCollectibleRanking } from "./collectible-ranking.backend";
-import { requestGemLevels } from "./gem-levels";
-import { requestLevelCombatPower } from "./level-combat-power";
-import { requestPopulation } from "./population";
+import { requestGemLevels } from "./gem-levels.backend";
+import { requestLevelCombatPower } from "./level-combat-power.backend";
+import { requestPopulation } from "./population.backend";
 
 export function getStats<V extends StatsView>(view: V, query: StatsQuery, signal?: AbortSignal) {
   return requestStats(view, query, process.env.LOAKRAKEN_API_ORIGIN, { signal });
