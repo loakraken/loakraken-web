@@ -30,6 +30,7 @@ import {
 } from "@/lib/character/model";
 import { SiteHeader } from "@/components/site/site-header";
 import { recordRecent } from "@/lib/character/recent";
+import { refreshFavoriteImage } from "@/lib/character/favorites";
 import { CharacterBanner } from "./imagery";
 import { BannerRank } from "./banner-rank";
 import { BannerFavorite } from "./favorite";
@@ -183,7 +184,7 @@ const Banner = memo(function Banner({ data }: { data: Character }) {
           </p>
           <div className={styles.bannerNameRow}>
             <h1 className={styles.bannerName}>{data.characterName}</h1>
-            <BannerFavorite name={data.characterName} />
+            <BannerFavorite name={data.characterName} image={data.imageUrl} />
           </div>
           {data.title && (
             <p className={styles.bannerTitle}>{data.title}</p>
@@ -331,13 +332,17 @@ function CharacterContent({
         className: data.className,
         itemLevel: data.itemLevel,
         combatPower: data.combatPower,
+        image: data.imageUrl,
       }
     : null;
   useEffect(() => {
-    if (seen) recordRecent(seen);
+    if (!seen) return;
+    recordRecent(seen);
+    // A favourite's dropdown row takes the image seen here too.
+    refreshFavoriteImage(seen.name, seen.image);
     // Record once per character and refresh, not on every re-render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [seen?.name, seen?.itemLevel, seen?.combatPower]);
+  }, [seen?.name, seen?.itemLevel, seen?.combatPower, seen?.image]);
 
   return (
     <div className={styles.page}>
