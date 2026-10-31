@@ -1,8 +1,9 @@
 import { backendUrl, requestBackend, type BackendResult } from "../api/backend";
 import { characterNameError, normalizeCharacterName } from "../character/model";
 import { isSort, type SpecUpEnvelope } from "./model";
-import { isDetailEnvelope, isGoalEnvelope, isSpecUpEnvelope } from "./validate";
+import { isDetailEnvelope, isGoalEnvelope, isPathEnvelope, isSpecUpEnvelope } from "./validate";
 import type { GoalEnvelope } from "./goal";
+import { isPathSort, type PathEnvelope } from "./path";
 import type { DetailEnvelope } from "./detail";
 
 // Backend #318 SpecUpController error table.
@@ -40,6 +41,32 @@ export async function requestSpecUpGoal(
   }
   // The path search has its own time cap on the backend.
   return requestBackend(url, { timeoutMs: 30_000, ...options, isValid: isGoalEnvelope, errorCodes: goalErrorCodes });
+}
+
+// api #794 추천 순서 error table. SPEC_UP_BUSY (every computing seat taken)
+// keeps its code and Retry-After; any other 429 reads as the rate limit.
+const pathErrorCodes: Record<number, readonly string[]> = {
+  400: ["INVALID_REQUEST"],
+  404: ["SPEC_UP_DISABLED", "CHARACTER_NOT_CACHED"],
+  429: ["SPEC_UP_BUSY"],
+  503: ["CHARACTER_STORAGE_UNAVAILABLE"],
+};
+
+export async function requestSpecUpPath(
+  characterName: string,
+  sort: string | null,
+  origin: string | undefined,
+  options: Options = {},
+): Promise<BackendResult<PathEnvelope>> {
+  if (characterNameError(characterName) || (sort !== null && !isPathSort(sort)))
+    return { ok: false, error: { code: "INVALID_REQUEST", status: 400 } };
+  const url = backendUrl(origin, "/api/v1/characters/spec-up/path");
+  if (url) {
+    url.searchParams.set("characterName", normalizeCharacterName(characterName));
+    if (sort) url.searchParams.set("sort", sort);
+  }
+  // Same time cap as the goal path search.
+  return requestBackend(url, { timeoutMs: 30_000, ...options, isValid: isPathEnvelope, errorCodes: pathErrorCodes });
 }
 
 // 줄 상세 (백엔드 2): same switch and cache as the guide; an id that is no
