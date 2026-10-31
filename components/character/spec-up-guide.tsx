@@ -393,15 +393,23 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
                     {groups.flatMap((group, i) => {
                       // One row per target (#26): its other stages open under it.
                       const open = openGroups.has(group.head.id);
-                      return [group.head, ...(open ? group.more : [])].map((c, j) => {
+                      // Closed stages stay in the table, collapsed: the columns keep
+                      // the same widths whichever stage heads a group (a new sort
+                      // moved the header by a few px otherwise, A7).
+                      return [group.head, ...group.more].map((c, j) => {
                       const sub = j > 0;
+                      const collapsed = sub && !open;
                       // The simulator is combat power: no link for a supporter.
                       const tryable = !supporter && editsFor(c.change, NO_EDITS) != null && c.change;
                       return (
                         // Keyed by the order of the list on screen: a new sort
                         // or '새 순서로 보기' draws new rows instead of sliding
                         // the old ones (A7).
-                        <tr key={`${listKey}:${generation}:${c.id}`} data-sub={sub || undefined}>
+                        <tr
+                          key={`${listKey}:${generation}:${c.id}`}
+                          data-sub={sub || undefined}
+                          data-collapsed={collapsed || undefined}
+                        >
                           <td data-cell="rank">{sub ? <span className={styles.sr}>같은 대상</span> : i + 1}</td>
                           <td data-cell="kind">{kindLabel(c.kind)}</td>
                           <th scope="row" data-cell="target">

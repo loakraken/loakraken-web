@@ -75,7 +75,7 @@ for (const width of [1280, 360]) {
     // By its rows: on a phone the table is laid out as cards (no table role).
     const table = page.locator("table").filter({ has: page.locator('[data-cell="target"]') });
     // 품질 + 보석 0번 칸 (its 9·10레벨 are one row since #26).
-    await expect(table.locator("tbody tr")).toHaveCount(2);
+    await expect(table.locator("tbody tr:not([data-collapsed])")).toHaveCount(2);
     // Prices move the order only of the 효율 list (전투력 증가 is the first list since 10-26).
     await page.getByRole("button", { name: "1만 골드당 효율" }).click();
     await expect(table.locator("caption")).toContainText("1만 골드당 효율 순");

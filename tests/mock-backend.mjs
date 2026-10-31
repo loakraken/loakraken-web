@@ -905,12 +905,13 @@ createServer(async (req, res) => {
       envelope.data.candidates.unshift(
         ...["DAMAGE", "COOLDOWN"].map((gemType, i) => ({
           ...gem,
-          id: `GEM_LEVEL:${7 + i}:7`,
+          // Slots 17·18: unused by the fixtures (a slot holds one gem; a shared slot groups as one target, #26).
+          id: `GEM_LEVEL:${17 + i}:7`,
           target: "터닝 슬래쉬 · 6레벨 광휘",
           from: "6레벨",
           to: "7레벨",
           gemType,
-          change: { ...gem.change, slot: 7 + i, level: 7 },
+          change: { ...gem.change, slot: 17 + i, level: 7 },
         })),
       );
     }
@@ -935,7 +936,7 @@ createServer(async (req, res) => {
     // the rest (the backend's order, api #596).
     if (who === "스펙업0골드") {
       const ok = envelope.data.candidates.filter((c) => c.status === "OK");
-      const free = { ...ok[0], id: "GEM_LEVEL:9:9", target: "무료 보석 칸", cost: { ...ok[0].cost, amount: 0 }, combatPowerPer10kGold: null };
+      const free = { ...ok[0], id: "GEM_LEVEL:9:9", target: "무료 보석 칸", change: { ...ok[0].change, slot: 9 }, cost: { ...ok[0].cost, amount: 0 }, combatPowerPer10kGold: null };
       envelope.data.candidates = [...ok, free, ...envelope.data.candidates.filter((c) => c.status !== "OK")];
     }
     if (url.searchParams.get("sort") === "DELTA") {

@@ -65,11 +65,12 @@ test.describe("스펙업 가이드 @smoke", () => {
   test("같은 대상의 여러 단계는 가장 앞 단계 한 줄로 묶이고, '자세히'로 나머지 단계를 펼치고 접는다", async ({ page }) => {
     await page.goto(characterPath(NAME, "specup"));
     const table = page.getByRole("table", { name: /스펙업 후보, 전투력 증가 순/ });
-    const rows = table.locator("tbody tr");
+    // Shown rows: a closed stage stays in the table, collapsed (keeps the columns).
+    const rows = table.locator("tbody tr:not([data-collapsed])");
     // 품질 + 보석 0번 칸(10레벨이 앞, 9레벨은 그 아래에 접힘).
     await expect(rows).toHaveCount(2);
     await expect(rows.nth(1)).toContainText("+48.07");
-    await expect(table.getByText("+24.00")).toHaveCount(0);
+    await expect(table.getByText("+24.00")).toBeHidden();
     const more = rows.nth(1).getByRole("button", { name: "자세히 · 다른 단계 1개" });
     await expect(more).toHaveAttribute("aria-expanded", "false");
     await more.click();
@@ -139,6 +140,7 @@ test.describe("스펙업 가이드 @smoke", () => {
   ]) {
     test(`적용해 보기(${combo} → ${value})는 시뮬레이터 탭에서 계산하고, 이전으로 되돌린다`, async ({ page }) => {
       await page.goto(characterPath(NAME, "specup"));
+      await expandAll(page);
       let simulations = 0;
       page.on("request", (r) => {
         if (r.url().includes("/api/combat-power/simulate")) simulations++;

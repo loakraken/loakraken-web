@@ -2183,6 +2183,11 @@
 .specUpTable tr[data-sub] {
   background: color-mix(in oklab, var(--muted) 55%, transparent);
 }
+/* A closed group's other stages: no height and out of reach (focus, screen
+   readers), yet still sizing the columns so a new head never moves them. */
+.specUpTable tr[data-collapsed] {
+  visibility: collapse;
+}
 /* Phones: one card per candidate, the gain and the cost in view without
    scrolling the table sideways. */
 @media (max-width: 700px) {
@@ -2204,6 +2209,10 @@
     gap: 4px 10px;
     padding: 12px 0;
     border-bottom: 1px solid var(--secondary);
+  }
+  /* Cards have no shared columns to keep: a closed stage takes no room. */
+  .specUpTable tr[data-collapsed] {
+    display: none;
   }
   .specUpTable tr > * {
     padding: 0;
