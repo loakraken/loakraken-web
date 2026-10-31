@@ -6,6 +6,9 @@ import { test, expect, characterPath, gotoReady, expectNoHorizontalOverflow } fr
 import { shiftsDuring, watchShifts } from "../support/shifts.mjs";
 
 const skillRow = (page, name) => page.locator("li").filter({ has: page.getByText(name, { exact: true }) }).first();
+// The button's spoken name: the name, its level when the official armory page
+// gives one (the mock serves levels when that switch is on), then the place.
+const tripodLabel = (name, place) => new RegExp(`^${name}( 레벨 \\d+)?, ${place} 상세 보기$`);
 const chips = (row) => row.getByRole("list", { name: "스킬 정보" }).getByRole("listitem");
 
 test("1280: 고른 자리 점, 올리면 효과 카드, 각성기·초각성 표시 @regression", async ({ page }) => {
@@ -22,7 +25,7 @@ test("1280: 고른 자리 점, 올리면 효과 카드, 각성기·초각성 표
   // 연발 포격 = 2단계 2번째: the second dot filled, the place read in words.
   const cannon = skillRow(page, "합성 포격");
   // The button's label replaces its text for screen readers: the place is in it.
-  const trigger = cannon.getByRole("button", { name: "연발 포격, 2단계 · 2번째 상세 보기" });
+  const trigger = cannon.getByRole("button", { name: tripodLabel("연발 포격", "2단계 · 2번째") });
   await expect(trigger.locator("i[data-on]")).toHaveCount(1);
   expect(await trigger.locator("i").evaluateAll((dots) => dots.map((dot) => dot.hasAttribute("data-on")))).toEqual([false, true, false]);
 
@@ -34,7 +37,7 @@ test("1280: 고른 자리 점, 올리면 효과 카드, 각성기·초각성 표
   expect(shifts.all, `카드 열 때 흔들림 (${shifts.moved})`).toBe(0);
 
   // An old cache without the effect: the place line only.
-  await skillRow(page, "합성 화염").getByRole("button", { name: "장전, 1단계 · 2번째 상세 보기" }).hover();
+  await skillRow(page, "합성 화염").getByRole("button", { name: tripodLabel("장전", "1단계 · 2번째") }).hover();
   const old = page.getByLabel("장전", { exact: true });
   await expect(old).toContainText("1단계 · 2번째");
   await expectNoHorizontalOverflow(page);
@@ -45,7 +48,7 @@ test.describe("휴대폰", () => {
 
   test("360: 트라이포드를 누르면 효과 카드, 넘침 0 @regression", async ({ page }) => {
     await gotoReady(page, characterPath("상세", "skills"));
-    const trigger = skillRow(page, "합성 포격").getByRole("button", { name: "화약 추가, 3단계 · 1번째 상세 보기" });
+    const trigger = skillRow(page, "합성 포격").getByRole("button", { name: tripodLabel("화약 추가", "3단계 · 1번째") });
     await trigger.scrollIntoViewIfNeeded();
     await trigger.tap();
     const sheet = page.getByRole("dialog", { name: "화약 추가" });
