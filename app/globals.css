@@ -1210,6 +1210,23 @@
   --shadow-card: 0 0 0 1px rgb(255 255 255 / 7%), 0 12px 28px -18px rgb(0 0 0 / 50%);
 }
 
+/* Theme menu previews (theme-toggle.tsx): every theme's page, card step and
+   text must be readable whatever theme is on, so they are copied here once,
+   next to the tokens they show — the --background, --secondary and
+   --foreground of each block above. tests/theme-preview-tokens.test.ts fails
+   when a theme token changes and these do not. */
+:root {
+  --preview-light-page: #ffffff;
+  --preview-light-card: #e8e8ed;
+  --preview-light-text: #1d1d1f;
+  --preview-dim-page: #22252b;
+  --preview-dim-card: #383d47;
+  --preview-dim-text: #d5d8de;
+  --preview-dark-page: #0f1114;
+  --preview-dark-card: #26282e;
+  --preview-dark-text: #eaeaec;
+}
+
 /* Entrance utilities. @starting-style runs the transition only when the
    element is first rendered, so a re-render with new data does not replay;
    browsers without it simply show the final state. Reduced motion is covered
