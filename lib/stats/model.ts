@@ -14,6 +14,8 @@ export type ServersEnvelope = Schemas["ApiResponseStatsServersResponse"];
 export type DistributionEnvelope = Schemas["ApiResponseStatsDistributionResponse"];
 export type Summary = Schemas["StatsSummaryResponse"];
 export type ClassRow = Schemas["StatsClassRowResponse"];
+/** Role split of the class sample (api #779; optional until that api ships). */
+export type Composition = Schemas["StatsCompositionResponse"];
 export type ServerRow = Schemas["StatsServerRowResponse"];
 export type Distribution = Schemas["StatsDistributionResponse"];
 export type Metric = Distribution["metric"];

@@ -39,6 +39,7 @@ import {
 import quote from "@/components/tools/material-quote.module.css";
 import styles from "./stats.module.css";
 import { ClassIcon } from "./class-icon";
+import { CompositionBlock } from "./composition";
 import { BasisNote } from "./basis-note";
 import { LevelPresets } from "./level-presets";
 import { rankingColumns } from "./ranking-columns";
@@ -331,6 +332,7 @@ function ClassesTab({ query }: { query: StatsQuery }) {
       <p className={styles.note}>
         분포 막대: 옅은 선 하위 10%~상위 10%, 진한 칸 가운데 50%, 세로선 중앙값. 표본이 {minSample}명 미만인 직업은 분포 대신 중앙값 점만 찍고, 다른 값은 참고값(회색)으로 보여요.
       </p>
+      <CompositionBlock rows={rows} composition={classes.data.data.composition} />
       <StatsBasis query={query} />
     </div>
   );

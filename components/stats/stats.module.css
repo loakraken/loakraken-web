@@ -764,3 +764,87 @@
   align-items: center;
   gap: 6px;
 }
+
+/* 구성 (B4): three cards under the class table — 역할, 직업군, 서포터 직업의
+   역할 — each a list of name · share · bar. One hue; names and numbers carry
+   the identity, so no colour has to be read. */
+.composition {
+  margin: 24px 0 0;
+}
+.blockTitle {
+  margin: 0 0 10px;
+  font-size: 16px;
+  font-weight: 700;
+}
+.compositionGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  gap: 8px;
+}
+.part {
+  min-width: 0;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: var(--muted);
+}
+.part h3 {
+  margin: 0 0 8px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-weight: 600;
+}
+.part ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+/* Name left, value right; when both do not fit (a long class name at 320),
+   the value drops under the name instead of being cut. The bar is a row. */
+.part li {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 8px;
+  align-items: center;
+  font-size: 13px;
+}
+.partLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.partValue {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.partValue small {
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-weight: 400;
+}
+.partBar {
+  position: relative;
+  flex: 1 0 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: color-mix(in oklab, var(--foreground) 8%, transparent);
+  overflow: hidden;
+}
+.partBar i,
+.partBar b {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+}
+.partBar i {
+  background: color-mix(in oklab, var(--primary) 80%, transparent);
+}
+/* The second share in a split (딜러 after 서포터): the same hue, lighter. */
+.partBar b {
+  background: color-mix(in oklab, var(--primary) 35%, transparent);
+}

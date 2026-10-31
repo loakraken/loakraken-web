@@ -1853,7 +1853,17 @@ createServer(async (req, res) => {
         gemMeanLevel: small ? 7.6 : 8.4, gemSample: Math.round(population * 0.93),
       });
     }
-    if (view === "classes") return ok("STATS_CLASSES_SUCCESS", { rows: classes });
+    if (view === "classes") {
+      // 구성 (api #779): support-capable classes split by role, every other class a dealer; sums to population.
+      const supportClasses = classes.filter((c) => c.supportShare != null);
+      const composition = {
+        dealer: classes.filter((c) => c.supportShare == null).reduce((a, c) => a + c.count, 0),
+        supportClassDealer: supportClasses.reduce((a, c) => a + c.dealers, 0),
+        support: supportClasses.reduce((a, c) => a + c.supports, 0),
+        unknownRole: supportClasses.reduce((a, c) => a + c.unknownRole, 0),
+      };
+      return ok("STATS_CLASSES_SUCCESS", { rows: classes, composition });
+    }
     // Best combat power (api #477, L5): the classes' spread lifted a little
     // (best ≥ current), 95% of each class has a best seen; 니나브 all short.
     if (view === "best-combat-power") {
