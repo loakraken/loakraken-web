@@ -931,20 +931,14 @@
     text-underline-offset: 3px;
   }
 }
-/* Which of 1·2·3 was picked: the chosen dot filled (shape, not colour alone). */
+/* Which of 1·2·3 was picked: the plain number (no box: the icon's corner
+   already carries the tripod level), in tabular figures of one width. */
 .tripodSlot {
-  display: inline-flex;
-  gap: 2px;
-}
-.tripodSlot i {
-  width: 5px;
-  height: 5px;
-  border: 1px solid var(--muted-foreground);
-  border-radius: 50%;
-}
-.tripodSlot i[data-on] {
-  border-color: var(--foreground);
-  background: var(--foreground);
+  min-width: 1ch;
+  color: var(--muted-foreground);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
 }
 .gemEffects {
   list-style: none;
