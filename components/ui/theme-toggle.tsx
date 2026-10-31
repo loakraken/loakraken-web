@@ -169,17 +169,19 @@ const SHOWN_WHEN: Record<ThemeChoice, string> = {
 }
 
 // Each option previews its theme after the name: the page, a card block and a
-// line of text in that theme's own colours (globals.css tokens). A plain dot
-// could not tell 딤 from 다크 (their pages are 1.2:1 apart); the card and text
-// steps differ more (PM 10-31, option A). System is half light, half dark.
-const PREVIEW: Record<AppliedTheme, { page: string; card: string; text: string }> = {
-  light: { page: "#ffffff", card: "#e8e8ed", text: "#1d1d1f" },
-  dim: { page: "#22252b", card: "#31353e", text: "#d5d8de" },
-  dark: { page: "#0f1114", card: "#212329", text: "#eaeaec" },
-}
+// line of text in that theme's own colours. A plain dot could not tell 딤 from
+// 다크 (their pages are 1.2:1 apart); the card and text steps differ more (PM
+// 10-31, option A). The colours are globals.css's --preview-<theme>-* (each
+// theme's --background, --secondary and --foreground, readable in any theme).
+// System is half light, half dark.
+const preview = (theme: AppliedTheme) => ({
+  page: `var(--preview-${theme}-page)`,
+  card: `var(--preview-${theme}-card)`,
+  text: `var(--preview-${theme}-text)`,
+})
 
 function PreviewFace({ theme, clip }: { theme: AppliedTheme; clip?: boolean }) {
-  const { page, card, text } = PREVIEW[theme]
+  const { page, card, text } = preview(theme)
   return (
     <span
       className="absolute inset-0"
