@@ -4,7 +4,7 @@
 // to 30 steps; a target can come back further down at its next stage, so the
 // rows are never grouped. Asked for on a click: each answer is up to a
 // thousand simulator runs on the backend (10-minute cache there).
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { RATE_LIMITED, rateLimitCopy, retryLabel } from "@/lib/api/rate-limit";
@@ -50,6 +50,7 @@ export function SpecUpPath({ data }: { data: Character }) {
   const name = data.characterName;
   const [sort, setSort] = useState<PathSort>("EFFICIENCY");
   const [asked, setAsked] = useState(false);
+  const resultRef = useRef<HTMLDivElement>(null);
 
   const path = useQuery({
     queryKey: ["spec-up-path", name, data.fetchedAt, sort],
@@ -91,6 +92,8 @@ export function SpecUpPath({ data }: { data: Character }) {
               if (busy) return;
               if (asked) void path.refetch();
               else setAsked(true);
+              // This button goes while the answer comes: keep focus in the section.
+              resultRef.current?.focus();
             }}
           >
             {retryLabel(limit.seconds, asked ? "다시 계산" : "추천 순서 보기")}
@@ -98,7 +101,13 @@ export function SpecUpPath({ data }: { data: Character }) {
         )}
       </div>
 
-      <div className={styles.result} aria-live="polite" aria-busy={path.isFetching || undefined}>
+      <div
+        ref={resultRef}
+        tabIndex={-1}
+        className={styles.result}
+        aria-live="polite"
+        aria-busy={path.isFetching || undefined}
+      >
         {failure && !path.isFetching ? (
           <p className={styles.muted} role="alert">
             {failureText(failure.code, "limit" in failure ? failure.limit : undefined)}
@@ -174,7 +183,7 @@ function PathAnswer({ name, path, stale }: { name: string; path: Path; stale: bo
       </ol>
       {steps.length > PATH_FIRST_ROWS && (
         <button type="button" className={styles.more} aria-expanded={all} onClick={() => setAll(!all)}>
-          {all ? "앞 10단계만 보기" : `${steps.length}단계 모두 보기`}
+          {all ? `앞 ${PATH_FIRST_ROWS}단계만 보기` : `${steps.length}단계 모두 보기`}
         </button>
       )}
       <p className={styles.note}>

@@ -14,6 +14,9 @@ test.describe("스펙업 추천 순서 @smoke", () => {
     await section(page).getByRole("button", { name: "추천 순서 보기" }).click();
     expect(new URL((await asked).url()).searchParams.get("sort")).toBe("EFFICIENCY");
     await expect(rows(page)).toHaveCount(2);
+    // The ask button goes with the answer; focus stays in the section, not on <body>.
+    await expect(page.locator(":focus")).toHaveCount(1);
+    expect(await page.evaluate(() => !!document.activeElement?.closest("section[aria-labelledby=spec-up-path]"))).toBe(true);
     await expect(rows(page).nth(0)).toContainText("8레벨 → 9레벨");
     await expect(rows(page).nth(0)).toContainText("+60만G");
     // 9→10 costs 260만G from today's gem; this step adds 200만G on top of step 1.
@@ -34,11 +37,11 @@ test.describe("스펙업 추천 순서 @smoke", () => {
     await expect(rows(page)).toHaveCount(2);
     const asked = page.waitForRequest((r) => r.url().includes("sort=DELTA"));
     const shifts = await shiftsDuring(page, async () => {
-      await section(page).getByRole("button", { name: "전투력 증가" }).click();
+      await section(page).getByRole("button", { name: "전투력 우선" }).click();
       await asked;
     });
-    await expect(section(page).getByRole("button", { name: "전투력 증가" })).toHaveAttribute("aria-pressed", "true");
-    await expect(section(page).getByRole("list", { name: "추천 순서, 전투력 증가 기준" })).toBeVisible();
+    await expect(section(page).getByRole("button", { name: "전투력 우선" })).toHaveAttribute("aria-pressed", "true");
+    await expect(section(page).getByRole("list", { name: "추천 순서, 전투력 우선 기준" })).toBeVisible();
     expect(shifts.all, shifts.moved).toBe(0);
   });
 

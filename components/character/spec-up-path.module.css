@@ -70,10 +70,20 @@
   .sorts button[aria-pressed="false"]:hover {
     color: var(--ink);
   }
+  .more:hover {
+    text-decoration-thickness: 2px;
+  }
+  .unpriced summary:hover {
+    color: var(--ink);
+  }
 }
 .result {
   min-height: 1lh;
   margin-top: 8px;
+}
+/* Focus lands here when the ask button goes; the box itself is not a control. */
+.result:focus {
+  outline: none;
 }
 /* The old order stays while another rule's arrives (keepPreviousData). */
 .answer[data-stale] {

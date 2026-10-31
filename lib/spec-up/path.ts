@@ -11,9 +11,11 @@ export type PathUnpriced = Schemas["SpecUpPathExcludedResponse"];
 export type PathEnvelope = { code: string; message: string; data: SpecUpPath };
 
 export type PathSort = "EFFICIENCY" | "DELTA";
+// Own words, not the list's sort buttons above ('1만 골드당 효율' · '전투력 증가'):
+// two controls with one name on one screen read as the same control.
 export const PATH_SORTS: readonly { id: PathSort; label: string }[] = [
-  { id: "EFFICIENCY", label: "1만 골드당 효율" },
-  { id: "DELTA", label: "전투력 증가" },
+  { id: "EFFICIENCY", label: "효율 우선" },
+  { id: "DELTA", label: "전투력 우선" },
 ];
 export const isPathSort = (value: unknown): value is PathSort => value === "EFFICIENCY" || value === "DELTA";
 
