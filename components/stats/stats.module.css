@@ -766,9 +766,12 @@
   padding: 0;
   list-style: none;
 }
+/* Name left, value right; when both do not fit (a long class name at 320),
+   the value drops under the name instead of being cut. The bar is a row. */
 .part li {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
   gap: 4px 8px;
   align-items: center;
   font-size: 13px;
@@ -791,7 +794,7 @@
 }
 .partBar {
   position: relative;
-  grid-column: 1 / -1;
+  flex: 1 0 100%;
   height: 6px;
   border-radius: 3px;
   background: color-mix(in oklab, var(--foreground) 8%, transparent);
