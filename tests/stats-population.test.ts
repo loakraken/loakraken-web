@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import sample from "./fixtures/stats/population.json";
+import sample from "./stats-fixtures/stats-population.json";
 import { isPopulationEnvelope, populationSearch, requestPopulation, snapshotText } from "../lib/stats/population";
 import { isPopulationStatsEnabled } from "../lib/tools/flags";
 
