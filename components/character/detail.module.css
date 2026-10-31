@@ -856,6 +856,26 @@
 .engravings strong {
   font-weight: 600;
 }
+/* Icon then name; the icon's 24px place is held even while the icons load
+   or when an engraving has none, so names never move. */
+.engravingName {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.engravingIcon {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  overflow: hidden;
+}
+.engravingIcon img {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
 .engravings span {
   color: var(--muted-foreground);
   font-size: 12px;
