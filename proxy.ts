@@ -9,6 +9,9 @@ export function proxy(request: NextRequest) {
   const nonce = newNonce();
   const policy = contentSecurityPolicy(nonce);
   const headers = new Headers(request.headers);
+  // Only this server sets the user-key header for the api (from the sealed
+  // cookie); one sent by a browser is dropped here too (보안 R5, api #804).
+  headers.delete("x-lk-user-key");
   headers.set("x-nonce", nonce);
   headers.set("Content-Security-Policy", policy);
   const response = NextResponse.next({ request: { headers } });
