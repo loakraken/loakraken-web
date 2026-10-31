@@ -119,6 +119,17 @@ async function market(url, req, send) {
   // Market board (B-5): synthetic, deterministic prices per item id.
   if (url.pathname === "/api/v1/markets/tabs")
     return send(marketRead("market-tabs.json"));
+  // Engraving icons (backend #780): keys without spaces; 질량 증가 has none (no icon shown).
+  if (url.pathname === "/api/v1/markets/engraving-icons")
+    return send({
+      code: "ENGRAVING_ICONS_SUCCESS",
+      data: {
+        icons: ["돌격대장", "아드레날린", "원한", "잔재된기운"].map((key, i) => ({
+          key,
+          icon: `https://cdn-lostark.game.onstove.com/efui_iconatlas/achieve/achieve_${10 + i}.png`,
+        })),
+      },
+    });
   const boardItems = (tab) => {
     const refining = [
       [6861012, "아비도스 융화 재료", "희귀", 1, 195],

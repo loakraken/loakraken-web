@@ -52,6 +52,7 @@ import {
   coverageLabel,
   gradeKey,
   normalizeCharacterName,
+  safeGameImage,
   type Character,
   type CharacterEnvelope,
 } from "@/lib/character/model";
@@ -89,6 +90,7 @@ import {
   SkillDetailCard,
 } from "./item-tooltip";
 import { sourcePlainText } from "@/lib/character/source-text";
+import { engravingIconMap, engravingKey, fetchEngravingIcons } from "@/lib/character/engraving-icons";
 import { useItemTooltips } from "./use-item-tooltips";
 import { useArmoryPage } from "./use-armory-page";
 import { tripodLevel, type ArmoryPage } from "@/lib/character/armory-page";
@@ -1271,6 +1273,17 @@ function EngravingsPanel({ data }: { data: Character }) {
   const stagger = useStagger();
   const effects = sortEngravings(data.loadout.engravings?.arkPassiveEffects ?? []);
   const book = engravingBookString(effects);
+  // Icons left of the names (user 10-31, backend #780): one small list per page
+  // load. Each row holds the icon's place from the first paint, so the names
+  // never move when the icons land; a name without a match leaves it blank.
+  const iconList = useQuery({
+    queryKey: ["engraving-icons"],
+    queryFn: ({ signal }) => fetchEngravingIcons(signal),
+    staleTime: Infinity,
+    retry: false,
+    enabled: effects.length > 0,
+  });
+  const icons = engravingIconMap(iconList.data);
   const bonus = stoneBonus(groupEquipment(data.loadout.equipment).stone);
   return (
     <Panel
@@ -1281,13 +1294,28 @@ function EngravingsPanel({ data }: { data: Character }) {
         <ul className={styles.engravings}>
           {effects.map((effect, i) => (
             <li key={i} {...stagger(i)}>
-              {effect.description ? (
-                <DetailTooltip name={effect.name ?? "각인"} card={<EngravingCard description={effect.description} />}>
+              <div className={styles.engravingName}>
+                <div className={styles.engravingIcon} aria-hidden="true">
+                  {safeGameImage(icons.get(engravingKey(effect.name))) && (
+                    // eslint-disable-next-line @next/next/no-img-element -- official CDN icon at a fixed size
+                    <img
+                      src={safeGameImage(icons.get(engravingKey(effect.name)))!}
+                      alt=""
+                      width={24}
+                      height={24}
+                      decoding="async"
+                      referrerPolicy="no-referrer"
+                    />
+                  )}
+                </div>
+                {effect.description ? (
+                  <DetailTooltip name={effect.name ?? "각인"} card={<EngravingCard description={effect.description} />}>
+                    <strong>{text(effect.name)}</strong>
+                  </DetailTooltip>
+                ) : (
                   <strong>{text(effect.name)}</strong>
-                </DetailTooltip>
-              ) : (
-                <strong>{text(effect.name)}</strong>
-              )}
+                )}
+              </div>
               <span>
                 {text(effect.grade)} ×{number(effect.level)}
                 {effect.abilityStoneLevel != null &&
