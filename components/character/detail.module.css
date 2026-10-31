@@ -2163,6 +2163,26 @@
   gap: 8px;
   min-width: 180px;
 }
+/* One row per target (#26): '자세히' under the name opens its other stages. */
+.specUpMore {
+  display: block;
+  width: fit-content;
+  margin-top: 4px;
+  color: var(--link);
+  font-size: 12px;
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.specUpMore:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+/* The other stages of the target above: tinted, no rank of their own. */
+.specUpTable tr[data-sub] {
+  background: color-mix(in oklab, var(--muted) 55%, transparent);
+}
 /* Phones: one card per candidate, the gain and the cost in view without
    scrolling the table sideways. */
 @media (max-width: 700px) {

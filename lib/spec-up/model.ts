@@ -171,6 +171,25 @@ export function keepOrder(list: Candidate[], ids: readonly string[] | null) {
 }
 
 /** OK rows in the backend's order; the rest folded into one line per reason. */
+/**
+ * Several stages of one target (각인 0→2 / 0→3 / 0→4, one gem slot's 9·10레벨,
+ * one part's +19 / +20) as one row (사용자 제보 #26): the first stage in the list's
+ * order heads the group, so the group takes the place of its best stage; the
+ * other stages follow under it, in the same order. A candidate without a
+ * change is a target of its own.
+ */
+export function groupStages(list: Candidate[]): { head: Candidate; more: Candidate[] }[] {
+  const groups = new Map<string, { head: Candidate; more: Candidate[] }>();
+  for (const c of list) {
+    const ch = c.change;
+    const key = ch ? `${ch.kind}:${ch.slot ?? ""}:${ch.index ?? ""}:${ch.name ?? ""}` : `id:${c.id}`;
+    const group = groups.get(key);
+    if (group) group.more.push(c);
+    else groups.set(key, { head: c, more: [] });
+  }
+  return [...groups.values()];
+}
+
 export function splitCandidates(list: Candidate[]) {
   const ok = list.filter((c) => c.status === "OK");
   const folded = new Map<string, Folded>();

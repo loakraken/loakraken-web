@@ -30,6 +30,7 @@ import {
   koreanGold,
   DEFAULT_SORT,
   specUpQuery,
+  groupStages,
   splitCandidates,
   tryParam,
   type Candidate,
@@ -227,6 +228,9 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
     () => (guide ? (krakenShown ? splitKrakenCandidates(candidates) : splitCandidates(candidates)) : { ok: [], folded: [] }),
     [guide, candidates, krakenShown],
   );
+  // One row per target, its other stages behind '자세히' (사용자 제보 #26).
+  const groups = useMemo(() => groupStages(ok), [ok]);
+  const [openGroups, setOpenGroups] = useState<ReadonlySet<string>>(() => new Set());
   // The backend's own order differs from the rows on screen (prices moved).
   const reordered =
     !!guide && guide.candidates.map((c) => c.id).join("|") !== shownIds && order?.sort === listKey;
@@ -386,15 +390,19 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
                     </tr>
                   </thead>
                   <tbody>
-                    {ok.map((c, i) => {
+                    {groups.flatMap((group, i) => {
+                      // One row per target (#26): its other stages open under it.
+                      const open = openGroups.has(group.head.id);
+                      return [group.head, ...(open ? group.more : [])].map((c, j) => {
+                      const sub = j > 0;
                       // The simulator is combat power: no link for a supporter.
                       const tryable = !supporter && editsFor(c.change, NO_EDITS) != null && c.change;
                       return (
                         // Keyed by the order of the list on screen: a new sort
                         // or '새 순서로 보기' draws new rows instead of sliding
                         // the old ones (A7).
-                        <tr key={`${listKey}:${generation}:${c.id}`}>
-                          <td data-cell="rank">{i + 1}</td>
+                        <tr key={`${listKey}:${generation}:${c.id}`} data-sub={sub || undefined}>
+                          <td data-cell="rank">{sub ? <span className={styles.sr}>같은 대상</span> : i + 1}</td>
                           <td data-cell="kind">{kindLabel(c.kind)}</td>
                           <th scope="row" data-cell="target">
                             {/* The target opens the row's detail (시세·재련 재료·전후 능력치, #887). */}
@@ -404,6 +412,23 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
                               candidate={c}
                               cooldownGemsIncluded={guide.cooldownGemsIncluded ?? null}
                             />
+                            {!sub && group.more.length > 0 && (
+                              <button
+                                type="button"
+                                className={`${styles.specUpMore} hit-44`}
+                                aria-expanded={open}
+                                onClick={() =>
+                                  setOpenGroups((prev) => {
+                                    const next = new Set(prev);
+                                    if (next.has(group.head.id)) next.delete(group.head.id);
+                                    else next.add(group.head.id);
+                                    return next;
+                                  })
+                                }
+                              >
+                                {open ? "다른 단계 접기" : `자세히 · 다른 단계 ${group.more.length}개`}
+                              </button>
+                            )}
                           </th>
                           <td data-cell="change">
                             {c.from ?? "—"} → {c.to ?? "—"}
@@ -452,6 +477,7 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
                           </td>
                         </tr>
                       );
+                      });
                     })}
                   </tbody>
                 </table>
