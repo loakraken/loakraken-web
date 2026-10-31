@@ -1514,7 +1514,7 @@ function SkillOverview({
   // ones in use, so a gem on an unused listed skill stays on its row.
   const others = full ? otherSkillGems(data.loadout.gems, skills.map((skill) => skill.name)) : [];
   // One group per skill, so the groups never overlap (PM #507 P1): both kinds,
-  // damage only, cooldown only, none. The head counts the same chips.
+  // damage only, cooldown only, none. The 요약 panel counts every equipped gem instead.
   const groupOf = (skill: Skill): GemFilter => {
     const chips = gemsOf(skill);
     const damage = chips.some((gem) => !gem.cooldown);
@@ -1523,12 +1523,6 @@ function SkillOverview({
   };
   const groupCount = (id: GemFilter) => (id === "all" ? sorted.length : sorted.filter((skill) => groupOf(skill) === id).length);
   const list = !full || gemFilter === "all" ? sorted : sorted.filter((skill) => groupOf(skill) === gemFilter);
-  const chips = sorted.flatMap((skill) => gemsOf(skill));
-  const counts = {
-    damage: chips.filter((gem) => !gem.cooldown).length,
-    cooldown: chips.filter((gem) => gem.cooldown).length,
-    empty: gemCounts(data.loadout.gems).empty,
-  };
   return (
     <Panel
       title="스킬"
@@ -1553,11 +1547,6 @@ function SkillOverview({
     >
       {full && (
         <div className={styles.gemFilterRow}>
-          <p className={styles.gemCounts}>
-            <span data-gem="damage">겁화 {counts.damage}</span>
-            <span data-gem="cooldown">작열 {counts.cooldown}</span>
-            <span>빈 칸 {counts.empty}</span>
-          </p>
           <div className={styles.filterRow} role="group" aria-label="보석으로 거르기">
             {GEM_FILTERS.map((item) => (
               <button
@@ -1670,6 +1659,13 @@ export function SkillsTab({ data }: { data: Character }) {
   const armory = useArmoryPage(data.characterName);
   const counters = summary.active.filter((skill) => skill.counter === true);
   const staggers = summary.active.filter((skill) => staggerOf(skillLines(extra, skill.name)?.infoLines)).length;
+  // Every equipped gem, the same numbers as the 전투 tab's 보석 line (the
+  // backend's analysis, else counted here) — gems on skills outside the list
+  // included.
+  const gemTotals = gemCounts(data.loadout.gems);
+  const gemsHere = (data.loadout.gems?.items ?? []).length > 0;
+  const damageGems = data.analysis.gems?.damageEffectCount ?? gemTotals.damage;
+  const cooldownGems = data.analysis.gems?.cooldownEffectCount ?? gemTotals.cooldown;
   const points = data.skillPoints;
   const left = points?.used != null && points.total != null ? points.total - points.used : null;
   // The two highest combat stats ("특화 1816 · 치명 576"), the engravings by
@@ -1763,6 +1759,14 @@ export function SkillsTab({ data }: { data: Character }) {
             <div>
               <dt>부위 파괴</dt>
               <dd>{summary.partBreakCount}개</dd>
+            </div>
+            <div>
+              <dt>보석</dt>
+              <dd>
+                {gemsHere
+                  ? `겁화 ${damageGems} · 작열 ${cooldownGems} · 미장착 ${gemTotals.empty}`
+                  : `미장착 ${gemTotals.empty}`}
+              </dd>
             </div>
           </dl>
         </Panel>
