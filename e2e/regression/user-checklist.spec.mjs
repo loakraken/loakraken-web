@@ -333,38 +333,38 @@ test.describe("사용자 지적 회귀 점검표 @regression", () => {
         inMenu.add(href);
       await page.keyboard.press("Escape");
     }
+    // The menu lists hubs only (user 11-01): a tool is reached by the tab row
+    // of a hub page the menu opens.
+    for (const hub of [...inMenu].filter((href) => href.startsWith("/tools/") || href.startsWith("/market"))) {
+      await page.goto(hub);
+      const row = page.locator('nav[aria-label$=" 화면"]');
+      if (!(await row.count())) continue;
+      for (const href of await row.locator("a[href^='/']").evaluateAll((links) => links.map((a) => new URL(a.href).pathname)))
+        inMenu.add(href);
+    }
     expect(
       tools.filter((t) => !inMenu.has(t)),
-      "메뉴에 없는 도구",
+      "메뉴(또는 메뉴가 여는 묶음의 탭)에 없는 도구",
     ).toEqual([]);
   });
 
-  test("@A17 1280에서 헤더 메뉴의 긴 묶음은 2열 이상이다", async ({ page }) => {
+  test("@A17 1280에서 헤더 메뉴의 어느 칸도 긴 목록이 아니다", async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await gotoReady(page, "/market");
     const nav = page.getByRole("navigation", { name: "주요 메뉴" });
-    const button = nav.getByRole("button", { name: "성장 도구" });
-    const panel = await button.getAttribute("aria-controls");
-    await button.click();
-    await expect(page.locator(`[id="${panel}"]`)).toBeVisible();
-    // Since the menu regroup (사용자 승인 10-25, #1142): 성장 도구 is three equal
-    // columns (캐릭터 성장 / 레이드 / 골드 효율), each group one column, so the
-    // panel's entries spread over at least two columns instead of one long list.
-    const columns = await page.evaluate((id) => {
-      const lists = [
-        ...document.getElementById(id).querySelectorAll("ul"),
-      ];
-      return [
-        new Set(
-          lists.flatMap((ul) =>
-            [...ul.children].map((li) =>
-              Math.round(li.getBoundingClientRect().left),
-            ),
-          ),
-        ).size,
-      ];
-    }, panel);
-    expect(columns.length).toBeGreaterThan(0);
-    expect(Math.min(...columns)).toBeGreaterThanOrEqual(2);
+    // Since the menu lists hubs only (user 11-01), each panel holds a few
+    // entries: no column (one ul) runs longer than five rows.
+    for (const name of ["캐릭터", "시세", "성장 도구", "일정", "통계"]) {
+      const button = nav.getByRole("button", { name, exact: true });
+      const panel = await button.getAttribute("aria-controls");
+      await button.click();
+      await expect(page.locator(`[id="${panel}"]`)).toBeVisible();
+      const longest = await page.evaluate(
+        (id) => Math.max(...[...document.getElementById(id).querySelectorAll("ul")].map((ul) => ul.children.length)),
+        panel,
+      );
+      expect(longest, name).toBeLessThanOrEqual(5);
+      await page.keyboard.press("Escape");
+    }
   });
 });
