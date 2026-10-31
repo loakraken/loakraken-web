@@ -45,6 +45,33 @@
   width: 110px;
   font-variant-numeric: tabular-nums;
 }
+/* Item-level presets: two small toggles on the field's baseline. */
+.levelPresets {
+  display: inline-flex;
+  gap: 6px;
+  height: 34px;
+  align-items: center;
+}
+.levelPresets button {
+  min-width: 52px;
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 9999px;
+  background: var(--background);
+  color: var(--muted-foreground);
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.levelPresets button[aria-pressed="true"] {
+  border-color: var(--link);
+  color: var(--link);
+}
+.levelPresets button:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
 .filters .check {
   display: inline-flex;
   align-items: center;

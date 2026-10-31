@@ -40,6 +40,7 @@ import quote from "@/components/tools/material-quote.module.css";
 import styles from "./stats.module.css";
 import { ClassIcon } from "./class-icon";
 import { BasisNote } from "./basis-note";
+import { LevelPresets } from "./level-presets";
 import { rankingColumns } from "./ranking-columns";
 
 const SERVERS = ["루페온", "실리안", "아만", "아브렐슈드", "카단", "카마인", "카제로스", "니나브"];
@@ -740,6 +741,12 @@ export function StatsView({
     }, 300);
   }
   useEffect(() => () => clearTimeout(levelTimer.current), []);
+  /** A preset replaces whatever was typed and applies at once. */
+  function pickLevel(value: number | undefined) {
+    clearTimeout(levelTimer.current);
+    setLevelText(value != null ? String(value) : "");
+    if (value !== latest.current.itemLevelMin) apply({ ...latest.current, itemLevelMin: value });
+  }
 
   return (
     <div className={quote.page}>
@@ -792,6 +799,7 @@ export function StatsView({
               onChange={(e) => typeLevel(e.target.value.replace(/[^\d.]/g, ""))}
             />
           </label>
+          <LevelPresets level={query.itemLevelMin} onPick={pickLevel} />
           <label className={styles.check}>
             <input
               type="checkbox"
