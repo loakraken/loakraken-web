@@ -1,0 +1,10 @@
+/* 보석 레벨 분포 (B2): a second chart under the main distribution, in the
+   same histogram/axis/note styles as the one above it. */
+.block {
+  margin: 28px 0 0;
+}
+.title {
+  margin: 0 0 10px;
+  font-size: 16px;
+  font-weight: 700;
+}

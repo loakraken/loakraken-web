@@ -15,7 +15,9 @@ import { pendingProps } from "@/lib/api/pending";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { TIER_LABEL } from "@/lib/character/rank";
 import { coarsen } from "@/lib/stats/bins";
-import { fetchBestCombatPower, fetchStats, fetchTitleEquip } from "@/lib/stats/client";
+import { fetchBestCombatPower, fetchGemLevels, fetchStats, fetchTitleEquip } from "@/lib/stats/client";
+import { gemBinLabel } from "@/lib/stats/gem-levels";
+import gemStyles from "./gem-levels.module.css";
 import { equipShare, titleEquipQuery } from "@/lib/stats/title-equip";
 import {
   DISTRIBUTION_WIDTH,
@@ -465,8 +467,83 @@ function DistributionTab({ query }: { query: StatsQuery }) {
           </p>
         )
       )}
+      <GemLevelsChart query={query} asTable={asTable} />
       {data && <StatsBasis query={query} />}
     </div>
+  );
+}
+
+/**
+ * 보석 레벨 분포 (B2) under the main distribution: 12 fixed bins of the gem
+ * average, as bars or as a table (the same 표로 보기 switch). Only characters
+ * whose gems were seen are in it, so the caption names that count.
+ */
+function GemLevelsChart({ query, asTable }: { query: StatsQuery; asTable: boolean }) {
+  const gems = useQuery({
+    queryKey: ["stats", "gem-levels", statsKey(query)],
+    queryFn: ({ signal }) => fetchGemLevels(query, signal),
+    staleTime: 5 * 60_000,
+    placeholderData: keepPreviousData,
+    ...quiet,
+  });
+  const data = gems.data?.data;
+  const label = "보석 평균 레벨 구간별 인원";
+  const max = Math.max(1, ...(data?.bins ?? []).map((b) => b.count));
+  return (
+    <section className={gemStyles.block} aria-labelledby="stats-gem-levels">
+      <h2 id="stats-gem-levels" className={gemStyles.title}>
+        보석 레벨 분포
+      </h2>
+      {gems.isError && !data ? (
+        // In the bars' place, so nothing below moves.
+        <div className={styles.histogramWait}>
+          <Problem error={gems.error} onRetry={() => gems.refetch()} />
+        </div>
+      ) : !data ? (
+        <p className={styles.histogramWait} role="status">
+          보석 분포를 불러오고 있어요…
+        </p>
+      ) : asTable ? (
+        <DataTable label={label} className={styles.table} {...pendingProps(gems)}>
+          <caption className={styles.srOnly}>{label}</caption>
+          <thead>
+            <tr>
+              <th scope="col" className={styles.left}>보석 평균 레벨</th>
+              <th scope="col">인원</th>
+            </tr>
+          </thead>
+          <tbody key={gems.dataUpdatedAt}>
+            {data.bins.map((bin) => (
+              <tr key={gemBinLabel(bin)}>
+                <th scope="row">{gemBinLabel(bin)}</th>
+                <td>{whole(bin.count)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </DataTable>
+      ) : (
+        <ol key={gems.dataUpdatedAt} className={styles.histogram} aria-label={label} {...pendingProps(gems)}>
+          {data.bins.map((bin, i) => (
+            <li key={gemBinLabel(bin)} title={`${gemBinLabel(bin)} · ${whole(bin.count)}명`}>
+              <i className="k-grow" style={{ height: `${(bin.count / max) * 100}%`, "--i": i } as CSSProperties} />
+              <span className={styles.srOnly}>
+                {gemBinLabel(bin)}: {whole(bin.count)}명
+              </span>
+            </li>
+          ))}
+        </ol>
+      )}
+      {/* Held before the answer too, so the bars land without moving the caption. */}
+      <p className={styles.axis} aria-hidden="true" {...pendingProps(gems)}>
+        <span>{data && !asTable ? gemBinLabel(data.bins[0]) : " "}</span>
+        <span>{data && !asTable ? gemBinLabel(data.bins.at(-1)!) : ""}</span>
+      </p>
+      <p className={styles.note}>
+        {data
+          ? `보석이 확인된 ${whole(data.gemSample)}명 기준이에요(표본 ${whole(data.meta.population)}명). 4티어 보석 평균 레벨을 0.5 단위로 묶었어요.`
+          : " "}
+      </p>
+    </section>
   );
 }
 

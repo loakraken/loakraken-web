@@ -1829,6 +1829,16 @@ createServer(async (req, res) => {
     };
     const view = url.pathname.slice("/api/v1/stats/".length);
     const ok = (code, data) => send({ code, message: "성공", data: { meta, ...data } });
+    // 보석 레벨 분포 (api #782): 12 fixed bins summing to gemSample (93% of the sample, as the summary says).
+    if (view === "gem-levels") {
+      const gemSample = Math.round(population * 0.93);
+      const weights = [1, 1, 1, 2, 3, 5, 8, 12, 16, 20, 18, 13];
+      const sum = weights.reduce((a, w) => a + w, 0);
+      const counts = weights.map((w) => Math.floor((gemSample * w) / sum));
+      counts[9] += gemSample - counts.reduce((a, c) => a + c, 0);
+      const bins = counts.map((count, i) => ({ from: i === 0 ? null : 4.5 + i * 0.5, to: i === 11 ? null : 5 + i * 0.5, count }));
+      return ok("STATS_GEM_LEVELS_SUCCESS", { gemSample, bins });
+    }
     if (view === "summary") {
       const supports = classes.reduce((a, c) => a + c.supports, 0);
       const dealers = population - supports;
