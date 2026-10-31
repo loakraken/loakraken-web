@@ -16,10 +16,16 @@ async function settledCard(page, name) {
   // hover(), which waits for the target to stand still.)
   await expect(cards(page)).not.toHaveAttribute("data-starting-style", /.*/);
 }
-/** Puts the pointer on the middle of `locator` without waiting for it to be still. */
+/**
+ * Puts the pointer on the middle of `locator` without waiting for it to be
+ * still — after checking that nothing (the sticky tab bar) covers that point,
+ * so an interception fails here instead of being skipped silently.
+ */
 async function pointAt(page, locator) {
   const box = await locator.boundingBox();
-  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  const [x, y] = [box.x + box.width / 2, box.y + box.height / 2];
+  expect(await locator.evaluate((el, [px, py]) => el.contains(document.elementFromPoint(px, py)), [x, y]), "포인터 자리를 다른 요소가 가림").toBe(true);
+  await page.mouse.move(x, y);
 }
 
 test("1280: 고정한 카드는 다른 아이템에 올리면 닫히고 그 카드가 열린다, 초점도 같다 @regression", async ({ page }) => {
