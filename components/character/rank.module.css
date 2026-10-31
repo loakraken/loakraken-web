@@ -38,11 +38,16 @@
   background: var(--background);
 }
 .scope {
-  overflow: hidden;
+  /* A37: kind above value, both free to wrap. Every box holds two lines,
+     including the placeholder and scopes without a value (A7). */
+  min-height: calc(2 * 1lh);
   color: var(--muted-foreground);
   font-size: 11px;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+.scopeValue {
+  display: block;
 }
 .cells strong {
   color: var(--foreground);
