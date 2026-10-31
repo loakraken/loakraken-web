@@ -244,7 +244,7 @@ export function TabBar({
   rateLimitSeconds: number;
   onRefresh: () => void;
 }) {
-  const [favorite, toggleFavorite] = useFavorite(name);
+  const [favorite, toggleFavorite] = useFavorite(name, data.imageUrl);
   const [shareStatus, setShareStatus] = useState("");
   const { nav: pillNav, layer: pillLayer, onKeyDown: pillKey, onPointerDown: pillPointer } = useTabPill(tab);
   // The guild tab only for a character in a guild.

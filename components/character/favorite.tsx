@@ -6,13 +6,14 @@ import { favoritesSnapshot, parseFavorites, subscribeFavorites, toggleStoredFavo
 import styles from "./character.module.css";
 
 // One list with the search dropdown's 즐겨찾기 tab and the home card (#1119).
-export function useFavorite(name: string) {
+// The image goes with the star, for the dropdown's 즐겨찾기 rows.
+export function useFavorite(name: string, image?: string | null) {
   const favorite = useSyncExternalStore(
     subscribeFavorites,
     () => parseFavorites(favoritesSnapshot()).includes(name),
     () => false,
   );
-  const toggle = () => void toggleStoredFavorite(name);
+  const toggle = () => void toggleStoredFavorite(name, image);
   return [favorite, toggle] as const;
 }
 
@@ -21,8 +22,8 @@ export function useFavorite(name: string) {
  * row's own toggle is hidden there (A35), so phones still see and press one.
  * Present from the first paint and the same size either way (no shift).
  */
-export function BannerFavorite({ name }: { name: string }) {
-  const [favorite, toggle] = useFavorite(name);
+export function BannerFavorite({ name, image }: { name: string; image?: string | null }) {
+  const [favorite, toggle] = useFavorite(name, image);
   return (
     <button
       type="button"

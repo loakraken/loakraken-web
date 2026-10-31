@@ -96,6 +96,48 @@ test("최근 목록에 없는 즐겨찾기는 이름만(빈 서버·직업 자�
   await expect(page.getByRole("tab", { includeHidden: true }).first()).not.toBeFocused();
 });
 
+// The suggestion rows' character image on the tab rows too (v0.3.4): saved
+// with the entry, an old entry without one keeps its first letter, and the
+// image box is the letter's box (no shift either way, A7).
+for (const width of [360, 1280])
+  test(`${width}: 최근 본·즐겨찾기 줄에도 캐릭터 그림, 그림 없는 옛 줄은 첫 글자(같은 상자) @regression`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 800 });
+    const IMG = "https://cdn-lostark.game.onstove.com/armory/상세.png";
+    await page.addInitScript((img) => {
+      try {
+        localStorage.setItem(
+          "loakraken:recent",
+          JSON.stringify([
+            { name: "상세", server: "아만", className: "블래스터", itemLevel: 1780.83, image: img, at: 2 },
+            { name: "옛줄", server: "아만", className: "바드", itemLevel: 1700, at: 1 },
+          ]),
+        );
+        localStorage.setItem("loakraken:favorites", JSON.stringify(["상세서포터", "상세"]));
+        localStorage.setItem("loakraken:favorite-images", JSON.stringify({ 상세서포터: img }));
+      } catch {}
+    }, IMG);
+    await openSearch(page);
+    // The tab's rows come first (popular rows may repeat a name further down).
+    const avatar = (name) =>
+      list(page)
+        .getByRole("option")
+        .filter({ has: page.locator(".rsp-name", { hasText: new RegExp(`^${name}( · 즐겨찾기됨)?$`) }) })
+        .first()
+        .locator(".rsp-av");
+    await expect(avatar("상세").locator("img")).toHaveAttribute("src", encodeURI(IMG));
+    await expect(avatar("옛줄").locator("img")).toHaveCount(0);
+    await expect(avatar("옛줄")).toHaveText("옛");
+    // Layout boxes, not boundingBox: rows enter with a transform.
+    const size = (el) => [el.offsetWidth, el.offsetHeight];
+    expect(await avatar("상세").evaluate(size), "그림 상자 = 글자 상자").toEqual(await avatar("옛줄").evaluate(size));
+
+    // 즐겨찾기: the image saved with the star; one seen recently takes the recent one.
+    await page.getByRole("tab", { name: "즐겨찾기" }).click();
+    await expect(avatar("상세서포터").locator("img")).toHaveAttribute("src", encodeURI(IMG));
+    await expect(avatar("상세").locator("img")).toHaveAttribute("src", encodeURI(IMG));
+    await expectNoHorizontalOverflow(page);
+  });
+
 test("캐릭터 화면: 즐겨찾기 단추(눌림 상태)와 같은 드롭다운의 검색 칸 @regression", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await gotoReady(page, characterPath("상세"));
