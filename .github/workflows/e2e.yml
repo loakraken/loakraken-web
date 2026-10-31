@@ -350,6 +350,26 @@ jobs:
           JS
         env:
           PR: ${{ github.event.pull_request.number }}
+      # shard 보고서 하나가 올라가지 않아도 위 합계는 조용히 줄어든다. 같은 프로젝트의 테스트 목록(--list, 서버를 띄우지 않음)과
+      # 합친 결과의 테스트 수를 맞춰 보고, 다르면 실패한다(#1180 리뷰).
+      - name: Check every test was reported
+        if: always()
+        working-directory: e2e
+        run: |
+          [ -f results.json ] || { echo "results.json 없음: 위 단계에서 이미 실패"; exit 1; }
+          npx playwright test --project=desktop-1440 --project=tablet-768 --project=mobile-390 --project=isolated --project=solo --list --reporter=json > list.json
+          node --input-type=commonjs <<'JS'
+            const fs = require("fs");
+            const count = (suite) => (suite.specs ?? []).reduce((n, s) => n + (s.tests ?? []).length, 0) + (suite.suites ?? []).reduce((n, s) => n + count(s), 0);
+            const listed = JSON.parse(fs.readFileSync("list.json", "utf8")).suites.reduce((n, s) => n + count(s), 0);
+            const s = JSON.parse(fs.readFileSync("results.json", "utf8")).stats ?? {};
+            const reported = (s.expected ?? 0) + (s.unexpected ?? 0) + (s.flaky ?? 0) + (s.skipped ?? 0);
+            console.log(`목록 ${listed}개, 보고 ${reported}개`);
+            if (!listed || listed !== reported) {
+              console.log(`::error title=E2E 테스트 수 불일치::목록 ${listed}개와 합친 보고 ${reported}개가 다릅니다. shard 보고서가 빠졌는지 보세요.`);
+              process.exit(1);
+            }
+          JS
       - name: Download performance rows
         if: always()
         continue-on-error: true
