@@ -375,6 +375,7 @@ export interface components {
             gemEffects: components["schemas"]["SkillGemEffectResponse"][];
             attackType: ("BACK_ATTACK" | "HEAD_ATTACK" | "NONE") | null;
             cooldown: components["schemas"]["SkillCooldownResponse"] | null;
+            skillType: number | null;
         };
         TripodResponse: {
             tier: number | null;

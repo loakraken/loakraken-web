@@ -85,7 +85,10 @@ import {
   PassiveNodeCard,
   RuneCard,
   SkillDetailCard,
+  TripodCard,
+  tripodPlace,
 } from "./item-tooltip";
+import { awakeningLabel } from "@/lib/character/skill-type";
 import { sourcePlainText } from "@/lib/character/source-text";
 import { useItemTooltips } from "./use-item-tooltips";
 import { useArmoryPage } from "./use-armory-page";
@@ -1382,6 +1385,7 @@ function SkillCard({
     ? []
     : [
         skill.type,
+        awakeningLabel(skill.skillType),
         skill.attackType ? ATTACK_LABEL[skill.attackType] : null,
         skill.counter ? "카운터" : null,
         skill.partBreakLevel != null ? `파괴 ${skill.partBreakLevel}` : null,
@@ -1437,18 +1441,38 @@ function SkillCard({
         <ul className={styles.tripods}>
           {skill.tripods.map((tripod, i) => {
             const tripodLv = compact ? null : levelOf?.(tripod.tier, tripod.slot) ?? null;
+            const icon = (
+              <span className={styles.tripodIcon}>
+                <GameIcon src={tripod.icon} size={20} />
+                {tripodLv != null && <b aria-hidden="true">{tripodLv}</b>}
+              </span>
+            );
+            if (compact) return <li key={i}>{icon}</li>;
+            const place = tripodPlace(tripod);
+            const name = tripod.name ?? "트라이포드";
+            // Which of the tier's 1·2·3 was picked (user 10-31): three dots,
+            // the chosen one filled; the card says it in words with the effect.
+            // The button's label replaces its text for screen readers, so the
+            // level and the place go into it too.
+            const label = [name + (tripodLv != null ? ` 레벨 ${tripodLv}` : ""), place].filter(Boolean).join(", ");
             return (
               <li key={i}>
-                <span className={styles.tripodIcon}>
-                  <GameIcon src={tripod.icon} size={20} />
-                  {tripodLv != null && <b aria-hidden="true">{tripodLv}</b>}
-                </span>
-                {compact ? null : (
-                  <span>
-                    {text(tripod.name)}
-                    {tripodLv != null && <span className={styles.srOnly}> 레벨 {tripodLv}</span>}
+                <DetailTooltip name={name} label={label} card={<TripodCard tripod={tripod} />} hit="tight">
+                  <span className={styles.tripodRow}>
+                    {icon}
+                    <span>
+                      {text(tripod.name)}
+                      {tripodLv != null && <span className={styles.srOnly}> 레벨 {tripodLv}</span>}
+                    </span>
+                    {tripod.slot != null && tripod.slot >= 1 && tripod.slot <= 3 && (
+                      <span className={styles.tripodSlot} aria-hidden="true">
+                        {[1, 2, 3].map((n) => (
+                          <i key={n} data-on={n === tripod.slot || undefined} />
+                        ))}
+                      </span>
+                    )}
                   </span>
-                )}
+                </DetailTooltip>
               </li>
             );
           })}

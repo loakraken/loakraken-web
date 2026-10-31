@@ -881,6 +881,34 @@
   align-items: center;
   gap: 5px;
 }
+/* Full view: icon, name and the tier's three places, one hover/tap target. */
+.tripodRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+/* It opens a card: the name answers the pointer. */
+@media (hover: hover) and (pointer: fine) {
+  .tripodRow:hover > span:nth-child(2) {
+    text-decoration: underline dotted;
+    text-underline-offset: 3px;
+  }
+}
+/* Which of 1·2·3 was picked: the chosen dot filled (shape, not colour alone). */
+.tripodSlot {
+  display: inline-flex;
+  gap: 2px;
+}
+.tripodSlot i {
+  width: 5px;
+  height: 5px;
+  border: 1px solid var(--muted-foreground);
+  border-radius: 50%;
+}
+.tripodSlot i[data-on] {
+  border-color: var(--foreground);
+  background: var(--foreground);
+}
 .gemEffects {
   list-style: none;
   padding: 0;

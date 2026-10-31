@@ -269,12 +269,15 @@ export function ItemTooltip({
  */
 export function DetailTooltip({
   name,
+  label,
   card,
   hit,
   children,
 }: {
   /** What the card is about ("… 상세 보기"). */
   name: string;
+  /** The trigger's spoken name when it carries more than the card's name (its label hides its text). */
+  label?: string;
   card: ReactNode;
   /** A larger touch target round a small icon: "row" (8px all round) or "tight" (taller only). */
   hit?: "row" | "tight";
@@ -284,7 +287,7 @@ export function DetailTooltip({
     <Tooltip>
       <ItemTooltipTrigger
         className={[styles.trigger, hit && styles[hit === "row" ? "hitRow" : "hitTight"]].filter(Boolean).join(" ")}
-        aria-label={`${name} 상세 보기`}
+        aria-label={`${label ?? name} 상세 보기`}
       >
         {children}
       </ItemTooltipTrigger>
@@ -580,6 +583,25 @@ export function SkillDetailCard({ skill, lines }: { skill: Skill; lines?: SkillL
  * The skill rune card (§2c): name, icon row (전설 스킬 룬), the effect, then the
  * official remaining lines (description, sources).
  */
+type Tripod = Skill["tripods"][number];
+
+/** Where a chosen tripod sits: "1단계 · 2번째" (tier is 0-based, slot 1-based). */
+export const tripodPlace = (tripod: Pick<Tripod, "tier" | "slot">) =>
+  tripod.tier != null && tripod.slot != null ? `${tripod.tier + 1}단계 · ${tripod.slot}번째` : null;
+
+/**
+ * The tripod card (skill tab, user 10-31): name, where it sits in its tier,
+ * then the official effect, as plain text (the server strips the tags).
+ */
+export function TripodCard({ tripod }: { tripod: Tripod }) {
+  const place = tripodPlace(tripod);
+  return (
+    <ItemDetail title={tripod.name ?? "트라이포드"} icon={img56(tripod.icon)} plainIcon lines={place ? [place] : []}>
+      {tripod.effect && <ItemLine>{tripod.effect}</ItemLine>}
+    </ItemDetail>
+  );
+}
+
 export function RuneCard({ rune, lines = [] }: { rune: Rune; lines?: string[] }) {
   return (
     <ItemDetail
