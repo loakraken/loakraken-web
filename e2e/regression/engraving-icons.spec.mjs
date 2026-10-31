@@ -7,7 +7,8 @@ for (const width of [360, 1280])
   test(`${width}: 각인 아이콘은 이름 왼쪽, 없으면 빈 자리, 이름 줄 맞춤 @regression`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await watchShifts(page);
-    await gotoReady(page, characterPath("상세"));
+    // 대세블레이드 carries 돌격대장·아드레날린·원한·잔재된 기운·질량 증가 in the mock.
+    await gotoReady(page, characterPath("대세블레이드"));
     const panel = page.getByRole("region", { name: "각인", exact: true });
     const row = (name) => panel.locator("li").filter({ has: page.getByText(name, { exact: true }) }).first();
     // Matched without spaces; a name with no icon keeps an empty slot.
