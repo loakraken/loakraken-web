@@ -94,7 +94,8 @@ const ROLLOUT: Record<string, Record<string, () => unknown>> = {
     baseAttackPctSource: () => null,
   },
   // Gem-adjusted cooldown (backend #378, K20).
-  SkillResponse: { attackType: () => null, cooldown: () => null },
+  // Skill type (backend #773): 각성기 / 초각성 marks.
+  SkillResponse: { attackType: () => null, cooldown: () => null, skillType: () => null },
   TripodResponse: { effect: () => null },
   RuneResponse: { effect: () => null },
 };

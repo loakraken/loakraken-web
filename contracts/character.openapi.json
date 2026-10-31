@@ -2467,6 +2467,18 @@
                 "type": "null"
               }
             ]
+          },
+          "skillType": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32",
+                "description": "공식 SkillType 코드: 0 일반, 1 각성기, 100·101 초각성. 그 밖의 값은 일반 스킬로 봅니다. 이전 캐시면 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -2479,6 +2491,7 @@
           "name",
           "partBreakLevel",
           "rune",
+          "skillType",
           "tripods",
           "type"
         ]
