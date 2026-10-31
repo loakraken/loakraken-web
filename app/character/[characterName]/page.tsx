@@ -7,6 +7,7 @@ import {
   isReceiptEnabled,
   isSettingCheckEnabled,
   isSpecUpEnabled,
+  isSpecUpPathEnabled,
   isGuildTabEnabled,
   isTitleStatsEnabled,
 } from "@/lib/tools/flags";
@@ -108,6 +109,7 @@ export default async function CharacterPage({
         armoryPage={isArmoryPageEnabled()}
         simulator={isCombatPowerEnabled()}
         specUp={isSpecUpEnabled()}
+        specUpPath={isSpecUpPathEnabled()}
         titleStats={isTitleStatsEnabled()}
         critSpeed={isCritSpeedEnabled()}
         guildTab={isGuildTabEnabled()}

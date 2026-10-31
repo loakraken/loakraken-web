@@ -807,6 +807,53 @@ createServer(async (req, res) => {
   // onto the mock character's combat power and cut where it reaches the target,
   // as the backend stops there. '미존재' 404, '스펙업꺼짐' 404, '상세서포터' the
   // role reason with no steps, a target over twice today 400.
+  // 스펙업 추천 순서 (api #794): the backend's sample (보석 8→9→10, 품질 unpriced)
+  // moved onto the mock character's power, gem on slot 1 (extraCost as #794
+  // @8bb6ee1 sends it). '스펙순서긴' repeats it to 14 steps (more than the first
+  // 10 rows), '스펙순서몰림' is SPEC_UP_BUSY, '상세서포터' the role reason with no steps.
+  if (url.pathname === "/api/v1/characters/spec-up/path") {
+    counts.specUpPath = (counts.specUpPath || 0) + 1;
+    const who = url.searchParams.get("characterName");
+    const sort = url.searchParams.get("sort") ?? "EFFICIENCY";
+    if (who === "스펙업꺼짐") return send({ code: "SPEC_UP_DISABLED", message: "", data: null }, 404);
+    if (who === "미존재") return send({ code: "CHARACTER_NOT_CACHED", message: "", data: null }, 404);
+    if (who === "스펙순서몰림") return send({ code: "SPEC_UP_BUSY", message: "", data: null }, 429, { "Retry-After": "5" });
+    const envelope = JSON.parse(readFileSync(new URL("./spec-up-fixtures/character-spec-up-path.json", import.meta.url), "utf8"));
+    const d = envelope.data;
+    const base = read("character-full-data.json").combatPower;
+    const sampleBase = d.combatPower;
+    const shift = (v) => Math.round((v + base - sampleBase) * 100) / 100;
+    Object.assign(d, { characterName: who, sort, combatPower: base, finalCombatPower: shift(d.finalCombatPower) });
+    if (who === "상세서포터") {
+      Object.assign(d, { steps: [], unpriced: [], finalCombatPower: base, totalCost: null, stopReasonCode: "SUPPORTER_MODEL_PENDING", stopReason: "서포터 전투력 계산식은 아직 적용하지 않았습니다." });
+      return send(envelope);
+    }
+    for (const step of d.steps) {
+      step.combatPowerAfter = shift(step.combatPowerAfter);
+      step.change.slot = 1;
+      step.candidateId = step.candidateId.replace(/^GEM_LEVEL:0:/, "GEM_LEVEL:1:");
+    }
+    if (who === "스펙순서긴") {
+      const more = Array.from({ length: 12 }, (_, i) => ({
+        ...structuredClone(d.steps[0]),
+        order: i + 3,
+        candidateId: `ENGRAVING_LEVEL:원한${i}:1`,
+        kind: "ENGRAVING_LEVEL",
+        target: `시험 각인 ${i + 1}`,
+        from: "0단계",
+        to: "1단계",
+        change: { ...d.steps[0].change, kind: "ENGRAVING_LEVEL", slot: null, level: 1, name: `원한${i}` },
+        deltaCombatPower: 5,
+        combatPowerAfter: Math.round((d.finalCombatPower + 5 * (i + 1)) * 100) / 100,
+        cost: { ...d.steps[0].cost, amount: 10000, code: "ENGRAVING_BOOK" },
+        cumulativeCost: d.totalCost + 10000 * (i + 1),
+        extraCost: 10000,
+      }));
+      d.steps.push(...more);
+      Object.assign(d, { finalCombatPower: more.at(-1).combatPowerAfter, totalCost: more.at(-1).cumulativeCost, stopReasonCode: "STEP_LIMIT", limit: 14 });
+    }
+    return send(envelope);
+  }
   if (url.pathname === "/api/v1/characters/spec-up/goal") {
     const who = url.searchParams.get("characterName");
     const target = Number(url.searchParams.get("targetCombatPower"));

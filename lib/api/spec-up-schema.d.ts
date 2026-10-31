@@ -64,6 +64,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/characters/spec-up/path": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 스펙업 추천 순서(이어 고르기, 공식 호출 없음)
+         * @description 목표 없이, 지금 상태에서 항목마다 다음 한 단계를 만들고 sort 기준으로 가장 앞의 단계를 적용한 뒤 다시 재기를 limit 단계까지 되풀이한 순서입니다. sort=EFFICIENCY(기본): 이 단계에 더 드는 비용 1만 골드당 전투력이 큰 순(더 드는 비용이 0 이하인 단계가 먼저, 같으면 Δ·id). sort=DELTA: 전투력 증가가 큰 순(같으면 효율·id). 시세(더 드는 비용)를 모르는 단계는 순서에 넣지 않고 unpriced에 지금 상태 기준으로 따로 줍니다(비용을 추측하지 않음). 단계·비용·전투력은 목표 경로(/spec-up/goal)와 같은 규칙입니다(steps[].change를 차례로 시뮬레이터에 넣은 값과 같음, 보석 칸은 누적 비용, cumulativeCost는 그 단계까지 합계). 딜러가 아니거나 공식 전투력이 없으면 200, 빈 steps, stopReasonCode에 스펙업 가이드와 같은 이유 코드를 줍니다. 계산 시간 상한이 있고, 같은 캐릭터 수집 시각·시세·sort·limit은 10분 캐시합니다. 계산이 몰리면 기다리지 않고 429 SPEC_UP_BUSY와 Retry-After(초)를 줍니다. stopReasonCode·kind·cost.code는 문자열이며 값이 늘 수 있습니다.
+         */
+        get: operations["path"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -308,6 +328,7 @@ export interface components {
             cost: components["schemas"]["CostResponse"];
             cumulativeCost: number | null;
             combatPowerPer10kGold: number | null;
+            extraCost?: number | null;
         };
         /** @description 공통 API 응답. 오류 응답의 data는 null입니다. */
         ApiResponseSpecUpDetailResponse: {
@@ -425,6 +446,71 @@ export interface components {
             breath: string | null;
             expectedAttempts: number | null;
             firstAttemptSuccessRateBp: number | null;
+        };
+        /** @description 공통 API 응답. 오류 응답의 data는 null입니다. */
+        ApiResponseSpecUpPathResponse: {
+            /**
+             * @description 업무 결과 코드
+             * @example CHARACTER_SEARCH_SUCCESS
+             */
+            code: string;
+            /**
+             * @description 공개용 안내 메시지
+             * @example 캐릭터 조회에 성공했습니다.
+             */
+            message: string;
+            /** @description 성공 응답 데이터. 오류일 때 null */
+            data: components["schemas"]["SpecUpPathResponse"];
+        };
+        SpecUpPathResponse: {
+            characterName: string;
+            serverName: string | null;
+            className: string | null;
+            combatPower: number | null;
+            finalCombatPower: number | null;
+            /**
+             * @description 쓴 기준(EFFICIENCY·DELTA)
+             * @example EFFICIENCY
+             */
+            sort: string;
+            /**
+             * Format: int32
+             * @description 요청한 단계 수
+             */
+            limit: number;
+            /**
+             * @description 멈춘 이유 코드(문자열, 값이 늘 수 있음): STEP_LIMIT(limit까지)·NO_CANDIDATE(시세가 있고 전투력이 오르는 단계를 모두 고름)·TIME_LIMIT, 또는 스펙업 가이드의 이유 코드(ROLE_UNKNOWN 등)
+             * @example STEP_LIMIT
+             */
+            stopReasonCode: string;
+            stopReason: string | null;
+            totalCost: number | null;
+            /** @example spec-up-path-v1 */
+            ruleVersion: string;
+            /** @description 전투력을 낸 시뮬레이터 규칙 */
+            simulatorRuleVersion: string;
+            fetchedAt: string | null;
+            pricesAt: string | null;
+            /** @description 고른 순서(시세가 있는 단계만) */
+            steps: components["schemas"]["SpecUpGoalStepResponse"][];
+            /** @description 시세를 몰라 순서에서 뺀 항목(지금 상태 기준, 전투력이 오르는 것만, Δ 큰 순). 비용을 추측하지 않음 */
+            unpriced: components["schemas"]["SpecUpPathExcludedResponse"][];
+        };
+        SpecUpPathExcludedResponse: {
+            /** @description 스펙업 가이드 후보 id와 같은 형식 */
+            candidateId: string;
+            /** @description 단계 종류(문자열, 값이 늘 수 있음) */
+            kind: string;
+            target: string;
+            from: string;
+            to: string;
+            icon: string | null;
+            grade: string | null;
+            skillName: string | null;
+            /** @description 지금 상태에서 이 단계만 적용했을 때 늘어나는 전투력 */
+            deltaCombatPower: number;
+            /** @description 비용(시세를 모름 — cost.code에 이유) */
+            cost: components["schemas"]["CostResponse"];
         };
     };
     responses: never;
@@ -609,6 +695,69 @@ export interface operations {
                 };
             };
             /** @description CLIENT_RATE_LIMITED: 요청이 많음(Retry-After 초) */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description CHARACTER_STORAGE_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    path: {
+        parameters: {
+            query: {
+                /** @description 캐릭터명 */
+                characterName: string;
+                /** @description 고르는 기준: EFFICIENCY(기본) 또는 DELTA */
+                sort?: string;
+                /** @description 단계 수(1~30, 기본 30) */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description SPEC_UP_PATH_SUCCESS */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponseSpecUpPathResponse"];
+                };
+            };
+            /** @description INVALID_REQUEST: 캐릭터명·sort·limit 형식 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description SPEC_UP_DISABLED: 기능이 꺼져 있음 · CHARACTER_NOT_CACHED: 캐릭터를 먼저 검색해야 함 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description SPEC_UP_BUSY: 추천 순서 계산 자리가 모두 차 있음(기다리지 않음, Retry-After 초 뒤 다시) */
             429: {
                 headers: {
                     [name: string]: unknown;

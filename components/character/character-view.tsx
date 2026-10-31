@@ -38,7 +38,7 @@ import { KrakenScoreStrip } from "./kraken-score-metric";
 import { Entrance } from "./entrance";
 import { kstTime, level, number, text } from "./parts";
 import { CritSpeedEnabled } from "./analysis-menu";
-import { CharacterEfficiencyEnabled, GuildTabEnabled, SettingCheckEnabled, SimulatorEnabled, SpecUpEnabled, TabBar, TabPanel, TitleStatsEnabled, tabOf, useTabTop, type TabId } from "./tabs";
+import { CharacterEfficiencyEnabled, GuildTabEnabled, SettingCheckEnabled, SimulatorEnabled, SpecUpEnabled, SpecUpPathEnabled, TabBar, TabPanel, TitleStatsEnabled, tabOf, useTabTop, type TabId } from "./tabs";
 import { ArmoryPageEnabled } from "./use-armory-page";
 import { ReceiptEnabled } from "./receipt-panel";
 import styles from "./character.module.css";
@@ -456,6 +456,7 @@ export function CharacterView({
   settingCheck = true,
   simulator = true,
   specUp = true,
+  specUpPath = true,
   armoryPage = true,
   titleStats = true,
   critSpeed = true,
@@ -474,6 +475,8 @@ export function CharacterView({
   simulator?: boolean;
   /** SPEC_UP_GUIDE on this deployment (server flag). */
   specUp?: boolean;
+  /** SPEC_UP_PATH on this deployment (server flag): the 추천 순서 section. */
+  specUpPath?: boolean;
   /** ARMORY_PAGE on this deployment (server flag). */
   armoryPage?: boolean;
   /** TITLE_STATS on this deployment (server flag): roster title shares. */
@@ -490,6 +493,7 @@ export function CharacterView({
       <SettingCheckEnabled.Provider value={settingCheck}>
         <SimulatorEnabled.Provider value={simulator}>
           <SpecUpEnabled.Provider value={specUp}>
+          <SpecUpPathEnabled.Provider value={specUpPath}>
             <ArmoryPageEnabled.Provider value={armoryPage}>
               <TitleStatsEnabled.Provider value={titleStats}>
                 <CritSpeedEnabled.Provider value={critSpeed}>
@@ -503,6 +507,7 @@ export function CharacterView({
                 </CritSpeedEnabled.Provider>
               </TitleStatsEnabled.Provider>
             </ArmoryPageEnabled.Provider>
+          </SpecUpPathEnabled.Provider>
           </SpecUpEnabled.Provider>
         </SimulatorEnabled.Provider>
       </SettingCheckEnabled.Provider>
