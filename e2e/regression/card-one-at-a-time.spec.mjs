@@ -11,7 +11,10 @@ const cards = (page) => page.locator("[data-slot=item-tooltip][data-open]");
 async function settledCard(page, name) {
   await expect(cards(page)).toHaveCount(1);
   await expect(cards(page)).toHaveAttribute("aria-label", name);
-  await expect.poll(() => cards(page).evaluate((el) => el.getAnimations().length)).toBe(0);
+  // Out of its starting style and fully shown (the card always lists some
+  // animations, so counting them never reaches zero).
+  await expect(cards(page)).not.toHaveAttribute("data-starting-style", /.*/);
+  await expect.poll(() => cards(page).evaluate((el) => getComputedStyle(el).opacity)).toBe("1");
 }
 
 test("1280: 고정한 카드는 다른 아이템에 올리면 닫히고 그 카드가 열린다, 초점도 같다 @regression", async ({ page }) => {
