@@ -930,8 +930,10 @@ createServer(async (req, res) => {
     // spec-up and simulator read one character), so the L31 goal path adds up.
     envelope.data.combatPower = read("character-full-data.json").combatPower;
     // The sample's gem is the mock simulator character's slot-1 gem (level 8).
+    // Only that gem (slot 0): the other mock gems keep their own slots, since
+    // one slot is one target in the list (stages grouped, #26).
     for (const c of envelope.data.candidates)
-      if (c.change?.kind === "GEM_LEVEL") c.change.slot = 1;
+      if (c.change?.kind === "GEM_LEVEL" && c.change.slot === 0) c.change.slot = 1;
     // An OK candidate costing 0 (a bound gem kept, say): no per-gold figure, after
     // the rest (the backend's order, api #596).
     if (who === "스펙업0골드") {
