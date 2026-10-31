@@ -25,10 +25,19 @@
   pointer-events: none;
   animation: chg-fade 1.4s ease-out both;
 }
+/* Out of the flow, just before the value: in the flow its slot (glyph + gap)
+   came and went 1.4s later, and a right-aligned number jumped sideways each
+   time (A7, every price refresh). Now the value's box is the same with or
+   without it. */
 .chg-dir {
+  position: absolute;
+  inset-inline-end: calc(100% + 4px);
+  top: 50%;
+  translate: 0 -50%;
   color: var(--chg-tone);
   font-size: 0.8em;
   line-height: 1;
+  pointer-events: none;
   animation: chg-fade 1.4s ease-out 0.35s both;
 }
 @keyframes chg-fade {
