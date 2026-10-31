@@ -66,6 +66,40 @@ test.describe("상단 메뉴 데스크톱 @smoke", () => {
     expect(await rows("통계")).toEqual(["전체 통계"]);
   });
 
+  test("누르면 플라이아웃이 고정되고, 호버만 하면 미리 보기라 벗어나면 닫힌다(사용자 11-01)", async ({ page }) => {
+    const nav = page.getByRole("navigation", { name: "주요 메뉴" });
+    const trigger = nav.getByRole("button", { name: "성장 도구" });
+    const away = async () => {
+      await page.mouse.move(5, 700);
+      await page.waitForTimeout(500); // past the close delay (160 ms)
+    };
+    // Hover only: a preview that closes when the pointer leaves.
+    await trigger.hover();
+    await expect(trigger).toHaveAttribute("aria-expanded", "true");
+    await away();
+    await expect(trigger).toHaveAttribute("aria-expanded", "false");
+    // Click: pinned, stays open with the pointer away.
+    await trigger.click();
+    await away();
+    await expect(trigger).toHaveAttribute("aria-expanded", "true");
+    // Another top item while pinned switches the panel and stays pinned.
+    await nav.getByRole("button", { name: "시세" }).hover();
+    await expect(nav.getByRole("button", { name: "시세" })).toHaveAttribute("aria-expanded", "true");
+    await away();
+    await expect(nav.getByRole("button", { name: "시세" })).toHaveAttribute("aria-expanded", "true");
+    // A click on the open item closes it, and the next hover is a preview again.
+    await nav.getByRole("button", { name: "시세" }).click();
+    await expect(nav.getByRole("button", { name: "시세" })).toHaveAttribute("aria-expanded", "false");
+    await trigger.hover();
+    await expect(trigger).toHaveAttribute("aria-expanded", "true");
+    await away();
+    await expect(trigger).toHaveAttribute("aria-expanded", "false");
+    // Pinned, then an outside click closes it.
+    await trigger.click();
+    await page.mouse.click(5, 700);
+    await expect(trigger).toHaveAttribute("aria-expanded", "false");
+  });
+
   test("호버하면 플라이아웃이 열린다", async ({ page }) => {
     const trigger = page.getByRole("navigation", { name: "주요 메뉴" }).getByRole("button", { name: "성장 도구" });
     await trigger.hover();

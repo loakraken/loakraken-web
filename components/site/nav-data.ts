@@ -152,11 +152,8 @@ export const NAV_SECTIONS: NavSection[] = [
     groups: [
       {
         title: "분포",
-        // One page with tabs (user 11-01): the tabs live on /stats.
-        links: [
-          { label: "전체 통계", description: "직업·전투력 분포·최고 전투력·서버를 탭으로", href: "/stats" },
-          { label: "채택률", description: "각인·아크 패시브·코어 선택" },
-        ],
+        // ONE entry (user 11-01, asked twice): the tabs live on /stats.
+        links: [{ label: "전체 통계", description: "직업·전투력 분포·최고 전투력·서버를 탭으로", href: "/stats" }],
       },
     ],
     search: [
