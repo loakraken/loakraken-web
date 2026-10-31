@@ -50,7 +50,6 @@ import { useFavorite } from "./favorite";
 import {
   characterNameError,
   coverageLabel,
-  gradeKey,
   normalizeCharacterName,
   safeGameImage,
   type Character,
@@ -1428,8 +1427,7 @@ function SkillCard({
           <strong>{text(skill.name)}</strong>
           <small>
             {level(skill.level)}
-            {/* Full view: the rune's name sits by its icon instead (user 10-31). */}
-            {compact && skill.rune && ` · ${text(skill.rune.name)}`}
+            {skill.rune && ` · ${text(skill.rune.name)}`}
             {compact && skill.partBreakLevel != null &&
               ` · 부위 파괴 Lv.${skill.partBreakLevel}`}
             {compact && skill.counter && " · 카운터"}
@@ -1449,13 +1447,6 @@ function SkillCard({
                 </DetailTooltip>
               </span>
             ))}
-          </span>
-        )}
-        {/* The rune's name between the gem chips and its icon, in its grade
-            colour (user 10-31); at 360 and below the icon and its card only. */}
-        {!compact && skill.rune?.name && (
-          <span className={styles.runeName} data-grade={gradeKey(skill.rune.grade)}>
-            {skill.rune.name}
           </span>
         )}
         {skill.rune && (

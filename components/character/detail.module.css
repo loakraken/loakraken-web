@@ -1961,40 +1961,6 @@
   gap: 4px;
   margin-left: auto;
 }
-/* The rune's name by its icon, in its grade colour; pushed right like the gem
-   chips when a skill has none. One line, never cut: hidden at 360 and below,
-   where the icon and its card carry it. */
-.runeName {
-  flex: none;
-  margin-left: auto;
-  font-size: 12px;
-  font-weight: 600;
-  white-space: nowrap;
-  color: var(--secondary-foreground);
-}
-.skillGems ~ .runeName {
-  margin-left: 0;
-}
-.runeName[data-grade="uncommon"] {
-  color: var(--grade-uncommon-text);
-}
-.runeName[data-grade="rare"] {
-  color: var(--grade-rare-text);
-}
-.runeName[data-grade="epic"] {
-  color: var(--grade-epic-text);
-}
-.runeName[data-grade="legendary"] {
-  color: var(--grade-legendary-text);
-}
-.runeName[data-grade="relic"] {
-  color: var(--grade-relic-text);
-}
-@media (max-width: 360px) {
-  .runeName {
-    display: none;
-  }
-}
 .skillGems > span {
   display: inline-flex;
   border-radius: 9999px;
