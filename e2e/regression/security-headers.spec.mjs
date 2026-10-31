@@ -36,21 +36,26 @@ test("응답 헤더: X-Powered-By 없음, 강제 CSP(요청마다 nonce), 기기
   expect(scriptSrc(again).match(/'nonce-([^']+)'/)?.[1]).not.toBe(nonce);
 });
 
-test("강제 CSP: 페이지에 끼워 넣은 인라인 코드는 실행되지 않는다 @regression", async ({ page }) => {
-  await gotoReady(page, "/");
-  const result = await page.evaluate(async () => {
-    const violations = [];
-    document.addEventListener("securitypolicyviolation", (e) => violations.push(e.violatedDirective));
-    // An inline event handler, as an injected bit of markup would carry.
-    const holder = document.createElement("div");
-    holder.innerHTML = '<img src="data:," onerror="window.__ran = true" alt="">';
-    document.body.append(holder);
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    holder.remove();
-    return { ran: window.__ran === true, violations };
+test.describe("끼워 넣은 코드", () => {
+  // The blocked handler is reported on the console by the browser: that report is the point here.
+  test.use({ allowConsoleErrors: true });
+
+  test("강제 CSP: 페이지에 끼워 넣은 인라인 코드는 실행되지 않는다 @regression", async ({ page }) => {
+    await gotoReady(page, "/");
+    const result = await page.evaluate(async () => {
+      const violations = [];
+      document.addEventListener("securitypolicyviolation", (e) => violations.push(e.violatedDirective));
+      // An inline event handler, as an injected bit of markup would carry.
+      const holder = document.createElement("div");
+      holder.innerHTML = '<img src="data:," onerror="window.__ran = true" alt="">';
+      document.body.append(holder);
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      holder.remove();
+      return { ran: window.__ran === true, violations };
+    });
+    expect(result.ran, "인라인 코드가 실행됨").toBe(false);
+    expect(result.violations.some((directive) => directive.startsWith("script-src"))).toBe(true);
   });
-  expect(result.ran, "인라인 코드가 실행됨").toBe(false);
-  expect(result.violations.some((directive) => directive.startsWith("script-src"))).toBe(true);
 });
 
 const PAGES = [
