@@ -1583,6 +1583,53 @@
   align-items: center;
   gap: 4px;
 }
+/* 칭호 기록 (통계 tab): the note is all muted (no leading heading). */
+.titleRecordNote > span:first-child {
+  color: inherit;
+  font-weight: inherit;
+}
+/* Three summary cells: 칭호 수 · 가장 희귀 · 첫 기록. */
+.titleSummary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0 0 12px;
+}
+.titleSummary > div {
+  min-width: 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--muted);
+}
+.titleSummary dt {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.titleSummary dd {
+  margin: 2px 0 0;
+  font-size: 14px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.titleSummary dd b {
+  color: var(--accent-warm);
+  font-variant-numeric: tabular-nums;
+}
+.titleTable th[scope="row"] {
+  text-align: left;
+  font-weight: 600;
+}
+.titleTable td {
+  font-variant-numeric: tabular-nums;
+}
+.titleTable td[data-collecting] {
+  color: var(--muted-foreground);
+}
+@media (max-width: 420px) {
+  .titleSummary {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
 .titleList {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
