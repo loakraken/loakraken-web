@@ -2093,6 +2093,19 @@ createServer(async (req, res) => {
     const rows = [["빛을 꺼트리는 자", 400], ["에키드나를 쓰러뜨린 자", 310], ["별을 제패한 자", 12], ["합성 칭호", 0]]
       .map(([title, n]) => ({ title, equippedRosters: server === "아만" ? Math.round(n / 50) : n }))
       .map((row) => ({ ...row, equippedPercent: Math.round((row.equippedRosters / population) * 10000) / 100 }))
+      // api #697: ever seen wearing it (a lower bound of owning it); under 30
+      // characters the sample is not ready (별을 제패한 자 here).
+      .map((row) => {
+        const observedRosters = Math.round(row.equippedRosters * 1.2);
+        return {
+          ...row,
+          observedRosters,
+          observedPercent: Math.round((observedRosters / population) * 10000) / 100,
+          newRosters30d: Math.round(observedRosters / 10),
+          observedCharacters: observedRosters,
+          sampleReady: observedRosters >= 30,
+        };
+      })
       .filter((row) => row.equippedRosters > 0);
     return send({
       code: "TITLE_EQUIP_SUCCESS",

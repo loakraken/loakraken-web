@@ -122,6 +122,7 @@ import {
 import { useStagger } from "./entrance";
 import { fetchTitleEquip } from "@/lib/stats/client";
 import { equipShare, titleEquipQuery, type EquippedTitle } from "@/lib/stats/title-equip";
+import { titlePercent, titleRecordRows, titleRecordSummary } from "@/lib/character/title-record";
 import { RosterPower, rosterPowerKey, useRosterPowerRefreshing } from "./roster-power";
 import { StatSheet } from "./stat-sheet";
 import { AnalysisMenu } from "./analysis-menu";
@@ -2616,7 +2617,111 @@ export function StatsTab({ data }: { data: Character }) {
           </Panel>
         </>
       )}
+      {/* Last on the tab: its loading never moves the charts above (A7). */}
+      <TitleRecordPanel name={data.characterName} />
     </div>
+  );
+}
+
+/**
+ * 칭호 기록 (user 10-31, api #697): this roster's titles, rarest first by our
+ * equip-record rate, with the date we first saw each. The rate is a lower
+ * bound (the official profile shows only the worn title), so it is called
+ * 장착 기록 비율 and the note says so; a title whose sample is not ready reads
+ * "표본 N명 — 모으는 중" and sits last. No 획득 조건: the official data has none.
+ */
+function TitleRecordPanel({ name }: { name: string }) {
+  const noteId = useId();
+  const titles = useQuery({
+    queryKey: ["roster-titles", name],
+    queryFn: ({ signal }) => fetchTitles(name, signal),
+    staleTime: 5 * 60_000,
+  });
+  const ratesOn = useContext(TitleStatsEnabled);
+  const rates = useQuery({
+    queryKey: ["title-equip", titleEquipQuery({})],
+    queryFn: ({ signal }) => fetchTitleEquip(titleEquipQuery({}), signal),
+    enabled: ratesOn,
+    staleTime: 5 * 60_000,
+    retry: false,
+  });
+  const waiting = titles.isPending || (ratesOn && rates.isPending);
+  const fade = useCrossfade(waiting);
+  const rows = titleRecordRows(titles.data?.data.titles ?? [], rates.data?.data.titles ?? []);
+  const summary = titleRecordSummary(rows);
+  const population = rates.data?.data.meta?.population;
+  return (
+    <Panel title="칭호 기록" wide meta={titles.data ? `${summary.count}개` : undefined}>
+      <p className={`${styles.titleNote} ${styles.titleRecordNote}`} id={noteId}>
+        <span className={styles.titleInfo}>
+          <InfoCircle size={13} aria-hidden="true" />
+          공식 정보는 장착 중인 칭호만 보여 줘서, 장착 기록 비율은 실제 보유율보다 낮을 수 있어요
+          {population != null && ` · 표본 원정대 ${population.toLocaleString("ko-KR")}개`}
+        </span>
+      </p>
+      {waiting ? (
+        <p className={styles.muted} role="status">
+          <InlineOrb /> 칭호 기록을 불러오고 있어요.
+        </p>
+      ) : titles.isError ? (
+        <QueryProblem error={titles.error} onRetry={() => titles.refetch()} subject="칭호 기록을" />
+      ) : rows.length === 0 ? (
+        <p className={styles.muted}>
+          아직 확인한 칭호가 없어요. 원정대 캐릭터를 조회하면 그때 장착한 칭호가 기록돼요.
+        </p>
+      ) : (
+        <div ref={fade}>
+          <dl className={styles.titleSummary}>
+            <div>
+              <dt>칭호 수</dt>
+              <dd>{summary.count}개</dd>
+            </div>
+            <div>
+              <dt>가장 희귀</dt>
+              <dd>
+                {summary.rarest ? (
+                  <>
+                    {summary.rarest.title} <b>{titlePercent(summary.rarest.percent!)}</b>
+                  </>
+                ) : (
+                  "모으는 중"
+                )}
+              </dd>
+            </div>
+            <div>
+              <dt>첫 기록</dt>
+              <dd>{summary.first ?? "-"}</dd>
+            </div>
+          </dl>
+          <div className={styles.tableWrap}>
+            <table className={`${styles.table} ${styles.titleTable}`} aria-describedby={noteId}>
+              <thead>
+                <tr>
+                  <th scope="col">칭호</th>
+                  <th scope="col">장착 기록 비율</th>
+                  <th scope="col">첫 기록</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row) => (
+                  <tr key={row.title}>
+                    <th scope="row">{row.title}</th>
+                    <td data-collecting={row.percent == null || undefined}>
+                      {row.percent != null
+                        ? titlePercent(row.percent)
+                        : row.sample != null
+                          ? `표본 ${row.sample}명 — 모으는 중`
+                          : "모으는 중"}
+                    </td>
+                    <td>{row.firstObservedDate}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </Panel>
   );
 }
 
