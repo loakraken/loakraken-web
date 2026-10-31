@@ -139,7 +139,7 @@ test("equipment groups follow the in-game slot order", () => {
     detail: null,
   });
   const groups = groupEquipment(
-    ["완갑", "무기", "반지", "투구", "팔찌", "어빌리티 스톤", "목걸이", "나침반"].map(
+    ["완갑", "무기", "반지", "투구", "팔찌", "보주", "어빌리티 스톤", "목걸이", "나침반"].map(
       item,
     ),
   );
@@ -153,6 +153,8 @@ test("equipment groups follow the in-game slot order", () => {
     ["목걸이", "반지"],
   );
   assert.equal(groups.stone?.type, "어빌리티 스톤");
+  // The orb has its own place (under the stone), not a leftover.
+  assert.equal(groups.orb?.type, "보주");
   assert.equal(groups.bracelet?.type, "팔찌");
   assert.deepEqual(
     groups.others.map((e) => e.type),

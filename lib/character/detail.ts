@@ -87,12 +87,15 @@ export function groupEquipment(equipment: Equipment[]) {
     ...ARMOR_ORDER,
     ...ACCESSORY_ORDER,
     "어빌리티 스톤",
+    "보주",
     "팔찌",
   ]);
   return {
     armor: byOrder(ARMOR_ORDER),
     accessories: byOrder(ACCESSORY_ORDER),
     stone: equipment.find((item) => item.type === "어빌리티 스톤") ?? null,
+    // Under the stone in the accessory column (user 10-31 layout).
+    orb: equipment.find((item) => item.type === "보주") ?? null,
     bracelet: equipment.find((item) => item.type === "팔찌") ?? null,
     others: equipment.filter((item) => !known.has(item.type ?? "")),
   };

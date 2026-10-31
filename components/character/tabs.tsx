@@ -556,36 +556,46 @@ function EquipmentPanel({ data }: { data: Character }) {
                 ) : null}
               </li>
             ))}
+            {/* Under the accessories (user 10-31 layout): the stone, the orb,
+                then anything else; the bracelet takes the row below. */}
+            {groups.stone && (
+              <li {...stagger(groups.accessories.length, styles.item)}>
+                <ItemTooltip item={groups.stone} slot="어빌리티 스톤" extra={extraOf(groups.stone)}>
+                  <GameIcon src={groups.stone.icon} grade={groups.stone.grade} />
+                </ItemTooltip>
+                <div className={styles.itemText}>
+                  <strong>어빌리티 스톤</strong>
+                  {groups.stone.detail?.stoneEngravings.length ? (
+                    <ul className={styles.inlineList}>
+                      {groups.stone.detail.stoneEngravings.map((engraving, i) => (
+                        <li key={i}>
+                          {engraving.name} <b>Lv.{engraving.level}</b>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <small>{text(groups.stone.name)}</small>
+                  )}
+                </div>
+              </li>
+            )}
+            {[groups.orb, ...groups.others].filter((item): item is Equipment => item != null).map((item, i) => (
+              <li key={`other-${i}`} {...stagger(groups.accessories.length + 1 + i, styles.item)}>
+                <ItemTooltip item={item} slot={item.type ?? undefined} extra={extraOf(item)}>
+                  <GameIcon src={item.icon} grade={item.grade} />
+                </ItemTooltip>
+                <div className={styles.itemText}>
+                  <strong>{text(item.type)}</strong>
+                  <small>{text(item.name)}</small>
+                </div>
+              </li>
+            ))}
           </ul>
         </div>
       </div>
-      <div className={styles.equipFoot}>
-        {groups.stone && (
-          <div className={styles.footItem}>
-            <ItemTooltip item={groups.stone} slot="어빌리티 스톤" extra={extraOf(groups.stone)}>
-              <GameIcon
-                src={groups.stone.icon}
-                grade={groups.stone.grade}
-                size={40}
-              />
-            </ItemTooltip>
-            <div>
-              <strong>어빌리티 스톤</strong>
-              {groups.stone.detail?.stoneEngravings.length ? (
-                <ul className={styles.inlineList}>
-                  {groups.stone.detail.stoneEngravings.map((engraving, i) => (
-                    <li key={i}>
-                      {engraving.name} <b>Lv.{engraving.level}</b>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <small>{text(groups.stone.name)}</small>
-              )}
-            </div>
-          </div>
-        )}
-        {groups.bracelet && (
+      {/* The bracelet alone, across the whole width under both columns. */}
+      {groups.bracelet && (
+        <div className={styles.equipFoot}>
           <div className={styles.footItem} data-wide="">
             <ItemTooltip item={groups.bracelet} slot="팔찌" extra={extraOf(groups.bracelet)}>
               <GameIcon
@@ -600,19 +610,8 @@ function EquipmentPanel({ data }: { data: Character }) {
               efficiency={data.braceletEfficiency}
             />
           </div>
-        )}
-        {groups.others.map((item, i) => (
-          <div key={i} className={styles.footItem}>
-            <ItemTooltip item={item} slot={item.type ?? undefined} extra={extraOf(item)}>
-              <GameIcon src={item.icon} grade={item.grade} size={40} />
-            </ItemTooltip>
-            <div>
-              <strong>{text(item.type)}</strong>
-              <small>{text(item.name)}</small>
-            </div>
-          </div>
-        ))}
-      </div>
+        </div>
+      )}
     </Panel>
   );
 }
