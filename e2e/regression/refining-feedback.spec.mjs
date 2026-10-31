@@ -75,6 +75,23 @@ test.describe("재련 기대 비용 사용자 제보 @regression", () => {
       await expectNoHorizontalOverflow(page);
     });
 
+  // The ▲/▼ of a changed price leaves 1.4s later; in the flow, its glyph and gap
+  // went with it and the right-aligned number jumped sideways (on every price
+  // refresh too). Nothing is pressed in the measured window.
+  test("1280: 바뀐 가격의 ▲/▼가 사라질 때 숫자가 움직이지 않는다", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await pricesByBasis(page);
+    await watchShifts(page);
+    await openPlan(page);
+    await page.getByRole("radiogroup", { name: "재료 가격 기준" }).getByRole("radio", { name: "최근 거래가" }).click();
+    const arrow = materials(page).getByText(/^[▲▼]$/).first();
+    await expect(arrow).toBeAttached();
+    const mark = await shiftMark(page);
+    await expect(arrow).not.toBeAttached();
+    await page.waitForTimeout(300);
+    expect((await shiftsSince(page, mark)).moved, "▲/▼가 사라질 때 흔들림").toBe("");
+  });
+
   test("360: 카드 모양에서 가격 기준을 바꿔도 잘리는 칸이 없다", async ({ page }) => {
     await page.setViewportSize({ width: 360, height: 800 });
     await pricesByBasis(page);
