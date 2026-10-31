@@ -44,7 +44,10 @@ test.describe("경매 입찰가 @smoke", () => {
     await expect(summary).toContainText("200,759G");
     await expect(summary).toContainText("65,240G");
     await expect(summary).toContainText("211,392G");
-    await expect(page.getByText("10만 골드를 넘는 낙찰액은 넘는 부분의 5%를 떼고 나눠요.")).toBeVisible();
+    // The rule is folded under '자세히' (feedback #20), never removed.
+    const more = page.locator("details").filter({ hasText: "10만 골드를 넘는 낙찰액" });
+    await more.locator("summary").click();
+    await expect(more.getByText("10만 골드를 넘는 낙찰액은 넘는 부분의 5%를 떼고 나눠요.", { exact: false })).toBeVisible();
   });
 
   const PRESETS = [

@@ -108,7 +108,11 @@ test.describe("재련 기대 비용 사용자 제보 @regression", () => {
     await expect(page.getByText("가진 수량을 빼고 부족한 만큼만 지금 살 때 드는 골드예요.")).toBeVisible();
     await expect(page.getByText("가진 재료까지 포함해 재련에 쓰일 재료 전체를 시세로 친 값이에요.")).toBeVisible();
     // The longer notes are folded under '자세히'.
-    const more = page.locator("details").filter({ has: page.getByText("자세히", { exact: true }) });
+    // The materials notes' own fold (the page has another for the book note, feedback #20).
+    const more = page
+      .locator("details")
+      .filter({ has: page.getByText("자세히", { exact: true }) })
+      .filter({ hasText: "필요 수량은" });
     await expect(more).not.toHaveAttribute("open", "");
     await expect(page.getByText(/가진 재료까지 시세로 치면/)).toBeVisible();
   });

@@ -60,6 +60,7 @@ import quote from "./material-quote.module.css";
 import { SiteHeader } from "@/components/site/site-header";
 import { SegmentedControl, SegmentedItem } from "@/components/ui/segmented-control";
 import styles from "./refining-plan.module.css";
+import { MoreDetail } from "@/components/ui/more-detail";
 
 const range = (from: number, to: number) =>
   Array.from({ length: to - from + 1 }, (_, i) => from + i);
@@ -1029,12 +1030,13 @@ function RefiningContent({ initialName }: { initialName: string }) {
                 · 게임 재련 가이드). 전율 책, 실링, 상급 재련, 이벤트 확률은
                 계산하지 않아요.
               </p>
-              <p className={quote.hint}>
-                책은 기본으로 넣고, 책 효과가 매번 적용된다고 보고 계산해요.
+              {/* One line on the page, the rest folded (#1112): nothing removed. */}
+              <p className={quote.hint}>책은 기본으로 넣고, 책 효과가 매번 적용된다고 보고 계산해요.</p>
+              <MoreDetail className={quote.hint}>
                 게임에는 &ldquo;특수 재료 별 효과는 확률에 따라 적용되지 않을 수
                 있습니다&rdquo;라고 나오고, 그 확률은 공개되지 않았어요. 끄면 책
                 없이 계산해요. 책은 운명의 업화 11~20단계에만 적용돼요.
-              </p>
+              </MoreDetail>
             </section>
           </div>
         </div>

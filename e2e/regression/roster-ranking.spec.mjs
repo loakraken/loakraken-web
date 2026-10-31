@@ -15,10 +15,12 @@ test("원정대 랭킹: 탭 전환, 식스맨 평균·상위 6명 합, 구성 �
   const note = page.getByText(/^원정대는 서버를 고르면 그 서버/);
   await expect(note).toContainText("고르지 않으면 대표 캐릭터의 서버");
   await expect(note).toContainText("인원·전체 평균도 그 서버 기준");
-  await expect(note).toContainText("아이템 레벨이 높은 6명");
-  await expect(note).toContainText("전투력 합을 6으로 나눠요");
-  await expect(note).toContainText("6명보다 적어도 6으로 나눠요");
-  await expect(note).not.toContainText("있는 인원으로");
+  // The 식스맨 rule is folded under '자세히' (feedback #20), never removed.
+  const more = page.locator("details").filter({ hasText: "아이템 레벨이 높은 6명" });
+  await more.locator("summary").click();
+  await expect(more).toContainText("전투력 합을 6으로 나눠요");
+  await expect(more).toContainText("6명보다 적어도 6으로 나눠요");
+  await expect(more).not.toContainText("있는 인원으로");
 
   await page.getByRole("button", { name: "상위 6명 합" }).click();
   await expect(page).toHaveURL(/aggregate=TOP6_SUM/);

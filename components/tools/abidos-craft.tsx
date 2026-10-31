@@ -30,6 +30,7 @@ import { PercentField, SwitchRow } from "./craft-fields";
 import { goldText as count, roundGold, signedGold as signed } from "@/lib/tools/format";
 import quote from "./material-quote.module.css";
 import styles from "./abidos-craft.module.css";
+import { MoreDetail } from "@/components/ui/more-detail";
 
 const UNKNOWN = "미확인";
 const percentText = (value: number) => value.toLocaleString("ko-KR", { maximumFractionDigits: 2 });
@@ -312,8 +313,10 @@ export function AbidosCraftTool() {
                   />
                 ))}
               </div>
-              <p className={styles.small}>
-                1회 제작에 결과물 10개, 대성공이면 20개가 나와요. 대성공 확률은 기본 5%에 (1 + 증가)를 곱해요. 비용 = 재료 수량 ×
+              {/* One line on the page, the calc basis folded (#1112): nothing removed. */}
+              <p className={styles.small}>1회 제작에 결과물 10개, 대성공이면 20개가 나와요.</p>
+              <MoreDetail className={styles.small}>
+                대성공 확률은 기본 5%에 (1 + 증가)를 곱해요. 비용 = 재료 수량 ×
                 거래소 1개 가격 + 제작 골드(수수료 감소 반영, 1골드 미만은 올림). 판매 시 = 1개 가격에서 판매 수수료{" "}
                 {MARKET_FEE_PERCENT}%(1골드 미만 올림)를 뗀 값 × 평균 개수, 직접 사용 시 = 평균 개수 × 1개 가격.
                 직접 캔 재료도 거래소 가격으로 매겨요. 교환 상인을 켜면 같은 생활 스킬 재료끼리 바꾸는 값(예: 목재 → 가루 →
@@ -321,7 +324,7 @@ export function AbidosCraftTool() {
                 거래소에 가격이 없는 재료가 있으면 0이 아니라 {UNKNOWN}으로 두고 손익을 계산하지 않아요. 100 활동력당 이익은
                 1회 활동력(기본 아비도스 288·상급 360에서 전체·특수 제작 감소를 더해 빼고 내림)으로 나눠요. 니나브의 축복은 제작 시간·슬롯·활동력 회복량을 바꿔
                 1회 손익에는 영향이 없어요. 손익 계산에는 넣지 않아요. 확인 {CRAFT_DATA.checkedAt}.
-              </p>
+              </MoreDetail>
             </section>
           </div>
         </div>

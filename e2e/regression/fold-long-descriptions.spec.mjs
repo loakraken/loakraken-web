@@ -1,5 +1,6 @@
 // 회귀(#1112): 긴 화면 설명은 한 줄만 남기고 나머지는 '자세히'로 접는다(지우지 않음).
-// 숙제·수집품 랭킹·시세 알림: 한 줄은 보이고, 접힌 글은 닫혀 있다가 Enter로 열린다.
+// 숙제·수집품 랭킹·시세 알림, 그리고 아비도스 제작·생활의 기운·상점 효율·재련 계획·경매 입찰·길드·원정대 랭킹(지인 피드백 #20):
+// 한 줄은 보이고, 접힌 글은 닫혀 있다가 Enter로 열린다.
 // '자세히'는 누르는 칸 44px, 같은 이름. 잘림 0, 가로 넘침 0(320/360/390/1280).
 import { test, expect, gotoReady, expectNoHorizontalOverflow } from "../support/fixtures.mjs";
 
@@ -49,6 +50,50 @@ const PAGES = [
     // Alerts fire at or below and at or above: 'reaches', not 'goes over'.
     lead: "가격이 정한 기준에 닿는 순간 한 번 알려요.",
     folded: /6시간 안에 다시 보내지 않아요/,
+  },
+  // The rest of the screens (feedback #20, v0.3.4): calc basis and counting rules folded.
+  {
+    name: "아비도스 제작",
+    open: (page) => gotoReady(page, "/tools/abidos-craft"),
+    lead: "1회 제작에 결과물 10개, 대성공이면 20개가 나와요.",
+    folded: /대성공 확률은 기본 5%/,
+  },
+  {
+    name: "생활의 기운",
+    open: (page) => gotoReady(page, "/tools/life-energy"),
+    lead:
+      "생활 스킬마다 생명의 기운 1만당 캐는 평균 수량으로 재료를 정하고(등급마다 내림), 재료를 그대로 팔 때와 캔 재료만으로 아비도스·상급 아비도스 융화 재료를 최대한 만들 때 중 더 많이 버는 쪽을 보여 줘요.",
+    folded: /상인으로만 채우고/,
+  },
+  {
+    name: "상점 효율",
+    open: (page) => gotoReady(page, "/tools/loa-shop"),
+    lead: "구성품 가치 = 수량 × 거래소 1개 가격(묶음 가격 ÷ 묶음 수).",
+    folded: /귀속 구성품도/,
+  },
+  {
+    name: "재련 계획",
+    open: (page) => gotoReady(page, "/tools/refining"),
+    lead: "책은 기본으로 넣고, 책 효과가 매번 적용된다고 보고 계산해요.",
+    folded: /그 확률은 공개되지 않았어요/,
+  },
+  {
+    name: "경매 입찰",
+    open: (page) => gotoReady(page, "/tools/auction"),
+    lead: "경매에 쓴 골드는 낙찰자 몫 없이 나머지 인원에게 고르게 돌아가요.",
+    folded: /10만 골드를 넘는 낙찰액/,
+  },
+  {
+    name: "길드 랭킹",
+    open: (page) => gotoReady(page, "/rankings?type=guilds"),
+    lead: "확인한 길드원은 LOAKraken이 최근 확인한 공개 캐릭터 수로, 실제 길드 인원이 아니에요.",
+    folded: /이상 길드원만 세요/,
+  },
+  {
+    name: "원정대 랭킹",
+    open: (page) => gotoReady(page, "/rankings?type=roster"),
+    lead: "원정대는 서버를 고르면 그 서버, 고르지 않으면 대표 캐릭터의 서버 캐릭터만 세요(인원·전체 평균도 그 서버 기준이에요).",
+    folded: /6명보다 적어도 6으로 나눠요/,
   },
 ];
 
