@@ -476,7 +476,8 @@ function DistributionTab({ query }: { query: StatsQuery }) {
         )
       )}
       {data && <StatsBasis query={query} />}
-      <ExtraCharts query={query} asTable={asTable} />
+      {/* After the main answer (and its basis note above): landing first, they were pushed down by it. */}
+      {data && <ExtraCharts query={query} asTable={asTable} />}
     </div>
   );
 }
@@ -528,7 +529,8 @@ function GemLevelsChart({ gems, asTable }: { gems: UseQueryResult<GemLevelsEnvel
   const label = "보석 평균 레벨 구간별 인원";
   const max = Math.max(1, ...(data?.bins ?? []).map((b) => b.count));
   return (
-    <section className={gemStyles.block} aria-labelledby="stats-gem-levels">
+    // The whole block dims while another filter loads: its caption carries the sample count too.
+    <section className={gemStyles.block} aria-labelledby="stats-gem-levels" {...pendingProps(gems)}>
       <h2 id="stats-gem-levels" className={gemStyles.title}>
         보석 레벨 분포
       </h2>

@@ -36,7 +36,8 @@ export function LevelCombatPowerChart({
   const minSample = data?.meta.minSample ?? 30;
   const line = data && data.buckets.length ? linePoints(data.buckets, W, H, 12) : null;
   return (
-    <section className={gemStyles.block} aria-labelledby="stats-level-combat-power">
+    // The whole block dims while another filter loads (numbers in the axis and caption too).
+    <section className={gemStyles.block} aria-labelledby="stats-level-combat-power" {...pendingProps(levels)}>
       <h2 id="stats-level-combat-power" className={gemStyles.title}>
         아이템 레벨별 전투력
       </h2>

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import sample from "./fixtures/stats/gem-levels.json";
+import sample from "./stats-fixtures/stats-gem-levels.json";
 import { gemBinLabel, isGemLevelsEnvelope, requestGemLevels } from "../lib/stats/gem-levels";
 
 // The backend's own answer (api #782 @a1debc3): 12 bins summing to gemSample.
