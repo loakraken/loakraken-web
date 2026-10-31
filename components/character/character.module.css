@@ -686,7 +686,9 @@
 /* 배너 순위 (§14.1 ⑤): one line under the numbers, there from the first HTML
    (empty until the rank arrives), so the banner keeps its size (A6). */
 .bannerRank {
-  min-height: 26px;
+  display: flex;
+  align-items: center;
+  height: 26px;
   margin-top: 12px;
   line-height: 26px;
 }
@@ -734,5 +736,15 @@
 @media (max-width: 760px) {
   .bannerRankLabel {
     display: none;
+  }
+}
+/* At 320px the identity column cannot hold the usual badge padding (A37).
+   Keep the same reserved row and complete numbers; only the narrowest phones
+   use tighter spacing and the next caption size down. */
+@media (max-width: 359px) {
+  .bannerRankBadge {
+    gap: 4px;
+    padding: 0 4px;
+    font-size: 11px;
   }
 }
