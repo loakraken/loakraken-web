@@ -142,6 +142,13 @@
 .panel {
   min-height: 200px;
 }
+/* A tab shown again on this visit: bars stand at their value at once (no
+   transition, so @starting-style's 0 is never drawn). */
+.panel [data-drawn] :global(.k-grow),
+.panel [data-drawn] :global(.k-grow-x),
+.panel [data-drawn] :global(.k-draw) {
+  transition: none;
+}
 .tableWrap {
   overflow-x: auto;
 }

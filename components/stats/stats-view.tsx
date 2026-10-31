@@ -203,8 +203,8 @@ function SampleProgress({ ready, total, unit, minSample }: { ready: number; tota
 
 /**
  * Quantile bar: p10–p90 thin line, p25–p75 box, median tick. It
- * grows from the left each time the tab is shown (motion rule 10-10: on every
- * entry, not on in-place updates), 30ms apart up to 8 rows; only the first 12
+ * grows from the left the first time its tab is shown on a visit (user report
+ * 10-31; back on the tab it stands still), 30ms apart up to 8 rows; only the first 12
  * rows move (PM 12-item cap), the rest are simply there.
  */
 function Quantiles({
@@ -442,7 +442,7 @@ function DistributionTab({ query }: { query: StatsQuery }) {
             const hit = p && p.value >= bin.from && p.value < bin.to;
             return (
               <li key={bin.from} title={`${fmt(bin.from)} ~ ${fmt(bin.to)} · ${whole(bin.count)}명`} data-hit={hit || undefined}>
-                {/* Each bar grows from the axis on every entry (motion rule 10-10). */}
+                {/* Each bar grows from the axis on the tab's first showing (data-drawn after). */}
                 <i className="k-grow" style={{ height: `${(bin.count / max) * 100}%`, "--i": i } as CSSProperties} />
                 <span className={styles.srOnly}>
                   {fmt(bin.from)} ~ {fmt(bin.to)}: {whole(bin.count)}명
@@ -709,8 +709,16 @@ export function StatsView({
   // A menu link to another tab changes the URL without remounting the page:
   // follow it here (remounting replayed every chart twice on a tab click).
   const [urlTab, setUrlTab] = useState<Tab>(initialTab);
+  // Tabs already shown on this visit: their bars come back at rest, not
+  // regrown from the axis (user report 10-31: back and forth, every chart
+  // shrank and grew again). Marked when left, so the first draw is not cut.
+  const [drawn, setDrawn] = useState<ReadonlySet<Tab>>(() => new Set());
+  const leave = (from: Tab) => {
+    if (!drawn.has(from)) setDrawn(new Set(drawn).add(from));
+  };
   if (initialTab !== urlTab) {
     setUrlTab(initialTab);
+    leave(tab);
     setTab(initialTab);
   }
   const [levelText, setLevelText] = useState(initial.itemLevelMin != null ? String(initial.itemLevelMin) : "");
@@ -809,12 +817,17 @@ export function StatsView({
           listClassName={styles.tabs}
           value={tab}
           onValueChange={(next) => {
+            if (next !== tab) leave(tab);
             setTab(next as Tab);
             apply(query, next as Tab);
           }}
           panels={
             <PillTabsPanel value={tab} className={styles.panel}>
-              <div ref={panelRef} style={tallest ? { minHeight: tallest } : undefined}>
+              <div
+                ref={panelRef}
+                style={tallest ? { minHeight: tallest } : undefined}
+                data-drawn={drawn.has(tab) || undefined}
+              >
                 {tab === "classes" ? (
                   <ClassesTab query={query} />
                 ) : tab === "distribution" ? (
