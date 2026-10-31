@@ -2694,7 +2694,7 @@ function TitleRecordPanel({ name }: { name: string }) {
             </div>
           </dl>
           <div className={styles.tableWrap}>
-            <table className={`${styles.table} ${styles.titleTable}`} aria-describedby={noteId}>
+            <table className={`${styles.table} ${styles.titleTable}`} aria-label="칭호 기록 표" aria-describedby={noteId}>
               <thead>
                 <tr>
                   <th scope="col">칭호</th>
