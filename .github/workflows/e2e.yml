@@ -224,6 +224,12 @@ jobs:
       - name: Run isolated and solo
         working-directory: e2e
         run: npx playwright test --project=isolated --project=solo --no-deps --workers=1 --reporter=list,blob
+      # 내 API 키(BYOK)를 켠 서버를 따로(3203) 띄워 본다. 위 실행이 끝나 목·서버가 내려간 뒤 같은 빌드로 돈다.
+      # 기본 설정은 플래그가 꺼진 채로 둔다(꺼진 상태는 regression/byok-off가 본다). 실패하면 이 job과 'e2e'가 실패한다.
+      - name: Run BYOK (flag on)
+        if: ${{ !cancelled() }}
+        working-directory: e2e
+        run: npx playwright test -c playwright.byok.config.mjs
       - name: Upload blob report
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -237,7 +243,9 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: e2e-traces-serial
-          path: e2e/test-results
+          path: |
+            e2e/test-results
+            e2e/test-results-byok
           if-no-files-found: ignore
           retention-days: 7
       # 성능 점검(비필수·정보용, PM 총괄 결정 2026-10-09). 390px·CPU 4배로 LCP·CLS·INP를 잰다.

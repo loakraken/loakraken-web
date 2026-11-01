@@ -14,6 +14,7 @@ import {
   relativeAgo,
   remainingLabel,
   skillSummary,
+  splitEffect,
   stoneBonus,
   type Skill,
 } from "../lib/character/detail";
@@ -121,10 +122,14 @@ test("only invested skills count for part break and counter (backend guidance)",
       name: "트포",
       tripods: [{ tier: 0, slot: 1, name: "t", icon: null, effect: null }],
     }),
+    // 각성기·초각성: Lv.1, no tripods, still in the default list (QA 11-01).
+    skill({ name: "각성", skillType: 1 }),
+    skill({ name: "초각성", skillType: 101 }),
+    skill({ name: "모름", skillType: 7 }),
   ];
   assert.deepEqual(
     activeSkills(skills).map((item) => item.name),
-    ["사용", "카운터", "트포"],
+    ["사용", "카운터", "트포", "각성", "초각성"],
   );
   const summary = skillSummary(skills);
   assert.equal(summary.partBreakCount, 1);
@@ -270,4 +275,12 @@ test("other equipped gems are the ones whose skill is not in the skill list (L34
   assert.equal(other[0].effect.name, "아이덴티티");
   assert.equal(other[0].label, "10작");
   assert.equal(otherSkillGems(null, names).length, 0);
+});
+
+test("splitEffect: a bracelet line's value goes to its end; sentences stay whole", () => {
+  assert.deepEqual(splitEffect("치명타 피해 +6.80%"), { name: "치명타 피해", value: "+6.80%" });
+  assert.deepEqual(splitEffect("특화 +111"), { name: "특화", value: "+111" });
+  assert.deepEqual(splitEffect("전투자원 자연 회복량 +8.00%"), { name: "전투자원 자연 회복량", value: "+8.00%" });
+  assert.equal(splitEffect("추가 피해가 2.5% 증가한다.\n악마 및 대악마 계열 피해량이 2.5% 증가한다."), null);
+  assert.equal(splitEffect("공격 적중 시 30초 동안 공격력이 증가한다."), null);
 });

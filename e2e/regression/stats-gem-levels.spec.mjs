@@ -20,14 +20,15 @@ for (const width of [1280, 360, 320])
     await expect(bars).toHaveCount(12);
     await expect(bars.first()).toContainText("5 미만:");
     await expect(bars.last()).toContainText("10.0:");
-    // Caption: the gem sample, which is the summary card's 보석 count, out of the whole sample.
-    const gemCard = await page.locator("dl > div").filter({ hasText: "보석 평균 레벨" }).locator("small").textContent();
-    const gemSample = gemCard.replace(/[^\d]/g, "");
-    await expect(chart(page).getByText(/보석이 확인된 .+명 기준이에요/)).toContainText(Number(gemSample).toLocaleString("ko-KR"));
+    // Caption: the gem sample (the people whose gems were seen), out of the whole sample.
+    const caption = chart(page).getByText(/보석이 확인된 .+명 기준이에요/);
+    const gemSample = (await caption.textContent()).match(/보석이 확인된 ([\d,]+)명/)[1].replace(/,/g, "");
+    expect(Number(gemSample)).toBeGreaterThan(0);
     // People in the bars = the gem sample.
     const people = (await bars.allTextContents()).reduce((sum, t) => sum + Number(t.split(":")[1].replace(/[^\d]/g, "")), 0);
     expect(people).toBe(Number(gemSample));
-    expect((await shiftsSince(page)).all, "막대가 도착할 때 흔들림").toBe(0);
+    const landed = await shiftsSince(page);
+    expect(landed.all, `막대가 도착할 때 흔들림 (${landed.moved})`).toBe(0);
     await expectNoHorizontalOverflow(page);
     // 표로 보기: the same 12 bins as rows.
     await page.getByRole("button", { name: "표로 보기" }).click();

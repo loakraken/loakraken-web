@@ -1,5 +1,5 @@
 import { toResponse } from "@/lib/api/respond";
-import { requestUnsubscribe } from "@/lib/alerts/model";
+import { requestUnsubscribe } from "@/lib/alerts/model.backend";
 import { credentials, guard, invalid, origin } from "@/lib/alerts/server";
 
 /** Turning alerts off: the subscription and its conditions go at once. */

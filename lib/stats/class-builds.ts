@@ -3,12 +3,8 @@
 // engravings, engraving sets and single engravings, ark passive points, tier 4
 // gem levels, card sets, the main combat stat and the bracelet stats. Counts are
 // over LOAKraken's sample (processing-stop characters excluded), never the game.
-import Ajv2020 from "ajv/dist/2020";
-import contract from "../../contracts/class-builds.openapi.json";
+
 import type { components } from "../api/class-builds-schema";
-import { backendUrl, requestBackend, type BackendResult } from "../api/backend";
-import { tolerantSchemas } from "../api/tolerant";
-import { lazyValidator } from "@/lib/api/lazy-validator";
 
 type Schemas = components["schemas"];
 export type ClassBuildsEnvelope = Schemas["ApiResponseClassBuildsResponse"];
@@ -18,20 +14,6 @@ export type ClassBuildHidden = Schemas["ClassBuildHidden"];
 export type ClassBuildCellsEnvelope = Schemas["ApiResponseClassBuildCellsResponse"];
 export type ClassBuildCellsResult = Schemas["ClassBuildCellsResponse"];
 export type ClassBuildCells = Schemas["ClassBuildCells"];
-
-const compile = <T>(ref: string) =>
-  lazyValidator(() =>
-    new Ajv2020({ strict: false, validateFormats: false }).compile<T>({
-      $ref: `#/components/schemas/${ref}`,
-      components: { ...contract.components, schemas: tolerantSchemas(contract.components.schemas) },
-    }),
-  );
-const validate = compile<ClassBuildsEnvelope>("ApiResponseClassBuildsResponse");
-export const isClassBuildsEnvelope = (value: unknown): value is ClassBuildsEnvelope =>
-  validate(value) && value.code === "STATS_CLASS_BUILDS_SUCCESS";
-const validateCells = compile<ClassBuildCellsEnvelope>("ApiResponseClassBuildCellsResponse");
-export const isClassBuildCellsEnvelope = (value: unknown): value is ClassBuildCellsEnvelope =>
-  validateCells(value) && value.code === "STATS_CLASS_BUILDS_SUCCESS";
 
 export const BUILD_DAYS = [7, 30, 90] as const;
 export type BuildDays = (typeof BUILD_DAYS)[number];
@@ -141,7 +123,7 @@ function parseFix(input: URLSearchParams): BuildFix | undefined {
 }
 
 /** The fixes as address (and backend) parameters, in a stable order. */
-function setFix(out: URLSearchParams, fix: BuildFix | undefined) {
+export function setFix(out: URLSearchParams, fix: BuildFix | undefined) {
   if (!fix) return;
   for (const name of fix.engravings) out.append("fixEngraving", name);
   if (fix.cardSet) out.set("fixCardSet", fix.cardSet);
@@ -189,33 +171,7 @@ export function hiddenText(hidden: ClassBuildHidden | null | undefined, people: 
   if (!hidden || hidden.count <= 0) return null;
   return people ? `표본이 적은 항목 ${hidden.count.toLocaleString("ko-KR")}명은 숨김` : "표본이 적은 항목은 숨김";
 }
-
-/** STATS_UNKNOWN_FIX: an engraving or card set fixed (an old link) that this class's statistics do not have. */
-const errorCodes: Record<number, readonly string[]> = {
-  400: ["INVALID_REQUEST", "STATS_INVALID_RANGE", "STATS_UNKNOWN_FIX"],
-  503: ["STATS_UNAVAILABLE"],
-};
-
-type RequestOptions = { fetcher?: typeof fetch; signal?: AbortSignal; timeoutMs?: number };
-
-/** The backend address for one class's builds (or a path under it) with the page's conditions and fixes. */
-function buildsUrl(query: ClassBuildsQuery, origin: string | undefined, path = "") {
-  const url = backendUrl(origin, `/api/v1/stats/classes/${encodeURIComponent(query.className)}/builds${path}`);
-  if (url) {
-    if (query.classEngraving) url.searchParams.set("classEngraving", query.classEngraving);
-    url.searchParams.set("activeDays", String(query.activeDays));
-    setFix(url.searchParams, query.fix);
-  }
-  return url;
-}
-
-export function requestClassBuilds(
-  query: ClassBuildsQuery,
-  origin: string | undefined,
-  options: RequestOptions = {},
-): Promise<BackendResult<ClassBuildsEnvelope>> {
-  return requestBackend(buildsUrl(query, origin), { ...options, isValid: isClassBuildsEnvelope, errorCodes });
-}
+export type RequestOptions = { fetcher?: typeof fetch; signal?: AbortSignal; timeoutMs?: number };
 
 const fixKey = (fix: BuildFix | undefined) => {
   const out = new URLSearchParams();
@@ -230,18 +186,6 @@ export const classBuildsKey = (query: ClassBuildsQuery) =>
 
 export type ClassBuildTopEnvelope = Schemas["ApiResponseClassBuildTopResponse"];
 export type ClassBuildTop = Schemas["ClassBuildTopResponse"];
-const validateTop = compile<ClassBuildTopEnvelope>("ApiResponseClassBuildTopResponse");
-export const isClassBuildTopEnvelope = (value: unknown): value is ClassBuildTopEnvelope =>
-  validateTop(value) && value.code === "STATS_CLASS_BUILDS_SUCCESS";
-
-/** The highest observed combat power among the characters the page's conditions and fixes keep (30 at most, none under 30). */
-export function requestClassBuildTop(
-  query: ClassBuildsQuery,
-  origin: string | undefined,
-  options: RequestOptions = {},
-): Promise<BackendResult<ClassBuildTopEnvelope>> {
-  return requestBackend(buildsUrl(query, origin, "/top"), { ...options, isValid: isClassBuildTopEnvelope, errorCodes });
-}
 
 export const classBuildTopKey = (query: ClassBuildsQuery) => ["class-build-top", ...classBuildsKey(query).slice(1)] as const;
 
@@ -259,23 +203,6 @@ export function parseClassBuildCellsQuery(className: string, input: URLSearchPar
 
 export const classBuildCellsSearch = (query: ClassBuildCellsQuery) =>
   new URLSearchParams({ characterName: query.characterName, activeDays: String(query.activeDays) });
-
-const cellsErrorCodes: Record<number, readonly string[]> = {
-  400: ["INVALID_REQUEST"],
-  404: ["CHARACTER_NOT_CACHED"],
-  503: ["CHARACTER_STORAGE_UNAVAILABLE"],
-};
-
-/** No official call behind it: an unknown character is 404 CHARACTER_NOT_CACHED. */
-export function requestClassBuildCells(
-  query: ClassBuildCellsQuery,
-  origin: string | undefined,
-  options: { fetcher?: typeof fetch; signal?: AbortSignal; timeoutMs?: number } = {},
-): Promise<BackendResult<ClassBuildCellsEnvelope>> {
-  const url = backendUrl(origin, `/api/v1/stats/classes/${encodeURIComponent(query.className)}/builds/character`);
-  if (url) for (const [key, value] of classBuildCellsSearch(query)) url.searchParams.set(key, value);
-  return requestBackend(url, { ...options, isValid: isClassBuildCellsEnvelope, errorCodes: cellsErrorCodes });
-}
 
 export const classBuildCellsKey = (query: ClassBuildCellsQuery) =>
   ["class-build-cells", query.className, query.characterName, query.activeDays] as const;

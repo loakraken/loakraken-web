@@ -8,12 +8,8 @@ import {
   type SiblingsEnvelope,
   type ViewsEnvelope,
 } from "./validate";
-import {
-  isCardCollectionEnvelope,
-  isCardRefreshEnvelope,
-  type CardCollectionEnvelope,
-  type CardRefreshEnvelope,
-} from "./card-collection";
+import { type CardCollectionEnvelope, type CardRefreshEnvelope } from "./card-collection";
+import { isCardCollectionEnvelope, isCardRefreshEnvelope } from "./card-collection.backend";
 import {
   isRosterPowerEnvelope,
   isRosterPowerRefreshEnvelope,
@@ -22,10 +18,12 @@ import {
 } from "./roster-power";
 
 // Siblings (#54) and observation history (#66) for the character page tabs.
+// USER_KEY_*: the user's own API key (BYOK, api #804), as for the character search.
 const siblingsErrors: Record<number, readonly string[]> = {
-  400: ["INVALID_REQUEST"],
+  400: ["INVALID_REQUEST", "USER_KEY_MALFORMED"],
+  401: ["USER_KEY_INVALID"],
   404: ["CHARACTER_NOT_FOUND"],
-  429: ["LOST_ARK_RATE_LIMITED"],
+  429: ["LOST_ARK_RATE_LIMITED", "USER_KEY_RATE_LIMITED"],
   502: ["LOST_ARK_API_ERROR"],
   503: ["LOST_ARK_NOT_CONFIGURED", "CHARACTER_CACHE_UNAVAILABLE"],
   504: ["LOST_ARK_API_TIMEOUT"],
@@ -59,6 +57,8 @@ type Options = {
   fetcher?: typeof fetch;
   signal?: AbortSignal;
   timeoutMs?: number;
+  /** The user's own key header for siblings (lib/byok/server.ts); never the browser's. */
+  headers?: Record<string, string>;
 };
 
 export function requestSiblings(

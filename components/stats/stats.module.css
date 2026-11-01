@@ -152,6 +152,127 @@
   font-size: 12px;
   font-variant-numeric: tabular-nums;
 }
+.cards .unit {
+  margin-left: 2px;
+  color: var(--muted-foreground);
+  font-size: 14px;
+  font-weight: 600;
+}
+/* 딜러 : 서포터: one bar in one hue (as 구성), dealers deep, supports light. */
+.roleBar {
+  display: block;
+  height: 4px;
+  margin: 6px 0 4px;
+  border-radius: 9999px;
+  background: color-mix(in oklab, var(--primary) 35%, transparent);
+  overflow: hidden;
+}
+.roleBar i {
+  display: block;
+  height: 100%;
+  background: color-mix(in oklab, var(--primary) 80%, transparent);
+}
+.cards .roleLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 10px;
+}
+.roleLegend span::before {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 4px;
+  border-radius: 2px;
+  background: var(--border);
+  vertical-align: 1px;
+}
+.roleLegend [data-role="dealer"]::before {
+  background: var(--primary);
+}
+.roleLegend [data-role="support"]::before {
+  background: color-mix(in oklab, var(--primary) 35%, transparent);
+}
+/* The condition bar over every filtered tab (reference structure, 11-01):
+   two rows of label + control, then the sample line. */
+.statsBar {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 12px;
+  padding: 14px 16px 12px;
+  border-radius: 16px;
+  background: var(--muted);
+}
+.barRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 20px;
+}
+.field {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  font-weight: 600;
+}
+.field > label,
+.field > span:first-child {
+  flex: none;
+}
+.statsBar [data-slot="select"] {
+  min-width: 120px;
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--background);
+  color: var(--foreground);
+  font-size: 14px;
+  font-weight: 500;
+}
+.range {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted-foreground);
+}
+.range input {
+  width: 84px;
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--background);
+  color: var(--foreground);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+.statsBar .check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--foreground);
+  font-size: 13px;
+  font-weight: 500;
+}
+/* The sample line: whose characters, how many, under which conditions. Held
+   at one line's height (two on a phone) before the answer (A7). */
+.sample {
+  min-height: 1.5em;
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+}
+.sample strong {
+  color: var(--foreground);
+  font-weight: 600;
+}
 .tabs {
   margin-bottom: 10px;
 }
@@ -840,4 +961,12 @@
 /* The second share in a split (딜러 after 서포터): the same hue, lighter. */
 .partBar b {
   background: color-mix(in oklab, var(--primary) 35%, transparent);
+}
+/* An inverted 전투력 range, said in the sample line's place. */
+.sampleWarn {
+  color: var(--destructive, var(--foreground));
+  font-weight: 600;
+}
+.range input[aria-invalid="true"] {
+  border-color: var(--destructive, var(--foreground));
 }

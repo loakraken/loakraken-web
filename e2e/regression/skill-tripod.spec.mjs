@@ -2,6 +2,7 @@
 // 마우스를 올리거나(넓은 화면) 누르면(휴대폰) 효과 카드(이름, 'N단계 · M번째', 공식 효과 글). 효과가 없는
 // 옛 캐시는 자리 줄만. 각성기·초각성 스킬은 표시(백엔드 #773 skillType, 100·101은 아직 구분 없이 '초각성'),
 // 그 밖의 값이나 값이 없으면 일반 스킬. 카드를 열어도 흔들림 0, 가로 넘침 0.
+// QA 11-01: 각성기·초각성은 Lv.1·트라이포드 없음이어도 기본 목록에 나온다(전체 스킬 보기 안 눌러도 표시가 보임).
 import { test, expect, characterPath, gotoReady, expectNoHorizontalOverflow } from "../support/fixtures.mjs";
 import { shiftsDuring, watchShifts } from "../support/shifts.mjs";
 
@@ -21,6 +22,11 @@ test("1280: 고른 자리 숫자, 올리면 효과 카드, 각성기·초각성 
   await expect(chips(skillRow(page, "합성 화염"))).toContainText(["초각성"]);
   for (const name of ["합성 포격", "기본 스킬"])
     await expect(skillRow(page, name).getByText(/^(각성기|초각성)$/)).toHaveCount(0);
+  // QA 11-01: a real 각성기 is Lv.1 with no tripods; it is in the default list
+  // (no '전체 스킬 보기' press) with its chip, while a plain Lv.1 skill is not.
+  await expect(page.getByRole("button", { name: /전체 \d+개 스킬 보기/ })).toHaveAttribute("aria-expanded", "false");
+  await expect(chips(skillRow(page, "합성 각성"))).toContainText(["각성기"]);
+  await expect(page.getByText("기본 스킬", { exact: true })).toHaveCount(0);
 
   // 연발 포격 = 2단계 2번째: the number 2 after the name (no dots), the place read in words.
   const cannon = skillRow(page, "합성 포격");

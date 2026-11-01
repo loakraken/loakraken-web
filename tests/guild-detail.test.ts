@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { binLabel, guildDetailPath, parseGuildDetailQuery, requestGuildDetail } from "../lib/stats/guild-detail";
+import { binLabel, guildDetailPath, parseGuildDetailQuery } from "../lib/stats/guild-detail";
+import { requestGuildDetail } from "../lib/stats/guild-detail.backend";
 
 test("guild tab query: names as the backend checks, days 7·30·90 else 30", () => {
   assert.deepEqual(parseGuildDetailQuery("루페온", "합성길드", new URLSearchParams("activeDays=7")), {

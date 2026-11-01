@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import sample from "./stats-fixtures/stats-population.json";
-import { isPopulationEnvelope, populationSearch, requestPopulation, snapshotText } from "../lib/stats/population";
+import { populationSearch, snapshotText } from "../lib/stats/population";
+import { isPopulationEnvelope, requestPopulation } from "../lib/stats/population.backend";
 import { isPopulationStatsEnabled } from "../lib/tools/flags";
 
 // The backend's own answer (api #788 @f30083a).

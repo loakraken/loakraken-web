@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import sample from "./stats-fixtures/stats-level-combat-power.json";
-import { isLevelCombatPowerEnvelope, linePoints, requestLevelCombatPower } from "../lib/stats/level-combat-power";
+import { linePoints } from "../lib/stats/level-combat-power";
+import { isLevelCombatPowerEnvelope, requestLevelCombatPower } from "../lib/stats/level-combat-power.backend";
 
 // The backend's own answer (api #784 @5d5a840): a bucket under 30 has no median.
 test("level combat power: the backend sample fits the contract", () => {

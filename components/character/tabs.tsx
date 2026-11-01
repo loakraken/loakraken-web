@@ -42,6 +42,7 @@ import {
   statNumber,
   stoneBonus,
   positionOf,
+  splitEffect,
   type Equipment,
   type Skill,
 } from "@/lib/character/detail";
@@ -50,8 +51,8 @@ import { useFavorite } from "./favorite";
 import {
   characterNameError,
   coverageLabel,
+  gradeKey,
   normalizeCharacterName,
-  safeGameImage,
   type Character,
   type CharacterEnvelope,
 } from "@/lib/character/model";
@@ -92,7 +93,6 @@ import {
 } from "./item-tooltip";
 import { awakeningLabel } from "@/lib/character/skill-type";
 import { sourcePlainText } from "@/lib/character/source-text";
-import { engravingIconMap, engravingKey, fetchEngravingIcons } from "@/lib/character/engraving-icons";
 import { useItemTooltips } from "./use-item-tooltips";
 import { useArmoryPage } from "./use-armory-page";
 import { tripodLevel, type ArmoryPage } from "@/lib/character/armory-page";
@@ -425,11 +425,14 @@ function Quality({ value }: { value: number | null | undefined }) {
 function GradeLine({
   grade,
   counts,
+  wide,
   children,
 }: {
   grade: unknown;
   /** Whether the line counts for this character's role (null: not decided, left as is). */
   counts?: boolean | null;
+  /** Across every column of a multi-column list (a sentence effect). */
+  wide?: boolean;
   children: ReactNode;
 }) {
   return (
@@ -437,6 +440,7 @@ function GradeLine({
       className={styles.gradeLine}
       data-grade={isGrade(grade) ? grade : undefined}
       data-other-role={counts === false || undefined}
+      data-wide={wide || undefined}
     >
       <span>{isGrade(grade) ? GRADE_LABEL[grade] : "·"}</span>
       {children}
@@ -565,8 +569,9 @@ function EquipmentPanel({ data }: { data: Character }) {
                 ) : null}
               </li>
             ))}
-            {/* Under the accessories (user 10-31 layout): the stone, the orb,
-                then anything else; the bracelet takes the row below. */}
+            {/* Under the accessories (user 10-31 layout): the stone, then the orb;
+                the bracelet takes the row below. 나침반·부적 are 내실 special
+                equipment, not here (user 11-01). */}
             {groups.stone && (
               <li {...stagger(groups.accessories.length, styles.item)}>
                 <ItemTooltip item={groups.stone} slot="어빌리티 스톤" extra={extraOf(groups.stone)}>
@@ -574,38 +579,38 @@ function EquipmentPanel({ data }: { data: Character }) {
                 </ItemTooltip>
                 <div className={styles.itemText}>
                   <strong>어빌리티 스톤</strong>
-                  {groups.stone.detail?.stoneEngravings.length ? (
-                    <ul className={styles.inlineList}>
-                      {groups.stone.detail.stoneEngravings.map((engraving, i) => (
-                        <li key={i}>
-                          {engraving.name} <b>Lv.{engraving.level}</b>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <small>{text(groups.stone.name)}</small>
-                  )}
+                  <small>{text(groups.stone.name)}</small>
                 </div>
+                {/* On the right like the accessory effect lines (user 11-01). */}
+                {groups.stone.detail?.stoneEngravings.length ? (
+                  <ul className={styles.gradeList}>
+                    {groups.stone.detail.stoneEngravings.map((engraving, i) => (
+                      <li key={i}>
+                        {engraving.name} <b>Lv.{engraving.level}</b>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
               </li>
             )}
-            {[groups.orb, ...groups.others].filter((item): item is Equipment => item != null).map((item, i) => (
-              <li key={`other-${i}`} {...stagger(groups.accessories.length + 1 + i, styles.item)}>
-                <ItemTooltip item={item} slot={item.type ?? undefined} extra={extraOf(item)}>
-                  <GameIcon src={item.icon} grade={item.grade} />
+            {groups.orb && (
+              <li {...stagger(groups.accessories.length + 1, styles.item)}>
+                <ItemTooltip item={groups.orb} slot={groups.orb.type ?? undefined} extra={extraOf(groups.orb)}>
+                  <GameIcon src={groups.orb.icon} grade={groups.orb.grade} />
                 </ItemTooltip>
                 <div className={styles.itemText}>
-                  <strong>{text(item.type)}</strong>
-                  <small>{text(item.name)}</small>
+                  <strong>{text(groups.orb.type)}</strong>
+                  <small>{text(groups.orb.name)}</small>
                 </div>
                 {/* The orb's 달성 최대 낙원력 on its right (backend #776); none, nothing. */}
-                {item.detail?.paradisePower != null && (
+                {groups.orb.detail?.paradisePower != null && (
                   <span className={styles.paradise}>
                     <small>달성 최대 낙원력</small>
-                    <b>{item.detail.paradisePower.toLocaleString("ko-KR")}</b>
+                    <b>{groups.orb.detail.paradisePower.toLocaleString("ko-KR")}</b>
                   </span>
                 )}
               </li>
-            ))}
+            )}
           </ul>
         </div>
       </div>
@@ -613,14 +618,17 @@ function EquipmentPanel({ data }: { data: Character }) {
       {groups.bracelet && (
         <div className={styles.equipFoot}>
           <div className={styles.footItem} data-wide="">
-            <ItemTooltip item={groups.bracelet} slot="팔찌" extra={extraOf(groups.bracelet)}>
-              <GameIcon
-                src={groups.bracelet.icon}
-                grade={groups.bracelet.grade}
-                size={40}
-              />
-            </ItemTooltip>
             <BraceletBody
+              icon={
+                <ItemTooltip item={groups.bracelet} slot="팔찌" extra={extraOf(groups.bracelet)}>
+                  <GameIcon
+                    src={groups.bracelet.icon}
+                    grade={groups.bracelet.grade}
+                    size={40}
+                  />
+                </ItemTooltip>
+              }
+              tier={groups.bracelet.detail?.tier ?? null}
               name={text(groups.bracelet.name)}
               effects={groups.bracelet.detail?.braceletEffects ?? []}
               efficiency={data.braceletEfficiency}
@@ -641,10 +649,14 @@ function EquipmentPanel({ data }: { data: Character }) {
  * carries its definition (A22).
  */
 function BraceletBody({
+  icon,
+  tier,
   name,
   effects,
   efficiency: given,
 }: {
+  icon: ReactNode;
+  tier: number | null;
   name: string;
   effects: { text: string; grade: unknown }[];
   efficiency: Character["braceletEfficiency"];
@@ -652,11 +664,40 @@ function BraceletBody({
   // Off on this deployment: as if there were no efficiency (nothing drawn).
   const real = braceletRealView(useContext(CharacterEfficiencyEnabled) ? given?.real : null);
   const [devil, setDevil] = useState(false);
+  // One compact row (user 11-01): the item on the left, the effect lines in two
+  // columns with each value at its line's end, 팔찌 효율 in its own cell on the right.
   return (
-    <div className={styles.braceletBody}>
-      <strong>팔찌</strong>
+    <div className={styles.braceletRow}>
+      <div className={styles.braceletId}>
+        {icon}
+        <span>
+          <strong>팔찌</strong>
+          {tier != null && <span className={styles.tierText}>T{tier}</span>}
+        </span>
+      </div>
+      {effects.length ? (
+        <ul className={styles.braceletLines}>
+          {effects.map((effect, i) => {
+            const split = splitEffect(effect.text);
+            return (
+              <GradeLine key={i} grade={effect.grade} wide={!split}>
+                {split ? (
+                  <>
+                    <span className={styles.braceletLineName}>{split.name}</span>
+                    <span className={styles.braceletLineValue}>{split.value}</span>
+                  </>
+                ) : (
+                  <span className={styles.preLine}>{effect.text}</span>
+                )}
+              </GradeLine>
+            );
+          })}
+        </ul>
+      ) : (
+        <small className={styles.braceletLines}>{name}</small>
+      )}
       {(real.state === "ready" || real.state === "pending" || real.state === "unavailable") && (
-        <p className={styles.braceletEffHead}>
+        <p className={styles.braceletEffCell}>
           <Tooltip>
             <TooltipTrigger className={styles.braceletEffTerm} aria-label="팔찌 효율: 이 팔찌가 딜을 몇 % 올려 주는지예요.">
               팔찌 효율
@@ -686,17 +727,6 @@ function BraceletBody({
             </button>
           )}
         </p>
-      )}
-      {effects.length ? (
-        <ul className={styles.gradeList} data-flow="">
-          {effects.map((effect, i) => (
-            <GradeLine key={i} grade={effect.grade}>
-              <span className={styles.preLine}>{effect.text}</span>
-            </GradeLine>
-          ))}
-        </ul>
-      ) : (
-        <small>{name}</small>
       )}
     </div>
   );
@@ -1284,46 +1314,31 @@ function EngravingsPanel({ data }: { data: Character }) {
   const stagger = useStagger();
   const effects = sortEngravings(data.loadout.engravings?.arkPassiveEffects ?? []);
   const book = engravingBookString(effects);
-  // Icons left of the names (user 10-31, backend #780): one small list per page
-  // load. Each row holds the icon's place from the first paint, so the names
-  // never move when the icons land; a name without a match leaves it blank.
-  const iconList = useQuery({
-    queryKey: ["engraving-icons"],
-    queryFn: ({ signal }) => fetchEngravingIcons(signal),
-    // A filled list holds for the visit; an empty one (before the backend's
-    // warmup, or a failed read) is asked again after 5 minutes, not never.
-    staleTime: (query) => (query.state.data?.length ? Infinity : 5 * 60_000),
-    retry: false,
-    enabled: effects.length > 0,
-  });
-  const icons = engravingIconMap(iconList.data);
   const bonus = stoneBonus(groupEquipment(data.loadout.equipment).stone);
   return (
-    <Panel
-      title="각인"
-      meta={book ? `${effects[0]?.grade ?? ""} ${book}`.trim() : undefined}
-    >
+    <Panel title="각인">
+      {/* The book code on the left, the ark passive state on the right (user 11-01). */}
+      {(book || data.loadout.arkPassive?.enabled) && (
+        <p className={styles.engravingHead}>
+          {book && (
+            <b>
+              <span className={styles.srOnly}>각인 조합 </span>
+              {book}
+            </b>
+          )}
+          {data.loadout.arkPassive?.enabled && <span>아크 패시브 활성화</span>}
+        </p>
+      )}
       {effects.length ? (
         <ul className={styles.engravings}>
-          {effects.map((effect, i) => {
-            // Official image addresses only (the same check as every API image).
-            const icon = safeGameImage(icons.get(engravingKey(effect.name)));
-            return (
+          {effects.map((effect, i) => (
             <li key={i} {...stagger(i)}>
               <div className={styles.engravingName}>
-                <div className={styles.engravingIcon} aria-hidden="true">
-                  {icon && (
-                    // eslint-disable-next-line @next/next/no-img-element -- official CDN icon at a fixed size
-                    <img
-                      src={icon}
-                      alt=""
-                      width={24}
-                      height={24}
-                      decoding="async"
-                      referrerPolicy="no-referrer"
-                    />
-                  )}
-                </div>
+                {/* No official icon per engraving exists, and the market book
+                    icon was the same on every row (PM 총괄 11-01): a small mark
+                    in the grade's colour instead; the grade itself is read out
+                    on the right. */}
+                <i className={styles.engravingGrade} data-grade={gradeKey(effect.grade)} aria-hidden="true" />
                 {effect.description ? (
                   <DetailTooltip name={effect.name ?? "각인"} card={<EngravingCard description={effect.description} />}>
                     <strong>{text(effect.name)}</strong>
@@ -1332,15 +1347,31 @@ function EngravingsPanel({ data }: { data: Character }) {
                   <strong>{text(effect.name)}</strong>
                 )}
               </div>
-              <span>
-                {text(effect.grade)} ×{number(effect.level)}
-                {effect.abilityStoneLevel != null &&
-                  effect.abilityStoneLevel > 0 &&
-                  ` · 스톤 Lv.${effect.abilityStoneLevel}`}
+              {/* The official armory's markers (user 11-01): red for the relic
+                  book count, blue for the stone level; the words stay for
+                  screen readers. Another grade keeps its name as text. */}
+              <span className={styles.engravingCount}>
+                <span>
+                  {effect.grade === "유물" ? (
+                    <>
+                      <i className={styles.engraveMark} data-kind="relic" aria-hidden="true" />
+                      <span className={styles.srOnly}>유물 </span>
+                    </>
+                  ) : (
+                    `${text(effect.grade)} `
+                  )}
+                  ×{number(effect.level)}
+                </span>
+                {effect.abilityStoneLevel != null && effect.abilityStoneLevel > 0 && (
+                  <span>
+                    <i className={styles.engraveMark} data-kind="stone" aria-hidden="true" />
+                    <span className={styles.srOnly}>스톤 </span>
+                    Lv.{effect.abilityStoneLevel}
+                  </span>
+                )}
               </span>
             </li>
-            );
-          })}
+          ))}
         </ul>
       ) : (
         <Empty

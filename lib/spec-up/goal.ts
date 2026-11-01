@@ -16,6 +16,11 @@ export type GoalEnvelope = { code: string; message: string; data: Goal };
 const STEP_KIND_LABEL: Record<string, string> = {
   ...SPEC_UP_KIND_LABEL,
   EQUIPMENT_SUCCESSION: "계승",
+  // The path names these apart from the list (ADVANCED_REFINE there): without
+  // its own label a 상급 재련 step read "기타 단계".
+  EQUIPMENT_ADVANCED_REFINE: "상급 재련",
+  // 완갑 steps (api #809) and 스톤 steps (api #812, ABILITY_STONE from the list's labels).
+  ARM_GUARD: "완갑",
 };
 export const stepKindLabel = (kind: string) => STEP_KIND_LABEL[kind] ?? "기타 단계";
 
@@ -67,9 +72,16 @@ export function stepCost(step: GoalStep, gold: (amount: number) => string, ruleV
  */
 export function simulatorPath(steps: GoalStep[]): { changes: SpecUpChange[]; skipped: number } {
   const changes: SpecUpChange[] = [];
+  let skipped = 0;
   for (const step of steps) {
-    const change = step.change as SpecUpChange;
-    if (isOpen(change.kind as never) && editsFor(change, NO_EDITS)) changes.push(change);
+    // A step may change more than one thing (api #812: a stone step sets two
+    // engravings, `changes`; `change` is only its first). The whole step goes
+    // in or none of it: half a stone would be a stone that does not exist.
+    const all = (step.changes?.length ? step.changes : [step.change]) as SpecUpChange[];
+    if (all.every((change) => isOpen(change.kind as never) && editsFor(change, NO_EDITS))) changes.push(...all);
+    else skipped += 1;
   }
-  return { changes, skipped: steps.length - changes.length };
+  // In path order: the simulator applies them one after another, so a later
+  // value for the same slot (보석 9 → 10, the same engraving again) wins.
+  return { changes, skipped };
 }

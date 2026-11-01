@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { isStandingEnvelope, standingReason, topPercentText } from "../lib/character/collectible-standing";
+import { standingReason, topPercentText } from "../lib/character/collectible-standing";
+import { isStandingEnvelope } from "../lib/character/collectible-standing.backend";
 
 test("collectible standing: no-rank reasons in Korean, unknown codes fall back", () => {
   // The processing-stop list reads exactly like no record (PM-프론트 00:59).
