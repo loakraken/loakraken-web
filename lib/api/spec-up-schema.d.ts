@@ -329,6 +329,8 @@ export interface components {
             cumulativeCost: number | null;
             combatPowerPer10kGold: number | null;
             extraCost?: number | null;
+            /** @description 이 단계가 바꾸는 것 전부(전투력 시뮬레이터 changes[]와 같은 모양). 어빌리티 스톤 단계는 각인 두 개. change는 그 첫째와 같음. 없으면 change 하나 */
+            changes?: components["schemas"]["ChangeResponse"][];
         };
         /** @description 공통 API 응답. 오류 응답의 data는 null입니다. */
         ApiResponseSpecUpDetailResponse: {

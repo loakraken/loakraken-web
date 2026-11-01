@@ -1299,6 +1299,13 @@
                 "type": "null"
               }
             ]
+          },
+          "changes": {
+            "type": "array",
+            "description": "이 단계가 바꾸는 것 전부(전투력 시뮬레이터 changes[]와 같은 모양). 어빌리티 스톤 단계는 각인 두 개. change는 그 첫째와 같음. 없으면 change 하나",
+            "items": {
+              "$ref": "#/components/schemas/ChangeResponse"
+            }
           }
         },
         "required": [
