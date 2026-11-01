@@ -9,7 +9,15 @@ import { useItemTooltips } from "./use-item-tooltips";
 import { equipmentExtra } from "@/lib/character/item-tooltips";
 import type { Character } from "@/lib/character/model";
 import { groupEquipment, NOT_SPECIAL } from "@/lib/character/detail";
-import { avatarEffectTotals, avatarSlots, decorationParts, rarestOwned, type DecorationPart } from "@/lib/character/inner";
+import {
+  avatarEffectTotals,
+  avatarSlots,
+  avatarTendencyText,
+  avatarTendencyTotals,
+  decorationParts,
+  rarestOwned,
+  type DecorationPart,
+} from "@/lib/character/inner";
 import { safeGameImage } from "@/lib/character/model";
 import { CollectibleIcon, GameIcon } from "./imagery";
 import { Panel } from "./panel";
@@ -298,6 +306,7 @@ export function CollectiblesTab({ data }: { data: Character }) {
 export function AvatarsTab({ data }: { data: Character }) {
   const avatars = data.avatars;
   const totals = avatarEffectTotals(avatars);
+  const tendencies = avatarTendencyTotals(avatars);
   return (
     <div className={styles.layout}>
       <div className={styles.avatarColumns}>
@@ -305,6 +314,21 @@ export function AvatarsTab({ data }: { data: Character }) {
           <AvatarPreview url={data.imageUrl} name={data.characterName} />
         </Panel>
         <div className={styles.stack}>
+          {/* User 11-02: what the worn avatars add to 성향, first. Drawn with the
+              page (server data), only when some avatar gives 성향. */}
+          {tendencies.length > 0 && (
+            <Panel title="아바타 성향">
+              <dl className={styles.statGrid}>
+                {tendencies.map((item) => (
+                  <div key={item.type}>
+                    <dt>{item.type}</dt>
+                    <dd>+{number(item.point)}</dd>
+                  </div>
+                ))}
+              </dl>
+              <p className={styles.caption}>장착한 아바타의 성향만 더했어요. 캐릭터 전체 성향은 내실 탭에 있어요.</p>
+            </Panel>
+          )}
           <Panel
             title="아바타 목록"
             meta={avatars.length ? `${avatars.length}개 장착` : undefined}
@@ -325,6 +349,9 @@ export function AvatarsTab({ data }: { data: Character }) {
                       <strong data-grade={avatar?.grade ?? undefined}>
                         {avatar ? text(avatar.name) : "-"}
                       </strong>
+                      {avatar && avatarTendencyText(avatar) && (
+                        <small className={styles.avatarTendency}>{avatarTendencyText(avatar)}</small>
+                      )}
                     </div>
                   </li>
                 ))}

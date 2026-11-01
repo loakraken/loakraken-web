@@ -2704,16 +2704,18 @@ createServer(async (req, res) => {
     d.honorPoint = 183;
     d.guildName = "합성길드";
     d.guildMemberGrade = "길드장";
+    // 성향 per avatar as the real tooltips give it (backend #833): 이동 효과 none.
+    const t = (...pairs) => pairs.map(([type, point]) => ({ type, point }));
     d.avatars = [
-      ["무기 아바타", "합성 무기 아바타", "전설", false, ["민첩 +2.00%"]],
-      ["무기 덧입기 아바타", "합성 무기 덧입기", "영웅", true, []],
-      ["상의 아바타", "합성 상의 (패스)", "전설", false, ["민첩 +2.00%"]],
-      ["상의 덧입기 아바타", "합성 상의 덧입기", "영웅", true, []],
-      ["하의 아바타", "합성 하의 (패스)", "전설", false, ["민첩 +2.00%"]],
-      ["머리 아바타", "합성 머리", "전설", false, ["민첩 +1.00%"]],
-      ["얼굴1 아바타", "합성 얼굴1", "영웅", false, []],
-      ["이동 효과", "합성 이동 효과", "영웅", false, []],
-    ].map(([type, name, grade, isInner, effects]) => ({ type, name, icon: null, grade, isSet: false, isInner, effects }));
+      ["무기 아바타", "합성 무기 아바타", "전설", false, ["민첩 +2.00%"], t(["지성", 5], ["담력", 5], ["매력", 5], ["친절", 5])],
+      ["무기 덧입기 아바타", "합성 무기 덧입기", "영웅", true, [], t(["지성", 5])],
+      ["상의 아바타", "합성 상의 (패스)", "전설", false, ["민첩 +2.00%"], t(["지성", 10], ["담력", 5], ["매력", 5], ["친절", 5])],
+      ["상의 덧입기 아바타", "합성 상의 덧입기", "영웅", true, [], t(["담력", 5])],
+      ["하의 아바타", "합성 하의 (패스)", "전설", false, ["민첩 +2.00%"], t(["담력", 5], ["매력", 15])],
+      ["머리 아바타", "합성 머리", "전설", false, ["민첩 +1.00%"], t(["매력", 10], ["친절", 5])],
+      ["얼굴1 아바타", "합성 얼굴1", "영웅", false, [], t(["지성", 5])],
+      ["이동 효과", "합성 이동 효과", "영웅", false, [], []],
+    ].map(([type, name, grade, isInner, effects, tendencies]) => ({ type, name, icon: null, grade, isSet: false, isInner, effects, tendencies }));
     d.coverage.avatars = "PROVIDED";
     d.coverage.collectibles = "PROVIDED";
     for (const stat of d.stats) if (!stat.tooltip?.length) stat.tooltip = [`${stat.type} 효과가 적용됩니다. (합성 문구)`];
