@@ -136,10 +136,16 @@ function PathAnswer({ name, path, stale }: { name: string; path: Path; stale: bo
   const sim = simulatorPath(steps);
 
   // Supporters, unjudged roles, no official combat power: no steps and the guide's reason.
+  // No step but unpriced ones (QA 11-01 P3): the backend's "all picked" sentence read as
+  // if the list were done, so the screen says why it is empty instead.
   if (steps.length === 0 || start == null || final == null)
     return (
       <>
-        <p className={styles.summary}>{path.stopReason ?? "올릴 수 있는 단계를 찾지 못했어요."}</p>
+        <p className={styles.summary}>
+          {steps.length === 0 && path.unpriced.length > 0
+            ? `올릴 수 있는 항목 ${path.unpriced.length}개 모두 시세를 몰라 순서를 만들 수 없어요. 시세가 모이면 다시 계산해 주세요.`
+            : (path.stopReason ?? "올릴 수 있는 단계를 찾지 못했어요.")}
+        </p>
         <Unpriced items={path.unpriced} />
       </>
     );

@@ -828,6 +828,12 @@ createServer(async (req, res) => {
       Object.assign(d, { steps: [], unpriced: [], finalCombatPower: base, totalCost: null, stopReasonCode: "SUPPORTER_MODEL_PENDING", stopReason: "서포터 전투력 계산식은 아직 적용하지 않았습니다." });
       return send(envelope);
     }
+    // QA 11-01 P3: no step because every candidate is unpriced (gem prices missing).
+    if (who === "스펙순서시세없음") {
+      const unpriced = Array.from({ length: 3 }, (_, i) => ({ ...structuredClone(d.unpriced[0]), candidateId: `GEM_LEVEL:${i}:9`, target: `보석 ${i + 1}` }));
+      Object.assign(d, { steps: [], unpriced, finalCombatPower: base, totalCost: 0, stopReasonCode: "NO_CANDIDATE", stopReason: "시세가 있는 항목 가운데 전투력이 오르는 것을 모두 골랐어요." });
+      return send(envelope);
+    }
     for (const step of d.steps) {
       step.combatPowerAfter = shift(step.combatPowerAfter);
       step.change.slot = 1;
