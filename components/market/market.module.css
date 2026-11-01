@@ -160,11 +160,15 @@
   font-variant-numeric: tabular-nums;
 }
 /* The starred mark: a filled star before the name, in the favourites' gold
-   (the bookmark chips and the detail star use it too). It never wraps apart
-   from the name's first word. */
+   (the bookmark chips and the detail star use it too). Every row keeps its
+   place, so names line up and nothing moves when favourites load after the
+   first paint; only a starred row shows it. */
 .rowStar {
   flex: none;
   color: var(--grade-legendary-text);
+}
+.rowStar:not([data-starred]) {
+  visibility: hidden;
 }
 .rowPrice {
   display: grid;

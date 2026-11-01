@@ -485,9 +485,15 @@ function BoardRows({
               <GameIcon src={item.icon} grade={item.grade} size={36} />
               <span className={styles.rowName}>
                 <strong data-grade={item.grade ?? undefined}>
-                  {starred.has(item.itemId) && (
-                    <StarBold size={15} className={styles.rowStar} data-starred aria-hidden="true" />
-                  )}
+                  {/* The star's place is kept on every row (hidden when not starred):
+                      favourites are read in the browser after the first paint, and a
+                      star appearing then moved the name ~19px (codex review). */}
+                  <StarBold
+                    size={15}
+                    className={styles.rowStar}
+                    data-starred={starred.has(item.itemId) || undefined}
+                    aria-hidden="true"
+                  />
                   {item.name}
                   {tier != null && <i>T{tier}</i>}
                   {starred.has(item.itemId) && <span className="sr-only"> · 즐겨찾기됨</span>}
