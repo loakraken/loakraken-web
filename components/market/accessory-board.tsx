@@ -1,6 +1,7 @@
 "use client";
 
 import { HubTabs } from "@/components/site/hub-tabs";
+import { AccessoryViews } from "./accessory-views";
 
 import { Fragment, useId, useMemo, useState } from "react";
 import { DetailRow, ListingCard, RowExpander, listingKey, useOpenRows } from "./listing-detail";
@@ -30,6 +31,7 @@ import {
   type AccessoryPick,
   type Level,
   type Slot,
+  withoutDropped,
 } from "@/lib/market/auction-accessories";
 import { goldText } from "@/lib/market/board";
 import { boardRefresh } from "@/lib/market/refresh";
@@ -42,8 +44,8 @@ import styles from "./accessory-board.module.css";
 /** Gold amounts as the exchange board writes them (…G); counts stay plain numbers. */
 const gold = (n: number | null | undefined) => (n == null ? "-" : goldText(n));
 const count = (n: number | null | undefined) => (n == null ? "-" : n.toLocaleString("ko-KR"));
-/** Most cells a slot has: two key effects × three grades without 하하 (one effect: 3). */
-const CELL_ROOM = 8;
+/** Most cells a slot has: two key effects × three grades without 하하, 중하, 하중 (one effect: 3). */
+const CELL_ROOM = 6;
 const kst = new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
 
 function Change({ rate }: { rate: number | null | undefined }) {
@@ -149,7 +151,16 @@ function Cell({ cell, picked, onPick, pulse }: { cell: AccessoryCell; picked: bo
  * (고대·유물), role and minimum quality; pressing a combination lists its
  * cheapest ten listings below in a box that keeps one height (A6·A7).
  */
-export function AccessoryBoardView({ initialFilter, initialPick }: { initialFilter: AccessoryFilter; initialPick: AccessoryPick | null }) {
+export function AccessoryBoardView({
+  initialFilter,
+  initialPick,
+  search,
+}: {
+  initialFilter: AccessoryFilter;
+  initialPick: AccessoryPick | null;
+  /** The 매물 검색 view is switched on (its link joins the view switch). */
+  search: boolean;
+}) {
   const router = useRouter();
   const qualityId = useId();
   const [filter, setFilter] = useState(initialFilter);
@@ -172,7 +183,8 @@ export function AccessoryBoardView({ initialFilter, initialPick }: { initialFilt
   });
   const boardLimit = useRateLimit(board.error);
   const listingLimit = useRateLimit(listings.error);
-  const data = board.data?.data;
+  const shown = board.data?.data;
+  const data = useMemo(() => (shown ? withoutDropped(shown) : undefined), [shown]);
   const page = listings.data?.data;
   const pages = page ? Math.max(1, Math.min(ACCESSORY_LISTING_MAX_PAGE, Math.ceil(page.totalCount / 10))) : 1;
 
@@ -214,6 +226,7 @@ export function AccessoryBoardView({ initialFilter, initialPick }: { initialFilt
           <h1 id="accessories-heading">장신구 시세</h1>
           <p className={quote.heroCopy}>4티어 장신구를 부위별 핵심 연마 효과의 등급 조합으로 나눠 즉시 구매 최저가를 보여줘요.</p>
           <HubTabs hub="market" />
+          <AccessoryViews search={search} />
         </section>
 
         <form className={stats.filters} onSubmit={(e) => e.preventDefault()} aria-label="장신구 시세 조건">

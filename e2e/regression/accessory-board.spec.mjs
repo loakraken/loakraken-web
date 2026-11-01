@@ -13,10 +13,14 @@ for (const width of [1280, 360]) {
       }).observe({ type: "layout-shift", buffered: true });
     });
     await gotoReady(page, "/market/accessories");
-    for (const [name, count] of [["목걸이", 8], ["귀걸이", 8], ["반지", 8]]) {
+    // Six combinations a slot (user 11-02: 중하·하중 left out, even while the api still sends them).
+    for (const [name, count] of [["목걸이", 6], ["귀걸이", 6], ["반지", 6]]) {
       const slot = page.getByRole("region", { name: new RegExp(`^${name}`) });
       await expect(slot.locator("li")).toHaveCount(count);
     }
+    await expect(page.getByRole("button", { name: "적주피 중 · 추피 하 매물 보기" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "적주피 하 · 추피 중 매물 보기" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "적주피 하 · 추피 상 매물 보기" })).toHaveCount(1);
     await expect(page.getByRole("region", { name: /^반지/ }).getByText("집계 중")).toHaveCount(1);
     // Prices, counts and change rates line up digit by digit (tabular numbers, computed).
     const numbers = await page.getByRole("region", { name: /^목걸이/ }).getByRole("button").first().evaluate((button) =>
@@ -69,10 +73,10 @@ test("장신구 시세: 서포터·유물·품질 무관으로 바꾸면 조합�
   await gotoReady(page, "/market/accessories?slot=RING&levels=HIGH,MID");
   await expect(page.getByRole("button", { name: "치피 상 · 치적 중 매물 보기" })).toHaveAttribute("aria-pressed", "true");
   await page.getByRole("group", { name: "역할" }).getByRole("button", { name: "서포터" }).click();
-  // One key effect: three combinations (the other five cells keep their room, unseen).
+  // One key effect: three combinations (the other three cells keep their room, unseen).
   const earring = page.getByRole("region", { name: /^귀걸이/ });
   await expect(earring.getByRole("button", { name: /매물 보기$/ })).toHaveCount(3);
-  await expect(earring.locator("li")).toHaveCount(8);
+  await expect(earring.locator("li")).toHaveCount(6);
   await expect(page.getByRole("button", { name: /매물 보기$/, pressed: true })).toHaveCount(0);
   await page.getByRole("group", { name: "등급" }).getByRole("button", { name: "유물" }).click();
   await chooseOption(page, page.getByRole("combobox", { name: "품질" }), "무관");
@@ -82,6 +86,13 @@ test("장신구 시세: 서포터·유물·품질 무관으로 바꾸면 조합�
   // The relic board comes (not the failure line).
   await expect(page.getByText("장신구 시세를 불러오지 못했어요.")).toHaveCount(0);
   await expect(earring.getByRole("button", { name: /매물 보기$/ })).toHaveCount(3);
+});
+
+test("장신구 시세: 예전 링크의 중하·하중 칸은 고른 칸 없이 열린다 @regression", async ({ page }) => {
+  await gotoReady(page, "/market/accessories?slot=NECKLACE&levels=MID,LOW");
+  await expect(page.getByRole("region", { name: /^목걸이/ }).getByRole("button", { name: /매물 보기$/ })).toHaveCount(6);
+  await expect(page.getByRole("button", { name: /매물 보기$/, pressed: true })).toHaveCount(0);
+  await expect(page.getByText("위에서 조합을 누르면 즉시 구매가가 싼 매물 10개를 보여 드려요.")).toBeVisible();
 });
 
 for (const width of [1280, 360])

@@ -1,6 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { accessorySearch, isPicked, parseAccessoryFilter, parseAccessoryPick, polishText } from "../lib/market/auction-accessories";
+import {
+  accessorySearch,
+  isDroppedCombo,
+  isPicked,
+  parseAccessoryFilter,
+  parseAccessoryPick,
+  polishText,
+  withoutDropped,
+} from "../lib/market/auction-accessories";
 import { isAccessoryBoardEnvelope, isAccessoryListingsEnvelope } from "../lib/market/auction-accessories.backend";
 
 const cell = {
@@ -25,9 +33,29 @@ test("a pick needs a slot and one or two grades; the address keeps both", () => 
   assert.equal(parseAccessoryPick(new URLSearchParams("slot=BRACELET&levels=HIGH")), null);
   assert.equal(parseAccessoryPick(new URLSearchParams("slot=RING&levels=HIGH,MID,LOW")), null);
   assert.equal(parseAccessoryPick(new URLSearchParams("slot=RING&levels=TOP")), null);
-  const search = accessorySearch({ grade: "RELIC", role: "DEALER", minQuality: 70 }, { slot: "RING", levels: ["LOW", "MID"], page: 1 });
-  assert.equal(search.toString(), new URLSearchParams("grade=RELIC&slot=RING&levels=LOW,MID").toString());
+  const search = accessorySearch({ grade: "RELIC", role: "DEALER", minQuality: 70 }, { slot: "RING", levels: ["LOW", "HIGH"], page: 1 });
+  assert.equal(search.toString(), new URLSearchParams("grade=RELIC&slot=RING&levels=LOW,HIGH").toString());
   assert.equal(accessorySearch({ grade: "ANCIENT", role: "DEALER", minQuality: 70 }, null).toString(), "");
+});
+
+test("중하·하중 are left out of the board and of shared links (user 11-02)", () => {
+  assert.equal(isDroppedCombo(["MID", "LOW"]), true);
+  assert.equal(isDroppedCombo(["LOW", "MID"]), true);
+  for (const kept of [["HIGH", "HIGH"], ["HIGH", "MID"], ["MID", "HIGH"], ["MID", "MID"], ["HIGH", "LOW"], ["LOW", "HIGH"], ["LOW"], ["MID"]])
+    assert.equal(isDroppedCombo(kept), false, kept.join());
+  assert.equal(parseAccessoryPick(new URLSearchParams("slot=RING&levels=MID,LOW")), null);
+  assert.equal(parseAccessoryPick(new URLSearchParams("slot=RING&levels=LOW,MID")), null);
+  // One-effect slots keep 상·중·하.
+  assert.deepEqual(parseAccessoryPick(new URLSearchParams("slot=EARRING&levels=LOW")), { slot: "EARRING", levels: ["LOW"], page: 1 });
+  const levels = [["HIGH", "MID"], ["MID", "LOW"], ["LOW", "HIGH"], ["LOW", "MID"]];
+  const board = {
+    ruleVersion: "v1", grade: "ANCIENT", role: "DEALER", minQuality: 70, complete: true,
+    slots: [{ slot: "NECKLACE", slotName: "목걸이", options: [], cells: levels.map((l) => ({ ...cell, levels: l })) }],
+  } as unknown as Parameters<typeof withoutDropped>[0];
+  assert.deepEqual(
+    withoutDropped(board).slots[0].cells.map((c) => c.levels.join()),
+    ["HIGH,MID", "LOW,HIGH"],
+  );
 });
 
 test("picked cell, polish words and the board contract", () => {
