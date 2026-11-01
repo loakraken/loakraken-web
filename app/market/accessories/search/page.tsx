@@ -8,7 +8,7 @@ import { isAccessorySearchEnabled } from "@/lib/tools/flags";
 // screen); the old /market/accessory-search address moves here (308).
 const metadata: Metadata = {
   title: "장신구 매물 검색",
-  description: "연마 효과·깨달음·힘민지 범위·품질 조건으로 T4 장신구 경매 매물을 즉시 구매가 순으로 찾습니다.",
+  description: "연마 효과·깨달음·힘민지 범위·품질 조건으로 T4 장신구(악세) 경매 매물을 즉시 구매가 순으로 찾습니다.",
   alternates: { canonical: "/market/accessories/search" },
 };
 

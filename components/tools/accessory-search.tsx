@@ -8,9 +8,8 @@ import { AccessoryViews } from "@/components/market/accessory-views";
 // a total (the main-stat filter runs after it), a partial page range says so,
 // and nothing names a source (사용자 결정 10-12).
 import { useEffect, useId, useState } from "react";
-import Link from "next/link";
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { ArrowLeft, SearchNormal } from "@/components/ui/icons";
+import { Diamonds } from "@/components/ui/icons";
 import { SiteHeader } from "@/components/site/site-header";
 import { Select } from "@/components/ui/select";
 import { SegmentedControl, SegmentedItem } from "@/components/ui/segmented-control";
@@ -154,14 +153,12 @@ export function AccessorySearchTool() {
       <main id="accessory-main">
         <section className={quote.hero} aria-labelledby="accessory-heading">
           <span className={quote.heroIcon} aria-hidden="true">
-            <SearchNormal size={18} />
+            {/* The 장신구 tab's mark, as on its 시세 view (one screen, user 11-02). */}
+            <Diamonds size={18} />
           </span>
           <p className={quote.heroKicker}>경매장</p>
           <h1 id="accessory-heading">장신구 매물 검색</h1>
           <p className={quote.heroCopy}>연마 효과·깨달음·힘민지 범위로 T4 장신구 매물을 찾아요.</p>
-          <Link href="/tools" className={quote.back}>
-            <ArrowLeft size={14} aria-hidden="true" /> 도구 전체
-          </Link>
           <HubTabs hub="market" />
           <AccessoryViews search />
         </section>

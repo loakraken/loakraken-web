@@ -109,13 +109,16 @@ test.describe("악세 경매 검색 @smoke", () => {
     expect(html).toContain('aria-label="장신구 보기"');
     expect(html).toContain('href="/market/accessories/search"');
     await gotoReady(page, "/market/accessories");
-    await expect(hub.getByRole("link", { name: "악세 검색" })).toHaveCount(0);
     await expect(hub.getByRole("link", { name: "장신구", exact: true })).toHaveAttribute("aria-current", "page");
+    // After the row is there (a flagged tab would join late): no separate search tab.
+    await expect(hub.getByRole("link", { name: "악세 검색" })).toHaveCount(0);
     await expect(views.getByRole("link", { name: "시세" })).toHaveAttribute("aria-current", "page");
     await views.getByRole("link", { name: "매물 검색" }).click();
     await expect(page).toHaveURL(/\/market\/accessories\/search$/);
     await expect(page.getByRole("heading", { level: 1, name: "장신구 매물 검색" })).toBeVisible();
     await expect(views.getByRole("link", { name: "매물 검색" })).toHaveAttribute("aria-current", "page");
+    // One screen: no way out to the tool list from inside the tab.
+    await expect(page.getByRole("main").getByRole("link", { name: /도구 전체/ })).toHaveCount(0);
     await expect(hub.getByRole("link", { name: "장신구", exact: true })).toHaveAttribute("aria-current", "page");
     await expect(hub.locator('[aria-current="page"]')).toHaveCount(1);
     await expectNoHorizontalOverflow(page);
