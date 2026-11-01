@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { dehydrate, HydrationBoundary, QueryClient } from "@tanstack/react-query";
 import { StatsView } from "@/components/stats/stats-view";
-import { getBestCombatPower, getStats } from "@/lib/stats/server";
+import { getStats } from "@/lib/stats/server";
 import { isPopulationStatsEnabled, isTitleStatsEnabled } from "@/lib/tools/flags";
 import {
   DISTRIBUTION_WIDTH,
@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   alternates: { canonical: "/stats" },
 };
 
-const TABS = ["classes", "distribution", "best", "servers", "titles", "population"] as const;
+const TABS = ["classes", "distribution", "servers", "population", "titles"] as const;
 
 export default async function StatsPage({
   searchParams,
@@ -34,8 +34,10 @@ export default async function StatsPage({
   const titles = isTitleStatsEnabled();
   // ?tab=population only while 전체 인구 is on (POPULATION_STATS).
   const population = isPopulationStatsEnabled();
+  // 최고 전투력 is a block in 분포 now: an old ?tab=best link opens 분포.
+  const asked = params.get("tab") === "best" ? "distribution" : params.get("tab");
   const tab =
-    TABS.filter((t) => (titles || t !== "titles") && (population || t !== "population")).find((t) => t === params.get("tab")) ??
+    TABS.filter((t) => (titles || t !== "titles") && (population || t !== "population")).find((t) => t === asked) ??
     "classes";
   params.delete("tab");
   // The distribution tab's own choices (metric, typed value, table view) are
@@ -43,16 +45,15 @@ export default async function StatsPage({
   const dist = parseDistributionView(params);
   // Invalid filters in a shared link fall back to the defaults.
   const query: StatsQuery = parseStatsQuery(withoutDistributionView(params)) ?? {};
-  // The summary cards sit above the tabs: arriving after hydration they pushed
-  // the tabs and table down (CLS 0.12 at 390). The summary and the table of a
+  // The sample line and summary cards sit above each tab's table: arriving
+  // after hydration they pushed it down (CLS 0.12 at 390). The summary and the table of a
   // classes/servers tab (and the distribution tab's bars) come in the first HTML; a slow backend gives up after
   // 1s and the client fetches as before.
   const deadline = AbortSignal.timeout(1_000);
   const view = tab === "classes" || tab === "servers" ? tab : null;
-  const [summary, table, best, distribution] = await Promise.all([
+  const [summary, table, distribution] = await Promise.all([
     getStats("summary", query, deadline),
     view ? getStats(view, query, deadline) : null,
-    tab === "best" ? getBestCombatPower(query, deadline) : null,
     // The distribution tab opens with the address's metric and typed value.
     tab === "distribution"
       ? getStats(
@@ -67,7 +68,6 @@ export default async function StatsPage({
   const client = new QueryClient();
   if (summary.ok) client.setQueryData(["stats", "summary", statsKey(query)], summary.envelope, { updatedAt: fetchedAt });
   if (view && table?.ok) client.setQueryData(["stats", view, statsKey(query)], table.envelope, { updatedAt: fetchedAt });
-  if (best?.ok) client.setQueryData(["stats", "best", statsKey(query)], best.envelope, { updatedAt: fetchedAt });
   if (distribution?.ok)
     client.setQueryData(distributionKey(query, dist.metric, dist.percentileOf), distribution.envelope, { updatedAt: fetchedAt });
   // StatsView follows initialTab itself, so a menu link to another tab opens it.

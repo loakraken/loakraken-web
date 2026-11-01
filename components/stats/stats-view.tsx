@@ -1,13 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { Fragment, useEffect, useId, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useId, useState, type CSSProperties } from "react";
 import { useTallest } from "@/components/ui/use-tallest";
 import { classBuildsPath } from "@/lib/stats/class-builds";
 import { useRouter, useSearchParams } from "next/navigation";
 import { keepPreviousData, useQuery, type UseQueryResult } from "@tanstack/react-query";
 import { SiteHeader } from "@/components/site/site-header";
-import { Select } from "@/components/ui/select";
 import { DataTable } from "@/components/ui/data-table";
 import { PillTab, PillTabs, PillTabsPanel } from "@/components/ui/pill-tabs";
 import { countdownText, retryLabel } from "@/lib/api/rate-limit";
@@ -35,7 +34,6 @@ import {
   percent,
   quantileScale,
   share,
-  sampleConditions,
   sampleText,
   statsKey,
   statsSearch,
@@ -43,7 +41,6 @@ import {
   writeDistributionView,
   type QuantileRow,
   type Metric,
-  type StatsMeta,
   type StatsQuery,
 } from "@/lib/stats/model";
 import { PopulationTab } from "./population-tab";
@@ -52,20 +49,19 @@ import styles from "./stats.module.css";
 import { ClassIcon } from "./class-icon";
 import { CompositionBlock } from "./composition";
 import { BasisNote } from "./basis-note";
-import { LevelPresets } from "./level-presets";
+import { StatsFilters } from "./stats-filters";
 import { rankingColumns } from "./ranking-columns";
 
-const SERVERS = ["루페온", "실리안", "아만", "아브렐슈드", "카단", "카마인", "카제로스", "니나브"];
+// Reference structure (PM 총괄 11-01): 직업 순위 · 분포 · 서버 · 전체 인구, then
+// 칭호. 최고 전투력 is a block at the end of 분포 (?tab=best opens 분포).
 const TABS = [
-  { id: "classes", label: "직업" },
+  { id: "classes", label: "직업 순위" },
   { id: "distribution", label: "분포" },
-  { id: "best", label: "최고 전투력" },
   { id: "servers", label: "서버" },
-  { id: "titles", label: "칭호" },
   { id: "population", label: "전체 인구" },
+  { id: "titles", label: "칭호" },
 ] as const;
 type Tab = (typeof TABS)[number]["id"];
-const kst = new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
 const quiet = { retry: false, refetchOnWindowFocus: false } as const;
 
 /** Debounced copy of a value (filters typed as numbers, 300 ms). */
@@ -90,27 +86,6 @@ function Problem({ error, onRetry }: { error: unknown; onRetry: () => void }) {
   );
 }
 
-/**
- * Whose numbers these are, before any number (user, 23:23): LOAKraken's
- * observed characters, never the game's population. Conditions under it.
- */
-function Notice({ meta, stale }: { meta: StatsMeta; stale: boolean }) {
-  return (
-    <div className={styles.basis} role="note" {...pendingProps({ isPlaceholderData: stale })}>
-      <p>
-        <strong>LOAKraken이 확인한 캐릭터 {whole(meta.population)}명 기준</strong>
-        <span>(게임 전체 인구 아님)</span>
-      </p>
-      {/* Keyed by what it says (A7): see basis-note.tsx. */}
-      <p key={`${sampleConditions(meta)}-${meta.aggregatedAt}-${meta.sampleStatus}`} className={styles.notice}>
-        {sampleConditions(meta)} · {kst.format(new Date(meta.aggregatedAt))} 집계
-        {meta.sampleStatus !== "READY" && ` · 표본 ${meta.minSample}명이 모이면 분포를 보여 드려요`}
-      </p>
-    </div>
-  );
-}
-
-/** "집계 기준 안내" under the tables, from the summary's meta (same query, cached). */
 /**
  * How the numbers are made, right under each tab's own content (QA P2-5): a
  * tab draws it with its answer, so it never sits under the room a taller tab
@@ -146,46 +121,51 @@ function SummaryCards({ query }: { query: StatsQuery }) {
   if (summary.isError && !s) return <Problem error={summary.error} onRetry={() => summary.refetch()} />;
   if (!s) return <p className={styles.muted}>통계를 불러오고 있어요…</p>;
   const roles = s.dealers + s.supports;
+  const dealerShare = roles ? (s.dealers / roles) * 100 : 0;
   // A filter narrower than the sample minimum: the numbers still show, in gray
   // with "참고값" (user 23:50, backend #274); the top 10% stays "-".
   const reference = s.meta.sampleStatus !== "READY";
   return (
     // Drawn anew per answer: numbers and the 참고값 tag rewritten in place
     // moved the cards' text on a server change (0.001~0.0016, A7).
-    <Fragment key={summary.dataUpdatedAt}>
-      <Notice meta={s.meta} stale={summary.isPlaceholderData} />
-      <dl className={styles.cards} data-reference={reference || undefined} {...pendingProps(summary)}>
-        <div>
-          <dt>표본</dt>
-          <dd>{whole(s.meta.population)}명</dd>
-        </div>
-        <div>
-          <dt>아이템 레벨{reference && <span className={styles.refTag}>참고값</span>}</dt>
-          <dd>{fixed(s.itemLevelMean)}</dd>
-          <small>중앙값 {fixed(s.itemLevelMedian)}</small>
-        </div>
-        <div>
-          <dt>전투력 중앙값{reference && <span className={styles.refTag}>참고값</span>}</dt>
-          <dd>{fixed(s.combatPowerMedian)}</dd>
-          <small>상위 10% {fixed(s.combatPowerP90)}</small>
-        </div>
-        <div>
-          <dt>딜러 : 서포터</dt>
-          <dd>
-            {roles ? `${Math.round((s.dealers / roles) * 100)} : ${Math.round((s.supports / roles) * 100)}` : "-"}
-          </dd>
-          <small>
-            {whole(s.dealers)} : {whole(s.supports)}
-            {s.unknownRole > 0 && ` · 미확인 ${whole(s.unknownRole)}`}
-          </small>
-        </div>
-        <div>
-          <dt>보석 평균 레벨{reference && <span className={styles.refTag}>참고값</span>}</dt>
-          <dd>{fixed(s.gemMeanLevel, 1)}</dd>
-          <small>{whole(s.gemSample)}명 기준</small>
-        </div>
-      </dl>
-    </Fragment>
+    <dl key={summary.dataUpdatedAt} className={styles.cards} data-reference={reference || undefined} {...pendingProps(summary)}>
+      <div>
+        <dt>표본</dt>
+        <dd>
+          <span>{whole(s.meta.population)}</span>
+          <span className={styles.unit}>명</span>
+        </dd>
+        <small>최근 {s.meta.conditions.activeDays}일 안에 확인한 캐릭터</small>
+      </div>
+      <div>
+        <dt>평균 아이템 레벨{reference && <span className={styles.refTag}>참고값</span>}</dt>
+        <dd>{fixed(s.itemLevelMean)}</dd>
+        <small>중앙값 {fixed(s.itemLevelMedian)}</small>
+      </div>
+      <div>
+        <dt>전투력 중앙값{reference && <span className={styles.refTag}>참고값</span>}</dt>
+        <dd>{fixed(s.combatPowerMedian)}</dd>
+        <small>상위 10% {fixed(s.combatPowerP90)} 이상</small>
+      </div>
+      <div>
+        <dt>딜러 : 서포터</dt>
+        <dd>{roles ? `${share(dealerShare)} : ${share(100 - dealerShare)}` : "-"}</dd>
+        {/* Two shares of one bar; the counts are the legend under it. */}
+        <span className={styles.roleBar} aria-hidden="true">
+          <i style={{ width: `${dealerShare}%` }} />
+        </span>
+        <small className={styles.roleLegend}>
+          <span data-role="dealer">딜러 {whole(s.dealers)}</span>
+          <span data-role="support">서포터 {whole(s.supports)}</span>
+          {s.unknownRole > 0 && <span>미확인 {whole(s.unknownRole)}</span>}
+        </small>
+      </div>
+      <div>
+        <dt>보석 평균 레벨{reference && <span className={styles.refTag}>참고값</span>}</dt>
+        <dd>{fixed(s.gemMeanLevel, 2)}</dd>
+        <small>4티어 보석, 캐릭터별 평균</small>
+      </div>
+    </dl>
   );
 }
 
@@ -520,6 +500,8 @@ function ExtraCharts({ query, asTable }: { query: StatsQuery; asTable: boolean }
           problem={(error, retry) => <Problem error={error} onRetry={retry} />}
         />
       )}
+      {/* Last of all: it may land after the charts, with nothing under it. */}
+      <BestBlock query={query} />
     </>
   );
 }
@@ -657,9 +639,10 @@ const TITLE_COLUMNS = rankingColumns([3.5, 18, 8, 6.5]);
 /**
  * 최고 전투력 (L5): each character's highest combat power over its whole
  * history, overall and per class, over the same sample and filters. A cell
- * under the sample minimum has its count only.
+ * under the sample minimum has its count only. A block at the end of 분포
+ * since the reference structure (PM 총괄 11-01): nothing under it to push.
  */
-function BestTab({ query }: { query: StatsQuery }) {
+function BestBlock({ query }: { query: StatsQuery }) {
   const best = useQuery({
     queryKey: ["stats", "best", statsKey({ ...query, metric: undefined, width: undefined, percentileOf: undefined })],
     queryFn: ({ signal }) => fetchBestCombatPower(query, signal),
@@ -667,8 +650,8 @@ function BestTab({ query }: { query: StatsQuery }) {
     placeholderData: keepPreviousData,
     ...quiet,
   });
-  if (best.isError && !best.data) return <Problem error={best.error} onRetry={() => best.refetch()} />;
-  if (!best.data) return <p className={styles.muted}>최고 전투력 통계를 불러오고 있어요…</p>;
+  if (best.isError && !best.data) return isAbsent(best.error) ? null : <Problem error={best.error} onRetry={() => best.refetch()} />;
+  if (!best.data) return null;
   const { meta, overall, classes } = best.data.data;
   const rows = classes.map((row) => ({
     className: row.className,
@@ -682,7 +665,10 @@ function BestTab({ query }: { query: StatsQuery }) {
   const ready = rows.filter((row) => row.sampleStatus === "READY").length;
   const short = overall.sampleStatus !== "READY";
   return (
-    <div {...pendingProps(best)}>
+    <section className={gemStyles.block} aria-labelledby="stats-best" {...pendingProps(best)}>
+      <h2 id="stats-best" className={gemStyles.title}>
+        최고 전투력 기록
+      </h2>
       {/* Drawn anew per answer: numbers rewritten in place move (A7). */}
       <div key={best.dataUpdatedAt}>
         <p className={styles.notice}>
@@ -748,8 +734,7 @@ function BestTab({ query }: { query: StatsQuery }) {
         분포 막대: 옅은 선 하위 10%~상위 10%, 진한 칸 가운데 50%, 세로선 중앙값. 표본이 {meta.minSample}명 미만인 칸은
         인원만 보여요.
       </p>
-      <StatsBasis query={query} />
-    </div>
+    </section>
   );
 }
 
@@ -842,14 +827,9 @@ export function StatsView({
     leave(tab);
     setTab(initialTab);
   }
-  const [levelText, setLevelText] = useState(initial.itemLevelMin != null ? String(initial.itemLevelMin) : "");
-  const latest = useRef(initial);
-  const levelTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const ids = { server: useId(), role: useId(), days: useId(), level: useId() };
   const [panelRef, tallest] = useTallest();
 
   function apply(next: StatsQuery, nextTab = tab) {
-    latest.current = next;
     setQuery(next);
     const params = statsSearch(next);
     if (nextTab !== "classes") params.set("tab", nextTab);
@@ -858,23 +838,8 @@ export function StatsView({
       writeDistributionView(parseDistributionView(new URLSearchParams(window.location.search)), params);
     router.replace(params.size ? `?${params}` : "?", { scroll: false });
   }
-  /** Typed levels apply 300 ms after the last keystroke, with the filters current then. */
-  function typeLevel(text: string) {
-    setLevelText(text);
-    clearTimeout(levelTimer.current);
-    levelTimer.current = setTimeout(() => {
-      const n = text.trim() ? Number(text) : undefined;
-      if (n !== undefined && !(Number.isFinite(n) && n >= 0 && n <= 2000)) return;
-      if (n !== latest.current.itemLevelMin) apply({ ...latest.current, itemLevelMin: n });
-    }, 300);
-  }
-  useEffect(() => () => clearTimeout(levelTimer.current), []);
-  /** A preset replaces whatever was typed and applies at once. */
-  function pickLevel(value: number | undefined) {
-    clearTimeout(levelTimer.current);
-    setLevelText(value != null ? String(value) : "");
-    if (value !== latest.current.itemLevelMin) apply({ ...latest.current, itemLevelMin: value });
-  }
+  // 전체 인구 counts every stored character (no filters): no bar, no cards.
+  const filtered = tab !== "population";
 
   return (
     <div className={quote.page}>
@@ -888,57 +853,6 @@ export function StatsView({
           <h1 id="stats-heading">캐릭터 통계</h1>
           <p>LOAKraken이 확인한 캐릭터로 직업·전투력·서버 분포를 보여줘요.</p>
         </section>
-
-        <form className={styles.filters} onSubmit={(e) => e.preventDefault()} aria-label="통계 조건">
-          <label htmlFor={ids.server}>
-            서버
-            <Select
-              id={ids.server}
-              value={query.server ?? ""}
-              onValueChange={(v) => apply({ ...query, server: v || undefined })}
-              items={[{ value: "", label: "전체" }, ...SERVERS.map((s) => ({ value: s, label: s }))]}
-            />
-          </label>
-          <label htmlFor={ids.role}>
-            역할
-            <Select
-              id={ids.role}
-              value={query.role ?? ""}
-              onValueChange={(v) => apply({ ...query, role: (v || undefined) as StatsQuery["role"] })}
-              items={[{ value: "", label: "전체" }, { value: "DEALER", label: "딜러" }, { value: "SUPPORT", label: "서포터" }]}
-            />
-          </label>
-          <label htmlFor={ids.days}>
-            최근 확인
-            <Select
-              id={ids.days}
-              value={query.activeDays ?? 30}
-              onValueChange={(v) => apply({ ...query, activeDays: v as 7 | 30 | 90 })}
-              items={[{ value: 7, label: "7일" }, { value: 30, label: "30일" }, { value: 90, label: "90일" }]}
-            />
-          </label>
-          <label htmlFor={ids.level}>
-            아이템 레벨 이상
-            <input
-              id={ids.level}
-              inputMode="decimal"
-              value={levelText}
-              placeholder="1640"
-              onChange={(e) => typeLevel(e.target.value.replace(/[^\d.]/g, ""))}
-            />
-          </label>
-          <LevelPresets level={query.itemLevelMin} onPick={pickLevel} />
-          <label className={styles.check}>
-            <input
-              type="checkbox"
-              checked={!!query.representativeOnly}
-              onChange={(e) => apply({ ...query, representativeOnly: e.target.checked || undefined })}
-            />
-            원정대 대표 캐릭터만
-          </label>
-        </form>
-
-        <SummaryCards query={query} />
 
         <PillTabs
           aria-label="통계 보기"
@@ -956,12 +870,15 @@ export function StatsView({
                 style={tallest ? { minHeight: tallest } : undefined}
                 data-drawn={drawn.has(tab) || undefined}
               >
+                {/* Inside the room the panel keeps: on a tab change the bar
+                    and cards stay put or leave with the tab's content, so
+                    nothing that stays moves (A7). */}
+                {filtered && <StatsFilters query={query} apply={(next) => apply(next)} />}
+                {filtered && <SummaryCards query={query} />}
                 {tab === "classes" ? (
                   <ClassesTab query={query} />
                 ) : tab === "distribution" ? (
                   <DistributionTab query={query} />
-                ) : tab === "best" ? (
-                  <BestTab query={query} />
                 ) : tab === "titles" ? (
                   <TitlesTab query={query} />
                 ) : tab === "population" ? (
