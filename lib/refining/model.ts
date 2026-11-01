@@ -7,7 +7,11 @@ import type { MaterialPrice } from "../market/model";
 import { rateLimitCopy } from "../api/rate-limit";
 
 type Schemas = components["schemas"];
-export type PlanRequest = Schemas["RefiningPlanRequest"];
+// openapi-typescript makes a field with a default required; the failure count
+// must stay unsent so the api reads it from 현재 성공 확률.
+export type PlanRequest = Omit<Schemas["RefiningPlanRequest"], "currentFailedAttempts"> & {
+  currentFailedAttempts?: number;
+};
 export type Plan = Schemas["RefiningPlanResponse"];
 export type PlanStage = Schemas["StageResponse"];
 export type Quantity = Schemas["QuantityResponse"];
@@ -54,7 +58,12 @@ export type PartState = {
   current: number;
   target: number;
   artisanEnergy: number;
-  failedAttempts: number;
+  /**
+   * 현재 성공 확률 (%) before breaths and books, as the game shows it; null when
+   * not entered. The api finds the failure count from it (사용자 11-02: a
+   * failure count was confusing; PM 총괄 option A).
+   */
+  successRate: number | null;
 };
 
 export type Options = {
@@ -103,7 +112,7 @@ export const defaultPart = (grade: Grade = "UPHWA"): PartState => ({
   current: 18,
   target: 18,
   artisanEnergy: 0,
-  failedAttempts: 0,
+  successRate: null,
 });
 
 export type CharacterParts = {
@@ -150,7 +159,7 @@ export function toRequest(
       useBook: false,
       growthSupport: false,
       currentArtisanEnergy: state.artisanEnergy,
-      currentFailedAttempts: state.failedAttempts,
+      ...successRate(state),
     };
   const weapon = part.type === "WEAPON";
   return {
@@ -165,9 +174,24 @@ export function toRequest(
       state.current < 20,
     growthSupport: options.growthSupport && state.grade === "UPHWA",
     currentArtisanEnergy: state.artisanEnergy,
-    currentFailedAttempts: state.failedAttempts,
+    ...successRate(state),
   };
 }
+
+/**
+ * The failure count is never sent: an explicit one would win over the rate
+ * (api). Without a rate the api starts the stage at 0 failures.
+ */
+const successRate = (state: PartState) =>
+  state.successRate != null ? { currentSuccessRate: state.successRate } : {};
+
+/** 0~100 with two decimals at most, like the game shows it. */
+export const isPercent = (value: unknown): value is number =>
+  typeof value === "number" &&
+  Number.isFinite(value) &&
+  value >= 0 &&
+  value <= 100 &&
+  Math.abs(Math.round(value * 100) - value * 100) < 1e-6;
 
 /** Stable cache key: identical armor plans are requested once. */
 export const requestKey = (request: PlanRequest) =>
@@ -180,7 +204,8 @@ export const requestKey = (request: PlanRequest) =>
     request.useBook,
     request.growthSupport,
     request.currentArtisanEnergy,
-    request.currentFailedAttempts,
+    request.currentSuccessRate ?? null,
+    request.currentFailedAttempts ?? null,
   ]);
 
 const isInt = (value: unknown, min: number, max: number) =>
@@ -217,8 +242,12 @@ export function parsePlanRequest(body: unknown): PlanRequest | null {
     energy > 100
   )
     return null;
-  const failed = input.currentFailedAttempts ?? 0;
-  if (!isInt(failed, 0, 10)) return null;
+  // Both optional and passed on only when sent: a failure count sent by
+  // default would win over the success rate at the api.
+  const failed = input.currentFailedAttempts;
+  if (failed !== undefined && !isInt(failed, 0, 10)) return null;
+  const rate = input.currentSuccessRate;
+  if (rate !== undefined && !isPercent(rate)) return null;
   return {
     ...(armGuard ? {} : { grade: input.grade as Grade }),
     equipmentType: type,
@@ -228,7 +257,8 @@ export function parsePlanRequest(body: unknown): PlanRequest | null {
     useBook,
     growthSupport,
     currentArtisanEnergy: energy,
-    currentFailedAttempts: failed as number,
+    ...(rate !== undefined ? { currentSuccessRate: rate } : {}),
+    ...(failed !== undefined ? { currentFailedAttempts: failed as number } : {}),
   };
 }
 
@@ -333,6 +363,11 @@ export function refiningFailureCopy(error: { code: string }) {
       return {
         title: "단계 설정을 확인해 주세요",
         text: "현재 단계는 10~24(완갑은 0~24), 목표 단계는 현재보다 높은 25 이하로 입력해 주세요.",
+      };
+    case "REFINING_SUCCESS_RATE_MISMATCH":
+      return {
+        title: "현재 성공 확률을 확인해 주세요",
+        text: "이 단계에서 나올 수 없는 값이에요. 숨결·책을 올리기 전 재련 창의 성공 확률을 넣어 주세요.",
       };
     case "FRONTEND_API_NOT_CONFIGURED":
       return {

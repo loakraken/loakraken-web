@@ -35,6 +35,7 @@ import {
   MAX_STAGE,
   MIN_STAGE,
   minStage,
+  isPercent,
   MODES,
   PARTS,
   attemptsAt,
@@ -307,12 +308,22 @@ function PartRow({
   );
 }
 
+/** A typed percent, or null when the box is empty. */
+const percentValue = (text: string) => {
+  if (text.trim() === "") return null;
+  const value = Number(text);
+  return Number.isFinite(value) ? Math.min(100, Math.max(0, value)) : undefined;
+};
+
 function Progress({
   parts,
   setPart,
+  derived,
 }: {
   parts: Record<PartId, PartState>;
   setPart: (id: PartId, next: PartState) => void;
+  /** Failures the api found from 현재 성공 확률, per part (first stage). */
+  derived: Partial<Record<PartId, number>>;
 }) {
   const active = PARTS.filter(
     (part) =>
@@ -323,8 +334,8 @@ function Progress({
     <details className={styles.disclosure}>
       <summary className="hit-44">첫 단계 진행 상황 입력</summary>
       <p className={quote.caption}>
-        이미 시도 중인 단계가 있으면 현재 장인의 기운과 실패 횟수를 넣어 주세요.
-        첫 단계에만 적용돼요.
+        이미 시도 중인 단계가 있으면 재련 창의 장인의 기운과, 숨결·책을 올리기 전
+        성공 확률을 넣어 주세요. 실패 횟수는 성공 확률로 계산해요. 첫 단계에만 적용돼요.
       </p>
       {active.length ? (
         <ul className={styles.progressList}>
@@ -355,13 +366,25 @@ function Progress({
                   />
                 </label>
                 <label className={styles.mini}>
-                  <span>실패 횟수</span>
-                  <Select
-                    value={state.failedAttempts}
-                    onValueChange={(failedAttempts) => setPart(part.id, { ...state, failedAttempts })}
-                    items={range(0, 10).map((n) => ({ value: n, label: `${n}회` }))}
+                  <span>현재 성공 확률(%)</span>
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    min={0}
+                    max={100}
+                    step={0.01}
+                    placeholder="숨결·책 전"
+                    value={state.successRate ?? ""}
+                    onChange={(event) => {
+                      const value = percentValue(event.target.value);
+                      if (value !== undefined)
+                        setPart(part.id, { ...state, successRate: value });
+                    }}
                   />
                 </label>
+                <small className={styles.derived}>
+                  {derived[part.id] != null && `실패 ${derived[part.id]}회로 계산했어요.`}
+                </small>
               </li>
             );
           })}
@@ -793,9 +816,10 @@ const partsCodec = json<Record<PartId, PartState>>((v) => {
     const current = int(p.current, minStage(part.type), 25);
     const target = int(p.target, minStage(part.type), 25);
     const energy = typeof p.artisanEnergy === "number" && p.artisanEnergy >= 0 && p.artisanEnergy <= 100 ? p.artisanEnergy : null;
-    const failed = int(p.failedAttempts, 0, 999);
-    if (typeof p.enabled !== "boolean" || !grade || current == null || target == null || energy == null || failed == null) continue;
-    out[part.id] = { enabled: p.enabled, grade, current, target, artisanEnergy: energy, failedAttempts: failed };
+    // Addresses saved before 11-02 carry failedAttempts instead: read as not entered.
+    const rate = p.successRate == null ? null : isPercent(p.successRate) ? p.successRate : undefined;
+    if (typeof p.enabled !== "boolean" || !grade || current == null || target == null || energy == null || rate === undefined) continue;
+    out[part.id] = { enabled: p.enabled, grade, current, target, artisanEnergy: energy, successRate: rate };
   }
   return out;
 });
@@ -862,6 +886,12 @@ function RefiningContent({ initialName }: { initialName: string }) {
     q.data ? [{ part: requests[i].part, plan: q.data.data }] : [],
   );
   const complete = requests.length > 0 && plans.length === requests.length;
+  const derived: Partial<Record<PartId, number>> = Object.fromEntries(
+    plans.flatMap(({ part, plan }) => {
+      const failures = plan.stages[0]?.startFailedAttempts;
+      return plan.failedAttemptsFrom === "SUCCESS_RATE" && failures != null ? [[part.id, failures]] : [];
+    }),
+  );
   const nextLevel = targetItemLevel(loaded?.itemLevel ?? null, parts);
   const failure =
     failed?.error instanceof RefiningQueryError
@@ -1011,7 +1041,7 @@ function RefiningContent({ initialName }: { initialName: string }) {
                   <strong>{formatLevel(nextLevel)}</strong>
                 </p>
               )}
-              <Progress parts={parts} setPart={setPart} />
+              <Progress parts={parts} setPart={setPart} derived={derived} />
             </section>
 
             <section className={quote.card} aria-labelledby="option-heading">
