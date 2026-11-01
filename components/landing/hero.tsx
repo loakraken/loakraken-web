@@ -85,12 +85,10 @@ export function Hero({
             LOAKraken(로아크라켄)은 로스트아크 공식 Open API의 공개 정보로 캐릭터·시세·통계·성장 도구를 보여 주는 무료 팬 사이트입니다.
           </p>
         )}
-        {/* No frame around the bot (user, 11-01): it stands on a soft shadow
-            (data-backdrop="glow" is the other look shown to the user). */}
+        {/* No frame around the bot (user, 11-01): it stands on a soft shadow. */}
         <div className={styles.orbInteraction}>
           <Stage
             className={styles.orbStage}
-            data-backdrop="shadow"
             {...(reduced
               ? { "aria-hidden": true }
               : { type: "button" as const, "aria-label": "애니메이션 멈춤", "aria-pressed": paused, onClick: togglePaused })}

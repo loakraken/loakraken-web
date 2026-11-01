@@ -57,14 +57,10 @@
 /* The bot is the pause button: no button look, a round focus ring. */
 button.orbStage { padding: 0; border: 0; border-radius: 50%; background: none; color: inherit; font: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
 button.orbStage:focus-visible { outline: 3px solid var(--ring); outline-offset: -4px; }
-/* No frame round the bot (user, 11-01): it stands on a soft contact shadow, or
-   sits in a faint glow with no edge (the two looks shown to the user). Static:
-   nothing here animates. */
-.orbStage[data-backdrop]::before { content: ""; position: absolute; left: 50%; border-radius: 50%; translate: -50% 0; z-index: -1; pointer-events: none; }
-.orbStage[data-backdrop="shadow"]::before { top: calc(50% + var(--bot-size) * 0.4); width: calc(var(--bot-size) * 0.7); height: calc(var(--bot-size) * 0.12); background: radial-gradient(closest-side, rgb(0 0 0 / 18%), transparent); }
-.orbStage[data-backdrop="glow"]::before { top: calc(50% - var(--bot-size) * 0.85); width: calc(var(--bot-size) * 1.7); height: calc(var(--bot-size) * 1.7); background: radial-gradient(closest-side, color-mix(in oklab, var(--link) 12%, transparent), transparent); }
-:global(:is([data-theme="dark"], [data-theme="dim"])) .orbStage[data-backdrop="shadow"]::before { background: radial-gradient(closest-side, rgb(0 0 0 / 55%), transparent); }
-:global(:is([data-theme="dark"], [data-theme="dim"])) .orbStage[data-backdrop="glow"]::before { background: radial-gradient(closest-side, color-mix(in oklab, var(--link) 16%, transparent), transparent); }
+/* No frame round the bot (user, 11-01): it stands on a soft contact shadow
+   under its feet (the user's pick over a glow). Static: nothing animates. */
+.orbStage::before { content: ""; position: absolute; left: 50%; top: calc(50% + var(--bot-size) * 0.4); width: calc(var(--bot-size) * 0.7); height: calc(var(--bot-size) * 0.12); border-radius: 50%; translate: -50% 0; background: radial-gradient(closest-side, rgb(0 0 0 / 18%), transparent); z-index: -1; pointer-events: none; }
+:global(:is([data-theme="dark"], [data-theme="dim"])) .orbStage::before { background: radial-gradient(closest-side, rgb(0 0 0 / 55%), transparent); }
 /* "봇 바꾸기" by the bot, beside the pause button (never a control in a control). */
 .botPicker { position: absolute; right: 0; bottom: 0; }
 .orbCaption { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: var(--muted-foreground); margin: 0 0 20px !important; }
