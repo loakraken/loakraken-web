@@ -84,7 +84,7 @@ export const NAV_SECTIONS: NavSection[] = [
       { label: "시세 알림", description: "정한 가격이 되면 브라우저 알림", href: "/market/alerts", flag: "priceAlerts" },
       { label: "보석 시세", description: "겁화·작열 레벨별 최저가와 매물", href: "/market/gems" },
       { label: "장신구 시세", description: "연마 효과 등급 조합별 최저가와 매물", href: "/market/accessories" },
-      { label: "악세 경매 검색", description: "연마 효과·깨달음·힘민지 범위로 매물 찾기", href: "/market/accessory-search", flag: "accessorySearch" },
+      { label: "장신구 매물 검색", description: "연마 효과·깨달음·힘민지 범위로 매물 찾기", href: "/market/accessories/search", flag: "accessorySearch" },
     ],
   },
   {
@@ -180,7 +180,8 @@ export function sectionOf(pathname: string) {
  * canonical), linked from a tab row under the page title. Flagged tabs come
  * last, so the ones on screen never move when they appear.
  */
-export type HubTab = { label: string; href: string; flag?: NavFlag };
+/** `also`: other pages of the same tab (a view inside it), marked as this tab. */
+export type HubTab = { label: string; href: string; flag?: NavFlag; also?: string[] };
 export type HubId = "market" | "raid" | "gold" | "growth";
 export const HUBS: Record<HubId, { label: string; tabs: HubTab[] }> = {
   market: {
@@ -188,9 +189,9 @@ export const HUBS: Record<HubId, { label: string; tabs: HubTab[] }> = {
     tabs: [
       { label: "거래소", href: "/market" },
       { label: "보석", href: "/market/gems" },
-      { label: "장신구", href: "/market/accessories" },
+      // 장신구 시세 and 악세 검색 in one tab (user 11-02), the search a view inside it.
+      { label: "장신구", href: "/market/accessories", also: ["/market/accessories/search"] },
       { label: "재료 견적", href: "/market/quote" },
-      { label: "악세 검색", href: "/market/accessory-search", flag: "accessorySearch" },
       { label: "시세 알림", href: "/market/alerts", flag: "priceAlerts" },
     ],
   },

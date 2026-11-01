@@ -1,6 +1,7 @@
 "use client";
 
 import { HubTabs } from "@/components/site/hub-tabs";
+import { AccessoryViews } from "@/components/market/accessory-views";
 // T4 악세 경매 검색기 (checklist N13, backend #431). Conditions go to the
 // backend, which reads the official auction house; the list shows each
 // listing as the official answer has it. The official count is not shown as
@@ -84,7 +85,7 @@ function failureCopy(code: string | null, limit?: "client") {
     case "MARKET_SEARCH_BUSY":
       return { title: "검색이 몰리고 있어요", text: "잠시 뒤 다시 검색해 주세요." };
     case "NOT_FOUND":
-      return { title: "악세 경매 검색은 아직 열리지 않았어요", text: "준비가 끝나면 이 화면에서 바로 검색할 수 있어요." };
+      return { title: "장신구 매물 검색은 아직 열리지 않았어요", text: "준비가 끝나면 이 화면에서 바로 검색할 수 있어요." };
     case "INVALID_AUCTION_FILTER":
     case "INVALID_REQUEST":
       return { title: "이 조건으로는 검색할 수 없어요", text: "부위에 붙지 않는 연마 효과나 범위를 넘는 값이 있는지 확인해 주세요." };
@@ -156,12 +157,13 @@ export function AccessorySearchTool() {
             <SearchNormal size={18} />
           </span>
           <p className={quote.heroKicker}>경매장</p>
-          <h1 id="accessory-heading">악세 경매 검색</h1>
+          <h1 id="accessory-heading">장신구 매물 검색</h1>
           <p className={quote.heroCopy}>연마 효과·깨달음·힘민지 범위로 T4 장신구 매물을 찾아요.</p>
           <Link href="/tools" className={quote.back}>
             <ArrowLeft size={14} aria-hidden="true" /> 도구 전체
           </Link>
           <HubTabs hub="market" />
+          <AccessoryViews search />
         </section>
 
         <div className={quote.band}>
@@ -300,7 +302,7 @@ export function AccessorySearchTool() {
           </div>
         </div>
       </main>
-      <footer className={quote.footer}>LOAKraken · T4 악세 경매 검색</footer>
+      <footer className={quote.footer}>LOAKraken · T4 장신구 매물 검색</footer>
     </div>
   );
 }

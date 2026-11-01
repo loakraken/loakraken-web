@@ -1,0 +1,32 @@
+/* 장신구 시세 · 매물 검색: one segmented switch under the hub tabs, the same
+   pill look as the screen's filters (stats .segment). */
+.views {
+  display: inline-flex;
+  gap: 2px;
+  margin-top: 12px;
+  padding: 2px;
+  border-radius: 9999px;
+  background: var(--secondary);
+}
+.view {
+  padding: 7px 14px;
+  border-radius: 9999px;
+  color: var(--foreground);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.view[aria-current="page"] {
+  background: var(--foreground);
+  color: var(--background);
+}
+@media (hover: hover) and (pointer: fine) {
+  .view:not([aria-current="page"]):hover {
+    background: var(--hover-surface);
+  }
+}
+.view:focus-visible {
+  outline: 2px solid var(--action);
+  outline-offset: 2px;
+}

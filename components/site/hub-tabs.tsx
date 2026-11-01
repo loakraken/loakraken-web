@@ -25,7 +25,7 @@ export function HubTabs({ hub }: { hub: HubId }) {
             key={tab.href}
             href={tab.href}
             className={`${styles.tab} hit-44`}
-            aria-current={pathname === tab.href ? "page" : undefined}
+            aria-current={pathname === tab.href || tab.also?.includes(pathname) ? "page" : undefined}
           >
             {tab.label}
           </Link>
