@@ -38,11 +38,28 @@
   background: var(--background);
 }
 .scope {
-  overflow: hidden;
+  /* A37: kind above value, both free to wrap. Every box holds two lines,
+     including the placeholder and scopes without a value (A7). */
+  min-height: calc(2 * 1lh);
   color: var(--muted-foreground);
   font-size: 11px;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+.scopeValue {
+  display: block;
+}
+/* Four boxes (the placeholder's shape too): the server-class value is the
+   longest, up to ~124px ("아브렐슈드 가디언나이트"). A box with less text
+   room than that (111px at 320, 119px in the desktop side column) wraps it
+   to two lines, so every box of the four holds three. */
+.cells[data-count="4"] li {
+  container-type: inline-size;
+}
+@container (max-width: 127px) {
+  .cells[data-count="4"] .scope {
+    min-height: calc(3 * 1lh);
+  }
 }
 .cells strong {
   color: var(--foreground);
@@ -113,6 +130,13 @@
 .nextValue {
   display: block;
   white-space: nowrap;
+}
+/* Below 360 a box has about 111px for text: the longest words ("크라켄까지
+   아이템 레벨", ~122px) take two lines before the number, so three are held. */
+@media (max-width: 359px) {
+  .next {
+    min-height: 48px;
+  }
 }
 .cells strong.pending {
   color: var(--muted-foreground);

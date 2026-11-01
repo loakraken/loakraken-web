@@ -1282,6 +1282,14 @@
   }
 }
 
+/* Charts draw once per page visit (motion rule 10-31): a chart shown again on
+   the same visit (a tab, range or item switched back and forth) sits inside
+   [data-drawn] and stands at its value at once, so @starting-style's 0 is
+   never drawn. */
+[data-drawn] :is(.k-draw, .k-grow, .k-grow-x) {
+  transition: none;
+}
+
 /* Theme switch (theme-toggle.tsx): no transitions for the frame the colour
    tokens flip, so nothing fades between light and dark. */
 :root[data-theme-switching] *,

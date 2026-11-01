@@ -221,11 +221,17 @@ function Detail({
   tier,
   tab,
   outside,
+  drawn = false,
+  onSwap,
 }: {
   item: BoardItem;
   tier: number | null;
   tab: FavoriteItem["tab"];
   outside?: boolean;
+  /** A chart was already drawn on this visit: this one stands drawn. */
+  drawn?: boolean;
+  /** The range or trade terms swap the chart for another. */
+  onSwap?: () => void;
 }) {
   const favorites = useFavorites();
   const starred = favorites.some((f) => f.itemId === item.itemId);
@@ -275,7 +281,7 @@ function Detail({
   }, [item.name, item.currentMinPrice]);
   const failure = failureOf(history.error);
   return (
-    <section className={styles.detail} aria-label={`${item.name} 시세`}>
+    <section className={styles.detail} aria-label={`${item.name} 시세`} data-drawn={drawn || undefined}>
       <header className={styles.detailHead}>
         <GameIcon src={item.icon} grade={item.grade} size={44} />
         <div>
@@ -342,7 +348,10 @@ function Detail({
               key={value}
               type="button"
               aria-pressed={range === value}
-              onClick={() => setRange(value)}
+              onClick={() => {
+                if (value !== range) onSwap?.();
+                setRange(value);
+              }}
             >
               {label}
             </button>
@@ -356,7 +365,10 @@ function Detail({
               key={i}
               type="button"
               aria-pressed={variantIndex === i}
-              onClick={() => setVariantIndex(i)}
+              onClick={() => {
+                if (i !== variantIndex) onSwap?.();
+                setVariantIndex(i);
+              }}
             >
               {v.tradeRemainCount != null
                 ? `거래 ${v.tradeRemainCount}회`
@@ -561,6 +573,18 @@ function MarketContent({
           changeWeek: null,
         } as BoardItem)
       : items[0]);
+  // Charts draw once per visit (motion rule 10-31): once a chart has been
+  // shown and is swapped for another (item, tab, range or trade terms), the
+  // next ones stand drawn. Marked on the swap, so the first draw finishes.
+  const [chartShown, setChartShown] = useState<{ itemId: number | undefined; drawn: boolean }>(() => ({
+    itemId: active?.itemId,
+    drawn: false,
+  }));
+  if (chartShown.itemId !== active?.itemId)
+    setChartShown({ itemId: active?.itemId, drawn: chartShown.drawn || chartShown.itemId !== undefined });
+  const chartSwapped = () => {
+    if (!chartShown.drawn) setChartShown({ ...chartShown, drawn: true });
+  };
   const pages = data ? Math.min(10, Math.ceil(data.totalItems / data.pageSize)) : 1;
   const failure = failureOf(board.error) ?? failureOf(tabs.error);
 
@@ -789,6 +813,8 @@ function MarketContent({
                   tier={favorite ? favorite.tier : tier}
                   tab={favorite ? favorite.tab : query.tab}
                   outside={!!favorite}
+                  drawn={chartShown.drawn}
+                  onSwap={chartSwapped}
                 />
               ) : !data && !failure ? (
                 // Board still loading: hold the detail panel height (it sits above

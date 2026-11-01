@@ -59,6 +59,44 @@ test("1280: 고정한 카드는 다른 아이템에 올리면 닫히고 그 카�
   await expect(b).toBeFocused();
 });
 
+// User 11-01: pin A, hover B → B's card showed, then vanished about a second
+// later while the pointer was still on B. When A's card finished closing, the
+// popup put focus back on A's item, and that focus claimed again (closing B).
+// Reduced motion makes A's close finish at once, as a real browser does in time
+// (the test browser keeps transitions running, so A would never unmount).
+test("1280: 고정 → 다른 아이템에 올림 → 고정 카드가 다 닫힌 뒤에도 올린 카드 그대로 → 떼면 닫힘 → 다른 아이템 클릭 @regression", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await gotoReady(page, characterPath("상세", "combat"));
+  const [a, b, c] = [triggers(page).nth(0), triggers(page).nth(2), triggers(page).nth(1)];
+  const [nameA, nameB, nameC] = [await cardName(a), await cardName(b), await cardName(c)];
+  await a.evaluate((el) => el.scrollIntoView({ block: "center" }));
+
+  // Pin A (focus goes into its card).
+  await a.click();
+  await settledCard(page, nameA);
+
+  // Hover B: A closes and is gone from the page; B's card stays open after that.
+  await pointAt(page, b);
+  await settledCard(page, nameB);
+  await expect(page.locator(`[data-slot=item-tooltip][aria-label="${nameA}"]`)).toHaveCount(0);
+  await page.waitForTimeout(600);
+  await expect(cards(page), "올린 아이템 카드가 그대로").toHaveCount(1);
+  await expect(cards(page)).toHaveAttribute("aria-label", nameB);
+  expect(await a.evaluate((el) => document.activeElement === el), "초점이 고정했던 아이템으로 돌아가지 않음").toBe(false);
+
+  // Pointer off: B (a hover preview) closes.
+  await page.mouse.move(0, 0);
+  await expect(cards(page)).toHaveCount(0);
+
+  // Click C: only C's card, pinned.
+  await c.click();
+  await settledCard(page, nameC);
+  await page.waitForTimeout(400);
+  await expect(cards(page)).toHaveCount(1);
+  await expect(cards(page)).toHaveAttribute("aria-label", nameC);
+});
+
 test.describe("휴대폰", () => {
   test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
 
