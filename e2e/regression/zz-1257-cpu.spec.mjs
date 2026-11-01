@@ -1,20 +1,13 @@
-// 진단 전용(병합 금지, #1257): CPU를 4배 느리게 해 첫 로드 흔들림을 재현하고, 움직인 요소의 전후 상자와
+// 진단 전용(병합 금지, #1257): 첫 로드 흔들림을 CI 그대로(느리게 하지 않음) 재현하고, 움직인 요소의 전후 상자와
 // 첫 그림·하이드레이션 시각을 실패 메시지에 남긴다.
 import { test, expect } from "../support/fixtures.mjs";
 
-const CASES = [
-  { path: "/stats", width: 320 },
-  { path: "/stats", width: 1280 },
-  { path: "/rankings?type=gems", width: 1280 },
-  { path: "/rankings?type=gems", width: 320 },
-  { path: "/rankings?type=bracelets", width: 1280 },
-  { path: "/rankings", width: 1280 },
-];
+const PATHS = ["/stats", "/rankings", "/rankings?type=bracelets", "/rankings?type=gems", "/rankings?type=collectibles", "/rankings?type=roster", "/rankings?type=guilds&sort=CP_SUM"];
+const CASES = PATHS.flatMap((path) => [320, 360, 1280].map((width) => ({ path, width })));
 
 for (const c of CASES)
   for (const theme of ["light", "dark"])
-    for (const run of [1, 2])
-      test(`진단 CPU×4 ${c.path} ${c.width} ${theme} #${run}`, async ({ page }) => {
+      test(`진단 첫 로드 ${c.path} ${c.width} ${theme} @smoke`, async ({ page }) => {
         await page.setViewportSize({ width: c.width, height: 900 });
         await page.addInitScript((t) => {
           localStorage.setItem("loakraken-theme", t);
@@ -46,8 +39,6 @@ for (const c of CASES)
             }
           }, 5);
         }, theme);
-        const cdp = await page.context().newCDPSession(page);
-        await cdp.send("Emulation.setCPUThrottlingRate", { rate: 4 });
         await page.goto(c.path, { waitUntil: "load" });
         await page.evaluate(() => document.fonts.ready);
         await page.waitForTimeout(2500);
