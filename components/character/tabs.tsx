@@ -500,7 +500,7 @@ function EquipmentPanel({ data }: { data: Character }) {
               return (
                 <li key={i} {...stagger(i, styles.item)}>
                   <ItemTooltip item={item} slot={SLOT_LABEL[item.type ?? ""] ?? undefined} extra={extraOf(item)}>
-                    <GameIcon src={item.icon} grade={item.grade} />
+                    <GameIcon src={item.icon} grade={item.grade} tone="official" />
                   </ItemTooltip>
                   <div className={styles.itemText}>
                     <strong>
@@ -540,7 +540,7 @@ function EquipmentPanel({ data }: { data: Character }) {
             {groups.accessories.map((item, i) => (
               <li key={i} {...stagger(i, styles.item)}>
                 <ItemTooltip item={item} extra={extraOf(item)}>
-                  <GameIcon src={item.icon} grade={item.grade} />
+                  <GameIcon src={item.icon} grade={item.grade} tone="official" />
                 </ItemTooltip>
                 <div className={styles.itemText}>
                   <strong>
@@ -575,7 +575,7 @@ function EquipmentPanel({ data }: { data: Character }) {
             {groups.stone && (
               <li {...stagger(groups.accessories.length, styles.item)}>
                 <ItemTooltip item={groups.stone} slot="어빌리티 스톤" extra={extraOf(groups.stone)}>
-                  <GameIcon src={groups.stone.icon} grade={groups.stone.grade} />
+                  <GameIcon src={groups.stone.icon} grade={groups.stone.grade} tone="official" />
                 </ItemTooltip>
                 <div className={styles.itemText}>
                   <strong>어빌리티 스톤</strong>
@@ -596,7 +596,7 @@ function EquipmentPanel({ data }: { data: Character }) {
             {groups.orb && (
               <li {...stagger(groups.accessories.length + 1, styles.item)}>
                 <ItemTooltip item={groups.orb} slot={groups.orb.type ?? undefined} extra={extraOf(groups.orb)}>
-                  <GameIcon src={groups.orb.icon} grade={groups.orb.grade} />
+                  <GameIcon src={groups.orb.icon} grade={groups.orb.grade} tone="official" />
                 </ItemTooltip>
                 <div className={styles.itemText}>
                   <strong>{text(groups.orb.type)}</strong>
@@ -625,6 +625,7 @@ function EquipmentPanel({ data }: { data: Character }) {
                     src={groups.bracelet.icon}
                     grade={groups.bracelet.grade}
                     size={40}
+                    tone="official"
                   />
                 </ItemTooltip>
               }

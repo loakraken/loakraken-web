@@ -42,11 +42,14 @@ export function GameIcon({
   grade,
   size = 44,
   inactive = false,
+  tone,
 }: {
   src: string | null | undefined;
   grade?: string | null;
   size?: number;
   inactive?: boolean;
+  /** "official": the official armory's own grade background (equipment tab, user 11-02). */
+  tone?: "official";
 }) {
   const safe = safeGameImage(src);
   const [phase, bind] = useImagePhase(safe);
@@ -58,6 +61,7 @@ export function GameIcon({
     <span
       className={styles.icon}
       data-grade={grading}
+      data-tone={tone}
       data-inactive={inactive || undefined}
       style={{ "--icon-size": `${size}px` } as CSSProperties}
       aria-hidden="true"
