@@ -12,6 +12,7 @@ import {
   rankState,
   SCOPES,
   scopeLabel,
+  scopeParts,
   scopesOf,
   type CharacterRank,
   type RankMetric,
@@ -28,7 +29,11 @@ import { BasisInfo } from "@/components/stats/basis-note";
  * sample sizes. Never a 0 or a made-up rank.
  */
 function Cells({ data, metric }: { data: CharacterRank; metric: RankMetric }) {
-  const cells = scopesOf(data).map((scope) => ({ scope, cell: rankCell(data, metric, scope.id) }));
+  const cells = scopesOf(data).map((scope) => ({
+    scope,
+    cell: rankCell(data, metric, scope.id),
+    parts: scopeParts(data, scope.id),
+  }));
   const shown = cells.filter(({ cell }) => cell.state !== "collecting");
   const waiting = cells.flatMap(({ scope, cell }) =>
     cell.state === "collecting" ? [`${scopeLabel(data, scope.id).replace(" · ", " ")} ${cell.total.toLocaleString("ko-KR")}명`] : [],
@@ -37,9 +42,12 @@ function Cells({ data, metric }: { data: CharacterRank; metric: RankMetric }) {
     <>
       {shown.length > 0 && (
         <ul className={styles.cells} data-count={shown.length}>
-          {shown.map(({ scope, cell }) => (
+          {shown.map(({ scope, cell, parts }) => (
             <li key={scope.id}>
-              <span className={styles.scope}>{scopeLabel(data, scope.id)}</span>
+              <span className={styles.scope}>
+                {parts.label}{" "}
+                {parts.value ? <span className={styles.scopeValue}>{parts.value}</span> : null}
+              </span>
               {cell.state === "ready" ? (
                 <>
                   <strong>{cell.rank}</strong>
@@ -107,7 +115,12 @@ function RankPlaceholder() {
           <ul className={styles.cells} data-count={SCOPES.length}>
             {SCOPES.map((scope) => (
               <li key={scope.id}>
-                <span className={styles.scope}>{scope.label}</span>
+                {/* Hold a value line with the same Korean text metrics as a
+                    loaded scope, even for the value-less 전체 box (A7). */}
+                <span className={styles.scope}>
+                  {scope.label}{" "}
+                  <span className={`${styles.scopeValue} ${styles.unseen}`}>순위 범위</span>
+                </span>
                 {/* A filled box's lines with its own kind of text, unseen: Korean
                     words set a taller line than spaces would, so the row is held
                     to the height it will have. */}
