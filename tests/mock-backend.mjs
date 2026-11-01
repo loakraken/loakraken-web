@@ -2625,6 +2625,9 @@ createServer(async (req, res) => {
       ["위대한 미술품", 57, 60],
       ["항해 모험물", 41, 50],
       ["합성 잎", 37, 120],
+      // The longest official names (narrow-grid check, user 11-01).
+      ["크림스네일의 해도", 2, 2],
+      ["누크만의 환영석", 10, 12],
     ];
     d.collectibles = kinds.map(([type, point, maxPoint], k) => ({
       type,
