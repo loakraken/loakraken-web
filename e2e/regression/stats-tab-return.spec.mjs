@@ -21,14 +21,25 @@ for (const width of [1280, 360])
   test(`@A7 통계 탭 왔다 갔다: 막대 제자리 @${width} @regression`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await watchShifts(page);
+    // Requests in flight: a tab's bars come with its answer, so its baseline waits for it.
+    const inflight = new Set();
+    page.on("request", (request) => inflight.add(request));
+    page.on("requestfinished", (request) => inflight.delete(request));
+    page.on("requestfailed", (request) => inflight.delete(request));
     await gotoReady(page, "/stats");
     const tabs = page.getByRole("tab");
     const count = await tabs.count();
-    // First round: every tab shown once, its bars drawn and settled.
+    // First round: every tab shown once, its answer in, its bars drawn and settled
+    // (a baseline taken before a slow answer had no bars, CI 11-01).
     const settled = [];
     for (let i = 0; i < count; i++) {
       await tabs.nth(i).click();
       await expect(tabs.nth(i)).toHaveAttribute("aria-selected", "true");
+      // Quiet twice in a row, 250 ms apart: a request that starts just after the click is not missed.
+      let quiet = 0;
+      await expect
+        .poll(() => (quiet = inflight.size ? 0 : quiet + 1) >= 2, { message: "탭 응답 기다림", intervals: [250], timeout: 10_000 })
+        .toBe(true);
       await expect.poll(async () => (await bars(page)).running, { timeout: 3000 }).toBe(0);
       settled.push((await bars(page)).boxes);
     }

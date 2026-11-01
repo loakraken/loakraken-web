@@ -5,6 +5,7 @@ import { tolerantSchemas } from "../tools/contract";
 import type { SpecUpEnvelope } from "./model";
 import type { GoalEnvelope } from "./goal";
 import type { DetailEnvelope } from "./detail";
+import type { PathEnvelope } from "./path";
 
 // Backend #318's response shape, tolerant of new kinds and statuses.
 const guide = lazyValidator<SpecUpEnvelope>(() => {
@@ -22,6 +23,17 @@ const goal = lazyValidator<GoalEnvelope>(() => {
 
 export function isGoalEnvelope(value: unknown): value is GoalEnvelope {
   return goal(value) && value.code === "SPEC_UP_GOAL_SUCCESS" && Number.isFinite(Date.parse(value.data.fetchedAt));
+}
+
+// api #794 추천 순서, same tolerance (fetchedAt may be null there).
+const path = lazyValidator<PathEnvelope>(() => {
+  const ajv = new Ajv2020({ strict: false, validateFormats: false });
+  ajv.addSchema({ $id: "spec-up-path", components: { schemas: tolerantSchemas(contract.components.schemas) } });
+  return ajv.compile<PathEnvelope>({ $ref: "spec-up-path#/components/schemas/ApiResponseSpecUpPathResponse" });
+});
+
+export function isPathEnvelope(value: unknown): value is PathEnvelope {
+  return path(value) && value.code === "SPEC_UP_PATH_SUCCESS";
 }
 
 export function isSpecUpEnvelope(value: unknown): value is SpecUpEnvelope {

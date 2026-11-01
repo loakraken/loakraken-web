@@ -108,11 +108,17 @@ export const TIER_LEGEND = `${Object.entries(TIER_LABEL)
   .map(([tier, label]) => `${label} ${TIER_PERCENT[tier]}%`)
   .join(" · ")} 이내`;
 
-/** Scope label with its value: 서버 · 루페온, 직업 · 바드, 서버 직업 · 루페온 바드. */
-export function scopeLabel(data: CharacterRank, scope: RankScope) {
+/** Separate scope kind and value for wrapping labels in the rank boxes. */
+export function scopeParts(data: CharacterRank, scope: RankScope): { label: string; value: string | null } {
   const label = SCOPES.find((s) => s.id === scope)?.label ?? scope;
   const value = data.entries.find((e) => e.scope === scope)?.scopeValue;
-  return value ? `${label} · ${value.replace("/", " ")}` : label;
+  return { label, value: value ? value.replace("/", " ") : null };
+}
+
+/** Scope label with its value: 서버 · 루페온, 직업 · 바드, 서버 직업 · 루페온 바드. */
+export function scopeLabel(data: CharacterRank, scope: RankScope) {
+  const { label, value } = scopeParts(data, scope);
+  return value ? `${label} · ${value}` : label;
 }
 
 /** The population the ranks are over, in words (never the whole game). */

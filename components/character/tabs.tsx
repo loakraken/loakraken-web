@@ -180,6 +180,8 @@ export const SimulatorEnabled = createContext(true);
 export const TitleStatsEnabled = createContext(true);
 /** SPEC_UP_GUIDE (server flag): off hides the 스펙업 tab the same way. */
 export const SpecUpEnabled = createContext(true);
+/** The 추천 순서 section under the spec-up list (SPEC_UP_PATH). */
+export const SpecUpPathEnabled = createContext(true);
 /** GUILD_TAB (server flag, apart from the guild ranking since api #582): off hides the guild tab. */
 export const GuildTabEnabled = createContext(true);
 /**
@@ -1493,8 +1495,8 @@ function SkillCard({
             if (compact) return <li key={i}>{icon}</li>;
             const place = tripodPlace(tripod);
             const name = tripod.name ?? "트라이포드";
-            // Which of the tier's 1·2·3 was picked (user 10-31): three dots,
-            // the chosen one filled; the card says it in words with the effect.
+            // Which of the tier's 1·2·3 was picked: the number itself (user
+            // 11-01; it was three dots); the card says it in words with the effect.
             // The button's label replaces its text for screen readers, so the
             // level and the place go into it too.
             const label = [name + (tripodLv != null ? ` 레벨 ${tripodLv}` : ""), place].filter(Boolean).join(", ");
@@ -1509,9 +1511,7 @@ function SkillCard({
                     </span>
                     {tripod.slot != null && tripod.slot >= 1 && tripod.slot <= 3 && (
                       <span className={styles.tripodSlot} aria-hidden="true">
-                        {[1, 2, 3].map((n) => (
-                          <i key={n} data-on={n === tripod.slot || undefined} />
-                        ))}
+                        {tripod.slot}
                       </span>
                     )}
                   </span>
@@ -2911,39 +2911,44 @@ function TabPanelView({
   tab,
   data,
   envelope,
+  drawn = false,
 }: {
   tab: TabId;
   data: Character;
   envelope: CharacterEnvelope;
+  /** Shown before on this visit: its charts stand drawn (globals.css [data-drawn]). */
+  drawn?: boolean;
 }) {
   return (
     <Reveal key={tab} className={styles.tabPanel}>
       <h2 id={TAB_HEADING} className={styles.srOnly} tabIndex={-1}>
         {TABS.find((item) => item.id === tab)?.label} 탭
       </h2>
-      {tab === "simulator" ? (
-        <SimulatorTab data={data} />
-      ) : tab === "specup" ? (
-        <SpecUpTab data={data} />
-      ) : tab === "skills" ? (
-        <SkillsTab data={data} />
-      ) : tab === "arkpassive" ? (
-        <ArkPassiveTab data={data} />
-      ) : tab === "collectibles" ? (
-        <CollectiblesTab data={data} />
-      ) : tab === "avatars" ? (
-        <AvatarsTab data={data} />
-      ) : tab === "stats" ? (
-        <StatsTab data={data} />
-      ) : tab === "siblings" ? (
-        <SiblingsTab data={data} />
-      ) : tab === "guild" ? (
-        <GuildTab data={data} />
-      ) : tab === "evidence" ? (
-        <EvidenceTab data={data} envelope={envelope} />
-      ) : (
-        <CombatTab data={data} />
-      )}
+      <div data-drawn={drawn || undefined}>
+        {tab === "simulator" ? (
+          <SimulatorTab data={data} />
+        ) : tab === "specup" ? (
+          <SpecUpTab data={data} />
+        ) : tab === "skills" ? (
+          <SkillsTab data={data} />
+        ) : tab === "arkpassive" ? (
+          <ArkPassiveTab data={data} />
+        ) : tab === "collectibles" ? (
+          <CollectiblesTab data={data} />
+        ) : tab === "avatars" ? (
+          <AvatarsTab data={data} />
+        ) : tab === "stats" ? (
+          <StatsTab data={data} />
+        ) : tab === "siblings" ? (
+          <SiblingsTab data={data} />
+        ) : tab === "guild" ? (
+          <GuildTab data={data} />
+        ) : tab === "evidence" ? (
+          <EvidenceTab data={data} envelope={envelope} />
+        ) : (
+          <CombatTab data={data} />
+        )}
+      </div>
     </Reveal>
   );
 }

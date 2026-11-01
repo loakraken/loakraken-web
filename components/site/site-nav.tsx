@@ -52,9 +52,14 @@ export function SiteNav() {
   const [open, setOpenState] = useState<string | null>(null);
   // Last opened panel stays rendered while the flyout fades out.
   const [shown, setShown] = useState<string | null>(null);
+  // A click (or ↓) pins the flyout (user 11-01): leaving it with the pointer
+  // no longer closes it; another click on the open tab, Esc, an outside
+  // click or a link closes it. Hover alone still previews.
+  const [pinned, setPinned] = useState(false);
   const setOpen = useCallback((next: string | null) => {
     setOpenState(next);
     if (next) setShown(next);
+    else setPinned(false);
   }, []);
   const [instant, setInstant] = useState(false);
   const [sheet, setSheet] = useState(false);
@@ -114,7 +119,7 @@ export function SiteNav() {
   }
 
   function leave() {
-    if (!hoverable()) return;
+    if (!hoverable() || pinned) return;
     clearTimeout(timer.current);
     timer.current = setTimeout(() => setOpen(null), CLOSE_DELAY);
   }
@@ -132,6 +137,7 @@ export function SiteNav() {
       event.preventDefault();
       setInstant(true);
       setOpen(sectionId);
+      setPinned(true);
       focusFirst(sectionId);
     }
     if (event.key === "ArrowRight" || event.key === "ArrowLeft") {
@@ -161,7 +167,12 @@ export function SiteNav() {
               onClick={() => {
                 clearTimeout(timer.current);
                 setInstant(true);
-                setOpen(open === section.id ? null : section.id);
+                // A click on a tab only hovered open pins it; on the pinned tab it closes.
+                if (pinned && open === section.id) setOpen(null);
+                else {
+                  setOpen(section.id);
+                  setPinned(true);
+                }
               }}
               onKeyDown={(event) => onTriggerKey(event, section.id)}
             >
@@ -221,7 +232,14 @@ export function SiteNav() {
           </div>
         ))}
       </div>
-      <div className={styles.scrim} data-open={open !== null || undefined} aria-hidden="true" onPointerEnter={leave} />
+      {/* The dimmed page is outside the menu: a press there closes a pinned flyout too. */}
+      <div
+        className={styles.scrim}
+        data-open={open !== null || undefined}
+        aria-hidden="true"
+        onPointerEnter={leave}
+        onPointerDown={close}
+      />
 
       <button
         ref={menuButton}
