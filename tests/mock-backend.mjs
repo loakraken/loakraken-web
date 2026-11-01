@@ -2592,7 +2592,7 @@ createServer(async (req, res) => {
       detail: { parserVersion: "equipment-tooltip-v3", refineLevel, quality: 90, itemLevel: 1640 + refineLevel * 5, tier: 4, arkPassivePoint: null, effects: [], stoneEngravings: [], polishEffects: [], braceletEffects: [] },
     }));
   }
-  if (name === "상세" || name === "상세서포터" || name === "서포터옛응답" || name === "대세블레이드" || name === "가려짐긴값캐릭터" || name === "아크없음" || name === "효율준비중" || name === "팔찌못읽음") {
+  if (name === "상세" || name === "아바타옛응답" || name === "상세서포터" || name === "서포터옛응답" || name === "대세블레이드" || name === "가려짐긴값캐릭터" || name === "아크없음" || name === "효율준비중" || name === "팔찌못읽음") {
     // Detail-page mock: a locally supplied character file (never committed) or
     // the synthetic fixture, enriched with synthetic Tooltip detail and skills.
     if (process.env.MOCK_CHARACTER_FILE)
@@ -2716,6 +2716,8 @@ createServer(async (req, res) => {
       ["얼굴1 아바타", "합성 얼굴1", "영웅", false, [], t(["지성", 5])],
       ["이동 효과", "합성 이동 효과", "영웅", false, [], []],
     ].map(([type, name, grade, isInner, effects, tendencies]) => ({ type, name, icon: null, grade, isSet: false, isInner, effects, tendencies }));
+    // An api before #833: the avatars come without the field at all.
+    if (name === "아바타옛응답") for (const avatar of d.avatars) delete avatar.tendencies;
     d.coverage.avatars = "PROVIDED";
     d.coverage.collectibles = "PROVIDED";
     for (const stat of d.stats) if (!stat.tooltip?.length) stat.tooltip = [`${stat.type} 효과가 적용됩니다. (합성 문구)`];
