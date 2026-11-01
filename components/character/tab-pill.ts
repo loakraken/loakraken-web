@@ -25,8 +25,8 @@ function place(nav: HTMLElement | null, copy: HTMLElement | null, slide: boolean
  */
 function reveal(nav: HTMLElement, active: HTMLElement) {
   if (nav.scrollWidth <= nav.clientWidth) return false;
-  // The fade at each end (scroll-fade-x): min(12%, 40px) of the row.
-  const fade = Math.min(nav.clientWidth * 0.12, 40);
+  // The fade at each end: a fixed 40px on this row (.tabs, user 11-01).
+  const fade = 40;
   const start = active.offsetLeft - fade;
   const end = active.offsetLeft + active.offsetWidth + fade - nav.clientWidth;
   const before = nav.scrollLeft;
