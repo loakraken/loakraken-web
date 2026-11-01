@@ -61,7 +61,8 @@ for (const scheme of ["light", "dark"])
       await expect(groups.last().getByRole("heading")).toHaveText("1,580 이상");
       await expect(gates.getByRole("region", { name: "1,720 이상" }).getByRole("listitem").first()).toHaveText("골드(일반)");
       // Every gold item is the official name alone: no amount on the row or in any group.
-      const golds = await gates.getByRole("listitem").filter({ hasText: "골드" }).allTextContents();
+      // Reward items only (RewardItem sets a title); the row's own <li> holds all of them.
+      const golds = await gates.locator("li[title]").filter({ hasText: "골드" }).allTextContents();
       expect(golds.length).toBe(22);
       for (const gold of golds) expect(gold.trim()).toMatch(/^(귀속 )?골드\(일반\)$/);
       const places = gates.getByRole("region", { name: "지역" });
