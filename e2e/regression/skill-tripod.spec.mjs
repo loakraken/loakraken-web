@@ -29,12 +29,14 @@ test("1280: 고른 자리 숫자, 올리면 효과 카드, 스킬 종류 표시 
   for (const name of ["합성 각성", "합성 초각성기", "기본 스킬"])
     await expect(page.getByText(name, { exact: true })).toHaveCount(0);
   // Expanded: the pair shows with its own labels; a plain Lv.1 skill has none.
+  // The toggle is renamed once open (aria-expanded spec).
   await expand.click();
-  await expect(expand).toHaveAttribute("aria-expanded", "true");
+  const collapse = page.getByRole("button", { name: "사용 중인 스킬만 보기" });
+  await expect(collapse).toHaveAttribute("aria-expanded", "true");
   await expect(chips(skillRow(page, "합성 각성"))).toContainText(["각성기"]);
   await expect(chips(skillRow(page, "합성 초각성기"))).toContainText(["초각성기"]);
   await expect(skillRow(page, "기본 스킬").getByText(kind)).toHaveCount(0);
-  await expand.click();
+  await collapse.click();
   await expect(expand).toHaveAttribute("aria-expanded", "false");
 
   // 연발 포격 = 2단계 2번째: the number 2 after the name (no dots), the place read in words.
