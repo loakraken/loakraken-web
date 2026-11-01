@@ -45,6 +45,21 @@
   margin: -8px;
   overflow-x: auto;
   scrollbar-width: none;
+  /* A tab cut at the row's end showed the first stroke of its label: on a
+     phone the 12% fade was 22px, and the '아' of 아크 패시브 at 40% read as
+     a stray 0 before 더보기 (390, user 11-01). A fixed 40px fade whose outer
+     half is clear hides any stroke near the edge; at a scrolled end the fade,
+     and so the clear band, is 0. */
+  --scroll-fade-size: 40px;
+  --scroll-fade-mask: linear-gradient(
+    to right,
+    transparent 0,
+    transparent calc(var(--scroll-fade-s, 0px) / 2),
+    #000 var(--scroll-fade-s, 0px),
+    #000 calc(100% - var(--scroll-fade-e, 0px)),
+    transparent calc(100% - var(--scroll-fade-e, 0px) / 2),
+    transparent 100%
+  );
 }
 .tabs a,
 .pillLayer > span {

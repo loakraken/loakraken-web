@@ -257,7 +257,8 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
       <p className={styles.simulatorLead}>
         {supporter
           ? "바꿨을 때 오르는 서포터 점수와 드는 골드를 함께 보고, 10만 골드당 점수가 높은 순서로 보여 드려요."
-          : "바꿨을 때 오르는 전투력과 드는 골드를 함께 보고, 골드 대비 효율이 높은 순서로 보여 드려요."}
+          : // The dealer's first list is 전투력 증가 (DEFAULT_SORT, 마케팅 11-01: the line said 효율 order).
+            "바꿨을 때 오르는 전투력과 드는 골드를 함께 보고, 처음에는 전투력이 많이 오르는 순서로 보여 드려요. 정렬은 아래에서 바꿀 수 있어요."}
       </p>
       {/* 사용자 결정(PM 총괄 19:48): 해설은 아직 없다는 한 줄. */}
       <p className={styles.specUpNote}>세팅 해설 기능은 준비 중이에요.</p>
