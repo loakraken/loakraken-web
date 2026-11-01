@@ -18,6 +18,26 @@ for (const width of [360, 1280])
     // Every name starts at the same x (the icon slot is always there).
     const lefts = await panel.locator("li strong").evaluateAll((els) => els.map((el) => Math.round(el.getBoundingClientRect().left)));
     expect(new Set(lefts).size, `이름 시작 위치 ${lefts}`).toBe(1);
+    // 사용자 11-01: head = book code on the left, '아크 패시브 활성화' on the right;
+    // relic count with the official red marker, stone level with the blue one
+    // (screen readers still hear '유물 ×4', '스톤 Lv.3').
+    const head = panel.locator("p").first();
+    await expect(head.locator("b")).toHaveText(/^각인 조합 \d+$/);
+    await expect(head.locator(":scope > span")).toHaveText("아크 패시브 활성화");
+    const headBox = await head.evaluate((el) => {
+      const [code, state] = [el.querySelector("b"), el.querySelector(":scope > span")].map((n) => n.getBoundingClientRect());
+      return { codeLeft: Math.round(code.left - el.getBoundingClientRect().left), stateRight: Math.round(el.getBoundingClientRect().right - state.right) };
+    });
+    expect(headBox).toEqual({ codeLeft: 0, stateRight: 0 });
+    const marks = async (name) =>
+      row(name).locator("i").evaluateAll((els) =>
+        els.map((el) => [el.dataset.kind, getComputedStyle(el, "::before").backgroundPosition, getComputedStyle(el, "::before").backgroundImage.includes("/pc/profile/img_engrave_icon.png")]),
+      );
+    expect(await marks("아드레날린")).toEqual([["relic", "-29px 0px", true], ["stone", "0px 0px", true]]);
+    expect(await marks("돌격대장")).toEqual([["relic", "-29px 0px", true]]);
+    await expect(row("아드레날린")).toContainText("유물 ×4");
+    await expect(row("아드레날린")).toContainText("스톤 Lv.3");
+    await expect(row("원한")).toContainText("스톤 Lv.2");
     await page.waitForTimeout(600);
     const { quiet, moved } = await shiftsSince(page);
     expect(quiet, `흔들림 (${moved})`).toBe(0);

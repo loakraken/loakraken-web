@@ -881,6 +881,57 @@
   font-size: 12px;
   text-align: right;
 }
+/* Book code left, ark passive state right (user 11-01). */
+.engravingHead {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 4px 12px;
+  margin-bottom: 4px;
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+.engravingHead b {
+  color: var(--foreground);
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.engravingCount {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 10px;
+  font-variant-numeric: tabular-nums;
+}
+.engravingCount > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--foreground);
+}
+/* The official armory's engraving markers (img_engrave_icon.png: stone blue
+   at 0, relic red at -29px; 24×26 each), drawn at half size. */
+.engraveMark {
+  display: inline-block;
+  flex: none;
+  width: 12px;
+  height: 13px;
+  overflow: hidden;
+}
+.engraveMark::before {
+  content: "";
+  display: block;
+  width: 24px;
+  height: 26px;
+  background: url("https://cdn-lostark.game.onstove.com/2018/obt/assets/images/pc/profile/img_engrave_icon.png") no-repeat 0 0;
+  transform: scale(0.5);
+  transform-origin: 0 0;
+}
+.engraveMark[data-kind="relic"]::before {
+  background-position: -29px 0;
+}
 
 /* Skills */
 .skillGrid {
