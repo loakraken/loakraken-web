@@ -69,7 +69,7 @@ test.describe("아비도스 제작 손익 @smoke", () => {
     await page.getByRole("textbox", { name: "대성공 확률 증가" }).fill("100");
     await expect(page.getByText("대성공 확률 10% · 1회 평균 11개")).toBeVisible();
     await page.getByRole("textbox", { name: "제작 수수료 감소" }).fill("17");
-    await expect(page.getByText(/1회 제작 골드 아비도스 332 · 상급 아비도스 432/)).toBeVisible();
+    await expect(page.getByText(/1회 제작 골드 상급 아비도스 432 · 아비도스 332/)).toBeVisible();
     const logging = page.getByRole("region", { name: "아비도스 융화 재료", exact: true }).getByRole("row", { name: /^벌목/ });
     // 비용 596 + 332 = 928, 직접 사용 11 × 90 − 928 = 62.
     await expect(logging.getByRole("cell").nth(0)).toHaveText("928");
@@ -77,7 +77,7 @@ test.describe("아비도스 제작 손익 @smoke", () => {
     // 활동력 소모 감소: 전체 10 + 특수 10 = 20% → 288 × 0.8 = 230.4 → 230, 360 × 0.8 = 288.
     await page.getByRole("textbox", { name: "활동력 소모 감소(전체)" }).fill("10");
     await page.getByRole("textbox", { name: "활동력 소모 감소(특수 제작)" }).fill("10");
-    await expect(page.getByText("1회 활동력 아비도스 230 · 상급 아비도스 288 (내림)")).toBeVisible();
+    await expect(page.getByText("1회 활동력 상급 아비도스 288 · 아비도스 230 (내림)")).toBeVisible();
     await expect(page.getByRole("region", { name: "아비도스 융화 재료", exact: true }).getByText(/^활동력 230 · /)).toBeVisible();
     await page.getByRole("textbox", { name: "대성공 확률 증가" }).fill("150");
     await expect(page.getByText("0~100 사이 숫자(소수 한 자리까지)로 넣어 주세요.")).toBeVisible();
