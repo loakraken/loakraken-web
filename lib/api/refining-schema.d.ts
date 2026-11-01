@@ -75,7 +75,7 @@ export interface components {
              */
             currentArtisanEnergy: number;
             /**
-             * @description 첫 단계의 현재 성공 확률(%) — 숨결·책을 올리기 전 값. currentFailedAttempts가 없으면 이 값이 기본 성공률 × (1 + 0.1k)인 k(0~10)를 실패 횟수로 씁니다. 맞는 k가 없으면 400 REFINING_SUCCESS_RATE_MISMATCH
+             * @description 첫 단계의 현재 성공 확률(%, 소수 셋째 자리까지) — 숨결·책을 올리기 전 값. currentFailedAttempts가 없으면 이 값이 기본 성공률 × (1 + 0.1k)인 k(0~10)를 실패 횟수로 씁니다. 맞는 k가 없으면 400 REFINING_SUCCESS_RATE_MISMATCH
              * @example 3.3
              */
             currentSuccessRate?: number;
@@ -226,7 +226,7 @@ export interface operations {
                     "application/json": components["schemas"]["ApiResponseRefiningPlanResponse"];
                 };
             };
-            /** @description INVALID_REQUEST: 단계 범위·장인의 기운·실패 횟수 오류, REFINING_SUCCESS_RATE_MISMATCH: 현재 성공 확률이 이 단계의 값과 맞지 않음 */
+            /** @description INVALID_REQUEST: 단계 범위·장인의 기운·실패 횟수 오류, REFINING_SUCCESS_RATE_MISMATCH: 현재 성공 확률이 이 단계의 값과 맞지 않음, REFINING_ARTISAN_ENERGY_MISMATCH: 그 실패 횟수 뒤에 나올 수 없는 장인의 기운 */
             400: {
                 headers: {
                     [name: string]: unknown;

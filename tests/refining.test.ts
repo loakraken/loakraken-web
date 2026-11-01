@@ -218,13 +218,15 @@ test("plan requests are allow-listed before the backend", () => {
     { ...valid, currentFailedAttempts: 11 },
     { ...valid, currentSuccessRate: 101 },
     { ...valid, currentSuccessRate: -1 },
-    { ...valid, currentSuccessRate: 3.301 },
+    { ...valid, currentSuccessRate: 3.3001 },
     { ...valid, currentSuccessRate: "3.3" },
   ])
     assert.equal(parsePlanRequest(bad), null, JSON.stringify(bad));
   // 현재 성공 확률 and the failure count pass on only when sent: a default count
   // would win over the rate at the api.
   assert.deepEqual(parsePlanRequest({ ...valid, currentSuccessRate: 3.3 })?.currentSuccessRate, 3.3);
+  // Three decimals reach the api (#830), which judges a rate off the 0.01 grid itself.
+  assert.equal(parsePlanRequest({ ...valid, currentSuccessRate: 3.305 })?.currentSuccessRate, 3.305);
   assert.equal("currentFailedAttempts" in parsePlanRequest(valid)!, false);
   assert.equal(parsePlanRequest({ ...valid, currentFailedAttempts: 2 })?.currentFailedAttempts, 2);
   assert.equal(

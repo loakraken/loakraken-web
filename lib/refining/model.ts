@@ -185,13 +185,17 @@ export function toRequest(
 const successRate = (state: PartState) =>
   state.successRate != null ? { currentSuccessRate: state.successRate } : {};
 
-/** 0~100 with two decimals at most, like the game shows it. */
+/**
+ * 0~100 with three decimals at most, as the api takes it (#830: "6.000" as
+ * typed). A rate off the game's 0.01 grid still reaches the api, which answers
+ * REFINING_SUCCESS_RATE_MISMATCH with its own message.
+ */
 export const isPercent = (value: unknown): value is number =>
   typeof value === "number" &&
   Number.isFinite(value) &&
   value >= 0 &&
   value <= 100 &&
-  Math.abs(Math.round(value * 100) - value * 100) < 1e-6;
+  Math.abs(Math.round(value * 1000) - value * 1000) < 1e-6;
 
 /** Stable cache key: identical armor plans are requested once. */
 export const requestKey = (request: PlanRequest) =>
