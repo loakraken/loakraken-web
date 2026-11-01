@@ -168,7 +168,8 @@ test.describe("히어로 봇 @regression", () => {
     await page.route(/\/character\//, () => {});
     const before = await hops(page);
     await page.getByRole("textbox", { name: "캐릭터 이름", exact: true }).fill("테스트");
-    await page.getByRole("button", { name: "캐릭터 검색" }).click();
+    // 머리글의 검색 버튼도 이름이 같다: 히어로의 검색 버튼만.
+    await hero(page).getByRole("button", { name: "캐릭터 검색" }).click();
     await expect(page.getByText("캐릭터 화면으로 이동하고 있어요")).toBeVisible();
     await expect(canvas(page)).toHaveAttribute("data-bot-loop", "running");
     await expect.poll(() => hops(page), { message: "검색에 한 번" }).toBe(before + 1);
@@ -190,9 +191,12 @@ test.describe("히어로 봇 @regression", () => {
     await expect(canvas(page)).toHaveAttribute("data-bot-loop", "parked");
     // 봇을 눌러 멈춤·재생한 것으로는 뛰지 않는다(누른 것은 멈춤 버튼).
     expect(await hops(page)).toBe(0);
-    // 잠든 봇을 눌러 멈춰도 뛰지 않고, 멈춘 채 몸을 바꿔도 뛰지 않는다.
-    await bot(page).click();
+    // 잠든 봇을 멈춰도 뛰지 않고, 멈춘 채 몸을 바꿔도 뛰지 않는다. 키보드로 멈춘다:
+    // 마우스로 누르면 봇 위로 옮기는 움직임이 먼저 봇을 깨워 한 번 뛰는 것이 맞는 동작이다.
+    await pause(page).focus();
+    await page.keyboard.press("Enter");
     await expect(pause(page)).toHaveAttribute("aria-pressed", "true");
+    expect(await hops(page), "멈출 때 뛰지 않음").toBe(0);
     await page.getByRole("button", { name: "봇 바꾸기" }).click();
     await page.keyboard.press("ArrowRight");
     await expect(bot(page)).toHaveAttribute("data-bot", "flower");

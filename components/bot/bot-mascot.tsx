@@ -282,6 +282,7 @@ export function BotMascot({
     };
     const run = () => {
       if (raf || !seen || document.hidden) return;
+      wokenHop = false; // awake now, however it woke
       el.dataset.botLoop = "running";
       el.dataset.botRest = "awake";
       raf = requestAnimationFrame(tick);
