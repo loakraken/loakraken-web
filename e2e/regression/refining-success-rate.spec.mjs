@@ -41,7 +41,7 @@ test("성공 확률로 정한 실패 횟수 뒤에 나올 수 없는 장인의 �
   const row = await openProgress(page);
   await row.getByRole("spinbutton", { name: "현재 성공 확률(%)" }).fill("9.46");
   await expect(page.getByText("장인의 기운을 확인해 주세요")).toBeVisible();
-  await expect(page.getByText(/숨결·책을 올리기 전 두 값을 다시 확인해 주세요/)).toBeVisible();
+  await expect(page.getByText("성공 확률과 장인의 기운이 맞지 않아요. 숨결·책을 올리기 전 값을 넣어 주세요.")).toBeVisible();
 });
 
 test("320: '실패 n회' 줄은 처음부터 자리를 잡아, 답이 와도 아무것도 움직이지 않는다 @regression", async ({ page }) => {

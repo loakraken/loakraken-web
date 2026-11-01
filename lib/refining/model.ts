@@ -373,7 +373,7 @@ export function refiningFailureCopy(error: { code: string }) {
     case "REFINING_ARTISAN_ENERGY_MISMATCH":
       return {
         title: "장인의 기운을 확인해 주세요",
-        text: "넣은 성공 확률과 장인의 기운이 맞지 않아요. 같은 단계 재련 창에서 숨결·책을 올리기 전 두 값을 다시 확인해 주세요.",
+        text: "성공 확률과 장인의 기운이 맞지 않아요. 숨결·책을 올리기 전 값을 넣어 주세요.",
       };
     case "FRONTEND_API_NOT_CONFIGURED":
       return {
