@@ -84,6 +84,20 @@ export function isSpecUpEnabled(env: Env = process.env) {
 }
 
 /**
+ * 스펙업 추천 순서 (api #794): the section under the spec-up list. The
+ * backend route ships after this screen, so it stays hidden on production
+ * until then. Same rule: `SPEC_UP_PATH=on|off` overrides, otherwise hidden
+ * only on the production host (and with the guide itself).
+ */
+export function isSpecUpPathEnabled(env: Env = process.env) {
+  if (!isSpecUpEnabled(env)) return false;
+  const flag = env.SPEC_UP_PATH?.trim().toLowerCase();
+  if (flag === "on") return true;
+  if (flag === "off") return false;
+  return !isProductionHost(env.SITE_URL);
+}
+
+/**
  * Official armory page details (tripod levels, skill code; backend flag off
  * by default). The web asks for them only where ARMORY_PAGE allows it:
  * `ARMORY_PAGE=on|off` overrides, otherwise never on the production host, so

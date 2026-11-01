@@ -52,19 +52,24 @@ test.describe("묶음 화면 탭 @regression", () => {
     expect(sitemap).not.toContain("/tools/material-quote");
   });
 
-  test("상단 메뉴: 성장 도구의 묶음 제목은 그 묶음 화면으로 가고, 도구별 링크는 그대로 있다", async ({ page }) => {
+  test("상단 메뉴: 묶음만 있고 그 화면으로 가며, 도구별 줄은 묶음 화면의 탭에 있다(사용자 11-01)", async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto("/tools");
     await page.getByRole("navigation", { name: "주요 메뉴" }).getByRole("button", { name: "성장 도구" }).click();
     const panel = page.locator('[data-panel="tools"]');
-    await expect(panel.getByRole("link", { name: "레이드", exact: true })).toHaveAttribute("href", "/tools/raid-rewards");
-    await expect(panel.getByRole("link", { name: "골드 효율", exact: true })).toHaveAttribute("href", "/tools/loa-shop");
-    await expect(panel.getByRole("link", { name: "캐릭터 성장", exact: true })).toHaveAttribute("href", "/tools/refining");
-    await expect(panel.getByRole("link", { name: /더보기 손익/ })).toHaveAttribute("href", "/tools/more-reward");
-    // 시세: 재료 구매 견적 links to its new address.
-    await page.keyboard.press("Escape");
+    await expect(panel.getByRole("link", { name: /^레이드/ })).toHaveAttribute("href", "/tools/raid-rewards");
+    await expect(panel.getByRole("link", { name: /^골드 효율/ })).toHaveAttribute("href", "/tools/loa-shop");
+    await expect(panel.getByRole("link", { name: /^캐릭터 성장/ })).toHaveAttribute("href", "/tools/refining");
+    await expect(panel.getByRole("link", { name: /^더보기 손익/ })).toHaveCount(0);
+    // 더보기 손익 is a tab of the 레이드 hub the menu opens.
+    await panel.getByRole("link", { name: /^레이드/ }).click();
+    await expect(tabRow(page, "레이드").getByRole("link", { name: "더보기 손익", exact: true })).toHaveAttribute("href", "/tools/more-reward");
+    // 시세: one hub; 재료 견적 is its tab at the new address.
     await page.getByRole("navigation", { name: "주요 메뉴" }).getByRole("button", { name: "시세" }).click();
-    await expect(page.locator('[data-panel="market"]').getByRole("link", { name: /재료 구매 견적/ })).toHaveAttribute("href", "/market/quote");
+    const market = page.locator('[data-panel="market"]');
+    await expect(market.getByRole("link", { name: /^재료 구매 견적/ })).toHaveCount(0);
+    await market.getByRole("link", { name: /^거래소 시세/ }).click();
+    await expect(tabRow(page, "시세").getByRole("link", { name: "재료 견적", exact: true })).toHaveAttribute("href", "/market/quote");
   });
 
   for (const width of [320, 360, 390, 1280])
