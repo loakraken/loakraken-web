@@ -136,8 +136,10 @@
   color: var(--slate);
   font-size: var(--text-caption);
 }
-/* Phone: number, item over its change, then the two figures side by side. */
-@media (max-width: 560px) {
+/* Phone and narrow tablet: number, item over its change, then the two figures
+   side by side. Up to 720px: between 560 and 720 the five-column row left the
+   item too little room and a stone step's name was cut (PM-프론트 11-01). */
+@media (max-width: 720px) {
   .steps li {
     grid-template-columns: 1.5rem minmax(0, 1fr) auto;
     row-gap: 2px;
@@ -145,8 +147,14 @@
   .change {
     grid-column: 2;
     grid-row: 2;
+    min-width: 0;
     color: var(--slate);
     font-size: var(--text-caption);
+    /* A stone step names two engravings each side (api #812): one unbroken
+       line ran under the cost and widened the page by 49px at 320 (QA 11-01).
+       On a phone it wraps inside its own column. */
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
   .delta {
     grid-column: 3;
