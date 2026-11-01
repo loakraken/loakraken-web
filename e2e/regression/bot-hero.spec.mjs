@@ -151,7 +151,7 @@ test.describe("히어로 봇 @regression", () => {
     await expect(canvas(page)).toHaveAttribute("data-bot-loop", "running");
     await expect(canvas(page)).toHaveAttribute("data-bot-rest", "awake");
     // 깨어날 때 한 번 뛴다(사용자 11-02). 깬 뒤의 움직임에는 더 뛰지 않는다.
-    expect(await hops(page), "깨어날 때 한 번").toBe(before + 1);
+    await expect.poll(() => hops(page), { message: "깨어날 때 한 번" }).toBe(before + 1);
     // 깨어나 고개를 들고 다시 포인터(왼쪽)를 본다.
     await expect.poll(async () => (await turn(page))[1], { message: "고개를 든다" }).toBeGreaterThan(-0.15);
     await expect.poll(async () => (await turn(page))[0], { message: "왼쪽을 본다" }).toBeLessThan(-0.2);
