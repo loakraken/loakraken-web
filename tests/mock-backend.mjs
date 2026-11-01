@@ -1343,9 +1343,18 @@ createServer(async (req, res) => {
         fieldBosses: [timed("세베크 아툰", null, 1460, day % 2 ? times(11, 13, 15, 17, 19, 21, 23) : [], [{ minItemLevel: null, rewards: [rw("영웅 카드 팩", "영웅"), rw("실링", "일반")] }])],
         // The official calendar lists one chaos gate per place (13, same rounds and rewards).
         chaosGates: ["일렁이는 악마군단", ...Array.from({ length: 12 }, (_, i) => `합성 지역 ${i + 2}`)].map((place) => timed(place, null, 1580, day % 2 ? [] : timesAt(50, 10, 12, 14, 16, 18, 20, 22, 23), [
-          { minItemLevel: 1580, rewards: [rw("운명의 파편 주머니(소)", "희귀"), rw("1레벨 겁화의 보석", "고급"), rw("카드 경험치 카드", "일반")] },
-          { minItemLevel: 1640, rewards: [rw("운명의 파편 주머니(중)", "영웅"), rw("2레벨 겁화의 보석", "희귀"), rw("카드 경험치 카드", "일반")] },
-          { minItemLevel: 1680, rewards: [rw("운명의 파편 주머니(대)", "전설"), rw("3레벨 겁화의 보석", "희귀"), rw("카드 경험치 카드", "일반")] },
+          // The real calendar (11-02): ten level groups in the official (rising) order,
+          // each with 골드 and 귀속 골드 (grade 일반, no amount) among its rewards.
+          ...[1580, 1610, 1630, 1640, 1680, 1700, 1720, 1730, 1750, 1770].map((minItemLevel, i) => ({
+            minItemLevel,
+            rewards: [
+              rw(["운명의 파편 주머니(소)", "운명의 파편 주머니(중)", "운명의 파편 주머니(대)"][Math.min(2, Math.floor(i / 4))], ["희귀", "영웅", "전설"][Math.min(2, Math.floor(i / 4))]),
+              rw(`${Math.min(10, i + 1)}레벨 겁화의 보석`, "희귀"),
+              rw("골드", "일반"),
+              rw("귀속 골드", "일반"),
+              rw("카드 경험치 카드", "일반"),
+            ],
+          })),
         ])),
         others: [
           { category: "항해", ...timed("항해 협동 : 베른", null, 1, timesAt(30, 20, 22)) },

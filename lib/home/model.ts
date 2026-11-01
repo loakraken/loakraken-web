@@ -184,12 +184,21 @@ const gradeRank = (grade: string | null) => {
   return i < 0 ? GRADE_RANK.length : i;
 };
 
+/** The official gold rewards (카오스게이트 lists 골드 and 귀속 골드, grade 일반). */
+export const isGoldReward = (reward: Reward) => reward.name === "골드" || reward.name === "귀속 골드";
+
+/** Gold rewards first, the rest in their order (user 11-02: gold in the 대표 보상). */
+export const goldFirst = (rewards: Reward[]) =>
+  [...rewards].sort((a, b) => Number(isGoldReward(b)) - Number(isGoldReward(a)));
+
 /**
  * The rewards a schedule row shows inline (a few icons per row):
  * every reward once by name, rewards tied to that day's rounds first, then by
- * grade. `rest` is how many more the expanded list holds.
+ * grade. With `gold`, the official gold rewards come first: they are grade
+ * 일반 and fell behind the "+N" before (user 11-02). `rest` is how many more
+ * the expanded list holds.
  */
-export function rewardSummary(groups: RewardGroup[], shown = 3) {
+export function rewardSummary(groups: RewardGroup[], shown = 3, gold = false) {
   const seen = new Map<string, Reward>();
   for (const group of groups)
     for (const reward of group.rewards) {
@@ -197,7 +206,10 @@ export function rewardSummary(groups: RewardGroup[], shown = 3) {
       if (!known || (reward.timed && !known.timed)) seen.set(reward.name, reward);
     }
   const all = [...seen.values()].sort(
-    (a, b) => Number(b.timed) - Number(a.timed) || gradeRank(a.grade) - gradeRank(b.grade),
+    (a, b) =>
+      (gold ? Number(isGoldReward(b)) - Number(isGoldReward(a)) : 0) ||
+      Number(b.timed) - Number(a.timed) ||
+      gradeRank(a.grade) - gradeRank(b.grade),
   );
   return { top: all.slice(0, shown), rest: Math.max(0, all.length - shown) };
 }

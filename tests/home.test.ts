@@ -5,6 +5,7 @@ import {
   countdown,
   dayLabel,
   dDay,
+  goldFirst,
   isDate,
   isPatchNote,
   kstDate,
@@ -56,6 +57,29 @@ test("rewards: three per row, round rewards first, then grade; groups by item le
   assert.deepEqual(rewardSummary([]), { top: [], rest: 0 });
   assert.equal(rewardGroupLabel(data.chaosGates[0].rewardGroups[1]), "1,640 이상");
   assert.equal(rewardGroupLabel({ minItemLevel: null, rewards: [] }), null);
+});
+
+test("rewards: with gold, the official 골드·귀속 골드 (grade 일반) lead the row (user 11-02)", () => {
+  const reward = (name: string, grade: string) => ({ name, icon: null, grade, timed: false });
+  const groups = [
+    {
+      minItemLevel: 1720,
+      rewards: [reward("운명의 파편 주머니(대)", "전설"), reward("골드", "일반"), reward("3레벨 겁화의 보석", "희귀"), reward("귀속 골드", "일반")],
+    },
+  ];
+  assert.deepEqual(
+    rewardSummary(groups, 3, true).top.map((r) => r.name),
+    ["골드", "귀속 골드", "운명의 파편 주머니(대)"],
+  );
+  // Without the flag the grade order stays (gold last, behind "+N").
+  assert.deepEqual(
+    rewardSummary(groups).top.map((r) => r.name),
+    ["운명의 파편 주머니(대)", "3레벨 겁화의 보석", "골드"],
+  );
+  assert.deepEqual(
+    goldFirst(groups[0].rewards).map((r) => r.name),
+    ["골드", "귀속 골드", "운명의 파편 주머니(대)", "3레벨 겁화의 보석"],
+  );
 });
 
 test("week, time and countdown helpers use KST", () => {

@@ -35,6 +35,10 @@ export function categoryOfPath(pathname: string | null): ScheduleCategory | null
   return slug && isScheduleCategory(slug) ? slug : null;
 }
 
+/** Higher entry level first (user 11-02); entries without a level keep their order, last. */
+export const highestFirst = <T extends { minItemLevel: number | null }>(list: readonly T[]) =>
+  [...list].sort((a, b) => (b.minItemLevel ?? -Infinity) - (a.minItemLevel ?? -Infinity) || 0);
+
 /** A place inside a merged row: its official name and entry level. */
 export type Place = { name: string; minItemLevel: number | null };
 
@@ -74,7 +78,7 @@ export function mergeSameRounds(items: Timed[], label: string): Row[] {
       name:
         merged.length > 1 && minItemLevel != null ? `${label} ${minItemLevel.toLocaleString("ko-KR")} 이상` : label,
       minItemLevel,
-      places: set.map((item) => ({ name: item.name, minItemLevel: item.minItemLevel })),
+      places: highestFirst(set.map((item) => ({ name: item.name, minItemLevel: item.minItemLevel }))),
     };
   });
 }

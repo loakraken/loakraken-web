@@ -14,6 +14,7 @@ import {
   dayLabel,
   kstDate,
   kstTime,
+  goldFirst,
   rewardGroupLabel,
   rewardLabel,
   rewardSummary,
@@ -30,6 +31,7 @@ import {
   categoryLabel,
   categoryOfPath,
   dayKinds,
+  highestFirst,
   mergeSameRounds,
   running,
   scheduleGroups,
@@ -144,10 +146,26 @@ function RewardList({ title, rewards }: { title: string | null; rewards: Reward[
  * full list by item-level group (chaos gates differ by level), with rewards
  * tied to that day's rounds apart from the common ones.
  */
-function RowRewards({ name, groups, entry }: { name: string; groups: RewardGroup[]; entry?: Entry }) {
+function RowRewards({
+  name,
+  groups: given,
+  entry,
+  gold = false,
+}: {
+  name: string;
+  groups: RewardGroup[];
+  entry?: Entry;
+  /**
+   * 카오스게이트: the official 골드·귀속 골드 lead the line and each group
+   * (user 11-02). As the official list has them, with no amount.
+   */
+  gold?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const id = useId();
-  const { top, rest } = rewardSummary(groups);
+  // Higher entry level first (user 11-02); groups without a level keep their order.
+  const groups = highestFirst(given);
+  const { top, rest } = rewardSummary(groups, 3, gold);
   // 자세히 only when it shows more than the row (#1096): rewards cut off at
   // three, or a merged row's places. Otherwise it repeated the same icons.
   const more = rest > 0 || (!!entry && "places" in entry && entry.places.length > 0);
@@ -184,8 +202,9 @@ function RowRewards({ name, groups, entry }: { name: string; groups: RewardGroup
           {entry && <EntryInfo entry={entry} />}
           {groups.map((group, i) => {
             const label = rewardGroupLabel(group);
-            const timed = group.rewards.filter((reward) => reward.timed);
-            const common = group.rewards.filter((reward) => !reward.timed);
+            const rewards = gold ? goldFirst(group.rewards) : group.rewards;
+            const timed = rewards.filter((reward) => reward.timed);
+            const common = rewards.filter((reward) => !reward.timed);
             return (
               <section key={`${group.minItemLevel}-${i}`} aria-label={label ?? "보상"}>
                 {label && <h3>{label}</h3>}
@@ -277,11 +296,14 @@ function Section({
   hidePast,
   onShowTomorrow,
   withPlaces = false,
+  gold = false,
 }: {
   title: string;
   items: Row[];
   /** Chaos gates and field bosses: a merged row lists its places (last line, 자세히). */
   withPlaces?: boolean;
+  /** Chaos gates: clear gold in the reward line (user 11-02). */
+  gold?: boolean;
   live: boolean;
   /** The board clock (server render time until the client clock starts), so
    *  past rounds are already hidden in the first HTML (CLS, QA #181). */
@@ -351,6 +373,7 @@ function Section({
               name={item.name}
               groups={item.rewardGroups}
               entry={withPlaces && item.places ? { places: item.places } : undefined}
+              gold={gold}
             />
             {withPlaces && item.places && <small className={own.placeLine}>지역 {item.places.length}곳</small>}
           </li>
@@ -559,6 +582,7 @@ export function ScheduleBoard({
               hidePast={hidePast}
               onShowTomorrow={showTomorrow}
               withPlaces={group.key === "chaos-gate" || group.key === "field-boss"}
+              gold={group.key === "chaos-gate"}
               items={group.items}
               live={live}
               clock={now}
@@ -593,6 +617,7 @@ export function ScheduleBoard({
             hidePast={hidePast}
             onShowTomorrow={showTomorrow}
             withPlaces
+            gold
             items={mergeSameRounds(running(data.chaosGates), "카오스게이트")}
             live={live}
             clock={now}
