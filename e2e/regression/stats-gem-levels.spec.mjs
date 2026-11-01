@@ -27,7 +27,8 @@ for (const width of [1280, 360, 320])
     // People in the bars = the gem sample.
     const people = (await bars.allTextContents()).reduce((sum, t) => sum + Number(t.split(":")[1].replace(/[^\d]/g, "")), 0);
     expect(people).toBe(Number(gemSample));
-    expect((await shiftsSince(page)).all, "막대가 도착할 때 흔들림").toBe(0);
+    const landed = await shiftsSince(page);
+    expect(landed.all, `막대가 도착할 때 흔들림 (${landed.moved})`).toBe(0);
     await expectNoHorizontalOverflow(page);
     // 표로 보기: the same 12 bins as rows.
     await page.getByRole("button", { name: "표로 보기" }).click();
