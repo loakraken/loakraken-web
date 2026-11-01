@@ -175,6 +175,16 @@ test("a rate that fits no failure count reads as its own message", () => {
   assert.match(energy.text, /두 값을 다시 확인해 주세요/);
 });
 
+test("the backend's own 완갑 and 성공 확률 answers (api #828, #830 fixtures) pass the contract", () => {
+  const guard = read("./refining-fixtures/refining-plan-arm-guard.json");
+  assert.equal(isPlanEnvelope(guard), true);
+  assert.equal(guard.data.grade, null);
+  const rate = read("./refining-fixtures/refining-plan-success-rate.json");
+  assert.equal(isPlanEnvelope(rate), true);
+  assert.equal(rate.data.failedAttemptsFrom, "SUCCESS_RATE");
+  assert.equal(rate.data.stages[0].startFailedAttempts, 1);
+});
+
 test("the answer's failure count and its origin pass the contract, and older answers without them too", () => {
   const derived = envelope();
   derived.data.failedAttemptsFrom = "SUCCESS_RATE";
