@@ -60,7 +60,10 @@ for (const scheme of ["light", "dark"])
       await expect(groups.first().getByRole("heading")).toHaveText("1,770 이상");
       await expect(groups.last().getByRole("heading")).toHaveText("1,580 이상");
       await expect(gates.getByRole("region", { name: "1,720 이상" }).getByRole("listitem").first()).toHaveText("골드(일반)");
-      await expect(gates).not.toContainText(/[\d,]+ ?골드|골드 [\d,]+/);
+      // Every gold item is the official name alone: no amount on the row or in any group.
+      const golds = await gates.getByRole("listitem").filter({ hasText: "골드" }).allTextContents();
+      expect(golds.length).toBe(22);
+      for (const gold of golds) expect(gold.trim()).toMatch(/^(귀속 )?골드\(일반\)$/);
       const places = gates.getByRole("region", { name: "지역" });
       await expect(places.getByRole("heading")).toHaveText("지역 13곳");
       await expect(places.getByRole("listitem")).toHaveCount(13);
