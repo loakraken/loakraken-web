@@ -1422,7 +1422,7 @@ createServer(async (req, res) => {
   if (url.pathname === "/api/v1/characters/rank") {
     const who = url.searchParams.get("characterName") ?? "";
     // 순위늦음: slower than the page's 1s wait, so the rank arrives after the first paint.
-    if (who === "순위늦음") await new Promise((resolve) => setTimeout(resolve, 1500));
+    if (who === "순위늦음" || who === "순위긴범위") await new Promise((resolve) => setTimeout(resolve, 1500));
     if (who === "미관측" || who === "비공개") return send({ code: "STATS_CHARACTER_NOT_OBSERVED", message: "private" }, 404);
     const excluded = who === "조건밖";
     const entry = (metric, scope, scopeValue, rank, total, sampleStatus = "READY", gapAs = null) => {
@@ -1453,6 +1453,15 @@ createServer(async (req, res) => {
       entry("ITEM_LEVEL", "SERVER", "아브렐슈드", 1150, 2311, "READY", 7.5),
       entry("ITEM_LEVEL", "CLASS", "데모닉", 301, 612, "READY", 5.83),
       // No server-class box: three boxes side by side, the narrowest cells.
+    ] : who === "순위긴범위" ? [
+      // The longest real server + class pair, late like 순위늦음: the
+      // server-class value takes two lines in a narrow box.
+      ...["COMBAT_POWER", "ITEM_LEVEL"].flatMap((metric) => [
+        entry(metric, "ALL", null, 4120, 18231),
+        entry(metric, "SERVER", "아브렐슈드", 211, 2311),
+        entry(metric, "CLASS", "가디언나이트", 37, 612),
+        entry(metric, "SERVER_CLASS", "아브렐슈드/가디언나이트", 9, 88),
+      ]),
     ] : [
       entry("COMBAT_POWER", "ALL", null, 4120, 18231),
       entry("COMBAT_POWER", "SERVER", "아만", 211, 2311),
