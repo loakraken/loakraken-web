@@ -37,8 +37,9 @@ for (const width of [320, 360, 390, 430])
       expect(box.themeToMenu, `${path} 테마-메뉴`).toBeLessThanOrEqual(10);
       expect(box.freeAfterBrand, `${path} 로고 뒤 빈 곳`).toBeGreaterThanOrEqual(0);
       await expectNoHorizontalOverflow(page);
+      // Per page: each load starts its own count.
+      await page.waitForTimeout(400);
+      const { all, moved } = await shiftsSince(page);
+      expect(all, `${path} 흔들림 (${moved})`).toBe(0);
     }
-    await page.waitForTimeout(400);
-    const { all, moved } = await shiftsSince(page);
-    expect(all, `흔들림 (${moved})`).toBe(0);
   });
