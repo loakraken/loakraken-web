@@ -49,7 +49,21 @@ for (const scheme of ["light", "dark"])
       await expect(gates.getByText("지역 13곳", { exact: true })).toBeVisible();
       await expect(gates.locator("strong + small").first()).toHaveText("1,580 이상");
       await expect(gates).not.toContainText("일렁이는 악마군단");
+      // User 11-02: the official 골드·귀속 골드 lead the row's rewards (grade 일반, they fell behind '+N' before).
+      const rowRewards = gates.getByRole("list", { name: "카오스게이트 보상" }).getByRole("listitem");
+      await expect(rowRewards.nth(0)).toHaveText("골드(일반)");
+      await expect(rowRewards.nth(1)).toHaveText("귀속 골드(일반)");
       await gates.getByRole("button", { name: /^카오스게이트 보상/ }).click();
+      // Level groups high → low; the agreed amount only on the 1,720 group (1,720~1,729).
+      const groups = gates.getByRole("region", { name: /^[\d,]+ 이상$/ });
+      await expect(groups).toHaveCount(10);
+      await expect(groups.first().getByRole("heading")).toHaveText("1,770 이상");
+      await expect(groups.last().getByRole("heading")).toHaveText("1,580 이상");
+      await expect(gates.getByText(/^클리어 골드/)).toHaveCount(1);
+      await expect(gates.getByRole("region", { name: "1,720 이상" }).getByText(/^클리어 골드/)).toHaveText(
+        "클리어 골드 3,000(캐릭터 귀속, 2025년 12월 기준)",
+      );
+      await expect(gates.getByRole("region", { name: "1,720 이상" }).getByRole("listitem").first()).toHaveText("골드(일반)");
       const places = gates.getByRole("region", { name: "지역" });
       await expect(places.getByRole("heading")).toHaveText("지역 13곳");
       await expect(places.getByRole("listitem")).toHaveCount(13);

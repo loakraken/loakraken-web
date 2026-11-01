@@ -2,14 +2,12 @@
 //
 // 공식: 공지 13307(2025-12-10)에서 카오스게이트 클리어 보상에 캐릭터 귀속 골드가
 // 생겼고 높은 구간일수록 많다고 했지만, 구간별 수량은 공개하지 않았다(공지
-// 13339·13395, 가이드 2026-08-05 수정본에도 없음). 그래서 골드가 있다는 것은
-// 1580 이상 모든 구간에 보이고, 수량은 아래 표에 있는 구간만 보인다.
+// 13339·13395, 가이드 2026-08-05 수정본에도 없음). 공식 일정의 보상 목록도
+// 모든 구간(1580~1770)에 '골드'·'귀속 골드'를 수량 없이 준다(2026-11-02 확인).
+// 그래서 골드 자체는 공식 목록 그대로 보이고, 수량은 아래 표에 있는 구간만 보인다.
 // 수량: 1720~1729 구간만 서로 다른 작성자의 커뮤니티 글 세 개가 같은 값(3,000골드)을
 // 말한다. 다른 구간은 근거가 하나 이하라 숫자를 보이지 않는다(출처 규칙: 공식이
 // 아니면 두 곳이 같아야 함). 공식 수량이 나오면 이 파일만 고친다.
-
-/** Gold is part of every chaos gate clear from this entry level on (official notice). */
-export const CHAOS_GATE_GOLD_FROM = 1580;
 
 /** Bands with an agreed amount, each with its sources. */
 export const CHAOS_GATE_GOLD = [
@@ -33,12 +31,12 @@ export const CHAOS_GATE_GOLD = [
  * (gold still drops, its amount is not known). A group whose range spans two
  * bands never takes either amount.
  */
-export function chaosGateGold(level: number | null | undefined, next: number | null | undefined): number | null {
+export function chaosGateGold(level: number | null | undefined, next: number | null | undefined) {
   if (level == null) return null;
   const last = next != null && next > level ? next - 1 : Infinity;
-  return CHAOS_GATE_GOLD.find((band) => level >= band.from && last <= band.to)?.gold ?? null;
+  return CHAOS_GATE_GOLD.find((band) => level >= band.from && last <= band.to) ?? null;
 }
 
-/** The reward line's text: "골드 3,000" when the amount is known, else "골드". */
-export const chaosGateGoldLabel = (gold: number | null) =>
-  gold == null ? "골드" : `골드 ${gold.toLocaleString("ko-KR")}`;
+/** "클리어 골드 3,000(캐릭터 귀속, 2025년 12월 기준)". */
+export const chaosGateGoldNote = (band: { gold: number; asOf: string }) =>
+  `클리어 골드 ${band.gold.toLocaleString("ko-KR")}(캐릭터 귀속, ${band.asOf.replace("-", "년 ")}월 기준)`;
