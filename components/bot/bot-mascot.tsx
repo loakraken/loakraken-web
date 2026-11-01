@@ -14,6 +14,8 @@
 //    without a pause control; no frames while idle): in the default state it
 //    falls asleep (head down, lids shut; user, 11-02) and wakes on the next
 //    pointer move or tap; working, it rests in its own pose;
+//  - it hops only to answer the visitor, once each: waking, a search
+//    starting (working), a new body (a spin-hop); no idle jumps;
 //  - `paused` (the page's remembered pause) stops the automatic motion
 //    only: the head still turns with the pointer, which the visitor drives,
 //    and it rests awake;
@@ -170,13 +172,19 @@ export function BotMascot({
   }, []);
   const live = useRef({ state, paused });
   const wake = useRef<() => void>(() => {});
+  const hop = useRef<(spin: number) => void>(() => {});
+  // The body drawn last, to tell a switch from the first drawing.
+  const shown = useRef<BotType | null>(null);
 
   useEffect(() => loadLibLater(setLib), []);
 
   // The loop reads these each frame; a change is something to answer, so it
   // runs for a while. (Still, it is drawn again in its new pose instead.)
+  // Starting work (a search) is answered with one hop first (user, 11-02).
   useEffect(() => {
+    const started = state === "working" && live.current.state !== "working";
     live.current = { state, paused };
+    if (started) hop.current(0);
     wake.current();
   }, [state, paused]);
   const stillState = still ? state : null;
@@ -203,6 +211,8 @@ export function BotMascot({
       if (el.dataset.botTurn !== turn) el.dataset.botTurn = turn;
     };
 
+    const switched = shown.current !== null && shown.current !== type;
+    shown.current = type;
     if (stillState) {
       draw(lib.restPose(stillState));
       return;
@@ -217,6 +227,7 @@ export function BotMascot({
     let prev = 0;
     let k = 0; // 0 still … 1 live
     let z = 0; // 0 awake … 1 asleep
+    let wokenHop = false; // asleep: the next pointer wakes it with a hop
     let until = performance.now() + restAfter; // the first seconds after load
     let seen = true;
     // The pointer, as the library's rig reads it: a direction from the head
@@ -255,7 +266,19 @@ export function BotMascot({
         draw(rest);
         el.dataset.botLoop = "parked";
         el.dataset.botRest = z === 1 ? "asleep" : "awake";
+        if (z === 1) wokenHop = true;
       }
+    };
+    // One-shot hops, each answering something the visitor did (user, 11-02):
+    // waking, a search, a new body (with a turn). Never on its own, never
+    // paused; reduced motion has no loop to hop in. The canvas draws past the
+    // box, so a hop moves nothing in the layout.
+    hop.current = (spin: number) => {
+      if (live.current.paused) return;
+      sim.setJump({ spin });
+      sim.poke();
+      el.dataset.botHops = String(Number(el.dataset.botHops ?? 0) + 1);
+      wake.current();
     };
     const run = () => {
       if (raf || !seen || document.hidden) return;
@@ -281,6 +304,12 @@ export function BotMascot({
       ptr.x = reach(event.clientX - cx, cx, innerWidth - cx);
       ptr.y = reach(event.clientY - cy, cy, innerHeight - cy);
       ptr.s = 1;
+      if (wokenHop) {
+        wokenHop = false;
+        // Pressing the bot itself is its pause control: it wakes without a hop.
+        const control = event.type === "pointerdown" ? el.closest("button") : null;
+        if (!control?.contains(event.target as Node)) hop.current(0);
+      }
       wake.current();
     };
     // A mouse or pen leaving the window: face front. A lifted finger also
@@ -293,6 +322,11 @@ export function BotMascot({
     };
 
     draw(lib.restPose(live.current.state));
+    if (switched) {
+      // A new body is already a new pose: it comes in live, turning in its hop.
+      k = 1;
+      hop.current(1);
+    }
     run();
     const io = new IntersectionObserver(([entry]) => { seen = entry.isIntersecting; if (seen) run(); });
     io.observe(el);
@@ -307,6 +341,7 @@ export function BotMascot({
     return () => {
       cancelAnimationFrame(raf);
       wake.current = () => {};
+      hop.current = () => {};
       io.disconnect();
       document.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener("pointermove", aim);

@@ -1,7 +1,9 @@
 // 회귀(사용자 11-01, 11-02): 홈·소개 히어로의 봇. 창 어디서든(머리글 포함) 포인터를 따라 보고,
 // 봇·배경·제목·검색창을 눌러도 따라보기는 멈추지 않는다(봇을 누르면 자동 움직임만
 // 멈춤). 마지막 움직임 5초 뒤에는 잠든 자세(눈 감고 고개 숙임)로 그리기를 멈추고
-// (유휴 프레임 0), 다음 움직임에 깨어난다. 멈춤 상태면 깬 채로 쉰다.
+// (유휴 프레임 0), 다음 움직임에 깨어난다. 멈춤 상태면 깬 채로 쉰다. 뛰는 것은
+// 사용자가 한 일에 한 번씩만: 깨어날 때, 캐릭터 검색, 봇 바꾸기(한 바퀴). 멈춤·줄어든
+// 모션에서는 뛰지 않는다.
 // 줄어든 모션은 정지 그림 하나(눈 뜬 기본 자세). 첫 HTML부터 같은 상자라 라이브러리가 늦게 와도,
 // '봇 바꾸기'로 몸을 바꿔도 흔들림 0이고, 바꾸는 순간 빈 그림이 끼지 않는다.
 // 고른 봇은 기억된다. 테두리(원)는 없다.
@@ -19,6 +21,9 @@ const turn = async (page) => {
   expect(value, "봇이 한 번은 그려져야 한다").not.toBeNull();
   return value.split(",").map(Number);
 };
+
+/** How many one-shot hops the bot has made on this page (each answers a visitor's action). */
+const hops = async (page) => Number((await canvas(page).getAttribute("data-bot-hops")) ?? 0);
 
 async function desktop(page, path = "/") {
   await page.setViewportSize({ width: 1280, height: 1000 });
@@ -141,12 +146,35 @@ test.describe("히어로 봇 @regression", () => {
     expect(draws).toBe(0);
     const area = await hero(page).boundingBox();
     const box = await bot(page).boundingBox();
+    const before = await hops(page);
     await page.mouse.move(area.x + 4, box.y + box.height / 2);
     await expect(canvas(page)).toHaveAttribute("data-bot-loop", "running");
     await expect(canvas(page)).toHaveAttribute("data-bot-rest", "awake");
+    // 깨어날 때 한 번 뛴다(사용자 11-02). 깬 뒤의 움직임에는 더 뛰지 않는다.
+    expect(await hops(page), "깨어날 때 한 번").toBe(before + 1);
     // 깨어나 고개를 들고 다시 포인터(왼쪽)를 본다.
     await expect.poll(async () => (await turn(page))[1], { message: "고개를 든다" }).toBeGreaterThan(-0.15);
     await expect.poll(async () => (await turn(page))[0], { message: "왼쪽을 본다" }).toBeLessThan(-0.2);
+    await page.mouse.move(area.x + area.width - 4, box.y + box.height / 2, { steps: 12 });
+    // 다시 쉬면 잠들고 멈춘다. 그동안 더 뛰지 않았다.
+    await expect(canvas(page)).toHaveAttribute("data-bot-rest", "asleep", { timeout: 9000 });
+    await expect(canvas(page)).toHaveAttribute("data-bot-loop", "parked");
+    expect(await hops(page), "깨어난 뒤 더 뛰지 않음").toBe(before + 1);
+  });
+
+  test("캐릭터 검색을 누르면 한 번 뛰고 찾는 중이 된다", async ({ page }) => {
+    await desktop(page);
+    // 캐릭터 화면으로 가는 요청을 붙잡아 히어로에 머문다(찾는 중 상태를 본다).
+    await page.route(/\/character\//, () => {});
+    const before = await hops(page);
+    await page.getByRole("textbox", { name: "캐릭터 이름", exact: true }).fill("테스트");
+    await page.getByRole("button", { name: "캐릭터 검색" }).click();
+    await expect(page.getByText("캐릭터 화면으로 이동하고 있어요")).toBeVisible();
+    await expect(canvas(page)).toHaveAttribute("data-bot-loop", "running");
+    await expect.poll(() => hops(page), { message: "검색에 한 번" }).toBe(before + 1);
+    // 찾는 동안에도 그 한 번뿐(찾는 중 움직임은 지금 그대로).
+    await page.waitForTimeout(1500);
+    expect(await hops(page)).toBe(before + 1);
   });
 
   test("멈춤 상태에서는 잠들지 않고 깬 채로 쉰다", async ({ page }) => {
@@ -160,6 +188,16 @@ test.describe("히어로 봇 @regression", () => {
     await expect(pause(page)).toHaveAttribute("aria-pressed", "false");
     await expect(canvas(page)).toHaveAttribute("data-bot-rest", "asleep", { timeout: 9000 });
     await expect(canvas(page)).toHaveAttribute("data-bot-loop", "parked");
+    // 봇을 눌러 멈춤·재생한 것으로는 뛰지 않는다(누른 것은 멈춤 버튼).
+    expect(await hops(page)).toBe(0);
+    // 잠든 봇을 눌러 멈춰도 뛰지 않고, 멈춘 채 몸을 바꿔도 뛰지 않는다.
+    await bot(page).click();
+    await expect(pause(page)).toHaveAttribute("aria-pressed", "true");
+    await page.getByRole("button", { name: "봇 바꾸기" }).click();
+    await page.keyboard.press("ArrowRight");
+    await expect(bot(page)).toHaveAttribute("data-bot", "flower");
+    await page.waitForTimeout(800);
+    expect(await hops(page), "멈춘 동안 뛰지 않음").toBe(0);
   });
 
   test("봇 그림 코드는 첫 로드에 없다: 페이지 로드 뒤 쉴 때 받아 그린다", async ({ page }) => {
@@ -208,9 +246,14 @@ test.describe("히어로 봇 @regression", () => {
     await seen.dispose();
     expect(values.every((value) => value === "parked")).toBe(true);
     expect(await turn(page)).toEqual(before);
-    // 줄어든 모션은 기본 자세(눈 뜸) 그대로, 잠들지 않는다.
+    // 줄어든 모션은 기본 자세(눈 뜸) 그대로, 잠들지 않고 뛰지도 않는다.
     await expect(canvas(page)).toHaveAttribute("data-bot-rest", "awake");
     expect(before).toEqual([0, 0]);
+    await page.getByRole("button", { name: "봇 바꾸기" }).click();
+    await page.keyboard.press("ArrowRight");
+    await expect(bot(page)).toHaveAttribute("data-bot", "flower");
+    await page.waitForTimeout(600);
+    expect(await hops(page), "줄어든 모션은 뛰지 않음").toBe(0);
   });
 
   test("봇 바꾸기: 키보드로 고르고, 흔들림·빈 그림 없이 바뀌고, 새로고침 뒤에도 기억", async ({ page }) => {
@@ -242,6 +285,8 @@ test.describe("히어로 봇 @regression", () => {
     await expect(bot(page)).toHaveAttribute("data-bot", "flower");
     await expect.poll(() => page.evaluate(() => window.__frames)).toBeGreaterThanOrEqual(40);
     expect(await page.evaluate(() => window.__blank)).toBe(0);
+    // 새 몸은 한 바퀴 돌며 한 번 뛰어 나온다(사용자 11-02).
+    expect(await hops(page), "바꿀 때 한 번").toBe(1);
     expect(await page.evaluate(() => localStorage.getItem("loakraken-bot"))).toBe("flower");
 
     await page.keyboard.press("Escape");
