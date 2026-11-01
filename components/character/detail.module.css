@@ -1386,9 +1386,12 @@
   border-radius: 6px;
   background: var(--primary);
 }
+/* A card holds the icon, the name (its longest word, '크림스네일의', on one
+   line) and the share: 220px at least, so narrow columns (tablet portrait)
+   drop to fewer cards instead of one name letter per line (user 11-01). */
 .collectionGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 1fr));
   gap: 8px;
   padding: 0;
   list-style: none;
@@ -1432,6 +1435,8 @@
 .collectionName strong {
   font-size: 14px;
   font-weight: 600;
+  /* Breaks between words, not letters; anywhere only as the long-text guard. */
+  word-break: keep-all;
   overflow-wrap: anywhere;
 }
 .collectionName small {
