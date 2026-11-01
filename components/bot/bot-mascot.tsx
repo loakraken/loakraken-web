@@ -5,7 +5,8 @@
 // rig (BotAvatarSim) and renderer (drawBotAvatarFrame), both public exports.
 // The stock <BotAvatar> runs a frame loop for as long as it is on screen and
 // only follows a pointer within three head widths; here:
-//  - it follows the pointer anywhere in `area` (outside it, it faces front);
+//  - with `follow`, it follows the pointer anywhere in the window, header
+//    included (user, 11-02), and faces front once a mouse leaves the window;
 //  - automatic motion (blinks, breathing, glances, the working hops) runs
 //    only while there is something to answer: for `restAfter` ms after load
 //    and after the last pointer move, and the whole time it is `working`.
@@ -24,7 +25,7 @@
 // The state API is generic so the same bot can later be the assistant's
 // face: working = answering, sleeping = idle.
 
-import { useEffect, useRef, useState, type RefObject } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { BotAvatarPose, BotAvatarSim as Sim, BotAvatarDrawConfig } from "bot-avatars";
 import { BOT_NAMES, type BotState, type BotType } from "./bot-types";
 
@@ -126,7 +127,7 @@ export function BotMascot({
   type,
   state = "default",
   size = 120,
-  area,
+  follow = false,
   paused = false,
   still = false,
   restAfter = 5000,
@@ -138,8 +139,8 @@ export function BotMascot({
   state?: BotState;
   /** The body's box in px; the canvas draws past it for hops, without layout. */
   size?: number;
-  /** Where the pointer is followed; outside it the bot faces front. */
-  area?: RefObject<HTMLElement | null>;
+  /** Follow the pointer anywhere in the window. */
+  follow?: boolean;
   paused?: boolean;
   still?: boolean;
   restAfter?: number;
@@ -251,25 +252,30 @@ export function BotMascot({
     };
     wake.current = () => { until = performance.now() + restAfter; run(); };
 
+    // Strength stays 1 once the pointer has moved: at 0 the library's idle
+    // gaze takes the head and turns it side to side on its own, so it could
+    // look away from the pointer (the old hero-only area, v0.3.6.1).
     const aim = (event: PointerEvent) => {
-      const box = area?.current?.getBoundingClientRect();
-      const inside = box && event.clientX >= box.left && event.clientX <= box.right && event.clientY >= box.top && event.clientY <= box.bottom;
-      if (!box || !inside) {
-        if (ptr.s === 0) return;
-        ptr.s = 0;
-      } else {
-        const r = el.getBoundingClientRect();
-        const dx = event.clientX - (r.left + r.width / 2);
-        const dy = event.clientY - (r.top + r.height / 2);
-        const d = Math.hypot(dx, dy) || 1;
-        // As far as the eye tracker looks: the face reaches the rim as the
-        // pointer reaches the area's edge.
-        const reach = Math.max(60, Math.min(box.width, box.height) * 0.28);
-        const far = Math.min(1, Math.tanh(d / reach) * 1.2);
-        ptr.x = (dx / d) * far;
-        ptr.y = (dy / d) * far;
-        ptr.s = 1;
-      }
+      const r = el.getBoundingClientRect();
+      const cx = r.left + r.width / 2;
+      const cy = r.top + r.height / 2;
+      // Each axis on its own: the face reaches the rim as the pointer reaches
+      // the window's edge on that side. (The rig turns 22° per unit across
+      // but tips only 12° per unit up and down, so a direction vector left a
+      // wide window's corners with almost no tilt.)
+      const reach = (delta: number, before: number, after: number) =>
+        clamp(Math.tanh((1.5 * delta) / Math.max(60, delta > 0 ? after : before)) * 1.1, -1, 1);
+      ptr.x = reach(event.clientX - cx, cx, innerWidth - cx);
+      ptr.y = reach(event.clientY - cy, cy, innerHeight - cy);
+      ptr.s = 1;
+      wake.current();
+    };
+    // A mouse or pen leaving the window: face front. A lifted finger also
+    // "leaves"; the head stays where it was until it rests.
+    const away = (event: PointerEvent) => {
+      if (event.relatedTarget || event.pointerType === "touch") return;
+      ptr.x = 0;
+      ptr.y = 0;
       wake.current();
     };
 
@@ -279,15 +285,19 @@ export function BotMascot({
     io.observe(el);
     const onVisible = () => { if (!document.hidden) run(); };
     document.addEventListener("visibilitychange", onVisible);
-    if (area) window.addEventListener("pointermove", aim, { passive: true });
+    if (follow) {
+      window.addEventListener("pointermove", aim, { passive: true });
+      window.addEventListener("pointerout", away, { passive: true });
+    }
     return () => {
       cancelAnimationFrame(raf);
       wake.current = () => {};
       io.disconnect();
       document.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener("pointermove", aim);
+      window.removeEventListener("pointerout", away);
     };
-  }, [lib, type, boxPx, theme, still, area, restAfter, stillState]);
+  }, [lib, type, boxPx, theme, still, follow, restAfter, stillState]);
 
   // The box: `--bot-size` from the page's CSS when it sets one (so a
   // breakpoint never resizes it after hydration), else `size`. The canvas
