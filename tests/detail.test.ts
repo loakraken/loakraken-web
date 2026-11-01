@@ -122,14 +122,18 @@ test("only invested skills count for part break and counter (backend guidance)",
       name: "트포",
       tripods: [{ tier: 0, slot: 1, name: "t", icon: null, effect: null }],
     }),
-    // 각성기·초각성: Lv.1, no tripods, still in the default list (QA 11-01).
-    skill({ name: "각성", skillType: 1 }),
-    skill({ name: "초각성", skillType: 101 }),
+    // 각성기·초각성기 (100/101): both of each pair are listed and the equipped
+    // one is unknown, so they stay out of the default list, even when levelled.
+    skill({ name: "각성", skillType: 100 }),
+    skill({ name: "초각성기", skillType: 101, level: 10, rune: { name: "속행", icon: null, grade: "영웅" } }),
+    // 초각성 스킬 (1) follows the normal rule: Lv.1 without anything is out, invested is in.
+    skill({ name: "초각성 Lv1", skillType: 1 }),
+    skill({ name: "초각성 스킬", skillType: 1, level: 12 }),
     skill({ name: "모름", skillType: 7 }),
   ];
   assert.deepEqual(
     activeSkills(skills).map((item) => item.name),
-    ["사용", "카운터", "트포", "각성", "초각성"],
+    ["사용", "카운터", "트포", "초각성 스킬"],
   );
   const summary = skillSummary(skills);
   assert.equal(summary.partBreakCount, 1);
