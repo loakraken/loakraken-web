@@ -42,6 +42,7 @@ import {
   statNumber,
   stoneBonus,
   positionOf,
+  splitEffect,
   type Equipment,
   type Skill,
 } from "@/lib/character/detail";
@@ -425,11 +426,14 @@ function Quality({ value }: { value: number | null | undefined }) {
 function GradeLine({
   grade,
   counts,
+  wide,
   children,
 }: {
   grade: unknown;
   /** Whether the line counts for this character's role (null: not decided, left as is). */
   counts?: boolean | null;
+  /** Across every column of a multi-column list (a sentence effect). */
+  wide?: boolean;
   children: ReactNode;
 }) {
   return (
@@ -437,6 +441,7 @@ function GradeLine({
       className={styles.gradeLine}
       data-grade={isGrade(grade) ? grade : undefined}
       data-other-role={counts === false || undefined}
+      data-wide={wide || undefined}
     >
       <span>{isGrade(grade) ? GRADE_LABEL[grade] : "·"}</span>
       {children}
@@ -614,14 +619,17 @@ function EquipmentPanel({ data }: { data: Character }) {
       {groups.bracelet && (
         <div className={styles.equipFoot}>
           <div className={styles.footItem} data-wide="">
-            <ItemTooltip item={groups.bracelet} slot="팔찌" extra={extraOf(groups.bracelet)}>
-              <GameIcon
-                src={groups.bracelet.icon}
-                grade={groups.bracelet.grade}
-                size={40}
-              />
-            </ItemTooltip>
             <BraceletBody
+              icon={
+                <ItemTooltip item={groups.bracelet} slot="팔찌" extra={extraOf(groups.bracelet)}>
+                  <GameIcon
+                    src={groups.bracelet.icon}
+                    grade={groups.bracelet.grade}
+                    size={40}
+                  />
+                </ItemTooltip>
+              }
+              tier={groups.bracelet.detail?.tier ?? null}
               name={text(groups.bracelet.name)}
               effects={groups.bracelet.detail?.braceletEffects ?? []}
               efficiency={data.braceletEfficiency}
@@ -642,10 +650,14 @@ function EquipmentPanel({ data }: { data: Character }) {
  * carries its definition (A22).
  */
 function BraceletBody({
+  icon,
+  tier,
   name,
   effects,
   efficiency: given,
 }: {
+  icon: ReactNode;
+  tier: number | null;
   name: string;
   effects: { text: string; grade: unknown }[];
   efficiency: Character["braceletEfficiency"];
@@ -653,11 +665,40 @@ function BraceletBody({
   // Off on this deployment: as if there were no efficiency (nothing drawn).
   const real = braceletRealView(useContext(CharacterEfficiencyEnabled) ? given?.real : null);
   const [devil, setDevil] = useState(false);
+  // One compact row (user 11-01): the item on the left, the effect lines in two
+  // columns with each value at its line's end, 팔찌 효율 in its own cell on the right.
   return (
-    <div className={styles.braceletBody}>
-      <strong>팔찌</strong>
+    <div className={styles.braceletRow}>
+      <div className={styles.braceletId}>
+        {icon}
+        <span>
+          <strong>팔찌</strong>
+          {tier != null && <span className={styles.tierText}>T{tier}</span>}
+        </span>
+      </div>
+      {effects.length ? (
+        <ul className={styles.braceletLines}>
+          {effects.map((effect, i) => {
+            const split = splitEffect(effect.text);
+            return (
+              <GradeLine key={i} grade={effect.grade} wide={!split}>
+                {split ? (
+                  <>
+                    <span className={styles.braceletLineName}>{split.name}</span>
+                    <span className={styles.braceletLineValue}>{split.value}</span>
+                  </>
+                ) : (
+                  <span className={styles.preLine}>{effect.text}</span>
+                )}
+              </GradeLine>
+            );
+          })}
+        </ul>
+      ) : (
+        <small className={styles.braceletLines}>{name}</small>
+      )}
       {(real.state === "ready" || real.state === "pending" || real.state === "unavailable") && (
-        <p className={styles.braceletEffHead}>
+        <p className={styles.braceletEffCell}>
           <Tooltip>
             <TooltipTrigger className={styles.braceletEffTerm} aria-label="팔찌 효율: 이 팔찌가 딜을 몇 % 올려 주는지예요.">
               팔찌 효율
@@ -687,17 +728,6 @@ function BraceletBody({
             </button>
           )}
         </p>
-      )}
-      {effects.length ? (
-        <ul className={styles.gradeList} data-flow="">
-          {effects.map((effect, i) => (
-            <GradeLine key={i} grade={effect.grade}>
-              <span className={styles.preLine}>{effect.text}</span>
-            </GradeLine>
-          ))}
-        </ul>
-      ) : (
-        <small>{name}</small>
       )}
     </div>
   );

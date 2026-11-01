@@ -449,11 +449,86 @@
   color: var(--muted-foreground);
   font-size: 12px;
 }
-/* 팔찌 효율 (backend #350): the total under the name, each line's share at
-   the end of its own effect line on demand. */
-.braceletBody {
-  min-width: 0;
+/* The bracelet in one compact row (user 11-01): the item, its effect lines in
+   two columns (each value at its line's end), 팔찌 효율 in a cell on the right.
+   Narrow: the item and the cell on top, the lines in one column below. */
+.braceletRow {
+  display: grid;
   flex: 1;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas: "id lines eff";
+  align-items: center;
+  gap: 10px 24px;
+  min-width: 0;
+}
+.braceletId {
+  grid-area: id;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.braceletId .tierText {
+  display: block;
+}
+.braceletLines {
+  grid-area: lines;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px 24px;
+  min-width: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.braceletLines .gradeLine {
+  display: flex;
+  align-items: baseline;
+  min-width: 0;
+}
+.braceletLines .gradeLine[data-wide] {
+  grid-column: 1 / -1;
+}
+.braceletLines .gradeLine span:first-child {
+  flex: none;
+}
+.braceletLineName {
+  min-width: 0;
+}
+.braceletLineValue {
+  flex: none;
+  margin-left: auto;
+  padding-left: 8px;
+  color: var(--muted-foreground);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.braceletEffCell {
+  grid-area: eff;
+  display: grid;
+  justify-items: end;
+  gap: 2px;
+  min-width: 96px;
+  /* The 'unavailable' sentence wraps here instead of widening the cell. */
+  max-width: 12em;
+  padding-left: 20px;
+  border-left: 1px solid var(--secondary);
+  font-size: 12px;
+  text-align: right;
+}
+.braceletEffCell b {
+  font-size: 18px;
+}
+@media (max-width: 640px) {
+  .braceletRow {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "id eff"
+      "lines lines";
+  }
+  .braceletLines {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 .braceletEffHead {
   display: flex;
@@ -472,6 +547,7 @@
 }
 /* The same increase colour as the spec-up tab (blue is "done", A26). */
 .braceletEffHead b,
+.braceletEffCell b,
 .braceletEffShare {
   color: var(--gain, var(--foreground));
   font-weight: 700;
