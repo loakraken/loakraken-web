@@ -78,7 +78,7 @@ test.describe("스펙업 추천 순서 @smoke", () => {
     await expect(section(page).getByText("시세를 몰라 순서에서 뺀 항목 3개")).toBeVisible();
   });
 
-  for (const width of [320, 360])
+  for (const width of [320, 360, 390, 768])
     test(`스톤 단계(각인 두 개)의 긴 바꿈 글자도 ${width}에서 가로로 넘치지 않음`, async ({ page }) => {
       await page.setViewportSize({ width, height: 900 });
       await page.goto(characterPath("스펙순서스톤", "specup"));
@@ -90,15 +90,19 @@ test.describe("스펙업 추천 순서 @smoke", () => {
         [...li.children].filter((el) => el.scrollWidth > el.clientWidth + 1).map((el) => el.textContent.trim()),
       );
       expect(cut, "잘린 칸").toEqual([]);
-      // The change text stays in its own column: it does not run under the cost (QA 11-01 at 320).
-      const [change, cost] = await stone.evaluate((li) =>
-        [li.children[2], li.children[4]].map((el) => {
-          const r = el.getBoundingClientRect();
-          return { left: Math.round(r.left), right: Math.round(r.right), top: Math.round(r.top), bottom: Math.round(r.bottom) };
-        }),
+      // The change text stays in its own column: it never runs under the figures
+      // beside it (QA 11-01: under the cost at 320, onto it at 390).
+      const boxes = await stone.evaluate((li) =>
+        Object.fromEntries(
+          [["change", 2], ["delta", 3], ["cost", 4]].map(([name, i]) => {
+            const r = li.children[i].getBoundingClientRect();
+            return [name, { left: r.left, right: r.right, top: r.top, bottom: r.bottom }];
+          }),
+        ),
       );
-      const overlaps = change.right > cost.left + 1 && change.left < cost.right - 1 && change.bottom > cost.top + 1 && change.top < cost.bottom - 1;
-      expect(overlaps, `바꿈 ${JSON.stringify(change)} · 비용 ${JSON.stringify(cost)}`).toBe(false);
+      const meet = (a, b) => a.right > b.left + 1 && a.left < b.right - 1 && a.bottom > b.top + 1 && a.top < b.bottom - 1;
+      for (const other of ["delta", "cost"])
+        expect(meet(boxes.change, boxes[other]), `바꿈과 ${other} 겹침 ${JSON.stringify(boxes)}`).toBe(false);
       await expectNoHorizontalOverflow(page);
     });
 
