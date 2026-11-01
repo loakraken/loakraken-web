@@ -714,7 +714,8 @@ createServer(async (req, res) => {
       return {
         slot, slotName, options: opts,
         cells: combos.map((levels, i) => {
-          const pending = slot === "RING" && levels.join() === "LOW,MID";
+          // 하상: a combination the board still shows (중하·하중 are left out, user 11-02).
+          const pending = slot === "RING" && levels.join() === "LOW,HIGH";
           return {
             levels, label: levels.map((l) => word[l]).join(""),
             optionLabels: levels.map((l, k) => `${opts[k].shortName} ${word[l]}`),

@@ -30,6 +30,7 @@ import {
   type AccessoryPick,
   type Level,
   type Slot,
+  withoutDropped,
 } from "@/lib/market/auction-accessories";
 import { goldText } from "@/lib/market/board";
 import { boardRefresh } from "@/lib/market/refresh";
@@ -42,8 +43,8 @@ import styles from "./accessory-board.module.css";
 /** Gold amounts as the exchange board writes them (…G); counts stay plain numbers. */
 const gold = (n: number | null | undefined) => (n == null ? "-" : goldText(n));
 const count = (n: number | null | undefined) => (n == null ? "-" : n.toLocaleString("ko-KR"));
-/** Most cells a slot has: two key effects × three grades without 하하 (one effect: 3). */
-const CELL_ROOM = 8;
+/** Most cells a slot has: two key effects × three grades without 하하, 중하, 하중 (one effect: 3). */
+const CELL_ROOM = 6;
 const kst = new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
 
 function Change({ rate }: { rate: number | null | undefined }) {
@@ -172,7 +173,8 @@ export function AccessoryBoardView({ initialFilter, initialPick }: { initialFilt
   });
   const boardLimit = useRateLimit(board.error);
   const listingLimit = useRateLimit(listings.error);
-  const data = board.data?.data;
+  const shown = board.data?.data;
+  const data = useMemo(() => (shown ? withoutDropped(shown) : undefined), [shown]);
   const page = listings.data?.data;
   const pages = page ? Math.max(1, Math.min(ACCESSORY_LISTING_MAX_PAGE, Math.ceil(page.totalCount / 10))) : 1;
 
