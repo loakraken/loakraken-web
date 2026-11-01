@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState, type FormEvent } from "react";
+import { useId, useRef, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MAX_KEY_LENGTH, REMEMBER_DAYS, normalizeUserKey, type UserKeyStatus } from "@/lib/byok/key";
@@ -20,6 +20,7 @@ export function ApiKeyPanel({ initial, portal }: { initial: UserKeyStatus; porta
   const [busy, setBusy] = useState<"save" | "clear" | null>(null);
   const [error, setError] = useState("");
   const [note, setNote] = useState("");
+  const field = useRef<HTMLInputElement>(null);
   const fieldId = useId();
   const errorId = `${fieldId}-error`;
 
@@ -68,6 +69,8 @@ export function ApiKeyPanel({ initial, portal }: { initial: UserKeyStatus; porta
       if (!response.ok) throw new Error("clear");
       setStatus({ set: false, hint: null, expiresAt: null });
       setNote("키를 지웠어요. 이제 사이트 공용 키로 조회해요.");
+      // The clear button goes away with the key: keep focus in the form, not on the page body.
+      field.current?.focus();
     } catch {
       setError("키를 지우지 못했어요. 잠시 뒤 다시 시도해 주세요.");
     } finally {
@@ -98,6 +101,7 @@ export function ApiKeyPanel({ initial, portal }: { initial: UserKeyStatus; porta
       <form className={styles.form} onSubmit={save} noValidate>
         <label htmlFor={fieldId}>{status.set ? "다른 키로 바꾸기" : "API 키"}</label>
         <Input
+          ref={field}
           id={fieldId}
           name="key"
           type="password"

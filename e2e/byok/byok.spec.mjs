@@ -58,6 +58,7 @@ test("키 등록: 봉인 쿠키 속성, 화면엔 끝 네 글자만, 검색에 �
   await gotoReady(page, "/settings/api-key");
   await page.getByRole("button", { name: "키 지우기" }).click();
   await expect(page.getByRole("status").filter({ hasText: "키를 지웠어요" })).toBeVisible();
+  await expect(page.getByLabel("API 키"), "지우기 버튼이 사라져도 초점은 입력란에").toBeFocused();
   expect(await keyCookie(context)).toBeUndefined();
   await gotoReady(page, characterPath("키지운뒤"));
   await expect(page.getByRole("heading", { level: 1, name: "키지운뒤" })).toBeVisible();
