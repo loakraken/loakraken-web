@@ -373,6 +373,17 @@ function refiningPlan(request) {
     if (Math.abs(k - Math.round(k)) > 0.001 || k < -0.001 || k > 10.001) return null;
     startFailures = Math.round(k);
     failedAttemptsFrom = "SUCCESS_RATE";
+    // api #830: the energy must be reachable after those failures, between no breath/book
+    // on any try and this mock's breath × book on every try (100% cap, open at 10).
+    const base = baseBp(request.fromStage + 1);
+    let low = 0, high = 0;
+    for (let i = 0; i < startFailures; i++) {
+      const rate = base * (1 + 0.1 * i);
+      low += Math.floor((rate * 100) / 215) / 100;
+      high += Math.floor((Math.min(10000, rate * 1.5 * 1.3) * 100) / 215) / 100;
+    }
+    const energy = request.currentArtisanEnergy ?? 0;
+    if (energy < low - 0.001 || (startFailures < 10 && energy > high + 0.001)) return "ENERGY";
   }
   const stages = [];
   for (let target = request.fromStage + 1; target <= request.toStage; target++) {
@@ -788,6 +799,7 @@ createServer(async (req, res) => {
       return send({ code: "INVALID_REQUEST" }, 400);
     const plan = refiningPlan(request);
     if (!plan) return send({ code: "REFINING_SUCCESS_RATE_MISMATCH", message: "현재 성공 확률이 이 단계의 값과 맞지 않습니다." }, 400);
+    if (plan === "ENERGY") return send({ code: "REFINING_ARTISAN_ENERGY_MISMATCH", message: "현재 성공 확률과 장인의 기운이 맞지 않습니다." }, 400);
     return send(plan);
   }
   // Combat-power simulator (backend #240). Stage A answers UNSUPPORTED for every

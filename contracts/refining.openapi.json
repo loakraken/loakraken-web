@@ -35,7 +35,7 @@
             }
           },
           "400": {
-            "description": "INVALID_REQUEST: 단계 범위·장인의 기운·실패 횟수 오류, REFINING_SUCCESS_RATE_MISMATCH: 현재 성공 확률이 이 단계의 값과 맞지 않음",
+            "description": "INVALID_REQUEST: 단계 범위·장인의 기운·실패 횟수 오류, REFINING_SUCCESS_RATE_MISMATCH: 현재 성공 확률이 이 단계의 값과 맞지 않음, REFINING_ARTISAN_ENERGY_MISMATCH: 그 실패 횟수 뒤에 나올 수 없는 장인의 기운",
             "content": {
               "application/json": {
                 "schema": {

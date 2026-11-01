@@ -170,6 +170,9 @@ test("a rate that fits no failure count reads as its own message", () => {
   const copy = refiningFailureCopy({ code: "REFINING_SUCCESS_RATE_MISMATCH" });
   assert.equal(copy.title, "현재 성공 확률을 확인해 주세요");
   assert.match(copy.text, /숨결·책을 올리기 전/);
+  const energy = refiningFailureCopy({ code: "REFINING_ARTISAN_ENERGY_MISMATCH" });
+  assert.equal(energy.title, "장인의 기운을 확인해 주세요");
+  assert.match(energy.text, /두 값을 다시 확인해 주세요/);
 });
 
 test("the answer's failure count and its origin pass the contract, and older answers without them too", () => {

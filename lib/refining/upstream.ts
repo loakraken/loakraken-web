@@ -3,7 +3,7 @@ import { parsePlanRequest, type PlanEnvelope } from "./model";
 import { isPlanEnvelope } from "./validate";
 
 const errorCodes: Record<number, readonly string[]> = {
-  400: ["INVALID_REQUEST", "REFINING_SUCCESS_RATE_MISMATCH"],
+  400: ["INVALID_REQUEST", "REFINING_SUCCESS_RATE_MISMATCH", "REFINING_ARTISAN_ENERGY_MISMATCH"],
   415: ["UNSUPPORTED_MEDIA_TYPE"],
 };
 

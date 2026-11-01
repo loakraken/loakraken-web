@@ -1,7 +1,8 @@
 // 재련 기대 비용 첫 단계 진행 상황(사용자 11-02: '실패 횟수'가 헷갈림, PM 총괄 option A):
 // 장인의 기운과 숨결·책 전 '현재 성공 확률'을 받고, 실패 횟수는 api가 성공 확률로 찾는다.
 // 요청에 실패 횟수를 보내지 않고, 답의 횟수를 "실패 n회로 계산했어요."로 보여 준다. 맞지 않는
-// 확률은 그 이유를 말한다. 목 서버: 무기 +19 기본 8.60% → 실패 1회면 9.46%.
+// 확률은 그 이유를 말한다. 목 서버: 무기 +19 기본 8.60% → 실패 1회면 9.46%, 그 뒤 장인의
+// 기운은 4.00~7.80(숨결·책 없음 ~ 매번 둘 다).
 import { test, expect, expectNoHorizontalOverflow } from "../support/fixtures.mjs";
 import { shiftsDuring, watchShifts } from "../support/shifts.mjs";
 
@@ -20,6 +21,7 @@ test("실패 횟수 칸 없이, 성공 확률을 넣으면 그 값만 보내고 
   const asked = page.waitForRequest(
     (r) => r.url().includes("/api/refining/plans") && r.postDataJSON()?.currentSuccessRate === 9.46,
   );
+  await row.getByRole("spinbutton", { name: "장인의 기운(%)" }).fill("4");
   await rate.fill("9.46");
   const body = (await asked).postDataJSON();
   expect(body.equipmentType).toBe("WEAPON");
@@ -34,6 +36,14 @@ test("이 단계에 나올 수 없는 성공 확률이면 숨결·책 전 값을
   await expect(page.getByText(/숨결·책을 올리기 전 재련 창의 성공 확률을 넣어 주세요/)).toBeVisible();
 });
 
+test("성공 확률로 정한 실패 횟수 뒤에 나올 수 없는 장인의 기운이면 두 값을 다시 보라고 말한다 @regression", async ({ page }) => {
+  // 실패 1회(9.46%) 뒤 장인의 기운은 0일 수 없다(api #830 REFINING_ARTISAN_ENERGY_MISMATCH).
+  const row = await openProgress(page);
+  await row.getByRole("spinbutton", { name: "현재 성공 확률(%)" }).fill("9.46");
+  await expect(page.getByText("장인의 기운을 확인해 주세요")).toBeVisible();
+  await expect(page.getByText(/숨결·책을 올리기 전 두 값을 다시 확인해 주세요/)).toBeVisible();
+});
+
 test("320: '실패 n회' 줄은 처음부터 자리를 잡아, 답이 와도 아무것도 움직이지 않는다 @regression", async ({ page }) => {
   await watchShifts(page);
   await page.setViewportSize({ width: 320, height: 800 });
@@ -44,6 +54,7 @@ test("320: '실패 n회' 줄은 처음부터 자리를 잡아, 답이 와도 아
   });
   const row = await openProgress(page);
   const rate = row.getByRole("spinbutton", { name: "현재 성공 확률(%)" });
+  await row.getByRole("spinbutton", { name: "장인의 기운(%)" }).fill("4");
   await expect(rate).toBeVisible();
   const shifts = await shiftsDuring(page, async () => {
     await rate.fill("9.46");
