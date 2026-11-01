@@ -85,6 +85,9 @@ function withSimulatorGear(data) {
         { name: "공격력 감소", level: 0 },
       ],
     }),
+    // 나침반·부적: 내실 special equipment only, never in the equipment tab (user 11-01).
+    make("나침반", "테스트 나침반", {}),
+    make("부적", "테스트 부적", {}),
   );
   return data;
 }

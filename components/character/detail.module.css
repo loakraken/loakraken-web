@@ -495,14 +495,6 @@
   display: flex;
   align-items: baseline;
 }
-.inlineList {
-  list-style: none;
-  padding: 0;
-  font-size: 12px;
-}
-.inlineList b {
-  font-weight: 600;
-}
 
 /* Gems */
 .gemGrid {
