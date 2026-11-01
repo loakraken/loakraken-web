@@ -13,8 +13,11 @@ for (const width of [1280, 360]) {
     await gotoReady(page, "/market");
     const first = rows(page).first();
     await expect(first).toBeVisible();
-    // The item name is the strong's first text node (the tier badge follows it).
-    const name = (await first.locator("strong").evaluate((el) => el.firstChild.textContent)).trim();
+    // The item name is the strong's first text node with letters (the star's place comes before it, the tier badge after).
+    const name = await first
+      .locator("strong")
+      .evaluate((el) => [...el.childNodes].find((node) => node.nodeType === Node.TEXT_NODE && node.textContent.trim()).textContent.trim());
+    expect(name.length, "품목 이름").toBeGreaterThan(0);
     await expect(mark(first)).toHaveCount(0);
     await first.click();
     const rowWidth = (await first.boundingBox()).width;
