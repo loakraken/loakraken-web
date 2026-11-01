@@ -1,7 +1,8 @@
 // 회귀(사용자 11-01, 11-02): 홈·소개 히어로의 봇. 창 어디서든(머리글 포함) 포인터를 따라 보고,
 // 봇·배경·제목·검색창을 눌러도 따라보기는 멈추지 않는다(봇을 누르면 자동 움직임만
-// 멈춤). 마지막 움직임 5초 뒤에는 쉬는 자세로 그리기를 멈춘다(유휴 프레임 0).
-// 줄어든 모션은 정지 그림 하나. 첫 HTML부터 같은 상자라 라이브러리가 늦게 와도,
+// 멈춤). 마지막 움직임 5초 뒤에는 잠든 자세(눈 감고 고개 숙임)로 그리기를 멈추고
+// (유휴 프레임 0), 다음 움직임에 깨어난다. 멈춤 상태면 깬 채로 쉰다.
+// 줄어든 모션은 정지 그림 하나(눈 뜬 기본 자세). 첫 HTML부터 같은 상자라 라이브러리가 늦게 와도,
 // '봇 바꾸기'로 몸을 바꿔도 흔들림 0이고, 바꾸는 순간 빈 그림이 끼지 않는다.
 // 고른 봇은 기억된다. 테두리(원)는 없다.
 import { test, expect, gotoReady, expectNoHorizontalOverflow } from "../support/fixtures.mjs";
@@ -118,11 +119,15 @@ test.describe("히어로 봇 @regression", () => {
     await followsHorizontally(page);
   });
 
-  test("움직임이 멎고 5초 뒤 그리기를 멈추고, 다음 움직임에 깨어난다", async ({ page }) => {
+  test("움직임이 멎고 5초 뒤 잠든 그림으로 그리기를 멈추고, 다음 움직임에 깨어난다", async ({ page }) => {
     await desktop(page);
     await followsHorizontally(page);
     await expect(canvas(page)).toHaveAttribute("data-bot-loop", "running");
+    await expect(canvas(page)).toHaveAttribute("data-bot-rest", "awake");
     await expect(canvas(page)).toHaveAttribute("data-bot-loop", "parked", { timeout: 9000 });
+    // 잠든 자세: 눈을 감고 고개를 숙인다(라이브러리의 sleeping, 약 -16°).
+    await expect(canvas(page)).toHaveAttribute("data-bot-rest", "asleep");
+    expect((await turn(page))[1]).toBeLessThan(-0.2);
     // 쉬는 동안 한 번도 그리지 않는다(유휴 프레임 0).
     const draws = await canvas(page).evaluate(async (el) => {
       const ctx = el.getContext("2d");
@@ -135,8 +140,26 @@ test.describe("히어로 봇 @regression", () => {
     });
     expect(draws).toBe(0);
     const area = await hero(page).boundingBox();
-    await page.mouse.move(area.x + 4, area.y + area.height / 2);
+    const box = await bot(page).boundingBox();
+    await page.mouse.move(area.x + 4, box.y + box.height / 2);
     await expect(canvas(page)).toHaveAttribute("data-bot-loop", "running");
+    await expect(canvas(page)).toHaveAttribute("data-bot-rest", "awake");
+    // 깨어나 고개를 들고 다시 포인터(왼쪽)를 본다.
+    await expect.poll(async () => (await turn(page))[1], { message: "고개를 든다" }).toBeGreaterThan(-0.15);
+    await expect.poll(async () => (await turn(page))[0], { message: "왼쪽을 본다" }).toBeLessThan(-0.2);
+  });
+
+  test("멈춤 상태에서는 잠들지 않고 깬 채로 쉰다", async ({ page }) => {
+    await desktop(page);
+    await bot(page).click();
+    await expect(pause(page)).toHaveAttribute("aria-pressed", "true");
+    await expect(canvas(page)).toHaveAttribute("data-bot-loop", "parked", { timeout: 9000 });
+    await expect(canvas(page)).toHaveAttribute("data-bot-rest", "awake");
+    // 다시 재생하면 5초 뒤 잠든다.
+    await bot(page).click();
+    await expect(pause(page)).toHaveAttribute("aria-pressed", "false");
+    await expect(canvas(page)).toHaveAttribute("data-bot-rest", "asleep", { timeout: 9000 });
+    await expect(canvas(page)).toHaveAttribute("data-bot-loop", "parked");
   });
 
   test("봇 그림 코드는 첫 로드에 없다: 페이지 로드 뒤 쉴 때 받아 그린다", async ({ page }) => {
@@ -185,6 +208,9 @@ test.describe("히어로 봇 @regression", () => {
     await seen.dispose();
     expect(values.every((value) => value === "parked")).toBe(true);
     expect(await turn(page)).toEqual(before);
+    // 줄어든 모션은 기본 자세(눈 뜸) 그대로, 잠들지 않는다.
+    await expect(canvas(page)).toHaveAttribute("data-bot-rest", "awake");
+    expect(before).toEqual([0, 0]);
   });
 
   test("봇 바꾸기: 키보드로 고르고, 흔들림·빈 그림 없이 바뀌고, 새로고침 뒤에도 기억", async ({ page }) => {

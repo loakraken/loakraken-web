@@ -10,10 +10,13 @@
 //  - automatic motion (blinks, breathing, glances, the working hops) runs
 //    only while there is something to answer: for `restAfter` ms after load
 //    and after the last pointer move, and the whole time it is `working`.
-//    Then it eases into the state's still pose, eyes open, and the frame
-//    loop stops (WCAG 2.2.2 without a pause control; no frames while idle);
+//    Then it eases into a still pose and the frame loop stops (WCAG 2.2.2
+//    without a pause control; no frames while idle): in the default state it
+//    falls asleep (head down, lids shut; user, 11-02) and wakes on the next
+//    pointer move or tap; working, it rests in its own pose;
 //  - `paused` (the page's remembered pause) stops the automatic motion
-//    only: the head still turns with the pointer, which the visitor drives;
+//    only: the head still turns with the pointer, which the visitor drives,
+//    and it rests awake;
 //  - `still` (reduced motion) draws the still pose once and listens to
 //    nothing;
 //  - plastic for every body, its form baked before its first frame, so a
@@ -208,9 +211,12 @@ export function BotMascot({
     const sim: Sim = new lib.BotAvatarSim(Math.random(), live.current.state);
     sim.setJump({ every: 0 }); // no surprise jumps: it moves when you do
     const out = lib.restPose(live.current.state);
+    const asleep = lib.restPose("sleeping");
+    const restOut = lib.restPose("default");
     let raf = 0;
     let prev = 0;
     let k = 0; // 0 still … 1 live
+    let z = 0; // 0 awake … 1 asleep
     let until = performance.now() + restAfter; // the first seconds after load
     let seen = true;
     // The pointer, as the library's rig reads it: a direction from the head
@@ -226,7 +232,11 @@ export function BotMascot({
       if (sim.state !== s) sim.setState(s);
       const active = s === "working" || now < until;
       k = clamp(k + (active ? dt : -dt) / 0.45, 0, 1);
-      const rest = lib.restPose(s);
+      // Resting in the default state, it falls asleep: head down, lids shut
+      // (user, 11-02). Not while working, nor while paused (paused rests awake).
+      const sleepy = s === "default" && !p && !active;
+      z = clamp(z + (sleepy ? dt / 1.2 : -dt / 0.5), 0, 1);
+      const rest = z > 0 ? blend(lib.restPose(s), asleep, z * z * (3 - 2 * z), restOut) : lib.restPose(s);
       if (k > 0) {
         sim.setPointer(ptr.x, ptr.y, ptr.s);
         sim.update(dt);
@@ -239,15 +249,18 @@ export function BotMascot({
         }
         draw(out);
       }
-      if (k > 0 || active) raf = requestAnimationFrame(tick);
+      if (k > 0 || active || z !== (sleepy ? 1 : 0)) raf = requestAnimationFrame(tick);
       else {
-        draw(rest); // settled: the still pose, eyes open; the loop parks
+        // Settled: the still pose (asleep, or awake when paused); the loop parks.
+        draw(rest);
         el.dataset.botLoop = "parked";
+        el.dataset.botRest = z === 1 ? "asleep" : "awake";
       }
     };
     const run = () => {
       if (raf || !seen || document.hidden) return;
       el.dataset.botLoop = "running";
+      el.dataset.botRest = "awake";
       raf = requestAnimationFrame(tick);
     };
     wake.current = () => { until = performance.now() + restAfter; run(); };
@@ -287,6 +300,8 @@ export function BotMascot({
     document.addEventListener("visibilitychange", onVisible);
     if (follow) {
       window.addEventListener("pointermove", aim, { passive: true });
+      // A tap moves no pointer before it: it wakes the bot and aims it too.
+      window.addEventListener("pointerdown", aim, { passive: true });
       window.addEventListener("pointerout", away, { passive: true });
     }
     return () => {
@@ -295,6 +310,7 @@ export function BotMascot({
       io.disconnect();
       document.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener("pointermove", aim);
+      window.removeEventListener("pointerdown", aim);
       window.removeEventListener("pointerout", away);
     };
   }, [lib, type, boxPx, theme, still, follow, restAfter, stillState]);
@@ -314,6 +330,7 @@ export function BotMascot({
       <canvas
         ref={canvas}
         data-bot-loop="parked"
+        data-bot-rest="awake"
         style={{
           position: "absolute",
           left: `calc(${box} * -0.25)`,
