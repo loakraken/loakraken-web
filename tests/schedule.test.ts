@@ -79,16 +79,17 @@ test("upcoming: next round today per group with the names starting then", () => 
   );
 });
 
-test("chaos gates with the same rounds and rewards are one row naming the category, places kept", () => {
+test("chaos gates with the same rounds and rewards are one row naming the category, places kept (higher level first)", () => {
   const gate = (name: string, minItemLevel: number, times = ["18:50", "19:50"]) => ({ ...timed(name, times), minItemLevel });
   const gates = [gate("일렁이는 악마군단", 1580), gate("쿠르잔 북부", 1600), gate("베른 남부", 1580)];
   const merged = mergeSameRounds(gates, "카오스게이트");
   assert.equal(merged.length, 1);
   assert.equal(merged[0].name, "카오스게이트");
   assert.equal(merged[0].minItemLevel, 1580);
+  // User 11-02: higher entry level first; the same level keeps the official order.
   assert.deepEqual(merged[0].places?.map((place) => [place.name, place.minItemLevel]), [
-    ["일렁이는 악마군단", 1580],
     ["쿠르잔 북부", 1600],
+    ["일렁이는 악마군단", 1580],
     ["베른 남부", 1580],
   ]);
   // One unlike the rest stays as it is.

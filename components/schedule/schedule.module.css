@@ -398,3 +398,10 @@ li:has(> img) > .placeLine {
   border-radius: 50%;
   background: var(--kind);
 }
+/* 카오스게이트 clear gold: a coin in the reward icons' 20px box. */
+.gold svg {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  color: var(--grade-legendary-text);
+}

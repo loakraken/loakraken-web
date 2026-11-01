@@ -7,7 +7,8 @@ import { useEffect, useId, useState, type CSSProperties, type MouseEvent } from 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { keepPreviousData, useQueries, useQuery } from "@tanstack/react-query";
-import { ArrowRight, ChevronRight } from "@/components/ui/icons";
+import { ArrowRight, ChevronRight, Coin } from "@/components/ui/icons";
+import { chaosGateGold, chaosGateGoldLabel } from "@/lib/home/chaos-gate-gold";
 import { safeGameImage } from "@/lib/character/model";
 import { fetchSchedule, homeScheduleKey } from "@/lib/home/client";
 import {
@@ -30,6 +31,7 @@ import {
   categoryLabel,
   categoryOfPath,
   dayKinds,
+  highestFirst,
   mergeSameRounds,
   running,
   scheduleGroups,
@@ -124,13 +126,27 @@ function RewardItem({ reward }: { reward: Reward }) {
   );
 }
 
+/**
+ * 카오스게이트 clear gold (user 11-02): first in the reward line, with its
+ * amount only where the sources agree on one (lib/home/chaos-gate-gold).
+ */
+function GoldItem({ gold }: { gold: number | null }) {
+  return (
+    <li className={own.gold} title={gold == null ? "골드(수량은 구간마다 달라요)" : undefined}>
+      <Coin size={20} aria-hidden="true" />
+      <span>{chaosGateGoldLabel(gold)}</span>
+    </li>
+  );
+}
+
 /** One reward list inside the expanded panel; titled only when both kinds show. */
-function RewardList({ title, rewards }: { title: string | null; rewards: Reward[] }) {
-  if (!rewards.length) return null;
+function RewardList({ title, rewards, gold }: { title: string | null; rewards: Reward[]; gold?: number | null }) {
+  if (!rewards.length && gold === undefined) return null;
   return (
     <div>
       {title && <h4>{title}</h4>}
       <ul className={styles.rewardItems}>
+        {gold !== undefined && <GoldItem gold={gold} />}
         {rewards.map((reward) => (
           <RewardItem key={reward.name} reward={reward} />
         ))}
@@ -144,17 +160,35 @@ function RewardList({ title, rewards }: { title: string | null; rewards: Reward[
  * full list by item-level group (chaos gates differ by level), with rewards
  * tied to that day's rounds apart from the common ones.
  */
-function RowRewards({ name, groups, entry }: { name: string; groups: RewardGroup[]; entry?: Entry }) {
+function RowRewards({
+  name,
+  groups: given,
+  entry,
+  gold = false,
+}: {
+  name: string;
+  groups: RewardGroup[];
+  entry?: Entry;
+  /** 카오스게이트: clear gold leads the line and each level group. */
+  gold?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const id = useId();
+  // Higher entry level first (user 11-02); groups without a level keep their order.
+  const groups = highestFirst(given);
   const { top, rest } = rewardSummary(groups);
+  // A group's gold covers its level up to the next higher group's.
+  const golds = groups.map((group, i) => chaosGateGold(group.minItemLevel, i > 0 ? groups[i - 1].minItemLevel : null));
+  // On the row: the amount only when every group agrees on one.
+  const rowGold = golds.length && golds.every((value) => value === golds[0]) ? golds[0] : null;
   // 자세히 only when it shows more than the row (#1096): rewards cut off at
   // three, or a merged row's places. Otherwise it repeated the same icons.
   const more = rest > 0 || (!!entry && "places" in entry && entry.places.length > 0);
-  if (!top.length && !more) return null;
+  if (!top.length && !more && !gold) return null;
   return (
     <>
       <ul className={styles.rewardItems} aria-label={`${name} 보상`}>
+        {gold && <GoldItem gold={rowGold} />}
         {top.map((reward) => (
           <RewardItem key={reward.name} reward={reward} />
         ))}
@@ -190,7 +224,11 @@ function RowRewards({ name, groups, entry }: { name: string; groups: RewardGroup
               <section key={`${group.minItemLevel}-${i}`} aria-label={label ?? "보상"}>
                 {label && <h3>{label}</h3>}
                 <RewardList title="이 날 회차 보상" rewards={timed} />
-                <RewardList title={timed.length ? "공통 보상" : null} rewards={common} />
+                <RewardList
+                  title={timed.length ? "공통 보상" : null}
+                  rewards={common}
+                  gold={gold ? golds[i] : undefined}
+                />
               </section>
             );
           })}
@@ -277,11 +315,14 @@ function Section({
   hidePast,
   onShowTomorrow,
   withPlaces = false,
+  gold = false,
 }: {
   title: string;
   items: Row[];
   /** Chaos gates and field bosses: a merged row lists its places (last line, 자세히). */
   withPlaces?: boolean;
+  /** Chaos gates: clear gold in the reward line (user 11-02). */
+  gold?: boolean;
   live: boolean;
   /** The board clock (server render time until the client clock starts), so
    *  past rounds are already hidden in the first HTML (CLS, QA #181). */
@@ -351,6 +392,7 @@ function Section({
               name={item.name}
               groups={item.rewardGroups}
               entry={withPlaces && item.places ? { places: item.places } : undefined}
+              gold={gold}
             />
             {withPlaces && item.places && <small className={own.placeLine}>지역 {item.places.length}곳</small>}
           </li>
@@ -559,6 +601,7 @@ export function ScheduleBoard({
               hidePast={hidePast}
               onShowTomorrow={showTomorrow}
               withPlaces={group.key === "chaos-gate" || group.key === "field-boss"}
+              gold={group.key === "chaos-gate"}
               items={group.items}
               live={live}
               clock={now}
@@ -593,6 +636,7 @@ export function ScheduleBoard({
             hidePast={hidePast}
             onShowTomorrow={showTomorrow}
             withPlaces
+            gold
             items={mergeSameRounds(running(data.chaosGates), "카오스게이트")}
             live={live}
             clock={now}
