@@ -66,6 +66,10 @@ test("target input follows the backend rule: above 0, two decimals, at most twic
 test("a step kind without a label reads 기타 단계; 계승 has its own (PM-프론트 10-12)", () => {
   assert.equal(stepKindLabel("GEM_LEVEL"), "보석");
   assert.equal(stepKindLabel("EQUIPMENT_SUCCESSION"), "계승");
+  // The path's own kind names: 상급 재련 (was 기타 단계), 완갑 (api #809), 스톤 (api #812).
+  assert.equal(stepKindLabel("EQUIPMENT_ADVANCED_REFINE"), "상급 재련");
+  assert.equal(stepKindLabel("ARM_GUARD"), "완갑");
+  assert.equal(stepKindLabel("ABILITY_STONE"), "어빌리티 스톤");
   assert.equal(stepKindLabel("SOMETHING_NEW"), "기타 단계");
 });
 

@@ -69,6 +69,15 @@ test.describe("스펙업 추천 순서 @smoke", () => {
     await expect(section(page).getByRole("button", { name: "다시 계산" })).toBeVisible({ timeout: 10_000 });
   });
 
+  test("후보가 모두 시세를 몰라 단계가 없으면 그 이유를 말하고, 뺀 항목을 펼칠 수 있음", async ({ page }) => {
+    await page.goto(characterPath("스펙순서시세없음", "specup"));
+    await section(page).getByRole("button", { name: "추천 순서 보기" }).click();
+    await expect(section(page)).toContainText("올릴 수 있는 항목 3개 모두 시세를 몰라 순서를 만들 수 없어요.");
+    // The backend's "all picked" sentence would read as a finished list.
+    await expect(section(page)).not.toContainText("모두 골랐어요");
+    await expect(section(page).getByText("시세를 몰라 순서에서 뺀 항목 3개")).toBeVisible();
+  });
+
   test("서포터는 추천 순서 칸이 없음", async ({ page }) => {
     await page.goto(characterPath("상세서포터", "specup"));
     await expect(page.getByRole("table", { name: "스펙업 후보, 서포터 점수 순" })).toBeVisible();

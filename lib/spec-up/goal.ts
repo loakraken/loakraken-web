@@ -16,6 +16,11 @@ export type GoalEnvelope = { code: string; message: string; data: Goal };
 const STEP_KIND_LABEL: Record<string, string> = {
   ...SPEC_UP_KIND_LABEL,
   EQUIPMENT_SUCCESSION: "계승",
+  // The path names these apart from the list (ADVANCED_REFINE there): without
+  // its own label a 상급 재련 step read "기타 단계".
+  EQUIPMENT_ADVANCED_REFINE: "상급 재련",
+  // 완갑 steps (api #809) and 스톤 steps (api #812, ABILITY_STONE from the list's labels).
+  ARM_GUARD: "완갑",
 };
 export const stepKindLabel = (kind: string) => STEP_KIND_LABEL[kind] ?? "기타 단계";
 

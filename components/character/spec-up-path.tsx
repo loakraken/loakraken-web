@@ -77,7 +77,10 @@ export function SpecUpPath({ data }: { data: Character }) {
         다시 나올 수 있어요.
       </p>
       {/* Same scope as the patch note (PM 총괄 11-01): kinds the path cannot take yet. */}
-      <p className={styles.lead}>지금은 보석·재련·각인·품질 단계를 다뤄요. 연마·스톤·카르마·완갑은 이후에 더해요.</p>
+      <p className={styles.lead}>
+          보석·재련·상급 재련·품질·각인·완갑·어빌리티 스톤 단계를 다뤄요. 장신구 연마는 비용을 늘 잡을 수 있게 되면 더하고, 깨달음
+          카르마는 전투력 계산식이 없어 넣지 않아요.
+        </p>
       <div className={styles.bar}>
         <div role="group" aria-label="고르는 기준" className={styles.sorts}>
           {PATH_SORTS.map((item) => (
@@ -138,10 +141,16 @@ function PathAnswer({ name, path, stale }: { name: string; path: Path; stale: bo
   const simulator = useContext(SimulatorEnabled);
 
   // Supporters, unjudged roles, no official combat power: no steps and the guide's reason.
+  // No step but unpriced ones (QA 11-01 P3): the backend's "all picked" sentence read as
+  // if the list were done, so the screen says why it is empty instead.
   if (steps.length === 0 || start == null || final == null)
     return (
       <>
-        <p className={styles.summary}>{path.stopReason ?? "올릴 수 있는 단계를 찾지 못했어요."}</p>
+        <p className={styles.summary}>
+          {steps.length === 0 && path.unpriced.length > 0
+            ? `올릴 수 있는 항목 ${path.unpriced.length}개 모두 시세를 몰라 순서를 만들 수 없어요. 시세가 모이면 다시 계산해 주세요.`
+            : (path.stopReason ?? "올릴 수 있는 단계를 찾지 못했어요.")}
+        </p>
         <Unpriced items={path.unpriced} />
       </>
     );
