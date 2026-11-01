@@ -1,5 +1,6 @@
-// 회귀(사용자 11-02): 장비 탭의 아이템 그림 뒤 배경은 공식 전투정보실과 같은 등급 배경(등급별 135도 그러데이션)이라
-// 등급이 한눈에 구분된다. 장비 탭만 바뀌고(다른 탭의 그림은 그대로), 밝게·어둡게 같은 색, 흔들림 0.
+// 회귀(사용자 11-02 "모든장비들"): 등급이 있는 아이템 그림 뒤는 어느 화면이든 공식 전투정보실과 같은 등급 배경
+// (등급별 135도 그러데이션). 장비·특수 장비·아바타·거래소 줄 모두, 밝게·어둡게 같은 색. 등급 없는 칸(스킬·
+// 트라이포드·수집품)은 테마 자리 표시 그대로. 툴팁 카드의 그림 칸도 같은 색. 흔들림 0.
 import { test, expect, characterPath, gotoReady } from "../support/fixtures.mjs";
 import { shiftsSince, watchShifts } from "../support/shifts.mjs";
 
@@ -15,31 +16,53 @@ const OFFICIAL = {
   esther: ["rgb(12, 46, 44)", "rgb(47, 171, 168)"],
 };
 
+/** Every item icon tile on the page (GameIcon: an aria-hidden span carrying --icon-size). */
+const tiles = (page) =>
+  page.locator('span[aria-hidden="true"][data-grade][style*="--icon-size"]').evaluateAll((els) =>
+    els.map((el) => ({ grade: el.getAttribute("data-grade"), image: getComputedStyle(el).backgroundImage })),
+  );
+
+const SCREENS = [
+  ["장비(전투 탭)", characterPath("전투력계산")],
+  ["특수 장비(내실 탭)", characterPath("전투력계산", "collectibles")],
+  ["아바타 탭", characterPath("상세", "avatars")],
+  ["거래소 시세", "/market"],
+];
+
 for (const scheme of ["light", "dark"])
-  test(`${scheme}: 장비 탭 그림 뒤는 공식 등급 배경, 다른 탭은 그대로 @regression`, async ({ page }) => {
+  test(`${scheme}: 등급 있는 아이템 그림은 어느 화면이든 공식 등급 배경 @regression`, async ({ page }) => {
     await page.emulateMedia({ colorScheme: scheme });
     await watchShifts(page);
-    await gotoReady(page, characterPath("전투력계산"));
-    const panel = page.getByRole("region", { name: "장비", exact: true });
-    const icons = panel.locator('[data-tone="official"]');
-    await expect(icons.first()).toBeVisible();
-    const seen = await icons.evaluateAll((els) =>
-      els.map((el) => ({ grade: el.getAttribute("data-grade"), image: getComputedStyle(el).backgroundImage })),
-    );
-    const graded = seen.filter((icon) => icon.grade in OFFICIAL);
-    expect(graded.length, JSON.stringify(seen)).toBeGreaterThan(2);
-    for (const icon of graded) {
-      expect(icon.image, icon.grade).toContain("linear-gradient(135deg");
-      for (const colour of OFFICIAL[icon.grade]) expect(icon.image, icon.grade).toContain(colour);
+    for (const [name, path] of SCREENS) {
+      await gotoReady(page, path);
+      await expect(page.locator('span[data-grade][style*="--icon-size"]').first()).toBeAttached();
+      const seen = await tiles(page);
+      const graded = seen.filter((tile) => tile.grade in OFFICIAL);
+      expect(graded.length, `${name}: ${JSON.stringify(seen.slice(0, 5))}`).toBeGreaterThan(0);
+      for (const tile of graded) {
+        expect(tile.image, `${name} ${tile.grade}`).toContain("linear-gradient(135deg");
+        for (const colour of OFFICIAL[tile.grade]) expect(tile.image, `${name} ${tile.grade}`).toContain(colour);
+      }
+      // Tiles without a grade keep the theme placeholder (not a grade colour).
+      for (const tile of seen.filter((t) => t.grade === "unknown"))
+        expect(tile.image, `${name} 등급 없음`).toContain("linear-gradient(145deg");
     }
-    // Every graded item on the equipment tab takes it (armour, accessories, stone, orb, bracelet).
-    // (Item icon tiles only: they carry --icon-size; effect lines have their own data-grade.)
-    expect(
-      await panel.locator('[style*="--icon-size"][data-grade]:not([data-grade="unknown"]):not([data-tone="official"])').count(),
-    ).toBe(0);
-    // Other tabs keep their own tiles.
-    expect(await page.locator('[data-tone="official"]').count()).toBe(await icons.count());
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(400);
     const { all, moved } = await shiftsSince(page);
     expect(all, `흔들림 (${moved})`).toBe(0);
   });
+
+test("툴팁 카드의 그림 칸도 같은 공식 등급 색 @regression", async ({ page }) => {
+  await gotoReady(page, characterPath("전투력계산"));
+  const panel = page.getByRole("region", { name: "장비", exact: true });
+  const row = panel.getByRole("listitem").filter({ has: page.locator("strong", { hasText: /^목걸이/ }) }).first();
+  await row.getByRole("button").first().click();
+  const card = page.locator('[data-slot="item-detail"]').first();
+  await expect(card).toBeVisible();
+  const grade = await card.getAttribute("data-grade");
+  const frame = await card.evaluate((el) => {
+    const box = [...el.querySelectorAll("div")].find((d) => getComputedStyle(d).backgroundImage.includes("gradient"));
+    return box ? getComputedStyle(box).backgroundImage : "";
+  });
+  for (const colour of OFFICIAL[grade]) expect(frame, grade).toContain(colour);
+});
