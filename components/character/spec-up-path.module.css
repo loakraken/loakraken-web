@@ -145,8 +145,14 @@
   .change {
     grid-column: 2;
     grid-row: 2;
+    min-width: 0;
     color: var(--slate);
     font-size: var(--text-caption);
+    /* A stone step names two engravings each side (api #812): one unbroken
+       line ran under the cost and widened the page by 49px at 320 (QA 11-01).
+       On a phone it wraps inside its own column. */
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
   .delta {
     grid-column: 3;
