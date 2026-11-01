@@ -1,8 +1,8 @@
 "use client";
 
 // The /about hero (title, bot, BorderBeam search), also at the top of the
-// home page (user, 11:05). The bot follows the pointer anywhere in the hero
-// and rests on its own after 5 s (see BotMascot); pressing it pauses the
+// home page (user, 11:05). The bot follows the pointer anywhere in the
+// window, header included (user, 11-02), and rests on its own after 5 s (see BotMascot); pressing it pauses the
 // page's automatic motion and never its following (user, 11-01).
 
 import { useEffect, useRef, useState, useSyncExternalStore, type FormEvent, type RefObject } from "react";
@@ -93,7 +93,7 @@ export function Hero({
               ? { "aria-hidden": true }
               : { type: "button" as const, "aria-label": "애니메이션 멈춤", "aria-pressed": paused, onClick: togglePaused })}
           >
-            <BotMascot type={bot} state={searching ? "working" : "default"} size={150} area={hero}
+            <BotMascot type={bot} state={searching ? "working" : "default"} size={150} follow
               paused={!looping} still={reduced} theme={theme} decorative />
           </Stage>
           <div className={styles.botPicker}><BotPicker theme={theme} /></div>

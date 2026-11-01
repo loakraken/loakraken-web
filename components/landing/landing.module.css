@@ -248,6 +248,11 @@ button.orbStage:focus-visible { outline: 3px solid var(--ring); outline-offset: 
    remembered choice, there from the first paint (before hydration). */
 :global(:root[data-motion-paused]) .landing *, :global(:root[data-motion-paused]) .landing *::before, :global(:root[data-motion-paused]) .landing *::after { animation-play-state: paused !important; }
 :global([data-loop="off"]) .landing *, :global([data-loop="off"]) .landing *::before, :global([data-loop="off"]) .landing *::after { animation-play-state: paused !important; }
+/* The hero entrance is one-shot, not repeating motion: it always plays to its
+   visible end. Paused, it froze at opacity 0 whenever it started while the
+   page was paused (tab shown again, reload) and the hero text vanished
+   (v0.3.6.1). Beats the (0,3,0) rules above. */
+:global(:root) .landing .heroEnter.heroEnter { animation-play-state: running !important; }
 @media (hover: hover) and (pointer: fine) {
   .footer > a:last-child:hover { color: var(--link); }
   .navCta:hover, .primaryButton:hover, .searchSubmit:hover { background: var(--primary-hover); }
