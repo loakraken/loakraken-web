@@ -449,6 +449,8 @@ function Detail({
  * ones: a changed current price or day change gets the shared changed-cell
  * mark (a wash that fades once, plus ▲/▼ on the price; the number is final
  * at once, no counting), and a screen reader hears one short summary.
+ * A starred item carries a filled mark on its icon's corner in every list
+ * (user 11-02), laid over the icon so starring moves nothing in the row.
  */
 const washOnly = (pulse: Pulse | undefined): Pulse | undefined => pulse && { ...pulse, dir: 0 };
 
@@ -456,6 +458,7 @@ function BoardRows({
   items,
   tier,
   activeId,
+  starred,
   onChoose,
   listRef,
   pending,
@@ -463,6 +466,7 @@ function BoardRows({
   items: BoardItem[];
   tier: number | null;
   activeId: number | undefined;
+  starred: ReadonlySet<number>;
   onChoose: (item: BoardItem) => void;
   listRef: ReturnType<typeof useCrossfade>;
   pending: ReturnType<typeof pendingProps>;
@@ -477,11 +481,19 @@ function BoardRows({
         {items.map((item) => (
           <li key={item.itemId}>
             <button type="button" aria-pressed={activeId === item.itemId} onClick={() => onChoose(item)}>
-              <GameIcon src={item.icon} grade={item.grade} size={36} />
+              <span className={styles.rowIcon}>
+                <GameIcon src={item.icon} grade={item.grade} size={36} />
+                {starred.has(item.itemId) && (
+                  <span className={styles.rowMark} data-starred aria-hidden="true">
+                    <BookmarkBold size={10} />
+                  </span>
+                )}
+              </span>
               <span className={styles.rowName}>
                 <strong data-grade={item.grade ?? undefined}>
                   {item.name}
                   {tier != null && <i>T{tier}</i>}
+                  {starred.has(item.itemId) && <span className="sr-only"> · 즐겨찾기됨</span>}
                 </strong>
                 <small>
                   {item.bundleCount > 1 &&
@@ -518,6 +530,7 @@ function MarketContent({
   const [selected, setSelected] = useState<number | null>(initialItem);
   const [heldRef, held] = useTallest();
   const favorites = useFavorites();
+  const starred = useMemo(() => new Set(favorites.map((f) => f.itemId)), [favorites]);
   const tabs = useQuery({
     queryKey: ["market", "tabs"],
     queryFn: ({ signal }) => fetchMarketTabs(signal),
@@ -746,6 +759,7 @@ function MarketContent({
                   items={items}
                   tier={tier}
                   activeId={active?.itemId}
+                  starred={starred}
                   onChoose={choose}
                   pending={pendingProps(board)}
                 />

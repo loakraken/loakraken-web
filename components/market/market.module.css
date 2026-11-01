@@ -159,6 +159,25 @@
   font-size: 12px;
   font-variant-numeric: tabular-nums;
 }
+/* The starred mark sits on the icon's corner, out of the row's flow: starring
+   or unstarring changes no size or line in the row (A7). */
+.rowIcon {
+  position: relative;
+  display: grid;
+}
+.rowMark {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--background);
+  box-shadow: 0 0 0 1.5px var(--background);
+  color: var(--grade-legendary-text);
+}
 .rowPrice {
   display: grid;
   /* A fixed floor wide enough for a usual day change (▲1,234 (12.3%)), so a
