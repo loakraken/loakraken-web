@@ -840,6 +840,20 @@
   --faint: #86868b; /* icons, rules and borders only: 3.62:1, too light for text */
   --accent-warm: #b64400;
 
+  /* Podium medals: solid marks paired with AA text; effects use opacity only. */
+  --rank-gold: #9b6a08;
+  --rank-gold-text: #ffffff; /* 4.71:1 on gold */
+  --rank-silver: #596778;
+  --rank-silver-text: #ffffff; /* 5.78:1 on silver */
+  --rank-bronze: #99552d;
+  --rank-bronze-text: #ffffff; /* 5.69:1 on bronze */
+  --rank-glow-low: 0.08;
+  --rank-glow-peak: 0.22;
+  --rank-cone-low: 0.08;
+  --rank-cone-peak: 0.20;
+  --rank-cone-rest: 0.14;
+
+
   /* Item grade tiles (in-game rarity hues tuned for a light page). Tile
      backgrounds only; the -b values are too light for text on white. */
   --grade-default-a: #f0f0f3;
@@ -1140,6 +1154,18 @@
   --link: #4da3ff; /* 7.20, 6.76 */
   --faint: #6b6e77; /* icons and rules: 3.71, 3.49 */
   --accent-warm: #ff9a4d; /* 8.99, 8.44 */
+
+  --rank-gold: #e0b85c;
+  --rank-gold-text: #18191c; /* 9.36:1 on gold */
+  --rank-silver: #b8c4d4;
+  --rank-silver-text: #18191c; /* 9.95:1 on silver */
+  --rank-bronze: #d69b73;
+  --rank-bronze-text: #18191c; /* 7.36:1 on bronze */
+  --rank-glow-low: 0.12;
+  --rank-glow-peak: 0.32;
+  --rank-cone-low: 0.12;
+  --rank-cone-peak: 0.28;
+  --rank-cone-rest: 0.20;
   --success: #3ccf6a; /* 9.30, 8.73 */
   --market-up: #ff5c52; /* 6.22, 5.84 */
   --market-down: #4da3ff;
@@ -1172,6 +1198,18 @@
    against all six surfaces, the control fill (#383d47) being the worst case:
    body text 4.5, icons and field edges 3. */
 :root[data-theme="dim"] {
+  --rank-gold: #d2ac62;
+  --rank-gold-text: #18191c; /* 8.22:1 on gold */
+  --rank-silver: #afb9c8;
+  --rank-silver-text: #18191c; /* 8.87:1 on silver */
+  --rank-bronze: #d09a78;
+  --rank-bronze-text: #18191c; /* 7.18:1 on bronze */
+  --rank-glow-low: 0.10;
+  --rank-glow-peak: 0.28;
+  --rank-cone-low: 0.10;
+  --rank-cone-peak: 0.24;
+  --rank-cone-rest: 0.17;
+
   --background: #22252b;
   --foreground: #d5d8de; /* 10.75 … 7.63 */
   --card: #2c3038;

@@ -1299,6 +1299,13 @@
                 "type": "null"
               }
             ]
+          },
+          "imageUrl": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Official CDN portrait URL passed through by the API; absent on older responses. Hotlink only."
           }
         },
         "required": [
@@ -1561,6 +1568,13 @@
                 "type": "null"
               }
             ]
+          },
+          "imageUrl": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Official CDN portrait URL passed through by the API; absent on older responses. Hotlink only."
           }
         },
         "required": [

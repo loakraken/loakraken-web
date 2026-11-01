@@ -163,6 +163,8 @@ export interface components {
             observedAt: string;
             /** @description 공식 수집품 종류(공식 순서, 종류가 늘 수 있는 배열) */
             types: components["schemas"]["CollectibleTypeResponse"][];
+            /** @description Official CDN portrait URL passed through by the API; absent on older responses. Hotlink only. */
+            imageUrl?: string | null;
         };
         CollectibleTypeResponse: {
             /**
