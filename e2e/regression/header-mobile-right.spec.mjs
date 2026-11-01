@@ -15,7 +15,9 @@ for (const width of [320, 360, 390, 430])
       const menu = header.getByRole("button", { name: "메뉴 열기" });
       await expect(menu).toBeVisible();
       const box = await header.evaluate((el) => {
-        const r = (sel) => el.querySelector(sel)?.getBoundingClientRect();
+        // The rendered one: the character page's own search box (in the page slot, hidden up to 900px)
+        // carries the same "캐릭터 검색" name and comes first in the DOM.
+        const r = (sel) => [...el.querySelectorAll(sel)].map((n) => n.getBoundingClientRect()).find((b) => b.width > 0);
         const pad = parseFloat(getComputedStyle(el).paddingRight);
         const brand = el.querySelector('a[aria-label="LOAKraken 홈"]').getBoundingClientRect();
         const search = r('[aria-label="캐릭터 검색"]');
