@@ -15,12 +15,13 @@ test(`@flag 추천 순서의 시뮬레이터 링크: ${off ? "시뮬레이터가
   await expect(section(page).getByRole("list", { name: /^추천 순서, / }).getByRole("listitem")).toHaveCount(2);
   const link = section(page).getByRole("link", { name: "이 순서를 시뮬레이터에서 열기" });
   if (off) {
-    await expect(page.getByRole("tab", { name: "시뮬레이터" })).toHaveCount(0);
+    // Character tabs are links; the simulator one is not drawn at all.
+    await expect(page.getByRole("link", { name: "시뮬레이터", exact: true })).toHaveCount(0);
     await expect(link).toHaveCount(0);
     await expect(section(page).getByText(/시뮬레이터에서 아직 바꿀 수 없어/)).toHaveCount(0);
     return;
   }
   await link.click();
-  await expect(page.getByRole("tab", { name: "시뮬레이터" })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("link", { name: "시뮬레이터", exact: true })).toHaveAttribute("aria-current", "page");
   await expect(page).toHaveURL(/tab=simulator/);
 });
