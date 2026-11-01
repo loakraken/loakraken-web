@@ -856,25 +856,32 @@
 .engravings strong {
   font-weight: 600;
 }
-/* Icon then name; the icon's 24px place is held even while the icons load
-   or when an engraving has none, so names never move. */
+/* A grade-coloured mark then the name (PM 총괄 11-01: no official icon per
+   engraving; the same book on every row told nothing apart). */
 .engravingName {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   min-width: 0;
 }
-.engravingIcon {
+.engravingGrade {
   flex: none;
-  width: 24px;
-  height: 24px;
-  border-radius: 6px;
-  overflow: hidden;
+  width: 4px;
+  height: 18px;
+  border-radius: 2px;
+  background: var(--muted-foreground);
 }
-.engravingIcon img {
-  display: block;
-  width: 100%;
-  height: 100%;
+.engravingGrade[data-grade="relic"] {
+  background: var(--grade-relic-text);
+}
+.engravingGrade[data-grade="legendary"] {
+  background: var(--grade-legendary-text);
+}
+.engravingGrade[data-grade="epic"] {
+  background: var(--grade-epic-text);
+}
+.engravingGrade[data-grade="ancient"] {
+  background: var(--grade-ancient-text);
 }
 .engravings span {
   color: var(--muted-foreground);

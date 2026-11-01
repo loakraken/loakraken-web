@@ -50,8 +50,8 @@ import { useFavorite } from "./favorite";
 import {
   characterNameError,
   coverageLabel,
+  gradeKey,
   normalizeCharacterName,
-  safeGameImage,
   type Character,
   type CharacterEnvelope,
 } from "@/lib/character/model";
@@ -92,7 +92,6 @@ import {
 } from "./item-tooltip";
 import { awakeningLabel } from "@/lib/character/skill-type";
 import { sourcePlainText } from "@/lib/character/source-text";
-import { engravingIconMap, engravingKey, fetchEngravingIcons } from "@/lib/character/engraving-icons";
 import { useItemTooltips } from "./use-item-tooltips";
 import { useArmoryPage } from "./use-armory-page";
 import { tripodLevel, type ArmoryPage } from "@/lib/character/armory-page";
@@ -1284,19 +1283,6 @@ function EngravingsPanel({ data }: { data: Character }) {
   const stagger = useStagger();
   const effects = sortEngravings(data.loadout.engravings?.arkPassiveEffects ?? []);
   const book = engravingBookString(effects);
-  // Icons left of the names (user 10-31, backend #780): one small list per page
-  // load. Each row holds the icon's place from the first paint, so the names
-  // never move when the icons land; a name without a match leaves it blank.
-  const iconList = useQuery({
-    queryKey: ["engraving-icons"],
-    queryFn: ({ signal }) => fetchEngravingIcons(signal),
-    // A filled list holds for the visit; an empty one (before the backend's
-    // warmup, or a failed read) is asked again after 5 minutes, not never.
-    staleTime: (query) => (query.state.data?.length ? Infinity : 5 * 60_000),
-    retry: false,
-    enabled: effects.length > 0,
-  });
-  const icons = engravingIconMap(iconList.data);
   const bonus = stoneBonus(groupEquipment(data.loadout.equipment).stone);
   return (
     <Panel title="각인">
@@ -1314,25 +1300,14 @@ function EngravingsPanel({ data }: { data: Character }) {
       )}
       {effects.length ? (
         <ul className={styles.engravings}>
-          {effects.map((effect, i) => {
-            // Official image addresses only (the same check as every API image).
-            const icon = safeGameImage(icons.get(engravingKey(effect.name)));
-            return (
+          {effects.map((effect, i) => (
             <li key={i} {...stagger(i)}>
               <div className={styles.engravingName}>
-                <div className={styles.engravingIcon} aria-hidden="true">
-                  {icon && (
-                    // eslint-disable-next-line @next/next/no-img-element -- official CDN icon at a fixed size
-                    <img
-                      src={icon}
-                      alt=""
-                      width={24}
-                      height={24}
-                      decoding="async"
-                      referrerPolicy="no-referrer"
-                    />
-                  )}
-                </div>
+                {/* No official icon per engraving exists, and the market book
+                    icon was the same on every row (PM 총괄 11-01): a small mark
+                    in the grade's colour instead; the grade itself is read out
+                    on the right. */}
+                <i className={styles.engravingGrade} data-grade={gradeKey(effect.grade)} aria-hidden="true" />
                 {effect.description ? (
                   <DetailTooltip name={effect.name ?? "각인"} card={<EngravingCard description={effect.description} />}>
                     <strong>{text(effect.name)}</strong>
@@ -1365,8 +1340,7 @@ function EngravingsPanel({ data }: { data: Character }) {
                 )}
               </span>
             </li>
-            );
-          })}
+          ))}
         </ul>
       ) : (
         <Empty
