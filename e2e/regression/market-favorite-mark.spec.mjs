@@ -5,11 +5,13 @@ import { test, expect, gotoReady } from "../support/fixtures.mjs";
 
 const rows = (page) => page.locator("section[aria-labelledby='board-heading'] li button");
 const mark = (row) => row.locator("[data-starred]");
+// The row's size and the name's place inside the row: relative to the row, so
+// the detail panel loading above the board (narrow screens) does not count.
 const box = (row) =>
   row.evaluate((el) => {
     const name = el.querySelector("strong").getBoundingClientRect();
     const r = el.getBoundingClientRect();
-    return [r.width, r.height, name.left, name.top, name.width, name.height].map(Math.round);
+    return [r.width, r.height, name.left - r.left, name.top - r.top, name.width, name.height].map(Math.round);
   });
 
 for (const width of [1280, 360]) {
@@ -18,7 +20,8 @@ for (const width of [1280, 360]) {
     await gotoReady(page, "/market");
     const first = rows(page).first();
     await expect(first).toBeVisible();
-    const name = (await first.locator("strong").innerText()).split("\n")[0].trim();
+    // The item name is the strong's first text node (the tier badge follows it).
+    const name = (await first.locator("strong").evaluate((el) => el.firstChild.textContent)).trim();
     await expect(mark(first)).toHaveCount(0);
     await first.click();
     const before = await box(first);
