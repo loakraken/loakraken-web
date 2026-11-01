@@ -83,6 +83,49 @@
   height: 100%;
   object-fit: cover;
 }
+/* Every item icon with a grade, on every screen (user 11-02 "모든장비들"):
+   the official armory's grade backgrounds, the same 135deg gradients its
+   stylesheet paints behind each item icon by grade (profile.pc.css
+   data-grade 0-7, read 2026-11-02). Plain CSS, no image to load, so nothing
+   falls back; the grade carries the same colour in light and dark. Icons
+   without a grade (skills, tripods, collectibles) keep the theme placeholder
+   above. data-grade 8 has no grade name yet and is not mapped. Card art keeps
+   its own lighter frame. */
+.icon:not([data-grade="unknown"]) {
+  background: linear-gradient(135deg, var(--grade-a), var(--grade-b));
+}
+.icon[data-grade="normal"] {
+  --grade-a: #232323;
+  --grade-b: #575757;
+}
+.icon[data-grade="uncommon"] {
+  --grade-a: #18220b;
+  --grade-b: #304911;
+}
+.icon[data-grade="rare"] {
+  --grade-a: #111f2c;
+  --grade-b: #113d5d;
+}
+.icon[data-grade="epic"] {
+  --grade-a: #261331;
+  --grade-b: #480d5d;
+}
+.icon[data-grade="legendary"] {
+  --grade-a: #362003;
+  --grade-b: #9e5f04;
+}
+.icon[data-grade="relic"] {
+  --grade-a: #341a09;
+  --grade-b: #a24006;
+}
+.icon[data-grade="ancient"] {
+  --grade-a: #3d3325;
+  --grade-b: #dcc999;
+}
+.icon[data-grade="esther"] {
+  --grade-a: #0c2e2c;
+  --grade-b: #2faba8;
+}
 .icon[data-inactive] {
   filter: grayscale(1);
   opacity: 0.45;
