@@ -101,6 +101,17 @@ export function groupEquipment(equipment: Equipment[]) {
   };
 }
 
+/**
+ * A bracelet line "치명타 피해 +6.80%" → name and value, the value set at the
+ * line's end (compact bracelet row, user 11-01). A sentence or a two-line
+ * effect stays whole.
+ */
+export function splitEffect(text: string): { name: string; value: string } | null {
+  if (text.includes("\n")) return null;
+  const match = /^(.+?)\s+([+-]\d[\d,.]*%?)$/.exec(text.trim());
+  return match ? { name: match[1], value: match[2] } : null;
+}
+
 export const GRADE_LABEL = { HIGH: "상", MID: "중", LOW: "하" } as const;
 export type EffectGrade = keyof typeof GRADE_LABEL;
 export const isGrade = (value: unknown): value is EffectGrade =>
