@@ -10,6 +10,17 @@ async function openConditions(page) {
 }
 
 test.describe("아비도스 제작 손익 @smoke", () => {
+  test("상급 아비도스 융화 재료가 맨 위, 아비도스 융화 재료가 그 아래", async ({ page }) => {
+    await gotoReady(page, "/tools/abidos-craft");
+    const superior = page.getByRole("region", { name: "상급 아비도스 융화 재료", exact: true });
+    const normal = page.getByRole("region", { name: "아비도스 융화 재료", exact: true });
+    await expect(superior).toBeVisible();
+    await expect(normal).toBeVisible();
+    // Document order, not screen position: the two may sit side by side on wide screens.
+    const before = await superior.evaluate((a, b) => !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING), await normal.elementHandle());
+    expect(before).toBe(true);
+  });
+
   test("교환 상인이 켜져 있으면 더 싼 교환 값으로 재료비를 계산하고, 무엇을 교환으로 마련하는지 적는다", async ({ page }) => {
     await gotoReady(page, "/tools/abidos-craft");
     await openConditions(page);
