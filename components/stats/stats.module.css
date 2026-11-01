@@ -962,3 +962,11 @@
 .partBar b {
   background: color-mix(in oklab, var(--primary) 35%, transparent);
 }
+/* An inverted 전투력 range, said in the sample line's place. */
+.sampleWarn {
+  color: var(--destructive, var(--foreground));
+  font-weight: 600;
+}
+.range input[aria-invalid="true"] {
+  border-color: var(--destructive, var(--foreground));
+}

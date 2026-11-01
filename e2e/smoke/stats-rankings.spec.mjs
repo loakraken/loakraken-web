@@ -66,6 +66,32 @@ test.describe("통계 @smoke", () => {
     await expect(page).not.toHaveURL(/combatPowerMin/);
   });
 
+  test("전투력 최소가 최대보다 크면 묻지 않고 범위를 표시하며, 고치면 다시 묻는다", async ({ page }) => {
+    await gotoReady(page, "/stats");
+    const form = page.getByRole("form", { name: "통계 조건" });
+    const sent = [];
+    page.on("request", (r) => r.url().includes("/api/stats/") && r.url().includes("combatPowerMin=5000") && sent.push(r.url()));
+    await form.getByRole("textbox", { name: "전투력 최소" }).fill("5000");
+    await form.getByRole("textbox", { name: "전투력 최대" }).fill("1000");
+    await expect(form.getByText("전투력 최소가 최대보다 커요")).toBeVisible();
+    await expect(form.getByRole("textbox", { name: "전투력 최소" })).toHaveAttribute("aria-invalid", "true");
+    await expect(page).not.toHaveURL(/combatPowerMin/);
+    expect(sent.filter((u) => u.includes("combatPowerMax=1000")), "뒤집힌 범위 요청").toEqual([]);
+    // Fixed: asked again, the mark gone.
+    const request = page.waitForRequest(/\/api\/stats\/summary\?.*combatPowerMax=6000/);
+    await form.getByRole("textbox", { name: "전투력 최대" }).fill("6000");
+    await request;
+    await expect(form.getByText("전투력 최소가 최대보다 커요")).toHaveCount(0);
+    await expect(form.getByRole("textbox", { name: "전투력 최소" })).not.toHaveAttribute("aria-invalid", "true");
+  });
+
+  test("뒤집힌 전투력 범위가 든 주소는 그 범위만 버리고 연다", async ({ page }) => {
+    await gotoReady(page, "/stats?role=DEALER&combatPowerMin=5000&combatPowerMax=1000");
+    await expect(page.getByRole("table", { name: "직업별 인원과 전투력 분포" })).toBeVisible();
+    await expect(page.getByRole("radiogroup", { name: "역할" }).getByRole("radio", { name: "딜러" })).toBeChecked();
+    await expect(page.getByRole("textbox", { name: "전투력 최소" })).toHaveValue("");
+  });
+
   test("전체 인구 탭에는 조건 막대와 요약 카드가 없다", async ({ page }) => {
     await gotoReady(page, "/stats?tab=population");
     await expect(page.getByRole("tab", { name: "전체 인구" })).toHaveAttribute("aria-selected", "true");

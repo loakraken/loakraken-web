@@ -43,6 +43,8 @@ export function StatsFilters({ query, apply }: { query: StatsQuery; apply: (next
     latest.current = query;
   }, [query]);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  // 최소 > 최대 is never sent (the api answers 400): the range is marked and held.
+  const [inverted, setInverted] = useState(false);
   useEffect(() => () => clearTimeout(timer.current), []);
 
   function type(which: "min" | "max", raw: string) {
@@ -55,6 +57,9 @@ export function StatsFilters({ query, apply }: { query: StatsQuery; apply: (next
       const lo = bound(nextMin);
       const hi = bound(nextMax);
       if (lo === null || hi === null) return;
+      const wrong = lo != null && hi != null && lo > hi;
+      setInverted(wrong);
+      if (wrong) return;
       const now = latest.current;
       if (lo !== now.combatPowerMin || hi !== now.combatPowerMax) apply({ ...now, combatPowerMin: lo, combatPowerMax: hi });
     }, 400);
@@ -122,6 +127,7 @@ export function StatsFilters({ query, apply }: { query: StatsQuery; apply: (next
           <span className={styles.range}>
             <input
               aria-label="전투력 최소"
+              aria-invalid={inverted || undefined}
               name="combatPowerMin"
               inputMode="numeric"
               autoComplete="off"
@@ -132,6 +138,7 @@ export function StatsFilters({ query, apply }: { query: StatsQuery; apply: (next
             <span aria-hidden="true">~</span>
             <input
               aria-label="전투력 최대"
+              aria-invalid={inverted || undefined}
               name="combatPowerMax"
               inputMode="numeric"
               autoComplete="off"
@@ -150,7 +157,7 @@ export function StatsFilters({ query, apply }: { query: StatsQuery; apply: (next
           원정대 대표 캐릭터만
         </label>
       </div>
-      <SampleLine query={query} />
+      <SampleLine query={query} inverted={inverted} />
     </form>
   );
 }
@@ -160,7 +167,7 @@ export function StatsFilters({ query, apply }: { query: StatsQuery; apply: (next
  * observed characters, never the game's population, then the sample and the
  * conditions. One line under the bar; it holds its height before the answer.
  */
-function SampleLine({ query }: { query: StatsQuery }) {
+function SampleLine({ query, inverted }: { query: StatsQuery; inverted: boolean }) {
   const summary = useQuery({
     queryKey: ["stats", "summary", statsKey(query)],
     queryFn: ({ signal }) => fetchStats("summary", query, signal),
@@ -173,7 +180,10 @@ function SampleLine({ query }: { query: StatsQuery }) {
   return (
     // Read out when new conditions land: the count says the answer changed (frontend-a11y).
     <p className={styles.sample} role="note" aria-live="polite" {...pendingProps(summary)}>
-      {meta ? (
+      {inverted ? (
+        // In the line's own place (no move): why the numbers did not change.
+        <span className={styles.sampleWarn}>전투력 최소가 최대보다 커요. 두 값을 바꾸면 그 범위로 다시 계산해요.</span>
+      ) : meta ? (
         // Keyed by what it says (A7): see basis-note.tsx.
         <span key={`${meta.population}-${sampleConditions(meta)}-${meta.aggregatedAt}-${meta.sampleStatus}`}>
           <strong>LOAKraken이 확인한 캐릭터 기준</strong> · 표본 <span>{whole(meta.population)}명</span> ·{" "}

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useId, useState, type CSSProperties } from "react";
 import { useTallest } from "@/components/ui/use-tallest";
 import { classBuildsPath } from "@/lib/stats/class-builds";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { keepPreviousData, useQuery, type UseQueryResult } from "@tanstack/react-query";
 import { SiteHeader } from "@/components/site/site-header";
 import { DataTable } from "@/components/ui/data-table";
@@ -809,11 +809,16 @@ export function StatsView({
   /** POPULATION_STATS on this deployment (server flag): the '전체 인구' tab. */
   population?: boolean;
 }) {
-  const router = useRouter();
   const [query, setQuery] = useState<StatsQuery>(initial);
   const [tab, setTab] = useState<Tab>(initialTab);
   // A menu link to another tab changes the URL without remounting the page:
-  // follow it here (remounting replayed every chart twice on a tab click).
+  // follow it here (remounting replayed every chart twice on a tab click). Read
+  // from the live address, not the server's prop: our own replaceState moves the
+  // address too, so a link back to the first tab still counts as a change.
+  const search = useSearchParams();
+  const asked = search.get("tab") === "best" ? "distribution" : search.get("tab");
+  const addressTab: Tab =
+    TABS.find((t) => t.id === asked && (titles || t.id !== "titles") && (population || t.id !== "population"))?.id ?? "classes";
   const [urlTab, setUrlTab] = useState<Tab>(initialTab);
   // Tabs already shown on this visit: their bars come back at rest, not
   // regrown from the axis (user report 10-31: back and forth, every chart
@@ -822,10 +827,12 @@ export function StatsView({
   const leave = (from: Tab) => {
     if (!drawn.has(from)) setDrawn(new Set(drawn).add(from));
   };
-  if (initialTab !== urlTab) {
-    setUrlTab(initialTab);
-    leave(tab);
-    setTab(initialTab);
+  if (addressTab !== urlTab) {
+    setUrlTab(addressTab);
+    if (addressTab !== tab) {
+      leave(tab);
+      setTab(addressTab);
+    }
   }
   const [panelRef, tallest] = useTallest();
 
@@ -836,7 +843,9 @@ export function StatsView({
     // A filter changed on the distribution tab keeps its metric, value and view.
     if (nextTab === "distribution")
       writeDistributionView(parseDistributionView(new URLSearchParams(window.location.search)), params);
-    router.replace(params.size ? `?${params}` : "?", { scroll: false });
+    // A plain replaceState: router.replace re-rendered the dynamic page and moved it
+    // (#1135), and the condition bar writes the address on every choice.
+    window.history.replaceState(null, "", `${window.location.pathname}${params.size ? `?${params}` : ""}`);
   }
   // 전체 인구 counts every stored character (no filters): no bar, no cards.
   const filtered = tab !== "population";

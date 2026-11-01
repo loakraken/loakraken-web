@@ -103,6 +103,16 @@ export function parseStatsQuery(input: URLSearchParams): StatsQuery | null {
     if (value === null) return null;
     if (value !== undefined) out[key] = value;
   }
+  // An inverted range (a shared link, a hand-edited address) answers 400 on every
+  // view: that pair is dropped, the other filters stay.
+  for (const [lo, hi] of [
+    ["itemLevelMin", "itemLevelMax"],
+    ["combatPowerMin", "combatPowerMax"],
+  ] as const)
+    if (out[lo] != null && out[hi] != null && out[lo] > out[hi]) {
+      delete out[lo];
+      delete out[hi];
+    }
   if (input.get("representativeOnly") === "true") out.representativeOnly = true;
   const metric = input.get("metric");
   if (metric) {
