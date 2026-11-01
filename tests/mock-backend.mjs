@@ -2800,8 +2800,10 @@ createServer(async (req, res) => {
         { name: "깨달음", value: 98, description: null },
         { name: "도약", value: 70, description: null },
       ];
+      // Stone levels on two (the engraving card's stone marker, user 11-01).
+      const stone = { 아드레날린: 3, 원한: 2 };
       d.loadout.engravings.arkPassiveEffects = ["돌격대장", "아드레날린", "원한", "잔재된 기운", "질량 증가"].map((engraving) => ({
-        abilityStoneLevel: null, grade: "유물", level: 4, name: engraving, description: null,
+        abilityStoneLevel: stone[engraving] ?? null, grade: "유물", level: 4, name: engraving, description: null,
       }));
       d.stats = ["치명", "특화", "신속", "제압", "인내", "숙련"].map((type, i) => ({ type, value: ["612", "1,812", "88", "71", "70", "69"][i], tooltip: [] }));
       const braceletEffects = [{ text: "특화 +100", grade: null }, { text: "신속 +81", grade: null }];
