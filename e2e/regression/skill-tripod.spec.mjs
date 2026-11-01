@@ -23,7 +23,9 @@ test("1280: 고른 자리 숫자, 올리면 효과 카드, 스킬 종류 표시 
   // no 각성기 (100) or 초각성기 (101) — the equipped one of each pair is unknown.
   const expand = page.getByRole("button", { name: /전체 \d+개 스킬 보기/ });
   await expect(expand).toHaveAttribute("aria-expanded", "false");
-  await expect(chips(skillRow(page, "합성 화염"))).toContainText(["초각성 스킬"]);
+  // Exact chip text: '각성기' is a substring of '초각성기', so a contains check would pass a swap.
+  const chip = (name, label) => chips(skillRow(page, name)).getByText(label, { exact: true });
+  await expect(chip("합성 화염", "초각성 스킬")).toBeVisible();
   await expect(skillRow(page, "합성 중력").getByText(kind)).toHaveCount(0);
   await expect(skillRow(page, "합성 포격").getByText(kind)).toHaveCount(0);
   for (const name of ["합성 각성", "합성 초각성기", "기본 스킬"])
@@ -33,8 +35,10 @@ test("1280: 고른 자리 숫자, 올리면 효과 카드, 스킬 종류 표시 
   await expand.click();
   const collapse = page.getByRole("button", { name: "사용 중인 스킬만 보기" });
   await expect(collapse).toHaveAttribute("aria-expanded", "true");
-  await expect(chips(skillRow(page, "합성 각성"))).toContainText(["각성기"]);
-  await expect(chips(skillRow(page, "합성 초각성기"))).toContainText(["초각성기"]);
+  await expect(chip("합성 각성", "각성기")).toBeVisible();
+  await expect(skillRow(page, "합성 각성").getByText(kind)).toHaveCount(1);
+  await expect(chip("합성 초각성기", "초각성기")).toBeVisible();
+  await expect(skillRow(page, "합성 초각성기").getByText(kind)).toHaveCount(1);
   await expect(skillRow(page, "기본 스킬").getByText(kind)).toHaveCount(0);
   await collapse.click();
   await expect(expand).toHaveAttribute("aria-expanded", "false");
