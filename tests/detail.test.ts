@@ -125,7 +125,7 @@ test("only invested skills count for part break and counter (backend guidance)",
     // 각성기·초각성기 (100/101): both of each pair are listed and the equipped
     // one is unknown, so they stay out of the default list, even when levelled.
     skill({ name: "각성", skillType: 100 }),
-    skill({ name: "초각성기", skillType: 101, level: 10, rune: { name: "속행", icon: null, grade: "영웅" } }),
+    skill({ name: "초각성기", skillType: 101, level: 10, rune: { name: "속행", icon: null, grade: "영웅", effect: null } }),
     // 초각성 스킬 (1) follows the normal rule: Lv.1 without anything is out, invested is in.
     skill({ name: "초각성 Lv1", skillType: 1 }),
     skill({ name: "초각성 스킬", skillType: 1, level: 12 }),

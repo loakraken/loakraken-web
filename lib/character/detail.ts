@@ -1,6 +1,6 @@
 // Pure helpers for the character detail page.
 import type { Character } from "./model";
-import { awakeningLabel } from "./skill-type";
+import { isAwakeningPair } from "./skill-type";
 import { sourcePlainText } from "./source-text";
 import { remainingText } from "../time/remaining";
 
@@ -183,17 +183,16 @@ export function engravingBookString(
 
 /* Skills ------------------------------------------------------------------- */
 
-/** Skills a player actually invested in (the source lists every class skill). */
+/**
+ * Skills a player actually invested in (the source lists every class skill).
+ * 각성기·초각성기 are left out: both of each pair are listed and which one is
+ * equipped is unknown, so they show only under '전체 스킬 보기'.
+ */
 export function activeSkills(skills: Skill[] | undefined) {
   return (skills ?? []).filter(
     (skill) =>
-      (skill.level ?? 0) > 1 ||
-      skill.tripods.length > 0 ||
-      skill.rune !== null ||
-      skill.gemEffects.length > 0 ||
-      // 각성기·초각성 are Lv.1 without tripods on real characters, so they only
-      // showed under '전체 스킬 보기' and their chips never (QA 11-01).
-      awakeningLabel(skill.skillType) !== null,
+      !isAwakeningPair(skill.skillType) &&
+      ((skill.level ?? 0) > 1 || skill.tripods.length > 0 || skill.rune !== null || skill.gemEffects.length > 0),
   );
 }
 
