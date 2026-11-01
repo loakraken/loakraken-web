@@ -22,6 +22,7 @@ import { headers } from "next/headers";
 import { getCardCollection, getCharacter, getPublicSummary, getRank, getSiblings } from "@/lib/character/server";
 import { indexableSummary, isSearchBot, summaryLine } from "@/lib/character/public-summary";
 import { BotSummary } from "@/components/character/bot-summary";
+import { byokEnabled } from "@/lib/byok/server";
 
 export const dynamic = "force-dynamic";
 const decodeName = (raw: string) => {
@@ -112,6 +113,7 @@ export default async function CharacterPage({
         critSpeed={isCritSpeedEnabled()}
         guildTab={isGuildTabEnabled()}
         characterEfficiency={isCharacterEfficiencyEnabled()}
+        byok={byokEnabled()}
       />
     </HydrationBoundary>
   );

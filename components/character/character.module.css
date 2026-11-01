@@ -526,6 +526,15 @@
 .bandNotice p {
   color: var(--muted-foreground);
 }
+/* The shared-quota notice's way out: the user's own API key (BYOK). */
+.ownKey {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 6px;
+  color: var(--link);
+  font-size: 14px;
+  font-weight: 600;
+}
 @media (max-width: 760px) {
   .headerNav {
     display: none;

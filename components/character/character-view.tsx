@@ -274,10 +274,12 @@ function CharacterContent({
   name,
   initialError,
   renderedAt,
+  byok = false,
 }: {
   name: string;
   initialError?: QueryFailure;
   renderedAt: number;
+  byok?: boolean;
 }) {
   const tab = tabOf(
     useSearchParams().get("tab"),
@@ -309,6 +311,13 @@ function CharacterContent({
         : undefined;
   const copy = error ? failureCopy(error) : null;
   const limited = error?.code === RATE_LIMITED;
+  // The site-wide share ran out (not this visitor's own): the user's own key
+  // can still answer (BYOK, PM 총괄 placement).
+  const ownKey = byok && limited && error?.limit !== "client" && (
+    <Link href="/settings/api-key" className={`${styles.ownKey} hit-44`}>
+      내 API 키로 조회하기
+    </Link>
+  );
   const rateLimitSeconds = error?.retryAt
     ? Math.max(0, Math.ceil((error.retryAt - now) / 1000))
     : 0;
@@ -380,6 +389,7 @@ function CharacterContent({
                   <p>{copy.text} 마지막으로 조회한 정보를 표시하고 있어요.</p>
                 </div>
                 {limited && <RateLimitNote seconds={rateLimitSeconds} buttonCounts />}
+                {ownKey}
               </div>
             )}
             <Entrance tab={tab}>
@@ -423,6 +433,7 @@ function CharacterContent({
                   <p>{copy.text}</p>
                 </div>
                 {limited && <RateLimitNote seconds={rateLimitSeconds} buttonCounts />}
+                {ownKey}
               </div>
             )}
             <div className={styles.noData}>
@@ -474,6 +485,8 @@ export function CharacterView({
   guildTab?: boolean;
   /** CHARACTER_EFFICIENCY on this deployment (server flag): 아크 그리드·팔찌 효율 rows. */
   characterEfficiency?: boolean;
+  /** BYOK on this deployment (server flag): the shared-quota notice links to /settings/api-key. */
+  byok?: boolean;
 }) {
   return (
     <ReceiptEnabled.Provider value={receipt}>

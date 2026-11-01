@@ -12,6 +12,8 @@ const read = (name) =>
     readFileSync(new URL(`./fixtures/${name}`, import.meta.url), "utf8"),
   );
 const counts = {};
+/** BYOK: last four characters of the X-LK-User-Key each character read carried. */
+const userKeys = {};
 
 // Synthetic accessory, bracelet and stone for the simulator screen (web #365
 // follow-up): polish/bracelet lines with tooltip grades and stone engravings.
@@ -522,6 +524,20 @@ createServer(async (req, res) => {
       return send({ code: "INVALID_REQUEST", message: "path required" }, 400);
     failures.set(plan.path, { status: Number(plan.status) || 502, times: Number(plan.times) || 1, code: plan.code });
     return send({ ok: true, armed: Object.fromEntries(failures) });
+  }
+  // The user's own API key (BYOK, api #804): the web server forwards it as
+  // X-LK-User-Key on the two character reads. GET /__userkeys answers, per
+  // "search:<name>" or "siblings:<name>", the last four characters of the key
+  // the latest request carried (null without one). Synthetic keys only: a
+  // middle part "invalid" answers 401 USER_KEY_INVALID, "limited" 429.
+  if (url.pathname === "/__userkeys") return send(userKeys);
+  if (url.pathname === "/api/v1/characters/search" || url.pathname === "/api/v1/characters/siblings") {
+    const key = req.headers["x-lk-user-key"];
+    userKeys[`${url.pathname.split("/").pop()}:${url.searchParams.get("characterName")}`] =
+      typeof key === "string" ? key.slice(-4) : null;
+    const part = typeof key === "string" ? key.split(".")[1] : "";
+    if (part === "invalid") return send({ code: "USER_KEY_INVALID", message: "key refused" }, 401);
+    if (part === "limited") return send({ code: "USER_KEY_RATE_LIMITED", message: "key limited" }, 429, { "Retry-After": "5" });
   }
   const planned = failures.get(url.pathname);
   if (planned && planned.times > 0) {
