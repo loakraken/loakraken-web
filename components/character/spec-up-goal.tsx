@@ -3,7 +3,7 @@
 // backend's path — spec-up steps in efficiency order, the same item possibly
 // several steps up — until the target. Every combat power on it is the
 // simulator's; the screen only formats the answer (lib/spec-up/goal.ts).
-import { useId, useState } from "react";
+import { useContext, useId, useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { RATE_LIMITED, rateLimitCopy, retryLabel } from "@/lib/api/rate-limit";
@@ -21,6 +21,7 @@ import {
 } from "@/lib/spec-up/goal";
 import { koreanGold, tryPathParam } from "@/lib/spec-up/model";
 import styles from "./spec-up-goal.module.css";
+import { SimulatorEnabled } from "./tabs";
 
 const two = (value: number) =>
   value.toLocaleString("ko-KR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -132,6 +133,8 @@ function GoalAnswer({ name, goal }: { name: string; goal: Goal }) {
   const costLine =
     cost ?? (goal.unpricedSteps > 0 ? `미정(비용을 모르는 단계 ${goal.unpricedSteps}개)` : null);
   const path = simulatorPath(steps);
+  // The simulator tab exists only with COMBAT_POWER_SIM on (#1260).
+  const simulator = useContext(SimulatorEnabled);
 
   if (goal.stopReasonCode === "ALREADY_REACHED")
     return <p className={styles.summary}>이미 목표 전투력({two(goal.targetCombatPower)}) 이상이에요.</p>;
@@ -174,7 +177,7 @@ function GoalAnswer({ name, goal }: { name: string; goal: Goal }) {
           ))}
         </ol>
       )}
-      {steps.length > 0 && (
+      {simulator && steps.length > 0 && (
         <p className={styles.note}>
           {path.changes.length > 0 ? (
             <Link

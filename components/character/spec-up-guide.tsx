@@ -39,7 +39,7 @@ import {
 import { MINUTE, useClock } from "@/components/home/clock";
 import { SpecUpGoal } from "./spec-up-goal";
 import { SpecUpPath } from "./spec-up-path";
-import { SpecUpPathEnabled } from "./tabs";
+import { SimulatorEnabled, SpecUpPathEnabled } from "./tabs";
 import { SpecUpRowDetail } from "./spec-up-detail";
 import { kstTime } from "./parts";
 import styles from "./detail.module.css";
@@ -130,6 +130,8 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
   const now = useClock(MINUTE);
   const [sort, setSort] = useState<Sort>(supporter ? "KRAKEN" : DEFAULT_SORT);
   const pathEnabled = useContext(SpecUpPathEnabled);
+  // '적용해 보기' opens the simulator tab, which exists only with COMBAT_POWER_SIM on (#1260).
+  const simulator = useContext(SimulatorEnabled);
   // 크라켄 점수 순 (api #573) leaves 작열 (cooldown) gems out by default; the user can add them.
   const [cooldown, setCooldown] = useState(false);
   // The first list (the tab's first answer) tells whether the backend knows
@@ -403,8 +405,8 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
                       return [group.head, ...group.more].map((c, j) => {
                       const sub = j > 0;
                       const collapsed = sub && !open;
-                      // The simulator is combat power: no link for a supporter.
-                      const tryable = !supporter && editsFor(c.change, NO_EDITS) != null && c.change;
+                      // The simulator is combat power: no link for a supporter, nor where it is off.
+                      const tryable = simulator && !supporter && editsFor(c.change, NO_EDITS) != null && c.change;
                       return (
                         // Keyed by the order of the list on screen: a new sort
                         // or '새 순서로 보기' draws new rows instead of sliding
