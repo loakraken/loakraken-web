@@ -737,6 +737,65 @@
                 "type": "null"
               }
             ]
+          },
+          "observedRosters": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32",
+                "description": "장착 기록이 한 번이라도 있는 원정대 수(api #697)"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "observedPercent": {
+            "anyOf": [
+              {
+                "type": "number",
+                "format": "double",
+                "description": "장착 기록 기준 비율. 공식 정보는 장착 중인 칭호만 보여 줘서 실제 보유율의 하한"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "newRosters30d": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32",
+                "description": "최근 30일에 처음 기록된 원정대 수"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "observedCharacters": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32",
+                "description": "장착 기록 캐릭터 수(표본)"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sampleReady": {
+            "anyOf": [
+              {
+                "type": "boolean",
+                "description": "표본이 충분한지(observedCharacters >= 30)"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [

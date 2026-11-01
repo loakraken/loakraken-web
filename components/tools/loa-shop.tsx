@@ -31,6 +31,7 @@ import {
 import quote from "./material-quote.module.css";
 import { goldText, signedGold } from "@/lib/tools/format";
 import styles from "./loa-shop.module.css";
+import { MoreDetail } from "@/components/ui/more-detail";
 
 /** The typed rate stays in this browser only (never sent anywhere). */
 const RATE_KEY = "loakraken.loa-shop.rate";
@@ -446,11 +447,13 @@ export function LoaShopTool({ renderedAt }: { renderedAt: number }) {
                   <div className={styles.cards}>{past.map(card)}</div>
                 </details>
               )}
-              <p className={styles.small}>
-                구성품 가치 = 수량 × 거래소 1개 가격(묶음 가격 ÷ 묶음 수). 귀속 구성품도 같은 재료의 거래소 가격으로 매겨요.
+              {/* One line on the page, the calc basis folded (#1112): nothing removed. */}
+              <p className={styles.small}>구성품 가치 = 수량 × 거래소 1개 가격(묶음 가격 ÷ 묶음 수).</p>
+              <MoreDetail className={styles.small}>
+                귀속 구성품도 같은 재료의 거래소 가격으로 매겨요.
                 로열 크리스탈 환산 가치 = 골드 가치 × {count(SHOP_DATA.crystal.royalPer100)} ÷ 교환소 시세, 이득 = 환산 가치
                 − 판매가. 거래소에 없는 구성품은 0이 아니라 {UNKNOWN}으로 두고 이득을 계산하지 않아요.
-              </p>
+              </MoreDetail>
             </section>
           </div>
         </div>

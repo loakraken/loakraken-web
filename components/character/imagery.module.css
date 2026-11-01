@@ -4,6 +4,14 @@
   --grade-a: #f0f0f3;
   --grade-b: #dedee3;
 }
+/* No grade (내실 수집품, skills, tripods): the skeleton colour of the theme,
+   not a light tile, so a dark page shows no white box while the icon loads
+   (feedback #17 follow-up). Same box, so nothing moves when it lands. */
+.icon[data-grade="unknown"],
+.card[data-grade="unknown"] {
+  --grade-a: var(--secondary);
+  --grade-b: var(--secondary);
+}
 .icon[data-grade="normal"],
 .card[data-grade="normal"] {
   --grade-a: #ececf0;
@@ -55,6 +63,20 @@
   background: linear-gradient(145deg, var(--grade-a), var(--grade-b));
   box-shadow: inset 0 0 0 1px rgb(0 0 0 / 8%);
   overflow: hidden;
+}
+/* 수집품 sprite icon: the same box as .icon, the icon at native size centred. */
+.collectibleIcon {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 var(--icon-size);
+  width: var(--icon-size);
+  height: var(--icon-size);
+  border-radius: calc(var(--icon-size) * 0.24);
+  background: var(--secondary);
+}
+.collectibleIcon > span {
+  display: block;
+  background-repeat: no-repeat;
 }
 .icon img {
   width: 100%;

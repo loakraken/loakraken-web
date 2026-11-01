@@ -3,7 +3,7 @@
 // next, ranked by combat power per 10,000 gold (or by the gain alone). Every
 // number comes from the backend; candidates it could not compute fold into one
 // line per reason, and "적용해 보기" opens the simulator tab with the change.
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useContext, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChangeMark, useChangedCells, type Pulse } from "@/components/ui/changed-cells";
@@ -30,6 +30,7 @@ import {
   koreanGold,
   DEFAULT_SORT,
   specUpQuery,
+  groupStages,
   splitCandidates,
   tryParam,
   type Candidate,
@@ -37,6 +38,8 @@ import {
 } from "@/lib/spec-up/model";
 import { MINUTE, useClock } from "@/components/home/clock";
 import { SpecUpGoal } from "./spec-up-goal";
+import { SpecUpPath } from "./spec-up-path";
+import { SpecUpPathEnabled } from "./tabs";
 import { SpecUpRowDetail } from "./spec-up-detail";
 import { kstTime } from "./parts";
 import styles from "./detail.module.css";
@@ -126,6 +129,7 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
   // For gem price times ("21:05 시세" / a date when not today).
   const now = useClock(MINUTE);
   const [sort, setSort] = useState<Sort>(supporter ? "KRAKEN" : DEFAULT_SORT);
+  const pathEnabled = useContext(SpecUpPathEnabled);
   // 크라켄 점수 순 (api #573) leaves 작열 (cooldown) gems out by default; the user can add them.
   const [cooldown, setCooldown] = useState(false);
   // The first list (the tab's first answer) tells whether the backend knows
@@ -227,6 +231,9 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
     () => (guide ? (krakenShown ? splitKrakenCandidates(candidates) : splitCandidates(candidates)) : { ok: [], folded: [] }),
     [guide, candidates, krakenShown],
   );
+  // One row per target, its other stages behind '자세히' (사용자 제보 #26).
+  const groups = useMemo(() => groupStages(ok), [ok]);
+  const [openGroups, setOpenGroups] = useState<ReadonlySet<string>>(() => new Set());
   // The backend's own order differs from the rows on screen (prices moved).
   const reordered =
     !!guide && guide.candidates.map((c) => c.id).join("|") !== shownIds && order?.sort === listKey;
@@ -386,15 +393,27 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
                     </tr>
                   </thead>
                   <tbody>
-                    {ok.map((c, i) => {
+                    {groups.flatMap((group, i) => {
+                      // One row per target (#26): its other stages open under it.
+                      const open = openGroups.has(group.head.id);
+                      // Closed stages stay in the table, collapsed: the columns keep
+                      // the same widths whichever stage heads a group (a new sort
+                      // moved the header by a few px otherwise, A7).
+                      return [group.head, ...group.more].map((c, j) => {
+                      const sub = j > 0;
+                      const collapsed = sub && !open;
                       // The simulator is combat power: no link for a supporter.
                       const tryable = !supporter && editsFor(c.change, NO_EDITS) != null && c.change;
                       return (
                         // Keyed by the order of the list on screen: a new sort
                         // or '새 순서로 보기' draws new rows instead of sliding
                         // the old ones (A7).
-                        <tr key={`${listKey}:${generation}:${c.id}`}>
-                          <td data-cell="rank">{i + 1}</td>
+                        <tr
+                          key={`${listKey}:${generation}:${c.id}`}
+                          data-sub={sub || undefined}
+                          data-collapsed={collapsed || undefined}
+                        >
+                          <td data-cell="rank">{sub ? <span className={styles.sr}>같은 대상</span> : i + 1}</td>
                           <td data-cell="kind">{kindLabel(c.kind)}</td>
                           <th scope="row" data-cell="target">
                             {/* The target opens the row's detail (시세·재련 재료·전후 능력치, #887). */}
@@ -404,6 +423,23 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
                               candidate={c}
                               cooldownGemsIncluded={guide.cooldownGemsIncluded ?? null}
                             />
+                            {!sub && group.more.length > 0 && (
+                              <button
+                                type="button"
+                                className={`${styles.specUpMore} hit-44`}
+                                aria-expanded={open}
+                                onClick={() =>
+                                  setOpenGroups((prev) => {
+                                    const next = new Set(prev);
+                                    if (next.has(group.head.id)) next.delete(group.head.id);
+                                    else next.add(group.head.id);
+                                    return next;
+                                  })
+                                }
+                              >
+                                {open ? "다른 단계 접기" : `자세히 · 다른 단계 ${group.more.length}개`}
+                              </button>
+                            )}
                           </th>
                           <td data-cell="change">
                             {c.from ?? "—"} → {c.to ?? "—"}
@@ -452,6 +488,7 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
                           </td>
                         </tr>
                       );
+                      });
                     })}
                   </tbody>
                 </table>
@@ -496,7 +533,8 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
           </Fragment>
         )}
       </div>
-      {/* The goal path is a combat-power target: not for a supporter. */}
+      {/* The chained order and the goal path are combat-power paths: not for a supporter. */}
+      {!supporter && pathEnabled && <SpecUpPath data={data} />}
       {!supporter && <SpecUpGoal data={data} />}
     </div>
   );

@@ -12,6 +12,7 @@ import {
   rankState,
   requestRank,
   scopeLabel,
+  scopeParts,
   scopesOf,
 } from "../lib/character/rank";
 
@@ -56,6 +57,16 @@ test("cells: rank of total, top percent and the PM tier names; collecting never 
   assert.equal(scopeLabel(data, "SERVER"), "서버 · 통계테스트서버");
   assert.equal(scopeLabel(data, "ALL"), "전체");
   assert.equal(conditionsText(data), "LOAKraken이 최근 30일 안에 확인한 아이템 레벨 1,640 이상 캐릭터 기준");
+});
+
+test("scope parts separate kind and value while keeping the inline label", () => {
+  const data = fixture("character-rank.json").data;
+  assert.deepEqual(scopeParts(data, "ALL"), { label: "전체", value: null });
+  assert.deepEqual(scopeParts(data, "SERVER"), { label: "서버", value: "통계테스트서버" });
+  assert.deepEqual(scopeParts(data, "CLASS"), { label: "직업", value: "통계바드" });
+  assert.deepEqual(scopeParts(data, "SERVER_CLASS"), { label: "서버 직업", value: "통계테스트서버 통계바드" });
+  assert.equal(scopeLabel(data, "SERVER_CLASS"), "서버 직업 · 통계테스트서버 통계바드");
+  assert.deepEqual(scopeParts({ ...data, entries: [] }, "SERVER_CLASS"), { label: "서버 직업", value: null });
 });
 
 test("rank requests validate the name and allow-list errors", async () => {

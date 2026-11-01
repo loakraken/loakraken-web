@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   activeSkills,
   engravingBookString,
+  sortEngravings,
   groupEquipment,
   otherSkillGems,
   parsePassiveNode,
@@ -109,6 +110,7 @@ test("only invested skills count for part break and counter (backend guidance)",
     gemEffects: [],
     attackType: null,
     cooldown: null,
+    skillType: null,
     ...over,
   });
   const skills = [
@@ -139,7 +141,7 @@ test("equipment groups follow the in-game slot order", () => {
     detail: null,
   });
   const groups = groupEquipment(
-    ["완갑", "무기", "반지", "투구", "팔찌", "어빌리티 스톤", "목걸이", "나침반"].map(
+    ["완갑", "무기", "반지", "투구", "팔찌", "보주", "어빌리티 스톤", "목걸이", "나침반"].map(
       item,
     ),
   );
@@ -153,6 +155,8 @@ test("equipment groups follow the in-game slot order", () => {
     ["목걸이", "반지"],
   );
   assert.equal(groups.stone?.type, "어빌리티 스톤");
+  // The orb has its own place (under the stone), not a leftover.
+  assert.equal(groups.orb?.type, "보주");
   assert.equal(groups.bracelet?.type, "팔찌");
   assert.deepEqual(
     groups.others.map((e) => e.type),
@@ -179,6 +183,25 @@ test("passive nodes, quality tiers and engraving book string", () => {
     "443",
   );
   assert.equal(engravingBookString([{ level: null }]), null);
+});
+
+test("engravings sort by relic count, then stone level, then official order (user 10-31)", () => {
+  // The capture: 아드레날린 3(스톤 3), 원한 0(스톤 2), 돌격대장 0, 기습의 대가 0, 안정된 상태 4 → "30004".
+  const list = [
+    { name: "아드레날린", level: 3, abilityStoneLevel: 3 },
+    { name: "원한", level: 0, abilityStoneLevel: 2 },
+    { name: "돌격대장", level: 0, abilityStoneLevel: null },
+    { name: "기습의 대가", level: 0, abilityStoneLevel: null },
+    { name: "안정된 상태", level: 4, abilityStoneLevel: null },
+  ];
+  const sorted = sortEngravings(list);
+  assert.deepEqual(
+    sorted.map((e) => e.name),
+    ["안정된 상태", "아드레날린", "원한", "돌격대장", "기습의 대가"],
+  );
+  assert.equal(engravingBookString(sorted), "43000");
+  // The input is not reordered in place.
+  assert.equal(list[0].name, "아드레날린");
 });
 
 test("avatars group by slot (overlay shares the base slot) and effect lines sum by stat", async () => {

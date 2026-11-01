@@ -174,12 +174,16 @@
 /* Each cell (shared ChangeMark) spans the column and sets its text to the
    right: a new number of another width (20G → 30G, not every face has even
    digits) changes the text, never the cell's box (A7, CI #617). The ▲/▼ of a
-   refresh goes before the number inside the cell, so it moves nothing. */
+   refresh goes back in the flow, before the number: the cell is wider than
+   its number here, so the shared out-of-flow arrow (changed-cells.css) would
+   sit at the column's left edge; in the flow it moves nothing either. */
 .rowPrice > [data-slot="change-mark"] {
   justify-content: flex-end;
 }
 .rowPrice [data-slot="change-mark"] :global(.chg-dir) {
+  position: static;
   order: -1;
+  translate: none;
 }
 /* Item grade colours on a light surface (game rarity hues). */
 .board [data-grade="일반"],

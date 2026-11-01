@@ -272,6 +272,23 @@
   min-width: 0;
   flex: 1;
 }
+/* The orb's 달성 최대 낙원력: label over a gold number, at the row's end. */
+.paradise {
+  display: grid;
+  flex: none;
+  justify-items: end;
+  text-align: right;
+}
+.paradise small {
+  color: var(--muted-foreground);
+  font-size: 11px;
+}
+.paradise b {
+  color: var(--grade-legendary-text);
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
 .itemText strong {
   display: block;
   font-size: 14px;
@@ -421,7 +438,7 @@
   min-width: 0;
 }
 .footItem[data-wide] {
-  grid-column: span 2;
+  grid-column: 1 / -1;
 }
 .footItem strong {
   display: block;
@@ -839,6 +856,26 @@
 .engravings strong {
   font-weight: 600;
 }
+/* Icon then name; the icon's 24px place is held even while the icons load
+   or when an engraving has none, so names never move. */
+.engravingName {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.engravingIcon {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  overflow: hidden;
+}
+.engravingIcon img {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
 .engravings span {
   color: var(--muted-foreground);
   font-size: 12px;
@@ -880,6 +917,28 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
+}
+/* Full view: icon, name and the tier's three places, one hover/tap target. */
+.tripodRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+/* It opens a card: the name answers the pointer. */
+@media (hover: hover) and (pointer: fine) {
+  .tripodRow:hover > span:nth-child(2) {
+    text-decoration: underline dotted;
+    text-underline-offset: 3px;
+  }
+}
+/* Which of 1·2·3 was picked: the plain number (no box: the icon's corner
+   already carries the tripod level), in tabular figures of one width. */
+.tripodSlot {
+  min-width: 1ch;
+  color: var(--muted-foreground);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
 }
 .gemEffects {
   list-style: none;
@@ -1518,6 +1577,53 @@
   align-items: center;
   gap: 4px;
 }
+/* 칭호 기록 (통계 tab): the note is all muted (no leading heading). */
+.titleRecordNote > span:first-child {
+  color: inherit;
+  font-weight: inherit;
+}
+/* Three summary cells: 칭호 수 · 가장 희귀 · 첫 기록. */
+.titleSummary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0 0 12px;
+}
+.titleSummary > div {
+  min-width: 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--muted);
+}
+.titleSummary dt {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.titleSummary dd {
+  margin: 2px 0 0;
+  font-size: 14px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.titleSummary dd b {
+  color: var(--accent-warm);
+  font-variant-numeric: tabular-nums;
+}
+.titleTable th[scope="row"] {
+  text-align: left;
+  font-weight: 600;
+}
+.titleTable td {
+  font-variant-numeric: tabular-nums;
+}
+.titleTable td[data-collecting] {
+  color: var(--muted-foreground);
+}
+@media (max-width: 420px) {
+  .titleSummary {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
 .titleList {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -1921,20 +2027,6 @@
   gap: 8px 16px;
   margin-bottom: 12px;
 }
-.gemCounts {
-  display: flex;
-  gap: 10px;
-  font-size: 13px;
-  font-variant-numeric: tabular-nums;
-}
-.gemCounts [data-gem="damage"] {
-  color: var(--accent-warm);
-  font-weight: 600;
-}
-.gemCounts [data-gem="cooldown"] {
-  color: var(--link);
-  font-weight: 600;
-}
 .skillGems {
   display: inline-flex;
   flex: none;
@@ -2163,6 +2255,39 @@
   gap: 8px;
   min-width: 180px;
 }
+/* One row per target (#26): '자세히' under the name opens its other stages. */
+.specUpMore {
+  display: block;
+  width: fit-content;
+  margin-top: 4px;
+  color: var(--link);
+  font-size: 12px;
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  max-width: 100%;
+  text-align: left;
+}
+/* No border to reach over: the phone tap area (hit-44) is the link's own
+   width, so a link as wide as the name cell does not stick out of it (A37 at
+   320, #1167). Still 44px tall, and at least 44px wide. */
+.specUpMore::after {
+  width: max(100%, 44px);
+}
+.specUpMore:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+/* The other stages of the target above: tinted, no rank of their own. */
+.specUpTable tr[data-sub] {
+  background: color-mix(in oklab, var(--muted) 55%, transparent);
+}
+/* A closed group's other stages: no height and out of reach (focus, screen
+   readers), yet still sizing the columns so a new head never moves them. */
+.specUpTable tr[data-collapsed] {
+  visibility: collapse;
+}
 /* Phones: one card per candidate, the gain and the cost in view without
    scrolling the table sideways. */
 @media (max-width: 700px) {
@@ -2184,6 +2309,10 @@
     gap: 4px 10px;
     padding: 12px 0;
     border-bottom: 1px solid var(--secondary);
+  }
+  /* Cards have no shared columns to keep: a closed stage takes no room. */
+  .specUpTable tr[data-collapsed] {
+    display: none;
   }
   .specUpTable tr > * {
     padding: 0;

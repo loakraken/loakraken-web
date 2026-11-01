@@ -27,6 +27,7 @@ import {
   gemKind,
   isCooldownGem,
   engravingBookString,
+  sortEngravings,
   groupEquipment,
   isGrade,
   parsePassiveNode,
@@ -50,6 +51,7 @@ import {
   characterNameError,
   coverageLabel,
   normalizeCharacterName,
+  safeGameImage,
   type Character,
   type CharacterEnvelope,
 } from "@/lib/character/model";
@@ -85,8 +87,12 @@ import {
   PassiveNodeCard,
   RuneCard,
   SkillDetailCard,
+  TripodCard,
+  tripodPlace,
 } from "./item-tooltip";
+import { awakeningLabel } from "@/lib/character/skill-type";
 import { sourcePlainText } from "@/lib/character/source-text";
+import { engravingIconMap, engravingKey, fetchEngravingIcons } from "@/lib/character/engraving-icons";
 import { useItemTooltips } from "./use-item-tooltips";
 import { useArmoryPage } from "./use-armory-page";
 import { tripodLevel, type ArmoryPage } from "@/lib/character/armory-page";
@@ -122,6 +128,7 @@ import {
 import { useStagger } from "./entrance";
 import { fetchTitleEquip } from "@/lib/stats/client";
 import { equipShare, titleEquipQuery, type EquippedTitle } from "@/lib/stats/title-equip";
+import { titlePercent, titleRecordRows, titleRecordSummary } from "@/lib/character/title-record";
 import { RosterPower, rosterPowerKey, useRosterPowerRefreshing } from "./roster-power";
 import { StatSheet } from "./stat-sheet";
 import { AnalysisMenu } from "./analysis-menu";
@@ -173,6 +180,8 @@ export const SimulatorEnabled = createContext(true);
 export const TitleStatsEnabled = createContext(true);
 /** SPEC_UP_GUIDE (server flag): off hides the 스펙업 tab the same way. */
 export const SpecUpEnabled = createContext(true);
+/** The 추천 순서 section under the spec-up list (SPEC_UP_PATH). */
+export const SpecUpPathEnabled = createContext(true);
 /** GUILD_TAB (server flag, apart from the guild ranking since api #582): off hides the guild tab. */
 export const GuildTabEnabled = createContext(true);
 /**
@@ -244,7 +253,7 @@ export function TabBar({
   rateLimitSeconds: number;
   onRefresh: () => void;
 }) {
-  const [favorite, toggleFavorite] = useFavorite(name);
+  const [favorite, toggleFavorite] = useFavorite(name, data.imageUrl);
   const [shareStatus, setShareStatus] = useState("");
   const { nav: pillNav, layer: pillLayer, onKeyDown: pillKey, onPointerDown: pillPointer } = useTabPill(tab);
   // The guild tab only for a character in a guild.
@@ -556,36 +565,53 @@ function EquipmentPanel({ data }: { data: Character }) {
                 ) : null}
               </li>
             ))}
+            {/* Under the accessories (user 10-31 layout): the stone, the orb,
+                then anything else; the bracelet takes the row below. */}
+            {groups.stone && (
+              <li {...stagger(groups.accessories.length, styles.item)}>
+                <ItemTooltip item={groups.stone} slot="어빌리티 스톤" extra={extraOf(groups.stone)}>
+                  <GameIcon src={groups.stone.icon} grade={groups.stone.grade} />
+                </ItemTooltip>
+                <div className={styles.itemText}>
+                  <strong>어빌리티 스톤</strong>
+                  {groups.stone.detail?.stoneEngravings.length ? (
+                    <ul className={styles.inlineList}>
+                      {groups.stone.detail.stoneEngravings.map((engraving, i) => (
+                        <li key={i}>
+                          {engraving.name} <b>Lv.{engraving.level}</b>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <small>{text(groups.stone.name)}</small>
+                  )}
+                </div>
+              </li>
+            )}
+            {[groups.orb, ...groups.others].filter((item): item is Equipment => item != null).map((item, i) => (
+              <li key={`other-${i}`} {...stagger(groups.accessories.length + 1 + i, styles.item)}>
+                <ItemTooltip item={item} slot={item.type ?? undefined} extra={extraOf(item)}>
+                  <GameIcon src={item.icon} grade={item.grade} />
+                </ItemTooltip>
+                <div className={styles.itemText}>
+                  <strong>{text(item.type)}</strong>
+                  <small>{text(item.name)}</small>
+                </div>
+                {/* The orb's 달성 최대 낙원력 on its right (backend #776); none, nothing. */}
+                {item.detail?.paradisePower != null && (
+                  <span className={styles.paradise}>
+                    <small>달성 최대 낙원력</small>
+                    <b>{item.detail.paradisePower.toLocaleString("ko-KR")}</b>
+                  </span>
+                )}
+              </li>
+            ))}
           </ul>
         </div>
       </div>
-      <div className={styles.equipFoot}>
-        {groups.stone && (
-          <div className={styles.footItem}>
-            <ItemTooltip item={groups.stone} slot="어빌리티 스톤" extra={extraOf(groups.stone)}>
-              <GameIcon
-                src={groups.stone.icon}
-                grade={groups.stone.grade}
-                size={40}
-              />
-            </ItemTooltip>
-            <div>
-              <strong>어빌리티 스톤</strong>
-              {groups.stone.detail?.stoneEngravings.length ? (
-                <ul className={styles.inlineList}>
-                  {groups.stone.detail.stoneEngravings.map((engraving, i) => (
-                    <li key={i}>
-                      {engraving.name} <b>Lv.{engraving.level}</b>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <small>{text(groups.stone.name)}</small>
-              )}
-            </div>
-          </div>
-        )}
-        {groups.bracelet && (
+      {/* The bracelet alone, across the whole width under both columns. */}
+      {groups.bracelet && (
+        <div className={styles.equipFoot}>
           <div className={styles.footItem} data-wide="">
             <ItemTooltip item={groups.bracelet} slot="팔찌" extra={extraOf(groups.bracelet)}>
               <GameIcon
@@ -600,19 +626,8 @@ function EquipmentPanel({ data }: { data: Character }) {
               efficiency={data.braceletEfficiency}
             />
           </div>
-        )}
-        {groups.others.map((item, i) => (
-          <div key={i} className={styles.footItem}>
-            <ItemTooltip item={item} slot={item.type ?? undefined} extra={extraOf(item)}>
-              <GameIcon src={item.icon} grade={item.grade} size={40} />
-            </ItemTooltip>
-            <div>
-              <strong>{text(item.type)}</strong>
-              <small>{text(item.name)}</small>
-            </div>
-          </div>
-        ))}
-      </div>
+        </div>
+      )}
     </Panel>
   );
 }
@@ -1056,7 +1071,7 @@ function ArkGridPanel({ data }: { data: Character }) {
 
 function CardsPanel({ data }: { data: Character }) {
   const stagger = useStagger();
-  const [folded, setFolded] = useState(false);
+  const [folded, setFolded] = useState(true);
   const setsId = useId();
   const cards = data.loadout.cards;
   const summary = data.analysis.cards;
@@ -1081,7 +1096,8 @@ function CardsPanel({ data }: { data: Character }) {
             ))}
           </ul>
           {/* The pictures always show; the set effects under them fold,
-              with the ark grid's toggle (user 10-28). Open by default. */}
+              with the ark grid's toggle (user 10-28). Folded by default
+              (user 10-31), from the first paint, so nothing moves. */}
           {cards.effects.length > 0 && (
             <>
               <ul id={setsId} className={styles.setList} hidden={folded}>
@@ -1266,8 +1282,21 @@ function StatsPanel({ data }: { data: Character }) {
 
 function EngravingsPanel({ data }: { data: Character }) {
   const stagger = useStagger();
-  const effects = data.loadout.engravings?.arkPassiveEffects ?? [];
+  const effects = sortEngravings(data.loadout.engravings?.arkPassiveEffects ?? []);
   const book = engravingBookString(effects);
+  // Icons left of the names (user 10-31, backend #780): one small list per page
+  // load. Each row holds the icon's place from the first paint, so the names
+  // never move when the icons land; a name without a match leaves it blank.
+  const iconList = useQuery({
+    queryKey: ["engraving-icons"],
+    queryFn: ({ signal }) => fetchEngravingIcons(signal),
+    // A filled list holds for the visit; an empty one (before the backend's
+    // warmup, or a failed read) is asked again after 5 minutes, not never.
+    staleTime: (query) => (query.state.data?.length ? Infinity : 5 * 60_000),
+    retry: false,
+    enabled: effects.length > 0,
+  });
+  const icons = engravingIconMap(iconList.data);
   const bonus = stoneBonus(groupEquipment(data.loadout.equipment).stone);
   return (
     <Panel
@@ -1276,15 +1305,33 @@ function EngravingsPanel({ data }: { data: Character }) {
     >
       {effects.length ? (
         <ul className={styles.engravings}>
-          {effects.map((effect, i) => (
+          {effects.map((effect, i) => {
+            // Official image addresses only (the same check as every API image).
+            const icon = safeGameImage(icons.get(engravingKey(effect.name)));
+            return (
             <li key={i} {...stagger(i)}>
-              {effect.description ? (
-                <DetailTooltip name={effect.name ?? "각인"} card={<EngravingCard description={effect.description} />}>
+              <div className={styles.engravingName}>
+                <div className={styles.engravingIcon} aria-hidden="true">
+                  {icon && (
+                    // eslint-disable-next-line @next/next/no-img-element -- official CDN icon at a fixed size
+                    <img
+                      src={icon}
+                      alt=""
+                      width={24}
+                      height={24}
+                      decoding="async"
+                      referrerPolicy="no-referrer"
+                    />
+                  )}
+                </div>
+                {effect.description ? (
+                  <DetailTooltip name={effect.name ?? "각인"} card={<EngravingCard description={effect.description} />}>
+                    <strong>{text(effect.name)}</strong>
+                  </DetailTooltip>
+                ) : (
                   <strong>{text(effect.name)}</strong>
-                </DetailTooltip>
-              ) : (
-                <strong>{text(effect.name)}</strong>
-              )}
+                )}
+              </div>
               <span>
                 {text(effect.grade)} ×{number(effect.level)}
                 {effect.abilityStoneLevel != null &&
@@ -1292,7 +1339,8 @@ function EngravingsPanel({ data }: { data: Character }) {
                   ` · 스톤 Lv.${effect.abilityStoneLevel}`}
               </span>
             </li>
-          ))}
+            );
+          })}
         </ul>
       ) : (
         <Empty
@@ -1382,6 +1430,7 @@ function SkillCard({
     ? []
     : [
         skill.type,
+        awakeningLabel(skill.skillType),
         skill.attackType ? ATTACK_LABEL[skill.attackType] : null,
         skill.counter ? "카운터" : null,
         skill.partBreakLevel != null ? `파괴 ${skill.partBreakLevel}` : null,
@@ -1437,18 +1486,36 @@ function SkillCard({
         <ul className={styles.tripods}>
           {skill.tripods.map((tripod, i) => {
             const tripodLv = compact ? null : levelOf?.(tripod.tier, tripod.slot) ?? null;
+            const icon = (
+              <span className={styles.tripodIcon}>
+                <GameIcon src={tripod.icon} size={20} />
+                {tripodLv != null && <b aria-hidden="true">{tripodLv}</b>}
+              </span>
+            );
+            if (compact) return <li key={i}>{icon}</li>;
+            const place = tripodPlace(tripod);
+            const name = tripod.name ?? "트라이포드";
+            // Which of the tier's 1·2·3 was picked: the number itself (user
+            // 11-01; it was three dots); the card says it in words with the effect.
+            // The button's label replaces its text for screen readers, so the
+            // level and the place go into it too.
+            const label = [name + (tripodLv != null ? ` 레벨 ${tripodLv}` : ""), place].filter(Boolean).join(", ");
             return (
               <li key={i}>
-                <span className={styles.tripodIcon}>
-                  <GameIcon src={tripod.icon} size={20} />
-                  {tripodLv != null && <b aria-hidden="true">{tripodLv}</b>}
-                </span>
-                {compact ? null : (
-                  <span>
-                    {text(tripod.name)}
-                    {tripodLv != null && <span className={styles.srOnly}> 레벨 {tripodLv}</span>}
+                <DetailTooltip name={name} label={label} card={<TripodCard tripod={tripod} />} hit="tight">
+                  <span className={styles.tripodRow}>
+                    {icon}
+                    <span>
+                      {text(tripod.name)}
+                      {tripodLv != null && <span className={styles.srOnly}> 레벨 {tripodLv}</span>}
+                    </span>
+                    {tripod.slot != null && tripod.slot >= 1 && tripod.slot <= 3 && (
+                      <span className={styles.tripodSlot} aria-hidden="true">
+                        {tripod.slot}
+                      </span>
+                    )}
                   </span>
-                )}
+                </DetailTooltip>
               </li>
             );
           })}
@@ -1514,7 +1581,7 @@ function SkillOverview({
   // ones in use, so a gem on an unused listed skill stays on its row.
   const others = full ? otherSkillGems(data.loadout.gems, skills.map((skill) => skill.name)) : [];
   // One group per skill, so the groups never overlap (PM #507 P1): both kinds,
-  // damage only, cooldown only, none. The head counts the same chips.
+  // damage only, cooldown only, none. The 요약 panel counts every equipped gem instead.
   const groupOf = (skill: Skill): GemFilter => {
     const chips = gemsOf(skill);
     const damage = chips.some((gem) => !gem.cooldown);
@@ -1523,12 +1590,6 @@ function SkillOverview({
   };
   const groupCount = (id: GemFilter) => (id === "all" ? sorted.length : sorted.filter((skill) => groupOf(skill) === id).length);
   const list = !full || gemFilter === "all" ? sorted : sorted.filter((skill) => groupOf(skill) === gemFilter);
-  const chips = sorted.flatMap((skill) => gemsOf(skill));
-  const counts = {
-    damage: chips.filter((gem) => !gem.cooldown).length,
-    cooldown: chips.filter((gem) => gem.cooldown).length,
-    empty: gemCounts(data.loadout.gems).empty,
-  };
   return (
     <Panel
       title="스킬"
@@ -1553,11 +1614,6 @@ function SkillOverview({
     >
       {full && (
         <div className={styles.gemFilterRow}>
-          <p className={styles.gemCounts}>
-            <span data-gem="damage">겁화 {counts.damage}</span>
-            <span data-gem="cooldown">작열 {counts.cooldown}</span>
-            <span>빈 칸 {counts.empty}</span>
-          </p>
           <div className={styles.filterRow} role="group" aria-label="보석으로 거르기">
             {GEM_FILTERS.map((item) => (
               <button
@@ -1670,6 +1726,13 @@ export function SkillsTab({ data }: { data: Character }) {
   const armory = useArmoryPage(data.characterName);
   const counters = summary.active.filter((skill) => skill.counter === true);
   const staggers = summary.active.filter((skill) => staggerOf(skillLines(extra, skill.name)?.infoLines)).length;
+  // Every equipped gem, the same numbers as the 전투 tab's 보석 line (the
+  // backend's analysis, else counted here) — gems on skills outside the list
+  // included.
+  const gemTotals = gemCounts(data.loadout.gems);
+  const gemsHere = (data.loadout.gems?.items ?? []).length > 0;
+  const damageGems = data.analysis.gems?.damageEffectCount ?? gemTotals.damage;
+  const cooldownGems = data.analysis.gems?.cooldownEffectCount ?? gemTotals.cooldown;
   const points = data.skillPoints;
   const left = points?.used != null && points.total != null ? points.total - points.used : null;
   // The two highest combat stats ("특화 1816 · 치명 576"), the engravings by
@@ -1763,6 +1826,14 @@ export function SkillsTab({ data }: { data: Character }) {
             <div>
               <dt>부위 파괴</dt>
               <dd>{summary.partBreakCount}개</dd>
+            </div>
+            <div>
+              <dt>보석</dt>
+              <dd>
+                {gemsHere
+                  ? `겁화 ${damageGems} · 작열 ${cooldownGems} · 미장착 ${gemTotals.empty}`
+                  : `미장착 ${gemTotals.empty}`}
+              </dd>
             </div>
           </dl>
         </Panel>
@@ -2616,7 +2687,118 @@ export function StatsTab({ data }: { data: Character }) {
           </Panel>
         </>
       )}
+      {/* Last on the tab: its loading never moves the charts above (A7). */}
+      <TitleRecordPanel name={data.characterName} />
     </div>
+  );
+}
+
+/**
+ * 칭호 기록 (user 10-31, api #697): this roster's titles, rarest first by our
+ * equip-record rate, with the date we first saw each. The rate is a lower
+ * bound (the official profile shows only the worn title), so it is called
+ * 장착 기록 비율 and the note says so; a title whose sample is not ready reads
+ * "표본 N명 — 모으는 중" and sits last. No 획득 조건: the official data has none.
+ */
+function TitleRecordPanel({ name }: { name: string }) {
+  const noteId = useId();
+  const titles = useQuery({
+    queryKey: ["roster-titles", name],
+    queryFn: ({ signal }) => fetchTitles(name, signal),
+    staleTime: 5 * 60_000,
+  });
+  const ratesOn = useContext(TitleStatsEnabled);
+  const rates = useQuery({
+    queryKey: ["title-equip", titleEquipQuery({})],
+    queryFn: ({ signal }) => fetchTitleEquip(titleEquipQuery({}), signal),
+    enabled: ratesOn,
+    staleTime: 5 * 60_000,
+    retry: false,
+  });
+  const waiting = titles.isPending || (ratesOn && rates.isPending);
+  const fade = useCrossfade(waiting);
+  const rows = titleRecordRows(titles.data?.data.titles ?? [], rates.data?.data.titles ?? []);
+  const summary = titleRecordSummary(rows);
+  const population = rates.data?.data.meta?.population;
+  // A failed rate read is not "collecting": the cells say "-" and a line says why.
+  const ratesFailed = ratesOn && rates.isError;
+  return (
+    <Panel title="칭호 기록" wide meta={titles.data ? `${summary.count}개` : undefined}>
+      <p className={`${styles.titleNote} ${styles.titleRecordNote}`} id={noteId}>
+        <span className={styles.titleInfo}>
+          <InfoCircle size={13} aria-hidden="true" />
+          공식 정보는 장착 중인 칭호만 보여 줘서, 장착 기록 비율은 실제 보유율보다 낮을 수 있어요
+          {population != null && ` · 표본 원정대 ${population.toLocaleString("ko-KR")}개`}
+        </span>
+      </p>
+      {waiting ? (
+        <p className={styles.muted} role="status">
+          <InlineOrb /> 칭호 기록을 불러오고 있어요.
+        </p>
+      ) : titles.isError ? (
+        <QueryProblem error={titles.error} onRetry={() => titles.refetch()} subject="칭호 기록을" />
+      ) : rows.length === 0 ? (
+        <p className={styles.muted}>
+          아직 확인한 칭호가 없어요. 원정대 캐릭터를 조회하면 그때 장착한 칭호가 기록돼요.
+        </p>
+      ) : (
+        <div ref={fade}>
+          {ratesFailed && <p className={styles.muted}>장착 기록 비율을 불러오지 못했어요. 칭호와 첫 기록만 보여요.</p>}
+          <dl className={styles.titleSummary}>
+            <div>
+              <dt>칭호 수</dt>
+              <dd>{summary.count}개</dd>
+            </div>
+            <div>
+              <dt>가장 희귀</dt>
+              <dd>
+                {summary.rarest ? (
+                  <>
+                    {summary.rarest.title} <b>{titlePercent(summary.rarest.percent!)}</b>
+                  </>
+                ) : ratesFailed ? (
+                  "-"
+                ) : (
+                  "모으는 중"
+                )}
+              </dd>
+            </div>
+            <div>
+              <dt>첫 기록</dt>
+              <dd>{summary.first ?? "-"}</dd>
+            </div>
+          </dl>
+          <div className={styles.tableWrap}>
+            <table className={`${styles.table} ${styles.titleTable}`} aria-label="칭호 기록 표" aria-describedby={noteId}>
+              <thead>
+                <tr>
+                  <th scope="col">칭호</th>
+                  <th scope="col">장착 기록 비율</th>
+                  <th scope="col">첫 기록</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row) => (
+                  <tr key={row.title}>
+                    <th scope="row">{row.title}</th>
+                    <td data-collecting={row.percent == null || undefined}>
+                      {row.percent != null
+                        ? titlePercent(row.percent)
+                        : ratesFailed
+                          ? "-"
+                          : row.sample != null
+                            ? `표본 ${row.sample}명 — 모으는 중`
+                            : "모으는 중"}
+                    </td>
+                    <td>{row.firstObservedDate}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </Panel>
   );
 }
 
@@ -2729,39 +2911,44 @@ function TabPanelView({
   tab,
   data,
   envelope,
+  drawn = false,
 }: {
   tab: TabId;
   data: Character;
   envelope: CharacterEnvelope;
+  /** Shown before on this visit: its charts stand drawn (globals.css [data-drawn]). */
+  drawn?: boolean;
 }) {
   return (
     <Reveal key={tab} className={styles.tabPanel}>
       <h2 id={TAB_HEADING} className={styles.srOnly} tabIndex={-1}>
         {TABS.find((item) => item.id === tab)?.label} 탭
       </h2>
-      {tab === "simulator" ? (
-        <SimulatorTab data={data} />
-      ) : tab === "specup" ? (
-        <SpecUpTab data={data} />
-      ) : tab === "skills" ? (
-        <SkillsTab data={data} />
-      ) : tab === "arkpassive" ? (
-        <ArkPassiveTab data={data} />
-      ) : tab === "collectibles" ? (
-        <CollectiblesTab data={data} />
-      ) : tab === "avatars" ? (
-        <AvatarsTab data={data} />
-      ) : tab === "stats" ? (
-        <StatsTab data={data} />
-      ) : tab === "siblings" ? (
-        <SiblingsTab data={data} />
-      ) : tab === "guild" ? (
-        <GuildTab data={data} />
-      ) : tab === "evidence" ? (
-        <EvidenceTab data={data} envelope={envelope} />
-      ) : (
-        <CombatTab data={data} />
-      )}
+      <div data-drawn={drawn || undefined}>
+        {tab === "simulator" ? (
+          <SimulatorTab data={data} />
+        ) : tab === "specup" ? (
+          <SpecUpTab data={data} />
+        ) : tab === "skills" ? (
+          <SkillsTab data={data} />
+        ) : tab === "arkpassive" ? (
+          <ArkPassiveTab data={data} />
+        ) : tab === "collectibles" ? (
+          <CollectiblesTab data={data} />
+        ) : tab === "avatars" ? (
+          <AvatarsTab data={data} />
+        ) : tab === "stats" ? (
+          <StatsTab data={data} />
+        ) : tab === "siblings" ? (
+          <SiblingsTab data={data} />
+        ) : tab === "guild" ? (
+          <GuildTab data={data} />
+        ) : tab === "evidence" ? (
+          <EvidenceTab data={data} envelope={envelope} />
+        ) : (
+          <CombatTab data={data} />
+        )}
+      </div>
     </Reveal>
   );
 }

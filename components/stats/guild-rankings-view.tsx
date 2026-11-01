@@ -27,6 +27,7 @@ import { BasisNote } from "./basis-note";
 import { PopularGuilds } from "./popular-guilds";
 import { rankingColumns } from "./ranking-columns";
 import { RankingTypeTabs, type RankingType } from "./ranking-type-tabs";
+import { MoreDetail } from "@/components/ui/more-detail";
 
 const SERVERS = ["루페온", "실리안", "아만", "아브렐슈드", "카단", "카마인", "카제로스", "니나브"];
 // 순위 · 길드 · 서버 · 아이템 레벨(평균 또는 합) · 확인한 길드원 · 전투력(1750 이상 평균 또는 합)
@@ -313,13 +314,16 @@ export function GuildRankingsView({
             </button>
           </nav>
         )}
+        {/* One line on the page, the counting rules folded (#1112): nothing removed. */}
         <p className={styles.note}>
-          확인한 길드원은 LOAKraken이 최근 확인한 공개 캐릭터 수로, 실제 길드 인원이 아니에요. 전투력 평균은 그중
-          아이템 레벨 {whole(GUILD_TOP_LEVEL)} 이상 길드원만 세요.
+          확인한 길드원은 LOAKraken이 최근 확인한 공개 캐릭터 수로, 실제 길드 인원이 아니에요.
+        </p>
+        <MoreDetail className={styles.note}>
+          전투력 평균은 그중 아이템 레벨 {whole(GUILD_TOP_LEVEL)} 이상 길드원만 세요.
           {data && ` 확인한 길드원이 ${whole(data.minMembers)}명보다 적은 길드는 순위에 넣지 않아요`}
           {data && (data.excludedGuilds ?? 0) > 0 && `(이번 조건에서 ${whole(data.excludedGuilds)}개)`}
           {data && "."}
-        </p>
+        </MoreDetail>
         {data?.meta && <BasisNote basis={{ ...data.meta, unit: "개 길드" }} />}
         {/* Last on the page: arriving later, it pushes nothing above it (A6). */}
         {popular && <PopularGuilds server={query.server} />}

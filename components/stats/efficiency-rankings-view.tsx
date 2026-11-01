@@ -25,6 +25,7 @@ import {
 } from "@/lib/stats/rankings";
 import quote from "@/components/tools/material-quote.module.css";
 import styles from "./stats.module.css";
+import { LevelPresets } from "./level-presets";
 import { rankingColumns } from "./ranking-columns";
 import { BasisNote } from "./basis-note";
 import { RankingTypeTabs, type RankingType } from "./ranking-type-tabs";
@@ -94,6 +95,12 @@ export function EfficiencyRankingsView({
     }, 300);
   }
   useEffect(() => () => clearTimeout(levelTimer.current), []);
+  /** A preset replaces whatever was typed and applies at once. */
+  function pickLevel(value: number | undefined) {
+    clearTimeout(levelTimer.current);
+    setLevelText(value != null ? String(value) : "");
+    if (value !== latest.current.itemLevelMin) filter({ itemLevelMin: value });
+  }
 
   const pageWindow = Array.from({ length: Math.min(pages, 7) }, (_, i) => {
     const start = Math.min(Math.max(1, query.page - 3), Math.max(1, pages - 6));
@@ -159,6 +166,7 @@ export function EfficiencyRankingsView({
               onChange={(e) => typeLevel(e.target.value.replace(/[^\d.]/g, ""))}
             />
           </label>
+          <LevelPresets level={query.itemLevelMin} onPick={pickLevel} />
         </form>
 
         {/* Held from the first paint (empty until the answer), so the list never moves down. */}

@@ -8,6 +8,8 @@ export type RecentCharacter = {
   itemLevel: number | null;
   /** Added later; older stored rows have none. */
   combatPower?: number | null;
+  /** The character image (search dropdown rows); added later, older rows have none. */
+  image?: string | null;
   at: number;
 };
 
@@ -31,6 +33,7 @@ const isEntry = (value: unknown): value is RecentCharacter => {
     (v.className === null || typeof v.className === "string") &&
     (v.itemLevel === null || typeof v.itemLevel === "number") &&
     (v.combatPower === undefined || v.combatPower === null || typeof v.combatPower === "number") &&
+    (v.image === undefined || v.image === null || typeof v.image === "string") &&
     typeof v.at === "number"
   );
 };

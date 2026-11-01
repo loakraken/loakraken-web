@@ -19,6 +19,8 @@ test("길드 랭킹: 탭·열·기준 전환·서버·안내 @regression", async
   await expect(table.locator("tbody tr").nth(2)).toContainText("1750 이상 없음");
   await expect(table.locator("tbody tr").nth(2).locator("td").first()).toHaveText("-");
   await expect(table.locator("tbody tr").nth(1).locator("td").first()).toHaveText("2");
+  // The counting rules are folded under '자세히' (feedback #20), never removed.
+  await page.locator("details").filter({ hasText: /이상 길드원만 세요/ }).locator("summary").click();
   await expect(page.getByText(/아이템 레벨 1,750 이상 길드원만 세요/)).toBeVisible();
   // The basis names both: the 1,640+ range of the guilds, and on its own line the 1,750+ members the average counts.
   await expect(page.getByText(/아이템 레벨 1,640 이상 318개 길드 기준 · 공식 랭킹이 아니에요/)).toBeVisible();

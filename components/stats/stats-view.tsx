@@ -5,7 +5,7 @@ import { Fragment, useEffect, useId, useRef, useState, type CSSProperties } from
 import { useTallest } from "@/components/ui/use-tallest";
 import { classBuildsPath } from "@/lib/stats/class-builds";
 import { useRouter, useSearchParams } from "next/navigation";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery, type UseQueryResult } from "@tanstack/react-query";
 import { SiteHeader } from "@/components/site/site-header";
 import { Select } from "@/components/ui/select";
 import { DataTable } from "@/components/ui/data-table";
@@ -15,7 +15,17 @@ import { pendingProps } from "@/lib/api/pending";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { TIER_LABEL } from "@/lib/character/rank";
 import { coarsen } from "@/lib/stats/bins";
-import { fetchBestCombatPower, fetchStats, fetchTitleEquip } from "@/lib/stats/client";
+import {
+  fetchBestCombatPower,
+  fetchGemLevels,
+  fetchLevelCombatPower,
+  fetchStats,
+  fetchTitleEquip,
+  isAbsent,
+} from "@/lib/stats/client";
+import { gemBinLabel, type GemLevelsEnvelope } from "@/lib/stats/gem-levels";
+import gemStyles from "./gem-levels.module.css";
+import { LevelCombatPowerChart } from "./level-combat-power-chart";
 import { equipShare, titleEquipQuery } from "@/lib/stats/title-equip";
 import {
   DISTRIBUTION_WIDTH,
@@ -36,10 +46,13 @@ import {
   type StatsMeta,
   type StatsQuery,
 } from "@/lib/stats/model";
+import { PopulationTab } from "./population-tab";
 import quote from "@/components/tools/material-quote.module.css";
 import styles from "./stats.module.css";
 import { ClassIcon } from "./class-icon";
+import { CompositionBlock } from "./composition";
 import { BasisNote } from "./basis-note";
+import { LevelPresets } from "./level-presets";
 import { rankingColumns } from "./ranking-columns";
 
 const SERVERS = ["루페온", "실리안", "아만", "아브렐슈드", "카단", "카마인", "카제로스", "니나브"];
@@ -49,6 +62,7 @@ const TABS = [
   { id: "best", label: "최고 전투력" },
   { id: "servers", label: "서버" },
   { id: "titles", label: "칭호" },
+  { id: "population", label: "전체 인구" },
 ] as const;
 type Tab = (typeof TABS)[number]["id"];
 const kst = new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
@@ -203,8 +217,8 @@ function SampleProgress({ ready, total, unit, minSample }: { ready: number; tota
 
 /**
  * Quantile bar: p10–p90 thin line, p25–p75 box, median tick. It
- * grows from the left each time the tab is shown (motion rule 10-10: on every
- * entry, not on in-place updates), 30ms apart up to 8 rows; only the first 12
+ * grows from the left the first time its tab is shown on a visit (user report
+ * 10-31; back on the tab it stands still), 30ms apart up to 8 rows; only the first 12
  * rows move (PM 12-item cap), the rest are simply there.
  */
 function Quantiles({
@@ -330,6 +344,7 @@ function ClassesTab({ query }: { query: StatsQuery }) {
       <p className={styles.note}>
         분포 막대: 옅은 선 하위 10%~상위 10%, 진한 칸 가운데 50%, 세로선 중앙값. 표본이 {minSample}명 미만인 직업은 분포 대신 중앙값 점만 찍고, 다른 값은 참고값(회색)으로 보여요.
       </p>
+      <CompositionBlock rows={rows} composition={classes.data.data.composition} />
       <StatsBasis query={query} />
     </div>
   );
@@ -442,7 +457,7 @@ function DistributionTab({ query }: { query: StatsQuery }) {
             const hit = p && p.value >= bin.from && p.value < bin.to;
             return (
               <li key={bin.from} title={`${fmt(bin.from)} ~ ${fmt(bin.to)} · ${whole(bin.count)}명`} data-hit={hit || undefined}>
-                {/* Each bar grows from the axis on every entry (motion rule 10-10). */}
+                {/* Each bar grows from the axis on the tab's first showing (data-drawn after). */}
                 <i className="k-grow" style={{ height: `${(bin.count / max) * 100}%`, "--i": i } as CSSProperties} />
                 <span className={styles.srOnly}>
                   {fmt(bin.from)} ~ {fmt(bin.to)}: {whole(bin.count)}명
@@ -466,7 +481,110 @@ function DistributionTab({ query }: { query: StatsQuery }) {
         )
       )}
       {data && <StatsBasis query={query} />}
+      {/* After the main answer (and its basis note above): landing first, they were pushed down by it. */}
+      {data && <ExtraCharts query={query} asTable={asTable} />}
     </div>
+  );
+}
+
+/**
+ * The gem and level charts (B2·B3) at the end of the tab, below the basis
+ * note, so nothing is under them to push. They wait for both answers and then
+ * show at once (one landing after the other would move it). An api without
+ * the endpoint (404, before it ships) leaves that chart out with no trace; a
+ * real failure shows the retry box in its place (PM-프론트 10-31).
+ */
+function ExtraCharts({ query, asTable }: { query: StatsQuery; asTable: boolean }) {
+  const gems = useQuery({
+    queryKey: ["stats", "gem-levels", statsKey(query)],
+    queryFn: ({ signal }) => fetchGemLevels(query, signal),
+    staleTime: 5 * 60_000,
+    placeholderData: keepPreviousData,
+    ...quiet,
+  });
+  const levels = useQuery({
+    queryKey: ["stats", "level-combat-power", statsKey(query)],
+    queryFn: ({ signal }) => fetchLevelCombatPower(query, signal),
+    staleTime: 5 * 60_000,
+    placeholderData: keepPreviousData,
+    ...quiet,
+  });
+  if (gems.isPending || levels.isPending) return null;
+  return (
+    <>
+      {!isAbsent(gems.error) && <GemLevelsChart gems={gems} asTable={asTable} />}
+      {!isAbsent(levels.error) && (
+        <LevelCombatPowerChart
+          levels={levels}
+          asTable={asTable}
+          problem={(error, retry) => <Problem error={error} onRetry={retry} />}
+        />
+      )}
+    </>
+  );
+}
+
+/**
+ * 보석 레벨 분포 (B2): 12 fixed bins of the gem average, as bars or as a
+ * table (the same 표로 보기 switch). Only characters whose gems were seen are
+ * in it, so the caption names that count.
+ */
+function GemLevelsChart({ gems, asTable }: { gems: UseQueryResult<GemLevelsEnvelope>; asTable: boolean }) {
+  const data = gems.data?.data;
+  const label = "보석 평균 레벨 구간별 인원";
+  const max = Math.max(1, ...(data?.bins ?? []).map((b) => b.count));
+  return (
+    // The whole block dims while another filter loads: its caption carries the sample count too.
+    <section className={gemStyles.block} aria-labelledby="stats-gem-levels" {...pendingProps(gems)}>
+      <h2 id="stats-gem-levels" className={gemStyles.title}>
+        보석 레벨 분포
+      </h2>
+      {!data ? (
+        // A real failure (not a missing endpoint): the retry box in the bars' place.
+        <div className={styles.histogramWait}>
+          <Problem error={gems.error} onRetry={() => gems.refetch()} />
+        </div>
+      ) : asTable ? (
+        <DataTable label={label} className={styles.table} {...pendingProps(gems)}>
+          <caption className={styles.srOnly}>{label}</caption>
+          <thead>
+            <tr>
+              <th scope="col" className={styles.left}>보석 평균 레벨</th>
+              <th scope="col">인원</th>
+            </tr>
+          </thead>
+          <tbody key={gems.dataUpdatedAt}>
+            {data.bins.map((bin) => (
+              <tr key={gemBinLabel(bin)}>
+                <th scope="row">{gemBinLabel(bin)}</th>
+                <td>{whole(bin.count)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </DataTable>
+      ) : (
+        <ol key={gems.dataUpdatedAt} className={styles.histogram} aria-label={label} {...pendingProps(gems)}>
+          {data.bins.map((bin, i) => (
+            <li key={gemBinLabel(bin)} title={`${gemBinLabel(bin)} · ${whole(bin.count)}명`}>
+              <i className="k-grow" style={{ height: `${(bin.count / max) * 100}%`, "--i": i } as CSSProperties} />
+              <span className={styles.srOnly}>
+                {gemBinLabel(bin)}: {whole(bin.count)}명
+              </span>
+            </li>
+          ))}
+        </ol>
+      )}
+      {/* Kept on a failure too, so the retry box sits where the bars and axis would. */}
+      <p className={styles.axis} aria-hidden="true" {...pendingProps(gems)}>
+        <span>{data && !asTable ? gemBinLabel(data.bins[0]) : " "}</span>
+        <span>{data && !asTable ? gemBinLabel(data.bins.at(-1)!) : ""}</span>
+      </p>
+      <p className={styles.note}>
+        {data
+          ? `보석이 확인된 ${whole(data.gemSample)}명 기준이에요(표본 ${whole(data.meta.population)}명). 4티어 보석 평균 레벨을 0.5 단위로 묶었어요.`
+          : " "}
+      </p>
+    </section>
   );
 }
 
@@ -697,11 +815,14 @@ export function StatsView({
   initial,
   initialTab,
   titles = true,
+  population = false,
 }: {
   initial: StatsQuery;
   initialTab: Tab;
   /** TITLE_STATS on this deployment (server flag): the '칭호' tab. */
   titles?: boolean;
+  /** POPULATION_STATS on this deployment (server flag): the '전체 인구' tab. */
+  population?: boolean;
 }) {
   const router = useRouter();
   const [query, setQuery] = useState<StatsQuery>(initial);
@@ -709,8 +830,16 @@ export function StatsView({
   // A menu link to another tab changes the URL without remounting the page:
   // follow it here (remounting replayed every chart twice on a tab click).
   const [urlTab, setUrlTab] = useState<Tab>(initialTab);
+  // Tabs already shown on this visit: their bars come back at rest, not
+  // regrown from the axis (user report 10-31: back and forth, every chart
+  // shrank and grew again). Marked when left, so the first draw is not cut.
+  const [drawn, setDrawn] = useState<ReadonlySet<Tab>>(() => new Set());
+  const leave = (from: Tab) => {
+    if (!drawn.has(from)) setDrawn(new Set(drawn).add(from));
+  };
   if (initialTab !== urlTab) {
     setUrlTab(initialTab);
+    leave(tab);
     setTab(initialTab);
   }
   const [levelText, setLevelText] = useState(initial.itemLevelMin != null ? String(initial.itemLevelMin) : "");
@@ -740,6 +869,12 @@ export function StatsView({
     }, 300);
   }
   useEffect(() => () => clearTimeout(levelTimer.current), []);
+  /** A preset replaces whatever was typed and applies at once. */
+  function pickLevel(value: number | undefined) {
+    clearTimeout(levelTimer.current);
+    setLevelText(value != null ? String(value) : "");
+    if (value !== latest.current.itemLevelMin) apply({ ...latest.current, itemLevelMin: value });
+  }
 
   return (
     <div className={quote.page}>
@@ -792,6 +927,7 @@ export function StatsView({
               onChange={(e) => typeLevel(e.target.value.replace(/[^\d.]/g, ""))}
             />
           </label>
+          <LevelPresets level={query.itemLevelMin} onPick={pickLevel} />
           <label className={styles.check}>
             <input
               type="checkbox"
@@ -809,12 +945,17 @@ export function StatsView({
           listClassName={styles.tabs}
           value={tab}
           onValueChange={(next) => {
+            if (next !== tab) leave(tab);
             setTab(next as Tab);
             apply(query, next as Tab);
           }}
           panels={
             <PillTabsPanel value={tab} className={styles.panel}>
-              <div ref={panelRef} style={tallest ? { minHeight: tallest } : undefined}>
+              <div
+                ref={panelRef}
+                style={tallest ? { minHeight: tallest } : undefined}
+                data-drawn={drawn.has(tab) || undefined}
+              >
                 {tab === "classes" ? (
                   <ClassesTab query={query} />
                 ) : tab === "distribution" ? (
@@ -823,6 +964,8 @@ export function StatsView({
                   <BestTab query={query} />
                 ) : tab === "titles" ? (
                   <TitlesTab query={query} />
+                ) : tab === "population" ? (
+                  <PopulationTab server={query.server} problem={(error, retry) => <Problem error={error} onRetry={retry} />} />
                 ) : (
                   <ServersTab query={query} />
                 )}
@@ -830,7 +973,7 @@ export function StatsView({
             </PillTabsPanel>
           }
         >
-          {TABS.filter((t) => titles || t.id !== "titles").map((t) => (
+          {TABS.filter((t) => (titles || t.id !== "titles") && (population || t.id !== "population")).map((t) => (
             <PillTab key={t.id} value={t.id}>
               {t.label}
             </PillTab>

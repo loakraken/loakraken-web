@@ -76,8 +76,9 @@ function withSimulatorGear(data) {
     make("상의", "+20 전율의 상의", { refineLevel: 20, quality: 95, advancedRefineLevel: 0 }),
     // 팔 보호구(backend #342): type "완갑", step = refineLevel, grade on the item.
     { ...make("완갑", "+13 전율 완갑", { refineLevel: 13 }), grade: "유물" },
-    // 보주: shown on the 전투 tab foot, never in the 내실 special list (user 10-26).
-    make("보주", "테스트 보주", {}),
+    // 보주: under the stone in the accessory column (user 10-31), never in the
+    // 내실 special list (user 10-26), with its 달성 최대 낙원력 (backend #776).
+    make("보주", "테스트 보주", { paradisePower: 35647915 }),
     make("어빌리티 스톤", "테스트 스톤", {
       stoneEngravings: [
         { name: "원한", level: 1 },
@@ -119,6 +120,17 @@ async function market(url, req, send) {
   // Market board (B-5): synthetic, deterministic prices per item id.
   if (url.pathname === "/api/v1/markets/tabs")
     return send(marketRead("market-tabs.json"));
+  // Engraving icons (backend #780): keys without spaces; 질량 증가 has none (no icon shown).
+  if (url.pathname === "/api/v1/markets/engraving-icons")
+    return send({
+      code: "ENGRAVING_ICONS_SUCCESS",
+      data: {
+        icons: ["돌격대장", "아드레날린", "원한", "잔재된기운"].map((key, i) => ({
+          key,
+          icon: `https://cdn-lostark.game.onstove.com/efui_iconatlas/achieve/achieve_${10 + i}.png`,
+        })),
+      },
+    });
   const boardItems = (tab) => {
     const refining = [
       [6861012, "아비도스 융화 재료", "희귀", 1, 195],
@@ -795,6 +807,53 @@ createServer(async (req, res) => {
   // onto the mock character's combat power and cut where it reaches the target,
   // as the backend stops there. '미존재' 404, '스펙업꺼짐' 404, '상세서포터' the
   // role reason with no steps, a target over twice today 400.
+  // 스펙업 추천 순서 (api #794): the backend's sample (보석 8→9→10, 품질 unpriced)
+  // moved onto the mock character's power, gem on slot 1 (extraCost as #794
+  // @8bb6ee1 sends it). '스펙순서긴' repeats it to 14 steps (more than the first
+  // 10 rows), '스펙순서몰림' is SPEC_UP_BUSY, '상세서포터' the role reason with no steps.
+  if (url.pathname === "/api/v1/characters/spec-up/path") {
+    counts.specUpPath = (counts.specUpPath || 0) + 1;
+    const who = url.searchParams.get("characterName");
+    const sort = url.searchParams.get("sort") ?? "EFFICIENCY";
+    if (who === "스펙업꺼짐") return send({ code: "SPEC_UP_DISABLED", message: "", data: null }, 404);
+    if (who === "미존재") return send({ code: "CHARACTER_NOT_CACHED", message: "", data: null }, 404);
+    if (who === "스펙순서몰림") return send({ code: "SPEC_UP_BUSY", message: "", data: null }, 429, { "Retry-After": "5" });
+    const envelope = JSON.parse(readFileSync(new URL("./spec-up-fixtures/character-spec-up-path.json", import.meta.url), "utf8"));
+    const d = envelope.data;
+    const base = read("character-full-data.json").combatPower;
+    const sampleBase = d.combatPower;
+    const shift = (v) => Math.round((v + base - sampleBase) * 100) / 100;
+    Object.assign(d, { characterName: who, sort, combatPower: base, finalCombatPower: shift(d.finalCombatPower) });
+    if (who === "상세서포터") {
+      Object.assign(d, { steps: [], unpriced: [], finalCombatPower: base, totalCost: null, stopReasonCode: "SUPPORTER_MODEL_PENDING", stopReason: "서포터 전투력 계산식은 아직 적용하지 않았습니다." });
+      return send(envelope);
+    }
+    for (const step of d.steps) {
+      step.combatPowerAfter = shift(step.combatPowerAfter);
+      step.change.slot = 1;
+      step.candidateId = step.candidateId.replace(/^GEM_LEVEL:0:/, "GEM_LEVEL:1:");
+    }
+    if (who === "스펙순서긴") {
+      const more = Array.from({ length: 12 }, (_, i) => ({
+        ...structuredClone(d.steps[0]),
+        order: i + 3,
+        candidateId: `ENGRAVING_LEVEL:원한${i}:1`,
+        kind: "ENGRAVING_LEVEL",
+        target: `시험 각인 ${i + 1}`,
+        from: "0단계",
+        to: "1단계",
+        change: { ...d.steps[0].change, kind: "ENGRAVING_LEVEL", slot: null, level: 1, name: `원한${i}` },
+        deltaCombatPower: 5,
+        combatPowerAfter: Math.round((d.finalCombatPower + 5 * (i + 1)) * 100) / 100,
+        cost: { ...d.steps[0].cost, amount: 10000, code: "ENGRAVING_BOOK" },
+        cumulativeCost: d.totalCost + 10000 * (i + 1),
+        extraCost: 10000,
+      }));
+      d.steps.push(...more);
+      Object.assign(d, { finalCombatPower: more.at(-1).combatPowerAfter, totalCost: more.at(-1).cumulativeCost, stopReasonCode: "STEP_LIMIT", limit: 14 });
+    }
+    return send(envelope);
+  }
   if (url.pathname === "/api/v1/characters/spec-up/goal") {
     const who = url.searchParams.get("characterName");
     const target = Number(url.searchParams.get("targetCombatPower"));
@@ -905,12 +964,13 @@ createServer(async (req, res) => {
       envelope.data.candidates.unshift(
         ...["DAMAGE", "COOLDOWN"].map((gemType, i) => ({
           ...gem,
-          id: `GEM_LEVEL:${7 + i}:7`,
+          // Slots 17·18: unused by the fixtures (a slot holds one gem; a shared slot groups as one target, #26).
+          id: `GEM_LEVEL:${17 + i}:7`,
           target: "터닝 슬래쉬 · 6레벨 광휘",
           from: "6레벨",
           to: "7레벨",
           gemType,
-          change: { ...gem.change, slot: 7 + i, level: 7 },
+          change: { ...gem.change, slot: 17 + i, level: 7 },
         })),
       );
     }
@@ -929,13 +989,15 @@ createServer(async (req, res) => {
     // spec-up and simulator read one character), so the L31 goal path adds up.
     envelope.data.combatPower = read("character-full-data.json").combatPower;
     // The sample's gem is the mock simulator character's slot-1 gem (level 8).
+    // Only that gem (slot 0): the other mock gems keep their own slots, since
+    // one slot is one target in the list (stages grouped, #26).
     for (const c of envelope.data.candidates)
-      if (c.change?.kind === "GEM_LEVEL") c.change.slot = 1;
+      if (c.change?.kind === "GEM_LEVEL" && c.change.slot === 0) c.change.slot = 1;
     // An OK candidate costing 0 (a bound gem kept, say): no per-gold figure, after
     // the rest (the backend's order, api #596).
     if (who === "스펙업0골드") {
       const ok = envelope.data.candidates.filter((c) => c.status === "OK");
-      const free = { ...ok[0], id: "GEM_LEVEL:9:9", target: "무료 보석 칸", cost: { ...ok[0].cost, amount: 0 }, combatPowerPer10kGold: null };
+      const free = { ...ok[0], id: "GEM_LEVEL:9:9", target: "무료 보석 칸", change: { ...ok[0].change, slot: 9 }, cost: { ...ok[0].cost, amount: 0 }, combatPowerPer10kGold: null };
       envelope.data.candidates = [...ok, free, ...envelope.data.candidates.filter((c) => c.status !== "OK")];
     }
     if (url.searchParams.get("sort") === "DELTA") {
@@ -1790,6 +1852,29 @@ createServer(async (req, res) => {
       return send({ code: "STATS_CLASS_BUILDS_SUCCESS", message: "ok", data });
     }
   }
+  // 전체 인구 (api #788): the weekly snapshot; ?server= scopes classes and levels.
+  if (url.pathname === "/api/v1/stats/population") {
+    const server = url.searchParams.get("server");
+    const servers = [["루페온", 41230], ["카마인", 30210], ["아브렐슈드", 28870], ["카제로스", 26140], ["실리안", 24980], ["카단", 22310], ["아만", 21460], ["니나브", 9820]]
+      .map(([name, count]) => ({ name, count }));
+    // The scope's people, split over classes and over levels so both sum to it (as the api does).
+    const total = server ? (servers.find((s) => s.name === server)?.count ?? 0) : servers.reduce((a, s) => a + s.count, 0);
+    const spread = (weights) => {
+      const sum = weights.reduce((a, w) => a + w, 0);
+      const counts = weights.map((w) => Math.floor((total * w) / sum));
+      counts[0] += total - counts.reduce((a, c) => a + c, 0);
+      return counts;
+    };
+    const classNames = ["바드", "버서커", "블래스터", "홀리나이트", "도화가", "소울이터", "슬레이어", "기상술사", "아르카나", "리퍼", "발키리", "창술사", "가디언나이트", "차원술사"];
+    const classCounts = spread([213, 152, 148, 139, 128, 121, 116, 99, 91, 88, 84, 76, 61, 33]);
+    const classes = classNames.map((name, i) => ({ name, count: classCounts[i] }));
+    // 10-level buckets from 1100 (roster-only characters) to 1780, a gap at 1300~1400.
+    const froms = [];
+    for (let from = 1100; from < 1780; from += 10) if (from < 1300 || from >= 1400) froms.push(from);
+    const levelCounts = spread(froms.map((from) => (from >= 1640 ? 2600 - Math.abs(from - 1710) * 30 : 120)));
+    const levels = froms.map((from, i) => ({ from, to: from + 10, count: levelCounts[i] }));
+    return send({ code: "STATS_POPULATION_SUCCESS", message: "성공", data: { snapshotDate: "2026-10-31", server, total, servers, classes, levels } });
+  }
   if (url.pathname.startsWith("/api/v1/stats/")) {
     const q = url.searchParams;
     const small = q.get("server") === "니나브";
@@ -1829,6 +1914,31 @@ createServer(async (req, res) => {
     };
     const view = url.pathname.slice("/api/v1/stats/".length);
     const ok = (code, data) => send({ code, message: "성공", data: { meta, ...data } });
+    // 보석 레벨 분포 (api #782): 12 fixed bins summing to gemSample (93% of the sample, as the summary says).
+    if (view === "gem-levels") {
+      const gemSample = Math.round(population * 0.93);
+      const weights = [1, 1, 1, 2, 3, 5, 8, 12, 16, 20, 18, 13];
+      const sum = weights.reduce((a, w) => a + w, 0);
+      const counts = weights.map((w) => Math.floor((gemSample * w) / sum));
+      counts[9] += gemSample - counts.reduce((a, c) => a + c, 0);
+      const bins = counts.map((count, i) => ({ from: i === 0 ? null : 4.5 + i * 0.5, to: i === 11 ? null : 5 + i * 0.5, count }));
+      return ok("STATS_GEM_LEVELS_SUCCESS", { gemSample, bins });
+    }
+    // 레벨별 전투력 (api #784): 5-level buckets with people, ascending; under 30 → no median. Counts sum to population.
+    if (view === "level-combat-power") {
+      // The ends are a handful of people (no median there), the rest share the sample.
+      const weights = [0, 3, 8, 14, 20, 24, 22, 17, 11, 6, 3, 0];
+      const sum = weights.reduce((a, w) => a + w, 0);
+      const ends = Math.min(17, population);
+      const counts = weights.map((w) => Math.floor(((population - ends) * w) / sum));
+      counts[0] = Math.min(12, ends);
+      counts[11] = ends - counts[0];
+      counts[5] += population - counts.reduce((a, c) => a + c, 0);
+      const buckets = counts
+        .map((count, i) => ({ from: 1660 + i * 5, to: 1665 + i * 5, count, median: count >= 30 ? 2400 + i * 95 : null }))
+        .filter((b) => b.count > 0);
+      return send({ code: "STATS_LEVEL_COMBAT_POWER_SUCCESS", message: "성공", data: { meta: { ...meta, population }, buckets } });
+    }
     if (view === "summary") {
       const supports = classes.reduce((a, c) => a + c.supports, 0);
       const dealers = population - supports;
@@ -1838,7 +1948,17 @@ createServer(async (req, res) => {
         gemMeanLevel: small ? 7.6 : 8.4, gemSample: Math.round(population * 0.93),
       });
     }
-    if (view === "classes") return ok("STATS_CLASSES_SUCCESS", { rows: classes });
+    if (view === "classes") {
+      // 구성 (api #779): support-capable classes split by role, every other class a dealer; sums to population.
+      const supportClasses = classes.filter((c) => c.supportShare != null);
+      const composition = {
+        dealer: classes.filter((c) => c.supportShare == null).reduce((a, c) => a + c.count, 0),
+        supportClassDealer: supportClasses.reduce((a, c) => a + c.dealers, 0),
+        support: supportClasses.reduce((a, c) => a + c.supports, 0),
+        unknownRole: supportClasses.reduce((a, c) => a + c.unknownRole, 0),
+      };
+      return ok("STATS_CLASSES_SUCCESS", { rows: classes, composition });
+    }
     // Best combat power (api #477, L5): the classes' spread lifted a little
     // (best ≥ current), 95% of each class has a best seen; 니나브 all short.
     if (view === "best-combat-power") {
@@ -2093,6 +2213,19 @@ createServer(async (req, res) => {
     const rows = [["빛을 꺼트리는 자", 400], ["에키드나를 쓰러뜨린 자", 310], ["별을 제패한 자", 12], ["합성 칭호", 0]]
       .map(([title, n]) => ({ title, equippedRosters: server === "아만" ? Math.round(n / 50) : n }))
       .map((row) => ({ ...row, equippedPercent: Math.round((row.equippedRosters / population) * 10000) / 100 }))
+      // api #697: ever seen wearing it (a lower bound of owning it); under 30
+      // characters the sample is not ready (별을 제패한 자 here).
+      .map((row) => {
+        const observedRosters = Math.round(row.equippedRosters * 1.2);
+        return {
+          ...row,
+          observedRosters,
+          observedPercent: Math.round((observedRosters / population) * 10000) / 100,
+          newRosters30d: Math.round(observedRosters / 10),
+          observedCharacters: observedRosters,
+          sampleReady: observedRosters >= 30,
+        };
+      })
       .filter((row) => row.equippedRosters > 0);
     return send({
       code: "TITLE_EQUIP_SUCCESS",
@@ -2482,13 +2615,15 @@ createServer(async (req, res) => {
     };
     d.coverage.gems = { state: "PROVIDED", collections: { items: "PROVIDED" } };
     d.analysis.gems = { count: 11, unknownLevelCount: 0, minLevel: 6, maxLevel: 6, averageLevel: 6, levelDistribution: [{ level: 6, count: 11 }], damageEffectCount: 4, cooldownEffectCount: 7, unknownEffectCount: 0 };
-    // Synthetic 내실·아바타 data (names and counts are invented).
+    // Synthetic 내실·아바타 data (counts are invented). Five official type
+    // names draw the armory sprite icons (#17); "합성 잎" is not an official
+    // type, so it keeps the API badge (none here).
     const kinds = [
-      ["합성 심장", 15, 15],
-      ["합성 섬의 마음", 69, 104],
-      ["합성 씨앗", 976, 1480],
-      ["합성 미술품", 57, 60],
-      ["합성 항해물", 41, 50],
+      ["거인의 심장", 15, 15],
+      ["섬의 마음", 69, 104],
+      ["모코코 씨앗", 976, 1480],
+      ["위대한 미술품", 57, 60],
+      ["항해 모험물", 41, 50],
       ["합성 잎", 37, 120],
     ];
     d.collectibles = kinds.map(([type, point, maxPoint], k) => ({
@@ -2533,9 +2668,9 @@ createServer(async (req, res) => {
       tripods: [], rune: null, gemEffects: [], ...extra,
     });
     d.loadout.skills = [
-      skill("합성 포격", 14, { tripods: [{ tier: 0, slot: 1, name: "기동 포격", icon: null }, { tier: 1, slot: 2, name: "연발 포격", icon: null }, { tier: 2, slot: 1, name: "화약 추가", icon: null }], rune: { name: "풍요", icon: null, grade: "전설" }, gemEffects: [{ text: "합성 포격 피해 28.00% 증가", kind: "DAMAGE" }], cooldown: { cooldownSec: 18, gemCooldownReductionPct: 0, cooldownWithGemsSec: 18, basis: "공식 재사용 대기시간과 장착 보석의 재사용 대기시간 감소만 반영했습니다." } }),
-      skill("합성 화염", 14, { partBreakLevel: 1, tripods: [{ tier: 0, slot: 2, name: "장전", icon: null }], rune: { name: "풍요", icon: null, grade: "전설" } }),
-      skill("합성 중력", 10, { counter: true, rune: { name: "속행", icon: null, grade: "영웅" }, gemEffects: [{ text: "합성 중력 재사용 대기시간 20.00% 감소", kind: "COOLDOWN" }], cooldown: { cooldownSec: 24, gemCooldownReductionPct: 20, cooldownWithGemsSec: 19.2, basis: "공식 재사용 대기시간과 장착 보석의 재사용 대기시간 감소만 반영했습니다." } }),
+      skill("합성 포격", 14, { tripods: [{ tier: 0, slot: 1, name: "기동 포격", icon: null, effect: "이동하며 포격할 수 있다. (합성 문구)" }, { tier: 1, slot: 2, name: "연발 포격", icon: null, effect: "포격이 2회 연속 발사된다. (합성 문구)" }, { tier: 2, slot: 1, name: "화약 추가", icon: null, effect: "포격 피해가 30.0% 증가한다. (합성 문구)" }], skillType: 0, rune: { name: "풍요", icon: null, grade: "전설" }, gemEffects: [{ text: "합성 포격 피해 28.00% 증가", kind: "DAMAGE" }], cooldown: { cooldownSec: 18, gemCooldownReductionPct: 0, cooldownWithGemsSec: 18, basis: "공식 재사용 대기시간과 장착 보석의 재사용 대기시간 감소만 반영했습니다." } }),
+      skill("합성 화염", 14, { skillType: 100, partBreakLevel: 1, tripods: [{ tier: 0, slot: 2, name: "장전", icon: null, effect: null }], rune: { name: "풍요", icon: null, grade: "전설" } }),
+      skill("합성 중력", 10, { skillType: 1, counter: true, rune: { name: "속행", icon: null, grade: "영웅" }, gemEffects: [{ text: "합성 중력 재사용 대기시간 20.00% 감소", kind: "COOLDOWN" }], cooldown: { cooldownSec: 24, gemCooldownReductionPct: 20, cooldownWithGemsSec: 19.2, basis: "공식 재사용 대기시간과 장착 보석의 재사용 대기시간 감소만 반영했습니다." } }),
       skill("기본 스킬", 1, { partBreakLevel: 1, counter: true }),
     ];
     d.coverage.skills = "PROVIDED";

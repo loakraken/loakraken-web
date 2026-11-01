@@ -22,9 +22,12 @@ import {
   type ClassBuildTopEnvelope,
 } from "./class-builds";
 import { bestCombatPowerSearch, type BestCombatPowerEnvelope } from "./best-combat-power";
+import { gemLevelsSearch, type GemLevelsEnvelope } from "./gem-levels";
+import { levelCombatPowerSearch, type LevelCombatPowerEnvelope } from "./level-combat-power";
 import { guildDetailPath, type GuildDetailEnvelope, type GuildDetailQuery } from "./guild-detail";
 import { titleEquipSearch, type TitleEquipEnvelope, type TitleEquipQuery } from "./title-equip";
 import { collectibleSearch, type CollectibleQuery, type CollectibleRankingEnvelope } from "./collectible-ranking";
+import { populationSearch, type PopulationEnvelope } from "./population";
 
 export class StatsQueryError extends Error {
   info: BackendFailure;
@@ -33,6 +36,9 @@ export class StatsQueryError extends Error {
     this.info = info;
   }
 }
+
+/** The api has no such endpoint (yet): a new chart is left out, not shown as an error. */
+export const isAbsent = (error: unknown) => error instanceof StatsQueryError && error.info.status === 404;
 
 async function call<T>(path: string, signal: AbortSignal): Promise<T> {
   try {
@@ -103,7 +109,16 @@ export async function fetchStats<V extends StatsView>(
 export const fetchEfficiencyRanking = (kind: EfficiencyKind, query: EfficiencyQuery, signal: AbortSignal) =>
   call<EfficiencyEnvelope>(`/api/rankings/efficiency?${efficiencySearch(kind, query)}`, signal);
 
+export const fetchGemLevels = (query: StatsQuery, signal: AbortSignal) =>
+  call<GemLevelsEnvelope>(`/api/stats/gem-levels?${gemLevelsSearch(query)}`, signal);
+
+export const fetchLevelCombatPower = (query: StatsQuery, signal: AbortSignal) =>
+  call<LevelCombatPowerEnvelope>(`/api/stats/level-combat-power?${levelCombatPowerSearch(query)}`, signal);
+
 export const fetchBestCombatPower = (query: StatsQuery, signal: AbortSignal) =>
   call<BestCombatPowerEnvelope>(`/api/stats/best-combat-power?${bestCombatPowerSearch(query)}`, signal);
 export const fetchGuildDetail = (query: GuildDetailQuery, signal: AbortSignal) =>
   call<GuildDetailEnvelope>(guildDetailPath(query), signal);
+
+export const fetchPopulation = (server: string | undefined, signal: AbortSignal) =>
+  call<PopulationEnvelope>(`/api/stats/population?${populationSearch(server)}`, signal);

@@ -13,8 +13,10 @@ import { characterNameError, normalizeCharacterName, safeGameImage } from "@/lib
 import { fetchPopular, fetchSuggest } from "@/lib/character/client"
 import { readSnapshot, recentSnapshot, subscribeRecent } from "@/lib/character/recent"
 import {
+  favoriteImagesSnapshot,
   favoritesSnapshot,
   favoritesWritable,
+  parseFavoriteImages,
   parseFavorites,
   subscribeFavorites,
   toggleStoredFavorite,
@@ -74,7 +76,14 @@ const writeTab = (tab: SearchTab) => {
   }
 }
 
-type Character = { name: string; server: string | null; className: string | null; itemLevel: number | null }
+type Character = {
+  name: string
+  server: string | null
+  className: string | null
+  itemLevel: number | null
+  /** The character image, when known (suggestions, a seen or starred character). */
+  image?: string | null
+}
 export type SearchRow = ResultItem & { run: () => void; character?: Character }
 
 /** Name suggestions shown (the backend sends up to 8); their room is held. */
@@ -103,6 +112,7 @@ export function useSearchResults({ open, text, onLeave }: { open: boolean; text:
   const flags = useNavFlags(open)
   const recent = readSnapshot(React.useSyncExternalStore(subscribeRecent, recentSnapshot, () => "|[]")).list
   const favorites = parseFavorites(React.useSyncExternalStore(subscribeFavorites, favoritesSnapshot, () => "[]"))
+  const images = parseFavoriteImages(React.useSyncExternalStore(subscribeFavorites, favoriteImagesSnapshot, () => "{}"))
   const starred = new Set(favorites)
   const [writable] = React.useState(favoritesWritable)
   const choice = useThemeChoice()
@@ -142,8 +152,8 @@ export function useSearchResults({ open, text, onLeave }: { open: boolean; text:
     setError("")
     goCharacter(name)
   }
-  const toggle = (character: Character) => {
-    const now = toggleStoredFavorite(character.name)
+  const toggle = (character: Pick<Character, "name" | "image">) => {
+    const now = toggleStoredFavorite(character.name, character.image)
     setStatus(
       !writable
         ? "이 브라우저는 저장소를 쓸 수 없어 즐겨찾기를 저장하지 못해요."
@@ -187,7 +197,8 @@ export function useSearchResults({ open, text, onLeave }: { open: boolean; text:
           </span>
         </span>
       ),
-      avatar: extra.avatar ?? { fallback: initial(c.name) },
+      // A fixed box: the image or the first letter, the same size (A7).
+      avatar: extra.avatar ?? { src: safeGameImage(c.image), fallback: initial(c.name) },
       run: () => goCharacter(c.name),
       character: c,
     }
@@ -195,12 +206,16 @@ export function useSearchResults({ open, text, onLeave }: { open: boolean; text:
 
   const groups: (Omit<ResultGroup, "items"> & { items: SearchRow[] })[] = []
   if (!query) {
-    // Favourites are names; what the recent list knows about them fills the row.
+    // Favourites are names; what the recent list knows about them fills the
+    // row, and the image saved with the star (or a later visit) wins.
     const known = new Map(recent.map((c) => [c.name, c]))
-    const list =
+    const list: Character[] =
       tab === "recent"
         ? recent.slice(0, 10)
-        : favorites.map((name) => known.get(name) ?? { name, server: null, className: null, itemLevel: null })
+        : favorites.map((name) => {
+            const seen = known.get(name)
+            return { name, server: null, className: null, itemLevel: null, ...seen, image: images[name] ?? seen?.image }
+          })
     groups.push({
       id: "tab",
       reserve: TAB_ROWS,
@@ -274,7 +289,8 @@ export function useSearchResults({ open, text, onLeave }: { open: boolean; text:
     // The row stays while anything is typed, also through Hangul composition
     // (상 → 상ㅅ → 상세: the middle step is not a valid name), so it never
     // leaves and comes back with its entrance (PM-프론트 #593 4차). Enter checks
-    // the name and says what is wrong.
+    // the name and says what is wrong; Shift+Enter validates it too, then
+    // toggles its favourite without opening it or moving focus.
     groups.push({
       id: "character",
       title: "캐릭터",
@@ -291,7 +307,13 @@ export function useSearchResults({ open, text, onLeave }: { open: boolean; text:
           const { head, tail } = splitPrefix(c.characterName, query)
           return characterRow(
             `suggest:${c.characterName}`,
-            { name: c.characterName, server: c.serverName ?? null, className: c.className, itemLevel: c.itemLevel },
+            {
+              name: c.characterName,
+              server: c.serverName ?? null,
+              className: c.className,
+              itemLevel: c.itemLevel,
+              image: c.characterImage,
+            },
             {
               title: (
                 <>
@@ -301,7 +323,6 @@ export function useSearchResults({ open, text, onLeave }: { open: boolean; text:
                 </>
               ),
               side: c.serverName ?? undefined,
-              avatar: { src: safeGameImage(c.characterImage), fallback: initial(c.characterName) },
             }
           )
         }),
@@ -329,16 +350,25 @@ export function useSearchResults({ open, text, onLeave }: { open: boolean; text:
   // Typing points at "정보 보기" so Enter does what it always did.
   const current = active && ids.includes(active) ? active : query && ids.includes("lookup") ? "lookup" : null
 
-  /** The field's keys: ↑↓ move, Enter opens the active row, Shift+Enter stars it. */
+  /** ↑↓ move, Enter opens; Shift+Enter toggles the active character or typed name. */
   const onKey = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === "ArrowDown" || event.key === "ArrowUp") {
       event.preventDefault()
       setActive(stepActive(ids, current, event.key === "ArrowDown" ? 1 : -1))
     } else if (event.key === "Enter" && event.shiftKey) {
-      const character = rows.find((r) => r.id === current)?.character
-      if (character) {
+      if (current === "lookup") {
+        // Stop the field's own Enter even when the typed name is invalid.
         event.preventDefault()
-        toggle(character)
+        const name = normalizeCharacterName(query)
+        const issue = characterNameError(name)
+        setError(issue)
+        if (!issue) toggle({ name })
+      } else {
+        const character = rows.find((r) => r.id === current)?.character
+        if (character) {
+          event.preventDefault()
+          toggle(character)
+        }
       }
     } else if (event.key === "Enter" && current && current !== "lookup") {
       event.preventDefault()

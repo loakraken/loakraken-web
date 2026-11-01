@@ -74,12 +74,14 @@ for (const width of [1280, 360]) {
     await gotoReady(page, characterPath("전투력계산", "specup"));
     // By its rows: on a phone the table is laid out as cards (no table role).
     const table = page.locator("table").filter({ has: page.locator('[data-cell="target"]') });
-    await expect(table.locator("tbody tr")).toHaveCount(3);
+    // 품질 + 보석 0번 칸 (its 9·10레벨 are one row since #26).
+    await expect(table.locator("tbody tr:not([data-collapsed])")).toHaveCount(2);
     // Prices move the order only of the 효율 list (전투력 증가 is the first list since 10-26).
     await page.getByRole("button", { name: "1만 골드당 효율" }).click();
     await expect(table.locator("caption")).toContainText("1만 골드당 효율 순");
     await expect.poll(served).toBe(2);
-    const before = await table.locator('[data-cell="target"]').allTextContents();
+    // Shown rows only: a group (#26) keeps its head first, so the order is the groups'.
+    const before = await table.locator('tbody tr:not([data-collapsed]) [data-cell="target"]').allTextContents();
     await resetShifts(page);
     // The changed costs tint once, cleared after 1.4 s; still there 700 ms after
     // the new value lands (#857 review measured 600–800 ms), cost and 1만 골드당
@@ -116,7 +118,7 @@ for (const width of [1280, 360]) {
     expect(wash.cost, `비용 칸 물들기(700ms) — ms:비용/효율 ${series}`).toBeGreaterThan(0);
     expect(wash.eff, `효율 칸 물들기(700ms) — ms:비용/효율 ${series}`).toBeGreaterThan(0);
     expect(await shifts(page), `갱신 뒤 흔들림(누르지 않음): ${await movedOf(page)}`).toBe(0);
-    expect(await table.locator('[data-cell="target"]').allTextContents(), "줄 순서 그대로").toEqual(before);
+    expect(await table.locator('tbody tr:not([data-collapsed]) [data-cell="target"]').allTextContents(), "줄 순서 그대로").toEqual(before);
     // Said that the rows are the old order — one line in its fixed-height line
     // (nothing spills over the table, A37), and in the table's name.
     const reorder = page.getByRole("button", { name: "새 순서로 보기" });
@@ -151,7 +153,7 @@ for (const width of [1280, 360]) {
     const placed = await tops();
     await resetShifts(page);
     await reorder.click();
-    await expect.poll(() => table.locator('[data-cell="target"]').allTextContents()).toEqual([...before].reverse());
+    await expect.poll(() => table.locator('tbody tr:not([data-collapsed]) [data-cell="target"]').allTextContents()).toEqual([...before].reverse());
     await expect(page.getByRole("button", { name: "새 순서로 보기" })).toHaveCount(0);
     await expect(page.getByRole("status").filter({ hasText: "새 순서로 정렬했어요" })).toBeVisible();
     await expect(table.locator("caption")).not.toContainText("갱신 전");

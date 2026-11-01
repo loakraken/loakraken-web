@@ -31,5 +31,8 @@ for (const scheme of ["light", "dark"])
       const row = page.getByRole("listitem").filter({ hasText: "테스트 스킬" }).getByLabel("보석", { exact: true }).first();
       await expect(row.locator("> span")).toHaveText(["10겁", "8작", "6겁", "7작"]);
       await expect(page.getByRole("group", { name: "보석으로 거르기" })).toContainText("겁화만");
+      // The 요약 panel at the top counts every equipped gem, the same numbers as the 전투 tab (v0.3.3).
+      const head = page.getByRole("region", { name: "요약", exact: true });
+      await expect(head.getByRole("definition").last()).toHaveText("겁화 2 · 작열 2 · 미장착 7");
       await expectNoHorizontalOverflow(page);
     });

@@ -40,6 +40,13 @@
     background: var(--hover-surface);
   }
 }
+/* Phones: the row scrolls; a wider end fade (the default is min(12%, 40px))
+   makes the cut-off last tab read as "more this way", not as a clipped label. */
+@media (max-width: 480px) {
+  .tabs {
+    --scroll-fade-size: 64px;
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   .tab {
     transition: none;

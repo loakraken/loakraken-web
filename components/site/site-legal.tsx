@@ -12,7 +12,7 @@ export function SiteLegal() {
   return (
     <div className={styles.legal}>
       <p className={styles.notice}>
-        Lost Ark는 Smilegate RPG의 상표입니다. LOAKraken은 Smilegate RPG와 무관한 비공식 팬 사이트로, 공식 Open API
+        Lost Ark는 Smilegate RPG의 상표입니다. LOAKraken(로아크라켄)은 Smilegate RPG와 무관한 비공식 팬 사이트로, 공식 Open API
         데이터를 씁니다.
       </p>
       <a href={DISCORD_URL} target="_blank" rel="noopener noreferrer" className={`${styles.community} hit-44`}>

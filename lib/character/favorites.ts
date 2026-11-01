@@ -56,14 +56,71 @@ export const subscribeFavorites = (callback: () => void) => {
   };
 };
 
-/** Stars or unstars a name; returns whether it is a favourite now. */
-export function toggleStoredFavorite(name: string): boolean {
+// Each favourite's character image, saved when it is starred or its page is
+// seen, for the search dropdown's 즐겨찾기 rows. Beside the name list (not in
+// it), so every reader of the names keeps working; a name without an image
+// shows its first letter until its page is opened again.
+const IMAGES = "loakraken:favorite-images";
+
+/** Parses stored JSON defensively: string addresses by name, anything else dropped. */
+export function parseFavoriteImages(raw: string | null): Record<string, string> {
+  try {
+    const value: unknown = JSON.parse(raw ?? "{}");
+    if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+    return Object.fromEntries(
+      Object.entries(value).filter((e): e is [string, string] => typeof e[1] === "string" && e[1].length > 0),
+    );
+  } catch {
+    return {};
+  }
+}
+
+/** The images kept for the favourites only, with one name's set or cleared. */
+export function withFavoriteImage(
+  images: Record<string, string>,
+  favorites: string[],
+  name: string,
+  image: string | null | undefined,
+) {
+  const next = Object.fromEntries(Object.entries(images).filter(([key]) => favorites.includes(key)));
+  if (image && favorites.includes(name)) next[name] = image;
+  return next;
+}
+
+const readImages = () => {
+  try {
+    return localStorage.getItem(IMAGES);
+  } catch {
+    return null;
+  }
+};
+const writeImages = (favorites: string[], name: string, image: string | null | undefined) => {
+  try {
+    localStorage.setItem(IMAGES, JSON.stringify(withFavoriteImage(parseFavoriteImages(readImages()), favorites, name, image)));
+  } catch {
+    /* Storage blocked: rows show the first letter. */
+  }
+};
+
+export const favoriteImagesSnapshot = () => readImages() ?? "{}";
+
+/** Keeps a favourite's image current when its page is seen (no-op for others). */
+export function refreshFavoriteImage(name: string, image: string | null | undefined) {
+  const favorites = parseFavorites(read());
+  if (!image || !favorites.includes(name) || parseFavoriteImages(readImages())[name] === image) return;
+  writeImages(favorites, name, image);
+  window.dispatchEvent(new Event(FAVORITES_EVENT));
+}
+
+/** Stars or unstars a name (with its image, when known); returns whether it is a favourite now. */
+export function toggleStoredFavorite(name: string, image?: string | null): boolean {
   const next = toggleFavorite(parseFavorites(read()), name);
   try {
     localStorage.setItem(FAVORITES, JSON.stringify(next));
   } catch {
     /* Storage blocked: nothing persists. */
   }
+  writeImages(next, name, image);
   window.dispatchEvent(new Event(FAVORITES_EVENT));
   return next.includes(name);
 }

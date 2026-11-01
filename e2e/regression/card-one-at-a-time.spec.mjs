@@ -1,0 +1,117 @@
+// 회귀(사용자 10-31): 아이템 상세 카드는 한 번에 하나. 클릭으로 고정한 카드도 다른 아이템에
+// 마우스를 올리면(또는 키보드 초점이 가면) 닫히고, 올린 아이템의 카드가 평소처럼 열린다.
+// 휴대폰은 아래 시트가 열린 채 뒤의 다른 아이템을 누르면 한 번에 그 아이템 시트로 바뀐다.
+import { test, expect, characterPath, gotoReady } from "../support/fixtures.mjs";
+
+const triggers = (page) => page.locator("[data-slot=item-tooltip-trigger]:visible");
+const cardName = async (trigger) => (await trigger.getAttribute("aria-label")).replace(/ 상세 보기$/, "");
+// Open cards only: a closing card stays in the page for its 100ms fade.
+const cards = (page) => page.locator("[data-slot=item-tooltip][data-open]");
+/** The one open card, named `name`, with its 150ms open transition finished (hover-stable). */
+async function settledCard(page, name) {
+  await expect(cards(page)).toHaveCount(1);
+  await expect(cards(page)).toHaveAttribute("aria-label", name);
+  // Out of its starting style. (Its transitions keep reporting as running in
+  // the test browser, so the pointer moves by coordinates below instead of
+  // hover(), which waits for the target to stand still.)
+  await expect(cards(page)).not.toHaveAttribute("data-starting-style", /.*/);
+}
+/**
+ * Puts the pointer on the middle of `locator` without waiting for it to be
+ * still — after checking that nothing (the sticky tab bar) covers that point,
+ * so an interception fails here instead of being skipped silently.
+ */
+async function pointAt(page, locator) {
+  const box = await locator.boundingBox();
+  const [x, y] = [box.x + box.width / 2, box.y + box.height / 2];
+  expect(await locator.evaluate((el, [px, py]) => el.contains(document.elementFromPoint(px, py)), [x, y]), "포인터 자리를 다른 요소가 가림").toBe(true);
+  await page.mouse.move(x, y);
+}
+
+test("1280: 고정한 카드는 다른 아이템에 올리면 닫히고 그 카드가 열린다, 초점도 같다 @regression", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await gotoReady(page, characterPath("상세", "combat"));
+  const [a, b] = [triggers(page).nth(0), triggers(page).nth(1)];
+  const [nameA, nameB] = [await cardName(a), await cardName(b)];
+  // Both items in the middle of the screen, clear of the sticky header and tab
+  // bar (the bar's links took the pointer when an item sat under it).
+  await a.evaluate((el) => el.scrollIntoView({ block: "center" }));
+
+  // A click pins A: it stays when the pointer goes onto its own card.
+  await a.click();
+  await settledCard(page, nameA);
+  await pointAt(page, cards(page));
+  await page.waitForTimeout(300);
+  await expect(cards(page)).toHaveAttribute("aria-label", nameA);
+
+  // Hovering B: A closes, B's card opens as a hover preview would.
+  await pointAt(page, b);
+  await settledCard(page, nameB);
+
+  // Keyboard: pin A again, then focus B; A's card closes.
+  await page.mouse.move(0, 0);
+  await expect(cards(page)).toHaveCount(0);
+  await a.click();
+  await settledCard(page, nameA);
+  await b.focus();
+  await expect(page.locator(`[data-slot=item-tooltip][data-open][aria-label="${nameA}"]`)).toHaveCount(0);
+  // The closing card does not pull focus back to its own item (frontend-a11y).
+  await expect(b).toBeFocused();
+});
+
+// User 11-01: pin A, hover B → B's card showed, then vanished about a second
+// later while the pointer was still on B. When A's card finished closing, the
+// popup put focus back on A's item, and that focus claimed again (closing B).
+// Reduced motion makes A's close finish at once, as a real browser does in time
+// (the test browser keeps transitions running, so A would never unmount).
+test("1280: 고정 → 다른 아이템에 올림 → 고정 카드가 다 닫힌 뒤에도 올린 카드 그대로 → 떼면 닫힘 → 다른 아이템 클릭 @regression", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await gotoReady(page, characterPath("상세", "combat"));
+  const [a, b, c] = [triggers(page).nth(0), triggers(page).nth(2), triggers(page).nth(1)];
+  const [nameA, nameB, nameC] = [await cardName(a), await cardName(b), await cardName(c)];
+  await a.evaluate((el) => el.scrollIntoView({ block: "center" }));
+
+  // Pin A (focus goes into its card).
+  await a.click();
+  await settledCard(page, nameA);
+
+  // Hover B: A closes and is gone from the page; B's card stays open after that.
+  await pointAt(page, b);
+  await settledCard(page, nameB);
+  await expect(page.locator(`[data-slot=item-tooltip][aria-label="${nameA}"]`)).toHaveCount(0);
+  await page.waitForTimeout(600);
+  await expect(cards(page), "올린 아이템 카드가 그대로").toHaveCount(1);
+  await expect(cards(page)).toHaveAttribute("aria-label", nameB);
+  expect(await a.evaluate((el) => document.activeElement === el), "초점이 고정했던 아이템으로 돌아가지 않음").toBe(false);
+
+  // Pointer off: B (a hover preview) closes.
+  await page.mouse.move(0, 0);
+  await expect(cards(page)).toHaveCount(0);
+
+  // Click C: only C's card, pinned.
+  await c.click();
+  await settledCard(page, nameC);
+  await page.waitForTimeout(400);
+  await expect(cards(page)).toHaveCount(1);
+  await expect(cards(page)).toHaveAttribute("aria-label", nameC);
+});
+
+test.describe("휴대폰", () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+
+  test("390: 시트가 열린 채 뒤의 다른 아이템을 누르면 그 아이템 시트로 바뀐다 @regression", async ({ page }) => {
+    await gotoReady(page, characterPath("상세", "combat"));
+    const [a, b] = [triggers(page).nth(0), triggers(page).nth(1)];
+    // Both items near the top, above where the sheet rises.
+    await a.evaluate((el) => window.scrollBy(0, el.getBoundingClientRect().top - 160));
+    const [nameA, nameB] = [await cardName(a), await cardName(b)];
+    await a.tap();
+    await expect(page.getByRole("dialog", { name: nameA })).toBeVisible();
+    // B sits above the sheet, behind its backdrop: one tap there opens B.
+    const box = await b.boundingBox();
+    await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
+    await expect(page.getByRole("dialog", { name: nameB })).toBeVisible();
+    await expect(page.getByRole("dialog", { name: nameA })).toHaveCount(0);
+  });
+});

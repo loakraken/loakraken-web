@@ -19,14 +19,15 @@ export function menuMatches(query: string, flags: NavFlags, limit = 5): MenuHit[
   const hits: (MenuHit & { score: number })[] = [];
   const seen = new Set<string>();
   for (const section of NAV_SECTIONS)
-    for (const group of section.groups)
-      for (const link of group.links) {
-        if (!link.href || (link.flag && flags[link.flag] !== true) || seen.has(link.href)) continue;
-        const inLabel = fold(link.label).includes(q);
-        if (!inLabel && !fold(link.description).includes(q)) continue;
-        seen.add(link.href);
-        hits.push({ id: `menu:${link.href}`, label: link.label, section: section.label, href: link.href, score: inLabel ? 0 : 1 });
-      }
+    // A hub's own pages first (section.search), then the menu rows: they can
+    // share an address, and the page's own name is the better row.
+    for (const link of [...(section.search ?? []), ...section.groups.flatMap((group) => group.links)]) {
+      if (!link.href || (link.flag && flags[link.flag] !== true) || seen.has(link.href)) continue;
+      const inLabel = fold(link.label).includes(q);
+      if (!inLabel && !fold(link.description).includes(q)) continue;
+      seen.add(link.href);
+      hits.push({ id: `menu:${link.href}`, label: link.label, section: section.label, href: link.href, score: inLabel ? 0 : 1 });
+    }
   return hits
     .sort((a, b) => a.score - b.score)
     .slice(0, limit)

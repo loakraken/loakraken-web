@@ -30,6 +30,7 @@ import {
 } from "@/lib/character/model";
 import { SiteHeader } from "@/components/site/site-header";
 import { recordRecent } from "@/lib/character/recent";
+import { refreshFavoriteImage } from "@/lib/character/favorites";
 import { CharacterBanner } from "./imagery";
 import { BannerRank } from "./banner-rank";
 import { BannerFavorite } from "./favorite";
@@ -37,7 +38,7 @@ import { KrakenScoreStrip } from "./kraken-score-metric";
 import { Entrance } from "./entrance";
 import { kstTime, level, number, text } from "./parts";
 import { CritSpeedEnabled } from "./analysis-menu";
-import { CharacterEfficiencyEnabled, GuildTabEnabled, SettingCheckEnabled, SimulatorEnabled, SpecUpEnabled, TabBar, TabPanel, TitleStatsEnabled, tabOf, useTabTop } from "./tabs";
+import { CharacterEfficiencyEnabled, GuildTabEnabled, SettingCheckEnabled, SimulatorEnabled, SpecUpEnabled, SpecUpPathEnabled, TabBar, TabPanel, TitleStatsEnabled, tabOf, useTabTop, type TabId } from "./tabs";
 import { ArmoryPageEnabled } from "./use-armory-page";
 import { ReceiptEnabled } from "./receipt-panel";
 import styles from "./character.module.css";
@@ -183,7 +184,7 @@ const Banner = memo(function Banner({ data }: { data: Character }) {
           </p>
           <div className={styles.bannerNameRow}>
             <h1 className={styles.bannerName}>{data.characterName}</h1>
-            <BannerFavorite name={data.characterName} />
+            <BannerFavorite name={data.characterName} image={data.imageUrl} />
           </div>
           {data.title && (
             <p className={styles.bannerTitle}>{data.title}</p>
@@ -286,6 +287,16 @@ function CharacterContent({
     useContext(GuildTabEnabled),
   );
   useTabTop(tab);
+  // Tabs already shown on this character's visit: their charts come back
+  // drawn, not drawn again (motion rule 10-31, as on /stats). Marked when
+  // left, so the first draw is never cut short.
+  const [shown, setShown] = useState<{ name: string; tab: TabId; left: ReadonlySet<TabId> }>(() => ({
+    name,
+    tab,
+    left: new Set(),
+  }));
+  if (shown.name !== name) setShown({ name, tab, left: new Set() });
+  else if (shown.tab !== tab) setShown({ name, tab, left: new Set(shown.left).add(shown.tab) });
   const [now, setNow] = useState(renderedAt);
   const [refreshed, setRefreshed] = useState(false);
   const query = useQuery({
@@ -331,13 +342,17 @@ function CharacterContent({
         className: data.className,
         itemLevel: data.itemLevel,
         combatPower: data.combatPower,
+        image: data.imageUrl,
       }
     : null;
   useEffect(() => {
-    if (seen) recordRecent(seen);
+    if (!seen) return;
+    recordRecent(seen);
+    // A favourite's dropdown row takes the image seen here too.
+    refreshFavoriteImage(seen.name, seen.image);
     // Record once per character and refresh, not on every re-render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [seen?.name, seen?.itemLevel, seen?.combatPower]);
+  }, [seen?.name, seen?.itemLevel, seen?.combatPower, seen?.image]);
 
   return (
     <div className={styles.page}>
@@ -378,7 +393,7 @@ function CharacterContent({
               </div>
             )}
             <Entrance tab={tab}>
-              <TabPanel tab={tab} data={data} envelope={envelope} />
+              <TabPanel tab={tab} data={data} envelope={envelope} drawn={shown.left.has(tab)} />
             </Entrance>
           </>
         ) : (
@@ -441,6 +456,7 @@ export function CharacterView({
   settingCheck = true,
   simulator = true,
   specUp = true,
+  specUpPath = true,
   armoryPage = true,
   titleStats = true,
   critSpeed = true,
@@ -459,6 +475,8 @@ export function CharacterView({
   simulator?: boolean;
   /** SPEC_UP_GUIDE on this deployment (server flag). */
   specUp?: boolean;
+  /** SPEC_UP_PATH on this deployment (server flag): the 추천 순서 section. */
+  specUpPath?: boolean;
   /** ARMORY_PAGE on this deployment (server flag). */
   armoryPage?: boolean;
   /** TITLE_STATS on this deployment (server flag): roster title shares. */
@@ -475,6 +493,7 @@ export function CharacterView({
       <SettingCheckEnabled.Provider value={settingCheck}>
         <SimulatorEnabled.Provider value={simulator}>
           <SpecUpEnabled.Provider value={specUp}>
+          <SpecUpPathEnabled.Provider value={specUpPath}>
             <ArmoryPageEnabled.Provider value={armoryPage}>
               <TitleStatsEnabled.Provider value={titleStats}>
                 <CritSpeedEnabled.Provider value={critSpeed}>
@@ -488,6 +507,7 @@ export function CharacterView({
                 </CritSpeedEnabled.Provider>
               </TitleStatsEnabled.Provider>
             </ArmoryPageEnabled.Provider>
+          </SpecUpPathEnabled.Provider>
           </SpecUpEnabled.Provider>
         </SimulatorEnabled.Provider>
       </SettingCheckEnabled.Provider>

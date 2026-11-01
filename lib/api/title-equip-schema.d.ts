@@ -130,6 +130,11 @@ export interface components {
              */
             equippedRosters: number;
             equippedPercent: (number | null) | null;
+            observedRosters?: number | null;
+            observedPercent?: number | null;
+            newRosters30d?: number | null;
+            observedCharacters?: number | null;
+            sampleReady?: boolean | null;
         };
         /** @description 공통 오류 응답. HTTP 상태와 업무 코드를 함께 확인합니다. */
         ErrorResponse: {

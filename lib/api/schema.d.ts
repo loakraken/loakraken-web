@@ -167,6 +167,7 @@ export interface components {
             tradeLines: string[];
             refineExp: components["schemas"]["RefineExpResponse"] | null;
             advancedRefineLevel: number | null;
+            paradisePower: number | null;
         };
         PointBonusResponse: {
             name: string;
@@ -375,6 +376,7 @@ export interface components {
             gemEffects: components["schemas"]["SkillGemEffectResponse"][];
             attackType: ("BACK_ATTACK" | "HEAD_ATTACK" | "NONE") | null;
             cooldown: components["schemas"]["SkillCooldownResponse"] | null;
+            skillType: number | null;
         };
         TripodResponse: {
             tier: number | null;
