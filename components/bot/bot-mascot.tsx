@@ -10,10 +10,15 @@
 //  - automatic motion (blinks, breathing, glances, the working hops) runs
 //    only while there is something to answer: for `restAfter` ms after load
 //    and after the last pointer move, and the whole time it is `working`.
-//    Then it eases into the state's still pose, eyes open, and the frame
-//    loop stops (WCAG 2.2.2 without a pause control; no frames while idle);
+//    Then it eases into a still pose and the frame loop stops (WCAG 2.2.2
+//    without a pause control; no frames while idle): in the default state it
+//    falls asleep (head down, lids shut; user, 11-02) and wakes on the next
+//    pointer move or tap; working, it rests in its own pose;
+//  - it hops only to answer the visitor, once each: waking, a search
+//    starting (working), a new body (a spin-hop); no idle jumps;
 //  - `paused` (the page's remembered pause) stops the automatic motion
-//    only: the head still turns with the pointer, which the visitor drives;
+//    only: the head still turns with the pointer, which the visitor drives,
+//    and it rests awake;
 //  - `still` (reduced motion) draws the still pose once and listens to
 //    nothing;
 //  - plastic for every body, its form baked before its first frame, so a
@@ -167,13 +172,19 @@ export function BotMascot({
   }, []);
   const live = useRef({ state, paused });
   const wake = useRef<() => void>(() => {});
+  const hop = useRef<(spin: number) => void>(() => {});
+  // The body drawn last, to tell a switch from the first drawing.
+  const shown = useRef<BotType | null>(null);
 
   useEffect(() => loadLibLater(setLib), []);
 
   // The loop reads these each frame; a change is something to answer, so it
   // runs for a while. (Still, it is drawn again in its new pose instead.)
+  // Starting work (a search) is answered with one hop first (user, 11-02).
   useEffect(() => {
+    const started = state === "working" && live.current.state !== "working";
     live.current = { state, paused };
+    if (started) hop.current(0);
     wake.current();
   }, [state, paused]);
   const stillState = still ? state : null;
@@ -200,6 +211,8 @@ export function BotMascot({
       if (el.dataset.botTurn !== turn) el.dataset.botTurn = turn;
     };
 
+    const switched = shown.current !== null && shown.current !== type;
+    shown.current = type;
     if (stillState) {
       draw(lib.restPose(stillState));
       return;
@@ -208,9 +221,13 @@ export function BotMascot({
     const sim: Sim = new lib.BotAvatarSim(Math.random(), live.current.state);
     sim.setJump({ every: 0 }); // no surprise jumps: it moves when you do
     const out = lib.restPose(live.current.state);
+    const asleep = lib.restPose("sleeping");
+    const restOut = lib.restPose("default");
     let raf = 0;
     let prev = 0;
     let k = 0; // 0 still … 1 live
+    let z = 0; // 0 awake … 1 asleep
+    let wokenHop = false; // asleep: the next pointer wakes it with a hop
     let until = performance.now() + restAfter; // the first seconds after load
     let seen = true;
     // The pointer, as the library's rig reads it: a direction from the head
@@ -226,7 +243,11 @@ export function BotMascot({
       if (sim.state !== s) sim.setState(s);
       const active = s === "working" || now < until;
       k = clamp(k + (active ? dt : -dt) / 0.45, 0, 1);
-      const rest = lib.restPose(s);
+      // Resting in the default state, it falls asleep: head down, lids shut
+      // (user, 11-02). Not while working, nor while paused (paused rests awake).
+      const sleepy = s === "default" && !p && !active;
+      z = clamp(z + (sleepy ? dt / 1.2 : -dt / 0.5), 0, 1);
+      const rest = z > 0 ? blend(lib.restPose(s), asleep, z * z * (3 - 2 * z), restOut) : lib.restPose(s);
       if (k > 0) {
         sim.setPointer(ptr.x, ptr.y, ptr.s);
         sim.update(dt);
@@ -239,15 +260,31 @@ export function BotMascot({
         }
         draw(out);
       }
-      if (k > 0 || active) raf = requestAnimationFrame(tick);
+      if (k > 0 || active || z !== (sleepy ? 1 : 0)) raf = requestAnimationFrame(tick);
       else {
-        draw(rest); // settled: the still pose, eyes open; the loop parks
+        // Settled: the still pose (asleep, or awake when paused); the loop parks.
+        draw(rest);
         el.dataset.botLoop = "parked";
+        el.dataset.botRest = z === 1 ? "asleep" : "awake";
+        if (z === 1) wokenHop = true;
       }
+    };
+    // One-shot hops, each answering something the visitor did (user, 11-02):
+    // waking, a search, a new body (with a turn). Never on its own, never
+    // paused; reduced motion has no loop to hop in. The canvas draws past the
+    // box, so a hop moves nothing in the layout.
+    hop.current = (spin: number) => {
+      if (live.current.paused) return;
+      sim.setJump({ spin });
+      sim.poke();
+      el.dataset.botHops = String(Number(el.dataset.botHops ?? 0) + 1);
+      wake.current();
     };
     const run = () => {
       if (raf || !seen || document.hidden) return;
+      wokenHop = false; // awake now, however it woke
       el.dataset.botLoop = "running";
+      el.dataset.botRest = "awake";
       raf = requestAnimationFrame(tick);
     };
     wake.current = () => { until = performance.now() + restAfter; run(); };
@@ -268,6 +305,12 @@ export function BotMascot({
       ptr.x = reach(event.clientX - cx, cx, innerWidth - cx);
       ptr.y = reach(event.clientY - cy, cy, innerHeight - cy);
       ptr.s = 1;
+      if (wokenHop) {
+        wokenHop = false;
+        // Pressing the bot itself is its pause control: it wakes without a hop.
+        const control = event.type === "pointerdown" ? el.closest("button") : null;
+        if (!control?.contains(event.target as Node)) hop.current(0);
+      }
       wake.current();
     };
     // A mouse or pen leaving the window: face front. A lifted finger also
@@ -280,6 +323,11 @@ export function BotMascot({
     };
 
     draw(lib.restPose(live.current.state));
+    if (switched) {
+      // A new body is already a new pose: it comes in live, turning in its hop.
+      k = 1;
+      hop.current(1);
+    }
     run();
     const io = new IntersectionObserver(([entry]) => { seen = entry.isIntersecting; if (seen) run(); });
     io.observe(el);
@@ -287,14 +335,18 @@ export function BotMascot({
     document.addEventListener("visibilitychange", onVisible);
     if (follow) {
       window.addEventListener("pointermove", aim, { passive: true });
+      // A tap moves no pointer before it: it wakes the bot and aims it too.
+      window.addEventListener("pointerdown", aim, { passive: true });
       window.addEventListener("pointerout", away, { passive: true });
     }
     return () => {
       cancelAnimationFrame(raf);
       wake.current = () => {};
+      hop.current = () => {};
       io.disconnect();
       document.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener("pointermove", aim);
+      window.removeEventListener("pointerdown", aim);
       window.removeEventListener("pointerout", away);
     };
   }, [lib, type, boxPx, theme, still, follow, restAfter, stillState]);
@@ -314,6 +366,7 @@ export function BotMascot({
       <canvas
         ref={canvas}
         data-bot-loop="parked"
+        data-bot-rest="awake"
         style={{
           position: "absolute",
           left: `calc(${box} * -0.25)`,
