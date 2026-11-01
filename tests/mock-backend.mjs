@@ -57,15 +57,20 @@ function withSimulatorGear(data) {
     detail: { ...base.detail, refineLevel: null, advancedRefineLevel: null, quality: null, effects: [], stoneEngravings: [], polishEffects: [], braceletEffects: [], ...detail },
   });
   data.loadout.equipment.push(
-    make("목걸이", "테스트 목걸이", {
-      quality: 90,
-      // Shown in the item tooltip only, never as a badge on the row (user 10-26).
-      arkPassivePoint: { name: "깨달음", value: 13 },
-      polishEffects: [
-        { name: "추가 피해", value: "+1.60%", grade: "MID" },
-        { name: "적에게 주는 피해", value: "+0.55%", grade: "LOW" },
-      ],
-    }),
+    {
+      ...make("목걸이", "테스트 목걸이", {
+        quality: 90,
+        // Shown in the item tooltip only, never as a badge on the row (user 10-26).
+        arkPassivePoint: { name: "깨달음", value: 13 },
+        polishEffects: [
+          { name: "추가 피해", value: "+1.60%", grade: "MID" },
+          { name: "적에게 주는 피해", value: "+0.55%", grade: "LOW" },
+        ],
+      }),
+      // An official-CDN icon (the e2e network answers it with a 1x1 PNG), so the item
+      // tooltip draws its grade-coloured icon box (#1303 follow-up).
+      icon: "https://cdn-lostark.game.onstove.com/efui_iconatlas/acc/acc_215.png",
+    },
     make("팔찌", "테스트 팔찌", {
       braceletEffects: [
         { text: "특화 +100", grade: null },

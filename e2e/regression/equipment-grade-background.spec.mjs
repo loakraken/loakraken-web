@@ -73,8 +73,22 @@ for (const scheme of ["light", "dark"])
       expect(graded, "등급 있는 칸을 하나 이상 확인").toBeGreaterThan(10);
     });
 
-// The tooltip card paints its icon box with the --item-tip-icon-<grade>-a/b tokens. The mock items have no
-// image (so no box is drawn), so the tokens themselves are checked: the same official two colours per grade.
+// The tooltip card paints its icon box with the --item-tip-icon-<grade>-a/b tokens: the same official two
+// colours per grade for every grade (tokens), and the box itself on an item that has an image (the necklace).
+test("툴팁 카드의 그림 칸은 그 아이템 등급의 공식 색 @regression", async ({ page }) => {
+  await gotoReady(page, characterPath("전투력계산"));
+  const panel = page.getByRole("region", { name: "장비", exact: true });
+  const necklace = panel.getByRole("listitem").filter({ has: page.locator("strong", { hasText: /^목걸이/ }) }).first();
+  await necklace.getByRole("button").first().click();
+  const card = page.locator('[data-slot="item-detail"]').filter({ has: page.locator("img") }).first();
+  await expect(card).toBeVisible();
+  const grade = await card.getAttribute("data-grade");
+  expect(grade in OFFICIAL, grade).toBe(true);
+  const box = await card.locator("img").first().evaluate((img) => getComputedStyle(img.parentElement).backgroundImage);
+  for (const colour of OFFICIAL[grade]) expect(box, grade).toContain(colour);
+});
+
+// Every grade's tokens (most grades have no item with an image in the mock).
 test("툴팁 카드 그림 칸의 등급 색도 공식 값 @regression", async ({ page }) => {
   await gotoReady(page, characterPath("전투력계산"));
   const tokens = await page.evaluate((grades) => {
