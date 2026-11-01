@@ -78,6 +78,30 @@ test.describe("스펙업 추천 순서 @smoke", () => {
     await expect(section(page).getByText("시세를 몰라 순서에서 뺀 항목 3개")).toBeVisible();
   });
 
+  for (const width of [320, 360])
+    test(`스톤 단계(각인 두 개)의 긴 바꿈 글자도 ${width}에서 가로로 넘치지 않음`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto(characterPath("스펙순서스톤", "specup"));
+      await section(page).getByRole("button", { name: "추천 순서 보기" }).click();
+      const stone = rows(page).filter({ hasText: "어빌리티 스톤" });
+      await expect(stone).toContainText("원한 Lv.1 · 아드레날린 Lv.1 → 97돌 원한 Lv.3 · 아드레날린 Lv.2");
+      // No cell of the row cut short either: the change wraps instead.
+      const cut = await stone.evaluate((li) =>
+        [...li.children].filter((el) => el.scrollWidth > el.clientWidth + 1).map((el) => el.textContent.trim()),
+      );
+      expect(cut, "잘린 칸").toEqual([]);
+      // The change text stays in its own column: it does not run under the cost (QA 11-01 at 320).
+      const [change, cost] = await stone.evaluate((li) =>
+        [li.children[2], li.children[4]].map((el) => {
+          const r = el.getBoundingClientRect();
+          return { left: Math.round(r.left), right: Math.round(r.right), top: Math.round(r.top), bottom: Math.round(r.bottom) };
+        }),
+      );
+      const overlaps = change.right > cost.left + 1 && change.left < cost.right - 1 && change.bottom > cost.top + 1 && change.top < cost.bottom - 1;
+      expect(overlaps, `바꿈 ${JSON.stringify(change)} · 비용 ${JSON.stringify(cost)}`).toBe(false);
+      await expectNoHorizontalOverflow(page);
+    });
+
   test("서포터는 추천 순서 칸이 없음", async ({ page }) => {
     await page.goto(characterPath("상세서포터", "specup"));
     await expect(page.getByRole("table", { name: "스펙업 후보, 서포터 점수 순" })).toBeVisible();

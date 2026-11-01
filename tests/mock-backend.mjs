@@ -858,6 +858,24 @@ createServer(async (req, res) => {
       step.change.slot = 1;
       step.candidateId = step.candidateId.replace(/^GEM_LEVEL:0:/, "GEM_LEVEL:1:");
     }
+    // A stone step as api #812 words it (two engravings each side): the longest change text.
+    if (who === "스펙순서스톤") {
+      const stone = (name, level) => ({ ...d.steps[0].change, kind: "STONE_ENGRAVING", slot: null, level, name });
+      d.steps.push({
+        ...structuredClone(d.steps[0]),
+        order: d.steps.length + 1,
+        candidateId: "ABILITY_STONE:3:2",
+        kind: "ABILITY_STONE",
+        target: "고대 어빌리티 스톤",
+        from: "원한 Lv.1 · 아드레날린 Lv.1",
+        to: "97돌 원한 Lv.3 · 아드레날린 Lv.2",
+        change: stone("원한", 3),
+        changes: [stone("원한", 3), stone("아드레날린", 2)],
+        deltaCombatPower: 54.62,
+        combatPowerAfter: Math.round((d.finalCombatPower + 54.62) * 100) / 100,
+      });
+      d.finalCombatPower = d.steps.at(-1).combatPowerAfter;
+    }
     if (who === "스펙순서긴") {
       const more = Array.from({ length: 12 }, (_, i) => ({
         ...structuredClone(d.steps[0]),
