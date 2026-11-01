@@ -67,9 +67,16 @@ export function stepCost(step: GoalStep, gold: (amount: number) => string, ruleV
  */
 export function simulatorPath(steps: GoalStep[]): { changes: SpecUpChange[]; skipped: number } {
   const changes: SpecUpChange[] = [];
+  let skipped = 0;
   for (const step of steps) {
-    const change = step.change as SpecUpChange;
-    if (isOpen(change.kind as never) && editsFor(change, NO_EDITS)) changes.push(change);
+    // A step may change more than one thing (api #812: a stone step sets two
+    // engravings, `changes`; `change` is only its first). The whole step goes
+    // in or none of it: half a stone would be a stone that does not exist.
+    const all = (step.changes?.length ? step.changes : [step.change]) as SpecUpChange[];
+    if (all.every((change) => isOpen(change.kind as never) && editsFor(change, NO_EDITS))) changes.push(...all);
+    else skipped += 1;
   }
-  return { changes, skipped: steps.length - changes.length };
+  // In path order: the simulator applies them one after another, so a later
+  // value for the same slot (보석 9 → 10, the same engraving again) wins.
+  return { changes, skipped };
 }
