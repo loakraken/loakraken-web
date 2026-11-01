@@ -7,8 +7,7 @@ import { useEffect, useId, useState, type CSSProperties, type MouseEvent } from 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { keepPreviousData, useQueries, useQuery } from "@tanstack/react-query";
-import { ArrowRight, ChevronRight, Coin } from "@/components/ui/icons";
-import { chaosGateGold, chaosGateGoldNote } from "@/lib/home/chaos-gate-gold";
+import { ArrowRight, ChevronRight } from "@/components/ui/icons";
 import { safeGameImage } from "@/lib/character/model";
 import { fetchSchedule, homeScheduleKey } from "@/lib/home/client";
 import {
@@ -127,21 +126,6 @@ function RewardItem({ reward }: { reward: Reward }) {
   );
 }
 
-/**
- * 카오스게이트 clear gold amount (user 11-02). The official list names 골드
- * and 귀속 골드 in every level group with no amount; a group whose amount the
- * sources agree on says it under its heading (lib/home/chaos-gate-gold).
- */
-function GoldNote({ gold }: { gold: ReturnType<typeof chaosGateGold> }) {
-  if (!gold) return null;
-  return (
-    <p className={own.goldNote}>
-      <Coin size={14} aria-hidden="true" />
-      {chaosGateGoldNote(gold)}
-    </p>
-  );
-}
-
 /** One reward list inside the expanded panel; titled only when both kinds show. */
 function RewardList({ title, rewards }: { title: string | null; rewards: Reward[] }) {
   if (!rewards.length) return null;
@@ -171,7 +155,10 @@ function RowRewards({
   name: string;
   groups: RewardGroup[];
   entry?: Entry;
-  /** 카오스게이트: the official gold rewards lead the line and each group (user 11-02). */
+  /**
+   * 카오스게이트: the official 골드·귀속 골드 lead the line and each group
+   * (user 11-02). As the official list has them, with no amount.
+   */
   gold?: boolean;
 }) {
   const [open, setOpen] = useState(false);
@@ -179,8 +166,6 @@ function RowRewards({
   // Higher entry level first (user 11-02); groups without a level keep their order.
   const groups = highestFirst(given);
   const { top, rest } = rewardSummary(groups, 3, gold);
-  // A group's gold covers its level up to the next higher group's.
-  const golds = groups.map((group, i) => chaosGateGold(group.minItemLevel, i > 0 ? groups[i - 1].minItemLevel : null));
   // 자세히 only when it shows more than the row (#1096): rewards cut off at
   // three, or a merged row's places. Otherwise it repeated the same icons.
   const more = rest > 0 || (!!entry && "places" in entry && entry.places.length > 0);
@@ -223,7 +208,6 @@ function RowRewards({
             return (
               <section key={`${group.minItemLevel}-${i}`} aria-label={label ?? "보상"}>
                 {label && <h3>{label}</h3>}
-                {gold && <GoldNote gold={golds[i]} />}
                 <RewardList title="이 날 회차 보상" rewards={timed} />
                 <RewardList title={timed.length ? "공통 보상" : null} rewards={common} />
               </section>

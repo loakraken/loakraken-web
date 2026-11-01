@@ -398,17 +398,3 @@ li:has(> img) > .placeLine {
   border-radius: 50%;
   background: var(--kind);
 }
-/* 카오스게이트 clear gold amount under a level group's heading. */
-.goldNote {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  margin: 0 0 6px;
-  color: var(--muted-foreground);
-  font-size: 12px;
-  line-height: 1.5;
-}
-.goldNote svg {
-  flex: none;
-  color: var(--grade-legendary-text);
-}
