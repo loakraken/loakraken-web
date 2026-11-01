@@ -247,6 +247,12 @@ export function editsFor(change: SpecUpChange | null | undefined, base: Edits): 
       return change.name && change.level != null
         ? { ...base, stone: { ...base.stone, [change.name]: change.level } }
         : null;
+    // 완갑 (api #809): the simulator edits 팔 보호구 by level and grade; a step
+    // without a grade keeps the one worn.
+    case "ARM_GUARD":
+      return change.level != null
+        ? { ...base, armGuard: { ...base.armGuard, level: change.level, ...(change.grade ? { grade: change.grade } : {}) } }
+        : null;
     default:
       return null;
   }

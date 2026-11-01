@@ -78,6 +78,11 @@ test("적용해 보기 turns a change into simulator inputs, through the URL", (
   const engraving = { ...gem, kind: "ENGRAVING_LEVEL", slot: null, level: 4, name: "원한" };
   assert.deepEqual(editsFor(engraving, NO_EDITS)?.engraving, { 원한: 4 });
   assert.equal(editsFor({ ...gem, kind: "EQUIPMENT_REFINE", refine: 21 }, NO_EDITS), null, "refine is not editable yet");
+  // 완갑 (api #809): level and grade into 팔 보호구; without a grade the worn one stays.
+  const guard = { ...gem, kind: "ARM_GUARD", slot: null, level: 18, grade: "유물" };
+  assert.deepEqual(editsFor(guard, NO_EDITS)?.armGuard, { level: 18, grade: "유물" });
+  assert.deepEqual(editsFor({ ...guard, grade: null }, NO_EDITS)?.armGuard, { level: 18 });
+  assert.equal(editsFor({ ...guard, level: null }, NO_EDITS), null);
   assert.equal(editsFor(null, NO_EDITS), null);
   assert.equal(readTry("{"), null);
   assert.equal(readTry(JSON.stringify({ slot: 1 })), null);

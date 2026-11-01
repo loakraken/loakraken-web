@@ -76,7 +76,10 @@ export function SpecUpPath({ data }: { data: Character }) {
         다시 나올 수 있어요.
       </p>
       {/* Same scope as the patch note (PM 총괄 11-01): kinds the path cannot take yet. */}
-      <p className={styles.lead}>지금은 보석·재련·각인·품질 단계를 다뤄요. 연마·스톤·카르마·완갑은 이후에 더해요.</p>
+      <p className={styles.lead}>
+          보석·재련·상급 재련·품질·각인·완갑·어빌리티 스톤 단계를 다뤄요. 장신구 연마는 비용을 늘 잡을 수 있게 되면 더하고, 깨달음
+          카르마는 전투력 계산식이 없어 넣지 않아요.
+        </p>
       <div className={styles.bar}>
         <div role="group" aria-label="고르는 기준" className={styles.sorts}>
           {PATH_SORTS.map((item) => (
