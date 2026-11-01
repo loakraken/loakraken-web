@@ -115,9 +115,12 @@ async function expectPlaces(page, item, sourceRows) {
   await expect(podium).toHaveAttribute("data-podium-state", "ready");
   const places = podium.locator("[data-podium-place]");
   await expect(places).toHaveCount(3);
+  // Every place fills the podium's height (content stacks on its block), so
+  // the step shows in the block: the 1st place's block starts highest.
   const rects = await places.evaluateAll((els) => els.map((el) => {
     const r = el.getBoundingClientRect();
-    return { rank: Number(el.dataset.podiumPlace), x: r.x, y: r.y };
+    const block = el.querySelector("[data-podium-block]").getBoundingClientRect();
+    return { rank: Number(el.dataset.podiumPlace), x: r.x, y: block.y };
   }));
   expect([...rects].sort((a, b) => a.x - b.x).map((r) => r.rank)).toEqual([2, 1, 3]);
   expect(rects.find((r) => r.rank === 1).y).toBeLessThan(rects.find((r) => r.rank === 2).y);
