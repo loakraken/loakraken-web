@@ -10,7 +10,7 @@ test.describe("악세 경매 검색 @smoke", () => {
     await expect(page.getByRole("heading", { level: 1, name: "장신구 매물 검색" })).toBeVisible();
     await chooseOption(page, page.getByRole("combobox", { name: "적에게 주는 피해 증가" }), "상 이상");
     await page.getByRole("button", { name: "검색", exact: true }).click();
-    const results = page.getByRole("region", { name: "매물" });
+    const results = page.getByRole("region", { name: "매물", exact: true });
     const items = results.getByRole("listitem").filter({ hasText: "테스트 장신구" });
     await expect(items).toHaveCount(3);
     await expect(items.nth(0)).toContainText("135만G");
@@ -28,7 +28,7 @@ test.describe("악세 경매 검색 @smoke", () => {
     await gotoReady(page, "/market/accessories/search");
     await chooseOption(page, page.getByRole("combobox", { name: "힘민지 범위 최소" }), "70% 이상");
     await page.getByRole("button", { name: "검색", exact: true }).click();
-    const results = page.getByRole("region", { name: "매물" });
+    const results = page.getByRole("region", { name: "매물", exact: true });
     await expect(results).toContainText("찾은 페이지 안의 결과예요(3쪽 읽음)");
     const items = results.getByRole("listitem").filter({ hasText: "테스트 장신구" });
     await expect(items).toHaveCount(3);
@@ -47,7 +47,7 @@ test.describe("악세 경매 검색 @smoke", () => {
       await route.continue({ postData: JSON.stringify({ ...body, minQuality: 99 }) });
     });
     await page.getByRole("button", { name: "검색", exact: true }).click();
-    const alert = page.getByRole("region", { name: "매물" }).getByRole("alert");
+    const alert = page.getByRole("region", { name: "매물", exact: true }).getByRole("alert");
     await expect(alert).toContainText("검색이 몰리고 있어요");
     await expect(alert.getByRole("button")).toHaveAttribute("aria-disabled", "true");
     await expect(alert.getByRole("button")).toContainText(/뒤 다시 검색/);
@@ -59,7 +59,7 @@ test.describe("악세 경매 검색 @smoke", () => {
     await gotoReady(page, "/market/accessories/search");
     await chooseOption(page, page.getByRole("combobox", { name: "적에게 주는 피해 증가" }), "상 이상");
     await page.getByRole("button", { name: "검색", exact: true }).click();
-    const results = page.getByRole("region", { name: "매물" });
+    const results = page.getByRole("region", { name: "매물", exact: true });
     const rows = results.getByRole("listitem").filter({ hasText: "테스트 장신구" });
     await expect(rows).toHaveCount(3);
     let calls = 0;
