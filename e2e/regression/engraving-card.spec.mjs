@@ -40,10 +40,15 @@ for (const width of [360, 1280])
     // The official markers: red (relic count), blue (stone level).
     const marks = async (name) =>
       row(name).locator("i[data-kind]").evaluateAll((els) =>
-        els.map((el) => [el.dataset.kind, getComputedStyle(el, "::before").backgroundPosition, getComputedStyle(el, "::before").backgroundImage.includes("/pc/profile/img_engrave_icon.png")]),
+        els.map((el) => {
+          const style = getComputedStyle(el, "::before");
+          // Compared as numbers: '0 0' computes to '0% 0%', '-29px 0' to '-29px 0px'.
+          const [x, y] = style.backgroundPosition.split(" ").map(parseFloat);
+          return [el.dataset.kind, x, y, style.backgroundImage.includes("/pc/profile/img_engrave_icon.png")];
+        }),
       );
-    expect(await marks("아드레날린")).toEqual([["relic", "-29px 0px", true], ["stone", "0px 0px", true]]);
-    expect(await marks("돌격대장")).toEqual([["relic", "-29px 0px", true]]);
+    expect(await marks("아드레날린")).toEqual([["relic", -29, 0, true], ["stone", 0, 0, true]]);
+    expect(await marks("돌격대장")).toEqual([["relic", -29, 0, true]]);
     await expect(row("아드레날린")).toContainText("유물 ×4");
     await expect(row("아드레날린")).toContainText("스톤 Lv.3");
     await expect(row("원한")).toContainText("스톤 Lv.2");
