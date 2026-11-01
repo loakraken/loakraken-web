@@ -2,21 +2,22 @@
 .podium {
   --portrait-width: 88px;
   --portrait-height: 96px;
-  --name-height: 90px; /* five full lines, no clamp */
-  --value-height: 54px;
   position: relative;
   isolation: isolate;
   box-sizing: border-box;
   width: 100%;
   max-width: 620px;
-  height: 432px;
+  /* Fixed: the content of each place stacks on its block and the free room
+     stays above the medals, so names up to the game's 12-character limit
+     (two lines at 320) never change the podium's height. */
+  height: 340px;
   margin: 0 auto 20px;
   padding: 24px 20px 20px;
 }
 .podium .places {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  align-items: end;
+  align-items: stretch;
   gap: 12px;
   height: 100%;
   margin: 0;
@@ -28,12 +29,12 @@
   --step: 68px;
   --delay: 0s;
   position: relative;
-  display: grid;
-  grid-template-rows: 24px var(--portrait-height) var(--name-height) var(--value-height) var(--step);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
   grid-row: 1;
   grid-column: 2;
-  justify-items: center;
-  align-items: center;
   gap: 6px;
   min-width: 0;
   text-align: center;
@@ -51,6 +52,7 @@
   grid-column: 3;
 }
 .podium .medal {
+  flex: none;
   position: relative;
   z-index: 1;
   width: 24px;
@@ -58,6 +60,7 @@
   color: var(--medal);
 }
 .podium .portraitBox {
+  flex: none;
   position: relative;
   isolation: isolate;
   width: var(--portrait-width);
@@ -108,7 +111,6 @@
   line-height: 18px;
 }
 .podium .name {
-  height: var(--name-height);
   color: var(--link);
   font-weight: 600;
   text-decoration: underline;
@@ -116,7 +118,6 @@
   text-underline-offset: 3px;
 }
 .podium .value {
-  height: var(--value-height);
   color: var(--foreground);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
@@ -130,6 +131,7 @@
   .podium .name:hover { text-decoration-color: currentColor; }
 }
 .podium .block {
+  flex: none;
   position: relative;
   display: grid;
   place-items: center;
@@ -207,9 +209,6 @@
   .podium {
     --portrait-width: 60px;
     --portrait-height: 72px;
-    --name-height: 96px; /* six 16px lines for a 32-character name at 320px */
-    --value-height: 64px;
-    height: 416px;
     /* 320 - 32 page gutters - 40 padding - 16 gaps = 3 x 77.33px.
        Even the 76px-wide light cone stays inside its place. */
     padding-inline: 20px;

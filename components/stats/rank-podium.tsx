@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { MedalStarBold } from "@/components/ui/icons";
 import { safeGameImage } from "@/lib/character/model";
@@ -32,6 +33,8 @@ export function RankPodium({
   /** A guild-name link may correct an out-of-range page to page 1 without input. */
   reserve?: boolean;
 }) {
+  // An official image that fails to load shows the class icon in the same box.
+  const [broken, setBroken] = useState<ReadonlySet<string>>(() => new Set());
   if (page !== 1 && !reserve) return null;
   const first = entries.find((entry) => entry.rank === 1);
   const second = entries.find((entry) => entry.rank === 2);
@@ -56,7 +59,7 @@ export function RankPodium({
                 <MedalStarBold className={styles.medal} size={24} data-place={entry.rank} />
                 <div className={styles.portraitBox} data-portrait-box="">
                   <div className={styles.cone} data-podium-cone="" aria-hidden="true" />
-                  {src && !entry.guild ? (
+                  {src && !entry.guild && !broken.has(src) ? (
                     // Official opaque 612×708 JPEG, hotlinked like character/imagery.tsx.
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -69,6 +72,7 @@ export function RankPodium({
                       loading="lazy"
                       decoding="async"
                       referrerPolicy="no-referrer"
+                      onError={() => setBroken((prev) => new Set(prev).add(src))}
                     />
                   ) : (
                     <div className={styles.fallback} data-portrait-fallback={entry.guild ? "guild" : "class"} aria-hidden="true">

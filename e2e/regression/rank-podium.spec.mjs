@@ -361,10 +361,11 @@ for (const width of [320, 360, 1280]) {
     await page.route((url) => url.pathname === "/api/rankings", async (route) => {
       const response = await route.fetch();
       const json = await response.json();
-      const names = ["가".repeat(32), "W".repeat(32), "긴캐릭터이름".repeat(4)];
+      // The game's name limit is 12 characters (Korean, Latin, numbers).
+      const names = ["가".repeat(12), "W".repeat(12), "긴캐릭터이름긴캐릭터이름"];
       json.envelope.data.rows.slice(0, 3).forEach((row, index) => {
         row.characterName = names[index];
-        row.combatPower = 999_999_999_999_999.88;
+        row.combatPower = 99_999_999.88;
         // imageUrl이 아예 없는 예전 응답도 클래스 아이콘을 같은 자리에 그린다.
         delete row.imageUrl;
       });
