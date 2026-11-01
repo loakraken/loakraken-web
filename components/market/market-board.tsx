@@ -8,6 +8,7 @@ import {
   AddSquare,
   Bookmark,
   BookmarkBold,
+  StarBold,
   BookSquare,
   Box,
   Coffee,
@@ -449,8 +450,8 @@ function Detail({
  * ones: a changed current price or day change gets the shared changed-cell
  * mark (a wash that fades once, plus ▲/▼ on the price; the number is final
  * at once, no counting), and a screen reader hears one short summary.
- * A starred item carries a filled mark on its icon's corner in every list
- * (user 11-02), laid over the icon so starring moves nothing in the row.
+ * A starred item carries a filled star before its name in every list (user
+ * 11-02, PM screenshot check: the icon-corner mark was too small to see).
  */
 const washOnly = (pulse: Pulse | undefined): Pulse | undefined => pulse && { ...pulse, dir: 0 };
 
@@ -481,16 +482,12 @@ function BoardRows({
         {items.map((item) => (
           <li key={item.itemId}>
             <button type="button" aria-pressed={activeId === item.itemId} onClick={() => onChoose(item)}>
-              <span className={styles.rowIcon}>
-                <GameIcon src={item.icon} grade={item.grade} size={36} />
-                {starred.has(item.itemId) && (
-                  <span className={styles.rowMark} data-starred aria-hidden="true">
-                    <BookmarkBold size={10} />
-                  </span>
-                )}
-              </span>
+              <GameIcon src={item.icon} grade={item.grade} size={36} />
               <span className={styles.rowName}>
                 <strong data-grade={item.grade ?? undefined}>
+                  {starred.has(item.itemId) && (
+                    <StarBold size={15} className={styles.rowStar} data-starred aria-hidden="true" />
+                  )}
                   {item.name}
                   {tier != null && <i>T{tier}</i>}
                   {starred.has(item.itemId) && <span className="sr-only"> · 즐겨찾기됨</span>}

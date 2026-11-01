@@ -159,23 +159,11 @@
   font-size: 12px;
   font-variant-numeric: tabular-nums;
 }
-/* The starred mark sits on the icon's corner, out of the row's flow: starring
-   or unstarring changes no size or line in the row (A7). */
-.rowIcon {
-  position: relative;
-  display: grid;
-}
-.rowMark {
-  position: absolute;
-  right: -4px;
-  bottom: -4px;
-  display: grid;
-  place-items: center;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: var(--background);
-  box-shadow: 0 0 0 1.5px var(--background);
+/* The starred mark: a filled star before the name, in the favourites' gold
+   (the bookmark chips and the detail star use it too). It never wraps apart
+   from the name's first word. */
+.rowStar {
+  flex: none;
   color: var(--grade-legendary-text);
 }
 .rowPrice {
