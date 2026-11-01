@@ -62,9 +62,31 @@ export function readNote(fileName: string, source: string): DevNote | null {
   };
 }
 
-/** Pinned notes first, then newest first (pinned ones too, by date); the same day by address. */
+/** The version an address ends with ("…-hotfix-v0-3-6-1" → [0, 3, 6, 1]), if any. */
+const version = (slug: string) => /-v(\d+(?:-\d+)*)$/.exec(slug)?.[1].split("-").map(Number);
+
+/** Higher version first; 0 when either address has none. */
+function byVersion(a: string, b: string) {
+  const x = version(a);
+  const y = version(b);
+  if (!x || !y) return 0;
+  for (let i = 0; i < Math.max(x.length, y.length); i++) {
+    const d = (y[i] ?? 0) - (x[i] ?? 0);
+    if (d) return d;
+  }
+  return 0;
+}
+
+/**
+ * Pinned notes first, then newest first (pinned ones too, by date); the same
+ * day by version, so a hotfix comes before the release it fixes ("v0-3-6-1"
+ * over "v0-3-6", QA 11-02), then by address.
+ */
 export const byNewest = (a: DevNoteMeta, b: DevNoteMeta) =>
-  Number(b.pinned) - Number(a.pinned) || b.date.localeCompare(a.date) || b.slug.localeCompare(a.slug);
+  Number(b.pinned) - Number(a.pinned) ||
+  b.date.localeCompare(a.date) ||
+  byVersion(a.slug, b.slug) ||
+  b.slug.localeCompare(a.slug);
 
 /**
  * Only web addresses and paths on this site become links; anything else stays
