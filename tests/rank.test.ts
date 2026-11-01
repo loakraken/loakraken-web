@@ -6,15 +6,14 @@ import {
   TIER_LEGEND,
   bannerRank,
   conditionsText,
-  isRankEnvelope,
   nextTierText,
   rankCell,
   rankState,
-  requestRank,
   scopeLabel,
   scopeParts,
   scopesOf,
 } from "../lib/character/rank";
+import { isRankEnvelope, requestRank } from "../lib/character/rank.backend";
 
 const fixture = (name: string) =>
   JSON.parse(readFileSync(new URL(`./rank-fixtures/${name}`, import.meta.url), "utf8"));

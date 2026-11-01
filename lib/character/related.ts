@@ -8,12 +8,8 @@ import {
   type SiblingsEnvelope,
   type ViewsEnvelope,
 } from "./validate";
-import {
-  isCardCollectionEnvelope,
-  isCardRefreshEnvelope,
-  type CardCollectionEnvelope,
-  type CardRefreshEnvelope,
-} from "./card-collection";
+import { type CardCollectionEnvelope, type CardRefreshEnvelope } from "./card-collection";
+import { isCardCollectionEnvelope, isCardRefreshEnvelope } from "./card-collection.backend";
 import {
   isRosterPowerEnvelope,
   isRosterPowerRefreshEnvelope,

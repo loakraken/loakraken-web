@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { collectibleSearch, isCollectibleRankingEnvelope, parseCollectibleQuery, progressText } from "../lib/stats/collectible-ranking";
+import { collectibleSearch, parseCollectibleQuery, progressText } from "../lib/stats/collectible-ranking";
+import { isCollectibleRankingEnvelope } from "../lib/stats/collectible-ranking.backend";
 
 test("collectible query: defaults, shared links and unknown values", () => {
   assert.deepEqual(parseCollectibleQuery(new URLSearchParams("")), { unit: "ROSTER", server: undefined, activeDays: 30, page: 1 });

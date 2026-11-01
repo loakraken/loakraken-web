@@ -1,16 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import {
-  alertErrorText,
-  conditionText,
-  isAlertId,
-  isDoneEnvelope,
-  isManageToken,
-  parseConditionBody,
-  parseSubscribeBody,
-  requestAddCondition,
-  requestUnsubscribe,
-} from "../lib/alerts/model";
+import { alertErrorText, conditionText, isAlertId, isManageToken, parseConditionBody, parseSubscribeBody } from "../lib/alerts/model";
+import { isDoneEnvelope, requestAddCondition, requestUnsubscribe } from "../lib/alerts/model.backend";
 import { isPriceAlertsEnabled } from "../lib/tools/flags";
 
 const ID = "3f2b8c1e-5a4d-4e6f-9b7a-1c2d3e4f5a6b";

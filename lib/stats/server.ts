@@ -1,24 +1,26 @@
 import "server-only";
 import type { StatsQuery, StatsView } from "./model";
 import { requestStats } from "./upstream";
-import { requestEfficiencyRanking, requestRankings, type EfficiencyKind, type EfficiencyQuery, type RankingQuery } from "./rankings";
-import { requestRosterRanking, type RosterQuery } from "./roster-ranking";
-import { requestGuildRanking, type GuildQuery } from "./guild-ranking";
-import { requestPopularGuilds, type PopularGuildsQuery } from "./popular-guilds";
-import {
-  requestClassBuildCells,
-  requestClassBuilds,
-  requestClassBuildTop,
-  type ClassBuildCellsQuery,
-  type ClassBuildsQuery,
-} from "./class-builds";
-import { requestBestCombatPower } from "./best-combat-power";
-import { requestGemLevels } from "./gem-levels";
-import { requestLevelCombatPower } from "./level-combat-power";
-import { requestGuildDetail, type GuildDetailQuery } from "./guild-detail";
-import { requestTitleEquip, type TitleEquipQuery } from "./title-equip";
-import { requestCollectibleRanking, type CollectibleQuery } from "./collectible-ranking";
-import { requestPopulation } from "./population";
+import { type EfficiencyKind, type EfficiencyQuery, type RankingQuery } from "./rankings";
+import { requestEfficiencyRanking, requestRankings } from "./rankings.backend";
+import { type RosterQuery } from "./roster-ranking";
+import { requestRosterRanking } from "./roster-ranking.backend";
+import { type GuildQuery } from "./guild-ranking";
+import { requestGuildRanking } from "./guild-ranking.backend";
+import { type PopularGuildsQuery } from "./popular-guilds";
+import { requestPopularGuilds } from "./popular-guilds.backend";
+import { type ClassBuildCellsQuery, type ClassBuildsQuery } from "./class-builds";
+import { requestClassBuildCells, requestClassBuilds, requestClassBuildTop } from "./class-builds.backend";
+import { requestBestCombatPower } from "./best-combat-power.backend";
+import { type GuildDetailQuery } from "./guild-detail";
+import { requestGuildDetail } from "./guild-detail.backend";
+import { type TitleEquipQuery } from "./title-equip";
+import { requestTitleEquip } from "./title-equip.backend";
+import { type CollectibleQuery } from "./collectible-ranking";
+import { requestCollectibleRanking } from "./collectible-ranking.backend";
+import { requestGemLevels } from "./gem-levels.backend";
+import { requestLevelCombatPower } from "./level-combat-power.backend";
+import { requestPopulation } from "./population.backend";
 
 export function getStats<V extends StatsView>(view: V, query: StatsQuery, signal?: AbortSignal) {
   return requestStats(view, query, process.env.LOAKRAKEN_API_ORIGIN, { signal });

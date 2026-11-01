@@ -1,11 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import {
-  isPopularGuildsEnvelope,
-  parsePopularGuildsQuery,
-  popularGuildsSearch,
-  requestPopularGuilds,
-} from "../lib/stats/popular-guilds";
+import { parsePopularGuildsQuery, popularGuildsSearch } from "../lib/stats/popular-guilds";
+import { isPopularGuildsEnvelope, requestPopularGuilds } from "../lib/stats/popular-guilds.backend";
 import { isPopularGuildsEnabled } from "../lib/tools/flags";
 import { PRODUCTION_URL } from "../lib/site";
 
