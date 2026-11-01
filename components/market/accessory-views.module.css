@@ -1,6 +1,11 @@
 /* 장신구 시세 · 매물 검색: one segmented switch under the hub tabs, the same
    pill look as the screen's filters (stats .segment). */
 .views {
+  /* Its own row across the hero grid, like the hub tabs above it: left in
+     the first column it widened that column and pushed the title away from
+     the icon (PM 총괄 screenshot check 11-02). */
+  grid-column: 1 / -1;
+  justify-self: start;
   display: inline-flex;
   gap: 2px;
   margin-top: 12px;

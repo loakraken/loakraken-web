@@ -113,6 +113,12 @@ test.describe("악세 경매 검색 @smoke", () => {
     // After the row is there (a flagged tab would join late): no separate search tab.
     await expect(hub.getByRole("link", { name: "악세 검색" })).toHaveCount(0);
     await expect(views.getByRole("link", { name: "시세" })).toHaveAttribute("aria-current", "page");
+    // The switch takes its own row: the title stays one column gap from the icon.
+    const gap = await page.getByRole("heading", { level: 1, name: "장신구 시세" }).evaluate((h1) => {
+      const icon = h1.parentElement.firstElementChild.getBoundingClientRect();
+      return Math.round(h1.getBoundingClientRect().left - icon.right);
+    });
+    expect(gap, "아이콘과 제목 사이").toBeLessThanOrEqual(16);
     await views.getByRole("link", { name: "매물 검색" }).click();
     await expect(page).toHaveURL(/\/market\/accessories\/search$/);
     await expect(page.getByRole("heading", { level: 1, name: "장신구 매물 검색" })).toBeVisible();
