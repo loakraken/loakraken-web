@@ -163,6 +163,13 @@
   .header .discord {
     display: none;
   }
+  /* With the Discord button gone, nothing pushed the rest right: search,
+     theme and menu sat just after the logo (user iPhone 11-02). Search takes
+     the free space before it, so the three keep to the right edge. A page
+     slot already fills that space where there is one. */
+  .header:not(:has(.slot)) .search {
+    margin-left: auto;
+  }
 }
 @media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
   .header {
