@@ -4,7 +4,7 @@
 // to 30 steps; a target can come back further down at its next stage, so the
 // rows are never grouped. Asked for on a click: each answer is up to a
 // thousand simulator runs on the backend (10-minute cache there).
-import { useRef, useState } from "react";
+import { useContext, useRef, useState } from "react";
 import Link from "next/link";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { RATE_LIMITED, rateLimitCopy, retryLabel } from "@/lib/api/rate-limit";
@@ -21,6 +21,7 @@ import {
 } from "@/lib/spec-up/path";
 import { koreanGold, tryPathParam } from "@/lib/spec-up/model";
 import styles from "./spec-up-path.module.css";
+import { SimulatorEnabled } from "./tabs";
 
 const BUSY = "SPEC_UP_BUSY";
 
@@ -134,6 +135,7 @@ function PathAnswer({ name, path, stale }: { name: string; path: Path; stale: bo
   const final = path.finalCombatPower;
   const shown = all ? steps : steps.slice(0, PATH_FIRST_ROWS);
   const sim = simulatorPath(steps);
+  const simulator = useContext(SimulatorEnabled);
 
   // Supporters, unjudged roles, no official combat power: no steps and the guide's reason.
   if (steps.length === 0 || start == null || final == null)
@@ -188,19 +190,23 @@ function PathAnswer({ name, path, stale }: { name: string; path: Path; stale: bo
           {all ? `앞 ${PATH_FIRST_ROWS}단계만 보기` : `${steps.length}단계 모두 보기`}
         </button>
       )}
-      <p className={styles.note}>
-        {sim.changes.length > 0 ? (
-          <Link
-            href={`/character/${encodeURIComponent(name)}?${new URLSearchParams({ tab: "simulator", try: tryPathParam(sim.changes) })}`}
-            scroll={false}
-          >
-            이 순서를 시뮬레이터에서 열기
-          </Link>
-        ) : (
-          <span>이 순서의 단계는 시뮬레이터에서 아직 바꿀 수 없어요.</span>
-        )}
-        {sim.changes.length > 0 && sim.skipped > 0 && ` · ${sim.skipped}단계는 시뮬레이터에서 아직 바꿀 수 없어 빼고 열어요.`}
-      </p>
+      {/* Only where the simulator tab exists (COMBAT_POWER_SIM): with it off the
+          link opened a hidden tab and fell back to 전투 (v0.3.4, #1216). */}
+      {simulator && (
+        <p className={styles.note}>
+          {sim.changes.length > 0 ? (
+            <Link
+              href={`/character/${encodeURIComponent(name)}?${new URLSearchParams({ tab: "simulator", try: tryPathParam(sim.changes) })}`}
+              scroll={false}
+            >
+              이 순서를 시뮬레이터에서 열기
+            </Link>
+          ) : (
+            <span>이 순서의 단계는 시뮬레이터에서 아직 바꿀 수 없어요.</span>
+          )}
+          {sim.changes.length > 0 && sim.skipped > 0 && ` · ${sim.skipped}단계는 시뮬레이터에서 아직 바꿀 수 없어 빼고 열어요.`}
+        </p>
+      )}
       <p className={styles.note}>
         전투력은 앞 단계를 모두 올린 상태에서 다시 계산한 값이에요. 비용은 그 단계에서 더 드는 골드이고, 보석은 같은 칸의 앞
         단계 비용을 빼고 셌어요.
