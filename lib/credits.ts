@@ -98,7 +98,7 @@ export const LIBRARIES: readonly Credit[] = [
   { name: "Zustand", use: "화면 상태", licence: "MIT", href: "https://zustand.docs.pmnd.rs" },
   { name: "class-variance-authority", use: "스타일 변형", licence: "Apache-2.0", href: "https://cva.style" },
   { name: "tw-animate-css", use: "애니메이션 유틸리티", licence: "MIT", href: "https://github.com/Wombosvideo/tw-animate-css" },
-  { name: "Libraries.dev (border-beam, liquid-gooey, thinking-orbs)", use: "빛 테두리·불러오는 표시", licence: "MIT", href: "https://libraries.dev" },
+  { name: "Libraries.dev (border-beam, liquid-gooey, thinking-orbs, bot-avatars)", use: "빛 테두리·불러오는 표시·홈 화면 봇", licence: "MIT", href: "https://libraries.dev" },
   { name: "cn", use: "스타일 이름 합치기", licence: "MIT", href: "https://github.com/shadcn-ui/cn" },
   { name: "server-only", use: "서버에서만 쓰는 코드 구분", licence: "MIT", href: "https://www.npmjs.com/package/server-only" },
 ];
@@ -118,9 +118,10 @@ export const DEPENDENCY_CREDITS: Record<string, string> = {
   zustand: "Zustand",
   "class-variance-authority": "class-variance-authority",
   "tw-animate-css": "tw-animate-css",
-  "border-beam": "Libraries.dev (border-beam, liquid-gooey, thinking-orbs)",
-  "liquid-gooey": "Libraries.dev (border-beam, liquid-gooey, thinking-orbs)",
-  "thinking-orbs": "Libraries.dev (border-beam, liquid-gooey, thinking-orbs)",
+  "border-beam": "Libraries.dev (border-beam, liquid-gooey, thinking-orbs, bot-avatars)",
+  "liquid-gooey": "Libraries.dev (border-beam, liquid-gooey, thinking-orbs, bot-avatars)",
+  "thinking-orbs": "Libraries.dev (border-beam, liquid-gooey, thinking-orbs, bot-avatars)",
+  "bot-avatars": "Libraries.dev (border-beam, liquid-gooey, thinking-orbs, bot-avatars)",
   cn: "cn",
   "server-only": "server-only",
 };
