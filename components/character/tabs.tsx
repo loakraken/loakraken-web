@@ -565,8 +565,9 @@ function EquipmentPanel({ data }: { data: Character }) {
                 ) : null}
               </li>
             ))}
-            {/* Under the accessories (user 10-31 layout): the stone, the orb,
-                then anything else; the bracelet takes the row below. */}
+            {/* Under the accessories (user 10-31 layout): the stone, then the orb;
+                the bracelet takes the row below. 나침반·부적 are 내실 special
+                equipment, not here (user 11-01). */}
             {groups.stone && (
               <li {...stagger(groups.accessories.length, styles.item)}>
                 <ItemTooltip item={groups.stone} slot="어빌리티 스톤" extra={extraOf(groups.stone)}>
@@ -574,38 +575,38 @@ function EquipmentPanel({ data }: { data: Character }) {
                 </ItemTooltip>
                 <div className={styles.itemText}>
                   <strong>어빌리티 스톤</strong>
-                  {groups.stone.detail?.stoneEngravings.length ? (
-                    <ul className={styles.inlineList}>
-                      {groups.stone.detail.stoneEngravings.map((engraving, i) => (
-                        <li key={i}>
-                          {engraving.name} <b>Lv.{engraving.level}</b>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <small>{text(groups.stone.name)}</small>
-                  )}
+                  <small>{text(groups.stone.name)}</small>
                 </div>
+                {/* On the right like the accessory effect lines (user 11-01). */}
+                {groups.stone.detail?.stoneEngravings.length ? (
+                  <ul className={styles.gradeList}>
+                    {groups.stone.detail.stoneEngravings.map((engraving, i) => (
+                      <li key={i}>
+                        {engraving.name} <b>Lv.{engraving.level}</b>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
               </li>
             )}
-            {[groups.orb, ...groups.others].filter((item): item is Equipment => item != null).map((item, i) => (
-              <li key={`other-${i}`} {...stagger(groups.accessories.length + 1 + i, styles.item)}>
-                <ItemTooltip item={item} slot={item.type ?? undefined} extra={extraOf(item)}>
-                  <GameIcon src={item.icon} grade={item.grade} />
+            {groups.orb && (
+              <li {...stagger(groups.accessories.length + 1, styles.item)}>
+                <ItemTooltip item={groups.orb} slot={groups.orb.type ?? undefined} extra={extraOf(groups.orb)}>
+                  <GameIcon src={groups.orb.icon} grade={groups.orb.grade} />
                 </ItemTooltip>
                 <div className={styles.itemText}>
-                  <strong>{text(item.type)}</strong>
-                  <small>{text(item.name)}</small>
+                  <strong>{text(groups.orb.type)}</strong>
+                  <small>{text(groups.orb.name)}</small>
                 </div>
                 {/* The orb's 달성 최대 낙원력 on its right (backend #776); none, nothing. */}
-                {item.detail?.paradisePower != null && (
+                {groups.orb.detail?.paradisePower != null && (
                   <span className={styles.paradise}>
                     <small>달성 최대 낙원력</small>
-                    <b>{item.detail.paradisePower.toLocaleString("ko-KR")}</b>
+                    <b>{groups.orb.detail.paradisePower.toLocaleString("ko-KR")}</b>
                   </span>
                 )}
               </li>
-            ))}
+            )}
           </ul>
         </div>
       </div>
