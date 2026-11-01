@@ -1,5 +1,6 @@
 // Pure helpers for the character detail page.
 import type { Character } from "./model";
+import { awakeningLabel } from "./skill-type";
 import { sourcePlainText } from "./source-text";
 import { remainingText } from "../time/remaining";
 
@@ -178,7 +179,10 @@ export function activeSkills(skills: Skill[] | undefined) {
       (skill.level ?? 0) > 1 ||
       skill.tripods.length > 0 ||
       skill.rune !== null ||
-      skill.gemEffects.length > 0,
+      skill.gemEffects.length > 0 ||
+      // 각성기·초각성 are Lv.1 without tripods on real characters, so they only
+      // showed under '전체 스킬 보기' and their chips never (QA 11-01).
+      awakeningLabel(skill.skillType) !== null,
   );
 }
 
