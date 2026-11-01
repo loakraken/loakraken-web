@@ -5,7 +5,8 @@ import { test, expect, characterPath, gotoReady, expectNoHorizontalOverflow } fr
 import { shiftsSince, watchShifts } from "../support/shifts.mjs";
 
 const panelOf = (page, title) =>
-  page.locator("section", { has: page.getByRole("heading", { name: title, exact: true }) }).first();
+  // The innermost section with that heading (an outer wrapper section would hold every panel).
+  page.locator("section", { has: page.getByRole("heading", { name: title, exact: true }) }).last();
 
 for (const width of [1280, 360])
   test(`${width}: 아바타 성향 합계와 아바타별 성향 줄 @regression`, async ({ page }) => {
