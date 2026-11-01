@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import { NO_EDITS } from "../lib/combat-power/model";
-import { costPriceNote, costRoom, editsFor, groupStages, gemTarget, keepOrder, koreanGold, readTry, splitCandidates, tryParam } from "../lib/spec-up/model";
+import { costPriceNote, costRoom, editsFor, groupStages, gemTarget, keepOrder, koreanGold, readTry, readTryPath, splitCandidates, tryParam, tryPathParam } from "../lib/spec-up/model";
 import { requestSpecUp } from "../lib/spec-up/upstream";
 import { isSpecUpEnvelope } from "../lib/spec-up/validate";
 
@@ -83,6 +83,13 @@ test("적용해 보기 turns a change into simulator inputs, through the URL", (
   assert.deepEqual(editsFor(guard, NO_EDITS)?.armGuard, { level: 18, grade: "유물" });
   assert.deepEqual(editsFor({ ...guard, grade: null }, NO_EDITS)?.armGuard, { level: 18 });
   assert.equal(editsFor({ ...guard, level: null }, NO_EDITS), null);
+  // Through the address (#1256 codex P1): path → ?try= → edits keeps level and grade.
+  const [back] = readTryPath(tryPathParam([guard]));
+  assert.equal(back.grade, "유물");
+  assert.deepEqual(editsFor(back, NO_EDITS)?.armGuard, { level: 18, grade: "유물" });
+  assert.deepEqual(editsFor(readTry(tryParam(guard)), NO_EDITS)?.armGuard, { level: 18, grade: "유물" });
+  // An unknown grade from a hand-written address is not read.
+  assert.equal(readTry(JSON.stringify({ ...guard, grade: "<b>" }))?.grade, undefined);
   assert.equal(editsFor(null, NO_EDITS), null);
   assert.equal(readTry("{"), null);
   assert.equal(readTry(JSON.stringify({ slot: 1 })), null);

@@ -2,7 +2,7 @@
 // ranked by combat power per 10,000 gold. The backend computes every number;
 // the screen only formats them and folds what it could not compute.
 import type { components } from "../api/spec-up-schema";
-import type { Edits } from "../combat-power/model";
+import { ARM_GUARD_GRADES, type Edits } from "../combat-power/model";
 
 type Schemas = components["schemas"];
 export type SpecUp = Schemas["SpecUpResponse"];
@@ -300,6 +300,11 @@ function changeOf(value: unknown): SpecUpChange | null {
     refine: int("refine"),
     quality: int("quality"),
     name: typeof v.name === "string" ? v.name : null,
+    // 완갑 (ARM_GUARD): the grade a step raises it to. Dropped here, a grade-up
+    // step opened with the old grade and other numbers than the path (#1256
+    // codex P1). From the address, so only the known grades are read.
+    // Optional in the contract: only a change that has one carries it back.
+    ...((ARM_GUARD_GRADES as readonly unknown[]).includes(v.grade) ? { grade: v.grade as string } : {}),
   };
 }
 
