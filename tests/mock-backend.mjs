@@ -359,13 +359,25 @@ async function market(url, req, send) {
 // are invented round numbers, not game data.
 function refiningPlan(request) {
   const weapon = request.equipmentType === "WEAPON";
+  // 완갑 (api 완갑 PR, 11-02): its own table, 결정 materials and both breaths, no book or
+  // growth support, grade null in the answer.
+  const armGuard = request.equipmentType === "ARM_GUARD";
   const round = (v) => Math.round(v * 100) / 100;
   const stages = [];
   for (let target = request.fromStage + 1; target <= request.toStage; target++) {
-    const rate = Math.max(300, 1500 - (target - 11) * 80) * (request.useBreath ? 1.5 : 1) * (request.useBook && target <= 20 ? 1.3 : 1);
+    const rate = armGuard
+      ? Math.max(500, 1500 - target * 50) * (request.useBreath ? 1.5 : 1)
+      : Math.max(300, 1500 - (target - 11) * 80) * (request.useBreath ? 1.5 : 1) * (request.useBook && target <= 20 ? 1.3 : 1);
     const maxAttempts = Math.ceil(21500 / rate) + 1;
     const expectedAttempts = round(maxAttempts * 0.42);
-    const per = [
+    const per = armGuard ? [
+      ["운명의 파괴석 결정", 200 + target * 20],
+      ["운명의 수호석 결정", 600 + target * 60],
+      ["위대한 운명의 돌파석", 10 + target],
+      ["상급 아비도스 융화 재료", 8 + target],
+      ["운명의 파편", 5000 + target * 300],
+      ...(request.useBreath ? [["용암의 숨결", 12], ["빙하의 숨결", 12]] : []),
+    ] : [
       [weapon ? "운명의 파괴석" : "운명의 수호석", weapon ? 1000 + target * 30 : 1500 + target * 40],
       ["운명의 돌파석", 20 + target],
       ["아비도스 융화 재료", 12 + target],
@@ -373,8 +385,8 @@ function refiningPlan(request) {
       ...(request.useBreath ? [[weapon ? "용암의 숨결" : "빙하의 숨결", 20]] : []),
       ...(request.useBook && target <= 20 ? [[(weapon ? "야금술 : 업화 " : "재봉술 : 업화 ") + (target <= 14 ? "[11-14]" : target <= 18 ? "[15-18]" : "[19-20]"), 1]] : []),
     ];
-    const gold = (weapon ? 2400 : 1800) + target * 60;
-    const goldPer = request.growthSupport && request.grade === "UPHWA" && target <= 18 ? gold * 0.8 : gold;
+    const gold = (armGuard ? 3000 : weapon ? 2400 : 1800) + target * 60;
+    const goldPer = !armGuard && request.growthSupport && request.grade === "UPHWA" && target <= 18 ? gold * 0.8 : gold;
     stages.push({
       targetStage: target,
       firstAttemptSuccessRateBp: Math.round(rate),
@@ -397,10 +409,10 @@ function refiningPlan(request) {
     code: "REFINING_PLAN_SUCCESS",
     message: "성공",
     data: {
-      ruleVersion: "t4-refining-v1",
+      ruleVersion: armGuard ? "t4-vambrace-v1" : "t4-refining-v1",
       source: { name: "합성 목 데이터", commit: "mock", license: "테스트 전용", crossCheckedWith: "없음", verifiedOn: "2026-10-05" },
-      grade: request.grade, equipmentType: request.equipmentType, fromStage: request.fromStage, toStage: request.toStage,
-      useBreath: !!request.useBreath, useBook: !!request.useBook, growthSupport: !!request.growthSupport,
+      grade: armGuard ? null : request.grade, equipmentType: request.equipmentType, fromStage: request.fromStage, toStage: request.toStage,
+      useBreath: !!request.useBreath, useBook: armGuard ? false : !!request.useBook, growthSupport: armGuard ? false : !!request.growthSupport,
       stages,
       expectedMaterials: sum("expectedMaterials"),
       worstCaseMaterials: sum("worstCaseMaterials"),
