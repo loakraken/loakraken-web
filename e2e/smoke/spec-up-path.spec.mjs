@@ -78,7 +78,7 @@ test.describe("스펙업 추천 순서 @smoke", () => {
     await expect(section(page).getByText("시세를 몰라 순서에서 뺀 항목 3개")).toBeVisible();
   });
 
-  for (const width of [320, 360, 390, 768])
+  for (const width of [320, 360, 390, 600, 680, 768])
     test(`스톤 단계(각인 두 개)의 긴 바꿈 글자도 ${width}에서 가로로 넘치지 않음`, async ({ page }) => {
       await page.setViewportSize({ width, height: 900 });
       await page.goto(characterPath("스펙순서스톤", "specup"));
