@@ -29,6 +29,8 @@ async function drawsAgain(root, what, swap) {
         const list = [...el.querySelectorAll(".k-draw, .k-grow, .k-grow-x")];
         return list.length > 0 && list.every((part) => !("old" in part.dataset));
       }),
+      // Sampled often: the draw lasts 600 ms, so a slow sample could miss it.
+      { intervals: [50] },
     )
     .toBe(true);
   expect((await parts(root)).running, `${what}: 다시 그려지지 않음`).toBeGreaterThan(0);
