@@ -171,7 +171,8 @@ function SampleLine({ query }: { query: StatsQuery }) {
   });
   const meta = summary.data?.data.meta;
   return (
-    <p className={styles.sample} role="note" {...pendingProps(summary)}>
+    // Read out when new conditions land: the count says the answer changed (frontend-a11y).
+    <p className={styles.sample} role="note" aria-live="polite" {...pendingProps(summary)}>
       {meta ? (
         // Keyed by what it says (A7): see basis-note.tsx.
         <span key={`${meta.population}-${sampleConditions(meta)}-${meta.aggregatedAt}-${meta.sampleStatus}`}>
