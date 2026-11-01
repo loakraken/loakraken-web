@@ -1,0 +1,49 @@
+.panel {
+  display: grid;
+  gap: 12px;
+  max-width: 560px;
+}
+.current {
+  min-height: 1lh;
+  color: var(--muted-foreground);
+}
+.current b {
+  color: var(--foreground);
+  font-variant-numeric: tabular-nums;
+}
+.form {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+}
+.form > label:first-child {
+  font-weight: 600;
+}
+.check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  color: var(--muted-foreground);
+}
+/* Error and status lines keep their room, so a message moves nothing (A7). */
+.error,
+.note {
+  min-height: 1lh;
+  font-size: var(--text-caption);
+}
+.error {
+  color: var(--destructive);
+}
+.note {
+  color: var(--muted-foreground);
+}
+.facts {
+  display: grid;
+  gap: 6px;
+  padding-left: 1.2em;
+  list-style: disc;
+  color: var(--muted-foreground);
+  font-size: var(--text-caption);
+  line-height: 1.6;
+}

@@ -6,10 +6,13 @@ import {
 import { isCharacterEnvelope } from "./validate";
 import { forwardHeaders, incomingContext } from "../api/backend";
 
+// USER_KEY_*: the user's own API key (BYOK, api #804) — a bad shape, a key the
+// official API refused, or that key's own limit (never retried with ours).
 const errorCodes: Record<number, readonly string[]> = {
-  400: ["INVALID_REQUEST"],
+  400: ["INVALID_REQUEST", "USER_KEY_MALFORMED"],
+  401: ["USER_KEY_INVALID"],
   404: ["CHARACTER_NOT_FOUND"],
-  429: ["LOST_ARK_RATE_LIMITED"],
+  429: ["LOST_ARK_RATE_LIMITED", "USER_KEY_RATE_LIMITED"],
   502: ["LOST_ARK_API_ERROR"],
   503: [
     "LOST_ARK_NOT_CONFIGURED",
@@ -33,6 +36,8 @@ export async function requestCharacter(
     fetcher?: typeof fetch;
     signal?: AbortSignal;
     timeoutMs?: number;
+    /** The user's own key header (lib/byok/server.ts); never anything from the browser's request. */
+    headers?: Record<string, string>;
   } = {},
 ): Promise<CharacterResult> {
   if (characterNameError(name))
@@ -71,6 +76,7 @@ export async function requestCharacter(
     const response = await (options.fetcher ?? fetch)(url, {
       headers: {
         Accept: "application/json",
+        ...options.headers,
         ...forwardHeaders(context),
       },
       cache: "no-store",
@@ -91,7 +97,8 @@ export async function requestCharacter(
         /* Never expose upstream error bodies or HTML. */
       }
       const status = errorCodes[response.status] ? response.status : 502;
-      if (status === 429) code = "LOST_ARK_RATE_LIMITED";
+      // Every 429 reads as our rate limit, except the user key's own (its wait is that key's).
+      if (status === 429 && code !== "USER_KEY_RATE_LIMITED") code = "LOST_ARK_RATE_LIMITED";
       return {
         ok: false,
         error: {

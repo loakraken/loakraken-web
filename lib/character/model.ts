@@ -96,6 +96,22 @@ export function failureCopy(error: QueryFailure) {
       };
     case "LOST_ARK_RATE_LIMITED":
       return rateLimitCopy(error);
+    // The user's own API key (BYOK, api #804): never retried with ours.
+    case "USER_KEY_RATE_LIMITED":
+      return {
+        title: "등록한 API 키의 호출 한도에 도달했어요",
+        text: "공식 API가 이 키의 요청을 잠시 막았어요. 잠시 뒤 다시 시도해 주세요.",
+      };
+    case "USER_KEY_INVALID":
+      return {
+        title: "등록한 API 키를 쓸 수 없어요",
+        text: "공식 API가 이 키를 받지 않았어요. API 키 설정에서 키를 지우고 다시 입력해 주세요.",
+      };
+    case "USER_KEY_MALFORMED":
+      return {
+        title: "등록한 API 키 형식이 맞지 않아요",
+        text: "API 키 설정에서 키를 다시 입력해 주세요.",
+      };
     case "LOST_ARK_API_TIMEOUT":
       return {
         title: "응답이 늦어지고 있어요",

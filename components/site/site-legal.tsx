@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { DISCORD_URL } from "@/lib/site";
+import { byokEnabled } from "@/lib/byok/server";
 import { DiscordLogo } from "./discord-link";
 import styles from "./site-legal.module.css";
 
@@ -25,6 +26,13 @@ export function SiteLegal() {
         <Link href="/contact" className="hit-44">문의</Link>
         <span aria-hidden="true">·</span>
         <Link href="/credits" className="hit-44">오픈 소스 라이선스</Link>
+        {/* The user's own API key (BYOK): only while the server flag is on. */}
+        {byokEnabled() && (
+          <>
+            <span aria-hidden="true">·</span>
+            <Link href="/settings/api-key" className="hit-44">내 API 키</Link>
+          </>
+        )}
       </nav>
     </div>
   );
