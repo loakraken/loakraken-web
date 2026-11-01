@@ -1,4 +1,4 @@
-// 회귀(사용자 11-01): 홈·소개 히어로의 봇. 히어로 어디서든 포인터를 따라 보고,
+// 회귀(사용자 11-01, 11-02): 홈·소개 히어로의 봇. 창 어디서든(머리글 포함) 포인터를 따라 보고,
 // 봇·배경·제목·검색창을 눌러도 따라보기는 멈추지 않는다(봇을 누르면 자동 움직임만
 // 멈춤). 마지막 움직임 5초 뒤에는 쉬는 자세로 그리기를 멈춘다(유휴 프레임 0).
 // 줄어든 모션은 정지 그림 하나. 첫 HTML부터 같은 상자라 라이브러리가 늦게 와도,
@@ -68,6 +68,32 @@ test.describe("히어로 봇 @regression", () => {
     await page.mouse.move(x, area.y + area.height - 4, { steps: 12 });
     await expect.poll(async () => (await turn(page))[1]).toBeLessThan(up[1] - 0.2);
   });
+
+  // v0.3.6.1: 히어로 밖에서는 라이브러리의 혼자 둘러보기가 고개를 잡아, 마우스가
+  // 화면 오른쪽 아래에 있어도 왼쪽을 보곤 했다. 이제 창 어디서나(머리글 포함) 따라 보고,
+  // 마우스가 창을 떠날 때만 정면을 본다.
+  for (const width of [1280, 1904]) {
+    test(`${width}: 화면 모서리·머리글의 포인터 쪽을 보고, 창을 떠나면 정면`, async ({ page }) => {
+      await desktop(page);
+      await page.setViewportSize({ width, height: 960 });
+      await page.mouse.move(width - 3, 957, { steps: 12 });
+      await expect.poll(async () => (await turn(page))[0], { message: "오른쪽 아래 → 오른쪽" }).toBeGreaterThan(0.2);
+      // 아래로 숙이는 폭은 라이브러리가 작게 둔다(-0.1 안팎): 위·아래는 서로 견줘 본다.
+      await expect.poll(async () => (await turn(page))[1], { message: "오른쪽 아래 → 위를 보지 않음" }).toBeLessThanOrEqual(0);
+      const low = (await turn(page))[1];
+      await page.mouse.move(3, 957, { steps: 12 });
+      await expect.poll(async () => (await turn(page))[0], { message: "왼쪽 아래 → 왼쪽" }).toBeLessThan(-0.2);
+      await page.mouse.move(width - 3, 3, { steps: 12 });
+      await expect.poll(async () => (await turn(page))[0], { message: "오른쪽 위 → 오른쪽" }).toBeGreaterThan(0.2);
+      await expect.poll(async () => (await turn(page))[1], { message: "오른쪽 위 → 오른쪽 아래보다 위" }).toBeGreaterThan(low + 0.2);
+      const header = await page.locator("header").first().boundingBox();
+      await page.mouse.move(width / 2, header.y + header.height / 2, { steps: 12 });
+      await expect.poll(async () => (await turn(page))[1], { message: "머리글 → 위" }).toBeGreaterThan(0.1);
+      // 마우스가 창 밖으로: relatedTarget 없는 pointerout.
+      await page.evaluate(() => document.body.dispatchEvent(new PointerEvent("pointerout", { bubbles: true, pointerType: "mouse", relatedTarget: null })));
+      await expect.poll(async () => (await turn(page)).map((v) => Math.abs(v)).every((v) => v <= 0.1), { message: "창을 떠나면 정면" }).toBe(true);
+    });
+  }
 
   test("봇·배경·제목·검색창을 누른 뒤에도 계속 따라 본다", async ({ page }) => {
     await desktop(page);
