@@ -1655,6 +1655,7 @@ createServer(async (req, res) => {
       // combat power, long ark passive, small top percent with a tier, long names).
       const real = cls === "디스트로이어";
       rows.push({
+        imageUrl: rank === 2 ? null : "https://cdn-lostark.game.onstove.com/armory/5/1f61ab26ba20544608685989f1c415e19ae64e362888e9766b76dd2cb54540d5.jpg",
         rank, characterName: real ? `무라타Himek0${rank}` : `랭커${rank}`, serverName: q.get("server") || servers[rank % servers.length], className: cls,
         position: cls === "바드" || cls === "홀리나이트" || cls === "도화가" ? "SUPPORT" : "DEALER",
         itemLevel: real ? 1805 : Math.round((1790 - rank * 0.05) * 100) / 100,
@@ -1695,6 +1696,7 @@ createServer(async (req, res) => {
       const tier = top <= 1 ? "TOP1" : top <= 5 ? "TOP5" : top <= 10 ? "TOP10" : top <= 25 ? "TOP25" : top <= 50 ? "TOP50" : "REST";
       const real = q.get("className") === "디스트로이어"; // real-data lengths, as above
       rows.push({
+        imageUrl: "https://cdn-lostark.game.onstove.com/armory/5/1f61ab26ba20544608685989f1c415e19ae64e362888e9766b76dd2cb54540d5.jpg",
         rank, characterName: real ? `무라타Himek0${rank}` : `효율${rank}`, serverName: q.get("server") || servers[rank % servers.length],
         className: q.get("className") || classes[rank % classes.length], position: "DEALER",
         itemLevel: real ? 1805 : Math.round((1785 - rank * 0.1) * 100) / 100,
@@ -2321,6 +2323,7 @@ createServer(async (req, res) => {
         rank: i + 1,
         serverName: server,
         characterName: name,
+        imageUrl: "https://cdn-lostark.game.onstove.com/armory/5/1f61ab26ba20544608685989f1c415e19ae64e362888e9766b76dd2cb54540d5.jpg",
         className: cls,
         itemLevel: 1720 + delta,
         combatPower: 3200 + delta,
@@ -2367,7 +2370,7 @@ createServer(async (req, res) => {
       const types = kinds(done);
       const point = types.reduce((a, t) => a + t.point, 0);
       const maxPoint = types.reduce((a, t) => a + t.maxPoint, 0);
-      return { rank, serverName, characterName, className, itemLevel, characterCount, progressPercent: Math.round((point / maxPoint) * 10000) / 100, point, maxPoint, observedAt: "2026-10-11T07:00:00Z", types };
+      return { rank, serverName, characterName, className, imageUrl: "https://cdn-lostark.game.onstove.com/armory/5/1f61ab26ba20544608685989f1c415e19ae64e362888e9766b76dd2cb54540d5.jpg", itemLevel, characterCount, progressPercent: Math.round((point / maxPoint) * 10000) / 100, point, maxPoint, observedAt: "2026-10-11T07:00:00Z", types };
     };
     const rosters = [roster(1, "합성원정대", "루페온", "바드", 1740, 8, true), roster(2, "상세", "아만", "블래스터", 1780.83, 7, false), roster(3, "작은원정대", "아만", "블레이드", 1690, 4, false)];
     const rows = unit === "CHARACTER" ? [rosters[1], { ...rosters[1], characterName: "상세서포터", className: "바드", itemLevel: 1712.5 }] : rosters;

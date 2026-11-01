@@ -1,0 +1,238 @@
+/* Only the two user-chosen decorative layers move. Content stays stationary. */
+.podium {
+  --portrait-width: 88px;
+  --portrait-height: 96px;
+  /* Fixed slots so a late web font cannot re-wrap a name and move the medal
+     and portrait stacked above it (A7): a 12-character name (the game's
+     limit) takes at most two lines here, a value one. */
+  --name-height: 36px;
+  --value-height: 18px;
+  position: relative;
+  isolation: isolate;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 620px;
+  /* Fixed: the content of each place stacks on its block and the free room
+     stays above the medals, so names up to the game's 12-character limit
+     (two lines at 320) never change the podium's height. */
+  height: 340px;
+  margin: 0 auto 20px;
+  padding: 24px 20px 20px;
+}
+.podium .places {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 12px;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.podium .place {
+  --medal: var(--rank-gold);
+  --step: 68px;
+  --delay: 0s;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  grid-row: 1;
+  grid-column: 2;
+  gap: 6px;
+  min-width: 0;
+  text-align: center;
+}
+.podium .place[data-podium-place="2"] {
+  --medal: var(--rank-silver);
+  --step: 44px;
+  --delay: 0.5s;
+  grid-column: 1;
+}
+.podium .place[data-podium-place="3"] {
+  --medal: var(--rank-bronze);
+  --step: 28px;
+  --delay: 1s;
+  grid-column: 3;
+}
+.podium .medal {
+  flex: none;
+  position: relative;
+  z-index: 1;
+  width: 24px;
+  height: 24px;
+  color: var(--medal);
+}
+.podium .portraitBox {
+  flex: none;
+  position: relative;
+  isolation: isolate;
+  width: var(--portrait-width);
+  height: var(--portrait-height);
+  /* The cone extends above this box; the opaque portrait paints over it. */
+  overflow: visible;
+}
+.podium .portrait,
+.podium .fallback {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: var(--portrait-width);
+  max-width: none;
+  height: var(--portrait-height);
+  border-radius: var(--radius-sm);
+  background: var(--muted);
+  object-fit: cover;
+  object-position: top;
+}
+.podium .guildLetter {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--secondary);
+  color: var(--foreground);
+  font-size: 22px;
+  font-weight: 600;
+}
+.podium .name,
+.podium .value {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 0 2px;
+  overflow: visible;
+  overflow-wrap: anywhere;
+  word-break: keep-all;
+  white-space: normal;
+  text-overflow: clip;
+  font-size: 14px;
+  line-height: 18px;
+}
+.podium .name {
+  flex: none;
+  height: var(--name-height);
+  color: var(--link);
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 3px;
+}
+.podium .value {
+  flex: none;
+  height: var(--value-height);
+  color: var(--foreground);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.podium .name:focus-visible {
+  outline: 3px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .podium .name:hover { text-decoration-color: currentColor; }
+}
+.podium .block {
+  flex: none;
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: var(--step);
+  border: 1px solid color-mix(in srgb, var(--medal) 35%, var(--border));
+  border-radius: var(--radius-sm) var(--radius-sm) 4px 4px;
+  background: var(--muted);
+}
+.podium .placeNumber {
+  position: relative;
+  color: var(--foreground);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 18px;
+}
+.podium .glow {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: 0 0 0 1px var(--medal), 0 0 14px 2px var(--medal);
+  pointer-events: none;
+  opacity: var(--rank-glow-low);
+  animation: podium-glow 2.8s var(--ease-in-out) var(--delay) infinite;
+}
+.podium .cone {
+  position: absolute;
+  z-index: 0;
+  bottom: 0;
+  left: -8px;
+  width: calc(100% + 16px);
+  height: calc(var(--portrait-height) + 48px);
+  clip-path: polygon(40% 0, 60% 0, 100% 100%, 0 100%);
+  background: linear-gradient(to bottom, var(--medal), transparent);
+  pointer-events: none;
+  opacity: var(--rank-cone-low);
+  animation: podium-light 3s var(--ease-in-out) var(--delay) infinite;
+}
+.podium .place[data-podium-place="1"] .cone {
+  height: calc(var(--portrait-height) + 72px);
+}
+@keyframes podium-glow {
+  0%, 100% { opacity: var(--rank-glow-low); }
+  50% { opacity: var(--rank-glow-peak); }
+}
+@keyframes podium-light {
+  0%, 100% { opacity: var(--rank-cone-low); }
+  50% { opacity: var(--rank-cone-peak); }
+}
+.podium .unseen { visibility: hidden; height: 100%; }
+/* A span cannot change the table's line box or column width. Its painted
+   square stays within the existing 9px/10px cell padding, including at 320. */
+.rank[data-top-rank] {
+  --medal: var(--rank-gold);
+  --on-medal: var(--rank-gold-text);
+  position: relative;
+  isolation: isolate;
+  color: var(--on-medal);
+}
+.rank[data-top-rank="2"] { --medal: var(--rank-silver); --on-medal: var(--rank-silver-text); }
+.rank[data-top-rank="3"] { --medal: var(--rank-bronze); --on-medal: var(--rank-bronze-text); }
+.rank[data-top-rank]::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: 50%;
+  left: 50%;
+  width: 20px;
+  height: 20px;
+  transform: translate(-50%, -50%);
+  border-radius: 6px;
+  background: var(--medal);
+}
+@media (max-width: 420px) {
+  .podium {
+    --portrait-width: 60px;
+    --portrait-height: 72px;
+    /* About six characters per 77px line: three lines hold 12 with room for
+       a wider fallback face; large values take two. */
+    --name-height: 48px;
+    --value-height: 32px;
+    /* 320 - 32 page gutters - 40 padding - 16 gaps = 3 x 77.33px.
+       Even the 76px-wide light cone stays inside its place. */
+    padding-inline: 20px;
+  }
+  .podium .places { gap: 8px; }
+  .podium .name,
+  .podium .value { font-size: 12px; line-height: 16px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .podium .glow,
+  .podium .cone { animation: none; }
+  .podium .glow { opacity: var(--rank-glow-low); }
+  .podium .cone { opacity: var(--rank-cone-rest); }
+}
