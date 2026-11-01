@@ -113,6 +113,23 @@ test.describe("히어로 봇 @regression", () => {
     await expect(canvas(page)).toHaveAttribute("data-bot-loop", "running");
   });
 
+  test("봇 그림 코드는 첫 로드에 없다: 페이지 로드 뒤 쉴 때 받아 그린다", async ({ page }) => {
+    // 그림 코드에만 있는 낱말(모자 이름)로 그 조각을 알아본다.
+    const scripts = [];
+    page.on("response", async (response) => {
+      if (response.request().resourceType() !== "script") return;
+      const body = await response.text().catch(() => "");
+      scripts.push({ at: response.request().timing().startTime, bot: body.includes('"beanie"') });
+    });
+    await page.setViewportSize({ width: 1280, height: 1000 });
+    await page.goto("/", { waitUntil: "load" });
+    const loaded = Date.now();
+    await expect(canvas(page)).toHaveAttribute("data-bot-turn", /,/, { timeout: 8000 });
+    const bot = scripts.filter((s) => s.bot);
+    expect(bot.length, "그림 코드 조각은 한 번").toBe(1);
+    expect(bot[0].at, "load 뒤에 받는다").toBeGreaterThanOrEqual(loaded);
+  });
+
   test("줄어든 모션: 멈춤 버튼 없이 정지 그림 하나", async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 1000 });
     await page.emulateMedia({ reducedMotion: "reduce" });

@@ -17,8 +17,10 @@
 //    nothing;
 //  - plastic for every body, its form baked before its first frame, so a
 //    new bot (the picker) is drawn finished at once, never in two steps;
-//  - the library (65 KB gzip) loads after the page, never on the server.
-//    The box is fixed from the first HTML, so its arrival moves nothing.
+//  - the library (65 KB gzip) is not part of the page's first load: it is
+//    fetched once the page has loaded and the browser is idle, or on the
+//    first input. The box is fixed from the first HTML (empty until then),
+//    so its arrival moves nothing.
 // The state API is generic so the same bot can later be the assistant's
 // face: working = answering, sleeping = idle.
 
@@ -29,6 +31,37 @@ import { BOT_NAMES, type BotState, type BotType } from "./bot-types";
 export type Lib = typeof import("bot-avatars");
 let libPromise: Promise<Lib> | null = null;
 export const loadLib = () => (libPromise ??= import("bot-avatars"));
+
+/**
+ * Loads the library only once the page has finished loading and the browser
+ * is idle (at most 2 s later), or sooner on the first pointer, key or touch:
+ * never in the page's first load (PM-프론트 11-02: it added 53 KB there).
+ * Until then the box stays empty in place, so its arrival moves nothing.
+ */
+function loadLibLater(done: (lib: Lib) => void) {
+  let gone = false;
+  let idle = 0;
+  let timer = 0;
+  const inputs = ["pointermove", "pointerdown", "keydown", "touchstart"] as const;
+  const start = () => {
+    stop();
+    loadLib().then((lib) => { if (!gone) done(lib); }, () => {});
+  };
+  const whenIdle = () => {
+    if (typeof requestIdleCallback === "function") idle = requestIdleCallback(start, { timeout: 2000 });
+    else timer = window.setTimeout(start, 1000);
+  };
+  const stop = () => {
+    inputs.forEach((type) => window.removeEventListener(type, start));
+    window.removeEventListener("load", whenIdle);
+    if (idle) cancelIdleCallback(idle);
+    window.clearTimeout(timer);
+  };
+  inputs.forEach((type) => window.addEventListener(type, start, { passive: true }));
+  if (document.readyState === "complete") whenIdle();
+  else window.addEventListener("load", whenIdle);
+  return () => { gone = true; stop(); };
+}
 
 const STATE_WORDS: Record<BotState, string> = { default: "기다리는 중", working: "찾는 중", sleeping: "쉬는 중" };
 
@@ -134,11 +167,7 @@ export function BotMascot({
   const live = useRef({ state, paused });
   const wake = useRef<() => void>(() => {});
 
-  useEffect(() => {
-    let gone = false;
-    loadLib().then((l) => { if (!gone) setLib(l); }, () => {});
-    return () => { gone = true; };
-  }, []);
+  useEffect(() => loadLibLater(setLib), []);
 
   // The loop reads these each frame; a change is something to answer, so it
   // runs for a while. (Still, it is drawn again in its new pose instead.)
