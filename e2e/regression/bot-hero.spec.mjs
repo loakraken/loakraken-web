@@ -114,20 +114,25 @@ test.describe("히어로 봇 @regression", () => {
   });
 
   test("봇 그림 코드는 첫 로드에 없다: 페이지 로드 뒤 쉴 때 받아 그린다", async ({ page }) => {
-    // 그림 코드에만 있는 낱말(모자 이름)로 그 조각을 알아본다.
-    const scripts = [];
+    // 그림 코드에만 있는 낱말(모자 이름)로 그 조각의 주소를 알아내고, 요청 시각은
+    // 페이지 자신의 시계(그 조각의 startTime과 load 이벤트 시작)로 비교한다.
+    const botUrls = new Set();
     page.on("response", async (response) => {
       if (response.request().resourceType() !== "script") return;
       const body = await response.text().catch(() => "");
-      scripts.push({ at: response.request().timing().startTime, bot: body.includes('"beanie"') });
+      if (body.includes('"beanie"')) botUrls.add(response.url());
     });
     await page.setViewportSize({ width: 1280, height: 1000 });
     await page.goto("/", { waitUntil: "load" });
-    const loaded = Date.now();
     await expect(canvas(page)).toHaveAttribute("data-bot-turn", /,/, { timeout: 8000 });
-    const bot = scripts.filter((s) => s.bot);
-    expect(bot.length, "그림 코드 조각은 한 번").toBe(1);
-    expect(bot[0].at, "load 뒤에 받는다").toBeGreaterThanOrEqual(loaded);
+    await expect.poll(() => botUrls.size, { message: "그림 코드 조각은 한 번" }).toBe(1);
+    const order = await page.evaluate((url) => {
+      const [entry] = performance.getEntriesByName(url);
+      const [nav] = performance.getEntriesByType("navigation");
+      return { start: entry?.startTime ?? -1, load: nav.loadEventStart };
+    }, [...botUrls][0]);
+    expect(order.load, "load 이벤트가 있었다").toBeGreaterThan(0);
+    expect(order.start, `load(${order.load}ms) 뒤에 받는다`).toBeGreaterThanOrEqual(order.load);
   });
 
   test("줄어든 모션: 멈춤 버튼 없이 정지 그림 하나", async ({ page }) => {
