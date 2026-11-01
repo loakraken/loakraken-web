@@ -319,6 +319,11 @@
   color: var(--muted-foreground);
   font-size: 12px;
 }
+/* An avatar's 성향 points under its name (user 11-02): digits line up. */
+.itemText small.avatarTendency {
+  margin-top: 2px;
+  font-variant-numeric: tabular-nums;
+}
 /* 문장·심볼 pictures, a fixed 24px each, then any name as text. */
 .itemText small.decorations {
   display: flex;

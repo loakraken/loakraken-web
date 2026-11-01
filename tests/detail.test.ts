@@ -216,7 +216,7 @@ test("engravings sort by relic count, then stone level, then official order (use
 test("avatars group by slot (overlay shares the base slot) and effect lines sum by stat", async () => {
   const { avatarEffectTotals, avatarSlot } = await import("../lib/character/inner");
   const avatar = (type: string | null, effects: string[] = [], isInner = false) => ({
-    type, name: "a", icon: null, grade: "전설", isSet: false, isInner, effects,
+    type, name: "a", icon: null, grade: "전설", isSet: false, isInner, effects, tendencies: [],
   });
   assert.equal(avatarSlot(avatar("무기 아바타")), "무기");
   assert.equal(avatarSlot(avatar("무기 덧입기 아바타", [], true)), "무기");

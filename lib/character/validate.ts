@@ -42,6 +42,8 @@ const ROLLOUT: Record<string, Record<string, () => unknown>> = {
   ArkGridEfficiencyResponse: { real: () => null },
   BraceletEfficiencyResponse: { real: () => null },
   CharacterLoadoutResponse: { skills: () => [] },
+  // Each avatar's 성향 points (backend #833): none before that api shows no line.
+  AvatarResponse: { tendencies: () => [] },
   CharacterObservationCoverageResponse: {
     skills: () => "NOT_PROVIDED",
     avatars: () => "NOT_PROVIDED",

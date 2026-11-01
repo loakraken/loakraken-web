@@ -2602,7 +2602,7 @@ createServer(async (req, res) => {
       detail: { parserVersion: "equipment-tooltip-v3", refineLevel, quality: 90, itemLevel: 1640 + refineLevel * 5, tier: 4, arkPassivePoint: null, effects: [], stoneEngravings: [], polishEffects: [], braceletEffects: [] },
     }));
   }
-  if (name === "상세" || name === "상세서포터" || name === "서포터옛응답" || name === "대세블레이드" || name === "가려짐긴값캐릭터" || name === "아크없음" || name === "효율준비중" || name === "팔찌못읽음") {
+  if (name === "상세" || name === "아바타옛응답" || name === "상세서포터" || name === "서포터옛응답" || name === "대세블레이드" || name === "가려짐긴값캐릭터" || name === "아크없음" || name === "효율준비중" || name === "팔찌못읽음") {
     // Detail-page mock: a locally supplied character file (never committed) or
     // the synthetic fixture, enriched with synthetic Tooltip detail and skills.
     if (process.env.MOCK_CHARACTER_FILE)
@@ -2714,16 +2714,20 @@ createServer(async (req, res) => {
     d.honorPoint = 183;
     d.guildName = "합성길드";
     d.guildMemberGrade = "길드장";
+    // 성향 per avatar as the real tooltips give it (backend #833): 이동 효과 none.
+    const t = (...pairs) => pairs.map(([type, point]) => ({ type, point }));
     d.avatars = [
-      ["무기 아바타", "합성 무기 아바타", "전설", false, ["민첩 +2.00%"]],
-      ["무기 덧입기 아바타", "합성 무기 덧입기", "영웅", true, []],
-      ["상의 아바타", "합성 상의 (패스)", "전설", false, ["민첩 +2.00%"]],
-      ["상의 덧입기 아바타", "합성 상의 덧입기", "영웅", true, []],
-      ["하의 아바타", "합성 하의 (패스)", "전설", false, ["민첩 +2.00%"]],
-      ["머리 아바타", "합성 머리", "전설", false, ["민첩 +1.00%"]],
-      ["얼굴1 아바타", "합성 얼굴1", "영웅", false, []],
-      ["이동 효과", "합성 이동 효과", "영웅", false, []],
-    ].map(([type, name, grade, isInner, effects]) => ({ type, name, icon: null, grade, isSet: false, isInner, effects }));
+      ["무기 아바타", "합성 무기 아바타", "전설", false, ["민첩 +2.00%"], t(["지성", 5], ["담력", 5], ["매력", 5], ["친절", 5])],
+      ["무기 덧입기 아바타", "합성 무기 덧입기", "영웅", true, [], t(["지성", 5])],
+      ["상의 아바타", "합성 상의 (패스)", "전설", false, ["민첩 +2.00%"], t(["지성", 10], ["담력", 5], ["매력", 5], ["친절", 5])],
+      ["상의 덧입기 아바타", "합성 상의 덧입기", "영웅", true, [], t(["담력", 5])],
+      ["하의 아바타", "합성 하의 (패스)", "전설", false, ["민첩 +2.00%"], t(["담력", 5], ["매력", 15])],
+      ["머리 아바타", "합성 머리", "전설", false, ["민첩 +1.00%"], t(["매력", 10], ["친절", 5])],
+      ["얼굴1 아바타", "합성 얼굴1", "영웅", false, [], t(["지성", 5])],
+      ["이동 효과", "합성 이동 효과", "영웅", false, [], []],
+    ].map(([type, name, grade, isInner, effects, tendencies]) => ({ type, name, icon: null, grade, isSet: false, isInner, effects, tendencies }));
+    // An api before #833: the avatars come without the field at all.
+    if (name === "아바타옛응답") for (const avatar of d.avatars) delete avatar.tendencies;
     d.coverage.avatars = "PROVIDED";
     d.coverage.collectibles = "PROVIDED";
     for (const stat of d.stats) if (!stat.tooltip?.length) stat.tooltip = [`${stat.type} 효과가 적용됩니다. (합성 문구)`];
