@@ -1,6 +1,7 @@
 // 회귀(사용자 의견 10-26): 완갑은 장비라 '전투' 탭 장비 목록에서 무기 바로 아래(#1098), 내실 탭 '특수 장비'에는
 // 완갑·보주가 없다(#1102). 배치(사용자 10-31): 장신구 줄 아래에 어빌리티 스톤, 그 아래 보주, 팔찌는 두 줄 아래 한 줄
 // 전체 폭. 휴대폰은 한 줄로 방어구 → 완갑 → 장신구 → 스톤 → 보주 → 팔찌. 첫 그림부터 같은 순서, 흔들림 0.
+// 사용자 11-01: 나침반·부적은 장비 목록에 없고 내실 특수 장비에만, 스톤 각인 줄은 장신구 효과 줄처럼 오른쪽.
 import { test, expect, characterPath, gotoReady, expectNoHorizontalOverflow } from "../support/fixtures.mjs";
 
 // '전투력계산' carries the full gear set in the mock (완갑, 보주, an accessory with its ark passive point).
@@ -40,6 +41,25 @@ for (const width of [320, 360, 390, 1280])
     const orb = panel.locator("li").filter({ has: page.getByText("보주", { exact: true }) }).first();
     await expect(orb).toContainText("달성 최대 낙원력");
     await expect(orb).toContainText("35,647,915");
+    // 나침반·부적 are 내실 special equipment, not equipment rows (user 11-01).
+    await expect(panel.getByText(/^(나침반|부적)$/)).toHaveCount(0);
+    // The stone's engraving lines sit on the right like the accessory effect
+    // lines (user 11-01): the list ends at the row's right edge, text aligned right.
+    const stone = panel.locator(":scope li").filter({ has: page.locator("strong", { hasText: /^어빌리티 스톤$/ }) }).first();
+    await expect(stone).toContainText("원한 Lv.1");
+    const lines = await stone.evaluate((li) => {
+      const list = li.querySelector(":scope > ul");
+      const name = li.querySelector("strong");
+      if (!list || !name) return null;
+      const row = li.getBoundingClientRect();
+      const box = list.getBoundingClientRect();
+      return {
+        align: getComputedStyle(list).textAlign,
+        atRight: Math.abs(row.right - box.right) <= 1,
+        rightOfName: box.left >= name.getBoundingClientRect().left,
+      };
+    });
+    expect(lines).toEqual({ align: "right", atRight: true, rightOfName: true });
     await page.waitForTimeout(600);
     const { all, moved } = await shiftsSince(page);
     expect(all, `흔들림 (${moved})`).toBe(0);
@@ -54,8 +74,10 @@ for (const width of [320, 1280])
     await expect(special).toBeVisible();
     await expect(special.getByText("완갑", { exact: true })).toHaveCount(0);
     await expect(special.getByText("보주", { exact: true })).toHaveCount(0);
-    // The real special items (문장 and the rest) are still there.
+    // The real special items (문장, 나침반, 부적) are still there.
     await expect(special.getByText("문장", { exact: true })).toBeVisible();
+    await expect(special.getByText("나침반", { exact: true })).toBeVisible();
+    await expect(special.getByText("부적", { exact: true })).toBeVisible();
     await expectNoHorizontalOverflow(page);
   });
 

@@ -1,7 +1,7 @@
 import "server-only";
 import { cache } from "react";
 import { requestPublicSummary } from "./public-summary";
-import { requestItemTooltips } from "./item-tooltips";
+import { requestItemTooltips } from "./item-tooltips.backend";
 import {
   requestCardCollection,
   requestCardRefresh,
@@ -14,14 +14,17 @@ import {
 import { requestCharacter } from "./upstream";
 import { requestPopular } from "./popular";
 import { requestSuggest } from "./suggest";
-import { requestRank } from "./rank";
+import { requestRank } from "./rank.backend";
 import { requestArmoryPage } from "./armory-page";
-import { requestCollectibleOwnership, requestCollectibleStanding } from "./collectible-standing";
-import { requestReceipt } from "./receipt";
-import { requestTitles } from "./titles";
+import { requestCollectibleOwnership, requestCollectibleStanding } from "./collectible-standing.backend";
+import { requestReceipt } from "./receipt.backend";
+import { requestTitles } from "./titles.backend";
+import { userKeyHeaders } from "@/lib/byok/server";
 
-export function getCharacter(name: string, signal?: AbortSignal) {
-  return requestCharacter(name, process.env.LOAKRAKEN_API_ORIGIN, { signal });
+// Character search and siblings are the two api calls that may spend the
+// user's own key (BYOK, api #804); everything else always uses ours.
+export async function getCharacter(name: string, signal?: AbortSignal) {
+  return requestCharacter(name, process.env.LOAKRAKEN_API_ORIGIN, { signal, headers: await userKeyHeaders() });
 }
 
 export function getPopular(period: string, limit: number, signal?: AbortSignal) {
@@ -60,8 +63,8 @@ export function getViews(name: string, signal?: AbortSignal) {
   return requestViews(name, process.env.LOAKRAKEN_API_ORIGIN, { signal });
 }
 
-export function getSiblings(name: string, signal?: AbortSignal) {
-  return requestSiblings(name, process.env.LOAKRAKEN_API_ORIGIN, { signal });
+export async function getSiblings(name: string, signal?: AbortSignal) {
+  return requestSiblings(name, process.env.LOAKRAKEN_API_ORIGIN, { signal, headers: await userKeyHeaders() });
 }
 
 export function getRosterPower(name: string, signal?: AbortSignal) {

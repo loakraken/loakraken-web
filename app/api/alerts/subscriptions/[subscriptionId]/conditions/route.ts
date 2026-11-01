@@ -1,5 +1,6 @@
 import { toResponse } from "@/lib/api/respond";
-import { parseConditionBody, requestAddCondition, requestConditions } from "@/lib/alerts/model";
+import { parseConditionBody } from "@/lib/alerts/model";
+import { requestAddCondition, requestConditions } from "@/lib/alerts/model.backend";
 import { credentials, guard, invalid, jsonBody, origin } from "@/lib/alerts/server";
 
 type Params = { params: Promise<{ subscriptionId: string }> };

@@ -8,8 +8,8 @@ import { MOTION_STORAGE_KEY } from "@/components/ui/theme-toggle";
 
 /**
  * enabled: one-shot motion (entrances, transitions) may play.
- * looping: repeating motion (orb, border beam, looping CSS) may play. It keeps
- * moving (user, 20:58 — replaces the 10:57 five-second stop); pressing the orb
+ * looping: repeating motion (the hero bot, border beam, looping CSS) may play. It keeps
+ * moving (user, 20:58 — replaces the 10:57 five-second stop); pressing the bot
  * pauses and resumes it (WCAG 2.2.2), and that choice is remembered. It also
  * rests while the tab is hidden, and each part pauses itself off screen.
  * Reduced motion: never.

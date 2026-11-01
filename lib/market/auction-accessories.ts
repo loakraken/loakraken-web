@@ -3,12 +3,8 @@
 // grade combination of its key polish effects (상상~하중), and the cheapest
 // listings of one combination. Board cached by the backend; a listings page
 // costs at most one official call (1-minute cache).
-import Ajv2020 from "ajv/dist/2020";
-import contract from "../../contracts/auction-accessories.openapi.json";
+
 import type { components } from "../api/auction-accessories-schema";
-import { backendUrl, requestBackend, type BackendResult } from "../api/backend";
-import { tolerantSchemas } from "../api/tolerant";
-import { lazyValidator } from "@/lib/api/lazy-validator";
 
 type Schemas = components["schemas"];
 export type AccessoryBoardEnvelope = Schemas["ApiResponseAuctionAccessoryBoardResponse"];
@@ -17,33 +13,6 @@ export type AccessorySlot = Schemas["AuctionAccessorySlotResponse"];
 export type AccessoryCell = Schemas["AuctionAccessoryCellResponse"];
 export type AccessoryListingsEnvelope = Schemas["ApiResponseAuctionListingsResponse"];
 export type AccessoryListing = Schemas["AuctionListingResponse"];
-
-// `filter` (api #548, always null here) and a listing's `icon` (api #613) are
-// required in the contract, but a backend from before them answers without:
-// optional until that backend is gone. Without an icon the card shows no picture.
-const schemas = (() => {
-  const all = tolerantSchemas(contract.components.schemas);
-  const listings = all.AuctionListingsResponse;
-  const listing = all.AuctionListingResponse;
-  return {
-    ...all,
-    AuctionListingsResponse: { ...listings, required: listings.required.filter((key) => key !== "filter") },
-    AuctionListingResponse: { ...listing, required: listing.required.filter((key) => key !== "icon") },
-  };
-})();
-const compile = <T>(ref: string) =>
-  lazyValidator(() =>
-    new Ajv2020({ strict: false, validateFormats: false }).compile<T>({
-      $ref: `#/components/schemas/${ref}`,
-      components: { ...contract.components, schemas },
-    }),
-  );
-const validateBoard = compile<AccessoryBoardEnvelope>("ApiResponseAuctionAccessoryBoardResponse");
-const validateListings = compile<AccessoryListingsEnvelope>("ApiResponseAuctionListingsResponse");
-export const isAccessoryBoardEnvelope = (value: unknown): value is AccessoryBoardEnvelope =>
-  validateBoard(value) && value.code === "AUCTION_ACCESSORIES_SUCCESS";
-export const isAccessoryListingsEnvelope = (value: unknown): value is AccessoryListingsEnvelope =>
-  validateListings(value) && value.code === "AUCTION_LISTINGS_SUCCESS";
 
 export const GRADES = [
   { id: "ANCIENT", label: "고대" },
@@ -104,45 +73,7 @@ export function accessorySearch(filter: AccessoryFilter, pick: AccessoryPick | n
     if (pick.page > 1) out.set("page", String(pick.page));
   }
   return out;
-}
-
-const filterParams = (filter: AccessoryFilter) =>
-  new URLSearchParams({ grade: filter.grade, role: filter.role, minQuality: String(filter.minQuality) });
-
-const errorCodes: Record<number, readonly string[]> = {
-  400: ["INVALID_REQUEST", "INVALID_AUCTION_LEVELS"],
-  429: ["LOST_ARK_RATE_LIMITED", "CLIENT_RATE_LIMITED"],
-  502: ["LOST_ARK_API_ERROR"],
-  503: ["LOST_ARK_NOT_CONFIGURED"],
-  504: ["LOST_ARK_API_TIMEOUT"],
-};
-type Options = { fetcher?: typeof fetch; signal?: AbortSignal; timeoutMs?: number };
-
-export function requestAccessoryBoard(
-  filter: AccessoryFilter,
-  origin: string | undefined,
-  options: Options = {},
-): Promise<BackendResult<AccessoryBoardEnvelope>> {
-  const url = backendUrl(origin, "/api/v1/markets/auctions/accessories");
-  if (url) for (const [key, value] of filterParams(filter)) url.searchParams.set(key, value);
-  return requestBackend(url, { ...options, isValid: isAccessoryBoardEnvelope, errorCodes });
-}
-
-export function requestAccessoryListings(
-  filter: AccessoryFilter,
-  pick: AccessoryPick,
-  origin: string | undefined,
-  options: Options = {},
-): Promise<BackendResult<AccessoryListingsEnvelope>> {
-  const url = backendUrl(origin, "/api/v1/markets/auctions/accessories/listings");
-  if (url) {
-    for (const [key, value] of filterParams(filter)) url.searchParams.set(key, value);
-    url.searchParams.set("slot", pick.slot);
-    url.searchParams.set("levels", pick.levels.join(","));
-    url.searchParams.set("page", String(pick.page));
-  }
-  return requestBackend(url, { ...options, isValid: isAccessoryListingsEnvelope, errorCodes });
-}
+}export type Options = { fetcher?: typeof fetch; signal?: AbortSignal; timeoutMs?: number };
 
 const sameLevels = (a: readonly string[], b: readonly string[]) => a.length === b.length && a.every((v, i) => v === b[i]);
 export const isPicked = (pick: AccessoryPick | null, slot: Slot, cell: AccessoryCell) =>

@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import { byObservedOrder, groupByDay, isTitlesEnvelope, requestTitles, titleDate } from "../lib/character/titles";
+import { byObservedOrder, groupByDay, titleDate } from "../lib/character/titles";
+import { isTitlesEnvelope, requestTitles } from "../lib/character/titles.backend";
 
 const fixture = () =>
   JSON.parse(readFileSync(new URL("./titles-fixtures/character-titles.json", import.meta.url), "utf8"));

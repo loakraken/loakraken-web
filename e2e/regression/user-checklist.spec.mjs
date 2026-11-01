@@ -336,8 +336,11 @@ test.describe("사용자 지적 회귀 점검표 @regression", () => {
     // The menu lists hubs only (user 11-01): a tool is reached by the tab row
     // of a hub page the menu opens.
     for (const hub of [...inMenu].filter((href) => href.startsWith("/tools/") || href.startsWith("/market"))) {
-      await page.goto(hub);
+      // Wait for the page and its tab row: count() does not wait, and a row not
+      // drawn yet was skipped as "no row" (A16 race on a busy CI shard, #1256).
+      await gotoReady(page, hub);
       const row = page.locator('nav[aria-label$=" 화면"]');
+      await row.first().waitFor({ state: "visible", timeout: 5000 }).catch(() => {});
       if (!(await row.count())) continue;
       for (const href of await row.locator("a[href^='/']").evaluateAll((links) => links.map((a) => new URL(a.href).pathname)))
         inMenu.add(href);

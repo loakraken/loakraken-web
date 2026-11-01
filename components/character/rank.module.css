@@ -49,6 +49,18 @@
 .scopeValue {
   display: block;
 }
+/* Four boxes (the placeholder's shape too): the server-class value is the
+   longest, up to ~124px ("아브렐슈드 가디언나이트"). A box with less text
+   room than that (111px at 320, 119px in the desktop side column) wraps it
+   to two lines, so every box of the four holds three. */
+.cells[data-count="4"] li {
+  container-type: inline-size;
+}
+@container (max-width: 127px) {
+  .cells[data-count="4"] .scope {
+    min-height: calc(3 * 1lh);
+  }
+}
 .cells strong {
   color: var(--foreground);
   font-size: 17px;

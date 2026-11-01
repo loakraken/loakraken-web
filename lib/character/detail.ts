@@ -1,5 +1,6 @@
 // Pure helpers for the character detail page.
 import type { Character } from "./model";
+import { isAwakeningPair } from "./skill-type";
 import { sourcePlainText } from "./source-text";
 import { remainingText } from "../time/remaining";
 
@@ -101,6 +102,17 @@ export function groupEquipment(equipment: Equipment[]) {
   };
 }
 
+/**
+ * A bracelet line "치명타 피해 +6.80%" → name and value, the value set at the
+ * line's end (compact bracelet row, user 11-01). A sentence or a two-line
+ * effect stays whole.
+ */
+export function splitEffect(text: string): { name: string; value: string } | null {
+  if (text.includes("\n")) return null;
+  const match = /^(.+?)\s+([+-]\d[\d,.]*%?)$/.exec(text.trim());
+  return match ? { name: match[1], value: match[2] } : null;
+}
+
 export const GRADE_LABEL = { HIGH: "상", MID: "중", LOW: "하" } as const;
 export type EffectGrade = keyof typeof GRADE_LABEL;
 export const isGrade = (value: unknown): value is EffectGrade =>
@@ -171,14 +183,16 @@ export function engravingBookString(
 
 /* Skills ------------------------------------------------------------------- */
 
-/** Skills a player actually invested in (the source lists every class skill). */
+/**
+ * Skills a player actually invested in (the source lists every class skill).
+ * 각성기·초각성기 are left out: both of each pair are listed and which one is
+ * equipped is unknown, so they show only under '전체 스킬 보기'.
+ */
 export function activeSkills(skills: Skill[] | undefined) {
   return (skills ?? []).filter(
     (skill) =>
-      (skill.level ?? 0) > 1 ||
-      skill.tripods.length > 0 ||
-      skill.rune !== null ||
-      skill.gemEffects.length > 0,
+      !isAwakeningPair(skill.skillType) &&
+      ((skill.level ?? 0) > 1 || skill.tripods.length > 0 || skill.rune !== null || skill.gemEffects.length > 0),
   );
 }
 

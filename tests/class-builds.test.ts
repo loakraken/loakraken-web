@@ -1,24 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import {
-  classBuildTopKey,
-  classBuildsKey,
-  classBuildsPath,
-  classBuildsSearch,
-  fixCount,
-  fixItems,
-  hasFix,
-  hiddenText,
-  isClassBuildTopEnvelope,
-  requestClassBuildTop,
-  toggleFix,
-  isClassBuildCellsEnvelope,
-  isClassBuildsEnvelope,
-  parseClassBuildCellsQuery,
-  parseClassBuildsQuery,
-  requestClassBuildCells,
-  requestClassBuilds,
-} from "../lib/stats/class-builds";
+import { classBuildTopKey, classBuildsKey, classBuildsPath, classBuildsSearch, fixCount, fixItems, hasFix, hiddenText, toggleFix, parseClassBuildCellsQuery, parseClassBuildsQuery } from "../lib/stats/class-builds";
+import { isClassBuildTopEnvelope, requestClassBuildTop, isClassBuildCellsEnvelope, isClassBuildsEnvelope, requestClassBuildCells, requestClassBuilds } from "../lib/stats/class-builds.backend";
 import { analysisLinks } from "../lib/character/analysis";
 
 test("class builds query: class from the path, engraving and days from the address", () => {

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { minuteLabel, parseMinuteItemId, requestItemMinutes, sampleText } from "../lib/market/minutes";
+import { minuteLabel, parseMinuteItemId, sampleText } from "../lib/market/minutes";
+import { requestItemMinutes } from "../lib/market/minutes.backend";
 
 test("minute chart: item id as the backend allows, the last hour asked", async () => {
   assert.equal(parseMinuteItemId("6861012"), 6861012);

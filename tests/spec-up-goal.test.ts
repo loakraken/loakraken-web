@@ -66,6 +66,10 @@ test("target input follows the backend rule: above 0, two decimals, at most twic
 test("a step kind without a label reads 기타 단계; 계승 has its own (PM-프론트 10-12)", () => {
   assert.equal(stepKindLabel("GEM_LEVEL"), "보석");
   assert.equal(stepKindLabel("EQUIPMENT_SUCCESSION"), "계승");
+  // The path's own kind names: 상급 재련 (was 기타 단계), 완갑 (api #809), 스톤 (api #812).
+  assert.equal(stepKindLabel("EQUIPMENT_ADVANCED_REFINE"), "상급 재련");
+  assert.equal(stepKindLabel("ARM_GUARD"), "완갑");
+  assert.equal(stepKindLabel("ABILITY_STONE"), "어빌리티 스톤");
   assert.equal(stepKindLabel("SOMETHING_NEW"), "기타 단계");
 });
 
@@ -95,6 +99,35 @@ test("시뮬레이터에서 열기 carries only the changes the simulator takes,
   assert.deepEqual(readTryPath(JSON.stringify(path.changes[0])), [path.changes[0]]);
   assert.equal(readTry(JSON.stringify(path.changes[0]))?.level, 9);
   assert.deepEqual(readTryPath("{"), []);
+});
+
+test("a stone step (api #812) opens with both engravings; a step is never opened half", () => {
+  const [gem] = sample.data.steps as GoalStep[];
+  const engraving = (name: string, level: number) => ({ ...gem.change, kind: "STONE_ENGRAVING", slot: null, level, name });
+  const stone = {
+    ...gem,
+    kind: "ABILITY_STONE",
+    candidateId: "ABILITY_STONE:0:7-6",
+    change: engraving("원한", 7),
+    changes: [engraving("원한", 7), engraving("예리한 둔기", 6)],
+  } as GoalStep;
+  const path = simulatorPath([gem, stone]);
+  assert.deepEqual(
+    path.changes.map((c) => [c.kind, c.name ?? c.slot, c.level]),
+    [
+      ["GEM_LEVEL", 0, 9],
+      ["STONE_ENGRAVING", "원한", 7],
+      ["STONE_ENGRAVING", "예리한 둔기", 6],
+    ],
+  );
+  assert.equal(path.skipped, 0);
+  // One change the simulator cannot take: the whole step stays out and is counted.
+  const mixed = { ...stone, changes: [engraving("원한", 7), { ...gem.change, kind: "EQUIPMENT_REFINE", refine: 21 }] } as GoalStep;
+  const half = simulatorPath([gem, mixed]);
+  assert.equal(half.changes.length, 1);
+  assert.equal(half.skipped, 1);
+  // Today's api (no `changes`): the one `change` as before.
+  assert.equal(simulatorPath([{ ...stone, changes: undefined }]).changes.length, 1);
 });
 
 test("목표 경로 v2 응답(api #592): 보석 단계 비용은 지금부터 그 레벨까지, GEM_STEP 없음, 합계는 단계를 더한 값이 아님", () => {

@@ -12,6 +12,8 @@ const read = (name) =>
     readFileSync(new URL(`./fixtures/${name}`, import.meta.url), "utf8"),
   );
 const counts = {};
+/** BYOK: last four characters of the X-LK-User-Key each character read carried. */
+const userKeys = {};
 
 // Synthetic accessory, bracelet and stone for the simulator screen (web #365
 // follow-up): polish/bracelet lines with tooltip grades and stone engravings.
@@ -85,6 +87,9 @@ function withSimulatorGear(data) {
         { name: "공격력 감소", level: 0 },
       ],
     }),
+    // 나침반·부적: 내실 special equipment only, never in the equipment tab (user 11-01).
+    make("나침반", "테스트 나침반", {}),
+    make("부적", "테스트 부적", {}),
   );
   return data;
 }
@@ -523,6 +528,20 @@ createServer(async (req, res) => {
     failures.set(plan.path, { status: Number(plan.status) || 502, times: Number(plan.times) || 1, code: plan.code });
     return send({ ok: true, armed: Object.fromEntries(failures) });
   }
+  // The user's own API key (BYOK, api #804): the web server forwards it as
+  // X-LK-User-Key on the two character reads. GET /__userkeys answers, per
+  // "search:<name>" or "siblings:<name>", the last four characters of the key
+  // the latest request carried (null without one). Synthetic keys only: a
+  // middle part "invalid" answers 401 USER_KEY_INVALID, "limited" 429.
+  if (url.pathname === "/__userkeys") return send(userKeys);
+  if (url.pathname === "/api/v1/characters/search" || url.pathname === "/api/v1/characters/siblings") {
+    const key = req.headers["x-lk-user-key"];
+    userKeys[`${url.pathname.split("/").pop()}:${url.searchParams.get("characterName")}`] =
+      typeof key === "string" ? key.slice(-4) : null;
+    const part = typeof key === "string" ? key.split(".")[1] : "";
+    if (part === "invalid") return send({ code: "USER_KEY_INVALID", message: "key refused" }, 401);
+    if (part === "limited") return send({ code: "USER_KEY_RATE_LIMITED", message: "key limited" }, 429, { "Retry-After": "5" });
+  }
   const planned = failures.get(url.pathname);
   if (planned && planned.times > 0) {
     planned.times -= 1;
@@ -828,10 +847,34 @@ createServer(async (req, res) => {
       Object.assign(d, { steps: [], unpriced: [], finalCombatPower: base, totalCost: null, stopReasonCode: "SUPPORTER_MODEL_PENDING", stopReason: "서포터 전투력 계산식은 아직 적용하지 않았습니다." });
       return send(envelope);
     }
+    // QA 11-01 P3: no step because every candidate is unpriced (gem prices missing).
+    if (who === "스펙순서시세없음") {
+      const unpriced = Array.from({ length: 3 }, (_, i) => ({ ...structuredClone(d.unpriced[0]), candidateId: `GEM_LEVEL:${i}:9`, target: `보석 ${i + 1}` }));
+      Object.assign(d, { steps: [], unpriced, finalCombatPower: base, totalCost: 0, stopReasonCode: "NO_CANDIDATE", stopReason: "시세가 있는 항목 가운데 전투력이 오르는 것을 모두 골랐어요." });
+      return send(envelope);
+    }
     for (const step of d.steps) {
       step.combatPowerAfter = shift(step.combatPowerAfter);
       step.change.slot = 1;
       step.candidateId = step.candidateId.replace(/^GEM_LEVEL:0:/, "GEM_LEVEL:1:");
+    }
+    // A stone step as api #812 words it (two engravings each side): the longest change text.
+    if (who === "스펙순서스톤") {
+      const stone = (name, level) => ({ ...d.steps[0].change, kind: "STONE_ENGRAVING", slot: null, level, name });
+      d.steps.push({
+        ...structuredClone(d.steps[0]),
+        order: d.steps.length + 1,
+        candidateId: "ABILITY_STONE:3:2",
+        kind: "ABILITY_STONE",
+        target: "고대 어빌리티 스톤",
+        from: "원한 Lv.1 · 아드레날린 Lv.1",
+        to: "97돌 원한 Lv.3 · 아드레날린 Lv.2",
+        change: stone("원한", 3),
+        changes: [stone("원한", 3), stone("아드레날린", 2)],
+        deltaCombatPower: 54.62,
+        combatPowerAfter: Math.round((d.finalCombatPower + 54.62) * 100) / 100,
+      });
+      d.finalCombatPower = d.steps.at(-1).combatPowerAfter;
     }
     if (who === "스펙순서긴") {
       const more = Array.from({ length: 12 }, (_, i) => ({
@@ -1422,7 +1465,7 @@ createServer(async (req, res) => {
   if (url.pathname === "/api/v1/characters/rank") {
     const who = url.searchParams.get("characterName") ?? "";
     // 순위늦음: slower than the page's 1s wait, so the rank arrives after the first paint.
-    if (who === "순위늦음") await new Promise((resolve) => setTimeout(resolve, 1500));
+    if (who === "순위늦음" || who === "순위긴범위") await new Promise((resolve) => setTimeout(resolve, 1500));
     if (who === "미관측" || who === "비공개") return send({ code: "STATS_CHARACTER_NOT_OBSERVED", message: "private" }, 404);
     const excluded = who === "조건밖";
     const entry = (metric, scope, scopeValue, rank, total, sampleStatus = "READY", gapAs = null) => {
@@ -1453,6 +1496,15 @@ createServer(async (req, res) => {
       entry("ITEM_LEVEL", "SERVER", "아브렐슈드", 1150, 2311, "READY", 7.5),
       entry("ITEM_LEVEL", "CLASS", "데모닉", 301, 612, "READY", 5.83),
       // No server-class box: three boxes side by side, the narrowest cells.
+    ] : who === "순위긴범위" ? [
+      // The longest real server + class pair, late like 순위늦음: the
+      // server-class value takes two lines in a narrow box.
+      ...["COMBAT_POWER", "ITEM_LEVEL"].flatMap((metric) => [
+        entry(metric, "ALL", null, 4120, 18231),
+        entry(metric, "SERVER", "아브렐슈드", 211, 2311),
+        entry(metric, "CLASS", "가디언나이트", 37, 612),
+        entry(metric, "SERVER_CLASS", "아브렐슈드/가디언나이트", 9, 88),
+      ]),
     ] : [
       entry("COMBAT_POWER", "ALL", null, 4120, 18231),
       entry("COMBAT_POWER", "SERVER", "아만", 211, 2311),
@@ -2628,6 +2680,9 @@ createServer(async (req, res) => {
       ["위대한 미술품", 57, 60],
       ["항해 모험물", 41, 50],
       ["합성 잎", 37, 120],
+      // The longest official names (narrow-grid check, user 11-01).
+      ["크림스네일의 해도", 2, 2],
+      ["누크만의 환영석", 10, 12],
     ];
     d.collectibles = kinds.map(([type, point, maxPoint], k) => ({
       type,
@@ -2672,8 +2727,11 @@ createServer(async (req, res) => {
     });
     d.loadout.skills = [
       skill("합성 포격", 14, { tripods: [{ tier: 0, slot: 1, name: "기동 포격", icon: null, effect: "이동하며 포격할 수 있다. (합성 문구)" }, { tier: 1, slot: 2, name: "연발 포격", icon: null, effect: "포격이 2회 연속 발사된다. (합성 문구)" }, { tier: 2, slot: 1, name: "화약 추가", icon: null, effect: "포격 피해가 30.0% 증가한다. (합성 문구)" }], skillType: 0, rune: { name: "풍요", icon: null, grade: "전설" }, gemEffects: [{ text: "합성 포격 피해 28.00% 증가", kind: "DAMAGE" }], cooldown: { cooldownSec: 18, gemCooldownReductionPct: 0, cooldownWithGemsSec: 18, basis: "공식 재사용 대기시간과 장착 보석의 재사용 대기시간 감소만 반영했습니다." } }),
-      skill("합성 화염", 14, { skillType: 100, partBreakLevel: 1, tripods: [{ tier: 0, slot: 2, name: "장전", icon: null, effect: null }], rune: { name: "풍요", icon: null, grade: "전설" } }),
-      skill("합성 중력", 10, { skillType: 1, counter: true, rune: { name: "속행", icon: null, grade: "영웅" }, gemEffects: [{ text: "합성 중력 재사용 대기시간 20.00% 감소", kind: "COOLDOWN" }], cooldown: { cooldownSec: 24, gemCooldownReductionPct: 20, cooldownWithGemsSec: 19.2, basis: "공식 재사용 대기시간과 장착 보석의 재사용 대기시간 감소만 반영했습니다." } }),
+      skill("합성 화염", 14, { skillType: 1, partBreakLevel: 1, tripods: [{ tier: 0, slot: 2, name: "장전", icon: null, effect: null }], rune: { name: "풍요", icon: null, grade: "전설" } }),
+      skill("합성 중력", 10, { skillType: 0, counter: true, rune: { name: "속행", icon: null, grade: "영웅" }, gemEffects: [{ text: "합성 중력 재사용 대기시간 20.00% 감소", kind: "COOLDOWN" }], cooldown: { cooldownSec: 24, gemCooldownReductionPct: 20, cooldownWithGemsSec: 19.2, basis: "공식 재사용 대기시간과 장착 보석의 재사용 대기시간 감소만 반영했습니다." } }),
+      // A real 각성기: Lv.1, no tripods, rune or gems — still in the default list (QA 11-01).
+      skill("합성 각성", 1, { skillType: 100 }),
+      skill("합성 초각성기", 1, { skillType: 101 }),
       skill("기본 스킬", 1, { partBreakLevel: 1, counter: true }),
     ];
     d.coverage.skills = "PROVIDED";
@@ -2791,8 +2849,10 @@ createServer(async (req, res) => {
         { name: "깨달음", value: 98, description: null },
         { name: "도약", value: 70, description: null },
       ];
+      // Stone levels on two (the engraving card's stone marker, user 11-01).
+      const stone = { 아드레날린: 3, 원한: 2 };
       d.loadout.engravings.arkPassiveEffects = ["돌격대장", "아드레날린", "원한", "잔재된 기운", "질량 증가"].map((engraving) => ({
-        abilityStoneLevel: null, grade: "유물", level: 4, name: engraving, description: null,
+        abilityStoneLevel: stone[engraving] ?? null, grade: "유물", level: 4, name: engraving, description: null,
       }));
       d.stats = ["치명", "특화", "신속", "제압", "인내", "숙련"].map((type, i) => ({ type, value: ["612", "1,812", "88", "71", "70", "69"][i], tooltip: [] }));
       const braceletEffects = [{ text: "특화 +100", grade: null }, { text: "신속 +81", grade: null }];

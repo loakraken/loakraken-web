@@ -116,6 +116,9 @@ test.describe("스펙업 가이드 @smoke", () => {
     const tabs = page.getByRole("navigation", { name: "캐릭터 정보 탭" });
     await expect(tabs.getByRole("link", { name: "스펙업", exact: true })).toHaveAttribute("aria-current", "page");
     await expect(page.getByText("세팅 해설 기능은 준비 중이에요.")).toBeVisible();
+    // The intro names the order the list starts in (마케팅 11-01: it said 효율 order).
+    await expect(page.getByText(/처음에는 전투력이 많이 오르는 순서로/)).toBeVisible();
+    await expect(page.getByText(/골드 대비 효율이 높은 순서/)).toHaveCount(0);
     // Arm-guard (완갑) refining rows are listed now (api #725/#735): the v0.3.2 scope line is gone.
     await expect(page.getByText("완갑 재련은 아직 후보에 넣지 않았습니다.")).toHaveCount(0);
     const table = page.getByRole("table", { name: /스펙업 후보, 전투력 증가 순/ });

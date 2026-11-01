@@ -45,6 +45,21 @@
   margin: -8px;
   overflow-x: auto;
   scrollbar-width: none;
+  /* A tab cut at the row's end showed the first stroke of its label: on a
+     phone the 12% fade was 22px, and the '아' of 아크 패시브 at 40% read as
+     a stray 0 before 더보기 (390, user 11-01). A fixed 40px fade whose outer
+     half is clear hides any stroke near the edge; at a scrolled end the fade,
+     and so the clear band, is 0. */
+  --scroll-fade-size: 40px;
+  --scroll-fade-mask: linear-gradient(
+    to right,
+    transparent 0,
+    transparent calc(var(--scroll-fade-s, 0px) / 2),
+    #000 var(--scroll-fade-s, 0px),
+    #000 calc(100% - var(--scroll-fade-e, 0px)),
+    transparent calc(100% - var(--scroll-fade-e, 0px) / 2),
+    transparent 100%
+  );
 }
 .tabs a,
 .pillLayer > span {
@@ -449,11 +464,86 @@
   color: var(--muted-foreground);
   font-size: 12px;
 }
-/* 팔찌 효율 (backend #350): the total under the name, each line's share at
-   the end of its own effect line on demand. */
-.braceletBody {
-  min-width: 0;
+/* The bracelet in one compact row (user 11-01): the item, its effect lines in
+   two columns (each value at its line's end), 팔찌 효율 in a cell on the right.
+   Narrow: the item and the cell on top, the lines in one column below. */
+.braceletRow {
+  display: grid;
   flex: 1;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas: "id lines eff";
+  align-items: center;
+  gap: 10px 24px;
+  min-width: 0;
+}
+.braceletId {
+  grid-area: id;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.braceletId .tierText {
+  display: block;
+}
+.braceletLines {
+  grid-area: lines;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px 24px;
+  min-width: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.braceletLines .gradeLine {
+  display: flex;
+  align-items: baseline;
+  min-width: 0;
+}
+.braceletLines .gradeLine[data-wide] {
+  grid-column: 1 / -1;
+}
+.braceletLines .gradeLine span:first-child {
+  flex: none;
+}
+.braceletLineName {
+  min-width: 0;
+}
+.braceletLineValue {
+  flex: none;
+  margin-left: auto;
+  padding-left: 8px;
+  color: var(--muted-foreground);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.braceletEffCell {
+  grid-area: eff;
+  display: grid;
+  justify-items: end;
+  gap: 2px;
+  min-width: 96px;
+  /* The 'unavailable' sentence wraps here instead of widening the cell. */
+  max-width: 12em;
+  padding-left: 20px;
+  border-left: 1px solid var(--secondary);
+  font-size: 12px;
+  text-align: right;
+}
+.braceletEffCell b {
+  font-size: 18px;
+}
+@media (max-width: 640px) {
+  .braceletRow {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "id eff"
+      "lines lines";
+  }
+  .braceletLines {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 .braceletEffHead {
   display: flex;
@@ -472,6 +562,7 @@
 }
 /* The same increase colour as the spec-up tab (blue is "done", A26). */
 .braceletEffHead b,
+.braceletEffCell b,
 .braceletEffShare {
   color: var(--gain, var(--foreground));
   font-weight: 700;
@@ -494,14 +585,6 @@
 .gradeList[data-shares] .gradeLine {
   display: flex;
   align-items: baseline;
-}
-.inlineList {
-  list-style: none;
-  padding: 0;
-  font-size: 12px;
-}
-.inlineList b {
-  font-weight: 600;
 }
 
 /* Gems */
@@ -856,30 +939,88 @@
 .engravings strong {
   font-weight: 600;
 }
-/* Icon then name; the icon's 24px place is held even while the icons load
-   or when an engraving has none, so names never move. */
+/* A grade-coloured mark then the name (PM 총괄 11-01: no official icon per
+   engraving; the same book on every row told nothing apart). */
 .engravingName {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   min-width: 0;
 }
-.engravingIcon {
+.engravingGrade {
   flex: none;
-  width: 24px;
-  height: 24px;
-  border-radius: 6px;
-  overflow: hidden;
+  width: 4px;
+  height: 18px;
+  border-radius: 2px;
+  background: var(--muted-foreground);
 }
-.engravingIcon img {
-  display: block;
-  width: 100%;
-  height: 100%;
+.engravingGrade[data-grade="relic"] {
+  background: var(--grade-relic-text);
+}
+.engravingGrade[data-grade="legendary"] {
+  background: var(--grade-legendary-text);
+}
+.engravingGrade[data-grade="epic"] {
+  background: var(--grade-epic-text);
+}
+.engravingGrade[data-grade="ancient"] {
+  background: var(--grade-ancient-text);
 }
 .engravings span {
   color: var(--muted-foreground);
   font-size: 12px;
   text-align: right;
+}
+/* Book code left, ark passive state right (user 11-01). */
+.engravingHead {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 4px 12px;
+  margin-bottom: 4px;
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+.engravingHead b {
+  color: var(--foreground);
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.engravingCount {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 10px;
+  font-variant-numeric: tabular-nums;
+}
+.engravingCount > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--foreground);
+}
+/* The official armory's engraving markers (img_engrave_icon.png: stone blue
+   at 0, relic red at -29px; 24×26 each), drawn at half size. */
+.engraveMark {
+  display: inline-block;
+  flex: none;
+  width: 12px;
+  height: 13px;
+  overflow: hidden;
+}
+.engraveMark::before {
+  content: "";
+  display: block;
+  width: 24px;
+  height: 26px;
+  background: url("https://cdn-lostark.game.onstove.com/2018/obt/assets/images/pc/profile/img_engrave_icon.png") no-repeat 0 0;
+  transform: scale(0.5);
+  transform-origin: 0 0;
+}
+.engraveMark[data-kind="relic"]::before {
+  background-position: -29px 0;
 }
 
 /* Skills */
@@ -1245,9 +1386,12 @@
   border-radius: 6px;
   background: var(--primary);
 }
+/* A card holds the icon, the name (its longest word, '크림스네일의', on one
+   line) and the share: 220px at least, so narrow columns (tablet portrait)
+   drop to fewer cards instead of one name letter per line (user 11-01). */
 .collectionGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 1fr));
   gap: 8px;
   padding: 0;
   list-style: none;
@@ -1291,6 +1435,8 @@
 .collectionName strong {
   font-size: 14px;
   font-weight: 600;
+  /* Breaks between words, not letters; anywhere only as the long-text guard. */
+  word-break: keep-all;
   overflow-wrap: anywhere;
 }
 .collectionName small {

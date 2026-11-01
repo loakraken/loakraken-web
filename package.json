@@ -54,6 +54,7 @@
     "@tanstack/react-query": "^5.104.1",
     "ajv": "8.20.0",
     "border-beam": "1.4.1",
+    "bot-avatars": "0.2.2",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.4.0",
     "liquid-gooey": "0.2.2",

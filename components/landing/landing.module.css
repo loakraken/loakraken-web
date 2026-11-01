@@ -50,32 +50,19 @@
 .heroEnter { animation: hero-enter 750ms var(--ease-out) both; }
 .heroEnter:nth-child(2) { animation-delay: 60ms; }
 .heroEnter:nth-child(3) { animation-delay: 120ms; }
-/* overflow: clip — the orbit rings are 266px squares turning forever: drawn
-   round, but a turned square's box reaches √2 × 266 and widened a 320 page by
-   up to 5px a few seconds in (#1131). Everything drawn fits inside 320 × 276. */
-.orbInteraction { margin-top: 2px; width: 320px; height: 276px; display: grid; place-items: center; overflow: clip; transition: transform 450ms var(--ease-out); }
-.orbStage { width: 276px; height: 276px; display: grid; place-items: center; position: relative; isolation: isolate; }
-/* The orb is the pause button: no button look, a round focus ring. */
+/* Fixed visual slot: the caption and search keep their original positions. */
+.orbInteraction { position: relative; margin-top: 2px; width: 320px; height: 276px; display: grid; place-items: center; overflow: clip; }
+/* --bot-size sizes the bot's box from the first HTML, per breakpoint below. */
+.orbStage { --stage: 276px; --bot-size: 150px; width: var(--stage); height: var(--stage); display: grid; place-items: center; position: relative; isolation: isolate; }
+/* The bot is the pause button: no button look, a round focus ring. */
 button.orbStage { padding: 0; border: 0; border-radius: 50%; background: none; color: inherit; font: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
 button.orbStage:focus-visible { outline: 3px solid var(--ring); outline-offset: -4px; }
-/* Refraction belongs to the orb visual; interface surfaces remain flat. */
-.orbAtmosphere { position: absolute; bottom: 25px; left: 65px; width: 146px; height: 13px; border-radius: 50%; background: #9aacc0; filter: blur(15px); opacity: 0.3; animation: orb-shadow 8s ease-in-out infinite; }
-.orbShell { position: relative; width: 184px; height: 184px; border-radius: 50%; display: grid; place-items: center; background: radial-gradient(circle at 35% 28%, #fff 3%, #e6f4ff 30%, #a5cbea 63%, #72a2cc 82%, #d2e4f4 100%); border: 1px solid #c0d5e7; box-shadow: inset 4px 5px 13px #fff, inset -6px -10px 23px #327ab333; animation: orb-float 8s ease-in-out infinite; }
-.orbGlass { position: absolute; inset: 9px; border-radius: 50%; background: radial-gradient(ellipse at 44% 8%, #ffffffd9, #ffffff15 30%, transparent 56%); border-top: 1px solid #fff; pointer-events: none; }
-/* Dark theme: the same glass sphere in deep blues, so it does not glare on
-   the dark page. Colour only — size, motion and blur are unchanged. */
-:global(:is([data-theme="dark"], [data-theme="dim"])) .orbShell { background: radial-gradient(circle at 35% 28%, #5d7a99 3%, #2b4664 30%, #1a3350 63%, #13253b 82%, #22384f 100%); border-color: #2c4560; box-shadow: inset 4px 5px 13px #ffffff26, inset -6px -10px 23px #00000059; }
-:global(:is([data-theme="dark"], [data-theme="dim"])) .orbGlass { background: radial-gradient(ellipse at 44% 8%, #ffffff40, #ffffff08 30%, transparent 56%); border-top-color: #ffffff33; }
-:global(:is([data-theme="dark"], [data-theme="dim"])) .orbAtmosphere { background: #4da3ff; opacity: 0.18; }
-:global(:is([data-theme="dark"], [data-theme="dim"])) .orbit { border-color: #4da3ff26; }
-:global(:is([data-theme="dark"], [data-theme="dim"])) .orbit i { background: #4da3ff; }
-.orbCore { position: relative; width: 100px; height: 100px; display: grid; place-items: center; border-radius: 50%; }
-.orbCore canvas { width: 96px !important; height: 96px !important; }
-.orbit { position: absolute; border: 1px solid #aac4d73d; border-radius: 50%; animation: orbit 26s linear infinite; }
-.orbitOuter { width: 266px; height: 266px; border-color: #bccfd323; }
-.orbitInner { width: 226px; height: 226px; animation-direction: reverse; animation-duration: 19s; }
-.orbit i { position: absolute; top: -2px; left: 50%; width: 4px; height: 4px; border-radius: 50%; background: #80a6c5; }
-.orbitOuter i { top: 50%; left: -2px; width: 3px; height: 3px; background: #b0c8dc; }
+/* No frame round the bot (user, 11-01): it stands on a soft contact shadow
+   under its feet (the user's pick over a glow). Static: nothing animates. */
+.orbStage::before { content: ""; position: absolute; left: 50%; top: calc(50% + var(--bot-size) * 0.4); width: calc(var(--bot-size) * 0.7); height: calc(var(--bot-size) * 0.12); border-radius: 50%; translate: -50% 0; background: radial-gradient(closest-side, rgb(0 0 0 / 18%), transparent); z-index: -1; pointer-events: none; }
+:global(:is([data-theme="dark"], [data-theme="dim"])) .orbStage::before { background: radial-gradient(closest-side, rgb(0 0 0 / 55%), transparent); }
+/* "봇 바꾸기" by the bot, beside the pause button (never a control in a control). */
+.botPicker { position: absolute; right: 0; bottom: 0; }
 .orbCaption { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: var(--muted-foreground); margin: 0 0 20px !important; }
 .statusDot { flex: none; width: 4px; height: 4px; border-radius: 50%; display: inline-block; background: var(--link); }
 .searchArea { width: 100%; max-width: 610px; }
@@ -249,14 +236,11 @@ button.orbStage:focus-visible { outline: 3px solid var(--ring); outline-offset: 
 .routeLinks a:last-child { background: var(--primary); color: var(--primary-foreground); border-color: var(--ring); }
 .routeLinks a:focus-visible { outline: 3px solid var(--ring); outline-offset: 4px; }
 @keyframes hero-enter { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes orb-float { 0%, 100% { transform: translateY(3px); } 50% { transform: translateY(-6px); } }
-@keyframes orb-shadow { 0%, 100% { transform: scaleX(1.03); opacity: 0.3; } 50% { transform: scaleX(0.94); opacity: 0.2; } }
-@keyframes orbit { to { transform: rotate(360deg); } }
 @keyframes nudge { 0%, 70%, 100% { transform: translateY(0); } 85% { transform: translateY(4px); } }
 @keyframes pipeline-flow { from { transform: translateY(-20px); } to { transform: translateY(55px); } }
 @keyframes sheen { 0%, 70% { transform: translateX(-130%) skewX(-20deg); } 100% { transform: translateX(450%) skewX(-20deg); } }
 @keyframes status-breathe { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
-.orbStage[data-orb-active="false"] *, .landing [data-in-view="false"] *, .landing [data-in-view="false"] *::before { animation-play-state: paused !important; }
+.landing [data-in-view="false"] *, .landing [data-in-view="false"] *::before { animation-play-state: paused !important; }
 :global([data-motion="off"]) .landing *, :global([data-motion="off"]) .landing *::before, :global([data-motion="off"]) .landing *::after { animation-play-state: paused !important; transition-duration: 0ms !important; }
 :global([data-motion="off"]) .heroEnter { animation: none; }
 /* Repeating motion keeps going; the orb pauses it (WCAG 2.2.2). data-loop is
@@ -264,6 +248,11 @@ button.orbStage:focus-visible { outline: 3px solid var(--ring); outline-offset: 
    remembered choice, there from the first paint (before hydration). */
 :global(:root[data-motion-paused]) .landing *, :global(:root[data-motion-paused]) .landing *::before, :global(:root[data-motion-paused]) .landing *::after { animation-play-state: paused !important; }
 :global([data-loop="off"]) .landing *, :global([data-loop="off"]) .landing *::before, :global([data-loop="off"]) .landing *::after { animation-play-state: paused !important; }
+/* The hero entrance is one-shot, not repeating motion: it always plays to its
+   visible end. Paused, it froze at opacity 0 whenever it started while the
+   page was paused (tab shown again, reload) and the hero text vanished
+   (v0.3.6.1). Beats the (0,3,0) rules above. */
+:global(:root) .landing .heroEnter.heroEnter { animation-play-state: running !important; }
 @media (hover: hover) and (pointer: fine) {
   .footer > a:last-child:hover { color: var(--link); }
   .navCta:hover, .primaryButton:hover, .searchSubmit:hover { background: var(--primary-hover); }
@@ -285,7 +274,7 @@ button.orbStage:focus-visible { outline: 3px solid var(--ring); outline-offset: 
   .heroTitle { font-size: clamp(42px, 4.3vw, 64px); }
   .heroDescription { font-size: 18px; margin-top: 18px !important; }
   .orbInteraction { height: 220px; }
-  .orbStage { scale: 0.83; }
+  .orbStage { --stage: 220px; --bot-size: 120px; }
 }
 @media (max-width: 760px) {
   .header { min-height: 60px; padding: 7px 18px; gap: 8px; }
@@ -299,7 +288,7 @@ button.orbStage:focus-visible { outline: 3px solid var(--ring); outline-offset: 
   .heroTitle { font-size: clamp(32px, 6.8vw, 50px); letter-spacing: -0.045em; line-height: 1.2; margin-top: 18px !important; }
   .heroDescription { font-size: 16px; line-height: 1.7; margin-top: 20px !important; }
   .orbInteraction { width: 276px; height: 248px; margin-top: 2px; }
-  .orbStage { scale: 0.88; }
+  .orbStage { --stage: 248px; --bot-size: 132px; }
   .orbCaption { font-size: 11px; margin-bottom: 18px !important; }
   .searchForm { min-height: 60px; gap: 7px; padding: 5px; }
   .searchIcon { width: 17px; margin-left: 10px; }

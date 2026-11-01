@@ -8,6 +8,26 @@
   gap: 8px 16px;
   margin: 0 0 12px;
 }
+/* 직업별 · 레벨별: this tab's own server choice (no page filter here). */
+.server {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  font-weight: 600;
+}
+.server [data-slot="select"] {
+  min-width: 120px;
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--background);
+  color: var(--foreground);
+  font-size: 14px;
+  font-weight: 500;
+}
 .caption {
   display: grid;
   gap: 2px;

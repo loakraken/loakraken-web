@@ -6,7 +6,7 @@ test.describe("통계 @smoke", () => {
   test("요약과 직업 표를 보여 주고 가로 스크롤이 없다", async ({ page }) => {
     await gotoReady(page, "/stats");
     await expect(page.getByRole("heading", { level: 1, name: "캐릭터 통계" })).toBeVisible();
-    await expect(page.getByRole("tab", { name: "직업" })).toHaveAttribute("aria-selected", "true");
+    await expect(page.getByRole("tab", { name: "직업 순위" })).toHaveAttribute("aria-selected", "true");
     const table = page.getByRole("table", { name: "직업별 인원과 전투력 분포" });
     await expect(table.getByRole("rowheader").first()).toBeVisible();
     // 전투력 분포 막대는 글로 읽을 수 있다(하위 10%·중간 50%·상위 10%).
@@ -26,32 +26,78 @@ test.describe("통계 @smoke", () => {
   test("조건을 바꾸면 그 조건으로 다시 조회한다", async ({ page }) => {
     await gotoReady(page, "/stats");
     const request = page.waitForRequest(/\/api\/stats\/summary\?.*role=SUPPORT/);
-    await chooseOption(page, page.getByRole("form", { name: "통계 조건" }).getByRole("combobox", { name: "역할" }), "서포터");
+    const form = page.getByRole("form", { name: "통계 조건" });
+    await form.getByRole("radiogroup", { name: "역할" }).getByRole("radio", { name: "서포터" }).click();
     await request;
     await expect(page).toHaveURL(/role=SUPPORT/);
+    await expect(form.getByRole("radio", { name: "서포터" })).toBeChecked();
   });
 
-  test("아이템 레벨은 1,640(기본)·1,700 중에서 바로 고르고, 다른 값은 직접 넣는다", async ({ page }) => {
+  test("레벨은 목록에서 고르고(1640 이상이 기본), 주소의 다른 레벨도 목록에 보인다", async ({ page }) => {
     await gotoReady(page, "/stats");
     const form = page.getByRole("form", { name: "통계 조건" });
-    const presets = form.getByRole("group", { name: "아이템 레벨 바로 고르기" });
-    const field = form.getByRole("textbox", { name: "아이템 레벨 이상" });
-    // 1,640 is the backend default: pressed, and nothing is sent for it.
-    await expect(presets.getByRole("button", { name: "1,640" })).toHaveAttribute("aria-pressed", "true");
+    const level = form.getByRole("combobox", { name: "레벨" });
+    // 1,640 is the backend default: shown, and nothing is sent for it.
+    await expect(level).toContainText("1640 이상");
     const request = page.waitForRequest(/\/api\/stats\/summary\?.*itemLevelMin=1700/);
-    await presets.getByRole("button", { name: "1,700" }).click();
+    await chooseOption(page, level, "1700 이상");
     await request;
     await expect(page).toHaveURL(/itemLevelMin=1700/);
-    await expect(field).toHaveValue("1700");
-    await expect(presets.getByRole("button", { name: "1,700" })).toHaveAttribute("aria-pressed", "true");
-    await presets.getByRole("button", { name: "1,640" }).click();
+    await chooseOption(page, level, "1640 이상");
     await expect(page).not.toHaveURL(/itemLevelMin/);
-    await expect(field).toHaveValue("");
-    // A typed level leaves both presets up.
-    await field.fill("1680");
-    await expect(page).toHaveURL(/itemLevelMin=1680/);
-    await expect(presets.getByRole("button", { pressed: true })).toHaveCount(0);
+    // A level from a shared link that is not in the list still shows as chosen.
+    await gotoReady(page, "/stats?itemLevelMin=1685");
+    await expect(page.getByRole("form", { name: "통계 조건" }).getByRole("combobox", { name: "레벨" })).toContainText("1685 이상");
     await expectNoHorizontalOverflow(page);
+  });
+
+  test("전투력 범위를 넣으면 그 범위로 다시 조회하고 주소에 남는다", async ({ page }) => {
+    await gotoReady(page, "/stats");
+    const form = page.getByRole("form", { name: "통계 조건" });
+    const request = page.waitForRequest(/\/api\/stats\/summary\?.*combatPowerMin=2000.*combatPowerMax=4000|combatPowerMax=4000.*combatPowerMin=2000/);
+    await form.getByRole("textbox", { name: "전투력 최소" }).fill("2000");
+    await form.getByRole("textbox", { name: "전투력 최대" }).fill("4000");
+    await request;
+    await expect(page).toHaveURL(/combatPowerMin=2000/);
+    await expect(page).toHaveURL(/combatPowerMax=4000/);
+    await page.reload();
+    await expect(page.getByRole("textbox", { name: "전투력 최소" })).toHaveValue("2000");
+    await form.getByRole("textbox", { name: "전투력 최소" }).fill("");
+    await expect(page).not.toHaveURL(/combatPowerMin/);
+  });
+
+  test("전투력 최소가 최대보다 크면 묻지 않고 범위를 표시하며, 고치면 다시 묻는다", async ({ page }) => {
+    await gotoReady(page, "/stats");
+    const form = page.getByRole("form", { name: "통계 조건" });
+    const sent = [];
+    page.on("request", (r) => r.url().includes("/api/stats/") && r.url().includes("combatPowerMin=5000") && sent.push(r.url()));
+    await form.getByRole("textbox", { name: "전투력 최소" }).fill("5000");
+    await form.getByRole("textbox", { name: "전투력 최대" }).fill("1000");
+    await expect(form.getByText("전투력 최소가 최대보다 커요")).toBeVisible();
+    await expect(form.getByRole("textbox", { name: "전투력 최소" })).toHaveAttribute("aria-invalid", "true");
+    await expect(page).not.toHaveURL(/combatPowerMin/);
+    expect(sent.filter((u) => u.includes("combatPowerMax=1000")), "뒤집힌 범위 요청").toEqual([]);
+    // Fixed: asked again, the mark gone.
+    const request = page.waitForRequest(/\/api\/stats\/summary\?.*combatPowerMax=6000/);
+    await form.getByRole("textbox", { name: "전투력 최대" }).fill("6000");
+    await request;
+    await expect(form.getByText("전투력 최소가 최대보다 커요")).toHaveCount(0);
+    await expect(form.getByRole("textbox", { name: "전투력 최소" })).not.toHaveAttribute("aria-invalid", "true");
+  });
+
+  test("뒤집힌 전투력 범위가 든 주소는 그 범위만 버리고 연다", async ({ page }) => {
+    await gotoReady(page, "/stats?role=DEALER&combatPowerMin=5000&combatPowerMax=1000");
+    await expect(page.getByRole("table", { name: "직업별 인원과 전투력 분포" })).toBeVisible();
+    await expect(page.getByRole("radiogroup", { name: "역할" }).getByRole("radio", { name: "딜러" })).toBeChecked();
+    await expect(page.getByRole("textbox", { name: "전투력 최소" })).toHaveValue("");
+  });
+
+  test("전체 인구 탭에는 조건 막대와 요약 카드가 없다", async ({ page }) => {
+    await gotoReady(page, "/stats?tab=population");
+    await expect(page.getByRole("tab", { name: "전체 인구" })).toHaveAttribute("aria-selected", "true");
+    await expect(page.getByRole("form", { name: "통계 조건" })).toHaveCount(0);
+    await page.getByRole("tab", { name: "직업 순위" }).click();
+    await expect(page.getByRole("form", { name: "통계 조건" })).toBeVisible();
   });
 
   test("분포 탭에서 내 전투력의 위치를 알려 준다", async ({ page }) => {
