@@ -1,15 +1,20 @@
 "use client";
 
-// The /about hero (title, orb, BorderBeam search), also at the top of the
-// home page (user, 11:05). Repeating motion follows the 5s loop budget.
+// The /about hero (title, bot, BorderBeam search), also at the top of the
+// home page (user, 11:05). The bot follows the pointer anywhere in the hero
+// and rests on its own after 5 s (see BotMascot); pressing it pauses the
+// page's automatic motion and never its following (user, 11-01).
 
 import { useEffect, useRef, useState, useSyncExternalStore, type FormEvent, type RefObject } from "react";
 import { useRouter } from "next/navigation";
 import { BorderBeam } from "border-beam";
 import { ArrowDown, ArrowRight, Command, ExportCircle, SearchNormal } from "@/components/ui/icons";
 import { useTheme } from "@/components/ui/theme-toggle";
-import { IntelligenceOrb, InlineOrb } from "./orb";
-import { useLandingMotion, useVisible } from "./motion-context";
+import { InlineOrb } from "./orb";
+import { BotMascot } from "@/components/bot/bot-mascot";
+import { BotPicker } from "@/components/bot/bot-picker";
+import { useChosenBot } from "@/components/bot/use-chosen-bot";
+import { useLandingMotion, useReducedMotion, useVisible } from "./motion-context";
 import { characterNameError, normalizeCharacterName } from "@/lib/character/model";
 import styles from "./landing.module.css";
 
@@ -33,14 +38,19 @@ export function Hero({
   const input = inputRef ?? ownInput;
   const hero = useRef<HTMLElement>(null);
   const heroVisible = useVisible(hero);
-  const { enabled, looping } = useLandingMotion();
+  const { looping, paused, togglePaused } = useLandingMotion();
+  const reduced = useReducedMotion();
   const [query, setQuery] = useState("");
   const [error, setError] = useState("");
   const [searching, setSearching] = useState(false);
   const [focused, setFocused] = useState(false);
-  const [tilt, setTilt] = useState({ x: 0, y: 0 });
   const Title = embedded ? "h2" : "h1";
   const theme = useTheme();
+  const [bot] = useChosenBot();
+  // The bot pauses the page's repeating motion (WCAG 2.2.2; user, 20:58: no
+  // separate stop button). One fixed name with aria-pressed. With reduced
+  // motion nothing moves, so it is only a picture.
+  const Stage = reduced ? "div" : "button";
 
   useEffect(() => {
     const shortcut = (event: KeyboardEvent) => {
@@ -75,15 +85,20 @@ export function Hero({
             LOAKraken(로아크라켄)은 로스트아크 공식 Open API의 공개 정보로 캐릭터·시세·통계·성장 도구를 보여 주는 무료 팬 사이트입니다.
           </p>
         )}
-        {/* Pointer tilt: a CSS transition eases toward the pointer (was a
-            motion/react spring; the library is not on the home route). */}
-        <div className={styles.orbInteraction} style={{ transform: enabled ? `perspective(700px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)` : "none" }}
-          onPointerMove={(event) => {
-            if (!enabled || !window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
-            const box = event.currentTarget.getBoundingClientRect();
-            setTilt({ x: (0.5 - (event.clientY - box.top) / box.height) * 12, y: ((event.clientX - box.left) / box.width - 0.5) * 12 });
-          }} onPointerLeave={() => setTilt({ x: 0, y: 0 })}>
-          <IntelligenceOrb state={searching ? "searching" : focused ? "connecting" : "breathing"} />
+        {/* No frame around the bot (user, 11-01): it stands on a soft shadow
+            (data-backdrop="glow" is the other look shown to the user). */}
+        <div className={styles.orbInteraction}>
+          <Stage
+            className={styles.orbStage}
+            data-backdrop="shadow"
+            {...(reduced
+              ? { "aria-hidden": true }
+              : { type: "button" as const, "aria-label": "애니메이션 멈춤", "aria-pressed": paused, onClick: togglePaused })}
+          >
+            <BotMascot type={bot} state={searching ? "working" : "default"} size={150} area={hero}
+              paused={!looping} still={reduced} theme={theme} decorative />
+          </Stage>
+          <div className={styles.botPicker}><BotPicker theme={theme} /></div>
         </div>
         <p className={styles.orbCaption}><span className={styles.statusDot} />{searching ? "캐릭터 화면으로 이동하고 있어요" : focused ? "어떤 캐릭터를 살펴볼까요?" : "당신의 다음 선택을 기다리고 있어요"}</p>
         <div className={styles.searchArea}>
