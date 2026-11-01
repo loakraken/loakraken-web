@@ -32,8 +32,13 @@ const record = (page, filter, values) =>
     ({ filter, values }) => {
       window.__frames = [];
       const tick = () => {
+        // A select inside its label, or a radio group named by another element (the stats bar).
         const label = [...document.querySelectorAll("label")].find((l) => l.textContent.startsWith(filter));
-        const chosen = label?.querySelector("[role=combobox]")?.textContent.trim() ?? "";
+        const group = [...document.querySelectorAll("[role=radiogroup][aria-labelledby]")].find(
+          (g) => document.getElementById(g.getAttribute("aria-labelledby"))?.textContent.trim() === filter,
+        );
+        const chosen =
+          (label?.querySelector("[role=combobox]") ?? group?.querySelector("[role=radio][aria-checked=true]"))?.textContent.trim() ?? "";
         const shown = [...document.querySelectorAll("main *")]
           .filter((el) => el.children.length === 0 && values.some((v) => el.textContent.includes(v)))
           .map((el) => ({ value: values.find((v) => el.textContent.includes(v)), busy: !!el.closest("[aria-busy=true]") }));
@@ -45,14 +50,14 @@ const record = (page, filter, values) =>
     { filter, values },
   );
 
-test("통계: 최근 확인 30일→7일→30일 동안 다른 조건의 표본 수가 표시 없이 보이지 않는다 @regression", async ({ page }) => {
+test("통계: 기간 30일→7일→30일 동안 다른 조건의 표본 수가 표시 없이 보이지 않는다 @regression", async ({ page }) => {
   // 목 표본 수: 30일 104,625명, 7일 41,865명(tests/mock-backend.mjs).
   const expected = { "30일": "104,625", "7일": "41,865" };
   await gotoReady(page, "/stats?tab=distribution");
   await slow(page, "**/api/stats/**");
-  await record(page, "최근 확인", Object.values(expected));
-  const days = page.getByRole("combobox", { name: "최근 확인" });
-  await chooseOption(page, days, "7일");
+  await record(page, "기간", Object.values(expected));
+  const days = page.getByRole("radiogroup", { name: "기간" });
+  await days.getByRole("radio", { name: "7일" }).click();
   // The new values may come with the page's own server answer (the open tab is
   // filled there) in well under 100ms: the busy frames are read from the
   // per-frame record below rather than polled for here.
@@ -60,7 +65,7 @@ test("통계: 최근 확인 30일→7일→30일 동안 다른 조건의 표본 
   await expect(page.locator("main [aria-busy=true]")).toHaveCount(0, { timeout: 10_000 });
   const switched = await page.evaluate(() => window.__frames.length);
   // 처음 본 조건(30일)으로 돌아오면 캐시 값이 바로: 흐려지는 프레임이 없다(#540 P2).
-  await chooseOption(page, days, "30일");
+  await days.getByRole("radio", { name: "30일" }).click();
   expect(await everBusy(page, 1500), "이미 본 30일로 돌아왔는데 흐려짐").toBe(false);
   const frames = await page.evaluate(() => window.__frames);
   const wrong = frames.flatMap((f) =>

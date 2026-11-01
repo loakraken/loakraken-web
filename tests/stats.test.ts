@@ -31,6 +31,13 @@ test("filters are allow-listed; any invalid value rejects the query", () => {
   assert.equal(statsSearch({ server: "아만", activeDays: 30 }).toString(), "server=%EC%95%84%EB%A7%8C&activeDays=30");
 });
 
+test("an inverted range is dropped (the api answers 400), the other filters stay", () => {
+  assert.deepEqual(parseStatsQuery(new URLSearchParams("role=DEALER&combatPowerMin=5000&combatPowerMax=1000")), { role: "DEALER" });
+  assert.deepEqual(parseStatsQuery(new URLSearchParams("itemLevelMin=1720&itemLevelMax=1700&combatPowerMin=1000")), { combatPowerMin: 1000 });
+  // Equal bounds are a valid one-value range.
+  assert.deepEqual(parseStatsQuery(new URLSearchParams("combatPowerMin=3000&combatPowerMax=3000")), { combatPowerMin: 3000, combatPowerMax: 3000 });
+});
+
 test("the distribution tab's choices ride in the address apart from the filters", () => {
   const parse = (s: string) => parseDistributionView(new URLSearchParams(s));
   assert.deepEqual(parse(""), { metric: "COMBAT_POWER", asTable: false });

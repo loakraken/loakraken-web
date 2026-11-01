@@ -1,16 +1,18 @@
 "use client";
 
 // 전체 인구 (stats B5): every character LOAKraken has stored, from the weekly
-// snapshot, by server, class or item level. The page's server choice scopes
-// 직업별 and 레벨별; no other filter applies here, and the caption says so.
-import { useState, type CSSProperties } from "react";
+// snapshot, by server, class or item level. No page filter applies here (the
+// bar is hidden on this tab); its own server choice scopes 직업별 and 레벨별.
+import { useId, useState, type CSSProperties } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { coarsen } from "@/lib/stats/bins";
 import { fetchPopulation } from "@/lib/stats/client";
 import { whole, share } from "@/lib/stats/model";
 import { snapshotText, type PopulationCount } from "@/lib/stats/population";
 import { pendingProps } from "@/lib/api/pending";
+import { Select } from "@/components/ui/select";
 import { ClassIcon } from "./class-icon";
+import { STATS_SERVERS } from "./stats-filters";
 import styles from "./stats.module.css";
 import own from "./population.module.css";
 
@@ -54,8 +56,17 @@ function CountList({ rows, total, current, icons }: { rows: readonly PopulationC
   );
 }
 
-export function PopulationTab({ server, problem }: { server?: string; problem: (error: unknown, retry: () => void) => React.ReactNode }) {
+export function PopulationTab({
+  server: initialServer,
+  problem,
+}: {
+  /** The server picked on the other tabs, as this tab's first choice. */
+  server?: string;
+  problem: (error: unknown, retry: () => void) => React.ReactNode;
+}) {
   const [view, setView] = useState<View>("servers");
+  const [server, setServer] = useState(initialServer);
+  const serverId = useId();
   const population = useQuery({
     queryKey: ["stats", "population", server ?? ""],
     queryFn: ({ signal }) => fetchPopulation(server, signal),
@@ -96,6 +107,17 @@ export function PopulationTab({ server, problem }: { server?: string; problem: (
             집계 기준 {snapshotText(data.snapshotDate)} · {view === "servers" ? `${whole(serverTotal)}명` : `${scope} ${whole(data.total)}명`}
           </span>
         </p>
+        {view !== "servers" && (
+          <span className={own.server}>
+            <label htmlFor={serverId}>서버</label>
+            <Select
+              id={serverId}
+              value={server ?? ""}
+              onValueChange={(v) => setServer(v || undefined)}
+              items={[{ value: "", label: "전체 서버" }, ...STATS_SERVERS.map((s) => ({ value: s, label: s }))]}
+            />
+          </span>
+        )}
         <span className={styles.segment} role="group" aria-label="전체 인구 보기">
           {VIEWS.map((v) => (
             <button key={v.id} type="button" aria-pressed={view === v.id} onClick={() => setView(v.id)}>
@@ -129,7 +151,7 @@ export function PopulationTab({ server, problem }: { server?: string; problem: (
         </>
       )}
       <p className={styles.note}>
-        역할·최근 확인·아이템 레벨 조건은 쓰지 않고 저장된 모든 캐릭터를 세요. 서버를 고르면 직업별·레벨별이 그 서버 기준으로 바뀌어요.
+        역할·기간·레벨·전투력 조건 없이 저장된 모든 캐릭터를 세요. 직업별·레벨별은 고른 서버 기준이에요.
       </p>
     </div>
   );
