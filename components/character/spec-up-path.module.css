@@ -1,75 +1,17 @@
-/* 스펙업 추천 순서 (api #794): same frame as the goal section below it. */
-.path {
-  margin-top: var(--space-6, 24px);
-  padding-top: var(--space-5, 20px);
-  border-top: 1px solid var(--hairline);
-}
-.path h3 {
-  font-size: var(--text-body);
-  font-weight: 600;
-}
+/* 스펙업 추천 순서 (api #794): the first chip of the spec-up list (layout A,
+   11-02). The rows use the list's table (detail.module.css); this file holds
+   the lines around it and the loading skeleton. */
 .lead {
   margin-top: 4px;
   color: var(--slate);
   font-size: var(--text-caption);
 }
-.bar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 12px;
-  margin-top: 12px;
-}
-.sorts {
-  display: inline-flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-.sorts button {
-  min-height: 32px;
-  padding: 0 12px;
-  border: 1px solid var(--hairline);
-  border-radius: var(--radius-pill);
-  color: var(--slate);
-  font-size: var(--text-caption);
-  white-space: nowrap;
-}
-.sorts button[aria-pressed="true"] {
-  border-color: var(--ink);
-  color: var(--ink);
-  font-weight: 600;
-}
-.ask {
-  height: 40px;
-  padding: 0 16px;
-  border-radius: var(--radius-pill);
-  background: var(--primary);
-  color: var(--primary-foreground);
-  font-weight: 600;
-  white-space: nowrap;
-  transition: scale var(--duration-fast) var(--ease-out);
-}
-.ask:not([aria-disabled="true"]):active {
-  scale: var(--press-scale);
-}
-.ask[aria-disabled="true"] {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-.sorts button:focus-visible,
-.ask:focus-visible,
 .more:focus-visible,
 .unpriced summary:focus-visible {
   outline: 3px solid var(--action);
   outline-offset: 1px;
 }
 @media (hover: hover) and (pointer: fine) {
-  .ask:not([aria-disabled="true"]):hover {
-    filter: brightness(1.08);
-  }
-  .sorts button[aria-pressed="false"]:hover {
-    color: var(--ink);
-  }
   .more:hover {
     text-decoration-thickness: 2px;
   }
@@ -78,12 +20,7 @@
   }
 }
 .result {
-  min-height: 1lh;
   margin-top: 8px;
-}
-/* Focus lands here when the ask button goes; the box itself is not a control. */
-.result:focus {
-  outline: none;
 }
 /* The old order stays while another rule's arrives (keepPreviousData). */
 .answer[data-stale] {
@@ -91,79 +28,30 @@
   transition: opacity var(--duration-fast) var(--ease-out);
 }
 .summary {
+  margin-top: 8px;
   font-size: var(--text-body);
   font-variant-numeric: tabular-nums;
 }
-.steps {
-  display: grid;
-  gap: 8px;
-  margin: 10px 0 0;
-  padding: 0;
-  list-style: none;
-}
-.steps li {
-  display: grid;
-  grid-template-columns: 1.5rem minmax(0, 1fr) auto 6.5rem 7.5rem;
-  align-items: baseline;
-  gap: 8px;
-  font-size: var(--text-body);
-}
-.order {
-  color: var(--slate);
-  font-size: var(--text-caption);
-  font-variant-numeric: tabular-nums;
-}
-.what {
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-.kind {
-  color: var(--slate);
-  font-size: var(--text-caption);
-}
-.change,
-.delta,
-.cost {
+.delta {
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
-.delta,
-.cost {
-  display: grid;
-  justify-items: end;
+/* Still bars in the answer's cells (no shimmer: nothing moves, nothing to run). */
+.skeleton i {
+  display: inline-block;
+  width: 3.5em;
+  height: 0.9em;
+  border-radius: 4px;
+  background: var(--secondary);
+  vertical-align: middle;
+  opacity: 0.6;
 }
-.sub {
-  color: var(--slate);
-  font-size: var(--text-caption);
+.skeleton th i {
+  width: 8em;
 }
-/* Phone and narrow tablet: number, item over its change, then the two figures
-   side by side. Up to 720px: between 560 and 720 the five-column row left the
-   item too little room and a stone step's name was cut (PM-프론트 11-01). */
-@media (max-width: 720px) {
-  .steps li {
-    grid-template-columns: 1.5rem minmax(0, 1fr) auto;
-    row-gap: 2px;
-  }
-  .change {
-    grid-column: 2;
-    grid-row: 2;
-    min-width: 0;
-    color: var(--slate);
-    font-size: var(--text-caption);
-    /* A stone step names two engravings each side (api #812): one unbroken
-       line ran under the cost and widened the page by 49px at 320 (QA 11-01).
-       On a phone it wraps inside its own column. */
-    white-space: normal;
-    overflow-wrap: anywhere;
-  }
-  .delta {
-    grid-column: 3;
-    grid-row: 1;
-  }
-  .cost {
-    grid-column: 3;
-    grid-row: 2;
-  }
+.skeleton small i {
+  width: 5em;
+  height: 0.75em;
 }
 .more {
   min-height: 32px;

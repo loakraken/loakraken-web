@@ -12,7 +12,8 @@ const TABS = [
   { id: "combat", label: "전투", headings: ["장비", "보석", "아크 그리드", "카드", "아크 패시브", "특성", "각인", "스킬"] },
   // 개발·미리보기에서 보이는 전투력 시뮬레이터 탭(COMBAT_POWER_SIM, PM-프론트 10-11 ①).
   { id: "simulator", label: "시뮬레이터", headings: ["전투력 시뮬레이터", "각인·스톤"] },
-  { id: "specup", label: "스펙업", headings: ["스펙업 가이드", "아직 계산하지 않은 후보"] },
+  // A dealer opens on 추천 순서 (layout A, 11-02); the goal section sits under it.
+  { id: "specup", label: "스펙업", headings: ["스펙업 가이드", "목표 전투력"] },
   { id: "skills", label: "스킬", headings: ["스킬"] },
   { id: "arkpassive", label: "아크 패시브", headings: ["진화", "깨달음", "도약"] },
   { id: "collectibles", label: "내실", headings: ["수집품", "성향"] },
