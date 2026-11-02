@@ -1,6 +1,7 @@
 // 회귀(#1248 리뷰 후속, #1324): 좁은 화면에서 가로로 넘치는 탭 줄(캐릭터 탭, 시세 묶음 탭)은 끝이 흐려진다. 키보드로
 // 탭에 닿으면 브라우저는 줄 안에 이미 (반쯤이라도) 보이는 탭은 굴리지 않아, 고른 탭이 흐린 띠 안에 놓였다. 이제 탭이
-// 흐린 띠 밖까지 굴러온다. 실제 Tab 키로 차례로 닿는다(키보드 초점일 때만 줄이 움직인다).
+// 흐린 띠 밖까지 굴러온다. 실제 Tab 키로 차례로 닿는다(키보드 초점일 때만 줄이 움직인다). 줄만 굴리고 화면은
+// 위아래로 움직이지 않는다(#1331).
 import { test, expect, characterPath, gotoReady } from "../support/fixtures.mjs";
 
 /**
@@ -36,20 +37,26 @@ const restInFade = (root, fade) =>
     return { overflows: true, label, bad };
   }, fade);
 
-/** Tabs through the row's links from the first one and names those that come to rest inside its faded ends. */
+/**
+ * Tabs through the row's links from the first one and names those that come to rest inside its faded ends, and
+ * those whose focus moved the page up or down: only the row scrolls, never the page (#1331).
+ */
 async function focusInFade(page, nav, fade) {
   const links = nav.getByRole("link");
   const count = await links.count();
   await links.first().focus();
+  const top = await page.evaluate(() => window.scrollY);
   let overflows = false;
   const bad = [];
+  const pageMoved = [];
   for (let i = 0; i < count; i++) {
     if (i > 0) await page.keyboard.press("Tab");
     const rest = await restInFade(nav, fade);
     overflows ||= rest.overflows;
     if (rest.bad) bad.push(rest.label);
+    if ((await page.evaluate(() => window.scrollY)) !== top) pageMoved.push(rest.label);
   }
-  return { overflows, bad };
+  return { overflows, bad, pageMoved };
 }
 
 for (const width of [320, 360, 390])
@@ -61,12 +68,13 @@ for (const width of [320, 360, 390])
     const character = page.getByRole("navigation", { name: "캐릭터 정보 탭" });
     // Awake (the pill is placed, and the row scrolled to the current tab if it had to).
     await expect(character).toHaveAttribute("data-pill", "on");
-    expect(await focusInFade(page, character, 20)).toEqual({ overflows: true, bad: [] });
+    expect(await focusInFade(page, character, 20)).toEqual({ overflows: true, bad: [], pageMoved: [] });
 
     await gotoReady(page, "/market");
     // The hub row fades 64px on phones; a focused tab clears half of it. A row that fits has no fade.
     const hub = page.getByRole("navigation", { name: "시세 화면" });
-    expect((await focusInFade(page, hub, 32)).bad).toEqual([]);
+    const { bad, pageMoved } = await focusInFade(page, hub, 32);
+    expect({ bad, pageMoved }).toEqual({ bad: [], pageMoved: [] });
   });
 
 test("마우스로 누르는 동안 탭 줄이 움직이지 않는다 @regression", async ({ page }) => {
@@ -81,11 +89,15 @@ test("마우스로 누르는 동안 탭 줄이 움직이지 않는다 @regressio
     const tab = [...el.querySelectorAll("a")].find((a) => a.getBoundingClientRect().right > box.right - 40);
     const r = tab.getBoundingClientRect();
     const x = Math.min(r.left + 12, box.right - 4);
-    return { label: tab.textContent.trim(), x, y: r.top + r.height / 2, scrollLeft: el.scrollLeft };
+    return { label: tab.textContent.trim(), x, y: r.top + r.height / 2, scrollLeft: el.scrollLeft, scrollY: window.scrollY };
   });
   await page.mouse.move(press.x, press.y);
   await page.mouse.down();
   await expect(row.getByRole("link", { name: press.label, exact: true })).toBeFocused();
-  expect(await row.evaluate((el) => el.scrollLeft)).toBe(press.scrollLeft);
+  // Neither the row nor the page.
+  expect(await row.evaluate((el) => ({ scrollLeft: el.scrollLeft, scrollY: window.scrollY }))).toEqual({
+    scrollLeft: press.scrollLeft,
+    scrollY: press.scrollY,
+  });
   await page.mouse.up();
 });
