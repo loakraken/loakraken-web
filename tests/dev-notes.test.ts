@@ -27,6 +27,41 @@ test("newest first, the same day by address", () => {
   assert.deepEqual([...notes].sort(byNewest).map((n) => n.slug), ["2026-10-19-b", "2026-10-19-a", "2026-10-12-a"]);
 });
 
+// QA 11-02: "v0-3-6" sorted after "hotfix-v0-3-6-1" by address, so the newer
+// hotfix sat below its release (also 10-18 and 10-28).
+test("the same day by version: a hotfix above its release, the newer hotfix first", () => {
+  const note = (slug: string) => ({ slug, title: "", date: slug.slice(0, 10), summary: "", pinned: false });
+  const notes = [
+    "2026-11-02-hotfix-v0-3-5-1",
+    "2026-11-02-v0-3-6",
+    "2026-11-02-hotfix-v0-3-6-1",
+    "2026-11-01-v0-3-4",
+    "2026-11-01-v0-3-5",
+    "2026-10-28-hotfix-v0-3-3-1",
+    "2026-10-28-v0-3-3",
+    "2026-10-28-hotfix-v0-3-3-2",
+    "2026-10-18-v0-3-1",
+    "2026-10-18-hotfix-v0-3-1-2",
+    "2026-10-18-hotfix-v0-3-10",
+  ].map(note);
+  assert.deepEqual([...notes].sort(byNewest).map((n) => n.slug), [
+    "2026-11-02-hotfix-v0-3-6-1",
+    "2026-11-02-v0-3-6",
+    "2026-11-02-hotfix-v0-3-5-1",
+    "2026-11-01-v0-3-5",
+    "2026-11-01-v0-3-4",
+    "2026-10-28-hotfix-v0-3-3-2",
+    "2026-10-28-hotfix-v0-3-3-1",
+    "2026-10-28-v0-3-3",
+    "2026-10-18-hotfix-v0-3-10",
+    "2026-10-18-hotfix-v0-3-1-2",
+    "2026-10-18-v0-3-1",
+  ]);
+  // Without a version on one side, the address decides as before.
+  const mixed = ["2026-10-19-hotfix-v0-3-1-3", "2026-10-19-roadmap"].map(note);
+  assert.deepEqual([...mixed].sort(byNewest).map((n) => n.slug), ["2026-10-19-roadmap", "2026-10-19-hotfix-v0-3-1-3"]);
+});
+
 test("pinned: true keeps a note on top, several by date; anything else is not pinned", () => {
   const pinned = (value: string) => readNote("2026-10-12-x.md", `---\ntitle: t\npinned: ${value}\n---\n`)?.pinned;
   assert.equal(pinned("true"), true);

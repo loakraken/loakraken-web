@@ -111,6 +111,14 @@ export interface components {
             isInner: boolean | null;
             /** @description 아바타 기본 효과 줄(예: 민첩 +2.00%) */
             effects: string[];
+            /** @description 이 아바타가 주는 성향 점수(공식 툴팁 순서). 성향 줄이 없는 아바타(이동 효과 등)는 빈 목록. 캐릭터 성향 합계는 tendencies */
+            tendencies: components["schemas"]["AvatarTendencyResponse"][];
+        };
+        AvatarTendencyResponse: {
+            /** @example 지성 */
+            type: string | null;
+            /** @example 5 */
+            point: number | null;
         };
         CollectibleResponse: {
             type: string | null;

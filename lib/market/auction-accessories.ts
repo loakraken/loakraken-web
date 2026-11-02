@@ -1,8 +1,9 @@
 // T4 accessory prices on the auction house (api #139, API list #10 and the
 // board it belongs to): for each slot, the lowest buy-now price of every
-// grade combination of its key polish effects (상상~하중), and the cheapest
+// grade combination of its key polish effects (상상~상하·하상), and the cheapest
 // listings of one combination. Board cached by the backend; a listings page
-// costs at most one official call (1-minute cache).
+// costs at most one official call (1-minute cache). 중하·하중 are not shown
+// (user 11-02); the api stops building them too, either order is safe.
 
 import type { components } from "../api/auction-accessories-schema";
 
@@ -47,12 +48,27 @@ export function parseAccessoryFilter(input: URLSearchParams): AccessoryFilter {
   };
 }
 
-/** A cell from a shared link (?slot=EARRING&levels=HIGH,MID&page=2); anything else is no pick. */
+/** Two-effect combinations left out of the board (user 11-02): 중하 and 하중. */
+const DROPPED = ["MID,LOW", "LOW,MID"];
+export const isDroppedCombo = (levels: readonly string[]) => DROPPED.includes(levels.join(","));
+
+/** The board without the dropped combinations, whatever the api still sends. */
+export function withoutDropped(board: AccessoryBoard): AccessoryBoard {
+  return { ...board, slots: board.slots.map((slot) => ({ ...slot, cells: slot.cells.filter((cell) => !isDroppedCombo(cell.levels)) })) };
+}
+
+/** A cell from a shared link (?slot=EARRING&levels=HIGH,MID&page=2); anything else (a dropped combination too) is no pick. */
 export function parseAccessoryPick(input: URLSearchParams): AccessoryPick | null {
   const slot = input.get("slot");
   const levels = (input.get("levels") ?? "").split(",").filter(Boolean);
   const page = Number(input.get("page") ?? 1);
-  if (!SLOTS.includes(slot as Slot) || levels.length < 1 || levels.length > 2 || !levels.every((l) => LEVELS.includes(l as Level)))
+  if (
+    !SLOTS.includes(slot as Slot) ||
+    levels.length < 1 ||
+    levels.length > 2 ||
+    !levels.every((l) => LEVELS.includes(l as Level)) ||
+    isDroppedCombo(levels)
+  )
     return null;
   return {
     slot: slot as Slot,

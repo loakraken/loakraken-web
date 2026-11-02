@@ -177,6 +177,8 @@ for (const [status, code] of [
   [503, "LOST_ARK_NOT_CONFIGURED"],
   [503, "CHARACTER_CACHE_UNAVAILABLE"],
   [503, "CHARACTER_STORAGE_UNAVAILABLE"],
+  // The api's official-call gate store is down (per-key gate, api #804): its own code, not a contract error.
+  [503, "LOST_ARK_GATE_UNAVAILABLE"],
   [504, "LOST_ARK_API_TIMEOUT"],
 ] as const) {
   test(`upstream ${status} ${code} is safe and never retried`, async () => {

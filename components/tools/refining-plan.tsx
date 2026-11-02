@@ -409,6 +409,20 @@ function PriceSource({ line }: { line: CostLine }) {
   ) : null;
 }
 
+/**
+ * What one purchase is, for the "사야 할 골드" sub-line (사용자 11-02: "13,958묶음"
+ * read as a count of items): "100개 묶음", or the pouch's own size ("주머니(대)").
+ */
+function purchaseUnit(line: CostLine) {
+  const price = line.price;
+  if (price?.contentsPerItem != null) {
+    const name = price.sourceItemName ?? "";
+    const at = name.indexOf("주머니");
+    return at >= 0 ? name.slice(at) : "주머니";
+  }
+  return `${formatCount(line.purchase?.perUnit ?? 1)}개 묶음`;
+}
+
 type Owned = Record<string, string>;
 
 /**
@@ -652,10 +666,9 @@ function Result({
                   {line.purchase == null ? "—" : formatCount(line.purchase.gold)}
                   {line.purchase != null && line.purchase.perUnit > 1 && line.purchase.units > 0 && (
                     <small>
-                      {/* Read as "금액, n묶음" instead of one run-on number. */}
+                      {/* Read as "금액, 무엇을 몇 개 사는지" instead of one run-on number. */}
                       <span className={styles.srOnly}>, </span>
-                      {formatCount(line.purchase.units)}
-                      {line.price?.contentsPerItem != null ? "주머니" : "묶음"}
+                      {purchaseUnit(line)} {formatCount(line.purchase.units)}개 구매
                       {line.purchase.leftover > 0 &&
                         ` · ${formatCount(line.purchase.leftover)}개 남음`}
                     </small>
@@ -676,11 +689,11 @@ function Result({
       <dl className={styles.terms}>
         <div>
           <dt>사야 할 골드</dt>
-          <dd>가진 수량을 빼고 부족한 만큼만 지금 살 때 드는 골드예요.</dd>
+          <dd>부족한 만큼을 거래소 묶음·주머니 단위로 통째로 살 때 드는 골드라, 남는 수량이 생길 수 있어요.</dd>
         </div>
         <div>
           <dt>쓰는 재료 시세</dt>
-          <dd>가진 재료까지 포함해 재련에 쓰일 재료 전체를 시세로 친 값이에요.</dd>
+          <dd>가진 재료까지 포함해 재련에 실제로 쓰는 수량만큼만 시세로 친 값이에요.</dd>
         </div>
       </dl>
       <details className={styles.more}>

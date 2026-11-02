@@ -33,6 +33,8 @@ import styles from "./abidos-craft.module.css";
 import { MoreDetail } from "@/components/ui/more-detail";
 
 const UNKNOWN = "미확인";
+/** 상급 first on this page (사용자 11-02); the data keeps its order for the other tools. */
+const OUTPUTS = [...CRAFT_DATA.outputs].sort((a, b) => Number(b.id === "superior") - Number(a.id === "superior"));
 const percentText = (value: number) => value.toLocaleString("ko-KR", { maximumFractionDigits: 2 });
 const agoText = (now: number, iso: string) => {
   const minutes = Math.max(0, Math.floor((now - Date.parse(iso)) / MINUTE));
@@ -245,7 +247,7 @@ export function AbidosCraftTool() {
               />
               <PercentField
                 label="제작 수수료 감소"
-                hint={`1회 제작 골드 ${CRAFT_DATA.outputs.map((o) => `${o.name.replace(" 융화 재료", "")} ${count(craftGoldAfterCut(o.gold, feeCut))}`).join(" · ")}`}
+                hint={`1회 제작 골드 ${OUTPUTS.map((o) => `${o.name.replace(" 융화 재료", "")} ${count(craftGoldAfterCut(o.gold, feeCut))}`).join(" · ")}`}
                 value={feeCutText}
                 onChange={setFeeCutText}
               />
@@ -257,7 +259,7 @@ export function AbidosCraftTool() {
               />
               <PercentField
                 label={`활동력 소모 감소(${CRAFT_DATA.energyCut.category} 제작)`}
-                hint={`1회 활동력 ${CRAFT_DATA.outputs.map((o) => `${o.name.replace(" 융화 재료", "")} ${count(energyAfterCut(o.energy, energyCut.overall, energyCut.category))}`).join(" · ")} (내림)`}
+                hint={`1회 활동력 ${OUTPUTS.map((o) => `${o.name.replace(" 융화 재료", "")} ${count(energyAfterCut(o.energy, energyCut.overall, energyCut.category))}`).join(" · ")} (내림)`}
                 value={energyCategoryText}
                 onChange={setEnergyCategoryText}
               />
@@ -304,7 +306,7 @@ export function AbidosCraftTool() {
                 </p>
               </div>
               <div className={styles.cards}>
-                {CRAFT_DATA.outputs.map((output) => (
+                {OUTPUTS.map((output) => (
                   <OutputTable
                     key={output.id}
                     priced={priced}

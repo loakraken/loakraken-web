@@ -2,8 +2,9 @@
 
 // The /about hero (title, bot, BorderBeam search), also at the top of the
 // home page (user, 11:05). The bot follows the pointer anywhere in the
-// window, header included (user, 11-02), and rests on its own after 5 s (see BotMascot); pressing it pauses the
-// page's automatic motion and never its following (user, 11-01).
+// window, header included (user, 11-02), and falls asleep 5 s after the last
+// move (see BotMascot); pressing it pauses the page's automatic motion and
+// never its following (user, 11-01).
 
 import { useEffect, useRef, useState, useSyncExternalStore, type FormEvent, type RefObject } from "react";
 import { useRouter } from "next/navigation";

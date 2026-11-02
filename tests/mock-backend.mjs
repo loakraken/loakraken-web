@@ -57,15 +57,20 @@ function withSimulatorGear(data) {
     detail: { ...base.detail, refineLevel: null, advancedRefineLevel: null, quality: null, effects: [], stoneEngravings: [], polishEffects: [], braceletEffects: [], ...detail },
   });
   data.loadout.equipment.push(
-    make("목걸이", "테스트 목걸이", {
-      quality: 90,
-      // Shown in the item tooltip only, never as a badge on the row (user 10-26).
-      arkPassivePoint: { name: "깨달음", value: 13 },
-      polishEffects: [
-        { name: "추가 피해", value: "+1.60%", grade: "MID" },
-        { name: "적에게 주는 피해", value: "+0.55%", grade: "LOW" },
-      ],
-    }),
+    {
+      ...make("목걸이", "테스트 목걸이", {
+        quality: 90,
+        // Shown in the item tooltip only, never as a badge on the row (user 10-26).
+        arkPassivePoint: { name: "깨달음", value: 13 },
+        polishEffects: [
+          { name: "추가 피해", value: "+1.60%", grade: "MID" },
+          { name: "적에게 주는 피해", value: "+0.55%", grade: "LOW" },
+        ],
+      }),
+      // An official-CDN icon (the e2e network answers it with a 1x1 PNG), so the item
+      // tooltip draws its grade-coloured icon box (#1303 follow-up).
+      icon: "https://cdn-lostark.game.onstove.com/efui_iconatlas/acc/acc_215.png",
+    },
     make("팔찌", "테스트 팔찌", {
       braceletEffects: [
         { text: "특화 +100", grade: null },
@@ -126,16 +131,6 @@ async function market(url, req, send) {
   if (url.pathname === "/api/v1/markets/tabs")
     return send(marketRead("market-tabs.json"));
   // Engraving icons (backend #780): keys without spaces; 질량 증가 has none (no icon shown).
-  if (url.pathname === "/api/v1/markets/engraving-icons")
-    return send({
-      code: "ENGRAVING_ICONS_SUCCESS",
-      data: {
-        icons: ["돌격대장", "아드레날린", "원한", "잔재된기운"].map((key, i) => ({
-          key,
-          icon: `https://cdn-lostark.game.onstove.com/efui_iconatlas/achieve/achieve_${10 + i}.png`,
-        })),
-      },
-    });
   const boardItems = (tab) => {
     const refining = [
       [6861012, "아비도스 융화 재료", "희귀", 1, 195],
@@ -714,7 +709,8 @@ createServer(async (req, res) => {
       return {
         slot, slotName, options: opts,
         cells: combos.map((levels, i) => {
-          const pending = slot === "RING" && levels.join() === "LOW,MID";
+          // 하상: a combination the board still shows (중하·하중 are left out, user 11-02).
+          const pending = slot === "RING" && levels.join() === "LOW,HIGH";
           return {
             levels, label: levels.map((l) => word[l]).join(""),
             optionLabels: levels.map((l, k) => `${opts[k].shortName} ${word[l]}`),
@@ -1343,9 +1339,18 @@ createServer(async (req, res) => {
         fieldBosses: [timed("세베크 아툰", null, 1460, day % 2 ? times(11, 13, 15, 17, 19, 21, 23) : [], [{ minItemLevel: null, rewards: [rw("영웅 카드 팩", "영웅"), rw("실링", "일반")] }])],
         // The official calendar lists one chaos gate per place (13, same rounds and rewards).
         chaosGates: ["일렁이는 악마군단", ...Array.from({ length: 12 }, (_, i) => `합성 지역 ${i + 2}`)].map((place) => timed(place, null, 1580, day % 2 ? [] : timesAt(50, 10, 12, 14, 16, 18, 20, 22, 23), [
-          { minItemLevel: 1580, rewards: [rw("운명의 파편 주머니(소)", "희귀"), rw("1레벨 겁화의 보석", "고급"), rw("카드 경험치 카드", "일반")] },
-          { minItemLevel: 1640, rewards: [rw("운명의 파편 주머니(중)", "영웅"), rw("2레벨 겁화의 보석", "희귀"), rw("카드 경험치 카드", "일반")] },
-          { minItemLevel: 1680, rewards: [rw("운명의 파편 주머니(대)", "전설"), rw("3레벨 겁화의 보석", "희귀"), rw("카드 경험치 카드", "일반")] },
+          // The real calendar (11-02): ten level groups in the official (rising) order,
+          // each with 골드 and 귀속 골드 (grade 일반, no amount) among its rewards.
+          ...[1580, 1610, 1630, 1640, 1680, 1700, 1720, 1730, 1750, 1770].map((minItemLevel, i) => ({
+            minItemLevel,
+            rewards: [
+              rw(["운명의 파편 주머니(소)", "운명의 파편 주머니(중)", "운명의 파편 주머니(대)"][Math.min(2, Math.floor(i / 4))], ["희귀", "영웅", "전설"][Math.min(2, Math.floor(i / 4))]),
+              rw(`${Math.min(10, i + 1)}레벨 겁화의 보석`, "희귀"),
+              rw("골드", "일반"),
+              rw("귀속 골드", "일반"),
+              rw("카드 경험치 카드", "일반"),
+            ],
+          })),
         ])),
         others: [
           { category: "항해", ...timed("항해 협동 : 베른", null, 1, timesAt(30, 20, 22)) },
@@ -2595,7 +2600,7 @@ createServer(async (req, res) => {
       detail: { parserVersion: "equipment-tooltip-v3", refineLevel, quality: 90, itemLevel: 1640 + refineLevel * 5, tier: 4, arkPassivePoint: null, effects: [], stoneEngravings: [], polishEffects: [], braceletEffects: [] },
     }));
   }
-  if (name === "상세" || name === "상세서포터" || name === "서포터옛응답" || name === "대세블레이드" || name === "가려짐긴값캐릭터" || name === "아크없음" || name === "효율준비중" || name === "팔찌못읽음") {
+  if (name === "상세" || name === "아바타옛응답" || name === "상세서포터" || name === "서포터옛응답" || name === "대세블레이드" || name === "가려짐긴값캐릭터" || name === "아크없음" || name === "효율준비중" || name === "팔찌못읽음") {
     // Detail-page mock: a locally supplied character file (never committed) or
     // the synthetic fixture, enriched with synthetic Tooltip detail and skills.
     if (process.env.MOCK_CHARACTER_FILE)
@@ -2707,16 +2712,20 @@ createServer(async (req, res) => {
     d.honorPoint = 183;
     d.guildName = "합성길드";
     d.guildMemberGrade = "길드장";
+    // 성향 per avatar as the real tooltips give it (backend #833): 이동 효과 none.
+    const t = (...pairs) => pairs.map(([type, point]) => ({ type, point }));
     d.avatars = [
-      ["무기 아바타", "합성 무기 아바타", "전설", false, ["민첩 +2.00%"]],
-      ["무기 덧입기 아바타", "합성 무기 덧입기", "영웅", true, []],
-      ["상의 아바타", "합성 상의 (패스)", "전설", false, ["민첩 +2.00%"]],
-      ["상의 덧입기 아바타", "합성 상의 덧입기", "영웅", true, []],
-      ["하의 아바타", "합성 하의 (패스)", "전설", false, ["민첩 +2.00%"]],
-      ["머리 아바타", "합성 머리", "전설", false, ["민첩 +1.00%"]],
-      ["얼굴1 아바타", "합성 얼굴1", "영웅", false, []],
-      ["이동 효과", "합성 이동 효과", "영웅", false, []],
-    ].map(([type, name, grade, isInner, effects]) => ({ type, name, icon: null, grade, isSet: false, isInner, effects }));
+      ["무기 아바타", "합성 무기 아바타", "전설", false, ["민첩 +2.00%"], t(["지성", 5], ["담력", 5], ["매력", 5], ["친절", 5])],
+      ["무기 덧입기 아바타", "합성 무기 덧입기", "영웅", true, [], t(["지성", 5])],
+      ["상의 아바타", "합성 상의 (패스)", "전설", false, ["민첩 +2.00%"], t(["지성", 10], ["담력", 5], ["매력", 5], ["친절", 5])],
+      ["상의 덧입기 아바타", "합성 상의 덧입기", "영웅", true, [], t(["담력", 5])],
+      ["하의 아바타", "합성 하의 (패스)", "전설", false, ["민첩 +2.00%"], t(["담력", 5], ["매력", 15])],
+      ["머리 아바타", "합성 머리", "전설", false, ["민첩 +1.00%"], t(["매력", 10], ["친절", 5])],
+      ["얼굴1 아바타", "합성 얼굴1", "영웅", false, [], t(["지성", 5])],
+      ["이동 효과", "합성 이동 효과", "영웅", false, [], []],
+    ].map(([type, name, grade, isInner, effects, tendencies]) => ({ type, name, icon: null, grade, isSet: false, isInner, effects, tendencies }));
+    // An api before #833: the avatars come without the field at all.
+    if (name === "아바타옛응답") for (const avatar of d.avatars) delete avatar.tendencies;
     d.coverage.avatars = "PROVIDED";
     d.coverage.collectibles = "PROVIDED";
     for (const stat of d.stats) if (!stat.tooltip?.length) stat.tooltip = [`${stat.type} 효과가 적용됩니다. (합성 문구)`];
