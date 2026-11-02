@@ -57,3 +57,19 @@ for (const width of [360, 1280])
     expect(quiet, `흔들림 (${moved})`).toBe(0);
     await expectNoHorizontalOverflow(page);
   });
+
+// PM-프론트 #1244 P3: if the official marker sprite cannot load, a sighted reader saw only "×4" (the "유물"
+// word is for screen readers). Then the words show instead of the markers.
+test("마커 그림을 못 불러오면 '유물'·'스톤' 글자가 보인다 @regression", async ({ page }) => {
+  // Later routes win over the fixture's image stub: the sprite fails to load.
+  await page.route(/img_engrave_icon\.png/, (route) => route.abort());
+  await gotoReady(page, characterPath("대세블레이드"));
+  const panel = page.getByRole("region", { name: "각인", exact: true });
+  const row = panel.locator("li").filter({ has: page.getByText("아드레날린", { exact: true }) }).first();
+  await expect(row.locator("i[data-kind]")).toHaveCount(0);
+  const counts = row.locator("[class*=engravingCount] > span");
+  await expect(counts.nth(0)).toHaveText("유물 ×4");
+  await expect(counts.nth(1)).toHaveText("스톤 Lv.3");
+  // Real words on screen (not the 1px screen-reader text): the box holds them.
+  expect((await counts.nth(0).boundingBox()).width).toBeGreaterThan(30);
+});
