@@ -44,8 +44,9 @@ const restInFade = (root, fade) =>
 async function focusInFade(page, nav, fade) {
   const links = nav.getByRole("link");
   const count = await links.count();
-  await links.first().focus();
+  // Before the first focus too: the row is on screen, so even that one moves nothing.
   const top = await page.evaluate(() => window.scrollY);
+  await links.first().focus();
   let overflows = false;
   const bad = [];
   const pageMoved = [];
@@ -68,6 +69,8 @@ for (const width of [320, 360, 390])
     const character = page.getByRole("navigation", { name: "캐릭터 정보 탭" });
     // Awake (the pill is placed, and the row scrolled to the current tab if it had to).
     await expect(character).toHaveAttribute("data-pill", "on");
+    // The page can scroll, so "the page did not move" proves something.
+    expect(await page.evaluate(() => document.documentElement.scrollHeight > window.innerHeight)).toBe(true);
     expect(await focusInFade(page, character, 20)).toEqual({ overflows: true, bad: [], pageMoved: [] });
 
     await gotoReady(page, "/market");
