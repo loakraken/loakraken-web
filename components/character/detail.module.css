@@ -654,6 +654,43 @@
 .coreList > li {
   border-top: 1px solid var(--secondary);
 }
+/* The core and gem card buttons sit over the summary row, outside <summary>
+   (no interactive element inside a summary, user 11-01). Their boxes in the
+   row are kept by empty spans of the same size, so the row looks as before. */
+.coreItem {
+  position: relative;
+}
+.coreIconRoom {
+  flex: none;
+  /* At the row's top like the card over it (top: 9px), also when a long name
+     makes the row taller. */
+  align-self: flex-start;
+  width: 40px;
+  height: 40px;
+}
+.coreGemsRoom {
+  flex: none;
+  /* n gems of 24px, 4px apart. */
+  width: calc(var(--core-gems) * 28px - 4px);
+  height: 24px;
+}
+.coreIcon {
+  position: absolute;
+  top: 9px;
+  left: 0;
+  display: flex;
+}
+.coreItem > .coreGems {
+  position: absolute;
+  top: 9px;
+  right: 0;
+  height: 40px;
+  align-items: center;
+}
+/* Room for the row-end arrow (16px + the row gap) when the core opens. */
+.coreItem[data-chevron] > .coreGems {
+  right: 28px;
+}
 .core summary {
   display: flex;
   align-items: center;
@@ -802,7 +839,8 @@
   .coreDetail {
     margin-left: 0;
   }
-  .core summary .coreGems {
+  .coreItem > .coreGems,
+  .core summary .coreGemsRoom {
     display: none;
   }
 }
