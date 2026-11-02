@@ -52,7 +52,7 @@ async function focusInFade(page, nav, fade) {
   return { overflows, bad };
 }
 
-for (const width of [320, 390])
+for (const width of [320, 360, 390])
   test(`${width}: 키보드로 닿은 탭은 줄 끝 흐린 띠 밖 @regression`, async ({ page }) => {
     await page.setViewportSize({ width, height: 800 });
     await gotoReady(page, characterPath("상세"));

@@ -14,10 +14,17 @@ export function focusClearOfFade(event: FocusEvent<HTMLElement>) {
   const tab = event.target;
   if (tab === row || !tab.matches(":focus-visible") || row.scrollWidth <= row.clientWidth) return;
   const style = getComputedStyle(row);
-  const box = row.getBoundingClientRect();
+  const padStart = parseFloat(style.scrollPaddingLeft) || 0;
+  const padEnd = parseFloat(style.scrollPaddingRight) || 0;
+  const left = row.getBoundingClientRect().left + row.clientLeft;
   const rect = tab.getBoundingClientRect();
-  const start = rect.left - (box.left + row.clientLeft) - (parseFloat(style.scrollPaddingLeft) || 0);
-  const end = rect.right - (box.left + row.clientLeft + row.clientWidth) + (parseFloat(style.scrollPaddingRight) || 0);
+  // A tab wider than the clear middle can't clear both fades: it is centred.
+  if (rect.width > row.clientWidth - padStart - padEnd) {
+    row.scrollLeft += rect.left + rect.width / 2 - (left + row.clientWidth / 2);
+    return;
+  }
+  const start = rect.left - left - padStart;
+  const end = rect.right - (left + row.clientWidth) + padEnd;
   if (start < 0) row.scrollLeft += start;
-  else if (end > 0) row.scrollLeft += Math.min(end, start);
+  else if (end > 0) row.scrollLeft += end;
 }
