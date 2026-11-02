@@ -126,6 +126,9 @@ export function SpecUpPathList({ data, sort }: { data: Character; sort: PathSort
     placeholderData: keepPreviousData,
     retry: false,
     refetchOnWindowFocus: false,
+    // PM 총괄 11-02: asked only while this chip is shown, one at a time (the query
+    // dedupes), and not again within the backend's cache window.
+    refetchOnReconnect: false,
   });
   const limit = useRateLimit(path.error, [BUSY]);
   const failure = path.error instanceof SpecUpQueryError ? path.error.info : path.error ? { code: "ERROR" } : null;
@@ -287,6 +290,8 @@ function PathAnswer({ data, path, stale }: { data: Character; path: Path; stale:
           </tbody>
         </table>
       </div>
+      {/* PM 총괄 11-02: the card opens the candidate as it is now, not after the earlier steps. */}
+      <p className={styles.note}>줄을 눌러 여는 자세히는 앞 단계를 올리기 전, 지금 장비 기준이에요.</p>
       {groups.length > PATH_FIRST_ROWS && (
         <button type="button" className={styles.more} aria-expanded={all} onClick={() => setAll(!all)}>
           {all ? `앞 ${PATH_FIRST_ROWS}줄만 보기` : `${groups.length}줄 모두 보기`}
