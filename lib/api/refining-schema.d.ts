@@ -75,8 +75,13 @@ export interface components {
              */
             currentArtisanEnergy: number;
             /**
+             * @description 첫 단계의 현재 성공 확률(%, 소수 셋째 자리까지) — 숨결·책을 올리기 전 값. currentFailedAttempts가 없으면 이 값이 기본 성공률 × (1 + 0.1k)인 k(0~10)를 실패 횟수로 씁니다. 맞는 k가 없으면 400 REFINING_SUCCESS_RATE_MISMATCH
+             * @example 3.3
+             */
+            currentSuccessRate?: number;
+            /**
              * Format: int32
-             * @description 첫 단계에서 이미 실패한 횟수
+             * @description 첫 단계에서 이미 실패한 횟수. 보내면 currentSuccessRate보다 우선합니다
              * @default 0
              */
             currentFailedAttempts: number;
@@ -124,6 +129,11 @@ export interface components {
             worstCaseGold: number;
             /** @description 계산 가정과 제외 항목 */
             assumptions: string[];
+            /**
+             * @description 첫 단계 실패 횟수를 어디서 정했는지. REQUEST: 요청의 실패 횟수(또는 0), SUCCESS_RATE: 현재 성공 확률에서
+             * @enum {string|null}
+             */
+            failedAttemptsFrom?: "REQUEST" | "SUCCESS_RATE" | null;
         };
         SourceResponse: {
             /** @description 단계별 수치 출처 */
@@ -167,6 +177,11 @@ export interface components {
             expectedGold: number;
             /** Format: int64 */
             worstCaseGold: number;
+            /**
+             * Format: int32
+             * @description 이 단계를 시작할 때의 실패 횟수(첫 단계만 0 이상, 뒤 단계는 0)
+             */
+            startFailedAttempts?: number | null;
         };
         QuantityResponse: {
             name: string;
@@ -211,7 +226,7 @@ export interface operations {
                     "application/json": components["schemas"]["ApiResponseRefiningPlanResponse"];
                 };
             };
-            /** @description INVALID_REQUEST: 단계 범위·장인의 기운·실패 횟수 오류 */
+            /** @description INVALID_REQUEST: 단계 범위·장인의 기운·실패 횟수 오류, REFINING_SUCCESS_RATE_MISMATCH: 현재 성공 확률이 이 단계의 값과 맞지 않음, REFINING_ARTISAN_ENERGY_MISMATCH: 그 실패 횟수 뒤에 나올 수 없는 장인의 기운 */
             400: {
                 headers: {
                     [name: string]: unknown;

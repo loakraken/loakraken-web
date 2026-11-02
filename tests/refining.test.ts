@@ -8,6 +8,7 @@ import {
   gradeFromName,
   parsePlanRequest,
   partsFromCharacter,
+  refiningFailureCopy,
   requestKey,
   stageGold,
   stageMaterials,
@@ -93,7 +94,6 @@ test("완갑 requests carry no grade, no book and no growth support, and its own
     useBook: false,
     growthSupport: false,
     currentArtisanEnergy: 0,
-    currentFailedAttempts: 0,
   });
   assert.equal(toRequest(guard, state, { ...options, armGuardBreath: false })!.useBreath, false);
 });
@@ -134,7 +134,6 @@ test("requests carry per-part options and skip parts without a goal", () => {
     useBook: false,
     growthSupport: true,
     currentArtisanEnergy: 0,
-    currentFailedAttempts: 0,
   });
   const armorRequest = toRequest(armor, part, options)!;
   assert.equal(armorRequest.useBook, true);
@@ -155,6 +154,48 @@ test("requests carry per-part options and skip parts without a goal", () => {
   );
 });
 
+test("현재 성공 확률 goes out only when typed, and the failure count never", () => {
+  const armor = PARTS[1];
+  const part: PartState = { ...defaultPart("UPHWA"), current: 16, target: 18, artisanEnergy: 1.39 };
+  const blank = toRequest(armor, part, options)!;
+  assert.equal("currentSuccessRate" in blank, false);
+  assert.equal("currentFailedAttempts" in blank, false);
+  const typed = toRequest(armor, { ...part, successRate: 3.3 }, options)!;
+  assert.equal(typed.currentSuccessRate, 3.3);
+  assert.equal("currentFailedAttempts" in typed, false);
+  assert.notEqual(requestKey(blank), requestKey(typed));
+});
+
+test("a rate that fits no failure count reads as its own message", () => {
+  const copy = refiningFailureCopy({ code: "REFINING_SUCCESS_RATE_MISMATCH" });
+  assert.equal(copy.title, "현재 성공 확률을 확인해 주세요");
+  assert.match(copy.text, /숨결·책을 올리기 전/);
+  const energy = refiningFailureCopy({ code: "REFINING_ARTISAN_ENERGY_MISMATCH" });
+  assert.equal(energy.title, "장인의 기운을 확인해 주세요");
+  assert.equal(energy.text, "성공 확률과 장인의 기운이 맞지 않아요. 숨결·책을 올리기 전 값을 넣어 주세요.");
+});
+
+test("the backend's own 완갑 and 성공 확률 answers (api #828, #830 fixtures) pass the contract", () => {
+  const guard = read("./refining-fixtures/refining-plan-arm-guard.json");
+  assert.equal(isPlanEnvelope(guard), true);
+  assert.equal(guard.data.grade, null);
+  const rate = read("./refining-fixtures/refining-plan-success-rate.json");
+  assert.equal(isPlanEnvelope(rate), true);
+  assert.equal(rate.data.failedAttemptsFrom, "SUCCESS_RATE");
+  assert.equal(rate.data.stages[0].startFailedAttempts, 1);
+});
+
+test("the answer's failure count and its origin pass the contract, and older answers without them too", () => {
+  const derived = envelope();
+  derived.data.failedAttemptsFrom = "SUCCESS_RATE";
+  derived.data.stages[0].startFailedAttempts = 1;
+  assert.equal(isPlanEnvelope(derived), true);
+  const older = envelope();
+  delete older.data.failedAttemptsFrom;
+  for (const stage of older.data.stages) delete stage.startFailedAttempts;
+  assert.equal(isPlanEnvelope(older), true);
+});
+
 test("plan requests are allow-listed before the backend", () => {
   const valid = { grade: "UPHWA", equipmentType: "ARMOR", fromStage: 18, toStage: 20 };
   assert.deepEqual(parsePlanRequest(valid), {
@@ -163,7 +204,6 @@ test("plan requests are allow-listed before the backend", () => {
     useBook: false,
     growthSupport: false,
     currentArtisanEnergy: 0,
-    currentFailedAttempts: 0,
   });
   for (const bad of [
     null,
@@ -176,8 +216,19 @@ test("plan requests are allow-listed before the backend", () => {
     { ...valid, useBreath: "yes" },
     { ...valid, currentArtisanEnergy: 101 },
     { ...valid, currentFailedAttempts: 11 },
+    { ...valid, currentSuccessRate: 101 },
+    { ...valid, currentSuccessRate: -1 },
+    { ...valid, currentSuccessRate: 3.3001 },
+    { ...valid, currentSuccessRate: "3.3" },
   ])
     assert.equal(parsePlanRequest(bad), null, JSON.stringify(bad));
+  // 현재 성공 확률 and the failure count pass on only when sent: a default count
+  // would win over the rate at the api.
+  assert.deepEqual(parsePlanRequest({ ...valid, currentSuccessRate: 3.3 })?.currentSuccessRate, 3.3);
+  // Three decimals reach the api (#830), which judges a rate off the 0.01 grid itself.
+  assert.equal(parsePlanRequest({ ...valid, currentSuccessRate: 3.305 })?.currentSuccessRate, 3.305);
+  assert.equal("currentFailedAttempts" in parsePlanRequest(valid)!, false);
+  assert.equal(parsePlanRequest({ ...valid, currentFailedAttempts: 2 })?.currentFailedAttempts, 2);
   assert.equal(
     "extra" in parsePlanRequest({ ...valid, extra: 1 })!,
     false,
@@ -191,7 +242,6 @@ test("plan requests are allow-listed before the backend", () => {
     useBook: false,
     growthSupport: false,
     currentArtisanEnergy: 0,
-    currentFailedAttempts: 0,
   });
   for (const bad of [
     { ...guard, fromStage: -1 },

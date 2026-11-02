@@ -363,11 +363,33 @@ function refiningPlan(request) {
   // growth support, grade null in the answer.
   const armGuard = request.equipmentType === "ARM_GUARD";
   const round = (v) => Math.round(v * 100) / 100;
+  const baseBp = (target) => (armGuard ? Math.max(500, 1500 - target * 50) : Math.max(300, 1500 - (target - 11) * 80));
+  // 현재 성공 확률 (api success-rate PR): without an explicit failure count, the k (0~10)
+  // with rate = base × (1 + 0.1k); no such k → null (400 REFINING_SUCCESS_RATE_MISMATCH).
+  let startFailures = request.currentFailedAttempts ?? 0;
+  let failedAttemptsFrom = "REQUEST";
+  if (request.currentFailedAttempts == null && request.currentSuccessRate != null) {
+    const k = (request.currentSuccessRate / (baseBp(request.fromStage + 1) / 100) - 1) * 10;
+    if (Math.abs(k - Math.round(k)) > 0.001 || k < -0.001 || k > 10.001) return null;
+    startFailures = Math.round(k);
+    failedAttemptsFrom = "SUCCESS_RATE";
+    // api #830: the energy must be reachable after those failures, between no breath/book
+    // on any try and this mock's breath × book on every try (100% cap, open at 10).
+    const base = baseBp(request.fromStage + 1);
+    let low = 0, high = 0;
+    for (let i = 0; i < startFailures; i++) {
+      const rate = base * (1 + 0.1 * i);
+      low += Math.floor((rate * 100) / 215) / 100;
+      high += Math.floor((Math.min(10000, rate * 1.5 * 1.3) * 100) / 215) / 100;
+    }
+    const energy = request.currentArtisanEnergy ?? 0;
+    if (energy < low - 0.001 || (startFailures < 10 && energy > high + 0.001)) return "ENERGY";
+  }
   const stages = [];
   for (let target = request.fromStage + 1; target <= request.toStage; target++) {
     const rate = armGuard
-      ? Math.max(500, 1500 - target * 50) * (request.useBreath ? 1.5 : 1)
-      : Math.max(300, 1500 - (target - 11) * 80) * (request.useBreath ? 1.5 : 1) * (request.useBook && target <= 20 ? 1.3 : 1);
+      ? baseBp(target) * (request.useBreath ? 1.5 : 1)
+      : baseBp(target) * (request.useBreath ? 1.5 : 1) * (request.useBook && target <= 20 ? 1.3 : 1);
     const maxAttempts = Math.ceil(21500 / rate) + 1;
     const expectedAttempts = round(maxAttempts * 0.42);
     const per = armGuard ? [
@@ -389,6 +411,7 @@ function refiningPlan(request) {
     const goldPer = !armGuard && request.growthSupport && request.grade === "UPHWA" && target <= 18 ? gold * 0.8 : gold;
     stages.push({
       targetStage: target,
+      startFailedAttempts: target === request.fromStage + 1 ? startFailures : 0,
       firstAttemptSuccessRateBp: Math.round(rate),
       expectedAttempts,
       medianAttempts: Math.round(maxAttempts * 0.36),
@@ -413,6 +436,7 @@ function refiningPlan(request) {
       source: { name: "합성 목 데이터", commit: "mock", license: "테스트 전용", crossCheckedWith: "없음", verifiedOn: "2026-10-05" },
       grade: armGuard ? null : request.grade, equipmentType: request.equipmentType, fromStage: request.fromStage, toStage: request.toStage,
       useBreath: !!request.useBreath, useBook: armGuard ? false : !!request.useBook, growthSupport: armGuard ? false : !!request.growthSupport,
+      failedAttemptsFrom,
       stages,
       expectedMaterials: sum("expectedMaterials"),
       worstCaseMaterials: sum("worstCaseMaterials"),
@@ -773,7 +797,10 @@ createServer(async (req, res) => {
     const request = JSON.parse(body);
     if (request.fromStage === 24 && request.toStage === 25 && request.currentFailedAttempts === 10)
       return send({ code: "INVALID_REQUEST" }, 400);
-    return send(refiningPlan(request));
+    const plan = refiningPlan(request);
+    if (!plan) return send({ code: "REFINING_SUCCESS_RATE_MISMATCH", message: "현재 성공 확률이 이 단계의 값과 맞지 않습니다." }, 400);
+    if (plan === "ENERGY") return send({ code: "REFINING_ARTISAN_ENERGY_MISMATCH", message: "현재 성공 확률과 장인의 기운이 맞지 않습니다." }, 400);
+    return send(plan);
   }
   // Combat-power simulator (backend #240). Stage A answers UNSUPPORTED for every
   // item like the real contract; "전투력계산" gets synthetic OK numbers (not game
