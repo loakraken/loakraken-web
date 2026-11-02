@@ -8,6 +8,8 @@ import { forwardHeaders, incomingContext } from "../api/backend";
 
 // USER_KEY_*: the user's own API key (BYOK, api #804) — a bad shape, a key the
 // official API refused, or that key's own limit (never retried with ours).
+// LOST_ARK_GATE_UNAVAILABLE: the api's official-call gate store is down; listed
+// so it keeps its code instead of reading as an official API error.
 const errorCodes: Record<number, readonly string[]> = {
   400: ["INVALID_REQUEST", "USER_KEY_MALFORMED"],
   401: ["USER_KEY_INVALID"],
@@ -18,6 +20,7 @@ const errorCodes: Record<number, readonly string[]> = {
     "LOST_ARK_NOT_CONFIGURED",
     "CHARACTER_CACHE_UNAVAILABLE",
     "CHARACTER_STORAGE_UNAVAILABLE",
+    "LOST_ARK_GATE_UNAVAILABLE",
   ],
   504: ["LOST_ARK_API_TIMEOUT"],
 };
