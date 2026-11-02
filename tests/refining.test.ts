@@ -29,6 +29,7 @@ const origin = "http://127.0.0.1:8080";
 const options = {
   weaponBreath: true,
   armorBreath: false,
+  armGuardBreath: true,
   weaponBook: false,
   armorBook: true,
   growthSupport: true,
@@ -66,6 +67,56 @@ test("character equipment fills current stages and flags unreadable parts", () =
   assert.equal(parts.helmet.grade, "UPHWA");
   assert.deepEqual(unsupported, ["상의", "하의", "장갑", "어깨"]);
   assert.equal(parts.chest.enabled, false, "unreadable parts start excluded");
+  // No 완갑 on this character: left out quietly, not named as unreadable gear.
+  assert.equal(parts.armGuard.enabled, false);
+});
+
+test("완갑 reads its stage from 0 with no grade in the name", () => {
+  const data = read("./fixtures/character-full-data.json") as Character;
+  data.loadout.equipment = [
+    { type: "완갑", name: "+3 팔 보호구", detail: { refineLevel: 3 } },
+  ] as unknown as Character["loadout"]["equipment"];
+  const { parts, unsupported } = partsFromCharacter(data);
+  assert.equal(parts.armGuard.enabled, true);
+  assert.equal(parts.armGuard.current, 3);
+  assert.equal(unsupported.includes("완갑"), false);
+});
+
+test("완갑 requests carry no grade, no book and no growth support, and its own breath", () => {
+  const guard = PARTS.find((part) => part.type === "ARM_GUARD")!;
+  const state: PartState = { ...defaultPart("JEONYUL"), current: 0, target: 3 };
+  assert.deepEqual(toRequest(guard, state, options), {
+    equipmentType: "ARM_GUARD",
+    fromStage: 0,
+    toStage: 3,
+    useBreath: true,
+    useBook: false,
+    growthSupport: false,
+    currentArtisanEnergy: 0,
+    currentFailedAttempts: 0,
+  });
+  assert.equal(toRequest(guard, state, { ...options, armGuardBreath: false })!.useBreath, false);
+});
+
+test("완갑 stages add no item level", () => {
+  const parts = Object.fromEntries(
+    PARTS.map((part) => [part.id, { ...defaultPart(), current: 18, target: 18 }]),
+  ) as Record<PartId, PartState>;
+  parts.armGuard = { ...defaultPart(), current: 0, target: 25 };
+  assert.equal(targetItemLevel(1700, parts), 1700);
+  parts.weapon = { ...parts.weapon, target: 19 };
+  assert.equal(targetItemLevel(1700, parts), Math.round((1700 + 5 / 6) * 100) / 100);
+});
+
+test("a 완갑 answer (grade null) satisfies the contract", () => {
+  const guard = envelope();
+  guard.data.grade = null;
+  guard.data.equipmentType = "ARM_GUARD";
+  assert.equal(isPlanEnvelope(guard), true);
+  // Response enums are tolerant (lib/tools/contract.ts); the type still holds.
+  const numeric = envelope();
+  numeric.data.grade = 1;
+  assert.equal(isPlanEnvelope(numeric), false);
 });
 
 test("requests carry per-part options and skip parts without a goal", () => {
@@ -132,6 +183,26 @@ test("plan requests are allow-listed before the backend", () => {
     false,
     "unknown keys are dropped",
   );
+  // 완갑: stages from 0, the grade is not passed on, book and growth support refused.
+  const guard = { equipmentType: "ARM_GUARD", fromStage: 0, toStage: 1 };
+  assert.deepEqual(parsePlanRequest({ ...guard, grade: "UPHWA" }), {
+    ...guard,
+    useBreath: false,
+    useBook: false,
+    growthSupport: false,
+    currentArtisanEnergy: 0,
+    currentFailedAttempts: 0,
+  });
+  for (const bad of [
+    { ...guard, fromStage: -1 },
+    { ...guard, toStage: 0 },
+    { ...guard, toStage: 26 },
+    { ...guard, useBook: true },
+    { ...guard, growthSupport: true },
+    { ...valid, fromStage: 0 },
+    { ...valid, grade: undefined },
+  ])
+    assert.equal(parsePlanRequest(bad), null, JSON.stringify(bad));
 });
 
 test("percentile modes scale each stage's worst case by its attempts", () => {

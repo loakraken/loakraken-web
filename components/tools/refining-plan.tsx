@@ -34,6 +34,7 @@ import {
   GRADES,
   MAX_STAGE,
   MIN_STAGE,
+  minStage,
   MODES,
   PARTS,
   attemptsAt,
@@ -77,6 +78,7 @@ const BOOK_ASSUMPTION =
 const OPTION_COPY: { key: keyof Options; label: string; hint: string }[] = [
   { key: "weaponBreath", label: "무기 숨결", hint: "매 시도 최대 개수" },
   { key: "armorBreath", label: "방어구 숨결", hint: "매 시도 최대 개수" },
+  { key: "armGuardBreath", label: "완갑 숨결", hint: "용암·빙하 숨결 매 시도 최대 개수" },
   {
     key: "weaponBook",
     label: "무기 책 효과 적용",
@@ -265,14 +267,19 @@ function PartRow({
         aria-labelledby={id}
         disabled={!state.enabled}
       >
-        <label className={styles.mini}>
-          <span>등급</span>
-          <Select
-            value={state.grade}
-            onValueChange={(grade) => onChange({ ...state, grade: grade as Grade })}
-            items={GRADES.map((grade) => ({ value: grade.value, label: grade.label.replace("운명의 ", "") }))}
-          />
-        </label>
+        {/* 완갑 has one stage table for every grade, so nothing to choose. */}
+        {part.type === "ARM_GUARD" ? (
+          <span className={styles.mini} aria-hidden="true" />
+        ) : (
+          <label className={styles.mini}>
+            <span>등급</span>
+            <Select
+              value={state.grade}
+              onValueChange={(grade) => onChange({ ...state, grade: grade as Grade })}
+              items={GRADES.map((grade) => ({ value: grade.value, label: grade.label.replace("운명의 ", "") }))}
+            />
+          </label>
+        )}
         <label className={styles.mini}>
           <span>현재</span>
           <Select
@@ -284,7 +291,7 @@ function PartRow({
                 target: Math.max(current, state.target),
               });
             }}
-            items={range(MIN_STAGE, MAX_STAGE).map((stage) => ({ value: stage, label: `+${stage}` }))}
+            items={range(minStage(part.type), MAX_STAGE).map((stage) => ({ value: stage, label: `+${stage}` }))}
           />
         </label>
         <label className={styles.mini}>
@@ -783,8 +790,8 @@ const partsCodec = json<Record<PartId, PartState>>((v) => {
     const p = v[part.id];
     if (!isRecord(p)) continue;
     const grade = GRADES.some((g) => g.value === p.grade) ? (p.grade as Grade) : null;
-    const current = int(p.current, MIN_STAGE, 25);
-    const target = int(p.target, MIN_STAGE, 25);
+    const current = int(p.current, minStage(part.type), 25);
+    const target = int(p.target, minStage(part.type), 25);
     const energy = typeof p.artisanEnergy === "number" && p.artisanEnergy >= 0 && p.artisanEnergy <= 100 ? p.artisanEnergy : null;
     const failed = int(p.failedAttempts, 0, 999);
     if (typeof p.enabled !== "boolean" || !grade || current == null || target == null || energy == null || failed == null) continue;
@@ -792,8 +799,8 @@ const partsCodec = json<Record<PartId, PartState>>((v) => {
   }
   return out;
 });
-const OPTION_KEYS = ["weaponBreath", "armorBreath", "weaponBook", "armorBook", "growthSupport"] as const;
-const DEFAULT_OPTIONS: Options = { weaponBreath: false, armorBreath: false, weaponBook: true, armorBook: true, growthSupport: true };
+const OPTION_KEYS = ["weaponBreath", "armorBreath", "armGuardBreath", "weaponBook", "armorBook", "growthSupport"] as const;
+const DEFAULT_OPTIONS: Options = { weaponBreath: false, armorBreath: false, armGuardBreath: false, weaponBook: true, armorBook: true, growthSupport: true };
 const optionsCodec = json<Options>((v) => {
   if (!isRecord(v)) return null;
   const out = { ...DEFAULT_OPTIONS };
@@ -966,7 +973,8 @@ function RefiningContent({ initialName }: { initialName: string }) {
                         Object.fromEntries(
                           PARTS.map((part) => [
                             part.id,
-                            prev[part.id].enabled
+                            // 완갑 has its own stage table: set in its own row.
+                            prev[part.id].enabled && part.type !== "ARM_GUARD"
                               ? {
                                   ...prev[part.id],
                                   target: Math.max(prev[part.id].current, stage),
@@ -983,7 +991,7 @@ function RefiningContent({ initialName }: { initialName: string }) {
               </div>
               <p className={quote.caption}>
                 누르면 계산에 포함한 모든 부위의 목표가 그 단계로 바뀌어요.
-                이미 더 높은 부위는 그대로예요.
+                이미 더 높은 부위는 그대로예요. 완갑은 단계표가 달라 아래 줄에서 따로 골라요.
               </p>
               <ul className={styles.parts}>
                 {PARTS.map((part) => (
