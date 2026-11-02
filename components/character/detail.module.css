@@ -3216,6 +3216,34 @@
 .specUpCooldown[data-off] {
   visibility: hidden;
 }
+/* 추천 순서's 효율 우선 / 전투력 우선 (layout A, 11-02): small, in the bar's one
+   slot, shown only while that chip is chosen. */
+.specUpPathSorts {
+  display: inline-flex;
+  gap: 4px;
+}
+.specUpPathSorts[data-off] {
+  visibility: hidden;
+}
+.specUpPathSorts button {
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--secondary);
+  border-radius: 980px;
+  background: var(--background);
+  color: var(--muted-foreground);
+  font-size: 12px;
+  white-space: nowrap;
+  touch-action: manipulation;
+}
+.specUpPathSorts button[aria-pressed="true"] {
+  border-color: var(--foreground);
+  color: var(--foreground);
+  font-weight: 600;
+}
+.specUpPathSorts button:active {
+  scale: var(--press-scale);
+}
 @media (hover: hover) and (pointer: fine) {
   .specUpCooldown:hover {
     border-color: var(--foreground);

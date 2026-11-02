@@ -37,8 +37,10 @@ import {
   type Sort,
 } from "@/lib/spec-up/model";
 import { MINUTE, useClock } from "@/components/home/clock";
+import { PATH_SORTS, type PathSort } from "@/lib/spec-up/path";
+import { oneOfCodec, useUrlState } from "@/lib/tools/url-state";
 import { SpecUpGoal } from "./spec-up-goal";
-import { SpecUpPath } from "./spec-up-path";
+import { SpecUpPathList } from "./spec-up-path";
 import { SimulatorEnabled, SpecUpPathEnabled } from "./tabs";
 import { SpecUpRowDetail } from "./spec-up-detail";
 import { kstTime } from "./parts";
@@ -124,12 +126,29 @@ function CostCell({ candidate, pulse, now }: { candidate: Candidate; pulse?: Pul
  */
 const SUPPORTER_SORTS = [{ id: "KRAKEN", label: "서포터 점수 기준" }] as const;
 
+/**
+ * 추천 순서 is the first chip of the list (사용자 결정 layout A, 11-02) and the
+ * dealer's first view; the other chips are the candidate list's sorts.
+ */
+type View = "PATH" | Sort;
+const PATH_CHIP = { id: "PATH", label: "추천 순서" } as const;
+const VIEWS = [PATH_CHIP.id, ...SORTS.map((s) => s.id)] as const;
+const viewCodec = oneOfCodec<View>(VIEWS);
+
 export default function SpecUpGuide({ data, supporter = false }: { data: Character; supporter?: boolean }) {
   const name = data.characterName;
   // For gem price times ("21:05 시세" / a date when not today).
   const now = useClock(MINUTE);
-  const [sort, setSort] = useState<Sort>(supporter ? "KRAKEN" : DEFAULT_SORT);
   const pathEnabled = useContext(SpecUpPathEnabled);
+  // The chip lives in the address (replaceState: no remount, A7). A supporter
+  // has the one 서포터 점수 list; without SPEC_UP_PATH there is no 추천 순서.
+  const firstView: View = supporter ? "KRAKEN" : pathEnabled ? "PATH" : DEFAULT_SORT;
+  const [chosen, setView] = useUrlState<View>("sort", firstView, viewCodec);
+  const view: View = supporter ? "KRAKEN" : chosen === "PATH" && !pathEnabled ? DEFAULT_SORT : chosen;
+  const pathShown = view === "PATH";
+  // The candidate list behind 추천 순서 stays the dealer's first list (the tab asked for it).
+  const sort: Sort = view === "PATH" ? DEFAULT_SORT : view;
+  const [pathSort, setPathSort] = useState<PathSort>("EFFICIENCY");
   // '적용해 보기' opens the simulator tab, which exists only with COMBAT_POWER_SIM on (#1260).
   const simulator = useContext(SimulatorEnabled);
   // 크라켄 점수 순 (api #573) leaves 작열 (cooldown) gems out by default; the user can add them.
@@ -259,8 +278,11 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
       <p className={styles.simulatorLead}>
         {supporter
           ? "바꿨을 때 오르는 서포터 점수와 드는 골드를 함께 보고, 10만 골드당 점수가 높은 순서로 보여 드려요."
-          : // The dealer's first list is 전투력 증가 (DEFAULT_SORT, 마케팅 11-01: the line said 효율 order).
-            "바꿨을 때 오르는 전투력과 드는 골드를 함께 보고, 처음에는 전투력이 많이 오르는 순서로 보여 드려요. 정렬은 아래에서 바꿀 수 있어요."}
+          : pathEnabled
+            ? // The dealer's first view is 추천 순서 (layout A, 11-02).
+              "바꿨을 때 오르는 전투력과 드는 골드를 함께 보고, 처음에는 올리는 차례대로 고른 추천 순서를 보여 드려요. 아래에서 다른 정렬로 바꿀 수 있어요."
+            : // The dealer's first list is 전투력 증가 (DEFAULT_SORT, 마케팅 11-01: the line said 효율 order).
+              "바꿨을 때 오르는 전투력과 드는 골드를 함께 보고, 처음에는 전투력이 많이 오르는 순서로 보여 드려요. 정렬은 아래에서 바꿀 수 있어요."}
       </p>
       {/* 사용자 결정(PM 총괄 19:48): 해설은 아직 없다는 한 줄. */}
       <p className={styles.specUpNote}>세팅 해설 기능은 준비 중이에요.</p>
@@ -269,21 +291,42 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
 
       <div className={styles.specUpBar}>
         <div role="group" aria-label="정렬" className={styles.specUpSorts}>
-          {(supporter ? SUPPORTER_SORTS : SORTS).map((item) => (
+          {(supporter ? SUPPORTER_SORTS : pathEnabled ? [PATH_CHIP, ...SORTS] : SORTS).map((item) => (
             <button
               key={item.id}
               type="button"
-              aria-pressed={sort === item.id}
-              onClick={() => setSort(item.id)}
+              aria-pressed={view === item.id}
+              onClick={() => setView(item.id)}
             >
               {item.label}
             </button>
           ))}
         </div>
-        {/* One slot held in the bar for every sort (A7: nothing below moves on a
-            press or a late answer): the cooldown toggle, or why 크라켄 점수 순 is
-            off. Its room is the widest of the toggle and every note. */}
+        {/* One slot held in the bar for every chip (A7: nothing below moves on a
+            press or a late answer): 추천 순서's 효율/전투력 우선, the cooldown
+            toggle, or why 크라켄 점수 순 is off. Its room is the widest of them. */}
         <span className={styles.specUpKrakenSlot}>
+          {!supporter && pathEnabled && (
+            <span
+              role="group"
+              aria-label="추천 순서 고르는 기준"
+              className={styles.specUpPathSorts}
+              data-off={!pathShown || undefined}
+            >
+              {PATH_SORTS.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  className="hit-44"
+                  aria-pressed={pathSort === item.id}
+                  tabIndex={pathShown ? undefined : -1}
+                  onClick={() => setPathSort(item.id)}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </span>
+          )}
           <button
             type="button"
             className={styles.specUpCooldown}
@@ -310,9 +353,12 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
       </div>
       {/* Its own line, held before the answer arrives (CLS 0). */}
       <p className={styles.specUpPrices}>
-        {guide?.pricesAt ? `시세 ${kstTime(guide.pricesAt)} 기준` : ""}
+        {!pathShown && guide?.pricesAt ? `시세 ${kstTime(guide.pricesAt)} 기준` : ""}
       </p>
 
+      {pathShown ? (
+        <SpecUpPathList data={data} sort={pathSort} />
+      ) : (
       <div
         // Not a live region (#921): a new list would be read out whole. The
         // status line below tells what happened in one sentence.
@@ -536,8 +582,8 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
           </Fragment>
         )}
       </div>
-      {/* The chained order and the goal path are combat-power paths: not for a supporter. */}
-      {!supporter && pathEnabled && <SpecUpPath data={data} />}
+      )}
+      {/* The goal path is a combat-power path: not for a supporter. */}
       {!supporter && <SpecUpGoal data={data} />}
     </div>
   );

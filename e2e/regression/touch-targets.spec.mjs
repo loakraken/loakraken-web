@@ -53,7 +53,12 @@ test("캐릭터 화면 작은 버튼 누르는 영역 44 @regression @A36", asyn
 
   await gotoReady(page, characterPath("상세", "specup"));
   const sorts = page.getByRole("group", { name: "정렬" });
+  // 추천 순서 is the first view (layout A, 11-02), with its two small rule buttons.
+  const pathRule = page.getByRole("group", { name: "추천 순서 고르는 기준" });
   await expectPressable([
+    ["추천 순서", sorts.getByRole("button", { name: "추천 순서" })],
+    ["효율 우선", pathRule.getByRole("button", { name: "효율 우선" })],
+    ["전투력 우선", pathRule.getByRole("button", { name: "전투력 우선" })],
     ["1만 골드당 효율", sorts.getByRole("button", { name: "1만 골드당 효율" })],
     ["전투력 증가", sorts.getByRole("button", { name: "전투력 증가" })],
   ]);
