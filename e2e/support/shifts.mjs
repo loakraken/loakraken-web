@@ -13,12 +13,22 @@ export async function watchShifts(page) {
     window.__shiftLog = [];
     new PerformanceObserver((list) => {
       for (const entry of list.getEntries()) {
+        const label = (el) =>
+          el ? `${el.tagName.toLowerCase()}${el.className && typeof el.className === "string" ? `.${el.className.split(" ")[0]}` : ""}` : "?";
         const sources = (entry.sources ?? []).map((source) => {
           const node = source.node;
           if (!node) return "?";
           const el = node.nodeType === 1 ? node : node.parentElement;
-          const name = el ? `${el.tagName.toLowerCase()}${el.className && typeof el.className === "string" ? `.${el.className.split(" ")[0]}` : ""}` : "?";
-          return node.nodeType === 3 ? `${name}>#text` : name;
+          const name = label(el);
+          if (node.nodeType === 3) return `${name}>#text`;
+          // A pseudo-element ('::after') names its owner and how it moved, or
+          // the message cannot say which of many hit areas it was.
+          if (name.startsWith("::")) {
+            const [a, b] = [source.previousRect, source.currentRect];
+            const delta = a && b ? ` ${Math.round(a.x)},${Math.round(a.y)} ${Math.round(a.width)}x${Math.round(a.height)}→${Math.round(b.x)},${Math.round(b.y)} ${Math.round(b.width)}x${Math.round(b.height)}` : "";
+            return `${label(el.parentElement)}${name}${delta}`;
+          }
+          return name;
         });
         window.__shiftLog.push({ t: entry.startTime, v: entry.value, input: entry.hadRecentInput, sources });
       }
