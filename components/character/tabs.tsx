@@ -983,11 +983,31 @@ function ArkGridPanel({ data }: { data: Character }) {
                 data-chevron={detail || undefined}
                 style={{ "--core-gems": slot.gems.length } as CSSProperties}
               >
+                {/* No buttons inside <summary> (an interactive element there breaks its
+                    keyboard and screen reader use, DevTools issue user 11-01): the core and
+                    gem cards sit over the summary row, before the details in the DOM so the
+                    keyboard reaches them before the row's toggle and its opened content. */}
+                <span className={styles.coreIcon}>
+                  <DetailTooltip name={slot.name ?? "아크 그리드 코어"} card={<CoreCard slot={slot} lines={lines} />}>
+                    <GameIcon src={slot.icon} grade={slot.grade} size={40} />
+                  </DetailTooltip>
+                </span>
+                {slot.gems.length > 0 && (
+                  <span className={styles.coreGems}>
+                    {slot.gems.map((gem, j) => (
+                      <DetailTooltip
+                        key={j}
+                        name={gem.name ?? "아크 그리드 젬"}
+                        card={<GridGemCard gem={gem} lines={gridGemLines(lines, j)} />}
+                        hit="tight"
+                      >
+                        <GameIcon src={gem.icon} grade={gem.grade} size={24} inactive={gem.active === false} />
+                      </DetailTooltip>
+                    ))}
+                  </span>
+                )}
                 <details open={expanded || undefined} className={`${styles.core} ${expand.expand}`}>
-                  {/* No buttons inside <summary> (an interactive element there breaks its
-                      keyboard and screen reader use, DevTools issue user 11-01): the core
-                      and gem cards sit over this row, beside the details, and these empty
-                      boxes keep their room. */}
+                  {/* Empty boxes keep the cards' room in the row. */}
                   <summary>
                     <span className={styles.coreIconRoom} aria-hidden="true" />
                     <div className={styles.itemText}>
@@ -1071,25 +1091,6 @@ function ArkGridPanel({ data }: { data: Character }) {
                     </div>
                   )}
                 </details>
-                <span className={styles.coreIcon}>
-                  <DetailTooltip name={slot.name ?? "아크 그리드 코어"} card={<CoreCard slot={slot} lines={lines} />}>
-                    <GameIcon src={slot.icon} grade={slot.grade} size={40} />
-                  </DetailTooltip>
-                </span>
-                {slot.gems.length > 0 && (
-                  <span className={styles.coreGems}>
-                    {slot.gems.map((gem, j) => (
-                      <DetailTooltip
-                        key={j}
-                        name={gem.name ?? "아크 그리드 젬"}
-                        card={<GridGemCard gem={gem} lines={gridGemLines(lines, j)} />}
-                        hit="tight"
-                      >
-                        <GameIcon src={gem.icon} grade={gem.grade} size={24} inactive={gem.active === false} />
-                      </DetailTooltip>
-                    ))}
-                  </span>
-                )}
               </li>
             );
           })}
