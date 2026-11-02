@@ -48,6 +48,21 @@ for (const width of [1280, 390])
     const core = row.locator(":scope > span button").first();
     await expect(core).toHaveAccessibleName(/상세 보기$/);
     await expect(row.locator("summary button")).toHaveCount(0);
+    // codex P3 (#1315): the card buttons are the topmost element over their room, closed and open.
+    const topmost = () =>
+      row.evaluate((li) => {
+        const at = (rect) => document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2)?.closest("button");
+        const icon = li.querySelector(":scope > span button");
+        const room = li.querySelector("summary [class*=coreIconRoom]").getBoundingClientRect();
+        const gems = li.querySelector(":scope > [class*=coreGems]");
+        const shown = gems && getComputedStyle(gems).display !== "none";
+        return {
+          icon: at(room) === icon,
+          gems: !shown || [...gems.querySelectorAll("button")].every((b) => at(b.getBoundingClientRect()) === b),
+        };
+      });
+    await row.evaluate((li) => li.scrollIntoView({ block: "center" })); // clear of the sticky header
+    expect(await topmost(), "닫힌 줄").toEqual({ icon: true, gems: true });
     const box = await row.evaluate((li) => {
       const r = (el) => el && el.getBoundingClientRect();
       const summary = r(li.querySelector("summary"));
@@ -65,7 +80,9 @@ for (const width of [1280, 390])
       };
     });
     expect(box).toEqual({ iconOnRoom: true, iconInRow: true, textClear: true, gemsClear: true });
-    // The row still opens from its text.
+    // The row still opens from its text, and the cards stay on top once it is open.
     await row.locator("summary [class*=itemText]").click();
     await expect(row.locator("details")).toHaveAttribute("open", "");
+    await row.evaluate((li) => li.scrollIntoView({ block: "center" })); // clear of the sticky header
+    expect(await topmost(), "펼친 줄").toEqual({ icon: true, gems: true });
   });
