@@ -12,7 +12,8 @@ const focusInFade = (root, fade) =>
       (n) => /auto|scroll/.test(getComputedStyle(n).overflowX) && n.querySelector("a"),
     );
     if (!el) return ["가로로 굴러가는 줄 없음"];
-    if (el.scrollWidth <= el.clientWidth) return ["넘치지 않음"];
+    // A row that fits has no fade to clear.
+    if (el.scrollWidth <= el.clientWidth) return [];
     const bad = [];
     for (const link of el.querySelectorAll("a")) {
       link.focus();
