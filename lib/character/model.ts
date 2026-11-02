@@ -125,6 +125,7 @@ export function failureCopy(error: QueryFailure) {
       };
     case "CHARACTER_CACHE_UNAVAILABLE":
     case "CHARACTER_STORAGE_UNAVAILABLE":
+    case "LOST_ARK_GATE_UNAVAILABLE":
       return {
         title: "조회 서비스를 잠시 사용할 수 없어요",
         text: "데이터 처리에 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.",

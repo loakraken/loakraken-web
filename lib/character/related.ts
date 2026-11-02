@@ -25,7 +25,7 @@ const siblingsErrors: Record<number, readonly string[]> = {
   404: ["CHARACTER_NOT_FOUND"],
   429: ["LOST_ARK_RATE_LIMITED", "USER_KEY_RATE_LIMITED"],
   502: ["LOST_ARK_API_ERROR"],
-  503: ["LOST_ARK_NOT_CONFIGURED", "CHARACTER_CACHE_UNAVAILABLE"],
+  503: ["LOST_ARK_NOT_CONFIGURED", "CHARACTER_CACHE_UNAVAILABLE", "LOST_ARK_GATE_UNAVAILABLE"],
   504: ["LOST_ARK_API_TIMEOUT"],
 };
 const historyErrors: Record<number, readonly string[]> = {
