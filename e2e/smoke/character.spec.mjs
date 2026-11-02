@@ -49,6 +49,34 @@ test.describe("캐릭터 탭 @smoke", () => {
     await expect(page).toHaveURL(new RegExp(`/character/${encodeURIComponent("상세")}$`));
   });
 
+  test("첫 화면이 자리 잡은 뒤에는 다른 탭으로 옮겨도 패널이 한 순간도 비지 않는다", async ({ page }) => {
+    // Tabs other than 전투 load their code lazily, then in the background once
+    // the first view is idle; a switch after that must not wait on a download.
+    await page.goto(characterPath("상세"));
+    await page.waitForLoadState("networkidle");
+    // Let the page's own idle callback (the background preload) run, then its downloads finish.
+    await page.evaluate(() => new Promise((resolve) => requestIdleCallback(() => resolve(true), { timeout: 5000 })));
+    await page.waitForLoadState("networkidle");
+    // Every frame, note whether the tab panel holds nothing but its hidden
+    // heading (the empty state a pending tab download would show).
+    await page.evaluate(() => {
+      window.__emptyFrames = 0;
+      const sample = () => {
+        const panel = document.getElementById("character-tab-heading")?.parentElement;
+        if (panel && panel.children.length <= 1) window.__emptyFrames += 1;
+        window.__sampler = requestAnimationFrame(sample);
+      };
+      sample();
+    });
+    const tabs = page.getByRole("navigation", { name: "캐릭터 정보 탭" });
+    for (const [label, heading] of [["시뮬레이터", "전투력 시뮬레이터"], ["스펙업", "스펙업 가이드"], ["내실", "수집품"], ["통계", "원정대 레벨"]]) {
+      await tabs.getByRole("link", { name: label, exact: true }).click();
+      await expect(page.getByRole("heading", { name: heading, exact: true }).first()).toBeVisible();
+    }
+    const empty = await page.evaluate(() => (cancelAnimationFrame(window.__sampler), window.__emptyFrames));
+    expect(empty).toBe(0);
+  });
+
   test("원정대 탭에서 다른 캐릭터로 이동한다", async ({ page }) => {
     // 이동 대상 캐릭터는 목 서버 기본 표본을 받는다.
     await page.goto(characterPath("상세", "siblings"));
