@@ -3,7 +3,7 @@
 import { test, expect, characterPath, gotoReady } from "../support/fixtures.mjs";
 
 /**
- * Focuses each link of a scrolling tab row in turn; returns the ones that sit inside the row's faded ends.
+ * Focuses each link of a scrolling tab row in turn and reports the ones that sit inside the row's faded ends.
  * The row is the element (the given one or inside it) that scrolls sideways and holds the links.
  */
 const focusInFade = (root, fade) =>
@@ -11,13 +11,19 @@ const focusInFade = (root, fade) =>
     const el = [start, ...start.querySelectorAll("*")].find(
       (n) => /auto|scroll/.test(getComputedStyle(n).overflowX) && n.querySelector("a"),
     );
-    if (!el) return ["가로로 굴러가는 줄 없음"];
-    // A row that fits has no fade to clear.
-    if (el.scrollWidth <= el.clientWidth) return [];
+    if (!el) return { overflows: false, bad: ["가로로 굴러가는 줄 없음"] };
+    if (el.scrollWidth <= el.clientWidth) return { overflows: false, bad: [] };
+    const frame = () => new Promise((resolve) => requestAnimationFrame(resolve));
     const bad = [];
     for (const link of el.querySelectorAll("a")) {
       link.focus();
-      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      // Until the row stops moving (a smooth scroll would take several frames).
+      let last = NaN;
+      for (let i = 0; i < 60 && el.scrollLeft !== last; i++) {
+        last = el.scrollLeft;
+        await frame();
+        await frame();
+      }
       const r = link.getBoundingClientRect();
       const box = el.getBoundingClientRect();
       const style = getComputedStyle(el);
@@ -28,7 +34,7 @@ const focusInFade = (root, fade) =>
       if ((!atStart && r.left < inner.left + size - 1) || (!atEnd && r.right > inner.right - size + 1))
         bad.push(link.textContent.trim());
     }
-    return bad;
+    return { overflows: true, bad };
   }, fade);
 
 for (const width of [320, 390])
@@ -36,9 +42,10 @@ for (const width of [320, 390])
     await page.setViewportSize({ width, height: 800 });
     await gotoReady(page, characterPath("상세"));
     // The character row's fade is 40px whose outer half is clear: a focused tab clears that clear half at least.
-    expect(await focusInFade(page.getByRole("navigation", { name: "캐릭터 정보 탭" }), 20)).toEqual([]);
+    // It always overflows at these widths (otherwise the check would prove nothing).
+    expect(await focusInFade(page.getByRole("navigation", { name: "캐릭터 정보 탭" }), 20)).toEqual({ overflows: true, bad: [] });
 
     await gotoReady(page, "/market");
-    // The hub row fades 64px on phones; a focused tab clears half of it.
-    expect(await focusInFade(page.getByRole("navigation", { name: "시세 화면" }), 32)).toEqual([]);
+    // The hub row fades 64px on phones; a focused tab clears half of it. A row that fits has no fade.
+    expect((await focusInFade(page.getByRole("navigation", { name: "시세 화면" }), 32)).bad).toEqual([]);
   });
