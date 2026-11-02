@@ -5,7 +5,7 @@
 import { test, expect, characterPath, gotoReady, expectNoHorizontalOverflow } from "../support/fixtures.mjs";
 import { shiftsSince, watchShifts } from "../support/shifts.mjs";
 
-for (const width of [360, 1280])
+for (const width of [320, 360, 1280])
   test(`${width}: 각인 카드 머리·등급 표시·유물/스톤 표시, 이름 줄 맞춤 @regression`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await watchShifts(page);
@@ -59,8 +59,13 @@ for (const width of [360, 1280])
   });
 
 // PM-프론트 #1244 P3: if the official marker sprite cannot load, a sighted reader saw only "×4" (the "유물"
-// word is for screen readers). Then the words show instead of the markers.
-test("마커 그림을 못 불러오면 '유물'·'스톤' 글자가 보인다 @regression", async ({ page }) => {
+// word is for screen readers). Then the words show instead of the markers. The swap from mark to word after
+// the probe fails moves that line once: accepted by design (PM-프론트 11-02, only when the sprite host is
+// unreachable; reserving the word's width would leave a gap on every row). Narrow screens: the words wrap
+// inside the row, nothing runs off the page or is cut.
+for (const width of [320, 1280])
+test(`${width}: 마커 그림을 못 불러오면 '유물'·'스톤' 글자가 보이고, 잘리거나 넘치지 않는다 @regression`, async ({ page }) => {
+  await page.setViewportSize({ width, height: 900 });
   // Later routes win over the fixture's image stub: the sprite fails to load.
   await page.route(/img_engrave_icon\.png/, (route) => route.abort());
   await gotoReady(page, characterPath("대세블레이드"));
@@ -72,4 +77,18 @@ test("마커 그림을 못 불러오면 '유물'·'스톤' 글자가 보인다 @
   await expect(counts.nth(1)).toHaveText("스톤 Lv.3");
   // Real words on screen (not the 1px screen-reader text): the box holds them.
   expect((await counts.nth(0).boundingBox()).width).toBeGreaterThan(30);
+  // Every count line keeps its text whole and inside its row.
+  const cut = await panel.locator("li").evaluateAll((rows) =>
+    rows.flatMap((li) =>
+      [...li.querySelectorAll("[class*=engravingCount] > span")]
+        .filter((span) => {
+          const r = span.getBoundingClientRect();
+          const box = li.getBoundingClientRect();
+          return span.scrollWidth > span.clientWidth + 1 || r.right > box.right + 1 || r.left < box.left - 1;
+        })
+        .map((span) => span.textContent.trim()),
+    ),
+  );
+  expect(cut, "잘리거나 줄 밖으로 나간 글자").toEqual([]);
+  await expectNoHorizontalOverflow(page);
 });
