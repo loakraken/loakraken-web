@@ -122,8 +122,8 @@ test.describe("재련 기대 비용 사용자 제보 @regression", () => {
     await expect(page.getByText("구매 골드", { exact: true })).toHaveCount(0);
     await expect(page.getByText("소모 가치", { exact: true })).toHaveCount(0);
     await expect(page.getByText(/소모 가치/)).toHaveCount(0);
-    await expect(page.getByText("가진 수량을 빼고 부족한 만큼만 지금 살 때 드는 골드예요.")).toBeVisible();
-    await expect(page.getByText("가진 재료까지 포함해 재련에 쓰일 재료 전체를 시세로 친 값이에요.")).toBeVisible();
+    await expect(page.getByText("부족한 만큼을 거래소 묶음·주머니 단위로 통째로 살 때 드는 골드라, 남는 수량이 생길 수 있어요.")).toBeVisible();
+    await expect(page.getByText("가진 재료까지 포함해 재련에 실제로 쓰는 수량만큼만 시세로 친 값이에요.")).toBeVisible();
     // The longer notes are folded under '자세히'.
     // The materials notes' own fold (the page has another for the book note, feedback #20).
     const more = page
@@ -133,6 +133,26 @@ test.describe("재련 기대 비용 사용자 제보 @regression", () => {
     await expect(more).not.toHaveAttribute("open", "");
     await expect(page.getByText(/가진 재료까지 시세로 치면/)).toBeVisible();
   });
+
+  // 사용자 11-02: "13,958묶음 · 86개 남음" read as 13,958 items. The sub-line names what one
+  // purchase is and how many are bought; 320 keeps it whole.
+  for (const width of [1280, 320])
+    test(`${width}: 사야 할 골드 아래 줄은 무엇을 몇 개 사는지 적는다(묶음 크기 · 주머니 이름)`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await openPlan(page);
+      const subs = materials(page).locator("tbody td small");
+      await expect(subs.filter({ hasText: /^, 주머니\(대\) [\d,]+개 구매( · [\d,]+개 남음)?$/ })).toHaveCount(1);
+      await expect(subs.filter({ hasText: /^, [\d,]+개 묶음 [\d,]+개 구매( · [\d,]+개 남음)?$/ }).first()).toBeVisible();
+      // The old run-on form is gone.
+      await expect(subs.filter({ hasText: /\d(묶음|주머니)/ })).toHaveCount(0);
+      const cut = await materials(page).evaluate((table) =>
+        [...table.querySelectorAll("tbody td")]
+          .filter((el) => el.scrollWidth > el.clientWidth + 1 && getComputedStyle(el).overflow !== "visible")
+          .map((el) => el.textContent.trim().slice(0, 30)),
+      );
+      expect(cut, "잘린 칸").toEqual([]);
+      await expectNoHorizontalOverflow(page);
+    });
 
   test("재료 구매 견적에도 1·2·3 번호가 없다", async ({ page }) => {
     await page.goto("/market/quote");
