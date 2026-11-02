@@ -66,7 +66,7 @@ env:
 jobs:
   build:
     # 초안 PR은 건너뛴다. develop push와 수동 실행은 항상.
-    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
+    # 병합 금지 진단(#1333): 초안이어도 돈다.
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
@@ -160,7 +160,8 @@ jobs:
         run: tar -xzf e2e-build.tgz && rm e2e-build.tgz
       - name: Run E2E shard
         working-directory: e2e
-        run: npx playwright test --project=desktop-1440 --project=tablet-768 --project=mobile-390 --shard=${{ matrix.shard }}/${{ strategy.job-total }} --reporter=list,blob
+        # 병합 금지 진단(#1333): 머리글이 지나가는 흔들림 시험만 5번씩.
+        run: npx playwright test regression/efficiency-rankings-load.spec.mjs regression/stats-class-icons.spec.mjs regression/a7-controls.spec.mjs regression/user-checklist.spec.mjs --repeat-each=5 --project=desktop-1440 --project=tablet-768 --project=mobile-390 --shard=${{ matrix.shard }}/${{ strategy.job-total }} --reporter=list,blob
       - name: Upload blob report
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -180,6 +181,7 @@ jobs:
 
   serial:
     needs: build
+    if: false # 병합 금지 진단(#1333)
     name: e2e isolated·solo·perf
     runs-on: ubuntu-latest
     timeout-minutes: 25
@@ -308,7 +310,7 @@ jobs:
   e2e:
     # 검사 이름 'e2e'를 지키는 묶음 job: 모든 shard·serial 결과를 합쳐 요약하고, 하나라도 실패하면 실패한다.
     needs: [build, shard, serial]
-    if: always() && (github.event_name != 'pull_request' || !github.event.pull_request.draft)
+    if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
