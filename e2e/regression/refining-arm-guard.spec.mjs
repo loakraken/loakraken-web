@@ -12,14 +12,17 @@ for (const width of [1280, 320])
     const row = guardRow(page);
     await expect(row).toBeVisible();
     await expect(row.getByRole("combobox", { name: "등급" })).toHaveCount(0);
+    // Lowering 현재 to +0 keeps the default 목표 (+18), so a 0→18 request goes first;
+    // wait for the 0→3 one (CI 11-02: the first ARM_GUARD request was 0→18).
     await chooseOption(page, row.getByRole("combobox", { name: "현재" }), "+0");
-    const asked = page.waitForRequest(
-      (r) => r.url().includes("/api/refining/plans") && r.postDataJSON()?.equipmentType === "ARM_GUARD",
-    );
+    const asked = page.waitForRequest((r) => {
+      const body = r.url().includes("/api/refining/plans") ? r.postDataJSON() : null;
+      return body?.equipmentType === "ARM_GUARD" && body.toStage === 3 && body.useBreath === true;
+    });
     await page.getByRole("switch", { name: /완갑 숨결/ }).check();
     await chooseOption(page, row.getByRole("combobox", { name: "목표" }), "+3");
     const body = (await asked).postDataJSON();
-    expect(body).toMatchObject({ equipmentType: "ARM_GUARD", fromStage: 0, toStage: 3, useBook: false, growthSupport: false });
+    expect(body).toMatchObject({ equipmentType: "ARM_GUARD", fromStage: 0, toStage: 3, useBreath: true, useBook: false, growthSupport: false });
     expect("grade" in body).toBe(false);
     const table = page.locator("table[data-wide]");
     await expect(table.getByRole("rowheader", { name: /^운명의 파괴석 결정/ })).toBeVisible();
