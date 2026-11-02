@@ -2079,14 +2079,10 @@
 
 /* 시뮬레이터 tab (simulator-tab.tsx) */
 .simulatorPanel {
-  /* The result band sticks under the header and the 57px tab bar. */
+  /* The result band sticks under the header and the 57px tab bar. Up to
+     900px the column dissolves and the band pins to the bottom instead
+     (combat-power.module.css), so the taller phone tab bar needs no value. */
   --cp-band-top: calc(var(--header-h, 73px) + 57px + 16px);
-}
-@media (max-width: 400px) {
-  .simulatorPanel {
-    /* The tab bar is 93px there: tabs on a row of their own (.tabInner). */
-    --cp-band-top: calc(var(--header-h, 73px) + 93px + 16px);
-  }
 }
 .simulatorLead {
   margin: 0 0 16px;

@@ -74,6 +74,8 @@ for (const width of [320, 360, 390])
     expect(await focusInFade(page, character, 20)).toEqual({ overflows: true, bad: [], pageMoved: [] });
 
     await gotoReady(page, "/market");
+    // This page scrolls too (once its rows are in), so "the page did not move" proves something here as well.
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollHeight > window.innerHeight)).toBe(true);
     // The hub row fades 64px on phones; a focused tab clears half of it. A row that fits has no fade.
     const hub = page.getByRole("navigation", { name: "시세 화면" });
     const { bad, pageMoved } = await focusInFade(page, hub, 32);
