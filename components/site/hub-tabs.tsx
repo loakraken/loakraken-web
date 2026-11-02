@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { HUBS, type HubId } from "./nav-data";
+import { focusClearOfFade } from "@/components/ui/focus-clear-of-fade";
 import { useNavFlags, visible } from "./nav-flags";
 import styles from "./hub-tabs.module.css";
 
@@ -17,7 +18,7 @@ export function HubTabs({ hub }: { hub: HubId }) {
   const flags = useNavFlags();
   const { label, tabs } = HUBS[hub];
   return (
-    <nav className={`${styles.tabs} scroll-fade-x`} aria-label={`${label} 화면`}>
+    <nav className={`${styles.tabs} scroll-fade-x`} aria-label={`${label} 화면`} onFocus={focusClearOfFade}>
       {tabs
         .filter((tab) => visible(tab, flags))
         .map((tab) => (

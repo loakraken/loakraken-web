@@ -152,6 +152,7 @@ import {
 } from "./parts";
 import styles from "./detail.module.css";
 import { useTallest } from "@/components/ui/use-tallest";
+import { focusClearOfFade } from "@/components/ui/focus-clear-of-fade";
 import expand from "@/components/site/expand.module.css";
 import { rateLimitCopy, retryLabel } from "@/lib/api/rate-limit";
 import { RateLimitNote } from "@/components/site/rate-limit-note";
@@ -301,6 +302,7 @@ export function TabBar({
           aria-label="캐릭터 정보 탭"
           onKeyDown={pillKey}
           onPointerDown={pillPointer}
+          onFocus={focusClearOfFade}
         >
           {tabs.map((item) => (
             <Link

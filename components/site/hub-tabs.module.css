@@ -14,8 +14,9 @@
   padding: 8px;
   overflow-x: auto;
   scrollbar-width: none;
-  /* A tab reached by keyboard scrolls clear of the end fade (the default fade
-     is at most 40px; 64px on phones below). */
+  /* A tab reached by keyboard rests clear of the end fade (the default fade is
+     at most 40px; 64px on phones below): read by focusClearOfFade, since
+     Chrome's own focus scroll ignores it. */
   scroll-padding-inline: 40px;
 }
 .tab {
