@@ -19,14 +19,22 @@ const PAGES = [
 
 test("<summary> 안에 누를 수 있는 요소가 없고, 지연 그림은 너비·높이를 갖는다 @regression", async ({ page }) => {
   test.slow();
+  let summaries = 0;
   for (const [name, path] of PAGES) {
     await gotoReady(page, path);
+    // Client-drawn parts (spec-up guide, market rows) land after the first paint.
+    await page.waitForLoadState("networkidle");
+    const here = await page.locator("summary").count();
+    if (path === PAGES[0][1]) expect(here, `${name}: 아크 그리드 코어 summary`).toBeGreaterThan(0);
+    summaries += here;
     expect(await page.locator(INTERACTIVE).count(), `${name}: summary 안의 단추·링크`).toBe(0);
     const unsized = await page
       .locator('img[loading="lazy"]')
       .evaluateAll((imgs) => imgs.filter((img) => !img.getAttribute("width") || !img.getAttribute("height")).map((img) => img.src));
     expect(unsized, `${name}: 크기 없는 지연 그림`).toEqual([]);
   }
+  // Not a pass by absence: these pages draw summaries.
+  expect(summaries, "확인한 summary 수").toBeGreaterThan(5);
 });
 
 for (const width of [1280, 390])
