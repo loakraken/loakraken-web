@@ -61,7 +61,7 @@ for (const width of [1280, 390])
           gems: !shown || [...gems.querySelectorAll("button")].every((b) => at(b.getBoundingClientRect()) === b),
         };
       });
-    await row.scrollIntoViewIfNeeded();
+    await row.evaluate((li) => li.scrollIntoView({ block: "center" })); // clear of the sticky header
     expect(await topmost(), "닫힌 줄").toEqual({ icon: true, gems: true });
     const box = await row.evaluate((li) => {
       const r = (el) => el && el.getBoundingClientRect();
@@ -83,6 +83,6 @@ for (const width of [1280, 390])
     // The row still opens from its text, and the cards stay on top once it is open.
     await row.locator("summary [class*=itemText]").click();
     await expect(row.locator("details")).toHaveAttribute("open", "");
-    await row.scrollIntoViewIfNeeded();
+    await row.evaluate((li) => li.scrollIntoView({ block: "center" })); // clear of the sticky header
     expect(await topmost(), "펼친 줄").toEqual({ icon: true, gems: true });
   });
