@@ -51,6 +51,10 @@
      half is clear hides any stroke near the edge; at a scrolled end the fade,
      and so the clear band, is 0. */
   --scroll-fade-size: 40px;
+  /* A tab reached by keyboard rests clear of that fade, not in its clear outer
+     half (#1248 review): read by focusClearOfFade, since Chrome's own focus
+     scroll ignores it. */
+  scroll-padding-inline: 40px;
   --scroll-fade-mask: linear-gradient(
     to right,
     transparent 0,
@@ -1339,6 +1343,28 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+/* Narrow phones: the tabs take a full-width row under 더보기 and 갱신. Beside
+   them the row was 113px at 320, too narrow for any tab to rest clear of
+   both 40px fades (#1324, PM 총괄 11-02). A fixed height, so nothing under
+   the bar moves; the actions keep their labels on the first row. */
+@media (max-width: 400px) {
+  .tabInner {
+    flex-wrap: wrap;
+    align-content: center;
+    /* 8px between the rows keeps the tab row's focus room off the actions
+       above, so a press on them never reaches a tab. */
+    row-gap: 8px;
+    height: 92px;
+  }
+  .tabActions {
+    order: -1;
+    flex: 1 0 100%;
+    justify-content: flex-end;
+  }
+  .tabs {
+    flex: 0 0 calc(100% + 16px); /* the full row, with its focus room */
+  }
+}
 
 @media (prefers-reduced-motion: reduce) {
   .pillLayer,
@@ -2055,6 +2081,12 @@
 .simulatorPanel {
   /* The result band sticks under the header and the 57px tab bar. */
   --cp-band-top: calc(var(--header-h, 73px) + 57px + 16px);
+}
+@media (max-width: 400px) {
+  .simulatorPanel {
+    /* The tab bar is 93px there: tabs on a row of their own (.tabInner). */
+    --cp-band-top: calc(var(--header-h, 73px) + 93px + 16px);
+  }
 }
 .simulatorLead {
   margin: 0 0 16px;
