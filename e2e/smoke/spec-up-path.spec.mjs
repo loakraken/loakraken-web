@@ -43,7 +43,7 @@ test.describe("스펙업 추천 순서 @smoke", () => {
     const target = rows(page).first().getByRole("button").first();
     await expect(target).toBeVisible();
     // The card is today's candidate, and the list says so (PM 총괄 11-02).
-    await expect(page.getByText("줄을 눌러 여는 자세히는 앞 단계를 올리기 전, 지금 장비 기준이에요.")).toBeVisible();
+    await expect(page.getByText("줄을 눌러 보는 자세한 수치는 앞 단계를 올리기 전, 지금 장비 기준이에요.")).toBeVisible();
     await target.click();
     await expect(page.getByRole("dialog")).toBeVisible();
   });
