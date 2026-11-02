@@ -51,6 +51,9 @@
      half is clear hides any stroke near the edge; at a scrolled end the fade,
      and so the clear band, is 0. */
   --scroll-fade-size: 40px;
+  /* A tab reached by keyboard scrolls clear of that fade, not into its clear
+     outer half (the browser stops at the row's edge otherwise; #1248 review). */
+  scroll-padding-inline: 40px;
   --scroll-fade-mask: linear-gradient(
     to right,
     transparent 0,

@@ -14,6 +14,9 @@
   padding: 8px;
   overflow-x: auto;
   scrollbar-width: none;
+  /* A tab reached by keyboard scrolls clear of the end fade (the default fade
+     is at most 40px; 64px on phones below). */
+  scroll-padding-inline: 40px;
 }
 .tab {
   flex: 0 0 auto;
@@ -45,6 +48,7 @@
 @media (max-width: 480px) {
   .tabs {
     --scroll-fade-size: 64px;
+    scroll-padding-inline: 64px;
   }
 }
 @media (prefers-reduced-motion: reduce) {
