@@ -178,6 +178,22 @@ test.describe("히어로 봇 @regression", () => {
     expect(await hops(page)).toBe(before + 1);
   });
 
+  test("멈춘 채 캐릭터 검색을 눌러도 뛰지 않는다", async ({ page }) => {
+    await desktop(page);
+    await page.route(/\/character\//, () => {});
+    // 키보드로 멈춘다(마우스로 누르면 봇 위로 옮기는 움직임이 먼저 깨울 수 있다).
+    await pause(page).focus();
+    await page.keyboard.press("Enter");
+    await expect(pause(page)).toHaveAttribute("aria-pressed", "true");
+    const before = await hops(page);
+    await page.getByRole("textbox", { name: "캐릭터 이름", exact: true }).fill("테스트");
+    await hero(page).getByRole("button", { name: "캐릭터 검색" }).click();
+    await expect(page.getByText("캐릭터 화면으로 이동하고 있어요")).toBeVisible();
+    // 찾는 중이 되어도 멈춘 동안은 한 번도 뛰지 않는다.
+    await page.waitForTimeout(1500);
+    expect(await hops(page), "멈춘 채 검색에 뛰지 않음").toBe(before);
+  });
+
   test("멈춤 상태에서는 잠들지 않고 깬 채로 쉰다", async ({ page }) => {
     await desktop(page);
     await bot(page).click();
