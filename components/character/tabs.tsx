@@ -138,7 +138,7 @@ import { SimulatorTab } from "./simulator-tab";
 import { SpecUpTab } from "./spec-up-tab";
 import { byObservedOrder, groupByDay } from "@/lib/character/titles";
 import { CardCollection } from "./card-collection-panel";
-import { CardArt, GameIcon } from "./imagery";
+import { CardArt, GameIcon, useImageState } from "./imagery";
 import {
   Empty,
   Evidence,
@@ -1310,8 +1310,14 @@ function StatsPanel({ data }: { data: Character }) {
   );
 }
 
+/** The official engraving markers' sprite, the same file as .engraveMark in detail.module.css. */
+const ENGRAVE_SPRITE = "https://cdn-lostark.game.onstove.com/2018/obt/assets/images/pc/profile/img_engrave_icon.png";
+
 function EngravingsPanel({ data }: { data: Character }) {
   const stagger = useStagger();
+  // When the markers cannot load, their words show instead (PM-프론트 #1244 P3):
+  // otherwise a sighted reader saw only "×4" with no "유물".
+  const marks = useImageState(ENGRAVE_SPRITE) !== "failed";
   const effects = sortEngravings(data.loadout.engravings?.arkPassiveEffects ?? []);
   const book = engravingBookString(effects);
   const bonus = stoneBonus(groupEquipment(data.loadout.equipment).stone);
@@ -1352,7 +1358,7 @@ function EngravingsPanel({ data }: { data: Character }) {
                   screen readers. Another grade keeps its name as text. */}
               <span className={styles.engravingCount}>
                 <span>
-                  {effect.grade === "유물" ? (
+                  {effect.grade === "유물" && marks ? (
                     <>
                       <i className={styles.engraveMark} data-kind="relic" aria-hidden="true" />
                       <span className={styles.srOnly}>유물 </span>
@@ -1364,8 +1370,14 @@ function EngravingsPanel({ data }: { data: Character }) {
                 </span>
                 {effect.abilityStoneLevel != null && effect.abilityStoneLevel > 0 && (
                   <span>
-                    <i className={styles.engraveMark} data-kind="stone" aria-hidden="true" />
-                    <span className={styles.srOnly}>스톤 </span>
+                    {marks ? (
+                      <>
+                        <i className={styles.engraveMark} data-kind="stone" aria-hidden="true" />
+                        <span className={styles.srOnly}>스톤 </span>
+                      </>
+                    ) : (
+                      "스톤 "
+                    )}
                     Lv.{effect.abilityStoneLevel}
                   </span>
                 )}
