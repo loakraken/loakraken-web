@@ -662,6 +662,9 @@
 }
 .coreIconRoom {
   flex: none;
+  /* At the row's top like the card over it (top: 9px), also when a long name
+     makes the row taller. */
+  align-self: flex-start;
   width: 40px;
   height: 40px;
 }
