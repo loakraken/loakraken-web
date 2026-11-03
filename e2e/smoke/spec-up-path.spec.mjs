@@ -24,8 +24,13 @@ test.describe("스펙업 추천 순서 @smoke", () => {
     await expect(rows(page)).toHaveCount(1);
     await expect(rows(page).first()).toContainText("8레벨 → 9레벨");
     await expect(rows(page).first()).toContainText("+60만G");
+    // The closed row holds steps 1 and 2, so the numbers never skip (PM 총괄 11-03).
+    const rank = (i) => rows(page).nth(i).locator('[data-cell="rank"]');
+    await expect(rank(0)).toHaveText("1–2");
     await rows(page).first().getByRole("button", { name: "자세히 · 다른 단계 1개" }).click();
     await expect(rows(page)).toHaveCount(2);
+    await expect(rank(0)).toHaveText("1");
+    await expect(rank(1)).toHaveText("2");
     // 9→10 costs 260만G from today's gem; this step adds 200만G on top of step 1.
     await expect(rows(page).nth(1)).toContainText("+200만G");
     await expect(rows(page).nth(1)).toContainText("누적 260만G");
@@ -113,6 +118,40 @@ test.describe("스펙업 추천 순서 @smoke", () => {
         expect(await goal.evaluate((el) => el.getBoundingClientRect().top + window.scrollY), "목표 전투력 제자리").toBeCloseTo(before, 0);
         await expectNoHorizontalOverflow(page);
       });
+
+  // 목표 전투력 sits above 추천 순서 (PM 총괄 11-03 P3): 경로 찾기 shows a three-step
+  // answer's room on the press itself, so a late answer fills it and the list
+  // below stays put. The press may open room below it (input shift); after that, 0.
+  for (const width of [320, 360, 1280])
+    test(`${width}: 경로 찾기 답이 늦게 와도(800ms) 누른 순간 자리를 잡아 아래 추천 순서가 움직이지 않음`, async ({ page }) => {
+      await watchShifts(page);
+      await page.setViewportSize({ width, height: 900 });
+      await page.route("**/api/characters/spec-up/goal?*", async (route) => {
+        await new Promise((resolve) => setTimeout(resolve, 800));
+        const response = await route.fetch();
+        const body = await response.json();
+        // The mock's three steps with the third priced too: an answer of the usual shape.
+        const d = body.envelope.data;
+        d.steps[2].cost = { ...d.steps[2].cost, status: "OK", amount: 1_000_000, unit: "GOLD" };
+        d.unpricedSteps = 0;
+        d.totalCost = d.steps.reduce((sum, step) => sum + step.cost.amount, 0);
+        await route.fulfill({ response, json: body });
+      });
+      await page.goto(characterPath("스펙순서", "specup"));
+      await expect(rows(page)).toHaveCount(1);
+      const goal = page.getByRole("region", { name: "목표 전투력" });
+      await goal.getByRole("textbox", { name: "목표 전투력" }).fill("12400");
+      const list = pathTable(page);
+      const shifts = await shiftsDuring(page, async () => {
+        await goal.getByRole("button", { name: "경로 찾기" }).click();
+        await expect(goal.getByRole("button", { name: "계산하는 중…" })).toBeVisible();
+        const before = await list.evaluate((el) => Math.round(el.getBoundingClientRect().top + window.scrollY));
+        await expect(goal.getByRole("list", { name: "효율 순으로 고른 경로" }).getByRole("listitem")).toHaveCount(3);
+        expect(await list.evaluate((el) => Math.round(el.getBoundingClientRect().top + window.scrollY)), "추천 순서 제자리").toBe(before);
+      });
+      expect(shifts.quiet, shifts.moved).toBe(0);
+      await expectNoHorizontalOverflow(page);
+    });
 
   test("10줄 넘게는 접어 두고 '모두 보기'로 펼침, 320·360에서 가로 넘침 없음", async ({ page }) => {
     for (const width of [320, 360]) {

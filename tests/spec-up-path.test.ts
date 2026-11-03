@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import type { GoalStep } from "../lib/spec-up/goal";
-import { extraCosts, isPathSort } from "../lib/spec-up/path";
+import { extraCosts, isPathSort, orderLabel } from "../lib/spec-up/path";
 import { requestSpecUpPath } from "../lib/spec-up/upstream";
 import { isSpecUpPathEnabled } from "../lib/tools/flags";
 
@@ -99,4 +99,12 @@ test("SPEC_UP_PATH: on/off override, hidden only on production, and never withou
   assert.equal(isSpecUpPathEnabled({ SITE_URL: prod, SPEC_UP_GUIDE: "on", SPEC_UP_PATH: "on" }), true);
   assert.equal(isSpecUpPathEnabled({ SPEC_UP_PATH: "off" }), false);
   assert.equal(isSpecUpPathEnabled({ SPEC_UP_GUIDE: "off", SPEC_UP_PATH: "on" }), false);
+});
+
+test("a folded row's 순서 names every step it holds: runs with '–', gaps with ', '", () => {
+  assert.equal(orderLabel([1]), "1");
+  assert.equal(orderLabel([1, 2]), "1–2");
+  assert.equal(orderLabel([13, 14, 12]), "12–14");
+  assert.equal(orderLabel([1, 2, 5]), "1–2, 5");
+  assert.equal(orderLabel([3, 7]), "3, 7");
 });
