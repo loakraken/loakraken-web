@@ -137,20 +137,35 @@ test.describe("히어로 봇 @regression", () => {
 
   // 잠들기는 한 번에 바뀌지 않고 짧은 순서(졸린 눈꺼풀·느린 깜빡임 둘 → 고개가 끄덕이며 자리 잡음 →
   // 눈 감음)로 약 1.6초(사용자 11-03). 마지막 움직임 5초 뒤 시작해 2.2초 안에 끝나고, 그 뒤로는 그리지 않는다.
+  // 길이는 벽시계가 아니라 잠들기 프레임으로 잰다: 봇은 한 프레임을 최대 0.1초로 셈하므로 느린 CI에서는
+  // 벽시계로 더 걸린다. 그래서 프레임 간격을 0.1초에서 잘라 더한 값(봇이 센 시간)을 본다.
   test("잠들기는 마지막 움직임 5초 뒤 2.2초 안에 끝나고 멈춘다", async ({ page }) => {
     await desktop(page);
     await page.evaluate(() => window.addEventListener("pointermove", () => { window.__movedAt = performance.now(); }));
     await followsHorizontally(page);
     await canvas(page).evaluate((el) => {
       window.__parkedAt = 0;
+      window.__draws = [];
+      const ctx = el.getContext("2d");
+      const clear = ctx.clearRect;
+      ctx.clearRect = function (...args) { window.__draws.push(performance.now()); return clear.apply(this, args); };
       new MutationObserver(() => {
         if (el.dataset.botLoop === "parked" && el.dataset.botRest === "asleep" && !window.__parkedAt) window.__parkedAt = performance.now();
       }).observe(el, { attributes: true, attributeFilter: ["data-bot-loop", "data-bot-rest"] });
     });
     await expect(canvas(page)).toHaveAttribute("data-bot-rest", "asleep", { timeout: 9000 });
-    const took = await page.evaluate(() => window.__parkedAt - window.__movedAt);
+    const { took, doze, frames } = await page.evaluate(() => {
+      const start = window.__movedAt + 5000;
+      const ts = window.__draws.filter((t) => t >= start && t <= window.__parkedAt);
+      let doze = 0;
+      for (let i = 1; i < ts.length; i++) doze += Math.min(100, ts[i] - ts[i - 1]);
+      return { took: window.__parkedAt - window.__movedAt, doze, frames: ts.length };
+    });
     expect(took, "5초 쉰 뒤 잠들기 시작").toBeGreaterThan(5000 + 1000);
-    expect(took, "잠들기 2.2초 안").toBeLessThan(5000 + 2200);
+    // 잠드는 동안 매 단계를 그린다(한 번에 바뀌지 않음).
+    expect(frames, "잠들기 프레임 수").toBeGreaterThanOrEqual(10);
+    expect(doze, "잠들기 길이(봇이 센 시간)").toBeGreaterThan(1000);
+    expect(doze, "잠들기 2.2초 안(봇이 센 시간)").toBeLessThan(2200);
   });
 
   test("움직임이 멎고 5초 뒤 잠든 그림으로 그리기를 멈추고, 다음 움직임에 깨어난다", async ({ page }) => {
