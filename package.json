@@ -44,7 +44,9 @@
     "api:generate:market-minutes": "openapi-typescript contracts/market-minutes.openapi.json -o lib/api/market-minutes-schema.d.ts",
     "api:generate:best-combat-power": "openapi-typescript contracts/best-combat-power.openapi.json -o lib/api/best-combat-power-schema.d.ts",
     "api:generate:guild-detail": "openapi-typescript contracts/guild-detail.openapi.json -o lib/api/guild-detail-schema.d.ts",
-    "api:generate:alerts": "openapi-typescript contracts/alerts.openapi.json -o lib/api/alerts-schema.d.ts"
+    "api:generate:alerts": "openapi-typescript contracts/alerts.openapi.json -o lib/api/alerts-schema.d.ts",
+    "api:generate:collectible-ranking": "openapi-typescript contracts/collectible-ranking.openapi.json -o lib/api/collectible-ranking-schema.d.ts",
+    "api:generate:roster-ranking": "openapi-typescript contracts/roster-ranking.openapi.json -o lib/api/roster-ranking-schema.d.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",

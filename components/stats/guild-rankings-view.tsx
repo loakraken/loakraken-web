@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { SiteHeader } from "@/components/site/site-header";
@@ -25,6 +26,8 @@ import quote from "@/components/tools/material-quote.module.css";
 import styles from "./stats.module.css";
 import { BasisNote } from "./basis-note";
 import { PopularGuilds } from "./popular-guilds";
+import { RankPodium } from "./rank-podium";
+import { RankNumber } from "./rank-number";
 import { rankingColumns } from "./ranking-columns";
 import { RankingTypeTabs, type RankingType } from "./ranking-type-tabs";
 import { MoreDetail } from "@/components/ui/more-detail";
@@ -172,13 +175,25 @@ export function GuildRankingsView({
           </span>
         </form>
 
+        <RankPodium
+          page={query.page}
+          loading={(!data && (list.isPending || pastLast)) || list.isPlaceholderData}
+          reserve={Boolean(initial.guild && initial.page > 1)}
+          entries={data?.rows?.map((row) => ({
+            rank: ready && guildValue(row, query.sort) != null ? row.rank : null,
+            name: row.guildName,
+            href: `/rankings?${guildSearch({ sort: query.sort, page: 1, server: row.serverName, guild: row.guildName })}`,
+            guild: true, value: fixed(guildValue(row, query.sort)),
+          })) ?? []}
+        />
+
         {/* One height for loading, empty and short lists, so the notes below
             never move when the rows arrive (CLS). */}
         {/* Dimmed while a name the backend would refuse is typed: the rows
             are still the last search's (same look as new conditions loading). */}
         <div className={styles.listHold} {...pendingProps({ isPlaceholderData: list.isPlaceholderData || guildInvalid })}>
-          {data?.meta && (
-            <p key={list.dataUpdatedAt} className={`${styles.notice} ${styles.rankingNotice} ${styles.guildNotice}`}>
+          <p key={list.dataUpdatedAt} className={`${styles.notice} ${styles.rankingNotice} ${styles.guildNotice}`} aria-hidden={!data?.meta || undefined}>
+            {data?.meta && <>
               {sampleText(data.meta, "guild")} · 공식 랭킹이 아니에요
               {!ready && (
                 <strong> · 표본 {data.meta.minSample}개 길드가 모이면 순위를 보여 드려요</strong>
@@ -192,8 +207,8 @@ export function GuildRankingsView({
                   ? "전투력 합은 확인한 길드원 전원"
                   : `전투력 평균은 ${whole(GUILD_TOP_LEVEL)} 이상 길드원만`}
               </span>
-            </p>
-          )}
+            </>}
+          </p>
           {list.isError && !data ? (
             <div className={styles.problem}>
               <p>{limit.limited ? countdownText(limit.seconds) : "길드 랭킹을 불러오지 못했어요."}</p>
@@ -248,9 +263,15 @@ export function GuildRankingsView({
                   const byLevel = query.sort === "AVG" || query.sort === "SUM";
                   return (
                     <tr key={`${row.serverName}-${row.guildName}`} data-reference={!ready || undefined}>
-                      <td>{ranked ? whole(row.rank) : "-"}</td>
+                      <td><RankNumber rank={ranked ? row.rank : null} /></td>
                       <th scope="row" className={styles.left}>
-                        {row.guildName}
+                        <Link
+                          href={`/rankings?${guildSearch({ sort: query.sort, page: 1, server: row.serverName, guild: row.guildName })}`}
+                          className={styles.charLink}
+                          prefetch={false}
+                        >
+                          {row.guildName}
+                        </Link>
                       </th>
                       <td className={styles.left}>{row.serverName}</td>
                       <td data-strong={byLevel || undefined}>
