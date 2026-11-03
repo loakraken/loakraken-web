@@ -357,7 +357,7 @@ for (const item of LISTS) for (const width of [320, 360, 430, 1280]) for (const 
 // 서버 HTML이 흘러 들어오는 동안 브라우저는 반쯤 읽은 카드를 그릴 수 있다(CI 360, 젬 효율:
 // 순위 칩이 아직 없을 때 그린 1위 열이 칩이 오자 30px 올라갔다). 뒤쪽 요소가 아직 없을 때와
 // 다 왔을 때 앞쪽 요소의 자리가 같아야 한다. 카드의 뒤쪽 자식, 뒤쪽 카드를 빼서 확인한다.
-for (const width of [360, 1280]) {
+for (const width of [320, 360, 430, 1280]) {
   test(`${width}px: 반쯤 읽은 카드·목록도 앞쪽 자리가 그대로다(스트리밍 중 그림) @regression`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await gotoReady(page, "/rankings?type=gems");
