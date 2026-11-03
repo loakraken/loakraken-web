@@ -1,7 +1,7 @@
 // 스펙업 가이드 탭(백엔드 #318, PM-프론트 10-11 16:37 ⑤). 목 서버는 백엔드 표본을 그대로 준다:
 // OK 3개(보석 8→9 62만G·8→10 262만G, 무기 품질 비용 미확인) + 계산 못 한 후보는 이유별 한 줄.
 import { readFileSync } from "node:fs";
-import { test, expect, characterPath, expectNoHorizontalOverflow } from "../support/fixtures.mjs";
+import { test, expect, expectNoHorizontalOverflow, specUpListPath } from "../support/fixtures.mjs";
 
 /** The refine step of the saved api sample (breath NONE there). */
 const REFINE = JSON.parse(
@@ -27,7 +27,7 @@ const nineRow = (table) =>
 
 test.describe("스펙업 가이드 @smoke", () => {
   test("같은 스킬의 광휘 보석 두 줄은 광휘(겁화)·광휘(작열)로 읽혀 겹쳐 보이지 않고, 좁은 화면에서도 잘리지 않는다", async ({ page }) => {
-    await page.goto(characterPath("스펙업광휘", "specup"));
+    await page.goto(specUpListPath("스펙업광휘"));
     const table = page.getByRole("table", { name: /스펙업 후보/ });
     await expect(table.getByText("터닝 슬래쉬 · 6레벨 광휘(겁화)")).toBeVisible();
     await expect(table.getByText("터닝 슬래쉬 · 6레벨 광휘(작열)")).toBeVisible();
@@ -46,7 +46,7 @@ test.describe("스펙업 가이드 @smoke", () => {
   });
 
   test("보석 비용은 시세 시각을 보이고, 마지막으로 알던 시세는 '이전 시세'로 지금 시세처럼 보이지 않는다", async ({ page }) => {
-    await page.goto(characterPath("스펙업이전시세", "specup"));
+    await page.goto(specUpListPath("스펙업이전시세"));
     const table = page.getByRole("table", { name: /스펙업 후보/ });
     const costs = table.locator("td[data-cell='cost'] small");
     // A date shows when the time is not today (KST), e.g. just after midnight.
@@ -63,7 +63,7 @@ test.describe("스펙업 가이드 @smoke", () => {
   // 사용자 결정(PM 총괄 10-26): 전투력 증가 is the first button and the first list.
   // 사용자 제보 #26: 같은 대상의 여러 단계(보석 한 칸의 9·10레벨)는 한 줄, 나머지 단계는 '자세히'.
   test("같은 대상의 여러 단계는 가장 앞 단계 한 줄로 묶이고, '자세히'로 나머지 단계를 펼치고 접는다", async ({ page }) => {
-    await page.goto(characterPath(NAME, "specup"));
+    await page.goto(specUpListPath(NAME));
     const table = page.getByRole("table", { name: /스펙업 후보, 전투력 증가 순/ });
     // Shown rows: a closed stage stays in the table, collapsed (keeps the columns).
     const rows = table.locator("tbody tr:not([data-collapsed])");
@@ -91,7 +91,7 @@ test.describe("스펙업 가이드 @smoke", () => {
   for (const width of [320, 360])
     test(`스펙업 표 칸 잘림 없음(자세히 포함) @${width}`, async ({ page }) => {
       await page.setViewportSize({ width, height: 900 });
-      await page.goto(characterPath("전투력계산", "specup"));
+      await page.goto(specUpListPath("전투력계산"));
       const table = page.getByRole("table", { name: /스펙업 후보, 전투력 증가 순/ });
       await expect(table.getByRole("button", { name: /^자세히 · 다른 단계/ }).first()).toBeVisible();
       const cut = () =>
@@ -109,15 +109,17 @@ test.describe("스펙업 가이드 @smoke", () => {
   test("처음 목록은 전투력 증가 순이고, 비용·근거·계산 못 한 후보를 나눠 보여 준다", async ({ page }) => {
     const sorts = [];
     page.on("request", (r) => r.url().includes("/api/characters/spec-up?") && sorts.push(new URL(r.url()).searchParams.get("sort")));
-    await page.goto(characterPath(NAME, "specup"));
+    await page.goto(specUpListPath(NAME));
     const group = page.getByRole("group", { name: "정렬" });
-    await expect(group.getByRole("button").first()).toHaveText("전투력 증가");
+    // 추천 순서 is the first chip (layout A, 11-02); this address opens on 전투력 증가.
+    await expect(group.getByRole("button").first()).toHaveText("추천 순서");
+    await expect(group.getByRole("button").nth(1)).toHaveText("전투력 증가");
     await expect(group.getByRole("button", { name: "전투력 증가" })).toHaveAttribute("aria-pressed", "true");
     const tabs = page.getByRole("navigation", { name: "캐릭터 정보 탭" });
     await expect(tabs.getByRole("link", { name: "스펙업", exact: true })).toHaveAttribute("aria-current", "page");
     await expect(page.getByText("세팅 해설 기능은 준비 중이에요.")).toBeVisible();
-    // The intro names the order the list starts in (마케팅 11-01: it said 효율 order).
-    await expect(page.getByText(/처음에는 전투력이 많이 오르는 순서로/)).toBeVisible();
+    // The intro names the view the tab starts in (마케팅 11-01: it said 효율 order; 추천 순서 since 11-02).
+    await expect(page.getByText(/처음에는 올리는 차례대로 고른 추천 순서를/)).toBeVisible();
     await expect(page.getByText(/골드 대비 효율이 높은 순서/)).toHaveCount(0);
     // Arm-guard (완갑) refining rows are listed now (api #725/#735): the v0.3.2 scope line is gone.
     await expect(page.getByText("완갑 재련은 아직 후보에 넣지 않았습니다.")).toHaveCount(0);
@@ -140,7 +142,7 @@ test.describe("스펙업 가이드 @smoke", () => {
   });
 
   test("정렬을 바꾸면 1만 골드당 효율 순으로 다시 받는다", async ({ page }) => {
-    await page.goto(characterPath(NAME, "specup"));
+    await page.goto(specUpListPath(NAME));
     await page.getByRole("button", { name: "1만 골드당 효율" }).click();
     await expect(page.getByRole("button", { name: "1만 골드당 효율" })).toHaveAttribute("aria-pressed", "true");
     const rows = page.getByRole("table", { name: /1만 골드당 효율 순/ }).locator("tbody tr");
@@ -162,7 +164,7 @@ test.describe("스펙업 가이드 @smoke", () => {
     [/테스트 무기 품질 100/, "무기 품질", "100"],
   ]) {
     test(`적용해 보기(${combo} → ${value})는 시뮬레이터 탭에서 계산하고, 이전으로 되돌린다`, async ({ page }) => {
-      await page.goto(characterPath(NAME, "specup"));
+      await page.goto(specUpListPath(NAME));
       await expandAll(page);
       let simulations = 0;
       page.on("request", (r) => {
@@ -185,7 +187,7 @@ test.describe("스펙업 가이드 @smoke", () => {
     page.on("request", (r) => {
       if (r.url().includes("/api/characters/spec-up")) requests++;
     });
-    await page.goto(characterPath("스펙업꺼짐", "specup"));
+    await page.goto(specUpListPath("스펙업꺼짐"));
     await expect(page.getByText("스펙업 가이드는 아직 열리지 않았어요")).toBeVisible();
     await page.waitForTimeout(1000);
     // 오류 응답에 다시 요청하는 고리가 없어야 한다. 운영 빌드는 1번, 개발 서버는
@@ -197,7 +199,7 @@ test.describe("스펙업 가이드 @smoke", () => {
   // 합계는 응답 그대로(웹에서 더하지 않음). 백엔드 CI의 실제 응답.
   // PM-프론트 판정 10-18: 비용 0(OK) 단계·줄은 '추가 비용 없음', 효율 칸은 '—'(읽기: 비용이 없어 계산하지 않아요).
   test("비용이 0인 단계와 후보는 '추가 비용 없음', 효율 칸은 '—'", async ({ page }) => {
-    await page.goto(characterPath("스펙목표0골드", "specup"));
+    await page.goto(specUpListPath("스펙목표0골드"));
     const goal = page.getByRole("region", { name: "목표 전투력" });
     await goal.getByRole("textbox", { name: "목표 전투력" }).fill("12450");
     await goal.getByRole("button", { name: "경로 찾기" }).click();
@@ -206,7 +208,7 @@ test.describe("스펙업 가이드 @smoke", () => {
     await expect(steps.nth(0)).toContainText("추가 비용 없음");
     await expect(steps.nth(0)).not.toContainText("0G");
 
-    await page.goto(characterPath("스펙업0골드", "specup"));
+    await page.goto(specUpListPath("스펙업0골드"));
     const table = page.getByRole("table", { name: /스펙업 후보/ });
     const free = table.locator("tbody tr").filter({ hasText: "무료 보석 칸" });
     await expect(free.locator('[data-cell="cost"]')).toHaveText("추가 비용 없음");
@@ -217,7 +219,7 @@ test.describe("스펙업 가이드 @smoke", () => {
   });
 
   test("목표 경로 v2: 보석 단계는 '지금부터' 비용, 합계는 응답 그대로", async ({ page }) => {
-    await page.goto(characterPath("스펙목표v2", "specup"));
+    await page.goto(specUpListPath("스펙목표v2"));
     const goal = page.getByRole("region", { name: "목표 전투력" });
     await goal.getByRole("textbox", { name: "목표 전투력" }).fill("12450");
     await goal.getByRole("button", { name: "경로 찾기" }).click();
@@ -231,7 +233,7 @@ test.describe("스펙업 가이드 @smoke", () => {
   });
 
   test("목표 전투력을 넣으면 백엔드가 고른 경로를 보여 준다 — 같은 칸 여러 단계, 비용 미정 단계 포함(L31, api #455)", async ({ page }) => {
-    await page.goto(characterPath(NAME, "specup"));
+    await page.goto(specUpListPath(NAME));
     const goal = page.getByRole("region", { name: "목표 전투력" });
     await expect(goal.getByText("지금 12,345.67")).toBeVisible();
     const input = goal.getByRole("textbox", { name: "목표 전투력" });
@@ -262,7 +264,7 @@ test.describe("스펙업 가이드 @smoke", () => {
   });
 
   test("경로를 시뮬레이터에서 열면 받는 단계가 한꺼번에 들어간다(PM-프론트 20:28)", async ({ page }) => {
-    await page.goto(characterPath(NAME, "specup"));
+    await page.goto(specUpListPath(NAME));
     const goal = page.getByRole("region", { name: "목표 전투력" });
     await goal.getByRole("textbox", { name: "목표 전투력" }).fill("12450");
     await goal.getByRole("button", { name: "경로 찾기" }).click();
@@ -279,7 +281,7 @@ test.describe("스펙업 가이드 @smoke", () => {
     // no simulator link and no combat-power goal path; one list request.
     const lists = [];
     page.on("request", (r) => r.url().includes("/api/characters/spec-up?") && lists.push(new URL(r.url()).searchParams.get("sort")));
-    await page.goto(characterPath("상세서포터", "specup"));
+    await page.goto(specUpListPath("상세서포터"));
     const table = page.getByRole("table", { name: "스펙업 후보, 서포터 점수 순" });
     await expect(table).toBeVisible();
     // Phones (≤700px) show one card per candidate without the header row.
@@ -296,19 +298,19 @@ test.describe("스펙업 가이드 @smoke", () => {
     expect(lists).toEqual(["KRAKEN"]);
 
     // A backend from before #722 answers without a supporter score: the one line.
-    await page.goto(characterPath("서포터옛응답", "specup"));
+    await page.goto(specUpListPath("서포터옛응답"));
     await expect(page.getByText("서포터 스펙업은 준비 중이에요.")).toBeVisible();
     await expect(page.getByText("서포터 점수 계산이 들어오면 후보를 보여 드릴게요.")).toBeVisible();
     await expect(page.getByRole("table", { name: /스펙업 후보/ })).toHaveCount(0);
 
-    await page.goto(characterPath("스펙업꺼짐", "specup"));
+    await page.goto(specUpListPath("스펙업꺼짐"));
     let goal = page.getByRole("region", { name: "목표 전투력" });
     await goal.getByRole("textbox", { name: "목표 전투력" }).fill("12400");
     await goal.getByRole("button", { name: "경로 찾기" }).click();
     await expect(goal.getByRole("alert")).toContainText("스펙업 목표는 아직 열리지 않았어요.");
 
     // 캐시에 없는 캐릭터(404 CHARACTER_NOT_CACHED): 먼저 불러오라는 안내.
-    await page.goto(characterPath(NAME, "specup"));
+    await page.goto(specUpListPath(NAME));
     await page.route("**/api/characters/spec-up/goal**", (route) =>
       route.fulfill({ status: 404, contentType: "application/json", body: JSON.stringify({ ok: false, error: { code: "CHARACTER_NOT_CACHED", status: 404 } }) }),
     );
@@ -323,7 +325,7 @@ test.describe("스펙업 가이드 @smoke", () => {
   test("후보 이름을 누르면 줄 상세가 열리고, 1분 안에 다시 열 때는 요청하지 않는다", async ({ page }) => {
     let calls = 0;
     page.on("request", (r) => r.url().includes("/api/characters/spec-up/candidates/") && calls++);
-    await page.goto(characterPath(NAME, "specup"));
+    await page.goto(specUpListPath(NAME));
     const table = page.getByRole("table", { name: /스펙업 후보/ });
     await expandAll(page);
     await expect(table.locator("tbody tr")).toHaveCount(3);
@@ -364,7 +366,7 @@ test.describe("스펙업 가이드 @smoke", () => {
     );
     let lists = 0;
     page.on("request", (r) => /\/api\/characters\/spec-up\?/.test(r.url()) && lists++);
-    await page.goto(characterPath(NAME, "specup"));
+    await page.goto(specUpListPath(NAME));
     await expandAll(page);
     await expect(page.getByRole("table", { name: /스펙업 후보/ }).locator("tbody tr")).toHaveCount(3);
     const before = lists;
@@ -382,7 +384,7 @@ test.describe("스펙업 가이드 @smoke", () => {
       body.envelope.data.refine = { ...REFINE, breath: "OPTIMAL" };
       await route.fulfill({ response: res, json: body });
     });
-    await page.goto(characterPath(NAME, "specup"));
+    await page.goto(specUpListPath(NAME));
     await page.getByRole("table", { name: /스펙업 후보/ }).getByRole("button", { name: "+20 테스트 무기" }).click();
     const card = page.getByRole("dialog");
     await expect(card).toContainText("숨결 회차마다 최적");
@@ -396,7 +398,7 @@ test.describe("스펙업 가이드 @smoke", () => {
       await new Promise((r) => setTimeout(r, 400));
       await route.fallback();
     });
-    await page.goto(characterPath(NAME, "specup"));
+    await page.goto(specUpListPath(NAME));
     const table = page.getByRole("table", { name: /스펙업 후보/ });
     await expandAll(page);
     await expect(table.locator("tbody tr")).toHaveCount(3);
@@ -418,7 +420,7 @@ test.describe("스펙업 가이드 @smoke", () => {
   test("크라켄 점수 순: 점수 열로 바뀌고, 전투력을 못 구한 각인 줄도 점수로 순위에 들고, 작열 보석을 포함할 수 있다", async ({ page }) => {
     const asked = [];
     page.on("request", (r) => r.url().includes("/api/characters/spec-up?") && asked.push(new URL(r.url()).searchParams));
-    await page.goto(characterPath(NAME, "specup"));
+    await page.goto(specUpListPath(NAME));
     const table = page.getByRole("table", { name: /스펙업 후보/ });
     await expandAll(page);
     await expect(table.locator("tbody tr")).toHaveCount(3);
@@ -451,7 +453,7 @@ test.describe("스펙업 가이드 @smoke", () => {
   });
 
   test("크라켄 점수 순을 쓸 수 없으면 이유와 함께 효율 순으로 보인다", async ({ page }) => {
-    await page.goto(characterPath("스펙업점수꺼짐", "specup"));
+    await page.goto(specUpListPath("스펙업점수꺼짐"));
     await expandAll(page);
     await expect(page.getByRole("table", { name: /스펙업 후보/ }).locator("tbody tr")).toHaveCount(3);
     await page.getByRole("button", { name: "크라켄 점수 순" }).click();
@@ -465,7 +467,7 @@ test.describe("스펙업 가이드 @smoke", () => {
   test("점수를 모르는 이전 백엔드에는 크라켄 점수 순을 보내지 않는다", async ({ page }) => {
     const sorts = [];
     page.on("request", (r) => r.url().includes("/api/characters/spec-up?") && sorts.push(new URL(r.url()).searchParams.get("sort")));
-    await page.goto(characterPath("스펙업옛응답", "specup"));
+    await page.goto(specUpListPath("스펙업옛응답"));
     await expandAll(page);
     await expect(page.getByRole("table", { name: /스펙업 후보/ }).locator("tbody tr")).toHaveCount(3);
     await page.getByRole("button", { name: "크라켄 점수 순" }).click();
@@ -477,7 +479,7 @@ test.describe("스펙업 가이드 @smoke", () => {
   test("크라켄 점수 순의 각인 줄을 누르면 각인서 줄 상세가 열린다", async ({ page }) => {
     const ids = [];
     page.on("request", (r) => r.url().includes("/api/characters/spec-up/candidates/") && ids.push(r.url()));
-    await page.goto(characterPath(NAME, "specup"));
+    await page.goto(specUpListPath(NAME));
     await page.getByRole("button", { name: "크라켄 점수 순" }).click();
     const kraken = page.getByRole("table", { name: /크라켄 점수 순/ });
     await kraken.locator("tbody tr").filter({ hasText: "기습의 대가 각인" }).first().getByRole("button").first().click();
@@ -490,7 +492,7 @@ test.describe("스펙업 가이드 @smoke", () => {
 
   // api #592: 보석 비용 = 9레벨 구매 최저가 − 지금 8레벨 최저가, 판매 수수료는 따로.
   test("판매 수수료를 따로 주는 응답이면 판매 최저가로 빼고 수수료는 비용에 넣지 않았다고 알린다", async ({ page }) => {
-    await page.goto(characterPath("스펙업수수료", "specup"));
+    await page.goto(specUpListPath("스펙업수수료"));
     const table = page.getByRole("table", { name: /스펙업 후보/ });
     await expandAll(page);
     await nineRow(table).click();

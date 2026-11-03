@@ -1,9 +1,12 @@
 // 추천 순서 (api #794): with no target, the backend picks the best next step,
 // applies it, measures again, up to 30 steps. Every step is the goal path's
-// step (same costs, same simulator); a target may come back at a later step
-// (PM 총괄 10-31 18:16: its own section, never grouped). The web only formats it.
+// step (same costs, same simulator); a target may come back at a later step.
+// Since 11-02 (사용자 결정 layout A) it is the first chip of the spec-up list and
+// its rows are the list's rows: a target's later steps fold under its first one.
+// The web only formats it.
 import type { components } from "../api/spec-up-schema";
 import type { GoalStep } from "./goal";
+import type { Candidate } from "./model";
 
 type Schemas = components["schemas"];
 export type SpecUpPath = Schemas["SpecUpPathResponse"];
@@ -22,8 +25,51 @@ export const isPathSort = (value: unknown): value is PathSort => value === "EFFI
 /** Rows shown before "모두 보기". */
 export const PATH_FIRST_ROWS = 10;
 
+/**
+ * A row's 순서 cell: its own step, or, with a target's later steps folded under
+ * it, every step it holds, so the numbers never seem to skip (PM 총괄 11-03:
+ * 1 → 3 read as a missing row). Runs join with "–" ("1–2"), gaps with ", " ("1–2, 5").
+ */
+export function orderLabel(orders: readonly number[]): string {
+  const sorted = [...orders].sort((a, b) => a - b);
+  const runs: [number, number][] = [];
+  for (const n of sorted) {
+    const last = runs.at(-1);
+    if (last && n === last[1] + 1) last[1] = n;
+    else runs.push([n, n]);
+  }
+  return runs.map(([from, to]) => (from === to ? `${from}` : `${from}–${to}`)).join(", ");
+}
+
 const gemSlot = (step: Pick<GoalStep, "kind" | "candidateId">) =>
   step.kind === "GEM_LEVEL" ? step.candidateId.split(":").slice(0, 2).join(":") : null;
+
+/**
+ * A step as a spec-up list row (image, detail, same-target grouping): the
+ * candidate the backend names by the same id, with this step's own figures.
+ */
+export function stepCandidate(step: GoalStep): Candidate {
+  return {
+    id: step.candidateId,
+    kind: step.kind,
+    target: step.target,
+    from: step.from,
+    to: step.to,
+    icon: step.icon,
+    grade: step.grade,
+    skillName: step.skillName,
+    suggestedTo: null,
+    change: step.change,
+    status: "OK",
+    deltaCombatPower: step.deltaCombatPower,
+    deltaPercent: null,
+    cost: step.cost,
+    combatPowerPer10kGold: step.combatPowerPer10kGold,
+    reasonCode: null,
+    reason: null,
+    reasonDetail: null,
+  };
+}
 
 /**
  * The gold each step adds to the total: the backend's extraCost (api #794

@@ -83,6 +83,21 @@
   min-height: 1lh;
   margin-top: 8px;
 }
+.answer[data-stale] {
+  opacity: 0.6;
+  transition: opacity var(--duration-fast) var(--ease-out);
+}
+/* The first answer's room: its lines as still bars (no shimmer, as the list's). */
+.skeleton span {
+  border-radius: 4px;
+  background: var(--secondary);
+  color: transparent;
+  opacity: 0.6;
+  box-decoration-break: clone;
+}
+.skeleton .steps li::before {
+  color: transparent;
+}
 .summary {
   font-size: var(--text-body);
   font-variant-numeric: tabular-nums;

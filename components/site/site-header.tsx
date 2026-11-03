@@ -29,8 +29,11 @@ export function SiteHeader({
       data-fixed={fixed || undefined}
     >
       <Link href="/" className={`${styles.brand} hit-44`} aria-label="LOAKraken 홈">
-        <KrakenMark />
+        {/* The name before the mark in the page (CSS draws the mark on its
+            left): the mark's long path split the first part of the page, and
+            the name arriving after it widened the link (and its 44px target). */}
         <span>LOAKraken</span>
+        <KrakenMark />
       </Link>
       <nav className={styles.nav} aria-label="주요 메뉴">
         <SiteNav />

@@ -24,6 +24,8 @@ import {
 } from "@/lib/stats/collectible-ranking";
 import quote from "@/components/tools/material-quote.module.css";
 import styles from "./stats.module.css";
+import { RankPodium } from "./rank-podium";
+import { RankNumber } from "./rank-number";
 import { rankingColumns } from "./ranking-columns";
 import { BasisNote } from "./basis-note";
 import { RankingTypeTabs, type RankingType } from "./ranking-type-tabs";
@@ -124,16 +126,27 @@ export function CollectibleRankingsView({
           </label>
         </form>
 
+        <RankPodium
+          page={query.page}
+          loading={(!data && list.isPending) || list.isPlaceholderData}
+          entries={data?.rows?.map((row) => ({
+            rank: ready ? row.rank : null, name: row.characterName,
+            href: `/character/${encodeURIComponent(row.characterName)}?tab=collectibles`,
+            imageUrl: row.imageUrl, className: row.className,
+            value: progressText(row.progressPercent),
+          })) ?? []}
+        />
+
         {/* One height for loading, empty and short lists, so the notes below
             never move when the rows arrive (CLS). */}
         <div className={styles.listHold} {...pendingProps(list)}>
-          {data?.meta && (
-            <p key={list.dataUpdatedAt} className={`${styles.notice} ${styles.rankingNotice}`}>
+          <p key={list.dataUpdatedAt} className={`${styles.notice} ${styles.rankingNotice}`} aria-hidden={!data?.meta || undefined}>
+            {data?.meta && <>
               {/* Fixed words first, as on the character ranking (A7, #594). */}
               공식 랭킹이 아니에요 · {sampleText(data.meta, "roster")}
               {!ready && <strong> · 표본 {data.meta.minSample}개 원정대가 모이면 순위를 보여 드려요</strong>}
-            </p>
-          )}
+            </>}
+          </p>
           {list.isError && !data ? (
             <div className={styles.problem}>
               <p>{limit.limited ? countdownText(limit.seconds) : "수집품 랭킹을 불러오지 못했어요."}</p>
@@ -173,7 +186,7 @@ export function CollectibleRankingsView({
               <tbody key={list.dataUpdatedAt}>
                 {data.rows.map((row) => (
                   <tr key={`${row.serverName}-${row.characterName}`} data-reference={!ready || undefined}>
-                    <td>{ready ? whole(row.rank) : "-"}</td>
+                    <td><RankNumber rank={ready ? row.rank : null} /></td>
                     <th scope="row">
                       <Link
                         href={`/character/${encodeURIComponent(row.characterName)}?tab=collectibles`}

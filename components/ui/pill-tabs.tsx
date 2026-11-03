@@ -161,8 +161,12 @@ function PillTab({
       data-slot="pill-tab"
       className={cn(
         "relative z-1 inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full px-3.5 whitespace-nowrap select-none",
-        // 44px to tap on phones, inside the list's 4px padding (A36).
-        "hit-44",
+        // 44px to tap on phones, inside the list's 4px padding (A36). At
+        // least 40px wide (every label is wider): the tap area is centred on
+        // a tab narrower than that, so a tab drawn before its label arrived
+        // (a page arriving in parts) had its area start 6px further left,
+        // and it jumped when the label came (ranking tabs at 360).
+        "hit-44 min-w-10",
         "text-(length:--text-body) leading-none font-medium text-muted-foreground",
         // The label answers the press at once (apple-design: response on
         // pointer-down); the pill follows on its spring.

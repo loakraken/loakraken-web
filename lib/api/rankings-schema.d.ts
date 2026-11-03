@@ -181,6 +181,8 @@ export interface components {
             arkPassivePoints: components["schemas"]["StatsArkPassivePointsResponse"] | null;
             classEngraving: string | null;
             estherWeapon: components["schemas"]["StatsEstherWeaponResponse"] | null;
+            /** @description Official CDN portrait URL passed through by the API; absent on older responses. Hotlink only. */
+            imageUrl?: string | null;
         };
         StatsArkPassivePointsResponse: {
             evolution: number | null;
@@ -253,6 +255,8 @@ export interface components {
             observedAt: string;
             topPercent: number | null;
             tier: ("TOP1" | "TOP5" | "TOP10" | "TOP25" | "TOP50" | "REST") | null;
+            /** @description Official CDN portrait URL passed through by the API; absent on older responses. Hotlink only. */
+            imageUrl?: string | null;
         };
     };
     responses: never;

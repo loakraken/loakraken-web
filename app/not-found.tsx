@@ -8,20 +8,16 @@ export const metadata: Metadata = {
   robots: { index: false },
 };
 
-/* The 404, simplified (user decision 10-12 00:46·00:47): two lines top left;
-   in the middle two grey 4s with the clear glass circle between them as the
-   0, our mark at its centre; bottom left only our mark, a link home with no
-   box round it. No figure, no "Error" or "+" tiles, no menu, no caret. The
-   English lines are the original's design copy; a screen reader hears the
-   Korean sentence first. */
+/* The 404, simplified (user decision 10-12 00:46·00:47): in the middle two
+   grey 4s with the clear glass circle between them as the 0, our mark at its
+   centre; bottom left only our mark, a link home with no box round it. No
+   figure, no "Error" or "+" tiles, no menu, no caret. The two English lines
+   at the top left are gone (user 11-03); the heading stays for screen
+   readers only. */
 export default function NotFound() {
   return (
     <main id="main" className={styles.page}>
-      <h1 className={styles.lead}>
-        <span className="sr-only">페이지를 찾을 수 없어요.</span>
-        <span>We’re not sure what happened there—sorry!</span>
-        <span>Check for typos, try again?</span>
-      </h1>
+      <h1 className="sr-only">페이지를 찾을 수 없어요.</h1>
 
       {/* Hovering the picture parts the two 4s (pointer devices only). */}
       <div className={styles.stage} aria-hidden="true">

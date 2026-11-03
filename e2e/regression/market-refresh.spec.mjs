@@ -1,11 +1,11 @@
 // 회귀(사용자 지시 10-16: 시세가 들어가는 화면은 1분 자동 갱신): 보석·장신구 시세판과 스펙업 기대 비용은
 // 열어 둔 동안 1분마다 시세를 다시 받는다(공식 호출이 아니라 서버 캐시 값). 다시 받아도 화면은 흔들리지 않는다.
-import { test, expect, gotoReady, characterPath } from "../support/fixtures.mjs";
+import { test, expect, gotoReady, specUpListPath } from "../support/fixtures.mjs";
 
 const cases = [
   { name: "보석 시세판", path: "/market/gems", api: /\/api\/markets\/auctions\/gems$/, ready: (page) => page.getByRole("table", { name: "4티어 보석 레벨별 즉시 구매 최저가" }) },
   { name: "장신구 시세판", path: "/market/accessories", api: /\/api\/markets\/auctions\/accessories(\?.*)?$/, ready: (page) => page.getByRole("region", { name: /^목걸이/ }) },
-  { name: "스펙업 기대 비용", path: characterPath("전투력계산", "specup"), api: /\/api\/characters\/spec-up\?/, ready: (page) => page.getByRole("table", { name: /스펙업 후보/ }) },
+  { name: "스펙업 기대 비용", path: specUpListPath("전투력계산"), api: /\/api\/characters\/spec-up\?/, ready: (page) => page.getByRole("table", { name: /스펙업 후보/ }) },
 ];
 
 for (const c of cases)

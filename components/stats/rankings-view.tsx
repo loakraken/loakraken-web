@@ -12,11 +12,13 @@ import { pendingProps } from "@/lib/api/pending";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { TIER_LABEL, TIER_LEGEND } from "@/lib/character/rank";
 import { fetchRankings } from "@/lib/stats/client";
-import { conditionsKey, fixed, percent, sampleText, whole } from "@/lib/stats/model";
+import { conditionsKey, fixed, percent, sampleText } from "@/lib/stats/model";
 import { MAX_PAGE, PAGE_SIZE, arkPassiveText, estherText, rankingSearch, type RankingQuery } from "@/lib/stats/rankings";
 import quote from "@/components/tools/material-quote.module.css";
 import styles from "./stats.module.css";
 import { LevelPresets } from "./level-presets";
+import { RankPodium } from "./rank-podium";
+import { RankNumber } from "./rank-number";
 import { rankingColumns } from "./ranking-columns";
 import { BasisNote } from "./basis-note";
 import { RankingTypeTabs, type RankingType } from "./ranking-type-tabs";
@@ -164,93 +166,106 @@ export function RankingsView({ initial, types }: { initial: RankingQuery; types:
           <LevelPresets level={query.itemLevelMin} onPick={pickLevel} />
         </form>
 
-        {data && (
-          <p key={list.dataUpdatedAt} className={`${styles.notice} ${styles.rankingNotice}`} {...pendingProps(list)}>
-            {/* The fixed words first: the count changes with the filters, and
-                text after it slid sideways (A7, #594). */}
+        <RankPodium
+          page={query.page}
+          loading={(!data && list.isPending) || list.isPlaceholderData}
+          entries={data?.rows.map((row) => ({
+            rank: row.rank, name: row.characterName,
+            href: `/character/${encodeURIComponent(row.characterName)}`,
+            imageUrl: row.imageUrl, className: row.className,
+            value: fixed(query.metric === "ITEM_LEVEL" ? row.itemLevel : row.combatPower),
+          })) ?? []}
+        />
+
+        {/* The notice holds its lines from the first HTML, like the podium. */}
+        <p key={list.dataUpdatedAt} className={`${styles.notice} ${styles.rankingNotice}`} {...(data ? pendingProps(list) : { "aria-hidden": true })}>
+          {data && <>
             공식 랭킹이 아니에요 · {sampleText(data.meta)}
             {data.meta.sampleStatus !== "READY" && <strong> · 표본 {data.meta.minSample}명이 모이면 순위를 보여 드려요</strong>}
-          </p>
-        )}
+          </>}
+        </p>
 
-        {list.isError && !data ? (
-          <div className={styles.problem}>
-            <p>{limit.limited ? countdownText(limit.seconds) : "랭킹을 불러오지 못했어요."}</p>
-            <button type="button" onClick={() => list.refetch()} disabled={limit.seconds > 0}>
-              {retryLabel(limit.seconds)}
-            </button>
-          </div>
-        ) : !data ? (
-          // Holds most of the screen so the note below starts out of view and
-          // the 50-row table arriving moves nothing visible (user 10-11).
-          <p className={`${styles.muted} ${styles.listHold}`} role="status">
-            랭킹을 불러오고 있어요…
-          </p>
-        ) : data.rows.length === 0 ? (
-          <p className={styles.muted}>조건에 맞는 캐릭터가 없어요.</p>
-        ) : (
-          <DataTable
-            label={`${metricLabel} 랭킹 ${query.page}쪽`}
-            className={styles.table}
-            {...COLUMNS.tableProps}
-            {...pendingProps(list)}
-          >
-            <caption className={styles.srOnly}>
-              {metricLabel} 랭킹 {query.page}쪽
-            </caption>
-            {COLUMNS.colgroup}
-            <thead>
-              <tr>
-                <th scope="col">순위</th>
-                <th scope="col">캐릭터</th>
-                <th scope="col" className={styles.left}>서버</th>
-                <th scope="col" className={styles.left}>직업</th>
-                <th scope="col">아이템 레벨</th>
-                <th scope="col">전투력</th>
-                <th scope="col">최고 전투력</th>
-                <th scope="col" className={styles.left}>아크 패시브</th>
-                <th scope="col" className={styles.left}>직업 각인</th>
-                <th scope="col" className={styles.left}>에스더 무기</th>
-                <th scope="col">상위</th>
-              </tr>
-            </thead>
-            <tbody key={list.dataUpdatedAt}>
-              {data.rows.map((row) => (
-                <tr key={`${row.serverName}-${row.characterName}`}>
-                  <td>{whole(row.rank)}</td>
-                  <th scope="row" title={row.characterName}>
-                    <Link href={`/character/${encodeURIComponent(row.characterName)}`} className={styles.charLink}>
-                      {row.characterName}
-                    </Link>
-                  </th>
-                  <td className={styles.left} title={row.serverName}>{row.serverName}</td>
-                  <td className={styles.left} title={`${row.className}${row.position === "SUPPORT" ? " · 서포터" : ""}`}>
-                    {row.className}
-                    {row.position === "SUPPORT" && <span className={styles.role}> · 서포터</span>}
-                  </td>
-                  <td data-strong={query.metric === "ITEM_LEVEL" || undefined}>{fixed(row.itemLevel)}</td>
-                  <td data-strong={query.metric === "COMBAT_POWER" || undefined}>{fixed(row.combatPower)}</td>
-                  {/* K32 · L37 (api #446·#449): '-' when not observed; the
-                      columns stay so every row lines up. */}
-                  <td>{row.bestCombatPower != null ? fixed(row.bestCombatPower) : "-"}</td>
-                  <td className={`${styles.left} ${styles.k32}`} title={arkPassiveText(row.arkPassivePoints) ?? undefined}>
-                    {arkPassiveText(row.arkPassivePoints) ?? "-"}
-                  </td>
-                  <td className={`${styles.left} ${styles.k32}`} title={row.classEngraving?.trim() || undefined}>
-                    {row.classEngraving?.trim() || "-"}
-                  </td>
-                  <td className={`${styles.left} ${styles.esther}`} title={estherText(row.estherWeapon) ?? undefined}>
-                    {estherText(row.estherWeapon) ?? "-"}
-                  </td>
-                  <td>
-                    {percent(row.topPercent)}
-                    {row.tier && TIER_LABEL[row.tier] && <> <b className={styles.tier}>{TIER_LABEL[row.tier]}</b></>}
-                  </td>
+        <div className={styles.listHold}>
+          {list.isError && !data ? (
+            <div className={styles.problem}>
+              <p>{limit.limited ? countdownText(limit.seconds) : "랭킹을 불러오지 못했어요."}</p>
+              <button type="button" onClick={() => list.refetch()} disabled={limit.seconds > 0}>
+                {retryLabel(limit.seconds)}
+              </button>
+            </div>
+          ) : !data ? (
+            // Holds most of the screen so the note below starts out of view and
+            // the 50-row table arriving moves nothing visible (user 10-11).
+            <p className={styles.muted} role="status">
+              랭킹을 불러오고 있어요…
+            </p>
+          ) : data.rows.length === 0 ? (
+            <p className={styles.muted}>조건에 맞는 캐릭터가 없어요.</p>
+          ) : (
+            <DataTable
+              label={`${metricLabel} 랭킹 ${query.page}쪽`}
+              className={styles.table}
+              {...COLUMNS.tableProps}
+              {...pendingProps(list)}
+            >
+              <caption className={styles.srOnly}>
+                {metricLabel} 랭킹 {query.page}쪽
+              </caption>
+              {COLUMNS.colgroup}
+              <thead>
+                <tr>
+                  <th scope="col">순위</th>
+                  <th scope="col">캐릭터</th>
+                  <th scope="col" className={styles.left}>서버</th>
+                  <th scope="col" className={styles.left}>직업</th>
+                  <th scope="col">아이템 레벨</th>
+                  <th scope="col">전투력</th>
+                  <th scope="col">최고 전투력</th>
+                  <th scope="col" className={styles.left}>아크 패시브</th>
+                  <th scope="col" className={styles.left}>직업 각인</th>
+                  <th scope="col" className={styles.left}>에스더 무기</th>
+                  <th scope="col">상위</th>
                 </tr>
-              ))}
-            </tbody>
-          </DataTable>
-        )}
+              </thead>
+              <tbody key={list.dataUpdatedAt}>
+                {data.rows.map((row) => (
+                  <tr key={`${row.serverName}-${row.characterName}`}>
+                    <td><RankNumber rank={row.rank} /></td>
+                    <th scope="row" title={row.characterName}>
+                      <Link href={`/character/${encodeURIComponent(row.characterName)}`} className={styles.charLink}>
+                        {row.characterName}
+                      </Link>
+                    </th>
+                    <td className={styles.left} title={row.serverName}>{row.serverName}</td>
+                    <td className={styles.left} title={`${row.className}${row.position === "SUPPORT" ? " · 서포터" : ""}`}>
+                      {row.className}
+                      {row.position === "SUPPORT" && <span className={styles.role}> · 서포터</span>}
+                    </td>
+                    <td data-strong={query.metric === "ITEM_LEVEL" || undefined}>{fixed(row.itemLevel)}</td>
+                    <td data-strong={query.metric === "COMBAT_POWER" || undefined}>{fixed(row.combatPower)}</td>
+                    {/* K32 · L37 (api #446·#449): '-' when not observed; the
+                        columns stay so every row lines up. */}
+                    <td>{row.bestCombatPower != null ? fixed(row.bestCombatPower) : "-"}</td>
+                    <td className={`${styles.left} ${styles.k32}`} title={arkPassiveText(row.arkPassivePoints) ?? undefined}>
+                      {arkPassiveText(row.arkPassivePoints) ?? "-"}
+                    </td>
+                    <td className={`${styles.left} ${styles.k32}`} title={row.classEngraving?.trim() || undefined}>
+                      {row.classEngraving?.trim() || "-"}
+                    </td>
+                    <td className={`${styles.left} ${styles.esther}`} title={estherText(row.estherWeapon) ?? undefined}>
+                      {estherText(row.estherWeapon) ?? "-"}
+                    </td>
+                    <td>
+                      {percent(row.topPercent)}
+                      {row.tier && TIER_LABEL[row.tier] && <> <b className={styles.tier}>{TIER_LABEL[row.tier]}</b></>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </DataTable>
+          )}
+
+        </div>
 
         {data && pages > 1 && (
           <nav className={styles.pager} aria-label="쪽 이동">

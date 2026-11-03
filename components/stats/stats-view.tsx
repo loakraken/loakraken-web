@@ -432,7 +432,14 @@ function DistributionTab({ query }: { query: StatsQuery }) {
       ) : (
         // Drawn anew per answer: another server's bins are other ranges, and
         // the same bar moved across the axis in place (A7, #791).
-        <ol key={dist.dataUpdatedAt} className={styles.histogram} aria-label={`${label} 구간별 인원`} {...pendingProps(dist)}>
+        <ol
+          key={dist.dataUpdatedAt}
+          className={styles.histogram}
+          // The number of bars, ahead of the bars: their columns are set from it (stats.module.css).
+          style={{ "--bins": bins.length } as CSSProperties}
+          aria-label={`${label} 구간별 인원`}
+          {...pendingProps(dist)}
+        >
           {bins.map((bin, i) => {
             const hit = p && p.value >= bin.from && p.value < bin.to;
             return (
@@ -545,7 +552,13 @@ function GemLevelsChart({ gems, asTable }: { gems: UseQueryResult<GemLevelsEnvel
           </tbody>
         </DataTable>
       ) : (
-        <ol key={gems.dataUpdatedAt} className={styles.histogram} aria-label={label} {...pendingProps(gems)}>
+        <ol
+          key={gems.dataUpdatedAt}
+          className={styles.histogram}
+          style={{ "--bins": data.bins.length } as CSSProperties}
+          aria-label={label}
+          {...pendingProps(gems)}
+        >
           {data.bins.map((bin, i) => (
             <li key={gemBinLabel(bin)} title={`${gemBinLabel(bin)} · ${whole(bin.count)}명`}>
               <i className="k-grow" style={{ height: `${(bin.count / max) * 100}%`, "--i": i } as CSSProperties} />
