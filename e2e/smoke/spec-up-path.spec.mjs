@@ -83,27 +83,33 @@ test.describe("스펙업 추천 순서 @smoke", () => {
     expect(shifts.all, shifts.moved).toBe(0);
   });
 
-  for (const width of [320, 1280])
-    test(`${width}: 계산하는 동안 같은 높이의 빈 줄로 자리를 잡아, 답이 늦게 와도 아래가 움직이지 않음`, async ({ page }) => {
-      await watchShifts(page);
-      await page.setViewportSize({ width, height: 900 });
-      // A cold cache answers late (QA 11-01: ~5 s, CLS 0.293 at 320); 800 ms here (#1135).
-      let release;
-      const held = new Promise((resolve) => (release = resolve));
-      await page.route("**/api/characters/spec-up/path?*", async (route) => {
-        await held;
-        await route.continue();
+  // 목표 전투력 sits above the answer (PM 총괄 11-03, B): a short (2 steps) or long
+  // (13 rows) answer arriving late moves nothing, with no blank floor left behind.
+  for (const [who, rowsShown] of [["스펙순서", 1], ["스펙순서긴", 10]])
+    for (const [width, height] of [[320, 900], [360, 900], [1280, 900], [1280, 1400]])
+      test(`${width}×${height} ${who}: 답이 늦게 와도(빈 줄 → ${rowsShown}줄) 목표 전투력도 무엇도 움직이지 않음`, async ({ page }) => {
+        await watchShifts(page);
+        await page.setViewportSize({ width, height });
+        // A cold cache answers late (QA 11-01: ~5 s, CLS 0.293 at 320); 800 ms here (#1135).
+        let release;
+        const held = new Promise((resolve) => (release = resolve));
+        await page.route("**/api/characters/spec-up/path?*", async (route) => {
+          await held;
+          await route.continue();
+        });
+        await page.goto(characterPath(who, "specup"));
+        await expect(page.getByText("추천 순서를 계산하고 있어요…")).toBeVisible();
+        const goal = page.getByRole("heading", { name: "목표 전투력" });
+        await expect(goal).toBeVisible();
+        const before = await goal.evaluate((el) => Math.round(el.getBoundingClientRect().top + window.scrollY));
+        const shifts = await shiftsDuring(page, async () => {
+          setTimeout(release, 800);
+          await expect(rows(page)).toHaveCount(rowsShown);
+        });
+        expect(shifts.all, shifts.moved).toBe(0);
+        expect(await goal.evaluate((el) => Math.round(el.getBoundingClientRect().top + window.scrollY)), "목표 전투력 제자리").toBe(before);
+        await expectNoHorizontalOverflow(page);
       });
-      await page.goto(characterPath("스펙순서", "specup"));
-      await expect(page.getByText("추천 순서를 계산하고 있어요…")).toBeVisible();
-      await expect(page.getByRole("heading", { name: "목표 전투력" })).toBeVisible();
-      const shifts = await shiftsDuring(page, async () => {
-        setTimeout(release, 800);
-        await expect(pathTable(page)).toBeVisible();
-      });
-      expect(shifts.all, shifts.moved).toBe(0);
-      await expectNoHorizontalOverflow(page);
-    });
 
   test("10줄 넘게는 접어 두고 '모두 보기'로 펼침, 320·360에서 가로 넘침 없음", async ({ page }) => {
     for (const width of [320, 360]) {
@@ -121,9 +127,9 @@ test.describe("스펙업 추천 순서 @smoke", () => {
 
   test("계산 자리가 차면(SPEC_UP_BUSY) 안내와 남은 초, 그동안 다시 누를 수 없음", async ({ page }) => {
     await page.goto(characterPath("스펙순서몰림", "specup"));
-    // By its text: Next's own (empty) route announcer is a role=alert on every page
-    // (CI 11-03: strict mode found it next to this one).
-    await expect(page.getByRole("alert").filter({ hasText: "요청이 몰려 지금은 계산하지 못했어요" })).toBeVisible();
+    // In the 추천 순서 area: Next's own (empty) route announcer is a role=alert on
+    // every page (CI 11-03: strict mode found it next to this one).
+    await expect(page.getByRole("region", { name: "추천 순서" }).getByRole("alert")).toContainText("요청이 몰려 지금은 계산하지 못했어요");
     const again = page.getByRole("button", { name: /뒤 다시 계산$/ });
     await expect(again).toHaveAttribute("aria-disabled", "true");
     await expect(page.getByRole("button", { name: "다시 계산" })).toBeVisible({ timeout: 10_000 });

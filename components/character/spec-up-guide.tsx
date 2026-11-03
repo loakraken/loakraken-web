@@ -351,6 +351,11 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
           </span>
         </span>
       </div>
+      {/* The goal path, under the chips and above the lists (PM 총괄 11-03, B): the
+          lists come later and nothing but the footer sits under them, so a
+          short or long answer moves nothing (no blank floor). A combat-power
+          path: not for a supporter. */}
+      {!supporter && <SpecUpGoal data={data} />}
       {/* Its own line, held before the answer arrives (CLS 0). */}
       <p className={styles.specUpPrices}>
         {!pathShown && guide?.pricesAt ? `시세 ${kstTime(guide.pricesAt)} 기준` : ""}
@@ -583,8 +588,6 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
         )}
       </div>
       )}
-      {/* The goal path is a combat-power path: not for a supporter. */}
-      {!supporter && <SpecUpGoal data={data} />}
     </div>
   );
 }

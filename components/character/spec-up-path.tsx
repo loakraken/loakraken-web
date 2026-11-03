@@ -6,7 +6,7 @@
 // steps folded under its first one — with the running 전투력 and 골드 under
 // each figure. Asked for while this chip is chosen: each answer is up to a
 // thousand simulator runs on the backend (10-minute cache there).
-import { Fragment, useContext, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useContext, useMemo, useState } from "react";
 import Link from "next/link";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { RATE_LIMITED, rateLimitCopy, retryLabel } from "@/lib/api/rate-limit";
@@ -134,21 +134,10 @@ export function SpecUpPathList({ data, sort }: { data: Character; sort: PathSort
   const failure = path.error instanceof SpecUpQueryError ? path.error.info : path.error ? { code: "ERROR" } : null;
   const busy = path.isFetching || limit.seconds > 0;
   const answer = path.data?.data;
-  // The skeleton's height stays the floor of the area once the answer is in:
-  // a shorter answer does not pull the sections below up (A7).
-  const areaRef = useRef<HTMLDivElement>(null);
-  const [floor, setFloor] = useState<number | null>(null);
-  useLayoutEffect(() => {
-    if (floor === null && !answer && areaRef.current) setFloor(areaRef.current.offsetHeight);
-  }, [floor, answer]);
-
+  // Nothing of the page sits under this area but the footer (목표 전투력 is
+  // above it since 11-03, PM 총괄 B): the answer takes its own height, no floor.
   return (
-    <div
-      ref={areaRef}
-      className={styles.result}
-      style={floor ? { minHeight: floor } : undefined}
-      aria-busy={path.isFetching || undefined}
-    >
+    <section className={styles.result} aria-label="추천 순서" aria-busy={path.isFetching || undefined}>
       <p className={styles.lead}>
         가장 좋은 한 단계를 올리고, 올린 상태에서 다시 재어 다음 단계를 고른 순서예요. 같은 항목의 다음 단계는 그 항목 줄의
         자세히에 모았어요.
@@ -179,7 +168,7 @@ export function SpecUpPathList({ data, sort }: { data: Character; sort: PathSort
           <Skeleton />
         </>
       )}
-    </div>
+    </section>
   );
 }
 
