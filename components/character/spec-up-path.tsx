@@ -94,13 +94,13 @@ function Skeleton() {
               </td>
               <td data-cell="gain" data-label="전투력" data-figure="">
                 <i />
-                <small>
+                <small className={detail.specUpCostTime}>
                   <i />
                 </small>
               </td>
               <td data-cell="cost" data-label="추가 비용" data-figure="">
                 <i />
-                <small>
+                <small className={detail.specUpCostTime}>
                   <i />
                 </small>
               </td>
@@ -274,11 +274,11 @@ function PathAnswer({ data, path, stale }: { data: Character; path: Path; stale:
                     </td>
                     <td data-cell="gain" data-label="전투력" className={detail.specUpGain} data-figure="">
                       +{two(step.deltaCombatPower)}
-                      <small>→ {two(step.combatPowerAfter)}</small>
+                      <small className={detail.specUpCostTime}>→ {two(step.combatPowerAfter)}</small>
                     </td>
                     <td data-cell="cost" data-label="추가 비용" data-figure="">
                       {stepGold(extra)}
-                      {step.cumulativeCost != null && <small>누적 {koreanGold(step.cumulativeCost)}G</small>}
+                      {step.cumulativeCost != null && <small className={detail.specUpCostTime}>누적 {koreanGold(step.cumulativeCost)}G</small>}
                     </td>
                     <td data-cell="eff" data-label="1만 골드당" data-figure="">
                       {step.combatPowerPer10kGold == null ? "—" : two(step.combatPowerPer10kGold)}
