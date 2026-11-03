@@ -145,9 +145,10 @@ test.describe("스펙업 추천 순서 @smoke", () => {
       const shifts = await shiftsDuring(page, async () => {
         await goal.getByRole("button", { name: "경로 찾기" }).click();
         await expect(goal.getByRole("button", { name: "계산하는 중…" })).toBeVisible();
-        const before = await list.evaluate((el) => Math.round(el.getBoundingClientRect().top + window.scrollY));
+        // Unrounded, as above: a rounded compare flips at a .5 edge.
+        const before = await list.evaluate((el) => el.getBoundingClientRect().top + window.scrollY);
         await expect(goal.getByRole("list", { name: "효율 순으로 고른 경로" }).getByRole("listitem")).toHaveCount(3);
-        expect(await list.evaluate((el) => Math.round(el.getBoundingClientRect().top + window.scrollY)), "추천 순서 제자리").toBe(before);
+        expect(await list.evaluate((el) => el.getBoundingClientRect().top + window.scrollY), "추천 순서 제자리").toBeCloseTo(before, 0);
       });
       expect(shifts.quiet, shifts.moved).toBe(0);
       await expectNoHorizontalOverflow(page);
