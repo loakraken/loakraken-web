@@ -69,4 +69,22 @@ for (const width of [901, 1280])
       300,
     );
     expect(moved.all, `넓은 글꼴의 디스코드가 민 것 (${moved.moved})`).toBe(0);
+    // Even this extreme label runs on inside the bar: the page never scrolls sideways.
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBe(0);
+  });
+
+// A plain system fallback (the web font not loaded in time) keeps the label inside its gap: it does not reach the
+// search button beside it (#1359 review).
+for (const width of [901, 1280])
+  test(`${width} 캐릭터: 대체 글꼴의 디스코드 글자는 옆 검색 단추에 닿지 않는다 @regression`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 800 });
+    await gotoReady(page, characterPath("상세"));
+    await page.addStyleTag({ content: "header[data-sticky-chrome] a[href*='discord'] span { font-family: sans-serif !important; }" });
+    const gap = await page.evaluate(() => {
+      const header = document.querySelector("header[data-sticky-chrome]");
+      const label = header.querySelector("a[href*='discord'] span").getBoundingClientRect();
+      const search = header.querySelector('[data-slot="command-search-trigger"]').getBoundingClientRect();
+      return Math.round(search.left - label.right);
+    });
+    expect(gap, "디스코드 글자 끝과 검색 단추 사이").toBeGreaterThanOrEqual(0);
   });
