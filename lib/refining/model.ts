@@ -12,13 +12,19 @@ export type Plan = Schemas["RefiningPlanResponse"];
 export type PlanStage = Schemas["StageResponse"];
 export type Quantity = Schemas["QuantityResponse"];
 export type PlanEnvelope = { code: string; message: string; data: Plan };
-export type Grade = PlanRequest["grade"];
+export type Grade = NonNullable<PlanRequest["grade"]>;
 export type EquipmentType = PlanRequest["equipmentType"];
 
 export const MIN_STAGE = 10;
 export const MAX_STAGE = 25;
-/** Each refining stage adds 5 item level to one of the six parts. */
+/** 완갑 (api 완갑 PR, 11-02): its own table, stages 0~25. */
+export const ARM_GUARD_MIN_STAGE = 0;
+/** Each refining stage adds 5 item level to one of the six parts; 완갑 adds none. */
 export const ITEM_LEVEL_PER_STAGE = 5;
+
+/** Lowest current stage a part can be at. */
+export const minStage = (type: EquipmentType) =>
+  type === "ARM_GUARD" ? ARM_GUARD_MIN_STAGE : MIN_STAGE;
 
 export const GRADES: { value: Grade; label: string }[] = [
   { value: "UPHWA", label: "운명의 업화" },
@@ -32,6 +38,7 @@ export const PARTS = [
   { id: "pants", slot: "하의", label: "하의", type: "ARMOR" },
   { id: "gloves", slot: "장갑", label: "장갑", type: "ARMOR" },
   { id: "shoulder", slot: "어깨", label: "어깨", type: "ARMOR" },
+  { id: "armGuard", slot: "완갑", label: "완갑", type: "ARM_GUARD" },
 ] as const satisfies readonly {
   id: string;
   slot: string;
@@ -53,6 +60,7 @@ export type PartState = {
 export type Options = {
   weaponBreath: boolean;
   armorBreath: boolean;
+  armGuardBreath: boolean;
   weaponBook: boolean;
   armorBook: boolean;
   growthSupport: boolean;
@@ -111,13 +119,16 @@ export function partsFromCharacter(data: Character): CharacterParts {
   const unsupported: string[] = [];
   for (const part of PARTS) {
     const item = data.loadout.equipment.find((e) => e.type === part.slot);
-    const grade = gradeFromName(item?.name);
     const level = item?.detail?.refineLevel;
-    if (grade && level != null && level >= MIN_STAGE && level <= MAX_STAGE)
+    // 완갑 has one table, so no grade to read; the others need 업화/전율.
+    const grade = part.type === "ARM_GUARD" && item ? "UPHWA" : gradeFromName(item?.name);
+    if (grade && level != null && level >= minStage(part.type) && level <= MAX_STAGE)
       parts[part.id] = { ...defaultPart(grade), current: level, target: level };
     else {
       parts[part.id] = { ...defaultPart(), enabled: false };
-      unsupported.push(part.label);
+      // The note names parts that are not 업화·전율 gear; a character without
+      // 완갑 just leaves it out.
+      if (part.type !== "ARM_GUARD") unsupported.push(part.label);
     }
   }
   return { parts, unsupported, itemLevel: data.itemLevel ?? null };
@@ -129,6 +140,18 @@ export function toRequest(
   options: Options,
 ): PlanRequest | null {
   if (!state.enabled || state.target <= state.current) return null;
+  // 완갑: no grade (one table), no book, no growth support (api 완갑 PR).
+  if (part.type === "ARM_GUARD")
+    return {
+      equipmentType: part.type,
+      fromStage: state.current,
+      toStage: state.target,
+      useBreath: options.armGuardBreath,
+      useBook: false,
+      growthSupport: false,
+      currentArtisanEnergy: state.artisanEnergy,
+      currentFailedAttempts: state.failedAttempts,
+    };
   const weapon = part.type === "WEAPON";
   return {
     grade: state.grade,
@@ -167,11 +190,14 @@ const isInt = (value: unknown, min: number, max: number) =>
 export function parsePlanRequest(body: unknown): PlanRequest | null {
   if (!body || typeof body !== "object" || Array.isArray(body)) return null;
   const input = body as Record<string, unknown>;
-  if (input.grade !== "UPHWA" && input.grade !== "JEONYUL") return null;
-  if (input.equipmentType !== "WEAPON" && input.equipmentType !== "ARMOR")
-    return null;
-  if (!isInt(input.fromStage, MIN_STAGE, MAX_STAGE - 1)) return null;
-  if (!isInt(input.toStage, MIN_STAGE + 1, MAX_STAGE)) return null;
+  const type = input.equipmentType;
+  if (type !== "WEAPON" && type !== "ARMOR" && type !== "ARM_GUARD") return null;
+  const armGuard = type === "ARM_GUARD";
+  // 완갑 ignores the grade, so it is not passed on; the others need one.
+  if (!armGuard && input.grade !== "UPHWA" && input.grade !== "JEONYUL") return null;
+  const low = minStage(type);
+  if (!isInt(input.fromStage, low, MAX_STAGE - 1)) return null;
+  if (!isInt(input.toStage, low + 1, MAX_STAGE)) return null;
   if ((input.toStage as number) <= (input.fromStage as number)) return null;
   const flag = (key: string) => {
     const value = input[key] ?? false;
@@ -182,6 +208,7 @@ export function parsePlanRequest(body: unknown): PlanRequest | null {
   const growthSupport = flag("growthSupport");
   if (useBreath === null || useBook === null || growthSupport === null)
     return null;
+  if (armGuard && (useBook || growthSupport)) return null;
   const energy = input.currentArtisanEnergy ?? 0;
   if (
     typeof energy !== "number" ||
@@ -193,8 +220,8 @@ export function parsePlanRequest(body: unknown): PlanRequest | null {
   const failed = input.currentFailedAttempts ?? 0;
   if (!isInt(failed, 0, 10)) return null;
   return {
-    grade: input.grade,
-    equipmentType: input.equipmentType,
+    ...(armGuard ? {} : { grade: input.grade as Grade }),
+    equipmentType: type,
     fromStage: input.fromStage as number,
     toStage: input.toStage as number,
     useBreath,
@@ -267,7 +294,10 @@ export function summarize(plans: PartPlan[], mode: Mode) {
   return { materials, gold, rawGold, attempts, stageCount: stages.length };
 }
 
-/** Item level after refining: the average of six parts moves by 5 per stage. */
+/**
+ * Item level after refining: the average of six parts moves by 5 per stage.
+ * 완갑 stages add none (계산 검증 item-level formula record).
+ */
 export function targetItemLevel(
   current: number | null,
   parts: Record<PartId, PartState>,
@@ -276,7 +306,7 @@ export function targetItemLevel(
   const stages = PARTS.reduce(
     (sum, part) =>
       sum +
-      (parts[part.id].enabled
+      (part.type !== "ARM_GUARD" && parts[part.id].enabled
         ? Math.max(0, parts[part.id].target - parts[part.id].current)
         : 0),
     0,
@@ -302,7 +332,7 @@ export function refiningFailureCopy(error: { code: string }) {
     case "INVALID_REQUEST":
       return {
         title: "단계 설정을 확인해 주세요",
-        text: "현재 단계는 10~24, 목표 단계는 현재보다 높은 11~25로 입력해 주세요.",
+        text: "현재 단계는 10~24(완갑은 0~24), 목표 단계는 현재보다 높은 25 이하로 입력해 주세요.",
       };
     case "FRONTEND_API_NOT_CONFIGURED":
       return {

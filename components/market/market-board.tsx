@@ -665,6 +665,28 @@ function MarketContent({
           )}
 
           <div className={styles.columns}>
+            {/* The detail comes first in the page, as phones show it (above the
+                board). After the board, a slow page arrived in two parts and
+                the detail, drawn in above it later, pushed the drawn board off
+                the screen before the page woke (#1353, CLS 0.55 at 320). Wide
+                screens still place the board left, the detail right. */}
+            <div className={styles.side}>
+              {active ? (
+                <Detail
+                  key={active.itemId}
+                  item={active}
+                  tier={favorite ? favorite.tier : tier}
+                  tab={favorite ? favorite.tab : query.tab}
+                  outside={!!favorite}
+                />
+              ) : !data && !failure ? (
+                // Board still loading: hold the detail panel height (it sits above
+                // the board below 860px), so the board does not jump when it fills.
+                <div className={styles.detailPending} aria-hidden="true" />
+              ) : (
+                <p className={styles.muted}>품목을 고르면 추이를 보여줘요.</p>
+              )}
+            </div>
             <section className={styles.board} aria-labelledby="board-heading">
               <div className={styles.boardHead}>
                 {/* Drawn anew per kind: its text changes in place otherwise and
@@ -799,24 +821,6 @@ function MarketContent({
                 </div>
               )}
             </section>
-
-            <div className={styles.side}>
-              {active ? (
-                <Detail
-                  key={active.itemId}
-                  item={active}
-                  tier={favorite ? favorite.tier : tier}
-                  tab={favorite ? favorite.tab : query.tab}
-                  outside={!!favorite}
-                />
-              ) : !data && !failure ? (
-                // Board still loading: hold the detail panel height (it sits above
-                // the board below 860px), so the board does not jump when it fills.
-                <div className={styles.detailPending} aria-hidden="true" />
-              ) : (
-                <p className={styles.muted}>품목을 고르면 추이를 보여줘요.</p>
-              )}
-            </div>
           </div>
         </div>
       </main>

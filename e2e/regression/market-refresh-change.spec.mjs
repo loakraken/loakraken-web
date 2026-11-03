@@ -1,7 +1,7 @@
 // 회귀(#857 검토 10-16): 1분 갱신으로 값이 실제로 바뀔 때(두 번째 응답부터 가격 ×1.37, 효율 순서 뒤바뀜)
 // — 글자가 길어져도 표·칸이 움직이지 않고(A7), 바뀐 칸이 잠깐 물들고, 보석판은 읽기 프로그램에 "N개 바뀜",
 // 스펙업은 줄 순서를 그대로 두고 '새 순서로 보기'를 눌러야 새 순서가 된다(PM 총괄 판정 b).
-import { test, expect, gotoReady, characterPath } from "../support/fixtures.mjs";
+import { test, expect, gotoReady, specUpListPath } from "../support/fixtures.mjs";
 
 const watch = (page) =>
   page.addInitScript(() => {
@@ -71,7 +71,7 @@ for (const width of [1280, 360]) {
       for (const c of body.data.candidates) if (c.combatPowerPer10kGold != null) c.combatPowerPer10kGold = effs[i++];
       // The first list (전투력 증가 순) and the 효율 list asked for next come as they are.
     }, 2);
-    await gotoReady(page, characterPath("전투력계산", "specup"));
+    await gotoReady(page, specUpListPath("전투력계산"));
     // By its rows: on a phone the table is laid out as cards (no table role).
     const table = page.locator("table").filter({ has: page.locator('[data-cell="target"]') });
     // 품질 + 보석 0번 칸 (its 9·10레벨 are one row since #26).
@@ -148,8 +148,16 @@ for (const width of [1280, 360]) {
     // The new order is one press away. Pressed, the line keeps its place with
     // "새 순서로 정렬했어요", and the table head and first row stay where they
     // were: new rows are drawn, nothing slides (A7 counts right after a press too).
+    // Page positions (+ scrollY): at 360 the table starts under the fold since the
+    // chips take two rows (추천 순서, 11-03), and the click scrolls the button into
+    // view — a scroll, not a move (CI 914 → 912 was the 2px scroll). A phone lays the
+    // table out as cards with the head hidden: no box, so null rather than scrollY.
     const tops = () =>
-      table.evaluate((el) => [el.querySelector("thead"), el.querySelector("tbody tr")].map((n) => Math.round(n.getBoundingClientRect().top)));
+      table.evaluate((el) =>
+        [el.querySelector("thead"), el.querySelector("tbody tr")].map((n) =>
+          n.getClientRects().length ? Math.round(n.getBoundingClientRect().top + window.scrollY) : null,
+        ),
+      );
     const placed = await tops();
     await resetShifts(page);
     await reorder.click();

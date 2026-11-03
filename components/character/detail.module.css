@@ -2079,14 +2079,10 @@
 
 /* 시뮬레이터 tab (simulator-tab.tsx) */
 .simulatorPanel {
-  /* The result band sticks under the header and the 57px tab bar. */
+  /* The result band sticks under the header and the 57px tab bar. Up to
+     900px the column dissolves and the band pins to the bottom instead
+     (combat-power.module.css), so the taller phone tab bar needs no value. */
   --cp-band-top: calc(var(--header-h, 73px) + 57px + 16px);
-}
-@media (max-width: 400px) {
-  .simulatorPanel {
-    /* The tab bar is 93px there: tabs on a row of their own (.tabInner). */
-    --cp-band-top: calc(var(--header-h, 73px) + 93px + 16px);
-  }
 }
 .simulatorLead {
   margin: 0 0 16px;
@@ -3047,6 +3043,16 @@
   .rosterTools {
     row-gap: 16px;
   }
+  /* Spec-up chips wrap to two rows since 추천 순서 joined them (11-03 CI, A36):
+     each 36px pill's area reaches 4px past it and a corner is checked 3px out,
+     so rows 10px apart keep the areas apart; the bar's slot row under them
+     (32px buttons, 6px past) needs 12px. */
+  .specUpSorts {
+    row-gap: 10px;
+  }
+  .specUpBar {
+    row-gap: 12px;
+  }
   .tabs a::after,
   .textButton::after,
   .braceletEffTerm::after,
@@ -3215,6 +3221,34 @@
    visibility also takes it out of the reading order and the tab order. */
 .specUpCooldown[data-off] {
   visibility: hidden;
+}
+/* 추천 순서's 효율 우선 / 전투력 우선 (layout A, 11-02): small, in the bar's one
+   slot, shown only while that chip is chosen. */
+.specUpPathSorts {
+  display: inline-flex;
+  gap: 4px;
+}
+.specUpPathSorts[data-off] {
+  visibility: hidden;
+}
+.specUpPathSorts button {
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--secondary);
+  border-radius: 980px;
+  background: var(--background);
+  color: var(--muted-foreground);
+  font-size: 12px;
+  white-space: nowrap;
+  touch-action: manipulation;
+}
+.specUpPathSorts button[aria-pressed="true"] {
+  border-color: var(--foreground);
+  color: var(--foreground);
+  font-weight: 600;
+}
+.specUpPathSorts button:active {
+  scale: var(--press-scale);
 }
 @media (hover: hover) and (pointer: fine) {
   .specUpCooldown:hover {
