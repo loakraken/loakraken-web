@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { MedalStarBold } from "@/components/ui/icons";
 import { safeGameImage } from "@/lib/character/model";
+import { podiumTop } from "@/lib/stats/podium";
 import { ClassIcon } from "./class-icon";
 import styles from "./rank-podium.module.css";
 
@@ -39,9 +40,11 @@ export type PodiumEntry = {
   guild?: boolean;
 };
 
-/** Same reserved box in the first HTML, while fetching, and after a refetch.
- * An empty/short/unranked first page keeps unseen room: a background refresh
- * can never insert or remove height. Page changes are user initiated.
+/** Same reserved box in the first HTML, while fetching, and after a refetch:
+ * a list that was still loading keeps unseen room if it comes back with no
+ * ranked row, so a background refresh never inserts or removes height. A list
+ * known to have none at the first render has no box at all. Page changes are
+ * user initiated.
  */
 export function RankPodium({
   entries,
@@ -57,11 +60,12 @@ export function RankPodium({
 }) {
   // An official image that fails to load shows the class icon in the same box.
   const [broken, setBroken] = useState<ReadonlySet<string>>(() => new Set());
+  // Whether the first render was still waiting for the list (then its box stays).
+  const [waited] = useState(() => loading || reserve);
   if (page !== 1 && !reserve) return null;
-  const first = entries.find((entry) => entry.rank === 1);
-  const second = entries.find((entry) => entry.rank === 2);
-  const third = entries.find((entry) => entry.rank === 3);
-  const top = !loading && page === 1 && first && second && third ? [first, second, third] : null;
+  const ranked = !loading && page === 1 ? podiumTop(entries) : [];
+  const top = ranked.length ? ranked : null;
+  if (!top && !loading && !waited) return null;
 
   return (
     <section
@@ -74,10 +78,15 @@ export function RankPodium({
     >
       {top ? (
         <ol className={styles.places} role="list">
-          {top.map((entry) => {
+          {top.map((entry, slot) => {
             const src = safeGameImage(entry.imageUrl);
             return (
-              <li key={`${entry.rank}-${entry.href}`} className={styles.place} data-podium-place={entry.rank}>
+              <li
+                key={`${entry.rank}-${entry.href}`}
+                className={styles.place}
+                data-podium-place={slot + 1}
+                data-podium-medal={Math.min(3, entry.rank ?? 3)}
+              >
                 <MedalStarBold className={styles.medal} size={24} data-place={entry.rank} />
                 <div className={styles.portraitBox} data-portrait-box="">
                   {src && !entry.guild && !broken.has(src) ? (
