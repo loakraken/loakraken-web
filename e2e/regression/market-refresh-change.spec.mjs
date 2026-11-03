@@ -148,8 +148,13 @@ for (const width of [1280, 360]) {
     // The new order is one press away. Pressed, the line keeps its place with
     // "새 순서로 정렬했어요", and the table head and first row stay where they
     // were: new rows are drawn, nothing slides (A7 counts right after a press too).
+    // Page positions (+ scrollY): at 360 the table starts under the fold since the
+    // chips take two rows (추천 순서, 11-03), and the click scrolls the button into
+    // view — a scroll, not a move (CI 914 → 912 was the 2px scroll).
     const tops = () =>
-      table.evaluate((el) => [el.querySelector("thead"), el.querySelector("tbody tr")].map((n) => Math.round(n.getBoundingClientRect().top)));
+      table.evaluate((el) =>
+        [el.querySelector("thead"), el.querySelector("tbody tr")].map((n) => Math.round(n.getBoundingClientRect().top + window.scrollY)),
+      );
     const placed = await tops();
     await resetShifts(page);
     await reorder.click();

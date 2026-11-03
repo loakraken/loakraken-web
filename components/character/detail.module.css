@@ -3047,6 +3047,16 @@
   .rosterTools {
     row-gap: 16px;
   }
+  /* Spec-up chips wrap to two rows since 추천 순서 joined them (11-03 CI, A36):
+     each 36px pill's area reaches 4px past it and a corner is checked 3px out,
+     so rows 10px apart keep the areas apart; the bar's slot row under them
+     (32px buttons, 6px past) needs 12px. */
+  .specUpSorts {
+    row-gap: 10px;
+  }
+  .specUpBar {
+    row-gap: 12px;
+  }
   .tabs a::after,
   .textButton::after,
   .braceletEffTerm::after,

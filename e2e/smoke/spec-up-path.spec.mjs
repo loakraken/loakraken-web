@@ -121,7 +121,9 @@ test.describe("스펙업 추천 순서 @smoke", () => {
 
   test("계산 자리가 차면(SPEC_UP_BUSY) 안내와 남은 초, 그동안 다시 누를 수 없음", async ({ page }) => {
     await page.goto(characterPath("스펙순서몰림", "specup"));
-    await expect(page.getByRole("alert")).toContainText("요청이 몰려 지금은 계산하지 못했어요");
+    // By its text: Next's own (empty) route announcer is a role=alert on every page
+    // (CI 11-03: strict mode found it next to this one).
+    await expect(page.getByRole("alert").filter({ hasText: "요청이 몰려 지금은 계산하지 못했어요" })).toBeVisible();
     const again = page.getByRole("button", { name: /뒤 다시 계산$/ });
     await expect(again).toHaveAttribute("aria-disabled", "true");
     await expect(page.getByRole("button", { name: "다시 계산" })).toBeVisible({ timeout: 10_000 });
