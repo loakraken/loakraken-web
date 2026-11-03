@@ -2,7 +2,7 @@
 // 봇·배경·제목·검색창을 눌러도 따라보기는 멈추지 않는다(봇을 누르면 자동 움직임만
 // 멈춤). 마지막 움직임 5초 뒤에는 잠든 자세(눈 감고 고개 숙임)로 그리기를 멈추고
 // (유휴 프레임 0), 다음 움직임에 깨어난다. 멈춤 상태면 깬 채로 쉰다. 뛰는 것은
-// 사용자가 한 일에 한 번씩만: 깨어날 때, 캐릭터 검색, 봇 바꾸기(한 바퀴). 멈춤·줄어든
+// 사용자가 한 일에 한 번씩만: 깨어날 때, 검색칸 초점, 봇 바꾸기(한 바퀴). 멈춤·줄어든
 // 모션에서는 뛰지 않는다.
 // 줄어든 모션은 정지 그림 하나(눈 뜬 기본 자세). 첫 HTML부터 같은 상자라 라이브러리가 늦게 와도,
 // '봇 바꾸기'로 몸을 바꿔도 흔들림 0이고, 바꾸는 순간 빈 그림이 끼지 않는다.
@@ -91,7 +91,10 @@ test.describe("히어로 봇 @regression", () => {
       await expect.poll(async () => (await turn(page))[0], { message: "왼쪽 아래 → 왼쪽" }).toBeLessThan(-0.2);
       await page.mouse.move(width - 3, 3, { steps: 12 });
       await expect.poll(async () => (await turn(page))[0], { message: "오른쪽 위 → 오른쪽" }).toBeGreaterThan(0.2);
-      await expect.poll(async () => (await turn(page))[1], { message: "오른쪽 위 → 오른쪽 아래보다 위" }).toBeGreaterThan(low + 0.2);
+      // data-bot-turn은 0.1 단위로 반올림한다. 그래서 "+0.15 초과"는 "+0.2 이상"과 같고,
+      // 고개를 든 것(0.2)과 들지 않은 것(0)을 그대로 가른다. 1904 모서리는 차가 약 0.2라
+      // "+0.2 초과"는 반올림에 따라 같은 빌드에서 통과·실패가 갈렸다.
+      await expect.poll(async () => (await turn(page))[1], { message: "오른쪽 위 → 오른쪽 아래보다 위" }).toBeGreaterThan(low + 0.15);
       const header = await page.locator("header").first().boundingBox();
       await page.mouse.move(width / 2, header.y + header.height / 2, { steps: 12 });
       await expect.poll(async () => (await turn(page))[1], { message: "머리글 → 위" }).toBeGreaterThan(0.1);
@@ -162,23 +165,52 @@ test.describe("히어로 봇 @regression", () => {
     expect(await hops(page), "깨어난 뒤 더 뛰지 않음").toBe(before + 1);
   });
 
-  test("캐릭터 검색을 누르면 한 번 뛰고 찾는 중이 된다", async ({ page }) => {
+  // 검색칸을 누를 때(초점) 한 번 뛴다(사용자 11-03). 검색을 보내면 화면이 떠나서 그때는 뛰지 않는다.
+  test("검색칸에 초점이 올 때마다 한 번 뛰고, 글자 입력·검색 보내기에는 뛰지 않는다", async ({ page }) => {
     await desktop(page);
-    // 캐릭터 화면으로 가는 요청을 붙잡아 히어로에 머문다(찾는 중 상태를 본다).
+    // 캐릭터 화면으로 가는 요청을 붙잡아 히어로에 머문다.
     await page.route(/\/character\//, () => {});
+    const box = page.getByRole("textbox", { name: "캐릭터 이름", exact: true });
     const before = await hops(page);
-    await page.getByRole("textbox", { name: "캐릭터 이름", exact: true }).fill("테스트");
-    // 머리글의 검색 버튼도 이름이 같다: 히어로의 검색 버튼만.
+    await box.click();
+    await expect.poll(() => hops(page), { message: "초점에 한 번" }).toBe(before + 1);
+    await page.keyboard.type("테스트", { delay: 40 });
+    await page.waitForTimeout(600);
+    expect(await hops(page), "글자 입력에 뛰지 않음").toBe(before + 1);
+    // 초점을 잃었다가 다시 오면(키보드 Tab도) 또 한 번.
+    await page.locator("#hero-heading").click();
+    await page.waitForTimeout(500);
+    expect(await hops(page), "초점을 잃을 때 뛰지 않음").toBe(before + 1);
+    await box.click();
+    await expect.poll(() => hops(page), { message: "다시 초점에 한 번" }).toBe(before + 2);
+    // 한 동작 안(400ms)의 두 번째 뛰기는 건너뛴다. 다른 동작이 되도록 잠시 둔다.
+    await page.waitForTimeout(500);
+    await page.keyboard.press("Tab");
+    await page.keyboard.press("Shift+Tab");
+    await expect(box).toBeFocused();
+    await expect.poll(() => hops(page), { message: "Tab으로 돌아온 초점에 한 번" }).toBe(before + 3);
+    // 검색 보내기: 찾는 중이 되어도 더 뛰지 않는다.
     await hero(page).getByRole("button", { name: "캐릭터 검색" }).click();
     await expect(page.getByText("캐릭터 화면으로 이동하고 있어요")).toBeVisible();
     await expect(canvas(page)).toHaveAttribute("data-bot-loop", "running");
-    await expect.poll(() => hops(page), { message: "검색에 한 번" }).toBe(before + 1);
-    // 찾는 동안에도 그 한 번뿐(찾는 중 움직임은 지금 그대로).
     await page.waitForTimeout(1500);
-    expect(await hops(page)).toBe(before + 1);
+    expect(await hops(page), "검색 보내기에 뛰지 않음").toBe(before + 3);
   });
 
-  test("멈춘 채 캐릭터 검색을 눌러도 뛰지 않는다", async ({ page }) => {
+  test("잠든 봇은 검색칸을 눌러 깨워도 한 번만 뛴다", async ({ page }) => {
+    await desktop(page);
+    await followsHorizontally(page);
+    await expect(canvas(page)).toHaveAttribute("data-bot-rest", "asleep", { timeout: 9000 });
+    const before = await hops(page);
+    // 누르기 한 번이 깨우기(포인터)와 초점을 함께 부른다: 한 번만 뛴다.
+    await page.getByRole("textbox", { name: "캐릭터 이름", exact: true }).click();
+    await expect(canvas(page)).toHaveAttribute("data-bot-rest", "awake");
+    await expect.poll(() => hops(page), { message: "깨우며 초점에 한 번" }).toBe(before + 1);
+    await page.waitForTimeout(800);
+    expect(await hops(page), "두 번 뛰지 않음").toBe(before + 1);
+  });
+
+  test("멈춘 채 검색칸에 초점이 오거나 검색을 보내도 뛰지 않는다", async ({ page }) => {
     await desktop(page);
     await page.route(/\/character\//, () => {});
     // 키보드로 멈춘다(마우스로 누르면 봇 위로 옮기는 움직임이 먼저 깨울 수 있다).
@@ -186,12 +218,15 @@ test.describe("히어로 봇 @regression", () => {
     await page.keyboard.press("Enter");
     await expect(pause(page)).toHaveAttribute("aria-pressed", "true");
     const before = await hops(page);
-    await page.getByRole("textbox", { name: "캐릭터 이름", exact: true }).fill("테스트");
+    const box = page.getByRole("textbox", { name: "캐릭터 이름", exact: true });
+    await box.click();
+    await page.keyboard.type("테스트");
+    await page.locator("#hero-heading").click();
+    await box.focus();
     await hero(page).getByRole("button", { name: "캐릭터 검색" }).click();
     await expect(page.getByText("캐릭터 화면으로 이동하고 있어요")).toBeVisible();
-    // 찾는 중이 되어도 멈춘 동안은 한 번도 뛰지 않는다.
     await page.waitForTimeout(1500);
-    expect(await hops(page), "멈춘 채 검색에 뛰지 않음").toBe(before);
+    expect(await hops(page), "멈춘 채 뛰지 않음").toBe(before);
   });
 
   test("멈춤 상태에서는 잠들지 않고 깬 채로 쉰다", async ({ page }) => {
@@ -274,6 +309,27 @@ test.describe("히어로 봇 @regression", () => {
     await expect(bot(page)).toHaveAttribute("data-bot", "flower");
     await page.waitForTimeout(600);
     expect(await hops(page), "줄어든 모션은 뛰지 않음").toBe(0);
+  });
+
+  test("봇 바꾸기: 봇을 누르면 고르고 바로 닫히며 초점은 버튼으로", async ({ page }) => {
+    await desktop(page);
+    const trigger = page.getByRole("button", { name: "봇 바꾸기" });
+    await trigger.click();
+    const group = page.getByRole("radiogroup", { name: "봇 모양" });
+    await expect(group.getByRole("radio")).toHaveCount(18);
+    await group.getByRole("radio", { name: "꽃" }).click();
+    // 바깥을 누르지 않아도 고르는 즉시 닫힌다(사용자 11-03).
+    await expect(group).toBeHidden();
+    await expect(bot(page)).toHaveAttribute("data-bot", "flower");
+    await expect(trigger).toBeFocused();
+    // 키보드: 화살표는 고르기만 하고 열린 채, Enter로 고르고 닫는다.
+    await trigger.press("Enter");
+    await expect(group.getByRole("radio", { name: "꽃" })).toBeFocused();
+    await page.keyboard.press("ArrowRight");
+    await expect(group).toBeVisible();
+    await page.keyboard.press("Enter");
+    await expect(group).toBeHidden();
+    await expect(bot(page)).not.toHaveAttribute("data-bot", "flower");
   });
 
   test("봇 바꾸기: 키보드로 고르고, 흔들림·빈 그림 없이 바뀌고, 새로고침 뒤에도 기억", async ({ page }) => {

@@ -14,8 +14,9 @@
 //    without a pause control; no frames while idle): in the default state it
 //    falls asleep (head down, lids shut; user, 11-02) and wakes on the next
 //    pointer move or tap; working, it rests in its own pose;
-//  - it hops only to answer the visitor, once each: waking, a search
-//    starting (working), a new body (a spin-hop); no idle jumps;
+//  - it hops only to answer the visitor, once each: waking, the page
+//    asking (`hopOn`, the hero's search box taking focus), a new body (a
+//    spin-hop); one press that does two of these is one hop; no idle jumps;
 //  - `paused` (the page's remembered pause) stops the automatic motion
 //    only: the head still turns with the pointer, which the visitor drives,
 //    and it rests awake;
@@ -139,6 +140,7 @@ export function BotMascot({
   theme = "light",
   decorative = false,
   label,
+  hopOn = 0,
 }: {
   type: BotType;
   state?: BotState;
@@ -153,6 +155,8 @@ export function BotMascot({
   /** Inside a control that names it: hidden from assistive tech. */
   decorative?: boolean;
   label?: string;
+  /** A count the page raises to ask for one hop each time (not on mount). */
+  hopOn?: number;
 }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const frame = useRef<HTMLSpanElement>(null);
@@ -180,13 +184,18 @@ export function BotMascot({
 
   // The loop reads these each frame; a change is something to answer, so it
   // runs for a while. (Still, it is drawn again in its new pose instead.)
-  // Starting work (a search) is answered with one hop first (user, 11-02).
   useEffect(() => {
-    const started = state === "working" && live.current.state !== "working";
     live.current = { state, paused };
-    if (started) hop.current(0);
     wake.current();
   }, [state, paused]);
+  // The hero's search box taking focus is answered with one hop (user, 11-03:
+  // on submit the page leaves, so a hop there was never seen).
+  const asked = useRef(hopOn);
+  useEffect(() => {
+    if (hopOn === asked.current) return;
+    asked.current = hopOn;
+    hop.current(0);
+  }, [hopOn]);
   const stillState = still ? state : null;
 
   useEffect(() => {
@@ -270,11 +279,17 @@ export function BotMascot({
       }
     };
     // One-shot hops, each answering something the visitor did (user, 11-02):
-    // waking, a search, a new body (with a turn). Never on its own, never
-    // paused; reduced motion has no loop to hop in. The canvas draws past the
-    // box, so a hop moves nothing in the layout.
+    // waking, the page asking, a new body (with a turn). Never on its own,
+    // never paused; reduced motion has no loop to hop in. The canvas draws
+    // past the box, so a hop moves nothing in the layout.
+    let lastHop = -Infinity;
     hop.current = (spin: number) => {
       if (live.current.paused) return;
+      // One press, one hop: a click on the search box can wake the bot
+      // (pointerdown) and focus the box a moment later.
+      const now = performance.now();
+      if (now - lastHop < 400) return;
+      lastHop = now;
       sim.setJump({ spin });
       sim.poke();
       el.dataset.botHops = String(Number(el.dataset.botHops ?? 0) + 1);
