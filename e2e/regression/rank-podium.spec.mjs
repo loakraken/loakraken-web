@@ -408,20 +408,31 @@ for (const item of LISTS) for (const theme of ["light", "dim", "dark"]) {
   });
 }
 
-test("단상 제외: 2쪽·짧은 목록·미집계와 순위 없는 길드 @regression", async ({ page }) => {
+test("단상: 2쪽은 없음, 순위 있는 줄만(짧은 목록은 있는 만큼), 순위 없는 목은 빈 칸 @regression", async ({ page }) => {
   for (const item of LISTS) {
     await gotoReady(page, `${item.path}${item.path.includes("?") ? "&" : "?"}page=2`);
     await expect(podiumOf(page)).toHaveCount(0);
   }
+  // 두 순위와 '-'만 있는 기본 길드 목: 순위 있는 두 줄만 단상에(QA v0.3.8: 있는 만큼 보임).
+  await gotoReady(page, "/rankings?type=guilds");
+  await expect(podiumOf(page)).toHaveAttribute("data-podium-state", "ready");
+  await expect(podiumOf(page).locator("[data-podium-place]")).toHaveCount(2);
   for (const path of [
     "/rankings?type=collectibles&unit=CHARACTER",
-    "/rankings?type=guilds", // 두 순위와 '-'만 있는 기본 목
     `/rankings?type=guilds&server=${encodeURIComponent("아만")}`,
     `/rankings?className=${encodeURIComponent("환수사")}`,
   ]) {
     await gotoReady(page, path);
-    await expect(podiumOf(page)).toHaveAttribute("data-podium-state", "empty");
-    await expect(podiumOf(page).locator("[data-podium-place]")).toHaveCount(0);
+    // 카드 수는 표의 순위 있는 줄 수(최대 3). 없으면 카드가 없다: 불러오는 동안 잡아 둔 칸은
+    // 보이지 않게 남고(흔들림 없음), 첫 그림부터 없다고 알면 칸도 없다.
+    const ranked = await page.getByRole("table").first().locator("tbody tr").evaluateAll((rows) =>
+      rows.filter((row) => /^\d+$/.test(row.querySelector("td")?.textContent?.trim() ?? "")).length);
+    const podium = podiumOf(page);
+    await expect(page.locator("[data-podium-place]")).toHaveCount(Math.min(3, ranked));
+    if (!ranked && (await podium.count())) {
+      await expect(podium).toHaveAttribute("data-podium-state", "empty");
+      await expect(podium).toHaveAttribute("aria-hidden", "true");
+    }
     for (const row of await page.getByRole("table").locator("tbody tr").all()) {
       if ((await row.locator("td").first().innerText()).trim() === "-")
         await expect(row.locator("[data-top-rank]")).toHaveCount(0);
@@ -518,7 +529,7 @@ for (const width of [320, 1280]) {
 }
 
 for (const item of LISTS.filter((item) => !item.server)) {
-  test(`${item.name}: 늦게 도착한 두 행도 시상대를 삽입하지 않는다 @regression`, async ({ page }) => {
+  test(`${item.name}: 늦게 도착한 두 행은 잡아 둔 칸 안에 그리고 칸 크기는 그대로 @regression`, async ({ page }) => {
     await page.setViewportSize({ width: 320, height: 900 });
     await watchShifts(page);
     let releaseRows;
@@ -541,9 +552,16 @@ for (const item of LISTS.filter((item) => !item.server)) {
       await page.evaluate(() => document.fonts.ready);
       await frames(page);
       releaseRows();
-      await expect(podium).toHaveAttribute("data-podium-state", "empty");
-      await expect(podium.locator("[data-podium-place]")).toHaveCount(0);
-      await expect(podium).toHaveAttribute("aria-hidden", "true");
+      // 순위 있는 두 줄은 카드 둘로(있는 만큼), 없으면 빈 칸 그대로. 어느 쪽이든 칸은 같은 크기.
+      await expect(podium).not.toHaveAttribute("data-podium-state", "loading");
+      const cards = await podium.locator("[data-podium-place]").count();
+      if (cards) {
+        await expect(podium).toHaveAttribute("data-podium-state", "ready");
+        expect(cards).toBeLessThanOrEqual(2);
+      } else {
+        await expect(podium).toHaveAttribute("data-podium-state", "empty");
+        await expect(podium).toHaveAttribute("aria-hidden", "true");
+      }
       expect(await podium.boundingBox()).toEqual(before);
       await frames(page);
       const shift = await shiftsSince(page);
