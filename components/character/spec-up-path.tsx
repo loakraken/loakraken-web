@@ -322,12 +322,17 @@ function PathAnswer({ data, path, stale }: { data: Character; path: Path; stale:
   );
 }
 
-/** "13–14, 20" may break before a "–" and after a ", ": the phone card's 순서 column is 24px. */
+/**
+ * "13–14, 20" may break before a "–" and after a ", ": the phone card's 순서
+ * column is 24px. Split on the separators themselves (no lookbehind: Safari
+ * before 16.4 cannot parse one, and the whole chunk would fail).
+ */
 function Breakable({ text }: { text: string }) {
-  return text.split(/(?=–)|(?<=, )/).map((part, i) => (
+  return text.split(/(–|, )/).map((part, i) => (
     <Fragment key={i}>
-      {i > 0 && <wbr />}
+      {part === "–" && <wbr />}
       {part}
+      {part === ", " && <wbr />}
     </Fragment>
   ));
 }
