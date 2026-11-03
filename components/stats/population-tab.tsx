@@ -132,7 +132,11 @@ export function PopulationTab({
         <CountList rows={data.classes} total={data.total} icons />
       ) : (
         <>
-          <ol className={styles.histogram} aria-label={`${scope} 아이템 레벨 구간별 인원`}>
+          <ol
+            className={styles.histogram}
+            style={{ "--bins": bars.length } as CSSProperties}
+            aria-label={`${scope} 아이템 레벨 구간별 인원`}
+          >
             {bars.map((bar, i) => (
               <li key={bar.from} title={`${whole(bar.from)} ~ ${whole(bar.to)} · ${whole(bar.count)}명`}>
                 <i className="k-grow" style={{ height: `${(bar.count / barMax) * 100}%`, "--i": i } as CSSProperties} />
