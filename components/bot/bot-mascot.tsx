@@ -118,6 +118,33 @@ export function drawConfig(lib: Lib, type: BotType, theme: "light" | "dark", dpr
 
 const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
 const mix = (a: number, b: number, k: number) => a + (b - a) * k;
+const smooth = (t: number) => t * t * (3 - 2 * t);
+/** Where t falls between a and b, 0 … 1. */
+const span = (t: number, a: number, b: number) => clamp((t - a) / (b - a), 0, 1);
+/** Ease-out with a small pass beyond the end and back: the head nods into place. */
+const settle = (t: number) => 1 + 2 * (t - 1) ** 3 + (t - 1) ** 2;
+
+/** Falling asleep, in seconds (user, 11-03: one snap read as stiff). */
+const DOZE = 1.6;
+
+/**
+ * Falling asleep as a short sequence instead of one blend (z: 0 awake … 1
+ * asleep): the lids droop to about half and blink slowly twice, then the
+ * head and body settle into the library's sleeping pose with a small nod,
+ * then the eyes close.
+ */
+function doze(awake: BotAvatarPose, asleep: BotAvatarPose, z: number, out: BotAvatarPose) {
+  const head = settle(span(z, 0.3, 0.85));
+  const lids = smooth(span(z, 0.55, 0.95));
+  blend(awake, asleep, head, out);
+  const drowsy = 0.45 * smooth(span(z, 0.05, 0.4));
+  out.eyeOpen = mix(awake.eyeOpen, asleep.eyeOpen, Math.max(drowsy, lids));
+  const blink = Math.max(Math.sin(Math.PI * span(z, 0.04, 0.18)), Math.sin(Math.PI * span(z, 0.24, 0.4)));
+  out.blinkL = Math.max(mix(awake.blinkL, asleep.blinkL, lids), blink);
+  out.blinkR = Math.max(mix(awake.blinkR, asleep.blinkR, lids), blink);
+  out.w = [mix(awake.w[0], asleep.w[0], lids), mix(awake.w[1], asleep.w[1], lids), mix(awake.w[2], asleep.w[2], lids)];
+  return out;
+}
 
 /** The still pose eased toward the live one: k = 0 still, 1 live. */
 function blend(rest: BotAvatarPose, live: BotAvatarPose, k: number, out: BotAvatarPose) {
@@ -231,11 +258,13 @@ export function BotMascot({
     sim.setJump({ every: 0 }); // no surprise jumps: it moves when you do
     const out = lib.restPose(live.current.state);
     const asleep = lib.restPose("sleeping");
-    const restOut = lib.restPose("default");
     let raf = 0;
     let prev = 0;
     let k = 0; // 0 still … 1 live
-    let z = 0; // 0 awake … 1 asleep
+    let z = 0; // the doze, 0 awake … 1 asleep
+    let up = 0; // waking: 1 at the pose it woke in … 0 awake
+    const woke = lib.restPose("default"); // that pose
+    const resting = lib.restPose("default");
     let wokenHop = false; // asleep: the next pointer wakes it with a hop
     let until = performance.now() + restAfter; // the first seconds after load
     let seen = true;
@@ -255,8 +284,17 @@ export function BotMascot({
       // Resting in the default state, it falls asleep: head down, lids shut
       // (user, 11-02). Not while working, nor while paused (paused rests awake).
       const sleepy = s === "default" && !p && !active;
-      z = clamp(z + (sleepy ? dt / 1.2 : -dt / 0.5), 0, 1);
-      const rest = z > 0 ? blend(lib.restPose(s), asleep, z * z * (3 - 2 * z), restOut) : lib.restPose(s);
+      const base = lib.restPose(s);
+      if (sleepy) {
+        z = clamp(z + dt / DOZE, 0, 1);
+        up = 0;
+      } else if (z > 0) {
+        // Woken (mid-doze or asleep): back up quickly from where it is.
+        doze(base, asleep, z, woke);
+        z = 0;
+        up = 1;
+      } else up = clamp(up - dt / 0.3, 0, 1);
+      const rest = z > 0 ? doze(base, asleep, z, resting) : up > 0 ? blend(base, woke, smooth(up), resting) : base;
       if (k > 0) {
         sim.setPointer(ptr.x, ptr.y, ptr.s);
         sim.update(dt);
@@ -268,8 +306,13 @@ export function BotMascot({
           Object.assign(out, turn);
         }
         draw(out);
+      } else if (z > 0 || up > 0) {
+        // Still (the live pose has faded) but dozing or waking: draw each
+        // step. (Only the live part was drawn before, so the doze showed as
+        // one snap when the loop parked: the stiffness the user saw, 11-03.)
+        draw(rest);
       }
-      if (k > 0 || active || z !== (sleepy ? 1 : 0)) raf = requestAnimationFrame(tick);
+      if (k > 0 || active || (sleepy ? z < 1 : up > 0)) raf = requestAnimationFrame(tick);
       else {
         // Settled: the still pose (asleep, or awake when paused); the loop parks.
         draw(rest);
