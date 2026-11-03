@@ -6,7 +6,7 @@
 // steps folded under its first one — with the running 전투력 and 골드 under
 // each figure. Asked for while this chip is chosen: each answer is up to a
 // thousand simulator runs on the backend (10-minute cache there).
-import { useContext, useMemo, useState } from "react";
+import { Fragment, useContext, useMemo, useState } from "react";
 import Link from "next/link";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { RATE_LIMITED, rateLimitCopy, retryLabel } from "@/lib/api/rate-limit";
@@ -18,6 +18,7 @@ import {
   PATH_FIRST_ROWS,
   PATH_SORTS,
   extraCosts,
+  orderLabel,
   stepCandidate,
   type PathSort,
   type SpecUpPath as Path,
@@ -235,7 +236,16 @@ function PathAnswer({ data, path, stale }: { data: Character; path: Path; stale:
                 const { step, extra } = byId.get(c.id)!;
                 return (
                   <tr key={c.id} data-sub={sub || undefined} data-collapsed={(sub && !open) || undefined}>
-                    <td data-cell="rank">{step.order}</td>
+                    {/* A closed group's head holds its later steps too ("1–2"); open, each row has its own. */}
+                    <td data-cell="rank">
+                      {!sub && !open && group.more.length > 0 ? (
+                        <Breakable
+                          text={orderLabel([group.head, ...group.more].map((g) => byId.get(g.id)!.step.order))}
+                        />
+                      ) : (
+                        step.order
+                      )}
+                    </td>
                     <td data-cell="kind">{stepKindLabel(c.kind)}</td>
                     <th scope="row" data-cell="target">
                       {/* The target opens the row's detail, as in the list (시세·재료·전후 능력치). */}
@@ -310,6 +320,16 @@ function PathAnswer({ data, path, stale }: { data: Character; path: Path; stale:
       <Unpriced items={path.unpriced} />
     </div>
   );
+}
+
+/** "13–14, 20" may break before a "–" and after a ", ": the phone card's 순서 column is 24px. */
+function Breakable({ text }: { text: string }) {
+  return text.split(/(?=–)|(?<=, )/).map((part, i) => (
+    <Fragment key={i}>
+      {i > 0 && <wbr />}
+      {part}
+    </Fragment>
+  ));
 }
 
 function Unpriced({ items }: { items: Path["unpriced"] }) {
