@@ -1,10 +1,17 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { AVATAR_SLOTS, avatarSlots, decorationParts, rarestOwned } from "../lib/character/inner";
+import {
+  AVATAR_SLOTS,
+  avatarSlots,
+  avatarTendencyText,
+  avatarTendencyTotals,
+  decorationParts,
+  rarestOwned,
+} from "../lib/character/inner";
 
 test("avatar slots: twelve in the game's order, worn items placed, empty ones null, others after", () => {
   const avatar = (type: string, name: string, isInner = false) =>
-    ({ type, name, icon: null, grade: "영웅", isSet: false, isInner, effects: [] }) as Parameters<typeof avatarSlots>[0][number];
+    ({ type, name, icon: null, grade: "영웅", isSet: false, isInner, effects: [], tendencies: [] }) as Parameters<typeof avatarSlots>[0][number];
   const rows = avatarSlots([
     avatar("무기 아바타", "검"),
     avatar("무기 아바타", "검 덧입기", true),
@@ -19,6 +26,29 @@ test("avatar slots: twelve in the game's order, worn items placed, empty ones nu
   assert.equal(rows[11].avatar?.name, "폭풍우");
   assert.equal(rows[2].avatar, null);
   assert.deepEqual(rows.slice(12).map((row) => [row.slot, row.avatar?.name]), [["특수", "기타 장식"]]);
+});
+
+test("아바타 성향 (user 11-02): a line per avatar, totals in the game's order, nothing when none", () => {
+  type Avatar = Parameters<typeof avatarTendencyTotals>[0][number];
+  const avatar = (tendencies: { type: string | null; point: number | null }[] | undefined) =>
+    ({ type: "상의 아바타", name: "a", icon: null, grade: "전설", isSet: false, isInner: false, effects: [], tendencies }) as Avatar;
+  const coat = avatar([{ type: "지성", point: 10 }, { type: "담력", point: 5 }, { type: "매력", point: 5 }, { type: "친절", point: 5 }]);
+  const pants = avatar([{ type: "담력", point: 5 }, { type: "매력", point: 15 }]);
+  // The api's order is kept on the line; zero and nameless points are dropped.
+  assert.equal(avatarTendencyText(coat), "지성 10 · 담력 5 · 매력 5 · 친절 5");
+  assert.equal(avatarTendencyText(avatar([{ type: "친절", point: 0 }, { type: null, point: 5 }])), "");
+  assert.equal(avatarTendencyText(avatar([])), "");
+  // Totals: 지성·담력·매력·친절, any other type after them.
+  assert.deepEqual(avatarTendencyTotals([pants, avatar([{ type: "새 성향", point: 3 }]), coat]), [
+    { type: "지성", point: 10 },
+    { type: "담력", point: 10 },
+    { type: "매력", point: 20 },
+    { type: "친절", point: 5 },
+    { type: "새 성향", point: 3 },
+  ]);
+  // An api before the field (missing or empty everywhere): nothing to show, never zeros.
+  assert.deepEqual(avatarTendencyTotals([avatar(undefined), avatar([])]), []);
+  assert.equal(avatarTendencyText(avatar(undefined)), "");
 });
 
 test("가장 희귀한 보유: lowest share among finished items, unknown shares left out", () => {

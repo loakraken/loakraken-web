@@ -4,6 +4,8 @@ import { contentSecurityPolicy, newNonce } from "../lib/csp";
 
 const directive = (policy: string, name: string) =>
   policy.split("; ").find((part) => part.startsWith(`${name} `)) ?? "";
+/** A directive's source list as exact tokens (a host is compared whole, never as a substring). */
+const sources = (policy: string, name: string) => directive(policy, name).split(" ").slice(1);
 
 test("CSP in production: scripts by nonce only, no inline or eval", () => {
   const policy = contentSecurityPolicy("abc123", false);
@@ -11,7 +13,7 @@ test("CSP in production: scripts by nonce only, no inline or eval", () => {
   assert.equal(directive(policy, "connect-src"), "connect-src 'self'");
   for (const part of ["default-src 'self'", "object-src 'none'", "base-uri 'self'", "form-action 'self'", "frame-ancestors 'none'"])
     assert.ok(policy.includes(part), part);
-  assert.ok(directive(policy, "img-src").includes("https://cdn-lostark.game.onstove.com"));
+  assert.ok(sources(policy, "img-src").includes("https://cdn-lostark.game.onstove.com"), directive(policy, "img-src"));
   assert.equal(policy.includes("'unsafe-eval'"), false);
   assert.equal(directive(policy, "script-src").includes("'unsafe-inline'"), false);
 });

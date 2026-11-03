@@ -80,6 +80,45 @@ export function GameIcon({
   );
 }
 
+/**
+ * Whether an official image painted from CSS (a sprite in a background) has
+ * loaded: probed once per page and address, shared by every caller. "loading"
+ * on the server and until the probe settles, so the first paint draws the
+ * picture as before; a caller shows its text fallback only on "failed".
+ */
+const imageProbes = new Map<string, { state: "loading" | "ok" | "failed"; listeners: Set<() => void> }>();
+function probeOf(url: string) {
+  let probe = imageProbes.get(url);
+  if (!probe) {
+    probe = { state: "loading", listeners: new Set() };
+    imageProbes.set(url, probe);
+  }
+  return probe;
+}
+export function useImageState(url: string) {
+  return useSyncExternalStore(
+    (listener) => {
+      const probe = probeOf(url);
+      probe.listeners.add(listener);
+      if (probe.state === "loading" && probe.listeners.size === 1) {
+        const image = new Image();
+        image.decoding = "async";
+        image.referrerPolicy = "no-referrer";
+        const settle = (state: "ok" | "failed") => {
+          probe.state = state;
+          probe.listeners.forEach((call) => call());
+        };
+        image.onload = () => settle("ok");
+        image.onerror = () => settle("failed");
+        image.src = url;
+      }
+      return () => probe.listeners.delete(listener);
+    },
+    () => probeOf(url).state,
+    () => "loading" as const,
+  );
+}
+
 // The official sprite is checked once per page: until it has failed, rows
 // draw from it; if it cannot load, every row falls back to the API badge.
 let spriteState: "loading" | "ok" | "failed" = "loading";

@@ -9,6 +9,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type CSSProperties,
   type ReactNode,
 } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -138,7 +139,7 @@ import { SimulatorTab } from "./simulator-tab";
 import { SpecUpTab } from "./spec-up-tab";
 import { byObservedOrder, groupByDay } from "@/lib/character/titles";
 import { CardCollection } from "./card-collection-panel";
-import { CardArt, GameIcon } from "./imagery";
+import { CardArt, GameIcon, useImageState } from "./imagery";
 import {
   Empty,
   Evidence,
@@ -151,6 +152,7 @@ import {
 } from "./parts";
 import styles from "./detail.module.css";
 import { useTallest } from "@/components/ui/use-tallest";
+import { focusClearOfFade } from "@/components/ui/focus-clear-of-fade";
 import expand from "@/components/site/expand.module.css";
 import { rateLimitCopy, retryLabel } from "@/lib/api/rate-limit";
 import { RateLimitNote } from "@/components/site/rate-limit-note";
@@ -300,6 +302,7 @@ export function TabBar({
           aria-label="캐릭터 정보 탭"
           onKeyDown={pillKey}
           onPointerDown={pillPointer}
+          onFocus={focusClearOfFade}
         >
           {tabs.map((item) => (
             <Link
@@ -976,12 +979,39 @@ function ArkGridPanel({ data }: { data: Character }) {
             const lines = gridLines(extra, i);
             const detail = slot.options.length > 0 || slot.gems.some((gem) => gem.name);
             return (
-              <li key={i}>
+              <li
+                key={i}
+                className={styles.coreItem}
+                data-chevron={detail || undefined}
+                style={{ "--core-gems": slot.gems.length } as CSSProperties}
+              >
+                {/* No buttons inside <summary> (an interactive element there breaks its
+                    keyboard and screen reader use, DevTools issue user 11-01): the core and
+                    gem cards sit over the summary row, before the details in the DOM so the
+                    keyboard reaches them before the row's toggle and its opened content. */}
+                <span className={styles.coreIcon}>
+                  <DetailTooltip name={slot.name ?? "아크 그리드 코어"} card={<CoreCard slot={slot} lines={lines} />}>
+                    <GameIcon src={slot.icon} grade={slot.grade} size={40} />
+                  </DetailTooltip>
+                </span>
+                {slot.gems.length > 0 && (
+                  <span className={styles.coreGems}>
+                    {slot.gems.map((gem, j) => (
+                      <DetailTooltip
+                        key={j}
+                        name={gem.name ?? "아크 그리드 젬"}
+                        card={<GridGemCard gem={gem} lines={gridGemLines(lines, j)} />}
+                        hit="tight"
+                      >
+                        <GameIcon src={gem.icon} grade={gem.grade} size={24} inactive={gem.active === false} />
+                      </DetailTooltip>
+                    ))}
+                  </span>
+                )}
                 <details open={expanded || undefined} className={`${styles.core} ${expand.expand}`}>
+                  {/* Empty boxes keep the cards' room in the row. */}
                   <summary>
-                    <DetailTooltip name={slot.name ?? "아크 그리드 코어"} card={<CoreCard slot={slot} lines={lines} />}>
-                      <GameIcon src={slot.icon} grade={slot.grade} size={40} />
-                    </DetailTooltip>
+                    <span className={styles.coreIconRoom} aria-hidden="true" />
                     <div className={styles.itemText}>
                       <small>
                         {slot.coreType ?? text(slot.name).split(" : ")[0]}
@@ -998,18 +1028,7 @@ function ArkGridPanel({ data }: { data: Character }) {
                         </small>
                       )}
                     </span>
-                    <span className={styles.coreGems}>
-                      {slot.gems.map((gem, j) => (
-                        <DetailTooltip
-                          key={j}
-                          name={gem.name ?? "아크 그리드 젬"}
-                          card={<GridGemCard gem={gem} lines={gridGemLines(lines, j)} />}
-                          hit="tight"
-                        >
-                          <GameIcon src={gem.icon} grade={gem.grade} size={24} inactive={gem.active === false} />
-                        </DetailTooltip>
-                      ))}
-                    </span>
+                    {slot.gems.length > 0 && <span className={styles.coreGemsRoom} aria-hidden="true" />}
                     {/* Each core opens on its own; the arrow turns over (user 10-12). */}
                     {detail && <ChevronDown size={16} className={styles.coreChevron} aria-hidden="true" />}
                   </summary>
@@ -1310,8 +1329,14 @@ function StatsPanel({ data }: { data: Character }) {
   );
 }
 
+/** The official engraving markers' sprite, the same file as .engraveMark in detail.module.css. */
+const ENGRAVE_SPRITE = "https://cdn-lostark.game.onstove.com/2018/obt/assets/images/pc/profile/img_engrave_icon.png";
+
 function EngravingsPanel({ data }: { data: Character }) {
   const stagger = useStagger();
+  // When the markers cannot load, their words show instead (PM-프론트 #1244 P3):
+  // otherwise a sighted reader saw only "×4" with no "유물".
+  const marks = useImageState(ENGRAVE_SPRITE) !== "failed";
   const effects = sortEngravings(data.loadout.engravings?.arkPassiveEffects ?? []);
   const book = engravingBookString(effects);
   const bonus = stoneBonus(groupEquipment(data.loadout.equipment).stone);
@@ -1352,7 +1377,7 @@ function EngravingsPanel({ data }: { data: Character }) {
                   screen readers. Another grade keeps its name as text. */}
               <span className={styles.engravingCount}>
                 <span>
-                  {effect.grade === "유물" ? (
+                  {effect.grade === "유물" && marks ? (
                     <>
                       <i className={styles.engraveMark} data-kind="relic" aria-hidden="true" />
                       <span className={styles.srOnly}>유물 </span>
@@ -1364,8 +1389,14 @@ function EngravingsPanel({ data }: { data: Character }) {
                 </span>
                 {effect.abilityStoneLevel != null && effect.abilityStoneLevel > 0 && (
                   <span>
-                    <i className={styles.engraveMark} data-kind="stone" aria-hidden="true" />
-                    <span className={styles.srOnly}>스톤 </span>
+                    {marks ? (
+                      <>
+                        <i className={styles.engraveMark} data-kind="stone" aria-hidden="true" />
+                        <span className={styles.srOnly}>스톤 </span>
+                      </>
+                    ) : (
+                      "스톤 "
+                    )}
                     Lv.{effect.abilityStoneLevel}
                   </span>
                 )}
