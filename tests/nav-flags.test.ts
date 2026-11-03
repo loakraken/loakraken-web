@@ -49,7 +49,10 @@ test("the menu lists hubs only (user 11-01); every page left out is a tab of a l
     ["레이드", "/tools/raid-rewards"],
     ["골드 효율", "/tools/loa-shop"],
   ]);
-  assert.deepEqual(rows("stats").map((link) => link.href), ["/stats"]);
+  // 랭킹 sits under 통계 (user 11-03), a page of its own beside the one /stats row.
+  assert.deepEqual(rows("stats").map((link) => link.href), ["/stats", "/rankings"]);
+  assert.ok(!rows("character").some((link) => link.href === "/rankings"));
+  assert.equal(sectionOf("/rankings"), "stats");
   assert.equal(NAV_SECTIONS.find((section) => section.id === "tools")!.all?.href, "/tools");
   // Each hub row opens the hub's first tab.
   assert.equal(HUBS.market.tabs[0].href, "/market");
