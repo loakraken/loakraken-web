@@ -66,6 +66,8 @@ for (const width of [1280, 360])
     await expect(page.getByRole("region", { name: "아이템 레벨별 전투력" })).toHaveCount(0);
     await expect(panel.getByRole("button", { name: /다시 시도/ })).toHaveCount(0);
     await expect(panel).not.toContainText("불러오지 못했어요");
-    expect((await shiftsSince(page)).all, "흔들림").toBe(0);
+    // With what moved (path, box before → after, time vs. waking), so a failure names the node.
+    const shifted = await shiftsSince(page);
+    expect(shifted.all, `흔들림 (${shifted.moved})`).toBe(0);
     await expectNoHorizontalOverflow(page);
   });
