@@ -14,6 +14,15 @@
   align-items: start;
   margin-top: 16px;
 }
+/* The detail comes first in the page (as phones show it, #1353); wide screens
+   place the board left and the detail right, each in its own cell, so the
+   one that arrives second never moves the other. */
+.columns > .board {
+  grid-area: 1 / 1;
+}
+.columns > .side {
+  grid-area: 1 / 2;
+}
 .board,
 .detail {
   min-width: 0;
@@ -711,11 +720,20 @@
   .columns {
     grid-template-columns: 1fr;
   }
+  /* One column in page order: the detail, then the board. */
+  .columns > .board,
+  .columns > .side {
+    grid-area: auto;
+  }
   .side {
     position: static;
-    order: -1;
     max-height: none;
     overflow: visible;
+    /* The browser keeps the scroll on a node in view as content above it
+       changes height; first in the page, the detail was picked, so a detail
+       swap (a sort picks a new first item) moved the board under the pointer.
+       The anchor stays in the board, as before the detail came first. */
+    overflow-anchor: none;
   }
   .facts {
     grid-template-columns: repeat(2, minmax(0, 1fr));
