@@ -1066,12 +1066,14 @@
   --item-tip-icon-epic-b: rgb(72 13 93);
   --item-tip-icon-esther-a: rgb(12 46 44);
   --item-tip-icon-esther-b: rgb(47 171 168);
-  --item-tip-icon-rare-a: color-mix(in srgb, var(--item-tip-grade-rare) 25%, #000);
-  --item-tip-icon-rare-b: color-mix(in srgb, var(--item-tip-grade-rare) 70%, #000);
-  --item-tip-icon-uncommon-a: color-mix(in srgb, var(--item-tip-grade-uncommon) 25%, #000);
-  --item-tip-icon-uncommon-b: color-mix(in srgb, var(--item-tip-grade-uncommon) 70%, #000);
-  --item-tip-icon-normal-a: color-mix(in srgb, var(--item-tip-grade-normal) 25%, #000);
-  --item-tip-icon-normal-b: color-mix(in srgb, var(--item-tip-grade-normal) 70%, #000);
+  /* The official grade backgrounds for these three too (user 11-02, the same
+     values as the item icon tiles, components/character/imagery.module.css). */
+  --item-tip-icon-rare-a: rgb(17 31 44);
+  --item-tip-icon-rare-b: rgb(17 61 93);
+  --item-tip-icon-uncommon-a: rgb(24 34 11);
+  --item-tip-icon-uncommon-b: rgb(48 73 17);
+  --item-tip-icon-normal-a: rgb(35 35 35);
+  --item-tip-icon-normal-b: rgb(87 87 87);
   /* Quality number and bar fill. 90–99 is the measured #df18e3 (3.99) lifted in
      lightness to pass 4.5 (5.09 / 5.53); the other tiers were not measured
      and keep the in-game colours the character tab used. */

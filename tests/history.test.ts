@@ -105,6 +105,11 @@ test("history and siblings requests validate input before calling the backend", 
     code: "CHARACTER_HISTORY_DISABLED",
     status: 503,
   });
+  // The api's official-call gate store is down (api #804): siblings keep that code too.
+  const gate = await requestSiblings("이름", origin, {
+    fetcher: (async () => Response.json({ code: "LOST_ARK_GATE_UNAVAILABLE" }, { status: 503 })) as typeof fetch,
+  });
+  assert.deepEqual(gate.ok ? null : gate.error, { code: "LOST_ARK_GATE_UNAVAILABLE", status: 503 });
 });
 
 test("history summary: now, highest, change and the KST period", () => {

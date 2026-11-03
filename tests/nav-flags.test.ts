@@ -58,7 +58,12 @@ test("the menu lists hubs only (user 11-01); every page left out is a tab of a l
   assert.equal(HUBS.gold.tabs[0].href, "/tools/loa-shop");
   // Every page that left the menu is a tab of a hub still in it (or a /stats tab), and in the search list.
   const menu = new Set(NAV_SECTIONS.flatMap((section) => section.groups.flatMap((group) => group.links)).map((l) => l.href));
-  const tabs = new Set(Object.values(HUBS).flatMap((hub) => (menu.has(hub.tabs[0].href) ? hub.tabs.map((t) => t.href) : [])));
+  // A tab's views (also, e.g. 장신구 매물 검색 inside 장신구) count as that tab.
+  const tabs = new Set(
+    Object.values(HUBS).flatMap((hub) =>
+      menu.has(hub.tabs[0].href) ? hub.tabs.flatMap((t) => [t.href, ...(t.also ?? [])]) : [],
+    ),
+  );
   for (const link of NAV_SECTIONS.flatMap((section) => section.search ?? []))
     assert.ok(menu.has(link.href) || tabs.has(link.href!) || link.href!.startsWith("/stats?tab="), link.href);
   for (const hub of Object.values(HUBS))
@@ -66,5 +71,6 @@ test("the menu lists hubs only (user 11-01); every page left out is a tab of a l
       assert.ok(menu.has(tab.href) || NAV_SECTIONS.some((section) => section.search?.some((link) => link.href === tab.href)), `${tab.href} searchable`);
   // 악세 경매 검색 stays under 시세 and marks 시세 as current.
   assert.equal(sectionOf("/market/accessory-search"), "market");
+  assert.equal(sectionOf("/market/accessories/search"), "market");
   assert.equal(sectionOf("/tools/auction"), "tools");
 });

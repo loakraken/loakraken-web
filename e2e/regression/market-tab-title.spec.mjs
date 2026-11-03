@@ -3,8 +3,13 @@
 import { test, expect, gotoReady } from "../support/fixtures.mjs";
 
 const escape = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-// The item's own name: the row's <strong> also holds a tier mark (<i>T4</i>).
-const nameOf = (row) => row.locator("strong").first().evaluate((el) => el.firstChild.textContent.trim());
+// The item's own name: the row's <strong> also holds the favourite star's place (an svg, first) and a
+// tier mark (<i>T4</i>), so it is the first text node with letters.
+const nameOf = (row) =>
+  row
+    .locator("strong")
+    .first()
+    .evaluate((el) => [...el.childNodes].find((node) => node.nodeType === Node.TEXT_NODE && node.textContent.trim()).textContent.trim());
 
 test("시세: 고른 품목 가격이 탭 제목에 @regression", async ({ page }) => {
   await gotoReady(page, "/market");

@@ -4,11 +4,14 @@ import { test, expect, characterPath, gotoReady } from "../support/fixtures.mjs"
 
 const star = (page) => page.getByRole("button", { name: /^즐겨찾기( 해제)?$/ });
 const card = (page) => page.getByRole("region", { name: "최근 검색과 즐겨찾기" });
-// 기록은 화면이 수화(hydration)된 뒤 조회 성공 시 남는다. 제목은 서버 HTML로 먼저 보이므로 네트워크가 잠잠해질 때까지 기다린다.
-async function visit(page, name) {
+const stored = (page) => page.evaluate(() => localStorage.getItem("loakraken:recent") ?? "");
+// 기록은 화면이 깨어난(수화) 뒤 조회 성공 시 남는다. 제목은 서버 HTML로 먼저 보이고, 네트워크가 잠잠해져도 아직 깨어나기
+// 전일 수 있다: CI에서 그 사이 홈으로 넘어가 기록이 남지 않았다(#1316). 남아야 하는 조회는 저장소에 들어온 것을 보고 넘어간다.
+async function visit(page, name, { recorded = false } = {}) {
   await page.goto(characterPath(name));
   await expect(page.getByRole("heading", { level: 1, name })).toBeVisible();
-  await page.waitForLoadState("networkidle");
+  if (recorded) await expect.poll(() => stored(page)).toContain(`"name":"${name}"`);
+  else await page.waitForLoadState("networkidle");
 }
 const tab = (page, name) => card(page).getByRole("tablist", { name: "목록 선택" }).getByRole("tab", { name: new RegExp(`^${name}`) });
 
@@ -43,9 +46,9 @@ test.describe("즐겨찾기·최근 검색 저장 @regression", () => {
   });
 
   test("최근 검색: 조회 성공만 기록 → 개별 삭제 → 전체 삭제", async ({ page }) => {
-    await visit(page, "상세");
+    await visit(page, "상세", { recorded: true });
     await visit(page, "미존재"); // 실패한 조회는 기록하지 않는다
-    await visit(page, "상세서포터");
+    await visit(page, "상세서포터", { recorded: true });
 
     await gotoReady(page, "/");
     await expect(tab(page, "최근 검색")).toHaveAttribute("aria-selected", "true");
@@ -64,13 +67,16 @@ test.describe("즐겨찾기·최근 검색 저장 @regression", () => {
   });
 
   test("최근 검색: '검색어 저장'을 끄면 기록을 지우고 더 저장하지 않는다", async ({ page }) => {
-    await visit(page, "상세");
+    await visit(page, "상세", { recorded: true });
     await gotoReady(page, "/");
     await expect(card(page).getByRole("listitem")).toHaveCount(1);
 
     await card(page).getByRole("checkbox", { name: "검색어 저장" }).uncheck();
     await expect(card(page)).toContainText("검색어 저장이 꺼져 있어요.");
     await visit(page, "상세서포터");
+    // 깨어난 뒤에도(탭 줄이 자리를 잡음) 기록하지 않았다.
+    await expect(page.getByRole("navigation", { name: "캐릭터 정보 탭" })).toHaveAttribute("data-pill", "on");
+    expect(await stored(page)).toBe("");
     await gotoReady(page, "/");
     await expect(card(page).getByRole("checkbox", { name: "검색어 저장" })).not.toBeChecked();
     await expect(card(page).getByRole("listitem")).toHaveCount(0);

@@ -371,6 +371,12 @@
     padding: 20px;
   }
 }
+/* The tab bar is 36px taller there: tabs on a row of their own (detail.module.css). */
+@media (max-width: 400px) {
+  .page [id] {
+    scroll-margin-top: 186px;
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   .page *,
   .page *::before,

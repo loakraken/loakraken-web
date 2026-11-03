@@ -3,6 +3,7 @@ import { dehydrate, HydrationBoundary, QueryClient } from "@tanstack/react-query
 import { AccessoryBoardView } from "@/components/market/accessory-board";
 import { parseAccessoryFilter, parseAccessoryPick } from "@/lib/market/auction-accessories";
 import { getAccessoryBoard } from "@/lib/market/server";
+import { isAccessorySearchEnabled } from "@/lib/tools/flags";
 
 export const metadata: Metadata = {
   title: "장신구 시세",
@@ -30,7 +31,11 @@ export default async function AccessoriesPage({
   if (board.ok) client.setQueryData(["accessory-board", filter], board.envelope, { updatedAt: fetchedAt });
   return (
     <HydrationBoundary state={dehydrate(client)}>
-      <AccessoryBoardView initialFilter={filter} initialPick={parseAccessoryPick(params)} />
+      <AccessoryBoardView
+        initialFilter={filter}
+        initialPick={parseAccessoryPick(params)}
+        search={isAccessorySearchEnabled()}
+      />
     </HydrationBoundary>
   );
 }
