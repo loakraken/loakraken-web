@@ -1,26 +1,32 @@
 // 회귀(A7): 첫 로드에서 페이지가 나뉘어 오면 알약 탭이 이름보다 먼저 그려질 수 있다. 이름이 오기 전의 좁은 탭은 누르는
-// 자리(44px)가 가운데에 놓여 왼쪽으로 6px 나가 있다가, 이름이 오며 넓어진 탭에서는 제자리로 와 움직였다(랭킹 종류 탭 360,
-// 둘째 탭). 이제 탭은 이름이 없어도 40px라 누르는 자리의 시작이 그대로다. 탭이 하나씩 올 때 앞의 탭도 움직이지 않는다.
+// 자리(44px)가 가운데에 놓여 왼쪽으로 6px 나가 있다가, 이름이 오며 넓어진 탭에서는 제자리로 와 움직였다(랭킹 종류 360
+// 둘째 탭 80→86, 시세 분류 320 첫 탭 8→14 — 목록이 왼쪽 12px에서 잘라 기록에는 40x44→105x44로 보임). 이제 탭은 이름이
+// 없어도 40px라 누르는 자리의 시작이 그대로다. 탭이 하나씩 올 때 앞의 탭도 움직이지 않는다.
 import { test, expect, gotoReady } from "../support/fixtures.mjs";
 
 /**
- * Plays a pill tab row arriving in parts: every tab after the first is taken out, then each comes back empty
- * first and gets its label a frame later, in page order. Returns the layout shift this causes and what moved.
+ * Plays a pill tab row arriving in parts: the first tab is drawn without its label and every later tab is taken
+ * out; then, in page order, each tab gets its label a frame after it is drawn (the later ones come back empty
+ * first). Returns the layout shift this causes and what moved.
  */
 const partsArriving = (list) =>
   list.evaluate(async (row) => {
     const frame = () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-    const tabs = [...row.querySelectorAll(":scope > [role=tab]")].slice(1);
+    const tabs = [...row.querySelectorAll(":scope > [role=tab]")];
     const labels = tabs.map((tab) => [...tab.childNodes]);
-    for (const tab of tabs) tab.remove();
+    tabs.forEach((tab, i) => {
+      labels[i].forEach((node) => node.remove());
+      if (i > 0) tab.remove();
+    });
     await frame();
     const entries = [];
     const observer = new PerformanceObserver((records) => entries.push(...records.getEntries()));
     observer.observe({ type: "layout-shift" });
-    tabs.forEach((tab, i) => labels[i].forEach((node) => node.remove()));
     for (const [i, tab] of tabs.entries()) {
-      row.append(tab);
-      await frame();
+      if (i > 0) {
+        row.append(tab);
+        await frame();
+      }
       tab.append(...labels[i]);
       await frame();
     }
