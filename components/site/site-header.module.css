@@ -14,9 +14,11 @@
   top: 0;
   z-index: 50;
   display: grid;
-  /* Discord's pill may grow past 84px with a wider fallback font; it grows
-     left into the menu column, which keeps its start, so nothing drawn moves. */
-  grid-template-columns: auto 20px minmax(min-content, 1fr) minmax(0, auto) 20px minmax(84px, max-content) 12px var(--search-w) 4px 44px;
+  /* Discord's pill is a fixed 84px (a wider label runs on past its right
+     edge, nothing before it moves): a column that grew
+     with a wider fallback font took the width from the menu column, and the
+     page slot between them moved sideways (#1359 review). */
+  grid-template-columns: auto 20px minmax(min-content, 1fr) minmax(0, auto) 20px 84px 12px var(--search-w) 4px 44px;
   grid-template-rows: 44px;
   align-items: center;
   padding: 8px max(24px, calc((100% - 1120px) / 2));
@@ -78,7 +80,6 @@
   grid-column: 6;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
   gap: 6px;
   height: 28px;
   padding: 0 8px;
@@ -148,6 +149,7 @@
   }
   /* Narrow screens: the logo alone on a 44px target, before the toggle. */
   .discord {
+    justify-content: center;
     width: 44px;
     height: 44px;
     padding: 0;
