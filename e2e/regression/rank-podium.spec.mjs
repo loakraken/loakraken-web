@@ -42,6 +42,22 @@ async function expectTextFits(podium) {
   expect(failures, "이름·숫자 잘림과 말줄임 없음").toEqual([]);
 }
 
+// 이름 글의 마지막 줄 바로 아래에 값이 온다(한 줄 이름도 빈 줄 없이, 이름 자리 아래쪽 정렬).
+async function expectValueUnderName(podium) {
+  const gaps = await podium.evaluate((root) => [...root.querySelectorAll("[data-podium-place]")].map((place) => {
+    const name = place.querySelector("[data-podium-name]");
+    const range = document.createRange();
+    range.selectNodeContents(name);
+    const lines = [...range.getClientRects()];
+    const textBottom = Math.max(...lines.map((rect) => rect.bottom));
+    return Math.round(place.querySelector("[data-podium-value]").getBoundingClientRect().top - textBottom);
+  }));
+  for (const gap of gaps) {
+    expect(gap, `이름과 값 사이 ${gaps.join("/")}px`).toBeGreaterThanOrEqual(0);
+    expect(gap, `이름과 값 사이 ${gaps.join("/")}px`).toBeLessThanOrEqual(8);
+  }
+}
+
 // 스타일 숫자를 추측하지 않고 실제 캐스케이드가 그린 상자·색·텍스트를 검사한다.
 async function expectCascade(page) {
   const result = await podiumOf(page).evaluate((root) => {
@@ -217,7 +233,8 @@ async function expectEffects(page, reduced = false) {
   }
 }
 
-for (const item of LISTS) for (const width of [320, 360, 1280]) for (const theme of ["light", "dark"]) {
+// 430: 휴대폰 크기(420 이하)를 막 넘어 데스크톱 글자 크기가 좁은 칸에 들어가는 폭.
+for (const item of LISTS) for (const width of [320, 360, 430, 1280]) for (const theme of ["light", "dark"]) {
   const smoke = (width === 320 && theme === "light") || (width === 360 && theme === "dark") ? " @smoke" : "";
   test(`${item.name} 단상 ${width}px ${theme}: 첫 그림·초상화·순위·조명 @regression${smoke}`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
@@ -285,6 +302,7 @@ for (const item of LISTS) for (const width of [320, 360, 1280]) for (const theme
       }
       expect(await sizeOf(boxes), "이미지 로딩 전후 같은 크기").toEqual(before);
       await expectPlaces(page, item, sourceRows);
+      await expectValueUnderName(podium);
       await frames(page);
       const shift = await shiftsSince(page);
       expect(shift.all, `첫 그림 흔들림 (${shift.moved})`).toBe(0);
@@ -358,7 +376,7 @@ for (const item of LISTS.filter((item) => !item.server)) {
   });
 }
 
-for (const width of [320, 360, 1280]) {
+for (const width of [320, 360, 430, 1280]) {
   test(`${width}px: 긴 이름·큰 숫자·구형 응답의 초상화 없음 @regression`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await page.route((url) => url.pathname === "/api/rankings", async (route) => {
@@ -379,6 +397,7 @@ for (const width of [320, 360, 1280]) {
     await expect(podium).toHaveAttribute("data-podium-state", "ready");
     await expect(podium.locator('[data-portrait-fallback="class"]')).toHaveCount(3);
     await expectTextFits(podium);
+    await expectValueUnderName(podium);
     await expectNoHorizontalOverflow(page);
   });
 }

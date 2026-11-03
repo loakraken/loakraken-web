@@ -117,6 +117,10 @@
 }
 .podium .name {
   flex: none;
+  /* The text sits at the foot of its fixed slot, so a one-line name keeps
+     its value right under it; the spare room stays above the name. */
+  display: grid;
+  align-content: end;
   height: var(--name-height);
   color: var(--link);
   font-weight: 600;
