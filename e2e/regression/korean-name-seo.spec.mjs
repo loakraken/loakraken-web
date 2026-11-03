@@ -8,6 +8,8 @@ test("첫 화면: 제목·설명·JSON-LD가 서버 HTML에 @regression", async 
   const description = html.match(/<meta name="description" content="([^"]+)"/)?.[1] ?? "";
   expect(description).toContain("로아크라켄(LOAKraken)");
   expect(description).not.toContain("치적");
+  // Read in search results (user 11-03): '…계산기를 씁니다.' read oddly; the snippet ends '…할 수 있습니다.'
+  expect(description).not.toMatch(/씁니다\.$/);
   const blocks = [...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)];
   expect(blocks, "JSON-LD 하나").toHaveLength(1);
   const graph = JSON.parse(blocks[0][1])["@graph"];
