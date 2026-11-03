@@ -70,8 +70,9 @@ test.describe("히어로 봇 @regression", () => {
     const box = await bot(page).boundingBox();
     const x = box.x + box.width / 2;
     await page.mouse.move(x, area.y + 4, { steps: 12 });
-    // data-bot-turn은 0.1 단위로 반올림한다. 히어로 위쪽 끝에서 고개는 약 0.1~0.15 위에 멈춰서
-    // "0.1 초과"는 반올림에 따라 갈렸다(CI 41631953966: 5초 동안 0.1에 머문 뒤 잠듦). 그래서
+    // data-bot-turn은 0.1 단위로 반올림한다. 포인터가 봇보다 위면 고개는 늘 위를 보지만, 라이브러리의
+    // 느린 고개 흔들림이 더해져 멈춘 값이 0.1~0.3 사이를 오가서 "0.1 초과"는 운에 따라 갈렸다
+    // (CI 41631953966: 5초 동안 0.1에 머문 뒤 잠듦). 그래서
     // "0.05 초과"(= 반올림 뒤 0.1 이상, 위를 봄)와 "위보다 0.15 넘게 아래"(= 0.2 이상 아래)로 본다.
     const up = await expect.poll(async () => (await turn(page))[1]).toBeGreaterThan(0.05).then(() => turn(page));
     await page.mouse.move(x, area.y + area.height - 4, { steps: 12 });
