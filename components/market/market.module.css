@@ -717,8 +717,11 @@
 }
 
 @media (max-width: 860px) {
+  /* minmax(0, …): a plain 1fr never shrinks below its content, and the detail
+     (no longer its own scroller here) took the width of its longest
+     unbreakable line, the 1시간 caption, past a 320 screen (345px, QA v0.3.8). */
   .columns {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
   /* One column in page order: the detail, then the board. */
   .columns > .board,
@@ -793,6 +796,16 @@
   font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+/* Narrow screens: the 1시간 caption does not fit one line there, so it wraps
+   instead of being cut, and both ranges hold two lines (the table under it
+   stays put on a switch, A7). */
+@media (max-width: 480px) {
+  .chartCaption {
+    min-height: 32px;
+    line-height: 16px;
+    white-space: normal;
+  }
 }
 /* A message where the drawing goes (ChartPlaceholder). */
 .chartMessage {
