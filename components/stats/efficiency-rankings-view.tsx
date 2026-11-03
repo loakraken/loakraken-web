@@ -12,7 +12,7 @@ import { pendingProps } from "@/lib/api/pending";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { TIER_LABEL, TIER_LEGEND } from "@/lib/character/rank";
 import { fetchEfficiencyRanking } from "@/lib/stats/client";
-import { fixed, percent, sampleText, whole } from "@/lib/stats/model";
+import { fixed, percent, sampleText } from "@/lib/stats/model";
 import {
   EFFICIENCY_KINDS,
   MAX_PAGE,
@@ -26,6 +26,8 @@ import {
 import quote from "@/components/tools/material-quote.module.css";
 import styles from "./stats.module.css";
 import { LevelPresets } from "./level-presets";
+import { RankPodium } from "./rank-podium";
+import { RankNumber } from "./rank-number";
 import { rankingColumns } from "./ranking-columns";
 import { BasisNote } from "./basis-note";
 import { RankingTypeTabs, type RankingType } from "./ranking-type-tabs";
@@ -169,6 +171,17 @@ export function EfficiencyRankingsView({
           <LevelPresets level={query.itemLevelMin} onPick={pickLevel} />
         </form>
 
+        <RankPodium
+          page={query.page}
+          loading={(!data && list.isPending) || list.isPlaceholderData}
+          entries={data?.rows.map((row) => ({
+            rank: row.rank, name: row.characterName,
+            href: `/character/${encodeURIComponent(row.characterName)}`,
+            imageUrl: row.imageUrl, className: row.className,
+            value: efficiencyText(row.valuePercent),
+          })) ?? []}
+        />
+
         {/* Held from the first paint (empty until the answer), so the list never moves down. */}
         <p
           key={list.dataUpdatedAt}
@@ -184,69 +197,72 @@ export function EfficiencyRankingsView({
           )}
         </p>
 
-        {list.isError && !data ? (
-          <div className={styles.problem}>
-            <p>{limit.limited ? countdownText(limit.seconds) : "랭킹을 불러오지 못했어요."}</p>
-            <button type="button" onClick={() => list.refetch()} disabled={limit.seconds > 0}>
-              {retryLabel(limit.seconds)}
-            </button>
-          </div>
-        ) : !data ? (
-          <p className={`${styles.muted} ${styles.listHold}`} role="status">
-            랭킹을 불러오고 있어요…
-          </p>
-        ) : data.rows.length === 0 ? (
-          <p className={styles.muted}>조건에 맞는 캐릭터가 없어요.</p>
-        ) : (
-          <DataTable
-            label={`${meta.value} 랭킹 ${query.page}쪽`}
-            className={styles.table}
-            {...COLUMNS.tableProps}
-            {...pendingProps(list)}
-          >
-            <caption className={styles.srOnly}>
-              {meta.value} 랭킹 {query.page}쪽
-            </caption>
-            {COLUMNS.colgroup}
-            <thead>
-              <tr>
-                <th scope="col">순위</th>
-                <th scope="col">캐릭터</th>
-                {/* The ranked value right after the name: on a phone it is
-                    in view without scrolling the table sideways. */}
-                <th scope="col">{meta.value}</th>
-                <th scope="col" className={styles.left}>서버</th>
-                <th scope="col" className={styles.left}>직업</th>
-                <th scope="col">아이템 레벨</th>
-                <th scope="col">전투력</th>
-                <th scope="col">상위</th>
-              </tr>
-            </thead>
-            <tbody key={list.dataUpdatedAt}>
-              {data.rows.map((row) => (
-                <tr key={`${row.serverName}-${row.characterName}`}>
-                  <td>{whole(row.rank)}</td>
-                  <th scope="row" title={row.characterName}>
-                    <Link href={`/character/${encodeURIComponent(row.characterName)}`} className={styles.charLink}>
-                      {row.characterName}
-                    </Link>
-                  </th>
-                  <td data-strong="" className={styles.efficiency}>
-                    {efficiencyText(row.valuePercent)}
-                  </td>
-                  <td className={styles.left}>{row.serverName}</td>
-                  <td className={styles.left}>{row.className}</td>
-                  <td>{fixed(row.itemLevel)}</td>
-                  <td>{fixed(row.combatPower)}</td>
-                  <td>
-                    {percent(row.topPercent)}
-                    {row.tier && TIER_LABEL[row.tier] && <> <b className={styles.tier}>{TIER_LABEL[row.tier]}</b></>}
-                  </td>
+        <div className={styles.listHold}>
+          {list.isError && !data ? (
+            <div className={styles.problem}>
+              <p>{limit.limited ? countdownText(limit.seconds) : "랭킹을 불러오지 못했어요."}</p>
+              <button type="button" onClick={() => list.refetch()} disabled={limit.seconds > 0}>
+                {retryLabel(limit.seconds)}
+              </button>
+            </div>
+          ) : !data ? (
+            <p className={styles.muted} role="status">
+              랭킹을 불러오고 있어요…
+            </p>
+          ) : data.rows.length === 0 ? (
+            <p className={styles.muted}>조건에 맞는 캐릭터가 없어요.</p>
+          ) : (
+            <DataTable
+              label={`${meta.value} 랭킹 ${query.page}쪽`}
+              className={styles.table}
+              {...COLUMNS.tableProps}
+              {...pendingProps(list)}
+            >
+              <caption className={styles.srOnly}>
+                {meta.value} 랭킹 {query.page}쪽
+              </caption>
+              {COLUMNS.colgroup}
+              <thead>
+                <tr>
+                  <th scope="col">순위</th>
+                  <th scope="col">캐릭터</th>
+                  {/* The ranked value right after the name: on a phone it is
+                      in view without scrolling the table sideways. */}
+                  <th scope="col">{meta.value}</th>
+                  <th scope="col" className={styles.left}>서버</th>
+                  <th scope="col" className={styles.left}>직업</th>
+                  <th scope="col">아이템 레벨</th>
+                  <th scope="col">전투력</th>
+                  <th scope="col">상위</th>
                 </tr>
-              ))}
-            </tbody>
-          </DataTable>
-        )}
+              </thead>
+              <tbody key={list.dataUpdatedAt}>
+                {data.rows.map((row) => (
+                  <tr key={`${row.serverName}-${row.characterName}`}>
+                    <td><RankNumber rank={row.rank} /></td>
+                    <th scope="row" title={row.characterName}>
+                      <Link href={`/character/${encodeURIComponent(row.characterName)}`} className={styles.charLink}>
+                        {row.characterName}
+                      </Link>
+                    </th>
+                    <td data-strong="" className={styles.efficiency}>
+                      {efficiencyText(row.valuePercent)}
+                    </td>
+                    <td className={styles.left}>{row.serverName}</td>
+                    <td className={styles.left}>{row.className}</td>
+                    <td>{fixed(row.itemLevel)}</td>
+                    <td>{fixed(row.combatPower)}</td>
+                    <td>
+                      {percent(row.topPercent)}
+                      {row.tier && TIER_LABEL[row.tier] && <> <b className={styles.tier}>{TIER_LABEL[row.tier]}</b></>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </DataTable>
+          )}
+
+        </div>
 
         {data && pages > 1 && (
           <nav className={styles.pager} aria-label="쪽 이동">
