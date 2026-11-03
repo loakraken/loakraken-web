@@ -58,7 +58,9 @@ export type ScheduleGroup = {
  * gates with the same rounds and rewards). Entries with the same rounds and
  * rewards become one row named by the category, listing the places; an entry
  * unlike the others stays as it is. Two different merged sets keep apart by
- * their entry level.
+ * their entry level. A merged row's level is its highest place's (user 11-03:
+ * "1,580 이상" read as if every place took 1,580); `minItemLevel` keeps the
+ * API field's name, and each place keeps its own level.
  */
 export function mergeSameRounds(items: Timed[], label: string): Row[] {
   const sets = new Map<string, Timed[]>();
@@ -72,12 +74,11 @@ export function mergeSameRounds(items: Timed[], label: string): Row[] {
   return [...sets.values()].map((set): Row => {
     if (set.length === 1) return set[0];
     const levels = set.map((item) => item.minItemLevel).filter((level): level is number => level != null);
-    const minItemLevel = levels.length ? Math.min(...levels) : null;
+    const topLevel = levels.length ? Math.max(...levels) : null;
     return {
       ...set[0],
-      name:
-        merged.length > 1 && minItemLevel != null ? `${label} ${minItemLevel.toLocaleString("ko-KR")} 이상` : label,
-      minItemLevel,
+      name: merged.length > 1 && topLevel != null ? `${label} ${topLevel.toLocaleString("ko-KR")} 이상` : label,
+      minItemLevel: topLevel,
       places: highestFirst(set.map((item) => ({ name: item.name, minItemLevel: item.minItemLevel }))),
     };
   });
