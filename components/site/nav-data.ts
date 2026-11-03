@@ -51,7 +51,7 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     id: "character",
     label: "캐릭터",
-    match: ["/character", "/multi-search", "/rankings"],
+    match: ["/character", "/multi-search"],
     groups: [
       {
         title: "조회",
@@ -60,10 +60,6 @@ export const NAV_SECTIONS: NavSection[] = [
           { label: "멀티서치", description: "여러 캐릭터를 나란히 비교", href: "/multi-search" },
           { label: "길드", description: "길드원 세팅 한눈에" },
         ],
-      },
-      {
-        title: "순위",
-        links: [{ label: "랭킹", description: "전투력·아이템 레벨 순위와 백분위", href: "/rankings" }],
       },
     ],
   },
@@ -148,12 +144,18 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     id: "stats",
     label: "통계",
-    match: ["/stats"],
+    // 랭킹 moved here from 캐릭터 (user 11-03); its URL stays /rankings.
+    match: ["/stats", "/rankings"],
     groups: [
       {
         title: "분포",
-        // ONE entry (user 11-01, asked twice): the tabs live on /stats.
+        // ONE entry for /stats (user 11-01, asked twice): its tabs live on the
+        // page. 랭킹 below is a page of its own, not one of those tabs.
         links: [{ label: "전체 통계", description: "직업·전투력 분포·최고 전투력·서버를 탭으로", href: "/stats" }],
+      },
+      {
+        title: "순위",
+        links: [{ label: "랭킹", description: "전투력·아이템 레벨 순위와 백분위", href: "/rankings" }],
       },
     ],
     search: [
