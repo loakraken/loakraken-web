@@ -3,7 +3,8 @@
 import { test, expect, gotoReady, expectNoHorizontalOverflow } from "../support/fixtures.mjs";
 import { shiftsDuring, watchShifts } from "../support/shifts.mjs";
 
-for (const width of [1280, 360])
+// 320 (QA v0.3.8): on 1시간 the long caption widened the detail past the screen (345px), the page scrolled sideways.
+for (const width of [1280, 360, 320])
   test(`@K35 ${width} 1시간 그래프와 확인 주기, 기간 전환 흔들림 0 @regression`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await watchShifts(page);
@@ -16,6 +17,10 @@ for (const width of [1280, 360])
     await expect(detail.getByRole("img", { name: /^최근 1시간 판매 최저가/ })).toBeVisible();
     await expect(detail.getByText("판매 최저가 · 약 30초마다 확인 · 확인하지 않은 분은 비어 있어요")).toBeVisible();
     expect(hour.all, `1시간 전환 흔들림 (${hour.moved})`).toBe(0);
+    // On 1시간 itself (the long caption): nothing past the screen, and the caption is whole, not cut.
+    await expectNoHorizontalOverflow(page);
+    const caption = detail.getByText("판매 최저가 · 약 30초마다 확인 · 확인하지 않은 분은 비어 있어요");
+    expect(await caption.evaluate((el) => el.scrollWidth - el.clientWidth), "1시간 설명 잘림").toBeLessThanOrEqual(0);
     const back = await shiftsDuring(page, () => range.getByRole("button", { name: "7일" }).click(), 1500);
     await expect(detail.getByRole("img", { name: /^일 평균 거래가와 거래량/ })).toBeVisible();
     expect(back.all, `7일 전환 흔들림 (${back.moved})`).toBe(0);
