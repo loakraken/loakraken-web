@@ -55,6 +55,51 @@ for (const [label, path] of [
       expect(late.value, `머리글 늦게 온 부분이 민 것 (${late.moved})`).toBe(0);
     });
 
+// The logo link split mid-way (its mark's long path is where the first part of the page broke): what came after the
+// split, put back, does not widen the link. The name came after the mark and widened the link from the mark alone to
+// mark and name, its 44px touch target with it (360, 44 -> 126 before hydration). 320-420 and 768 touch have that target.
+for (const [width, touch] of [
+  [320, false],
+  [360, false],
+  [420, false],
+  [768, true],
+  [1280, false],
+])
+  test.describe(`${width}${touch ? " 터치" : ""}`, () => {
+    test.use({ viewport: { width, height: 800 }, hasTouch: touch, isMobile: touch });
+
+    test(`@A7 ${width}${touch ? " 터치" : ""} 시세: 로고 링크의 나중에 온 부분이 링크를 넓히지 않는다 @regression`, async ({ page }) => {
+      await gotoReady(page, "/market");
+      const late = await page.evaluate(async () => {
+        const link = document.querySelector('header[data-sticky-chrome] a[aria-label="LOAKraken 홈"]');
+        const frame = () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        // The web font settled first: a font landing between the two reads would change the width on its own.
+        await document.fonts.ready;
+        const [, ...later] = [...link.childNodes];
+        for (const part of later) part.remove();
+        await frame();
+        const before = Math.round(link.getBoundingClientRect().width);
+        const entries = [];
+        const observer = new PerformanceObserver((list) => entries.push(...list.getEntries()));
+        observer.observe({ type: "layout-shift" });
+        for (const part of later) {
+          link.append(part);
+          await frame();
+        }
+        await frame();
+        entries.push(...observer.takeRecords());
+        observer.disconnect();
+        return {
+          shift: +entries.reduce((sum, entry) => sum + entry.value, 0).toFixed(4),
+          widths: `${before} -> ${Math.round(link.getBoundingClientRect().width)}`,
+        };
+      });
+      expect(late.shift, `로고 링크 늦게 온 부분이 민 것 (폭 ${late.widths})`).toBe(0);
+      const [before, after] = late.widths.split(" -> ");
+      expect(after, "로고 링크 폭은 처음부터 그대로").toBe(before);
+    });
+  });
+
 // A wider font for the Discord label (a fallback, or the web font landing late) widens nothing but the label: the
 // page slot beside it and the buttons stay (CI's font is narrow enough that this never shows otherwise, #1359 review).
 for (const width of [901, 1280])
