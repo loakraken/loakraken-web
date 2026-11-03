@@ -1,5 +1,5 @@
 // 회귀(A7·A37): 랭킹 6종의 2·1·3 단상, API 초상화·대체 아이콘, 고정 자리와 순위 표식.
-// 첫 그림부터 이미지 도착까지 흔들림·잘림 0, 두 조명 효과의 합성 속성과 줄인 동작을 지킨다.
+// 첫 그림부터 이미지 도착까지 흔들림·잘림 0, 초상화 배경색 무대·위 덮개 빛·1위 테두리 빛·굴러가는 숫자와 줄인 동작을 지킨다.
 import { test, expect, gotoReady, expectNoHorizontalOverflow } from "../support/fixtures.mjs";
 import { watchShifts, shiftsSince } from "../support/shifts.mjs";
 
@@ -26,16 +26,22 @@ async function themeBeforeLoad(page, theme) {
 async function expectTextFits(podium) {
   const failures = await podium.evaluate((root) => {
     const failed = [];
+    const outside = (rect, box) => rect.left < box.left - 1 || rect.right > box.right + 1 || rect.top < box.top - 1 || rect.bottom > box.bottom + 1;
     for (const el of root.querySelectorAll("[data-podium-name], [data-podium-value]")) {
       const box = el.getBoundingClientRect();
       const style = getComputedStyle(el);
-      const range = document.createRange();
-      range.selectNodeContents(el);
       if (el.scrollWidth > el.clientWidth + 1 || el.scrollHeight > el.clientHeight + 1 || style.textOverflow === "ellipsis")
         failed.push(el.textContent);
-      for (const rect of range.getClientRects())
-        if (rect.left < box.left - 1 || rect.right > box.right + 1 || rect.top < box.top - 1 || rect.bottom > box.bottom + 1)
-          failed.push(el.textContent);
+      // 값은 글자마다 한 줄 창(굴러가는 숫자)이다. 창이 값 칸 안에 있어야 한다.
+      const digits = [...el.querySelectorAll("[data-podium-digit]")];
+      const rects = digits.length ? digits.map((digit) => digit.getBoundingClientRect()) : (() => {
+        const range = document.createRange();
+        range.selectNodeContents(el);
+        return [...range.getClientRects()];
+      })();
+      for (const rect of rects) if (outside(rect, box)) failed.push(el.textContent);
+      // 카드(overflow hidden)가 글을 자르지 않는다.
+      if (outside(box, el.closest("[data-podium-place]").getBoundingClientRect())) failed.push(el.textContent);
     }
     return failed;
   });
@@ -50,7 +56,8 @@ async function expectValueUnderName(podium) {
     range.selectNodeContents(name);
     const lines = [...range.getClientRects()];
     const textBottom = Math.max(...lines.map((rect) => rect.bottom));
-    return Math.round(place.querySelector("[data-podium-value]").getBoundingClientRect().top - textBottom);
+    const valueTop = Math.min(...[...place.querySelectorAll("[data-podium-value] [data-podium-digit]")].map((digit) => digit.getBoundingClientRect().top));
+    return Math.round(valueTop - textBottom);
   }));
   for (const gap of gaps) {
     expect(gap, `이름과 값 사이 ${gaps.join("/")}px`).toBeGreaterThanOrEqual(0);
@@ -80,17 +87,39 @@ async function expectCascade(page) {
           failures.push("길드 첫 글자 중앙 정렬 불일치");
       }
     }
-    for (const layer of root.querySelectorAll("[data-podium-cone], [data-podium-glow]")) {
-      const rect = layer.getBoundingClientRect();
-      const style = getComputedStyle(layer);
-      if (style.position !== "absolute" || rect.left < bounds.left || rect.right > bounds.right ||
-          rect.top < bounds.top || rect.bottom > bounds.bottom)
-        failures.push("장식 레이어가 예약한 자리 밖에 있음");
-      if (layer.hasAttribute("data-podium-cone") &&
-          (!style.clipPath.startsWith("polygon(") || !style.backgroundImage.startsWith("linear-gradient(")))
-        failures.push("조명의 사다리꼴·위에서 아래 그라데이션 누락");
-      if (layer.hasAttribute("data-podium-glow") && style.boxShadow === "none")
-        failures.push("블록 테두리 빛무리 누락");
+    const luminance = (color) => {
+      const channels = color.match(/[\d.]+/g).slice(0, 3).map(Number).map((v) => v / 255)
+        .map((v) => v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
+      return channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722;
+    };
+    const stage = luminance("rgb(21, 24, 29)");
+    for (const place of root.querySelectorAll("[data-podium-place]")) {
+      const card = place.getBoundingClientRect();
+      const style = getComputedStyle(place);
+      const light = getComputedStyle(place, "::before");
+      // 무대는 공식 초상화의 평평한 배경색(#15181d)과 같아 경계가 보이지 않는다(두 테마 모두).
+      if (style.backgroundColor !== "rgb(21, 24, 29)" || style.backgroundImage !== "none")
+        failures.push(`${place.dataset.podiumPlace}위 무대 색 불일치 ${style.backgroundColor} ${style.backgroundImage.slice(0, 30)}`);
+      if (card.left < bounds.left || card.right > bounds.right || card.top < bounds.top || card.bottom > bounds.bottom)
+        failures.push("카드가 예약한 자리 밖에 있음");
+      if (light.position !== "absolute" || light.mixBlendMode !== "screen" || !light.backgroundImage.includes("radial-gradient(") ||
+          light.pointerEvents !== "none")
+        failures.push("메달 빛 덮개(위에서, screen) 누락");
+      if (place.dataset.podiumPlace === "1" && !light.backgroundImage.includes("conic-gradient("))
+        failures.push("1위 조명 원뿔 누락");
+      for (const child of place.children) {
+        const rect = child.getBoundingClientRect();
+        if (rect.left < card.left || rect.right > card.right || rect.top < card.top || rect.bottom > card.bottom)
+          failures.push(`${place.dataset.podiumPlace}위 카드가 ${child.tagName} 를 자름`);
+      }
+      for (const text of place.querySelectorAll("[data-podium-name], [data-podium-value]")) {
+        const a = luminance(getComputedStyle(text).color);
+        if ((Math.max(a, stage) + 0.05) / (Math.min(a, stage) + 0.05) < 4.5) failures.push("무대 위 글 명암비 4.5 미만");
+      }
+    }
+    for (const image of root.querySelectorAll("img[data-podium-image]")) {
+      const style = getComputedStyle(image);
+      if (style.maskImage !== "none" || style.mixBlendMode !== "normal") failures.push("초상화에 가림·섞기 남음");
     }
     return failures;
   });
@@ -131,19 +160,18 @@ async function expectPlaces(page, item, sourceRows) {
   await expect(podium).toHaveAttribute("data-podium-state", "ready");
   const places = podium.locator("[data-podium-place]");
   await expect(places).toHaveCount(3);
-  // Every place fills the podium's height (content stacks on its block), so
-  // the step shows in the block: the 1st place's block starts highest.
+  // Each card stacks its content at its foot; the winner's card starts
+  // highest and its portrait is the largest.
   const rects = await places.evaluateAll((els) => els.map((el) => {
     const r = el.getBoundingClientRect();
-    const block = el.querySelector("[data-podium-block]").getBoundingClientRect();
-    return { rank: Number(el.dataset.podiumPlace), x: r.x, y: block.y };
+    return { rank: Number(el.dataset.podiumPlace), x: r.x, y: r.y, bottom: r.bottom, portrait: el.querySelector("[data-portrait-box]").getBoundingClientRect().height };
   }));
   expect([...rects].sort((a, b) => a.x - b.x).map((r) => r.rank)).toEqual([2, 1, 3]);
-  expect(rects.find((r) => r.rank === 1).y).toBeLessThan(rects.find((r) => r.rank === 2).y);
-  expect(rects.find((r) => r.rank === 1).y).toBeLessThan(rects.find((r) => r.rank === 3).y);
-  const blockHeights = await sizeOf(podium.locator("[data-podium-block]"));
-  expect(blockHeights[0].height).toBeGreaterThan(blockHeights[1].height);
-  expect(blockHeights[1].height).toBeGreaterThan(blockHeights[2].height);
+  for (const rank of [2, 3]) {
+    expect(rects.find((r) => r.rank === 1).y).toBeLessThan(rects.find((r) => r.rank === rank).y);
+    expect(rects.find((r) => r.rank === 1).portrait).toBeGreaterThan(rects.find((r) => r.rank === rank).portrait);
+    expect(rects.find((r) => r.rank === rank).bottom).toBe(rects.find((r) => r.rank === 1).bottom);
+  }
 
   for (const rank of [1, 2, 3]) {
     const place = podium.locator(`[data-podium-place="${rank}"]`);
@@ -158,7 +186,12 @@ async function expectPlaces(page, item, sourceRows) {
     const value = await row.locator("th, td").nth(item.metric).evaluate((el) =>
       [...el.childNodes].filter((node) => node.nodeType === Node.TEXT_NODE).map((node) => node.textContent).join("").trim(),
     );
-    await expect(place.locator("[data-podium-value]")).toHaveText(value);
+    // 화면 읽기 프로그램과 검사는 숨긴 값 글을 읽고, 숫자 창은 장식이다.
+    await expect(place.locator("[data-podium-value] [data-value-text]")).toHaveText(value);
+    await expect(place.locator("[data-podium-value] [data-podium-digit]").first()).toBeVisible();
+    expect(await place.locator("[data-podium-value] > [aria-hidden]").count()).toBe(1);
+    expect(await place.locator("[data-podium-value] [data-podium-digit]").evaluateAll((els) =>
+      els.map((el) => el.firstElementChild?.textContent === "0123456789" ? el.style.getPropertyValue("--d") : el.textContent).join(""))).toBe(value);
     await expect(place.locator(`svg[data-place="${rank}"]`)).toHaveCount(1);
     if (item.guild) {
       await expect(place.locator('[data-portrait-fallback="guild"]')).toHaveCount(1);
@@ -191,52 +224,52 @@ async function expectEffects(page, reduced = false) {
   const effects = await podium.evaluate((root) => document.getAnimations()
     .filter((animation) => animation.effect?.target instanceof Element && root.contains(animation.effect.target))
     .map((animation) => ({
-      state: animation.playState,
       rank: Number(animation.effect.target.closest("[data-podium-place]").dataset.podiumPlace),
+      pseudo: animation.effect.pseudoElement ?? null,
+      // CSS 모듈이 이름 앞뒤에 파일 이름·해시를 붙인다.
+      name: /podium-[a-z]+/.exec(animation.animationName)?.[0] ?? animation.animationName,
+      target: animation.effect.pseudoElement === "::after" ? "shine" : animation.effect.target.closest("[data-podium-digit]") ? "digit" : "other",
       duration: animation.effect.getTiming().duration,
-      delay: animation.effect.getTiming().delay,
       iterations: animation.effect.getTiming().iterations,
-      target: animation.effect.target.hasAttribute("data-podium-cone") ? "cone" : animation.effect.target.hasAttribute("data-podium-glow") ? "glow" : "other",
       props: [...new Set(animation.effect.getKeyframes().flatMap((frame) => Object.keys(frame)
         .filter((key) => !["offset", "computedOffset", "easing", "composite"].includes(key))))],
     })));
+  const shine = await podium.locator('[data-podium-place="1"]').evaluate((el) => getComputedStyle(el, "::after").backgroundImage);
+  expect(shine, "1위 테두리 빛").toContain("conic-gradient(");
   if (reduced) {
     expect(effects, "줄인 동작에서 단상 애니메이션 없음").toEqual([]);
-    const opacity = await podium.locator("[data-podium-cone]").evaluateAll((els) => els.map((el) => Number(getComputedStyle(el).opacity)));
-    for (const value of opacity) expect(value).toBeGreaterThan(0);
-  } else {
-    expect(effects).toHaveLength(6);
-    expect(effects.filter((effect) => effect.target === "cone")).toHaveLength(3);
-    expect(effects.filter((effect) => effect.target === "glow")).toHaveLength(3);
-    for (const effect of effects) {
-      expect(effect.state).toBe("running");
-      expect(effect.props.length).toBeGreaterThan(0);
-      expect(effect.props.every((prop) => ["opacity", "transform"].includes(prop))).toBe(true);
-      expect(effect.props).toEqual(["opacity"]);
-      expect(effect.duration).toBe(effect.target === "cone" ? 3000 : 2800);
-      expect(effect.delay).toBe((effect.rank - 1) * 500);
-      expect(effect.iterations).toBe(Infinity);
-    }
+    // 줄인 동작에서도 숫자 창은 제자리 값을 보이고, 테두리 빛은 정지한 호로 남는다.
+    expect(shine).toContain("200deg");
+    return;
   }
-  const cones = await sizeOf(podium.locator("[data-podium-cone]"));
-  expect(cones[0].height).toBeGreaterThan(cones[1].height);
-  expect(cones[0].height).toBeGreaterThan(cones[2].height);
-  // 불투명 초상화의 중심에서 조명이 이미지를 가로채지 않는다(실제 겹침 순서).
+  // 반복하는 애니메이션은 없다(성능): 1위 테두리 빛 한 번, 숫자 창마다 한 번.
+  expect(effects.filter((effect) => effect.target === "shine")).toEqual([
+    // 키프레임 목록에 사용자 속성(--shine)은 나오지 않는다: 애니메이션 이름으로 확인한다.
+    { rank: 1, pseudo: "::after", name: "podium-shine", target: "shine", duration: 2400, iterations: 1, props: [] },
+  ]);
+  const digits = effects.filter((effect) => effect.target === "digit");
+  expect(digits.length).toBeGreaterThanOrEqual(3);
+  expect(effects.filter((effect) => effect.target === "other")).toEqual([]);
+  for (const effect of digits) {
+    expect(effect.props).toEqual(["transform"]);
+    expect(effect.name).toBe("podium-roll");
+    expect(effect.duration).toBe(1100);
+    expect(effect.iterations).toBe(1);
+  }
+  // 위 덮개 빛이 초상화 위에 있어도 눌림은 초상화 칸을 가로채지 않는다.
   for (const image of await podium.locator("img[data-podium-image]").all()) {
     await image.scrollIntoViewIfNeeded();
     expect(await image.evaluate((el) => {
       const r = el.getBoundingClientRect();
-      const cone = el.parentElement.querySelector("[data-podium-cone]");
-      return Number(getComputedStyle(cone).zIndex) < Number(getComputedStyle(el).zIndex)
-        && document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2) === el;
+      return document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2) === el;
     })).toBe(true);
   }
 }
 
-// 430: 휴대폰 크기(420 이하)를 막 넘어 데스크톱 글자 크기가 좁은 칸에 들어가는 폭.
+// 430: 큰 휴대폰 폭. 카드 여백 때문에 480 이하는 좁은 배치(글자 12px, 값 두 줄 자리)를 쓴다.
 for (const item of LISTS) for (const width of [320, 360, 430, 1280]) for (const theme of ["light", "dark"]) {
   const smoke = (width === 320 && theme === "light") || (width === 360 && theme === "dark") ? " @smoke" : "";
-  test(`${item.name} 단상 ${width}px ${theme}: 첫 그림·초상화·순위·조명 @regression${smoke}`, async ({ page }) => {
+  test(`${item.name} 단상 ${width}px ${theme}: 첫 그림·초상화·순위·무대 빛 @regression${smoke}`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await page.emulateMedia({ reducedMotion: "no-preference" });
     await themeBeforeLoad(page, theme);
@@ -322,7 +355,7 @@ for (const item of LISTS) for (const width of [320, 360, 430, 1280]) for (const 
 }
 
 for (const item of LISTS) for (const theme of ["light", "dim", "dark"]) {
-  test(`${item.name} ${theme}: 줄인 동작에서 정적인 조명 @regression`, async ({ page }) => {
+  test(`${item.name} ${theme}: 줄인 동작에서 정적인 무대 빛 @regression`, async ({ page }) => {
     await page.setViewportSize({ width: 320, height: 900 });
     await themeBeforeLoad(page, theme);
     await page.emulateMedia({ reducedMotion: "reduce" });

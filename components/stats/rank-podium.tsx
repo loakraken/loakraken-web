@@ -7,6 +7,28 @@ import { safeGameImage } from "@/lib/character/model";
 import { ClassIcon } from "./class-icon";
 import styles from "./rank-podium.module.css";
 
+/** Odometer digits (rolling-counter idea, our own few lines): each digit rolls
+ *  up from 0 once on first paint. Screen readers and tests read the hidden
+ *  plain value; the reels are decoration. */
+function RollingValue({ text }: { text: string }) {
+  return (
+    <>
+      <span className={styles.valueText} data-value-text="">{text}</span>
+      <span className={styles.rolling} aria-hidden="true">
+        {Array.from(text).map((ch, i) =>
+          /\d/.test(ch) ? (
+            <span key={i} className={styles.digit} data-podium-digit="" style={{ ["--d" as string]: Number(ch), ["--i" as string]: i }}>
+              <span className={styles.reel}>0123456789</span>
+            </span>
+          ) : (
+            <span key={i} className={styles.digit} data-podium-digit="">{ch}</span>
+          ),
+        )}
+      </span>
+    </>
+  );
+}
+
 export type PodiumEntry = {
   rank: number | null | undefined;
   name: string;
@@ -58,7 +80,6 @@ export function RankPodium({
               <li key={`${entry.rank}-${entry.href}`} className={styles.place} data-podium-place={entry.rank}>
                 <MedalStarBold className={styles.medal} size={24} data-place={entry.rank} />
                 <div className={styles.portraitBox} data-portrait-box="">
-                  <div className={styles.cone} data-podium-cone="" aria-hidden="true" />
                   {src && !entry.guild && !broken.has(src) ? (
                     // Official opaque 612×708 JPEG, hotlinked like character/imagery.tsx.
                     // eslint-disable-next-line @next/next/no-img-element
@@ -87,9 +108,10 @@ export function RankPodium({
                 <Link className={styles.name} href={entry.href} prefetch={false} data-podium-name="">
                   {entry.name}
                 </Link>
-                <strong className={styles.value} data-podium-value="">{entry.value}</strong>
+                <strong className={styles.value} data-podium-value="">
+                  <RollingValue text={entry.value} />
+                </strong>
                 <div className={styles.block} data-podium-block="">
-                  <div className={styles.glow} data-podium-glow="" aria-hidden="true" />
                   <span className={styles.placeNumber}>{entry.rank}위</span>
                 </div>
               </li>

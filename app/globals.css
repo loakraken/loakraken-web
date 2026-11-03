@@ -847,11 +847,6 @@
   --rank-silver-text: #ffffff; /* 5.78:1 on silver */
   --rank-bronze: #99552d;
   --rank-bronze-text: #ffffff; /* 5.69:1 on bronze */
-  --rank-glow-low: 0.08;
-  --rank-glow-peak: 0.22;
-  --rank-cone-low: 0.08;
-  --rank-cone-peak: 0.20;
-  --rank-cone-rest: 0.14;
 
 
   /* Item grade tiles (in-game rarity hues tuned for a light page). Tile
@@ -1163,11 +1158,6 @@
   --rank-silver-text: #18191c; /* 9.95:1 on silver */
   --rank-bronze: #d69b73;
   --rank-bronze-text: #18191c; /* 7.36:1 on bronze */
-  --rank-glow-low: 0.12;
-  --rank-glow-peak: 0.32;
-  --rank-cone-low: 0.12;
-  --rank-cone-peak: 0.28;
-  --rank-cone-rest: 0.20;
   --success: #3ccf6a; /* 9.30, 8.73 */
   --market-up: #ff5c52; /* 6.22, 5.84 */
   --market-down: #4da3ff;
@@ -1206,11 +1196,6 @@
   --rank-silver-text: #18191c; /* 8.87:1 on silver */
   --rank-bronze: #d09a78;
   --rank-bronze-text: #18191c; /* 7.18:1 on bronze */
-  --rank-glow-low: 0.10;
-  --rank-glow-peak: 0.28;
-  --rank-cone-low: 0.10;
-  --rank-cone-peak: 0.24;
-  --rank-cone-rest: 0.17;
 
   --background: #22252b;
   --foreground: #d5d8de; /* 10.75 … 7.63 */
