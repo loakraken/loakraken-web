@@ -14,7 +14,9 @@
   top: 0;
   z-index: 50;
   display: grid;
-  grid-template-columns: auto 20px minmax(min-content, 1fr) minmax(0, auto) 20px 84px 12px var(--search-w) 4px 44px;
+  /* Discord's pill may grow past 84px with a wider fallback font; it grows
+     left into the menu column, which keeps its start, so nothing drawn moves. */
+  grid-template-columns: auto 20px minmax(min-content, 1fr) minmax(0, auto) 20px minmax(84px, max-content) 12px var(--search-w) 4px 44px;
   grid-template-rows: 44px;
   align-items: center;
   padding: 8px max(24px, calc((100% - 1120px) / 2));
@@ -33,6 +35,11 @@
   .header {
     --search-w: 91px;
   }
+}
+/* One row: a part whose column comes before one placed earlier in the page
+   would otherwise start a second row (the page slot under the menu button). */
+.header > * {
+  grid-row: 1;
 }
 .brand {
   grid-column: 1;

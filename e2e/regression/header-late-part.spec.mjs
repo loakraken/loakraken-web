@@ -46,7 +46,8 @@ for (const [label, path] of [
       await page.setViewportSize({ width, height: 800 });
       await watchShifts(page);
       await gotoReady(page, path);
-      await expect(page.getByRole("button", { name: "캐릭터 검색" }).first()).toBeVisible();
+      // The shared search button (the character page's own search form in the slot has the same name).
+      await expect(page.locator('header[data-sticky-chrome] [data-slot="command-search-trigger"]')).toBeVisible();
       const load = await shiftsSince(page);
       expect(load.all, `첫 로드 흔들림 (${load.moved})`).toBe(0);
       const late = await partsArriving(page);
