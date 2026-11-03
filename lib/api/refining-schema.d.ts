@@ -30,25 +30,26 @@ export interface components {
     schemas: {
         RefiningPlanRequest: {
             /**
-             * @description UPHWA: 운명의 업화, JEONYUL: 운명의 전율
+             * @description UPHWA: 운명의 업화, JEONYUL: 운명의 전율. WEAPON·ARMOR는 필수, ARM_GUARD(완갑)는 단계표가 하나라 보내지 않아도 되고 무시합니다
              * @example UPHWA
              * @enum {string}
              */
-            grade: "UPHWA" | "JEONYUL";
+            grade?: "UPHWA" | "JEONYUL";
             /**
+             * @description ARM_GUARD: 팔 보호구(완갑), 0~25단계. 책·성장 지원 없음
              * @example ARMOR
              * @enum {string}
              */
-            equipmentType: "WEAPON" | "ARMOR";
+            equipmentType: "WEAPON" | "ARMOR" | "ARM_GUARD";
             /**
              * Format: int32
-             * @description 현재 재련 단계
+             * @description 현재 재련 단계(WEAPON·ARMOR 10~24, ARM_GUARD 0~24)
              * @example 18
              */
             fromStage: number;
             /**
              * Format: int32
-             * @description 목표 재련 단계
+             * @description 목표 재련 단계(WEAPON·ARMOR 11~25, ARM_GUARD 1~25)
              * @example 20
              */
             toStage: number;
@@ -99,10 +100,13 @@ export interface components {
         RefiningPlanResponse: {
             ruleVersion: string;
             source: components["schemas"]["SourceResponse"];
+            /**
+             * @description ARM_GUARD면 null
+             * @enum {string|null}
+             */
+            grade: "UPHWA" | "JEONYUL" | null;
             /** @enum {string} */
-            grade: "UPHWA" | "JEONYUL";
-            /** @enum {string} */
-            equipmentType: "WEAPON" | "ARMOR";
+            equipmentType: "WEAPON" | "ARMOR" | "ARM_GUARD";
             /** Format: int32 */
             fromStage: number;
             /** Format: int32 */
