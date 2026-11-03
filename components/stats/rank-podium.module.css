@@ -51,13 +51,18 @@
   position: relative;
   isolation: isolate;
   box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  align-items: center;
+  /* Fixed rows filled from the foot. Each slot's row exists before its
+     element does, so a card painted while its HTML is still streaming in
+     (the chip not parsed yet) keeps everything above it in place; a flex
+     stack at its end moved the column up 30px when the chip arrived (CI, 360). */
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: 24px var(--portrait-height) var(--name-height) var(--value-height) 24px;
+  align-content: end;
+  justify-items: center;
+  row-gap: 6px;
   grid-row: 1;
   grid-column: 2;
-  gap: 6px;
   min-width: 0;
   padding: 14px 8px 12px;
   overflow: hidden;
@@ -138,13 +143,11 @@
   to { --shine: 360deg; }
 }
 .podium .medal {
-  flex: none;
   width: 24px;
   height: 24px;
   color: var(--medal);
 }
 .podium .portraitBox {
-  flex: none;
   width: var(--portrait-width);
   height: var(--portrait-height);
 }
@@ -190,7 +193,6 @@
   line-height: 18px;
 }
 .podium .name {
-  flex: none;
   /* The text sits at the foot of its fixed slot, so a one-line name keeps
      its value right under it; the spare room stays above the name. */
   display: grid;
@@ -203,7 +205,6 @@
   text-underline-offset: 3px;
 }
 .podium .value {
-  flex: none;
   height: var(--value-height);
   color: var(--muted-foreground);
   font-weight: 600;
@@ -253,7 +254,6 @@
 }
 /* The rank chip at each card's foot. */
 .podium .block {
-  flex: none;
   display: grid;
   place-items: center;
   height: 24px;

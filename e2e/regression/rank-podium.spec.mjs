@@ -354,6 +354,46 @@ for (const item of LISTS) for (const width of [320, 360, 430, 1280]) for (const 
   });
 }
 
+// 서버 HTML이 흘러 들어오는 동안 브라우저는 반쯤 읽은 카드를 그릴 수 있다(CI 360, 젬 효율:
+// 순위 칩이 아직 없을 때 그린 1위 열이 칩이 오자 30px 올라갔다). 뒤쪽 요소가 아직 없을 때와
+// 다 왔을 때 앞쪽 요소의 자리가 같아야 한다. 카드의 뒤쪽 자식, 뒤쪽 카드를 빼서 확인한다.
+for (const width of [360, 1280]) {
+  test(`${width}px: 반쯤 읽은 카드·목록도 앞쪽 자리가 그대로다(스트리밍 중 그림) @regression`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await gotoReady(page, "/rankings?type=gems");
+    const podium = podiumOf(page);
+    await expect(podium).toHaveAttribute("data-podium-state", "ready");
+    const moved = await podium.evaluate((root) => {
+      const box = (el) => { const r = el.getBoundingClientRect(); return `${Math.round(r.x)},${Math.round(r.y)} ${Math.round(r.width)}x${Math.round(r.height)}`; };
+      const failures = [];
+      const list = root.querySelector("ol");
+      const places = [...list.children];
+      for (const place of places) {
+        const kids = [...place.children];
+        const before = kids.map(box);
+        for (let cut = kids.length - 1; cut >= 1; cut--) {
+          kids.slice(cut).forEach((kid) => kid.remove());
+          kids.slice(0, cut).forEach((kid, i) => {
+            const now = box(kid);
+            if (now !== before[i]) failures.push(`${place.dataset.podiumPlace}위 ${kid.tagName.toLowerCase()}${kid.getAttribute("class") ? "." + kid.getAttribute("class").split("_")[1] : ""}: ${before[i]} → ${now} (뒤 ${kids.length - cut}개 없음)`);
+          });
+          place.append(...kids.slice(cut));
+        }
+      }
+      const before = places.map(box);
+      for (let cut = places.length - 1; cut >= 1; cut--) {
+        places.slice(cut).forEach((place) => place.remove());
+        places.slice(0, cut).forEach((place, i) => {
+          if (box(place) !== before[i]) failures.push(`${place.dataset.podiumPlace}위 카드: ${before[i]} → ${box(place)}`);
+        });
+        list.append(...places.slice(cut));
+      }
+      return failures;
+    });
+    expect(moved, "뒤쪽이 늦게 와도 앞쪽은 움직이지 않음").toEqual([]);
+  });
+}
+
 for (const item of LISTS) for (const theme of ["light", "dim", "dark"]) {
   test(`${item.name} ${theme}: 줄인 동작에서 정적인 무대 빛 @regression`, async ({ page }) => {
     await page.setViewportSize({ width: 320, height: 900 });
