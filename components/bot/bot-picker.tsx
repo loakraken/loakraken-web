@@ -1,7 +1,8 @@
 "use client";
 
 // "봇 바꾸기": a small button by the bot that opens a grid of the 18 bodies.
-// A radio group (arrow keys move and choose, Enter/Escape close), each body
+// A radio group (arrow keys move and choose; a click, tap or Enter picks and
+// closes, user 11-03; Escape closes), each body
 // drawn once in its still pose — nothing in the grid animates. The choice is
 // remembered (useChosenBot) and never blocks anything around it.
 
@@ -85,7 +86,7 @@ export function BotPicker({ theme }: { theme: "light" | "dark" }) {
                   tabIndex={type === chosen ? 0 : -1}
                   className={styles.option}
                   data-bot-option={type}
-                  onClick={() => choose(type)}
+                  onClick={() => { choose(type); setOpen(false); }}
                 >
                   <Thumb type={type} theme={theme} />
                   <span className={styles.name}>{BOT_NAMES[type]}</span>

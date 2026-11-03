@@ -45,6 +45,8 @@ export function Hero({
   const [error, setError] = useState("");
   const [searching, setSearching] = useState(false);
   const [focused, setFocused] = useState(false);
+  // Each focus of the search box (click, tap or Tab) asks the bot for one hop.
+  const [focusHops, setFocusHops] = useState(0);
   const Title = embedded ? "h2" : "h1";
   const theme = useTheme();
   const [bot] = useChosenBot();
@@ -95,7 +97,7 @@ export function Hero({
               : { type: "button" as const, "aria-label": "애니메이션 멈춤", "aria-pressed": paused, onClick: togglePaused })}
           >
             <BotMascot type={bot} state={searching ? "working" : "default"} size={150} follow
-              paused={!looping} still={reduced} theme={theme} decorative />
+              paused={!looping} still={reduced} theme={theme} decorative hopOn={focusHops} />
           </Stage>
           <div className={styles.botPicker}><BotPicker theme={theme} /></div>
         </div>
@@ -106,7 +108,7 @@ export function Hero({
               <label htmlFor="character-search" className={styles.srOnly}>캐릭터 이름</label>
               <SearchNormal className={styles.searchIcon} size={19} aria-hidden="true" />
               <input ref={input} id="character-search" name="character" value={query} onChange={(event) => { setQuery(event.target.value); if (error) setError(""); }}
-                onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} placeholder="캐릭터 이름을 입력하세요" maxLength={65} autoComplete="off" spellCheck={false} disabled={searching} aria-invalid={!!error} aria-describedby={error ? "search-error" : embedded ? undefined : "search-help"} />
+                onFocus={() => { setFocused(true); setFocusHops((n) => n + 1); }} onBlur={() => setFocused(false)} placeholder="캐릭터 이름을 입력하세요" maxLength={65} autoComplete="off" spellCheck={false} disabled={searching} aria-invalid={!!error} aria-describedby={error ? "search-error" : embedded ? undefined : "search-help"} />
               {shortcutKey && <kbd className={styles.shortcut} aria-hidden="true">{shortcutKey === "mac" ? <Command size={12} /> : "Ctrl"} K</kbd>}
               <button className={styles.searchSubmit} type="submit" disabled={searching} aria-label={searching ? "캐릭터 화면으로 이동 중" : undefined}>{searching ? <InlineOrb /> : <>캐릭터 검색 <ArrowRight size={16} /></>}</button>
             </form>
