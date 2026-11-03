@@ -8,7 +8,7 @@ import { OFFICIAL_API_URL } from "@/lib/legal";
 
 export const metadata: Metadata = {
   title: "내 API 키",
-  description: "내 로스트아크 공식 Open API 키를 등록해 캐릭터 조회에 내 키를 씁니다.",
+  description: "내 로스트아크 공식 Open API 키를 등록해 캐릭터 조회에 사용할 수 있습니다.",
   robots: { index: false },
 };
 

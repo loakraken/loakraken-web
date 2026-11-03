@@ -41,7 +41,7 @@ const kraken = localFont({
 // "%s | LOAKraken" only.
 const TITLE = "LOAKraken(로아크라켄) — 로스트아크 캐릭터 검색·시세·성장 도구";
 const DESCRIPTION =
-  "로아크라켄(LOAKraken)에서 로스트아크 캐릭터를 검색해 장비·각인·아크 그리드와 크라켄 점수를 보고, 거래소·경매장 시세와 스펙업·재련 계산기를 씁니다.";
+  "로아크라켄(LOAKraken)에서 로스트아크 캐릭터를 검색해 장비·각인·아크 그리드와 크라켄 점수를 확인하고, 거래소·경매장 시세와 스펙업·재련 계산기를 이용할 수 있습니다.";
 
 // Base URL per request (SITE_URL); pages rendered at build time get the
 // production domain. Each page sets its own canonical.
