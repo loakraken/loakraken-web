@@ -43,11 +43,17 @@
 .header > * {
   grid-row: 1;
 }
+/* The name comes first in the page and the mark sits in the room kept on its
+   left (22px + a 7px gap): the mark's long path is where a page split in
+   parts broke, and the name drawn after it widened the link, its 44px target
+   with it (360: 44 -> 126px before hydration). Now the link has its full
+   width as soon as the name is there, and the mark lands in place. */
 .brand {
   grid-column: 1;
+  position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  padding-left: 29px;
   color: var(--foreground);
   font-size: 19px;
   font-weight: 650;
@@ -56,8 +62,12 @@
   white-space: nowrap;
 }
 .brand svg {
+  position: absolute;
+  top: 50%;
+  left: 0;
   width: 22px;
   height: 22px;
+  translate: 0 -50%;
 }
 .nav {
   /* Never narrower than its links (min-content column): with wider fallback
