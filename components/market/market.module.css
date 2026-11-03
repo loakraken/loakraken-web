@@ -729,6 +729,11 @@
     position: static;
     max-height: none;
     overflow: visible;
+    /* The browser keeps the scroll on a node in view as content above it
+       changes height; first in the page, the detail was picked, so a detail
+       swap (a sort picks a new first item) moved the board under the pointer.
+       The anchor stays in the board, as before the detail came first. */
+    overflow-anchor: none;
   }
   .facts {
     grid-template-columns: repeat(2, minmax(0, 1fr));
