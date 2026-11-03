@@ -42,6 +42,22 @@ async function followsHorizontally(page) {
   await expect.poll(async () => (await turn(page))[0]).toBeGreaterThan(0.2);
 }
 
+// 포인터를 (x, y)에 둔 채 멈춘 고개 위아래 값. 1px씩 살짝 움직여 봇을 깨어 있게 하고(쉬는 5초가
+// 다시 시작됨), 7번 읽은 값의 중앙값으로 라이브러리의 느린 고개 흔들림을 걸러 낸다. 한 번 맞은 값이
+// 아니라 중앙값을 보므로, 따라보지 않고 흔들리기만 하는 고개는 통과하지 못한다(검사가 가름).
+async function settledPitch(page, x, y) {
+  await page.mouse.move(x, y, { steps: 12 });
+  await page.waitForTimeout(300); // 고개가 돌아가는 동안은 읽지 않는다
+  const samples = [];
+  for (let i = 0; i < 7; i++) {
+    await page.waitForTimeout(150);
+    await page.mouse.move(x + (i % 2), y);
+    samples.push((await turn(page))[1]);
+  }
+  await expect(canvas(page), "읽는 동안 잠들지 않음").toHaveAttribute("data-bot-rest", "awake");
+  return samples.sort((a, b) => a - b)[3];
+}
+
 test.describe("히어로 봇 @regression", () => {
   for (const path of ["/", "/about"]) {
     test(`${path}: 히어로 안 고정 상자, 장식으로 숨김, 테두리 없음`, async ({ page }) => {
@@ -69,14 +85,13 @@ test.describe("히어로 봇 @regression", () => {
     const area = await hero(page).boundingBox();
     const box = await bot(page).boundingBox();
     const x = box.x + box.width / 2;
-    await page.mouse.move(x, area.y + 4, { steps: 12 });
-    // data-bot-turn은 0.1 단위로 반올림한다. 포인터가 봇보다 위면 고개는 늘 위를 보지만, 라이브러리의
-    // 느린 고개 흔들림이 더해져 멈춘 값이 0.1~0.3 사이를 오가서 "0.1 초과"는 운에 따라 갈렸다
-    // (CI 41631953966: 5초 동안 0.1에 머문 뒤 잠듦). 그래서
-    // "0.05 초과"(= 반올림 뒤 0.1 이상, 위를 봄)와 "위보다 0.15 넘게 아래"(= 0.2 이상 아래)로 본다.
-    const up = await expect.poll(async () => (await turn(page))[1]).toBeGreaterThan(0.05).then(() => turn(page));
-    await page.mouse.move(x, area.y + area.height - 4, { steps: 12 });
-    await expect.poll(async () => (await turn(page))[1]).toBeLessThan(up[1] - 0.15);
+    // 예전에는 한 번 옮기고 "0.1 초과"를 기다렸다. 멈춘 값이 라이브러리 흔들림으로 0.1~0.3을
+    // 오가서 0.1에 머물면 5초 뒤 잠들어(CI 41631953966의 -0.3) 실패했다. 이제 깨어 있게 두고 중앙값을 본다.
+    const up = await settledPitch(page, x, area.y + 4);
+    const down = await settledPitch(page, x, area.y + area.height - 4);
+    expect(up, "위를 봄(반올림 0.1 단위)").toBeGreaterThanOrEqual(0.1);
+    // 0.1 단위 값의 차라 부동소수(0.3 - 0.1 = 0.19999…)를 피해 열 배로 반올림해 비교한다.
+    expect(Math.round((up - down) * 10), `위(${up})·아래(${down}) 차이`).toBeGreaterThanOrEqual(2);
   });
 
   // v0.3.6.1: 히어로 밖에서는 라이브러리의 혼자 둘러보기가 고개를 잡아, 마우스가
