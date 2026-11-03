@@ -150,10 +150,13 @@ for (const width of [1280, 360]) {
     // were: new rows are drawn, nothing slides (A7 counts right after a press too).
     // Page positions (+ scrollY): at 360 the table starts under the fold since the
     // chips take two rows (추천 순서, 11-03), and the click scrolls the button into
-    // view — a scroll, not a move (CI 914 → 912 was the 2px scroll).
+    // view — a scroll, not a move (CI 914 → 912 was the 2px scroll). A phone lays the
+    // table out as cards with the head hidden: no box, so null rather than scrollY.
     const tops = () =>
       table.evaluate((el) =>
-        [el.querySelector("thead"), el.querySelector("tbody tr")].map((n) => Math.round(n.getBoundingClientRect().top + window.scrollY)),
+        [el.querySelector("thead"), el.querySelector("tbody tr")].map((n) =>
+          n.getClientRects().length ? Math.round(n.getBoundingClientRect().top + window.scrollY) : null,
+        ),
       );
     const placed = await tops();
     await resetShifts(page);
