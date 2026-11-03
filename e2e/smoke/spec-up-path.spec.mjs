@@ -101,13 +101,16 @@ test.describe("스펙업 추천 순서 @smoke", () => {
         await expect(page.getByText("추천 순서를 계산하고 있어요…")).toBeVisible();
         const goal = page.getByRole("heading", { name: "목표 전투력" });
         await expect(goal).toBeVisible();
-        const before = await goal.evaluate((el) => Math.round(el.getBoundingClientRect().top + window.scrollY));
+        // Unrounded: the heading sits near a .5 edge (599.47 locally), so a rounded
+        // compare flipped 600 → 599 on a 1/64 px layout step (#1257 CI, mobile-390).
+        // toBeCloseTo(_, 0) fails any move of 0.5 px or more.
+        const before = await goal.evaluate((el) => el.getBoundingClientRect().top + window.scrollY);
         const shifts = await shiftsDuring(page, async () => {
           setTimeout(release, 800);
           await expect(rows(page)).toHaveCount(rowsShown);
         });
         expect(shifts.all, shifts.moved).toBe(0);
-        expect(await goal.evaluate((el) => Math.round(el.getBoundingClientRect().top + window.scrollY)), "목표 전투력 제자리").toBe(before);
+        expect(await goal.evaluate((el) => el.getBoundingClientRect().top + window.scrollY), "목표 전투력 제자리").toBeCloseTo(before, 0);
         await expectNoHorizontalOverflow(page);
       });
 
