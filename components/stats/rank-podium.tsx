@@ -60,12 +60,15 @@ export function RankPodium({
 }) {
   // An official image that fails to load shows the class icon in the same box.
   const [broken, setBroken] = useState<ReadonlySet<string>>(() => new Set());
-  // Whether the first render was still waiting for the list (then its box stays).
-  const [waited] = useState(() => loading || reserve);
+  // Whether this podium has waited for a list at any point (then its box stays):
+  // an empty list whose filter changes loads into the box, and taking the box
+  // away when the answer is empty again would move everything below it.
+  const [held, setHeld] = useState(() => loading || reserve);
+  if ((loading || reserve) && !held) setHeld(true);
   if (page !== 1 && !reserve) return null;
   const ranked = !loading && page === 1 ? podiumTop(entries) : [];
   const top = ranked.length ? ranked : null;
-  if (!top && !loading && !waited) return null;
+  if (!top && !loading && !held) return null;
 
   return (
     <section

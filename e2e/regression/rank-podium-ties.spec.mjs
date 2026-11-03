@@ -2,8 +2,8 @@
 // 상자로 그려졌다. 이제 시상대는 표의 위 세 줄을 표 순서대로 보이고, 카드마다 실제 순위(1위·1위·3위)와
 // 그 메달을 단다. 빈 상자가 생기지 않고, 320·360·1280 × 라이트·다크에서 흔들림 0.
 // (효율 랭킹은 서버에서 그려 목 응답을 바꿀 수 없다: 같은 podiumTop을 단위 검사가 본다.)
-import { test, expect, gotoReady } from "../support/fixtures.mjs";
-import { watchShifts, shiftsSince } from "../support/shifts.mjs";
+import { test, expect, gotoReady, chooseOption } from "../support/fixtures.mjs";
+import { watchShifts, shiftsSince, shiftMark } from "../support/shifts.mjs";
 
 const LISTS = [
   { name: "수집품", path: "/rankings?type=collectibles", api: "/api/rankings/collectibles", full: true },
@@ -51,3 +51,30 @@ for (const list of LISTS)
           const shift = await shiftsSince(page);
           expect(shift.all, `흔들림 (${shift.moved})`).toBe(0);
         });
+
+// 코드 리뷰 P1(A7): 첫 그림부터 순위 있는 줄이 없어 칸이 없던 목에서 거르기를 바꾸면, 불러오는 동안
+// 칸이 생겼다가 답이 또 비면 사라져 아래가 밀렸다(누른 지 0.5초 뒤라 흔들림). 한 번 불러온 칸은 남는다.
+for (const width of [320, 1280])
+  test(`${width} 빈 효율 목 → 거르기 바꿈 → 또 빈 목(답 800ms 늦게): 흔들림 0 @regression`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await watchShifts(page);
+    // The new list can arrive two ways (the browser's own fetch, and the page's server render after
+    // router.replace): hold both answers 800 ms, so the loading state outlasts the click's 0.5 s.
+    const hold = () => new Promise((resolve) => setTimeout(resolve, 800));
+    await page.route((url) => url.pathname === "/api/rankings/efficiency", async (route) => { await hold(); await route.fallback(); });
+    await page.route((url) => url.pathname === "/rankings", async (route) => {
+      if (route.request().headers().rsc === "1") await hold();
+      await route.fallback();
+    });
+    await gotoReady(page, "/rankings?type=gems&className=%ED%99%98%EC%88%98%EC%82%AC");
+    await expect(page.getByText("조건에 맞는 캐릭터가 없어요.")).toBeVisible();
+    await expect(podiumOf(page)).toHaveCount(0);
+    const mark = await shiftMark(page);
+    await chooseOption(page, page.getByRole("combobox", { name: "최근 확인" }), "7일");
+    await expect(page).toHaveURL(/activeDays=7/);
+    await page.waitForTimeout(1600); // the held answer (800 ms) has landed, empty again
+    await expect(page.getByText("조건에 맞는 캐릭터가 없어요.")).toBeVisible();
+    await expect(page.locator("[data-podium-place]")).toHaveCount(0);
+    const shift = await shiftsSince(page, mark);
+    expect(shift.quiet, `누른 뒤 흔들림 (${shift.moved})`).toBe(0);
+  });
