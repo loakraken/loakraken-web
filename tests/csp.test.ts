@@ -13,7 +13,7 @@ test("CSP in production: scripts by nonce only, no inline or eval", () => {
   assert.equal(directive(policy, "connect-src"), "connect-src 'self'");
   for (const part of ["default-src 'self'", "object-src 'none'", "base-uri 'self'", "form-action 'self'", "frame-ancestors 'none'"])
     assert.ok(policy.includes(part), part);
-  assert.ok(sources(policy, "img-src").includes("https://cdn-lostark.game.onstove.com"), directive(policy, "img-src"));
+  assert.ok(sources(policy, "img-src").some((source) => source === "https://cdn-lostark.game.onstove.com"), directive(policy, "img-src"));
   assert.equal(policy.includes("'unsafe-eval'"), false);
   assert.equal(directive(policy, "script-src").includes("'unsafe-inline'"), false);
 });
