@@ -9,7 +9,7 @@ const STATES = [
   { name: "시세 검색 결과 없음", path: "/market?q=zzz", mood: "puzzled", text: "‘zzz’에 맞는 품목이 이 분류에 없어요. 다른 분류에서 찾아볼까요?" },
   { name: "랭킹 0줄", path: "/rankings?type=gems&className=%ED%99%98%EC%88%98%EC%82%AC", mood: "puzzled", text: "조건에 맞는 캐릭터가 없어요. 조건을 조금 넓혀 볼까요?" },
   // The favourites bar is one fixed 30px row (saved favourites replace it after loading): a one-line note.
-  { name: "시세 즐겨찾기 없음", path: "/market", mood: "calm", text: "아직 즐겨찾기한 품목이 없어요.", inline: true },
+  { name: "시세 즐겨찾기 없음", path: "/market", mood: "calm", text: "표시를 누르면 여기에 모여요", inline: true },
   { name: "캐릭터 없음", path: `/character/${encodeURIComponent("미존재")}`, mood: "puzzled", text: "이름을 한 번 더 확인하고 다시 검색해 볼까요?" },
   { name: "조회 늦음", path: `/character/${encodeURIComponent("시간초과")}`, mood: "asleep", text: "조회가 조금 오래 걸리고 있어요. 잠시 뒤 다시 시도해 주세요." },
 ];
