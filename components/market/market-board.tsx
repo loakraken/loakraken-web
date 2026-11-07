@@ -79,6 +79,7 @@ import { useCrossfade } from "@/lib/motion";
 import { ChangeMark, UpdateAnnouncer, useChangedCells, type Pulse } from "@/components/ui/changed-cells";
 import { DataRefreshState } from "@/components/ui/data-refresh-state";
 import { PendingText } from "@/components/ui/pending-text";
+import { BotNote } from "@/components/bot/bot-note";
 
 const TIERS = [4, 3] as const;
 
@@ -644,9 +645,11 @@ function MarketContent({
             </PillTabs>
           )}
           {favorites.length === 0 ? (
-            <p className={styles.favoritesHint}>
-              <Bookmark size={12} aria-hidden="true" /> 품목의 즐겨찾기 표시를 누르면 여기에 모아 볼 수 있어요.
-            </p>
+            <BotNote mood="calm">
+              <p className={styles.favoritesHint}>
+                <Bookmark size={12} aria-hidden="true" /> 아직 즐겨찾기한 품목이 없어요. 품목의 즐겨찾기 표시를 누르면 여기에 모아 볼 수 있어요.
+              </p>
+            </BotNote>
           ) : (
             <ul className={styles.favorites} aria-label="즐겨찾기 품목">
               {favorites.map((f) => (
@@ -772,9 +775,13 @@ function MarketContent({
                   ))}
                 </ul>
               ) : !items.length ? (
-                <p className={styles.muted} role="status">
-                  {query.q ? `‘${query.q}’에 맞는 품목이 이 분류에 없어요.` : "표시할 품목이 없어요."}
-                </p>
+                <BotNote mood="puzzled">
+                  <p className={styles.muted} role="status">
+                    {query.q
+                      ? `‘${query.q}’에 맞는 품목이 이 분류에 없어요. 다른 분류에서 찾아볼까요?`
+                      : "표시할 품목이 없어요. 다른 분류를 골라 보세요."}
+                  </p>
+                </BotNote>
               ) : (
                 // A new board (tab, tier, sort, page) is not a "change": the
                 // rows are compared again from the first real answer for it.

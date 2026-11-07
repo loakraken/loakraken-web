@@ -17,6 +17,16 @@
 //  - it hops only to answer the visitor, once each: waking, the page
 //    asking (`hopOn`, the hero's search box taking focus), a new body (a
 //    spin-hop); one press that does two of these is one hop; no idle jumps;
+//  - with `lookAt` and `looking` (the hero's search box has focus), it
+//    aims at the box's caret exactly as it would at a pointer there, and
+//    the aim follows the text as the visitor types (user, 11-04): measured
+//    on each keystroke, not each frame; the pointer neither steers nor wakes
+//    it then, and it never falls asleep;
+//  - `tiltOn` (a count the page raises: the hero's name-format error) is
+//    answered with one short head tilt, ~0.7 s, then still (user, 11-03);
+//    not paused, not under reduced motion;
+//  - `wear` (the picker's hat and glasses, the library's own options) is
+//    drawn from the next frame: no new sim, no hop;
 //  - `paused` (the page's remembered pause) stops the automatic motion
 //    only: the head still turns with the pointer, which the visitor drives,
 //    and it rests awake;
@@ -31,9 +41,9 @@
 // The state API is generic so the same bot can later be the assistant's
 // face: working = answering, sleeping = idle.
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 import type { BotAvatarPose, BotAvatarSim as Sim, BotAvatarDrawConfig } from "bot-avatars";
-import { BOT_NAMES, type BotState, type BotType } from "./bot-types";
+import { BOT_NAMES, NO_WEAR, type BotState, type BotType, type BotWear } from "./bot-types";
 
 export type Lib = typeof import("bot-avatars");
 let libPromise: Promise<Lib> | null = null;
@@ -82,7 +92,7 @@ const DEPTH = 0.65;
  * renderer reads, so the first frame of a type is already the finished one:
  * no stand-in, no swap, nothing blank between two bots.
  */
-export function drawConfig(lib: Lib, type: BotType, theme: "light" | "dark", dpr: number, size: number): BotAvatarDrawConfig {
+export function drawConfig(lib: Lib, type: BotType, theme: "light" | "dark", dpr: number, size: number, wear?: BotWear): BotAvatarDrawConfig {
   const preset = lib.botAvatarPresets[type];
   const brightness = preset.brightness ?? 1;
   const saturation = preset.saturation ?? 1.5;
@@ -110,6 +120,7 @@ export function drawConfig(lib: Lib, type: BotType, theme: "light" | "dark", dpr
     depth: DEPTH,
     roundness: 1,
     typeKey: type,
+    ...(wear ? { wear: wearOf(wear) } : {}),
     parts: parts ? parts.split(/(?=M)/).filter((d) => d.trim()).map((d) => new Path2D(d)) : undefined,
     theme,
     dpr,
@@ -118,11 +129,59 @@ export function drawConfig(lib: Lib, type: BotType, theme: "light" | "dark", dpr
 
 const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
 const mix = (a: number, b: number, k: number) => a + (b - a) * k;
+
+/** The library's wear for our choice; the accessory colour is its default. */
+const wearOf = (wear: BotWear) => ({ ...wear, headphones: false, bowTie: false, color: "#27272b" });
+
+/** Pointer-like reach (-1 … 1) of a point from the head's centre, each axis
+ *  on its own: the face reaches the rim as the point reaches the window's
+ *  edge on that side. (The rig turns 22° per unit across but tips only 12°
+ *  per unit up and down, so a direction vector left a wide window's corners
+ *  with almost no tilt.) */
+const reach = (delta: number, before: number, after: number) =>
+  clamp(Math.tanh((1.5 * delta) / Math.max(60, delta > 0 ? after : before)) * 1.1, -1, 1);
+const DEG = Math.PI / 180;
+
+/** The rest pose turned to look at a point (x, y in reach units), with the
+ *  follow rig's own mapping at full strength (BotAvatarSim.update: the head
+ *  22° across and 12° up and down per unit, the eyes 4.5 and 3 units): what
+ *  a pointer resting there settles to, without the rig's idle wander and
+ *  eye darts. */
+function lookPose(base: BotAvatarPose, x: number, y: number, out: BotAvatarPose) {
+  blend(base, base, 0, out);
+  out.yaw = base.yaw + x * 22 * DEG;
+  out.pitch = base.pitch - y * 12 * DEG;
+  out.lookX = base.lookX + x * 4.5;
+  out.lookY = base.lookY + y * 3;
+  return out;
+}
+
+let measurer: CanvasRenderingContext2D | null = null;
+/** Where the caret is on screen in a text input (the box's centre for any
+ *  other element): the text before it measured with the input's own font,
+ *  so no mirror element and no layout pass. An empty box: its start. */
+function caretPoint(field: HTMLElement) {
+  const box = field.getBoundingClientRect();
+  const y = box.top + box.height / 2;
+  if (!(field instanceof HTMLInputElement)) return { x: box.left + box.width / 2, y };
+  const style = getComputedStyle(field);
+  measurer ??= document.createElement("canvas").getContext("2d");
+  const left = box.left + parseFloat(style.borderLeftWidth) + parseFloat(style.paddingLeft);
+  const right = box.right - parseFloat(style.borderRightWidth) - parseFloat(style.paddingRight);
+  if (!measurer) return { x: left, y };
+  measurer.font = `${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+  const before = field.value.slice(0, field.selectionEnd ?? field.value.length);
+  return { x: clamp(left + measurer.measureText(before).width - field.scrollLeft, left, right), y };
+}
 const smooth = (t: number) => t * t * (3 - 2 * t);
 /** Where t falls between a and b, 0 … 1. */
 const span = (t: number, a: number, b: number) => clamp((t - a) / (b - a), 0, 1);
 /** Ease-out with a small pass beyond the end and back: the head nods into place. */
 const settle = (t: number) => 1 + 2 * (t - 1) ** 3 + (t - 1) ** 2;
+
+/** The puzzled tilt: one roll to the side and back, in ms, and how far. */
+const TILT_MS = 700;
+const TILT_ROLL = 14 * (Math.PI / 180);
 
 /** Falling asleep, in seconds (user, 11-03: one snap read as stiff). */
 const DOZE = 1.6;
@@ -168,6 +227,12 @@ export function BotMascot({
   decorative = false,
   label,
   hopOn = 0,
+  wear = NO_WEAR,
+  lookAt,
+  looking = false,
+  tiltOn = 0,
+  greet,
+  dozes = true,
 }: {
   type: BotType;
   state?: BotState;
@@ -184,6 +249,17 @@ export function BotMascot({
   label?: string;
   /** A count the page raises to ask for one hop each time (not on mount). */
   hopOn?: number;
+  /** Hat and glasses (the picker's choice). */
+  wear?: BotWear;
+  /** An element to look at while `looking` (the hero's search box). */
+  lookAt?: RefObject<HTMLElement | null>;
+  looking?: boolean;
+  /** A count the page raises to ask for one puzzled tilt each time (not on mount). */
+  tiltOn?: number;
+  /** One motion when it first comes alive (an empty or error note: `tilt`). */
+  greet?: "tilt";
+  /** Whether the default state falls asleep when it rests (a calm note: false). */
+  dozes?: boolean;
 }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const frame = useRef<HTMLSpanElement>(null);
@@ -202,8 +278,13 @@ export function BotMascot({
     return () => ro.disconnect();
   }, []);
   const live = useRef({ state, paused });
-  const wake = useRef<() => void>(() => {});
+  /** Run the loop; `held`: draw the new still pose, don't extend the live
+   *  time; `ms`: how long it stays live (never shortening a longer one). */
+  const wake = useRef<(held?: boolean, ms?: number) => void>(() => {});
+  /** Aim again at the watched element (focus, a keystroke, a scroll). */
+  const reaim = useRef<() => void>(() => {});
   const hop = useRef<(spin: number) => void>(() => {});
+  const tilt = useRef<() => void>(() => {});
   // The body drawn last, to tell a switch from the first drawing.
   const shown = useRef<BotType | null>(null);
 
@@ -223,7 +304,30 @@ export function BotMascot({
     asked.current = hopOn;
     hop.current(0);
   }, [hopOn]);
+  const greeted = useRef(false);
+  const puzzled = useRef(tiltOn);
+  useEffect(() => {
+    if (tiltOn === puzzled.current) return;
+    puzzled.current = tiltOn;
+    tilt.current();
+  }, [tiltOn]);
+  // Read each frame: a new hat or glasses shows at once, without a new sim
+  // or a hop (the body's spin-hop is for a new body only).
+  const worn = useRef(wear);
+  useEffect(() => {
+    worn.current = wear;
+    wake.current(true);
+  }, [wear]);
+  // Looking at the search box: the head turns to it while the live time
+  // runs, then holds there still. Paused, the look is drawn once.
+  const watched = useRef({ looking, lookAt });
+  useEffect(() => {
+    watched.current = { looking, lookAt };
+    reaim.current();
+    wake.current(live.current.paused);
+  }, [looking, lookAt]);
   const stillState = still ? state : null;
+  const stillLook = still ? looking : null;
 
   useEffect(() => {
     const el = canvas.current;
@@ -237,6 +341,7 @@ export function BotMascot({
     if (!ctx) return;
     const cfg = drawConfig(lib, type, theme, dpr, boxPx);
     const draw = (pose: BotAvatarPose) => {
+      cfg.wear = wearOf(worn.current);
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.clearRect(0, 0, px, px);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -245,12 +350,43 @@ export function BotMascot({
       // changes (a handful of times a turn), for tests and debugging.
       const turn = `${pose.yaw.toFixed(1)},${pose.pitch.toFixed(1)}`;
       if (el.dataset.botTurn !== turn) el.dataset.botTurn = turn;
+      // Where the eyes look, the same way (they move the whole reach).
+      const look = `${pose.lookX.toFixed(1)},${pose.lookY.toFixed(1)}`;
+      if (el.dataset.botLook !== look) el.dataset.botLook = look;
+    };
+
+    // Where it looks while the watched element has focus, in reach units from
+    // the head: measured on focus, keystrokes and scrolls (never per frame).
+    let aimed: { x: number; y: number } | null = null;
+    reaim.current = () => {
+      const { looking: on, lookAt: ref } = watched.current;
+      const field = on ? ref?.current : null;
+      if (!field) { aimed = null; return; }
+      const point = caretPoint(field);
+      const r = el.getBoundingClientRect();
+      const cx = r.left + r.width / 2;
+      const cy = r.top + r.height / 2;
+      aimed = { x: reach(point.x - cx, cx, innerWidth - cx), y: reach(point.y - cy, cy, innerHeight - cy) };
+    };
+    const target = () => (watched.current.looking ? aimed : null);
+    reaim.current();
+    const looked = lib.restPose("default");
+    const tilted = lib.restPose("default");
+    let tiltAt = -Infinity;
+    // The pose as drawn, with the puzzled tilt on top while it runs.
+    const withTilt = (pose: BotAvatarPose, now: number) => {
+      const t = (now - tiltAt) / TILT_MS;
+      if (t < 0 || t >= 1) return pose;
+      blend(pose, pose, 0, tilted);
+      tilted.roll = pose.roll + Math.sin(Math.PI * t) * TILT_ROLL;
+      return tilted;
     };
 
     const switched = shown.current !== null && shown.current !== type;
     shown.current = type;
     if (stillState) {
-      draw(lib.restPose(stillState));
+      const at = target();
+      draw(at ? lookPose(lib.restPose(stillState), at.x, at.y, looked) : lib.restPose(stillState));
       return;
     }
 
@@ -283,8 +419,9 @@ export function BotMascot({
       k = clamp(k + (active ? dt : -dt) / 0.45, 0, 1);
       // Resting in the default state, it falls asleep: head down, lids shut
       // (user, 11-02). Not while working, nor while paused (paused rests awake).
-      const sleepy = s === "default" && !p && !active;
-      const base = lib.restPose(s);
+      const at = target();
+      const sleepy = dozes && s === "default" && !p && !active && !at;
+      const base = at ? lookPose(lib.restPose(s), at.x, at.y, looked) : lib.restPose(s);
       if (sleepy) {
         z = clamp(z + dt / DOZE, 0, 1);
         up = 0;
@@ -296,7 +433,8 @@ export function BotMascot({
       } else up = clamp(up - dt / 0.3, 0, 1);
       const rest = z > 0 ? doze(base, asleep, z, resting) : up > 0 ? blend(base, woke, smooth(up), resting) : base;
       if (k > 0) {
-        sim.setPointer(ptr.x, ptr.y, ptr.s);
+        if (at) sim.setPointer(at.x, at.y, 1);
+        else sim.setPointer(ptr.x, ptr.y, ptr.s);
         sim.update(dt);
         blend(rest, sim.pose, k, out);
         if (p) {
@@ -305,14 +443,14 @@ export function BotMascot({
           blend(rest, rest, 0, out);
           Object.assign(out, turn);
         }
-        draw(out);
-      } else if (z > 0 || up > 0) {
+        draw(withTilt(out, now));
+      } else if (z > 0 || up > 0 || now - tiltAt < TILT_MS) {
         // Still (the live pose has faded) but dozing or waking: draw each
         // step. (Only the live part was drawn before, so the doze showed as
         // one snap when the loop parked: the stiffness the user saw, 11-03.)
-        draw(rest);
+        draw(withTilt(rest, now));
       }
-      if (k > 0 || active || (sleepy ? z < 1 : up > 0)) raf = requestAnimationFrame(tick);
+      if (k > 0 || active || now - tiltAt < TILT_MS || (sleepy ? z < 1 : up > 0)) raf = requestAnimationFrame(tick);
       else {
         // Settled: the still pose (asleep, or awake when paused); the loop parks.
         draw(rest);
@@ -338,6 +476,12 @@ export function BotMascot({
       el.dataset.botHops = String(Number(el.dataset.botHops ?? 0) + 1);
       wake.current();
     };
+    tilt.current = () => {
+      if (live.current.paused) return;
+      tiltAt = performance.now();
+      el.dataset.botTilts = String(Number(el.dataset.botTilts ?? 0) + 1);
+      wake.current();
+    };
     const run = () => {
       if (raf || !seen || document.hidden) return;
       wokenHop = false; // awake now, however it woke
@@ -345,7 +489,19 @@ export function BotMascot({
       el.dataset.botRest = "awake";
       raf = requestAnimationFrame(tick);
     };
-    wake.current = () => { until = performance.now() + restAfter; run(); };
+    wake.current = (held = false, ms = restAfter) => {
+      if (!held) until = Math.max(until, performance.now() + ms);
+      run();
+    };
+    // Typing in the watched box moves the aim with the caret, briefly, then
+    // it parks again. Paused: the look stays as it was drawn.
+    const typed = () => {
+      if (live.current.paused || !watched.current.looking) return;
+      reaim.current();
+      wake.current(false, 900);
+    };
+    const reflow = () => { if (watched.current.looking) reaim.current(); };
+    const field = lookAt?.current;
 
     // Strength stays 1 once the pointer has moved: at 0 the library's idle
     // gaze takes the head and turns it side to side on its own, so it could
@@ -354,15 +510,12 @@ export function BotMascot({
       const r = el.getBoundingClientRect();
       const cx = r.left + r.width / 2;
       const cy = r.top + r.height / 2;
-      // Each axis on its own: the face reaches the rim as the pointer reaches
-      // the window's edge on that side. (The rig turns 22° per unit across
-      // but tips only 12° per unit up and down, so a direction vector left a
-      // wide window's corners with almost no tilt.)
-      const reach = (delta: number, before: number, after: number) =>
-        clamp(Math.tanh((1.5 * delta) / Math.max(60, delta > 0 ? after : before)) * 1.1, -1, 1);
       ptr.x = reach(event.clientX - cx, cx, innerWidth - cx);
       ptr.y = reach(event.clientY - cy, cy, innerHeight - cy);
       ptr.s = 1;
+      // Looking at the search box: the pointer is kept for afterwards, but it
+      // neither turns nor wakes the head (typing and pointing hold the look).
+      if (watched.current.looking && !wokenHop) return;
       if (wokenHop) {
         wokenHop = false;
         // Pressing the bot itself is its pause control: it wakes without a hop.
@@ -376,6 +529,7 @@ export function BotMascot({
     const away = (event: PointerEvent) => {
       if (event.relatedTarget || event.pointerType === "touch") return;
       ptr.x = 0;
+      if (watched.current.looking) { ptr.y = 0; return; }
       ptr.y = 0;
       wake.current();
     };
@@ -387,10 +541,20 @@ export function BotMascot({
       hop.current(1);
     }
     run();
+    // Once per mount, the first time the library is here (it loads late).
+    if (greet === "tilt" && !greeted.current) {
+      greeted.current = true;
+      tilt.current();
+    }
     const io = new IntersectionObserver(([entry]) => { seen = entry.isIntersecting; if (seen) run(); });
     io.observe(el);
     const onVisible = () => { if (!document.hidden) run(); };
     document.addEventListener("visibilitychange", onVisible);
+    field?.addEventListener("input", typed);
+    field?.addEventListener("keyup", typed);
+    field?.addEventListener("click", typed);
+    window.addEventListener("resize", reflow, { passive: true });
+    window.addEventListener("scroll", reflow, { passive: true });
     if (follow) {
       window.addEventListener("pointermove", aim, { passive: true });
       // A tap moves no pointer before it: it wakes the bot and aims it too.
@@ -401,13 +565,20 @@ export function BotMascot({
       cancelAnimationFrame(raf);
       wake.current = () => {};
       hop.current = () => {};
+      tilt.current = () => {};
+      reaim.current = () => {};
+      field?.removeEventListener("input", typed);
+      field?.removeEventListener("keyup", typed);
+      field?.removeEventListener("click", typed);
+      window.removeEventListener("resize", reflow);
+      window.removeEventListener("scroll", reflow);
       io.disconnect();
       document.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener("pointermove", aim);
       window.removeEventListener("pointerdown", aim);
       window.removeEventListener("pointerout", away);
     };
-  }, [lib, type, boxPx, theme, still, follow, restAfter, stillState]);
+  }, [lib, type, boxPx, theme, still, follow, restAfter, stillState, stillLook, greet, dozes, lookAt]);
 
   // The box: `--bot-size` from the page's CSS when it sets one (so a
   // breakpoint never resizes it after hydration), else `size`. The canvas

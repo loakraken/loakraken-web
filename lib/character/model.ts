@@ -92,7 +92,7 @@ export function failureCopy(error: QueryFailure) {
     case "CHARACTER_NOT_FOUND":
       return {
         title: "캐릭터를 찾지 못했어요",
-        text: "이름이 정확한지 확인한 뒤 다시 검색해 주세요.",
+        text: "이름을 한 번 더 확인하고 다시 검색해 볼까요?",
       };
     case "LOST_ARK_RATE_LIMITED":
       return rateLimitCopy(error);
@@ -115,7 +115,7 @@ export function failureCopy(error: QueryFailure) {
     case "LOST_ARK_API_TIMEOUT":
       return {
         title: "응답이 늦어지고 있어요",
-        text: "조회 시간이 초과됐습니다. 잠시 후 다시 시도해 주세요.",
+        text: "조회가 조금 오래 걸리고 있어요. 잠시 뒤 다시 시도해 주세요.",
       };
     case "FRONTEND_API_NOT_CONFIGURED":
     case "LOST_ARK_NOT_CONFIGURED":
@@ -128,7 +128,7 @@ export function failureCopy(error: QueryFailure) {
     case "LOST_ARK_GATE_UNAVAILABLE":
       return {
         title: "조회 서비스를 잠시 사용할 수 없어요",
-        text: "데이터 처리에 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.",
+        text: "잠시 문제가 생겼어요. 조금 뒤 다시 시도해 주세요.",
       };
     case "INVALID_API_RESPONSE":
       return {
@@ -138,7 +138,7 @@ export function failureCopy(error: QueryFailure) {
     default:
       return {
         title: "캐릭터 정보를 불러오지 못했어요",
-        text: "조회 서비스에 연결할 수 없습니다. 연결 상태를 확인하고 다시 시도해 주세요.",
+        text: "지금은 정보를 불러올 수 없어요. 연결을 확인한 뒤 다시 시도해 주세요.",
       };
   }
 }
