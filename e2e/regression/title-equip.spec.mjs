@@ -1,6 +1,7 @@
 // 회귀(L13·K11·L44, API 목록 #5): 칭호 장착 비율 — 통계 '칭호' 탭(확인한 원정대 중 그 칭호를 장착한 원정대 비율)과
 // 원정대 칭호 목록의 '장착 원정대 x%'. 장착만 셈(보유 아님)을 화면에 적는다.
 import { test, expect, characterPath, gotoReady, chooseOption } from "../support/fixtures.mjs";
+import { shiftMark, shiftsSince, watchShifts } from "../support/shifts.mjs";
 
 test("통계 칭호 탭: 비율 표·서버 바꾸기·장착만 안내 @regression", async ({ page }) => {
   await gotoReady(page, "/stats?tab=titles");
@@ -89,4 +90,52 @@ test("원정대 칭호: 칭호마다 장착 원정대 비율 @regression", async
   // The title line itself (a same-day group is an outer list item too).
   const kamen = page.getByText("카멘을 쓰러뜨린 자", { exact: true }).locator("xpath=..");
   await expect(kamen).not.toContainText("장착 원정대");
+});
+
+// PM-프론트 #1411 P2: the stored days come in their own answer. Held 800 ms, the
+// day controls must already stand (disabled), so their arrival moves nothing.
+for (const width of [320, 1280])
+  test(`칭호 탭: 기준일 목록이 늦게 와도 흔들림 0 @${width} @regression`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await watchShifts(page);
+    let held = 0;
+    await page.route(
+      (url) => url.pathname === "/api/titles/equipped/dates",
+      async (route) => {
+        held += 1;
+        await new Promise((resolve) => setTimeout(resolve, 800));
+        await route.continue();
+      },
+    );
+    await gotoReady(page, "/stats?tab=titles");
+    await expect(page.getByRole("table", { name: "칭호 장착 원정대 비율" })).toBeVisible();
+    await expect(page.getByRole("combobox", { name: "비교" })).toBeEnabled();
+    await page.waitForTimeout(400);
+    expect(held, "기준일 목록 요청을 붙잡았는지").toBeGreaterThan(0);
+    const moved = await shiftsSince(page);
+    expect(moved.all, `기준일 목록이 온 뒤 흔들림 (${moved.moved})`).toBe(0);
+  });
+
+// #1411 P3: on a phone the change under each name answers late ('-' → '+4.84%p')
+// in a fixed slot: nothing moves when the comparison day's answer comes.
+test("칭호 탭 휴대폰: 비교 값이 늦게 와도 흔들림 0 @regression", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 900 });
+  await watchShifts(page);
+  await page.route(
+    (url) => url.pathname === "/api/titles/equipped" && url.searchParams.has("date"),
+    async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 800));
+      await route.continue();
+    },
+  );
+  await gotoReady(page, "/stats?tab=titles");
+  const first = page.getByRole("table", { name: "칭호 장착 원정대 비율" }).locator("tbody tr").first();
+  await chooseOption(page, page.getByRole("combobox", { name: "비교" }), "2026. 11. 07");
+  // The column and the phone line appear with the choice (input); the answer comes later.
+  await expect(first).toContainText("2026. 11. 07 대비 -");
+  const mark = await shiftMark(page);
+  await expect(first).toContainText("+4.84%p");
+  await page.waitForTimeout(300);
+  const moved = await shiftsSince(page, mark);
+  expect(moved.all, `비교 값이 온 뒤 흔들림 (${moved.moved})`).toBe(0);
 });

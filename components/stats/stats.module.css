@@ -1071,6 +1071,15 @@
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
+/* The phone line's change: never broken inside, and its value in a slot as
+   wide as '+00.00%p', so '-' turning into the answer moves nothing (#1411 P3). */
+.titleChange {
+  white-space: nowrap;
+}
+.titleChange span {
+  display: inline-block;
+  min-width: 8ch;
+}
 /* Phones: the numbers go under the name (PM 총괄 11-08) instead of behind the
    table's sideways scroll; the table is the screen's width, rank and title. */
 @media (max-width: 480px) {

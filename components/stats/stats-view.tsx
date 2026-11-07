@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useId, useState, type CSSProperties } from "react";
+import { useEffect, useId, useState, type CSSProperties, type ReactNode } from "react";
 import { useTallest } from "@/components/ui/use-tallest";
 import { classBuildsPath } from "@/lib/stats/class-builds";
 import { useSearchParams } from "next/navigation";
@@ -775,7 +775,7 @@ function TitleName({
   title: string;
   child?: boolean;
   /** 장착 원정대 · 비율 (· 대비): shown under the name on phones, where those columns are hidden. */
-  numbers: string;
+  numbers: ReactNode;
 }) {
   const key = gradeKey(row?.grade);
   return (
@@ -812,7 +812,9 @@ function TitlesTab({ query }: { query: StatsQuery }) {
     placeholderData: keepPreviousData,
     ...quiet,
   });
-  // Before the first daily record (or an api without days yet) there are no days: no day controls.
+  // Before the first daily record (or an api without days yet) there are no
+  // days: the day controls stay, disabled (A7: they are there from the first
+  // paint, so a late or empty answer moves nothing, PM-프론트 #1411 P2).
   const dates = useQuery({
     queryKey: ["title-equip", "dates", titleQuery.server ?? ""],
     queryFn: ({ signal }) => fetchTitleDates(titleQuery.server, signal),
@@ -848,13 +850,22 @@ function TitlesTab({ query }: { query: StatsQuery }) {
   );
   const dayLabel = (day: string) => day.replaceAll("-", ". ");
   const columns = compare ? TITLE_COMPARE_COLUMNS : TITLE_COLUMNS;
-  // The phone line under the name: the same values as the hidden columns.
-  const numbers = (row: EquippedTitle | null, title: string) =>
-    [
-      row ? `장착 원정대 ${whole(row.equippedRosters)}개` : "장착 원정대 -",
-      row ? equipShare(row) : "-",
-      ...(compare ? [`${dayLabel(compare)} 대비 ${shareChange(row?.equippedPercent, then.get(title))}`] : []),
-    ].join(" · ");
+  // The phone line under the name: the same values as the hidden columns. The
+  // change sits in a slot of fixed width that never breaks, so its answer
+  // ('-' → '+4.84%p') cannot wrap the line (PM-프론트 #1411 P3).
+  const numbers = (row: EquippedTitle | null, title: string) => (
+    <>
+      {row ? `장착 원정대 ${whole(row.equippedRosters)}개` : "장착 원정대 -"} · {row ? equipShare(row) : "-"}
+      {compare && (
+        <>
+          {" · "}
+          <span className={styles.titleChange}>
+            {dayLabel(compare)} 대비 <span>{shareChange(row?.equippedPercent, then.get(title))}</span>
+          </span>
+        </>
+      )}
+    </>
+  );
   return (
     <div {...pendingProps(titles)}>
       {/* One line of what the table holds, over the table; drawn anew per
@@ -866,35 +877,33 @@ function TitlesTab({ query }: { query: StatsQuery }) {
         {date ? `${dayLabel(date)} 기록` : "지금"}
       </p>
       <div className={styles.titleBar}>
-        {days.length > 0 && (
-          <span className={styles.titleDay}>
-            <label htmlFor={dateId}>기준일</label>
-            <Select
-              id={dateId}
-              value={date ?? ""}
-              onValueChange={(value) => {
-                setDate(value || null);
-                if (!value || value === compare) setCompare(null);
-              }}
-              items={[{ value: "", label: "지금" }, ...days.map((day) => ({ value: day, label: dayLabel(day) }))]}
-            />
-          </span>
-        )}
+        <span className={styles.titleDay}>
+          <label htmlFor={dateId}>기준일</label>
+          <Select
+            id={dateId}
+            disabled={days.length === 0}
+            value={date ?? ""}
+            onValueChange={(value) => {
+              setDate(value || null);
+              if (!value || value === compare) setCompare(null);
+            }}
+            items={[{ value: "", label: "지금" }, ...days.map((day) => ({ value: day, label: dayLabel(day) }))]}
+          />
+        </span>
         {/* Two days or more to set side by side (none right after deploy). */}
-        {days.length > 1 && (
-          <span className={styles.titleDay}>
-            <label htmlFor={compareId}>비교</label>
-            <Select
-              id={compareId}
-              value={compare ?? ""}
-              onValueChange={(value) => setCompare(value || null)}
-              items={[
-                { value: "", label: "안 함" },
-                ...days.filter((day) => day !== date).map((day) => ({ value: day, label: dayLabel(day) })),
-              ]}
-            />
-          </span>
-        )}
+        <span className={styles.titleDay}>
+          <label htmlFor={compareId}>비교</label>
+          <Select
+            id={compareId}
+            disabled={days.length < 2}
+            value={compare ?? ""}
+            onValueChange={(value) => setCompare(value || null)}
+            items={[
+              { value: "", label: "안 함" },
+              ...days.filter((day) => day !== date).map((day) => ({ value: day, label: dayLabel(day) })),
+            ]}
+          />
+        </span>
         {/* Only once the api sends grades (rows without them have nothing to filter). */}
         {rows.some((row) => row.grade) && (
           <span className={styles.segment} role="group" aria-label="등급">
