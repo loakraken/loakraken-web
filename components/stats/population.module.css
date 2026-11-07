@@ -85,7 +85,8 @@
 .bar i {
   position: absolute;
   inset: 0 auto 0 0;
-  background: color-mix(in oklab, var(--primary) 80%, transparent);
+  /* A class row's 직업군 colour (user 11-08); servers keep the one hue. */
+  background: var(--bar, color-mix(in oklab, var(--primary) 80%, transparent));
 }
 
 /* Loading, error and before the first snapshot: one held box. */

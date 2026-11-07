@@ -42,6 +42,24 @@ const GROUP_OF: Record<string, ClassGroup> = {
 export const classGroup = (className: string): ClassGroup =>
   Object.hasOwn(GROUP_OF, className) ? GROUP_OF[className] : "기타";
 
+// Each group's colour (globals.css --group-*, user 11-08): fixed per group, so
+// a filter that leaves fewer groups never repaints the rest.
+const GROUP_COLOR: Record<ClassGroup, string> = {
+  전사: "var(--group-warrior)",
+  무도가: "var(--group-martial)",
+  헌터: "var(--group-hunter)",
+  마법사: "var(--group-mage)",
+  암살자: "var(--group-assassin)",
+  스페셜리스트: "var(--group-specialist)",
+  가디언나이트: "var(--group-guardian)",
+  기타: "var(--group-other)",
+};
+
+export const groupColor = (group: ClassGroup) => GROUP_COLOR[group];
+
+/** A class's bar colour: its group's. */
+export const classColor = (className: string) => GROUP_COLOR[classGroup(className)];
+
 /**
  * Classes that can play support (api #779: the backend judges their role;
  * every other class counts as a dealer by class alone).
