@@ -26,13 +26,24 @@ async function compareThree(page) {
   await expect(status(page)).toHaveText("3명을 비교하고 있어요");
 }
 
-test("멀티서치: 다른 화면에 갔다 와도 같은 명단, 쿠키 없음 @regression", async ({ page, context }) => {
+test("멀티서치: 다른 화면·다른 사이트에 갔다 와도 같은 명단, 쿠키 없음 @regression", async ({ page, context }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await compareThree(page);
   await gotoReady(page, "/rankings");
   await gotoReady(page, "/multi-search");
   await expect(status(page)).toHaveText("지난번 명단 · 3명을 비교하고 있어요");
   expect(await stored(page)).toEqual(["비교1,비교2,비교3", null]);
+
+  // Off to another site in the same tab and back (the back button): still the same list.
+  await page.goto("about:blank");
+  await page.goBack();
+  await page.waitForLoadState("networkidle");
+  await expect(status(page)).toHaveText(/3명을 비교하고 있어요$/);
+  expect(await stored(page)).toEqual(["비교1,비교2,비교3", null]);
+  // ... and back by opening the menu again: the last list comes back.
+  await page.goto("about:blank");
+  await gotoReady(page, "/multi-search");
+  await expect(status(page)).toHaveText("지난번 명단 · 3명을 비교하고 있어요");
   expect(await context.cookies(), "쿠키 없음").toEqual([]);
 });
 
