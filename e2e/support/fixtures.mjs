@@ -16,6 +16,11 @@ export const test = base.extend({
   allowConsoleErrors: [false, { option: true }],
 
   page: async ({ page, allowConsoleErrors }, provide, testInfo) => {
+    await page.addInitScript(() => {
+      try {
+        sessionStorage.setItem("loakraken:about-intro", "1");
+      } catch {}
+    });
     await page.route(
       (url) => !isLocal(url.href),
       (route) =>

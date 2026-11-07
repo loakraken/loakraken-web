@@ -6,6 +6,7 @@ import { m, useScroll, useTransform } from "motion/react";
 import { ArrowRight, ChevronDown, DocumentCode, ExportCircle, FingerScan, Gps, Layer, ScanBarcode, ShieldTick, TickCircle } from "@/components/ui/icons";
 import { CharacterCockpit } from "./cockpit";
 import { Hero } from "./hero";
+import { BuildIntro } from "./build-intro";
 import { LandingMotion, Reveal, useLandingMotion } from "./motion";
 import { roadmap } from "./roadmap";
 import { SiteHeader } from "@/components/site/site-header";
@@ -14,7 +15,7 @@ import styles from "./landing.module.css";
 
 export { KrakenMark } from "@/components/site/kraken-mark";
 
-function PrecisionLanding() {
+function PrecisionLanding({ intro }: { intro: boolean }) {
   const input = useRef<HTMLInputElement>(null);
   const { enabled } = useLandingMotion();
   const [copied, setCopied] = useState(false);
@@ -48,18 +49,19 @@ function PrecisionLanding() {
       {/* No search button of the page's own in the header (user 11-08): the hero
           search is right below, and the header's shared search stays. */}
       <SiteHeader fixed />
+      {intro && <BuildIntro />}
 
       <main id="main">
         <Hero inputRef={input} />
 
-        <div className={styles.previewBand}><section className={styles.section} id="preview" aria-labelledby="preview-heading">
-          <Reveal className={styles.sectionHeading}><div><span className={styles.eyebrow}>캐릭터 미리보기</span><h2 id="preview-heading">캐릭터의 지금을,<br className={styles.mobileBreak} /> 한눈에.</h2></div><p>장비부터 놓치기 쉬운 세팅까지.<br />당신에게 필요한 정보만, 명료하게.</p></Reveal>
-          <Reveal delay={0.08}><CharacterCockpit /></Reveal>
-          <Reveal className={styles.previewCaption}><span><Gps size={14} /> 필요한 정보에만 집중하세요.</span><span>예시 데이터 기반의 인터랙티브 미리보기</span></Reveal>
+        <div className={styles.previewBand}><section className={styles.section} id="preview" aria-labelledby="preview-heading" data-build-section="preview">
+          <Reveal className={styles.sectionHeading} build="text"><div><span className={styles.eyebrow}>캐릭터 미리보기</span><h2 id="preview-heading">캐릭터의 지금을,<br className={styles.mobileBreak} /> 한눈에.</h2></div><p>장비부터 놓치기 쉬운 세팅까지.<br />당신에게 필요한 정보만, 명료하게.</p></Reveal>
+          <Reveal delay={0.08} build="box"><CharacterCockpit /></Reveal>
+          <Reveal className={styles.previewCaption} build="text"><span><Gps size={14} /> 필요한 정보에만 집중하세요.</span><span>예시 데이터 기반의 인터랙티브 미리보기</span></Reveal>
         </section></div>
 
-        <section className={`${styles.section} ${styles.evidenceSection}`} id="evidence" aria-labelledby="evidence-heading">
-          <Reveal className={styles.evidenceCopy}>
+        <section className={`${styles.section} ${styles.evidenceSection}`} id="evidence" aria-labelledby="evidence-heading" data-build-section="evidence">
+          <Reveal className={styles.evidenceCopy} build="text">
             <span className={styles.eyebrow}>이해할 수 있는 분석</span>
             <h2 id="evidence-heading">결과만큼,<br /><span>근거도 명확하게.</span></h2>
             <p className={styles.sectionDescription}>숫자 하나로 캐릭터를 단정하지 않습니다.<br />무엇을 확인했고, 왜 그렇게 판단했는지.<br />판단의 모든 과정을 함께 보여 줍니다.</p>
@@ -69,7 +71,7 @@ function PrecisionLanding() {
               <div><span><Layer size={18} /></span><div><h3>변화도 추적 가능하게</h3><p>어떤 분석 기준을 적용했는지 함께 보여줍니다.</p></div></div>
             </div>
           </Reveal>
-          <Reveal className={styles.evidenceVisual} delay={0.1}>
+          <Reveal className={styles.evidenceVisual} delay={0.1} build="box">
             <div className={styles.evidenceTop}><span><span className={styles.statusDot} /> 데이터에서 판단까지</span><span>예시</span></div>
             <div className={styles.pipeline}>
               {[{ icon: ScanBarcode, label: "캐릭터 정보", text: "장착된 보석 확인", sub: "11 / 11 슬롯" }, { icon: Gps, label: "규칙 확인", text: "최대 레벨 미만 감지", sub: "PREVIEW-V1" }, { icon: ShieldTick, label: "근거", text: "9레벨 2개 · 교체 후보", sub: "근거와 함께 제시" }].map((step, i) => <div className={styles.pipelineStep} key={step.label}>
@@ -87,18 +89,18 @@ function PrecisionLanding() {
           </Reveal>
         </section>
 
-        <section className={`${styles.section} ${styles.roadmapSection}`} id="roadmap" aria-labelledby="roadmap-heading">
-          <Reveal className={styles.sectionHeading}><div><span className={styles.eyebrow}>앞으로의 LOAKraken</span><h2 id="roadmap-heading">더 나은 선택을 향해.</h2></div><p>검색과 분석에서 성장, 거래, 일상의 플레이까지.<br />캐릭터 성장의 모든 선택을 하나로 연결합니다.</p></Reveal>
-          <Reveal className={styles.roadmapNote}><p>캐릭터 정보, 거래소 시세, 재련·치적 계산기, 주간 일정표를 실제 데이터로 제공하고 있습니다. 랭킹·통계는 표본을 모으는 중이고, 점수와 성능 예측은 계산 모델 검증을 마친 뒤 제공합니다.</p></Reveal>
+        <section className={`${styles.section} ${styles.roadmapSection}`} id="roadmap" aria-labelledby="roadmap-heading" data-build-section="roadmap">
+          <Reveal className={styles.sectionHeading} build="text"><div><span className={styles.eyebrow}>앞으로의 LOAKraken</span><h2 id="roadmap-heading">더 나은 선택을 향해.</h2></div><p>검색과 분석에서 성장, 거래, 일상의 플레이까지.<br />캐릭터 성장의 모든 선택을 하나로 연결합니다.</p></Reveal>
+          <Reveal className={styles.roadmapNote} build="text"><p>캐릭터 정보, 거래소 시세, 재련·치적 계산기, 주간 일정표를 실제 데이터로 제공하고 있습니다. 랭킹·통계는 표본을 모으는 중이고, 점수와 성능 예측은 계산 모델 검증을 마친 뒤 제공합니다.</p></Reveal>
           <div className={styles.roadmap}>
-            {roadmap.map((item) => <Reveal key={item.number} className={styles.roadmapItem}>
+            {roadmap.map((item) => <Reveal key={item.number} className={styles.roadmapItem} build="box">
               <span className={styles.roadmapNumber}>{item.number}</span><div><span className={styles.roadmapStatus} data-active={item.active}><i />{item.status}</span><h3>{item.title}</h3><p>{item.description}</p><p className={styles.roadmapScope}>{item.scope}</p></div>
             </Reveal>)}
           </div>
         </section>
 
-        <section className={styles.closing} aria-labelledby="closing-heading">
-          <Reveal><span className={styles.closingMark}><KrakenMark size={40} /></span><h2 id="closing-heading">다음 성장은,<br /><span>더 명확한 선택에서.</span></h2><p>당신의 캐릭터를 이해하는 새로운 시선.</p><button type="button" className={styles.primaryButton} onClick={focusSearch}>캐릭터 검색 <ArrowRight size={16} /></button></Reveal>
+        <section className={styles.closing} aria-labelledby="closing-heading" data-build-section="closing">
+          <Reveal build="text"><span className={styles.closingMark}><KrakenMark size={40} /></span><h2 id="closing-heading">다음 성장은,<br /><span>더 명확한 선택에서.</span></h2><p>당신의 캐릭터를 이해하는 새로운 시선.</p><button type="button" className={styles.primaryButton} onClick={focusSearch}>캐릭터 검색 <ArrowRight size={16} /></button></Reveal>
         </section>
       </main>
       <footer className={styles.footer}><Link href="/" className={`${styles.brand} hit-44`}><KrakenMark />LOAKraken</Link><a href="https://libraries.dev/orbs" target="_blank" rel="noreferrer" className="hit-44">Motion with Libraries.dev <ExportCircle size={12} /></a></footer>
@@ -106,6 +108,7 @@ function PrecisionLanding() {
   );
 }
 
-export function Landing() {
-  return <LandingMotion><PrecisionLanding /></LandingMotion>;
+/** intro: /about builds itself on its first visit in a tab (app/about/page.tsx). */
+export function Landing({ intro = false }: { intro?: boolean }) {
+  return <LandingMotion><PrecisionLanding intro={intro} /></LandingMotion>;
 }

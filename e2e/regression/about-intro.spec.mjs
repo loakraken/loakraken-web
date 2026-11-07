@@ -1,0 +1,121 @@
+// 회귀(사용자 11-08): 소개(/about)는 처음 열 때 스스로 지어진다. 팀마다 색이 다른 화살표 커서 12개(이름표 없음)가
+// 한 번에 한 구역씩(넷까지) 점선 상자를 끌고, 회색 뼈대가 나온 뒤 진짜 내용이 들어선다. 제목은 위에 겹친 글자로 타이핑.
+// 첫 화면은 6초 안, 아래 구역은 화면에 오면, 휴대폰(≤480)에서는 일하는 커서만 보인다. 흔들림 0, 다 지으면 그리기 반복이
+// 멈춘다. 건너뛰기 단추, 줄인 동작·멈춤을 고른 방문자·JS 없음은 처음부터 완성된 페이지, 이 탭에서 한 번만.
+import { test, expect, gotoReady } from "../support/fixtures.mjs";
+import { watchShifts, shiftsSince } from "../support/shifts.mjs";
+
+const KEY = "loakraken:about-intro";
+const INTRO = "about-intro";
+// The fixtures mark the intro as played (other /about specs see the finished page): this file plays it.
+const fresh = (page) => page.addInitScript((key) => sessionStorage.removeItem(key), KEY);
+const introOn = (page) => page.evaluate((c) => document.documentElement.classList.contains(c), INTRO);
+const unbuilt = (page, scope = "") =>
+  page.evaluate((s) => document.querySelectorAll(`${s} [data-build-block]:not([data-built])`).length, scope);
+const shownCursors = (page) =>
+  page.evaluate(() => [...document.querySelectorAll("[data-intro-cursor]")].filter((c) => getComputedStyle(c).opacity !== "0").length);
+
+async function scrollThrough(page) {
+  // Down a section at a time: each builds when it comes on screen, one after another.
+  for (const id of ["preview", "evidence", "roadmap", "closing"]) {
+    await page.locator(`[data-build-section="${id}"]`).scrollIntoViewIfNeeded();
+    await expect.poll(() => unbuilt(page, `[data-build-section="${id}"]`), { timeout: 15_000 }).toBe(0);
+  }
+}
+
+for (const width of [320, 390, 1280])
+  for (const theme of ["light", "dark"])
+    test(`소개 ${width} ${theme}: 커서 12개가 구역마다 짓고, 흔들림 0, 다 지으면 멈춘다 @regression`, async ({ page }) => {
+      test.setTimeout(90_000);
+      await fresh(page);
+      await page.addInitScript((t) => localStorage.setItem("loakraken-theme", t), theme);
+      await page.setViewportSize({ width, height: 900 });
+      await page.emulateMedia({ reducedMotion: "no-preference" });
+      await watchShifts(page);
+      await page.goto("/about");
+      expect(await introOn(page), "첫 그림 전에 켜짐").toBe(true);
+      // The blocks are in the page (their boxes held), only hidden until built.
+      await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
+      await expect(page.locator("[data-intro-cursor]")).toHaveCount(12);
+      // Plain arrows: no name tags anywhere in the layer.
+      await expect(page.locator("[data-intro-layer]")).toHaveText("");
+      if (width <= 480) expect(await shownCursors(page), "휴대폰은 일하는 커서만").toBeLessThanOrEqual(4);
+      await expect(page.getByRole("button", { name: "소개 건너뛰기" })).toBeVisible();
+      // The first screen is up within 6 s.
+      await expect.poll(() => unbuilt(page, '[data-build-section="intro"]'), { timeout: 6_000, intervals: [200] }).toBe(0);
+      await scrollThrough(page);
+      await expect.poll(() => introOn(page), { timeout: 5_000 }).toBe(false);
+      await expect(page.locator("html")).toHaveAttribute("data-intro-loop", "parked");
+      await expect(page.locator("[data-intro-cursor]")).toHaveCount(0);
+      await expect(page.getByRole("button", { name: "소개 건너뛰기" })).toHaveCount(0);
+      const shift = await shiftsSince(page);
+      expect(shift.all, `흔들림 (${shift.moved})`).toBe(0);
+    });
+
+test("소개: 건너뛰기를 누르면 바로 완성, 그리기 반복 멈춤, 이 탭에 기록 @regression", async ({ page }) => {
+  await fresh(page);
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.goto("/about");
+  const skip = page.getByRole("button", { name: "소개 건너뛰기" });
+  await skip.focus();
+  await page.keyboard.press("Enter");
+  expect(await introOn(page)).toBe(false);
+  expect(await unbuilt(page)).toBe(0);
+  await expect(page.locator("[data-intro-layer]")).toBeEmpty();
+  await expect(page.locator("html")).toHaveAttribute("data-intro-loop", "parked");
+  await expect(skip).toHaveCount(0);
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  // Played: recorded for this tab, so the next load shows the finished page (next test).
+  expect(await page.evaluate((key) => sessionStorage.getItem(key), KEY)).toBe("1");
+});
+
+test("소개: 짓는 중에 키를 누르면(예: Tab으로 검색칸) 바로 완성되어 방해하지 않는다 @regression", async ({ page }) => {
+  await fresh(page);
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.goto("/about");
+  expect(await introOn(page)).toBe(true);
+  // Hydrated (the intro listens from here on): its skip button is up.
+  await expect(page.getByRole("button", { name: "소개 건너뛰기" })).toBeVisible();
+  await page.keyboard.press("Tab");
+  expect(await introOn(page)).toBe(false);
+  expect(await unbuilt(page)).toBe(0);
+  await expect(page.locator("[data-intro-cursor]")).toHaveCount(0);
+});
+
+test("소개: 이 탭에서 이미 봤으면 다시 지어지지 않는다 @regression", async ({ page }) => {
+  // The fixtures' init script marks it played, as the page itself does at the end.
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await gotoReady(page, "/about");
+  expect(await introOn(page)).toBe(false);
+  await expect(page.locator("[data-intro-cursor]")).toHaveCount(0);
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+});
+
+for (const [name, setup] of [
+  ["줄인 동작", (page) => page.emulateMedia({ reducedMotion: "reduce" })],
+  ["멈춤을 고른 방문자", (page) => page.addInitScript(() => localStorage.setItem("loakraken-motion", "paused"))],
+])
+  test(`소개 ${name}: 처음부터 완성된 페이지, 커서 없음 @regression`, async ({ page }) => {
+    await fresh(page);
+    await setup(page);
+    await page.setViewportSize({ width: 390, height: 900 });
+    await gotoReady(page, "/about");
+    expect(await introOn(page)).toBe(false);
+    await expect(page.locator("[data-intro-cursor]")).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "소개 건너뛰기" })).toHaveCount(0);
+    const hidden = await page.evaluate(() =>
+      [...document.querySelectorAll("[data-build-block]")].filter((b) => getComputedStyle(b).opacity === "0").length);
+    expect(hidden).toBe(0);
+  });
+
+test.describe("JS 없이", () => {
+  test.use({ javaScriptEnabled: false });
+  test("소개 JS 없이: 숨기지 않고 내용이 그대로 보인다 @regression", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 900 });
+    await page.goto("/about");
+    await expect(page.locator("html")).not.toHaveClass(new RegExp(INTRO));
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  });
+});
