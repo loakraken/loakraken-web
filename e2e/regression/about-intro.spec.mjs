@@ -172,9 +172,19 @@ for (const [name, setup] of [
           ).length,
       );
     await expect.poll(hidden, { message: "첫 화면에 숨은 칸" }).toBe(0);
+    // Reduced motion: nothing anywhere on the page is hidden, from the load on.
+    if (name === "줄인 동작") {
+      const anywhere = await page.evaluate(
+        () => [...document.querySelectorAll("[data-build-block]")].filter((b) => getComputedStyle(b).opacity !== "1").length,
+      );
+      expect(anywhere, "줄인 동작: 숨은 칸 없음").toBe(0);
+    }
     // Each block, brought on screen, is shown (a tall section is not on one screen).
     const blocks = page.locator("[data-build-block]");
-    for (let i = 0, n = await blocks.count(); i < n; i++) {
+    const n = await blocks.count();
+    // The page's blocks are all there (the loop below cannot pass on none).
+    expect(n, "지을 칸 수").toBeGreaterThan(15);
+    for (let i = 0; i < n; i++) {
       await blocks.nth(i).scrollIntoViewIfNeeded();
       await expect.poll(() => blocks.nth(i).evaluate((b) => getComputedStyle(b).opacity), { timeout: 5_000 }).toBe("1");
     }
