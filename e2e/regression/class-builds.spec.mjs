@@ -128,7 +128,14 @@ for (const width of [320, 360])
     for (const name of ["직업 각인", "각인 채용률"]) {
       const section = page.getByRole("region", { name, exact: true });
       await expect(section.locator("li [data-engraving-icon]").first()).toBeVisible();
-      const cells = await section.locator("ol > li .label, ol > li [class*=label]").evaluateAll((els) =>
+      // The longest real names (the mock's are short): the cell is CSS, the text only fills it.
+      await section.locator("ol > li [class*=label]").evaluateAll((els) =>
+        ["아르데타인의 기술", "멈출 수 없는 충동"].forEach((long, i) => {
+          const text = els[i] && [...els[i].childNodes].findLast((node) => node.nodeType === 3);
+          if (text) text.textContent = long;
+        }),
+      );
+      const cells = await section.locator("ol > li [class*=label]").evaluateAll((els) =>
         els.map((el) => ({ text: el.textContent.trim(), cut: el.scrollWidth > el.clientWidth + 1, lines: Math.round(el.getBoundingClientRect().height / 18) })),
       );
       expect(cells.length, `${name} 줄`).toBeGreaterThan(0);
