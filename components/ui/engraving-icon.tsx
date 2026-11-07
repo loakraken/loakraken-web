@@ -12,8 +12,11 @@ export function EngravingIcon({
   size = 24,
   className = "",
   style,
+  grade,
 }: {
   name: string | null | undefined;
+  /** The grade key (gradeKey) for a ring in its colour; the caller styles it. */
+  grade?: string;
   size?: number;
   className?: string;
   style?: CSSProperties;
@@ -24,6 +27,7 @@ export function EngravingIcon({
       className={`inline-block shrink-0 overflow-hidden rounded-[6px] bg-muted align-middle ${className}`}
       style={{ width: size, height: size, ...style }}
       data-engraving-icon={src ? "" : "none"}
+      data-grade={grade}
       aria-hidden="true"
     >
       {src && (

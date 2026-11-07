@@ -1368,11 +1368,12 @@ function EngravingsPanel({ data }: { data: Character }) {
           {effects.map((effect, i) => (
             <li key={i} {...stagger(i)}>
               <div className={styles.engravingName}>
-                {/* A small mark in the grade's colour (the grade itself is read
-                    out on the right), then the engraving's own icon (user 11-08,
-                    the user's game files; a fixed box even without one). */}
-                <i className={styles.engravingGrade} data-grade={gradeKey(effect.grade)} aria-hidden="true" />
-                <EngravingIcon name={effect.name} size={28} />
+                {/* The engraving's own icon (user 11-08, the user's game files;
+                    a fixed box even without one) in a ring of its grade's
+                    colour, in place of the separate mark (user 11-08). The
+                    grade itself is read out on the right ('유물 ×4'), so the
+                    colour is never the only cue. */}
+                <EngravingIcon name={effect.name} size={28} grade={gradeKey(effect.grade)} className={styles.engravingIcon} />
                 {effect.description ? (
                   <DetailTooltip name={effect.name ?? "각인"} card={<EngravingCard description={effect.description} />}>
                     <strong>{text(effect.name)}</strong>
