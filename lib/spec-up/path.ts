@@ -25,22 +25,6 @@ export const isPathSort = (value: unknown): value is PathSort => value === "EFFI
 /** Rows shown before "모두 보기". */
 export const PATH_FIRST_ROWS = 10;
 
-/**
- * A row's 순서 cell: its own step, or, with a target's later steps folded under
- * it, every step it holds, so the numbers never seem to skip (PM 총괄 11-03:
- * 1 → 3 read as a missing row). Runs join with "–" ("1–2"), gaps with ", " ("1–2, 5").
- */
-export function orderLabel(orders: readonly number[]): string {
-  const sorted = [...orders].sort((a, b) => a - b);
-  const runs: [number, number][] = [];
-  for (const n of sorted) {
-    const last = runs.at(-1);
-    if (last && n === last[1] + 1) last[1] = n;
-    else runs.push([n, n]);
-  }
-  return runs.map(([from, to]) => (from === to ? `${from}` : `${from}–${to}`)).join(", ");
-}
-
 const gemSlot = (step: Pick<GoalStep, "kind" | "candidateId">) =>
   step.kind === "GEM_LEVEL" ? step.candidateId.split(":").slice(0, 2).join(":") : null;
 
