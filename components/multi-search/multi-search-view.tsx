@@ -33,7 +33,7 @@ import {
   type Engraving,
   type Summary,
 } from "@/lib/multi-search/model";
-import { readLastNames, saveLastNames } from "@/lib/multi-search/last";
+import { askLastNames, readLastNames, saveLastNames } from "@/lib/multi-search/last";
 import quote from "@/components/tools/material-quote.module.css";
 import styles from "./multi-search.module.css";
 
@@ -417,17 +417,31 @@ export function MultiSearchView() {
     setRestored(null);
   };
 
-  // Opened without names (menu, home): the last list of this browser comes
-  // back. Opened with names (back, reload, a link): they become the last list.
+  // Opened without names (menu, home): the last list of this tab, or of
+  // another open tab of the site, comes back. Opened with names (back,
+  // reload, a link): they become the last list (and the other tabs').
   const opened = useRef(names);
   useEffect(() => {
     if (opened.current.length) return saveLastNames(opened.current);
     const last = readLastNames();
-    if (!last.length) return;
-    writeAddress(last);
-    // Browser storage is read once after hydration (the server has none).
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setRestored(last);
+    if (last.length) {
+      writeAddress(last);
+      // Browser storage is read once after hydration (the server has none).
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setRestored(last);
+      return;
+    }
+    let live = true;
+    void askLastNames().then((answer) => {
+      // Not if the visitor already put names in (the address) meanwhile.
+      const typed = namesFromParam(new URLSearchParams(window.location.search).get("names"));
+      if (!live || !answer.length || typed.length) return;
+      writeAddress(answer);
+      setRestored(answer);
+    });
+    return () => {
+      live = false;
+    };
   }, []);
 
   const { entries, resuming } = useCharacters(names);
