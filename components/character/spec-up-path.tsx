@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 // 추천 순서 (api #794): the first chip of the spec-up list (사용자 결정 layout A,
 // 11-02; it was its own section under the list). The backend picks the best
 // next step, applies it, measures again, up to 30 steps. Its rows are the
