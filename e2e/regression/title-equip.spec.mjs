@@ -6,25 +6,77 @@ test("통계 칭호 탭: 비율 표·서버 바꾸기·장착만 안내 @regress
   await gotoReady(page, "/stats?tab=titles");
   await expect(page.getByRole("tab", { name: "칭호", selected: true })).toBeVisible();
   const table = page.getByRole("table", { name: "칭호 장착 원정대 비율" });
-  await expect(table.getByRole("rowheader")).toHaveText(["빛을 꺼트리는 자", "에키드나를 쓰러뜨린 자", "별을 제패한 자"]);
+  // Names in the api's order; a variant (첫 주 클리어) right under its title.
+  await expect(table.locator("[class*=titleName]")).toHaveText([
+    "빛을 꺼트리는 자",
+    "에키드나를 쓰러뜨린 자",
+    "뇌전의 군주",
+    "뇌전의 군주 (첫 주 클리어)",
+    "심연의 끝을 마주한 자",
+    "별을 제패한 자",
+    "카제로스 The 1st",
+  ]);
   await expect(table.locator("tbody tr").first()).toContainText("400개");
   await expect(table.locator("tbody tr").first()).toContainText("32.26%");
   await expect(page.getByText(/장착하지 않은 칭호는 알 수 없어 세지 않아요/)).toBeVisible();
+  // User 11-08: grade word and 획득 조건 on the row; the variant has no rank of its own.
+  const first = table.locator("tbody tr").first();
+  await expect(first.locator("[class*=titleGrade]")).toHaveText("희귀");
+  // No fill under the grade word: its text colour keeps the token's >= 4.5:1 on the surface.
+  await expect(first.locator("[class*=titleGrade]")).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+  await expect(first).toContainText("카멘을 처치한다");
+  await expect(table.locator("tbody tr[data-child] td").first()).toHaveText("");
+  // A title not in the table (no grade) keeps the plain colour, no grade word.
+  const plain = table.locator("tbody tr").nth(1);
+  await expect(plain.locator("[class*=titleGrade]")).toHaveCount(0);
+  await expect(plain.locator("[class*=titleName]")).toHaveAttribute("data-grade", "unknown");
+  // Summary line, and compare with a stored day (contract v1.2).
+  await expect(page.getByText(/^칭호 6종/)).toBeVisible();
+  await chooseOption(page, page.getByRole("combobox", { name: "비교" }), "2026. 11. 07");
+  await expect(table.locator("thead")).toContainText("2026. 11. 07 대비");
+  await expect(first).toContainText("+4.84%p");
+  await chooseOption(page, page.getByRole("combobox", { name: "비교" }), "안 함");
+  // The dated header ("원정대" + "비율" alone would contain "대비").
+  await expect(table.locator("thead")).not.toContainText("11. 07 대비");
 
   // A7: the server change moves nothing — shifts right after the input count too.
   const heads = () => table.locator("thead th").evaluateAll((cells) => cells.map((cell) => Math.round(cell.getBoundingClientRect().x)));
   const before = await heads();
   await page.evaluate(() => {
     window.__shifts = [];
+    window.__moved = [];
     new PerformanceObserver((list) => {
-      for (const entry of list.getEntries()) window.__shifts.push(entry.value);
+      for (const entry of list.getEntries()) {
+        window.__shifts.push(entry.value);
+        // What moved, from where to where (the failure message says it).
+        for (const { node, previousRect: a, currentRect: b } of entry.sources) {
+          const el = node?.nodeType === 1 ? node : node?.parentElement;
+          const name = el ? `${el.tagName.toLowerCase()}.${String(el.className).split(" ")[0]} '${(el.textContent ?? "").trim().slice(0, 24)}'` : "?";
+          window.__moved.push(`${name} ${Math.round(a.x)},${Math.round(a.y)} ${Math.round(a.width)}x${Math.round(a.height)} → ${Math.round(b.x)},${Math.round(b.y)} ${Math.round(b.width)}x${Math.round(b.height)}`);
+        }
+      }
     }).observe({ type: "layout-shift" });
   });
+  // Heights of what sits over the table (the failure message names what grew).
+  const above = () =>
+    page.evaluate(() => {
+      const bar = document.querySelector("[class*=titleBar]");
+      const out = [];
+      for (let n = bar; n && n !== document.body; n = n.parentElement)
+        for (let s = n.previousElementSibling; s; s = s.previousElementSibling)
+          out.push(`${s.tagName.toLowerCase()}.${String(s.className).split(" ")[0]}:${Math.round(s.getBoundingClientRect().height)}`);
+      return out.join(" ");
+    });
+  const aboveBefore = await above();
   await chooseOption(page, page.getByRole("combobox", { name: "서버" }), "아만");
   await expect(page).toHaveURL(/server=/);
   await expect(page.getByText(/표본 30개 원정대 미만이라 참고값/)).toBeVisible();
   await page.waitForTimeout(800);
-  expect(await page.evaluate(() => window.__shifts.reduce((a, v) => a + v, 0)), "서버를 바꾼 뒤 layout-shift(입력 직후 포함)").toBe(0);
+  const aboveAfter = await above();
+  expect(
+    await page.evaluate(() => window.__shifts.reduce((a, v) => a + v, 0)),
+    `서버를 바꾼 뒤 layout-shift(입력 직후 포함): ${await page.evaluate(() => window.__moved.join(" | "))} || 위 높이 ${aboveBefore} → ${aboveAfter}`,
+  ).toBe(0);
   expect(await heads()).toEqual(before);
 });
 
