@@ -294,8 +294,10 @@ export function GemBoardView({
         </section>
 
         <p className={stats.notice}>
-          {latest ? `${kst.format(new Date(latest))} 확인` : " "} · 전일 대비는 LOAKraken이 전날 마지막으로 확인한
-          최저가와 비교해요.
+          {/* The time in a slot of fixed width: the minute refresh (01:09 → 01:10)
+              changed its width and moved the rest of the line (CI 11-08, A7). */}
+          <span className={styles.noticeTime}>{latest ? `${kst.format(new Date(latest))} 확인` : " "}</span> · 전일 대비는
+          LOAKraken이 전날 마지막으로 확인한 최저가와 비교해요.
         </p>
         {board.isError && !data ? (
           <div className={stats.problem}>

@@ -195,3 +195,10 @@
 .filler td {
   border-bottom-color: transparent !important;
 }
+/* The notice's '01:10 확인': digits of one width in a slot as wide as the longest
+   value, so a new time (or the blank before the first answer) moves nothing after it. */
+.noticeTime {
+  display: inline-block;
+  min-width: 9.5ch;
+  font-variant-numeric: tabular-nums;
+}
