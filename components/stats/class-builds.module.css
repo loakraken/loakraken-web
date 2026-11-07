@@ -81,6 +81,12 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* An engraving row's icon before its name (user 11-08): a fixed box, so the
+   name starts at the same x on every row, icon or not. */
+.engravingIcon {
+  margin-right: 6px;
+  vertical-align: -4px;
+}
 .bars[data-wrap] .label {
   overflow: visible;
   white-space: normal;

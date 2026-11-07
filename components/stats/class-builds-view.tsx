@@ -35,6 +35,7 @@ import { whole } from "@/lib/stats/model";
 import quote from "@/components/tools/material-quote.module.css";
 import styles from "./stats.module.css";
 import own from "./class-builds.module.css";
+import { EngravingIcon } from "@/components/ui/engraving-icon";
 import { BasisNote } from "./basis-note";
 import { BuildCompare } from "./build-compare";
 
@@ -65,6 +66,7 @@ function Section({
   unit = "명",
   wrap = false,
   fixing,
+  icons = false,
 }: {
   title: string;
   definition?: string;
@@ -77,6 +79,8 @@ function Section({
   /** Long names that are the point (engraving sets, card sets) wrap instead of cutting off. */
   wrap?: boolean;
   fixing?: Fixing;
+  /** Rows named by one engraving each: its icon before the name (user 11-08). */
+  icons?: boolean;
 }) {
   const hide = hiddenText(hidden, people);
   const headingId = useId();
@@ -85,6 +89,7 @@ function Section({
     <>
       <span className={own.label}>
         {row.fix && hasFix(fixing?.fix, row.fix) && <TickCircle size={14} className={own.fixMark} aria-hidden="true" />}
+        {icons && <EngravingIcon name={row.label} size={18} className={own.engravingIcon} />}
         {row.label}
       </span>
       <span className={own.track} aria-hidden="true">
@@ -155,6 +160,7 @@ function ClassEngravings({ data }: { data: ClassBuilds }) {
       rows={names(data.classEngravings?.cells)}
       hidden={data.classEngravings?.hidden}
       people
+      icons
     />
   );
 }
@@ -217,6 +223,7 @@ function Sections({ data, fixing }: { data: ClassBuilds; fixing: Fixing }) {
         hidden={data.engravings?.hidden}
         people={false}
         fixing={fixing}
+        icons
       />
       <Section
         title="주력 전투 특성"

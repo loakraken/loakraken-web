@@ -20,6 +20,12 @@ for (const width of [1280, 360])
     const engravings = page.getByRole("region", { name: "각인 채용률" });
     await expect(engravings).toContainText("표본이 적은 항목은 숨김");
     await expect(engravings).not.toContainText(/숨김.*명|명은 숨김/);
+    // Each engraving row its icon (user 11-08) in an 18px box; the names line up.
+    const marks = engravings.locator("li [data-engraving-icon]");
+    await expect(marks).toHaveCount(await engravings.getByRole("listitem").count());
+    const boxes = await marks.evaluateAll((els) => els.map((el) => [Math.round(el.getBoundingClientRect().width), Math.round(el.getBoundingClientRect().left)]));
+    expect(new Set(boxes.map(([w]) => w)), "각인 아이콘 칸 폭").toEqual(new Set([18]));
+    expect(new Set(boxes.map(([, x]) => x)).size, "각인 아이콘 시작 위치").toBe(1);
     await expect(page.getByRole("region", { name: "팔찌 전투 특성" })).toContainText("팔찌를 못 읽은 7명 제외");
     await expect(page.getByRole("region", { name: "팔찌 전투 특성" })).not.toContainText("명은 숨김");
     await expect(page.getByRole("region", { name: "피해 증가 보석" })).toContainText("표본이 적은 항목은 숨김");
