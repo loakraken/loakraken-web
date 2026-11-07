@@ -53,7 +53,7 @@ export function Hero({
   const refocus = useRef(false);
   const Title = embedded ? "h2" : "h1";
   // A block the /about intro builds (never on the home page's embedded hero).
-  const build = (kind: "text" | "box" | "type") => (embedded ? {} : { "data-build-block": "", "data-build-kind": kind });
+  const build = (kind: "text" | "box" | "keep") => (embedded ? {} : { "data-build-block": "", "data-build-kind": kind });
   const theme = useTheme();
   const [bot] = useChosenBot();
   const [wear] = useChosenWear();
@@ -93,7 +93,7 @@ export function Hero({
     <section ref={hero} className={embedded ? `${styles.hero} ${styles.heroEmbedded}` : styles.hero} id={embedded ? undefined : "intro"} aria-labelledby="hero-heading" data-in-view={heroVisible} data-build-section={embedded ? undefined : "intro"}>
       <div className={styles.heroContent}>
         <div className={`${styles.statusPill} ${styles.heroEnter}`} {...build("text")}>LOAKraken</div>
-        <Title className={`${styles.heroTitle} ${styles.heroEnter}`} id="hero-heading" {...build("type")}>당신의 캐릭터.<br /><span>가능성을 더 선명하게.</span></Title>
+        <Title className={`${styles.heroTitle} ${styles.heroEnter}`} id="hero-heading" {...build("keep")}>당신의 캐릭터.<br /><span>가능성을 더 선명하게.</span></Title>
         <p className={`${styles.heroDescription} ${styles.heroEnter}`} {...build("text")}>지금의 세팅부터 다음 성장까지.<br />흩어진 정보를 모아, 더 명확한 선택으로.</p>
         {/* /about only: one line naming the site with its Korean name (marketing spec 10-31). */}
         {!embedded && (

@@ -21,6 +21,8 @@ export const introStore = { subscribe, snapshot, serverSnapshot };
 /**
  * Inline on /about, before the first paint (with the request's CSP nonce):
  * turns the intro on unless motion is reduced or paused, or it already played
- * in this tab. Without JS nothing is hidden.
+ * in this tab. Without JS nothing is hidden. If the intro has not claimed the
+ * page within 3 s (a slow or failed bundle, an error), it is turned off again:
+ * the page is never left with hidden blocks.
  */
-export const aboutIntroScript = `(function(){try{var d=document.documentElement;if(matchMedia("(prefers-reduced-motion: reduce)").matches||d.hasAttribute("data-motion-paused")||sessionStorage.getItem("${PLAYED_KEY}"))return;d.classList.add("${INTRO_CLASS}")}catch(e){}})()`;
+export const aboutIntroScript = `(function(){try{var d=document.documentElement;if(matchMedia("(prefers-reduced-motion: reduce)").matches||d.hasAttribute("data-motion-paused")||sessionStorage.getItem("${PLAYED_KEY}"))return;d.classList.add("${INTRO_CLASS}");setTimeout(function(){if(d.hasAttribute("data-intro-claimed"))return;d.classList.remove("${INTRO_CLASS}");dispatchEvent(new Event("${INTRO_END_EVENT}"))},3000)}catch(e){}})()`;

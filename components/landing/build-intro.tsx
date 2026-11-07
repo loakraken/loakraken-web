@@ -3,8 +3,8 @@
 // /about builds itself (user 11-08): twelve plain coloured arrow cursors, one
 // per team, build the page section by section. Up to four work on a section
 // (a dashed marquee, a grey skeleton, then the real content); the others wait
-// at the edges (on phones they are not shown). The headline types in an
-// overlay over its own transparent text, so nothing reflows.
+// at the edges (on phones they are not shown). The headline itself is shown
+// from the first paint (it is the page's largest text, LCP) and never hidden.
 //
 // Only the hiding depends on this script: the content is in the HTML, and the
 // page is finished as served without JS, under reduced motion, when the
@@ -37,7 +37,6 @@ const CREW: Record<string, Team[]> = {
 const TRAVEL = 620;
 const DRAG = 460;
 const HOLD = 280;
-const TYPE_PER_CHAR = 55;
 
 type Cursor = { el: HTMLDivElement; x: number; y: number; color: string };
 type Job = { at: number; run: (now: number) => void };
@@ -100,7 +99,7 @@ export function BuildIntro() {
     TEAMS.forEach(([name, color], i) => {
       const el = document.createElement("div");
       el.className = styles.cursor;
-      el.dataset.introCursor = name;
+      el.dataset.introCursor = String(i);
       // Shown or not from its first frame (no fade on the first look).
       el.style.opacity = !phone.matches || CREW.intro.includes(name) ? "1" : "0";
       el.innerHTML = `<svg width="18" height="22" viewBox="0 0 18 22" aria-hidden="true"><path d="M1.5 1.5 L16 12 L9.4 12.9 L5.6 20 Z" fill="${color}" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/></svg>`;
@@ -167,6 +166,11 @@ export function BuildIntro() {
 
     // ---- one block: travel, drag a marquee, a grey skeleton, the real thing ----
     function buildBlock(block: HTMLElement, box: ReturnType<typeof pageBox>, c: Cursor, t0: number) {
+      // Shown from the first paint (the headline): nothing to build.
+      if (block.dataset.buildKind === "keep") {
+        block.dataset.built = "";
+        return t0;
+      }
       move(c, box.x - 4, box.y - 4, t0, TRAVEL);
       let marquee: HTMLDivElement | null = null;
       at(t0 + TRAVEL, (now) => {
@@ -191,7 +195,6 @@ export function BuildIntro() {
         requestAnimationFrame(() => skeleton.classList.add(styles.on));
       });
       const ready = t0 + TRAVEL + DRAG + HOLD;
-      if (block.dataset.buildKind === "type") return typeBlock(block, skeleton, () => marquee, ready);
       at(ready, () => {
         block.dataset.built = "";
         skeleton.classList.remove(styles.on);
@@ -200,43 +203,6 @@ export function BuildIntro() {
       at(ready + 200, () => skeleton.remove());
       return ready + 200;
     }
-    // The headline types in an overlay with its own font and width (so it wraps
-    // the same), over the still hidden title: nothing in the page reflows.
-    function typeBlock(block: HTMLElement, skeleton: HTMLElement, marquee: () => HTMLElement | null, start: number) {
-      const title = block.querySelector<HTMLElement>("[data-build-type]") ?? block;
-      const full = [...title.childNodes].map((n) => (n.nodeName === "BR" ? "\n" : (n.textContent ?? ""))).join("");
-      const css = getComputedStyle(title);
-      const box = pageBox(title);
-      const overlay = document.createElement("div");
-      overlay.className = styles.typing;
-      Object.assign(overlay.style, {
-        width: `${box.w}px`,
-        transform: `translate3d(${box.x}px,${box.y}px,0)`,
-        font: css.font,
-        letterSpacing: css.letterSpacing,
-        lineHeight: css.lineHeight,
-        textAlign: css.textAlign,
-        paddingTop: css.paddingTop,
-      });
-      at(start, () => {
-        skeleton.classList.remove(styles.on);
-        marquee()?.remove();
-        host!.appendChild(overlay);
-      });
-      for (let i = 1; i <= full.length; i++)
-        at(start + i * TYPE_PER_CHAR, () => {
-          const shown = full.slice(0, i).split("\n");
-          overlay.replaceChildren(...shown.flatMap((line, j) => (j ? [document.createElement("br"), line] : [line])));
-        });
-      const end = start + full.length * TYPE_PER_CHAR + 120;
-      at(end, () => {
-        block.dataset.built = "";
-        overlay.remove();
-        skeleton.remove();
-      });
-      return end;
-    }
-
     // Waiting teams line up at the edges of the screen, out of the way.
     function bench(crew: Team[], t0: number) {
       showCrew(crew);
@@ -270,7 +236,11 @@ export function BuildIntro() {
       busy = true;
       fit();
       // Every block's place is read before anything is written (one layout per section).
-      const blocks = [...section.querySelectorAll<HTMLElement>("[data-build-block]")];
+      const blocks = [...section.querySelectorAll<HTMLElement>("[data-build-block]")].filter((block) => {
+        if (block.dataset.buildKind !== "keep") return true;
+        block.dataset.built = "";
+        return false;
+      });
       const boxes = blocks.map(pageBox);
       const crew = CREW[section.dataset.buildSection!] ?? CREW.intro;
       const t0 = performance.now() + 40;
@@ -323,6 +293,7 @@ export function BuildIntro() {
       host!.replaceChildren();
       host!.style.height = "";
       root.classList.remove(INTRO_CLASS);
+      delete root.dataset.introClaimed;
       window.dispatchEvent(new Event(INTRO_END_EVENT));
       root.dataset.introLoop = "parked";
       try {
@@ -339,6 +310,11 @@ export function BuildIntro() {
     const takeOver = () => finish();
     window.addEventListener("keydown", takeOver, { capture: true });
     window.addEventListener("pointerdown", takeOver, { capture: true });
+    // Claimed, once everything above is set up (the effect runs in one go, so
+    // the pre-paint script's 3 s safety timer cannot fire half way): from here
+    // the intro finishes the page. An error before this line leaves the claim
+    // unset, and the timer shows the finished page.
+    root.dataset.introClaimed = "";
     return () => {
       window.removeEventListener("keydown", takeOver, { capture: true });
       window.removeEventListener("pointerdown", takeOver, { capture: true });
@@ -349,6 +325,7 @@ export function BuildIntro() {
       host.replaceChildren();
       host.style.height = "";
       root.classList.remove(INTRO_CLASS);
+      delete root.dataset.introClaimed;
     };
   }, []);
 

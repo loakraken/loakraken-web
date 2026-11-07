@@ -34,6 +34,8 @@ for (const width of [320, 390, 1280])
       await watchShifts(page);
       await page.goto("/about");
       expect(await introOn(page), "첫 그림 전에 켜짐").toBe(true);
+      // The headline (the page's largest text, LCP) is never hidden.
+      expect(await page.evaluate(() => getComputedStyle(document.querySelector("h1")).opacity), "제목은 처음부터 보임").toBe("1");
       // The blocks are in the page (their boxes held), only hidden until built.
       await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
       await expect(page.locator("[data-intro-cursor]")).toHaveCount(12);
@@ -68,6 +70,22 @@ test("소개: 건너뛰기를 누르면 바로 완성, 그리기 반복 멈춤, 
   await expect(page.locator("html")).toHaveAttribute("data-intro-loop", "parked");
   await expect(skip).toHaveCount(0);
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  // The hero does not enter a second time once the class is gone: nothing in it
+  // animates, and every block is fully shown in place.
+  const hero = () =>
+    page.evaluate(() =>
+      [...document.querySelectorAll('[data-build-section="intro"] [data-build-block]')].map((b) => ({
+        running: b.getAnimations().length,
+        opacity: getComputedStyle(b).opacity,
+        transform: getComputedStyle(b).transform,
+      })),
+    );
+  await expect.poll(async () => (await hero()).filter((b) => b.running).length).toBe(0);
+  const settled = await hero();
+  for (const b of settled) expect(b.opacity).toBe("1");
+  // A few frames later, still the same (no entrance replaying from opacity 0 or an offset).
+  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(r, 300)))));
+  expect(await hero()).toEqual(settled);
   // Played: recorded for this tab, so the next load shows the finished page (next test).
   expect(await page.evaluate((key) => sessionStorage.getItem(key), KEY)).toBe("1");
 });
@@ -84,6 +102,23 @@ test("소개: 짓는 중에 키를 누르면(예: Tab으로 검색칸) 바로 �
   expect(await introOn(page)).toBe(false);
   expect(await unbuilt(page)).toBe(0);
   await expect(page.locator("[data-intro-cursor]")).toHaveCount(0);
+});
+
+test.describe("스크립트가 오지 않으면", () => {
+  test.use({ allowConsoleErrors: true });
+  test("소개 안전 시계: 3초 안에 소개가 시작되지 않으면 완성된 페이지를 보인다 @regression", async ({ page }) => {
+    await fresh(page);
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    // The page's scripts never arrive (a slow or failed bundle): only the pre-paint script runs.
+    await page.route(/\/_next\/static\/chunks\/.+\.js(\?.*)?$/, (route) => route.abort());
+    await page.setViewportSize({ width: 390, height: 900 });
+    await page.goto("/about");
+    expect(await introOn(page)).toBe(true);
+    await expect.poll(() => introOn(page), { timeout: 6_000 }).toBe(false);
+    const hidden = await page.evaluate(() =>
+      [...document.querySelectorAll("[data-build-block]")].filter((b) => getComputedStyle(b).opacity === "0").length);
+    expect(hidden).toBe(0);
+  });
 });
 
 test("소개: 이 탭에서 이미 봤으면 다시 지어지지 않는다 @regression", async ({ page }) => {

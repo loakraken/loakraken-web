@@ -1,7 +1,7 @@
 /* /about builds itself. Hiding is the only thing it adds to the page, and only
    while <html> has the intro class (set before the first paint): every block
    keeps its box (shift 0) and is shown when built. */
-:global(.about-intro) [data-build-block]:not([data-built]) {
+:global(.about-intro) [data-build-block]:not([data-built]):not([data-build-kind="keep"]) {
   opacity: 0 !important;
 }
 :global(.about-intro) [data-build-block][data-built] {
@@ -17,6 +17,7 @@
   z-index: 60;
   width: 100%;
   height: 0;
+  overflow: hidden; /* Safari < 16 */
   overflow: clip;
   pointer-events: none;
 }
@@ -55,13 +56,6 @@
 }
 .on {
   opacity: 1;
-}
-.typing {
-  position: absolute;
-  top: 0;
-  left: 0;
-  color: var(--foreground);
-  white-space: normal;
 }
 .skip {
   position: fixed;
