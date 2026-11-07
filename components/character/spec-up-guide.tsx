@@ -54,7 +54,8 @@ function failureCopy(code: string) {
     case "SPEC_UP_DISABLED":
       return { title: "스펙업 가이드는 아직 열리지 않았어요", text: "준비가 끝나면 이 탭에서 바로 보여 드려요." };
     case "CHARACTER_NOT_CACHED":
-      return { title: "캐릭터 정보를 먼저 불러와 주세요", text: "위의 갱신 버튼으로 정보를 받은 뒤 다시 열어 주세요." };
+      // The page shows the character; its backend copy ran out (user 11-08, see notCachedText).
+      return { title: "캐릭터 정보를 다시 받아 주세요", text: "받은 지 오래되었어요. 위의 갱신 버튼으로 다시 받은 뒤 열어 주세요." };
     case "CLIENT_RATE_LIMITED":
       return rateLimitCopy({ code });
     default:

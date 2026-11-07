@@ -136,6 +136,14 @@ export function costPriceNote(
   return cost.stale ? { stale: true, text: `이전 시세 ${when}` } : { stale: false, text: `${when} 시세` };
 }
 
+/**
+ * CHARACTER_NOT_CACHED on the character page: the page shows the character, but
+ * the backend's copy of it ran out while the page stayed open, so "load it first"
+ * read as wrong (user 11-08). `again` is what to do after 갱신 ("열어", "찾아").
+ */
+export const notCachedText = (again: string) =>
+  `캐릭터 정보를 받은 지 오래되었어요. 위의 갱신 버튼으로 다시 받은 뒤 ${again} 주세요.`;
+
 export function koreanGold(amount: number) {
   if (!Number.isFinite(amount)) return "—";
   const sign = amount < 0 ? "−" : "";

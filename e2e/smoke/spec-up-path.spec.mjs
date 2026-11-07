@@ -53,6 +53,19 @@ test.describe("스펙업 추천 순서 @smoke", () => {
     await expect(page.getByRole("dialog")).toBeVisible();
   });
 
+  // User 11-08: a row opened after the backend's copy of the character ran out said
+  // "load it first" while the page showed the character.
+  test("캐릭터 정보가 오래되어 자세히를 못 열면(CHARACTER_NOT_CACHED) 갱신으로 다시 받으라고 안내", async ({ page }) => {
+    await page.goto(characterPath("스펙순서", "specup"));
+    await page.route("**/api/characters/spec-up/candidates/**", (route) =>
+      route.fulfill({ status: 404, contentType: "application/json", body: JSON.stringify({ ok: false, error: { code: "CHARACTER_NOT_CACHED", status: 404 } }) }),
+    );
+    await rows(page).first().getByRole("button").first().click();
+    const card = page.getByRole("dialog");
+    await expect(card).toContainText("캐릭터 정보를 받은 지 오래되었어요. 위의 갱신 버튼으로 다시 받은 뒤 열어 주세요.");
+    await expect(card).not.toContainText("먼저 불러와");
+  });
+
   test("다른 칩은 후보 목록, 고른 칩은 주소에(새로 고쳐도 그대로), 돌아오면 다시 묻지 않음", async ({ page }) => {
     let paths = 0;
     page.on("request", (r) => r.url().includes("/api/characters/spec-up/path?") && paths++);

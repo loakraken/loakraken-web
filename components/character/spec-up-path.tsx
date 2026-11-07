@@ -23,7 +23,7 @@ import {
   type PathSort,
   type SpecUpPath as Path,
 } from "@/lib/spec-up/path";
-import { groupStages, koreanGold, tryPathParam } from "@/lib/spec-up/model";
+import { groupStages, koreanGold, notCachedText, tryPathParam } from "@/lib/spec-up/model";
 import detail from "./detail.module.css";
 import styles from "./spec-up-path.module.css";
 import { SpecUpRowDetail } from "./spec-up-detail";
@@ -41,7 +41,7 @@ const stepGold = (amount: number | null) =>
 function failureText(code: string, limit?: "client") {
   switch (code) {
     case "CHARACTER_NOT_CACHED":
-      return "캐릭터 정보를 먼저 불러와 주세요. 위의 갱신 버튼으로 정보를 받은 뒤 다시 눌러 주세요.";
+      return notCachedText("다시 계산을 눌러");
     case "SPEC_UP_DISABLED":
       return "추천 순서는 아직 열리지 않았어요.";
     case BUSY:
