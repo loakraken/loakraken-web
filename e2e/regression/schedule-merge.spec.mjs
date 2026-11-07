@@ -47,7 +47,8 @@ for (const scheme of ["light", "dark"])
       await expect(gates.getByRole("listitem").filter({ has: page.locator("strong") })).toHaveCount(1);
       await expect(gates.locator("strong").first()).toHaveText("카오스게이트");
       await expect(gates.getByText("지역 13곳", { exact: true })).toBeVisible();
-      await expect(gates.locator("strong + small").first()).toHaveText("1,580 이상");
+      // The row's level is the highest reward group's (user 11-08): every place is 1,580, the tiers go to 1,770.
+      await expect(gates.locator("strong + small").first()).toHaveText("1,770 이상");
       await expect(gates).not.toContainText("일렁이는 악마군단");
       // User 11-02: the official 골드·귀속 골드 lead the row's rewards (grade 일반, they fell behind '+N' before).
       const rowRewards = gates.getByRole("list", { name: "카오스게이트 보상" }).getByRole("listitem");
