@@ -107,7 +107,7 @@ function Section({
       <h2 id={headingId}>{title}</h2>
       {definition && <p className={own.definition}>{definition}</p>}
       {rows.length ? (
-        <ol className={own.bars} data-wrap={wrap || undefined} data-fixable={(fixing && rows.some((row) => row.fix)) || undefined}>
+        <ol className={own.bars} data-wrap={wrap || undefined} data-icons={icons || undefined} data-fixable={(fixing && rows.some((row) => row.fix)) || undefined}>
           {rows.map((row) => {
             if (!row.fix || !fixing) return <li key={row.label}>{cells(row)}</li>;
             const fixed = hasFix(fixing.fix, row.fix);

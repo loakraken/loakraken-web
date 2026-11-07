@@ -26,6 +26,13 @@ const nextConfig: NextConfig = {
           { key: "Permissions-Policy", value: PERMISSIONS },
         ],
       },
+      // The engraving icons (user 11-08): static files that never change in
+      // place (a new or redrawn icon gets a new number), cached like the
+      // build's own static assets.
+      {
+        source: "/engravings/:file*",
+        headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
+      },
     ];
   },
 };

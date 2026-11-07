@@ -118,3 +118,29 @@ test("@M12 통계 직업 표와 캐릭터 분석 메뉴에서 직업 상세로 @
   const link = page.getByRole("menuitem", { name: /^직업 통계/ });
   await expect(link).toHaveAttribute("href", /^\/stats\/classes\//);
 });
+
+// A37 (#1421 review): on phones the engraving icon takes room in the name cell;
+// names wrap beside it instead of being cut, and the icons still line up.
+for (const width of [320, 360])
+  test(`직업 각인·각인 채용률 이름이 잘리지 않음 @${width} @regression`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await gotoReady(page, `/stats/classes/${encodeURIComponent("블레이드")}`);
+    for (const name of ["직업 각인", "각인 채용률"]) {
+      const section = page.getByRole("region", { name, exact: true });
+      await expect(section.locator("li [data-engraving-icon]").first()).toBeVisible();
+      const cells = await section.locator("ol > li .label, ol > li [class*=label]").evaluateAll((els) =>
+        els.map((el) => ({ text: el.textContent.trim(), cut: el.scrollWidth > el.clientWidth + 1, lines: Math.round(el.getBoundingClientRect().height / 18) })),
+      );
+      expect(cells.length, `${name} 줄`).toBeGreaterThan(0);
+      expect(cells.filter((cell) => cell.cut).map((cell) => cell.text), `${name} 잘린 이름`).toEqual([]);
+      const lefts = await section.locator("li [data-engraving-icon]").evaluateAll((els) => els.map((el) => Math.round(el.getBoundingClientRect().left)));
+      expect(new Set(lefts).size, `${name} 아이콘 시작 위치`).toBe(1);
+      console.log(`A37 ${width} ${name}: ${cells.map((cell) => `${cell.text}(${cell.lines})`).join(", ")}`);
+    }
+  });
+
+test("각인 아이콘 파일은 오래 캐시(immutable) @regression", async ({ page }) => {
+  const response = await page.request.get("/engravings/01.webp");
+  expect(response.status()).toBe(200);
+  expect(response.headers()["cache-control"]).toContain("immutable");
+});
