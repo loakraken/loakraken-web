@@ -10,6 +10,16 @@
 
 export const LAST_KEY = "loakraken:multi-search";
 const CHANNEL = "loakraken:multi-search";
+/** As many names as the page compares (MULTI_SEARCH_LIMIT in model.ts, held equal by a test). */
+export const SHARED_NAMES_MAX = 6;
+/** Far longer than six real names: anything longer is not one of our lists. */
+const SHARED_TEXT_MAX = 400;
+
+/** A list from another tab, as this tab keeps it: at most the page's names, or null if it is not one. */
+function fromOtherTab(list: unknown): string | null {
+  if (typeof list !== "string" || list.length > SHARED_TEXT_MAX) return null;
+  return list.split(",").slice(0, SHARED_NAMES_MAX).join(",");
+}
 
 type Message = { type: "ask" } | { type: "answer"; list: string } | { type: "list"; list: string };
 
@@ -56,8 +66,10 @@ export function listenForOpenTabs() {
   if (!ch) return () => {};
   const onMessage = (event: MessageEvent<Message>) => {
     const message = event.data;
-    if (message?.type === "list" && typeof message.list === "string") store(message.list);
-    else if (message?.type === "ask") {
+    if (message?.type === "list") {
+      const list = fromOtherTab(message.list);
+      if (list !== null) store(list);
+    } else if (message?.type === "ask") {
       const list = readStored();
       if (list) ch.postMessage({ type: "answer", list } satisfies Message);
     }
@@ -72,6 +84,8 @@ export function listenForOpenTabs() {
 /**
  * A tab with no list asks the open tabs. The first answer within `wait` ms
  * becomes this tab's list too; none (no other tab, or none has a list): "".
+ * If this tab got a list of its own meanwhile (the visitor compared names),
+ * that one stays and is the result: a late answer never replaces it.
  */
 export function askOpenTabs(wait = 150): Promise<string> {
   const ch = open();
@@ -84,10 +98,13 @@ export function askOpenTabs(wait = 150): Promise<string> {
     };
     const onMessage = (event: MessageEvent<Message>) => {
       const message = event.data;
-      if ((message?.type === "answer" || message?.type === "list") && typeof message.list === "string" && message.list) {
-        store(message.list);
-        done(message.list);
-      }
+      if (message?.type !== "answer" && message?.type !== "list") return;
+      const list = fromOtherTab(message.list);
+      if (!list) return;
+      const own = readStored();
+      if (own) return done(own);
+      store(list);
+      done(list);
     };
     const timer = setTimeout(() => done(""), wait);
     ch.addEventListener("message", onMessage);

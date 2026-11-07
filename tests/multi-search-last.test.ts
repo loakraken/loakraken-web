@@ -90,6 +90,37 @@ test("명단이 없는 탭은 물어서 첫 답을 받는다", async () => {
   }
 });
 
+test("물은 사이 이 탭에서 명단을 비교했으면 늦은 답이 덮지 않는다", async () => {
+  session.removeItem(KEY);
+  const asking = last.askLastNames(200);
+  last.saveLastNames(["내명단1", "내명단2"]); // the visitor compares while the tabs answer
+  other.postMessage({ type: "answer", list: "다른탭1" });
+  assert.deepEqual(await asking, ["내명단1", "내명단2"]);
+  assert.equal(session.getItem(KEY), "내명단1,내명단2");
+});
+
+test("다른 탭에서 온 명단은 화면이 비교하는 수까지만, 터무니없이 긴 것은 버린다", async () => {
+  const { MULTI_SEARCH_LIMIT } = await import("../lib/multi-search/model");
+  assert.equal(share.SHARED_NAMES_MAX, MULTI_SEARCH_LIMIT);
+  other.postMessage({ type: "list", list: "가1,가2,가3,가4,가5,가6,가7,가8,가9,가10" });
+  await settle();
+  assert.equal(session.getItem(KEY), "가1,가2,가3,가4,가5,가6");
+  other.postMessage({ type: "list", list: "나".repeat(5000) });
+  other.postMessage({ type: "list", list: 42 });
+  await settle();
+  assert.equal(session.getItem(KEY), "가1,가2,가3,가4,가5,가6");
+  session.removeItem(KEY);
+  const answering = (event: MessageEvent) => {
+    if (event.data?.type === "ask") other.postMessage({ type: "answer", list: "다1,다2,다3,다4,다5,다6,다7" });
+  };
+  other.addEventListener("message", answering);
+  try {
+    assert.deepEqual(await last.askLastNames(), ["다1", "다2", "다3", "다4", "다5", "다6"]);
+  } finally {
+    other.removeEventListener("message", answering);
+  }
+});
+
 test("답하는 탭이 없으면 기다린 뒤 빈 명단", async () => {
   session.removeItem(KEY);
   const started = Date.now();
