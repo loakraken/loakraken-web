@@ -53,6 +53,108 @@ test.describe("스펙업 추천 순서 @smoke", () => {
     await expect(page.getByRole("dialog")).toBeVisible();
   });
 
+  // User 11-08: a row opened after the backend's copy of the character ran out said
+  // "load it first" while the page showed the character.
+  // A step without its picture (prod 11-08: a new engraving 0 → 1): the card shows
+  // the detail answer's own (사용자 결정 02:2x).
+  test("그림 없이 온 단계도 자세히 카드에는 상세 응답의 그림", async ({ page }) => {
+    await page.route("**/api/characters/spec-up/path?*", async (route) => {
+      const response = await route.fetch();
+      const body = await response.json();
+      body.envelope.data.steps[0].icon = null;
+      await route.fulfill({ response, json: body });
+    });
+    // The detail answer as prod sent it for a new engraving 0 → 1 (11-08), with its book picture.
+    const BOOK = "https://cdn-lostark.game.onstove.com/efui_iconatlas/use/use_9_25.png";
+    const at = "2026-11-07T14:37:23Z";
+    const detail = {
+      characterName: "스펙순서",
+      fetchedAt: "2026-11-07T15:06:58Z",
+      pricesAt: at,
+      candidate: {
+        id: "ENGRAVING_LEVEL:기습의 대가:1", kind: "ENGRAVING_LEVEL", target: "기습의 대가 각인", from: "0레벨", to: "1레벨",
+        icon: BOOK, grade: "유물", skillName: null, suggestedTo: null,
+        change: { kind: "ENGRAVING_LEVEL", slot: null, index: null, level: 1, refine: null, quality: null, name: "기습의 대가", grade: null },
+        status: "OK", deltaCombatPower: 26.66, deltaPercent: 0.607,
+        cost: { unit: "GOLD", amount: 195000, status: "OK", code: "ENGRAVING_BOOK_BUY", basis: "유물 각인서(각인 레벨 1당 5권, 올리는 레벨 수만큼)의 즉시 구매 최저가 합입니다.", priceObservedAt: null, stale: null },
+        combatPowerPer10kGold: 1.37, reasonCode: null, reason: null, reasonDetail: null, emptySlot: null,
+        baseAttackPctFrom: null, baseAttackPctTo: null, deltaKrakenScore: 27.67, krakenScorePer100kGold: 14.19, gemType: null,
+      },
+      combatPowerBefore: 4391.06, combatPowerAfter: 4417.72, stats: [], materials: null, goldFee: null,
+      market: [{ role: "BUY", itemName: "유물 기습의 대가 각인서", icon: BOOK, grade: "유물", price: 39000, quantity: 5, expectedSalePrice: null, sellFeeGold: null, listedCount: null, observedAt: at }],
+      refine: null,
+    };
+    await page.route("**/api/characters/spec-up/candidates/**", (route) =>
+      route.fulfill({ json: { ok: true, envelope: { code: "SPEC_UP_DETAIL_SUCCESS", message: "스펙업 후보 상세 조회에 성공했습니다.", data: detail } } }),
+    );
+    await page.goto(characterPath("스펙순서", "specup"));
+    await rows(page).first().getByRole("button").first().click();
+    const card = page.getByRole("dialog");
+    // The card's own picture (the market row's book is a second one).
+    await expect(card.locator(`img[src="${BOOK}"][width="56"]`)).toHaveCount(1);
+    await expect(card).toContainText("유물 기습의 대가 각인서");
+  });
+
+  // The tab then reads as old (PM 총괄 11-08): the answer dims and the held line
+  // above it says so in one line, nothing asked again by itself.
+  for (const width of [320, 1280])
+    test(`${width}: 캐릭터 정보가 오래되어 자세히를 못 열면(CHARACTER_NOT_CACHED) 갱신으로 다시 받으라고 안내, 순서는 흐리게`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto(characterPath("스펙순서", "specup"));
+      await expect(rows(page).first()).toBeVisible();
+      await page.route("**/api/characters/spec-up/candidates/**", (route) =>
+        route.fulfill({ status: 404, contentType: "application/json", body: JSON.stringify({ ok: false, error: { code: "CHARACTER_NOT_CACHED", status: 404 } }) }),
+      );
+      let asked = 0;
+      page.on("request", (r) => r.url().includes("/api/characters/spec-up/path?") && asked++);
+      await rows(page).first().getByRole("button").first().click();
+      const card = page.getByRole("dialog");
+      await expect(card).toContainText("캐릭터 정보를 받은 지 오래되었어요. 위의 갱신 버튼으로 다시 받은 뒤 열어 주세요.");
+      await expect(card).not.toContainText("먼저 불러와");
+      // The short line at 360 and below (codex P3 on #1396), the full one above.
+      const [shown, hidden] = width <= 360
+        ? ["오래된 정보예요 · 갱신해 주세요", "오래된 정보예요 · 갱신을 누르면 다시 불러와요"]
+        : ["오래된 정보예요 · 갱신을 누르면 다시 불러와요", "오래된 정보예요 · 갱신해 주세요"];
+      const line = page.getByText(shown, { exact: true });
+      await expect(line).toBeVisible();
+      await expect(page.getByText(hidden, { exact: true })).toBeHidden();
+      // One line in its 18px slot (A37), also in a wide fallback face (CI's fonts differ).
+      const fits = () =>
+        line.evaluate((el) => {
+          const p = el.closest("p");
+          return p.scrollWidth <= p.clientWidth && p.scrollHeight <= p.clientHeight;
+        });
+      expect(await fits()).toBe(true);
+      await page.addStyleTag({ content: `p:has(> span > svg) { font-family: "Courier New", monospace !important; }` });
+      expect(await fits()).toBe(true);
+      // By CSS: on a touch screen the card is a modal sheet, which takes the page
+      // behind it out of the accessibility tree (no "region" to find by role).
+      await expect(page.locator('section[aria-label="추천 순서"] [data-stale]')).toHaveCount(1);
+      expect(asked).toBe(0);
+    });
+
+  // Found by the list's quiet minute refresh, nothing else says it: one polite
+  // sentence, not again on later ticks (codex P3 on #1396).
+  test("목록의 1분 새로 고침이 오래된 정보를 찾으면 한 번 읽어 줌", async ({ page }) => {
+    await page.clock.install();
+    await page.goto(specUpListPath("스펙순서"));
+    await expect(page.getByRole("table", { name: /스펙업 후보, 전투력 증가 순/ })).toBeVisible();
+    const status = page.getByRole("status").filter({ hasText: "오래된 정보예요 · 갱신을 누르면 다시 불러와요" });
+    await expect(status).toHaveCount(0);
+    let lists = 0;
+    await page.route((url) => url.pathname === "/api/characters/spec-up", (route) => {
+      lists++;
+      return route.fulfill({ status: 404, contentType: "application/json", body: JSON.stringify({ ok: false, error: { code: "CHARACTER_NOT_CACHED", status: 404 } }) });
+    });
+    await page.clock.runFor(61_000);
+    await expect(status).toHaveCount(1);
+    await expect(page.getByRole("table", { name: /스펙업 후보, 전투력 증가 순/ })).toBeVisible();
+    // No more refreshes after the failure, so nothing to read again.
+    await page.clock.runFor(130_000);
+    await expect(status).toHaveCount(1);
+    expect(lists).toBe(1);
+  });
+
   test("다른 칩은 후보 목록, 고른 칩은 주소에(새로 고쳐도 그대로), 돌아오면 다시 묻지 않음", async ({ page }) => {
     let paths = 0;
     page.on("request", (r) => r.url().includes("/api/characters/spec-up/path?") && paths++);
