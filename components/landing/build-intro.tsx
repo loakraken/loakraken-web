@@ -90,11 +90,19 @@ export function BuildIntro() {
     setActive(true);
 
     const phone = window.matchMedia("(max-width: 480px)");
+    // The layer covers the whole page and clips what it draws, so a cursor
+    // waiting past the right edge never widens the page.
+    const fit = () => {
+      host.style.height = `${root.scrollHeight}px`;
+    };
+    fit();
     const cursors = new Map<Team, Cursor>();
     TEAMS.forEach(([name, color], i) => {
       const el = document.createElement("div");
       el.className = styles.cursor;
       el.dataset.introCursor = name;
+      // Shown or not from its first frame (no fade on the first look).
+      el.style.opacity = !phone.matches || CREW.intro.includes(name) ? "1" : "0";
       el.innerHTML = `<svg width="18" height="22" viewBox="0 0 18 22" aria-hidden="true"><path d="M1.5 1.5 L16 12 L9.4 12.9 L5.6 20 Z" fill="${color}" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/></svg>`;
       host.appendChild(el);
       const c = { el, x: i % 2 ? innerWidth + 40 : -60, y: scrollY + 90 + ((i * 61) % Math.max(200, innerHeight - 120)), color };
@@ -158,8 +166,7 @@ export function BuildIntro() {
     };
 
     // ---- one block: travel, drag a marquee, a grey skeleton, the real thing ----
-    function buildBlock(block: HTMLElement, c: Cursor, t0: number) {
-      const box = pageBox(block);
+    function buildBlock(block: HTMLElement, box: ReturnType<typeof pageBox>, c: Cursor, t0: number) {
       move(c, box.x - 4, box.y - 4, t0, TRAVEL);
       let marquee: HTMLDivElement | null = null;
       at(t0 + TRAVEL, (now) => {
@@ -261,14 +268,18 @@ export function BuildIntro() {
         return;
       }
       busy = true;
+      fit();
+      // Every block's place is read before anything is written (one layout per section).
+      const blocks = [...section.querySelectorAll<HTMLElement>("[data-build-block]")];
+      const boxes = blocks.map(pageBox);
       const crew = CREW[section.dataset.buildSection!] ?? CREW.intro;
       const t0 = performance.now() + 40;
       bench(crew, t0);
       const free = crew.map(() => t0);
       let end = t0;
-      [...section.querySelectorAll<HTMLElement>("[data-build-block]")].forEach((block, i) => {
+      blocks.forEach((block, i) => {
         const w = i % crew.length;
-        free[w] = buildBlock(block, cursors.get(crew[w])!, Math.max(free[w], t0 + i * 140));
+        free[w] = buildBlock(block, boxes[i], cursors.get(crew[w])!, Math.max(free[w], t0 + i * 140));
         end = Math.max(end, free[w]);
       });
       crew.forEach((name, i) =>
@@ -310,6 +321,7 @@ export function BuildIntro() {
       window.removeEventListener("pointerdown", takeOver, { capture: true });
       for (const block of document.querySelectorAll<HTMLElement>("[data-build-block]")) block.dataset.built = "";
       host!.replaceChildren();
+      host!.style.height = "";
       root.classList.remove(INTRO_CLASS);
       window.dispatchEvent(new Event(INTRO_END_EVENT));
       root.dataset.introLoop = "parked";
@@ -335,6 +347,7 @@ export function BuildIntro() {
       if (raf) cancelAnimationFrame(raf);
       io.disconnect();
       host.replaceChildren();
+      host.style.height = "";
       root.classList.remove(INTRO_CLASS);
     };
   }, []);

@@ -39,7 +39,9 @@ for (const width of [320, 390, 1280])
       await expect(page.locator("[data-intro-cursor]")).toHaveCount(12);
       // Plain arrows: no name tags anywhere in the layer.
       await expect(page.locator("[data-intro-layer]")).toHaveText("");
-      if (width <= 480) expect(await shownCursors(page), "휴대폰은 일하는 커서만").toBeLessThanOrEqual(4);
+      if (width <= 480) await expect.poll(() => shownCursors(page), { message: "휴대폰은 일하는 커서만" }).toBeLessThanOrEqual(4);
+      // Cursors waiting at the edges never widen the page.
+      expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth), "가로 넘침").toBe(0);
       await expect(page.getByRole("button", { name: "소개 건너뛰기" })).toBeVisible();
       // The first screen is up within 6 s.
       await expect.poll(() => unbuilt(page, '[data-build-section="intro"]'), { timeout: 6_000, intervals: [200] }).toBe(0);

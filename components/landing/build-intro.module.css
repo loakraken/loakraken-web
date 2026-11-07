@@ -17,6 +17,7 @@
   z-index: 60;
   width: 100%;
   height: 0;
+  overflow: clip;
   pointer-events: none;
 }
 .cursor {
@@ -77,6 +78,7 @@
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
+  touch-action: manipulation;
 }
 .skip {
   transition: transform 160ms var(--ease-out);
