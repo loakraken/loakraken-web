@@ -98,7 +98,9 @@ test.describe("스펙업 추천 순서 @smoke", () => {
       await expect(line).toBeVisible();
       // One line in its 18px slot (A37).
       expect(await line.evaluate((el) => el.scrollWidth <= el.clientWidth && el.scrollHeight <= el.clientHeight)).toBe(true);
-      await expect(page.getByRole("region", { name: "추천 순서" }).locator("[data-stale]")).toHaveCount(1);
+      // By CSS: on a touch screen the card is a modal sheet, which takes the page
+      // behind it out of the accessibility tree (no "region" to find by role).
+      await expect(page.locator('section[aria-label="추천 순서"] [data-stale]')).toHaveCount(1);
       expect(asked).toBe(0);
     });
 
