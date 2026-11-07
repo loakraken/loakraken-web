@@ -8,8 +8,8 @@
   transition: opacity 240ms var(--ease-out);
 }
 
-/* Cursors, marquees, skeletons and the typing overlay: one layer over the
-   page, in page coordinates, never catching the pointer. */
+/* Cursors, marquees and skeletons: one layer over the page, in page
+   coordinates, never catching the pointer. */
 .layer {
   position: absolute;
   top: 0;

@@ -94,10 +94,10 @@ export function Hero({
       <div className={styles.heroContent}>
         <div className={`${styles.statusPill} ${styles.heroEnter}`} {...build("text")}>LOAKraken</div>
         <Title className={`${styles.heroTitle} ${styles.heroEnter}`} id="hero-heading" {...build("keep")}>당신의 캐릭터.<br /><span>가능성을 더 선명하게.</span></Title>
-        <p className={`${styles.heroDescription} ${styles.heroEnter}`} {...build("text")}>지금의 세팅부터 다음 성장까지.<br />흩어진 정보를 모아, 더 명확한 선택으로.</p>
+        <p className={`${styles.heroDescription} ${styles.heroEnter}`} {...build("keep")}>지금의 세팅부터 다음 성장까지.<br />흩어진 정보를 모아, 더 명확한 선택으로.</p>
         {/* /about only: one line naming the site with its Korean name (marketing spec 10-31). */}
         {!embedded && (
-          <p className={`${styles.heroAbout} ${styles.heroEnter}`} {...build("text")}>
+          <p className={`${styles.heroAbout} ${styles.heroEnter}`} {...build("keep")}>
             LOAKraken(로아크라켄)은 로스트아크 공식 Open API의 공개 정보로 캐릭터·시세·통계·성장 도구를 보여 주는 무료 팬 사이트입니다.
           </p>
         )}

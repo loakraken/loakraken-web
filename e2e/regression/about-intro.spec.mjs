@@ -34,8 +34,24 @@ for (const width of [320, 390, 1280])
       await watchShifts(page);
       await page.goto("/about");
       expect(await introOn(page), "첫 그림 전에 켜짐").toBe(true);
-      // The headline (the page's largest text, LCP) is never hidden.
-      expect(await page.evaluate(() => getComputedStyle(document.querySelector("h1")).opacity), "제목은 처음부터 보임").toBe("1");
+      // The headline (the page's largest text, LCP) is never hidden, and no hidden
+      // block could become a later, larger LCP: no image, no text larger than the h1.
+      const lcp = await page.evaluate(() => {
+        const area = (el) => {
+          const r = el.getBoundingClientRect();
+          return r.width * r.height;
+        };
+        const h1 = document.querySelector("h1");
+        const hidden = [...document.querySelectorAll("[data-build-block]")].filter(
+          (b) => getComputedStyle(b).opacity === "0" && b.getBoundingClientRect().top < innerHeight,
+        );
+        return {
+          h1: getComputedStyle(h1).opacity,
+          images: hidden.flatMap((b) => [...b.querySelectorAll("img, video, svg image")]).length,
+          largerText: hidden.filter((b) => b.dataset.buildKind === "text" && area(b) >= area(h1)).length,
+        };
+      });
+      expect(lcp, "제목은 처음부터 보이고, 숨긴 칸은 LCP가 될 수 없음").toEqual({ h1: "1", images: 0, largerText: 0 });
       // The blocks are in the page (their boxes held), only hidden until built.
       await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
       await expect(page.locator("[data-intro-cursor]")).toHaveCount(12);

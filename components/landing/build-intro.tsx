@@ -3,8 +3,9 @@
 // /about builds itself (user 11-08): twelve plain coloured arrow cursors, one
 // per team, build the page section by section. Up to four work on a section
 // (a dashed marquee, a grey skeleton, then the real content); the others wait
-// at the edges (on phones they are not shown). The headline itself is shown
-// from the first paint (it is the page's largest text, LCP) and never hidden.
+// at the edges (on phones they are not shown). The headline and the hero's
+// two paragraphs are shown from the first paint (the largest text, the LCP
+// candidates) and never hidden; the bot is a canvas, not an LCP candidate.
 //
 // Only the hiding depends on this script: the content is in the HTML, and the
 // page is finished as served without JS, under reduced motion, when the
@@ -120,9 +121,21 @@ export function BuildIntro() {
     let tweens: Tween[] = [];
     let raf = 0;
     let done = false;
+    // Anything that throws later (in a frame or an observer callback) finishes
+    // the page instead of leaving blocks hidden.
+    const safe =
+      <A extends unknown[]>(fn: (...args: A) => void) =>
+      (...args: A) => {
+        try {
+          fn(...args);
+        } catch {
+          finish();
+        }
+      };
+    const frame = safe(tick);
     const wake = () => {
       if (raf || done) return;
-      raf = requestAnimationFrame(tick);
+      raf = requestAnimationFrame(frame);
       root.dataset.introLoop = "running";
     };
     const at = (time: number, run: Job["run"]) => {
@@ -138,7 +151,7 @@ export function BuildIntro() {
         tw.step(ease(Math.max(0, t)));
         return t < 1;
       });
-      if (!done && (jobs.length || tweens.length)) raf = requestAnimationFrame(tick);
+      if (!done && (jobs.length || tweens.length)) raf = requestAnimationFrame(frame);
       else root.dataset.introLoop = "parked";
     }
     function move(c: Cursor, x: number, y: number, start: number, dur: number) {
@@ -267,13 +280,13 @@ export function BuildIntro() {
 
     // Sections build once their top passes 65% of the screen.
     const io = new IntersectionObserver(
-      (entries) => {
+      safe((entries: IntersectionObserverEntry[]) => {
         for (const entry of entries)
           if (entry.isIntersecting) {
             request(entry.target as HTMLElement);
             io.unobserve(entry.target);
           }
-      },
+      }),
       { rootMargin: "0px 0px -35% 0px" },
     );
     sections.forEach((s) => io.observe(s));
