@@ -1,5 +1,6 @@
 "use client";
 import "./command-bar.css";
+import { useEffect, useRef } from "react";
 import { Liquid } from "liquid-gooey";
 
 /**
@@ -8,10 +9,28 @@ import { Liquid } from "liquid-gooey";
  * (command-field.tsx) once the dialog is open and the page is idle. Same
  * library settings as Bencho's command bar (bridge 3, edge 22, opaque fill,
  * no shadow); nothing in it can take focus or a click.
+ *
+ * `onShown` fires when its fade-in has ended (or on its first frame when
+ * motion is reduced and there is no fade): only then may the plain field drop
+ * its own fill, so the page behind never shows through (#1423 review).
  */
-export function LiquidPill() {
+export function LiquidPill({ onShown }: { onShown?: () => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || getComputedStyle(el).animationName !== "none") return;
+    const id = requestAnimationFrame(() => onShown?.());
+    return () => cancelAnimationFrame(id);
+  }, [onShown]);
   return (
-    <div className="cmd-liquid" aria-hidden="true">
+    <div
+      ref={ref}
+      className="cmd-liquid"
+      aria-hidden="true"
+      onAnimationEnd={(event) => {
+        if (event.target === event.currentTarget) onShown?.();
+      }}
+    >
       <Liquid className="cmd-goo" blur={3} contrast={22} fill="var(--fill-slab, var(--board))" filterPadding={60}>
         <Liquid.Item className="cmd-slot">
           <div className="cmd-shape" />

@@ -32,14 +32,6 @@ function whenIdle(run: () => void, timeout: number) {
   return () => window.clearTimeout(id)
 }
 
-/** Tells the field once the liquid surface has drawn its first frame. */
-function Drawn({ onDrawn }: { onDrawn: () => void }) {
-  React.useEffect(() => {
-    const id = requestAnimationFrame(() => onDrawn())
-    return () => cancelAnimationFrame(id)
-  }, [onDrawn])
-  return null
-}
 
 function CommandSearchDialog({
   open,
@@ -119,8 +111,7 @@ function CommandSearchDialog({
           <div className="relative grid h-14 w-full place-items-center">
             {liquid && (
               <React.Suspense fallback={null}>
-                <LiquidPill />
-                <Drawn onDrawn={onDrawn} />
+                <LiquidPill onShown={onDrawn} />
               </React.Suspense>
             )}
             <CommandField

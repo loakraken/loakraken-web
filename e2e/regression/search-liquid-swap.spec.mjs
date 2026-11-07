@@ -22,6 +22,8 @@ for (const width of [1280, 390])
     await page.setViewportSize({ width, height: 900 });
     await watchShifts(page);
     await gotoReady(page, "/market");
+    // A long fade, so the test can stop it halfway (it finishes it itself below).
+    await page.addStyleTag({ content: ".cmd-liquid { animation-duration: 20s !important; }" });
     await recordFirstField(page);
     await page.getByRole("button", { name: "캐릭터 검색" }).first().click();
     const box = page.getByRole("combobox", { name: "캐릭터 이름" });
@@ -41,6 +43,18 @@ for (const width of [1280, 390])
     const spot = { x: before[0] + before[2] - 40, y: before[1] + 24, width: 6, height: 6 };
     const plainFill = await page.screenshot({ clip: spot, animations: "disabled" });
     const mark = await shiftMark(page);
+    // Mid-fade (#1423 review): the plain fill is still whole over the liquid, so
+    // nothing behind shows through; it goes only when the fade has ended.
+    const surface = page.locator(".cmd-liquid");
+    await expect(surface).toHaveCount(1, { timeout: 5000 });
+    await surface.evaluate((el) => {
+      const fade = el.getAnimations()[0];
+      fade.pause();
+      fade.currentTime = 10000;
+    });
+    await expect(field).not.toHaveAttribute("data-liquid");
+    expect(Buffer.compare(await page.screenshot({ clip: spot, animations: "allow" }), plainFill), "반쯤 나타날 때도 평범한 칸의 칠 그대로").toBe(0);
+    await surface.evaluate((el) => el.getAnimations()[0].finish());
     await expect(field).toHaveAttribute("data-liquid", "true", { timeout: 5000 });
     await expect(page.locator(".cmd-liquid")).toHaveCount(1);
     await page.waitForTimeout(400);
