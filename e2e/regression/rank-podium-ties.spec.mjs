@@ -75,6 +75,8 @@ for (const width of [320, 1280])
     await page.waitForTimeout(1600); // the held answer (800 ms) has landed, empty again
     await expect(page.getByText("조건에 맞는 캐릭터가 없어요.")).toBeVisible();
     await expect(page.locator("[data-podium-place]")).toHaveCount(0);
+    // 남은 칸은 빈 칸이 아니라 빈 화면 안내(봇과 한 줄)로 채운다.
+    await expect(page.locator("[data-podium-empty]").getByText("시상대에 오를 순위가 아직 없어요.")).toBeVisible();
     const shift = await shiftsSince(page, mark);
     expect(shift.quiet, `누른 뒤 흔들림 (${shift.moved})`).toBe(0);
   });

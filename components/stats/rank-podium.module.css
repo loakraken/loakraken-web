@@ -1,10 +1,13 @@
 /* Three stage cards (user-approved look, 11-03). Each card is the official
    portraits' own backdrop, so a portrait sits on it with no seam; the medal
-   light is an overlay screened over card and portrait alike. Only the
-   winner's edge shine and the rolling digits move, each once. */
+   light is an overlay screened over card and portrait alike. A medal ring
+   turns round each card without end (user, 11-08: gold for the winner,
+   quieter silver and bronze), the rolling digits move once. */
 .podium {
-  --portrait-width: 88px;
-  --portrait-height: 96px;
+  /* Portraits 1.5× the first look (user, 11-08: too small to see the
+     characters); the podium is taller to hold them, still fixed. */
+  --portrait-width: 132px;
+  --portrait-height: 144px;
   /* Fixed slots so a late web font cannot re-wrap a name and move the medal
      and portrait stacked above it (A7): a 12-character name (the game's
      limit) takes at most two lines here, a value one. */
@@ -18,7 +21,7 @@
   /* Fixed: the content of each card stacks at its foot and the free room
      stays above the medals, so names up to the game's 12-character limit
      (two lines at 320) never change the podium's height. */
-  height: 340px;
+  height: 400px;
   margin: 0 auto 20px;
   padding: 24px 20px 20px;
 }
@@ -75,8 +78,8 @@
   text-align: center;
 }
 .podium .place[data-podium-place="1"] {
-  --portrait-width: 104px;
-  --portrait-height: 116px;
+  --portrait-width: 156px;
+  --portrait-height: 174px;
 }
 /* The slot places a card (centre, left, right); its real rank colours it,
    so a tie (1, 1, 3) shows two golds. */
@@ -120,29 +123,75 @@
     conic-gradient(from 180deg at 50% -6%, transparent 155deg, color-mix(in srgb, var(--medal) 42%, transparent) 180deg, transparent 205deg),
     radial-gradient(120% 60% at 50% 0%, color-mix(in srgb, var(--medal) 30%, transparent), transparent 70%);
 }
-/* Winner: one shine pass round the card's edge on first view (the
-   shine-border idea rebuilt in CSS); reduced motion rests it as an arc. */
-.podium .place[data-podium-place="1"]::after {
-  content: "";
+/* The medal ring (border-beam / shine-border idea, rebuilt in CSS): a
+   masked 1.5px border whose inner gradient turns by transform only, so the
+   compositor moves it without paint or layout. The winner's is gold and
+   quicker; silver and bronze turn slower and fainter, out of step. They rest
+   off-screen, in a hidden tab, when the visitor stops them, and under
+   reduced motion (a still arc). */
+.podium .place > .beam {
   position: absolute;
   z-index: 3;
   inset: 0;
   padding: 1.5px;
+  overflow: hidden;
   border-radius: inherit;
-  background: conic-gradient(from var(--shine), transparent 0 70%, var(--medal) 82%, transparent 94%);
   -webkit-mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
   mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
   pointer-events: none;
-  animation: podium-shine 2.4s cubic-bezier(0.4, 0, 0.2, 1) 0.3s both;
+  opacity: 0.5;
 }
-@property --shine {
-  syntax: "<angle>";
-  inherits: false;
-  initial-value: 0deg;
+.podium .beam::before {
+  content: "";
+  position: absolute;
+  inset: -60%;
+  background: conic-gradient(transparent 0 70%, var(--medal) 82%, transparent 94%);
+  animation: podium-beam 7s linear infinite;
+  will-change: transform;
 }
-@keyframes podium-shine {
-  from { --shine: 0deg; }
-  to { --shine: 360deg; }
+.podium .place[data-podium-place="1"] > .beam { opacity: 1; }
+.podium .place[data-podium-place="1"] .beam::before { animation-duration: 4s; }
+.podium .place[data-podium-place="3"] .beam::before { animation-delay: -3.5s; }
+@keyframes podium-beam {
+  to { transform: rotate(1turn); }
+}
+.podium[data-podium-motion="paused"] .beam::before,
+.podium[data-offscreen] .beam::before,
+.podium[data-tab-hidden] .beam::before {
+  animation-play-state: paused;
+}
+/* Stop or start the rings: quiet, in the podium's top padding, 44px to press. */
+.podium .motion {
+  position: absolute;
+  z-index: 4;
+  top: 2px;
+  right: 20px;
+  min-height: 20px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--muted-foreground);
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+.podium .motion::after {
+  content: "";
+  position: absolute;
+  inset: -12px -4px;
+}
+.podium .motion:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; }
+@media (hover: hover) and (pointer: fine) {
+  .podium .motion:hover { color: var(--foreground); }
+}
+/* A list that came back with nothing ranked keeps its room: the empty note
+   in the middle of it, not a blank box. */
+.podium .emptyNote {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  color: var(--muted-foreground);
 }
 .podium .medal {
   width: 24px;
@@ -150,30 +199,37 @@
   color: var(--medal);
 }
 .podium .portraitBox {
-  width: var(--portrait-width);
+  /* Never wider than the card's column (a phone's is about 69px at 320):
+     the official portrait is cropped from the top, so it keeps the face. */
+  width: min(100%, var(--portrait-width));
   height: var(--portrait-height);
 }
 .podium .portrait,
 .podium .fallback {
   display: grid;
   place-items: center;
-  width: var(--portrait-width);
+  width: min(100%, var(--portrait-width));
   max-width: none;
   height: var(--portrait-height);
   object-fit: cover;
   object-position: top;
 }
-/* The class icon files are black; the stage is dark in every theme. */
+/* The class icon files are black; the stage is dark in every theme. The
+   icon (or its two letters) grows with the portrait box (user, 11-08). */
 .podium .fallback img { filter: brightness(0) invert(1); }
+.podium .fallback [data-chip] {
+  border-radius: 10px;
+  font-size: 15px;
+}
 .podium .guildLetter {
   display: grid;
   place-items: center;
-  width: 40px;
-  height: 40px;
+  width: 60px;
+  height: 60px;
   border-radius: 50%;
   background: var(--secondary);
   color: var(--foreground);
-  font-size: 22px;
+  font-size: 32px;
   font-weight: 600;
 }
 .podium .name,
@@ -297,8 +353,9 @@
    width for a large value on one line at 14px. */
 @media (max-width: 480px) {
   .podium {
-    --portrait-width: 60px;
-    --portrait-height: 72px;
+    --portrait-width: 90px;
+    --portrait-height: 108px;
+    height: 380px;
     /* About six characters per line: three lines hold 12 with room for a
        wider fallback face; large values take two. */
     --name-height: 48px;
@@ -306,8 +363,8 @@
     padding-inline: 20px;
   }
   .podium .place[data-podium-place="1"] {
-    --portrait-width: 76px;
-    --portrait-height: 88px;
+    --portrait-width: 114px;
+    --portrait-height: 132px;
   }
   .podium .places { gap: 8px; }
   .podium .place {
@@ -319,8 +376,8 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .podium .reel { animation: none; }
-  .podium .place[data-podium-place="1"]::after {
+  .podium .beam::before {
     animation: none;
-    --shine: 200deg;
+    transform: rotate(200deg);
   }
 }
