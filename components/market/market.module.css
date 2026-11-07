@@ -401,6 +401,13 @@
 .favorites li {
   flex: none;
 }
+.favoritesNote {
+  height: 30px;
+  margin: 10px 0 0;
+}
+.favoritesNote .favoritesHint {
+  margin: 0;
+}
 .favoritesHint {
   gap: 4px;
   color: var(--slate);

@@ -26,6 +26,8 @@ async function settledAim(page, nudge) {
   }
   return [0, 1, 2, 3].map((k) => median(rows.map((row) => row[k])));
 }
+// The point it turns to, in the library's reach units (written on focus and pointer events).
+const aimOf = async (page) => (await canvas(page).getAttribute("data-bot-aim")).split(",").map(Number);
 const hops = async (page) => Number((await canvas(page).getAttribute("data-bot-hops")) ?? 0);
 const tilts = async (page) => Number((await canvas(page).getAttribute("data-bot-tilts")) ?? 0);
 const search = (page) => hero(page).getByRole("button", { name: "캐릭터 검색" });
@@ -59,18 +61,30 @@ test.describe("히어로 봇: 검색칸 보기·모자·안경 @regression", () 
     });
     await page.mouse.move(start.x, start.y, { steps: 8 });
     const pointed = await settledAim(page, (i) => page.mouse.move(start.x + (i % 2), start.y));
+    await page.mouse.move(start.x, start.y);
+    const pointedAim = await aimOf(page);
     // 포인터를 위로 옮긴 뒤 키보드로 초점: 고개는 포인터가 아니라 그 글자 자리를 본다.
     const area = await hero(page).boundingBox();
     await page.mouse.move(start.x, area.y + 4, { steps: 8 });
     await box(page).focus();
+    const focusedAim = await aimOf(page);
+    // The hop and the live pose fade out, then the loop parks on the look.
+    await expect(canvas(page)).toHaveAttribute("data-bot-loop", "parked", { timeout: 10_000 });
     const focused = await settledAim(page);
-    // 고개(yaw·pitch)는 같고, 눈은 라이브러리의 혼자 눈 굴리기(±4 단위의 짧은 곁눈질)만큼 다를 수 있다.
-    // 값은 소수 한 자리로 적히므로 0.1 단위(정수)로 비교한다: 0.4 - 0.3은 부동소수점으로 0.1보다 크다.
-    const tenths = (a, b) => Math.round(Math.abs(a - b) * 10);
+    // 겨누는 점(라이브러리 reach 단위)이 포인터를 그 자리에 둔 때와 같다.
+    // (CI 11-08: 살아 있는 포인터 자세는 라이브러리의 혼자 고개 돌리기·곁눈질·뜀이 섞여 멈춘 자세와 0.3까지
+    // 달랐다. 그래서 자세끼리가 아니라 겨누는 점을 비교하고, 멈춘 자세는 라이브러리의 포인터 규칙으로 본다.)
     for (let k = 0; k < 2; k++)
-      expect(tenths(focused[k], pointed[k]), `고개(0.1 단위): 초점 ${focused} · 포인터 ${pointed}`).toBeLessThanOrEqual(1);
-    for (let k = 2; k < 4; k++)
-      expect(tenths(focused[k], pointed[k]), `눈(0.1 단위): 초점 ${focused} · 포인터 ${pointed}`).toBeLessThanOrEqual(10);
+      expect(Math.abs(focusedAim[k] - pointedAim[k]), `겨누는 점: 초점 ${focusedAim} · 포인터 ${pointedAim}`).toBeLessThanOrEqual(0.02);
+    // 멈춘 자세 = 라이브러리가 강도 1의 포인터에 쓰는 규칙(고개 22°·눈 4.5, 아래로 12°·눈 3 / reach 1).
+    // 허용 = 적힌 자릿수만: 자세는 소수 한 자리(±0.05), 겨누는 점은 두 자리(±0.005 × 각 배율).
+    const deg = Math.PI / 180;
+    const gain = [22 * deg, 12 * deg, 4.5, 3];
+    const want = [focusedAim[0] * gain[0], -focusedAim[1] * gain[1], focusedAim[0] * gain[2], focusedAim[1] * gain[3]];
+    for (let k = 0; k < 4; k++)
+      expect(Math.abs(focused[k] - want[k]), `멈춘 자세 ${focused} · 규칙 ${want.map((v) => v.toFixed(3))}`).toBeLessThanOrEqual(0.05 + 0.005 * gain[k] + 1e-9);
+    // 살아 있는 포인터 자세와도 같은 쪽(왼쪽 아래)을 본다.
+    expect(Math.sign(pointed[0]), `포인터 ${pointed}`).toBe(Math.sign(focused[0]));
     expect(focused[3], "아래(검색칸)를 봄").toBeGreaterThanOrEqual(0.2);
   });
 
