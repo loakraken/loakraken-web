@@ -222,6 +222,19 @@
 .field > span:first-child {
   flex: none;
 }
+/* Narrow phones (user 11-08: 역할 ran 19px off the card at 320 with a wider
+   Korean font): the pills shrink first, and if the row still cannot sit
+   beside its label it moves under it. CSS only, so the server HTML is
+   already right (no shift). */
+@media (max-width: 480px) {
+  .statsBar .field:has([data-slot="segmented-control"]) {
+    flex-wrap: wrap;
+    row-gap: 6px;
+  }
+  .statsBar [data-slot="segmented-item"] {
+    padding-inline: 10px;
+  }
+}
 .statsBar [data-slot="select"] {
   min-width: 120px;
   height: 34px;
