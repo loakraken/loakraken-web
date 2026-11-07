@@ -649,7 +649,7 @@ function MarketContent({
             // loading (browser storage), so it must be no taller than them.
             <BotNote mood="calm" inline className={styles.favoritesNote}>
               <p className={styles.favoritesHint}>
-                <Bookmark size={12} aria-hidden="true" /> 아직 즐겨찾기한 품목이 없어요.
+                <Bookmark size={12} role="img" aria-label="즐겨찾기" /> 표시를 누르면 여기에 모여요
               </p>
             </BotNote>
           ) : (

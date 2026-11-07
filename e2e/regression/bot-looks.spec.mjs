@@ -66,7 +66,10 @@ test.describe("히어로 봇: 검색칸 보기·모자·안경 @regression", () 
     // 포인터를 위로 옮긴 뒤 키보드로 초점: 고개는 포인터가 아니라 그 글자 자리를 본다.
     const area = await hero(page).boundingBox();
     await page.mouse.move(start.x, area.y + 4, { steps: 8 });
+    const upAim = await aimOf(page);
     await box(page).focus();
+    // The focus aim is written by an effect after focus(): wait until it replaces the pointer's.
+    await expect.poll(() => aimOf(page), { message: "초점의 겨누는 점이 적힘" }).not.toEqual(upAim);
     const focusedAim = await aimOf(page);
     // The hop and the live pose fade out, then the loop parks on the look.
     await expect(canvas(page)).toHaveAttribute("data-bot-loop", "parked", { timeout: 10_000 });
