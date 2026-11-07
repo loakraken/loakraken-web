@@ -960,17 +960,25 @@ function ArkGridPanel({ data }: { data: Character }) {
       <ArkRealHead view={real} />
       {grid.effects.length > 0 && (
         <ul className={styles.effectGrid}>
-          {grid.effects.map((effect, i) => (
-            <li key={i}>
-              <span>{text(effect.name)}</span>
-              <span>
-                <small>Lv.{number(effect.level)}</small>
-                {effect.percent != null && (
-                  <b>+{effect.percent.toLocaleString("ko-KR", { maximumFractionDigits: 2 })}%</b>
-                )}
-              </span>
-            </li>
-          ))}
+          {grid.effects.map((effect, i) => {
+            // The same role rule as the gem options (#1108, user 11-08): an
+            // effect the role does not use (낙인력 for a dealer) goes grey.
+            const off = gridOptionCounts(effect.name ?? "", role) === false;
+            return (
+              <li key={i} data-other-role={off || undefined}>
+                <span>
+                  {text(effect.name)}
+                  {off && <OtherRole />}
+                </span>
+                <span>
+                  <small>Lv.{number(effect.level)}</small>
+                  {effect.percent != null && (
+                    <b>+{effect.percent.toLocaleString("ko-KR", { maximumFractionDigits: 2 })}%</b>
+                  )}
+                </span>
+              </li>
+            );
+          })}
         </ul>
       )}
       {grid.slots.length ? (

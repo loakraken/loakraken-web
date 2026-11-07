@@ -799,7 +799,9 @@
   display: inline;
 }
 .gemRows small [data-other-role],
-.gradeLine[data-other-role] {
+.gradeLine[data-other-role],
+.effectGrid li[data-other-role],
+.effectGrid li[data-other-role] b {
   color: var(--muted-foreground);
 }
 .stoneBonus {
