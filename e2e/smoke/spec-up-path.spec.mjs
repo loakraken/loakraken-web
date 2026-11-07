@@ -114,7 +114,12 @@ test.describe("스펙업 추천 순서 @smoke", () => {
       const line = page.getByText("오래된 정보예요 · 갱신을 누르면 다시 불러와요");
       await expect(line).toBeVisible();
       // One line in its 18px slot (A37).
-      expect(await line.evaluate((el) => el.scrollWidth <= el.clientWidth && el.scrollHeight <= el.clientHeight)).toBe(true);
+      expect(
+        await line.evaluate((el) => {
+          const p = el.closest("p");
+          return p.scrollWidth <= p.clientWidth && p.scrollHeight <= p.clientHeight;
+        }),
+      ).toBe(true);
       // By CSS: on a touch screen the card is a modal sheet, which takes the page
       // behind it out of the accessibility tree (no "region" to find by role).
       await expect(page.locator('section[aria-label="추천 순서"] [data-stale]')).toHaveCount(1);

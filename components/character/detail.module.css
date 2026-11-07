@@ -2410,6 +2410,17 @@
   font-size: 12px;
   line-height: 18px;
 }
+/* The old-data note in that line: the stale tone and a warning mark, one line. */
+.specUpExpired {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--accent-warm);
+  white-space: nowrap;
+}
+.specUpExpired svg {
+  flex: none;
+}
 .specUpMuted {
   color: var(--muted-foreground);
   font-size: 12px;

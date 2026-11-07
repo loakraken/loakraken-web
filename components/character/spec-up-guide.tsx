@@ -44,6 +44,7 @@ import { SpecUpPathList } from "./spec-up-path";
 import { SimulatorEnabled, SpecUpPathEnabled } from "./tabs";
 import { SpecUpRowDetail } from "./spec-up-detail";
 import { EXPIRED_LINE, SpecUpExpired } from "./spec-up-expired";
+import { Warning } from "@/components/ui/icons";
 import { kstTime } from "./parts";
 import styles from "./detail.module.css";
 
@@ -371,7 +372,13 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
       {/* Not a live region: the price time changes with each refresh. The failed
           request's own alert reads the old-data sentence out. */}
       <p className={styles.specUpPrices}>
-        {expired ? EXPIRED_LINE : !pathShown && guide?.pricesAt ? `시세 ${kstTime(guide.pricesAt)} 기준` : ""}
+        {expired ? (
+          // The site's stale tone (DataRefreshState's 오래된 값), so it is not missed (PM 총괄 P3).
+          <span className={styles.specUpExpired}>
+            <Warning size={13} aria-hidden="true" />
+            {EXPIRED_LINE}
+          </span>
+        ) : !pathShown && guide?.pricesAt ? `시세 ${kstTime(guide.pricesAt)} 기준` : ""}
       </p>
 
       {pathShown ? (
