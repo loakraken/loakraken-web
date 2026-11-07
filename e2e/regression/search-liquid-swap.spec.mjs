@@ -4,18 +4,31 @@
 import { test, expect, gotoReady } from "../support/fixtures.mjs";
 import { shiftMark, shiftsSince, watchShifts } from "../support/shifts.mjs";
 
+/** Records the search field as it is first put in the page (not racing the idle callback). */
+const recordFirstField = (page) =>
+  page.evaluate(() => {
+    window.__firstField = null;
+    new MutationObserver((_, observer) => {
+      const field = document.querySelector(".cmd-field");
+      if (!field) return;
+      window.__firstField = { liquid: field.hasAttribute("data-liquid"), surface: !!document.querySelector(".cmd-liquid") };
+      observer.disconnect();
+    }).observe(document.body, { childList: true, subtree: true });
+  });
+const firstField = (page) => page.evaluate(() => window.__firstField);
+
 for (const width of [1280, 390])
   test(`검색 칸: 평범한 칸 → 물방울 면, 아무것도 움직이지 않음 @${width} @regression`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await watchShifts(page);
     await gotoReady(page, "/market");
+    await recordFirstField(page);
     await page.getByRole("button", { name: "캐릭터 검색" }).first().click();
     const box = page.getByRole("combobox", { name: "캐릭터 이름" });
     await expect(box).toBeFocused();
     const field = page.locator(".cmd-field");
     // Plain first: the field's own pill, no liquid surface yet.
-    await expect(field).not.toHaveAttribute("data-liquid");
-    await expect(page.locator(".cmd-liquid")).toHaveCount(0);
+    await expect.poll(() => firstField(page)).toEqual({ liquid: false, surface: false });
     const rect = async () =>
       page.locator(".cmd").evaluate((el) => {
         const r = el.getBoundingClientRect();
@@ -58,17 +71,9 @@ test("검색 칸: 닫고 다시 열면 또 평범한 칸부터 @regression", asy
   await expect(page.locator(".cmd-field")).toHaveAttribute("data-liquid", "true", { timeout: 5000 });
   await page.keyboard.press("Escape");
   await expect(page.getByRole("combobox", { name: "캐릭터 이름" })).toHaveCount(0);
-  // Record the field as it is put in the page: plain, the liquid comes only at idle.
-  await page.evaluate(() => {
-    window.__firstField = null;
-    new MutationObserver((_, observer) => {
-      const field = document.querySelector(".cmd-field");
-      if (!field) return;
-      window.__firstField = { liquid: field.hasAttribute("data-liquid"), surface: !!document.querySelector(".cmd-liquid") };
-      observer.disconnect();
-    }).observe(document.body, { childList: true, subtree: true });
-  });
+  // The field as it is put in the page again: plain, the liquid comes only at idle.
+  await recordFirstField(page);
   await open.click();
-  await expect.poll(() => page.evaluate(() => window.__firstField)).toEqual({ liquid: false, surface: false });
+  await expect.poll(() => firstField(page)).toEqual({ liquid: false, surface: false });
   await expect(page.locator(".cmd-field")).toHaveAttribute("data-liquid", "true", { timeout: 5000 });
 });
