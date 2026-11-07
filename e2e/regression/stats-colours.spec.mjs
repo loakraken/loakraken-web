@@ -79,3 +79,28 @@ for (const scheme of ["light", "dark", "dim"])
     const berserker = panel.getByRole("listitem").filter({ hasText: "버서커" }).locator("[aria-hidden=true] > i");
     await expect(berserker).toHaveCSS("background-color", warrior);
   });
+
+// A class the official groups do not hold yet goes to 기타: the legend names 기타 too (#1415 P3).
+test("통계 직업별: 기타 직업이 있으면 범례에 기타 @regression", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.route(
+    (url) => url.pathname === "/api/stats/population",
+    async (route) => {
+      const response = await route.fetch();
+      const body = await response.json();
+      const data = body.envelope?.data ?? body.data;
+      data.classes = [...data.classes, { name: "새로운직업", count: 3 }];
+      await route.fulfill({ response, json: body });
+    },
+  );
+  await gotoReady(page, "/stats?tab=population");
+  const panel = page.getByRole("tabpanel");
+  await panel.getByRole("group", { name: "전체 인구 보기" }).getByRole("button", { name: "직업별" }).click();
+  const legend = panel.getByRole("list", { name: "직업군 색" });
+  await expect(legend.getByRole("listitem").last()).toHaveText("기타");
+  const other = await legend
+    .getByRole("listitem")
+    .filter({ hasText: "기타" })
+    .evaluate((el) => getComputedStyle(el, "::before").backgroundColor);
+  await expect(panel.getByRole("listitem").filter({ hasText: "새로운직업" }).locator("[aria-hidden=true] > i")).toHaveCSS("background-color", other);
+});
