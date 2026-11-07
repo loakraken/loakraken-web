@@ -211,9 +211,20 @@
   align-items: center;
   gap: 10px 20px;
 }
+/* A first page that arrives in parts (A7, CI 11-08): a field drawn with only
+   its label sat at the end of the row, then dropped to the next line and
+   widened when its control came (역할 at 360: 202,292 94px → 32,333 250px), and
+   labels re-centred as taller controls joined the line. Every slot is fixed
+   from the first paint instead: the first row's line is the pills' 40px, each
+   label is as tall as its control, and the fields hold their full width
+   (wide screens) or their own line (phones), whatever has arrived. */
+.barRow:first-child {
+  min-height: 40px;
+}
 .field {
   display: inline-flex;
   align-items: center;
+  align-content: flex-start;
   gap: 8px;
   min-width: 0;
   color: var(--muted-foreground);
@@ -222,7 +233,39 @@
 }
 .field > label,
 .field > span:first-child {
+  display: inline-flex;
   flex: none;
+  align-items: center;
+  min-height: 34px;
+}
+.field[data-field="role"] > span:first-child,
+.field[data-field="days"] > span:first-child {
+  min-height: 40px;
+}
+@media (max-width: 520px) {
+  .barRow {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+/* The drawn widths (kraken 13/14px); a wider fallback font only grows them. */
+@media (min-width: 521px) {
+  .field[data-field="server"],
+  .field[data-field="level"] {
+    min-width: 150px;
+  }
+  .field[data-field="role"] {
+    min-width: 286px;
+  }
+  .field[data-field="days"] {
+    min-width: 267px;
+  }
+  .field[data-field="power"] {
+    min-width: 230px;
+  }
+  .statsBar .check {
+    min-width: 125px;
+  }
 }
 /* Narrow phones (user 11-08: 역할 ran 19px off the card at 320 with a wider
    Korean font): the pills shrink first, and if the row still cannot sit
@@ -270,6 +313,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  min-height: 20px;
   color: var(--foreground);
   font-size: 13px;
   font-weight: 500;
