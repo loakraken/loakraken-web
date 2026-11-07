@@ -96,7 +96,9 @@ test("원정대 칭호: 칭호마다 장착 원정대 비율 @regression", async
 // day controls must already stand (disabled), so their arrival moves nothing.
 for (const width of [320, 1280])
   test(`칭호 탭: 기준일 목록이 늦게 와도 흔들림 0 @${width} @regression`, async ({ page }) => {
-    await page.setViewportSize({ width, height: 900 });
+    // Tall enough at 320 that the bar and the table are on screen (a shift
+    // below the fold is not recorded): the stacked filters fill the first 900px.
+    await page.setViewportSize({ width, height: width < 480 ? 2000 : 900 });
     await watchShifts(page);
     let held = 0;
     await page.route(
