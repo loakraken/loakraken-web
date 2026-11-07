@@ -164,3 +164,30 @@
 @media (prefers-reduced-motion: reduce) {
   .cmd-go, .cmd-mic { transition: none; }
 }
+
+/* Ours (PM 총괄 11-08, option b): the search opens on a plain field whose
+   pill is its own fill; the liquid surface (liquid-pill.tsx) mounts under it
+   at idle, fades in, and only then does the plain fill step aside. Same box
+   and colour both ways, so the swap shows nothing and moves nothing. */
+.cmd-field .cmd {
+  background-color: var(--fill-slab);
+  transition: background-color var(--duration-base, 200ms) var(--ease-out, ease-out);
+}
+.cmd-field[data-liquid] .cmd { background-color: transparent; }
+.cmd-liquid {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  pointer-events: none;
+  animation: cmd-liquid-in var(--duration-base, 200ms) var(--ease-out, ease-out) both;
+}
+/* The liquid body: the bar's box and corner, nothing in it (a class of its
+   own, so ".cmd" still names the one field). */
+.cmd-liquid > * { flex: 1; min-width: 0; width: 100%; }
+.cmd-liquid .cmd-slot { width: 100%; }
+.cmd-shape { width: 100%; height: 56px; border-radius: var(--cmd-r, 28px); }
+@keyframes cmd-liquid-in { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .cmd-field .cmd { transition: none; }
+  .cmd-liquid { animation: none; }
+}
