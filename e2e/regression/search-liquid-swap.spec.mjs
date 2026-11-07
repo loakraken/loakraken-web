@@ -41,7 +41,8 @@ for (const width of [1280, 390])
     const before = await rect();
     // A few pixels inside the bar's right end (no text there): the pill's fill.
     const spot = { x: before[0] + before[2] - 40, y: before[1] + 24, width: 6, height: 6 };
-    const plainFill = await page.screenshot({ clip: spot, animations: "disabled" });
+    // "allow": "disabled" would finish a fade already running and end the swap early.
+    const plainFill = await page.screenshot({ clip: spot, animations: "allow" });
     const mark = await shiftMark(page);
     // Mid-fade (#1423 review): the plain fill is still whole over the liquid, so
     // nothing behind shows through; it goes only when the fade has ended.
