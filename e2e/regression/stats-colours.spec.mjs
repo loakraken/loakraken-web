@@ -29,11 +29,16 @@ const barContrast = (locator) =>
     return (a + 0.05) / (b + 0.05);
   });
 
-for (const scheme of ["light", "dark"])
+// The dim theme is a stored choice (data-theme), the other two follow the OS.
+const setTheme = (page, scheme) =>
+  scheme === "dim" && page.evaluate(() => document.documentElement.setAttribute("data-theme", "dim"));
+
+for (const scheme of ["light", "dark", "dim"])
   test(`통계 역할·직업군 색 ${scheme} @regression`, async ({ page }) => {
-    await page.emulateMedia({ colorScheme: scheme });
+    await page.emulateMedia({ colorScheme: scheme === "light" ? "light" : "dark" });
     await page.setViewportSize({ width: 1280, height: 900 });
     await gotoReady(page, "/stats");
+    await setTheme(page, scheme);
     await expect(block(page)).toBeVisible();
 
     // 역할: 딜러 직업 · 서포터 직업 딜러(빗금) · 서포터, 서로 다른 칠.
@@ -62,6 +67,7 @@ for (const scheme of ["light", "dark"])
 
     // 전체 인구 · 직업별: 직업군 범례 7개, 버서커 막대는 범례 '전사'와 같은 색.
     await gotoReady(page, "/stats?tab=population");
+    await setTheme(page, scheme);
     const panel = page.getByRole("tabpanel");
     await panel.getByRole("group", { name: "전체 인구 보기" }).getByRole("button", { name: "직업별" }).click();
     const legend = panel.getByRole("list", { name: "직업군 색" });

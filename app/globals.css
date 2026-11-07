@@ -1267,6 +1267,17 @@
   --surface-panel: #2c3038;
   --surface-inset: #343943;
   --shadow-card: 0 0 0 1px rgb(255 255 255 / 7%), 0 12px 28px -18px rgb(0 0 0 / 50%);
+  /* Stats category colours on the dim panels, a step lighter than dark: every
+     bar >= 3:1 on the card and on the bar track over it (#1415 review), the
+     role inks still one grey ramp, the 직업군 colours still told apart. */
+  --role-dealer: #eceef1;
+  --role-support-dealer: #bcbfc7;
+  --role-support: #8c8f98;
+  --group-warrior: #4a92ea;
+  --group-martial: #e2662f;
+  --group-assassin: #e0628f;
+  --group-specialist: #26a526;
+  --group-other: #8a8d96;
 }
 
 /* Theme menu previews (theme-toggle.tsx): every theme's page, card step and
