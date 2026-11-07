@@ -544,11 +544,12 @@
     flex: 0 0 calc(50% - 7px);
     min-width: 0;
   }
-  /* A toggle row (기준, 단위, …) keeps to the top of its row: a taller label
-     coming in beside it later would otherwise push it down to the row's
-     bottom line (rows are bottom-aligned for the selects). */
+  /* A toggle row (기준, 단위, …) is as tall as a label from the start (the
+     label's 12px line at 1.5 and its 4px gap above it): a label coming in
+     beside it later no longer grows the row and pushes it down, and it stays
+     bottom-aligned with the selects. */
   .filters > .segment {
-    align-self: flex-start;
+    margin-top: calc(12px * 1.5 + 4px);
   }
   .filters [data-slot="select"],
   .filters input:not([type="checkbox"]) {

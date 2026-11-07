@@ -67,4 +67,17 @@ for (const [label, path] of [
       await expect(page.getByRole("form", { name: / 조건$|^랭킹 조건$/ }).first()).toBeVisible();
       const late = await formArriving(page);
       expect(late.value, `조건 칸 늦게 온 부분이 민 것 (${late.moved})`).toBe(0);
+      if (width !== 390) return;
+      // A toggle sharing a row with a select sits on the same bottom line (±1 px).
+      const gaps = await page.evaluate(() => {
+        const form = [...document.querySelectorAll("form[aria-label]")].find((f) => / 조건$|^랭킹 조건$/.test(f.getAttribute("aria-label")));
+        const fields = [...form.querySelectorAll(':scope > label [data-slot="select"], :scope > label input')].map((f) => f.getBoundingClientRect());
+        return [...form.querySelectorAll(":scope > [role=group]")].flatMap((group) => {
+          const g = group.getBoundingClientRect();
+          return fields.filter((f) => f.top < g.bottom && g.top < f.bottom).map((f) => Math.round((g.bottom - f.bottom) * 10) / 10);
+        });
+      });
+      for (const gap of gaps) expect(Math.abs(gap), `단추 줄과 선택 칸 바닥 차이 ${gaps}`).toBeLessThanOrEqual(1);
+      // 수집품 at 390: its 단위 toggle and the 서버 select share the first row.
+      if (label === "수집품") expect(gaps.length, "단위 단추와 서버 칸이 한 줄").toBeGreaterThan(0);
     });
