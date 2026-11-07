@@ -45,13 +45,9 @@ function PrecisionLanding() {
     <div className={styles.landing}>
       <a className={styles.skipLink} href="#main">본문으로 건너뛰기</a>
       <m.div className={styles.readingProgress} style={{ transform: progressTransform }} aria-hidden="true" />
-      <SiteHeader fixed>
-        {/* Phones say just "검색" (the name stays "캐릭터 검색"); under 360 there is no room
-            beside the name and the shared search, and the hero search is right below. */}
-        <button type="button" className={`${styles.navCta} hit-44`} onClick={focusSearch} aria-label="캐릭터 검색">
-          <span className={styles.navCtaWord}>캐릭터 </span>검색 <ExportCircle size={14} />
-        </button>
-      </SiteHeader>
+      {/* No search button of the page's own in the header (user 11-08): the hero
+          search is right below, and the header's shared search stays. */}
+      <SiteHeader fixed />
 
       <main id="main">
         <Hero inputRef={input} />

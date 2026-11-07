@@ -80,17 +80,35 @@ for (const theme of ["light", "dim", "dark"])
       await page.setViewportSize({ width, height: 900 });
       await gotoReady(page, characterPath("상세"));
       const label = page.locator("button[data-no-replay] span[class*=refreshLabel]").first();
-      const fits = await label.evaluate((el, texts) => {
-        const min = parseFloat(getComputedStyle(el).minWidth);
-        const probe = el.cloneNode();
-        probe.style.cssText = "position:absolute;visibility:hidden;min-width:0;width:auto;white-space:nowrap";
-        el.parentElement.append(probe);
-        const out = texts.map((text) => {
-          probe.textContent = text;
-          return [text, Math.ceil(probe.getBoundingClientRect().width), Math.floor(min)];
-        });
-        probe.remove();
-        return out;
-      }, LABELS);
+      // The label can be drawn anew between finding it and reading it (CI 11-08: no parent): the probe
+      // goes to the body with the label's own type and padding, and the whole read is retried until
+      // the label is in the page.
+      const measure = () =>
+        label
+          .evaluate((el, texts) => {
+            if (!el.isConnected) return null;
+            const style = getComputedStyle(el);
+            const min = parseFloat(style.minWidth);
+            const probe = document.createElement("span");
+            probe.style.cssText = [
+              "position:absolute",
+              "visibility:hidden",
+              "white-space:nowrap",
+              `font:${style.font}`,
+              `letter-spacing:${style.letterSpacing}`,
+              `font-variant-numeric:${style.fontVariantNumeric}`,
+              `padding:0 ${style.paddingRight} 0 ${style.paddingLeft}`,
+            ].join(";");
+            document.body.append(probe);
+            const out = texts.map((text) => {
+              probe.textContent = text;
+              return [text, Math.ceil(probe.getBoundingClientRect().width), Math.floor(min)];
+            });
+            probe.remove();
+            return out;
+          }, LABELS)
+          .catch(() => null);
+      let fits = null;
+      await expect.poll(async () => (fits = await measure()), { message: "갱신 버튼 글자 칸 읽기" }).not.toBeNull();
       for (const [text, natural, min] of fits) expect(natural, `'${text}' 폭 ${natural}px ≤ 고정 폭 ${min}px`).toBeLessThanOrEqual(min);
     });

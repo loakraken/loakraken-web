@@ -29,10 +29,11 @@ import {
   type DetailStat,
   type SpecUpDetail,
 } from "@/lib/spec-up/detail";
-import { costPriceNote, gemTarget, kindLabel, koreanGold, type Candidate } from "@/lib/spec-up/model";
+import { costPriceNote, gemTarget, kindLabel, koreanGold, notCachedText, type Candidate } from "@/lib/spec-up/model";
 import { MINUTE, useClock } from "@/components/home/clock";
 import { safeGameImage } from "@/lib/character/model";
 import { GameIcon } from "./imagery";
+import { useMarkExpired } from "./spec-up-expired";
 import { kstTime } from "./parts";
 import styles from "./detail.module.css";
 
@@ -54,7 +55,7 @@ function failureText(error: unknown) {
   const code = error instanceof SpecUpQueryError ? error.info.code : "";
   if (code === "SPEC_UP_CANDIDATE_NOT_FOUND") return "이 후보가 바뀌었어요. 목록을 새로 불러오고 있어요.";
   if (code === "CLIENT_RATE_LIMITED") return rateLimitCopy({ code }).text;
-  if (code === "CHARACTER_NOT_CACHED") return "캐릭터 정보를 먼저 불러와 주세요.";
+  if (code === "CHARACTER_NOT_CACHED") return notCachedText("열어");
   return "상세를 불러오지 못했어요. 잠시 뒤 다시 열어 주세요.";
 }
 
@@ -209,6 +210,7 @@ export function SpecUpRowDetail({
     retry: false,
   });
   const data = detail.data?.data;
+  useMarkExpired(detail.error);
   const ready = !!data || detail.isError;
   const open = wanted && ready;
   // A candidate no longer in the list: the list is read again by itself
@@ -217,7 +219,9 @@ export function SpecUpRowDetail({
   useEffect(() => {
     if (gone) void queryClient.invalidateQueries({ queryKey: ["spec-up", characterName] });
   }, [gone, queryClient, characterName]);
-  const icon = safeGameImage(candidate.icon);
+  // A 추천 순서 step may come without its picture (a new engraving, 0 → 1, user
+  // 11-08); the card then takes the detail answer's own (사용자 결정 02:2x).
+  const icon = safeGameImage(candidate.icon || data?.candidate.icon);
   // A 광휘 gem row names its role (겁화·작열), like the rest of the site.
   const target = gemTarget(candidate.target, candidate.gemType);
   return (

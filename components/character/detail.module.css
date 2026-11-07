@@ -799,7 +799,9 @@
   display: inline;
 }
 .gemRows small [data-other-role],
-.gradeLine[data-other-role] {
+.gradeLine[data-other-role],
+.effectGrid li[data-other-role],
+.effectGrid li[data-other-role] b {
   color: var(--muted-foreground);
 }
 .stoneBonus {
@@ -2404,6 +2406,30 @@
   color: var(--muted-foreground);
   font-size: 12px;
   line-height: 18px;
+}
+/* The old-data note in that line: the stale tone and a warning mark, one line. */
+.specUpExpired {
+  /* A flex row, not inline-flex: on the text baseline it made the 18px line taller. */
+  display: flex;
+  height: 100%;
+  align-items: center;
+  gap: 4px;
+  color: var(--accent-warm);
+  white-space: nowrap;
+}
+.specUpExpired svg {
+  flex: none;
+}
+.specUpExpired [data-width="narrow"] {
+  display: none;
+}
+@media (max-width: 360px) {
+  .specUpExpired [data-width="wide"] {
+    display: none;
+  }
+  .specUpExpired [data-width="narrow"] {
+    display: inline;
+  }
 }
 .specUpMuted {
   color: var(--muted-foreground);
