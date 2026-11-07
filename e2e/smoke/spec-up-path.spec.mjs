@@ -111,20 +111,49 @@ test.describe("스펙업 추천 순서 @smoke", () => {
       const card = page.getByRole("dialog");
       await expect(card).toContainText("캐릭터 정보를 받은 지 오래되었어요. 위의 갱신 버튼으로 다시 받은 뒤 열어 주세요.");
       await expect(card).not.toContainText("먼저 불러와");
-      const line = page.getByText("오래된 정보예요 · 갱신을 누르면 다시 불러와요");
+      // The short line at 360 and below (codex P3 on #1396), the full one above.
+      const [shown, hidden] = width <= 360
+        ? ["오래된 정보예요 · 갱신해 주세요", "오래된 정보예요 · 갱신을 누르면 다시 불러와요"]
+        : ["오래된 정보예요 · 갱신을 누르면 다시 불러와요", "오래된 정보예요 · 갱신해 주세요"];
+      const line = page.getByText(shown, { exact: true });
       await expect(line).toBeVisible();
-      // One line in its 18px slot (A37).
-      expect(
-        await line.evaluate((el) => {
+      await expect(page.getByText(hidden, { exact: true })).toBeHidden();
+      // One line in its 18px slot (A37), also in a wide fallback face (CI's fonts differ).
+      const fits = () =>
+        line.evaluate((el) => {
           const p = el.closest("p");
           return p.scrollWidth <= p.clientWidth && p.scrollHeight <= p.clientHeight;
-        }),
-      ).toBe(true);
+        });
+      expect(await fits()).toBe(true);
+      await page.addStyleTag({ content: `p:has(> span > svg) { font-family: "Courier New", monospace !important; }` });
+      expect(await fits()).toBe(true);
       // By CSS: on a touch screen the card is a modal sheet, which takes the page
       // behind it out of the accessibility tree (no "region" to find by role).
       await expect(page.locator('section[aria-label="추천 순서"] [data-stale]')).toHaveCount(1);
       expect(asked).toBe(0);
     });
+
+  // Found by the list's quiet minute refresh, nothing else says it: one polite
+  // sentence, not again on later ticks (codex P3 on #1396).
+  test("목록의 1분 새로 고침이 오래된 정보를 찾으면 한 번 읽어 줌", async ({ page }) => {
+    await page.clock.install();
+    await page.goto(specUpListPath("스펙순서"));
+    await expect(page.getByRole("table", { name: /스펙업 후보, 전투력 증가 순/ })).toBeVisible();
+    const status = page.getByRole("status").filter({ hasText: "오래된 정보예요 · 갱신을 누르면 다시 불러와요" });
+    await expect(status).toHaveCount(0);
+    let lists = 0;
+    await page.route((url) => url.pathname === "/api/characters/spec-up", (route) => {
+      lists++;
+      return route.fulfill({ status: 404, contentType: "application/json", body: JSON.stringify({ ok: false, error: { code: "CHARACTER_NOT_CACHED", status: 404 } }) });
+    });
+    await page.clock.runFor(61_000);
+    await expect(status).toHaveCount(1);
+    await expect(page.getByRole("table", { name: /스펙업 후보, 전투력 증가 순/ })).toBeVisible();
+    // No more refreshes after the failure, so nothing to read again.
+    await page.clock.runFor(130_000);
+    await expect(status).toHaveCount(1);
+    expect(lists).toBe(1);
+  });
 
   test("다른 칩은 후보 목록, 고른 칩은 주소에(새로 고쳐도 그대로), 돌아오면 다시 묻지 않음", async ({ page }) => {
     let paths = 0;

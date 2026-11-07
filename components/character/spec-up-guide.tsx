@@ -43,7 +43,7 @@ import { SpecUpGoal } from "./spec-up-goal";
 import { SpecUpPathList } from "./spec-up-path";
 import { SimulatorEnabled, SpecUpPathEnabled } from "./tabs";
 import { SpecUpRowDetail } from "./spec-up-detail";
-import { EXPIRED_LINE, SpecUpExpired } from "./spec-up-expired";
+import { EXPIRED_LINE, EXPIRED_LINE_SHORT, SpecUpExpired } from "./spec-up-expired";
 import { Warning } from "@/components/ui/icons";
 import { kstTime } from "./parts";
 import styles from "./detail.module.css";
@@ -200,6 +200,10 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
   const expired = expiredAt === data.fetchedAt || listGone;
   const markExpired = useCallback(() => setExpiredAt(data.fetchedAt), [data.fetchedAt]);
   const expiry = useMemo(() => ({ expired, markExpired }), [expired, markExpired]);
+  // Found by the quiet minute refresh, nothing else reads it out: one polite
+  // sentence (codex P3 on #1396). The text stays the same, so no repeat; a card,
+  // 추천 순서 or 경로 찾기 that found it has its own alert.
+  const announce = listGone && expiredAt !== data.fetchedAt;
   const guide = query.data?.data;
   // A failed refresh keeps the list it had; the failure shows only without one.
   const failure = guide
@@ -369,14 +373,18 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
           path: not for a supporter. */}
       {!supporter && <SpecUpGoal data={data} />}
       {/* Its own line, held before the answer arrives (CLS 0). */}
-      {/* Not a live region: the price time changes with each refresh. The failed
-          request's own alert reads the old-data sentence out. */}
+      <span className={styles.sr} role="status">
+        {announce ? EXPIRED_LINE : ""}
+      </span>
+      {/* Not a live region: the price time changes with each refresh. A failed
+          request's own alert, or the status above, reads the old-data sentence out. */}
       <p className={styles.specUpPrices}>
         {expired ? (
           // The site's stale tone (DataRefreshState's 오래된 값), so it is not missed (PM 총괄 P3).
           <span className={styles.specUpExpired}>
             <Warning size={13} aria-hidden="true" />
-            {EXPIRED_LINE}
+            <span data-width="wide">{EXPIRED_LINE}</span>
+            <span data-width="narrow">{EXPIRED_LINE_SHORT}</span>
           </span>
         ) : !pathShown && guide?.pricesAt ? `시세 ${kstTime(guide.pricesAt)} 기준` : ""}
       </p>

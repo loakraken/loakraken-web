@@ -22,5 +22,7 @@ export function useMarkExpired(error: unknown) {
   }, [gone, markExpired]);
 }
 
-// One line in the guide's 18px held line, at 320 too (A37).
+// One line in the guide's 18px held line (A37); at 360 and below the short one,
+// so even a wide fallback font fits at 320 (codex P3 on #1396).
 export const EXPIRED_LINE = "오래된 정보예요 · 갱신을 누르면 다시 불러와요";
+export const EXPIRED_LINE_SHORT = "오래된 정보예요 · 갱신해 주세요";
