@@ -358,6 +358,11 @@ export function BotMascot({
     // Where it looks while the watched element has focus, in reach units from
     // the head: measured on focus, keystrokes and scrolls (never per frame).
     let aimed: { x: number; y: number } | null = null;
+    // The point it turns to (focus or pointer), in hundredths of the reach:
+    // written on those events only, for tests (the drawn pose also wanders).
+    const showAim = (at: { x: number; y: number }) => {
+      el.dataset.botAim = `${at.x.toFixed(2)},${at.y.toFixed(2)}`;
+    };
     reaim.current = () => {
       const { looking: on, lookAt: ref } = watched.current;
       const field = on ? ref?.current : null;
@@ -367,6 +372,7 @@ export function BotMascot({
       const cx = r.left + r.width / 2;
       const cy = r.top + r.height / 2;
       aimed = { x: reach(point.x - cx, cx, innerWidth - cx), y: reach(point.y - cy, cy, innerHeight - cy) };
+      showAim(aimed);
     };
     const target = () => (watched.current.looking ? aimed : null);
     reaim.current();
@@ -516,6 +522,7 @@ export function BotMascot({
       // Looking at the search box: the pointer is kept for afterwards, but it
       // neither turns nor wakes the head (typing and pointing hold the look).
       if (watched.current.looking && !wokenHop) return;
+      showAim(ptr);
       if (wokenHop) {
         wokenHop = false;
         // Pressing the bot itself is its pause control: it wakes without a hop.

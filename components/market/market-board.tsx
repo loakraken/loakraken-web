@@ -645,9 +645,11 @@ function MarketContent({
             </PillTabs>
           )}
           {favorites.length === 0 ? (
-            <BotNote mood="calm">
+            // In the bar's own 30px row: saved favourites replace it after
+            // loading (browser storage), so it must be no taller than them.
+            <BotNote mood="calm" inline className={styles.favoritesNote}>
               <p className={styles.favoritesHint}>
-                <Bookmark size={12} aria-hidden="true" /> 아직 즐겨찾기한 품목이 없어요. 품목의 즐겨찾기 표시를 누르면 여기에 모아 볼 수 있어요.
+                <Bookmark size={12} aria-hidden="true" /> 아직 즐겨찾기한 품목이 없어요.
               </p>
             </BotNote>
           ) : (

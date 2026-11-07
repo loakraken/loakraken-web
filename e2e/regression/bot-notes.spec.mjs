@@ -8,7 +8,8 @@ import { watchShifts, shiftsSince } from "../support/shifts.mjs";
 const STATES = [
   { name: "시세 검색 결과 없음", path: "/market?q=zzz", mood: "puzzled", text: "‘zzz’에 맞는 품목이 이 분류에 없어요. 다른 분류에서 찾아볼까요?" },
   { name: "랭킹 0줄", path: "/rankings?type=gems&className=%ED%99%98%EC%88%98%EC%82%AC", mood: "puzzled", text: "조건에 맞는 캐릭터가 없어요. 조건을 조금 넓혀 볼까요?" },
-  { name: "시세 즐겨찾기 없음", path: "/market", mood: "calm", text: "아직 즐겨찾기한 품목이 없어요." },
+  // The favourites bar is one fixed 30px row (saved favourites replace it after loading): a one-line note.
+  { name: "시세 즐겨찾기 없음", path: "/market", mood: "calm", text: "아직 즐겨찾기한 품목이 없어요.", inline: true },
   { name: "캐릭터 없음", path: `/character/${encodeURIComponent("미존재")}`, mood: "puzzled", text: "이름을 한 번 더 확인하고 다시 검색해 볼까요?" },
   { name: "조회 늦음", path: `/character/${encodeURIComponent("시간초과")}`, mood: "asleep", text: "조회가 조금 오래 걸리고 있어요. 잠시 뒤 다시 시도해 주세요." },
 ];
@@ -29,11 +30,18 @@ for (const state of STATES)
       await expect(note.getByText(state.text)).toBeVisible();
       await expect(note.locator("[data-bot]")).toHaveAttribute("aria-hidden", "true");
       const box = await note.locator("[data-bot]").boundingBox();
-      expect([Math.round(box.width), Math.round(box.height)]).toEqual([56, 56]);
-      // Phones: the bot above the copy; wide: beside it.
+      const size = state.inline ? 28 : 56;
+      expect([Math.round(box.width), Math.round(box.height)]).toEqual([size, size]);
+      // Phones: the bot above the copy; wide (and a one-line note at every width): beside it.
       const copy = await note.locator("> div").last().boundingBox();
-      if (width <= 600) expect(copy.y).toBeGreaterThanOrEqual(box.y + box.height - 1);
+      if (width <= 600 && !state.inline) expect(copy.y).toBeGreaterThanOrEqual(box.y + box.height - 1);
       else expect(copy.x).toBeGreaterThanOrEqual(box.x + box.width - 1);
+      // A one-line note fits its row: the note is no taller than 30px and its text is not cut either way.
+      if (state.inline) {
+        expect(Math.round((await note.boundingBox()).height)).toBeLessThanOrEqual(30);
+        const fits = await note.locator("p").evaluate((p) => [p.scrollWidth <= p.clientWidth + 1, p.scrollHeight <= p.clientHeight + 1]);
+        expect(fits, "한 줄 안내가 줄 안에 다 보임").toEqual([true, true]);
+      }
       // The drawing arrives in the fixed box, then rests still.
       await expect(note.locator("canvas")).toHaveAttribute("data-bot-turn", /,/, { timeout: 8000 });
       await expect(note.locator("canvas")).toHaveAttribute("data-bot-loop", "parked", { timeout: 8000 });

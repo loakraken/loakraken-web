@@ -15,9 +15,17 @@
   min-width: 0;
 }
 @media (max-width: 600px) {
-  .note {
+  .note:not(.inline) {
     flex-direction: column;
     align-items: flex-start;
     gap: 8px;
   }
+}
+/* One line: a 28px bot in the row, the copy beside it at every width. */
+.inline {
+  gap: 6px;
+}
+.inline .bot {
+  width: 28px;
+  height: 28px;
 }

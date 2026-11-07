@@ -8,6 +8,9 @@
 //  - `asleep` (the official server did not answer): its sleeping pose;
 //  - `calm` (nothing here yet): awake, never dozing off.
 // Reduced motion: the still pose only.
+// `inline` (a one-line row with a fixed height, like the market's favourites
+// bar): a smaller bot in the line, never above the copy, so the row keeps
+// the same height as what replaces it after loading.
 
 import type { ReactNode } from "react";
 import { BotMascot } from "./bot-mascot";
@@ -16,21 +19,37 @@ import { useReducedMotion } from "@/components/landing/motion-context";
 import { useTheme } from "@/components/ui/theme-toggle";
 import styles from "./bot-note.module.css";
 
+/** The bot's box in a one-line row (px). */
+const INLINE_SIZE = 28;
+
 export type BotMood = "puzzled" | "asleep" | "calm";
 
-export function BotNote({ mood, children, className }: { mood: BotMood; children: ReactNode; className?: string }) {
+export function BotNote({
+  mood,
+  children,
+  className,
+  inline = false,
+}: {
+  mood: BotMood;
+  children: ReactNode;
+  className?: string;
+  inline?: boolean;
+}) {
   const [bot] = useChosenBot();
   const [wear] = useChosenWear();
   const reduced = useReducedMotion();
   const theme = useTheme();
   return (
-    <div className={className ? `${styles.note} ${className}` : styles.note} data-bot-note={mood}>
+    <div
+      className={[styles.note, inline && styles.inline, className].filter(Boolean).join(" ")}
+      data-bot-note={mood}
+    >
       <span className={styles.bot}>
         <BotMascot
           type={bot}
           wear={wear}
           state={mood === "asleep" ? "sleeping" : "default"}
-          size={56}
+          size={inline ? INLINE_SIZE : 56}
           restAfter={1200}
           still={reduced}
           theme={theme}
