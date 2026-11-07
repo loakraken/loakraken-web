@@ -15,7 +15,15 @@ const fill = (locator) =>
 /** Contrast of a bar's colour with the panel and with its own track over it, the lower (non-text: >= 3, PM 총괄 11-08). */
 const barContrast = (locator) =>
   locator.evaluate((el) => {
-    const rgb = (c) => (c.match(/[\d.]+/g) ?? []).map(Number);
+    // Any CSS colour (rgb(), oklab() from color-mix …) to [r, g, b, a] through a 1×1 canvas.
+    const ctx = Object.assign(document.createElement("canvas"), { width: 1, height: 1 }).getContext("2d", { willReadFrequently: true });
+    const rgb = (c) => {
+      ctx.clearRect(0, 0, 1, 1);
+      ctx.fillStyle = c;
+      ctx.fillRect(0, 0, 1, 1);
+      const [r, g, b, a] = ctx.getImageData(0, 0, 1, 1).data;
+      return [r, g, b, a / 255];
+    };
     const lum = ([r, g, b]) => {
       const f = (v) => ((v /= 255) <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
       return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
