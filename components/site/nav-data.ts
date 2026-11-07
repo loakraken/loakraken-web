@@ -23,6 +23,11 @@ export type NavSection = {
   all?: { label: string; description: string; href: string };
   /** Mobile sheet shows the group titles too (a long section split into groups). */
   sheetGroups?: boolean;
+  /**
+   * A section with one page only: the bar shows it as a plain link (no
+   * panel), the mobile sheet as its one entry (user 11-08, 소개).
+   */
+  link?: NavLink & { href: string };
   /** A group whose title links to its hub page (the hub's first tab). */
   groups: { title: string; href?: string; links: NavLink[] }[];
   /**
@@ -34,18 +39,17 @@ export type NavSection = {
 
 export const NAV_SECTIONS: NavSection[] = [
   {
+    // One page in the menu (user 11-08): 소개 opens the intro directly. The
+    // page's other parts are no rows, but the header search still finds them.
     id: "about",
     label: "소개",
-    groups: [
-      {
-        title: "LOAKraken",
-        links: [
-          { label: "서비스 소개", description: "흩어진 정보를 한 곳에서", href: "/about#intro" },
-          { label: "캐릭터 미리보기", description: "예시 데이터로 보는 화면", href: "/about#preview" },
-          { label: "근거 보기", description: "결과마다 원본 데이터를 함께", href: "/about#evidence" },
-          { label: "로드맵", description: "흡수 중인 기능과 순서", href: "/about#roadmap" },
-        ],
-      },
+    link: { label: "서비스 소개", description: "흩어진 정보를 한 곳에서", href: "/about#intro" },
+    groups: [],
+    search: [
+      { label: "서비스 소개", description: "흩어진 정보를 한 곳에서", href: "/about#intro" },
+      { label: "캐릭터 미리보기", description: "예시 데이터로 보는 화면", href: "/about#preview" },
+      { label: "근거 보기", description: "결과마다 원본 데이터를 함께", href: "/about#evidence" },
+      { label: "로드맵", description: "흡수 중인 기능과 순서", href: "/about#roadmap" },
     ],
   },
   {
