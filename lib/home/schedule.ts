@@ -54,13 +54,28 @@ export type ScheduleGroup = {
 };
 
 /**
+ * An entry's headline level: the highest of its own entry level and its
+ * reward groups' levels. The official calendar gives every chaos gate place
+ * the same entry level (1,580 on 11-07, 13 of 13) and keeps the real tiers in
+ * the reward groups (1,580 to 1,770), so the place level alone still read
+ * "1,580 이상" (user 11-08). A group level of 0 or 1 means no tier (field
+ * bosses, islands) and is left out.
+ */
+export function headlineLevel(item: Pick<Timed, "minItemLevel" | "rewardGroups">): number | null {
+  const levels = [item.minItemLevel, ...item.rewardGroups.map((group) => group.minItemLevel)].filter(
+    (level): level is number => level != null && level > 1,
+  );
+  return levels.length ? Math.max(...levels) : item.minItemLevel;
+}
+
+/**
  * Chaos gates and field bosses come one official entry per place (13 chaos
  * gates with the same rounds and rewards). Entries with the same rounds and
  * rewards become one row named by the category, listing the places; an entry
  * unlike the others stays as it is. Two different merged sets keep apart by
- * their entry level. A merged row's level is its highest place's (user 11-03:
- * "1,580 이상" read as if every place took 1,580); `minItemLevel` keeps the
- * API field's name, and each place keeps its own level.
+ * their level. A row's level is its headline level (headlineLevel; user
+ * 11-03 and 11-08); `minItemLevel` keeps the API field's name, and each
+ * place keeps its own entry level.
  */
 export function mergeSameRounds(items: Timed[], label: string): Row[] {
   const sets = new Map<string, Timed[]>();
@@ -72,8 +87,8 @@ export function mergeSameRounds(items: Timed[], label: string): Row[] {
   }
   const merged = [...sets.values()].filter((set) => set.length > 1);
   return [...sets.values()].map((set): Row => {
-    if (set.length === 1) return set[0];
-    const levels = set.map((item) => item.minItemLevel).filter((level): level is number => level != null);
+    if (set.length === 1) return { ...set[0], minItemLevel: headlineLevel(set[0]) };
+    const levels = set.map(headlineLevel).filter((level): level is number => level != null);
     const topLevel = levels.length ? Math.max(...levels) : null;
     return {
       ...set[0],

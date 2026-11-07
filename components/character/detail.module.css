@@ -563,10 +563,10 @@
   font-size: 13px;
   font-variant-numeric: tabular-nums;
 }
+/* A term with a tooltip (팔찌 효율, 쿨타임): no dotted underline (user 11-08);
+   the help cursor, the tooltip and the focus ring (globals.css) say it. */
 .braceletEffTerm {
   color: var(--muted-foreground);
-  text-decoration: underline dotted;
-  text-underline-offset: 3px;
   cursor: help;
 }
 /* The same increase colour as the spec-up tab (blue is "done", A26). */
@@ -1106,18 +1106,13 @@
   align-items: center;
   gap: 5px;
 }
-/* Full view: icon, name and the tier's three places, one hover/tap target. */
+/* Full view: icon, name and the tier's three places, one hover/tap target.
+   No underline on hover (user 11-08); the card it opens and the focus ring
+   (DetailTooltip) stay. */
 .tripodRow {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-}
-/* It opens a card: the name answers the pointer. */
-@media (hover: hover) and (pointer: fine) {
-  .tripodRow:hover > span:nth-child(2) {
-    text-decoration: underline dotted;
-    text-underline-offset: 3px;
-  }
 }
 /* Which of 1·2·3 was picked: the plain number (no box: the icon's corner
    already carries the tripod level), in tabular figures of one width. */
