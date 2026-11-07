@@ -838,7 +838,11 @@ function TitlesTab({ query }: { query: StatsQuery }) {
   if (!titles.data) return <p className={styles.muted}>칭호 통계를 불러오고 있어요…</p>;
   const { meta, titles: rows } = titles.data.data;
   const ready = meta.sampleStatus === "READY";
-  const then = new Map((compare ? other.data?.data.titles ?? [] : []).map((row) => [row.title, row.equippedPercent]));
+  // Only the compared day's own answer: its placeholder is the last answer of
+  // that query (with no day picked, today's), which read as '±0%p' while the
+  // day loaded. Until it comes the change is '-'.
+  const compared = compare && !other.isPlaceholderData ? other.data?.data.titles ?? [] : [];
+  const then = new Map(compared.map((row) => [row.title, row.equippedPercent]));
   // The title table's four grades always (a server without 고대 rows does not
   // drop a button and move the rest, A7), then any other grade the api sends.
   const extra = [...new Set(rows.map((row) => row.grade).filter((g): g is string => !!g && !TITLE_FILTER_GRADES.includes(g)))].sort(
