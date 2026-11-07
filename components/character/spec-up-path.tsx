@@ -1,12 +1,12 @@
-"use client";
+﻿"use client";
 // 추천 순서 (api #794): the first chip of the spec-up list (사용자 결정 layout A,
 // 11-02; it was its own section under the list). The backend picks the best
 // next step, applies it, measures again, up to 30 steps. Its rows are the
-// list's rows — item image, the target opening its detail, a target's later
-// steps folded under its first one — with the running 전투력 and 골드 under
-// each figure. Asked for while this chip is chosen: each answer is up to a
+// list's rows — item image, the target opening its detail — one row per step in
+// its order (user 11-08: no folding of a target's later steps), with the
+// running 전투력 and 골드 under each figure. Asked for while this chip is chosen: each answer is up to a
 // thousand simulator runs on the backend (10-minute cache there).
-import { Fragment, useContext, useMemo, useState } from "react";
+import { useContext, useMemo, useState } from "react";
 import Link from "next/link";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { RATE_LIMITED, rateLimitCopy, retryLabel } from "@/lib/api/rate-limit";
@@ -18,12 +18,11 @@ import {
   PATH_FIRST_ROWS,
   PATH_SORTS,
   extraCosts,
-  orderLabel,
   stepCandidate,
   type PathSort,
   type SpecUpPath as Path,
 } from "@/lib/spec-up/path";
-import { groupStages, koreanGold, notCachedText, tryPathParam } from "@/lib/spec-up/model";
+import { koreanGold, notCachedText, tryPathParam } from "@/lib/spec-up/model";
 import detail from "./detail.module.css";
 import styles from "./spec-up-path.module.css";
 import { SpecUpRowDetail } from "./spec-up-detail";
@@ -143,8 +142,7 @@ export function SpecUpPathList({ data, sort }: { data: Character; sort: PathSort
   return (
     <section className={styles.result} aria-label="추천 순서" aria-busy={path.isFetching || undefined}>
       <p className={styles.lead}>
-        가장 좋은 한 단계를 올리고, 올린 상태에서 다시 재어 다음 단계를 고른 순서예요. 같은 항목의 다음 단계는 그 항목 줄의
-        자세히에 모았어요.
+        가장 좋은 한 단계를 올리고, 올린 상태에서 다시 재어 다음 단계를 고른 순서예요.
       </p>
       {/* Same scope as the patch note (PM 총괄 11-01): kinds the path cannot take yet. */}
       <p className={styles.lead}>
@@ -179,20 +177,18 @@ export function SpecUpPathList({ data, sort }: { data: Character; sort: PathSort
 function PathAnswer({ data, path, stale }: { data: Character; path: Path; stale: boolean }) {
   const name = data.characterName;
   const [all, setAll] = useState(false);
-  const [openGroups, setOpenGroups] = useState<ReadonlySet<string>>(() => new Set());
   const steps = path.steps;
   const start = path.combatPower;
   const final = path.finalCombatPower;
   const sim = simulatorPath(steps);
   const simulator = useContext(SimulatorEnabled);
-  // Each step as a list row; a target's later steps fold under its first one,
-  // which keeps its place in the order (사용자 결정 layout A).
-  const { groups, byId } = useMemo(() => {
+  // One list row per step, numbered by its order (user 11-08): a target's later
+  // steps keep their own place instead of folding under the first one.
+  const rows = useMemo(() => {
     const extras = extraCosts(steps);
-    const byId = new Map(steps.map((step, i) => [step.candidateId, { step, extra: extras[i] }]));
-    return { groups: groupStages(steps.map(stepCandidate)), byId };
+    return steps.map((step, i) => ({ step, extra: extras[i], candidate: stepCandidate(step) }));
   }, [steps]);
-  const shown = all ? groups : groups.slice(0, PATH_FIRST_ROWS);
+  const shown = all ? rows : rows.slice(0, PATH_FIRST_ROWS);
 
   // Supporters, unjudged roles, no official combat power: no steps and the guide's reason.
   // No step but unpriced ones (QA 11-01 P3): the backend's "all picked" sentence read as
@@ -232,71 +228,38 @@ function PathAnswer({ data, path, stale }: { data: Character; path: Path; stale:
           </caption>
           <Head />
           <tbody>
-            {shown.flatMap((group) => {
-              const open = openGroups.has(group.head.id);
-              return [group.head, ...group.more].map((c, j) => {
-                const sub = j > 0;
-                const { step, extra } = byId.get(c.id)!;
-                return (
-                  <tr key={c.id} data-sub={sub || undefined} data-collapsed={(sub && !open) || undefined}>
-                    {/* A closed group's head holds its later steps too ("1–2"); open, each row has its own. */}
-                    <td data-cell="rank">
-                      {!sub && !open && group.more.length > 0 ? (
-                        <Breakable
-                          text={orderLabel([group.head, ...group.more].map((g) => byId.get(g.id)!.step.order))}
-                        />
-                      ) : (
-                        step.order
-                      )}
-                    </td>
-                    <td data-cell="kind">{stepKindLabel(c.kind)}</td>
-                    <th scope="row" data-cell="target">
-                      {/* The target opens the row's detail, as in the list (시세·재료·전후 능력치). */}
-                      <SpecUpRowDetail characterName={name} fetchedAt={data.fetchedAt} candidate={c} />
-                      {!sub && group.more.length > 0 && (
-                        <button
-                          type="button"
-                          className={`${detail.specUpMore} hit-44`}
-                          aria-expanded={open}
-                          onClick={() =>
-                            setOpenGroups((prev) => {
-                              const next = new Set(prev);
-                              if (next.has(group.head.id)) next.delete(group.head.id);
-                              else next.add(group.head.id);
-                              return next;
-                            })
-                          }
-                        >
-                          {open ? "다른 단계 접기" : `자세히 · 다른 단계 ${group.more.length}개`}
-                        </button>
-                      )}
-                    </th>
-                    <td data-cell="change">
-                      {c.from} → {c.to}
-                    </td>
-                    <td data-cell="gain" data-label="전투력" className={detail.specUpGain} data-figure="">
-                      +{two(step.deltaCombatPower)}
-                      <small className={detail.specUpCostTime}>→ {two(step.combatPowerAfter)}</small>
-                    </td>
-                    <td data-cell="cost" data-label="추가 비용" data-figure="">
-                      {stepGold(extra)}
-                      {step.cumulativeCost != null && <small className={detail.specUpCostTime}>누적 {koreanGold(step.cumulativeCost)}G</small>}
-                    </td>
-                    <td data-cell="eff" data-label="1만 골드당" data-figure="">
-                      {step.combatPowerPer10kGold == null ? "—" : two(step.combatPowerPer10kGold)}
-                    </td>
-                  </tr>
-                );
-              });
-            })}
+            {shown.map(({ step, extra, candidate: c }) => (
+              <tr key={c.id}>
+                <td data-cell="rank">{step.order}</td>
+                <td data-cell="kind">{stepKindLabel(c.kind)}</td>
+                <th scope="row" data-cell="target">
+                  {/* The target opens the row's detail, as in the list (시세·재료·전후 능력치). */}
+                  <SpecUpRowDetail characterName={name} fetchedAt={data.fetchedAt} candidate={c} />
+                </th>
+                <td data-cell="change">
+                  {c.from} → {c.to}
+                </td>
+                <td data-cell="gain" data-label="전투력" className={detail.specUpGain} data-figure="">
+                  +{two(step.deltaCombatPower)}
+                  <small className={detail.specUpCostTime}>→ {two(step.combatPowerAfter)}</small>
+                </td>
+                <td data-cell="cost" data-label="추가 비용" data-figure="">
+                  {stepGold(extra)}
+                  {step.cumulativeCost != null && <small className={detail.specUpCostTime}>누적 {koreanGold(step.cumulativeCost)}G</small>}
+                </td>
+                <td data-cell="eff" data-label="1만 골드당" data-figure="">
+                  {step.combatPowerPer10kGold == null ? "—" : two(step.combatPowerPer10kGold)}
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
       {/* PM 총괄 11-02: the card opens the candidate as it is now, not after the earlier steps. */}
       <p className={styles.note}>줄을 눌러 보는 자세한 수치는 앞 단계를 올리기 전, 지금 장비 기준이에요.</p>
-      {groups.length > PATH_FIRST_ROWS && (
+      {rows.length > PATH_FIRST_ROWS && (
         <button type="button" className={styles.more} aria-expanded={all} onClick={() => setAll(!all)}>
-          {all ? `앞 ${PATH_FIRST_ROWS}줄만 보기` : `${groups.length}줄 모두 보기`}
+          {all ? `앞 ${PATH_FIRST_ROWS}줄만 보기` : `${rows.length}줄 모두 보기`}
         </button>
       )}
       {/* Only where the simulator tab exists (COMBAT_POWER_SIM): with it off the
@@ -323,21 +286,6 @@ function PathAnswer({ data, path, stale }: { data: Character; path: Path; stale:
       <Unpriced items={path.unpriced} />
     </div>
   );
-}
-
-/**
- * "13–14, 20" may break before a "–" and after a ", ": the phone card's 순서
- * column is 24px. Split on the separators themselves (no lookbehind: Safari
- * before 16.4 cannot parse one, and the whole chunk would fail).
- */
-function Breakable({ text }: { text: string }) {
-  return text.split(/(–|, )/).map((part, i) => (
-    <Fragment key={i}>
-      {part === "–" && <wbr />}
-      {part}
-      {part === ", " && <wbr />}
-    </Fragment>
-  ));
 }
 
 function Unpriced({ items }: { items: Path["unpriced"] }) {

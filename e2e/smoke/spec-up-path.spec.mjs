@@ -1,8 +1,8 @@
 // 스펙업 추천 순서 (api #794): the first chip of the spec-up list since 11-02 (사용자
 // 결정 layout A) and a dealer's first view, asked for while chosen. Its rows are
-// the list's rows (image, detail, a target's later steps under 자세히). The mock
-// serves the backend's sample (보석 8→9→10 on one slot, 품질 unpriced); '스펙순서긴'
-// has 14 steps (13 rows), '스펙순서몰림' is SPEC_UP_BUSY, '스펙순서스톤' adds a stone step.
+// the list's rows (image, detail), one per step in plain order (user 11-08). The
+// mock serves the backend's sample (보석 8→9→10 on one slot, 품질 unpriced);
+// '스펙순서긴' has 14 steps, '스펙순서몰림' is SPEC_UP_BUSY, '스펙순서스톤' adds a stone step.
 import { test, expect, characterPath, expectNoHorizontalOverflow, specUpListPath } from "../support/fixtures.mjs";
 import { shiftsDuring, watchShifts } from "../support/shifts.mjs";
 
@@ -12,7 +12,7 @@ const pathTable = (page) => page.getByRole("table", { name: /^추천 순서, / }
 const rows = (page) => pathTable(page).locator("tbody tr:not([data-collapsed])");
 
 test.describe("스펙업 추천 순서 @smoke", () => {
-  test("탭을 열면 추천 순서가 먼저: 저절로 묻고, 같은 보석 칸의 다음 단계는 자세히에, 단계 비용은 그 단계에서 더 드는 골드", async ({ page }) => {
+  test("탭을 열면 추천 순서가 먼저: 저절로 묻고, 같은 보석 칸의 다음 단계도 제 줄 · 제 번호, 단계 비용은 그 단계에서 더 드는 골드", async ({ page }) => {
     const asked = page.waitForRequest((r) => r.url().includes("/api/characters/spec-up/path?"));
     await page.goto(characterPath("스펙순서", "specup"));
     expect(new URL((await asked).url()).searchParams.get("sort")).toBe("EFFICIENCY");
@@ -20,15 +20,13 @@ test.describe("스펙업 추천 순서 @smoke", () => {
     await expect(chips(page).getByRole("button", { name: "추천 순서" })).toHaveAttribute("aria-pressed", "true");
     await expect(rule(page).getByRole("button", { name: "효율 우선" })).toHaveAttribute("aria-pressed", "true");
     await expect(pathTable(page)).toBeVisible();
-    // 보석 8→9 and 9→10 on one slot: one row, the next stage behind 자세히.
-    await expect(rows(page)).toHaveCount(1);
+    // 보석 8→9 and 9→10 on one slot: two rows numbered 1 and 2, nothing folded (user 11-08).
+    await expect(rows(page)).toHaveCount(2);
+    await expect(pathTable(page).getByRole("button", { name: /자세히 · 다른 단계/ })).toHaveCount(0);
     await expect(rows(page).first()).toContainText("8레벨 → 9레벨");
     await expect(rows(page).first()).toContainText("+60만G");
-    // The closed row holds steps 1 and 2, so the numbers never skip (PM 총괄 11-03).
+    await expect(rows(page).nth(1)).toContainText("9레벨 → 10레벨");
     const rank = (i) => rows(page).nth(i).locator('[data-cell="rank"]');
-    await expect(rank(0)).toHaveText("1–2");
-    await rows(page).first().getByRole("button", { name: "자세히 · 다른 단계 1개" }).click();
-    await expect(rows(page)).toHaveCount(2);
     await expect(rank(0)).toHaveText("1");
     await expect(rank(1)).toHaveText("2");
     // 9→10 costs 260만G from today's gem; this step adds 200만G on top of step 1.
@@ -191,8 +189,8 @@ test.describe("스펙업 추천 순서 @smoke", () => {
   });
 
   // 목표 전투력 sits above the answer (PM 총괄 11-03, B): a short (2 steps) or long
-  // (13 rows) answer arriving late moves nothing, with no blank floor left behind.
-  for (const [who, rowsShown] of [["스펙순서", 1], ["스펙순서긴", 10]])
+  // (14 steps, 10 rows shown) answer arriving late moves nothing, with no blank floor left behind.
+  for (const [who, rowsShown] of [["스펙순서", 2], ["스펙순서긴", 10]])
     for (const [width, height] of [[320, 900], [360, 900], [1280, 900], [1280, 1400]])
       test(`${width}×${height} ${who}: 답이 늦게 와도(빈 줄 → ${rowsShown}줄) 목표 전투력도 무엇도 움직이지 않음`, async ({ page }) => {
         await watchShifts(page);
@@ -240,7 +238,7 @@ test.describe("스펙업 추천 순서 @smoke", () => {
         await route.fulfill({ response, json: body });
       });
       await page.goto(characterPath("스펙순서", "specup"));
-      await expect(rows(page)).toHaveCount(1);
+      await expect(rows(page)).toHaveCount(2);
       const goal = page.getByRole("region", { name: "목표 전투력" });
       await goal.getByRole("textbox", { name: "목표 전투력" }).fill("12400");
       const list = pathTable(page);
@@ -262,9 +260,11 @@ test.describe("스펙업 추천 순서 @smoke", () => {
       await page.goto(characterPath("스펙순서긴", "specup"));
       await expect(rows(page)).toHaveCount(10);
       await expect(page.getByText("앞에서부터 14단계까지 보여 드려요.")).toBeVisible();
-      const more = page.getByRole("button", { name: "13줄 모두 보기" });
+      const more = page.getByRole("button", { name: "14줄 모두 보기" });
       await more.click();
-      await expect(rows(page)).toHaveCount(13);
+      await expect(rows(page)).toHaveCount(14);
+      // Plain order: the rows read 1 … 14 (user 11-08).
+      await expect(rows(page).locator('[data-cell="rank"]')).toHaveText(Array.from({ length: 14 }, (_, i) => `${i + 1}`));
       await expect(page.getByRole("button", { name: "앞 10줄만 보기" })).toHaveAttribute("aria-expanded", "true");
       await expectNoHorizontalOverflow(page);
     }
