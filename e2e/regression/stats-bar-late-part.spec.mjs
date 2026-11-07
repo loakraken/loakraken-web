@@ -75,6 +75,8 @@ for (const width of [320, 360, 390, 768, 1280])
     await gotoReady(page, "/stats");
     const bar = page.getByRole("form", { name: "통계 조건" });
     await expect(bar.getByRole("radiogroup", { name: "기간" })).toBeVisible();
+    // The sample line has its answer, so nothing else changes the bar's height meanwhile.
+    await expect(bar.getByRole("note")).toContainText(/표본 [\d,]+명/);
     await page.evaluate(() => document.fonts.ready);
     const before = await bar.boundingBox();
     const moved = await partsArriving(bar);
