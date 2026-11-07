@@ -2412,7 +2412,9 @@
 }
 /* The old-data note in that line: the stale tone and a warning mark, one line. */
 .specUpExpired {
-  display: inline-flex;
+  /* A flex row, not inline-flex: on the text baseline it made the 18px line taller. */
+  display: flex;
+  height: 100%;
   align-items: center;
   gap: 4px;
   color: var(--accent-warm);
