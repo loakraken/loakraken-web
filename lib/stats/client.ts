@@ -25,7 +25,12 @@ import { bestCombatPowerSearch, type BestCombatPowerEnvelope } from "./best-comb
 import { gemLevelsSearch, type GemLevelsEnvelope } from "./gem-levels";
 import { levelCombatPowerSearch, type LevelCombatPowerEnvelope } from "./level-combat-power";
 import { guildDetailPath, type GuildDetailEnvelope, type GuildDetailQuery } from "./guild-detail";
-import { titleEquipSearch, type TitleEquipEnvelope, type TitleEquipQuery } from "./title-equip";
+import {
+  titleEquipSearch,
+  type TitleEquipEnvelope,
+  type TitleEquipQuery,
+  type TitleSnapshotDatesEnvelope,
+} from "./title-equip";
 import { collectibleSearch, type CollectibleQuery, type CollectibleRankingEnvelope } from "./collectible-ranking";
 import { populationSearch, type PopulationEnvelope } from "./population";
 
@@ -58,6 +63,9 @@ export const fetchRankings = (query: RankingQuery, signal: AbortSignal) =>
 
 export const fetchTitleEquip = (query: TitleEquipQuery, signal: AbortSignal) =>
   call<TitleEquipEnvelope>(`/api/titles/equipped?${titleEquipSearch(query)}`, signal);
+
+export const fetchTitleDates = (server: string | undefined, signal: AbortSignal) =>
+  call<TitleSnapshotDatesEnvelope>(`/api/titles/equipped/dates${server ? `?${new URLSearchParams({ server })}` : ""}`, signal);
 
 export const fetchGuildRanking = (query: GuildQuery, signal: AbortSignal) =>
   call<GuildRankingEnvelope>(`/api/rankings/guilds?${guildSearch(query)}`, signal);

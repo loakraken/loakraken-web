@@ -987,3 +987,129 @@
 .range input[aria-invalid="true"] {
   border-color: var(--destructive, var(--foreground));
 }
+
+/* 칭호 tab (user 11-08: richer, as the reference shows; our own design). */
+.titleSummary {
+  margin: 0 0 8px;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.titleSummary strong {
+  color: var(--foreground);
+  font-weight: 700;
+}
+/* 기준일, 비교 and the grade filter on one row that wraps. */
+.titleBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  margin: 0 0 10px;
+}
+.titleDay {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  font-weight: 600;
+}
+/* The title cell holds the name and its 획득 조건 under it: it wraps instead
+   of being cut (A37), the numbers beside it stay on one line. */
+.table[data-fixed].titleTable tbody th {
+  white-space: normal;
+  text-overflow: clip;
+  text-align: left;
+}
+.titleCell {
+  display: grid;
+  gap: 2px;
+}
+.titleCell[data-child] {
+  padding-left: 18px;
+  position: relative;
+}
+/* A variant under its title: a short corner line in the rule colour. */
+.titleCell[data-child]::before {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 2px;
+  width: 8px;
+  height: 9px;
+  border-left: 1.5px solid var(--border);
+  border-bottom: 1.5px solid var(--border);
+  border-bottom-left-radius: 3px;
+}
+.titleLine {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 6px;
+}
+.titleName {
+  font-weight: 600;
+}
+/* The grade word: the grade's text colour in a thin ring of it (same box as
+   before). No fill: the grade text tokens are >= 4.5:1 on the surface itself,
+   a tint under them would drop that to about 4:1. */
+.titleGrade {
+  padding: 0 5px;
+  border: 1px solid color-mix(in oklab, currentColor 45%, transparent);
+  border-radius: var(--radius-xs);
+  font-size: 11px;
+  font-weight: 700;
+}
+.titleCondition {
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-weight: 400;
+}
+/* Grade text colours (globals.css, >= 4.5:1 in every theme); an unknown grade keeps the plain colour. */
+.titleName[data-grade="normal"], .titleGrade[data-grade="normal"] { color: var(--grade-normal-text); }
+.titleName[data-grade="uncommon"], .titleGrade[data-grade="uncommon"] { color: var(--grade-uncommon-text); }
+.titleName[data-grade="rare"], .titleGrade[data-grade="rare"] { color: var(--grade-rare-text); }
+.titleName[data-grade="epic"], .titleGrade[data-grade="epic"] { color: var(--grade-epic-text); }
+.titleName[data-grade="legendary"], .titleGrade[data-grade="legendary"] { color: var(--grade-legendary-text); }
+.titleName[data-grade="relic"], .titleGrade[data-grade="relic"] { color: var(--grade-relic-text); }
+.titleName[data-grade="ancient"], .titleGrade[data-grade="ancient"] { color: var(--grade-ancient-text); }
+.titleName[data-grade="esther"], .titleGrade[data-grade="esther"] { color: var(--grade-esther-text); }
+.titleGrade[data-grade="unknown"] { color: var(--muted-foreground); }
+/* The phone line of a title's numbers: hidden where the columns show them. */
+.titleNumbers {
+  display: none;
+  color: var(--foreground);
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+/* The phone line's change: never broken inside, and its value in a slot as
+   wide as '+00.00%p', so '-' turning into the answer moves nothing (#1411 P3). */
+.titleChange {
+  white-space: nowrap;
+}
+.titleChange span {
+  display: inline-block;
+  min-width: 8ch;
+}
+/* Phones: the numbers go under the name (PM 총괄 11-08) instead of behind the
+   table's sideways scroll; the table is the screen's width, rank and title. */
+@media (max-width: 480px) {
+  .table[data-fixed].titleTable {
+    width: 100% !important;
+  }
+  .titleTable col:nth-child(1) {
+    width: 3.6em !important; /* the 순위 head whole (A37) */
+  }
+  .titleTable col:nth-child(2) {
+    width: auto !important;
+  }
+  .titleTable col:nth-child(n + 3),
+  .titleTable :is(th, td):nth-child(n + 3) {
+    display: none;
+  }
+  .titleNumbers {
+    display: block;
+  }
+}

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useId, useState, type CSSProperties } from "react";
+import { useEffect, useId, useState, type CSSProperties, type ReactNode } from "react";
 import { useTallest } from "@/components/ui/use-tallest";
 import { classBuildsPath } from "@/lib/stats/class-builds";
 import { useSearchParams } from "next/navigation";
@@ -19,13 +19,16 @@ import {
   fetchGemLevels,
   fetchLevelCombatPower,
   fetchStats,
+  fetchTitleDates,
   fetchTitleEquip,
   isAbsent,
 } from "@/lib/stats/client";
 import { gemBinLabel, type GemLevelsEnvelope } from "@/lib/stats/gem-levels";
 import gemStyles from "./gem-levels.module.css";
 import { LevelCombatPowerChart } from "./level-combat-power-chart";
-import { equipShare, titleEquipQuery } from "@/lib/stats/title-equip";
+import { equipShare, groupTitles, shareChange, titleEquipQuery, type EquippedTitle } from "@/lib/stats/title-equip";
+import { gradeKey } from "@/lib/character/model";
+import { Select } from "@/components/ui/select";
 import {
   DISTRIBUTION_WIDTH,
   distributionKey,
@@ -647,7 +650,8 @@ function ServersTab({ query }: { query: StatsQuery }) {
  * Server and days apply; role, level and representative do not (said).
  */
 // 순위 · 칭호 · 장착 원정대 · 비율
-const TITLE_COLUMNS = rankingColumns([3.5, 18, 8, 6.5]);
+const TITLE_COLUMNS = rankingColumns([3.5, 24, 8, 6.5]);
+const TITLE_COMPARE_COLUMNS = rankingColumns([3.5, 24, 8, 6.5, 8]);
 
 /**
  * 최고 전투력 (L5): each character's highest combat power over its whole
@@ -751,11 +755,81 @@ function BestBlock({ query }: { query: StatsQuery }) {
   );
 }
 
+/** Grade order of the filter (the official grades high to low); others follow by name. */
+const TITLE_GRADES = ["에스더", "고대", "유물", "전설", "영웅", "희귀", "고급", "일반"];
+/** The grades the title table holds (11-08): always offered in the filter. */
+const TITLE_FILTER_GRADES = ["고대", "유물", "전설", "희귀"];
+
+/**
+ * A title's name in its grade's text colour (the item grade tokens, >= 4.5:1 in
+ * every theme); a grade we do not know (or none) stays in the plain colour, so
+ * a new grade from the api never breaks the row (PM 총괄 11-08).
+ */
+function TitleName({
+  row,
+  title,
+  child,
+  numbers,
+}: {
+  row: EquippedTitle | null;
+  title: string;
+  child?: boolean;
+  /** 장착 원정대 · 비율 (· 대비): shown under the name on phones, where those columns are hidden. */
+  numbers: ReactNode;
+}) {
+  const key = gradeKey(row?.grade);
+  return (
+    <span className={styles.titleCell} data-child={child || undefined}>
+      <span className={styles.titleLine}>
+        {row?.grade && (
+          <span className={styles.titleGrade} data-grade={key}>
+            {row.grade}
+          </span>
+        )}
+        <span className={styles.titleName} data-grade={key}>
+          {title}
+        </span>
+      </span>
+      {row?.condition && <small className={styles.titleCondition}>{row.condition}</small>}
+      <span className={styles.titleNumbers}>{numbers}</span>
+    </span>
+  );
+}
+
 function TitlesTab({ query }: { query: StatsQuery }) {
-  const titleQuery = titleEquipQuery(query);
+  // A stored day (KST) instead of now, and another day to compare with
+  // (칭호 contract v1.1): the days are all servers and 30 days only.
+  const [date, setDate] = useState<string | null>(null);
+  const [compare, setCompare] = useState<string | null>(null);
+  const [grade, setGrade] = useState<string | null>(null);
+  const dateId = useId();
+  const compareId = useId();
+  const titleQuery = titleEquipQuery({ ...query, date });
   const titles = useQuery({
     queryKey: ["title-equip", titleQuery],
     queryFn: ({ signal }) => fetchTitleEquip(titleQuery, signal),
+    staleTime: 5 * 60_000,
+    placeholderData: keepPreviousData,
+    ...quiet,
+  });
+  // Before the first daily record (or an api without days yet) there are no
+  // days: the day controls stay, disabled (A7: they are there from the first
+  // paint, so a late or empty answer moves nothing, PM-프론트 #1411 P2).
+  const dates = useQuery({
+    queryKey: ["title-equip", "dates", titleQuery.server ?? ""],
+    queryFn: ({ signal }) => fetchTitleDates(titleQuery.server, signal),
+    staleTime: 30 * 60_000,
+    // The last server's days until the new ones come: the day controls do not
+    // blink out on a server change, moving the table (A7).
+    placeholderData: keepPreviousData,
+    ...quiet,
+  });
+  const days = dates.data?.data.dates ?? [];
+  const compareQuery = titleEquipQuery({ server: query.server, date: compare });
+  const other = useQuery({
+    queryKey: ["title-equip", compareQuery],
+    queryFn: ({ signal }) => fetchTitleEquip(compareQuery, signal),
+    enabled: compare != null,
     staleTime: 5 * 60_000,
     placeholderData: keepPreviousData,
     ...quiet,
@@ -764,38 +838,141 @@ function TitlesTab({ query }: { query: StatsQuery }) {
   if (!titles.data) return <p className={styles.muted}>칭호 통계를 불러오고 있어요…</p>;
   const { meta, titles: rows } = titles.data.data;
   const ready = meta.sampleStatus === "READY";
+  // Only the compared day's own answer: its placeholder is the last answer of
+  // that query (with no day picked, today's), which read as '±0%p' while the
+  // day loaded. Until it comes the change is '-'.
+  const compared = compare && !other.isPlaceholderData ? other.data?.data.titles ?? [] : [];
+  const then = new Map(compared.map((row) => [row.title, row.equippedPercent]));
+  // The title table's four grades always (a server without 고대 rows does not
+  // drop a button and move the rest, A7), then any other grade the api sends.
+  const extra = [...new Set(rows.map((row) => row.grade).filter((g): g is string => !!g && !TITLE_FILTER_GRADES.includes(g)))].sort(
+    (a, b) => (TITLE_GRADES.indexOf(a) + 99) % 99 - (TITLE_GRADES.indexOf(b) + 99) % 99 || a.localeCompare(b, "ko"),
+  );
+  const grades = [...TITLE_FILTER_GRADES, ...extra];
+  const groups = groupTitles(rows).filter(
+    (group) => !grade || group.row?.grade === grade || group.children.some((child) => child.grade === grade),
+  );
+  const dayLabel = (day: string) => day.replaceAll("-", ". ");
+  const columns = compare ? TITLE_COMPARE_COLUMNS : TITLE_COLUMNS;
+  // The phone line under the name: the same values as the hidden columns. The
+  // change sits in a slot of fixed width that never breaks, so its answer
+  // ('-' → '+4.84%p') cannot wrap the line (PM-프론트 #1411 P3).
+  const numbers = (row: EquippedTitle | null, title: string) => (
+    <>
+      {row ? `장착 원정대 ${whole(row.equippedRosters)}개` : "장착 원정대 -"} · {row ? equipShare(row) : "-"}
+      {compare && (
+        <>
+          {" · "}
+          <span className={styles.titleChange}>
+            {dayLabel(compare)} 대비 <span>{shareChange(row?.equippedPercent, then.get(title))}</span>
+          </span>
+        </>
+      )}
+    </>
+  );
   return (
     <div {...pendingProps(titles)}>
+      {/* One line of what the table holds, over the table; drawn anew per
+          answer, so a new count moves no text in place (A7, as the notice). */}
+      {/* Its own key: the notice below is keyed by the same answer, and two
+          siblings with one key left the old lines in the page. */}
+      <p key={`summary-${titles.dataUpdatedAt}`} className={styles.titleSummary}>
+        <strong>칭호 {whole(rows.filter((row) => !row.parentTitle).length)}종</strong> · 확인한 원정대 {whole(meta.population)}개 ·{" "}
+        {date ? `${dayLabel(date)} 기록` : "지금"}
+      </p>
+      <div className={styles.titleBar}>
+        <span className={styles.titleDay}>
+          <label htmlFor={dateId}>기준일</label>
+          <Select
+            id={dateId}
+            disabled={days.length === 0}
+            value={date ?? ""}
+            onValueChange={(value) => {
+              setDate(value || null);
+              if (!value || value === compare) setCompare(null);
+            }}
+            items={[{ value: "", label: "지금" }, ...days.map((day) => ({ value: day, label: dayLabel(day) }))]}
+          />
+        </span>
+        {/* Two days or more to set side by side (none right after deploy). */}
+        <span className={styles.titleDay}>
+          <label htmlFor={compareId}>비교</label>
+          <Select
+            id={compareId}
+            disabled={days.length < 2}
+            value={compare ?? ""}
+            onValueChange={(value) => setCompare(value || null)}
+            items={[
+              { value: "", label: "안 함" },
+              ...days.filter((day) => day !== date).map((day) => ({ value: day, label: dayLabel(day) })),
+            ]}
+          />
+        </span>
+        {/* Only once the api sends grades (rows without them have nothing to filter). */}
+        {rows.some((row) => row.grade) && (
+          <span className={styles.segment} role="group" aria-label="등급">
+            <button type="button" aria-pressed={grade == null} onClick={() => setGrade(null)}>
+              전체
+            </button>
+            {grades.map((g) => (
+              <button key={g} type="button" aria-pressed={grade === g} onClick={() => setGrade(grade === g ? null : g)}>
+                {g}
+              </button>
+            ))}
+          </span>
+        )}
+      </div>
       {/* Fixed columns and a note of fixed height, drawn anew per answer: a
           server change moves nothing (A7, same as the ranking tables). */}
-      <p key={titles.dataUpdatedAt} className={`${styles.notice} ${styles.rankingNotice}`}>
+      <p key={`notice-${titles.dataUpdatedAt}`} className={`${styles.notice} ${styles.rankingNotice}`}>
         {sampleText(meta, "roster")} 중 그 칭호를 장착한 캐릭터가 있는 원정대의 비율이에요. 장착하지 않은 칭호는 알 수
         없어 세지 않아요{!ready && ` · 표본 ${meta.minSample}개 원정대 미만이라 참고값`}.
-        {(query.role || query.itemLevelMin != null || query.representativeOnly) && " 역할·아이템 레벨·대표 캐릭터 조건은 이 표에 쓰지 않아요."}
+        {date
+          ? " 기준일 기록은 최근 30일 기준이라 기간 조건을 쓰지 않아요."
+          : (query.role || query.itemLevelMin != null || query.representativeOnly) &&
+            " 역할·아이템 레벨·대표 캐릭터 조건은 이 표에 쓰지 않아요."}
       </p>
-      {rows.length === 0 ? (
-        <p className={styles.muted}>아직 확인한 칭호가 없어요.</p>
+      {groups.length === 0 ? (
+        <p className={styles.muted}>{rows.length ? "이 등급의 칭호가 없어요." : "아직 확인한 칭호가 없어요."}</p>
       ) : (
-        <DataTable label="칭호 장착 원정대 비율" className={styles.table} {...TITLE_COLUMNS.tableProps}>
+        <DataTable label="칭호 장착 원정대 비율" className={`${styles.table} ${styles.titleTable}`} {...columns.tableProps}>
           <caption className={styles.srOnly}>칭호 장착 원정대 비율</caption>
-          {TITLE_COLUMNS.colgroup}
+          {columns.colgroup}
           <thead>
             <tr>
               <th scope="col">순위</th>
-              <th scope="col" className={styles.left}>칭호</th>
+              <th scope="col" className={styles.left}>
+                칭호
+              </th>
               <th scope="col">장착 원정대</th>
               <th scope="col">비율</th>
+              {compare && <th scope="col">{dayLabel(compare)} 대비</th>}
             </tr>
           </thead>
-          <tbody key={titles.dataUpdatedAt}>
-            {rows.map((row, i) => (
-              <tr key={row.title}>
+          <tbody key={`${titles.dataUpdatedAt}-${other.dataUpdatedAt}-${grade}`}>
+            {groups.flatMap((group, i) => [
+              <tr key={group.title}>
                 <td>{whole(i + 1)}</td>
-                <th scope="row">{row.title}</th>
-                <td>{whole(row.equippedRosters)}개</td>
-                <td data-strong>{equipShare(row)}</td>
-              </tr>
-            ))}
+                <th scope="row">
+                  <TitleName row={group.row} title={group.title} numbers={numbers(group.row, group.title)} />
+                </th>
+                <td>{group.row ? `${whole(group.row.equippedRosters)}개` : "-"}</td>
+                <td data-strong>{group.row ? equipShare(group.row) : "-"}</td>
+                {compare && <td>{shareChange(group.row?.equippedPercent, then.get(group.title))}</td>}
+              </tr>,
+              // Variants (첫 주 클리어 …) under their title, without a rank of their own.
+              ...group.children.map((child) => (
+                <tr key={child.title} data-child>
+                  <td aria-hidden="true" />
+                  <th scope="row">
+                    <TitleName row={child} title={child.title} child numbers={numbers(child, child.title)} />
+                  </th>
+                  <td>{whole(child.equippedRosters)}개</td>
+                  <td data-strong>{equipShare(child)}</td>
+                  {compare && <td>{shareChange(child.equippedPercent, then.get(child.title))}</td>}
+                </tr>
+              )),
+            ])}
           </tbody>
         </DataTable>
       )}

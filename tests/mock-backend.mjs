@@ -2278,12 +2278,47 @@ createServer(async (req, res) => {
   }
   // Title equip shares (api #314): the roster title names of the 상세 mock,
   // fewer rosters on 아만 (a small sample there).
+  // Stored days of the title shares (칭호 contract v1.1): newest first.
+  if (url.pathname === "/api/v1/titles/equipped/dates")
+    return send({ code: "TITLE_EQUIP_DATES_SUCCESS", message: "ok", data: { dates: ["2026-11-09", "2026-11-08", "2026-11-07"] } });
   if (url.pathname === "/api/v1/titles/equipped") {
     const server = url.searchParams.get("server");
+    const date = url.searchParams.get("date");
+    // v1.2: a stored day is per server (or all) and 30 days only; a day with no record is 404.
+    if (date && (url.searchParams.get("activeDays") ?? "30") !== "30")
+      return send({ code: "INVALID_REQUEST", message: "date goes with 30 days only", data: null }, 400);
+    if (date && !["2026-11-09", "2026-11-08", "2026-11-07"].includes(date))
+      return send({ code: "TITLE_SNAPSHOT_NOT_FOUND", message: "no snapshot", data: null }, 404);
     const population = server === "아만" ? 24 : 1240;
-    const rows = [["빛을 꺼트리는 자", 400], ["에키드나를 쓰러뜨린 자", 310], ["별을 제패한 자", 12], ["합성 칭호", 0]]
-      .map(([title, n]) => ({ title, equippedRosters: server === "아만" ? Math.round(n / 50) : n }))
+    // Older days hold fewer rosters (a small, steady rise to today).
+    const back = date ? ["2026-11-09", "2026-11-08", "2026-11-07"].indexOf(date) + 1 : 0;
+    // Grade, variant parent and 획득 조건 as in the title table's public draft (11-08,
+    // text copied exactly); null = not in it. The table names variants only by a
+    // sub-row label, so the variant here carries no 획득 조건 of its own.
+    const catalog = {
+      "빛을 꺼트리는 자": ["희귀", null, "카멘을 처치한다"],
+      "별을 제패한 자": ["전설", null, "카멘을 처치한다"],
+      "뇌전의 군주": ["전설", null, "카제로스 레이드 익스트림 3막을 나이트메어 난이도로 처음 클리어한다"],
+      "뇌전의 군주 (첫 주 클리어)": ["전설", "뇌전의 군주", null],
+      "심연의 끝을 마주한 자": ["유물", null, "익스트림 3막과 종막을 나이트메어 난이도로 모두 클리어한다(업적 보상)"],
+      "카제로스 The 1st": ["고대", null, "카제로스 The FIRST 이벤트 1위 공격대"],
+    };
+    const rows = [
+      ["빛을 꺼트리는 자", 400],
+      ["에키드나를 쓰러뜨린 자", 310],
+      ["뇌전의 군주", 96],
+      ["뇌전의 군주 (첫 주 클리어)", 18],
+      ["심연의 끝을 마주한 자", 41],
+      ["별을 제패한 자", 12],
+      ["카제로스 The 1st", 8],
+      ["합성 칭호", 0],
+    ]
+      .map(([title, n]) => ({ title, equippedRosters: Math.max(0, (server === "아만" ? Math.round(n / 50) : n) - back * Math.round(n / 20)) }))
       .map((row) => ({ ...row, equippedPercent: Math.round((row.equippedRosters / population) * 10000) / 100 }))
+      .map((row) => {
+        const [grade, parentTitle, condition] = catalog[row.title] ?? [null, null, null];
+        return { ...row, grade, parentTitle, condition };
+      })
       // api #697: ever seen wearing it (a lower bound of owning it); under 30
       // characters the sample is not ready (별을 제패한 자 here).
       .map((row) => {
@@ -2314,6 +2349,7 @@ createServer(async (req, res) => {
           populationUnit: "ROSTER",
         },
         title: url.searchParams.get("title"),
+        snapshotDate: date,
         titles: rows,
       },
     });
