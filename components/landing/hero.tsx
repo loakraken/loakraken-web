@@ -14,7 +14,7 @@ import { useTheme } from "@/components/ui/theme-toggle";
 import { InlineOrb } from "./orb";
 import { BotMascot } from "@/components/bot/bot-mascot";
 import { BotPicker } from "@/components/bot/bot-picker";
-import { useChosenBot } from "@/components/bot/use-chosen-bot";
+import { useChosenBot, useChosenWear } from "@/components/bot/use-chosen-bot";
 import { useLandingMotion, useReducedMotion, useVisible } from "./motion-context";
 import { characterNameError, normalizeCharacterName } from "@/lib/character/model";
 import styles from "./landing.module.css";
@@ -47,9 +47,14 @@ export function Hero({
   const [focused, setFocused] = useState(false);
   // Each focus of the search box (click, tap or Tab) asks the bot for one hop.
   const [focusHops, setFocusHops] = useState(0);
+  // Each name the search box can't take (the format error) gets one puzzled tilt.
+  const [tilts, setTilts] = useState(0);
+  // The error puts focus back in the box: that focus is not the visitor's, so no hop.
+  const refocus = useRef(false);
   const Title = embedded ? "h2" : "h1";
   const theme = useTheme();
   const [bot] = useChosenBot();
+  const [wear] = useChosenWear();
   // The bot pauses the page's repeating motion (WCAG 2.2.2; user, 20:58: no
   // separate stop button). One fixed name with aria-pressed. With reduced
   // motion nothing moves, so it is only a picture.
@@ -71,7 +76,13 @@ export function Hero({
     event.preventDefault();
     const name = normalizeCharacterName(query);
     const issue = characterNameError(name);
-    if (issue) { setError(issue); input.current?.focus(); return; }
+    if (issue) {
+      setError(issue);
+      setTilts((n) => n + 1);
+      if (document.activeElement !== input.current) refocus.current = true;
+      input.current?.focus();
+      return;
+    }
     setError(""); setSearching(true);
     router.push(`/character/${encodeURIComponent(name)}`);
   }
@@ -97,7 +108,8 @@ export function Hero({
               : { type: "button" as const, "aria-label": "애니메이션 멈춤", "aria-pressed": paused, onClick: togglePaused })}
           >
             <BotMascot type={bot} state={searching ? "working" : "default"} size={150} follow
-              paused={!looping} still={reduced} theme={theme} decorative hopOn={focusHops} />
+              paused={!looping} still={reduced} theme={theme} decorative hopOn={focusHops}
+              wear={wear} lookAt={input} looking={focused} tiltOn={tilts} />
           </Stage>
           <div className={styles.botPicker}><BotPicker theme={theme} /></div>
         </div>
@@ -108,7 +120,11 @@ export function Hero({
               <label htmlFor="character-search" className={styles.srOnly}>캐릭터 이름</label>
               <SearchNormal className={styles.searchIcon} size={19} aria-hidden="true" />
               <input ref={input} id="character-search" name="character" value={query} onChange={(event) => { setQuery(event.target.value); if (error) setError(""); }}
-                onFocus={() => { setFocused(true); setFocusHops((n) => n + 1); }} onBlur={() => setFocused(false)} placeholder="캐릭터 이름을 입력하세요" maxLength={65} autoComplete="off" spellCheck={false} disabled={searching} aria-invalid={!!error} aria-describedby={error ? "search-error" : embedded ? undefined : "search-help"} />
+                onFocus={() => {
+                  setFocused(true);
+                  if (refocus.current) refocus.current = false;
+                  else setFocusHops((n) => n + 1);
+                }} onBlur={() => setFocused(false)} placeholder="캐릭터 이름을 입력하세요" maxLength={65} autoComplete="off" spellCheck={false} disabled={searching} aria-invalid={!!error} aria-describedby={error ? "search-error" : embedded ? undefined : "search-help"} />
               {shortcutKey && <kbd className={styles.shortcut} aria-hidden="true">{shortcutKey === "mac" ? <Command size={12} /> : "Ctrl"} K</kbd>}
               <button className={styles.searchSubmit} type="submit" disabled={searching} aria-label={searching ? "캐릭터 화면으로 이동 중" : undefined}>{searching ? <InlineOrb /> : <>캐릭터 검색 <ArrowRight size={16} /></>}</button>
             </form>

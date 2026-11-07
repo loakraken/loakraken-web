@@ -38,3 +38,31 @@ export const BOT_NAMES: Record<BotType, string> = {
 
 export const isBotType = (value: unknown): value is BotType =>
   typeof value === "string" && (BOT_TYPES as readonly string[]).includes(value);
+
+/** What a bot can wear (bot-avatars' own option names, user 11-03): a hat
+ *  and glasses, chosen in the picker beside the body. */
+export const BOT_HATS = ["none", "beret", "beanie", "party", "crown"] as const;
+export const BOT_GLASSES = ["none", "round", "square", "shades"] as const;
+export type BotHat = (typeof BOT_HATS)[number];
+export type BotGlasses = (typeof BOT_GLASSES)[number];
+export type BotWear = { hat: BotHat; glasses: BotGlasses };
+export const NO_WEAR: BotWear = { hat: "none", glasses: "none" };
+
+export const HAT_NAMES: Record<BotHat, string> = {
+  none: "없음",
+  beret: "베레모",
+  beanie: "비니",
+  party: "고깔",
+  crown: "왕관",
+};
+export const GLASSES_NAMES: Record<BotGlasses, string> = {
+  none: "없음",
+  round: "동그란 안경",
+  square: "네모 안경",
+  shades: "선글라스",
+};
+
+export const isBotHat = (value: unknown): value is BotHat =>
+  typeof value === "string" && (BOT_HATS as readonly string[]).includes(value);
+export const isBotGlasses = (value: unknown): value is BotGlasses =>
+  typeof value === "string" && (BOT_GLASSES as readonly string[]).includes(value);
