@@ -193,5 +193,23 @@ for (const width of [1280, 360]) {
     // One polite summary (at most every 1.6 s).
     await page.clock.runFor(1_700);
     await expect(page.getByRole("status").filter({ hasText: /^보석 시세 \d+개 바뀜\.$/ })).toHaveCount(1);
+    // A new minute in the notice ('01:09 확인' → '01:10 확인', CI 11-08) leaves the rest of the
+    // line in place: the time has a slot of fixed width.
+    const restAt = (time) =>
+      page.evaluate((t) => {
+        const notice = [...document.querySelectorAll("p")].find((p) => p.textContent.includes("전일 대비는"));
+        const walker = document.createTreeWalker(notice, NodeFilter.SHOW_TEXT);
+        let rest = null;
+        for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+          if (/\d\d:\d\d 확인/.test(node.data)) node.data = node.data.replace(/\d\d:\d\d/, t);
+          if (node.data.includes("전일 대비는")) rest = node;
+        }
+        const range = document.createRange();
+        const at = rest.data.indexOf("전일 대비는");
+        range.setStart(rest, at);
+        range.setEnd(rest, at + 1);
+        return range.getBoundingClientRect().x;
+      }, time);
+    expect(await restAt("01:10"), "분이 바뀐 뒤 알림 줄 나머지 위치").toBe(await restAt("01:09"));
   });
 }
