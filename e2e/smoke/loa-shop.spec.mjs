@@ -7,7 +7,7 @@ import { shiftsSince, watchShifts } from "../support/shifts.mjs";
 const RATE = /게임 안 크리스탈 교환소 시세\(블루 크리스탈 100개당 골드\)/;
 
 test.describe("로아샵 효율 @smoke", () => {
-  // The packages are the official notices' (last checked 2026-10-22); some end 2026-10-21 06:00 KST. The browser
+  // The packages are the official notices' (last checked 2026-11-08); some end 2026-10-21 06:00 KST. The browser
   // clock stays inside that sale week, so the tests do not start failing (and timing out) once the
   // real date passes it. The ended-sale test moves the clock past the end itself.
   test.beforeEach(async ({ page }) => {
@@ -17,7 +17,7 @@ test.describe("로아샵 효율 @smoke", () => {
   test("교환소 시세가 없으면 골드 가치와 판매가만, 기준일·판매 기간·구매 보너스 문구는 공지 그대로", async ({ page }) => {
     await gotoReady(page, "/tools/loa-shop");
     await expect(page.getByRole("heading", { level: 1, name: "로아샵 효율" })).toBeVisible();
-    await expect(page.getByText(/공식 상점 공지 기준 · 확인 2026-10-22/)).toBeVisible();
+    await expect(page.getByText(/공식 상점 공지 기준 · 확인 2026-11-08/)).toBeVisible();
     const growth = page.getByRole("region", { name: "[3+1] 월간 운명의 성장 패키지+" });
     await expect(growth.getByText("3회 구매 + 보너스 = 4세트 기준 (1회 33,000)")).toBeVisible();
     await expect(growth.getByText("본 상품 3회 구매 시, 동일한 구성품의 보너스 상품을 추가 지급합니다.")).toBeVisible();
