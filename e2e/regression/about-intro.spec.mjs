@@ -150,7 +150,8 @@ for (const [name, setup] of [
   ["줄인 동작", (page) => page.emulateMedia({ reducedMotion: "reduce" })],
   ["멈춤을 고른 방문자", (page) => page.addInitScript(() => localStorage.setItem("loakraken-motion", "paused"))],
 ])
-  test(`소개 ${name}: 처음부터 완성된 페이지, 커서 없음 @regression`, async ({ page }) => {
+  test(`소개 ${name}: 소개 없이 그대로의 페이지, 커서 없음 @regression`, async ({ page }) => {
+    test.setTimeout(60_000);
     await fresh(page);
     await setup(page);
     await page.setViewportSize({ width: 390, height: 900 });
@@ -158,9 +159,25 @@ for (const [name, setup] of [
     expect(await introOn(page)).toBe(false);
     await expect(page.locator("[data-intro-cursor]")).toHaveCount(0);
     await expect(page.getByRole("button", { name: "소개 건너뛰기" })).toHaveCount(0);
-    const hidden = await page.evaluate(() =>
-      [...document.querySelectorAll("[data-build-block]")].filter((b) => getComputedStyle(b).opacity === "0").length);
-    expect(hidden).toBe(0);
+    // Nothing on the first screen is hidden. Below it, the page's own scroll
+    // reveal stays as it was before the intro: with motion paused (only the
+    // looping motion stops) a block fades in when it comes on screen; under
+    // reduced motion everything is shown at once.
+    // (the reveal counts a block on screen once its top is 40px inside the bottom edge)
+    const hidden = () =>
+      page.evaluate(
+        () =>
+          [...document.querySelectorAll("[data-build-block]")].filter(
+            (b) => getComputedStyle(b).opacity !== "1" && b.getBoundingClientRect().top < innerHeight - 40,
+          ).length,
+      );
+    await expect.poll(hidden, { message: "첫 화면에 숨은 칸" }).toBe(0);
+    // Each block, brought on screen, is shown (a tall section is not on one screen).
+    const blocks = page.locator("[data-build-block]");
+    for (let i = 0, n = await blocks.count(); i < n; i++) {
+      await blocks.nth(i).scrollIntoViewIfNeeded();
+      await expect.poll(() => blocks.nth(i).evaluate((b) => getComputedStyle(b).opacity), { timeout: 5_000 }).toBe("1");
+    }
   });
 
 test.describe("JS 없이", () => {
