@@ -64,18 +64,35 @@ test.describe("스펙업 추천 순서 @smoke", () => {
       body.envelope.data.steps[0].icon = null;
       await route.fulfill({ response, json: body });
     });
-    // The detail answer's own picture, as prod sends for 기습의 대가 0 → 1.
+    // The detail answer as prod sent it for a new engraving 0 → 1 (11-08), with its book picture.
     const BOOK = "https://cdn-lostark.game.onstove.com/efui_iconatlas/use/use_9_25.png";
-    await page.route("**/api/characters/spec-up/candidates/**", async (route) => {
-      const response = await route.fetch();
-      const body = await response.json();
-      body.envelope.data.candidate.icon = BOOK;
-      await route.fulfill({ response, json: body });
-    });
+    const at = "2026-11-07T14:37:23Z";
+    const detail = {
+      characterName: "스펙순서",
+      fetchedAt: "2026-11-07T15:06:58Z",
+      pricesAt: at,
+      candidate: {
+        id: "ENGRAVING_LEVEL:기습의 대가:1", kind: "ENGRAVING_LEVEL", target: "기습의 대가 각인", from: "0레벨", to: "1레벨",
+        icon: BOOK, grade: "유물", skillName: null, suggestedTo: null,
+        change: { kind: "ENGRAVING_LEVEL", slot: null, index: null, level: 1, refine: null, quality: null, name: "기습의 대가", grade: null },
+        status: "OK", deltaCombatPower: 26.66, deltaPercent: 0.607,
+        cost: { unit: "GOLD", amount: 195000, status: "OK", code: "ENGRAVING_BOOK_BUY", basis: "유물 각인서(각인 레벨 1당 5권, 올리는 레벨 수만큼)의 즉시 구매 최저가 합입니다.", priceObservedAt: null, stale: null },
+        combatPowerPer10kGold: 1.37, reasonCode: null, reason: null, reasonDetail: null, emptySlot: null,
+        baseAttackPctFrom: null, baseAttackPctTo: null, deltaKrakenScore: 27.67, krakenScorePer100kGold: 14.19, gemType: null,
+      },
+      combatPowerBefore: 4391.06, combatPowerAfter: 4417.72, stats: [], materials: null, goldFee: null,
+      market: [{ role: "BUY", itemName: "유물 기습의 대가 각인서", icon: BOOK, grade: "유물", price: 39000, quantity: 5, expectedSalePrice: null, sellFeeGold: null, listedCount: null, observedAt: at }],
+      refine: null,
+    };
+    await page.route("**/api/characters/spec-up/candidates/**", (route) =>
+      route.fulfill({ json: { ok: true, envelope: { code: "SPEC_UP_DETAIL_SUCCESS", message: "스펙업 후보 상세 조회에 성공했습니다.", data: detail } } }),
+    );
     await page.goto(characterPath("스펙순서", "specup"));
     await rows(page).first().getByRole("button").first().click();
     const card = page.getByRole("dialog");
-    await expect(card.locator(`img[src="${BOOK}"]`)).toHaveCount(1);
+    // The card's own picture (the market row's book is a second one).
+    await expect(card.locator(`img[src="${BOOK}"][width="56"]`)).toHaveCount(1);
+    await expect(card).toContainText("유물 기습의 대가 각인서");
   });
 
   // The tab then reads as old (PM 총괄 11-08): the answer dims and the held line
