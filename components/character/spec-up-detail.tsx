@@ -33,6 +33,7 @@ import { costPriceNote, gemTarget, kindLabel, koreanGold, notCachedText, type Ca
 import { MINUTE, useClock } from "@/components/home/clock";
 import { safeGameImage } from "@/lib/character/model";
 import { GameIcon } from "./imagery";
+import { useMarkExpired } from "./spec-up-expired";
 import { kstTime } from "./parts";
 import styles from "./detail.module.css";
 
@@ -209,6 +210,7 @@ export function SpecUpRowDetail({
     retry: false,
   });
   const data = detail.data?.data;
+  useMarkExpired(detail.error);
   const ready = !!data || detail.isError;
   const open = wanted && ready;
   // A candidate no longer in the list: the list is read again by itself

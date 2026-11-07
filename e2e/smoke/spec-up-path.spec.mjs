@@ -55,16 +55,29 @@ test.describe("스펙업 추천 순서 @smoke", () => {
 
   // User 11-08: a row opened after the backend's copy of the character ran out said
   // "load it first" while the page showed the character.
-  test("캐릭터 정보가 오래되어 자세히를 못 열면(CHARACTER_NOT_CACHED) 갱신으로 다시 받으라고 안내", async ({ page }) => {
-    await page.goto(characterPath("스펙순서", "specup"));
-    await page.route("**/api/characters/spec-up/candidates/**", (route) =>
-      route.fulfill({ status: 404, contentType: "application/json", body: JSON.stringify({ ok: false, error: { code: "CHARACTER_NOT_CACHED", status: 404 } }) }),
-    );
-    await rows(page).first().getByRole("button").first().click();
-    const card = page.getByRole("dialog");
-    await expect(card).toContainText("캐릭터 정보를 받은 지 오래되었어요. 위의 갱신 버튼으로 다시 받은 뒤 열어 주세요.");
-    await expect(card).not.toContainText("먼저 불러와");
-  });
+  // The tab then reads as old (PM 총괄 11-08): the answer dims and the held line
+  // above it says so in one line, nothing asked again by itself.
+  for (const width of [320, 1280])
+    test(`${width}: 캐릭터 정보가 오래되어 자세히를 못 열면(CHARACTER_NOT_CACHED) 갱신으로 다시 받으라고 안내, 순서는 흐리게`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto(characterPath("스펙순서", "specup"));
+      await expect(rows(page).first()).toBeVisible();
+      await page.route("**/api/characters/spec-up/candidates/**", (route) =>
+        route.fulfill({ status: 404, contentType: "application/json", body: JSON.stringify({ ok: false, error: { code: "CHARACTER_NOT_CACHED", status: 404 } }) }),
+      );
+      let asked = 0;
+      page.on("request", (r) => r.url().includes("/api/characters/spec-up/path?") && asked++);
+      await rows(page).first().getByRole("button").first().click();
+      const card = page.getByRole("dialog");
+      await expect(card).toContainText("캐릭터 정보를 받은 지 오래되었어요. 위의 갱신 버튼으로 다시 받은 뒤 열어 주세요.");
+      await expect(card).not.toContainText("먼저 불러와");
+      const line = page.getByText("오래된 정보예요 · 갱신을 누르면 다시 불러와요");
+      await expect(line).toBeVisible();
+      // One line in its 18px slot (A37).
+      expect(await line.evaluate((el) => el.scrollWidth <= el.clientWidth && el.scrollHeight <= el.clientHeight)).toBe(true);
+      await expect(page.getByRole("region", { name: "추천 순서" }).locator("[data-stale]")).toHaveCount(1);
+      expect(asked).toBe(0);
+    });
 
   test("다른 칩은 후보 목록, 고른 칩은 주소에(새로 고쳐도 그대로), 돌아오면 다시 묻지 않음", async ({ page }) => {
     let paths = 0;

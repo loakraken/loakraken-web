@@ -27,6 +27,7 @@ import { groupStages, koreanGold, notCachedText, tryPathParam } from "@/lib/spec
 import detail from "./detail.module.css";
 import styles from "./spec-up-path.module.css";
 import { SpecUpRowDetail } from "./spec-up-detail";
+import { SpecUpExpired, useMarkExpired } from "./spec-up-expired";
 import { SimulatorEnabled } from "./tabs";
 
 const BUSY = "SPEC_UP_BUSY";
@@ -132,6 +133,8 @@ export function SpecUpPathList({ data, sort }: { data: Character; sort: PathSort
     refetchOnReconnect: false,
   });
   const limit = useRateLimit(path.error, [BUSY]);
+  useMarkExpired(path.error);
+  const { expired } = useContext(SpecUpExpired);
   const failure = path.error instanceof SpecUpQueryError ? path.error.info : path.error ? { code: "ERROR" } : null;
   const busy = path.isFetching || limit.seconds > 0;
   const answer = path.data?.data;
@@ -160,7 +163,7 @@ export function SpecUpPathList({ data, sort }: { data: Character; sort: PathSort
           </button>
         </div>
       ) : answer ? (
-        <PathAnswer data={data} path={answer} stale={path.isPlaceholderData} />
+        <PathAnswer data={data} path={answer} stale={path.isPlaceholderData || expired} />
       ) : (
         <>
           <p className={styles.summary} role="status">

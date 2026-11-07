@@ -3,7 +3,7 @@
 // next, ranked by combat power per 10,000 gold (or by the gain alone). Every
 // number comes from the backend; candidates it could not compute fold into one
 // line per reason, and "적용해 보기" opens the simulator tab with the change.
-import { Fragment, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChangeMark, useChangedCells, type Pulse } from "@/components/ui/changed-cells";
@@ -43,6 +43,7 @@ import { SpecUpGoal } from "./spec-up-goal";
 import { SpecUpPathList } from "./spec-up-path";
 import { SimulatorEnabled, SpecUpPathEnabled } from "./tabs";
 import { SpecUpRowDetail } from "./spec-up-detail";
+import { EXPIRED_LINE, SpecUpExpired } from "./spec-up-expired";
 import { kstTime } from "./parts";
 import styles from "./detail.module.css";
 
@@ -190,6 +191,14 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
     },
   });
   const limit = useRateLimit(query.error);
+  // Old once any spec-up request found the backend's copy gone; a new fetchedAt
+  // (갱신) clears it, since it is kept for the snapshot it was found on.
+  // The list's own minute refresh finds it too (the list shown stays, see refetchInterval).
+  const listGone = query.error instanceof SpecUpQueryError && query.error.info.code === "CHARACTER_NOT_CACHED";
+  const [expiredAt, setExpiredAt] = useState<string | null>(null);
+  const expired = expiredAt === data.fetchedAt || listGone;
+  const markExpired = useCallback(() => setExpiredAt(data.fetchedAt), [data.fetchedAt]);
+  const expiry = useMemo(() => ({ expired, markExpired }), [expired, markExpired]);
   const guide = query.data?.data;
   // A failed refresh keeps the list it had; the failure shows only without one.
   const failure = guide
@@ -275,7 +284,8 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
     .map(([, basis]) => basis);
 
   return (
-    <div className={styles.specUp}>
+    <SpecUpExpired.Provider value={expiry}>
+    <div className={styles.specUp} data-expired={expired || undefined}>
       <p className={styles.simulatorLead}>
         {supporter
           ? "바꿨을 때 오르는 서포터 점수와 드는 골드를 함께 보고, 10만 골드당 점수가 높은 순서로 보여 드려요."
@@ -358,8 +368,10 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
           path: not for a supporter. */}
       {!supporter && <SpecUpGoal data={data} />}
       {/* Its own line, held before the answer arrives (CLS 0). */}
+      {/* Not a live region: the price time changes with each refresh. The failed
+          request's own alert reads the old-data sentence out. */}
       <p className={styles.specUpPrices}>
-        {!pathShown && guide?.pricesAt ? `시세 ${kstTime(guide.pricesAt)} 기준` : ""}
+        {expired ? EXPIRED_LINE : !pathShown && guide?.pricesAt ? `시세 ${kstTime(guide.pricesAt)} 기준` : ""}
       </p>
 
       {pathShown ? (
@@ -372,7 +384,7 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
         // not on the quiet minute refresh.
         aria-busy={(query.isFetching && (!guide || query.isPlaceholderData)) || undefined}
         className={styles.specUpList}
-        data-stale={query.isPlaceholderData || undefined}
+        data-stale={query.isPlaceholderData || expired || undefined}
       >
         <p className={styles.specUpPrices} role="status" ref={statusRef} tabIndex={-1}>
           {query.isPlaceholderData ? (
@@ -590,5 +602,6 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
       </div>
       )}
     </div>
+    </SpecUpExpired.Provider>
   );
 }

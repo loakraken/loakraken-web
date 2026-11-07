@@ -20,6 +20,7 @@ import {
   type Goal,
 } from "@/lib/spec-up/goal";
 import { koreanGold, notCachedText, tryPathParam } from "@/lib/spec-up/model";
+import { SpecUpExpired, useMarkExpired } from "./spec-up-expired";
 import styles from "./spec-up-goal.module.css";
 import { SimulatorEnabled } from "./tabs";
 
@@ -60,6 +61,8 @@ export function SpecUpGoal({ data }: { data: Character }) {
   });
   const simulator = useContext(SimulatorEnabled);
   const limit = useRateLimit(goal.error);
+  useMarkExpired(goal.error);
+  const { expired } = useContext(SpecUpExpired);
   const failure = goal.error instanceof SpecUpQueryError ? goal.error.info.code : goal.error ? "ERROR" : null;
 
   const target = parseTarget(text);
@@ -117,7 +120,7 @@ export function SpecUpGoal({ data }: { data: Character }) {
           </p>
         ) : goal.data ? (
           // Another target keeps the last answer, dimmed, until its own arrives (A7).
-          <div className={styles.answer} data-stale={goal.isPlaceholderData || undefined}>
+          <div className={styles.answer} data-stale={goal.isPlaceholderData || expired || undefined}>
             <GoalAnswer name={name} goal={goal.data.data} />
           </div>
         ) : asked !== null && goal.isPending ? (
