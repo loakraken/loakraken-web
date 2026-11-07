@@ -177,7 +177,7 @@ test.describe("스펙업 추천 순서 @smoke", () => {
     await watchShifts(page);
     await page.setViewportSize({ width: 360, height: 800 });
     await page.goto(characterPath("스펙순서", "specup"));
-    await expect(rows(page)).toHaveCount(1);
+    await expect(rows(page)).toHaveCount(2);
     const asked = page.waitForRequest((r) => r.url().includes("sort=DELTA"));
     const shifts = await shiftsDuring(page, async () => {
       await rule(page).getByRole("button", { name: "전투력 우선" }).click();
