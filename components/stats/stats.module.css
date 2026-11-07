@@ -964,7 +964,10 @@
   flex: 1 0 100%;
   height: 6px;
   border-radius: 3px;
-  background: color-mix(in oklab, var(--foreground) 8%, transparent);
+  /* The track: a groove of the page's own tone in the panel (lighter in light,
+     darker in dark and dim), so every role and 직업군 bar is >= 3:1 against
+     it as well as against the panel (PM 총괄 11-08, hues unchanged). */
+  background: color-mix(in oklab, var(--background) 70%, transparent);
   overflow: hidden;
 }
 .partBar i,

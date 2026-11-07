@@ -12,7 +12,7 @@ const fill = (locator) =>
     return style.backgroundImage.includes("gradient") ? "hatch" : style.backgroundColor;
   });
 
-/** Contrast of a bar's colour with the nearest opaque background around it (non-text: >= 3). */
+/** Contrast of a bar's colour with the panel and with its own track over it, the lower (non-text: >= 3, PM 총괄 11-08). */
 const barContrast = (locator) =>
   locator.evaluate((el) => {
     const rgb = (c) => (c.match(/[\d.]+/g) ?? []).map(Number);
@@ -25,8 +25,17 @@ const barContrast = (locator) =>
       const v = rgb(getComputedStyle(n).backgroundColor);
       if (v.length >= 3 && (v.length < 4 || v[3] === 1)) bg = v;
     }
-    const [a, b] = [lum(rgb(getComputedStyle(el).backgroundColor)), lum(bg ?? [255, 255, 255])].sort((x, y) => y - x);
-    return (a + 0.05) / (b + 0.05);
+    bg ??= [255, 255, 255];
+    // The bar's own track (a see-through tone over the panel) is beside it too.
+    const t = rgb(getComputedStyle(el.parentElement).backgroundColor);
+    const alpha = t.length >= 4 ? t[3] : t.length >= 3 ? 1 : 0;
+    const track = [0, 1, 2].map((i) => (t[i] ?? 0) * alpha + bg[i] * (1 - alpha));
+    const ratio = (x, y) => {
+      const [hi, lo] = [lum(x), lum(y)].sort((m, n) => n - m);
+      return (hi + 0.05) / (lo + 0.05);
+    };
+    const bar = rgb(getComputedStyle(el).backgroundColor);
+    return Math.min(ratio(bar, bg), ratio(bar, track));
   });
 
 // The dim theme is a stored choice (data-theme), the other two follow the OS.
@@ -78,6 +87,10 @@ for (const scheme of ["light", "dark", "dim"])
       .evaluate((el) => getComputedStyle(el, "::before").backgroundColor);
     const berserker = panel.getByRole("listitem").filter({ hasText: "버서커" }).locator("[aria-hidden=true] > i");
     await expect(berserker).toHaveCSS("background-color", warrior);
+    // Every class bar >= 3:1 against the page and its track.
+    const classBars = panel.getByRole("listitem").locator("[aria-hidden=true] > i");
+    for (let i = 0; i < (await classBars.count()); i++)
+      expect(await barContrast(classBars.nth(i)), `직업 막대 ${i} 대비`).toBeGreaterThanOrEqual(3);
   });
 
 // A class the official groups do not hold yet goes to 기타: the legend names 기타 too (#1415 P3).
