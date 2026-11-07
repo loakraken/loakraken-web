@@ -219,7 +219,9 @@ export function SpecUpRowDetail({
   useEffect(() => {
     if (gone) void queryClient.invalidateQueries({ queryKey: ["spec-up", characterName] });
   }, [gone, queryClient, characterName]);
-  const icon = safeGameImage(candidate.icon);
+  // A 추천 순서 step may come without its picture (a new engraving, 0 → 1, user
+  // 11-08); the card then takes the detail answer's own (사용자 결정 02:2x).
+  const icon = safeGameImage(candidate.icon || data?.candidate.icon);
   // A 광휘 gem row names its role (겁화·작열), like the rest of the site.
   const target = gemTarget(candidate.target, candidate.gemType);
   return (

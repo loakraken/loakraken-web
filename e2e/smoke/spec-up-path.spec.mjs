@@ -55,6 +55,29 @@ test.describe("스펙업 추천 순서 @smoke", () => {
 
   // User 11-08: a row opened after the backend's copy of the character ran out said
   // "load it first" while the page showed the character.
+  // A step without its picture (prod 11-08: a new engraving 0 → 1): the card shows
+  // the detail answer's own (사용자 결정 02:2x).
+  test("그림 없이 온 단계도 자세히 카드에는 상세 응답의 그림", async ({ page }) => {
+    await page.route("**/api/characters/spec-up/path?*", async (route) => {
+      const response = await route.fetch();
+      const body = await response.json();
+      body.envelope.data.steps[0].icon = null;
+      await route.fulfill({ response, json: body });
+    });
+    // The detail answer's own picture, as prod sends for 기습의 대가 0 → 1.
+    const BOOK = "https://cdn-lostark.game.onstove.com/efui_iconatlas/use/use_9_25.png";
+    await page.route("**/api/characters/spec-up/candidates/**", async (route) => {
+      const response = await route.fetch();
+      const body = await response.json();
+      body.envelope.data.candidate.icon = BOOK;
+      await route.fulfill({ response, json: body });
+    });
+    await page.goto(characterPath("스펙순서", "specup"));
+    await rows(page).first().getByRole("button").first().click();
+    const card = page.getByRole("dialog");
+    await expect(card.locator(`img[src="${BOOK}"]`)).toHaveCount(1);
+  });
+
   // The tab then reads as old (PM 총괄 11-08): the answer dims and the held line
   // above it says so in one line, nothing asked again by itself.
   for (const width of [320, 1280])
