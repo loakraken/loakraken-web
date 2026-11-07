@@ -158,19 +158,21 @@
   font-size: 14px;
   font-weight: 600;
 }
-/* 딜러 : 서포터: one bar in one hue (as 구성), dealers deep, supports light. */
+/* 딜러 : 서포터: one bar in the two role colours (as 구성, user 11-08), a 2px
+   gap of the card between them; the legend under it names each. */
 .roleBar {
   display: block;
   height: 4px;
   margin: 6px 0 4px;
   border-radius: 9999px;
-  background: color-mix(in oklab, var(--primary) 35%, transparent);
+  background: var(--role-support);
   overflow: hidden;
 }
 .roleBar i {
   display: block;
   height: 100%;
-  background: color-mix(in oklab, var(--primary) 80%, transparent);
+  background: var(--role-dealer);
+  box-shadow: 2px 0 0 var(--muted);
 }
 .cards .roleLegend {
   display: flex;
@@ -184,14 +186,14 @@
   height: 7px;
   margin-right: 4px;
   border-radius: 2px;
-  background: var(--border);
+  background: var(--role-unknown);
   vertical-align: 1px;
 }
 .roleLegend [data-role="dealer"]::before {
-  background: var(--primary);
+  background: var(--role-dealer);
 }
 .roleLegend [data-role="support"]::before {
-  background: color-mix(in oklab, var(--primary) 35%, transparent);
+  background: var(--role-support);
 }
 /* The condition bar over every filtered tab (reference structure, 11-01):
    two rows of label + control, then the sample line. */
@@ -959,12 +961,38 @@
   bottom: 0;
   left: 0;
 }
+/* Each row's colour comes in as --bar: its role or 직업군 (globals.css, user
+   11-08); the name beside it says which. */
 .partBar i {
-  background: color-mix(in oklab, var(--primary) 80%, transparent);
+  background: var(--bar, color-mix(in oklab, var(--primary) 80%, transparent));
 }
-/* The second share in a split (딜러 after 서포터): the same hue, lighter. */
+/* The second share in a split (딜러 after 서포터): its own role colour, after
+   a 2px gap of the panel. */
 .partBar b {
-  background: color-mix(in oklab, var(--primary) 35%, transparent);
+  background: var(--bar-2, color-mix(in oklab, var(--primary) 35%, transparent));
+  box-shadow: inset 2px 0 0 var(--muted);
+}
+/* The colours named, one line over a coloured list (GroupLegend). */
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 0 0 10px;
+  padding: 0;
+  list-style: none;
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+/* A colour beside its name (the split rows' 서포터 · 딜러 line, the legend). */
+.swatch::before {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 4px;
+  border-radius: 2px;
+  background: var(--swatch);
+  vertical-align: 1px;
 }
 /* An inverted 전투력 range, said in the sample line's place. */
 .sampleWarn {

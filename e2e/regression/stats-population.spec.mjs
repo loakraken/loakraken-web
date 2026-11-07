@@ -23,7 +23,8 @@ for (const width of [1280, 360, 320])
     // 직업별: class rows with their icons.
     await views.nth(1).click();
     await expect(views.nth(1)).toHaveAttribute("aria-pressed", "true");
-    await expect(rows.first()).toContainText("바드");
+    // The rows with a count (the 직업군 colour legend over them has names only).
+    await expect(rows.filter({ hasText: /\d명/ }).first()).toContainText("바드");
     await expectNoHorizontalOverflow(page);
     // 레벨별: at most 40 bars, the empty levels between included (no jump across a gap).
     await views.nth(2).click();
