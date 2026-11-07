@@ -14,7 +14,11 @@ const formArriving = (page) =>
     // Each page's own conditions form (랭킹 조건, 수집품 랭킹 조건, 길드 랭킹 조건, 직업 통계 조건, …).
     const form = [...document.querySelectorAll("form[aria-label]")].find((f) => / 조건$|^랭킹 조건$/.test(f.getAttribute("aria-label")));
     const frame = () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    // The form keeps its final height so the content under it stays put, and its rows keep their own
+    // heights (a pinned height would otherwise stretch the rows and move them as each one arrives,
+    // which a page arriving in parts, whose form simply grows, never does).
     form.style.height = `${form.offsetHeight}px`;
+    form.style.alignContent = "flex-start";
     const [first, ...later] = [...form.children];
     for (const part of later) part.remove();
     const [, ...inside] = first.tagName === "LABEL" ? [...first.childNodes] : [];
@@ -35,6 +39,7 @@ const formArriving = (page) =>
     entries.push(...observer.takeRecords());
     observer.disconnect();
     form.style.height = "";
+    form.style.alignContent = "";
     const name = (node) => {
       const el = node?.nodeType === 1 ? node : node?.parentElement;
       return el ? `${el.parentElement?.tagName.toLowerCase()} > ${el.tagName.toLowerCase()}` : "?";
