@@ -36,11 +36,25 @@ for (const width of [320, 390, 1280])
       expect(await introOn(page), "첫 그림 전에 켜짐").toBe(true);
       // The headline (the page's largest text, LCP) is never hidden, and no hidden
       // block could become a later, larger LCP: no image, no text larger than the h1.
+      // Text is sized as LCP sizes it: the box round an element's text, clipped to the
+      // first screen (a block whose top edge only peeks in is not a large candidate).
       const lcp = await page.evaluate(() => {
-        const area = (el) => {
-          const r = el.getBoundingClientRect();
-          return r.width * r.height;
+        const textArea = (el) => {
+          const range = document.createRange();
+          range.selectNodeContents(el);
+          const rects = [...range.getClientRects()].filter((r) => r.width && r.height);
+          if (!rects.length) return 0;
+          const left = Math.max(0, Math.min(...rects.map((r) => r.left)));
+          const right = Math.min(innerWidth, Math.max(...rects.map((r) => r.right)));
+          const top = Math.max(0, Math.min(...rects.map((r) => r.top)));
+          const bottom = Math.min(innerHeight, Math.max(...rects.map((r) => r.bottom)));
+          return Math.max(0, right - left) * Math.max(0, bottom - top);
         };
+        // The LCP candidates in a block: every element with text of its own.
+        const texts = (block) =>
+          [block, ...block.querySelectorAll("*")].filter((el) =>
+            [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim()),
+          );
         const h1 = document.querySelector("h1");
         const hidden = [...document.querySelectorAll("[data-build-block]")].filter(
           (b) => getComputedStyle(b).opacity === "0" && b.getBoundingClientRect().top < innerHeight,
@@ -48,7 +62,7 @@ for (const width of [320, 390, 1280])
         return {
           h1: getComputedStyle(h1).opacity,
           images: hidden.flatMap((b) => [...b.querySelectorAll("img, video, svg image")]).length,
-          largerText: hidden.filter((b) => b.dataset.buildKind === "text" && area(b) >= area(h1)).length,
+          largerText: hidden.filter((b) => b.dataset.buildKind === "text" && texts(b).some((el) => textArea(el) >= textArea(h1))).length,
         };
       });
       expect(lcp, "제목은 처음부터 보이고, 숨긴 칸은 LCP가 될 수 없음").toEqual({ h1: "1", images: 0, largerText: 0 });
