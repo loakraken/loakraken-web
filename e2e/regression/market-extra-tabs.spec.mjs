@@ -31,11 +31,15 @@ for (const width of [1280, 390, 320])
 // before #873 must never be offered 아바타 or 장비 상자 (codex on #1476). They come with the api's own list.
 test("시세 분류: 탭 목록을 기다리는 동안의 자리 탭에는 아바타·장비 상자가 없음 @regression", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
+  // The page is drawn on the server with the tab list already in it, so the stand-ins show only when that
+  // list could not be had: this client's address makes the mock backend refuse it (tests/mock-backend.mjs).
+  await page.setExtraHTTPHeaders({ "x-forwarded-for": "203.0.113.180" });
   let release;
   const held = new Promise((resolve) => (release = resolve));
+  // The browser then asks for the list itself: held, and let through later as another client (so it arrives).
   await page.route("**/api/markets/tabs*", async (route) => {
     await held;
-    await route.continue();
+    await route.continue({ headers: { ...route.request().headers(), "x-forwarded-for": "203.0.113.1" } });
   });
   await gotoReady(page, "/market");
   const tabs = page.getByRole("tablist", { name: "시세 분류" });
