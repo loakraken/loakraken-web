@@ -14,7 +14,10 @@ const hitArea = (group) =>
       const hit = document.elementFromPoint(x, y);
       return hit === button || button.contains(hit);
     };
-    return { leftOfEdge: at(r.left - 3), atEdge: at(r.left + 3), at44: at(r.left + 43) };
+    // 44px wide, or up to the next button (drawn on top, it takes its own taps; on a real first paint it is not
+    // there yet).
+    const next = button.nextElementSibling?.getBoundingClientRect().left;
+    return { leftOfEdge: at(r.left - 3), atEdge: at(r.left + 3), at44: at(Math.min(r.left + 43, (next ?? Infinity) - 1)) };
   });
 
 for (const width of [320, 390])
