@@ -53,7 +53,11 @@ export async function watchShifts(page) {
           }
           return name;
         });
-        window.__shiftLog.push({ t: entry.startTime, v: entry.value, input: entry.hadRecentInput, sources, boxes });
+        // Largest raw change of each source's box (px, unrounded), for realMoves.
+        const moves = (entry.sources ?? []).map(({ previousRect: a, currentRect: b }) =>
+          a && b ? Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y), Math.abs(a.width - b.width), Math.abs(a.height - b.height)) : Infinity,
+        );
+        window.__shiftLog.push({ t: entry.startTime, v: entry.value, input: entry.hadRecentInput, sources, boxes, moves });
       }
     }).observe({ type: "layout-shift", buffered: true });
   });
@@ -87,6 +91,22 @@ export async function shiftsSince(page, mark = 0) {
     quiet: sum(entries.filter((entry) => !entry.input)),
     moved: [...new Set(entries.flatMap((entry) => (entry.boxes ?? entry.sources).map((what) => `${what} (${when(entry.t)})`)))].join(", "),
   };
+}
+
+/**
+ * Moves since `mark` that the eye can see: a box whose position or size
+ * changed by 1px or more (raw, before rounding). Chrome also reports sub-pixel
+ * shifts whose boxes round to the same numbers (#1443 CI: 5 such "moves");
+ * those are not a move.
+ */
+export async function realMoves(page, mark = 0) {
+  return page.evaluate(
+    (from) =>
+      window.__shiftLog
+        .filter((entry) => entry.t >= from)
+        .flatMap((entry) => entry.boxes.filter((_, i) => entry.moves[i] >= 1)),
+    mark,
+  );
 }
 
 /**
