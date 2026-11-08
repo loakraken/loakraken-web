@@ -429,6 +429,21 @@
   text-align: right;
   font-size: 12px;
 }
+/* Narrow phones: beside 166px of effect lines the name had 27px at 320 (목걸 /
+   이 broke mid-word, the range badge did not fit, A37). The lines go to their
+   own row under the name, lined up with its text; the name and its badges get
+   the row's width. Rows without effect lines (armour) are unchanged. */
+@media (max-width: 380px) {
+  .item:has(> .gradeList:not([data-flow])) {
+    flex-wrap: wrap;
+    row-gap: 6px;
+  }
+  .item > .gradeList:not([data-flow]) {
+    flex-basis: 100%;
+    margin-left: 56px;
+    text-align: left;
+  }
+}
 .gradeList[data-flow] {
   margin-left: 0;
   text-align: left;

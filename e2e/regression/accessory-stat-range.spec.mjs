@@ -38,7 +38,8 @@ for (const width of [1280, 360, 320])
     const shift = await shiftsSince(page);
     expect(shift.all, `흔들림 (${shift.moved})`).toBe(0);
     // The tooltip's 기본 효과: the value and the 연마 3단계 range under the official lines.
-    const row = page.locator("li", { has: badges.first() }).last();
+    // The first accessory row (a `has` locator is resolved inside each row, so every badged row matches).
+    const row = page.locator("li", { has: page.locator("[data-stat-range]") }).first();
     await row.locator("[data-slot=item-tooltip-trigger]").click();
     const card = page.getByRole("dialog");
     await expect(card).toContainText("민첩 +16009");
