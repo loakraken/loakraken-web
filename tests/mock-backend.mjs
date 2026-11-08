@@ -2648,7 +2648,7 @@ createServer(async (req, res) => {
       detail: { parserVersion: "equipment-tooltip-v3", refineLevel, quality: 90, itemLevel: 1640 + refineLevel * 5, tier: 4, arkPassivePoint: null, effects: [], stoneEngravings: [], polishEffects: [], braceletEffects: [] },
     }));
   }
-  if (name === "상세" || name === "아바타옛응답" || name === "상세서포터" || name === "서포터옛응답" || name === "대세블레이드" || name === "가려짐긴값캐릭터" || name === "아크없음" || name === "효율준비중" || name === "팔찌못읽음") {
+  if (name === "상세" || name === "아바타옛응답" || name === "상세서포터" || name === "서포터옛응답" || name === "대세블레이드" || name === "가려짐긴값캐릭터" || name === "아크없음" || name === "효율준비중" || name === "팔찌못읽음" || name === "초상화") {
     // Detail-page mock: a locally supplied character file (never committed) or
     // the synthetic fixture, enriched with synthetic Tooltip detail and skills.
     if (process.env.MOCK_CHARACTER_FILE)
