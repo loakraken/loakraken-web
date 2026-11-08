@@ -56,6 +56,25 @@ const running = (page) =>
       ).length,
   );
 
+/** hero-enter animations on the heading (finished ones count: the entrance holds its end state). */
+const entrances = (heading) =>
+  heading.evaluate((el) => el.getAnimations().filter((a) => /hero-enter/.test(a.animationName) && a.playState !== "paused").length);
+
+/**
+ * Opens `path` by a link inside the site, so the client puts the hero in the page
+ * (no first HTML for it). Checks it really stayed one document.
+ */
+async function openByLink(page, path) {
+  await gotoReady(page, "/market");
+  await page.waitForFunction(() => window.__lkHydrated);
+  await page.evaluate(() => (window.__sameDocument = true));
+  if (path === "/") await page.getByRole("link", { name: "LOAKraken 홈" }).click();
+  else await page.getByRole("navigation", { name: "주요 메뉴" }).getByRole("link", { name: "소개", exact: true }).click();
+  await expect(page).toHaveURL(path === "/" ? /\/$/ : /\/about#intro$/);
+  await hydrated(page);
+  expect(await page.evaluate(() => window.__sameDocument), "링크로 연 같은 문서").toBe(true);
+}
+
 const setVisibility = (page, state) =>
   page.evaluate((state) => {
     Object.defineProperty(document, "visibilityState", { configurable: true, get: () => state });
@@ -75,7 +94,7 @@ test.describe("봇 멈춤 뒤 히어로 글 @regression", () => {
       await page.mouse.move(10, 10);
       await expectTextShown(page, "멈춘 뒤");
 
-      // 멈춘 채로 탭을 떠났다 돌아오면 등장 애니메이션이 처음부터 다시 붙는다.
+      // 멈춘 채로 탭을 떠났다 돌아와도 글은 그대로 보인다.
       await setVisibility(page, "hidden");
       await setVisibility(page, "visible");
       await expectTextShown(page, "멈춘 채 탭 전환 뒤");
@@ -90,8 +109,8 @@ test.describe("봇 멈춤 뒤 히어로 글 @regression", () => {
       await expect.poll(() => running(page)).toBeGreaterThan(0);
       await expectTextShown(page, "다시 재생");
 
-      // 재생으로 되돌린 다음 방문에는 등장 애니메이션이 그대로 돈다(꺼 버린 게 아님). 처음 HTML에서 이미 보인
-      // 글은 페이지가 깨어날 때 다시 사라졌다 올라오지 않는다(#1441: 느린 기기에서 글이 한 번 깜빡였다).
+      // 처음 HTML은 제목을 끝 상태로 그리고(LCP: 불투명도 0에서 시작하지 않음), 페이지가 깨어날 때
+      // 다시 사라졌다 올라오지 않는다(#1441: 느린 기기에서 글이 한 번 깜빡였다).
       // The script chunks arrive late (a slow device): for a while only the first HTML is
       // there. The heading is fully shown from it, and waking the page must not hide it again.
       let release;
@@ -103,7 +122,10 @@ test.describe("봇 멈춤 뒤 히어로 글 @regression", () => {
       await page.reload({ waitUntil: "commit" });
       await expect(bot).toHaveAttribute("aria-pressed", "false");
       const heading = page.locator("#hero-heading");
-      await expect.poll(() => heading.evaluate((el) => getComputedStyle(el).opacity), { message: "처음 HTML에서 제목이 다 보임" }).toBe("1");
+      expect(
+        await heading.evaluate((el) => ({ opacity: getComputedStyle(el).opacity, entering: el.getAnimations().length })),
+        "처음 그림에서 제목이 끝 상태(LCP)",
+      ).toEqual({ opacity: "1", entering: 0 });
       // From here, every frame: the lowest opacity the heading shows.
       await heading.evaluate((el) => {
         window.__lowest = 1;
@@ -119,14 +141,13 @@ test.describe("봇 멈춤 뒤 히어로 글 @regression", () => {
       // A fixed wait proves an absence: no second entrance (750 ms) starts after waking.
       await page.waitForTimeout(1000);
       expect(await page.evaluate(() => window.__lowest), "깨어난 뒤 제목이 다시 사라지지 않음").toBe(1);
-      expect(await heading.evaluate((el) =>
-        el.getAnimations().filter((a) => /hero-enter/.test(a.animationName) && a.playState !== "paused").length,
-      ), "등장 애니메이션은 한 번(꺼 버린 게 아님)").toBe(1);
+      expect(await entrances(heading), "깨어날 때 등장 없음").toBe(0);
       await expectTextShown(page, "재생 상태로 새로고침");
 
-      // 등장 도중에 멈춰도 글은 끝 상태까지 간다.
-      await page.reload();
-      await hydrated(page);
+      // 다른 화면에서 링크로 열면(처음 HTML이 그리지 않은 히어로) 등장 애니메이션이 돈다(꺼 버린 게 아님).
+      // 그 도중에 멈춰도 글은 끝 상태까지 간다.
+      await openByLink(page, path);
+      expect(await entrances(heading), "링크로 열면 등장").toBe(1);
       await bot.click();
       await expect(bot).toHaveAttribute("aria-pressed", "true");
       await expectTextShown(page, "등장 도중 멈춤");
