@@ -1,7 +1,8 @@
 "use client";
 
-// /about builds itself (user 11-08): twelve plain coloured arrow cursors, one
-// per team, build the page section by section. Up to four work on a section
+// /about builds itself (user 11-08): twelve coloured arrow cursors, each with
+// a small pill naming its role (layout, copy, type…; user 11-09), build the
+// page section by section. Up to four work on a section
 // (a dashed marquee, a grey skeleton, then the real content); the others wait
 // at the edges (on phones they are not shown). The headline and the hero's
 // two paragraphs are shown from the first paint (the largest text, the LCP
@@ -18,7 +19,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import styles from "./build-intro.module.css";
 
 import { DECIDED_ATTR, INTRO_CLASS, INTRO_END_EVENT, PLAYED_KEY, startIntro } from "./intro-state";
-import { CREW, CURSOR_COLORS } from "./intro-crew";
+import { CREW, CURSOR_COLORS, CURSOR_ROLES } from "./intro-crew";
 
 /** A cursor is its index into CURSOR_COLORS. */
 type Team = number;
@@ -100,6 +101,13 @@ export function BuildIntro() {
       // Shown or not from its first frame (no fade on the first look).
       el.style.opacity = !phone.matches || CREW.intro.includes(i) ? "1" : "0";
       el.innerHTML = `<svg width="18" height="22" viewBox="0 0 18 22" aria-hidden="true"><path d="M1.5 1.5 L16 12 L9.4 12.9 L5.6 20 Z" fill="${color}" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/></svg>`;
+      // Its role, in a pill of its colour below and right of the arrow (the layer is
+      // aria-hidden and clipped: nothing here is read out or widens the page).
+      const tag = document.createElement("span");
+      tag.className = styles.tag;
+      tag.style.backgroundColor = color;
+      tag.textContent = CURSOR_ROLES[i];
+      el.appendChild(tag);
       host.appendChild(el);
       const c = { el, x: i % 2 ? innerWidth + 40 : -60, y: scrollY + 90 + ((i * 61) % Math.max(200, innerHeight - 120)), color };
       cursors.set(i, c);

@@ -1,4 +1,4 @@
-// 회귀(사용자 11-08): 소개(/about)는 처음 열 때 스스로 지어진다. 팀마다 색이 다른 화살표 커서 12개(이름표 없음)가
+// 회귀(사용자 11-08): 소개(/about)는 처음 열 때 스스로 지어진다. 색이 다른 화살표 커서 12개(각자 역할 이름표: 레이아웃·문구·타이포…)가
 // 한 번에 한 구역씩(넷까지) 점선 상자를 끌고, 회색 뼈대가 나온 뒤 진짜 내용이 들어선다. 제목은 위에 겹친 글자로 타이핑.
 // 첫 화면은 6초 안, 아래 구역은 화면에 오면, 휴대폰(≤480)에서는 일하는 커서만 보인다. 흔들림 0, 다 지으면 그리기 반복이
 // 멈춘다. 건너뛰기 단추, 줄인 동작·멈춤을 고른 방문자·JS 없음은 처음부터 완성된 페이지, 이 탭에서 한 번만.
@@ -69,8 +69,11 @@ for (const width of [320, 390, 1280])
       // The blocks are in the page (their boxes held), only hidden until built.
       await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
       await expect(page.locator("[data-intro-cursor]")).toHaveCount(12);
-      // Plain arrows: no name tags anywhere in the layer.
-      await expect(page.locator("[data-intro-layer]")).toHaveText("");
+      // Each cursor carries its role in a pill (user 11-09): the 12 roles, once each.
+      const tags = await page.locator("[data-intro-cursor]").evaluateAll((els) => els.map((el) => el.textContent));
+      expect(tags.sort()).toEqual(["검색", "검수", "레이아웃", "모션", "문구", "색상", "성능", "아이콘", "접근성", "데이터", "차트", "타이포"].sort());
+      // Decoration only: the layer is hidden from assistive tech.
+      await expect(page.locator("[data-intro-layer]")).toHaveAttribute("aria-hidden", "true");
       if (width <= 480) await expect.poll(() => shownCursors(page), { message: "휴대폰은 일하는 커서만" }).toBeLessThanOrEqual(4);
       // Cursors waiting at the edges never widen the page.
       expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth), "가로 넘침").toBe(0);
