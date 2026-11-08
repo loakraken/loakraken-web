@@ -263,7 +263,7 @@ function SettingsPanel({
         />
       </div>
       <p className={styles.groupLabel} id="buff-label">
-        버프
+        버프 가정
       </p>
       <div className={styles.chips} role="group" aria-labelledby="buff-label">
         {SPEED_BUFFS.map((buff) => {
@@ -281,7 +281,7 @@ function SettingsPanel({
                 )
               }
             >
-              {buff.label} +{buff.attack}%
+              {buff.label}
             </Chip>
           );
         })}
