@@ -7,6 +7,8 @@ export const INTRO_CLASS = "about-intro";
 export const INTRO_END_EVENT = "loakraken:about-intro-end";
 /** Played once per tab (session storage). */
 export const PLAYED_KEY = "loakraken:about-intro";
+/** Not claimed by the intro within this long: the finished page instead. */
+const SAFETY_MS = 3000;
 
 const subscribe = (callback: () => void) => {
   window.addEventListener(INTRO_END_EVENT, callback);
@@ -25,4 +27,27 @@ export const introStore = { subscribe, snapshot, serverSnapshot };
  * page within 3 s (a slow or failed bundle, an error), it is turned off again:
  * the page is never left with hidden blocks.
  */
-export const aboutIntroScript = `(function(){try{var d=document.documentElement;if(matchMedia("(prefers-reduced-motion: reduce)").matches||d.hasAttribute("data-motion-paused")||sessionStorage.getItem("${PLAYED_KEY}"))return;d.classList.add("${INTRO_CLASS}");setTimeout(function(){if(d.hasAttribute("data-intro-claimed"))return;d.classList.remove("${INTRO_CLASS}");dispatchEvent(new Event("${INTRO_END_EVENT}"))},3000)}catch(e){}})()`;
+export const aboutIntroScript = `(function(){try{var d=document.documentElement;if(matchMedia("(prefers-reduced-motion: reduce)").matches||d.hasAttribute("data-motion-paused")||sessionStorage.getItem("${PLAYED_KEY}"))return;d.classList.add("${INTRO_CLASS}");setTimeout(function(){if(d.hasAttribute("data-intro-claimed"))return;d.classList.remove("${INTRO_CLASS}");dispatchEvent(new Event("${INTRO_END_EVENT}"))},${SAFETY_MS})}catch(e){}})()`;
+
+/**
+ * The same decision, with the same safety timer, for a visit the inline script
+ * did not see: /about opened by a client-side link (the header menu), where
+ * React does not run inline scripts. BuildIntro calls it before the page is
+ * first painted (useLayoutEffect). A page the script already turned on is left
+ * as it is. Kept equal to aboutIntroScript by a unit test.
+ */
+export function startIntro() {
+  try {
+    const d = document.documentElement;
+    if (d.classList.contains(INTRO_CLASS)) return;
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches || d.hasAttribute("data-motion-paused") || sessionStorage.getItem(PLAYED_KEY)) return;
+    d.classList.add(INTRO_CLASS);
+    setTimeout(() => {
+      if (d.hasAttribute("data-intro-claimed")) return;
+      d.classList.remove(INTRO_CLASS);
+      dispatchEvent(new Event(INTRO_END_EVENT));
+    }, SAFETY_MS);
+  } catch {
+    // Storage blocked (or no matchMedia): the finished page, as with the script.
+  }
+}
