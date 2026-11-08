@@ -26,6 +26,13 @@ const nextConfig: NextConfig = {
           { key: "Permissions-Policy", value: PERMISSIONS },
         ],
       },
+      // The engraving icons (user 11-08): cached like the build's own static
+      // assets; their addresses carry each file's content hash (?v=, see
+      // lib/character/engraving-icons.ts), so a replaced icon is a new address.
+      {
+        source: "/engravings/:file*",
+        headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
+      },
     ];
   },
 };
