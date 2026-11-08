@@ -17,23 +17,10 @@ import { useEffect, useRef, useState } from "react";
 import styles from "./build-intro.module.css";
 
 import { INTRO_CLASS, INTRO_END_EVENT, PLAYED_KEY } from "./intro-state";
+import { CREW, CURSOR_COLORS } from "./intro-crew";
 
-/** Our teams' arrow colours: each >= 3:1 on the light and the dark page. */
-const TEAMS = [
-  ["PM", "#c52020"], ["프론트", "#1d66af"], ["백엔드", "#137634"], ["계산 검증", "#7b6114"],
-  ["QA", "#7e3adf"], ["보안", "#13725a"], ["레퍼런스", "#9a4f19"], ["성장 도구", "#3a7213"],
-  ["배포·운영", "#156d7f"], ["마케팅", "#bd1f6e"], ["코덱스 개발", "#4754e1"], ["코덱스 리뷰", "#ab1eb8"],
-] as const;
-type Team = (typeof TEAMS)[number][0];
-
-/** Who builds which section (at most four each). */
-const CREW: Record<string, Team[]> = {
-  intro: ["PM", "프론트", "마케팅", "코덱스 개발"],
-  preview: ["프론트", "백엔드", "계산 검증", "QA"],
-  evidence: ["백엔드", "보안", "레퍼런스", "코덱스 리뷰"],
-  roadmap: ["PM", "성장 도구", "배포·운영", "마케팅"],
-  closing: ["QA", "보안", "코덱스 개발", "코덱스 리뷰"],
-};
+/** A cursor is its index into CURSOR_COLORS. */
+type Team = number;
 
 const TRAVEL = 620;
 const DRAG = 460;
@@ -97,22 +84,22 @@ export function BuildIntro() {
     };
     fit();
     const cursors = new Map<Team, Cursor>();
-    TEAMS.forEach(([name, color], i) => {
+    CURSOR_COLORS.forEach((color, i) => {
       const el = document.createElement("div");
       el.className = styles.cursor;
       el.dataset.introCursor = String(i);
       // Shown or not from its first frame (no fade on the first look).
-      el.style.opacity = !phone.matches || CREW.intro.includes(name) ? "1" : "0";
+      el.style.opacity = !phone.matches || CREW.intro.includes(i) ? "1" : "0";
       el.innerHTML = `<svg width="18" height="22" viewBox="0 0 18 22" aria-hidden="true"><path d="M1.5 1.5 L16 12 L9.4 12.9 L5.6 20 Z" fill="${color}" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/></svg>`;
       host.appendChild(el);
       const c = { el, x: i % 2 ? innerWidth + 40 : -60, y: scrollY + 90 + ((i * 61) % Math.max(200, innerHeight - 120)), color };
-      cursors.set(name, c);
+      cursors.set(i, c);
       place(c);
     });
     function place(c: Cursor) {
       c.el.style.transform = `translate3d(${c.x.toFixed(1)}px,${c.y.toFixed(1)}px,0)`;
     }
-    function showCrew(crew: Team[]) {
+    function showCrew(crew: readonly Team[]) {
       for (const [name, c] of cursors) c.el.style.opacity = !phone.matches || crew.includes(name) ? "1" : "0";
     }
 
@@ -217,7 +204,7 @@ export function BuildIntro() {
       return ready + 200;
     }
     // Waiting teams line up at the edges of the screen, out of the way.
-    function bench(crew: Team[], t0: number) {
+    function bench(crew: readonly Team[], t0: number) {
       showCrew(crew);
       [...cursors.keys()]
         .filter((name) => !crew.includes(name))
