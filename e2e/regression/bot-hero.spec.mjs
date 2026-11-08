@@ -53,6 +53,12 @@ async function followsHorizontally(page) {
 // 포인터를 (x, y)에 둔 채 멈춘 고개 위아래 값. 1px씩 살짝 움직여 봇을 깨어 있게 하고(쉬는 5초가
 // 다시 시작됨), 7번 읽은 값의 중앙값으로 라이브러리의 느린 고개 흔들림을 걸러 낸다. 한 번 맞은 값이
 // 아니라 중앙값을 보므로, 따라보지 않고 흔들리기만 하는 고개는 통과하지 못한다(검사가 가름).
+/** The eyes' up-down: < 0 is up (the search box below reads about +1). */
+const eyesY = async (page) => Number((await canvas(page).getAttribute("data-bot-look")).split(",")[1]);
+
+/** Looking up at a point just above it (the header): how a head pose is judged. */
+const looksUp = ({ pitch }) => pitch > 0.1;
+
 async function settledPitch(page, x, y) {
   await page.mouse.move(x, y, { steps: 12 });
   await page.waitForTimeout(300); // 고개가 돌아가는 동안은 읽지 않는다
@@ -159,6 +165,29 @@ test.describe("히어로 봇 @regression", () => {
     }
     expect(yaw, "고개가 +0.2인 자리가 있음").toBe(0.2);
     expect(yaw, "오른쪽을 보고 있음 = 따라 봄").toBeGreaterThan(FOLLOW);
+  });
+
+  // CI 42492201273(desktop-1440): 포인터를 머리글 가운데(봇 바로 위)에 두자 고개가 +0.1, 눈은 -3.1(위)에서
+  // 6초 머물다 잠들었고, "+0.1 초과"(= 0.2)를 기다리던 검사가 실패했다. 바로 위를 볼 때 고개를 드는 폭은
+  // 작아(0.1 안팎) 0.1 단위 반올림과 라이브러리의 느린 흔들림에 따라 0.1과 0.2를 오간다. 여기서는 고개가
+  // 0.1이고 눈이 위를 보는 순간을 잡아 그 경우를 매번 만든다: 위를 보고 있으니 위를 보는 것으로 세어야 한다.
+  test("머리글 쪽: 고개 +0.1에 눈이 위를 보면 위를 보는 것으로 센다", async ({ page }) => {
+    await desktop(page);
+    await page.setViewportSize({ width: 1280, height: 960 });
+    const header = await page.locator("header").first().boundingBox();
+    const x = 640;
+    const y = header.y + header.height / 2;
+    await page.mouse.move(x, y, { steps: 12 });
+    let seen = null;
+    for (let i = 0; i < 40 && !seen; i++) {
+      // Keep it awake (a still pointer puts it to sleep after 5 s) and read as the head settles.
+      await page.mouse.move(x + (i % 2), y);
+      await page.waitForTimeout(150);
+      const pose = { pitch: (await turn(page))[1], eyes: await eyesY(page) };
+      if (pose.pitch === 0.1 && pose.eyes < -1) seen = pose;
+    }
+    expect(seen, "고개 +0.1·눈 위인 순간").not.toBeNull();
+    expect(looksUp(seen), `위를 봄 (${JSON.stringify(seen)})`).toBe(true);
   });
 
   test("봇·배경·제목·검색창을 누른 뒤에도 계속 따라 본다", async ({ page }) => {
