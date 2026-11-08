@@ -7,6 +7,16 @@ export const INTRO_CLASS = "about-intro";
 export const INTRO_END_EVENT = "loakraken:about-intro-end";
 /** Played once per tab (session storage). */
 export const PLAYED_KEY = "loakraken:about-intro";
+/** Not claimed by the intro within this long: the finished page instead. */
+const SAFETY_MS = 3000;
+/**
+ * On <html> once this visit of /about has been decided (by the inline script on
+ * a full load, or by startIntro on a client-side one), whichever way: nothing
+ * decides it again. Without it, a slow load whose safety timer had already shown
+ * the finished page was hidden again at hydration and built from scratch.
+ * BuildIntro removes it when /about is left.
+ */
+export const DECIDED_ATTR = "data-intro-decided";
 
 const subscribe = (callback: () => void) => {
   window.addEventListener(INTRO_END_EVENT, callback);
@@ -25,4 +35,29 @@ export const introStore = { subscribe, snapshot, serverSnapshot };
  * page within 3 s (a slow or failed bundle, an error), it is turned off again:
  * the page is never left with hidden blocks.
  */
-export const aboutIntroScript = `(function(){try{var d=document.documentElement;if(matchMedia("(prefers-reduced-motion: reduce)").matches||d.hasAttribute("data-motion-paused")||sessionStorage.getItem("${PLAYED_KEY}"))return;d.classList.add("${INTRO_CLASS}");setTimeout(function(){if(d.hasAttribute("data-intro-claimed"))return;d.classList.remove("${INTRO_CLASS}");dispatchEvent(new Event("${INTRO_END_EVENT}"))},3000)}catch(e){}})()`;
+export const aboutIntroScript = `(function(){try{var d=document.documentElement;d.setAttribute("${DECIDED_ATTR}","");if(matchMedia("(prefers-reduced-motion: reduce)").matches||d.hasAttribute("data-motion-paused")||sessionStorage.getItem("${PLAYED_KEY}"))return;d.classList.add("${INTRO_CLASS}");setTimeout(function(){if(d.hasAttribute("data-intro-claimed"))return;d.classList.remove("${INTRO_CLASS}");dispatchEvent(new Event("${INTRO_END_EVENT}"))},${SAFETY_MS})}catch(e){}})()`;
+
+/**
+ * The same decision, with the same safety timer, for a visit the inline script
+ * did not see: /about opened by a client-side link (the header menu), where
+ * React does not run inline scripts. BuildIntro calls it before the page is
+ * first painted (useLayoutEffect). A visit the script already decided (on, off,
+ * or ended by its safety timer) is left as it is. Kept equal to
+ * aboutIntroScript by a unit test.
+ */
+export function startIntro() {
+  try {
+    const d = document.documentElement;
+    if (d.hasAttribute(DECIDED_ATTR)) return;
+    d.setAttribute(DECIDED_ATTR, "");
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches || d.hasAttribute("data-motion-paused") || sessionStorage.getItem(PLAYED_KEY)) return;
+    d.classList.add(INTRO_CLASS);
+    setTimeout(() => {
+      if (d.hasAttribute("data-intro-claimed")) return;
+      d.classList.remove(INTRO_CLASS);
+      dispatchEvent(new Event(INTRO_END_EVENT));
+    }, SAFETY_MS);
+  } catch {
+    // Storage blocked (or no matchMedia): the finished page, as with the script.
+  }
+}
