@@ -4,7 +4,7 @@
 // - 카드 머리 앞 1·2·3 번호 없음(재료 구매 견적도)
 // - '사야 할 골드'·'쓰는 재료 시세' 이름과 한 줄 뜻, 예전 이름('구매 골드'·'소모 가치')은 없음
 import { test, expect, expectNoHorizontalOverflow } from "../support/fixtures.mjs";
-import { shiftMark, shiftsSince, watchShifts } from "../support/shifts.mjs";
+import { realMoves, shiftMark, shiftsSince, watchShifts } from "../support/shifts.mjs";
 
 const BASES = ["최근 거래가", "전일 평균가", "현재 최저가"];
 
@@ -89,7 +89,25 @@ test.describe("재련 기대 비용 사용자 제보 @regression", () => {
     const mark = await shiftMark(page);
     await expect(arrow).not.toBeAttached();
     await page.waitForTimeout(300);
-    expect((await shiftsSince(page, mark)).moved, "▲/▼가 사라질 때 흔들림").toBe("");
+    // A move is 1px or more (raw box); Chrome also logs sub-pixel re-snaps whose
+    // boxes round the same (#1443 CI: 5 "moves", before = after).
+    expect(await realMoves(page, mark), `▲/▼가 사라질 때 흔들림(${(await shiftsSince(page, mark)).moved})`).toEqual([]);
+  });
+
+  // The check above stays red for a real move: the same recorder catches a 3px
+  // drop of the table and lets a 0.3px re-snap through.
+  test("1280: 흔들림 검사는 3px 움직임은 잡고 0.3px 다시 맞춤은 넘긴다", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await watchShifts(page);
+    await openPlan(page);
+    const nudge = async (px) => {
+      const mark = await shiftMark(page);
+      await materials(page).evaluate((table, value) => (table.style.marginTop = value), `${px}px`);
+      await page.waitForTimeout(300);
+      return realMoves(page, mark);
+    };
+    expect(await nudge(0.3), "0.3px").toEqual([]);
+    expect((await nudge(3.3)).length, "3px").toBeGreaterThan(0);
   });
 
   test("360: 카드 모양에서 가격 기준을 바꿔도 잘리는 칸이 없다", async ({ page }) => {
