@@ -79,7 +79,6 @@ button.orbStage:focus-visible { outline: 3px solid var(--ring); outline-offset: 
 .searchSubmit { min-height: 50px; min-width: 132px; padding: 0 18px; font-size: 13px; }
 .searchSubmit canvas { filter: brightness(0) invert(1); }
 .searchMessage { min-height: 45px; text-align: center; padding-top: 12px; color: var(--muted-foreground); font-size: 11px; }
-.searchMessage a { display: inline-flex; align-items: center; gap: 3px; margin-left: 8px; color: var(--link); text-decoration: none; }
 .error { color: var(--destructive) !important; }
 .exploreLink { display: flex; justify-content: center; align-items: center; gap: 8px; margin: 25px auto 0; width: fit-content; color: var(--link); font-size: 15px; text-decoration: none; }
 .exploreLink svg { animation: nudge 3s ease-in-out infinite; }
@@ -259,7 +258,7 @@ button.orbStage:focus-visible { outline: 3px solid var(--ring); outline-offset: 
 @media (hover: hover) and (pointer: fine) {
   .footer > a:last-child:hover { color: var(--link); }
   .primaryButton:hover, .searchSubmit:hover { background: var(--primary-hover); }
-  .cardLink:hover, .exploreLink:hover, .searchMessage a:hover { text-decoration: underline; text-underline-offset: 4px; }
+  .cardLink:hover, .exploreLink:hover { text-decoration: underline; text-underline-offset: 4px; }
 }
 @media (max-width: 1050px) {
   .header { gap: 16px; }
@@ -297,7 +296,6 @@ button.orbStage:focus-visible { outline: 3px solid var(--ring); outline-offset: 
   .searchSubmit { min-width: 106px; min-height: 48px; padding: 0 13px; font-size: 12px; }
   .searchSubmit > svg, .shortcut { display: none; }
   .searchMessage { font-size: 10px; min-height: 62px; padding-top: 14px; }
-  .searchMessage a { display: flex; justify-content: center; margin: 4px 0 0; font-size: 12px; }
   .exploreLink { font-size: 13px; margin-top: 22px; }
   .previewBand { padding-bottom: 60px; }
   .section { padding: 65px 22px 0; }
@@ -396,7 +394,7 @@ button.orbStage:focus-visible { outline: 3px solid var(--ring); outline-offset: 
 .heroEmbedded .heroDescription { color: var(--muted-foreground); }
 .heroEmbedded .searchForm { background: var(--background); border-color: var(--muted-foreground); }
 .heroEmbedded .searchForm input { color: var(--foreground); }
-.heroEmbedded .searchMessage a, .heroEmbedded .exploreLink { color: var(--link); }
+.heroEmbedded .exploreLink { color: var(--link); }
 .heroEmbedded .exploreLink { margin-top: 4px; }
 @media (max-width: 600px) {
   .hero.heroEmbedded { padding: 20px 0 4px; }

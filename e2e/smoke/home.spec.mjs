@@ -1,4 +1,5 @@
-// 홈(정보 대시보드, web #58)과 소개(/about): 캐릭터 검색 진입점과 Ctrl K.
+// 홈(정보 대시보드, web #58)과 소개(/about): 캐릭터 검색 진입점과 Ctrl K. 소개에는 자체 검색칸이 없고
+// (사용자 11-08) 머리글 공용 검색을 쓰므로 검색칸 검사는 홈만(소개는 about-hero-no-search.spec).
 import { test, expect, expectNoHorizontalOverflow } from "../support/fixtures.mjs";
 
 for (const path of ["/", "/about"]) {
@@ -13,6 +14,9 @@ for (const path of ["/", "/about"]) {
       await expect(page.getByRole("link", { name: "LOAKraken 홈" })).toBeVisible();
       await expectNoHorizontalOverflow(page);
     });
+
+    // The hero's own search field: home only (/about uses the header's search).
+    if (path !== "/") return;
 
     test("캐릭터 이름을 검색하면 캐릭터 화면으로 이동한다", async ({ page }) => {
       const search = page.getByRole("textbox", { name: "캐릭터 이름" });
