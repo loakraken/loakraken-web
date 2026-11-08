@@ -81,6 +81,21 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* An engraving row's icon before its name (user 11-08): a fixed box, so the
+   name starts at the same x on every row, icon or not. The name beside it
+   wraps instead of being cut (A37, #1421 review): on a phone the icon takes
+   room the long names (아르데타인의 기술) need. */
+.bars[data-icons] .label {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  overflow: visible;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.engravingIcon {
+  margin-top: 1px;
+}
 .bars[data-wrap] .label {
   overflow: visible;
   white-space: normal;
