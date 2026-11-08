@@ -33,7 +33,7 @@ const cellsArriving = (page) =>
     };
   });
 
-for (const width of [360, 1280])
+for (const width of [320, 360, 1280])
   test(`@A7 ${width} 장신구 시세: 칸의 나중에 온 줄이 먼저 그려진 최저가를 밀지 않는다 @regression`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await watchShifts(page);
