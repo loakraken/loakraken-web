@@ -159,7 +159,7 @@ import { RateLimitNote } from "@/components/site/rate-limit-note";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { useCrossfade } from "@/lib/motion";
 import { EngravingIcon } from "@/components/ui/engraving-icon";
-import { rangeDetail, rangePercent, type AccessoryStats } from "@/lib/character/accessory-range";
+import { belowRange, rangeDetail, rangePercent, RANGE_BASIS, type AccessoryStats } from "@/lib/character/accessory-range";
 
 export const TABS = [
   { id: "combat", label: "전투" },
@@ -437,7 +437,13 @@ function StatRange({ stats }: { stats: AccessoryStats | null | undefined }) {
   const pct = rangePercent(stats);
   if (!pct) return null;
   return (
-    <span className={styles.levelBadge} data-stat-range="">
+    <span
+      className={styles.levelBadge}
+      data-stat-range=""
+      // Below the 연마 3단계 range: a quieter badge (the sign says it too).
+      data-below={belowRange(stats) || undefined}
+      title={RANGE_BASIS}
+    >
       범위 {pct}
       {/* A name on a plain span is not read out (generic role): the detail as hidden text. */}
       <span className={styles.srOnly}> · 힘·민첩·지능 {rangeDetail(stats)}</span>

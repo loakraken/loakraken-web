@@ -2685,8 +2685,8 @@ createServer(async (req, res) => {
     }
     const accessoryStats = [
       { polishStage: 3, mainStat: 16009, mainStatMin: 15178, mainStatMax: 17857, mainStatRangePct: 31.02 },
-      { polishStage: 2, mainStat: 12654, mainStatMin: 10695, mainStatMax: 12778, mainStatRangePct: 94.05 },
-      { polishStage: 1, mainStat: 11500, mainStatMin: 9414, mainStatMax: 11349, mainStatRangePct: null },
+      { polishStage: 2, mainStat: 12845, mainStatMin: 10695, mainStatMax: 12778, mainStatRangePct: 103.22 },
+      { polishStage: 1, mainStat: 4050, mainStatMin: 9414, mainStatMax: 11349, mainStatRangePct: -277.21 },
     ];
     let acc = 0;
     for (const item of d.loadout.equipment) {
@@ -2707,8 +2707,8 @@ createServer(async (req, res) => {
         polishEffects: isAcc
           ? polish[acc % 2].map(([n, value, grade]) => ({ name: n, value, grade }))
           : [],
-        // 기본 효과 range % (gap #6, api #868 samples): in range, near the top, and one past
-        // the table (the backend leaves the % out, so no badge).
+        // 기본 효과 range % (gap #6, api #868): measured against the slot's 연마 3단계 range, so it
+        // can pass 100 or go below 0 (a T3 relic can reach about -277%, the widest badge).
         ...(isAcc && accessoryStats[acc] && {
           effects: [{ title: "기본 효과", lines: [`민첩 +${accessoryStats[acc].mainStat}`, "체력 +3200"] }],
           accessoryStats: accessoryStats[acc],
