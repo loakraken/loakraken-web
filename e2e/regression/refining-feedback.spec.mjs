@@ -4,7 +4,7 @@
 // - 카드 머리 앞 1·2·3 번호 없음(재료 구매 견적도)
 // - '사야 할 골드'·'쓰는 재료 시세' 이름과 한 줄 뜻, 예전 이름('구매 골드'·'소모 가치')은 없음
 import { test, expect, expectNoHorizontalOverflow } from "../support/fixtures.mjs";
-import { shiftMark, shiftsSince, watchShifts } from "../support/shifts.mjs";
+import { realMoves, shiftMark, shiftsSince, watchShifts } from "../support/shifts.mjs";
 
 const BASES = ["최근 거래가", "전일 평균가", "현재 최저가"];
 
@@ -84,12 +84,82 @@ test.describe("재련 기대 비용 사용자 제보 @regression", () => {
     await watchShifts(page);
     await openPlan(page);
     await page.getByRole("radiogroup", { name: "재료 가격 기준" }).getByRole("radio", { name: "최근 거래가" }).click();
+    // Chrome logs layout shifts only for what is on screen: bring the table in
+    // first, or the recorder sees nothing below the fold (#1445 CI).
+    await materials(page).scrollIntoViewIfNeeded();
+    await expect(materials(page)).toBeInViewport();
     const arrow = materials(page).getByText(/^[▲▼]$/).first();
     await expect(arrow).toBeAttached();
+    // The number itself, measured directly: a layout-shift entry names at most
+    // five sources (largest first), so a 1–2px jump of this small text can be
+    // left out while sub-pixel containers fill the list (codex P2, #1445).
+    const cell = await arrow.evaluateHandle((el) => el.closest('[data-slot="change-mark"]'));
+    const numberBox = () =>
+      cell.evaluate((el) => {
+        const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, {
+          acceptNode: (node) =>
+            node.textContent.trim() && !node.parentElement.closest(".chg-dir, .chg-wash") ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT,
+        });
+        const texts = [];
+        for (let node = walker.nextNode(); node; node = walker.nextNode()) texts.push(node);
+        const range = document.createRange();
+        range.setStartBefore(texts[0]);
+        range.setEndAfter(texts.at(-1));
+        const { x, y, width } = range.getBoundingClientRect();
+        return { x, y, right: x + width, connected: el.isConnected, hasArrow: !!el.querySelector(".chg-dir") };
+      });
+    const before = await numberBox();
+    // Read while ▲/▼ is still there, or a slow runner compares after with after.
+    expect(before.hasArrow, "▲/▼가 있을 때 잼").toBe(true);
     const mark = await shiftMark(page);
     await expect(arrow).not.toBeAttached();
     await page.waitForTimeout(300);
-    expect((await shiftsSince(page, mark)).moved, "▲/▼가 사라질 때 흔들림").toBe("");
+    const after = await numberBox();
+    expect(after.connected, "숫자 칸이 그대로 남음").toBe(true);
+    for (const key of ["x", "y", "right"])
+      expect(Math.abs(after[key] - before[key]), `숫자 ${key} ${before[key]} → ${after[key]}`).toBeLessThan(1);
+    // A move is 1px or more (raw box); Chrome also logs sub-pixel re-snaps whose
+    // boxes round the same (#1443 CI: 5 "moves", before = after).
+    expect(await realMoves(page, mark), `▲/▼가 사라질 때 흔들림(${(await shiftsSince(page, mark)).moved})`).toEqual([]);
+  });
+
+  // The check above stays red for a real move: the same recorder catches a 3px
+  // drop of the table and lets a 0.3px re-snap through.
+  test("1280: 흔들림 검사는 3px 움직임은 잡고 0.3px 다시 맞춤은 넘긴다", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await watchShifts(page);
+    await openPlan(page);
+    // Layout shifts are logged only on screen (below the fold, nothing at all: #1445 CI).
+    await materials(page).scrollIntoViewIfNeeded();
+    await expect(materials(page)).toBeInViewport();
+    // Measure from a still page: right after the plan opens the table can still
+    // grow a row and the lines above settle (#1445 CI: table 517 → 532px tall),
+    // which is the page's own move, not the nudge. Wait for 500ms with no shift.
+    await expect
+      .poll(
+        async () => {
+          const from = await shiftMark(page);
+          await page.waitForTimeout(500);
+          return page.evaluate((t) => window.__shiftLog.filter((entry) => entry.t >= t).length, from);
+        },
+        { message: "표가 멈춤", timeout: 10_000 },
+      )
+      .toBe(0);
+    const nudge = async (px) => {
+      const mark = await shiftMark(page);
+      // On top of the table's own margin (CSS gives it one: replacing it moved the table 16px).
+      await materials(page).evaluate((table, add) => {
+        table.dataset.baseMargin ??= getComputedStyle(table).marginTop;
+        table.style.marginTop = `calc(${table.dataset.baseMargin} + ${add}px)`;
+      }, px);
+      return mark;
+    };
+    const small = await nudge(0.3);
+    // Nothing to wait for when nothing counts: give the observer the same 300ms as above.
+    await page.waitForTimeout(300);
+    expect(await realMoves(page, small), "0.3px").toEqual([]);
+    const big = await nudge(3.3);
+    await expect.poll(async () => (await realMoves(page, big)).length, { message: "3px" }).toBeGreaterThan(0);
   });
 
   test("360: 카드 모양에서 가격 기준을 바꿔도 잘리는 칸이 없다", async ({ page }) => {

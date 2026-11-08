@@ -583,8 +583,20 @@
   .cards dd {
     font-size: 18px;
   }
+  /* Two to a row, each a fixed half: a label must not take its width from
+     the labels after it. When the page arrived in parts, the first label
+     stood alone, grew to the whole row, then halved when the next arrived
+     (v0.3.9 CI: its select's chevron 331 -> 161 at 390, before hydration). */
   .filters label {
-    flex: 1 1 40%;
+    flex: 0 0 calc(50% - 7px);
+    min-width: 0;
+  }
+  /* A toggle row (기준, 단위, …) is as tall as a label from the start (the
+     label's 12px line at 1.5 and its 4px gap above it): a label coming in
+     beside it later no longer grows the row and pushes it down, and it stays
+     bottom-aligned with the selects. */
+  .filters > .segment {
+    margin-top: calc(12px * 1.5 + 4px);
   }
   .filters [data-slot="select"],
   .filters input:not([type="checkbox"]) {

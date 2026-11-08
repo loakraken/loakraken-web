@@ -996,24 +996,23 @@
   gap: 10px;
   min-width: 0;
 }
-.engravingGrade {
-  flex: none;
-  width: 4px;
-  height: 18px;
-  border-radius: 2px;
-  background: var(--muted-foreground);
+/* The engraving icon's ring in its grade's colour (user 11-08, in place of a
+   separate mark): the grade text tokens, >= 4.5:1 on the panel; any other or
+   unknown grade a neutral ring. */
+.engravingIcon {
+  box-shadow: 0 0 0 2px var(--muted-foreground);
 }
-.engravingGrade[data-grade="relic"] {
-  background: var(--grade-relic-text);
+.engravingIcon[data-grade="relic"] {
+  box-shadow: 0 0 0 2px var(--grade-relic-text);
 }
-.engravingGrade[data-grade="legendary"] {
-  background: var(--grade-legendary-text);
+.engravingIcon[data-grade="legendary"] {
+  box-shadow: 0 0 0 2px var(--grade-legendary-text);
 }
-.engravingGrade[data-grade="epic"] {
-  background: var(--grade-epic-text);
+.engravingIcon[data-grade="epic"] {
+  box-shadow: 0 0 0 2px var(--grade-epic-text);
 }
-.engravingGrade[data-grade="ancient"] {
-  background: var(--grade-ancient-text);
+.engravingIcon[data-grade="ancient"] {
+  box-shadow: 0 0 0 2px var(--grade-ancient-text);
 }
 .engravings span {
   color: var(--muted-foreground);
