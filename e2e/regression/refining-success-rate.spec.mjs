@@ -63,3 +63,32 @@ test("320: '실패 n회' 줄은 처음부터 자리를 잡아, 답이 와도 아
   expect(shifts.all, shifts.moved).toBe(0);
   await expectNoHorizontalOverflow(page);
 });
+
+// An api before #830 (prod 817585d) does not read currentSuccessRate and plans from
+// 0 failures: its answers carry no failedAttemptsFrom. The web then neither shows the
+// box nor sends a rate, not even one kept in the address (PM 총괄 11-08).
+test("성공 확률을 모르는 이전 api면 칸이 없고, 주소에 남은 값도 보내지 않는다 @regression", async ({ page }) => {
+  const sent = [];
+  await page.route("**/api/refining/plans", async (route) => {
+    sent.push(route.request().postDataJSON());
+    const response = await route.fetch();
+    const body = await response.json();
+    const envelope = body.envelope ?? body;
+    delete envelope.data.failedAttemptsFrom;
+    await route.fulfill({ response, json: body });
+  });
+  const row = await openProgress(page);
+  await expect(row.getByRole("spinbutton", { name: "장인의 기운(%)" })).toBeVisible();
+  await expect.poll(() => sent.length).toBeGreaterThan(0);
+  await expect(row.getByRole("spinbutton", { name: "현재 성공 확률(%)" })).toHaveCount(0);
+  // A rate saved in the address (from a newer api) is not sent either.
+  const url = new URL(page.url());
+  const parts = JSON.parse(url.searchParams.get("parts"));
+  parts.weapon = { ...parts.weapon, successRate: 9.46 };
+  url.searchParams.set("parts", JSON.stringify(parts));
+  sent.length = 0;
+  await page.goto(url.toString());
+  await expect.poll(() => sent.length).toBeGreaterThan(0);
+  await page.waitForTimeout(300);
+  expect(sent.every((body) => !("currentSuccessRate" in body)), JSON.stringify(sent.map((b) => Object.keys(b)))).toBe(true);
+});

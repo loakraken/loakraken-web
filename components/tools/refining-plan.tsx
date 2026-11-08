@@ -312,18 +312,22 @@ function PartRow({
 const percentValue = (text: string) => {
   if (text.trim() === "") return null;
   const value = Number(text);
-  return Number.isFinite(value) ? Math.min(100, Math.max(0, value)) : undefined;
+  // Three decimals at most: a longer one was refused as out of range (codex P3).
+  return Number.isFinite(value) ? Math.round(Math.min(100, Math.max(0, value)) * 1000) / 1000 : undefined;
 };
 
 function Progress({
   parts,
   setPart,
   derived,
+  rateKnown,
 }: {
   parts: Record<PartId, PartState>;
   setPart: (id: PartId, next: PartState) => void;
   /** Failures the api found from 현재 성공 확률, per part (first stage). */
   derived: Partial<Record<PartId, number>>;
+  /** The api reads 현재 성공 확률 (its answers carry failedAttemptsFrom, api #830). */
+  rateKnown: boolean;
 }) {
   const active = PARTS.filter(
     (part) =>
@@ -334,8 +338,10 @@ function Progress({
     <details className={styles.disclosure}>
       <summary className="hit-44">첫 단계 진행 상황 입력</summary>
       <p className={quote.caption}>
-        이미 시도 중인 단계가 있으면 재련 창의 장인의 기운과, 숨결·책을 올리기 전
-        성공 확률을 넣어 주세요. 실패 횟수는 성공 확률로 계산해요. 첫 단계에만 적용돼요.
+        {/* One sentence either way: the rate box comes with the first answer
+            (its own grid cell), and a changed caption would move the list. */}
+        이미 시도 중인 단계가 있으면 재련 창의 장인의 기운과, 칸이 보이면 숨결·책을 올리기 전 성공 확률을 넣어
+        주세요. 첫 단계에만 적용돼요.
       </p>
       {active.length ? (
         <ul className={styles.progressList}>
@@ -365,6 +371,9 @@ function Progress({
                     }}
                   />
                 </label>
+                {/* Only for an api that reads it: an older one would ignore it and
+                    plan from 0 failures without a word (PM 총괄 11-08). */}
+                {rateKnown && (
                 <label className={styles.mini}>
                   <span>현재 성공 확률(%)</span>
                   <input
@@ -382,6 +391,7 @@ function Progress({
                     }}
                   />
                 </label>
+                )}
                 <small className={styles.derived}>
                   {derived[part.id] != null && `실패 ${derived[part.id]}회로 계산했어요.`}
                 </small>
@@ -873,13 +883,17 @@ function RefiningContent({ initialName }: { initialName: string }) {
   const setPart = (id: PartId, next: PartState) =>
     setParts((prev) => ({ ...prev, [id]: next }));
 
+  // Known once an answer carries failedAttemptsFrom (api #830); until then
+  // 현재 성공 확률 is neither asked for nor sent (an older api ignores it).
+  const [rateKnown, setRateKnown] = useState(false);
   const requests = useMemo(
     () =>
       PARTS.flatMap((part) => {
-        const request = toRequest(part, parts[part.id], options);
+        const state = rateKnown ? parts[part.id] : { ...parts[part.id], successRate: null };
+        const request = toRequest(part, state, options);
         return request ? [{ part, request, key: requestKey(request) }] : [];
       }),
-    [parts, options],
+    [parts, options, rateKnown],
   );
   const queries = useQueries({
     queries: requests.map(({ request, key }) => ({
@@ -899,6 +913,7 @@ function RefiningContent({ initialName }: { initialName: string }) {
     q.data ? [{ part: requests[i].part, plan: q.data.data }] : [],
   );
   const complete = requests.length > 0 && plans.length === requests.length;
+  if (!rateKnown && plans.some(({ plan }) => "failedAttemptsFrom" in plan)) setRateKnown(true);
   const derived: Partial<Record<PartId, number>> = Object.fromEntries(
     plans.flatMap(({ part, plan }) => {
       const failures = plan.stages[0]?.startFailedAttempts;
@@ -1054,7 +1069,7 @@ function RefiningContent({ initialName }: { initialName: string }) {
                   <strong>{formatLevel(nextLevel)}</strong>
                 </p>
               )}
-              <Progress parts={parts} setPart={setPart} derived={derived} />
+              <Progress parts={parts} setPart={setPart} derived={derived} rateKnown={rateKnown} />
             </section>
 
             <section className={quote.card} aria-labelledby="option-heading">
