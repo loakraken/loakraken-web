@@ -121,7 +121,10 @@ function CommandSearchDialog({
               onSubmit={results.submit}
               onValueChange={(value) => {
                 // The first key also asks for the liquid (at the next idle, not now).
-                setWanted(true)
+                // A clear (Enter runs the search, then empties the field) does not:
+                // it comes as the dialog closes and would let the liquid mount
+                // during the next open's transition (#1423 click-path review).
+                if (value) setWanted(true)
                 setText(value)
                 results.setActive(null)
                 results.clearStatus()

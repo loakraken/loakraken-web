@@ -165,6 +165,17 @@ test("한글 조합 중(상 → 상ㅅ → 상세)에도 '정보 보기' 줄은 
 for (const width of [1440, 360, 320]) {
   test(`@A33 ${width}: 결과 패널은 검색 막대와 같은 폭·같은 왼쪽 끝(최대 400px), 화면 밖 0 @regression`, async ({ page }) => {
     await page.setViewportSize({ width, height: 800 });
+    // Every frame from the page's start: the widest the panel was drawn, through its open animation too
+    // (a spring on its scale once drew it 406px for 400, CI #1467). Normal motion, as users see it.
+    await page.addInitScript(() => {
+      window.__panelMax = 0;
+      const tick = () => {
+        const panel = document.querySelector(".rsp");
+        if (panel) window.__panelMax = Math.max(window.__panelMax, panel.getBoundingClientRect().width);
+        requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    });
     const box = await openSearch(page);
     await page.keyboard.type("상");
     await expect(page.getByRole("listbox", { name: "검색 결과" })).toBeVisible();
@@ -184,6 +195,11 @@ for (const width of [1440, 360, 320]) {
       .toBeLessThanOrEqual(1);
     const { panel } = await measure();
     expect(panel.width, "패널 폭(최대 400)").toBeLessThanOrEqual(400.5);
+    // Let the open animation finish, then: never wider than its final width at any frame.
+    await page.waitForTimeout(600);
+    const widest = await page.evaluate(() => window.__panelMax);
+    // Its own final width (the bar's): an open animation never draws it wider than where it lands.
+    expect(widest, `열리는 동안 가장 넓었던 패널 폭 ${widest} (자리 ${panel.width})`).toBeLessThanOrEqual(panel.width + 0.5);
     if (width >= 440) expect(panel.width, "넓은 화면은 400").toBeGreaterThan(399);
     expect(panel.x).toBeGreaterThanOrEqual(0);
     expect(panel.x + panel.width).toBeLessThanOrEqual(width);
