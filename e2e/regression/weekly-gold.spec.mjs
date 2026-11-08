@@ -35,7 +35,8 @@ for (const width of [1280, 360]) {
 
 // #14 (PM 총괄 11-08): gold and raids are chosen in the panel itself, and they are the
 // homework tool's own saved choices (one saved state): both screens show the same.
-for (const width of [1280, 360])
+// 320 too: the rows change their own content (shift tests at 320, #1088).
+for (const width of [1280, 360, 320])
   test(`${width} 주간 획득 골드: 패널에서 레이드 · 골드 받기를 바꾸면 합계가 바뀌고 숙제 체크에도 같게, 흔들림 0 @regression`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await watchShifts(page);

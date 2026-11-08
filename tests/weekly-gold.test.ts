@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { raidChoices, replaceCharacter, weeklyGold, withRaid } from "../lib/character/weekly-gold";
-import { addCharacters, emptyState, rosterSummary } from "../lib/tools/homework";
+import { addCharacters, emptyState, modeOf, rosterSummary, weekStart } from "../lib/tools/homework";
+import { savedState } from "../lib/tools/homework-store";
 
 const sibling = (characterName: string, itemLevel: number | null, serverName = "아만") => ({
   characterName,
@@ -138,4 +139,22 @@ test("weekly gold: the raid list keeps its order when a raid is turned off or on
   const dropped = withRaid(first, raidChoices(first)[0], false);
   assert.deepEqual(raidChoices(dropped).map((c) => c.raidId), before);
   assert.equal(raidChoices(dropped)[0].on, false);
+});
+
+test("weekly gold: read with this week, a ticked 더보기 lowers the gold as in the homework tool (codex P2)", () => {
+  const week = weekStart(Date.now());
+  const before = weeklyGold(roster6, "아만", week)!;
+  const first = before.rows[0].character;
+  const i = first.raids.findIndex((plan) => modeOf(plan)?.gates.some((g) => g.moreCost));
+  assert.ok(i >= 0, "a planned raid with a 더보기");
+  const gate = modeOf(first.raids[i])!.gates.findIndex((g) => g.moreCost);
+  const raids = first.raids.map((plan, j) => (j === i ? { ...plan, more: plan.more.map((v, k) => (k === gate ? true : v)) } : plan));
+  const saved = replaceCharacter({ ...before.state, week }, { ...first, raids });
+  const text = JSON.stringify(saved);
+  const cost = modeOf(first.raids[i])!.gates[gate].moreCost!;
+  const now = weeklyGold(roster6, "아만", week, savedState(text, week))!;
+  assert.equal(now.rows[0].gold, before.rows[0].gold - cost);
+  // Read as another week, the 더보기 would be reset and the gold overstated.
+  const stale = weeklyGold(roster6, "아만", 0, savedState(text, 0))!;
+  assert.equal(stale.rows[0].gold, before.rows[0].gold);
 });

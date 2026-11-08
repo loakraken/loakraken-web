@@ -66,7 +66,12 @@ test("weekly gold rules come from the official guide", () => {
   assert.equal(RAID_DATA.rules.endContentGoldClearsPerCharacter, 3);
   assert.ok(RAID_DATA.sources[RAID_DATA.rules.source].url?.startsWith("https://lostark.game.onstove.com/"));
   // Site measurements link nowhere and name no other site (PM-프론트 #277 P2).
-  const sites = Object.values(RAID_DATA.sources).filter((s) => s.url === null);
+  type Kinded = { kind?: string; _note?: string };
+  const unlinked = Object.values(RAID_DATA.sources).filter((s) => s.url === null);
+  const sites = unlinked.filter((s) => (s as Kinded).kind !== "COMMUNITY");
   // Titled by what was measured, never by where (the name list is not kept here).
   assert.ok(sites.length > 0 && sites.every((s) => /^실측 — /.test(s.title)));
+  // Community posts (#14 '캐릭터마다 3회'): no address here either, it is in the vault.
+  const posts = unlinked.filter((s) => (s as Kinded).kind === "COMMUNITY");
+  assert.ok(posts.every((s) => /내부 기록/.test((s as Kinded)._note ?? "")));
 });

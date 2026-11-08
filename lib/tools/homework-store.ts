@@ -3,7 +3,7 @@
 // so a raid turned on in one is on in the other. Writes from this tab tell the
 // other readers at once; the browser's storage event covers other tabs.
 import { useSyncExternalStore } from "react";
-import { STORAGE_KEY, parseState, type HomeworkState } from "./homework";
+import { STORAGE_KEY, parseState, weekStart, type HomeworkState } from "./homework";
 
 const CHANGED = "loakraken-homework-changed";
 
@@ -34,6 +34,15 @@ export function readSavedHomework(): string | null {
  * shows the automatic setup, the same as a browser with nothing saved).
  */
 export const useSavedHomework = () => useSyncExternalStore(subscribe, readSavedHomework, () => undefined);
+
+const noChange = () => () => {};
+const thisWeek = () => weekStart(Date.now());
+/**
+ * The homework week now (its start, the same all week), or null while rendering
+ * on the server. Reading saved homework with it keeps this week's ticks and
+ * 더보기; with no clock they would read as last week's and reset (codex P2).
+ */
+export const useHomeworkWeek = () => useSyncExternalStore(noChange, thisWeek, () => null);
 
 /** The saved state, or null when nothing (or nothing readable) is saved. */
 export function savedState(text: string | null | undefined, now: number): HomeworkState | null {

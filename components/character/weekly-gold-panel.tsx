@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { raidChoices, replaceCharacter, weeklyGold, withRaid, type WeeklyGoldSibling } from "@/lib/character/weekly-gold";
 import { GOLD_CHARACTERS, GOLD_RAIDS_PER_CHARACTER } from "@/lib/tools/homework";
-import { readSavedHomework, saveHomework, savedState, useSavedHomework } from "@/lib/tools/homework-store";
+import { readSavedHomework, saveHomework, savedState, useHomeworkWeek, useSavedHomework } from "@/lib/tools/homework-store";
 import type { Character } from "@/lib/tools/homework";
 import { formatGold } from "@/lib/tools/raid-rewards";
 import { Panel } from "./panel";
@@ -46,10 +46,12 @@ export function WeeklyGoldPanel({
   // setup, the same as a browser with nothing saved.
   const text = useSavedHomework();
   const server = siblings.find((s) => s.characterName === current)?.serverName;
-  // Shown without a clock: the week only resets cleared gates, which the gold
-  // planned here does not count. A change reads the store again with the real
-  // time, so a save never carries an old week (that would clear the checks).
-  const gold = server ? weeklyGold(siblings, server, 0, savedState(text, 0)) : null;
+  // Read with this week (client only; the server and the first render show the
+  // automatic setup, as with nothing saved): an older week would reset 더보기 and
+  // overstate the gold against the homework tool (codex P2). A change reads the
+  // store again with the real time, so a save never carries an old week.
+  const week = useHomeworkWeek();
+  const gold = server ? weeklyGold(siblings, server, week ?? 0, week === null ? null : savedState(text, week)) : null;
   if (!gold || !server) return null;
   const save = (name: string, change: (character: Character) => Character) => saveChange(siblings, server, name, change);
   return (
