@@ -1,10 +1,18 @@
-// The /about intro's cursors: colours only, a cursor is its index (no names).
+// The /about intro's cursors: a cursor is its index, with a colour and the
+// role it plays on the page (a craft, never a team or a tool: user 11-09).
 
 /** Cursor arrow colours: each >= 3:1 on the light and the dark page. */
 export const CURSOR_COLORS = [
   "#c52020", "#1d66af", "#137634", "#7b6114",
   "#7e3adf", "#13725a", "#9a4f19", "#3a7213",
   "#156d7f", "#bd1f6e", "#4754e1", "#ab1eb8",
+] as const;
+
+/** The role pill under each cursor, in CURSOR_COLORS order (held by a unit test). */
+export const CURSOR_ROLES = [
+  "레이아웃", "문구", "타이포", "색상",
+  "아이콘", "모션", "데이터", "차트",
+  "검색", "접근성", "성능", "검수",
 ] as const;
 
 /** Which cursors (indexes into CURSOR_COLORS) build which section: at most four each. */
