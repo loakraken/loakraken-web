@@ -16,12 +16,13 @@ export const SORTS = [
   // The chip (label) is short so the bar stays two rows at 320–390 (PM 총괄 11-08);
   // the caption and sentences say it in full: what is measured, per how much gold
   // (codex P3 11-08: two chips ending in 효율 with different units read alike).
-  { id: "DELTA", label: "전투력 증가", name: "전투력 증가", unit: null },
-  { id: "EFFICIENCY", label: "전투력 ÷ 1만G", name: "전투력 효율", unit: "1만G당" },
+  // describe: read after the chip by screen readers ("/" reads as a slash), PM-프론트 11-08.
+  { id: "DELTA", label: "전투력 증가", name: "전투력 증가", unit: null, describe: null },
+  { id: "EFFICIENCY", label: "전투력 / 1만G", name: "전투력 효율", unit: "1만G당", describe: "1만 골드당 전투력 순" },
   // api #573: by the Kraken score gained per 100,000 gold (the label said
   // "점수 순", which read as the score itself: codex QA 11-08). Sent only now that the
   // screen knows it; the answer may come back as EFFICIENCY with a reason.
-  { id: "KRAKEN", label: "크라켄 ÷ 10만G", name: "크라켄 점수", unit: "10만G당" },
+  { id: "KRAKEN", label: "크라켄 / 10만G", name: "크라켄 점수", unit: "10만G당", describe: "10만 골드당 크라켄 점수 순" },
 ] as const;
 export type Sort = (typeof SORTS)[number]["id"];
 /** The list a dealer sees first (the tab's first request); sent explicitly, not the api's own default. */

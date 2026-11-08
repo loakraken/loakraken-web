@@ -148,7 +148,11 @@ test.describe("스펙업 가이드 @smoke", () => {
       await page.setViewportSize({ width, height: 800 });
       await page.goto(specUpListPath(NAME));
       const buttons = page.getByRole("group", { name: "정렬" }).getByRole("button");
-      await expect(buttons).toHaveText(["추천 순서", "전투력 증가", "전투력 ÷ 1만G", "크라켄 ÷ 10만G"]);
+      await expect(buttons).toHaveText(["추천 순서", "전투력 증가", "전투력 / 1만G", "크라켄 / 10만G"]);
+      // The short chips keep their visible name; the full wording is read as their description.
+      await expect(buttons.nth(2)).toHaveAccessibleName("전투력 / 1만G");
+      await expect(buttons.nth(2)).toHaveAccessibleDescription("1만 골드당 전투력 순");
+      await expect(buttons.nth(3)).toHaveAccessibleDescription("10만 골드당 크라켄 점수 순");
       const rows = await buttons.evaluateAll((all) => new Set(all.map((el) => Math.round(el.getBoundingClientRect().top))).size);
       expect(rows, "정렬 단추 줄 수").toBeLessThanOrEqual(2);
       await expectNoHorizontalOverflow(page);
@@ -156,8 +160,8 @@ test.describe("스펙업 가이드 @smoke", () => {
 
   test("정렬을 바꾸면 전투력 효율 순으로 다시 받는다", async ({ page }) => {
     await page.goto(specUpListPath(NAME));
-    await page.getByRole("button", { name: "전투력 ÷ 1만G" }).click();
-    await expect(page.getByRole("button", { name: "전투력 ÷ 1만G" })).toHaveAttribute("aria-pressed", "true");
+    await page.getByRole("button", { name: "전투력 / 1만G" }).click();
+    await expect(page.getByRole("button", { name: "전투력 / 1만G" })).toHaveAttribute("aria-pressed", "true");
     const rows = page.getByRole("table", { name: /전투력 효율 \(1만G당\)/ }).locator("tbody tr");
     // The new list's groups (another stage heads each one) open on their own press.
     await expect(rows.first()).toBeVisible();
@@ -438,7 +442,7 @@ test.describe("스펙업 가이드 @smoke", () => {
     const table = page.getByRole("table", { name: /스펙업 후보/ });
     await expandAll(page);
     await expect(table.locator("tbody tr")).toHaveCount(3);
-    const krakenSort = page.getByRole("button", { name: "크라켄 ÷ 10만G" });
+    const krakenSort = page.getByRole("button", { name: "크라켄 / 10만G" });
     await krakenSort.click();
     await expect(page.getByRole("table", { name: /크라켄 점수 \(10만G당\)/ })).toBeVisible();
     // The list area is drawn anew for another list; the press stays where it was,
@@ -470,7 +474,7 @@ test.describe("스펙업 가이드 @smoke", () => {
     await page.goto(specUpListPath("스펙업점수꺼짐"));
     await expandAll(page);
     await expect(page.getByRole("table", { name: /스펙업 후보/ }).locator("tbody tr")).toHaveCount(3);
-    await page.getByRole("button", { name: "크라켄 ÷ 10만G" }).click();
+    await page.getByRole("button", { name: "크라켄 / 10만G" }).click();
     // Short in the bar, the whole sentence for a screen reader (the same status).
     await expect(page.getByRole("status").getByText("점수 정렬 준비 중 · 효율 순", { exact: true })).toBeVisible();
     await expect(page.getByRole("status").filter({ hasText: "크라켄 점수 (10만G당) 정렬은 아직 준비 중이에요. 전투력 효율 (1만G당)으로 보여 드려요." })).toHaveCount(1);
@@ -484,7 +488,7 @@ test.describe("스펙업 가이드 @smoke", () => {
     await page.goto(specUpListPath("스펙업옛응답"));
     await expandAll(page);
     await expect(page.getByRole("table", { name: /스펙업 후보/ }).locator("tbody tr")).toHaveCount(3);
-    await page.getByRole("button", { name: "크라켄 ÷ 10만G" }).click();
+    await page.getByRole("button", { name: "크라켄 / 10만G" }).click();
     await expect(page.getByRole("status").getByText("점수 정렬 준비 중 · 효율 순", { exact: true })).toBeVisible();
     expect(sorts).not.toContain("KRAKEN");
   });
@@ -494,7 +498,7 @@ test.describe("스펙업 가이드 @smoke", () => {
     const ids = [];
     page.on("request", (r) => r.url().includes("/api/characters/spec-up/candidates/") && ids.push(r.url()));
     await page.goto(specUpListPath(NAME));
-    await page.getByRole("button", { name: "크라켄 ÷ 10만G" }).click();
+    await page.getByRole("button", { name: "크라켄 / 10만G" }).click();
     const kraken = page.getByRole("table", { name: /크라켄 점수 \(10만G당\)/ });
     await kraken.locator("tbody tr").filter({ hasText: "기습의 대가 각인" }).first().getByRole("button").first().click();
     await expect(page.getByRole("dialog")).toContainText("구매");

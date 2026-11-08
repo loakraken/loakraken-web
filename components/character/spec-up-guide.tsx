@@ -3,7 +3,7 @@
 // next, ranked by combat power per 10,000 gold (or by the gain alone). Every
 // number comes from the backend; candidates it could not compute fold into one
 // line per reason, and "적용해 보기" opens the simulator tab with the change.
-import { Fragment, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useContext, useEffect, useId, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChangeMark, useChangedCells, type Pulse } from "@/components/ui/changed-cells";
@@ -140,6 +140,7 @@ const viewCodec = oneOfCodec<View>(VIEWS);
 
 export default function SpecUpGuide({ data, supporter = false }: { data: Character; supporter?: boolean }) {
   const name = data.characterName;
+  const sortsId = useId();
   // For gem price times ("21:05 시세" / a date when not today).
   const now = useClock(MINUTE);
   const pathEnabled = useContext(SpecUpPathEnabled);
@@ -307,16 +308,28 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
 
       <div className={styles.specUpBar}>
         <div role="group" aria-label="정렬" className={styles.specUpSorts}>
-          {(supporter ? SUPPORTER_SORTS : pathEnabled ? [PATH_CHIP, ...SORTS] : SORTS).map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              aria-pressed={view === item.id}
-              onClick={() => setView(item.id)}
-            >
-              {item.label}
-            </button>
-          ))}
+          {(supporter ? SUPPORTER_SORTS : pathEnabled ? [PATH_CHIP, ...SORTS] : SORTS).map((item) => {
+            // The short chip keeps its visible name; the full wording is its description.
+            const describe = "describe" in item ? item.describe : null;
+            // Beside the button, not in it: inside, it would join the button's name.
+            return (
+              <Fragment key={item.id}>
+                <button
+                  type="button"
+                  aria-pressed={view === item.id}
+                  aria-describedby={describe ? `${sortsId}-${item.id}` : undefined}
+                  onClick={() => setView(item.id)}
+                >
+                  {item.label}
+                </button>
+                {describe && (
+                  <span id={`${sortsId}-${item.id}`} className={styles.sr} hidden>
+                    {describe}
+                  </span>
+                )}
+              </Fragment>
+            );
+          })}
         </div>
         {/* One slot held in the bar for every chip (A7: nothing below moves on a
             press or a late answer): 추천 순서's 효율/전투력 우선, the cooldown
