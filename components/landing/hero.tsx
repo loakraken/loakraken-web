@@ -1,15 +1,17 @@
 "use client";
 
-// The /about hero (title, bot, BorderBeam search), also at the top of the
-// home page (user, 11:05). The bot follows the pointer anywhere in the
+// The /about hero (title, bot), also at the top of the home page (user,
+// 11:05), where it carries the BorderBeam character search. /about has no
+// search of its own (user, 11-08): the header's shared search (Ctrl K) is the
+// one there. The bot follows the pointer anywhere in the
 // window, header included (user, 11-02), and falls asleep 5 s after the last
 // move (see BotMascot); pressing it pauses the page's automatic motion and
 // never its following (user, 11-01).
 
-import { useEffect, useRef, useState, useSyncExternalStore, type FormEvent, type RefObject } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { BorderBeam } from "border-beam";
-import { ArrowDown, ArrowRight, Command, ExportCircle, SearchNormal } from "@/components/ui/icons";
+import { ArrowDown, ArrowRight, Command, SearchNormal } from "@/components/ui/icons";
 import { useTheme } from "@/components/ui/theme-toggle";
 import { InlineOrb } from "./orb";
 import { BotMascot } from "@/components/bot/bot-mascot";
@@ -24,19 +26,15 @@ const noSubscribe = () => () => {};
 const platformKey = () => (/mac|iphone|ipad/i.test(navigator.platform) ? "mac" : "other");
 
 export function Hero({
-  inputRef,
   embedded = false,
 }: {
-  /** Lets the page focus the search box (the /about header button). */
-  inputRef?: RefObject<HTMLInputElement | null>;
-  /** On the home page: the page has its own h1, and no help line or preview
-   *  link under the search (user, 19:4x) — only the error slot, same height. */
+  /** On the home page: the page has its own h1, and the hero carries the
+   *  character search (only the error slot under it, user 19:4x). */
   embedded?: boolean;
 }) {
   const shortcutKey = useSyncExternalStore(noSubscribe, platformKey, () => null);
   const router = useRouter();
-  const ownInput = useRef<HTMLInputElement>(null);
-  const input = inputRef ?? ownInput;
+  const input = useRef<HTMLInputElement>(null);
   const hero = useRef<HTMLElement>(null);
   const heroVisible = useVisible(hero);
   const { looping, paused, togglePaused } = useLandingMotion();
@@ -64,7 +62,8 @@ export function Hero({
 
   useEffect(() => {
     const shortcut = (event: KeyboardEvent) => {
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+      // Only with the search here (home): elsewhere the header's Ctrl K opens its own.
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k" && input.current) {
         event.preventDefault();
         input.current?.scrollIntoView({ behavior: "instant", block: "center" });
         input.current?.focus({ preventScroll: true });
@@ -116,7 +115,7 @@ export function Hero({
           <div className={styles.botPicker}><BotPicker theme={theme} /></div>
         </div>
         <p className={styles.orbCaption} {...build("text")}><span className={styles.statusDot} />{searching ? "캐릭터 화면으로 이동하고 있어요" : focused ? "어떤 캐릭터를 살펴볼까요?" : "당신의 다음 선택을 기다리고 있어요"}</p>
-        <div className={styles.searchArea} {...build("box")}>
+        {embedded && <div className={styles.searchArea}>
           <BorderBeam className={styles.searchBeam} theme={theme} colorVariant="mono" staticColors size="line" duration={5} strength={focused ? 0.55 : 0.22} active={looping && heroVisible} borderRadius={36}>
             <form className={styles.searchForm} onSubmit={search} noValidate aria-busy={searching}>
               <label htmlFor="character-search" className={styles.srOnly}>캐릭터 이름</label>
@@ -126,13 +125,13 @@ export function Hero({
                   setFocused(true);
                   if (refocus.current) refocus.current = false;
                   else setFocusHops((n) => n + 1);
-                }} onBlur={() => setFocused(false)} placeholder="캐릭터 이름을 입력하세요" maxLength={65} autoComplete="off" spellCheck={false} disabled={searching} aria-invalid={!!error} aria-describedby={error ? "search-error" : embedded ? undefined : "search-help"} />
+                }} onBlur={() => setFocused(false)} placeholder="캐릭터 이름을 입력하세요" maxLength={65} autoComplete="off" spellCheck={false} disabled={searching} aria-invalid={!!error} aria-describedby={error ? "search-error" : undefined} />
               {shortcutKey && <kbd className={styles.shortcut} aria-hidden="true">{shortcutKey === "mac" ? <Command size={12} /> : "Ctrl"} K</kbd>}
               <button className={styles.searchSubmit} type="submit" disabled={searching} aria-label={searching ? "캐릭터 화면으로 이동 중" : undefined}>{searching ? <InlineOrb /> : <>캐릭터 검색 <ArrowRight size={16} /></>}</button>
             </form>
           </BorderBeam>
-          <div className={styles.searchMessage} aria-live="polite">{error ? <p id="search-error" className={styles.error}>{error}</p> : embedded ? null : <p id="search-help">이름으로 캐릭터의 현재 정보를 조회하세요. <a href="#preview">예시 화면 살펴보기 <ExportCircle size={12} /></a></p>}</div>
-        </div>
+          <div className={styles.searchMessage} aria-live="polite">{error ? <p id="search-error" className={styles.error}>{error}</p> : null}</div>
+        </div>}
       </div>
       {!embedded && <a className={styles.exploreLink} href="#preview">캐릭터 화면 미리보기 <ArrowDown size={16} /></a>}
     </section>
