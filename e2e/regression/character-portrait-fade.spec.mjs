@@ -67,7 +67,7 @@ for (const width of [1280, 390, 320])
     }
 
     // The character banner: the render's own sides fade, and its box fades on all four sides.
-    await gotoReady(page, characterPath("상세"));
+    await gotoReady(page, characterPath("초상화"));
     const banner = page.getByRole("region", { name: /캐릭터 요약$/ });
     const render = banner.getByRole("img", { name: /캐릭터 전신$/ });
     await expect(render).toBeVisible();
@@ -84,7 +84,7 @@ for (const width of [1280, 390, 320])
     await expectNoHorizontalOverflow(page);
 
     // The avatar tab's stage.
-    await gotoReady(page, characterPath("상세", "avatars"));
+    await gotoReady(page, characterPath("초상화", "avatars"));
     const stage = page.getByRole("img", { name: /캐릭터 전신\(장착한 아바타\)$/ });
     await expect(stage).toBeVisible();
     await allLoaded(page, stage);
