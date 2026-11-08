@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useState, type FormEvent } from "react";
+import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { useRemaining } from "@/components/home/clock";
 import { useMutation } from "@tanstack/react-query";
 import { Add, ArrowDown, ArrowLeft, CloseCircle, TaskSquare } from "@/components/ui/icons";
@@ -122,9 +122,9 @@ function Summary({ state, now }: { state: HomeworkState; now: number }) {
   );
 }
 
-function AddRoster({ onAdd }: { onAdd: (picked: Sibling[]) => void }) {
+function AddRoster({ onAdd, arrival }: { onAdd: (picked: Sibling[]) => void; arrival: string | null }) {
   const inputId = useId();
-  const [name, setName] = useState("");
+  const [name, setName] = useState(arrival ?? "");
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const siblings = useMutation({
     mutationFn: (target: string) => fetchSiblings(target, new AbortController().signal),
@@ -138,6 +138,15 @@ function AddRoster({ onAdd }: { onAdd: (picked: Sibling[]) => void }) {
     : [];
   const failure = siblings.error instanceof CharacterQueryError ? siblings.error.info : null;
   const limit = useRateLimit(siblings.error);
+  // Opened from a character's 주간 획득 골드 (?character=): load that roster's
+  // list once, top six ticked as usual; nothing is added until '추가' is pressed.
+  const asked = useRef(false);
+  const { mutate } = siblings;
+  useEffect(() => {
+    if (!arrival || asked.current) return;
+    asked.current = true;
+    mutate(arrival);
+  }, [arrival, mutate]);
 
   function submit(event: FormEvent) {
     event.preventDefault();
@@ -555,6 +564,19 @@ function CharacterCard({
 export default function HomeworkTool() {
   const [now, setNow] = useState(() => Date.now());
   const [state, setState] = useState<HomeworkState>(() => load(Date.now()));
+  // ?character= from the character page (주간 획득 골드 → 숙제에서 레이드 고르기),
+  // read once: a roster already here is not asked for again.
+  const [arrival] = useState(() => {
+    const name = new URLSearchParams(window.location.search).get("character")?.trim().slice(0, 16) || null;
+    return name && !state.characters.some((c) => c.name === name) ? name : null;
+  });
+  // Drop it from the address so a reload does not ask the roster again.
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (!url.searchParams.has("character")) return;
+    url.searchParams.delete("character");
+    window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
+  }, []);
 
   // Tick once a minute: countdown, and the weekly reset when it passes.
   useEffect(() => {
@@ -601,7 +623,7 @@ export default function HomeworkTool() {
         <div className={quote.band}>
           <div className={styles.workspace}>
             <Summary state={state} now={now} />
-            <AddRoster onAdd={(picked) =>
+            <AddRoster arrival={arrival} onAdd={(picked) =>
               setState((s) =>
                 addCharacters(
                   s,

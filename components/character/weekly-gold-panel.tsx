@@ -59,8 +59,9 @@ export function WeeklyGoldPanel({
         3개를 깬다고 보고 계산했어요(더보기 제외).
         {gold.unknownGates > 0 && ` 골드 미확인 관문 ${gold.unknownGates}개는 빠져 있어요.`}
         {gold.unsettled.length > 0 && ` 합계에서 뺀 항목(클리어 골드 데이터 없음): ${gold.unsettled.join(", ")}.`}{" "}
-        <Link href="/tools/homework" prefetch={false}>
-          숙제 도구에서 바꿔 보기
+        {/* The raids each character runs are chosen in the homework tool, for this roster (#14). */}
+        <Link href={`/tools/homework?${new URLSearchParams({ character: current })}`} prefetch={false}>
+          숙제에서 레이드 고르기
         </Link>
       </p>
     </Panel>

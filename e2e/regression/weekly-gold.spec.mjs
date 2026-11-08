@@ -21,7 +21,10 @@ for (const width of [1280, 360]) {
     await expect(rows.nth(2)).toContainText("84,000G");
     await expect(panel).not.toContainText("주간골드일곱");
     await expect(panel).not.toContainText("주간골드다른서버");
-    await expect(panel.getByRole("link", { name: "숙제 도구에서 바꿔 보기" })).toHaveAttribute("href", "/tools/homework");
+    await expect(panel.getByRole("link", { name: "숙제에서 레이드 고르기" })).toHaveAttribute(
+      "href",
+      `/tools/homework?character=${encodeURIComponent("주간골드")}`,
+    );
     await page.waitForTimeout(600);
     expect((await shiftsSince(page)).all, "첫 로드 흔들림").toBe(0);
 
@@ -32,3 +35,25 @@ for (const width of [1280, 360]) {
     await expectNoHorizontalOverflow(page);
   });
 }
+
+// #14 (PM 총괄 11-08, 안 1): the raids are chosen in the homework tool, for this roster.
+// The link opens it with the roster's list ready (top six ticked); nothing is added
+// until '추가', and the address drops ?character so a reload does not ask again.
+test("주간 획득 골드 → 숙제에서 레이드 고르기: 이 원정대 목록이 준비되고, 누르기 전엔 추가하지 않는다 @regression", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await gotoReady(page, characterPath("주간골드", "siblings"));
+  // The homework page's own request (the character page may ask for siblings too).
+  const asked = page.waitForRequest((r) => r.url().includes("/api/characters/siblings") && page.url().includes("/tools/homework"));
+  await page.getByRole("region", { name: "주간 획득 골드" }).getByRole("link", { name: "숙제에서 레이드 고르기" }).click();
+  await expect(page).toHaveURL(/\/tools\/homework$/);
+  expect(new URL((await asked).url()).searchParams.toString()).toContain(encodeURIComponent("주간골드"));
+  await expect(page.getByRole("textbox", { name: "캐릭터 이름" })).toHaveValue("주간골드");
+  const pick = page.getByRole("group", { name: "숙제에 넣을 캐릭터" });
+  await expect(pick.getByRole("checkbox", { checked: true })).toHaveCount(6);
+  await expect(page.getByRole("button", { name: "6명 추가" })).toBeVisible();
+  // Not added yet: the empty-state line is still there.
+  await expect(page.getByText(/캐릭터 이름을 넣으면 원정대를 불러와요/)).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole("textbox", { name: "캐릭터 이름" })).toHaveValue("");
+  await expect(page.getByRole("group", { name: "숙제에 넣을 캐릭터" })).toHaveCount(0);
+});
