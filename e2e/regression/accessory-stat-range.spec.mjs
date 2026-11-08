@@ -1,6 +1,6 @@
 // 기능(흡수 웨이브 1 #6): 캐릭터 장비의 목걸이·귀걸이·반지마다 기본 효과 힘·민첩·지능이 그 부위의 연마 3단계 범위(공식
 // 아이템 사전)의 몇 %인지 '범위 31.02%'로 보이고, 툴팁의 기본 효과에 값과 범위가 함께 나온다. 같은 범위로 재므로 100을
-// 넘거나(103.22%) 0 아래(−277.21%, 흐린 배지)일 수 있고, 자르지 않고 그대로 보인다. 가장 긴 '범위 −277.21%'도 휴대폰
+// 넘거나(105.34%) 0 아래(−277.24%, 흐린 배지)일 수 있고, 자르지 않고 그대로 보인다. 가장 긴 '범위 −277.24%'도 휴대폰
 // 320에서 잘리지 않고, 흔들림 없이 옆으로 넘치지 않는다.
 import { test, expect, characterPath, gotoReady, expectNoHorizontalOverflow } from "../support/fixtures.mjs";
 import { shiftsSince, watchShifts } from "../support/shifts.mjs";
@@ -18,13 +18,15 @@ for (const width of [1280, 360, 320])
     await expect(badges).toHaveCount(3);
     expect(await badges.evaluateAll((els) => els.map((el) => [...el.childNodes].filter((n) => n.nodeType === 3).map((n) => n.textContent).join("").trim()))).toEqual([
       "범위 31.02%",
-      "범위 103.22%",
-      "범위 −277.21%",
+      "범위 105.34%",
+      "범위 −277.24%",
     ]);
     // Below the range: the quieter badge; the others are not.
     await expect(badges.nth(2)).toHaveAttribute("data-below", "true");
     await expect(badges.nth(0)).not.toHaveAttribute("data-below");
     await expect(badges.nth(1)).not.toHaveAttribute("data-below");
+    // What the % is measured against, on every badge.
+    for (const badge of await badges.all()) await expect(badge).toHaveAttribute("title", "연마 3단계 범위 기준");
     // Screen readers hear the value and the range it is measured against.
     await expect(badges.first()).toHaveText("범위 31.02% · 힘·민첩·지능 16,009 (연마 3단계 범위 15,178 ~ 17,857, 31.02%)");
     expect(await badges.first().evaluate(shown), "보이는 글자").toBe("범위 31.02%");

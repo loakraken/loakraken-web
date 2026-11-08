@@ -2683,10 +2683,13 @@ createServer(async (req, res) => {
       const base = d.loadout.equipment[d.loadout.equipment.length - 1];
       for (const type of accessoryTypes) d.loadout.equipment.push({ ...base, type, name: `합성 ${type}`, grade: "고대" });
     }
+    // 기본 효과 range % against each slot's 연마 3단계 range (api #868 @6b00e070, the baseline site's rule;
+    // readings from 레퍼런스's check of that site, recorded internally): necklace 15178-17857, earring
+    // 11806-13889. A high roll passes 100; a T3 relic sits far below 0 (the widest badge).
     const accessoryStats = [
       { polishStage: 3, mainStat: 16009, mainStatMin: 15178, mainStatMax: 17857, mainStatRangePct: 31.02 },
-      { polishStage: 2, mainStat: 12845, mainStatMin: 10695, mainStatMax: 12778, mainStatRangePct: 103.22 },
-      { polishStage: 1, mainStat: 4050, mainStatMin: 9414, mainStatMax: 11349, mainStatRangePct: -277.21 },
+      { polishStage: 3, mainStat: 18000, mainStatMin: 15178, mainStatMax: 17857, mainStatRangePct: 105.34 },
+      { polishStage: 0, mainStat: 6031, mainStatMin: 11806, mainStatMax: 13889, mainStatRangePct: -277.24 },
     ];
     let acc = 0;
     for (const item of d.loadout.equipment) {
@@ -2707,8 +2710,7 @@ createServer(async (req, res) => {
         polishEffects: isAcc
           ? polish[acc % 2].map(([n, value, grade]) => ({ name: n, value, grade }))
           : [],
-        // 기본 효과 range % (gap #6, api #868): measured against the slot's 연마 3단계 range, so it
-        // can pass 100 or go below 0 (a T3 relic can reach about -277%, the widest badge).
+        // 기본 효과 range % (gap #6): the samples above.
         ...(isAcc && accessoryStats[acc] && {
           effects: [{ title: "기본 효과", lines: [`민첩 +${accessoryStats[acc].mainStat}`, "체력 +3200"] }],
           accessoryStats: accessoryStats[acc],
