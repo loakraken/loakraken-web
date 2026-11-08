@@ -102,9 +102,11 @@ test.describe("재련 기대 비용 사용자 제보 @regression", () => {
         range.setStartBefore(texts[0]);
         range.setEndAfter(texts.at(-1));
         const { x, y, width } = range.getBoundingClientRect();
-        return { x, y, right: x + width, connected: el.isConnected };
+        return { x, y, right: x + width, connected: el.isConnected, hasArrow: !!el.querySelector(".chg-dir") };
       });
     const before = await numberBox();
+    // Read while ▲/▼ is still there, or a slow runner compares after with after.
+    expect(before.hasArrow, "▲/▼가 있을 때 잼").toBe(true);
     const mark = await shiftMark(page);
     await expect(arrow).not.toBeAttached();
     await page.waitForTimeout(300);
