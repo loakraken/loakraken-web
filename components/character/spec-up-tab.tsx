@@ -29,7 +29,7 @@ export function SpecUpTab({ data }: { data: Character }) {
   // list arriving after the guide was laid out during the tab panel's
   // entrance motion and counted as a layout shift.
   // A supporter has no combat-power model: their list is ranked by the
-  // supporter score per 100,000 gold (api #722, 크라켄 점수 순 for a
+  // supporter score per 100,000 gold (api #722, 크라켄 점수 효율 순 for a
   // supporter), so that list is the one asked for. An answer that is not
   // scored (an older backend, or no score for this character) keeps the one
   // plain line instead of a list of "not calculated" rows.

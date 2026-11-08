@@ -79,7 +79,7 @@ test("줄 상세는 목록의 작열 보석 선택을 true·false일 때만 넘�
   assert.deepEqual(sent, ["false", "true", null, null]);
 });
 
-test("크라켄 점수 순: 점수 변화가 있는 후보는 상태와 상관없이 응답 순서대로 순위에, 나머지는 이유별로 접힌다", () => {
+test("크라켄 점수 효율 순: 점수 변화가 있는 후보는 상태와 상관없이 응답 순서대로 순위에, 나머지는 이유별로 접힌다", () => {
   const { data } = fixture("character-spec-up-kraken.json");
   const { ok, folded } = splitKrakenCandidates(data.candidates);
   assert.equal(ok.length, 35);
@@ -87,10 +87,10 @@ test("크라켄 점수 순: 점수 변화가 있는 후보는 상태와 상관�
   assert.ok(ok.some((c: { status: string }) => c.status === "UNSUPPORTED"));
   assert.equal(folded.reduce((n: number, f: { candidates: unknown[] }) => n + f.candidates.length, 0), 6);
   assert.equal(krakenUnavailableCopy(null), null);
-  assert.equal(krakenUnavailableCopy("DISABLED"), "크라켄 점수 순은 아직 준비 중이에요. 1만 골드당 효율 순으로 보여 드려요.");
+  assert.equal(krakenUnavailableCopy("DISABLED"), "크라켄 점수 효율 순은 아직 준비 중이에요. 1만 골드당 효율 순으로 보여 드려요.");
   assert.match(krakenUnavailableCopy("NEW_REASON") ?? "", /정렬할 수 없어요/);
   // #921: one sentence for another list (sort, or the same sort's cooldown choice).
-  assert.equal(listChangeCopy("EFFICIENCY:", "KRAKEN", false), "크라켄 점수 순으로 정렬했어요");
+  assert.equal(listChangeCopy("EFFICIENCY:", "KRAKEN", false), "크라켄 점수 효율 순으로 정렬했어요");
   assert.equal(listChangeCopy("KRAKEN:false", "EFFICIENCY", true), "1만 골드당 효율 순으로 정렬했어요");
   assert.equal(listChangeCopy("KRAKEN:false", "KRAKEN", true), "작열 보석을 넣어 다시 정렬했어요");
   assert.equal(listChangeCopy("KRAKEN:true", "KRAKEN", false), "작열 보석을 빼고 다시 정렬했어요");
@@ -110,7 +110,7 @@ test("비용 0 후보는 효율 칸이 null('—')이고, 웹은 다시 정렬�
   const { ok: ranked } = splitCandidates([...ok, free]);
   assert.deepEqual(ranked.map((c) => c.id), [...ok, free].map((c: { id: string }) => c.id));
   assert.equal(ranked.at(-1)?.combatPowerPer10kGold, null);
-  // 크라켄 점수 순(api #596): ① 10만 골드당 → ② Δ > 0이면서 10만 골드당 없음(0골드와
+  // 크라켄 점수 효율 순(api #596): ① 10만 골드당 → ② Δ > 0이면서 10만 골드당 없음(0골드와
   // 비용 모름을 함께, Δ 큰 순) → ③ 나머지. Laid out by that rule here; the screen
   // keeps the answer's order as it is (the web does not sort).
   const base = { ...ok[0], krakenScorePer100kGold: null };
