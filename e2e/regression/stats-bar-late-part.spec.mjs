@@ -69,7 +69,7 @@ const partsArriving = (bar) =>
     return moved;
   });
 
-for (const width of [320, 360, 390, 768, 1280])
+for (const width of [320, 360, 390, 440, 500, 768, 1280])
   test(`@A7 ${width} 통계 조건 막대: 칸이 나뉘어 와도 먼저 그려진 칸이 움직이지 않는다 @regression`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await gotoReady(page, "/stats");
