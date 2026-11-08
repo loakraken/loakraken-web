@@ -1,4 +1,4 @@
-// 회귀(사용자 11-08): 소개(/about) 머리글에는 소개 화면 자체의 '캐릭터 검색' 버튼이 없고(바로 아래 검색칸이 있음),
+// 회귀(사용자 11-08): 소개(/about) 머리글에는 소개 화면 자체의 '캐릭터 검색' 버튼이 없고(공용 검색 하나만),
 // 공용 검색 버튼의 'Ctrl K' 표시는 다른 화면과 같은 크기로 한 줄이다(소개 화면의 17px 글자가 넘어와 두 줄이 됐었음).
 import { test, expect, gotoReady } from "../support/fixtures.mjs";
 
@@ -22,6 +22,6 @@ test("1280 소개: 머리글에 화면 자체 검색 버튼 없음, Ctrl K 한 �
   const about = await shortcut(page);
   expect(about.lines, "Ctrl K 줄 수").toBe(1);
   expect(about.size, "Ctrl K 글자 크기(홈과 같음)").toBe(home.size);
-  // The page's own search below stays.
-  await expect(page.getByRole("textbox", { name: "캐릭터 이름" })).toBeVisible();
+  // The page has no search field of its own either (user 11-08): the shared one is the search here.
+  await expect(page.getByRole("textbox", { name: "캐릭터 이름" })).toHaveCount(0);
 });
