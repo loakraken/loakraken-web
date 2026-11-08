@@ -19,20 +19,10 @@ import { BotPicker } from "@/components/bot/bot-picker";
 import { useChosenBot, useChosenWear } from "@/components/bot/use-chosen-bot";
 import { useLandingMotion, useReducedMotion, useVisible } from "./motion-context";
 import { characterNameError, normalizeCharacterName } from "@/lib/character/model";
+import { cameFromHistory, clearHistoryMark } from "./history-mark";
 import styles from "./landing.module.css";
 
 const noSubscribe = () => () => {};
-// Back/forward (popstate) puts a page the visitor has already seen back in place:
-// its hero comes back as it was, with no entrance (PM 11-09). Set by popstate and
-// cleared by the next hero's mount (however long that takes on a slow phone), or
-// by a click on a link, which starts a forward navigation.
-let fromHistory = false;
-if (typeof window !== "undefined") {
-  window.addEventListener("popstate", () => { fromHistory = true; });
-  document.addEventListener("click", (event) => {
-    if (event.target instanceof Element && event.target.closest("a[href]")) fromHistory = false;
-  }, true);
-}
 // Platform is unknown during SSR; render the hint only after hydration to avoid a mismatch.
 const platformKey = () => (/mac|iphone|ipad/i.test(navigator.platform) ? "mac" : "other");
 
@@ -66,9 +56,10 @@ export function Hero({
   // its final state (LCP), and kept so: waking never starts an entrance (#1441).
   // Back/forward brings it back as it was (no entrance either).
   const clientMount = useSyncExternalStore(noSubscribe, () => true, () => false);
-  const [enter] = useState(() => clientMount && !fromHistory);
+  // Back/forward puts a page already seen back as it was: no entrance (history-mark.ts).
+  const [enter] = useState(() => clientMount && !cameFromHistory());
   // This hero has used the back/forward mark (read above, cleared once mounted).
-  useEffect(() => { fromHistory = false; }, []);
+  useEffect(clearHistoryMark, []);
   const entering = enter ? { "data-enter": "" } : {};
   const theme = useTheme();
   const [bot] = useChosenBot();
