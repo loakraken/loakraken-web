@@ -7,6 +7,7 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { SiteHeader } from "@/components/site/site-header";
 import { DataTable } from "@/components/ui/data-table";
 import { Select } from "@/components/ui/select";
+import { CLASS_NAMES } from "@/lib/stats/class-groups";
 import { countdownText, retryLabel } from "@/lib/api/rate-limit";
 import { pendingProps } from "@/lib/api/pending";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
@@ -25,11 +26,6 @@ import { RankingTypeTabs, type RankingType } from "./ranking-type-tabs";
 import { BotNote } from "@/components/bot/bot-note";
 
 const SERVERS = ["루페온", "실리안", "아만", "아브렐슈드", "카단", "카마인", "카제로스", "니나브"];
-const CLASSES = [
-  "버서커", "디스트로이어", "워로드", "홀리나이트", "슬레이어", "발키리", "배틀마스터", "인파이터", "기공사",
-  "창술사", "스트라이커", "브레이커", "데빌헌터", "블래스터", "호크아이", "스카우터", "건슬링어", "바드",
-  "서머너", "아르카나", "소서리스", "블레이드", "데모닉", "리퍼", "소울이터", "도화가", "기상술사", "환수사",
-];
 
 // Numbers get room for real data's longest (A37, QA 10-17: "11,170.05" in bold,
 // "0.11% 크라켄"); text columns may end in "…" with the whole text on hover.
@@ -125,7 +121,7 @@ export function RankingsView({ initial, types }: { initial: RankingQuery; types:
               id={ids.cls}
               value={query.className ?? ""}
               onValueChange={(v) => filter({ className: v || undefined })}
-              items={[{ value: "", label: "전체" }, ...CLASSES.map((c) => ({ value: c, label: c }))]}
+              items={[{ value: "", label: "전체" }, ...CLASS_NAMES.map((c) => ({ value: c, label: c }))]}
             />
           </label>
           <label htmlFor={ids.role}>
