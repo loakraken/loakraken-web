@@ -128,8 +128,12 @@ async function market(url, req, send) {
   const key = `market:${url.pathname}`;
   counts[key] = (counts[key] || 0) + 1;
   // Market board (B-5): synthetic, deterministic prices per item id.
-  if (url.pathname === "/api/v1/markets/tabs")
+  if (url.pathname === "/api/v1/markets/tabs") {
+    // A client marked by this documentation-range address gets no tab list: the server-drawn page then
+    // has no tabs and shows its stand-ins (market-extra-tabs spec). Per request, so parallel tests are untouched.
+    if (req.headers["x-forwarded-for"] === "203.0.113.180") return send({ code: "MARKET_TABS_UNAVAILABLE" }, 503);
     return send(marketRead("market-tabs.json"));
+  }
   // Engraving icons (backend #780): keys without spaces; 질량 증가 has none (no icon shown).
   const boardItems = (tab) => {
     const refining = [
