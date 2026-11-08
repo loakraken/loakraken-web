@@ -29,17 +29,22 @@ export function LiquidPill({ onShown }: { onShown?: () => void }) {
       const id = requestAnimationFrame(() => onShown?.());
       return () => cancelAnimationFrame(id);
     }
-    // React has no animationcancel prop, so both events are listened to here.
-    const ended = (event: AnimationEvent) => {
-      if (event.target === el) onShown?.();
+    // React has no animationcancel prop, so the events are listened to here. Chrome does not fire the
+    // CSS animationcancel event (CI 11-08: only the safety timer handed over); the fade's own
+    // Animation object fires "cancel" in every engine, so that is listened to as well.
+    const ended = (event: Event) => {
+      if (event.target === el || event.type === "cancel") onShown?.();
     };
+    const fades = el.getAnimations();
     const id = setTimeout(() => onShown?.(), SHOWN_BY_MS);
     el.addEventListener("animationend", ended);
     el.addEventListener("animationcancel", ended);
+    for (const fade of fades) fade.addEventListener("cancel", ended);
     return () => {
       clearTimeout(id);
       el.removeEventListener("animationend", ended);
       el.removeEventListener("animationcancel", ended);
+      for (const fade of fades) fade.removeEventListener("cancel", ended);
     };
   }, [onShown]);
   return (
