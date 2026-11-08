@@ -5,6 +5,8 @@
 import { test, expect, gotoReady } from "../support/fixtures.mjs";
 
 const PAUSE = "애니메이션 멈춤";
+/** The page's script chunks, not its CSS (held back to replay a slow hydration). */
+const CHUNKS = /\/_next\/static\/chunks\/.*\.js(\?|$)/;
 
 /** 등장 애니메이션이 붙은 히어로 글마다: 불투명도·세로 이동·히어로 안에 다 들어오는지. */
 const heroText = (page) =>
@@ -81,11 +83,22 @@ test.describe("봇 멈춤 뒤 히어로 글 @regression", () => {
       await expectTextShown(page, "다시 재생");
 
       // 재생으로 되돌린 다음 방문에는 등장 애니메이션이 그대로 돈다(꺼 버린 게 아님).
-      await page.reload();
+      // Replay of the CI flake (mobile '/'): the script chunks arrive late, so for a
+      // while only the first HTML is there. It already has the bot with
+      // aria-pressed="false", but the motion scope is still "off" (no entrance yet).
+      let release;
+      const held = new Promise((resolve) => (release = resolve));
+      await page.route(CHUNKS, async (route) => {
+        await held;
+        await route.continue();
+      });
+      await page.reload({ waitUntil: "commit" });
       await expect(bot).toHaveAttribute("aria-pressed", "false");
       expect(await page.locator("#hero-heading").evaluate((el) =>
         el.getAnimations().filter((a) => /hero-enter/.test(a.animationName) && a.playState !== "paused").length,
       )).toBe(1);
+      release();
+      await page.unroute(CHUNKS);
       await expectTextShown(page, "재생 상태로 새로고침");
 
       // 등장 도중에 멈춰도 글은 끝 상태까지 간다.
