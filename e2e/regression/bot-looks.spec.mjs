@@ -50,8 +50,9 @@ async function desktop(page, width = 1280) {
 }
 
 test.describe("히어로 봇: 검색칸 보기·모자·안경 @regression", () => {
-  // 글자를 치지 않고 커서만 옮겨도(Home·End·화살표) 봇은 커서 자리를 본다. 키를 뗄 때(keyup)가 아니라
-  // 커서 이동(selectionchange)으로 듣는다(#1480).
+  // 글자를 치지 않고 커서만 옮겨도 봇은 커서 자리를 본다. 키를 뗄 때(keyup)가 아니라 커서 이동
+  // (selectionchange)으로 듣는다(#1480). 커서는 키 없이 setSelectionRange로 옮겨, keyup만 듣는
+  // 코드로는 이 검사가 통과하지 못한다.
   test("검색칸에서 커서만 옮겨도 커서 자리를 본다", async ({ page }) => {
     await desktop(page);
     const x = async () => (await aimOf(page))[0];
@@ -60,13 +61,14 @@ test.describe("히어로 봇: 검색칸 보기·모자·안경 @regression", () 
     await box(page).fill("가나다라마바사아자차카타파하가나다라마바");
     // Typing moves the aim along with the caret (input).
     await expect.poll(x, { message: "글자를 치면 커서를 따라 오른쪽" }).toBeGreaterThan(empty);
-    await page.keyboard.press("End");
+    // The caret moved with no key event at all (no keyup to hear).
+    const caretTo = (at) => box(page).evaluate((el, at) => el.setSelectionRange(at === "end" ? el.value.length : 0, at === "end" ? el.value.length : 0), at);
     const atEnd = await x();
-    await page.keyboard.press("Home");
-    await expect.poll(x, { message: "Home: 커서만 옮겨도 왼쪽 끝을 봄" }).toBeLessThan(atEnd);
-    const atHome = await x();
-    await page.keyboard.press("End");
-    await expect.poll(x, { message: "End: 다시 오른쪽" }).toBeGreaterThan(atHome);
+    await caretTo("start");
+    await expect.poll(x, { message: "커서만 왼쪽 끝으로: 그 자리를 봄" }).toBeLessThan(atEnd);
+    const atStart = await x();
+    await caretTo("end");
+    await expect.poll(x, { message: "커서만 오른쪽 끝으로: 다시 오른쪽" }).toBeGreaterThan(atStart);
   });
 
   test("검색칸에 초점이 있으면 포인터가 검색칸 글자 자리에 있을 때와 똑같이 본다", async ({ page }) => {
