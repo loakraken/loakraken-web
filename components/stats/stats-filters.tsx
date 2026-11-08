@@ -68,7 +68,7 @@ export function StatsFilters({ query, apply }: { query: StatsQuery; apply: (next
   return (
     <form className={styles.statsBar} onSubmit={(e) => e.preventDefault()} aria-label="통계 조건">
       <div className={styles.barRow}>
-        <span className={styles.field} data-field="server">
+        <span className={styles.field}>
           <label htmlFor={ids.server}>서버</label>
           <Select
             id={ids.server}
@@ -77,7 +77,7 @@ export function StatsFilters({ query, apply }: { query: StatsQuery; apply: (next
             items={[{ value: "", label: "전체 서버" }, ...STATS_SERVERS.map((s) => ({ value: s, label: s }))]}
           />
         </span>
-        <span className={styles.field} data-field="role">
+        <span className={styles.field}>
           <span id={ids.role}>역할</span>
           <HelpInfo label="역할 설명" title="역할">
             <p>장착한 직업 각인으로 딜러와 서포터를 나눠요. 서포터 직업이라도 딜러 각인이면 딜러로 세요.</p>
@@ -93,7 +93,7 @@ export function StatsFilters({ query, apply }: { query: StatsQuery; apply: (next
             <SegmentedItem value="SUPPORT">서포터</SegmentedItem>
           </SegmentedControl>
         </span>
-        <span className={styles.field} data-field="days">
+        <span className={styles.field}>
           <span id={ids.days}>기간</span>
           <HelpInfo label="기간 설명" title="기간">
             <p>고른 기간 안에 LOAKraken이 정보를 확인한 캐릭터만 세요.</p>
@@ -113,7 +113,7 @@ export function StatsFilters({ query, apply }: { query: StatsQuery; apply: (next
         </span>
       </div>
       <div className={styles.barRow}>
-        <span className={styles.field} data-field="level">
+        <span className={styles.field}>
           <label htmlFor={ids.level}>레벨</label>
           <Select
             id={ids.level}
@@ -122,7 +122,7 @@ export function StatsFilters({ query, apply }: { query: StatsQuery; apply: (next
             items={levelItems(query.itemLevelMin)}
           />
         </span>
-        <span className={styles.field} data-field="power" role="group" aria-labelledby={ids.power}>
+        <span className={styles.field} role="group" aria-labelledby={ids.power}>
           <span id={ids.power}>전투력</span>
           <span className={styles.range}>
             <input

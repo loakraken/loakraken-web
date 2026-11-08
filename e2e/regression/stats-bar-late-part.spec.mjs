@@ -69,7 +69,7 @@ const partsArriving = (bar) =>
     return moved;
   });
 
-for (const width of [320, 360, 390, 440, 500, 768, 1280])
+for (const width of [320, 360, 390, 440, 470, 500, 530, 768, 1280])
   test(`@A7 ${width} 통계 조건 막대: 칸이 나뉘어 와도 먼저 그려진 칸이 움직이지 않는다 @regression`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await gotoReady(page, "/stats");
@@ -84,5 +84,35 @@ for (const width of [320, 360, 390, 440, 500, 768, 1280])
     // Everything is back where it was: the bar itself ends the same size.
     const after = await bar.boundingBox();
     expect(Math.round(after.height)).toBe(Math.round(before.height));
+    await expectNoHorizontalOverflow(page);
+  });
+
+// The fixed slots must not change where the fields end up (#1434 review): on phones up to 520 the first row is one
+// field per line, and between 470 and 520 the second row still puts 레벨 and 전투력 side by side, with 대표 캐릭터
+// on the next line, as before the fix.
+for (const width of [470, 500])
+  test(`${width} 통계 조건 막대: 다 그려진 칸 배치가 그대로 @regression`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await gotoReady(page, "/stats");
+    const bar = page.getByRole("form", { name: "통계 조건" });
+    await expect(bar.getByRole("radiogroup", { name: "기간" })).toBeVisible();
+    await page.evaluate(() => document.fonts.ready);
+    const rows = await bar.evaluate((form) =>
+      [...form.querySelectorAll(":scope > div")].map((row) =>
+        [...row.children].map((field) => {
+          const r = field.getBoundingClientRect();
+          return { name: field.firstElementChild?.textContent.trim(), left: Math.round(r.left), top: Math.round(r.top) };
+        }),
+      ),
+    );
+    const [first, second] = rows;
+    expect(first.map((field) => field.name)).toEqual(["서버", "역할", "기간"]);
+    expect(new Set(first.map((field) => field.left)).size, `첫 줄 칸마다 한 줄 (${JSON.stringify(first)})`).toBe(1);
+    expect(new Set(first.map((field) => field.top)).size, `첫 줄 칸마다 한 줄 (${JSON.stringify(first)})`).toBe(3);
+    const [level, power, check] = second;
+    expect(Math.abs(level.top - power.top), `레벨·전투력 같은 줄 (${JSON.stringify(second)})`).toBeLessThanOrEqual(1);
+    expect(power.left, `전투력이 레벨 옆 (${JSON.stringify(second)})`).toBeGreaterThan(level.left);
+    expect(check.top, `대표 캐릭터는 다음 줄 (${JSON.stringify(second)})`).toBeGreaterThan(power.top + 10);
+    expect(check.left).toBe(level.left);
     await expectNoHorizontalOverflow(page);
   });
