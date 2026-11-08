@@ -5,7 +5,7 @@
 // simulator's; the screen only formats the answer (lib/spec-up/goal.ts).
 import { useContext, useId, useState } from "react";
 import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { RATE_LIMITED, rateLimitCopy, retryLabel } from "@/lib/api/rate-limit";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import type { Character } from "@/lib/character/model";
@@ -19,7 +19,8 @@ import {
   targetError,
   type Goal,
 } from "@/lib/spec-up/goal";
-import { koreanGold, tryPathParam } from "@/lib/spec-up/model";
+import { koreanGold, notCachedText, tryPathParam } from "@/lib/spec-up/model";
+import { SpecUpExpired, useMarkExpired } from "./spec-up-expired";
 import styles from "./spec-up-goal.module.css";
 import { SimulatorEnabled } from "./tabs";
 
@@ -29,7 +30,7 @@ const two = (value: number) =>
 function failureText(code: string | null, limit?: "client") {
   switch (code) {
     case "CHARACTER_NOT_CACHED":
-      return "캐릭터 정보를 먼저 불러와 주세요. 위의 갱신 버튼으로 정보를 받은 뒤 다시 찾아 주세요.";
+      return notCachedText("다시 찾아");
     case "SPEC_UP_GOAL_OUT_OF_RANGE":
       return "목표는 지금 전투력의 2배까지 넣을 수 있어요.";
     case "SPEC_UP_DISABLED":
@@ -54,10 +55,14 @@ export function SpecUpGoal({ data }: { data: Character }) {
     enabled: asked !== null,
     // Same character snapshot and target: the backend caches it for 10 minutes.
     staleTime: 600_000,
+    placeholderData: keepPreviousData,
     retry: false,
     refetchOnWindowFocus: false,
   });
+  const simulator = useContext(SimulatorEnabled);
   const limit = useRateLimit(goal.error);
+  useMarkExpired(goal.error);
+  const { expired } = useContext(SpecUpExpired);
   const failure = goal.error instanceof SpecUpQueryError ? goal.error.info.code : goal.error ? "ERROR" : null;
 
   const target = parseTarget(text);
@@ -114,7 +119,12 @@ export function SpecUpGoal({ data }: { data: Character }) {
             {failureText(failure, goal.error instanceof SpecUpQueryError ? goal.error.info.limit : undefined)}
           </p>
         ) : goal.data ? (
-          <GoalAnswer name={name} goal={goal.data.data} />
+          // Another target keeps the last answer, dimmed, until its own arrives (A7).
+          <div className={styles.answer} data-stale={goal.isPlaceholderData || expired || undefined}>
+            <GoalAnswer name={name} goal={goal.data.data} />
+          </div>
+        ) : asked !== null && goal.isPending ? (
+          <GoalSkeleton simulator={simulator} />
         ) : (
           <p id={blockedId} className={styles.muted}>
             {blocked ?? ""}
@@ -122,6 +132,40 @@ export function SpecUpGoal({ data }: { data: Character }) {
         )}
       </div>
     </section>
+  );
+}
+
+/**
+ * The first answer's room, shown on the press itself: a three-step answer's
+ * lines with stand-in text of a usual length (the same wraps at 320 as at 1280),
+ * drawn as still bars, so a late answer fills it instead of pushing the 추천
+ * 순서 list down (PM 총괄 11-03; a cold cache answered in ~5 s, QA 11-01).
+ */
+function GoalSkeleton({ simulator }: { simulator: boolean }) {
+  return (
+    <div className={styles.skeleton} aria-hidden="true">
+      <p className={styles.summary}>
+        <span>3단계면 전투력 00,000.00(목표 00,000.00) · 기대 비용 000만G</span>
+      </p>
+      <ol className={styles.steps}>
+        {["스킬 이름 · 8레벨 겁화", "스킬 이름 · 9레벨 겁화", "+20 장비 이름"].map((target) => (
+          <li key={target}>
+            <span className={styles.kind}>보석</span>
+            <span className={styles.target}>{target}</span>
+            <span className={styles.change}>8레벨 → 9레벨</span>
+            <span className={styles.cost}>000만G</span>
+          </li>
+        ))}
+      </ol>
+      {simulator && (
+        <p className={styles.note}>
+          <span>이 경로를 시뮬레이터에서 열기</span>
+        </p>
+      )}
+      <p className={styles.note}>
+        <span>전투력은 단계를 차례로 시뮬레이터에 넣어 계산한 값이에요. 기대 비용은 단계별 기대 비용의 합이에요.</span>
+      </p>
+    </div>
   );
 }
 

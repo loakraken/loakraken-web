@@ -158,19 +158,21 @@
   font-size: 14px;
   font-weight: 600;
 }
-/* 딜러 : 서포터: one bar in one hue (as 구성), dealers deep, supports light. */
+/* 딜러 : 서포터: one bar in the two role colours (as 구성, user 11-08), a 2px
+   gap of the card between them; the legend under it names each. */
 .roleBar {
   display: block;
   height: 4px;
   margin: 6px 0 4px;
   border-radius: 9999px;
-  background: color-mix(in oklab, var(--primary) 35%, transparent);
+  background: var(--role-support);
   overflow: hidden;
 }
 .roleBar i {
   display: block;
   height: 100%;
-  background: color-mix(in oklab, var(--primary) 80%, transparent);
+  background: var(--role-dealer);
+  box-shadow: 2px 0 0 var(--muted);
 }
 .cards .roleLegend {
   display: flex;
@@ -184,14 +186,14 @@
   height: 7px;
   margin-right: 4px;
   border-radius: 2px;
-  background: var(--border);
+  background: var(--role-unknown);
   vertical-align: 1px;
 }
 .roleLegend [data-role="dealer"]::before {
-  background: var(--primary);
+  background: var(--role-dealer);
 }
 .roleLegend [data-role="support"]::before {
-  background: color-mix(in oklab, var(--primary) 35%, transparent);
+  background: var(--role-support);
 }
 /* The condition bar over every filtered tab (reference structure, 11-01):
    two rows of label + control, then the sample line. */
@@ -209,9 +211,21 @@
   align-items: center;
   gap: 10px 20px;
 }
+/* A first page that arrives in parts (A7, CI 11-08): a field drawn with only
+   its label sat at the end of the row, then dropped to the next line and
+   widened when its control came (역할 at 360: 202,292 94px → 32,333 250px), and
+   labels re-centred as taller controls joined the line. Every slot is fixed
+   from the first paint instead: the first row's line is the pills' 40px, each
+   label is as tall as its control, and the fields hold their full width
+   (the first row on phones: its own line each, as it already was drawn),
+   whatever has arrived. */
+.barRow:first-child {
+  min-height: 40px;
+}
 .field {
   display: inline-flex;
   align-items: center;
+  align-content: flex-start;
   gap: 8px;
   min-width: 0;
   color: var(--muted-foreground);
@@ -220,7 +234,54 @@
 }
 .field > label,
 .field > span:first-child {
+  display: inline-flex;
   flex: none;
+  align-items: center;
+  min-height: 34px;
+}
+.field[data-field="role"] > span:first-child,
+.field[data-field="days"] > span:first-child {
+  min-height: 40px;
+}
+@media (max-width: 520px) {
+  .barRow:first-child {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+/* The drawn widths (kraken 13/14px); a wider fallback font only grows them. */
+.field[data-field="level"] {
+  min-width: 150px;
+}
+.field[data-field="power"] {
+  min-width: 230px;
+}
+.statsBar .check {
+  min-width: 125px;
+}
+@media (min-width: 521px) {
+  .field[data-field="server"] {
+    min-width: 150px;
+  }
+  .field[data-field="role"] {
+    min-width: 286px;
+  }
+  .field[data-field="days"] {
+    min-width: 267px;
+  }
+}
+/* Narrow phones (user 11-08: 역할 ran 19px off the card at 320 with a wider
+   Korean font): the pills shrink first, and if the row still cannot sit
+   beside its label it moves under it. CSS only, so the server HTML is
+   already right (no shift). */
+@media (max-width: 480px) {
+  .statsBar .field:has([data-slot="segmented-control"]) {
+    flex-wrap: wrap;
+    row-gap: 6px;
+  }
+  .statsBar [data-slot="segmented-item"] {
+    padding-inline: 10px;
+  }
 }
 .statsBar [data-slot="select"] {
   min-width: 120px;
@@ -255,6 +316,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  min-height: 20px;
   color: var(--foreground);
   font-size: 13px;
   font-weight: 500;
@@ -454,9 +516,15 @@
   font-size: 11px;
   font-weight: 700;
 }
+/* One column per bar, set from the bar count on the list itself (--bins):
+   a page arriving in parts drew the first bars before the rest, each wide,
+   and every later bar narrowed and moved them (/stats distribution at 1280,
+   CLS 0.10 before the page woke). Each bar now has its column from the
+   first paint. */
 .histogram {
-  display: flex;
-  align-items: flex-end;
+  display: grid;
+  grid-template-columns: repeat(var(--bins, 1), minmax(2px, 1fr));
+  grid-template-rows: 100%;
   gap: 2px;
   height: 200px;
   margin: 0;
@@ -466,10 +534,8 @@
 }
 .histogram li {
   display: flex;
-  flex: 1;
   align-items: flex-end;
-  height: 100%;
-  min-width: 2px;
+  min-width: 0;
 }
 .histogram i {
   display: block;
@@ -517,8 +583,20 @@
   .cards dd {
     font-size: 18px;
   }
+  /* Two to a row, each a fixed half: a label must not take its width from
+     the labels after it. When the page arrived in parts, the first label
+     stood alone, grew to the whole row, then halved when the next arrived
+     (v0.3.9 CI: its select's chevron 331 -> 161 at 390, before hydration). */
   .filters label {
-    flex: 1 1 40%;
+    flex: 0 0 calc(50% - 7px);
+    min-width: 0;
+  }
+  /* A toggle row (기준, 단위, …) is as tall as a label from the start (the
+     label's 12px line at 1.5 and its 4px gap above it): a label coming in
+     beside it later no longer grows the row and pushes it down, and it stays
+     bottom-aligned with the selects. */
+  .filters > .segment {
+    margin-top: calc(12px * 1.5 + 4px);
   }
   .filters [data-slot="select"],
   .filters input:not([type="checkbox"]) {
@@ -955,12 +1033,38 @@
   bottom: 0;
   left: 0;
 }
+/* Each row's colour comes in as --bar: its role or 직업군 (globals.css, user
+   11-08); the name beside it says which. */
 .partBar i {
-  background: color-mix(in oklab, var(--primary) 80%, transparent);
+  background: var(--bar, color-mix(in oklab, var(--primary) 80%, transparent));
 }
-/* The second share in a split (딜러 after 서포터): the same hue, lighter. */
+/* The second share in a split (딜러 after 서포터): its own role colour, after
+   a 2px gap of the panel. */
 .partBar b {
-  background: color-mix(in oklab, var(--primary) 35%, transparent);
+  background: var(--bar-2, color-mix(in oklab, var(--primary) 35%, transparent));
+  box-shadow: inset 2px 0 0 var(--muted);
+}
+/* The colours named, one line over a coloured list (GroupLegend). */
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 0 0 10px;
+  padding: 0;
+  list-style: none;
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+/* A colour beside its name (the split rows' 서포터 · 딜러 line, the legend). */
+.swatch::before {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 4px;
+  border-radius: 2px;
+  background: var(--swatch);
+  vertical-align: 1px;
 }
 /* An inverted 전투력 range, said in the sample line's place. */
 .sampleWarn {
@@ -969,4 +1073,130 @@
 }
 .range input[aria-invalid="true"] {
   border-color: var(--destructive, var(--foreground));
+}
+
+/* 칭호 tab (user 11-08: richer, as the reference shows; our own design). */
+.titleSummary {
+  margin: 0 0 8px;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.titleSummary strong {
+  color: var(--foreground);
+  font-weight: 700;
+}
+/* 기준일, 비교 and the grade filter on one row that wraps. */
+.titleBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  margin: 0 0 10px;
+}
+.titleDay {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  font-weight: 600;
+}
+/* The title cell holds the name and its 획득 조건 under it: it wraps instead
+   of being cut (A37), the numbers beside it stay on one line. */
+.table[data-fixed].titleTable tbody th {
+  white-space: normal;
+  text-overflow: clip;
+  text-align: left;
+}
+.titleCell {
+  display: grid;
+  gap: 2px;
+}
+.titleCell[data-child] {
+  padding-left: 18px;
+  position: relative;
+}
+/* A variant under its title: a short corner line in the rule colour. */
+.titleCell[data-child]::before {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 2px;
+  width: 8px;
+  height: 9px;
+  border-left: 1.5px solid var(--border);
+  border-bottom: 1.5px solid var(--border);
+  border-bottom-left-radius: 3px;
+}
+.titleLine {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 6px;
+}
+.titleName {
+  font-weight: 600;
+}
+/* The grade word: the grade's text colour in a thin ring of it (same box as
+   before). No fill: the grade text tokens are >= 4.5:1 on the surface itself,
+   a tint under them would drop that to about 4:1. */
+.titleGrade {
+  padding: 0 5px;
+  border: 1px solid color-mix(in oklab, currentColor 45%, transparent);
+  border-radius: var(--radius-xs);
+  font-size: 11px;
+  font-weight: 700;
+}
+.titleCondition {
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-weight: 400;
+}
+/* Grade text colours (globals.css, >= 4.5:1 in every theme); an unknown grade keeps the plain colour. */
+.titleName[data-grade="normal"], .titleGrade[data-grade="normal"] { color: var(--grade-normal-text); }
+.titleName[data-grade="uncommon"], .titleGrade[data-grade="uncommon"] { color: var(--grade-uncommon-text); }
+.titleName[data-grade="rare"], .titleGrade[data-grade="rare"] { color: var(--grade-rare-text); }
+.titleName[data-grade="epic"], .titleGrade[data-grade="epic"] { color: var(--grade-epic-text); }
+.titleName[data-grade="legendary"], .titleGrade[data-grade="legendary"] { color: var(--grade-legendary-text); }
+.titleName[data-grade="relic"], .titleGrade[data-grade="relic"] { color: var(--grade-relic-text); }
+.titleName[data-grade="ancient"], .titleGrade[data-grade="ancient"] { color: var(--grade-ancient-text); }
+.titleName[data-grade="esther"], .titleGrade[data-grade="esther"] { color: var(--grade-esther-text); }
+.titleGrade[data-grade="unknown"] { color: var(--muted-foreground); }
+/* The phone line of a title's numbers: hidden where the columns show them. */
+.titleNumbers {
+  display: none;
+  color: var(--foreground);
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+/* The phone line's change: never broken inside, and its value in a slot as
+   wide as '+00.00%p', so '-' turning into the answer moves nothing (#1411 P3). */
+.titleChange {
+  white-space: nowrap;
+}
+.titleChange span {
+  display: inline-block;
+  min-width: 8ch;
+}
+/* Phones: the numbers go under the name (PM 총괄 11-08) instead of behind the
+   table's sideways scroll; the table is the screen's width, rank and title. */
+@media (max-width: 480px) {
+  .table[data-fixed].titleTable {
+    width: 100% !important;
+  }
+  .titleTable col:nth-child(1) {
+    width: 3.6em !important; /* the 순위 head whole (A37) */
+  }
+  .titleTable col:nth-child(2) {
+    width: auto !important;
+  }
+  .titleTable col:nth-child(n + 3),
+  .titleTable :is(th, td):nth-child(n + 3) {
+    display: none;
+  }
+  .titleNumbers {
+    display: block;
+  }
 }

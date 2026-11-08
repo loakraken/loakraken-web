@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   categoryOfPath,
   dayKinds,
+  headlineLevel,
   isScheduleCategory,
   mergeSameRounds,
   resetLeft,
@@ -85,7 +86,8 @@ test("chaos gates with the same rounds and rewards are one row naming the catego
   const merged = mergeSameRounds(gates, "카오스게이트");
   assert.equal(merged.length, 1);
   assert.equal(merged[0].name, "카오스게이트");
-  assert.equal(merged[0].minItemLevel, 1580);
+  // The row's level is the highest place's (user 11-03).
+  assert.equal(merged[0].minItemLevel, 1600);
   // User 11-02: higher entry level first; the same level keeps the official order.
   assert.deepEqual(merged[0].places?.map((place) => [place.name, place.minItemLevel]), [
     ["쿠르잔 북부", 1600],
@@ -101,6 +103,44 @@ test("chaos gates with the same rounds and rewards are one row naming the catego
   const now = Date.parse(at("19:05"));
   const rounds = upcomingRounds(scheduleGroups({ ...day, chaosGates: gates } as Schedule), now);
   assert.deepEqual(rounds.find((round) => round.key === "chaos-gate")?.names, ["카오스게이트"]);
+});
+
+test("a merged row's level is its highest place's; a single row and null levels as before", () => {
+  const gate = (name: string, minItemLevel: number | null, times = ["18:50", "19:50"]) => ({ ...timed(name, times), minItemLevel });
+  const high = [gate("가", 1580), gate("나", 1640), gate("다", 1610)];
+  assert.equal(mergeSameRounds(high, "카오스게이트")[0].minItemLevel, 1640);
+  // Two merged sets are named by that level too (higher first is the board's order).
+  const other = [gate("라", 1700, ["20:50"]), gate("마", 1720, ["20:50"])];
+  assert.deepEqual(mergeSameRounds([...high, ...other], "카오스게이트").map((row) => [row.name, row.minItemLevel]), [
+    ["카오스게이트 1,640 이상", 1640],
+    ["카오스게이트 1,720 이상", 1720],
+  ]);
+  // A single row keeps its own level and name.
+  assert.deepEqual(mergeSameRounds([gate("바", 1580)], "카오스게이트").map((row) => [row.name, row.minItemLevel]), [["바", 1580]]);
+  // No level on any place: none on the row (shown as 레벨 제한 없음).
+  assert.equal(mergeSameRounds([gate("사", null), gate("아", null)], "카오스게이트")[0].minItemLevel, null);
+  // Some without a level: the highest of those that have one.
+  assert.equal(mergeSameRounds([gate("자", null), gate("차", 1600)], "카오스게이트")[0].minItemLevel, 1600);
+});
+
+test("the headline level is the highest reward-group level (every place has the same entry level)", () => {
+  // Shaped like the official calendar on 11-07: 13 places, each minItemLevel 1580, the tiers in the reward groups.
+  const groups = [1580, 1610, 1630, 1640, 1680, 1700, 1720, 1730, 1750, 1770].map((minItemLevel) => ({
+    minItemLevel,
+    rewards: [{ name: "실링", icon: null, grade: null, timed: false }],
+  }));
+  const gate = (name: string) => ({ ...timed(name, ["18:50", "19:50"]), minItemLevel: 1580, rewardGroups: groups });
+  const [row] = mergeSameRounds([gate("일렁이는 악마군단 (로헨델)"), gate("일렁이는 악마군단 (림레이크 남섬)")], "카오스게이트");
+  assert.equal(row.name, "카오스게이트");
+  assert.equal(row.minItemLevel, 1770);
+  // Each place keeps its own entry level.
+  assert.deepEqual(row.places?.map((place) => place.minItemLevel), [1580, 1580]);
+  // A single gate shows the same headline level.
+  assert.equal(mergeSameRounds([gate("가")], "카오스게이트")[0].minItemLevel, 1770);
+  // A group level of 0 is no tier (field bosses): the place level stays.
+  const boss = { ...timed("세베크 아툰", ["19:00"]), minItemLevel: 1640, rewardGroups: [{ minItemLevel: 0, rewards: [] }] };
+  assert.equal(headlineLevel(boss), 1640);
+  assert.equal(headlineLevel({ minItemLevel: null, rewardGroups: [] }), null);
 });
 
 test("day kinds for the date line", () => {

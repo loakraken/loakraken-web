@@ -16,6 +16,11 @@
 .positioner { z-index: 50; }
 .popup {
   width: min(340px, calc(100vw - 24px));
+  /* No taller than the room the positioner found (below the header): the
+     rest scrolls inside. */
+  max-height: var(--available-height);
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 12px;
   border: 1px solid var(--border);
   border-radius: 16px;
@@ -25,6 +30,9 @@
 }
 .title { margin: 0 0 8px; font-size: 13px; font-weight: 600; }
 .grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; }
+/* What it wears, under the bodies: the same cells, one row each. */
+.subtitle { margin: 10px 0 4px; color: var(--muted-foreground); font-size: 12px; font-weight: 600; }
+.wear { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
 .option {
   display: grid;
   justify-items: center;

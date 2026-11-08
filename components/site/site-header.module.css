@@ -1,11 +1,26 @@
+/* Every part of the bar has its own column of a fixed width, and the row a
+   fixed height, from the first paint: a page that arrives in parts draws the
+   parts after the logo one by one, and a part arriving late no longer pushes
+   the ones already drawn (#1333: the theme button arriving last pushed search
+   and Discord left at 1280; at 360 the menu button sat by the logo until the
+   buttons after it in the page came, then jumped right, and the bar grew from
+   56 to 60px). The page order, and so the keyboard order, is unchanged.
+   Columns: logo | gap | menu (tabs) | page slot | gap | Discord | gap |
+   search | gap | theme. The search column is the button with its shortcut
+   label where that label shows (a fine pointer, wider than 600px). */
 .header {
+  --search-w: 44px;
   position: sticky;
   top: 0;
   z-index: 50;
-  display: flex;
+  display: grid;
+  /* Discord's pill is a fixed 84px (a wider label runs on past its right
+     edge, nothing before it moves): a column that grew
+     with a wider fallback font took the width from the menu column, and the
+     page slot between them moved sideways (#1359 review). */
+  grid-template-columns: auto 20px minmax(min-content, 1fr) minmax(0, auto) 20px 84px 12px var(--search-w) 4px 44px;
+  grid-template-rows: 44px;
   align-items: center;
-  gap: 20px;
-  min-height: 56px;
   padding: 8px max(24px, calc((100% - 1120px) / 2));
   border-bottom: 1px solid color-mix(in oklab, var(--foreground) 8%, transparent);
   background: color-mix(in oklab, var(--background) 86%, transparent);
@@ -18,11 +33,27 @@
   position: fixed;
   inset: 0 0 auto;
 }
+@media (pointer: fine) and (min-width: 601px) {
+  .header {
+    --search-w: 91px;
+  }
+}
+/* One row: a part whose column comes before one placed earlier in the page
+   would otherwise start a second row (the page slot under the menu button). */
+.header > * {
+  grid-row: 1;
+}
+/* The name comes first in the page and the mark sits in the room kept on its
+   left (22px + a 7px gap): the mark's long path is where a page split in
+   parts broke, and the name drawn after it widened the link, its 44px target
+   with it (360: 44 -> 126px before hydration). Now the link has its full
+   width as soon as the name is there, and the mark lands in place. */
 .brand {
+  grid-column: 1;
+  position: relative;
   display: inline-flex;
-  flex: none;
   align-items: center;
-  gap: 7px;
+  padding-left: 29px;
   color: var(--foreground);
   font-size: 19px;
   font-weight: 650;
@@ -31,35 +62,36 @@
   white-space: nowrap;
 }
 .brand svg {
+  position: absolute;
+  top: 50%;
+  left: 0;
   width: 22px;
   height: 22px;
+  translate: 0 -50%;
 }
 .nav {
+  /* Never narrower than its links (min-content column): with wider fallback
+     fonts (Linux, Android) a shrinking menu let its links run under the page
+     slot (the character page's search covered 통계 at 1280). The slot gives way. */
+  grid-column: 3;
   display: flex;
-  /* Never narrower than its links: with wider fallback fonts (Linux,
-     Android) the shrinking nav let its links run under the page slot
-     (the character page's search covered 통계 at 1280). The slot gives way. */
-  flex: 1 0 auto;
   align-items: center;
-  min-width: 0;
 }
-.search,
+.search {
+  grid-column: 8;
+}
+/* Search sits just before the theme toggle, nearly touching it. */
 .theme {
-  flex: none;
-}
-/* Search sits just before the theme toggle, touching it. */
-.search + .theme {
-  margin-left: -16px;
+  grid-column: 10;
 }
 /* Discord: a 28px pill (radius 8, 14px label, 14px logo) in the muted text
    colour on a 4% tint, the text colour on hover. */
 .discord {
+  grid-column: 6;
   display: inline-flex;
-  flex: none;
   align-items: center;
   gap: 6px;
   height: 28px;
-  margin-right: -8px;
   padding: 0 8px;
   border-radius: 8px;
   background: color-mix(in oklab, var(--foreground) 4%, transparent);
@@ -94,41 +126,42 @@
   outline-offset: 2px;
 }
 .slot {
+  grid-column: 4;
   display: flex;
-  flex: 0 1 auto;
   align-items: center;
   gap: 8px;
   min-width: 0;
+  margin-left: 20px;
 }
+/* Columns: logo | page slot | Discord | search | gap | theme | gap | menu
+   button (the menu shows only its button here, at the right edge). */
 @media (max-width: 900px) {
   .header {
-    gap: 10px;
+    grid-template-columns: auto minmax(0, 1fr) 44px var(--search-w) 4px 44px 10px 40px;
     padding-inline: 16px;
   }
-  /* Menu button sits at the right edge; the page slot sits before it. */
   .nav {
-    flex: none;
-    order: 2;
+    grid-column: 8;
   }
   .slot {
-    flex: 1;
+    grid-column: 2;
     justify-content: flex-end;
+    margin-inline: 10px;
   }
-  /* Search and toggle between the page slot and the menu button. */
-  .search,
+  .discord {
+    grid-column: 3;
+  }
+  .search {
+    grid-column: 4;
+  }
   .theme {
-    order: 1;
-  }
-  .search + .theme {
-    margin-left: -6px;
+    grid-column: 6;
   }
   /* Narrow screens: the logo alone on a 44px target, before the toggle. */
   .discord {
-    order: 1;
     justify-content: center;
     width: 44px;
     height: 44px;
-    margin-right: -10px;
     padding: 0;
     border-radius: 9999px;
     background: transparent;
@@ -139,9 +172,6 @@
   .discord svg {
     width: 20px;
     height: 20px;
-  }
-  .header:not(:has(.slot)) .discord {
-    margin-left: auto;
   }
 }
 @media (max-width: 600px) {
@@ -157,18 +187,16 @@
    off the screen, and on the about page its button slid under the name.
    The Discord link stays at the foot of every page; the gaps close a little. */
 @media (max-width: 420px) {
+  /* Discord's column closes; search, theme and menu keep to the right edge
+     (user iPhone 11-02), a little closer together. */
   .header {
-    gap: 8px;
+    grid-template-columns: auto minmax(0, 1fr) 0 var(--search-w) 2px 44px 8px 40px;
+  }
+  .slot {
+    margin-inline: 8px;
   }
   .header .discord {
     display: none;
-  }
-  /* With the Discord button gone, nothing pushed the rest right: search,
-     theme and menu sat just after the logo (user iPhone 11-02). Search takes
-     the free space before it, so the three keep to the right edge. A page
-     slot already fills that space where there is one. */
-  .header:not(:has(.slot)) .search {
-    margin-left: auto;
   }
 }
 @media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {

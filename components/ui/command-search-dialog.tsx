@@ -4,19 +4,34 @@ import * as React from "react"
 import { Dialog } from "@base-ui/react/dialog"
 import { cn } from "cn"
 import { ResultPanel, optionId } from "@/components/ui/bencho/result-panel"
+import { CommandField } from "@/components/ui/command-field"
 import { SEARCH_HINT, SearchTabs, useSearchResults } from "@/components/ui/search-results"
 
 // The dialog half of the global search (command-search.tsx loads this file
-// on the first Ctrl K). Bencho's command bar, and the liquid library it
-// draws with, load with it. Under the bar opens the result panel (PM 총괄
+// on the first Ctrl K). The field opens as a plain pill (command-field.tsx);
+// the liquid surface Bencho's bar draws with comes in its own chunk once the
+// dialog has opened and the page is idle, or after the first key, never in
+// the click or key itself (PM 총괄 11-08, option b). Under the bar opens the
+// result panel (PM 총괄
 // 10-12 01:07·01:11); its rows, keys and messages come from
 // useSearchResults, shared with the character page's search box (#1113).
 // The field keeps focus as a combobox; ↑↓ move, Enter opens, Shift+Enter
 // toggles a character's favourite (including the typed name on the lookup
 // row), Esc closes (the dialog's own).
-const CommandBar = React.lazy(() =>
-  import("@/components/ui/bencho/command-bar").then((m) => ({ default: m.CommandBar }))
+const LiquidPill = React.lazy(() =>
+  import("@/components/ui/bencho/liquid-pill").then((m) => ({ default: m.LiquidPill }))
 )
+
+/** Runs `run` when the page is idle (or after `timeout` ms at the latest). */
+function whenIdle(run: () => void, timeout: number) {
+  if (typeof window.requestIdleCallback === "function") {
+    const id = window.requestIdleCallback(run, { timeout })
+    return () => window.cancelIdleCallback(id)
+  }
+  const id = window.setTimeout(run, 50)
+  return () => window.clearTimeout(id)
+}
+
 
 function CommandSearchDialog({
   open,
@@ -31,17 +46,36 @@ function CommandSearchDialog({
   const panelId = React.useId()
   const errorId = React.useId()
   const [text, setText] = React.useState("")
+  // The liquid surface: wanted (opened and idle, or typed in), then drawn.
+  const [liquid, setLiquid] = React.useState(false)
+  const [drawn, setDrawn] = React.useState(false)
+  const [wanted, setWanted] = React.useState(false)
   const setOpen = onOpenChange
+  // Each open starts plain: the liquid mounts again only when idle.
+  const plain = () => {
+    setLiquid(false)
+    setDrawn(false)
+    setWanted(false)
+  }
   const close = () => {
     setOpen(false)
     setText("")
+    plain()
   }
+  React.useEffect(() => {
+    if (!open || !wanted || liquid) return
+    return whenIdle(() => setLiquid(true), 600)
+  }, [open, wanted, liquid])
+  const onDrawn = React.useCallback(() => setDrawn(true), [])
   const results = useSearchResults({ open, text, onLeave: close })
   const { groups, rows, current } = results
 
   return (
     <Dialog.Root
       open={open}
+      // The open animation is done: the liquid may come at the next idle.
+      // Closed some other way: the next open starts plain too.
+      onOpenChangeComplete={(next) => (next ? setWanted(true) : plain())}
       onOpenChange={(next) => {
         if (next) setOpen(true)
         else {
@@ -70,38 +104,45 @@ function CommandSearchDialog({
           )}
         >
           <Dialog.Title className="sr-only">캐릭터 검색</Dialog.Title>
-          {/* The bar is the box's full width and 56 tall; the box holds that
-              space so nothing moves when the lazy chunk lands. With no send
-              button (#1113) the panel hangs straight under the whole bar. */}
+          {/* The bar is the box's full width and 56 tall: the plain field from
+              the first frame, the liquid surface under it later, both in the
+              same box, so nothing moves. With no send button (#1113) the
+              panel hangs straight under the whole bar. */}
           <div className="relative grid h-14 w-full place-items-center">
-            <React.Suspense fallback={<span className="text-(length:--text-caption) text-muted-foreground">불러오는 중…</span>}>
-              <CommandBar
-                autoFocus
-                placeholder="캐릭터 · 메뉴 · 기능 검색…"
-                onSubmit={results.submit}
-                onValueChange={(value) => {
-                  setText(value)
-                  results.setActive(null)
-                  results.clearStatus()
-                  if (results.error) results.setError("")
-                }}
-                onInputKeyDown={results.onKey}
-                inputProps={{
-                  role: "combobox",
-                  name: "q",
-                  autoComplete: "off",
-                  spellCheck: false,
-                  // The list, not the dialog: shown only when there are rows (frontend-a11y).
-                  "aria-expanded": open && groups.length > 0,
-                  "aria-invalid": results.error ? true : undefined,
-                  // The keys line too (Shift+Enter is only told there).
-                  "aria-describedby": results.error ? `${errorId} ${panelId}-hint` : `${panelId}-hint`,
-                  "aria-controls": panelId,
-                  "aria-autocomplete": "list",
-                  "aria-activedescendant": current ? optionId(panelId, current) : undefined,
-                }}
-              />
-            </React.Suspense>
+            {liquid && (
+              <React.Suspense fallback={null}>
+                <LiquidPill onShown={onDrawn} />
+              </React.Suspense>
+            )}
+            <CommandField
+              liquid={drawn}
+              autoFocus
+              placeholder="캐릭터 · 메뉴 · 기능 검색…"
+              onSubmit={results.submit}
+              onValueChange={(value) => {
+                // The first key also asks for the liquid (at the next idle, not now).
+                setWanted(true)
+                setText(value)
+                results.setActive(null)
+                results.clearStatus()
+                if (results.error) results.setError("")
+              }}
+              onInputKeyDown={results.onKey}
+              inputProps={{
+                role: "combobox",
+                name: "q",
+                autoComplete: "off",
+                spellCheck: false,
+                // The list, not the dialog: shown only when there are rows (frontend-a11y).
+                "aria-expanded": open && groups.length > 0,
+                "aria-invalid": results.error ? true : undefined,
+                // The keys line too (Shift+Enter is only told there).
+                "aria-describedby": results.error ? `${errorId} ${panelId}-hint` : `${panelId}-hint`,
+                "aria-controls": panelId,
+                "aria-autocomplete": "list",
+                "aria-activedescendant": current ? optionId(panelId, current) : undefined,
+              }}
+            />
             <ResultPanel
               open={open && groups.length > 0}
               id={panelId}

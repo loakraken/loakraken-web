@@ -23,6 +23,11 @@ export type NavSection = {
   all?: { label: string; description: string; href: string };
   /** Mobile sheet shows the group titles too (a long section split into groups). */
   sheetGroups?: boolean;
+  /**
+   * A section with one page only: the bar shows it as a plain link (no
+   * panel), the mobile sheet as its one entry (user 11-08, 소개).
+   */
+  link?: NavLink & { href: string };
   /** A group whose title links to its hub page (the hub's first tab). */
   groups: { title: string; href?: string; links: NavLink[] }[];
   /**
@@ -34,24 +39,23 @@ export type NavSection = {
 
 export const NAV_SECTIONS: NavSection[] = [
   {
+    // One page in the menu (user 11-08): 소개 opens the intro directly. The
+    // page's other parts are no rows, but the header search still finds them.
     id: "about",
     label: "소개",
-    groups: [
-      {
-        title: "LOAKraken",
-        links: [
-          { label: "서비스 소개", description: "흩어진 정보를 한 곳에서", href: "/about#intro" },
-          { label: "캐릭터 미리보기", description: "예시 데이터로 보는 화면", href: "/about#preview" },
-          { label: "근거 보기", description: "결과마다 원본 데이터를 함께", href: "/about#evidence" },
-          { label: "로드맵", description: "흡수 중인 기능과 순서", href: "/about#roadmap" },
-        ],
-      },
+    link: { label: "서비스 소개", description: "흩어진 정보를 한 곳에서", href: "/about#intro" },
+    groups: [],
+    search: [
+      { label: "서비스 소개", description: "흩어진 정보를 한 곳에서", href: "/about#intro" },
+      { label: "캐릭터 미리보기", description: "예시 데이터로 보는 화면", href: "/about#preview" },
+      { label: "근거 보기", description: "결과마다 원본 데이터를 함께", href: "/about#evidence" },
+      { label: "로드맵", description: "흡수 중인 기능과 순서", href: "/about#roadmap" },
     ],
   },
   {
     id: "character",
     label: "캐릭터",
-    match: ["/character", "/multi-search", "/rankings"],
+    match: ["/character", "/multi-search"],
     groups: [
       {
         title: "조회",
@@ -60,10 +64,6 @@ export const NAV_SECTIONS: NavSection[] = [
           { label: "멀티서치", description: "여러 캐릭터를 나란히 비교", href: "/multi-search" },
           { label: "길드", description: "길드원 세팅 한눈에" },
         ],
-      },
-      {
-        title: "순위",
-        links: [{ label: "랭킹", description: "전투력·아이템 레벨 순위와 백분위", href: "/rankings" }],
       },
     ],
   },
@@ -148,12 +148,18 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     id: "stats",
     label: "통계",
-    match: ["/stats"],
+    // 랭킹 moved here from 캐릭터 (user 11-03); its URL stays /rankings.
+    match: ["/stats", "/rankings"],
     groups: [
       {
         title: "분포",
-        // ONE entry (user 11-01, asked twice): the tabs live on /stats.
+        // ONE entry for /stats (user 11-01, asked twice): its tabs live on the
+        // page. 랭킹 below is a page of its own, not one of those tabs.
         links: [{ label: "전체 통계", description: "직업·전투력 분포·최고 전투력·서버를 탭으로", href: "/stats" }],
+      },
+      {
+        title: "순위",
+        links: [{ label: "랭킹", description: "전투력·아이템 레벨 순위와 백분위", href: "/rankings" }],
       },
     ],
     search: [

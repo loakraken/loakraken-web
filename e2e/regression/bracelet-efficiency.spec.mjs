@@ -8,6 +8,8 @@ const term = (page) => page.getByRole("button", { name: /^팔찌 효율/ });
 test("딜러: 실 효율, '악마 피해'를 켜면 그 값, 줄별 기여 없음 @regression", async ({ page }) => {
   await gotoReady(page, characterPath("상세"));
   await expect(term(page)).toBeVisible();
+  // User 11-08: the term has no dotted underline; its tooltip stays (below).
+  expect(await term(page).evaluate((el) => getComputedStyle(el).textDecorationLine), "팔찌 효율 밑줄 없음").toBe("none");
   const head = term(page).locator("xpath=ancestor::p[1]");
   await expect(head).toContainText("+11.30%");
   await term(page).focus();

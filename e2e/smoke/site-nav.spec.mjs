@@ -1,5 +1,19 @@
 // 공통 상단 메뉴(web #50·#56): 호버 플라이아웃, 키보드(↓·Esc), 900px 이하 메뉴 시트.
 import { test, expect, gotoReady } from "../support/fixtures.mjs";
+import { shiftsDuring, watchShifts } from "../support/shifts.mjs";
+
+/** Texts inside `root` that stick out of it or are cut in their own box (A37). */
+const cutIn = (root) =>
+  root.evaluate((el) => {
+    const right = el.getBoundingClientRect().right;
+    return [...el.querySelectorAll("a, p, span")]
+      .filter(
+        (node) =>
+          node.getBoundingClientRect().right > right + 0.5 ||
+          (getComputedStyle(node).display !== "inline" && node.scrollWidth > node.clientWidth + 1),
+      )
+      .map((node) => node.textContent);
+  });
 
 // components/site/site-nav.module.css 의 max-width: 900px
 const NARROW = 900;
@@ -49,7 +63,7 @@ test.describe("상단 메뉴 데스크톱 @smoke", () => {
     await expect(trigger).toHaveAttribute("data-current", "true");
   });
 
-  test("메뉴는 묶음만: 성장 도구는 캐릭터 성장·레이드·골드 효율, 시세·통계는 한 줄씩(사용자 11-01)", async ({ page }) => {
+  test("메뉴는 묶음만: 성장 도구는 캐릭터 성장·레이드·골드 효율, 시세는 한 줄, 통계는 전체 통계·랭킹(사용자 11-01·11-03)", async ({ page }) => {
     const nav = page.getByRole("navigation", { name: "주요 메뉴" });
     const rows = async (name) => {
       const trigger = nav.getByRole("button", { name, exact: true });
@@ -63,7 +77,26 @@ test.describe("상단 메뉴 데스크톱 @smoke", () => {
     };
     expect(await rows("성장 도구")).toEqual(["캐릭터 성장", "레이드", "골드 효율"]);
     expect(await rows("시세")).toEqual(["거래소 시세"]);
-    expect(await rows("통계")).toEqual(["전체 통계"]);
+    // 랭킹 moved from 캐릭터 to 통계 (user 11-03); /stats keeps one row, 랭킹 is a page of its own.
+    expect(await rows("통계")).toEqual(["전체 통계", "랭킹"]);
+    expect(await rows("캐릭터")).not.toContain("랭킹");
+  });
+
+  test("1280 랭킹 화면: 통계가 현재 위치, 통계 패널의 랭킹으로 열리고 패널은 흔들림·잘림 없음(사용자 11-03)", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await watchShifts(page);
+    await gotoReady(page, "/rankings");
+    const nav = page.getByRole("navigation", { name: "주요 메뉴" });
+    const stats = nav.getByRole("button", { name: "통계", exact: true });
+    await expect(stats).toHaveAttribute("data-current", "true");
+    await expect(nav.getByRole("button", { name: "캐릭터", exact: true })).not.toHaveAttribute("data-current");
+    const moved = await shiftsDuring(page, () => stats.click(), 600);
+    expect(moved.all, `통계 패널 열 때 흔들림 (${moved.moved})`).toBe(0);
+    const panel = page.locator(`#${await stats.getAttribute("aria-controls")}`);
+    await expect(panel.getByText("분포", { exact: true })).toBeVisible();
+    await expect(panel.getByText("순위", { exact: true })).toBeVisible();
+    expect(await cutIn(panel)).toEqual([]);
+    await expect(panel.getByRole("link", { name: /^랭킹/ })).toHaveAttribute("href", "/rankings");
   });
 
   test("누르면 플라이아웃이 고정되고, 호버만 하면 미리 보기라 벗어나면 닫힌다(사용자 11-01)", async ({ page }) => {
@@ -173,6 +206,24 @@ test.describe("상단 메뉴 시트(900px 이하) @smoke", () => {
       expect(out).toEqual([]);
     });
   }
+
+  for (const width of [320, 360, 390])
+    test(`${width}px 시트: 랭킹은 통계 아래, 캐릭터 아래에는 없고, 시트를 열 때 흔들림·잘림 없음(사용자 11-03)`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 800 });
+      await watchShifts(page);
+      await gotoReady(page, "/rankings");
+      const open = page.getByRole("button", { name: "메뉴 열기" });
+      const moved = await shiftsDuring(page, () => open.click(), 600);
+      expect(moved.all, `시트 열 때 흔들림 (${moved.moved})`).toBe(0);
+      const close = page.getByRole("button", { name: "메뉴 닫기" });
+      const sheet = page.locator(`[id="${await close.getAttribute("aria-controls")}"]`);
+      const section = (name) => sheet.locator("section").filter({ has: page.getByRole("heading", { name, exact: true }) });
+      const ranking = section("통계").getByRole("link", { name: /^랭킹/ });
+      await ranking.scrollIntoViewIfNeeded();
+      await expect(ranking).toHaveAttribute("href", "/rankings");
+      await expect(section("캐릭터").getByRole("link", { name: /^랭킹/ })).toHaveCount(0);
+      expect(await cutIn(section("통계"))).toEqual([]);
+    });
 
   test("Esc로 시트를 닫으면 메뉴 버튼에 포커스가 돌아온다", async ({ page }) => {
     await gotoReady(page, "/");

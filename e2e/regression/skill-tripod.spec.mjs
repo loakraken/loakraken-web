@@ -60,6 +60,20 @@ test("1280: 고른 자리 숫자, 올리면 효과 카드, 스킬 종류 표시 
   await expect(card).toContainText("2단계 · 2번째");
   await expect(card).toContainText("포격이 2회 연속 발사된다.");
   expect(shifts.all, `카드 열 때 흔들림 (${shifts.moved})`).toBe(0);
+  // User 11-08: no underline under the name on hover (the card above still opens).
+  // The name's own span (after the icon; it may carry a hidden ' 레벨 N').
+  const tripodName = trigger.locator("[class*=tripodRow] > span:nth-child(2)");
+  await expect(tripodName).toContainText("연발 포격");
+  expect(await tripodName.evaluate((el) => getComputedStyle(el).textDecorationLine), "올렸을 때 이름 밑줄").toBe("none");
+  // The keyboard focus ring stays: focused after a key press (keyboard use, as Tab is), it draws an outline.
+  await page.mouse.move(0, 0);
+  await page.keyboard.press("Shift");
+  await trigger.focus();
+  await expect(trigger).toBeFocused();
+  expect(
+    await trigger.evaluate((el) => el.matches(":focus-visible") && getComputedStyle(el).outlineStyle !== "none"),
+    "키보드 초점 테두리",
+  ).toBe(true);
 
   // An old cache without the effect: the place line only.
   await skillRow(page, "합성 화염").getByRole("button", { name: tripodLabel("장전", "1단계 · 2번째") }).hover();

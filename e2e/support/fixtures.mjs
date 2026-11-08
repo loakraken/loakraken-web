@@ -16,6 +16,11 @@ export const test = base.extend({
   allowConsoleErrors: [false, { option: true }],
 
   page: async ({ page, allowConsoleErrors }, provide, testInfo) => {
+    await page.addInitScript(() => {
+      try {
+        sessionStorage.setItem("loakraken:about-intro", "1");
+      } catch {}
+    });
     await page.route(
       (url) => !isLocal(url.href),
       (route) =>
@@ -77,6 +82,12 @@ export async function chooseOption(page, combobox, name) {
 
 export const characterPath = (name, tab) =>
   `/character/${encodeURIComponent(name)}${tab && tab !== "combat" ? `?tab=${tab}` : ""}`;
+
+/**
+ * The spec-up tab on its candidate list (전투력 증가 chip): a dealer's first view
+ * is 추천 순서 since 11-02 (layout A), and the chip lives in the address.
+ */
+export const specUpListPath = (name) => `${characterPath(name, "specup")}&sort=DELTA`;
 
 /**
  * Fails when the page scrolls sideways (layout wider than the viewport).

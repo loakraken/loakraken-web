@@ -715,6 +715,31 @@
   --border: #d2d2d7; /* decorative rules */
   --input: #86868b; /* field and switch outlines: 3.62 */
   --ring: #0071e3; /* 4.70, 4.31 on --muted */
+  /* Stats category colours (user 11-08: several colours, as the reference
+     shows; our own steps). One colour per role and per 직업군, the same on
+     every stats chart, always beside its name. Checked with the dataviz
+     palette validator on the muted and page surfaces: all >= 3:1, adjacent
+     colour-blind and normal-vision separation pass (dark: below).
+     Roles are inks, not hues (user 11-08: apart from the 직업군 colours):
+     three greys >= 3:1 and >= 15 apart; 서포터 직업 딜러 also hatched, so it
+     is told apart by pattern too. 미확인 is the track's own tone. */
+  --role-dealer: #1f1f22;
+  --role-support-dealer: #545459;
+  --role-support: #8a8a90;
+  --role-unknown: color-mix(in oklab, var(--foreground) 22%, transparent);
+  --role-support-dealer-fill: repeating-linear-gradient(
+    45deg,
+    var(--role-support-dealer) 0 3px,
+    color-mix(in oklab, var(--role-support-dealer) 45%, transparent) 3px 5px
+  );
+  --group-warrior: #2a78d6;
+  --group-martial: #d95926;
+  --group-hunter: #199e70;
+  --group-mage: #b87900;
+  --group-assassin: #d55181;
+  --group-specialist: #008300;
+  --group-guardian: #6250d6;
+  --group-other: #86868b;
   /* Six radius steps: badge, control, inner group, panel, large panel, pill.
      Kept on :root (not @theme inline) so modules can read them; Tailwind's
      rounded-* utilities resolve to the same variables. */
@@ -839,6 +864,15 @@
   --link: #0066cc;
   --faint: #86868b; /* icons, rules and borders only: 3.62:1, too light for text */
   --accent-warm: #b64400;
+
+  /* Podium medals: solid marks paired with AA text; effects use opacity only. */
+  --rank-gold: #9b6a08;
+  --rank-gold-text: #ffffff; /* 4.71:1 on gold */
+  --rank-silver: #596778;
+  --rank-silver-text: #ffffff; /* 5.78:1 on silver */
+  --rank-bronze: #99552d;
+  --rank-bronze-text: #ffffff; /* 5.69:1 on bronze */
+
 
   /* Item grade tiles (in-game rarity hues tuned for a light page). Tile
      backgrounds only; the -b values are too light for text on white. */
@@ -1142,6 +1176,22 @@
   --link: #4da3ff; /* 7.20, 6.76 */
   --faint: #6b6e77; /* icons and rules: 3.71, 3.49 */
   --accent-warm: #ff9a4d; /* 8.99, 8.44 */
+  /* Stats category colours, stepped for the dark and dim panels (>= 3:1 on both). */
+  --role-dealer: #eceef1;
+  --role-support-dealer: #a6a9b1;
+  --role-support: #767982;
+  --group-warrior: #3987e5;
+  --group-mage: #c98500;
+  --group-specialist: #1e941e;
+  --group-guardian: #9085e9;
+  --group-other: #73767f;
+
+  --rank-gold: #e0b85c;
+  --rank-gold-text: #18191c; /* 9.36:1 on gold */
+  --rank-silver: #b8c4d4;
+  --rank-silver-text: #18191c; /* 9.95:1 on silver */
+  --rank-bronze: #d69b73;
+  --rank-bronze-text: #18191c; /* 7.36:1 on bronze */
   --success: #3ccf6a; /* 9.30, 8.73 */
   --market-up: #ff5c52; /* 6.22, 5.84 */
   --market-down: #4da3ff;
@@ -1174,6 +1224,13 @@
    against all six surfaces, the control fill (#383d47) being the worst case:
    body text 4.5, icons and field edges 3. */
 :root[data-theme="dim"] {
+  --rank-gold: #d2ac62;
+  --rank-gold-text: #18191c; /* 8.22:1 on gold */
+  --rank-silver: #afb9c8;
+  --rank-silver-text: #18191c; /* 8.87:1 on silver */
+  --rank-bronze: #d09a78;
+  --rank-bronze-text: #18191c; /* 7.18:1 on bronze */
+
   --background: #22252b;
   --foreground: #d5d8de; /* 10.75 … 7.63 */
   --card: #2c3038;
@@ -1210,6 +1267,17 @@
   --surface-panel: #2c3038;
   --surface-inset: #343943;
   --shadow-card: 0 0 0 1px rgb(255 255 255 / 7%), 0 12px 28px -18px rgb(0 0 0 / 50%);
+  /* Stats category colours on the dim panels, a step lighter than dark: every
+     bar >= 3:1 on the card and on the bar track over it (#1415 review), the
+     role inks still one grey ramp, the 직업군 colours still told apart. */
+  --role-dealer: #eceef1;
+  --role-support-dealer: #bcbfc7;
+  --role-support: #8c8f98;
+  --group-warrior: #4a92ea;
+  --group-martial: #e2662f;
+  --group-assassin: #e0628f;
+  --group-specialist: #26a526;
+  --group-other: #8a8d96;
 }
 
 /* Theme menu previews (theme-toggle.tsx): every theme's page, card step and

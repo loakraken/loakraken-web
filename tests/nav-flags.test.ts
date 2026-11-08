@@ -49,7 +49,10 @@ test("the menu lists hubs only (user 11-01); every page left out is a tab of a l
     ["레이드", "/tools/raid-rewards"],
     ["골드 효율", "/tools/loa-shop"],
   ]);
-  assert.deepEqual(rows("stats").map((link) => link.href), ["/stats"]);
+  // 랭킹 sits under 통계 (user 11-03), a page of its own beside the one /stats row.
+  assert.deepEqual(rows("stats").map((link) => link.href), ["/stats", "/rankings"]);
+  assert.ok(!rows("character").some((link) => link.href === "/rankings"));
+  assert.equal(sectionOf("/rankings"), "stats");
   assert.equal(NAV_SECTIONS.find((section) => section.id === "tools")!.all?.href, "/tools");
   // Each hub row opens the hub's first tab.
   assert.equal(HUBS.market.tabs[0].href, "/market");
@@ -58,6 +61,8 @@ test("the menu lists hubs only (user 11-01); every page left out is a tab of a l
   assert.equal(HUBS.gold.tabs[0].href, "/tools/loa-shop");
   // Every page that left the menu is a tab of a hub still in it (or a /stats tab), and in the search list.
   const menu = new Set(NAV_SECTIONS.flatMap((section) => section.groups.flatMap((group) => group.links)).map((l) => l.href));
+  // A one-page section (소개, user 11-08) is in the menu as its link; parts of that page (#…) count as it.
+  const pages = new Set(NAV_SECTIONS.flatMap((section) => (section.link ? [section.link.href.split("#")[0]] : [])));
   // A tab's views (also, e.g. 장신구 매물 검색 inside 장신구) count as that tab.
   const tabs = new Set(
     Object.values(HUBS).flatMap((hub) =>
@@ -65,7 +70,10 @@ test("the menu lists hubs only (user 11-01); every page left out is a tab of a l
     ),
   );
   for (const link of NAV_SECTIONS.flatMap((section) => section.search ?? []))
-    assert.ok(menu.has(link.href) || tabs.has(link.href!) || link.href!.startsWith("/stats?tab="), link.href);
+    assert.ok(
+      menu.has(link.href) || tabs.has(link.href!) || link.href!.startsWith("/stats?tab=") || pages.has(link.href!.split("#")[0]),
+      link.href,
+    );
   for (const hub of Object.values(HUBS))
     for (const tab of hub.tabs)
       assert.ok(menu.has(tab.href) || NAV_SECTIONS.some((section) => section.search?.some((link) => link.href === tab.href)), `${tab.href} searchable`);

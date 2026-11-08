@@ -79,6 +79,7 @@ import { useCrossfade } from "@/lib/motion";
 import { ChangeMark, UpdateAnnouncer, useChangedCells, type Pulse } from "@/components/ui/changed-cells";
 import { DataRefreshState } from "@/components/ui/data-refresh-state";
 import { PendingText } from "@/components/ui/pending-text";
+import { BotNote } from "@/components/bot/bot-note";
 
 const TIERS = [4, 3] as const;
 
@@ -644,9 +645,13 @@ function MarketContent({
             </PillTabs>
           )}
           {favorites.length === 0 ? (
-            <p className={styles.favoritesHint}>
-              <Bookmark size={12} aria-hidden="true" /> 품목의 즐겨찾기 표시를 누르면 여기에 모아 볼 수 있어요.
-            </p>
+            // In the bar's own 30px row: saved favourites replace it after
+            // loading (browser storage), so it must be no taller than them.
+            <BotNote mood="calm" inline className={styles.favoritesNote}>
+              <p className={styles.favoritesHint}>
+                <Bookmark size={12} role="img" aria-label="즐겨찾기" /> 표시를 누르면 여기에 모여요
+              </p>
+            </BotNote>
           ) : (
             <ul className={styles.favorites} aria-label="즐겨찾기 품목">
               {favorites.map((f) => (
@@ -665,6 +670,28 @@ function MarketContent({
           )}
 
           <div className={styles.columns}>
+            {/* The detail comes first in the page, as phones show it (above the
+                board). After the board, a slow page arrived in two parts and
+                the detail, drawn in above it later, pushed the drawn board off
+                the screen before the page woke (#1353, CLS 0.55 at 320). Wide
+                screens still place the board left, the detail right. */}
+            <div className={styles.side}>
+              {active ? (
+                <Detail
+                  key={active.itemId}
+                  item={active}
+                  tier={favorite ? favorite.tier : tier}
+                  tab={favorite ? favorite.tab : query.tab}
+                  outside={!!favorite}
+                />
+              ) : !data && !failure ? (
+                // Board still loading: hold the detail panel height (it sits above
+                // the board below 860px), so the board does not jump when it fills.
+                <div className={styles.detailPending} aria-hidden="true" />
+              ) : (
+                <p className={styles.muted}>품목을 고르면 추이를 보여줘요.</p>
+              )}
+            </div>
             <section className={styles.board} aria-labelledby="board-heading">
               <div className={styles.boardHead}>
                 {/* Drawn anew per kind: its text changes in place otherwise and
@@ -750,9 +777,13 @@ function MarketContent({
                   ))}
                 </ul>
               ) : !items.length ? (
-                <p className={styles.muted} role="status">
-                  {query.q ? `‘${query.q}’에 맞는 품목이 이 분류에 없어요.` : "표시할 품목이 없어요."}
-                </p>
+                <BotNote mood="puzzled">
+                  <p className={styles.muted} role="status">
+                    {query.q
+                      ? `‘${query.q}’에 맞는 품목이 이 분류에 없어요. 다른 분류에서 찾아볼까요?`
+                      : "표시할 품목이 없어요. 다른 분류를 골라 보세요."}
+                  </p>
+                </BotNote>
               ) : (
                 // A new board (tab, tier, sort, page) is not a "change": the
                 // rows are compared again from the first real answer for it.
@@ -799,24 +830,6 @@ function MarketContent({
                 </div>
               )}
             </section>
-
-            <div className={styles.side}>
-              {active ? (
-                <Detail
-                  key={active.itemId}
-                  item={active}
-                  tier={favorite ? favorite.tier : tier}
-                  tab={favorite ? favorite.tab : query.tab}
-                  outside={!!favorite}
-                />
-              ) : !data && !failure ? (
-                // Board still loading: hold the detail panel height (it sits above
-                // the board below 860px), so the board does not jump when it fills.
-                <div className={styles.detailPending} aria-hidden="true" />
-              ) : (
-                <p className={styles.muted}>품목을 고르면 추이를 보여줘요.</p>
-              )}
-            </div>
           </div>
         </div>
       </main>

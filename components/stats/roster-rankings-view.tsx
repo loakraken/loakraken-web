@@ -11,7 +11,7 @@ import { countdownText, retryLabel } from "@/lib/api/rate-limit";
 import { pendingProps } from "@/lib/api/pending";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { fetchRosterRanking } from "@/lib/stats/client";
-import { fixed, sampleText, whole } from "@/lib/stats/model";
+import { fixed, sampleText } from "@/lib/stats/model";
 import {
   ROSTER_AGGREGATES,
   ROSTER_BASES,
@@ -23,10 +23,13 @@ import {
 } from "@/lib/stats/roster-ranking";
 import quote from "@/components/tools/material-quote.module.css";
 import styles from "./stats.module.css";
+import { RankPodium } from "./rank-podium";
+import { RankNumber } from "./rank-number";
 import { rankingColumns } from "./ranking-columns";
 import { BasisNote } from "./basis-note";
 import { RankingTypeTabs, type RankingType } from "./ranking-type-tabs";
 import { MoreDetail } from "@/components/ui/more-detail";
+import { BotNote } from "@/components/bot/bot-note";
 
 const ROSTER_COLUMNS = rankingColumns([3.5, 14, 6, 7.5, 4.5, 16]);
 
@@ -143,11 +146,22 @@ export function RosterRankingsView({ initial, types }: { initial: RosterQuery; t
           </label>
         </form>
 
+        <RankPodium
+          page={query.page}
+          loading={(!data && list.isPending) || list.isPlaceholderData}
+          entries={data?.rows?.map((row) => ({
+            rank: ready ? row.rank : null, name: row.characterName,
+            href: `/character/${encodeURIComponent(row.characterName)}?tab=siblings`,
+            imageUrl: row.imageUrl, className: row.className,
+            value: value(row),
+          })) ?? []}
+        />
+
         {/* One height for loading, empty and short lists, so the notes below
             never move when the rows arrive (CLS). */}
         <div className={styles.listHold} {...pendingProps(list)}>
-          {data?.meta && (
-            <p key={list.dataUpdatedAt} className={`${styles.notice} ${styles.rankingNotice}`}>
+          <p key={list.dataUpdatedAt} className={`${styles.notice} ${styles.rankingNotice}`} aria-hidden={!data?.meta || undefined}>
+            {data?.meta && <>
               {sampleText(data.meta, "roster")} ·
               공식 랭킹이 아니에요
               {!ready && (
@@ -157,8 +171,8 @@ export function RosterRankingsView({ initial, types }: { initial: RosterQuery; t
                   드려요
                 </strong>
               )}
-            </p>
-          )}
+            </>}
+          </p>
           {list.isError && !data ? (
             <div className={styles.problem}>
               <p>
@@ -179,11 +193,13 @@ export function RosterRankingsView({ initial, types }: { initial: RosterQuery; t
               원정대 랭킹을 불러오고 있어요…
             </p>
           ) : !data.rows?.length ? (
-            <p className={styles.muted}>
-              {population === 0
-                ? "원정대 표본을 모으는 중이에요."
-                : "조건에 맞는 원정대가 없어요."}
-            </p>
+            <BotNote mood={population === 0 ? "calm" : "puzzled"}>
+              <p className={styles.muted}>
+                {population === 0
+                  ? "원정대 표본을 모으는 중이에요."
+                  : "조건에 맞는 원정대가 없어요. 조건을 조금 넓혀 볼까요?"}
+              </p>
+            </BotNote>
           ) : (
             <DataTable
               label={`원정대 ${aggregateLabel} 랭킹 ${query.page}쪽`}
@@ -214,7 +230,7 @@ export function RosterRankingsView({ initial, types }: { initial: RosterQuery; t
                     key={`${row.serverName}-${row.characterName}`}
                     data-reference={!ready || undefined}
                   >
-                    <td>{ready ? whole(row.rank) : "-"}</td>
+                    <td><RankNumber rank={ready ? row.rank : null} /></td>
                     <th scope="row">
                       <Link
                         href={`/character/${encodeURIComponent(row.characterName)}?tab=siblings`}

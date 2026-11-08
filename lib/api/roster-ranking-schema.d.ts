@@ -164,6 +164,8 @@ export interface components {
             value: number;
             /** @description 기준 상위 최대 6명(값이 있는 공개 캐릭터만, 순서대로). ROSTER_LEVEL이면 아이템 레벨 상위 */
             composition: components["schemas"]["RosterMemberResponse"][];
+            /** @description Official CDN portrait URL passed through by the API; absent on older responses. Hotlink only. */
+            imageUrl?: string | null;
         };
         RosterMemberResponse: {
             characterName: string;

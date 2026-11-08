@@ -563,10 +563,10 @@
   font-size: 13px;
   font-variant-numeric: tabular-nums;
 }
+/* A term with a tooltip (팔찌 효율, 쿨타임): no dotted underline (user 11-08);
+   the help cursor, the tooltip and the focus ring (globals.css) say it. */
 .braceletEffTerm {
   color: var(--muted-foreground);
-  text-decoration: underline dotted;
-  text-underline-offset: 3px;
   cursor: help;
 }
 /* The same increase colour as the spec-up tab (blue is "done", A26). */
@@ -799,7 +799,9 @@
   display: inline;
 }
 .gemRows small [data-other-role],
-.gradeLine[data-other-role] {
+.gradeLine[data-other-role],
+.effectGrid li[data-other-role],
+.effectGrid li[data-other-role] b {
   color: var(--muted-foreground);
 }
 .stoneBonus {
@@ -994,24 +996,23 @@
   gap: 10px;
   min-width: 0;
 }
-.engravingGrade {
-  flex: none;
-  width: 4px;
-  height: 18px;
-  border-radius: 2px;
-  background: var(--muted-foreground);
+/* The engraving icon's ring in its grade's colour (user 11-08, in place of a
+   separate mark): the grade text tokens, >= 4.5:1 on the panel; any other or
+   unknown grade a neutral ring. */
+.engravingIcon {
+  box-shadow: 0 0 0 2px var(--muted-foreground);
 }
-.engravingGrade[data-grade="relic"] {
-  background: var(--grade-relic-text);
+.engravingIcon[data-grade="relic"] {
+  box-shadow: 0 0 0 2px var(--grade-relic-text);
 }
-.engravingGrade[data-grade="legendary"] {
-  background: var(--grade-legendary-text);
+.engravingIcon[data-grade="legendary"] {
+  box-shadow: 0 0 0 2px var(--grade-legendary-text);
 }
-.engravingGrade[data-grade="epic"] {
-  background: var(--grade-epic-text);
+.engravingIcon[data-grade="epic"] {
+  box-shadow: 0 0 0 2px var(--grade-epic-text);
 }
-.engravingGrade[data-grade="ancient"] {
-  background: var(--grade-ancient-text);
+.engravingIcon[data-grade="ancient"] {
+  box-shadow: 0 0 0 2px var(--grade-ancient-text);
 }
 .engravings span {
   color: var(--muted-foreground);
@@ -1106,18 +1107,13 @@
   align-items: center;
   gap: 5px;
 }
-/* Full view: icon, name and the tier's three places, one hover/tap target. */
+/* Full view: icon, name and the tier's three places, one hover/tap target.
+   No underline on hover (user 11-08); the card it opens and the focus ring
+   (DetailTooltip) stay. */
 .tripodRow {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-}
-/* It opens a card: the name answers the pointer. */
-@media (hover: hover) and (pointer: fine) {
-  .tripodRow:hover > span:nth-child(2) {
-    text-decoration: underline dotted;
-    text-underline-offset: 3px;
-  }
 }
 /* Which of 1·2·3 was picked: the plain number (no box: the icon's corner
    already carries the tripod level), in tabular figures of one width. */
@@ -2410,6 +2406,30 @@
   font-size: 12px;
   line-height: 18px;
 }
+/* The old-data note in that line: the stale tone and a warning mark, one line. */
+.specUpExpired {
+  /* A flex row, not inline-flex: on the text baseline it made the 18px line taller. */
+  display: flex;
+  height: 100%;
+  align-items: center;
+  gap: 4px;
+  color: var(--accent-warm);
+  white-space: nowrap;
+}
+.specUpExpired svg {
+  flex: none;
+}
+.specUpExpired [data-width="narrow"] {
+  display: none;
+}
+@media (max-width: 360px) {
+  .specUpExpired [data-width="wide"] {
+    display: none;
+  }
+  .specUpExpired [data-width="narrow"] {
+    display: inline;
+  }
+}
 .specUpMuted {
   color: var(--muted-foreground);
   font-size: 12px;
@@ -3043,6 +3063,16 @@
   .rosterTools {
     row-gap: 16px;
   }
+  /* Spec-up chips wrap to two rows since 추천 순서 joined them (11-03 CI, A36):
+     each 36px pill's area reaches 4px past it and a corner is checked 3px out,
+     so rows 10px apart keep the areas apart; the bar's slot row under them
+     (32px buttons, 6px past) needs 12px. */
+  .specUpSorts {
+    row-gap: 10px;
+  }
+  .specUpBar {
+    row-gap: 12px;
+  }
   .tabs a::after,
   .textButton::after,
   .braceletEffTerm::after,
@@ -3211,6 +3241,34 @@
    visibility also takes it out of the reading order and the tab order. */
 .specUpCooldown[data-off] {
   visibility: hidden;
+}
+/* 추천 순서's 효율 우선 / 전투력 우선 (layout A, 11-02): small, in the bar's one
+   slot, shown only while that chip is chosen. */
+.specUpPathSorts {
+  display: inline-flex;
+  gap: 4px;
+}
+.specUpPathSorts[data-off] {
+  visibility: hidden;
+}
+.specUpPathSorts button {
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--secondary);
+  border-radius: 980px;
+  background: var(--background);
+  color: var(--muted-foreground);
+  font-size: 12px;
+  white-space: nowrap;
+  touch-action: manipulation;
+}
+.specUpPathSorts button[aria-pressed="true"] {
+  border-color: var(--foreground);
+  color: var(--foreground);
+  font-weight: 600;
+}
+.specUpPathSorts button:active {
+  scale: var(--press-scale);
 }
 @media (hover: hover) and (pointer: fine) {
   .specUpCooldown:hover {

@@ -5,16 +5,17 @@
 // (the rows grouped with the official class groups) and, for the classes that
 // can play support, how many play which role.
 import type { CSSProperties } from "react";
-import { SUPPORT_CLASSES, groupShares } from "@/lib/stats/class-groups";
+import { SUPPORT_CLASSES, groupColor, groupShares } from "@/lib/stats/class-groups";
 import { share, whole, type ClassRow, type Composition } from "@/lib/stats/model";
 import { HelpInfo } from "./basis-note";
 import { ClassIcon } from "./class-icon";
 import styles from "./stats.module.css";
 
-type Part = { label: string; count: number; total: number; help?: React.ReactNode };
+/** `color`: the row's role or 직업군 colour (globals.css, user 11-08); its name is beside it. */
+type Part = { label: string; count: number; total: number; color: string; help?: React.ReactNode };
 
 /** One labelled row: name, count, share and a bar of that share (grows on the tab's first showing). */
-function ShareRow({ label, count, total, help, index }: Part & { index: number }) {
+function ShareRow({ label, count, total, color, help, index }: Part & { index: number }) {
   const value = total ? (count / total) * 100 : 0;
   return (
     <li>
@@ -26,7 +27,7 @@ function ShareRow({ label, count, total, help, index }: Part & { index: number }
         {share(value)} <small>{whole(count)}명</small>
       </span>
       <span className={styles.partBar} aria-hidden="true">
-        <i className="k-grow-x" style={{ width: `${value}%`, "--i": index } as CSSProperties} />
+        <i className="k-grow-x" style={{ width: `${value}%`, "--i": index, "--bar": color } as CSSProperties} />
       </span>
     </li>
   );
@@ -42,12 +43,25 @@ function SplitRow({ row, index }: { row: ClassRow; index: number }) {
         <ClassIcon name={row.className} size={20} />
         {row.className}
       </span>
+      {/* The same colours as the 역할 rows: these dealers are 서포터 직업 딜러. */}
       <span className={styles.partValue}>
-        서포터 {share(supports)} · 딜러 {share(dealers)}
+        <span className={styles.swatch} style={{ "--swatch": "var(--role-support)" } as CSSProperties}>
+          서포터 {share(supports)}
+        </span>{" "}
+        ·{" "}
+        <span className={styles.swatch} style={{ "--swatch": "var(--role-support-dealer-fill)" } as CSSProperties}>
+          딜러 {share(dealers)}
+        </span>
       </span>
       <span className={styles.partBar} aria-hidden="true">
-        <i className="k-grow-x" style={{ width: `${supports}%`, "--i": index } as CSSProperties} />
-        <b className="k-grow-x" style={{ left: `${supports}%`, width: `${dealers}%`, "--i": index } as CSSProperties} />
+        <i
+          className="k-grow-x"
+          style={{ width: `${supports}%`, "--i": index, "--bar": "var(--role-support)" } as CSSProperties}
+        />
+        <b
+          className="k-grow-x"
+          style={{ left: `${supports}%`, width: `${dealers}%`, "--i": index, "--bar-2": "var(--role-support-dealer-fill)" } as CSSProperties}
+        />
       </span>
     </li>
   );
@@ -64,11 +78,12 @@ export function CompositionBlock({ rows, composition }: { rows: readonly ClassRo
     : 0;
   const roles: Part[] = composition
     ? [
-        { label: "딜러 직업", count: composition.dealer, total: roleTotal },
+        { label: "딜러 직업", count: composition.dealer, total: roleTotal, color: "var(--role-dealer)" },
         {
           label: "서포터 직업 딜러",
           count: composition.supportClassDealer,
           total: roleTotal,
+          color: "var(--role-support-dealer-fill)",
           help: (
             <HelpInfo label="서포터 직업 딜러 설명" title="서포터 직업 딜러">
               <p>
@@ -78,8 +93,10 @@ export function CompositionBlock({ rows, composition }: { rows: readonly ClassRo
             </HelpInfo>
           ),
         },
-        { label: "서포터", count: composition.support, total: roleTotal },
-        ...(composition.unknownRole > 0 ? [{ label: "역할 미확인", count: composition.unknownRole, total: roleTotal }] : []),
+        { label: "서포터", count: composition.support, total: roleTotal, color: "var(--role-support)" },
+        ...(composition.unknownRole > 0
+          ? [{ label: "역할 미확인", count: composition.unknownRole, total: roleTotal, color: "var(--role-unknown)" }]
+          : []),
       ]
     : [];
   const groupTotal = groups.reduce((sum, g) => sum + g.count, 0);
@@ -103,7 +120,7 @@ export function CompositionBlock({ rows, composition }: { rows: readonly ClassRo
           <h3>직업군</h3>
           <ul>
             {groups.map((g, i) => (
-              <ShareRow key={g.group} label={g.group} count={g.count} total={groupTotal} index={i} />
+              <ShareRow key={g.group} label={g.group} count={g.count} total={groupTotal} color={groupColor(g.group)} index={i} />
             ))}
           </ul>
         </div>

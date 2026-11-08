@@ -65,7 +65,7 @@ export function SiteNav() {
   const [sheet, setSheet] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const root = useRef<HTMLDivElement>(null);
-  const triggers = useRef(new Map<string, HTMLButtonElement>());
+  const triggers = useRef(new Map<string, HTMLElement>());
   const menuButton = useRef<HTMLButtonElement>(null);
 
   const close = useCallback(() => {
@@ -132,8 +132,11 @@ export function SiteNav() {
     );
   }
 
-  function onTriggerKey(event: KeyboardEvent<HTMLButtonElement>, sectionId: string) {
-    if (event.key === "ArrowDown") {
+  // A one-page section (section.link) has no panel: the bar shows a link.
+  const hasPanel = (sectionId: string) => !NAV_SECTIONS.find((s) => s.id === sectionId)?.link;
+
+  function onTriggerKey(event: KeyboardEvent<HTMLElement>, sectionId: string) {
+    if (event.key === "ArrowDown" && hasPanel(sectionId)) {
       event.preventDefault();
       setInstant(true);
       setOpen(sectionId);
@@ -145,7 +148,7 @@ export function SiteNav() {
       const ids = NAV_SECTIONS.map((s) => s.id);
       const next = ids[(ids.indexOf(sectionId) + (event.key === "ArrowRight" ? 1 : ids.length - 1)) % ids.length];
       triggers.current.get(next)?.focus();
-      if (open) setOpen(next);
+      if (open) setOpen(hasPanel(next) ? next : null);
     }
   }
 
@@ -154,37 +157,57 @@ export function SiteNav() {
       <ul className={styles.tabs}>
         {NAV_SECTIONS.map((section) => (
           <li key={section.id}>
-            <button
-              ref={(node) => {
-                if (node) triggers.current.set(section.id, node);
-              }}
-              type="button"
-              className={styles.tab}
-              aria-expanded={open === section.id}
-              aria-controls={`${id}-${section.id}`}
-              data-current={current === section.id || undefined}
-              onPointerEnter={() => enter(section.id)}
-              onClick={() => {
-                clearTimeout(timer.current);
-                setInstant(true);
-                // A click on a tab only hovered open pins it; on the pinned tab it closes.
-                if (pinned && open === section.id) setOpen(null);
-                else {
-                  setOpen(section.id);
-                  setPinned(true);
-                }
-              }}
-              onKeyDown={(event) => onTriggerKey(event, section.id)}
-            >
-              {section.label}
-              <ChevronDown size={12} aria-hidden="true" />
-            </button>
+            {section.link ? (
+              <Link
+                ref={(node) => {
+                  if (node) triggers.current.set(section.id, node);
+                }}
+                href={section.link.href}
+                className={styles.tab}
+                data-current={current === section.id || undefined}
+                // A previewed panel closes when the pointer reaches a plain link.
+                onPointerEnter={() => {
+                  clearTimeout(timer.current);
+                  if (!pinned) setOpen(null);
+                }}
+                onClick={close}
+                onKeyDown={(event) => onTriggerKey(event, section.id)}
+              >
+                {section.label}
+              </Link>
+            ) : (
+              <button
+                ref={(node) => {
+                  if (node) triggers.current.set(section.id, node);
+                }}
+                type="button"
+                className={styles.tab}
+                aria-expanded={open === section.id}
+                aria-controls={`${id}-${section.id}`}
+                data-current={current === section.id || undefined}
+                onPointerEnter={() => enter(section.id)}
+                onClick={() => {
+                  clearTimeout(timer.current);
+                  setInstant(true);
+                  // A click on a tab only hovered open pins it; on the pinned tab it closes.
+                  if (pinned && open === section.id) setOpen(null);
+                  else {
+                    setOpen(section.id);
+                    setPinned(true);
+                  }
+                }}
+                onKeyDown={(event) => onTriggerKey(event, section.id)}
+              >
+                {section.label}
+                <ChevronDown size={12} aria-hidden="true" />
+              </button>
+            )}
           </li>
         ))}
       </ul>
 
       <div className={styles.flyout} data-open={open !== null || undefined} data-instant={instant || undefined}>
-        {NAV_SECTIONS.map((section) => (
+        {NAV_SECTIONS.filter((section) => !section.link).map((section) => (
           <div
             key={section.id}
             id={`${id}-${section.id}`}
@@ -256,6 +279,13 @@ export function SiteNav() {
         {NAV_SECTIONS.map((section) => (
           <section key={section.id} className={styles.sheetSection}>
             <h2>{section.label}</h2>
+            {section.link && (
+              <ul>
+                <li>
+                  <Entry link={section.link} onNavigate={() => setSheet(false)} />
+                </li>
+              </ul>
+            )}
             {section.all && (
               <ul>
                 <li>

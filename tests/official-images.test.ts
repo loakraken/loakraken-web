@@ -12,6 +12,9 @@ const FIXED: Record<string, string> = {
   "components/landing/cockpit.tsx": "hero.emblem",
   // Official class icons from a fixed table of file names (lib/stats/class-icons), not API data.
   "components/stats/class-icon.tsx": "url",
+  // Our own files under /engravings from a fixed name table (lib/character/engraving-icons,
+  // user 11-08): the API name only picks a key, the address is never API data.
+  "components/ui/engraving-icon.tsx": "src",
   // Empty since the template's own pictures were dropped.
   "components/ui/bencho/reorder-list.tsx": "AVATARS[p.id]",
   // Callers pass safeGameImage results (command search).

@@ -149,6 +149,15 @@ test("Shift+Enter로 즐겨찾기에 넣고(읽히는 이름·상태 줄), 새�
   await expect(row).toBeVisible();
   // The row's mark (mouse/touch): unstars without opening the row; hit area ≥ 24px.
   const star = row.locator("[data-slot=row-star]");
+  // Measured once the panel's own scale-in has settled (mid-scale it reads 0.97 of the size).
+  await page.evaluate(() =>
+    Promise.all(
+      document
+        .getAnimations()
+        .filter((a) => Number.isFinite(a.effect?.getComputedTiming().endTime))
+        .map((a) => a.finished.catch(() => {})),
+    ),
+  );
   const size = await star.boundingBox();
   expect(Math.min(size.width, size.height), "표시 누름 영역").toBeGreaterThanOrEqual(24);
   await star.click();

@@ -1699,6 +1699,7 @@ createServer(async (req, res) => {
       // combat power, long ark passive, small top percent with a tier, long names).
       const real = cls === "디스트로이어";
       rows.push({
+        imageUrl: rank === 2 ? null : "https://cdn-lostark.game.onstove.com/armory/5/1f61ab26ba20544608685989f1c415e19ae64e362888e9766b76dd2cb54540d5.jpg",
         rank, characterName: real ? `무라타Himek0${rank}` : `랭커${rank}`, serverName: q.get("server") || servers[rank % servers.length], className: cls,
         position: cls === "바드" || cls === "홀리나이트" || cls === "도화가" ? "SUPPORT" : "DEALER",
         itemLevel: real ? 1805 : Math.round((1790 - rank * 0.05) * 100) / 100,
@@ -1739,6 +1740,7 @@ createServer(async (req, res) => {
       const tier = top <= 1 ? "TOP1" : top <= 5 ? "TOP5" : top <= 10 ? "TOP10" : top <= 25 ? "TOP25" : top <= 50 ? "TOP50" : "REST";
       const real = q.get("className") === "디스트로이어"; // real-data lengths, as above
       rows.push({
+        imageUrl: "https://cdn-lostark.game.onstove.com/armory/5/1f61ab26ba20544608685989f1c415e19ae64e362888e9766b76dd2cb54540d5.jpg",
         rank, characterName: real ? `무라타Himek0${rank}` : `효율${rank}`, serverName: q.get("server") || servers[rank % servers.length],
         className: q.get("className") || classes[rank % classes.length], position: "DEALER",
         itemLevel: real ? 1805 : Math.round((1785 - rank * 0.1) * 100) / 100,
@@ -2303,12 +2305,47 @@ createServer(async (req, res) => {
   }
   // Title equip shares (api #314): the roster title names of the 상세 mock,
   // fewer rosters on 아만 (a small sample there).
+  // Stored days of the title shares (칭호 contract v1.1): newest first.
+  if (url.pathname === "/api/v1/titles/equipped/dates")
+    return send({ code: "TITLE_EQUIP_DATES_SUCCESS", message: "ok", data: { dates: ["2026-11-09", "2026-11-08", "2026-11-07"] } });
   if (url.pathname === "/api/v1/titles/equipped") {
     const server = url.searchParams.get("server");
+    const date = url.searchParams.get("date");
+    // v1.2: a stored day is per server (or all) and 30 days only; a day with no record is 404.
+    if (date && (url.searchParams.get("activeDays") ?? "30") !== "30")
+      return send({ code: "INVALID_REQUEST", message: "date goes with 30 days only", data: null }, 400);
+    if (date && !["2026-11-09", "2026-11-08", "2026-11-07"].includes(date))
+      return send({ code: "TITLE_SNAPSHOT_NOT_FOUND", message: "no snapshot", data: null }, 404);
     const population = server === "아만" ? 24 : 1240;
-    const rows = [["빛을 꺼트리는 자", 400], ["에키드나를 쓰러뜨린 자", 310], ["별을 제패한 자", 12], ["합성 칭호", 0]]
-      .map(([title, n]) => ({ title, equippedRosters: server === "아만" ? Math.round(n / 50) : n }))
+    // Older days hold fewer rosters (a small, steady rise to today).
+    const back = date ? ["2026-11-09", "2026-11-08", "2026-11-07"].indexOf(date) + 1 : 0;
+    // Grade, variant parent and 획득 조건 as in the title table's public draft (11-08,
+    // text copied exactly); null = not in it. The table names variants only by a
+    // sub-row label, so the variant here carries no 획득 조건 of its own.
+    const catalog = {
+      "빛을 꺼트리는 자": ["희귀", null, "카멘을 처치한다"],
+      "별을 제패한 자": ["전설", null, "카멘을 처치한다"],
+      "뇌전의 군주": ["전설", null, "카제로스 레이드 익스트림 3막을 나이트메어 난이도로 처음 클리어한다"],
+      "뇌전의 군주 (첫 주 클리어)": ["전설", "뇌전의 군주", null],
+      "심연의 끝을 마주한 자": ["유물", null, "익스트림 3막과 종막을 나이트메어 난이도로 모두 클리어한다(업적 보상)"],
+      "카제로스 The 1st": ["고대", null, "카제로스 The FIRST 이벤트 1위 공격대"],
+    };
+    const rows = [
+      ["빛을 꺼트리는 자", 400],
+      ["에키드나를 쓰러뜨린 자", 310],
+      ["뇌전의 군주", 96],
+      ["뇌전의 군주 (첫 주 클리어)", 18],
+      ["심연의 끝을 마주한 자", 41],
+      ["별을 제패한 자", 12],
+      ["카제로스 The 1st", 8],
+      ["합성 칭호", 0],
+    ]
+      .map(([title, n]) => ({ title, equippedRosters: Math.max(0, (server === "아만" ? Math.round(n / 50) : n) - back * Math.round(n / 20)) }))
       .map((row) => ({ ...row, equippedPercent: Math.round((row.equippedRosters / population) * 10000) / 100 }))
+      .map((row) => {
+        const [grade, parentTitle, condition] = catalog[row.title] ?? [null, null, null];
+        return { ...row, grade, parentTitle, condition };
+      })
       // api #697: ever seen wearing it (a lower bound of owning it); under 30
       // characters the sample is not ready (별을 제패한 자 here).
       .map((row) => {
@@ -2339,6 +2376,7 @@ createServer(async (req, res) => {
           populationUnit: "ROSTER",
         },
         title: url.searchParams.get("title"),
+        snapshotDate: date,
         titles: rows,
       },
     });
@@ -2365,6 +2403,7 @@ createServer(async (req, res) => {
         rank: i + 1,
         serverName: server,
         characterName: name,
+        imageUrl: "https://cdn-lostark.game.onstove.com/armory/5/1f61ab26ba20544608685989f1c415e19ae64e362888e9766b76dd2cb54540d5.jpg",
         className: cls,
         itemLevel: 1720 + delta,
         combatPower: 3200 + delta,
@@ -2411,7 +2450,7 @@ createServer(async (req, res) => {
       const types = kinds(done);
       const point = types.reduce((a, t) => a + t.point, 0);
       const maxPoint = types.reduce((a, t) => a + t.maxPoint, 0);
-      return { rank, serverName, characterName, className, itemLevel, characterCount, progressPercent: Math.round((point / maxPoint) * 10000) / 100, point, maxPoint, observedAt: "2026-10-11T07:00:00Z", types };
+      return { rank, serverName, characterName, className, imageUrl: "https://cdn-lostark.game.onstove.com/armory/5/1f61ab26ba20544608685989f1c415e19ae64e362888e9766b76dd2cb54540d5.jpg", itemLevel, characterCount, progressPercent: Math.round((point / maxPoint) * 10000) / 100, point, maxPoint, observedAt: "2026-10-11T07:00:00Z", types };
     };
     const rosters = [roster(1, "합성원정대", "루페온", "바드", 1740, 8, true), roster(2, "상세", "아만", "블래스터", 1780.83, 7, false), roster(3, "작은원정대", "아만", "블레이드", 1690, 4, false)];
     const rows = unit === "CHARACTER" ? [rosters[1], { ...rosters[1], characterName: "상세서포터", className: "바드", itemLevel: 1712.5 }] : rosters;

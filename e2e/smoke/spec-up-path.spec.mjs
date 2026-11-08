@@ -1,114 +1,318 @@
-// 스펙업 추천 순서 (api #794): its own section under the spec-up list, asked
-// for on a click. The mock serves the backend's sample (보석 8→9→10, 품질 unpriced)
-// on the mock character; '스펙순서긴' has 14 steps, '스펙순서몰림' is SPEC_UP_BUSY.
-import { test, expect, characterPath, expectNoHorizontalOverflow } from "../support/fixtures.mjs";
+// 스펙업 추천 순서 (api #794): the first chip of the spec-up list since 11-02 (사용자
+// 결정 layout A) and a dealer's first view, asked for while chosen. Its rows are
+// the list's rows (image, detail), one per step in plain order (user 11-08). The
+// mock serves the backend's sample (보석 8→9→10 on one slot, 품질 unpriced);
+// '스펙순서긴' has 14 steps, '스펙순서몰림' is SPEC_UP_BUSY, '스펙순서스톤' adds a stone step.
+import { test, expect, characterPath, expectNoHorizontalOverflow, specUpListPath } from "../support/fixtures.mjs";
 import { shiftsDuring, watchShifts } from "../support/shifts.mjs";
 
-const section = (page) => page.getByRole("region", { name: "추천 순서" });
-const rows = (page) => section(page).getByRole("list", { name: /^추천 순서, / }).getByRole("listitem");
+const chips = (page) => page.getByRole("group", { name: "정렬" });
+const rule = (page) => page.getByRole("group", { name: "추천 순서 고르는 기준" });
+const pathTable = (page) => page.getByRole("table", { name: /^추천 순서, / });
+const rows = (page) => pathTable(page).locator("tbody tr:not([data-collapsed])");
 
 test.describe("스펙업 추천 순서 @smoke", () => {
-  test("보기를 누르면 순서가 나오고, 단계 비용은 그 단계에서 더 드는 골드(보석은 앞 단계 빼고)", async ({ page }) => {
-    await page.goto(characterPath("스펙순서", "specup"));
+  test("탭을 열면 추천 순서가 먼저: 저절로 묻고, 같은 보석 칸의 다음 단계도 제 줄 · 제 번호, 단계 비용은 그 단계에서 더 드는 골드", async ({ page }) => {
     const asked = page.waitForRequest((r) => r.url().includes("/api/characters/spec-up/path?"));
-    await section(page).getByRole("button", { name: "추천 순서 보기" }).click();
+    await page.goto(characterPath("스펙순서", "specup"));
     expect(new URL((await asked).url()).searchParams.get("sort")).toBe("EFFICIENCY");
+    await expect(chips(page).getByRole("button").first()).toHaveText("추천 순서");
+    await expect(chips(page).getByRole("button", { name: "추천 순서" })).toHaveAttribute("aria-pressed", "true");
+    await expect(rule(page).getByRole("button", { name: "효율 우선" })).toHaveAttribute("aria-pressed", "true");
+    await expect(pathTable(page)).toBeVisible();
+    // 보석 8→9 and 9→10 on one slot: two rows numbered 1 and 2, nothing folded (user 11-08).
     await expect(rows(page)).toHaveCount(2);
-    // The ask button goes with the answer; focus stays in the section, not on <body>.
-    await expect(page.locator(":focus")).toHaveCount(1);
-    expect(await page.evaluate(() => !!document.activeElement?.closest("section[aria-labelledby=spec-up-path]"))).toBe(true);
-    await expect(rows(page).nth(0)).toContainText("8레벨 → 9레벨");
-    await expect(rows(page).nth(0)).toContainText("+60만G");
+    await expect(pathTable(page).getByRole("button", { name: /자세히 · 다른 단계/ })).toHaveCount(0);
+    await expect(rows(page).first()).toContainText("8레벨 → 9레벨");
+    await expect(rows(page).first()).toContainText("+60만G");
+    await expect(rows(page).nth(1)).toContainText("9레벨 → 10레벨");
+    const rank = (i) => rows(page).nth(i).locator('[data-cell="rank"]');
+    await expect(rank(0)).toHaveText("1");
+    await expect(rank(1)).toHaveText("2");
     // 9→10 costs 260만G from today's gem; this step adds 200만G on top of step 1.
     await expect(rows(page).nth(1)).toContainText("+200만G");
     await expect(rows(page).nth(1)).toContainText("누적 260만G");
-    await expect(section(page)).toContainText("합계 260만G");
+    await expect(page.getByText(/합계 260만G/)).toBeVisible();
     // NO_CANDIDATE reads the backend's sentence.
-    await expect(section(page)).toContainText("시세가 있는 항목 가운데 전투력이 오르는 것을 모두 골랐어요.");
-    await expect(section(page).getByText("시세를 몰라 순서에서 뺀 항목 1개")).toBeVisible();
-    await expect(section(page).getByRole("link", { name: "이 순서를 시뮬레이터에서 열기" })).toHaveAttribute("href", /tab=simulator/);
+    await expect(page.getByText("시세가 있는 항목 가운데 전투력이 오르는 것을 모두 골랐어요.")).toBeVisible();
+    await expect(page.getByText("시세를 몰라 순서에서 뺀 항목 1개")).toBeVisible();
+    await expect(page.getByRole("link", { name: "이 순서를 시뮬레이터에서 열기" })).toHaveAttribute("href", /tab=simulator/);
+    // The first view is the default: nothing added to the address.
+    expect(new URL(page.url()).searchParams.get("sort")).toBeNull();
+  });
+
+  test("줄의 대상을 누르면 후보 목록과 같은 자세히(이미지 · 시세)가 열림", async ({ page }) => {
+    await page.goto(characterPath("스펙순서", "specup"));
+    const target = rows(page).first().getByRole("button").first();
+    await expect(target).toBeVisible();
+    // The card is today's candidate, and the list says so (PM 총괄 11-02).
+    await expect(page.getByText("줄을 눌러 보는 자세한 수치는 앞 단계를 올리기 전, 지금 장비 기준이에요.")).toBeVisible();
+    await target.click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+  });
+
+  // User 11-08: a row opened after the backend's copy of the character ran out said
+  // "load it first" while the page showed the character.
+  // A step without its picture (prod 11-08: a new engraving 0 → 1): the card shows
+  // the detail answer's own (사용자 결정 02:2x).
+  test("그림 없이 온 단계도 자세히 카드에는 상세 응답의 그림", async ({ page }) => {
+    await page.route("**/api/characters/spec-up/path?*", async (route) => {
+      const response = await route.fetch();
+      const body = await response.json();
+      body.envelope.data.steps[0].icon = null;
+      await route.fulfill({ response, json: body });
+    });
+    // The detail answer as prod sent it for a new engraving 0 → 1 (11-08), with its book picture.
+    const BOOK = "https://cdn-lostark.game.onstove.com/efui_iconatlas/use/use_9_25.png";
+    const at = "2026-11-07T14:37:23Z";
+    const detail = {
+      characterName: "스펙순서",
+      fetchedAt: "2026-11-07T15:06:58Z",
+      pricesAt: at,
+      candidate: {
+        id: "ENGRAVING_LEVEL:기습의 대가:1", kind: "ENGRAVING_LEVEL", target: "기습의 대가 각인", from: "0레벨", to: "1레벨",
+        icon: BOOK, grade: "유물", skillName: null, suggestedTo: null,
+        change: { kind: "ENGRAVING_LEVEL", slot: null, index: null, level: 1, refine: null, quality: null, name: "기습의 대가", grade: null },
+        status: "OK", deltaCombatPower: 26.66, deltaPercent: 0.607,
+        cost: { unit: "GOLD", amount: 195000, status: "OK", code: "ENGRAVING_BOOK_BUY", basis: "유물 각인서(각인 레벨 1당 5권, 올리는 레벨 수만큼)의 즉시 구매 최저가 합입니다.", priceObservedAt: null, stale: null },
+        combatPowerPer10kGold: 1.37, reasonCode: null, reason: null, reasonDetail: null, emptySlot: null,
+        baseAttackPctFrom: null, baseAttackPctTo: null, deltaKrakenScore: 27.67, krakenScorePer100kGold: 14.19, gemType: null,
+      },
+      combatPowerBefore: 4391.06, combatPowerAfter: 4417.72, stats: [], materials: null, goldFee: null,
+      market: [{ role: "BUY", itemName: "유물 기습의 대가 각인서", icon: BOOK, grade: "유물", price: 39000, quantity: 5, expectedSalePrice: null, sellFeeGold: null, listedCount: null, observedAt: at }],
+      refine: null,
+    };
+    await page.route("**/api/characters/spec-up/candidates/**", (route) =>
+      route.fulfill({ json: { ok: true, envelope: { code: "SPEC_UP_DETAIL_SUCCESS", message: "스펙업 후보 상세 조회에 성공했습니다.", data: detail } } }),
+    );
+    await page.goto(characterPath("스펙순서", "specup"));
+    await rows(page).first().getByRole("button").first().click();
+    const card = page.getByRole("dialog");
+    // The card's own picture (the market row's book is a second one).
+    await expect(card.locator(`img[src="${BOOK}"][width="56"]`)).toHaveCount(1);
+    await expect(card).toContainText("유물 기습의 대가 각인서");
+  });
+
+  // The tab then reads as old (PM 총괄 11-08): the answer dims and the held line
+  // above it says so in one line, nothing asked again by itself.
+  for (const width of [320, 1280])
+    test(`${width}: 캐릭터 정보가 오래되어 자세히를 못 열면(CHARACTER_NOT_CACHED) 갱신으로 다시 받으라고 안내, 순서는 흐리게`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto(characterPath("스펙순서", "specup"));
+      await expect(rows(page).first()).toBeVisible();
+      await page.route("**/api/characters/spec-up/candidates/**", (route) =>
+        route.fulfill({ status: 404, contentType: "application/json", body: JSON.stringify({ ok: false, error: { code: "CHARACTER_NOT_CACHED", status: 404 } }) }),
+      );
+      let asked = 0;
+      page.on("request", (r) => r.url().includes("/api/characters/spec-up/path?") && asked++);
+      await rows(page).first().getByRole("button").first().click();
+      const card = page.getByRole("dialog");
+      await expect(card).toContainText("캐릭터 정보를 받은 지 오래되었어요. 위의 갱신 버튼으로 다시 받은 뒤 열어 주세요.");
+      await expect(card).not.toContainText("먼저 불러와");
+      // The short line at 360 and below (codex P3 on #1396), the full one above.
+      const [shown, hidden] = width <= 360
+        ? ["오래된 정보예요 · 갱신해 주세요", "오래된 정보예요 · 갱신을 누르면 다시 불러와요"]
+        : ["오래된 정보예요 · 갱신을 누르면 다시 불러와요", "오래된 정보예요 · 갱신해 주세요"];
+      const line = page.getByText(shown, { exact: true });
+      await expect(line).toBeVisible();
+      await expect(page.getByText(hidden, { exact: true })).toBeHidden();
+      // One line in its 18px slot (A37), also in a wide fallback face (CI's fonts differ).
+      const fits = () =>
+        line.evaluate((el) => {
+          const p = el.closest("p");
+          return p.scrollWidth <= p.clientWidth && p.scrollHeight <= p.clientHeight;
+        });
+      expect(await fits()).toBe(true);
+      await page.addStyleTag({ content: `p:has(> span > svg) { font-family: "Courier New", monospace !important; }` });
+      expect(await fits()).toBe(true);
+      // By CSS: on a touch screen the card is a modal sheet, which takes the page
+      // behind it out of the accessibility tree (no "region" to find by role).
+      await expect(page.locator('section[aria-label="추천 순서"] [data-stale]')).toHaveCount(1);
+      expect(asked).toBe(0);
+    });
+
+  // Found by the list's quiet minute refresh, nothing else says it: one polite
+  // sentence, not again on later ticks (codex P3 on #1396).
+  test("목록의 1분 새로 고침이 오래된 정보를 찾으면 한 번 읽어 줌", async ({ page }) => {
+    await page.clock.install();
+    await page.goto(specUpListPath("스펙순서"));
+    await expect(page.getByRole("table", { name: /스펙업 후보, 전투력 증가 순/ })).toBeVisible();
+    const status = page.getByRole("status").filter({ hasText: "오래된 정보예요 · 갱신을 누르면 다시 불러와요" });
+    await expect(status).toHaveCount(0);
+    let lists = 0;
+    await page.route((url) => url.pathname === "/api/characters/spec-up", (route) => {
+      lists++;
+      return route.fulfill({ status: 404, contentType: "application/json", body: JSON.stringify({ ok: false, error: { code: "CHARACTER_NOT_CACHED", status: 404 } }) });
+    });
+    await page.clock.runFor(61_000);
+    await expect(status).toHaveCount(1);
+    await expect(page.getByRole("table", { name: /스펙업 후보, 전투력 증가 순/ })).toBeVisible();
+    // No more refreshes after the failure, so nothing to read again.
+    await page.clock.runFor(130_000);
+    await expect(status).toHaveCount(1);
+    expect(lists).toBe(1);
+  });
+
+  test("다른 칩은 후보 목록, 고른 칩은 주소에(새로 고쳐도 그대로), 돌아오면 다시 묻지 않음", async ({ page }) => {
+    let paths = 0;
+    page.on("request", (r) => r.url().includes("/api/characters/spec-up/path?") && paths++);
+    await page.goto(characterPath("스펙순서", "specup"));
+    await expect(pathTable(page)).toBeVisible();
+    await chips(page).getByRole("button", { name: "전투력 증가" }).click();
+    await expect(page.getByRole("table", { name: /스펙업 후보, 전투력 증가 순/ })).toBeVisible();
+    await expect(pathTable(page)).toHaveCount(0);
+    // The rule buttons stay in their slot, hidden: the bar keeps its size (A7).
+    await expect(rule(page).getByRole("button", { name: "효율 우선" })).toBeHidden();
+    await expect.poll(() => new URL(page.url()).searchParams.get("sort")).toBe("DELTA");
+    await page.reload();
+    await expect(chips(page).getByRole("button", { name: "전투력 증가" })).toHaveAttribute("aria-pressed", "true");
+    await chips(page).getByRole("button", { name: "추천 순서" }).click();
+    await expect(pathTable(page)).toBeVisible();
+    await expect.poll(() => new URL(page.url()).searchParams.get("sort")).toBeNull();
+    // Once per page load, and not again on coming back to the chip (cache window).
+    expect(paths).toBe(2);
   });
 
   test("기준을 바꾸면 그 기준으로 다시 묻고, 새 답이 올 때까지 앞 순서가 남음(흔들림 0)", async ({ page }) => {
     await watchShifts(page);
     await page.setViewportSize({ width: 360, height: 800 });
     await page.goto(characterPath("스펙순서", "specup"));
-    await section(page).getByRole("button", { name: "추천 순서 보기" }).click();
     await expect(rows(page)).toHaveCount(2);
     const asked = page.waitForRequest((r) => r.url().includes("sort=DELTA"));
     const shifts = await shiftsDuring(page, async () => {
-      await section(page).getByRole("button", { name: "전투력 우선" }).click();
+      await rule(page).getByRole("button", { name: "전투력 우선" }).click();
       await asked;
     });
-    await expect(section(page).getByRole("button", { name: "전투력 우선" })).toHaveAttribute("aria-pressed", "true");
-    await expect(section(page).getByRole("list", { name: "추천 순서, 전투력 우선 기준" })).toBeVisible();
+    await expect(rule(page).getByRole("button", { name: "전투력 우선" })).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByRole("table", { name: "추천 순서, 전투력 우선 기준" })).toBeVisible();
     expect(shifts.all, shifts.moved).toBe(0);
   });
 
-  test("10단계 넘게는 접어 두고 '모두 보기'로 펼침, 320·360에서 가로 넘침 없음", async ({ page }) => {
+  // 목표 전투력 sits above the answer (PM 총괄 11-03, B): a short (2 steps) or long
+  // (14 steps, 10 rows shown) answer arriving late moves nothing, with no blank floor left behind.
+  for (const [who, rowsShown] of [["스펙순서", 2], ["스펙순서긴", 10]])
+    for (const [width, height] of [[320, 900], [360, 900], [1280, 900], [1280, 1400]])
+      test(`${width}×${height} ${who}: 답이 늦게 와도(빈 줄 → ${rowsShown}줄) 목표 전투력도 무엇도 움직이지 않음`, async ({ page }) => {
+        await watchShifts(page);
+        await page.setViewportSize({ width, height });
+        // A cold cache answers late (QA 11-01: ~5 s, CLS 0.293 at 320); 800 ms here (#1135).
+        let release;
+        const held = new Promise((resolve) => (release = resolve));
+        await page.route("**/api/characters/spec-up/path?*", async (route) => {
+          await held;
+          await route.continue();
+        });
+        await page.goto(characterPath(who, "specup"));
+        await expect(page.getByText("추천 순서를 계산하고 있어요…")).toBeVisible();
+        const goal = page.getByRole("heading", { name: "목표 전투력" });
+        await expect(goal).toBeVisible();
+        // Unrounded: the heading sits near a .5 edge (599.47 locally), so a rounded
+        // compare flipped 600 → 599 on a 1/64 px layout step (#1257 CI, mobile-390).
+        // toBeCloseTo(_, 0) fails any move of 0.5 px or more.
+        const before = await goal.evaluate((el) => el.getBoundingClientRect().top + window.scrollY);
+        const shifts = await shiftsDuring(page, async () => {
+          setTimeout(release, 800);
+          await expect(rows(page)).toHaveCount(rowsShown);
+        });
+        expect(shifts.all, shifts.moved).toBe(0);
+        expect(await goal.evaluate((el) => el.getBoundingClientRect().top + window.scrollY), "목표 전투력 제자리").toBeCloseTo(before, 0);
+        await expectNoHorizontalOverflow(page);
+      });
+
+  // 목표 전투력 sits above 추천 순서 (PM 총괄 11-03 P3): 경로 찾기 shows a three-step
+  // answer's room on the press itself, so a late answer fills it and the list
+  // below stays put. The press may open room below it (input shift); after that, 0.
+  for (const width of [320, 360, 1280])
+    test(`${width}: 경로 찾기 답이 늦게 와도(800ms) 누른 순간 자리를 잡아 아래 추천 순서가 움직이지 않음`, async ({ page }) => {
+      await watchShifts(page);
+      await page.setViewportSize({ width, height: 900 });
+      await page.route("**/api/characters/spec-up/goal?*", async (route) => {
+        await new Promise((resolve) => setTimeout(resolve, 800));
+        const response = await route.fetch();
+        const body = await response.json();
+        // The mock's three steps with the third priced too: an answer of the usual shape.
+        const d = body.envelope.data;
+        d.steps[2].cost = { ...d.steps[2].cost, status: "OK", amount: 1_000_000, unit: "GOLD" };
+        d.unpricedSteps = 0;
+        d.totalCost = d.steps.reduce((sum, step) => sum + step.cost.amount, 0);
+        await route.fulfill({ response, json: body });
+      });
+      await page.goto(characterPath("스펙순서", "specup"));
+      await expect(rows(page)).toHaveCount(2);
+      const goal = page.getByRole("region", { name: "목표 전투력" });
+      await goal.getByRole("textbox", { name: "목표 전투력" }).fill("12400");
+      const list = pathTable(page);
+      const shifts = await shiftsDuring(page, async () => {
+        await goal.getByRole("button", { name: "경로 찾기" }).click();
+        await expect(goal.getByRole("button", { name: "계산하는 중…" })).toBeVisible();
+        // Unrounded, as above: a rounded compare flips at a .5 edge.
+        const before = await list.evaluate((el) => el.getBoundingClientRect().top + window.scrollY);
+        await expect(goal.getByRole("list", { name: "효율 순으로 고른 경로" }).getByRole("listitem")).toHaveCount(3);
+        expect(await list.evaluate((el) => el.getBoundingClientRect().top + window.scrollY), "추천 순서 제자리").toBeCloseTo(before, 0);
+      });
+      expect(shifts.quiet, shifts.moved).toBe(0);
+      await expectNoHorizontalOverflow(page);
+    });
+
+  test("10줄 넘게는 접어 두고 '모두 보기'로 펼침, 320·360에서 가로 넘침 없음", async ({ page }) => {
     for (const width of [320, 360]) {
       await page.setViewportSize({ width, height: 800 });
       await page.goto(characterPath("스펙순서긴", "specup"));
-      await section(page).getByRole("button", { name: "추천 순서 보기" }).click();
       await expect(rows(page)).toHaveCount(10);
-      await expect(section(page)).toContainText("앞에서부터 14단계까지 보여 드려요.");
-      const more = section(page).getByRole("button", { name: "14단계 모두 보기" });
+      await expect(page.getByText("앞에서부터 14단계까지 보여 드려요.")).toBeVisible();
+      const more = page.getByRole("button", { name: "14줄 모두 보기" });
       await more.click();
       await expect(rows(page)).toHaveCount(14);
-      await expect(section(page).getByRole("button", { name: "앞 10단계만 보기" })).toHaveAttribute("aria-expanded", "true");
+      // Plain order: the rows read 1 … 14 (user 11-08).
+      await expect(rows(page).locator('[data-cell="rank"]')).toHaveText(Array.from({ length: 14 }, (_, i) => `${i + 1}`));
+      await expect(page.getByRole("button", { name: "앞 10줄만 보기" })).toHaveAttribute("aria-expanded", "true");
       await expectNoHorizontalOverflow(page);
     }
   });
 
   test("계산 자리가 차면(SPEC_UP_BUSY) 안내와 남은 초, 그동안 다시 누를 수 없음", async ({ page }) => {
     await page.goto(characterPath("스펙순서몰림", "specup"));
-    await section(page).getByRole("button", { name: "추천 순서 보기" }).click();
-    await expect(section(page).getByRole("alert")).toContainText("요청이 몰려 지금은 계산하지 못했어요");
-    const again = section(page).getByRole("button", { name: /뒤 다시 계산$/ });
+    // In the 추천 순서 area: Next's own (empty) route announcer is a role=alert on
+    // every page (CI 11-03: strict mode found it next to this one).
+    await expect(page.getByRole("region", { name: "추천 순서" }).getByRole("alert")).toContainText("요청이 몰려 지금은 계산하지 못했어요");
+    const again = page.getByRole("button", { name: /뒤 다시 계산$/ });
     await expect(again).toHaveAttribute("aria-disabled", "true");
-    await expect(section(page).getByRole("button", { name: "다시 계산" })).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole("button", { name: "다시 계산" })).toBeVisible({ timeout: 10_000 });
   });
 
   test("후보가 모두 시세를 몰라 단계가 없으면 그 이유를 말하고, 뺀 항목을 펼칠 수 있음", async ({ page }) => {
     await page.goto(characterPath("스펙순서시세없음", "specup"));
-    await section(page).getByRole("button", { name: "추천 순서 보기" }).click();
-    await expect(section(page)).toContainText("올릴 수 있는 항목 3개 모두 시세를 몰라 순서를 만들 수 없어요.");
+    await expect(page.getByText("올릴 수 있는 항목 3개 모두 시세를 몰라 순서를 만들 수 없어요.", { exact: false })).toBeVisible();
     // The backend's "all picked" sentence would read as a finished list.
-    await expect(section(page)).not.toContainText("모두 골랐어요");
-    await expect(section(page).getByText("시세를 몰라 순서에서 뺀 항목 3개")).toBeVisible();
+    await expect(page.getByText(/모두 골랐어요/)).toHaveCount(0);
+    await expect(page.getByText("시세를 몰라 순서에서 뺀 항목 3개")).toBeVisible();
   });
 
   for (const width of [320, 360, 390, 600, 680, 768])
-    test(`스톤 단계(각인 두 개)의 긴 바꿈 글자도 ${width}에서 가로로 넘치지 않음`, async ({ page }) => {
+    test(`스톤 단계(각인 두 개)의 긴 바꿈 글자도 ${width}에서 잘리거나 넘치지 않음`, async ({ page }) => {
       await page.setViewportSize({ width, height: 900 });
       await page.goto(characterPath("스펙순서스톤", "specup"));
-      await section(page).getByRole("button", { name: "추천 순서 보기" }).click();
       const stone = rows(page).filter({ hasText: "어빌리티 스톤" });
       await expect(stone).toContainText("원한 Lv.1 · 아드레날린 Lv.1 → 97돌 원한 Lv.3 · 아드레날린 Lv.2");
-      // No cell of the row cut short either: the change wraps instead.
-      const cut = await stone.evaluate((li) =>
-        [...li.children].filter((el) => el.scrollWidth > el.clientWidth + 1).map((el) => el.textContent.trim()),
+      const cut = await stone.evaluate((tr) =>
+        [...tr.children].filter((el) => el.scrollWidth > el.clientWidth + 1).map((el) => el.textContent.trim()),
       );
       expect(cut, "잘린 칸").toEqual([]);
-      // The change text stays in its own column: it never runs under the figures
-      // beside it (QA 11-01: under the cost at 320, onto it at 390).
-      const boxes = await stone.evaluate((li) =>
-        Object.fromEntries(
-          [["change", 2], ["delta", 3], ["cost", 4]].map(([name, i]) => {
-            const r = li.children[i].getBoundingClientRect();
-            return [name, { left: r.left, right: r.right, top: r.top, bottom: r.bottom }];
-          }),
-        ),
-      );
-      const meet = (a, b) => a.right > b.left + 1 && a.left < b.right - 1 && a.bottom > b.top + 1 && a.top < b.bottom - 1;
-      for (const other of ["delta", "cost"])
-        expect(meet(boxes.change, boxes[other]), `바꿈과 ${other} 겹침 ${JSON.stringify(boxes)}`).toBe(false);
       await expectNoHorizontalOverflow(page);
     });
 
-  test("서포터는 추천 순서 칸이 없음", async ({ page }) => {
+  test("서포터는 추천 순서 칩이 없고 서포터 점수 목록", async ({ page }) => {
     await page.goto(characterPath("상세서포터", "specup"));
     await expect(page.getByRole("table", { name: "스펙업 후보, 서포터 점수 순" })).toBeVisible();
-    await expect(section(page)).toHaveCount(0);
+    await expect(chips(page).getByRole("button", { name: "추천 순서" })).toHaveCount(0);
+    await expect(pathTable(page)).toHaveCount(0);
+  });
+
+  test("후보 목록 주소(sort=DELTA)로 열면 추천 순서를 묻지 않음", async ({ page }) => {
+    let paths = 0;
+    page.on("request", (r) => r.url().includes("/api/characters/spec-up/path?") && paths++);
+    await page.goto(specUpListPath("스펙순서"));
+    await expect(page.getByRole("table", { name: /스펙업 후보, 전투력 증가 순/ })).toBeVisible();
+    expect(paths).toBe(0);
   });
 });
