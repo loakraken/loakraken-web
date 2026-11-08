@@ -154,10 +154,10 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
   const [pathSort, setPathSort] = useState<PathSort>("EFFICIENCY");
   // '적용해 보기' opens the simulator tab, which exists only with COMBAT_POWER_SIM on (#1260).
   const simulator = useContext(SimulatorEnabled);
-  // 크라켄 점수 효율 순 (api #573) leaves 작열 (cooldown) gems out by default; the user can add them.
+  // 크라켄 점수 순 (api #573) leaves 작열 (cooldown) gems out by default; the user can add them.
   const [cooldown, setCooldown] = useState(false);
   // The first list (the tab's first answer) tells whether the backend knows
-  // 크라켄 점수 (api #573 fields present). If not, 크라켄 점수 효율 순 is not
+  // 크라켄 점수 (api #573 fields present). If not, 크라켄 점수 순 is not
   // sent — an older backend refuses the value — and the list stays as it is.
   const queryClient = useQueryClient();
   const first = queryClient.getQueryData<{ data: { krakenRuleVersion?: unknown; krakenSortUnavailableReason?: unknown } }>(
@@ -238,7 +238,7 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
     const timer = window.setTimeout(() => setTold(null), 3_000);
     return () => window.clearTimeout(timer);
   }, [told]);
-  // One list = its sort and, for 크라켄 점수 효율 순, whether 작열 gems are in (#908):
+  // One list = its sort and, for 크라켄 점수 순, whether 작열 gems are in (#908):
   // a different cooldown choice is a different list, not a reordered refresh.
   const listKey = guide ? `${guide.sort}:${guide.sort === "KRAKEN" ? String(guide.cooldownGemsIncluded) : ""}` : null;
   const krakenShown = guide?.sort === "KRAKEN";
@@ -260,7 +260,7 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
   if (guide && listKey && !query.isPlaceholderData && (order?.sort !== listKey || order.ids.join("|") !== shownIds))
     setOrder({ sort: listKey, ids: candidates.map((c) => c.id) });
   // One array per answer (the change marks compare row lists by identity).
-  // 크라켄 점수 효율 순 ranks every candidate with a score change, in the answer's
+  // 크라켄 점수 순 ranks every candidate with a score change, in the answer's
   // order (an UNSUPPORTED engraving line can still raise the score); only when
   // the answer itself is KRAKEN — a fallback to EFFICIENCY keeps that order.
   const { ok, folded } = useMemo(
@@ -320,7 +320,7 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
         </div>
         {/* One slot held in the bar for every chip (A7: nothing below moves on a
             press or a late answer): 추천 순서's 효율/전투력 우선, the cooldown
-            toggle, or why 크라켄 점수 효율 순 is off. Its room is the widest of them. */}
+            toggle, or why 크라켄 점수 순 is off. Its room is the widest of them. */}
         <span className={styles.specUpKrakenSlot}>
           {!supporter && pathEnabled && (
             <span
@@ -468,7 +468,7 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
                       <th scope="col">전 → 후</th>
                       <th scope="col">{supporter ? "서포터 점수" : krakenShown ? "크라켄 점수" : "전투력 증가"}</th>
                       <th scope="col">기대 비용</th>
-                      <th scope="col">{krakenShown ? "10만 골드당 점수" : "1만 골드당 전투력"}</th>
+                      <th scope="col">{krakenShown ? "10만G당 점수" : "1만G당 전투력"}</th>
                       <th scope="col">
                         <span className={styles.sr}>시뮬레이터</span>
                       </th>
@@ -543,13 +543,13 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
                           )}
                           <CostCell candidate={c} pulse={pulseOf(c.id, "cost")} now={now} />
                           {krakenShown ? (
-                            <td data-cell="eff" data-label="10만 골드당" data-figure="">
+                            <td data-cell="eff" data-label="10만G당" data-figure="">
                               <ChangeMark key={c.krakenScorePer100kGold ?? "none"} pulse={pulseOf(c.id, "eff")}>
                                 {c.krakenScorePer100kGold == null ? <NoFigure candidate={c} /> : two(c.krakenScorePer100kGold)}
                               </ChangeMark>
                             </td>
                           ) : (
-                            <td data-cell="eff" data-label="1만 골드당" data-figure="">
+                            <td data-cell="eff" data-label="1만G당" data-figure="">
                               <ChangeMark key={c.combatPowerPer10kGold ?? "none"} pulse={pulseOf(c.id, "eff")}>
                                 {c.combatPowerPer10kGold == null ? <NoFigure candidate={c} /> : two(c.combatPowerPer10kGold)}
                               </ChangeMark>

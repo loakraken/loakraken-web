@@ -64,7 +64,7 @@ function Head() {
         <th scope="col">전 → 후</th>
         <th scope="col">전투력 증가</th>
         <th scope="col">추가 비용</th>
-        <th scope="col">1만 골드당 전투력</th>
+        <th scope="col">1만G당 전투력</th>
       </tr>
     </thead>
   );
@@ -105,7 +105,7 @@ function Skeleton() {
                   <i />
                 </small>
               </td>
-              <td data-cell="eff" data-label="1만 골드당" data-figure="">
+              <td data-cell="eff" data-label="1만G당" data-figure="">
                 <i />
               </td>
             </tr>
@@ -247,7 +247,7 @@ function PathAnswer({ data, path, stale }: { data: Character; path: Path; stale:
                   {stepGold(extra)}
                   {step.cumulativeCost != null && <small className={detail.specUpCostTime}>누적 {koreanGold(step.cumulativeCost)}G</small>}
                 </td>
-                <td data-cell="eff" data-label="1만 골드당" data-figure="">
+                <td data-cell="eff" data-label="1만G당" data-figure="">
                   {step.combatPowerPer10kGold == null ? "—" : two(step.combatPowerPer10kGold)}
                 </td>
               </tr>

@@ -77,8 +77,8 @@ for (const width of [1280, 360]) {
     // 품질 + 보석 0번 칸 (its 9·10레벨 are one row since #26).
     await expect(table.locator("tbody tr:not([data-collapsed])")).toHaveCount(2);
     // Prices move the order only of the 효율 list (전투력 증가 is the first list since 10-26).
-    await page.getByRole("button", { name: "1만 골드당 효율" }).click();
-    await expect(table.locator("caption")).toContainText("1만 골드당 효율 순");
+    await page.getByRole("button", { name: "전투력 효율 (1만G당)" }).click();
+    await expect(table.locator("caption")).toContainText("전투력 효율 순 (1만G당)");
     await expect.poll(served).toBe(2);
     // Shown rows only: a group (#26) keeps its head first, so the order is the groups'.
     const before = await table.locator('tbody tr:not([data-collapsed]) [data-cell="target"]').allTextContents();

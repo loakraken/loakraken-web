@@ -980,7 +980,7 @@ createServer(async (req, res) => {
     const who = url.searchParams.get("characterName");
     if (who === "스펙업꺼짐") return send(specUp("character-spec-up-disabled.json"), 404);
     if (who === "미존재") return send(specUp("character-spec-up-not-cached.json"), 404);
-    // 크라켄 점수 효율 순 (api #573): the backend's own answers. "스펙업점수꺼짐" has the
+    // 크라켄 점수 순 (api #573): the backend's own answers. "스펙업점수꺼짐" has the
     // score switched off (the answer comes as EFFICIENCY with a reason), and
     // "스펙업옛응답" is a backend from before #573 (no score fields at all).
     // A supporter (api #722): the same scored list, ranked by the supporter

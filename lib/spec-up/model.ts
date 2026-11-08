@@ -13,12 +13,14 @@ export type SpecUpEnvelope = { code: string; message: string; data: SpecUp };
 
 // 사용자 결정(PM 총괄 10-26): 전투력 증가 first and the default, then 효율, then 크라켄.
 export const SORTS = [
-  { id: "DELTA", label: "전투력 증가" },
-  { id: "EFFICIENCY", label: "1만 골드당 효율" },
+  { id: "DELTA", label: "전투력 증가", name: "전투력 증가", unit: null },
+  // Each chip says what it measures and per how much gold (codex P3 11-08: two
+  // chips ending in 효율 with different units read alike).
+  { id: "EFFICIENCY", label: "전투력 효율 (1만G당)", name: "전투력 효율", unit: "1만G당" },
   // api #573: by the Kraken score gained per 100,000 gold (the label said
   // "점수 순", which read as the score itself: codex QA 11-08). Sent only now that the
   // screen knows it; the answer may come back as EFFICIENCY with a reason.
-  { id: "KRAKEN", label: "크라켄 점수 효율" },
+  { id: "KRAKEN", label: "크라켄 점수 (10만G당)", name: "크라켄 점수", unit: "10만G당" },
 ] as const;
 export type Sort = (typeof SORTS)[number]["id"];
 /** The list a dealer sees first (the tab's first request); sent explicitly, not the api's own default. */
@@ -28,11 +30,14 @@ export const isSort = (value: unknown): value is Sort => SORTS.some((s) => s.id 
 export const isFreeCost = (cost: { status: string; amount?: number | null } | null | undefined) =>
   cost?.status === "OK" && cost.amount === 0;
 
-/** "1만 골드당 효율 순", "크라켄 점수 효율 순" (a label already ending in 순 would keep it once). */
+const sortOf = (sort: string) => SORTS.find((s) => s.id === sort) ?? SORTS[0];
+/** The table caption: "전투력 효율 순 (1만G당)", "전투력 증가 순". */
 export const sortCaption = (sort: string) => {
-  const label = SORTS.find((s) => s.id === sort)?.label ?? SORTS[0].label;
-  return label.endsWith(" 순") ? label : `${label} 순`;
+  const { name, unit } = sortOf(sort);
+  return unit ? `${name} 순 (${unit})` : `${name} 순`;
 };
+/** In a sentence: "전투력 효율 순", "크라켄 점수 순". */
+export const sortName = (sort: string) => `${sortOf(sort).name} 순`;
 
 /**
  * Told on the status line when another list has come (#921): the sort, or for
@@ -41,7 +46,7 @@ export const sortCaption = (sort: string) => {
 export function listChangeCopy(fromKey: string, sort: string, cooldownGemsIncluded: boolean | null | undefined): string {
   if (fromKey.split(":")[0] === sort)
     return cooldownGemsIncluded ? "작열 보석을 넣어 다시 정렬했어요" : "작열 보석을 빼고 다시 정렬했어요";
-  return `${sortCaption(sort)}으로 정렬했어요`;
+  return `${sortName(sort)}으로 정렬했어요`;
 }
 
 /**
@@ -318,7 +323,7 @@ function changeOf(value: unknown): SpecUpChange | null {
 }
 
 /**
- * 크라켄 점수 효율 순 (api #573): the ranked rows are every candidate with a score
+ * 크라켄 점수 순 (api #573): the ranked rows are every candidate with a score
  * change, in the answer's order — a candidate the combat power simulator
  * cannot price can still raise the score (its cost then comes too). The rest
  * fold by reason as before.
@@ -329,22 +334,22 @@ export function splitKrakenCandidates(list: Candidate[]) {
   return { ok: scored, folded };
 }
 
-/** Why 크라켄 점수 효율 순 could not be used; the list then comes in 1만 골드당 효율 order. */
+/** Why 크라켄 점수 순 could not be used; the list then comes in 전투력 효율 order. */
 export function krakenUnavailableCopy(reason: string | null | undefined): string | null {
   if (!reason) return null;
   const why =
     reason === "DISABLED"
-      ? "크라켄 점수 효율 순은 아직 준비 중이에요."
+      ? "크라켄 점수 순은 아직 준비 중이에요."
       : reason === "INPUT_PENDING"
         ? "점수 계산에 필요한 정보를 아직 모으고 있어요."
         : reason === "ROLE_UNKNOWN"
           ? "이 캐릭터의 역할(딜러·서포터)을 확인하지 못했어요."
           : reason === "SUPPORTER_PENDING"
-            ? "서포터의 크라켄 점수 효율 순은 준비 중이에요."
+            ? "서포터의 크라켄 점수 순은 준비 중이에요."
             : reason === "SCORE_UNAVAILABLE"
               ? "이 캐릭터의 크라켄 점수를 계산하지 못했어요."
-              : "지금은 크라켄 점수 효율 순으로 정렬할 수 없어요.";
-  return `${why} 1만 골드당 효율 순으로 보여 드려요.`;
+              : "지금은 크라켄 점수 순으로 정렬할 수 없어요.";
+  return `${why} ${sortName("EFFICIENCY")}으로 보여 드려요.`;
 }
 
 // The same, short enough for the sort bar (the sentence above is read out).
