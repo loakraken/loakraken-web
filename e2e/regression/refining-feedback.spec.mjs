@@ -147,7 +147,11 @@ test.describe("재련 기대 비용 사용자 제보 @regression", () => {
       .toBe(0);
     const nudge = async (px) => {
       const mark = await shiftMark(page);
-      await materials(page).evaluate((table, value) => (table.style.marginTop = value), `${px}px`);
+      // On top of the table's own margin (CSS gives it one: replacing it moved the table 16px).
+      await materials(page).evaluate((table, add) => {
+        table.dataset.baseMargin ??= getComputedStyle(table).marginTop;
+        table.style.marginTop = `calc(${table.dataset.baseMargin} + ${add}px)`;
+      }, px);
       return mark;
     };
     const small = await nudge(0.3);
