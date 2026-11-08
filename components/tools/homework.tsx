@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { useRemaining } from "@/components/home/clock";
 import { useMutation } from "@tanstack/react-query";
 import { Add, ArrowDown, ArrowLeft, CloseCircle, TaskSquare } from "@/components/ui/icons";
@@ -122,7 +122,16 @@ function Summary({ state, now }: { state: HomeworkState; now: number }) {
   );
 }
 
-function AddRoster({ onAdd, arrival }: { onAdd: (picked: Sibling[]) => void; arrival: string | null }) {
+function AddRoster({
+  onAdd,
+  arrival,
+  onArrived,
+}: {
+  onAdd: (picked: Sibling[]) => void;
+  arrival: string | null;
+  /** The arrival roster answered (or failed): what sits below may show again. */
+  onArrived: () => void;
+}) {
   const inputId = useId();
   const [name, setName] = useState(arrival ?? "");
   const [picked, setPicked] = useState<Set<string>>(new Set());
@@ -145,8 +154,8 @@ function AddRoster({ onAdd, arrival }: { onAdd: (picked: Sibling[]) => void; arr
   useEffect(() => {
     if (!arrival || asked.current) return;
     asked.current = true;
-    mutate(arrival);
-  }, [arrival, mutate]);
+    mutate(arrival, { onSettled: onArrived });
+  }, [arrival, mutate, onArrived]);
 
   function submit(event: FormEvent) {
     event.preventDefault();
@@ -570,6 +579,10 @@ export default function HomeworkTool() {
     const name = new URLSearchParams(window.location.search).get("character")?.trim().slice(0, 16) || null;
     return name && !state.characters.some((c) => c.name === name) ? name : null;
   });
+  // While that roster loads, what sits below the add card waits: the list
+  // arriving would push it down with no input (CLS). Shown after, it only appears.
+  const [waiting, setWaiting] = useState(arrival !== null);
+  const arrived = useCallback(() => setWaiting(false), []);
   // Drop it from the address so a reload does not ask the roster again.
   useEffect(() => {
     const url = new URL(window.location.href);
@@ -623,7 +636,7 @@ export default function HomeworkTool() {
         <div className={quote.band}>
           <div className={styles.workspace}>
             <Summary state={state} now={now} />
-            <AddRoster arrival={arrival} onAdd={(picked) =>
+            <AddRoster arrival={arrival} onArrived={arrived} onAdd={(picked) =>
               setState((s) =>
                 addCharacters(
                   s,
@@ -636,7 +649,7 @@ export default function HomeworkTool() {
                 ),
               )
             } />
-            {state.characters.length === 0 ? (
+            {waiting ? null : state.characters.length === 0 ? (
               <p className={styles.empty}>
                 캐릭터 이름을 넣으면 원정대를 불러와요. 레벨에 맞는 레이드 3개를 골드가 많은
                 순서로 넣어 드려요(자동 구성은 추정 — 공식 규칙이 아닌 기본값이라 바꿔도 돼요).
@@ -657,16 +670,20 @@ export default function HomeworkTool() {
               </div>
             )}
             {/* One line on the page, the calc basis folded (#1112): nothing removed. */}
-            <p className={styles.footnote}>
-              진행 상황은 이 브라우저에만 저장되고, 매주 수요일 06:00에 체크가 풀려요.
-            </p>
-            <MoreDetail className={styles.footnote}>
-              골드는 레이드 보상표의 공식 값으로 계산하고, 확인되지 않은 레이드는 &lsquo;데이터
-              없음&rsquo;으로 둬요. 더보기 비용은 귀속 골드에서 먼저 빠지고, 골드를 받지 않는
-              캐릭터의 더보기도 원정대 합계에서 빼요. 무료 더보기를 쓴 관문은 더보기 체크를
-              하지 않으면 비용 없이 계산돼요. 자동 구성(레벨 높은 순 6명·레이드별 최대 골드
-              난이도)은 추정이에요. <Link href="/tools/raid-rewards">레이드 보상표</Link>
-            </MoreDetail>
+            {!waiting && (
+              <>
+                <p className={styles.footnote}>
+                  진행 상황은 이 브라우저에만 저장되고, 매주 수요일 06:00에 체크가 풀려요.
+                </p>
+                <MoreDetail className={styles.footnote}>
+                  골드는 레이드 보상표의 공식 값으로 계산하고, 확인되지 않은 레이드는 &lsquo;데이터
+                  없음&rsquo;으로 둬요. 더보기 비용은 귀속 골드에서 먼저 빠지고, 골드를 받지 않는
+                  캐릭터의 더보기도 원정대 합계에서 빼요. 무료 더보기를 쓴 관문은 더보기 체크를
+                  하지 않으면 비용 없이 계산돼요. 자동 구성(레벨 높은 순 6명·레이드별 최대 골드
+                  난이도)은 추정이에요. <Link href="/tools/raid-rewards">레이드 보상표</Link>
+                </MoreDetail>
+              </>
+            )}
           </div>
         </div>
       </main>
