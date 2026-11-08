@@ -814,7 +814,7 @@ export interface components {
             message: string;
             data: null;
         };
-        /** @description 장신구 기본 스탯 범위. 범위 = 공식 아이템 사전 연마 효과 탭의 부위·연마 단계별 힘민지 최솟값~최댓값 */
+        /** @description 장신구 기본 스탯 범위. 범위 = 공식 아이템 사전 표의 그 부위 3단계(연마 뒤) 힘민지 최솟값~최댓값(연마 단계와 상관없이 같음) */
         AccessoryStatsResponse: {
             /**
              * Format: int32
@@ -830,13 +830,13 @@ export interface components {
             mainStat: number;
             /**
              * Format: int32
-             * @description 그 부위·연마 단계 힘민지 최솟값
+             * @description 그 부위 3단계 힘민지 최솟값
              * @example 15178
              */
             mainStatMin: number;
             /**
              * Format: int32
-             * @description 그 부위·연마 단계 힘민지 최댓값
+             * @description 그 부위 3단계 힘민지 최댓값
              * @example 17857
              */
             mainStatMax: number;
