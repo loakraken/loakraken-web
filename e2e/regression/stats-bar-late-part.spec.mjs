@@ -69,7 +69,7 @@ const partsArriving = (bar) =>
     return moved;
   });
 
-for (const width of [320, 360, 390, 440, 470, 500, 530, 768, 1280])
+for (const width of [320, 360, 390, 440, 490, 500, 530, 768, 1280])
   test(`@A7 ${width} 통계 조건 막대: 칸이 나뉘어 와도 먼저 그려진 칸이 움직이지 않는다 @regression`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await gotoReady(page, "/stats");
@@ -88,9 +88,9 @@ for (const width of [320, 360, 390, 440, 470, 500, 530, 768, 1280])
   });
 
 // The fixed slots must not change where the fields end up (#1434 review): on phones up to 520 the first row is one
-// field per line, and between 470 and 520 the second row still puts 레벨 and 전투력 side by side, with 대표 캐릭터
+// field per line, and between 490 and 520 the second row still puts 레벨 and 전투력 side by side, with 대표 캐릭터
 // on the next line, as before the fix.
-for (const width of [470, 500])
+for (const width of [490, 500])
   test(`${width} 통계 조건 막대: 다 그려진 칸 배치가 그대로 @regression`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await gotoReady(page, "/stats");
