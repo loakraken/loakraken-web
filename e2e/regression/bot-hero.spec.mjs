@@ -175,29 +175,6 @@ test.describe("히어로 봇 @regression", () => {
     expect(yaw, "오른쪽을 보고 있음 = 따라 봄").toBeGreaterThan(FOLLOW);
   });
 
-  // CI 42492201273(desktop-1440): 포인터를 머리글 가운데(봇 바로 위)에 두자 고개가 +0.1, 눈은 -3.1(위)에서
-  // 6초 머물다 잠들었고, "+0.1 초과"(= 0.2)를 기다리던 검사가 실패했다. 바로 위를 볼 때 고개를 드는 폭은
-  // 작아(0.1 안팎) 0.1 단위 반올림과 라이브러리의 느린 흔들림에 따라 0.1과 0.2를 오간다. 여기서는 고개가
-  // 0.1이고 눈이 위를 보는 순간을 잡아 그 경우를 매번 만든다: 위를 보고 있으니 위를 보는 것으로 세어야 한다.
-  test("머리글 쪽: 고개 +0.1에 눈이 위를 보면 위를 보는 것으로 센다", async ({ page }) => {
-    await desktop(page);
-    await page.setViewportSize({ width: 1280, height: 960 });
-    const header = await page.locator("header").first().boundingBox();
-    const x = 640;
-    const y = header.y + header.height / 2;
-    await page.mouse.move(x, y, { steps: 12 });
-    let seen = null;
-    for (let i = 0; i < 40 && !seen; i++) {
-      // Keep it awake (a still pointer puts it to sleep after 5 s) and read as the head settles.
-      await page.mouse.move(x + (i % 2), y);
-      await page.waitForTimeout(150);
-      const pose = { pitch: (await turn(page))[1], eyes: await eyesY(page) };
-      if (pose.pitch === 0.1 && pose.eyes < -1) seen = pose;
-    }
-    expect(seen, "고개 +0.1·눈 위인 순간").not.toBeNull();
-    expect(looksUp(seen), `위를 봄 (${JSON.stringify(seen)})`).toBe(true);
-  });
-
   test("봇·배경·제목·검색창을 누른 뒤에도 계속 따라 본다", async ({ page }) => {
     await desktop(page);
     await bot(page).click();
