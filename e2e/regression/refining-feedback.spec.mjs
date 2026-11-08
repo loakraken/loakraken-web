@@ -84,6 +84,10 @@ test.describe("재련 기대 비용 사용자 제보 @regression", () => {
     await watchShifts(page);
     await openPlan(page);
     await page.getByRole("radiogroup", { name: "재료 가격 기준" }).getByRole("radio", { name: "최근 거래가" }).click();
+    // Chrome logs layout shifts only for what is on screen: bring the table in
+    // first, or the recorder sees nothing below the fold (#1445 CI).
+    await materials(page).scrollIntoViewIfNeeded();
+    await expect(materials(page)).toBeInViewport();
     const arrow = materials(page).getByText(/^[▲▼]$/).first();
     await expect(arrow).toBeAttached();
     // The number itself, measured directly: a layout-shift entry names at most
@@ -125,6 +129,9 @@ test.describe("재련 기대 비용 사용자 제보 @regression", () => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await watchShifts(page);
     await openPlan(page);
+    // Layout shifts are logged only on screen (below the fold, nothing at all: #1445 CI).
+    await materials(page).scrollIntoViewIfNeeded();
+    await expect(materials(page)).toBeInViewport();
     const nudge = async (px) => {
       const mark = await shiftMark(page);
       await materials(page).evaluate((table, value) => (table.style.marginTop = value), `${px}px`);
