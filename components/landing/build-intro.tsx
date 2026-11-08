@@ -124,7 +124,8 @@ export function BuildIntro() {
       (...args: A) => {
         try {
           fn(...args);
-        } catch {
+        } catch (error) {
+          console.warn("about intro: finished early after an error", error);
           finish();
         }
       };

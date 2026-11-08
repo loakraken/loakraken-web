@@ -103,6 +103,7 @@ export function RankPodium({
   // rest off-screen and in a hidden tab (set on the element: no re-render).
   const still = useSyncExternalStore(subscribeMotion, motionStopped, () => false);
   const box = useRef<HTMLElement>(null);
+  const shown = page === 1 || reserve;
   useEffect(() => {
     const el = box.current;
     if (!el) return;
@@ -121,7 +122,7 @@ export function RankPodium({
       io.disconnect();
       document.removeEventListener("visibilitychange", onVisible);
     };
-  });
+  }, [shown]);
   const toggleMotion = () => setMotionStopped(!still);
   if (page !== 1 && !reserve) return null;
   const ranked = !loading && page === 1 ? podiumTop(entries) : [];
