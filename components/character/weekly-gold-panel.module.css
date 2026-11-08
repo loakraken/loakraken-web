@@ -104,6 +104,20 @@
   color: var(--link);
   cursor: pointer;
 }
+@media (hover: hover) and (pointer: fine) {
+  .pick summary:hover {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+}
+/* Touch: the switch and raid rows are 44px targets, like the site's other controls. */
+@media (pointer: coarse) {
+  .switch,
+  .pick summary,
+  .pick label {
+    min-height: 44px;
+  }
+}
 .pick summary:focus-visible,
 .switch input:focus-visible,
 .pick input:focus-visible {
