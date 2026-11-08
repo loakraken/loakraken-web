@@ -15,8 +15,13 @@ const bot = (page) => hero(page).locator("[data-bot]");
 const canvas = (page) => bot(page).locator("canvas");
 const pause = (page) => page.getByRole("button", { name: "애니메이션 멈춤" });
 
-/** Turned toward a side: |yaw| past this (yaw comes rounded to 0.1). */
-const FOLLOW = 0.2;
+/**
+ * Turned toward a side: |yaw| past this. Yaw comes rounded to 0.1, and at the hero's
+ * edges the library's slow head sway moves it between 0.2 and 0.3: "past 0.2" took
+ * only 0.3 and failed a bot that was looking that way (CI 42448436301). Past 0.15 is
+ * 0.2 or more; a bot that does not follow reads 0 to 0.1 and still fails.
+ */
+const FOLLOW = 0.15;
 
 /** Where the bot looks: [yaw, pitch] in radians (yaw > 0 = to the viewer's right). */
 const turn = async (page) => {
