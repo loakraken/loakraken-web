@@ -92,3 +92,44 @@ test("검색 칸: 닫고 다시 열면 또 평범한 칸부터 @regression", asy
   await expect.poll(() => firstField(page)).toEqual({ liquid: false, surface: false });
   await expect(page.locator(".cmd-field")).toHaveAttribute("data-liquid", "true", { timeout: 5000 });
 });
+
+// A fade that never ends normally still hands over (#1423 review): cancelled (interrupted), or no animation event
+// at all (a paused fade, as in a hidden tab). The plain fill must not stay drawn over the liquid.
+// The cancel hands over at once (well before the 1 s safety timer); a paused fade waits for the timer.
+for (const [how, stop, within] of [
+  ["취소된 나타남", (el) => el.getAnimations()[0].cancel(), 400],
+  ["끝나지 않는 나타남(1초 안전 시간)", (el) => el.getAnimations()[0].pause(), 3000],
+])
+  test(`검색 칸: ${how}에도 물방울 면으로 넘어감 @regression`, async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await gotoReady(page, "/market");
+    await page.addStyleTag({ content: ".cmd-liquid { animation-duration: 20s !important; }" });
+    await page.getByRole("button", { name: "캐릭터 검색" }).first().click();
+    const surface = page.locator(".cmd-liquid");
+    await expect(surface).toHaveCount(1, { timeout: 5000 });
+    await surface.evaluate(stop);
+    await expect(page.locator(".cmd-field")).toHaveAttribute("data-liquid", "true", { timeout: within });
+  });
+
+// Enter runs the search and empties the field as the dialog closes; that clear must not ask for the liquid
+// (#1423 click-path review). Reopened before the close has finished, the field stays plain until the open
+// transition is done, as on any other open.
+test("검색 칸: Enter로 찾은 뒤 곧바로 다시 열어도 열리는 동안은 평범한 칸 @regression", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await gotoReady(page, "/market");
+  // The search stays on this page (its navigation is held), and the dialog's open and close take long.
+  await page.route(/\/character\//, () => {});
+  await page.addStyleTag({ content: '[data-slot="command-search"] { transition-duration: 3s !important; }' });
+  const open = page.getByRole("button", { name: "캐릭터 검색" }).first();
+  await open.click();
+  await expect(page.locator(".cmd-field")).toHaveAttribute("data-liquid", "true", { timeout: 8000 });
+  await page.keyboard.type("상세");
+  await page.keyboard.press("Enter");
+  // Mid-close: open again (a click on the button itself; the closing backdrop still covers the page).
+  await open.evaluate((el) => el.click());
+  await expect(page.getByRole("combobox", { name: "캐릭터 이름" })).toBeFocused();
+  // Well past the idle wait (600 ms), still inside the 3 s open: no liquid yet.
+  await page.waitForTimeout(1500);
+  await expect(page.locator(".cmd-liquid")).toHaveCount(0);
+  await expect(page.locator(".cmd-field")).not.toHaveAttribute("data-liquid");
+});
