@@ -64,6 +64,13 @@ test("소개 1280: 머리글 메뉴로 와도, 뒤로·앞으로 와도 처음�
   await expect(page).not.toHaveURL(/\/about/);
   await page.goForward();
   await expect(page).toHaveURL(/\/about#intro$/);
+  // Back on /about: every section is there at once (nothing waits to be built).
+  await expect(page.locator('[data-motion="on"]')).toHaveCount(1);
+  const back = await shiftMark(page);
+  expect(await page.evaluate((ids) => ids.filter((id) => !document.getElementById(id)), SECTIONS), "뒤로·앞으로: 모든 구역이 바로 있음").toEqual([]);
   await noIntro(page);
   await expect.poll(async () => (await heroText(page)).every((o) => o === "1"), { message: "뒤로·앞으로: 히어로 글 모두 보임" }).toBe(true);
+  await page.waitForTimeout(800); // proves an absence: nothing moves after coming back
+  const backShift = await shiftsSince(page, back);
+  expect(backShift.all, `뒤로·앞으로 흔들림 (${backShift.moved})`).toBe(0);
 });
