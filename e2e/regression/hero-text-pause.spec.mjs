@@ -5,6 +5,15 @@
 import { test, expect, gotoReady } from "../support/fixtures.mjs";
 
 const PAUSE = "애니메이션 멈춤";
+/** The page's script chunks, not its CSS (held back to replay a slow hydration). */
+const CHUNKS = /\/_next\/static\/chunks\/.*\.js(\?|$)/;
+
+/**
+ * The page is hydrated: its motion scope is on. The first HTML already has the bot
+ * (aria-pressed="false"), but the scope is "off" there (the server cannot know the
+ * tab is shown), so no entrance yet and a click on the bot does nothing.
+ */
+const hydrated = (page) => expect(page.locator('[data-motion="on"]')).toHaveCount(1);
 
 /** 등장 애니메이션이 붙은 히어로 글마다: 불투명도·세로 이동·히어로 안에 다 들어오는지. */
 const heroText = (page) =>
@@ -57,6 +66,7 @@ test.describe("봇 멈춤 뒤 히어로 글 @regression", () => {
   for (const path of ["/", "/about"]) {
     test(`${path}: 멈춤·탭 전환·새로고침 뒤에도 글이 보이고, 다시 누르면 재생${path === "/" ? " @smoke" : ""}`, async ({ page }) => {
       await gotoReady(page, path);
+      await hydrated(page);
       const bot = page.getByRole("button", { name: PAUSE });
       await expectTextShown(page, "처음");
 
@@ -81,8 +91,19 @@ test.describe("봇 멈춤 뒤 히어로 글 @regression", () => {
       await expectTextShown(page, "다시 재생");
 
       // 재생으로 되돌린 다음 방문에는 등장 애니메이션이 그대로 돈다(꺼 버린 게 아님).
-      await page.reload();
+      // The script chunks arrive late (replays the CI flake on mobile '/'): for a while
+      // only the first HTML is there, so the count is read once the page is hydrated.
+      let release;
+      const held = new Promise((resolve) => (release = resolve));
+      await page.route(CHUNKS, async (route) => {
+        await held;
+        await route.continue();
+      });
+      await page.reload({ waitUntil: "commit" });
       await expect(bot).toHaveAttribute("aria-pressed", "false");
+      release();
+      await page.unroute(CHUNKS);
+      await hydrated(page);
       expect(await page.locator("#hero-heading").evaluate((el) =>
         el.getAnimations().filter((a) => /hero-enter/.test(a.animationName) && a.playState !== "paused").length,
       )).toBe(1);
@@ -90,6 +111,7 @@ test.describe("봇 멈춤 뒤 히어로 글 @regression", () => {
 
       // 등장 도중에 멈춰도 글은 끝 상태까지 간다.
       await page.reload();
+      await hydrated(page);
       await bot.click();
       await expect(bot).toHaveAttribute("aria-pressed", "true");
       await expectTextShown(page, "등장 도중 멈춤");
