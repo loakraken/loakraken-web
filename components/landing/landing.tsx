@@ -7,17 +7,16 @@ import { ArrowRight, ChevronDown, DocumentCode, ExportCircle, FingerScan, Gps, L
 import { CharacterCockpit } from "./cockpit";
 import { Hero } from "./hero";
 import { BuildIntro } from "./build-intro";
-import { LandingMotion, Reveal, useLandingMotion } from "./motion";
+import { LandingMotion, Reveal } from "./motion";
 import { roadmap } from "./roadmap";
 import { SiteHeader } from "@/components/site/site-header";
+import { openCharacterSearch } from "@/components/ui/command-search";
 import { KrakenMark } from "@/components/site/kraken-mark";
 import styles from "./landing.module.css";
 
 export { KrakenMark } from "@/components/site/kraken-mark";
 
 function PrecisionLanding({ intro }: { intro: boolean }) {
-  const input = useRef<HTMLInputElement>(null);
-  const { enabled } = useLandingMotion();
   const [copied, setCopied] = useState(false);
   const [copyError, setCopyError] = useState(false);
   const copyTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -25,11 +24,6 @@ function PrecisionLanding({ intro }: { intro: boolean }) {
   const progressTransform = useTransform(scrollYProgress, (value) => `scaleX(${value})`);
 
   useEffect(() => () => clearTimeout(copyTimer.current), []);
-
-  const focusSearch = () => {
-    input.current?.scrollIntoView({ behavior: enabled ? "smooth" : "instant", block: "center" });
-    input.current?.focus({ preventScroll: true });
-  };
 
   const evidence = JSON.stringify({ character: "블레이드", className: "블레이드", source: "design-preview", observation: { gems: 11, level10: 9, level9: [{ slot: 5, kind: "겁화", skill: "마엘스톰" }, { slot: 10, kind: "작열", skill: "터닝 슬래쉬" }] }, diagnosis: "9레벨 보석 2개 확인", evidencePath: "/example/gems/5,10", ruleVersion: "preview-v1" }, null, 2);
 
@@ -52,7 +46,7 @@ function PrecisionLanding({ intro }: { intro: boolean }) {
       {intro && <BuildIntro />}
 
       <main id="main">
-        <Hero inputRef={input} />
+        <Hero />
 
         <div className={styles.previewBand}><section className={styles.section} id="preview" aria-labelledby="preview-heading" data-build-section="preview">
           <Reveal className={styles.sectionHeading} build="text"><div><span className={styles.eyebrow}>캐릭터 미리보기</span><h2 id="preview-heading">캐릭터의 지금을,<br className={styles.mobileBreak} /> 한눈에.</h2></div><p>장비부터 놓치기 쉬운 세팅까지.<br />당신에게 필요한 정보만, 명료하게.</p></Reveal>
@@ -100,7 +94,7 @@ function PrecisionLanding({ intro }: { intro: boolean }) {
         </section>
 
         <section className={styles.closing} aria-labelledby="closing-heading" data-build-section="closing">
-          <Reveal build="text"><span className={styles.closingMark}><KrakenMark size={40} /></span><h2 id="closing-heading">다음 성장은,<br /><span>더 명확한 선택에서.</span></h2><p>당신의 캐릭터를 이해하는 새로운 시선.</p><button type="button" className={styles.primaryButton} onClick={focusSearch}>캐릭터 검색 <ArrowRight size={16} /></button></Reveal>
+          <Reveal build="text"><span className={styles.closingMark}><KrakenMark size={40} /></span><h2 id="closing-heading">다음 성장은,<br /><span>더 명확한 선택에서.</span></h2><p>당신의 캐릭터를 이해하는 새로운 시선.</p><button type="button" className={styles.primaryButton} aria-haspopup="dialog" onClick={openCharacterSearch}>캐릭터 검색 <ArrowRight size={16} /></button></Reveal>
         </section>
       </main>
       <footer className={styles.footer}><Link href="/" className={`${styles.brand} hit-44`}><KrakenMark />LOAKraken</Link><a href="https://libraries.dev/orbs" target="_blank" rel="noreferrer" className="hit-44">Motion with Libraries.dev <ExportCircle size={12} /></a></footer>

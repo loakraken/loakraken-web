@@ -12,6 +12,12 @@ import { SearchNormal } from "@/components/ui/icons"
 // page that already has its own character field (the home hero,
 // #character-search) keeps Ctrl K for it; the button still opens the dialog.
 const load = () => import("@/components/ui/command-search-dialog")
+const OPEN_EVENT = "loakraken:open-character-search"
+
+/** Opens the header's search from elsewhere on the page (the /about closing button). */
+function openCharacterSearch() {
+  window.dispatchEvent(new Event(OPEN_EVENT))
+}
 const CommandSearchDialog = React.lazy(load)
 const noop = () => () => {}
 
@@ -39,8 +45,18 @@ function CommandSearch({ className }: { className?: string }) {
       setWanted(true)
       setOpen(true)
     }
+    // Focus goes back to whatever opened it (Base UI's default).
+    const onOpen = () => {
+      setFromButton(false)
+      setWanted(true)
+      setOpen(true)
+    }
     window.addEventListener("keydown", onKey)
-    return () => window.removeEventListener("keydown", onKey)
+    window.addEventListener(OPEN_EVENT, onOpen)
+    return () => {
+      window.removeEventListener("keydown", onKey)
+      window.removeEventListener(OPEN_EVENT, onOpen)
+    }
   }, [])
 
   return (
@@ -89,4 +105,4 @@ function CommandSearch({ className }: { className?: string }) {
   )
 }
 
-export { CommandSearch }
+export { CommandSearch, openCharacterSearch }
