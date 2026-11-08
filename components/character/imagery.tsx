@@ -13,6 +13,7 @@ import { COLLECTIBLE_SPRITE, COLLECTIBLE_SPRITE_SIZE, collectibleSpriteIcon } fr
 import { useLandingMotion } from "@/components/landing/motion";
 import { gradeKey, safeGameImage } from "@/lib/character/model";
 import { bannerBackdrop, cutoutPortrait, glowTint } from "@/lib/character/portrait-cutout";
+import { CharacterPortrait } from "./portrait";
 import styles from "./imagery.module.css";
 
 type Phase = "server" | "loading" | "loaded" | "failed";
@@ -325,10 +326,10 @@ export function CharacterBanner({
         <div className={styles.bannerFigure}>
           {safe && phase !== "failed" && (
             <>
-              {/* Original render. Official CDN, not proxied. */}
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+              {/* Original render, soft-edged (shared with the podium). Official CDN, not proxied. */}
+              <CharacterPortrait
                 {...bind}
+                fade="banner"
                 className={styles.figureOriginal}
                 src={safe}
                 alt={`${name} 캐릭터 전신`}
@@ -336,7 +337,6 @@ export function CharacterBanner({
                 height={708}
                 decoding="async"
                 fetchPriority="high"
-                referrerPolicy="no-referrer"
               />
             </>
           )}

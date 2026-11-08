@@ -628,7 +628,9 @@
                 "ENGRAVING_BOOK",
                 "LIFE",
                 "BATTLE_ITEM",
-                "FOOD"
+                "FOOD",
+                "AVATAR",
+                "EQUIPMENT_BOX"
               ],
               "example": "REFINING"
             },
@@ -1919,7 +1921,9 @@
               "ENGRAVING_BOOK",
               "LIFE",
               "BATTLE_ITEM",
-              "FOOD"
+              "FOOD",
+              "AVATAR",
+              "EQUIPMENT_BOX"
             ]
           },
           "label": {
@@ -1996,7 +2000,9 @@
               "ENGRAVING_BOOK",
               "LIFE",
               "BATTLE_ITEM",
-              "FOOD"
+              "FOOD",
+              "AVATAR",
+              "EQUIPMENT_BOX"
             ]
           },
           "tabLabel": {

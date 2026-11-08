@@ -508,6 +508,8 @@ export function BotMascot({
     };
     const reflow = () => { if (watched.current.looking) reaim.current(); };
     const field = lookAt?.current;
+    // The caret moved without typing (arrow keys, Home/End, a click in the text).
+    const caret = () => { if (field && document.activeElement === field) typed(); };
 
     // Strength stays 1 once the pointer has moved: at 0 the library's idle
     // gaze takes the head and turns it side to side on its own, so it could
@@ -558,8 +560,8 @@ export function BotMascot({
     const onVisible = () => { if (!document.hidden) run(); };
     document.addEventListener("visibilitychange", onVisible);
     field?.addEventListener("input", typed);
-    field?.addEventListener("keyup", typed);
     field?.addEventListener("click", typed);
+    if (field) document.addEventListener("selectionchange", caret);
     window.addEventListener("resize", reflow, { passive: true });
     window.addEventListener("scroll", reflow, { passive: true });
     if (follow) {
@@ -575,8 +577,8 @@ export function BotMascot({
       tilt.current = () => {};
       reaim.current = () => {};
       field?.removeEventListener("input", typed);
-      field?.removeEventListener("keyup", typed);
       field?.removeEventListener("click", typed);
+      document.removeEventListener("selectionchange", caret);
       window.removeEventListener("resize", reflow);
       window.removeEventListener("scroll", reflow);
       io.disconnect();

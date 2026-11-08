@@ -204,15 +204,33 @@
   width: min(100%, var(--portrait-width));
   height: var(--portrait-height);
 }
-.podium .portrait,
 .podium .fallback {
   display: grid;
   place-items: center;
   width: min(100%, var(--portrait-width));
   max-width: none;
   height: var(--portrait-height);
-  object-fit: cover;
-  object-position: top;
+}
+/* The whole render at the slot's height (no crop of its canvas, user 11-08):
+   a box holding the render gets the render's own width at that height and the
+   image fills it exactly (the box is the image, as the fallback box is its
+   icon). On a phone's narrow card that box is wider than the column: equal
+   negative side margins keep it centred, and only the card's own edge clips
+   it. Its edges fade (portrait.module.css), so effects that reach the canvas
+   edge melt into the stage. The size comes from CSS alone, so the box is the
+   same before and after the image loads. */
+.podium .portraitBox:has(> .portrait) {
+  --render-width: calc(var(--portrait-height) * 612 / 708);
+  justify-self: start;
+  width: var(--render-width);
+  margin-inline: calc((100% - var(--render-width)) / 2);
+}
+.podium .portrait {
+  display: block;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  object-fit: contain;
 }
 /* The class icon files are black; the stage is dark in every theme. The
    icon (or its two letters) grows with the portrait box (user, 11-08). */

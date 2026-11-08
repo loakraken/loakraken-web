@@ -30,9 +30,11 @@ export const MAX_SYNERGY = 3;
 /** Supporter weakness-exposure crit buff presets (%). */
 export const SUPPORT_PRESETS = [0, 1.8, 2.1, 2.5] as const;
 
+// Speed assumptions, each a switch (PM 총괄 11-08): 갈망 and 만찬 on by default
+// (both attack and move speed); the api adds neither, so nothing is counted twice.
 export const SPEED_BUFFS = [
-  { id: "support", label: "서포터 버프", attack: 9, move: 9 },
-  { id: "feast", label: "공이속 만찬", attack: 5, move: 5 },
+  { id: "support", label: "갈망", attack: 9, move: 9 },
+  { id: "feast", label: "만찬", attack: 5, move: 5 },
   { id: "food", label: "공속 음식", attack: 3, move: 0 },
 ] as const;
 export type SpeedBuff = (typeof SPEED_BUFFS)[number]["id"];
@@ -239,7 +241,7 @@ export function critSpeedFailureCopy(error: { code: string }) {
     case "CHARACTER_NOT_FOUND":
       return {
         title: "캐릭터를 찾지 못했어요",
-        text: "이름이 정확한지 확인한 뒤 다시 검색해 주세요.",
+        text: "이름을 한 번 더 확인하고 다시 검색해 볼까요?",
       };
     case "LOST_ARK_RATE_LIMITED":
       return rateLimitCopy(error);

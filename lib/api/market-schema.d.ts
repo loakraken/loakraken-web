@@ -468,7 +468,7 @@ export interface components {
         };
         MarketTabResponse: {
             /** @enum {string} */
-            tab: "REFINING" | "REFINING_EXTRA" | "ARK_GRID" | "WEAPON_EVOLUTION" | "ENGRAVING_BOOK" | "LIFE" | "BATTLE_ITEM" | "FOOD";
+            tab: "REFINING" | "REFINING_EXTRA" | "ARK_GRID" | "WEAPON_EVOLUTION" | "ENGRAVING_BOOK" | "LIFE" | "BATTLE_ITEM" | "FOOD" | "AVATAR" | "EQUIPMENT_BOX";
             label: string;
             /**
              * Format: int32
@@ -498,7 +498,7 @@ export interface components {
             /** @description 등락률 계산 기준 설명 */
             changeBasis: string;
             /** @enum {string} */
-            tab: "REFINING" | "REFINING_EXTRA" | "ARK_GRID" | "WEAPON_EVOLUTION" | "ENGRAVING_BOOK" | "LIFE" | "BATTLE_ITEM" | "FOOD";
+            tab: "REFINING" | "REFINING_EXTRA" | "ARK_GRID" | "WEAPON_EVOLUTION" | "ENGRAVING_BOOK" | "LIFE" | "BATTLE_ITEM" | "FOOD" | "AVATAR" | "EQUIPMENT_BOX";
             tabLabel: string;
             tier: number | null;
             sort: string;
@@ -1088,7 +1088,7 @@ export interface operations {
                  * @description 보드 탭(GET /api/v1/markets/tabs)
                  * @example REFINING
                  */
-                tab: "REFINING" | "REFINING_EXTRA" | "ARK_GRID" | "WEAPON_EVOLUTION" | "ENGRAVING_BOOK" | "LIFE" | "BATTLE_ITEM" | "FOOD";
+                tab: "REFINING" | "REFINING_EXTRA" | "ARK_GRID" | "WEAPON_EVOLUTION" | "ENGRAVING_BOOK" | "LIFE" | "BATTLE_ITEM" | "FOOD" | "AVATAR" | "EQUIPMENT_BOX";
                 /** @description 아이템 티어. 생략하면 탭 기본 티어 */
                 tier?: number;
                 /** @description default(공식 등급순), high/low(현재 최저가), rise/fall(전일 대비 등락률, 탭 전체 스캔) */

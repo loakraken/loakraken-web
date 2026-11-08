@@ -219,13 +219,17 @@ for (const top of SCAN) {
 }
 
 // Blocked names: every tracked text file, raw (comments included), and every path.
-// Game data keeps where each value came from (user rule 10-12): in data JSON
-// the source fields (source, sources, sourceUrl…, checkedAt) are not checked,
-// and when such a key opens an object or array ("sources": { id: { title,
-// url, date } }), nothing inside it is either — up to its closing bracket.
-// Every other field (what reaches the screen) is still checked.
+// Game data keeps where each value came from (user rule 10-12), but under a
+// neutral id: a community page's name and address live in the internal record,
+// not in this public repository (#1470). So the source fields of data JSON
+// (source, sources, sourceUrl…, checkedAt, and everything inside an object or
+// array such a key opens) are checked like every other line. A file listed in
+// BLOCKED_TEMP only warns there, until its owning PR lands.
 const DATA_JSON = /^lib[\\/](.+[\\/])?data[\\/].+\.json$/;
 const SOURCE_KEY = /^\s*"(source[A-Za-z]*|checkedAt)"\s*:/;
+const BLOCKED_TEMP = [
+  { path: "lib/tools/data/raid-rewards.json", why: "출처 중립화는 #1466 머지 뒤(#1470 후속)" },
+];
 /** Net bracket depth of a JSON line, ignoring brackets inside strings. */
 function depthOf(line) {
   let depth = 0;
@@ -274,16 +278,17 @@ if (!blockedRe) {
     }
     if (raw.includes("\0")) continue;
     const data = DATA_JSON.test(path);
+    const temp = BLOCKED_TEMP.find((t) => t.path === path);
     let sourceDepth = 0; // > 0 while inside a source object or array
     raw.split("\n").forEach((line, i) => {
+      let inSource = false;
       if (data) {
         if (sourceDepth > 0) {
           sourceDepth += depthOf(line);
-          return;
-        }
-        if (SOURCE_KEY.test(line)) {
+          inSource = true;
+        } else if (SOURCE_KEY.test(line)) {
           sourceDepth = Math.max(0, depthOf(line));
-          return;
+          inSource = true;
         }
       }
       blockedRe.lastIndex = 0;
@@ -293,10 +298,41 @@ if (!blockedRe) {
         errors.push(`${shown}:${i + 1}  [공개 저장소] 실제 캐릭터명 — 익명 ID로 (줄 내용 가림)`);
         return;
       }
+      if (inSource && temp) {
+        warnings.push(`${shown}:${i + 1}  [공개 저장소] 출처의 다른 사이트 이름 (임시 예외: ${temp.why})`);
+        return;
+      }
       errors.push(`${shown}:${i + 1}  [공개 저장소] 다른 사이트 이름 — 이름 없이 쓰거나 익명 ID로\n    ${mask(line.trim(), blockedRe).slice(0, 140)}`);
     });
   }
   blockedNote = `금지 이름 ${blocked.terms.length}개 검사 (${blocked.source}, 파일 ${tracked.length}개)`;
+}
+
+// #1470: an address in a data file is the official site's, or null (a community
+// page: its address is in the internal record and its _note says so). Checked
+// without the name list, so it holds where the list is missing. The line is not
+// printed (the address would name the site in the public CI log).
+const OFFICIAL_URL = /^https:\/\/lostark\.game\.onstove\.com(\/|$)/;
+const DATA_URL = /"(url|sourceUrl|href)"\s*:\s*"([^"]*)"/g;
+const dataFiles = execFileSync("git", ["ls-files", "-z", "lib"], { cwd: ROOT, encoding: "utf8" })
+  .split("\0")
+  .filter((path) => DATA_JSON.test(path));
+for (const path of dataFiles) {
+  let raw;
+  try {
+    raw = readFileSync(join(ROOT, path), "utf8");
+  } catch {
+    continue; // deleted in the working tree
+  }
+  const temp = BLOCKED_TEMP.find((t) => t.path === path);
+  raw.split("\n").forEach((line, i) => {
+    for (const m of line.matchAll(DATA_URL)) {
+      if (OFFICIAL_URL.test(m[2])) continue;
+      const at = `${path}:${i + 1}  [공개 저장소] 데이터의 주소는 공식 사이트이거나 null(커뮤니티 글 주소는 내부 기록, _note)`;
+      if (temp) warnings.push(`${at} (임시 예외: ${temp.why})`);
+      else errors.push(at);
+    }
+  });
 }
 
 for (const w of warnings) console.warn(`warning  ${w}`);

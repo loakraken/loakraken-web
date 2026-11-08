@@ -15,6 +15,14 @@ const bot = (page) => hero(page).locator("[data-bot]");
 const canvas = (page) => bot(page).locator("canvas");
 const pause = (page) => page.getByRole("button", { name: "애니메이션 멈춤" });
 
+/**
+ * Turned toward a side: |yaw| past this. Yaw comes rounded to 0.1, and at the hero's
+ * edges the library's slow head sway moves it between 0.2 and 0.3: "past 0.2" took
+ * only 0.3 and failed a bot that was looking that way (CI 42448436301). Past 0.15 is
+ * 0.2 or more; a bot that does not follow reads 0 to 0.1 and still fails.
+ */
+const FOLLOW = 0.15;
+
 /** Where the bot looks: [yaw, pitch] in radians (yaw > 0 = to the viewer's right). */
 const turn = async (page) => {
   const value = await canvas(page).getAttribute("data-bot-turn");
@@ -37,14 +45,25 @@ async function followsHorizontally(page) {
   const box = await bot(page).boundingBox();
   const y = box.y + box.height / 2;
   await page.mouse.move(area.x + 4, y, { steps: 12 });
-  await expect.poll(async () => (await turn(page))[0]).toBeLessThan(-0.2);
+  await expect.poll(async () => (await turn(page))[0]).toBeLessThan(-FOLLOW);
   await page.mouse.move(area.x + area.width - 4, y, { steps: 12 });
-  await expect.poll(async () => (await turn(page))[0]).toBeGreaterThan(0.2);
+  await expect.poll(async () => (await turn(page))[0]).toBeGreaterThan(FOLLOW);
 }
 
 // 포인터를 (x, y)에 둔 채 멈춘 고개 위아래 값. 1px씩 살짝 움직여 봇을 깨어 있게 하고(쉬는 5초가
 // 다시 시작됨), 7번 읽은 값의 중앙값으로 라이브러리의 느린 고개 흔들림을 걸러 낸다. 한 번 맞은 값이
 // 아니라 중앙값을 보므로, 따라보지 않고 흔들리기만 하는 고개는 통과하지 못한다(검사가 가름).
+/** The eyes' up-down: < 0 is up (the search box below reads about +1). */
+const eyesY = async (page) => Number((await canvas(page).getAttribute("data-bot-look")).split(",")[1]);
+
+/**
+ * Looking up at a point just above it (the header). Straight up, the head lifts only a
+ * little: rounded to 0.1 and moved by the library's slow sway it reads 0.1 or 0.2
+ * (CI 42492201273 sat at 0.1 and failed "> 0.1"). So: the head is not lowered
+ * (>= 0.1) and the eyes clearly look up (< -1; a bot facing front reads about 0).
+ */
+const looksUp = ({ pitch, eyes }) => pitch >= 0.1 && eyes < -1;
+
 async function settledPitch(page, x, y) {
   await page.mouse.move(x, y, { steps: 12 });
   await page.waitForTimeout(300); // 고개가 돌아가는 동안은 읽지 않는다
@@ -102,7 +121,7 @@ test.describe("히어로 봇 @regression", () => {
       await desktop(page);
       await page.setViewportSize({ width, height: 960 });
       await page.mouse.move(width - 3, 957, { steps: 12 });
-      await expect.poll(async () => (await turn(page))[0], { message: "오른쪽 아래 → 오른쪽" }).toBeGreaterThan(0.2);
+      await expect.poll(async () => (await turn(page))[0], { message: "오른쪽 아래 → 오른쪽" }).toBeGreaterThan(FOLLOW);
       // 아래로 숙이는 폭은 라이브러리가 작게 둔다(-0.1 안팎): 위·아래는 서로 견줘 본다.
       await expect.poll(async () => (await turn(page))[1], { message: "오른쪽 아래 → 위를 보지 않음" }).toBeLessThanOrEqual(0);
       // 고개가 다 숙여진 뒤의 값: 200ms 간격 두 번이 같을 때 읽는다(움직이는 중에 읽으면 기준이 흔들림).
@@ -115,21 +134,46 @@ test.describe("히어로 봇 @regression", () => {
         return a === b;
       }, { message: "오른쪽 아래 고개가 멈춤" }).toBe(true);
       await page.mouse.move(3, 957, { steps: 12 });
-      await expect.poll(async () => (await turn(page))[0], { message: "왼쪽 아래 → 왼쪽" }).toBeLessThan(-0.2);
+      await expect.poll(async () => (await turn(page))[0], { message: "왼쪽 아래 → 왼쪽" }).toBeLessThan(-FOLLOW);
       await page.mouse.move(width - 3, 3, { steps: 12 });
-      await expect.poll(async () => (await turn(page))[0], { message: "오른쪽 위 → 오른쪽" }).toBeGreaterThan(0.2);
+      await expect.poll(async () => (await turn(page))[0], { message: "오른쪽 위 → 오른쪽" }).toBeGreaterThan(FOLLOW);
       // data-bot-turn은 0.1 단위로 반올림한다. 그래서 "+0.15 초과"는 "+0.2 이상"과 같고,
       // 고개를 든 것(0.2)과 들지 않은 것(0)을 그대로 가른다. 1904 모서리는 차가 약 0.2라
       // "+0.2 초과"는 반올림에 따라 같은 빌드에서 통과·실패가 갈렸다.
       await expect.poll(async () => (await turn(page))[1], { message: "오른쪽 위 → 오른쪽 아래보다 위" }).toBeGreaterThan(low + 0.15);
       const header = await page.locator("header").first().boundingBox();
-      await page.mouse.move(width / 2, header.y + header.height / 2, { steps: 12 });
-      await expect.poll(async () => (await turn(page))[1], { message: "머리글 → 위" }).toBeGreaterThan(0.1);
+      // Read awake (1 px nudges) and as the median, like the other pitch checks: a still
+      // pointer let it fall asleep while the poll waited (CI 42492201273).
+      const pitch = await settledPitch(page, width / 2, header.y + header.height / 2);
+      const pose = { pitch, eyes: await eyesY(page) };
+      expect(looksUp(pose), `머리글 → 위 (${JSON.stringify(pose)})`).toBe(true);
       // 마우스가 창 밖으로: relatedTarget 없는 pointerout.
       await page.evaluate(() => document.body.dispatchEvent(new PointerEvent("pointerout", { bubbles: true, pointerType: "mouse", relatedTarget: null })));
       await expect.poll(async () => (await turn(page)).map((v) => Math.abs(v)).every((v) => v <= 0.1), { message: "창을 떠나면 정면" }).toBe(true);
     });
   }
+
+  // CI 42448436301(desktop-1440): 검색칸 → 제목을 누른 뒤 오른쪽 끝으로 옮기자 고개가 +0.2(바라봄 +5.0)에서
+  // 5초 머물다 잠들었고 "+0.2 초과"(= 0.3)를 기다리던 검사가 실패했다. 끝자리 고개는 라이브러리의 느린
+  // 흔들림으로 0.2와 0.3을 오간다(앞선 같은 이동에서는 0.3). 여기서는 포인터를 고개가 꼭 0.2인 자리에 두어
+  // 그 경우를 매번 만든다: 오른쪽을 보고 있으니 따라 보는 것으로 세어야 한다.
+  test("고개 +0.2(0.1 단위)도 따라 보는 것으로 센다", async ({ page }) => {
+    await desktop(page);
+    const area = await hero(page).boundingBox();
+    const box = await bot(page).boundingBox();
+    const y = box.y + box.height / 2;
+    await page.mouse.move(area.x + 4, y, { steps: 12 });
+    await expect.poll(async () => (await turn(page))[0]).toBeLessThan(0);
+    let yaw = null;
+    for (let x = box.x + box.width / 2; x < area.x + area.width && yaw !== 0.2; x += 16) {
+      await page.mouse.move(x, y, { steps: 2 });
+      // The head eases toward the pointer: read once it has settled there.
+      await page.waitForTimeout(300);
+      yaw = (await turn(page))[0];
+    }
+    expect(yaw, "고개가 +0.2인 자리가 있음").toBe(0.2);
+    expect(yaw, "오른쪽을 보고 있음 = 따라 봄").toBeGreaterThan(FOLLOW);
+  });
 
   test("봇·배경·제목·검색창을 누른 뒤에도 계속 따라 본다", async ({ page }) => {
     await desktop(page);
@@ -220,7 +264,7 @@ test.describe("히어로 봇 @regression", () => {
     await expect.poll(() => hops(page), { message: "깨어날 때 한 번" }).toBe(before + 1);
     // 깨어나 고개를 들고 다시 포인터(왼쪽)를 본다.
     await expect.poll(async () => (await turn(page))[1], { message: "고개를 든다" }).toBeGreaterThan(-0.15);
-    await expect.poll(async () => (await turn(page))[0], { message: "왼쪽을 본다" }).toBeLessThan(-0.2);
+    await expect.poll(async () => (await turn(page))[0], { message: "왼쪽을 본다" }).toBeLessThan(-FOLLOW);
     await page.mouse.move(area.x + area.width - 4, box.y + box.height / 2, { steps: 12 });
     // 다시 쉬면 잠들고 멈춘다. 그동안 더 뛰지 않았다.
     await expect(canvas(page)).toHaveAttribute("data-bot-rest", "asleep", { timeout: 9000 });

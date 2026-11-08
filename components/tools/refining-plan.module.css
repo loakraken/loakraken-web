@@ -258,6 +258,13 @@
   font-size: var(--text-body);
   font-weight: 600;
 }
+/* "실패 n회로 계산했어요": its line is held from the start, so the answer moves nothing (A7). */
+.progressList .derived {
+  grid-column: 1 / -1;
+  min-height: 1lh;
+  color: var(--slate);
+  font-size: var(--text-caption);
+}
 .switches {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
