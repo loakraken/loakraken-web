@@ -12,7 +12,9 @@ import {
   BookSquare,
   Box,
   Coffee,
+  Diamonds,
   Flash,
+  Gift,
   HierarchySquare,
   MagicStar,
   Tree,
@@ -69,6 +71,8 @@ const TAB_ICON: Record<string, ReactNode> = {
   LIFE: <Tree />,
   BATTLE_ITEM: <Box />,
   FOOD: <Coffee />,
+  AVATAR: <Diamonds />,
+  EQUIPMENT_BOX: <Gift />,
 };
 import styles from "./market.module.css";
 import { rateLimitCopy, retryLabel } from "@/lib/api/rate-limit";

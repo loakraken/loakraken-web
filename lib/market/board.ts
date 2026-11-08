@@ -25,6 +25,8 @@ export const TAB_IDS: readonly TabId[] = [
   "LIFE",
   "BATTLE_ITEM",
   "FOOD",
+  "AVATAR",
+  "EQUIPMENT_BOX",
 ];
 /** A tab this build can open; the board skips tabs the backend added later. */
 /**
@@ -41,6 +43,9 @@ export const TAB_FALLBACK: readonly { tab: TabId; label: string; tiered: boolean
   { tab: "LIFE", label: "생활", tiered: false },
   { tab: "BATTLE_ITEM", label: "전투 용품", tiered: false },
   { tab: "FOOD", label: "요리", tiered: false },
+  // Gap #11 (api #873): no tier, prices refreshed every 5 minutes.
+  { tab: "AVATAR", label: "아바타", tiered: false },
+  { tab: "EQUIPMENT_BOX", label: "장비 상자", tiered: false },
 ];
 
 export const isTabId = (value: string): value is TabId => (TAB_IDS as readonly string[]).includes(value);
