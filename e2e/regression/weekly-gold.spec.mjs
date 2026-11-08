@@ -44,7 +44,9 @@ for (const width of [1280, 360, 320])
     const panel = page.getByRole("region", { name: "주간 획득 골드" });
     const total = panel.getByRole("definition").first();
     await expect(total).toHaveText("401,100G");
-    const first = panel.getByRole("list", { name: "캐릭터별 주간 골드" }).getByRole("listitem").first();
+    // The rows are the list's own items (an open 레이드 고르기 has a list inside).
+    const rows = panel.getByRole("list", { name: "캐릭터별 주간 골드" }).locator(":scope > li");
+    const first = rows.first();
     await expect(first.locator(":scope > b")).toHaveText("166,000G");
 
     // One raid off: its gold leaves the row and the total.
@@ -58,7 +60,7 @@ for (const width of [1280, 360, 320])
     expect(moved.all, `레이드 끄기 흔들림 (${moved.moved})`).toBe(0);
 
     // Gold off for the second character: its row reads 0G, nothing moves.
-    const second = panel.getByRole("list", { name: "캐릭터별 주간 골드" }).getByRole("listitem").nth(1);
+    const second = rows.nth(1);
     const off = await shiftsDuring(page, () => second.getByRole("switch").uncheck());
     await expect(second.locator(":scope > b")).toHaveText("0G");
     await expect(total).not.toHaveText(lowered);
