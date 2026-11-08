@@ -50,21 +50,25 @@ const formArriving = (page) =>
     };
   });
 
-for (const [label, path] of [
-  ["젬 효율", "/rankings?type=gems"],
-  ["팔찌 효율", "/rankings?type=bracelets"],
-  ["캐릭터", "/rankings"],
-  ["수집품", "/rankings?type=collectibles"],
-  ["원정대", "/rankings?type=rosters"],
-  ["길드", "/rankings?type=guilds"],
+// [label, address, the ranking tab it opens (none on the class page), its conditions form].
+for (const [label, path, tab, formName] of [
+  ["젬 효율", "/rankings?type=gems", "젬", "랭킹 조건"],
+  ["팔찌 효율", "/rankings?type=bracelets", "팔찌", "랭킹 조건"],
+  ["캐릭터", "/rankings", "캐릭터", "랭킹 조건"],
+  ["수집품", "/rankings?type=collectibles", "수집품", "수집품 랭킹 조건"],
+  ["원정대", "/rankings?type=roster", "원정대", "원정대 랭킹 조건"],
+  ["길드", "/rankings?type=guilds", "길드", "길드 랭킹 조건"],
   // The class page's conditions use the same filter row (.filters).
-  ["직업 통계", `/stats/classes/${encodeURIComponent("블레이드")}`],
+  ["직업 통계", `/stats/classes/${encodeURIComponent("블레이드")}`, null, "직업 통계 조건"],
 ])
   for (const width of [320, 390])
     test(`@A7 ${width} ${label}: 랭킹 조건이 나뉘어 와도 먼저 그려진 칸이 움직이지 않는다 @regression`, async ({ page }) => {
       await page.setViewportSize({ width, height: 900 });
       await gotoReady(page, path);
-      await expect(page.getByRole("form", { name: / 조건$|^랭킹 조건$/ }).first()).toBeVisible();
+      // The address opened that ranking: an unknown type falls back to 캐릭터 and would
+      // pass silently (원정대 was "?type=rosters" and tested the character form).
+      if (tab) await expect(page.getByRole("tablist", { name: "랭킹 종류" }).getByRole("tab", { name: tab, exact: true })).toHaveAttribute("aria-selected", "true");
+      await expect(page.getByRole("form", { name: formName, exact: true })).toBeVisible();
       const late = await formArriving(page);
       expect(late.value, `조건 칸 늦게 온 부분이 민 것 (${late.moved})`).toBe(0);
       if (width !== 390) return;
