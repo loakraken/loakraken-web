@@ -1,15 +1,36 @@
 import Link from "next/link";
-import { weeklyGold, type WeeklyGoldSibling } from "@/lib/character/weekly-gold";
+import { raidChoices, replaceCharacter, weeklyGold, withRaid, type WeeklyGoldSibling } from "@/lib/character/weekly-gold";
+import { GOLD_CHARACTERS, GOLD_RAIDS_PER_CHARACTER } from "@/lib/tools/homework";
+import { readSavedHomework, saveHomework, savedState, useSavedHomework } from "@/lib/tools/homework-store";
+import type { Character } from "@/lib/tools/homework";
 import { formatGold } from "@/lib/tools/raid-rewards";
 import { Panel } from "./panel";
 import styles from "./weekly-gold-panel.module.css";
+
+/**
+ * One change from the panel, saved into the homework tool: read again with the
+ * real time (so the week is right), the six added if they were not there yet,
+ * then that character changed. Called from an event handler only.
+ */
+function saveChange(
+  siblings: WeeklyGoldSibling[],
+  server: string,
+  name: string,
+  change: (character: Character) => Character,
+) {
+  const now = Date.now();
+  const fresh = weeklyGold(siblings, server, now, savedState(readSavedHomework(), now));
+  const character = fresh?.state.characters.find((c) => c.name === name);
+  if (fresh && character) saveHomework(replaceCharacter(fresh.state, change(character)));
+}
 
 const level = (value: number) => value.toLocaleString("ko-KR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 /**
  * This week's raid gold of the current character's server (M7): the six
- * highest characters, three best-paying raids each — the homework tool's
- * automatic setup, so the numbers are the same there.
+ * highest characters, three best-paying raids each by default. Gold and raids
+ * can be turned on and off here (#14); they are the homework tool's own
+ * saved choices, so both screens show the same thing.
  */
 export function WeeklyGoldPanel({
   siblings,
@@ -21,9 +42,16 @@ export function WeeklyGoldPanel({
   /** The name as the list shows it (nicknames hidden or not). */
   shown: (name: string) => string;
 }) {
+  // undefined on the server and in the first client render: the automatic
+  // setup, the same as a browser with nothing saved.
+  const text = useSavedHomework();
   const server = siblings.find((s) => s.characterName === current)?.serverName;
-  const gold = server ? weeklyGold(siblings, server) : null;
-  if (!gold) return null;
+  // Shown without a clock: the week only resets cleared gates, which the gold
+  // planned here does not count. A change reads the store again with the real
+  // time, so a save never carries an old week (that would clear the checks).
+  const gold = server ? weeklyGold(siblings, server, 0, savedState(text, 0)) : null;
+  if (!gold || !server) return null;
+  const save = (name: string, change: (character: Character) => Character) => saveChange(siblings, server, name, change);
   return (
     <Panel title="주간 획득 골드" meta={`${gold.server} 상위 ${gold.rows.length}캐릭터`} wide>
       <dl className={styles.totals}>
@@ -41,27 +69,75 @@ export function WeeklyGoldPanel({
         </div>
       </dl>
       <ol className={styles.rows} aria-label="캐릭터별 주간 골드">
-        {gold.rows.map((row) => (
-          <li key={row.name}>
-            <span className={styles.who}>
-              <strong>{shown(row.name)}</strong>
-              <small>
-                {row.className} · {level(row.itemLevel)}
-              </small>
-            </span>
-            <span className={styles.raids}>{row.raids.length ? row.raids.join(" · ") : "골드 레이드 없음"}</span>
-            <b>{formatGold(row.gold)}</b>
-          </li>
-        ))}
+        {gold.rows.map((row) => {
+          const who = shown(row.name);
+          const choices = raidChoices(row.character);
+          const onCount = choices.filter((c) => c.on).length;
+          return (
+            <li key={row.name} data-off={row.on ? undefined : ""}>
+              <span className={styles.who}>
+                <strong>{who}</strong>
+                <small>
+                  {row.className} · {level(row.itemLevel)}
+                </small>
+              </span>
+              <span className={styles.raids}>
+                {/* The same names whether gold is on or off (dimmed when off): the
+                    line keeps its wrap, so a switch moves nothing (A7). */}
+                {row.raids.length ? row.raids.join(" · ") : "골드 레이드 없음"}
+              </span>
+              <b>{formatGold(row.gold)}</b>
+              <div className={styles.controls}>
+                <label className={styles.switch}>
+                  <input
+                    type="checkbox"
+                    role="switch"
+                    checked={row.on}
+                    disabled={!row.on && gold.goldFull}
+                    aria-label={`${who} 골드 받기`}
+                    onChange={(e) => {
+                      const on = e.target.checked;
+                      save(row.name, (c) => ({ ...c, gold: on }));
+                    }}
+                  />
+                  <span aria-hidden="true">골드 받기</span>
+                </label>
+                <details className={styles.pick}>
+                  <summary>레이드 고르기 ({onCount})</summary>
+                  <ul aria-label={`${who} 레이드`}>
+                    {choices.map((choice) => (
+                      <li key={choice.raidId}>
+                        <label>
+                          <input
+                            type="checkbox"
+                            checked={choice.on}
+                            onChange={(e) => {
+                              const on = e.target.checked;
+                              save(row.name, (c) => withRaid(c, choice, on));
+                            }}
+                          />
+                          <span>
+                            {choice.label}
+                            <small>{choice.gold === null ? "골드 미확인" : formatGold(choice.gold)}</small>
+                          </span>
+                        </label>
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              </div>
+            </li>
+          );
+        })}
       </ol>
       <p className={styles.note}>
-        아이템 레벨이 높은 순으로 {gold.rows.length}캐릭터가 골드를 받고, 캐릭터마다 골드가 가장 많은 레이드
-        3개를 깬다고 보고 계산했어요(더보기 제외).
+        캐릭터를 {GOLD_CHARACTERS}명까지 골드 받기로 두고, 캐릭터마다 고른 레이드 중 위에서{" "}
+        {GOLD_RAIDS_PER_CHARACTER}개가 골드를 받는다고 계산했어요(숙제 체크에서 더보기를 고르면 그 비용은 빼요).
+        여기서 바꾸면 숙제 체크에도 그대로 저장돼요.
         {gold.unknownGates > 0 && ` 골드 미확인 관문 ${gold.unknownGates}개는 빠져 있어요.`}
         {gold.unsettled.length > 0 && ` 합계에서 뺀 항목(클리어 골드 데이터 없음): ${gold.unsettled.join(", ")}.`}{" "}
-        {/* The raids each character runs are chosen in the homework tool, for this roster (#14). */}
-        <Link href={`/tools/homework?${new URLSearchParams({ character: current })}`} prefetch={false}>
-          숙제에서 레이드 고르기
+        <Link href="/tools/homework" prefetch={false}>
+          관문 · 더보기는 숙제 체크에서
         </Link>
       </p>
     </Panel>

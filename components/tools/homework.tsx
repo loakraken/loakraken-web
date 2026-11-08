@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from "react";
+import { useEffect, useId, useState, type FormEvent } from "react";
 import { useRemaining } from "@/components/home/clock";
 import { useMutation } from "@tanstack/react-query";
 import { Add, ArrowDown, ArrowLeft, CloseCircle, TaskSquare } from "@/components/ui/icons";
@@ -9,6 +9,7 @@ import Link from "next/link";
 import { SiteHeader } from "@/components/site/site-header";
 import dynamic from "next/dynamic";
 import { CharacterQueryError, fetchSiblings } from "@/lib/character/client";
+import { onHomeworkSaved } from "@/lib/tools/homework-store";
 import { rateLimitCopy, retryLabel } from "@/lib/api/rate-limit";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import {
@@ -122,18 +123,9 @@ function Summary({ state, now }: { state: HomeworkState; now: number }) {
   );
 }
 
-function AddRoster({
-  onAdd,
-  arrival,
-  onArrived,
-}: {
-  onAdd: (picked: Sibling[]) => void;
-  arrival: string | null;
-  /** The arrival roster answered (or failed): what sits below may show again. */
-  onArrived: () => void;
-}) {
+function AddRoster({ onAdd }: { onAdd: (picked: Sibling[]) => void }) {
   const inputId = useId();
-  const [name, setName] = useState(arrival ?? "");
+  const [name, setName] = useState("");
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const siblings = useMutation({
     mutationFn: (target: string) => fetchSiblings(target, new AbortController().signal),
@@ -147,15 +139,6 @@ function AddRoster({
     : [];
   const failure = siblings.error instanceof CharacterQueryError ? siblings.error.info : null;
   const limit = useRateLimit(siblings.error);
-  // Opened from a character's 주간 획득 골드 (?character=): load that roster's
-  // list once, top six ticked as usual; nothing is added until '추가' is pressed.
-  const asked = useRef(false);
-  const { mutate } = siblings;
-  useEffect(() => {
-    if (!arrival || asked.current) return;
-    asked.current = true;
-    mutate(arrival, { onSettled: onArrived });
-  }, [arrival, mutate, onArrived]);
 
   function submit(event: FormEvent) {
     event.preventDefault();
@@ -573,23 +556,6 @@ function CharacterCard({
 export default function HomeworkTool() {
   const [now, setNow] = useState(() => Date.now());
   const [state, setState] = useState<HomeworkState>(() => load(Date.now()));
-  // ?character= from the character page (주간 획득 골드 → 숙제에서 레이드 고르기),
-  // read once: a roster already here is not asked for again.
-  const [arrival] = useState(() => {
-    const name = new URLSearchParams(window.location.search).get("character")?.trim().slice(0, 16) || null;
-    return name && !state.characters.some((c) => c.name === name) ? name : null;
-  });
-  // While that roster loads, what sits below the add card waits: the list
-  // arriving would push it down with no input (CLS). Shown after, it only appears.
-  const [waiting, setWaiting] = useState(arrival !== null);
-  const arrived = useCallback(() => setWaiting(false), []);
-  // Drop it from the address so a reload does not ask the roster again.
-  useEffect(() => {
-    const url = new URL(window.location.href);
-    if (!url.searchParams.has("character")) return;
-    url.searchParams.delete("character");
-    window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
-  }, []);
 
   // Tick once a minute: countdown, and the weekly reset when it passes.
   useEffect(() => {
@@ -600,6 +566,11 @@ export default function HomeworkTool() {
     }, 60_000);
     return () => clearInterval(timer);
   }, []);
+
+  // Saved elsewhere (the character page's 주간 획득 골드 in another tab, #14):
+  // take it, so both screens show one saved state. Saving the same text back
+  // raises no new event, so two tabs do not echo each other.
+  useEffect(() => onHomeworkSaved(() => setState(load(Date.now()))), []);
 
   useEffect(() => {
     try {
@@ -636,7 +607,7 @@ export default function HomeworkTool() {
         <div className={quote.band}>
           <div className={styles.workspace}>
             <Summary state={state} now={now} />
-            <AddRoster arrival={arrival} onArrived={arrived} onAdd={(picked) =>
+            <AddRoster onAdd={(picked) =>
               setState((s) =>
                 addCharacters(
                   s,
@@ -649,7 +620,7 @@ export default function HomeworkTool() {
                 ),
               )
             } />
-            {waiting ? null : state.characters.length === 0 ? (
+            {state.characters.length === 0 ? (
               <p className={styles.empty}>
                 캐릭터 이름을 넣으면 원정대를 불러와요. 레벨에 맞는 레이드 3개를 골드가 많은
                 순서로 넣어 드려요(자동 구성은 추정 — 공식 규칙이 아닌 기본값이라 바꿔도 돼요).
@@ -670,20 +641,16 @@ export default function HomeworkTool() {
               </div>
             )}
             {/* One line on the page, the calc basis folded (#1112): nothing removed. */}
-            {!waiting && (
-              <>
-                <p className={styles.footnote}>
-                  진행 상황은 이 브라우저에만 저장되고, 매주 수요일 06:00에 체크가 풀려요.
-                </p>
-                <MoreDetail className={styles.footnote}>
-                  골드는 레이드 보상표의 공식 값으로 계산하고, 확인되지 않은 레이드는 &lsquo;데이터
-                  없음&rsquo;으로 둬요. 더보기 비용은 귀속 골드에서 먼저 빠지고, 골드를 받지 않는
-                  캐릭터의 더보기도 원정대 합계에서 빼요. 무료 더보기를 쓴 관문은 더보기 체크를
-                  하지 않으면 비용 없이 계산돼요. 자동 구성(레벨 높은 순 6명·레이드별 최대 골드
-                  난이도)은 추정이에요. <Link href="/tools/raid-rewards">레이드 보상표</Link>
-                </MoreDetail>
-              </>
-            )}
+            <p className={styles.footnote}>
+              진행 상황은 이 브라우저에만 저장되고, 매주 수요일 06:00에 체크가 풀려요.
+            </p>
+            <MoreDetail className={styles.footnote}>
+              골드는 레이드 보상표의 공식 값으로 계산하고, 확인되지 않은 레이드는 &lsquo;데이터
+              없음&rsquo;으로 둬요. 더보기 비용은 귀속 골드에서 먼저 빠지고, 골드를 받지 않는
+              캐릭터의 더보기도 원정대 합계에서 빼요. 무료 더보기를 쓴 관문은 더보기 체크를
+              하지 않으면 비용 없이 계산돼요. 자동 구성(레벨 높은 순 6명·레이드별 최대 골드
+              난이도)은 추정이에요. <Link href="/tools/raid-rewards">레이드 보상표</Link>
+            </MoreDetail>
           </div>
         </div>
       </main>

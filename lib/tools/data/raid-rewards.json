@@ -7,7 +7,7 @@
     "weeklyReset": "수요일 06:00",
     "source": "guide-gold",
     "_note": "공식 가이드는 '총 3회'만 적고 캐릭터당이라고 쓰지 않는다. 캐릭터당 3회는 커뮤니티 두 글과 실제 화면 관측이 일치(확인 2026-11-08)",
-    "perCharacterSources": ["guide-gold", "inven-4821-84690", "inven-4811-8659344"]
+    "perCharacterSources": ["guide-gold", "community-tip-20211229", "community-qa-20240227"]
   },
   "sources": {
     "notice-13307": {
@@ -30,13 +30,13 @@
       "url": "https://lostark.game.onstove.com/News/Notice/Views/13578",
       "date": "2026-10-21"
     },
-    "inven-4821-84690": {
+    "community-tip-20211229": {
       "title": "골드 획득 캐릭터 6개 · 캐릭터마다 골드 3회(팁 글)",
       "url": "https://www.inven.co.kr/board/lostark/4821/84690",
       "date": "2021-12-29",
       "kind": "COMMUNITY"
     },
-    "inven-4811-8659344": {
+    "community-qa-20240227": {
       "title": "엔드 콘텐츠 골드는 캐릭터마다 3개(문답, 답글 여러 개 일치)",
       "url": "https://www.inven.co.kr/board/lostark/4811/8659344",
       "date": "2024-02-27",

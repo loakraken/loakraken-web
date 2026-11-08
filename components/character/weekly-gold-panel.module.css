@@ -61,6 +61,78 @@
   text-align: right;
   white-space: nowrap;
 }
+/* #14: gold and raids chosen here are the homework tool's own (one saved state). */
+.rows li[data-off] b,
+.rows li[data-off] .who strong,
+.rows li[data-off] .raids {
+  color: var(--muted-foreground);
+}
+.rows li[data-off] .raids {
+  text-decoration: line-through;
+}
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  grid-column: 1 / -1;
+  align-items: flex-start;
+  gap: 4px 16px;
+  font-size: 12px;
+}
+.switch {
+  display: inline-flex;
+  min-height: 32px;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+.switch input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--foreground);
+}
+.switch input:disabled {
+  cursor: not-allowed;
+}
+.pick {
+  min-width: 0;
+}
+.pick summary {
+  display: inline-flex;
+  min-height: 32px;
+  align-items: center;
+  color: var(--link);
+  cursor: pointer;
+}
+.pick summary:focus-visible,
+.switch input:focus-visible,
+.pick input:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+.pick ul {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(12em, 1fr));
+  gap: 2px 12px;
+  margin: 4px 0 4px;
+  padding: 0;
+  list-style: none;
+}
+.pick label {
+  display: flex;
+  min-height: 32px;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+.pick label span {
+  display: grid;
+  min-width: 0;
+}
+.pick small {
+  color: var(--muted-foreground);
+  font-variant-numeric: tabular-nums;
+}
 .note {
   margin: 12px 0 0;
   color: var(--muted-foreground);
@@ -84,5 +156,11 @@
   .raids {
     grid-column: 1 / -1;
     grid-row: 2;
+    /* Two lines held: turning a raid off or on changes the names, not the row (A7). */
+    min-height: calc(2 * 1.5em);
+    line-height: 1.5;
+  }
+  .controls {
+    grid-row: 3;
   }
 }
