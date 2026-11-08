@@ -11,7 +11,7 @@ const CHUNKS = /\/_next\/static\/chunks\/.*\.js(\?|$)/;
 /**
  * The page is hydrated: its motion scope is on. The first HTML already has the bot
  * (aria-pressed="false"), but the scope is "off" there (the server cannot know the
- * tab is shown), so no entrance yet and a click on the bot does nothing.
+ * tab is shown), and a click on the bot does nothing until the page wakes.
  */
 const hydrated = (page) => expect(page.locator('[data-motion="on"]')).toHaveCount(1);
 
@@ -90,9 +90,10 @@ test.describe("봇 멈춤 뒤 히어로 글 @regression", () => {
       await expect.poll(() => running(page)).toBeGreaterThan(0);
       await expectTextShown(page, "다시 재생");
 
-      // 재생으로 되돌린 다음 방문에는 등장 애니메이션이 그대로 돈다(꺼 버린 게 아님).
-      // The script chunks arrive late (replays the CI flake on mobile '/'): for a while
-      // only the first HTML is there, so the count is read once the page is hydrated.
+      // 재생으로 되돌린 다음 방문에는 등장 애니메이션이 그대로 돈다(꺼 버린 게 아님). 처음 HTML에서 이미 보인
+      // 글은 페이지가 깨어날 때 다시 사라졌다 올라오지 않는다(#1441: 느린 기기에서 글이 한 번 깜빡였다).
+      // The script chunks arrive late (a slow device): for a while only the first HTML is
+      // there. The heading is fully shown from it, and waking the page must not hide it again.
       let release;
       const held = new Promise((resolve) => (release = resolve));
       await page.route(CHUNKS, async (route) => {
@@ -101,12 +102,26 @@ test.describe("봇 멈춤 뒤 히어로 글 @regression", () => {
       });
       await page.reload({ waitUntil: "commit" });
       await expect(bot).toHaveAttribute("aria-pressed", "false");
+      const heading = page.locator("#hero-heading");
+      await expect.poll(() => heading.evaluate((el) => getComputedStyle(el).opacity), { message: "처음 HTML에서 제목이 다 보임" }).toBe("1");
+      // From here, every frame: the lowest opacity the heading shows.
+      await heading.evaluate((el) => {
+        window.__lowest = 1;
+        const tick = () => {
+          window.__lowest = Math.min(window.__lowest, Number(getComputedStyle(el).opacity));
+          requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+      });
       release();
       await page.unroute(CHUNKS);
       await hydrated(page);
-      expect(await page.locator("#hero-heading").evaluate((el) =>
+      // A fixed wait proves an absence: no second entrance (750 ms) starts after waking.
+      await page.waitForTimeout(1000);
+      expect(await page.evaluate(() => window.__lowest), "깨어난 뒤 제목이 다시 사라지지 않음").toBe(1);
+      expect(await heading.evaluate((el) =>
         el.getAnimations().filter((a) => /hero-enter/.test(a.animationName) && a.playState !== "paused").length,
-      )).toBe(1);
+      ), "등장 애니메이션은 한 번(꺼 버린 게 아님)").toBe(1);
       await expectTextShown(page, "재생 상태로 새로고침");
 
       // 등장 도중에 멈춰도 글은 끝 상태까지 간다.
