@@ -198,7 +198,8 @@ for (const width of [1440, 360, 320]) {
     // Let the open animation finish, then: never wider than its final width at any frame.
     await page.waitForTimeout(600);
     const widest = await page.evaluate(() => window.__panelMax);
-    expect(widest, `열리는 동안 가장 넓었던 패널 폭 ${widest}`).toBeLessThanOrEqual(Math.min(400, width - 32) + 0.5);
+    // Its own final width (the bar's): an open animation never draws it wider than where it lands.
+    expect(widest, `열리는 동안 가장 넓었던 패널 폭 ${widest} (자리 ${panel.width})`).toBeLessThanOrEqual(panel.width + 0.5);
     if (width >= 440) expect(panel.width, "넓은 화면은 400").toBeGreaterThan(399);
     expect(panel.x).toBeGreaterThanOrEqual(0);
     expect(panel.x + panel.width).toBeLessThanOrEqual(width);
