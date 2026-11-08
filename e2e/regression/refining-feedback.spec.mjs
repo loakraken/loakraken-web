@@ -103,11 +103,14 @@ test.describe("재련 기대 비용 사용자 제보 @regression", () => {
     const nudge = async (px) => {
       const mark = await shiftMark(page);
       await materials(page).evaluate((table, value) => (table.style.marginTop = value), `${px}px`);
-      await page.waitForTimeout(300);
-      return realMoves(page, mark);
+      return mark;
     };
-    expect(await nudge(0.3), "0.3px").toEqual([]);
-    expect((await nudge(3.3)).length, "3px").toBeGreaterThan(0);
+    const small = await nudge(0.3);
+    // Nothing to wait for when nothing counts: give the observer the same 300ms as above.
+    await page.waitForTimeout(300);
+    expect(await realMoves(page, small), "0.3px").toEqual([]);
+    const big = await nudge(3.3);
+    await expect.poll(async () => (await realMoves(page, big)).length, { message: "3px" }).toBeGreaterThan(0);
   });
 
   test("360: 카드 모양에서 가격 기준을 바꿔도 잘리는 칸이 없다", async ({ page }) => {
