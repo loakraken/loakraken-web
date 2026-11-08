@@ -132,6 +132,19 @@ test.describe("재련 기대 비용 사용자 제보 @regression", () => {
     // Layout shifts are logged only on screen (below the fold, nothing at all: #1445 CI).
     await materials(page).scrollIntoViewIfNeeded();
     await expect(materials(page)).toBeInViewport();
+    // Measure from a still page: right after the plan opens the table can still
+    // grow a row and the lines above settle (#1445 CI: table 517 → 532px tall),
+    // which is the page's own move, not the nudge. Wait for 500ms with no shift.
+    await expect
+      .poll(
+        async () => {
+          const from = await shiftMark(page);
+          await page.waitForTimeout(500);
+          return page.evaluate((t) => window.__shiftLog.filter((entry) => entry.t >= t).length, from);
+        },
+        { message: "표가 멈춤", timeout: 10_000 },
+      )
+      .toBe(0);
     const nudge = async (px) => {
       const mark = await shiftMark(page);
       await materials(page).evaluate((table, value) => (table.style.marginTop = value), `${px}px`);
