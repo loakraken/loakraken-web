@@ -13,14 +13,15 @@ export type SpecUpEnvelope = { code: string; message: string; data: SpecUp };
 
 // 사용자 결정(PM 총괄 10-26): 전투력 증가 first and the default, then 효율, then 크라켄.
 export const SORTS = [
+  // The chip (label) is short so the bar stays two rows at 320–390 (PM 총괄 11-08);
+  // the caption and sentences say it in full: what is measured, per how much gold
+  // (codex P3 11-08: two chips ending in 효율 with different units read alike).
   { id: "DELTA", label: "전투력 증가", name: "전투력 증가", unit: null },
-  // Each chip says what it measures and per how much gold (codex P3 11-08: two
-  // chips ending in 효율 with different units read alike).
-  { id: "EFFICIENCY", label: "전투력 효율 (1만G당)", name: "전투력 효율", unit: "1만G당" },
+  { id: "EFFICIENCY", label: "전투력 ÷ 1만G", name: "전투력 효율", unit: "1만G당" },
   // api #573: by the Kraken score gained per 100,000 gold (the label said
   // "점수 순", which read as the score itself: codex QA 11-08). Sent only now that the
   // screen knows it; the answer may come back as EFFICIENCY with a reason.
-  { id: "KRAKEN", label: "크라켄 점수 (10만G당)", name: "크라켄 점수", unit: "10만G당" },
+  { id: "KRAKEN", label: "크라켄 ÷ 10만G", name: "크라켄 점수", unit: "10만G당" },
 ] as const;
 export type Sort = (typeof SORTS)[number]["id"];
 /** The list a dealer sees first (the tab's first request); sent explicitly, not the api's own default. */
@@ -31,13 +32,12 @@ export const isFreeCost = (cost: { status: string; amount?: number | null } | nu
   cost?.status === "OK" && cost.amount === 0;
 
 const sortOf = (sort: string) => SORTS.find((s) => s.id === sort) ?? SORTS[0];
-/** The table caption: "전투력 효율 순 (1만G당)", "전투력 증가 순". */
-export const sortCaption = (sort: string) => {
+/** In full, for the caption and sentences: "전투력 효율 (1만G당)", "전투력 증가 순". */
+export const sortName = (sort: string) => {
   const { name, unit } = sortOf(sort);
-  return unit ? `${name} 순 (${unit})` : `${name} 순`;
+  return unit ? `${name} (${unit})` : `${name} 순`;
 };
-/** In a sentence: "전투력 효율 순", "크라켄 점수 순". */
-export const sortName = (sort: string) => `${sortOf(sort).name} 순`;
+export const sortCaption = sortName;
 
 /**
  * Told on the status line when another list has come (#921): the sort, or for
@@ -323,7 +323,7 @@ function changeOf(value: unknown): SpecUpChange | null {
 }
 
 /**
- * 크라켄 점수 순 (api #573): the ranked rows are every candidate with a score
+ * 크라켄 점수 정렬 (api #573): the ranked rows are every candidate with a score
  * change, in the answer's order — a candidate the combat power simulator
  * cannot price can still raise the score (its cost then comes too). The rest
  * fold by reason as before.
@@ -334,21 +334,21 @@ export function splitKrakenCandidates(list: Candidate[]) {
   return { ok: scored, folded };
 }
 
-/** Why 크라켄 점수 순 could not be used; the list then comes in 전투력 효율 order. */
+/** Why the 크라켄 점수 sort could not be used; the list then comes in 전투력 효율 order. */
 export function krakenUnavailableCopy(reason: string | null | undefined): string | null {
   if (!reason) return null;
   const why =
     reason === "DISABLED"
-      ? "크라켄 점수 순은 아직 준비 중이에요."
+      ? "크라켄 점수 (10만G당) 정렬은 아직 준비 중이에요."
       : reason === "INPUT_PENDING"
         ? "점수 계산에 필요한 정보를 아직 모으고 있어요."
         : reason === "ROLE_UNKNOWN"
           ? "이 캐릭터의 역할(딜러·서포터)을 확인하지 못했어요."
           : reason === "SUPPORTER_PENDING"
-            ? "서포터의 크라켄 점수 순은 준비 중이에요."
+            ? "서포터의 크라켄 점수 (10만G당) 정렬은 준비 중이에요."
             : reason === "SCORE_UNAVAILABLE"
               ? "이 캐릭터의 크라켄 점수를 계산하지 못했어요."
-              : "지금은 크라켄 점수 순으로 정렬할 수 없어요.";
+              : "지금은 크라켄 점수 (10만G당)으로 정렬할 수 없어요.";
   return `${why} ${sortName("EFFICIENCY")}으로 보여 드려요.`;
 }
 

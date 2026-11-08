@@ -59,7 +59,7 @@ test("캐릭터 화면 작은 버튼 누르는 영역 44 @regression @A36", asyn
     ["추천 순서", sorts.getByRole("button", { name: "추천 순서" })],
     ["효율 우선", pathRule.getByRole("button", { name: "효율 우선" })],
     ["전투력 우선", pathRule.getByRole("button", { name: "전투력 우선" })],
-    ["전투력 효율 (1만G당)", sorts.getByRole("button", { name: "전투력 효율 (1만G당)" })],
+    ["전투력 ÷ 1만G", sorts.getByRole("button", { name: "전투력 ÷ 1만G" })],
     ["전투력 증가", sorts.getByRole("button", { name: "전투력 증가" })],
   ]);
 
