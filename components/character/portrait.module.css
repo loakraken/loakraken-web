@@ -1,0 +1,33 @@
+/* The official character render (612×708 JPEG on its own flat dark canvas)
+   with soft edges (user, 11-08: weapon and skill effects stopped at a
+   straight line where the canvas or its box ended). A CSS mask only: two
+   linear fades, across and down, intersected, so the render melts into the
+   dark stage behind it on every side. Each placement sets how far each side
+   fades; nothing here changes the image's box, so it never moves anything. */
+.portrait {
+  --fade-x: 14%;
+  --fade-top: 6%;
+  --fade-bottom: 12%;
+  -webkit-mask-image:
+    linear-gradient(to right, transparent, #000 var(--fade-x), #000 calc(100% - var(--fade-x)), transparent),
+    linear-gradient(to bottom, transparent, #000 var(--fade-top), #000 calc(100% - var(--fade-bottom)), transparent);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    linear-gradient(to right, transparent, #000 var(--fade-x), #000 calc(100% - var(--fade-x)), transparent),
+    linear-gradient(to bottom, transparent, #000 var(--fade-top), #000 calc(100% - var(--fade-bottom)), transparent);
+  mask-composite: intersect;
+}
+/* The character page banner: the render is enlarged past the band's top and
+   bottom, so only its own sides fade here; the figure box fades the band
+   edges (imagery.module.css). */
+.portrait[data-fade="banner"] {
+  --fade-x: 12%;
+  --fade-top: 0%;
+  --fade-bottom: 0%;
+}
+/* The avatar tab's stage shows the whole render. */
+.portrait[data-fade="stage"] {
+  --fade-x: 10%;
+  --fade-top: 4%;
+  --fade-bottom: 8%;
+}
