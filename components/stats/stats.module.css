@@ -217,7 +217,8 @@
    labels re-centred as taller controls joined the line. Every slot is fixed
    from the first paint instead: the first row's line is the pills' 40px, each
    label is as tall as its control, and the fields hold their full width
-   (wide screens) or their own line (phones), whatever has arrived. */
+   (the first row on phones: its own line each, as it already was drawn),
+   whatever has arrived. */
 .barRow:first-child {
   min-height: 40px;
 }
@@ -243,15 +244,23 @@
   min-height: 40px;
 }
 @media (max-width: 520px) {
-  .barRow {
+  .barRow:first-child {
     flex-direction: column;
     align-items: flex-start;
   }
 }
 /* The drawn widths (kraken 13/14px); a wider fallback font only grows them. */
+.field[data-field="level"] {
+  min-width: 150px;
+}
+.field[data-field="power"] {
+  min-width: 230px;
+}
+.statsBar .check {
+  min-width: 125px;
+}
 @media (min-width: 521px) {
-  .field[data-field="server"],
-  .field[data-field="level"] {
+  .field[data-field="server"] {
     min-width: 150px;
   }
   .field[data-field="role"] {
@@ -259,12 +268,6 @@
   }
   .field[data-field="days"] {
     min-width: 267px;
-  }
-  .field[data-field="power"] {
-    min-width: 230px;
-  }
-  .statsBar .check {
-    min-width: 125px;
   }
 }
 /* Narrow phones (user 11-08: 역할 ran 19px off the card at 320 with a wider
