@@ -86,3 +86,25 @@ test("소개 1280: 머리글 메뉴로 와도, 뒤로·앞으로 와도 처음�
   const backShift = await shiftsSince(page, back);
   expect(backShift.all, `뒤로·앞으로 흔들림 (${backShift.moved})`).toBe(0);
 });
+
+// 뒤로로 히어로 없는 화면(/market)에 간 다음 헤더 검색 창의 메뉴 줄로 소개에 오면, 앞으로 가는 이동이니
+// 등장을 한 번 한다(뒤로 표시가 남아 등장을 건너뛰지 않음).
+test("소개 1280: 뒤로 간 뒤 검색 창의 메뉴 줄로 오면 등장 한 번 @regression", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await gotoReady(page, "/market");
+  await page.waitForFunction(() => window.__lkHydrated);
+  await page.getByRole("link", { name: "LOAKraken 홈" }).click();
+  await expect(page).toHaveURL(/\/$/);
+  await page.goBack();
+  await expect(page).toHaveURL(/\/market/);
+  await page.getByRole("button", { name: "캐릭터 검색" }).click();
+  await expect(page.getByRole("combobox", { name: "캐릭터 이름" })).toBeFocused();
+  await page.keyboard.type("소개");
+  const row = page.getByRole("group", { name: "메뉴" }).getByRole("option", { name: /서비스 소개/ });
+  await expect(row).toBeVisible();
+  await row.click();
+  await expect(page).toHaveURL(/\/about/);
+  await expect(page.locator('[data-motion="on"]')).toHaveCount(1);
+  expect(await entrances(page), "메뉴 줄로 오면 등장 한 번").toBe(1);
+});
