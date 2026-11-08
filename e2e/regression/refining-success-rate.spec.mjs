@@ -83,6 +83,9 @@ test("성공 확률을 모르는 이전 api면 칸이 없고, 주소에 남은 �
   await expect(row.getByRole("spinbutton", { name: "현재 성공 확률(%)" })).toHaveCount(0);
   // A rate saved in the address (from a newer api) is not sent either.
   const url = new URL(page.url());
+  // Every input lives in the address (#889): the plan's parts are there after +20.
+  await expect.poll(() => new URL(page.url()).searchParams.has("parts"), { message: "주소에 parts" }).toBe(true);
+  url.href = page.url();
   const parts = JSON.parse(url.searchParams.get("parts"));
   parts.weapon = { ...parts.weapon, successRate: 9.46 };
   url.searchParams.set("parts", JSON.stringify(parts));
