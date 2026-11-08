@@ -176,6 +176,7 @@ export interface components {
             refineExp: components["schemas"]["RefineExpResponse"] | null;
             advancedRefineLevel: number | null;
             paradisePower: number | null;
+            accessoryStats?: components["schemas"]["AccessoryStatsResponse"] | null;
         };
         PointBonusResponse: {
             name: string;
@@ -812,6 +813,34 @@ export interface components {
             /** @example 요청 값이 올바르지 않습니다. */
             message: string;
             data: null;
+        };
+        /** @description 장신구 기본 스탯 범위. 범위 = 공식 아이템 사전 연마 효과 탭의 부위·연마 단계별 힘민지 최솟값~최댓값 */
+        AccessoryStatsResponse: {
+            /**
+             * Format: int32
+             * @description 연마 단계(연마 효과 줄 수 0~3)
+             * @example 3
+             */
+            polishStage: number;
+            /**
+             * Format: int32
+             * @description 기본 효과 힘·민첩·지능 값
+             * @example 16009
+             */
+            mainStat: number;
+            /**
+             * Format: int32
+             * @description 그 부위·연마 단계 힘민지 최솟값
+             * @example 15178
+             */
+            mainStatMin: number;
+            /**
+             * Format: int32
+             * @description 그 부위·연마 단계 힘민지 최댓값
+             * @example 17857
+             */
+            mainStatMax: number;
+            mainStatRangePct: number | null;
         };
     };
     responses: never;

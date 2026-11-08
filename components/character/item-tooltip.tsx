@@ -24,6 +24,7 @@ import {
   type GridGemLines,
   type GridLines,
 } from "@/lib/character/item-tooltips";
+import { rangeDetail } from "@/lib/character/accessory-range";
 import styles from "./item-tooltip.module.css";
 
 type Equipment = Character["loadout"]["equipment"][number];
@@ -116,6 +117,10 @@ function Effects({ detail: d, after }: { detail: Detail; after: Map<string, stri
               {group.lines.map((line, j) => (
                 <ItemLine key={j}>{line}</ItemLine>
               ))}
+              {/* An accessory's 힘·민첩·지능 within its slot and polish stage range (gap #6). */}
+              {group.title === "기본 효과" && rangeDetail(d.accessoryStats) && (
+                <ItemLine tone="muted">힘·민첩·지능 {rangeDetail(d.accessoryStats)}</ItemLine>
+              )}
             </ItemDetailSection>
           )}
           <ExtraSections lines={after.get(group.title)} />
