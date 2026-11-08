@@ -26,3 +26,25 @@ for (const width of [1280, 390, 320])
       await expectNoHorizontalOverflow(page);
     }
   });
+
+// While the tab list has not arrived (slow or failed), the stand-in tabs are the long-standing eight only: an api
+// before #873 must never be offered 아바타 or 장비 상자 (codex on #1476). They come with the api's own list.
+test("시세 분류: 탭 목록을 기다리는 동안의 자리 탭에는 아바타·장비 상자가 없음 @regression", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  let release;
+  const held = new Promise((resolve) => (release = resolve));
+  await page.route("**/api/markets/tabs*", async (route) => {
+    await held;
+    await route.continue();
+  });
+  await gotoReady(page, "/market");
+  const tabs = page.getByRole("tablist", { name: "시세 분류" });
+  await expect(tabs.getByRole("tab", { name: "재련 재료", exact: true })).toBeDisabled();
+  await expect(tabs.getByRole("tab")).toHaveCount(8);
+  await expect(tabs.getByRole("tab", { name: "아바타", exact: true })).toHaveCount(0);
+  await expect(tabs.getByRole("tab", { name: "장비 상자", exact: true })).toHaveCount(0);
+  // The api's list arrives (it has both here): now they are there and can be opened.
+  release();
+  await expect(tabs.getByRole("tab", { name: "아바타", exact: true })).toBeEnabled();
+  await expect(tabs.getByRole("tab", { name: "장비 상자", exact: true })).toBeEnabled();
+});

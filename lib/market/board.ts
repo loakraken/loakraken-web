@@ -43,9 +43,8 @@ export const TAB_FALLBACK: readonly { tab: TabId; label: string; tiered: boolean
   { tab: "LIFE", label: "생활", tiered: false },
   { tab: "BATTLE_ITEM", label: "전투 용품", tiered: false },
   { tab: "FOOD", label: "요리", tiered: false },
-  // Gap #11 (api #873): no tier, prices refreshed every 5 minutes.
-  { tab: "AVATAR", label: "아바타", tiered: false },
-  { tab: "EQUIPMENT_BOX", label: "장비 상자", tiered: false },
+  // 아바타·장비 상자 (gap #11, api #873) are left out on purpose: they show only when the
+  // api's own tab list has them, so an api before #873 never offers a tab it cannot open.
 ];
 
 export const isTabId = (value: string): value is TabId => (TAB_IDS as readonly string[]).includes(value);
