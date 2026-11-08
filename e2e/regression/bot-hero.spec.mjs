@@ -56,8 +56,13 @@ async function followsHorizontally(page) {
 /** The eyes' up-down: < 0 is up (the search box below reads about +1). */
 const eyesY = async (page) => Number((await canvas(page).getAttribute("data-bot-look")).split(",")[1]);
 
-/** Looking up at a point just above it (the header): how a head pose is judged. */
-const looksUp = ({ pitch }) => pitch > 0.1;
+/**
+ * Looking up at a point just above it (the header). Straight up, the head lifts only a
+ * little: rounded to 0.1 and moved by the library's slow sway it reads 0.1 or 0.2
+ * (CI 42492201273 sat at 0.1 and failed "> 0.1"). So: the head is not lowered
+ * (>= 0.1) and the eyes clearly look up (< -1; a bot facing front reads about 0).
+ */
+const looksUp = ({ pitch, eyes }) => pitch >= 0.1 && eyes < -1;
 
 async function settledPitch(page, x, y) {
   await page.mouse.move(x, y, { steps: 12 });
@@ -137,8 +142,11 @@ test.describe("히어로 봇 @regression", () => {
       // "+0.2 초과"는 반올림에 따라 같은 빌드에서 통과·실패가 갈렸다.
       await expect.poll(async () => (await turn(page))[1], { message: "오른쪽 위 → 오른쪽 아래보다 위" }).toBeGreaterThan(low + 0.15);
       const header = await page.locator("header").first().boundingBox();
-      await page.mouse.move(width / 2, header.y + header.height / 2, { steps: 12 });
-      await expect.poll(async () => (await turn(page))[1], { message: "머리글 → 위" }).toBeGreaterThan(0.1);
+      // Read awake (1 px nudges) and as the median, like the other pitch checks: a still
+      // pointer let it fall asleep while the poll waited (CI 42492201273).
+      const pitch = await settledPitch(page, width / 2, header.y + header.height / 2);
+      const pose = { pitch, eyes: await eyesY(page) };
+      expect(looksUp(pose), `머리글 → 위 (${JSON.stringify(pose)})`).toBe(true);
       // 마우스가 창 밖으로: relatedTarget 없는 pointerout.
       await page.evaluate(() => document.body.dispatchEvent(new PointerEvent("pointerout", { bubbles: true, pointerType: "mouse", relatedTarget: null })));
       await expect.poll(async () => (await turn(page)).map((v) => Math.abs(v)).every((v) => v <= 0.1), { message: "창을 떠나면 정면" }).toBe(true);
