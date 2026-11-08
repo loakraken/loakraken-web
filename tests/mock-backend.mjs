@@ -416,6 +416,13 @@ function refiningPlan(request) {
       worstCaseMaterials: per.map(([name, n]) => ({ name, amount: n * maxAttempts })),
       expectedGold: round(goldPer * expectedAttempts),
       worstCaseGold: Math.round(goldPer * maxAttempts),
+      // The api's shape for a plain (not OPTIMAL) plan without growth cost:
+      // these are all null (contract resync, web #1492).
+      growth: null,
+      breathPath: null,
+      expectedBreaths: null,
+      expectedBooks: null,
+      expectedCostGold: null,
     });
   }
   const sum = (key) => {
@@ -432,6 +439,15 @@ function refiningPlan(request) {
       grade: armGuard ? null : request.grade, equipmentType: request.equipmentType, fromStage: request.fromStage, toStage: request.toStage,
       useBreath: !!request.useBreath, useBook: armGuard ? false : !!request.useBook, growthSupport: armGuard ? false : !!request.growthSupport,
       failedAttemptsFrom,
+      // Fields the live api already sends for a plain plan (contract resync, web #1492):
+      // no OPTIMAL, no growth cost (api defaults), no market prices needed.
+      breath: request.useBreath ? "MAX" : "NONE",
+      growthCost: false,
+      expResearch: !armGuard,
+      growthSource: { ruleVersion: "mock-growth", name: "합성 목 데이터", crossCheckedWith: "없음", researchText: "합성 목 데이터", verifiedOn: "2026-10-05" },
+      nonGold: [],
+      pricesObservedAt: null,
+      expectedCostGold: null,
       stages,
       expectedMaterials: sum("expectedMaterials"),
       worstCaseMaterials: sum("worstCaseMaterials"),

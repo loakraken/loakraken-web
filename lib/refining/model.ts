@@ -8,9 +8,16 @@ import { rateLimitCopy } from "../api/rate-limit";
 
 type Schemas = components["schemas"];
 // openapi-typescript makes a field with a default required; the failure count
-// must stay unsent so the api reads it from 현재 성공 확률.
-export type PlanRequest = Omit<Schemas["RefiningPlanRequest"], "currentFailedAttempts"> & {
+// must stay unsent so the api reads it from 현재 성공 확률. growthCost and
+// expResearch (api defaults false / true) stay unsent too, so the plan total
+// keeps its current meaning until the web adds the growth-cost toggle.
+export type PlanRequest = Omit<
+  Schemas["RefiningPlanRequest"],
+  "currentFailedAttempts" | "growthCost" | "expResearch"
+> & {
   currentFailedAttempts?: number;
+  growthCost?: boolean;
+  expResearch?: boolean;
 };
 export type Plan = Schemas["RefiningPlanResponse"];
 export type PlanStage = Schemas["StageResponse"];
