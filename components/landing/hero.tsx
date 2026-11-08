@@ -22,6 +22,12 @@ import { characterNameError, normalizeCharacterName } from "@/lib/character/mode
 import styles from "./landing.module.css";
 
 const noSubscribe = () => () => {};
+// Back/forward (popstate) puts a page the visitor has already seen back in place:
+// its hero comes back as it was, with no entrance (PM 11-09). The router mounts
+// it right after the event; a link or the menu has no popstate before it.
+let historyAt = -Infinity;
+if (typeof window !== "undefined") window.addEventListener("popstate", () => { historyAt = performance.now(); });
+const backOrForward = () => performance.now() - historyAt < 1500;
 // Platform is unknown during SSR; render the hint only after hydration to avoid a mismatch.
 const platformKey = () => (/mac|iphone|ipad/i.test(navigator.platform) ? "mac" : "other");
 
@@ -50,11 +56,12 @@ export function Hero({
   // The error puts focus back in the box: that focus is not the visitor's, so no hop.
   const refocus = useRef(false);
   const Title = embedded ? "h2" : "h1";
-  // The text enters only when the client puts the hero in the page (a link from
-  // another page): false while hydrating the first HTML, which already drew it
-  // in its final state (LCP), and kept so: waking never starts an entrance (#1441).
+  // The text enters only when the client puts the hero in the page after a link
+  // or the menu: false while hydrating the first HTML, which already drew it in
+  // its final state (LCP), and kept so: waking never starts an entrance (#1441).
+  // Back/forward brings it back as it was (no entrance either).
   const clientMount = useSyncExternalStore(noSubscribe, () => true, () => false);
-  const [enter] = useState(clientMount);
+  const [enter] = useState(() => clientMount && !backOrForward());
   const entering = enter ? { "data-enter": "" } : {};
   const theme = useTheme();
   const [bot] = useChosenBot();

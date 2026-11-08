@@ -12,6 +12,10 @@ const heroText = (page) =>
     [...document.querySelectorAll('section[aria-labelledby="hero-heading"] [class*="heroEnter"]')].map((el) => getComputedStyle(el).opacity),
   );
 
+/** hero-enter animations on the hero title (a finished one still counts: it holds its end state). */
+const entrances = (page) =>
+  page.locator("#hero-heading").evaluate((el) => el.getAnimations().filter((a) => /hero-enter/.test(a.animationName)).length);
+
 /** Nothing of a self-building intro is left on the page. */
 async function noIntro(page) {
   expect(await page.evaluate(() => document.documentElement.className), "html에 소개 표시 없음").not.toMatch(/intro/);
@@ -60,8 +64,15 @@ test("소개 1280: 머리글 메뉴로 와도, 뒤로·앞으로 와도 처음�
   const shift = await shiftsSince(page, mark);
   expect(shift.all, `흔들림 (${shift.moved})`).toBe(0);
 
+  // Through the menu (a forward navigation) the title plays its one short entrance (#1463).
+  expect(await entrances(page), "메뉴로 오면 등장 한 번").toBe(1);
+
+  // Back to the home page and forward again: pages already seen come back as they were,
+  // with no entrance (PM 11-09).
   await page.goBack();
   await expect(page).not.toHaveURL(/\/about/);
+  await expect(page.locator("#hero-heading")).toBeVisible();
+  expect(await entrances(page), "뒤로: 홈 히어로 등장 없음").toBe(0);
   await page.goForward();
   await expect(page).toHaveURL(/\/about#intro$/);
   // Back on /about: every section is there at once (nothing waits to be built).
@@ -69,7 +80,8 @@ test("소개 1280: 머리글 메뉴로 와도, 뒤로·앞으로 와도 처음�
   const back = await shiftMark(page);
   expect(await page.evaluate((ids) => ids.filter((id) => !document.getElementById(id)), SECTIONS), "뒤로·앞으로: 모든 구역이 바로 있음").toEqual([]);
   await noIntro(page);
-  await expect.poll(async () => (await heroText(page)).every((o) => o === "1"), { message: "뒤로·앞으로: 히어로 글 모두 보임" }).toBe(true);
+  expect(await entrances(page), "앞으로: 소개 히어로 등장 없음").toBe(0);
+  expect((await heroText(page)).every((o) => o === "1"), "뒤로·앞으로: 히어로 글이 처음부터 다 보임").toBe(true);
   await page.waitForTimeout(800); // proves an absence: nothing moves after coming back
   const backShift = await shiftsSince(page, back);
   expect(backShift.all, `뒤로·앞으로 흔들림 (${backShift.moved})`).toBe(0);
