@@ -78,8 +78,9 @@ async function expectCascade(page) {
         failures.push("초상화·대체 아이콘 상자 크기 불일치");
       if (child.tagName === "IMG") {
         const style = getComputedStyle(child);
-        if (style.objectFit !== "cover" || style.objectPosition !== "50% 0%")
-          failures.push("초상화 머리·어깨 크롭 불일치");
+        // The whole render at the slot height (user 11-08): never cropped, its box is the render's width.
+        if (style.objectFit !== "contain" || Math.abs(a.width - a.height * 612 / 708) > 1)
+          failures.push("초상화 전체(자르지 않음)·상자 폭 불일치");
       } else if (child.dataset.portraitFallback === "guild") {
         const circle = child.firstElementChild.getBoundingClientRect();
         if (Math.abs(circle.x + circle.width / 2 - (a.x + a.width / 2)) > 1 ||
@@ -109,7 +110,11 @@ async function expectCascade(page) {
         failures.push("1위 조명 원뿔 누락");
       for (const child of place.children) {
         const rect = child.getBoundingClientRect();
-        if (rect.left < card.left || rect.right > card.right || rect.top < card.top || rect.bottom > card.bottom)
+        // A render wider than a phone's narrow card may reach past its sides (its edges fade, user 11-08):
+        // the card clips it there; it never passes the card's top or bottom.
+        const render = child.matches("[data-portrait-box]") && child.querySelector("img[data-podium-image]");
+        const sidesOut = rect.left < card.left || rect.right > card.right;
+        if ((sidesOut && !(render && style.overflow === "hidden")) || rect.top < card.top || rect.bottom > card.bottom)
           failures.push(`${place.dataset.podiumPlace}위 카드가 ${child.tagName} 를 자름`);
       }
       for (const text of place.querySelectorAll("[data-podium-name], [data-podium-value]")) {
@@ -119,7 +124,9 @@ async function expectCascade(page) {
     }
     for (const image of root.querySelectorAll("img[data-podium-image]")) {
       const style = getComputedStyle(image);
-      if (style.maskImage !== "none" || style.mixBlendMode !== "normal") failures.push("초상화에 가림·섞기 남음");
+      // Soft edges (CharacterPortrait, user 11-08): its own two fades and nothing blended over it.
+      if ((style.maskImage.match(/linear-gradient/g) ?? []).length !== 2 || style.mixBlendMode !== "normal")
+        failures.push("초상화 가장자리 흐림 누락·섞기 남음");
     }
     return failures;
   });

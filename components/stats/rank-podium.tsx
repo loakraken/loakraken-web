@@ -7,6 +7,7 @@ import { safeGameImage } from "@/lib/character/model";
 import { podiumTop } from "@/lib/stats/podium";
 import { BotNote } from "@/components/bot/bot-note";
 import { ClassIcon } from "./class-icon";
+import { CharacterPortrait } from "@/components/character/portrait";
 import styles from "./rank-podium.module.css";
 
 /** Odometer digits (rolling-counter idea, our own few lines): each digit rolls
@@ -163,9 +164,9 @@ export function RankPodium({
                 <MedalStarBold className={styles.medal} size={24} data-place={entry.rank} />
                 <div className={styles.portraitBox} data-portrait-box="">
                   {src && !entry.guild && !broken.has(src) ? (
-                    // Official opaque 612×708 JPEG, hotlinked like character/imagery.tsx.
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
+                    // Official opaque 612×708 JPEG with soft edges (shared with the banner).
+                    <CharacterPortrait
+                      fade="card"
                       className={styles.portrait}
                       data-podium-image=""
                       src={src}
@@ -174,7 +175,6 @@ export function RankPodium({
                       height={144}
                       loading="lazy"
                       decoding="async"
-                      referrerPolicy="no-referrer"
                       onError={() => setBroken((prev) => new Set(prev).add(src))}
                       // A server-drawn list (팔찌·젬 효율) can fail its image before
                       // hydration, when no onError is listening yet: an image already

@@ -2695,7 +2695,7 @@ createServer(async (req, res) => {
       detail: { parserVersion: "equipment-tooltip-v3", refineLevel, quality: 90, itemLevel: 1640 + refineLevel * 5, tier: 4, arkPassivePoint: null, effects: [], stoneEngravings: [], polishEffects: [], braceletEffects: [] },
     }));
   }
-  if (name === "상세" || name === "아바타옛응답" || name === "상세서포터" || name === "서포터옛응답" || name === "대세블레이드" || name === "가려짐긴값캐릭터" || name === "아크없음" || name === "효율준비중" || name === "팔찌못읽음") {
+  if (name === "상세" || name === "아바타옛응답" || name === "상세서포터" || name === "서포터옛응답" || name === "대세블레이드" || name === "가려짐긴값캐릭터" || name === "아크없음" || name === "효율준비중" || name === "팔찌못읽음" || name === "초상화") {
     // Detail-page mock: a locally supplied character file (never committed) or
     // the synthetic fixture, enriched with synthetic Tooltip detail and skills.
     if (process.env.MOCK_CHARACTER_FILE)
@@ -2717,6 +2717,9 @@ createServer(async (req, res) => {
     d.fetchedAt = new Date(now - 90_000).toISOString();
     d.refreshAvailableAt = new Date(now + 210_000).toISOString();
     if (process.env.MOCK_PORTRAIT_URL) d.imageUrl = process.env.MOCK_PORTRAIT_URL;
+    // A character with a render for the banner and avatar tab (portrait specs): an official-CDN-shaped
+    // address that belongs to no real character; the e2e network answers it with a 1x1 PNG.
+    if (name === "초상화") d.imageUrl = "https://cdn-lostark.game.onstove.com/armory/0/E2E-PORTRAIT.jpg";
     // Official line names (as the armory gives them), so the role colours
     // (#1108) read them: 상세 is a dealer, 상세서포터 a supporter.
     const polish = [

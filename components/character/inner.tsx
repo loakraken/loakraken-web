@@ -22,6 +22,7 @@ import { safeGameImage } from "@/lib/character/model";
 import { CollectibleIcon, GameIcon } from "./imagery";
 import { Panel } from "./panel";
 import { Empty, number, text } from "./parts";
+import { CharacterPortrait } from "./portrait";
 import styles from "./detail.module.css";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { useTallest } from "@/components/ui/use-tallest";
@@ -418,15 +419,15 @@ function AvatarPreview({ url, name }: { url: string | null; name: string }) {
   return (
     <div className={styles.avatarStage}>
       {safe && !failed ? (
-        // eslint-disable-next-line @next/next/no-img-element -- official CDN render, not proxied
-        <img
+        // Soft-edged like the banner, so effects fade into the stage (official CDN, not proxied).
+        <CharacterPortrait
+          fade="stage"
           src={safe}
           alt={`${name} 캐릭터 전신(장착한 아바타)`}
           width={612}
           height={708}
           loading="lazy"
           decoding="async"
-          referrerPolicy="no-referrer"
           onError={() => setFailed(true)}
         />
       ) : (

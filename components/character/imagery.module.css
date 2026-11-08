@@ -225,7 +225,7 @@
 .bannerIdentity,
 .bannerFacts {
   position: relative;
-  z-index: 1;
+  z-index: 2;
   min-width: 0;
 }
 .bannerIdentity {
@@ -238,20 +238,23 @@
   grid-row: 1;
 }
 /* Ambient glow: the render's own effect colour (normalised in glowTint)
-   spreads softly behind the figure, so effects fade into the band instead of
-   stopping at the image. A radial gradient with a light blur keeps it cheap. */
+   spreads softly round the figure, so effects fade into the band instead of
+   stopping at the image. A radial gradient with a light blur keeps it cheap.
+   It screens over the render too, at half strength (user 11-08, option A):
+   drawn only behind it, the render's opaque canvas hid it and read as a
+   darker rectangle. Text stays above it. */
 .bannerGlow {
   position: relative;
   grid-column: 2;
   grid-row: 1;
   align-self: stretch;
-  z-index: 0;
+  z-index: 1;
   pointer-events: none;
   opacity: 0;
   transition: opacity 900ms ease-out;
 }
 .bannerGlow[data-ready] {
-  opacity: 1;
+  opacity: 0.5;
 }
 .bannerGlow::before {
   content: "";
@@ -281,16 +284,17 @@
   align-self: stretch;
   margin-left: -200px;
   overflow: hidden;
-  /* The enlarged render (and its skill effects) is wider than this box, so
-     fade the box's own sides too; otherwise the effects stop at a hard
-     vertical edge next to the facts column. Bottom and side fades intersect. */
+  /* The enlarged render (and its skill effects) is wider and taller than this
+     box, so the box fades on all four sides (user 11-08, option A): effects
+     melt into the band at its top edge and next to the text columns instead
+     of stopping at a straight line. Down and across fades intersect. */
   -webkit-mask-image:
-    linear-gradient(to bottom, #000 82%, transparent),
-    linear-gradient(to right, transparent, #000 14%, #000 74%, transparent);
+    linear-gradient(to bottom, transparent, #000 14%, #000 82%, transparent),
+    linear-gradient(to right, transparent, #000 12%, #000 80%, transparent);
   -webkit-mask-composite: source-in;
   mask-image:
-    linear-gradient(to bottom, #000 82%, transparent),
-    linear-gradient(to right, transparent, #000 14%, #000 74%, transparent);
+    linear-gradient(to bottom, transparent, #000 14%, #000 82%, transparent),
+    linear-gradient(to right, transparent, #000 12%, #000 80%, transparent);
   mask-composite: intersect;
 }
 .bannerFigure img {
@@ -302,20 +306,7 @@
   width: auto;
   max-width: none;
   transform: translateX(-50%);
-  -webkit-mask-image: linear-gradient(
-    to right,
-    transparent,
-    #000 18%,
-    #000 82%,
-    transparent
-  );
-  mask-image: linear-gradient(
-    to right,
-    transparent,
-    #000 18%,
-    #000 82%,
-    transparent
-  );
+  /* its own sides fade in CharacterPortrait (portrait.module.css) */
   transition:
     opacity 420ms ease-out,
     transform 420ms cubic-bezier(0.23, 1, 0.32, 1);
@@ -397,6 +388,11 @@
     width: 64%;
     height: 224px;
     margin: 0;
+  }
+  /* The glow covers most of the smaller render here: weaker, so it does not
+     wash the character out. */
+  .bannerGlow[data-ready] {
+    opacity: 0.3;
   }
   /* Text sits over the render here; a soft halo in the band colour keeps it
      readable without a panel behind it. */
