@@ -131,7 +131,7 @@ export function WeeklyGoldPanel({
         })}
       </ol>
       <p className={styles.note}>
-        캐릭터를 {GOLD_CHARACTERS}명까지 골드 받기로 두고, 캐릭터마다 고른 레이드 중 위에서{" "}
+        캐릭터를 {GOLD_CHARACTERS}명까지 골드 받기로 두고, 캐릭터마다 고른 레이드 중 숙제 체크 순서로 앞의{" "}
         {GOLD_RAIDS_PER_CHARACTER}개가 골드를 받는다고 계산했어요(숙제 체크에서 더보기를 고르면 그 비용은 빼요).
         여기서 바꾸면 숙제 체크에도 그대로 저장돼요.
         {gold.unknownGates > 0 && ` 골드 미확인 관문 ${gold.unknownGates}개는 빠져 있어요.`}

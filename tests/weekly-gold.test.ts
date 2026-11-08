@@ -131,3 +131,11 @@ test("weekly gold: gold characters saved on another server count toward the six"
   assert.deepEqual(gold.rows.map((row) => row.on), [true, true, true, true, false, false]);
   assert.equal(gold.goldFull, true);
 });
+
+test("weekly gold: the raid list keeps its order when a raid is turned off or on (A7)", () => {
+  const first = weeklyGold(roster6, "아만")!.rows[0].character;
+  const before = raidChoices(first).map((c) => c.raidId);
+  const dropped = withRaid(first, raidChoices(first)[0], false);
+  assert.deepEqual(raidChoices(dropped).map((c) => c.raidId), before);
+  assert.equal(raidChoices(dropped)[0].on, false);
+});

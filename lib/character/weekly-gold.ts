@@ -122,34 +122,32 @@ export type RaidChoice = {
 };
 
 /**
- * The raids a character can turn on or off in the panel: the ones planned
- * (in their order, with their difficulty), then every other raid it can
- * enter at its best-paying difficulty, most gold first.
+ * The raids a character can turn on or off in the panel, in one fixed order
+ * (the raid's best-paying gold, most first) whether on or off, so a toggle
+ * never moves the list (A7). A planned raid shows its planned difficulty.
  */
 export function raidChoices(character: Character): RaidChoice[] {
   const gold = (raidId: string, difficulty: RaidChoice["difficulty"]) => {
     const mode = modeOf({ raidId, difficulty });
     return mode ? (modeTotals(mode)?.gold ?? null) : null;
   };
-  const planned: RaidChoice[] = character.raids
-    .filter((plan) => modeOf(plan))
-    .map((plan) => ({
-      raidId: plan.raidId,
-      difficulty: plan.difficulty,
-      label: raidLabel(plan.raidId, plan.difficulty),
-      on: true,
-      gold: gold(plan.raidId, plan.difficulty),
-    }));
-  const taken = new Set(planned.map((c) => c.raidId));
-  const best = new Map<string, RaidChoice>();
+  const best = new Map<string, { difficulty: RaidChoice["difficulty"]; gold: number | null }>();
   for (const { raid, mode } of eligibleModes(character.itemLevel)) {
-    if (taken.has(raid.id)) continue;
     const value = modeTotals(mode)?.gold ?? null;
     const current = best.get(raid.id);
-    if (!current || (value ?? -1) > (current.gold ?? -1))
-      best.set(raid.id, { raidId: raid.id, difficulty: mode.difficulty, label: raidLabel(raid.id, mode.difficulty), on: false, gold: value });
+    if (!current || (value ?? -1) > (current.gold ?? -1)) best.set(raid.id, { difficulty: mode.difficulty, gold: value });
   }
-  return [...planned, ...[...best.values()].sort((a, b) => (b.gold ?? -1) - (a.gold ?? -1))];
+  const planned = new Map(character.raids.filter((plan) => modeOf(plan)).map((plan) => [plan.raidId, plan]));
+  // A planned raid the item level no longer reaches stays listed, last.
+  for (const plan of planned.values())
+    if (!best.has(plan.raidId)) best.set(plan.raidId, { difficulty: plan.difficulty, gold: -Infinity });
+  return [...best.entries()]
+    .sort(([, a], [, b]) => (b.gold ?? -1) - (a.gold ?? -1))
+    .map(([raidId, top]) => {
+      const plan = planned.get(raidId);
+      const difficulty = plan?.difficulty ?? top.difficulty;
+      return { raidId, difficulty, label: raidLabel(raidId, difficulty), on: !!plan, gold: gold(raidId, difficulty) };
+    });
 }
 
 /** The character with that raid turned on (added last) or off (removed). */

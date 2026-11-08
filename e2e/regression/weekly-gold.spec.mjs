@@ -44,13 +44,12 @@ for (const width of [1280, 360])
     const total = panel.getByRole("definition").first();
     await expect(total).toHaveText("401,100G");
     const first = panel.getByRole("list", { name: "캐릭터별 주간 골드" }).getByRole("listitem").first();
-    await expect(first).toContainText("166,000G");
+    await expect(first.locator(":scope > b")).toHaveText("166,000G");
 
     // One raid off: its gold leaves the row and the total.
     await first.getByText(/^레이드 고르기 \(3\)$/).click();
     const raids = first.getByRole("list", { name: /레이드$/ });
     const top = raids.getByRole("checkbox").first();
-    const raidName = (await top.locator("xpath=..").innerText()).split("\n")[0];
     const moved = await shiftsDuring(page, () => top.uncheck());
     await expect(first.getByText(/^레이드 고르기 \(2\)$/)).toBeVisible();
     await expect(total).not.toHaveText("401,100G");
@@ -60,7 +59,7 @@ for (const width of [1280, 360])
     // Gold off for the second character: its row reads 0G, nothing moves.
     const second = panel.getByRole("list", { name: "캐릭터별 주간 골드" }).getByRole("listitem").nth(1);
     const off = await shiftsDuring(page, () => second.getByRole("switch").uncheck());
-    await expect(second).toContainText("0G");
+    await expect(second.locator(":scope > b")).toHaveText("0G");
     await expect(total).not.toHaveText(lowered);
     expect(off.all, `골드 받기 끄기 흔들림 (${off.moved})`).toBe(0);
 
