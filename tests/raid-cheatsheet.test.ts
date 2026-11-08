@@ -62,9 +62,10 @@ test("cheat sheet data is internally consistent and matches raid-rewards", () =>
   assert.deepEqual(checkCheatSheet(CHEATSHEET_DATA), []);
 });
 
-test("every source in the data file is kept with a url and check date", () => {
+test("every source in the data file is kept with a check date, and an https url or its internal-record note", () => {
   for (const source of Object.values(CHEATSHEET_DATA.sources)) {
-    assert.match(source.url, /^https:\/\//);
+    if (source.url === null) assert.match(source._note ?? "", /내부 기록/);
+    else assert.match(source.url, /^https:\/\//);
     assert.match(source.checkedAt, /^\d{4}-\d{2}-\d{2}$/);
   }
 });
