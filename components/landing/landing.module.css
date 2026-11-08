@@ -46,7 +46,12 @@
 .heroDescription { margin-top: 24px !important; color: var(--muted-foreground); text-align: center; font-size: 20px; line-height: 1.55; letter-spacing: -0.4px; }
 /* The site named once with its Korean reading (/about only): a quiet line under the description. */
 .heroAbout { max-width: 34em; margin: 12px auto 0 !important; color: var(--muted-foreground); text-align: center; font-size: 13px; line-height: 1.6; text-wrap: balance; }
-.heroEnter { animation: hero-enter 750ms var(--ease-out) both; }
+/* The first HTML draws the hero text in its final state: the largest text (the
+   LCP) never starts at opacity 0, and waking the page never starts an entrance
+   on text already shown (#1441: on a slow device it vanished and rose again).
+   The text enters only when the client puts the hero in the page (opened by a
+   link from another page): data-enter, from hero.tsx. */
+.heroEnter[data-enter] { animation: hero-enter 750ms var(--ease-out) both; }
 /* /about building itself: the intro shows each block instead. */
 :global(.about-intro) .heroEnter { animation: none; }
 /* Built by the intro (or finished by skip): it does not enter a second time. */
@@ -244,7 +249,6 @@ button.orbStage:focus-visible { outline: 3px solid var(--ring); outline-offset: 
 @keyframes status-breathe { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
 .landing [data-in-view="false"] *, .landing [data-in-view="false"] *::before { animation-play-state: paused !important; }
 :global([data-motion="off"]) .landing *, :global([data-motion="off"]) .landing *::before, :global([data-motion="off"]) .landing *::after { animation-play-state: paused !important; transition-duration: 0ms !important; }
-:global([data-motion="off"]) .heroEnter { animation: none; }
 /* Repeating motion keeps going; the orb pauses it (WCAG 2.2.2). data-loop is
    off while paused or the tab is hidden; data-motion-paused on <html> is the
    remembered choice, there from the first paint (before hydration). */
