@@ -3198,7 +3198,7 @@
   opacity: 0.6;
 }
 
-/* 크라켄 점수 순 (#908): the cooldown-gem choice and why the sort is not in use. */
+/* 크라켄 점수 정렬 (#908): the cooldown-gem choice and why the sort is not in use. */
 .specUpCooldown {
   min-height: 36px;
   padding: 0 14px;
@@ -3237,7 +3237,7 @@
   white-space: nowrap;
 }
 
-/* Off (other sorts, or 크라켄 점수 순 not available): its room stays so the bar never re-flows;
+/* Off (other sorts, or 크라켄 점수 정렬 not available): its room stays so the bar never re-flows;
    visibility also takes it out of the reading order and the tab order. */
 .specUpCooldown[data-off] {
   visibility: hidden;
