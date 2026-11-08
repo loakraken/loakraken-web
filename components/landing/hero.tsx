@@ -23,11 +23,16 @@ import styles from "./landing.module.css";
 
 const noSubscribe = () => () => {};
 // Back/forward (popstate) puts a page the visitor has already seen back in place:
-// its hero comes back as it was, with no entrance (PM 11-09). The router mounts
-// it right after the event; a link or the menu has no popstate before it.
-let historyAt = -Infinity;
-if (typeof window !== "undefined") window.addEventListener("popstate", () => { historyAt = performance.now(); });
-const backOrForward = () => performance.now() - historyAt < 1500;
+// its hero comes back as it was, with no entrance (PM 11-09). Set by popstate and
+// cleared by the next hero's mount (however long that takes on a slow phone), or
+// by a click on a link, which starts a forward navigation.
+let fromHistory = false;
+if (typeof window !== "undefined") {
+  window.addEventListener("popstate", () => { fromHistory = true; });
+  document.addEventListener("click", (event) => {
+    if (event.target instanceof Element && event.target.closest("a[href]")) fromHistory = false;
+  }, true);
+}
 // Platform is unknown during SSR; render the hint only after hydration to avoid a mismatch.
 const platformKey = () => (/mac|iphone|ipad/i.test(navigator.platform) ? "mac" : "other");
 
@@ -61,7 +66,9 @@ export function Hero({
   // its final state (LCP), and kept so: waking never starts an entrance (#1441).
   // Back/forward brings it back as it was (no entrance either).
   const clientMount = useSyncExternalStore(noSubscribe, () => true, () => false);
-  const [enter] = useState(() => clientMount && !backOrForward());
+  const [enter] = useState(() => clientMount && !fromHistory);
+  // This hero has used the back/forward mark (read above, cleared once mounted).
+  useEffect(() => { fromHistory = false; }, []);
   const entering = enter ? { "data-enter": "" } : {};
   const theme = useTheme();
   const [bot] = useChosenBot();
