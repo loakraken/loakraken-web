@@ -27,7 +27,8 @@ for (const width of [1280, 390, 320])
       const fit = await image.evaluate((el) => {
         const box = el.parentElement.getBoundingClientRect();
         const r = el.getBoundingClientRect();
-        return { top: Math.round(r.top - box.top), height: Math.round(r.height - box.height), centre: Math.round(r.left + r.width / 2 - (box.left + box.width / 2)) };
+        // + 0: a rounded -0 would not equal 0.
+        return { top: Math.round(r.top - box.top) + 0, height: Math.round(r.height - box.height) + 0, centre: Math.round(r.left + r.width / 2 - (box.left + box.width / 2)) + 0 };
       });
       expect(fit, "단상 그림: 칸 맨 위, 칸 높이, 가운데").toMatchObject({ top: 0, height: 0, centre: 0 });
     }
