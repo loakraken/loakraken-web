@@ -281,7 +281,7 @@ function SettingsPanel({
                 )
               }
             >
-              {buff.label}
+              {buff.label} +{buff.attack}%
             </Chip>
           );
         })}

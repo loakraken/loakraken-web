@@ -243,12 +243,12 @@ test.describe("치적·뭉가·음돌 @smoke", () => {
     await page.goto("/tools/crit-speed");
   });
 
-  // 계산 검증 11-08: the speed assumptions are named by what they add, each a switch;
+  // PM 총괄 11-08: the speed assumptions, each a switch;
   // 갈망 and 만찬 on by default, 공속 음식 off.
   test("버프 가정: 갈망 · 만찬은 켠 채로, 공속 음식은 꺼진 채로, 320에서도 잘리지 않는다", async ({ page }) => {
     await page.setViewportSize({ width: 320, height: 800 });
     const buffs = page.getByRole("group", { name: "버프 가정" }).getByRole("button");
-    await expect(buffs).toHaveText(["갈망 (공이속 +9%)", "만찬 (공이속 +5%)", "공속 음식 +3%"]);
+    await expect(buffs).toHaveText(["갈망 +9%", "만찬 +5%", "공속 음식 +3%"]);
     await expect(buffs.nth(0)).toHaveAttribute("aria-pressed", "true");
     await expect(buffs.nth(1)).toHaveAttribute("aria-pressed", "true");
     await expect(buffs.nth(2)).toHaveAttribute("aria-pressed", "false");
