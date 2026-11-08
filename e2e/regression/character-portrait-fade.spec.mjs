@@ -1,5 +1,5 @@
 // 회귀(사용자 11-08): 캐릭터 이미지의 무기·스킬 효과가 공식 그림의 가장자리나 상자에서 곧은 선으로 잘려 붙여 넣은 것처럼
-// 보였다. 이제 캐릭터 그림을 보여 주는 곳(랭킹 단상 — 캐릭터·젬 효율·팔찌 효율, 캐릭터 배너, 아바타 탭)이 한 부품
+// 보였다. 이제 캐릭터 그림을 보여 주는 곳(랭킹 단상 — 캐릭터·젬 효율·팔찌 효율·원정대·수집품, 캐릭터 배너, 아바타 탭)이 한 부품
 // (CharacterPortrait)을 써서 네 가장자리가 부드럽게 사라진다. 단상은 그림을 자르지 않고 칸 높이에 통째로, 배너는 캐릭터
 // 크기 그대로 상자 네 변이 흐려진다. 그림이 다 와도 흔들림 0(layout-shift 기록), 휴대폰에서 옆으로 넘치지 않는다.
 import { test, expect, characterPath, gotoReady, expectNoHorizontalOverflow } from "../support/fixtures.mjs";
@@ -33,10 +33,12 @@ const PODIUMS = [
   { name: "캐릭터", path: "/rankings" },
   { name: "젬 효율", path: "/rankings?type=gems" },
   { name: "팔찌 효율", path: "/rankings?type=bracelets" },
+  { name: "원정대", path: "/rankings?type=roster" },
+  { name: "수집품", path: "/rankings?type=collectibles" },
 ];
 
 for (const width of [1280, 390, 320])
-  test(`@A7 ${width} 캐릭터 그림: 단상(세 랭킹)·배너·아바타 탭 모두 가장자리가 부드럽고 흔들림 0 @regression`, async ({ page }) => {
+  test(`@A7 ${width} 캐릭터 그림: 단상(다섯 랭킹)·배너·아바타 탭 모두 가장자리가 부드럽고 흔들림 0 @regression`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await watchShifts(page);
 
@@ -45,8 +47,10 @@ for (const width of [1280, 390, 320])
       await gotoReady(page, podiumPage.path);
       const podium = page.locator("[data-podium-state]");
       await expect(podium).toHaveAttribute("data-podium-state", "ready");
+      // Three places; a place without a render shows its class icon instead (the character list's 2nd).
+      await expect(podium.locator("[data-portrait-box]"), `${podiumPage.name} 단상 칸`).toHaveCount(3);
       const images = podium.locator("img[data-podium-image]");
-      await expect(images, `${podiumPage.name} 단상 그림`).toHaveCount(3);
+      expect(await images.count(), `${podiumPage.name} 단상 그림`).toBeGreaterThan(0);
       await allLoaded(page, images);
       for (const image of await images.all()) {
         expect(await fadeOf(image)).toEqual({ fade: "card", gradients: 2 });
