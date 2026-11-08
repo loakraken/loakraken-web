@@ -41,7 +41,8 @@ test("시세 분류: 탭 목록을 기다리는 동안의 자리 탭에는 아�
     await held;
     await route.continue({ headers: { ...route.request().headers(), "x-forwarded-for": "203.0.113.1" } });
   });
-  await gotoReady(page, "/market");
+  // Not gotoReady: its network-idle wait would never end while the list is held.
+  await page.goto("/market");
   const tabs = page.getByRole("tablist", { name: "시세 분류" });
   await expect(tabs.getByRole("tab", { name: "재련 재료", exact: true })).toBeDisabled();
   await expect(tabs.getByRole("tab")).toHaveCount(8);
