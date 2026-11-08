@@ -5,6 +5,7 @@
 // one craft makes, what a great success adds, per-recipe success odds — stay
 // null rather than guessed.
 import raw from "./data/craft-recipes.json";
+import { sourceUrlOk, type SourceUrl } from "./source-url";
 
 export type Recipe = {
   name: string;
@@ -21,7 +22,7 @@ export type Recipe = {
 export type CraftData = {
   version: string;
   checkedAt: string;
-  sources: Record<string, { title: string; url: string; date: string }>;
+  sources: Record<string, { title: string; date: string } & SourceUrl>;
   unknown: string[];
   categories: Record<string, Recipe[]>;
 };
@@ -32,7 +33,7 @@ export const CRAFT_RECIPES = raw as CraftData;
 export function checkCraftData(data: CraftData): string[] {
   const problems: string[] = [];
   for (const [key, source] of Object.entries(data.sources))
-    if (!/^https:\/\//.test(source.url) || !source.date) problems.push(`${key}: source needs a URL and a date`);
+    if (!sourceUrlOk(source) || !source.date) problems.push(`${key}: source needs a URL (or its internal-record note) and a date`);
   for (const [category, list] of Object.entries(data.categories)) {
     if (!list.length) problems.push(`${category}: empty`);
     for (const r of list) {

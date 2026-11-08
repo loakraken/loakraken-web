@@ -2,9 +2,10 @@
   "version": "2026-10-13",
   "checkedAt": "2026-10-13",
   "sources": {
-    "inven-craft-db": {
-      "title": "인벤 제작 DB — 영지 제작 레시피(재료·수량·골드·시간·조건·활동력)",
-      "url": "https://lostark.inven.co.kr/dataninfo/craft/",
+    "community-craft-db-2026-10": {
+      "title": "공개 제작 데이터베이스 — 영지 제작 레시피(재료·수량·골드·시간·조건·활동력)",
+      "url": null,
+      "_note": "글 주소는 내부 기록",
       "date": "2026-10-13"
     },
     "official-probability-craft": {
