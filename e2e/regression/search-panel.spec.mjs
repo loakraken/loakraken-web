@@ -165,6 +165,9 @@ test("한글 조합 중(상 → 상ㅅ → 상세)에도 '정보 보기' 줄은 
 for (const width of [1440, 360, 320]) {
   test(`@A33 ${width}: 결과 패널은 검색 막대와 같은 폭·같은 왼쪽 끝(최대 400px), 화면 밖 0 @regression`, async ({ page }) => {
     await page.setViewportSize({ width, height: 800 });
+    // Geometry, not motion: the panel opens on a bouncy spring that goes past scale 1 and back (zeta ~0.63),
+    // so a measure mid-bounce read 406px for 400 (CI #1467). Reduced motion lands it at its final size.
+    await page.emulateMedia({ reducedMotion: "reduce" });
     const box = await openSearch(page);
     await page.keyboard.type("상");
     await expect(page.getByRole("listbox", { name: "검색 결과" })).toBeVisible();
