@@ -86,9 +86,32 @@ test.describe("재련 기대 비용 사용자 제보 @regression", () => {
     await page.getByRole("radiogroup", { name: "재료 가격 기준" }).getByRole("radio", { name: "최근 거래가" }).click();
     const arrow = materials(page).getByText(/^[▲▼]$/).first();
     await expect(arrow).toBeAttached();
+    // The number itself, measured directly: a layout-shift entry names at most
+    // five sources (largest first), so a 1–2px jump of this small text can be
+    // left out while sub-pixel containers fill the list (codex P2, #1445).
+    const cell = await arrow.evaluateHandle((el) => el.closest('[data-slot="change-mark"]'));
+    const numberBox = () =>
+      cell.evaluate((el) => {
+        const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, {
+          acceptNode: (node) =>
+            node.textContent.trim() && !node.parentElement.closest(".chg-dir, .chg-wash") ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT,
+        });
+        const texts = [];
+        for (let node = walker.nextNode(); node; node = walker.nextNode()) texts.push(node);
+        const range = document.createRange();
+        range.setStartBefore(texts[0]);
+        range.setEndAfter(texts.at(-1));
+        const { x, y, width } = range.getBoundingClientRect();
+        return { x, y, right: x + width, connected: el.isConnected };
+      });
+    const before = await numberBox();
     const mark = await shiftMark(page);
     await expect(arrow).not.toBeAttached();
     await page.waitForTimeout(300);
+    const after = await numberBox();
+    expect(after.connected, "숫자 칸이 그대로 남음").toBe(true);
+    for (const key of ["x", "y", "right"])
+      expect(Math.abs(after[key] - before[key]), `숫자 ${key} ${before[key]} → ${after[key]}`).toBeLessThan(1);
     // A move is 1px or more (raw box); Chrome also logs sub-pixel re-snaps whose
     // boxes round the same (#1443 CI: 5 "moves", before = after).
     expect(await realMoves(page, mark), `▲/▼가 사라질 때 흔들림(${(await shiftsSince(page, mark)).moved})`).toEqual([]);
