@@ -32,6 +32,21 @@
   display: block;
   filter: drop-shadow(0 1px 1.5px rgb(0 0 0 / 0.25));
 }
+/* The cursor's role, in its colour (white text >= 4.5:1 on every cursor colour).
+   Out of the flow of the page: it travels with the cursor and the layer clips it. */
+.tag {
+  position: absolute;
+  top: 18px;
+  left: 12px;
+  padding: 2px 7px;
+  border-radius: 9999px;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 16px;
+  white-space: nowrap;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.2);
+}
 .marquee {
   position: absolute;
   top: 0;
