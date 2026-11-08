@@ -17,7 +17,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import styles from "./build-intro.module.css";
 
-import { INTRO_CLASS, INTRO_END_EVENT, PLAYED_KEY, startIntro } from "./intro-state";
+import { DECIDED_ATTR, INTRO_CLASS, INTRO_END_EVENT, PLAYED_KEY, startIntro } from "./intro-state";
 
 /** Our teams' arrow colours: each >= 3:1 on the light and the dark page. */
 const TEAMS = [
@@ -85,7 +85,11 @@ export function BuildIntro() {
 
   // Opened from a link on another page (the header menu), the inline script
   // did not run: the same decision here, before this page is first painted.
-  useLayoutEffect(startIntro, []);
+  // Leaving /about ends this visit: the next one decides again.
+  useLayoutEffect(() => {
+    startIntro();
+    return () => document.documentElement.removeAttribute(DECIDED_ATTR);
+  }, []);
 
   useEffect(() => {
     const root = document.documentElement;

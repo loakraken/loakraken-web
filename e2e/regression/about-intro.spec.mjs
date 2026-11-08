@@ -135,6 +135,41 @@ test.describe("스크립트가 오지 않으면", () => {
       [...document.querySelectorAll("[data-build-block]")].filter((b) => getComputedStyle(b).opacity === "0").length);
     expect(hidden).toBe(0);
   });
+
+  test("소개 안전 시계: 스크립트가 3초 넘게 늦게 와도, 시계가 보인 완성된 페이지는 깨어날 때 다시 숨지 않는다 @regression", async ({ page }) => {
+    await fresh(page);
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    // The page's scripts arrive late (a slow device or network): held past the 3 s
+    // timer, then let through, so the page wakes after the timer showed it finished.
+    let release;
+    const held = new Promise((resolve) => (release = resolve));
+    const chunks = /\/_next\/static\/chunks\/.+\.js(\?.*)?$/;
+    await page.route(chunks, async (route) => {
+      await held;
+      await route.continue();
+    });
+    await page.setViewportSize({ width: 390, height: 900 });
+    await page.goto("/about", { waitUntil: "commit" });
+    await expect.poll(() => introOn(page), { message: "첫 그림 전에 켜짐" }).toBe(true);
+    await expect.poll(() => introOn(page), { timeout: 6_000, message: "안전 시계가 끔" }).toBe(false);
+    // From here, every frame: is the intro (which hides the blocks) on again?
+    await page.evaluate((c) => {
+      window.__onAgain = 0;
+      const tick = () => {
+        if (document.documentElement.classList.contains(c)) window.__onAgain++;
+        requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    }, INTRO);
+    release();
+    await page.unroute(chunks);
+    await expect(page.locator('[data-motion="on"]'), "깨어남").toHaveCount(1);
+    // A fixed wait proves an absence: nothing turns the intro back on after waking.
+    await page.waitForTimeout(1000);
+    expect(await page.evaluate(() => window.__onAgain), "깨어난 뒤 소개가 다시 켜진 프레임").toBe(0);
+    await expect(page.locator("[data-intro-cursor]")).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "소개 건너뛰기" })).toHaveCount(0);
+  });
 });
 
 test("소개: 이 탭에서 이미 봤으면 다시 지어지지 않는다 @regression", async ({ page }) => {

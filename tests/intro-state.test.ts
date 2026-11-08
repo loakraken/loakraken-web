@@ -1,16 +1,16 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { runInNewContext } from "node:vm";
-import { aboutIntroScript, INTRO_CLASS, INTRO_END_EVENT, PLAYED_KEY, startIntro } from "../components/landing/intro-state";
+import { aboutIntroScript, DECIDED_ATTR, INTRO_CLASS, INTRO_END_EVENT, PLAYED_KEY, startIntro } from "../components/landing/intro-state";
 
 // The /about intro is turned on by the inline script on a full load and by
 // startIntro on a client-side visit: both must decide the same way.
 
-type Case = { reduced?: boolean; paused?: boolean; played?: boolean; storageBlocked?: boolean; on?: boolean };
+type Case = { reduced?: boolean; paused?: boolean; played?: boolean; storageBlocked?: boolean; on?: boolean; decided?: boolean };
 
 function browser(c: Case) {
   const classes = new Set<string>(c.on ? [INTRO_CLASS] : []);
-  const attributes = new Set<string>(c.paused ? ["data-motion-paused"] : []);
+  const attributes = new Set<string>([...(c.paused ? ["data-motion-paused"] : []), ...(c.decided ? [DECIDED_ATTR] : [])]);
   const timers: { run: () => void; ms: number }[] = [];
   const events: string[] = [];
   const env = {
@@ -18,6 +18,7 @@ function browser(c: Case) {
       documentElement: {
         classList: { contains: (n: string) => classes.has(n), add: (n: string) => classes.add(n), remove: (n: string) => classes.delete(n) },
         hasAttribute: (n: string) => attributes.has(n),
+        setAttribute: (n: string) => attributes.add(n),
       },
     },
     matchMedia: (query: string) => ({ matches: !!c.reduced && query === "(prefers-reduced-motion: reduce)" }),
@@ -61,7 +62,7 @@ function decide(how: "script" | "startIntro", c: Case, claim: boolean) {
     const timerMs = b.timers.map((t) => t.ms);
     if (claim) b.attributes.add("data-intro-claimed");
     b.timers.forEach((t) => t.run());
-    return { on, timerMs, afterTimer: b.classes.has(INTRO_CLASS), events: b.events };
+    return { on, decided: b.attributes.has(DECIDED_ATTR), timerMs, afterTimer: b.classes.has(INTRO_CLASS), events: b.events };
   };
   return how === "script" ? run() : withGlobals(b.env, run);
 }
@@ -81,10 +82,21 @@ for (const [name, c] of cases)
     });
 
 test("소개 켜기: 처음 방문이면 켜고, 3초 안에 맡지 않으면 끄고 끝 신호", () => {
-  assert.deepEqual(decide("startIntro", {}, false), { on: true, timerMs: [3000], afterTimer: false, events: [INTRO_END_EVENT] });
-  assert.deepEqual(decide("startIntro", {}, true), { on: true, timerMs: [3000], afterTimer: true, events: [] });
+  assert.deepEqual(decide("startIntro", {}, false), { on: true, decided: true, timerMs: [3000], afterTimer: false, events: [INTRO_END_EVENT] });
+  assert.deepEqual(decide("startIntro", {}, true), { on: true, decided: true, timerMs: [3000], afterTimer: true, events: [] });
 });
 
 test("소개 켜기: 스크립트가 이미 켠 페이지는 그대로(시계를 하나 더 걸지 않음)", () => {
-  assert.deepEqual(decide("startIntro", { on: true }, true), { on: true, timerMs: [], afterTimer: true, events: [] });
+  assert.deepEqual(decide("startIntro", { on: true, decided: true }, true), { on: true, decided: true, timerMs: [], afterTimer: true, events: [] });
+});
+
+test("소개 켜기: 이번 방문이 이미 정해졌으면(안전 시계가 완성된 페이지를 보임) 다시 켜지 않는다", () => {
+  // A slow full load: the script turned the intro on, its timer ended it before the
+  // page woke. startIntro at hydration must leave the finished page as it is.
+  assert.deepEqual(decide("startIntro", { decided: true }, false), { on: false, decided: true, timerMs: [], afterTimer: false, events: [] });
+});
+
+test("소개 켜기: 스크립트는 어느 쪽으로 정해도 표시를 남긴다", () => {
+  for (const c of [{}, { reduced: true }, { paused: true }, { played: true }])
+    assert.equal(decide("script", c, true).decided, true, JSON.stringify(c));
 });
