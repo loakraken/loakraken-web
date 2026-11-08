@@ -10,13 +10,14 @@
 // Only the hiding depends on this script: the content is in the HTML, and the
 // page is finished as served without JS, under reduced motion, when the
 // visitor has paused motion, and after the intro played once in this tab
-// (aboutIntroScript decides before the first paint). One requestAnimationFrame
+// (aboutIntroScript decides before the first paint; startIntro does the same
+// when /about is opened by a client-side link). One requestAnimationFrame
 // loop runs it and parks whenever nothing moves; every box keeps its size.
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import styles from "./build-intro.module.css";
 
-import { INTRO_CLASS, INTRO_END_EVENT, PLAYED_KEY } from "./intro-state";
+import { DECIDED_ATTR, INTRO_CLASS, INTRO_END_EVENT, PLAYED_KEY, startIntro } from "./intro-state";
 import { CREW, CURSOR_COLORS } from "./intro-crew";
 
 /** A cursor is its index into CURSOR_COLORS. */
@@ -69,11 +70,19 @@ export function BuildIntro() {
   const [active, setActive] = useState(false);
   const finishRef = useRef<() => void>(() => {});
 
+  // Opened from a link on another page (the header menu), the inline script
+  // did not run: the same decision here, before this page is first painted.
+  // Leaving /about ends this visit: the next one decides again.
+  useLayoutEffect(() => {
+    startIntro();
+    return () => document.documentElement.removeAttribute(DECIDED_ATTR);
+  }, []);
+
   useEffect(() => {
     const root = document.documentElement;
     const host = layer.current;
     if (!host || !root.classList.contains(INTRO_CLASS)) return;
-    // The class was set before hydration (aboutIntroScript): show the skip button.
+    // The class was set before the first paint (aboutIntroScript or startIntro): show the skip button.
     setActive(true);
 
     const phone = window.matchMedia("(max-width: 480px)");

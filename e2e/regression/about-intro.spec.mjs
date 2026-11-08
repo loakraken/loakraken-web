@@ -3,7 +3,7 @@
 // 첫 화면은 6초 안, 아래 구역은 화면에 오면, 휴대폰(≤480)에서는 일하는 커서만 보인다. 흔들림 0, 다 지으면 그리기 반복이
 // 멈춘다. 건너뛰기 단추, 줄인 동작·멈춤을 고른 방문자·JS 없음은 처음부터 완성된 페이지, 이 탭에서 한 번만.
 import { test, expect, gotoReady } from "../support/fixtures.mjs";
-import { watchShifts, shiftsSince } from "../support/shifts.mjs";
+import { watchShifts, shiftsSince, shiftMark } from "../support/shifts.mjs";
 
 const KEY = "loakraken:about-intro";
 const INTRO = "about-intro";
@@ -149,6 +149,41 @@ test.describe("스크립트가 오지 않으면", () => {
       [...document.querySelectorAll("[data-build-block]")].filter((b) => getComputedStyle(b).opacity === "0").length);
     expect(hidden).toBe(0);
   });
+
+  test("소개 안전 시계: 스크립트가 3초 넘게 늦게 와도, 시계가 보인 완성된 페이지는 깨어날 때 다시 숨지 않는다 @regression", async ({ page }) => {
+    await fresh(page);
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    // The page's scripts arrive late (a slow device or network): held past the 3 s
+    // timer, then let through, so the page wakes after the timer showed it finished.
+    let release;
+    const held = new Promise((resolve) => (release = resolve));
+    const chunks = /\/_next\/static\/chunks\/.+\.js(\?.*)?$/;
+    await page.route(chunks, async (route) => {
+      await held;
+      await route.continue();
+    });
+    await page.setViewportSize({ width: 390, height: 900 });
+    await page.goto("/about", { waitUntil: "commit" });
+    await expect.poll(() => introOn(page), { message: "첫 그림 전에 켜짐" }).toBe(true);
+    await expect.poll(() => introOn(page), { timeout: 6_000, message: "안전 시계가 끔" }).toBe(false);
+    // From here, every frame: is the intro (which hides the blocks) on again?
+    await page.evaluate((c) => {
+      window.__onAgain = 0;
+      const tick = () => {
+        if (document.documentElement.classList.contains(c)) window.__onAgain++;
+        requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    }, INTRO);
+    release();
+    await page.unroute(chunks);
+    await expect(page.locator('[data-motion="on"]'), "깨어남").toHaveCount(1);
+    // A fixed wait proves an absence: nothing turns the intro back on after waking.
+    await page.waitForTimeout(1000);
+    expect(await page.evaluate(() => window.__onAgain), "깨어난 뒤 소개가 다시 켜진 프레임").toBe(0);
+    await expect(page.locator("[data-intro-cursor]")).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "소개 건너뛰기" })).toHaveCount(0);
+  });
 });
 
 test("소개: 이 탭에서 이미 봤으면 다시 지어지지 않는다 @regression", async ({ page }) => {
@@ -213,3 +248,60 @@ test.describe("JS 없이", () => {
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   });
 });
+
+// 회귀(사용자 11-08): 머리글 메뉴의 '소개'(같은 문서 안의 이동)로 열어도 소개가 지어진다. 인라인 스크립트는
+// 이때 돌지 않으므로 화면이 처음 그려지기 전에 같은 판단을 한다: 지을 칸이 보였다가 숨는 일 없음, 흔들림 0.
+// 다 지은 뒤 뒤로·앞으로 가면 이 탭에서 이미 봤으니 완성된 페이지 그대로.
+for (const width of [390, 1280])
+  test(`소개 ${width}: 머리글 메뉴로 열어도 지어지고, 보였다 숨는 칸 없음, 뒤로·앞으로는 완성된 페이지 @regression`, async ({ page }) => {
+    test.setTimeout(90_000);
+    await fresh(page);
+    await page.setViewportSize({ width, height: 900 });
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    await watchShifts(page);
+    await gotoReady(page, "/");
+    // From here on, every frame until /about's blocks first exist: how many of the
+    // ones still to be built are drawn visible in that first frame (must be none).
+    await page.evaluate(() => {
+      window.__shownEarly = null;
+      const tick = () => {
+        const blocks = [...document.querySelectorAll('[data-build-block]:not([data-build-kind="keep"]):not([data-built])')];
+        if (blocks.length) window.__shownEarly = blocks.filter((b) => getComputedStyle(b).opacity !== "0").length;
+        else requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    });
+
+    const nav = page.getByRole("navigation", { name: "주요 메뉴" });
+    if (width <= 480) {
+      await nav.getByRole("button", { name: "메뉴 열기" }).click();
+      await nav.getByRole("link", { name: /서비스 소개/ }).click();
+    } else await nav.getByRole("link", { name: "소개", exact: true }).click();
+    await expect(page).toHaveURL(/\/about#intro$/);
+
+    await expect.poll(() => page.evaluate(() => window.__shownEarly), { message: "첫 그림에 보인 지을 칸" }).toBe(0);
+    expect(await introOn(page), "같은 문서 안의 이동에도 켜짐").toBe(true);
+    const mark = await shiftMark(page);
+    await expect(page.locator("[data-intro-cursor]")).toHaveCount(12);
+    await expect(page.getByRole("button", { name: "소개 건너뛰기" })).toBeVisible();
+    await expect.poll(() => unbuilt(page, '[data-build-section="intro"]'), { timeout: 6_000, intervals: [200] }).toBe(0);
+    await scrollThrough(page);
+    await expect.poll(() => introOn(page), { timeout: 5_000 }).toBe(false);
+    await expect(page.locator("[data-intro-cursor]")).toHaveCount(0);
+    const shift = await shiftsSince(page, mark);
+    expect(shift.all, `흔들림 (${shift.moved})`).toBe(0);
+    expect(await page.evaluate((k) => sessionStorage.getItem(k), KEY), "이 탭에 기록").toBe("1");
+
+    // Back to the home page and forward again (both inside this document): already
+    // played in this tab, so the page comes back finished and the intro stays off.
+    await page.goBack();
+    await expect(page).not.toHaveURL(/\/about/);
+    await page.goForward();
+    await expect(page).toHaveURL(/\/about#intro$/);
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    // A fixed wait proves an absence: the intro does not turn on a moment later.
+    await page.waitForTimeout(500);
+    expect(await introOn(page), "뒤로·앞으로: 소개 꺼짐").toBe(false);
+    await expect(page.locator("[data-intro-cursor]")).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "소개 건너뛰기" })).toHaveCount(0);
+  });
