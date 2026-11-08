@@ -94,7 +94,7 @@ function PrecisionLanding({ intro }: { intro: boolean }) {
         </section>
 
         <section className={styles.closing} aria-labelledby="closing-heading" data-build-section="closing">
-          <Reveal build="text"><span className={styles.closingMark}><KrakenMark size={40} /></span><h2 id="closing-heading">다음 성장은,<br /><span>더 명확한 선택에서.</span></h2><p>당신의 캐릭터를 이해하는 새로운 시선.</p><button type="button" className={styles.primaryButton} aria-haspopup="dialog" onClick={openCharacterSearch}>캐릭터 검색 <ArrowRight size={16} /></button></Reveal>
+          <Reveal build="text"><span className={styles.closingMark}><KrakenMark size={40} /></span><h2 id="closing-heading">다음 성장은,<br /><span>더 명확한 선택에서.</span></h2><p>당신의 캐릭터를 이해하는 새로운 시선.</p><button type="button" className={styles.primaryButton} aria-haspopup="dialog" onClick={(event) => openCharacterSearch(event.currentTarget)}>캐릭터 검색 <ArrowRight size={16} /></button></Reveal>
         </section>
       </main>
       <footer className={styles.footer}><Link href="/" className={`${styles.brand} hit-44`}><KrakenMark />LOAKraken</Link><a href="https://libraries.dev/orbs" target="_blank" rel="noreferrer" className="hit-44">Motion with Libraries.dev <ExportCircle size={12} /></a></footer>

@@ -14,9 +14,12 @@ import { SearchNormal } from "@/components/ui/icons"
 const load = () => import("@/components/ui/command-search-dialog")
 const OPEN_EVENT = "loakraken:open-character-search"
 
-/** Opens the header's search from elsewhere on the page (the /about closing button). */
-function openCharacterSearch() {
-  window.dispatchEvent(new Event(OPEN_EVENT))
+/**
+ * Opens the header's search from elsewhere on the page (the /about closing
+ * button); on close, focus goes back to `from`.
+ */
+function openCharacterSearch(from?: HTMLElement | null) {
+  window.dispatchEvent(new CustomEvent(OPEN_EVENT, { detail: from ?? null }))
 }
 const CommandSearchDialog = React.lazy(load)
 const noop = () => () => {}
@@ -25,10 +28,12 @@ function CommandSearch({ className }: { className?: string }) {
   const [open, setOpen] = React.useState(false)
   // Mounted on the first open and kept, so closing can animate out.
   const [wanted, setWanted] = React.useState(false)
-  // Where focus goes back on close: the button when it opened the dialog,
-  // otherwise whatever had focus (Base UI's default).
+  // Where focus goes back on close: the button when it opened the dialog, the
+  // element that asked when another part of the page opened it, otherwise
+  // whatever had focus (Base UI's default).
   const button = React.useRef<HTMLButtonElement>(null)
-  const [fromButton, setFromButton] = React.useState(false)
+  const opener = React.useRef<HTMLElement | null>(null)
+  const [returnTo, setReturnTo] = React.useState<"button" | "opener" | null>(null)
   // ⌘K on Apple keyboards; the server draws Ctrl K and the client corrects it.
   const mac = React.useSyncExternalStore(
     noop,
@@ -41,13 +46,14 @@ function CommandSearch({ className }: { className?: string }) {
       if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== "k") return
       if (document.getElementById("character-search")) return
       event.preventDefault()
-      setFromButton(false)
+      setReturnTo(null)
       setWanted(true)
       setOpen(true)
     }
-    // Focus goes back to whatever opened it (Base UI's default).
-    const onOpen = () => {
-      setFromButton(false)
+    const onOpen = (event: Event) => {
+      const from = (event as CustomEvent<HTMLElement | null>).detail
+      opener.current = from
+      setReturnTo(from ? "opener" : null)
       setWanted(true)
       setOpen(true)
     }
@@ -71,7 +77,7 @@ function CommandSearch({ className }: { className?: string }) {
         onPointerEnter={() => void load()}
         onFocus={() => void load()}
         onClick={() => {
-          setFromButton(true)
+          setReturnTo("button")
           setWanted(true)
           setOpen(true)
         }}
@@ -98,7 +104,7 @@ function CommandSearch({ className }: { className?: string }) {
       </button>
       {wanted && (
         <React.Suspense fallback={null}>
-          <CommandSearchDialog open={open} onOpenChange={setOpen} returnFocus={fromButton ? button : undefined} />
+          <CommandSearchDialog open={open} onOpenChange={setOpen} returnFocus={returnTo === "button" ? button : returnTo === "opener" ? opener : undefined} />
         </React.Suspense>
       )}
     </>
