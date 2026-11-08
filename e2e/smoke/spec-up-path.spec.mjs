@@ -1,8 +1,8 @@
 // 스펙업 추천 순서 (api #794): the first chip of the spec-up list since 11-02 (사용자
 // 결정 layout A) and a dealer's first view, asked for while chosen. Its rows are
-// the list's rows (image, detail, a target's later steps under 자세히). The mock
-// serves the backend's sample (보석 8→9→10 on one slot, 품질 unpriced); '스펙순서긴'
-// has 14 steps (13 rows), '스펙순서몰림' is SPEC_UP_BUSY, '스펙순서스톤' adds a stone step.
+// the list's rows (image, detail), one per step in plain order (user 11-08). The
+// mock serves the backend's sample (보석 8→9→10 on one slot, 품질 unpriced);
+// '스펙순서긴' has 14 steps, '스펙순서몰림' is SPEC_UP_BUSY, '스펙순서스톤' adds a stone step.
 import { test, expect, characterPath, expectNoHorizontalOverflow, specUpListPath } from "../support/fixtures.mjs";
 import { shiftsDuring, watchShifts } from "../support/shifts.mjs";
 
@@ -12,7 +12,7 @@ const pathTable = (page) => page.getByRole("table", { name: /^추천 순서, / }
 const rows = (page) => pathTable(page).locator("tbody tr:not([data-collapsed])");
 
 test.describe("스펙업 추천 순서 @smoke", () => {
-  test("탭을 열면 추천 순서가 먼저: 저절로 묻고, 같은 보석 칸의 다음 단계는 자세히에, 단계 비용은 그 단계에서 더 드는 골드", async ({ page }) => {
+  test("탭을 열면 추천 순서가 먼저: 저절로 묻고, 같은 보석 칸의 다음 단계도 제 줄 · 제 번호, 단계 비용은 그 단계에서 더 드는 골드", async ({ page }) => {
     const asked = page.waitForRequest((r) => r.url().includes("/api/characters/spec-up/path?"));
     await page.goto(characterPath("스펙순서", "specup"));
     expect(new URL((await asked).url()).searchParams.get("sort")).toBe("EFFICIENCY");
@@ -20,15 +20,13 @@ test.describe("스펙업 추천 순서 @smoke", () => {
     await expect(chips(page).getByRole("button", { name: "추천 순서" })).toHaveAttribute("aria-pressed", "true");
     await expect(rule(page).getByRole("button", { name: "효율 우선" })).toHaveAttribute("aria-pressed", "true");
     await expect(pathTable(page)).toBeVisible();
-    // 보석 8→9 and 9→10 on one slot: one row, the next stage behind 자세히.
-    await expect(rows(page)).toHaveCount(1);
+    // 보석 8→9 and 9→10 on one slot: two rows numbered 1 and 2, nothing folded (user 11-08).
+    await expect(rows(page)).toHaveCount(2);
+    await expect(pathTable(page).getByRole("button", { name: /자세히 · 다른 단계/ })).toHaveCount(0);
     await expect(rows(page).first()).toContainText("8레벨 → 9레벨");
     await expect(rows(page).first()).toContainText("+60만G");
-    // The closed row holds steps 1 and 2, so the numbers never skip (PM 총괄 11-03).
+    await expect(rows(page).nth(1)).toContainText("9레벨 → 10레벨");
     const rank = (i) => rows(page).nth(i).locator('[data-cell="rank"]');
-    await expect(rank(0)).toHaveText("1–2");
-    await rows(page).first().getByRole("button", { name: "자세히 · 다른 단계 1개" }).click();
-    await expect(rows(page)).toHaveCount(2);
     await expect(rank(0)).toHaveText("1");
     await expect(rank(1)).toHaveText("2");
     // 9→10 costs 260만G from today's gem; this step adds 200만G on top of step 1.
@@ -51,6 +49,108 @@ test.describe("스펙업 추천 순서 @smoke", () => {
     await expect(page.getByText("줄을 눌러 보는 자세한 수치는 앞 단계를 올리기 전, 지금 장비 기준이에요.")).toBeVisible();
     await target.click();
     await expect(page.getByRole("dialog")).toBeVisible();
+  });
+
+  // User 11-08: a row opened after the backend's copy of the character ran out said
+  // "load it first" while the page showed the character.
+  // A step without its picture (prod 11-08: a new engraving 0 → 1): the card shows
+  // the detail answer's own (사용자 결정 02:2x).
+  test("그림 없이 온 단계도 자세히 카드에는 상세 응답의 그림", async ({ page }) => {
+    await page.route("**/api/characters/spec-up/path?*", async (route) => {
+      const response = await route.fetch();
+      const body = await response.json();
+      body.envelope.data.steps[0].icon = null;
+      await route.fulfill({ response, json: body });
+    });
+    // The detail answer as prod sent it for a new engraving 0 → 1 (11-08), with its book picture.
+    const BOOK = "https://cdn-lostark.game.onstove.com/efui_iconatlas/use/use_9_25.png";
+    const at = "2026-11-07T14:37:23Z";
+    const detail = {
+      characterName: "스펙순서",
+      fetchedAt: "2026-11-07T15:06:58Z",
+      pricesAt: at,
+      candidate: {
+        id: "ENGRAVING_LEVEL:기습의 대가:1", kind: "ENGRAVING_LEVEL", target: "기습의 대가 각인", from: "0레벨", to: "1레벨",
+        icon: BOOK, grade: "유물", skillName: null, suggestedTo: null,
+        change: { kind: "ENGRAVING_LEVEL", slot: null, index: null, level: 1, refine: null, quality: null, name: "기습의 대가", grade: null },
+        status: "OK", deltaCombatPower: 26.66, deltaPercent: 0.607,
+        cost: { unit: "GOLD", amount: 195000, status: "OK", code: "ENGRAVING_BOOK_BUY", basis: "유물 각인서(각인 레벨 1당 5권, 올리는 레벨 수만큼)의 즉시 구매 최저가 합입니다.", priceObservedAt: null, stale: null },
+        combatPowerPer10kGold: 1.37, reasonCode: null, reason: null, reasonDetail: null, emptySlot: null,
+        baseAttackPctFrom: null, baseAttackPctTo: null, deltaKrakenScore: 27.67, krakenScorePer100kGold: 14.19, gemType: null,
+      },
+      combatPowerBefore: 4391.06, combatPowerAfter: 4417.72, stats: [], materials: null, goldFee: null,
+      market: [{ role: "BUY", itemName: "유물 기습의 대가 각인서", icon: BOOK, grade: "유물", price: 39000, quantity: 5, expectedSalePrice: null, sellFeeGold: null, listedCount: null, observedAt: at }],
+      refine: null,
+    };
+    await page.route("**/api/characters/spec-up/candidates/**", (route) =>
+      route.fulfill({ json: { ok: true, envelope: { code: "SPEC_UP_DETAIL_SUCCESS", message: "스펙업 후보 상세 조회에 성공했습니다.", data: detail } } }),
+    );
+    await page.goto(characterPath("스펙순서", "specup"));
+    await rows(page).first().getByRole("button").first().click();
+    const card = page.getByRole("dialog");
+    // The card's own picture (the market row's book is a second one).
+    await expect(card.locator(`img[src="${BOOK}"][width="56"]`)).toHaveCount(1);
+    await expect(card).toContainText("유물 기습의 대가 각인서");
+  });
+
+  // The tab then reads as old (PM 총괄 11-08): the answer dims and the held line
+  // above it says so in one line, nothing asked again by itself.
+  for (const width of [320, 1280])
+    test(`${width}: 캐릭터 정보가 오래되어 자세히를 못 열면(CHARACTER_NOT_CACHED) 갱신으로 다시 받으라고 안내, 순서는 흐리게`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto(characterPath("스펙순서", "specup"));
+      await expect(rows(page).first()).toBeVisible();
+      await page.route("**/api/characters/spec-up/candidates/**", (route) =>
+        route.fulfill({ status: 404, contentType: "application/json", body: JSON.stringify({ ok: false, error: { code: "CHARACTER_NOT_CACHED", status: 404 } }) }),
+      );
+      let asked = 0;
+      page.on("request", (r) => r.url().includes("/api/characters/spec-up/path?") && asked++);
+      await rows(page).first().getByRole("button").first().click();
+      const card = page.getByRole("dialog");
+      await expect(card).toContainText("캐릭터 정보를 받은 지 오래되었어요. 위의 갱신 버튼으로 다시 받은 뒤 열어 주세요.");
+      await expect(card).not.toContainText("먼저 불러와");
+      // The short line at 360 and below (codex P3 on #1396), the full one above.
+      const [shown, hidden] = width <= 360
+        ? ["오래된 정보예요 · 갱신해 주세요", "오래된 정보예요 · 갱신을 누르면 다시 불러와요"]
+        : ["오래된 정보예요 · 갱신을 누르면 다시 불러와요", "오래된 정보예요 · 갱신해 주세요"];
+      const line = page.getByText(shown, { exact: true });
+      await expect(line).toBeVisible();
+      await expect(page.getByText(hidden, { exact: true })).toBeHidden();
+      // One line in its 18px slot (A37), also in a wide fallback face (CI's fonts differ).
+      const fits = () =>
+        line.evaluate((el) => {
+          const p = el.closest("p");
+          return p.scrollWidth <= p.clientWidth && p.scrollHeight <= p.clientHeight;
+        });
+      expect(await fits()).toBe(true);
+      await page.addStyleTag({ content: `p:has(> span > svg) { font-family: "Courier New", monospace !important; }` });
+      expect(await fits()).toBe(true);
+      // By CSS: on a touch screen the card is a modal sheet, which takes the page
+      // behind it out of the accessibility tree (no "region" to find by role).
+      await expect(page.locator('section[aria-label="추천 순서"] [data-stale]')).toHaveCount(1);
+      expect(asked).toBe(0);
+    });
+
+  // Found by the list's quiet minute refresh, nothing else says it: one polite
+  // sentence, not again on later ticks (codex P3 on #1396).
+  test("목록의 1분 새로 고침이 오래된 정보를 찾으면 한 번 읽어 줌", async ({ page }) => {
+    await page.clock.install();
+    await page.goto(specUpListPath("스펙순서"));
+    await expect(page.getByRole("table", { name: /스펙업 후보, 전투력 증가 순/ })).toBeVisible();
+    const status = page.getByRole("status").filter({ hasText: "오래된 정보예요 · 갱신을 누르면 다시 불러와요" });
+    await expect(status).toHaveCount(0);
+    let lists = 0;
+    await page.route((url) => url.pathname === "/api/characters/spec-up", (route) => {
+      lists++;
+      return route.fulfill({ status: 404, contentType: "application/json", body: JSON.stringify({ ok: false, error: { code: "CHARACTER_NOT_CACHED", status: 404 } }) });
+    });
+    await page.clock.runFor(61_000);
+    await expect(status).toHaveCount(1);
+    await expect(page.getByRole("table", { name: /스펙업 후보, 전투력 증가 순/ })).toBeVisible();
+    // No more refreshes after the failure, so nothing to read again.
+    await page.clock.runFor(130_000);
+    await expect(status).toHaveCount(1);
+    expect(lists).toBe(1);
   });
 
   test("다른 칩은 후보 목록, 고른 칩은 주소에(새로 고쳐도 그대로), 돌아오면 다시 묻지 않음", async ({ page }) => {
@@ -77,7 +177,7 @@ test.describe("스펙업 추천 순서 @smoke", () => {
     await watchShifts(page);
     await page.setViewportSize({ width: 360, height: 800 });
     await page.goto(characterPath("스펙순서", "specup"));
-    await expect(rows(page)).toHaveCount(1);
+    await expect(rows(page)).toHaveCount(2);
     const asked = page.waitForRequest((r) => r.url().includes("sort=DELTA"));
     const shifts = await shiftsDuring(page, async () => {
       await rule(page).getByRole("button", { name: "전투력 우선" }).click();
@@ -89,8 +189,8 @@ test.describe("스펙업 추천 순서 @smoke", () => {
   });
 
   // 목표 전투력 sits above the answer (PM 총괄 11-03, B): a short (2 steps) or long
-  // (13 rows) answer arriving late moves nothing, with no blank floor left behind.
-  for (const [who, rowsShown] of [["스펙순서", 1], ["스펙순서긴", 10]])
+  // (14 steps, 10 rows shown) answer arriving late moves nothing, with no blank floor left behind.
+  for (const [who, rowsShown] of [["스펙순서", 2], ["스펙순서긴", 10]])
     for (const [width, height] of [[320, 900], [360, 900], [1280, 900], [1280, 1400]])
       test(`${width}×${height} ${who}: 답이 늦게 와도(빈 줄 → ${rowsShown}줄) 목표 전투력도 무엇도 움직이지 않음`, async ({ page }) => {
         await watchShifts(page);
@@ -138,7 +238,7 @@ test.describe("스펙업 추천 순서 @smoke", () => {
         await route.fulfill({ response, json: body });
       });
       await page.goto(characterPath("스펙순서", "specup"));
-      await expect(rows(page)).toHaveCount(1);
+      await expect(rows(page)).toHaveCount(2);
       const goal = page.getByRole("region", { name: "목표 전투력" });
       await goal.getByRole("textbox", { name: "목표 전투력" }).fill("12400");
       const list = pathTable(page);
@@ -160,9 +260,11 @@ test.describe("스펙업 추천 순서 @smoke", () => {
       await page.goto(characterPath("스펙순서긴", "specup"));
       await expect(rows(page)).toHaveCount(10);
       await expect(page.getByText("앞에서부터 14단계까지 보여 드려요.")).toBeVisible();
-      const more = page.getByRole("button", { name: "13줄 모두 보기" });
+      const more = page.getByRole("button", { name: "14줄 모두 보기" });
       await more.click();
-      await expect(rows(page)).toHaveCount(13);
+      await expect(rows(page)).toHaveCount(14);
+      // Plain order: the rows read 1 … 14 (user 11-08).
+      await expect(rows(page).locator('[data-cell="rank"]')).toHaveText(Array.from({ length: 14 }, (_, i) => `${i + 1}`));
       await expect(page.getByRole("button", { name: "앞 10줄만 보기" })).toHaveAttribute("aria-expanded", "true");
       await expectNoHorizontalOverflow(page);
     }

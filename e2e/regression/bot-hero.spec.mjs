@@ -145,7 +145,10 @@ test.describe("히어로 봇 @regression", () => {
     await followsHorizontally(page);
     await page.locator("#hero-heading").click();
     await followsHorizontally(page);
+    // 검색칸을 누르면 검색칸을 내려다보고(사용자 11-03), 초점을 잃으면 다시 따라 본다.
     await page.getByRole("textbox", { name: "캐릭터 이름", exact: true }).click();
+    await expect.poll(async () => Number((await canvas(page).getAttribute("data-bot-look")).split(",")[1]), { message: "검색칸을 내려다봄(눈)" }).toBeGreaterThanOrEqual(0.2);
+    await page.locator("#hero-heading").click();
     await followsHorizontally(page);
     await page.locator("#hero-heading").click();
     await page.mouse.down();
@@ -316,13 +319,14 @@ test.describe("히어로 봇 @regression", () => {
   });
 
   test("봇 그림 코드는 첫 로드에 없다: 페이지 로드 뒤 쉴 때 받아 그린다", async ({ page }) => {
-    // 그림 코드에만 있는 낱말(모자 이름)로 그 조각의 주소를 알아내고, 요청 시각은
-    // 페이지 자신의 시계(그 조각의 startTime과 load 이벤트 시작)로 비교한다.
+    // 그림 코드에만 있는 글(클로버 몸의 경로 시작)로 그 조각의 주소를 알아내고, 요청 시각은
+    // 페이지 자신의 시계(그 조각의 startTime과 load 이벤트 시작)로 비교한다. (모자 이름은
+    // 11-03부터 '봇 바꾸기'의 선택지로 첫 로드에도 있어 표지로 쓰지 않는다.)
     const botUrls = new Set();
     page.on("response", async (response) => {
       if (response.request().resourceType() !== "script") return;
       const body = await response.text().catch(() => "");
-      if (body.includes('"beanie"')) botUrls.add(response.url());
+      if (body.includes("M26.53 22.38A25 25")) botUrls.add(response.url());
     });
     await page.setViewportSize({ width: 1280, height: 1000 });
     await page.goto("/", { waitUntil: "load" });

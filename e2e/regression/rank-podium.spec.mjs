@@ -228,25 +228,34 @@ async function expectEffects(page, reduced = false) {
       pseudo: animation.effect.pseudoElement ?? null,
       // CSS 모듈이 이름 앞뒤에 파일 이름·해시를 붙인다.
       name: /podium-[a-z]+/.exec(animation.animationName)?.[0] ?? animation.animationName,
-      target: animation.effect.pseudoElement === "::after" ? "shine" : animation.effect.target.closest("[data-podium-digit]") ? "digit" : "other",
+      target: animation.effect.target.closest("[data-podium-beam]") ? "beam" : animation.effect.target.closest("[data-podium-digit]") ? "digit" : "other",
       duration: animation.effect.getTiming().duration,
       iterations: animation.effect.getTiming().iterations,
       props: [...new Set(animation.effect.getKeyframes().flatMap((frame) => Object.keys(frame)
         .filter((key) => !["offset", "computedOffset", "easing", "composite"].includes(key))))],
     })));
-  const shine = await podium.locator('[data-podium-place="1"]').evaluate((el) => getComputedStyle(el, "::after").backgroundImage);
-  expect(shine, "1위 테두리 빛").toContain("conic-gradient(");
+  // 카드마다 메달 테두리(1위 금, 2·3위 은·동). 테두리 그림은 conic 빛이고, 도는 것은 transform뿐.
+  const beams = await podium.locator("[data-podium-beam]").evaluateAll((els) => els.map((el) => ({
+    light: getComputedStyle(el, "::before").backgroundImage,
+    turn: getComputedStyle(el, "::before").transform,
+  })));
+  expect(beams).toHaveLength(3);
+  for (const beam of beams) expect(beam.light, "메달 테두리 빛").toContain("conic-gradient(");
   if (reduced) {
     expect(effects, "줄인 동작에서 단상 애니메이션 없음").toEqual([]);
     // 줄인 동작에서도 숫자 창은 제자리 값을 보이고, 테두리 빛은 정지한 호로 남는다.
-    expect(shine).toContain("200deg");
+    for (const beam of beams) expect(beam.turn).not.toBe("none");
     return;
   }
-  // 반복하는 애니메이션은 없다(성능): 1위 테두리 빛 한 번, 숫자 창마다 한 번.
-  expect(effects.filter((effect) => effect.target === "shine")).toEqual([
-    // 키프레임 목록에 사용자 속성(--shine)은 나오지 않는다: 애니메이션 이름으로 확인한다.
-    { rank: 1, pseudo: "::after", name: "podium-shine", target: "shine", duration: 2400, iterations: 1, props: [] },
-  ]);
+  // 메달 테두리는 끝없이 돈다(사용자 11-08): transform만, 1위 4초·2·3위 7초. 숫자 창은 한 번.
+  const turning = effects.filter((effect) => effect.target === "beam");
+  expect(turning.map((effect) => effect.rank).sort()).toEqual([1, 2, 3]);
+  for (const effect of turning) {
+    expect(effect.name).toBe("podium-beam");
+    expect(effect.props).toEqual(["transform"]);
+    expect(effect.iterations).toBe(Infinity);
+    expect(effect.duration).toBe(effect.rank === 1 ? 4000 : 7000);
+  }
   const digits = effects.filter((effect) => effect.target === "digit");
   expect(digits.length).toBeGreaterThanOrEqual(3);
   expect(effects.filter((effect) => effect.target === "other")).toEqual([]);

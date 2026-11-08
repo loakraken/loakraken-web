@@ -44,6 +44,7 @@ import { ReceiptEnabled } from "./receipt-panel";
 import styles from "./character.module.css";
 import { RATE_LIMITED } from "@/lib/api/rate-limit";
 import { RateLimitNote } from "@/components/site/rate-limit-note";
+import { BotNote } from "@/components/bot/bot-note";
 
 // The header search's result panel under this box (#1113), loaded on the
 // first focus so the page's first JS does not grow.
@@ -438,10 +439,12 @@ function CharacterContent({
             </div>
             {copy && (
               <div className={styles.error}>
-                <div role="alert">
-                  <h2>{copy.title}</h2>
-                  <p>{copy.text}</p>
-                </div>
+                <BotNote mood={error?.code === "CHARACTER_NOT_FOUND" || error?.code === "INVALID_REQUEST" ? "puzzled" : "asleep"}>
+                  <div role="alert">
+                    <h2>{copy.title}</h2>
+                    <p>{copy.text}</p>
+                  </div>
+                </BotNote>
                 {limited && <RateLimitNote seconds={rateLimitSeconds} buttonCounts />}
                 {ownKey}
               </div>

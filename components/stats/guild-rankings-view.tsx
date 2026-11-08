@@ -31,6 +31,7 @@ import { RankNumber } from "./rank-number";
 import { rankingColumns } from "./ranking-columns";
 import { RankingTypeTabs, type RankingType } from "./ranking-type-tabs";
 import { MoreDetail } from "@/components/ui/more-detail";
+import { BotNote } from "@/components/bot/bot-note";
 
 const SERVERS = ["루페온", "실리안", "아만", "아브렐슈드", "카단", "카마인", "카제로스", "니나브"];
 // 순위 · 길드 · 서버 · 아이템 레벨(평균 또는 합) · 확인한 길드원 · 전투력(1750 이상 평균 또는 합)
@@ -221,15 +222,17 @@ export function GuildRankingsView({
               길드 랭킹을 불러오고 있어요…
             </p>
           ) : !data.rows?.length ? (
-            <p className={styles.muted}>
-              {population === 0
-                ? "길드 표본을 모으는 중이에요."
-                : query.guild
-                  ? (data.excludedMatches ?? 0) > 0
-                    ? `‘${query.guild}’이(가) 들어간 길드 ${whole(data.excludedMatches ?? 0)}개는 확인한 길드원이 ${whole(data.minMembers)}명보다 적어 순위에 없어요.`
-                    : `‘${query.guild}’이(가) 들어간 길드가 순위에 없어요.`
-                  : "조건에 맞는 길드가 없어요."}
-            </p>
+            <BotNote mood={population === 0 ? "calm" : "puzzled"}>
+              <p className={styles.muted}>
+                {population === 0
+                  ? "길드 표본을 모으는 중이에요."
+                  : query.guild
+                    ? (data.excludedMatches ?? 0) > 0
+                      ? `‘${query.guild}’이(가) 들어간 길드 ${whole(data.excludedMatches ?? 0)}개는 확인한 길드원이 ${whole(data.minMembers)}명보다 적어 순위에 없어요.`
+                      : `‘${query.guild}’이(가) 들어간 길드가 순위에 없어요. 이름을 다시 확인해 볼까요?`
+                    : "조건에 맞는 길드가 없어요. 조건을 조금 넓혀 볼까요?"}
+              </p>
+            </BotNote>
           ) : (
             <DataTable
               label={`길드 ${sortLabel} 랭킹 ${query.page}쪽`}

@@ -15,7 +15,7 @@ import { requestBestCombatPower } from "./best-combat-power.backend";
 import { type GuildDetailQuery } from "./guild-detail";
 import { requestGuildDetail } from "./guild-detail.backend";
 import { type TitleEquipQuery } from "./title-equip";
-import { requestTitleEquip } from "./title-equip.backend";
+import { requestTitleDates, requestTitleEquip } from "./title-equip.backend";
 import { type CollectibleQuery } from "./collectible-ranking";
 import { requestCollectibleRanking } from "./collectible-ranking.backend";
 import { requestGemLevels } from "./gem-levels.backend";
@@ -64,6 +64,10 @@ export function getClassBuildCells(query: ClassBuildCellsQuery, signal?: AbortSi
 
 export function getTitleEquip(query: TitleEquipQuery, signal?: AbortSignal) {
   return requestTitleEquip(query, process.env.LOAKRAKEN_API_ORIGIN, { signal });
+}
+
+export function getTitleDates(server: string | undefined, signal?: AbortSignal) {
+  return requestTitleDates(server, process.env.LOAKRAKEN_API_ORIGIN, { signal });
 }
 
 export function getBestCombatPower(query: StatsQuery, signal?: AbortSignal) {

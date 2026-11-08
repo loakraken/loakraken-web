@@ -19,7 +19,8 @@ import {
   targetError,
   type Goal,
 } from "@/lib/spec-up/goal";
-import { koreanGold, tryPathParam } from "@/lib/spec-up/model";
+import { koreanGold, notCachedText, tryPathParam } from "@/lib/spec-up/model";
+import { SpecUpExpired, useMarkExpired } from "./spec-up-expired";
 import styles from "./spec-up-goal.module.css";
 import { SimulatorEnabled } from "./tabs";
 
@@ -29,7 +30,7 @@ const two = (value: number) =>
 function failureText(code: string | null, limit?: "client") {
   switch (code) {
     case "CHARACTER_NOT_CACHED":
-      return "캐릭터 정보를 먼저 불러와 주세요. 위의 갱신 버튼으로 정보를 받은 뒤 다시 찾아 주세요.";
+      return notCachedText("다시 찾아");
     case "SPEC_UP_GOAL_OUT_OF_RANGE":
       return "목표는 지금 전투력의 2배까지 넣을 수 있어요.";
     case "SPEC_UP_DISABLED":
@@ -60,6 +61,8 @@ export function SpecUpGoal({ data }: { data: Character }) {
   });
   const simulator = useContext(SimulatorEnabled);
   const limit = useRateLimit(goal.error);
+  useMarkExpired(goal.error);
+  const { expired } = useContext(SpecUpExpired);
   const failure = goal.error instanceof SpecUpQueryError ? goal.error.info.code : goal.error ? "ERROR" : null;
 
   const target = parseTarget(text);
@@ -117,7 +120,7 @@ export function SpecUpGoal({ data }: { data: Character }) {
           </p>
         ) : goal.data ? (
           // Another target keeps the last answer, dimmed, until its own arrives (A7).
-          <div className={styles.answer} data-stale={goal.isPlaceholderData || undefined}>
+          <div className={styles.answer} data-stale={goal.isPlaceholderData || expired || undefined}>
             <GoalAnswer name={name} goal={goal.data.data} />
           </div>
         ) : asked !== null && goal.isPending ? (

@@ -29,6 +29,7 @@ import { rankingColumns } from "./ranking-columns";
 import { BasisNote } from "./basis-note";
 import { RankingTypeTabs, type RankingType } from "./ranking-type-tabs";
 import { MoreDetail } from "@/components/ui/more-detail";
+import { BotNote } from "@/components/bot/bot-note";
 
 const ROSTER_COLUMNS = rankingColumns([3.5, 14, 6, 7.5, 4.5, 16]);
 
@@ -192,11 +193,13 @@ export function RosterRankingsView({ initial, types }: { initial: RosterQuery; t
               원정대 랭킹을 불러오고 있어요…
             </p>
           ) : !data.rows?.length ? (
-            <p className={styles.muted}>
-              {population === 0
-                ? "원정대 표본을 모으는 중이에요."
-                : "조건에 맞는 원정대가 없어요."}
-            </p>
+            <BotNote mood={population === 0 ? "calm" : "puzzled"}>
+              <p className={styles.muted}>
+                {population === 0
+                  ? "원정대 표본을 모으는 중이에요."
+                  : "조건에 맞는 원정대가 없어요. 조건을 조금 넓혀 볼까요?"}
+              </p>
+            </BotNote>
           ) : (
             <DataTable
               label={`원정대 ${aggregateLabel} 랭킹 ${query.page}쪽`}

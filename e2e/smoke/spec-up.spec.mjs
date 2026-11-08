@@ -1,4 +1,4 @@
-// 스펙업 가이드 탭(백엔드 #318, PM-프론트 10-11 16:37 ⑤). 목 서버는 백엔드 표본을 그대로 준다:
+﻿// 스펙업 가이드 탭(백엔드 #318, PM-프론트 10-11 16:37 ⑤). 목 서버는 백엔드 표본을 그대로 준다:
 // OK 3개(보석 8→9 62만G·8→10 262만G, 무기 품질 비용 미확인) + 계산 못 한 후보는 이유별 한 줄.
 import { readFileSync } from "node:fs";
 import { test, expect, expectNoHorizontalOverflow, specUpListPath } from "../support/fixtures.mjs";
@@ -317,7 +317,8 @@ test.describe("스펙업 가이드 @smoke", () => {
     goal = page.getByRole("region", { name: "목표 전투력" });
     await goal.getByRole("textbox", { name: "목표 전투력" }).fill("12400");
     await goal.getByRole("button", { name: "경로 찾기" }).click();
-    await expect(goal.getByRole("alert")).toContainText("캐릭터 정보를 먼저 불러와 주세요.");
+    // The page shows the character: its backend copy ran out, not "load it first" (user 11-08).
+    await expect(goal.getByRole("alert")).toContainText("캐릭터 정보를 받은 지 오래되었어요. 위의 갱신 버튼으로 다시 받은 뒤 다시 찾아 주세요.");
   });
 
   // 사용자 결정 10-18(#887): 후보 이름을 누르면 줄 상세(시세·전후 능력치·전투력)를 연다.

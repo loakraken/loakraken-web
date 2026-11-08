@@ -4,6 +4,10 @@ import { getTitleEquip } from "@/lib/stats/server";
 
 export async function GET(request: Request) {
   const params = new URL(request.url).searchParams;
-  const query = titleEquipQuery({ server: params.get("server") ?? undefined, activeDays: Number(params.get("activeDays")) });
+  const query = titleEquipQuery({
+    server: params.get("server") ?? undefined,
+    activeDays: Number(params.get("activeDays")),
+    date: params.get("date"),
+  });
   return toResponse(await getTitleEquip(query, request.signal));
 }

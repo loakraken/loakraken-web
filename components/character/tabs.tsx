@@ -158,6 +158,7 @@ import { rateLimitCopy, retryLabel } from "@/lib/api/rate-limit";
 import { RateLimitNote } from "@/components/site/rate-limit-note";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { useCrossfade } from "@/lib/motion";
+import { EngravingIcon } from "@/components/ui/engraving-icon";
 
 export const TABS = [
   { id: "combat", label: "전투" },
@@ -960,17 +961,25 @@ function ArkGridPanel({ data }: { data: Character }) {
       <ArkRealHead view={real} />
       {grid.effects.length > 0 && (
         <ul className={styles.effectGrid}>
-          {grid.effects.map((effect, i) => (
-            <li key={i}>
-              <span>{text(effect.name)}</span>
-              <span>
-                <small>Lv.{number(effect.level)}</small>
-                {effect.percent != null && (
-                  <b>+{effect.percent.toLocaleString("ko-KR", { maximumFractionDigits: 2 })}%</b>
-                )}
-              </span>
-            </li>
-          ))}
+          {grid.effects.map((effect, i) => {
+            // The same role rule as the gem options (#1108, user 11-08): an
+            // effect the role does not use (낙인력 for a dealer) goes grey.
+            const off = gridOptionCounts(effect.name ?? "", role) === false;
+            return (
+              <li key={i} data-other-role={off || undefined}>
+                <span>
+                  {text(effect.name)}
+                  {off && <OtherRole />}
+                </span>
+                <span>
+                  <small>Lv.{number(effect.level)}</small>
+                  {effect.percent != null && (
+                    <b>+{effect.percent.toLocaleString("ko-KR", { maximumFractionDigits: 2 })}%</b>
+                  )}
+                </span>
+              </li>
+            );
+          })}
         </ul>
       )}
       {grid.slots.length ? (
@@ -1359,11 +1368,12 @@ function EngravingsPanel({ data }: { data: Character }) {
           {effects.map((effect, i) => (
             <li key={i} {...stagger(i)}>
               <div className={styles.engravingName}>
-                {/* No official icon per engraving exists, and the market book
-                    icon was the same on every row (PM 총괄 11-01): a small mark
-                    in the grade's colour instead; the grade itself is read out
-                    on the right. */}
-                <i className={styles.engravingGrade} data-grade={gradeKey(effect.grade)} aria-hidden="true" />
+                {/* The engraving's own icon (user 11-08, the user's game files;
+                    a fixed box even without one) in a ring of its grade's
+                    colour, in place of the separate mark (user 11-08). The
+                    grade itself is read out on the right ('유물 ×4'), so the
+                    colour is never the only cue. */}
+                <EngravingIcon name={effect.name} size={28} grade={gradeKey(effect.grade)} className={styles.engravingIcon} />
                 {effect.description ? (
                   <DetailTooltip name={effect.name ?? "각인"} card={<EngravingCard description={effect.description} />}>
                     <strong>{text(effect.name)}</strong>

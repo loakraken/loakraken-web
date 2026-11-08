@@ -20,6 +20,12 @@ for (const width of [1280, 360])
     const engravings = page.getByRole("region", { name: "각인 채용률" });
     await expect(engravings).toContainText("표본이 적은 항목은 숨김");
     await expect(engravings).not.toContainText(/숨김.*명|명은 숨김/);
+    // Each engraving row its icon (user 11-08) in an 18px box; the names line up.
+    const marks = engravings.locator("li [data-engraving-icon]");
+    await expect(marks).toHaveCount(await engravings.getByRole("listitem").count());
+    const boxes = await marks.evaluateAll((els) => els.map((el) => [Math.round(el.getBoundingClientRect().width), Math.round(el.getBoundingClientRect().left)]));
+    expect(new Set(boxes.map(([w]) => w)), "각인 아이콘 칸 폭").toEqual(new Set([18]));
+    expect(new Set(boxes.map(([, x]) => x)).size, "각인 아이콘 시작 위치").toBe(1);
     await expect(page.getByRole("region", { name: "팔찌 전투 특성" })).toContainText("팔찌를 못 읽은 7명 제외");
     await expect(page.getByRole("region", { name: "팔찌 전투 특성" })).not.toContainText("명은 숨김");
     await expect(page.getByRole("region", { name: "피해 증가 보석" })).toContainText("표본이 적은 항목은 숨김");
@@ -111,4 +117,37 @@ test("@M12 통계 직업 표와 캐릭터 분석 메뉴에서 직업 상세로 @
   await page.getByRole("button", { name: /^분석/ }).click();
   const link = page.getByRole("menuitem", { name: /^직업 통계/ });
   await expect(link).toHaveAttribute("href", /^\/stats\/classes\//);
+});
+
+// A37 (#1421 review): on phones the engraving icon takes room in the name cell;
+// names wrap beside it instead of being cut, and the icons still line up.
+for (const width of [320, 360])
+  test(`직업 각인·각인 채용률 이름이 잘리지 않음 @${width} @regression`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await gotoReady(page, `/stats/classes/${encodeURIComponent("블레이드")}`);
+    for (const name of ["직업 각인", "각인 채용률"]) {
+      const section = page.getByRole("region", { name, exact: true });
+      await expect(section.locator("li [data-engraving-icon]").first()).toBeVisible();
+      // The longest real names (the mock's are short): the cell is CSS, the text only fills it.
+      await section.locator("ol > li [class*=label]").evaluateAll((els) =>
+        ["아르데타인의 기술", "멈출 수 없는 충동"].forEach((long, i) => {
+          const text = els[i] && [...els[i].childNodes].findLast((node) => node.nodeType === 3);
+          if (text) text.textContent = long;
+        }),
+      );
+      const cells = await section.locator("ol > li [class*=label]").evaluateAll((els) =>
+        els.map((el) => ({ text: el.textContent.trim(), cut: el.scrollWidth > el.clientWidth + 1, lines: Math.round(el.getBoundingClientRect().height / 18) })),
+      );
+      expect(cells.length, `${name} 줄`).toBeGreaterThan(0);
+      expect(cells.filter((cell) => cell.cut).map((cell) => cell.text), `${name} 잘린 이름`).toEqual([]);
+      const lefts = await section.locator("li [data-engraving-icon]").evaluateAll((els) => els.map((el) => Math.round(el.getBoundingClientRect().left)));
+      expect(new Set(lefts).size, `${name} 아이콘 시작 위치`).toBe(1);
+      console.log(`A37 ${width} ${name}: ${cells.map((cell) => `${cell.text}(${cell.lines})`).join(", ")}`);
+    }
+  });
+
+test("각인 아이콘 파일은 오래 캐시(immutable) @regression", async ({ page }) => {
+  const response = await page.request.get("/engravings/01.webp");
+  expect(response.status()).toBe(200);
+  expect(response.headers()["cache-control"]).toContain("immutable");
 });

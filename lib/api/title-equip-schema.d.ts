@@ -24,6 +24,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/titles/equipped/dates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 칭호 장착 하루 기록이 있는 날짜 */
+        get: operations["getTitleEquipDates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -48,6 +65,7 @@ export interface components {
             title: string | null;
             /** @description 장착이 확인된 칭호(원정대 수 내림차순, 같으면 칭호 문자열의 코드 포인트 순) */
             titles: components["schemas"]["EquippedTitleResponse"][];
+            snapshotDate?: string | null;
         };
         /** @description 공통 메타. 모집단은 LOAKraken이 관측한 캐릭터 중 최근 activeDays일 안에 프로필(전투력)을 확인한 캐릭터이며 게임 전체 인구가 아닙니다. */
         StatsMetaResponse: {
@@ -135,6 +153,9 @@ export interface components {
             newRosters30d?: number | null;
             observedCharacters?: number | null;
             sampleReady?: boolean | null;
+            grade?: string | null;
+            parentTitle?: string | null;
+            condition?: string | null;
         };
         /** @description 공통 오류 응답. HTTP 상태와 업무 코드를 함께 확인합니다. */
         ErrorResponse: {
@@ -143,6 +164,15 @@ export interface components {
             /** @example 요청 값이 올바르지 않습니다. */
             message: string;
             data: null;
+        };
+        TitleSnapshotDatesResponse: {
+            /** @description 기록이 있는 KST 날짜, 최신 먼저, 최대 90개. 배포 다음 날부터 쌓임 */
+            dates: string[];
+        };
+        ApiResponseTitleSnapshotDatesResponse: {
+            code: string;
+            message: string;
+            data: components["schemas"]["TitleSnapshotDatesResponse"];
         };
     };
     responses: never;
@@ -162,6 +192,8 @@ export interface operations {
                 activeDays?: number;
                 /** @description 공식 칭호 문자열. 없으면 전체 */
                 title?: string;
+                /** @description KST 날짜(YYYY-MM-DD)의 하루 기록(서버별 또는 전체). 없으면 지금 값. activeDays는 없거나 30이어야 함(아니면 400). 기록이 없는 날은 404 TITLE_SNAPSHOT_NOT_FOUND */
+                date?: string;
             };
             header?: never;
             path?: never;
@@ -203,6 +235,29 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    getTitleEquipDates: {
+        parameters: {
+            query?: {
+                /** @description 서버(없으면 전체) */
+                server?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponseTitleSnapshotDatesResponse"];
                 };
             };
         };

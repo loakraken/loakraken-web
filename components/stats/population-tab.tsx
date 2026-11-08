@@ -6,12 +6,14 @@
 import { useId, useState, type CSSProperties } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { coarsen } from "@/lib/stats/bins";
+import { classColor } from "@/lib/stats/class-groups";
 import { fetchPopulation } from "@/lib/stats/client";
 import { whole, share } from "@/lib/stats/model";
 import { snapshotText, type PopulationCount } from "@/lib/stats/population";
 import { pendingProps } from "@/lib/api/pending";
 import { Select } from "@/components/ui/select";
 import { ClassIcon } from "./class-icon";
+import { GroupLegend } from "./group-legend";
 import { STATS_SERVERS } from "./stats-filters";
 import styles from "./stats.module.css";
 import own from "./population.module.css";
@@ -34,6 +36,7 @@ function levelBars(levels: readonly { from: number; to: number; count: number }[
   return coarsen(filled);
 }
 
+/** `icons`: class rows (an icon each, and the bar in the class's 직업군 colour, user 11-08). */
 function CountList({ rows, total, current, icons }: { rows: readonly PopulationCount[]; total: number; current?: string; icons?: boolean }) {
   const max = Math.max(1, ...rows.map((r) => r.count));
   return (
@@ -48,7 +51,10 @@ function CountList({ rows, total, current, icons }: { rows: readonly PopulationC
             {whole(row.count)}명 <small>{share(total ? (row.count / total) * 100 : 0)}</small>
           </span>
           <span className={own.bar} aria-hidden="true">
-            <i className="k-grow-x" style={{ width: `${(row.count / max) * 100}%`, "--i": i } as CSSProperties} />
+            <i
+              className="k-grow-x"
+              style={{ width: `${(row.count / max) * 100}%`, "--i": i, ...(icons && { "--bar": classColor(row.name) }) } as CSSProperties}
+            />
           </span>
         </li>
       ))}
@@ -129,7 +135,10 @@ export function PopulationTab({
       {view === "servers" ? (
         <CountList rows={data.servers} total={serverTotal} current={data.server ?? undefined} />
       ) : view === "classes" ? (
-        <CountList rows={data.classes} total={data.total} icons />
+        <>
+          <GroupLegend />
+          <CountList rows={data.classes} total={data.total} icons />
+        </>
       ) : (
         <>
           <ol

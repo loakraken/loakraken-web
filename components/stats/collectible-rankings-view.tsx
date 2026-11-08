@@ -30,6 +30,7 @@ import { rankingColumns } from "./ranking-columns";
 import { BasisNote } from "./basis-note";
 import { RankingTypeTabs, type RankingType } from "./ranking-type-tabs";
 import { MoreDetail } from "@/components/ui/more-detail";
+import { BotNote } from "@/components/bot/bot-note";
 
 const SERVERS = ["루페온", "실리안", "아만", "아브렐슈드", "카단", "카마인", "카제로스", "니나브"];
 const ROSTER_COLUMNS = rankingColumns([3.5, 14, 6, 6.5, 8, 4.5, 9]);
@@ -159,9 +160,11 @@ export function CollectibleRankingsView({
               수집품 랭킹을 불러오고 있어요…
             </p>
           ) : !data.rows?.length ? (
-            <p className={styles.muted}>
-              {population === 0 ? "원정대 표본을 모으는 중이에요." : "조건에 맞는 원정대가 없어요."}
-            </p>
+            <BotNote mood={population === 0 ? "calm" : "puzzled"}>
+              <p className={styles.muted}>
+                {population === 0 ? "원정대 표본을 모으는 중이에요." : "조건에 맞는 원정대가 없어요. 조건을 조금 넓혀 볼까요?"}
+              </p>
+            </BotNote>
           ) : (
             <DataTable label={`수집품 랭킹 ${query.page}쪽`} className={styles.table} {...columns.tableProps}>
               <caption className={styles.srOnly}>

@@ -46,6 +46,16 @@
               "maxLength": 128,
               "minLength": 0
             }
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "required": false,
+            "description": "KST 날짜(YYYY-MM-DD)의 하루 기록(서버별 또는 전체). 없으면 지금 값. activeDays는 없거나 30이어야 함(아니면 400). 기록이 없는 날은 404 TITLE_SNAPSHOT_NOT_FOUND",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
           }
         ],
         "responses": {
@@ -90,6 +100,38 @@
             }
           }
         }
+      }
+    },
+    "/api/v1/titles/equipped/dates": {
+      "get": {
+        "tags": [
+          "통계·랭킹"
+        ],
+        "summary": "칭호 장착 하루 기록이 있는 날짜",
+        "operationId": "getTitleEquipDates",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseTitleSnapshotDatesResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "server",
+            "in": "query",
+            "required": false,
+            "description": "서버(없으면 전체)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
       }
     }
   },
@@ -143,6 +185,18 @@
             "items": {
               "$ref": "#/components/schemas/EquippedTitleResponse"
             }
+          },
+          "snapshotDate": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date",
+                "description": "date로 고른 하루 기록(KST 날짜). null이면 지금 값"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -796,6 +850,39 @@
                 "type": "null"
               }
             ]
+          },
+          "grade": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "칭호 등급(내부 칭호 표). 열린 문자열: 일반·고급·희귀·영웅·전설·유물·고대·에스더가 문서화된 값이고, 그 밖의 값은 화면이 색 없이 보여 줌. 표에 없는 칭호는 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "parentTitle": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "변형 칭호(첫 주 클리어 등)의 상위 칭호 공식 문자열. null이면 맨 위 칭호. 상위 칭호 줄이 없을 수도 있음"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "condition": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "획득 조건 한 줄(내부 칭호 표). 없으면 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -824,6 +911,41 @@
           "code",
           "data",
           "message"
+        ]
+      },
+      "TitleSnapshotDatesResponse": {
+        "type": "object",
+        "properties": {
+          "dates": {
+            "type": "array",
+            "description": "기록이 있는 KST 날짜, 최신 먼저, 최대 90개. 배포 다음 날부터 쌓임",
+            "items": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        },
+        "required": [
+          "dates"
+        ]
+      },
+      "ApiResponseTitleSnapshotDatesResponse": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/TitleSnapshotDatesResponse"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "data"
         ]
       }
     }

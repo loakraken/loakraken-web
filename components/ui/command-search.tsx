@@ -73,7 +73,9 @@ function CommandSearch({ className }: { className?: string }) {
             and at 600px and below, where the header row has no room for it. */}
         <kbd
           aria-hidden="true"
-          className="hidden rounded-(--radius-xs) bg-muted px-1.5 py-0.5 font-[inherit] text-(length:--text-caption) leading-none text-muted-foreground pointer-fine:min-[601px]:inline"
+          // The family only: the whole `font` shorthand also took the page's size
+          // (17px on /about), and 'Ctrl K' broke onto two lines there (user 11-08).
+          className="hidden whitespace-nowrap rounded-(--radius-xs) bg-muted px-1.5 py-0.5 [font-family:inherit] text-(length:--text-caption) leading-none text-muted-foreground pointer-fine:min-[601px]:inline"
         >
           {mac ? "⌘K" : "Ctrl K"}
         </kbd>

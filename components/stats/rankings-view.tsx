@@ -22,6 +22,7 @@ import { RankNumber } from "./rank-number";
 import { rankingColumns } from "./ranking-columns";
 import { BasisNote } from "./basis-note";
 import { RankingTypeTabs, type RankingType } from "./ranking-type-tabs";
+import { BotNote } from "@/components/bot/bot-note";
 
 const SERVERS = ["루페온", "실리안", "아만", "아브렐슈드", "카단", "카마인", "카제로스", "니나브"];
 const CLASSES = [
@@ -200,7 +201,9 @@ export function RankingsView({ initial, types }: { initial: RankingQuery; types:
               랭킹을 불러오고 있어요…
             </p>
           ) : data.rows.length === 0 ? (
-            <p className={styles.muted}>조건에 맞는 캐릭터가 없어요.</p>
+            <BotNote mood="puzzled">
+              <p className={styles.muted}>조건에 맞는 캐릭터가 없어요. 조건을 조금 넓혀 볼까요?</p>
+            </BotNote>
           ) : (
             <DataTable
               label={`${metricLabel} 랭킹 ${query.page}쪽`}

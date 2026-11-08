@@ -65,4 +65,19 @@ for (const scheme of ["light", "dark"])
       }
       // Points and willpower have no role: never grey.
       await expect(core.locator("small span", { hasText: /포인트 \d/ }).first()).not.toHaveAttribute("data-other-role");
+
+      // The effect summary over the cores (user 11-08): the same rule, 낙인력 (support) and 공격력 (dealer).
+      const effect = (name, level) => page.locator("li", { hasText: name }).filter({ hasText: `Lv.${level}` }).first();
+      const brand = effect("낙인력", 32);
+      const attack = effect("공격력", 28);
+      await expect(brand).toBeVisible();
+      if (dealer) {
+        await expect(brand).toHaveAttribute("data-other-role", "true");
+        await expect(brand).toContainText("(이 역할에는 해당 없음)");
+        await expect(attack).not.toHaveAttribute("data-other-role");
+        expect(await contrast(brand.locator("b")), "회색 효과 대비").toBeGreaterThanOrEqual(4.5);
+      } else {
+        await expect(brand).not.toHaveAttribute("data-other-role");
+        await expect(attack).toHaveAttribute("data-other-role", "true");
+      }
     });
