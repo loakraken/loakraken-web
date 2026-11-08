@@ -10,8 +10,13 @@ for (const width of [1280, 360])
     // Only the equipment panel's accessory rows carry the badge.
     const badges = page.locator("[data-stat-range]");
     // The first two accessories in range (31.02%, 94.05%); the third is past its range (no %), the rest have no stats.
-    await expect(badges).toHaveText(["범위 31.02%", "범위 94.05%"]);
-    await expect(badges.first()).toHaveAccessibleName("힘·민첩·지능 16,009 (범위 15,178 ~ 17,857, 31.02%)");
+    await expect(badges).toHaveCount(2);
+    // What shows, then the value and range for screen readers (hidden text).
+    await expect(badges.first()).toHaveText("범위 31.02% · 힘·민첩·지능 16,009 (범위 15,178 ~ 17,857, 31.02%)");
+    await expect(badges.nth(1)).toContainText("범위 94.05% · 힘·민첩·지능 12,654");
+    // The badge's own text (the hidden detail is in a child element).
+    const shown = (el) => [...el.childNodes].filter((n) => n.nodeType === 3).map((n) => n.textContent).join("").trim();
+    expect(await badges.first().evaluate(shown), "보이는 글자").toBe("범위 31.02%");
     for (const badge of await badges.all()) {
       const room = await badge.evaluate((el) => ({ shown: el.clientWidth, needed: el.scrollWidth }));
       expect(room.needed, "배지 글자가 잘리지 않음").toBeLessThanOrEqual(room.shown);

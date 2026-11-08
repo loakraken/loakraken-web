@@ -437,8 +437,10 @@ function StatRange({ stats }: { stats: AccessoryStats | null | undefined }) {
   const pct = rangePercent(stats);
   if (!pct) return null;
   return (
-    <span className={styles.levelBadge} data-stat-range="" aria-label={`힘·민첩·지능 ${rangeDetail(stats)}`}>
+    <span className={styles.levelBadge} data-stat-range="">
       범위 {pct}
+      {/* A name on a plain span is not read out (generic role): the detail as hidden text. */}
+      <span className={styles.srOnly}> · 힘·민첩·지능 {rangeDetail(stats)}</span>
     </span>
   );
 }
