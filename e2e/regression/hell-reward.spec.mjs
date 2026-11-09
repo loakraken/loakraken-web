@@ -17,7 +17,7 @@ for (const width of [1280, 360, 320])
     // 지옥 1750 · 0단계 기본: 파괴석 결정 600 × 9 (수호석 결정 1,800 × 1.9보다 큼) + 위대한 30 × 33 + 상급 융화 75 × 271
     // + 빙하 36 × 430 + 귀속 골드 5,500 = 47,695 (용암 · 전이 돌파석 · 운명/혼돈의 돌은 목 시세가 없어 0G).
     await expect(total).toHaveText("47,695G");
-    await expect(line("용암의 숨결")).toContainText("시세 없음 · 0G");
+    await expect(line("용암의 숨결")).toContainText("시세 없음");
     await expect(line("운명의 파괴석 결정")).toContainText("거래 가능 여부 확인 전");
     await expect(line("팔찌 상자 (고대)")).toContainText("시세 없음 · 직접 정한 값");
     await page.waitForTimeout(600);
@@ -35,14 +35,15 @@ for (const width of [1280, 360, 320])
     await expect(line("운명의 돌")).toContainText("품목 확인 중 · 직접 정한 값");
     await page.getByRole("spinbutton", { name: "운명의 돌 1개 값(골드)" }).fill("2");
     await expect(total).toHaveText("106,990G");
-    await expect(line("혼돈의 돌")).toContainText("둘 중 하나, 고르지 않음");
-    await expect(line("운명의 돌")).toContainText("둘 중 하나, 이쪽으로 셈");
+    await expect(line("혼돈의 돌")).toContainText("셈 안 함");
+    await expect(line("운명의 돌")).toContainText("둘 중 하나만 셈");
+    await expect(line("운명의 돌")).toContainText("90G");
 
     // 지옥 1730: 재료 넷은 게임 안 기록에 (귀속) → '귀속, 시세로 환산'.
     await page.getByRole("radiogroup", { name: "종류" }).getByRole("radio", { name: "지옥" }).click();
     await page.getByRole("radiogroup", { name: "열쇠 단계(입장 레벨)" }).getByRole("radio", { name: "1730" }).click();
     await expect(line("운명의 파괴석 결정")).toContainText("귀속, 시세로 환산");
-    await expect(line("전이 돌파석")).toContainText("시세 없음 · 0G");
+    await expect(line("전이 돌파석")).toContainText("시세 없음");
     // 4,500 + 위대한 25 × 33 + 상급 60 × 271 + 빙하 30 × 430 + 귀속 골드 4,500 + 고대 팔찌 3 × 100.
     await expect(total).toHaveText("39,285G");
     // 단계표 11줄, 고른 단계가 표시된다.

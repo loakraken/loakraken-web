@@ -207,10 +207,11 @@ export const HUBS: Record<HubId, { label: string; tabs: HubTab[] }> = {
     tabs: [
       { label: "보상표", href: "/tools/raid-rewards" },
       { label: "더보기 손익", href: "/tools/more-reward" },
-      { label: "지옥 · 나락", href: "/tools/hell-reward", flag: "hellReward" },
       { label: "경매 입찰가", href: "/tools/auction" },
       { label: "기여도", href: "/tools/contribution" },
       { label: "컨닝페이퍼", href: "/tools/raid-cheatsheet" },
+      // Flagged: last, so the tabs on screen never move when it joins.
+      { label: "지옥 · 나락", href: "/tools/hell-reward", flag: "hellReward" },
     ],
   },
   gold: {

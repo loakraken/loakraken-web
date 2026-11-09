@@ -34,14 +34,22 @@ const KINDS: { value: HellKind; label: string }[] = [
 
 const unitText = (value: number) => value.toLocaleString("ko-KR", { maximumFractionDigits: value < 1 ? 4 : 2 });
 
-/** What a line's value is based on, in words (never only a colour). */
-function basisText(line: StageLine, priced: boolean) {
-  if (line.pricing.kind === "BOUND_GOLD") return "귀속 골드";
-  if (line.pricing.kind === "MARKET") {
-    if (line.unit == null) return priced ? "시세 없음 · 0G" : "시세 불러오는 중";
-    return `1개 ${unitText(line.unit)}G · ${line.trade === "BOUND" ? "귀속, 시세로 환산" : "거래 가능 여부 확인 전"}`;
-  }
+/**
+ * What a line's value is based on, in words (never only a colour). Fixed per line: it
+ * does not change when prices land, so the caption never rewraps and moves the lines
+ * below (360 CLS 0.018 when the unit price sat here).
+ */
+function basisText(line: StageLine) {
+  if (line.pricing.kind === "BOUND_GOLD") return "골드 그대로";
+  if (line.pricing.kind === "MARKET") return line.trade === "BOUND" ? "귀속, 시세로 환산" : "거래 가능 여부 확인 전";
   return line.pricing.why === "UNSETTLED" ? "품목 확인 중 · 직접 정한 값" : "시세 없음 · 직접 정한 값";
+}
+
+/** The unit price under a market line's amount; a space elsewhere, so every cell is two lines. */
+function unitLine(line: StageLine, priced: boolean) {
+  if (line.pricing.kind !== "MARKET") return " ";
+  if (line.unit == null) return priced ? "시세 없음" : "시세 대기";
+  return `1개 ${unitText(line.unit)}G`;
 }
 
 export function HellRewardTool() {
@@ -181,8 +189,8 @@ export function HellRewardTool() {
                           {line.label} <b>×{goldText(line.qty)}</b>
                         </strong>
                         <small>
-                          {basisText(line, priced)}
-                          {pair && (line.notChosen ? " · 둘 중 하나, 고르지 않음" : " · 둘 중 하나, 이쪽으로 셈")}
+                          {basisText(line)}
+                          {pair && " · 둘 중 하나만 셈"}
                         </small>
                       </span>
                       {line.pricing.kind === "MANUAL" && (
@@ -199,7 +207,10 @@ export function HellRewardTool() {
                           />
                         </label>
                       )}
-                      <span className={styles.amount}>{goldText(line.notChosen ? 0 : line.value)}G</span>
+                      <span className={styles.amount}>
+                        <b>{line.notChosen ? "셈 안 함" : `${goldText(line.value)}G`}</b>
+                        <small>{unitLine(line, priced)}</small>
+                      </span>
                     </li>
                   );
                 })}

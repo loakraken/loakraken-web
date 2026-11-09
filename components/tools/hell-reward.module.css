@@ -77,7 +77,7 @@
 }
 .lines li {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto 10ch;
+  grid-template-columns: minmax(0, 1fr) auto 13ch;
   align-items: center;
   gap: 4px 12px;
   padding: 8px 0;
@@ -134,10 +134,24 @@
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
+/* Two lines always (amount, then the unit price or a space): a price landing changes the
+   text in place, never the cell's height or its right edge. */
 .amount {
   grid-column: -2 / -1;
   grid-row: 1;
+  display: grid;
+}
+.amount b,
+.amount small {
+  /* Not inherited: each line keeps its digits and "G" in their usual order. */
+  unicode-bidi: plaintext;
+}
+.amount b {
   font-weight: 700;
+}
+.amount small {
+  color: var(--muted-foreground);
+  font-size: 12px;
 }
 .table {
   width: 100%;
@@ -207,7 +221,7 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .lines li {
-    grid-template-columns: minmax(0, 1fr) 10ch;
+    grid-template-columns: minmax(0, 1fr) 13ch;
   }
   .unit {
     grid-column: 1 / -1;
