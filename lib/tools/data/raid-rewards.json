@@ -1,11 +1,13 @@
 {
   "version": "2026-10-09",
-  "checkedAt": "2026-10-13",
+  "checkedAt": "2026-11-08",
   "rules": {
     "goldCharactersPerRoster": 6,
     "endContentGoldClearsPerCharacter": 3,
     "weeklyReset": "수요일 06:00",
-    "source": "guide-gold"
+    "source": "guide-gold",
+    "_note": "공식 가이드는 '총 3회'만 적고 캐릭터당이라고 쓰지 않는다. 캐릭터당 3회는 커뮤니티 두 글과 실제 화면 관측이 일치(확인 2026-11-08)",
+    "perCharacterSources": ["guide-gold", "community-guide-2021-12", "community-post-2024-02"]
   },
   "sources": {
     "notice-13307": {
@@ -22,6 +24,25 @@
       "title": "9월 23일(수) 업데이트 내역 안내 — 카제로스 레이드 3막 익스트림",
       "url": "https://lostark.game.onstove.com/News/Notice/Views/13551",
       "date": "2026-09-23"
+    },
+    "notice-13578": {
+      "title": "10월 21일(수) 업데이트 내역 안내(종막 익스트림 클리어 골드)",
+      "url": "https://lostark.game.onstove.com/News/Notice/Views/13578",
+      "date": "2026-10-21"
+    },
+    "community-guide-2021-12": {
+      "title": "골드 획득 캐릭터 6개 · 캐릭터마다 골드 3회(팁 글)",
+      "url": null,
+      "date": "2021-12-29",
+      "kind": "COMMUNITY",
+      "_note": "글 주소는 내부 기록(성장 도구 로그 2026-11-08)"
+    },
+    "community-post-2024-02": {
+      "title": "엔드 콘텐츠 골드는 캐릭터마다 3개(문답, 답글 여러 개 일치)",
+      "url": null,
+      "date": "2024-02-27",
+      "kind": "COMMUNITY",
+      "_note": "글 주소는 내부 기록(성장 도구 로그 2026-11-08)"
     },
     "gmnote-1226": {
       "title": "'카제로스 레이드 익스트림'과 가을 이벤트 소식을 전합니다.",
@@ -445,9 +466,9 @@
       "rosterWeekly": true,
       "goldWithoutDesignation": true,
       "modes": [
-        { "difficulty": "NORMAL", "minItemLevel": 1730, "status": "OFFICIAL", "source": "gmnote-1226", "gates": [{ "gate": 1, "gold": 20000, "boundGold": 0, "moreCost": null }] },
-        { "difficulty": "HARD", "minItemLevel": 1770, "status": "OFFICIAL", "source": "gmnote-1226", "gates": [{ "gate": 1, "gold": 50000, "boundGold": 0, "moreCost": null }] },
-        { "difficulty": "NIGHTMARE", "minItemLevel": 1780, "status": "OFFICIAL", "source": "gmnote-1226", "gates": [{ "gate": 1, "gold": 50000, "boundGold": 0, "moreCost": null }] }
+        { "difficulty": "NORMAL", "minItemLevel": 1730, "status": "OFFICIAL", "source": "notice-13578", "gates": [{ "gate": 1, "gold": 20000, "boundGold": 0, "moreCost": null }] },
+        { "difficulty": "HARD", "minItemLevel": 1770, "status": "OFFICIAL", "source": "notice-13578", "gates": [{ "gate": 1, "gold": 50000, "boundGold": 0, "moreCost": null }] },
+        { "difficulty": "NIGHTMARE", "minItemLevel": 1780, "status": "OFFICIAL", "source": "notice-13578", "gates": [{ "gate": 1, "gold": 50000, "boundGold": 0, "moreCost": null }] }
       ]
     },
     {

@@ -21,6 +21,34 @@
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
+/* One cell, two sentences stacked: the hidden one holds the height (no shift when it swaps). */
+.status {
+  display: grid;
+  margin: 0 0 8px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.status > span {
+  grid-area: 1 / 1;
+}
+.status > span:not([data-shown]) {
+  visibility: hidden;
+}
+.status a {
+  color: var(--link);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .status a:hover {
+    text-decoration-thickness: 2px;
+  }
+}
+.status a:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
 .rows {
   display: grid;
   margin: 0;
@@ -57,9 +85,117 @@
   font-variant-numeric: tabular-nums;
 }
 .rows b {
+  /* Room for a character's largest week ("200,000G"): turning gold off reads
+     "0G" in the same box, so the column never narrows (A7, #14).
+     The amount is anchored at its right end, and the box says so: with rtl its
+     start edge is the right edge, which a shorter amount ("110,000G" → "0G")
+     does not move. As left-to-right text, its start edge moved right and the
+     browser counted a layout shift (320/360). plaintext keeps the digits and
+     "G" in their usual order. */
+  min-width: 9ch;
+  direction: rtl;
+  unicode-bidi: plaintext;
   font-variant-numeric: tabular-nums;
   text-align: right;
   white-space: nowrap;
+}
+/* #14: gold and raids chosen here are the homework tool's own (one saved state). */
+.rows li[data-off] b,
+.rows li[data-off] .who strong,
+.rows li[data-off] .raids {
+  color: var(--muted-foreground);
+}
+.rows li[data-off] .raids {
+  text-decoration: line-through;
+}
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  grid-column: 1 / -1;
+  align-items: flex-start;
+  gap: 4px 16px;
+  font-size: 12px;
+}
+.switch {
+  display: inline-flex;
+  min-height: 32px;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+.switch input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--foreground);
+}
+.switch input:disabled {
+  cursor: not-allowed;
+}
+/* A gold character set in the homework tool (outside the default six): same height as a switch. */
+.fixed {
+  display: inline-flex;
+  min-height: 32px;
+  align-items: center;
+  color: var(--muted-foreground);
+}
+@media (pointer: coarse) {
+  .fixed {
+    min-height: 44px;
+  }
+}
+.pick {
+  min-width: 0;
+}
+.pick summary {
+  display: inline-flex;
+  min-height: 32px;
+  align-items: center;
+  color: var(--link);
+  cursor: pointer;
+}
+@media (hover: hover) and (pointer: fine) {
+  .pick summary:hover {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+}
+/* Touch: the switch and raid rows are 44px targets, like the site's other controls. */
+@media (pointer: coarse) {
+  .switch,
+  .pick summary,
+  .pick label {
+    min-height: 44px;
+  }
+}
+.pick summary:focus-visible,
+.switch input:focus-visible,
+.pick input:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+.pick ul {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(12em, 1fr));
+  gap: 2px 12px;
+  margin: 4px 0 4px;
+  padding: 0;
+  list-style: none;
+}
+.pick label {
+  display: flex;
+  min-height: 32px;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+.pick label span {
+  display: grid;
+  min-width: 0;
+}
+.pick small {
+  color: var(--muted-foreground);
+  font-variant-numeric: tabular-nums;
 }
 .note {
   margin: 12px 0 0;
@@ -84,5 +220,11 @@
   .raids {
     grid-column: 1 / -1;
     grid-row: 2;
+    /* Two lines held: turning a raid off or on changes the names, not the row (A7). */
+    min-height: calc(2 * 1.5em);
+    line-height: 1.5;
+  }
+  .controls {
+    grid-row: 3;
   }
 }

@@ -9,6 +9,7 @@ import Link from "next/link";
 import { SiteHeader } from "@/components/site/site-header";
 import dynamic from "next/dynamic";
 import { CharacterQueryError, fetchSiblings } from "@/lib/character/client";
+import { onHomeworkSaved } from "@/lib/tools/homework-store";
 import { rateLimitCopy, retryLabel } from "@/lib/api/rate-limit";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import {
@@ -565,6 +566,11 @@ export default function HomeworkTool() {
     }, 60_000);
     return () => clearInterval(timer);
   }, []);
+
+  // Saved elsewhere (the character page's 주간 획득 골드 in another tab, #14):
+  // take it, so both screens show one saved state. Saving the same text back
+  // raises no new event, so two tabs do not echo each other.
+  useEffect(() => onHomeworkSaved(() => setState(load(Date.now()))), []);
 
   useEffect(() => {
     try {
