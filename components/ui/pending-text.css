@@ -32,7 +32,10 @@
   animation: pending-text-glow 1.5s linear infinite;
   will-change: transform;
 }
-.pending-text__glow::before {
+/* The text itself, on a child that never animates: Blink re-styles a
+   pseudo-element together with its element, so on the moving glow it was
+   re-styled every frame (3 elements per label instead of 2). */
+.pending-text__copy::before {
   content: attr(data-glow) / "";
 }
 /* From just before the text to just after it: --pending-run is the text's
