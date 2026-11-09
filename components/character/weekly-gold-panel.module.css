@@ -21,6 +21,29 @@
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
+/* One cell, two sentences stacked: the hidden one holds the height (no shift when it swaps). */
+.status {
+  display: grid;
+  margin: 0 0 8px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.status > span {
+  grid-area: 1 / 1;
+}
+.status > span:not([data-shown]) {
+  visibility: hidden;
+}
+.status a {
+  color: var(--link);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.status a:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
 .rows {
   display: grid;
   margin: 0;

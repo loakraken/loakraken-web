@@ -101,3 +101,43 @@ for (const width of [1280, 360, 320])
     expect(secondName.length).toBeGreaterThan(0);
     await expect(page.getByRole("region", { name: `${secondName} 숙제` }).getByRole("switch")).not.toBeChecked();
   });
+
+// PM 총괄 11-09 (i): one rule on both screens. Six gold characters saved on another server
+// leave this server without gold from the first view, with the reason in plain text and a
+// link to the homework tool, and nothing moves when the saved state is read (320/360).
+for (const width of [1280, 360, 320])
+  test(`${width} 주간 획득 골드: 다른 서버에 골드 6명이 저장돼 있으면 0G와 이유 한 줄, 흔들림 0 @regression @smoke`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.addInitScript(() => {
+      const KST = 9 * 3600_000;
+      const now = Date.now();
+      const kst = new Date(now + KST);
+      const day = (kst.getUTCDay() + 7 - 3) % 7;
+      let week = Date.UTC(kst.getUTCFullYear(), kst.getUTCMonth(), kst.getUTCDate() - day, 6) - KST;
+      if (week > now) week -= 7 * 86400_000;
+      const characters = ["일", "이", "삼", "사", "오", "육"].map((n, i) => ({
+        name: `다른서버${n}`,
+        server: "다른서버",
+        className: "블레이드",
+        itemLevel: 1700 - i,
+        gold: true,
+        raids: [],
+      }));
+      if (!localStorage.getItem("loakraken-homework"))
+        localStorage.setItem("loakraken-homework", JSON.stringify({ version: 1, week, characters }));
+    });
+    await watchShifts(page);
+    await gotoReady(page, characterPath("주간골드", "siblings"));
+    const panel = page.getByRole("region", { name: "주간 획득 골드" });
+    await expect(panel.getByRole("definition").first()).toHaveText("0G");
+    await expect(panel.getByText("숙제 체크에서 골드 받는 캐릭터 6명을 이미 다른 서버 캐릭터로 정했어요.")).toBeVisible();
+    await expect(panel.getByRole("link", { name: "숙제 체크에서 바꿀 수 있어요." })).toHaveAttribute("href", "/tools/homework");
+    await expect(panel.getByText("골드 받는 캐릭터는 숙제 체크와 같이 원정대에서 6명까지예요.")).toBeHidden();
+    const rows = panel.getByRole("list", { name: "캐릭터별 주간 골드" }).locator(":scope > li");
+    await expect(rows.first().getByRole("switch")).not.toBeChecked();
+    await expect(rows.first().getByRole("switch")).toBeDisabled();
+    await page.waitForTimeout(600);
+    const first = await shiftsSince(page);
+    expect(first.all, `저장 읽기 흔들림 (${first.moved})`).toBe(0);
+    await expectNoHorizontalOverflow(page);
+  });

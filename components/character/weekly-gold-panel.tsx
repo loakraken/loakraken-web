@@ -70,6 +70,21 @@ export function WeeklyGoldPanel({
           <dd>{formatGold(gold.bound)}</dd>
         </div>
       </dl>
+      {/* Both sentences always drawn in one cell, the one not in use hidden: the line is
+          as tall as the longer one from the first paint, so the reason (read from this
+          browser's saved homework) appears without moving anything (PM 총괄 11-09, (i)). */}
+      <p className={styles.status}>
+        <span data-shown={gold.blocked ? undefined : ""} aria-hidden={gold.blocked || undefined}>
+          골드 받는 캐릭터는 숙제 체크와 같이 원정대에서 {GOLD_CHARACTERS}명까지예요.
+        </span>
+        <span data-shown={gold.blocked ? "" : undefined} aria-hidden={!gold.blocked || undefined}>
+          숙제 체크에서 골드 받는 캐릭터 {GOLD_CHARACTERS}명
+          {gold.elsewhere >= GOLD_CHARACTERS ? "을" : ` 중 ${gold.elsewhere}명을`} 이미 다른 서버 캐릭터로 정했어요.{" "}
+          <Link href="/tools/homework" prefetch={false} tabIndex={gold.blocked ? undefined : -1}>
+            숙제 체크에서 바꿀 수 있어요.
+          </Link>
+        </span>
+      </p>
       <ol className={styles.rows} aria-label="캐릭터별 주간 골드">
         {gold.rows.map((row) => {
           const who = shown(row.name);

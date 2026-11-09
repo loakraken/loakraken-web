@@ -121,17 +121,19 @@ test("weekly gold: a raid turned off or on changes that character's gold; a four
   assert.equal(same.rows[0].gold, before.rows[0].gold);
 });
 
-test("weekly gold: gold characters saved on another server do not count toward this server's six", () => {
-  // PM 총괄 11-09 (계산 검증 #1466 P1): the panel counts the six on its own server.
+test("weekly gold: gold characters saved on another server count toward the six, with the reason shown", () => {
+  // PM 총괄 11-09 (i): one rule on both screens, the homework tool's six over every server.
   const other = addCharacters(emptyState(0), [
     { name: "루1", server: "루페온", className: "블레이드", itemLevel: 1700 },
     { name: "루2", server: "루페온", className: "블레이드", itemLevel: 1700 },
   ]);
   const gold = weeklyGold(roster6, "아만", 0, other)!;
+  // Six rows still, the last two without gold (the roster's six are used).
   assert.equal(gold.rows.length, 6);
-  assert.deepEqual(gold.rows.map((row) => row.on), [true, true, true, true, true, true]);
-  // This server's six are on, so a seventh here could not take gold.
+  assert.deepEqual(gold.rows.map((row) => row.on), [true, true, true, true, false, false]);
   assert.equal(gold.goldFull, true);
+  assert.equal(gold.elsewhere, 2);
+  assert.equal(gold.blocked, true);
 });
 
 test("weekly gold: the raid list keeps its order when a raid is turned off or on (A7)", () => {
@@ -192,8 +194,9 @@ test("weekly gold: a gold-on character outside the default six is in the total a
   assert.ok(gold.rows.slice(0, 6).every((row) => !row.extra));
 });
 
-// #1466 계산 검증 P1 (2): gold characters of another server do not use this server's six.
-test("weekly gold: six gold characters saved on another server leave this server's default setup", () => {
+// #1466 계산 검증 (PM 총괄 11-09, (i)): six gold characters saved on another server leave
+// this server without gold on both screens, the first view included, with the reason shown.
+test("weekly gold: six gold characters saved on another server: the first view is what the homework tool gives", () => {
   const other = ["일", "이", "삼", "사", "오", "육"].map((name, i) => sibling(`루${name}`, 1700 - i, "루페온"));
   const here = [sibling("가", 1770), sibling("나", 1725), sibling("다", 1705)];
   const saved = addCharacters(
@@ -201,22 +204,50 @@ test("weekly gold: six gold characters saved on another server leave this server
     other.map((s) => ({ name: s.characterName, server: s.serverName, className: s.className, itemLevel: s.itemLevel! })),
   );
   assert.equal(saved.characters.filter((c) => c.gold).length, 6);
-  const gold = weeklyGold([...other, ...here], "아만", 0, saved)!;
-  const fresh = weeklyGold(here, "아만")!;
+  const roster = [...other, ...here];
+  const gold = weeklyGold(roster, "아만", 0, saved)!;
   assert.deepEqual(
     gold.rows.map((row) => [row.name, row.on]),
     [
-      ["가", true],
-      ["나", true],
-      ["다", true],
+      ["가", false],
+      ["나", false],
+      ["다", false],
     ],
   );
-  assert.equal(gold.total, fresh.total);
-  // The homework tool already has six (another server): its lock holds here too (option a).
+  // What the homework tool gives for the same characters (added its own way): nothing.
+  const tool = addCharacters(saved, here.map((s) => ({ name: s.characterName, server: s.serverName, className: s.className, itemLevel: s.itemLevel! })));
+  const toolHere = rosterSummary({ ...tool, characters: tool.characters.filter((c) => c.server === "아만" && c.gold) });
+  assert.equal(gold.total, toolHere.possible);
+  assert.equal(gold.total, 0);
   assert.equal(gold.goldFull, true);
+  assert.equal(gold.elsewhere, 6);
+  assert.equal(gold.blocked, true);
+  // A raid change here then saves nothing that moves the total (the characters had no gold).
+  const next = panelSave(roster, "아만", 0, saved, "가", (c) => withRaid(c, raidChoices(c)[0], false))!;
+  assert.equal(weeklyGold(roster, "아만", 0, next)!.total, gold.total);
 });
-// codex #1466 P1 (PM 총괄 option a): the panel's per-server view is display only. A panel
-// change writes one character through the homework tool's own six (all servers).
+
+test("weekly gold: the first view equals the homework tool, and a raid toggle moves the total by that raid's gold at most", () => {
+  const other = ["일", "이", "삼"].map((name, i) => sibling(`루${name}`, 1700 - i, "루페온"));
+  const here = ["가", "나", "다", "라"].map((name, i) => sibling(name, 1770 - i * 10));
+  const roster = [...other, ...here];
+  const saved = addCharacters(
+    emptyState(0),
+    other.map((s) => ({ name: s.characterName, server: s.serverName, className: s.className, itemLevel: s.itemLevel! })),
+  );
+  const view = weeklyGold(roster, "아만", 0, saved)!;
+  const tool = addCharacters(saved, here.map((s) => ({ name: s.characterName, server: s.serverName, className: s.className, itemLevel: s.itemLevel! })));
+  const toolHere = rosterSummary({ ...tool, characters: tool.characters.filter((c) => c.server === "아만" && c.gold) });
+  assert.equal(view.total, toolHere.possible);
+  assert.deepEqual(view.rows.map((row) => row.on), [true, true, true, false]);
+  for (const row of view.rows) {
+    const choice = raidChoices(row.character).find((c) => c.on)!;
+    const next = panelSave(roster, "아만", 0, saved, row.name, (c) => withRaid(c, choice, false))!;
+    const after = weeklyGold(roster, "아만", 0, next)!;
+    assert.ok(Math.abs(view.total - after.total) <= (choice.gold ?? 0), `${row.name}: ${view.total} → ${after.total}`);
+  }
+});
+// codex #1466 P1: a panel change goes through the homework tool's own six (all servers).
 test("weekly gold: panel changes never take the homework tool past six gold characters (two servers)", () => {
   const other = ["일", "이", "삼", "사"].map((name, i) => sibling(`루${name}`, 1700 - i, "루페온"));
   const here = ["가", "나", "다", "라"].map((name, i) => sibling(name, 1770 - i * 10));
@@ -225,10 +256,11 @@ test("weekly gold: panel changes never take the homework tool past six gold char
     emptyState(0),
     other.map((s) => ({ name: s.characterName, server: s.serverName, className: s.className, itemLevel: s.itemLevel! })),
   );
-  // Before any change the panel shows this server's own default, not 0G.
+  // Before any change: two slots left, so not 0G, and the reason line is on.
   const view = weeklyGold(roster, "아만", 0, saved)!;
   assert.ok(view.total > 0);
-  assert.ok(view.rows.every((row) => row.on));
+  assert.deepEqual(view.rows.map((row) => row.on), [true, true, false, false]);
+  assert.equal(view.blocked, true);
   // Every row switched off then on again, and a raid changed on each, through the panel.
   for (const s of here) {
     for (const gold of [false, true]) {
