@@ -2733,6 +2733,14 @@ createServer(async (req, res) => {
       const base = d.loadout.equipment[d.loadout.equipment.length - 1];
       for (const type of accessoryTypes) d.loadout.equipment.push({ ...base, type, name: `합성 ${type}`, grade: "고대" });
     }
+    // 기본 효과 range % against each slot's 연마 3단계 range (api #868 @6b00e070, the baseline site's rule;
+    // readings from 레퍼런스's check of that site, recorded internally): necklace 15178-17857, earring
+    // 11806-13889. A high roll passes 100; a T3 relic sits far below 0 (the widest badge).
+    const accessoryStats = [
+      { polishStage: 3, mainStat: 16009, mainStatMin: 15178, mainStatMax: 17857, mainStatRangePct: 31.02 },
+      { polishStage: 3, mainStat: 18000, mainStatMin: 15178, mainStatMax: 17857, mainStatRangePct: 105.34 },
+      { polishStage: 0, mainStat: 6031, mainStatMin: 11806, mainStatMax: 13889, mainStatRangePct: -277.24 },
+    ];
     let acc = 0;
     for (const item of d.loadout.equipment) {
       const refine = /^\+(\d+)/.exec(item.name ?? "")?.[1];
@@ -2750,8 +2758,13 @@ createServer(async (req, res) => {
             ? [{ name: "원한", level: 4 }, { name: "아드레날린", level: 1 }, { name: "공격속도 감소", level: 0 }]
             : [],
         polishEffects: isAcc
-          ? polish[acc++ % 2].map(([n, value, grade]) => ({ name: n, value, grade }))
+          ? polish[acc % 2].map(([n, value, grade]) => ({ name: n, value, grade }))
           : [],
+        // 기본 효과 range % (gap #6): the samples above.
+        ...(isAcc && accessoryStats[acc] && {
+          effects: [{ title: "기본 효과", lines: [`민첩 +${accessoryStats[acc].mainStat}`, "체력 +3200"] }],
+          accessoryStats: accessoryStats[acc],
+        }),
         braceletEffects:
           item.type === "팔찌"
             ? [
@@ -2761,6 +2774,7 @@ createServer(async (req, res) => {
               ]
             : [],
       };
+      if (isAcc) acc++;
     }
     // Synthetic gems: four damage, seven cooldown (names follow the game's pattern).
     const gemIcon = (n) => `https://cdn-lostark.game.onstove.com/efui_iconatlas/use/use_9_${n}.png`;

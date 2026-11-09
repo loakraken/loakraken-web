@@ -159,6 +159,7 @@ import { RateLimitNote } from "@/components/site/rate-limit-note";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { useCrossfade } from "@/lib/motion";
 import { EngravingIcon } from "@/components/ui/engraving-icon";
+import { belowRange, rangeDetail, rangePercent, RANGE_BASIS, type AccessoryStats } from "@/lib/character/accessory-range";
 
 export const TABS = [
   { id: "combat", label: "전투" },
@@ -426,6 +427,30 @@ function Quality({ value }: { value: number | null | undefined }) {
   );
 }
 
+/**
+ * Where the accessory's 힘·민첩·지능 sits in its slot and polish stage range
+ * (official item dictionary): "범위 31.02%", as the market search shows it.
+ * The value and the range are in the item tooltip and read out here. Nothing
+ * when unknown or out of range.
+ */
+function StatRange({ stats }: { stats: AccessoryStats | null | undefined }) {
+  const pct = rangePercent(stats);
+  if (!pct) return null;
+  return (
+    <span
+      className={styles.levelBadge}
+      data-stat-range=""
+      // Below the 연마 3단계 range: a quieter badge (the sign says it too).
+      data-below={belowRange(stats) || undefined}
+      title={RANGE_BASIS}
+    >
+      범위 {pct}
+      {/* A name on a plain span is not read out (generic role): the detail as hidden text. */}
+      <span className={styles.srOnly}> · 힘·민첩·지능 {rangeDetail(stats)}</span>
+    </span>
+  );
+}
+
 function GradeLine({
   grade,
   counts,
@@ -560,6 +585,7 @@ function EquipmentPanel({ data }: { data: Character }) {
                       accessory effect; the point stays in the item tooltip. */}
                   <span className={styles.badges}>
                     <Quality value={item.detail?.quality} />
+                    <StatRange stats={item.detail?.accessoryStats} />
                   </span>
                 </div>
                 {item.detail?.polishEffects.length ? (
