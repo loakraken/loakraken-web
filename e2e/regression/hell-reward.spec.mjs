@@ -46,6 +46,10 @@ for (const width of [1280, 360, 320])
     await expect(line("전이 돌파석")).toContainText("시세 없음");
     // 4,500 + 위대한 25 × 33 + 상급 60 × 271 + 빙하 30 × 430 + 귀속 골드 4,500 + 고대 팔찌 3 × 100.
     await expect(total).toHaveText("39,285G");
+    // 고른 종류 · 열쇠 단계는 주소에 남아 다시 열어도 그대로(#889).
+    await expect(page).toHaveURL(/level=1730/);
+    await page.reload();
+    await expect(page.getByRole("radiogroup", { name: "열쇠 단계(입장 레벨)" }).getByRole("radio", { name: "1730" })).toBeChecked();
     // 단계표 11줄, 고른 단계가 표시된다.
     await chooseOption(page, page.getByRole("combobox", { name: "클리어 단계" }), "10단계");
     const table = page.getByRole("table");

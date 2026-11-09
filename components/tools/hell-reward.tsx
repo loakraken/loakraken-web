@@ -14,6 +14,7 @@ import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { MarketQueryError, postMaterialPrices } from "@/lib/market/client";
 import { marketFailureCopy, priceBases, type PriceBasis } from "@/lib/market/model";
 import { goldText } from "@/lib/tools/format";
+import { intCodec, oneOfCodec, useUrlState } from "@/lib/tools/url-state";
 import {
   HELL_DATA,
   MARKET_NAMES,
@@ -48,14 +49,17 @@ function basisText(line: StageLine) {
 /** The unit price under a market line's amount; a space elsewhere, so every cell is two lines. */
 function unitLine(line: StageLine, priced: boolean) {
   if (line.pricing.kind !== "MARKET") return " ";
-  if (line.unit == null) return priced ? "시세 없음" : "시세 대기";
+  if (line.unit == null) return priced ? "시세 없음" : "시세 대기…";
   return `1개 ${unitText(line.unit)}G`;
 }
 
 export function HellRewardTool() {
-  const [kind, setKind] = useState<HellKind>("hell");
-  const [level, setLevel] = useState(HELL_DATA.keyLevels.at(-1)!);
-  const [stage, setStage] = useState(0);
+  // Kept in the address (#889): back, reload and a shared link come back with them.
+  const [kind, setKind] = useUrlState<HellKind>("kind", "hell", oneOfCodec(["hell", "abyss"] as const));
+  const [levelText, setLevelText] = useUrlState("level", String(HELL_DATA.keyLevels.at(-1)), oneOfCodec(HELL_DATA.keyLevels.map(String)));
+  const level = Number(levelText);
+  const setLevel = (v: number) => setLevelText(String(v));
+  const [stage, setStage] = useUrlState("stage", 0, intCodec(0, 10));
   const [basis, setBasis] = useState<PriceBasis>("RECENT_PRICE");
   // Per unit, kept across kinds, levels and stages (the same item is worth the same).
   const [manual, setManual] = useState<Record<string, string>>({});
@@ -201,6 +205,8 @@ export function HellRewardTool() {
                           <input
                             type="number"
                             inputMode="decimal"
+                            name={`unit-${line.unitKey}`}
+                            autoComplete="off"
                             min={0}
                             placeholder="0"
                             value={manual[line.unitKey] ?? ""}

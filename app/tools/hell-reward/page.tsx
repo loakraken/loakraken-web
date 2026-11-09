@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { connection } from "next/server";
 import { HellRewardTool } from "@/components/tools/hell-reward";
 import { NOT_FOUND_METADATA } from "@/lib/not-found-metadata";
 import { isHellRewardEnabled } from "@/lib/tools/flags";
@@ -15,7 +16,9 @@ export function generateMetadata(): Metadata {
   return isHellRewardEnabled() ? metadata : NOT_FOUND_METADATA;
 }
 
-export default function HellRewardPage() {
+export default async function HellRewardPage() {
   if (!isHellRewardEnabled()) notFound();
+  // Rendered per request: the choices kept in the address (#889) are in the first HTML.
+  await connection();
   return <HellRewardTool />;
 }
