@@ -35,14 +35,14 @@
       "url": null,
       "date": "2021-12-29",
       "kind": "COMMUNITY",
-      "_note": "글 주소는 내부 기록(성장 도구 로그 2026-11-08)"
+      "_note": "글 주소는 내부 기록"
     },
     "community-post-2024-02": {
       "title": "엔드 콘텐츠 골드는 캐릭터마다 3개(문답, 답글 여러 개 일치)",
       "url": null,
       "date": "2024-02-27",
       "kind": "COMMUNITY",
-      "_note": "글 주소는 내부 기록(성장 도구 로그 2026-11-08)"
+      "_note": "글 주소는 내부 기록"
     },
     "gmnote-1226": {
       "title": "'카제로스 레이드 익스트림'과 가을 이벤트 소식을 전합니다.",
@@ -84,10 +84,12 @@
       "url": "https://lostark.game.onstove.com/News/Notice/Views/13148",
       "date": "2025-06-25"
     },
-    "inven-110400": {
-      "title": "인벤 팁 — 레이드 클리어 골드 정리(벨가르딘 포함), 합계 대조",
-      "url": "https://www.inven.co.kr/board/lostark/4821/110400",
-      "date": "2026-10-12"
+    "community-tip-2026-10": {
+      "title": "팁 글 — 레이드 클리어 골드 정리(벨가르딘 포함), 합계 대조",
+      "url": null,
+      "date": "2026-10-12",
+      "kind": "COMMUNITY",
+      "_note": "글 주소는 내부 기록"
     },
     "sites-20261013-gates": {
       "title": "실측 — 숙제 화면 관문별 골드·더보기·귀속(발탄·비아키스·쿠크세이튼·아브렐슈드 노말/하드, 카제로스 2막~종막 싱글)",
@@ -381,7 +383,7 @@
           "difficulty": "HARD",
           "minItemLevel": 1730,
           "status": "SITES",
-          "source": "inven-110400",
+          "source": "community-tip-2026-10",
           "gates": [
             { "gate": 1, "gold": 17500, "boundGold": 0, "moreCost": 5600 },
             { "gate": 2, "gold": 26500, "boundGold": 0, "moreCost": 8480 }
@@ -391,7 +393,7 @@
           "difficulty": "NIGHTMARE",
           "minItemLevel": 1740,
           "status": "SITES",
-          "source": "inven-110400",
+          "source": "community-tip-2026-10",
           "gates": [
             { "gate": 1, "gold": 21000, "boundGold": 0, "moreCost": 6720 },
             { "gate": 2, "gold": 33000, "boundGold": 0, "moreCost": 10560 }
@@ -411,7 +413,7 @@
           "difficulty": "NORMAL",
           "minItemLevel": 1750,
           "status": "SITES",
-          "source": "inven-110400",
+          "source": "community-tip-2026-10",
           "gates": [
             { "gate": 1, "gold": 20000, "boundGold": 10000, "moreCost": 6400 },
             { "gate": 2, "gold": 30000, "boundGold": 15000, "moreCost": 9600 }
@@ -421,7 +423,7 @@
           "difficulty": "HARD",
           "minItemLevel": 1770,
           "status": "SITES",
-          "source": "inven-110400",
+          "source": "community-tip-2026-10",
           "gates": [
             { "gate": 1, "gold": 25000, "boundGold": 0, "moreCost": 8000 },
             { "gate": 2, "gold": 37000, "boundGold": 0, "moreCost": 11840 }
@@ -431,7 +433,7 @@
           "difficulty": "NIGHTMARE",
           "minItemLevel": 1780,
           "status": "SITES",
-          "source": "inven-110400",
+          "source": "community-tip-2026-10",
           "gates": [
             { "gate": 1, "gold": 30000, "boundGold": 0, "moreCost": 9600 },
             { "gate": 2, "gold": 45000, "boundGold": 0, "moreCost": 14400 }
