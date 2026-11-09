@@ -1,0 +1,2290 @@
+{
+  "version": "2026-11-09",
+  "checkedAt": "2026-11-09",
+  "_note": "단계별 고정 보상(열쇠 1개, 단계 0~10). 상자 드랍 · 확률 · 풍요 · 무기 +25 · 페온 효과는 이 출처에 없다. A/B 짝은 둘 중 하나를 고르는 보상(재련 보조는 둘 다).",
+  "source": "community-table-2026-09",
+  "sources": {
+    "community-table-2026-09": {
+      "title": "시즌 3 · 4 지옥 · 나락 단계별 보상표(이용자 정리, 시즌 4는 시즌 3과 같음)",
+      "url": null,
+      "date": "2026-09-15",
+      "kind": "COMMUNITY",
+      "_note": "글 주소는 내부 기록"
+    }
+  },
+  "keyLevels": [
+    1640,
+    1700,
+    1730,
+    1750
+  ],
+  "hell": {
+    "1640": [
+      {
+        "stage": 0,
+        "reward": {
+          "destruction": 1000,
+          "guardian": 3000,
+          "breakthrough": 45,
+          "fusion": 40,
+          "lava": 6,
+          "glacier": 18,
+          "boundGold": 3200,
+          "stoneKit": 4,
+          "bracelet": {
+            "grades": [
+              "RELIC"
+            ],
+            "count": 1
+          },
+          "specialRefine": 40,
+          "destinyStone": 2,
+          "chaosStone": 7
+        }
+      },
+      {
+        "stage": 1,
+        "reward": {
+          "destruction": 1500,
+          "guardian": 4500,
+          "breakthrough": 70,
+          "fusion": 60,
+          "lava": 9,
+          "glacier": 27,
+          "boundGold": 4800,
+          "stoneKit": 6,
+          "bracelet": {
+            "grades": [
+              "RELIC"
+            ],
+            "count": 2
+          },
+          "specialRefine": 70,
+          "destinyStone": 3,
+          "chaosStone": 10
+        }
+      },
+      {
+        "stage": 2,
+        "reward": {
+          "destruction": 2000,
+          "guardian": 6000,
+          "breakthrough": 90,
+          "fusion": 90,
+          "lava": 12,
+          "glacier": 36,
+          "boundGold": 6400,
+          "stoneKit": 8,
+          "bracelet": {
+            "grades": [
+              "RELIC"
+            ],
+            "count": 3
+          },
+          "specialRefine": 100,
+          "destinyStone": 4,
+          "chaosStone": 15
+        }
+      },
+      {
+        "stage": 3,
+        "reward": {
+          "destruction": 2500,
+          "guardian": 7500,
+          "breakthrough": 120,
+          "fusion": 120,
+          "lava": 15,
+          "glacier": 45,
+          "boundGold": 8000,
+          "stoneKit": 10,
+          "bracelet": {
+            "grades": [
+              "RELIC"
+            ],
+            "count": 4
+          },
+          "specialRefine": 130,
+          "destinyStone": 6,
+          "chaosStone": 20
+        }
+      },
+      {
+        "stage": 4,
+        "reward": {
+          "destruction": 3500,
+          "guardian": 10500,
+          "breakthrough": 180,
+          "fusion": 150,
+          "lava": 22,
+          "glacier": 66,
+          "boundGold": 12000,
+          "stoneKit": 15,
+          "bracelet": {
+            "grades": [
+              "RELIC"
+            ],
+            "count": 5
+          },
+          "specialRefine": 180,
+          "destinyStone": 8,
+          "chaosStone": 27
+        }
+      },
+      {
+        "stage": 5,
+        "reward": {
+          "destruction": 5000,
+          "guardian": 15000,
+          "breakthrough": 240,
+          "fusion": 200,
+          "lava": 30,
+          "glacier": 90,
+          "boundGold": 16000,
+          "stoneKit": 20,
+          "bracelet": {
+            "grades": [
+              "RELIC"
+            ],
+            "count": 7
+          },
+          "specialRefine": 240,
+          "heavenTicket": 2,
+          "destinyStone": 10,
+          "chaosStone": 36
+        }
+      },
+      {
+        "stage": 6,
+        "reward": {
+          "destruction": 7500,
+          "guardian": 22500,
+          "breakthrough": 350,
+          "fusion": 300,
+          "lava": 45,
+          "glacier": 135,
+          "boundGold": 24000,
+          "stoneKit": 30,
+          "bracelet": {
+            "grades": [
+              "RELIC"
+            ],
+            "count": 12
+          },
+          "specialRefine": 360,
+          "heavenTicket": 4,
+          "destinyStone": 15,
+          "chaosStone": 54
+        }
+      },
+      {
+        "stage": 7,
+        "reward": {
+          "destruction": 10000,
+          "guardian": 30000,
+          "breakthrough": 480,
+          "fusion": 400,
+          "lava": 58,
+          "glacier": 174,
+          "boundGold": 32000,
+          "stoneKit": 40,
+          "bracelet": {
+            "grades": [
+              "RELIC"
+            ],
+            "count": 15
+          },
+          "specialRefine": 480,
+          "heavenTicket": 7,
+          "destinyStone": 22,
+          "chaosStone": 72
+        }
+      },
+      {
+        "stage": 8,
+        "reward": {
+          "destruction": 15000,
+          "guardian": 45000,
+          "breakthrough": 650,
+          "fusion": 600,
+          "lava": 80,
+          "glacier": 240,
+          "boundGold": 44000,
+          "stoneKit": 60,
+          "bracelet": {
+            "grades": [
+              "RELIC"
+            ],
+            "count": 20
+          },
+          "specialRefine": 650,
+          "heavenTicket": 10,
+          "destinyStone": 30,
+          "chaosStone": 100
+        }
+      },
+      {
+        "stage": 9,
+        "reward": {
+          "destruction": 20000,
+          "guardian": 60000,
+          "breakthrough": 950,
+          "fusion": 800,
+          "lava": 120,
+          "glacier": 360,
+          "boundGold": 64000,
+          "stoneKit": 80,
+          "bracelet": {
+            "grades": [
+              "RELIC"
+            ],
+            "count": 30
+          },
+          "specialRefine": 960,
+          "heavenTicket": 15,
+          "destinyStone": 45,
+          "chaosStone": 144
+        }
+      },
+      {
+        "stage": 10,
+        "reward": {
+          "destruction": 35000,
+          "guardian": 105000,
+          "breakthrough": 1600,
+          "fusion": 1400,
+          "lava": 190,
+          "glacier": 570,
+          "boundGold": 96000,
+          "stoneKit": 120,
+          "bracelet": {
+            "grades": [
+              "RELIC"
+            ],
+            "count": 50
+          },
+          "specialRefine": 1600,
+          "heavenTicket": 20,
+          "destinyStone": 80,
+          "chaosStone": 250
+        }
+      }
+    ],
+    "1700": [
+      {
+        "stage": 0,
+        "reward": {
+          "destruction": 1800,
+          "guardian": 5400,
+          "breakthrough": 70,
+          "fusion": 60,
+          "lava": 8,
+          "glacier": 24,
+          "boundGold": 3500,
+          "stoneKit": 6,
+          "bracelet": {
+            "grades": [
+              "ANCIENT"
+            ],
+            "count": 2
+          },
+          "specialRefine": 60,
+          "gem": {
+            "grades": [
+              "RARE",
+              "EPIC"
+            ],
+            "count": 1,
+            "random": true
+          },
+          "destinyStone": 6,
+          "chaosStone": 7
+        }
+      },
+      {
+        "stage": 1,
+        "reward": {
+          "destruction": 2500,
+          "guardian": 7500,
+          "breakthrough": 100,
+          "fusion": 90,
+          "lava": 12,
+          "glacier": 36,
+          "boundGold": 5500,
+          "stoneKit": 8,
+          "bracelet": {
+            "grades": [
+              "ANCIENT"
+            ],
+            "count": 3
+          },
+          "specialRefine": 90,
+          "gem": {
+            "grades": [
+              "RARE",
+              "EPIC"
+            ],
+            "count": 2,
+            "random": true
+          },
+          "destinyStone": 9,
+          "chaosStone": 10
+        }
+      },
+      {
+        "stage": 2,
+        "reward": {
+          "destruction": 3500,
+          "guardian": 10500,
+          "breakthrough": 140,
+          "fusion": 125,
+          "lava": 15,
+          "glacier": 45,
+          "boundGold": 7500,
+          "stoneKit": 10,
+          "bracelet": {
+            "grades": [
+              "ANCIENT"
+            ],
+            "count": 5
+          },
+          "specialRefine": 130,
+          "gem": {
+            "grades": [
+              "RARE",
+              "EPIC"
+            ],
+            "count": 3,
+            "random": true
+          },
+          "destinyStone": 12,
+          "chaosStone": 15
+        }
+      },
+      {
+        "stage": 3,
+        "reward": {
+          "destruction": 4200,
+          "guardian": 12600,
+          "breakthrough": 180,
+          "fusion": 150,
+          "lava": 20,
+          "glacier": 60,
+          "boundGold": 9000,
+          "stoneKit": 12,
+          "bracelet": {
+            "grades": [
+              "ANCIENT"
+            ],
+            "count": 7
+          },
+          "specialRefine": 160,
+          "gem": {
+            "grades": [
+              "RARE",
+              "EPIC"
+            ],
+            "count": 4,
+            "random": true
+          },
+          "destinyStone": 15,
+          "chaosStone": 20
+        }
+      },
+      {
+        "stage": 4,
+        "reward": {
+          "destruction": 6400,
+          "guardian": 19200,
+          "breakthrough": 270,
+          "fusion": 225,
+          "lava": 30,
+          "glacier": 90,
+          "boundGold": 13500,
+          "stoneKit": 18,
+          "bracelet": {
+            "grades": [
+              "ANCIENT"
+            ],
+            "count": 9
+          },
+          "specialRefine": 200,
+          "gem": {
+            "grades": [
+              "RARE",
+              "EPIC"
+            ],
+            "count": 5,
+            "random": true
+          },
+          "destinyStone": 20,
+          "chaosStone": 27
+        }
+      },
+      {
+        "stage": 5,
+        "reward": {
+          "destruction": 8500,
+          "guardian": 25500,
+          "breakthrough": 360,
+          "fusion": 300,
+          "lava": 40,
+          "glacier": 120,
+          "boundGold": 18000,
+          "stoneKit": 24,
+          "bracelet": {
+            "grades": [
+              "ANCIENT"
+            ],
+            "count": 12
+          },
+          "specialRefine": 320,
+          "heavenTicket": 2,
+          "gem": {
+            "grades": [
+              "RARE",
+              "EPIC"
+            ],
+            "count": 6,
+            "random": true
+          },
+          "destinyStone": 30,
+          "chaosStone": 36
+        }
+      },
+      {
+        "stage": 6,
+        "reward": {
+          "destruction": 12000,
+          "guardian": 36000,
+          "breakthrough": 540,
+          "fusion": 450,
+          "lava": 60,
+          "glacier": 180,
+          "boundGold": 27000,
+          "stoneKit": 36,
+          "bracelet": {
+            "grades": [
+              "ANCIENT"
+            ],
+            "count": 18
+          },
+          "specialRefine": 450,
+          "heavenTicket": 4,
+          "gem": {
+            "grades": [
+              "RARE",
+              "EPIC"
+            ],
+            "count": 7,
+            "random": true
+          },
+          "destinyStone": 45,
+          "chaosStone": 54
+        }
+      },
+      {
+        "stage": 7,
+        "reward": {
+          "destruction": 18000,
+          "guardian": 54000,
+          "breakthrough": 700,
+          "fusion": 600,
+          "lava": 75,
+          "glacier": 225,
+          "boundGold": 36000,
+          "stoneKit": 48,
+          "bracelet": {
+            "grades": [
+              "ANCIENT"
+            ],
+            "count": 25
+          },
+          "specialRefine": 650,
+          "heavenTicket": 7,
+          "gem": {
+            "grades": [
+              "RARE",
+              "EPIC"
+            ],
+            "count": 8,
+            "random": true
+          },
+          "destinyStone": 60,
+          "chaosStone": 72
+        }
+      },
+      {
+        "stage": 8,
+        "reward": {
+          "destruction": 24000,
+          "guardian": 72000,
+          "breakthrough": 950,
+          "fusion": 850,
+          "lava": 105,
+          "glacier": 315,
+          "boundGold": 50000,
+          "stoneKit": 60,
+          "bracelet": {
+            "grades": [
+              "ANCIENT"
+            ],
+            "count": 35
+          },
+          "specialRefine": 850,
+          "heavenTicket": 10,
+          "gem": {
+            "grades": [
+              "RARE",
+              "EPIC"
+            ],
+            "count": 9,
+            "random": true
+          },
+          "destinyStone": 80,
+          "chaosStone": 100
+        }
+      },
+      {
+        "stage": 9,
+        "reward": {
+          "destruction": 35000,
+          "guardian": 105000,
+          "breakthrough": 1500,
+          "fusion": 1200,
+          "lava": 155,
+          "glacier": 465,
+          "boundGold": 72000,
+          "stoneKit": 90,
+          "bracelet": {
+            "grades": [
+              "ANCIENT"
+            ],
+            "count": 50
+          },
+          "specialRefine": 1250,
+          "heavenTicket": 15,
+          "gem": {
+            "grades": [
+              "RARE",
+              "EPIC"
+            ],
+            "count": 10,
+            "random": true
+          },
+          "destinyStone": 120,
+          "chaosStone": 144
+        }
+      },
+      {
+        "stage": 10,
+        "reward": {
+          "destruction": 56000,
+          "guardian": 168000,
+          "breakthrough": 2400,
+          "fusion": 2000,
+          "lava": 256,
+          "glacier": 768,
+          "boundGold": 108000,
+          "stoneKit": 150,
+          "bracelet": {
+            "grades": [
+              "ANCIENT"
+            ],
+            "count": 80
+          },
+          "specialRefine": 2100,
+          "heavenTicket": 20,
+          "gem": {
+            "grades": [
+              "RARE",
+              "EPIC"
+            ],
+            "count": 11,
+            "random": true
+          },
+          "destinyStone": 200,
+          "chaosStone": 250
+        }
+      }
+    ],
+    "1730": [
+      {
+        "stage": 0,
+        "reward": {
+          "destruction": 500,
+          "guardian": 1500,
+          "breakthrough": 25,
+          "fusion": 60,
+          "lava": 10,
+          "glacier": 30,
+          "boundGold": 4500,
+          "stoneKit": 8,
+          "bracelet": {
+            "grades": [
+              "ANCIENT"
+            ],
+            "count": 3
+          },
+          "specialRefine": 24,
+          "gem": {
+            "grades": [
+              "RARE"
+            ],
+            "count": 2
+          },
+          "destinyStone": 7,
+          "chaosStone": 7
+        }
+      },
+      {
+        "stage": 1,
+        "reward": {
+          "destruction": 600,
+          "guardian": 1800,
+          "breakthrough": 36,
+          "fusion": 90,
+          "lava": 15,
+          "glacier": 45,
+          "boundGold": 7200,
+          "stoneKit": 10,
+          "bracelet": {
+            "grades": [
+              "ANCIENT"
+            ],
+            "count": 5
+          },
+          "specialRefine": 40,
+          "gem": {
+            "grades": [
+              "RARE"
+            ],
+            "count": 5
+          },
+          "destinyStone": 12,
+          "chaosStone": 10
+        }
+      },
+      {
+        "stage": 2,
+        "reward": {
+          "destruction": 900,
+          "guardian": 2700,
+          "breakthrough": 48,
+          "fusion": 125,
+          "lava": 20,
+          "glacier": 60,
+          "boundGold": 9500,
+          "stoneKit": 15,
+          "bracelet": {
+            "grades": [
+              "ANCIENT"
+            ],
+            "count": 7
+          },
+          "specialRefine": 56,
+          "gem": {
+            "grades": [
+              "RARE"
+            ],
+            "count": 7
+          },
+          "destinyStone": 15,
+          "chaosStone": 15
+        }
+      },
+      {
+        "stage": 3,
+        "reward": {
+          "destruction": 1200,
+          "guardian": 3600,
+          "breakthrough": 64,
+          "fusion": 150,
+          "lava": 25,
+          "glacier": 75,
+          "boundGold": 12000,
+          "stoneKit": 20,
+          "bracelet": {
+            "grades": [
+              "ANCIENT"
+            ],
+            "count": 10
+          },
+          "specialRefine": 70,
+          "gem": {
+            "grades": [
+              "RARE"
+            ],
+            "count": 10
+          },
+          "destinyStone": 18,
+          "chaosStone": 20
+        }
+      },
+      {
+        "stage": 4,
+        "reward": {
+          "destruction": 1600,
+          "guardian": 4800,
+          "breakthrough": 90,
+          "fusion": 225,
+          "lava": 36,
+          "glacier": 108,
+          "boundGold": 16000,
+          "stoneKit": 25,
+          "bracelet": {
+            "grades": [
+              "ANCIENT"
+            ],
+            "count": 15
+          },
+          "specialRefine": 96,
+          "gem": {
+            "grades": [
+              "RARE"
+            ],
+            "count": 15
+          },
+          "destinyStone": 27,
+          "chaosStone": 27
+        }
+      },
+      {
+        "stage": 5,
+        "reward": {
+          "destruction": 2200,
+          "guardian": 6600,
+          "breakthrough": 130,
+          "fusion": 300,
+          "lava": 48,
+          "glacier": 144,
+          "boundGold": 22000,
+          "stoneKit": 30,
+          "bracelet": {
+            "grades": [
+              "ANCIENT"
+            ],
+            "count": 20
+          },
+          "specialRefine": 130,
+          "heavenTicket": 2,
+          "gem": {
+            "grades": [
+              "EPIC"
+            ],
+            "count": 1
+          },
+          "destinyStone": 36,
+          "chaosStone": 36
+        }
+      },
+      {
+        "stage": 6,
+        "reward": {
+          "destruction": 3000,
+          "guardian": 9000,
+          "breakthrough": 190,
+          "fusion": 450,
+          "lava": 72,
+          "glacier": 216,
+          "boundGold": 32000,
+          "stoneKit": 45,
+          "bracelet": {
+            "grades": [
+              "ANCIENT"
+            ],
+            "count": 25
+          },
+          "specialRefine": 180,
+          "heavenTicket": 4,
+          "gem": {
+            "grades": [
+              "EPIC"
+            ],
+            "count": 2
+          },
+          "destinyStone": 54,
+          "chaosStone": 54
+        }
+      },
+      {
+        "stage": 7,
+        "reward": {
+          "destruction": 4500,
+          "guardian": 13500,
+          "breakthrough": 250,
+          "fusion": 600,
+          "lava": 96,
+          "glacier": 288,
+          "boundGold": 45000,
+          "stoneKit": 60,
+          "bracelet": {
+            "grades": [
+              "ANCIENT"
+            ],
+            "count": 35
+          },
+          "specialRefine": 260,
+          "heavenTicket": 7,
+          "gem": {
+            "grades": [
+              "EPIC"
+            ],
+            "count": 3
+          },
+          "destinyStone": 72,
+          "chaosStone": 72
+        }
+      },
+      {
+        "stage": 8,
+        "reward": {
+          "destruction": 6500,
+          "guardian": 19500,
+          "breakthrough": 350,
+          "fusion": 850,
+          "lava": 132,
+          "glacier": 396,
+          "boundGold": 65000,
+          "stoneKit": 80,
+          "bracelet": {
+            "grades": [
+              "ANCIENT"
+            ],
+            "count": 50
+          },
+          "specialRefine": 360,
+          "heavenTicket": 10,
+          "gem": {
+            "grades": [
+              "EPIC"
+            ],
+            "count": 4
+          },
+          "destinyStone": 100,
+          "chaosStone": 100
+        }
+      },
+      {
+        "stage": 9,
+        "reward": {
+          "destruction": 9000,
+          "guardian": 27000,
+          "breakthrough": 500,
+          "fusion": 1200,
+          "lava": 192,
+          "glacier": 576,
+          "boundGold": 95000,
+          "stoneKit": 120,
+          "bracelet": {
+            "grades": [
+              "ANCIENT"
+            ],
+            "count": 70
+          },
+          "specialRefine": 500,
+          "heavenTicket": 15,
+          "gem": {
+            "grades": [
+              "EPIC"
+            ],
+            "count": 5
+          },
+          "destinyStone": 150,
+          "chaosStone": 144
+        }
+      },
+      {
+        "stage": 10,
+        "reward": {
+          "destruction": 15000,
+          "guardian": 45000,
+          "breakthrough": 850,
+          "fusion": 2000,
+          "lava": 320,
+          "glacier": 960,
+          "boundGold": 130000,
+          "stoneKit": 200,
+          "bracelet": {
+            "grades": [
+              "ANCIENT"
+            ],
+            "count": 120
+          },
+          "specialRefine": 850,
+          "heavenTicket": 20,
+          "gem": {
+            "grades": [
+              "EPIC"
+            ],
+            "count": 6
+          },
+          "destinyStone": 240,
+          "chaosStone": 250
+        }
+      }
+    ],
+    "1750": [
+      {
+        "stage": 0,
+        "reward": {
+          "destruction": 600,
+          "guardian": 1800,
+          "breakthrough": 30,
+          "fusion": 75,
+          "lava": 12,
+          "glacier": 36,
+          "boundGold": 5500,
+          "stoneKit": 9,
+          "bracelet": {
+            "grades": [
+              "ANCIENT"
+            ],
+            "count": 4
+          },
+          "specialRefine": 28,
+          "gem": {
+            "grades": [
+              "RARE"
+            ],
+            "count": 3
+          },
+          "destinyStone": 9,
+          "chaosStone": 7
+        }
+      },
+      {
+        "stage": 1,
+        "reward": {
+          "destruction": 750,
+          "guardian": 2250,
+          "breakthrough": 42,
+          "fusion": 110,
+          "lava": 18,
+          "glacier": 54,
+          "boundGold": 8200,
+          "stoneKit": 12,
+          "bracelet": {
+            "grades": [
+              "ANCIENT"
+            ],
+            "count": 6
+          },
+          "specialRefine": 45,
+          "gem": {
+            "grades": [
+              "RARE"
+            ],
+            "count": 6
+          },
+          "destinyStone": 13,
+          "chaosStone": 10
+        }
+      },
+      {
+        "stage": 2,
+        "reward": {
+          "destruction": 1100,
+          "guardian": 3300,
+          "breakthrough": 56,
+          "fusion": 150,
+          "lava": 24,
+          "glacier": 72,
+          "boundGold": 11000,
+          "stoneKit": 18,
+          "bracelet": {
+            "grades": [
+              "ANCIENT"
+            ],
+            "count": 8
+          },
+          "specialRefine": 62,
+          "gem": {
+            "grades": [
+              "RARE"
+            ],
+            "count": 8
+          },
+          "destinyStone": 18,
+          "chaosStone": 15
+        }
+      },
+      {
+        "stage": 3,
+        "reward": {
+          "destruction": 1500,
+          "guardian": 4500,
+          "breakthrough": 76,
+          "fusion": 200,
+          "lava": 30,
+          "glacier": 90,
+          "boundGold": 14400,
+          "stoneKit": 25,
+          "bracelet": {
+            "grades": [
+              "ANCIENT"
+            ],
+            "count": 12
+          },
+          "specialRefine": 84,
+          "gem": {
+            "grades": [
+              "RARE"
+            ],
+            "count": 12
+          },
+          "destinyStone": 24,
+          "chaosStone": 20
+        }
+      },
+      {
+        "stage": 4,
+        "reward": {
+          "destruction": 2000,
+          "guardian": 6000,
+          "breakthrough": 108,
+          "fusion": 270,
+          "lava": 40,
+          "glacier": 120,
+          "boundGold": 19200,
+          "stoneKit": 33,
+          "bracelet": {
+            "grades": [
+              "ANCIENT"
+            ],
+            "count": 18
+          },
+          "specialRefine": 115,
+          "gem": {
+            "grades": [
+              "EPIC"
+            ],
+            "count": 1
+          },
+          "destinyStone": 33,
+          "chaosStone": 27
+        }
+      },
+      {
+        "stage": 5,
+        "reward": {
+          "destruction": 2700,
+          "guardian": 8100,
+          "breakthrough": 160,
+          "fusion": 360,
+          "lava": 60,
+          "glacier": 180,
+          "boundGold": 26400,
+          "stoneKit": 45,
+          "bracelet": {
+            "grades": [
+              "ANCIENT"
+            ],
+            "count": 24
+          },
+          "specialRefine": 155,
+          "heavenTicket": 2,
+          "gem": {
+            "grades": [
+              "EPIC"
+            ],
+            "count": 2
+          },
+          "destinyStone": 45,
+          "chaosStone": 36
+        }
+      },
+      {
+        "stage": 6,
+        "reward": {
+          "destruction": 3600,
+          "guardian": 10800,
+          "breakthrough": 230,
+          "fusion": 540,
+          "lava": 90,
+          "glacier": 270,
+          "boundGold": 38400,
+          "stoneKit": 60,
+          "bracelet": {
+            "grades": [
+              "ANCIENT"
+            ],
+            "count": 30
+          },
+          "specialRefine": 220,
+          "heavenTicket": 4,
+          "gem": {
+            "grades": [
+              "EPIC"
+            ],
+            "count": 3
+          },
+          "destinyStone": 72,
+          "chaosStone": 54
+        }
+      },
+      {
+        "stage": 7,
+        "reward": {
+          "destruction": 5400,
+          "guardian": 16200,
+          "breakthrough": 320,
+          "fusion": 720,
+          "lava": 130,
+          "glacier": 390,
+          "boundGold": 54000,
+          "stoneKit": 80,
+          "bracelet": {
+            "grades": [
+              "ANCIENT"
+            ],
+            "count": 42
+          },
+          "specialRefine": 310,
+          "heavenTicket": 7,
+          "gem": {
+            "grades": [
+              "EPIC"
+            ],
+            "count": 4
+          },
+          "destinyStone": 90,
+          "chaosStone": 72
+        }
+      },
+      {
+        "stage": 8,
+        "reward": {
+          "destruction": 7800,
+          "guardian": 23400,
+          "breakthrough": 450,
+          "fusion": 1000,
+          "lava": 180,
+          "glacier": 540,
+          "boundGold": 78000,
+          "stoneKit": 110,
+          "bracelet": {
+            "grades": [
+              "ANCIENT"
+            ],
+            "count": 60
+          },
+          "specialRefine": 430,
+          "heavenTicket": 10,
+          "gem": {
+            "grades": [
+              "EPIC"
+            ],
+            "count": 5
+          },
+          "destinyStone": 120,
+          "chaosStone": 100
+        }
+      },
+      {
+        "stage": 9,
+        "reward": {
+          "destruction": 10800,
+          "guardian": 32400,
+          "breakthrough": 650,
+          "fusion": 1440,
+          "lava": 260,
+          "glacier": 780,
+          "boundGold": 114000,
+          "stoneKit": 150,
+          "bracelet": {
+            "grades": [
+              "ANCIENT"
+            ],
+            "count": 90
+          },
+          "specialRefine": 600,
+          "heavenTicket": 15,
+          "gem": {
+            "grades": [
+              "EPIC"
+            ],
+            "count": 6
+          },
+          "destinyStone": 180,
+          "chaosStone": 144
+        }
+      },
+      {
+        "stage": 10,
+        "reward": {
+          "destruction": 18000,
+          "guardian": 54000,
+          "breakthrough": 1000,
+          "fusion": 2400,
+          "lava": 380,
+          "glacier": 1140,
+          "boundGold": 156000,
+          "stoneKit": 220,
+          "bracelet": {
+            "grades": [
+              "ANCIENT"
+            ],
+            "count": 150
+          },
+          "specialRefine": 1000,
+          "heavenTicket": 20,
+          "gem": {
+            "grades": [
+              "EPIC"
+            ],
+            "count": 7
+          },
+          "destinyStone": 300,
+          "chaosStone": 250
+        }
+      }
+    ]
+  },
+  "abyss": {
+    "1640": [
+      {
+        "stage": 0,
+        "reward": {
+          "lava": 30,
+          "glacier": 90,
+          "boundGold": 16000,
+          "stoneKit": 20,
+          "bracelet": {
+            "grades": [
+              "RELIC"
+            ],
+            "count": 5
+          },
+          "destinyStone": 10,
+          "chaosStone": 35
+        }
+      },
+      {
+        "stage": 1,
+        "reward": {
+          "lava": 45,
+          "glacier": 135,
+          "boundGold": 24000,
+          "stoneKit": 30,
+          "bracelet": {
+            "grades": [
+              "RELIC"
+            ],
+            "count": 10
+          },
+          "destinyStone": 15,
+          "chaosStone": 50
+        }
+      },
+      {
+        "stage": 2,
+        "reward": {
+          "lava": 60,
+          "glacier": 180,
+          "boundGold": 32000,
+          "stoneKit": 40,
+          "bracelet": {
+            "grades": [
+              "RELIC"
+            ],
+            "count": 15
+          },
+          "destinyStone": 20,
+          "chaosStone": 75
+        }
+      },
+      {
+        "stage": 3,
+        "reward": {
+          "lava": 75,
+          "glacier": 225,
+          "boundGold": 40000,
+          "stoneKit": 50,
+          "bracelet": {
+            "grades": [
+              "RELIC"
+            ],
+            "count": 20
+          },
+          "destinyStone": 30,
+          "chaosStone": 100
+        }
+      },
+      {
+        "stage": 4,
+        "reward": {
+          "lava": 110,
+          "glacier": 330,
+          "boundGold": 60000,
+          "stoneKit": 75,
+          "bracelet": {
+            "grades": [
+              "RELIC"
+            ],
+            "count": 25
+          },
+          "destinyStone": 40,
+          "chaosStone": 135
+        }
+      },
+      {
+        "stage": 5,
+        "reward": {
+          "lava": 150,
+          "glacier": 450,
+          "boundGold": 80000,
+          "stoneKit": 100,
+          "bracelet": {
+            "grades": [
+              "RELIC"
+            ],
+            "count": 35
+          },
+          "cardPack": 1,
+          "destinyStone": 50,
+          "chaosStone": 180
+        }
+      },
+      {
+        "stage": 6,
+        "reward": {
+          "lava": 225,
+          "glacier": 675,
+          "boundGold": 120000,
+          "stoneKit": 150,
+          "bracelet": {
+            "grades": [
+              "RELIC"
+            ],
+            "count": 60
+          },
+          "cardPack": 2,
+          "destinyStone": 75,
+          "chaosStone": 270
+        }
+      },
+      {
+        "stage": 7,
+        "reward": {
+          "lava": 290,
+          "glacier": 870,
+          "boundGold": 160000,
+          "stoneKit": 200,
+          "bracelet": {
+            "grades": [
+              "RELIC"
+            ],
+            "count": 75
+          },
+          "cardPack": 3,
+          "destinyStone": 110,
+          "chaosStone": 360
+        }
+      },
+      {
+        "stage": 8,
+        "reward": {
+          "lava": 400,
+          "glacier": 1200,
+          "boundGold": 220000,
+          "stoneKit": 300,
+          "bracelet": {
+            "grades": [
+              "RELIC"
+            ],
+            "count": 100
+          },
+          "boundGem": 1,
+          "cardPack": 4,
+          "destinyStone": 150,
+          "chaosStone": 500
+        }
+      },
+      {
+        "stage": 9,
+        "reward": {
+          "lava": 600,
+          "glacier": 1800,
+          "boundGold": 320000,
+          "stoneKit": 400,
+          "bracelet": {
+            "grades": [
+              "RELIC"
+            ],
+            "count": 150
+          },
+          "boundGem": 2,
+          "cardPack": 5,
+          "destinyStone": 225,
+          "chaosStone": 720
+        }
+      },
+      {
+        "stage": 10,
+        "reward": {
+          "lava": 950,
+          "glacier": 2850,
+          "boundGold": 480000,
+          "stoneKit": 600,
+          "bracelet": {
+            "grades": [
+              "RELIC"
+            ],
+            "count": 250
+          },
+          "boundGem": 3,
+          "cardPack": 7,
+          "destinyStone": 400,
+          "chaosStone": 1250
+        }
+      }
+    ],
+    "1700": [
+      {
+        "stage": 0,
+        "reward": {
+          "lava": 40,
+          "glacier": 120,
+          "boundGold": 17500,
+          "stoneKit": 30,
+          "bracelet": {
+            "grades": [
+              "ANCIENT"
+            ],
+            "count": 10
+          },
+          "engraving": 2,
+          "gem": {
+            "grades": [
+              "RARE",
+              "EPIC"
+            ],
+            "count": 5,
+            "random": true
+          },
+          "destinyStone": 30,
+          "chaosStone": 35
+        }
+      },
+      {
+        "stage": 1,
+        "reward": {
+          "lava": 60,
+          "glacier": 180,
+          "boundGold": 27500,
+          "stoneKit": 40,
+          "bracelet": {
+            "grades": [
+              "ANCIENT"
+            ],
+            "count": 15
+          },
+          "engraving": 3,
+          "gem": {
+            "grades": [
+              "RARE",
+              "EPIC"
+            ],
+            "count": 10,
+            "random": true
+          },
+          "destinyStone": 45,
+          "chaosStone": 50
+        }
+      },
+      {
+        "stage": 2,
+        "reward": {
+          "lava": 75,
+          "glacier": 225,
+          "boundGold": 37500,
+          "stoneKit": 50,
+          "bracelet": {
+            "grades": [
+              "ANCIENT"
+            ],
+            "count": 25
+          },
+          "engraving": 4,
+          "gem": {
+            "grades": [
+              "RARE",
+              "EPIC"
+            ],
+            "count": 15,
+            "random": true
+          },
+          "destinyStone": 60,
+          "chaosStone": 75
+        }
+      },
+      {
+        "stage": 3,
+        "reward": {
+          "lava": 100,
+          "glacier": 300,
+          "boundGold": 45000,
+          "stoneKit": 60,
+          "bracelet": {
+            "grades": [
+              "ANCIENT"
+            ],
+            "count": 35
+          },
+          "engraving": 6,
+          "gem": {
+            "grades": [
+              "RARE",
+              "EPIC"
+            ],
+            "count": 20,
+            "random": true
+          },
+          "destinyStone": 75,
+          "chaosStone": 100
+        }
+      },
+      {
+        "stage": 4,
+        "reward": {
+          "lava": 150,
+          "glacier": 450,
+          "boundGold": 67500,
+          "stoneKit": 90,
+          "bracelet": {
+            "grades": [
+              "ANCIENT"
+            ],
+            "count": 45
+          },
+          "engraving": 8,
+          "gem": {
+            "grades": [
+              "RARE",
+              "EPIC"
+            ],
+            "count": 25,
+            "random": true
+          },
+          "destinyStone": 100,
+          "chaosStone": 135
+        }
+      },
+      {
+        "stage": 5,
+        "reward": {
+          "lava": 200,
+          "glacier": 600,
+          "boundGold": 90000,
+          "stoneKit": 120,
+          "bracelet": {
+            "grades": [
+              "ANCIENT"
+            ],
+            "count": 60
+          },
+          "engraving": 10,
+          "cardPack": 1,
+          "gem": {
+            "grades": [
+              "RARE",
+              "EPIC"
+            ],
+            "count": 30,
+            "random": true
+          },
+          "destinyStone": 150,
+          "chaosStone": 180
+        }
+      },
+      {
+        "stage": 6,
+        "reward": {
+          "lava": 300,
+          "glacier": 900,
+          "boundGold": 135000,
+          "stoneKit": 180,
+          "bracelet": {
+            "grades": [
+              "ANCIENT"
+            ],
+            "count": 90
+          },
+          "engraving": 15,
+          "cardPack": 2,
+          "gem": {
+            "grades": [
+              "RARE",
+              "EPIC"
+            ],
+            "count": 35,
+            "random": true
+          },
+          "destinyStone": 225,
+          "chaosStone": 270
+        }
+      },
+      {
+        "stage": 7,
+        "reward": {
+          "lava": 375,
+          "glacier": 1125,
+          "boundGold": 180000,
+          "stoneKit": 240,
+          "bracelet": {
+            "grades": [
+              "ANCIENT"
+            ],
+            "count": 125
+          },
+          "engraving": 20,
+          "cardPack": 3,
+          "gem": {
+            "grades": [
+              "RARE",
+              "EPIC"
+            ],
+            "count": 40,
+            "random": true
+          },
+          "destinyStone": 300,
+          "chaosStone": 360
+        }
+      },
+      {
+        "stage": 8,
+        "reward": {
+          "lava": 525,
+          "glacier": 1575,
+          "boundGold": 250000,
+          "stoneKit": 300,
+          "bracelet": {
+            "grades": [
+              "ANCIENT"
+            ],
+            "count": 175
+          },
+          "engraving": 25,
+          "boundGem": 2,
+          "cardPack": 4,
+          "gem": {
+            "grades": [
+              "RARE",
+              "EPIC"
+            ],
+            "count": 45,
+            "random": true
+          },
+          "destinyStone": 400,
+          "chaosStone": 500
+        }
+      },
+      {
+        "stage": 9,
+        "reward": {
+          "lava": 775,
+          "glacier": 2325,
+          "boundGold": 360000,
+          "stoneKit": 450,
+          "bracelet": {
+            "grades": [
+              "ANCIENT"
+            ],
+            "count": 250
+          },
+          "engraving": 36,
+          "boundGem": 3,
+          "cardPack": 5,
+          "gem": {
+            "grades": [
+              "RARE",
+              "EPIC"
+            ],
+            "count": 50,
+            "random": true
+          },
+          "destinyStone": 600,
+          "chaosStone": 720
+        }
+      },
+      {
+        "stage": 10,
+        "reward": {
+          "lava": 1280,
+          "glacier": 3840,
+          "boundGold": 540000,
+          "stoneKit": 750,
+          "bracelet": {
+            "grades": [
+              "ANCIENT"
+            ],
+            "count": 400
+          },
+          "engraving": 60,
+          "boundGem": 4,
+          "cardPack": 7,
+          "gem": {
+            "grades": [
+              "RARE",
+              "EPIC"
+            ],
+            "count": 55,
+            "random": true
+          },
+          "destinyStone": 1000,
+          "chaosStone": 1250
+        }
+      }
+    ],
+    "1730": [
+      {
+        "stage": 0,
+        "reward": {
+          "lava": 50,
+          "glacier": 150,
+          "boundGold": 22500,
+          "stoneKit": 40,
+          "bracelet": {
+            "grades": [
+              "ANCIENT"
+            ],
+            "count": 15
+          },
+          "engraving": 2,
+          "gem": {
+            "grades": [
+              "RARE"
+            ],
+            "count": 10
+          },
+          "destinyStone": 35,
+          "chaosStone": 35
+        }
+      },
+      {
+        "stage": 1,
+        "reward": {
+          "lava": 75,
+          "glacier": 225,
+          "boundGold": 36000,
+          "stoneKit": 50,
+          "bracelet": {
+            "grades": [
+              "ANCIENT"
+            ],
+            "count": 25
+          },
+          "engraving": 4,
+          "gem": {
+            "grades": [
+              "RARE"
+            ],
+            "count": 25
+          },
+          "destinyStone": 60,
+          "chaosStone": 50
+        }
+      },
+      {
+        "stage": 2,
+        "reward": {
+          "lava": 100,
+          "glacier": 300,
+          "boundGold": 47500,
+          "stoneKit": 75,
+          "bracelet": {
+            "grades": [
+              "ANCIENT"
+            ],
+            "count": 35
+          },
+          "engraving": 6,
+          "gem": {
+            "grades": [
+              "RARE"
+            ],
+            "count": 35
+          },
+          "destinyStone": 75,
+          "chaosStone": 75
+        }
+      },
+      {
+        "stage": 3,
+        "reward": {
+          "lava": 125,
+          "glacier": 375,
+          "boundGold": 60000,
+          "stoneKit": 100,
+          "bracelet": {
+            "grades": [
+              "ANCIENT"
+            ],
+            "count": 50
+          },
+          "engraving": 8,
+          "gem": {
+            "grades": [
+              "RARE"
+            ],
+            "count": 50
+          },
+          "destinyStone": 90,
+          "chaosStone": 100
+        }
+      },
+      {
+        "stage": 4,
+        "reward": {
+          "lava": 180,
+          "glacier": 540,
+          "boundGold": 80000,
+          "stoneKit": 125,
+          "bracelet": {
+            "grades": [
+              "ANCIENT"
+            ],
+            "count": 75
+          },
+          "engraving": 10,
+          "gem": {
+            "grades": [
+              "RARE"
+            ],
+            "count": 75
+          },
+          "destinyStone": 135,
+          "chaosStone": 135
+        }
+      },
+      {
+        "stage": 5,
+        "reward": {
+          "lava": 240,
+          "glacier": 720,
+          "boundGold": 110000,
+          "stoneKit": 150,
+          "bracelet": {
+            "grades": [
+              "ANCIENT"
+            ],
+            "count": 100
+          },
+          "engraving": 12,
+          "cardPack": 1,
+          "gem": {
+            "grades": [
+              "EPIC"
+            ],
+            "count": 5
+          },
+          "destinyStone": 180,
+          "chaosStone": 180
+        }
+      },
+      {
+        "stage": 6,
+        "reward": {
+          "lava": 360,
+          "glacier": 1080,
+          "boundGold": 160000,
+          "stoneKit": 225,
+          "bracelet": {
+            "grades": [
+              "ANCIENT"
+            ],
+            "count": 125
+          },
+          "engraving": 18,
+          "cardPack": 2,
+          "gem": {
+            "grades": [
+              "EPIC"
+            ],
+            "count": 10
+          },
+          "destinyStone": 270,
+          "chaosStone": 270
+        }
+      },
+      {
+        "stage": 7,
+        "reward": {
+          "lava": 480,
+          "glacier": 1440,
+          "boundGold": 225000,
+          "stoneKit": 300,
+          "bracelet": {
+            "grades": [
+              "ANCIENT"
+            ],
+            "count": 175
+          },
+          "engraving": 24,
+          "cardPack": 3,
+          "gem": {
+            "grades": [
+              "EPIC"
+            ],
+            "count": 15
+          },
+          "destinyStone": 360,
+          "chaosStone": 360
+        }
+      },
+      {
+        "stage": 8,
+        "reward": {
+          "lava": 660,
+          "glacier": 1980,
+          "boundGold": 325000,
+          "stoneKit": 400,
+          "bracelet": {
+            "grades": [
+              "ANCIENT"
+            ],
+            "count": 250
+          },
+          "engraving": 36,
+          "boundGem": 3,
+          "cardPack": 4,
+          "gem": {
+            "grades": [
+              "EPIC"
+            ],
+            "count": 20
+          },
+          "destinyStone": 500,
+          "chaosStone": 500
+        }
+      },
+      {
+        "stage": 9,
+        "reward": {
+          "lava": 960,
+          "glacier": 2880,
+          "boundGold": 475000,
+          "stoneKit": 600,
+          "bracelet": {
+            "grades": [
+              "ANCIENT"
+            ],
+            "count": 350
+          },
+          "engraving": 48,
+          "boundGem": 4,
+          "cardPack": 5,
+          "gem": {
+            "grades": [
+              "EPIC"
+            ],
+            "count": 25
+          },
+          "destinyStone": 750,
+          "chaosStone": 720
+        }
+      },
+      {
+        "stage": 10,
+        "reward": {
+          "lava": 1600,
+          "glacier": 4800,
+          "boundGold": 650000,
+          "stoneKit": 1000,
+          "bracelet": {
+            "grades": [
+              "ANCIENT"
+            ],
+            "count": 600
+          },
+          "engraving": 80,
+          "boundGem": 5,
+          "cardPack": 7,
+          "gem": {
+            "grades": [
+              "EPIC"
+            ],
+            "count": 30
+          },
+          "destinyStone": 1200,
+          "chaosStone": 1250
+        }
+      }
+    ],
+    "1750": [
+      {
+        "stage": 0,
+        "reward": {
+          "lava": 60,
+          "glacier": 180,
+          "boundGold": 27500,
+          "stoneKit": 45,
+          "bracelet": {
+            "grades": [
+              "ANCIENT"
+            ],
+            "count": 20
+          },
+          "engraving": 3,
+          "gem": {
+            "grades": [
+              "RARE"
+            ],
+            "count": 15
+          },
+          "destinyStone": 45,
+          "chaosStone": 35
+        }
+      },
+      {
+        "stage": 1,
+        "reward": {
+          "lava": 90,
+          "glacier": 270,
+          "boundGold": 41000,
+          "stoneKit": 60,
+          "bracelet": {
+            "grades": [
+              "ANCIENT"
+            ],
+            "count": 30
+          },
+          "engraving": 5,
+          "gem": {
+            "grades": [
+              "RARE"
+            ],
+            "count": 30
+          },
+          "destinyStone": 65,
+          "chaosStone": 50
+        }
+      },
+      {
+        "stage": 2,
+        "reward": {
+          "lava": 120,
+          "glacier": 360,
+          "boundGold": 55000,
+          "stoneKit": 90,
+          "bracelet": {
+            "grades": [
+              "ANCIENT"
+            ],
+            "count": 40
+          },
+          "engraving": 7,
+          "gem": {
+            "grades": [
+              "RARE"
+            ],
+            "count": 40
+          },
+          "destinyStone": 90,
+          "chaosStone": 75
+        }
+      },
+      {
+        "stage": 3,
+        "reward": {
+          "lava": 150,
+          "glacier": 450,
+          "boundGold": 72000,
+          "stoneKit": 125,
+          "bracelet": {
+            "grades": [
+              "ANCIENT"
+            ],
+            "count": 60
+          },
+          "engraving": 10,
+          "gem": {
+            "grades": [
+              "RARE"
+            ],
+            "count": 60
+          },
+          "destinyStone": 120,
+          "chaosStone": 100
+        }
+      },
+      {
+        "stage": 4,
+        "reward": {
+          "lava": 200,
+          "glacier": 600,
+          "boundGold": 96000,
+          "stoneKit": 165,
+          "bracelet": {
+            "grades": [
+              "ANCIENT"
+            ],
+            "count": 90
+          },
+          "engraving": 13,
+          "gem": {
+            "grades": [
+              "EPIC"
+            ],
+            "count": 5
+          },
+          "destinyStone": 165,
+          "chaosStone": 135
+        }
+      },
+      {
+        "stage": 5,
+        "reward": {
+          "lava": 300,
+          "glacier": 900,
+          "boundGold": 132000,
+          "stoneKit": 225,
+          "bracelet": {
+            "grades": [
+              "ANCIENT"
+            ],
+            "count": 120
+          },
+          "engraving": 16,
+          "cardPack": 1,
+          "gem": {
+            "grades": [
+              "EPIC"
+            ],
+            "count": 10
+          },
+          "destinyStone": 225,
+          "chaosStone": 180
+        }
+      },
+      {
+        "stage": 6,
+        "reward": {
+          "lava": 450,
+          "glacier": 1350,
+          "boundGold": 192000,
+          "stoneKit": 300,
+          "bracelet": {
+            "grades": [
+              "ANCIENT"
+            ],
+            "count": 150
+          },
+          "engraving": 24,
+          "cardPack": 2,
+          "gem": {
+            "grades": [
+              "EPIC"
+            ],
+            "count": 15
+          },
+          "destinyStone": 360,
+          "chaosStone": 270
+        }
+      },
+      {
+        "stage": 7,
+        "reward": {
+          "lava": 650,
+          "glacier": 1950,
+          "boundGold": 270000,
+          "stoneKit": 400,
+          "bracelet": {
+            "grades": [
+              "ANCIENT"
+            ],
+            "count": 210
+          },
+          "engraving": 32,
+          "cardPack": 3,
+          "gem": {
+            "grades": [
+              "EPIC"
+            ],
+            "count": 20
+          },
+          "destinyStone": 450,
+          "chaosStone": 360
+        }
+      },
+      {
+        "stage": 8,
+        "reward": {
+          "lava": 900,
+          "glacier": 2700,
+          "boundGold": 390000,
+          "stoneKit": 550,
+          "bracelet": {
+            "grades": [
+              "ANCIENT"
+            ],
+            "count": 300
+          },
+          "engraving": 48,
+          "boundGem": 4,
+          "cardPack": 4,
+          "gem": {
+            "grades": [
+              "EPIC"
+            ],
+            "count": 25
+          },
+          "destinyStone": 600,
+          "chaosStone": 500
+        }
+      },
+      {
+        "stage": 9,
+        "reward": {
+          "lava": 1300,
+          "glacier": 3900,
+          "boundGold": 570000,
+          "stoneKit": 750,
+          "bracelet": {
+            "grades": [
+              "ANCIENT"
+            ],
+            "count": 450
+          },
+          "engraving": 65,
+          "boundGem": 5,
+          "cardPack": 5,
+          "gem": {
+            "grades": [
+              "EPIC"
+            ],
+            "count": 30
+          },
+          "destinyStone": 900,
+          "chaosStone": 720
+        }
+      },
+      {
+        "stage": 10,
+        "reward": {
+          "lava": 1900,
+          "glacier": 5700,
+          "boundGold": 780000,
+          "stoneKit": 1100,
+          "bracelet": {
+            "grades": [
+              "ANCIENT"
+            ],
+            "count": 750
+          },
+          "engraving": 100,
+          "boundGem": 6,
+          "cardPack": 7,
+          "gem": {
+            "grades": [
+              "EPIC"
+            ],
+            "count": 35
+          },
+          "destinyStone": 1500,
+          "chaosStone": 1250
+        }
+      }
+    ]
+  }
+}
