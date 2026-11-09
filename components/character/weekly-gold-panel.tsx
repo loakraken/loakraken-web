@@ -73,7 +73,7 @@ export function WeeklyGoldPanel({
       {/* Both sentences always drawn in one cell, the one not in use hidden: the line is
           as tall as the longer one from the first paint, so the reason (read from this
           browser's saved homework) appears without moving anything (PM 총괄 11-09, (i)). */}
-      <p className={styles.status}>
+      <p className={styles.status} aria-live="polite">
         <span data-shown={gold.blocked ? undefined : ""} aria-hidden={gold.blocked || undefined}>
           골드 받는 캐릭터는 숙제 체크와 같이 원정대에서 {GOLD_CHARACTERS}명까지예요.
         </span>

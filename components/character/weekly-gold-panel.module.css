@@ -40,6 +40,11 @@
   text-decoration: underline;
   text-underline-offset: 2px;
 }
+@media (hover: hover) and (pointer: fine) {
+  .status a:hover {
+    text-decoration-thickness: 2px;
+  }
+}
 .status a:focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
