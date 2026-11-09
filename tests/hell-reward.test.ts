@@ -153,6 +153,14 @@ test("hell reward value: user values follow the item name, never the row positio
   const high = value("hell", 1750);
   assert.equal(line(high, "specialRefine").label, "전이 돌파석");
   assert.equal(line(high, "specialRefine").unit, 0);
+  // Two levels, two values, two totals: 전이 돌파석 200 at 1750 leaves 1640's 순환 at 100.
+  const before1640 = value("hell", 1640).total;
+  const before1750 = high.total;
+  typed.set(line(high, "specialRefine").unitKey, 200);
+  assert.equal(value("hell", 1750).total, before1750 + 28 * 200);
+  assert.equal(value("hell", 1640).total, before1640);
+  assert.equal(line(value("hell", 1640), "specialRefine").value, 40 * 100);
+  assert.equal(line(value("hell", 1750), "specialRefine").value, 28 * 200);
   // 나락's 운명의 돌 is not a settled item: its value stays there, not on 지옥's 운명의 돌.
   const abyss = value("abyss", 1750);
   typed.set(line(abyss, "destinyStone").unitKey, 7);
