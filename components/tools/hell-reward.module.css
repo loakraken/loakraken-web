@@ -26,6 +26,18 @@
   align-content: start;
   gap: 12px;
 }
+/* Old prices while a new basis loads: dimmed only (opacity moves nothing). */
+.main[data-stale] .sums,
+.main[data-stale] .lines {
+  opacity: 0.55;
+  transition: opacity 150ms ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .main[data-stale] .sums,
+  .main[data-stale] .lines {
+    transition: none;
+  }
+}
 .sectionTitle {
   margin: 0 0 8px;
   font-size: 15px;

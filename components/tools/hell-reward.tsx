@@ -70,6 +70,9 @@ export function HellRewardTool() {
     refetchOnWindowFocus: false,
   });
   const limit = useRateLimit(prices.error);
+  // A new price basis keeps the old figures until the new prices land: shown dimmed and
+  // marked busy, so nobody reads them as current (A8).
+  const switching = prices.isPlaceholderData;
   const market = useMemo(
     () =>
       new Map(
@@ -142,7 +145,12 @@ export function HellRewardTool() {
               </label>
             </section>
 
-            <section className={styles.main} aria-labelledby="hell-value-heading">
+            <section
+              className={styles.main}
+              aria-labelledby="hell-value-heading"
+              aria-busy={switching || undefined}
+              data-stale={switching || undefined}
+            >
               <h2 id="hell-value-heading" className={styles.sectionTitle}>
                 {kindLabel} {level} · {stage}단계 고정 보상
               </h2>
