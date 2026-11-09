@@ -48,6 +48,13 @@
     background-color 160ms ease-out,
     transform 100ms ease-out;
 }
+/* Rows keep their own height; the room the min-height leaves goes under the
+   last row. Stretched rows shared it, so a cell drawn before its last row
+   arrived (a page split mid-way) had a taller price row, and the price moved
+   up when the change and count came (A7, CI 360). */
+.cell button {
+  align-content: start;
+}
 /* Press feedback (apple-design re-review). */
 .cell button:active {
   transform: scale(0.97);

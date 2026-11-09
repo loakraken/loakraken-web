@@ -785,6 +785,14 @@
     height: max(100%, 44px);
     translate: -50% -50%;
   }
+  /* A segment button can be painted before its label (a page arriving in
+     parts, develop CI 11-08): centred, its area's start moved 8px as the
+     label widened the button. Anchored to the button's left edge, the start
+     stays put; a button narrower than 44px reaches right, into the gap. */
+  .segment button::after {
+    left: 0;
+    translate: 0 -50%;
+  }
   /* 36px pills (34 tall), 44px areas: the gaps keep neighbours apart, also
      when the row wraps. */
   .pager {

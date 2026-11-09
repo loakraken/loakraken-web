@@ -374,6 +374,13 @@
   background: var(--secondary);
   color: var(--foreground);
 }
+/* An accessory's 힘·민첩·지능 below its slot's 연마 3단계 range (negative %): a
+   quieter outlined badge; the minus sign carries the meaning too. */
+.levelBadge[data-below] {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--border);
+  color: var(--muted-foreground);
+}
 /* In-game quality tiers */
 .quality[data-tier="max"] {
   background: var(--quality-max);
@@ -421,6 +428,47 @@
   margin-left: auto;
   text-align: right;
   font-size: 12px;
+}
+/* Rows with effect lines on the right (accessories, the stone; user 11-01):
+   the name column took only what the lines left, so at 320 '귀걸이' got 19px
+   and broke one letter a line (A37). The name now breaks only between words
+   and its column is at least its longest word; the lines, which wrap, give up
+   the room and stay on the right. */
+.item:has(> .gradeList:not([data-flow])) > .itemText {
+  min-width: min-content;
+}
+.item:has(> .gradeList:not([data-flow])) .itemText > strong {
+  overflow-wrap: normal;
+  word-break: keep-all;
+}
+/* Narrow phones, accessory rows with the range badge: beside the effect lines
+   the name column is about 27px at 320, too narrow for '범위 −277.24%' (A37).
+   Only the badge row moves: it takes its own line under the name, lined up
+   with the name's text. The name and the effect lines stay side by side, the
+   lines on the right as on every other width (user 11-01). */
+@media (max-width: 380px) {
+  /* The name keeps its one-line width ('귀걸이 T4'); the effect lines start
+     from 0 and take the rest of the line (wrapping inside when it is short),
+     so they never drop under the name; the badges take the next line. */
+  .item:has(> .itemText [data-stat-range]) {
+    flex-wrap: wrap;
+    row-gap: 4px;
+  }
+  .item:has(> .itemText [data-stat-range]) > .itemText {
+    display: contents;
+  }
+  .item:has(> .itemText [data-stat-range]) > .itemText > strong {
+    flex: none;
+    white-space: nowrap;
+  }
+  .item:has(> .itemText [data-stat-range]) > .gradeList {
+    flex: 1 1 0;
+  }
+  .item:has(> .itemText [data-stat-range]) > .itemText > .badges {
+    order: 1;
+    flex: 0 0 calc(100% - 56px);
+    margin: 0 0 0 56px;
+  }
 }
 .gradeList[data-flow] {
   margin-left: 0;
@@ -3198,7 +3246,7 @@
   opacity: 0.6;
 }
 
-/* 크라켄 점수 순 (#908): the cooldown-gem choice and why the sort is not in use. */
+/* 크라켄 점수 정렬 (#908): the cooldown-gem choice and why the sort is not in use. */
 .specUpCooldown {
   min-height: 36px;
   padding: 0 14px;
@@ -3237,7 +3285,7 @@
   white-space: nowrap;
 }
 
-/* Off (other sorts, or 크라켄 점수 순 not available): its room stays so the bar never re-flows;
+/* Off (other sorts, or 크라켄 점수 정렬 not available): its room stays so the bar never re-flows;
    visibility also takes it out of the reading order and the tab order. */
 .specUpCooldown[data-off] {
   visibility: hidden;

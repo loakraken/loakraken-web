@@ -131,10 +131,16 @@ function ResultPanel({ open, id, label, groups, activeId, onPick, onActive, head
             animate={{ opacity: 1, y: 0, scaleX: 1, scaleY: 1 }}
             exit={reduce ? { opacity: 0, transition: { duration: 0 } } : { opacity: 0, y: -8, scaleX: 0.92, scaleY: 0.86 }}
             transition={{
-              /* zeta about 0.63 — it goes past and comes back,
+              /* zeta about 0.63 — the drop goes past and comes back,
                  which is the whole of "bubbly" */
               type: "spring", stiffness: 460, damping: 23, mass: 0.9,
               opacity: { duration: 0.12 },
+              /* (ours) The size never goes past its own: a spring on
+                 scale drew the card 1.5% wider than the bar for a few
+                 frames (406px for 400, CI #1467). The scale eases in
+                 and stops at 1; the bounce stays in the drop. */
+              scaleX: { type: "tween", duration: 0.24, ease: [0.23, 1, 0.32, 1] },
+              scaleY: { type: "tween", duration: 0.24, ease: [0.23, 1, 0.32, 1] },
             }}
           >
             {header && <div className="rsp-top">{header}</div>}

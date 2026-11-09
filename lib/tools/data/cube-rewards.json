@@ -10,9 +10,10 @@
       "kind": "OFFICIAL",
       "note": "단계와 입장 레벨만 있음. 보상 구성·수량·확률은 없음"
     },
-    "inven-unlock4": {
+    "community-post-2025-08": {
       "title": "큐브 4해금 보상 정리(이용자 글)",
-      "url": "https://www.inven.co.kr/board/lostark/6271/2487547",
+      "url": null,
+      "_note": "글 주소는 내부 기록",
       "date": "2025-08-21",
       "checkedAt": "2026-10-12",
       "kind": "COMMUNITY",
@@ -36,7 +37,7 @@
       "id": "unlock-4",
       "name": "제4해금",
       "entryLevel": 1720,
-      "source": "inven-unlock4",
+      "source": "community-post-2025-08",
       "basis": "1배 입장 기준",
       "rewards": {
         "clear": [

@@ -19,6 +19,7 @@ import { BotPicker } from "@/components/bot/bot-picker";
 import { useChosenBot, useChosenWear } from "@/components/bot/use-chosen-bot";
 import { useLandingMotion, useReducedMotion, useVisible } from "./motion-context";
 import { characterNameError, normalizeCharacterName } from "@/lib/character/model";
+import { cameFromHistory, clearHistoryMark } from "./history-mark";
 import styles from "./landing.module.css";
 
 const noSubscribe = () => () => {};
@@ -50,8 +51,16 @@ export function Hero({
   // The error puts focus back in the box: that focus is not the visitor's, so no hop.
   const refocus = useRef(false);
   const Title = embedded ? "h2" : "h1";
-  // A block the /about intro builds (never on the home page's embedded hero).
-  const build = (kind: "text" | "box" | "keep") => (embedded ? {} : { "data-build-block": "", "data-build-kind": kind });
+  // The text enters only when the client puts the hero in the page after a link
+  // or the menu: false while hydrating the first HTML, which already drew it in
+  // its final state (LCP), and kept so: waking never starts an entrance (#1441).
+  // Back/forward brings it back as it was (no entrance either).
+  const clientMount = useSyncExternalStore(noSubscribe, () => true, () => false);
+  // Back/forward puts a page already seen back as it was: no entrance (history-mark.ts).
+  const [enter] = useState(() => clientMount && !cameFromHistory());
+  // This hero has used the back/forward mark (read above, cleared once mounted).
+  useEffect(clearHistoryMark, []);
+  const entering = enter ? { "data-enter": "" } : {};
   const theme = useTheme();
   const [bot] = useChosenBot();
   const [wear] = useChosenWear();
@@ -89,19 +98,19 @@ export function Hero({
   }
 
   return (
-    <section ref={hero} className={embedded ? `${styles.hero} ${styles.heroEmbedded}` : styles.hero} id={embedded ? undefined : "intro"} aria-labelledby="hero-heading" data-in-view={heroVisible} data-build-section={embedded ? undefined : "intro"}>
+    <section ref={hero} className={embedded ? `${styles.hero} ${styles.heroEmbedded}` : styles.hero} id={embedded ? undefined : "intro"} aria-labelledby="hero-heading" data-in-view={heroVisible}>
       <div className={styles.heroContent}>
-        <div className={`${styles.statusPill} ${styles.heroEnter}`} {...build("text")}>LOAKraken</div>
-        <Title className={`${styles.heroTitle} ${styles.heroEnter}`} id="hero-heading" {...build("keep")}>당신의 캐릭터.<br /><span>가능성을 더 선명하게.</span></Title>
-        <p className={`${styles.heroDescription} ${styles.heroEnter}`} {...build("keep")}>지금의 세팅부터 다음 성장까지.<br />흩어진 정보를 모아, 더 명확한 선택으로.</p>
+        <div className={`${styles.statusPill} ${styles.heroEnter}`} {...entering}>LOAKraken</div>
+        <Title className={`${styles.heroTitle} ${styles.heroEnter}`} id="hero-heading" {...entering}>당신의 캐릭터.<br /><span>가능성을 더 선명하게.</span></Title>
+        <p className={`${styles.heroDescription} ${styles.heroEnter}`} {...entering}>지금의 세팅부터 다음 성장까지.<br />흩어진 정보를 모아, 더 명확한 선택으로.</p>
         {/* /about only: one line naming the site with its Korean name (marketing spec 10-31). */}
         {!embedded && (
-          <p className={`${styles.heroAbout} ${styles.heroEnter}`} {...build("keep")}>
+          <p className={`${styles.heroAbout} ${styles.heroEnter}`} {...entering}>
             LOAKraken(로아크라켄)은 로스트아크 공식 Open API의 공개 정보로 캐릭터·시세·통계·성장 도구를 보여 주는 무료 팬 사이트입니다.
           </p>
         )}
         {/* No frame around the bot (user, 11-01): it stands on a soft shadow. */}
-        <div className={styles.orbInteraction} {...build("box")}>
+        <div className={styles.orbInteraction}>
           <Stage
             className={styles.orbStage}
             {...(reduced
@@ -114,7 +123,7 @@ export function Hero({
           </Stage>
           <div className={styles.botPicker}><BotPicker theme={theme} /></div>
         </div>
-        <p className={styles.orbCaption} {...build("text")}><span className={styles.statusDot} />{searching ? "캐릭터 화면으로 이동하고 있어요" : focused ? "어떤 캐릭터를 살펴볼까요?" : "당신의 다음 선택을 기다리고 있어요"}</p>
+        <p className={styles.orbCaption}><span className={styles.statusDot} />{searching ? "캐릭터 화면으로 이동하고 있어요" : focused ? "어떤 캐릭터를 살펴볼까요?" : "당신의 다음 선택을 기다리고 있어요"}</p>
         {embedded && <div className={styles.searchArea}>
           <BorderBeam className={styles.searchBeam} theme={theme} colorVariant="mono" staticColors size="line" duration={5} strength={focused ? 0.55 : 0.22} active={looping && heroVisible} borderRadius={36}>
             <form className={styles.searchForm} onSubmit={search} noValidate aria-busy={searching}>

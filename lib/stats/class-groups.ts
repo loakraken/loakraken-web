@@ -39,6 +39,9 @@ const GROUP_OF: Record<string, ClassGroup> = {
   가디언나이트: "가디언나이트",
 };
 
+/** Every class, by group (the filters' order): one list, so a new class is never missing from a select. */
+export const CLASS_NAMES: readonly string[] = Object.keys(GROUP_OF);
+
 export const classGroup = (className: string): ClassGroup =>
   Object.hasOwn(GROUP_OF, className) ? GROUP_OF[className] : "기타";
 

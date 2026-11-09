@@ -278,7 +278,7 @@ export function combatPowerFailureCopy(error: { code: string }) {
     case "CHARACTER_NOT_FOUND":
       return {
         title: "캐릭터를 찾지 못했어요",
-        text: "이름이 정확한지 확인한 뒤 다시 검색해 주세요.",
+        text: "이름을 한 번 더 확인하고 다시 검색해 볼까요?",
       };
     case "CHARACTER_NOT_CACHED":
     case "CHANGE_TARGET_NOT_FOUND":

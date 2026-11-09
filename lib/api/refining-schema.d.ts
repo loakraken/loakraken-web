@@ -15,7 +15,7 @@ export interface paths {
         put?: never;
         /**
          * 티어 4 재련 기대 비용
-         * @description 운명의 업화·운명의 전율 무기/방어구의 현재 단계부터 목표 단계(11~25)까지 기대·중앙값·90%·최대 시도 수와 재료·골드를 계산합니다. 외부 API·DB를 사용하지 않습니다. 단계별 수치는 공개 데이터(아이스펭, MIT)를 다른 서비스와 전수 대조한 값이며 공식 표가 아닙니다.
+         * @description 운명의 업화·운명의 전율 무기/방어구의 현재 단계부터 목표 단계(11~25)까지 기대·중앙값·90%·최대 시도 수와 재료·골드를 계산합니다. 외부 API·DB를 사용하지 않습니다. 단계별 수치는 MIT 라이선스 공개 데이터(고지는 저장소 NOTICE)를 전수 교차 검증한 값이며 공식 표가 아닙니다.
          */
         post: operations["plan"];
         delete?: never;
@@ -30,46 +30,46 @@ export interface components {
     schemas: {
         RefiningPlanRequest: {
             /**
-             * @description UPHWA: 운명의 업화, JEONYUL: 운명의 전율. WEAPON·ARMOR는 필수, ARM_GUARD(완갑)는 단계표가 하나라 보내지 않아도 되고 무시합니다
+             * @description UPHWA: 운명의 업화, JEONYUL: 운명의 전율. WEAPON·ARMOR는 필수, ARM_GUARD(완갑)는 단계표가 하나라 보지 않는다(생략 가능)
              * @example UPHWA
              * @enum {string}
              */
             grade?: "UPHWA" | "JEONYUL";
             /**
-             * @description ARM_GUARD: 팔 보호구(완갑), 0~25단계. 책·성장 지원 없음
+             * @description WEAPON: 무기, ARMOR: 방어구, ARM_GUARD: 팔 보호구(완갑)
              * @example ARMOR
              * @enum {string}
              */
             equipmentType: "WEAPON" | "ARMOR" | "ARM_GUARD";
             /**
              * Format: int32
-             * @description 현재 재련 단계(WEAPON·ARMOR 10~24, ARM_GUARD 0~24)
+             * @description 현재 재련 단계. WEAPON·ARMOR 10~24, ARM_GUARD 0~24
              * @example 18
              */
             fromStage: number;
             /**
              * Format: int32
-             * @description 목표 재련 단계(WEAPON·ARMOR 11~25, ARM_GUARD 1~25)
+             * @description 목표 재련 단계. WEAPON·ARMOR 11~25, ARM_GUARD 1~25
              * @example 20
              */
             toStage: number;
             /**
-             * @description 매 시도 숨결을 최대 개수로 사용
+             * @description 매 시도 숨결을 최대 개수로 사용. breath를 보내면 breath가 정한다(서로 어긋나면 400)
              * @default false
              */
             useBreath: boolean;
             /**
-             * @description 책(재봉술·야금술)을 사용할 수 있는 단계에서 사용. 업화 11~20단계만 지원
-             * @default false
+             * @description 책(재봉술·야금술)을 사용할 수 있는 단계에서 사용. 업화 11~20단계·전율 12~19단계(책 증가 = 그 단계 기본 성공률). 생략하면 true(책 포함, 2026-10-11 결정)
+             * @default true
              */
             useBook: boolean;
             /**
-             * @description 업화 목표 18단계 이하 재련 골드 20% 감소(공식 성장 지원)
-             * @default false
+             * @description 업화 목표 18단계 이하 재련 골드 20% 감소(공식 성장 지원). 상시 효과라 생략하면 켬
+             * @default true
              */
             growthSupport: boolean;
             /**
-             * @description 첫 단계의 현재 장인의 기운(%)
+             * @description 첫 단계의 현재 장인의 기운(%). 게임 화면처럼 소수 셋째 자리까지 받되 0.01%p 단위여야 함(46.500 = 46.50)
              * @default 0
              * @example 46.5
              */
@@ -80,6 +80,27 @@ export interface components {
              * @default 0
              */
             currentFailedAttempts: number;
+            /**
+             * @description 장비 성장(경험치) 비용(단계당 1회 운명의 파편)을 더함. 웹이 토글·표시를 넣고 true를 보낼 때까지 공개 합계가 바뀌지 않게 생략하면 끔
+             * @default false
+             */
+            growthCost: boolean;
+            /**
+             * @description 원정대 영지 연구 '티어 4 Lv.1590 장비 11~14단계 재련 필요 경험치 20% 감소' 적용(업화 목표 11~14단계 성장 파편 × 0.8). growthCost=true일 때만 의미가 있다. 생략하면 켬
+             * @default true
+             */
+            expResearch: boolean;
+            /**
+             * @description 숨결 사용 방식. NONE: 쓰지 않음, MAX: 매 시도 최대 개수, OPTIMAL: 시도마다 숨결 개수(와 useBook이면 책)를 골라 지금 시세 기준 기대 비용이 가장 작은 방법(재료 시세가 필요 — 없으면 409 REFINING_PRICE_PENDING. 서버 스위치가 꺼져 있으면 400 INVALID_REQUEST). 생략하면 useBreath(true면 MAX, 아니면 NONE)
+             * @example OPTIMAL
+             * @enum {string}
+             */
+            breath?: "NONE" | "MAX" | "OPTIMAL";
+            /**
+             * @description 첫 단계의 현재 성공 확률(%, 게임 재련 화면 값을 숨결·책을 올리기 전에 읽은 것, 화면처럼 소수 셋째 자리까지 받음: 3.300 = 3.30). currentFailedAttempts가 없을 때 이 값으로 실패 횟수를 정한다(기본 확률 × (1 + 0.1 × 실패 0~10)과 같아야 함, 아니면 400 REFINING_SUCCESS_RATE_MISMATCH). 장인의 기운은 그 실패 횟수로 쌓일 수 있는 값이어야 함(아니면 400 REFINING_ARTISAN_ENERGY_MISMATCH). 둘 다 없으면 실패 0
+             * @example 3.3
+             */
+            currentSuccessRate?: number;
         };
         /** @description 공통 API 응답. 오류 응답의 data는 null입니다. */
         ApiResponseRefiningPlanResponse: {
@@ -98,13 +119,10 @@ export interface components {
         };
         /** @description 재련 기대 비용. 기대값은 확률 분포의 평균이며, 최악은 장인의 기운으로 확정될 때까지 모두 실패한 경우입니다. 시세 환산·실링은 포함하지 않습니다. */
         RefiningPlanResponse: {
+            /** @description 단계표 규칙 버전(ARM_GUARD는 팔 보호구 단계표 버전) */
             ruleVersion: string;
             source: components["schemas"]["SourceResponse"];
-            /**
-             * @description ARM_GUARD면 null
-             * @enum {string|null}
-             */
-            grade: "UPHWA" | "JEONYUL" | null;
+            grade: ("UPHWA" | "JEONYUL") | null;
             /** @enum {string} */
             equipmentType: "WEAPON" | "ARMOR" | "ARM_GUARD";
             /** Format: int32 */
@@ -114,6 +132,12 @@ export interface components {
             useBreath: boolean;
             useBook: boolean;
             growthSupport: boolean;
+            /** @description 장비 성장(경험치) 비용을 더했는지 */
+            growthCost: boolean;
+            /** @description 영지 연구(업화 목표 11~14단계 성장 경험치 20% 감소)를 적용했는지 */
+            expResearch: boolean;
+            /** @description 성장 비용 출처 */
+            growthSource: components["schemas"]["GrowthSourceResponse"];
             stages: components["schemas"]["StageResponse"][];
             /** @description 단계별 기대 소모량(소수 둘째 자리 반올림)의 합 */
             expectedMaterials: components["schemas"]["QuantityResponse"][];
@@ -122,8 +146,18 @@ export interface components {
             expectedGold: number;
             /** Format: int64 */
             worstCaseGold: number;
+            /** @description 골드로 바꾸지 않고 재료 합계에도 넣지 않은 성장 비용의 합(실링, 전율 방어구 21단계 한계 해방의 고통의 가시). 단계마다 한 번 들어 기대·최악이 같다. growthCost=false거나 없으면 빈 목록 */
+            nonGold: components["schemas"]["QuantityResponse"][];
             /** @description 계산 가정과 제외 항목 */
             assumptions: string[];
+            /**
+             * @description 이번 계산의 숨결 방식(NONE·MAX·OPTIMAL)
+             * @example OPTIMAL
+             */
+            breath: string;
+            pricesObservedAt: string | null;
+            expectedCostGold: number | null;
+            failedAttemptsFrom?: string | null;
         };
         SourceResponse: {
             /** @description 단계별 수치 출처 */
@@ -133,6 +167,16 @@ export interface components {
             /** @description 교차 검증한 다른 출처 */
             crossCheckedWith: string;
             verifiedOn: string;
+        };
+        GrowthSourceResponse: {
+            ruleVersion: string;
+            /** @description 성장 비용 출처 */
+            name: string;
+            /** @description 교차 확인 */
+            crossCheckedWith: string;
+            verifiedOn: string;
+            /** @description 영지 연구 공식 문구(재련 가이드) */
+            researchText: string;
         };
         StageResponse: {
             /**
@@ -167,10 +211,50 @@ export interface components {
             expectedGold: number;
             /** Format: int64 */
             worstCaseGold: number;
+            growth: components["schemas"]["GrowthResponse"] | null;
+            breathPath: components["schemas"]["BreathRunResponse"][] | null;
+            expectedBreaths: number | null;
+            expectedBooks: number | null;
+            expectedCostGold: number | null;
+            startFailedAttempts?: number | null;
         };
         QuantityResponse: {
             name: string;
             amount: number;
+        };
+        GrowthResponse: {
+            /** @description 성장 운명의 파편(영지 연구 적용 뒤). 재료 합계의 운명의 파편에 들어 있다 */
+            shard: number;
+            /**
+             * Format: int64
+             * @description 성장 실링(수량 표시용, 합계에 넣지 않음)
+             */
+            silver: number;
+            /** @description false면 값이 확정되지 않아 계산에서 뺀 단계(shard 0). 2026-10-10 기준 해당 단계 없음 */
+            confirmed: boolean;
+            /** @description 영지 연구(× 0.8)를 적용했는지 */
+            research: boolean;
+            /** @description 파편·실링 말고 이 단계에 드는 재료(전율 방어구 21단계 한계 해방의 고통의 가시 15 — 거래 불가, 골드로 바꾸지 않고 재료 합계에도 넣지 않음). 없으면 빈 목록 */
+            extraMaterials: components["schemas"]["QuantityResponse"][];
+        };
+        BreathRunResponse: {
+            /**
+             * Format: int32
+             * @description 묶음 첫 회차(1부터)
+             */
+            fromAttempt: number;
+            /**
+             * Format: int32
+             * @description 묶음 마지막 회차(포함)
+             */
+            toAttempt: number;
+            /**
+             * Format: int32
+             * @description 회차마다 쓰는 숨결 개수(0 = 없음)
+             */
+            breaths: number;
+            /** @description 책 사용 */
+            book: boolean;
         };
         /** @description 공통 오류 응답. HTTP 상태와 업무 코드를 함께 확인합니다. */
         ErrorResponse: {
@@ -211,7 +295,7 @@ export interface operations {
                     "application/json": components["schemas"]["ApiResponseRefiningPlanResponse"];
                 };
             };
-            /** @description INVALID_REQUEST: 단계 범위·장인의 기운·실패 횟수 오류 */
+            /** @description INVALID_REQUEST: 단계 범위·장인의 기운·실패 횟수 오류, useBreath와 breath가 어긋남, OPTIMAL 스위치가 꺼져 있는데 breath=OPTIMAL. REFINING_SUCCESS_RATE_MISMATCH: currentSuccessRate가 첫 단계 기본 확률 × (1 + 0.1 × 실패 0~10) 어느 값과도 같지 않음(숨결·책을 더한 값 등). REFINING_ARTISAN_ENERGY_MISMATCH: 성공 확률로 정한 실패 횟수와 currentArtisanEnergy가 맞지 않음(그 횟수만큼 실패해 쌓일 수 있는 기운 밖) */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -229,8 +313,26 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
+            /** @description REFINING_PRICE_PENDING: breath=OPTIMAL인데 필요한 재료 시세가 아직 없음(Retry-After 초). 다른 방식으로 대신 계산하지 않는다 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
             /** @description UNSUPPORTED_MEDIA_TYPE */
             415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description REFINING_SOLVE_BUSY: breath=OPTIMAL인데 서버의 최적 풀이 자리가 모두 차 있음(기다리지 않음, Retry-After 초 뒤 다시) / CLIENT_RATE_LIMITED: 이 클라이언트의 분당 요청·공식 호출 한도 초과. Retry-After(초) 뒤 다시 시도 */
+            429: {
                 headers: {
                     [name: string]: unknown;
                 };

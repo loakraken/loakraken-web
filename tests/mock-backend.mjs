@@ -128,8 +128,12 @@ async function market(url, req, send) {
   const key = `market:${url.pathname}`;
   counts[key] = (counts[key] || 0) + 1;
   // Market board (B-5): synthetic, deterministic prices per item id.
-  if (url.pathname === "/api/v1/markets/tabs")
+  if (url.pathname === "/api/v1/markets/tabs") {
+    // A client marked by this documentation-range address gets no tab list: the server-drawn page then
+    // has no tabs and shows its stand-ins (market-extra-tabs spec). Per request, so parallel tests are untouched.
+    if (req.headers["x-forwarded-for"] === "203.0.113.180") return send({ code: "MARKET_TABS_UNAVAILABLE" }, 503);
     return send(marketRead("market-tabs.json"));
+  }
   // Engraving icons (backend #780): keys without spaces; 질량 증가 has none (no icon shown).
   const boardItems = (tab) => {
     const refining = [
@@ -358,11 +362,33 @@ function refiningPlan(request) {
   // growth support, grade null in the answer.
   const armGuard = request.equipmentType === "ARM_GUARD";
   const round = (v) => Math.round(v * 100) / 100;
+  const baseBp = (target) => (armGuard ? Math.max(500, 1500 - target * 50) : Math.max(300, 1500 - (target - 11) * 80));
+  // 현재 성공 확률 (api success-rate PR): without an explicit failure count, the k (0~10)
+  // with rate = base × (1 + 0.1k); no such k → null (400 REFINING_SUCCESS_RATE_MISMATCH).
+  let startFailures = request.currentFailedAttempts ?? 0;
+  let failedAttemptsFrom = "REQUEST";
+  if (request.currentFailedAttempts == null && request.currentSuccessRate != null) {
+    const k = (request.currentSuccessRate / (baseBp(request.fromStage + 1) / 100) - 1) * 10;
+    if (Math.abs(k - Math.round(k)) > 0.001 || k < -0.001 || k > 10.001) return null;
+    startFailures = Math.round(k);
+    failedAttemptsFrom = "SUCCESS_RATE";
+    // api #830: the energy must be reachable after those failures, between no breath/book
+    // on any try and this mock's breath × book on every try (100% cap, open at 10).
+    const base = baseBp(request.fromStage + 1);
+    let low = 0, high = 0;
+    for (let i = 0; i < startFailures; i++) {
+      const rate = base * (1 + 0.1 * i);
+      low += Math.floor((rate * 100) / 215) / 100;
+      high += Math.floor((Math.min(10000, rate * 1.5 * 1.3) * 100) / 215) / 100;
+    }
+    const energy = request.currentArtisanEnergy ?? 0;
+    if (energy < low - 0.001 || (startFailures < 10 && energy > high + 0.001)) return "ENERGY";
+  }
   const stages = [];
   for (let target = request.fromStage + 1; target <= request.toStage; target++) {
     const rate = armGuard
-      ? Math.max(500, 1500 - target * 50) * (request.useBreath ? 1.5 : 1)
-      : Math.max(300, 1500 - (target - 11) * 80) * (request.useBreath ? 1.5 : 1) * (request.useBook && target <= 20 ? 1.3 : 1);
+      ? baseBp(target) * (request.useBreath ? 1.5 : 1)
+      : baseBp(target) * (request.useBreath ? 1.5 : 1) * (request.useBook && target <= 20 ? 1.3 : 1);
     const maxAttempts = Math.ceil(21500 / rate) + 1;
     const expectedAttempts = round(maxAttempts * 0.42);
     const per = armGuard ? [
@@ -384,6 +410,7 @@ function refiningPlan(request) {
     const goldPer = !armGuard && request.growthSupport && request.grade === "UPHWA" && target <= 18 ? gold * 0.8 : gold;
     stages.push({
       targetStage: target,
+      startFailedAttempts: target === request.fromStage + 1 ? startFailures : 0,
       firstAttemptSuccessRateBp: Math.round(rate),
       expectedAttempts,
       medianAttempts: Math.round(maxAttempts * 0.36),
@@ -393,6 +420,13 @@ function refiningPlan(request) {
       worstCaseMaterials: per.map(([name, n]) => ({ name, amount: n * maxAttempts })),
       expectedGold: round(goldPer * expectedAttempts),
       worstCaseGold: Math.round(goldPer * maxAttempts),
+      // The api's shape for a plain (not OPTIMAL) plan without growth cost:
+      // these are all null (contract resync, web #1492).
+      growth: null,
+      breathPath: null,
+      expectedBreaths: null,
+      expectedBooks: null,
+      expectedCostGold: null,
     });
   }
   const sum = (key) => {
@@ -408,6 +442,16 @@ function refiningPlan(request) {
       source: { name: "합성 목 데이터", commit: "mock", license: "테스트 전용", crossCheckedWith: "없음", verifiedOn: "2026-10-05" },
       grade: armGuard ? null : request.grade, equipmentType: request.equipmentType, fromStage: request.fromStage, toStage: request.toStage,
       useBreath: !!request.useBreath, useBook: armGuard ? false : !!request.useBook, growthSupport: armGuard ? false : !!request.growthSupport,
+      failedAttemptsFrom,
+      // Fields the live api already sends for a plain plan (contract resync, web #1492):
+      // no OPTIMAL, no growth cost (api defaults), no market prices needed.
+      breath: request.useBreath ? "MAX" : "NONE",
+      growthCost: false,
+      expResearch: !armGuard,
+      growthSource: { ruleVersion: "mock-growth", name: "합성 목 데이터", crossCheckedWith: "없음", researchText: "합성 목 데이터", verifiedOn: "2026-10-05" },
+      nonGold: [],
+      pricesObservedAt: null,
+      expectedCostGold: null,
       stages,
       expectedMaterials: sum("expectedMaterials"),
       worstCaseMaterials: sum("worstCaseMaterials"),
@@ -769,7 +813,10 @@ createServer(async (req, res) => {
     const request = JSON.parse(body);
     if (request.fromStage === 24 && request.toStage === 25 && request.currentFailedAttempts === 10)
       return send({ code: "INVALID_REQUEST" }, 400);
-    return send(refiningPlan(request));
+    const plan = refiningPlan(request);
+    if (!plan) return send({ code: "REFINING_SUCCESS_RATE_MISMATCH", message: "현재 성공 확률이 이 단계의 값과 맞지 않습니다." }, 400);
+    if (plan === "ENERGY") return send({ code: "REFINING_ARTISAN_ENERGY_MISMATCH", message: "현재 성공 확률과 장인의 기운이 맞지 않습니다." }, 400);
+    return send(plan);
   }
   // Combat-power simulator (backend #240). Stage A answers UNSUPPORTED for every
   // item like the real contract; "전투력계산" gets synthetic OK numbers (not game
@@ -980,7 +1027,7 @@ createServer(async (req, res) => {
     const who = url.searchParams.get("characterName");
     if (who === "스펙업꺼짐") return send(specUp("character-spec-up-disabled.json"), 404);
     if (who === "미존재") return send(specUp("character-spec-up-not-cached.json"), 404);
-    // 크라켄 점수 순 (api #573): the backend's own answers. "스펙업점수꺼짐" has the
+    // 크라켄 점수 정렬 (api #573): the backend's own answers. "스펙업점수꺼짐" has the
     // score switched off (the answer comes as EFFICIENCY with a reason), and
     // "스펙업옛응답" is a backend from before #573 (no score fields at all).
     // A supporter (api #722): the same scored list, ranked by the supporter
@@ -2648,7 +2695,7 @@ createServer(async (req, res) => {
       detail: { parserVersion: "equipment-tooltip-v3", refineLevel, quality: 90, itemLevel: 1640 + refineLevel * 5, tier: 4, arkPassivePoint: null, effects: [], stoneEngravings: [], polishEffects: [], braceletEffects: [] },
     }));
   }
-  if (name === "상세" || name === "아바타옛응답" || name === "상세서포터" || name === "서포터옛응답" || name === "대세블레이드" || name === "가려짐긴값캐릭터" || name === "아크없음" || name === "효율준비중" || name === "팔찌못읽음") {
+  if (name === "상세" || name === "아바타옛응답" || name === "상세서포터" || name === "서포터옛응답" || name === "대세블레이드" || name === "가려짐긴값캐릭터" || name === "아크없음" || name === "효율준비중" || name === "팔찌못읽음" || name === "초상화") {
     // Detail-page mock: a locally supplied character file (never committed) or
     // the synthetic fixture, enriched with synthetic Tooltip detail and skills.
     if (process.env.MOCK_CHARACTER_FILE)
@@ -2670,6 +2717,9 @@ createServer(async (req, res) => {
     d.fetchedAt = new Date(now - 90_000).toISOString();
     d.refreshAvailableAt = new Date(now + 210_000).toISOString();
     if (process.env.MOCK_PORTRAIT_URL) d.imageUrl = process.env.MOCK_PORTRAIT_URL;
+    // A character with a render for the banner and avatar tab (portrait specs): an official-CDN-shaped
+    // address that belongs to no real character; the e2e network answers it with a 1x1 PNG.
+    if (name === "초상화") d.imageUrl = "https://cdn-lostark.game.onstove.com/armory/0/E2E-PORTRAIT.jpg";
     // Official line names (as the armory gives them), so the role colours
     // (#1108) read them: 상세 is a dealer, 상세서포터 a supporter.
     const polish = [
@@ -2683,6 +2733,14 @@ createServer(async (req, res) => {
       const base = d.loadout.equipment[d.loadout.equipment.length - 1];
       for (const type of accessoryTypes) d.loadout.equipment.push({ ...base, type, name: `합성 ${type}`, grade: "고대" });
     }
+    // 기본 효과 range % against each slot's 연마 3단계 range (api #868 @6b00e070, the baseline site's rule;
+    // readings from 레퍼런스's check of that site, recorded internally): necklace 15178-17857, earring
+    // 11806-13889. A high roll passes 100; a T3 relic sits far below 0 (the widest badge).
+    const accessoryStats = [
+      { polishStage: 3, mainStat: 16009, mainStatMin: 15178, mainStatMax: 17857, mainStatRangePct: 31.02 },
+      { polishStage: 3, mainStat: 18000, mainStatMin: 15178, mainStatMax: 17857, mainStatRangePct: 105.34 },
+      { polishStage: 0, mainStat: 6031, mainStatMin: 11806, mainStatMax: 13889, mainStatRangePct: -277.24 },
+    ];
     let acc = 0;
     for (const item of d.loadout.equipment) {
       const refine = /^\+(\d+)/.exec(item.name ?? "")?.[1];
@@ -2700,8 +2758,13 @@ createServer(async (req, res) => {
             ? [{ name: "원한", level: 4 }, { name: "아드레날린", level: 1 }, { name: "공격속도 감소", level: 0 }]
             : [],
         polishEffects: isAcc
-          ? polish[acc++ % 2].map(([n, value, grade]) => ({ name: n, value, grade }))
+          ? polish[acc % 2].map(([n, value, grade]) => ({ name: n, value, grade }))
           : [],
+        // 기본 효과 range % (gap #6): the samples above.
+        ...(isAcc && accessoryStats[acc] && {
+          effects: [{ title: "기본 효과", lines: [`민첩 +${accessoryStats[acc].mainStat}`, "체력 +3200"] }],
+          accessoryStats: accessoryStats[acc],
+        }),
         braceletEffects:
           item.type === "팔찌"
             ? [
@@ -2711,6 +2774,7 @@ createServer(async (req, res) => {
               ]
             : [],
       };
+      if (isAcc) acc++;
     }
     // Synthetic gems: four damage, seven cooldown (names follow the game's pattern).
     const gemIcon = (n) => `https://cdn-lostark.game.onstove.com/efui_iconatlas/use/use_9_${n}.png`;

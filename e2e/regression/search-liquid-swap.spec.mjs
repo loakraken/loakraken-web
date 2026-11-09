@@ -92,3 +92,21 @@ test("검색 칸: 닫고 다시 열면 또 평범한 칸부터 @regression", asy
   await expect.poll(() => firstField(page)).toEqual({ liquid: false, surface: false });
   await expect(page.locator(".cmd-field")).toHaveAttribute("data-liquid", "true", { timeout: 5000 });
 });
+
+// A fade that never ends normally still hands over (#1423 review): cancelled (interrupted), or no animation event
+// at all (a paused fade, as in a hidden tab). The plain fill must not stay drawn over the liquid.
+// The cancel hands over at once (well before the 1 s safety timer); a paused fade waits for the timer.
+for (const [how, stop, within] of [
+  ["취소된 나타남", (el) => el.getAnimations()[0].cancel(), 400],
+  ["끝나지 않는 나타남(1초 안전 시간)", (el) => el.getAnimations()[0].pause(), 3000],
+])
+  test(`검색 칸: ${how}에도 물방울 면으로 넘어감 @regression`, async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await gotoReady(page, "/market");
+    await page.addStyleTag({ content: ".cmd-liquid { animation-duration: 20s !important; }" });
+    await page.getByRole("button", { name: "캐릭터 검색" }).first().click();
+    const surface = page.locator(".cmd-liquid");
+    await expect(surface).toHaveCount(1, { timeout: 5000 });
+    await surface.evaluate(stop);
+    await expect(page.locator(".cmd-field")).toHaveAttribute("data-liquid", "true", { timeout: within });
+  });

@@ -5,13 +5,14 @@
 // sources are kept for review only and never shown on screen.
 import raw from "./data/raid-cheatsheet.json";
 import { RAID_DATA, type Difficulty, type RaidData } from "./raid-rewards";
+import { sourceUrlOk, type SourceUrl } from "./source-url";
 
 /** OFFICIAL: lostark.game.onstove.com. COMMUNITY: the game's main community
  * board, enough on its own (데이터 출처 규칙 10-12). REFERENCE: a reference tool
  * checked page by page. OTHER: anything else; a pattern backed only by OTHER
  * sources needs two of them. */
 export type SourceKind = "OFFICIAL" | "COMMUNITY" | "REFERENCE" | "OTHER";
-export type CheatSource = { title: string; url: string; checkedAt: string; kind: SourceKind };
+export type CheatSource = SourceUrl & { title: string; checkedAt: string; kind: SourceKind };
 
 /** HP bar counts: `from` is where the pattern starts (higher), `to` where it
  * ends; equal for a one-time trigger. null when no source gives it. */
@@ -63,7 +64,7 @@ const FORBIDDEN_TEXT = /공지|출처|다를\s수\s있/;
 export function checkCheatSheet(data: CheatSheetData, rewards: RaidData = RAID_DATA): string[] {
   const problems: string[] = [];
   for (const [id, source] of Object.entries(data.sources)) {
-    if (!/^https:\/\//.test(source.url)) problems.push(`source ${id}: url must be https`);
+    if (!sourceUrlOk(source)) problems.push(`source ${id}: url must be https (or null with its internal-record note)`);
     if (!/^\d{4}-\d{2}-\d{2}$/.test(source.checkedAt)) problems.push(`source ${id}: bad checkedAt`);
   }
   const raidIds = new Set<string>();

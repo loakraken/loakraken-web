@@ -27,6 +27,7 @@ import type { ResultGroup, ResultItem } from "@/components/ui/bencho/result-pane
 import { applyThemeChoice, THEME_CHOICES, useThemeChoice } from "@/components/ui/theme-toggle"
 import { PillTab, PillTabs } from "@/components/ui/pill-tabs"
 import { Bookmark, BookmarkBold, Copy, MessageQuestion, SearchNormal, Sun } from "@/components/ui/icons"
+import { clearHistoryMark } from "@/components/landing/history-mark"
 
 const number = (n: number | null | undefined) =>
   n == null ? null : n.toLocaleString("ko-KR", { maximumFractionDigits: 2 })
@@ -340,6 +341,8 @@ export function useSearchResults({ open, text, onLeave }: { open: boolean; text:
           run: () => {
             onLeave()
             reset()
+            // A forward navigation: the page's hero enters as from any link.
+            clearHistoryMark()
             router.push(m.href)
           },
         })),
