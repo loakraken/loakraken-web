@@ -1,11 +1,13 @@
 // 회귀(A37, v0.3.10 RC): 휴대폰 홈 히어로 검색칸의 안내 글('캐릭터 이름을 입력하세요')이 '캐릭터 검색' 단추 밑에서
 // 잘리지 않는다. 320에서 칸 153px에 글 160px이라 '…입력하세요'의 끝이 단추 아래로 잘렸다(깨기 전, 운영도 같음).
-// 단추는 누르기 쉬운 크기(44px 이상)를 지킨다.
+// 단추는 누르기 쉬운 크기(44px 이상)를 지키고, 첫 로드 흔들림은 0.
 import { test, expect, gotoReady, expectNoHorizontalOverflow } from "../support/fixtures.mjs";
+import { shiftsSince, watchShifts } from "../support/shifts.mjs";
 
 for (const width of [320, 340, 360, 375, 390, 414, 430])
   test(`@A37 ${width} 홈 검색칸 안내 글이 단추 밑에서 잘리지 않는다 @regression`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
+    await watchShifts(page);
     await gotoReady(page, "/");
     const hero = page.locator('section[aria-labelledby="hero-heading"]');
     const field = hero.getByRole("textbox", { name: "캐릭터 이름", exact: true });
@@ -28,5 +30,7 @@ for (const width of [320, 340, 360, 375, 390, 414, 430])
     const button = await submit.boundingBox();
     expect(button.width, "단추 너비").toBeGreaterThanOrEqual(44);
     expect(button.height, "단추 높이").toBeGreaterThanOrEqual(44);
+    const { all, moved } = await shiftsSince(page);
+    expect(all, `첫 로드 흔들림 (${moved})`).toBe(0);
     await expectNoHorizontalOverflow(page);
   });
