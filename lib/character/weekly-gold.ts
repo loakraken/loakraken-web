@@ -71,12 +71,16 @@ const raidLabel = (raidId: string, difficulty: keyof typeof DIFFICULTY_LABEL) =>
 const serverGold = (state: HomeworkState, server: string) =>
   state.characters.filter((c) => c.server === server && c.gold).length;
 
+/** The homework tool's limit: its gold characters, all servers (its own count). */
+const homeworkGoldFull = (state: HomeworkState) => state.characters.filter((c) => c.gold).length >= GOLD_CHARACTERS;
+
 /**
- * The homework tool's addCharacters, with the six counted on this server only
- * (계산 검증 #1466 P1: six gold characters saved on another server left this
- * server's rows at 0G). The official rule is six per 원정대; that a 원정대 is
- * one server is not in an official text yet (레퍼런스 2026-11-09), so the
- * homework tool keeps its own count until that is settled (PM 총괄 11-09).
+ * What the panel shows for characters not saved yet: the homework tool's
+ * addCharacters, with the six counted on this server only (계산 검증 #1466 P1:
+ * six gold characters saved on another server left this server's rows at 0G).
+ * Display only: the official rule is six per 원정대, and that a 원정대 is one
+ * server is not in an official text yet (레퍼런스 2026-11-09), so a save goes
+ * through the homework tool's own rules (panelSave, PM 총괄 11-09 option a).
  */
 function addServerCharacters(
   state: HomeworkState,
@@ -96,6 +100,38 @@ function addServerCharacters(
   return { ...state, characters: [...state.characters, ...added] };
 }
 
+const pickedOf = (siblings: WeeklyGoldSibling[], server: string) =>
+  siblings
+    .filter((s): s is WeeklyGoldSibling & { itemLevel: number } => s.serverName === server && s.itemLevel != null)
+    .map((s) => ({ name: s.characterName, server: s.serverName, className: s.className ?? "", itemLevel: s.itemLevel }));
+
+/** The homework tool's own state with this server's characters added its own way (its six over all servers). */
+const homeworkBase = (siblings: WeeklyGoldSibling[], server: string, now: number, saved: HomeworkState | null) =>
+  addCharacters(saved ?? emptyState(now), pickedOf(siblings, server));
+
+/**
+ * The homework state after one change made in the panel (codex #1466 P1,
+ * PM 총괄 option a): this server's characters added exactly as the homework
+ * tool adds them (gold by its own six over every server), then the one change.
+ * The panel's per-server view is never saved. Turning gold on past the tool's
+ * six is refused (the switch is locked then too). null: nothing to save.
+ */
+export function panelSave(
+  siblings: WeeklyGoldSibling[],
+  server: string,
+  now: number,
+  saved: HomeworkState | null,
+  name: string,
+  change: (character: Character) => Character,
+): HomeworkState | null {
+  const base = homeworkBase(siblings, server, now, saved);
+  const character = base.characters.find((c) => c.name === name && c.server === server);
+  if (!character) return null;
+  const next = change(character);
+  if (next.gold && !character.gold && homeworkGoldFull(base)) return null;
+  return replaceCharacter(base, next);
+}
+
 /**
  * The server's gold characters and their gold, or null when the server has
  * no character with a known item level. `now` only stamps the homework week;
@@ -107,9 +143,7 @@ export function weeklyGold(
   now = 0,
   saved: HomeworkState | null = null,
 ): WeeklyGold | null {
-  const picked = siblings
-    .filter((s): s is WeeklyGoldSibling & { itemLevel: number } => s.serverName === server && s.itemLevel != null)
-    .map((s) => ({ name: s.characterName, server: s.serverName, className: s.className ?? "", itemLevel: s.itemLevel }));
+  const picked = pickedOf(siblings, server);
   if (!picked.length) return null;
   // The six that take gold by default (highest item level); the rows stay
   // these six whatever is saved, so the panel never changes its row count.
@@ -130,7 +164,9 @@ export function weeklyGold(
   return {
     server,
     state,
-    goldFull: serverGold(state, server) >= GOLD_CHARACTERS,
+    // The homework tool's own limit (every saved gold character): a switch it
+    // would lock is locked here too, so the panel never saves past six.
+    goldFull: homeworkGoldFull(homeworkBase(siblings, server, now, saved)),
     rows: listed.map((c, i) => {
       const g = characterGold(c);
       return {

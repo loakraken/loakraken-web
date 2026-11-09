@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { raidChoices, replaceCharacter, weeklyGold, withRaid, type WeeklyGoldSibling } from "@/lib/character/weekly-gold";
+import { panelSave, raidChoices, weeklyGold, withRaid, type WeeklyGoldSibling } from "@/lib/character/weekly-gold";
 import { GOLD_CHARACTERS, GOLD_RAIDS_PER_CHARACTER } from "@/lib/tools/homework";
 import { readSavedHomework, saveHomework, savedState, useHomeworkWeek, useSavedHomework } from "@/lib/tools/homework-store";
 import type { Character } from "@/lib/tools/homework";
@@ -9,8 +9,8 @@ import styles from "./weekly-gold-panel.module.css";
 
 /**
  * One change from the panel, saved into the homework tool: read again with the
- * real time (so the week is right), the six added if they were not there yet,
- * then that character changed. Called from an event handler only.
+ * real time (so the week is right), then only that character written, by the
+ * homework tool's own rules (panelSave; codex #1466 P1). Event handlers only.
  */
 function saveChange(
   siblings: WeeklyGoldSibling[],
@@ -19,9 +19,8 @@ function saveChange(
   change: (character: Character) => Character,
 ) {
   const now = Date.now();
-  const fresh = weeklyGold(siblings, server, now, savedState(readSavedHomework(), now));
-  const character = fresh?.state.characters.find((c) => c.name === name);
-  if (fresh && character) saveHomework(replaceCharacter(fresh.state, change(character)));
+  const next = panelSave(siblings, server, now, savedState(readSavedHomework(), now), name, change);
+  if (next) saveHomework(next);
 }
 
 const level = (value: number) => value.toLocaleString("ko-KR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });

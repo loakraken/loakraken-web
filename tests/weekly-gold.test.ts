@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { raidChoices, replaceCharacter, weeklyGold, withRaid } from "../lib/character/weekly-gold";
-import { addCharacters, emptyState, modeOf, rosterSummary, weekStart } from "../lib/tools/homework";
+import { panelSave, raidChoices, replaceCharacter, weeklyGold, withRaid } from "../lib/character/weekly-gold";
+import { addCharacters, emptyState, modeOf, rosterSummary, weekStart, type HomeworkState } from "../lib/tools/homework";
 import { savedState } from "../lib/tools/homework-store";
 
 const sibling = (characterName: string, itemLevel: number | null, serverName = "아만") => ({
@@ -212,5 +212,57 @@ test("weekly gold: six gold characters saved on another server leave this server
     ],
   );
   assert.equal(gold.total, fresh.total);
-  assert.equal(gold.goldFull, false);
+  // The homework tool already has six (another server): its lock holds here too (option a).
+  assert.equal(gold.goldFull, true);
+});
+// codex #1466 P1 (PM 총괄 option a): the panel's per-server view is display only. A panel
+// change writes one character through the homework tool's own six (all servers).
+test("weekly gold: panel changes never take the homework tool past six gold characters (two servers)", () => {
+  const other = ["일", "이", "삼", "사"].map((name, i) => sibling(`루${name}`, 1700 - i, "루페온"));
+  const here = ["가", "나", "다", "라"].map((name, i) => sibling(name, 1770 - i * 10));
+  const roster = [...other, ...here];
+  let saved: HomeworkState | null = addCharacters(
+    emptyState(0),
+    other.map((s) => ({ name: s.characterName, server: s.serverName, className: s.className, itemLevel: s.itemLevel! })),
+  );
+  // Before any change the panel shows this server's own default, not 0G.
+  const view = weeklyGold(roster, "아만", 0, saved)!;
+  assert.ok(view.total > 0);
+  assert.ok(view.rows.every((row) => row.on));
+  // Every row switched off then on again, and a raid changed on each, through the panel.
+  for (const s of here) {
+    for (const gold of [false, true]) {
+      const next = panelSave(roster, "아만", 0, saved, s.characterName, (c) => ({ ...c, gold }));
+      if (next) saved = next;
+    }
+    const raid = panelSave(roster, "아만", 0, saved, s.characterName, (c) => withRaid(c, raidChoices(c)[0], false));
+    if (raid) saved = raid;
+    const goldCount = saved!.characters.filter((c) => c.gold).length;
+    assert.ok(goldCount <= 6, `gold characters ${goldCount}/6 after ${s.characterName}`);
+  }
+  // The homework tool's own numbers stay right: its total is its gold characters' sum,
+  // and with six used its own lock ('모두 썼어요') is what the panel locks too.
+  const tool = rosterSummary(saved!);
+  const gold = weeklyGold(roster, "아만", 0, saved)!;
+  assert.equal(tool.goldCharacters, 6);
+  assert.equal(gold.goldFull, true);
+  const homeworkHere = rosterSummary({ ...saved!, characters: saved!.characters.filter((c) => c.server === "아만" && c.gold) });
+  assert.equal(gold.total, homeworkHere.possible);
+  // A locked switch saves nothing.
+  const offRow = gold.rows.find((row) => !row.on)!;
+  assert.equal(panelSave(roster, "아만", 0, saved, offRow.name, (c) => ({ ...c, gold: true })), null);
+});
+
+test("weekly gold: a first panel change saves this server's characters as the homework tool adds them", () => {
+  const roster = [sibling("가", 1770), sibling("나", 1760), sibling("다", 1750), sibling("루", 1790, "루페온")];
+  const next = panelSave(roster, "아만", 0, null, "나", (c) => withRaid(c, raidChoices(c)[0], false))!;
+  const tool = addCharacters(emptyState(0), [
+    { name: "가", server: "아만", className: "블레이드", itemLevel: 1770 },
+    { name: "나", server: "아만", className: "블레이드", itemLevel: 1760 },
+    { name: "다", server: "아만", className: "블레이드", itemLevel: 1750 },
+  ]);
+  assert.deepEqual(
+    next.characters.map((c) => [c.name, c.gold]),
+    tool.characters.map((c) => [c.name, c.gold]),
+  );
 });
