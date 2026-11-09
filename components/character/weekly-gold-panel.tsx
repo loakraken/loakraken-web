@@ -25,24 +25,6 @@ function saveChange(
 }
 
 const level = (value: number) => value.toLocaleString("ko-KR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-// Figure space (a digit's width) and punctuation space (a comma's width).
-const FIGURE_SPACE = String.fromCharCode(0x2007);
-const PUNCTUATION_SPACE = String.fromCharCode(0x2008);
-/**
- * A row's gold in a fixed eight-place slot ("000,000G", a character's largest
- * week), the missing places held by spaces of the same width. The amount is
- * right-aligned, so without them a shorter amount ("110,000G" → "0G" when gold
- * goes off, or fewer raids) starts its text further right: the browser counts
- * that move as a layout shift (#14, 320/360). Held places keep every glyph
- * where it was; only the digits that change are replaced.
- */
-const goldSlot = (gold: number) => {
-  const text = formatGold(gold);
-  const missing = "000,000G".slice(0, Math.max(0, 8 - text.length));
-  return missing.replace(/0/g, FIGURE_SPACE).replace(/,/g, PUNCTUATION_SPACE) + text;
-};
-
 /**
  * This week's raid gold of the current character's server (M7): the six
  * highest characters, three best-paying raids each by default. Gold and raids
@@ -105,7 +87,7 @@ export function WeeklyGoldPanel({
                     line keeps its wrap, so a switch moves nothing (A7). */}
                 {row.raids.length ? row.raids.join(" · ") : "골드 레이드 없음"}
               </span>
-              <b>{goldSlot(row.gold)}</b>
+              <b>{formatGold(row.gold)}</b>
               <div className={styles.controls}>
                 <label className={styles.switch}>
                   <input

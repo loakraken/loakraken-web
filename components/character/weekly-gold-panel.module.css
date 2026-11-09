@@ -58,11 +58,15 @@
 }
 .rows b {
   /* Room for a character's largest week ("200,000G"): turning gold off reads
-     "0G" in the same box, so the column never narrows (A7, #14). The text is
-     held at eight places (goldSlot), so its start stays put too. CSS does not
-     collapse the holding spaces; nowrap keeps the punctuation space from
-     breaking the line. */
+     "0G" in the same box, so the column never narrows (A7, #14).
+     The amount is anchored at its right end, and the box says so: with rtl its
+     start edge is the right edge, which a shorter amount ("110,000G" → "0G")
+     does not move. As left-to-right text, its start edge moved right and the
+     browser counted a layout shift (320/360). plaintext keeps the digits and
+     "G" in their usual order. */
   min-width: 9ch;
+  direction: rtl;
+  unicode-bidi: plaintext;
   font-variant-numeric: tabular-nums;
   text-align: right;
   white-space: nowrap;

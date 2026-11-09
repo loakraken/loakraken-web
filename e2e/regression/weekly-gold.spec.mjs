@@ -63,6 +63,9 @@ for (const width of [1280, 360, 320])
     const second = rows.nth(1);
     const off = await shiftsDuring(page, () => second.getByRole("switch").uncheck());
     await expect(second.locator(":scope > b")).toHaveText("0G");
+    // Exactly the amount (copy and screen readers): no holding characters (codex P2).
+    expect(await second.locator(":scope > b").innerText()).toBe("0G");
+    expect(await first.locator(":scope > b").innerText()).toBe("166,000G");
     await expect(total).not.toHaveText(lowered);
     expect(off.all, `골드 받기 끄기 흔들림 (${off.moved})`).toBe(0);
 
