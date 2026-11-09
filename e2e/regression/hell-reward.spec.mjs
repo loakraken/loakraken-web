@@ -27,14 +27,18 @@ for (const width of [1280, 360, 320])
     // 직접 정한 값: 고대 팔찌 상자 1개 100G → 4 × 100.
     await page.getByRole("spinbutton", { name: "팔찌 상자 (고대) 1개 값(골드)" }).fill("100");
     await expect(total).toHaveText("48,095G");
+    // 시세가 없는 시세 품목도 직접 값으로(계산 검증 #1525 P1): 용암 1개 10G → 12 × 10.
+    await expect(line("용암의 숨결")).toContainText("시세 없음 · 1개 값");
+    await page.getByRole("spinbutton", { name: "용암의 숨결 1개 값(골드)" }).fill("10");
+    await expect(total).toHaveText("48,215G");
 
     // 나락: 품목 이름이 아직 정해지지 않아 운명/혼돈의 돌은 직접 값, 둘 중 큰 쪽만 셈.
     await page.getByRole("radiogroup", { name: "종류" }).getByRole("radio", { name: "나락" }).click();
-    // 빙하 180 × 430 + 귀속 골드 27,500 + 고대 팔찌 20 × 100.
-    await expect(total).toHaveText("106,900G");
+    // 빙하 180 × 430 + 용암 60 × 10 + 귀속 골드 27,500 + 고대 팔찌 20 × 100.
+    await expect(total).toHaveText("107,500G");
     await expect(line("운명의 돌")).toContainText("품목 확인 중 · 직접 정한 값");
     await page.getByRole("spinbutton", { name: "운명의 돌 1개 값(골드)" }).fill("2");
-    await expect(total).toHaveText("106,990G");
+    await expect(total).toHaveText("107,590G");
     await expect(line("혼돈의 돌")).toContainText("셈 안 함");
     await expect(line("운명의 돌")).toContainText("둘 중 하나만 셈");
     await expect(line("운명의 돌")).toContainText("90G");
@@ -44,8 +48,9 @@ for (const width of [1280, 360, 320])
     await page.getByRole("radiogroup", { name: "열쇠 단계(입장 레벨)" }).getByRole("radio", { name: "1730" }).click();
     await expect(line("운명의 파괴석 결정")).toContainText("귀속, 시세로 환산");
     await expect(line("전이 돌파석")).toContainText("시세 없음");
-    // 4,500 + 위대한 25 × 33 + 상급 60 × 271 + 빙하 30 × 430 + 귀속 골드 4,500 + 고대 팔찌 3 × 100.
-    await expect(total).toHaveText("39,285G");
+    // 4,500 + 위대한 25 × 33 + 상급 60 × 271 + 빙하 30 × 430 + 용암 10 × 10 + 귀속 골드 4,500 + 고대 팔찌 3 × 100
+    // + 운명의 돌 7 × 2(시세 없음, 나락에서 넣은 값).
+    await expect(total).toHaveText("39,399G");
     // 고른 종류 · 열쇠 단계는 주소에 남아 다시 열어도 그대로(#889).
     await expect(page).toHaveURL(/level=1730/);
     await page.reload();

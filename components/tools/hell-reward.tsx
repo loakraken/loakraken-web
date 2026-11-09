@@ -46,13 +46,6 @@ function basisText(line: StageLine) {
   return line.pricing.why === "UNSETTLED" ? "품목 확인 중 · 직접 정한 값" : "시세 없음 · 직접 정한 값";
 }
 
-/** The unit price under a market line's amount; a space elsewhere, so every cell is two lines. */
-function unitLine(line: StageLine, priced: boolean) {
-  if (line.pricing.kind !== "MARKET") return " ";
-  if (line.unit == null) return priced ? "시세 없음" : "시세 대기…";
-  return `1개 ${unitText(line.unit)}G`;
-}
-
 export function HellRewardTool() {
   // Kept in the address (#889): back, reload and a shared link come back with them.
   const [kind, setKind] = useUrlState<HellKind>("kind", "hell", oneOfCodec(["hell", "abyss"] as const));
@@ -84,15 +77,15 @@ export function HellRewardTool() {
       ),
     [prices.data],
   );
-  const priced = !!prices.data;
   const marketPrice = (name: string) => market.get(name) ?? null;
   const manualValue = (key: string) => {
     const v = Number(manual[key]);
     return Number.isFinite(v) && v > 0 ? v : 0;
   };
   const settled = levelItems(kind, level);
-  const value = stageValue(stageReward(kind, level, stage)!, marketPrice, manualValue, settled);
-  const perStage = STAGES.map((s) => stageValue(stageReward(kind, level, s)!, marketPrice, manualValue, settled).total);
+  const loaded = !!prices.data;
+  const value = stageValue(stageReward(kind, level, stage)!, marketPrice, manualValue, settled, loaded);
+  const perStage = STAGES.map((s) => stageValue(stageReward(kind, level, s)!, marketPrice, manualValue, settled, loaded).total);
   const failure =
     prices.error instanceof MarketQueryError ? prices.error.info : prices.error ? { code: "LOST_ARK_API_ERROR", status: 502 } : null;
   const kindLabel = KINDS.find((k) => k.value === kind)!.label;
@@ -199,26 +192,32 @@ export function HellRewardTool() {
                           {pair && " · 둘 중 하나만 셈"}
                         </small>
                       </span>
-                      {line.pricing.kind === "MANUAL" && (
-                        <label className={styles.unit}>
-                          <span>1개 값</span>
-                          <input
-                            type="number"
-                            inputMode="decimal"
-                            name={`unit-${line.unitKey}`}
-                            autoComplete="off"
-                            min={0}
-                            placeholder="0"
-                            value={manual[line.unitKey] ?? ""}
-                            aria-label={`${line.label} 1개 값(골드)`}
-                            onChange={(e) => setManual((m) => ({ ...m, [line.unitKey]: e.target.value.replace(/[^\d.]/g, "") }))}
-                          />
-                        </label>
+                      {/* One slot per priced or user-valued line, drawn from the first paint at a
+                          fixed height: the unit price, a wait note, or the user's input when there
+                          is no price, so a price (or none) landing never adds height (CLS). */}
+                      {line.pricing.kind !== "BOUND_GOLD" && (
+                        <span className={styles.unit}>
+                          {line.pricing.kind === "MANUAL" || line.unpriced ? (
+                            <label>
+                              <span>{line.unpriced ? "시세 없음 · 1개 값" : "1개 값"}</span>
+                              <input
+                                type="number"
+                                inputMode="decimal"
+                                name={`unit-${line.unitKey}`}
+                                autoComplete="off"
+                                min={0}
+                                placeholder="0"
+                                value={manual[line.unitKey] ?? ""}
+                                aria-label={`${line.label} 1개 값(골드)`}
+                                onChange={(e) => setManual((m) => ({ ...m, [line.unitKey]: e.target.value.replace(/[^\d.]/g, "") }))}
+                              />
+                            </label>
+                          ) : (
+                            <span>{line.unit == null ? "시세 대기…" : `1개 ${unitText(line.unit)}G`}</span>
+                          )}
+                        </span>
                       )}
-                      <span className={styles.amount}>
-                        <b>{line.notChosen ? "셈 안 함" : `${goldText(line.value)}G`}</b>
-                        <small>{unitLine(line, priced)}</small>
-                      </span>
+                      <span className={styles.amount}>{line.notChosen ? "셈 안 함" : `${goldText(line.value)}G`}</span>
                     </li>
                   );
                 })}
@@ -256,8 +255,8 @@ export function HellRewardTool() {
                 ))}
               </SegmentedControl>
               <p className={styles.note}>
-                열쇠 1개로 받는 단계별 고정 보상만 셈해요. 상자 보상과 확률, 풍요(×10), 무기 +25 · 페온 효과는 아직 확인되지
-                않아 넣지 않았어요. 둘 중 하나를 고르는 보상은 값이 큰 쪽으로 셈하고, 시세가 없는 품목은 직접 정한 값(처음엔
+                열쇠 1개로 받는 단계별 고정 보상만 셈해요. 상자 보상과 확률, 풍요(×10), 무기 +25 · 페온 효과는 이 계산에
+                넣지 않았어요. 둘 중 하나를 고르는 보상은 값이 큰 쪽으로 셈하고, 시세가 없는 품목은 직접 정한 값(처음엔
                 0G)으로 셈해요.
               </p>
             </section>

@@ -118,6 +118,8 @@ export type StageLine = {
    * a modelling choice shown as such) or UNCONFIRMED (no source says whether it trades).
    */
   trade: "BOUND" | "UNCONFIRMED" | null;
+  /** A market line whose price did not come back: valued by the user like a manual line (0 until set). */
+  unpriced: boolean;
   /** The other half of a choose-one pair, not counted (its value was lower). */
   notChosen: boolean;
 };
@@ -142,6 +144,8 @@ export function stageValue(
   market: (name: string) => number | null,
   manual: (unitKey: string) => number,
   settled: ReturnType<typeof levelItems> = null,
+  /** Prices have come back (a market line without one then takes the user's value). */
+  loaded = true,
 ): StageValue {
   const lines: StageLine[] = [];
   for (const column of COLUMNS) {
@@ -151,7 +155,9 @@ export function stageValue(
     const key = unitKey(column.key, value);
     const named = settled?.items[column.key];
     const pricing: Pricing = named ? { kind: "MARKET", name: named } : column.pricing;
-    const unit = pricing.kind === "MARKET" ? market(pricing.name) : pricing.kind === "BOUND_GOLD" ? 1 : manual(key);
+    const price = pricing.kind === "MARKET" ? market(pricing.name) : null;
+    const unpriced = pricing.kind === "MARKET" && price == null && loaded;
+    const unit = pricing.kind === "MARKET" ? (unpriced ? manual(key) : price) : pricing.kind === "BOUND_GOLD" ? 1 : manual(key);
     const name = named ?? column.label;
     const label = typeof value === "number" ? name : `${name} (${gradeText(value)}${value.random ? " 랜덤" : ""})`;
     const trade = pricing.kind !== "MARKET" ? null : settled?.bound.includes(column.key) ? "BOUND" : "UNCONFIRMED";
@@ -165,6 +171,7 @@ export function stageValue(
       pricing,
       bound: !!column.bound || trade === "BOUND",
       trade,
+      unpriced,
       notChosen: false,
     });
   }
@@ -179,9 +186,9 @@ export function stageValue(
   return {
     lines,
     total: sum(() => true),
-    market: sum((l) => l.pricing.kind === "MARKET"),
+    market: sum((l) => l.pricing.kind === "MARKET" && !l.unpriced),
     boundGold: sum((l) => l.pricing.kind === "BOUND_GOLD"),
-    manual: sum((l) => l.pricing.kind === "MANUAL"),
+    manual: sum((l) => l.pricing.kind === "MANUAL" || l.unpriced),
   };
 }
 

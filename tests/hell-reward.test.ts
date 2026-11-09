@@ -78,10 +78,18 @@ test("hell reward value: market lines, bound gold, manual values (0 unset), choo
   assert.equal(v.lines.find((l) => l.key === "guardian")!.notChosen, false);
   assert.equal(v.manual, 3000 * 2 + 900);
   assert.equal(v.total, v.market + v.boundGold + v.manual);
-  // No market price yet: the line is listed with a null unit and counts 0.
-  const waiting = stageValue(reward, () => null, () => 0);
+  // Prices not back yet: the market line is listed with a null unit and counts 0.
+  const waiting = stageValue(reward, () => null, () => 0, null, false);
   assert.equal(waiting.lines.find((l) => l.key === "lava")!.unit, null);
+  assert.equal(waiting.lines.find((l) => l.key === "lava")!.unpriced, false);
   assert.equal(waiting.total, 3200);
+  // Prices back but this one has none (계산 검증 #1525 P1): it takes the user's value like a manual line.
+  const none2 = stageValue(reward, (n) => (n === "빙하의 숨결" ? 100 : null), (k) => (k === "lava" ? 50 : 0), null, true);
+  const lava = none2.lines.find((l) => l.key === "lava")!;
+  assert.equal(lava.unpriced, true);
+  assert.equal(lava.unit, 50);
+  assert.equal(none2.manual, 6 * 50);
+  assert.equal(none2.market, 18 * 100);
 });
 
 test("hell reward value: graded items keep one value per grade", () => {
