@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { isCritSpeedEnabled } from "../lib/tools/flags";
+import { isCritSpeedEnabled, isHellRewardEnabled } from "../lib/tools/flags";
 
 test("crit-speed is hidden only on an explicit production SITE_URL unless overridden", () => {
   assert.equal(isCritSpeedEnabled({}), true, "local and e2e (no SITE_URL)");
@@ -78,4 +78,12 @@ test("efficiency ranking tabs are hidden on production unless EFFICIENCY_RANKING
   assert.equal(isEfficiencyRankingEnabled({ SITE_URL: "https://loakraken.gg" }), false);
   assert.equal(isEfficiencyRankingEnabled({ SITE_URL: "https://loakraken.gg", EFFICIENCY_RANKING: "on" }), true);
   assert.equal(isEfficiencyRankingEnabled({ EFFICIENCY_RANKING: "off" }), false);
+});
+
+test("hell reward tool: hidden on production until opened, HELL_REWARD_TOOL overrides", () => {
+  assert.equal(isHellRewardEnabled({}), true);
+  assert.equal(isHellRewardEnabled({ SITE_URL: "https://loakraken.gg" }), false);
+  assert.equal(isHellRewardEnabled({ SITE_URL: "https://www.loakraken.gg" }), false);
+  assert.equal(isHellRewardEnabled({ SITE_URL: "https://loakraken.gg", HELL_REWARD_TOOL: "on" }), true);
+  assert.equal(isHellRewardEnabled({ HELL_REWARD_TOOL: "off" }), false);
 });

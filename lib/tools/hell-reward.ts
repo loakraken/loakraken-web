@@ -35,6 +35,8 @@ export type HellData = {
   source: string;
   sources: Record<string, { title: string; url: string | null; date: string; kind: "OFFICIAL" | "COMMUNITY"; _note?: string }>;
   keyLevels: number[];
+  /** Per kind and key level, the market item a column is, where settled; `bound`: valued at market though bound. */
+  marketItems: Record<HellKind, Record<string, { _note: string; bound: boolean; items: Partial<Record<keyof StageReward, string>> }>>;
   hell: Record<string, { stage: number; reward: StageReward }[]>;
   abyss: Record<string, { stage: number; reward: StageReward }[]>;
 };
@@ -51,6 +53,134 @@ export const CHOICE_PAIRS = [
   ["destruction", "guardian"],
   ["destinyStone", "chaosStone"],
 ] as const;
+
+/**
+ * What each column is worth per unit. MARKET: one market item whose name is the same
+ * at every key level. BOUND_GOLD: gold itself (bound to the character). MANUAL: no
+ * market price, or the item it stands for is not settled per key level yet (PM 총괄
+ * 11-09: not guessed); the user's value, 0 until set.
+ */
+export type Pricing = { kind: "MARKET"; name: string } | { kind: "BOUND_GOLD" } | { kind: "MANUAL"; why: "NO_MARKET" | "UNSETTLED" };
+
+export const COLUMNS: { key: keyof StageReward; label: string; pricing: Pricing; bound?: boolean }[] = [
+  { key: "boundGold", label: "귀속 골드", pricing: { kind: "BOUND_GOLD" }, bound: true },
+  { key: "lava", label: "용암의 숨결", pricing: { kind: "MARKET", name: "용암의 숨결" } },
+  { key: "glacier", label: "빙하의 숨결", pricing: { kind: "MARKET", name: "빙하의 숨결" } },
+  { key: "destruction", label: "파괴석", pricing: { kind: "MANUAL", why: "UNSETTLED" } },
+  { key: "guardian", label: "수호석", pricing: { kind: "MANUAL", why: "UNSETTLED" } },
+  { key: "breakthrough", label: "돌파석", pricing: { kind: "MANUAL", why: "UNSETTLED" } },
+  { key: "fusion", label: "융화 재료", pricing: { kind: "MANUAL", why: "UNSETTLED" } },
+  { key: "specialRefine", label: "특수 재련 돌파석", pricing: { kind: "MANUAL", why: "UNSETTLED" } },
+  { key: "destinyStone", label: "운명의 돌", pricing: { kind: "MANUAL", why: "UNSETTLED" } },
+  { key: "chaosStone", label: "혼돈의 돌", pricing: { kind: "MANUAL", why: "UNSETTLED" } },
+  { key: "stoneKit", label: "어빌리티 스톤 키트", pricing: { kind: "MANUAL", why: "NO_MARKET" } },
+  { key: "bracelet", label: "팔찌 상자", pricing: { kind: "MANUAL", why: "NO_MARKET" } },
+  { key: "gem", label: "젬", pricing: { kind: "MANUAL", why: "NO_MARKET" } },
+  { key: "heavenTicket", label: "천상 도전권", pricing: { kind: "MANUAL", why: "NO_MARKET" } },
+  { key: "engraving", label: "귀속 유물 각인서(랜덤)", pricing: { kind: "MANUAL", why: "NO_MARKET" }, bound: true },
+  { key: "boundGem", label: "귀속 보석", pricing: { kind: "MANUAL", why: "NO_MARKET" }, bound: true },
+  { key: "cardPack", label: "전설 카드팩(랜덤)", pricing: { kind: "MANUAL", why: "NO_MARKET" } },
+];
+
+/** The settled market items of one kind and key level (empty where none is settled). */
+export const levelItems = (kind: HellKind, keyLevel: number): HellData["marketItems"][HellKind][string] | null =>
+  HELL_DATA.marketItems[kind][String(keyLevel)] ?? null;
+
+/** Every market name the tool may ask a price for. */
+export const MARKET_NAMES = [
+  ...new Set([
+    ...COLUMNS.flatMap((c) => (c.pricing.kind === "MARKET" ? [c.pricing.name] : [])),
+    ...Object.values(HELL_DATA.marketItems).flatMap((levels) => Object.values(levels).flatMap((l) => Object.values(l.items) as string[])),
+  ]),
+];
+
+const GRADE_LABEL: Record<Grade, string> = { RARE: "희귀", EPIC: "영웅", RELIC: "유물", ANCIENT: "고대" };
+
+/** "고대" · "희귀~영웅": a graded item's grade text. */
+export const gradeText = (g: GradeCount) => g.grades.map((x) => GRADE_LABEL[x]).join("~");
+
+/** The value a user sets is per unit of one line: graded items per grade ("bracelet:ANCIENT"). */
+export const unitKey = (key: keyof StageReward, value: number | GradeCount) =>
+  typeof value === "number" ? key : `${key}:${value.grades.join("~")}${value.random ? ":random" : ""}`;
+
+export type StageLine = {
+  key: keyof StageReward;
+  unitKey: string;
+  label: string;
+  qty: number;
+  /** 1 unit's value; null while a market price is not in yet. */
+  unit: number | null;
+  value: number;
+  pricing: Pricing;
+  bound: boolean;
+  /** Bound, but valued at its market price (a modelling choice, shown as such). */
+  boundAtMarket: boolean;
+  /** The other half of a choose-one pair, not counted (its value was lower). */
+  notChosen: boolean;
+};
+
+export type StageValue = {
+  lines: StageLine[];
+  total: number;
+  /** Lines valued at market prices. */
+  market: number;
+  boundGold: number;
+  /** Lines valued by the user's own numbers. */
+  manual: number;
+};
+
+/**
+ * One stage's reward valued: market lines by `market(name)`, bound gold at face
+ * value, the rest by `manual(unitKey)` (0 when unset). Of a choose-one pair only the
+ * higher-valued half counts (ties: the first); both are listed.
+ */
+export function stageValue(
+  reward: StageReward,
+  market: (name: string) => number | null,
+  manual: (unitKey: string) => number,
+  settled: ReturnType<typeof levelItems> = null,
+): StageValue {
+  const lines: StageLine[] = [];
+  for (const column of COLUMNS) {
+    const value = reward[column.key];
+    if (value === undefined) continue;
+    const qty = typeof value === "number" ? value : value.count;
+    const key = unitKey(column.key, value);
+    const named = settled?.items[column.key];
+    const pricing: Pricing = named ? { kind: "MARKET", name: named } : column.pricing;
+    const unit = pricing.kind === "MARKET" ? market(pricing.name) : pricing.kind === "BOUND_GOLD" ? 1 : manual(key);
+    const name = named ?? column.label;
+    const label = typeof value === "number" ? name : `${name} (${gradeText(value)}${value.random ? " 랜덤" : ""})`;
+    const boundAtMarket = !!named && !!settled?.bound;
+    lines.push({
+      key: column.key,
+      unitKey: key,
+      label,
+      qty,
+      unit,
+      value: (unit ?? 0) * qty,
+      pricing,
+      bound: !!column.bound || boundAtMarket,
+      boundAtMarket,
+      notChosen: false,
+    });
+  }
+  for (const [a, b] of CHOICE_PAIRS) {
+    const la = lines.find((l) => l.key === a);
+    const lb = lines.find((l) => l.key === b);
+    if (!la || !lb) continue;
+    (lb.value > la.value ? la : lb).notChosen = true;
+  }
+  const counted = lines.filter((l) => !l.notChosen);
+  const sum = (pick: (l: StageLine) => boolean) => counted.filter(pick).reduce((n, l) => n + l.value, 0);
+  return {
+    lines,
+    total: sum(() => true),
+    market: sum((l) => l.pricing.kind === "MARKET"),
+    boundGold: sum((l) => l.pricing.kind === "BOUND_GOLD"),
+    manual: sum((l) => l.pricing.kind === "MANUAL"),
+  };
+}
 
 /** Consistency problems; the test suite expects none. */
 export function checkHellData(data: HellData): string[] {

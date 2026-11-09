@@ -5,7 +5,7 @@ export type ToolEntry = {
   description: string;
   group: "계산기" | "레이드·숙제";
   /** Hidden where its runtime flag is off (see lib/tools/flags.ts). */
-  flag?: "critSpeed" | "combatPower" | "accessorySearch";
+  flag?: "critSpeed" | "combatPower" | "accessorySearch" | "hellReward";
 };
 
 export const TOOLS: ToolEntry[] = [
@@ -18,6 +18,7 @@ export const TOOLS: ToolEntry[] = [
   { href: "/tools/abidos-craft", label: "아비도스 제작 손익", description: "융화 재료 1회 제작 비용과 손익", group: "계산기" },
   { href: "/tools/life-energy", label: "생명의 기운 효율", description: "생활 스킬마다 생명의 기운으로 버는 골드", group: "계산기" },
   { href: "/tools/more-reward", label: "더보기 손익", description: "관문마다 더보기가 남는지 지금 시세로", group: "레이드·숙제" },
+  { href: "/tools/hell-reward", label: "지옥 · 나락 보상", description: "열쇠 단계별 고정 보상을 지금 시세로", group: "레이드·숙제", flag: "hellReward" },
   { href: "/tools/contribution", label: "기여도 계산기", description: "내 피해량이 관문 기준에서 어디쯤인지", group: "레이드·숙제" },
   { href: "/tools/raid-cheatsheet", label: "레이드 컨닝페이퍼", description: "관문마다 주요 패턴과 대응", group: "레이드·숙제" },
   { href: "/tools/raid-rewards", label: "레이드 보상표", description: "관문별 골드·귀속 골드·더보기 비용", group: "레이드·숙제" },
