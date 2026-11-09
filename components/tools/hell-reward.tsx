@@ -89,6 +89,8 @@ export function HellRewardTool() {
   const failure =
     prices.error instanceof MarketQueryError ? prices.error.info : prices.error ? { code: "LOST_ARK_API_ERROR", status: 502 } : null;
   const kindLabel = KINDS.find((k) => k.value === kind)!.label;
+  // Counted lines valued by the user that still have no value: shown, never a silent 0 (PM 총괄 #1525).
+  const zeroManual = value.lines.filter((l) => !l.notChosen && (l.pricing.kind === "MANUAL" || l.unpriced) && !(l.unit ?? 0)).length;
 
   return (
     <div className={quote.page}>
@@ -178,6 +180,8 @@ export function HellRewardTool() {
                   <dd>{`${goldText(value.manual)}G`}</dd>
                 </div>
               </dl>
+              {/* One short line, there from the first paint (it only changes its count). */}
+              <p className={styles.zero}>{`직접 값 없이 0G로 센 품목 ${zeroManual}개`}</p>
               <ul className={styles.lines} aria-label="보상 품목">
                 {value.lines.map((line) => {
                   const pair = line.key === "destruction" || line.key === "guardian" || line.key === "destinyStone" || line.key === "chaosStone";

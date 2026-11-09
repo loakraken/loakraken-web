@@ -17,6 +17,8 @@ for (const width of [1280, 360, 320])
     // 지옥 1750 · 0단계 기본: 파괴석 결정 600 × 9 (수호석 결정 1,800 × 1.9보다 큼) + 위대한 30 × 33 + 상급 융화 75 × 271
     // + 빙하 36 × 430 + 귀속 골드 5,500 = 47,695 (용암 · 전이 돌파석 · 운명/혼돈의 돌은 목 시세가 없어 0G).
     await expect(total).toHaveText("47,695G");
+    // 0G로 센 직접 값 품목은 숫자로 보인다(PM 총괄 #1525): 용암 · 전이 돌파석 · 운명/혼돈의 돌 중 센 하나 · 스톤 키트 · 팔찌 · 젬.
+    await expect(page.getByText("직접 값 없이 0G로 센 품목 6개")).toBeVisible();
     await expect(line("용암의 숨결")).toContainText("시세 없음");
     await expect(line("운명의 파괴석 결정")).toContainText("거래 가능 여부 확인 전");
     await expect(line("팔찌 상자 (고대)")).toContainText("시세 없음 · 직접 정한 값");
@@ -31,6 +33,7 @@ for (const width of [1280, 360, 320])
     await expect(line("용암의 숨결")).toContainText("시세 없음 · 1개 값");
     await page.getByRole("spinbutton", { name: "용암의 숨결 1개 값(골드)" }).fill("10");
     await expect(total).toHaveText("48,215G");
+    await expect(page.getByText("직접 값 없이 0G로 센 품목 4개")).toBeVisible();
 
     // 나락: 품목 이름이 아직 정해지지 않아 운명/혼돈의 돌은 직접 값, 둘 중 큰 쪽만 셈.
     await page.getByRole("radiogroup", { name: "종류" }).getByRole("radio", { name: "나락" }).click();

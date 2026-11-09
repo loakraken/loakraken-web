@@ -69,6 +69,13 @@
   white-space: nowrap;
   overflow-wrap: normal;
 }
+.zero {
+  margin: 0 0 8px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
 .lines {
   display: grid;
   margin: 0;
