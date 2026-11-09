@@ -7,6 +7,7 @@ import { HubTabs } from "@/components/site/hub-tabs";
 import { SiteHeader } from "@/components/site/site-header";
 import { ArrowLeft, Gift } from "@/components/ui/icons";
 import { SegmentedControl, SegmentedItem } from "@/components/ui/segmented-control";
+import { Select } from "@/components/ui/select";
 import { MINUTE } from "@/components/home/clock";
 import { retryLabel } from "@/lib/api/rate-limit";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
@@ -123,13 +124,12 @@ export function HellRewardTool() {
               </SegmentedControl>
               <label className={styles.stage} htmlFor={stageId}>
                 <span>클리어 단계</span>
-                <select id={stageId} value={stage} onChange={(e) => setStage(Number(e.target.value))}>
-                  {STAGES.map((s) => (
-                    <option key={s} value={s}>
-                      {s}단계
-                    </option>
-                  ))}
-                </select>
+                <Select
+                  id={stageId}
+                  value={stage}
+                  onValueChange={(v) => setStage(Number(v))}
+                  items={STAGES.map((s) => ({ value: s, label: `${s}단계` }))}
+                />
               </label>
             </section>
 
@@ -237,8 +237,8 @@ export function HellRewardTool() {
                 ))}
               </SegmentedControl>
               <p className={styles.note}>
-                열쇠 1개로 받는 단계별 고정 보상만 셈해요. 상자 보상과 확률, 풍요(×10), 무기 +25 · 페온 효과는 출처를 확인하지
-                못해 넣지 않았어요. 둘 중 하나를 고르는 보상은 값이 큰 쪽으로 셈하고, 시세가 없는 품목은 직접 정한 값(처음엔
+                열쇠 1개로 받는 단계별 고정 보상만 셈해요. 상자 보상과 확률, 풍요(×10), 무기 +25 · 페온 효과는 아직 확인되지
+                않아 넣지 않았어요. 둘 중 하나를 고르는 보상은 값이 큰 쪽으로 셈하고, 시세가 없는 품목은 직접 정한 값(처음엔
                 0G)으로 셈해요.
               </p>
             </section>

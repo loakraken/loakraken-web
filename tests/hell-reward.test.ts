@@ -7,7 +7,7 @@ test("hell reward data: every kind and key level has stages 0-10, counts rise wi
 });
 
 test("hell reward data: cells checked against a second source (key level 1, 4 at stage 0)", () => {
-  // 22 cells matched one target site's drop table (레퍼런스 2026-11-09).
+  // 22 cells matched a second source's drop table (레퍼런스 2026-11-09).
   assert.deepEqual(stageReward("hell", 1640, 0), {
     destruction: 1000,
     guardian: 3000,

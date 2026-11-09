@@ -1,6 +1,6 @@
 // 빈틈 #3 지옥 · 나락 보상: 열쇠 단계별 고정 보상을 시세(목 서버의 합성 값)와 직접 정한 값으로 매긴다.
 // 목 시세: 빙하의 숨결 430G, 용암의 숨결 없음, 1730 지옥 재료(결정 9G · 수호석 결정 1.9G · 위대한 돌파석 33G · 상급 융화 271G).
-import { test, expect, expectNoHorizontalOverflow } from "../support/fixtures.mjs";
+import { test, expect, expectNoHorizontalOverflow, chooseOption } from "../support/fixtures.mjs";
 import { shiftsSince, watchShifts } from "../support/shifts.mjs";
 
 for (const width of [1280, 360, 320])
@@ -36,7 +36,7 @@ for (const width of [1280, 360, 320])
     await expect(total).toHaveText("38,985G");
 
     // 단계표 11줄, 고른 단계가 표시된다.
-    await page.getByLabel("클리어 단계").selectOption("10");
+    await chooseOption(page, page.getByRole("combobox", { name: "클리어 단계" }), "10단계");
     const table = page.getByRole("table");
     await expect(table.getByRole("row")).toHaveCount(12);
     await expect(table.locator("tr[aria-current]")).toContainText("10단계");
