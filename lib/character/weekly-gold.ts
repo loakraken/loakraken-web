@@ -7,6 +7,7 @@
 import {
   GOLD_CHARACTERS,
   addCharacters,
+  autoRaids,
   characterGold,
   eligibleModes,
   emptyState,
@@ -66,6 +67,35 @@ const raidLabel = (raidId: string, difficulty: keyof typeof DIFFICULTY_LABEL) =>
   return `${raid?.shortName ?? raidId} ${DIFFICULTY_LABEL[difficulty]}`;
 };
 
+/** Gold characters of one server in the saved homework. */
+const serverGold = (state: HomeworkState, server: string) =>
+  state.characters.filter((c) => c.server === server && c.gold).length;
+
+/**
+ * The homework tool's addCharacters, with the six counted on this server only
+ * (계산 검증 #1466 P1: six gold characters saved on another server left this
+ * server's rows at 0G). The official rule is six per 원정대; that a 원정대 is
+ * one server is not in an official text yet (레퍼런스 2026-11-09), so the
+ * homework tool keeps its own count until that is settled (PM 총괄 11-09).
+ */
+function addServerCharacters(
+  state: HomeworkState,
+  picked: Omit<Character, "gold" | "raids">[],
+  server: string,
+): HomeworkState {
+  const known = new Set(state.characters.map((c) => c.name));
+  let goldLeft = GOLD_CHARACTERS - serverGold(state, server);
+  const added = [...picked]
+    .filter((c) => !known.has(c.name))
+    .sort((a, b) => b.itemLevel - a.itemLevel)
+    .map((c) => {
+      const gold = goldLeft > 0;
+      if (gold) goldLeft -= 1;
+      return { ...c, gold, raids: autoRaids(c.itemLevel) };
+    });
+  return { ...state, characters: [...state.characters, ...added] };
+}
+
 /**
  * The server's gold characters and their gold, or null when the server has
  * no character with a known item level. `now` only stamps the homework week;
@@ -87,7 +117,7 @@ export function weeklyGold(
     .characters.filter((c) => c.gold)
     .slice(0, GOLD_CHARACTERS)
     .map((c) => c.name);
-  const state = addCharacters(saved ?? emptyState(now), picked);
+  const state = addServerCharacters(saved ?? emptyState(now), picked, server);
   const chosen = top.map((name) => state.characters.find((c) => c.name === name)!);
   // This server's other gold characters (given gold in the homework tool): the
   // homework total counts them, so the panel does too (계산 검증 #1466 P1).
@@ -100,7 +130,7 @@ export function weeklyGold(
   return {
     server,
     state,
-    goldFull: state.characters.filter((c) => c.gold).length >= GOLD_CHARACTERS,
+    goldFull: serverGold(state, server) >= GOLD_CHARACTERS,
     rows: listed.map((c, i) => {
       const g = characterGold(c);
       return {

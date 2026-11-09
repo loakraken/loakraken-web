@@ -121,15 +121,16 @@ test("weekly gold: a raid turned off or on changes that character's gold; a four
   assert.equal(same.rows[0].gold, before.rows[0].gold);
 });
 
-test("weekly gold: gold characters saved on another server count toward the six", () => {
+test("weekly gold: gold characters saved on another server do not count toward this server's six", () => {
+  // PM 총괄 11-09 (계산 검증 #1466 P1): the panel counts the six on its own server.
   const other = addCharacters(emptyState(0), [
     { name: "루1", server: "루페온", className: "블레이드", itemLevel: 1700 },
     { name: "루2", server: "루페온", className: "블레이드", itemLevel: 1700 },
   ]);
   const gold = weeklyGold(roster6, "아만", 0, other)!;
-  // Six rows still, the last two without gold (the roster's six are used).
   assert.equal(gold.rows.length, 6);
-  assert.deepEqual(gold.rows.map((row) => row.on), [true, true, true, true, false, false]);
+  assert.deepEqual(gold.rows.map((row) => row.on), [true, true, true, true, true, true]);
+  // This server's six are on, so a seventh here could not take gold.
   assert.equal(gold.goldFull, true);
 });
 
