@@ -1,0 +1,216 @@
+/* 지옥 · 나락 보상 (빈틈 #3). Amounts keep their right edge put when a price lands or
+   a value is typed: the cells are rtl-anchored (their start edge is the right edge),
+   so a shorter number does not move its text (the shift lesson of #1466). */
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(16rem, 20rem);
+  grid-template-areas:
+    "controls controls"
+    "main side";
+  gap: 16px 24px;
+}
+.controls {
+  grid-area: controls;
+  display: grid;
+  grid-template-columns: minmax(0, 10rem) minmax(0, 20rem) auto;
+  align-items: end;
+  gap: 8px 16px;
+}
+.main {
+  grid-area: main;
+  min-width: 0;
+}
+.side {
+  grid-area: side;
+  display: grid;
+  align-content: start;
+  gap: 12px;
+}
+.sectionTitle {
+  margin: 0 0 8px;
+  font-size: 15px;
+  font-weight: 700;
+}
+.stage {
+  display: grid;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+.stage select {
+  min-height: 36px;
+  padding: 0 28px 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--background);
+  color: var(--foreground);
+  font-size: 14px;
+}
+.sums {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0 0 12px;
+}
+.sums div {
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--muted);
+}
+.sums dt {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.sums dd {
+  margin: 2px 0 0;
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow-wrap: normal;
+}
+.lines {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.lines li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 10ch;
+  align-items: center;
+  gap: 4px 12px;
+  padding: 8px 0;
+  border-top: 1px solid var(--border);
+  font-size: 13px;
+}
+.lines li:first-child {
+  border-top: 0;
+}
+.lines li[data-not-chosen] .item strong,
+.lines li[data-not-chosen] .amount {
+  color: var(--muted-foreground);
+}
+.item {
+  display: grid;
+  min-width: 0;
+}
+.item b {
+  font-variant-numeric: tabular-nums;
+}
+.item small {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.unit {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.unit input {
+  width: 8ch;
+  min-height: 32px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--background);
+  color: var(--foreground);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+.unit input:focus-visible,
+.stage select:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+/* Right end anchored (see the top of this file). */
+.amount,
+.table td {
+  direction: rtl;
+  unicode-bidi: plaintext;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.amount {
+  grid-column: -2 / -1;
+  grid-row: 1;
+  font-weight: 700;
+}
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.table th,
+.table td {
+  padding: 6px 8px;
+  border-top: 1px solid var(--border);
+}
+.table thead th {
+  border-top: 0;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-weight: 500;
+  text-align: left;
+}
+.table thead th:last-child {
+  text-align: right;
+}
+.table tbody th {
+  font-weight: 500;
+  text-align: left;
+}
+.table tr[aria-current] {
+  background: var(--muted);
+}
+.table tr[aria-current] th,
+.table tr[aria-current] td {
+  font-weight: 700;
+}
+.note {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+@media (pointer: coarse) {
+  .unit input,
+  .stage select {
+    min-height: 44px;
+  }
+}
+@media (max-width: 900px) {
+  .workspace {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "controls"
+      "main"
+      "side";
+  }
+}
+@media (max-width: 600px) {
+  .controls {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .sums {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .lines li {
+    grid-template-columns: minmax(0, 1fr) 10ch;
+  }
+  .unit {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+}

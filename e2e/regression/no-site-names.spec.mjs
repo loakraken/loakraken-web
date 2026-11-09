@@ -21,6 +21,7 @@ const PAGES = [
   { name: "치적·뭉가·음돌", path: `/tools/crit-speed?character=${CHARACTER}` },
   { name: "경매 입찰가", path: "/tools/auction" },
   { name: "더보기 손익", path: "/tools/more-reward" },
+  { name: "지옥 · 나락 보상", path: "/tools/hell-reward" },
   { name: "레이드 보상표", path: "/tools/raid-rewards" },
   { name: "숙제 체크", path: "/tools/homework" },
   { name: "전투력 시뮬레이터", path: `/tools/combat-power?character=${CHARACTER}` },
