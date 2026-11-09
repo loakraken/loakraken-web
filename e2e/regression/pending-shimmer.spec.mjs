@@ -99,3 +99,42 @@ test("@집계중 장신구판도 같은 부품 @regression", async ({ page }) =>
   await label.scrollIntoViewIfNeeded();
   await expect.poll(async () => (await read(label)).animations).toEqual([RUNNING, RUNNING]);
 });
+
+// 회귀(pending-shimmer-load flaky, 11-09): 같은 박자로 도는 빛 띠는 1.5초마다 모든 칸의 애니메이션이 한 프레임에
+// 돌아온다. 그때 칸마다 animationiteration 두 개가 React(문서에 붙은 듣는 곳)까지 가서 40칸이면 80번을 거치고,
+// 그 프레임이 CPU 4배 감속에서 50ms를 넘었다(CI). 또 움직이는 칸에 ::before(밝은 글자)가 붙어 있으면 그 글자도
+// 매 프레임 다시 계산된다(칸마다 3개 → 2개). 둘 다 없어야 한다.
+test("@집계중 빛 띠가 돌아와도 이벤트가 React까지 가지 않고, 움직이는 칸에는 의사 요소가 없다 @regression", async ({ page }) => {
+  await page.addInitScript(() => {
+    window.__animationEvents = [];
+    for (const type of ["animationstart", "animationiteration"])
+      document.addEventListener(type, (event) => {
+        if (event.target.closest?.('[data-slot="pending-text"]')) window.__animationEvents.push(type);
+      });
+  });
+  await gotoReady(page, "/market/gems");
+  const label = page.getByRole("table", { name: "4티어 보석 레벨별 즉시 구매 최저가" }).locator('[data-slot="pending-text"]');
+  await expect(label).toHaveText("집계 중");
+  await expect.poll(async () => (await read(label)).animations).toEqual([RUNNING, RUNNING]);
+  // A full turn and a bit: every running animation comes round at least once.
+  const seen = await page.evaluate(async () => {
+    window.__animationEvents.length = 0;
+    const start = document.timeline.currentTime;
+    await new Promise((done) => {
+      const tick = () => (document.timeline.currentTime - start < 1_700 ? requestAnimationFrame(tick) : done());
+      requestAnimationFrame(tick);
+    });
+    return [...window.__animationEvents];
+  });
+  expect(seen, "React까지 간 빛 띠 이벤트").toEqual([]);
+  const pseudo = await label.evaluate((el) =>
+    el.getAnimations({ subtree: true }).flatMap((a) => {
+      const target = a.effect.target;
+      return ["::before", "::after"]
+        .map((p) => [p, getComputedStyle(target, p).content])
+        .filter(([, content]) => content !== "none" && content !== "normal")
+        .map(([p, content]) => `${target.className}${p} ${content}`);
+    }),
+  );
+  expect(pseudo, "움직이는 칸의 의사 요소").toEqual([]);
+});
