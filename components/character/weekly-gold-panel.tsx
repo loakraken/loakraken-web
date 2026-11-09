@@ -53,8 +53,10 @@ export function WeeklyGoldPanel({
   const gold = server ? weeklyGold(siblings, server, week ?? 0, week === null ? null : savedState(text, week)) : null;
   if (!gold || !server) return null;
   const save = (name: string, change: (character: Character) => Character) => saveChange(siblings, server, name, change);
+  const extras = gold.rows.filter((row) => row.extra).length;
+  const meta = `${gold.server} 상위 ${gold.rows.length - extras}캐릭터${extras ? ` · 그 밖에 골드 ${extras}` : ""}`;
   return (
-    <Panel title="주간 획득 골드" meta={`${gold.server} 상위 ${gold.rows.length}캐릭터`} wide>
+    <Panel title="주간 획득 골드" meta={meta} wide>
       <dl className={styles.totals}>
         <div>
           <dt>총 골드</dt>
@@ -89,20 +91,26 @@ export function WeeklyGoldPanel({
               </span>
               <b>{formatGold(row.gold)}</b>
               <div className={styles.controls}>
-                <label className={styles.switch}>
-                  <input
-                    type="checkbox"
-                    role="switch"
-                    checked={row.on}
-                    disabled={!row.on && gold.goldFull}
-                    aria-label={`${who} 골드 받기`}
-                    onChange={(e) => {
-                      const on = e.target.checked;
-                      save(row.name, (c) => ({ ...c, gold: on }));
-                    }}
-                  />
-                  <span aria-hidden="true">골드 받기</span>
-                </label>
+                {row.extra ? (
+                  // Given gold in the homework tool, outside the default six: turning it
+                  // off here would take the row away under the pointer, so it is set there.
+                  <span className={styles.fixed}>골드 받기 · 숙제 체크에서 지정</span>
+                ) : (
+                  <label className={styles.switch}>
+                    <input
+                      type="checkbox"
+                      role="switch"
+                      checked={row.on}
+                      disabled={!row.on && gold.goldFull}
+                      aria-label={`${who} 골드 받기`}
+                      onChange={(e) => {
+                        const on = e.target.checked;
+                        save(row.name, (c) => ({ ...c, gold: on }));
+                      }}
+                    />
+                    <span aria-hidden="true">골드 받기</span>
+                  </label>
+                )}
                 <details className={styles.pick}>
                   <summary>레이드 고르기 ({onCount})</summary>
                   <ul aria-label={`${who} 레이드`}>

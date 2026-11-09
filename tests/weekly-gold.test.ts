@@ -158,3 +158,58 @@ test("weekly gold: read with this week, a ticked 더보기 lowers the gold as in
   const stale = weeklyGold(roster6, "아만", 0, savedState(text, 0))!;
   assert.equal(stale.rows[0].gold, before.rows[0].gold);
 });
+
+// #1466 계산 검증 P1 (1): a 7th character given gold in the homework tool counts in the
+// panel too (the rule is 6 per 원정대; here 6 are on, one of them outside the default six).
+test("weekly gold: a gold-on character outside the default six is in the total and listed, read-only", () => {
+  const roster = ["가", "나", "다", "라", "마", "바", "사"].map((name, i) => sibling(name, 1770 - i * 20));
+  const picked = roster.map((s) => ({ name: s.characterName, server: s.serverName, className: s.className, itemLevel: s.itemLevel! }));
+  let saved = addCharacters(emptyState(0), picked);
+  const flip = (name: string, gold: boolean) => {
+    const c = saved.characters.find((x) => x.name === name)!;
+    saved = replaceCharacter(saved, { ...c, gold });
+  };
+  flip("나", false);
+  flip("사", true);
+  const gold = weeklyGold(roster, "아만", 0, saved)!;
+  const tool = rosterSummary({ ...saved, characters: saved.characters.filter((c) => c.gold) });
+  assert.equal(gold.total, tool.possible);
+  assert.equal(gold.bound, tool.possibleBound);
+  assert.deepEqual(
+    gold.rows.map((row) => [row.name, row.on]),
+    [
+      ["가", true],
+      ["나", false],
+      ["다", true],
+      ["라", true],
+      ["마", true],
+      ["바", true],
+      ["사", true],
+    ],
+  );
+  assert.equal(gold.rows.at(-1)!.extra, true);
+  assert.ok(gold.rows.slice(0, 6).every((row) => !row.extra));
+});
+
+// #1466 계산 검증 P1 (2): gold characters of another server do not use this server's six.
+test("weekly gold: six gold characters saved on another server leave this server's default setup", () => {
+  const other = ["일", "이", "삼", "사", "오", "육"].map((name, i) => sibling(`루${name}`, 1700 - i, "루페온"));
+  const here = [sibling("가", 1770), sibling("나", 1725), sibling("다", 1705)];
+  const saved = addCharacters(
+    emptyState(0),
+    other.map((s) => ({ name: s.characterName, server: s.serverName, className: s.className, itemLevel: s.itemLevel! })),
+  );
+  assert.equal(saved.characters.filter((c) => c.gold).length, 6);
+  const gold = weeklyGold([...other, ...here], "아만", 0, saved)!;
+  const fresh = weeklyGold(here, "아만")!;
+  assert.deepEqual(
+    gold.rows.map((row) => [row.name, row.on]),
+    [
+      ["가", true],
+      ["나", true],
+      ["다", true],
+    ],
+  );
+  assert.equal(gold.total, fresh.total);
+  assert.equal(gold.goldFull, false);
+});

@@ -37,6 +37,12 @@ export type WeeklyGoldRow = {
   raids: string[];
   gold: number;
   bound: number;
+  /**
+   * Outside the default six but given gold in the homework tool (계산 검증 #1466):
+   * counted and listed after the six, changed only there, so the panel's own
+   * switches never add or remove a row.
+   */
+  extra: boolean;
 };
 
 export type WeeklyGold = {
@@ -83,15 +89,22 @@ export function weeklyGold(
     .map((c) => c.name);
   const state = addCharacters(saved ?? emptyState(now), picked);
   const chosen = top.map((name) => state.characters.find((c) => c.name === name)!);
-  const gold = chosen.filter((c) => c.gold);
+  // This server's other gold characters (given gold in the homework tool): the
+  // homework total counts them, so the panel does too (계산 검증 #1466 P1).
+  const extras = state.characters
+    .filter((c) => c.server === server && c.gold && !top.includes(c.name))
+    .sort((a, b) => b.itemLevel - a.itemLevel);
+  const listed = [...chosen, ...extras];
+  const gold = listed.filter((c) => c.gold);
   const summary = rosterSummary({ ...state, characters: gold });
   return {
     server,
     state,
     goldFull: state.characters.filter((c) => c.gold).length >= GOLD_CHARACTERS,
-    rows: chosen.map((c) => {
+    rows: listed.map((c, i) => {
       const g = characterGold(c);
       return {
+        extra: i >= chosen.length,
         character: c,
         on: c.gold,
         name: c.name,

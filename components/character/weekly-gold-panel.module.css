@@ -104,6 +104,18 @@
 .switch input:disabled {
   cursor: not-allowed;
 }
+/* A gold character set in the homework tool (outside the default six): same height as a switch. */
+.fixed {
+  display: inline-flex;
+  min-height: 32px;
+  align-items: center;
+  color: var(--muted-foreground);
+}
+@media (pointer: coarse) {
+  .fixed {
+    min-height: 44px;
+  }
+}
 .pick {
   min-width: 0;
 }
