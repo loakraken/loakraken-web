@@ -51,9 +51,10 @@ for (const width of [1280, 360, 320])
     await page.getByRole("radiogroup", { name: "열쇠 단계(입장 레벨)" }).getByRole("radio", { name: "1730" }).click();
     await expect(line("운명의 파괴석 결정")).toContainText("귀속, 시세로 환산");
     await expect(line("전이 돌파석")).toContainText("시세 없음");
-    // 4,500 + 위대한 25 × 33 + 상급 60 × 271 + 빙하 30 × 430 + 용암 10 × 10 + 귀속 골드 4,500 + 고대 팔찌 3 × 100
-    // + 운명의 돌 7 × 2(시세 없음, 나락에서 넣은 값).
-    await expect(total).toHaveText("39,399G");
+    // 4,500 + 위대한 25 × 33 + 상급 60 × 271 + 빙하 30 × 430 + 용암 10 × 10 + 귀속 골드 4,500 + 고대 팔찌 3 × 100.
+    // 나락에서 넣은 운명의 돌 값은 여기로 오지 않는다(나락 품목은 아직 정해지지 않아 다른 품목으로 본다, PM 총괄 #1525 P3).
+    await expect(total).toHaveText("39,385G");
+    await expect(page.getByRole("spinbutton", { name: "운명의 돌 1개 값(골드)" })).toHaveValue("");
     // 고른 종류 · 열쇠 단계는 주소에 남아 다시 열어도 그대로(#889).
     await expect(page).toHaveURL(/level=1730/);
     await page.reload();

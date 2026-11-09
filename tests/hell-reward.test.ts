@@ -72,7 +72,7 @@ test("hell reward value: market lines, bound gold, manual values (0 unset), choo
   assert.equal(none.manual, 0);
   assert.equal(none.total, 3600 + 3200);
   // Manual values per unit; of 파괴석/수호석 the higher half counts, 수호석 here (3,000 × 2 > 1,000 × 5).
-  const set: Record<string, number> = { destruction: 5, guardian: 2, "bracelet:RELIC": 900 };
+  const set: Record<string, number> = { "unsettled::destruction": 5, "unsettled::guardian": 2, "item:팔찌 상자:RELIC": 900 };
   const v = stageValue(reward, market, (k) => set[k] ?? 0);
   assert.equal(v.lines.find((l) => l.key === "destruction")!.notChosen, true);
   assert.equal(v.lines.find((l) => l.key === "guardian")!.notChosen, false);
@@ -84,7 +84,7 @@ test("hell reward value: market lines, bound gold, manual values (0 unset), choo
   assert.equal(waiting.lines.find((l) => l.key === "lava")!.unpriced, false);
   assert.equal(waiting.total, 3200);
   // Prices back but this one has none (계산 검증 #1525 P1): it takes the user's value like a manual line.
-  const none2 = stageValue(reward, (n) => (n === "빙하의 숨결" ? 100 : null), (k) => (k === "lava" ? 50 : 0), null, true);
+  const none2 = stageValue(reward, (n) => (n === "빙하의 숨결" ? 100 : null), (k) => (k === "item:용암의 숨결" ? 50 : 0), null, true);
   const lava = none2.lines.find((l) => l.key === "lava")!;
   assert.equal(lava.unpriced, true);
   assert.equal(lava.unit, 50);
@@ -94,8 +94,8 @@ test("hell reward value: market lines, bound gold, manual values (0 unset), choo
 
 test("hell reward value: graded items keep one value per grade", () => {
   const g = stageReward("hell", 1700, 5)!;
-  assert.equal(g.gem && unitKey("gem", g.gem), "gem:RARE~EPIC:random");
-  assert.equal(g.bracelet && unitKey("bracelet", g.bracelet), "bracelet:ANCIENT");
+  assert.equal(g.gem && unitKey("젬", g.gem), "item:젬:RARE~EPIC:random");
+  assert.equal(g.bracelet && unitKey("팔찌 상자", g.bracelet), "item:팔찌 상자:ANCIENT");
   assert.equal(g.gem && gradeText(g.gem), "희귀~영웅");
   // Only settled market items are ever priced: breaths everywhere, hell materials per key level.
   assert.deepEqual(MARKET_NAMES, [
@@ -135,4 +135,30 @@ test("hell reward value: hell materials are priced as their settled market items
   assert.equal(levelItems("abyss", 1640), null);
   const abyss = stageValue(stageReward("abyss", 1640, 0)!, (n) => prices[n] ?? null, () => 0, levelItems("abyss", 1640));
   assert.equal(abyss.lines.find((l) => l.key === "destinyStone")!.pricing.kind, "MANUAL");
+});
+// PM 총괄 #1525 P3: a value the user sets belongs to the item, not the row. A column that is
+// another item at another key level does not take it.
+test("hell reward value: user values follow the item name, never the row position", () => {
+  const typed = new Map<string, number>();
+  const value = (kind: "hell" | "abyss", level: number) =>
+    stageValue(stageReward(kind, level, 0)!, () => null, (k) => typed.get(k) ?? 0, levelItems(kind, level), true, `${kind}:${level}`);
+  const line = (v: ReturnType<typeof value>, key: string) => v.lines.find((l) => l.key === key)!;
+  // 1640: the special-refine stone is 순환 돌파석 (no price on this stub, so the user's value).
+  const low = value("hell", 1640);
+  typed.set(line(low, "specialRefine").unitKey, 100);
+  assert.equal(value("hell", 1640).lines.find((l) => l.key === "specialRefine")!.value, 40 * 100);
+  // 1700 has the same item: the value applies there too.
+  assert.equal(line(value("hell", 1700), "specialRefine").unit, 100);
+  // 1750's column is 전이 돌파석, another item: the value does not apply.
+  const high = value("hell", 1750);
+  assert.equal(line(high, "specialRefine").label, "전이 돌파석");
+  assert.equal(line(high, "specialRefine").unit, 0);
+  // 나락's 운명의 돌 is not a settled item: its value stays there, not on 지옥's 운명의 돌.
+  const abyss = value("abyss", 1750);
+  typed.set(line(abyss, "destinyStone").unitKey, 7);
+  assert.equal(line(value("abyss", 1750), "destinyStone").unit, 7);
+  assert.equal(line(value("hell", 1750), "destinyStone").unit, 0);
+  // A graded item keeps its value across kinds (same item and grade).
+  typed.set(line(high, "bracelet").unitKey, 900);
+  assert.equal(line(value("abyss", 1750), "bracelet").unit, 900);
 });

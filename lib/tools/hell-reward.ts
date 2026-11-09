@@ -99,9 +99,16 @@ const GRADE_LABEL: Record<Grade, string> = { RARE: "희귀", EPIC: "영웅", REL
 /** "고대" · "희귀~영웅": a graded item's grade text. */
 export const gradeText = (g: GradeCount) => g.grades.map((x) => GRADE_LABEL[x]).join("~");
 
-/** The value a user sets is per unit of one line: graded items per grade ("bracelet:ANCIENT"). */
-export const unitKey = (key: keyof StageReward, value: number | GradeCount) =>
-  typeof value === "number" ? key : `${key}:${value.grades.join("~")}${value.random ? ":random" : ""}`;
+/**
+ * The value a user sets is per unit of one item, by its name (graded items per grade):
+ * "item:순환 돌파석", "item:팔찌 상자:ANCIENT". Never by row position: a column is a
+ * different item at another key level (순환 vs 전이 돌파석), PM 총괄 #1525 P3.
+ */
+export const unitKey = (name: string, value: number | GradeCount) =>
+  `item:${name}${typeof value === "number" ? "" : `:${value.grades.join("~")}${value.random ? ":random" : ""}`}`;
+
+/** A column whose item is not settled (나락): its value stays with that kind, level and column. */
+export const unsettledKey = (scope: string, key: keyof StageReward) => `unsettled:${scope}:${key}`;
 
 export type StageLine = {
   key: keyof StageReward;
@@ -146,15 +153,18 @@ export function stageValue(
   settled: ReturnType<typeof levelItems> = null,
   /** Prices have come back (a market line without one then takes the user's value). */
   loaded = true,
+  /** "hell:1730": where an unsettled column's value belongs. */
+  scope = "",
 ): StageValue {
   const lines: StageLine[] = [];
   for (const column of COLUMNS) {
     const value = reward[column.key];
     if (value === undefined) continue;
     const qty = typeof value === "number" ? value : value.count;
-    const key = unitKey(column.key, value);
     const named = settled?.items[column.key];
     const pricing: Pricing = named ? { kind: "MARKET", name: named } : column.pricing;
+    const key =
+      pricing.kind === "MANUAL" && pricing.why === "UNSETTLED" ? unsettledKey(scope, column.key) : unitKey(named ?? column.label, value);
     const price = pricing.kind === "MARKET" ? market(pricing.name) : null;
     const unpriced = pricing.kind === "MARKET" && price == null && loaded;
     const unit = pricing.kind === "MARKET" ? (unpriced ? manual(key) : price) : pricing.kind === "BOUND_GOLD" ? 1 : manual(key);

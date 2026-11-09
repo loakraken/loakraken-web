@@ -54,7 +54,8 @@ export function HellRewardTool() {
   const setLevel = (v: number) => setLevelText(String(v));
   const [stage, setStage] = useUrlState("stage", 0, intCodec(0, 10));
   const [basis, setBasis] = useState<PriceBasis>("RECENT_PRICE");
-  // Per unit, kept across kinds, levels and stages (the same item is worth the same).
+  // Per unit and per item (keyed by item name, lib unitKey): the same item keeps its value
+  // across kinds, levels and stages; a different item at another level does not take it.
   const [manual, setManual] = useState<Record<string, string>>({});
   const stageId = useId();
   const basisId = useId();
@@ -85,8 +86,8 @@ export function HellRewardTool() {
   };
   const settled = levelItems(kind, level);
   const loaded = !!prices.data;
-  const value = stageValue(stageReward(kind, level, stage)!, marketPrice, manualValue, settled, loaded);
-  const perStage = STAGES.map((s) => stageValue(stageReward(kind, level, s)!, marketPrice, manualValue, settled, loaded).total);
+  const value = stageValue(stageReward(kind, level, stage)!, marketPrice, manualValue, settled, loaded, `${kind}:${level}`);
+  const perStage = STAGES.map((s) => stageValue(stageReward(kind, level, s)!, marketPrice, manualValue, settled, loaded, `${kind}:${level}`).total);
   const failure =
     prices.error instanceof MarketQueryError ? prices.error.info : prices.error ? { code: "LOST_ARK_API_ERROR", status: 502 } : null;
   const kindLabel = KINDS.find((k) => k.value === kind)!.label;
