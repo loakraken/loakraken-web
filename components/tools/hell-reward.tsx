@@ -57,6 +57,7 @@ export function HellRewardTool() {
   // Per unit, kept across kinds, levels and stages (the same item is worth the same).
   const [manual, setManual] = useState<Record<string, string>>({});
   const stageId = useId();
+  const basisId = useId();
 
   const prices = useQuery({
     queryKey: ["hell-reward-prices", basis, MARKET_NAMES],
@@ -251,13 +252,18 @@ export function HellRewardTool() {
                   ))}
                 </tbody>
               </table>
-              <SegmentedControl fill aria-label="시세 기준" value={basis} onValueChange={(v) => setBasis(v as PriceBasis)}>
-                {priceBases.map((item) => (
-                  <SegmentedItem key={item.value} value={item.value}>
-                    {item.label}
-                  </SegmentedItem>
-                ))}
-              </SegmentedControl>
+              {/* A select, not a segmented row: the side column is narrow, and the row
+                  measured itself again when the web font came and went vertical, moving the
+                  note below (1280 CLS 0.0064). */}
+              <label className={styles.stage} htmlFor={basisId}>
+                <span>시세 기준</span>
+                <Select
+                  id={basisId}
+                  value={basis}
+                  onValueChange={(v) => setBasis(v as PriceBasis)}
+                  items={priceBases.map((item) => ({ value: item.value, label: item.label }))}
+                />
+              </label>
               <p className={styles.note}>
                 열쇠 1개로 받는 단계별 고정 보상만 셈해요. 상자 보상과 확률, 풍요(×10), 무기 +25 · 페온 효과는 이 계산에
                 넣지 않았어요. 둘 중 하나를 고르는 보상은 값이 큰 쪽으로 셈하고, 시세가 없는 품목은 직접 정한 값(처음엔
