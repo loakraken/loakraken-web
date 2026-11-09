@@ -36,3 +36,29 @@ test("hell reward data: a lower stage paying more is caught", () => {
   broken.hell["1700"][3].reward.boundGold = 1;
   assert.ok(checkHellData(broken).some((p) => p.includes("hell 1700 3 boundGold")));
 });
+
+test("hell reward data: rules that hold on every row (계산 검증 2026-11-09)", () => {
+  for (const kind of ["hell", "abyss"] as const)
+    for (const level of HELL_DATA.keyLevels)
+      for (const { stage, reward } of HELL_DATA[kind][String(level)]) {
+        const at = `${kind} ${level} ${stage}`;
+        if (reward.destruction !== undefined) assert.equal(reward.guardian, reward.destruction * 3, `${at} 수호석 = 3 × 파괴석`);
+        if (reward.lava !== undefined) assert.equal(reward.glacier, reward.lava * 3, `${at} 빙하 = 3 × 용암`);
+      }
+  // 나락 pays five times 지옥 on every cell both have (count only; the grade is the same).
+  let shared = 0;
+  for (const level of HELL_DATA.keyLevels)
+    for (const { stage, reward } of HELL_DATA.hell[String(level)]) {
+      const abyss = stageReward("abyss", level, stage)!;
+      for (const [key, value] of Object.entries(reward)) {
+        const other = abyss[key as keyof typeof abyss];
+        if (other === undefined) continue;
+        const n = typeof value === "number" ? value : value.count;
+        const m = typeof other === "number" ? other : other.count;
+        assert.equal(m, n * 5, `abyss ${level} ${stage} ${key} = 5 × hell`);
+        shared += 1;
+      }
+    }
+  // 253 table cells; each of the two A/B pair cells per stage counts twice here (+88).
+  assert.equal(shared, 253 + 88);
+});
