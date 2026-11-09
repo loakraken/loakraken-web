@@ -35,9 +35,10 @@ for (const width of [1280, 360]) {
 
 // #14 (PM 총괄 11-08): gold and raids are chosen in the panel itself, and they are the
 // homework tool's own saved choices (one saved state): both screens show the same.
-// 320 too: the rows change their own content (shift tests at 320, #1088).
+// 320 too: the rows change their own content (shift tests at 320, #1088). @smoke runs it on
+// the touch projects as well (44px targets, PM 총괄 11-09 for the rtl amount cell).
 for (const width of [1280, 360, 320])
-  test(`${width} 주간 획득 골드: 패널에서 레이드 · 골드 받기를 바꾸면 합계가 바뀌고 숙제 체크에도 같게, 흔들림 0 @regression`, async ({ page }) => {
+  test(`${width} 주간 획득 골드: 패널에서 레이드 · 골드 받기를 바꾸면 합계가 바뀌고 숙제 체크에도 같게, 흔들림 0 @regression @smoke`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await watchShifts(page);
     await gotoReady(page, characterPath("주간골드", "siblings"));
@@ -63,9 +64,30 @@ for (const width of [1280, 360, 320])
     const second = rows.nth(1);
     const off = await shiftsDuring(page, () => second.getByRole("switch").uncheck());
     await expect(second.locator(":scope > b")).toHaveText("0G");
-    // Exactly the amount (copy and screen readers): no holding characters (codex P2).
-    expect(await second.locator(":scope > b").innerText()).toBe("0G");
-    expect(await first.locator(":scope > b").innerText()).toBe("166,000G");
+    // Exactly the amount for copy and screen readers (codex P2): the rtl amount cell
+    // keeps its text as written, with no holding characters.
+    // The first row lost a raid above, so its amount is read, then held to the plain form.
+    const firstAmount = await first.locator(":scope > b").evaluate((b) => b.textContent);
+    expect(firstAmount).toMatch(/^\d{1,3}(,\d{3})*G$/);
+    for (const [row, amount] of [
+      [second, "0G"],
+      [first, firstAmount],
+    ]) {
+      const cell = row.locator(":scope > b");
+      expect(await cell.innerText()).toBe(amount);
+      await expect(cell).toMatchAriaSnapshot(`- text: ${amount}`);
+      const copied = await cell.evaluate((b) => {
+        const range = document.createRange();
+        range.selectNodeContents(b);
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+        const text = selection.toString();
+        selection.removeAllRanges();
+        return text;
+      });
+      expect(copied, "복사되는 글자").toBe(amount);
+    }
     await expect(total).not.toHaveText(lowered);
     expect(off.all, `골드 받기 끄기 흔들림 (${off.moved})`).toBe(0);
 
