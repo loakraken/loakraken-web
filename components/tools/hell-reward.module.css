@@ -155,6 +155,8 @@
 }
 .table {
   width: 100%;
+  /* Fixed columns: a wider total does not resize the header (CLS when prices land). */
+  table-layout: fixed;
   border-collapse: collapse;
   font-size: 13px;
 }

@@ -161,22 +161,24 @@ export function HellRewardTool() {
                   </button>
                 </div>
               )}
+              {/* Each amount is one text ("47,695G"): as "47,695" + "G" the G node moved when the
+                  number grew (CLS when prices land). */}
               <dl className={styles.sums} aria-live="polite">
                 <div>
                   <dt>합계</dt>
-                  <dd>{goldText(value.total)}G</dd>
+                  <dd>{`${goldText(value.total)}G`}</dd>
                 </div>
                 <div>
                   <dt>시세로 매긴 것</dt>
-                  <dd>{goldText(value.market)}G</dd>
+                  <dd>{`${goldText(value.market)}G`}</dd>
                 </div>
                 <div>
                   <dt>귀속 골드</dt>
-                  <dd>{goldText(value.boundGold)}G</dd>
+                  <dd>{`${goldText(value.boundGold)}G`}</dd>
                 </div>
                 <div>
                   <dt>직접 정한 값</dt>
-                  <dd>{goldText(value.manual)}G</dd>
+                  <dd>{`${goldText(value.manual)}G`}</dd>
                 </div>
               </dl>
               <ul className={styles.lines} aria-label="보상 품목">
@@ -235,7 +237,7 @@ export function HellRewardTool() {
                   {perStage.map((total, s) => (
                     <tr key={s} aria-current={s === stage || undefined}>
                       <th scope="row">{s}단계</th>
-                      <td>{goldText(total)}G</td>
+                      <td>{`${goldText(total)}G`}</td>
                     </tr>
                   ))}
                 </tbody>
