@@ -8,7 +8,7 @@ import { shiftsSince, watchShifts } from "../support/shifts.mjs";
 /** The badge's own text (the hidden detail for screen readers is in a child element). */
 const shown = (el) => [...el.childNodes].filter((n) => n.nodeType === 3).map((n) => n.textContent).join("").trim();
 
-for (const width of [1280, 360, 320])
+for (const width of [1280, 390, 381, 360, 320])
   test(`@A37 ${width} 장신구 기본 효과 범위 %: 부호 그대로, 툴팁, 잘림·흔들림 없음 @regression`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await watchShifts(page);
