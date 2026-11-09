@@ -89,20 +89,42 @@ test("hell reward value: graded items keep one value per grade", () => {
   assert.equal(g.gem && unitKey("gem", g.gem), "gem:RARE~EPIC:random");
   assert.equal(g.bracelet && unitKey("bracelet", g.bracelet), "bracelet:ANCIENT");
   assert.equal(g.gem && gradeText(g.gem), "희귀~영웅");
-  // Only settled market items are ever priced (breaths everywhere; 1730 hell materials).
-  assert.deepEqual(MARKET_NAMES, ["용암의 숨결", "빙하의 숨결", "운명의 파괴석 결정", "운명의 수호석 결정", "위대한 운명의 돌파석", "상급 아비도스 융화 재료"]);
+  // Only settled market items are ever priced: breaths everywhere, hell materials per key level.
+  assert.deepEqual(MARKET_NAMES, [
+    "용암의 숨결",
+    "빙하의 숨결",
+    "운명의 파괴석",
+    "운명의 수호석",
+    "운명의 돌파석",
+    "아비도스 융화 재료",
+    "순환 돌파석",
+    "운명의 돌",
+    "혼돈의 돌",
+    "운명의 파괴석 결정",
+    "운명의 수호석 결정",
+    "위대한 운명의 돌파석",
+    "상급 아비도스 융화 재료",
+    "전이 돌파석",
+  ]);
 });
-test("hell reward value: 1730 hell materials are priced as their settled market items, marked bound at market", () => {
+test("hell reward value: hell materials are priced as their settled market items; 1730 marked bound", () => {
   const prices: Record<string, number> = { "운명의 파괴석 결정": 10, "운명의 수호석 결정": 4, "위대한 운명의 돌파석": 50, "상급 아비도스 융화 재료": 90 };
   const v = stageValue(stageReward("hell", 1730, 0)!, (n) => prices[n] ?? null, () => 0, levelItems("hell", 1730));
   const line = (key: string) => v.lines.find((l) => l.key === key)!;
   assert.equal(line("destruction").label, "운명의 파괴석 결정");
-  assert.equal(line("destruction").boundAtMarket, true);
+  assert.equal(line("destruction").trade, "BOUND");
+  // Shown bound only where an in-game text says so; the special-refine stone at 1730 is not.
+  assert.equal(line("specialRefine").label, "전이 돌파석");
+  assert.equal(line("specialRefine").trade, "UNCONFIRMED");
+  assert.equal(line("lava").trade, "UNCONFIRMED");
   // 파괴석 결정 500 × 10 = 5,000 vs 수호석 결정 1,500 × 4 = 6,000: the 수호석 half counts.
   assert.equal(line("destruction").notChosen, true);
   assert.equal(v.market, 1500 * 4 + 25 * 50 + 60 * 90);
-  // Not settled at 1640 (no map): the same columns stay user values.
-  assert.equal(levelItems("hell", 1640), null);
+  // 1640: plain names, tradeable or not unconfirmed. 나락: names not settled, user values.
   const low = stageValue(stageReward("hell", 1640, 0)!, (n) => prices[n] ?? null, () => 0, levelItems("hell", 1640));
-  assert.equal(low.lines.find((l) => l.key === "destruction")!.pricing.kind, "MANUAL");
+  assert.equal(low.lines.find((l) => l.key === "destruction")!.label, "운명의 파괴석");
+  assert.equal(low.lines.find((l) => l.key === "destruction")!.trade, "UNCONFIRMED");
+  assert.equal(levelItems("abyss", 1640), null);
+  const abyss = stageValue(stageReward("abyss", 1640, 0)!, (n) => prices[n] ?? null, () => 0, levelItems("abyss", 1640));
+  assert.equal(abyss.lines.find((l) => l.key === "destinyStone")!.pricing.kind, "MANUAL");
 });

@@ -20,14 +20,61 @@
   ],
   "marketItems": {
     "hell": {
+      "1640": {
+        "_note": "이름: 다른 정리 한 곳(단계 0 수량이 이 표와 같음, 2026-11-09). 거래 가능 여부는 출처 없음",
+        "bound": [],
+        "items": {
+          "destruction": "운명의 파괴석",
+          "guardian": "운명의 수호석",
+          "breakthrough": "운명의 돌파석",
+          "fusion": "아비도스 융화 재료",
+          "specialRefine": "순환 돌파석",
+          "destinyStone": "운명의 돌",
+          "chaosStone": "혼돈의 돌"
+        }
+      },
+      "1700": {
+        "_note": "이름: 다른 정리 한 곳(단계 0 수량이 이 표와 같음, 2026-11-09). 거래 가능 여부는 출처 없음",
+        "bound": [],
+        "items": {
+          "destruction": "운명의 파괴석",
+          "guardian": "운명의 수호석",
+          "breakthrough": "운명의 돌파석",
+          "fusion": "아비도스 융화 재료",
+          "specialRefine": "순환 돌파석",
+          "destinyStone": "운명의 돌",
+          "chaosStone": "혼돈의 돌"
+        }
+      },
       "1730": {
-        "_note": "게임 안 보상 기록 화면(이용자 글)과 다른 정리 한 곳이 같은 이름. 이 보상은 귀속이라 시세로 환산한 값(계산 검증 2026-11-09)",
-        "bound": true,
+        "_note": "이름: 다른 정리 한 곳(단계 0 수량 일치) + 게임 안 보상 기록 화면(이용자 글, 2026-01-21). 그 화면에 재료 넷이 (귀속)",
+        "bound": [
+          "destruction",
+          "guardian",
+          "breakthrough",
+          "fusion"
+        ],
         "items": {
           "destruction": "운명의 파괴석 결정",
           "guardian": "운명의 수호석 결정",
           "breakthrough": "위대한 운명의 돌파석",
-          "fusion": "상급 아비도스 융화 재료"
+          "fusion": "상급 아비도스 융화 재료",
+          "specialRefine": "전이 돌파석",
+          "destinyStone": "운명의 돌",
+          "chaosStone": "혼돈의 돌"
+        }
+      },
+      "1750": {
+        "_note": "이름: 다른 정리 한 곳(단계 0 수량이 이 표와 같음, 2026-11-09). 거래 가능 여부는 출처 없음",
+        "bound": [],
+        "items": {
+          "destruction": "운명의 파괴석 결정",
+          "guardian": "운명의 수호석 결정",
+          "breakthrough": "위대한 운명의 돌파석",
+          "fusion": "상급 아비도스 융화 재료",
+          "specialRefine": "전이 돌파석",
+          "destinyStone": "운명의 돌",
+          "chaosStone": "혼돈의 돌"
         }
       }
     },

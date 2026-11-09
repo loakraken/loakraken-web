@@ -39,7 +39,7 @@ function basisText(line: StageLine, priced: boolean) {
   if (line.pricing.kind === "BOUND_GOLD") return "귀속 골드";
   if (line.pricing.kind === "MARKET") {
     if (line.unit == null) return priced ? "시세 없음 · 0G" : "시세 불러오는 중";
-    return `1개 ${unitText(line.unit)}G${line.boundAtMarket ? " · 귀속, 시세로 환산" : ""}`;
+    return `1개 ${unitText(line.unit)}G · ${line.trade === "BOUND" ? "귀속, 시세로 환산" : "거래 가능 여부 확인 전"}`;
   }
   return line.pricing.why === "UNSETTLED" ? "품목 확인 중 · 직접 정한 값" : "시세 없음 · 직접 정한 값";
 }

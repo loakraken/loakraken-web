@@ -35,8 +35,8 @@ export type HellData = {
   source: string;
   sources: Record<string, { title: string; url: string | null; date: string; kind: "OFFICIAL" | "COMMUNITY"; _note?: string }>;
   keyLevels: number[];
-  /** Per kind and key level, the market item a column is, where settled; `bound`: valued at market though bound. */
-  marketItems: Record<HellKind, Record<string, { _note: string; bound: boolean; items: Partial<Record<keyof StageReward, string>> }>>;
+  /** Per kind and key level, the market item a column is, where settled; `bound`: the ones an in-game text shows as bound. */
+  marketItems: Record<HellKind, Record<string, { _note: string; bound: (keyof StageReward)[]; items: Partial<Record<keyof StageReward, string>> }>>;
   hell: Record<string, { stage: number; reward: StageReward }[]>;
   abyss: Record<string, { stage: number; reward: StageReward }[]>;
 };
@@ -113,8 +113,11 @@ export type StageLine = {
   value: number;
   pricing: Pricing;
   bound: boolean;
-  /** Bound, but valued at its market price (a modelling choice, shown as such). */
-  boundAtMarket: boolean;
+  /**
+   * Market lines only: BOUND (an in-game text shows it bound; valued at the market price,
+   * a modelling choice shown as such) or UNCONFIRMED (no source says whether it trades).
+   */
+  trade: "BOUND" | "UNCONFIRMED" | null;
   /** The other half of a choose-one pair, not counted (its value was lower). */
   notChosen: boolean;
 };
@@ -151,7 +154,7 @@ export function stageValue(
     const unit = pricing.kind === "MARKET" ? market(pricing.name) : pricing.kind === "BOUND_GOLD" ? 1 : manual(key);
     const name = named ?? column.label;
     const label = typeof value === "number" ? name : `${name} (${gradeText(value)}${value.random ? " 랜덤" : ""})`;
-    const boundAtMarket = !!named && !!settled?.bound;
+    const trade = pricing.kind !== "MARKET" ? null : settled?.bound.includes(column.key) ? "BOUND" : "UNCONFIRMED";
     lines.push({
       key: column.key,
       unitKey: key,
@@ -160,8 +163,8 @@ export function stageValue(
       unit,
       value: (unit ?? 0) * qty,
       pricing,
-      bound: !!column.bound || boundAtMarket,
-      boundAtMarket,
+      bound: !!column.bound || trade === "BOUND",
+      trade,
       notChosen: false,
     });
   }
