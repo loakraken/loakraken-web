@@ -369,7 +369,11 @@ button.orbStage:focus-visible { outline: 3px solid var(--ring); outline-offset: 
   .header { padding-inline: 12px; }
   .hero { padding-inline: 16px; }
   .heroTitle { font-size: 30px; }
-  .searchSubmit { min-width: 90px; padding: 0 10px; font-size: 11px; }
+  /* 320: the hint ('캐릭터 이름을 입력하세요', 161px) had a 153px field and ran under the button.
+     Tighter gaps and an 80px button (still 48px tall) give the field 171px. */
+  .searchForm { gap: 5px; }
+  .searchIcon { margin-left: 6px; }
+  .searchSubmit { min-width: 80px; padding: 0 10px; font-size: 11px; }
   .section { padding-inline: 16px; }
   .section h2 { font-size: 32px; }
   .characterAvatar { display: none; }
