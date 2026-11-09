@@ -14,6 +14,15 @@
   background: var(--secondary);
 }
 .view {
+  /* 40px wide and one line tall at least, before its label too: the phone
+     tap area (hit-44) is centred on the link and 44 × 44 at the least, so a
+     link painted before its label arrived (the first HTML in parts) was
+     smaller than 40 × 40 and its tap area started further left and higher
+     than the full link's (width + 4): 6px of shift when the label came
+     (#1525 CI 360). From 40px and the full height on, both start at the same
+     place, 2px left of the link. */
+  min-width: 40px;
+  min-height: calc(1lh + 14px);
   padding: 7px 14px;
   border-radius: 9999px;
   color: var(--foreground);
