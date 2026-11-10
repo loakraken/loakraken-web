@@ -333,7 +333,7 @@ export function HellRewardTool() {
               {/* Always drawn (a button appearing would move the list). The order is held while
                   only prices change; the headline above is always the best box now. */}
               <p className={styles.order}>
-                <span>{view.stale ? "시세가 바뀌어 맨 위 상자가 가장 좋은 상자가 아니에요." : "좋은 순서예요."}</span>
+                <span aria-live="polite">{view.stale ? "시세가 바뀌어 맨 위 상자가 가장 좋은 상자가 아니에요." : "좋은 순서예요."}</span>
                 <button type="button" className={quote.outlinePill} onClick={() => setResort((n) => n + 1)}>
                   지금 시세로 다시 정렬
                 </button>
