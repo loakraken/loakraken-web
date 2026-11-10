@@ -34,6 +34,15 @@ for (const width of [1280, 360, 320])
     await page.waitForTimeout(600);
     const first = await shiftsSince(page);
     expect(first.all, `시세 도착 흔들림 (${first.moved})`).toBe(0);
+    // 시세 기준을 바꿔도 상자 순서는 그대로, 값만 바뀐다(새 시세가 늦게 와도 움직이지 않음, PM-프론트 #1530 P2).
+    const order = await list.locator(":scope > li > p strong").allInnerTexts();
+    const mark = await page.evaluate(() => performance.now());
+    await chooseOption(page, page.getByRole("combobox", { name: "시세 기준" }), "현재 최저가");
+    await expect(page.locator("[data-stale]")).toHaveCount(0);
+    await page.waitForTimeout(1200);
+    const switched = await shiftsSince(page, mark);
+    expect(switched.all, `시세 기준 전환 흔들림 (${switched.moved})`).toBe(0);
+    expect(await list.locator(":scope > li > p strong").allInnerTexts()).toEqual(order);
 
     // 직접 정한 값은 그 품목의 상자에만: 고대 팔찌 1개 100G → 팔찌 상자 400 + 1,091, 용암 1개 10G → 재련 보조 16,691.
     await page.getByRole("spinbutton", { name: "팔찌 상자 (고대) 1개 값(골드)" }).fill("100");

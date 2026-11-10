@@ -155,8 +155,17 @@ export function HellRewardTool() {
   const value = valueAt(stage);
   const base = baseAt(stage);
   // One key opens ONE box: the boxes ranked, the best first (never the sum of all boxes).
-  const boxes = rankBoxes(value, base);
-  const best = boxes[0];
+  const ranked = rankBoxes(value, base);
+  // The list order follows the user's own choices (kind, level, stage, 풍요, typed values) and
+  // the first prices, not every price refresh: a new basis or the minute refresh could reorder
+  // boxes of different heights with no input (CLS). Values update in place; the headline always
+  // names the best box now. Adjusted during render (derived state), no effect.
+  const orderKey = `${kind}|${level}|${stage}|${abundance}|${loaded}|${JSON.stringify(manual)}`;
+  const [order, setOrder] = useState({ key: "", ids: [] as string[] });
+  if (order.key !== orderKey) setOrder({ key: orderKey, ids: ranked.map((b) => b.id) });
+  const ids = order.key === orderKey ? order.ids : ranked.map((b) => b.id);
+  const boxes = [...ids.flatMap((id) => ranked.filter((b) => b.id === id)), ...ranked.filter((b) => !ids.includes(b.id))];
+  const best = ranked[0];
   const perStage = STAGES.map((s) => rankBoxes(valueAt(s), baseAt(s))[0]?.value ?? 0);
   const failure =
     prices.error instanceof MarketQueryError ? prices.error.info : prices.error ? { code: "LOST_ARK_API_ERROR", status: 502 } : null;
