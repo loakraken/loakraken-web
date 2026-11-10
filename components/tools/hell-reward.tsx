@@ -26,6 +26,7 @@ import {
   stageBase,
   stageReward,
   stageValue,
+  type BaseLine,
   type HellKind,
   type StageLine,
 } from "@/lib/tools/hell-reward";
@@ -103,6 +104,49 @@ function ItemLine({
   );
 }
 
+/** A base item every box gives: like a box item, its own value when no price came back. */
+function BaseItemLine({
+  line,
+  manual,
+  setManual,
+}: {
+  line: BaseLine;
+  manual: Record<string, string>;
+  setManual: Dispatch<SetStateAction<Record<string, string>>>;
+}) {
+  return (
+    <li>
+      <span className={styles.item}>
+        <strong>
+          {line.label} <b>×{goldText(line.qty)}</b>
+        </strong>
+        <small>{line.unpriced ? "시세 없음 · 직접 정한 값" : "기본 보상 · 거래 가능 여부 확인 전"}</small>
+      </span>
+      <span className={styles.unit}>
+        {line.unpriced ? (
+          <label>
+            <span>시세 없음 · 1개 값</span>
+            <input
+              type="number"
+              inputMode="decimal"
+              name={`unit-${line.unitKey}`}
+              autoComplete="off"
+              min={0}
+              placeholder="0"
+              value={manual[line.unitKey] ?? ""}
+              aria-label={`${line.label} 1개 값(골드)`}
+              onChange={(e) => setManual((m) => ({ ...m, [line.unitKey]: e.target.value.replace(/[^\d.]/g, "") }))}
+            />
+          </label>
+        ) : (
+          <span>{line.unit == null ? "시세 대기…" : `1개 ${unitText(line.unit)}G`}</span>
+        )}
+      </span>
+      <span className={styles.amount}>{`${goldText(line.value)}G`}</span>
+    </li>
+  );
+}
+
 export function HellRewardTool() {
   // Kept in the address (#889): back, reload and a shared link come back with them.
   const [kind, setKind] = useUrlState<HellKind>("kind", "hell", oneOfCodec(["hell", "abyss"] as const));
@@ -151,7 +195,7 @@ export function HellRewardTool() {
   const valueAt = (s: number) => stageValue(stageReward(kind, level, s)!, marketPrice, manualValue, settled, loaded, `${kind}:${level}`);
   const baseAt = (s: number) => {
     const items = stageBase(kind, level, s);
-    return items ? baseValue(items, marketPrice, abundance) : null;
+    return items ? baseValue(items, marketPrice, abundance, manualValue, loaded) : null;
   };
   const value = valueAt(stage);
   const base = baseAt(stage);
@@ -173,7 +217,9 @@ export function HellRewardTool() {
     prices.error instanceof MarketQueryError ? prices.error.info : prices.error ? { code: "LOST_ARK_API_ERROR", status: 502 } : null;
   const kindLabel = KINDS.find((k) => k.value === kind)!.label;
   // Counted lines valued by the user that still have no value: shown, never a silent 0 (PM 총괄 #1525).
-  const zeroManual = value.lines.filter((l) => !l.notChosen && (l.pricing.kind === "MANUAL" || l.unpriced) && !(l.unit ?? 0)).length;
+  const zeroManual =
+    value.lines.filter((l) => !l.notChosen && (l.pricing.kind === "MANUAL" || l.unpriced) && !(l.unit ?? 0)).length +
+    (base?.lines.filter((l) => l.unpriced && !(l.unit ?? 0)).length ?? 0);
 
   return (
     <div className={quote.page}>
@@ -277,6 +323,13 @@ export function HellRewardTool() {
                     : "기본 보상은 수량 확인 중이라 상자 값에 아직 넣지 않았어요."}
               </p>
               <p className={styles.zero}>{`직접 값 없이 0G로 센 품목 ${zeroManual}개`}</p>
+              {base && (
+                <ul className={styles.lines} aria-label="기본 보상(어느 상자든 함께)">
+                  {base.lines.map((line) => (
+                    <BaseItemLine key={line.unitKey} line={line} manual={manual} setManual={setManual} />
+                  ))}
+                </ul>
+              )}
               {/* Always drawn (a button appearing would move the list). The order is held while
                   only prices change; the headline above is always the best box now. */}
               <p className={styles.order}>

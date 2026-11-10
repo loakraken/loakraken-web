@@ -231,7 +231,18 @@ export const BOXES: { id: string; label: string; keys: (keyof StageReward)[] }[]
 ];
 
 /** The base ('(기본)') materials every opened box also gives, valued once (×10 with 풍요). */
-export type BaseValue = { lines: { label: string; qty: number; unit: number | null; value: number }[]; value: number };
+export type BaseLine = {
+  label: string;
+  /** By item name: the same item as a box line shares the user's value. */
+  unitKey: string;
+  qty: number;
+  /** 1 unit's value; null while prices are not in yet. */
+  unit: number | null;
+  value: number;
+  /** No price came back: the user's value, 0 until set (계산 검증 #1530; the same path as box lines). */
+  unpriced: boolean;
+};
+export type BaseValue = { lines: BaseLine[]; value: number };
 
 export type BoxValue = {
   id: string;
@@ -283,11 +294,17 @@ export function baseValue(
   items: { label: string; qty: number; market: string }[],
   market: (name: string) => number | null,
   abundance: boolean,
+  manual: (unitKey: string) => number = () => 0,
+  /** Prices have come back (an item without one then takes the user's value). */
+  loaded = true,
 ): BaseValue {
   const lines = items.map((item) => {
     const qty = item.qty * (abundance ? 10 : 1);
-    const unit = market(item.market);
-    return { label: item.label, qty, unit, value: (unit ?? 0) * qty };
+    const key = unitKey(item.market, qty);
+    const price = market(item.market);
+    const unpriced = price == null && loaded;
+    const unit = unpriced ? manual(key) : price;
+    return { label: item.label, unitKey: key, qty, unit, value: (unit ?? 0) * qty, unpriced };
   });
   return { lines, value: lines.reduce((n, l) => n + l.value, 0) };
 }

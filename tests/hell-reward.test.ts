@@ -261,3 +261,26 @@ test("hell reward boxes: a held order keeps the list, the best box always follow
   // Re-sorted (the user's re-sort): the list follows the values now and is not stale.
   assert.equal(heldView(now, now.map((b) => b.id)).stale, false);
 });
+// 계산 검증 #1530: an unpriced base item takes the user's value, like a box item (never a silent 0).
+test("hell reward base: an item without a price takes the user's value once prices are back", () => {
+  const items = stageBase("hell", 1750, 0)!;
+  const prices: Record<string, number> = { "운명의 파괴석 결정": 9, "운명의 수호석 결정": 1.9, "위대한 운명의 돌파석": 33 };
+  const typed: Record<string, number> = { "item:운명의 파편": 0.1 };
+  // Prices not back yet: no price, not unpriced, counts 0.
+  const waiting = baseValue(items, () => null, false, (k) => typed[k] ?? 0, false);
+  assert.equal(waiting.lines[0].unit, null);
+  assert.equal(waiting.lines[0].unpriced, false);
+  // Back, 운명의 파편 has none: the user's value per fragment (5,200 × 0.1).
+  const back = baseValue(items, (n) => prices[n] ?? null, false, (k) => typed[k] ?? 0, true);
+  const shards = back.lines.find((l) => l.label === "운명의 파편")!;
+  assert.equal(shards.unpriced, true);
+  assert.equal(shards.unitKey, "item:운명의 파편");
+  assert.equal(shards.value, 5200 * 0.1);
+  assert.equal(back.value, 5200 * 0.1 + 26 * 9 + 170 * 1.9 + 4 * 33);
+  // 풍요 multiplies the quantity, the typed unit value stays per fragment.
+  assert.equal(baseValue(items, (n) => prices[n] ?? null, true, (k) => typed[k] ?? 0, true).lines[0].value, 52000 * 0.1);
+  // A base item that is also a box item shares the user's value (one key per item name).
+  const box = stageValue(stageReward("hell", 1750, 0)!, () => null, () => 0, levelItems("hell", 1750), true, "hell:1750");
+  const stoneLine = box.lines.find((l) => l.key === "destruction")!;
+  assert.equal(stoneLine.unitKey, back.lines.find((l) => l.label === "운명의 파괴석 결정")!.unitKey);
+});
