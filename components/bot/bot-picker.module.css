@@ -18,7 +18,9 @@
   display: inline-grid;
   place-items: center;
 }
-.trigger::before { content: attr(data-label); visibility: hidden; grid-area: 1 / 1; white-space: nowrap; }
+/* Empty alt text: assistive tech skips the copy (the span is the name). The
+   plain line first is the fallback where alt text is not supported. */
+.trigger::before { content: attr(data-label); content: attr(data-label) / ""; visibility: hidden; grid-area: 1 / 1; white-space: nowrap; }
 .triggerLabel { grid-area: 1 / 1; white-space: nowrap; }
 .trigger:focus-visible { outline: 3px solid var(--ring); outline-offset: 2px; }
 .positioner { z-index: 50; }
