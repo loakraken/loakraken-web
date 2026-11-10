@@ -45,12 +45,17 @@ const labelArriving = (page) =>
     };
   });
 
-for (const width of [320, 360, 390, 1280])
-  test(`@A7 ${width} 봇 바꾸기: 단추 글자가 늦게 와도 단추가 움직이지 않는다 @regression`, async ({ page }) => {
+// 소개(/about)도 같은 히어로를 쓴다(코드 리뷰 P3).
+for (const path of ["/", "/about"])
+  for (const width of [320, 360, 390, 1280])
+  test(`@A7 ${width} 봇 바꾸기: 단추 글자가 늦게 와도 단추가 움직이지 않는다 (${path}) @regression`, async ({ page }) => {
     await page.setViewportSize({ width, height: 1000 });
-    await gotoReady(page, "/");
+    await gotoReady(page, path);
     // 숨긴 크기용 글자(data-label)는 이름에 들어가지 않는다: 이름은 정확히 한 번.
-    await expect(page.getByRole("button", { name: "봇 바꾸기", exact: true })).toBeVisible();
+    const trigger = page.getByRole("button", { name: "봇 바꾸기", exact: true });
+    await expect(trigger).toBeVisible();
+    // 크기용 글자는 빈 대체 텍스트로 보조 기술이 건너뛴다(코드 리뷰 P3).
+    expect(await trigger.evaluate((el) => getComputedStyle(el, "::before").content)).toBe('"봇 바꾸기" / ""');
     const late = await labelArriving(page);
     expect(late.found).toBe(true);
     expect(late.value, `늦게 온 글자가 민 것 (${late.moved})`).toBe(0);
