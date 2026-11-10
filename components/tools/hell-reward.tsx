@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useMemo, useState } from "react";
+import { useId, useMemo, useState, type Dispatch, type SetStateAction } from "react";
 import Link from "next/link";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { HubTabs } from "@/components/site/hub-tabs";
@@ -19,11 +19,17 @@ import {
   HELL_DATA,
   MARKET_NAMES,
   STAGES,
+  baseValue,
+  heldView,
   levelItems,
+  rankBoxes,
+  stageBase,
   stageReward,
   stageValue,
+  type BaseLine,
   type HellKind,
   type StageLine,
+  zeroManualCount,
 } from "@/lib/tools/hell-reward";
 import quote from "./material-quote.module.css";
 import styles from "./hell-reward.module.css";
@@ -46,6 +52,102 @@ function basisText(line: StageLine) {
   return line.pricing.why === "UNSETTLED" ? "품목 확인 중 · 직접 정한 값" : "시세 없음 · 직접 정한 값";
 }
 
+const PAIR_KEYS = new Set(["destruction", "guardian", "destinyStone", "chaosStone"]);
+
+/** One item of a box: name × qty, what its value is based on, the unit slot, the amount. */
+function ItemLine({
+  line,
+  manual,
+  setManual,
+}: {
+  line: StageLine;
+  manual: Record<string, string>;
+  setManual: Dispatch<SetStateAction<Record<string, string>>>;
+}) {
+  return (
+    <li data-not-chosen={line.notChosen || undefined}>
+      <span className={styles.item}>
+        <strong>
+          {line.label} <b>×{goldText(line.qty)}</b>
+        </strong>
+        <small>
+          {basisText(line)}
+          {PAIR_KEYS.has(line.key) && " · 둘 중 하나만 셈"}
+        </small>
+      </span>
+      {/* One slot per priced or user-valued line, drawn from the first paint at a fixed
+          height: the unit price, a wait note, or the user's input when there is no price,
+          so a price (or none) landing never adds height (CLS). */}
+      {line.pricing.kind !== "BOUND_GOLD" && (
+        <span className={styles.unit}>
+          {line.pricing.kind === "MANUAL" || line.unpriced ? (
+            <label>
+              <span>{line.unpriced ? "시세 없음 · 1개 값" : "1개 값"}</span>
+              <input
+                type="number"
+                inputMode="decimal"
+                name={`unit-${line.unitKey}`}
+                autoComplete="off"
+                min={0}
+                placeholder="0"
+                value={manual[line.unitKey] ?? ""}
+                aria-label={`${line.label} 1개 값(골드)`}
+                onChange={(e) => setManual((m) => ({ ...m, [line.unitKey]: e.target.value.replace(/[^\d.]/g, "") }))}
+              />
+            </label>
+          ) : (
+            <span>{line.unit == null ? "시세 대기…" : `1개 ${unitText(line.unit)}G`}</span>
+          )}
+        </span>
+      )}
+      <span className={styles.amount}>{line.notChosen ? "셈 안 함" : `${goldText(line.value)}G`}</span>
+    </li>
+  );
+}
+
+/** A base item every box gives: like a box item, its own value when no price came back. */
+function BaseItemLine({
+  line,
+  manual,
+  setManual,
+}: {
+  line: BaseLine;
+  manual: Record<string, string>;
+  setManual: Dispatch<SetStateAction<Record<string, string>>>;
+}) {
+  return (
+    <li>
+      <span className={styles.item}>
+        <strong>
+          {line.label} <b>×{goldText(line.qty)}</b>
+        </strong>
+        <small>{line.unpriced ? "시세 없음 · 직접 정한 값" : "기본 보상 · 거래 가능 여부 확인 전"}</small>
+      </span>
+      <span className={styles.unit}>
+        {line.unpriced ? (
+          <label>
+            <span>시세 없음 · 1개 값</span>
+            <input
+              type="number"
+              inputMode="decimal"
+              name={`unit-${line.unitKey}`}
+              autoComplete="off"
+              min={0}
+              placeholder="0"
+              value={manual[line.unitKey] ?? ""}
+              aria-label={`${line.label} 1개 값(골드)`}
+              onChange={(e) => setManual((m) => ({ ...m, [line.unitKey]: e.target.value.replace(/[^\d.]/g, "") }))}
+            />
+          </label>
+        ) : (
+          <span>{line.unit == null ? "시세 대기…" : `1개 ${unitText(line.unit)}G`}</span>
+        )}
+      </span>
+      <span className={styles.amount}>{`${goldText(line.value)}G`}</span>
+    </li>
+  );
+}
+
 export function HellRewardTool() {
   // Kept in the address (#889): back, reload and a shared link come back with them.
   const [kind, setKind] = useUrlState<HellKind>("kind", "hell", oneOfCodec(["hell", "abyss"] as const));
@@ -57,6 +159,8 @@ export function HellRewardTool() {
   // Per unit and per item (keyed by item name, lib unitKey): the same item keeps its value
   // across kinds, levels and stages; a different item at another level does not take it.
   const [manual, setManual] = useState<Record<string, string>>({});
+  // 풍요: the base of the opened box ×10 (PM 총괄 11-10).
+  const [abundance, setAbundance] = useState(false);
   const stageId = useId();
   const basisId = useId();
 
@@ -89,13 +193,33 @@ export function HellRewardTool() {
   };
   const settled = levelItems(kind, level);
   const loaded = !!prices.data;
-  const value = stageValue(stageReward(kind, level, stage)!, marketPrice, manualValue, settled, loaded, `${kind}:${level}`);
-  const perStage = STAGES.map((s) => stageValue(stageReward(kind, level, s)!, marketPrice, manualValue, settled, loaded, `${kind}:${level}`).total);
+  const valueAt = (s: number) => stageValue(stageReward(kind, level, s)!, marketPrice, manualValue, settled, loaded, `${kind}:${level}`);
+  const baseAt = (s: number) => {
+    const items = stageBase(kind, level, s);
+    return items ? baseValue(items, marketPrice, abundance, manualValue, loaded) : null;
+  };
+  const value = valueAt(stage);
+  const base = baseAt(stage);
+  // One key opens ONE box: the boxes ranked, the best first (never the sum of all boxes).
+  const ranked = rankBoxes(value, base);
+  // The list order follows the user's own choices (kind, level, stage, 풍요, typed values) and
+  // the first prices, not every price refresh: a new basis or the minute refresh could reorder
+  // boxes of different heights with no input (CLS). Values update in place; the headline always
+  // names the best box now. Adjusted during render (derived state), no effect.
+  const [resort, setResort] = useState(0);
+  const orderKey = `${kind}|${level}|${stage}|${abundance}|${loaded}|${resort}|${JSON.stringify(manual)}`;
+  const [order, setOrder] = useState({ key: "", ids: [] as string[] });
+  if (order.key !== orderKey) setOrder({ key: orderKey, ids: ranked.map((b) => b.id) });
+  const view = heldView(ranked, order.key === orderKey ? order.ids : ranked.map((b) => b.id));
+  const boxes = view.list;
+  const best = view.best;
+  const perStage = STAGES.map((s) => rankBoxes(valueAt(s), baseAt(s))[0]?.value ?? 0);
   const failure =
     prices.error instanceof MarketQueryError ? prices.error.info : prices.error ? { code: "LOST_ARK_API_ERROR", status: 502 } : null;
   const kindLabel = KINDS.find((k) => k.value === kind)!.label;
   // Counted lines valued by the user that still have no value: shown, never a silent 0 (PM 총괄 #1525).
-  const zeroManual = value.lines.filter((l) => !l.notChosen && (l.pricing.kind === "MANUAL" || l.unpriced) && !(l.unit ?? 0)).length;
+  const zeroManual = zeroManualCount(value, base);
+
 
   return (
     <div className={quote.page}>
@@ -170,86 +294,87 @@ export function HellRewardTool() {
                   </button>
                 </div>
               )}
-              {/* Each amount is one text ("47,695G"): as "47,695" + "G" the G node moved when the
-                  number grew (CLS when prices land). */}
+              {/* The headline is the best single box: one key opens one box (PM 총괄 11-10).
+                  Each amount is one text ("47,695G"; split, the G node moved as numbers grew). */}
               <dl className={styles.sums} aria-live="polite">
                 <div>
-                  <dt>합계</dt>
-                  <dd>{`${goldText(value.total)}G`}</dd>
+                  <dt>가장 좋은 상자</dt>
+                  <dd className={styles.boxName}>{best?.label ?? ""}</dd>
                 </div>
                 <div>
-                  <dt>시세로 매긴 것</dt>
-                  <dd>{`${goldText(value.market)}G`}</dd>
+                  <dt>그 상자의 값</dt>
+                  <dd>{`${goldText(best?.value ?? 0)}G`}</dd>
                 </div>
                 <div>
-                  <dt>귀속 골드</dt>
-                  <dd>{`${goldText(value.boundGold)}G`}</dd>
-                </div>
-                <div>
-                  <dt>직접 정한 값</dt>
-                  <dd>{`${goldText(value.manual)}G`}</dd>
+                  <dt>{abundance ? "기본 보상 (풍요 ×10)" : "기본 보상"}</dt>
+                  <dd>{base ? `${goldText(base.value)}G` : kind === "abyss" ? "없음" : "확인 중"}</dd>
                 </div>
               </dl>
-              {/* One short line, there from the first paint (it only changes its count). */}
+              <label className={styles.switch}>
+                <input type="checkbox" role="switch" checked={abundance} disabled={!base} onChange={(e) => setAbundance(e.target.checked)} />
+                <span>풍요(기본 보상 ×10)</span>
+              </label>
+              {/* Fixed lines, there from the first paint (only their numbers change). */}
+              <p className={styles.zero}>
+                {base
+                  ? "어느 상자를 열어도 기본 보상이 같이 나와요."
+                  : kind === "abyss"
+                    ? "나락 상자에는 기본 보상이 없어요."
+                    : "기본 보상은 수량 확인 중이라 상자 값에 아직 넣지 않았어요."}
+              </p>
               <p className={styles.zero}>{`직접 값 없이 0G로 센 품목 ${zeroManual}개`}</p>
-              <ul className={styles.lines} aria-label="보상 품목">
-                {value.lines.map((line) => {
-                  const pair = line.key === "destruction" || line.key === "guardian" || line.key === "destinyStone" || line.key === "chaosStone";
-                  return (
-                    <li key={line.key} data-not-chosen={line.notChosen || undefined}>
-                      <span className={styles.item}>
-                        <strong>
-                          {line.label} <b>×{goldText(line.qty)}</b>
-                        </strong>
-                        <small>
-                          {basisText(line)}
-                          {pair && " · 둘 중 하나만 셈"}
-                        </small>
-                      </span>
-                      {/* One slot per priced or user-valued line, drawn from the first paint at a
-                          fixed height: the unit price, a wait note, or the user's input when there
-                          is no price, so a price (or none) landing never adds height (CLS). */}
-                      {line.pricing.kind !== "BOUND_GOLD" && (
-                        <span className={styles.unit}>
-                          {line.pricing.kind === "MANUAL" || line.unpriced ? (
-                            <label>
-                              <span>{line.unpriced ? "시세 없음 · 1개 값" : "1개 값"}</span>
-                              <input
-                                type="number"
-                                inputMode="decimal"
-                                name={`unit-${line.unitKey}`}
-                                autoComplete="off"
-                                min={0}
-                                placeholder="0"
-                                value={manual[line.unitKey] ?? ""}
-                                aria-label={`${line.label} 1개 값(골드)`}
-                                onChange={(e) => setManual((m) => ({ ...m, [line.unitKey]: e.target.value.replace(/[^\d.]/g, "") }))}
-                              />
-                            </label>
-                          ) : (
-                            <span>{line.unit == null ? "시세 대기…" : `1개 ${unitText(line.unit)}G`}</span>
-                          )}
-                        </span>
-                      )}
-                      <span className={styles.amount}>{line.notChosen ? "셈 안 함" : `${goldText(line.value)}G`}</span>
-                    </li>
-                  );
-                })}
-              </ul>
+              {base && (
+                <ul className={styles.lines} aria-label="기본 보상(어느 상자든 함께)">
+                  {base.lines.map((line) => (
+                    <BaseItemLine key={line.unitKey} line={line} manual={manual} setManual={setManual} />
+                  ))}
+                </ul>
+              )}
+              {/* Always drawn (a button appearing would move the list). The order is held while
+                  only prices change; the headline above is always the best box now. */}
+              <p className={styles.order}>
+                <span aria-live="polite">{view.stale ? "시세가 바뀌어 지금 값과 순서가 달라요." : "지금 값 기준으로 좋은 순서예요."}</span>
+                <button type="button" className={quote.outlinePill} onClick={() => setResort((n) => n + 1)}>
+                  지금 시세로 다시 정렬
+                </button>
+              </p>
+              {/* Until prices land the order is not known yet: the list keeps its height but is not
+                  shown, so ranking the boxes when prices arrive moves nothing visible (CLS). Shown
+                  in table order if prices fail. */}
+              <ol
+                className={styles.boxes}
+                aria-label="상자별 값(좋은 순)"
+                data-waiting={!loaded && !failure ? "" : undefined}
+                aria-busy={!loaded && !failure ? true : undefined}
+              >
+                {boxes.map((box) => (
+                  <li key={box.id}>
+                    <p className={styles.boxHead}>
+                      <strong>{box.label}</strong>
+                      <span className={styles.amount}>{`${goldText(box.value)}G`}</span>
+                    </p>
+                    <ul className={styles.lines} aria-label={`${box.label} 품목`}>
+                      {box.lines.map((line) => (
+                        <ItemLine key={line.key} line={line} manual={manual} setManual={setManual} />
+                      ))}
+                    </ul>
+                  </li>
+                ))}
+              </ol>
             </section>
 
             <section className={styles.side} aria-labelledby="hell-stages-heading">
               <h2 id="hell-stages-heading" className={styles.sectionTitle}>
-                단계별 합계
+                단계별 가장 좋은 상자
               </h2>
               <table className={styles.table}>
                 <caption className={styles.sr}>
-                  {kindLabel} {level} 단계별 고정 보상 합계(지금 값 기준)
+                  {kindLabel} {level} 단계별 가장 좋은 상자의 값(지금 값 기준)
                 </caption>
                 <thead>
                   <tr>
                     <th scope="col">단계</th>
-                    <th scope="col">합계</th>
+                    <th scope="col">가장 좋은 상자</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -274,9 +399,9 @@ export function HellRewardTool() {
                 />
               </label>
               <p className={styles.note}>
-                열쇠 1개로 받는 단계별 고정 보상만 셈해요. 상자 보상과 확률, 풍요(×10), 무기 +25 · 페온 효과는 이 계산에
-                넣지 않았어요. 둘 중 하나를 고르는 보상은 값이 큰 쪽으로 셈하고, 시세가 없는 품목은 직접 정한 값(처음엔
-                0G)으로 셈해요.
+                열쇠 1개로 보이는 상자 가운데 하나를 열어요. 상자마다 그 안의 보상과 기본 보상을 더해 값이 큰 순서로
+                보여 줘요. 어떤 상자가 보일지는 셈하지 않았고, 무기 +25 · 페온 효과도 이 계산에 넣지 않았어요. 둘 중 하나를
+                고르는 보상은 값이 큰 쪽으로 셈하고, 시세가 없는 품목은 직접 정한 값(처음엔 0G)으로 셈해요.
               </p>
             </section>
           </div>

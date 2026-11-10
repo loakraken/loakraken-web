@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { HELL_DATA, MARKET_NAMES, checkHellData, gradeText, levelItems, stageReward, stageValue, unitKey } from "../lib/tools/hell-reward";
+import { HELL_DATA, MARKET_NAMES, baseValue, checkHellData, gradeText, heldView, levelItems, rankBoxes, stageBase, stageReward, stageValue, unitKey, zeroManualCount } from "../lib/tools/hell-reward";
 
 test("hell reward data: every kind and key level has stages 0-10, counts rise with the stage", () => {
   assert.deepEqual(checkHellData(HELL_DATA), []);
@@ -98,7 +98,7 @@ test("hell reward value: graded items keep one value per grade", () => {
   assert.equal(g.bracelet && unitKey("팔찌 상자", g.bracelet), "item:팔찌 상자:ANCIENT");
   assert.equal(g.gem && gradeText(g.gem), "희귀~영웅");
   // Only settled market items are ever priced: breaths everywhere, hell materials per key level.
-  assert.deepEqual(MARKET_NAMES, [
+  assert.deepEqual(MARKET_NAMES.slice(0, 14), [
     "용암의 숨결",
     "빙하의 숨결",
     "운명의 파괴석",
@@ -169,4 +169,141 @@ test("hell reward value: user values follow the item name, never the row positio
   // A graded item keeps its value across kinds (same item and grade).
   typed.set(line(high, "bracelet").unitKey, 900);
   assert.equal(line(value("abyss", 1750), "bracelet").unit, 900);
+});
+// PM 총괄 11-10: one key opens ONE box; each box = its own items + the base every box gives.
+test("hell reward boxes: each column is a box, ranked by its own value + the base, best first", () => {
+  const prices: Record<string, number> = {
+    "운명의 파괴석 결정": 10,
+    "운명의 수호석 결정": 4,
+    "위대한 운명의 돌파석": 50,
+    "상급 아비도스 융화 재료": 90,
+    "용암의 숨결": 300,
+    "빙하의 숨결": 100,
+  };
+  const market = (n: string) => prices[n] ?? null;
+  const stage = stageValue(stageReward("hell", 1750, 0)!, market, () => 0, levelItems("hell", 1750), true, "hell:1750");
+  const boxes = rankBoxes(stage, null);
+  // 지옥 1750 · 0: 11 columns but no 천상 도전권 at stage 0 → 10 boxes.
+  assert.equal(boxes.length, 10);
+  const byId = Object.fromEntries(boxes.map((b) => [b.id, b.value]));
+  // A choose-one box counts its higher half: 수호석 결정 1,800 × 4 = 7,200 > 파괴석 결정 600 × 10.
+  assert.equal(byId.stone, 1800 * 4);
+  assert.equal(byId.fusion, 75 * 90);
+  assert.equal(byId.breath, 12 * 300 + 36 * 100);
+  assert.equal(byId.gold, 5500);
+  assert.equal(byId.breakthrough, 30 * 50);
+  // Ranked best first; the headline is one box, never the sum of all boxes.
+  assert.deepEqual(boxes.map((b) => b.value), [...boxes.map((b) => b.value)].sort((a, b) => b - a));
+  assert.ok(boxes[0].value < stage.total);
+  // stone (7,200) ties breath (7,200): a tie keeps the table order, so stone is first.
+  assert.equal(boxes[0].id, "stone");
+  assert.equal(boxes[1].id, "breath");
+});
+
+test("hell reward boxes: the base is added to every box once; 풍요 multiplies only the base by 10", () => {
+  const prices: Record<string, number> = { "운명의 파편": 0.1, "운명의 파괴석": 5, "운명의 수호석": 2, "운명의 돌파석": 20, "빙하의 숨결": 100 };
+  const market = (n: string) => prices[n] ?? null;
+  const items = [
+    { label: "운명의 파편", qty: 3250, market: "운명의 파편" },
+    { label: "운명의 파괴석", qty: 55, market: "운명의 파괴석" },
+    { label: "운명의 수호석", qty: 375, market: "운명의 수호석" },
+    { label: "운명의 돌파석", qty: 5, market: "운명의 돌파석" },
+  ];
+  const plain = baseValue(items, market, false);
+  assert.equal(plain.value, 3250 * 0.1 + 55 * 5 + 375 * 2 + 5 * 20);
+  const rich = baseValue(items, market, true);
+  assert.equal(rich.value, plain.value * 10);
+  const stage = stageValue(stageReward("hell", 1640, 0)!, market, () => 0, levelItems("hell", 1640), true, "hell:1640");
+  const without = rankBoxes(stage, null);
+  const withBase = rankBoxes(stage, rich);
+  // Each box gains exactly the base (×10 here), its own items unchanged.
+  for (const box of withBase) {
+    const same = without.find((b) => b.id === box.id)!;
+    assert.equal(box.contents, same.contents);
+    assert.equal(box.value, same.contents + rich.value);
+  }
+});
+test("hell reward base: 지옥 only, per level and stage, cells checked against a second source", () => {
+  assert.deepEqual(checkHellData(HELL_DATA), []);
+  const qty = (level: number, stage: number) => stageBase("hell", level, stage)!.map((i) => i.qty);
+  // Cross-checked cells (레퍼런스 2026-11-10): stage 0 and 10 for 1640 / 1700, stage 0 for 1730 / 1750.
+  assert.deepEqual(qty(1640, 0), [3250, 55, 375, 5]);
+  assert.deepEqual(qty(1640, 10), [11250, 195, 1375, 30]);
+  assert.deepEqual(qty(1700, 0), [4500, 100, 625, 13]);
+  assert.deepEqual(qty(1700, 10), [15000, 350, 2250, 40]);
+  assert.deepEqual(qty(1730, 0), [5200, 26, 170, 4]);
+  // An in-game reward log: 1730 stage 9.
+  assert.deepEqual(qty(1730, 9), [17000, 100, 620, 13]);
+  // 1750 gives the same base as 1730; 1730+ items are the 결정 / 위대한 ones.
+  assert.deepEqual(qty(1750, 7), qty(1730, 7));
+  assert.deepEqual(stageBase("hell", 1750, 0)!.map((i) => i.market), ["운명의 파편", "운명의 파괴석 결정", "운명의 수호석 결정", "위대한 운명의 돌파석"]);
+  assert.equal(stageBase("hell", 1640, 0)![1].market, "운명의 파괴석");
+  // 나락 boxes have no base.
+  assert.equal(stageBase("abyss", 1640, 0), null);
+  assert.ok(MARKET_NAMES.includes("운명의 파편"));
+});
+// PM 총괄 11-10: the list order is held while only prices change, but the headline is never an old box.
+test("hell reward boxes: a held order keeps the list, the best box always follows the values now", () => {
+  const at = (prices: Record<string, number>) =>
+    rankBoxes(stageValue(stageReward("hell", 1750, 0)!, (n) => prices[n] ?? null, () => 0, levelItems("hell", 1750), true, "hell:1750"), null);
+  // First prices: 융화 (75 × 271) leads.
+  const first = at({ "상급 아비도스 융화 재료": 271, "빙하의 숨결": 430 });
+  assert.equal(first[0].id, "fusion");
+  const held = first.map((b) => b.id);
+  // New prices: 빙하 jumps, 재련 보조 is now the best box.
+  const now = at({ "상급 아비도스 융화 재료": 271, "빙하의 숨결": 1000 });
+  assert.equal(now[0].id, "breath");
+  const view = heldView(now, held);
+  assert.deepEqual(view.list.map((b) => b.id), held);
+  assert.equal(view.best!.id, "breath");
+  assert.equal(view.best!.value, 36 * 1000);
+  assert.equal(view.stale, true);
+  // Re-sorted (the user's re-sort): the list follows the values now and is not stale.
+  assert.equal(heldView(now, now.map((b) => b.id)).stale, false);
+  // codex #1536: a swap lower down (ranks 2 and 3) with the top unchanged is stale too.
+  assert.deepEqual(held.slice(0, 3), ["fusion", "breath", "gold"]);
+  const lower = at({ "상급 아비도스 융화 재료": 271, "빙하의 숨결": 100 });
+  assert.deepEqual(lower.slice(0, 3).map((b) => b.id), ["fusion", "gold", "breath"]);
+  const lowerView = heldView(lower, held);
+  assert.equal(lowerView.list[0].id, lowerView.best!.id);
+  assert.equal(lowerView.stale, true);
+  // Equal values in the held order are not stale.
+  assert.equal(heldView(first, held).stale, false);
+});
+// 계산 검증 #1536: an unpriced item that is both a box line and a base line is one item in the 0G count.
+test("hell reward: the 0G count counts each item once", () => {
+  const none = () => null;
+  const value = stageValue(stageReward("hell", 1750, 0)!, none, () => 0, levelItems("hell", 1750), true, "hell:1750");
+  const base = baseValue(stageBase("hell", 1750, 0)!, none, false, () => 0, true);
+  const shared = base.lines.filter((b) => value.lines.some((l) => !l.notChosen && l.unitKey === b.unitKey));
+  assert.ok(shared.length > 0, "some base item is also a counted box line");
+  const keys = new Set([
+    ...value.lines.filter((l) => !l.notChosen && (l.pricing.kind === "MANUAL" || l.unpriced) && !(l.unit ?? 0)).map((l) => l.unitKey),
+    ...base.lines.filter((l) => l.unpriced).map((l) => l.unitKey),
+  ]);
+  assert.equal(zeroManualCount(value, base), keys.size);
+  assert.ok(zeroManualCount(value, base) < value.lines.filter((l) => !l.notChosen && (l.pricing.kind === "MANUAL" || l.unpriced)).length + base.lines.length);
+});
+// 계산 검증 #1530: an unpriced base item takes the user's value, like a box item (never a silent 0).
+test("hell reward base: an item without a price takes the user's value once prices are back", () => {
+  const items = stageBase("hell", 1750, 0)!;
+  const prices: Record<string, number> = { "운명의 파괴석 결정": 9, "운명의 수호석 결정": 1.9, "위대한 운명의 돌파석": 33 };
+  const typed: Record<string, number> = { "item:운명의 파편": 0.1 };
+  // Prices not back yet: no price, not unpriced, counts 0.
+  const waiting = baseValue(items, () => null, false, (k) => typed[k] ?? 0, false);
+  assert.equal(waiting.lines[0].unit, null);
+  assert.equal(waiting.lines[0].unpriced, false);
+  // Back, 운명의 파편 has none: the user's value per fragment (5,200 × 0.1).
+  const back = baseValue(items, (n) => prices[n] ?? null, false, (k) => typed[k] ?? 0, true);
+  const shards = back.lines.find((l) => l.label === "운명의 파편")!;
+  assert.equal(shards.unpriced, true);
+  assert.equal(shards.unitKey, "item:운명의 파편");
+  assert.equal(shards.value, 5200 * 0.1);
+  assert.equal(back.value, 5200 * 0.1 + 26 * 9 + 170 * 1.9 + 4 * 33);
+  // 풍요 multiplies the quantity, the typed unit value stays per fragment.
+  assert.equal(baseValue(items, (n) => prices[n] ?? null, true, (k) => typed[k] ?? 0, true).lines[0].value, 52000 * 0.1);
+  // A base item that is also a box item shares the user's value (one key per item name).
+  const box = stageValue(stageReward("hell", 1750, 0)!, () => null, () => 0, levelItems("hell", 1750), true, "hell:1750");
+  const stoneLine = box.lines.find((l) => l.key === "destruction")!;
+  assert.equal(stoneLine.unitKey, back.lines.find((l) => l.label === "운명의 파괴석 결정")!.unitKey);
 });
