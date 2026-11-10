@@ -250,7 +250,7 @@ export function HellRewardTool() {
                 </div>
                 <div>
                   <dt>{abundance ? "기본 보상 (풍요 ×10)" : "기본 보상"}</dt>
-                  <dd>{base ? `${goldText(base.value)}G` : "확인 중"}</dd>
+                  <dd>{base ? `${goldText(base.value)}G` : kind === "abyss" ? "없음" : "확인 중"}</dd>
                 </div>
               </dl>
               <label className={styles.switch}>
@@ -259,7 +259,11 @@ export function HellRewardTool() {
               </label>
               {/* Fixed lines, there from the first paint (only their numbers change). */}
               <p className={styles.zero}>
-                {base ? "어느 상자를 열어도 기본 보상이 같이 나와요." : "기본 보상은 수량 확인 중이라 상자 값에 아직 넣지 않았어요."}
+                {base
+                  ? "어느 상자를 열어도 기본 보상이 같이 나와요."
+                  : kind === "abyss"
+                    ? "나락 상자에는 기본 보상이 없어요."
+                    : "기본 보상은 수량 확인 중이라 상자 값에 아직 넣지 않았어요."}
               </p>
               <p className={styles.zero}>{`직접 값 없이 0G로 센 품목 ${zeroManual}개`}</p>
               {/* Until prices land the order is not known yet: the list keeps its height but is not

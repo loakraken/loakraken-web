@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { HELL_DATA, MARKET_NAMES, baseValue, checkHellData, gradeText, levelItems, rankBoxes, stageReward, stageValue, unitKey } from "../lib/tools/hell-reward";
+import { HELL_DATA, MARKET_NAMES, baseValue, checkHellData, gradeText, levelItems, rankBoxes, stageBase, stageReward, stageValue, unitKey } from "../lib/tools/hell-reward";
 
 test("hell reward data: every kind and key level has stages 0-10, counts rise with the stage", () => {
   assert.deepEqual(checkHellData(HELL_DATA), []);
@@ -98,7 +98,7 @@ test("hell reward value: graded items keep one value per grade", () => {
   assert.equal(g.bracelet && unitKey("팔찌 상자", g.bracelet), "item:팔찌 상자:ANCIENT");
   assert.equal(g.gem && gradeText(g.gem), "희귀~영웅");
   // Only settled market items are ever priced: breaths everywhere, hell materials per key level.
-  assert.deepEqual(MARKET_NAMES, [
+  assert.deepEqual(MARKET_NAMES.slice(0, 14), [
     "용암의 숨결",
     "빙하의 숨결",
     "운명의 파괴석",
@@ -222,4 +222,23 @@ test("hell reward boxes: the base is added to every box once; 풍요 multiplies 
     assert.equal(box.contents, same.contents);
     assert.equal(box.value, same.contents + rich.value);
   }
+});
+test("hell reward base: 지옥 only, per level and stage, cells checked against a second source", () => {
+  assert.deepEqual(checkHellData(HELL_DATA), []);
+  const qty = (level: number, stage: number) => stageBase("hell", level, stage)!.map((i) => i.qty);
+  // Cross-checked cells (레퍼런스 2026-11-10): stage 0 and 10 for 1640 / 1700, stage 0 for 1730 / 1750.
+  assert.deepEqual(qty(1640, 0), [3250, 55, 375, 5]);
+  assert.deepEqual(qty(1640, 10), [11250, 195, 1375, 30]);
+  assert.deepEqual(qty(1700, 0), [4500, 100, 625, 13]);
+  assert.deepEqual(qty(1700, 10), [15000, 350, 2250, 40]);
+  assert.deepEqual(qty(1730, 0), [5200, 26, 170, 4]);
+  // An in-game reward log: 1730 stage 9.
+  assert.deepEqual(qty(1730, 9), [17000, 100, 620, 13]);
+  // 1750 gives the same base as 1730; 1730+ items are the 결정 / 위대한 ones.
+  assert.deepEqual(qty(1750, 7), qty(1730, 7));
+  assert.deepEqual(stageBase("hell", 1750, 0)!.map((i) => i.market), ["운명의 파편", "운명의 파괴석 결정", "운명의 수호석 결정", "위대한 운명의 돌파석"]);
+  assert.equal(stageBase("hell", 1640, 0)![1].market, "운명의 파괴석");
+  // 나락 boxes have no base.
+  assert.equal(stageBase("abyss", 1640, 0), null);
+  assert.ok(MARKET_NAMES.includes("운명의 파편"));
 });

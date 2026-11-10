@@ -37,6 +37,8 @@ export type HellData = {
   keyLevels: number[];
   /** Per kind and key level, the market item a column is, where settled; `bound`: the ones an in-game text shows as bound. */
   marketItems: Record<HellKind, Record<string, { _note: string; bound: (keyof StageReward)[]; items: Partial<Record<keyof StageReward, string>> }>>;
+  /** Source id of the base table. */
+  baseSource?: string;
   /** Base items per kind, key level and stage, once their source is transcribed (optional). */
   base?: Partial<Record<HellKind, Record<string, { stage: number; items: { label: string; qty: number; market: string }[] }[]>>>;
   hell: Record<string, { stage: number; reward: StageReward }[]>;
@@ -93,6 +95,9 @@ export const MARKET_NAMES = [
   ...new Set([
     ...COLUMNS.flatMap((c) => (c.pricing.kind === "MARKET" ? [c.pricing.name] : [])),
     ...Object.values(HELL_DATA.marketItems).flatMap((levels) => Object.values(levels).flatMap((l) => Object.values(l.items) as string[])),
+    ...Object.values(HELL_DATA.base ?? {}).flatMap((levels) =>
+      Object.values(levels ?? {}).flatMap((stages) => stages.flatMap((s) => s.items.map((i) => i.market))),
+    ),
   ]),
 ];
 
@@ -279,6 +284,20 @@ export function baseValue(
 /** Consistency problems; the test suite expects none. */
 export function checkHellData(data: HellData): string[] {
   const problems: string[] = [];
+  if (data.base) {
+    if (!data.baseSource || !data.sources[data.baseSource]) problems.push("base: unknown source");
+    for (const [kind, levels] of Object.entries(data.base))
+      for (const [level, stages] of Object.entries(levels ?? {})) {
+        if (stages.length !== 11 || stages.some((s, i) => s.stage !== i)) problems.push(`base ${kind} ${level}: stages 0-10 expected`);
+        // A higher stage never gives less of the same base item.
+        stages.forEach((s, i) =>
+          s.items.forEach((item, j) => {
+            if (!Number.isInteger(item.qty) || item.qty <= 0) problems.push(`base ${kind} ${level} ${s.stage} ${item.label}: bad qty`);
+            if (i > 0 && item.qty < stages[i - 1].items[j].qty) problems.push(`base ${kind} ${level} ${s.stage} ${item.label}: lower than stage before`);
+          }),
+        );
+      }
+  }
   const source = data.sources[data.source];
   if (!source) problems.push(`unknown source ${data.source}`);
   else if (source.url === null && !(source.kind === "COMMUNITY" && source._note?.includes("내부 기록")))
