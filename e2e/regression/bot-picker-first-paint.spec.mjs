@@ -49,7 +49,8 @@ for (const width of [320, 360, 390, 1280])
   test(`@A7 ${width} 봇 바꾸기: 단추 글자가 늦게 와도 단추가 움직이지 않는다 @regression`, async ({ page }) => {
     await page.setViewportSize({ width, height: 1000 });
     await gotoReady(page, "/");
-    await expect(page.getByRole("button", { name: "봇 바꾸기" })).toBeVisible();
+    // 숨긴 크기용 글자(data-label)는 이름에 들어가지 않는다: 이름은 정확히 한 번.
+    await expect(page.getByRole("button", { name: "봇 바꾸기", exact: true })).toBeVisible();
     const late = await labelArriving(page);
     expect(late.found).toBe(true);
     expect(late.value, `늦게 온 글자가 민 것 (${late.moved})`).toBe(0);
