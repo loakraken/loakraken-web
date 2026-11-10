@@ -25,6 +25,18 @@ export function isAccessorySearchEnabled(env: Env = process.env) {
   return !isProductionHost(env.SITE_URL);
 }
 
+/**
+ * 지옥 · 나락 보상 (빈틈 #3) stays hidden on production until 계산 검증 passes the
+ * values (PM 총괄 11-09). `HELL_REWARD_TOOL=on|off` overrides, otherwise hidden
+ * only on the production host.
+ */
+export function isHellRewardEnabled(env: Env = process.env) {
+  const flag = env.HELL_REWARD_TOOL?.trim().toLowerCase();
+  if (flag === "on") return true;
+  if (flag === "off") return false;
+  return !isProductionHost(env.SITE_URL);
+}
+
 export function isCritSpeedEnabled(env: Env = process.env) {
   const flag = env.CRIT_SPEED_TOOL?.trim().toLowerCase();
   if (flag === "on") return true;

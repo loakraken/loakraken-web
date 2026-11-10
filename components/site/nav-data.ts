@@ -8,7 +8,7 @@ export type NavLink = {
   /** Shown only when this runtime flag is on (lib/tools/flags.ts, /api/flags). */
   flag?: NavFlag;
 };
-export type NavFlag = "critSpeed" | "combatPower" | "accessorySearch" | "priceAlerts";
+export type NavFlag = "critSpeed" | "combatPower" | "accessorySearch" | "priceAlerts" | "hellReward";
 export type NavFlags = Partial<Record<NavFlag, boolean>>;
 export type NavSection = {
   id: string;
@@ -92,7 +92,7 @@ export const NAV_SECTIONS: NavSection[] = [
     label: "성장 도구",
     // "/tools$": the tool list itself (exact; a bare prefix would also take the
     // tools filed under other menus, such as /tools/accessory-search).
-    match: ["/tools$", "/tools/combat-power", "/tools/refining", "/tools/crit-speed", "/tools/auction", "/tools/loa-shop", "/tools/abidos-craft", "/tools/life-energy", "/tools/raid-rewards", "/tools/more-reward", "/tools/contribution", "/tools/raid-cheatsheet"],
+    match: ["/tools$", "/tools/combat-power", "/tools/refining", "/tools/crit-speed", "/tools/auction", "/tools/loa-shop", "/tools/abidos-craft", "/tools/life-energy", "/tools/raid-rewards", "/tools/more-reward", "/tools/hell-reward", "/tools/contribution", "/tools/raid-cheatsheet"],
     all: { label: "도구 전체 보기", description: "모든 성장 도구를 한눈에", href: "/tools" },
     // The three hubs by the job the user comes with (user 10-25: grow the
     // character, prepare the week's raids, earn or save gold); each tool is a
@@ -119,6 +119,7 @@ export const NAV_SECTIONS: NavSection[] = [
       { label: "치적·뭉가·음돌", description: "치명·신속 목표까지 필요한 스탯", href: "/tools/crit-speed", flag: "critSpeed" },
       { label: "레이드 보상표", description: "관문별 골드·더보기 비용", href: "/tools/raid-rewards" },
       { label: "더보기 손익", description: "관문마다 더보기가 남는지 지금 시세로", href: "/tools/more-reward" },
+      { label: "지옥 · 나락 보상", description: "열쇠 단계별 고정 보상을 지금 시세로", href: "/tools/hell-reward", flag: "hellReward" },
       { label: "경매 입찰가", description: "파티 인원별 손익 분기와 선점가", href: "/tools/auction" },
       { label: "기여도 계산기", description: "내 피해량이 관문 기준에서 어디쯤인지", href: "/tools/contribution" },
       { label: "레이드 컨닝페이퍼", description: "관문마다 주요 패턴과 대응", href: "/tools/raid-cheatsheet" },
@@ -209,6 +210,8 @@ export const HUBS: Record<HubId, { label: string; tabs: HubTab[] }> = {
       { label: "경매 입찰가", href: "/tools/auction" },
       { label: "기여도", href: "/tools/contribution" },
       { label: "컨닝페이퍼", href: "/tools/raid-cheatsheet" },
+      // Flagged: last, so the tabs on screen never move when it joins.
+      { label: "지옥 · 나락", href: "/tools/hell-reward", flag: "hellReward" },
     ],
   },
   gold: {
