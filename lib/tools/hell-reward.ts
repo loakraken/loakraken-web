@@ -37,6 +37,10 @@ export type HellData = {
   keyLevels: number[];
   /** Per kind and key level, the market item a column is, where settled; `bound`: the ones an in-game text shows as bound. */
   marketItems: Record<HellKind, Record<string, { _note: string; bound: (keyof StageReward)[]; items: Partial<Record<keyof StageReward, string>> }>>;
+  /** Source id of the base table. */
+  baseSource?: string;
+  /** Base items per kind, key level and stage, once their source is transcribed (optional). */
+  base?: Partial<Record<HellKind, Record<string, { stage: number; items: { label: string; qty: number; market: string }[] }[]>>>;
   hell: Record<string, { stage: number; reward: StageReward }[]>;
   abyss: Record<string, { stage: number; reward: StageReward }[]>;
 };
@@ -91,6 +95,9 @@ export const MARKET_NAMES = [
   ...new Set([
     ...COLUMNS.flatMap((c) => (c.pricing.kind === "MARKET" ? [c.pricing.name] : [])),
     ...Object.values(HELL_DATA.marketItems).flatMap((levels) => Object.values(levels).flatMap((l) => Object.values(l.items) as string[])),
+    ...Object.values(HELL_DATA.base ?? {}).flatMap((levels) =>
+      Object.values(levels ?? {}).flatMap((stages) => stages.flatMap((s) => s.items.map((i) => i.market))),
+    ),
   ]),
 ];
 
@@ -202,9 +209,95 @@ export function stageValue(
   };
 }
 
+/**
+ * One key opens ONE of the boxes offered (official notice for 나락, a community post for
+ * 지옥; PM 총괄 11-10): each table column is one box. A choose-one pair stays inside its box.
+ */
+export const BOXES: { id: string; label: string; keys: (keyof StageReward)[] }[] = [
+  { id: "stone", label: "파괴석 · 수호석 상자", keys: ["destruction", "guardian"] },
+  { id: "breakthrough", label: "돌파석 상자", keys: ["breakthrough"] },
+  { id: "fusion", label: "융화 재료 상자", keys: ["fusion"] },
+  { id: "breath", label: "재련 보조 상자", keys: ["lava", "glacier"] },
+  { id: "gold", label: "귀속 골드 상자", keys: ["boundGold"] },
+  { id: "kit", label: "어빌리티 스톤 키트 상자", keys: ["stoneKit"] },
+  { id: "bracelet", label: "팔찌 상자", keys: ["bracelet"] },
+  { id: "special", label: "특수 재련 상자", keys: ["specialRefine"] },
+  { id: "heaven", label: "천상 도전권 상자", keys: ["heavenTicket"] },
+  { id: "gem", label: "젬 상자", keys: ["gem"] },
+  { id: "destiny", label: "운명 · 혼돈의 돌 상자", keys: ["destinyStone", "chaosStone"] },
+  { id: "engraving", label: "각인서 상자", keys: ["engraving"] },
+  { id: "boundGem", label: "보석 상자", keys: ["boundGem"] },
+  { id: "card", label: "카드팩 상자", keys: ["cardPack"] },
+];
+
+/** The base ('(기본)') materials every opened box also gives, valued once (×10 with 풍요). */
+export type BaseValue = { lines: { label: string; qty: number; unit: number | null; value: number }[]; value: number };
+
+export type BoxValue = {
+  id: string;
+  label: string;
+  lines: StageLine[];
+  /** The box's own items (choose-one pairs: the counted half). */
+  contents: number;
+  /** contents + the base (null base: contents only). */
+  value: number;
+};
+
+/**
+ * The boxes of one stage, best first (ties keep the table order). Each box is worth its own
+ * items plus the base every box gives; the base is null where its amounts are not in the data.
+ */
+export function rankBoxes(stage: StageValue, base: BaseValue | null): BoxValue[] {
+  const boxes = BOXES.flatMap((box) => {
+    const lines = stage.lines.filter((l) => box.keys.includes(l.key));
+    if (!lines.length) return [];
+    const contents = lines.filter((l) => !l.notChosen).reduce((n, l) => n + l.value, 0);
+    return [{ id: box.id, label: box.label, lines, contents, value: contents + (base?.value ?? 0) }];
+  });
+  return boxes.map((b, i) => ({ b, i })).sort((x, y) => y.b.value - x.b.value || x.i - y.i).map(({ b }) => b);
+}
+
+export type BaseItem = { label: string; qty: number; market: string };
+
+/**
+ * The base ('(기본)') items of one kind, key level and stage, or null while their amounts
+ * are not in the data file (the page then says so; never an unlabelled base).
+ */
+export function stageBase(kind: HellKind, keyLevel: number, stage: number): BaseItem[] | null {
+  return HELL_DATA.base?.[kind]?.[String(keyLevel)]?.find((s) => s.stage === stage)?.items ?? null;
+}
+
+/** Base items with a market name each, valued; `abundance` (풍요) multiplies the quantities by 10. */
+export function baseValue(
+  items: { label: string; qty: number; market: string }[],
+  market: (name: string) => number | null,
+  abundance: boolean,
+): BaseValue {
+  const lines = items.map((item) => {
+    const qty = item.qty * (abundance ? 10 : 1);
+    const unit = market(item.market);
+    return { label: item.label, qty, unit, value: (unit ?? 0) * qty };
+  });
+  return { lines, value: lines.reduce((n, l) => n + l.value, 0) };
+}
+
 /** Consistency problems; the test suite expects none. */
 export function checkHellData(data: HellData): string[] {
   const problems: string[] = [];
+  if (data.base) {
+    if (!data.baseSource || !data.sources[data.baseSource]) problems.push("base: unknown source");
+    for (const [kind, levels] of Object.entries(data.base))
+      for (const [level, stages] of Object.entries(levels ?? {})) {
+        if (stages.length !== 11 || stages.some((s, i) => s.stage !== i)) problems.push(`base ${kind} ${level}: stages 0-10 expected`);
+        // A higher stage never gives less of the same base item.
+        stages.forEach((s, i) =>
+          s.items.forEach((item, j) => {
+            if (!Number.isInteger(item.qty) || item.qty <= 0) problems.push(`base ${kind} ${level} ${s.stage} ${item.label}: bad qty`);
+            if (i > 0 && item.qty < stages[i - 1].items[j].qty) problems.push(`base ${kind} ${level} ${s.stage} ${item.label}: lower than stage before`);
+          }),
+        );
+      }
+  }
   const source = data.sources[data.source];
   if (!source) problems.push(`unknown source ${data.source}`);
   else if (source.url === null && !(source.kind === "COMMUNITY" && source._note?.includes("내부 기록")))
