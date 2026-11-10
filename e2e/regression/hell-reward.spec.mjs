@@ -34,6 +34,34 @@ for (const width of [1280, 360, 320])
     await page.waitForTimeout(600);
     const first = await shiftsSince(page);
     expect(first.all, `시세 도착 흔들림 (${first.moved})`).toBe(0);
+    // 시세 기준을 바꿔도 상자 순서는 그대로, 값만 바뀐다(새 시세가 늦게 와도 움직이지 않음, PM-프론트 #1530 P2).
+    const order = await list.locator(":scope > li > p strong").allInnerTexts();
+    const mark = await page.evaluate(() => performance.now());
+    await chooseOption(page, page.getByRole("combobox", { name: "시세 기준" }), "현재 최저가");
+    await expect(page.locator("[data-stale]")).toHaveCount(0);
+    await page.waitForTimeout(1200);
+    const switched = await shiftsSince(page, mark);
+    expect(switched.all, `시세 기준 전환 흔들림 (${switched.moved})`).toBe(0);
+    expect(await list.locator(":scope > li > p strong").allInnerTexts()).toEqual(order);
+    // 머리글은 늘 지금 값의 가장 좋은 상자, 순서 안내와 다시 정렬 단추는 처음부터 있다.
+    await expect(bestName).toHaveText(order[0]);
+    const note = page.getByText("지금 값 기준으로 좋은 순서예요.", { exact: true });
+    await expect(note).toBeVisible();
+    // The stale text (any pair out of order, codex #1536) keeps the line's height at every width:
+    // swap the text node's value in place, compare, put it back.
+    const noteHeight = () => note.evaluate((el) => el.getBoundingClientRect().height);
+    const calm = await noteHeight();
+    const staleHeight = await note.evaluate((el) => {
+      const node = el.firstChild;
+      const was = node.nodeValue;
+      node.nodeValue = "시세가 바뀌어 지금 값과 순서가 달라요.";
+      const h = el.getBoundingClientRect().height;
+      node.nodeValue = was;
+      return h;
+    });
+    expect(staleHeight, "stale 문구 높이").toBe(calm);
+    await page.getByRole("button", { name: "지금 시세로 다시 정렬" }).click();
+    expect(await list.locator(":scope > li > p strong").allInnerTexts()).toEqual(order);
 
     // 직접 정한 값은 그 품목의 상자에만: 고대 팔찌 1개 100G → 팔찌 상자 400 + 1,091, 용암 1개 10G → 재련 보조 16,691.
     await page.getByRole("spinbutton", { name: "팔찌 상자 (고대) 1개 값(골드)" }).fill("100");

@@ -88,6 +88,22 @@
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
+/* The order note and re-sort button: one row, the note held at two lines (it can change). */
+.order {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px 12px;
+  margin: 0 0 8px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.order > span {
+  min-height: calc(2 * 1.5em);
+  display: flex;
+  align-items: center;
+}
 /* Ranked boxes: each a head (name, value) over its items. */
 .boxes {
   display: grid;

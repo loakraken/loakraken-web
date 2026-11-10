@@ -231,7 +231,18 @@ export const BOXES: { id: string; label: string; keys: (keyof StageReward)[] }[]
 ];
 
 /** The base ('(기본)') materials every opened box also gives, valued once (×10 with 풍요). */
-export type BaseValue = { lines: { label: string; qty: number; unit: number | null; value: number }[]; value: number };
+export type BaseLine = {
+  label: string;
+  /** By item name: the same item as a box line shares the user's value. */
+  unitKey: string;
+  qty: number;
+  /** 1 unit's value; null while prices are not in yet. */
+  unit: number | null;
+  value: number;
+  /** No price came back: the user's value, 0 until set (계산 검증 #1530; the same path as box lines). */
+  unpriced: boolean;
+};
+export type BaseValue = { lines: BaseLine[]; value: number };
 
 export type BoxValue = {
   id: string;
@@ -267,16 +278,48 @@ export function stageBase(kind: HellKind, keyLevel: number, stage: number): Base
   return HELL_DATA.base?.[kind]?.[String(keyLevel)]?.find((s) => s.stage === stage)?.items ?? null;
 }
 
+/**
+ * The boxes in a held order (set by the user's last choice or re-sort; a price refresh does
+ * not move them, PM-프론트 #1530 P2), and the best box by the values now. The headline always
+ * takes `best`, so it is never an old box after prices change (PM 총괄 11-10). Boxes not in
+ * the held order (none in practice) follow at the end.
+ */
+export function heldView(ranked: BoxValue[], held: string[]) {
+  const list = [...held.flatMap((id) => ranked.filter((b) => b.id === id)), ...ranked.filter((b) => !held.includes(b.id))];
+  // Stale when ANY neighbour pair is out of order now (codex #1536: not only the top box); equal
+  // values in either order are not stale.
+  const stale = list.some((b, i) => i > 0 && list[i - 1].value < b.value);
+  return { list, best: ranked[0] ?? null, stale };
+}
+
+/**
+ * Items valued by the user that still count 0G: shown, never a silent 0 (PM 총괄 #1525). One
+ * item can be both a box line and a base line under one key: counted once (계산 검증 #1536).
+ */
+export function zeroManualCount(value: StageValue, base: { lines: BaseLine[] } | null) {
+  const keys = new Set<string>();
+  for (const l of value.lines)
+    if (!l.notChosen && (l.pricing.kind === "MANUAL" || l.unpriced) && !(l.unit ?? 0)) keys.add(l.unitKey);
+  for (const l of base?.lines ?? []) if (l.unpriced && !(l.unit ?? 0)) keys.add(l.unitKey);
+  return keys.size;
+}
+
 /** Base items with a market name each, valued; `abundance` (풍요) multiplies the quantities by 10. */
 export function baseValue(
   items: { label: string; qty: number; market: string }[],
   market: (name: string) => number | null,
   abundance: boolean,
+  manual: (unitKey: string) => number = () => 0,
+  /** Prices have come back (an item without one then takes the user's value). */
+  loaded = true,
 ): BaseValue {
   const lines = items.map((item) => {
     const qty = item.qty * (abundance ? 10 : 1);
-    const unit = market(item.market);
-    return { label: item.label, qty, unit, value: (unit ?? 0) * qty };
+    const key = unitKey(item.market, qty);
+    const price = market(item.market);
+    const unpriced = price == null && loaded;
+    const unit = unpriced ? manual(key) : price;
+    return { label: item.label, unitKey: key, qty, unit, value: (unit ?? 0) * qty, unpriced };
   });
   return { lines, value: lines.reduce((n, l) => n + l.value, 0) };
 }
