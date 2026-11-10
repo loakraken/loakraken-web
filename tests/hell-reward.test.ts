@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { HELL_DATA, MARKET_NAMES, baseValue, checkHellData, gradeText, levelItems, rankBoxes, stageBase, stageReward, stageValue, unitKey } from "../lib/tools/hell-reward";
+import { HELL_DATA, MARKET_NAMES, baseValue, checkHellData, gradeText, heldView, levelItems, rankBoxes, stageBase, stageReward, stageValue, unitKey } from "../lib/tools/hell-reward";
 
 test("hell reward data: every kind and key level has stages 0-10, counts rise with the stage", () => {
   assert.deepEqual(checkHellData(HELL_DATA), []);
@@ -241,4 +241,23 @@ test("hell reward base: 지옥 only, per level and stage, cells checked against 
   // 나락 boxes have no base.
   assert.equal(stageBase("abyss", 1640, 0), null);
   assert.ok(MARKET_NAMES.includes("운명의 파편"));
+});
+// PM 총괄 11-10: the list order is held while only prices change, but the headline is never an old box.
+test("hell reward boxes: a held order keeps the list, the best box always follows the values now", () => {
+  const at = (prices: Record<string, number>) =>
+    rankBoxes(stageValue(stageReward("hell", 1750, 0)!, (n) => prices[n] ?? null, () => 0, levelItems("hell", 1750), true, "hell:1750"), null);
+  // First prices: 융화 (75 × 271) leads.
+  const first = at({ "상급 아비도스 융화 재료": 271, "빙하의 숨결": 430 });
+  assert.equal(first[0].id, "fusion");
+  const held = first.map((b) => b.id);
+  // New prices: 빙하 jumps, 재련 보조 is now the best box.
+  const now = at({ "상급 아비도스 융화 재료": 271, "빙하의 숨결": 1000 });
+  assert.equal(now[0].id, "breath");
+  const view = heldView(now, held);
+  assert.deepEqual(view.list.map((b) => b.id), held);
+  assert.equal(view.best!.id, "breath");
+  assert.equal(view.best!.value, 36 * 1000);
+  assert.equal(view.stale, true);
+  // Re-sorted (the user's re-sort): the list follows the values now and is not stale.
+  assert.equal(heldView(now, now.map((b) => b.id)).stale, false);
 });

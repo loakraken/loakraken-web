@@ -43,6 +43,11 @@ for (const width of [1280, 360, 320])
     const switched = await shiftsSince(page, mark);
     expect(switched.all, `시세 기준 전환 흔들림 (${switched.moved})`).toBe(0);
     expect(await list.locator(":scope > li > p strong").allInnerTexts()).toEqual(order);
+    // 머리글은 늘 지금 값의 가장 좋은 상자, 순서 안내와 다시 정렬 단추는 처음부터 있다.
+    await expect(bestName).toHaveText(order[0]);
+    await expect(page.getByText("좋은 순서예요.")).toBeVisible();
+    await page.getByRole("button", { name: "지금 시세로 다시 정렬" }).click();
+    expect(await list.locator(":scope > li > p strong").allInnerTexts()).toEqual(order);
 
     // 직접 정한 값은 그 품목의 상자에만: 고대 팔찌 1개 100G → 팔찌 상자 400 + 1,091, 용암 1개 10G → 재련 보조 16,691.
     await page.getByRole("spinbutton", { name: "팔찌 상자 (고대) 1개 값(골드)" }).fill("100");

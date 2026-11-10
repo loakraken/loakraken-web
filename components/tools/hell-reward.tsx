@@ -20,6 +20,7 @@ import {
   MARKET_NAMES,
   STAGES,
   baseValue,
+  heldView,
   levelItems,
   rankBoxes,
   stageBase,
@@ -160,12 +161,13 @@ export function HellRewardTool() {
   // the first prices, not every price refresh: a new basis or the minute refresh could reorder
   // boxes of different heights with no input (CLS). Values update in place; the headline always
   // names the best box now. Adjusted during render (derived state), no effect.
-  const orderKey = `${kind}|${level}|${stage}|${abundance}|${loaded}|${JSON.stringify(manual)}`;
+  const [resort, setResort] = useState(0);
+  const orderKey = `${kind}|${level}|${stage}|${abundance}|${loaded}|${resort}|${JSON.stringify(manual)}`;
   const [order, setOrder] = useState({ key: "", ids: [] as string[] });
   if (order.key !== orderKey) setOrder({ key: orderKey, ids: ranked.map((b) => b.id) });
-  const ids = order.key === orderKey ? order.ids : ranked.map((b) => b.id);
-  const boxes = [...ids.flatMap((id) => ranked.filter((b) => b.id === id)), ...ranked.filter((b) => !ids.includes(b.id))];
-  const best = ranked[0];
+  const view = heldView(ranked, order.key === orderKey ? order.ids : ranked.map((b) => b.id));
+  const boxes = view.list;
+  const best = view.best;
   const perStage = STAGES.map((s) => rankBoxes(valueAt(s), baseAt(s))[0]?.value ?? 0);
   const failure =
     prices.error instanceof MarketQueryError ? prices.error.info : prices.error ? { code: "LOST_ARK_API_ERROR", status: 502 } : null;
@@ -275,6 +277,14 @@ export function HellRewardTool() {
                     : "기본 보상은 수량 확인 중이라 상자 값에 아직 넣지 않았어요."}
               </p>
               <p className={styles.zero}>{`직접 값 없이 0G로 센 품목 ${zeroManual}개`}</p>
+              {/* Always drawn (a button appearing would move the list). The order is held while
+                  only prices change; the headline above is always the best box now. */}
+              <p className={styles.order}>
+                <span>{view.stale ? "시세가 바뀌어 맨 위 상자가 가장 좋은 상자가 아니에요." : "좋은 순서예요."}</span>
+                <button type="button" className={quote.outlinePill} onClick={() => setResort((n) => n + 1)}>
+                  지금 시세로 다시 정렬
+                </button>
+              </p>
               {/* Until prices land the order is not known yet: the list keeps its height but is not
                   shown, so ranking the boxes when prices arrive moves nothing visible (CLS). Shown
                   in table order if prices fail. */}

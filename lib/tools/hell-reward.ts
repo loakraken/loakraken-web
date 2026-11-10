@@ -267,6 +267,17 @@ export function stageBase(kind: HellKind, keyLevel: number, stage: number): Base
   return HELL_DATA.base?.[kind]?.[String(keyLevel)]?.find((s) => s.stage === stage)?.items ?? null;
 }
 
+/**
+ * The boxes in a held order (set by the user's last choice or re-sort; a price refresh does
+ * not move them, PM-프론트 #1530 P2), and the best box by the values now. The headline always
+ * takes `best`, so it is never an old box after prices change (PM 총괄 11-10). Boxes not in
+ * the held order (none in practice) follow at the end.
+ */
+export function heldView(ranked: BoxValue[], held: string[]) {
+  const list = [...held.flatMap((id) => ranked.filter((b) => b.id === id)), ...ranked.filter((b) => !held.includes(b.id))];
+  return { list, best: ranked[0] ?? null, stale: list[0]?.id !== ranked[0]?.id };
+}
+
 /** Base items with a market name each, valued; `abundance` (풍요) multiplies the quantities by 10. */
 export function baseValue(
   items: { label: string; qty: number; market: string }[],
