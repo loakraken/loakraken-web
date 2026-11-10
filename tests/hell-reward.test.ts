@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { HELL_DATA, MARKET_NAMES, baseValue, checkHellData, gradeText, heldView, levelItems, rankBoxes, stageBase, stageReward, stageValue, unitKey } from "../lib/tools/hell-reward";
+import { HELL_DATA, MARKET_NAMES, baseValue, checkHellData, gradeText, heldView, levelItems, rankBoxes, stageBase, stageReward, stageValue, unitKey, zeroManualCount } from "../lib/tools/hell-reward";
 
 test("hell reward data: every kind and key level has stages 0-10, counts rise with the stage", () => {
   assert.deepEqual(checkHellData(HELL_DATA), []);
@@ -260,6 +260,29 @@ test("hell reward boxes: a held order keeps the list, the best box always follow
   assert.equal(view.stale, true);
   // Re-sorted (the user's re-sort): the list follows the values now and is not stale.
   assert.equal(heldView(now, now.map((b) => b.id)).stale, false);
+  // codex #1536: a swap lower down (ranks 2 and 3) with the top unchanged is stale too.
+  assert.deepEqual(held.slice(0, 3), ["fusion", "breath", "gold"]);
+  const lower = at({ "상급 아비도스 융화 재료": 271, "빙하의 숨결": 100 });
+  assert.deepEqual(lower.slice(0, 3).map((b) => b.id), ["fusion", "gold", "breath"]);
+  const lowerView = heldView(lower, held);
+  assert.equal(lowerView.list[0].id, lowerView.best!.id);
+  assert.equal(lowerView.stale, true);
+  // Equal values in the held order are not stale.
+  assert.equal(heldView(first, held).stale, false);
+});
+// 계산 검증 #1536: an unpriced item that is both a box line and a base line is one item in the 0G count.
+test("hell reward: the 0G count counts each item once", () => {
+  const none = () => null;
+  const value = stageValue(stageReward("hell", 1750, 0)!, none, () => 0, levelItems("hell", 1750), true, "hell:1750");
+  const base = baseValue(stageBase("hell", 1750, 0)!, none, false, () => 0, true);
+  const shared = base.lines.filter((b) => value.lines.some((l) => !l.notChosen && l.unitKey === b.unitKey));
+  assert.ok(shared.length > 0, "some base item is also a counted box line");
+  const keys = new Set([
+    ...value.lines.filter((l) => !l.notChosen && (l.pricing.kind === "MANUAL" || l.unpriced) && !(l.unit ?? 0)).map((l) => l.unitKey),
+    ...base.lines.filter((l) => l.unpriced).map((l) => l.unitKey),
+  ]);
+  assert.equal(zeroManualCount(value, base), keys.size);
+  assert.ok(zeroManualCount(value, base) < value.lines.filter((l) => !l.notChosen && (l.pricing.kind === "MANUAL" || l.unpriced)).length + base.lines.length);
 });
 // 계산 검증 #1530: an unpriced base item takes the user's value, like a box item (never a silent 0).
 test("hell reward base: an item without a price takes the user's value once prices are back", () => {

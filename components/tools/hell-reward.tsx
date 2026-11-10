@@ -29,6 +29,7 @@ import {
   type BaseLine,
   type HellKind,
   type StageLine,
+  zeroManualCount,
 } from "@/lib/tools/hell-reward";
 import quote from "./material-quote.module.css";
 import styles from "./hell-reward.module.css";
@@ -217,9 +218,8 @@ export function HellRewardTool() {
     prices.error instanceof MarketQueryError ? prices.error.info : prices.error ? { code: "LOST_ARK_API_ERROR", status: 502 } : null;
   const kindLabel = KINDS.find((k) => k.value === kind)!.label;
   // Counted lines valued by the user that still have no value: shown, never a silent 0 (PM 총괄 #1525).
-  const zeroManual =
-    value.lines.filter((l) => !l.notChosen && (l.pricing.kind === "MANUAL" || l.unpriced) && !(l.unit ?? 0)).length +
-    (base?.lines.filter((l) => l.unpriced && !(l.unit ?? 0)).length ?? 0);
+  const zeroManual = zeroManualCount(value, base);
+
 
   return (
     <div className={quote.page}>
@@ -333,7 +333,7 @@ export function HellRewardTool() {
               {/* Always drawn (a button appearing would move the list). The order is held while
                   only prices change; the headline above is always the best box now. */}
               <p className={styles.order}>
-                <span aria-live="polite">{view.stale ? "시세가 바뀌어 맨 위 상자가 가장 좋은 상자가 아니에요." : "좋은 순서예요."}</span>
+                <span aria-live="polite">{view.stale ? "시세가 바뀌어 지금 값과 순서가 달라요." : "지금 값 기준으로 좋은 순서예요."}</span>
                 <button type="button" className={quote.outlinePill} onClick={() => setResort((n) => n + 1)}>
                   지금 시세로 다시 정렬
                 </button>

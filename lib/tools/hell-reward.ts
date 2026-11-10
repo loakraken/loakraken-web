@@ -286,7 +286,22 @@ export function stageBase(kind: HellKind, keyLevel: number, stage: number): Base
  */
 export function heldView(ranked: BoxValue[], held: string[]) {
   const list = [...held.flatMap((id) => ranked.filter((b) => b.id === id)), ...ranked.filter((b) => !held.includes(b.id))];
-  return { list, best: ranked[0] ?? null, stale: list[0]?.id !== ranked[0]?.id };
+  // Stale when ANY neighbour pair is out of order now (codex #1536: not only the top box); equal
+  // values in either order are not stale.
+  const stale = list.some((b, i) => i > 0 && list[i - 1].value < b.value);
+  return { list, best: ranked[0] ?? null, stale };
+}
+
+/**
+ * Items valued by the user that still count 0G: shown, never a silent 0 (PM 총괄 #1525). One
+ * item can be both a box line and a base line under one key: counted once (계산 검증 #1536).
+ */
+export function zeroManualCount(value: StageValue, base: { lines: BaseLine[] } | null) {
+  const keys = new Set<string>();
+  for (const l of value.lines)
+    if (!l.notChosen && (l.pricing.kind === "MANUAL" || l.unpriced) && !(l.unit ?? 0)) keys.add(l.unitKey);
+  for (const l of base?.lines ?? []) if (l.unpriced && !(l.unit ?? 0)) keys.add(l.unitKey);
+  return keys.size;
 }
 
 /** Base items with a market name each, valued; `abundance` (풍요) multiplies the quantities by 10. */
