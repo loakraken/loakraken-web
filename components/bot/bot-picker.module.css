@@ -11,7 +11,15 @@
   font: inherit;
   font-size: 12px;
   cursor: pointer;
+  /* Sized by the label from the start tag: a hidden copy (data-label) and the
+     real text share one cell, so a first HTML cut before the text paints the
+     final box in any font (it sits right-aligned by the bot: a narrower box
+     would move its left edge when the text came, #1530 CI). */
+  display: inline-grid;
+  place-items: center;
 }
+.trigger::before { content: attr(data-label); visibility: hidden; grid-area: 1 / 1; white-space: nowrap; }
+.triggerLabel { grid-area: 1 / 1; white-space: nowrap; }
 .trigger:focus-visible { outline: 3px solid var(--ring); outline-offset: 2px; }
 .positioner { z-index: 50; }
 .popup {

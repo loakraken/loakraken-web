@@ -19,6 +19,7 @@ import { useChosenBot, useChosenWear } from "./use-chosen-bot";
 import styles from "./bot-picker.module.css";
 
 const THUMB = 36;
+const TRIGGER_LABEL = "봇 바꾸기";
 
 function Thumb({ type, theme, wear }: { type: BotType; theme: "light" | "dark"; wear?: BotWear }) {
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -85,7 +86,12 @@ export function BotPicker({ theme }: { theme: "light" | "dark" }) {
         setOpen(next);
       }}
     >
-      <Popover.Trigger className={styles.trigger}>봇 바꾸기</Popover.Trigger>
+      {/* The label also rides on the start tag (data-label, drawn hidden by
+          CSS): the first HTML can arrive split right after it, and the button
+          must already have its final size then (#1530 CI, A7). */}
+      <Popover.Trigger className={styles.trigger} data-label={TRIGGER_LABEL}>
+        <span className={styles.triggerLabel}>{TRIGGER_LABEL}</span>
+      </Popover.Trigger>
       <Popover.Portal>
         {/* Beside the trigger, so the bot stays in view and changes as you
             choose; below it where the screen is too narrow for that. */}
