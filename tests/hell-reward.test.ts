@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { HELL_DATA, MARKET_NAMES, checkHellData, gradeText, levelItems, stageReward, stageValue, unitKey } from "../lib/tools/hell-reward";
+import { HELL_DATA, MARKET_NAMES, baseValue, checkHellData, gradeText, levelItems, rankBoxes, stageReward, stageValue, unitKey } from "../lib/tools/hell-reward";
 
 test("hell reward data: every kind and key level has stages 0-10, counts rise with the stage", () => {
   assert.deepEqual(checkHellData(HELL_DATA), []);
@@ -169,4 +169,57 @@ test("hell reward value: user values follow the item name, never the row positio
   // A graded item keeps its value across kinds (same item and grade).
   typed.set(line(high, "bracelet").unitKey, 900);
   assert.equal(line(value("abyss", 1750), "bracelet").unit, 900);
+});
+// PM 총괄 11-10: one key opens ONE box; each box = its own items + the base every box gives.
+test("hell reward boxes: each column is a box, ranked by its own value + the base, best first", () => {
+  const prices: Record<string, number> = {
+    "운명의 파괴석 결정": 10,
+    "운명의 수호석 결정": 4,
+    "위대한 운명의 돌파석": 50,
+    "상급 아비도스 융화 재료": 90,
+    "용암의 숨결": 300,
+    "빙하의 숨결": 100,
+  };
+  const market = (n: string) => prices[n] ?? null;
+  const stage = stageValue(stageReward("hell", 1750, 0)!, market, () => 0, levelItems("hell", 1750), true, "hell:1750");
+  const boxes = rankBoxes(stage, null);
+  // 지옥 1750 · 0: 11 columns but no 천상 도전권 at stage 0 → 10 boxes.
+  assert.equal(boxes.length, 10);
+  const byId = Object.fromEntries(boxes.map((b) => [b.id, b.value]));
+  // A choose-one box counts its higher half: 수호석 결정 1,800 × 4 = 7,200 > 파괴석 결정 600 × 10.
+  assert.equal(byId.stone, 1800 * 4);
+  assert.equal(byId.fusion, 75 * 90);
+  assert.equal(byId.breath, 12 * 300 + 36 * 100);
+  assert.equal(byId.gold, 5500);
+  assert.equal(byId.breakthrough, 30 * 50);
+  // Ranked best first; the headline is one box, never the sum of all boxes.
+  assert.deepEqual(boxes.map((b) => b.value), [...boxes.map((b) => b.value)].sort((a, b) => b - a));
+  assert.ok(boxes[0].value < stage.total);
+  // stone (7,200) ties breath (7,200): a tie keeps the table order, so stone is first.
+  assert.equal(boxes[0].id, "stone");
+  assert.equal(boxes[1].id, "breath");
+});
+
+test("hell reward boxes: the base is added to every box once; 풍요 multiplies only the base by 10", () => {
+  const prices: Record<string, number> = { "운명의 파편": 0.1, "운명의 파괴석": 5, "운명의 수호석": 2, "운명의 돌파석": 20, "빙하의 숨결": 100 };
+  const market = (n: string) => prices[n] ?? null;
+  const items = [
+    { label: "운명의 파편", qty: 3250, market: "운명의 파편" },
+    { label: "운명의 파괴석", qty: 55, market: "운명의 파괴석" },
+    { label: "운명의 수호석", qty: 375, market: "운명의 수호석" },
+    { label: "운명의 돌파석", qty: 5, market: "운명의 돌파석" },
+  ];
+  const plain = baseValue(items, market, false);
+  assert.equal(plain.value, 3250 * 0.1 + 55 * 5 + 375 * 2 + 5 * 20);
+  const rich = baseValue(items, market, true);
+  assert.equal(rich.value, plain.value * 10);
+  const stage = stageValue(stageReward("hell", 1640, 0)!, market, () => 0, levelItems("hell", 1640), true, "hell:1640");
+  const without = rankBoxes(stage, null);
+  const withBase = rankBoxes(stage, rich);
+  // Each box gains exactly the base (×10 here), its own items unchanged.
+  for (const box of withBase) {
+    const same = without.find((b) => b.id === box.id)!;
+    assert.equal(box.contents, same.contents);
+    assert.equal(box.value, same.contents + rich.value);
+  }
 });

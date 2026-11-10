@@ -28,13 +28,13 @@
 }
 /* Old prices while a new basis loads: dimmed only (opacity moves nothing). */
 .main[data-stale] .sums,
-.main[data-stale] .lines {
+.main[data-stale] .boxes {
   opacity: 0.55;
   transition: opacity 150ms ease;
 }
 @media (prefers-reduced-motion: reduce) {
   .main[data-stale] .sums,
-  .main[data-stale] .lines {
+  .main[data-stale] .boxes {
     transition: none;
   }
 }
@@ -60,7 +60,7 @@
 }
 .sums {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
   margin: 0 0 12px;
 }
@@ -87,6 +87,64 @@
   font-size: 12px;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+}
+/* Ranked boxes: each a head (name, value) over its items. */
+.boxes {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.boxes[data-waiting] {
+  visibility: hidden;
+}
+.boxes > li {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.boxes > li:first-child {
+  border-color: var(--foreground);
+}
+.boxHead {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 11ch;
+  align-items: baseline;
+  gap: 12px;
+  margin: 0 0 4px;
+  font-size: 14px;
+}
+/* The best box's name: two lines held, so another box taking the lead never moves the row. */
+.boxName {
+  min-height: calc(2 * 1.4em);
+  line-height: 1.4;
+}
+.switch {
+  display: inline-flex;
+  min-height: 32px;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 8px;
+  font-size: 13px;
+}
+.switch input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--foreground);
+}
+.switch input:disabled + span {
+  color: var(--muted-foreground);
+}
+.switch input:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+@media (pointer: coarse) {
+  .switch {
+    min-height: 44px;
+  }
 }
 .lines {
   display: grid;
