@@ -21,7 +21,7 @@ for (const width of [1280, 360]) {
     await expect(rows.nth(2)).toContainText("84,000G");
     await expect(panel).not.toContainText("주간골드일곱");
     await expect(panel).not.toContainText("주간골드다른서버");
-    await expect(panel.getByRole("link", { name: "숙제 도구에서 바꿔 보기" })).toHaveAttribute("href", "/tools/homework");
+    await expect(panel.getByRole("link", { name: "관문 · 더보기는 숙제 체크에서" })).toHaveAttribute("href", "/tools/homework");
     await page.waitForTimeout(600);
     expect((await shiftsSince(page)).all, "첫 로드 흔들림").toBe(0);
 
@@ -32,3 +32,112 @@ for (const width of [1280, 360]) {
     await expectNoHorizontalOverflow(page);
   });
 }
+
+// #14 (PM 총괄 11-08): gold and raids are chosen in the panel itself, and they are the
+// homework tool's own saved choices (one saved state): both screens show the same.
+// 320 too: the rows change their own content (shift tests at 320, #1088). @smoke runs it on
+// the touch projects as well (44px targets, PM 총괄 11-09 for the rtl amount cell).
+for (const width of [1280, 360, 320])
+  test(`${width} 주간 획득 골드: 패널에서 레이드 · 골드 받기를 바꾸면 합계가 바뀌고 숙제 체크에도 같게, 흔들림 0 @regression @smoke`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await watchShifts(page);
+    await gotoReady(page, characterPath("주간골드", "siblings"));
+    const panel = page.getByRole("region", { name: "주간 획득 골드" });
+    const total = panel.getByRole("definition").first();
+    await expect(total).toHaveText("401,100G");
+    // The rows are the list's own items (an open 레이드 고르기 has a list inside).
+    const rows = panel.getByRole("list", { name: "캐릭터별 주간 골드" }).locator(":scope > li");
+    const first = rows.first();
+    await expect(first.locator(":scope > b")).toHaveText("166,000G");
+
+    // One raid off: its gold leaves the row and the total.
+    await first.getByText(/^레이드 고르기 \(3\)$/).click();
+    const raids = first.getByRole("list", { name: /레이드$/ });
+    const top = raids.getByRole("checkbox").first();
+    const moved = await shiftsDuring(page, () => top.uncheck());
+    await expect(first.getByText(/^레이드 고르기 \(2\)$/)).toBeVisible();
+    await expect(total).not.toHaveText("401,100G");
+    const lowered = await total.innerText();
+    expect(moved.all, `레이드 끄기 흔들림 (${moved.moved})`).toBe(0);
+
+    // Gold off for the second character: its row reads 0G, nothing moves.
+    const second = rows.nth(1);
+    const off = await shiftsDuring(page, () => second.getByRole("switch").uncheck());
+    await expect(second.locator(":scope > b")).toHaveText("0G");
+    // Exactly the amount for copy and screen readers (codex P2): the rtl amount cell
+    // keeps its text as written, with no holding characters.
+    // The first row lost a raid above, so its amount is read, then held to the plain form.
+    const firstAmount = await first.locator(":scope > b").evaluate((b) => b.textContent);
+    expect(firstAmount).toMatch(/^\d{1,3}(,\d{3})*G$/);
+    for (const [row, amount] of [
+      [second, "0G"],
+      [first, firstAmount],
+    ]) {
+      const cell = row.locator(":scope > b");
+      expect(await cell.innerText()).toBe(amount);
+      await expect(cell).toMatchAriaSnapshot(`- text: ${amount}`);
+      const copied = await cell.evaluate((b) => {
+        const range = document.createRange();
+        range.selectNodeContents(b);
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+        const text = selection.toString();
+        selection.removeAllRanges();
+        return text;
+      });
+      expect(copied, "복사되는 글자").toBe(amount);
+    }
+    await expect(total).not.toHaveText(lowered);
+    expect(off.all, `골드 받기 끄기 흔들림 (${off.moved})`).toBe(0);
+
+    // The homework tool shows the same saved choices.
+    await gotoReady(page, "/tools/homework");
+    const card = page.getByRole("region", { name: "주간골드 숙제" });
+    await expect(card).toBeVisible();
+    // Two raids left (the gate lists, one per raid: role group named by the raid).
+    await expect(card.locator('ul[role="group"]')).toHaveCount(2);
+    const secondName = (await page.getByRole("region", { name: / 숙제$/ }).nth(1).getByRole("heading").innerText()).trim();
+    expect(secondName.length).toBeGreaterThan(0);
+    await expect(page.getByRole("region", { name: `${secondName} 숙제` }).getByRole("switch")).not.toBeChecked();
+  });
+
+// PM 총괄 11-09 (i): one rule on both screens. Six gold characters saved on another server
+// leave this server without gold from the first view, with the reason in plain text and a
+// link to the homework tool, and nothing moves when the saved state is read (320/360).
+for (const width of [1280, 360, 320])
+  test(`${width} 주간 획득 골드: 다른 서버에 골드 6명이 저장돼 있으면 0G와 이유 한 줄, 흔들림 0 @regression @smoke`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.addInitScript(() => {
+      const KST = 9 * 3600_000;
+      const now = Date.now();
+      const kst = new Date(now + KST);
+      const day = (kst.getUTCDay() + 7 - 3) % 7;
+      let week = Date.UTC(kst.getUTCFullYear(), kst.getUTCMonth(), kst.getUTCDate() - day, 6) - KST;
+      if (week > now) week -= 7 * 86400_000;
+      const characters = ["일", "이", "삼", "사", "오", "육"].map((n, i) => ({
+        name: `다른서버${n}`,
+        server: "다른서버",
+        className: "블레이드",
+        itemLevel: 1700 - i,
+        gold: true,
+        raids: [],
+      }));
+      if (!localStorage.getItem("loakraken-homework"))
+        localStorage.setItem("loakraken-homework", JSON.stringify({ version: 1, week, characters }));
+    });
+    await watchShifts(page);
+    await gotoReady(page, characterPath("주간골드", "siblings"));
+    const panel = page.getByRole("region", { name: "주간 획득 골드" });
+    await expect(panel.getByRole("definition").first()).toHaveText("0G");
+    await expect(panel.getByText("숙제 체크에서 골드 받는 캐릭터 6명을 이미 다른 서버 캐릭터로 정했어요.")).toBeVisible();
+    await expect(panel.getByRole("link", { name: "숙제 체크에서 바꿀 수 있어요." })).toHaveAttribute("href", "/tools/homework");
+    await expect(panel.getByText("골드 받는 캐릭터는 숙제 체크와 같이 원정대에서 6명까지예요.")).toBeHidden();
+    const rows = panel.getByRole("list", { name: "캐릭터별 주간 골드" }).locator(":scope > li");
+    await expect(rows.first().getByRole("switch")).not.toBeChecked();
+    await expect(rows.first().getByRole("switch")).toBeDisabled();
+    await page.waitForTimeout(600);
+    const first = await shiftsSince(page);
+    expect(first.all, `저장 읽기 흔들림 (${first.moved})`).toBe(0);
+    await expectNoHorizontalOverflow(page);
+  });

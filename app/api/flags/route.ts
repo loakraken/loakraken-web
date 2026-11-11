@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NavFlags } from "@/components/site/nav-data";
-import { isAccessorySearchEnabled, isCombatPowerEnabled, isCritSpeedEnabled, isPriceAlertsEnabled } from "@/lib/tools/flags";
+import { isAccessorySearchEnabled, isCombatPowerEnabled, isCritSpeedEnabled, isHellRewardEnabled, isPriceAlertsEnabled } from "@/lib/tools/flags";
 
 // Per request: the flags come from this deployment's environment.
 export const dynamic = "force-dynamic";
@@ -12,6 +12,7 @@ export function GET() {
     combatPower: isCombatPowerEnabled(),
     accessorySearch: isAccessorySearchEnabled(),
     priceAlerts: isPriceAlertsEnabled(),
+    hellReward: isHellRewardEnabled(),
   };
   return NextResponse.json(flags, { headers: { "Cache-Control": "private, max-age=300" } });
 }

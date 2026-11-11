@@ -66,7 +66,9 @@ button.orbStage:focus-visible { outline: 3px solid var(--ring); outline-offset: 
 .orbStage::before { content: ""; position: absolute; left: 50%; top: calc(50% + var(--bot-size) * 0.4); width: calc(var(--bot-size) * 0.7); height: calc(var(--bot-size) * 0.12); border-radius: 50%; translate: -50% 0; background: radial-gradient(closest-side, rgb(0 0 0 / 18%), transparent); z-index: -1; pointer-events: none; }
 :global(:is([data-theme="dark"], [data-theme="dim"])) .orbStage::before { background: radial-gradient(closest-side, rgb(0 0 0 / 55%), transparent); }
 /* "봇 바꾸기" by the bot, beside the pause button (never a control in a control). */
-.botPicker { position: absolute; right: 0; bottom: 0; }
+/* Flex, not a line box: its height is the button's, never the text strut's
+   (an empty first-paint button sat on the baseline 6px higher, #1530 CI). */
+.botPicker { position: absolute; right: 0; bottom: 0; display: flex; }
 .orbCaption { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: var(--muted-foreground); margin: 0 0 20px !important; }
 .statusDot { flex: none; width: 4px; height: 4px; border-radius: 50%; display: inline-block; background: var(--link); }
 .searchArea { width: 100%; max-width: 610px; }
@@ -369,7 +371,11 @@ button.orbStage:focus-visible { outline: 3px solid var(--ring); outline-offset: 
   .header { padding-inline: 12px; }
   .hero { padding-inline: 16px; }
   .heroTitle { font-size: 30px; }
-  .searchSubmit { min-width: 90px; padding: 0 10px; font-size: 11px; }
+  /* 320: the hint ('캐릭터 이름을 입력하세요', 161px) had a 153px field and ran under the button.
+     Tighter gaps and an 80px button (still 48px tall) give the field 171px. */
+  .searchForm { gap: 5px; }
+  .searchIcon { margin-left: 6px; }
+  .searchSubmit { min-width: 80px; padding: 0 10px; font-size: 11px; }
   .section { padding-inline: 16px; }
   .section h2 { font-size: 32px; }
   .characterAvatar { display: none; }

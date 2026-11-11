@@ -42,6 +42,7 @@ export const SITEMAP_PATHS = [
   "/tools/life-energy",
   "/tools/raid-rewards",
   "/tools/more-reward",
+  "/tools/hell-reward",
   "/tools/contribution",
   "/tools/raid-cheatsheet",
   "/tools/homework",

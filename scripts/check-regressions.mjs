@@ -228,7 +228,6 @@ for (const top of SCAN) {
 const DATA_JSON = /^lib[\\/](.+[\\/])?data[\\/].+\.json$/;
 const SOURCE_KEY = /^\s*"(source[A-Za-z]*|checkedAt)"\s*:/;
 const BLOCKED_TEMP = [
-  { path: "lib/tools/data/raid-rewards.json", why: "출처 중립화는 #1466 머지 뒤(#1470 후속)" },
 ];
 /** Net bracket depth of a JSON line, ignoring brackets inside strings. */
 function depthOf(line) {

@@ -19,6 +19,22 @@ const observe = (el: Element, update: (visible: boolean) => void) => {
   }
 }
 
+// Chrome turns every CSS animation's start and each 1.5 s turn into a DOM event,
+// and React, listening at its root, walks every one. On the shared beat all
+// labels turn on the same frame (40 labels: 80 events), and that frame was the
+// one over 50 ms under a 4× slowdown (CI, 11-09). Nothing reads these events
+// from inside a label, so one listener stops them before they reach React.
+let quiet = false
+const quietAnimationEvents = () => {
+  if (quiet) return
+  quiet = true
+  const stop = (event: Event) => {
+    if ((event.target as Element | null)?.closest?.('[data-slot="pending-text"]')) event.stopPropagation()
+  }
+  window.addEventListener("animationstart", stop, true)
+  window.addEventListener("animationiteration", stop, true)
+}
+
 /**
  * "집계 중…" for a value that is still being gathered (user 10-16, 10-18): a
  * band of light runs across the letters every 1.5 s for as long as the value
@@ -35,6 +51,7 @@ function PendingText({ className }: { className?: string }) {
   React.useEffect(() => {
     const el = ref.current
     if (!el) return
+    quietAnimationEvents()
     // The run: from before the text to after it (its width plus the window's).
     el.style.setProperty("--pending-run", `${el.getBoundingClientRect().width}px`)
     let visible = true
@@ -62,8 +79,13 @@ function PendingText({ className }: { className?: string }) {
       <span className="pending-text__window" aria-hidden="true">
         {/* The copy moves on an element of its own: Chrome re-styles every
             running animation on each main frame, and a pseudo-element's costs
-            more (40 labels under a 4× slowdown: long tasks, #900). */}
-        <span className="pending-text__glow" data-glow="집계 중…" />
+            more (40 labels under a 4× slowdown: long tasks, #900). The drawn
+            text sits one level further in: a pseudo-element on the moving
+            element is re-styled with it on every frame, one on a still child
+            is not (a third of each frame's style work with 40 labels). */}
+        <span className="pending-text__glow">
+          <span className="pending-text__copy" data-glow="집계 중…" />
+        </span>
       </span>
     </span>
   )

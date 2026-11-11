@@ -21,6 +21,13 @@
 }
 .tab {
   flex: 0 0 auto;
+  /* Phones centre a 44px tap area on each tab (hit-44). A tab painted before
+     its label arrived (the first HTML in parts) was only its padding, 30 × 16:
+     its area started 7px left and 14px above it, and moved to 2px left and 4px
+     above when the label came (#1534 CI 360). From 40px wide and a full line
+     high, both start at the same place (as #1527's 장신구 보기). */
+  min-width: 40px;
+  min-height: calc(1lh + 16px);
   padding: 8px 15px;
   border-radius: 980px;
   color: var(--foreground);

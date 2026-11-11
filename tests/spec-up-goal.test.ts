@@ -88,6 +88,18 @@ test("costs: gold when known, 시세 준비 중 when pending, 비용 미확인 o
   assert.equal(stepCost(free, koreanGold), "추가 비용 없음");
 });
 
+test("지금부터 holds for every rule version from v2 on (api #894 v3, v4 next); unknown names keep the plain cost", () => {
+  const [gem, , quality] = sample.data.steps as GoalStep[];
+  // Gem steps cost from now since v2; later versions change other rules, not this one.
+  for (const version of ["spec-up-goal-v2", "spec-up-goal-v3", "spec-up-goal-v4", "spec-up-goal-v10"])
+    assert.equal(stepCost(gem, koreanGold, version), "지금부터 62만G", version);
+  // Before v2, no version, or a name we cannot read: today's plain cost.
+  for (const version of ["spec-up-goal-v1", "spec-up-goal-v0", null, undefined, "", "spec-up-goal-v", "spec-up-goal-vX", "spec-up-goal-v3-beta", "other-v3", " spec-up-goal-v3"])
+    assert.equal(stepCost(gem, koreanGold, version), "62만G", String(version));
+  // Only gem steps say it, in any version.
+  assert.equal(stepCost(quality, koreanGold, "spec-up-goal-v3"), "비용 미확인");
+});
+
 test("시뮬레이터에서 열기 carries only the changes the simulator takes, and counts the rest", () => {
   const steps = sample.data.steps as GoalStep[];
   const refine = { ...steps[0], kind: "EQUIPMENT_REFINE", change: { ...steps[0].change, kind: "EQUIPMENT_REFINE", refine: 21 } };
