@@ -28,6 +28,19 @@ export const AVATAR_SLOTS = [
 ] as const;
 
 /**
+ * Whether an avatar is worn in a 덧입기 slot. The official answer names both
+ * avatars of a slot the same ("상의 아바타"); IsInner is true for the base one
+ * (worn underneath, the one whose effects count) and false for the 덧입기 over
+ * it (user 11-12, in game: 속삭이는 영원 기본, 7주년 궤적 덧입기). Slots with
+ * no 덧입기 (얼굴, 악기, 이동 효과) are false too and are never one; an
+ * unknown flag reads as the base.
+ */
+export function isOverlay(avatar: Avatar) {
+  if (/덧입기/.test(avatar.type ?? "")) return true;
+  return avatar.isInner === false && (AVATAR_SLOTS as readonly string[]).includes(`${avatarSlot(avatar)} 덧입기`);
+}
+
+/**
  * Every slot in order with what is worn there (null when empty), then any
  * avatar whose slot is not one of the twelve, under its own name.
  */
@@ -35,8 +48,7 @@ export function avatarSlots(avatars: Avatar[]) {
   const worn = new Map<string, Avatar>();
   const extra: { slot: string; avatar: Avatar }[] = [];
   for (const avatar of avatars) {
-    const inner = avatar.isInner || /덧입기/.test(avatar.type ?? "");
-    const slot = `${avatarSlot(avatar)}${inner ? " 덧입기" : ""}`;
+    const slot = `${avatarSlot(avatar)}${isOverlay(avatar) ? " 덧입기" : ""}`;
     if ((AVATAR_SLOTS as readonly string[]).includes(slot) && !worn.has(slot)) worn.set(slot, avatar);
     else extra.push({ slot, avatar });
   }

@@ -329,6 +329,30 @@
   color: var(--background);
   font-size: var(--text-body);
 }
+/* The search button sits at the end of the form row, so a narrower button
+   moved its left edge (and the field) when its label came later than its start
+   tag: the first HTML arriving in parts (#1559 CI 1280). Its width now comes
+   from the start tag: the icon has its own column and a hidden copy of the
+   wider label (data-label) holds the label's cell, in any font. */
+.searchSubmit {
+  display: inline-grid;
+  grid-template-columns: 15px auto;
+  column-gap: 8px;
+}
+.searchSubmit > svg {
+  grid-area: 1 / 1;
+}
+.searchSubmit::before {
+  /* The empty alternative text keeps assistive tech from reading it. */
+  content: attr(data-label);
+  content: attr(data-label) / "";
+  grid-area: 1 / 2;
+  visibility: hidden;
+  white-space: nowrap;
+}
+.searchSubmit > .searchLabel {
+  grid-area: 1 / 2;
+}
 .outlinePill {
   height: 32px;
   padding: 0 14px;
