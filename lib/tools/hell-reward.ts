@@ -383,7 +383,9 @@ export function priceAge(now: number, observed: string[]): { text: string; stale
   if (minutes < STALE_PRICE_MINUTES) return { text: minutes === 0 ? "시세 방금 수집" : `시세 ${minutes}분 전 수집`, stale: false };
   const kst = new Date(oldest + 9 * 3_600_000);
   const hm = `${String(kst.getUTCHours()).padStart(2, "0")}:${String(kst.getUTCMinutes()).padStart(2, "0")}`;
-  // Says how old, not only that it is old (PM 총괄): hours under a day, then days.
-  const ago = minutes < 24 * 60 ? `${Math.floor(minutes / 60)}시간 전` : `${Math.floor(minutes / (24 * 60))}일 전`;
+  // Says how old, not only that it is old (PM 총괄): hours under a day, then days, rounded to the
+  // nearest (2 days 23 hours reads 3일, and the minute clock's rounding down cannot drop a unit).
+  const hours = Math.max(1, Math.round(minutes / 60));
+  const ago = hours < 24 ? `${hours}시간 전` : `${Math.round(minutes / (24 * 60))}일 전`;
   return { text: `오래된 시세 · ${ago}(${kst.getUTCMonth() + 1}월 ${kst.getUTCDate()}일 ${hm})`, stale: true };
 }

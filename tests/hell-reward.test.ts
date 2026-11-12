@@ -9,10 +9,12 @@ test("hell reward price time: oldest price, minutes, old past an hour", () => {
   assert.deepEqual(priceAge(now, ["2026-11-12T04:59:40Z"]), { text: "시세 방금 수집", stale: false });
   assert.deepEqual(priceAge(now, ["2026-11-12T04:58:00Z", "2026-11-12T04:57:00Z"]), { text: "시세 3분 전 수집", stale: false });
   assert.equal(priceAge(now, [new Date(now - (STALE_PRICE_MINUTES - 1) * 60_000).toISOString()])!.stale, false);
-  assert.deepEqual(priceAge(now, ["2026-11-12T04:59:00Z", "2026-11-09T05:20:00Z"]), { text: "오래된 시세 · 2일 전(11월 9일 14:20)", stale: true });
+  // 2 days 23 hours 40 minutes reads 3일 (nearest), as does 3 days less a minute (the minute clock).
+  assert.deepEqual(priceAge(now, ["2026-11-12T04:59:00Z", "2026-11-09T05:20:00Z"]), { text: "오래된 시세 · 3일 전(11월 9일 14:20)", stale: true });
+  assert.equal(priceAge(now, [new Date(now - (3 * 24 * 60 - 1) * 60_000).toISOString()])!.text.startsWith("오래된 시세 · 3일 전"), true);
   assert.equal(priceAge(now, [new Date(now - STALE_PRICE_MINUTES * 60_000).toISOString()])!.text, "오래된 시세 · 1시간 전(11월 12일 13:00)");
-  // KST date across midnight UTC; under a day reads in hours.
-  assert.equal(priceAge(now, ["2026-11-11T15:05:00Z"])!.text, "오래된 시세 · 13시간 전(11월 12일 00:05)");
+  // KST date across midnight UTC; under a day reads in hours (13 h 55 m → 14).
+  assert.equal(priceAge(now, ["2026-11-11T15:05:00Z"])!.text, "오래된 시세 · 14시간 전(11월 12일 00:05)");
 });
 
 test("hell reward data: every kind and key level has stages 0-10, counts rise with the stage", () => {
