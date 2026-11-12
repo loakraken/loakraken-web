@@ -42,6 +42,7 @@ import {
   braceletName,
   gradeWithValue,
   isOpen,
+  isRefineOpen,
   polishValue,
   type Grade,
   NO_EDITS,
@@ -99,6 +100,11 @@ const changeText = (kind: string, text: string | null | undefined) =>
 
 const range = (from: number, to: number) =>
   Array.from({ length: Math.max(0, to - from + 1) }, (_, i) => from + i);
+
+/** The choices plus the current value when it lies outside them (a weapon at +8 under refineMin 10),
+ * so the select never shows empty and picking it back is "no change". */
+const withCurrent = (values: number[], current: number) =>
+  values.includes(current) ? values : [...values, current].sort((x, y) => x - y);
 
 /** The parts of the character the first cut can change. */
 function currentOf(data: Character) {
@@ -344,7 +350,7 @@ function Editors({
             {current.gear.map((item) => (
               <li key={item.index}>
                 <span className={styles.rowName}>{item.name}</span>
-                {item.refine != null && !isOpen("EQUIPMENT_REFINE") ? (
+                {item.refine != null && !isRefineOpen(item.type) ? (
                   <Locked caption="재련" value={`+${item.refine}`} />
                 ) : item.refine != null ? (
                   <Select
@@ -352,7 +358,7 @@ function Editors({
                     caption="재련"
                     value={edits.refine[item.index] ?? item.refine}
                     original={item.refine}
-                    values={refineValues}
+                    values={withCurrent(refineValues, item.refine)}
                     onChange={(refine) =>
                       setEdits((prev) => ({ ...prev, refine: { ...prev.refine, [item.index]: refine } }))
                     }
@@ -606,8 +612,8 @@ function Editors({
         </Card>
       )}
       <p className={styles.later}>
-        지금은 보석·품질·각인·스톤·연마·팔찌·팔 보호구를 바꿀 수 있어요. 재련·아크 패시브·아크 그리드는 계산식을 확인하는
-        대로 열어요.
+        지금은 보석·품질·각인·스톤·연마·팔찌·팔 보호구·무기 재련을 바꿀 수 있어요. 방어구 재련·아크 패시브·아크
+        그리드는 계산식을 확인하는 대로 열어요.
       </p>
     </div>
   );
@@ -692,11 +698,13 @@ function ResultBand({
             ? `바꾼 ${changed}개 중 계산된 항목만 반영했어요${data.partial ? ` · 계산 준비 중 ${data.unsupportedCount}개` : ""}.`
             : `바꾼 ${changed}개 항목은 계산식을 확인하고 있어 아직 반영하지 않았어요.`}
       </p>
-      {/* Item level moves only with refining, which is still 준비 중: the
-          current value, no made-up change (PM-프론트 16:37 ②). */}
+      {/* Item level moves with refining; the simulation does not return one, so
+          this is today's value, no made-up change (PM-프론트 16:37 ②), and says
+          so now that the weapon's refine can change (PM 총괄 11-12). One fixed
+          text: nothing in the band changes length when a step is picked (A7). */}
       {itemLevel != null && (
         <p className={styles.bandSub}>
-          아이템 레벨 <b>{itemLevel.toLocaleString("ko-KR", { maximumFractionDigits: 2 })}</b>
+          지금 아이템 레벨 <b>{itemLevel.toLocaleString("ko-KR", { maximumFractionDigits: 2 })}</b>
         </p>
       )}
     </section>

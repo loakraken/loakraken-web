@@ -39,6 +39,14 @@ export const OPEN_KINDS: ReadonlySet<string> = new Set([
 ]);
 export const isOpen = (kind: Change["kind"]) => OPEN_KINDS.has(kind);
 
+/**
+ * Refine opens for the weapon only (api #884, v0.3.11): the backend computes
+ * the weapon's refine, while armour refine comes back UNSUPPORTED
+ * (MODEL_UNCONFIRMED, api #866) until its formula is confirmed, so armour rows
+ * stay "준비 중" (PM 총괄 11-12).
+ */
+export const isRefineOpen = (type: string | null | undefined) => isOpen("EQUIPMENT_REFINE") || type === "무기";
+
 /** 전율 gear has no advanced refining (the backend's refine model reads the
  * same name: "전율 장비에는 상급 재련이 없습니다."). */
 export const hasNoAdvancedRefine = (name: string | null | undefined) => !!name?.includes("전율");
