@@ -8,7 +8,7 @@ import { SiteHeader } from "@/components/site/site-header";
 import { ArrowLeft, Gift } from "@/components/ui/icons";
 import { SegmentedControl, SegmentedItem } from "@/components/ui/segmented-control";
 import { Select } from "@/components/ui/select";
-import { MINUTE } from "@/components/home/clock";
+import { MINUTE, useClock } from "@/components/home/clock";
 import { retryLabel } from "@/lib/api/rate-limit";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { MarketQueryError, postMaterialPrices } from "@/lib/market/client";
@@ -23,6 +23,7 @@ import {
   baseValue,
   heldView,
   levelItems,
+  priceAge,
   rankBoxes,
   stageBase,
   stageReward,
@@ -160,7 +161,7 @@ export function HellRewardTool() {
   // Per unit and per item (keyed by item name, lib unitKey): the same item keeps its value
   // across kinds, levels and stages; a different item at another level does not take it.
   // Kept in this browser (localStorage), not the address: reload, Back and a later visit keep them.
-  const [manual, setManual] = useHellValues();
+  const [manual, setManual, restored] = useHellValues();
   // 풍요: the base of the opened box ×10 (PM 총괄 11-10).
   const [abundance, setAbundance] = useUrlState("abundance", false, boolCodec);
   const stageId = useId();
@@ -189,6 +190,10 @@ export function HellRewardTool() {
     [prices.data],
   );
   const marketPrice = (name: string) => market.get(name) ?? null;
+  // When the prices in use were collected (the oldest one): shown, and named old past an hour.
+  const now = useClock(MINUTE);
+  const age =
+    now == null ? null : priceAge(now, (prices.data?.data.items ?? []).filter((p) => p.status === "PRICED").map((p) => p.observedAt));
   const manualValue = (key: string) => {
     const v = Number(manual[key]);
     return Number.isFinite(v) && v > 0 ? v : 0;
@@ -296,9 +301,11 @@ export function HellRewardTool() {
                   </button>
                 </div>
               )}
-              {/* The headline is the best single box: one key opens one box (PM 총괄 11-10).
+              {/* The headline is the best single box: one key opens one box (PM 총괄 11-10). Held (kept
+                  in place, not shown) until the stored values apply and prices land, so a reload never
+                  flips it from a no-typed-value result (codex #1549 P3).
                   Each amount is one text ("47,695G"; split, the G node moved as numbers grew). */}
-              <dl className={styles.sums} aria-live="polite">
+              <dl className={styles.sums} aria-live="polite" aria-busy={!restored || (!loaded && !failure) || undefined} data-waiting={!restored || (!loaded && !failure) ? "" : undefined}>
                 <div>
                   <dt>가장 좋은 상자</dt>
                   <dd className={styles.boxName}>{best?.label ?? ""}</dd>
@@ -400,6 +407,10 @@ export function HellRewardTool() {
                   items={priceBases.map((item) => ({ value: item.value, label: item.label }))}
                 />
               </label>
+              {/* Always drawn, one line kept (the text arrives after the first paint). */}
+              <p className={styles.priceAge} data-old={age?.stale || undefined}>
+                {age?.text ?? ""}
+              </p>
               <p className={styles.note}>
                 열쇠 1개로 보이는 상자 가운데 하나를 열어요. 상자마다 그 안의 보상과 기본 보상을 더해 값이 큰 순서로
                 보여 줘요. 어떤 상자가 보일지는 셈하지 않았고, 무기 +25 · 페온 효과도 이 계산에 넣지 않았어요. 둘 중 하나를

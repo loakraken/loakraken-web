@@ -317,3 +317,19 @@
     grid-row: 2;
   }
 }
+/* The price time under 시세 기준: one line always kept; old prices in the warning tone. */
+.priceAge {
+  min-height: 1lh;
+  margin: 6px 0 0;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.priceAge[data-old] {
+  color: var(--accent-warm);
+  font-weight: 600;
+}
+/* Headline held until stored values and prices apply: the box keeps its size, nothing moves. */
+.sums[data-waiting] dd {
+  visibility: hidden;
+}

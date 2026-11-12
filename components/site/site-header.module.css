@@ -47,11 +47,14 @@
    left (22px + a 7px gap): the mark's long path is where a page split in
    parts broke, and the name drawn after it widened the link, its 44px target
    with it (360: 44 -> 126px before hydration). Now the link has its full
-   width as soon as the name is there, and the mark lands in place. */
+   width as soon as the name is there, and the mark lands in place.
+   A cut right after the link's start tag (before the name) left it 29px wide:
+   its hidden copy of the name (data-fp-label) holds the width from the start
+   tag now, the name in the same grid cell. */
 .brand {
   grid-column: 1;
   position: relative;
-  display: inline-flex;
+  display: inline-grid;
   align-items: center;
   padding-left: 29px;
   color: var(--foreground);
@@ -60,6 +63,9 @@
   letter-spacing: -0.03em;
   text-decoration: none;
   white-space: nowrap;
+}
+.brand > span {
+  grid-area: 1 / 1;
 }
 .brand svg {
   position: absolute;

@@ -64,18 +64,30 @@ const eyesY = async (page) => Number((await canvas(page).getAttribute("data-bot-
  */
 const looksUp = ({ pitch, eyes }) => pitch >= 0.1 && eyes < -1;
 
-async function settledPitch(page, x, y) {
+const median = (values) => [...values].sort((a, b) => a - b)[Math.floor(values.length / 2)];
+
+/**
+ * The head's up-down and the eyes' up-down, each the median of 7 reads taken awake.
+ * The eyes too: the library's idle glances move them for a moment (x to ±3, y up toward
+ * 0), and one read inside a glance gave -0.6 for eyes that sat at -1.6…-4.5 looking at
+ * the header (CI 42502204694, bot-hero:120). A bot facing front still reads about 0.
+ */
+async function settledPose(page, x, y) {
   await page.mouse.move(x, y, { steps: 12 });
   await page.waitForTimeout(300); // 고개가 돌아가는 동안은 읽지 않는다
-  const samples = [];
+  const pitches = [];
+  const eyes = [];
   for (let i = 0; i < 7; i++) {
     await page.waitForTimeout(150);
     await page.mouse.move(x + (i % 2), y);
-    samples.push((await turn(page))[1]);
+    pitches.push((await turn(page))[1]);
+    eyes.push(await eyesY(page));
   }
   await expect(canvas(page), "읽는 동안 잠들지 않음").toHaveAttribute("data-bot-rest", "awake");
-  return samples.sort((a, b) => a - b)[3];
+  return { pitch: median(pitches), eyes: median(eyes) };
 }
+
+const settledPitch = async (page, x, y) => (await settledPose(page, x, y)).pitch;
 
 test.describe("히어로 봇 @regression", () => {
   for (const path of ["/", "/about"]) {
@@ -144,8 +156,7 @@ test.describe("히어로 봇 @regression", () => {
       const header = await page.locator("header").first().boundingBox();
       // Read awake (1 px nudges) and as the median, like the other pitch checks: a still
       // pointer let it fall asleep while the poll waited (CI 42492201273).
-      const pitch = await settledPitch(page, width / 2, header.y + header.height / 2);
-      const pose = { pitch, eyes: await eyesY(page) };
+      const pose = await settledPose(page, width / 2, header.y + header.height / 2);
       expect(looksUp(pose), `머리글 → 위 (${JSON.stringify(pose)})`).toBe(true);
       // 마우스가 창 밖으로: relatedTarget 없는 pointerout.
       await page.evaluate(() => document.body.dispatchEvent(new PointerEvent("pointerout", { bubbles: true, pointerType: "mouse", relatedTarget: null })));

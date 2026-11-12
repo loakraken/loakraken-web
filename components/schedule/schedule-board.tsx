@@ -475,23 +475,30 @@ export function ScheduleBoard({
       className={styles.panel}
       aria-labelledby="schedule-heading"
     >
-      <div className={page ? `${styles.panelHead} ${own.pageHead}` : styles.panelHead}>
-        <h2 id="schedule-heading">
-          {page ? (data ? dateTitle(data.date) : "일정") : "주간 일정표"}
+      <div className={page ? `${styles.panelHead} ${own.pageHead}` : `${styles.panelHead} ${styles.scheduleHead}`}>
+        {/* The home card's heading, legend and toggle are sized from their start
+            tags (data-fp-label): a first HTML cut inside them draws the final
+            boxes, so the tools on the right never slide (A7, home sweep). */}
+        <h2 id="schedule-heading" data-fp-label={page ? undefined : "주간 일정표"}>
+          {page ? (data ? dateTitle(data.date) : "일정") : <span className={styles.fpText}>주간 일정표</span>}
           {page && live && <span className={own.todayMark}>오늘</span>}
         </h2>
-        <span className={styles.headTools}>
-          <span className={styles.legend}>
-            <i data-kind="GOLD" /> 골드 섬
-          </span>
+        {/* The tools sit at the right end, so the rightmost (the toggle) comes
+            first in the page and the legend joins on its left (row-reverse): a
+            later part never pushes one already drawn (A7, home sweep). */}
+        <span className={`${styles.headTools} ${styles.headToolsReverse}`}>
           <button
             type="button"
             className={styles.toggle}
             aria-pressed={hidePast}
             onClick={() => setHidePast(!hidePast)}
+            data-fp-label="지난 회차 숨김"
           >
-            지난 회차 숨김
+            <span className={styles.fpText}>지난 회차 숨김</span>
           </button>
+          <span className={styles.legend} data-fp-label="골드 섬">
+            <i data-kind="GOLD" /><span className={styles.legendText}>골드 섬</span>
+          </span>
         </span>
       </div>
       {page && (

@@ -402,7 +402,10 @@ function ItemSearch({
           </label>
           <button
             type="submit"
-            className={styles.secondaryPill}
+            className={`${styles.secondaryPill} ${styles.searchSubmit}`}
+            // The wider label rides on the start tag too (drawn hidden by CSS): a
+            // first HTML cut before the label still paints the final width (A7).
+            data-label="검색 중…"
             aria-disabled={items.isFetching || wait > 0 || undefined}
             aria-busy={items.isFetching || undefined}
           >

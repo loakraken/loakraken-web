@@ -367,3 +367,25 @@ export function checkHellData(data: HellData): string[] {
     }
   return problems;
 }
+
+/** Prices collected longer ago than this are called old on screen (codex QA v0.3.11 P2). */
+export const STALE_PRICE_MINUTES = 60;
+
+/**
+ * The price time line: the OLDEST collection time among the prices in use (one old price makes
+ * the values old). Short, so it keeps one line in the narrow side column. null without a price.
+ */
+export function priceAge(now: number, observed: string[]): { text: string; stale: boolean } | null {
+  const times = observed.map((iso) => Date.parse(iso)).filter((ms) => Number.isFinite(ms));
+  if (!times.length) return null;
+  const oldest = Math.min(...times);
+  const minutes = Math.max(0, Math.floor((now - oldest) / 60_000));
+  if (minutes < STALE_PRICE_MINUTES) return { text: minutes === 0 ? "시세 방금 수집" : `시세 ${minutes}분 전 수집`, stale: false };
+  const kst = new Date(oldest + 9 * 3_600_000);
+  const hm = `${String(kst.getUTCHours()).padStart(2, "0")}:${String(kst.getUTCMinutes()).padStart(2, "0")}`;
+  // Says how old, not only that it is old (PM 총괄): hours under a day, then days, rounded to the
+  // nearest (2 days 23 hours reads 3일, and the minute clock's rounding down cannot drop a unit).
+  const hours = Math.max(1, Math.round(minutes / 60));
+  const ago = hours < 24 ? `${hours}시간 전` : `${Math.round(minutes / (24 * 60))}일 전`;
+  return { text: `오래된 시세 · ${ago}(${kst.getUTCMonth() + 1}월 ${kst.getUTCDate()}일 ${hm})`, stale: true };
+}
