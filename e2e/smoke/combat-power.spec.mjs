@@ -66,7 +66,7 @@ test.describe("전투력 시뮬레이터 @smoke", () => {
     await page.keyboard.press("Escape");
   });
 
-  test("각인·스톤·연마·팔찌·팔 보호구는 바꾸고, 재련·아크 패시브·코어는 '준비 중'으로 잠긴다", async ({ page }) => {
+  test("각인·스톤·연마·팔찌·팔 보호구는 바꾸고, 방어구 재련·아크 패시브·코어는 '준비 중'으로 잠긴다", async ({ page }) => {
     // PM 총괄 23:59: 계산 검증을 통과한 항목(보석·품질·각인·스톤)만 바꿀 수 있다.
     await gotoReady(page, `/tools/combat-power?character=${encodeURIComponent("전투력계산")}`);
     await chooseOption(page, page.getByRole("combobox", { name: "스톤 원한 레벨" }), "2");
@@ -80,6 +80,21 @@ test.describe("전투력 시뮬레이터 @smoke", () => {
     for (const title of ["아크 패시브", "아크 그리드 코어"])
       await expect(page.getByRole("region", { name: title, exact: true })).toContainText("준비 중");
     await expect(page.getByText("재련 +19 · 준비 중")).toBeVisible();
+    await expectNoHorizontalOverflow(page);
+  });
+
+  test("무기 재련은 바꿀 수 있고 방어구 재련은 '준비 중'으로 남는다(api #884, PM 총괄 11-12)", async ({ page }) => {
+    // The backend computes the weapon's refine; armour refine is UNSUPPORTED (MODEL_UNCONFIRMED) until its
+    // formula is confirmed, so only the weapon row opens. The item level is today's value, said so.
+    await gotoReady(page, `/tools/combat-power?character=${encodeURIComponent("전투력계산")}`);
+    await expect(page.getByRole("combobox", { name: "투구 재련 단계" })).toHaveCount(0);
+    await expect(page.getByText("재련 +19 · 준비 중")).toBeVisible();
+    await chooseOption(page, page.getByRole("combobox", { name: "무기 재련 단계" }), "21");
+    const changes = page.getByRole("region", { name: "바꾼 것" });
+    await expect(changes.getByText("20 → 21")).toBeVisible();
+    await expect(page.getByText("예상 전투력")).toBeVisible();
+    await expect(page.getByText("+10.00 (", { exact: false }).first()).toBeVisible();
+    await expect(page.getByRole("region", { name: /전투력$/ })).toContainText("지금 아이템 레벨 1,700.5");
     await expectNoHorizontalOverflow(page);
   });
 

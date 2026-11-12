@@ -8,6 +8,7 @@ import {
   gradeWithValue,
   polishValue,
   isOpen,
+  isRefineOpen,
   gemLevel,
   hasComputed,
   parseSimulateRequest,
@@ -178,6 +179,13 @@ test("1차판 opens only the kinds that passed verification (PM 총괄 23:59)", 
   assert.deepEqual(
     ["EQUIPMENT_REFINE", "EQUIPMENT_ADVANCED_REFINE", "ARK_PASSIVE_POINT", "ARK_GRID_CORE"].map((k) => isOpen(k as never)),
     [false, false, false, false],
+  );
+});
+
+test("refine opens for the weapon only (api #884 weapon OK, armour UNSUPPORTED; PM 총괄 11-12)", () => {
+  assert.deepEqual(
+    ["무기", "투구", "상의", "하의", "장갑", "어깨", null].map((type) => isRefineOpen(type)),
+    [true, false, false, false, false, false, false],
   );
 });
 
