@@ -162,7 +162,7 @@ for (const width of [1280, 320])
     await page.reload();
     await same("새로 고침");
     await page.waitForTimeout(600);
-    expect([...(await page.evaluate(() => window.__headSeen))], "새로 고침 중 머리글").toEqual([`${name}|${amount}`]);
+    expect(await page.evaluate(() => [...window.__headSeen]), "새로 고침 중 머리글").toEqual([`${name}|${amount}`]);
     const reloaded = await shiftsSince(page);
     expect(reloaded.all, `새로 고침 뒤 흔들림 (${reloaded.moved})`).toBe(0);
 
