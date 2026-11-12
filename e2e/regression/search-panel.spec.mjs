@@ -181,27 +181,33 @@ for (const width of [1440, 360, 320]) {
     await expect(page.getByRole("listbox", { name: "검색 결과" })).toBeVisible();
     // No send button any more (#1113): the panel hangs under the whole bar.
     await expect(page.locator("[data-slot=command-search] button[aria-label='검색']")).toHaveCount(0);
+    // The final width is the laid-out one (computed width, which no transform touches). A drawn box read
+    // while the open animation still ran was a hair short of it: CI #1551 read 399.40 at scaleX 0.9985 for a
+    // 400 panel, then called the finished 400 'wider than its place'.
     const measure = () =>
       box.evaluate((el) => {
-        const pill = el.closest(".cmd").getBoundingClientRect();
-        const panel = document.querySelector(".rsp").getBoundingClientRect();
-        return { pill: { x: pill.x, width: pill.width }, panel: { x: panel.x, width: panel.width } };
+        const pillEl = el.closest(".cmd");
+        const panelEl = document.querySelector(".rsp");
+        const laid = (node) => parseFloat(getComputedStyle(node).width);
+        const pill = pillEl.getBoundingClientRect();
+        const panel = panelEl.getBoundingClientRect();
+        return { slot: laid(pillEl), own: laid(panelEl), drawn: panel.width, x: panel.x, pillX: pill.x };
       });
+    // Settled: drawn at its laid-out width (scale 1, the dialog's and the panel's) and under the bar's left end.
     await expect
       .poll(async () => {
-        const { pill, panel } = await measure();
-        return Math.max(Math.abs(panel.width - pill.width), Math.abs(panel.x - pill.x));
+        const m = await measure();
+        return Math.max(Math.abs(m.drawn - m.own), Math.abs(m.x - m.pillX));
       }, { timeout: 3000 })
-      .toBeLessThanOrEqual(1);
-    const { panel } = await measure();
-    expect(panel.width, "패널 폭(최대 400)").toBeLessThanOrEqual(400.5);
-    // Let the open animation finish, then: never wider than its final width at any frame.
-    await page.waitForTimeout(600);
+      .toBeLessThanOrEqual(0.05);
+    const panel = await measure();
+    expect(Math.abs(panel.own - panel.slot), `패널 폭 ${panel.own} = 막대 폭 ${panel.slot}`).toBeLessThanOrEqual(0.5);
+    expect(panel.own, "패널 폭(최대 400)").toBeLessThanOrEqual(400.5);
+    // Read after it settled, so every frame of the open animation is in: never wider than where it lands.
     const widest = await page.evaluate(() => window.__panelMax);
-    // Its own final width (the bar's): an open animation never draws it wider than where it lands.
-    expect(widest, `열리는 동안 가장 넓었던 패널 폭 ${widest} (자리 ${panel.width})`).toBeLessThanOrEqual(panel.width + 0.5);
-    if (width >= 440) expect(panel.width, "넓은 화면은 400").toBeGreaterThan(399);
+    expect(widest, `열리는 동안 가장 넓었던 패널 폭 ${widest} (자리 ${panel.own})`).toBeLessThanOrEqual(panel.own + 0.5);
+    if (width >= 440) expect(panel.own, "넓은 화면은 400").toBeGreaterThan(399);
     expect(panel.x).toBeGreaterThanOrEqual(0);
-    expect(panel.x + panel.width).toBeLessThanOrEqual(width);
+    expect(panel.x + panel.own).toBeLessThanOrEqual(width);
   });
 }
