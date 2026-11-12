@@ -79,7 +79,9 @@
   grid-column: 1 / -1;
   height: 6px;
   border-radius: 3px;
-  background: color-mix(in oklab, var(--foreground) 8%, transparent);
+  /* 5%, not 8%: each class bar's 직업군 colour stays >= 3:1 against the track
+     in every theme (PM 총괄 11-08, hues unchanged). */
+  background: color-mix(in oklab, var(--foreground) 5%, transparent);
   overflow: hidden;
 }
 .bar i {
