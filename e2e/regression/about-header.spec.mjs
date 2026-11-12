@@ -5,9 +5,16 @@ import { test, expect, gotoReady } from "../support/fixtures.mjs";
 /** The shared search's shortcut label: its size and how many lines it takes. */
 const shortcut = (page) =>
   page.locator('header[data-sticky-chrome] [data-slot="command-search-trigger"] kbd').evaluate((kbd) => {
-    const range = document.createRange();
-    range.selectNodeContents(kbd);
-    return { size: getComputedStyle(kbd).fontSize, lines: new Set([...range.getClientRects()].map((r) => Math.round(r.top))).size };
+    // The lines of its text: the label sits in a span (a grid cell with its hidden copy, A7), whose own box
+    // would count as one more rect here, so only the text nodes are measured.
+    const tops = new Set();
+    const walker = document.createTreeWalker(kbd, NodeFilter.SHOW_TEXT);
+    for (let text = walker.nextNode(); text; text = walker.nextNode()) {
+      const range = document.createRange();
+      range.selectNodeContents(text);
+      for (const r of range.getClientRects()) tops.add(Math.round(r.top));
+    }
+    return { size: getComputedStyle(kbd).fontSize, lines: tops.size };
   });
 
 test("1280 소개: 머리글에 화면 자체 검색 버튼 없음, Ctrl K 한 줄 @regression", async ({ page }) => {

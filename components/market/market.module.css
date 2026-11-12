@@ -115,7 +115,14 @@
 }
 .rows button {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  /* The price column and the row height are reserved from the row's start tag
+     (A7, the first HTML arriving in parts; home sweep / bot-notes CI 1280): a
+     row drawn before its price had the name across the whole width, one line
+     high, and the name then wrapped and the centred icon moved when the price
+     came. The column keeps the price's 8rem floor (see .rowPrice) and the row
+     its two price lines (15px at the body line height) + padding. */
+  grid-template-columns: auto minmax(0, 1fr) minmax(8rem, auto);
+  min-height: calc(20px + 30px * var(--leading-body));
   align-items: center;
   gap: 10px;
   width: 100%;
@@ -140,6 +147,11 @@
 .rowName {
   display: grid;
   min-width: 0;
+  /* Its two lines (14px name, 12px trades) from the start tag: centred in the
+     row, a name drawn before its second line moved when it came (A7). */
+  min-height: calc(26px * var(--leading-body));
+  /* Its lines from the top: centred, the first line sat lower until the second came. */
+  align-content: start;
 }
 .rowName strong {
   display: flex;
@@ -154,6 +166,8 @@
 .rowName strong i {
   /* A31: one line, never split (badge/chip/unit). */
   flex: none;
+  /* Its text from the start tag (data-fp-label, A7): the copy and the text share a cell. */
+  display: inline-grid;
   white-space: nowrap;
   padding: 1px 5px;
   border-radius: 5px;
@@ -162,6 +176,9 @@
   font-size: 11px;
   font-style: normal;
   font-weight: 600;
+}
+.rowName strong i > span {
+  grid-area: 1 / 1;
 }
 .rowName small {
   color: var(--slate);
@@ -185,6 +202,10 @@
      refresh that adds a digit does not widen the column and slide the name
      beside it (A7, PM-프론트 #617). */
   min-width: 8rem;
+  /* The price and the day change lines from the start tag (A7, as .rowName). */
+  min-height: calc(30px * var(--leading-body));
+  /* Its lines from the top: centred, the first line sat lower until the second came. */
+  align-content: start;
 }
 .rowPrice b {
   font-size: 15px;

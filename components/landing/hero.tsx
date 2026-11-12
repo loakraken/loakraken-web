@@ -97,12 +97,16 @@ export function Hero({
     router.push(`/character/${encodeURIComponent(name)}`);
   }
 
+  const caption = searching ? "캐릭터 화면으로 이동하고 있어요" : focused ? "어떤 캐릭터를 살펴볼까요?" : "당신의 다음 선택을 기다리고 있어요";
+
   return (
     <section ref={hero} className={embedded ? `${styles.hero} ${styles.heroEmbedded}` : styles.hero} id={embedded ? undefined : "intro"} aria-labelledby="hero-heading" data-in-view={heroVisible}>
       <div className={styles.heroContent}>
         <div className={`${styles.statusPill} ${styles.heroEnter}`} {...entering}>LOAKraken</div>
-        <Title className={`${styles.heroTitle} ${styles.heroEnter}`} id="hero-heading" {...entering}>당신의 캐릭터.<br /><span>가능성을 더 선명하게.</span></Title>
-        <p className={`${styles.heroDescription} ${styles.heroEnter}`} {...entering}>지금의 세팅부터 다음 성장까지.<br />흩어진 정보를 모아, 더 명확한 선택으로.</p>
+        {/* Sized from the start tag (data-fp-label): a first HTML cut inside the
+            title or the description still draws both lines' box (A7, #1559 CI). */}
+        <Title className={`${styles.heroTitle} ${styles.heroEnter}`} id="hero-heading" data-fp-label={"당신의 캐릭터.\n가능성을 더 선명하게."} {...entering}><span className={styles.fpText}>당신의 캐릭터.<br /><span>가능성을 더 선명하게.</span></span></Title>
+        <p className={`${styles.heroDescription} ${styles.heroEnter}`} data-fp-label={"지금의 세팅부터 다음 성장까지.\n흩어진 정보를 모아, 더 명확한 선택으로."} {...entering}><span className={styles.fpText}>지금의 세팅부터 다음 성장까지.<br />흩어진 정보를 모아, 더 명확한 선택으로.</span></p>
         {/* /about only: one line naming the site with its Korean name (marketing spec 10-31). */}
         {!embedded && (
           <p className={`${styles.heroAbout} ${styles.heroEnter}`} {...entering}>
@@ -123,7 +127,7 @@ export function Hero({
           </Stage>
           <div className={styles.botPicker}><BotPicker theme={theme} /></div>
         </div>
-        <p className={styles.orbCaption}><span className={styles.statusDot} />{searching ? "캐릭터 화면으로 이동하고 있어요" : focused ? "어떤 캐릭터를 살펴볼까요?" : "당신의 다음 선택을 기다리고 있어요"}</p>
+        <p className={styles.orbCaption} data-fp-label={caption}><span className={styles.statusDot} /><span className={styles.captionText}>{caption}</span></p>
         {embedded && <div className={styles.searchArea}>
           <BorderBeam className={styles.searchBeam} theme={theme} colorVariant="mono" staticColors size="line" duration={5} strength={focused ? 0.55 : 0.22} active={looping && heroVisible} borderRadius={36}>
             <form className={styles.searchForm} onSubmit={search} noValidate aria-busy={searching}>
@@ -135,7 +139,10 @@ export function Hero({
                   if (refocus.current) refocus.current = false;
                   else setFocusHops((n) => n + 1);
                 }} onBlur={() => setFocused(false)} placeholder="캐릭터 이름을 입력하세요" maxLength={65} autoComplete="off" spellCheck={false} disabled={searching} aria-invalid={!!error} aria-describedby={error ? "search-error" : undefined} />
-              {shortcutKey && <kbd className={styles.shortcut} aria-hidden="true">{shortcutKey === "mac" ? <Command size={12} /> : "Ctrl"} K</kbd>}
+              {shortcutKey && (shortcutKey === "mac"
+                ? <kbd className={styles.shortcut} aria-hidden="true"><Command size={12} /> K</kbd>
+                // One string, sized from the start tag (data-fp-label) like the rest of the hero (A7).
+                : <kbd className={styles.shortcut} aria-hidden="true" data-fp-label="Ctrl K"><span className={styles.fpText}>Ctrl K</span></kbd>)}
               <button className={styles.searchSubmit} type="submit" disabled={searching} aria-label={searching ? "캐릭터 화면으로 이동 중" : undefined}>{searching ? <InlineOrb /> : <>캐릭터 검색 <ArrowRight size={16} /></>}</button>
             </form>
           </BorderBeam>

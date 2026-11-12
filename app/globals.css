@@ -1367,3 +1367,22 @@
 :root[data-theme-switching] *::after {
   transition: none !important;
 }
+
+/* Sized from the start tag (A7, the first HTML arriving in parts: #1532, #1563,
+   home sweep). An element with data-fp-label draws a hidden copy of its own
+   text in a grid cell, so the box already has its final size when the page is
+   cut right after its start tag and the real text comes later, in any font.
+   The element is a grid (or inline-grid) and puts its real text in the same
+   cell; --fp-area moves the copy when an icon holds the first column.
+   Line breaks in the value (\n) break the copy too. The empty alternative text
+   keeps assistive tech from reading the copy. */
+[data-fp-label]::before {
+  content: attr(data-fp-label);
+  content: attr(data-fp-label) / "";
+  grid-area: var(--fp-area, 1 / 1);
+  visibility: hidden;
+  /* Line breaks in the value break the copy; wrapping is the element's own
+     (nowrap stays nowrap: a copy that wrapped drew 'Ctrl K' two lines tall). */
+  white-space-collapse: preserve-breaks;
+  pointer-events: none;
+}

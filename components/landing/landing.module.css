@@ -42,7 +42,11 @@
 .heroContent { display: flex; flex-direction: column; align-items: center; }
 .statusPill { font-size: 21px; font-weight: 600; letter-spacing: -0.4px; }
 .heroTitle { text-align: center; font-size: clamp(42px, 5.4vw, 80px); font-weight: 600; letter-spacing: -0.035em; line-height: 1.12; margin-top: 18px !important; }
-.heroTitle > span { color: var(--muted-foreground); }
+.heroTitle > .fpText > span { color: var(--muted-foreground); }
+/* Title and description: a hidden copy of the text (data-fp-label) and the
+   real text share one grid cell, so the box has both lines from the start tag. */
+.heroTitle, .heroDescription { display: grid; }
+.fpText { grid-area: 1 / 1; }
 .heroDescription { margin-top: 24px !important; color: var(--muted-foreground); text-align: center; font-size: 20px; line-height: 1.55; letter-spacing: -0.4px; }
 /* The site named once with its Korean reading (/about only): a quiet line under the description. */
 .heroAbout { max-width: 34em; margin: 12px auto 0 !important; color: var(--muted-foreground); text-align: center; font-size: 13px; line-height: 1.6; text-wrap: balance; }
@@ -69,8 +73,9 @@ button.orbStage:focus-visible { outline: 3px solid var(--ring); outline-offset: 
 /* Flex, not a line box: its height is the button's, never the text strut's
    (an empty first-paint button sat on the baseline 6px higher, #1530 CI). */
 .botPicker { position: absolute; right: 0; bottom: 0; display: flex; }
-.orbCaption { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: var(--muted-foreground); margin: 0 0 20px !important; }
-.statusDot { flex: none; width: 4px; height: 4px; border-radius: 50%; display: inline-block; background: var(--link); }
+.orbCaption { display: inline-grid; grid-template-columns: 4px auto; --fp-area: 1 / 2; align-items: center; column-gap: 7px; font-size: 12px; color: var(--muted-foreground); margin: 0 0 20px !important; }
+.statusDot { grid-area: 1 / 1; width: 4px; height: 4px; border-radius: 50%; display: inline-block; background: var(--link); }
+.captionText { grid-area: 1 / 2; }
 .searchArea { width: 100%; max-width: 610px; }
 .searchBeam { width: 100%; }
 .searchForm { display: flex; align-items: center; gap: 10px; min-height: 64px; padding: 6px; background: var(--background); border: 1px solid var(--input); border-radius: 36px; transition: border-color 160ms ease; }
@@ -79,6 +84,7 @@ button.orbStage:focus-visible { outline: 3px solid var(--ring); outline-offset: 
 .searchForm input { border: 0; outline: none !important; background: transparent; width: 100%; min-width: 0; min-height: 46px; font-size: 16px; color: var(--foreground); }
 .searchForm input::placeholder { color: var(--muted-foreground); }
 .shortcut { display: flex; align-items: center; gap: 3px; white-space: nowrap; color: var(--muted-foreground); font: 11px var(--font-geist-mono), monospace; }
+.shortcut[data-fp-label] { display: grid; }
 .searchSubmit { min-height: 50px; min-width: 132px; padding: 0 18px; font-size: 13px; }
 .searchSubmit canvas { filter: brightness(0) invert(1); }
 .searchMessage { min-height: 45px; text-align: center; padding-top: 12px; color: var(--muted-foreground); font-size: 11px; }
@@ -296,7 +302,7 @@ button.orbStage:focus-visible { outline: 3px solid var(--ring); outline-offset: 
   .searchIcon { width: 17px; margin-left: 10px; }
   .searchForm input { font-size: 16px; min-height: 44px; }
   .searchSubmit { min-width: 106px; min-height: 48px; padding: 0 13px; font-size: 12px; }
-  .searchSubmit > svg, .shortcut { display: none; }
+  .searchSubmit > svg, .shortcut, .shortcut[data-fp-label] { display: none; }
   .searchMessage { font-size: 10px; min-height: 62px; padding-top: 14px; }
   .exploreLink { font-size: 13px; margin-top: 22px; }
   .previewBand { padding-bottom: 60px; }
@@ -396,7 +402,7 @@ button.orbStage:focus-visible { outline: 3px solid var(--ring); outline-offset: 
    (/about itself stays light). */
 .landing[data-embedded] { min-height: 0; overflow: visible; background: transparent; color: var(--foreground); font-size: 16px; }
 .hero.heroEmbedded { padding: 36px 0 8px; }
-.heroEmbedded .heroTitle > span, .heroEmbedded .orbCaption, .heroEmbedded .searchIcon, .heroEmbedded .shortcut, .heroEmbedded .searchMessage, .heroEmbedded .searchForm input::placeholder { color: var(--muted-foreground); }
+.heroEmbedded .heroTitle > .fpText > span, .heroEmbedded .orbCaption, .heroEmbedded .searchIcon, .heroEmbedded .shortcut, .heroEmbedded .searchMessage, .heroEmbedded .searchForm input::placeholder { color: var(--muted-foreground); }
 .heroEmbedded .heroDescription { color: var(--muted-foreground); }
 .heroEmbedded .searchForm { background: var(--background); border-color: var(--muted-foreground); }
 .heroEmbedded .searchForm input { color: var(--foreground); }
