@@ -150,7 +150,8 @@
   /* Its two lines (14px name, 12px trades) from the start tag: centred in the
      row, a name drawn before its second line moved when it came (A7). */
   min-height: calc(26px * var(--leading-body));
-  align-content: center;
+  /* Its lines from the top: centred, the first line sat lower until the second came. */
+  align-content: start;
 }
 .rowName strong {
   display: flex;
@@ -165,6 +166,8 @@
 .rowName strong i {
   /* A31: one line, never split (badge/chip/unit). */
   flex: none;
+  /* Its text from the start tag (data-fp-label, A7): the copy and the text share a cell. */
+  display: inline-grid;
   white-space: nowrap;
   padding: 1px 5px;
   border-radius: 5px;
@@ -173,6 +176,9 @@
   font-size: 11px;
   font-style: normal;
   font-weight: 600;
+}
+.rowName strong i > span {
+  grid-area: 1 / 1;
 }
 .rowName small {
   color: var(--slate);
@@ -198,7 +204,8 @@
   min-width: 8rem;
   /* The price and the day change lines from the start tag (A7, as .rowName). */
   min-height: calc(30px * var(--leading-body));
-  align-content: center;
+  /* Its lines from the top: centred, the first line sat lower until the second came. */
+  align-content: start;
 }
 .rowPrice b {
   font-size: 15px;
