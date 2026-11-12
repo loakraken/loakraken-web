@@ -300,7 +300,7 @@ export function HellRewardTool() {
                   in place, not shown) until the stored values apply and prices land, so a reload never
                   flips it from a no-typed-value result (codex #1549 P3).
                   Each amount is one text ("47,695G"; split, the G node moved as numbers grew). */}
-              <dl className={styles.sums} aria-live="polite" data-waiting={!restored || (!loaded && !failure) ? "" : undefined}>
+              <dl className={styles.sums} aria-live="polite" aria-busy={!restored || (!loaded && !failure) || undefined} data-waiting={!restored || (!loaded && !failure) ? "" : undefined}>
                 <div>
                   <dt>가장 좋은 상자</dt>
                   <dd className={styles.boxName}>{best?.label ?? ""}</dd>
