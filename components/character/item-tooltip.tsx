@@ -25,6 +25,7 @@ import {
   type GridLines,
 } from "@/lib/character/item-tooltips";
 import { rangeDetail } from "@/lib/character/accessory-range";
+import { isOverlay } from "@/lib/character/inner";
 import styles from "./item-tooltip.module.css";
 
 type Equipment = Character["loadout"]["equipment"][number];
@@ -639,7 +640,7 @@ export function AvatarCard({ avatar }: { avatar: Avatar }) {
       lines={[[avatar.grade, avatar.type ?? "아바타"].filter(Boolean).join(" ")]}
       aside="장착중"
     >
-      {avatar.isInner && (
+      {isOverlay(avatar) && (
         <ItemLine tone="muted">아래 능력들이 적용되지 않는 상태입니다.(덧입기 슬롯에 착용 중)</ItemLine>
       )}
       {avatar.effects.length > 0 && (
