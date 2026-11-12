@@ -165,8 +165,9 @@ for (const width of [1280, 320])
 
 // codex QA v0.3.11 P2: the tool said nothing about when its prices were collected, even when they
 // were days old. The line under 시세 기준 names the collection time; past an hour it reads as old
-// (warning tone). It keeps one line either way, so nothing moves.
-for (const width of [1280, 360, 320])
+// (warning tone). It keeps one line either way, so nothing moves. 901: the narrowest side column
+// (16rem, ~901–1000 px), where the longest form (hours) must still fit one line (codex #1559 P3).
+for (const width of [1280, 901, 360, 320])
   test(`${width} 지옥 · 나락 보상: 시세 수집 시각, 오래된 시세는 오래됐다고, 흔들림 0 @regression`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await watchShifts(page);
@@ -184,18 +185,23 @@ for (const width of [1280, 360, 320])
     const line = page.getByText(`오래된 시세 · 3일 전(${kst.getUTCMonth() + 1}월 ${kst.getUTCDate()}일 ${hm})`, { exact: true });
     await expect(line).toBeVisible();
     await expect(line).toHaveAttribute("data-old", "true");
-    // Old or fresh, the line is one line high.
+    // Old, longest (the hours form) or fresh, the line is one line high and never wider than its box.
     const oneLine = await line.evaluate((el) => {
       const node = el.firstChild;
       const was = node.nodeValue;
       const old = el.getBoundingClientRect().height;
+      node.nodeValue = "오래된 시세 · 23시간 전(12월 31일 23:59)";
+      const longest = el.getBoundingClientRect().height;
+      const overflow = el.scrollWidth - el.clientWidth;
       node.nodeValue = "시세 3분 전 수집";
       const fresh = el.getBoundingClientRect().height;
       node.nodeValue = was;
-      return { old, fresh, line: parseFloat(getComputedStyle(el).lineHeight) };
+      return { old, longest, fresh, overflow, line: parseFloat(getComputedStyle(el).lineHeight) };
     });
     expect(oneLine.old, "오래된 시세 줄 높이").toBe(oneLine.fresh);
+    expect(oneLine.longest, "가장 긴 문구 줄 높이").toBe(oneLine.fresh);
     expect(oneLine.old, "한 줄").toBeLessThan(oneLine.line * 1.5);
+    expect(oneLine.overflow, "가장 긴 문구 넘침").toBeLessThanOrEqual(0);
     await page.waitForTimeout(600);
     const shifts = await shiftsSince(page);
     expect(shifts.all, `시세 시각 흔들림 (${shifts.moved})`).toBe(0);
