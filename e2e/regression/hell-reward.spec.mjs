@@ -149,9 +149,22 @@ for (const width of [1280, 320])
       await expect(page.getByRole("radiogroup", { name: "열쇠 단계(입장 레벨)" }).getByRole("radio", { name: "1730" }), when).toBeChecked();
       await expect(page.getByRole("combobox", { name: "클리어 단계" }), when).toContainText("3단계");
     };
+    // codex #1549 P3: while the page comes back, the headline never shows another box or value
+    // (no flip from a no-typed-value result): every shown (visible) headline text is recorded.
+    await page.addInitScript(() => {
+      window.__headSeen = new Set();
+      const look = () => {
+        const dl = [...document.querySelectorAll("dl")].find((d) => d.textContent.includes("가장 좋은 상자"));
+        const dds = dl ? [...dl.querySelectorAll("dd")] : [];
+        if (dds.length > 1 && getComputedStyle(dds[1]).visibility === "visible")
+          window.__headSeen.add(`${dds[0].textContent}|${dds[1].textContent}`);
+      };
+      new MutationObserver(look).observe(document, { subtree: true, childList: true, characterData: true, attributes: true });
+    });
     await page.reload();
     await same("새로 고침");
     await page.waitForTimeout(600);
+    expect(await page.evaluate(() => [...window.__headSeen]), "새로 고침 중 머리글").toEqual([`${name}|${amount}`]);
     const reloaded = await shiftsSince(page);
     expect(reloaded.all, `새로 고침 뒤 흔들림 (${reloaded.moved})`).toBe(0);
 

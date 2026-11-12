@@ -329,3 +329,7 @@
   color: var(--accent-warm);
   font-weight: 600;
 }
+/* Headline held until stored values and prices apply: the box keeps its size, nothing moves. */
+.sums[data-waiting] dd {
+  visibility: hidden;
+}
