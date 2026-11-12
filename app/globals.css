@@ -1381,6 +1381,8 @@
   content: attr(data-fp-label) / "";
   grid-area: var(--fp-area, 1 / 1);
   visibility: hidden;
-  white-space: pre-line;
+  /* Line breaks in the value break the copy; wrapping is the element's own
+     (nowrap stays nowrap: a copy that wrapped drew 'Ctrl K' two lines tall). */
+  white-space-collapse: preserve-breaks;
   pointer-events: none;
 }

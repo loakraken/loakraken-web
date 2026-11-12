@@ -245,8 +245,12 @@
 /* The home schedule head: the toggle first in the page, drawn on the right. */
 .headToolsReverse {
   flex-direction: row-reverse;
-  /* The rest of the row, packed to the right: the box itself does not grow
-     leftwards when the legend joins (a right-anchored box that widens moves). */
+}
+/* The home card: the rest of the row, packed to the right, so the box itself
+   does not grow leftwards when the legend joins (a right-anchored box that
+   widens moves). Not on /schedule, whose heading (the chosen date) changes
+   width: there the tools keep their own width at the right end. */
+.scheduleHead .headToolsReverse {
   flex: 1 1 auto;
   justify-content: flex-start;
 }
