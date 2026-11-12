@@ -2567,7 +2567,9 @@ createServer(async (req, res) => {
       { name: "도약", value: 50 + n * 4, description: null },
     ];
   }
-  if (name === "전투력계산") withSimulatorGear(envelope.data);
+  if (name === "전투력계산" || name === "전투력계산저재련") withSimulatorGear(envelope.data);
+  // A weapon below options refineMin (10): the refine select still shows 8, not an empty box (#1555).
+  if (name === "전투력계산저재련") envelope.data.loadout.equipment.find((item) => item.type === "무기").detail.refineLevel = 8;
   // 그 외 장착 보석 (L34): a second gem set on a skill the skill list does not
   // have (an identity skill in the official gem effects).
   if (name === "그외보석") {

@@ -89,13 +89,41 @@ test.describe("전투력 시뮬레이터 @smoke", () => {
     await gotoReady(page, `/tools/combat-power?character=${encodeURIComponent("전투력계산")}`);
     await expect(page.getByRole("combobox", { name: "투구 재련 단계" })).toHaveCount(0);
     await expect(page.getByText("재련 +19 · 준비 중")).toBeVisible();
+    // The guidance under the editors says the weapon is open and armour is not (PM 총괄 11-13).
+    await expect(page.getByText(/팔 보호구·무기 재련을 바꿀 수 있어요\. 방어구 재련·/)).toBeVisible();
+    const asked = page.waitForRequest((r) => r.url().includes("/api/combat-power/simulate") && r.method() === "POST");
     await chooseOption(page, page.getByRole("combobox", { name: "무기 재련 단계" }), "21");
+    // Exactly the weapon's refine change goes to the api: index 0 is the mock's weapon.
+    expect((await asked).postDataJSON()).toEqual({
+      characterName: "전투력계산",
+      changes: [{ kind: "EQUIPMENT_REFINE", index: 0, refine: 21 }],
+    });
     const changes = page.getByRole("region", { name: "바꾼 것" });
     await expect(changes.getByText("20 → 21")).toBeVisible();
     await expect(page.getByText("예상 전투력")).toBeVisible();
     await expect(page.getByText("+10.00 (", { exact: false }).first()).toBeVisible();
     await expect(page.getByRole("region", { name: /전투력$/ })).toContainText("지금 아이템 레벨 1,700.5");
     await expectNoHorizontalOverflow(page);
+  });
+
+  test("무기가 고를 수 있는 가장 낮은 재련(10)보다 낮아도 칸은 지금 단계(8)를 보여 준다", async ({ page }) => {
+    await gotoReady(page, `/tools/combat-power?character=${encodeURIComponent("전투력계산저재련")}`);
+    const refine = page.getByRole("combobox", { name: "무기 재련 단계" });
+    await expect(refine).toHaveText("8");
+    await refine.click();
+    const levels = page.getByRole("option");
+    await expect(levels.first()).toHaveText("8");
+    await expect(levels.nth(1)).toHaveText("10");
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("listbox")).toHaveCount(0);
+    // Nothing changed yet, so nothing is sent; picking 10 sends only that step.
+    await expect(page.getByText("아래에서 값을 바꾸면 바로 다시 계산해요.")).toBeVisible();
+    const asked = page.waitForRequest((r) => r.url().includes("/api/combat-power/simulate") && r.method() === "POST");
+    await chooseOption(page, refine, "10");
+    expect((await asked).postDataJSON()).toEqual({
+      characterName: "전투력계산저재련",
+      changes: [{ kind: "EQUIPMENT_REFINE", index: 0, refine: 10 }],
+    });
   });
 
   test("연마 줄 등급을 바꾸면 계산에 들어가고, 고를 때도 공식 수치를 함께 보여 준다(api #460)", async ({ page }) => {
