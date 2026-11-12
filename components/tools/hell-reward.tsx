@@ -160,7 +160,7 @@ export function HellRewardTool() {
   // Per unit and per item (keyed by item name, lib unitKey): the same item keeps its value
   // across kinds, levels and stages; a different item at another level does not take it.
   // Kept in this browser (localStorage), not the address: reload, Back and a later visit keep them.
-  const [manual, setManual] = useHellValues();
+  const [manual, setManual, restored] = useHellValues();
   // 풍요: the base of the opened box ×10 (PM 총괄 11-10).
   const [abundance, setAbundance] = useUrlState("abundance", false, boolCodec);
   const stageId = useId();
@@ -296,9 +296,11 @@ export function HellRewardTool() {
                   </button>
                 </div>
               )}
-              {/* The headline is the best single box: one key opens one box (PM 총괄 11-10).
+              {/* The headline is the best single box: one key opens one box (PM 총괄 11-10). Held (kept
+                  in place, not shown) until the stored values apply and prices land, so a reload never
+                  flips it from a no-typed-value result (codex #1549 P3).
                   Each amount is one text ("47,695G"; split, the G node moved as numbers grew). */}
-              <dl className={styles.sums} aria-live="polite">
+              <dl className={styles.sums} aria-live="polite" data-waiting={!restored || (!loaded && !failure) ? "" : undefined}>
                 <div>
                   <dt>가장 좋은 상자</dt>
                   <dd className={styles.boxName}>{best?.label ?? ""}</dd>
