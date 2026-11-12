@@ -42,6 +42,7 @@ import {
   braceletName,
   gradeWithValue,
   isOpen,
+  isRefineOpen,
   polishValue,
   type Grade,
   NO_EDITS,
@@ -344,7 +345,7 @@ function Editors({
             {current.gear.map((item) => (
               <li key={item.index}>
                 <span className={styles.rowName}>{item.name}</span>
-                {item.refine != null && !isOpen("EQUIPMENT_REFINE") ? (
+                {item.refine != null && !isRefineOpen(item.type) ? (
                   <Locked caption="재련" value={`+${item.refine}`} />
                 ) : item.refine != null ? (
                   <Select
@@ -692,11 +693,13 @@ function ResultBand({
             ? `바꾼 ${changed}개 중 계산된 항목만 반영했어요${data.partial ? ` · 계산 준비 중 ${data.unsupportedCount}개` : ""}.`
             : `바꾼 ${changed}개 항목은 계산식을 확인하고 있어 아직 반영하지 않았어요.`}
       </p>
-      {/* Item level moves only with refining, which is still 준비 중: the
-          current value, no made-up change (PM-프론트 16:37 ②). */}
+      {/* Item level moves with refining; the simulation does not return one, so
+          this is today's value, no made-up change (PM-프론트 16:37 ②), and says
+          so now that the weapon's refine can change (PM 총괄 11-12). One fixed
+          text: nothing in the band changes length when a step is picked (A7). */}
       {itemLevel != null && (
         <p className={styles.bandSub}>
-          아이템 레벨 <b>{itemLevel.toLocaleString("ko-KR", { maximumFractionDigits: 2 })}</b>
+          지금 아이템 레벨 <b>{itemLevel.toLocaleString("ko-KR", { maximumFractionDigits: 2 })}</b>
         </p>
       )}
     </section>
