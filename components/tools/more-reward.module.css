@@ -528,19 +528,6 @@
   }
 }
 
-/* Below 360 the three price bases do not fit on one row; the control finds that
-   only after the fonts are ready and stacks itself then, pushing the table down
-   at first load (320: 0.016). Stacked from the first paint here, as it would end. */
-@media (max-width: 359px) {
-  .advanced [data-slot="segmented-control"][data-orientation] {
-    width: 100%;
-    grid-auto-flow: row;
-    grid-auto-columns: auto;
-    row-gap: 12px;
-    border-radius: 20px;
-  }
-}
-
 /* A new price basis: the table keeps its shape, dimmed, until it arrives. */
 .verdict[data-stale],
 .tableScroll[data-stale] {

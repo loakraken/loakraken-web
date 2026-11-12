@@ -2168,12 +2168,14 @@ function SiblingList({
       <div className={styles.rosterTools}>
         {/* Up to 400px the pills fill the row with one-word names (four sorts
             in the system font are wider than a 360 screen); the full name
-            stays the accessible name. */}
+            stays the accessible name. Wider, the full names decide in CSS when
+            the row stacks (labels); up to 400px it stays one row of short names. */}
         <SegmentedControl
           aria-label="원정대 정렬"
           value={sort}
           onValueChange={(value) => setSort(value as RosterSort)}
-          className="max-[400px]:w-full"
+          labels={ROSTER_SORTS.map((item) => item.label)}
+          className="max-[400px]:w-full! max-[400px]:grid-flow-col! max-[400px]:auto-cols-fr! max-[400px]:rounded-full! max-[400px]:gap-1!"
         >
           {ROSTER_SORTS.map((item) => (
             <SegmentedItem key={item.id} value={item.id} aria-label={item.label} className="max-[400px]:px-2">

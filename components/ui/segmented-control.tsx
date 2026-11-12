@@ -4,66 +4,23 @@ import * as React from "react"
 import { Radio } from "@base-ui/react/radio"
 import { RadioGroup } from "@base-ui/react/radio-group"
 import { cn } from "cn"
+import { SEGMENTED_ITEM_PAD_PX, segmentedRowWidth } from "@/lib/ui/segmented-width"
 
-// Width the row needs on one line, and the width its parent offers.
-function useFitsOnOneLine<T extends HTMLElement>(auto: boolean) {
-  const ref = React.useRef<T>(null)
-  const [vertical, setVertical] = React.useState(false)
-  React.useLayoutEffect(() => {
-    const track = ref.current
-    const parent = track?.parentElement
-    if (!auto || !track || !parent) return
-    // Equal columns need n × the widest item (its full label, nowrap, plus its
-    // padding) plus the gaps and track padding. The label is measured as a
-    // range, so the sum is the same in either orientation and tells a vertical
-    // track when it may go back to one row.
-    const range = document.createRange()
-    const natural = (el: HTMLElement) => {
-      range.selectNodeContents(el)
-      const s = getComputedStyle(el)
-      return range.getBoundingClientRect().width + parseFloat(s.paddingLeft) + parseFloat(s.paddingRight)
-    }
-    const check = () => {
-      const items = [...track.children].filter(
-        (el): el is HTMLElement => el instanceof HTMLElement && el.dataset.slot === "segmented-item"
-      )
-      if (!items.length) return
-      const style = getComputedStyle(track)
-      const widest = Math.max(...items.map(natural))
-      const needed =
-        widest * items.length +
-        parseFloat(style.columnGap || "0") * (items.length - 1) +
-        parseFloat(style.paddingLeft) +
-        parseFloat(style.paddingRight)
-      const box = getComputedStyle(parent)
-      const room = parent.clientWidth - parseFloat(box.paddingLeft) - parseFloat(box.paddingRight)
-      setVertical(needed > room + 0.5)
-    }
-    // Measuring with the fallback face first could pick "vertical" and then flip
-    // back when the web font lands, moving everything below (#346). Until the
-    // fonts are ready the row stays as the server drew it (horizontal).
-    let live = true
-    let ready = document.fonts.status === "loaded"
-    const guarded = () => {
-      if (live && ready) check()
-    }
-    if (ready) check()
-    else
-      document.fonts.ready.then(() => {
-        ready = true
-        guarded()
-      })
-    const observer = new ResizeObserver(guarded)
-    observer.observe(parent)
-    // Label widths change when a later web font arrives.
-    document.fonts.addEventListener("loadingdone", guarded)
-    return () => {
-      live = false
-      observer.disconnect()
-      document.fonts.removeEventListener("loadingdone", guarded)
-    }
-  }, [auto])
-  return [ref, vertical] as const
+// The labels of the items, when each is plain text (or a number); null when one
+// is not (an icon, nested spans): such a row passes `labels`, or never stacks.
+function itemLabels(children: React.ReactNode): { labels: string[]; pad: number } | null {
+  const labels: string[] = []
+  let pad = SEGMENTED_ITEM_PAD_PX
+  for (const child of React.Children.toArray(children)) {
+    if (!React.isValidElement<{ children?: React.ReactNode; className?: string }>(child)) return null
+    const parts = React.Children.toArray(child.props.children)
+    if (!parts.length || !parts.every((part) => typeof part === "string" || typeof part === "number")) return null
+    labels.push(parts.join(""))
+    // An item with narrower sides (px-3: 12px), unprefixed so it holds at every width.
+    const side = /(?:^|\s)px-(\d+(?:\.\d+)?)(?=\s|$)/.exec(child.props.className ?? "")
+    if (side) pad = Math.min(pad, Number(side[1]) * 4)
+  }
+  return labels.length ? { labels, pad } : null
 }
 
 // One-of-few choice shown as a pill row (price basis, period, sort). Base UI
@@ -73,28 +30,42 @@ function useFitsOnOneLine<T extends HTMLElement>(auto: boolean) {
 // Never wraps: items share one width (Apple segmented control). `fill`
 // stretches the row to its parent. When the parent cannot hold the row on one
 // line, the items stack as a vertical list instead of breaking mid-row.
+//
+// "auto" decides that in CSS, before the first paint: the row's width comes
+// from its labels (lib/ui/segmented-width.ts, the widest face the font stack can
+// draw them in) and a container query on a full-width frame stacks the items
+// when the parent offers less. Nothing is measured after the fonts load, so
+// nothing below moves (#346, #1145, /market/quote 360·375 CLS 0.15 at 1.6 Mbps).
 function SegmentedControl({
   className,
   fill = false,
   orientation = "auto",
+  labels,
+  children,
   ...props
 }: RadioGroup.Props & {
   fill?: boolean
-  /** "auto" measures after the web font is ready. A screen that knows the slot
-   * is narrow can fix "vertical" so the server HTML is already stacked (no shift). */
+  /** "auto" stacks the row in CSS when its parent is narrower than the labels
+   * need. "horizontal"/"vertical" fix it. */
   orientation?: "auto" | "horizontal" | "vertical"
+  /** The text the width is decided from when an item is not plain text (nested
+   * spans, an icon); without it such a row is never stacked. */
+  labels?: string[]
 }) {
-  const [ref, measuredVertical] = useFitsOnOneLine<HTMLDivElement>(orientation === "auto")
-  const vertical = orientation === "auto" ? measuredVertical : orientation === "vertical"
-  return (
+  const found =
+    orientation !== "auto" ? null : labels?.length ? { labels, pad: SEGMENTED_ITEM_PAD_PX } : itemLabels(children)
+  const stackBelow = found ? segmentedRowWidth(found.labels, found.pad) : null
+  const vertical = orientation === "vertical"
+  const track = (
     <RadioGroup
-      ref={ref}
       data-slot="segmented-control"
-      data-orientation={vertical ? "vertical" : "horizontal"}
+      data-orientation={stackBelow != null ? "auto" : vertical ? "vertical" : "horizontal"}
       className={cn(
         "grid max-w-full gap-1 bg-muted p-1",
-        // Equal columns on one row; a full pill on a 40px row.
+        // Equal columns on one row; a full pill on a 40px row. ("auto" starts
+        // here and the frame's container query stacks it, see below.)
         "data-[orientation=horizontal]:auto-cols-fr data-[orientation=horizontal]:grid-flow-col data-[orientation=horizontal]:rounded-full",
+        "data-[orientation=auto]:auto-cols-fr data-[orientation=auto]:grid-flow-col data-[orientation=auto]:rounded-full",
         // Stacked: full-width rows in a rounded box.
         "data-[orientation=vertical]:w-full data-[orientation=vertical]:grid-flow-row data-[orientation=vertical]:rounded-[20px]",
         // Phones: stacked rows 44px apart so each 44px tap area (hit-44) is its own (A36).
@@ -106,7 +77,31 @@ function SegmentedControl({
         className
       )}
       {...props}
-    />
+    >
+      {children}
+    </RadioGroup>
+  )
+  if (stackBelow == null) return track
+  // The frame takes the width the parent offers (the old measurement's "room")
+  // and is the container the query reads. The stacked look is the vertical
+  // state above, written out; one attribute more specific than the row classes.
+  const at = `[data-stack-below="${stackBelow}"] [data-slot="segmented-control"][data-orientation="auto"]`
+  return (
+    <div
+      data-slot="segmented-frame"
+      data-stack-below={stackBelow}
+      className="w-full min-w-0 self-start [container-type:inline-size]"
+    >
+      <style
+        // Plain CSS text (no markup); the selector names this row's width only.
+        dangerouslySetInnerHTML={{
+          __html:
+            `@container (width < ${stackBelow}px){${at}{width:100%;grid-auto-flow:row;grid-auto-columns:auto;border-radius:20px}` +
+            `@media (max-width:699px),(pointer:coarse){${at}{row-gap:12px}}}`,
+        }}
+      />
+      {track}
+    </div>
   )
 }
 
