@@ -4,18 +4,21 @@ import {
   AVATAR_SLOTS,
   avatarSlots,
   avatarTendencyText,
+  isOverlay,
   avatarTendencyTotals,
   decorationParts,
   rarestOwned,
 } from "../lib/character/inner";
 
 test("avatar slots: twelve in the game's order, worn items placed, empty ones null, others after", () => {
-  const avatar = (type: string, name: string, isInner = false) =>
+  // The official answer as it is: both avatars of a layered slot read "무기 아바타"; IsInner is true for the
+  // base one (worn underneath) and false for the 덧입기. Slots without a 덧입기 (이동 효과, 얼굴, 악기) are false.
+  const avatar = (type: string, name: string, isInner: boolean | null = false) =>
     ({ type, name, icon: null, grade: "영웅", isSet: false, isInner, effects: [], tendencies: [] }) as Parameters<typeof avatarSlots>[0][number];
   const rows = avatarSlots([
-    avatar("무기 아바타", "검"),
-    avatar("무기 아바타", "검 덧입기", true),
-    avatar("이동 효과", "폭풍우"),
+    avatar("무기 아바타", "검", true),
+    avatar("무기 아바타", "검 덧입기", false),
+    avatar("이동 효과", "폭풍우", false),
     avatar("머리 덧입기 아바타", "모자"),
     avatar("특수 아바타", "기타 장식"),
   ]);
@@ -26,6 +29,30 @@ test("avatar slots: twelve in the game's order, worn items placed, empty ones nu
   assert.equal(rows[11].avatar?.name, "폭풍우");
   assert.equal(rows[2].avatar, null);
   assert.deepEqual(rows.slice(12).map((row) => [row.slot, row.avatar?.name]), [["특수", "기타 장식"]]);
+});
+
+test("기본 vs 덧입기 follows IsInner as the game shows it (user 11-12, in game): true = 기본, false = 덧입기", () => {
+  const avatar = (type: string, name: string, isInner: boolean | null) =>
+    ({ type, name, icon: null, grade: "전설", isSet: false, isInner, effects: [], tendencies: [] }) as Parameters<typeof avatarSlots>[0][number];
+  // A real character: 속삭이는 영원 (귀속, 전설) in the base slots, 7주년 궤적 (이벤트, 영웅) in the 덧입기 slots.
+  const worn = [
+    avatar("상의 아바타", "7주년 궤적 상의", false),
+    avatar("상의 아바타", "속삭이는 영원 상의", true),
+    avatar("하의 아바타", "속삭이는 영원 하의", true),
+    avatar("하의 아바타", "7주년 궤적 하의", false),
+  ];
+  const slot = (name: string) => avatarSlots(worn).find((row) => row.slot === name)?.avatar?.name;
+  assert.equal(slot("상의"), "속삭이는 영원 상의");
+  assert.equal(slot("상의 덧입기"), "7주년 궤적 상의");
+  assert.equal(slot("하의"), "속삭이는 영원 하의");
+  assert.equal(slot("하의 덧입기"), "7주년 궤적 하의");
+  // A base alone stays the base; a slot with no 덧입기 is never one; an unknown flag reads as the base.
+  assert.equal(isOverlay(avatar("하의 아바타", "속삭이는 영원 하의", true)), false);
+  assert.equal(isOverlay(avatar("하의 아바타", "7주년 궤적 하의", false)), true);
+  assert.equal(isOverlay(avatar("이동 효과", "폭풍우", false)), false);
+  assert.equal(isOverlay(avatar("얼굴1 아바타", "눈", false)), false);
+  assert.equal(isOverlay(avatar("상의 아바타", "옛 답", null)), false);
+  assert.equal(isOverlay(avatar("머리 덧입기 아바타", "모자", null)), true);
 });
 
 test("아바타 성향 (user 11-02): a line per avatar, totals in the game's order, nothing when none", () => {
