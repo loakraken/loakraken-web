@@ -1,6 +1,18 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { HELL_DATA, MARKET_NAMES, baseValue, checkHellData, gradeText, heldView, levelItems, rankBoxes, stageBase, stageReward, stageValue, unitKey, zeroManualCount } from "../lib/tools/hell-reward";
+import { HELL_DATA, MARKET_NAMES, STALE_PRICE_MINUTES, baseValue, checkHellData, gradeText, heldView, levelItems, priceAge, rankBoxes, stageBase, stageReward, stageValue, unitKey, zeroManualCount } from "../lib/tools/hell-reward";
+
+// codex QA v0.3.11 P2: the price time is shown, the oldest price decides, an hour old is named old (KST).
+test("hell reward price time: oldest price, minutes, old past an hour", () => {
+  const now = Date.parse("2026-11-12T05:00:00Z"); // 14:00 KST
+  assert.equal(priceAge(now, []), null);
+  assert.deepEqual(priceAge(now, ["2026-11-12T04:59:40Z"]), { text: "시세 방금 수집", stale: false });
+  assert.deepEqual(priceAge(now, ["2026-11-12T04:58:00Z", "2026-11-12T04:57:00Z"]), { text: "시세 3분 전 수집", stale: false });
+  assert.equal(priceAge(now, [new Date(now - (STALE_PRICE_MINUTES - 1) * 60_000).toISOString()])!.stale, false);
+  assert.deepEqual(priceAge(now, ["2026-11-12T04:59:00Z", "2026-11-09T05:20:00Z"]), { text: "오래된 시세 · 11월 9일 14:20 수집", stale: true });
+  // KST date across midnight UTC.
+  assert.equal(priceAge(now, ["2026-11-11T15:05:00Z"])!.text, "오래된 시세 · 11월 12일 00:05 수집");
+});
 
 test("hell reward data: every kind and key level has stages 0-10, counts rise with the stage", () => {
   assert.deepEqual(checkHellData(HELL_DATA), []);
