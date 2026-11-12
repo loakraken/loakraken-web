@@ -24,6 +24,12 @@ for (const width of [1280, 360])
     const row = (name) => list.locator("li").filter({ hasText: name }).first();
     await expect(row("합성 하의 (패스)")).toContainText("담력 5 · 매력 15");
     await expect(row("합성 무기 아바타")).toContainText("지성 5 · 담력 5 · 매력 5 · 친절 5");
+    // 기본 and 덧입기 as the game shows them (user 11-12): the official answer names both "무기 아바타";
+    // IsInner true is the base, false the 덧입기 over it.
+    await expect(row("합성 무기 아바타").locator("small").first()).toHaveText("무기");
+    await expect(row("합성 무기 덧입기").locator("small").first()).toHaveText("무기 덧입기");
+    await expect(row("합성 상의 (패스)").locator("small").first()).toHaveText("상의");
+    await expect(row("합성 상의 덧입기").locator("small").first()).toHaveText("상의 덧입기");
     // No 성향 line where the avatar gives none.
     await expect(row("합성 이동 효과").locator("small")).toHaveText(["이동 효과"]);
     // The panel sits above the list (first in the column).
