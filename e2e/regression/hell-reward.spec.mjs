@@ -181,7 +181,7 @@ for (const width of [1280, 360, 320])
     await page.goto("/tools/hell-reward");
     const kst = new Date(old.getTime() + 9 * 3_600_000);
     const hm = `${String(kst.getUTCHours()).padStart(2, "0")}:${String(kst.getUTCMinutes()).padStart(2, "0")}`;
-    const line = page.getByText(`오래된 시세 · ${kst.getUTCMonth() + 1}월 ${kst.getUTCDate()}일 ${hm} 수집`, { exact: true });
+    const line = page.getByText(`오래된 시세 · 3일 전(${kst.getUTCMonth() + 1}월 ${kst.getUTCDate()}일 ${hm})`, { exact: true });
     await expect(line).toBeVisible();
     await expect(line).toHaveAttribute("data-old", "true");
     // Old or fresh, the line is one line high.
