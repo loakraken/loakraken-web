@@ -14,7 +14,8 @@ import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { MarketQueryError, postMaterialPrices } from "@/lib/market/client";
 import { marketFailureCopy, priceBases, type PriceBasis } from "@/lib/market/model";
 import { goldText } from "@/lib/tools/format";
-import { intCodec, oneOfCodec, useUrlState } from "@/lib/tools/url-state";
+import { boolCodec, intCodec, oneOfCodec, useUrlState } from "@/lib/tools/url-state";
+import { useHellValues } from "@/lib/tools/hell-reward-values";
 import {
   HELL_DATA,
   MARKET_NAMES,
@@ -155,12 +156,13 @@ export function HellRewardTool() {
   const level = Number(levelText);
   const setLevel = (v: number) => setLevelText(String(v));
   const [stage, setStage] = useUrlState("stage", 0, intCodec(0, 10));
-  const [basis, setBasis] = useState<PriceBasis>("RECENT_PRICE");
+  const [basis, setBasis] = useUrlState<PriceBasis>("basis", "RECENT_PRICE", oneOfCodec(priceBases.map((b) => b.value)));
   // Per unit and per item (keyed by item name, lib unitKey): the same item keeps its value
   // across kinds, levels and stages; a different item at another level does not take it.
-  const [manual, setManual] = useState<Record<string, string>>({});
+  // Kept in this browser (localStorage), not the address: reload, Back and a later visit keep them.
+  const [manual, setManual] = useHellValues();
   // 풍요: the base of the opened box ×10 (PM 총괄 11-10).
-  const [abundance, setAbundance] = useState(false);
+  const [abundance, setAbundance] = useUrlState("abundance", false, boolCodec);
   const stageId = useId();
   const basisId = useId();
 

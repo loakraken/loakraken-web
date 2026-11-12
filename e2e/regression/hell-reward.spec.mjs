@@ -105,3 +105,58 @@ for (const width of [1280, 360, 320])
     await expect(table.locator("tr[aria-current]")).toContainText("10단계");
     await expectNoHorizontalOverflow(page);
   });
+
+// codex QA v0.3.11 P1: the tool kept nothing; reload / Back dropped 풍요 and the typed values and the
+// best box changed. 종류 · 열쇠 단계 · 클리어 단계 · 풍요 · 시세 기준 live in the address (replaceState),
+// typed values in this browser (by item name). Coming back shows the same values and best box, still.
+for (const width of [1280, 320])
+  test(`${width} 지옥 · 나락 보상: 새로 고침과 뒤로 가기 뒤에도 고른 것 · 직접 정한 값 · 가장 좋은 상자 그대로, 흔들림 0 @regression`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await watchShifts(page);
+    await page.goto("/tools/hell-reward");
+    const head = page.locator("dl").filter({ hasText: "가장 좋은 상자" });
+    const bestName = head.getByRole("definition").nth(0);
+    const bestValue = head.getByRole("definition").nth(1);
+    const abundance = page.getByRole("switch", { name: "풍요(기본 보상 ×10)" });
+    const bracelet = page.getByRole("spinbutton", { name: "팔찌 상자 (고대) 1개 값(골드)" });
+    const lava = page.getByRole("spinbutton", { name: "용암의 숨결 1개 값(골드)" });
+    const basis = page.getByRole("combobox", { name: "시세 기준" });
+    await expect(bestValue).toHaveText("21,416G");
+
+    await page.getByRole("radiogroup", { name: "열쇠 단계(입장 레벨)" }).getByRole("radio", { name: "1730" }).click();
+    await chooseOption(page, page.getByRole("combobox", { name: "클리어 단계" }), "3단계");
+    await abundance.check();
+    await chooseOption(page, basis, "현재 최저가");
+    await expect(page.locator("[data-stale]")).toHaveCount(0);
+    await bracelet.fill("100000");
+    await lava.fill("50");
+    await expect(page).toHaveURL(/abundance=1/);
+    await expect(page).toHaveURL(/basis=CURRENT_MIN_PRICE/);
+    const name = await bestName.innerText();
+    const amount = await bestValue.innerText();
+    // A value typed this high puts the 팔찌 box on top: the best box itself depends on a typed value.
+    expect(name).toBe("팔찌 상자");
+
+    const same = async (when) => {
+      await expect(bestName, when).toHaveText(name);
+      await expect(bestValue, when).toHaveText(amount);
+      await expect(abundance, when).toBeChecked();
+      await expect(bracelet, when).toHaveValue("100000");
+      await expect(lava, when).toHaveValue("50");
+      await expect(basis, when).toContainText("현재 최저가");
+      await expect(page.getByRole("radiogroup", { name: "열쇠 단계(입장 레벨)" }).getByRole("radio", { name: "1730" }), when).toBeChecked();
+      await expect(page.getByRole("combobox", { name: "클리어 단계" }), when).toContainText("3단계");
+    };
+    await page.reload();
+    await same("새로 고침");
+    await page.waitForTimeout(600);
+    const reloaded = await shiftsSince(page);
+    expect(reloaded.all, `새로 고침 뒤 흔들림 (${reloaded.moved})`).toBe(0);
+
+    await page.goto("/");
+    await page.goBack();
+    await same("뒤로 가기");
+    await page.waitForTimeout(600);
+    const back = await shiftsSince(page);
+    expect(back.all, `뒤로 가기 뒤 흔들림 (${back.moved})`).toBe(0);
+  });
