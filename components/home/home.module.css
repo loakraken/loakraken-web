@@ -143,6 +143,15 @@
   gap: 12px;
   margin-bottom: 12px;
 }
+/* The home schedule card sizes its heading, legend and toggle from their start
+   tags (data-fp-label in schedule-board.tsx): the hidden copy and the real text
+   share one grid cell. */
+.panelHead h2[data-fp-label] {
+  display: grid;
+}
+.fpText {
+  grid-area: 1 / 1;
+}
 .panelHead h2 {
   font-size: 17px;
   font-weight: 700;
@@ -233,6 +242,21 @@
   align-items: center;
   gap: 10px;
 }
+/* The home schedule head: the toggle first in the page, drawn on the right. */
+.headToolsReverse {
+  flex-direction: row-reverse;
+  /* The rest of the row, packed to the right: the box itself does not grow
+     leftwards when the legend joins (a right-anchored box that widens moves). */
+  flex: 1 1 auto;
+  justify-content: flex-start;
+}
+/* The home schedule head keeps the toggle's 28px line and centres in it, so
+   the heading sits where it ends up before the tools arrive (baseline
+   alignment moved it 1px when they came; A7, home sweep). */
+.panelHead.scheduleHead {
+  align-items: center;
+  min-height: 28px;
+}
 .toggle {
   min-height: 28px;
   padding: 0 10px;
@@ -244,6 +268,10 @@
   font-weight: 600;
   box-shadow: inset 0 0 0 1px var(--secondary);
 }
+.toggle[data-fp-label] {
+  display: inline-grid;
+  place-items: center;
+}
 .toggle[aria-pressed="true"] {
   background: var(--foreground);
   color: var(--background);
@@ -254,13 +282,19 @@
   font-size: 12px;
 }
 .legend {
-  display: inline-flex;
+  display: inline-grid;
+  grid-template-columns: 10px auto;
+  --fp-area: 1 / 2;
   align-items: center;
-  gap: 5px;
+  column-gap: 5px;
   color: var(--muted-foreground);
   font-size: 12px;
 }
+.legendText {
+  grid-area: 1 / 2;
+}
 .legend i {
+  grid-area: 1 / 1;
   width: 10px;
   height: 10px;
   border-radius: 3px;
@@ -279,6 +313,11 @@
   justify-items: center;
   gap: 1px;
   padding: 8px 0 10px;
+  /* The day and weekday lines from the start tag (A7, home sweep): a first
+     HTML cut inside the button drew it 18px tall, and its tap area and the
+     today dot (both placed on its height) moved when the text came. Padding
+     + the 16px and 12px lines + the 1px gap, at the body line height. */
+  min-height: calc(19px + 28px * var(--leading-body));
   border: 0;
   border-radius: 12px;
   background: var(--background);
