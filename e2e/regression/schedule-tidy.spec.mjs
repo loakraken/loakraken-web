@@ -24,10 +24,13 @@ for (const width of [320, 360, 390, 1280])
     await eightDayWeek(page);
     await gotoReady(page, "/schedule");
     const days = page.getByRole("group", { name: "요일 선택" }).getByRole("button");
-    // Today comes with the page (7 days in the mock); another day's answer has the 8-day week.
-    await days.nth(1).click();
+    // Today comes with the page (7 days in the mock); another day's answer has the 8-day week. Not
+    // always the second day: on a Thursday that is today, already here, and nothing new comes (CI 11-12).
+    await expect(days.first()).toBeVisible();
+    const other = (await days.evaluateAll((els) => els.map((el) => el.getAttribute("aria-pressed") === "true"))).indexOf(false);
+    await days.nth(other).click();
     await expect(days).toHaveCount(8);
-    await expect(days.nth(1)).toHaveAttribute("aria-pressed", "true");
+    await expect(days.nth(other)).toHaveAttribute("aria-pressed", "true");
     const boxes = await days.evaluateAll((els) =>
       els.map((el) => {
         const r = el.getBoundingClientRect();
