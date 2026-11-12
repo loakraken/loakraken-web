@@ -6,14 +6,16 @@
 
 import { useSyncExternalStore, type SetStateAction } from "react";
 
-const KEY = "loakraken:hell-reward:values";
+// Versioned (codex #1549 P3): a later shape change takes a new key and never reads old data.
+const KEY = "loakraken:hell-reward:values:v1";
 const MAX_KEYS = 200;
 
 /** Only well-formed entries survive a stored or tampered value: item keys and digit text. */
 export function cleanValues(raw: unknown): Record<string, string> {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
   const out: Record<string, string> = {};
-  for (const [k, v] of Object.entries(raw).slice(0, MAX_KEYS))
+  // The newest entries are kept at the cap (codex #1549 P3): a value typed now is never the one dropped.
+  for (const [k, v] of Object.entries(raw).slice(-MAX_KEYS))
     if (/^(item|unsettled):/.test(k) && k.length <= 80 && typeof v === "string" && /^[\d.]{1,16}$/.test(v))
       out[k] = v;
   return out;
@@ -70,11 +72,26 @@ function write(values: Record<string, string>) {
   listeners.forEach((listener) => listener());
 }
 
-/** [values, setValues] like useState, kept in this browser. */
+/** Entries whose value changed move to the end, so the cap drops the least recently typed. */
+export function touchedLast(before: Record<string, string>, next: Record<string, string>) {
+  const changed = Object.keys(next).filter((k) => before[k] !== next[k]);
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(next)) if (!changed.includes(k)) out[k] = v;
+  for (const k of changed) out[k] = next[k];
+  return out;
+}
+
+const noop = () => () => {};
+
+/** [values, setValues, restored]: like useState, kept in this browser. */
 export function useHellValues() {
   const text = useSyncExternalStore(subscribe, readText, () => "{}");
   const values = valuesOf(text);
-  const setValues = (update: SetStateAction<Record<string, string>>) =>
-    write(typeof update === "function" ? update(valuesOf(readText())) : update);
-  return [values, setValues] as const;
+  const setValues = (update: SetStateAction<Record<string, string>>) => {
+    const before = valuesOf(readText());
+    write(touchedLast(before, typeof update === "function" ? update(before) : update));
+  };
+  // false on the server and the first paint (no stored values yet), true once they apply.
+  const restored = useSyncExternalStore(noop, () => true, () => false);
+  return [values, setValues, restored] as const;
 }
