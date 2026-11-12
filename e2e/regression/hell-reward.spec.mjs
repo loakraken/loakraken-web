@@ -31,6 +31,8 @@ for (const width of [1280, 360, 320])
     // 0G로 센 직접 값 품목: 용암 · 전이 돌파석 · 운명/혼돈의 돌 중 센 하나 · 스톤 키트 · 팔찌 · 젬.
     await expect(page.getByText("직접 값 없이 0G로 센 품목 6개")).toBeVisible();
     await expect(line("운명의 파괴석 결정")).toContainText("거래 가능 여부 확인 전");
+    // The price time line (codex QA v0.3.11 P2): mock prices are fresh.
+    await expect(page.getByText(/^시세 (방금|\d+분 전) 수집$/)).toBeVisible();
     await page.waitForTimeout(600);
     const first = await shiftsSince(page);
     expect(first.all, `시세 도착 흔들림 (${first.moved})`).toBe(0);
@@ -172,4 +174,49 @@ for (const width of [1280, 320])
     await page.waitForTimeout(600);
     const back = await shiftsSince(page);
     expect(back.all, `뒤로 가기 뒤 흔들림 (${back.moved})`).toBe(0);
+  });
+
+// codex QA v0.3.11 P2: the tool said nothing about when its prices were collected, even when they
+// were days old. The line under 시세 기준 names the collection time; past an hour it reads as old
+// (warning tone). It keeps one line either way, so nothing moves. 901: the narrowest side column
+// (16rem, ~901–1000 px), where the longest form (hours) must still fit one line (codex #1559 P3).
+for (const width of [1280, 901, 360, 320])
+  test(`${width} 지옥 · 나락 보상: 시세 수집 시각, 오래된 시세는 오래됐다고, 흔들림 0 @regression`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await watchShifts(page);
+    // Every price answer aged 3 days (the web's own /api answer, { ok, envelope }).
+    const old = new Date(Date.now() - 3 * 24 * 3_600_000);
+    await page.route("**/api/markets/material-prices", async (route) => {
+      const response = await route.fetch();
+      const body = await response.json();
+      for (const item of body.envelope?.data?.items ?? []) item.observedAt = old.toISOString();
+      await route.fulfill({ response, json: body });
+    });
+    await page.goto("/tools/hell-reward");
+    const kst = new Date(old.getTime() + 9 * 3_600_000);
+    const hm = `${String(kst.getUTCHours()).padStart(2, "0")}:${String(kst.getUTCMinutes()).padStart(2, "0")}`;
+    const line = page.getByText(`오래된 시세 · 3일 전(${kst.getUTCMonth() + 1}월 ${kst.getUTCDate()}일 ${hm})`, { exact: true });
+    await expect(line).toBeVisible();
+    await expect(line).toHaveAttribute("data-old", "true");
+    // Old, longest (the hours form) or fresh, the line is one line high and never wider than its box.
+    const oneLine = await line.evaluate((el) => {
+      const node = el.firstChild;
+      const was = node.nodeValue;
+      const old = el.getBoundingClientRect().height;
+      node.nodeValue = "오래된 시세 · 23시간 전(12월 31일 23:59)";
+      const longest = el.getBoundingClientRect().height;
+      const overflow = el.scrollWidth - el.clientWidth;
+      node.nodeValue = "시세 3분 전 수집";
+      const fresh = el.getBoundingClientRect().height;
+      node.nodeValue = was;
+      return { old, longest, fresh, overflow, line: parseFloat(getComputedStyle(el).lineHeight) };
+    });
+    expect(oneLine.old, "오래된 시세 줄 높이").toBe(oneLine.fresh);
+    expect(oneLine.longest, "가장 긴 문구 줄 높이").toBe(oneLine.fresh);
+    expect(oneLine.old, "한 줄").toBeLessThan(oneLine.line * 1.5);
+    expect(oneLine.overflow, "가장 긴 문구 넘침").toBeLessThanOrEqual(0);
+    await page.waitForTimeout(600);
+    const shifts = await shiftsSince(page);
+    expect(shifts.all, `시세 시각 흔들림 (${shifts.moved})`).toBe(0);
+    await expectNoHorizontalOverflow(page);
   });

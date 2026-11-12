@@ -8,7 +8,7 @@ import { SiteHeader } from "@/components/site/site-header";
 import { ArrowLeft, Gift } from "@/components/ui/icons";
 import { SegmentedControl, SegmentedItem } from "@/components/ui/segmented-control";
 import { Select } from "@/components/ui/select";
-import { MINUTE } from "@/components/home/clock";
+import { MINUTE, useClock } from "@/components/home/clock";
 import { retryLabel } from "@/lib/api/rate-limit";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { MarketQueryError, postMaterialPrices } from "@/lib/market/client";
@@ -23,6 +23,7 @@ import {
   baseValue,
   heldView,
   levelItems,
+  priceAge,
   rankBoxes,
   stageBase,
   stageReward,
@@ -189,6 +190,10 @@ export function HellRewardTool() {
     [prices.data],
   );
   const marketPrice = (name: string) => market.get(name) ?? null;
+  // When the prices in use were collected (the oldest one): shown, and named old past an hour.
+  const now = useClock(MINUTE);
+  const age =
+    now == null ? null : priceAge(now, (prices.data?.data.items ?? []).filter((p) => p.status === "PRICED").map((p) => p.observedAt));
   const manualValue = (key: string) => {
     const v = Number(manual[key]);
     return Number.isFinite(v) && v > 0 ? v : 0;
@@ -402,6 +407,10 @@ export function HellRewardTool() {
                   items={priceBases.map((item) => ({ value: item.value, label: item.label }))}
                 />
               </label>
+              {/* Always drawn, one line kept (the text arrives after the first paint). */}
+              <p className={styles.priceAge} data-old={age?.stale || undefined}>
+                {age?.text ?? ""}
+              </p>
               <p className={styles.note}>
                 열쇠 1개로 보이는 상자 가운데 하나를 열어요. 상자마다 그 안의 보상과 기본 보상을 더해 값이 큰 순서로
                 보여 줘요. 어떤 상자가 보일지는 셈하지 않았고, 무기 +25 · 페온 효과도 이 계산에 넣지 않았어요. 둘 중 하나를
