@@ -500,7 +500,9 @@ function BoardRows({
                     aria-hidden="true"
                   />
                   {item.name}
-                  {tier != null && <i>T{tier}</i>}
+                  {/* One string, sized from the start tag (data-fp-label): a badge drawn
+                      before its text was a 2px sliver that grew and moved (A7). */}
+                  {tier != null && <i data-fp-label={`T${tier}`}><span>{`T${tier}`}</span></i>}
                   {starred.has(item.itemId) && <span className="sr-only"> · 즐겨찾기됨</span>}
                 </strong>
                 <small>

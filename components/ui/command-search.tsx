@@ -95,11 +95,14 @@ function CommandSearch({ className }: { className?: string }) {
             and at 600px and below, where the header row has no room for it. */}
         <kbd
           aria-hidden="true"
+          // Sized from the start tag (data-fp-label): a first HTML cut inside it
+          // still has the label's width, so the icon beside it does not move (A7).
+          data-fp-label={mac ? "⌘K" : "Ctrl K"}
           // The family only: the whole `font` shorthand also took the page's size
           // (17px on /about), and 'Ctrl K' broke onto two lines there (user 11-08).
-          className="hidden whitespace-nowrap rounded-(--radius-xs) bg-muted px-1.5 py-0.5 [font-family:inherit] text-(length:--text-caption) leading-none text-muted-foreground pointer-fine:min-[601px]:inline"
+          className="hidden whitespace-nowrap rounded-(--radius-xs) bg-muted px-1.5 py-0.5 [font-family:inherit] text-(length:--text-caption) leading-none text-muted-foreground pointer-fine:min-[601px]:inline-grid"
         >
-          {mac ? "⌘K" : "Ctrl K"}
+          <span className="[grid-area:1/1]">{mac ? "⌘K" : "Ctrl K"}</span>
         </kbd>
       </button>
       {wanted && (
