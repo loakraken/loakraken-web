@@ -249,7 +249,8 @@ const FACE = "bg-(--item-tip) text-(--item-tip-foreground) shadow-(--item-tip-sh
 const SCROLL = "overflow-y-auto overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
 
 /** Pointer: right of the item, top edges 8px apart (card higher), 12px gap;
- * flips to the left when the right has no room, and stays below the sticky
+ * flips to the left when the right has no room, goes below the item when
+ * neither side has (narrow mouse windows), and stays below the sticky
  * header and tab bar (closing once its item scrolls under them). 288px wide, 16px padding, at
  * most half the viewport tall, scrolling inside with the scrollbar hidden.
  * Touch: a sheet 7px in from the sides and bottom, a 35×4 handle above it,
@@ -309,7 +310,10 @@ function ItemTooltipContent({
         alignOffset={alignOffset}
         // Below the header and a sticky tab bar (measured while open).
         collisionPadding={{ top, right: EDGE, bottom: EDGE, left: EDGE }}
-        collisionAvoidance={{ side: "flip", align: "shift" }}
+        // Neither side has room (a 288px card in a 360px mouse window): below the
+        // item, kept inside the edges, instead of running past the right edge
+        // (QA 2026-11-13 01시: 86..374 at 360).
+        collisionAvoidance={{ side: "flip", align: "shift", fallbackAxisSide: "end" }}
         className="isolate z-50"
       >
         <PopoverPrimitive.Popup
