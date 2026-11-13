@@ -21,15 +21,32 @@ import type { SelectProps } from "@/components/ui/select-full"
 // touch-operable, so the platform picker would only bring back the look the
 // user flagged.
 
-const load = () => import("@/components/ui/select-full")
-// Typed as the generic component it is (React.lazy drops the type parameter).
-const SelectFull = React.lazy(load) as unknown as <V extends string | number>(
-  props: SelectProps<V>
-) => React.ReactNode
+// Typed as the generic component it is.
+type Full = <V extends string | number>(props: SelectProps<V>) => React.ReactNode
+// Once loaded, every select on the page swaps without waiting.
+let loaded: Full | null = null
+const load = () =>
+  import("@/components/ui/select-full").then((module) => {
+    loaded = module.SelectFull as Full
+    return loaded
+  })
 
 function Select<V extends string | number>(props: SelectProps<V>) {
   const { id, value, items, size = "md", className, disabled } = props
+  // What the user asked of the field: focus only ("rest") or a press ("open").
   const [full, setFull] = React.useState<null | "rest" | "open">(null)
+  // The full select, set only once its code is here. Until then the light
+  // button stays mounted and keeps focus (QA 2026-11-13 10시: swapping at
+  // focus to a Suspense fallback put focus on <body> while the code loaded,
+  // so the first key was lost and a quick Tab landed on the field again).
+  // A key pressed meanwhile still reaches the light button and asks "open",
+  // which the full select reads when it mounts.
+  const [Loaded, setLoaded] = React.useState<{ Full: Full } | null>(null)
+  const want = (mode: "rest" | "open") => {
+    setFull((was) => (mode === "open" ? "open" : (was ?? "rest")))
+    if (loaded) setLoaded({ Full: loaded })
+    else load().then((Full) => setLoaded({ Full }), () => {})
+  }
   const label = items.find((item) => item.value === value)?.label
 
   const light = (
@@ -49,22 +66,19 @@ function Select<V extends string | number>(props: SelectProps<V>) {
       aria-describedby={props["aria-describedby"]}
       disabled={disabled}
       className={triggerClassName(size, className)}
-      onPointerEnter={() => void load()}
+      onPointerEnter={() => void load().catch(() => {})}
       // A press opens on click, once the whole press is over: swapping at
       // pointerdown (or on the focus it brings) would hand the rest of the
       // press to the full trigger, which reads the release as "close".
       onPointerDown={(event) => {
         if (event.button === 0) event.preventDefault()
       }}
-      onFocus={() => {
-        void load()
-        setFull((was) => was ?? "rest")
-      }}
-      onClick={() => setFull("open")}
+      onFocus={() => want("rest")}
+      onClick={() => want("open")}
       onKeyDown={(event) => {
         if (["ArrowDown", "ArrowUp", "Enter", " "].includes(event.key)) {
           event.preventDefault()
-          setFull("open")
+          want("open")
         }
       }}
     >
@@ -73,21 +87,20 @@ function Select<V extends string | number>(props: SelectProps<V>) {
     </button>
   )
 
-  if (!full) return light
+  if (!full || !Loaded) return light
   return (
-    <React.Suspense fallback={light}>
-      <Handover focus={full === "rest"}>
-        <SelectFull {...props} defaultOpen={full === "open"} />
-      </Handover>
-    </React.Suspense>
+    <Handover focus={full === "rest"}>
+      <Loaded.Full {...props} defaultOpen={full === "open"} />
+    </Handover>
   )
 }
 
 /** Keeps focus on the field across the swap: the light button had it, and
- * the full trigger (same id) takes it once mounted. */
+ * the full trigger (same id) takes it in the same commit, before any key or
+ * paint can come between (a layout effect, not a passive one). */
 function Handover({ children, focus }: { children: React.ReactNode; focus: boolean }) {
   const box = React.useRef<HTMLSpanElement>(null)
-  React.useEffect(() => {
+  React.useLayoutEffect(() => {
     if (!focus) return
     const trigger = box.current?.querySelector<HTMLElement>("[data-slot=select]")
     if (trigger && document.activeElement !== trigger && box.current?.contains(document.activeElement) === false) {
