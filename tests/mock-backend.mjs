@@ -12,6 +12,8 @@ const read = (name) =>
     readFileSync(new URL(`./fixtures/${name}`, import.meta.url), "utf8"),
   );
 const counts = {};
+// Client addresses that already had their one busy goal answer (api #922, spec-up-goal-retry spec).
+const goalBusyOnce = new Set();
 /** BYOK: last four characters of the X-LK-User-Key each character read carried. */
 const userKeys = {};
 
@@ -968,6 +970,13 @@ createServer(async (req, res) => {
     const target = Number(url.searchParams.get("targetCombatPower"));
     if (who === "스펙업꺼짐") return send({ code: "SPEC_UP_DISABLED", message: "", data: null }, 404);
     if (who === "미존재") return send({ code: "CHARACTER_NOT_CACHED", message: "", data: null }, 404);
+    // api #922: every computing seat taken. The target 12451.5 is busy once per client address (the
+    // spec-up-goal-retry spec gives each run its own), then answers as usual.
+    const client = req.headers["x-forwarded-for"];
+    if (target === 12451.5 && client && !goalBusyOnce.has(client)) {
+      goalBusyOnce.add(client);
+      return send({ code: "SPEC_UP_BUSY", message: "", data: null }, 429, { "Retry-After": "1" });
+    }
     // api #592 (spec-up-goal-v2): the backend's own answer as it is — gem steps cost
     // from now to that level, and the totals are its own (never summed here).
     if (who === "스펙목표v2" || who === "스펙목표0골드") {
