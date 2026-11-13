@@ -66,11 +66,20 @@ for (const [name, leave] of [
     const field = page.getByRole("combobox", { name: "클리어 단계" });
     await expect(field).toBeVisible();
     await slowChunks(page);
+    // Any list that appears at any moment counts: a list that opens on a field the user left and then
+    // closes again (focus is elsewhere) is still a flash the user sees.
+    await page.evaluate(() => {
+      window.__listboxSeen = false;
+      new MutationObserver(() => {
+        if (document.querySelector("[role=listbox]")) window.__listboxSeen = true;
+      }).observe(document.body, { childList: true, subtree: true, attributes: true });
+    });
     await field.focus();
     await page.keyboard.press("ArrowDown");
     await leave(page);
     await page.waitForLoadState("networkidle");
-    await page.waitForTimeout(200);
+    await page.waitForTimeout(300);
+    expect(await page.evaluate(() => window.__listboxSeen), "코드가 온 뒤 목록이 열렸음").toBe(false);
     await expect(page.getByRole("listbox")).toHaveCount(0);
     if (name === "Esc") await expect(field, "Esc 뒤 포커스는 칸에").toBeFocused();
     else await expect(field, `${name} 뒤 칸이 포커스를 다시 가져감`).not.toBeFocused();
