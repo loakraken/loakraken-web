@@ -12,6 +12,8 @@ const PAGES = [
   ["수집품 랭킹", "/rankings?type=collectibles"],
   ["원정대 랭킹", "/rankings?type=roster"],
   ["길드 랭킹", "/rankings?type=guilds"],
+  // user-checklist:119 /tools/auction @1280 (#1608 CI): the strategy table's number cells moved.
+  ["경매 입찰가", "/tools/auction"],
 ];
 
 for (const theme of ["light", "dark"])
