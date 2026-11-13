@@ -113,7 +113,10 @@
    the calculator pages of the other Lost Ark sites, not a product hero. */
 .hero {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  /* The icon's column is its own 36px from the start: the icon comes last in
+     the page (see .heroIcon), and an auto column empty until then would put
+     the text 36px to the left and move it when the icon lands. */
+  grid-template-columns: 36px minmax(0, 1fr) auto;
   grid-template-rows: auto auto auto;
   column-gap: 12px;
   align-items: center;
