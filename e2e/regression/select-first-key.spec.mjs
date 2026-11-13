@@ -42,6 +42,9 @@ test("처음 쓰는 Select: 포커스 직후 Tab은 다음 칸으로 간다(같�
   await slowChunks(page);
   await field.focus();
   const before = await focused(page);
+  // A second Tab 80–250 ms after the first (QA's window): after the swap began, before the code came.
+  await page.waitForTimeout(150);
+  expect(await focused(page), "코드를 기다리는 동안 포커스").toBe(before);
   await page.keyboard.press("Tab");
   const after = await focused(page);
   expect(after, `Tab 뒤 포커스 ${after}`).not.toBe("BODY");
