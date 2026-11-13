@@ -4,6 +4,7 @@ import * as React from "react"
 import { Radio } from "@base-ui/react/radio"
 import { RadioGroup } from "@base-ui/react/radio-group"
 import { cn } from "cn"
+import { FpEnd } from "@/components/ui/fp-end"
 import { SEGMENTED_ITEM_PAD_PX, type SegmentedLabel, segmentedRowWidth } from "@/lib/ui/segmented-width"
 
 // The items' labels and sides, when each label is plain text (or a number); null
@@ -71,6 +72,10 @@ function SegmentedControl({
   const track = (
     <RadioGroup
       data-slot="segmented-control"
+      // Drawn once all its items are here (data-fp-whole, app/globals.css): the items share one
+      // width, the widest label's, so an item that came later (or whose label did) moved the
+      // ones already drawn (A7, /tools/auction party size, first-paint sweep).
+      data-fp-whole=""
       data-orientation={stackBelow != null ? "auto" : vertical ? "vertical" : "horizontal"}
       data-stack-below={stackBelow ?? undefined}
       className={cn(
@@ -92,6 +97,7 @@ function SegmentedControl({
       {...props}
     >
       {children}
+      <FpEnd />
     </RadioGroup>
   )
   if (stackBelow == null) return track

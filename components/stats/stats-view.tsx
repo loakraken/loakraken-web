@@ -1,5 +1,6 @@
 "use client";
 
+import { FpEnd } from "@/components/ui/fp-end";
 import Link from "next/link";
 import { useEffect, useId, useState, type CSSProperties, type ReactNode } from "react";
 import { useTallest } from "@/components/ui/use-tallest";
@@ -157,10 +158,13 @@ function SummaryCards({ query }: { query: StatsQuery }) {
         <span className={styles.roleBar} aria-hidden="true">
           <i style={{ width: `${dealerShare}%` }} />
         </span>
-        <small className={styles.roleLegend}>
-          <span data-role="dealer">딜러 {whole(s.dealers)}</span>
-          <span data-role="support">서포터 {whole(s.supports)}</span>
-          {s.unknownRole > 0 && <span>미확인 {whole(s.unknownRole)}</span>}
+        {/* Drawn once whole (data-fp-whole): on a phone the second count wraps to
+            its own line, and a count that came later moved the line it joined. */}
+        <small className={styles.roleLegend} data-fp-whole="">
+          <span data-role="dealer">{`딜러 ${whole(s.dealers)}`}</span>
+          <span data-role="support">{`서포터 ${whole(s.supports)}`}</span>
+          {s.unknownRole > 0 && <span>{`미확인 ${whole(s.unknownRole)}`}</span>}
+          <FpEnd />
         </small>
       </div>
       <div>
@@ -281,6 +285,10 @@ function ClassesTab({ query }: { query: StatsQuery }) {
     <div key={classes.dataUpdatedAt} {...pendingProps(classes)}>
       <SampleProgress ready={ready} total={rows.length} unit="직업" minSample={minSample} />
       {rows.length > 0 && (
+        // Drawn once whole (data-fp-whole): a row's class cell (icon + name) is
+        // taller than its number cells, so a row drawn before it moved every row
+        // below by 3px when it came.
+        <div data-fp-whole="">
         <DataTable label="직업별 인원과 전투력 분포" className={styles.table} {...CLASS_COLUMNS.tableProps}>
           <caption className={styles.srOnly}>직업별 인원과 전투력 분포</caption>
           {CLASS_COLUMNS.colgroup}
@@ -323,6 +331,8 @@ function ClassesTab({ query }: { query: StatsQuery }) {
             ))}
           </tbody>
         </DataTable>
+        <FpEnd />
+        </div>
       )}
       <p className={styles.note}>
         분포 막대: 옅은 선 하위 10%~상위 10%, 진한 칸 가운데 50%, 세로선 중앙값. 표본이 {minSample}명 미만인 직업은 분포 대신 중앙값 점만 찍고, 다른 값은 참고값(회색)으로 보여요.

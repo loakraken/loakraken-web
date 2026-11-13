@@ -1,5 +1,6 @@
 "use client";
 
+import { FpEnd } from "@/components/ui/fp-end";
 import { useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -127,7 +128,7 @@ export function GuildRankingsView({
         </section>
         <RankingTypeTabs value="guilds" types={types} />
 
-        <form className={styles.filters} onSubmit={(e) => e.preventDefault()} aria-label="길드 랭킹 조건">
+        <form data-fp-whole="" className={styles.filters} onSubmit={(e) => e.preventDefault()} aria-label="길드 랭킹 조건">
           <span className={styles.segment} role="group" aria-label="기준">
             {GUILD_SORTS.map((item) => (
               <button
@@ -174,6 +175,8 @@ export function GuildRankingsView({
               {guildInvalid ? "글자와 숫자만 찾을 수 있어요." : ""}
             </small>
           </span>
+          {/* Last: the bar is drawn once all of it is here (data-fp-whole). */}
+          <FpEnd />
         </form>
 
         <RankPodium
