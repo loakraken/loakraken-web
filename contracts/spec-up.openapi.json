@@ -176,7 +176,7 @@
             }
           },
           "429": {
-            "description": "CLIENT_RATE_LIMITED: 이 클라이언트의 분당 요청·공식 호출 한도 초과. Retry-After(초) 뒤 다시 시도 / SPEC_UP_BUSY: 경로 계산 자리가 모두 차 있음(추천 순서와 같은 자리, 기다리지 않음, Retry-After 초 뒤 다시, api #922)",
+            "description": "SPEC_UP_BUSY: 목표 경로 계산 자리가 모두 차 있음(기다리지 않음, Retry-After 초 뒤 다시) / CLIENT_RATE_LIMITED: 이 클라이언트의 분당 요청·공식 호출 한도 초과. Retry-After(초) 뒤 다시 시도",
             "content": {
               "application/json": {
                 "schema": {

@@ -972,10 +972,12 @@ createServer(async (req, res) => {
     if (who === "미존재") return send({ code: "CHARACTER_NOT_CACHED", message: "", data: null }, 404);
     // api #922: every computing seat taken. The target 12451.5 is busy once per client address (the
     // spec-up-goal-retry spec gives each run its own), then answers as usual.
+    // 12452.5 waits 3 s instead (long enough to press during the countdown).
     const client = req.headers["x-forwarded-for"];
-    if (target === 12451.5 && client && !goalBusyOnce.has(client)) {
-      goalBusyOnce.add(client);
-      return send({ code: "SPEC_UP_BUSY", message: "", data: null }, 429, { "Retry-After": "1" });
+    const busyFor = { 12451.5: "1", 12452.5: "3" }[target];
+    if (busyFor && client && !goalBusyOnce.has(`${client}|${target}`)) {
+      goalBusyOnce.add(`${client}|${target}`);
+      return send({ code: "SPEC_UP_BUSY", message: "", data: null }, 429, { "Retry-After": busyFor });
     }
     // api #592 (spec-up-goal-v2): the backend's own answer as it is — gem steps cost
     // from now to that level, and the totals are its own (never summed here).

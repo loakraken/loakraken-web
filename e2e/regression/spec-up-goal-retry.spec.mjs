@@ -21,3 +21,32 @@ test("목표 경로: 계산이 몰려 429면 기다린 뒤 같은 목표로 다�
   await expect(goal).toContainText("9레벨 → 10레벨");
   await expect(goal.getByRole("alert")).toHaveCount(0);
 });
+
+// codex #1611 P2: during the busy answer's Retry-After the button counts down and holds: neither a press nor
+// Enter sends a request until the wait is over; then one press sends exactly one.
+test("목표 경로: 계산 몰림 대기 중에는 눌러도 요청하지 않고, 끝나면 한 번 요청한다 @regression", async ({ page }, testInfo) => {
+  const { workerIndex, repeatEachIndex, retry } = testInfo;
+  await page.setExtraHTTPHeaders({ "x-forwarded-for": `2001:db8::${workerIndex}:${repeatEachIndex}:${retry}` });
+  await page.goto(specUpListPath("전투력계산"));
+  const goal = page.getByRole("region", { name: "목표 전투력" });
+  const field = goal.getByRole("textbox", { name: "목표 전투력" });
+  await field.fill("12452.5");
+  await goal.getByRole("button", { name: "경로 찾기" }).click();
+  await expect(goal.getByRole("alert")).toHaveText(/요청이 몰려/);
+  const button = goal.locator("form button[type=submit]");
+  // The wait (3 s) shows on the button, which holds.
+  await expect(button).toHaveAttribute("aria-disabled", "true");
+  await expect(button).not.toHaveText("경로 찾기");
+  let asked = 0;
+  page.on("request", (request) => request.url().includes("/spec-up/goal") && asked++);
+  // A real press on the held button (Playwright would otherwise wait for aria-disabled to clear).
+  await button.click({ force: true });
+  await field.press("Enter");
+  await page.waitForTimeout(500);
+  expect(asked, "대기 중 요청").toBe(0);
+  // Then it can be pressed again: one request.
+  await expect(button).toHaveText("경로 찾기", { timeout: 6000 });
+  await button.click();
+  await expect(goal).toContainText("9레벨 → 10레벨");
+  expect(asked, "대기 뒤 요청").toBe(1);
+});
