@@ -31,6 +31,34 @@ async function expectWeaponAt21(page, mark) {
   await expectNoHorizontalOverflow(page);
 }
 
+// codex #1572 P3: the refine range comes with the simulator options. Until they arrive a refine edit is
+// not sent (it could be outside the range and refused); it goes out with the range, once.
+test("옵션이 늦게 와도 무기 재련 바꾸기는 옵션을 받은 뒤에 한 번 보낸다 @regression", async ({ page }) => {
+  let optionsAt = 0;
+  const simulateAt = [];
+  await page.route("**/api/combat-power/options", async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    await route.continue();
+  });
+  // The options answer's headers (the earliest event for it), so ordering between events cannot make it late.
+  page.on("response", (r) => {
+    if (r.url().includes("/api/combat-power/options")) optionsAt = Date.now();
+  });
+  page.on("request", (r) => {
+    if (r.url().includes("/api/combat-power/simulate")) simulateAt.push(Date.now());
+  });
+  await page.goto(`${characterPath(NAME, "specup")}&sort=DELTA`);
+  await expandAll(page);
+  const asked = simulateRequest(page);
+  await page.getByRole("table", { name: /스펙업 후보/ }).getByRole("link", { name: "+20 테스트 무기 +21 시뮬레이터에서 적용해 보기" }).click();
+  expect((await asked).postDataJSON().changes).toEqual([{ kind: "EQUIPMENT_REFINE", index: 0, refine: 21 }]);
+  expect(optionsAt, "옵션 응답이 끝나기 전에 계산 요청이 나감").toBeGreaterThan(0);
+  expect(simulateAt[0]).toBeGreaterThanOrEqual(optionsAt);
+  await expect(page.getByRole("combobox", { name: "무기 재련 단계" })).toHaveText("21");
+  await page.waitForTimeout(500);
+  expect(simulateAt).toHaveLength(1);
+});
+
 for (const width of [320, 1280]) {
   test(`${width}: 무기 재련 후보만 '적용해 보기'가 있고, 누르면 그 단계로 시뮬레이터가 열린다 @regression`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
