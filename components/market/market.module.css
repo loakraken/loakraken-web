@@ -882,3 +882,17 @@
     min-height: 1128px;
   }
 }
+/* 최저가 추이 on the gem and accessory boards (api #920): the same head and
+   chart as the item trend, its own block above the listings. */
+.cellTrend {
+  margin: 20px 0 8px;
+  min-width: 0;
+}
+.cellTrend .trendHead {
+  margin-top: 0;
+}
+.cellCaption {
+  overflow: visible;
+  white-space: normal;
+  text-overflow: clip;
+}

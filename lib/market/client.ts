@@ -8,6 +8,7 @@ import type {
 } from "./board";
 import { boardQueryString } from "./board";
 import type { MinuteChartEnvelope } from "./minutes";
+import { cellRangeParam, type CellHistoryEnvelope, type CellRange } from "./cell-history";
 import {
   gemPickSearch,
   type GemBoardEnvelope,
@@ -124,6 +125,13 @@ export const fetchGemBoard = (signal: AbortSignal) => call<GemBoardEnvelope>("/a
 export const fetchGemListings = (pick: GemPick, signal: AbortSignal) =>
   call<GemListingsEnvelope>(`/api/markets/auctions/gems/listings?${gemPickSearch(pick)}`, { signal });
 
+/** One gem cell's lowest price by day for a range (api #920). */
+export const fetchGemHistory = (pick: GemPick, range: CellRange, signal: AbortSignal) =>
+  call<CellHistoryEnvelope>(
+    `/api/markets/auctions/gems/history?${new URLSearchParams({ kind: pick.kind, level: String(pick.level), range: cellRangeParam(range) })}`,
+    { signal },
+  );
+
 /** The classes and gem skills the listings can be narrowed to (a fixed list on the backend). */
 export const fetchGemSkills = (signal: AbortSignal) =>
   call<GemSkillsEnvelope>("/api/markets/auctions/gems/skills", { signal });
@@ -131,6 +139,14 @@ export const fetchGemSkills = (signal: AbortSignal) =>
 /** T4 accessory prices by key polish grades (backend cache). */
 export const fetchAccessoryBoard = (filter: AccessoryFilter, signal: AbortSignal) =>
   call<AccessoryBoardEnvelope>(`/api/markets/auctions/accessories?${accessorySearch(filter, null)}`, { signal });
+
+/** One accessory cell's lowest price by day for a range (api #920). */
+export const fetchAccessoryHistory = (filter: AccessoryFilter, pick: AccessoryPick, range: CellRange, signal: AbortSignal) => {
+  const search = accessorySearch(filter, { ...pick, page: 1 });
+  search.delete("page");
+  search.set("range", cellRangeParam(range));
+  return call<CellHistoryEnvelope>(`/api/markets/auctions/accessories/history?${search}`, { signal });
+};
 
 /** The cheapest buy-now listings of one accessory cell (at most one official call). */
 export const fetchAccessoryListings = (filter: AccessoryFilter, pick: AccessoryPick, signal: AbortSignal) =>
