@@ -87,10 +87,16 @@ export function krakenScoreView(value: KrakenScore | null | undefined): KrakenSc
     };
   const progress = Number.isFinite(tier.progressPercent) ? Math.min(100, Math.max(0, Math.floor(tier.progressPercent))) : 0;
   const nextName = tier.nextCode ? labelOf(KRAKEN_TIER_LABEL, tier.nextCode) : null;
-  // Whole points, rounded as comparison B does (every recorded sample matches
-  // only that; PM-프론트 #907). The backend's value is already rounded to two
-  // decimals, so a whole-number field from it will replace this when it comes.
-  const left = tier.remaining != null && Number.isFinite(tier.remaining) && tier.remaining >= 0 ? Math.round(tier.remaining) : null;
+  // Whole points: the backend's remainingRounded as it is (rounded from the
+  // two-decimal remaining, .5 up: 242.497 → 242.50 → 243, as comparison B shows;
+  // PM-프론트 #907). An api before that field rounds remaining here (242).
+  const rounded = tier.remainingRounded;
+  const left =
+    rounded != null && Number.isFinite(rounded) && rounded >= 0
+      ? rounded
+      : tier.remaining != null && Number.isFinite(tier.remaining) && tier.remaining >= 0
+        ? Math.round(tier.remaining)
+        : null;
   const tierName = labelOf(KRAKEN_TIER_LABEL, tier.code);
   const whole = (n: number) => Math.round(n).toLocaleString("ko-KR");
   const from = Number.isFinite(tier.min) ? `${tierName} 티어는 ${whole(tier.min)}점부터` : null;

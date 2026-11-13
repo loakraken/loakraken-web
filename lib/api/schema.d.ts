@@ -13,7 +13,7 @@ export interface paths {
         };
         /**
          * 캐릭터 검색
-         * @description 프로필, 장비·보석·각인·카드·아크패시브·아크그리드와 원정대를 제공합니다. 기본 캐시는 5분이며 fetchedAt은 실제 외부 수집 완료 시각입니다. null 섹션은 공식 API에서 데이터가 제공되지 않은 경우입니다.
+         * @description 프로필, 장비·보석·각인·카드·아크패시브·아크그리드와 원정대를 제공합니다. 기본 캐시는 5분이며 fetchedAt은 실제 외부 수집 완료 시각입니다. null 섹션은 공식 API에서 데이터가 제공되지 않은 경우입니다. 사용자 공식 API 키 기능이 켜져 있고 web이 키를 함께 보내면, 이 조회의 공식 호출은 그 키로 하고(서버 예산을 쓰지 않음) 받은 응답은 공용 캐시·기록에 남기지 않습니다. 그 키가 거절되거나 한도에 걸려도 서버 키로 다시 부르지 않습니다.
          */
         get: operations["search_1"];
         put?: never;
@@ -111,14 +111,17 @@ export interface components {
             isInner: boolean | null;
             /** @description 아바타 기본 효과 줄(예: 민첩 +2.00%) */
             effects: string[];
-            /** @description 이 아바타가 주는 성향 점수(공식 툴팁 순서). 성향 줄이 없는 아바타(이동 효과 등)는 빈 목록. 캐릭터 성향 합계는 tendencies */
-            tendencies: components["schemas"]["AvatarTendencyResponse"][];
+            /** @description 이 아바타가 주는 성향 점수(공식 툴팁 순서). 성향 줄이 없는 아바타(이동 효과 등)는 빈 목록. 캐릭터 성향 합계는 tendencies. 배포 순서 때문에 계약에서는 아직 선택 필드 */
+            tendencies?: components["schemas"]["AvatarTendencyResponse"][];
         };
         AvatarTendencyResponse: {
             /** @example 지성 */
-            type: string | null;
-            /** @example 5 */
-            point: number | null;
+            type: string;
+            /**
+             * Format: int32
+             * @example 5
+             */
+            point: number;
         };
         CollectibleResponse: {
             type: string | null;
@@ -213,6 +216,34 @@ export interface components {
              * @description 최대 경험치
              */
             max: number;
+        };
+        /** @description 장신구 기본 스탯 범위. 범위 = 공식 아이템 사전 표의 그 부위 3단계(연마 뒤) 힘민지 최솟값~최댓값(연마 단계와 상관없이 같음) */
+        AccessoryStatsResponse: {
+            /**
+             * Format: int32
+             * @description 연마 단계(연마 효과 줄 수 0~3)
+             * @example 3
+             */
+            polishStage: number;
+            /**
+             * Format: int32
+             * @description 기본 효과 힘·민첩·지능 값
+             * @example 16009
+             */
+            mainStat: number;
+            /**
+             * Format: int32
+             * @description 그 부위 3단계 힘민지 최솟값
+             * @example 15178
+             */
+            mainStatMin: number;
+            /**
+             * Format: int32
+             * @description 그 부위 3단계 힘민지 최댓값
+             * @example 17857
+             */
+            mainStatMax: number;
+            mainStatRangePct: number | null;
         };
         EngravingsResponse: {
             slots: components["schemas"]["EngravingResponse"][];
@@ -785,6 +816,7 @@ export interface components {
             nextCode: string | null;
             nextMin: number | null;
             remaining: number | null;
+            remainingRounded?: number | null;
             /**
              * Format: int32
              * @description 이 티어 안 진행률(정수, 내림). 최상위면 100
@@ -813,34 +845,6 @@ export interface components {
             /** @example 요청 값이 올바르지 않습니다. */
             message: string;
             data: null;
-        };
-        /** @description 장신구 기본 스탯 범위. 범위 = 공식 아이템 사전 표의 그 부위 3단계(연마 뒤) 힘민지 최솟값~최댓값(연마 단계와 상관없이 같음) */
-        AccessoryStatsResponse: {
-            /**
-             * Format: int32
-             * @description 연마 단계(연마 효과 줄 수 0~3)
-             * @example 3
-             */
-            polishStage: number;
-            /**
-             * Format: int32
-             * @description 기본 효과 힘·민첩·지능 값
-             * @example 16009
-             */
-            mainStat: number;
-            /**
-             * Format: int32
-             * @description 그 부위 3단계 힘민지 최솟값
-             * @example 15178
-             */
-            mainStatMin: number;
-            /**
-             * Format: int32
-             * @description 그 부위 3단계 힘민지 최댓값
-             * @example 17857
-             */
-            mainStatMax: number;
-            mainStatRangePct: number | null;
         };
     };
     responses: never;
@@ -877,8 +881,17 @@ export interface operations {
                     "application/json": components["schemas"]["ApiResponseCharacterResponse"];
                 };
             };
-            /** @description 캐릭터명 누락 또는 형식 오류 */
+            /** @description 캐릭터명 누락 또는 형식 오류, USER_KEY_MALFORMED(사용자 키 형식 오류) */
             400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description USER_KEY_INVALID: 공식 API가 사용자 키를 받지 않음 */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -904,7 +917,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description LOST_ARK_RATE_LIMITED / CLIENT_RATE_LIMITED: 이 클라이언트의 분당 요청·공식 호출 한도 초과. Retry-After(초) 뒤 다시 시도 */
+            /** @description LOST_ARK_RATE_LIMITED 또는 USER_KEY_RATE_LIMITED(사용자 키 한도, Retry-After) / CLIENT_RATE_LIMITED: 이 클라이언트의 분당 요청·공식 호출 한도 초과. Retry-After(초) 뒤 다시 시도 */
             429: {
                 headers: {
                     [name: string]: unknown;

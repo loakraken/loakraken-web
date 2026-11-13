@@ -41,6 +41,15 @@ test("크라켄 점수: score, tier, way into the tier, whole points to the next
   assert.equal(left(293.04), "마스터 티어까지 293점");
   assert.equal(left(1041.5), "마스터 티어까지 1,042점");
   assert.equal(left(0.4), "마스터 티어까지 0점");
+  // The api's remainingRounded wins when sent (api develop 11-13): it rounds the two-decimal
+  // value again, .5 up (242.497 → 242.50 → 243), where Math.round on remaining gives 242.
+  const both = (remaining: number, remainingRounded: number | null) => {
+    const view = krakenScoreView({ ...ok, tier: { ...ok.tier!, remaining, remainingRounded } });
+    return view.state === "ready" ? view.next : null;
+  };
+  assert.equal(both(242.497, 243), "마스터 티어까지 243점");
+  assert.equal(both(242.497, null), "마스터 티어까지 242점", "an older api: rounded here");
+  assert.equal(both(1041.38, 1041), "마스터 티어까지 1,041점");
 });
 
 test("크라켄 점수: the top tier is a full bar with no next line", () => {

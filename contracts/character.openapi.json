@@ -1,7 +1,7 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "LOAKraken character",
+    "title": "LOAKraken character search",
     "version": "1.0.0"
   },
   "paths": {
@@ -11,7 +11,7 @@
           "캐릭터"
         ],
         "summary": "캐릭터 검색",
-        "description": "프로필, 장비·보석·각인·카드·아크패시브·아크그리드와 원정대를 제공합니다. 기본 캐시는 5분이며 fetchedAt은 실제 외부 수집 완료 시각입니다. null 섹션은 공식 API에서 데이터가 제공되지 않은 경우입니다.",
+        "description": "프로필, 장비·보석·각인·카드·아크패시브·아크그리드와 원정대를 제공합니다. 기본 캐시는 5분이며 fetchedAt은 실제 외부 수집 완료 시각입니다. null 섹션은 공식 API에서 데이터가 제공되지 않은 경우입니다. 사용자 공식 API 키 기능이 켜져 있고 web이 키를 함께 보내면, 이 조회의 공식 호출은 그 키로 하고(서버 예산을 쓰지 않음) 받은 응답은 공용 캐시·기록에 남기지 않습니다. 그 키가 거절되거나 한도에 걸려도 서버 키로 다시 부르지 않습니다.",
         "operationId": "search_1",
         "parameters": [
           {
@@ -53,7 +53,17 @@
             }
           },
           "400": {
-            "description": "캐릭터명 누락 또는 형식 오류",
+            "description": "캐릭터명 누락 또는 형식 오류, USER_KEY_MALFORMED(사용자 키 형식 오류)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "USER_KEY_INVALID: 공식 API가 사용자 키를 받지 않음",
             "content": {
               "application/json": {
                 "schema": {
@@ -83,7 +93,7 @@
             }
           },
           "429": {
-            "description": "LOST_ARK_RATE_LIMITED / CLIENT_RATE_LIMITED: 이 클라이언트의 분당 요청·공식 호출 한도 초과. Retry-After(초) 뒤 다시 시도",
+            "description": "LOST_ARK_RATE_LIMITED 또는 USER_KEY_RATE_LIMITED(사용자 키 한도, Retry-After) / CLIENT_RATE_LIMITED: 이 클라이언트의 분당 요청·공식 호출 한도 초과. Retry-After(초) 뒤 다시 시도",
             "content": {
               "application/json": {
                 "schema": {
@@ -639,7 +649,7 @@
           },
           "tendencies": {
             "type": "array",
-            "description": "이 아바타가 주는 성향 점수(공식 툴팁 순서). 성향 줄이 없는 아바타(이동 효과 등)는 빈 목록. 캐릭터 성향 합계는 tendencies",
+            "description": "이 아바타가 주는 성향 점수(공식 툴팁 순서). 성향 줄이 없는 아바타(이동 효과 등)는 빈 목록. 캐릭터 성향 합계는 tendencies. 배포 순서 때문에 계약에서는 아직 선택 필드",
             "items": {
               "$ref": "#/components/schemas/AvatarTendencyResponse"
             }
@@ -652,7 +662,6 @@
           "isInner",
           "isSet",
           "name",
-          "tendencies",
           "type"
         ]
       },
@@ -660,26 +669,12 @@
         "type": "object",
         "properties": {
           "type": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
             "example": "지성"
           },
           "point": {
-            "anyOf": [
-              {
-                "type": "integer",
-                "format": "int32"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "integer",
+            "format": "int32",
             "example": 5
           }
         },
@@ -1072,7 +1067,8 @@
               {
                 "type": "integer",
                 "format": "int64",
-                "description": "보주의 공식 달성 최대 낙원력. 보주가 아니면 null"
+                "description": "보주만: 공식 Tooltip의 '달성 최대 낙원력' 숫자(쉼표 없음). 보주가 아니거나 문구가 없으면 null",
+                "example": 18145692
               },
               {
                 "type": "null"
@@ -1246,6 +1242,55 @@
         "required": [
           "current",
           "max"
+        ]
+      },
+      "AccessoryStatsResponse": {
+        "type": "object",
+        "description": "장신구 기본 스탯 범위. 범위 = 공식 아이템 사전 표의 그 부위 3단계(연마 뒤) 힘민지 최솟값~최댓값(연마 단계와 상관없이 같음)",
+        "properties": {
+          "polishStage": {
+            "type": "integer",
+            "format": "int32",
+            "description": "연마 단계(연마 효과 줄 수 0~3)",
+            "example": 3
+          },
+          "mainStat": {
+            "type": "integer",
+            "format": "int32",
+            "description": "기본 효과 힘·민첩·지능 값",
+            "example": 16009
+          },
+          "mainStatMin": {
+            "type": "integer",
+            "format": "int32",
+            "description": "그 부위 3단계 힘민지 최솟값",
+            "example": 15178
+          },
+          "mainStatMax": {
+            "type": "integer",
+            "format": "int32",
+            "description": "그 부위 3단계 힘민지 최댓값",
+            "example": 17857
+          },
+          "mainStatRangePct": {
+            "anyOf": [
+              {
+                "type": "number",
+                "description": "(힘민지 − 최솟값) ÷ (최댓값 − 최솟값) × 100, 소수 둘째 자리(반올림). 범위 밖은 음수·100 초과 그대로(지금은 늘 값이 있고 null은 예비)",
+                "example": 31.02
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "mainStat",
+          "mainStatMax",
+          "mainStatMin",
+          "mainStatRangePct",
+          "polishStage"
         ]
       },
       "EngravingsResponse": {
@@ -2537,7 +2582,8 @@
               {
                 "type": "integer",
                 "format": "int32",
-                "description": "공식 SkillType 코드: 0 일반, 1 각성기, 100·101 초각성. 그 밖의 값은 일반 스킬로 봅니다. 이전 캐시면 null"
+                "description": "공식 SkillType 코드 그대로(정수). 지금까지 본 값: 0 일반 스킬, 1 각성기, 100·101 초각성 두 종류. 다른 값이 와도 그대로 주므로 모르는 값은 일반 스킬처럼 다룹니다. 갱신 전 캐시(최대 5분)면 null",
+                "example": 1
               },
               {
                 "type": "null"
@@ -4117,7 +4163,7 @@
             "anyOf": [
               {
                 "type": "string",
-                "description": "UNSUPPORTED 이유 코드(화면은 이 코드로 그림). 그 밖에는 null. 지금 값: INPUT_PENDING(점수 입력이 없는 이전 조회 결과 — 다시 조회하면 계산)·ROLE_UNKNOWN(딜러·서포터 판정 못 함)·SCORE_UNAVAILABLE(점수가 음수·수 아님). 열린 값이라 단계마다 늘 수 있음 — 모르는 코드는 '-'로 그림",
+                "description": "UNSUPPORTED 이유 코드(화면은 이 코드로 그림). 그 밖에는 null. 지금 값: INPUT_PENDING(점수 입력이 없는 이전 조회 결과 — 다시 조회하면 계산)·ROLE_UNKNOWN(딜러·서포터 판정 못 함)·SCORE_UNAVAILABLE(점수가 음수·수 아님)·CALC_FAILED(켜진 상태에서 계산 중 예상 못 한 오류). 열린 값이라 단계마다 늘 수 있음 — 모르는 코드는 '-'로 그림",
                 "example": "INPUT_PENDING"
               },
               {
@@ -4263,6 +4309,19 @@
               }
             ]
           },
+          "remainingRounded": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32",
+                "description": "다음 티어까지 남은 점수를 정수로(화면용). 원본 화면과 같이 위 remaining(소수 둘째 자리)을 다시 .5는 위로 정수 반올림한 값(예: 242.497 → 242.50 → 243). 화면은 이 값을 그대로 쓴다. 최상위면 null",
+                "example": 1041
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "progressPercent": {
             "type": "integer",
             "format": "int32",
@@ -4344,55 +4403,6 @@
           "code",
           "data",
           "message"
-        ]
-      },
-      "AccessoryStatsResponse": {
-        "type": "object",
-        "description": "장신구 기본 스탯 범위. 범위 = 공식 아이템 사전 표의 그 부위 3단계(연마 뒤) 힘민지 최솟값~최댓값(연마 단계와 상관없이 같음)",
-        "properties": {
-          "polishStage": {
-            "type": "integer",
-            "format": "int32",
-            "description": "연마 단계(연마 효과 줄 수 0~3)",
-            "example": 3
-          },
-          "mainStat": {
-            "type": "integer",
-            "format": "int32",
-            "description": "기본 효과 힘·민첩·지능 값",
-            "example": 16009
-          },
-          "mainStatMin": {
-            "type": "integer",
-            "format": "int32",
-            "description": "그 부위 3단계 힘민지 최솟값",
-            "example": 15178
-          },
-          "mainStatMax": {
-            "type": "integer",
-            "format": "int32",
-            "description": "그 부위 3단계 힘민지 최댓값",
-            "example": 17857
-          },
-          "mainStatRangePct": {
-            "anyOf": [
-              {
-                "type": "number",
-                "description": "(힘민지 − 최솟값) ÷ (최댓값 − 최솟값) × 100, 소수 둘째 자리(반올림). 범위 밖은 음수·100 초과 그대로(지금은 늘 값이 있고 null은 예비)",
-                "example": 31.02
-              },
-              {
-                "type": "null"
-              }
-            ]
-          }
-        },
-        "required": [
-          "mainStat",
-          "mainStatMax",
-          "mainStatMin",
-          "mainStatRangePct",
-          "polishStage"
         ]
       }
     }
