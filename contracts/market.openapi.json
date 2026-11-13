@@ -688,6 +688,16 @@
               "minLength": 0
             },
             "example": "파괴석"
+          },
+          {
+            "name": "grade",
+            "in": "query",
+            "required": false,
+            "description": "등급으로 거름(공식 등급 이름, 예: 유물·전설). q와 같이 탭 전체에서 거른 뒤 정렬·페이지. 생략하면 거르지 않음.",
+            "schema": {
+              "type": "string",
+              "maxLength": 16
+            }
           }
         ],
         "responses": {
@@ -2071,6 +2081,17 @@
             "items": {
               "$ref": "#/components/schemas/MarketBoardItemResponse"
             }
+          },
+          "grade": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "적용한 등급 필터(생략하면 null). 이 필드가 없으면 등급 필터 전 api."
           }
         },
         "required": [

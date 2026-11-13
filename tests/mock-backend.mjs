@@ -180,12 +180,22 @@ async function market(url, req, send) {
         }).join("");
       items = items.filter((item) => item.name.includes(q) || initials(item.name).includes(q));
     }
+    // Grade filter (contract 11-13, market PR 4): any official grade name, over the whole tab like q;
+    // echoed (null when omitted). 각인서 has 3 유물 and 4 전설 here. A client marked by this
+    // documentation-range address gets an api from before the filter: no `grade` key at all and the
+    // parameter ignored, as the real api today (market-engraving-grade spec).
+    const beforeGrade = req.headers["x-forwarded-for"] === "203.0.113.181";
+    const grade = beforeGrade ? null : url.searchParams.get("grade");
+    if (grade) {
+      if (!["일반", "고급", "희귀", "영웅", "전설", "유물", "고대", "에스더"].includes(grade)) return send({ code: "INVALID_REQUEST", message: "grade" }, 400);
+      items = items.filter((item) => item.grade === grade);
+    }
     if (sort === "high") items.sort((a, b) => b.currentMinPrice - a.currentMinPrice);
     if (sort === "low") items.sort((a, b) => a.currentMinPrice - b.currentMinPrice);
     if (sort === "rise") items.sort((a, b) => b.changeDay - a.changeDay);
     if (sort === "fall") items.sort((a, b) => a.changeDay - b.changeDay);
     const tier = url.searchParams.get("tier") ? Number(url.searchParams.get("tier")) : def.defaultTier;
-    return send({ code: "MARKET_BOARD_SUCCESS", message: "성공", data: { ruleVersion: "market-board-v1", changeBasis: "changeDay = 현재 최저가 ÷ 전일 평균가 − 1 (합성 목 데이터)", tab, tabLabel: def.label, tier, sort, page, pageSize: 10, observedAt: new Date(Date.now() - 60000).toISOString(), totalItems: items.length, scannedItems: items.length, complete: true, items: items.slice((page - 1) * 10, page * 10) } });
+    return send({ code: "MARKET_BOARD_SUCCESS", message: "성공", data: { ruleVersion: "market-board-v1", changeBasis: "changeDay = 현재 최저가 ÷ 전일 평균가 − 1 (합성 목 데이터)", tab, tabLabel: def.label, tier, sort, page, ...(!beforeGrade && { grade: grade || null }), pageSize: 10, observedAt: new Date(Date.now() - 60000).toISOString(), totalItems: items.length, scannedItems: items.length, complete: true, items: items.slice((page - 1) * 10, page * 10) } });
   }
   // Minute prices (api #484, K35): the two fusion materials are fetched about
   // every 30 seconds (minutes 20~22 unseen, minute 40 without listings), the

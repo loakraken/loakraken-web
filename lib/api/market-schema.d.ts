@@ -524,6 +524,8 @@ export interface components {
             /** @description rise/fall이 탭 전체를 스캔했는지. 스캔 상한(10페이지)을 넘으면 false */
             complete: boolean;
             items: components["schemas"]["MarketBoardItemResponse"][];
+            /** @description 적용한 등급 필터(생략하면 null). 이 필드가 없으면 등급 필터 전 api. */
+            grade?: string | null;
         };
         MarketBoardItemResponse: {
             /**
@@ -1106,6 +1108,8 @@ export interface operations {
                  * @example 파괴석
                  */
                 q?: string;
+                /** @description 등급으로 거름(공식 등급 이름, 예: 유물·전설). q와 같이 탭 전체에서 거른 뒤 정렬·페이지. 생략하면 거르지 않음. */
+                grade?: string;
             };
             header?: never;
             path?: never;

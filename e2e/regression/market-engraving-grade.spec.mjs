@@ -1,0 +1,71 @@
+// 회귀(사용자 11-12): 각인서 시세에 등급 거르기 전체 · 유물 · 전설(처음 전체). 재련 재료의 T4·T3처럼 한 줄, 고른
+// 등급은 주소에 남는다(replaceState). 거르기는 탭 전체에서(api `grade`, 쪽 나눔 전에). 다른 분류에는 없고, 등급
+// 거르기 전 api(응답에 grade 없음)면 보이지 않는다. 320에서 넘침 없음.
+import { test, expect, gotoReady, expectNoHorizontalOverflow } from "../support/fixtures.mjs";
+
+const board = (page) => page.getByRole("region", { name: /각인서 시세/ });
+const grades = (page) => page.getByRole("group", { name: "등급" });
+
+for (const width of [320, 1280])
+  test(`${width}: 각인서 등급 전체 · 유물 · 전설, 고르면 그 등급만(주소에 남음) @regression`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await gotoReady(page, "/market?tab=ENGRAVING_BOOK");
+    await expect(grades(page).getByRole("button")).toHaveText(["전체", "유물", "전설"]);
+    await expect(grades(page).getByRole("button", { name: "전체" })).toHaveAttribute("aria-pressed", "true");
+    await expect(board(page).getByRole("listitem")).toHaveCount(10);
+    // The mock's 각인서: 3 유물 and 4 전설 over the whole tab (not only this page).
+    await grades(page).getByRole("button", { name: "유물" }).click();
+    await expect(page).toHaveURL(/grade=%EC%9C%A0%EB%AC%BC/);
+    await expect(board(page).getByRole("listitem")).toHaveCount(3);
+    await grades(page).getByRole("button", { name: "전설" }).click();
+    await expect(board(page).getByRole("listitem")).toHaveCount(4);
+    await expect(grades(page).getByRole("button", { name: "전설" })).toHaveAttribute("aria-pressed", "true");
+    await grades(page).getByRole("button", { name: "전체" }).click();
+    await expect(page).not.toHaveURL(/grade=/);
+    await expect(board(page).getByRole("listitem")).toHaveCount(10);
+    await expectNoHorizontalOverflow(page);
+  });
+
+test("주소의 등급으로 다시 열고, 다른 분류로 가면 등급 거르기는 없다 @regression", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 900 });
+  await gotoReady(page, "/market?tab=ENGRAVING_BOOK&grade=%EC%A0%84%EC%84%A4");
+  await expect(grades(page).getByRole("button", { name: "전설" })).toHaveAttribute("aria-pressed", "true");
+  await expect(board(page).getByRole("listitem")).toHaveCount(4);
+  await page.getByRole("navigation", { name: "시세 분류" }).getByRole("link", { name: "재련 재료", exact: true }).click();
+  await expect(page).not.toHaveURL(/grade=/);
+  await expect(grades(page)).toHaveCount(0);
+});
+
+test("등급 거르기 전 api(응답에 grade 없음)면 거르기를 보이지 않는다 @regression", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 900 });
+  // codex #1603 delta: the backend itself answers as today's api (no grade key, parameter ignored), for the
+  // server-drawn page and the browser's reads alike (this client's address, tests/mock-backend.mjs).
+  await page.setExtraHTTPHeaders({ "x-forwarded-for": "203.0.113.181" });
+  await gotoReady(page, "/market?tab=ENGRAVING_BOOK");
+  await expect(board(page).getByRole("listitem")).toHaveCount(10);
+  await expect(grades(page)).toHaveCount(0);
+  // A shared link with a grade: the whole list, no filter shown.
+  await gotoReady(page, "/market?tab=ENGRAVING_BOOK&grade=%EC%A0%84%EC%84%A4");
+  await expect(board(page).getByRole("listitem")).toHaveCount(10);
+  await expect(grades(page)).toHaveCount(0);
+  await page.getByRole("navigation", { name: "시세 분류" }).getByRole("link", { name: "재련 재료", exact: true }).click();
+  await page.getByRole("navigation", { name: "시세 분류" }).getByRole("link", { name: "각인서", exact: true }).click();
+  await expect(board(page).getByRole("listitem")).toHaveCount(10);
+  await expect(grades(page)).toHaveCount(0);
+});
+
+// codex #1603 P2: a failed grade read must not take the buttons away. They lead back to the list in hand.
+test("등급 조회가 실패해도 등급 단추는 남아 전체로 돌아간다 @regression", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 900 });
+  await page.route(/\/api\/markets\/board\?.*grade=%EC%9C%A0%EB%AC%BC/, (route) =>
+    route.fulfill({ status: 503, json: { ok: false, error: { code: "MARKET_CACHE_UNAVAILABLE", status: 503 } } }),
+  );
+  await gotoReady(page, "/market?tab=ENGRAVING_BOOK");
+  await expect(board(page).getByRole("listitem")).toHaveCount(10);
+  await grades(page).getByRole("button", { name: "유물" }).click();
+  await expect(grades(page).getByRole("button", { name: "유물" })).toHaveAttribute("aria-pressed", "true");
+  await page.waitForTimeout(800);
+  await expect(grades(page).getByRole("button")).toHaveText(["전체", "유물", "전설"]);
+  await grades(page).getByRole("button", { name: "전체" }).click();
+  await expect(board(page).getByRole("listitem")).toHaveCount(10);
+});

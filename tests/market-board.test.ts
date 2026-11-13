@@ -45,15 +45,16 @@ test("board query is allow-listed and the page URL falls back to defaults", () =
   );
   for (const bad of ["", "tab=GEM", "tab=LIFE&tier=5", "tab=LIFE&sort=up", "tab=LIFE&page=11", "tab=LIFE&page=1.5"])
     assert.equal(boardSearchParams(new URLSearchParams(bad)), null, bad);
-  assert.deepEqual(readBoardQuery({}), { tab: "REFINING", tier: null, sort: "default", page: 1, q: null });
+  assert.deepEqual(readBoardQuery({}), { tab: "REFINING", tier: null, sort: "default", page: 1, q: null, grade: null });
   assert.deepEqual(readBoardQuery({ tab: "FOOD", sort: "fall", page: "3", tier: "9" }), {
     tab: "FOOD",
     tier: null,
     sort: "fall",
     page: 3,
     q: null,
+    grade: null,
   });
-  assert.equal(boardQueryString({ tab: "LIFE", tier: null, sort: "default", page: 1, q: null }), "tab=LIFE");
+  assert.equal(boardQueryString({ tab: "LIFE", tier: null, sort: "default", page: 1, q: null, grade: null }), "tab=LIFE");
   assert.equal(parseItemId("66102006"), 66102006);
   assert.equal(parseItemId("0"), null);
   assert.equal(parseItemId("12a"), null);
@@ -73,7 +74,7 @@ test("name search (api #624): trimmed like the server, 1~20 allowed letters, kep
   assert.equal(boardSearchParams(new URLSearchParams("tab=LIFE&q=%3Cx%3E")), null);
   assert.deepEqual(readBoardQuery({ tab: "LIFE", q: " ㅇㅂㄷ " }).q, "ㅇㅂㄷ");
   assert.equal(readBoardQuery({ tab: "LIFE", q: "<x>" }).q, null);
-  assert.equal(boardQueryString({ tab: "LIFE", tier: null, sort: "high", page: 2, q: "파괴석" }), "tab=LIFE&sort=high&page=2&q=%ED%8C%8C%EA%B4%B4%EC%84%9D");
+  assert.equal(boardQueryString({ tab: "LIFE", tier: null, sort: "high", page: 2, q: "파괴석", grade: null }), "tab=LIFE&sort=high&page=2&q=%ED%8C%8C%EA%B4%B4%EC%84%9D");
 });
 test("change labels and gold text follow the board's units", () => {
   assert.deepEqual(changeLabel(1.14), { text: "▲1.1%", direction: "up" });
@@ -173,4 +174,17 @@ test("history range (api #920): only 7d·14d·30d·90d·365d go to the api, as ?
   assert.equal((await requestItemHistory("66102006", origin, { fetcher }, "999d")).ok, false);
   assert.equal((await requestItemHistory("66102006", origin, { fetcher }, "30d&x=1")).ok, false);
   assert.deepEqual(seen, ["90d", null], "a range outside the list never reaches the api");
+});
+
+test("각인서 grade filter (user 11-12): 유물 · 전설 only, 각인서 only, kept in the URL", () => {
+  assert.equal(readBoardQuery({ tab: "ENGRAVING_BOOK", grade: "유물" }).grade, "유물");
+  assert.equal(readBoardQuery({ tab: "ENGRAVING_BOOK", grade: "고대" }).grade, null);
+  assert.equal(readBoardQuery({ tab: "LIFE", grade: "유물" }).grade, null, "another tab ignores it");
+  assert.equal(
+    boardQueryString({ tab: "ENGRAVING_BOOK", tier: null, sort: "default", page: 1, q: null, grade: "전설" }),
+    "tab=ENGRAVING_BOOK&grade=%EC%A0%84%EC%84%A4",
+  );
+  assert.equal(boardSearchParams(new URLSearchParams("tab=ENGRAVING_BOOK&grade=%EC%9C%A0%EB%AC%BC"))?.get("grade"), "유물");
+  assert.equal(boardSearchParams(new URLSearchParams("tab=ENGRAVING_BOOK&grade=x")), null);
+  assert.equal(boardSearchParams(new URLSearchParams("tab=ENGRAVING_BOOK&grade="))?.toString(), "tab=ENGRAVING_BOOK");
 });
