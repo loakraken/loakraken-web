@@ -87,9 +87,9 @@ export function krakenScoreView(value: KrakenScore | null | undefined): KrakenSc
     };
   const progress = Number.isFinite(tier.progressPercent) ? Math.min(100, Math.max(0, Math.floor(tier.progressPercent))) : 0;
   const nextName = tier.nextCode ? labelOf(KRAKEN_TIER_LABEL, tier.nextCode) : null;
-  // Whole points: the backend's remainingRounded as it is (rounded from the
-  // two-decimal remaining, .5 up: 242.497 → 242.50 → 243, as comparison B shows;
-  // PM-프론트 #907). An api before that field rounds remaining here (242).
+  // Whole points: the backend's remainingRounded as it is (PM-프론트 #907). The api
+  // already sends remaining at two decimals (.5 up), so Math.round on it gives the
+  // same number: an api before that field shows no different value.
   const rounded = tier.remainingRounded;
   const left =
     rounded != null && Number.isFinite(rounded) && rounded >= 0
