@@ -43,6 +43,21 @@ for (const width of [1280, 360])
     await expectNoHorizontalOverflow(page);
   });
 
+// 덧입기 아바타의 상세 카드는 중립 문구 한 줄만(PM 총괄 11-13 #1551: '능력 미적용'은 확인되지 않아 쓰지 않음).
+// 기본 아바타 카드에는 그 줄이 없다.
+test("덧입기 아바타 상세에는 '덧입기 칸에 착용 중', 기본 아바타에는 없음 @regression", async ({ page }) => {
+  await gotoReady(page, characterPath("상세", "avatars"));
+  await page.getByRole("button", { name: "합성 무기 덧입기 상세 보기" }).click();
+  const card = page.getByRole("dialog");
+  await expect(card).toContainText("덧입기 칸에 착용 중");
+  await expect(card).not.toContainText("능력 미적용");
+  await page.keyboard.press("Escape");
+  await expect(card).toHaveCount(0);
+  await page.getByRole("button", { name: "합성 무기 아바타 상세 보기" }).click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await expect(page.getByRole("dialog")).not.toContainText("덧입기 칸에 착용 중");
+});
+
 // The api before #833 sends no tendencies field (PM-프론트 11-02): the tab draws as before, with no
 // 성향 panel and no 성향 lines (never zeros), and the contract check does not fail.
 test("성향 값이 없는 예전 응답: 아바타 탭은 그대로, 성향 칸·줄 없음 @regression", async ({ page }) => {
