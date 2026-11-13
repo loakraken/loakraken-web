@@ -184,11 +184,22 @@ export const historyRange = (range: DayRange): HistoryRange => (range === 90 ? "
 /** One cache entry per item and answer range (the page's first item is prefetched with 30d). */
 export const historyKey = (itemId: number, range: HistoryRange) => ["market", "history", itemId, range] as const;
 
-/** Completed days, oldest first (for charts); today's partial day is left out. */
-export function completedDays(variant: ItemVariant | undefined, limit = 14) {
+/** The first date of a `range`-day window that ends on `baseDate` (both YYYY-MM-DD), as the api counts it. */
+export function windowStart(baseDate: string, range: number) {
+  const [y, m, d] = baseDate.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d - (range - 1))).toISOString().slice(0, 10);
+}
+
+/**
+ * Completed days, oldest first (for charts); today's partial day is left out. With `baseDate`
+ * only the days inside the `limit`-day calendar window count (codex #1595 P2: 7일 reads the
+ * 30-day answer, so with sparse records the last 7 rows could be weeks old).
+ */
+export function completedDays(variant: ItemVariant | undefined, limit = 14, baseDate?: string) {
   if (!variant) return [];
+  const from = baseDate ? windowStart(baseDate, limit) : null;
   return variant.days
-    .filter((day) => !day.partial)
+    .filter((day) => !day.partial && (from == null || day.date >= from))
     .slice(0, limit)
     .reverse();
 }
