@@ -897,6 +897,14 @@
 .cellTrend .trendHead {
   margin-top: 0;
 }
+/* Beside the title (700px+), the row is the period buttons' height (28 + 3 + 3) from its start tag, so
+   the title, centred in it, stays put when the buttons arrive (A7, market boards sweep). On a phone the
+   buttons take their own row under the title. */
+@media (min-width: 700px) {
+  .cellTrend .trendHead {
+    min-height: 34px;
+  }
+}
 .cellCaption {
   overflow: visible;
   white-space: normal;
