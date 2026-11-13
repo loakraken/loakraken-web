@@ -170,10 +170,10 @@ test("기간 전환 중 자리 데이터는 제 기간 이름으로(3개월 → 
 });
 
 // codex #1595 delta: 7일 with no record in its window keeps the chart's box (a message inside, same height) and
-// says '0일치', so nothing below moves.
-test("7일 창에 기록이 없으면 같은 높이 상자에 안내, 흔들림 0 @regression", async ({ page }) => {
+// says '0일치', so the caption and the table under it stay where they were. (The table itself lists the 7-day
+// window's rows, so what is under the table may move up: that is the content changing, as on any range.)
+test("7일 창에 기록이 없으면 같은 높이 상자에 안내, 캡션·표는 제자리 @regression", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 900 });
-  await watchShifts(page);
   await page.route(/\/api\/markets\/items\/\d+\/history\?range=30d/, async (route) => {
     const response = await route.fetch();
     const body = await response.json();
@@ -188,10 +188,15 @@ test("7일 창에 기록이 없으면 같은 높이 상자에 안내, 흔들림 
   const detail = detailOf(page);
   const figure = detail.locator("figure").first();
   await expect(detail.locator("figure svg path.k-draw")).toBeVisible();
-  const height = await figure.evaluate((el) => el.getBoundingClientRect().height);
-  const moved = await shiftsDuring(page, () => detail.getByRole("group", { name: "기간" }).getByRole("button", { name: "7일" }).click(), 1000);
+  const caption = detail.getByText(/^하루 평균 거래가와 거래량/);
+  const place = async () => ({
+    figure: await figure.evaluate((el) => el.getBoundingClientRect().height),
+    caption: await caption.evaluate((el) => Math.round(el.getBoundingClientRect().top)),
+    table: await detail.locator("table").evaluate((el) => Math.round(el.getBoundingClientRect().top)),
+  });
+  const before = await place();
+  await detail.getByRole("group", { name: "기간" }).getByRole("button", { name: "7일" }).click();
   await expect(detail.getByText("최근 7일 기록이 없어요.")).toBeVisible();
-  await expect(detail.getByText(/^하루 평균 거래가와 거래량/)).toHaveText("하루 평균 거래가와 거래량 · 7일 중 0일치 기록");
-  expect(await figure.evaluate((el) => el.getBoundingClientRect().height)).toBe(height);
-  expect(moved.all, `7일 빈 창 흔들림 (${moved.moved})`).toBe(0);
+  await expect(caption).toHaveText("하루 평균 거래가와 거래량 · 7일 중 0일치 기록");
+  expect(await place(), "차트 상자 높이·캡션·표 자리").toEqual(before);
 });
