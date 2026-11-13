@@ -5,7 +5,8 @@ import { test, expect, expectNoHorizontalOverflow, gotoReady } from "../support/
 
 // Tabs that are always on (flagged ones may be off on a deployment).
 const HUBS = [
-  { name: "시세", tabs: [["거래소", "/market"], ["보석", "/market/gems"], ["장신구", "/market/accessories"], ["재료 견적", "/market/quote"]] },
+  // 보석 · 장신구 joined the category row under 품목 시세 (user 11-12); that tab covers their pages.
+  { name: "시세", tabs: [["품목 시세", "/market"], ["재료 견적", "/market/quote"]] },
   { name: "레이드", tabs: [["보상표", "/tools/raid-rewards"], ["더보기 손익", "/tools/more-reward"], ["경매 입찰가", "/tools/auction"], ["기여도", "/tools/contribution"], ["컨닝페이퍼", "/tools/raid-cheatsheet"]] },
   { name: "골드 효율", tabs: [["로아샵", "/tools/loa-shop"], ["아비도스 제작", "/tools/abidos-craft"], ["생명의 기운", "/tools/life-energy"]] },
   { name: "캐릭터 성장", tabs: [["재련", "/tools/refining"]] },
@@ -26,6 +27,19 @@ test.describe("묶음 화면 탭 @regression", () => {
         await expect(row.getByRole("link", { name: label, exact: true })).toHaveAttribute("aria-current", "page");
         await expect(row.locator('[aria-current="page"]')).toHaveCount(1);
       }
+    });
+
+  // codex #1597 P3: 보석 · 장신구 are pages of the 품목 시세 tab. Opened directly, the hub row is in their own
+  // server HTML too, with 품목 시세 the one current tab.
+  for (const path of ["/market/gems", "/market/accessories"])
+    test(`시세: ${path}에서도 서버 HTML의 탭 줄, 지금 탭은 품목 시세 하나`, async ({ page }) => {
+      const html = await (await page.request.get(path)).text();
+      expect(html, `${path}: 탭 줄`).toContain('aria-label="시세 화면"');
+      for (const [, other] of HUBS[0].tabs) expect(html, `${path}: ${other} 링크`).toContain(`href="${other}"`);
+      await page.goto(path);
+      const row = tabRow(page, "시세");
+      await expect(row.getByRole("link", { name: "품목 시세", exact: true })).toHaveAttribute("aria-current", "page");
+      await expect(row.locator('[aria-current="page"]')).toHaveCount(1);
     });
 
   test("탭을 누르거나 키보드로 고르면 그 페이지 주소로 간다", async ({ page }) => {

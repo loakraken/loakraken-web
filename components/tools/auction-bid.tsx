@@ -1,5 +1,6 @@
 "use client";
 
+import { FpEnd } from "@/components/ui/fp-end";
 import { HubTabs } from "@/components/site/hub-tabs";
 
 import { useEffect, useId, useRef, useState } from "react";
@@ -264,6 +265,9 @@ function Strategies({ result }: { result: AuctionResult | null }) {
         <h2 id="auction-bids">입찰가</h2>
         <p className={quote.caption}>입찰가를 누르면 복사돼요</p>
       </div>
+      {/* Drawn once whole (data-fp-whole): the columns size from every row, so a row that came
+          later moved the number cells already drawn (A7, user-checklist:119 /tools/auction @1280). */}
+      <div data-fp-whole="">
       <table className={styles.table}>
         <thead>
           <tr>
@@ -341,6 +345,8 @@ function Strategies({ result }: { result: AuctionResult | null }) {
           })}
         </tbody>
       </table>
+      <FpEnd />
+      </div>
       <p className={styles.copyStatus} role="status" aria-live="polite">
         {copied
           ? copied.ok

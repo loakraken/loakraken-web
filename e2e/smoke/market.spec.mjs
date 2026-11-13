@@ -8,8 +8,8 @@ test.describe("시세 @smoke", () => {
   });
 
   test("기본 분류 보드와 첫 품목 추이를 보여 준다", async ({ page }) => {
-    const categories = page.getByRole("tablist", { name: "시세 분류" });
-    await expect(categories.getByRole("tab", { name: "재련 재료" })).toHaveAttribute("aria-selected", "true");
+    const categories = page.getByRole("navigation", { name: "시세 분류" });
+    await expect(categories.getByRole("link", { name: "재련 재료" })).toHaveAttribute("aria-current", "page");
     const board = page.getByRole("region", { name: /재련 재료 시세 11종/ });
     await expect(board.getByRole("listitem")).toHaveCount(10);
     await expect(page.getByRole("heading", { name: "시세 추이" })).toBeVisible();
@@ -17,9 +17,9 @@ test.describe("시세 @smoke", () => {
   });
 
   test("분류를 바꾸면 보드가 바뀐다", async ({ page }) => {
-    const categories = page.getByRole("tablist", { name: "시세 분류" });
-    await categories.getByRole("tab", { name: "각인서" }).click();
-    await expect(categories.getByRole("tab", { name: "각인서" })).toHaveAttribute("aria-selected", "true");
+    const categories = page.getByRole("navigation", { name: "시세 분류" });
+    await categories.getByRole("link", { name: "각인서" }).click();
+    await expect(categories.getByRole("link", { name: "각인서" })).toHaveAttribute("aria-current", "page");
     await expect(page.getByRole("heading", { name: /각인서 시세 23종/ })).toBeVisible();
   });
 
@@ -40,10 +40,10 @@ test.describe("시세 @smoke", () => {
     await expect(page.getByRole("region", { name: `${name} 시세` })).toBeVisible();
   });
 
-  test("기간 7일·14일을 전환한다", async ({ page }) => {
+  test("기간 7일·30일을 전환한다", async ({ page }) => {
     const range = page.getByRole("group", { name: "기간" });
     await range.getByRole("button", { name: "7일" }).click();
     await expect(range.getByRole("button", { name: "7일" })).toHaveAttribute("aria-pressed", "true");
-    await expect(range.getByRole("button", { name: "14일" })).toHaveAttribute("aria-pressed", "false");
+    await expect(range.getByRole("button", { name: "30일" })).toHaveAttribute("aria-pressed", "false");
   });
 });

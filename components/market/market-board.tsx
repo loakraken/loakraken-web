@@ -2,39 +2,33 @@
 
 import { HubTabs } from "@/components/site/hub-tabs";
 
-import { useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import {
-  AddSquare,
-  Bookmark,
-  BookmarkBold,
-  StarBold,
-  BookSquare,
-  Box,
-  Coffee,
-  Diamonds,
-  Flash,
-  Gift,
-  HierarchySquare,
-  MagicStar,
-  Tree,
-  TrendUp,
-} from "@/components/ui/icons";
+import { Bookmark, BookmarkBold, StarBold, TrendUp } from "@/components/ui/icons";
 import { GameIcon } from "@/components/character/imagery";
 import { LandingMotion } from "@/components/landing/motion";
 import { InlineOrb } from "@/components/landing/orb";
 import {
   SORTS,
+  BOOK_GRADES,
   boardQueryString,
   changeLabel,
   changeWithAmount,
   completedDays,
+  windowStart,
   goldText,
+  historyKey,
+  historyRange,
+  OLD_RANGES,
+  RANGE_LABEL,
+  STORED_RANGES,
   TAB_FALLBACK,
   isTabId,
   unitPrice,
   type BoardItem,
   type BoardQuery,
+  type ChartRange,
+  type DayRange,
   type ItemHistory,
   type MarketTab,
 } from "@/lib/market/board";
@@ -57,23 +51,9 @@ import quote from "../tools/material-quote.module.css";
 import { ChartPlaceholder, MarketChart, dayPoints, minutePoints, periodChange } from "./market-chart";
 import { sampleText } from "@/lib/market/minutes";
 import { SiteHeader } from "@/components/site/site-header";
-import { PillTab, PillTabs } from "@/components/ui/pill-tabs";
 import { BoardSearch } from "./board-search";
+import { MarketCategoryRow } from "./category-row";
 import { useTallest } from "@/components/ui/use-tallest";
-
-// One Iconsax mark per category (decorative; the label names the tab).
-const TAB_ICON: Record<string, ReactNode> = {
-  REFINING: <MagicStar />,
-  REFINING_EXTRA: <AddSquare />,
-  ARK_GRID: <HierarchySquare />,
-  WEAPON_EVOLUTION: <Flash />,
-  ENGRAVING_BOOK: <BookSquare />,
-  LIFE: <Tree />,
-  BATTLE_ITEM: <Box />,
-  FOOD: <Coffee />,
-  AVATAR: <Diamonds />,
-  EQUIPMENT_BOX: <Gift />,
-};
 import styles from "./market.module.css";
 import { rateLimitCopy, retryLabel } from "@/lib/api/rate-limit";
 import { RateLimitNote } from "@/components/site/rate-limit-note";
@@ -169,8 +149,8 @@ function FactChange({ item }: { item: Pick<BoardItem, "currentMinPrice" | "yeste
  * above. The line is there from the first paint (a blank before the data), so
  * nothing moves when it arrives (A7).
  */
-function PeriodChange({ range, points }: { range: "hour" | 7 | 14; points: { value: number }[] | null }) {
-  const label = range === "hour" ? "1시간" : `${range}일`;
+function PeriodChange({ range, points }: { range: ChartRange; points: { value: number }[] | null }) {
+  const label = range === "hour" ? "1시간" : RANGE_LABEL[range];
   const { direction, percent } = periodChange(points ?? []);
   if (!points || percent == null)
     return (
@@ -237,19 +217,57 @@ function Detail({
   const starred = favorites.some((f) => f.itemId === item.itemId);
   const unit = unitPrice(item.currentMinPrice, item.bundleCount);
   // 1시간 (K35): the last hour by minute, from prices the warm-up already fetched.
-  const [range, setRange] = useState<"hour" | 7 | 14>(14);
+  // Days (user 11-12, api #920): 7일 · 30일 · 3개월 · 1년; it opens on 30일.
+  const [picked, setRange] = useState<ChartRange>(30);
   const [variantIndex, setVariantIndex] = useState(0);
-  const history = useQuery({
-    queryKey: ["market", "history", item.itemId],
-    queryFn: ({ signal }) => fetchItemHistory(item.itemId, signal),
+  // Whether the api answers ranges: the 30-day answer (always read) echoes its range.
+  const base = useQuery({
+    queryKey: historyKey(item.itemId, "30d"),
+    queryFn: ({ signal }) => fetchItemHistory(item.itemId, "30d", signal),
     staleTime: 10 * 60_000,
     ...quiet,
   });
+  const stored = base.data ? base.data.data.range != null : true;
+  const ranges: readonly ChartRange[] = stored ? STORED_RANGES : OLD_RANGES;
+  // A range the api cannot answer (an older api) falls back to its 14 days.
+  const range: ChartRange = ranges.includes(picked) ? picked : 14;
+  const answer = range === "hour" ? "30d" : historyRange(range);
+  const longer = useQuery({
+    queryKey: historyKey(item.itemId, answer),
+    queryFn: ({ signal }) => fetchItemHistory(item.itemId, answer, signal),
+    enabled: answer !== "30d",
+    staleTime: 10 * 60_000,
+    // While a longer range loads, the chart shown stays (codex #1595 P2): the previous longer
+    // answer, or the 30-day one when coming from 7일 · 30일.
+    placeholderData: (previous) => previous ?? base.data,
+    ...quiet,
+  });
+  const history = answer === "30d" ? base : longer;
   const data: ItemHistory | undefined = history.data?.data;
+  // The range the shown data answers: the picked one once its answer is in, the last settled one
+  // while a placeholder stands in (so the window and 'N일치' never come from the wrong answer).
+  const [settled, setSettled] = useState<DayRange>(range === "hour" ? 30 : range);
+  const ready = !history.isPlaceholderData && !history.isPending;
+  if (ready && range !== "hour" && settled !== range) setSettled(range);
+  // A placeholder is labelled by the answer it really is (codex #1595 delta: 3개월 → 1시간 → 1년 put the
+  // 30-day answer under '3개월'): the last settled range if that range reads this answer, else its own days.
+  const shownAnswer = data?.range;
+  const placeholderRange: DayRange =
+    shownAnswer == null || historyRange(settled) === shownAnswer ? settled : shownAnswer === "365d" ? 365 : shownAnswer === "90d" ? 90 : 30;
+  const view: ChartRange = range === "hour" ? "hour" : ready ? range : placeholderRange;
   const variant = data?.variants[Math.min(variantIndex, (data?.variants.length ?? 1) - 1)];
-  // The 14-day table stays as it was while the hour is shown.
-  const tableDays = range === "hour" ? 14 : range;
-  const days = completedDays(variant, tableDays);
+  const chartDays = view === "hour" ? 14 : view;
+  // Days inside the range's calendar window (7일 reads the 30-day answer: rows, not dates, would
+  // reach back weeks when records are sparse).
+  const days = completedDays(variant, chartDays, stored ? data?.baseDate : undefined);
+  // The table lists the latest days only (at most 14, in the same calendar window), and stays as
+  // it was while the hour is shown.
+  const tableDays = Math.min(chartDays, 14);
+  const tableFrom = stored && data ? windowStart(data.baseDate, tableDays) : null;
+  const tableRows = (variant?.days ?? []).filter((day) => tableFrom == null || day.date >= tableFrom).slice(0, tableDays);
+  // Fewer days than the range: say how many there are; nothing is filled in (user 11-12).
+  // (Today is partial and not charted, so a full range has range − 1 completed days.)
+  const short = view !== "hour" && stored && days.length < view - 1 ? days.length : null;
   const minutes = useQuery({
     queryKey: ["market", "minutes", item.itemId],
     queryFn: ({ signal }) => fetchItemMinutes(item.itemId, signal),
@@ -334,25 +352,27 @@ function Detail({
         <div className={styles.trendTitle}>
           <h3>시세 추이</h3>
           <PeriodChange
-            range={range}
+            range={view}
             points={range === "hour" ? (minute ? minutePoints(minute.points) : null) : days.length ? dayPoints(days) : null}
           />
         </div>
-        <div className={styles.ranges} role="group" aria-label="기간">
-          {([
-            ["hour", "1시간"],
-            [7, "7일"],
-            [14, "14일"],
-          ] as const).map(([value, label]) => (
-            <button
-              key={value}
-              type="button"
-              aria-pressed={range === value}
-              onClick={() => setRange(value)}
-            >
-              {label}
-            </button>
-          ))}
+        <div className={`${styles.ranges} ${styles.fixedRanges}`} role="group" aria-label="기간">
+          {ranges.map((value) => {
+            const label = value === "hour" ? "1시간" : RANGE_LABEL[value];
+            return (
+              // Width by label length, not by the drawn text: the site font (display: optional) can
+              // land after the first layout, and the row moved 187 → 224px (P1, 11-14).
+              <button
+                key={value}
+                type="button"
+                aria-pressed={range === value}
+                onClick={() => setRange(value)}
+                style={{ inlineSize: `calc(${label.length}em + 12px)` }}
+              >
+                {label}
+              </button>
+            );
+          })}
         </div>
       </div>
       {data && data.variants.length > 1 && (
@@ -366,7 +386,10 @@ function Detail({
             >
               {v.tradeRemainCount != null
                 ? `거래 ${v.tradeRemainCount}회`
-                : `${v.bundleCount ?? 1}개`}
+                : v.bundleCount != null
+                  ? `${v.bundleCount}개`
+                  : // Only in stored history (api #920, 30일+): no trade terms today, so not "1개".
+                    "지난 기록"}
             </button>
           ))}
         </div>
@@ -386,7 +409,7 @@ function Detail({
             label="최근 1시간 판매 최저가. 화살표 키로 분을 이동할 수 있어요."
           />
         ) : (
-          <ChartPlaceholder>이 품목은 분 단위로 확인하지 않아요. 7일·14일 추이를 봐 주세요.</ChartPlaceholder>
+          <ChartPlaceholder>이 품목은 분 단위로 확인하지 않아요. 일 단위 추이를 봐 주세요.</ChartPlaceholder>
         )
       ) : failure ? (
         <Problem failure={failure} onRetry={() => history.refetch()} />
@@ -398,17 +421,18 @@ function Detail({
         <div ref={fade}>
           {/* Keyed by range and trade terms: each pick mounts a new chart, so it
               draws again (user 11-01; the character tabs and /stats draw once). */}
-          <MarketChart key={`${range}-${variantIndex}`} points={dayPoints(days)} />
+          <MarketChart key={`${view}-${variantIndex}`} points={dayPoints(days)} byDate />
         </div>
       ) : (
-        <p className={styles.muted}>아직 수집된 시세가 없어요.</p>
+        // Same height as the chart (codex #1595 delta: an empty 7일 window swapped the chart for a short line).
+        <ChartPlaceholder>{variant?.days.length ? `최근 ${RANGE_LABEL[view as DayRange] ?? ""} 기록이 없어요.` : "아직 수집된 시세가 없어요."}</ChartPlaceholder>
       )}
 
       {/* One line in both ranges, so switching keeps the table in place (A7). */}
       <p className={styles.chartCaption}>
         {range === "hour"
           ? [`판매 최저가`, sampleText(minute?.sampleEverySeconds), "확인하지 않은 분은 비어 있어요"].filter(Boolean).join(" · ")
-          : "하루 평균 거래가와 거래량"}
+          : ["하루 평균 거래가와 거래량", short != null && `${RANGE_LABEL[view as DayRange]} 중 ${short}일치 기록`].filter(Boolean).join(" · ")}
       </p>
       {/* The 14-day table under the caption arrives with the history: hold its
           place, so the caption stays put when it lands (A7). */}
@@ -423,7 +447,7 @@ function Detail({
             </tr>
           </thead>
           <tbody>
-            {variant.days.slice(0, tableDays).map((day) => (
+            {tableRows.map((day) => (
               <tr key={day.date} data-partial={day.partial || undefined}>
                 <th scope="row">
                   {day.date.slice(5).replace("-", "/")}
@@ -443,7 +467,8 @@ function Detail({
       )}
       {data && (
         <p className={styles.note}>
-          공식 거래소 일별 통계 · {at(data.observedAt)} 수집 · 가격은 묶음 기준
+          {view !== "hour" && view > 14 ? "공식 거래소 일별 통계와 LOAKraken 저장 기록" : "공식 거래소 일별 통계"} ·{" "}
+          {at(data.observedAt)} 수집 · 가격은 묶음 기준
         </p>
       )}
     </section>
@@ -564,6 +589,10 @@ function MarketContent({
     ...quiet,
   });
   const data = board.data?.data;
+  // Whether the api answers the grade filter: decided once, from any answer that echoes `grade`, so a
+  // failed grade read keeps the buttons that lead back (codex #1603 P2).
+  const [gradeReady, setGradeReady] = useState(false);
+  if (!gradeReady && data && "grade" in data) setGradeReady(true);
   const fade = useCrossfade(!data);
   const items = data?.items ?? [];
   const listed = items.find((item) => item.itemId === selected);
@@ -630,26 +659,8 @@ function MarketContent({
         </section>
 
         <div className={styles.band}>
-          {(tabList.length > 0 || tabs.isPending) && (
-            <PillTabs
-              aria-label="시세 분류"
-              value={query.tab}
-              onValueChange={(tab) => update({ tab: tab as MarketTab["tab"], tier: null, page: 1 })}
-            >
-              {tabList.length
-                ? tabList.map((t) => (
-                    <PillTab key={t.tab} value={t.tab} icon={TAB_ICON[t.tab]}>
-                      {t.label}
-                    </PillTab>
-                  ))
-                : // Same names and sizes as the live list: nothing moves when it arrives.
-                  TAB_FALLBACK.map((t) => (
-                    <PillTab key={t.tab} value={t.tab} icon={TAB_ICON[t.tab]} disabled>
-                      {t.label}
-                    </PillTab>
-                  ))}
-            </PillTabs>
-          )}
+          {/* Exchange categories switch here; 보석 · 장신구 open their own pages (user 11-12). */}
+          <MarketCategoryRow value={query.tab} onExchange={(tab) => update({ tab, tier: null, page: 1, grade: null })} />
           {favorites.length === 0 ? (
             // In the bar's own 30px row: saved favourites replace it after
             // loading (browser storage), so it must be no taller than them.
@@ -665,7 +676,7 @@ function MarketContent({
                   <button
                     type="button"
                     aria-pressed={active?.itemId === f.itemId}
-                    onClick={() => update({ tab: f.tab, tier: f.tier, sort: "default", page: 1 }, f.itemId)}
+                    onClick={() => update({ tab: f.tab, tier: f.tier, sort: "default", page: 1, grade: null }, f.itemId)}
                   >
                     <Bookmark size={12} aria-hidden="true" />
                     <span data-grade={f.grade ?? undefined}>{f.name}</span>
@@ -742,6 +753,22 @@ function MarketContent({
                       onClick={() => update({ tier: t, page: 1 })}
                     >
                       T{t}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {/* 각인서 by grade (user 11-12): only when the api answers the filter (it echoes
+                  `grade`); an older api never shows a filter it would ignore. */}
+              {query.tab === "ENGRAVING_BOOK" && gradeReady && (
+                <div className={styles.tiers} role="group" aria-label="등급">
+                  {([null, ...BOOK_GRADES] as const).map((g) => (
+                    <button
+                      key={g ?? "all"}
+                      type="button"
+                      aria-pressed={query.grade === g}
+                      onClick={() => update({ grade: g, page: 1 })}
+                    >
+                      {g ?? "전체"}
                     </button>
                   ))}
                 </div>

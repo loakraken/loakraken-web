@@ -1,5 +1,6 @@
 "use client";
 
+import { FpEnd } from "@/components/ui/fp-end";
 import { useId, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -107,6 +108,7 @@ export function RosterRankingsView({ initial, types }: { initial: RosterQuery; t
         <RankingTypeTabs value="roster" types={types} />
 
         <form
+          data-fp-whole=""
           className={styles.filters}
           onSubmit={(e) => e.preventDefault()}
           aria-label="원정대 랭킹 조건"
@@ -144,6 +146,8 @@ export function RosterRankingsView({ initial, types }: { initial: RosterQuery; t
               items={[{ value: "", label: "전체" }, ...SERVERS.map((s) => ({ value: s, label: s }))]}
             />
           </label>
+          {/* Last: the bar is drawn once all of it is here (data-fp-whole). */}
+          <FpEnd />
         </form>
 
         <RankPodium

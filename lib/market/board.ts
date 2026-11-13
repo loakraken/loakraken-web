@@ -30,9 +30,11 @@ export const TAB_IDS: readonly TabId[] = [
 ];
 /** A tab this build can open; the board skips tabs the backend added later. */
 /**
- * Names and tier support of the tabs as the backend returns them, used only
- * while the tab list is still loading so the layout already has its final
- * size (the live list replaces it, QA #180 slow-backend path).
+ * Names, order and tier support of the tabs as the backend returns them: the
+ * market's category row always draws this list, so the server's HTML and the
+ * browser show the same row (codex #1597 P2-2); the api's own list only marks
+ * a tab it does not open. Also the board's tier rule while that list loads
+ * (QA #180 slow-backend path).
  */
 export const TAB_FALLBACK: readonly { tab: TabId; label: string; tiered: boolean }[] = [
   { tab: "REFINING", label: "재련 재료", tiered: true },
@@ -43,8 +45,11 @@ export const TAB_FALLBACK: readonly { tab: TabId; label: string; tiered: boolean
   { tab: "LIFE", label: "생활", tiered: false },
   { tab: "BATTLE_ITEM", label: "전투 용품", tiered: false },
   { tab: "FOOD", label: "요리", tiered: false },
-  // 아바타·장비 상자 (gap #11, api #873) are left out on purpose: they show only when the
-  // api's own tab list has them, so an api before #873 never offers a tab it cannot open.
+  // 아바타 (gap #11, api #873): every api in service opens it (api master since 11-09); an api
+  // without it marks it as not open instead of taking it out of the row.
+  { tab: "AVATAR", label: "아바타", tiered: false },
+  // 장비 상자 is not in the row: the api's own tab list leaves it out (MarketTabsResponse), so the
+  // row matches what the site shows (PM 총괄 11-14). Its address still opens the board.
 ];
 
 export const isTabId = (value: string): value is TabId => (TAB_IDS as readonly string[]).includes(value);
@@ -65,7 +70,15 @@ export type BoardQuery = {
   page: number;
   /** Item name search (api #624): a part of the name or its initials (ㅇㅂㄷ); null for none. */
   q: string | null;
+  /** 각인서 grade filter (user 11-12; the board's `grade`, applied over the whole tab); null = 전체. */
+  grade: BookGrade | null;
 };
+
+/** The grades the 각인서 filter offers (전체 is no filter). The api takes any official grade name. */
+export const BOOK_GRADES = ["유물", "전설"] as const;
+export type BookGrade = (typeof BOOK_GRADES)[number];
+export const isBookGrade = (value: string | null | undefined): value is BookGrade =>
+  (BOOK_GRADES as readonly string[]).includes(value ?? "");
 
 /** What the backend takes in a search (api #624): after trimming, 1~20 of these. */
 const SEARCH = /^[가-힣ㄱ-ㅎㅏ-ㅣA-Za-z0-9 ·()+\-:]{1,20}$/;
@@ -111,6 +124,12 @@ export function boardSearchParams(input: URLSearchParams): URLSearchParams | nul
     if (search.invalid) return null;
     if (search.q) out.set("q", search.q);
   }
+  // Only the grades the screen offers go on (an older api ignores it).
+  const grade = input.get("grade");
+  if (grade !== null && grade !== "") {
+    if (!isBookGrade(grade)) return null;
+    out.set("grade", grade);
+  }
   return out;
 }
 
@@ -128,6 +147,7 @@ export function readBoardQuery(params: {
   sort?: string | string[];
   page?: string | string[];
   q?: string | string[];
+  grade?: string | string[];
 }): BoardQuery {
   const one = (value: string | string[] | undefined) =>
     typeof value === "string" ? value : "";
@@ -139,7 +159,9 @@ export function readBoardQuery(params: {
     ? (one(params.sort) as SortId)
     : "default";
   const page = isInt(one(params.page), 1, 10) ? Number(one(params.page)) : 1;
-  return { tab, tier, sort, page, q: readSearch(one(params.q)).q };
+  // The grade filter belongs to 각인서 only (user 11-12); elsewhere it is ignored.
+  const grade = tab === "ENGRAVING_BOOK" && isBookGrade(one(params.grade)) ? (one(params.grade) as BookGrade) : null;
+  return { tab, tier, sort, page, q: readSearch(one(params.q)).q, grade };
 }
 
 export function boardQueryString(query: BoardQuery) {
@@ -148,6 +170,7 @@ export function boardQueryString(query: BoardQuery) {
   if (query.sort !== "default") out.set("sort", query.sort);
   if (query.page > 1) out.set("page", String(query.page));
   if (query.q) out.set("q", query.q);
+  if (query.grade) out.set("grade", query.grade);
   return out.toString();
 }
 
@@ -168,11 +191,38 @@ export function goldText(value: number | null | undefined) {
   return `${value.toLocaleString("ko-KR", { maximumFractionDigits: 2 })}G`;
 }
 
-/** Completed days, oldest first (for charts); today's partial day is left out. */
-export function completedDays(variant: ItemVariant | undefined, limit = 14) {
+/**
+ * Chart ranges (user 11-12, api #920): 1시간 (exchange minutes), then days.
+ * An api from before #920 answers 14 days and echoes no `range`: the chart
+ * then keeps its old 1시간 · 7일 · 14일 tabs.
+ */
+export type DayRange = 7 | 14 | 30 | 90 | 365;
+export type ChartRange = "hour" | DayRange;
+export const RANGE_LABEL: Record<DayRange, string> = { 7: "7일", 14: "14일", 30: "30일", 90: "3개월", 365: "1년" };
+export const STORED_RANGES = ["hour", 7, 30, 90, 365] as const satisfies readonly ChartRange[];
+export const OLD_RANGES = ["hour", 7, 14] as const satisfies readonly ChartRange[];
+export type HistoryRange = "30d" | "90d" | "365d";
+/** The history answer a day range reads: 7 and 30 (and the old 14) come from one 30-day answer. */
+export const historyRange = (range: DayRange): HistoryRange => (range === 90 ? "90d" : range === 365 ? "365d" : "30d");
+/** One cache entry per item and answer range (the page's first item is prefetched with 30d). */
+export const historyKey = (itemId: number, range: HistoryRange) => ["market", "history", itemId, range] as const;
+
+/** The first date of a `range`-day window that ends on `baseDate` (both YYYY-MM-DD), as the api counts it. */
+export function windowStart(baseDate: string, range: number) {
+  const [y, m, d] = baseDate.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d - (range - 1))).toISOString().slice(0, 10);
+}
+
+/**
+ * Completed days, oldest first (for charts); today's partial day is left out. With `baseDate`
+ * only the days inside the `limit`-day calendar window count (codex #1595 P2: 7일 reads the
+ * 30-day answer, so with sparse records the last 7 rows could be weeks old).
+ */
+export function completedDays(variant: ItemVariant | undefined, limit = 14, baseDate?: string) {
   if (!variant) return [];
+  const from = baseDate ? windowStart(baseDate, limit) : null;
   return variant.days
-    .filter((day) => !day.partial)
+    .filter((day) => !day.partial && (from == null || day.date >= from))
     .slice(0, limit)
     .reverse();
 }

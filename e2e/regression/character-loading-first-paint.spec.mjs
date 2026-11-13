@@ -3,6 +3,7 @@
 // 늦게 오면 내용 높이가 70px(링크 47 + 간격 22) 늘어 위의 구슬·문구가 35px 올라갔다. 이제 세 줄의 높이가 처음부터 잡혀
 // 있어, 어디서 끊겨 와도 움직이지 않는다.
 import { test, expect } from "../support/fixtures.mjs";
+import { cutEverywhere } from "../support/first-paint.mjs";
 
 for (const width of [320, 1280])
   test(`@A7 ${width} 캐릭터 조회 중 화면: 아래 줄이 늦게 와도 구슬·문구가 움직이지 않는다 @regression`, async ({ page }) => {
@@ -41,5 +42,19 @@ for (const width of [320, 1280])
       return { parts: parts.length, value: +value.toFixed(6), moved };
     });
     expect(cut.parts, "조회 중 화면의 줄").toBe(3);
+    expect(cut.value, `움직인 것: ${cut.moved.join(" / ")}`).toBe(0);
+  });
+
+// combat-aside-order:10 @320 (#1576 CI): the back link was drawn before its text (42 → 142px, centred, so it moved).
+// Every start tag and text node of the loading screen, link included, cut and put back: nothing moves.
+for (const width of [320, 360, 1280])
+  test(`@A7 ${width} 캐릭터 조회 중 화면: 어디서 끊겨도(링크 글자 포함) 아무것도 움직이지 않는다 @regression`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto(`/character/${encodeURIComponent("로딩")}`, { waitUntil: "commit" });
+    await expect(page.getByRole("status").filter({ hasText: "캐릭터 정보를 조회하고 있어요." })).toBeVisible();
+    // No second fetch: the loading screen is gone by the time the slow address answers again.
+    const cut = await cutEverywhere(page, "main[aria-busy]|", null, { serverHtml: false });
+    expect(cut.probed, "잘라 본 곳").toBeGreaterThan(4);
+    expect(await page.locator("main[aria-busy]").count(), "자르는 동안 조회 중 화면이 그대로").toBe(1);
     expect(cut.value, `움직인 것: ${cut.moved.join(" / ")}`).toBe(0);
   });
