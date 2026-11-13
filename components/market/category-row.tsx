@@ -21,7 +21,6 @@ import {
   Coffee,
   Diamonds,
   Flash,
-  Gift,
   Heart,
   HierarchySquare,
   MagicStar,
@@ -43,7 +42,6 @@ const TAB_ICON: Record<string, ReactNode> = {
   BATTLE_ITEM: <Box />,
   FOOD: <Coffee />,
   AVATAR: <Diamonds />,
-  EQUIPMENT_BOX: <Gift />,
 };
 
 /** The auction-house boards, last in the row. */
