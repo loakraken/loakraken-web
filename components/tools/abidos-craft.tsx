@@ -7,6 +7,7 @@ import Link from "next/link";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { ChevronDown, ArrowLeft, Box } from "@/components/ui/icons";
 import { SiteHeader } from "@/components/site/site-header";
+import { FpEnd } from "@/components/ui/fp-end";
 import { SegmentedControl, SegmentedItem } from "@/components/ui/segmented-control";
 import { MarketQueryError, postMaterialPricesAll } from "@/lib/market/client";
 import { marketFailureCopy, priceBases, type MaterialPrice, type PriceBasis } from "@/lib/market/model";
@@ -220,7 +221,10 @@ export function AbidosCraftTool() {
         </section>
 
         <div className={quote.band}>
-          <div className={styles.workspace}>
+          {/* Drawn once whole (data-fp-whole): at 900px and under the results show above the conditions (CSS order)
+             but come after them in the page, so results that came later pushed the conditions already drawn
+             down (A7, craft tools sweep). The page order stays: it is also the reading and focus order. */}
+          <div className={styles.workspace} data-fp-whole="">
             <section className={styles.settings} aria-labelledby="craft-settings">
               <h2 id="craft-settings" className={`${styles.sectionTitle} ${styles.conditionsTitle}`}>
                 계산 조건
@@ -328,6 +332,7 @@ export function AbidosCraftTool() {
                 1회 손익에는 영향이 없어요. 손익 계산에는 넣지 않아요. 확인 {CRAFT_DATA.checkedAt}.
               </MoreDetail>
             </section>
+            <FpEnd />
           </div>
         </div>
       </main>
