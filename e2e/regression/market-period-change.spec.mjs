@@ -27,9 +27,9 @@ for (const width of [1280, 360])
           oneLine: r ? r.height < 24 : false,
         };
       });
-    // Default 14 days, then 7 days, then the hour chart.
+    // Default 30 days (api #920), then 7 days, then the hour chart.
     for (const [button, period, chartName] of [
-      [null, "14일", /^일 평균 거래가와 거래량/],
+      [null, "30일", /^일 평균 거래가와 거래량/],
       ["7일", "7일", /^일 평균 거래가와 거래량/],
       ["1시간", "1시간", /^최근 1시간 판매 최저가/],
     ]) {

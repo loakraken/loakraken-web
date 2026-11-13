@@ -38,6 +38,9 @@ for (const width of [1280, 360])
     const board = page.getByRole("table", { name: "4티어 보석 레벨별 즉시 구매 최저가" });
     const label = board.locator('[data-slot="pending-text"]');
     await expect(label).toHaveText("집계 중");
+    // In view first: off screen it pauses (the next test). At 360 the market category row (#1597) puts the
+    // board's first row just below a 900px window.
+    await label.scrollIntoViewIfNeeded();
     // The window and its brighter copy: 1.5 s, on and on, on the shared beat (start 0).
     await expect.poll(async () => (await read(label)).animations).toEqual([RUNNING, RUNNING]);
     const first = await read(label);

@@ -15,6 +15,7 @@ import { SpecUpQueryError, fetchSpecUp } from "@/lib/spec-up/client";
 import {
   SORTS,
   editsFor,
+  gearTypeOf,
   keepOrder,
   kindLabel,
   KRAKEN_NOTE_ALL,
@@ -155,6 +156,8 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
   const [pathSort, setPathSort] = useState<PathSort>("EFFICIENCY");
   // '적용해 보기' opens the simulator tab, which exists only with COMBAT_POWER_SIM on (#1260).
   const simulator = useContext(SimulatorEnabled);
+  // Refine opens for the weapon only (api #884): the button needs the slot of a refine step (#1567).
+  const gearType = gearTypeOf(data);
   // 크라켄 점수 정렬 (api #573) leaves 작열 (cooldown) gems out by default; the user can add them.
   const [cooldown, setCooldown] = useState(false);
   // The first list (the tab's first answer) tells whether the backend knows
@@ -498,7 +501,7 @@ export default function SpecUpGuide({ data, supporter = false }: { data: Charact
                       const sub = j > 0;
                       const collapsed = sub && !open;
                       // The simulator is combat power: no link for a supporter, nor where it is off.
-                      const tryable = simulator && !supporter && editsFor(c.change, NO_EDITS) != null && c.change;
+                      const tryable = simulator && !supporter && editsFor(c.change, NO_EDITS, gearType) != null && c.change;
                       return (
                         // Keyed by the order of the list on screen: a new sort
                         // or '새 순서로 보기' draws new rows instead of sliding

@@ -19,13 +19,15 @@ import {
   targetError,
   type Goal,
 } from "@/lib/spec-up/goal";
-import { koreanGold, notCachedText, tryPathParam } from "@/lib/spec-up/model";
+import { gearTypeOf, koreanGold, notCachedText, tryPathParam, type GearType } from "@/lib/spec-up/model";
 import { SpecUpExpired, useMarkExpired } from "./spec-up-expired";
 import styles from "./spec-up-goal.module.css";
 import { SimulatorEnabled } from "./tabs";
 
 const two = (value: number) =>
   value.toLocaleString("ko-KR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+const BUSY = "SPEC_UP_BUSY";
 
 function failureText(code: string | null, limit?: "client") {
   switch (code) {
@@ -35,6 +37,8 @@ function failureText(code: string | null, limit?: "client") {
       return "목표는 지금 전투력의 2배까지 넣을 수 있어요.";
     case "SPEC_UP_DISABLED":
       return "스펙업 목표는 아직 열리지 않았어요.";
+    case BUSY:
+      return "경로를 찾는 요청이 몰려 지금은 계산하지 못했어요. 잠시 뒤 다시 눌러 주세요.";
     case RATE_LIMITED:
       return `${rateLimitCopy({ limit }).title}. ${rateLimitCopy({ limit }).text}`;
     default:
@@ -60,7 +64,7 @@ export function SpecUpGoal({ data }: { data: Character }) {
     refetchOnWindowFocus: false,
   });
   const simulator = useContext(SimulatorEnabled);
-  const limit = useRateLimit(goal.error);
+  const limit = useRateLimit(goal.error, [BUSY]);
   useMarkExpired(goal.error);
   const { expired } = useContext(SpecUpExpired);
   const failure = goal.error instanceof SpecUpQueryError ? goal.error.info.code : goal.error ? "ERROR" : null;
@@ -82,7 +86,11 @@ export function SpecUpGoal({ data }: { data: Character }) {
         className={styles.form}
         onSubmit={(event) => {
           event.preventDefault();
-          if (target !== null && !error && !blocked && !busy) setAsked(target);
+          if (target === null || error || blocked || busy) return;
+          // The same target after a failed read (a busy 429 once its wait is over, a timeout): ask again.
+          // setAsked with the same value would change nothing (codex on api #922).
+          if (target === asked && goal.isError) void goal.refetch();
+          else setAsked(target);
         }}
       >
         <div className={styles.field}>
@@ -121,7 +129,7 @@ export function SpecUpGoal({ data }: { data: Character }) {
         ) : goal.data ? (
           // Another target keeps the last answer, dimmed, until its own arrives (A7).
           <div className={styles.answer} data-stale={goal.isPlaceholderData || expired || undefined}>
-            <GoalAnswer name={name} goal={goal.data.data} />
+            <GoalAnswer name={name} goal={goal.data.data} gearType={gearTypeOf(data)} />
           </div>
         ) : asked !== null && goal.isPending ? (
           <GoalSkeleton simulator={simulator} />
@@ -169,14 +177,14 @@ function GoalSkeleton({ simulator }: { simulator: boolean }) {
   );
 }
 
-function GoalAnswer({ name, goal }: { name: string; goal: Goal }) {
+function GoalAnswer({ name, goal, gearType }: { name: string; goal: Goal; gearType: GearType }) {
   const steps = goal.steps;
   const known = (PATH_STOPS as readonly string[]).includes(goal.stopReasonCode);
   const final = goal.finalCombatPower;
   const cost = goal.totalCost != null ? `${koreanGold(goal.totalCost)}G` : null;
   const costLine =
     cost ?? (goal.unpricedSteps > 0 ? `미정(비용을 모르는 단계 ${goal.unpricedSteps}개)` : null);
-  const path = simulatorPath(steps);
+  const path = simulatorPath(steps, gearType);
   // The simulator tab exists only with COMBAT_POWER_SIM on (#1260).
   const simulator = useContext(SimulatorEnabled);
 
