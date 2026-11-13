@@ -236,12 +236,12 @@ export function HellRewardTool() {
       <SiteHeader />
       <main id="hell-main">
         <section className={quote.hero} aria-labelledby="hell-heading">
-          <span className={quote.heroIcon} aria-hidden="true">
-            <Gift size={18} />
-          </span>
           <p className={quote.heroKicker}>레이드 · 보상</p>
           <h1 id="hell-heading">지옥 · 나락 보상</h1>
           <p className={quote.heroCopy}>열쇠 단계별 고정 보상을 지금 시세로.</p>
+          <span className={quote.heroIcon} aria-hidden="true">
+            <Gift size={18} />
+          </span>
           <Link href="/" className={quote.back}>
             <ArrowLeft size={14} aria-hidden="true" /> 홈으로
           </Link>

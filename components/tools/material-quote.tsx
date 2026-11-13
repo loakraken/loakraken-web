@@ -864,12 +864,12 @@ function MaterialQuoteContent({ initialCategory }: { initialCategory: number | n
       <SiteHeader />
       <main id="quote-main">
         <section className={styles.hero} aria-labelledby="quote-heading">
-          <span className={styles.heroIcon} aria-hidden="true">
-            <Calculator size={18} />
-          </span>
           <p className={styles.heroKicker}>거래소 도구</p>
           <h1 id="quote-heading">재료 구매 견적</h1>
           <p className={styles.heroCopy}>필요한 만큼만, 지금 시세로.</p>
+          <span className={styles.heroIcon} aria-hidden="true">
+            <Calculator size={18} />
+          </span>
           <Link href="/" className={styles.back}>
             <ArrowLeft size={14} aria-hidden="true" /> 캐릭터 검색으로
           </Link>

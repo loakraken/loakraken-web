@@ -9,7 +9,12 @@
   clip-path: inset(50%);
   white-space: nowrap;
 }
+/* The icon comes after the kicker, title and copy in the page (drawn in the
+   first column): it is centred on their rows, so it must not arrive before
+   them. When the first HTML came in parts, an icon drawn first sat on empty
+   rows and dropped ~13px as the text landed (CLS, quote 1280 / 320). */
 .heroIcon {
+  grid-column: 1;
   grid-row: 1 / 4;
   display: grid;
   place-items: center;

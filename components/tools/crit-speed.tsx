@@ -807,12 +807,12 @@ function CritSpeedContent({ initialName }: { initialName: string }) {
       <SiteHeader />
       <main id="crit-main">
         <section className={quote.hero} aria-labelledby="crit-page-heading">
-          <span className={quote.heroIcon} aria-hidden="true">
-            <Speedometer size={18} />
-          </span>
           <p className={quote.heroKicker}>전투 계산</p>
           <h1 id="crit-page-heading">치적·뭉가·음돌</h1>
           <p className={quote.heroCopy}>내 캐릭터 기준으로, 가정은 따로.</p>
+          <span className={quote.heroIcon} aria-hidden="true">
+            <Speedometer size={18} />
+          </span>
           <Link href="/" className={quote.back}>
             <ArrowLeft size={14} aria-hidden="true" /> 캐릭터 검색으로
           </Link>

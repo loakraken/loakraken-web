@@ -42,12 +42,12 @@ export function RaidCheatSheet() {
       <SiteHeader />
       <main id="cheatsheet-main">
         <section className={quote.hero} aria-labelledby="cheatsheet-heading">
-          <span className={quote.heroIcon} aria-hidden="true">
-            <BookSquare size={18} />
-          </span>
           <p className={quote.heroKicker}>레이드 공략</p>
           <h1 id="cheatsheet-heading">레이드 컨닝페이퍼</h1>
           <p className={quote.heroCopy}>관문마다 주요 패턴과 대응을 한 장으로.</p>
+          <span className={quote.heroIcon} aria-hidden="true">
+            <BookSquare size={18} />
+          </span>
           <Link href="/" className={quote.back}>
             <ArrowLeft size={14} aria-hidden="true" /> 홈으로
           </Link>

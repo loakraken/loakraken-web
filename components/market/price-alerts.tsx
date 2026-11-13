@@ -111,14 +111,14 @@ export function PriceAlertsView() {
       <SiteHeader />
       <main id="alerts-main" className={stats.main}>
         <section className={quote.hero} aria-labelledby="alerts-heading">
-          <span className={quote.heroIcon} aria-hidden="true">
-            <Notification size={18} />
-          </span>
           <p className={quote.heroKicker}>거래소</p>
           <h1 id="alerts-heading">시세 알림</h1>
           <p className={quote.heroCopy}>
             품목의 판매 최저가가 정한 가격 이하나 이상이 되면 이 브라우저로 알림을 보내요. 로그인은 필요 없어요.
           </p>
+          <span className={quote.heroIcon} aria-hidden="true">
+            <Notification size={18} />
+          </span>
           <HubTabs hub="market" />
         </section>
 

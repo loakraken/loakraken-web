@@ -353,12 +353,12 @@ export function LoaShopTool({ renderedAt }: { renderedAt: number }) {
       <SiteHeader />
       <main id="shop-main">
         <section className={quote.hero} aria-labelledby="shop-heading">
-          <span className={quote.heroIcon} aria-hidden="true">
-            <Box size={18} />
-          </span>
           <p className={quote.heroKicker}>성장 도구</p>
           <h1 id="shop-heading">로아샵 효율</h1>
           <p className={quote.heroCopy}>패키지 구성품, 지금 거래소 시세로.</p>
+          <span className={quote.heroIcon} aria-hidden="true">
+            <Box size={18} />
+          </span>
           <Link href="/" className={quote.back}>
             <ArrowLeft size={14} aria-hidden="true" /> 홈으로
           </Link>

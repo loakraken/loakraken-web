@@ -34,12 +34,12 @@ export default async function ToolsPage() {
       <SiteHeader />
       <main id="tools-main">
         <section className={quote.hero} aria-labelledby="tools-heading">
-          <span className={quote.heroIcon} aria-hidden="true">
-            <Setting size={18} />
-          </span>
           <p className={quote.heroKicker}>성장 도구</p>
           <h1 id="tools-heading">도구 모음</h1>
           <p className={quote.heroCopy}>재련·경매·레이드 보상까지, 계산은 공식 자료와 시세로.</p>
+          <span className={quote.heroIcon} aria-hidden="true">
+            <Setting size={18} />
+          </span>
           <Link href="/" className={quote.back}>
             <ArrowLeft size={14} aria-hidden="true" /> 홈으로
           </Link>

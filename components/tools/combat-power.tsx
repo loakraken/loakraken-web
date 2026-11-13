@@ -1067,12 +1067,12 @@ function CombatPowerContent({ initialName }: { initialName: string }) {
       <SiteHeader />
       <main id="cp-main">
         <section className={quote.hero} aria-labelledby="cp-page-heading">
-          <span className={quote.heroIcon} aria-hidden="true">
-            <FlashCircle size={18} />
-          </span>
           <p className={quote.heroKicker}>전투 계산</p>
           <h1 id="cp-page-heading">전투력 시뮬레이터</h1>
           <p className={quote.heroCopy}>바꾸면 얼마나 오르는지, 항목별로.</p>
+          <span className={quote.heroIcon} aria-hidden="true">
+            <FlashCircle size={18} />
+          </span>
           <Link href="/tools" className={quote.back}>
             <ArrowLeft size={14} aria-hidden="true" /> 도구 전체
           </Link>

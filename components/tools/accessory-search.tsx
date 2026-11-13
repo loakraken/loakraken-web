@@ -152,13 +152,13 @@ export function AccessorySearchTool() {
       <SiteHeader />
       <main id="accessory-main">
         <section className={quote.hero} aria-labelledby="accessory-heading">
+          <p className={quote.heroKicker}>경매장</p>
+          <h1 id="accessory-heading">장신구 매물 검색</h1>
+          <p className={quote.heroCopy}>연마 효과·깨달음·힘민지 범위로 T4 장신구 매물을 찾아요.</p>
           <span className={quote.heroIcon} aria-hidden="true">
             {/* The 장신구 tab's mark, as on its 시세 view (one screen, user 11-02). */}
             <Diamonds size={18} />
           </span>
-          <p className={quote.heroKicker}>경매장</p>
-          <h1 id="accessory-heading">장신구 매물 검색</h1>
-          <p className={quote.heroCopy}>연마 효과·깨달음·힘민지 범위로 T4 장신구 매물을 찾아요.</p>
           <HubTabs hub="market" />
           <AccessoryViews search />
         </section>
