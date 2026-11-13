@@ -6,23 +6,26 @@ import { test, expect, gotoReady } from "../support/fixtures.mjs";
 
 /**
  * Holds every script chunk asked for from now on (the full Select's code), as on a slow connection.
- * `arrived()` waits until at least one was held and all are released, plus a moment to run them:
- * the point after which the full Select can exist. (waitForLoadState("networkidle") does not wait
- * here: the page reached that state before, so it returns at once.)
+ * `arrived()` waits until every held chunk's response has fully arrived, then two frames for the
+ * code to run and the swap to commit: the point after which the full Select can exist (codex #1576
+ * P3: an event, not a fixed time). waitForLoadState("networkidle") does not do this here: the page
+ * reached that state before, so it returns at once.
  */
 async function slowChunks(page, ms = 800) {
-  const held = { seen: 0, open: 0 };
+  const held = [];
   await page.route(/\/_next\/static\/chunks\/.*\.js(\?|$)/, async (route) => {
-    held.seen += 1;
-    held.open += 1;
+    held.push(route.request());
     await new Promise((resolve) => setTimeout(resolve, ms));
     await route.continue();
-    held.open -= 1;
   });
   return {
     arrived: async () => {
-      await expect.poll(() => held.seen > 0 && held.open === 0, { timeout: 10_000 }).toBe(true);
-      await page.waitForTimeout(400);
+      await expect.poll(() => held.length, { timeout: 10_000, message: "붙잡은 코드 요청이 없음" }).toBeGreaterThan(0);
+      for (let done = 0; done < held.length; done += 1) {
+        const response = await held[done].response();
+        await response?.finished();
+      }
+      await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
     },
   };
 }
