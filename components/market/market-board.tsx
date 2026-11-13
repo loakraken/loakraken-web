@@ -29,6 +29,7 @@ import {
   changeLabel,
   changeWithAmount,
   completedDays,
+  windowStart,
   goldText,
   historyKey,
   historyRange,
@@ -41,6 +42,7 @@ import {
   type BoardItem,
   type BoardQuery,
   type ChartRange,
+  type DayRange,
   type ItemHistory,
   type MarketTab,
 } from "@/lib/market/board";
@@ -263,18 +265,32 @@ function Detail({
     queryFn: ({ signal }) => fetchItemHistory(item.itemId, answer, signal),
     enabled: answer !== "30d",
     staleTime: 10 * 60_000,
+    // While a longer range loads, the chart shown stays (codex #1595 P2): the previous longer
+    // answer, or the 30-day one when coming from 7일 · 30일.
+    placeholderData: (previous) => previous ?? base.data,
     ...quiet,
   });
   const history = answer === "30d" ? base : longer;
   const data: ItemHistory | undefined = history.data?.data;
+  // The range the shown data answers: the picked one once its answer is in, the last settled one
+  // while a placeholder stands in (so the window and 'N일치' never come from the wrong answer).
+  const [settled, setSettled] = useState<DayRange>(range === "hour" ? 30 : range);
+  const ready = !history.isPlaceholderData && !history.isPending;
+  if (ready && range !== "hour" && settled !== range) setSettled(range);
+  const view: ChartRange = range === "hour" ? "hour" : ready ? range : settled;
   const variant = data?.variants[Math.min(variantIndex, (data?.variants.length ?? 1) - 1)];
-  const chartDays = range === "hour" ? 14 : range;
-  const days = completedDays(variant, chartDays);
-  // The table lists the latest days only (at most 14), and stays as it was while the hour is shown.
+  const chartDays = view === "hour" ? 14 : view;
+  // Days inside the range's calendar window (7일 reads the 30-day answer: rows, not dates, would
+  // reach back weeks when records are sparse).
+  const days = completedDays(variant, chartDays, stored ? data?.baseDate : undefined);
+  // The table lists the latest days only (at most 14, in the same calendar window), and stays as
+  // it was while the hour is shown.
   const tableDays = Math.min(chartDays, 14);
+  const tableFrom = stored && data ? windowStart(data.baseDate, tableDays) : null;
+  const tableRows = (variant?.days ?? []).filter((day) => tableFrom == null || day.date >= tableFrom).slice(0, tableDays);
   // Fewer days than the range: say how many there are; nothing is filled in (user 11-12).
   // (Today is partial and not charted, so a full range has range − 1 completed days.)
-  const short = range !== "hour" && range > 14 && stored && days.length < range - 1 ? days.length : null;
+  const short = view !== "hour" && stored && days.length < view - 1 ? days.length : null;
   const minutes = useQuery({
     queryKey: ["market", "minutes", item.itemId],
     queryFn: ({ signal }) => fetchItemMinutes(item.itemId, signal),
@@ -359,7 +375,7 @@ function Detail({
         <div className={styles.trendTitle}>
           <h3>시세 추이</h3>
           <PeriodChange
-            range={range}
+            range={view}
             points={range === "hour" ? (minute ? minutePoints(minute.points) : null) : days.length ? dayPoints(days) : null}
           />
         </div>
@@ -422,7 +438,7 @@ function Detail({
         <div ref={fade}>
           {/* Keyed by range and trade terms: each pick mounts a new chart, so it
               draws again (user 11-01; the character tabs and /stats draw once). */}
-          <MarketChart key={`${range}-${variantIndex}`} points={dayPoints(days)} byDate />
+          <MarketChart key={`${view}-${variantIndex}`} points={dayPoints(days)} byDate />
         </div>
       ) : (
         <p className={styles.muted}>아직 수집된 시세가 없어요.</p>
@@ -432,7 +448,7 @@ function Detail({
       <p className={styles.chartCaption}>
         {range === "hour"
           ? [`판매 최저가`, sampleText(minute?.sampleEverySeconds), "확인하지 않은 분은 비어 있어요"].filter(Boolean).join(" · ")
-          : ["하루 평균 거래가와 거래량", short != null && `${RANGE_LABEL[range]} 중 ${short}일치 기록`].filter(Boolean).join(" · ")}
+          : ["하루 평균 거래가와 거래량", short != null && `${RANGE_LABEL[view as DayRange]} 중 ${short}일치 기록`].filter(Boolean).join(" · ")}
       </p>
       {/* The 14-day table under the caption arrives with the history: hold its
           place, so the caption stays put when it lands (A7). */}
@@ -447,7 +463,7 @@ function Detail({
             </tr>
           </thead>
           <tbody>
-            {variant.days.slice(0, tableDays).map((day) => (
+            {tableRows.map((day) => (
               <tr key={day.date} data-partial={day.partial || undefined}>
                 <th scope="row">
                   {day.date.slice(5).replace("-", "/")}
@@ -467,7 +483,7 @@ function Detail({
       )}
       {data && (
         <p className={styles.note}>
-          {range !== "hour" && range > 14 ? "공식 거래소 일별 통계와 LOAKraken 저장 기록" : "공식 거래소 일별 통계"} ·{" "}
+          {view !== "hour" && view > 14 ? "공식 거래소 일별 통계와 LOAKraken 저장 기록" : "공식 거래소 일별 통계"} ·{" "}
           {at(data.observedAt)} 수집 · 가격은 묶음 기준
         </p>
       )}
