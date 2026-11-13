@@ -31,7 +31,7 @@ test("주소의 등급으로 다시 열고, 다른 분류로 가면 등급 거�
   await gotoReady(page, "/market?tab=ENGRAVING_BOOK&grade=%EC%A0%84%EC%84%A4");
   await expect(grades(page).getByRole("button", { name: "전설" })).toHaveAttribute("aria-pressed", "true");
   await expect(board(page).getByRole("listitem")).toHaveCount(4);
-  await page.getByRole("tablist", { name: "시세 분류" }).getByRole("tab", { name: "재련 재료", exact: true }).click();
+  await page.getByRole("navigation", { name: "시세 분류" }).getByRole("link", { name: "재련 재료", exact: true }).click();
   await expect(page).not.toHaveURL(/grade=/);
   await expect(grades(page)).toHaveCount(0);
 });
@@ -47,7 +47,7 @@ test("등급 거르기 전 api(응답에 grade 없음)면 거르기를 보이지
   });
   // Start elsewhere (the first board comes with the page), then open 각인서 through the route.
   await gotoReady(page, "/market");
-  await page.getByRole("tablist", { name: "시세 분류" }).getByRole("tab", { name: "각인서", exact: true }).click();
+  await page.getByRole("navigation", { name: "시세 분류" }).getByRole("link", { name: "각인서", exact: true }).click();
   await expect(board(page).getByRole("listitem")).toHaveCount(10);
   await expect(grades(page)).toHaveCount(0);
 });
