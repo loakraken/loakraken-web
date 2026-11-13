@@ -583,6 +583,10 @@ function MarketContent({
     ...quiet,
   });
   const data = board.data?.data;
+  // Whether the api answers the grade filter: decided once, from any answer that echoes `grade`, so a
+  // failed grade read keeps the buttons that lead back (codex #1603 P2).
+  const [gradeReady, setGradeReady] = useState(false);
+  if (!gradeReady && data && "grade" in data) setGradeReady(true);
   const fade = useCrossfade(!data);
   const items = data?.items ?? [];
   const listed = items.find((item) => item.itemId === selected);
@@ -749,7 +753,7 @@ function MarketContent({
               )}
               {/* 각인서 by grade (user 11-12): only when the api answers the filter (it echoes
                   `grade`); an older api never shows a filter it would ignore. */}
-              {query.tab === "ENGRAVING_BOOK" && data && "grade" in data && (
+              {query.tab === "ENGRAVING_BOOK" && gradeReady && (
                 <div className={styles.tiers} role="group" aria-label="등급">
                   {([null, ...BOOK_GRADES] as const).map((g) => (
                     <button
