@@ -38,6 +38,7 @@ import { ChangeMark, UpdateAnnouncer, useChangedCells, type Pulse } from "@/comp
 import quote from "@/components/tools/material-quote.module.css";
 import stats from "@/components/stats/stats.module.css";
 import styles from "./gem-board.module.css";
+import { MarketCategoryRow } from "./category-row";
 
 /** Gold amounts as the exchange board writes them (…G); counts stay plain numbers. */
 const gold = (n: number | null | undefined) => (n == null ? "-" : goldText(n));
@@ -292,6 +293,11 @@ export function GemBoardView({
           </span>
           <HubTabs hub="market" />
         </section>
+
+        {/* The market's one category row (user 11-12): 보석 sits with the exchange categories. */}
+        <div className={styles.categoryRow}>
+          <MarketCategoryRow value="GEM" />
+        </div>
 
         <p className={stats.notice}>
           {/* The time in a slot of fixed width: the minute refresh (01:09 → 01:10)

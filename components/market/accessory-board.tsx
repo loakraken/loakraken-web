@@ -40,6 +40,7 @@ import quote from "@/components/tools/material-quote.module.css";
 import stats from "@/components/stats/stats.module.css";
 import gems from "./gem-board.module.css";
 import styles from "./accessory-board.module.css";
+import { MarketCategoryRow } from "./category-row";
 
 /** Gold amounts as the exchange board writes them (…G); counts stay plain numbers. */
 const gold = (n: number | null | undefined) => (n == null ? "-" : goldText(n));
@@ -228,6 +229,11 @@ export function AccessoryBoardView({
           <HubTabs hub="market" />
           <AccessoryViews search={search} />
         </section>
+
+        {/* The market's one category row (user 11-12): 장신구 sits with the exchange categories. */}
+        <div className={gems.categoryRow}>
+          <MarketCategoryRow value="ACCESSORY" />
+        </div>
 
         <form className={stats.filters} onSubmit={(e) => e.preventDefault()} aria-label="장신구 시세 조건">
           <span className={stats.segment} role="group" aria-label="등급">
