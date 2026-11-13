@@ -87,3 +87,42 @@ for (const [width, flow] of [[360, "column"], [430, null], [1280, "column"]])
     expect(now.cut, "잘린 이름").toBe(0);
     if (flow) expect(now.flow).toBe(flow);
   });
+
+// A frame is a container, and a container has no width of its own content: inside a parent that
+// sizes to its content it would collapse (codex #1569 P1: /market/alerts' auto column fell to ~24px).
+test("1280 /market/alerts: '조건'은 한 줄, 칸이 줄지 않고 잘린 라벨 없음 @regression", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await gotoReady(page, "/market/alerts");
+  const group = page.getByRole("radiogroup", { name: "조건", exact: true });
+  await expect(group).toBeVisible();
+  await page.evaluate(() => document.fonts.ready);
+  expect(await layout(group)).toEqual({ flow: "column", cut: 0 });
+  // Two items with their 16px sides at least: a collapsed column is narrower than that.
+  expect((await group.boundingBox()).width).toBeGreaterThan(150);
+});
+
+// The roster toolbar is the sort's container: the switches keep sharing its row (codex #1569 P2).
+test("1280 원정대 정렬: 축약·닉네임 가리기가 정렬과 같은 줄 @regression", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await gotoReady(page, characterPath("상세", "siblings"));
+  const sort = await page.getByRole("radiogroup", { name: "원정대 정렬", exact: true }).boundingBox();
+  for (const name of ["축약", "닉네임 가리기"]) {
+    const sw = await page.getByRole("switch", { name }).boundingBox();
+    const middle = sw.y + sw.height / 2;
+    expect(middle, `${name} 줄`).toBeGreaterThan(sort.y);
+    expect(middle, `${name} 줄`).toBeLessThan(sort.y + sort.height);
+  }
+});
+
+// Raid rows: one row where every face fits, stacked where one does not, never a cut label.
+for (const width of [360, 375, 390])
+  test(`${width} /tools/raid-rewards 느린 연결(시스템 글꼴): 난이도 칸은 잘린 라벨 없음 @regression`, async ({ page }) => {
+    test.setTimeout(60_000);
+    await page.setViewportSize({ width, height: 900 });
+    await slowNetwork(page);
+    await gotoReady(page, "/tools/raid-rewards");
+    await page.evaluate(() => document.fonts.ready);
+    const groups = page.locator('[data-slot="segmented-control"]');
+    expect(await groups.count()).toBeGreaterThan(0);
+    for (const group of await groups.all()) expect((await layout(group)).cut, await group.getAttribute("aria-label")).toBe(0);
+  });
