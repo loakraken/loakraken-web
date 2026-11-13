@@ -311,8 +311,8 @@ function ItemTooltipContent({
         // Below the header and a sticky tab bar (measured while open).
         collisionPadding={{ top, right: EDGE, bottom: EDGE, left: EDGE }}
         // Neither side has room (a 288px card in a 360px mouse window): below the
-        // item, kept inside the edges, instead of running past the right edge
-        // (QA 2026-11-13 01시: 86..374 at 360).
+        // item when that fits, else the card narrows to the room it has (see
+        // max-w below), never past the edge (QA 2026-11-13 01시: 86..374 at 360).
         collisionAvoidance={{ side: "flip", align: "shift", fallbackAxisSide: "end" }}
         className="isolate z-50"
       >
@@ -322,7 +322,9 @@ function ItemTooltipContent({
           // over: focus stays where it is (see takenOver).
           finalFocus={returnFocus}
           className={cn(
-            "w-[min(288px,calc(100vw-24px))] max-h-[50vh] p-4",
+            // No more than the room the chosen side has: when no side fits a 288px
+            // card (a 360px mouse window), it narrows instead of running off the edge.
+            "w-[min(288px,calc(100vw-24px))] max-w-(--available-width) max-h-[50vh] p-4",
             SCROLL,
             "rounded-[12px]",
             FACE,

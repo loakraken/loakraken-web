@@ -20,14 +20,20 @@ async function openNecklace(page, width) {
 }
 
 for (const width of [320, 360]) {
-  test(`${width} 마우스 창: 상세 카드는 화면 안에 있고 아이템 아래로 열린다 @regression`, async ({ page }) => {
+  test(`${width} 마우스 창: 상세 카드는 화면 안에 있고 아이템을 덮지 않는다 @regression`, async ({ page }) => {
     const { trigger, card, side } = await openNecklace(page, width);
-    expect(card.x, `카드 왼쪽 ${card.x}`).toBeGreaterThanOrEqual(EDGE - 0.5);
-    expect(card.x + card.width, `카드 오른쪽 ${card.x + card.width}`).toBeLessThanOrEqual(width - EDGE + 0.5);
-    // Below the item (or above it when the bottom has no room), never over it.
-    expect(["bottom", "top"]).toContain(side);
-    if (side === "bottom") expect(card.y).toBeGreaterThanOrEqual(trigger.y + trigger.height - 0.5);
-    else expect(card.y + card.height).toBeLessThanOrEqual(trigger.y + 0.5);
+    const where = `${side} ${Math.round(card.x)}..${Math.round(card.x + card.width)}`;
+    expect(card.x, `카드 왼쪽 ${where}`).toBeGreaterThanOrEqual(EDGE - 0.5);
+    expect(card.x + card.width, `카드 오른쪽 ${where}`).toBeLessThanOrEqual(width - EDGE + 0.5);
+    // Beside, below or above the item, never over it.
+    const apart =
+      card.x >= trigger.x + trigger.width - 0.5 ||
+      card.x + card.width <= trigger.x + 0.5 ||
+      card.y >= trigger.y + trigger.height - 0.5 ||
+      card.y + card.height <= trigger.y + 0.5;
+    expect(apart, `카드가 아이템을 덮음 (${where})`).toBe(true);
+    // Still a readable card, not a sliver.
+    expect(card.width).toBeGreaterThanOrEqual(200);
   });
 }
 
