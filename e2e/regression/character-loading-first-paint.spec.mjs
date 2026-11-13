@@ -38,8 +38,10 @@ for (const width of [320, 1280])
           moved.push(`${parts[i].tagName.toLowerCase()} 뒤 → ` + entries.flatMap((e) => e.sources.map((s) => `${s.node?.nodeName ?? "?"} ${r(s.previousRect)}→${r(s.currentRect)}`)).join(" | "));
         }
       }
-      return { parts: parts.length, value: +value.toFixed(6), moved };
+      // Still the loading screen the cuts were made on (the page did not replace it meanwhile).
+      return { parts: parts.length, connected: main.isConnected, value: +value.toFixed(6), moved };
     });
     expect(cut.parts, "조회 중 화면의 줄").toBe(3);
+    expect(cut.connected, "자르는 동안 조회 중 화면이 그대로").toBe(true);
     expect(cut.value, `움직인 것: ${cut.moved.join(" / ")}`).toBe(0);
   });
