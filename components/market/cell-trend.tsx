@@ -58,7 +58,9 @@ export function CellTrend({
     refetchOnWindowFocus: false,
   });
   const days = completedCellDays(history.data?.data);
-  const short = shortOf(days, range);
+  // The count only from an answer in hand (codex #1601 P2-1): before a cell, while loading or after a
+  // failure the line stays blank (its place held), never '0일치'.
+  const short = history.isSuccess ? shortOf(days, range) : null;
   return (
     <section className={market.cellTrend} aria-label={name ? `${name} 최저가 추이` : "최저가 추이"}>
       <div className={market.trendHead}>
