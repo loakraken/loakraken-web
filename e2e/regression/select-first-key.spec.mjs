@@ -87,10 +87,16 @@ for (const [name, leave] of [
     const chunks = await slowChunks(page);
     // Any list that appears at any moment counts: a list that opens on a field the user left and then
     // closes again (focus is elsewhere) is still a flash the user sees.
+    // Open = a combobox saying aria-expanded="true", or a list actually shown. A closed list in the DOM
+    // does not count: Base UI mounts it hidden as soon as its trigger takes focus (forceMount, so the
+    // first open has its items ready), which is what Esc leaves behind (CI 43395995459).
     await page.evaluate(() => {
       window.__listboxSeen = false;
+      const opened = () =>
+        document.querySelector('[role=combobox][aria-expanded="true"]') != null ||
+        [...document.querySelectorAll("[role=listbox]")].some((el) => el.checkVisibility({ visibilityProperty: true }));
       new MutationObserver(() => {
-        if (document.querySelector("[role=listbox]")) window.__listboxSeen = true;
+        if (opened()) window.__listboxSeen = true;
       }).observe(document.body, { childList: true, subtree: true, attributes: true });
     });
     await field.focus();
