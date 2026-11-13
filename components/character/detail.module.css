@@ -246,6 +246,11 @@
 .panel[data-defer] {
   content-visibility: auto;
   contain-intrinsic-block-size: auto var(--defer-h);
+  /* Never the scroll anchor (#1590, one column): after a jump (a deep link, find, the 각인 card) the
+     panel just above the target is drawn at its real height. Anchored on it, the browser kept its
+     top and everything under it moved (0.1076 at 320); anchored on the next panel, the browser
+     takes the change into the scroll and nothing on screen moves. */
+  overflow-anchor: none;
 }
 @media (min-width: 901px) {
   .panel[data-defer] {
