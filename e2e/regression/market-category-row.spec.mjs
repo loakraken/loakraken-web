@@ -117,3 +117,46 @@ for (const width of [320, 1280])
       expect(all, `흔들림 (${moved})`).toBe(0);
       await expectNoHorizontalOverflow(page);
     });
+
+// codex #1597 delta: Safari and Firefox lack scroll-initial-target. There the small inline script after the row
+// sets its scroll as the HTML is parsed. Played here in Chromium: the CSS feature off (stylesheet and
+// CSS.supports) and the app's own scripts blocked, so only the server's HTML and its inline scripts run.
+test.describe("scroll-initial-target 없는 브라우저 흉내 @regression", () => {
+  test.use({ allowConsoleErrors: true });
+  for (const [path, name] of PAGES.slice(1))
+    test(`320 ${path}: 인라인 스크립트가 첫 그림 전에 고른 '${name}'을 보이게`, async ({ page }) => {
+      await page.setViewportSize({ width: 320, height: 800 });
+      await page.addInitScript(() => {
+        const supports = CSS.supports.bind(CSS);
+        CSS.supports = (...args) => (String(args[0]).includes("scroll-initial-target") ? false : supports(...args));
+      });
+      await page.route("**/_next/static/chunks/**", (route) => route.abort());
+      await page.route(`**${path}`, async (route) => {
+        const response = await route.fetch();
+        const html = (await response.text()).replace("</head>", "<style>[aria-current=page]{scroll-initial-target:none!important}</style></head>");
+        await route.fulfill({ response, body: html });
+      });
+      await page.goto(path);
+      await expect(row(page).locator('[aria-current="page"]')).toHaveText(name);
+      expect(await chosenInView(page)).toMatchObject({ name, inView: true });
+    });
+});
+
+// codex #1597 delta P3: a category the api does not open keeps its place and says so to a screen reader too.
+test("api가 열지 않는 분류는 자리를 지키고 '볼 수 없음'으로 읽힌다 @regression", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  // The server draws the page without a tab list for this client (tests/mock-backend.mjs); the browser's own
+  // read then answers without 아바타.
+  await page.setExtraHTTPHeaders({ "x-forwarded-for": "203.0.113.180" });
+  await page.route("**/api/markets/tabs*", async (route) => {
+    const response = await route.fetch({ headers: { ...route.request().headers(), "x-forwarded-for": "203.0.113.1" } });
+    const body = await response.json();
+    body.envelope.data.tabs = body.envelope.data.tabs.filter((t) => t.tab !== "AVATAR");
+    await route.fulfill({ response, json: body });
+  });
+  await page.goto("/market");
+  const avatar = row(page).getByRole("link", { name: /^아바타/ });
+  await expect(avatar).toHaveAttribute("aria-disabled", "true");
+  await expect(avatar).toHaveAccessibleName("아바타 (지금 볼 수 없음)");
+  await expect(row(page).getByRole("link")).toHaveCount(ROW.length);
+});

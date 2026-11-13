@@ -148,6 +148,14 @@
   text-align: left;
   cursor: pointer;
 }
+/* 44px to tap on phones and touch screens (A36, codex #1601 P2-2): the button itself is that tall, so
+   the rows' tap areas never overlap (a centred hit-44 area would reach into the next row). */
+@media (max-width: 699px), (pointer: coarse) {
+  .comboPick {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
 .comboPick small {
   color: var(--muted-foreground);
   font-size: 12px;

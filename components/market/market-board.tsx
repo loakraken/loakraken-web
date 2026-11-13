@@ -249,7 +249,12 @@ function Detail({
   const [settled, setSettled] = useState<DayRange>(range === "hour" ? 30 : range);
   const ready = !history.isPlaceholderData && !history.isPending;
   if (ready && range !== "hour" && settled !== range) setSettled(range);
-  const view: ChartRange = range === "hour" ? "hour" : ready ? range : settled;
+  // A placeholder is labelled by the answer it really is (codex #1595 delta: 3개월 → 1시간 → 1년 put the
+  // 30-day answer under '3개월'): the last settled range if that range reads this answer, else its own days.
+  const shownAnswer = data?.range;
+  const placeholderRange: DayRange =
+    shownAnswer == null || historyRange(settled) === shownAnswer ? settled : shownAnswer === "365d" ? 365 : shownAnswer === "90d" ? 90 : 30;
+  const view: ChartRange = range === "hour" ? "hour" : ready ? range : placeholderRange;
   const variant = data?.variants[Math.min(variantIndex, (data?.variants.length ?? 1) - 1)];
   const chartDays = view === "hour" ? 14 : view;
   // Days inside the range's calendar window (7일 reads the 30-day answer: rows, not dates, would
@@ -413,7 +418,8 @@ function Detail({
           <MarketChart key={`${view}-${variantIndex}`} points={dayPoints(days)} byDate />
         </div>
       ) : (
-        <p className={styles.muted}>아직 수집된 시세가 없어요.</p>
+        // Same height as the chart (codex #1595 delta: an empty 7일 window swapped the chart for a short line).
+        <ChartPlaceholder>{variant?.days.length ? `최근 ${RANGE_LABEL[view as DayRange] ?? ""} 기록이 없어요.` : "아직 수집된 시세가 없어요."}</ChartPlaceholder>
       )}
 
       {/* One line in both ranges, so switching keeps the table in place (A7). */}
