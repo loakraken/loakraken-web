@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useMemo, useState, type Dispatch, type SetStateAction } from "react";
+import { useId, useLayoutEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import Link from "next/link";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { HubTabs } from "@/components/site/hub-tabs";
@@ -56,6 +56,9 @@ function basisText(line: StageLine) {
 
 const PAIR_KEYS = new Set(["destruction", "guardian", "destinyStone", "chaosStone"]);
 
+/** A box line the user values: no market price for it, or a value only the user can set. */
+const hasField = (line: StageLine) => line.pricing.kind !== "BOUND_GOLD" && (line.pricing.kind === "MANUAL" || line.unpriced);
+
 /** One item of a box: name × qty, what its value is based on, the unit slot, the amount. */
 function ItemLine({
   line,
@@ -82,7 +85,7 @@ function ItemLine({
           so a price (or none) landing never adds height (CLS). */}
       {line.pricing.kind !== "BOUND_GOLD" && (
         <span className={styles.unit}>
-          {line.pricing.kind === "MANUAL" || line.unpriced ? (
+          {hasField(line) ? (
             <label>
               <span>{line.unpriced ? "시세 없음 · 1개 값" : "1개 값"}</span>
               <input
@@ -214,7 +217,35 @@ export function HellRewardTool() {
   // boxes of different heights with no input (CLS). Values update in place; the headline always
   // names the best box now. Adjusted during render (derived state), no effect.
   const [resort, setResort] = useState(0);
-  const orderKey = `${kind}|${level}|${stage}|${abundance}|${loaded}|${resort}|${JSON.stringify(manual)}`;
+  // Typed values re-rank the list only when typing ends (blur, or Enter): re-ranking on every
+  // keystroke moved the box being typed in and scrolled the page (QA 11-13 01시: 942 px at 360).
+  // Moving from one value field to the next keeps the order too. The headline updates live.
+  const manualKey = JSON.stringify(manual);
+  // The item whose field has focus. Typing lasts only while that item still has a field: a price
+  // landing for a '시세 없음' item removes its field, and a removed field fires no blur, so typing
+  // ends there and nothing stays held (codex #1574 P2).
+  const [focusedKey, setFocusedKey] = useState<string | null>(null);
+  const fieldKeys = new Set([
+    ...ranked.flatMap((b) => b.lines.filter(hasField).map((l) => l.unitKey)),
+    ...(base?.lines.filter((l) => l.unpriced).map((l) => l.unitKey) ?? []),
+  ]);
+  const typing = focusedKey != null && fieldKeys.has(focusedKey);
+  const [rankedManual, setRankedManual] = useState(manualKey);
+  if (!typing && rankedManual !== manualKey) setRankedManual(manualKey);
+  const fieldKey = (el: EventTarget | null) =>
+    el instanceof HTMLInputElement && el.type === "number" && el.name.startsWith("unit-") && el.closest(`.${styles.lines}`)
+      ? el.name.slice("unit-".length)
+      : null;
+  // The field Enter re-ranked: its box may move, so it is brought back into view (codex #1574 P2).
+  const keepInView = useRef<HTMLInputElement | null>(null);
+  useLayoutEffect(() => {
+    const field = keepInView.current;
+    if (field) {
+      keepInView.current = null;
+      if (field.isConnected) field.scrollIntoView({ block: "nearest" });
+    }
+  });
+  const orderKey = `${kind}|${level}|${stage}|${abundance}|${loaded}|${resort}|${rankedManual}`;
   const [order, setOrder] = useState({ key: "", ids: [] as string[] });
   if (order.key !== orderKey) setOrder({ key: orderKey, ids: ranked.map((b) => b.id) });
   const view = heldView(ranked, order.key === orderKey ? order.ids : ranked.map((b) => b.id));
@@ -281,6 +312,16 @@ export function HellRewardTool() {
               aria-labelledby="hell-value-heading"
               aria-busy={switching || undefined}
               data-stale={switching || undefined}
+              onFocus={(e) => {
+                const key = fieldKey(e.target);
+                if (key) setFocusedKey(key);
+              }}
+              onBlur={(e) => fieldKey(e.target) && !fieldKey(e.relatedTarget) && setFocusedKey(null)}
+              onKeyDown={(e) => {
+                if (e.key !== "Enter" || !fieldKey(e.target) || rankedManual === manualKey) return;
+                keepInView.current = e.target as HTMLInputElement;
+                setRankedManual(manualKey);
+              }}
             >
               <h2 id="hell-value-heading" className={styles.sectionTitle}>
                 {kindLabel} {level} · {stage}단계 고정 보상
@@ -312,7 +353,12 @@ export function HellRewardTool() {
                 </div>
                 <div>
                   <dt>그 상자의 값</dt>
-                  <dd>{`${goldText(best?.value ?? 0)}G`}</dd>
+                  {/* Old prices said by the value itself, not only at the end of the page (QA 11-13
+                      08시). Always drawn, in the room the two-line box name leaves (no height change). */}
+                  <dd>
+                    {`${goldText(best?.value ?? 0)}G`}
+                    <span className={styles.ageMark}>{age?.short ?? ""}</span>
+                  </dd>
                 </div>
                 <div>
                   <dt>{abundance ? "기본 보상 (풍요 ×10)" : "기본 보상"}</dt>
@@ -342,7 +388,14 @@ export function HellRewardTool() {
               {/* Always drawn (a button appearing would move the list). The order is held while
                   only prices change; the headline above is always the best box now. */}
               <p className={styles.order}>
-                <span aria-live="polite">{view.stale ? "시세가 바뀌어 지금 값과 순서가 달라요." : "지금 값 기준으로 좋은 순서예요."}</span>
+                <span aria-live="polite">
+                  {/* The typing line only for typed values not ranked yet; a price-driven change keeps its own. */}
+                  {!view.stale
+                    ? "지금 값 기준으로 좋은 순서예요."
+                    : typing && rankedManual !== manualKey
+                      ? "입력을 마치면 값 순서로 다시 정렬해요."
+                      : "시세가 바뀌어 지금 값과 순서가 달라요."}
+                </span>
                 <button type="button" className={quote.outlinePill} onClick={() => setResort((n) => n + 1)}>
                   지금 시세로 다시 정렬
                 </button>
