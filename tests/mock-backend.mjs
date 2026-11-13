@@ -1161,7 +1161,9 @@ createServer(async (req, res) => {
     const computed = request.characterName === "전투력계산";
     // 서포터(backend #332): every change comes back unsupported with the role reason.
     const supporter = request.characterName === "상세서포터";
-    if (computed) withSimulatorGear(search);
+    // The same gear the character answer has, so each change's "from" is the worn step.
+    if (computed || request.characterName === "전투력계산저재련" || request.characterName === "스펙업무기재련") withSimulatorGear(search);
+    if (request.characterName === "전투력계산저재련") search.loadout.equipment.find((item) => item.type === "무기").detail.refineLevel = 8;
     const r2 = (v) => Math.round(v * 100) / 100;
     d.characterName = request.characterName;
     d.fetchedAt = search.fetchedAt;
