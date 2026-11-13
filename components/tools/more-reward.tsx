@@ -293,15 +293,15 @@ export function MoreRewardTool() {
       <SiteHeader />
       <main id="more-main">
         <section className={quote.hero} aria-labelledby="more-heading">
-          <span className={quote.heroIcon} aria-hidden="true">
-            <Gift size={18} />
-          </span>
           <p className={quote.heroKicker}>레이드 · 보상</p>
           <h1 id="more-heading">더보기 손익</h1>
           {/* Short enough for one line at 360 in the fallback face too: the longer
               line wrapped until the web font came and then pulled the page up
               20px (점검표 A6, 360 CLS 0.0185). */}
           <p className={quote.heroCopy}>관문마다 더보기가 남는지, 지금 시세로.</p>
+          <span className={quote.heroIcon} aria-hidden="true">
+            <Gift size={18} />
+          </span>
           <Link href="/" className={quote.back}>
             <ArrowLeft size={14} aria-hidden="true" /> 홈으로
           </Link>

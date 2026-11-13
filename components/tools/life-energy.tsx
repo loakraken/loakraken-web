@@ -141,12 +141,12 @@ export function LifeEnergyTool() {
       <SiteHeader />
       <main id="life-main">
         <section className={quote.hero} aria-labelledby="life-heading">
-          <span className={quote.heroIcon} aria-hidden="true">
-            <Tree size={18} />
-          </span>
           <p className={quote.heroKicker}>성장 도구</p>
           <h1 id="life-heading">생명의 기운 효율</h1>
           <p className={quote.heroCopy}>생명의 기운을 어디에 써야 가장 많이 버는지, 지금 거래소 시세로.</p>
+          <span className={quote.heroIcon} aria-hidden="true">
+            <Tree size={18} />
+          </span>
           <Link href="/" className={quote.back}>
             <ArrowLeft size={14} aria-hidden="true" /> 홈으로
           </Link>

@@ -141,12 +141,12 @@ export function ContributionTool() {
       <SiteHeader />
       <main id="contribution-main">
         <section className={quote.hero} aria-labelledby="contribution-heading">
-          <span className={quote.heroIcon} aria-hidden="true">
-            <Flash size={18} />
-          </span>
           <p className={quote.heroKicker}>레이드 계산</p>
           <h1 id="contribution-heading">기여도 계산기</h1>
           <p className={quote.heroCopy}>내 피해량이 그 관문에서 어느 정도인지, 하한과 상한 사이로.</p>
+          <span className={quote.heroIcon} aria-hidden="true">
+            <Flash size={18} />
+          </span>
           <Link href="/" className={quote.back}>
             <ArrowLeft size={14} aria-hidden="true" /> 홈으로
           </Link>

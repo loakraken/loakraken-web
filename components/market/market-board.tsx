@@ -617,15 +617,15 @@ function MarketContent({
       <SiteHeader />
       <main id="market-main">
         <section className={quote.hero} aria-labelledby="market-heading">
-          {/* Static mark like the tool screens: no repeating motion on information pages (D2). */}
-          <span className={quote.heroIcon} aria-hidden="true">
-            <TrendUp size={18} />
-          </span>
           <p className={quote.heroKicker}>거래소</p>
           <h1 id="market-heading">시세</h1>
           <p className={quote.heroCopy}>
             공식 거래소 시세를 분류별로 모아 보여줘요.
           </p>
+          {/* Static mark like the tool screens: no repeating motion on information pages (D2). */}
+          <span className={quote.heroIcon} aria-hidden="true">
+            <TrendUp size={18} />
+          </span>
           <HubTabs hub="market" />
         </section>
 
