@@ -10,6 +10,7 @@ import { LandingMotion } from "@/components/landing/motion";
 import { InlineOrb } from "@/components/landing/orb";
 import {
   SORTS,
+  BOOK_GRADES,
   boardQueryString,
   changeLabel,
   changeWithAmount,
@@ -627,7 +628,7 @@ function MarketContent({
 
         <div className={styles.band}>
           {/* Exchange categories switch here; 보석 · 장신구 open their own pages (user 11-12). */}
-          <MarketCategoryRow value={query.tab} onExchange={(tab) => update({ tab, tier: null, page: 1 })} />
+          <MarketCategoryRow value={query.tab} onExchange={(tab) => update({ tab, tier: null, page: 1, grade: null })} />
           {favorites.length === 0 ? (
             // In the bar's own 30px row: saved favourites replace it after
             // loading (browser storage), so it must be no taller than them.
@@ -643,7 +644,7 @@ function MarketContent({
                   <button
                     type="button"
                     aria-pressed={active?.itemId === f.itemId}
-                    onClick={() => update({ tab: f.tab, tier: f.tier, sort: "default", page: 1 }, f.itemId)}
+                    onClick={() => update({ tab: f.tab, tier: f.tier, sort: "default", page: 1, grade: null }, f.itemId)}
                   >
                     <Bookmark size={12} aria-hidden="true" />
                     <span data-grade={f.grade ?? undefined}>{f.name}</span>
@@ -720,6 +721,22 @@ function MarketContent({
                       onClick={() => update({ tier: t, page: 1 })}
                     >
                       T{t}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {/* 각인서 by grade (user 11-12): only when the api answers the filter (it echoes
+                  `grade`); an older api never shows a filter it would ignore. */}
+              {query.tab === "ENGRAVING_BOOK" && data && "grade" in data && (
+                <div className={styles.tiers} role="group" aria-label="등급">
+                  {([null, ...BOOK_GRADES] as const).map((g) => (
+                    <button
+                      key={g ?? "all"}
+                      type="button"
+                      aria-pressed={query.grade === g}
+                      onClick={() => update({ grade: g, page: 1 })}
+                    >
+                      {g ?? "전체"}
                     </button>
                   ))}
                 </div>

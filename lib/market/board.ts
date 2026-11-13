@@ -65,7 +65,15 @@ export type BoardQuery = {
   page: number;
   /** Item name search (api #624): a part of the name or its initials (ㅇㅂㄷ); null for none. */
   q: string | null;
+  /** 각인서 grade filter (user 11-12; the board's `grade`, applied over the whole tab); null = 전체. */
+  grade: BookGrade | null;
 };
+
+/** The grades the 각인서 filter offers (전체 is no filter). The api takes any official grade name. */
+export const BOOK_GRADES = ["유물", "전설"] as const;
+export type BookGrade = (typeof BOOK_GRADES)[number];
+export const isBookGrade = (value: string | null | undefined): value is BookGrade =>
+  (BOOK_GRADES as readonly string[]).includes(value ?? "");
 
 /** What the backend takes in a search (api #624): after trimming, 1~20 of these. */
 const SEARCH = /^[가-힣ㄱ-ㅎㅏ-ㅣA-Za-z0-9 ·()+\-:]{1,20}$/;
@@ -111,6 +119,12 @@ export function boardSearchParams(input: URLSearchParams): URLSearchParams | nul
     if (search.invalid) return null;
     if (search.q) out.set("q", search.q);
   }
+  // Only the grades the screen offers go on (an older api ignores it).
+  const grade = input.get("grade");
+  if (grade !== null && grade !== "") {
+    if (!isBookGrade(grade)) return null;
+    out.set("grade", grade);
+  }
   return out;
 }
 
@@ -128,6 +142,7 @@ export function readBoardQuery(params: {
   sort?: string | string[];
   page?: string | string[];
   q?: string | string[];
+  grade?: string | string[];
 }): BoardQuery {
   const one = (value: string | string[] | undefined) =>
     typeof value === "string" ? value : "";
@@ -139,7 +154,9 @@ export function readBoardQuery(params: {
     ? (one(params.sort) as SortId)
     : "default";
   const page = isInt(one(params.page), 1, 10) ? Number(one(params.page)) : 1;
-  return { tab, tier, sort, page, q: readSearch(one(params.q)).q };
+  // The grade filter belongs to 각인서 only (user 11-12); elsewhere it is ignored.
+  const grade = tab === "ENGRAVING_BOOK" && isBookGrade(one(params.grade)) ? (one(params.grade) as BookGrade) : null;
+  return { tab, tier, sort, page, q: readSearch(one(params.q)).q, grade };
 }
 
 export function boardQueryString(query: BoardQuery) {
@@ -148,6 +165,7 @@ export function boardQueryString(query: BoardQuery) {
   if (query.sort !== "default") out.set("sort", query.sort);
   if (query.page > 1) out.set("page", String(query.page));
   if (query.q) out.set("q", query.q);
+  if (query.grade) out.set("grade", query.grade);
   return out.toString();
 }
 
