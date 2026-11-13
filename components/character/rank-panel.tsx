@@ -171,7 +171,7 @@ export function RankPanel({ name }: { name: string }) {
   const state = data ? rankState(data) : null;
 
   return (
-    <Panel title="순위" meta={state === "ranked" ? "LOAKraken 수집 기준" : undefined} defer={[818, 920]}>
+    <Panel title="순위" meta={state === "ranked" ? "LOAKraken 수집 기준" : undefined} defer={920}>
       {query.isPending ? (
         <RankPlaceholder />
       ) : !data ? (

@@ -50,7 +50,7 @@ export function ViewsPanel({ name }: { name: string }) {
 
   const meta = data ? `최근 16주 · ${count(data.rangeTotal)}` : undefined;
   return (
-    <Panel title="조회수" meta={meta} defer={[348, 353]}>
+    <Panel title="조회수" meta={meta} defer={353}>
       {query.isPending ? (
         <p className={styles.muted}>조회수를 불러오고 있어요…</p>
       ) : query.isError || !data ? (

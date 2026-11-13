@@ -883,7 +883,7 @@ function GemsPanel({ data }: { data: Character }) {
   return (
     <Panel
       title="보석"
-      defer={[518, 294]}
+      defer={294}
       meta={
         summary && gems.length
           ? [
@@ -973,7 +973,7 @@ function ArkGridPanel({ data }: { data: Character }) {
   return (
     <Panel
       title="아크 그리드"
-      defer={[706, 643]}
+      defer={643}
       meta={
         <span className={styles.gridMeta}>
           {summary?.orderPoints != null && <span>질서 <b>{summary.orderPoints}</b>P</span>}
@@ -1165,7 +1165,7 @@ function CardsPanel({ data }: { data: Character }) {
     <Panel
       title="카드"
       meta={summary ? `각성 합 ${summary.knownAwakeningTotal}` : undefined}
-      defer={[970, 727]}
+      defer={727}
     >
       {cards?.items.length ? (
         <>

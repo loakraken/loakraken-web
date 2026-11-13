@@ -240,25 +240,19 @@
   background: var(--muted);
   padding: 28px;
 }
-/* Heavy panels below the first screen (Panel defer): no layout or paint until
-   near the viewport; "auto" keeps the real height once drawn, so scrolling back
-   does not jump. Block size only: the width still comes from the grid. */
-/* Only where the browser has scroll anchoring (codex #1590): the deferred panel is never the
-   anchor. After a jump (a deep link, find, the 각인 card) the panel just above the target is
-   drawn at its real height; anchored on it, the browser kept its top and everything under it
-   moved (0.1076 at 320). Anchored on the next panel, the change goes into the scroll and nothing
-   on screen moves. Safari has content-visibility but no scroll anchoring: there the panels are
-   drawn as usual (no skipping, so no jump). overflow-anchor: none takes the panel's whole subtree
-   out of anchor selection (the spec has no box-only form); then the next panel is the anchor. */
-@supports (overflow-anchor: none) {
-  .panel[data-defer] {
-    content-visibility: auto;
-    contain-intrinsic-block-size: auto var(--defer-h);
-    overflow-anchor: none;
-  }
+/* Heavy panels below the first screen (Panel defer): no layout or paint until near the viewport;
+   "auto" keeps the real height once drawn, so scrolling back does not jump. Block size only: the
+   width still comes from the grid; the estimate is the panel's measured height less its padding
+   (the intrinsic size is the content box).
+   Two columns only (#1590): in the one-column layout a jump (a deep link, find, the 각인 card)
+   lands right under a panel never drawn, whose real height then moved everything under it (0.1076
+   at 320; the estimate can't be right for every character). And only where the browser has scroll
+   anchoring: Safari has content-visibility without it, so there the panels are drawn as usual. */
+@supports (overflow-anchor: auto) {
   @media (min-width: 901px) {
     .panel[data-defer] {
-      contain-intrinsic-block-size: auto var(--defer-h-wide);
+      content-visibility: auto;
+      contain-intrinsic-block-size: auto calc(var(--defer-h) - 56px);
     }
   }
 }
