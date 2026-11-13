@@ -236,8 +236,10 @@ async function market(url, req, send) {
     const day = (d) => new Date(Date.now() - d * 86400000).toISOString().slice(0, 10);
     // Longer reads also have a 5-day hole (20–24 days ago, never stored): no row, no zero.
     const hole = (d) => span > 30 && d >= 20 && d <= 24;
+    // 7d and 14d are the official 14 days only: nothing stored is read, so both stored fields are null (api #920).
+    const official = span <= 14;
     const days = Array.from({ length: kept }, (_, d) => d).filter((d) => !hole(d)).map((d) => ({ date: day(d), averagePrice: Math.round(base * (1 + Math.sin(itemId / 7 + d / 2) * 0.08) * 10) / 10, tradeCount: Math.round(80000 + 60000 * Math.abs(Math.cos(itemId + d))), partial: d === 0 }));
-    return send({ code: "MARKET_ITEM_HISTORY_SUCCESS", message: "성공", data: { itemId, range, observedAt: new Date(Date.now() - 120000).toISOString(), baseDate: days[0].date, variants: [{ name: "합성 품목", tradeRemainCount: null, bundleCount: 1, recordedSince: day(44), storedDays: Math.max(0, days.length - 14), days, summary: { latestDate: days[1].date, latestAveragePrice: days[1].averagePrice, previousAveragePrice: days[2].averagePrice, dayChangeRate: 1.2, sevenDayDays: 7, sevenDayAveragePrice: base, sevenDayChangeRate: 0.4, sevenDayTradeCount: 700000 } }] } });
+    return send({ code: "MARKET_ITEM_HISTORY_SUCCESS", message: "성공", data: { itemId, range, observedAt: new Date(Date.now() - 120000).toISOString(), baseDate: days[0].date, variants: [{ name: "합성 품목", tradeRemainCount: null, bundleCount: 1, recordedSince: official ? null : day(44), storedDays: official ? null : Math.max(0, days.length - 14), days, summary: { latestDate: days[1].date, latestAveragePrice: days[1].averagePrice, previousAveragePrice: days[2].averagePrice, dayChangeRate: 1.2, sevenDayDays: 7, sevenDayAveragePrice: base, sevenDayChangeRate: 0.4, sevenDayTradeCount: 700000 } }] } });
   }
   if (url.pathname === "/api/v1/markets/options")
     return send(marketRead("market-options.json"));

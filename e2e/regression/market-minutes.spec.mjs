@@ -35,7 +35,7 @@ test("@K35 10분마다 확인하는 품목은 그 주기를, 확인하지 않는
   await detail.getByRole("group", { name: "기간" }).getByRole("button", { name: "1시간" }).click();
   await expect(detail.getByText(/약 10분마다 확인/)).toBeVisible();
 
-  await page.getByRole("tab", { name: "각인서" }).click();
+  await page.getByRole("navigation", { name: "시세 분류" }).getByRole("link", { name: "각인서" }).click();
   await page.getByRole("region", { name: /각인서 시세/ }).getByRole("listitem").first().getByRole("button").click();
   const other = page.getByRole("region", { name: /시세$/ }).last();
   await other.getByRole("group", { name: "기간" }).getByRole("button", { name: "1시간" }).click();

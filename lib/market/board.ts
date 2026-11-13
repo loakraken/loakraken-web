@@ -30,9 +30,11 @@ export const TAB_IDS: readonly TabId[] = [
 ];
 /** A tab this build can open; the board skips tabs the backend added later. */
 /**
- * Names and tier support of the tabs as the backend returns them, used only
- * while the tab list is still loading so the layout already has its final
- * size (the live list replaces it, QA #180 slow-backend path).
+ * Names, order and tier support of the tabs as the backend returns them: the
+ * market's category row always draws this list, so the server's HTML and the
+ * browser show the same row (codex #1597 P2-2); the api's own list only marks
+ * a tab it does not open. Also the board's tier rule while that list loads
+ * (QA #180 slow-backend path).
  */
 export const TAB_FALLBACK: readonly { tab: TabId; label: string; tiered: boolean }[] = [
   { tab: "REFINING", label: "재련 재료", tiered: true },
@@ -43,8 +45,10 @@ export const TAB_FALLBACK: readonly { tab: TabId; label: string; tiered: boolean
   { tab: "LIFE", label: "생활", tiered: false },
   { tab: "BATTLE_ITEM", label: "전투 용품", tiered: false },
   { tab: "FOOD", label: "요리", tiered: false },
-  // 아바타·장비 상자 (gap #11, api #873) are left out on purpose: they show only when the
-  // api's own tab list has them, so an api before #873 never offers a tab it cannot open.
+  // 아바타·장비 상자 (gap #11, api #873): every api in service has them (api master since 11-09);
+  // an api without one marks it as not open instead of taking it out of the row.
+  { tab: "AVATAR", label: "아바타", tiered: false },
+  { tab: "EQUIPMENT_BOX", label: "장비 상자", tiered: false },
 ];
 
 export const isTabId = (value: string): value is TabId => (TAB_IDS as readonly string[]).includes(value);
@@ -184,11 +188,22 @@ export const historyRange = (range: DayRange): HistoryRange => (range === 90 ? "
 /** One cache entry per item and answer range (the page's first item is prefetched with 30d). */
 export const historyKey = (itemId: number, range: HistoryRange) => ["market", "history", itemId, range] as const;
 
-/** Completed days, oldest first (for charts); today's partial day is left out. */
-export function completedDays(variant: ItemVariant | undefined, limit = 14) {
+/** The first date of a `range`-day window that ends on `baseDate` (both YYYY-MM-DD), as the api counts it. */
+export function windowStart(baseDate: string, range: number) {
+  const [y, m, d] = baseDate.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d - (range - 1))).toISOString().slice(0, 10);
+}
+
+/**
+ * Completed days, oldest first (for charts); today's partial day is left out. With `baseDate`
+ * only the days inside the `limit`-day calendar window count (codex #1595 P2: 7일 reads the
+ * 30-day answer, so with sparse records the last 7 rows could be weeks old).
+ */
+export function completedDays(variant: ItemVariant | undefined, limit = 14, baseDate?: string) {
   if (!variant) return [];
+  const from = baseDate ? windowStart(baseDate, limit) : null;
   return variant.days
-    .filter((day) => !day.partial)
+    .filter((day) => !day.partial && (from == null || day.date >= from))
     .slice(0, limit)
     .reverse();
 }

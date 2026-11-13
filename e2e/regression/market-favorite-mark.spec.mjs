@@ -41,9 +41,9 @@ for (const width of [1280, 360]) {
     await expect(rows(page).locator("[data-starred]")).toHaveCount(1);
 
     // Another category and back: the mark comes back with the row.
-    const tabs = page.getByRole("tablist", { name: "시세 분류" }).getByRole("tab");
+    const tabs = page.getByRole("navigation", { name: "시세 분류" }).getByRole("link");
     await tabs.nth(1).click();
-    await expect(tabs.nth(1)).toHaveAttribute("aria-selected", "true");
+    await expect(tabs.nth(1)).toHaveAttribute("aria-current", "page");
     await tabs.nth(0).click();
     const again = rows(page).filter({ hasText: name }).first();
     await expect(mark(again)).toBeVisible();
