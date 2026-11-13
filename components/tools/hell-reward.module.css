@@ -333,3 +333,13 @@
 .sums[data-waiting] dd {
   visibility: hidden;
 }
+/* Old prices beside the headline value: one short line, fixed height, in the warning tone. */
+.sums .ageMark {
+  display: block;
+  min-height: 1.5em;
+  margin: 2px 0 0;
+  color: var(--accent-warm);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.5;
+}

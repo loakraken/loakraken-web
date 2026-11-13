@@ -214,7 +214,15 @@ export function HellRewardTool() {
   // boxes of different heights with no input (CLS). Values update in place; the headline always
   // names the best box now. Adjusted during render (derived state), no effect.
   const [resort, setResort] = useState(0);
-  const orderKey = `${kind}|${level}|${stage}|${abundance}|${loaded}|${resort}|${JSON.stringify(manual)}`;
+  // Typed values re-rank the list only when typing ends (blur, or Enter): re-ranking on every
+  // keystroke moved the box being typed in and scrolled the page (QA 11-13 01시: 942 px at 360).
+  // Moving from one value field to the next keeps the order too. The headline updates live.
+  const manualKey = JSON.stringify(manual);
+  const [typing, setTyping] = useState(false);
+  const [rankedManual, setRankedManual] = useState(manualKey);
+  if (!typing && rankedManual !== manualKey) setRankedManual(manualKey);
+  const isValueField = (el: EventTarget | null) => el instanceof HTMLInputElement && el.type === "number" && !!el.closest(`.${styles.lines}`);
+  const orderKey = `${kind}|${level}|${stage}|${abundance}|${loaded}|${resort}|${rankedManual}`;
   const [order, setOrder] = useState({ key: "", ids: [] as string[] });
   if (order.key !== orderKey) setOrder({ key: orderKey, ids: ranked.map((b) => b.id) });
   const view = heldView(ranked, order.key === orderKey ? order.ids : ranked.map((b) => b.id));
@@ -281,6 +289,9 @@ export function HellRewardTool() {
               aria-labelledby="hell-value-heading"
               aria-busy={switching || undefined}
               data-stale={switching || undefined}
+              onFocus={(e) => isValueField(e.target) && setTyping(true)}
+              onBlur={(e) => isValueField(e.target) && !isValueField(e.relatedTarget) && setTyping(false)}
+              onKeyDown={(e) => e.key === "Enter" && isValueField(e.target) && setRankedManual(manualKey)}
             >
               <h2 id="hell-value-heading" className={styles.sectionTitle}>
                 {kindLabel} {level} · {stage}단계 고정 보상
@@ -312,7 +323,12 @@ export function HellRewardTool() {
                 </div>
                 <div>
                   <dt>그 상자의 값</dt>
-                  <dd>{`${goldText(best?.value ?? 0)}G`}</dd>
+                  {/* Old prices said by the value itself, not only at the end of the page (QA 11-13
+                      08시). Always drawn, in the room the two-line box name leaves (no height change). */}
+                  <dd>
+                    {`${goldText(best?.value ?? 0)}G`}
+                    <span className={styles.ageMark}>{age?.short ?? ""}</span>
+                  </dd>
                 </div>
                 <div>
                   <dt>{abundance ? "기본 보상 (풍요 ×10)" : "기본 보상"}</dt>
@@ -342,7 +358,13 @@ export function HellRewardTool() {
               {/* Always drawn (a button appearing would move the list). The order is held while
                   only prices change; the headline above is always the best box now. */}
               <p className={styles.order}>
-                <span aria-live="polite">{view.stale ? "시세가 바뀌어 지금 값과 순서가 달라요." : "지금 값 기준으로 좋은 순서예요."}</span>
+                <span aria-live="polite">
+                  {!view.stale
+                    ? "지금 값 기준으로 좋은 순서예요."
+                    : typing
+                      ? "입력을 마치면 값 순서로 다시 정렬해요."
+                      : "시세가 바뀌어 지금 값과 순서가 달라요."}
+                </span>
                 <button type="button" className={quote.outlinePill} onClick={() => setResort((n) => n + 1)}>
                   지금 시세로 다시 정렬
                 </button>

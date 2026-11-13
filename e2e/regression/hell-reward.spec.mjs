@@ -33,6 +33,8 @@ for (const width of [1280, 360, 320])
     await expect(line("운명의 파괴석 결정")).toContainText("거래 가능 여부 확인 전");
     // The price time line (codex QA v0.3.11 P2): mock prices are fresh.
     await expect(page.getByText(/^시세 (방금|\d+분 전) 수집$/)).toBeVisible();
+    // Fresh prices: no old-price marker by the headline value (QA 11-13 08시).
+    await expect(bestValue.locator("span")).toHaveText("");
     await page.waitForTimeout(600);
     const first = await shiftsSince(page);
     expect(first.all, `시세 도착 흔들림 (${first.moved})`).toBe(0);
@@ -215,8 +217,106 @@ for (const width of [1280, 901, 360, 320])
     expect(oneLine.longest, "가장 긴 문구 줄 높이").toBe(oneLine.fresh);
     expect(oneLine.old, "한 줄").toBeLessThan(oneLine.line * 1.5);
     expect(oneLine.overflow, "가장 긴 문구 넘침").toBeLessThanOrEqual(0);
+    // QA 11-13 08시: the line above sits screens below the values on a phone, so the headline value
+    // says it too. One line in the room the two-line box name leaves: the longest form never wraps,
+    // never spills, and never grows the headline row.
+    const head = page.locator("dl").filter({ hasText: "가장 좋은 상자" });
+    const marker = head.getByRole("definition").nth(1).locator("span");
+    await expect(marker).toHaveText("3일 전 시세");
+    await expect(marker).toBeInViewport();
+    const fits = await marker.evaluate((el) => {
+      const dd = el.parentElement;
+      const name = dd.closest("dl").querySelector("dd");
+      const node = el.firstChild;
+      const was = node.nodeValue;
+      node.nodeValue = "23시간 전 시세";
+      const r = {
+        height: el.getBoundingClientRect().height,
+        line: parseFloat(getComputedStyle(el).lineHeight),
+        overflow: el.scrollWidth - el.clientWidth,
+        spill: dd.getBoundingClientRect().right - dd.parentElement.getBoundingClientRect().right,
+        below: dd.getBoundingClientRect().bottom - name.getBoundingClientRect().bottom,
+        color: getComputedStyle(el).color !== getComputedStyle(dd).color,
+      };
+      node.nodeValue = was;
+      return r;
+    });
+    expect(fits.height, "표시 한 줄").toBeLessThan(fits.line * 1.5);
+    expect(fits.overflow, "표시 넘침").toBeLessThanOrEqual(0);
+    expect(fits.spill, "표시가 칸 밖으로").toBeLessThanOrEqual(0);
+    expect(fits.below, "머리글 줄이 길어짐").toBeLessThanOrEqual(0);
+    expect(fits.color, "경고 색").toBe(true);
     await page.waitForTimeout(600);
     const shifts = await shiftsSince(page);
     expect(shifts.all, `시세 시각 흔들림 (${shifts.moved})`).toBe(0);
+    await expectNoHorizontalOverflow(page);
+  });
+
+// QA 11-13 01시 (P2): typing a value re-ranked the list on every keystroke: 100000 into the 팔찌 box
+// jumped it 7th -> 1st in three steps and scrolled the page 942 px at 360, and deleting left the field
+// half cut under the keyboard. While a value field has focus the order holds (the headline still
+// updates live); Enter or leaving the field re-ranks.
+for (const [width, height] of [
+  [360, 740],
+  [1280, 800],
+])
+  test(`${width} 지옥 · 나락 보상: 값을 입력하는 동안 상자 순서 그대로, 화면 안 움직임, 입력을 마치면 다시 정렬 @regression`, async ({ page }) => {
+    await page.setViewportSize({ width, height });
+    await page.goto("/tools/hell-reward");
+    const head = page.locator("dl").filter({ hasText: "가장 좋은 상자" });
+    const bestName = head.getByRole("definition").nth(0);
+    const list = page.getByRole("list", { name: "상자별 값(좋은 순)" });
+    const names = () => list.locator(":scope > li > p strong").allInnerTexts();
+    const field = page.getByRole("spinbutton", { name: "팔찌 상자 (고대) 1개 값(골드)" });
+    await expect(head.getByRole("definition").nth(1)).toHaveText("21,416G");
+    const order = await names();
+    expect(order[0]).toBe("융화 재료 상자");
+    expect(order.indexOf("팔찌 상자")).toBeGreaterThan(0);
+    await field.scrollIntoViewIfNeeded();
+    await field.click();
+    const where = () => field.evaluate((el) => ({ y: window.scrollY, top: el.getBoundingClientRect().top, bottom: el.getBoundingClientRect().bottom, vh: window.innerHeight }));
+    const start = await where();
+    const held = async (when) => {
+      expect(await names(), `${when}: 순서`).toEqual(order);
+      const now = await where();
+      expect(now.y, `${when}: 화면 이동`).toBe(start.y);
+      expect(now.top, `${when}: 입력 칸 위치`).toBe(start.top);
+      expect(now.top, `${when}: 입력 칸 위`).toBeGreaterThanOrEqual(0);
+      expect(now.bottom, `${when}: 입력 칸 아래`).toBeLessThanOrEqual(now.vh);
+    };
+    // Each check waits for the typed value first: the value and any re-rank land in one render.
+    let typed = "";
+    for (const digit of "100000") {
+      await page.keyboard.type(digit);
+      typed += digit;
+      await expect(field).toHaveValue(typed);
+      await held(`'${typed}' 입력`);
+    }
+    // The headline is the best box now (100000 × 4 + 1,091), the list says it re-sorts when typing ends.
+    await expect(bestName).toHaveText("팔찌 상자");
+    await expect(page.getByText("입력을 마치면 값 순서로 다시 정렬해요.", { exact: true })).toBeVisible();
+    for (let i = 0; i < 4; i++) {
+      await page.keyboard.press("Backspace");
+      await expect(field).toHaveValue("100000".slice(0, 5 - i));
+      await held(`지우기 ${i + 1}`);
+    }
+    await expect(field).toHaveValue("10");
+    await page.keyboard.type("0000");
+    await expect(field).toHaveValue("100000");
+    await held("다시 입력");
+    // Enter re-ranks: the 팔찌 box first.
+    await page.keyboard.press("Enter");
+    await expect.poll(names).not.toEqual(order);
+    expect((await names())[0]).toBe("팔찌 상자");
+    await expect(page.getByText("지금 값 기준으로 좋은 순서예요.", { exact: true })).toBeVisible();
+    // Typing on holds again; leaving the field re-ranks (1 → the 팔찌 box drops back).
+    await field.focus();
+    const ranked = await names();
+    for (let i = 0; i < 5; i++) await page.keyboard.press("Backspace");
+    await expect(field).toHaveValue("1");
+    expect(await names(), "지우는 동안 순서").toEqual(ranked);
+    await expect(bestName).toHaveText("융화 재료 상자");
+    await page.getByRole("heading", { level: 1 }).click();
+    await expect.poll(async () => (await names())[0]).toBe("융화 재료 상자");
     await expectNoHorizontalOverflow(page);
   });
