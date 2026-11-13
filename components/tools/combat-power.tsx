@@ -834,7 +834,9 @@ export function CombatPowerSimulator({
   const simulation = useQuery({
     queryKey: ["combat-power", name, data?.fetchedAt, debounced],
     queryFn: ({ signal }) => postSimulation({ characterName: name, changes: debounced }, signal),
-    enabled: !!data && debounced.length > 0,
+    // After the options (codex #1572 P3): they carry the refine range, and a refine edit counts only once
+    // it is known, so asking earlier would send the path without its refine step and then again with it.
+    enabled: !!data && debounced.length > 0 && options.data != null,
     placeholderData: keepPreviousData,
     staleTime: 60_000,
     retry: false,
