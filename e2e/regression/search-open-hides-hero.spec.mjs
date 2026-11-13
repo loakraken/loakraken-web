@@ -28,3 +28,16 @@ for (const width of [320, 390])
     const { all, moved } = await shiftsSince(page, mark);
     expect(all, `열고 닫는 동안 흔들림 (${moved})`).toBe(0);
   });
+
+// Wider screens keep the hero when search opens (codex 11-13: phones only, ≤700px).
+for (const width of [701, 1280])
+  test(`${width}: 넓은 화면은 머리말 검색을 열어도 홈 첫 화면이 그대로 보인다 @regression`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await gotoReady(page, "/");
+    const heading = page.locator("#hero-heading");
+    await expect(heading).toBeVisible();
+    await page.locator('header[data-sticky-chrome] [data-slot="command-search-trigger"]').click();
+    await expect(page.getByRole("dialog", { name: "캐릭터 검색" })).toBeVisible();
+    await expect(heading).toHaveCSS("visibility", "visible");
+    await page.keyboard.press("Escape");
+  });
