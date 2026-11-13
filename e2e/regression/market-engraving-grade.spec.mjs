@@ -38,15 +38,17 @@ test("주소의 등급으로 다시 열고, 다른 분류로 가면 등급 거�
 
 test("등급 거르기 전 api(응답에 grade 없음)면 거르기를 보이지 않는다 @regression", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 900 });
-  // The web's own route answers { ok, envelope }: drop the echo as an older api would.
-  await page.route(/\/api\/markets\/board\?/, async (route) => {
-    const response = await route.fetch();
-    const body = await response.json();
-    if (body.envelope?.data) delete body.envelope.data.grade;
-    await route.fulfill({ response, json: body });
-  });
-  // Start elsewhere (the first board comes with the page), then open 각인서 through the route.
-  await gotoReady(page, "/market");
+  // codex #1603 delta: the backend itself answers as today's api (no grade key, parameter ignored), for the
+  // server-drawn page and the browser's reads alike (this client's address, tests/mock-backend.mjs).
+  await page.setExtraHTTPHeaders({ "x-forwarded-for": "203.0.113.181" });
+  await gotoReady(page, "/market?tab=ENGRAVING_BOOK");
+  await expect(board(page).getByRole("listitem")).toHaveCount(10);
+  await expect(grades(page)).toHaveCount(0);
+  // A shared link with a grade: the whole list, no filter shown.
+  await gotoReady(page, "/market?tab=ENGRAVING_BOOK&grade=%EC%A0%84%EC%84%A4");
+  await expect(board(page).getByRole("listitem")).toHaveCount(10);
+  await expect(grades(page)).toHaveCount(0);
+  await page.getByRole("navigation", { name: "시세 분류" }).getByRole("link", { name: "재련 재료", exact: true }).click();
   await page.getByRole("navigation", { name: "시세 분류" }).getByRole("link", { name: "각인서", exact: true }).click();
   await expect(board(page).getByRole("listitem")).toHaveCount(10);
   await expect(grades(page)).toHaveCount(0);
