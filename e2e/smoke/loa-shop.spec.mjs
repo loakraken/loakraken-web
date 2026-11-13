@@ -80,7 +80,8 @@ test.describe("로아샵 효율 @smoke", () => {
     await page.setViewportSize({ width: 320, height: 800 });
     await watchShifts(page);
     await gotoReady(page, "/tools/loa-shop");
-    await expect(page.getByRole("radiogroup", { name: "시세 기준" })).toHaveAttribute("data-orientation", "vertical");
+    // Stacked by CSS from the first paint (the control's container query, not a later measurement).
+    expect(await page.getByRole("radiogroup", { name: "시세 기준" }).evaluate((el) => getComputedStyle(el).gridAutoFlow)).toBe("row");
     await page.waitForTimeout(1500);
     const shifts = await shiftsSince(page);
     expect(shifts.all, `처음 불러올 때 밀린 요소: ${shifts.moved}`).toBe(0);

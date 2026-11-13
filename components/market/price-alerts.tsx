@@ -379,7 +379,11 @@ function AddCondition({
         </div>
         <div className={styles.field}>
           <span id={`${ids.price}-line`}>조건</span>
+          {/* One row at every width: two short labels need 224px in the widest face,
+              and the form gives this field more on phones (one column) and sizes
+              its desktop column to the row (an auto track, so no frame here). */}
           <SegmentedControl
+            orientation="horizontal"
             aria-labelledby={`${ids.price}-line`}
             value={comparator}
             onValueChange={(value) => setComparator(value as Comparator)}
