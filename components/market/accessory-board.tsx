@@ -16,7 +16,8 @@ import { useTallest } from "@/components/ui/use-tallest";
 import { countdownText, retryLabel } from "@/lib/api/rate-limit";
 import { pendingProps } from "@/lib/api/pending";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
-import { fetchAccessoryBoard, fetchAccessoryListings } from "@/lib/market/client";
+import { fetchAccessoryBoard, fetchAccessoryHistory, fetchAccessoryListings } from "@/lib/market/client";
+import { CellTrend } from "./cell-trend";
 import {
   ACCESSORY_LISTING_MAX_PAGE,
   GRADES,
@@ -196,6 +197,7 @@ export function AccessoryBoardView({
   const latest = data?.slots
     .flatMap((slot) => slot.cells)
     .reduce<string | null>((at, cell) => (cell.observedAt && (!at || cell.observedAt > at) ? cell.observedAt : at), null);
+  const pickedSlot = pick ? data?.slots.find((s) => s.slot === pick.slot) : undefined;
   const pickedCell = pick
     ? data?.slots.find((s) => s.slot === pick.slot)?.cells.find((c) => isPicked(pick, pick.slot, c))
     : undefined;
@@ -291,6 +293,13 @@ export function AccessoryBoardView({
           )}
         </div>
 
+        {/* The picked combination's lowest price by day (api #920), above its listings. */}
+        <CellTrend
+          name={pickedCell ? pickedCell.optionLabels.join(" · ") : null}
+          queryKey={["accessory-history", filter, pick?.slot, pick?.levels.join(",")]}
+          load={pick ? (range, signal) => fetchAccessoryHistory(filter, pick, range, signal) : null}
+        />
+
         <section className={gems.listings} aria-labelledby="accessory-listings-heading" {...pendingProps(listings)}>
           <h2 id="accessory-listings-heading">
             {pickedCell ? `${pickedCell.optionLabels.join(" · ")} 매물` : "매물"}
@@ -372,6 +381,39 @@ export function AccessoryBoardView({
             </>
           )}
         </section>
+
+        {/* Every grade combination of the picked slot with its lowest price and day change (user 11-12),
+            after the listings: it appears on the first pick without moving anything above (A7). */}
+        {pick && pickedSlot && (
+          <section className={styles.combos} aria-labelledby="accessory-combos-heading">
+            <h2 id="accessory-combos-heading">{pickedSlot.slotName} 등급 조합</h2>
+            <DataTable label="장신구 등급 조합" className={stats.table}>
+              <caption className={stats.srOnly}>
+                {pickedSlot.slotName} 핵심 연마 효과 등급 조합별 즉시 구매 최저가와 전일 대비
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">조합</th>
+                  <th scope="col">최저가</th>
+                  <th scope="col">전일 대비</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pickedSlot.cells.map((cell) => (
+                  <tr key={cell.levels.join(",")} aria-current={isPicked(pick, pickedSlot.slot, cell) || undefined}>
+                    <th scope="row">
+                      <button type="button" className={styles.comboPick} onClick={() => go(filter, { slot: pickedSlot.slot, levels: cell.levels as Level[], page: 1 })}>
+                        <b>{cell.label}</b> <small>{cell.optionLabels.join(" · ")}</small>
+                      </button>
+                    </th>
+                    <td>{cell.status === "READY" ? gold(cell.minBuyPrice) : <PendingText />}</td>
+                    <td>{cell.status === "READY" ? <Change rate={cell.previousDayChangeRate} /> : "-"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </DataTable>
+          </section>
+        )}
       </main>
     </div>
   );

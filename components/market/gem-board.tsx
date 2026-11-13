@@ -14,7 +14,8 @@ import { Select } from "@/components/ui/select";
 import { countdownText, failureOf, retryLabel } from "@/lib/api/rate-limit";
 import { pendingProps } from "@/lib/api/pending";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
-import { fetchGemBoard, fetchGemListings, fetchGemSkills } from "@/lib/market/client";
+import { fetchGemBoard, fetchGemHistory, fetchGemListings, fetchGemSkills } from "@/lib/market/client";
+import { CellTrend } from "./cell-trend";
 import {
   GEM_KINDS,
   GEM_LEVELS,
@@ -350,6 +351,13 @@ export function GemBoardView({
             </tbody>
           </DataTable>
         )}
+
+        {/* The picked cell's lowest price by day (api #920), above its listings. */}
+        <CellTrend
+          name={pick ? `${pick.level}레벨 ${pick.kind}` : null}
+          queryKey={["gem-history", pick?.kind, pick?.level]}
+          load={pick ? (range, signal) => fetchGemHistory(pick, range, signal) : null}
+        />
 
         <section className={styles.listings} aria-labelledby="gem-listings-heading" {...pendingProps(listings)}>
           <h2 id="gem-listings-heading">

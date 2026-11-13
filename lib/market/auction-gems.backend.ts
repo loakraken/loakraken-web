@@ -7,6 +7,7 @@ import { backendUrl, requestBackend, type BackendResult } from "../api/backend";
 import { tolerantSchemas } from "../api/tolerant";
 import { lazyValidator } from "@/lib/api/lazy-validator";
 import { type GemSkillsEnvelope, type GemBoardEnvelope, type GemListingsEnvelope, type Options, type GemPick } from "./auction-gems";
+import type { CellHistoryEnvelope } from "./cell-history";
 
 // `filter` (api #548) is required in the contract, but a backend from before
 // it answers without one: optional here until that backend is gone, so the
@@ -84,4 +85,31 @@ export function requestGemListings(
 export function requestGemSkills(origin: string | undefined, options: Options = {}): Promise<BackendResult<GemSkillsEnvelope>> {
   const url = backendUrl(origin, "/api/v1/markets/auctions/gems/skills");
   return requestBackend(url, { ...options, isValid: isGemSkillsEnvelope, errorCodes });
+}
+
+// Cell history (api #920): no official call; a storage failure is 503 MARKET_CACHE_UNAVAILABLE.
+const validateHistory = compile<CellHistoryEnvelope>("ApiResponseAuctionGemCellHistoryResponse");
+
+export const isGemHistoryEnvelope = (value: unknown): value is CellHistoryEnvelope =>
+  validateHistory(value) && value.code === "AUCTION_GEMS_SUCCESS";
+
+const historyCodes: Record<number, readonly string[]> = {
+  ...errorCodes,
+  503: [...(errorCodes[503] ?? []), "MARKET_CACHE_UNAVAILABLE"],
+};
+
+/** One gem cell's lowest price by day for a range (7d·14d·30d·90d·365d). */
+export function requestGemHistory(
+  pick: Pick<GemPick, "kind" | "level">,
+  range: string,
+  origin: string | undefined,
+  options: Options = {},
+): Promise<BackendResult<CellHistoryEnvelope>> {
+  const url = backendUrl(origin, "/api/v1/markets/auctions/gems/history");
+  if (url) {
+    url.searchParams.set("kind", pick.kind);
+    url.searchParams.set("level", String(pick.level));
+    url.searchParams.set("range", range);
+  }
+  return requestBackend(url, { ...options, isValid: isGemHistoryEnvelope, errorCodes: historyCodes });
 }
