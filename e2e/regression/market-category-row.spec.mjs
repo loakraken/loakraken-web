@@ -120,9 +120,9 @@ for (const width of [320, 1280])
 
 // codex #1597 delta: Safari and Firefox lack scroll-initial-target. There the small inline script after the row
 // sets its scroll as the HTML is parsed. Played here in Chromium: the CSS feature off (stylesheet and
-// CSS.supports) and the app's own scripts blocked, so only the server's HTML and its inline scripts run.
+// CSS.supports) and the app's own JS chunks answered empty (CSS untouched), so only the server's HTML and its
+// inline scripts run. Console errors still fail the test: a script the CSP blocks or one that throws is caught.
 test.describe("scroll-initial-target 없는 브라우저 흉내 @regression", () => {
-  test.use({ allowConsoleErrors: true });
   for (const [path, name] of PAGES.slice(1))
     test(`320 ${path}: 인라인 스크립트가 첫 그림 전에 고른 '${name}'을 보이게`, async ({ page }) => {
       await page.setViewportSize({ width: 320, height: 800 });
@@ -130,14 +130,23 @@ test.describe("scroll-initial-target 없는 브라우저 흉내 @regression", ()
         const supports = CSS.supports.bind(CSS);
         CSS.supports = (...args) => (String(args[0]).includes("scroll-initial-target") ? false : supports(...args));
       });
-      await page.route("**/_next/static/chunks/**", (route) => route.abort());
+      await page.route(
+        (url) => url.pathname.startsWith("/_next/static/") && url.pathname.endsWith(".js"),
+        (route) => route.fulfill({ status: 200, contentType: "application/javascript", body: "" }),
+      );
       await page.route(`**${path}`, async (route) => {
         const response = await route.fetch();
         const html = (await response.text()).replace("</head>", "<style>[aria-current=page]{scroll-initial-target:none!important}</style></head>");
         await route.fulfill({ response, body: html });
       });
+      const blocked = [];
+      page.on("console", (message) => message.text().includes("Content Security Policy") && blocked.push(message.text()));
       await page.goto(path);
       await expect(row(page).locator('[aria-current="page"]')).toHaveText(name);
+      // The row's own script is there and ran under the CSP; the styles came (CSS chunks not touched).
+      await expect(row(page).locator("script")).toHaveCount(1);
+      expect(blocked, "CSP가 막은 스크립트").toEqual([]);
+      expect(await row(page).evaluate((nav) => getComputedStyle(nav).borderRadius)).not.toBe("0px");
       expect(await chosenInView(page)).toMatchObject({ name, inView: true });
     });
 });
