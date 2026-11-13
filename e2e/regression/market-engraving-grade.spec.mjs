@@ -51,3 +51,19 @@ test("등급 거르기 전 api(응답에 grade 없음)면 거르기를 보이지
   await expect(board(page).getByRole("listitem")).toHaveCount(10);
   await expect(grades(page)).toHaveCount(0);
 });
+
+// codex #1603 P2: a failed grade read must not take the buttons away. They lead back to the list in hand.
+test("등급 조회가 실패해도 등급 단추는 남아 전체로 돌아간다 @regression", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 900 });
+  await page.route(/\/api\/markets\/board\?.*grade=%EC%9C%A0%EB%AC%BC/, (route) =>
+    route.fulfill({ status: 503, json: { ok: false, error: { code: "MARKET_CACHE_UNAVAILABLE", status: 503 } } }),
+  );
+  await gotoReady(page, "/market?tab=ENGRAVING_BOOK");
+  await expect(board(page).getByRole("listitem")).toHaveCount(10);
+  await grades(page).getByRole("button", { name: "유물" }).click();
+  await expect(grades(page).getByRole("button", { name: "유물" })).toHaveAttribute("aria-pressed", "true");
+  await page.waitForTimeout(800);
+  await expect(grades(page).getByRole("button")).toHaveText(["전체", "유물", "전설"]);
+  await grades(page).getByRole("button", { name: "전체" }).click();
+  await expect(board(page).getByRole("listitem")).toHaveCount(10);
+});
