@@ -14,7 +14,9 @@ function LoadingContent() {
     <ThinkingOrb state="searching" size={64} theme={theme} color={orbColor(theme)} paused={!enabled} aria-label="캐릭터 조회 중" />
     <p role="status">캐릭터 정보를 조회하고 있어요.</p>
     <noscript><p>캐릭터 조회 화면을 표시하려면 JavaScript를 켜 주세요. 검색으로 돌아가 예시 화면을 볼 수도 있습니다.</p></noscript>
-    <div className={styles.routeLinks}><Link href="/">검색으로 돌아가기</Link></div>
+    {/* The link is sized from its label at the start tag (data-fp-label): centred, a link drawn before
+        its text widened from 42 to 142px when the text came (combat-aside-order:10 @320). */}
+    <div className={styles.routeLinks}><Link href="/" data-fp-label="검색으로 돌아가기"><span>검색으로 돌아가기</span></Link></div>
   </main>;
 }
 
