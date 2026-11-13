@@ -240,6 +240,18 @@
   background: var(--muted);
   padding: 28px;
 }
+/* Heavy panels below the first screen (Panel defer): no layout or paint until
+   near the viewport; "auto" keeps the real height once drawn, so scrolling back
+   does not jump. Block size only: the width still comes from the grid. */
+.panel[data-defer] {
+  content-visibility: auto;
+  contain-intrinsic-block-size: auto var(--defer-h);
+}
+@media (min-width: 901px) {
+  .panel[data-defer] {
+    contain-intrinsic-block-size: auto var(--defer-h-wide);
+  }
+}
 .panelHead {
   display: flex;
   flex-wrap: wrap;
