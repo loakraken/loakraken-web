@@ -4,12 +4,28 @@
 // 칸에 남고, 그 사이 누른 키로 목록이 열리며, 다음 Tab은 다음 칸으로 간다.
 import { test, expect, gotoReady } from "../support/fixtures.mjs";
 
-/** Holds every script chunk asked for from now on (the full Select's code), as on a slow connection. */
-const slowChunks = (page, ms = 800) =>
-  page.route(/\/_next\/static\/chunks\/.*\.js(\?|$)/, async (route) => {
+/**
+ * Holds every script chunk asked for from now on (the full Select's code), as on a slow connection.
+ * `arrived()` waits until at least one was held and all are released, plus a moment to run them:
+ * the point after which the full Select can exist. (waitForLoadState("networkidle") does not wait
+ * here: the page reached that state before, so it returns at once.)
+ */
+async function slowChunks(page, ms = 800) {
+  const held = { seen: 0, open: 0 };
+  await page.route(/\/_next\/static\/chunks\/.*\.js(\?|$)/, async (route) => {
+    held.seen += 1;
+    held.open += 1;
     await new Promise((resolve) => setTimeout(resolve, ms));
     await route.continue();
+    held.open -= 1;
   });
+  return {
+    arrived: async () => {
+      await expect.poll(() => held.seen > 0 && held.open === 0, { timeout: 10_000 }).toBe(true);
+      await page.waitForTimeout(400);
+    },
+  };
+}
 
 const focused = (page) =>
   page.evaluate(() => {
@@ -39,13 +55,13 @@ test("처음 쓰는 Select: 포커스 직후 Tab은 다음 칸으로 간다(같�
   await gotoReady(page, "/tools/hell-reward");
   const field = page.getByRole("combobox", { name: "클리어 단계" });
   await expect(field).toBeVisible();
-  await slowChunks(page);
+  const chunks = await slowChunks(page);
   await field.focus();
   // A second Tab 80–250 ms after the first (QA's window): after the swap began, before the code came.
   await page.waitForTimeout(150);
   await page.keyboard.press("Tab");
   // Judged once the held code has arrived (codex #1576 P3), not at a fixed time: nothing may pull focus back.
-  await page.waitForLoadState("networkidle");
+  await chunks.arrived();
   const after = await focused(page);
   expect(after, `Tab 뒤 포커스 ${after}`).not.toBe("BODY");
   // The field itself (by role and name, whichever button draws it) must not hold focus again.
@@ -65,7 +81,7 @@ for (const [name, leave] of [
     await gotoReady(page, "/tools/hell-reward");
     const field = page.getByRole("combobox", { name: "클리어 단계" });
     await expect(field).toBeVisible();
-    await slowChunks(page);
+    const chunks = await slowChunks(page);
     // Any list that appears at any moment counts: a list that opens on a field the user left and then
     // closes again (focus is elsewhere) is still a flash the user sees.
     await page.evaluate(() => {
@@ -77,8 +93,7 @@ for (const [name, leave] of [
     await field.focus();
     await page.keyboard.press("ArrowDown");
     await leave(page);
-    await page.waitForLoadState("networkidle");
-    await page.waitForTimeout(300);
+    await chunks.arrived();
     expect(await page.evaluate(() => window.__listboxSeen), "코드가 온 뒤 목록이 열렸음").toBe(false);
     await expect(page.getByRole("listbox")).toHaveCount(0);
     if (name === "Esc") await expect(field, "Esc 뒤 포커스는 칸에").toBeFocused();
