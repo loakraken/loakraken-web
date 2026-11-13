@@ -38,9 +38,11 @@ function sampleBackdrop(
   width: number,
   height: number,
 ): Rgb {
-  const patch = Math.max(
-    4,
-    Math.min(12, Math.floor(Math.min(width, height) / 20)),
+  // Never larger than the image: a tiny image (a 1×1 substitute) read outside
+  // its pixels and gave a NaN backdrop (QA 2026-11-13 08시).
+  const patch = Math.min(
+    Math.min(width, height),
+    Math.max(4, Math.min(12, Math.floor(Math.min(width, height) / 20))),
   );
   let r = 0;
   let g = 0;
@@ -73,7 +75,10 @@ export function cutoutPortrait(
   width: number,
   height: number,
 ): { backdrop: Rgb; ambient: Rgb | null; removed: number } | null {
+  if (!(width >= 1 && height >= 1) || data.length < width * height * 4) return null;
   const backdrop = sampleBackdrop(data, width, height);
+  // No tones rather than a band of NaN (no background, near-white text on white).
+  if (!backdrop.every(Number.isFinite)) return null;
   const [br, bg, bb] = backdrop;
   // Only dark, low-saturation backdrops are supported.
   if (

@@ -145,3 +145,18 @@ test("banner band is capped so the light banner text keeps 4.5:1", () => {
           assert.ok(contrast(ink, band) >= 4.5, `${ink} on ${band}`);
       }
 });
+
+test("a tiny or empty image gives finite tones or none, never NaN (QA 2026-11-13 08시: a 1×1 image gave --backdrop: NaN)", () => {
+  // 1×1 dark pixel: the backdrop is that pixel.
+  const one = new Uint8ClampedArray([18, 19, 22, 255]);
+  const result = cutoutPortrait(one, 1, 1);
+  assert.ok(result === null || result.backdrop.every(Number.isFinite), `backdrop ${result?.backdrop}`);
+  if (result) assert.deepEqual(bannerBackdrop(result.backdrop).map(Number.isFinite), [true, true, true]);
+  // 3×2, smaller than the 4px sample patch.
+  const small = new Uint8ClampedArray(3 * 2 * 4).map((_, i) => (i % 4 === 3 ? 255 : 20));
+  const r2 = cutoutPortrait(small, 3, 2);
+  assert.ok(r2 === null || r2.backdrop.every(Number.isFinite), `backdrop ${r2?.backdrop}`);
+  // No pixels, or fewer bytes than the size says: no tones.
+  assert.equal(cutoutPortrait(new Uint8ClampedArray(0), 0, 0), null);
+  assert.equal(cutoutPortrait(new Uint8ClampedArray(4), 2, 2), null);
+});
