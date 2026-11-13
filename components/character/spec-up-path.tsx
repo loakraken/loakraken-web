@@ -22,7 +22,7 @@ import {
   type PathSort,
   type SpecUpPath as Path,
 } from "@/lib/spec-up/path";
-import { koreanGold, notCachedText, tryPathParam } from "@/lib/spec-up/model";
+import { gearTypeOf, koreanGold, notCachedText, tryPathParam } from "@/lib/spec-up/model";
 import detail from "./detail.module.css";
 import styles from "./spec-up-path.module.css";
 import { SpecUpRowDetail } from "./spec-up-detail";
@@ -180,7 +180,7 @@ function PathAnswer({ data, path, stale }: { data: Character; path: Path; stale:
   const steps = path.steps;
   const start = path.combatPower;
   const final = path.finalCombatPower;
-  const sim = simulatorPath(steps);
+  const sim = simulatorPath(steps, gearTypeOf(data));
   const simulator = useContext(SimulatorEnabled);
   // One list row per step, numbered by its order (user 11-08): a target's later
   // steps keep their own place instead of folding under the first one.

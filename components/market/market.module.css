@@ -97,6 +97,12 @@
   font-size: 12px;
   font-weight: 600;
 }
+/* The chart's period buttons: their width is set by label length (market-board), the same in every
+   font; the label is centred and never wraps. */
+.fixedRanges button {
+  padding: 0;
+  white-space: nowrap;
+}
 .sorts button[aria-pressed="true"],
 .tiers button[aria-pressed="true"],
 .ranges button[aria-pressed="true"] {
@@ -616,6 +622,18 @@
 }
 .detail > .ranges {
   margin-top: 8px;
+}
+/* Five ranges (api #920) do not fit beside the title on a phone: they take
+   their own row under it, so the period change's width ('30일 ▲3.2%',
+   '3개월 …') never re-wraps them when a range is picked (A7). */
+@media (max-width: 699px) {
+  .trendHead {
+    flex-wrap: wrap;
+    row-gap: 10px;
+  }
+  .trendHead > .ranges {
+    flex: 1 0 100%;
+  }
 }
 .chart {
   margin-top: 10px;

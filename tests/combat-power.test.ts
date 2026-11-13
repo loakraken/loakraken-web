@@ -12,6 +12,7 @@ import {
   gemLevel,
   hasComputed,
   parseSimulateRequest,
+  refineEdit,
   toChanges,
 } from "../lib/combat-power/model";
 import { isOptionsEnvelope, isSimulateEnvelope } from "../lib/combat-power/validate";
@@ -28,10 +29,39 @@ const current = {
     { slot: 1, level: 10 },
   ],
   gear: [
-    { index: 0, refine: 20, quality: 90 },
-    { index: 1, refine: null, quality: 100 },
+    { index: 0, type: "무기", refine: 20, quality: 90 },
+    { index: 1, type: "투구", refine: null, quality: 100 },
   ],
 };
+
+test("a refine edit is sent only for the weapon, inside refineMin..refineMax, and not the step worn (codex #1555, #1567)", () => {
+  const range = { min: 10, max: 25 };
+  const weapon = { index: 0, type: "무기", refine: 8, quality: null };
+  const helmet = { index: 1, type: "투구", refine: 19, quality: null };
+  const gear = { ...current, gems: [], gear: [weapon, helmet] };
+  // +8 under refineMin: picking 8 back is no edit; 10 goes out.
+  assert.equal(refineEdit(8, weapon, range), null);
+  assert.equal(refineEdit(10, weapon, range), 10);
+  assert.deepEqual(toChanges({ ...NO_EDITS, refine: { 0: 10 } }, gear, range), [{ kind: "EQUIPMENT_REFINE", index: 0, refine: 10 }]);
+  // The saved no-op 8 read after the weapon was honed to 12 in game: out of range, not sent, the row shows 12.
+  const honed = { ...gear, gear: [{ ...weapon, refine: 12 }, helmet] };
+  assert.equal(refineEdit(8, honed.gear[0], range), null);
+  assert.deepEqual(toChanges({ ...NO_EDITS, refine: { 0: 8 } }, honed, range), []);
+  // Past refineMax (a spec-up step the options do not list): not sent.
+  assert.deepEqual(toChanges({ ...NO_EDITS, refine: { 0: 26 } }, honed, range), []);
+  // Armour refine is UNSUPPORTED at the api (MODEL_UNCONFIRMED): never sent, whatever the edit says.
+  assert.equal(refineEdit(20, helmet, range), null);
+  assert.deepEqual(toChanges({ ...NO_EDITS, refine: { 1: 20 } }, gear, range), []);
+  // Options not loaded yet (codex #1572 P3): the range is unknown, so nothing is sent yet, in range or not;
+  // the same edits give the change once the range is there.
+  const worn20 = { ...gear, gear: [{ ...weapon, refine: 20 }, helmet] };
+  for (const early of [null, undefined]) {
+    assert.equal(refineEdit(21, worn20.gear[0], early), null);
+    assert.equal(refineEdit(8, honed.gear[0], early), null);
+    assert.deepEqual(toChanges({ ...NO_EDITS, refine: { 0: 21 } }, worn20, early), []);
+  }
+  assert.deepEqual(toChanges({ ...NO_EDITS, refine: { 0: 21 } }, worn20, range), [{ kind: "EQUIPMENT_REFINE", index: 0, refine: 21 }]);
+});
 
 test("only real differences become changes, in a fixed order", () => {
   assert.deepEqual(toChanges(NO_EDITS, current), []);
@@ -40,7 +70,7 @@ test("only real differences become changes, in a fixed order", () => {
     [],
   );
   assert.deepEqual(
-    toChanges({ ...NO_EDITS, gemAll: 9, gems: { 1: 10 }, refine: { 0: 22, 1: 25 }, quality: { 0: 100 } }, current),
+    toChanges({ ...NO_EDITS, gemAll: 9, gems: { 1: 10 }, refine: { 0: 22, 1: 25 }, quality: { 0: 100 } }, current, { min: 10, max: 25 }),
     [
       { kind: "GEM_LEVEL_ALL", level: 9 },
       { kind: "GEM_LEVEL", slot: 1, level: 10 },

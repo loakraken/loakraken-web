@@ -57,6 +57,15 @@ function CommandSearchDialog({
     setDrawn(false)
     setWanted(false)
   }
+  // While open, the page may hide what would show through the 30% backdrop
+  // around the bar and panel: the home hero's large heading and its own search
+  // box read as a second search under this one on phones (user 11-12).
+  React.useEffect(() => {
+    if (!open) return
+    const root = document.documentElement
+    root.setAttribute("data-search-open", "")
+    return () => root.removeAttribute("data-search-open")
+  }, [open])
   const close = () => {
     setOpen(false)
     setText("")

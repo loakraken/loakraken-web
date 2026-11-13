@@ -129,15 +129,22 @@ export async function requestBoard(
   return requestBackend(url, { ...options, isValid: isBoardEnvelope, errorCodes });
 }
 
+/** The ranges the history read takes (api #920); anything else is refused here, not passed on. */
+const HISTORY_RANGES = new Set(["7d", "14d", "30d", "90d", "365d"]);
+
 export async function requestItemHistory(
   itemId: string,
   origin: string | undefined,
   options: Options = {},
+  range?: string | null,
 ): Promise<BackendResult<ItemHistoryEnvelope>> {
   const id = parseItemId(itemId);
   if (id == null) return invalid;
+  if (range != null && !HISTORY_RANGES.has(range)) return invalid;
+  // An api from before #920 ignores the parameter and answers its 14 days.
+  const query = range ? `?range=${range}` : "";
   return requestBackend(
-    backendUrl(origin, `/api/v1/markets/items/${id}/history`),
+    backendUrl(origin, `/api/v1/markets/items/${id}/history${query}`),
     {
       ...options,
       isValid: isItemHistoryEnvelope,

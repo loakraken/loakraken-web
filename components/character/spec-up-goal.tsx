@@ -19,7 +19,7 @@ import {
   targetError,
   type Goal,
 } from "@/lib/spec-up/goal";
-import { koreanGold, notCachedText, tryPathParam } from "@/lib/spec-up/model";
+import { gearTypeOf, koreanGold, notCachedText, tryPathParam, type GearType } from "@/lib/spec-up/model";
 import { SpecUpExpired, useMarkExpired } from "./spec-up-expired";
 import styles from "./spec-up-goal.module.css";
 import { SimulatorEnabled } from "./tabs";
@@ -121,7 +121,7 @@ export function SpecUpGoal({ data }: { data: Character }) {
         ) : goal.data ? (
           // Another target keeps the last answer, dimmed, until its own arrives (A7).
           <div className={styles.answer} data-stale={goal.isPlaceholderData || expired || undefined}>
-            <GoalAnswer name={name} goal={goal.data.data} />
+            <GoalAnswer name={name} goal={goal.data.data} gearType={gearTypeOf(data)} />
           </div>
         ) : asked !== null && goal.isPending ? (
           <GoalSkeleton simulator={simulator} />
@@ -169,14 +169,14 @@ function GoalSkeleton({ simulator }: { simulator: boolean }) {
   );
 }
 
-function GoalAnswer({ name, goal }: { name: string; goal: Goal }) {
+function GoalAnswer({ name, goal, gearType }: { name: string; goal: Goal; gearType: GearType }) {
   const steps = goal.steps;
   const known = (PATH_STOPS as readonly string[]).includes(goal.stopReasonCode);
   const final = goal.finalCombatPower;
   const cost = goal.totalCost != null ? `${koreanGold(goal.totalCost)}G` : null;
   const costLine =
     cost ?? (goal.unpricedSteps > 0 ? `미정(비용을 모르는 단계 ${goal.unpricedSteps}개)` : null);
-  const path = simulatorPath(steps);
+  const path = simulatorPath(steps, gearType);
   // The simulator tab exists only with COMBAT_POWER_SIM on (#1260).
   const simulator = useContext(SimulatorEnabled);
 
