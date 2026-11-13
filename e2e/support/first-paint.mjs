@@ -20,6 +20,8 @@ export const cutEverywhere = (page, rootSelector, countIn = null) =>
       ? [...document.querySelectorAll(rootSelector.split("|")[0])].find((el) => el.textContent.includes(rootSelector.split("|")[1]))
       : document.body;
     if (!root) return { probed: 0, value: 0, moved: ["root not found"] };
+    // Counting only parts that are not there would pass on nothing: say so instead.
+    if (countIn && !root.querySelector(countIn)) return { probed: 0, value: 0, moved: [`countIn not found: ${countIn}`] };
     // A list below the first screen (phones) is brought into view: only what is on screen can move.
     if (root !== document.body) {
       root.scrollIntoView({ block: "start" });
