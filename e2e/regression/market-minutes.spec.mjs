@@ -39,5 +39,5 @@ test("@K35 10분마다 확인하는 품목은 그 주기를, 확인하지 않는
   await page.getByRole("region", { name: /각인서 시세/ }).getByRole("listitem").first().getByRole("button").click();
   const other = page.getByRole("region", { name: /시세$/ }).last();
   await other.getByRole("group", { name: "기간" }).getByRole("button", { name: "1시간" }).click();
-  await expect(other.getByText("이 품목은 분 단위로 확인하지 않아요. 7일·14일 추이를 봐 주세요.")).toBeVisible();
+  await expect(other.getByText("이 품목은 분 단위로 확인하지 않아요. 일 단위 추이를 봐 주세요.")).toBeVisible();
 });

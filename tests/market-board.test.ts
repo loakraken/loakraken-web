@@ -7,6 +7,7 @@ import {
   changeLabel,
   changeWithAmount,
   completedDays,
+  windowStart,
   goldText,
   unitPrice,
   updatedAgo,
@@ -91,6 +92,29 @@ test("history charts use completed days, oldest first", () => {
   assert.ok(days[0].date < days.at(-1)!.date);
 });
 
+// codex #1595 P1: api #920 sends storedDays (and recordedSince) null when no stored record is read
+// (7d, 14d, a store that could not be read). Refusing that would be a 502 for every such chart.
+test("item history: the stored fields may be null, as api #920 sends them on 7d/14d", () => {
+  const body = fixture("market-item-history.json");
+  body.data.range = "14d";
+  for (const variant of body.data.variants) Object.assign(variant, { recordedSince: null, storedDays: null });
+  assert.equal(isItemHistoryEnvelope(body), true);
+  body.data.variants[0].storedDays = "3";
+  assert.equal(isItemHistoryEnvelope(body), false);
+});
+
+// codex #1595 P2: 7일 reads the 30-day answer; with sparse records the last 7 ROWS reached back weeks.
+test("history days stay inside the calendar window that ends on the base date", () => {
+  assert.equal(windowStart("2026-11-14", 7), "2026-11-08");
+  assert.equal(windowStart("2026-03-02", 7), "2026-02-24");
+  const row = (date: string, partial = false) => ({ date, averagePrice: 10, tradeCount: 1, partial });
+  const variant = { ...fixture("market-item-history.json").data.variants[0], days: [row("2026-11-14", true), row("2026-11-12"), row("2026-11-09"), row("2026-10-30"), row("2026-10-20")] };
+  assert.deepEqual(completedDays(variant, 7, "2026-11-14").map((d) => d.date), ["2026-11-09", "2026-11-12"]);
+  assert.equal(completedDays(variant, 30, "2026-11-14").length, 4);
+  // Without a base date (an api before ranges): the latest rows, as before.
+  assert.equal(completedDays(variant, 7).length, 4);
+});
+
 test("board and history requests validate input and pass through allow-listed errors", async () => {
   let calls = 0;
   const fetcher = (async (url: URL) => {
@@ -136,4 +160,17 @@ test("market favourites toggle newest first and drop malformed entries", () => {
   assert.deepEqual(toggleFavorite(added, item), []);
   assert.deepEqual(parseFavorites(JSON.stringify([item, { itemId: -1 }, { ...item, tab: "GEM" }])).length, 1);
   assert.deepEqual(parseFavorites("oops"), []);
+});
+
+test("history range (api #920): only 7d·14d·30d·90d·365d go to the api, as ?range=; none = the old 14 days", async () => {
+  const seen: (string | null)[] = [];
+  const fetcher = (async (url: URL) => {
+    seen.push(url.searchParams.get("range"));
+    return Response.json(fixture("market-item-history.json"));
+  }) as unknown as typeof fetch;
+  assert.equal((await requestItemHistory("66102006", origin, { fetcher }, "90d")).ok, true);
+  assert.equal((await requestItemHistory("66102006", origin, { fetcher })).ok, true);
+  assert.equal((await requestItemHistory("66102006", origin, { fetcher }, "999d")).ok, false);
+  assert.equal((await requestItemHistory("66102006", origin, { fetcher }, "30d&x=1")).ok, false);
+  assert.deepEqual(seen, ["90d", null], "a range outside the list never reaches the api");
 });

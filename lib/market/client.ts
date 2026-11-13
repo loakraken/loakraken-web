@@ -2,6 +2,7 @@ import type { BackendResult } from "../api/backend";
 import type {
   BoardEnvelope,
   BoardQuery,
+  HistoryRange,
   ItemHistoryEnvelope,
   TabsEnvelope,
 } from "./board";
@@ -106,8 +107,9 @@ export const fetchMarketBoard = (query: BoardQuery, signal: AbortSignal) =>
     signal,
   });
 
-export const fetchItemHistory = (itemId: number, signal: AbortSignal) =>
-  call<ItemHistoryEnvelope>(`/api/markets/items/${itemId}/history`, {
+/** One item's daily history for an answer range (api #920; an older api answers 14 days). */
+export const fetchItemHistory = (itemId: number, range: HistoryRange, signal: AbortSignal) =>
+  call<ItemHistoryEnvelope>(`/api/markets/items/${itemId}/history?range=${range}`, {
     signal,
   });
 
