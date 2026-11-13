@@ -375,7 +375,7 @@ export const STALE_PRICE_MINUTES = 60;
  * The price time line: the OLDEST collection time among the prices in use (one old price makes
  * the values old). Short, so it keeps one line in the narrow side column. null without a price.
  */
-export function priceAge(now: number, observed: string[]): { text: string; stale: boolean } | null {
+export function priceAge(now: number, observed: string[]): { text: string; stale: boolean; short?: string } | null {
   const times = observed.map((iso) => Date.parse(iso)).filter((ms) => Number.isFinite(ms));
   if (!times.length) return null;
   const oldest = Math.min(...times);
@@ -387,5 +387,6 @@ export function priceAge(now: number, observed: string[]): { text: string; stale
   // nearest (2 days 23 hours reads 3일, and the minute clock's rounding down cannot drop a unit).
   const hours = Math.max(1, Math.round(minutes / 60));
   const ago = hours < 24 ? `${hours}시간 전` : `${Math.round(minutes / (24 * 60))}일 전`;
-  return { text: `오래된 시세 · ${ago}(${kst.getUTCMonth() + 1}월 ${kst.getUTCDate()}일 ${hm})`, stale: true };
+  // short: the marker beside the headline value (QA 11-13 08시: the line above sits screens below it on a phone).
+  return { text: `오래된 시세 · ${ago}(${kst.getUTCMonth() + 1}월 ${kst.getUTCDate()}일 ${hm})`, stale: true, short: `${ago} 시세` };
 }
