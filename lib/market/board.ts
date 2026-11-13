@@ -45,10 +45,11 @@ export const TAB_FALLBACK: readonly { tab: TabId; label: string; tiered: boolean
   { tab: "LIFE", label: "생활", tiered: false },
   { tab: "BATTLE_ITEM", label: "전투 용품", tiered: false },
   { tab: "FOOD", label: "요리", tiered: false },
-  // 아바타·장비 상자 (gap #11, api #873): every api in service has them (api master since 11-09);
-  // an api without one marks it as not open instead of taking it out of the row.
+  // 아바타 (gap #11, api #873): every api in service opens it (api master since 11-09); an api
+  // without it marks it as not open instead of taking it out of the row.
   { tab: "AVATAR", label: "아바타", tiered: false },
-  { tab: "EQUIPMENT_BOX", label: "장비 상자", tiered: false },
+  // 장비 상자 is not in the row: the api's own tab list leaves it out (MarketTabsResponse), so the
+  // row matches what the site shows (PM 총괄 11-14). Its address still opens the board.
 ];
 
 export const isTabId = (value: string): value is TabId => (TAB_IDS as readonly string[]).includes(value);
