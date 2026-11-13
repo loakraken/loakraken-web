@@ -56,3 +56,27 @@ test("기간 조회 전 api(range 없음)면 1시간·7일·14일 그대로 @reg
   await expect(ranges.getByRole("button", { name: "14일" })).toHaveAttribute("aria-pressed", "true");
   await expect(detailOf(page).getByText("하루 평균 거래가와 거래량", { exact: true })).toBeVisible();
 });
+
+// api #920 (codex P2-1): for 30일+ the answer may also hold variants found only in stored history, after the
+// official ones, with no trade terms (both null). They get their own button, never a second "1개".
+test("기록에만 있는 거래 조건은 '지난 기록'으로 따로 고른다 @regression", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 900 });
+  await page.route(/\/api\/markets\/items\/\d+\/history\?range=90d/, async (route) => {
+    const response = await route.fetch();
+    const body = await response.json();
+    const [official] = body.envelope.data.variants;
+    const days = official.days.filter((d) => !d.partial).slice(10, 30);
+    body.envelope.data.variants.push({ ...official, tradeRemainCount: null, bundleCount: null, days, storedDays: days.length, recordedSince: days.at(-1).date });
+    await route.fulfill({ response, json: body });
+  });
+  await gotoReady(page, "/market?tab=ENGRAVING_BOOK");
+  const detail = detailOf(page);
+  await detail.getByRole("group", { name: "기간" }).getByRole("button", { name: "3개월" }).click();
+  const terms = detail.getByRole("group", { name: "거래 조건" });
+  await expect(terms.getByRole("button")).toHaveText(["1개", "지난 기록"]);
+  await terms.getByRole("button", { name: "지난 기록" }).click();
+  await expect(terms.getByRole("button", { name: "지난 기록" })).toHaveAttribute("aria-pressed", "true");
+  // Its own 20 stored days: the table lists the latest 14 of them.
+  await expect(detail.locator("table tbody tr")).toHaveCount(14);
+  await expectNoHorizontalOverflow(page);
+});

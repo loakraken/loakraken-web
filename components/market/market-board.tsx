@@ -387,7 +387,10 @@ function Detail({
             >
               {v.tradeRemainCount != null
                 ? `거래 ${v.tradeRemainCount}회`
-                : `${v.bundleCount ?? 1}개`}
+                : v.bundleCount != null
+                  ? `${v.bundleCount}개`
+                  : // Only in stored history (api #920, 30일+): no trade terms today, so not "1개".
+                    "지난 기록"}
             </button>
           ))}
         </div>
