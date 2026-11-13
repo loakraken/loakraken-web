@@ -61,6 +61,8 @@ export const dayPoints = (days: DailyStat[]): ChartPoint[] =>
     volume: d.tradeCount,
     axis: short(d.date),
     detail: `${d.date} · 거래량 ${d.tradeCount.toLocaleString("ko-KR")}`,
+    // The day itself, so a chart byDate leaves a day with no record empty (api #920 keeps no row for it).
+    t: Date.parse(`${d.date}T00:00:00Z`),
   }));
 
 /** Minutes with a sell price only; a minute without listings has no point. */
@@ -105,11 +107,18 @@ export function periodChange(points: readonly { value: number }[]) {
 export function MarketChart({
   points: days,
   span,
+  byDate = false,
   label = "일 평균 거래가와 거래량. 화살표 키로 날짜를 이동할 수 있어요.",
 }: {
   points: ChartPoint[];
   /** The time window [from, to] in ms when points carry time. */
   span?: [number, number];
+  /**
+   * Days placed by their date between the first and the last (not evenly by
+   * index): a day with no record is a gap, never squeezed out (stored ranges,
+   * api #920). The axis ends keep the day labels.
+   */
+  byDate?: boolean;
   label?: string;
 }) {
   const id = useId();
@@ -132,9 +141,13 @@ export function MarketChart({
     const plotW = W - PAD.left - PAD.right;
     const step = days.length > 1 ? plotW / (days.length - 1) : 0;
     const timed = span != null && days.every((d) => d.t != null);
+    const dated = !timed && byDate && days.length > 1 && days.every((d) => d.t != null);
+    const frame: [number, number] | null = timed ? span! : dated ? [days[0].t!, days.at(-1)!.t!] : null;
+    // Days a full day apart are the even case (the curve); a missing day is a gap.
+    const gaps = dated && days.some((d, i) => i > 0 && d.t! - days[i - 1].t! > 86_400_000);
     const x = (i: number) =>
-      timed
-        ? PAD.left + ((days[i].t! - span![0]) / (span![1] - span![0] || 1)) * plotW
+      frame
+        ? PAD.left + ((days[i].t! - frame[0]) / (frame[1] - frame[0] || 1)) * plotW
         : PAD.left + (days.length > 1 ? i * step : plotW / 2);
     const y = (v: number) =>
       PAD.top + PRICE_H - ((v - v0) / (v1 - v0 || 1)) * PRICE_H;
@@ -145,7 +158,7 @@ export function MarketChart({
     const bottom = y(Math.min(...prices));
     // By time the readings are not evenly apart: straight segments between
     // them, not the even curve.
-    const curved = timed
+    const curved = timed || gaps
       ? days.length > 1
         ? { d: days.map((d, i) => `${i ? "L" : "M"}${(x(i) - PAD.left).toFixed(1)} ${y(d.value).toFixed(1)}`).join(" ") }
         : null
@@ -156,7 +169,7 @@ export function MarketChart({
     const volumeTop = PAD.top + PRICE_H + GAP;
     const bar = (count: number) => (count / maxVolume) * VOLUME_H;
     return { ticks, x, y, curved, barW, volumeTop, bar, timed };
-  }, [days, W, span]);
+  }, [days, W, span, byDate]);
   // Mouse, touch (sideways drag; a vertical swipe still scrolls) and ← →.
   const { active, svgProps } = useChartScrub({
     count: days.length,

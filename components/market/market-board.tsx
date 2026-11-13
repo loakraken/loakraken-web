@@ -419,7 +419,7 @@ function Detail({
         <div ref={fade}>
           {/* Keyed by range and trade terms: each pick mounts a new chart, so it
               draws again (user 11-01; the character tabs and /stats draw once). */}
-          <MarketChart key={`${range}-${variantIndex}`} points={dayPoints(days)} />
+          <MarketChart key={`${range}-${variantIndex}`} points={dayPoints(days)} byDate />
         </div>
       ) : (
         <p className={styles.muted}>아직 수집된 시세가 없어요.</p>

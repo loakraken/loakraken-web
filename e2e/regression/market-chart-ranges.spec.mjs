@@ -18,14 +18,14 @@ for (const width of [320, 1280])
     const caption = detail.getByText(/^하루 평균 거래가와 거래량/);
     // 30 days are all there (the mock keeps 45): no note.
     await expect(caption).toHaveText("하루 평균 거래가와 거래량");
-    // 3개월: the mock has 44 completed days, shown as they are and said.
+    // 3개월: the mock has 39 completed days (45 kept, a 5-day hole, today partial), shown as they are and said.
     const moved = await shiftsDuring(page, () => ranges.getByRole("button", { name: "3개월" }).click(), 1500);
-    await expect(caption).toHaveText("하루 평균 거래가와 거래량 · 3개월 중 44일치 기록");
+    await expect(caption).toHaveText("하루 평균 거래가와 거래량 · 3개월 중 39일치 기록");
     await expect(detail.getByText(/공식 거래소 일별 통계와 LOAKraken 저장 기록/)).toBeVisible();
     await expect(detail.getByText(/^3개월 [▲▼]?\d+\.\d%$/)).toBeVisible();
     expect(moved.all, `3개월 전환 흔들림 (${moved.moved})`).toBe(0);
     await ranges.getByRole("button", { name: "1년" }).click();
-    await expect(caption).toHaveText("하루 평균 거래가와 거래량 · 1년 중 44일치 기록");
+    await expect(caption).toHaveText("하루 평균 거래가와 거래량 · 1년 중 39일치 기록");
     // The table lists the latest 14 days at most, whatever the range.
     await expect(detail.locator("table tbody tr")).toHaveCount(14);
     await ranges.getByRole("button", { name: "7일" }).click();
