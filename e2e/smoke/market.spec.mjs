@@ -40,10 +40,10 @@ test.describe("시세 @smoke", () => {
     await expect(page.getByRole("region", { name: `${name} 시세` })).toBeVisible();
   });
 
-  test("기간 7일·14일을 전환한다", async ({ page }) => {
+  test("기간 7일·30일을 전환한다", async ({ page }) => {
     const range = page.getByRole("group", { name: "기간" });
     await range.getByRole("button", { name: "7일" }).click();
     await expect(range.getByRole("button", { name: "7일" })).toHaveAttribute("aria-pressed", "true");
-    await expect(range.getByRole("button", { name: "14일" })).toHaveAttribute("aria-pressed", "false");
+    await expect(range.getByRole("button", { name: "30일" })).toHaveAttribute("aria-pressed", "false");
   });
 });
