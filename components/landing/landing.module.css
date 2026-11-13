@@ -40,6 +40,11 @@
 .primaryButton:active, .searchSubmit:active { transform: scale(0.97); transition-duration: 100ms; }
 .hero { position: relative; padding: 116px 24px 78px; isolation: isolate; }
 .heroContent { display: flex; flex-direction: column; align-items: center; }
+/* The header search dialog is open (command-search-dialog sets the mark): the
+   hero's heading and search box would show through the gap under its bar and
+   below its panel (user 11-12, phone). Phones only: on wider screens the hero
+   stays (codex 11-13). Hidden, not removed: nothing moves. */
+@media (max-width: 700px) { :global(html[data-search-open]) .heroContent { visibility: hidden; } }
 .statusPill { font-size: 21px; font-weight: 600; letter-spacing: -0.4px; }
 .heroTitle { text-align: center; font-size: clamp(42px, 5.4vw, 80px); font-weight: 600; letter-spacing: -0.035em; line-height: 1.12; margin-top: 18px !important; }
 .heroTitle > .fpText > span { color: var(--muted-foreground); }

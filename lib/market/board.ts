@@ -168,11 +168,38 @@ export function goldText(value: number | null | undefined) {
   return `${value.toLocaleString("ko-KR", { maximumFractionDigits: 2 })}G`;
 }
 
-/** Completed days, oldest first (for charts); today's partial day is left out. */
-export function completedDays(variant: ItemVariant | undefined, limit = 14) {
+/**
+ * Chart ranges (user 11-12, api #920): 1시간 (exchange minutes), then days.
+ * An api from before #920 answers 14 days and echoes no `range`: the chart
+ * then keeps its old 1시간 · 7일 · 14일 tabs.
+ */
+export type DayRange = 7 | 14 | 30 | 90 | 365;
+export type ChartRange = "hour" | DayRange;
+export const RANGE_LABEL: Record<DayRange, string> = { 7: "7일", 14: "14일", 30: "30일", 90: "3개월", 365: "1년" };
+export const STORED_RANGES = ["hour", 7, 30, 90, 365] as const satisfies readonly ChartRange[];
+export const OLD_RANGES = ["hour", 7, 14] as const satisfies readonly ChartRange[];
+export type HistoryRange = "30d" | "90d" | "365d";
+/** The history answer a day range reads: 7 and 30 (and the old 14) come from one 30-day answer. */
+export const historyRange = (range: DayRange): HistoryRange => (range === 90 ? "90d" : range === 365 ? "365d" : "30d");
+/** One cache entry per item and answer range (the page's first item is prefetched with 30d). */
+export const historyKey = (itemId: number, range: HistoryRange) => ["market", "history", itemId, range] as const;
+
+/** The first date of a `range`-day window that ends on `baseDate` (both YYYY-MM-DD), as the api counts it. */
+export function windowStart(baseDate: string, range: number) {
+  const [y, m, d] = baseDate.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d - (range - 1))).toISOString().slice(0, 10);
+}
+
+/**
+ * Completed days, oldest first (for charts); today's partial day is left out. With `baseDate`
+ * only the days inside the `limit`-day calendar window count (codex #1595 P2: 7일 reads the
+ * 30-day answer, so with sparse records the last 7 rows could be weeks old).
+ */
+export function completedDays(variant: ItemVariant | undefined, limit = 14, baseDate?: string) {
   if (!variant) return [];
+  const from = baseDate ? windowStart(baseDate, limit) : null;
   return variant.days
-    .filter((day) => !day.partial)
+    .filter((day) => !day.partial && (from == null || day.date >= from))
     .slice(0, limit)
     .reverse();
 }

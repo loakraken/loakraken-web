@@ -227,8 +227,19 @@ async function market(url, req, send) {
     const itemId = Number(historyMatch[1]);
     if (itemId === 404) return send({ code: "MARKET_ITEM_NOT_FOUND" }, 404);
     const base = 50 + (itemId % 400);
-    const days = Array.from({ length: 14 }, (_, d) => ({ date: new Date(Date.now() - d * 86400000).toISOString().slice(0, 10), averagePrice: Math.round(base * (1 + Math.sin(itemId / 7 + d / 2) * 0.08) * 10) / 10, tradeCount: Math.round(80000 + 60000 * Math.abs(Math.cos(itemId + d))), partial: d === 0 }));
-    return send({ code: "MARKET_ITEM_HISTORY_SUCCESS", message: "성공", data: { itemId, observedAt: new Date(Date.now() - 120000).toISOString(), baseDate: days[0].date, variants: [{ name: "합성 품목", tradeRemainCount: null, bundleCount: 1, days, summary: { latestDate: days[1].date, latestAveragePrice: days[1].averagePrice, previousAveragePrice: days[2].averagePrice, dayChangeRate: 1.2, sevenDayDays: 7, sevenDayAveragePrice: base, sevenDayChangeRate: 0.4, sevenDayTradeCount: 700000 } }] } });
+    // api #920: ?range=7d|14d|30d|90d|365d (omitted = 14d), always echoed. The mock has 45 days
+    // stored (official 14 + 31 kept), so 3개월 and 1년 come back short: no zero fill.
+    const range = url.searchParams.get("range") ?? "14d";
+    const span = { "7d": 7, "14d": 14, "30d": 30, "90d": 90, "365d": 365 }[range];
+    if (!span) return send({ code: "INVALID_REQUEST", message: "range" }, 400);
+    const kept = Math.min(span < 14 ? 14 : span, 45);
+    const day = (d) => new Date(Date.now() - d * 86400000).toISOString().slice(0, 10);
+    // Longer reads also have a 5-day hole (20–24 days ago, never stored): no row, no zero.
+    const hole = (d) => span > 30 && d >= 20 && d <= 24;
+    // 7d and 14d are the official 14 days only: nothing stored is read, so both stored fields are null (api #920).
+    const official = span <= 14;
+    const days = Array.from({ length: kept }, (_, d) => d).filter((d) => !hole(d)).map((d) => ({ date: day(d), averagePrice: Math.round(base * (1 + Math.sin(itemId / 7 + d / 2) * 0.08) * 10) / 10, tradeCount: Math.round(80000 + 60000 * Math.abs(Math.cos(itemId + d))), partial: d === 0 }));
+    return send({ code: "MARKET_ITEM_HISTORY_SUCCESS", message: "성공", data: { itemId, range, observedAt: new Date(Date.now() - 120000).toISOString(), baseDate: days[0].date, variants: [{ name: "합성 품목", tradeRemainCount: null, bundleCount: 1, recordedSince: official ? null : day(44), storedDays: official ? null : Math.max(0, days.length - 14), days, summary: { latestDate: days[1].date, latestAveragePrice: days[1].averagePrice, previousAveragePrice: days[2].averagePrice, dayChangeRate: 1.2, sevenDayDays: 7, sevenDayAveragePrice: base, sevenDayChangeRate: 0.4, sevenDayTradeCount: 700000 } }] } });
   }
   if (url.pathname === "/api/v1/markets/options")
     return send(marketRead("market-options.json"));
@@ -988,6 +999,30 @@ createServer(async (req, res) => {
       step.combatPowerAfter = shift(step.combatPowerAfter);
       if (step.change.kind === "GEM_LEVEL") step.change.slot = 1;
     }
+    // 스펙업무기재련 (#1567): a weapon refine step and an armour one at the end of the path.
+    if (who === "스펙업무기재련") {
+      const [gem] = d.steps;
+      const last = d.steps.at(-1);
+      const top = last.combatPowerAfter;
+      const refine = (index, target, from, after) => ({
+        ...gem,
+        candidateId: `EQUIPMENT_REFINE:${index}:${from + 1}`,
+        kind: "EQUIPMENT_REFINE",
+        target,
+        from: `+${from}`,
+        to: `+${from + 1}`,
+        change: { kind: "EQUIPMENT_REFINE", slot: null, index, level: null, refine: from + 1, quality: null, name: null },
+        changes: undefined,
+        deltaCombatPower: 10,
+        combatPowerAfter: after,
+        // Unpriced, as the path's quality step.
+        cost: { ...last.cost },
+        cumulativeCost: null,
+        combatPowerPer10kGold: null,
+      });
+      d.steps.push(refine(0, "+20 테스트 무기", 20, top + 10), refine(1, "+19 테스트 투구", 19, top + 20));
+      d.steps.forEach((step, i) => (step.order = i + 1));
+    }
     const cut = d.steps.findIndex((step) => step.combatPowerAfter >= target);
     d.steps = cut >= 0 ? d.steps.slice(0, cut + 1) : d.steps;
     const last = d.steps.at(-1);
@@ -1046,6 +1081,23 @@ createServer(async (req, res) => {
       return send(kraken);
     }
     const envelope = specUp(who === "스펙업시세" ? "character-spec-up-pending.json" : "character-spec-up.json");
+    // 스펙업무기재련 (#1567): the weapon's refine step is computed (api #884) and an
+    // armour one comes OK too, so the screen's own gate (weapon only) is what keeps
+    // '적용해 보기' off the armour row.
+    if (who === "스펙업무기재련") {
+      const weapon = envelope.data.candidates.find((c) => c.id === "EQUIPMENT_REFINE:0:21");
+      Object.assign(weapon, { status: "OK", deltaCombatPower: 46.68, deltaPercent: 1.147, reasonCode: null, reason: null, reasonDetail: null });
+      envelope.data.candidates.push({
+        ...weapon,
+        id: "EQUIPMENT_REFINE:1:20",
+        target: "+19 테스트 투구",
+        from: "+19",
+        to: "+20",
+        change: { ...weapon.change, index: 1, refine: 20 },
+        deltaCombatPower: 12.5,
+        deltaPercent: 0.4,
+      });
+    }
     if (who !== "스펙업옛응답")
       Object.assign(envelope.data, {
         krakenScore: who === "스펙업점수꺼짐" ? null : 3977.02,
@@ -1120,7 +1172,9 @@ createServer(async (req, res) => {
     const computed = request.characterName === "전투력계산";
     // 서포터(backend #332): every change comes back unsupported with the role reason.
     const supporter = request.characterName === "상세서포터";
-    if (computed) withSimulatorGear(search);
+    // The same gear the character answer has, so each change's "from" is the worn step.
+    if (computed || request.characterName === "전투력계산저재련" || request.characterName === "스펙업무기재련") withSimulatorGear(search);
+    if (request.characterName === "전투력계산저재련") search.loadout.equipment.find((item) => item.type === "무기").detail.refineLevel = 8;
     const r2 = (v) => Math.round(v * 100) / 100;
     d.characterName = request.characterName;
     d.fetchedAt = search.fetchedAt;
@@ -2567,7 +2621,7 @@ createServer(async (req, res) => {
       { name: "도약", value: 50 + n * 4, description: null },
     ];
   }
-  if (name === "전투력계산" || name === "전투력계산저재련") withSimulatorGear(envelope.data);
+  if (name === "전투력계산" || name === "전투력계산저재련" || name === "스펙업무기재련") withSimulatorGear(envelope.data);
   // A weapon below options refineMin (10): the refine select still shows 8, not an empty box (#1555).
   if (name === "전투력계산저재련") envelope.data.loadout.equipment.find((item) => item.type === "무기").detail.refineLevel = 8;
   // 그 외 장착 보석 (L34): a second gem set on a skill the skill list does not

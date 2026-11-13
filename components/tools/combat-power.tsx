@@ -44,6 +44,7 @@ import {
   isOpen,
   isRefineOpen,
   polishValue,
+  refineEdit,
   type Grade,
   NO_EDITS,
   combatPowerFailureCopy,
@@ -65,7 +66,7 @@ import {
   serializeSaved,
   startHistory,
 } from "@/lib/combat-power/history";
-import { editsFor, type SpecUpChange } from "@/lib/spec-up/model";
+import { editsFor, gearTypeOf, type SpecUpChange } from "@/lib/spec-up/model";
 import { retryLabel } from "@/lib/api/rate-limit";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { SiteHeader } from "@/components/site/site-header";
@@ -356,7 +357,10 @@ function Editors({
                   <Select
                     label={`${item.type} 재련 단계`}
                     caption="재련"
-                    value={edits.refine[item.index] ?? item.refine}
+                    value={
+                      refineEdit(edits.refine[item.index], item, { min: options.refineMin, max: options.refineMax }) ??
+                      item.refine
+                    }
                     original={item.refine}
                     values={withCurrent(refineValues, item.refine)}
                     onChange={(refine) =>
@@ -783,7 +787,12 @@ export function CombatPowerSimulator({
   const [history, dispatch] = useReducer(historyReducer, undefined, () => {
     const empty = startHistory();
     // In order: a later step on the same slot (8→9→10) leaves the last level.
-    const first = (start ?? []).reduce<Edits | null>((edits, change) => editsFor(change, edits ?? NO_EDITS) ?? edits, null);
+    // The character tab passes the character, so a weapon refine step comes in (#1567).
+    const gearType = gearTypeOf(initial);
+    const first = (start ?? []).reduce<Edits | null>(
+      (edits, change) => editsFor(change, edits ?? NO_EDITS, gearType) ?? edits,
+      null,
+    );
     return first ? historyReducer(empty, { type: "load", edits: first }) : empty;
   });
   const edits = history.present;
@@ -811,9 +820,17 @@ export function CombatPowerSimulator({
   });
   const data = character.data?.data ?? initial ?? null;
   const current = useMemo(() => (data ? currentOf(data) : null), [data]);
+  const refineMin = options.data?.data.refineMin;
+  const refineMax = options.data?.data.refineMax;
+  // No changes until the options are here (codex #1572 P3): they carry the refine range, and a refine
+  // edit counts only once it is known, so a path asked earlier would go out without its refine step and
+  // then again with it. The editors wait for the options too, so nothing on screen waits longer.
   const changes = useMemo(
-    () => (current ? toChanges(edits, current as Current) : []),
-    [edits, current],
+    () =>
+      current && refineMin != null && refineMax != null
+        ? toChanges(edits, current as Current, { min: refineMin, max: refineMax })
+        : [],
+    [edits, current, refineMin, refineMax],
   );
   const debounced = useDebounced(changes);
   // Same changes → same key → no new request (PM-프론트 18:49).
