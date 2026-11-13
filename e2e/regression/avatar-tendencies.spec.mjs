@@ -50,7 +50,8 @@ test("덧입기 아바타 상세에는 '덧입기 칸에 착용 중', 기본 아
   await page.getByRole("button", { name: "합성 무기 덧입기 상세 보기" }).click();
   const card = page.getByRole("dialog");
   await expect(card).toContainText("덧입기 칸에 착용 중");
-  await expect(card).not.toContainText("능력 미적용");
+  // Any wording that says the abilities do not apply (unproven), not only the exact "능력 미적용" (codex #1589 P3).
+  await expect(card).not.toContainText(/적용되지|미적용/);
   await page.keyboard.press("Escape");
   await expect(card).toHaveCount(0);
   await page.getByRole("button", { name: "합성 무기 아바타 상세 보기" }).click();
