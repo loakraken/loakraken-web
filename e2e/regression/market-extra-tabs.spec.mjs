@@ -45,7 +45,8 @@ test("시세 분류: 탭 목록을 기다리는 동안의 자리 탭에는 아�
   await page.goto("/market");
   const tabs = page.getByRole("tablist", { name: "시세 분류" });
   await expect(tabs.getByRole("tab", { name: "재련 재료", exact: true })).toBeDisabled();
-  await expect(tabs.getByRole("tab")).toHaveCount(8);
+  // The long-standing eight, then 보석 · 장신구 (pages of their own, never held back).
+  await expect(tabs.getByRole("tab")).toHaveCount(10);
   await expect(tabs.getByRole("tab", { name: "아바타", exact: true })).toHaveCount(0);
   await expect(tabs.getByRole("tab", { name: "장비 상자", exact: true })).toHaveCount(0);
   // The api's list arrives (it has both here): now they are there and can be opened.

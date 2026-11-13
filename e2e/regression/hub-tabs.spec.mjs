@@ -5,7 +5,8 @@ import { test, expect, expectNoHorizontalOverflow, gotoReady } from "../support/
 
 // Tabs that are always on (flagged ones may be off on a deployment).
 const HUBS = [
-  { name: "시세", tabs: [["거래소", "/market"], ["보석", "/market/gems"], ["장신구", "/market/accessories"], ["재료 견적", "/market/quote"]] },
+  // 보석 · 장신구 joined the category row under 품목 시세 (user 11-12); that tab covers their pages.
+  { name: "시세", tabs: [["품목 시세", "/market"], ["재료 견적", "/market/quote"]] },
   { name: "레이드", tabs: [["보상표", "/tools/raid-rewards"], ["더보기 손익", "/tools/more-reward"], ["경매 입찰가", "/tools/auction"], ["기여도", "/tools/contribution"], ["컨닝페이퍼", "/tools/raid-cheatsheet"]] },
   { name: "골드 효율", tabs: [["로아샵", "/tools/loa-shop"], ["아비도스 제작", "/tools/abidos-craft"], ["생명의 기운", "/tools/life-energy"]] },
   { name: "캐릭터 성장", tabs: [["재련", "/tools/refining"]] },
