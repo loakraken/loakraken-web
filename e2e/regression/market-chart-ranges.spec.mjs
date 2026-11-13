@@ -189,10 +189,11 @@ test("7일 창에 기록이 없으면 같은 높이 상자에 안내, 캡션·�
   const figure = detail.locator("figure").first();
   await expect(detail.locator("figure svg path.k-draw")).toBeVisible();
   const caption = detail.getByText(/^하루 평균 거래가와 거래량/);
+  // Page positions (the press on 7일 may scroll it into view).
   const place = async () => ({
     figure: await figure.evaluate((el) => el.getBoundingClientRect().height),
-    caption: await caption.evaluate((el) => Math.round(el.getBoundingClientRect().top)),
-    table: await detail.locator("table").evaluate((el) => Math.round(el.getBoundingClientRect().top)),
+    caption: await caption.evaluate((el) => Math.round(el.getBoundingClientRect().top + scrollY)),
+    table: await detail.locator("table").evaluate((el) => Math.round(el.getBoundingClientRect().top + scrollY)),
   });
   const before = await place();
   await detail.getByRole("group", { name: "기간" }).getByRole("button", { name: "7일" }).click();
