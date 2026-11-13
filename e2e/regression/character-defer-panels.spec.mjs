@@ -59,6 +59,10 @@ test("360: 깊은 패널로 바로 가도 그 자리에 머물고, 위로 올려
   await page.waitForTimeout(500);
   const later = (await views.boundingBox()).y;
   expect(Math.abs(later - first), `조회수 패널이 ${first} → ${later}로 움직임`).toBeLessThanOrEqual(1);
+  // And where it should be: its top at the jump's target (the top edge, after any scroll-padding),
+  // not merely somewhere stable (codex 11-13: a wrong-but-stable landing must fail).
+  const target = await page.evaluate(() => parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop) || 0);
+  expect(Math.abs(later - target), `조회수 패널 위 끝 ${later}, 가야 할 곳 ${target}`).toBeLessThanOrEqual(2);
   const mark = await shiftMark(page);
   for (let i = 0; i < 12; i += 1) {
     await page.mouse.wheel(0, -500);
