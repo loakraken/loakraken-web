@@ -42,11 +42,38 @@ function Select<V extends string | number>(props: SelectProps<V>) {
   // A key pressed meanwhile still reaches the light button and asks "open",
   // which the full select reads when it mounts.
   const [Loaded, setLoaded] = React.useState<{ Full: Full } | null>(null)
+  const button = React.useRef<HTMLButtonElement>(null)
+  // Set just before the swap: the light button's blur as React removes it is
+  // not the user leaving.
+  const swapping = React.useRef(false)
   const want = (mode: "rest" | "open") => {
     setFull((was) => (mode === "open" ? "open" : (was ?? "rest")))
-    if (loaded) setLoaded({ Full: loaded })
-    else load().then((Full) => setLoaded({ Full }), () => {})
+    const swap = (Full: Full) => {
+      swapping.current = true
+      setLoaded({ Full })
+    }
+    if (loaded) swap(loaded)
+    else load().then(swap, () => {})
   }
+  // The user left the field while its code was loading (Tab, a click or focus
+  // elsewhere): forget the request, so it never opens or takes focus later
+  // (codex #1576 P2). Escape keeps the field but drops a pending open.
+  const leave = () => {
+    if (!swapping.current) setFull(null)
+  }
+  const pending = full !== null && !Loaded
+  React.useEffect(() => {
+    if (!pending) return
+    const away = (event: Event) => {
+      if (!button.current?.contains(event.target as Node)) leave()
+    }
+    document.addEventListener("focusin", away, true)
+    document.addEventListener("pointerdown", away, true)
+    return () => {
+      document.removeEventListener("focusin", away, true)
+      document.removeEventListener("pointerdown", away, true)
+    }
+  }, [pending])
   const label = items.find((item) => item.value === value)?.label
 
   const light = (
@@ -54,6 +81,7 @@ function Select<V extends string | number>(props: SelectProps<V>) {
     // select loads (on focus or hover), so there is nothing for aria-controls
     // to name yet; aria-expanded is false.
     <button
+      ref={button}
       type="button"
       id={id}
       data-slot="select"
@@ -74,11 +102,14 @@ function Select<V extends string | number>(props: SelectProps<V>) {
         if (event.button === 0) event.preventDefault()
       }}
       onFocus={() => want("rest")}
+      onBlur={leave}
       onClick={() => want("open")}
       onKeyDown={(event) => {
         if (["ArrowDown", "ArrowUp", "Enter", " "].includes(event.key)) {
           event.preventDefault()
           want("open")
+        } else if (event.key === "Escape") {
+          setFull((was) => (was === "open" ? "rest" : was))
         }
       }}
     >
