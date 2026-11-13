@@ -2169,12 +2169,16 @@ function SiblingList({
         {/* Up to 400px the pills fill the row with one-word names (four sorts
             in the system font are wider than a 360 screen); the full name
             stays the accessible name. Wider, the full names decide in CSS when
-            the row stacks (labels); up to 400px it stays one row of short names. */}
+            the row stacks against the toolbar's width, as the old measurement
+            did (labels); up to 400px it stays one row of short names. */}
         <SegmentedControl
           aria-label="원정대 정렬"
           value={sort}
           onValueChange={(value) => setSort(value as RosterSort)}
           labels={ROSTER_SORTS.map((item) => item.label)}
+          // The toolbar (a full-width flex row) is the container, so the switches
+          // keep sharing the row with the sort (a frame would take the whole line).
+          frame={false}
           className="max-[400px]:w-full! max-[400px]:grid-flow-col! max-[400px]:auto-cols-fr! max-[400px]:rounded-full! max-[400px]:gap-1!"
         >
           {ROSTER_SORTS.map((item) => (

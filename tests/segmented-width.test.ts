@@ -28,3 +28,12 @@ test("price bases: one row needs 333.8px, so 390 (card 334px) keeps a row and 37
 test("auction party presets (12px sides) still fit the 254px side column", () => {
   assert.ok(segmentedRowWidth(PARTY_PRESETS.map((p) => p.label), 12) <= 254);
 });
+
+test("mixed sides: the widest item counts its own sides, not the narrowest sides of the row", () => {
+  // A long label with 16px sides next to a short one with 12px sides.
+  const mixed = segmentedRowWidth([
+    { text: "가나다라", pad: 16 },
+    { text: "가", pad: 12 },
+  ]);
+  assert.equal(mixed, segmentedRowWidth(["가나다라", "가나다라"]));
+});

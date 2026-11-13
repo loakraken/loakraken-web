@@ -4,23 +4,21 @@ import * as React from "react"
 import { Radio } from "@base-ui/react/radio"
 import { RadioGroup } from "@base-ui/react/radio-group"
 import { cn } from "cn"
-import { SEGMENTED_ITEM_PAD_PX, segmentedRowWidth } from "@/lib/ui/segmented-width"
+import { SEGMENTED_ITEM_PAD_PX, type SegmentedLabel, segmentedRowWidth } from "@/lib/ui/segmented-width"
 
-// The labels of the items, when each is plain text (or a number); null when one
-// is not (an icon, nested spans): such a row passes `labels`, or never stacks.
-function itemLabels(children: React.ReactNode): { labels: string[]; pad: number } | null {
-  const labels: string[] = []
-  let pad = SEGMENTED_ITEM_PAD_PX
+// The items' labels and sides, when each label is plain text (or a number); null
+// when one is not (an icon, nested spans): such a row passes `labels`, or never stacks.
+function itemLabels(children: React.ReactNode): SegmentedLabel[] | null {
+  const items: SegmentedLabel[] = []
   for (const child of React.Children.toArray(children)) {
     if (!React.isValidElement<{ children?: React.ReactNode; className?: string }>(child)) return null
     const parts = React.Children.toArray(child.props.children)
     if (!parts.length || !parts.every((part) => typeof part === "string" || typeof part === "number")) return null
-    labels.push(parts.join(""))
-    // An item with narrower sides (px-3: 12px), unprefixed so it holds at every width.
+    // An item with its own sides (px-3: 12px), unprefixed so it holds at every width.
     const side = /(?:^|\s)px-(\d+(?:\.\d+)?)(?=\s|$)/.exec(child.props.className ?? "")
-    if (side) pad = Math.min(pad, Number(side[1]) * 4)
+    items.push({ text: parts.join(""), pad: side ? Number(side[1]) * 4 : SEGMENTED_ITEM_PAD_PX })
   }
-  return labels.length ? { labels, pad } : null
+  return items.length ? items : null
 }
 
 // One-of-few choice shown as a pill row (price basis, period, sort). Base UI
@@ -33,33 +31,48 @@ function itemLabels(children: React.ReactNode): { labels: string[]; pad: number 
 //
 // "auto" decides that in CSS, before the first paint: the row's width comes
 // from its labels (lib/ui/segmented-width.ts, the widest face the font stack can
-// draw them in) and a container query on a full-width frame stacks the items
-// when the parent offers less. Nothing is measured after the fonts load, so
-// nothing below moves (#346, #1145, /market/quote 360·375 CLS 0.15 at 1.6 Mbps).
+// draw them in) and a container query stacks the items when the container is
+// narrower. Nothing is measured after the fonts load, so nothing below moves
+// (#346, #1145, /market/quote 360·375 CLS 0.15 at 1.6 Mbps).
+//
+// The container is a full-width frame around the row by default. A container
+// has no width of its own content (inline-size containment), so a row whose
+// parent sizes to its content (an auto grid column, a flex row next to other
+// controls) either fixes its orientation or passes frame={false} and makes a
+// full-width ancestor the container (container-type: inline-size).
 function SegmentedControl({
   className,
   fill = false,
   orientation = "auto",
   labels,
+  frame = true,
   children,
   ...props
 }: RadioGroup.Props & {
   fill?: boolean
-  /** "auto" stacks the row in CSS when its parent is narrower than the labels
-   * need. "horizontal"/"vertical" fix it. */
+  /** "auto" stacks the row in CSS when its container is narrower than the
+   * labels need. "horizontal"/"vertical" fix it. */
   orientation?: "auto" | "horizontal" | "vertical"
   /** The text the width is decided from when an item is not plain text (nested
    * spans, an icon); without it such a row is never stacked. */
   labels?: string[]
+  /** false: no frame; the nearest ancestor with container-type: inline-size is
+   * the container (for rows inside content-sized parents). */
+  frame?: boolean
 }) {
   const found =
-    orientation !== "auto" ? null : labels?.length ? { labels, pad: SEGMENTED_ITEM_PAD_PX } : itemLabels(children)
-  const stackBelow = found ? segmentedRowWidth(found.labels, found.pad) : null
+    orientation !== "auto"
+      ? null
+      : labels?.length
+        ? labels.map((text) => ({ text, pad: SEGMENTED_ITEM_PAD_PX }))
+        : itemLabels(children)
+  const stackBelow = found ? segmentedRowWidth(found) : null
   const vertical = orientation === "vertical"
   const track = (
     <RadioGroup
       data-slot="segmented-control"
       data-orientation={stackBelow != null ? "auto" : vertical ? "vertical" : "horizontal"}
+      data-stack-below={stackBelow ?? undefined}
       className={cn(
         "grid max-w-full gap-1 bg-muted p-1",
         // Equal columns on one row; a full pill on a 40px row. ("auto" starts
@@ -82,24 +95,33 @@ function SegmentedControl({
     </RadioGroup>
   )
   if (stackBelow == null) return track
-  // The frame takes the width the parent offers (the old measurement's "room")
-  // and is the container the query reads. The stacked look is the vertical
-  // state above, written out; one attribute more specific than the row classes.
-  const at = `[data-stack-below="${stackBelow}"] [data-slot="segmented-control"][data-orientation="auto"]`
+  // The stacked look is the vertical state above, written out; one attribute
+  // more specific than the row classes. Without container queries the row is
+  // always stacked (never cut).
+  const at = `[data-slot="segmented-control"][data-orientation="auto"][data-stack-below="${stackBelow}"]`
+  const stacked = `${at}{width:100%;grid-auto-flow:row;grid-auto-columns:auto;border-radius:20px}`
+  const gap = `@media (max-width:699px),(pointer:coarse){${at}{row-gap:12px}}`
+  const style = (
+    <style
+      // Plain CSS text (no markup); the selector names this row's width only.
+      dangerouslySetInnerHTML={{
+        __html:
+          `@container (width < ${stackBelow}px){${stacked}${gap}}` +
+          `@supports not (container-type:inline-size){${stacked}${gap}}`,
+      }}
+    />
+  )
+  if (!frame)
+    return (
+      <>
+        {style}
+        {track}
+      </>
+    )
+  // The frame takes the width the parent offers (the old measurement's "room").
   return (
-    <div
-      data-slot="segmented-frame"
-      data-stack-below={stackBelow}
-      className="w-full min-w-0 self-start [container-type:inline-size]"
-    >
-      <style
-        // Plain CSS text (no markup); the selector names this row's width only.
-        dangerouslySetInnerHTML={{
-          __html:
-            `@container (width < ${stackBelow}px){${at}{width:100%;grid-auto-flow:row;grid-auto-columns:auto;border-radius:20px}` +
-            `@media (max-width:699px),(pointer:coarse){${at}{row-gap:12px}}}`,
-        }}
-      />
+    <div data-slot="segmented-frame" className="w-full min-w-0 self-start [container-type:inline-size]">
+      {style}
       {track}
     </div>
   )

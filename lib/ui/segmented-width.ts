@@ -34,14 +34,21 @@ export function labelWidth(text: string, fontPx = SEGMENTED_LABEL_PX): number {
   return em * fontPx
 }
 
+/** One item: its label and its own sides (px-4 = 16px unless the item sets less). */
+export type SegmentedLabel = { text: string; pad: number }
+
 /**
  * The narrowest container that holds the row on one line: equal columns, each
- * the widest label plus its sides, the gaps and the track padding. Rounded up
- * to 0.1px. Narrower than this the row is stacked.
+ * as wide as the widest item (its label plus its own sides), the gaps and the
+ * track padding. Rounded up to 0.1px. Narrower than this the row is stacked.
  */
-export function segmentedRowWidth(labels: string[], itemPadPx = SEGMENTED_ITEM_PAD_PX): number {
-  const widest = Math.max(...labels.map((label) => labelWidth(label)))
-  const n = labels.length
-  const px = n * (widest + 2 * itemPadPx) + GAP_PX * (n - 1) + 2 * TRACK_PAD_PX
+export function segmentedRowWidth(items: (string | SegmentedLabel)[], itemPadPx = SEGMENTED_ITEM_PAD_PX): number {
+  const widest = Math.max(
+    ...items.map((item) =>
+      typeof item === "string" ? labelWidth(item) + 2 * itemPadPx : labelWidth(item.text) + 2 * item.pad,
+    ),
+  )
+  const n = items.length
+  const px = n * widest + GAP_PX * (n - 1) + 2 * TRACK_PAD_PX
   return Math.ceil(px * 10) / 10
 }

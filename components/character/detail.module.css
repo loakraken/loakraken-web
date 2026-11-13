@@ -1244,6 +1244,8 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 10px 18px;
+  /* The roster sort stacks against this row's width (SegmentedControl frame={false}). */
+  container-type: inline-size;
 }
 .rosterSwitch {
   display: inline-flex;
