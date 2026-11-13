@@ -211,6 +211,8 @@
   gap: 6px;
 }
 .unit input {
+  /* Brought into view below the sticky site bar (61px) when Enter moves its box. */
+  scroll-margin: 72px 0 16px;
   width: 8ch;
   min-height: 32px;
   padding: 0 8px;

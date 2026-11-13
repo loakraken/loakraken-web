@@ -309,8 +309,19 @@ for (const [width, height] of [
     await expect.poll(names).not.toEqual(order);
     expect((await names())[0]).toBe("팔찌 상자");
     await expect(page.getByText("지금 값 기준으로 좋은 순서예요.", { exact: true })).toBeVisible();
-    // Typing on holds again; leaving the field re-ranks (1 → the 팔찌 box drops back).
-    await field.focus();
+    // The box moved with the field in it: the field keeps focus and is brought back into view, fully
+    // below the sticky site bar, with no help from the test (codex #1574 P2).
+    await expect(field).toBeFocused();
+    await expect
+      .poll(() =>
+        field.evaluate((el) => {
+          const r = el.getBoundingClientRect();
+          const bar = document.querySelector("header").getBoundingClientRect().bottom;
+          return r.top >= bar && r.bottom <= window.innerHeight;
+        }),
+      )
+      .toBe(true);
+    // Typing on holds again (still in the field); leaving it re-ranks (1 → the 팔찌 box drops back).
     const ranked = await names();
     for (let i = 0; i < 5; i++) await page.keyboard.press("Backspace");
     await expect(field).toHaveValue("1");
@@ -320,3 +331,69 @@ for (const [width, height] of [
     await expect.poll(async () => (await names())[0]).toBe("융화 재료 상자");
     await expectNoHorizontalOverflow(page);
   });
+
+// codex #1574 P2: (1) a price landing for a '시세 없음' item removes its value field; a removed field fires
+// no blur, so typing must end there (no held order, no '입력을 마치면…' line left behind). (2) A value
+// field focused with nothing typed: a price change that reorders reads as a price change. The one-
+// minute refresh is run on the page clock; the price answer is the web's own ({ ok, envelope }).
+async function pricesWith(page, prices) {
+  await page.route("**/api/markets/material-prices", async (route) => {
+    const response = await route.fetch();
+    const body = await response.json();
+    for (const item of body.envelope?.data?.items ?? [])
+      if (item.name in prices) Object.assign(item, { status: "PRICED", unitPriceGold: prices[item.name] });
+    await route.fulfill({ response, json: body });
+  });
+}
+const orderNote = (page) => page.locator("p").filter({ has: page.getByRole("button", { name: "지금 시세로 다시 정렬" }) }).locator("span");
+
+test("1280 지옥 · 나락 보상: 입력 중 시세가 와 값 칸이 사라지면 입력이 끝남, 순서 · 문구가 남지 않음 @regression", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.clock.install();
+  const prices = {};
+  await pricesWith(page, prices);
+  await page.goto("/tools/hell-reward");
+  const head = page.locator("dl").filter({ hasText: "가장 좋은 상자" });
+  const list = page.getByRole("list", { name: "상자별 값(좋은 순)" });
+  const names = () => list.locator(":scope > li > p strong").allInnerTexts();
+  await expect(head.getByRole("definition").nth(1)).toHaveText("21,416G");
+  const order = await names();
+  expect(order[0]).toBe("융화 재료 상자");
+  // 용암 has no price: its value field. 100000 typed: 재련 보조 is the best box now, the order held.
+  const lava = page.getByRole("spinbutton", { name: "용암의 숨결 1개 값(골드)" });
+  await lava.click();
+  await page.keyboard.type("100000");
+  await expect(head.getByRole("definition").nth(0)).toHaveText("재련 보조 상자");
+  await expect(orderNote(page)).toHaveText("입력을 마치면 값 순서로 다시 정렬해요.");
+  expect(await names()).toEqual(order);
+  // The refresh brings a 용암 price (1,000G) while the field has focus: the field goes.
+  prices["용암의 숨결"] = 1000;
+  await page.clock.runFor(61_000);
+  await expect(lava).toHaveCount(0);
+  // Typing ended: the list follows the values now (재련 보조 16,571 + 12 × 1,000 first), plain line.
+  await expect.poll(async () => (await names())[0]).toBe("재련 보조 상자");
+  await expect(orderNote(page)).toHaveText("지금 값 기준으로 좋은 순서예요.");
+});
+
+test("1280 지옥 · 나락 보상: 값 칸에 있어도 입력하지 않았으면 시세로 바뀐 순서는 시세 문구 @regression", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.clock.install();
+  const prices = {};
+  await pricesWith(page, prices);
+  await page.goto("/tools/hell-reward");
+  const head = page.locator("dl").filter({ hasText: "가장 좋은 상자" });
+  const list = page.getByRole("list", { name: "상자별 값(좋은 순)" });
+  const names = () => list.locator(":scope > li > p strong").allInnerTexts();
+  await expect(head.getByRole("definition").nth(1)).toHaveText("21,416G");
+  const order = await names();
+  // In the 팔찌 field, nothing typed; the refresh brings a 용암 price that puts 재련 보조 on top.
+  const bracelet = page.getByRole("spinbutton", { name: "팔찌 상자 (고대) 1개 값(골드)" });
+  await bracelet.click();
+  prices["용암의 숨결"] = 1000;
+  await page.clock.runFor(61_000);
+  await expect(head.getByRole("definition").nth(0)).toHaveText("재련 보조 상자");
+  // The order is held (prices never reorder by themselves) and the line says why: prices, not typing.
+  expect(await names()).toEqual(order);
+  await expect(orderNote(page)).toHaveText("시세가 바뀌어 지금 값과 순서가 달라요.");
+  await expect(bracelet).toBeFocused();
+});
