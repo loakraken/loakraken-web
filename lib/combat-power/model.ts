@@ -160,11 +160,6 @@ export function gradeWithValue(grade: string, value: string | null) {
 export const braceletName = (text: string) =>
   text.split(/\s*[+\-−]?\d/)[0].trim() || text.trim();
 
-/**
- * Only real differences become changes, in a fixed order (gems, gear, then the
- * rest in screen order), so
- * the same edits always send the same body and hit the same cache entry.
- */
 /** The refine steps the api takes (options refineMin..refineMax); unknown until the options load. */
 export type RefineRange = { min: number; max: number } | null | undefined;
 
@@ -173,7 +168,9 @@ export type RefineRange = { min: number; max: number } | null | undefined;
  * the options range, and not the step worn. A saved pick of +8 (the weapon's own
  * step, under refineMin 10) read after the weapon was honed in game, a spec-up
  * step past refineMax or an armour step would be refused (codex #1555, #1567),
- * so they count as no edit and the row shows the step worn.
+ * so they count as no edit and the row shows the step worn. Until the options
+ * arrive the range is unknown, so nothing is sent yet: the edit goes out with
+ * the first answer that has the range, or never if it is outside (codex #1572 P3).
  */
 export function refineEdit(
   edit: number | null | undefined,
@@ -181,10 +178,15 @@ export function refineEdit(
   range: RefineRange,
 ): number | null {
   if (edit == null || item.refine == null || edit === item.refine || !isRefineOpen(item.type)) return null;
-  if (range && (edit < range.min || edit > range.max)) return null;
+  if (!range || edit < range.min || edit > range.max) return null;
   return edit;
 }
 
+/**
+ * Only real differences become changes, in a fixed order (gems, gear, then the
+ * rest in screen order), so
+ * the same edits always send the same body and hit the same cache entry.
+ */
 export function toChanges(edits: Edits, current: Current, range?: RefineRange): Change[] {
   const changes: Change[] = [];
   const allLevel = edits.gemAll;
