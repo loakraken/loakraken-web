@@ -1,5 +1,6 @@
 "use client";
 
+import { FpEnd } from "@/components/ui/fp-end";
 import { HubTabs } from "@/components/site/hub-tabs";
 
 import { Fragment, useEffect, useId, useState } from "react";
@@ -50,8 +51,8 @@ function Change({ rate }: { rate: number | null | undefined }) {
   const direction = rate > 0 ? "up" : rate < 0 ? "down" : undefined;
   return (
     <small className={styles.change} data-direction={direction}>
-      {rate > 0 ? "▲" : rate < 0 ? "▼" : ""}
-      {Math.abs(rate).toLocaleString("ko-KR", { maximumFractionDigits: 1 })}%
+      {/* One text node: arrow, number and % as three drew the arrow alone first (A7). */}
+      {`${rate > 0 ? "▲" : rate < 0 ? "▼" : ""}${Math.abs(rate).toLocaleString("ko-KR", { maximumFractionDigits: 1 })}%`}
     </small>
   );
 }
@@ -307,6 +308,9 @@ export function GemBoardView({
             </button>
           </div>
         ) : (
+          // Drawn once whole (data-fp-whole): the columns and rows size from every cell, so a cell
+          // that came later moved the ones already drawn (A7, gem-board:93 @320, :22 @360).
+          <div data-fp-whole="">
           <DataTable label="보석 시세" className={`${stats.table} ${styles.board}`} aria-busy={!data || undefined}>
             <caption className={stats.srOnly}>4티어 보석 레벨별 즉시 구매 최저가</caption>
             <thead>
@@ -343,6 +347,8 @@ export function GemBoardView({
               ))}
             </tbody>
           </DataTable>
+          <FpEnd />
+          </div>
         )}
 
         <section className={styles.listings} aria-labelledby="gem-listings-heading" {...pendingProps(listings)}>

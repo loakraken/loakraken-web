@@ -1,5 +1,6 @@
 "use client";
 
+import { FpEnd } from "@/components/ui/fp-end";
 import { HubTabs } from "@/components/site/hub-tabs";
 import { AccessoryViews } from "./accessory-views";
 
@@ -53,8 +54,8 @@ function Change({ rate }: { rate: number | null | undefined }) {
   const direction = rate > 0 ? "up" : rate < 0 ? "down" : undefined;
   return (
     <small className={gems.change} data-direction={direction}>
-      {rate > 0 ? "▲" : rate < 0 ? "▼" : ""}
-      {Math.abs(rate).toLocaleString("ko-KR", { maximumFractionDigits: 1 })}%
+      {/* One text node: arrow, number and % as three drew the arrow alone first (A7). */}
+      {`${rate > 0 ? "▲" : rate < 0 ? "▼" : ""}${Math.abs(rate).toLocaleString("ko-KR", { maximumFractionDigits: 1 })}%`}
     </small>
   );
 }
@@ -81,7 +82,9 @@ function Slots({
     return pulse && { ...pulse, dir: 0 as const };
   };
   return (
-    <div className={styles.slots} {...pending}>
+    // Drawn once whole (data-fp-whole): the slots' cells size the grid, so a cell that came later
+    // moved the ones already drawn (A7, market boards sweep).
+    <div className={styles.slots} {...pending} data-fp-whole="">
       {data.slots.map((slot) => (
         <section key={slot.slot} className={styles.slot} aria-labelledby={`slot-${slot.slot}`}>
           <h2 id={`slot-${slot.slot}`}>
@@ -107,6 +110,7 @@ function Slots({
         </section>
       ))}
       <UpdateAnnouncer text={changed.summary ? `장신구 시세 ${changed.summary}` : ""} />
+      <FpEnd />
     </div>
   );
 }
@@ -229,7 +233,7 @@ export function AccessoryBoardView({
           <AccessoryViews search={search} />
         </section>
 
-        <form className={stats.filters} onSubmit={(e) => e.preventDefault()} aria-label="장신구 시세 조건">
+        <form className={stats.filters} onSubmit={(e) => e.preventDefault()} aria-label="장신구 시세 조건" data-fp-whole="">
           <span className={stats.segment} role="group" aria-label="등급">
             {GRADES.map((item) => (
               <button key={item.id} type="button" aria-pressed={filter.grade === item.id} onClick={() => refilter({ grade: item.id })}>
@@ -253,6 +257,8 @@ export function AccessoryBoardView({
               items={QUALITIES.map((q) => ({ value: q, label: q === 0 ? "무관" : `${q} 이상` }))}
             />
           </label>
+          {/* Last: the bar is drawn once all of it is here (data-fp-whole). */}
+          <FpEnd />
         </form>
 
         {/* Drawn anew when it says something else (text rewritten in place moves, A7). */}
