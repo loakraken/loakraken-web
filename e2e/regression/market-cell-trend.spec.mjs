@@ -42,7 +42,7 @@ test("칸을 고르기 전과 기간 기록을 못 읽을 때도 같은 자리 �
 for (const width of [320, 1280])
   test(`${width}: 장신구 칸 최저가 추이와 그 부위 등급 조합(최저가 · 전일 대비) @regression`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
-    await gotoReady(page, "/market/accessories?slot=NECKLACE&levels=HIGH");
+    await gotoReady(page, "/market/accessories?slot=NECKLACE&levels=HIGH,HIGH");
     await expect(trend(page).getByRole("img", { name: CHART })).toBeVisible();
     const combos = page.getByRole("region", { name: /등급 조합$/ });
     const rows = combos.locator("tbody tr");
