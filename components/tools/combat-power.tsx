@@ -822,10 +822,13 @@ export function CombatPowerSimulator({
   const current = useMemo(() => (data ? currentOf(data) : null), [data]);
   const refineMin = options.data?.data.refineMin;
   const refineMax = options.data?.data.refineMax;
+  // No changes until the options are here (codex #1572 P3): they carry the refine range, and a refine
+  // edit counts only once it is known, so a path asked earlier would go out without its refine step and
+  // then again with it. The editors wait for the options too, so nothing on screen waits longer.
   const changes = useMemo(
     () =>
-      current
-        ? toChanges(edits, current as Current, refineMin != null && refineMax != null ? { min: refineMin, max: refineMax } : null)
+      current && refineMin != null && refineMax != null
+        ? toChanges(edits, current as Current, { min: refineMin, max: refineMax })
         : [],
     [edits, current, refineMin, refineMax],
   );
@@ -834,9 +837,7 @@ export function CombatPowerSimulator({
   const simulation = useQuery({
     queryKey: ["combat-power", name, data?.fetchedAt, debounced],
     queryFn: ({ signal }) => postSimulation({ characterName: name, changes: debounced }, signal),
-    // After the options (codex #1572 P3): they carry the refine range, and a refine edit counts only once
-    // it is known, so asking earlier would send the path without its refine step and then again with it.
-    enabled: !!data && debounced.length > 0 && options.data != null,
+    enabled: !!data && debounced.length > 0,
     placeholderData: keepPreviousData,
     staleTime: 60_000,
     retry: false,
