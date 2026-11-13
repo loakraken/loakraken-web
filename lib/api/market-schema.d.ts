@@ -582,6 +582,8 @@ export interface components {
              */
             baseDate: string;
             variants: components["schemas"]["MarketItemVariantResponse"][];
+            /** @description 적용한 기간 문자열(api #920, 늘 돌려줌). 이 필드가 없으면 기간 조회 전 api. */
+            range?: string;
         };
         MarketItemVariantResponse: {
             name: string | null;
@@ -590,6 +592,13 @@ export interface components {
             /** @description 최신순 일별 시세 */
             days: components["schemas"]["MarketDailyStatResponse"][];
             summary: components["schemas"]["MarketItemSummaryResponse"];
+            /** @description 이 변형의 저장 첫 날짜(api #920). 저장 행이 없으면 null. */
+            recordedSince?: string | null;
+            /**
+             * Format: int32
+             * @description 범위 안 저장 완료일 수(api #920).
+             */
+            storedDays?: number;
         };
         MarketDailyStatResponse: {
             /** Format: date */
@@ -1183,7 +1192,10 @@ export interface operations {
     };
     itemHistory: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description 기간(api #920). 생략 = 14d = 지금과 같은 응답. 30d 이상은 저장한 완료일과 공식 14일을 합침(같은 날은 공식 값). */
+                range?: "7d" | "14d" | "30d" | "90d" | "365d";
+            };
             header?: never;
             path: {
                 itemId: number;

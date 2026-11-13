@@ -137,3 +137,16 @@ test("market favourites toggle newest first and drop malformed entries", () => {
   assert.deepEqual(parseFavorites(JSON.stringify([item, { itemId: -1 }, { ...item, tab: "GEM" }])).length, 1);
   assert.deepEqual(parseFavorites("oops"), []);
 });
+
+test("history range (api #920): only 7d·14d·30d·90d·365d go to the api, as ?range=; none = the old 14 days", async () => {
+  const seen: (string | null)[] = [];
+  const fetcher = (async (url: URL) => {
+    seen.push(url.searchParams.get("range"));
+    return Response.json(fixture("market-item-history.json"));
+  }) as unknown as typeof fetch;
+  assert.equal((await requestItemHistory("66102006", origin, { fetcher }, "90d")).ok, true);
+  assert.equal((await requestItemHistory("66102006", origin, { fetcher })).ok, true);
+  assert.equal((await requestItemHistory("66102006", origin, { fetcher }, "999d")).ok, false);
+  assert.equal((await requestItemHistory("66102006", origin, { fetcher }, "30d&x=1")).ok, false);
+  assert.deepEqual(seen, ["90d", null], "a range outside the list never reaches the api");
+});

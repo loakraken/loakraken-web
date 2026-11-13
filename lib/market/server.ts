@@ -32,8 +32,8 @@ export const getMarketTabs = (signal?: AbortSignal, timeoutMs?: number) =>
   requestTabs(origin(), { signal, timeoutMs });
 export const getMarketBoard = (query: URLSearchParams, signal?: AbortSignal, timeoutMs?: number) =>
   requestBoard(query, origin(), { signal, timeoutMs });
-export const getItemHistory = (itemId: string, signal?: AbortSignal, timeoutMs?: number) =>
-  requestItemHistory(itemId, origin(), { signal, timeoutMs });
+export const getItemHistory = (itemId: string, signal?: AbortSignal, timeoutMs?: number, range?: string | null) =>
+  requestItemHistory(itemId, origin(), { signal, timeoutMs }, range);
 export const getItemMinutes = (itemId: number, signal?: AbortSignal) =>
   requestItemMinutes(itemId, origin(), { signal });
 

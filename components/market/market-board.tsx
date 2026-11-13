@@ -30,11 +30,17 @@ import {
   changeWithAmount,
   completedDays,
   goldText,
+  historyKey,
+  historyRange,
+  OLD_RANGES,
+  RANGE_LABEL,
+  STORED_RANGES,
   TAB_FALLBACK,
   isTabId,
   unitPrice,
   type BoardItem,
   type BoardQuery,
+  type ChartRange,
   type ItemHistory,
   type MarketTab,
 } from "@/lib/market/board";
@@ -169,8 +175,8 @@ function FactChange({ item }: { item: Pick<BoardItem, "currentMinPrice" | "yeste
  * above. The line is there from the first paint (a blank before the data), so
  * nothing moves when it arrives (A7).
  */
-function PeriodChange({ range, points }: { range: "hour" | 7 | 14; points: { value: number }[] | null }) {
-  const label = range === "hour" ? "1시간" : `${range}일`;
+function PeriodChange({ range, points }: { range: ChartRange; points: { value: number }[] | null }) {
+  const label = range === "hour" ? "1시간" : RANGE_LABEL[range];
   const { direction, percent } = periodChange(points ?? []);
   if (!points || percent == null)
     return (
@@ -237,19 +243,38 @@ function Detail({
   const starred = favorites.some((f) => f.itemId === item.itemId);
   const unit = unitPrice(item.currentMinPrice, item.bundleCount);
   // 1시간 (K35): the last hour by minute, from prices the warm-up already fetched.
-  const [range, setRange] = useState<"hour" | 7 | 14>(14);
+  // Days (user 11-12, api #920): 7일 · 30일 · 3개월 · 1년; it opens on 30일.
+  const [picked, setRange] = useState<ChartRange>(30);
   const [variantIndex, setVariantIndex] = useState(0);
-  const history = useQuery({
-    queryKey: ["market", "history", item.itemId],
-    queryFn: ({ signal }) => fetchItemHistory(item.itemId, signal),
+  // Whether the api answers ranges: the 30-day answer (always read) echoes its range.
+  const base = useQuery({
+    queryKey: historyKey(item.itemId, "30d"),
+    queryFn: ({ signal }) => fetchItemHistory(item.itemId, "30d", signal),
     staleTime: 10 * 60_000,
     ...quiet,
   });
+  const stored = base.data ? base.data.data.range != null : true;
+  const ranges: readonly ChartRange[] = stored ? STORED_RANGES : OLD_RANGES;
+  // A range the api cannot answer (an older api) falls back to its 14 days.
+  const range: ChartRange = ranges.includes(picked) ? picked : 14;
+  const answer = range === "hour" ? "30d" : historyRange(range);
+  const longer = useQuery({
+    queryKey: historyKey(item.itemId, answer),
+    queryFn: ({ signal }) => fetchItemHistory(item.itemId, answer, signal),
+    enabled: answer !== "30d",
+    staleTime: 10 * 60_000,
+    ...quiet,
+  });
+  const history = answer === "30d" ? base : longer;
   const data: ItemHistory | undefined = history.data?.data;
   const variant = data?.variants[Math.min(variantIndex, (data?.variants.length ?? 1) - 1)];
-  // The 14-day table stays as it was while the hour is shown.
-  const tableDays = range === "hour" ? 14 : range;
-  const days = completedDays(variant, tableDays);
+  const chartDays = range === "hour" ? 14 : range;
+  const days = completedDays(variant, chartDays);
+  // The table lists the latest days only (at most 14), and stays as it was while the hour is shown.
+  const tableDays = Math.min(chartDays, 14);
+  // Fewer days than the range: say how many there are; nothing is filled in (user 11-12).
+  // (Today is partial and not charted, so a full range has range − 1 completed days.)
+  const short = range !== "hour" && range > 14 && stored && days.length < range - 1 ? days.length : null;
   const minutes = useQuery({
     queryKey: ["market", "minutes", item.itemId],
     queryFn: ({ signal }) => fetchItemMinutes(item.itemId, signal),
@@ -339,18 +364,14 @@ function Detail({
           />
         </div>
         <div className={styles.ranges} role="group" aria-label="기간">
-          {([
-            ["hour", "1시간"],
-            [7, "7일"],
-            [14, "14일"],
-          ] as const).map(([value, label]) => (
+          {ranges.map((value) => (
             <button
               key={value}
               type="button"
               aria-pressed={range === value}
               onClick={() => setRange(value)}
             >
-              {label}
+              {value === "hour" ? "1시간" : RANGE_LABEL[value]}
             </button>
           ))}
         </div>
@@ -386,7 +407,7 @@ function Detail({
             label="최근 1시간 판매 최저가. 화살표 키로 분을 이동할 수 있어요."
           />
         ) : (
-          <ChartPlaceholder>이 품목은 분 단위로 확인하지 않아요. 7일·14일 추이를 봐 주세요.</ChartPlaceholder>
+          <ChartPlaceholder>이 품목은 분 단위로 확인하지 않아요. 일 단위 추이를 봐 주세요.</ChartPlaceholder>
         )
       ) : failure ? (
         <Problem failure={failure} onRetry={() => history.refetch()} />
@@ -408,7 +429,7 @@ function Detail({
       <p className={styles.chartCaption}>
         {range === "hour"
           ? [`판매 최저가`, sampleText(minute?.sampleEverySeconds), "확인하지 않은 분은 비어 있어요"].filter(Boolean).join(" · ")
-          : "하루 평균 거래가와 거래량"}
+          : ["하루 평균 거래가와 거래량", short != null && `${RANGE_LABEL[range]} 중 ${short}일치 기록`].filter(Boolean).join(" · ")}
       </p>
       {/* The 14-day table under the caption arrives with the history: hold its
           place, so the caption stays put when it lands (A7). */}
@@ -443,7 +464,8 @@ function Detail({
       )}
       {data && (
         <p className={styles.note}>
-          공식 거래소 일별 통계 · {at(data.observedAt)} 수집 · 가격은 묶음 기준
+          {range !== "hour" && range > 14 ? "공식 거래소 일별 통계와 LOAKraken 저장 기록" : "공식 거래소 일별 통계"} ·{" "}
+          {at(data.observedAt)} 수집 · 가격은 묶음 기준
         </p>
       )}
     </section>

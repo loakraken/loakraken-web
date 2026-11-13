@@ -168,6 +168,22 @@ export function goldText(value: number | null | undefined) {
   return `${value.toLocaleString("ko-KR", { maximumFractionDigits: 2 })}G`;
 }
 
+/**
+ * Chart ranges (user 11-12, api #920): 1시간 (exchange minutes), then days.
+ * An api from before #920 answers 14 days and echoes no `range`: the chart
+ * then keeps its old 1시간 · 7일 · 14일 tabs.
+ */
+export type DayRange = 7 | 14 | 30 | 90 | 365;
+export type ChartRange = "hour" | DayRange;
+export const RANGE_LABEL: Record<DayRange, string> = { 7: "7일", 14: "14일", 30: "30일", 90: "3개월", 365: "1년" };
+export const STORED_RANGES = ["hour", 7, 30, 90, 365] as const satisfies readonly ChartRange[];
+export const OLD_RANGES = ["hour", 7, 14] as const satisfies readonly ChartRange[];
+export type HistoryRange = "30d" | "90d" | "365d";
+/** The history answer a day range reads: 7 and 30 (and the old 14) come from one 30-day answer. */
+export const historyRange = (range: DayRange): HistoryRange => (range === 90 ? "90d" : range === 365 ? "365d" : "30d");
+/** One cache entry per item and answer range (the page's first item is prefetched with 30d). */
+export const historyKey = (itemId: number, range: HistoryRange) => ["market", "history", itemId, range] as const;
+
 /** Completed days, oldest first (for charts); today's partial day is left out. */
 export function completedDays(variant: ItemVariant | undefined, limit = 14) {
   if (!variant) return [];
