@@ -5,7 +5,8 @@
 import { test, expect, characterPath, gotoReady, expectNoHorizontalOverflow } from "../support/fixtures.mjs";
 import { shiftsSince, watchShifts } from "../support/shifts.mjs";
 
-for (const width of [320, 360, 1280])
+// 390 too (#1590: the one-column layouts up to 900px, where deferred panels sit above this card).
+for (const width of [320, 360, 390, 1280])
   test(`${width}: 각인 카드 머리·등급 표시·유물/스톤 표시, 이름 줄 맞춤 @regression`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await watchShifts(page);
