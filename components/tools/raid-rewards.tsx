@@ -211,12 +211,12 @@ export function RaidRewardsTable() {
       <SiteHeader />
       <main id="raid-main">
         <section className={quote.hero} aria-labelledby="raid-heading">
-          <span className={quote.heroIcon} aria-hidden="true">
-            <Coin size={18} />
-          </span>
           <p className={quote.heroKicker}>레이드 · 보상</p>
           <h1 id="raid-heading">레이드 보상표</h1>
           <p className={quote.heroCopy}>관문별 골드와 더보기 비용, 공식 공지 기준.</p>
+          <span className={quote.heroIcon} aria-hidden="true">
+            <Coin size={18} />
+          </span>
           <Link href="/" className={quote.back}>
             <ArrowLeft size={14} aria-hidden="true" /> 홈으로
           </Link>
