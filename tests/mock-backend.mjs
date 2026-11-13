@@ -12,6 +12,8 @@ const read = (name) =>
     readFileSync(new URL(`./fixtures/${name}`, import.meta.url), "utf8"),
   );
 const counts = {};
+// Client addresses that already had their one busy goal answer (api #922, spec-up-goal-retry spec).
+const goalBusyOnce = new Set();
 /** BYOK: last four characters of the X-LK-User-Key each character read carried. */
 const userKeys = {};
 
@@ -669,6 +671,24 @@ createServer(async (req, res) => {
       },
     });
   }
+  // Auction cell history (api #920): one cell's last seen lowest price by day, newest first,
+  // 45 stored days (a 5-day hole 20–24 days ago on ranges past 30), today partial. 작열 1레벨
+  // (still PENDING on the board) has no rows yet.
+  if (url.pathname === "/api/v1/markets/auctions/gems/history" || url.pathname === "/api/v1/markets/auctions/accessories/history") {
+    const gem = url.pathname.includes("/gems/");
+    const range = url.searchParams.get("range") ?? "14d";
+    const span = { "7d": 7, "14d": 14, "30d": 30, "90d": 90, "365d": 365 }[range];
+    if (!span) return send({ code: "INVALID_REQUEST", message: "range" }, 400);
+    const empty = gem && url.searchParams.get("kind") === "작열" && url.searchParams.get("level") === "1";
+    const seed = gem ? Number(url.searchParams.get("level")) * 7 + (url.searchParams.get("kind") === "겁화" ? 3 : 0) : (url.searchParams.get("levels") ?? "").length * 5;
+    const base = gem ? 40000 * Math.pow(1.9, Number(url.searchParams.get("level")) - 5) : 180000 + seed * 9000;
+    const day = (d) => new Date(Date.now() - d * 86400000).toISOString().slice(0, 10);
+    const kept = empty ? 0 : Math.min(span, 45);
+    const days = Array.from({ length: kept }, (_, d) => d)
+      .filter((d) => !(span > 30 && d >= 20 && d <= 24))
+      .map((d) => ({ date: day(d), minBuyPrice: Math.round(base * (1 + Math.sin(seed + d / 3) * 0.06)), totalCount: 20 + ((seed + d * 7) % 60), observedAt: new Date(Date.now() - d * 86400000 - 3600000).toISOString(), partial: d === 0 }));
+    return send({ code: gem ? "AUCTION_GEMS_SUCCESS" : "AUCTION_ACCESSORIES_SUCCESS", message: "성공", data: { ruleVersion: "auction-board-v1", range, recordedSince: empty ? null : day(44), storedDays: days.length, days } });
+  }
   // T4 gem auction board and listings (api #139): synthetic prices; 작열 1레벨
   // is still PENDING (blank cell), 겁화 10레벨 has listings over two pages.
   if (url.pathname === "/api/v1/markets/auctions/gems") {
@@ -968,6 +988,15 @@ createServer(async (req, res) => {
     const target = Number(url.searchParams.get("targetCombatPower"));
     if (who === "스펙업꺼짐") return send({ code: "SPEC_UP_DISABLED", message: "", data: null }, 404);
     if (who === "미존재") return send({ code: "CHARACTER_NOT_CACHED", message: "", data: null }, 404);
+    // api #922: every computing seat taken. The target 12451.5 is busy once per client address (the
+    // spec-up-goal-retry spec gives each run its own), then answers as usual.
+    // 12452.5 waits 3 s instead (long enough to press during the countdown).
+    const client = req.headers["x-forwarded-for"];
+    const busyFor = { 12451.5: "1", 12452.5: "3" }[target];
+    if (busyFor && client && !goalBusyOnce.has(`${client}|${target}`)) {
+      goalBusyOnce.add(`${client}|${target}`);
+      return send({ code: "SPEC_UP_BUSY", message: "", data: null }, 429, { "Retry-After": busyFor });
+    }
     // api #592 (spec-up-goal-v2): the backend's own answer as it is — gem steps cost
     // from now to that level, and the totals are its own (never summed here).
     if (who === "스펙목표v2" || who === "스펙목표0골드") {

@@ -51,6 +51,11 @@ test("targets the backend would refuse never leave the proxy; its 400 and 404 co
     fetcher: async () => json({ code: "CLIENT_RATE_LIMITED", message: "", data: null }, 429, { "Retry-After": "10" }),
   });
   assert.ok(!limited.ok && limited.error.code === "LOST_ARK_RATE_LIMITED" && limited.error.retryAt);
+  // api #922: every computing seat taken keeps its own code and Retry-After, as on the path.
+  const busy = await requestSpecUpGoal("목캐릭터", "3100", origin, {
+    fetcher: async () => json({ code: "SPEC_UP_BUSY", message: "", data: null }, 429, { "Retry-After": "2" }),
+  });
+  assert.ok(!busy.ok && busy.error.code === "SPEC_UP_BUSY" && busy.error.status === 429 && busy.error.retryAt);
 });
 
 test("target input follows the backend rule: above 0, two decimals, at most twice today", () => {

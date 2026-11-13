@@ -255,6 +255,9 @@ button.orbStage:focus-visible { outline: 3px solid var(--ring); outline-offset: 
 .routeLinks { display: flex; justify-content: center; flex-wrap: wrap; gap: 15px; }
 .routeLinks a { display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; font-size: 14px; border: 1px solid var(--input); border-radius: 28px; color: var(--foreground); text-decoration: none; }
 .routeLinks a:last-child { background: var(--primary); color: var(--primary-foreground); border-color: var(--ring); }
+/* The label and its size copy (data-fp-label) share one cell. */
+.routeLinks a[data-fp-label] { display: inline-grid; place-items: center; }
+.routeLinks a[data-fp-label] > span { grid-area: 1 / 1; }
 .routeLinks a:focus-visible { outline: 3px solid var(--ring); outline-offset: 4px; }
 @keyframes hero-enter { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes nudge { 0%, 70%, 100% { transform: translateY(0); } 85% { transform: translateY(4px); } }

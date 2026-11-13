@@ -2,24 +2,9 @@
 
 import { HubTabs } from "@/components/site/hub-tabs";
 
-import { useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import {
-  AddSquare,
-  Bookmark,
-  BookmarkBold,
-  StarBold,
-  BookSquare,
-  Box,
-  Coffee,
-  Diamonds,
-  Flash,
-  Gift,
-  HierarchySquare,
-  MagicStar,
-  Tree,
-  TrendUp,
-} from "@/components/ui/icons";
+import { Bookmark, BookmarkBold, StarBold, TrendUp } from "@/components/ui/icons";
 import { GameIcon } from "@/components/character/imagery";
 import { LandingMotion } from "@/components/landing/motion";
 import { InlineOrb } from "@/components/landing/orb";
@@ -65,23 +50,9 @@ import quote from "../tools/material-quote.module.css";
 import { ChartPlaceholder, MarketChart, dayPoints, minutePoints, periodChange } from "./market-chart";
 import { sampleText } from "@/lib/market/minutes";
 import { SiteHeader } from "@/components/site/site-header";
-import { PillTab, PillTabs } from "@/components/ui/pill-tabs";
 import { BoardSearch } from "./board-search";
+import { MarketCategoryRow } from "./category-row";
 import { useTallest } from "@/components/ui/use-tallest";
-
-// One Iconsax mark per category (decorative; the label names the tab).
-const TAB_ICON: Record<string, ReactNode> = {
-  REFINING: <MagicStar />,
-  REFINING_EXTRA: <AddSquare />,
-  ARK_GRID: <HierarchySquare />,
-  WEAPON_EVOLUTION: <Flash />,
-  ENGRAVING_BOOK: <BookSquare />,
-  LIFE: <Tree />,
-  BATTLE_ITEM: <Box />,
-  FOOD: <Coffee />,
-  AVATAR: <Diamonds />,
-  EQUIPMENT_BOX: <Gift />,
-};
 import styles from "./market.module.css";
 import { rateLimitCopy, retryLabel } from "@/lib/api/rate-limit";
 import { RateLimitNote } from "@/components/site/rate-limit-note";
@@ -683,26 +654,8 @@ function MarketContent({
         </section>
 
         <div className={styles.band}>
-          {(tabList.length > 0 || tabs.isPending) && (
-            <PillTabs
-              aria-label="시세 분류"
-              value={query.tab}
-              onValueChange={(tab) => update({ tab: tab as MarketTab["tab"], tier: null, page: 1 })}
-            >
-              {tabList.length
-                ? tabList.map((t) => (
-                    <PillTab key={t.tab} value={t.tab} icon={TAB_ICON[t.tab]}>
-                      {t.label}
-                    </PillTab>
-                  ))
-                : // Same names and sizes as the live list: nothing moves when it arrives.
-                  TAB_FALLBACK.map((t) => (
-                    <PillTab key={t.tab} value={t.tab} icon={TAB_ICON[t.tab]} disabled>
-                      {t.label}
-                    </PillTab>
-                  ))}
-            </PillTabs>
-          )}
+          {/* Exchange categories switch here; 보석 · 장신구 open their own pages (user 11-12). */}
+          <MarketCategoryRow value={query.tab} onExchange={(tab) => update({ tab, tier: null, page: 1 })} />
           {favorites.length === 0 ? (
             // In the bar's own 30px row: saved favourites replace it after
             // loading (browser storage), so it must be no taller than them.

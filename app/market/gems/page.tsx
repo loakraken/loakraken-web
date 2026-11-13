@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { dehydrate, HydrationBoundary, QueryClient } from "@tanstack/react-query";
 import { GemBoardView } from "@/components/market/gem-board";
 import { parseGemPick } from "@/lib/market/auction-gems";
-import { getGemBoard, getGemSkills } from "@/lib/market/server";
+import { getGemBoard, getGemSkills, getMarketTabs } from "@/lib/market/server";
 
 export const metadata: Metadata = {
   title: "보석 시세",
@@ -25,12 +25,15 @@ export default async function GemsPage({
   // The class/skill list comes along (a fixed list, no official call): the
   // first HTML already knows whether the filter is there, so it never pops in.
   const deadline = AbortSignal.timeout(1_000);
-  const [board, skills] = await Promise.all([getGemBoard(deadline), getGemSkills(deadline)]);
+  // The category row (exchange categories + 보석 · 장신구) reads the market tab list: it comes too,
+  // so the row is the same as on /market from the first paint.
+  const [board, skills, tabs] = await Promise.all([getGemBoard(deadline), getGemSkills(deadline), getMarketTabs(deadline)]);
   // eslint-disable-next-line react-hooks/purity
   const fetchedAt = Date.now();
   const client = new QueryClient();
   if (board.ok) client.setQueryData(["gem-board"], board.envelope, { updatedAt: fetchedAt });
   if (skills.ok) client.setQueryData(["gem-skills"], skills.envelope, { updatedAt: fetchedAt });
+  if (tabs.ok) client.setQueryData(["market", "tabs"], tabs.envelope, { updatedAt: fetchedAt });
   // No list (switched off, not deployed yet, slow): no filter row at all on this load.
   const filter = skills.ok ? "on" : "off";
   return (
