@@ -143,3 +143,55 @@ test("7일은 최근 7일 날짜 안의 기록만, 모자라면 'N일치 기록'
   // Today (partial), 1 and 5 days ago: nothing from 9 days ago or older.
   await expect(detail.locator("table tbody tr")).toHaveCount(3);
 });
+
+// codex #1595 delta: a placeholder is labelled by the answer it is. 3개월 → 1시간 → 1년 (still loading) shows the
+// 30-day answer, so its caption must not say '3개월 중 …'.
+test("기간 전환 중 자리 데이터는 제 기간 이름으로(3개월 → 1시간 → 1년) @regression", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 900 });
+  let release;
+  const gate = new Promise((resolve) => (release = resolve));
+  await page.route(/\/api\/markets\/items\/\d+\/history\?range=365d/, async (route) => {
+    await gate;
+    await route.continue();
+  });
+  await gotoReady(page, "/market?tab=ENGRAVING_BOOK");
+  const detail = detailOf(page);
+  const ranges = detail.getByRole("group", { name: "기간" });
+  const caption = detail.getByText(/^하루 평균 거래가와 거래량|^판매 최저가/);
+  await ranges.getByRole("button", { name: "3개월" }).click();
+  await expect(caption).toHaveText("하루 평균 거래가와 거래량 · 3개월 중 39일치 기록");
+  await ranges.getByRole("button", { name: "1시간" }).click();
+  await expect(caption).toHaveText(/^판매 최저가/);
+  await ranges.getByRole("button", { name: "1년" }).click();
+  await page.waitForTimeout(500);
+  await expect(caption).toHaveText("하루 평균 거래가와 거래량");
+  release();
+  await expect(caption).toHaveText("하루 평균 거래가와 거래량 · 1년 중 39일치 기록");
+});
+
+// codex #1595 delta: 7일 with no record in its window keeps the chart's box (a message inside, same height) and
+// says '0일치', so nothing below moves.
+test("7일 창에 기록이 없으면 같은 높이 상자에 안내, 흔들림 0 @regression", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 900 });
+  await watchShifts(page);
+  await page.route(/\/api\/markets\/items\/\d+\/history\?range=30d/, async (route) => {
+    const response = await route.fetch();
+    const body = await response.json();
+    const base = Date.parse(body.envelope.data.baseDate);
+    const keep = new Set([0, 9, 15]);
+    for (const variant of body.envelope.data.variants)
+      variant.days = variant.days.filter((d) => keep.has(Math.round((base - Date.parse(d.date)) / 86_400_000)));
+    await route.fulfill({ response, json: body });
+  });
+  await gotoReady(page, "/market?tab=ENGRAVING_BOOK");
+  await page.getByRole("region", { name: /각인서 시세/ }).getByRole("listitem").nth(1).getByRole("button").first().click();
+  const detail = detailOf(page);
+  const figure = detail.locator("figure").first();
+  await expect(detail.locator("figure svg path.k-draw")).toBeVisible();
+  const height = await figure.evaluate((el) => el.getBoundingClientRect().height);
+  const moved = await shiftsDuring(page, () => detail.getByRole("group", { name: "기간" }).getByRole("button", { name: "7일" }).click(), 1000);
+  await expect(detail.getByText("최근 7일 기록이 없어요.")).toBeVisible();
+  await expect(detail.getByText(/^하루 평균 거래가와 거래량/)).toHaveText("하루 평균 거래가와 거래량 · 7일 중 0일치 기록");
+  expect(await figure.evaluate((el) => el.getBoundingClientRect().height)).toBe(height);
+  expect(moved.all, `7일 빈 창 흔들림 (${moved.moved})`).toBe(0);
+});
