@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import { NO_EDITS } from "../lib/combat-power/model";
-import { costPriceNote, costRoom, editsFor, groupStages, gemTarget, keepOrder, koreanGold, readTry, readTryPath, splitCandidates, tryParam, tryPathParam } from "../lib/spec-up/model";
+import { costPriceNote, costRoom, editsFor, gearTypeOf, groupStages, gemTarget, keepOrder, koreanGold, readTry, readTryPath, splitCandidates, tryParam, tryPathParam } from "../lib/spec-up/model";
 import { requestSpecUp } from "../lib/spec-up/upstream";
 import { isSpecUpEnvelope } from "../lib/spec-up/validate";
 
@@ -77,7 +77,14 @@ test("적용해 보기 turns a change into simulator inputs, through the URL", (
   assert.deepEqual(editsFor(quality, NO_EDITS)?.quality, { 0: 100 });
   const engraving = { ...gem, kind: "ENGRAVING_LEVEL", slot: null, level: 4, name: "원한" };
   assert.deepEqual(editsFor(engraving, NO_EDITS)?.engraving, { 원한: 4 });
-  assert.equal(editsFor({ ...gem, kind: "EQUIPMENT_REFINE", refine: 21 }, NO_EDITS), null, "refine is not editable yet");
+  // Refine (#1567): the weapon's step comes in; armour's, or one whose slot is unknown, does not (api #884).
+  const gearType = gearTypeOf({ loadout: { equipment: [{ type: "무기" }, { type: "투구" }] } } as never);
+  const refine = { ...gem, kind: "EQUIPMENT_REFINE", slot: null, level: null, index: 0, refine: 21 };
+  assert.deepEqual(editsFor(readTry(tryParam(refine)), NO_EDITS, gearType)?.refine, { 0: 21 });
+  assert.equal(editsFor({ ...refine, index: 1 }, NO_EDITS, gearType), null, "armour refine stays 준비 중");
+  assert.equal(editsFor(refine, NO_EDITS), null, "no character, no slot");
+  assert.equal(editsFor({ ...refine, index: 7 }, NO_EDITS, gearType), null, "no such slot");
+  assert.equal(editsFor({ ...refine, refine: null }, NO_EDITS, gearType), null);
   // 완갑 (api #809): level and grade into 팔 보호구; without a grade the worn one stays.
   const guard = { ...gem, kind: "ARM_GUARD", slot: null, level: 18, grade: "유물" };
   assert.deepEqual(editsFor(guard, NO_EDITS)?.armGuard, { level: 18, grade: "유물" });
