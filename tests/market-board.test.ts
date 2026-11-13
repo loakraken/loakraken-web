@@ -7,6 +7,7 @@ import {
   changeLabel,
   changeWithAmount,
   completedDays,
+  windowStart,
   goldText,
   unitPrice,
   updatedAgo,
@@ -90,6 +91,29 @@ test("history charts use completed days, oldest first", () => {
   assert.equal(days.length, 7);
   assert.ok(days.every((day) => !day.partial));
   assert.ok(days[0].date < days.at(-1)!.date);
+});
+
+// codex #1595 P1: api #920 sends storedDays (and recordedSince) null when no stored record is read
+// (7d, 14d, a store that could not be read). Refusing that would be a 502 for every such chart.
+test("item history: the stored fields may be null, as api #920 sends them on 7d/14d", () => {
+  const body = fixture("market-item-history.json");
+  body.data.range = "14d";
+  for (const variant of body.data.variants) Object.assign(variant, { recordedSince: null, storedDays: null });
+  assert.equal(isItemHistoryEnvelope(body), true);
+  body.data.variants[0].storedDays = "3";
+  assert.equal(isItemHistoryEnvelope(body), false);
+});
+
+// codex #1595 P2: 7일 reads the 30-day answer; with sparse records the last 7 ROWS reached back weeks.
+test("history days stay inside the calendar window that ends on the base date", () => {
+  assert.equal(windowStart("2026-11-14", 7), "2026-11-08");
+  assert.equal(windowStart("2026-03-02", 7), "2026-02-24");
+  const row = (date: string, partial = false) => ({ date, averagePrice: 10, tradeCount: 1, partial });
+  const variant = { ...fixture("market-item-history.json").data.variants[0], days: [row("2026-11-14", true), row("2026-11-12"), row("2026-11-09"), row("2026-10-30"), row("2026-10-20")] };
+  assert.deepEqual(completedDays(variant, 7, "2026-11-14").map((d) => d.date), ["2026-11-09", "2026-11-12"]);
+  assert.equal(completedDays(variant, 30, "2026-11-14").length, 4);
+  // Without a base date (an api before ranges): the latest rows, as before.
+  assert.equal(completedDays(variant, 7).length, 4);
 });
 
 test("board and history requests validate input and pass through allow-listed errors", async () => {

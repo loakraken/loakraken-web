@@ -157,10 +157,22 @@ export function MarketChart({
     const top = y(Math.max(...prices));
     const bottom = y(Math.min(...prices));
     // By time the readings are not evenly apart: straight segments between
-    // them, not the even curve.
+    // them, not the even curve. By date, a missing day breaks the line (codex
+    // #1595 P2: a line across the gap reads as days we have); a day alone
+    // between two gaps is a dot (the round cap of a hair-long stroke).
+    const breaks = (i: number) => dated && i > 0 && days[i].t! - days[i - 1].t! > 86_400_000;
+    const alone = (i: number) => (i === 0 || breaks(i)) && (i === days.length - 1 || breaks(i + 1));
     const curved = timed || gaps
       ? days.length > 1
-        ? { d: days.map((d, i) => `${i ? "L" : "M"}${(x(i) - PAD.left).toFixed(1)} ${y(d.value).toFixed(1)}`).join(" ") }
+        ? {
+            d: days
+              .map((d, i) => {
+                const at = `${(x(i) - PAD.left).toFixed(1)} ${y(d.value).toFixed(1)}`;
+                if (i && !breaks(i)) return `L${at}`;
+                return alone(i) ? `M${at} h0.01` : `M${at}`;
+              })
+              .join(" "),
+          }
         : null
       : days.length > 1
         ? curve(prices, plotW, top + bottom, top)

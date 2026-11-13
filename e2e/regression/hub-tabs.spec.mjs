@@ -29,6 +29,19 @@ test.describe("묶음 화면 탭 @regression", () => {
       }
     });
 
+  // codex #1597 P3: 보석 · 장신구 are pages of the 품목 시세 tab. Opened directly, the hub row is in their own
+  // server HTML too, with 품목 시세 the one current tab.
+  for (const path of ["/market/gems", "/market/accessories"])
+    test(`시세: ${path}에서도 서버 HTML의 탭 줄, 지금 탭은 품목 시세 하나`, async ({ page }) => {
+      const html = await (await page.request.get(path)).text();
+      expect(html, `${path}: 탭 줄`).toContain('aria-label="시세 화면"');
+      for (const [, other] of HUBS[0].tabs) expect(html, `${path}: ${other} 링크`).toContain(`href="${other}"`);
+      await page.goto(path);
+      const row = tabRow(page, "시세");
+      await expect(row.getByRole("link", { name: "품목 시세", exact: true })).toHaveAttribute("aria-current", "page");
+      await expect(row.locator('[aria-current="page"]')).toHaveCount(1);
+    });
+
   test("탭을 누르거나 키보드로 고르면 그 페이지 주소로 간다", async ({ page }) => {
     await page.goto("/tools/raid-rewards");
     const row = tabRow(page, "레이드");

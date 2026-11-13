@@ -8,13 +8,13 @@ for (const width of [1280, 390, 320])
     await page.setViewportSize({ width, height: 900 });
     await watchShifts(page);
     await gotoReady(page, "/market");
-    const tabs = page.getByRole("tablist", { name: "시세 분류" });
+    const tabs = page.getByRole("navigation", { name: "시세 분류" });
     for (const [label, id] of [
       ["아바타", "AVATAR"],
       ["장비 상자", "EQUIPMENT_BOX"],
     ]) {
-      const tab = tabs.getByRole("tab", { name: label, exact: true });
-      await expect(tab).toBeEnabled();
+      const tab = tabs.getByRole("link", { name: label, exact: true });
+      await expect(tab).toHaveAttribute("href", `/market?tab=${id}`);
       await tab.scrollIntoViewIfNeeded();
       const moved = await shiftsDuring(page, () => tab.click());
       await expect(page).toHaveURL(new RegExp(`tab=${id}`));
@@ -27,11 +27,12 @@ for (const width of [1280, 390, 320])
     }
   });
 
-// While the tab list has not arrived (slow or failed), the stand-in tabs are the long-standing eight only: an api
-// before #873 must never be offered 아바타 or 장비 상자 (codex on #1476). They come with the api's own list.
-test("시세 분류: 탭 목록을 기다리는 동안의 자리 탭에는 아바타·장비 상자가 없음 @regression", async ({ page }) => {
+// The row is one fixed list (codex #1597 P2-2): while the api's tab list has not arrived (slow or failed) it
+// already holds every category, the same as after, so nothing is put in front of 보석 · 장신구 later. Every api in
+// service opens 아바타 · 장비 상자 (api #873, master since 11-09), so the earlier stand-in eight are gone.
+test("시세 분류: 탭 목록을 기다리는 동안에도 같은 12개 줄, 목록이 와도 그대로 @regression", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
-  // The page is drawn on the server with the tab list already in it, so the stand-ins show only when that
+  // The page is drawn on the server with the tab list already in it, so the wait shows only when that
   // list could not be had: this client's address makes the mock backend refuse it (tests/mock-backend.mjs).
   await page.setExtraHTTPHeaders({ "x-forwarded-for": "203.0.113.180" });
   let release;
@@ -43,14 +44,15 @@ test("시세 분류: 탭 목록을 기다리는 동안의 자리 탭에는 아�
   });
   // Not gotoReady: its network-idle wait would never end while the list is held.
   await page.goto("/market");
-  const tabs = page.getByRole("tablist", { name: "시세 분류" });
-  await expect(tabs.getByRole("tab", { name: "재련 재료", exact: true })).toBeDisabled();
-  // The long-standing eight, then 보석 · 장신구 (pages of their own, never held back).
-  await expect(tabs.getByRole("tab")).toHaveCount(10);
-  await expect(tabs.getByRole("tab", { name: "아바타", exact: true })).toHaveCount(0);
-  await expect(tabs.getByRole("tab", { name: "장비 상자", exact: true })).toHaveCount(0);
-  // The api's list arrives (it has both here): now they are there and can be opened.
+  const tabs = page.getByRole("navigation", { name: "시세 분류" }).getByRole("link");
+  await expect(tabs).toHaveCount(12);
+  const before = await tabs.allTextContents();
+  expect(before.slice(-4)).toEqual(["아바타", "장비 상자", "보석", "장신구"]);
+  const width = await page.getByRole("navigation", { name: "시세 분류" }).locator("ul").evaluate((el) => el.offsetWidth);
+  const arrived = page.waitForResponse("**/api/markets/tabs*");
   release();
-  await expect(tabs.getByRole("tab", { name: "아바타", exact: true })).toBeEnabled();
-  await expect(tabs.getByRole("tab", { name: "장비 상자", exact: true })).toBeEnabled();
+  await arrived;
+  await page.waitForTimeout(300);
+  expect(await tabs.allTextContents()).toEqual(before);
+  expect(await page.getByRole("navigation", { name: "시세 분류" }).locator("ul").evaluate((el) => el.offsetWidth)).toBe(width);
 });

@@ -2372,9 +2372,16 @@
             "description": "이 변형의 저장 첫 날짜(api #920). 저장 행이 없으면 null."
           },
           "storedDays": {
-            "type": "integer",
-            "format": "int32",
-            "description": "범위 안 저장 완료일 수(api #920)."
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "범위 안 저장 완료일 수(api #920). 저장 기록을 읽지 않은 답(7d·14d, 저장소를 못 읽은 경우)은 null."
           }
         },
         "required": [

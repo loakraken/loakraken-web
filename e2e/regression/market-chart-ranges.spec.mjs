@@ -76,7 +76,70 @@ test("기록에만 있는 거래 조건은 '지난 기록'으로 따로 고른�
   await expect(terms.getByRole("button")).toHaveText(["1개", "지난 기록"]);
   await terms.getByRole("button", { name: "지난 기록" }).click();
   await expect(terms.getByRole("button", { name: "지난 기록" })).toHaveAttribute("aria-pressed", "true");
-  // Its own 20 stored days: the table lists the latest 14 of them.
-  await expect(detail.locator("table tbody tr")).toHaveCount(14);
+  // Its own stored days are 11–30 days old: the table lists those inside its 14-day window (3).
+  await expect(detail.locator("table tbody tr")).toHaveCount(3);
   await expectNoHorizontalOverflow(page);
+});
+
+// codex #1595 P1: api #920 sends storedDays and recordedSince null when it reads no stored record (7d, 14d,
+// no range at all = an older bundle). The web route checks the answer against the contract: null must pass.
+test("저장 기록을 읽지 않은 답(storedDays·recordedSince null)도 웹 경로를 통과한다 @regression", async ({ page }) => {
+  for (const query of ["?range=7d", "?range=14d", ""]) {
+    const response = await page.request.get(`/api/markets/items/1234/history${query}`);
+    expect(response.status(), `history${query}`).toBe(200);
+    const body = await response.json();
+    expect(body.ok, `history${query}`).toBe(true);
+    expect(body.envelope.data.variants[0], `history${query}`).toMatchObject({ storedDays: null, recordedSince: null });
+  }
+});
+
+// codex #1595 P2: a day with no record breaks the line (no line drawn across the gap), and while a longer range
+// loads the chart shown stays (no loading box, no '0일치').
+test("기록 없는 날은 선이 끊기고, 긴 기간을 읽는 동안 보던 차트가 그대로 @regression", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 900 });
+  let release;
+  const gate = new Promise((resolve) => (release = resolve));
+  await page.route(/\/api\/markets\/items\/\d+\/history\?range=90d/, async (route) => {
+    await gate;
+    await route.continue();
+  });
+  await gotoReady(page, "/market?tab=ENGRAVING_BOOK");
+  const detail = detailOf(page);
+  const line = detail.locator("figure svg path.k-draw");
+  const strokes = async () => ((await line.getAttribute("d")) ?? "").match(/M/g)?.length ?? 0;
+  const caption = detail.getByText(/^하루 평균 거래가와 거래량/);
+  await expect(caption).toHaveText("하루 평균 거래가와 거래량");
+  expect(await strokes(), "30일: one line").toBe(1);
+  await detail.getByRole("group", { name: "기간" }).getByRole("button", { name: "3개월" }).click();
+  await page.waitForTimeout(500);
+  await expect(line).toBeVisible();
+  await expect(detail.getByText("추이를 불러오고 있어요")).toHaveCount(0);
+  await expect(caption).toHaveText("하루 평균 거래가와 거래량");
+  release();
+  await expect(caption).toHaveText("하루 평균 거래가와 거래량 · 3개월 중 39일치 기록");
+  // The mock's 5-day hole (20–24 days ago): two strokes, nothing drawn across it.
+  await expect.poll(strokes, { message: "3개월: the line breaks at the hole" }).toBe(2);
+});
+
+// codex #1595 P2: 7일 reads the 30-day answer. With sparse records it shows the days of the last 7 calendar days
+// only (not the last 7 rows, weeks old) and says how many there are.
+test("7일은 최근 7일 날짜 안의 기록만, 모자라면 'N일치 기록' @regression", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 900 });
+  await page.route(/\/api\/markets\/items\/\d+\/history\?range=30d/, async (route) => {
+    const response = await route.fetch();
+    const body = await response.json();
+    const base = Date.parse(body.envelope.data.baseDate);
+    const keep = new Set([0, 1, 5, 9, 15, 22]);
+    for (const variant of body.envelope.data.variants)
+      variant.days = variant.days.filter((d) => keep.has(Math.round((base - Date.parse(d.date)) / 86_400_000)));
+    await route.fulfill({ response, json: body });
+  });
+  await gotoReady(page, "/market?tab=ENGRAVING_BOOK");
+  // The first item came with the page; another item is read through the thinned answer.
+  await page.getByRole("region", { name: /각인서 시세/ }).getByRole("listitem").nth(1).getByRole("button").first().click();
+  const detail = detailOf(page);
+  await detail.getByRole("group", { name: "기간" }).getByRole("button", { name: "7일" }).click();
+  await expect(detail.getByText(/^하루 평균 거래가와 거래량/)).toHaveText("하루 평균 거래가와 거래량 · 7일 중 2일치 기록");
+  // Today (partial), 1 and 5 days ago: nothing from 9 days ago or older.
+  await expect(detail.locator("table tbody tr")).toHaveCount(3);
 });
