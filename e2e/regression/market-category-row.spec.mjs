@@ -54,8 +54,8 @@ test("분류는 링크: Ctrl로 누르면 새 탭에서 열리고 이 화면은 
   const opened = context.waitForEvent("page");
   await row(page).getByRole("link", { name: "각인서", exact: true }).click({ modifiers: ["ControlOrMeta"] });
   const other = await opened;
-  await other.waitForLoadState("domcontentloaded");
-  expect(other.url()).toMatch(/\/market\?tab=ENGRAVING_BOOK$/);
+  // A new tab starts at about:blank; wait for its own address (CI read it too early, #1597/#1601).
+  await other.waitForURL(/\/market\?tab=ENGRAVING_BOOK$/);
   await expect(row(page).getByRole("link", { name: "재련 재료", exact: true })).toHaveAttribute("aria-current", "page");
   await expect(page).not.toHaveURL(/tab=ENGRAVING_BOOK/);
   await other.close();
