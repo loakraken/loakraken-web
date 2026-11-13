@@ -384,17 +384,23 @@ function Detail({
             points={range === "hour" ? (minute ? minutePoints(minute.points) : null) : days.length ? dayPoints(days) : null}
           />
         </div>
-        <div className={styles.ranges} role="group" aria-label="기간">
-          {ranges.map((value) => (
-            <button
-              key={value}
-              type="button"
-              aria-pressed={range === value}
-              onClick={() => setRange(value)}
-            >
-              {value === "hour" ? "1시간" : RANGE_LABEL[value]}
-            </button>
-          ))}
+        <div className={`${styles.ranges} ${styles.fixedRanges}`} role="group" aria-label="기간">
+          {ranges.map((value) => {
+            const label = value === "hour" ? "1시간" : RANGE_LABEL[value];
+            return (
+              // Width by label length, not by the drawn text: the site font (display: optional) can
+              // land after the first layout, and the row moved 187 → 224px (P1, 11-14).
+              <button
+                key={value}
+                type="button"
+                aria-pressed={range === value}
+                onClick={() => setRange(value)}
+                style={{ inlineSize: `calc(${label.length}em + 12px)` }}
+              >
+                {label}
+              </button>
+            );
+          })}
         </div>
       </div>
       {data && data.variants.length > 1 && (
