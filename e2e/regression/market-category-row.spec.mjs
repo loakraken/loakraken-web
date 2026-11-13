@@ -3,13 +3,14 @@
 // 보이고(그 분류가 고른 상태), 거래소 분류를 누르면 시세 화면이 그 분류로 열린다. 위 탭은 '품목 시세' 하나가
 // 세 화면을 맡는다. 첫 그림 흔들림 0, 320에서 넘침 없음.
 // codex #1597: 줄의 항목은 갈 곳의 링크(새 탭으로 열기·링크 복사·스크립트 전에도 동작), 서버와 브라우저가 같은
-// 12개 줄, 휴대폰에서 고른 항목이 첫 HTML부터 보인다(로드 뒤 옆으로 굴러오지 않음).
+// 11개 줄, 휴대폰에서 고른 항목이 첫 HTML부터 보인다(로드 뒤 옆으로 굴러오지 않음).
 import { test, expect, gotoReady, expectNoHorizontalOverflow } from "../support/fixtures.mjs";
 import { shiftsSince, watchShifts } from "../support/shifts.mjs";
 
 const row = (page) => page.getByRole("navigation", { name: "시세 분류" });
 const hub = (page) => page.getByRole("navigation", { name: "시세 화면" });
-const ROW = ["재련 재료", "재련 추가 재료", "아크 그리드 재료", "무기 진화 재료", "각인서", "생활", "전투 용품", "요리", "아바타", "장비 상자", "보석", "장신구"];
+// 장비 상자 is never in the row: the api's tab list leaves it out (PM 총괄 11-14).
+const ROW = ["재련 재료", "재련 추가 재료", "아크 그리드 재료", "무기 진화 재료", "각인서", "생활", "전투 용품", "요리", "아바타", "보석", "장신구"];
 
 for (const width of [320, 1280])
   test(`${width}: 보석 · 장신구가 시세 분류 줄 끝에 있고, 세 화면을 오간다 @regression`, async ({ page }) => {
@@ -17,6 +18,7 @@ for (const width of [320, 1280])
     await watchShifts(page);
     await gotoReady(page, "/market");
     await expect(row(page).getByRole("link")).toHaveText(ROW);
+    await expect(row(page).getByText("장비 상자")).toHaveCount(0);
     await expect(row(page).getByRole("link", { name: "보석", exact: true })).toHaveAttribute("href", "/market/gems");
     await expect(row(page).getByRole("link", { name: "각인서", exact: true })).toHaveAttribute("href", "/market?tab=ENGRAVING_BOOK");
     // One hub tab for the three pages; 보석 · 장신구 are no longer hub tabs.
@@ -79,7 +81,7 @@ test.describe("스크립트 없이(첫 HTML) @regression", () => {
   test.use({ javaScriptEnabled: false });
   for (const width of [320, 1280])
     for (const [path, name] of PAGES)
-      test(`${width} ${path}: 첫 HTML부터 12개 줄, 고른 '${name}'이 보이고, 누르면 그 화면으로`, async ({ page }) => {
+      test(`${width} ${path}: 첫 HTML부터 11개 줄, 고른 '${name}'이 보이고, 누르면 그 화면으로`, async ({ page }) => {
         await page.setViewportSize({ width, height: 800 });
         await page.goto(path);
         await expect(row(page).getByRole("link")).toHaveText(ROW);
