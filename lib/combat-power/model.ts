@@ -115,7 +115,7 @@ export const GRADE_LABEL: Record<string, string> = { LOW: "하", MID: "중", HIG
 
 export type Current = {
   gems: { slot: number; level: number }[];
-  gear: { index: number; refine: number | null; quality: number | null; advanced?: number | null }[];
+  gear: { index: number; type?: string | null; refine: number | null; quality: number | null; advanced?: number | null }[];
   polish?: { index: number; line: number; option: string; grade: Grade | null }[];
   bracelet?: { line: number; name: string; grade: Grade | null }[];
   engravings?: { name: string; level: number }[];
@@ -165,7 +165,27 @@ export const braceletName = (text: string) =>
  * rest in screen order), so
  * the same edits always send the same body and hit the same cache entry.
  */
-export function toChanges(edits: Edits, current: Current): Change[] {
+/** The refine steps the api takes (options refineMin..refineMax); unknown until the options load. */
+export type RefineRange = { min: number; max: number } | null | undefined;
+
+/**
+ * A refine edit the api takes, or null: the weapon only (isRefineOpen), inside
+ * the options range, and not the step worn. A saved pick of +8 (the weapon's own
+ * step, under refineMin 10) read after the weapon was honed in game, a spec-up
+ * step past refineMax or an armour step would be refused (codex #1555, #1567),
+ * so they count as no edit and the row shows the step worn.
+ */
+export function refineEdit(
+  edit: number | null | undefined,
+  item: Current["gear"][number],
+  range: RefineRange,
+): number | null {
+  if (edit == null || item.refine == null || edit === item.refine || !isRefineOpen(item.type)) return null;
+  if (range && (edit < range.min || edit > range.max)) return null;
+  return edit;
+}
+
+export function toChanges(edits: Edits, current: Current, range?: RefineRange): Change[] {
   const changes: Change[] = [];
   const allLevel = edits.gemAll;
   if (allLevel != null && current.gems.some((gem) => gem.level !== allLevel))
@@ -177,9 +197,8 @@ export function toChanges(edits: Edits, current: Current): Change[] {
       changes.push({ kind: "GEM_LEVEL", slot: gem.slot, level });
   }
   for (const item of current.gear) {
-    const refine = edits.refine[item.index];
-    if (refine != null && item.refine != null && refine !== item.refine)
-      changes.push({ kind: "EQUIPMENT_REFINE", index: item.index, refine });
+    const refine = refineEdit(edits.refine[item.index], item, range);
+    if (refine != null) changes.push({ kind: "EQUIPMENT_REFINE", index: item.index, refine });
     const quality = edits.quality[item.index];
     if (quality != null && item.quality != null && quality !== item.quality)
       changes.push({ kind: "EQUIPMENT_QUALITY", index: item.index, quality });
