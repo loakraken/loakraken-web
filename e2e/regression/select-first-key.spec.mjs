@@ -44,11 +44,35 @@ test("처음 쓰는 Select: 포커스 직후 Tab은 다음 칸으로 간다(같�
   // A second Tab 80–250 ms after the first (QA's window): after the swap began, before the code came.
   await page.waitForTimeout(150);
   await page.keyboard.press("Tab");
+  // Judged once the held code has arrived (codex #1576 P3), not at a fixed time: nothing may pull focus back.
+  await page.waitForLoadState("networkidle");
   const after = await focused(page);
   expect(after, `Tab 뒤 포커스 ${after}`).not.toBe("BODY");
   // The field itself (by role and name, whichever button draws it) must not hold focus again.
   await expect(field, "Tab 뒤에도 같은 칸").not.toBeFocused();
-  // Once the code is here the field it left is the full Select, still in its place and unopened.
   await expect(page.getByRole("listbox")).toHaveCount(0);
   await expect(page.getByRole("combobox", { name: "클리어 단계" })).toBeVisible();
 });
+
+// codex #1576 P2: a key pressed while the code loads asks for the list, but the user may change their mind
+// before it arrives. The list must not open, nor focus come back, on a field the user left or closed.
+for (const [name, leave] of [
+  ["Esc", async (page) => page.keyboard.press("Escape")],
+  ["Tab", async (page) => page.keyboard.press("Tab")],
+  ["다른 곳 누르기", async (page) => page.getByRole("heading", { level: 1 }).click()],
+]) {
+  test(`처음 쓰는 Select: 코드를 기다리는 중 아래 화살표 뒤 ${name} → 코드가 와도 목록이 열리지 않는다 @regression`, async ({ page }) => {
+    await gotoReady(page, "/tools/hell-reward");
+    const field = page.getByRole("combobox", { name: "클리어 단계" });
+    await expect(field).toBeVisible();
+    await slowChunks(page);
+    await field.focus();
+    await page.keyboard.press("ArrowDown");
+    await leave(page);
+    await page.waitForLoadState("networkidle");
+    await page.waitForTimeout(200);
+    await expect(page.getByRole("listbox")).toHaveCount(0);
+    if (name === "Esc") await expect(field, "Esc 뒤 포커스는 칸에").toBeFocused();
+    else await expect(field, `${name} 뒤 칸이 포커스를 다시 가져감`).not.toBeFocused();
+  });
+}
