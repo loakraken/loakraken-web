@@ -501,7 +501,11 @@ function Detail({
         <div className={styles.dailyHold}>
           {(history.isPending || data) && <PendingTable rows={7} sizer={!history.isPending} />}
           {data && !history.isPending && tableRows.length === 0 ? (
-            <p className={styles.dailyEmpty}>최근 7일 동안 거래 기록이 없어요.</p>
+            // What is missing, then where the older days are when there are some (ux-copy: the next step).
+            <p className={styles.dailyEmpty}>
+              최근 7일 동안 거래 기록이 없어요.
+              {variant?.days.length ? " 30일을 고르면 지난 기록을 볼 수 있어요." : ""}
+            </p>
           ) : (
             dailyTable
           )}

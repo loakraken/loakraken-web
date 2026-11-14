@@ -222,7 +222,8 @@ test("7일에 기록이 하루도 없으면 7줄 자리 안에 안내, 머리줄
   const detail = detailOf(page);
   await expect(detail.getByText(/^하루 평균 거래가와 거래량 · 30일 중 2일치 기록$/)).toBeVisible();
   await detail.getByRole("group", { name: "기간" }).getByRole("button", { name: "7일" }).click();
-  const empty = detail.getByText("최근 7일 동안 거래 기록이 없어요.");
+  // Older days exist (9 and 15 days ago), so the line also says where they are (ux-copy: the next step).
+  const empty = detail.getByText("최근 7일 동안 거래 기록이 없어요. 30일을 고르면 지난 기록을 볼 수 있어요.");
   await expect(empty).toBeVisible();
   await expect(detail.locator("table:not([aria-hidden])")).toHaveCount(0);
   // The message fills the place the unseen 7-row table holds.
