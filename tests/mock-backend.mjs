@@ -2627,6 +2627,10 @@ createServer(async (req, res) => {
   if (name === "잘못된응답") return send({ data: "wrong" });
   if (name === "로딩")
     await new Promise((resolve) => setTimeout(resolve, 1500));
+  // The loading-screen cut sweep waits for hydration, then cuts for a while: 1.5 s could end the screen
+  // under it (codex #1622 P2), so its own name answers much later.
+  if (name === "로딩긴")
+    await new Promise((resolve) => setTimeout(resolve, 8000));
   let envelope = {
     code: "CHARACTER_SEARCH_SUCCESS",
     message: "성공",

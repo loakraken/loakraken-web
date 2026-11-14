@@ -41,6 +41,18 @@ test("크라켄 점수: score, tier, way into the tier, whole points to the next
   assert.equal(left(293.04), "마스터 티어까지 293점");
   assert.equal(left(1041.5), "마스터 티어까지 1,042점");
   assert.equal(left(0.4), "마스터 티어까지 0점");
+  // The api's remainingRounded is shown as sent (api develop 11-13). Real remaining values are
+  // already two decimals (.5 up), so an older api without the field shows the same number.
+  const both = (remaining: number, remainingRounded: number | null) => {
+    const view = krakenScoreView({ ...ok, tier: { ...ok.tier!, remaining, remainingRounded } });
+    return view.state === "ready" ? view.next : null;
+  };
+  for (const [remaining, rounded, text] of [[242.5, 243, "243"], [1041.38, 1041, "1,041"], [293.04, 293, "293"]] as const) {
+    assert.equal(both(remaining, rounded), `마스터 티어까지 ${text}점`);
+    assert.equal(both(remaining, null), `마스터 티어까지 ${text}점`, "an older api: same number");
+  }
+  // Only to show the field is read (real values never disagree): the sent number wins.
+  assert.equal(both(100.2, 101), "마스터 티어까지 101점");
 });
 
 test("크라켄 점수: the top tier is a full bar with no next line", () => {
