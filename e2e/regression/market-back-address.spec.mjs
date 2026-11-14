@@ -181,15 +181,39 @@ for (const width of [1280, 360])
         if (request.url().includes("/api/markets/board") && new URL(request.url()).searchParams.has("q")) searches.push(request.url());
       });
       const search = page.getByRole("searchbox", { name: "품목 이름" });
-      await search.fill("파괴");
-      // Before the 300 ms rest is over.
-      await page.goBack();
+      // Typing and Back in one task (round 4: no race with the 300 ms rest on a slow runner): the input event
+      // goes through React's onChange, and Back starts before the rest could be over.
+      await page.evaluate(() => {
+        const input = document.querySelector('input[type="search"]');
+        Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set.call(input, "파괴");
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+        history.back();
+      });
       await expectBoard(page, { tab: "ENGRAVING_BOOK", label: "각인서" });
       // Longer than the search's rest: a send left running would ask now.
       await page.waitForTimeout(800);
       expect(searches, "보내진 검색").toEqual([]);
       expect(new URL(page.url()).searchParams.get("q")).toBeNull();
       await expect(search).toHaveValue("");
+    });
+
+    // codex #1669 round 4: Back inside a pick's transition restores the address the board had before the pick
+    // (two entries with one address): the address does not change, yet the board must go back to it.
+    test("요리에서 각인서를 고르자마자 뒤로(같은 주소의 앞 기록): 요리 표", async ({ page }) => {
+      await gotoReady(page, "/market?tab=FOOD");
+      // A second entry with the same address (Next follows a native push).
+      await page.evaluate(() => history.pushState(null, "", "/market?tab=FOOD"));
+      await expect.poll(() => page.evaluate(() => history.length)).toBeGreaterThan(1);
+      await page.evaluate(async () => {
+        const link = [...document.querySelectorAll('nav[aria-label="시세 분류"] a')].find((a) => a.textContent.trim() === "각인서");
+        link.click();
+        await Promise.resolve();
+        history.back();
+      });
+      await expectBoard(page, { tab: "FOOD", label: "요리" });
+      await expect(heading(page)).toContainText(/\d+종/);
+      const names = await page.locator('section[aria-labelledby="board-heading"] ul li button').allTextContents();
+      expect(names.filter((name) => !name.includes("FOOD")), "요리 표의 행").toEqual([]);
     });
 
     test("요리 → (한 번에) 각인서 · 요리를 고른 뒤 각인서로 이동하면 각인서 표", async ({ page }) => {

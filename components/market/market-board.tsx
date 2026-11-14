@@ -652,11 +652,16 @@ function MarketContent({
   // in state: re-reading it would also normalise a search being typed); any other is re-read (Back, Forward,
   // a link, a push).
   const [pending, setPending] = useState<readonly string[]>([]);
-  const [known, setKnown] = useState(address);
-  // Back / Forward is never the board's own write: whatever was still pending is dropped, so the restored
-  // address is always re-read (codex #1669 delta).
+  const [known, setKnown] = useState<string | null>(address);
+  // Back / Forward is never the board's own write: whatever was still pending is dropped and the address is
+  // re-read even when it equals the last one seen — a Back inside a pick's transition restores the address
+  // the board had before the pick (codex #1669 round 4). The re-read also mounts the search box anew, which
+  // cancels a search still waiting to be sent.
   useEffect(() => {
-    const drop = () => setPending([]);
+    const drop = () => {
+      setPending([]);
+      setKnown(null);
+    };
     window.addEventListener("popstate", drop);
     return () => window.removeEventListener("popstate", drop);
   }, []);
