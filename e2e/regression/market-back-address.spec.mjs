@@ -27,7 +27,11 @@ const watchFrames = async (page) => {
     const sample = () => {
       const heading = document.querySelector("#board-heading")?.textContent?.replace(/\s+/g, " ").trim() ?? "";
       const current = document.querySelector('nav[aria-label="시세 분류"] [aria-current="page"]')?.textContent?.trim() ?? "";
-      const frame = `${heading} | ${current}`;
+      // The board's first row (empty while the skeleton shows) and the freshness line's height under the list.
+      const board = document.querySelector('section[aria-labelledby="board-heading"]');
+      const first = board?.querySelector("ul li button")?.textContent?.replace(/\s+/g, " ").trim().slice(0, 16) ?? "";
+      const fresh = board?.querySelector('[class*="freshness"]')?.getBoundingClientRect().height ?? 0;
+      const frame = `${heading} | ${current} | ${first} | ${Math.round(fresh)}`;
       if (window.__frames.at(-1) !== frame) window.__frames.push(frame);
       requestAnimationFrame(sample);
     };
@@ -119,5 +123,55 @@ for (const width of [1280, 360])
       await page.goBack();
       await expect(page).toHaveURL(/[?&]q=%ED%8C%8C%EA%B4%B4(&|$)/);
       await expect(search).toHaveValue("파괴");
+    });
+
+    // codex #1669 delta: with no placeholder for another category, the freshness line vanished while the answer
+    // loaded and came back (a counted shift below the list); the rows are sampled too (never the last board's).
+    test("답이 늦은 분류를 고르는 동안 표 아래 줄이 같은 높이로 남고 이전 행이 없다", async ({ page }) => {
+      await gotoReady(page, "/market");
+      const fresh = page.locator('section[aria-labelledby="board-heading"] [class*="freshness"]');
+      const height = Math.round((await fresh.boundingBox()).height);
+      expect(height).toBeGreaterThan(0);
+      await page.route(/\/api\/markets\/board\?.*tab=FOOD/, async (route) => {
+        await new Promise((resolve) => setTimeout(resolve, 1200));
+        await route.continue();
+      });
+      const requests = await watchFrames(page);
+      await row(page).getByRole("link", { name: "요리", exact: true }).click();
+      await expectBoard(page, { tab: "FOOD", label: "요리" });
+      await expect(heading(page)).toContainText(/\d+종/);
+      await noWrongBoard(page, requests, "FOOD");
+      const frames = await page.evaluate(() => window.__frames);
+      const heights = frames.map((frame) => Number(frame.split(" | ").at(-1)));
+      expect(heights.filter((h) => h !== height), `표 아래 줄 높이(처음 ${height}): ${frames.join(" → ")}`).toEqual([]);
+      const rows = frames.map((frame) => frame.split(" | ")[2]).filter(Boolean);
+      expect(rows.filter((text) => !text.includes("FOOD")), `보인 첫 행: ${rows.join(" → ")}`).toEqual([]);
+    });
+
+    test("빠르게 요리 → 각인서 → 요리를 고른 뒤 보석 → 뒤로: 주소대로", async ({ page }) => {
+      await gotoReady(page, "/market");
+      for (const name of ["요리", "각인서", "요리"]) await row(page).getByRole("link", { name, exact: true }).click();
+      await row(page).getByRole("link", { name: "보석", exact: true }).click();
+      await expect(page).toHaveURL(/\/market\/gems/);
+      const requests = await watchFrames(page);
+      await page.goBack();
+      await expectBoard(page, { tab: "FOOD", label: "요리" });
+      await noWrongBoard(page, requests, "FOOD");
+    });
+
+    test("검색어를 치다 말고 보석으로 가면 그 검색은 보내지지 않고, 뒤로 오면 칸이 주소대로 비어 있다", async ({ page }) => {
+      await gotoReady(page, "/market?tab=FOOD");
+      const search = page.getByRole("searchbox", { name: "품목 이름" });
+      await search.fill("파괴");
+      // Before the 300 ms rest is over.
+      await row(page).getByRole("link", { name: "보석", exact: true }).click();
+      await expect(page).toHaveURL(/\/market\/gems/);
+      // Longer than the search's rest: a send left running would write its address now.
+      await page.waitForTimeout(800);
+      expect(new URL(page.url()).searchParams.get("q"), "보석 화면 주소의 검색어").toBeNull();
+      await page.goBack();
+      await expectBoard(page, { tab: "FOOD", label: "요리" });
+      expect(new URL(page.url()).searchParams.get("q")).toBeNull();
+      await expect(search).toHaveValue("");
     });
   });

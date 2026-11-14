@@ -653,11 +653,19 @@ function MarketContent({
   // a link). Writes older than the one that arrived are dropped with it.
   const [pending, setPending] = useState<readonly string[]>([]);
   const [known, setKnown] = useState(address);
+  // Back / Forward is never the board's own write: whatever was still pending is dropped, so the restored
+  // address is always re-read (codex #1669 delta).
+  useEffect(() => {
+    const drop = () => setPending([]);
+    window.addEventListener("popstate", drop);
+    return () => window.removeEventListener("popstate", drop);
+  }, []);
   // The search box keeps its own text and debounce: a re-read address mounts it anew (codex #1669 P2).
   const [searchKey, setSearchKey] = useState(0);
   if (address !== known) {
     setKnown(address);
-    const own = pending.indexOf(address);
+    // The latest matching write: a quick A → B → A leaves no stale A behind (codex #1669 delta).
+    const own = pending.lastIndexOf(address);
     if (own !== -1) setPending(pending.slice(own + 1));
     else {
       const next = fromAddress();
@@ -698,6 +706,9 @@ function MarketContent({
     ...quiet,
   });
   const data = board.data?.data;
+  // The last answer shown, to hold the freshness line's place while another category loads.
+  const [lastBoard, setLastBoard] = useState(data);
+  if (data && data !== lastBoard) setLastBoard(data);
   // Whether the api answers the grade filter: decided once, from any answer that echoes `grade`, so a
   // failed grade read keeps the buttons that lead back (codex #1603 P2).
   const [gradeReady, setGradeReady] = useState(false);
@@ -958,9 +969,15 @@ function MarketContent({
                 </nav>
               )}
               </div>
-              {data && (
-                <div className={styles.freshness}>
-                  <p className={styles.note}>{at(data.observedAt)} 기준 · 등락: 전일 평균가 대비</p>
+              {(data ?? (!failure && lastBoard)) && (
+                // While another category loads, the line keeps its box (unseen, the last answer's own text, so it
+                // wraps the same): it vanished and came back, moving the page below (codex #1669 delta).
+                <div
+                  className={styles.freshness}
+                  style={data ? undefined : { visibility: "hidden" }}
+                  aria-hidden={data ? undefined : true}
+                >
+                  <p className={styles.note}>{at((data ?? lastBoard)!.observedAt)} 기준 · 등락: 전일 평균가 대비</p>
                   {/* The board refreshes every minute on its own; this says how
                       old the shown prices are and asks again on demand, resting
                       30s after data arrives (the backend cache) so a press never
