@@ -1,4 +1,5 @@
 import { readFile, writeFile, mkdir } from "node:fs/promises";
+import { applyOptionalOverrides } from "./contract-optional-overrides.mjs";
 
 // Capture selected paths (and every schema they reference) from the backend's
 // generated OpenAPI document into contracts/<name>.openapi.json.
@@ -39,7 +40,7 @@ await writeFile(
       openapi: document.openapi,
       info: { title: `LOAKraken ${name}`, version: document.info.version },
       paths: selected,
-      components: { schemas },
+      components: { schemas: applyOptionalOverrides(name, schemas) },
     },
     null,
     2,

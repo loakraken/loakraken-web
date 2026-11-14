@@ -1,4 +1,5 @@
 import { readFile, writeFile, mkdir } from "node:fs/promises";
+import { applyOptionalOverrides } from "./contract-optional-overrides.mjs";
 
 const source = process.argv[2];
 if (!source)
@@ -38,7 +39,7 @@ await writeFile(
         version: document.info.version,
       },
       paths: { [path]: document.paths[path] },
-      components: { schemas },
+      components: { schemas: applyOptionalOverrides("character", schemas) },
     },
     null,
     2,
