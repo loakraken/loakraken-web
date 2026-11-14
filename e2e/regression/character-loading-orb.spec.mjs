@@ -32,7 +32,7 @@ for (const width of [320, 360, 1280])
     // Places first (so they are checked on develop's screen too): the 64px orb cell centred, then 22px,
     // the status line, 22px, the links — the layout the screen had before the still frame.
     const at = await rows(page);
-    console.log(`ROWS ${width} ${JSON.stringify(at)}`);
+    test.info().annotations.push({ type: "rows", description: JSON.stringify(at) });
     expect(at.orb, "구슬 자리").toMatchObject({ x: Math.round((at.width - 64) / 2), w: 64, h: 64 });
     expect(at.status.y, "상태 문장은 구슬 아래 22px").toBe(at.orb.y + 64 + 22);
     expect(Math.abs(at.links.y - (at.status.y + at.status.h + 22)), "링크 줄은 문장 아래 22px").toBeLessThanOrEqual(1);
