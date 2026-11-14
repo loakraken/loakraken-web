@@ -371,6 +371,7 @@ export interface components {
             bundleCount: number | null;
             pricePerBundle: number | null;
             purchase: components["schemas"]["MaterialPurchaseResponse"] | null;
+            tradeRemainCount?: number | null;
         };
         MaterialQuoteSearchResponse: {
             /** Format: int32 */
@@ -548,6 +549,9 @@ export interface components {
             spark7: components["schemas"]["MarketSparkPointResponse"][];
             /** @description 이력 캐시로 changeWeek·spark7을 채웠는지 */
             historyAvailable: boolean;
+            tradesYesterday?: number | null;
+            trades7d?: number | null;
+            volumeDate?: string | null;
         };
         MarketSparkPointResponse: {
             /** Format: date */

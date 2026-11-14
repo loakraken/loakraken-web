@@ -145,6 +145,8 @@ export interface components {
             observedAt: string | null;
             /** @enum {string} */
             status: "READY" | "PENDING";
+            /** @description true면 최근 3분 안의 값이 아직 없어 마지막으로 관측한 값을 보입니다(observedAt이 그 시각, status는 READY). 다음 조회에서 새 값으로 바뀝니다 */
+            stale?: boolean;
         };
         /** @description 공통 오류 응답. HTTP 상태와 업무 코드를 함께 확인합니다. */
         ErrorResponse: {

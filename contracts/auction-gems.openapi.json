@@ -459,6 +459,10 @@
               "READY",
               "PENDING"
             ]
+          },
+          "stale": {
+            "type": "boolean",
+            "description": "true면 최근 3분 안의 값이 아직 없어 마지막으로 관측한 값을 보입니다(observedAt이 그 시각, status는 READY). 다음 조회에서 새 값으로 바뀝니다"
           }
         },
         "required": [
