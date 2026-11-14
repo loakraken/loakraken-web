@@ -70,3 +70,38 @@ for (const width of [320, 360, 1280])
     await expect(combos.locator('tbody tr[aria-current="true"]')).toHaveCount(1);
     await expectNoHorizontalOverflow(page);
   });
+
+// #1628 (dataviz marker spec): a day with a gap on each side has no line to draw, so it is an 8px
+// marker in the line's colour, not a dot as thin as the line. Days 4 and 6 dropped from the answer
+// leave day 5 alone.
+test("앞뒤가 빈 하루 기록은 8px 점으로 보인다 @regression", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.route(/\/api\/markets\/auctions\/gems\/history/, async (route) => {
+    const response = await route.fetch();
+    const body = await response.json();
+    const holder = (function find(node) {
+      if (!node || typeof node !== "object") return null;
+      if (Array.isArray(node.days)) return node;
+      for (const value of Object.values(node)) {
+        const found = find(value);
+        if (found) return found;
+      }
+      return null;
+    })(body);
+    // Newest first, today (partial) at 0: drop the 4th and 6th days back.
+    holder.days = holder.days.filter((_, i) => i !== 4 && i !== 6);
+    await route.fulfill({ response, json: body });
+  });
+  await gotoReady(page, "/market/gems?kind=겁화&level=10");
+  const box = page.getByRole("region", { name: "10레벨 겁화 최저가 추이" });
+  await expect(box.getByRole("img", { name: CHART })).toBeVisible();
+  const lone = box.locator("circle[data-lone]");
+  await expect(lone).toHaveCount(1);
+  const marker = await lone.evaluate((dot) => {
+    const style = getComputedStyle(dot);
+    const r = Number(dot.getAttribute("r"));
+    return { fill: (r - Number.parseFloat(style.strokeWidth) / 2) * 2, color: style.fill, line: getComputedStyle(dot.ownerSVGElement.querySelector("path")).stroke };
+  });
+  expect(marker.fill, "점 지름(테두리 안)").toBeGreaterThanOrEqual(8);
+  expect(marker.color, "선과 같은 색").toBe(marker.line);
+});
