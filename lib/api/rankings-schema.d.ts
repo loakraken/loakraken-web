@@ -93,6 +93,8 @@ export interface components {
             size: number;
             /** @description 전체 순위 대상 수는 meta.population */
             rows: components["schemas"]["StatsRankedCharacterResponse"][];
+            classEngraving?: string | null;
+            classEngravingUnknown?: number | null;
         };
         /** @description 공통 메타. 모집단은 LOAKraken이 관측한 캐릭터 중 최근 activeDays일 안에 프로필(전투력)을 확인한 캐릭터이며 게임 전체 인구가 아닙니다. */
         StatsMetaResponse: {
