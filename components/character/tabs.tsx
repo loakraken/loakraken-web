@@ -538,7 +538,9 @@ function EquipmentPanel({ data }: { data: Character }) {
                   <ItemTooltip item={item} slot={SLOT_LABEL[item.type ?? ""] ?? undefined} extra={extraOf(item)}>
                     <GameIcon src={item.icon} grade={item.grade} />
                   </ItemTooltip>
-                  <div className={styles.itemText}>
+                  {/* Drawn once whole (A7 character sweep): centred by the icon, so the first line moved up
+                      when the second came (20 → 42 px). */}
+                  <div className={styles.itemText} data-fp-whole="">
                     <strong>
                       {SLOT_LABEL[item.type ?? ""] ?? text(item.type)}
                       {refine != null && <em> +{refine}</em>}
@@ -560,6 +562,7 @@ function EquipmentPanel({ data }: { data: Character }) {
                         </span>
                       )}
                     </span>
+                    <FpEnd />
                   </div>
                 </li>
               );
@@ -578,7 +581,7 @@ function EquipmentPanel({ data }: { data: Character }) {
                 <ItemTooltip item={item} extra={extraOf(item)}>
                   <GameIcon src={item.icon} grade={item.grade} />
                 </ItemTooltip>
-                <div className={styles.itemText}>
+                <div className={styles.itemText} data-fp-whole="">
                   <strong>
                     {text(item.type)}
                     {item.detail?.tier != null && (
@@ -594,6 +597,7 @@ function EquipmentPanel({ data }: { data: Character }) {
                     <Quality value={item.detail?.quality} />
                     <StatRange stats={item.detail?.accessoryStats} />
                   </span>
+                  <FpEnd />
                 </div>
                 {item.detail?.polishEffects.length ? (
                   <ul className={styles.gradeList}>

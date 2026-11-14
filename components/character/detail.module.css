@@ -1442,7 +1442,10 @@
   display: grid;
   /* A 320px column, or the whole row when the screen is narrower: a fixed
      320px minimum widened the page on a 320 screen (+12px, QA 10-25). */
-  grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
+  /* auto-fill, not auto-fit: the empty tracks stay, so a panel is its final width from its start tag. With
+     auto-fit the first panel took the whole row until the next came (552 → 361 px at 1280, A7 character
+     sweep). The three panels fill the tracks the layout ever has (at most 3), so it looks as before. */
+  grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr));
   gap: 20px;
 }
 /* While the records load: the chart figure's height (history-chart). */
