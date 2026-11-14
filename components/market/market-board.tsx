@@ -3,6 +3,7 @@
 import { HubTabs } from "@/components/site/hub-tabs";
 
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useSearchParams } from "next/navigation";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Bookmark, BookmarkBold, StarBold, TrendUp } from "@/components/ui/icons";
 import { GameIcon } from "@/components/character/imagery";
@@ -12,6 +13,8 @@ import {
   SORTS,
   BOOK_GRADES,
   boardQueryString,
+  parseItemId,
+  readBoardQuery,
   changeLabel,
   changeWithAmount,
   completedDays,
@@ -627,8 +630,31 @@ function MarketContent({
   initial: BoardQuery;
   initialItem: number | null;
 }) {
-  const [query, setQuery] = useState(initial);
-  const [selected, setSelected] = useState<number | null>(initialItem);
+  // The address is the board's state: picks write it in place (replaceState, below), and Back / Forward
+  // restore an entry whose server props are those of its first render (QA 11-15: /market → 요리 → 보석 →
+  // Back showed 재련 재료 under /market?tab=FOOD). So the query and the picked item are read from the
+  // address at mount and again whenever the address changes without the board writing it; the props
+  // only seed the server render, where the address and the props agree.
+  const searchParams = useSearchParams();
+  const address = searchParams.toString();
+  const fromAddress = () => {
+    const params = Object.fromEntries(searchParams);
+    return {
+      query: readBoardQuery(params),
+      item: typeof params.item === "string" ? parseItemId(params.item) : null,
+    };
+  };
+  const [query, setQuery] = useState(() => (address ? fromAddress().query : initial));
+  const [selected, setSelected] = useState<number | null>(() => (address ? fromAddress().item : initialItem));
+  // The last address the board wrote itself (its own picks are already in state; re-reading them would
+  // normalise a search being typed).
+  const [known, setKnown] = useState(address);
+  if (address !== known) {
+    setKnown(address);
+    const next = fromAddress();
+    setQuery(next.query);
+    setSelected(next.item);
+  }
   const [heldRef, held] = useTallest();
   const favorites = useFavorites();
   const starred = useMemo(() => new Set(favorites.map((f) => f.itemId)), [favorites]);
@@ -687,8 +713,10 @@ function MarketContent({
   // The address follows the board with a plain replaceState: router.replace
   // asked this dynamic page again and re-mounted it, so the pager and footer
   // vanished and came back when a search answer landed (#1115 measure, CLS).
-  const follow = (params: URLSearchParams) =>
+  const follow = (params: URLSearchParams) => {
+    setKnown(params.toString());
     window.history.replaceState(null, "", `${window.location.pathname}?${params}`);
+  };
   function update(next: Partial<BoardQuery>, item: number | null = null) {
     const merged = { ...query, ...next };
     setQuery(merged);
