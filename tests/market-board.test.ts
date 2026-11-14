@@ -7,6 +7,8 @@ import {
   changeLabel,
   changeWithAmount,
   completedDays,
+  defaultVariant,
+  traded,
   windowStart,
   goldText,
   unitPrice,
@@ -187,4 +189,36 @@ test("각인서 grade filter (user 11-12): 유물 · 전설 only, 각인서 only
   assert.equal(boardSearchParams(new URLSearchParams("tab=ENGRAVING_BOOK&grade=%EC%9C%A0%EB%AC%BC"))?.get("grade"), "유물");
   assert.equal(boardSearchParams(new URLSearchParams("tab=ENGRAVING_BOOK&grade=x")), null);
   assert.equal(boardSearchParams(new URLSearchParams("tab=ENGRAVING_BOOK&grade="))?.toString(), "tab=ENGRAVING_BOOK");
+});
+
+// QA 11-15 (P2-2): a 각인서 answer has a '거래 1회' series with averagePrice 0 / tradeCount 0 on every day,
+// listed first; the chart opened on it and drew a 0G line.
+const day = (date: string, averagePrice: number, tradeCount: number) => ({ date, averagePrice, tradeCount, partial: false });
+const noTrades = {
+  name: "유물 원한 각인서",
+  tradeRemainCount: 1,
+  bundleCount: null,
+  days: [day("2026-11-14", 0, 0), day("2026-11-13", 0, 0)],
+};
+const tradedTerms = {
+  name: "유물 원한 각인서",
+  tradeRemainCount: 0,
+  bundleCount: null,
+  days: [day("2026-11-14", 99599, 1421), day("2026-11-13", 0, 0), day("2026-11-12", 97463.5, 1300)],
+};
+
+test("defaultVariant opens on the terms with the most trades, else the first with days", () => {
+  assert.equal(defaultVariant([noTrades, tradedTerms] as never), 1);
+  assert.equal(defaultVariant([tradedTerms, noTrades] as never), 0);
+  const empty = { ...noTrades, days: [] };
+  assert.equal(defaultVariant([empty, noTrades] as never), 1, "no trades anywhere: the first with any day");
+  assert.equal(defaultVariant([empty] as never), 0);
+  assert.equal(defaultVariant([] as never), 0);
+});
+
+test("a day without a trade is no record: never a 0G point", () => {
+  assert.equal(traded({ tradeCount: 0 }), false);
+  assert.equal(traded({ tradeCount: 1 }), true);
+  assert.deepEqual(completedDays(tradedTerms as never, 30).map((d) => d.date), ["2026-11-12", "2026-11-14"]);
+  assert.deepEqual(completedDays(noTrades as never, 30), []);
 });

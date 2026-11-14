@@ -222,9 +222,28 @@ export function completedDays(variant: ItemVariant | undefined, limit = 14, base
   if (!variant) return [];
   const from = baseDate ? windowStart(baseDate, limit) : null;
   return variant.days
-    .filter((day) => !day.partial && (from == null || day.date >= from))
+    .filter((day) => !day.partial && traded(day) && (from == null || day.date >= from))
     .slice(0, limit)
     .reverse();
+}
+
+/**
+ * A day with no trade has no average price: the api answers 0 for both (QA 11-15, a 각인서 series with
+ * 'averagePrice 0, tradeCount 0' on every day drew a 0G line under a 99,555G head). Such a day is no record
+ * — never a 0G point or row.
+ */
+export const traded = (day: { tradeCount: number }) => day.tradeCount > 0;
+
+/**
+ * The trade terms a chart opens on: the one with the most trades in the answer (QA 11-15: 각인서 opened on
+ * '거래 1회', which never trades); with no trade anywhere, the first with any day; else the first.
+ */
+export function defaultVariant(variants: readonly ItemVariant[]) {
+  const trades = variants.map((v) => v.days.reduce((sum, day) => sum + Math.max(0, day.tradeCount), 0));
+  const most = Math.max(0, ...trades);
+  if (most > 0) return trades.indexOf(most);
+  const withDays = variants.findIndex((v) => v.days.length > 0);
+  return withDays === -1 ? 0 : withDays;
 }
 
 /** Price per unit when an item trades in bundles (the 개당 column). */
