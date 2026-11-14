@@ -45,12 +45,12 @@ for (const width of [320, 360, 1280])
       const cell = svg.parentElement.getBoundingClientRect();
       return {
         paths: paths.length,
-        painted: paths.filter((p) => p.getAttribute("d") && !/^(none|rgba\(0, 0, 0, 0\))$/.test(getComputedStyle(p).fill)).length,
+        painted: paths.filter((p) => p.getAttribute("d") && !/^(none|rgba\(0, 0, 0, 0\))$/.test(getComputedStyle(p).stroke) && parseFloat(getComputedStyle(p).strokeWidth) > 0).length,
         inside: Math.round(box.x) === Math.round(cell.x) && Math.round(box.y) === Math.round(cell.y) && Math.round(box.width) === 64 && Math.round(box.height) === 64,
       };
     });
     expect(drawn.paths, "정지 구슬의 점 묶음").toBeGreaterThan(10);
-    expect(drawn.painted, "모든 묶음이 색으로 칠해짐").toBe(drawn.paths);
+    expect(drawn.painted, "모든 묶음이 색으로 그려짐(점 = 둥근 끝 선)").toBe(drawn.paths);
     expect(drawn.inside, "64×64 구슬 자리 안").toBe(true);
   });
 
@@ -71,7 +71,7 @@ test("어두운 화면에서도 정지 구슬은 어두운 구슬 색 @regressio
       probe.style.color = p.style.getPropertyValue("--orb-l");
       const light = getComputedStyle(probe).color;
       probe.remove();
-      return { fill: getComputedStyle(p).fill, dark, light };
+      return { fill: getComputedStyle(p).stroke, dark, light };
     }),
   );
   expect(await page.evaluate(() => document.documentElement.dataset.theme)).toBe("dark");
