@@ -148,3 +148,17 @@ for (const reduced of [false, true])
       )
       .toBeGreaterThan(50);
   });
+
+// The still really paints (codex #1633 P3): the box with the still differs from the same box with it hidden —
+// each dot is a hair-long round-capped stroke, which must draw as a dot.
+test("정지 구슬은 화면에 실제로 그려진다 @regression", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 900 });
+  await page.goto(`/character/${encodeURIComponent("로딩긴")}`, { waitUntil: "commit" });
+  const still = page.locator("main[aria-busy] svg");
+  await expect(still).toBeVisible();
+  const clip = await still.boundingBox();
+  const drawn = await page.screenshot({ clip });
+  await still.evaluate((svg) => (svg.style.visibility = "hidden"));
+  const blank = await page.screenshot({ clip });
+  expect(drawn.equals(blank), "정지 구슬을 숨기면 같은 그림 — 점이 그려지지 않음").toBe(false);
+});
