@@ -176,7 +176,9 @@ export function MarketChart({
             d: days
               .map((d, i) => {
                 const at = `${(x(i) - PAD.left).toFixed(1)} ${y(d.value).toFixed(1)}`;
-                return i && !breaks(i) ? `L${at}` : `M${at}`;
+                // A lone day keeps its hair-long stroke (the path stays drawn); the marker sits on it.
+                if (i && !breaks(i)) return `L${at}`;
+                return alone(i) ? `M${at} h0.01` : `M${at}`;
               })
               .join(" "),
           }

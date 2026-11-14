@@ -31,7 +31,11 @@ const useSiteFont = (page) =>
       .flatMap((sheet) => [...sheet.cssRules])
       .find((r) => r instanceof CSSFontFaceRule && r.style.getPropertyValue("font-family").includes("kraken"));
     if (!rule) return false;
-    const face = new FontFace("kraken-drawn", rule.style.getPropertyValue("src"), { weight: "400 700" });
+    // The url() is relative to the stylesheet, not the page: resolve it there first.
+    const [, file] = /url\(["']?([^"')]+)["']?\)/.exec(rule.style.getPropertyValue("src")) ?? [];
+    if (!file) return false;
+    const href = new URL(file, rule.parentStyleSheet?.href ?? location.href).href;
+    const face = new FontFace("kraken-drawn", `url("${href}")`, { weight: "400 700" });
     document.fonts.add(await face.load());
     document.documentElement.style.setProperty("--font-kraken", "kraken-drawn");
     await new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));
