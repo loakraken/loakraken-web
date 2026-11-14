@@ -50,7 +50,9 @@ for (const width of [320, 1280])
 for (const width of [320, 360, 1280])
   test(`@A7 ${width} 캐릭터 조회 중 화면: 어디서 끊겨도(링크 글자 포함) 아무것도 움직이지 않는다 @regression`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
-    await page.goto(`/character/${encodeURIComponent("로딩")}`, { waitUntil: "commit" });
+    // '로딩긴' answers 8 s late (tests/mock-backend.mjs): the probe first waits for hydration, so the 1.5 s of
+    // '로딩' could end the loading screen under it (codex #1622 P2).
+    await page.goto(`/character/${encodeURIComponent("로딩긴")}`, { waitUntil: "commit" });
     await expect(page.getByRole("status").filter({ hasText: "캐릭터 정보를 조회하고 있어요." })).toBeVisible();
     // No second fetch: the loading screen is gone by the time the slow address answers again.
     const cut = await cutEverywhere(page, "main[aria-busy]|", null, { serverHtml: false });

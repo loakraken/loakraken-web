@@ -16,6 +16,30 @@ export const cutEverywhere = (page, rootSelector, countIn = null, { serverHtml =
       if (n.nodeType !== 1) return n.nodeName;
       return `${n.tagName.toLowerCase()} '${(n.textContent || "").trim().slice(0, 14)}'`;
     };
+    // The cuts run on a copy of the page, never on the nodes React holds: React may commit during the probe
+    // (a late hydration, a query answer, a clock tick), and on moved nodes that broke ('removeChild … not a
+    // child', React #418 hydration mismatch — CI flakes of the market and loading sweeps). First wait until
+    // React has claimed <body> (its first hydration pass is done), then put a deep copy of <body> in its place;
+    // React's later updates land on the untouched original, which comes back when the probe ends.
+    const claimed = () => Object.keys(document.body).some((key) => key.startsWith("__reactFiber$"));
+    for (let tries = 0; !claimed() && tries < 200; tries++) await new Promise((resolve) => setTimeout(resolve, 50));
+    if (!claimed()) return { probed: 0, value: 0, moved: ["page not hydrated"] };
+    const live = document.body;
+    const copy = live.cloneNode(true);
+    document.documentElement.replaceChild(copy, live);
+    try {
+      // Each picture decodes or gives up after 2 s: a lazy picture below the screen never decodes and must
+      // not hold the probe (codex #1622 P2).
+      const settle = (img) =>
+        Promise.race([img.decode().catch(() => {}), new Promise((resolve) => setTimeout(resolve, 2000))]);
+      await Promise.all([...copy.querySelectorAll("img")].map(settle));
+      await frame();
+      return await probe();
+    } finally {
+      document.documentElement.replaceChild(live, document.body);
+    }
+
+    async function probe() {
     const root = rootSelector
       ? [...document.querySelectorAll(rootSelector.split("|")[0])].find((el) => el.textContent.includes(rootSelector.split("|")[1]))
       : document.body;
@@ -98,4 +122,5 @@ export const cutEverywhere = (page, rootSelector, countIn = null, { serverHtml =
       }
     }
     return { probed: nodes.length, value: +value.toFixed(7), moved };
+    }
   }, [rootSelector, countIn, serverHtml]);
