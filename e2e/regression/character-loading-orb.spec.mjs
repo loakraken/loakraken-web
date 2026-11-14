@@ -91,3 +91,60 @@ test("사이트 안에서 검색해 들어가면 정지 화면 없이 캔버스 
   await expect(main.locator("canvas")).toBeVisible();
   await expect(main.locator("svg")).toHaveCount(0);
 });
+
+// codex #1633 P3: more of the orb's screens. Dim (stored choice 'dim' → data-theme="dim") takes the dark colours.
+test("흐린 화면(dim)에서도 정지 구슬은 어두운 구슬 색 @regression", async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem("loakraken-theme", "dim"));
+  await page.setViewportSize({ width: 360, height: 900 });
+  await page.goto(`/character/${encodeURIComponent("로딩긴")}`, { waitUntil: "commit" });
+  const still = page.locator("main[aria-busy] svg");
+  await expect(still).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.dataset.theme)).toBe("dim");
+  const strokes = await still.evaluate((svg) =>
+    [...svg.querySelectorAll("path")].map((p) => {
+      const probe = document.createElement("span");
+      probe.style.color = p.style.getPropertyValue("--orb-d");
+      document.body.append(probe);
+      const dark = getComputedStyle(probe).color;
+      probe.remove();
+      return { stroke: getComputedStyle(p).stroke, dark };
+    }),
+  );
+  expect(strokes.every((s) => s.stroke === s.dark), "모든 점 묶음이 어두운 색").toBe(true);
+});
+
+// Reduced motion: a direct load still shows the still frame (the same frame the canvas would hold).
+test("움직임 줄이기에서도 주소로 바로 열면 정지 구슬 @regression", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.setViewportSize({ width: 360, height: 900 });
+  await page.goto(`/character/${encodeURIComponent("로딩긴")}`, { waitUntil: "commit" });
+  await expect(page.locator("main[aria-busy] svg")).toBeVisible();
+  expect(await page.locator("main[aria-busy] svg path").count()).toBeGreaterThan(10);
+});
+
+// In-app (and under reduced motion): the canvas really draws — pixels on it, not only an element there.
+for (const reduced of [false, true])
+  test(`사이트 안에서 들어가면 캔버스에 구슬이 그려진다${reduced ? "(움직임 줄이기)" : ""} @regression`, async ({ page }) => {
+    if (reduced) await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await gotoReady(page, "/");
+    const search = page.getByRole("textbox", { name: "캐릭터 이름" });
+    await search.fill("로딩긴");
+    await search.press("Enter");
+    const main = page.locator("main[aria-busy]");
+    await expect(main.getByRole("status")).toHaveText(STATUS);
+    await expect(main.locator("svg")).toHaveCount(0);
+    const canvas = main.locator("canvas");
+    await expect
+      .poll(
+        () =>
+          canvas.evaluate((c) => {
+            const data = c.getContext("2d").getImageData(0, 0, c.width, c.height).data;
+            let painted = 0;
+            for (let i = 3; i < data.length; i += 4) if (data[i] > 0) painted += 1;
+            return painted;
+          }),
+        { message: "캔버스에 그려진 점" },
+      )
+      .toBeGreaterThan(50);
+  });

@@ -254,8 +254,9 @@ button.orbStage:focus-visible { outline: 3px solid var(--ring); outline-offset: 
 .orbBox { position: relative; display: block; width: 64px; height: 64px; margin: auto; }
 .orbBox > canvas { position: relative; }
 .orbStill { position: absolute; inset: 0; display: block; }
-.orbStill path { fill: var(--orb-l); }
-:root:is([data-theme="dark"], [data-theme="dim"]) .orbStill path { fill: var(--orb-d); }
+/* Each dot is a hair-long round-capped stroke (generated data, codex #1633 P3). */
+.orbStill path { fill: none; stroke: var(--orb-l); stroke-linecap: round; }
+:root:is([data-theme="dark"], [data-theme="dim"]) .orbStill path { stroke: var(--orb-d); }
 .routeState h1 { font-size: clamp(26px, 4vw, 40px); font-weight: 600; letter-spacing: -1px; overflow-wrap: anywhere; }
 .routeState p { max-width: 500px; margin: auto; font-size: 16px; line-height: 1.8; word-break: keep-all; color: var(--muted-foreground); }
 .routeLinks { display: flex; justify-content: center; flex-wrap: wrap; gap: 15px; }

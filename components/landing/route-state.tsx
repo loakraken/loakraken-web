@@ -4,12 +4,13 @@ import Link from "next/link";
 import { useSyncExternalStore } from "react";
 import { ThinkingOrb } from "thinking-orbs";
 import { OrbStill } from "./orb-still";
-
-const noop = () => () => {};
 import { useTheme } from "@/components/ui/theme-toggle";
 import { LandingMotion, useLandingMotion } from "./motion";
 import { orbColor } from "./orb";
 import styles from "./landing.module.css";
+
+// useSyncExternalStore with nothing to subscribe to: only its server / client snapshots matter.
+const noop = () => () => {};
 
 function LoadingContent() {
   const { enabled } = useLandingMotion();
