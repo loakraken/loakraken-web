@@ -47,6 +47,16 @@ export function ChartPlaceholder({ children, busy = false }: { children: ReactNo
  */
 export const rangeWidth = (label: string) => ({ inlineSize: `calc(${label.length}em + 12px)` });
 
+/**
+ * The period row's own width from its labels, so it is final before any button is drawn: a first HTML cut after the
+ * row's start tag drew it 92px wide (padding only) and it grew to 230px as the buttons came (header-late-part @1280,
+ * #1649 CI). Each button is rangeWidth, or the 44px tap width where the row's CSS sets --range-min; plus the row's
+ * 2px gaps and 3px padding. The row has the buttons' 12px font, so 1em is the same here (.fixedRanges).
+ */
+export const rangeRowWidth = (labels: readonly string[]) => ({
+  minInlineSize: `calc(${labels.map((label) => `max(${label.length}em + 12px, var(--range-min, 0px))`).join(" + ")} + ${(labels.length - 1) * 2 + 6}px)`,
+});
+
 /** One reading on the chart: a day, or a minute (K35). */
 export type ChartPoint = {
   key: string;

@@ -48,7 +48,7 @@ import {
   type FavoriteItem,
 } from "@/lib/market/favorites";
 import quote from "../tools/material-quote.module.css";
-import { ChartPlaceholder, MarketChart, dayPoints, minutePoints, periodChange, rangeWidth } from "./market-chart";
+import { ChartPlaceholder, MarketChart, dayPoints, minutePoints, periodChange, rangeRowWidth, rangeWidth } from "./market-chart";
 import { sampleText } from "@/lib/market/minutes";
 import { SiteHeader } from "@/components/site/site-header";
 import { BoardSearch } from "./board-search";
@@ -175,6 +175,8 @@ function PendingTable({ rows, sizer = false }: { rows: number; sizer?: boolean }
     </table>
   );
 }
+
+const rangeLabel = (value: ChartRange) => (value === "hour" ? "1시간" : RANGE_LABEL[value]);
 
 function PeriodChange({ range, points }: { range: ChartRange; points: { value: number }[] | null }) {
   const label = range === "hour" ? "1시간" : RANGE_LABEL[range];
@@ -413,9 +415,16 @@ function Detail({
             points={range === "hour" ? (minute ? minutePoints(minute.points) : null) : days.length ? dayPoints(days) : null}
           />
         </div>
-        <div className={`${styles.ranges} ${styles.fixedRanges}`} role="group" aria-label="기간">
+        {/* The row's width is set from its labels too, so a first HTML cut before the buttons draws it at its
+            final width (rangeRowWidth). */}
+        <div
+          className={`${styles.ranges} ${styles.fixedRanges}`}
+          role="group"
+          aria-label="기간"
+          style={rangeRowWidth(ranges.map(rangeLabel))}
+        >
           {ranges.map((value) => {
-            const label = value === "hour" ? "1시간" : RANGE_LABEL[value];
+            const label = rangeLabel(value);
             return (
               // Width by label length, not by the drawn text (rangeWidth).
               <button
