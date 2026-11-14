@@ -103,6 +103,17 @@
   padding: 0;
   white-space: nowrap;
 }
+/* The row is sized from its labels too (rangeRowWidth): its em is the buttons' 12px, and on a phone or a touch
+   screen each button is at least 44px wide (the hit-44 rule below), so the row reserves that as well. */
+.fixedRanges {
+  --range-min: 0px;
+  font-size: 12px;
+}
+@media (max-width: 699px), (pointer: coarse) {
+  .fixedRanges {
+    --range-min: 44px;
+  }
+}
 .sorts button[aria-pressed="true"],
 .tiers button[aria-pressed="true"],
 .ranges button[aria-pressed="true"] {

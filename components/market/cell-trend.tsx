@@ -9,7 +9,7 @@
 // moves (A7).
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ChartPlaceholder, MarketChart, rangeWidth, type ChartPoint } from "./market-chart";
+import { ChartPlaceholder, MarketChart, rangeRowWidth, rangeWidth, type ChartPoint } from "./market-chart";
 import { InlineOrb } from "@/components/landing/orb";
 import { FpEnd } from "@/components/ui/fp-end";
 import {
@@ -70,7 +70,13 @@ export function CellTrend({
         </div>
         {/* Drawn once whole (data-fp-whole): the group sits at the row's right end, so each button that
             came later pushed the ones already drawn to the left (A7, market boards sweep). */}
-        <div className={`${market.ranges} ${market.fixedRanges}`} role="group" aria-label="기간" data-fp-whole="">
+        <div
+          className={`${market.ranges} ${market.fixedRanges}`}
+          role="group"
+          aria-label="기간"
+          data-fp-whole=""
+          style={rangeRowWidth(CELL_RANGES.map((value) => CELL_RANGE_LABEL[value]))}
+        >
           {CELL_RANGES.map((value) => (
             // Width by label length, not by the drawn text, as the market chart's row (#1628).
             <button
