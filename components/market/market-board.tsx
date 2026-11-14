@@ -149,6 +149,33 @@ function FactChange({ item }: { item: Pick<BoardItem, "currentMinPrice" | "yeste
  * above. The line is there from the first paint (a blank before the data), so
  * nothing moves when it arrives (A7).
  */
+/**
+ * The daily table's place while its answer loads: the same table (same header, empty rows), so it is
+ * exactly the real table's height in whatever font is drawing (#1630).
+ */
+function PendingTable({ rows }: { rows: number }) {
+  return (
+    <table className={`${styles.daily} ${styles.dailySkeleton}`} aria-hidden="true">
+      <thead>
+        <tr>
+          <th scope="col">날짜</th>
+          <th scope="col">평균 거래가</th>
+          <th scope="col">거래량</th>
+        </tr>
+      </thead>
+      <tbody>
+        {Array.from({ length: rows }, (_, i) => (
+          <tr key={i}>
+            <th scope="row">&nbsp;</th>
+            <td>&nbsp;</td>
+            <td>&nbsp;</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
 function PeriodChange({ range, points }: { range: ChartRange; points: { value: number }[] | null }) {
   const label = range === "hour" ? "1시간" : RANGE_LABEL[range];
   const { direction, percent } = periodChange(points ?? []);
@@ -435,7 +462,14 @@ function Detail({
       </p>
       {/* The 14-day table under the caption arrives with the history: hold its
           place, so the caption stays put when it lands (A7). */}
-      {history.isPending && <div className={styles.dailyPending} aria-hidden="true" />}
+      {history.isPending &&
+        (range === 7 ? (
+          // 7일 picked while the answer loads (#1630): the 7-row table's own height at the click, not
+          // the 14-row block shrinking when the answer lands (a late, counted shift).
+          <PendingTable rows={7} />
+        ) : (
+          <div className={styles.dailyPending} aria-hidden="true" />
+        ))}
       {variant && variant.days.length > 0 && (
         <table className={styles.daily}>
           <thead>

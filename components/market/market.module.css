@@ -879,6 +879,11 @@
   clip-path: inset(50%);
   white-space: nowrap;
 }
+/* The 7-day table's place while it loads (#1630): the real table's rows, tinted like the block below. */
+.dailySkeleton tbody td,
+.dailySkeleton tbody th {
+  background: color-mix(in oklab, var(--secondary) 50%, transparent);
+}
 .dailyPending {
   height: 502px;
   margin-top: 12px;
