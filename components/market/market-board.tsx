@@ -15,7 +15,8 @@ import {
   changeLabel,
   changeWithAmount,
   completedDays,
-  defaultVariant,
+  openingVariant,
+  termsKey,
   traded,
   windowStart,
   goldText,
@@ -250,8 +251,10 @@ function Detail({
   // 1시간 (K35): the last hour by minute, from prices the warm-up already fetched.
   // Days (user 11-12, api #920): 7일 · 30일 · 3개월 · 1년; it opens on 30일.
   const [picked, setRange] = useState<ChartRange>(30);
-  // null until the reader picks trade terms: the chart opens on the terms that trade (QA 11-15).
-  const [pickedVariant, setVariantIndex] = useState<number | null>(null);
+  // The trade terms shown, by identity (termsKey): decided once per item from its first answer — the clicked
+  // row's terms when they trade, else the most traded (QA 11-15) — and kept across ranges, whose answers list
+  // their terms in their own order (codex #1671). A press picks other terms.
+  const [terms, setTerms] = useState<string | null>(null);
   // Whether the api answers ranges: the 30-day answer (always read) echoes its range.
   const base = useQuery({
     queryKey: historyKey(item.itemId, "30d"),
@@ -287,7 +290,10 @@ function Detail({
   const placeholderRange: DayRange =
     shownAnswer == null || historyRange(settled) === shownAnswer ? settled : shownAnswer === "365d" ? 365 : shownAnswer === "90d" ? 90 : 30;
   const view: ChartRange = range === "hour" ? "hour" : ready ? range : placeholderRange;
-  const variantIndex = Math.min(pickedVariant ?? (data ? defaultVariant(data.variants) : 0), (data?.variants.length ?? 1) - 1);
+  if (terms == null && data?.variants.length) setTerms(termsKey(data.variants[openingVariant(data.variants, item)]));
+  // Terms a range does not list (stored-only ones): that answer's own opening terms.
+  const listed = data ? data.variants.findIndex((v) => termsKey(v) === terms) : -1;
+  const variantIndex = listed !== -1 ? listed : data ? openingVariant(data.variants, item) : 0;
   const variant = data?.variants[variantIndex];
   // Terms with days on record but no trade in them: say so, never a 0G line or 0G rows.
   const neverTraded = !!variant?.days.length && !variant.days.some(traded);
@@ -334,8 +340,16 @@ function Detail({
     };
   }, [item.name, item.currentMinPrice]);
   const failure = failureOf(history.error);
-  // 7일 with an answer in and no day in its window (not even today): one notice, in the table's place.
-  const emptyWeek = range === 7 && !!data && !history.isPending && tableRows.length === 0;
+  // An answer in and no traded day in the table's window (7일: the week; else the latest 14 days): one
+  // notice, in the table's place, inside the table's own height; the chart keeps its empty frame (#1654).
+  const emptyTable = !!data && !history.isPending && tableRows.length === 0;
+  const emptyWeek = range === 7 && emptyTable;
+  // What is missing, then the next step (ux-copy): other terms that trade, or 30일 for older days.
+  const emptyNote = neverTraded
+    ? `이 조건으로는 거래된 기록이 없어요.${otherTraded ? " 다른 거래 조건을 골라 보세요." : ""}`
+    : range === 7
+      ? `최근 7일 동안 거래 기록이 없어요.${variant?.days.some(traded) ? " 30일을 고르면 지난 기록을 볼 수 있어요." : ""}`
+      : "최근 14일 동안 거래 기록이 없어요.";
   // The latest days (at most 14) under the caption; each cell stays on one line (#1634), so its rows are
   // the skeleton's height at every width.
   const dailyTable = variant && variant.days.length > 0 && (
@@ -456,7 +470,7 @@ function Detail({
               key={i}
               type="button"
               aria-pressed={variantIndex === i}
-              onClick={() => setVariantIndex(i)}
+              onClick={() => setTerms(termsKey(v))}
             >
               {v.tradeRemainCount != null
                 ? `거래 ${v.tradeRemainCount}회`
@@ -502,12 +516,9 @@ function Detail({
         // A week with no day at all says so once, in the table's place below (PM, codex #1645): the chart keeps
         // its empty frame without a second message.
         <ChartPlaceholder>
-          {neverTraded
-            ? // What is missing, then the next step when other terms did trade (ux-copy).
-              `이 조건으로는 거래된 기록이 없어요.${otherTraded ? " 다른 거래 조건을 골라 보세요." : ""}`
-            : emptyWeek
-              ? null
-              : variant?.days.length
+          {emptyTable
+            ? null
+            : variant?.days.length
                 ? `최근 ${RANGE_LABEL[view as DayRange] ?? ""} 기록이 없어요.`
                 : "아직 수집된 시세가 없어요."}
         </ChartPlaceholder>
@@ -529,15 +540,14 @@ function Detail({
         // inside the same 7-row place, not a header over blank space (PM, codex #1635).
         <div className={styles.dailyHold}>
           {(history.isPending || data) && <PendingTable rows={7} sizer={!history.isPending} />}
-          {emptyWeek ? (
-            // What is missing, then where the older days are when there are some (ux-copy: the next step).
-            <p className={styles.dailyEmpty}>
-              최근 7일 동안 거래 기록이 없어요.
-              {variant?.days.some(traded) ? " 30일을 고르면 지난 기록을 볼 수 있어요." : ""}
-            </p>
-          ) : (
-            dailyTable
-          )}
+          {emptyWeek ? <p className={styles.dailyEmpty}>{emptyNote}</p> : dailyTable}
+        </div>
+      ) : emptyTable ? (
+        // 30일+ with no traded day in the latest 14 (codex #1671: a header over 0 rows collapsed the 14-row place):
+        // the notice inside the same place.
+        <div className={styles.dailyHold}>
+          <PendingTable rows={14} sizer />
+          <p className={styles.dailyEmpty}>{emptyNote}</p>
         </div>
       ) : (
         <>

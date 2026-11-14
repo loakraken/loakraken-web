@@ -8,6 +8,8 @@ import {
   changeWithAmount,
   completedDays,
   defaultVariant,
+  openingVariant,
+  termsKey,
   traded,
   windowStart,
   goldText,
@@ -221,4 +223,14 @@ test("a day without a trade is no record: never a 0G point", () => {
   assert.equal(traded({ tradeCount: 1 }), true);
   assert.deepEqual(completedDays(tradedTerms as never, 30).map((d) => d.date), ["2026-11-12", "2026-11-14"]);
   assert.deepEqual(completedDays(noTrades as never, 30), []);
+});
+
+test("openingVariant opens the clicked row's terms when they trade, else the most traded", () => {
+  const row = { tradeRemainCount: 1, bundleCount: null };
+  const rowTerms = { ...noTrades, days: [day("2026-11-14", 99000, 3)] };
+  assert.equal(openingVariant([tradedTerms, rowTerms] as never, row), 1, "the row's own terms, though fewer trades");
+  assert.equal(openingVariant([noTrades, tradedTerms] as never, row), 1, "the row's terms never trade: the most traded");
+  assert.equal(openingVariant([noTrades, tradedTerms] as never, { tradeRemainCount: 5, bundleCount: 1 }), 1, "no such terms");
+  assert.equal(termsKey({ tradeRemainCount: null, bundleCount: 100 }), "-:100");
+  assert.equal(termsKey(noTrades), termsKey(row));
 });

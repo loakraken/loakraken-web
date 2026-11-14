@@ -238,6 +238,22 @@ export const traded = (day: { tradeCount: number }) => day.tradeCount > 0;
  * The trade terms a chart opens on: the one with the most trades in the answer (QA 11-15: 각인서 opened on
  * '거래 1회', which never trades); with no trade anywhere, the first with any day; else the first.
  */
+/** One trade terms' identity across range answers (each range answers its own list, in its own order). */
+export const termsKey = (terms: { tradeRemainCount?: number | null; bundleCount?: number | null }) =>
+  `${terms.tradeRemainCount ?? "-"}:${terms.bundleCount ?? "-"}`;
+
+/**
+ * The terms a chart opens on (codex #1671): the clicked row's own terms when they trade, else the terms
+ * with the most trades (defaultVariant).
+ */
+export function openingVariant(
+  variants: readonly ItemVariant[],
+  row: { tradeRemainCount?: number | null; bundleCount?: number | null },
+) {
+  const own = variants.findIndex((v) => termsKey(v) === termsKey(row) && v.days.some(traded));
+  return own !== -1 ? own : defaultVariant(variants);
+}
+
 export function defaultVariant(variants: readonly ItemVariant[]) {
   const trades = variants.map((v) => v.days.reduce((sum, day) => sum + Math.max(0, day.tradeCount), 0));
   const most = Math.max(0, ...trades);
