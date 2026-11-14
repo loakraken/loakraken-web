@@ -850,6 +850,11 @@
           },
           "coverage": {
             "$ref": "#/components/schemas/StatsCoverageResponse"
+          },
+          "populationUnit": {
+            "type": "string",
+            "description": "population을 세는 단위: CHARACTER(캐릭터), ROSTER(원정대), GUILD(길드). 문자열이며 값이 늘 수 있음",
+            "example": "CHARACTER"
           }
         },
         "required": [
@@ -1483,6 +1488,43 @@
               "COLLECTING",
               "READY"
             ]
+          },
+          "dealers": {
+            "type": "integer",
+            "format": "int64",
+            "description": "딜러 수(직업 행과 같은 판정)"
+          },
+          "supports": {
+            "type": "integer",
+            "format": "int64",
+            "description": "서포터 수"
+          },
+          "unknownRole": {
+            "type": "integer",
+            "format": "int64",
+            "description": "역할을 판정하지 못한 수"
+          },
+          "itemLevelMean": {
+            "anyOf": [
+              {
+                "type": "number",
+                "description": "평균 아이템 레벨, 소수 둘째 자리"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "combatPower": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/StatsPercentilesResponse",
+                "description": "전투력 분위수(직업 행과 같음). 표본 30 미만이면 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -1549,6 +1591,20 @@
               {
                 "$ref": "#/components/schemas/StatsPercentileOfResponse",
                 "description": "percentileOf를 줬을 때만"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "topPercentCutoffs": {
+            "anyOf": [
+              {
+                "type": "array",
+                "description": "'상위 N%' 기준값(N = 1·5·10·25·50·75 오름차순). rank = ⌊N × 모집단 / 100⌋, value = 그 순위(내림차순)의 값 — 이 값 이상이면 percentileOf.topPercent ≤ N. COMBAT_POWER만, 표본이 READY가 아니면 null, rank가 0인 항목은 빠짐",
+                "items": {
+                  "$ref": "#/components/schemas/StatsTopPercentCutoffResponse"
+                }
               },
               {
                 "type": "null"
@@ -1672,6 +1728,30 @@
           "supportClassDealer",
           "support",
           "unknownRole"
+        ]
+      },
+      "StatsTopPercentCutoffResponse": {
+        "type": "object",
+        "properties": {
+          "topPercent": {
+            "type": "integer",
+            "format": "int32",
+            "description": "상위 몇 %인지(1·5·10·25·50·75)"
+          },
+          "rank": {
+            "type": "integer",
+            "format": "int64",
+            "description": "기준 순위(내림차순)"
+          },
+          "value": {
+            "type": "number",
+            "description": "그 순위의 값"
+          }
+        },
+        "required": [
+          "rank",
+          "topPercent",
+          "value"
         ]
       }
     }
