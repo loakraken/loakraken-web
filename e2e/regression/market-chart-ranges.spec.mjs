@@ -205,9 +205,11 @@ test("7일 창에 기록이 없으면 같은 높이 상자에 안내, 캡션·�
 });
 
 // codex #1635 P3 (PM call): a week with no day at all (not even today) says so inside the reserved 7-row place —
-// no table header over blank space — at the 7-row height.
-test("7일에 기록이 하루도 없으면 7줄 자리 안에 안내, 머리줄 없음 @regression", async ({ page }) => {
-  await page.setViewportSize({ width: 360, height: 900 });
+// no table header over blank space — at the 7-row height. codex #1645 (PM call): said once — the chart above keeps
+// its empty frame (same height) with no second message. At 320, 360 and 1280.
+for (const width of [320, 360, 1280])
+  test(`${width}: 7일에 기록이 하루도 없으면 7줄 자리 안에 안내 한 번, 머리줄 없음 @regression`, async ({ page }) => {
+  await page.setViewportSize({ width, height: 900 });
   await page.route(/\/api\/markets\/items\/\d+\/history\?range=30d/, async (route) => {
     const response = await route.fetch();
     const body = await response.json();
@@ -232,7 +234,12 @@ test("7일에 기록이 하루도 없으면 7줄 자리 안에 안내, 머리줄
     sevenRows: Math.round(p.parentElement.querySelector("table[aria-hidden]").getBoundingClientRect().height),
   }));
   expect(Math.abs(sizes.message - sizes.sevenRows), `안내 ${sizes.message}px · 7줄 ${sizes.sevenRows}px`).toBeLessThanOrEqual(1);
-});
+  // One notice: the chart box is there at its height, empty.
+  const chart = detail.locator("figure").first();
+  await expect(chart).toBeVisible();
+  expect((await chart.innerText()).trim(), "차트 자리는 빈 틀").toBe("");
+  await expect(detail.getByText("최근 7일 기록이 없어요.")).toHaveCount(0);
+  });
 
 // #1630 (codex #1595 P3): 7일 pressed while the 30-day answer is still loading. The table's place takes the 7-row
 // table's height at the press (inside the click's input window), so the answer landing moves nothing; before, the
@@ -310,7 +317,10 @@ test("320: 일별 표의 날짜 · 가격 · 거래량은 한 줄, 가로 넘침
   await page.route(/\/api\/markets\/items\/\d+\/history\?range=30d/, async (route) => {
     const response = await route.fetch();
     const body = await response.json();
-    for (const variant of body.envelope.data.variants) for (const day of variant.days) day.averagePrice = 987_654_321_987;
+    // The widest values we allow (PM cap, codex #1654): price 9,999,999.99G and volume 99,999,999 on every day —
+    // far above real days, so a font build that draws digits a little wider still fits.
+    for (const variant of body.envelope.data.variants)
+      for (const day of variant.days) Object.assign(day, { averagePrice: 9_999_999.99, tradeCount: 99_999_999 });
     await route.fulfill({ response, json: body });
   });
   await gotoReady(page, "/market?tab=ENGRAVING_BOOK");
@@ -322,13 +332,28 @@ test("320: 일별 표의 날짜 · 가격 · 거래량은 한 줄, 가로 넘침
   expect(new Set(heights).size, `행 높이 ${heights.join(",")}`).toBe(1);
   await expectNoHorizontalOverflow(page);
   // codex #1635 P3: inside the detail panel too, not only the page (a clipped panel could hide a long price).
-  const past = await detail.evaluate((panel) => {
-    const edge = panel.getBoundingClientRect().right;
-    return [...panel.querySelectorAll("table:not([aria-hidden]) th, table:not([aria-hidden]) td")]
-      .filter((cell) => cell.getBoundingClientRect().right > edge + 0.5 || cell.scrollWidth > cell.clientWidth + 1)
-      .map((cell) => `${cell.textContent.trim()} ${Math.round(cell.getBoundingClientRect().right)}/${Math.round(edge)}`);
+  // Room to spare inside the panel's content box (codex #1654: 1–2px was fragile across font builds). The table is
+  // 100% wide, so its last cell always ends at the edge; the room is the content box's width minus the narrowest
+  // the table can be with these values (its min-content width, read with the width set aside for one sync layout).
+  const room = await detail.evaluate((panel) => {
+    const style = getComputedStyle(panel);
+    const content = panel.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+    const table = panel.querySelector("table:not([aria-hidden])");
+    const before = table.style.width;
+    table.style.width = "min-content";
+    const needed = table.getBoundingClientRect().width;
+    table.style.width = before;
+    const cells = [...table.querySelectorAll("th, td")];
+    return {
+      slack: content - needed,
+      past: cells.filter((cell) => cell.getBoundingClientRect().right > panel.getBoundingClientRect().right - parseFloat(style.paddingRight) + 0.5).length,
+      clipped: cells.filter((cell) => cell.scrollWidth > cell.clientWidth + 1).map((cell) => cell.textContent.trim()),
+    };
   });
-  expect(past, "패널 밖으로 나간 칸").toEqual([]);
+  expect(room.past, "패널 내용 상자 밖으로 나간 칸").toBe(0);
+  test.info().annotations.push({ type: "slack", description: `${room.slack.toFixed(1)}px` });
+  expect(room.clipped, "칸 안에서 잘린 글자").toEqual([]);
+  expect(room.slack, `패널 내용 상자까지 남은 폭 ${room.slack.toFixed(1)}px`).toBeGreaterThanOrEqual(4);
 });
 
 // codex #1629 P3: the lone-day marker (#1628) is for a by-date day between two gaps only — never on the minute
