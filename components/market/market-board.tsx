@@ -4,7 +4,7 @@ import { HubTabs } from "@/components/site/hub-tabs";
 
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { useSearchParams } from "next/navigation";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Bookmark, BookmarkBold, StarBold, TrendUp } from "@/components/ui/icons";
 import { GameIcon } from "@/components/character/imagery";
 import { LandingMotion } from "@/components/landing/motion";
@@ -646,14 +646,26 @@ function MarketContent({
   };
   const [query, setQuery] = useState(() => (address ? fromAddress().query : initial));
   const [selected, setSelected] = useState<number | null>(() => (address ? fromAddress().item : initialItem));
-  // The last address the board wrote itself (its own picks are already in state; re-reading them would
-  // normalise a search being typed).
+  // The board's own writes still on their way: Next updates useSearchParams later, inside a transition
+  // (codex #1669 P1: marking the new address as known at once made the next render re-read the OLD one and
+  // flash the previous board). An address that arrives and matches one of them is the board's own (already
+  // in state: re-reading it would also normalise a search being typed); any other is re-read (Back, Forward,
+  // a link). Writes older than the one that arrived are dropped with it.
+  const [pending, setPending] = useState<readonly string[]>([]);
   const [known, setKnown] = useState(address);
+  // The search box keeps its own text and debounce: a re-read address mounts it anew (codex #1669 P2).
+  const [searchKey, setSearchKey] = useState(0);
   if (address !== known) {
     setKnown(address);
-    const next = fromAddress();
-    setQuery(next.query);
-    setSelected(next.item);
+    const own = pending.indexOf(address);
+    if (own !== -1) setPending(pending.slice(own + 1));
+    else {
+      const next = fromAddress();
+      setQuery(next.query);
+      setSelected(next.item);
+      setPending([]);
+      setSearchKey((key) => key + 1);
+    }
   }
   const [heldRef, held] = useTallest();
   const favorites = useFavorites();
@@ -677,7 +689,12 @@ function MarketContent({
       const retryAt = failureOf(q.state.error)?.retryAt;
       return retryAt ? Math.max(60_000, retryAt - Date.now()) : 60_000;
     },
-    placeholderData: keepPreviousData,
+    // While the next page or sort loads the rows stay; another category or grade never shows the last
+    // one's rows under its name (codex #1669 P2: an uncached Back kept the previous board until its answer).
+    placeholderData: (previous, previousQuery) => {
+      const last = previousQuery?.queryKey[2] as BoardQuery | undefined;
+      return last && last.tab === query.tab && last.grade === query.grade ? previous : undefined;
+    },
     ...quiet,
   });
   const data = board.data?.data;
@@ -714,7 +731,7 @@ function MarketContent({
   // asked this dynamic page again and re-mounted it, so the pager and footer
   // vanished and came back when a search answer landed (#1115 measure, CLS).
   const follow = (params: URLSearchParams) => {
-    setKnown(params.toString());
+    setPending((writes) => [...writes, params.toString()]);
     window.history.replaceState(null, "", `${window.location.pathname}?${params}`);
   };
   function update(next: Partial<BoardQuery>, item: number | null = null) {
@@ -827,6 +844,7 @@ function MarketContent({
               {/* Searches the open tab; tab, tier and sort stay and apply to
                   the results, a new search starts at page 1 (#1115). */}
               <BoardSearch
+                key={searchKey}
                 value={query.q}
                 onSearch={(q) => update({ q, page: 1 })}
                 notice={
