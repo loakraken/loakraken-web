@@ -201,3 +201,34 @@ test("7일 창에 기록이 없으면 같은 높이 상자에 안내, 캡션·�
   await expect(caption).toHaveText("하루 평균 거래가와 거래량 · 7일 중 0일치 기록");
   expect(await place(), "차트 상자 높이·캡션·표 자리").toEqual(before);
 });
+
+// #1630 (codex #1595 P3): 7일 pressed while the 30-day answer is still loading. The table's place takes the 7-row
+// table's height at the press (inside the click's input window), so the answer landing moves nothing; before, the
+// 14-row block stayed 502px and shrank when the answer came (a late shift, counted as CLS).
+for (const width of [320, 1280])
+  test(`${width}: 30일을 읽는 중 7일을 누르면 표 자리가 그때 7줄 높이, 답이 와도 그대로 @regression`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    let release;
+    const gate = new Promise((resolve) => (release = resolve));
+    await page.route(/\/api\/markets\/items\/\d+\/history\?range=30d/, async (route) => {
+      await gate;
+      await route.continue();
+    });
+    await gotoReady(page, "/market?tab=ENGRAVING_BOOK");
+    // The first item came with the page; another one reads its history through the held answer.
+    await page.getByRole("region", { name: /각인서 시세/ }).getByRole("listitem").nth(1).getByRole("button").first().click();
+    const detail = detailOf(page);
+    await expect(detail.getByText("추이를 불러오고 있어요")).toBeVisible();
+    await detail.getByRole("group", { name: "기간" }).getByRole("button", { name: "7일" }).click();
+    // The table's place: what follows the caption (the pending place, then the table).
+    const caption = detail.getByText(/^하루 평균 거래가와 거래량/);
+    const slot = () => caption.evaluate((el) => Math.round(el.nextElementSibling.getBoundingClientRect().height));
+    // Past the click's input window: a change from here on is a counted shift.
+    await page.waitForTimeout(700);
+    const pending = await slot();
+    release();
+    await expect(detail.locator("table tbody tr")).toHaveCount(7);
+    await expect(detail.getByText("추이를 불러오고 있어요")).toHaveCount(0);
+    const landed = await slot();
+    expect(Math.abs(landed - pending), `표 자리 ${pending}px → 표 ${landed}px`).toBeLessThanOrEqual(1);
+  });
