@@ -90,6 +90,19 @@ export default defineConfig({
       fullyParallel: false,
       use: { ...devices["Desktop Chrome"], ...browser, viewport: { width: 1440, height: 900 } },
     },
+    // Real WebKit (Safari engine) at phone size, for the checks tagged @webkit (#1609): the paths only Safari
+    // takes (no scroll-initial-target, no overflow-anchor). Opt-in with E2E_WEBKIT=1 (CI job 'e2e webkit'), so a
+    // local run without the WebKit browser and the Chromium shards are unchanged.
+    ...(process.env.E2E_WEBKIT === "1"
+      ? [
+          {
+            name: "webkit-phone",
+            grep: /@webkit/,
+            testIgnore: [...ISOLATED, ...SOLO],
+            use: { ...devices["iPhone 13"], viewport: { width: 390, height: 844 } },
+          },
+        ]
+      : []),
     // Performance budget (작업 규칙 "성능 우선"): opt-in with E2E_PERF=1, mobile size.
     ...(process.env.E2E_PERF === "1"
       ? [
