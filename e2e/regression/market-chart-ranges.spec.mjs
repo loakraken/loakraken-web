@@ -205,9 +205,11 @@ test("7일 창에 기록이 없으면 같은 높이 상자에 안내, 캡션·�
 });
 
 // codex #1635 P3 (PM call): a week with no day at all (not even today) says so inside the reserved 7-row place —
-// no table header over blank space — at the 7-row height.
-test("7일에 기록이 하루도 없으면 7줄 자리 안에 안내, 머리줄 없음 @regression", async ({ page }) => {
-  await page.setViewportSize({ width: 360, height: 900 });
+// no table header over blank space — at the 7-row height. codex #1645 (PM call): said once — the chart above keeps
+// its empty frame (same height) with no second message. At 320, 360 and 1280.
+for (const width of [320, 360, 1280])
+  test(`${width}: 7일에 기록이 하루도 없으면 7줄 자리 안에 안내 한 번, 머리줄 없음 @regression`, async ({ page }) => {
+  await page.setViewportSize({ width, height: 900 });
   await page.route(/\/api\/markets\/items\/\d+\/history\?range=30d/, async (route) => {
     const response = await route.fetch();
     const body = await response.json();
@@ -232,7 +234,12 @@ test("7일에 기록이 하루도 없으면 7줄 자리 안에 안내, 머리줄
     sevenRows: Math.round(p.parentElement.querySelector("table[aria-hidden]").getBoundingClientRect().height),
   }));
   expect(Math.abs(sizes.message - sizes.sevenRows), `안내 ${sizes.message}px · 7줄 ${sizes.sevenRows}px`).toBeLessThanOrEqual(1);
-});
+  // One notice: the chart box is there at its height, empty.
+  const chart = detail.locator("figure").first();
+  await expect(chart).toBeVisible();
+  expect((await chart.innerText()).trim(), "차트 자리는 빈 틀").toBe("");
+  await expect(detail.getByText("최근 7일 기록이 없어요.")).toHaveCount(0);
+  });
 
 // #1630 (codex #1595 P3): 7일 pressed while the 30-day answer is still loading. The table's place takes the 7-row
 // table's height at the press (inside the click's input window), so the answer landing moves nothing; before, the
@@ -310,7 +317,9 @@ test("320: 일별 표의 날짜 · 가격 · 거래량은 한 줄, 가로 넘침
   await page.route(/\/api\/markets\/items\/\d+\/history\?range=30d/, async (route) => {
     const response = await route.fetch();
     const body = await response.json();
-    for (const variant of body.envelope.data.variants) for (const day of variant.days) day.averagePrice = 987_654_321_987;
+    // A very long price with decimals and a very large volume (codex #1645): the widest a row gets.
+    for (const variant of body.envelope.data.variants)
+      for (const day of variant.days) Object.assign(day, { averagePrice: 987_654_321_987.75, tradeCount: 9_876_543_210 });
     await route.fulfill({ response, json: body });
   });
   await gotoReady(page, "/market?tab=ENGRAVING_BOOK");
@@ -323,7 +332,8 @@ test("320: 일별 표의 날짜 · 가격 · 거래량은 한 줄, 가로 넘침
   await expectNoHorizontalOverflow(page);
   // codex #1635 P3: inside the detail panel too, not only the page (a clipped panel could hide a long price).
   const past = await detail.evaluate((panel) => {
-    const edge = panel.getBoundingClientRect().right;
+    // The panel's content box (inside its padding), not its border box (codex #1645).
+    const edge = panel.getBoundingClientRect().right - parseFloat(getComputedStyle(panel).paddingRight) - parseFloat(getComputedStyle(panel).borderRightWidth);
     return [...panel.querySelectorAll("table:not([aria-hidden]) th, table:not([aria-hidden]) td")]
       .filter((cell) => cell.getBoundingClientRect().right > edge + 0.5 || cell.scrollWidth > cell.clientWidth + 1)
       .map((cell) => `${cell.textContent.trim()} ${Math.round(cell.getBoundingClientRect().right)}/${Math.round(edge)}`);

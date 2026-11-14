@@ -325,6 +325,8 @@ function Detail({
     };
   }, [item.name, item.currentMinPrice]);
   const failure = failureOf(history.error);
+  // 7일 with an answer in and no day in its window (not even today): one notice, in the table's place.
+  const emptyWeek = range === 7 && !!data && !history.isPending && tableRows.length === 0;
   // The latest days (at most 14) under the caption; each cell stays on one line (#1634), so its rows are
   // the skeleton's height at every width.
   const dailyTable = variant && variant.days.length > 0 && (
@@ -481,7 +483,11 @@ function Detail({
         </div>
       ) : (
         // Same height as the chart (codex #1595 delta: an empty 7일 window swapped the chart for a short line).
-        <ChartPlaceholder>{variant?.days.length ? `최근 ${RANGE_LABEL[view as DayRange] ?? ""} 기록이 없어요.` : "아직 수집된 시세가 없어요."}</ChartPlaceholder>
+        // A week with no day at all says so once, in the table's place below (PM, codex #1645): the chart keeps
+        // its empty frame without a second message.
+        <ChartPlaceholder>
+          {emptyWeek ? null : variant?.days.length ? `최근 ${RANGE_LABEL[view as DayRange] ?? ""} 기록이 없어요.` : "아직 수집된 시세가 없어요."}
+        </ChartPlaceholder>
       )}
 
       {/* One line in both ranges, so switching keeps the table in place (A7). */}
@@ -500,7 +506,7 @@ function Detail({
         // inside the same 7-row place, not a header over blank space (PM, codex #1635).
         <div className={styles.dailyHold}>
           {(history.isPending || data) && <PendingTable rows={7} sizer={!history.isPending} />}
-          {data && !history.isPending && tableRows.length === 0 ? (
+          {emptyWeek ? (
             // What is missing, then where the older days are when there are some (ux-copy: the next step).
             <p className={styles.dailyEmpty}>
               최근 7일 동안 거래 기록이 없어요.
