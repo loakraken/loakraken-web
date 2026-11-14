@@ -160,6 +160,7 @@ import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { useCrossfade } from "@/lib/motion";
 import { EngravingIcon } from "@/components/ui/engraving-icon";
 import { belowRange, rangeDetail, rangePercent, RANGE_BASIS, type AccessoryStats } from "@/lib/character/accessory-range";
+import { FpEnd } from "@/components/ui/fp-end";
 
 export const TABS = [
   { id: "combat", label: "전투" },
@@ -296,7 +297,9 @@ export function TabBar({
 
   return (
     <div className={styles.tabBar} data-sticky-chrome>
-      <div className={styles.tabInner}>
+      {/* Drawn once whole (A7 character sweep): the tabs and the tools share one row, so the row took its
+          height from whichever came last (29 → 51 px at 320) and each tab's tap area moved with it. */}
+      <div className={styles.tabInner} data-fp-whole="">
         <nav
           ref={pillNav}
           // Fades at an end where tabs are hidden (A35).
@@ -403,6 +406,7 @@ export function TabBar({
             </span>
           </span>
         </div>
+        <FpEnd />
       </div>
       <span className={styles.srOnly} role="status">
         {shareStatus}
@@ -531,7 +535,9 @@ function EquipmentPanel({ data }: { data: Character }) {
                   <ItemTooltip item={item} slot={SLOT_LABEL[item.type ?? ""] ?? undefined} extra={extraOf(item)}>
                     <GameIcon src={item.icon} grade={item.grade} />
                   </ItemTooltip>
-                  <div className={styles.itemText}>
+                  {/* Drawn once whole (A7 character sweep): centred by the icon, so the first line moved up
+                      when the second came (20 → 42 px). */}
+                  <div className={styles.itemText} data-fp-whole="">
                     <strong>
                       {SLOT_LABEL[item.type ?? ""] ?? text(item.type)}
                       {refine != null && <em> +{refine}</em>}
@@ -553,6 +559,7 @@ function EquipmentPanel({ data }: { data: Character }) {
                         </span>
                       )}
                     </span>
+                    <FpEnd />
                   </div>
                 </li>
               );
@@ -567,11 +574,12 @@ function EquipmentPanel({ data }: { data: Character }) {
           )}
           <ul className={styles.itemList}>
             {groups.accessories.map((item, i) => (
-              <li key={i} {...stagger(i, styles.item)}>
+              // Drawn once whole: the icon is centred in the row, so it dropped when the polish lines came.
+              <li key={i} {...stagger(i, styles.item)} data-fp-whole="">
                 <ItemTooltip item={item} extra={extraOf(item)}>
                   <GameIcon src={item.icon} grade={item.grade} />
                 </ItemTooltip>
-                <div className={styles.itemText}>
+                <div className={styles.itemText} data-fp-whole="">
                   <strong>
                     {text(item.type)}
                     {item.detail?.tier != null && (
@@ -587,6 +595,7 @@ function EquipmentPanel({ data }: { data: Character }) {
                     <Quality value={item.detail?.quality} />
                     <StatRange stats={item.detail?.accessoryStats} />
                   </span>
+                  <FpEnd />
                 </div>
                 {item.detail?.polishEffects.length ? (
                   <ul className={styles.gradeList}>
@@ -597,6 +606,7 @@ function EquipmentPanel({ data }: { data: Character }) {
                     ))}
                   </ul>
                 ) : null}
+                <FpEnd />
               </li>
             ))}
             {/* Under the accessories (user 10-31 layout): the stone, then the orb;
@@ -647,7 +657,8 @@ function EquipmentPanel({ data }: { data: Character }) {
       {/* The bracelet alone, across the whole width under both columns. */}
       {groups.bracelet && (
         <div className={styles.equipFoot}>
-          <div className={styles.footItem} data-wide="">
+          {/* Drawn once whole: the bracelet's head is centred in a row its effect lines make taller. */}
+          <div className={styles.footItem} data-wide="" data-fp-whole="">
             <BraceletBody
               icon={
                 <ItemTooltip item={groups.bracelet} slot="팔찌" extra={extraOf(groups.bracelet)}>
@@ -663,6 +674,7 @@ function EquipmentPanel({ data }: { data: Character }) {
               effects={groups.bracelet.detail?.braceletEffects ?? []}
               efficiency={data.braceletEfficiency}
             />
+            <FpEnd />
           </div>
         </div>
       )}

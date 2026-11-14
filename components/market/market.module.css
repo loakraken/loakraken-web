@@ -103,6 +103,20 @@
   padding: 0;
   white-space: nowrap;
 }
+/* The row is sized from its labels too (rangeRowWidth): its em is the buttons' 12px, and on a phone or a touch
+   screen each button is at least 44px wide (the hit-44 rule below), so the row reserves that as well. */
+.fixedRanges {
+  --range-min: 0px;
+  font-size: 12px;
+  /* …and one button tall (28px, .ranges button) plus its 3px padding, so the row with no button yet is not a
+     6px line that the title centres against (it grew 6 → 34px and moved 14px up). */
+  min-block-size: calc(28px + 2 * 3px);
+}
+@media (max-width: 699px), (pointer: coarse) {
+  .fixedRanges {
+    --range-min: 44px;
+  }
+}
 .sorts button[aria-pressed="true"],
 .tiers button[aria-pressed="true"],
 .ranges button[aria-pressed="true"] {
@@ -896,6 +910,20 @@
 }
 .dailySizer {
   visibility: hidden;
+}
+/* A week with no day (codex #1635, PM): the message fills the 7-row place, like the chart's own empty box. */
+.dailyHold > .dailyEmpty {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 12px 0 0;
+  padding: 0 12px;
+  border-radius: 12px;
+  background: var(--background);
+  color: var(--slate);
+  font-size: 13px;
+  text-align: center;
 }
 /* The 7-day table's place while it loads (#1630): the real table's rows, tinted like the block below. */
 .dailySkeleton tbody td,

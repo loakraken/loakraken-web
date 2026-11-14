@@ -68,7 +68,7 @@ for (const { path, count } of PAGES)
 
 // codex #1629 P3: the font changing while the page is open (not only two finished pages). One page drawn in the
 // system face (the site font held back), then the site font put in: the labels redraw in it, and the row and every
-// button keep their widths, with no layout shift on the row.
+// button keep their widths and places.
 for (const { path, count } of PAGES)
   for (const width of [1280, 320])
     test(`${width} ${path}: 화면을 연 뒤 글꼴이 바뀌어도 기간 줄은 움직이지 않는다 @regression`, async ({ page }) => {
@@ -84,18 +84,24 @@ for (const { path, count } of PAGES)
       const group = page.getByRole("group", { name: "기간" });
       await expect(group.getByRole("button")).toHaveCount(count);
       await page.waitForFunction(() => Object.keys(document.body).some((key) => key.startsWith("__reactFiber$")));
+      // Each button's box inside the row (offset, width, height), not layout-shift entries: those count text nodes
+      // too, so a glyph redraw inside a still button could read as a shift (codex #1635 P3). Relative to the row,
+      // because text above it on the page (the gem board at 320) may re-wrap in the other face and move the whole
+      // row down or up — that is not this row's width changing.
+      const boxes = () =>
+        group.evaluate((row) => {
+          const at = row.getBoundingClientRect();
+          return [...row.querySelectorAll("button")].map((b) => {
+            const r = b.getBoundingClientRect();
+            return [Math.round(r.left - at.left), Math.round(r.top - at.top), Math.round(r.width), Math.round(r.height)].join(" ");
+          });
+        });
       const before = await measure(page);
-      await group.evaluate((row) => {
-        window.__rowShifts = [];
-        new PerformanceObserver((list) => {
-          for (const entry of list.getEntries())
-            if (entry.sources?.some((s) => s.node && row.contains(s.node))) window.__rowShifts.push(entry.value);
-        }).observe({ type: "layout-shift" });
-      });
+      const placed = await boxes();
       release();
       expect(await useSiteFont(page), "사이트 글꼴 준비").toBe(true);
       const after = await measure(page);
       expect(Math.abs(after.text - before.text), `글자 폭이 바뀌어야 함 (전 ${before.text}, 후 ${after.text})`).toBeGreaterThan(1);
       expect({ row: after.row, buttons: after.buttons }, "글꼴이 바뀐 뒤에도 같은 폭").toEqual({ row: before.row, buttons: before.buttons });
-      expect(await page.evaluate(() => window.__rowShifts.reduce((a, b) => a + b, 0)), "기간 줄 흔들림").toBe(0);
+      expect(await boxes(), "단추 자리(왼쪽 · 위 · 폭 · 높이)").toEqual(placed);
     });
