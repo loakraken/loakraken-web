@@ -28,7 +28,11 @@ export const cutEverywhere = (page, rootSelector, countIn = null, { serverHtml =
     const copy = live.cloneNode(true);
     document.documentElement.replaceChild(copy, live);
     try {
-      await Promise.all([...copy.querySelectorAll("img")].map((img) => img.decode().catch(() => {})));
+      // Each picture decodes or gives up after 2 s: a lazy picture below the screen never decodes and must
+      // not hold the probe (codex #1622 P2).
+      const settle = (img) =>
+        Promise.race([img.decode().catch(() => {}), new Promise((resolve) => setTimeout(resolve, 2000))]);
+      await Promise.all([...copy.querySelectorAll("img")].map(settle));
       await frame();
       return await probe();
     } finally {
