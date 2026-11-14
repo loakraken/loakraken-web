@@ -70,14 +70,17 @@ export function CellTrend({
         </div>
         {/* Drawn once whole (data-fp-whole): the group sits at the row's right end, so each button that
             came later pushed the ones already drawn to the left (A7, market boards sweep). */}
-        <div className={market.ranges} role="group" aria-label="기간" data-fp-whole="">
+        <div className={`${market.ranges} ${market.fixedRanges}`} role="group" aria-label="기간" data-fp-whole="">
           {CELL_RANGES.map((value) => (
+            // Width by label length, as the item chart's period row (#1613): the same in every font, so a
+            // site font landing after the first layout does not widen the row.
             <button
               key={value}
               type="button"
               aria-pressed={range === value}
               disabled={!load}
               onClick={() => setRange(value)}
+              style={{ inlineSize: `calc(${CELL_RANGE_LABEL[value].length}em + 12px)` }}
             >
               {CELL_RANGE_LABEL[value]}
             </button>
