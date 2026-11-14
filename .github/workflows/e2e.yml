@@ -171,6 +171,8 @@ jobs:
           npx playwright test --project=isolated --project=solo --no-deps --list --reporter=json > serial-list.json
           node shard-plan.mjs --verify shard-list.json serial-list.json ${{ strategy.job-total }}
           node shard-plan.mjs shard-list.json ${{ matrix.shard }} ${{ strategy.job-total }} > shard-files.txt
+          # 이 shard가 도는 파일(느린 shard를 볼 때 무엇이 들었는지 바로 보이게).
+          cat shard-files.txt
       - name: Run E2E shard
         working-directory: e2e
         env:
