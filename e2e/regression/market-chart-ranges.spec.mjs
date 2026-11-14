@@ -295,20 +295,24 @@ test("320: 일별 표의 날짜 · 가격 · 거래량은 한 줄, 가로 넘침
 
 // codex #1629 P3: the lone-day marker (#1628) is for a by-date day between two gaps only — never on the minute
 // chart, and not on a chart of a single reading (its end dot is the reading).
-test("1시간 차트와 기록 하나뿐인 차트에는 하루 점이 없다 @regression", async ({ page }) => {
+test("1시간 차트에는 하루 점이 없다 @regression", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
+  await gotoReady(page, "/market");
+  const detail = detailOf(page);
+  await detail.getByRole("group", { name: "기간" }).getByRole("button", { name: "1시간" }).click();
+  await expect(detail.getByRole("img", { name: /^최근 1시간 판매 최저가/ })).toBeVisible();
+  await expect(detail.locator("circle[data-lone]")).toHaveCount(0);
+});
+
+test("기록 하나뿐인 차트에는 하루 점이 없다 @regression", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  // Today (partial) and yesterday: one completed day to draw.
   await page.route(/\/api\/markets\/items\/\d+\/history\?range=30d/, thin(new Set([0, 1])));
   await gotoReady(page, "/market?tab=ENGRAVING_BOOK");
-  const detail = detailOf(page);
-  const ranges = detail.getByRole("group", { name: "기간" });
-  await ranges.getByRole("button", { name: "1시간" }).click();
-  await expect(detail.getByText(/^판매 최저가/)).toBeVisible();
-  await expect(detail.locator("figure svg")).toBeVisible();
-  await expect(detail.locator("circle[data-lone]")).toHaveCount(0);
-  // Another item read through the thinned answer: one completed day.
-  await ranges.getByRole("button", { name: "30일" }).click();
+  // The first item came with the page; another one reads its history through the thinned answer.
   await page.getByRole("region", { name: /각인서 시세/ }).getByRole("listitem").nth(1).getByRole("button").first().click();
+  const detail = detailOf(page);
   await expect(detail.getByText(/^하루 평균 거래가와 거래량 · 30일 중 1일치 기록$/)).toBeVisible();
-  await expect(detail.locator("figure svg path.k-draw, figure svg circle").first()).toBeAttached();
+  await expect(detail.getByRole("img", { name: /^일 평균 거래가와 거래량/ })).toBeVisible();
   await expect(detail.locator("circle[data-lone]")).toHaveCount(0);
 });
