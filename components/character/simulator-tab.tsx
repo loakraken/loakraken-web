@@ -11,8 +11,12 @@ import type { Character } from "@/lib/character/model";
 import { Panel } from "./panel";
 import styles from "./detail.module.css";
 
+const loadSimulator = () => import("@/components/tools/combat-power").then((mod) => mod.CombatPowerSimulator);
+/** The tab bar warms the simulator's code too, so opening the tab does not wait on it. */
+export const preloadSimulator = loadSimulator;
+
 const Simulator = dynamic(
-  () => import("@/components/tools/combat-power").then((mod) => mod.CombatPowerSimulator),
+  loadSimulator,
   {
     ssr: false,
     loading: () => (

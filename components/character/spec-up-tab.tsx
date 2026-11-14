@@ -12,6 +12,8 @@ import { Panel } from "./panel";
 import styles from "./detail.module.css";
 
 const loadGuide = () => import("./spec-up-guide");
+/** The tab bar warms the guide's code too, so opening the tab does not wait on it. */
+export const preloadSpecUpGuide = loadGuide;
 
 const Guide = dynamic(() => loadGuide(), {
   ssr: false,
