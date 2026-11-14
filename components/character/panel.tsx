@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import styles from "./detail.module.css";
+import { FpEnd } from "@/components/ui/fp-end";
 
 /** Flat titled panel used by every character tab. */
 export function Panel({
@@ -25,10 +26,12 @@ export function Panel({
       data-wide={wide || undefined}
       aria-label={title}
     >
-      <header className={styles.panelHead}>
+      {/* Drawn once whole (A7 character sweep 2): the meta beside the title made the head taller when it came. */}
+      <header className={styles.panelHead} data-fp-whole="">
         <h2>{title}</h2>
         {meta && <span className={styles.panelMeta}>{meta}</span>}
         {action}
+        <FpEnd />
       </header>
       {children}
     </section>
