@@ -29,6 +29,13 @@ for (const width of [320, 360, 1280])
     await page.goto(`/character/${encodeURIComponent("로딩긴")}`, { waitUntil: "commit" });
     const main = page.locator("main[aria-busy]");
     await expect(main.getByRole("status")).toHaveText(STATUS);
+    // Places first (so they are checked on develop's screen too): the 64px orb cell centred, then 22px,
+    // the status line, 22px, the links — the layout the screen had before the still frame.
+    const at = await rows(page);
+    console.log(`ROWS ${width} ${JSON.stringify(at)}`);
+    expect(at.orb, "구슬 자리").toMatchObject({ x: Math.round((at.width - 64) / 2), w: 64, h: 64 });
+    expect(at.status.y, "상태 문장은 구슬 아래 22px").toBe(at.orb.y + 64 + 22);
+    expect(Math.abs(at.links.y - (at.status.y + at.status.h + 22)), "링크 줄은 문장 아래 22px").toBeLessThanOrEqual(1);
     // The still frame is there and draws: dots in a colour, inside the orb's own 64×64 cell.
     const still = main.locator("svg");
     await expect(still).toBeVisible();
@@ -45,11 +52,6 @@ for (const width of [320, 360, 1280])
     expect(drawn.paths, "정지 구슬의 점 묶음").toBeGreaterThan(10);
     expect(drawn.painted, "모든 묶음이 색으로 칠해짐").toBe(drawn.paths);
     expect(drawn.inside, "64×64 구슬 자리 안").toBe(true);
-    // Places as develop lays them out: the 64px orb cell centred, then 22px, the status line, 22px, the links.
-    const at = await rows(page);
-    expect(at.orb, "구슬 자리").toMatchObject({ x: Math.round((at.width - 64) / 2), w: 64, h: 64 });
-    expect(at.status.y, "상태 문장은 구슬 아래 22px").toBe(at.orb.y + 64 + 22);
-    expect(Math.abs(at.links.y - (at.status.y + at.status.h + 22)), "링크 줄은 문장 아래 22px").toBeLessThanOrEqual(1);
   });
 
 // Dark (system dark → data-theme="dark" before paint): the still takes the dark orb's colours.
