@@ -347,7 +347,7 @@ export function AvatarsTab({ data }: { data: Character }) {
                   // text lines under the slot name came.
                   <li key={`${slot}-${i}`} data-empty={avatar ? undefined : true} data-fp-whole="">
                     {avatar ? (
-                      <DetailTooltip name={avatar.name ?? "아바타"} card={<AvatarCard avatar={avatar} />}>
+                      <DetailTooltip name={avatar.name ?? "아바타"} card={<AvatarCard avatar={avatar} overlay={slot.endsWith(" 덧입기")} />}>
                         <GameIcon src={avatar.icon} grade={avatar.grade} size={36} />
                       </DetailTooltip>
                     ) : (

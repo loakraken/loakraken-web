@@ -25,7 +25,6 @@ import {
   type GridLines,
 } from "@/lib/character/item-tooltips";
 import { rangeDetail } from "@/lib/character/accessory-range";
-import { isOverlay } from "@/lib/character/inner";
 import styles from "./item-tooltip.module.css";
 
 type Equipment = Character["loadout"]["equipment"][number];
@@ -628,8 +627,10 @@ type Avatar = Character["avatars"][number];
  * The avatar card (sheet v2.1 §2c): name, icon row (grade and type, 장착중),
  * the 덧입기 note (its effects do not apply), then the base effect. Bound/trade,
  * tendencies and sources come when the backend sends the tooltip lines.
+ * `overlay`: worn in a 덧입기 slot, as the avatar list placed it (isOverlay
+ * needs every avatar worn, not this one alone).
  */
-export function AvatarCard({ avatar }: { avatar: Avatar }) {
+export function AvatarCard({ avatar, overlay }: { avatar: Avatar; overlay: boolean }) {
   return (
     <ItemDetail
       grade={itemGrade(avatar.grade)}
@@ -642,7 +643,7 @@ export function AvatarCard({ avatar }: { avatar: Avatar }) {
     >
       {/* Where it is worn, nothing more: whether a 덧입기 avatar's abilities count is not settled
           (the user's in-game sample fits main stats from both layers; PM 총괄 11-13). */}
-      {isOverlay(avatar) && <ItemLine tone="muted">덧입기 칸에 착용 중</ItemLine>}
+      {overlay && <ItemLine tone="muted">덧입기 칸에 착용 중</ItemLine>}
       {avatar.effects.length > 0 && (
         <ItemDetailSection label="기본 효과">
           {avatar.effects.map((effect, i) => (

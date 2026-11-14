@@ -47,12 +47,36 @@ test("기본 vs 덧입기 follows IsInner as the game shows it (user 11-12, in g
   assert.equal(slot("하의"), "속삭이는 영원 하의");
   assert.equal(slot("하의 덧입기"), "7주년 궤적 하의");
   // A base alone stays the base; a slot with no 덧입기 is never one; an unknown flag reads as the base.
-  assert.equal(isOverlay(avatar("하의 아바타", "속삭이는 영원 하의", true)), false);
-  assert.equal(isOverlay(avatar("하의 아바타", "7주년 궤적 하의", false)), true);
-  assert.equal(isOverlay(avatar("이동 효과", "폭풍우", false)), false);
-  assert.equal(isOverlay(avatar("얼굴1 아바타", "눈", false)), false);
-  assert.equal(isOverlay(avatar("상의 아바타", "옛 답", null)), false);
-  assert.equal(isOverlay(avatar("머리 덧입기 아바타", "모자", null)), true);
+  const base = avatar("하의 아바타", "속삭이는 영원 하의", true);
+  const over = avatar("하의 아바타", "7주년 궤적 하의", false);
+  assert.equal(isOverlay(base, [base, over]), false);
+  assert.equal(isOverlay(over, [base, over]), true);
+  assert.equal(isOverlay(avatar("이동 효과", "폭풍우", false), worn), false);
+  assert.equal(isOverlay(avatar("얼굴1 아바타", "눈", false), worn), false);
+  assert.equal(isOverlay(avatar("상의 아바타", "옛 답", null), []), false);
+  assert.equal(isOverlay(avatar("머리 덧입기 아바타", "모자", null), []), true);
+});
+
+test("IsInner false worn alone in its slot is the base, not a 덧입기 (PM 총괄 11-15, saved raws)", () => {
+  const avatar = (type: string, name: string, isInner: boolean | null) =>
+    ({ type, name, icon: null, grade: "영웅", isSet: false, isInner, effects: [], tendencies: [] }) as Parameters<typeof avatarSlots>[0][number];
+  // As the official answer has it: a lone 영웅 avatar can read IsInner=false and has no "(덧입기 슬롯에 착용 중)" line;
+  // the real 덧입기 always sits next to an IsInner=true avatar in the same slot.
+  const lone = avatar("머리 아바타", "혼자 쓴 모자", false);
+  const worn = [
+    lone,
+    avatar("상의 아바타", "기본 상의", true),
+    avatar("상의 아바타", "덧입은 상의", false),
+    avatar("하의 아바타", "혼자 입은 하의", false),
+  ];
+  assert.equal(isOverlay(lone, worn), false);
+  const slot = (name: string) => avatarSlots(worn).find((row) => row.slot === name)?.avatar?.name;
+  assert.equal(slot("머리"), "혼자 쓴 모자");
+  assert.equal(slot("머리 덧입기"), undefined);
+  assert.equal(slot("하의"), "혼자 입은 하의");
+  assert.equal(slot("하의 덧입기"), undefined);
+  assert.equal(slot("상의"), "기본 상의");
+  assert.equal(slot("상의 덧입기"), "덧입은 상의");
 });
 
 test("아바타 성향 (user 11-02): a line per avatar, totals in the game's order, nothing when none", () => {
