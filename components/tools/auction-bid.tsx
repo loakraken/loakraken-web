@@ -446,14 +446,14 @@ function AuctionContent({
         <section className={quote.hero} aria-labelledby="auction-heading">
           {/* A still icon: the calculation is instant, so nothing here
               should read as loading. */}
-          <span className={styles.heroIcon} aria-hidden="true">
-            <Judge size={18} />
-          </span>
           <p className={quote.heroKicker}>레이드 계산</p>
           <h1 id="auction-heading">경매 입찰가</h1>
           <p className={quote.heroCopy}>
             아이템 가격과 파티 인원으로 손해 없는 입찰가를 바로.
           </p>
+          <span className={styles.heroIcon} aria-hidden="true">
+            <Judge size={18} />
+          </span>
           <Link href="/" className={quote.back}>
             <ArrowLeft size={14} aria-hidden="true" /> 홈으로
           </Link>

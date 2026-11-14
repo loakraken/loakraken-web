@@ -39,6 +39,14 @@ export const OPEN_KINDS: ReadonlySet<string> = new Set([
 ]);
 export const isOpen = (kind: Change["kind"]) => OPEN_KINDS.has(kind);
 
+/**
+ * Refine opens for the weapon only (api #884, v0.3.11): the backend computes
+ * the weapon's refine, while armour refine comes back UNSUPPORTED
+ * (MODEL_UNCONFIRMED, api #866) until its formula is confirmed, so armour rows
+ * stay "준비 중" (PM 총괄 11-12).
+ */
+export const isRefineOpen = (type: string | null | undefined) => isOpen("EQUIPMENT_REFINE") || type === "무기";
+
 /** 전율 gear has no advanced refining (the backend's refine model reads the
  * same name: "전율 장비에는 상급 재련이 없습니다."). */
 export const hasNoAdvancedRefine = (name: string | null | undefined) => !!name?.includes("전율");
@@ -107,7 +115,7 @@ export const GRADE_LABEL: Record<string, string> = { LOW: "하", MID: "중", HIG
 
 export type Current = {
   gems: { slot: number; level: number }[];
-  gear: { index: number; refine: number | null; quality: number | null; advanced?: number | null }[];
+  gear: { index: number; type?: string | null; refine: number | null; quality: number | null; advanced?: number | null }[];
   polish?: { index: number; line: number; option: string; grade: Grade | null }[];
   bracelet?: { line: number; name: string; grade: Grade | null }[];
   engravings?: { name: string; level: number }[];
@@ -152,12 +160,34 @@ export function gradeWithValue(grade: string, value: string | null) {
 export const braceletName = (text: string) =>
   text.split(/\s*[+\-−]?\d/)[0].trim() || text.trim();
 
+/** The refine steps the api takes (options refineMin..refineMax); unknown until the options load. */
+export type RefineRange = { min: number; max: number } | null | undefined;
+
+/**
+ * A refine edit the api takes, or null: the weapon only (isRefineOpen), inside
+ * the options range, and not the step worn. A saved pick of +8 (the weapon's own
+ * step, under refineMin 10) read after the weapon was honed in game, a spec-up
+ * step past refineMax or an armour step would be refused (codex #1555, #1567),
+ * so they count as no edit and the row shows the step worn. Until the options
+ * arrive the range is unknown, so nothing is sent yet: the edit goes out with
+ * the first answer that has the range, or never if it is outside (codex #1572 P3).
+ */
+export function refineEdit(
+  edit: number | null | undefined,
+  item: Current["gear"][number],
+  range: RefineRange,
+): number | null {
+  if (edit == null || item.refine == null || edit === item.refine || !isRefineOpen(item.type)) return null;
+  if (!range || edit < range.min || edit > range.max) return null;
+  return edit;
+}
+
 /**
  * Only real differences become changes, in a fixed order (gems, gear, then the
  * rest in screen order), so
  * the same edits always send the same body and hit the same cache entry.
  */
-export function toChanges(edits: Edits, current: Current): Change[] {
+export function toChanges(edits: Edits, current: Current, range?: RefineRange): Change[] {
   const changes: Change[] = [];
   const allLevel = edits.gemAll;
   if (allLevel != null && current.gems.some((gem) => gem.level !== allLevel))
@@ -169,9 +199,8 @@ export function toChanges(edits: Edits, current: Current): Change[] {
       changes.push({ kind: "GEM_LEVEL", slot: gem.slot, level });
   }
   for (const item of current.gear) {
-    const refine = edits.refine[item.index];
-    if (refine != null && item.refine != null && refine !== item.refine)
-      changes.push({ kind: "EQUIPMENT_REFINE", index: item.index, refine });
+    const refine = refineEdit(edits.refine[item.index], item, range);
+    if (refine != null) changes.push({ kind: "EQUIPMENT_REFINE", index: item.index, refine });
     const quality = edits.quality[item.index];
     if (quality != null && item.quality != null && quality !== item.quality)
       changes.push({ kind: "EQUIPMENT_QUALITY", index: item.index, quality });

@@ -24,6 +24,12 @@ for (const width of [1280, 360])
     const row = (name) => list.locator("li").filter({ hasText: name }).first();
     await expect(row("합성 하의 (패스)")).toContainText("담력 5 · 매력 15");
     await expect(row("합성 무기 아바타")).toContainText("지성 5 · 담력 5 · 매력 5 · 친절 5");
+    // 기본 and 덧입기 as the game shows them (user 11-12): the official answer names both "무기 아바타";
+    // IsInner true is the base, false the 덧입기 over it.
+    await expect(row("합성 무기 아바타").locator("small").first()).toHaveText("무기");
+    await expect(row("합성 무기 덧입기").locator("small").first()).toHaveText("무기 덧입기");
+    await expect(row("합성 상의 (패스)").locator("small").first()).toHaveText("상의");
+    await expect(row("합성 상의 덧입기").locator("small").first()).toHaveText("상의 덧입기");
     // No 성향 line where the avatar gives none.
     await expect(row("합성 이동 효과").locator("small")).toHaveText(["이동 효과"]);
     // The panel sits above the list (first in the column).
@@ -36,6 +42,21 @@ for (const width of [1280, 360])
     expect(all, `흔들림 (${moved})`).toBe(0);
     await expectNoHorizontalOverflow(page);
   });
+
+// 덧입기 아바타의 상세 카드는 중립 문구 한 줄만(PM 총괄 11-13 #1551: '능력 미적용'은 확인되지 않아 쓰지 않음).
+// 기본 아바타 카드에는 그 줄이 없다.
+test("덧입기 아바타 상세에는 '덧입기 칸에 착용 중', 기본 아바타에는 없음 @regression", async ({ page }) => {
+  await gotoReady(page, characterPath("상세", "avatars"));
+  await page.getByRole("button", { name: "합성 무기 덧입기 상세 보기" }).click();
+  const card = page.getByRole("dialog");
+  await expect(card).toContainText("덧입기 칸에 착용 중");
+  await expect(card).not.toContainText("능력 미적용");
+  await page.keyboard.press("Escape");
+  await expect(card).toHaveCount(0);
+  await page.getByRole("button", { name: "합성 무기 아바타 상세 보기" }).click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await expect(page.getByRole("dialog")).not.toContainText("덧입기 칸에 착용 중");
+});
 
 // The api before #833 sends no tendencies field (PM-프론트 11-02): the tab draws as before, with no
 // 성향 panel and no 성향 lines (never zeros), and the contract check does not fail.

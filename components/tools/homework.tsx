@@ -594,12 +594,12 @@ export default function HomeworkTool() {
           the fold either way, so stored rosters arriving do not push it (390 CLS). */}
       <main id="hw-main" className={styles.main}>
         <section className={quote.hero} aria-labelledby="hw-heading">
-          <span className={quote.heroIcon} aria-hidden="true">
-            <TaskSquare size={18} />
-          </span>
           <p className={quote.heroKicker}>내 진행</p>
           <h1 id="hw-heading">숙제 체크</h1>
           <p className={quote.heroCopy}>원정대 주간 레이드와 골드, 한 화면에서.</p>
+          <span className={quote.heroIcon} aria-hidden="true">
+            <TaskSquare size={18} />
+          </span>
           <Link href="/" className={quote.back}>
             <ArrowLeft size={14} aria-hidden="true" /> 홈으로
           </Link>

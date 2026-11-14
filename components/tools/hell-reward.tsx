@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useMemo, useState, type Dispatch, type SetStateAction } from "react";
+import { useId, useLayoutEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import Link from "next/link";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { HubTabs } from "@/components/site/hub-tabs";
@@ -8,13 +8,14 @@ import { SiteHeader } from "@/components/site/site-header";
 import { ArrowLeft, Gift } from "@/components/ui/icons";
 import { SegmentedControl, SegmentedItem } from "@/components/ui/segmented-control";
 import { Select } from "@/components/ui/select";
-import { MINUTE } from "@/components/home/clock";
+import { MINUTE, useClock } from "@/components/home/clock";
 import { retryLabel } from "@/lib/api/rate-limit";
 import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { MarketQueryError, postMaterialPrices } from "@/lib/market/client";
 import { marketFailureCopy, priceBases, type PriceBasis } from "@/lib/market/model";
 import { goldText } from "@/lib/tools/format";
-import { intCodec, oneOfCodec, useUrlState } from "@/lib/tools/url-state";
+import { boolCodec, intCodec, oneOfCodec, useUrlState } from "@/lib/tools/url-state";
+import { useHellValues } from "@/lib/tools/hell-reward-values";
 import {
   HELL_DATA,
   MARKET_NAMES,
@@ -22,6 +23,7 @@ import {
   baseValue,
   heldView,
   levelItems,
+  priceAge,
   rankBoxes,
   stageBase,
   stageReward,
@@ -54,6 +56,9 @@ function basisText(line: StageLine) {
 
 const PAIR_KEYS = new Set(["destruction", "guardian", "destinyStone", "chaosStone"]);
 
+/** A box line the user values: no market price for it, or a value only the user can set. */
+const hasField = (line: StageLine) => line.pricing.kind !== "BOUND_GOLD" && (line.pricing.kind === "MANUAL" || line.unpriced);
+
 /** One item of a box: name × qty, what its value is based on, the unit slot, the amount. */
 function ItemLine({
   line,
@@ -80,7 +85,7 @@ function ItemLine({
           so a price (or none) landing never adds height (CLS). */}
       {line.pricing.kind !== "BOUND_GOLD" && (
         <span className={styles.unit}>
-          {line.pricing.kind === "MANUAL" || line.unpriced ? (
+          {hasField(line) ? (
             <label>
               <span>{line.unpriced ? "시세 없음 · 1개 값" : "1개 값"}</span>
               <input
@@ -155,12 +160,13 @@ export function HellRewardTool() {
   const level = Number(levelText);
   const setLevel = (v: number) => setLevelText(String(v));
   const [stage, setStage] = useUrlState("stage", 0, intCodec(0, 10));
-  const [basis, setBasis] = useState<PriceBasis>("RECENT_PRICE");
+  const [basis, setBasis] = useUrlState<PriceBasis>("basis", "RECENT_PRICE", oneOfCodec(priceBases.map((b) => b.value)));
   // Per unit and per item (keyed by item name, lib unitKey): the same item keeps its value
   // across kinds, levels and stages; a different item at another level does not take it.
-  const [manual, setManual] = useState<Record<string, string>>({});
+  // Kept in this browser (localStorage), not the address: reload, Back and a later visit keep them.
+  const [manual, setManual, restored] = useHellValues();
   // 풍요: the base of the opened box ×10 (PM 총괄 11-10).
-  const [abundance, setAbundance] = useState(false);
+  const [abundance, setAbundance] = useUrlState("abundance", false, boolCodec);
   const stageId = useId();
   const basisId = useId();
 
@@ -187,6 +193,10 @@ export function HellRewardTool() {
     [prices.data],
   );
   const marketPrice = (name: string) => market.get(name) ?? null;
+  // When the prices in use were collected (the oldest one): shown, and named old past an hour.
+  const now = useClock(MINUTE);
+  const age =
+    now == null ? null : priceAge(now, (prices.data?.data.items ?? []).filter((p) => p.status === "PRICED").map((p) => p.observedAt));
   const manualValue = (key: string) => {
     const v = Number(manual[key]);
     return Number.isFinite(v) && v > 0 ? v : 0;
@@ -207,7 +217,35 @@ export function HellRewardTool() {
   // boxes of different heights with no input (CLS). Values update in place; the headline always
   // names the best box now. Adjusted during render (derived state), no effect.
   const [resort, setResort] = useState(0);
-  const orderKey = `${kind}|${level}|${stage}|${abundance}|${loaded}|${resort}|${JSON.stringify(manual)}`;
+  // Typed values re-rank the list only when typing ends (blur, or Enter): re-ranking on every
+  // keystroke moved the box being typed in and scrolled the page (QA 11-13 01시: 942 px at 360).
+  // Moving from one value field to the next keeps the order too. The headline updates live.
+  const manualKey = JSON.stringify(manual);
+  // The item whose field has focus. Typing lasts only while that item still has a field: a price
+  // landing for a '시세 없음' item removes its field, and a removed field fires no blur, so typing
+  // ends there and nothing stays held (codex #1574 P2).
+  const [focusedKey, setFocusedKey] = useState<string | null>(null);
+  const fieldKeys = new Set([
+    ...ranked.flatMap((b) => b.lines.filter(hasField).map((l) => l.unitKey)),
+    ...(base?.lines.filter((l) => l.unpriced).map((l) => l.unitKey) ?? []),
+  ]);
+  const typing = focusedKey != null && fieldKeys.has(focusedKey);
+  const [rankedManual, setRankedManual] = useState(manualKey);
+  if (!typing && rankedManual !== manualKey) setRankedManual(manualKey);
+  const fieldKey = (el: EventTarget | null) =>
+    el instanceof HTMLInputElement && el.type === "number" && el.name.startsWith("unit-") && el.closest(`.${styles.lines}`)
+      ? el.name.slice("unit-".length)
+      : null;
+  // The field Enter re-ranked: its box may move, so it is brought back into view (codex #1574 P2).
+  const keepInView = useRef<HTMLInputElement | null>(null);
+  useLayoutEffect(() => {
+    const field = keepInView.current;
+    if (field) {
+      keepInView.current = null;
+      if (field.isConnected) field.scrollIntoView({ block: "nearest" });
+    }
+  });
+  const orderKey = `${kind}|${level}|${stage}|${abundance}|${loaded}|${resort}|${rankedManual}`;
   const [order, setOrder] = useState({ key: "", ids: [] as string[] });
   if (order.key !== orderKey) setOrder({ key: orderKey, ids: ranked.map((b) => b.id) });
   const view = heldView(ranked, order.key === orderKey ? order.ids : ranked.map((b) => b.id));
@@ -229,12 +267,12 @@ export function HellRewardTool() {
       <SiteHeader />
       <main id="hell-main">
         <section className={quote.hero} aria-labelledby="hell-heading">
-          <span className={quote.heroIcon} aria-hidden="true">
-            <Gift size={18} />
-          </span>
           <p className={quote.heroKicker}>레이드 · 보상</p>
           <h1 id="hell-heading">지옥 · 나락 보상</h1>
           <p className={quote.heroCopy}>열쇠 단계별 고정 보상을 지금 시세로.</p>
+          <span className={quote.heroIcon} aria-hidden="true">
+            <Gift size={18} />
+          </span>
           <Link href="/" className={quote.back}>
             <ArrowLeft size={14} aria-hidden="true" /> 홈으로
           </Link>
@@ -274,6 +312,16 @@ export function HellRewardTool() {
               aria-labelledby="hell-value-heading"
               aria-busy={switching || undefined}
               data-stale={switching || undefined}
+              onFocus={(e) => {
+                const key = fieldKey(e.target);
+                if (key) setFocusedKey(key);
+              }}
+              onBlur={(e) => fieldKey(e.target) && !fieldKey(e.relatedTarget) && setFocusedKey(null)}
+              onKeyDown={(e) => {
+                if (e.key !== "Enter" || !fieldKey(e.target) || rankedManual === manualKey) return;
+                keepInView.current = e.target as HTMLInputElement;
+                setRankedManual(manualKey);
+              }}
             >
               <h2 id="hell-value-heading" className={styles.sectionTitle}>
                 {kindLabel} {level} · {stage}단계 고정 보상
@@ -294,16 +342,23 @@ export function HellRewardTool() {
                   </button>
                 </div>
               )}
-              {/* The headline is the best single box: one key opens one box (PM 총괄 11-10).
+              {/* The headline is the best single box: one key opens one box (PM 총괄 11-10). Held (kept
+                  in place, not shown) until the stored values apply and prices land, so a reload never
+                  flips it from a no-typed-value result (codex #1549 P3).
                   Each amount is one text ("47,695G"; split, the G node moved as numbers grew). */}
-              <dl className={styles.sums} aria-live="polite">
+              <dl className={styles.sums} aria-live="polite" aria-busy={!restored || (!loaded && !failure) || undefined} data-waiting={!restored || (!loaded && !failure) ? "" : undefined}>
                 <div>
                   <dt>가장 좋은 상자</dt>
                   <dd className={styles.boxName}>{best?.label ?? ""}</dd>
                 </div>
                 <div>
                   <dt>그 상자의 값</dt>
-                  <dd>{`${goldText(best?.value ?? 0)}G`}</dd>
+                  {/* Old prices said by the value itself, not only at the end of the page (QA 11-13
+                      08시). Always drawn, in the room the two-line box name leaves (no height change). */}
+                  <dd>
+                    {`${goldText(best?.value ?? 0)}G`}
+                    <span className={styles.ageMark}>{age?.short ?? ""}</span>
+                  </dd>
                 </div>
                 <div>
                   <dt>{abundance ? "기본 보상 (풍요 ×10)" : "기본 보상"}</dt>
@@ -333,7 +388,14 @@ export function HellRewardTool() {
               {/* Always drawn (a button appearing would move the list). The order is held while
                   only prices change; the headline above is always the best box now. */}
               <p className={styles.order}>
-                <span aria-live="polite">{view.stale ? "시세가 바뀌어 지금 값과 순서가 달라요." : "지금 값 기준으로 좋은 순서예요."}</span>
+                <span aria-live="polite">
+                  {/* The typing line only for typed values not ranked yet; a price-driven change keeps its own. */}
+                  {!view.stale
+                    ? "지금 값 기준으로 좋은 순서예요."
+                    : typing && rankedManual !== manualKey
+                      ? "입력을 마치면 값 순서로 다시 정렬해요."
+                      : "시세가 바뀌어 지금 값과 순서가 달라요."}
+                </span>
                 <button type="button" className={quote.outlinePill} onClick={() => setResort((n) => n + 1)}>
                   지금 시세로 다시 정렬
                 </button>
@@ -398,6 +460,10 @@ export function HellRewardTool() {
                   items={priceBases.map((item) => ({ value: item.value, label: item.label }))}
                 />
               </label>
+              {/* Always drawn, one line kept (the text arrives after the first paint). */}
+              <p className={styles.priceAge} data-old={age?.stale || undefined}>
+                {age?.text ?? ""}
+              </p>
               <p className={styles.note}>
                 열쇠 1개로 보이는 상자 가운데 하나를 열어요. 상자마다 그 안의 보상과 기본 보상을 더해 값이 큰 순서로
                 보여 줘요. 어떤 상자가 보일지는 셈하지 않았고, 무기 +25 · 페온 효과도 이 계산에 넣지 않았어요. 둘 중 하나를

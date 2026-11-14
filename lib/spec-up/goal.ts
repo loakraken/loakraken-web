@@ -4,7 +4,7 @@
 // simulator's (never a sum of single deltas). The web only formats it.
 import { isOpen } from "../combat-power/model";
 import type { components } from "../api/spec-up-schema";
-import { editsFor, SPEC_UP_KIND_LABEL, type SpecUpChange } from "./model";
+import { editsFor, SPEC_UP_KIND_LABEL, type GearType, type SpecUpChange } from "./model";
 import { NO_EDITS } from "../combat-power/model";
 
 type Schemas = components["schemas"];
@@ -74,8 +74,12 @@ export function stepCost(step: GoalStep, gold: (amount: number) => string, ruleV
  * The path as simulator input (시뮬레이터에서 열기): only the changes the
  * simulator takes today, in order; `skipped` counts the steps left out
  * (PM-프론트 10-12 20:28 — the /simulate proxy refuses kinds it does not know).
+ * Refine is open per slot, not per kind: a weapon step goes in, an armour step
+ * is skipped (api #884, #1567), told apart by `gearType`.
  */
-export function simulatorPath(steps: GoalStep[]): { changes: SpecUpChange[]; skipped: number } {
+export function simulatorPath(steps: GoalStep[], gearType?: GearType): { changes: SpecUpChange[]; skipped: number } {
+  const takes = (change: SpecUpChange) =>
+    (isOpen(change.kind as never) || change.kind === "EQUIPMENT_REFINE") && editsFor(change, NO_EDITS, gearType) != null;
   const changes: SpecUpChange[] = [];
   let skipped = 0;
   for (const step of steps) {
@@ -83,7 +87,7 @@ export function simulatorPath(steps: GoalStep[]): { changes: SpecUpChange[]; ski
     // engravings, `changes`; `change` is only its first). The whole step goes
     // in or none of it: half a stone would be a stone that does not exist.
     const all = (step.changes?.length ? step.changes : [step.change]) as SpecUpChange[];
-    if (all.every((change) => isOpen(change.kind as never) && editsFor(change, NO_EDITS))) changes.push(...all);
+    if (all.every(takes)) changes.push(...all);
     else skipped += 1;
   }
   // In path order: the simulator applies them one after another, so a later

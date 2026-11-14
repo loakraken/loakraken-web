@@ -111,14 +111,14 @@ export function PriceAlertsView() {
       <SiteHeader />
       <main id="alerts-main" className={stats.main}>
         <section className={quote.hero} aria-labelledby="alerts-heading">
-          <span className={quote.heroIcon} aria-hidden="true">
-            <Notification size={18} />
-          </span>
           <p className={quote.heroKicker}>거래소</p>
           <h1 id="alerts-heading">시세 알림</h1>
           <p className={quote.heroCopy}>
             품목의 판매 최저가가 정한 가격 이하나 이상이 되면 이 브라우저로 알림을 보내요. 로그인은 필요 없어요.
           </p>
+          <span className={quote.heroIcon} aria-hidden="true">
+            <Notification size={18} />
+          </span>
           <HubTabs hub="market" />
         </section>
 
@@ -379,7 +379,11 @@ function AddCondition({
         </div>
         <div className={styles.field}>
           <span id={`${ids.price}-line`}>조건</span>
+          {/* One row at every width: two short labels need 224px in the widest face,
+              and the form gives this field more on phones (one column) and sizes
+              its desktop column to the row (an auto track, so no frame here). */}
           <SegmentedControl
+            orientation="horizontal"
             aria-labelledby={`${ids.price}-line`}
             value={comparator}
             onValueChange={(value) => setComparator(value as Comparator)}

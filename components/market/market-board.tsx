@@ -500,7 +500,9 @@ function BoardRows({
                     aria-hidden="true"
                   />
                   {item.name}
-                  {tier != null && <i>T{tier}</i>}
+                  {/* One string, sized from the start tag (data-fp-label): a badge drawn
+                      before its text was a 2px sliver that grew and moved (A7). */}
+                  {tier != null && <i data-fp-label={`T${tier}`}><span>{`T${tier}`}</span></i>}
                   {starred.has(item.itemId) && <span className="sr-only"> · 즐겨찾기됨</span>}
                 </strong>
                 <small>
@@ -615,15 +617,15 @@ function MarketContent({
       <SiteHeader />
       <main id="market-main">
         <section className={quote.hero} aria-labelledby="market-heading">
-          {/* Static mark like the tool screens: no repeating motion on information pages (D2). */}
-          <span className={quote.heroIcon} aria-hidden="true">
-            <TrendUp size={18} />
-          </span>
           <p className={quote.heroKicker}>거래소</p>
           <h1 id="market-heading">시세</h1>
           <p className={quote.heroCopy}>
             공식 거래소 시세를 분류별로 모아 보여줘요.
           </p>
+          {/* Static mark like the tool screens: no repeating motion on information pages (D2). */}
+          <span className={quote.heroIcon} aria-hidden="true">
+            <TrendUp size={18} />
+          </span>
           <HubTabs hub="market" />
         </section>
 

@@ -219,12 +219,12 @@ export function AccessoryBoardView({
       <SiteHeader />
       <main id="accessories-main" className={stats.main}>
         <section className={quote.hero} aria-labelledby="accessories-heading">
-          <span className={quote.heroIcon} aria-hidden="true">
-            <Diamonds size={18} />
-          </span>
           <p className={quote.heroKicker}>경매장</p>
           <h1 id="accessories-heading">장신구 시세</h1>
           <p className={quote.heroCopy}>4티어 장신구를 부위별 핵심 연마 효과의 등급 조합으로 나눠 즉시 구매 최저가를 보여줘요.</p>
+          <span className={quote.heroIcon} aria-hidden="true">
+            <Diamonds size={18} />
+          </span>
           <HubTabs hub="market" />
           <AccessoryViews search={search} />
         </section>

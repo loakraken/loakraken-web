@@ -113,7 +113,10 @@
    the calculator pages of the other Lost Ark sites, not a product hero. */
 .hero {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  /* The icon's column is its own 36px from the start: the icon comes last in
+     the page (see .heroIcon), and an auto column empty until then would put
+     the text 36px to the left and move it when the icon lands. */
+  grid-template-columns: 36px minmax(0, 1fr) auto;
   grid-template-rows: auto auto auto;
   column-gap: 12px;
   align-items: center;
@@ -135,8 +138,13 @@
   transform: scale(0.5);
 }
 /* Still icon in the orb's place: tools are information screens, so no
-   repeating motion (design decision D2). */
+   repeating motion (design decision D2). It comes after the kicker, title and
+   copy in the page (drawn in the first column): it is centred on their rows,
+   so it must not arrive before them. When the first HTML came in parts, an
+   icon drawn first sat on empty rows and dropped ~13px as the text landed
+   (CLS, quote 1280 / 320). */
 .heroIcon {
+  grid-column: 1;
   grid-row: 1 / 4;
   display: grid;
   place-items: center;
@@ -328,6 +336,30 @@
      white on black in light mode, dark text on the light fill in dark. */
   color: var(--background);
   font-size: var(--text-body);
+}
+/* The search button sits at the end of the form row, so a narrower button
+   moved its left edge (and the field) when its label came later than its start
+   tag: the first HTML arriving in parts (#1559 CI 1280). Its width now comes
+   from the start tag: the icon has its own column and a hidden copy of the
+   wider label (data-label) holds the label's cell, in any font. */
+.searchSubmit {
+  display: inline-grid;
+  grid-template-columns: 15px auto;
+  column-gap: 8px;
+}
+.searchSubmit > svg {
+  grid-area: 1 / 1;
+}
+.searchSubmit::before {
+  /* The empty alternative text keeps assistive tech from reading it. */
+  content: attr(data-label);
+  content: attr(data-label) / "";
+  grid-area: 1 / 2;
+  visibility: hidden;
+  white-space: nowrap;
+}
+.searchSubmit > .searchLabel {
+  grid-area: 1 / 2;
 }
 .outlinePill {
   height: 32px;
@@ -639,19 +671,6 @@
 /* Spacing for the shared SegmentedControl (components/ui) on tool screens. */
 .basis {
   margin-top: 24px;
-}
-/* The three price bases need 302px on one row; the card offers the viewport
-   minus 56px. Narrower than that the row is stacked from the first HTML, not
-   after the fonts load and the control measures (0.12 shift at 320). Same
-   look as the control's own vertical state; it agrees once it measures. */
-@media (max-width: 357.98px) {
-  .basis {
-    grid-auto-flow: row;
-    grid-auto-columns: auto;
-    width: 100%;
-    row-gap: 12px;
-    border-radius: 20px;
-  }
 }
 
 /* Category: group pill tabs (#417) and the group's kinds as chips. Height is

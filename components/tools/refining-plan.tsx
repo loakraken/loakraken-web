@@ -937,12 +937,12 @@ function RefiningContent({ initialName }: { initialName: string }) {
       <SiteHeader />
       <main id="refining-main">
         <section className={quote.hero} aria-labelledby="refining-heading">
-          <span className={quote.heroIcon} aria-hidden="true">
-            <Setting size={18} />
-          </span>
           <p className={quote.heroKicker}>성장 도구</p>
           <h1 id="refining-heading">재련 기대 비용</h1>
           <p className={quote.heroCopy}>목표 단계까지, 확률로 미리.</p>
+          <span className={quote.heroIcon} aria-hidden="true">
+            <Setting size={18} />
+          </span>
           <Link href="/" className={quote.back}>
             <ArrowLeft size={14} aria-hidden="true" /> 캐릭터 검색으로
           </Link>

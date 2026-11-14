@@ -2,7 +2,8 @@
 // ranked by combat power per 10,000 gold. The backend computes every number;
 // the screen only formats them and folds what it could not compute.
 import type { components } from "../api/spec-up-schema";
-import { ARM_GUARD_GRADES, type Edits } from "../combat-power/model";
+import type { Character } from "../character/model";
+import { ARM_GUARD_GRADES, isRefineOpen, type Edits } from "../combat-power/model";
 
 type Schemas = components["schemas"];
 export type SpecUp = Schemas["SpecUpResponse"];
@@ -240,10 +241,16 @@ export function splitCandidates(list: Candidate[]) {
  * The simulator's inputs for one candidate (적용해 보기): the change the
  * backend ran, in the simulator's own edit shape. Kinds the simulator does
  * not edit yet give null, and the screen shows no button for them.
+ * `gearType` names the slot of an equipment index (무기, 투구 …): refine opens
+ * for the weapon only (api #884), so without it a refine step gives null (#1567).
  */
-export function editsFor(change: SpecUpChange | null | undefined, base: Edits): Edits | null {
+export function editsFor(change: SpecUpChange | null | undefined, base: Edits, gearType?: GearType): Edits | null {
   if (!change) return null;
   switch (change.kind) {
+    case "EQUIPMENT_REFINE":
+      return change.index != null && change.refine != null && gearType && isRefineOpen(gearType(change.index))
+        ? { ...base, refine: { ...base.refine, [change.index]: change.refine } }
+        : null;
     case "GEM_LEVEL":
       return change.slot != null && change.level != null
         ? { ...base, gems: { ...base.gems, [change.slot]: change.level } }
@@ -272,6 +279,15 @@ export function editsFor(change: SpecUpChange | null | undefined, base: Edits): 
       return null;
   }
 }
+
+/** The slot type of an equipment index ("무기", "투구" …), from the character on screen. */
+export type GearType = (index: number) => string | null | undefined;
+
+/** Change indexes are positions in loadout.equipment, as the simulator's own rows. */
+export const gearTypeOf =
+  (data: Pick<Character, "loadout"> | null | undefined): GearType =>
+  (index) =>
+    data?.loadout.equipment[index]?.type;
 
 /** ?try= on the simulator tab carries one change; readTry reads it back. */
 export const tryParam = (change: SpecUpChange) => JSON.stringify(change);

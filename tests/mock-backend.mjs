@@ -988,6 +988,30 @@ createServer(async (req, res) => {
       step.combatPowerAfter = shift(step.combatPowerAfter);
       if (step.change.kind === "GEM_LEVEL") step.change.slot = 1;
     }
+    // 스펙업무기재련 (#1567): a weapon refine step and an armour one at the end of the path.
+    if (who === "스펙업무기재련") {
+      const [gem] = d.steps;
+      const last = d.steps.at(-1);
+      const top = last.combatPowerAfter;
+      const refine = (index, target, from, after) => ({
+        ...gem,
+        candidateId: `EQUIPMENT_REFINE:${index}:${from + 1}`,
+        kind: "EQUIPMENT_REFINE",
+        target,
+        from: `+${from}`,
+        to: `+${from + 1}`,
+        change: { kind: "EQUIPMENT_REFINE", slot: null, index, level: null, refine: from + 1, quality: null, name: null },
+        changes: undefined,
+        deltaCombatPower: 10,
+        combatPowerAfter: after,
+        // Unpriced, as the path's quality step.
+        cost: { ...last.cost },
+        cumulativeCost: null,
+        combatPowerPer10kGold: null,
+      });
+      d.steps.push(refine(0, "+20 테스트 무기", 20, top + 10), refine(1, "+19 테스트 투구", 19, top + 20));
+      d.steps.forEach((step, i) => (step.order = i + 1));
+    }
     const cut = d.steps.findIndex((step) => step.combatPowerAfter >= target);
     d.steps = cut >= 0 ? d.steps.slice(0, cut + 1) : d.steps;
     const last = d.steps.at(-1);
@@ -1046,6 +1070,23 @@ createServer(async (req, res) => {
       return send(kraken);
     }
     const envelope = specUp(who === "스펙업시세" ? "character-spec-up-pending.json" : "character-spec-up.json");
+    // 스펙업무기재련 (#1567): the weapon's refine step is computed (api #884) and an
+    // armour one comes OK too, so the screen's own gate (weapon only) is what keeps
+    // '적용해 보기' off the armour row.
+    if (who === "스펙업무기재련") {
+      const weapon = envelope.data.candidates.find((c) => c.id === "EQUIPMENT_REFINE:0:21");
+      Object.assign(weapon, { status: "OK", deltaCombatPower: 46.68, deltaPercent: 1.147, reasonCode: null, reason: null, reasonDetail: null });
+      envelope.data.candidates.push({
+        ...weapon,
+        id: "EQUIPMENT_REFINE:1:20",
+        target: "+19 테스트 투구",
+        from: "+19",
+        to: "+20",
+        change: { ...weapon.change, index: 1, refine: 20 },
+        deltaCombatPower: 12.5,
+        deltaPercent: 0.4,
+      });
+    }
     if (who !== "스펙업옛응답")
       Object.assign(envelope.data, {
         krakenScore: who === "스펙업점수꺼짐" ? null : 3977.02,
@@ -1120,7 +1161,9 @@ createServer(async (req, res) => {
     const computed = request.characterName === "전투력계산";
     // 서포터(backend #332): every change comes back unsupported with the role reason.
     const supporter = request.characterName === "상세서포터";
-    if (computed) withSimulatorGear(search);
+    // The same gear the character answer has, so each change's "from" is the worn step.
+    if (computed || request.characterName === "전투력계산저재련" || request.characterName === "스펙업무기재련") withSimulatorGear(search);
+    if (request.characterName === "전투력계산저재련") search.loadout.equipment.find((item) => item.type === "무기").detail.refineLevel = 8;
     const r2 = (v) => Math.round(v * 100) / 100;
     d.characterName = request.characterName;
     d.fetchedAt = search.fetchedAt;
@@ -2567,7 +2610,9 @@ createServer(async (req, res) => {
       { name: "도약", value: 50 + n * 4, description: null },
     ];
   }
-  if (name === "전투력계산") withSimulatorGear(envelope.data);
+  if (name === "전투력계산" || name === "전투력계산저재련" || name === "스펙업무기재련") withSimulatorGear(envelope.data);
+  // A weapon below options refineMin (10): the refine select still shows 8, not an empty box (#1555).
+  if (name === "전투력계산저재련") envelope.data.loadout.equipment.find((item) => item.type === "무기").detail.refineLevel = 8;
   // 그 외 장착 보석 (L34): a second gem set on a skill the skill list does not
   // have (an identity skill in the official gem effects).
   if (name === "그외보석") {
@@ -2824,15 +2869,16 @@ createServer(async (req, res) => {
     d.honorPoint = 183;
     d.guildName = "합성길드";
     d.guildMemberGrade = "길드장";
-    // 성향 per avatar as the real tooltips give it (backend #833): 이동 효과 none.
+    // 성향 per avatar as the real tooltips give it (backend #833): 이동 효과 none. As the official answer has them
+    // (11-12): both avatars of a layered slot read "무기 아바타"; IsInner true = the base, false = its 덧입기.
     const t = (...pairs) => pairs.map(([type, point]) => ({ type, point }));
     d.avatars = [
-      ["무기 아바타", "합성 무기 아바타", "전설", false, ["민첩 +2.00%"], t(["지성", 5], ["담력", 5], ["매력", 5], ["친절", 5])],
-      ["무기 덧입기 아바타", "합성 무기 덧입기", "영웅", true, [], t(["지성", 5])],
-      ["상의 아바타", "합성 상의 (패스)", "전설", false, ["민첩 +2.00%"], t(["지성", 10], ["담력", 5], ["매력", 5], ["친절", 5])],
-      ["상의 덧입기 아바타", "합성 상의 덧입기", "영웅", true, [], t(["담력", 5])],
-      ["하의 아바타", "합성 하의 (패스)", "전설", false, ["민첩 +2.00%"], t(["담력", 5], ["매력", 15])],
-      ["머리 아바타", "합성 머리", "전설", false, ["민첩 +1.00%"], t(["매력", 10], ["친절", 5])],
+      ["무기 아바타", "합성 무기 아바타", "전설", true, ["민첩 +2.00%"], t(["지성", 5], ["담력", 5], ["매력", 5], ["친절", 5])],
+      ["무기 아바타", "합성 무기 덧입기", "영웅", false, [], t(["지성", 5])],
+      ["상의 아바타", "합성 상의 (패스)", "전설", true, ["민첩 +2.00%"], t(["지성", 10], ["담력", 5], ["매력", 5], ["친절", 5])],
+      ["상의 아바타", "합성 상의 덧입기", "영웅", false, [], t(["담력", 5])],
+      ["하의 아바타", "합성 하의 (패스)", "전설", true, ["민첩 +2.00%"], t(["담력", 5], ["매력", 15])],
+      ["머리 아바타", "합성 머리", "전설", true, ["민첩 +1.00%"], t(["매력", 10], ["친절", 5])],
       ["얼굴1 아바타", "합성 얼굴1", "영웅", false, [], t(["지성", 5])],
       ["이동 효과", "합성 이동 효과", "영웅", false, [], []],
     ].map(([type, name, grade, isInner, effects, tendencies]) => ({ type, name, icon: null, grade, isSet: false, isInner, effects, tendencies }));

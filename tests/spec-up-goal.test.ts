@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import { parseTarget, simulatorPath, stepCost, stepKindLabel, targetError, type GoalStep } from "../lib/spec-up/goal";
-import { koreanGold, readTry, readTryPath, tryPathParam } from "../lib/spec-up/model";
+import { gearTypeOf, koreanGold, readTry, readTryPath, tryPathParam } from "../lib/spec-up/model";
 import { requestSpecUpGoal } from "../lib/spec-up/upstream";
 
 const sample = JSON.parse(readFileSync(new URL("./spec-up-fixtures/character-spec-up-goal.json", import.meta.url), "utf8"));
@@ -111,6 +111,30 @@ test("시뮬레이터에서 열기 carries only the changes the simulator takes,
   assert.deepEqual(readTryPath(JSON.stringify(path.changes[0])), [path.changes[0]]);
   assert.equal(readTry(JSON.stringify(path.changes[0]))?.level, 9);
   assert.deepEqual(readTryPath("{"), []);
+});
+
+test("시뮬레이터에서 열기 carries a weapon refine step and skips an armour one (#1567, api #884)", () => {
+  const [gem] = sample.data.steps as GoalStep[];
+  const refineStep = (index: number, refine: number) =>
+    ({
+      ...gem,
+      kind: "EQUIPMENT_REFINE",
+      candidateId: `EQUIPMENT_REFINE:${index}:${refine}`,
+      change: { ...gem.change, kind: "EQUIPMENT_REFINE", slot: null, level: null, index, refine },
+    }) as GoalStep;
+  const gearType = gearTypeOf({ loadout: { equipment: [{ type: "무기" }, { type: "투구" }] } } as never);
+  const path = simulatorPath([gem, refineStep(0, 21), refineStep(1, 20), refineStep(0, 22)], gearType);
+  assert.deepEqual(
+    path.changes.map((c) => [c.kind, c.index ?? c.slot, c.level ?? c.refine]),
+    [
+      ["GEM_LEVEL", 0, 9],
+      ["EQUIPMENT_REFINE", 0, 21],
+      ["EQUIPMENT_REFINE", 0, 22],
+    ],
+  );
+  assert.equal(path.skipped, 1);
+  // Without the character the slot is unknown: every refine step stays out.
+  assert.equal(simulatorPath([gem, refineStep(0, 21)]).skipped, 1);
 });
 
 test("a stone step (api #812) opens with both engravings; a step is never opened half", () => {
