@@ -411,6 +411,13 @@
             "items": {
               "$ref": "#/components/schemas/HomeWeeklyDayResponse"
             }
+          },
+          "weekKinds": {
+            "type": "array",
+            "description": "이번 주 날짜별(coveredFrom … coveredTo, KST, 날짜순) 카오스게이트·필드 보스 회차가 있는지. 요청 날짜와 상관없이 같은 값, 일정이 없으면 빈 목록",
+            "items": {
+              "$ref": "#/components/schemas/HomeWeekKindsResponse"
+            }
           }
         },
         "required": [
@@ -489,6 +496,18 @@
                 "type": "string",
                 "format": "date-time",
                 "description": "현재 이후 첫 회차(이번 주 범위). 없으면 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "location": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "공식 위치(Location). 없으면 null",
+                "example": "레갸르방크 대평원"
               },
               {
                 "type": "null"
@@ -624,6 +643,18 @@
                 "type": "null"
               }
             ]
+          },
+          "location": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "공식 위치(Location). 없으면 null",
+                "example": "레갸르방크 대평원"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -685,6 +716,18 @@
               {
                 "type": "string",
                 "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "location": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "공식 위치(Location). 없으면 null",
+                "example": "레갸르방크 대평원"
               },
               {
                 "type": "null"
@@ -1124,6 +1167,29 @@
           "publishedAt",
           "title",
           "url"
+        ]
+      },
+      "HomeWeekKindsResponse": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "description": "날짜(KST)"
+          },
+          "chaosGate": {
+            "type": "boolean",
+            "description": "그 날 시작 시각이 있는 카오스게이트가 있다"
+          },
+          "fieldBoss": {
+            "type": "boolean",
+            "description": "그 날 시작 시각이 있는 필드 보스가 있다"
+          }
+        },
+        "required": [
+          "chaosGate",
+          "date",
+          "fieldBoss"
         ]
       }
     }
