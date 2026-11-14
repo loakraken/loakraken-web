@@ -84,15 +84,18 @@ for (const { path, count } of PAGES)
       const group = page.getByRole("group", { name: "기간" });
       await expect(group.getByRole("button")).toHaveCount(count);
       await page.waitForFunction(() => Object.keys(document.body).some((key) => key.startsWith("__reactFiber$")));
-      // Each button's box (left, top, width, height), not layout-shift entries: those count text nodes too, so
-      // a glyph redraw inside a still button could read as a shift (codex #1635 P3).
+      // Each button's box inside the row (offset, width, height), not layout-shift entries: those count text nodes
+      // too, so a glyph redraw inside a still button could read as a shift (codex #1635 P3). Relative to the row,
+      // because text above it on the page (the gem board at 320) may re-wrap in the other face and move the whole
+      // row down or up — that is not this row's width changing.
       const boxes = () =>
-        group.evaluate((row) =>
-          [...row.querySelectorAll("button")].map((b) => {
+        group.evaluate((row) => {
+          const at = row.getBoundingClientRect();
+          return [...row.querySelectorAll("button")].map((b) => {
             const r = b.getBoundingClientRect();
-            return [Math.round(r.left), Math.round(r.top), Math.round(r.width), Math.round(r.height)].join(" ");
-          }),
-        );
+            return [Math.round(r.left - at.left), Math.round(r.top - at.top), Math.round(r.width), Math.round(r.height)].join(" ");
+          });
+        });
       const before = await measure(page);
       const placed = await boxes();
       release();
