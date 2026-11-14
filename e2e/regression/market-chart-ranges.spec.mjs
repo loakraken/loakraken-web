@@ -317,10 +317,10 @@ test("320: 일별 표의 날짜 · 가격 · 거래량은 한 줄, 가로 넘침
   await page.route(/\/api\/markets\/items\/\d+\/history\?range=30d/, async (route) => {
     const response = await route.fetch();
     const body = await response.json();
-    // The widest real row (codex #1645): a price with decimals in the tens of millions and a day's volume of
-    // tens of millions (the busiest materials), on every day.
+    // The widest values we allow (PM cap, codex #1654): price 9,999,999.99G and volume 99,999,999 on every day —
+    // far above real days, so a font build that draws digits a little wider still fits.
     for (const variant of body.envelope.data.variants)
-      for (const day of variant.days) Object.assign(day, { averagePrice: 12_345_678.5, tradeCount: 98_765_432 });
+      for (const day of variant.days) Object.assign(day, { averagePrice: 9_999_999.99, tradeCount: 99_999_999 });
     await route.fulfill({ response, json: body });
   });
   await gotoReady(page, "/market?tab=ENGRAVING_BOOK");
@@ -332,14 +332,20 @@ test("320: 일별 표의 날짜 · 가격 · 거래량은 한 줄, 가로 넘침
   expect(new Set(heights).size, `행 높이 ${heights.join(",")}`).toBe(1);
   await expectNoHorizontalOverflow(page);
   // codex #1635 P3: inside the detail panel too, not only the page (a clipped panel could hide a long price).
-  const past = await detail.evaluate((panel) => {
-    // The panel's content box (inside its padding), not its border box (codex #1645).
-    const edge = panel.getBoundingClientRect().right - parseFloat(getComputedStyle(panel).paddingRight) - parseFloat(getComputedStyle(panel).borderRightWidth);
-    return [...panel.querySelectorAll("table:not([aria-hidden]) th, table:not([aria-hidden]) td")]
-      .filter((cell) => cell.getBoundingClientRect().right > edge + 0.5 || cell.scrollWidth > cell.clientWidth + 1)
-      .map((cell) => `${cell.textContent.trim()} ${Math.round(cell.getBoundingClientRect().right)}/${Math.round(edge)}`);
+  // Inside the panel's content box (its padding and border off), with room to spare: at least 4px between the
+  // widest cell and the edge (codex #1654: 1–2px was fragile across font builds), and no cell clipped inside.
+  const room = await detail.evaluate((panel) => {
+    const style = getComputedStyle(panel);
+    const edge = panel.getBoundingClientRect().right - parseFloat(style.paddingRight) - parseFloat(style.borderRightWidth);
+    const cells = [...panel.querySelectorAll("table:not([aria-hidden]) th, table:not([aria-hidden]) td")];
+    return {
+      slack: Math.min(...cells.map((cell) => edge - cell.getBoundingClientRect().right)),
+      clipped: cells.filter((cell) => cell.scrollWidth > cell.clientWidth + 1).map((cell) => cell.textContent.trim()),
+    };
   });
-  expect(past, "패널 밖으로 나간 칸").toEqual([]);
+  test.info().annotations.push({ type: "slack", description: `${room.slack.toFixed(1)}px` });
+  expect(room.clipped, "칸 안에서 잘린 글자").toEqual([]);
+  expect(room.slack, `패널 내용 상자까지 남은 폭 ${room.slack.toFixed(1)}px`).toBeGreaterThanOrEqual(4);
 });
 
 // codex #1629 P3: the lone-day marker (#1628) is for a by-date day between two gaps only — never on the minute

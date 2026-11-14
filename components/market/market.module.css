@@ -768,6 +768,27 @@
 .daily small {
   font-size: 11px;
 }
+/* A phone's day table fits the widest values we allow (price 9,999,999.99G, volume 99,999,999; PM cap) on one line
+   with room to spare (codex #1645/#1654: the volume column ran 2px past the panel at 320 in CI's fonts). The outer
+   cells meet the panel's own padding, so they drop theirs and the gaps narrow; at 360 and below the price and volume
+   step one size down. The date (13px) still sets each row's height, so rows (and the 7일 skeleton) keep theirs. */
+@media (max-width: 420px) {
+  .daily th,
+  .daily td {
+    padding-inline: 3px;
+  }
+  .daily tr > :first-child {
+    padding-inline-start: 0;
+  }
+  .daily tr > :last-child {
+    padding-inline-end: 0;
+  }
+}
+@media (max-width: 360px) {
+  .daily td {
+    font-size: 12px;
+  }
+}
 
 @media (max-width: 860px) {
   /* minmax(0, …): a plain 1fr never shrinks below its content, and the detail
