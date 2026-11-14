@@ -108,6 +108,9 @@
 .fixedRanges {
   --range-min: 0px;
   font-size: 12px;
+  /* …and one button tall (28px, .ranges button) plus its 3px padding, so the row with no button yet is not a
+     6px line that the title centres against (it grew 6 → 34px and moved 14px up). */
+  min-block-size: calc(28px + 2 * 3px);
 }
 @media (max-width: 699px), (pointer: coarse) {
   .fixedRanges {
