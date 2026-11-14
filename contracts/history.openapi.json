@@ -137,6 +137,13 @@
             "items": {
               "$ref": "#/components/schemas/PointResponse"
             }
+          },
+          "titles": {
+            "type": "array",
+            "description": "검색 때 관측한 장착 칭호. 획득일이 아니라 LOAKraken이 처음·마지막으로 관측한 시각이며, 장착한 적 없는 보유 칭호는 알 수 없습니다.",
+            "items": {
+              "$ref": "#/components/schemas/TitleResponse"
+            }
           }
         },
         "required": [
@@ -227,6 +234,27 @@
           "code",
           "data",
           "message"
+        ]
+      },
+      "TitleResponse": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "firstObservedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastObservedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "firstObservedAt",
+          "lastObservedAt",
+          "title"
         ]
       }
     }
