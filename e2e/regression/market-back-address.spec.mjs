@@ -10,9 +10,10 @@ const row = (page) => page.getByRole("navigation", { name: "시세 분류" });
 const heading = (page) => page.locator("#board-heading");
 
 /**
- * From now on, every painted frame's board heading and marked category (each change once), and every board
- * request. A soft navigation (an in-place pick, Back) keeps the document, so nothing between is missed —
- * a board that stays a while and one that comes back for a single frame alike.
+ * From now on, every painted frame's whole board — heading, marked category, every visible row and the freshness
+ * line's height (each change once) — and every board request. A soft navigation (an in-place pick, Back, a push)
+ * keeps the document, so nothing between is missed: a board that stays a while and one that comes back for a
+ * single frame alike.
  */
 const watchFrames = async (page) => {
   const requests = [];
@@ -24,14 +25,16 @@ const watchFrames = async (page) => {
     // A press starts the record anew: the frames before it are the board it leaves. (A click's update is
     // committed before the next frame is painted.)
     document.addEventListener("click", () => (window.__frames = []), { capture: true, once: true });
+    const text = (el) => el?.textContent?.replace(/\s+/g, " ").trim() ?? "";
     const sample = () => {
-      const heading = document.querySelector("#board-heading")?.textContent?.replace(/\s+/g, " ").trim() ?? "";
-      const current = document.querySelector('nav[aria-label="시세 분류"] [aria-current="page"]')?.textContent?.trim() ?? "";
-      // The board's first row (empty while the skeleton shows) and the freshness line's height under the list.
       const board = document.querySelector('section[aria-labelledby="board-heading"]');
-      const first = board?.querySelector("ul li button")?.textContent?.replace(/\s+/g, " ").trim().slice(0, 16) ?? "";
-      const fresh = board?.querySelector('[class*="freshness"]')?.getBoundingClientRect().height ?? 0;
-      const frame = `${heading} | ${current} | ${first} | ${Math.round(fresh)}`;
+      const frame = JSON.stringify({
+        heading: text(document.querySelector("#board-heading")),
+        current: text(document.querySelector('nav[aria-label="시세 분류"] [aria-current="page"]')),
+        // Every row the board shows (none while the skeleton shows).
+        rows: [...(board?.querySelectorAll("ul li button") ?? [])].map(text),
+        fresh: Math.round(board?.querySelector('[class*="freshness"]')?.getBoundingClientRect().height ?? 0),
+      });
       if (window.__frames.at(-1) !== frame) window.__frames.push(frame);
       requestAnimationFrame(sample);
     };
@@ -39,11 +42,20 @@ const watchFrames = async (page) => {
   });
   return requests;
 };
+const framesOf = async (page) => (await page.evaluate(() => window.__frames)).map((frame) => JSON.parse(frame));
+const show = (frames) => frames.map((f) => `${f.heading} | ${f.current} | ${f.rows.length}행 ${f.rows[0] ?? ""} | ${f.fresh}`).join(" → ");
 
-/** No frame since watchFrames showed the 재련 재료 board or marked it, and every board request was for `tab`. */
-const noWrongBoard = async (page, requests, tab) => {
-  const frames = await page.evaluate(() => window.__frames);
-  expect(frames.filter((frame) => frame.includes("재련 재료")), `보인 표 | 고른 분류: ${frames.join(" → ")}`).toEqual([]);
+/**
+ * Since watchFrames, every frame that shows a board shows `label`'s: its heading, the marked category and every
+ * row (the mock names other categories' items with their tab, e.g. '합성 FOOD 품목 3'); every board request was
+ * for `tab`.
+ */
+const noWrongBoard = async (page, requests, tab, label) => {
+  const frames = await framesOf(page);
+  const wrong = frames.filter(
+    (f) => f.heading && (!f.heading.startsWith(`${label} 시세`) || f.current !== label || f.rows.some((name) => !name.includes(tab))),
+  );
+  expect(wrong.length, `다른 표가 보인 프레임: ${show(frames)}`).toBe(0);
   expect(requests.filter((asked) => asked !== tab), `다른 분류 요청: ${requests.join(", ")}`).toEqual([]);
 };
 
@@ -68,7 +80,7 @@ for (const width of [1280, 360])
       const requests = await watchFrames(page);
       await page.goBack();
       await expectBoard(page, { tab: "FOOD", label: "요리" });
-      await noWrongBoard(page, requests, "FOOD");
+      await noWrongBoard(page, requests, "FOOD", "요리");
       await page.goForward();
       await expect(page).toHaveURL(/\/market\/gems/);
       await page.goBack();
@@ -95,7 +107,7 @@ for (const width of [1280, 360])
       const requests = await watchFrames(page);
       await page.goBack();
       await expectBoard(page, { tab: "FOOD", label: "요리" });
-      await noWrongBoard(page, requests, "FOOD");
+      await noWrongBoard(page, requests, "FOOD", "요리");
     });
 
     // codex #1669 P1 + P2: the pick re-read the old address once (Next updates it later) and kept the last
@@ -110,7 +122,7 @@ for (const width of [1280, 360])
       await row(page).getByRole("link", { name: "요리", exact: true }).click();
       await expectBoard(page, { tab: "FOOD", label: "요리" });
       await expect(heading(page)).toContainText(/\d+종/);
-      await noWrongBoard(page, requests, "FOOD");
+      await noWrongBoard(page, requests, "FOOD", "요리");
     });
 
     test("검색어도 뒤로 오면 주소와 같다", async ({ page }) => {
@@ -140,12 +152,9 @@ for (const width of [1280, 360])
       await row(page).getByRole("link", { name: "요리", exact: true }).click();
       await expectBoard(page, { tab: "FOOD", label: "요리" });
       await expect(heading(page)).toContainText(/\d+종/);
-      await noWrongBoard(page, requests, "FOOD");
-      const frames = await page.evaluate(() => window.__frames);
-      const heights = frames.map((frame) => Number(frame.split(" | ").at(-1)));
-      expect(heights.filter((h) => h !== height), `표 아래 줄 높이(처음 ${height}): ${frames.join(" → ")}`).toEqual([]);
-      const rows = frames.map((frame) => frame.split(" | ")[2]).filter(Boolean);
-      expect(rows.filter((text) => !text.includes("FOOD")), `보인 첫 행: ${rows.join(" → ")}`).toEqual([]);
+      await noWrongBoard(page, requests, "FOOD", "요리");
+      const frames = await framesOf(page);
+      expect(frames.filter((f) => f.fresh !== height).length, `표 아래 줄 높이(처음 ${height}): ${show(frames)}`).toBe(0);
     });
 
     test("빠르게 요리 → 각인서 → 요리를 고른 뒤 보석 → 뒤로: 주소대로", async ({ page }) => {
@@ -156,22 +165,78 @@ for (const width of [1280, 360])
       const requests = await watchFrames(page);
       await page.goBack();
       await expectBoard(page, { tab: "FOOD", label: "요리" });
-      await noWrongBoard(page, requests, "FOOD");
+      await noWrongBoard(page, requests, "FOOD", "요리");
     });
 
-    test("검색어를 치다 말고 보석으로 가면 그 검색은 보내지지 않고, 뒤로 오면 칸이 주소대로 비어 있다", async ({ page }) => {
-      await gotoReady(page, "/market?tab=FOOD");
+    // codex #1669 round 3: a soft push (Next's router) to another category of the same page, so the board
+    // stays mounted — the paths a remount on Back would hide.
+    const push = (page, url) => page.evaluate((to) => window.next.router.push(to), url);
+
+    test("검색어를 치다 말고 뒤로(같은 시세 화면): 그 검색은 보내지지 않고 칸이 주소대로 비어 있다", async ({ page }) => {
+      await gotoReady(page, "/market?tab=ENGRAVING_BOOK");
+      await push(page, "/market?tab=FOOD");
+      await expectBoard(page, { tab: "FOOD", label: "요리" });
+      const searches = [];
+      page.on("request", (request) => {
+        if (request.url().includes("/api/markets/board") && new URL(request.url()).searchParams.has("q")) searches.push(request.url());
+      });
       const search = page.getByRole("searchbox", { name: "품목 이름" });
       await search.fill("파괴");
       // Before the 300 ms rest is over.
-      await row(page).getByRole("link", { name: "보석", exact: true }).click();
-      await expect(page).toHaveURL(/\/market\/gems/);
-      // Longer than the search's rest: a send left running would write its address now.
-      await page.waitForTimeout(800);
-      expect(new URL(page.url()).searchParams.get("q"), "보석 화면 주소의 검색어").toBeNull();
       await page.goBack();
-      await expectBoard(page, { tab: "FOOD", label: "요리" });
+      await expectBoard(page, { tab: "ENGRAVING_BOOK", label: "각인서" });
+      // Longer than the search's rest: a send left running would ask now.
+      await page.waitForTimeout(800);
+      expect(searches, "보내진 검색").toEqual([]);
       expect(new URL(page.url()).searchParams.get("q")).toBeNull();
       await expect(search).toHaveValue("");
+    });
+
+    test("요리 → (한 번에) 각인서 · 요리를 고른 뒤 각인서로 이동하면 각인서 표", async ({ page }) => {
+      await gotoReady(page, "/market");
+      await row(page).getByRole("link", { name: "요리", exact: true }).click();
+      await expectBoard(page, { tab: "FOOD", label: "요리" });
+      // Two picks in one task: their writes arrive as one address — the one already shown — so nothing marks
+      // them done; the older one (각인서) must not count as the board's own later.
+      await page.evaluate(async () => {
+        const link = (name) => [...document.querySelectorAll('nav[aria-label="시세 분류"] a')].find((a) => a.textContent.trim() === name);
+        link("각인서").click();
+        // React applies the press in a microtask (so 요리 is no longer the marked link); Next's address update is
+        // a transition that renders later, so both writes still arrive as one address.
+        await Promise.resolve();
+        await Promise.resolve();
+        link("요리").click();
+      });
+      await expectBoard(page, { tab: "FOOD", label: "요리" });
+      const requests = await watchFrames(page);
+      await push(page, "/market?tab=ENGRAVING_BOOK");
+      await expectBoard(page, { tab: "ENGRAVING_BOOK", label: "각인서" });
+      await expect(heading(page)).toContainText(/\d+종/);
+      const frames = await framesOf(page);
+      expect(frames.at(-1).rows.every((name) => name.includes("ENGRAVING_BOOK")), `마지막 표: ${show(frames)}`).toBe(true);
+      expect(requests.filter((asked) => asked !== "ENGRAVING_BOOK" && asked !== "FOOD"), `다른 분류 요청: ${requests}`).toEqual([]);
+    });
+
+    test("같은 시세 화면 안에서 뒤로: 남은 쓰기가 있어도 돌아온 주소의 표(popstate가 먼저 그려져도)", async ({ page }) => {
+      await gotoReady(page, "/market?tab=ENGRAVING_BOOK");
+      await push(page, "/market?tab=FOOD");
+      await expectBoard(page, { tab: "FOOD", label: "요리" });
+      // Leaves the board's own 각인서 write pending, as above.
+      await page.evaluate(async () => {
+        const link = (name) => [...document.querySelectorAll('nav[aria-label="시세 분류"] a')].find((a) => a.textContent.trim() === name);
+        link("각인서").click();
+        // React applies the press in a microtask (so 요리 is no longer the marked link); Next's address update is
+        // a transition that renders later, so both writes still arrive as one address.
+        await Promise.resolve();
+        await Promise.resolve();
+        link("요리").click();
+      });
+      await expectBoard(page, { tab: "FOOD", label: "요리" });
+      await page.goBack();
+      await expectBoard(page, { tab: "ENGRAVING_BOOK", label: "각인서" });
+      await expect(heading(page)).toContainText(/\d+종/);
+      const names = await page.locator('section[aria-labelledby="board-heading"] ul li button').allTextContents();
+      expect(names.length).toBeGreaterThan(0);
+      expect(names.filter((name) => !name.includes("ENGRAVING_BOOK")), "각인서 표의 행").toEqual([]);
     });
   });

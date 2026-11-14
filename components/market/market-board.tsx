@@ -648,9 +648,9 @@ function MarketContent({
   const [selected, setSelected] = useState<number | null>(() => (address ? fromAddress().item : initialItem));
   // The board's own writes still on their way: Next updates useSearchParams later, inside a transition
   // (codex #1669 P1: marking the new address as known at once made the next render re-read the OLD one and
-  // flash the previous board). An address that arrives and matches one of them is the board's own (already
+  // flash the previous board). An arriving address equal to the newest of them is the board's own (already
   // in state: re-reading it would also normalise a search being typed); any other is re-read (Back, Forward,
-  // a link). Writes older than the one that arrived are dropped with it.
+  // a link, a push).
   const [pending, setPending] = useState<readonly string[]>([]);
   const [known, setKnown] = useState(address);
   // Back / Forward is never the board's own write: whatever was still pending is dropped, so the restored
@@ -664,14 +664,13 @@ function MarketContent({
   const [searchKey, setSearchKey] = useState(0);
   if (address !== known) {
     setKnown(address);
-    // The latest matching write: a quick A → B → A leaves no stale A behind (codex #1669 delta).
-    const own = pending.lastIndexOf(address);
-    if (own !== -1) setPending(pending.slice(own + 1));
-    else {
+    // Only the NEWEST pending write is the board's own (codex #1669 round 3): an older entry, a router push
+    // or a Back whose render lands before the popstate listener is re-read. Either way nothing stays pending.
+    setPending([]);
+    if (address !== pending.at(-1)) {
       const next = fromAddress();
       setQuery(next.query);
       setSelected(next.item);
-      setPending([]);
       setSearchKey((key) => key + 1);
     }
   }
