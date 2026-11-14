@@ -297,15 +297,14 @@ export function TabBar({
 
   return (
     <div className={styles.tabBar} data-sticky-chrome>
-      <div className={styles.tabInner}>
+      {/* Drawn once whole (A7 character sweep): the tabs and the tools share one row, so the row took its
+          height from whichever came last (29 → 51 px at 320) and each tab's tap area moved with it. */}
+      <div className={styles.tabInner} data-fp-whole="">
         <nav
           ref={pillNav}
           // Fades at an end where tabs are hidden (A35).
           className={`${styles.tabs} scroll-fade-x`}
           aria-label="캐릭터 정보 탭"
-          // Drawn once whole (A7 character sweep): the row took its height from the labels as they came
-          // (29 → 51 px at 320) and each tab's tap area moved with them.
-          data-fp-whole=""
           onKeyDown={pillKey}
           onPointerDown={pillPointer}
           onFocus={focusClearOfFade}
@@ -328,10 +327,8 @@ export function TabBar({
               </span>
             ))}
           </span>
-          <FpEnd />
         </nav>
-        {/* Drawn once whole: right-aligned, so each control that came later pushed the ones drawn to the left. */}
-        <div className={styles.tabActions} data-fp-whole="">
+        <div className={styles.tabActions}>
           <AnalysisMenu
             name={name}
             server={data.serverName}
@@ -408,8 +405,8 @@ export function TabBar({
                   : "지금 다시 갱신할 수 있어요"}
             </span>
           </span>
-          <FpEnd />
         </div>
+        <FpEnd />
       </div>
       <span className={styles.srOnly} role="status">
         {shareStatus}
@@ -660,7 +657,8 @@ function EquipmentPanel({ data }: { data: Character }) {
       {/* The bracelet alone, across the whole width under both columns. */}
       {groups.bracelet && (
         <div className={styles.equipFoot}>
-          <div className={styles.footItem} data-wide="">
+          {/* Drawn once whole: the bracelet's head is centred in a row its effect lines make taller. */}
+          <div className={styles.footItem} data-wide="" data-fp-whole="">
             <BraceletBody
               icon={
                 <ItemTooltip item={groups.bracelet} slot="팔찌" extra={extraOf(groups.bracelet)}>
@@ -676,6 +674,7 @@ function EquipmentPanel({ data }: { data: Character }) {
               effects={groups.bracelet.detail?.braceletEffects ?? []}
               efficiency={data.braceletEfficiency}
             />
+            <FpEnd />
           </div>
         </div>
       )}
