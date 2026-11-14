@@ -577,7 +577,8 @@ function EquipmentPanel({ data }: { data: Character }) {
           )}
           <ul className={styles.itemList}>
             {groups.accessories.map((item, i) => (
-              <li key={i} {...stagger(i, styles.item)}>
+              // Drawn once whole: the icon is centred in the row, so it dropped when the polish lines came.
+              <li key={i} {...stagger(i, styles.item)} data-fp-whole="">
                 <ItemTooltip item={item} extra={extraOf(item)}>
                   <GameIcon src={item.icon} grade={item.grade} />
                 </ItemTooltip>
@@ -608,6 +609,7 @@ function EquipmentPanel({ data }: { data: Character }) {
                     ))}
                   </ul>
                 ) : null}
+                <FpEnd />
               </li>
             ))}
             {/* Under the accessories (user 10-31 layout): the stone, then the orb;
