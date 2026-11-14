@@ -22,7 +22,9 @@ export const cutEverywhere = (page, rootSelector, countIn = null, { serverHtml =
     // React has claimed <body> (its first hydration pass is done), then put a deep copy of <body> in its place;
     // React's later updates land on the untouched original, which comes back when the probe ends.
     const claimed = () => Object.keys(document.body).some((key) => key.startsWith("__reactFiber$"));
-    for (let tries = 0; !claimed() && tries < 200; tries++) await new Promise((resolve) => setTimeout(resolve, 50));
+    // At most 5 s, well under the 8 s the loading-screen mock ('로딩긴') answers in: a page that never hydrates
+    // fails as "page not hydrated" while the screen it was meant to cut is still there (codex #1622 P3).
+    for (let tries = 0; !claimed() && tries < 100; tries++) await new Promise((resolve) => setTimeout(resolve, 50));
     if (!claimed()) return { probed: 0, value: 0, moved: ["page not hydrated"] };
     const live = document.body;
     const copy = live.cloneNode(true);
