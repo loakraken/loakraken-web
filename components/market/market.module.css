@@ -678,6 +678,13 @@
 .reading {
   fill: currentColor;
 }
+/* A day alone between two gaps (by date): 8px across in the line's colour, ringed 2px by the
+   chart's own surface (r 5 − half the 2px ring = 4). */
+.lone {
+  fill: currentColor;
+  stroke: var(--background);
+  stroke-width: 2;
+}
 /* Bencho .bal-curve: 2.1 round stroke, no fill under it. */
 .line {
   fill: none;
@@ -871,6 +878,11 @@
   overflow: hidden;
   clip-path: inset(50%);
   white-space: nowrap;
+}
+/* The 7-day table's place while it loads (#1630): the real table's rows, tinted like the block below. */
+.dailySkeleton tbody td,
+.dailySkeleton tbody th {
+  background: color-mix(in oklab, var(--secondary) 50%, transparent);
 }
 .dailyPending {
   height: 502px;
