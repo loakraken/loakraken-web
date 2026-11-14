@@ -3336,10 +3336,10 @@
   .rosterViews {
     margin-bottom: 8px;
   }
-  .panel:has(> .siblingGrid) {
+  .panel[data-dense] {
     padding-top: 14px;
   }
-  .panel:has(> .siblingGrid) > .panelHead {
+  .panel[data-dense] > .panelHead {
     margin-bottom: 10px;
   }
 }

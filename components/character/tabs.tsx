@@ -2222,6 +2222,7 @@ function SiblingList({
           title={server}
           meta={`${sorted.filter((s) => s.serverName === server).length}명`}
           wide
+          dense
         >
           <ul
             // Drawn anew when records arrive (or a read ends): rows rewritten

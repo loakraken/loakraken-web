@@ -281,9 +281,11 @@ export function CollectiblesTab({ data }: { data: Character }) {
                 {data.tendencies.map((item, i) => (
                   <div key={`${item.type}-${i}`}>
                     <dt>{text(item.type)}</dt>
-                    <dd>
+                    {/* Drawn once whole: right-aligned, so '/ 1,000' coming after the value pushed it left. */}
+                    <dd data-fp-whole="">
                       {number(item.point)}
                       {item.maxPoint != null && <small> / {number(item.maxPoint)}</small>}
+                      <FpEnd />
                     </dd>
                     <Bar
                       value={ratio(item.point, item.maxPoint)}
