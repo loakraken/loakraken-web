@@ -119,3 +119,98 @@ export async function shiftsDuring(page, act, settle = 1200) {
   await page.waitForTimeout(settle);
   return shiftsSince(page, mark);
 }
+
+/**
+ * Like shiftsDuring, but returns as soon as the page is quiet instead of
+ * always waiting `max` ms (the fixed wait it replaces, and still the cap).
+ * Quiet means nothing that could still move a box is pending: no request in
+ * flight, no timer of `max` ms or less set since the press waiting to fire
+ * (a debounce, a delayed reveal), no finite animation or transition of a
+ * layout property running (delay included) — and then no layout shift or DOM
+ * change for `quiet` ms. So a move that comes
+ * after an answer, a timer or an animation is waited for exactly as the fixed
+ * wait did; only a press that has nothing left to do returns early. Something
+ * that never settles (a clock, an endless shimmer) runs to `max`, as before.
+ */
+export async function shiftsUntilQuiet(page, act, { quiet = 400, max = 1200 } = {}) {
+  const inflight = new Set();
+  const start = (request) => inflight.add(request);
+  const end = (request) => inflight.delete(request);
+  page.on("request", start);
+  page.on("requestfinished", end);
+  page.on("requestfailed", end);
+  // Runs in the page: watch DOM changes and short timers from now on (again in a document the press opened).
+  const watch = (maxMs) => {
+    window.__lkQuietObserver?.disconnect();
+    window.__lkLastChange = performance.now();
+    window.__lkQuietObserver = new MutationObserver(() => (window.__lkLastChange = performance.now()));
+    window.__lkQuietObserver.observe(document.documentElement, { subtree: true, childList: true, attributes: true, characterData: true });
+    window.__lkTimers = new Set();
+    if (!window.__lkTimersWrapped) {
+      window.__lkTimersWrapped = true;
+      const set = window.setTimeout;
+      const clear = window.clearTimeout;
+      window.setTimeout = function (callback, delay, ...rest) {
+        if (typeof callback !== "function" || !(Number(delay) <= window.__lkTimerMax)) return set.call(this, callback, delay, ...rest);
+        const id = set.call(this, (...args) => {
+          window.__lkTimers?.delete(id);
+          callback(...args);
+        }, delay, ...rest);
+        window.__lkTimers?.add(id);
+        return id;
+      };
+      window.clearTimeout = function (id) {
+        window.__lkTimers?.delete(id);
+        return clear.call(this, id);
+      };
+    }
+    window.__lkTimerMax = maxMs;
+  };
+  try {
+    await page.evaluate(watch, max);
+    const mark = await shiftMark(page);
+    const began = Date.now();
+    await act();
+    let lastBusy = Date.now();
+    while (Date.now() - began < max) {
+      await page.waitForTimeout(50);
+      if (inflight.size) {
+        lastBusy = Date.now();
+        continue;
+      }
+      // In the page's own clock: 0 while a timer or a finite animation is pending, else how long since the last
+      // DOM change or layout shift.
+      let idleFor = await page
+        .evaluate(() => {
+          if (window.__lkLastChange === undefined) return -1;
+          if (window.__lkTimers?.size) return 0;
+          // Only an animation that can still move a box holds the wait: a finite one on the document's clock that
+          // animates a layout property. Scroll-driven ones (the tab rows' edge fades) "run" as long as the page
+          // is open; transform, opacity and colour never make a layout shift (the podium's rolling digits).
+          const free = new Set(["offset", "computedOffset", "easing", "composite", "transform", "translate", "rotate", "scale", "opacity", "filter", "color", "backgroundColor", "borderColor", "outlineColor", "boxShadow", "textShadow", "clipPath", "maskImage", "maskPosition", "maskSize", "webkitMaskImage", "webkitMaskPosition", "fill", "stroke", "strokeDashoffset", "visibility"]);
+          const moves = (a) =>
+            a.playState === "running" &&
+            a.timeline === document.timeline &&
+            a.effect?.getComputedTiming().iterations !== Infinity &&
+            (a.effect?.getKeyframes?.() ?? []).some((frame) => Object.keys(frame).some((prop) => !free.has(prop)));
+          if (document.getAnimations().some(moves)) return 0;
+          const lastShift = window.__shiftLog?.at(-1)?.t ?? 0;
+          return performance.now() - Math.max(window.__lkLastChange ?? 0, lastShift);
+        })
+        .catch(() => 0);
+      if (idleFor === -1) {
+        // A press that opened another document: watch it from now on.
+        await page.evaluate(watch, max).catch(() => {});
+        idleFor = 0;
+      }
+      if (idleFor === 0) lastBusy = Date.now();
+      if (Math.min(idleFor, Date.now() - lastBusy) >= quiet) break;
+    }
+    return await shiftsSince(page, mark);
+  } finally {
+    page.off("request", start);
+    page.off("requestfinished", end);
+    page.off("requestfailed", end);
+    await page.evaluate(() => window.__lkQuietObserver?.disconnect()).catch(() => {});
+  }
+}

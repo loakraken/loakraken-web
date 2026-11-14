@@ -4,7 +4,7 @@
 // 대상: main 안의 role=group 버튼, role=tablist 탭, role=radiogroup 라디오 중 지금 눌려 있지
 // 않고 누를 수 있는 것(경로마다 앞에서 14개까지). 다른 경로로 가는 탭은 이동 뒤 원래 경로로 돌아온다.
 import { test, expect, characterPath, gotoReady } from "../support/fixtures.mjs";
-import { shiftsDuring, watchShifts } from "../support/shifts.mjs";
+import { shiftsUntilQuiet, watchShifts } from "../support/shifts.mjs";
 
 const ROUTES = [
   "/",
@@ -76,7 +76,8 @@ for (const width of [1280, 360])
           return `${group}/${label.slice(0, 30)}`;
         });
         const from = new URL(page.url()).pathname;
-        const shift = await shiftsDuring(page, () => control.click());
+        // Waits until the page is quiet (no request, shift or DOM change for 400 ms), at most the old fixed 1.2 s.
+        const shift = await shiftsUntilQuiet(page, () => control.click());
         if (shift.all > 0) moved.push(`${name}: ${shift.all} (${shift.moved})`);
         if (new URL(page.url()).pathname !== from) {
           await gotoReady(page, path);
