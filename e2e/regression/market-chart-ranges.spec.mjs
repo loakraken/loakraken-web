@@ -332,17 +332,25 @@ test("320: 일별 표의 날짜 · 가격 · 거래량은 한 줄, 가로 넘침
   expect(new Set(heights).size, `행 높이 ${heights.join(",")}`).toBe(1);
   await expectNoHorizontalOverflow(page);
   // codex #1635 P3: inside the detail panel too, not only the page (a clipped panel could hide a long price).
-  // Inside the panel's content box (its padding and border off), with room to spare: at least 4px between the
-  // widest cell and the edge (codex #1654: 1–2px was fragile across font builds), and no cell clipped inside.
+  // Room to spare inside the panel's content box (codex #1654: 1–2px was fragile across font builds). The table is
+  // 100% wide, so its last cell always ends at the edge; the room is the content box's width minus the narrowest
+  // the table can be with these values (its min-content width, read with the width set aside for one sync layout).
   const room = await detail.evaluate((panel) => {
     const style = getComputedStyle(panel);
-    const edge = panel.getBoundingClientRect().right - parseFloat(style.paddingRight) - parseFloat(style.borderRightWidth);
-    const cells = [...panel.querySelectorAll("table:not([aria-hidden]) th, table:not([aria-hidden]) td")];
+    const content = panel.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+    const table = panel.querySelector("table:not([aria-hidden])");
+    const before = table.style.width;
+    table.style.width = "min-content";
+    const needed = table.getBoundingClientRect().width;
+    table.style.width = before;
+    const cells = [...table.querySelectorAll("th, td")];
     return {
-      slack: Math.min(...cells.map((cell) => edge - cell.getBoundingClientRect().right)),
+      slack: content - needed,
+      past: cells.filter((cell) => cell.getBoundingClientRect().right > panel.getBoundingClientRect().right - parseFloat(style.paddingRight) + 0.5).length,
       clipped: cells.filter((cell) => cell.scrollWidth > cell.clientWidth + 1).map((cell) => cell.textContent.trim()),
     };
   });
+  expect(room.past, "패널 내용 상자 밖으로 나간 칸").toBe(0);
   test.info().annotations.push({ type: "slack", description: `${room.slack.toFixed(1)}px` });
   expect(room.clipped, "칸 안에서 잘린 글자").toEqual([]);
   expect(room.slack, `패널 내용 상자까지 남은 폭 ${room.slack.toFixed(1)}px`).toBeGreaterThanOrEqual(4);
