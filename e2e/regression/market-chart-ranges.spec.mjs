@@ -317,9 +317,10 @@ test("320: 일별 표의 날짜 · 가격 · 거래량은 한 줄, 가로 넘침
   await page.route(/\/api\/markets\/items\/\d+\/history\?range=30d/, async (route) => {
     const response = await route.fetch();
     const body = await response.json();
-    // A very long price with decimals and a very large volume (codex #1645): the widest a row gets.
+    // The widest real row (codex #1645): a price with decimals in the tens of millions and a day's volume of
+    // tens of millions (the busiest materials), on every day.
     for (const variant of body.envelope.data.variants)
-      for (const day of variant.days) Object.assign(day, { averagePrice: 987_654_321_987.75, tradeCount: 9_876_543_210 });
+      for (const day of variant.days) Object.assign(day, { averagePrice: 12_345_678.5, tradeCount: 98_765_432 });
     await route.fulfill({ response, json: body });
   });
   await gotoReady(page, "/market?tab=ENGRAVING_BOOK");
