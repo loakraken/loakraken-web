@@ -204,6 +204,36 @@ test("7일 창에 기록이 없으면 같은 높이 상자에 안내, 캡션·�
   expect(await place(), "차트 상자 높이·캡션·표 자리").toEqual(before);
 });
 
+// codex #1635 P3 (PM call): a week with no day at all (not even today) says so inside the reserved 7-row place —
+// no table header over blank space — at the 7-row height.
+test("7일에 기록이 하루도 없으면 7줄 자리 안에 안내, 머리줄 없음 @regression", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 900 });
+  await page.route(/\/api\/markets\/items\/\d+\/history\?range=30d/, async (route) => {
+    const response = await route.fetch();
+    const body = await response.json();
+    const base = Date.parse(body.envelope.data.baseDate);
+    const keep = new Set([9, 15]);
+    for (const variant of body.envelope.data.variants)
+      variant.days = variant.days.filter((d) => keep.has(Math.round((base - Date.parse(d.date)) / 86_400_000)));
+    await route.fulfill({ response, json: body });
+  });
+  await gotoReady(page, "/market?tab=ENGRAVING_BOOK");
+  await page.getByRole("region", { name: /각인서 시세/ }).getByRole("listitem").nth(1).getByRole("button").first().click();
+  const detail = detailOf(page);
+  await expect(detail.getByText(/^하루 평균 거래가와 거래량 · 30일 중 2일치 기록$/)).toBeVisible();
+  await detail.getByRole("group", { name: "기간" }).getByRole("button", { name: "7일" }).click();
+  // Older days exist (9 and 15 days ago), so the line also says where they are (ux-copy: the next step).
+  const empty = detail.getByText("최근 7일 동안 거래 기록이 없어요. 30일을 고르면 지난 기록을 볼 수 있어요.");
+  await expect(empty).toBeVisible();
+  await expect(detail.locator("table:not([aria-hidden])")).toHaveCount(0);
+  // The message fills the place the unseen 7-row table holds.
+  const sizes = await empty.evaluate((p) => ({
+    message: Math.round(p.getBoundingClientRect().height),
+    sevenRows: Math.round(p.parentElement.querySelector("table[aria-hidden]").getBoundingClientRect().height),
+  }));
+  expect(Math.abs(sizes.message - sizes.sevenRows), `안내 ${sizes.message}px · 7줄 ${sizes.sevenRows}px`).toBeLessThanOrEqual(1);
+});
+
 // #1630 (codex #1595 P3): 7일 pressed while the 30-day answer is still loading. The table's place takes the 7-row
 // table's height at the press (inside the click's input window), so the answer landing moves nothing; before, the
 // 14-row block stayed 502px and shrank when the answer came (a late shift, counted as CLS). #1634 (codex #1631
@@ -291,6 +321,14 @@ test("320: 일별 표의 날짜 · 가격 · 거래량은 한 줄, 가로 넘침
   const heights = await detail.locator(REAL_ROWS).evaluateAll((rows) => rows.map((r) => Math.round(r.getBoundingClientRect().height)));
   expect(new Set(heights).size, `행 높이 ${heights.join(",")}`).toBe(1);
   await expectNoHorizontalOverflow(page);
+  // codex #1635 P3: inside the detail panel too, not only the page (a clipped panel could hide a long price).
+  const past = await detail.evaluate((panel) => {
+    const edge = panel.getBoundingClientRect().right;
+    return [...panel.querySelectorAll("table:not([aria-hidden]) th, table:not([aria-hidden]) td")]
+      .filter((cell) => cell.getBoundingClientRect().right > edge + 0.5 || cell.scrollWidth > cell.clientWidth + 1)
+      .map((cell) => `${cell.textContent.trim()} ${Math.round(cell.getBoundingClientRect().right)}/${Math.round(edge)}`);
+  });
+  expect(past, "패널 밖으로 나간 칸").toEqual([]);
 });
 
 // codex #1629 P3: the lone-day marker (#1628) is for a by-date day between two gaps only — never on the minute

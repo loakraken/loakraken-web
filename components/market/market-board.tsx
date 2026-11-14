@@ -496,10 +496,19 @@ function Detail({
         // 7일 (#1630, #1634): the 7-row table's own height from the press on, not the 14-row block shrinking
         // when the answer lands. While loading the skeleton shows; once the answer is in it stays as an unseen
         // size copy under the table, so a sparse week (3 rows) keeps the 7-row place (no rows made up).
-        // An error drops the hold: the problem message takes the place.
+        // An error drops the hold: the problem message takes the place. A week with no day at all says so
+        // inside the same 7-row place, not a header over blank space (PM, codex #1635).
         <div className={styles.dailyHold}>
           {(history.isPending || data) && <PendingTable rows={7} sizer={!history.isPending} />}
-          {dailyTable}
+          {data && !history.isPending && tableRows.length === 0 ? (
+            // What is missing, then where the older days are when there are some (ux-copy: the next step).
+            <p className={styles.dailyEmpty}>
+              최근 7일 동안 거래 기록이 없어요.
+              {variant?.days.length ? " 30일을 고르면 지난 기록을 볼 수 있어요." : ""}
+            </p>
+          ) : (
+            dailyTable
+          )}
         </div>
       ) : (
         <>
