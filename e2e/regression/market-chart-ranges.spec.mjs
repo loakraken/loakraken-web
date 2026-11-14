@@ -4,6 +4,8 @@
 import { test, expect, gotoReady, expectNoHorizontalOverflow } from "../support/fixtures.mjs";
 import { shiftsDuring, watchShifts } from "../support/shifts.mjs";
 
+// The day table as people see it (the 7일 skeleton and its unseen size copy are aria-hidden, #1634).
+const REAL_ROWS = "table:not([aria-hidden]) tbody tr";
 const detailOf = (page) => page.locator("section").filter({ has: page.getByRole("heading", { name: "시세 추이" }) });
 
 for (const width of [320, 1280])
@@ -27,10 +29,10 @@ for (const width of [320, 1280])
     await ranges.getByRole("button", { name: "1년" }).click();
     await expect(caption).toHaveText("하루 평균 거래가와 거래량 · 1년 중 39일치 기록");
     // The table lists the latest 14 days at most, whatever the range.
-    await expect(detail.locator("table tbody tr")).toHaveCount(14);
+    await expect(detail.locator(REAL_ROWS)).toHaveCount(14);
     await ranges.getByRole("button", { name: "7일" }).click();
     await expect(caption).toHaveText("하루 평균 거래가와 거래량");
-    await expect(detail.locator("table tbody tr")).toHaveCount(7);
+    await expect(detail.locator(REAL_ROWS)).toHaveCount(7);
     await expectNoHorizontalOverflow(page);
   });
 
@@ -77,7 +79,7 @@ test("기록에만 있는 거래 조건은 '지난 기록'으로 따로 고른�
   await terms.getByRole("button", { name: "지난 기록" }).click();
   await expect(terms.getByRole("button", { name: "지난 기록" })).toHaveAttribute("aria-pressed", "true");
   // Its own stored days are 11–30 days old: the table lists those inside its 14-day window (3).
-  await expect(detail.locator("table tbody tr")).toHaveCount(3);
+  await expect(detail.locator(REAL_ROWS)).toHaveCount(3);
   await expectNoHorizontalOverflow(page);
 });
 
@@ -141,7 +143,7 @@ test("7일은 최근 7일 날짜 안의 기록만, 모자라면 'N일치 기록'
   await detail.getByRole("group", { name: "기간" }).getByRole("button", { name: "7일" }).click();
   await expect(detail.getByText(/^하루 평균 거래가와 거래량/)).toHaveText("하루 평균 거래가와 거래량 · 7일 중 2일치 기록");
   // Today (partial), 1 and 5 days ago: nothing from 9 days ago or older.
-  await expect(detail.locator("table tbody tr")).toHaveCount(3);
+  await expect(detail.locator(REAL_ROWS)).toHaveCount(3);
 });
 
 // codex #1595 delta: a placeholder is labelled by the answer it is. 3개월 → 1시간 → 1년 (still loading) shows the
@@ -193,7 +195,7 @@ test("7일 창에 기록이 없으면 같은 높이 상자에 안내, 캡션·�
   const place = async () => ({
     figure: await figure.evaluate((el) => el.getBoundingClientRect().height),
     caption: await caption.evaluate((el) => Math.round(el.getBoundingClientRect().top + scrollY)),
-    table: await detail.locator("table").evaluate((el) => Math.round(el.getBoundingClientRect().top + scrollY)),
+    table: await detail.locator("table:not([aria-hidden])").evaluate((el) => Math.round(el.getBoundingClientRect().top + scrollY)),
   });
   const before = await place();
   await detail.getByRole("group", { name: "기간" }).getByRole("button", { name: "7일" }).click();
@@ -204,31 +206,113 @@ test("7일 창에 기록이 없으면 같은 높이 상자에 안내, 캡션·�
 
 // #1630 (codex #1595 P3): 7일 pressed while the 30-day answer is still loading. The table's place takes the 7-row
 // table's height at the press (inside the click's input window), so the answer landing moves nothing; before, the
-// 14-row block stayed 502px and shrank when the answer came (a late shift, counted as CLS).
-for (const width of [320, 1280])
+// 14-row block stayed 502px and shrank when the answer came (a late shift, counted as CLS). #1634 (codex #1631
+// P3): also when the week is sparse (3 rows: the place keeps 7 rows, none made up) and at 360; an error ends the
+// wait with the problem message, not a stuck skeleton.
+const pressSevenWhileLoading = async (page, width, answer) => {
+  await page.setViewportSize({ width, height: 900 });
+  let release;
+  const gate = new Promise((resolve) => (release = resolve));
+  await page.route(/\/api\/markets\/items\/\d+\/history\?range=30d/, async (route) => {
+    await gate;
+    await answer(route);
+  });
+  await gotoReady(page, "/market?tab=ENGRAVING_BOOK");
+  // The first item came with the page; another one reads its history through the held answer.
+  await page.getByRole("region", { name: /각인서 시세/ }).getByRole("listitem").nth(1).getByRole("button").first().click();
+  const detail = detailOf(page);
+  await expect(detail.getByText("추이를 불러오고 있어요")).toBeVisible();
+  await detail.getByRole("group", { name: "기간" }).getByRole("button", { name: "7일" }).click();
+  // The table's place: what follows the caption (the pending place, then the table).
+  const caption = detail.getByText(/^하루 평균 거래가와 거래량/);
+  const slot = () => caption.evaluate((el) => Math.round(el.nextElementSibling.getBoundingClientRect().height));
+  // Past the click's input window: a change from here on is a counted shift.
+  await page.waitForTimeout(700);
+  const pending = await slot();
+  release();
+  return { detail, slot, pending };
+};
+const thin = (keep) => async (route) => {
+  const response = await route.fetch();
+  const body = await response.json();
+  const base = Date.parse(body.envelope.data.baseDate);
+  for (const variant of body.envelope.data.variants)
+    variant.days = variant.days.filter((d) => keep.has(Math.round((base - Date.parse(d.date)) / 86_400_000)));
+  await route.fulfill({ response, json: body });
+};
+
+for (const width of [320, 360, 1280])
   test(`${width}: 30일을 읽는 중 7일을 누르면 표 자리가 그때 7줄 높이, 답이 와도 그대로 @regression`, async ({ page }) => {
-    await page.setViewportSize({ width, height: 900 });
-    let release;
-    const gate = new Promise((resolve) => (release = resolve));
-    await page.route(/\/api\/markets\/items\/\d+\/history\?range=30d/, async (route) => {
-      await gate;
-      await route.continue();
-    });
-    await gotoReady(page, "/market?tab=ENGRAVING_BOOK");
-    // The first item came with the page; another one reads its history through the held answer.
-    await page.getByRole("region", { name: /각인서 시세/ }).getByRole("listitem").nth(1).getByRole("button").first().click();
-    const detail = detailOf(page);
-    await expect(detail.getByText("추이를 불러오고 있어요")).toBeVisible();
-    await detail.getByRole("group", { name: "기간" }).getByRole("button", { name: "7일" }).click();
-    // The table's place: what follows the caption (the pending place, then the table).
-    const caption = detail.getByText(/^하루 평균 거래가와 거래량/);
-    const slot = () => caption.evaluate((el) => Math.round(el.nextElementSibling.getBoundingClientRect().height));
-    // Past the click's input window: a change from here on is a counted shift.
-    await page.waitForTimeout(700);
-    const pending = await slot();
-    release();
-    await expect(detail.locator("table tbody tr")).toHaveCount(7);
+    const { detail, slot, pending } = await pressSevenWhileLoading(page, width, (route) => route.continue());
+    await expect(detail.locator(REAL_ROWS)).toHaveCount(7);
     await expect(detail.getByText("추이를 불러오고 있어요")).toHaveCount(0);
     const landed = await slot();
     expect(Math.abs(landed - pending), `표 자리 ${pending}px → 표 ${landed}px`).toBeLessThanOrEqual(1);
   });
+
+test("360: 7일 기록이 드물어(3줄) 답이 와도 표 자리는 7줄 그대로, 빈 행은 만들지 않음 @regression", async ({ page }) => {
+  // Today (partial), 1 and 5 days ago in the 7-day window; the rest weeks old.
+  const { detail, slot, pending } = await pressSevenWhileLoading(page, 360, thin(new Set([0, 1, 5, 9, 15, 22])));
+  await expect(detail.locator(REAL_ROWS)).toHaveCount(3);
+  await expect(detail.getByText("추이를 불러오고 있어요")).toHaveCount(0);
+  const landed = await slot();
+  expect(Math.abs(landed - pending), `표 자리 ${pending}px → ${landed}px (3줄)`).toBeLessThanOrEqual(1);
+  // The rows people see are the three days only.
+  await expect(detail.getByRole("table").getByRole("row")).toHaveCount(4);
+});
+
+test.describe(() => {
+  test.use({ allowConsoleErrors: true });
+  test("360: 7일을 기다리다 오류가 나면 자리 표시 대신 오류 안내 @regression", async ({ page }) => {
+    const { detail } = await pressSevenWhileLoading(page, 360, (route) =>
+      route.fulfill({ status: 503, json: { ok: false, error: { code: "MARKET_CACHE_UNAVAILABLE", status: 503 } } }),
+    );
+    await expect(detail.getByText("추이를 불러오고 있어요")).toHaveCount(0);
+    await expect(detail.getByRole("button", { name: /다시/ })).toBeVisible();
+    await expect(detail.locator("table")).toHaveCount(0);
+  });
+});
+
+// #1634 (codex #1631 P3): each day's cells stay on one line at 320 (a long price, today's label), so a row is
+// never taller than the skeleton's.
+test("320: 일별 표의 날짜 · 가격 · 거래량은 한 줄, 가로 넘침 없음 @regression", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 900 });
+  await page.route(/\/api\/markets\/items\/\d+\/history\?range=30d/, async (route) => {
+    const response = await route.fetch();
+    const body = await response.json();
+    for (const variant of body.envelope.data.variants) for (const day of variant.days) day.averagePrice = 987_654_321_987;
+    await route.fulfill({ response, json: body });
+  });
+  await gotoReady(page, "/market?tab=ENGRAVING_BOOK");
+  await page.getByRole("region", { name: /각인서 시세/ }).getByRole("listitem").nth(1).getByRole("button").first().click();
+  const detail = detailOf(page);
+  await expect(detail.locator(REAL_ROWS)).toHaveCount(14);
+  await expect(detail.locator(`${REAL_ROWS}[data-partial]`)).toHaveCount(1);
+  const heights = await detail.locator(REAL_ROWS).evaluateAll((rows) => rows.map((r) => Math.round(r.getBoundingClientRect().height)));
+  expect(new Set(heights).size, `행 높이 ${heights.join(",")}`).toBe(1);
+  await expectNoHorizontalOverflow(page);
+});
+
+// codex #1629 P3: the lone-day marker (#1628) is for a by-date day between two gaps only — never on the minute
+// chart, and not on a chart of a single reading (its end dot is the reading).
+test("1시간 차트에는 하루 점이 없다 @regression", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await gotoReady(page, "/market");
+  const detail = detailOf(page);
+  await detail.getByRole("group", { name: "기간" }).getByRole("button", { name: "1시간" }).click();
+  await expect(detail.getByRole("img", { name: /^최근 1시간 판매 최저가/ })).toBeVisible();
+  await expect(detail.locator("circle[data-lone]")).toHaveCount(0);
+});
+
+test("기록 하나뿐인 차트에는 하루 점이 없다 @regression", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  // Today (partial) and yesterday: one completed day to draw.
+  await page.route(/\/api\/markets\/items\/\d+\/history\?range=30d/, thin(new Set([0, 1])));
+  await gotoReady(page, "/market?tab=ENGRAVING_BOOK");
+  // The first item came with the page; another one reads its history through the thinned answer.
+  await page.getByRole("region", { name: /각인서 시세/ }).getByRole("listitem").nth(1).getByRole("button").first().click();
+  const detail = detailOf(page);
+  await expect(detail.getByText(/^하루 평균 거래가와 거래량 · 30일 중 1일치 기록$/)).toBeVisible();
+  await expect(detail.getByRole("img", { name: /^일 평균 거래가와 거래량/ })).toBeVisible();
+  await expect(detail.locator("circle[data-lone]")).toHaveCount(0);
+});

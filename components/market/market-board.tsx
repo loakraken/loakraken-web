@@ -153,9 +153,9 @@ function FactChange({ item }: { item: Pick<BoardItem, "currentMinPrice" | "yeste
  * The daily table's place while its answer loads: the same table (same header, empty rows), so it is
  * exactly the real table's height in whatever font is drawing (#1630).
  */
-function PendingTable({ rows }: { rows: number }) {
+function PendingTable({ rows, sizer = false }: { rows: number; sizer?: boolean }) {
   return (
-    <table className={`${styles.daily} ${styles.dailySkeleton}`} aria-hidden="true">
+    <table className={`${styles.daily} ${sizer ? styles.dailySizer : styles.dailySkeleton}`} aria-hidden="true">
       <thead>
         <tr>
           <th scope="col">날짜</th>
@@ -325,6 +325,36 @@ function Detail({
     };
   }, [item.name, item.currentMinPrice]);
   const failure = failureOf(history.error);
+  // The latest days (at most 14) under the caption; each cell stays on one line (#1634), so its rows are
+  // the skeleton's height at every width.
+  const dailyTable = variant && variant.days.length > 0 && (
+    <table className={styles.daily}>
+      <thead>
+        <tr>
+          <th scope="col">날짜</th>
+          <th scope="col">평균 거래가</th>
+          <th scope="col">거래량</th>
+        </tr>
+      </thead>
+      <tbody>
+        {tableRows.map((day) => (
+          <tr key={day.date} data-partial={day.partial || undefined}>
+            <th scope="row">
+              {day.date.slice(5).replace("-", "/")}
+              {day.partial && (
+                <small>
+                  {" "}
+                  <PendingText />
+                </small>
+              )}
+            </th>
+            <td>{goldText(day.averagePrice)}</td>
+            <td>{day.tradeCount.toLocaleString("ko-KR")}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
   return (
     <section className={styles.detail} aria-label={`${item.name} 시세`}>
       <header className={styles.detailHead}>
@@ -462,41 +492,20 @@ function Detail({
       </p>
       {/* The 14-day table under the caption arrives with the history: hold its
           place, so the caption stays put when it lands (A7). */}
-      {history.isPending &&
-        (range === 7 ? (
-          // 7일 picked while the answer loads (#1630): the 7-row table's own height at the click, not
-          // the 14-row block shrinking when the answer lands (a late, counted shift).
-          <PendingTable rows={7} />
-        ) : (
-          <div className={styles.dailyPending} aria-hidden="true" />
-        ))}
-      {variant && variant.days.length > 0 && (
-        <table className={styles.daily}>
-          <thead>
-            <tr>
-              <th scope="col">날짜</th>
-              <th scope="col">평균 거래가</th>
-              <th scope="col">거래량</th>
-            </tr>
-          </thead>
-          <tbody>
-            {tableRows.map((day) => (
-              <tr key={day.date} data-partial={day.partial || undefined}>
-                <th scope="row">
-                  {day.date.slice(5).replace("-", "/")}
-                  {day.partial && (
-                    <small>
-                      {" "}
-                      <PendingText />
-                    </small>
-                  )}
-                </th>
-                <td>{goldText(day.averagePrice)}</td>
-                <td>{day.tradeCount.toLocaleString("ko-KR")}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      {range === 7 ? (
+        // 7일 (#1630, #1634): the 7-row table's own height from the press on, not the 14-row block shrinking
+        // when the answer lands. While loading the skeleton shows; once the answer is in it stays as an unseen
+        // size copy under the table, so a sparse week (3 rows) keeps the 7-row place (no rows made up).
+        // An error drops the hold: the problem message takes the place.
+        <div className={styles.dailyHold}>
+          {(history.isPending || data) && <PendingTable rows={7} sizer={!history.isPending} />}
+          {dailyTable}
+        </div>
+      ) : (
+        <>
+          {history.isPending && <div className={styles.dailyPending} aria-hidden="true" />}
+          {dailyTable}
+        </>
       )}
       {data && (
         <p className={styles.note}>

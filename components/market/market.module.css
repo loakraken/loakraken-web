@@ -879,6 +879,24 @@
   clip-path: inset(50%);
   white-space: nowrap;
 }
+/* A day's cells stay on one line (#1634): a wrapped price or today's label made a row taller than the
+   skeleton's rows at 320/360. */
+.daily th,
+.daily td {
+  white-space: nowrap;
+}
+/* 7일 (#1634): the table and an unseen 7-row copy of it share one cell, so a sparse week keeps the
+   7-row place. Both sit at the top of the cell (a stretched table would space its rows out). */
+.dailyHold {
+  display: grid;
+}
+.dailyHold > * {
+  grid-area: 1 / 1;
+  align-self: start;
+}
+.dailySizer {
+  visibility: hidden;
+}
 /* The 7-day table's place while it loads (#1630): the real table's rows, tinted like the block below. */
 .dailySkeleton tbody td,
 .dailySkeleton tbody th {
