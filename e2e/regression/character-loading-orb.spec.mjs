@@ -160,5 +160,10 @@ test("정지 구슬은 화면에 실제로 그려진다 @regression", async ({ p
   const drawn = await page.screenshot({ clip });
   await still.evaluate((svg) => (svg.style.visibility = "hidden"));
   const blank = await page.screenshot({ clip });
+  // Both captures were of the loading screen (codex #1647 P3): if the 8 s answer had landed in between, the
+  // second would show the character page and differ for the wrong reason. The answer is the server's own
+  // request to the mock, which the browser cannot hold, so check it has not come yet instead.
+  await expect(page.locator("main[aria-busy]")).toHaveCount(1);
+  expect(await still.evaluate((svg) => svg.isConnected && svg.style.visibility === "hidden"), "같은 조회 중 화면").toBe(true);
   expect(drawn.equals(blank), "정지 구슬을 숨기면 같은 그림 — 점이 그려지지 않음").toBe(false);
 });

@@ -10,12 +10,17 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import { MODE_FRAMES, paintFrame, resolvePreset } from "thinking-orbs/engine";
+// The same colours the live orb uses (codex #1647 P3: one constant, so a tint change reaches the still too).
+import { ORB_COLORS } from "../components/landing/orb-colors.ts";
 
 const OUT = fileURLToPath(new URL("../components/landing/orb-still-data.ts", import.meta.url));
 const SIZE = 64;
 const STILL_T = 0.6;
-// The orb's colours (components/landing/orb.tsx orbColor): link blue, light and dark.
-const TINT = { light: { r: 0x00, g: 0x66, b: 0xcc }, dark: { r: 0x4d, g: 0xa3, b: 0xff } };
+const rgb = (hex) => {
+  const n = Number.parseInt(hex.slice(1), 16);
+  return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+};
+const TINT = { light: rgb(ORB_COLORS.light), dark: rgb(ORB_COLORS.dark) };
 const version = createRequire(import.meta.url)("thinking-orbs/package.json").version;
 
 function record(dark) {
@@ -81,7 +86,7 @@ ${body}
 if (process.argv.includes("--check")) {
   const now = readFileSync(OUT, "utf8").replace(/\r\n/g, "\n");
   if (now !== text) {
-    console.error("orb-still-data.ts is not what the installed thinking-orbs draws: run node scripts/gen-orb-still.mjs");
+    console.error("orb-still-data.ts is out of date (thinking-orbs or ORB_COLORS changed): run node scripts/gen-orb-still.mjs");
     process.exit(1);
   }
   console.log(`orb-still-data.ts matches thinking-orbs ${version} (${light.length} dots, ${groups.size} groups)`);
