@@ -160,6 +160,7 @@ import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { useCrossfade } from "@/lib/motion";
 import { EngravingIcon } from "@/components/ui/engraving-icon";
 import { belowRange, rangeDetail, rangePercent, RANGE_BASIS, type AccessoryStats } from "@/lib/character/accessory-range";
+import { FpEnd } from "@/components/ui/fp-end";
 
 export const TABS = [
   { id: "combat", label: "전투" },
@@ -302,6 +303,9 @@ export function TabBar({
           // Fades at an end where tabs are hidden (A35).
           className={`${styles.tabs} scroll-fade-x`}
           aria-label="캐릭터 정보 탭"
+          // Drawn once whole (A7 character sweep): the row took its height from the labels as they came
+          // (29 → 51 px at 320) and each tab's tap area moved with them.
+          data-fp-whole=""
           onKeyDown={pillKey}
           onPointerDown={pillPointer}
           onFocus={focusClearOfFade}
@@ -324,8 +328,10 @@ export function TabBar({
               </span>
             ))}
           </span>
+          <FpEnd />
         </nav>
-        <div className={styles.tabActions}>
+        {/* Drawn once whole: right-aligned, so each control that came later pushed the ones drawn to the left. */}
+        <div className={styles.tabActions} data-fp-whole="">
           <AnalysisMenu
             name={name}
             server={data.serverName}
@@ -402,6 +408,7 @@ export function TabBar({
                   : "지금 다시 갱신할 수 있어요"}
             </span>
           </span>
+          <FpEnd />
         </div>
       </div>
       <span className={styles.srOnly} role="status">
