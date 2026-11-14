@@ -43,7 +43,7 @@ const useSiteFont = (page) =>
   });
 
 for (const { path, count } of PAGES)
-  for (const width of [1280, 360])
+  for (const width of [1280, 360, 320])
     test(`${width} ${path}: 기간 줄과 단추 폭은 글꼴과 상관없이 같다 @regression`, async ({ page, browser }, testInfo) => {
       await page.setViewportSize({ width, height: 900 });
       await gotoReady(page, path);
@@ -64,4 +64,38 @@ for (const { path, count } of PAGES)
       // Proof the two really are drawn in different faces: otherwise equal widths prove nothing.
       expect(Math.abs(site.text - fallback.text), `글자 폭이 달라야 함 (사이트 ${site.text}, 기본 ${fallback.text})`).toBeGreaterThan(1);
       expect({ row: fallback.row, buttons: fallback.buttons }, "기본 글꼴일 때도 같은 폭").toEqual({ row: site.row, buttons: site.buttons });
+    });
+
+// codex #1629 P3: the font changing while the page is open (not only two finished pages). One page drawn in the
+// system face (the site font held back), then the site font put in: the labels redraw in it, and the row and every
+// button keep their widths, with no layout shift on the row.
+for (const { path, count } of PAGES)
+  for (const width of [1280, 320])
+    test(`${width} ${path}: 화면을 연 뒤 글꼴이 바뀌어도 기간 줄은 움직이지 않는다 @regression`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      let release;
+      const gate = new Promise((resolve) => (release = resolve));
+      await page.route(/\.woff2(\?|$)/, async (route) => {
+        await gate;
+        await route.continue();
+      });
+      // Not gotoReady: its network wait would sit on the held font.
+      await page.goto(path, { waitUntil: "domcontentloaded" });
+      const group = page.getByRole("group", { name: "기간" });
+      await expect(group.getByRole("button")).toHaveCount(count);
+      await page.waitForFunction(() => Object.keys(document.body).some((key) => key.startsWith("__reactFiber$")));
+      const before = await measure(page);
+      await group.evaluate((row) => {
+        window.__rowShifts = [];
+        new PerformanceObserver((list) => {
+          for (const entry of list.getEntries())
+            if (entry.sources?.some((s) => s.node && row.contains(s.node))) window.__rowShifts.push(entry.value);
+        }).observe({ type: "layout-shift" });
+      });
+      release();
+      expect(await useSiteFont(page), "사이트 글꼴 준비").toBe(true);
+      const after = await measure(page);
+      expect(Math.abs(after.text - before.text), `글자 폭이 바뀌어야 함 (전 ${before.text}, 후 ${after.text})`).toBeGreaterThan(1);
+      expect({ row: after.row, buttons: after.buttons }, "글꼴이 바뀐 뒤에도 같은 폭").toEqual({ row: before.row, buttons: before.buttons });
+      expect(await page.evaluate(() => window.__rowShifts.reduce((a, b) => a + b, 0)), "기간 줄 흔들림").toBe(0);
     });

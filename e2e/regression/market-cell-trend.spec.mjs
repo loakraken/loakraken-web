@@ -105,3 +105,13 @@ test("앞뒤가 빈 하루 기록은 8px 점으로 보인다 @regression", async
   expect(marker.fill, "점 지름(테두리 안)").toBeGreaterThanOrEqual(8);
   expect(marker.color, "선과 같은 색").toBe(marker.line);
 });
+
+// codex #1629 P3: no marker where no day stands alone between two gaps — a range with no missing day.
+test("빈 날이 없는 기간에는 하루 점이 없다 @regression", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await gotoReady(page, "/market/gems?kind=겁화&level=10");
+  const box = page.getByRole("region", { name: "10레벨 겁화 최저가 추이" });
+  // 30일: the mock keeps every day of the last 30 (its 5-day hole is older).
+  await expect(box.getByRole("img", { name: CHART })).toBeVisible();
+  await expect(box.locator("circle[data-lone]")).toHaveCount(0);
+});
