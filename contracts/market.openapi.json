@@ -1605,6 +1605,18 @@
                 "type": "null"
               }
             ]
+          },
+          "tradeRemainCount": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int32",
+                "description": "가격을 쓴 상품의 공식 TradeRemainCount(구매 후 거래 가능 횟수, 0이면 산 뒤 거래 불가). 일반 상품·가격을 쓰지 않은 줄은 null. 같은 상품이 여러 줄이면 선택한 가격 기준으로 가장 싸게 사는 줄의 값입니다."
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -2218,6 +2230,42 @@
           "historyAvailable": {
             "type": "boolean",
             "description": "이력 캐시로 changeWeek·spark7을 채웠는지"
+          },
+          "tradesYesterday": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int64",
+                "description": "최근 완료일(volumeDate) 하루 거래량. 거래량을 아직 모으지 못했으면 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "trades7d": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int64",
+                "description": "최근 완료일 최대 7일 거래량 합. 거래량을 아직 모으지 못했으면 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "volumeDate": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date",
+                "description": "tradesYesterday의 날짜(KST, 가장 최근 완료일). 거래량이 없으면 null"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
