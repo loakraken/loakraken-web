@@ -678,6 +678,13 @@
 .reading {
   fill: currentColor;
 }
+/* A day alone between two gaps (by date): 8px across in the line's colour, ringed 2px by the
+   chart's own surface (r 5 − half the 2px ring = 4). */
+.lone {
+  fill: currentColor;
+  stroke: var(--background);
+  stroke-width: 2;
+}
 /* Bencho .bal-curve: 2.1 round stroke, no fill under it. */
 .line {
   fill: none;

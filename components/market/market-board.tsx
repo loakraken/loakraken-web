@@ -48,7 +48,7 @@ import {
   type FavoriteItem,
 } from "@/lib/market/favorites";
 import quote from "../tools/material-quote.module.css";
-import { ChartPlaceholder, MarketChart, dayPoints, minutePoints, periodChange } from "./market-chart";
+import { ChartPlaceholder, MarketChart, dayPoints, minutePoints, periodChange, rangeWidth } from "./market-chart";
 import { sampleText } from "@/lib/market/minutes";
 import { SiteHeader } from "@/components/site/site-header";
 import { BoardSearch } from "./board-search";
@@ -360,14 +360,13 @@ function Detail({
           {ranges.map((value) => {
             const label = value === "hour" ? "1시간" : RANGE_LABEL[value];
             return (
-              // Width by label length, not by the drawn text: the site font (display: optional) can
-              // land after the first layout, and the row moved 187 → 224px (P1, 11-14).
+              // Width by label length, not by the drawn text (rangeWidth).
               <button
                 key={value}
                 type="button"
                 aria-pressed={range === value}
                 onClick={() => setRange(value)}
-                style={{ inlineSize: `calc(${label.length}em + 12px)` }}
+                style={rangeWidth(label)}
               >
                 {label}
               </button>
