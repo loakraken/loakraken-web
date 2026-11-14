@@ -129,6 +129,9 @@ export interface components {
             /** @description 치명타 피해(%). 기본 200 + 관측 출처(axis=CRIT_DAMAGE) 합. 스킬 한정 문구 제외 */
             damage: components["schemas"]["CritSpeedCritDamageResponse"];
             unavailableReason: string | null;
+            mainSkillRate?: number | null;
+            mainSkillCount?: number | null;
+            skillLimitedRate?: number | null;
         };
         CritSpeedBluntThornResponse: {
             /**
@@ -168,6 +171,7 @@ export interface components {
             total: number;
             /** @description 가정 출처 합(켠 치명타 피해 토글 등, 없으면 0) */
             assumed: number;
+            skillLimited?: number | null;
         };
         CritSpeedSpeedResponse: {
             swiftnessStat: number | null;
@@ -188,6 +192,7 @@ export interface components {
             total: number;
             /** @description 상한 적용 */
             effective: number;
+            skillLimited?: number | null;
         };
         CritSpeedSupersonicResponse: {
             /** @enum {string} */
@@ -271,6 +276,8 @@ export interface components {
             value: number;
             /** @description 공식 원문 또는 근거 */
             text: string;
+            /** @description 일부 스킬에만 붙는 효과면 true(예: 진격 태세 중 랜스 스킬). 켜면 합계에 넣고, 축별 합은 crit.skillLimitedRate·crit.damage.skillLimited·speed.*.skillLimited */
+            skillLimited?: boolean;
         };
         /** @description 공통 오류 응답. HTTP 상태와 업무 코드를 함께 확인합니다. */
         ErrorResponse: {
