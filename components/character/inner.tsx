@@ -339,7 +339,7 @@ export function AvatarsTab({ data }: { data: Character }) {
                 {avatarSlots(avatars).map(({ slot, avatar }, i) => (
                   <li key={`${slot}-${i}`} data-empty={avatar ? undefined : true}>
                     {avatar ? (
-                      <DetailTooltip name={avatar.name ?? "아바타"} card={<AvatarCard avatar={avatar} />}>
+                      <DetailTooltip name={avatar.name ?? "아바타"} card={<AvatarCard avatar={avatar} overlay={slot.endsWith(" 덧입기")} />}>
                         <GameIcon src={avatar.icon} grade={avatar.grade} size={36} />
                       </DetailTooltip>
                     ) : (

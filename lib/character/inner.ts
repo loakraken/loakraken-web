@@ -34,10 +34,20 @@ export const AVATAR_SLOTS = [
  * it (user 11-12, in game: 속삭이는 영원 기본, 7주년 궤적 덧입기). Slots with
  * no 덧입기 (얼굴, 악기, 이동 효과) are false too and are never one; an
  * unknown flag reads as the base.
+ *
+ * IsInner false alone is not enough (PM 총괄 11-15): an avatar worn by itself
+ * in a slot can be false too and is still the base. The official tooltip line
+ * "(덧입기 슬롯에 착용 중)" marks the real 덧입기, and in the saved raws (19
+ * characters) every marked one is false with a true avatar in the same slot,
+ * while the 5 lone false ones carry no mark: so a false one is the 덧입기 only
+ * next to a base in its slot (65/65). `worn` is everything the character wears.
  */
-export function isOverlay(avatar: Avatar) {
+export function isOverlay(avatar: Avatar, worn: readonly Avatar[]) {
   if (/덧입기/.test(avatar.type ?? "")) return true;
-  return avatar.isInner === false && (AVATAR_SLOTS as readonly string[]).includes(`${avatarSlot(avatar)} 덧입기`);
+  if (avatar.isInner !== false) return false;
+  const slot = avatarSlot(avatar);
+  if (!(AVATAR_SLOTS as readonly string[]).includes(`${slot} 덧입기`)) return false;
+  return worn.some((other) => other !== avatar && other.isInner === true && avatarSlot(other) === slot);
 }
 
 /**
@@ -48,7 +58,7 @@ export function avatarSlots(avatars: Avatar[]) {
   const worn = new Map<string, Avatar>();
   const extra: { slot: string; avatar: Avatar }[] = [];
   for (const avatar of avatars) {
-    const slot = `${avatarSlot(avatar)}${isOverlay(avatar) ? " 덧입기" : ""}`;
+    const slot = `${avatarSlot(avatar)}${isOverlay(avatar, avatars) ? " 덧입기" : ""}`;
     if ((AVATAR_SLOTS as readonly string[]).includes(slot) && !worn.has(slot)) worn.set(slot, avatar);
     else extra.push({ slot, avatar });
   }

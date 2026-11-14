@@ -59,6 +59,18 @@ test("덧입기 아바타 상세에는 '덧입기 칸에 착용 중', 기본 아
   await expect(page.getByRole("dialog")).not.toContainText("덧입기 칸에 착용 중");
 });
 
+// PM 총괄 11-15: IsInner=false alone is not a 덧입기. A lone avatar in its slot (the mock's 머리, false with no base
+// next to it, as real raws have it) is labelled 머리, not 머리 덧입기, and its card has no 덧입기 line.
+test("혼자 착용한 IsInner=false 아바타는 기본 칸으로 표시하고 덧입기 문구가 없다 @regression", async ({ page }) => {
+  await gotoReady(page, characterPath("상세", "avatars"));
+  const row = page.getByRole("region", { name: "아바타 목록" }).locator("li").filter({ hasText: "합성 머리" });
+  await expect(row).toHaveCount(1);
+  await expect(row.locator("small").first()).toHaveText("머리");
+  await row.getByRole("button", { name: "합성 머리 상세 보기" }).click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await expect(page.getByRole("dialog")).not.toContainText("덧입기 칸에 착용 중");
+});
+
 // The api before #833 sends no tendencies field (PM-프론트 11-02): the tab draws as before, with no
 // 성향 panel and no 성향 lines (never zeros), and the contract check does not fail.
 test("성향 값이 없는 예전 응답: 아바타 탭은 그대로, 성향 칸·줄 없음 @regression", async ({ page }) => {
