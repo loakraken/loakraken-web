@@ -67,8 +67,10 @@ test("혼자 착용한 IsInner=false 아바타는 기본 칸으로 표시하고 
   await expect(row).toHaveCount(1);
   await expect(row.locator("small").first()).toHaveText("머리");
   await row.getByRole("button", { name: "합성 머리 상세 보기" }).click();
-  await expect(page.getByRole("dialog")).toBeVisible();
-  await expect(page.getByRole("dialog")).not.toContainText("덧입기 칸에 착용 중");
+  const card = page.getByRole("dialog");
+  // The card's body is in (its 기본 효과) before the absence is read, so a half-drawn card cannot pass it.
+  await expect(card).toContainText("민첩 +1.00%");
+  await expect(card).not.toContainText("덧입기 칸에 착용 중");
 });
 
 // The api before #833 sends no tendencies field (PM-프론트 11-02): the tab draws as before, with no
