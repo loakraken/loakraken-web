@@ -10,8 +10,7 @@ const TABS = [null, "stats", "skills", "arkpassive", "avatars", "collectibles", 
 // What this sweep holds still: the banner, the tab row and its tools, the gear panel, the history charts.
 const HELD = [
   'section[aria-label$="캐릭터 요약"]',
-  'nav[aria-label="캐릭터 정보 탭"]',
-  'nav[aria-label="캐릭터 정보 탭"] ~ [data-fp-whole]',
+  '[data-sticky-chrome]:has(nav[aria-label="캐릭터 정보 탭"])',
   'section[aria-label="장비"]',
   'section[aria-label="아이템 레벨"]',
   'section[aria-label="전투력"]',
