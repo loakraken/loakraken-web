@@ -3,7 +3,8 @@
 import { HubTabs } from "@/components/site/hub-tabs";
 
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { useSearchParams } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import { Bookmark, BookmarkBold, StarBold, TrendUp } from "@/components/ui/icons";
 import { GameIcon } from "@/components/character/imagery";
 import { LandingMotion } from "@/components/landing/motion";
@@ -12,6 +13,8 @@ import {
   SORTS,
   BOOK_GRADES,
   boardQueryString,
+  parseItemId,
+  readBoardQuery,
   changeLabel,
   changeWithAmount,
   completedDays,
@@ -627,8 +630,50 @@ function MarketContent({
   initial: BoardQuery;
   initialItem: number | null;
 }) {
-  const [query, setQuery] = useState(initial);
-  const [selected, setSelected] = useState<number | null>(initialItem);
+  // The address is the board's state: picks write it in place (replaceState, below), and Back / Forward
+  // restore an entry whose server props are those of its first render (QA 11-15: /market → 요리 → 보석 →
+  // Back showed 재련 재료 under /market?tab=FOOD). So the query and the picked item are read from the
+  // address at mount and again whenever the address changes without the board writing it; the props
+  // only seed the server render, where the address and the props agree.
+  const searchParams = useSearchParams();
+  const address = searchParams.toString();
+  const fromAddress = () => {
+    const params = Object.fromEntries(searchParams);
+    return {
+      query: readBoardQuery(params),
+      item: typeof params.item === "string" ? parseItemId(params.item) : null,
+    };
+  };
+  const [query, setQuery] = useState(() => (address ? fromAddress().query : initial));
+  const [selected, setSelected] = useState<number | null>(() => (address ? fromAddress().item : initialItem));
+  // The board's own writes still on their way: Next updates useSearchParams later, inside a transition
+  // (codex #1669 P1: marking the new address as known at once made the next render re-read the OLD one and
+  // flash the previous board). An arriving address equal to the newest of them is the board's own (already
+  // in state: re-reading it would also normalise a search being typed); any other is re-read (Back, Forward,
+  // a link, a push).
+  const [pending, setPending] = useState<readonly string[]>([]);
+  const [known, setKnown] = useState(address);
+  // Back / Forward is never the board's own write: whatever was still pending is dropped, so the restored
+  // address is always re-read (codex #1669 delta).
+  useEffect(() => {
+    const drop = () => setPending([]);
+    window.addEventListener("popstate", drop);
+    return () => window.removeEventListener("popstate", drop);
+  }, []);
+  // The search box keeps its own text and debounce: a re-read address mounts it anew (codex #1669 P2).
+  const [searchKey, setSearchKey] = useState(0);
+  if (address !== known) {
+    setKnown(address);
+    // Only the NEWEST pending write is the board's own (codex #1669 round 3): an older entry, a router push
+    // or a Back whose render lands before the popstate listener is re-read. Either way nothing stays pending.
+    setPending([]);
+    if (address !== pending.at(-1)) {
+      const next = fromAddress();
+      setQuery(next.query);
+      setSelected(next.item);
+      setSearchKey((key) => key + 1);
+    }
+  }
   const [heldRef, held] = useTallest();
   const favorites = useFavorites();
   const starred = useMemo(() => new Set(favorites.map((f) => f.itemId)), [favorites]);
@@ -651,10 +696,18 @@ function MarketContent({
       const retryAt = failureOf(q.state.error)?.retryAt;
       return retryAt ? Math.max(60_000, retryAt - Date.now()) : 60_000;
     },
-    placeholderData: keepPreviousData,
+    // While the next page or sort loads the rows stay; another category or grade never shows the last
+    // one's rows under its name (codex #1669 P2: an uncached Back kept the previous board until its answer).
+    placeholderData: (previous, previousQuery) => {
+      const last = previousQuery?.queryKey[2] as BoardQuery | undefined;
+      return last && last.tab === query.tab && last.grade === query.grade ? previous : undefined;
+    },
     ...quiet,
   });
   const data = board.data?.data;
+  // The last answer shown, to hold the freshness line's place while another category loads.
+  const [lastBoard, setLastBoard] = useState(data);
+  if (data && data !== lastBoard) setLastBoard(data);
   // Whether the api answers the grade filter: decided once, from any answer that echoes `grade`, so a
   // failed grade read keeps the buttons that lead back (codex #1603 P2).
   const [gradeReady, setGradeReady] = useState(false);
@@ -687,8 +740,10 @@ function MarketContent({
   // The address follows the board with a plain replaceState: router.replace
   // asked this dynamic page again and re-mounted it, so the pager and footer
   // vanished and came back when a search answer landed (#1115 measure, CLS).
-  const follow = (params: URLSearchParams) =>
+  const follow = (params: URLSearchParams) => {
+    setPending((writes) => [...writes, params.toString()]);
     window.history.replaceState(null, "", `${window.location.pathname}?${params}`);
+  };
   function update(next: Partial<BoardQuery>, item: number | null = null) {
     const merged = { ...query, ...next };
     setQuery(merged);
@@ -799,6 +854,7 @@ function MarketContent({
               {/* Searches the open tab; tab, tier and sort stay and apply to
                   the results, a new search starts at page 1 (#1115). */}
               <BoardSearch
+                key={searchKey}
                 value={query.q}
                 onSearch={(q) => update({ q, page: 1 })}
                 notice={
@@ -912,9 +968,15 @@ function MarketContent({
                 </nav>
               )}
               </div>
-              {data && (
-                <div className={styles.freshness}>
-                  <p className={styles.note}>{at(data.observedAt)} 기준 · 등락: 전일 평균가 대비</p>
+              {(data ?? (!failure && lastBoard)) && (
+                // While another category loads, the line keeps its box (unseen, the last answer's own text, so it
+                // wraps the same): it vanished and came back, moving the page below (codex #1669 delta).
+                <div
+                  className={styles.freshness}
+                  style={data ? undefined : { visibility: "hidden" }}
+                  aria-hidden={data ? undefined : true}
+                >
+                  <p className={styles.note}>{at((data ?? lastBoard)!.observedAt)} 기준 · 등락: 전일 평균가 대비</p>
                   {/* The board refreshes every minute on its own; this says how
                       old the shown prices are and asks again on demand, resting
                       30s after data arrives (the backend cache) so a press never
