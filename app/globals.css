@@ -1395,3 +1395,8 @@
 [data-fp-whole]:not(:has(> [data-fp-end])) {
   visibility: hidden;
 }
+/* The end mark itself is never a box, whatever the group's own child rules say (a `> span { display: … }`
+   would otherwise draw it as an empty flex item with a gap). */
+[data-fp-end] {
+  display: none !important;
+}

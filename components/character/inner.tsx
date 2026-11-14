@@ -26,6 +26,7 @@ import { CharacterPortrait } from "./portrait";
 import styles from "./detail.module.css";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { useTallest } from "@/components/ui/use-tallest";
+import { FpEnd } from "@/components/ui/fp-end";
 
 type Collectible = Character["collectibles"][number];
 
@@ -207,11 +208,14 @@ export function CollectiblesTab({ data }: { data: Character }) {
                       >
                         <span className={styles.collectionName}>
                           <CollectibleIcon type={item.type} badge={item.icon} />
-                          <span>
+                          {/* Drawn once whole (A7 character sweep 2): centred by the icon, so the name moved up
+                              when the count came under it. */}
+                          <span data-fp-whole="">
                             <strong>{text(item.type)}</strong>
                             <small>
                               {number(item.point)} / {number(item.maxPoint)}
                             </small>
+                            <FpEnd />
                           </span>
                         </span>
                         <b>{percentText(item.point, item.maxPoint)}</b>
@@ -277,9 +281,11 @@ export function CollectiblesTab({ data }: { data: Character }) {
                 {data.tendencies.map((item, i) => (
                   <div key={`${item.type}-${i}`}>
                     <dt>{text(item.type)}</dt>
-                    <dd>
+                    {/* Drawn once whole: right-aligned, so '/ 1,000' coming after the value pushed it left. */}
+                    <dd data-fp-whole="">
                       {number(item.point)}
                       {item.maxPoint != null && <small> / {number(item.maxPoint)}</small>}
+                      <FpEnd />
                     </dd>
                     <Bar
                       value={ratio(item.point, item.maxPoint)}
@@ -337,7 +343,9 @@ export function AvatarsTab({ data }: { data: Character }) {
             {avatars.length ? (
               <ul className={styles.avatarSlots}>
                 {avatarSlots(avatars).map(({ slot, avatar }, i) => (
-                  <li key={`${slot}-${i}`} data-empty={avatar ? undefined : true}>
+                  // Drawn once whole (A7 character sweep 2): the icon is centred in the row, so it dropped as the
+                  // text lines under the slot name came.
+                  <li key={`${slot}-${i}`} data-empty={avatar ? undefined : true} data-fp-whole="">
                     {avatar ? (
                       <DetailTooltip name={avatar.name ?? "아바타"} card={<AvatarCard avatar={avatar} />}>
                         <GameIcon src={avatar.icon} grade={avatar.grade} size={36} />
@@ -354,6 +362,7 @@ export function AvatarsTab({ data }: { data: Character }) {
                         <small className={styles.avatarTendency}>{avatarTendencyText(avatar)}</small>
                       )}
                     </div>
+                    <FpEnd />
                   </li>
                 ))}
               </ul>
