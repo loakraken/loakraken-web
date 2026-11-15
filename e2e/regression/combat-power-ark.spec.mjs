@@ -80,15 +80,20 @@ for (const width of [320, 1280]) {
       if (simulate(r)) sent.push(r.postData() ?? "");
     });
 
-    for (const typed of ["71", "100"]) {
-      // From 65 each time, so landing on 70 is a change the api is asked about.
-      const at65 = page.waitForRequest((r) => simulate(r) && r.postData()?.includes('"points":65'));
+    // Each pass starts from its own value: the simulator keeps answers by inputs, so a repeated
+    // 65 or 70 is not asked again. 70 is asked once, on the first pass.
+    for (const [from, typed] of [
+      ["65", "71"],
+      ["66", "100"],
+    ]) {
+      const atFrom = page.waitForRequest((r) => simulate(r) && r.postData()?.includes(`"points":${from}`));
       await field.selectText();
-      await field.pressSequentially("65");
-      await at65;
+      await field.pressSequentially(from);
+      await atFrom;
       await expect(passive.getByText(note, { exact: true })).toHaveCount(0);
 
-      const at70 = page.waitForRequest((r) => simulate(r) && r.postData()?.includes('"points":70'));
+      const at70 =
+        typed === "71" ? page.waitForRequest((r) => simulate(r) && r.postData()?.includes('"points":70')) : null;
       await field.selectText();
       await field.pressSequentially(typed);
       // Held at 70 while still focused, with the note read as the field's description.
@@ -97,7 +102,9 @@ for (const width of [320, 1280]) {
       await expect(field).toHaveAccessibleDescription(note);
       await field.press("Tab");
       await expect(field).toHaveValue("70");
-      expect((await at70).postDataJSON().changes).toEqual([{ kind: "ARK_PASSIVE_POINT", tree: "도약", points: 70 }]);
+      if (at70) {
+        expect((await at70).postDataJSON().changes).toEqual([{ kind: "ARK_PASSIVE_POINT", tree: "도약", points: 70 }]);
+      }
       await expect(changes.getByText("60 → 70")).toBeVisible();
       await expectNoHorizontalOverflow(page);
     }
