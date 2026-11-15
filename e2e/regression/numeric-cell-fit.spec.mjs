@@ -46,11 +46,24 @@ for (const width of [320, 360, 399, 400])
     const overflows = [];
     for (const path of ROUTES) {
       await gotoReady(page, path);
-      await page.evaluate(() => document.fonts.ready);
-      expect(
-        await page.evaluate(() => [...document.fonts].some((f) => f.status === "loaded" && f.family.replace(/["']/g, "") === "kraken")),
-        `${decodeURIComponent(path)}: 사이트 글꼴로 그렸다`,
-      ).toBe(true);
+      // A face can be "loaded" yet unused: display:optional keeps a page on the system face when the file
+      // came late. So draw the same text in the page's stack and in the site font alone (else the browser
+      // default, far from both fallbacks); equal widths mean the page draws with the site font now.
+      const drawn = await page.evaluate(async () => {
+        await document.fonts.ready;
+        const probe = (family) => {
+          const span = document.createElement("span");
+          span.textContent = "가나다 1,780.83G";
+          Object.assign(span.style, { position: "absolute", visibility: "hidden", whiteSpace: "nowrap", fontSize: "15px", fontWeight: "700" });
+          if (family) span.style.fontFamily = family;
+          document.querySelector("main").append(span);
+          const width = span.getBoundingClientRect().width;
+          span.remove();
+          return width;
+        };
+        return { stack: probe(""), site: probe("kraken") };
+      });
+      expect(Math.abs(drawn.stack - drawn.site), `${decodeURIComponent(path)}: 사이트 글꼴로 그렸다 ${JSON.stringify(drawn)}`).toBeLessThan(0.01);
       for (const f of await overflowsIn(page)) overflows.push(`${decodeURIComponent(path)}: ${f}`);
     }
     expect(overflows, "제 칸을 넘은 숫자").toEqual([]);
