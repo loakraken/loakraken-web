@@ -41,6 +41,8 @@ import {
   KIND_LABEL,
   braceletName,
   gradeWithValue,
+  isArkPassiveOpen,
+  isCoreOpen,
   isOpen,
   isRefineOpen,
   polishValue,
@@ -605,12 +607,20 @@ function Editors({
       )}
 
       {current.arkPassive.length > 0 && (
-        <Card id="cp-ark-passive" title="아크 패시브" locked={!isOpen("ARK_PASSIVE_POINT")}>
+        <Card
+          id="cp-ark-passive"
+          title="아크 패시브"
+          locked={!current.arkPassive.some((item) => isArkPassiveOpen(item.tree))}
+        >
           {current.arkPassive.map((item) => (
             <li key={item.tree}>
               <span className={styles.rowName}>{item.tree}</span>
-              <span className={styles.rowFrom}>{item.points}P</span>
-              {isOpen("ARK_PASSIVE_POINT") && (
+              {!isArkPassiveOpen(item.tree) ? (
+                <Locked caption="포인트" value={`${item.points}P`} />
+              ) : (
+                <span className={styles.rowFrom}>{item.points}P</span>
+              )}
+              {isArkPassiveOpen(item.tree) && (
                 <PointField
                   label={`아크 패시브 ${item.tree} 포인트`}
                   value={edits.arkPassive[item.tree] ?? item.points}
@@ -627,7 +637,7 @@ function Editors({
       )}
 
       {current.cores.length > 0 && (
-        <Card id="cp-cores" title="아크 그리드 코어" locked={!isOpen("ARK_GRID_CORE")}>
+        <Card id="cp-cores" title="아크 그리드 코어" locked={!current.cores.some((item) => isCoreOpen(item.name))}>
           {current.cores.map((item) => {
             const edit = edits.core[item.slotIndex] ?? { grade: item.grade, point: item.point };
             const set = (next: Partial<typeof edit>) =>
@@ -635,7 +645,7 @@ function Editors({
             return (
               <li key={item.slotIndex}>
                 <span className={styles.rowName}>{item.name}</span>
-                {!isOpen("ARK_GRID_CORE") ? (
+                {!isCoreOpen(item.name) ? (
                   <Locked caption={item.grade} value={`${item.point}P`} />
                 ) : (
                   <>
@@ -663,8 +673,8 @@ function Editors({
         </Card>
       )}
       <p className={styles.later}>
-        지금은 보석·품질·각인·스톤·연마·팔찌·팔 보호구·무기 재련을 바꿀 수 있어요. 방어구 재련·아크 패시브·아크
-        그리드는 계산식을 확인하는 대로 열어요.
+        지금은 보석·품질·각인·스톤·연마·팔찌·팔 보호구·무기 재련·아크 그리드 코어·아크 패시브 도약을 바꿀 수 있어요.
+        방어구 재련·상급 재련·아크 패시브 진화와 깨달음·혼돈의 별 무기 코어는 계산식을 확인하는 대로 열어요.
       </p>
     </div>
   );

@@ -36,6 +36,8 @@ export const OPEN_KINDS: ReadonlySet<string> = new Set([
   "ARM_GUARD",
   // api #460: polish lines take the line's own option and value (무공 too).
   "POLISH",
+  // api #838: core grade and point (계산 검증 1,060/1,060), PM 총괄 11-15.
+  "ARK_GRID_CORE",
 ]);
 export const isOpen = (kind: Change["kind"]) => OPEN_KINDS.has(kind);
 
@@ -46,6 +48,20 @@ export const isOpen = (kind: Change["kind"]) => OPEN_KINDS.has(kind);
  * stay "준비 중" (PM 총괄 11-12).
  */
 export const isRefineOpen = (type: string | null | undefined) => isOpen("EQUIPMENT_REFINE") || type === "무기";
+
+/**
+ * Ark passive opens for 도약 only (api #842): 진화·깨달음 come back UNSUPPORTED
+ * until their formula is confirmed, so those rows stay "준비 중" (PM 총괄 11-15).
+ */
+export const LEAP_TREE = "도약";
+export const isArkPassiveOpen = (tree: string) => isOpen("ARK_PASSIVE_POINT") || tree === LEAP_TREE;
+
+/**
+ * The 혼돈의 별 : 무기 core counts through weapon attack and the api does not
+ * compute it yet (api #838, WEAPON_CORE_REASON), so its row stays "준비 중".
+ */
+export const WEAPON_CORE = "혼돈의 별 코어 : 무기";
+export const isCoreOpen = (name: string) => isOpen("ARK_GRID_CORE") && !name.trim().startsWith(WEAPON_CORE);
 
 /** 전율 gear has no advanced refining (the backend's refine model reads the
  * same name: "전율 장비에는 상급 재련이 없습니다."). */
@@ -161,7 +177,7 @@ export type Current = {
   engravings?: { name: string; level: number }[];
   stones?: { name: string; level: number }[];
   arkPassive?: { tree: string; points: number }[];
-  cores?: { slotIndex: number; grade: string; point: number }[];
+  cores?: { slotIndex: number; name?: string; grade: string; point: number }[];
   armGuard?: { level: number; grade: string } | null;
 };
 
@@ -300,12 +316,13 @@ export function toChanges(edits: Edits, current: Current, range?: RefineRange): 
     if (level != null && level !== item.level)
       changes.push({ kind: "STONE_ENGRAVING", name: item.name, level });
   }
-  for (const item of current.arkPassive ?? []) {
+  // Nothing for a row the screen keeps locked: it cannot show or undo an edit.
+  for (const item of (current.arkPassive ?? []).filter((item) => isArkPassiveOpen(item.tree))) {
     const points = edits.arkPassive[item.tree];
     if (points != null && points !== item.points)
       changes.push({ kind: "ARK_PASSIVE_POINT", tree: item.tree, points });
   }
-  for (const item of current.cores ?? []) {
+  for (const item of (current.cores ?? []).filter((item) => isCoreOpen(item.name ?? ""))) {
     const edit = edits.core[item.slotIndex];
     if (edit && (edit.grade !== item.grade || edit.point !== item.point))
       changes.push({ kind: "ARK_GRID_CORE", slotIndex: item.slotIndex, grade: edit.grade, point: edit.point });
