@@ -5,6 +5,7 @@
 // 줄 높이·이름·가격 두 줄) — 시작 태그만으로 끝 크기(data-fp-label 크기용 글자, min-height, 고정 칸).
 import { test, expect, gotoReady, expectNoHorizontalOverflow } from "../support/fixtures.mjs";
 import { cutEverywhere } from "../support/first-paint.mjs";
+import { drawnFace, useUntunedSystemFace } from "../support/fonts.mjs";
 
 
 for (const theme of ["light", "dark"])
@@ -33,6 +34,9 @@ for (const width of [320, 360])
     // The font files are held, never answered (an aborted request is a console error): display: optional then
     // keeps the system face for the whole visit, as a phone without the file paints.
     await page.route(/\.woff2(\?|$)/, () => {});
+    // A phone's own face at its own widths: the metric-matched fallback (#1753) draws at the site font's widths on
+    // Windows and Linux, so it is left out here (support/fonts.mjs).
+    await useUntunedSystemFace(page);
     await page.setViewportSize({ width, height: 1000 });
     // Not gotoReady: its network wait would sit on the held fonts.
     await page.goto("/", { waitUntil: "domcontentloaded" });
@@ -44,7 +48,7 @@ for (const width of [320, 360])
     await expect(legend).toBeVisible();
     await expect(card.getByRole("group", { name: "요일 선택" })).toBeVisible();
     // The font really is the fallback (the test means nothing on the site font).
-    expect(await page.evaluate(() => [...document.fonts].some((font) => font.status === "loaded" && /kraken/i.test(font.family)))).toBe(false);
+    expect(await drawnFace(page), "맞추지 않은 시스템 글꼴로 그림").toBe("untuned");
     const box = async (locator) => (await locator.boundingBox()) ?? { x: 0, y: 0, width: 0, height: 0 };
     const [h, t, l] = [await box(heading), await box(toggle), await box(legend)];
     expect(t.y, "토글이 제목 아래 줄").toBeGreaterThanOrEqual(h.y + h.height);

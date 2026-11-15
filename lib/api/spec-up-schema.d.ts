@@ -140,6 +140,9 @@ export interface components {
             /** @description 작열(쿨) 보석 후보를 넣었는지(요청 includeCooldownGems 또는 정렬 기본값) */
             cooldownGemsIncluded?: boolean;
             krakenSortUnavailableReason?: string | null;
+            /** @description 추천 순서(/spec-up/path) sort=KRAKEN을 이 캐릭터에 쓸 수 있는지: 스위치 spec-up.support-order.enabled가 켜졌고 크라켄 점수를 낼 수 있으면 true. 웹은 이 값으로 KRAKEN 순서 버튼을 보인다(시험 요청으로 알아보지 않음). 배포 순서 때문에 계약에서는 선택 필드 */
+            supportOrderAvailable?: boolean;
+            krakenScoreRole?: string | null;
         };
         CandidateResponse: {
             /**
@@ -479,7 +482,7 @@ export interface components {
             stopReasonCode: string;
             stopReason: string | null;
             totalCost: number | null;
-            /** @example spec-up-path-v4 */
+            /** @example spec-up-path-v5 */
             ruleVersion: string;
             /** @description 전투력을 낸 시뮬레이터 규칙 */
             simulatorRuleVersion: string;
@@ -492,6 +495,9 @@ export interface components {
             krakenScore?: number | null;
             finalKrakenScore?: number | null;
             krakenSortUnavailableReason?: string | null;
+            /** @description 추천 순서(/spec-up/path) sort=KRAKEN을 이 캐릭터에 쓸 수 있는지: 스위치 spec-up.support-order.enabled가 켜졌고 크라켄 점수를 낼 수 있으면 true. 웹은 이 값으로 KRAKEN 순서 버튼을 보인다(시험 요청으로 알아보지 않음). 배포 순서 때문에 계약에서는 선택 필드 */
+            supportOrderAvailable?: boolean;
+            krakenScoreRole?: string | null;
         };
         SpecUpPathExcludedResponse: {
             /** @description 스펙업 가이드 후보 id와 같은 형식 */

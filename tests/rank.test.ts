@@ -102,9 +102,19 @@ test("banner line: combat power over everyone seen, only when ranked and ready",
     tier: "대양",
     label: "전투력",
     value: "5위 · 상위 12.5%",
+    // Apart, so a narrow badge can put the share on its own line (PM 총괄 11-16); value and text keep it.
+    rank: "5위",
+    share: "12.5%",
     text: "전투력 5위 · 상위 12.5%",
     note: "LOAKraken이 최근 30일 안에 확인한 아이템 레벨 1,640 이상 캐릭터 기준 40명 중 순위예요. 공식 순위가 아니에요.",
   });
+  // No share (topPercent null): the rank alone.
+  const noShare = structuredClone(data);
+  for (const entry of noShare.entries) entry.topPercent = null;
+  assert.deepEqual(
+    (({ rank, share, value }) => ({ rank, share, value }))(bannerRank(noShare)!),
+    { rank: "5위", share: null, value: "5위" },
+  );
   assert.equal(bannerRank({ ...data, included: false, entries: [] }), null);
   const collecting = structuredClone(data);
   for (const entry of collecting.entries) entry.sampleStatus = "COLLECTING";

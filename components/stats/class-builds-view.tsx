@@ -39,6 +39,7 @@ import { EngravingIcon } from "@/components/ui/engraving-icon";
 import { BasisNote } from "./basis-note";
 import { BuildCompare } from "./build-compare";
 import { FpEnd } from "@/components/ui/fp-end";
+import { OverflowRow } from "@/components/ui/overflow-row";
 
 const kst = new Intl.DateTimeFormat("ko-KR", {
   timeZone: "Asia/Seoul",
@@ -321,37 +322,40 @@ function FixBar({ fixing, onClear, population }: { fixing: Fixing; onClear: () =
     bar.current?.focus({ preventScroll: true });
   };
   return (
-    <div ref={bar} className={own.fixBar} role="group" aria-label="고정한 세팅" tabIndex={-1}>
-      {/* Drawn anew for each set of fixes: chips sliding over to fill a freed
-          one's place counted as moving (A7); new chips are just drawn. */}
-      <span key={items.map((item) => `${item.kind}-${item.value}`).join("|")} className={own.fixItems}>
-        {items.length ? (
-          <>
-            {items.map((item) => (
-              <button
-                key={`${item.kind}-${item.value}`}
-                type="button"
-                className={own.fixChip}
-                aria-label={`${item.label} 고정 풀기`}
-                onClick={() => free(() => fixing.onFix(item))}
-              >
-                {item.label}
-                <CloseCircle size={14} aria-hidden="true" />
+    // Wider than the line: scrolls sideways (OverflowRow: ‹ › on a mouse, drag).
+    <OverflowRow>
+      <div ref={bar} className={own.fixBar} role="group" aria-label="고정한 세팅" tabIndex={-1}>
+        {/* Drawn anew for each set of fixes: chips sliding over to fill a freed
+            one's place counted as moving (A7); new chips are just drawn. */}
+        <span key={items.map((item) => `${item.kind}-${item.value}`).join("|")} className={own.fixItems}>
+          {items.length ? (
+            <>
+              {items.map((item) => (
+                <button
+                  key={`${item.kind}-${item.value}`}
+                  type="button"
+                  className={own.fixChip}
+                  aria-label={`${item.label} 고정 풀기`}
+                  onClick={() => free(() => fixing.onFix(item))}
+                >
+                  {item.label}
+                  <CloseCircle size={14} aria-hidden="true" />
+                </button>
+              ))}
+              <button type="button" className={own.fixClear} onClick={() => free(onClear)}>
+                모두 풀기
               </button>
-            ))}
-            <button type="button" className={own.fixClear} onClick={() => free(onClear)}>
-              모두 풀기
-            </button>
-            <span className={own.fixNote}>
-              {population != null ? `이 세팅을 쓰는 ${whole(population)}명으로 다시 셌어요` : "이 세팅을 쓰는 캐릭터로 다시 세요"}
-              {items.length >= MAX_FIXES ? " · 고정은 3개까지" : ""}
-            </span>
-          </>
-        ) : (
-          <span className={own.fixHint}>세팅을 누르면 그 세팅을 쓰는 캐릭터만 남겨 다시 세요(3개까지)</span>
-        )}
-      </span>
-    </div>
+              <span className={own.fixNote}>
+                {population != null ? `이 세팅을 쓰는 ${whole(population)}명으로 다시 셌어요` : "이 세팅을 쓰는 캐릭터로 다시 세요"}
+                {items.length >= MAX_FIXES ? " · 고정은 3개까지" : ""}
+              </span>
+            </>
+          ) : (
+            <span className={own.fixHint}>세팅을 누르면 그 세팅을 쓰는 캐릭터만 남겨 다시 세요(3개까지)</span>
+          )}
+        </span>
+      </div>
+    </OverflowRow>
   );
 }
 
