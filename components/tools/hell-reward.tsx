@@ -35,6 +35,7 @@ import {
 } from "@/lib/tools/hell-reward";
 import quote from "./material-quote.module.css";
 import styles from "./hell-reward.module.css";
+import { FpEnd } from "@/components/ui/fp-end";
 
 const KINDS: { value: HellKind; label: string }[] = [
   { value: "hell", label: "지옥" },
@@ -296,7 +297,8 @@ export function HellRewardTool() {
                   </SegmentedItem>
                 ))}
               </SegmentedControl>
-              <label className={styles.stage} htmlFor={stageId}>
+              {/* Drawn once whole (data-fp-whole, A7 rest sweep): the select arriving under the label grew the row it is centred in. */}
+              <label className={styles.stage} htmlFor={stageId} data-fp-whole="">
                 <span>클리어 단계</span>
                 <Select
                   id={stageId}
@@ -304,6 +306,7 @@ export function HellRewardTool() {
                   onValueChange={(v) => setStage(Number(v))}
                   items={STAGES.map((s) => ({ value: s, label: `${s}단계` }))}
                 />
+                <FpEnd />
               </label>
             </section>
 
@@ -396,8 +399,10 @@ export function HellRewardTool() {
                       ? "입력을 마치면 값 순서로 다시 정렬해요."
                       : "시세가 바뀌어 지금 값과 순서가 달라요."}
                 </span>
-                <button type="button" className={quote.outlinePill} onClick={() => setResort((n) => n + 1)}>
+                {/* Drawn once whole (data-fp-whole, A7 rest sweep): the button ends the line, so its label arriving grew it leftwards. */}
+                <button type="button" className={quote.outlinePill} onClick={() => setResort((n) => n + 1)} data-fp-whole="">
                   지금 시세로 다시 정렬
+                  <FpEnd />
                 </button>
               </p>
               {/* Until prices land the order is not known yet: the list keeps its height but is not
@@ -429,7 +434,8 @@ export function HellRewardTool() {
               <h2 id="hell-stages-heading" className={styles.sectionTitle}>
                 단계별 가장 좋은 상자
               </h2>
-              <table className={styles.table}>
+              {/* Drawn once whole (data-fp-whole, A7 rest sweep): the columns were measured again as each later row came in. */}
+              <table className={styles.table} data-fp-whole="">
                 <caption className={styles.sr}>
                   {kindLabel} {level} 단계별 가장 좋은 상자의 값(지금 값 기준)
                 </caption>
@@ -447,6 +453,7 @@ export function HellRewardTool() {
                     </tr>
                   ))}
                 </tbody>
+                <FpEnd />
               </table>
               {/* A select, not a segmented row: the side column is narrow, and the row
                   measured itself again when the web font came and went vertical, moving the

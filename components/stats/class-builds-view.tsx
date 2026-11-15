@@ -38,6 +38,7 @@ import own from "./class-builds.module.css";
 import { EngravingIcon } from "@/components/ui/engraving-icon";
 import { BasisNote } from "./basis-note";
 import { BuildCompare } from "./build-compare";
+import { FpEnd } from "@/components/ui/fp-end";
 
 const kst = new Intl.DateTimeFormat("ko-KR", {
   timeZone: "Asia/Seoul",
@@ -188,9 +189,11 @@ function UpcomingSections() {
   return (
     <ul className={own.upcoming} aria-label="표본이 모이면 보여 드릴 항목">
       {SECTION_NAMES.map((name) => (
-        <li key={name}>
+        // Drawn once whole (data-fp-whole, A7 rest sweep): the card centres its two lines, so the second arriving moved the name up.
+        <li key={name} data-fp-whole="">
           <b>{name}</b>
           <small>표본이 모이면 보여요</small>
+          <FpEnd />
         </li>
       ))}
     </ul>
@@ -523,7 +526,8 @@ export function ClassBuildsView({
           <p>LOAKraken이 확인한 {query.className} 캐릭터가 마지막으로 보인 장비로 센 빌드 통계예요.</p>
         </section>
 
-        <form className={styles.filters} onSubmit={(e) => e.preventDefault()} aria-label="직업 통계 조건">
+        {/* Drawn once whole (data-fp-whole, A7 rest sweep): the segments size the row together, and each later button grew it. */}
+        <form className={styles.filters} onSubmit={(e) => e.preventDefault()} aria-label="직업 통계 조건" data-fp-whole="">
           <span className={styles.segment} role="group" aria-label="직업 각인">
             <button type="button" aria-pressed={!query.classEngraving} onClick={() => apply({ classEngraving: undefined })}>
               전체
@@ -547,10 +551,11 @@ export function ClassBuildsView({
                 aria-pressed={query.activeDays === days}
                 onClick={() => apply({ activeDays: days })}
               >
-                {days}일
+                {`${days}일`}
               </button>
             ))}
           </span>
+          <FpEnd />
         </form>
 
         {meta && data && (

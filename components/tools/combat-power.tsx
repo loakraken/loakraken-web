@@ -72,6 +72,7 @@ import { useRateLimit } from "@/lib/api/use-rate-limit";
 import { SiteHeader } from "@/components/site/site-header";
 import quote from "./material-quote.module.css";
 import styles from "./combat-power.module.css";
+import { FpEnd } from "@/components/ui/fp-end";
 
 const power = (value: number) =>
   value.toLocaleString("ko-KR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -1113,10 +1114,13 @@ function CombatPowerContent({ initialName }: { initialName: string }) {
               <button
                 type="submit"
                 className={quote.secondaryPill}
+                // Drawn once whole (data-fp-whole, A7 rest sweep): the button ends the row, so its label arriving grew it leftwards.
+                data-fp-whole=""
                 aria-disabled={busy || waiting || undefined}
                 aria-busy={busy || undefined}
               >
                 {retryLabel(limit.seconds, "불러오기")}
+                <FpEnd />
               </button>
               {touched && error && <p className={quote.inputError}>{error}</p>}
             </form>

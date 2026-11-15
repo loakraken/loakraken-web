@@ -32,6 +32,7 @@ import quote from "./material-quote.module.css";
 import { goldText, signedGold } from "@/lib/tools/format";
 import styles from "./loa-shop.module.css";
 import { MoreDetail } from "@/components/ui/more-detail";
+import { FpEnd } from "@/components/ui/fp-end";
 
 /** The typed rate stays in this browser only (never sent anywhere). */
 const RATE_KEY = "loakraken.loa-shop.rate";
@@ -187,8 +188,10 @@ function PackageCard({
     <section className={styles.card} aria-labelledby={headingId}>
       <div className={styles.cardHead}>
         <h3 id={headingId}>{pkg.name}</h3>
-        <p className={styles.price}>
+        {/* Drawn once whole (data-fp-whole, A7 rest sweep): the price sits at the right end, so its unit arriving moved it left. */}
+        <p className={styles.price} data-fp-whole="">
           {count(value.priceRoyal)} <small>로열 크리스탈</small>
+          <FpEnd />
         </p>
       </div>
       <p className={styles.plan}>

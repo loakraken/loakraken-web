@@ -63,6 +63,7 @@ import { SiteHeader } from "@/components/site/site-header";
 import { SegmentedControl, SegmentedItem } from "@/components/ui/segmented-control";
 import styles from "./refining-plan.module.css";
 import { MoreDetail } from "@/components/ui/more-detail";
+import { FpEnd } from "@/components/ui/fp-end";
 
 const range = (from: number, to: number) =>
   Array.from({ length: to - from + 1 }, (_, i) => from + i);
@@ -211,10 +212,13 @@ function CharacterLoader({
         <button
           type="submit"
           className={quote.secondaryPill}
+          // Drawn once whole (data-fp-whole, A7 rest sweep): the button ends the row, so its label arriving grew it leftwards.
+          data-fp-whole=""
           aria-disabled={load.isPending || loadLimit.seconds > 0 || undefined}
           aria-busy={load.isPending || undefined}
         >
           {load.isPending ? "불러오는 중…" : retryLabel(loadLimit.seconds, "장비 불러오기")}
+          <FpEnd />
         </button>
       </form>
       {touched && error && <p className={quote.inputError}>{error}</p>}
@@ -252,7 +256,9 @@ function PartRow({
       <div className={styles.partHead}>
         <strong id={id}>{part.label}</strong>
         <span>{!state.enabled ? "제외" : up > 0 ? `+${up}단계` : "유지"}</span>
-        <label className={styles.include}>
+        {/* Drawn once whole (data-fp-whole, A7 rest sweep): the label ends the head row, so its words
+            arriving after the box grew it leftwards. */}
+        <label className={styles.include} data-fp-whole="">
           <input
             type="checkbox"
             checked={state.enabled}
@@ -261,6 +267,7 @@ function PartRow({
             }
           />
           계산에 포함
+          <FpEnd />
         </label>
       </div>
       <fieldset
@@ -350,7 +357,7 @@ function Progress({
             return (
               <li key={part.id}>
                 <strong>
-                  {part.label} +{state.current + 1}
+                  {`${part.label} +${state.current + 1}`}
                 </strong>
                 <label className={styles.mini}>
                   <span>장인의 기운(%)</span>
@@ -768,7 +775,7 @@ function Result({
                 plan.stages.map((stage) => (
                   <tr key={`${part.id}-${stage.targetStage}`}>
                     <th scope="row">
-                      {part.label} +{stage.targetStage}
+                      {`${part.label} +${stage.targetStage}`}
                     </th>
                     <td>{formatCount(stage.firstAttemptSuccessRateBp / 100, 2)}%</td>
                     <td data-mode={mode === "expected" || undefined}>
@@ -1043,7 +1050,8 @@ function RefiningContent({ initialName }: { initialName: string }) {
                       )
                     }
                   >
-                    +{stage}
+                    {/* One text node: a split '+' drew first and its number arrived after it (A7). */}
+                    {`+${stage}`}
                   </button>
                 ))}
               </div>

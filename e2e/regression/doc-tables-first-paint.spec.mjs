@@ -24,4 +24,8 @@ for (const [name, path, header] of PAGES)
       const cut = await cutEverywhere(page, "main|");
       expect(cut.probed, cut.moved.join(" / ")).toBeGreaterThan(20);
       expect(cut.value, `늦게 온 부분이 민 것:\n${cut.moved.slice(0, 8).join("\n")}`).toBe(0);
+      // Cuts inside the first table itself (codex #1677 P3: main's first screen alone might not reach a table).
+      const inTable = await cutEverywhere(page, "[data-fp-whole]:has(> table)|");
+      expect(inTable.probed, `표 안을 자른 곳(${inTable.moved.join(" / ")})`).toBeGreaterThan(10);
+      expect(inTable.value, `표 안에서 늦게 온 부분이 민 것:\n${inTable.moved.slice(0, 8).join("\n")}`).toBe(0);
     });
