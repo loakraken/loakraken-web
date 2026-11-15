@@ -79,6 +79,22 @@ test("IsInner false worn alone in its slot is the base, not a 덧입기 (PM 총�
   assert.equal(slot("상의 덧입기"), "덧입은 상의");
 });
 
+test("One-piece (상의&하의) avatars come as 상의 아바타 and pair in 상의 (PM 총괄 11-15, saved raws)", () => {
+  const avatar = (type: string, name: string, isInner: boolean | null) =>
+    ({ type, name, icon: null, grade: "영웅", isSet: false, isInner, effects: [], tendencies: [] }) as Parameters<typeof avatarSlots>[0][number];
+  // The two shapes in the saved raws: a one-piece 덧입기 over a separate 상의 and 하의 base, and a one-piece worn alone.
+  const over = [avatar("상의 아바타", "기본 상의", true), avatar("하의 아바타", "기본 하의", true), avatar("상의 아바타", "덧입은 상하의", false)];
+  const slotOf = (worn: ReturnType<typeof avatar>[], name: string) => avatarSlots(worn).find((row) => row.slot === name)?.avatar?.name;
+  assert.equal(slotOf(over, "상의"), "기본 상의");
+  assert.equal(slotOf(over, "하의"), "기본 하의");
+  assert.equal(slotOf(over, "상의 덧입기"), "덧입은 상하의");
+  assert.equal(slotOf(over, "하의 덧입기"), undefined);
+  const alone = [avatar("상의 아바타", "혼자 입은 상하의", false)];
+  assert.equal(slotOf(alone, "상의"), "혼자 입은 상하의");
+  assert.equal(slotOf(alone, "상의 덧입기"), undefined);
+  assert.equal(avatarSlots(alone).length, AVATAR_SLOTS.length);
+});
+
 test("아바타 성향 (user 11-02): a line per avatar, totals in the game's order, nothing when none", () => {
   type Avatar = Parameters<typeof avatarTendencyTotals>[0][number];
   const avatar = (tendencies: { type: string | null; point: number | null }[] | undefined) =>
