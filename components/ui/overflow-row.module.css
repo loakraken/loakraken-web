@@ -1,0 +1,90 @@
+/* OverflowRow (overflow-row.tsx): a box round a row that scrolls sideways. It
+   takes no room of its own; the ‹ › buttons are overlays placed on the row's
+   ends from a measurement (--row-start / --row-end / --row-mid), so showing
+   them never moves an item (A7). */
+.row {
+  position: relative;
+  min-width: 0;
+}
+
+.arrow {
+  position: absolute;
+  top: var(--row-mid, 50%);
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin-top: -14px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--background);
+  color: var(--foreground);
+  box-shadow: 0 1px 3px color-mix(in oklab, var(--foreground) 12%, transparent);
+  cursor: pointer;
+  /* Hidden (and out of the accessibility tree) unless items wait past this end. */
+  visibility: hidden;
+  opacity: 0;
+  transition:
+    opacity var(--duration-fast) var(--ease-out),
+    visibility 0s linear var(--duration-fast),
+    scale var(--duration-fast) var(--ease-out);
+}
+.prev {
+  left: calc(var(--row-start, 0px) + 4px);
+}
+.next {
+  right: calc(var(--row-end, 0px) + 4px);
+}
+
+/* A mouse or trackpad only: a touch screen swipes the row itself. */
+@media (hover: hover) and (pointer: fine) {
+  .row[data-overflow-start] > .prev,
+  .row[data-overflow-end] > .next {
+    visibility: visible;
+    opacity: 1;
+    transition:
+      opacity var(--duration-fast) var(--ease-out),
+      scale var(--duration-fast) var(--ease-out);
+  }
+  .arrow:hover {
+    background: var(--hover-surface);
+  }
+}
+.arrow:active {
+  scale: 0.94;
+}
+.arrow:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+/* While the mouse drags the row: no snapping or smooth scroll under the hand,
+   no text selected, and the hand shows it holds the row. */
+.row[data-dragging] > :first-child {
+  cursor: grabbing;
+  user-select: none;
+  scroll-behavior: auto;
+  scroll-snap-type: none;
+}
+.row[data-dragging] > :first-child * {
+  cursor: grabbing;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .arrow {
+    transition: none;
+  }
+  .row[data-overflow-start] > .prev,
+  .row[data-overflow-end] > .next {
+    transition: none;
+  }
+}
+
+/* Forced colours: the button keeps an edge of its own. */
+@media (forced-colors: active) {
+  .arrow {
+    border-color: ButtonText;
+  }
+}
