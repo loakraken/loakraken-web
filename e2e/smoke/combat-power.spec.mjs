@@ -76,7 +76,7 @@ test.describe("전투력 시뮬레이터 @smoke", () => {
     await expect(changes.getByText("4 → 3")).toBeVisible();
     for (const name of ["투구 재련 단계", "투구 상급 재련 단계"])
       await expect(page.getByRole("combobox", { name })).toHaveCount(0);
-    // api #838: the core opens (PM 총괄 11-15); api #842 opens 도약 only, so 진화 stays locked.
+    // api #838: the core opens (PM 총괄 11-15); ark passive stays locked (도약 waits for its input cap).
     await expect(page.getByRole("combobox", { name: "테스트 코어 등급" })).toBeVisible();
     await expect(page.getByRole("textbox", { name: "아크 패시브 진화 포인트" })).toHaveCount(0);
     await expect(page.getByRole("region", { name: "아크 패시브", exact: true })).toContainText("포인트 120P · 준비 중");
@@ -91,7 +91,7 @@ test.describe("전투력 시뮬레이터 @smoke", () => {
     await expect(page.getByRole("combobox", { name: "투구 재련 단계" })).toHaveCount(0);
     await expect(page.getByText("재련 +19 · 준비 중")).toBeVisible();
     // The guidance under the editors says the weapon is open and armour is not (PM 총괄 11-13).
-    await expect(page.getByText(/무기 재련·아크 그리드 코어·아크 패시브 도약을 바꿀 수 있어요\. 방어구 재련·/)).toBeVisible();
+    await expect(page.getByText(/무기 재련·아크 그리드 코어를 바꿀 수 있어요\. 방어구 재련·/)).toBeVisible();
     const asked = page.waitForRequest((r) => r.url().includes("/api/combat-power/simulate") && r.method() === "POST");
     await chooseOption(page, page.getByRole("combobox", { name: "무기 재련 단계" }), "21");
     // Exactly the weapon's refine change goes to the api: index 0 is the mock's weapon.

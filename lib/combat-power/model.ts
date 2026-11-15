@@ -50,11 +50,15 @@ export const isOpen = (kind: Change["kind"]) => OPEN_KINDS.has(kind);
 export const isRefineOpen = (type: string | null | undefined) => isOpen("EQUIPMENT_REFINE") || type === "무기";
 
 /**
- * Ark passive opens for 도약 only (api #842): 진화·깨달음 come back UNSUPPORTED
- * until their formula is confirmed, so those rows stay "준비 중" (PM 총괄 11-15).
+ * Ark passive trees the simulator takes, one by one. The api computes 도약 (api
+ * #842), while 진화·깨달음 come back UNSUPPORTED until their formula is
+ * confirmed. 도약 waits too, for its input cap: the field takes 0~999 (the api
+ * range) and needs the in-game maximum from an official source first, or a typed
+ * 300 would show a combat power that cannot exist (PM 총괄 11-15, option C). The
+ * cap follow-up adds "도약" here.
  */
-export const LEAP_TREE = "도약";
-export const isArkPassiveOpen = (tree: string) => isOpen("ARK_PASSIVE_POINT") || tree === LEAP_TREE;
+export const OPEN_ARK_PASSIVE_TREES: ReadonlySet<string> = new Set<string>([]);
+export const isArkPassiveOpen = (tree: string) => isOpen("ARK_PASSIVE_POINT") || OPEN_ARK_PASSIVE_TREES.has(tree);
 
 /**
  * The 혼돈의 별 : 무기 core counts through weapon attack and the api does not

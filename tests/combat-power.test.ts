@@ -130,12 +130,12 @@ test("polish, bracelet, engravings, stones, ark passive and cores become backend
       },
       full,
     ),
+    // 도약 is locked until its input cap (PM 총괄 11-15 option C): its edit is not sent.
     [
       { kind: "POLISH", index: 3, line: 0, option: "추가 피해", grade: "HIGH" },
       { kind: "BRACELET_EFFECT", line: 1, name: "치명타 피해", grade: "HIGH" },
       { kind: "ENGRAVING_LEVEL", name: "원한", level: 4 },
       { kind: "STONE_ENGRAVING", name: "원한", level: 2 },
-      { kind: "ARK_PASSIVE_POINT", tree: "도약", points: 70 },
       { kind: "ARK_GRID_CORE", slotIndex: 0, grade: "고대", point: 20 },
     ],
   );
@@ -287,10 +287,10 @@ test("1차판 opens only the kinds that passed verification (PM 총괄 23:59)", 
   );
 });
 
-test("ark passive opens for 도약 only (api #842); the 혼돈의 별 : 무기 core stays locked (api #838)", () => {
+test("ark passive stays locked, 도약 too until its input cap (option C); the 혼돈의 별 : 무기 core stays locked (api #838)", () => {
   assert.deepEqual(
     ["도약", "진화", "깨달음"].map((tree) => isArkPassiveOpen(tree)),
-    [true, false, false],
+    [false, false, false],
   );
   assert.deepEqual(
     ["질서의 해 코어 : 테스트", "혼돈의 별 코어 : 공격", "혼돈의 별 코어 : 무기", " 혼돈의 별 코어 : 무기"].map((name) =>
@@ -319,10 +319,7 @@ test("ark passive opens for 도약 only (api #842); the 혼돈의 별 : 무기 c
       },
       worn,
     ),
-    [
-      { kind: "ARK_PASSIVE_POINT", tree: "도약", points: 70 },
-      { kind: "ARK_GRID_CORE", slotIndex: 0, grade: "고대", point: 20 },
-    ],
+    [{ kind: "ARK_GRID_CORE", slotIndex: 0, grade: "고대", point: 20 }],
   );
 });
 
