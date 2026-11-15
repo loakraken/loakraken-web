@@ -33,8 +33,8 @@ export function BannerRank({ name }: { name: string }) {
             {rank.share && (
               <>
                 {" · "}
-                {/* Left out up to 360px: with a wider system face (the site font missed its
-                    load window) the full badge ran past the row there (A37, PM 총괄 11-16). */}
+                {/* Left out up to 399px: with a wider system face (the site font missed its
+                    load window) the full badge ran past the row up to 381px (A37, PM 11-16). */}
                 <span className={styles.bannerRankTopWord}>상위 </span>
                 {rank.share}
               </>

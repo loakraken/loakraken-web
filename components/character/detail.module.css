@@ -2879,6 +2879,18 @@
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
+/* Below 400px three equal cells leave a bold 15px value less room than it needs
+   (A37, 11-16: '1,780.83' and '▲580.29' ran 5–6px, '289,000G' 11.7px past their
+   cells at 320 with the site font). The first value takes its own row, the other
+   two share the next; no number is shortened and the type stays the same. */
+@media (max-width: 399px) {
+  .historyCells {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .historyCells div:first-child {
+    grid-column: 1 / -1;
+  }
+}
 .historyCells dd[data-direction="up"] {
   color: var(--gain, var(--foreground));
 }

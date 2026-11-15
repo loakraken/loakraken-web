@@ -156,8 +156,13 @@ test.describe("원정대 영수증 합계 @smoke", () => {
     test.slow();
     const answers = [];
     page.on("response", (r) => r.url().includes("/api/characters/receipt?") && answers.push(r.status()));
-    // Its own roster per run: the mock keeps one fill per name.
-    await page.goto(receiptPath(`영수증대원정대${Math.floor(Math.random() * 90) + 10}`));
+    // Its own roster per run: the mock keeps one fill per name for a minute after its last request, and
+    // the projects of a shard share one mock, so a name drawn from 90 could collide and find the fill
+    // already COMPLETE (run 43742049055, tablet-768: 1 answer instead of 10). Project, worker, retry,
+    // repeat and time make the name unique; letters and digits only, as a character name allows.
+    const info = test.info();
+    const unique = `${info.project.name.replace(/[^\p{L}\p{N}]/gu, "")}${info.workerIndex}${info.retry}${info.repeatEachIndex}${Date.now()}`;
+    await page.goto(receiptPath(`영수증대원정대${unique}`));
     await expect(total(page)).toHaveAttribute("data-status", "COMPLETE", { timeout: 120_000 });
     await expect(page.getByText("원정대 20명 중 20명 계산")).toBeVisible();
     // 10 answers of 2 members each, and none of them a rate limit.
