@@ -354,7 +354,7 @@ function Progress({
             return (
               <li key={part.id}>
                 <strong>
-                  {part.label} +{state.current + 1}
+                  {`${part.label} +${state.current + 1}`}
                 </strong>
                 <label className={styles.mini}>
                   <span>장인의 기운(%)</span>
@@ -772,7 +772,7 @@ function Result({
                 plan.stages.map((stage) => (
                   <tr key={`${part.id}-${stage.targetStage}`}>
                     <th scope="row">
-                      {part.label} +{stage.targetStage}
+                      {`${part.label} +${stage.targetStage}`}
                     </th>
                     <td>{formatCount(stage.firstAttemptSuccessRateBp / 100, 2)}%</td>
                     <td data-mode={mode === "expected" || undefined}>
@@ -1047,7 +1047,8 @@ function RefiningContent({ initialName }: { initialName: string }) {
                       )
                     }
                   >
-                    +{stage}
+                    {/* One text node: a split '+' drew first and its number arrived after it (A7). */}
+                    {`+${stage}`}
                   </button>
                 ))}
               </div>
