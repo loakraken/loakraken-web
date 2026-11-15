@@ -337,7 +337,9 @@ function Section({
             : `${items.length}개`}
         </span>
         {status && now !== null && (status.next || status.state === "done") && (
-          <span className={styles.next} data-state={status.state}>
+          // Drawn once whole (data-fp-whole, A7 rest sweep): the countdown arriving after the time re-laid the
+          // line in a phone's own font.
+          <span className={styles.next} data-state={status.state} data-fp-whole="">
             {status.state === "done" && "오늘 일정 종료"}
             {status.state === "done" && status.next && " · "}
             {status.next && (
@@ -347,6 +349,7 @@ function Section({
                 {status.state !== "upcoming" && " 후"}
               </>
             )}
+            <FpEnd />
           </span>
         )}
         {status?.state === "done" && onShowTomorrow && (
