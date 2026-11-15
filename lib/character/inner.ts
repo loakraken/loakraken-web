@@ -112,10 +112,28 @@ export function avatarTendencyTotals(avatars: Avatar[]) {
     .map(([type, point]) => ({ type, point }));
 }
 
-/** Sums "민첩 +2.00%" style lines by stat name; other lines are kept as text. */
+/**
+ * Whether a worn avatar's effect lines apply. A 덧입기 avatar's do not: its
+ * official tooltip says "아래 능력들이 적용되지 않는 상태입니다.(덧입기 슬롯에
+ * 착용 중)" (QA v0.3.13 RC P0-1; the api's combat-power model skips them too,
+ * api #939). The api's `overlay` is that mark: true never counts, false always
+ * counts. Only when it is absent (null, or an older api) does the slot pairing
+ * of `isOverlay` decide. Never IsInner alone: an avatar worn by itself in its
+ * slot is false and still applies (계산 검증 11-15: two such pieces give
+ * 지능 +6, an IsInner filter would give +4).
+ */
+export function avatarEffectApplies(avatar: Avatar, worn: readonly Avatar[]) {
+  if (typeof avatar.overlay === "boolean") return !avatar.overlay;
+  return !isOverlay(avatar, worn);
+}
+
+/**
+ * Sums "민첩 +2.00%" style lines by stat name over the avatars whose effects
+ * apply (덧입기 ones left out); other lines are kept as text.
+ */
 export function avatarEffectTotals(avatars: Avatar[]) {
   const totals = new Map<string, number>();
-  for (const avatar of avatars)
+  for (const avatar of avatars.filter((avatar) => avatarEffectApplies(avatar, avatars)))
     for (const line of avatar.effects) {
       const match = /^(.+?)\s*\+([\d.]+)%$/.exec(line.trim());
       if (match)
